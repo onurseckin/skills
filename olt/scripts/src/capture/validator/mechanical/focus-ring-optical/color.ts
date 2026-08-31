@@ -95,31 +95,20 @@ export function parseCssColor(colorStr?: string): RgbaColor | null {
   if (trimmed.startsWith("#")) {
     const hex = trimmed.slice(1);
     if (hex.length === 3) {
-      const h0 = hex[0];
-      const h1 = hex[1];
-      const h2 = hex[2];
-      if (h0 !== undefined && h1 !== undefined && h2 !== undefined) {
-        return {
-          r: parseInt(h0 + h0, 16),
-          g: parseInt(h1 + h1, 16),
-          b: parseInt(h2 + h2, 16),
-          a: 1,
-        };
-      }
+      return {
+        r: parseInt(hex[0]! + hex[0]!, 16),
+        g: parseInt(hex[1]! + hex[1]!, 16),
+        b: parseInt(hex[2]! + hex[2]!, 16),
+        a: 1,
+      };
     }
     if (hex.length === 4) {
-      const h0 = hex[0];
-      const h1 = hex[1];
-      const h2 = hex[2];
-      const h3 = hex[3];
-      if (h0 !== undefined && h1 !== undefined && h2 !== undefined && h3 !== undefined) {
-        return {
-          r: parseInt(h0 + h0, 16),
-          g: parseInt(h1 + h1, 16),
-          b: parseInt(h2 + h2, 16),
-          a: parseInt(h3 + h3, 16) / 255,
-        };
-      }
+      return {
+        r: parseInt(hex[0]! + hex[0]!, 16),
+        g: parseInt(hex[1]! + hex[1]!, 16),
+        b: parseInt(hex[2]! + hex[2]!, 16),
+        a: parseInt(hex[3]! + hex[3]!, 16) / 255,
+      };
     }
     if (hex.length === 6) {
       return {
@@ -144,21 +133,19 @@ export function parseCssColor(colorStr?: string): RgbaColor | null {
     /^rgba?\(\s*([\d.]+)\s*(?:,|\s+)\s*([\d.]+)\s*(?:,|\s+)\s*([\d.]+)(?:\s*(?:,|\/)\s*([\d.]+%?))?\s*\)$/i,
   );
   if (rgbMatch) {
-    const m1 = rgbMatch[1];
-    const m2 = rgbMatch[2];
-    const m3 = rgbMatch[3];
+    const m1 = rgbMatch[1]!;
+    const m2 = rgbMatch[2]!;
+    const m3 = rgbMatch[3]!;
     const m4 = rgbMatch[4];
-    if (m1 !== undefined && m2 !== undefined && m3 !== undefined) {
-      const r = Math.min(255, Math.max(0, parseFloat(m1)));
-      const g = Math.min(255, Math.max(0, parseFloat(m2)));
-      const b = Math.min(255, Math.max(0, parseFloat(m3)));
-      let a = 1;
-      if (m4 !== undefined) {
-        a = m4.endsWith("%") ? parseFloat(m4) / 100 : parseFloat(m4);
-        a = Math.min(1, Math.max(0, a));
-      }
-      return { r, g, b, a };
+    const r = Math.min(255, Math.max(0, parseFloat(m1)));
+    const g = Math.min(255, Math.max(0, parseFloat(m2)));
+    const b = Math.min(255, Math.max(0, parseFloat(m3)));
+    let a = 1;
+    if (m4 !== undefined) {
+      a = m4.endsWith("%") ? parseFloat(m4) / 100 : parseFloat(m4);
+      a = Math.min(1, Math.max(0, a));
     }
+    return { r, g, b, a };
   }
 
   // HSL / HSLA

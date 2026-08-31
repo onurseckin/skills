@@ -3,8 +3,11 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   agentBriefCommand,
+  agentDefineCommand,
   executeAgentBrief,
 } from "../../../olt/scripts/src/cli/commands/agent-brief.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 
 describe("executeAgentBrief", () => {
   const scratchBase = join(process.cwd(), "coverage", "scratch", "agent-brief");
@@ -98,5 +101,78 @@ describe("executeAgentBrief", () => {
     expect(brief).toContain('"Subagents": [');
     expect(brief).toContain('"TypeName": "implementer"');
     expect(brief).toContain('"TypeName": "validator"');
+  });
+
+  test("throws HarnessError if agent manifest is not found for role", () => {
+    expect(() => executeAgentBrief({ role: "nonexistent_role_xyz" })).toThrow(HarnessError);
+  });
+
+  test("resolves diverse roles and host bindings", () => {
+    const roles = ["validator", "critic", "mind", "worker"];
+    for (const r of roles) {
+      const brief = executeAgentBrief({ role: r, host: "antigravity" });
+      expect(brief).toContain("SECTION 1: SYSTEM IDENTITY");
+      expect(brief).toContain("SECTION 2: CONSTITUTIONAL PERMISSIONS");
+    }
+  });
+
+  test("renders capsule milestone evidence verification when capsulePath is provided", async () => {
+    const repoRoot = join(scratchBase, "capsule-evidence-repo");
+    mkdirSync(repoRoot, { recursive: true });
+    const runRoot = initRun(
+      repoRoot,
+      "evidence-test-run",
+      new TextEncoder().encode("prompt"),
+      "file",
+      true,
+    );
+
+    const brief = executeAgentBrief({
+      role: "implementer",
+      repoRoot,
+      capsulePath: runRoot,
+    });
+
+    expect(brief).toContain("SECTION 3.5: CAPSULE MILESTONE EVIDENCE VERIFICATION");
+    expect(brief).toContain(`CAPSULE: ${runRoot}`);
+  });
+
+  test("agentBriefCommand validates arguments and executes brief with run flag", async () => {
+    // Missing role
+    await expect(agentBriefCommand({})).rejects.toThrow(HarnessError);
+
+    // Invalid host
+    await expect(
+      agentBriefCommand({
+        role: "implementer",
+        host: "invalid_host_123",
+      }),
+    ).rejects.toThrow(HarnessError);
+
+    const repoRoot = join(scratchBase, "brief-cmd-run-repo");
+    mkdirSync(repoRoot, { recursive: true });
+    const runRoot = initRun(
+      repoRoot,
+      "brief-cmd-run",
+      new TextEncoder().encode("prompt"),
+      "file",
+      true,
+    );
+
+    // Valid host, format, and run
+    const res = await agentBriefCommand({
+      role: "implementer",
+      host: "claude_code",
+      format: "markdown",
+      run: runRoot,
+    });
+    expect(res.markdown).toBeDefined();
+    expect(String(res.markdown)).toContain("SECTION 1: SYSTEM IDENTITY");
+    expect(res.milestone_evidence).toBeDefined();
+  });
+
+  test("agentDefineCommand returns placeholder response", async () => {
+    const res = await agentDefineCommand({});
+    expect(res.markdown).toContain("agent:define not fully implemented yet");
   });
 });

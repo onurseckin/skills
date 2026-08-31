@@ -46,8 +46,10 @@ export function parseLcov(lcovContent: string, repoRoot?: string): Map<string, F
       lineHit = parseCount(trimmed.slice(3));
     } else if (trimmed.startsWith("DA:")) {
       const parts = trimmed.slice(3).split(",");
-      const lineNo = parseCount(parts[0] ?? "0");
-      const hitCount = parseCount(parts[1] ?? "0");
+      const rawLineNo = parts[0];
+      const rawHitCount = parts[1];
+      const lineNo = typeof rawLineNo === "string" && rawLineNo.length > 0 ? parseCount(rawLineNo) : 0;
+      const hitCount = typeof rawHitCount === "string" && rawHitCount.length > 0 ? parseCount(rawHitCount) : 0;
       if (lineNo > 0) {
         lineHitsMap.set(lineNo, hitCount);
         if (hitCount === 0) {

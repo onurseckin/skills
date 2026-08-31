@@ -27,7 +27,7 @@ export class DefaultFallbackBrowserProvider implements CaptureBrowserProvider {
           },
           goto: async () => {},
           waitForSelector: async () => {},
-          screenshot: async (opts) => {
+          screenshot: async (opts = {}) => {
             const buf = createSyntheticPngBuffer(
               currentViewport.width,
               currentViewport.height,

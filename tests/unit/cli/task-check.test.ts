@@ -2,6 +2,7 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import ts from "typescript";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import {
   collectSourceFilesRecursively,
@@ -17,8 +18,9 @@ import {
 } from "../../../olt/scripts/src/cli/commands/task-check.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { setAutoReceiptDependenciesForTesting } from "../../../olt/scripts/src/engine/runner/receipt/auto-receipt.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
+import { setupCompiledRun } from "./task-ops-fixture.ts";
 
 const roots: string[] = [];
 afterAll(async () => cleanupRoots(roots));
@@ -67,7 +69,7 @@ describe("task:check command and helpers", () => {
     expect(nonExistent.length).toBe(0);
   });
 
-  test("findNearestTsconfig discovers tsconfig in hierarchy", async () => {
+  test("findNearestTsconfig discovers tsconfig in hierarchy and falls back", async () => {
     const root = await mkdtemp(join(tmpdir(), "task-check-tsconfig-"));
     roots.push(root);
 
@@ -84,9 +86,14 @@ describe("task:check command and helpers", () => {
 
     const notOnDisk = findNearestTsconfig(join(root, "non-existent-file.ts"));
     expect(notOnDisk).toBeDefined();
+
+    const isolatedRoot = await mkdtemp(join(tmpdir(), "task-check-isolated-"));
+    roots.push(isolatedRoot);
+    const isolatedConfig = findNearestTsconfig(join(isolatedRoot, "file.ts"));
+    expect(isolatedConfig).toBeDefined();
   });
 
-  test("performIncrementalTypecheck checks files accurately", async () => {
+  test("performIncrementalTypecheck checks files accurately with tsconfig, fallback, and error recovery", async () => {
     const root = await mkdtemp(join(tmpdir(), "task-check-typecheck-"));
     roots.push(root);
 
@@ -119,13 +126,36 @@ describe("task:check command and helpers", () => {
     expect(errorResult.totalErrors).toBeGreaterThan(0);
     expect(errorResult.diagnostics.length).toBeGreaterThan(0);
 
+    // Test fallback compiler without tsconfig with clean and error files
+    const noTsconfigRoot = await mkdtemp(join(tmpdir(), "task-check-no-tsconfig-"));
+    roots.push(noTsconfigRoot);
+    const noTsconfigFile = join(noTsconfigRoot, "fallback.ts");
+    await writeFile(noTsconfigFile, "export const fb: string = 'fallback';\n");
+    const fallbackRes = performIncrementalTypecheck([noTsconfigFile]);
+    expect(fallbackRes.passed).toBe(true);
+
+    const noTsconfigErrFile = join(noTsconfigRoot, "fallback-err.ts");
+    await writeFile(noTsconfigErrFile, "export const fbErr: number = 'invalid';\n");
+    const fallbackErrRes = performIncrementalTypecheck([noTsconfigErrFile]);
+    expect(fallbackErrRes.passed).toBe(false);
+    expect(fallbackErrRes.totalErrors).toBeGreaterThan(0);
+
+    // Test error with corrupted tsconfig.json to exercise catch block
+    const corruptRoot = await mkdtemp(join(tmpdir(), "task-check-corrupt-"));
+    roots.push(corruptRoot);
+    await writeFile(join(corruptRoot, "tsconfig.json"), "{ invalid json");
+    const corruptFile = join(corruptRoot, "corrupt.ts");
+    await writeFile(corruptFile, "export const c = 1;\n");
+    const corruptRes = performIncrementalTypecheck([corruptFile]);
+    expect(corruptRes.passed).toBe(true);
+
     // Empty list
     const emptyResult = performIncrementalTypecheck([]);
     expect(emptyResult.passed).toBe(true);
     expect(emptyResult.totalFiles).toBe(0);
   }, 30_000);
 
-  test("performAstLintCheck verifies AST invariants", async () => {
+  test("performAstLintCheck verifies AST invariants and handles errors", async () => {
     const root = await mkdtemp(join(tmpdir(), "task-check-lint-"));
     roots.push(root);
 
@@ -241,14 +271,52 @@ describe("task:check command and helpers", () => {
 
     // 3. Task without run throws
     expect(() => resolveTargetFiles({ taskId: "task-01" })).toThrow("--run is required");
+
+    // 4. Non-existent candidate file in fileFlags
+    const nonExistentFile = resolveTargetFiles({ fileFlags: [join(root, "not-here.ts")] });
+    expect(nonExistentFile.length).toBe(1);
   });
 
-  test("taskCheckCommand runs full verification end to end", async () => {
-    const root = await mkdtemp(join(tmpdir(), "task-check-e2e-"));
-    roots.push(root);
+  test("resolveTargetFiles resolves tasks, fallback store, and whole run from compiled run", async () => {
+    const { repo, run } = await setupCompiledRun("task-check-resolve-run", roots);
+
+    // Unknown task throws
+    expect(() => resolveTargetFiles({ runRoot: run, taskId: "non-existent-task" })).toThrow(
+      "unknown task",
+    );
+
+    // Task with target_files array and write_scope
+    await writeFile(join(repo, "tests/unit/core/file.ts"), "export const f = 1;\n");
+    transact(run, "coordinator", "set-target-files", {}, (draft) => {
+      const t = draft.tasks["task-core"]!;
+      t.target_files = [join(repo, "custom-target.ts")];
+      t.write_scope = [join(repo, "tests/unit/core")];
+    });
+
+    const taskFiles = resolveTargetFiles({ runRoot: run, taskId: "task-core" });
+    expect(taskFiles.length).toBeGreaterThan(0);
+
+    // Corrupt graph to exercise workflowPort read fallback to loadRun
+    transact(run, "coordinator", "corrupt-graph", {}, (draft) => {
+      draft.graph = { revision: 0 }; // Causes workflowState to throw TypeError
+    });
+    const fallbackTaskFiles = resolveTargetFiles({ runRoot: run, taskId: "task-core" });
+    expect(fallbackTaskFiles.length).toBeGreaterThan(0);
+
+    // Whole run scope
+    const wholeRunFiles = resolveTargetFiles({ runRoot: run });
+    expect(wholeRunFiles.length).toBeGreaterThan(0);
+
+    // Empty runRoot string returns []
+    const emptyRunFiles = resolveTargetFiles({ runRoot: "  " });
+    expect(emptyRunFiles).toEqual([]);
+  });
+
+  test("taskCheckCommand runs full verification end to end with task and evidence", async () => {
+    const { repo, run } = await setupCompiledRun("task-check-e2e-full", roots);
 
     await writeFile(
-      join(root, "tsconfig.json"),
+      join(repo, "tsconfig.json"),
       JSON.stringify({
         compilerOptions: {
           target: "ESNext",
@@ -260,7 +328,7 @@ describe("task:check command and helpers", () => {
       }),
     );
 
-    const cleanPath = join(root, "clean.ts");
+    const cleanPath = join(repo, "clean.ts");
     await writeFile(cleanPath, "export const cleanVal = 10;\n");
 
     // Command with explicit file
@@ -286,6 +354,31 @@ describe("task:check command and helpers", () => {
     });
     expect(lintOnly.typecheck).toBeUndefined();
     expect(lintOnly.lint).toBeDefined();
+
+    // Pre-create evidence dir to exercise existing evidence directory branch
+    await mkdir(join(run, "evidence"), { recursive: true });
+
+    // Command with --run, --file, --lint, --format json
+    const taskRes = await taskCheckCommand({
+      run,
+      file: cleanPath,
+      lint: true,
+      format: "json",
+      actor: "test-actor",
+    });
+    expect(taskRes.passed).toBe(true);
+    expect(taskRes.format).toBe("json");
+    expect(taskRes.evidence_path).toBeDefined();
+
+    // Command with directory of non-source files throws INVALID_ARGUMENT
+    const nonSourceDir = join(repo, "non-source-dir");
+    await mkdir(nonSourceDir, { recursive: true });
+    await writeFile(join(nonSourceDir, "image.png"), "fake image data");
+    await expect(
+      taskCheckCommand({
+        file: nonSourceDir,
+      }),
+    ).rejects.toThrow(/No valid source files found/);
 
     // Command with missing arguments throws
     await expect(taskCheckCommand({})).rejects.toThrow(

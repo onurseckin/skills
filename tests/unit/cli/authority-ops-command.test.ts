@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { loadRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 
@@ -72,6 +73,60 @@ describe("authority:decide", () => {
     expect(String(decided.markdown)).toContain("- **Rationale**: Out of scope for this run.");
     const requirement = decided.requirement as { authority_status: string };
     expect(requirement.authority_status).toBe("declined");
+  });
+
+  test("throws HarnessError if requirement is not found in non-mind state", async () => {
+    const { run } = await setupCompiledRun("authority-cmd-notfound", roots);
+
+    await expect(
+      execute([
+        "authority:decide",
+        "--run",
+        run,
+        "--requirement",
+        "req-nonexistent",
+        "--actor",
+        "coordinator",
+        "--decision",
+        "grant",
+        "--rationale",
+        "Approving unknown requirement",
+      ]),
+    ).rejects.toThrow(HarnessError);
+  });
+
+  test("decides proposal in mind / candidates state", async () => {
+    const { run } = await setupCompiledRun("authority-cmd-mind", roots);
+
+    transact(run, "test-setup", "seed-candidate", {}, (draft) => {
+      draft.candidates = [
+        {
+          id: "prop-auth-1",
+          statement: "Add authentication middleware",
+          status: "needs_authority",
+          disposition: "needs_authority",
+        },
+      ];
+    });
+
+    const decided = await execute([
+      "authority:decide",
+      "--run",
+      run,
+      "--requirement",
+      "prop-auth-1",
+      "--actor",
+      "coordinator",
+      "--decision",
+      "grant",
+      "--rationale",
+      "Approved by project lead",
+    ]);
+
+    expect(String(decided.markdown)).toContain("### Authority Decision Recorded: `prop-auth-1`");
+    expect(String(decided.markdown)).toContain("- **Decision**: GRANT");
+    expect(String(decided.markdown)).toContain("- **Candidate**: `prop-auth-1`");
+    expect(decided.proposal).toBeDefined();
   });
 
   test("rejects a decision value that is neither grant nor decline", async () => {

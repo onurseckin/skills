@@ -15,15 +15,10 @@ function parseColor(colorStr?: string): ParsedRGB | null {
   if (trimmed.startsWith("#")) {
     const hex = trimmed.slice(1);
     if (hex.length === 3) {
-      const h0 = hex[0];
-      const h1 = hex[1];
-      const h2 = hex[2];
-      if (h0 !== undefined && h1 !== undefined && h2 !== undefined) {
-        const r = parseInt(h0 + h0, 16);
-        const g = parseInt(h1 + h1, 16);
-        const b = parseInt(h2 + h2, 16);
-        return { r, g, b, a: 1 };
-      }
+      const r = parseInt(hex[0]! + hex[0]!, 16);
+      const g = parseInt(hex[1]! + hex[1]!, 16);
+      const b = parseInt(hex[2]! + hex[2]!, 16);
+      return { r, g, b, a: 1 };
     }
     if (hex.length === 6) {
       const r = parseInt(hex.slice(0, 2), 16);
@@ -44,17 +39,12 @@ function parseColor(colorStr?: string): ParsedRGB | null {
     /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?\s*\)$/,
   );
   if (rgbaMatch) {
-    const m1 = rgbaMatch[1];
-    const m2 = rgbaMatch[2];
-    const m3 = rgbaMatch[3];
+    const r = parseInt(rgbaMatch[1]!, 10);
+    const g = parseInt(rgbaMatch[2]!, 10);
+    const b = parseInt(rgbaMatch[3]!, 10);
     const m4 = rgbaMatch[4];
-    if (m1 !== undefined && m2 !== undefined && m3 !== undefined) {
-      const r = parseInt(m1, 10);
-      const g = parseInt(m2, 10);
-      const b = parseInt(m3, 10);
-      const a = m4 !== undefined ? parseFloat(m4) : 1;
-      return { r, g, b, a };
-    }
+    const a = m4 !== undefined ? parseFloat(m4) : 1;
+    return { r, g, b, a };
   }
 
   if (trimmed === "white") return { r: 255, g: 255, b: 255, a: 1 };

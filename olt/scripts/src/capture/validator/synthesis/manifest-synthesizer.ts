@@ -115,7 +115,7 @@ function buildEvaluatedCriteria(
       "CRIT-COGN-NORMAN",
       "cognitive",
       "Don Norman Error Recovery Grace Periods",
-      defCogn("norman-recovery"),
+      defCogn("norman-grace").concat(defCogn("norman-recovery")),
       "Destructive actions provide confirmation dialogs, undo grace periods, or safe recovery paths",
     ),
     makeCrit(
@@ -140,7 +140,7 @@ function buildEvaluatedCriteria(
       "CRIT-PROD-OPTICAL-TRACKING",
       "product",
       "Optical Tracking & Typography Curves",
-      defCust("apple-optical-tracking"),
+      defCust("apple-hig-tracking").concat(defCust("apple-optical-tracking")),
       "Font letter-spacing dynamically tightens for large display headers per optical tracking curves",
     ),
   );
@@ -151,7 +151,7 @@ function buildEvaluatedCriteria(
       "CRIT-UX-FOCUS-TRAP",
       "ux",
       "WAI-ARIA Focus Trap & Roving Tabindex",
-      defCust("wai-aria-focus-trap"),
+      defCust("aria-focus-trap").concat(defCust("wai-aria-focus-trap")),
       "Modal dialogs and menus constrain keyboard focus cycling and support roving tabindex",
     ),
     makeCrit(
@@ -165,7 +165,7 @@ function buildEvaluatedCriteria(
       "CRIT-UX-STATE-LAYERS",
       "ux",
       "Material Interactive State Layers",
-      defCust("material-state-layers"),
+      defCust("md3-state-layers").concat(defCust("material-state-layers")),
       "Interactive surface feedback uses calibrated opacity state layer overlays",
     ),
   );
@@ -180,12 +180,18 @@ export function synthesizeCompanionManifest(ctx: ValidationContext): CompanionMa
 
   const prodDefects = [
     ...customResult.defects.filter((d) => d.category === "geist-tokens"),
-    ...customResult.defects.filter((d) => d.category === "apple-optical-tracking"),
+    ...customResult.defects.filter(
+      (d) => d.category === "apple-hig-tracking" || d.category === "apple-optical-tracking",
+    ),
   ];
   const uxDefects = [
-    ...customResult.defects.filter((d) => d.category === "wai-aria-focus-trap"),
+    ...customResult.defects.filter(
+      (d) => d.category === "aria-focus-trap" || d.category === "wai-aria-focus-trap",
+    ),
     ...customResult.defects.filter((d) => d.category === "floating-ui-collision"),
-    ...customResult.defects.filter((d) => d.category === "material-state-layers"),
+    ...customResult.defects.filter(
+      (d) => d.category === "md3-state-layers" || d.category === "material-state-layers",
+    ),
   ];
 
   const productResult: PillarValidationResult = {

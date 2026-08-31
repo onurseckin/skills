@@ -42,6 +42,7 @@ export function validateTouchTargetClearance(
   const defects: ValidationDefect[] = [];
   const interactiveTargets = targets.filter(
     (el) =>
+      el &&
       (el.interactive || el.isTouchTarget || isInteractiveTag(el.tagName)) &&
       el.bounds.width > 0 &&
       el.bounds.height > 0,

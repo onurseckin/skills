@@ -2,7 +2,7 @@
  * Unified Coverage Reporting Subsystem Entrypoint and Barrel Export
  * Orchestrates parsing lcov.info, building JSON summary, Markdown report, and HTML dashboard.
  */
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { writeInteractiveHtml } from "./html/index.ts";
 import { parseLcov } from "./lcov-parser.ts";
@@ -48,10 +48,6 @@ export function processCoverageArtifacts(
   const fileMap = parseLcov(lcovContent, root);
   const summary = buildCoverageSummary(fileMap);
 
-  if (!existsSync(coverageDir)) {
-    mkdirSync(coverageDir, { recursive: true });
-  }
-
   // 1. Write standard Istanbul/NYC coverage-summary.json
   const summaryPath = writeSummaryJson(summary, root, coverageDirName);
 
@@ -61,7 +57,13 @@ export function processCoverageArtifacts(
   // 3. Write modern interactive HTML dashboard index.html
   const htmlPath = writeInteractiveHtml(fileMap, summary, root, coverageDirName);
 
-  const totalPct = summary.total?.lines.pct ?? 0;
+  const totalPct =
+    typeof summary.total !== "undefined" &&
+    summary.total !== null &&
+    typeof summary.total.lines !== "undefined" &&
+    typeof summary.total.lines.pct === "number"
+      ? summary.total.lines.pct
+      : 0;
 
   return {
     lcovExists: true,
@@ -79,10 +81,9 @@ export function computeIsMain(
 ): boolean {
   if (mainVal) return true;
   if (!entryArg) return false;
-  return (
-    entryArg.endsWith("scripts/testing/reporting/index.ts") ||
-    entryArg.endsWith("scripts/testing/reporting")
-  );
+  if (entryArg.endsWith("scripts/testing/reporting/index.ts")) return true;
+  if (entryArg.endsWith("scripts/testing/reporting")) return true;
+  return false;
 }
 
 export function main(): void {
@@ -96,7 +97,12 @@ export function main(): void {
   }
 }
 
-// Auto-execute if invoked as CLI script
-if (computeIsMain()) {
-  main();
+export function runCli(isMain: boolean = computeIsMain()): void {
+  if (isMain) {
+    main();
+  }
 }
+
+// Auto-execute if invoked as CLI script
+runCli();
+

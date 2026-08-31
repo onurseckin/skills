@@ -7,6 +7,7 @@ import {
   formatValidationStartBrief,
 } from "../../../olt/scripts/src/cli/formatters/task-formatter.ts";
 import { formatAgentBrief } from "../../../olt/scripts/src/cli/formatters/agent-formatter.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { TASK_ID, setupRun } from "./probe-fixture.ts";
@@ -190,6 +191,11 @@ describe("formatValidationStartBrief enhancements", () => {
 });
 
 describe("taskBriefCommand and agentBriefCommand handler tests", () => {
+  test("taskBriefCommand throws HarnessError when neither task nor agent provided", async () => {
+    const { run } = await setupRun("task-brief-no-target", roots);
+    await expect(taskBriefCommand({ run })).rejects.toThrow(HarnessError);
+  });
+
   test("taskBriefCommand resolves briefing for ready task and returns complete payload", async () => {
     const { run } = await setupRun("task-brief-test", roots);
     const result = await taskBriefCommand({
@@ -216,6 +222,96 @@ describe("taskBriefCommand and agentBriefCommand handler tests", () => {
     expect(briefing.gateCommands).toContain("bun gate-core.ts");
     expect(String(result.markdown)).toContain("### 🌌 Zero-Exploration Briefing: " + TASK_ID);
     expect(String(result.markdown)).toContain("bun gate-core.ts");
+  });
+
+  test("taskBriefCommand covers custom targets, gates, title, symbols, and criteria", async () => {
+    const { run } = await setupRun("task-brief-custom-fields", roots);
+
+    transact(run, "coordinator", "set-custom-task-fields", {}, (draft) => {
+      draft.requirements = {
+        requirements: [
+          { id: "req-1", title: "Auth Flow", status: "open" },
+          { id: "req-2", title: "Data Storage", status: "actionable" },
+        ],
+      };
+      const t = draft.tasks[TASK_ID]!;
+      t.label = undefined;
+      (t as Record<string, unknown>).title = "Custom Title Task";
+      t.target_files = ["src/auth.spec.ts", "src/auth.test.js", "src/auth.spec.js", "src/utils.js"];
+      t.requirement_ids = ["req-1", "req-2"];
+      t.acceptance_criteria = ["Criteria 1: Auth works"];
+      t.target_symbols = ["AuthService", "verifyToken"];
+      t.gate = "cargo test && pytest && npm test";
+      t.status = "changes_requested";
+    });
+
+    const result = await taskBriefCommand({
+      run,
+      task: TASK_ID,
+    });
+
+    expect(String(result.markdown)).toContain("Custom Title Task");
+    expect(String(result.markdown)).toContain("Auth Flow");
+    expect(String(result.markdown)).toContain("Criteria 1: Auth works");
+    expect(String(result.markdown)).toContain("bun test src/auth.spec.ts");
+  });
+
+  test("taskBriefCommand covers cargo/pytest gates and acceptance criteria replacement", async () => {
+    const { run } = await setupRun("task-brief-cargo-gates", roots);
+
+    transact(run, "coordinator", "set-cargo-gate-task", {}, (draft) => {
+      const t = draft.tasks[TASK_ID]!;
+      const graph = (draft.graph ?? { revision: 1 }) as Record<string, unknown>;
+      graph.gates = [
+        {
+          id: "g1",
+          scope: "task",
+          mandatory: true,
+          requirement_ids: ["req-core"],
+          command: "pytest",
+        },
+        {
+          id: "g2",
+          scope: "task",
+          mandatory: true,
+          requirement_ids: ["req-core"],
+          command: "cargo test",
+        },
+      ];
+      draft.graph = graph;
+      t.write_scope = ["src/index.ts"];
+      t.target_files = undefined;
+      t.acceptance_criteria = undefined;
+      t.requirement_ids = [];
+    });
+
+    const result = await taskBriefCommand({
+      run,
+      task: TASK_ID,
+    });
+
+    expect(String(result.markdown)).toContain("bun test src/index.ts");
+    expect(String(result.markdown)).toContain("Strict type safety");
+  });
+
+  test("taskBriefCommand derives bun test candidate for source files without gate commands", async () => {
+    const { run } = await setupRun("task-brief-ts-fallback", roots);
+
+    transact(run, "coordinator", "set-ts-fallback-task", {}, (draft) => {
+      const t = draft.tasks[TASK_ID]!;
+      const graph = (draft.graph ?? { revision: 1 }) as Record<string, unknown>;
+      graph.gates = [];
+      draft.graph = graph;
+      t.write_scope = ["src/helper.ts"];
+      t.target_files = undefined;
+    });
+
+    const result = await taskBriefCommand({
+      run,
+      task: TASK_ID,
+    });
+
+    expect(String(result.markdown)).toContain("bun test src/helper.ts");
   });
 
   test("taskBriefCommand throws INVALID_ARGUMENT when task is not found", async () => {
@@ -284,6 +380,7 @@ describe("taskBriefCommand and agentBriefCommand handler tests", () => {
     expect(result.run_root).toBe(run);
     expect(result.grant).toBeDefined();
     expect(result.briefing).toBeDefined();
+    expect(result.task_briefing).toBeDefined();
 
     const briefing = result.briefing as {
       agentId: string;
@@ -299,6 +396,46 @@ describe("taskBriefCommand and agentBriefCommand handler tests", () => {
     expect(String(result.markdown)).toContain(
       "### 🌌 Zero-Exploration Briefing: Agent worker-agent-1 (implementer)",
     );
+
+    // Test agent with task and agent both supplied
+    const combined = await taskBriefCommand({
+      run,
+      task: TASK_ID,
+      agent: "worker-agent-1",
+    });
+    expect(combined.agent_briefing).toBeDefined();
+  });
+
+  test("taskBriefCommand resolves briefing for leased, validating, and submitted tasks", async () => {
+    const { run } = await setupRun("task-brief-statuses", roots);
+
+    // Test leased status
+    transact(run, "coordinator", "set-status-leased", {}, (draft) => {
+      draft.tasks[TASK_ID]!.status = "leased";
+    });
+    const leasedRes = await taskBriefCommand({ run, task: TASK_ID });
+    expect(String(leasedRes.markdown)).toContain("task:submit");
+
+    // Test submitted status
+    transact(run, "coordinator", "set-status-submitted", {}, (draft) => {
+      draft.tasks[TASK_ID]!.status = "submitted";
+    });
+    const subRes = await taskBriefCommand({ run, task: TASK_ID });
+    expect(String(subRes.markdown)).toContain("task:validate-start");
+
+    // Test validating status
+    transact(run, "coordinator", "set-status-validating", {}, (draft) => {
+      draft.tasks[TASK_ID]!.status = "validating";
+    });
+    const valRes = await taskBriefCommand({ run, task: TASK_ID });
+    expect(String(valRes.markdown)).toContain("task:review");
+
+    // Test retry_ready status
+    transact(run, "coordinator", "set-status-retry-ready", {}, (draft) => {
+      draft.tasks[TASK_ID]!.status = "retry_ready";
+    });
+    const retryRes = await taskBriefCommand({ run, task: TASK_ID });
+    expect(String(retryRes.markdown)).toContain("task:claim");
   });
 
   test("taskBriefCommand throws INVALID_STATE when agent holds no grant", async () => {

@@ -6,7 +6,15 @@ import { join } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
-import type { UnifiedReport } from "../../../olt/scripts/src/reporting/unified/index.ts";
+import {
+  reportDagCommand,
+  reportDecisionsCommand,
+  reportGraphCommand,
+  reportGraphJsonCommand,
+  reportHealthCommand,
+  reportLeasesCommand,
+  reportUnifiedCommand,
+} from "../../../olt/scripts/src/cli/commands/unified-reporting.ts";
 import {
   extractLeaseAgentId,
   extractLeaseRole,
@@ -455,4 +463,50 @@ describe("Unified Reporting CLI Surface", () => {
     expect(statusResult.metrics).toBeDefined();
     expect(statusResult.occupancy).toBeDefined();
   });
+
+  test("direct invocation of unified reporting commands", async () => {
+    const { repo, run } = await createBaseRun("direct-commands");
+
+    // reportUnifiedCommand with json: true
+    const jsonReport = reportUnifiedCommand({
+      run,
+      repo,
+      json: true,
+      detailed: true,
+    });
+    expect(jsonReport.json).toBe(true);
+
+    // reportDagCommand and reportGraphCommand
+    const dagResult = await reportDagCommand({ run, repo });
+    expect(dagResult.markdown).toBeDefined();
+
+    const graphResult = await reportGraphCommand({ run, repo });
+    expect(graphResult.markdown).toBeDefined();
+
+    // reportGraphJsonCommand
+    const graphJsonResult = reportGraphJsonCommand({ run, repo });
+    expect(graphJsonResult).toBeDefined();
+
+    // reportLeasesCommand and reportDecisionsCommand
+    const leases = reportLeasesCommand({ run, repo });
+    expect(leases).toBeDefined();
+
+    const decisions = reportDecisionsCommand({ run, repo });
+    expect(decisions).toBeDefined();
+
+    // reportHealthCommand without installation
+    const health1 = await reportHealthCommand({ run, repo });
+    expect(health1.markdown).toBeDefined();
+
+    // reportHealthCommand with installation and clients
+    const health2 = await reportHealthCommand({
+      run,
+      repo,
+      source: join(process.cwd(), "olt"),
+      home: repo,
+      clients: "claude-code, cursor",
+    });
+    expect(health2.markdown).toBeDefined();
+  });
 });
+

@@ -10,11 +10,14 @@ export function buildMarkdownReport(
   fileMap: Map<string, FileCoverageMetric>,
   summary: CoverageSummary,
 ): string {
-  const total = summary.total ?? {
-    lines: { total: 0, covered: 0, skipped: 0, pct: 100 },
-    statements: { total: 0, covered: 0, skipped: 0, pct: 100 },
-    functions: { total: 0, covered: 0, skipped: 0, pct: 100 },
-  };
+  const total =
+    typeof summary.total !== "undefined" && summary.total !== null
+      ? summary.total
+      : {
+          lines: { total: 0, covered: 0, skipped: 0, pct: 100 },
+          statements: { total: 0, covered: 0, skipped: 0, pct: 100 },
+          functions: { total: 0, covered: 0, skipped: 0, pct: 100 },
+        };
 
   const lines: string[] = [
     "# Repository Unit Test Coverage Report",

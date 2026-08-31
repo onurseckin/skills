@@ -54,9 +54,9 @@ export function validateSidebarLayout(
   const containerSelector = sidebarConfig.selectors?.container;
   const sidebarContainer = containerSelector
     ? elements.find(
-        (e) => e.selector === containerSelector || e.selector.includes(containerSelector),
+        (e) => e && (e.selector === containerSelector || e.selector.includes(containerSelector)),
       )
-    : elements.find((e) => e.tagName.toUpperCase() === "ASIDE" || e.selector.includes("sidebar"));
+    : elements.find((e) => e && (e.tagName.toUpperCase() === "ASIDE" || e.selector.includes("sidebar")));
 
   if (sidebarContainer) {
     const width = sidebarContainer.bounds.width;
@@ -90,9 +90,9 @@ export function validateSidebarLayout(
   if (sidebarConfig.logoPosition === "top-left") {
     const logoSel = sidebarConfig.selectors?.logo;
     const logoEl = logoSel
-      ? elements.find((e) => e.selector === logoSel || e.selector.includes(logoSel))
+      ? elements.find((e) => e && (e.selector === logoSel || e.selector.includes(logoSel)))
       : elements.find(
-          (e) => e.selector.includes("logo") || e.attributes?.["data-testid"] === "logo",
+          (e) => e && (e.selector.includes("logo") || e.attributes?.["data-testid"] === "logo"),
         );
 
     if (logoEl && (logoEl.bounds.x > 80 || logoEl.bounds.y > 100)) {
@@ -113,8 +113,8 @@ export function validateSidebarLayout(
   if (sidebarConfig.userProfilePosition === "bottom-left") {
     const profileSel = sidebarConfig.selectors?.userProfile;
     const profileEl = profileSel
-      ? elements.find((e) => e.selector === profileSel || e.selector.includes(profileSel))
-      : elements.find((e) => e.selector.includes("profile") || e.selector.includes("user-avatar"));
+      ? elements.find((e) => e && (e.selector === profileSel || e.selector.includes(profileSel)))
+      : elements.find((e) => e && (e.selector.includes("profile") || e.selector.includes("user-avatar")));
 
     if (profileEl && (profileEl.bounds.x > 100 || profileEl.bounds.y < vpHeight - 250)) {
       defects.push({
