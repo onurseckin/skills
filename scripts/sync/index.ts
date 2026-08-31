@@ -37,7 +37,7 @@ export function orDefault<T>(value: T | undefined, fallback: T): T {
 
 export async function runSync(options?: SyncOptions): Promise<SyncSummary> {
   const sourceRepoRoot = orDefault(options?.sourceRepoRoot, process.cwd());
-  const home = orDefault(options?.homeDir, homedir());
+  const home = orDefault(options?.homeDir, process.env.HOME || homedir());
   const targetOlt = orDefault(options?.targetOltDir, join(home, ".agents", "skills", "olt"));
   const sourceOlt = join(sourceRepoRoot, "olt");
 

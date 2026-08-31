@@ -163,6 +163,25 @@ Every agent executing within this repository must adhere to the following non-ne
     - All completed wave artifacts, implementation DAGs, and validation manifests must be systematically archived into `docs/planning/completed/wave-<num>-<descriptive-slug>/` upon wave closure.
     - Ephemeral or obsolete handoff scratch files (`docs/planning/handoff/`) must be purged to maintain clean planning hierarchies.
     - Permanent architecture blueprints, domain cognitive models (`docs/references/CHAUFFEUR_COGNITIVE_FRAMEWORK.md`), and design tokens must be consolidated into `docs/references/` as ground-truth references rather than left in transient planning directories.
+41. **Elevation of Policy Discovery to Tier 0 Autonomous Governance Bootstrapper (`TIER0_POLICY_DISCOVERY_BOOTSTRAPPER`):**
+    - `policy-discovery` is elevated to Tier 0 Autonomous Governance Bootstrapper (domain: `governance`, manifest: `olt/agents/policy-discovery.yaml`).
+    - It autonomously scans repository signatures, deeply inspects toolchains (package manager, test runner, linter, typechecker, formatter), empirically validates commands without guessing, scaffolds canonical `.olt/policy.json`, and audits repository governance readiness for the Mind and Companion Auditors.
+    - Operates with empirical non-guessing validation, zero code modifications outside governance policy scope, and zero destructive filesystem commands.
+42. **Mandatory One-Time `policy:init` / Auto-Discovery Phase (`MANDATORY_POLICY_INIT_PHASE`):**
+    - Mind initialization (`mind:init`), top-level planning (`plan:init`, `orchestrate`), and harness execution mandate a one-time `policy:init` auto-discovery check.
+    - When `.olt/policy.json` is missing or uncalibrated, the harness automatically invokes `policy:init --auto-discover` to empirically calibrate repository settings before planning, DAG compilation, or worker dispatch begin.
+    - This bootstrapping phase is completely idempotent, ensuring every subsequent phase executes against authoritative, empirically validated toolchains and RBAC rules.
+43. **Mandatory Companion Auditors Lifecycle, Supervisory Cadences & Doctor Health Checks (`MANDATORY_COMPANION_AUDITORS_LIFECYCLE`):**
+    - The repository strictly mandates the 2-Auditor Companion Architecture:
+      - **`mind-auditor` (Tier 0 Companion)**: Dedicated out-of-band observer for Mind (`mind:audit:live`, `mind:pulse`), continuously monitoring strategic loop liveness, 120s anti-stagnation watchdog, creative stagnation (`MIND_CREATIVE_STAGNATION`), preplanning stagnation (`MIND_PREPLANNING_STAGNATION`), and enforcing Zero-Delta Message Suppression.
+      - **`skill-auditor` (Tier 0 Fleet Auditor)**: Consolidated out-of-band observer for Tiers 1-3 (`skill:audit:live`, `meta-audit`), continuously monitoring delta event streams (`events.jsonl`), Work/Span concurrency scaling, and deep behavioral forensics across 7 root-cause heuristics (`TOKEN_BURNING`, `FALSE_SERIALIZATION`, `ROLE_BOUNDARY_DEVIATION`, `POLLING_WASTE`, `CONTEXT_OVERFLOW`, `GHOST_LEASE`, `STRAGGLER`), autonomously injecting remediation proposals into `.olt/backlog.jsonl` via `--inject`.
+    - **1-Shot Batch Auto-Deployment**: When `/olt mind` is invoked, the entrypoint MUST deploy both `mind` and `mind-auditor` in a single 1-shot batch invocation (`Subagents: [{ Role: "mind", ... }, { Role: "mind-auditor", ... }]`).
+    - **Supervisory Cadence & Liveness**: Supervisory pulses (`mind:pulse`) actively inspect companion auditor liveness and report health status.
+    - **Doctor Health Verification**: Pre-completion doctor checks (`doctor`, `doctor:verify`, `doctor:repair`) validate companion auditor configuration, mailbox IPC channels, lock integrity, cursor state, and policy calibration before any task or wave completes.
+44. **Permanent Live Host-Aware Quota Telemetry Evaluation Across Pulses & Operations (`LIVE_HOST_AWARE_QUOTA_TELEMETRY`):**
+    - Live host-aware quota telemetry is permanently evaluated on every supervisory pulse (`mind:pulse`), command execution, and run iteration.
+    - Host telemetry probes (`host-telemetry-probe`, `host-cadence`) actively inspect provider token usage, rate limits, and remaining execution budget, streaming structured metrics to `.olt/telemetry.jsonl` and embedding quota receipts into pulse briefs.
+    - When remaining quota drops below 10% (`QUOTA_EXHAUSTED_CIRCUIT_BROKEN`), recurring supervisory crons are gracefully suspended while active workers sleep in RAM (Zero-Kill Invariant) until auto-wake sentinel resumption.
 
 ---
 
@@ -175,26 +194,24 @@ The repository enforces a strict **4-Tier Host-Agnostic Architecture** to isolat
 │                       4-TIER AGENT ARCHITECTURE                             │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  [ Tier 0: Mind Supervisor & Autonomous Creative Product Manager ]          │
-│    • 30,000-ft strategic consciousness, candidate admission & PO mode       │
-│    • 3-Step Self-Evolution (Baseline Hygiene -> UX -> Creative Ideation)    │
+│  [ Tier 0: Strategic Autonomous Supervisors, Bootstrappers & Auditors ]      │
+│    • mind: Autonomous Creative Product Manager, PO mode, 3-step evolution    │
+│    • policy-discovery: Autonomous Governance Bootstrapper & Ecosystem Probe  │
+│    • mind-auditor: Out-of-band Stagnation (120s) & Pulse Liveness Observer  │
+│    • skill-auditor: Out-of-band Fleet Auditor, Concurrency & Meta-Audit     │
 │    • Dynamic Repository Authority (`repo_roots: ["."]`)                     │
-│    • Zero-Delta Silence & Anti-Repetition Rules                             │
-│    • Atomic Admission-to-Dispatch Chaining (Zero paused admitted items)      │
-│    • Concurrent multi-orchestrator pre-planning & Work/Span tracking         │
+│    • Mandatory one-time policy:init auto-discovery & Zero-Delta Silence      │
 │    • Dispatches ONLY Tier 1 Orchestrators; NEVER spawns Tier 2/3 directly   │
 │                          │                                                  │
 │                          ▼                                                  │
 │  [ Tier 1: Meta-Orchestrator & Loop Runner ]                                │
 │    • Multi-round capsule chaining (up to 10 rounds) & defect synthesis      │
-│    • Background watchdog monitoring & auto-wake                              │
+│    • Background watchdog monitoring, live quota tracking & auto-wake        │
 │    • Dispatches ONLY Tier 2 Coordinators; NEVER spawns Tier 3 directly      │
 │                          │                                                  │
 │                          ▼                                                  │
-│  [ Tier 2: Background Run Coordinator & Meta-Auditor Forensics ]             │
+│  [ Tier 2: Background Run Coordinator ]                                     │
 │    • coordinator: Owns capsule lifecycle, wave dispatch & Tier 3 supervision │
-│    • meta-auditor: Deep behavioral forensics, 7 heuristics & efficiency score│
-│    • Autonomous remediation injection (--inject) to FEEDBACK_QUEUE.jsonl    │
 │    • Employs Zero-Exploration Exact-Anchor Briefings (task:brief)           │
 │    • Direct parental supervision over Tier 3 Workers (hard resets on kill)  │
 │    • Enforces Cognitive Validator Hard-Lock (0 commands) & Mechanic tasks   │
@@ -222,12 +239,12 @@ The repository enforces a strict **4-Tier Host-Agnostic Architecture** to isolat
 
 The repository standardizes across 4 Canonical Host Platforms with strict model, thinking level, and scheduler assignments. Generic fallbacks and speculative model aliasing are strictly prohibited; CLI and IDE share 100% identical configuration:
 
-| Host Platform     | Supervisory Tier Roles (Tier 0 Mind, Tier 1 Orchestrator, Tier 2 Coordinator) | Execution Tier Roles (Tier 3 Implementer, Validator, Critic, Subagents) | Thinking Level                          | Scheduler Cadence              | Consistency Contract                                        |
-| :---------------- | :---------------------------------------------------------------------------- | :---------------------------------------------------------------------- | :-------------------------------------- | :----------------------------- | :---------------------------------------------------------- |
-| **`antigravity`** | `gemini-3.7-flash` (High Thinking)                                            | `gemini-3.7-flash` (Medium Thinking)                                    | High (Supervisory) / Medium (Execution) | 5m scheduler (`*/5 * * * *`)   | CLI & IDE share identical configuration                     |
-| **`claude_code`** | `claude-5-opus` (`claude-opus-5`) (High Thinking)                             | `claude-5-sonnet` (`claude-sonnet-5`) (Medium Thinking)                 | High (Supervisory) / Medium (Execution) | 15m scheduler (`*/15 * * * *`) | CLI & IDE share identical configuration (No 3.7 references) |
-| **`codex`**       | `gpt-5.6-sol` (High Thinking)                                                 | `gpt-5.6-terra` (Medium Thinking)                                       | High (Supervisory) / Medium (Execution) | 15m scheduler (`*/15 * * * *`) | CLI & IDE share identical configuration                     |
-| **`cursor`**      | Cursor latest stable model (High Thinking)                                    | Cursor latest stable model (Medium Thinking)                            | High (Supervisory) / Medium (Execution) | 5m scheduler (`*/5 * * * *`)   | CLI & IDE share identical configuration                     |
+| Host Platform     | Supervisory & Governance Tier Roles (Tier 0 Mind, Policy Discovery, Mind Auditor, Skill Auditor, Tier 1 Orchestrator, Tier 2 Coordinator) | Execution Tier Roles (Tier 3 Implementer, Validator, Critic, Subagents) | Thinking Level                          | Scheduler Cadence              | Consistency Contract                                        |
+| :---------------- | :--------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------- | :-------------------------------------- | :----------------------------- | :---------------------------------------------------------- |
+| **`antigravity`** | `gemini-3.7-flash` (High Thinking)                                                                                                       | `gemini-3.7-flash` (Medium Thinking)                                    | High (Supervisory) / Medium (Execution) | 5m scheduler (`*/5 * * * *`)   | CLI & IDE share identical configuration                     |
+| **`claude_code`** | `claude-5-opus` (`claude-opus-5`) (High Thinking)                                                                                        | `claude-5-sonnet` (`claude-sonnet-5`) (Medium Thinking)                 | High (Supervisory) / Medium (Execution) | 15m scheduler (`*/15 * * * *`) | CLI & IDE share identical configuration (No 3.7 references) |
+| **`codex`**       | `gpt-5.6-sol` (High Thinking)                                                                                                            | `gpt-5.6-terra` (Medium Thinking)                                       | High (Supervisory) / Medium (Execution) | 15m scheduler (`*/15 * * * *`) | CLI & IDE share identical configuration                     |
+| **`cursor`**      | Cursor latest stable model (High Thinking)                                                                                               | Cursor latest stable model (Medium Thinking)                            | High (Supervisory) / Medium (Execution) | 5m scheduler (`*/5 * * * *`)   | CLI & IDE share identical configuration                     |
 
 #### Canonical Host Directives:
 
@@ -240,9 +257,12 @@ The repository standardizes across 4 Canonical Host Platforms with strict model,
 | Role                      | Tier | Key Responsibilities                                                                                                                                                                                                                                                                                                                                                                                                                          | Non-Negotiable Prohibitions (`must_not`)                                                                                                                                                                                                                                                                                                    |
 | :------------------------ | :--: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **`mind`**                |  0   | Autonomous Creative Product Manager & Infinite Product Owner, 3-Step Self-Evolution flow (Baseline Hygiene -> Product & UX Perfection -> Creative Ideation), dynamic repository authority (`repo_roots: ["."]`), Zero-Delta Silence & Anti-Repetition rules, candidate admission, atomic dispatch chaining, multi-orchestrator scaling, macro DAG diagnostics, queue governance (`.olt/`), memory persistence, non-idle autonomous discovery. | **Must not** write repository code, execute unit tests, spawn Tier 2/3 agents directly, or permit paused admitted items to linger. Strict zero direct code edits.                                                                                                                                                                           |
+| **`policy-discovery`**    |  0   | Autonomous Governance Bootstrapper & Toolchain Scaffolder. Inspects repository signatures, auto-detects ecosystem tools (package managers, test runners, linters, typecheckers, formatters), validates commands empirically, bootstraps canonical `.olt/policy.json`, scaffolds `.olt/` governance baseline records, and audits repository readiness for Mind Auditor.                                                                         | **Must not** guess commands without empirical validation, edit code files outside policy/governance scope, execute destructive commands (`rm -rf /`, `git reset --hard`), or bypass mailbox IPC.                                                                                                                                            |
+| **`mind-auditor`**        |  0   | Dedicated Out-of-Band Companion Auditor for Mind. Continuously audits Mind pulse cadence (`mind:audit:live`, `mind:pulse`), detects idle Mind stagnation (>120s), identifies creative stagnation (`MIND_CREATIVE_STAGNATION`) and preplanning stagnation (`MIND_PREPLANNING_STAGNATION`), injects verbatim role prompts, and enforces Zero-Delta Message Suppression.                                                                    | **Must not** write repository code, execute unit tests, emit duplicate telemetry when delta between consecutive reports is 0, or bypass mailbox IPC.                                                                                                                                                                                       |
+| **`skill-auditor`**       |  0   | Consolidated Out-of-Band Fleet Auditor for Tiers 1–3. Audits delta event telemetry (`events.jsonl`, `skill:audit:live`), enforces Brent Work/Span concurrency, executes deep behavioral forensics (`meta-audit`) across 7 root-cause heuristics, computes deterministic efficiency scores (0.0%–100.0%), and autonomously injects remediation proposals into `.olt/backlog.jsonl` via `--inject`.                                        | **Must not** write repository code, claim code write leases, execute task unit tests directly, rubber-stamp approvals, or bypass mailbox IPC.                                                                                                                                                                                              |
 | **`orchestrator`**        |  1   | Multi-round orchestration, capsule chaining, convergence governance, watchdog cadence, final synthesis, release syncing.                                                                                                                                                                                                                                                                                                                      | **Must not** implement tasks directly, run raw test suites, spawn Tier 3 workers directly, or spill work onto main thread. Strict zero direct code edits.                                                                                                                                                                                   |
 | **`coordinator`**         |  2   | Run lifecycle ownership, agent registration, 1-shot exact-anchor briefings, wave dispatching, hard resets, git commits/pushes/sync, Tier 3 supervision.                                                                                                                                                                                                                                                                                       | **Must not** write repository code, claim tasks, assign commands to Cognitive Validators, or execute raw test suites (`bun test`). Strict zero direct code edits.                                                                                                                                                                           |
-| **`meta-auditor`**        |  2   | Post-wave and post-run deep behavioral forensics, 7 anomaly detection heuristics, deterministic efficiency scoring (0.0% - 100.0%), autonomous remediation injection (`--inject`), zero-exploration exact-anchor enforcement.                                                                                                                                                                                                                 | **Must not** make direct source code edits, claim code write leases, execute task tests directly, rubber-stamp passes, or bypass 4-tier hierarchy.                                                                                                                                                                                          |
+| **`meta-auditor`**        |  2   | Legacy alias for Tier 0 fleet behavioral forensics (`meta-audit`), unified under `skill-auditor`.                                                                                                                                                                                                                                                                                                                                             | **Must not** make direct source code edits, claim code write leases, execute task tests directly, or bypass role hierarchy.                                                                                                                                                                                                                  |
 | **`planner`**             |  3   | Prompt decomposition, DAG generation, gate assignment.                                                                                                                                                                                                                                                                                                                                                                                        | **Must not** implement code or execute task write scopes.                                                                                                                                                                                                                                                                                   |
 | **`plan-validator`**      |  3   | Adversarial inspection of compiled plan topology.                                                                                                                                                                                                                                                                                                                                                                                             | **Must not** touch task implementation or alter runtime code.                                                                                                                                                                                                                                                                               |
 | **`implementer`**         |  3   | Leased task implementation within assigned write scope; 1-hop micro-cycles; file-scoped testing; Turn 1 exact edits.                                                                                                                                                                                                                                                                                                                          | **Must not** edit outside write scope, self-validate work, or run whole-repo test suites (`bun test`).                                                                                                                                                                                                                                      |
@@ -726,6 +746,85 @@ All contributions to the `@onurseckin/skills` monorepo must strictly satisfy all
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
+### G. Tier 0 Policy Discovery & Toolchain Bootstrapping Step-Machine
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│          TIER 0 POLICY DISCOVERY & TOOLCHAIN BOOTSTRAPPING STEP-MACHINE     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  1. Auto-Discover & Scaffold Canonical Policy:                              │
+│     bun harness.ts policy:init --calibrate                                  │
+│     (Empirically probes package managers, test runners, linters, types)     │
+│                                                                             │
+│  2. Inspect or Query Policy Settings:                                       │
+│     bun harness.ts policy:get --key test_runner.default_command             │
+│                                                                             │
+│  3. Update Governance Key Value with Atomic Locking:                         │
+│     bun harness.ts policy:set --key review_protocol.cognitive_pushes --val 5│
+│                                                                             │
+│  4. Check Policy File Drift & Checksum Integrity:                           │
+│     bun harness.ts policy:check-drift --rearm                               │
+│                                                                             │
+│  5. Audit Governance Readiness for Mind and Companion Auditors:             │
+│     bun harness.ts policy:audit                                             │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### H. Mandatory Companion Auditor Lifecycle & Doctor Health Check Step-Machine
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│    MANDATORY COMPANION AUDITORS & DOCTOR HEALTH CHECK STEP-MACHINE          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  1. Deploy Mind + Mind Auditor Companions in 1-Shot Batch:                  │
+│     (Antigravity: invoke_subagent with Mind & Mind-Auditor verbatim YAML)   │
+│                                                                             │
+│  2. Audit Mind Liveness & Detect Stagnation (>120s):                        │
+│     bun harness.ts mind:audit:live                                          │
+│     (Flags MIND_CREATIVE_STAGNATION or MIND_PREPLANNING_STAGNATION)         │
+│                                                                             │
+│  3. Supervisory Cadence Pulse Verification:                                 │
+│     bun harness.ts mind:pulse --run <run>                                   │
+│     (Inspects companion auditor liveness, Work/Span, Zero-Delta status)     │
+│                                                                             │
+│  4. Fleet Telemetry & Behavioral Forensics Audit:                           │
+│     bun harness.ts skill:audit:live                                         │
+│     bun harness.ts meta-audit --run <run> --inject                          │
+│                                                                             │
+│  5. Pre-Completion Doctor Health Verification:                               │
+│     bun harness.ts doctor --run <run>                                       │
+│     bun harness.ts doctor:verify                                            │
+│     (Requires Healthy: yes; auto-heals locks, mailboxes, and worktrees)     │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### I. Live Host-Aware Quota Telemetry & Circuit-Breaker Step-Machine
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│       LIVE HOST-AWARE QUOTA TELEMETRY & CIRCUIT-BREAKER STEP-MACHINE        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  1. Evaluate Host Quota Telemetry Live Across Pulses & Operations:          │
+│     bun harness.ts mind:pulse                                               │
+│     (Host telemetry probe evaluates remaining tokens, RPM/TPM headroom)     │
+│                                                                             │
+│  2. Inspect Streamed Quota Records:                                         │
+│     (Metrics appended continuously to .olt/telemetry.jsonl)                 │
+│                                                                             │
+│  3. Graceful Quota Freeze (<10% Threshold):                                 │
+│     (Suspends recurring crons; active subagents sleep in RAM: Zero-Kill)    │
+│                                                                             │
+│  4. Auto-Wake Resume on Sentinel Timer:                                     │
+│     (Restores DAG coordinates from .olt/quota-dag-snapshot.json & resumes)   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
 ---
 
 ## 8. Deep Behavioral Forensics Taxonomy & Exact-Anchor Protocol
@@ -787,4 +886,5 @@ When executed with `--inject` (`bun harness.ts meta-audit --run <run> --inject`)
    - Enforces strict monorepo quality gates (0 TypeScript `any`, 0 compiler suppressions, zero-fallback error codes) in milliseconds.
 
 3. **1-Shot Batch Auto-Deployment of Mind and Mind-Auditor (`/olt mind`)**:
-   - Dispatches both Tier 0 `mind` and Tier 1 `mind-auditor` companions concurrently in a single atomic batch invocation.
+   - Dispatches both Tier 0 `mind` and Tier 0 `mind-auditor` companions concurrently in a single atomic batch invocation (`invoke_subagent`).
+

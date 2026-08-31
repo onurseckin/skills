@@ -88,7 +88,7 @@ export function detectActiveHost(env: Record<string, string | undefined> = typeo
   if (env["ANTIGRAVITY_CLI"] || env["GEMINI_CLI"] || env["ANTIGRAVITY_VERSION"] || env["ANTIGRAVITY_AGENT_ID"]) return "antigravity";
   if (env["CURSOR_VERSION"] || env["CURSOR_IS_ACTIVE"]) return "cursor";
   if (env["CLAUDE_CODE_VERSION"] || env["CLAUDE_IS_ACTIVE"]) return "claude_code";
-  if (env["OPENAI_API_KEY"] && env["CODEX_VERSION"]) return "codex";
+  if (env["CODEX_VERSION"] || env["CODEX_CLI"] || env["CODEX"] || (env["OPENAI_API_KEY"] && env["CODEX_VERSION"])) return "codex";
   return undefined;
 }
 

@@ -1650,7 +1650,7 @@ mapping:
   test("all agent manifests in olt/agents declaring commands contain msg:send, msg:recv, msg:poll", () => {
     const agentsDir = join(findSkillRoot(), "agents");
     const manifestFiles = readdirSync(agentsDir).filter((f) => f.endsWith(".yaml"));
-    expect(manifestFiles.length).toBe(28);
+    expect(manifestFiles.length).toBe(29);
 
     for (const file of manifestFiles) {
       const content = readFileSync(join(agentsDir, file), "utf-8");
@@ -1678,12 +1678,12 @@ mapping:
     const BAN_JSONL_CLAUSE =
       "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands";
 
-    test("all 28 manifests in olt/agents load cleanly with valid communication_contract and ban clause", () => {
+    test("all 29 manifests in olt/agents load cleanly with valid communication_contract and ban clause", () => {
       const agentsDir = join(findSkillRoot(), "agents");
       const manifestFiles = readdirSync(agentsDir)
         .filter((f) => f.endsWith(".yaml"))
         .sort();
-      expect(manifestFiles.length).toBe(28);
+      expect(manifestFiles.length).toBe(29);
 
       for (const file of manifestFiles) {
         const fullPath = join(agentsDir, file);
@@ -1709,7 +1709,7 @@ mapping:
       }
     });
 
-    test("all 28 manifests parse and pass schema validation via parseUnifiedAgentManifest", () => {
+    test("all 29 manifests parse and pass schema validation via parseUnifiedAgentManifest", () => {
       const agentsDir = join(findSkillRoot(), "agents");
       const manifestFiles = readdirSync(agentsDir)
         .filter((f) => f.endsWith(".yaml"))

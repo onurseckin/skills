@@ -116,6 +116,7 @@ function roleContracts(skillRoot: string): HealthFinding[] {
         "independent-planner-audit",
         "ui-mechanic-validator",
         "owner",
+        "policy-discovery",
       ].includes(basenameWithoutExt)
     ) {
       continue;

@@ -16,6 +16,12 @@ export interface VendorTree {
 }
 
 export const PRODUCT_GRAMMAR_MODULES: readonly string[] = [
+  "src/platform/capture/governance-sync.ts",
+  "src/platform/capture/persona-governance.ts",
+  "src/platform/capture/index.ts",
+  "src/telemetry/collectors/host-detection.ts",
+  "src/telemetry/engine.ts",
+  "src/engine/policy-discovery.ts",
   "src/authority/manifest/constants.ts",
   "src/capture/docker-health.ts",
   "src/capture/persona-registry.ts",

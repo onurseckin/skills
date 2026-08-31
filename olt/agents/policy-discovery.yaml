@@ -7,7 +7,7 @@ provider:
   - "codex"
   - "cursor"
   - "generic"
-tier: 0
+tier: 3
 domain: "governance"
 tools:
   enable_subagent_tools: false
@@ -42,7 +42,7 @@ permissions:
     - "Guess commands without empirical inspection of repository manifest files"
     - "Modify code files outside assigned policy and governance write scope"
     - "Run whole-repository destructive commands (rm -rf /, git reset --hard)"
-    - "Read or parse raw .jsonl files directly; all state and messaging must flow strictly through Harness CLI commands"
+    - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
   commands:
     - "policy:init"
     - "policy:get"

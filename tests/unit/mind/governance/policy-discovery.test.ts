@@ -522,5 +522,21 @@ describe("Policy & Repository Auto-Discovery Engine", () => {
       expect(audit.defectsLedgerPresent).toBe(false);
       expect(audit.readyForMindAuditor).toBe(false);
     });
+
+    it("verifies Tier 0 Policy Discovery elevation across default agents and host aliases", async () => {
+      const { buildDefaultAgents } = await import(
+        "../../../../olt/scripts/src/policy/generator/default-agents.ts"
+      );
+      const { ROLE_KEY_ALIASES } = await import(
+        "../../../../olt/scripts/src/authority/host-bindings.ts"
+      );
+
+      const defaultAgents = buildDefaultAgents();
+      expect(defaultAgents.policy_discovery).toBeDefined();
+      expect(defaultAgents.policy_discovery.tier).toBe(0);
+      expect(defaultAgents.policy_discovery.domain).toBe("governance");
+      expect(ROLE_KEY_ALIASES["policy-discovery"]).toBe("policy_discovery");
+      expect(ROLE_KEY_ALIASES["policy-bootstrapper"]).toBe("policy_discovery");
+    });
   });
 });
