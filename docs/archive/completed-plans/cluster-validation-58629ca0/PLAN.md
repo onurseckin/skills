@@ -18,7 +18,7 @@ It addresses 0 backlog requirement(s) and 1 defect remediation(s) under the zero
 │                    VALIDATION DOMAIN ARCHITECTURAL ASSEMBLY MATRIX                             │
 ├─────────────────────────────────────────────────────────────────────────────────────────────┤
 │  Cluster ID: cluster-validation-58629ca0                                                 │
-│  Planned At: 2026-08-31T05:09:24.652Z                                                    │
+│  Planned At: 2026-08-31T18:39:59.590Z                                                    │
 │  Backlog Count: 0                                                                        │
 │  Defect Count:  1                                                                        │
 └─────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -41,25 +41,25 @@ It addresses 0 backlog requirement(s) and 1 defect remediation(s) under the zero
 
 - **Owner / Tier:** Tier 3 Implementer + Independent Validator
 - **Defect Ref:** `defect-skill-auditor-shallow-surveillance-missed-supervisor-edits` (Error Code: `SKILL_AUDITOR_SHALLOW_SURVEILLANCE`)
-- **Write Scope:** `olt/scripts/src/validation/`
-- **Read-Only Scope:** `olt/scripts/src/`
+- **Write Scope:** `olt/scripts/src/validation/skill-auditor-missed-supervisor-direct-code-writes-post-hoc-capsule-audit-lacked-live-tool-call-interception-defect-skill-auditor-shallow-surveillance-missed-supervisor-edits.ts`, `tests/unit/validation/skill-auditor-missed-supervisor-direct-code-writes-post-hoc-capsule-audit-lacked-live-tool-call-interception-defect-skill-auditor-shallow-surveillance-missed-supervisor-edits.test.ts`
+- **Read-Only Scope:** `olt/scripts/src/validation/`, `tests/unit/validation/`
 - **Acceptance Criteria (Stub Must Fail):**
   - Remediate: Skill Auditor failed to detect Tier 1 Orchestrator and Tier 2 Coordinator executing direct file writes in supervisor threads. The auditor was inspecting post-hoc capsule events.jsonl sequence hashes rather than actively monitoring live subagent tool invocations in real time, forcing the user to manually intervene and point out the role boundary breach.
   - Zero TypeScript `any`, zero compiler suppressions, zero comments in .ts files.
-  - Command: `bun test tests/unit/validation/` (100% PASS).
+  - Command: `bun test tests/unit/validation/skill-auditor-missed-supervisor-direct-code-writes-post-hoc-capsule-audit-lacked-live-tool-call-interception-defect-skill-auditor-shallow-surveillance-missed-supervisor-edits.test.ts` (100% PASS).
 
 ---
 
 ## 4. Sequential Execution Order & Critical Path
 
 ```text
-Execution Order: [Task 1.1] ──► [Verification] ──► [Git Staging: git add -A] ──► [Landing]
+Execution Flow: [Task 1.1: Skill Auditor Missed Supervisor Direct Code Writes: Post-Hoc Capsule Audit Lacked Live Tool-Call Interception] ──► [Verification: bun test tests/unit/validation/] ──► [Git Staging: git add -A] ──► [Landing]
 ```
 
 ---
 
 ## 5. Exhaustive Traceability Matrix
 
-| Defect / Backlog ID                                                 | Resolved By Task | Verification Target      |
-| :------------------------------------------------------------------ | :--------------- | :----------------------- |
-| `defect-skill-auditor-shallow-surveillance-missed-supervisor-edits` | Task 1.x         | `tests/unit/validation/` |
+| Defect / Backlog ID                                                 | Resolved By Task | Verification Target                                                                                                                                                                                            |
+| :------------------------------------------------------------------ | :--------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `defect-skill-auditor-shallow-surveillance-missed-supervisor-edits` | Task 1.1         | `tests/unit/validation/skill-auditor-missed-supervisor-direct-code-writes-post-hoc-capsule-audit-lacked-live-tool-call-interception-defect-skill-auditor-shallow-surveillance-missed-supervisor-edits.test.ts` |
