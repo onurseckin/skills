@@ -1,6 +1,6 @@
 /**
  * @file index.ts
- * Facade for Heuristics Edge Cases test modules
+ * Facade for Heuristics Edge Cases modular subpackage
  */
 
 export * from "./glass-surfaces.test.ts";
