@@ -119,6 +119,7 @@ test("main executes successfully and returns 0 on clean repository", async () =>
 });
 
 test("main renders markdown output format", async () => {
+  if (!tempDir) throw new Error("Missing temp dir");
   const originalStdoutWrite = process.stdout.write;
   let stdoutOutput = "";
   process.stdout.write = ((chunk: string | Uint8Array) => {
@@ -127,7 +128,7 @@ test("main renders markdown output format", async () => {
   }) as typeof process.stdout.write;
 
   try {
-    await main(["--mode", "ratchet", "--source", "index", "--format", "markdown"]);
+    await main(["--mode", "strict", "--source", "tree", "--format", "markdown"], tempDir);
     expect(stdoutOutput).toContain("# Modularity report");
   } finally {
     process.stdout.write = originalStdoutWrite;
@@ -191,14 +192,15 @@ test("runCli executes main when isMain is true and noops when false", async () =
 });
 
 test("runs check.ts directly via bun cli", async () => {
+  const scriptPath = join(process.cwd(), "scripts/modularity/check.ts");
   const proc = Bun.spawn(
     [
       "bun",
-      "scripts/modularity/check.ts",
+      scriptPath,
       "--mode",
       "ratchet",
       "--source",
-      "tree",
+      "index",
       "--format",
       "json",
     ],

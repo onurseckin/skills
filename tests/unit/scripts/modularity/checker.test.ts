@@ -108,10 +108,10 @@ test("runs checkModularity in ratchet mode on repo root with default baseline", 
   const report = await checkModularity({
     repoRoot: process.cwd(),
     mode: "ratchet",
-    source: "tree",
+    source: "index",
   });
 
   expect(report.mode).toBe("ratchet");
-  expect(report.source).toBe("tree");
+  expect(report.source).toBe("index");
   expect(typeof report.passed).toBe("boolean");
 });
