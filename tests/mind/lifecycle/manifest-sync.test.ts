@@ -2,15 +2,15 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   computeManifestSha256Pin,
   computeMerkleGenesisBinding,
   resolveManifestPath,
   syncOrchestratorToManifest,
   validateCapsuleManifestBinding,
-} from "../../../../olt/scripts/src/mind/lifecycle/manifest-sync.ts";
-import type { OrchestratorRegistrationRecord } from "../../../../olt/scripts/src/mind/lifecycle/orchestrator-ledger.ts";
+} from "../../../olt/scripts/src/mind/lifecycle/manifest-sync.ts";
+import type { OrchestratorRegistrationRecord } from "../../../olt/scripts/src/mind/lifecycle/orchestrator-ledger.ts";
 
 describe("Capsule Manifest Binding & Sync Engine", () => {
   let tempDir: string;

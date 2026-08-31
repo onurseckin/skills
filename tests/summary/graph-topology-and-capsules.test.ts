@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { generateGraphDataset } from "../../../olt/scripts/src/summary/graph/index.ts";
+import { generateGraphDataset } from "../../olt/scripts/src/summary/graph/index.ts";
 import { makeState, makeTask } from "./graph-fixtures.ts";
 
 function topology(waves: Array<{ wave: number; task_ids: string[] }>) {

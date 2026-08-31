@@ -19,7 +19,7 @@ import {
   type CognitivePillar,
   type CognitivePillarId,
   type SupervisoryRole,
-} from "../../../olt/scripts/src/authority/pillars.ts";
+} from "../../olt/scripts/src/authority/pillars.ts";
 import {
   buildWatchdogAuditPrompt,
   createWatchdogTickReminder,
@@ -35,9 +35,9 @@ import {
   type ActiveLeaseInfo,
   type ReflexiveAuditContext,
   type SubordinateAgentInfo,
-} from "../../../olt/scripts/src/authority/persona/index.ts";
+} from "../../olt/scripts/src/authority/persona/index.ts";
 
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 
 describe("Cognitive Pillars Subsystem (authority/pillars.ts)", () => {
   test("defines exactly 7 cognitive pillars", () => {

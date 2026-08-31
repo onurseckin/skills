@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { loadRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
+import { loadRun, transact } from "../../olt/scripts/src/engine/store/index.ts";
+import type { JsonObject } from "../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 

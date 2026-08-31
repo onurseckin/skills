@@ -9,10 +9,10 @@ import {
   type DigestFailingGate,
   type DigestFinding,
   type DigestOpenProposal,
-} from "../../../olt/scripts/src/mind/memory/digest/index.ts";
-import { executeRepairLane } from "../../../olt/scripts/src/mind/lanes/repair.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../olt/scripts/src/mind/memory/digest/index.ts";
+import { executeRepairLane } from "../../olt/scripts/src/mind/lanes/repair.ts";
+import { initRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../olt/scripts/src/engine/store/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Escalation Digest and REPAIR Lane", () => {

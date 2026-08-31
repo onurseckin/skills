@@ -1,16 +1,16 @@
 import { describe, expect, test } from "bun:test";
-import { applicableValidatorDomains } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
-import { finishTask } from "../../../olt/scripts/src/workflow/gates/finish-task.ts";
-import { attachGateResult } from "../../../olt/scripts/src/workflow/gates/attach-result.ts";
-import { beginValidation } from "../../../olt/scripts/src/workflow/review/begin-validation.ts";
-import { recordReview } from "../../../olt/scripts/src/workflow/review/record-review.ts";
-import { everyApplicableDomainPassed } from "../../../olt/scripts/src/workflow/review/validation-state.ts";
-import { submitTask } from "../../../olt/scripts/src/workflow/submission/submit.ts";
+import { applicableValidatorDomains } from "../../olt/scripts/src/core/contracts/index.ts";
+import { claimTask } from "../../olt/scripts/src/workflow/lease/claim.ts";
+import { finishTask } from "../../olt/scripts/src/workflow/gates/finish-task.ts";
+import { attachGateResult } from "../../olt/scripts/src/workflow/gates/attach-result.ts";
+import { beginValidation } from "../../olt/scripts/src/workflow/review/begin-validation.ts";
+import { recordReview } from "../../olt/scripts/src/workflow/review/record-review.ts";
+import { everyApplicableDomainPassed } from "../../olt/scripts/src/workflow/review/validation-state.ts";
+import { submitTask } from "../../olt/scripts/src/workflow/submission/submit.ts";
 import {
   appendGateProof,
   type GateProofRecord,
-} from "../../../olt/scripts/src/graph/gate-proof.ts";
+} from "../../olt/scripts/src/graph/gate-proof.ts";
 import {
   at,
   registerCommand,

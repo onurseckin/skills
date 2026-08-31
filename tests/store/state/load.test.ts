@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
-import { findRepoRoot, resolveCapsulesDir } from "../../../../olt/scripts/src/core/shared/paths.ts";
-import { initRun } from "../../../../olt/scripts/src/engine/store/capsule/capsule.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { findRepoRoot, resolveCapsulesDir } from "../../../olt/scripts/src/core/shared/paths.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
 import {
   loadRun,
   loadRunProjection,
-} from "../../../../olt/scripts/src/engine/store/capsule/load.ts";
+} from "../../../olt/scripts/src/engine/store/capsule/load.ts";
 import { scratchRoot } from "../../../support/scratch-root.ts";
 
 function freshRun(label: string): string {

@@ -9,14 +9,14 @@ import {
   symlinkSync,
   writeFileSync,
 } from "node:fs";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   createAgentMetadata,
   findAgentMetadataLocation,
   getAgentMetadataPath,
   setAgentMetadataDependenciesForTesting,
   writeAgentMetadata,
-} from "../../../olt/scripts/src/runtime/index.ts";
+} from "../../olt/scripts/src/runtime/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 const caller = import.meta.path;

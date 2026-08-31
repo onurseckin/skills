@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import type { HarnessEvent } from "../../../olt/scripts/src/core/contracts/index.ts";
-import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
-import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
+import type { HarnessEvent } from "../../olt/scripts/src/core/contracts/index.ts";
+import type { CommandRecord } from "../../olt/scripts/src/core/contracts/index.ts";
+import type { TaskRecord } from "../../olt/scripts/src/workflow/types.ts";
 import {
   computeGateTiming,
   computeTaskTiming,
   extractTaskTimestamps,
-} from "../../../olt/scripts/src/summary/metrics/index.ts";
+} from "../../olt/scripts/src/summary/metrics/index.ts";
 import { makeCommand, makeEvent, makeTask } from "./graph-fixtures.ts";
 
 describe("metrics timing collector - basic task timing", () => {

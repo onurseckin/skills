@@ -2,13 +2,13 @@ import { tmpdir } from "node:os";
 import { mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, test } from "bun:test";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { createAgentMetadata, writeAgentMetadata } from "../../../olt/scripts/src/runtime/index.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { createAgentMetadata, writeAgentMetadata } from "../../olt/scripts/src/runtime/index.ts";
 import {
   taskClaimCommand,
   taskSubmitCommand,
-} from "../../../olt/scripts/src/cli/commands/task-claim.ts";
+} from "../../olt/scripts/src/cli/commands/task-claim.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { TASK_ID, claimSubmitValidate, setupRun } from "./probe-fixture.ts";
 

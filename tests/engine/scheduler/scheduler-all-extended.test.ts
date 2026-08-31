@@ -1,22 +1,22 @@
 import { describe, expect, it } from "bun:test";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
-import { synthesizeDynamicTopology } from "../../../../olt/scripts/src/engine/scheduler/topology/dynamic-synthesize.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { synthesizeDynamicTopology } from "../../../olt/scripts/src/engine/scheduler/topology/dynamic-synthesize.ts";
 import {
   partitionOrchestratorDomains,
   calculateValidatorAllocations,
   calculateCriticConcurrency,
-} from "../../../../olt/scripts/src/engine/scheduler/topology/dynamic-allocations.ts";
+} from "../../../olt/scripts/src/engine/scheduler/topology/dynamic-allocations.ts";
 import {
   computeWorkSpanMetrics,
   computeResourceDisjointness,
-} from "../../../../olt/scripts/src/engine/scheduler/topology/dynamic-metrics.ts";
-import { SkillAuditorPolicy } from "../../../../olt/scripts/src/engine/scheduler/diagnostics/skill-auditor-policy.ts";
-import { probeDoctorErrorResolution } from "../../../../olt/scripts/src/engine/scheduler/core/loop-doctor.ts";
+} from "../../../olt/scripts/src/engine/scheduler/topology/dynamic-metrics.ts";
+import { SkillAuditorPolicy } from "../../../olt/scripts/src/engine/scheduler/diagnostics/skill-auditor-policy.ts";
+import { probeDoctorErrorResolution } from "../../../olt/scripts/src/engine/scheduler/core/loop-doctor.ts";
 import {
   resolveAgentSchedulerConfig,
   DEFAULT_HOST_INTERVAL_SECONDS,
-} from "../../../../olt/scripts/src/engine/scheduler/host-cadence.ts";
-import { generateAsciiDagBadges } from "../../../../olt/scripts/src/engine/scheduler/diagnostics/ascii-badges.ts";
+} from "../../../olt/scripts/src/engine/scheduler/host-cadence.ts";
+import { generateAsciiDagBadges } from "../../../olt/scripts/src/engine/scheduler/diagnostics/ascii-badges.ts";
 
 describe("engine/scheduler/topology/dynamic", () => {
   const mockState = {

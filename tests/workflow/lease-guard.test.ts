@@ -3,10 +3,10 @@ import {
   checkActiveLease,
   assertActiveLease,
   verifyLeaseGuard,
-} from "../../../olt/scripts/src/workflow/lease/guard.ts";
-import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import type { Clock } from "../../../olt/scripts/src/workflow/types.ts";
+} from "../../olt/scripts/src/workflow/lease/guard.ts";
+import { claimTask } from "../../olt/scripts/src/workflow/lease/claim.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import type { Clock } from "../../olt/scripts/src/workflow/types.ts";
 import { at, TestPort, workflowState } from "./test-port.ts";
 
 const start = at("2026-08-19T00:00:00.000Z");

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { synthesizeDynamicTopology } from "../../../../olt/scripts/src/engine/scheduler/index.ts";
+import { synthesizeDynamicTopology } from "../../../olt/scripts/src/engine/scheduler/index.ts";
 import { topologyState } from "../fixtures.ts";
 
 describe("Dynamic Topology: Synthesis & Execution", () => {

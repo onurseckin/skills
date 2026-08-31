@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   ALL_AST_LINT_RULES,
   COMPILER_SUPPRESSION_DIRECTIVES,
@@ -29,7 +29,7 @@ import {
   type AstLintViolation,
   type DirectoryLintResult,
   type FixSuggestion,
-} from "../../../olt/scripts/src/linter/ast/index.ts";
+} from "../../olt/scripts/src/linter/ast/index.ts";
 
 describe("Structural Zero-Fallback AST Linter & Vendor Identifier Enforcer", () => {
   describe("1. Nullish Coalescing (??) Rule", () => {

@@ -11,7 +11,7 @@ import {
   shouldTriggerCheckpoint,
   updateSparseIndex,
   writeAtomicSnapshot,
-} from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../olt/scripts/src/engine/store/index.ts";
 
 const TEST_ROOT = join(process.cwd(), ".tmp", `test-wal-compaction-${Date.now()}`);
 

@@ -10,7 +10,7 @@ import {
   type SugiyamaNodeBadge,
   type OrthogonalEdgeSegment,
   type OrthogonalRouteSegment,
-} from "../../../../../olt/scripts/src/reporting/sugiyama-dag/index.ts";
+} from "../../../../olt/scripts/src/reporting/sugiyama-dag/index.ts";
 
 describe("sugiyama-dag-setup (Tarjan Cycles, FAS & Bypass Diagnostics)", () => {
   describe("Tarjan Cycle Detection", () => {

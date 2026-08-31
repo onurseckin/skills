@@ -4,9 +4,9 @@ import { join } from "node:path";
 import {
   assertMutationInterlock,
   verifyMutationInterlock,
-} from "../../../olt/scripts/src/workflow/lease/index.ts";
-import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/workflow/lease/index.ts";
+import { tokenDigest } from "../../olt/scripts/src/workflow/lease/token.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Workflow Mutation Interlock Gate", () => {

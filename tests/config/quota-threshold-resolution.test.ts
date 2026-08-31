@@ -1,15 +1,15 @@
 import { describe, expect, test } from "bun:test";
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import * as harnessConfigModule from "../../../olt/scripts/src/core/config/index.ts";
+import * as harnessConfigModule from "../../olt/scripts/src/core/config/index.ts";
 import {
   DEFAULT_RESOLVED_CONFIG,
   resolveHarnessConfig,
-} from "../../../olt/scripts/src/core/config/index.ts";
+} from "../../olt/scripts/src/core/config/index.ts";
 import type {
   ExternallyAttestedFact,
   ExternallyAttestedSource,
-} from "../../../olt/scripts/src/core/config/provenance.ts";
+} from "../../olt/scripts/src/core/config/provenance.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 const moduleExports = harnessConfigModule as unknown as Record<string, unknown>;

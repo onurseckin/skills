@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
+import { claimTask } from "../../olt/scripts/src/workflow/lease/claim.ts";
 import {
   changesRequestedTasks,
   runSupervisionTick,
-} from "../../../olt/scripts/src/orchestrator/supervision-tick.ts";
+} from "../../olt/scripts/src/orchestrator/supervision-tick.ts";
 import { TestPort, workflowState } from "../workflow/test-port.ts";
 
 function twoTaskState() {

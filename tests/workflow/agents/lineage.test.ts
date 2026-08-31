@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import type { AgentGrantRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
+import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   ancestorChain,
   childrenOf,
   taskLineage,
-} from "../../../../olt/scripts/src/workflow/agents/lineage.ts";
+} from "../../../olt/scripts/src/workflow/agents/lineage.ts";
 
 function grant(
   id: string,

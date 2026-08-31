@@ -2,22 +2,22 @@ import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { agentRegisterCommand } from "../../../olt/scripts/src/cli/commands/agent-ops.ts";
+import { agentRegisterCommand } from "../../olt/scripts/src/cli/commands/agent-ops.ts";
 import {
   mindRoundCloseCommand,
   mindRoundOpenCommand,
-} from "../../../olt/scripts/src/cli/commands/mind-round.ts";
-import { COMMAND_REGISTRY, findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
-import { evidenced } from "../../../olt/scripts/src/core/contracts/index.ts";
-import type { JsonObject, JsonValue } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { AGENT_ROLES } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/cli/commands/mind-round.ts";
+import { COMMAND_REGISTRY, findCommand } from "../../olt/scripts/src/cli/registry/index.ts";
+import { evidenced } from "../../olt/scripts/src/core/contracts/index.ts";
+import type { JsonObject, JsonValue } from "../../olt/scripts/src/core/contracts/index.ts";
+import { AGENT_ROLES } from "../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   DEFAULT_MIND_BUDGET,
   DEFAULT_PROHIBITIONS,
   type MindBudget,
   type ParsedCharter,
-} from "../../../olt/scripts/src/mind/lifecycle/charter/index.ts";
+} from "../../olt/scripts/src/mind/lifecycle/charter/index.ts";
 import {
   ABSTRACT_PROFILES,
   assertAbstractProfile,
@@ -29,8 +29,8 @@ import {
   validateAbstractProfile,
   validateTierSpawn,
   type Tier1DeploymentPacketInput,
-} from "../../../olt/scripts/src/mind/lifecycle/deploy/index.ts";
-import type { CandidateRecord } from "../../../olt/scripts/src/mind/proposals/gates/index.ts";
+} from "../../olt/scripts/src/mind/lifecycle/deploy/index.ts";
+import type { CandidateRecord } from "../../olt/scripts/src/mind/proposals/gates/index.ts";
 import {
   formatHostDegradation,
   isAbstractProfile,
@@ -39,20 +39,20 @@ import {
   resolveProfile,
   roleToProfile,
   type ProfileBindings,
-} from "../../../olt/scripts/src/roles/index.ts";
+} from "../../olt/scripts/src/roles/index.ts";
 import {
   carryForwardFindingsAndRequirements,
   getAllRounds,
   getOpenRoundForObjective,
   reconcileRoundState,
-} from "../../../olt/scripts/src/mind/lifecycle/rounds/index.ts";
+} from "../../olt/scripts/src/mind/lifecycle/rounds/index.ts";
 import {
   loadRoleContract,
   resolveRoleContractPath,
-} from "../../../olt/scripts/src/packets/role-contract.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../olt/scripts/src/packets/role-contract.ts";
+import { initRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { loadRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../olt/scripts/src/engine/store/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 function createMindTestCapsule(

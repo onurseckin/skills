@@ -3,11 +3,11 @@ import {
   publishCriticRolePacket,
   repositoryEvidenceCommandIds,
   type CriticRoleGrant,
-} from "../../../olt/scripts/src/packets/critic-grant.ts";
-import { loadRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import { workflowPort } from "../../../olt/scripts/src/integration/store-ports.ts";
-import { completionReadinessSnapshot } from "../../../olt/scripts/src/workflow/completion/readiness-snapshot.ts";
-import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";
+} from "../../olt/scripts/src/packets/critic-grant.ts";
+import { loadRun, transact } from "../../olt/scripts/src/engine/store/index.ts";
+import { workflowPort } from "../../olt/scripts/src/integration/store-ports.ts";
+import { completionReadinessSnapshot } from "../../olt/scripts/src/workflow/completion/readiness-snapshot.ts";
+import { tokenDigest } from "../../olt/scripts/src/workflow/lease/token.ts";
 import { TestPort, commandRecord, workflowState } from "../workflow/test-port.ts";
 import {
   emptyGrantRun,

@@ -4,7 +4,7 @@ import {
   assertRootConvention,
   classifyPath,
   ModularityScopeError,
-} from "../../../../../scripts/modularity/core/index.ts";
+} from "../../../../scripts/modularity/core/index.ts";
 
 test("includes production runtime but excludes runtime output", () => {
   expect(classifyPath("olt/scripts/src/runtime/index.ts").included).toBe(true);

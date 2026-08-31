@@ -1,16 +1,16 @@
 import { describe, expect, test } from "bun:test";
-import { agentListCommand } from "../../../olt/scripts/src/cli/commands/agent-ops.ts";
-import type { AgentRole } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { agentListCommand } from "../../olt/scripts/src/cli/commands/agent-ops.ts";
+import type { AgentRole } from "../../olt/scripts/src/core/contracts/index.ts";
 import {
   registerAgentGrant,
   releaseAgentGrant,
-} from "../../../olt/scripts/src/workflow/agents/grants.ts";
-import { knownTaskIds } from "../../../olt/scripts/src/workflow/agents/ledger.ts";
+} from "../../olt/scripts/src/workflow/agents/grants.ts";
+import { knownTaskIds } from "../../olt/scripts/src/workflow/agents/ledger.ts";
 import {
   ancestorChain,
   childrenOf,
   taskLineage,
-} from "../../../olt/scripts/src/workflow/agents/lineage.ts";
+} from "../../olt/scripts/src/workflow/agents/lineage.ts";
 import { ledgerOf, registerCoordinator, seededRun } from "./fixture.ts";
 
 function register(

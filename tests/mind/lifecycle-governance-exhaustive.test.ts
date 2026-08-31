@@ -2,31 +2,31 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createHyperCognitionEngine } from "../../../olt/scripts/src/mind/lifecycle/cognition/engine.ts";
+import { createHyperCognitionEngine } from "../../olt/scripts/src/mind/lifecycle/cognition/engine.ts";
 import {
   readMindBudget,
   updateMindBudget,
-} from "../../../olt/scripts/src/mind/lifecycle/budget/index.ts";
+} from "../../olt/scripts/src/mind/lifecycle/budget/index.ts";
 import {
   formatMindObserveBrief,
   executeMindObserve,
   mindObserveCommand,
-} from "../../../olt/scripts/src/mind/lifecycle/observe/index.ts";
-import { parseCharterYaml } from "../../../olt/scripts/src/mind/lifecycle/charter/index.ts";
-import { closeRoundInState } from "../../../olt/scripts/src/mind/lifecycle/rounds/round-close.ts";
-import { evaluateMindLiveness } from "../../../olt/scripts/src/mind/lifecycle/liveness/probe.ts";
+} from "../../olt/scripts/src/mind/lifecycle/observe/index.ts";
+import { parseCharterYaml } from "../../olt/scripts/src/mind/lifecycle/charter/index.ts";
+import { closeRoundInState } from "../../olt/scripts/src/mind/lifecycle/rounds/round-close.ts";
+import { evaluateMindLiveness } from "../../olt/scripts/src/mind/lifecycle/liveness/probe.ts";
 import {
   buildTier1DeploymentPacket,
   resolveOrchestratorContractSha256,
   createTier1DeployInputFromCandidate,
-} from "../../../olt/scripts/src/mind/lifecycle/deploy/builder.ts";
+} from "../../olt/scripts/src/mind/lifecycle/deploy/builder.ts";
 import {
   registerOrchestratorSpawn,
   loadOrchestratorLedger,
   deregisterOrchestrator,
   updateOrchestratorHeartbeat,
-} from "../../../olt/scripts/src/mind/lifecycle/orchestrator-ledger.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/mind/lifecycle/orchestrator-ledger.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 
 const roots: string[] = [];
 

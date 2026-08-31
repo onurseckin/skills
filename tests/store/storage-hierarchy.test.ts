@@ -1,20 +1,20 @@
 import { describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
+import type { JsonObject } from "../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { canonicalJsonBytes, sha256Bytes } from "../../olt/scripts/src/core/json.ts";
 import {
   assertSafeStoragePath,
   resolveCapsulePaths,
   resolveStoragePaths,
-} from "../../../olt/scripts/src/engine/store/hierarchy/storage-paths.ts";
+} from "../../olt/scripts/src/engine/store/hierarchy/storage-paths.ts";
 import {
   migrateLegacyCapsules,
   relocateVestigialLedgers,
   validateEventsFileShaChain,
   validateMigratedRun,
-} from "../../../olt/scripts/src/engine/store/hierarchy/storage-migrator.ts";
+} from "../../olt/scripts/src/engine/store/hierarchy/storage-migrator.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 function createValidEvent(

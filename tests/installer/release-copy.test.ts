@@ -3,20 +3,20 @@ import { cp, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { acquireInstallerLock } from "../../../olt/scripts/src/installer/installer-lock.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { acquireInstallerLock } from "../../olt/scripts/src/installer/installer-lock.ts";
 import {
   atomicReleaseCopy,
   prepareReleaseCopy,
   type ReleaseCopyHooks,
-} from "../../../olt/scripts/src/installer/release-copy.ts";
-import { beginReleaseTransaction } from "../../../olt/scripts/src/installer/release-transaction.ts";
-import { sealInstallationManifest } from "../../../olt/scripts/src/installer/manifest-integrity.ts";
-import { canonicalJsonBytes } from "../../../olt/scripts/src/core/json.ts";
-import { markerPath } from "../../../olt/scripts/src/installer/transaction-marker.ts";
-import { pathIdentity } from "../../../olt/scripts/src/installer/path-safety.ts";
-import { validateSkillSource } from "../../../olt/scripts/src/installer/source-validation.ts";
-import { SKILL_NAME } from "../../../olt/scripts/src/installer/constants.ts";
+} from "../../olt/scripts/src/installer/release-copy.ts";
+import { beginReleaseTransaction } from "../../olt/scripts/src/installer/release-transaction.ts";
+import { sealInstallationManifest } from "../../olt/scripts/src/installer/manifest-integrity.ts";
+import { canonicalJsonBytes } from "../../olt/scripts/src/core/json.ts";
+import { markerPath } from "../../olt/scripts/src/installer/transaction-marker.ts";
+import { pathIdentity } from "../../olt/scripts/src/installer/path-safety.ts";
+import { validateSkillSource } from "../../olt/scripts/src/installer/source-validation.ts";
+import { SKILL_NAME } from "../../olt/scripts/src/installer/constants.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 import { cleanInstallerFixtures, installerFixture } from "./helpers.ts";
 

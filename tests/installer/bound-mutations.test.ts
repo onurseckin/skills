@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   moveBoundPath,
   removeBoundPath,
   replaceBoundPath,
-} from "../../../olt/scripts/src/installer/bound-mutations.ts";
-import { pathIdentity } from "../../../olt/scripts/src/installer/path-safety.ts";
+} from "../../olt/scripts/src/installer/bound-mutations.ts";
+import { pathIdentity } from "../../olt/scripts/src/installer/path-safety.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("moveBoundPath", () => {

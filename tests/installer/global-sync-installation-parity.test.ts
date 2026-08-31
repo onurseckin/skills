@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import { cpSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { identifiedInstallation } from "../../../olt/scripts/src/installer/identity.ts";
-import { installationStatus } from "../../../olt/scripts/src/installer/installation-status.ts";
+import { identifiedInstallation } from "../../olt/scripts/src/installer/identity.ts";
+import { installationStatus } from "../../olt/scripts/src/installer/installation-status.ts";
 import {
   deployCanonicalSkill,
   migrateOwnedLegacyDeployment,
-} from "../../../scripts/sync/skill-deployer.ts";
+} from "../../scripts/sync/skill-deployer.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 const REPOSITORY_ROOT = join(import.meta.dir, "../../..");

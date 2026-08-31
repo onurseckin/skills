@@ -6,10 +6,10 @@ import { join } from "node:path";
 import {
   registerSessionGrant,
   revokeSessionGrant,
-} from "../../../olt/scripts/src/authority/session/index.ts";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { isJsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../olt/scripts/src/authority/session/index.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
+import { isJsonObject } from "../../olt/scripts/src/core/contracts/index.ts";
+import { transact } from "../../olt/scripts/src/engine/store/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 

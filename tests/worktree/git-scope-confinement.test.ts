@@ -7,14 +7,14 @@ import {
   filterPathsToScope,
   isPathInWriteScope,
   partitionObservedChanges,
-} from "../../../olt/scripts/src/engine/worktree/zero-destructive-policy.ts";
+} from "../../olt/scripts/src/engine/worktree/zero-destructive-policy.ts";
 import {
   createGitRunner,
   git,
   worktreeGitEnvironment,
   type GitSpawn,
-} from "../../../olt/scripts/src/workflow/worktree/git.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/workflow/worktree/git.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 
 describe("P55 Write Scope Confinement and Unfamiliar User Edits Preservation", () => {
   test("isPathInWriteScope correctly evaluates exact files, directory trees, and wildcards", () => {

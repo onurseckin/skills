@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { TimeoutWatcher } from "../../../../olt/scripts/src/tooling/sandbox/timeout-watcher.ts";
+import { TimeoutWatcher } from "../../../olt/scripts/src/tooling/sandbox/timeout-watcher.ts";
 
 describe("TimeoutWatcher Unit Test Suite", () => {
   it("initializes with correct parameters and idle state", () => {

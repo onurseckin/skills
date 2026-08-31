@@ -4,7 +4,7 @@ import {
   EXIT_STATUS_SIGKILL_TIMEOUT,
   ProcessTimeoutWatchdog,
   buildRemediationGuidance,
-} from "../../../../olt/scripts/src/engine/runner/process/process-timeout-watchdog.ts";
+} from "../../../olt/scripts/src/engine/runner/process/process-timeout-watchdog.ts";
 
 describe("ProcessTimeoutWatchdog - SIGKILL Enforcement & Signal Escalation", () => {
   test("sends SIGTERM then escalates to SIGKILL after grace period", async () => {

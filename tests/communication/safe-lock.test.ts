@@ -11,7 +11,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   DEFAULT_LOCK_TIMEOUT_MS,
   DEFAULT_RETRY_INTERVAL_MS,
@@ -26,7 +26,7 @@ import {
   releaseMailboxLock,
   withExclusiveLock,
   withExclusiveLockAsync,
-} from "../../../olt/scripts/src/communication/locking/index.ts";
+} from "../../olt/scripts/src/communication/locking/index.ts";
 
 describe("SafeLock Advisory File Locking Engine", () => {
   let tempDir: string;

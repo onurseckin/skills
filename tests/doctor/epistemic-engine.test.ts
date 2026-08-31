@@ -10,11 +10,11 @@ import {
   DEFAULT_PASS_THRESHOLD,
   evaluateEpistemicConfidence,
   type EpistemicEvaluationInput,
-} from "../../../olt/scripts/src/core/epistemic/index.ts";
+} from "../../olt/scripts/src/core/epistemic/index.ts";
 import {
   checkEpistemicConfidence,
   type EpistemicConfidenceCheckOptions,
-} from "../../../olt/scripts/src/reporting/doctor/epistemic-engine.ts";
+} from "../../olt/scripts/src/reporting/doctor/epistemic-engine.ts";
 
 describe("Epistemic Mathematical Functions & Vector Computation", () => {
   test("clamp constrains values strictly between min and max", () => {

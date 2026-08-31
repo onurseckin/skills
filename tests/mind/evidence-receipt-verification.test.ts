@@ -1,15 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
-import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { canonicalJsonBytes, sha256Bytes } from "../../olt/scripts/src/core/json.ts";
+import type { JsonObject } from "../../olt/scripts/src/core/contracts/index.ts";
 import {
   inspectCommandReceipts,
   inspectMilestoneEvents,
   verifyEventsHashChain,
   verifyMilestoneEvidence,
-} from "../../../olt/scripts/src/mind/evidence/index.ts";
-import { evaluateSupervisoryState } from "../../../olt/scripts/src/authority/supervisory/index.ts";
+} from "../../olt/scripts/src/mind/evidence/index.ts";
+import { evaluateSupervisoryState } from "../../olt/scripts/src/authority/supervisory/index.ts";
 
 describe("Evidence Receipt Verification Engine", () => {
   const testDir = join(process.cwd(), "scratch", "test-evidence-receipts-" + Date.now());

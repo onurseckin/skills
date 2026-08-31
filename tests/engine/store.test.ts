@@ -6,25 +6,25 @@ import {
   CAPSULE_LAYOUT,
   initialCapsuleDirectories,
   renderLayoutReadme,
-} from "../../../olt/scripts/src/engine/store/layout/layout.ts";
+} from "../../olt/scripts/src/engine/store/layout/layout.ts";
 import {
   detectContentFormat,
   normalizeContent,
   contentDigest,
   contentEquals,
-} from "../../../olt/scripts/src/engine/store/content-normalization/index.ts";
-import { canonicalizeJson } from "../../../olt/scripts/src/engine/store/content-normalization/json-canonical.ts";
-import { canonicalizeYaml } from "../../../olt/scripts/src/engine/store/content-normalization/yaml-canonical.ts";
-import { canonicalizeEcmaScriptWhitespace } from "../../../olt/scripts/src/engine/store/content-normalization/ecmascript-whitespace.ts";
+} from "../../olt/scripts/src/engine/store/content-normalization/index.ts";
+import { canonicalizeJson } from "../../olt/scripts/src/engine/store/content-normalization/json-canonical.ts";
+import { canonicalizeYaml } from "../../olt/scripts/src/engine/store/content-normalization/yaml-canonical.ts";
+import { canonicalizeEcmaScriptWhitespace } from "../../olt/scripts/src/engine/store/content-normalization/ecmascript-whitespace.ts";
 import {
   appendCapsuleDefect,
   loadCapsuleDefects,
   compactCapsuleDefects,
   resolveCapsuleDefect,
-} from "../../../olt/scripts/src/engine/store/recovery/defect-store.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/events/transaction.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/engine/store/recovery/defect-store.ts";
+import { initRun } from "../../olt/scripts/src/engine/store/capsule/capsule.ts";
+import { transact } from "../../olt/scripts/src/engine/store/events/transaction.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 
 describe("Store Layout", () => {
   test("CAPSULE_LAYOUT contains all core files and valid roles", () => {

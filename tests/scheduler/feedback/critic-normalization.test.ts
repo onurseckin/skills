@@ -5,8 +5,8 @@ import {
   selectImplementerValidatorPair,
   detectDeterministicRepeat,
   type CriticFindingDetail,
-} from "../../../../olt/scripts/src/engine/scheduler/index.ts";
-import type { TaskRecord } from "../../../../olt/scripts/src/workflow/types.ts";
+} from "../../../olt/scripts/src/engine/scheduler/index.ts";
+import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
 
 describe("Critic Feedback: Normalization, Pair Selection & Repeat Detection", () => {
   describe("deriveCounterfactualRequirement", () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { layoutSugiyamaDag } from "../../../olt/scripts/src/graph/sugiyama.ts";
+import { layoutSugiyamaDag } from "../../olt/scripts/src/graph/sugiyama.ts";
 import {
   calculateDashboardMetrics,
   generateDashboardReport,
@@ -10,7 +10,7 @@ import {
   renderTaskSummaryTable,
   type DashboardAgentState,
   type DashboardTaskState,
-} from "../../../olt/scripts/src/reporting/dashboard.ts";
+} from "../../olt/scripts/src/reporting/dashboard.ts";
 
 describe("Unified Master Reporting Dashboard (reporting/dashboard.ts)", () => {
   const mockTasks: DashboardTaskState[] = [

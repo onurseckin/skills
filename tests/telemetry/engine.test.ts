@@ -3,9 +3,9 @@ import {
   TelemetryNormalizationEngine,
   renderProgressBar,
   formatTierBadge,
-} from "../../../olt/scripts/src/telemetry/engine.ts";
-import type { TelemetryCollector } from "../../../olt/scripts/src/telemetry/probe-interface.ts";
-import type { PlatformProbeResult } from "../../../olt/scripts/src/telemetry/types.ts";
+} from "../../olt/scripts/src/telemetry/engine.ts";
+import type { TelemetryCollector } from "../../olt/scripts/src/telemetry/probe-interface.ts";
+import type { PlatformProbeResult } from "../../olt/scripts/src/telemetry/types.ts";
 
 describe("TelemetryNormalizationEngine", () => {
   it("probes registered collectors in parallel and computes summary statistics", async () => {

@@ -3,7 +3,7 @@ import {
   calculateBrentConcurrency,
   calculateBrentDecomposition,
   calculateDynamicWaveCapacity,
-} from "../../../olt/scripts/src/orchestrator/velocity-rebalancer.ts";
+} from "../../olt/scripts/src/orchestrator/velocity-rebalancer.ts";
 
 describe("Domain 20: Brent Work/Span Dynamic Concurrency Scaling (P = ceil(W / S))", () => {
   test("calculates P = ceil(W / S) when W is large and S is small", () => {

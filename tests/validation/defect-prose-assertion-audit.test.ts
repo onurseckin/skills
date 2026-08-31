@@ -8,8 +8,8 @@ import {
   auditProseAgainstEvidence,
   verifyProseAssertionDefectRemediated,
   type EvidenceAuditOptions,
-} from "../../../olt/scripts/src/validation/index.ts";
-import { validateZeroCommentsInCode } from "../../../olt/scripts/src/validation/index.ts";
+} from "../../olt/scripts/src/validation/index.ts";
+import { validateZeroCommentsInCode } from "../../olt/scripts/src/validation/index.ts";
 import { readFileSync } from "node:fs";
 
 const TEST_DIR = "/tmp/test-prose-assertion-evidence-part2";

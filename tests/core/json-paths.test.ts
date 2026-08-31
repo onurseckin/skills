@@ -8,8 +8,8 @@ import {
   readBoundedBytes,
   readCanonicalObject,
   sha256Bytes,
-} from "../../../olt/scripts/src/core/json.ts";
-import { safeRepoPath } from "../../../olt/scripts/src/core/paths.ts";
+} from "../../olt/scripts/src/core/json.ts";
+import { safeRepoPath } from "../../olt/scripts/src/core/paths.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("canonical JSON", () => {

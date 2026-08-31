@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   assertAntiSerializationInterlock,
   evaluateHierarchyScaling,
@@ -13,7 +13,7 @@ import {
   partitionWaveCoordinators,
   verifyAntiSerializationInterlock,
   type DynamicLaneTaskInput,
-} from "../../../../olt/scripts/src/graph/parallel-decoupler.ts";
+} from "../../../olt/scripts/src/graph/parallel-decoupler.ts";
 
 describe("Anti-Serialization Interlock Verification", () => {
   test("passes interlock when single task or zero tasks are ready", () => {

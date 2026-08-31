@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { COMMAND_REGISTRY } from "../../../olt/scripts/src/cli/registry/index.ts";
+import { COMMAND_REGISTRY } from "../../olt/scripts/src/cli/registry/index.ts";
 
 describe("host adapters & two-tier architecture specifications", () => {
   const root = join(import.meta.dir, "../../..");

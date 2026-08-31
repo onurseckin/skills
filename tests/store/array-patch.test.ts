@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   type ArrayPatchOperation,
   applyArrayPatchOperation,
   diffArrayElements,
   isMonotonicArrayAppend,
-} from "../../../olt/scripts/src/engine/store/projections/array-patch.ts";
+} from "../../olt/scripts/src/engine/store/projections/array-patch.ts";
 
 function expectIntegrity(fn: () => void): void {
   try {

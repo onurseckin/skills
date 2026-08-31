@@ -20,7 +20,7 @@ import {
   loadRepoPolicy,
   parseRepoPolicy,
   saveRepoPolicy,
-} from "../../../olt/scripts/src/policy/index.ts";
+} from "../../olt/scripts/src/policy/index.ts";
 
 describe("Repo Policy Authority, Safety & Concurrency", () => {
   const scratchBase = join(process.cwd(), "coverage", "scratch", "test-repo-policy-authority");

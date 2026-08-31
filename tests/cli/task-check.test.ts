@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import ts from "typescript";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
 import {
   collectSourceFilesRecursively,
   computeTaskCheckVerdict,
@@ -16,10 +16,10 @@ import {
   SUPPORTED_EXTENSIONS,
   taskCheckCommand,
   type TaskCheckSummary,
-} from "../../../olt/scripts/src/cli/commands/task-check.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { setAutoReceiptDependenciesForTesting } from "../../../olt/scripts/src/engine/runner/receipt/auto-receipt.ts";
-import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../olt/scripts/src/cli/commands/task-check.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { setAutoReceiptDependenciesForTesting } from "../../olt/scripts/src/engine/runner/receipt/auto-receipt.ts";
+import { initRun, transact } from "../../olt/scripts/src/engine/store/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 

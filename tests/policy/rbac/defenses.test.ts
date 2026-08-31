@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   hasUnshieldedSubshellOrChaining,
   verifyCommandAuthorization,
-} from "../../../../olt/scripts/src/policy/rbac/index.ts";
+} from "../../../olt/scripts/src/policy/rbac/index.ts";
 import { createActor, samplePolicy } from "./fixtures.ts";
 
 describe("RBAC Subshell, Evaluator & Command Defenses", () => {

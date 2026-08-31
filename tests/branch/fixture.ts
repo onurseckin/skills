@@ -3,9 +3,9 @@ import { realpathSync } from "node:fs";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { readBranchLedger } from "../../../olt/scripts/src/workflow/branch/ledger.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
+import { loadRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { readBranchLedger } from "../../olt/scripts/src/workflow/branch/ledger.ts";
 
 export interface BranchFixture {
   repo: string;

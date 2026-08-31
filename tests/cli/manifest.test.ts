@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { writeManifest, getShardKey } from "../../../olt/scripts/generate-cli-manifest.ts";
+import { writeManifest, getShardKey } from "../../olt/scripts/generate-cli-manifest.ts";
 import {
   capabilityManifest,
   commandSlice,
@@ -9,7 +9,7 @@ import {
   MANIFEST_SCHEMA,
   renderDomainMarkdown,
   renderManifestMarkdown,
-} from "../../../olt/scripts/src/cli/manifest.ts";
+} from "../../olt/scripts/src/cli/manifest.ts";
 import {
   commandFilePath,
   loadCapabilitySplit,
@@ -18,8 +18,8 @@ import {
   renderCommandIndexJsonl,
   renderSplitManifestJson,
   SPLIT_MANIFEST_SCHEMA,
-} from "../../../olt/scripts/src/cli/manifest-split.ts";
-import { COMMAND_DOMAINS, COMMAND_REGISTRY } from "../../../olt/scripts/src/cli/registry/index.ts";
+} from "../../olt/scripts/src/cli/manifest-split.ts";
+import { COMMAND_DOMAINS, COMMAND_REGISTRY } from "../../olt/scripts/src/cli/registry/index.ts";
 
 const references = join(import.meta.dir, "..", "..", "..", "olt", "references");
 const splitRoot = join(references, "cli-capabilities");

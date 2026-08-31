@@ -3,16 +3,16 @@ import {
   CANONICAL_ROLES,
   createSessionAuthResolver,
   SessionAuthResolver,
-} from "../../../../olt/scripts/src/capture/runners/session-auth-resolver.ts";
+} from "../../../olt/scripts/src/capture/runners/session-auth-resolver.ts";
 import type {
   CaptureAuthConfig,
   CaptureConfig,
-} from "../../../../olt/scripts/src/capture/config/types.ts";
+} from "../../../olt/scripts/src/capture/config/types.ts";
 import type {
   CaptureCookie,
   CapturePageDriver,
   ResolvedSessionAuth,
-} from "../../../../olt/scripts/src/capture/runners/types.ts";
+} from "../../../olt/scripts/src/capture/runners/types.ts";
 
 describe("session-auth-resolver", () => {
   describe("constructor and initialization", () => {

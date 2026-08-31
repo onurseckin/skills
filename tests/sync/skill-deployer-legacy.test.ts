@@ -6,7 +6,7 @@ import {
   migrateOwnedLegacyDeployment,
   orDefault,
   readJsonStringField,
-} from "../../../scripts/sync/skill-deployer.ts";
+} from "../../scripts/sync/skill-deployer.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 import { initFakeSkillsRepo, initFakeTargetOlt } from "./skill-deployer-fixtures.ts";
 

@@ -7,7 +7,7 @@ import {
   readTelemetryStream,
   resolveTelemetryFilePath,
   type TelemetryEvent,
-} from "../../../../olt/scripts/src/reporting/telemetry-stream.ts";
+} from "../../../olt/scripts/src/reporting/telemetry-stream.ts";
 
 describe("reporting/telemetry-stream", () => {
   let tempDir: string;

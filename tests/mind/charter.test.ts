@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   DEFAULT_CHARTER_RELATIVE_PATH,
   DEFAULT_MIND_BUDGET,
@@ -10,7 +10,7 @@ import {
   parseCharter,
   parseCharterYaml,
   resolveCharterPath,
-} from "../../../olt/scripts/src/mind/lifecycle/charter/index.ts";
+} from "../../olt/scripts/src/mind/lifecycle/charter/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Mind Charter Module (charter.ts) - Pure YAML Manifest SSoT", () => {

@@ -3,7 +3,7 @@ export {
   declaredToolFlags,
   tokenExtraFlags,
   toolRefFlags,
-} from "../../../../olt/scripts/src/cli/taxonomy-flags.ts";
+} from "../../../olt/scripts/src/cli/taxonomy-flags.ts";
 
 export {
   assertFlags,
@@ -12,6 +12,6 @@ export {
   listFlag,
   textFlag,
   type Flags,
-} from "../../../../olt/scripts/src/cli/options.ts";
+} from "../../../olt/scripts/src/cli/options.ts";
 
-export { stripOutputFormat } from "../../../../olt/scripts/src/cli/output-format.ts";
+export { stripOutputFormat } from "../../../olt/scripts/src/cli/output-format.ts";

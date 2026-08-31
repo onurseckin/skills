@@ -2,14 +2,14 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, readlink, symlink } from "node:fs/promises";
 import { mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   applyClientLinks,
   clientLinkPaths,
   preflightClientLinks,
   type ClientLinkPlan,
-} from "../../../olt/scripts/src/installer/client-links.ts";
-import { pathIdentity } from "../../../olt/scripts/src/installer/path-safety.ts";
+} from "../../olt/scripts/src/installer/client-links.ts";
+import { pathIdentity } from "../../olt/scripts/src/installer/path-safety.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 import { cleanInstallerFixtures } from "./helpers.ts";
 

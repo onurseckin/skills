@@ -16,7 +16,7 @@ import {
   type NotificationProcessSpawner,
   type NotificationResult,
   type PhaseCompletionNotificationOptions,
-} from "../../../olt/scripts/src/reporting/notifications/index.ts";
+} from "../../olt/scripts/src/reporting/notifications/index.ts";
 
 describe("OS Audio/Visual Push Notifications", () => {
   describe("Formatting and Sanitization", () => {

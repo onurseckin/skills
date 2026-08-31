@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { recordCaptures } from "../../../olt/scripts/src/engine/store/capsule/captures.ts";
-import { runDoctor } from "../../../olt/scripts/src/reporting/doctor.ts";
+import { initRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { recordCaptures } from "../../olt/scripts/src/engine/store/capsule/captures.ts";
+import { runDoctor } from "../../olt/scripts/src/reporting/doctor.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("runDoctor wires capsule-root and evidence-location checks", () => {

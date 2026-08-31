@@ -3,19 +3,19 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createSignedEnvelope } from "../../../olt/scripts/src/communication/mailbox/envelope.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/events/transaction.ts";
+import { createSignedEnvelope } from "../../olt/scripts/src/communication/mailbox/envelope.ts";
+import { initRun } from "../../olt/scripts/src/engine/store/capsule/capsule.ts";
+import { transact } from "../../olt/scripts/src/engine/store/events/transaction.ts";
 import {
   autoHealCapsule,
   quarantineTornTail,
-} from "../../../olt/scripts/src/reporting/doctor/auto-heal.ts";
+} from "../../olt/scripts/src/reporting/doctor/auto-heal.ts";
 import {
   autoHealMailboxState,
   checkMailboxDiskActivity,
   checkMailboxHealth,
   healCorruptedCursor,
-} from "../../../olt/scripts/src/reporting/doctor/mailbox-health-engine.ts";
+} from "../../olt/scripts/src/reporting/doctor/mailbox-health-engine.ts";
 
 const roots: string[] = [];
 afterEach(async () => {

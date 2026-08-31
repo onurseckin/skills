@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { discoverToolchainPolicy } from "../../../olt/scripts/src/policy/index.ts";
+import { discoverToolchainPolicy } from "../../olt/scripts/src/policy/index.ts";
 
 describe("Autonomous Toolchain Analysis & Policy Calibration", () => {
   it("discovers bun, oxlint, and tsc toolchains from package.json", async () => {

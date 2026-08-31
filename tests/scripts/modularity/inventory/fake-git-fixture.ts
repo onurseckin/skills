@@ -1,7 +1,7 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { GitCommandPrefix } from "../../../../../scripts/modularity/inventory/index.ts";
+import type { GitCommandPrefix } from "../../../../scripts/modularity/inventory/index.ts";
 
 export interface FakeGitBehavior {
   readonly lsFilesOutput: string;

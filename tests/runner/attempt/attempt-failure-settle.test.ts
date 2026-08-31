@@ -4,12 +4,12 @@ import {
   cleanupAfterAttemptFailure,
   settleAndTerminateAttempt,
   startAttemptPumpsAndMonitoring,
-} from "../../../../olt/scripts/src/engine/runner/execution/attempt-failure-cleanup.ts";
-import type { NormalizedCommandOptions } from "../../../../olt/scripts/src/engine/runner/types/types.ts";
+} from "../../../olt/scripts/src/engine/runner/execution/attempt-failure-cleanup.ts";
+import type { NormalizedCommandOptions } from "../../../olt/scripts/src/engine/runner/types/types.ts";
 import {
   readProcessIdentity,
   type ProcessIdentity,
-} from "../../../../olt/scripts/src/engine/runner/process/process-identity.ts";
+} from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
 
 import { scratchRoot } from "../../../support/scratch-root.ts";
 

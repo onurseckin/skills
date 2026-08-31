@@ -10,9 +10,9 @@ import {
   GENESIS_MERKLE_ROOT,
   sha256Hex,
   verifySnapshotIntegrity,
-} from "../../../olt/scripts/src/capture/snapshot/index.ts";
-import type { DomPhysicsSnapshot } from "../../../olt/scripts/src/capture/runners/types.ts";
-import type { SnapshotNode } from "../../../olt/scripts/src/capture/snapshot/types.ts";
+} from "../../olt/scripts/src/capture/snapshot/index.ts";
+import type { DomPhysicsSnapshot } from "../../olt/scripts/src/capture/runners/types.ts";
+import type { SnapshotNode } from "../../olt/scripts/src/capture/snapshot/types.ts";
 
 function createSamplePhysics(): DomPhysicsSnapshot {
   return {

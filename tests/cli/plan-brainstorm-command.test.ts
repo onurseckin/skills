@@ -3,15 +3,15 @@ import { link, mkdir, mkdtemp, readFile, rename, rm, symlink, writeFile } from "
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { existsSync, realpathSync } from "node:fs";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
 import {
   executePlanBrainstorm,
   resolveBrainstormRunRoot,
   type PlanBrainstormOutput,
-} from "../../../olt/scripts/src/cli/commands/plan-brainstorm.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../olt/scripts/src/cli/commands/plan-brainstorm.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { loadRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../olt/scripts/src/engine/store/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { freshRun } from "./plan-workflow-fixture.ts";
 

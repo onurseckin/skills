@@ -1,15 +1,15 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { InstallerLock } from "../../../olt/scripts/src/installer/installer-lock.ts";
-import { pathIdentity } from "../../../olt/scripts/src/installer/path-safety.ts";
+import type { InstallerLock } from "../../olt/scripts/src/installer/installer-lock.ts";
+import { pathIdentity } from "../../olt/scripts/src/installer/path-safety.ts";
 import {
   preparedRelease,
   type ReleaseState,
-} from "../../../olt/scripts/src/installer/release-actions.ts";
-import type { ReleaseTransaction } from "../../../olt/scripts/src/installer/release-transaction.ts";
-import type { TransactionStage } from "../../../olt/scripts/src/installer/transaction-marker.ts";
-import type { ReleaseCopyHooks } from "../../../olt/scripts/src/installer/release-copy.ts";
+} from "../../olt/scripts/src/installer/release-actions.ts";
+import type { ReleaseTransaction } from "../../olt/scripts/src/installer/release-transaction.ts";
+import type { TransactionStage } from "../../olt/scripts/src/installer/transaction-marker.ts";
+import type { ReleaseCopyHooks } from "../../olt/scripts/src/installer/release-copy.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 /** A transaction double: records every stage transition and finish() call without touching disk. */

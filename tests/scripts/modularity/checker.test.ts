@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { checkModularity } from "../../../../scripts/modularity/index.ts";
+import { checkModularity } from "../../../scripts/modularity/index.ts";
 import { gitInFixture } from "./inventory/index-fixture.ts";
 
 let tempRepo: string | undefined;

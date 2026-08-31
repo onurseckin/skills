@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { writeFile, mkdir } from "node:fs/promises";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
 import {
   dagRenderCommand,
   dagTraceCommand,
   executeDagRenderCommand,
   executeDagTraceCommand,
-} from "../../../olt/scripts/src/cli/commands/dag.ts";
+} from "../../olt/scripts/src/cli/commands/dag.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("CLI dag:render and dag:trace commands", () => {

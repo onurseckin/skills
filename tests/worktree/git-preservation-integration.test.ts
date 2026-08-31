@@ -2,9 +2,9 @@ import { describe, expect, test } from "bun:test";
 import {
   assertZeroDestructiveGit,
   isDestructiveGitCommand,
-} from "../../../olt/scripts/src/engine/worktree/zero-destructive-policy.ts";
-import { createGitRunner, type GitSpawn } from "../../../olt/scripts/src/workflow/worktree/git.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/engine/worktree/zero-destructive-policy.ts";
+import { createGitRunner, type GitSpawn } from "../../olt/scripts/src/workflow/worktree/git.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 
 describe("P55 End-to-End Zero-Destructive Git Invariant & User Edits Preservation", () => {
   function createTrackingSpawn(recordedCalls: Array<{ cmd: string; args: string[] }>): GitSpawn {

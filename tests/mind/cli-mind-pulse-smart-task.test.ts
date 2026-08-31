@@ -10,9 +10,9 @@ import {
   formatMindPulseOpenedBrief,
   formatPulseDirective,
   mindPulseCommand,
-} from "../../../olt/scripts/src/cli/commands/mind-pulse.ts";
-import { initRun, loadRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
+} from "../../olt/scripts/src/cli/commands/mind-pulse.ts";
+import { initRun, loadRun, transact } from "../../olt/scripts/src/engine/store/index.ts";
+import type { JsonObject } from "../../olt/scripts/src/core/contracts/index.ts";
 
 const testRoots: string[] = [];
 

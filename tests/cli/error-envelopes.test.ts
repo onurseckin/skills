@@ -6,13 +6,13 @@ import {
   extractSpanHierarchy,
   formatTraceHeaders,
   type TraceContext,
-} from "../../../olt/scripts/src/telemetry/trace-context.ts";
+} from "../../olt/scripts/src/telemetry/trace-context.ts";
 import type {
   CliErrorEnvelope,
   CliSuccessEnvelope,
-} from "../../../olt/scripts/src/cli/registry/types.ts";
-import { executeTaskAdd } from "../../../olt/scripts/src/cli/commands/task-add.ts";
-import { executeTaskList } from "../../../olt/scripts/src/cli/commands/task-list.ts";
+} from "../../olt/scripts/src/cli/registry/types.ts";
+import { executeTaskAdd } from "../../olt/scripts/src/cli/commands/task-add.ts";
+import { executeTaskList } from "../../olt/scripts/src/cli/commands/task-list.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Distributed Trace Context & Error Envelopes", () => {

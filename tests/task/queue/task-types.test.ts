@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   DEFAULT_LEASE_DURATION_MS,
   DEFAULT_LEASE_DURATION_SECONDS,
@@ -21,7 +21,7 @@ import {
   type TaskQueueFilterOptions,
   type TaskQueueStats,
   type TaskSourceType,
-} from "../../../../olt/scripts/src/task/queue/types.ts";
+} from "../../../olt/scripts/src/task/queue/types.ts";
 
 describe("Task Queue Types & Schema Validation", () => {
   it("defines standard task statuses and priorities", () => {

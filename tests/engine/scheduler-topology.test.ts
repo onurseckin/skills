@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { computeTopology } from "../../../olt/scripts/src/engine/scheduler/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { computeTopology } from "../../olt/scripts/src/engine/scheduler/index.ts";
 import {
   computeReceiptHash,
   generateReceiptBadge,
   generateReceiptSummaryBadge,
   type CliDiagnosticReceipt,
-} from "../../../olt/scripts/src/engine/scheduler/diagnostics/index.ts";
+} from "../../olt/scripts/src/engine/scheduler/diagnostics/index.ts";
 
 describe("Scheduler Topology", () => {
   const topologyState = {

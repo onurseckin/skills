@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
 import {
   COMMAND_DOMAINS,
   COMMAND_REGISTRY,
@@ -10,8 +10,8 @@ import {
   isPrimaryCommand,
   type CommandDomain,
   type CommandSpec,
-} from "../../../olt/scripts/src/cli/registry/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/cli/registry/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 
 describe("Command Registry & Dispatch Invariant Gate", () => {
   test("100% of registered commands declare valid specs with zero aliases", () => {

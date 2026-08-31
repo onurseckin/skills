@@ -14,10 +14,10 @@ import {
   restoreEnvSnapshot,
   withIsolatedEnv,
   withIsolatedEnvSync,
-} from "../../../olt/scripts/src/testing/isolation.ts";
+} from "../../olt/scripts/src/testing/isolation.ts";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 
 describe("testing subsystem isolation sandbox", () => {
   it("resolves repository root correctly", () => {

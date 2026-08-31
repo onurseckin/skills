@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { ViolationAlertDispatcher } from "../../../../olt/scripts/src/policy/audit/violation-alert.ts";
-import type { ViolationAlert } from "../../../../olt/scripts/src/policy/audit/types.ts";
+import { ViolationAlertDispatcher } from "../../../olt/scripts/src/policy/audit/violation-alert.ts";
+import type { ViolationAlert } from "../../../olt/scripts/src/policy/audit/types.ts";
 
 describe("ViolationAlertDispatcher", () => {
   it("dispatches alerts to subscribers asynchronously", async () => {

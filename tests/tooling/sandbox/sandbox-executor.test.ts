@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import { type SystemMetricsProvider } from "../../../../olt/scripts/src/tooling/sandbox/resource-governor.ts";
-import { SandboxedToolExecutor } from "../../../../olt/scripts/src/tooling/sandbox/sandbox-executor.ts";
-import type { ResourceQuota } from "../../../../olt/scripts/src/tooling/sandbox/types.ts";
+import { type SystemMetricsProvider } from "../../../olt/scripts/src/tooling/sandbox/resource-governor.ts";
+import { SandboxedToolExecutor } from "../../../olt/scripts/src/tooling/sandbox/sandbox-executor.ts";
+import type { ResourceQuota } from "../../../olt/scripts/src/tooling/sandbox/types.ts";
 
 class MockMetricsProvider implements SystemMetricsProvider {
   public memory = {

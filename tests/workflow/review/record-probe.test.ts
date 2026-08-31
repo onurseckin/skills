@@ -2,10 +2,10 @@ import { describe, expect, test } from "bun:test";
 import {
   recordProbe,
   validateProbe,
-} from "../../../../olt/scripts/src/workflow/review/record-probe.ts";
+} from "../../../olt/scripts/src/workflow/review/record-probe.ts";
 import { at, TestPort, workflowState } from "../test-port.ts";
-import type { TransactionPort, WorkflowState } from "../../../../olt/scripts/src/workflow/types.ts";
-import { tokenDigest } from "../../../../olt/scripts/src/workflow/lease/token.ts";
+import type { TransactionPort, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
+import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";
 
 describe("validateProbe", () => {
   test("rejects a non-object probe value (null, array, primitive)", () => {

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { validateTasks } from "../../../olt/scripts/src/graph/validate-tasks.ts";
+import { validateTasks } from "../../olt/scripts/src/graph/validate-tasks.ts";
 
 describe("graph validate tasks", () => {
   test("validates requirement_ids, write_scope, and resource_scope constraints", () => {

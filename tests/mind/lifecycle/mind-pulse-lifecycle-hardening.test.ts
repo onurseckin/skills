@@ -3,21 +3,21 @@ import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { initRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
+import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import {
   evaluateAntiIdleRollover,
   createCadenceTrigger,
-} from "../../../../olt/scripts/src/mind/lifecycle/cadence/index.ts";
+} from "../../../olt/scripts/src/mind/lifecycle/cadence/index.ts";
 import {
   checkQuietHours,
   checkDailyPulseLimit,
-} from "../../../../olt/scripts/src/mind/lifecycle/budget/index.ts";
+} from "../../../olt/scripts/src/mind/lifecycle/budget/index.ts";
 import {
   detectGhostOrchestrators,
   terminateDetachedOrchestrator,
-} from "../../../../olt/scripts/src/mind/lifecycle/ghost-reconciler.ts";
-import { reclaimDeadPulse } from "../../../../olt/scripts/src/mind/lifecycle/pulse/pulse-reclaim.ts";
-import { validatePriorRoundCompleted } from "../../../../olt/scripts/src/mind/lifecycle/rounds/index.ts";
+} from "../../../olt/scripts/src/mind/lifecycle/ghost-reconciler.ts";
+import { reclaimDeadPulse } from "../../../olt/scripts/src/mind/lifecycle/pulse/pulse-reclaim.ts";
+import { validatePriorRoundCompleted } from "../../../olt/scripts/src/mind/lifecycle/rounds/index.ts";
 
 const testRoots: string[] = [];
 

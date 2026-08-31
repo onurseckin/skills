@@ -6,12 +6,12 @@ import {
   streamDeduplicateDefects,
   createDefectDedupTransformStream,
   filterDefectStream,
-} from "../../../olt/scripts/src/mind/defects/dedup/index.ts";
-import { toAggregatedDefect } from "../../../olt/scripts/src/mind/defects/aggregator/index.ts";
+} from "../../olt/scripts/src/mind/defects/dedup/index.ts";
+import { toAggregatedDefect } from "../../olt/scripts/src/mind/defects/aggregator/index.ts";
 import type {
   AggregatedDefect,
   DefectRecordInput,
-} from "../../../olt/scripts/src/mind/defects/core/index.ts";
+} from "../../olt/scripts/src/mind/defects/core/index.ts";
 
 describe("mind/defects/dedup-stream", () => {
   const sampleDefects: DefectRecordInput[] = [

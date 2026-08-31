@@ -17,7 +17,7 @@ import {
   normalizeWeightMultiplier,
   validateUiCognitive,
   validateUiMechanic,
-} from "../../../olt/scripts/src/validation/ui/index.ts";
+} from "../../olt/scripts/src/validation/ui/index.ts";
 
 describe("Dual UI Validators: Separation & Invariants", () => {
   describe("1. Canonical 4-Tier Viewports & Constants", () => {

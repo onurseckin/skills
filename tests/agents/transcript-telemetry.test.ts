@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { readAgentTranscriptTelemetry } from "../../../olt/scripts/src/workflow/agents/transcript-telemetry.ts";
+import { readAgentTranscriptTelemetry } from "../../olt/scripts/src/workflow/agents/transcript-telemetry.ts";
 import {
   assistantLine,
   mktemp,

@@ -3,11 +3,11 @@ import { mkdtemp } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
 import {
   summaryExportCommand,
   summaryViewCommand,
-} from "../../../olt/scripts/src/cli/commands/summary-ops.ts";
+} from "../../olt/scripts/src/cli/commands/summary-ops.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { TASK_ID, setupRun } from "./probe-fixture.ts";
 

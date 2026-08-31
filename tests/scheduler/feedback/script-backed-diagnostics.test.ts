@@ -14,13 +14,13 @@ import {
   runScriptBackedDiagnostics,
   SchedulerEngine,
   type CliDiagnosticReceipt,
-} from "../../../../olt/scripts/src/engine/scheduler/index.ts";
-import type { TransactionPort, WorkflowState } from "../../../../olt/scripts/src/workflow/types.ts";
+} from "../../../olt/scripts/src/engine/scheduler/index.ts";
+import type { TransactionPort, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 import { schedulerState } from "../fixtures.ts";
 import {
   formatMindPulseActiveBrief,
   formatMindPulseOpenedBrief,
-} from "../../../../olt/scripts/src/cli/commands/mind-pulse.ts";
+} from "../../../olt/scripts/src/cli/commands/mind-pulse.ts";
 
 function createMockPort(initialState: Record<string, unknown>): TransactionPort {
   let state = structuredClone(initialState) as unknown as WorkflowState;

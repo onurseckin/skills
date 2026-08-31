@@ -1,15 +1,15 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { cp, mkdir, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { canonicalJsonBytes } from "../../../olt/scripts/src/core/json.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { sealInstallationManifest } from "../../../olt/scripts/src/installer/manifest-integrity.ts";
-import { pathIdentity } from "../../../olt/scripts/src/installer/path-safety.ts";
-import { recoverReleasePaths } from "../../../olt/scripts/src/installer/release-recovery.ts";
-import { SKILL_NAME } from "../../../olt/scripts/src/installer/constants.ts";
-import { treeDigest } from "../../../olt/scripts/src/installer/tree-digest.ts";
-import { validateSkillSource } from "../../../olt/scripts/src/installer/source-validation.ts";
-import type { TransactionMarker } from "../../../olt/scripts/src/installer/transaction-marker.ts";
+import { canonicalJsonBytes } from "../../olt/scripts/src/core/json.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { sealInstallationManifest } from "../../olt/scripts/src/installer/manifest-integrity.ts";
+import { pathIdentity } from "../../olt/scripts/src/installer/path-safety.ts";
+import { recoverReleasePaths } from "../../olt/scripts/src/installer/release-recovery.ts";
+import { SKILL_NAME } from "../../olt/scripts/src/installer/constants.ts";
+import { treeDigest } from "../../olt/scripts/src/installer/tree-digest.ts";
+import { validateSkillSource } from "../../olt/scripts/src/installer/source-validation.ts";
+import type { TransactionMarker } from "../../olt/scripts/src/installer/transaction-marker.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 import { cleanInstallerFixtures, installerFixture } from "./helpers.ts";
 

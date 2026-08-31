@@ -3,8 +3,8 @@ import {
   monitorProcess,
   type TimeoutKind,
   type WatchdogOutcome,
-} from "../../../../olt/scripts/src/engine/runner/telemetry/watchdog.ts";
-import type { BunSubprocess } from "../../../../olt/scripts/src/engine/runner/types/types.ts";
+} from "../../../olt/scripts/src/engine/runner/telemetry/watchdog.ts";
+import type { BunSubprocess } from "../../../olt/scripts/src/engine/runner/types/types.ts";
 
 function fakeChild(exited: Promise<number>): BunSubprocess {
   return { pid: 1234, exited } as never;

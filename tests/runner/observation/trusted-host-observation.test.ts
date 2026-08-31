@@ -6,12 +6,12 @@ import { tmpdir } from "node:os";
 import type {
   CommandAttemptRecord,
   CommandRecord,
-} from "../../../../olt/scripts/src/core/contracts/index.ts";
-import type { RepositoryBinding } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
-import { embeddedCommandIssues } from "../../../../olt/scripts/src/engine/runner/models/command/command-shape.ts";
-import { createInternalCommandRunner } from "../../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
-import type { AttemptResult } from "../../../../olt/scripts/src/engine/runner/types/types.ts";
+} from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { embeddedCommandIssues } from "../../../olt/scripts/src/engine/runner/models/command/command-shape.ts";
+import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
+import type { AttemptResult } from "../../../olt/scripts/src/engine/runner/types/types.ts";
 
 const roots: string[] = [];
 const digest = (value: string): string => value.repeat(64).slice(0, 64);

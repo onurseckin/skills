@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
 import {
   executeRoleList,
   executeRoleProfile,
   roleCheatSheetCommand,
   roleListCommand,
   roleProfileCommand,
-} from "../../../olt/scripts/src/cli/commands/role-ops.ts";
+} from "../../olt/scripts/src/cli/commands/role-ops.ts";
 
 describe("Role CLI Commands & JSON Contract Verification", () => {
   test("role:list returns strongly typed roles array and total count", () => {

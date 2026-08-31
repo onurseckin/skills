@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { generateGraphDataset } from "../../../olt/scripts/src/summary/graph/index.ts";
-import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
+import { generateGraphDataset } from "../../olt/scripts/src/summary/graph/index.ts";
+import type { TaskRecord } from "../../olt/scripts/src/workflow/types.ts";
 import { makeGrant, makeState, makeTask } from "./graph-fixtures.ts";
 
 function leasedTask(agentId: string): TaskRecord {

@@ -11,13 +11,13 @@ import {
   isValidCursorPayload,
   loadMailboxCursor,
   saveMailboxCursor,
-} from "../../../olt/scripts/src/communication/mailbox/index.ts";
-import { createSignedEnvelope } from "../../../olt/scripts/src/communication/mailbox/envelope.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/communication/mailbox/index.ts";
+import { createSignedEnvelope } from "../../olt/scripts/src/communication/mailbox/envelope.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import type {
   MailboxCursor,
   MailboxEnvelope,
-} from "../../../olt/scripts/src/communication/types.ts";
+} from "../../olt/scripts/src/communication/types.ts";
 
 describe("Monotonic Cursor Tracker & High-Water Mark Engine", () => {
   let tempDir: string;

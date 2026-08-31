@@ -7,9 +7,9 @@ import {
   ReviewProtocolEngine,
   type RepoPolicy,
   type ReviewProtocolConfig,
-} from "../../../olt/scripts/src/policy/index.ts";
-import type { TaskRecord } from "../../../olt/scripts/src/workflow/index.ts";
-import type { AgentMetadata } from "../../../olt/scripts/src/runtime/index.ts";
+} from "../../olt/scripts/src/policy/index.ts";
+import type { TaskRecord } from "../../olt/scripts/src/workflow/index.ts";
+import type { AgentMetadata } from "../../olt/scripts/src/runtime/index.ts";
 
 describe("ReviewProtocolEngine Config Resolution & Satisfaction", () => {
   const dummyTask: TaskRecord = {

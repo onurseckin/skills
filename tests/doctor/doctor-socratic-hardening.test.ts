@@ -2,19 +2,19 @@ import { describe, expect, test } from "bun:test";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { checkAntiMockMutation } from "../../../olt/scripts/src/reporting/doctor/anti-mock-engine.ts";
+import { checkAntiMockMutation } from "../../olt/scripts/src/reporting/doctor/anti-mock-engine.ts";
 import {
   checkAstPurity,
   scanFileForAstPurity,
-} from "../../../olt/scripts/src/reporting/doctor/ast-purity-engine.ts";
-import { healCorruptedCursor } from "../../../olt/scripts/src/reporting/doctor/mailbox-health-engine.ts";
-import { checkQuotaHealth } from "../../../olt/scripts/src/reporting/doctor/quota-health-engine.ts";
+} from "../../olt/scripts/src/reporting/doctor/ast-purity-engine.ts";
+import { healCorruptedCursor } from "../../olt/scripts/src/reporting/doctor/mailbox-health-engine.ts";
+import { checkQuotaHealth } from "../../olt/scripts/src/reporting/doctor/quota-health-engine.ts";
 import {
   auditCompanionAuditors,
   checkCompanionAuditorsDoctor,
-} from "../../../olt/scripts/src/reporting/doctor/rules/companion-auditors.ts";
-import type { MailboxCursor } from "../../../olt/scripts/src/communication/types.ts";
-import type { UnifiedTelemetryReport } from "../../../olt/scripts/src/telemetry/types.ts";
+} from "../../olt/scripts/src/reporting/doctor/rules/companion-auditors.ts";
+import type { MailboxCursor } from "../../olt/scripts/src/communication/types.ts";
+import type { UnifiedTelemetryReport } from "../../olt/scripts/src/telemetry/types.ts";
 
 describe("Doctor Diagnostic Engines - Socratic Hardening Suite", () => {
   test("Challenge 1: checkAntiMockMutation inspects target files and ignores negative matchers / unequal literals", () => {

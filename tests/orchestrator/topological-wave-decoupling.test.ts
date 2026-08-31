@@ -4,8 +4,8 @@ import {
   partitionTopologyWaves,
   synthesizeDAGTopology,
   validateTopologyAcyclicity,
-} from "../../../olt/scripts/src/orchestrator/topology-synthesis.ts";
-import type { SynthesizedTaskSpec } from "../../../olt/scripts/src/orchestrator/topology/types.ts";
+} from "../../olt/scripts/src/orchestrator/topology-synthesis.ts";
+import type { SynthesizedTaskSpec } from "../../olt/scripts/src/orchestrator/topology/types.ts";
 
 describe("Domain 20: Topological Wave Decoupling", () => {
   test("decoupleIndependentWaves creates independent parallel subgraphs without transitive barriers", () => {

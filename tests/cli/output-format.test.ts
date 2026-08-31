@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { stripOutputFormat } from "../../../olt/scripts/src/cli/output-format.ts";
+import { stripOutputFormat } from "../../olt/scripts/src/cli/output-format.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 const MIN_MIND_MANIFEST_YAML = `role: mind

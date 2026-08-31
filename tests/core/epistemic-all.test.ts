@@ -4,21 +4,21 @@ import {
   computeEpistemicVector,
   computeWeightedEpistemicScore,
   calculateEpistemicGrade,
-} from "../../../olt/scripts/src/core/epistemic/evaluator.ts";
+} from "../../olt/scripts/src/core/epistemic/evaluator.ts";
 import {
   matchesEpistemicPredicate,
   computeEpistemicAggregate,
-} from "../../../olt/scripts/src/core/epistemic/predicate.ts";
+} from "../../olt/scripts/src/core/epistemic/predicate.ts";
 import {
   EpistemicEventBus,
   EpistemicEventStream,
-} from "../../../olt/scripts/src/core/epistemic/streaming.ts";
+} from "../../olt/scripts/src/core/epistemic/streaming.ts";
 import {
   createBayesianBelief,
   updateBayesianBelief,
   fuseEvidenceSources,
-} from "../../../olt/scripts/src/core/epistemic/bayesian-inference.ts";
-import type { EpistemicRecord } from "../../../olt/scripts/src/core/epistemic/types.ts";
+} from "../../olt/scripts/src/core/epistemic/bayesian-inference.ts";
+import type { EpistemicRecord } from "../../olt/scripts/src/core/epistemic/types.ts";
 
 describe("core/epistemic evaluator edge cases", () => {
   it("generates failure reasons for insufficient evidence, low falsifiability, stability, and coverage", () => {

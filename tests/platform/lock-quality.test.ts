@@ -19,10 +19,10 @@ import {
   loadBindings,
   releaseFlock,
   tryExclusiveFlock,
-} from "../../../olt/scripts/src/platform/index.ts";
-import { withRunLock } from "../../../olt/scripts/src/platform/index.ts";
-import { clearObserver, publishObserver } from "../../../olt/scripts/src/platform/index.ts";
-import { resolveCapsulesDir } from "../../../olt/scripts/src/core/shared/paths.ts";
+} from "../../olt/scripts/src/platform/index.ts";
+import { withRunLock } from "../../olt/scripts/src/platform/index.ts";
+import { clearObserver, publishObserver } from "../../olt/scripts/src/platform/index.ts";
+import { resolveCapsulesDir } from "../../olt/scripts/src/core/shared/paths.ts";
 
 const lockModule = new URL("../../../olt/scripts/src/platform/index.ts", import.meta.url).pathname;
 

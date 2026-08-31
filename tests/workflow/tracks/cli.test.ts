@@ -7,8 +7,8 @@ import {
   worktreeLandCommand,
   worktreeListCommand,
   worktreeStatusCommand,
-} from "../../../../olt/scripts/src/cli/commands/worktree-ops.ts";
-import { findCommand } from "../../../../olt/scripts/src/cli/registry/index.ts";
+} from "../../../olt/scripts/src/cli/commands/worktree-ops.ts";
+import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
 
 const TEST_DIR = join(process.cwd(), ".olt", "scratch", "test-worktree-cli");
 

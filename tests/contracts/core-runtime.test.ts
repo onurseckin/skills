@@ -12,11 +12,11 @@ import { join } from "node:path";
 import {
   collectBoundedDirectoryEntries,
   type SyncDirectoryReader,
-} from "../../../olt/scripts/src/core/bounded-directory.ts";
+} from "../../olt/scripts/src/core/bounded-directory.ts";
 import {
   deriveGateConcurrencyCeiling,
   discoverHostConcurrencyCeiling,
-} from "../../../olt/scripts/src/core/config/host-concurrency.ts";
+} from "../../olt/scripts/src/core/config/host-concurrency.ts";
 import {
   isGitArgv,
   isRestrictedGitDiffArgv,
@@ -24,12 +24,12 @@ import {
   RESTRICTED_GIT_ENVIRONMENT,
   restrictedGitDiffArgv,
   restrictedRepositoryGitArgv,
-} from "../../../olt/scripts/src/core/restricted-git.ts";
-import { includeRuntimeSourceEntry } from "../../../olt/scripts/src/core/runtime-filter.ts";
+} from "../../olt/scripts/src/core/restricted-git.ts";
+import { includeRuntimeSourceEntry } from "../../olt/scripts/src/core/runtime-filter.ts";
 import {
   copyPinnedRuntime,
   runtimeTreeSnapshot,
-} from "../../../olt/scripts/src/core/runtime-tree.ts";
+} from "../../olt/scripts/src/core/runtime-tree.ts";
 
 describe("core runtime utilities: bounded directory, git, filter, concurrency, runtime-tree", () => {
   const scratchBase = join(process.cwd(), "coverage", "scratch", "core-runtime-tests");

@@ -10,7 +10,7 @@ import {
   type DomainLedgerState,
   type DomainSyncResult,
   type GlobalSyncSummary,
-} from "../../../olt/scripts/src/engine/worktree/domain-sync.ts";
+} from "../../olt/scripts/src/engine/worktree/domain-sync.ts";
 import {
   FakeRunStore,
   baseLedger,

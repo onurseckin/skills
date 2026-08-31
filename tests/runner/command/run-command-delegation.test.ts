@@ -2,13 +2,13 @@ import { describe, expect, test } from "bun:test";
 import {
   executePreparedCommand,
   prepareCommand,
-} from "../../../../olt/scripts/src/engine/runner/models/execution/run-command.ts";
-import type { InternalCommandRunner } from "../../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
+} from "../../../olt/scripts/src/engine/runner/models/execution/run-command.ts";
+import type { InternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 import type {
   CommandOptions,
   CommandResult,
   PreparedCommand,
-} from "../../../../olt/scripts/src/engine/runner/types/types.ts";
+} from "../../../olt/scripts/src/engine/runner/types/types.ts";
 import { scratchRoot } from "../../../support/scratch-root.ts";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";

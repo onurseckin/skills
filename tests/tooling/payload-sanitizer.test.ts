@@ -5,7 +5,7 @@ import {
   validateParameter,
   validateTypeOnly,
   type ToolParameter,
-} from "../../../olt/scripts/src/tooling/index.ts";
+} from "../../olt/scripts/src/tooling/index.ts";
 
 describe("Runtime Payload Sanitizer & Type Validator Suite", () => {
   describe("validateTypeOnly primitive checking", () => {

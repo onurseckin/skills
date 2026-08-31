@@ -18,7 +18,7 @@ import {
   spawnIsolatedProcess,
   validatePolicyConfiguration,
   type SandboxPolicyConfig,
-} from "../../../olt/scripts/src/tooling/index.ts";
+} from "../../olt/scripts/src/tooling/index.ts";
 
 describe("Dynamic Tool Sandboxing & Execution Isolation Suite", () => {
   beforeEach(() => {

@@ -10,8 +10,8 @@ import {
   readCanonicalObject,
   sameJson,
   sha256Bytes,
-} from "../../../olt/scripts/src/core/json.ts";
-import { readRegularFileNoFollow } from "../../../olt/scripts/src/core/no-follow.ts";
+} from "../../olt/scripts/src/core/json.ts";
+import { readRegularFileNoFollow } from "../../olt/scripts/src/core/no-follow.ts";
 
 describe("core json & no-follow contracts", () => {
   const scratchBase = join(process.cwd(), "coverage", "scratch", "json-contracts-tests");

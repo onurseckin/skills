@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   CADENCE_WAKE_KINDS,
   classifyCadenceWake,
   classifyCadenceWakeInstant,
   resolveSupervisoryCadence,
-} from "../../../olt/scripts/src/core/config/cadence.ts";
+} from "../../olt/scripts/src/core/config/cadence.ts";
 
 describe("CadenceWakeKind", () => {
   test("timer_fired is expressible even though nothing currently produces it", () => {

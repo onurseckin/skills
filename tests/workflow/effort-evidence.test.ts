@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { evidenced } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
-import { submitTask } from "../../../olt/scripts/src/workflow/submission/submit.ts";
+import { evidenced } from "../../olt/scripts/src/core/contracts/index.ts";
+import { claimTask } from "../../olt/scripts/src/workflow/lease/claim.ts";
+import { submitTask } from "../../olt/scripts/src/workflow/submission/submit.ts";
 import { at, registerTaskPacket, TestPort, workflowState } from "./test-port.ts";
 
 const start = at("2026-08-13T12:00:00.000Z");

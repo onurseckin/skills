@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { checkDeclarations } from "../../../olt/scripts/src/health/unenforced.ts";
-import { COMMAND_REGISTRY } from "../../../olt/scripts/src/cli/registry/index.ts";
+import { checkDeclarations } from "../../olt/scripts/src/health/unenforced.ts";
+import { COMMAND_REGISTRY } from "../../olt/scripts/src/cli/registry/index.ts";
 import { cleanupTempRoots, loadTree, tempRoot, writeTree } from "./fixture.ts";
 
 afterAll(cleanupTempRoots);

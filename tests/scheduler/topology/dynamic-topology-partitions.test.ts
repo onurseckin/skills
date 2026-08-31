@@ -4,7 +4,7 @@ import {
   partitionOrchestratorDomains,
   calculateValidatorAllocations,
   calculateCriticConcurrency,
-} from "../../../../olt/scripts/src/engine/scheduler/index.ts";
+} from "../../../olt/scripts/src/engine/scheduler/index.ts";
 
 describe("Dynamic Topology: Partitions, Allocations & Disjointness", () => {
   describe("partitionOrchestratorDomains", () => {

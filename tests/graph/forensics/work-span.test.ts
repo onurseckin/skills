@@ -6,7 +6,7 @@ import {
   computeWorkSpan,
   detectFanOutBottlenecks,
   type ForensicTaskNode,
-} from "../../../../olt/scripts/src/graph/forensics/index.ts";
+} from "../../../olt/scripts/src/graph/forensics/index.ts";
 
 describe("DAG Forensics: Work-Span Metrics Calculation", () => {
   test("computes baseline metrics for empty and single node topologies", () => {

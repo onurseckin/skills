@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { BranchRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { BranchRecord } from "../../olt/scripts/src/core/contracts/index.ts";
 import {
   formatBranchAbandonBrief,
   formatBranchClaimBrief,
@@ -7,8 +7,8 @@ import {
   formatBranchOpenBrief,
   formatBranchStatusBrief,
   formatBranchSubmitBrief,
-} from "../../../olt/scripts/src/cli/formatters/branch-formatter.ts";
-import { formatDeterministicActionChaining } from "../../../olt/scripts/src/cli/formatters/next-actions.ts";
+} from "../../olt/scripts/src/cli/formatters/branch-formatter.ts";
+import { formatDeterministicActionChaining } from "../../olt/scripts/src/cli/formatters/next-actions.ts";
 
 function branch(overrides: Partial<BranchRecord> = {}): BranchRecord {
   return {

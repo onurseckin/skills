@@ -6,8 +6,8 @@ import {
   AUDIT_INVARIANT_IDS,
   auditPlan,
   isAuditInvariantId,
-} from "../../../olt/scripts/src/graph/plan-audit.ts";
-import { saveRepoPolicy, type RepoPolicy } from "../../../olt/scripts/src/policy/repo-policy.ts";
+} from "../../olt/scripts/src/graph/plan-audit.ts";
+import { saveRepoPolicy, type RepoPolicy } from "../../olt/scripts/src/policy/repo-policy.ts";
 
 function generatePrompt(lineCount: number): string {
   return Array.from(

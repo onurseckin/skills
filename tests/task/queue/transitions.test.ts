@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   assertValidActiveLease,
   assertWriteScopeASTPurity,
@@ -15,7 +15,7 @@ import {
   translateSuspendedLeases,
   validateCompletionReceipts,
   type TaskQueueItem,
-} from "../../../../olt/scripts/src/task/queue/index.ts";
+} from "../../../olt/scripts/src/task/queue/index.ts";
 import { scratchRoot } from "../../../support/scratch-root.ts";
 
 describe("Task Queue Transitions Engine", () => {

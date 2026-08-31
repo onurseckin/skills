@@ -8,12 +8,12 @@ import {
   DEFAULT_EPISTEMIC_WEIGHTS,
   DEFAULT_PASS_THRESHOLD,
   type EpistemicEvaluationInput,
-} from "../../../../olt/scripts/src/core/epistemic/index.ts";
+} from "../../../olt/scripts/src/core/epistemic/index.ts";
 import {
   evaluatePlanEpistemicReadiness,
   detectScopeOverlapWarnings,
   type PlanEvaluationDocument,
-} from "../../../../olt/scripts/src/mind/planning/engine/index.ts";
+} from "../../../olt/scripts/src/mind/planning/engine/index.ts";
 
 describe("Epistemic Mathematics and Confidence Engine", () => {
   test("clamp normalizes values strictly within lower and upper bounds", () => {

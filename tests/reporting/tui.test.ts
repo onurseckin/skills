@@ -10,7 +10,7 @@ import {
   StreamMultiplexer,
   TuiController,
   TuiStateStore,
-} from "../../../olt/scripts/src/reporting/tui/index.ts";
+} from "../../olt/scripts/src/reporting/tui/index.ts";
 
 describe("Track 2 Extensions - Terminal Dashboard Keybindings & Live TUI Streams", () => {
   describe("Key Parsing and Keybindings Engine", () => {

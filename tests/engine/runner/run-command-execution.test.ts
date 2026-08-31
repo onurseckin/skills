@@ -11,17 +11,17 @@ import {
   setExecutionLockDependenciesForTesting,
   readOwnDataString,
   isTrustedEnoent,
-} from "../../../../olt/scripts/src/engine/runner/models/execution/run-command.ts";
-import { activeExecutionRootInodes } from "../../../../olt/scripts/src/engine/runner/models/execution/run-command-lock-deps.ts";
-import { resolveScratchDir } from "../../../../olt/scripts/src/core/shared/paths.ts";
-import { createAgentMetadata } from "../../../../olt/scripts/src/runtime/metadata.ts";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
-import type { InternalCommandRunner } from "../../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
+} from "../../../olt/scripts/src/engine/runner/models/execution/run-command.ts";
+import { activeExecutionRootInodes } from "../../../olt/scripts/src/engine/runner/models/execution/run-command-lock-deps.ts";
+import { resolveScratchDir } from "../../../olt/scripts/src/core/shared/paths.ts";
+import { createAgentMetadata } from "../../../olt/scripts/src/runtime/metadata.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import type { InternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 import type {
   CommandOptions,
   CommandResult,
   PreparedCommand,
-} from "../../../../olt/scripts/src/engine/runner/types/types.ts";
+} from "../../../olt/scripts/src/engine/runner/types/types.ts";
 import type { Stats } from "node:fs";
 
 describe("engine/runner/models/execution/run-command.ts & run-command-lock.ts", () => {

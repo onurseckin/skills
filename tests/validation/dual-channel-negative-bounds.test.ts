@@ -2,13 +2,13 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createSyntheticPngBuffer } from "../../../olt/scripts/src/capture/runners/live-capture-runner/index.ts";
+import { createSyntheticPngBuffer } from "../../olt/scripts/src/capture/runners/live-capture-runner/index.ts";
 import {
   analyzeDualChannel,
   validateCrossChannelConsistency,
   type ScreenshotMetadata,
   type VisualMetricsReport,
-} from "../../../olt/scripts/src/validation/dual-channel-analyzer/index.ts";
+} from "../../olt/scripts/src/validation/dual-channel-analyzer/index.ts";
 
 describe("Dual-Channel Visual Analyzer - Negative Bounds & Custom Viewports", () => {
   describe("Viewport Normalization & Custom Viewports", () => {

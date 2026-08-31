@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { dependencyMap } from "../../../olt/scripts/src/graph/dependency-map.ts";
-import { validateGraph } from "../../../olt/scripts/src/graph/validate-graph.ts";
-import { proposeBatch } from "../../../olt/scripts/src/engine/scheduler/index.ts";
+import { dependencyMap } from "../../olt/scripts/src/graph/dependency-map.ts";
+import { validateGraph } from "../../olt/scripts/src/graph/validate-graph.ts";
+import { proposeBatch } from "../../olt/scripts/src/engine/scheduler/index.ts";
 import { graphDocument, validPlanningDocuments } from "./fixtures.ts";
 
 describe("graph dependencies", () => {

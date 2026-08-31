@@ -10,8 +10,8 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { guardedRemoveSync, smartEnsureSymlink } from "../../../scripts/sync/fs-helpers.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { guardedRemoveSync, smartEnsureSymlink } from "../../scripts/sync/fs-helpers.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 function git(args: string[], cwd: string): void {

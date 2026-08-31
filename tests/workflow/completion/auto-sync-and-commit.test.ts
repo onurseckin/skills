@@ -7,7 +7,7 @@ import {
   type GitRunnerResult,
   type SyncRunner,
   type SyncRunnerResult,
-} from "../../../../olt/scripts/src/workflow/completion/auto-sync-and-commit.ts";
+} from "../../../olt/scripts/src/workflow/completion/auto-sync-and-commit.ts";
 
 describe("workflow/completion/auto-sync-and-commit", () => {
   const baseOptions: AutoSyncOptions = {

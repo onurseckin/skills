@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   CANONICAL_GOVERNANCE_CHARTER_PATH,
   CANONICAL_LIFECYCLE_CHARTER_PATH,
@@ -29,9 +29,9 @@ import {
   type MindBudgetOverrides,
   type ParsedCharter,
   type StabilityCheck,
-} from "../../../olt/scripts/src/mind/governance/charter.ts";
-import * as governanceBarrel from "../../../olt/scripts/src/mind/governance/index.ts";
-import * as mindBarrel from "../../../olt/scripts/src/mind/index.ts";
+} from "../../olt/scripts/src/mind/governance/charter.ts";
+import * as governanceBarrel from "../../olt/scripts/src/mind/governance/index.ts";
+import * as mindBarrel from "../../olt/scripts/src/mind/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Mind Governance Charter Module (mind/governance/charter.ts)", () => {

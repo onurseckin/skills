@@ -11,12 +11,12 @@ import {
   DEFAULT_SINGLETON_ROLE,
   type AuditLivenessOptions,
   type LiveSubagentInfo,
-} from "../../../../olt/scripts/src/mind/auditing/orchestrator-liveness-auditor.ts";
+} from "../../../olt/scripts/src/mind/auditing/orchestrator-liveness-auditor.ts";
 import {
   loadOrchestratorLedger,
   registerOrchestratorSpawn,
   type NewOrchestratorRecordInput,
-} from "../../../../olt/scripts/src/mind/lifecycle/orchestrator-ledger.ts";
+} from "../../../olt/scripts/src/mind/lifecycle/orchestrator-ledger.ts";
 
 function createInput(
   overrides: Partial<NewOrchestratorRecordInput> = {},

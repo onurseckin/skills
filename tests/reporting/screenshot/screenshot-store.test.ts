@@ -5,11 +5,11 @@ import { join } from "node:path";
 import {
   getVisualReport,
   queryScreenshots,
-} from "../../../../olt/scripts/src/reporting/screenshot-store.ts";
+} from "../../../olt/scripts/src/reporting/screenshot-store.ts";
 import {
   recordCaptures,
   type CaptureRecord,
-} from "../../../../olt/scripts/src/engine/store/capsule/captures.ts";
+} from "../../../olt/scripts/src/engine/store/capsule/captures.ts";
 
 const roots: string[] = [];
 afterEach(() => {

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   isPreplanningNeeded,
   runPreplanningTick,
@@ -10,17 +10,17 @@ import {
   type RawBacklogItem,
   type RawDefectItem,
   type ThematicCluster,
-} from "../../../../olt/scripts/src/mind/preplanning/index.ts";
-import { topologicalOrder } from "../../../../olt/scripts/src/graph/topology.ts";
+} from "../../../olt/scripts/src/mind/preplanning/index.ts";
+import { topologicalOrder } from "../../../olt/scripts/src/graph/topology.ts";
 import {
   compileSmartTasksToWavePlan,
   planWaveExecution,
-} from "../../../../olt/scripts/src/mind/tasks/smart/planner/waves.ts";
-import type { SmartTaskPlan } from "../../../../olt/scripts/src/mind/tasks/smart/planner/models.ts";
+} from "../../../olt/scripts/src/mind/tasks/smart/planner/waves.ts";
+import type { SmartTaskPlan } from "../../../olt/scripts/src/mind/tasks/smart/planner/models.ts";
 import {
   detectCyclesTarjan,
   extractFeedbackArcSet,
-} from "../../../../olt/scripts/src/reporting/sugiyama-dag/tarjan.ts";
+} from "../../../olt/scripts/src/reporting/sugiyama-dag/tarjan.ts";
 import { scratchRoot } from "../../../support/scratch-root.ts";
 
 describe("Continuous Preplanner Engine & PO Toposort Verification", () => {

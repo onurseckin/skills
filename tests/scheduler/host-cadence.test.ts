@@ -1,17 +1,17 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   DEFAULT_HOST_INTERVAL_SECONDS,
   isSchedulerEnabled,
   resolveAgentSchedulerConfig,
   resolveSchedulerCron,
   resolveSchedulerIntervalSeconds,
-} from "../../../olt/scripts/src/engine/scheduler/host-cadence.ts";
+} from "../../olt/scripts/src/engine/scheduler/host-cadence.ts";
 import {
   generateDefaultRepoPolicy,
   type HostType,
   type RepoPolicy,
-} from "../../../olt/scripts/src/policy/index.ts";
+} from "../../olt/scripts/src/policy/index.ts";
 
 describe("Embedded Schedulers & Host Cadence (Task 2.3)", () => {
   const policy: RepoPolicy = generateDefaultRepoPolicy();

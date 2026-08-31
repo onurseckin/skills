@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   assertScopedExecutionPolicy,
   auditScopedExecutionCompliance,
@@ -11,7 +11,7 @@ import {
   type ExecutionBudgetMetrics,
   type ScopedExecutionAuditResult,
   type ScopedExecutionPolicy,
-} from "../../../olt/scripts/src/testing/scoped-execution.ts";
+} from "../../olt/scripts/src/testing/scoped-execution.ts";
 
 describe("scoped-execution static invariants", () => {
   test("scoped-execution source and test files have 0 any and 0 compiler/linter suppressions", () => {

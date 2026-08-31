@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
-import { beginValidation } from "../../../olt/scripts/src/workflow/review/begin-validation.ts";
-import { recordReview } from "../../../olt/scripts/src/workflow/review/record-review.ts";
-import { submitTask } from "../../../olt/scripts/src/workflow/submission/submit.ts";
+import { claimTask } from "../../olt/scripts/src/workflow/lease/claim.ts";
+import { beginValidation } from "../../olt/scripts/src/workflow/review/begin-validation.ts";
+import { recordReview } from "../../olt/scripts/src/workflow/review/record-review.ts";
+import { submitTask } from "../../olt/scripts/src/workflow/submission/submit.ts";
 import {
   at,
   registerCommand,

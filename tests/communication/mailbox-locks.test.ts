@@ -7,13 +7,13 @@ import {
   releaseMailboxLock,
   resolveMailboxLockPath,
   resolveMailboxPaths,
-} from "../../../olt/scripts/src/communication/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/communication/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   resolvePolicyLocation,
   resolveSystemLockPath,
   withLock,
-} from "../../../olt/scripts/src/policy/io-safety.ts";
+} from "../../olt/scripts/src/policy/io-safety.ts";
 
 describe("Mailbox and System Lock Path Consolidation", () => {
   let testRoot: string;

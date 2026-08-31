@@ -2,13 +2,13 @@ import { describe, expect, test } from "bun:test";
 import {
   agentRegisterCommand,
   agentReportCommand,
-} from "../../../olt/scripts/src/cli/commands/agent-ops.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../olt/scripts/src/cli/commands/agent-ops.ts";
+import { loadRun } from "../../olt/scripts/src/engine/store/index.ts";
 import {
   buildNodeTelemetry,
   buildNodeTools,
   readAgentLedgerView,
-} from "../../../olt/scripts/src/summary/metrics/index.ts";
+} from "../../olt/scripts/src/summary/metrics/index.ts";
 import { ledgerOf, registerCoordinator, seededRun } from "./fixture.ts";
 
 /** A model string with a tier, a vendor and a date in it: none of which may be read out of it. */

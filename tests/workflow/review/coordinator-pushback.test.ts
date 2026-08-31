@@ -1,14 +1,14 @@
 import { describe, expect, test } from "bun:test";
-import { beginValidation } from "../../../../olt/scripts/src/workflow/review/begin-validation.ts";
+import { beginValidation } from "../../../olt/scripts/src/workflow/review/begin-validation.ts";
 import {
   recordCoordinatorPushback,
   validateCoordinatorPushbackInput,
-} from "../../../../olt/scripts/src/workflow/review/coordinator-pushback.ts";
-import { recordReview } from "../../../../olt/scripts/src/workflow/review/record-review.ts";
-import { claimTask } from "../../../../olt/scripts/src/workflow/lease/claim.ts";
-import { submitTask } from "../../../../olt/scripts/src/workflow/submission/submit.ts";
-import { appendGateProof } from "../../../../olt/scripts/src/graph/gate-proof.ts";
-import type { GateProofRecord } from "../../../../olt/scripts/src/graph/gate-proof.ts";
+} from "../../../olt/scripts/src/workflow/review/coordinator-pushback.ts";
+import { recordReview } from "../../../olt/scripts/src/workflow/review/record-review.ts";
+import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
+import { submitTask } from "../../../olt/scripts/src/workflow/submission/submit.ts";
+import { appendGateProof } from "../../../olt/scripts/src/graph/gate-proof.ts";
+import type { GateProofRecord } from "../../../olt/scripts/src/graph/gate-proof.ts";
 import {
   at,
   registerCommand,

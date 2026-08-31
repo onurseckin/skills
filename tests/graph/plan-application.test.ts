@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { applyPlan } from "../../../olt/scripts/src/graph/apply-plan.ts";
-import { readPlanObject } from "../../../olt/scripts/src/graph/read-plan.ts";
+import { applyPlan } from "../../olt/scripts/src/graph/apply-plan.ts";
+import { readPlanObject } from "../../olt/scripts/src/graph/read-plan.ts";
 import { taskById } from "./fixtures.ts";
 import { PlanFixture } from "./plan-fixture.ts";
 

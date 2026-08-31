@@ -3,12 +3,12 @@ import {
   processCriticFeedbackLoop,
   generateRepairInstructions,
   evaluateRepairCycleStatus,
-} from "../../../olt/scripts/src/orchestrator/recursive-critic-feedback.ts";
-import { MAX_REPAIR_ROUNDS } from "../../../olt/scripts/src/core/config/contracts.ts";
-import type { Finding } from "../../../olt/scripts/src/core/contracts/index.ts";
-import type { TaskRepairSummary } from "../../../olt/scripts/src/workflow/completion/critic-feedback-loop.ts";
-import type { CompletionReview } from "../../../olt/scripts/src/workflow/completion/types.ts";
-import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
+} from "../../olt/scripts/src/orchestrator/recursive-critic-feedback.ts";
+import { MAX_REPAIR_ROUNDS } from "../../olt/scripts/src/core/config/contracts.ts";
+import type { Finding } from "../../olt/scripts/src/core/contracts/index.ts";
+import type { TaskRepairSummary } from "../../olt/scripts/src/workflow/completion/critic-feedback-loop.ts";
+import type { CompletionReview } from "../../olt/scripts/src/workflow/completion/types.ts";
+import type { TaskRecord } from "../../olt/scripts/src/workflow/types.ts";
 import { TestPort, repositoryBinding, workflowState } from "../workflow/test-port.ts";
 
 describe("Orchestrator Recursive Critic Feedback Integration", () => {

@@ -9,7 +9,7 @@ import {
   OPTICAL_DIMENSIONS,
   OPTICAL_VIEWPORTS,
   type SkillAuditLiveResult,
-} from "../../../olt/scripts/src/mind/auditing/cognitive/index.ts";
+} from "../../olt/scripts/src/mind/auditing/cognitive/index.ts";
 
 describe("Mind Auditor Repository Governance, Anti-Stagnation & Critique Processing", () => {
   it("detects missing policy.json and records governance issue", () => {

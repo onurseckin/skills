@@ -4,7 +4,7 @@ import {
   generateTaskDagBadge,
   generateWaveLaneBadges,
   schedulingMetrics,
-} from "../../../../olt/scripts/src/engine/scheduler/topology/metrics.ts";
+} from "../../../olt/scripts/src/engine/scheduler/topology/metrics.ts";
 
 describe("schedulingMetrics", () => {
   test("computes critical depth and descendant counts for a simple chain", () => {

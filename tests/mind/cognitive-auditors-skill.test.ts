@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import {
   SkillAuditorEngine,
   type AuditorCursor,
-} from "../../../olt/scripts/src/mind/auditing/cognitive/index.ts";
+} from "../../olt/scripts/src/mind/auditing/cognitive/index.ts";
 
 describe("SkillAuditorEngine", () => {
   let testDir: string;

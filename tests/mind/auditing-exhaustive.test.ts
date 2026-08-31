@@ -9,67 +9,67 @@ import {
   renderRoleAuditAsciiTable,
   formatNonDuplicatePersonaSummary,
   isMindRole,
-} from "../../../olt/scripts/src/mind/auditing/roles/rules/hierarchy.ts";
-import { auditSingleRole } from "../../../olt/scripts/src/mind/auditing/roles/contract-auditor.ts";
+} from "../../olt/scripts/src/mind/auditing/roles/rules/hierarchy.ts";
+import { auditSingleRole } from "../../olt/scripts/src/mind/auditing/roles/contract-auditor.ts";
 import {
   auditDynamicRoles as auditDynamicRolesBatch,
   formatRoleAuditMarkdown as formatBatchMarkdown,
   renderRoleAuditAsciiTable as renderBatchAsciiTable,
   formatNonDuplicatePersonaSummary as formatBatchPersonaSummary,
-} from "../../../olt/scripts/src/mind/auditing/roles/batch-auditor.ts";
-import { synthesizeNonDuplicatePersona } from "../../../olt/scripts/src/mind/auditing/roles/synthesizer.ts";
+} from "../../olt/scripts/src/mind/auditing/roles/batch-auditor.ts";
+import { synthesizeNonDuplicatePersona } from "../../olt/scripts/src/mind/auditing/roles/synthesizer.ts";
 import {
   getRoleName,
   computePersonaSignature,
   calculatePersonaSimilarity,
   findSimilarPersonas,
-} from "../../../olt/scripts/src/mind/auditing/roles/similarity.ts";
+} from "../../olt/scripts/src/mind/auditing/roles/similarity.ts";
 import {
   validateParentChildSupervision,
   assertParentChildBoundary,
   createRoleBoundaryWatchdog,
   verifyRoleBoundaryAction,
   auditRoleBoundaryActions,
-} from "../../../olt/scripts/src/mind/auditing/roles/auditor.ts";
+} from "../../olt/scripts/src/mind/auditing/roles/auditor.ts";
 import {
   checkValidatorHardLock,
   checkSpawning,
-} from "../../../olt/scripts/src/mind/auditing/roles/rules/leaf-checks.ts";
-import { isFullTestSuiteCommand } from "../../../olt/scripts/src/mind/auditing/roles/rules/matrix.ts";
+} from "../../olt/scripts/src/mind/auditing/roles/rules/leaf-checks.ts";
+import { isFullTestSuiteCommand } from "../../olt/scripts/src/mind/auditing/roles/rules/matrix.ts";
 import {
   checkNeverUnattendedActions,
   checkDeclinedCandidates,
-} from "../../../olt/scripts/src/mind/auditing/questionnaire/evaluator.ts";
+} from "../../olt/scripts/src/mind/auditing/questionnaire/evaluator.ts";
 import {
   checkAdmittedCandidateWitnesses,
   checkAdmittedCandidateGoals,
   checkValueConsistency,
-} from "../../../olt/scripts/src/mind/auditing/questionnaire/prompts.ts";
+} from "../../olt/scripts/src/mind/auditing/questionnaire/prompts.ts";
 import {
   validateAuditAnswers,
   checkAuditBlocksPulse,
   assertAuditAllowsPulseOpen,
-} from "../../../olt/scripts/src/mind/auditing/questionnaire/reporter.ts";
-import { analyzeRunForensics } from "../../../olt/scripts/src/mind/auditing/meta/evaluator.ts";
-import { parseEventsFile } from "../../../olt/scripts/src/mind/auditing/meta/types.ts";
+} from "../../olt/scripts/src/mind/auditing/questionnaire/reporter.ts";
+import { analyzeRunForensics } from "../../olt/scripts/src/mind/auditing/meta/evaluator.ts";
+import { parseEventsFile } from "../../olt/scripts/src/mind/auditing/meta/types.ts";
 import {
   parseStateFile,
   parseManifestFile,
   extractToolCallsFromTranscripts,
   extractToolCallsFromEvents,
   calculateEfficiencyScore,
-} from "../../../olt/scripts/src/mind/auditing/meta/timeline.ts";
-import { runExtendedForensicsHeuristics } from "../../../olt/scripts/src/mind/auditing/meta/heuristics-extended.ts";
-import { runForensicsHeuristics } from "../../../olt/scripts/src/mind/auditing/meta/heuristics.ts";
-import { auditMindPreplanningStagnation } from "../../../olt/scripts/src/mind/auditing/mind-stagnation-auditor.ts";
+} from "../../olt/scripts/src/mind/auditing/meta/timeline.ts";
+import { runExtendedForensicsHeuristics } from "../../olt/scripts/src/mind/auditing/meta/heuristics-extended.ts";
+import { runForensicsHeuristics } from "../../olt/scripts/src/mind/auditing/meta/heuristics.ts";
+import { auditMindPreplanningStagnation } from "../../olt/scripts/src/mind/auditing/mind-stagnation-auditor.ts";
 import {
   executeStagnationShockRecovery,
   resolveStagnationIncidents,
-} from "../../../olt/scripts/src/mind/auditing/stagnation-recovery-interlock.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { DynamicRoleRegistry } from "../../../olt/scripts/src/mind/roles/dynamic/registry.ts";
-import type { DynamicRoleSpec } from "../../../olt/scripts/src/mind/roles/dynamic/types.ts";
-import type { HarnessEvent, RunState } from "../../../olt/scripts/src/core/contracts/index.ts";
+} from "../../olt/scripts/src/mind/auditing/stagnation-recovery-interlock.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { DynamicRoleRegistry } from "../../olt/scripts/src/mind/roles/dynamic/registry.ts";
+import type { DynamicRoleSpec } from "../../olt/scripts/src/mind/roles/dynamic/types.ts";
+import type { HarnessEvent, RunState } from "../../olt/scripts/src/core/contracts/index.ts";
 
 const roots: string[] = [];
 

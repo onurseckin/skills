@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { findGeneratedCatalogViolations } from "../../../../../scripts/modularity/policy/index.ts";
+import { findGeneratedCatalogViolations } from "../../../../scripts/modularity/policy/index.ts";
 import { blob } from "../graph/graph-fixture.ts";
 
 const root = "olt/references/cli-capabilities/";

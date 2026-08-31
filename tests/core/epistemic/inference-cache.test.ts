@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { EpistemicInferenceCache } from "../../../../olt/scripts/src/core/epistemic/index.ts";
+import { EpistemicInferenceCache } from "../../../olt/scripts/src/core/epistemic/index.ts";
 
 describe("Epistemic Inference Cache & Invalidation", () => {
   it("computes deterministic cache keys for identical structured payloads", () => {

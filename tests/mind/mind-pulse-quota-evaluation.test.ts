@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   checkPulseQuotaFreeze,
   evaluateMindPulseQuota,
-} from "../../../olt/scripts/src/mind/pulsing/index.ts";
-import type { UnifiedTelemetryReport } from "../../../olt/scripts/src/telemetry/types.ts";
+} from "../../olt/scripts/src/mind/pulsing/index.ts";
+import type { UnifiedTelemetryReport } from "../../olt/scripts/src/telemetry/types.ts";
 
 describe("Mind Pulse Quota Telemetry Evaluation & Host Isolation", () => {
   function createMockReport(

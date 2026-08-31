@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { projectPlan } from "../../../olt/scripts/src/graph/project-plan.ts";
+import { projectPlan } from "../../olt/scripts/src/graph/project-plan.ts";
 import { validPlanningDocuments } from "./fixtures.ts";
-import { dependencyMap } from "../../../olt/scripts/src/graph/dependency-map.ts";
+import { dependencyMap } from "../../olt/scripts/src/graph/dependency-map.ts";
 
 describe("graph project plan", () => {
   test("initial projection establishes tasks, requirements, dependencies, and history", () => {

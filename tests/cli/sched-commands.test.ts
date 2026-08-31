@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
 import {
   executeSchedBackoff,
   executeSchedEval,
   schedBackoffCommand,
   schedEvalCommand,
   schedJitterCommand,
-} from "../../../olt/scripts/src/cli/commands/sched-ops.ts";
+} from "../../olt/scripts/src/cli/commands/sched-ops.ts";
 
 describe("Scheduling CLI commands", () => {
   test("sched:eval computes immediate rollover when pending work is present", () => {

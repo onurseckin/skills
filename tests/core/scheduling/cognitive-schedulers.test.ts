@@ -12,7 +12,7 @@ import {
   generateProbingDirective,
   selectSocraticQuestions,
   SOCRATIC_CATALOG,
-} from "../../../../olt/scripts/src/engine/scheduler/prompt/index.ts";
+} from "../../../olt/scripts/src/engine/scheduler/prompt/index.ts";
 import {
   HOST_SCHEDULERS_MATRIX,
   assertHostThinkingPolicy,
@@ -22,7 +22,7 @@ import {
   resolveModelForTier,
   validateHostSchedulerConfig,
   type HostSchedulerConfig,
-} from "../../../../olt/scripts/src/orchestrator/host-schedulers.ts";
+} from "../../../olt/scripts/src/orchestrator/host-schedulers.ts";
 import {
   AdaptiveTimerController,
   DEFAULT_BASE_INTERVAL_MS,
@@ -41,9 +41,9 @@ import {
   parseIntervalDuration,
   projectIntervalProgression,
   type TrailingValuePoint,
-} from "../../../../olt/scripts/src/core/scheduling/index.ts";
-import { executePulseTick } from "../../../../olt/scripts/src/engine/scheduler/feedback/pulse-core.ts";
-import type { TransactionPort } from "../../../../olt/scripts/src/workflow/types.ts";
+} from "../../../olt/scripts/src/core/scheduling/index.ts";
+import { executePulseTick } from "../../../olt/scripts/src/engine/scheduler/feedback/pulse-core.ts";
+import type { TransactionPort } from "../../../olt/scripts/src/workflow/types.ts";
 
 describe("Cognitive Scheduler & Probing Directives", () => {
   describe("Prompt Subsystem & Directive Generators", () => {

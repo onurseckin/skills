@@ -31,7 +31,7 @@ import {
   rollbackAssistantLinks,
   runSync,
   smartEnsureSymlink,
-} from "../../../scripts/sync/index.ts";
+} from "../../scripts/sync/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 function git(args: string[], cwd: string): void {

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
-import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { AgentGrantRecord } from "../../olt/scripts/src/core/contracts/index.ts";
+import type { JsonObject } from "../../olt/scripts/src/core/contracts/index.ts";
 import {
   AGENT_LEDGER_KEY,
   assertAgentBudget,
@@ -10,7 +10,7 @@ import {
   replaceGrant,
   requireGrant,
   writeAgentLedger,
-} from "../../../olt/scripts/src/workflow/agents/ledger.ts";
+} from "../../olt/scripts/src/workflow/agents/ledger.ts";
 
 function grant(overrides: Partial<AgentGrantRecord> = {}): AgentGrantRecord {
   return {

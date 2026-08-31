@@ -2,8 +2,8 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { loadRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
+import { loadRun, transact } from "../../olt/scripts/src/engine/store/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import {
   setupCompiledRun,

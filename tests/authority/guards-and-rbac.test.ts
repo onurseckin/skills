@@ -1,28 +1,28 @@
 import { describe, expect, test } from "bun:test";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { RootDirectoryHygieneGuard } from "../../../olt/scripts/src/authority/guards/root-hygiene.ts";
+import { RootDirectoryHygieneGuard } from "../../olt/scripts/src/authority/guards/root-hygiene.ts";
 import {
   acquireAuditorLeaseLock,
   assertSingletonSkillAuditor,
   defaultIsPidAlive,
   readAuditorLeaseLock,
   releaseAuditorLeaseLock,
-} from "../../../olt/scripts/src/authority/guards/singleton-auditor-guard.ts";
+} from "../../olt/scripts/src/authority/guards/singleton-auditor-guard.ts";
 import {
   rejectDuplicateAuditorSpawn,
   validateSubagentSpawnRequest,
-} from "../../../olt/scripts/src/authority/guards/spawn-validator.ts";
+} from "../../olt/scripts/src/authority/guards/spawn-validator.ts";
 import {
   normalizeRoleKey,
   resolveAgentHostConfiguration,
-} from "../../../olt/scripts/src/authority/host-bindings.ts";
+} from "../../olt/scripts/src/authority/host-bindings.ts";
 import {
   executeShieldedCommand,
   verifyCommandAuthorization,
-} from "../../../olt/scripts/src/authority/rbac/command-authorizer.ts";
-import { VerbatimRoleInjector } from "../../../olt/scripts/src/authority/verbatim-role-injector.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/authority/rbac/command-authorizer.ts";
+import { VerbatimRoleInjector } from "../../olt/scripts/src/authority/verbatim-role-injector.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Authority Guards, Host Bindings, RBAC Authorizer & Verbatim Injector Comprehensive", () => {

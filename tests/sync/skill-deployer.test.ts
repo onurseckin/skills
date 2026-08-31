@@ -11,7 +11,7 @@ import {
   deployCanonicalSkill,
   rollbackAssistantLinks,
   type AssistantLinkTransaction,
-} from "../../../scripts/sync/skill-deployer.ts";
+} from "../../scripts/sync/skill-deployer.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 import { git, initFakeSkillsRepo } from "./skill-deployer-fixtures.ts";
 

@@ -5,8 +5,8 @@ import {
   isPngBuffer,
   PNG_SIGNATURE,
   validatePngBuffer,
-} from "../../../../olt/scripts/src/capture/runners/png-ihdr-validator.ts";
-import { createSyntheticPngBuffer } from "../../../../olt/scripts/src/capture/runners/live-capture-runner/synthetic-png.ts";
+} from "../../../olt/scripts/src/capture/runners/png-ihdr-validator.ts";
+import { createSyntheticPngBuffer } from "../../../olt/scripts/src/capture/runners/live-capture-runner/synthetic-png.ts";
 
 describe("png-ihdr-validator", () => {
   describe("isPngBuffer", () => {

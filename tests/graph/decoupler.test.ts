@@ -5,7 +5,7 @@ import {
   computeWorkSpan,
   findCycles,
   isAcyclic,
-} from "../../../olt/scripts/src/graph/dag-forensics.ts";
+} from "../../olt/scripts/src/graph/dag-forensics.ts";
 import {
   allocateParallelLanes,
   assertAntiSerializationInterlock,
@@ -14,7 +14,7 @@ import {
   detectArtificialSerialization,
   partitionDynamicLanes,
   verifyAntiSerializationInterlock,
-} from "../../../olt/scripts/src/graph/parallel-decoupler.ts";
+} from "../../olt/scripts/src/graph/parallel-decoupler.ts";
 
 describe("Graph Decoupler & Artificial Serialization", () => {
   test("detects artificial serialization between disjoint tasks", () => {

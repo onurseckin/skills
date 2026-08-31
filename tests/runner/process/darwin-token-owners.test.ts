@@ -2,9 +2,9 @@ import { describe, expect, test } from "bun:test";
 import {
   processHasToken,
   scanDarwinTokenOwners,
-} from "../../../../olt/scripts/src/engine/runner/process/darwin/darwin-token-owners.ts";
-import type { ProcessIdentity } from "../../../../olt/scripts/src/engine/runner/process/process-identity.ts";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+} from "../../../olt/scripts/src/engine/runner/process/darwin/darwin-token-owners.ts";
+import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("scanDarwinTokenOwners edge cases", () => {
   test("returns empty array when token is empty", () => {

@@ -5,7 +5,7 @@ import { join } from "node:path";
 import {
   checkRepositoryHygiene,
   purgeOrphanedScratch,
-} from "../../../olt/scripts/src/reporting/doctor/hygiene-engine.ts";
+} from "../../olt/scripts/src/reporting/doctor/hygiene-engine.ts";
 
 const testRoots: string[] = [];
 

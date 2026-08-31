@@ -5,7 +5,7 @@ import {
   synthesizeTaskPriorities,
   type SmartTaskPlan,
   type TaskPrioritySynthesisOptions,
-} from "../../../olt/scripts/src/mind/tasks/smart/index.ts";
+} from "../../olt/scripts/src/mind/tasks/smart/index.ts";
 
 describe("synthesizeTaskPriorities unit test suite", () => {
   const createMockTask = (overrides: Partial<SmartTaskPlan> = {}): SmartTaskPlan => ({

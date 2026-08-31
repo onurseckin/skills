@@ -2,7 +2,7 @@ import type {
   GitRunner,
   GitRunnerResult,
   SyncRunner,
-} from "../../../../olt/scripts/src/orchestrator/supervision-loop.ts";
+} from "../../../olt/scripts/src/orchestrator/supervision-loop.ts";
 
 export function createMockGitRunner(
   responses: {

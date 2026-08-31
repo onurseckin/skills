@@ -14,7 +14,7 @@ import {
   isTargetFilePath,
   compactSnippet,
   applyTokenEconomy,
-} from "../../../olt/scripts/src/cli/briefing/index.ts";
+} from "../../olt/scripts/src/cli/briefing/index.ts";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 
 function scratchRoot(label: string): string {

@@ -7,7 +7,7 @@ import {
   formatDualTimeTable,
   renderDualTimeHeader,
   renderOmnipresentTelemetryMarkdown,
-} from "../../../../olt/scripts/src/reporting/time-telemetry/index.ts";
+} from "../../../olt/scripts/src/reporting/time-telemetry/index.ts";
 
 describe("reporting/time-telemetry setup & formatting suite", () => {
   it("enriches objects and events with dual time", () => {

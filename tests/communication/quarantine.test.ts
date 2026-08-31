@@ -9,8 +9,8 @@ import {
   readUnreadMessages,
   resolveMailboxPaths,
   sweepQuarantineDeadLetters,
-} from "../../../olt/scripts/src/communication/mailbox/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/communication/mailbox/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 
 describe("Mailbox Quarantine Engine", () => {
   let testRoot: string;

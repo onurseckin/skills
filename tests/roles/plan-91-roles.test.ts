@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { AGENT_ROLES } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { loadRoleContract } from "../../../olt/scripts/src/packets/role-contract.ts";
+import { AGENT_ROLES } from "../../olt/scripts/src/core/contracts/index.ts";
+import { loadRoleContract } from "../../olt/scripts/src/packets/role-contract.ts";
 
 describe("Plan 91 Pillar 2: Streamlined Persona Ecosystem & Role Invariants", () => {
   const repoRoot = resolve(".");

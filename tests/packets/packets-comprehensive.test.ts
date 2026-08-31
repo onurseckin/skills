@@ -1,17 +1,17 @@
 import { describe, expect, test } from "bun:test";
-import { renderValidationRound } from "../../../olt/scripts/src/packets/render-validation-round.ts";
+import { renderValidationRound } from "../../olt/scripts/src/packets/render-validation-round.ts";
 import {
   anchoredChangedPaths,
   anchoredDiff,
   diffAnchor,
-} from "../../../olt/scripts/src/packets/round-repository-delta.ts";
-import { TimerProtectionGuard } from "../../../olt/scripts/src/authority/guards/timer-protection.ts";
-import { evaluateRoleInvariants } from "../../../olt/scripts/src/authority/persona/eval-invariants.ts";
+} from "../../olt/scripts/src/packets/round-repository-delta.ts";
+import { TimerProtectionGuard } from "../../olt/scripts/src/authority/guards/timer-protection.ts";
+import { evaluateRoleInvariants } from "../../olt/scripts/src/authority/persona/eval-invariants.ts";
 import type {
   DriftFinding,
   ReflexiveAuditContext,
   RoleBoundaryProfile,
-} from "../../../olt/scripts/src/authority/persona/types.ts";
+} from "../../olt/scripts/src/authority/persona/types.ts";
 
 describe("Packets, Delta, Validation Round & Persona Invariants Comprehensive", () => {
   test("renderValidationRound formats all sections of validation round data", () => {

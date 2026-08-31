@@ -3,7 +3,7 @@ import {
   formatCriticRejectBrief,
   formatRunCompleteBrief,
   formatRunStatusBrief,
-} from "../../../olt/scripts/src/cli/formatters/run-formatter.ts";
+} from "../../olt/scripts/src/cli/formatters/run-formatter.ts";
 
 describe("formatRunStatusBrief", () => {
   test("renders a row per task and the optional occupancy and catalogue summaries", () => {

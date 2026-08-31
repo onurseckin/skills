@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
 import {
   formatMetaAuditReport,
   metaAuditCommand,
@@ -11,11 +11,11 @@ import {
   type FeedbackInjectionResult,
   type ForensicsAnalysisReport,
   type ForensicsIncident,
-} from "../../../olt/scripts/src/cli/commands/meta-audit.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/cli/commands/meta-audit.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
-import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import { registerSessionGrant } from "../../../olt/scripts/src/authority/session/index.ts";
+import { initRun, transact } from "../../olt/scripts/src/engine/store/index.ts";
+import { registerSessionGrant } from "../../olt/scripts/src/authority/session/index.ts";
 
 const PREEXISTING_BACKLOG_LINE =
   '{"id":"existing-remediation","timestamp":"2026-08-26T00:00:00.000Z","priority":"LOW","status":"PENDING","category":"CORE_ENGINE","title":"Existing remediation","content":"Keep this sentinel","candidate_id":null,"resolution_note":null,"processed_at":null}\n';

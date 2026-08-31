@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { promptSource } from "../../../olt/scripts/src/requirements/prompt-source.ts";
+import { promptSource } from "../../olt/scripts/src/requirements/prompt-source.ts";
 
 describe("promptSource", () => {
   test("digests a string prompt and splits it into the same lines promptLines would", () => {

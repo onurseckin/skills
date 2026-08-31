@@ -1,14 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { prepareCommand } from "../../../../olt/scripts/src/engine/runner/models/execution/run-command.ts";
+import { prepareCommand } from "../../../olt/scripts/src/engine/runner/models/execution/run-command.ts";
 import { scratchRoot } from "../../../support/scratch-root.ts";
-import type { InternalCommandRunner } from "../../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
+import type { InternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 import type {
   CommandOptions,
   CommandResult,
   PreparedCommand,
-} from "../../../../olt/scripts/src/engine/runner/types/types.ts";
+} from "../../../olt/scripts/src/engine/runner/types/types.ts";
 
 describe("prepareCommand authorization & RBAC", () => {
   test("throws ROLE_BOUNDARY_VIOLATION when actor metadata is missing", async () => {

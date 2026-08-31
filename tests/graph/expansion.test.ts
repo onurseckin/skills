@@ -1,19 +1,19 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   evaluateHierarchyScaling,
   formatParallelSubagentsDispatchArray,
   partitionWaveCoordinators,
   verifyAntiSerializationInterlock,
-} from "../../../olt/scripts/src/graph/parallel-decoupler.ts";
+} from "../../olt/scripts/src/graph/parallel-decoupler.ts";
 import {
   expandDeeper,
   expandDynamicPlan,
-} from "../../../olt/scripts/src/graph/dynamic-expansion.ts";
+} from "../../olt/scripts/src/graph/dynamic-expansion.ts";
 import {
   replanFromFindings,
   type ReplanFindingInput,
-} from "../../../olt/scripts/src/graph/dag-expansion.ts";
+} from "../../olt/scripts/src/graph/dag-expansion.ts";
 import { requirementsDocument } from "../requirements/fixtures.ts";
 import { graphDocument } from "./fixtures.ts";
 

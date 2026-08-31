@@ -4,8 +4,8 @@ import {
   classifiesAsUiTask,
   gateReviewPayload,
   taskClassificationTexts,
-} from "../../../../olt/scripts/src/workflow/review/role-evidence.ts";
-import type { TaskRecord, WorkflowState } from "../../../../olt/scripts/src/workflow/types.ts";
+} from "../../../olt/scripts/src/workflow/review/role-evidence.ts";
+import type { TaskRecord, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 
 function task(overrides: Partial<TaskRecord> = {}): TaskRecord {
   return {

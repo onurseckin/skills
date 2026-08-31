@@ -8,8 +8,8 @@ import {
   declaresRunIdentityFlag,
   isGrantBootstrapExempt,
   isMissingCapsuleBootstrapExempt,
-} from "../../../olt/scripts/src/packets/grant-bootstrap-allowlist.ts";
-import { COMMAND_REGISTRY, findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
+} from "../../olt/scripts/src/packets/grant-bootstrap-allowlist.ts";
+import { COMMAND_REGISTRY, findCommand } from "../../olt/scripts/src/cli/registry/index.ts";
 
 function spec(invocation: string) {
   const found = findCommand(invocation);

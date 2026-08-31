@@ -1,20 +1,20 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { Manifest, RunState } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import type { JsonObject } from "../../../../olt/scripts/src/core/contracts/index.ts";
+import type { Manifest, RunState } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   CHECKPOINT_INTERVAL,
   limits,
-} from "../../../../olt/scripts/src/engine/store/layout/constants.ts";
-import { initRun } from "../../../../olt/scripts/src/engine/store/capsule/capsule.ts";
-import { appendProjectionEvent } from "../../../../olt/scripts/src/engine/store/events/event-append.ts";
-import { verifyIntegrity } from "../../../../olt/scripts/src/engine/store/integrity/integrity.ts";
-import { loadRun } from "../../../../olt/scripts/src/engine/store/capsule/load.ts";
+} from "../../../olt/scripts/src/engine/store/layout/constants.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
+import { appendProjectionEvent } from "../../../olt/scripts/src/engine/store/events/event-append.ts";
+import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/integrity/integrity.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/capsule/load.ts";
 import {
   cloneObject,
   initialState,
-} from "../../../../olt/scripts/src/engine/store/capsule/state.ts";
+} from "../../../olt/scripts/src/engine/store/capsule/state.ts";
 import { scratchRoot } from "../../../support/scratch-root.ts";
 
 function freshRun(label: string): { runRoot: string; manifest: Manifest } {

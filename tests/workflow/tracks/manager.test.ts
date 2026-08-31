@@ -1,14 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
-import type { GitRunner } from "../../../../olt/scripts/src/workflow/worktree/git.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import type { GitRunner } from "../../../olt/scripts/src/workflow/worktree/git.ts";
 import {
   cleanupTrackWorktree,
   createTrackWorktree,
   destroyTrackWorktree,
   listTrackWorktrees,
-} from "../../../../olt/scripts/src/workflow/worktree/index.ts";
+} from "../../../olt/scripts/src/workflow/worktree/index.ts";
 
 const TEST_DIR = join(process.cwd(), ".olt", "scratch", "test-worktree-mgr");
 

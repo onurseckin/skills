@@ -4,8 +4,8 @@ import {
   buildNodeTools,
   readAgentLedgerView,
   reportedTokenUsage,
-} from "../../../olt/scripts/src/summary/metrics/index.ts";
-import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
+} from "../../olt/scripts/src/summary/metrics/index.ts";
+import type { AgentGrantRecord } from "../../olt/scripts/src/core/contracts/index.ts";
 
 function grant(overrides: Partial<AgentGrantRecord> = {}): AgentGrantRecord {
   return {

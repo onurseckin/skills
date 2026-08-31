@@ -18,7 +18,7 @@ import {
   type ComprehensivePortStatus,
   type SocketConflictResult,
   type TcpProbeResult,
-} from "../../../olt/scripts/src/server/probe/index.ts";
+} from "../../olt/scripts/src/server/probe/index.ts";
 
 describe("TCP Port Probe & Socket Conflict Detector", () => {
   let ipv4Server: Server | undefined;

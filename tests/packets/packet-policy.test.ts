@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { buildPacket } from "../../../olt/scripts/src/packets/render-packet.ts";
-import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";
-import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
+import { buildPacket } from "../../olt/scripts/src/packets/render-packet.ts";
+import { tokenDigest } from "../../olt/scripts/src/workflow/lease/token.ts";
+import { claimTask } from "../../olt/scripts/src/workflow/lease/claim.ts";
 import {
   at,
   commandRecord,
@@ -11,7 +11,7 @@ import {
   workflowState,
 } from "../workflow/test-port.ts";
 import { inspectionContext } from "./inspection-fixture.ts";
-import { completionReadinessSnapshot } from "../../../olt/scripts/src/workflow/completion/readiness-snapshot.ts";
+import { completionReadinessSnapshot } from "../../olt/scripts/src/workflow/completion/readiness-snapshot.ts";
 
 const commonBytes = new TextEncoder().encode(
   "  Preserve unrelated changes.\nRun focused tests.  \n",

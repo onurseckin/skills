@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { JsonObject } from "../../olt/scripts/src/core/contracts/index.ts";
 import {
   isLeaseSuspended,
   leaseIsExpired,
   restoreLease,
   suspendLease,
-} from "../../../olt/scripts/src/workflow/lease/suspension.ts";
+} from "../../olt/scripts/src/workflow/lease/suspension.ts";
 
 class FakeClock {
   private ms: number;

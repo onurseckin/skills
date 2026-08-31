@@ -19,15 +19,15 @@ import {
   pruneStaleSessions,
   setSessionLockCleanupFailureForTesting,
   setSessionPersistenceObserverForTesting,
-} from "../../../olt/scripts/src/authority/session/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/authority/session/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   findRepoRoot,
   resolveCapsulesDir,
   resolveScratchDir,
-} from "../../../olt/scripts/src/core/shared/paths.ts";
+} from "../../olt/scripts/src/core/shared/paths.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
-import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
+import { initRun, transact } from "../../olt/scripts/src/engine/store/index.ts";
 
 type PersistedSessionReader = (path: string, encoding: "utf8") => string;
 

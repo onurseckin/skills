@@ -2,15 +2,15 @@ import { afterEach, describe, expect, spyOn, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { quotaResumeCommand } from "../../../olt/scripts/src/cli/commands/quota-resume.ts";
+import { quotaResumeCommand } from "../../olt/scripts/src/cli/commands/quota-resume.ts";
 import {
   persistDagSnapshot,
   type QuotaDagSnapshot,
-} from "../../../olt/scripts/src/telemetry/dag-snapshot.ts";
-import { QuotaCircuitBreaker } from "../../../olt/scripts/src/telemetry/circuit-breaker.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { findRepoRoot } from "../../../olt/scripts/src/core/shared/paths.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../olt/scripts/src/telemetry/dag-snapshot.ts";
+import { QuotaCircuitBreaker } from "../../olt/scripts/src/telemetry/circuit-breaker.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { findRepoRoot } from "../../olt/scripts/src/core/shared/paths.ts";
+import { loadRun } from "../../olt/scripts/src/engine/store/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 

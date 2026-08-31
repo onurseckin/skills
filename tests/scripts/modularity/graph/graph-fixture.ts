@@ -1,4 +1,4 @@
-import type { IndexedBlob } from "../../../../../scripts/modularity/inventory/index.ts";
+import type { IndexedBlob } from "../../../../scripts/modularity/inventory/index.ts";
 
 export function blob(path: string, source: string): IndexedBlob {
   return { path, oid: "a".repeat(40), bytes: new TextEncoder().encode(source) };

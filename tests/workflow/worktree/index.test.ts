@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import * as WorktreeIndex from "../../../../olt/scripts/src/workflow/worktree/index.ts";
+import * as WorktreeIndex from "../../../olt/scripts/src/workflow/worktree/index.ts";
 
 describe("workflow/worktree index exports", () => {
   test("re-exports all worktree functions and utilities", () => {

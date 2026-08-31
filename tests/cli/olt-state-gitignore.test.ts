@@ -4,7 +4,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
-import { ensureHarnessIgnored } from "../../../olt/scripts/src/cli/git-ignore.ts";
+import { ensureHarnessIgnored } from "../../olt/scripts/src/cli/git-ignore.ts";
 
 // Defect 142: `.olt/capsules` survives `git clean -fd` only because it is gitignored. The rest of
 // the `.olt` runtime state (policy, memory, backlog, defect ledgers, auditor cursors, ...) was not

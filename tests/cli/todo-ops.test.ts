@@ -12,16 +12,16 @@ import {
   todoDrainCommand,
   todoListCommand,
   todoSealCommand,
-} from "../../../olt/scripts/src/cli/commands/todo-ops.ts";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+} from "../../olt/scripts/src/cli/commands/todo-ops.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
 import {
   readFeedbackQueue,
   writeFeedbackQueue,
   type FeedbackItem,
-} from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
-import { readCompletedTasksLedger } from "../../../olt/scripts/src/mind/archival/completed/index.ts";
-import { registerSessionGrant } from "../../../olt/scripts/src/authority/session/index.ts";
-import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../olt/scripts/src/mind/feedback/queue/index.ts";
+import { readCompletedTasksLedger } from "../../olt/scripts/src/mind/archival/completed/index.ts";
+import { registerSessionGrant } from "../../olt/scripts/src/authority/session/index.ts";
+import { initRun, transact } from "../../olt/scripts/src/engine/store/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 function authorizeMind(repo: string): string {

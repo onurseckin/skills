@@ -3,21 +3,21 @@ import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { agentRegisterCommand } from "../../../olt/scripts/src/cli/commands/agent-ops.ts";
+import { agentRegisterCommand } from "../../olt/scripts/src/cli/commands/agent-ops.ts";
 import {
   mindCandidateCommand,
   type MindCandidate,
-} from "../../../olt/scripts/src/cli/commands/mind-candidate.ts";
-import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/cli/commands/mind-candidate.ts";
+import type { CommandRecord } from "../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   readCommandOutput,
   resolveWitnessCommand,
   verifyDefectWitness,
-} from "../../../olt/scripts/src/mind/auditing/witness/index.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../olt/scripts/src/mind/auditing/witness/index.ts";
+import { initRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { loadRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../olt/scripts/src/engine/store/index.ts";
 
 const roots: string[] = [];
 

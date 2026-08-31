@@ -3,11 +3,11 @@ import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { RootDirectoryHygieneGuard } from "../../../olt/scripts/src/authority/guards/root-hygiene.ts";
+import { RootDirectoryHygieneGuard } from "../../olt/scripts/src/authority/guards/root-hygiene.ts";
 import {
   checkRepositoryHygiene,
   purgeOrphanedScratch,
-} from "../../../olt/scripts/src/reporting/doctor/hygiene-engine.ts";
+} from "../../olt/scripts/src/reporting/doctor/hygiene-engine.ts";
 
 const roots: string[] = [];
 afterEach(async () => {

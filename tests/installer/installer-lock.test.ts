@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { acquireInstallerLock } from "../../../olt/scripts/src/installer/installer-lock.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { acquireInstallerLock } from "../../olt/scripts/src/installer/installer-lock.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("acquireInstallerLock", () => {

@@ -6,7 +6,7 @@ import {
   matchesEpistemicPredicate,
   type EpistemicQuery,
   type EpistemicRecord,
-} from "../../../../olt/scripts/src/core/epistemic/index.ts";
+} from "../../../olt/scripts/src/core/epistemic/index.ts";
 
 function createMockRecord(partial: Partial<EpistemicRecord> = {}): EpistemicRecord {
   return {

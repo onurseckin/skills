@@ -2,8 +2,8 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 

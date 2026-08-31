@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { helpRequest, renderHelp } from "../../../olt/scripts/src/cli/help.ts";
+import { helpRequest, renderHelp } from "../../olt/scripts/src/cli/help.ts";
 import {
   COMMAND_DOMAINS,
   COMMAND_REGISTRY,
@@ -15,7 +15,7 @@ import {
   isInternalCommand,
   isPrimaryCommand,
   type CommandSpec,
-} from "../../../olt/scripts/src/cli/registry/index.ts";
+} from "../../olt/scripts/src/cli/registry/index.ts";
 
 const entrypoint = join(import.meta.dir, "..", "..", "..", "olt", "scripts", "harness.ts");
 

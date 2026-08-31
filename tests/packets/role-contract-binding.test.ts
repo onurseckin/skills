@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { buildPacket } from "../../../olt/scripts/src/packets/render-packet.ts";
-import { loadRoleContract } from "../../../olt/scripts/src/packets/role-contract.ts";
-import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
+import { buildPacket } from "../../olt/scripts/src/packets/render-packet.ts";
+import { loadRoleContract } from "../../olt/scripts/src/packets/role-contract.ts";
+import { claimTask } from "../../olt/scripts/src/workflow/lease/claim.ts";
 import { at, TestPort, workflowState } from "../workflow/test-port.ts";
 import { inspectionContext } from "./inspection-fixture.ts";
 

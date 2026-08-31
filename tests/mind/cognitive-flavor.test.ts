@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   CANONICAL_SELF_QUESTIONING_QUESTION,
   COGNITIVE_DIMENSION_SPECS,
@@ -13,7 +13,7 @@ import {
   getCognitiveFlavorProfile,
   type CognitiveDimension,
   type CognitiveFlavorId,
-} from "../../../olt/scripts/src/mind/auditing/flavor/index.ts";
+} from "../../olt/scripts/src/mind/auditing/flavor/index.ts";
 
 describe("Innovative Mind Cognition & Self-Questioning Flavor", () => {
   describe("Constants & Core Taxonomy", () => {

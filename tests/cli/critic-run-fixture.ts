@@ -4,7 +4,7 @@ import { readFileSync, realpathSync } from "node:fs";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
 
 /** Drives a single-task run all the way to "ready for the completeness critic". */
 export async function setupReadyRun(name: string, roots: string[]) {

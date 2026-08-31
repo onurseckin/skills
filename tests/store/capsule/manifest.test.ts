@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { chmodSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
-import { canonicalJsonBytes, sha256Bytes } from "../../../../olt/scripts/src/core/json.ts";
-import { checkManifest } from "../../../../olt/scripts/src/engine/store/layout/manifest.ts";
-import type { Manifest } from "../../../../olt/scripts/src/core/contracts/index.ts";
+import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
+import { checkManifest } from "../../../olt/scripts/src/engine/store/layout/manifest.ts";
+import type { Manifest } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { scratchRoot as makeScratchRoot } from "../../../support/scratch-root.ts";
 
 function scratchRoot(label: string): string {

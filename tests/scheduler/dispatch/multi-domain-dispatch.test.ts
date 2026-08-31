@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { dependencyMap } from "../../../../olt/scripts/src/graph/dependency-map.ts";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import { dependencyMap } from "../../../olt/scripts/src/graph/dependency-map.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   dispatchMultiDomainValidators,
   evaluateMultiDomainBatch,
-} from "../../../../olt/scripts/src/engine/scheduler/index.ts";
+} from "../../../olt/scripts/src/engine/scheduler/index.ts";
 
 interface TestTaskOptions {
   readonly priority?: number;

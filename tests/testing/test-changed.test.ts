@@ -15,7 +15,7 @@ import {
   parseUnifiedDiffHeaders,
   resolveAffectedTestFiles,
   run,
-} from "../../../scripts/testing/test-changed.ts";
+} from "../../scripts/testing/test-changed.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("test-changed script", () => {

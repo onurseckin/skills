@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import {
   appendFeedbackItem,
   readFeedbackQueue,
-} from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
+} from "../../olt/scripts/src/mind/feedback/queue/index.ts";
 import {
   findSourceDefinition,
   getSourceDefinition,
@@ -15,7 +15,7 @@ import {
   mapSourceIdToDiscoveryCategory,
   MIND_DISCOVERY_SOURCES,
   validateQuiescentSources,
-} from "../../../olt/scripts/src/mind/memory/sources/index.ts";
+} from "../../olt/scripts/src/mind/memory/sources/index.ts";
 import {
   discoverTasks,
   formatTaskDiscoveryBrief,
@@ -28,12 +28,12 @@ import {
   scanTestCoverage,
   synthesizeTaskFromDiscovery,
   type DiscoveryItem,
-} from "../../../olt/scripts/src/mind/tasks/discovery/index.ts";
+} from "../../olt/scripts/src/mind/tasks/discovery/index.ts";
 import {
   clearTaskQueue,
   enqueueTask,
   readTaskQueue,
-} from "../../../olt/scripts/src/task/queue/index.ts";
+} from "../../olt/scripts/src/task/queue/index.ts";
 
 describe("Perpetual Infinite Mind Engine with Autonomic Task Discovery & Re-Validation Loops", () => {
   afterAll(teardownWorkspace);

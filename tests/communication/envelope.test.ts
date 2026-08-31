@@ -7,12 +7,12 @@ import {
   canonicalEnvelopeBytes,
   createSignedEnvelope,
   verifyEnvelopeHmac,
-} from "../../../olt/scripts/src/communication/mailbox/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/communication/mailbox/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import type {
   CreateEnvelopeOptions,
   MailboxEnvelope,
-} from "../../../olt/scripts/src/communication/types.ts";
+} from "../../olt/scripts/src/communication/types.ts";
 
 describe("Mailbox Envelope Cryptographic Serialization & Verification", () => {
   const originalEnvSecret = process.env.OLT_HMAC_SECRET;

@@ -14,7 +14,7 @@ import {
   resolveScratchDir,
   resolveEvidenceDir,
   stripCapsulePath,
-} from "../../../olt/scripts/src/core/shared/paths.ts";
+} from "../../olt/scripts/src/core/shared/paths.ts";
 
 describe("Shared Path Resolvers", () => {
   it("finds repository root correctly", () => {

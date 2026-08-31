@@ -6,26 +6,26 @@ import {
   PolicyEngineTelemetryCollector,
   SecurityAuditLogger,
   ViolationAlertDispatcher,
-} from "../../../olt/scripts/src/policy/audit/index.ts";
+} from "../../olt/scripts/src/policy/audit/index.ts";
 import {
   getCargoPresets,
   getPythonPresets,
   getUnknownPresets,
-} from "../../../olt/scripts/src/policy/generator/toolchain-presets.ts";
+} from "../../olt/scripts/src/policy/generator/toolchain-presets.ts";
 import {
   readMakefile,
   readPackageJson,
   readPythonManifests,
   readTurboJson,
-} from "../../../olt/scripts/src/policy/generator/manifest-readers.ts";
-import { inspectRepoPolicy, loadRepoPolicy } from "../../../olt/scripts/src/policy/repo-policy.ts";
-import { detectRepoEcosystem } from "../../../olt/scripts/src/policy/generator/index.ts";
+} from "../../olt/scripts/src/policy/generator/manifest-readers.ts";
+import { inspectRepoPolicy, loadRepoPolicy } from "../../olt/scripts/src/policy/repo-policy.ts";
+import { detectRepoEcosystem } from "../../olt/scripts/src/policy/generator/index.ts";
 
 import {
   isKnownTestRunner,
   isTargetTestArgument,
   isUntargetedTestCommand,
-} from "../../../olt/scripts/src/policy/rbac/test-runners.ts";
+} from "../../olt/scripts/src/policy/rbac/test-runners.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Policy Presets, Manifest Readers, Audit, Telemetry & RBAC Runners Comprehensive", () => {

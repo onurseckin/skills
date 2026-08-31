@@ -1,16 +1,16 @@
 import { describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { JsonValue } from "../../../olt/scripts/src/core/contracts/json.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
+import type { JsonValue } from "../../olt/scripts/src/core/contracts/json.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { canonicalJsonBytes, sha256Bytes } from "../../olt/scripts/src/core/json.ts";
 import {
   loadLatestSnapshot,
   loadSnapshotAtSequence,
   shouldCreateSnapshot,
   writeAtomicSnapshot,
   type SnapshotRecord,
-} from "../../../olt/scripts/src/engine/store/hierarchy/snapshot-manager.ts";
+} from "../../olt/scripts/src/engine/store/hierarchy/snapshot-manager.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Snapshot Manager Engine", () => {

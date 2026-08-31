@@ -10,14 +10,14 @@ import {
   loadAgentManifest,
   loadRoleContract,
   loadUnifiedAgentModel,
-} from "../../../olt/scripts/src/authority/manifest/index.ts";
+} from "../../olt/scripts/src/authority/manifest/index.ts";
 import {
   parseUnifiedAgentManifest,
   validateUnifiedAgentManifest,
   type UnifiedAgentManifest,
-} from "../../../olt/scripts/src/authority/manifest-schema.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../olt/scripts/src/authority/manifest-schema.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { initRun, transact } from "../../olt/scripts/src/engine/store/index.ts";
 import {
   assertRoleMayDecideProposal,
   decideProposal,
@@ -25,13 +25,13 @@ import {
   isProposalGranted,
   PROPOSAL_WITNESS_OWNER_DECISION,
   recordProposal,
-} from "../../../olt/scripts/src/mind/proposals/proposal/index.ts";
+} from "../../olt/scripts/src/mind/proposals/proposal/index.ts";
 import {
   auditPermissionHealth,
   generateDefaultRepoPolicy,
   loadRepoPolicy,
-} from "../../../olt/scripts/src/policy/index.ts";
-import { verifyCommandAuthorization } from "../../../olt/scripts/src/policy/index.ts";
+} from "../../olt/scripts/src/policy/index.ts";
+import { verifyCommandAuthorization } from "../../olt/scripts/src/policy/index.ts";
 
 const roots: string[] = [];
 

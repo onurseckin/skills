@@ -1,19 +1,19 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
 import {
   policyCheckDriftCommand,
   policyGetCommand,
   policyInitCommand,
   policySetCommand,
-} from "../../../olt/scripts/src/cli/commands/policy-ops.ts";
-import { checkPolicyDoctor } from "../../../olt/scripts/src/reporting/doctor/policy-doctor.ts";
+} from "../../olt/scripts/src/cli/commands/policy-ops.ts";
+import { checkPolicyDoctor } from "../../olt/scripts/src/reporting/doctor/policy-doctor.ts";
 import {
   CURRENT_POLICY_SCHEMA_VERSION,
   generateDefaultRepoPolicy,
   type RepoPolicy,
-} from "../../../olt/scripts/src/policy/index.ts";
+} from "../../olt/scripts/src/policy/index.ts";
 
 describe("Doctor Policy Certification & Policy CLI Operations (Task 4.3)", () => {
   const scratchDir = join(process.cwd(), "coverage", "scratch", "policy-doctor-test");

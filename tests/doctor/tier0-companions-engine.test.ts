@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { checkTier0CompanionsHealth } from "../../../olt/scripts/src/reporting/doctor/tier0-companions-engine.ts";
+import { checkTier0CompanionsHealth } from "../../olt/scripts/src/reporting/doctor/tier0-companions-engine.ts";
 
 describe("Tier 0 Companion Auditors Health Engine (checkTier0CompanionsHealth)", () => {
   it("passes cleanly when state is null or non-mind capsule", () => {

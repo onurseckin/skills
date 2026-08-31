@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import {
   findFanoutViolations,
   type IndexedBlob,
-} from "../../../../../scripts/modularity/inventory/index.ts";
+} from "../../../../scripts/modularity/inventory/index.ts";
 
 function blob(path: string): IndexedBlob {
   return { path, oid: "a".repeat(40), bytes: new Uint8Array() };

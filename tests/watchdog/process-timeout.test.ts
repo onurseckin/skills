@@ -24,7 +24,7 @@ import {
   createHierarchicalStallProbe,
   buildRemediationGuidance,
   type BunSubprocess,
-} from "../../../olt/scripts/src/watchdog/process-timeout/index.ts";
+} from "../../olt/scripts/src/watchdog/process-timeout/index.ts";
 
 function createFakeSubprocess(
   opts: { pid?: number; exited?: Promise<number> } = {},

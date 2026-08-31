@@ -7,15 +7,15 @@ import {
   executeAtomicAdmissionToDispatch,
   executeProductOwnerAdmissionAndDispatch,
   type AtomicDispatchOptions,
-} from "../../../olt/scripts/src/mind/tasks/smart/index.ts";
-import { executeAtomicDispatch as dispatchFromModule } from "../../../olt/scripts/src/mind/tasks/smart/executor/dispatch.ts";
-import { executeAtomicDispatch as dispatchFromExecutorBarrel } from "../../../olt/scripts/src/mind/tasks/smart/executor/index.ts";
-import { executeAtomicDispatch as dispatchFromTasksBarrel } from "../../../olt/scripts/src/mind/tasks/index.ts";
+} from "../../olt/scripts/src/mind/tasks/smart/index.ts";
+import { executeAtomicDispatch as dispatchFromModule } from "../../olt/scripts/src/mind/tasks/smart/executor/dispatch.ts";
+import { executeAtomicDispatch as dispatchFromExecutorBarrel } from "../../olt/scripts/src/mind/tasks/smart/executor/index.ts";
+import { executeAtomicDispatch as dispatchFromTasksBarrel } from "../../olt/scripts/src/mind/tasks/index.ts";
 import {
   ingestFeedbackItem,
   readFeedbackQueue,
-} from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
-import { readTaskQueue } from "../../../olt/scripts/src/task/queue/index.ts";
+} from "../../olt/scripts/src/mind/feedback/queue/index.ts";
+import { readTaskQueue } from "../../olt/scripts/src/task/queue/index.ts";
 
 describe("Smart Tasks Execute Atomic Dispatch Test Suite", () => {
   const testRoot = join(

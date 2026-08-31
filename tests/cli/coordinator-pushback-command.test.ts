@@ -3,10 +3,10 @@ import { realpathSync } from "node:fs";
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { coordinatorPushbackCommand } from "../../../olt/scripts/src/cli/commands/coordinator-pushback.ts";
-import { workflowPort } from "../../../olt/scripts/src/integration/store-ports.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
+import { coordinatorPushbackCommand } from "../../olt/scripts/src/cli/commands/coordinator-pushback.ts";
+import { workflowPort } from "../../olt/scripts/src/integration/store-ports.ts";
+import { loadRun } from "../../olt/scripts/src/engine/store/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 
 const roots: string[] = [];

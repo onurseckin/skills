@@ -2,13 +2,13 @@ import { describe, expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { createCommandSigningCapability } from "../../../../olt/scripts/src/engine/runner/execution/attempt-disposition-capability.ts";
-import { OWNERSHIP_ENV } from "../../../../olt/scripts/src/engine/runner/core/pipe-ownership.ts";
-import { runAttempt } from "../../../../olt/scripts/src/engine/runner/models/attempt/run-attempt.ts";
+import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/execution/attempt-disposition-capability.ts";
+import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/core/pipe-ownership.ts";
+import { runAttempt } from "../../../olt/scripts/src/engine/runner/models/attempt/run-attempt.ts";
 import type {
   BunSpawnApi,
   NormalizedCommandOptions,
-} from "../../../../olt/scripts/src/engine/runner/types/types.ts";
+} from "../../../olt/scripts/src/engine/runner/types/types.ts";
 
 // These drive the real `runAttempt` orchestration end to end through the `spawnApi` injection
 // seam rather than the global `Bun.spawn`: the returned pid never corresponds to a real OS

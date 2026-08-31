@@ -14,12 +14,12 @@ import {
   parseMarkdownFrontmatter,
   parseRoleContract,
   parseYaml,
-} from "../../../olt/scripts/src/authority/manifest/index.ts";
+} from "../../olt/scripts/src/authority/manifest/index.ts";
 import {
   parseUnifiedAgentManifest,
   validateUnifiedAgentManifest,
   type UnifiedAgentManifest,
-} from "../../../olt/scripts/src/authority/manifest-schema.ts";
+} from "../../olt/scripts/src/authority/manifest-schema.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Authority Manifest Schema, Parsers, Discovery and Loader Comprehensive", () => {

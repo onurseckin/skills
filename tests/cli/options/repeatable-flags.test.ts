@@ -5,15 +5,15 @@ import {
   flagPositions,
   parseArguments,
   type FlagShapes,
-} from "../../../../olt/scripts/src/cli/arguments.ts";
-import { execute } from "../../../../olt/scripts/src/cli/execute.ts";
-import { boolFlag, listFlag, textFlag } from "../../../../olt/scripts/src/cli/options.ts";
+} from "../../../olt/scripts/src/cli/arguments.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { boolFlag, listFlag, textFlag } from "../../../olt/scripts/src/cli/options.ts";
 import {
   flagShapes,
   optionalFlag,
   repeatableFlag,
   requiredFlag,
-} from "../../../../olt/scripts/src/cli/registry/index.ts";
+} from "../../../olt/scripts/src/cli/registry/index.ts";
 import { scratchRoot } from "../../../support/scratch-root.ts";
 
 const ENHANCE_FLAGS = [

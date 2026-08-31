@@ -7,13 +7,13 @@ import {
   policyGetCommand,
   policyInitCommand,
   policySetCommand,
-} from "../../../olt/scripts/src/cli/commands/policy-ops.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/cli/commands/policy-ops.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   computePolicyChecksum,
   generateDefaultRepoPolicy,
   saveRepoPolicy,
-} from "../../../olt/scripts/src/policy/index.ts";
+} from "../../olt/scripts/src/policy/index.ts";
 
 const tempDirs: string[] = [];
 

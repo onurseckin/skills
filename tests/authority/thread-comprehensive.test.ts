@@ -20,8 +20,8 @@ import {
   validateTierSpawning,
   type DefectRecord,
   type ExecutionTier,
-} from "../../../olt/scripts/src/authority/thread/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/authority/thread/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Authority Thread Context, Naming, Role Mapping & Spawning Comprehensive", () => {

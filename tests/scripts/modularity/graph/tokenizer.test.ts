@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { countExportStars, scanImports } from "../../../../../scripts/modularity/graph/index.ts";
+import { countExportStars, scanImports } from "../../../../scripts/modularity/graph/index.ts";
 import { blob } from "./graph-fixture.ts";
 
 test("preserves type-only imports and ignores comments", () => {

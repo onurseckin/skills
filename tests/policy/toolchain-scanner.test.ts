@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import {
   scanRepositoryToolchain,
   synthesizeCalibratedRepoPolicy,
-} from "../../../olt/scripts/src/policy/generator/index.ts";
+} from "../../olt/scripts/src/policy/generator/index.ts";
 
 describe("Autonomous Toolchain Scanner & Policy Calibration", () => {
   it("scans a standard Bun repository with package.json scripts", () => {

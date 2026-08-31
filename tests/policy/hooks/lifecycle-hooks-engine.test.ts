@@ -15,7 +15,7 @@ import {
   type PolicyHooksConfig,
   type PolicyLifecycleEvent,
   type RepoPolicy,
-} from "../../../../olt/scripts/src/policy/index.ts";
+} from "../../../olt/scripts/src/policy/index.ts";
 
 interface MockSpawnCall {
   readonly command: string;

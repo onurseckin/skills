@@ -4,12 +4,12 @@ import {
   renderInterWaveConnector,
   renderLaneSeparator,
   renderOrthogonalConnectors,
-} from "../../../../../olt/scripts/src/reporting/sugiyama-dag/routing.ts";
+} from "../../../../olt/scripts/src/reporting/sugiyama-dag/routing.ts";
 import type {
   SugiyamaEdge,
   SugiyamaLayer,
   SugiyamaRankedNode,
-} from "../../../../../olt/scripts/src/reporting/sugiyama-dag/types.ts";
+} from "../../../../olt/scripts/src/reporting/sugiyama-dag/types.ts";
 
 describe("sugiyama-dag-subagent-expansion-core (Orthogonal Box-Drawing Routing)", () => {
   describe("buildOrthogonalRouteSegments", () => {

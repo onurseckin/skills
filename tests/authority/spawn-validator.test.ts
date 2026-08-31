@@ -10,8 +10,8 @@ import {
   rejectDuplicateAuditorSpawn,
   type SubagentSpawnRequest,
   validateSubagentSpawnRequest,
-} from "../../../olt/scripts/src/authority/guards/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/authority/guards/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 
 describe("Subagent Spawn Request Cardinality Validator", () => {
   const tmpDir = join(

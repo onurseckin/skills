@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   executeShieldedCommand,
   verifyCommandAuthorization,
-} from "../../../../olt/scripts/src/authority/rbac/index.ts";
+} from "../../../olt/scripts/src/authority/rbac/index.ts";
 
 describe("verifyCommandAuthorization", () => {
   test("rejects empty command list", () => {

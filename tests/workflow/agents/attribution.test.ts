@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import type { AgentGrantRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   assertAttribution,
   describeAttribution,
   resolveAttribution,
   resolveAttributionInLedger,
-} from "../../../../olt/scripts/src/workflow/agents/attribution.ts";
+} from "../../../olt/scripts/src/workflow/agents/attribution.ts";
 
 function makeGrant(overrides: Partial<AgentGrantRecord> = {}): AgentGrantRecord {
   return {

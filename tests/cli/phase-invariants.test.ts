@@ -1,10 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   CumulativePhaseInvariantEngine,
   DeductiveStateMachine,
-} from "../../../olt/scripts/src/cli/phase-invariants.ts";
-import type { CommandSpec } from "../../../olt/scripts/src/cli/registry/index.ts";
+} from "../../olt/scripts/src/cli/phase-invariants.ts";
+import type { CommandSpec } from "../../olt/scripts/src/cli/registry/index.ts";
 
 describe("CumulativePhaseInvariantEngine & DeductiveStateMachine", () => {
   describe("DeductiveStateMachine", () => {

@@ -15,8 +15,8 @@ import {
   removeWorktree,
   stageAndCommit,
   commitProvenance,
-} from "../../../../olt/scripts/src/workflow/worktree/git-ops.ts";
-import type { GitResult, GitRunner } from "../../../../olt/scripts/src/workflow/worktree/git.ts";
+} from "../../../olt/scripts/src/workflow/worktree/git-ops.ts";
+import type { GitResult, GitRunner } from "../../../olt/scripts/src/workflow/worktree/git.ts";
 
 type Call = { cwd: string; argv: readonly string[] };
 

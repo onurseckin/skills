@@ -11,15 +11,15 @@ import {
   DEFAULT_QUOTA_THRESHOLD,
   DEFAULT_SAFE_WINDOW_SECONDS,
   DEFAULT_AUTO_WAKE_BUFFER_SECONDS,
-} from "../../../olt/scripts/src/telemetry/circuit-breaker.ts";
+} from "../../olt/scripts/src/telemetry/circuit-breaker.ts";
 import type {
   NormalizedQuotaMetric,
   PlatformProbeResult,
   UnifiedTelemetryReport,
-} from "../../../olt/scripts/src/telemetry/types.ts";
-import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
-import { quotaCheckCommand } from "../../../olt/scripts/src/cli/commands/quota-check.ts";
-import type { CollectorEnvironment } from "../../../olt/scripts/src/telemetry/collectors/index.ts";
+} from "../../olt/scripts/src/telemetry/types.ts";
+import { findCommand } from "../../olt/scripts/src/cli/registry/index.ts";
+import { quotaCheckCommand } from "../../olt/scripts/src/cli/commands/quota-check.ts";
+import type { CollectorEnvironment } from "../../olt/scripts/src/telemetry/collectors/index.ts";
 
 function createMockMetric(
   modelName: string,

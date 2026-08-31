@@ -1,23 +1,23 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import * as reviewModule from "../../../olt/scripts/src/workflow/review/index.ts";
+import * as reviewModule from "../../olt/scripts/src/workflow/review/index.ts";
 import {
   beginValidation,
   recordProbe,
   recordReview,
   recordReviewVerdict,
-} from "../../../olt/scripts/src/workflow/review/index.ts";
-import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
-import { submitTask } from "../../../olt/scripts/src/workflow/submission/submit.ts";
+} from "../../olt/scripts/src/workflow/review/index.ts";
+import { claimTask } from "../../olt/scripts/src/workflow/lease/claim.ts";
+import { submitTask } from "../../olt/scripts/src/workflow/submission/submit.ts";
 import {
   appendGateProof,
   type GateProofRecord,
-} from "../../../olt/scripts/src/graph/gate-proof.ts";
+} from "../../olt/scripts/src/graph/gate-proof.ts";
 import {
   validateFacadeExports,
   validateZeroCommentsInCode,
-} from "../../../olt/scripts/src/validation/coding-conventions.ts";
+} from "../../olt/scripts/src/validation/coding-conventions.ts";
 import {
   at,
   registerCommand,

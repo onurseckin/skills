@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { createSignedEnvelope } from "../../../olt/scripts/src/communication/mailbox/envelope.ts";
+import { createSignedEnvelope } from "../../olt/scripts/src/communication/mailbox/envelope.ts";
 import {
   clearInMemoryMailboxDirs,
   ensureMailboxDirectories,
   resolveMailboxPaths,
-} from "../../../olt/scripts/src/communication/mailbox/mailbox-paths.ts";
+} from "../../olt/scripts/src/communication/mailbox/mailbox-paths.ts";
 import {
   appendMailboxMessage,
   clearInMemoryMailboxStore,
@@ -18,12 +18,12 @@ import {
   rotateMailboxMessages,
   setInMemoryMailbox,
   setInMemoryStreamMode,
-} from "../../../olt/scripts/src/communication/mailbox/mailbox-stream.ts";
+} from "../../olt/scripts/src/communication/mailbox/mailbox-stream.ts";
 import type {
   MailboxCursor,
   MailboxEnvelope,
-} from "../../../olt/scripts/src/communication/types.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/communication/types.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 
 describe("Mailbox Stream IO & Paths Engine (In-Memory)", () => {
   const virtualRoot = "virtual://stream-suite";

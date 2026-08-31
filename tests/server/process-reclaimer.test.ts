@@ -17,8 +17,8 @@ import {
   reclaimPort,
   reclaimProcess,
   reclaimZombieProcesses,
-} from "../../../olt/scripts/src/server/process/index.ts";
-import type { CommandExecutionResult } from "../../../olt/scripts/src/server/process/index.ts";
+} from "../../olt/scripts/src/server/process/index.ts";
+import type { CommandExecutionResult } from "../../olt/scripts/src/server/process/index.ts";
 
 describe("process reclaimer subsystem", () => {
   describe("output parsers", () => {

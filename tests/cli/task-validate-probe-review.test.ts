@@ -2,11 +2,11 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { taskReviewCommand } from "../../../olt/scripts/src/cli/commands/task-review.ts";
-import { taskValidateStartCommand } from "../../../olt/scripts/src/cli/commands/task-validation-start.ts";
-import { loadChecklist } from "../../../olt/scripts/src/packets/role-contract.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { taskReviewCommand } from "../../olt/scripts/src/cli/commands/task-review.ts";
+import { taskValidateStartCommand } from "../../olt/scripts/src/cli/commands/task-validation-start.ts";
+import { loadChecklist } from "../../olt/scripts/src/packets/role-contract.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import {
   CHANGED_FILE,

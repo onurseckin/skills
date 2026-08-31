@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { formatPulseDirective } from "../../../olt/scripts/src/cli/commands/mind-pulse.ts";
+import { formatPulseDirective } from "../../olt/scripts/src/cli/commands/mind-pulse.ts";
 
 describe("formatPulseDirective", () => {
   it("injects Mode A discovery mandate when active runs and backlog are zero", () => {

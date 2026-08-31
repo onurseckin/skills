@@ -5,7 +5,7 @@ import {
   escapePowerShellString,
   formatElapsedDuration,
   type PhaseCompletionNotificationOptions,
-} from "../../../../olt/scripts/src/reporting/notifications/index.ts";
+} from "../../../olt/scripts/src/reporting/notifications/index.ts";
 
 describe("Notifications Duration & String Formatters", () => {
   it("formats millisecond durations into human-readable intervals", () => {

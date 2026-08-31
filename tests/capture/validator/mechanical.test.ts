@@ -2,20 +2,20 @@ import { describe, expect, it } from "bun:test";
 import {
   calculateApcaLightness,
   validateApcaElement,
-} from "../../../../olt/scripts/src/capture/validator/mechanical/apca.ts";
-import { validateClsReservation } from "../../../../olt/scripts/src/capture/validator/mechanical/cls-reservation.ts";
-import { validateConcentricRadius } from "../../../../olt/scripts/src/capture/validator/mechanical/concentric-radius.ts";
-import { validateSidebarLayout } from "../../../../olt/scripts/src/capture/validator/mechanical/sidebar-layout.ts";
-import { validateSubpixelSnapping } from "../../../../olt/scripts/src/capture/validator/mechanical/subpixel-snapping.ts";
+} from "../../../olt/scripts/src/capture/validator/mechanical/apca.ts";
+import { validateClsReservation } from "../../../olt/scripts/src/capture/validator/mechanical/cls-reservation.ts";
+import { validateConcentricRadius } from "../../../olt/scripts/src/capture/validator/mechanical/concentric-radius.ts";
+import { validateSidebarLayout } from "../../../olt/scripts/src/capture/validator/mechanical/sidebar-layout.ts";
+import { validateSubpixelSnapping } from "../../../olt/scripts/src/capture/validator/mechanical/subpixel-snapping.ts";
 import {
   validateTouchTargetClearance,
   validateTouchTargetDimensions,
-} from "../../../../olt/scripts/src/capture/validator/mechanical/touch-target.ts";
-import { validateMechanical } from "../../../../olt/scripts/src/capture/validator/mechanical/index.ts";
+} from "../../../olt/scripts/src/capture/validator/mechanical/touch-target.ts";
+import { validateMechanical } from "../../../olt/scripts/src/capture/validator/mechanical/index.ts";
 import type {
   ElementPhysicsSnapshot,
   ValidationContext,
-} from "../../../../olt/scripts/src/capture/validator/types.ts";
+} from "../../../olt/scripts/src/capture/validator/types.ts";
 
 describe("Mechanical Validators", () => {
   describe("APCA Contrast (apca.ts)", () => {

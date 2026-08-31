@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { usageReportCommand } from "../../../olt/scripts/src/cli/commands/usage-report.ts";
-import { COMMAND_REGISTRY } from "../../../olt/scripts/src/cli/registry/index.ts";
+import { usageReportCommand } from "../../olt/scripts/src/cli/commands/usage-report.ts";
+import { COMMAND_REGISTRY } from "../../olt/scripts/src/cli/registry/index.ts";
 
 describe("usage:report CLI command", () => {
   it("registers report:usage in COMMAND_REGISTRY with zero aliases", () => {

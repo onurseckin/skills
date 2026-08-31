@@ -4,8 +4,8 @@ import {
   ERROR_CLASS_WALL_TIMEOUT,
   EXIT_STATUS_SIGKILL_TIMEOUT,
   ProcessTimeoutWatchdog,
-} from "../../../../olt/scripts/src/engine/runner/process/process-timeout-watchdog.ts";
-import type { BunSubprocess } from "../../../../olt/scripts/src/engine/runner/types/types.ts";
+} from "../../../olt/scripts/src/engine/runner/process/process-timeout-watchdog.ts";
+import type { BunSubprocess } from "../../../olt/scripts/src/engine/runner/types/types.ts";
 
 function createFakeSubprocess(
   options: {

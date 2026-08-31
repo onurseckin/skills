@@ -7,7 +7,7 @@ import { describe, expect, it } from "bun:test";
 import {
   validateModalFocusTrap,
   type ModalFocusTrapInput,
-} from "../../../../olt/scripts/src/heuristics/modal-focus-traps/index.ts";
+} from "../../../olt/scripts/src/heuristics/modal-focus-traps/index.ts";
 
 describe("Extended Heuristics: Modal Focus Traps", () => {
   it("certifies a correctly configured and trapped modal dialog", () => {

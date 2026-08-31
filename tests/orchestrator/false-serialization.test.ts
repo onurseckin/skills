@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   assertNoFalseSerialization,
   detectFalseSerialization,
-} from "../../../olt/scripts/src/orchestrator/velocity-rebalancer.ts";
+} from "../../olt/scripts/src/orchestrator/velocity-rebalancer.ts";
 import type {
   SynthesizedTaskSpec,
   TopologyWavePlan,
-} from "../../../olt/scripts/src/orchestrator/topology/types.ts";
+} from "../../olt/scripts/src/orchestrator/topology/types.ts";
 
 describe("Domain 20: False-Serialization Prevention", () => {
   test("detects false serialization when independent task is put in later wave despite capacity and disjoint scopes", () => {

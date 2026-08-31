@@ -2,39 +2,39 @@ import { describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   resolveStoragePaths,
   assertSafeStoragePath,
   resolveCapsulePaths,
-} from "../../../../olt/scripts/src/engine/store/hierarchy/storage-paths.ts";
+} from "../../../olt/scripts/src/engine/store/hierarchy/storage-paths.ts";
 import {
   loadSparseIndex,
   rebuildSparseIndex,
   seekEventByteOffset,
   DEFAULT_SPARSE_INDEX_INTERVAL,
   SPARSE_INDEX_VERSION,
-} from "../../../../olt/scripts/src/engine/store/hierarchy/sparse-index.ts";
+} from "../../../olt/scripts/src/engine/store/hierarchy/sparse-index.ts";
 import {
   shouldCreateSnapshot,
   writeAtomicSnapshot,
   loadSnapshotAtSequence,
   loadLatestSnapshot,
-} from "../../../../olt/scripts/src/engine/store/hierarchy/snapshot-manager.ts";
+} from "../../../olt/scripts/src/engine/store/hierarchy/snapshot-manager.ts";
 import {
   shouldTriggerCheckpoint,
   createStateCheckpoint,
   pruneExpiredCheckpoints,
-} from "../../../../olt/scripts/src/engine/store/hierarchy/state-checkpointer.ts";
-import { compactWalLog } from "../../../../olt/scripts/src/engine/store/hierarchy/wal-compactor.ts";
-import { fastForwardProjection } from "../../../../olt/scripts/src/engine/store/hierarchy/reconstruction-engine.ts";
-import { recoverDiskState } from "../../../../olt/scripts/src/engine/store/hierarchy/disk-recovery.ts";
+} from "../../../olt/scripts/src/engine/store/hierarchy/state-checkpointer.ts";
+import { compactWalLog } from "../../../olt/scripts/src/engine/store/hierarchy/wal-compactor.ts";
+import { fastForwardProjection } from "../../../olt/scripts/src/engine/store/hierarchy/reconstruction-engine.ts";
+import { recoverDiskState } from "../../../olt/scripts/src/engine/store/hierarchy/disk-recovery.ts";
 import {
   validateEventsFileShaChain,
   validateMigratedRun,
   migrateLegacyCapsules,
   relocateVestigialLedgers,
-} from "../../../../olt/scripts/src/engine/store/hierarchy/storage-migrator.ts";
+} from "../../../olt/scripts/src/engine/store/hierarchy/storage-migrator.ts";
 
 function makeTmpDir(prefix: string): string {
   return realpathSync(mkdtempSync(join(tmpdir(), prefix)));

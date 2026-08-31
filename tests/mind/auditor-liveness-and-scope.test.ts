@@ -3,18 +3,18 @@ import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { agentRegisterCommand } from "../../../olt/scripts/src/cli/commands/agent-ops.ts";
-import { mindPulseOpenCommand } from "../../../olt/scripts/src/cli/commands/mind-pulse-open.ts";
-import { skillAuditLiveCommand } from "../../../olt/scripts/src/cli/commands/skill-audit-live.ts";
-import type { JsonValue } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
+import { agentRegisterCommand } from "../../olt/scripts/src/cli/commands/agent-ops.ts";
+import { mindPulseOpenCommand } from "../../olt/scripts/src/cli/commands/mind-pulse-open.ts";
+import { skillAuditLiveCommand } from "../../olt/scripts/src/cli/commands/skill-audit-live.ts";
+import type { JsonValue } from "../../olt/scripts/src/core/contracts/index.ts";
+import { initRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../olt/scripts/src/engine/store/index.ts";
 import {
   AuditorCursorStore,
   MindAuditorEngine,
   SkillAuditorEngine,
-} from "../../../olt/scripts/src/mind/auditing/cognitive/index.ts";
-import { readLastPulse, writeLastPulse } from "../../../olt/scripts/src/mind/lifecycle/index.ts";
+} from "../../olt/scripts/src/mind/auditing/cognitive/index.ts";
+import { readLastPulse, writeLastPulse } from "../../olt/scripts/src/mind/lifecycle/index.ts";
 
 const roots: string[] = [];
 

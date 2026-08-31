@@ -3,8 +3,8 @@ import { lstatSync } from "node:fs";
 import { mkdir, mkdtemp, realpath, rm, symlink, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { hashWriteScope } from "../../../olt/scripts/src/workflow/lease/write-scope-hash.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { hashWriteScope } from "../../olt/scripts/src/workflow/lease/write-scope-hash.ts";
 
 const roots: string[] = [];
 afterEach(async () => {

@@ -2,9 +2,9 @@ import { describe, expect, it } from "bun:test";
 import {
   formatValidateUiBrief,
   validateUiCommand,
-} from "../../../olt/scripts/src/cli/commands/validate-ui.ts";
-import { assertDualUiGateApproval } from "../../../olt/scripts/src/cli/commands/task-review-helpers.ts";
-import type { DualUiAuditResult } from "../../../olt/scripts/src/validation/ui/index.ts";
+} from "../../olt/scripts/src/cli/commands/validate-ui.ts";
+import { assertDualUiGateApproval } from "../../olt/scripts/src/cli/commands/task-review-helpers.ts";
+import type { DualUiAuditResult } from "../../olt/scripts/src/validation/ui/index.ts";
 
 describe("Dual UI Review Gates & CLI Command Workflow", () => {
   describe("1. assertDualUiGateApproval Helper Enforcement", () => {

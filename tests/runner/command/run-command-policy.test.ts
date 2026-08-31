@@ -1,15 +1,15 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { prepareCommand } from "../../../../olt/scripts/src/engine/runner/models/execution/run-command.ts";
+import { prepareCommand } from "../../../olt/scripts/src/engine/runner/models/execution/run-command.ts";
 import { scratchRoot } from "../../../support/scratch-root.ts";
-import { resolveScratchDir } from "../../../../olt/scripts/src/core/shared/paths.ts";
-import type { InternalCommandRunner } from "../../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
+import { resolveScratchDir } from "../../../olt/scripts/src/core/shared/paths.ts";
+import type { InternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 import type {
   CommandOptions,
   CommandResult,
   PreparedCommand,
-} from "../../../../olt/scripts/src/engine/runner/types/types.ts";
+} from "../../../olt/scripts/src/engine/runner/types/types.ts";
 
 describe("prepareCommand policy and authorization", () => {
   test("rejects a timeout-only policy before invoking the runner or emitting a receipt", async () => {

@@ -3,8 +3,8 @@ import {
   compileEffectiveForbiddenPatterns,
   isTargetTestArgument,
   isUntargetedTestCommand,
-} from "../../../../olt/scripts/src/policy/rbac/index.ts";
-import type { RepoPolicy } from "../../../../olt/scripts/src/policy/index.ts";
+} from "../../../olt/scripts/src/policy/rbac/index.ts";
+import type { RepoPolicy } from "../../../olt/scripts/src/policy/index.ts";
 import { samplePolicy } from "./fixtures.ts";
 
 describe("RBAC Pattern Compiler & Test Runner Detection", () => {

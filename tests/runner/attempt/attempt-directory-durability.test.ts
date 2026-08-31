@@ -1,8 +1,8 @@
 import { expect, test } from "bun:test";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { writeAttemptStarted } from "../../../../olt/scripts/src/engine/runner/execution/attempt-intent.ts";
-import { createCommandSigningCapability } from "../../../../olt/scripts/src/engine/runner/execution/attempt-disposition-capability.ts";
+import { writeAttemptStarted } from "../../../olt/scripts/src/engine/runner/execution/attempt-intent.ts";
+import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/execution/attempt-disposition-capability.ts";
 import { scratchRoot } from "../../../support/scratch-root.ts";
 
 test("fsyncs the command directory entry before a started marker can precede spawn", () => {

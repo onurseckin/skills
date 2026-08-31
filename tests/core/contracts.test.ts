@@ -7,7 +7,7 @@ import {
   isAgentGrantRecord,
   THINKING_LEVELS,
   AGENT_MODEL_TIERS,
-} from "../../../olt/scripts/src/core/contracts/agents/agents.ts";
+} from "../../olt/scripts/src/core/contracts/agents/agents.ts";
 import {
   isValidatorDomain,
   textSignalsUiDomain,
@@ -18,7 +18,7 @@ import {
   isStructuredFinding,
   isCoordinatorPushback,
   VALIDATOR_DOMAINS,
-} from "../../../olt/scripts/src/core/contracts/agents/workflow.ts";
+} from "../../olt/scripts/src/core/contracts/agents/workflow.ts";
 import {
   isBranchStatus,
   isBranchSubTaskStatus,
@@ -30,37 +30,37 @@ import {
   BRANCH_STATUSES,
   BRANCH_SUB_TASK_STATUSES,
   TERMINAL_SUB_TASK_STATUSES,
-} from "../../../olt/scripts/src/core/contracts/git/branch.ts";
+} from "../../olt/scripts/src/core/contracts/git/branch.ts";
 import {
   isWorktreeConsolidationRecord,
   isWorktreeLedgerState,
-} from "../../../olt/scripts/src/core/contracts/git/worktree.ts";
-import { isJsonObject, isSafeInteger } from "../../../olt/scripts/src/core/contracts/json.ts";
+} from "../../olt/scripts/src/core/contracts/git/worktree.ts";
+import { isJsonObject, isSafeInteger } from "../../olt/scripts/src/core/contracts/json.ts";
 import {
   isAgentRole,
   isCognitiveValidatorRole,
   isMechanicValidatorRole,
   AGENT_ROLES,
-} from "../../../olt/scripts/src/core/contracts/network/packets.ts";
+} from "../../olt/scripts/src/core/contracts/network/packets.ts";
 import {
   trustedHostEvidence,
   trustedHostLimitations,
   sameTrustedHostRepositoryBinding,
   TRUSTED_HOST_ASSURANCE,
-} from "../../../olt/scripts/src/core/contracts/network/trusted-host.ts";
+} from "../../olt/scripts/src/core/contracts/network/trusted-host.ts";
 import {
   isEvidenceClass,
   isEvidenced,
   evidenced,
   estimated,
   EVIDENCE_CLASSES,
-} from "../../../olt/scripts/src/core/contracts/system/evidence.ts";
+} from "../../olt/scripts/src/core/contracts/system/evidence.ts";
 import {
   isKnownToolCategory,
   isToolCategory,
   isCategoryExtras,
   TOOL_CATEGORIES,
-} from "../../../olt/scripts/src/core/contracts/system/taxonomy.ts";
+} from "../../olt/scripts/src/core/contracts/system/taxonomy.ts";
 import {
   isTopologyReason,
   isTopologyWave,
@@ -69,7 +69,7 @@ import {
   readTopology,
   topologyWavesByTask,
   TOPOLOGY_REASONS,
-} from "../../../olt/scripts/src/core/contracts/system/topology.ts";
+} from "../../olt/scripts/src/core/contracts/system/topology.ts";
 
 describe("core/contracts/json.ts", () => {
   it("validates json objects and integers", () => {

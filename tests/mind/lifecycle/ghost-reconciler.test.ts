@@ -8,13 +8,13 @@ import {
   terminateDetachedOrchestrator,
   type GhostOrchestratorFinding,
   type LiveSubagentInfo,
-} from "../../../../olt/scripts/src/mind/lifecycle/ghost-reconciler.ts";
+} from "../../../olt/scripts/src/mind/lifecycle/ghost-reconciler.ts";
 import {
   deregisterOrchestrator,
   registerOrchestratorSpawn,
   type NewOrchestratorRecordInput,
-} from "../../../../olt/scripts/src/mind/lifecycle/orchestrator-ledger.ts";
-import { syncOrchestratorToManifest } from "../../../../olt/scripts/src/mind/lifecycle/manifest-sync.ts";
+} from "../../../olt/scripts/src/mind/lifecycle/orchestrator-ledger.ts";
+import { syncOrchestratorToManifest } from "../../../olt/scripts/src/mind/lifecycle/manifest-sync.ts";
 
 describe("Ghost Process Detection & Termination Engine", () => {
   let tempDir: string;

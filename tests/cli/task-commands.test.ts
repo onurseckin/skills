@@ -9,12 +9,12 @@ import {
   taskCompleteCommand,
   taskLeaseCommand,
   taskListCommand,
-} from "../../../olt/scripts/src/cli/commands/task-queue-ops.ts";
+} from "../../olt/scripts/src/cli/commands/task-queue-ops.ts";
 import {
   injectTraceEnvironment,
   resolveTraceContext,
   type TraceContext,
-} from "../../../olt/scripts/src/telemetry/trace-context.ts";
+} from "../../olt/scripts/src/telemetry/trace-context.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Telemetry Trace Context (task-cli-03)", () => {

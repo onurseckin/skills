@@ -10,8 +10,8 @@ import {
   readEventLedger,
   resolveDefaultLedgerPath,
   verifyEventChain,
-} from "../../../olt/scripts/src/capture/ledger/index.ts";
-import type { CaptureEventRecord } from "../../../olt/scripts/src/capture/ledger/types.ts";
+} from "../../olt/scripts/src/capture/ledger/index.ts";
+import type { CaptureEventRecord } from "../../olt/scripts/src/capture/ledger/types.ts";
 
 describe("Capture Event Ledger & Cryptographic Hash Chaining", () => {
   it("appends sequential events with monotonic sequence numbers and hash chaining", () => {

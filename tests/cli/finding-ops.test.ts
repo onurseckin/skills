@@ -6,8 +6,8 @@ import { tmpdir } from "node:os";
 import {
   executeFindingFileCommand,
   findingFileCommand,
-} from "../../../olt/scripts/src/cli/commands/finding-ops.ts";
-import { parseDefectsJsonl } from "../../../olt/scripts/src/mind/defects/sync/index.ts";
+} from "../../olt/scripts/src/cli/commands/finding-ops.ts";
+import { parseDefectsJsonl } from "../../olt/scripts/src/mind/defects/sync/index.ts";
 
 const roots: string[] = [];
 afterEach(async () => {

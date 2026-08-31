@@ -11,13 +11,13 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { agentRegisterCommand } from "../../../olt/scripts/src/cli/commands/agent-ops.ts";
-import { doctorCommand } from "../../../olt/scripts/src/cli/commands/diagnostics-ops.ts";
-import { mindInitCommand } from "../../../olt/scripts/src/cli/commands/mind-init.ts";
-import { mindPulseOpenCommand } from "../../../olt/scripts/src/cli/commands/mind-pulse-open.ts";
-import { mindRotateCommand } from "../../../olt/scripts/src/cli/commands/mind-rotate.ts";
-import { mindWakeCommand } from "../../../olt/scripts/src/cli/commands/mind-wake.ts";
-import type { JsonObject, JsonValue } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { agentRegisterCommand } from "../../olt/scripts/src/cli/commands/agent-ops.ts";
+import { doctorCommand } from "../../olt/scripts/src/cli/commands/diagnostics-ops.ts";
+import { mindInitCommand } from "../../olt/scripts/src/cli/commands/mind-init.ts";
+import { mindPulseOpenCommand } from "../../olt/scripts/src/cli/commands/mind-pulse-open.ts";
+import { mindRotateCommand } from "../../olt/scripts/src/cli/commands/mind-rotate.ts";
+import { mindWakeCommand } from "../../olt/scripts/src/cli/commands/mind-wake.ts";
+import type { JsonObject, JsonValue } from "../../olt/scripts/src/core/contracts/index.ts";
 
 function simulatePulseClose(params: {
   run: string;
@@ -80,17 +80,17 @@ import {
   evaluateGate6NotADuplicate,
   type CandidateRecord,
   type GateEvaluationContext,
-} from "../../../olt/scripts/src/mind/proposals/gates/index.ts";
+} from "../../olt/scripts/src/mind/proposals/gates/index.ts";
 import {
   readLastPulse,
   writeLastPulse,
   type LastPulseRecord,
-} from "../../../olt/scripts/src/mind/lifecycle/index.ts";
-import { calculateNextWakeInterval } from "../../../olt/scripts/src/mind/memory/index.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/index.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../olt/scripts/src/mind/lifecycle/index.ts";
+import { calculateNextWakeInterval } from "../../olt/scripts/src/mind/memory/index.ts";
+import { initRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { verifyIntegrity } from "../../olt/scripts/src/engine/store/index.ts";
+import { loadRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../olt/scripts/src/engine/store/index.ts";
 import { auditRemoteUrls, isPushTargetInert } from "../../support/remote-safety.ts";
 
 const roots: string[] = [];

@@ -2,8 +2,8 @@ import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import { mkdirSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { runInitCommand } from "../../../olt/scripts/src/cli/commands/run-init.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { runInitCommand } from "../../olt/scripts/src/cli/commands/run-init.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 
 describe("run:init CLI command", () => {
   let testDir: string;

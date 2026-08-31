@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { recoverBranchSubTasks } from "../../../../olt/scripts/src/workflow/branch/recover.ts";
+import { recoverBranchSubTasks } from "../../../olt/scripts/src/workflow/branch/recover.ts";
 import {
   BRANCH_LEDGER_KEY,
   readBranchLedger,
-} from "../../../../olt/scripts/src/workflow/branch/ledger.ts";
-import type { JsonObject } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import type { BranchLease } from "../../../../olt/scripts/src/core/contracts/index.ts";
+} from "../../../olt/scripts/src/workflow/branch/ledger.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { BranchLease } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { branchRecord, subTask } from "./fixture.ts";
 
 function lease(overrides: Partial<BranchLease> = {}): BranchLease {

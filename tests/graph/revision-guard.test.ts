@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { guardPlanRevision } from "../../../olt/scripts/src/graph/revision-guard.ts";
+import { guardPlanRevision } from "../../olt/scripts/src/graph/revision-guard.ts";
 import { validPlanningDocuments } from "./fixtures.ts";
-import { dependencyMap } from "../../../olt/scripts/src/graph/dependency-map.ts";
+import { dependencyMap } from "../../olt/scripts/src/graph/dependency-map.ts";
 
 describe("graph revision guard", () => {
   test("enforces initial revision and sequential increments", () => {

@@ -9,7 +9,7 @@ import {
   validateStorageCacheFreshness,
   type NormalizedQuotaMetric,
   type UnifiedTelemetryReport,
-} from "../../../olt/scripts/src/telemetry/index.ts";
+} from "../../olt/scripts/src/telemetry/index.ts";
 
 function createMetric(
   name: string,

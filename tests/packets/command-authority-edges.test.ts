@@ -1,14 +1,14 @@
 import { describe, expect, test, spyOn } from "bun:test";
 import { join } from "node:path";
 import { writeFile } from "node:fs/promises";
-import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { findCommand } from "../../olt/scripts/src/cli/registry/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   assertGrantedCommand,
   assertAgentRegisterHierarchy,
   assertSubjectTargetPolicy,
-} from "../../../olt/scripts/src/packets/command-authority-grants.ts";
-import { assertRoleMayInvoke } from "../../../olt/scripts/src/packets/command-authority-invocation.ts";
+} from "../../olt/scripts/src/packets/command-authority-grants.ts";
+import { assertRoleMayInvoke } from "../../olt/scripts/src/packets/command-authority-invocation.ts";
 import {
   formatHardlockRemediation,
   formatHierarchicalRemediation,
@@ -17,21 +17,21 @@ import {
   formatRoleContractRemediation,
   formatSessionRemediation,
   resolveCurrentHost,
-} from "../../../olt/scripts/src/packets/command-authority-remediation.ts";
+} from "../../olt/scripts/src/packets/command-authority-remediation.ts";
 import {
   capsuleState,
   isNoRunBootstrapExempt,
   actsOnOwnGrant,
   isMissingCapsuleExempt,
   normalizeRoleForContract,
-} from "../../../olt/scripts/src/packets/command-authority-state.ts";
-import { requiresActingIdentity } from "../../../olt/scripts/src/packets/grant-bootstrap-allowlist.ts";
+} from "../../olt/scripts/src/packets/command-authority-state.ts";
+import { requiresActingIdentity } from "../../olt/scripts/src/packets/grant-bootstrap-allowlist.ts";
 import { emptyGrantRun } from "./grant-run-fixture.ts";
 import {
   registerAgentGrant,
   releaseAgentGrant,
-} from "../../../olt/scripts/src/workflow/agents/grants.ts";
-import type { AuthenticatedCaller } from "../../../olt/scripts/src/packets/command-authority.ts";
+} from "../../olt/scripts/src/workflow/agents/grants.ts";
+import type { AuthenticatedCaller } from "../../olt/scripts/src/packets/command-authority.ts";
 
 function spec(name: string) {
   const found = findCommand(name);

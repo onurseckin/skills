@@ -2,7 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import {
   readIndexedBlobs,
   readTreeBlobs,
-} from "../../../../../scripts/modularity/inventory/index.ts";
+} from "../../../../scripts/modularity/inventory/index.ts";
 import { type FakeGitBehavior, withFakeGit } from "./fake-git-fixture.ts";
 import {
   createIndexedFixture,

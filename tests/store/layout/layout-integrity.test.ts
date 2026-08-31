@@ -4,7 +4,7 @@ import { join } from "node:path";
 import {
   undeclaredEntries,
   verifyCapsuleLayout,
-} from "../../../../olt/scripts/src/engine/store/integrity/layout-integrity.ts";
+} from "../../../olt/scripts/src/engine/store/integrity/layout-integrity.ts";
 import { scratchRoot as makeScratchRoot } from "../../../support/scratch-root.ts";
 
 function scratchRoot(label: string): string {

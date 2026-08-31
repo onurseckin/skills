@@ -8,31 +8,31 @@ import {
   getApcaBadgeInfo,
   renderApcaContrastBadge,
   sRgbToLinearY,
-} from "../../../olt/scripts/src/cli/commands/defect-audit-types.ts";
+} from "../../olt/scripts/src/cli/commands/defect-audit-types.ts";
 import {
   getApcaBadgeInfo as getApcaBadgeInfo2,
   calculateApcaLightnessContrast as calculateApcaLightnessContrast2,
   renderApcaContrastBadge as renderApcaContrastBadge2,
   renderAsciiDefectTable as renderAsciiDefectTable2,
-} from "../../../olt/scripts/src/cli/commands/defect-audit/apca.ts";
+} from "../../olt/scripts/src/cli/commands/defect-audit/apca.ts";
 import {
   discoverDefectFiles,
   parseDefectsFromFile,
-} from "../../../olt/scripts/src/cli/commands/defect-audit-scanner.ts";
+} from "../../olt/scripts/src/cli/commands/defect-audit-scanner.ts";
 import {
   discoverDefectFiles as discoverDefectFiles2,
   parseDefectsFromFile as parseDefectsFromFile2,
-} from "../../../olt/scripts/src/cli/commands/defect-audit/discovery.ts";
+} from "../../olt/scripts/src/cli/commands/defect-audit/discovery.ts";
 import {
   formatDefectAuditReport,
   padRight,
   renderAsciiDefectTable,
   truncateString,
-} from "../../../olt/scripts/src/cli/commands/defect-audit-formatter.ts";
-import { formatDefectAuditReport as formatDefectAuditReport2 } from "../../../olt/scripts/src/cli/commands/defect-audit/formatter.ts";
-import { defectAuditCommand } from "../../../olt/scripts/src/cli/commands/defect-audit.ts";
-import { defectAuditCommand as defectAuditCommand2 } from "../../../olt/scripts/src/cli/commands/defect-audit/command.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/cli/commands/defect-audit-formatter.ts";
+import { formatDefectAuditReport as formatDefectAuditReport2 } from "../../olt/scripts/src/cli/commands/defect-audit/formatter.ts";
+import { defectAuditCommand } from "../../olt/scripts/src/cli/commands/defect-audit.ts";
+import { defectAuditCommand as defectAuditCommand2 } from "../../olt/scripts/src/cli/commands/defect-audit/command.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 

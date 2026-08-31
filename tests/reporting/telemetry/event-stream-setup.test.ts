@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import type { HarnessEvent } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import { deliverEventsToWebhook } from "../../../../olt/scripts/src/reporting/event-stream/index.ts";
+import type { HarnessEvent } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { deliverEventsToWebhook } from "../../../olt/scripts/src/reporting/event-stream/index.ts";
 
 describe("reporting/event-stream setup suite", () => {
   it("delivers empty batch immediately with 0 network calls", async () => {

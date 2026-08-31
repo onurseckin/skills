@@ -13,7 +13,7 @@ import {
   validateRegressionTest,
   validateResolutionProof,
   type DefectEntry,
-} from "../../../../olt/scripts/src/mind/defects/index.ts";
+} from "../../../olt/scripts/src/mind/defects/index.ts";
 import { createMockDefectEntry, createMockResolutionProof } from "./defect-fixture.ts";
 
 describe("Defect Promotion & Regression Suite", () => {

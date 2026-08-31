@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { generateGraphDataset } from "../../../olt/scripts/src/summary/graph/index.ts";
+import { generateGraphDataset } from "../../olt/scripts/src/summary/graph/index.ts";
 import { makeCommand, makeEvent, makeState, makeTask } from "./graph-fixtures.ts";
 
 function twoTaskDataset() {

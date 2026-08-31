@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   assertConventionalCommitCompliance,
   CONVENTIONAL_COMMIT_TYPES,
   formatConventionalCommit,
   validatePhaseCommitMessage,
   type ConventionalCommitMessage,
-} from "../../../olt/scripts/src/engine/worktree/phase-commits.ts";
+} from "../../olt/scripts/src/engine/worktree/phase-commits.ts";
 
 describe("Phase Commits: Conventional Commit Validation", () => {
   describe("CONVENTIONAL_COMMIT_TYPES", () => {

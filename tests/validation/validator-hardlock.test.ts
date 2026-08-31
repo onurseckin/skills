@@ -1,9 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
-import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
-import type { CommandSpec } from "../../../olt/scripts/src/cli/registry/types.ts";
-import type { Flags } from "../../../olt/scripts/src/cli/options.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { findCommand } from "../../olt/scripts/src/cli/registry/index.ts";
+import type { CommandSpec } from "../../olt/scripts/src/cli/registry/types.ts";
+import type { Flags } from "../../olt/scripts/src/cli/options.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   isCognitiveValidatorRole,
   isMechanicValidatorRole,
@@ -15,23 +15,23 @@ import {
   assertCognitiveValidatorHardlock,
   assertRoleMayInvoke,
   assertGrantedCommand,
-} from "../../../olt/scripts/src/packets/command-authority.ts";
+} from "../../olt/scripts/src/packets/command-authority.ts";
 import {
   auditSingleRole,
   createRoleBoundaryWatchdog,
   validateParentChildSupervision,
   assertParentChildBoundary,
   type RoleBoundaryAction,
-} from "../../../olt/scripts/src/mind/auditing/roles/index.ts";
+} from "../../olt/scripts/src/mind/auditing/roles/index.ts";
 import {
   isBoundaryLeakViolation,
   validateBoundaryIntegrity,
   assertNoBoundaryLeak,
   type BoundaryLeakCheck,
-} from "../../../olt/scripts/src/validation/anti-leak/index.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../olt/scripts/src/validation/anti-leak/index.ts";
+import { transact } from "../../olt/scripts/src/engine/store/index.ts";
 import { emptyGrantRun } from "../packets/grant-run-fixture.ts";
-import type { DynamicRoleSpec } from "../../../olt/scripts/src/mind/roles/dynamic/index.ts";
+import type { DynamicRoleSpec } from "../../olt/scripts/src/mind/roles/dynamic/index.ts";
 
 function spec(invocation: string): CommandSpec {
   const found = findCommand(invocation);

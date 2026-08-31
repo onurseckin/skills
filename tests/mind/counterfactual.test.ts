@@ -10,12 +10,12 @@ import {
   formatCounterfactualReportMarkdown,
   runCounterfactualReAdmissionSuite,
   selectPreviouslyAdmittedCandidates,
-} from "../../../olt/scripts/src/mind/auditing/counterfactual/index.ts";
+} from "../../olt/scripts/src/mind/auditing/counterfactual/index.ts";
 import type {
   CandidateRecord,
   GateEvaluationContext,
-} from "../../../olt/scripts/src/mind/proposals/gates/index.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../olt/scripts/src/mind/proposals/gates/index.ts";
+import { initRun } from "../../olt/scripts/src/engine/store/index.ts";
 
 const roots: string[] = [];
 

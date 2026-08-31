@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   CURRENT_POLICY_SCHEMA_VERSION,
   executePolicyHook,
@@ -13,7 +13,7 @@ import {
   saveRepoPolicy,
   type HookSpawnRunner,
   type RepoPolicy,
-} from "../../../olt/scripts/src/policy/index.ts";
+} from "../../olt/scripts/src/policy/index.ts";
 
 describe("Central Policy & Lifecycle Hooks Engine", () => {
   const scratchBase = join(process.cwd(), "coverage", "scratch", "central-policy-engine-test");

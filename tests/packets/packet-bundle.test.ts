@@ -10,13 +10,13 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { safeRmSync } from "../../../olt/scripts/src/core/shared/safe-fs/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { safeRmSync } from "../../olt/scripts/src/core/shared/safe-fs/index.ts";
 import {
   createPacketBundle,
   verifyPacketBundle,
-} from "../../../olt/scripts/src/packets/packet-bundle.ts";
-import type { BuiltPacket } from "../../../olt/scripts/src/packets/types.ts";
+} from "../../olt/scripts/src/packets/packet-bundle.ts";
+import type { BuiltPacket } from "../../olt/scripts/src/packets/types.ts";
 
 function root(prefix: string): string {
   return realpathSync(mkdtempSync(join(tmpdir(), prefix)));

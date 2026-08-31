@@ -6,21 +6,21 @@ import { join } from "node:path";
 import {
   runDualChannelAudit,
   dualChannelRefusalMessage,
-} from "../../../olt/scripts/src/cli/commands/task-review-support.ts";
-import { taskReviewCommand } from "../../../olt/scripts/src/cli/commands/task-review.ts";
-import { criticReviewCommand } from "../../../olt/scripts/src/cli/commands/critic-ops.ts";
-import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import { ingestScreenshots } from "../../../olt/scripts/src/reporting/screenshot-ingestion.ts";
-import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";
-import { publishTaskRolePacket } from "../../../olt/scripts/src/packets/role-grant.ts";
-import { workflowPort } from "../../../olt/scripts/src/integration/store-ports.ts";
-import { runAndRecordCommand } from "../../../olt/scripts/src/integration/record-command.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
-import type { ScreenshotRecord } from "../../../olt/scripts/src/reporting/screenshot-types.ts";
-import type { CompanionManifestData } from "../../../olt/scripts/src/validation/channels/index.ts";
-import { createAgentMetadata, writeAgentMetadata } from "../../../olt/scripts/src/runtime/index.ts";
-import { createSyntheticPngBuffer } from "../../../olt/scripts/src/capture/runners/live-capture-runner/index.ts";
+} from "../../olt/scripts/src/cli/commands/task-review-support.ts";
+import { taskReviewCommand } from "../../olt/scripts/src/cli/commands/task-review.ts";
+import { criticReviewCommand } from "../../olt/scripts/src/cli/commands/critic-ops.ts";
+import { initRun, transact } from "../../olt/scripts/src/engine/store/index.ts";
+import { ingestScreenshots } from "../../olt/scripts/src/reporting/screenshot-ingestion.ts";
+import { tokenDigest } from "../../olt/scripts/src/workflow/lease/token.ts";
+import { publishTaskRolePacket } from "../../olt/scripts/src/packets/role-grant.ts";
+import { workflowPort } from "../../olt/scripts/src/integration/store-ports.ts";
+import { runAndRecordCommand } from "../../olt/scripts/src/integration/record-command.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import type { TaskRecord } from "../../olt/scripts/src/workflow/types.ts";
+import type { ScreenshotRecord } from "../../olt/scripts/src/reporting/screenshot-types.ts";
+import type { CompanionManifestData } from "../../olt/scripts/src/validation/channels/index.ts";
+import { createAgentMetadata, writeAgentMetadata } from "../../olt/scripts/src/runtime/index.ts";
+import { createSyntheticPngBuffer } from "../../olt/scripts/src/capture/runners/live-capture-runner/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 function createValidScreenshotFixtures(label: string): ScreenshotRecord[] {

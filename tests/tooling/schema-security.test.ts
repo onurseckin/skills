@@ -19,7 +19,7 @@ import {
   validateToolArguments,
   type ToolDefinition,
   type ToolParameterSchema,
-} from "../../../olt/scripts/src/tooling/index.ts";
+} from "../../olt/scripts/src/tooling/index.ts";
 
 describe("Tool Schemas & Security Validation Unit Test Suite", () => {
   describe("Dynamic Tool Schema Parsing", () => {

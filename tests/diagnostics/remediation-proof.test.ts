@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   formatDefectAuditBrief,
   formulateDefectCandidates,
@@ -9,7 +9,7 @@ import {
   type DefectAuditReport,
   type DefectEntry,
   type DefectResolutionProof,
-} from "../../../olt/scripts/src/mind/defects/index.ts";
+} from "../../olt/scripts/src/mind/defects/index.ts";
 
 describe("Diagnostics Remediation Proof & Static Quality Invariants", () => {
   const sampleDefect: DefectEntry = {

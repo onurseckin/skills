@@ -2,9 +2,9 @@ import { describe, expect, it } from "bun:test";
 import {
   normalizeFindingToDetail,
   synthesizeNextRoundPrompt,
-} from "../../../olt/scripts/src/orchestrator/defect-synthesizer.ts";
-import type { Finding } from "../../../olt/scripts/src/core/contracts/index.ts";
-import type { FindingDetail } from "../../../olt/scripts/src/workflow/scope-partitioner.ts";
+} from "../../olt/scripts/src/orchestrator/defect-synthesizer.ts";
+import type { Finding } from "../../olt/scripts/src/core/contracts/index.ts";
+import type { FindingDetail } from "../../olt/scripts/src/workflow/scope-partitioner.ts";
 
 describe("Defect Synthesizer Unit Tests", () => {
   it("normalizes Finding contracts and infers file paths from text", () => {

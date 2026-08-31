@@ -11,7 +11,7 @@ import {
   resolveSandboxPolicy,
   resolveSandboxQuota,
   validatePolicyConfiguration,
-} from "../../../../olt/scripts/src/tooling/sandbox/policy.ts";
+} from "../../../olt/scripts/src/tooling/sandbox/policy.ts";
 
 describe("Sandbox Policy & Quota Resolution Unit Test Suite", () => {
   describe("Standard Tier Quotas", () => {

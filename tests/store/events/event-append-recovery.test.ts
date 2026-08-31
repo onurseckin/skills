@@ -1,24 +1,24 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import type { Manifest, RunState } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import type { JsonObject } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import { limits } from "../../../../olt/scripts/src/engine/store/layout/constants.ts";
-import { initRun } from "../../../../olt/scripts/src/engine/store/capsule/capsule.ts";
+import type { Manifest, RunState } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { limits } from "../../../olt/scripts/src/engine/store/layout/constants.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
 import {
   appendProjectionEvent,
   CommittedWithRecoveryPendingError,
   TRANSACTION_MARKER_FILE,
-} from "../../../../olt/scripts/src/engine/store/events/event-append.ts";
-import { loadRun } from "../../../../olt/scripts/src/engine/store/capsule/load.ts";
+} from "../../../olt/scripts/src/engine/store/events/event-append.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/capsule/load.ts";
 import {
   cloneObject,
   initialState,
-} from "../../../../olt/scripts/src/engine/store/capsule/state.ts";
+} from "../../../olt/scripts/src/engine/store/capsule/state.ts";
 import { scratchRoot } from "../../../support/scratch-root.ts";
-import { canonicalJsonBytes, sha256Bytes } from "../../../../olt/scripts/src/core/json.ts";
-import { recoverProjection } from "../../../../olt/scripts/src/engine/store/recovery/recovery.ts";
-import { brainstormingProjection } from "../../../../olt/scripts/src/engine/store/projections/materialized-projections.ts";
+import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
+import { recoverProjection } from "../../../olt/scripts/src/engine/store/recovery/recovery.ts";
+import { brainstormingProjection } from "../../../olt/scripts/src/engine/store/projections/materialized-projections.ts";
 
 function freshRun(label: string): { runRoot: string; manifest: Manifest } {
   const repo = scratchRoot(import.meta.path, label);

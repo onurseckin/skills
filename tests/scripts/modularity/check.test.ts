@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { main, parseFlags, runCli } from "../../../../scripts/modularity/check.ts";
+import { main, parseFlags, runCli } from "../../../scripts/modularity/check.ts";
 import { gitInFixture } from "./inventory/index-fixture.ts";
 
 let tempDir: string | undefined;

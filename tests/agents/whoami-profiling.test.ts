@@ -9,9 +9,9 @@ import {
   agentIdToRole,
   MAIN_THREAD_ADVISORY,
   type HostProfile,
-} from "../../../olt/scripts/src/authority/thread/index.ts";
-import { whoamiCommand } from "../../../olt/scripts/src/cli/commands/whoami";
-import { taskClaimCommand } from "../../../olt/scripts/src/cli/commands/task-ops.ts";
+} from "../../olt/scripts/src/authority/thread/index.ts";
+import { whoamiCommand } from "../../olt/scripts/src/cli/commands/whoami";
+import { taskClaimCommand } from "../../olt/scripts/src/cli/commands/task-ops.ts";
 import { cleanupRoots } from "../cli/full-lifecycle-fixture";
 import { setupCompiledRun } from "../cli/task-ops-fixture";
 import { TASK_ID, VALIDATOR, claimSubmitValidate, setupRun } from "../cli/probe-fixture";

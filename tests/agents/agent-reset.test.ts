@@ -1,20 +1,20 @@
 import { describe, expect, test } from "bun:test";
-import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
-import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { AgentGrantRecord } from "../../olt/scripts/src/core/contracts/index.ts";
+import type { JsonObject } from "../../olt/scripts/src/core/contracts/index.ts";
 import {
   AGENT_LEDGER_KEY,
   readAgentLedger,
   releaseAllActiveGrants,
   releaseGrantInLedger,
   writeAgentLedger,
-} from "../../../olt/scripts/src/workflow/agents/ledger.ts";
+} from "../../olt/scripts/src/workflow/agents/ledger.ts";
 import {
   executeAgentReset,
   formatAgentResetBrief,
   type AgentResetOptions,
   type AgentResetResult,
   type WorkflowPort,
-} from "../../../olt/scripts/src/workflow/agents/reset.ts";
+} from "../../olt/scripts/src/workflow/agents/reset.ts";
 
 function createMockGrant(overrides: Partial<AgentGrantRecord> = {}): AgentGrantRecord {
   const base: AgentGrantRecord = {

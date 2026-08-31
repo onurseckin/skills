@@ -6,7 +6,7 @@ import {
   DEFAULT_ADAPTIVE_MAX_INTERVAL_MS,
   DEFAULT_ADAPTIVE_MIN_INTERVAL_MS,
   DEFAULT_WATCHDOG_HEARTBEAT_INTERVAL_MS,
-} from "../../../../olt/scripts/src/core/scheduling/index.ts";
+} from "../../../olt/scripts/src/core/scheduling/index.ts";
 
 describe("adaptive-timer", () => {
   describe("AdaptiveTimerController initialization", () => {

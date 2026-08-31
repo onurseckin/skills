@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { validateReview } from "../../../olt/scripts/src/workflow/review/validate-review.ts";
-import { openValidations } from "../../../olt/scripts/src/workflow/review/validation-state.ts";
+import { validateReview } from "../../olt/scripts/src/workflow/review/validate-review.ts";
+import { openValidations } from "../../olt/scripts/src/workflow/review/validation-state.ts";
 
 describe("task-review workflow gate", () => {
   test("validateReview validates review payload correctly", () => {

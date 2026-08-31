@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { parseRepoPolicy } from "../../../olt/scripts/src/policy/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { parseRepoPolicy } from "../../olt/scripts/src/policy/index.ts";
 import { canonicalHosts, canonicalPolicy } from "./policy-schema-core.test.ts";
 
 function setField(obj: Record<string, unknown>, path: readonly string[], val: unknown): void {

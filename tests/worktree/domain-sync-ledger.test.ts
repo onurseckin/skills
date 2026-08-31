@@ -2,12 +2,12 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { GitResult, GitRunner } from "../../../olt/scripts/src/workflow/worktree/git.ts";
+import type { GitResult, GitRunner } from "../../olt/scripts/src/workflow/worktree/git.ts";
 import {
   commitAndPushDomainSubphase,
   createDomainLedger,
   provisionDomainWorktree,
-} from "../../../olt/scripts/src/engine/worktree/domain-sync.ts";
+} from "../../olt/scripts/src/engine/worktree/domain-sync.ts";
 
 const roots: string[] = [];
 afterEach(() => {

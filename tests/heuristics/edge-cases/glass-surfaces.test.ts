@@ -17,7 +17,7 @@ import {
   type GlassSurfaceLayer,
   type GlassTextElement,
   type ParsedRgba,
-} from "../../../../olt/scripts/src/heuristics/glass-surfaces/index.ts";
+} from "../../../olt/scripts/src/heuristics/glass-surfaces/index.ts";
 
 describe("Extended Heuristics: Nested Glass Surfaces & Translucency Dynamics", () => {
   it("parses diverse color formats accurately (hex3, hex4, hex6, hex8, rgb, rgba with %, hsla, named, malformed)", () => {

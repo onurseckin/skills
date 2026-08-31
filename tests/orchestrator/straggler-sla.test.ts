@@ -6,7 +6,7 @@ import {
   STRAGGLER_SLA_MS,
   STRAGGLER_SLA_SECONDS,
   type StragglingTask,
-} from "../../../olt/scripts/src/orchestrator/velocity-rebalancer.ts";
+} from "../../olt/scripts/src/orchestrator/velocity-rebalancer.ts";
 
 describe("Domain 20: 5-Minute Straggler SLA Partitioning", () => {
   test("STRAGGLER_SLA_SECONDS is exactly 300 seconds (5 minutes)", () => {

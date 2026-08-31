@@ -10,15 +10,15 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { canonicalCommandFingerprint } from "../../../olt/scripts/src/engine/runner/index.ts";
-import { captureGateEnvironment } from "../../../olt/scripts/src/engine/runner/index.ts";
-import { restrictedGateGitArgv } from "../../../olt/scripts/src/engine/runner/core/restricted-git-gate.ts";
-import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
-import { verifyCommandRecord } from "../../../olt/scripts/src/engine/runner/signing/verify-command.ts";
+import { canonicalCommandFingerprint } from "../../olt/scripts/src/engine/runner/index.ts";
+import { captureGateEnvironment } from "../../olt/scripts/src/engine/runner/index.ts";
+import { restrictedGateGitArgv } from "../../olt/scripts/src/engine/runner/core/restricted-git-gate.ts";
+import { createInternalCommandRunner } from "../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
+import { verifyCommandRecord } from "../../olt/scripts/src/engine/runner/signing/verify-command.ts";
 import {
   createRepositoryGitCommand,
   repositoryGitEnvironment,
-} from "../../../olt/scripts/src/packets/repository-git-command.ts";
+} from "../../olt/scripts/src/packets/repository-git-command.ts";
 
 const restrictedEnvironment = {
   GIT_CONFIG_GLOBAL: "/dev/null",

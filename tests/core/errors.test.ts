@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
-import { normalizeError } from "../../../olt/scripts/src/core/errors/normalize-error.ts";
-import * as ErrorsIndex from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/harness-error.ts";
+import { normalizeError } from "../../olt/scripts/src/core/errors/normalize-error.ts";
+import * as ErrorsIndex from "../../olt/scripts/src/core/errors/index.ts";
 
 describe("core/errors/normalize-error.ts", () => {
   it("normalizes HarnessError instances correctly", () => {

@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import {
   extractProseMilestoneClaims,
   inspectEventLogEvidence,
-} from "../../../olt/scripts/src/validation/index.ts";
+} from "../../olt/scripts/src/validation/index.ts";
 
 const TEST_DIR = "/tmp/test-prose-assertion-evidence-part1";
 

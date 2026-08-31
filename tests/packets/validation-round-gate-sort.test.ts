@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { validationRoundContext } from "../../../olt/scripts/src/packets/validation-round.ts";
+import type { JsonObject } from "../../olt/scripts/src/core/contracts/index.ts";
+import { validationRoundContext } from "../../olt/scripts/src/packets/validation-round.ts";
 import { commandRecord, workflowState } from "../workflow/test-port.ts";
 
 /**

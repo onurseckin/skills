@@ -11,19 +11,19 @@ import {
   scanRegexLiteral,
   scanNumberLiteral,
   UnsupportedSyntax,
-} from "../../../../olt/scripts/src/engine/store/content-normalization/ecmascript-scanner.ts";
-import { canonicalizeEcmaScriptWhitespace } from "../../../../olt/scripts/src/engine/store/content-normalization/ecmascript-whitespace.ts";
-import { detectContentFormat } from "../../../../olt/scripts/src/engine/store/content-normalization/format.ts";
+} from "../../../olt/scripts/src/engine/store/content-normalization/ecmascript-scanner.ts";
+import { canonicalizeEcmaScriptWhitespace } from "../../../olt/scripts/src/engine/store/content-normalization/ecmascript-whitespace.ts";
+import { detectContentFormat } from "../../../olt/scripts/src/engine/store/content-normalization/format.ts";
 import {
   canonicalizeJson,
   canonicalizeJsonl,
-} from "../../../../olt/scripts/src/engine/store/content-normalization/json-canonical.ts";
+} from "../../../olt/scripts/src/engine/store/content-normalization/json-canonical.ts";
 import {
   normalizeContent,
   contentDigest,
   contentEquals,
-} from "../../../../olt/scripts/src/engine/store/content-normalization/normalize.ts";
-import { canonicalizeYaml } from "../../../../olt/scripts/src/engine/store/content-normalization/yaml-canonical.ts";
+} from "../../../olt/scripts/src/engine/store/content-normalization/normalize.ts";
+import { canonicalizeYaml } from "../../../olt/scripts/src/engine/store/content-normalization/yaml-canonical.ts";
 import {
   parseScalarOrFlow,
   parseKeyScalar,
@@ -31,8 +31,8 @@ import {
   findSingleQuotedEnd,
   parseDoubleQuoted,
   parseSingleQuoted,
-} from "../../../../olt/scripts/src/engine/store/content-normalization/yaml-flow.ts";
-import { parsePlainScalar } from "../../../../olt/scripts/src/engine/store/content-normalization/yaml-scalars.ts";
+} from "../../../olt/scripts/src/engine/store/content-normalization/yaml-flow.ts";
+import { parsePlainScalar } from "../../../olt/scripts/src/engine/store/content-normalization/yaml-scalars.ts";
 
 describe("engine/store/content-normalization/ecmascript-scanner.ts", () => {
   it("validates identifier and digit helpers", () => {

@@ -7,13 +7,13 @@ import {
   formatMindPulseOpenedBrief,
   formatPulseDirective,
   mindPulseCommand,
-} from "../../../olt/scripts/src/cli/commands/mind-pulse.ts";
-import { handleOpenPulseTelemetry } from "../../../olt/scripts/src/cli/commands/mind-pulse-telemetry.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import * as evidenceModule from "../../../olt/scripts/src/mind/evidence/index.ts";
+} from "../../olt/scripts/src/cli/commands/mind-pulse.ts";
+import { handleOpenPulseTelemetry } from "../../olt/scripts/src/cli/commands/mind-pulse-telemetry.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import * as evidenceModule from "../../olt/scripts/src/mind/evidence/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../olt/scripts/src/engine/store/index.ts";
 
 const roots: string[] = [];
 afterEach(async () => cleanupRoots(roots));

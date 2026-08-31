@@ -4,7 +4,7 @@ import {
   injectTraceEnvironment,
   extractSpanHierarchy,
   resolveTraceContext,
-} from "../../../olt/scripts/src/telemetry/trace-context.ts";
+} from "../../olt/scripts/src/telemetry/trace-context.ts";
 import {
   allowlistProject,
   allowlistRecord,
@@ -13,7 +13,7 @@ import {
   isSensitiveKey,
   redactRecord,
   redactSecretsInString,
-} from "../../../olt/scripts/src/telemetry/redact.ts";
+} from "../../olt/scripts/src/telemetry/redact.ts";
 import {
   AntigravityCollector,
   ClaudeCollector,
@@ -46,7 +46,7 @@ import {
   loadDagSnapshot,
   persistDagSnapshot,
   resumeDagSnapshot,
-} from "../../../olt/scripts/src/telemetry/index.ts";
+} from "../../olt/scripts/src/telemetry/index.ts";
 
 describe("Telemetry Trace Context and Comprehensive Coverage", () => {
   it("covers resolveTraceContext with flags, environment, traceparent, and defaults", () => {

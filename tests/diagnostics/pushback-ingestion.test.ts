@@ -1,7 +1,7 @@
 import {
   resolveDefectsPath,
   resolveBacklogPath,
-} from "../../../olt/scripts/src/core/shared/paths.ts";
+} from "../../olt/scripts/src/core/shared/paths.ts";
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -10,7 +10,7 @@ import {
   readFeedbackQueue,
   type FeedbackCategory,
   type FeedbackItem,
-} from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
+} from "../../olt/scripts/src/mind/feedback/queue/index.ts";
 import {
   ingestPushbacks,
   mapFeedbackCategoryToDefectCategory,
@@ -18,7 +18,7 @@ import {
   resolvePushbackMarkdownPath,
   type PushbackAuditReport,
   type PushbackRecord,
-} from "../../../olt/scripts/src/mind/feedback/pushbacks/index.ts";
+} from "../../olt/scripts/src/mind/feedback/pushbacks/index.ts";
 
 describe("Diagnostics Pushback Ingestion Engine", () => {
   const repoRoot = process.cwd();

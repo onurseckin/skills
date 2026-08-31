@@ -11,7 +11,7 @@ import {
   calculateRelativeLuminance,
   calculateWcagContrast,
   calculateApcaContrast,
-} from "../../../../../olt/scripts/src/reporting/theme/index.ts";
+} from "../../../../olt/scripts/src/reporting/theme/index.ts";
 
 describe("theme color-space core", () => {
   it("clamps bytes and alpha correctly", () => {

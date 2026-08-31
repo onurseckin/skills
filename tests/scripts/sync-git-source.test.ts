@@ -9,7 +9,7 @@ import {
   parsePorcelainStatus,
   refuseSyncSourceMessage,
   resolveOltSyncSource,
-} from "../../../scripts/sync/git-source.ts";
+} from "../../scripts/sync/git-source.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 function git(args: string[], cwd: string): void {

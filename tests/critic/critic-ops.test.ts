@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { deconstructPromptBytes } from "../../../olt/scripts/src/critic/critic-ops.ts";
+import { deconstructPromptBytes } from "../../olt/scripts/src/critic/critic-ops.ts";
 
 describe("critic-ops: deconstructPromptBytes", () => {
   it("returns empty array for empty or whitespace-only prompt", () => {

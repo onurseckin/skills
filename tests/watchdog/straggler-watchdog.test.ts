@@ -13,7 +13,7 @@ import {
   type MonitoredTask,
   type StragglerAssessment,
   type StragglerWatchdogReport,
-} from "../../../olt/scripts/src/watchdog/straggler-watchdog.ts";
+} from "../../olt/scripts/src/watchdog/straggler-watchdog.ts";
 
 describe("Autonomic 5-Minute Straggler SLA Watchdog (Task 1.1)", () => {
   const baseTime = 1756460000000; // Fixed timestamp ms

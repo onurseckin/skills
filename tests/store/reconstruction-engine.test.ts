@@ -1,15 +1,15 @@
 import { describe, expect, it } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { ProjectionPatchOp } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { writeAtomicSnapshot } from "../../../olt/scripts/src/engine/store/hierarchy/snapshot-manager.ts";
-import { rebuildSparseIndex } from "../../../olt/scripts/src/engine/store/hierarchy/sparse-index.ts";
-import type { CapsulePaths } from "../../../olt/scripts/src/engine/store/hierarchy/storage-paths.ts";
+import type { ProjectionPatchOp } from "../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { writeAtomicSnapshot } from "../../olt/scripts/src/engine/store/hierarchy/snapshot-manager.ts";
+import { rebuildSparseIndex } from "../../olt/scripts/src/engine/store/hierarchy/sparse-index.ts";
+import type { CapsulePaths } from "../../olt/scripts/src/engine/store/hierarchy/storage-paths.ts";
 import {
   fastForwardProjection,
   reconstructStateAtSequence,
-} from "../../../olt/scripts/src/engine/store/hierarchy/reconstruction-engine.ts";
+} from "../../olt/scripts/src/engine/store/hierarchy/reconstruction-engine.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 function createEventLine(seq: number, patchOps?: ProjectionPatchOp[]): string {

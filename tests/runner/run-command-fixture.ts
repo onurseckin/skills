@@ -1,11 +1,11 @@
 import {
   executePreparedCommand,
   prepareCommand,
-} from "../../../olt/scripts/src/engine/runner/models/execution/run-command.ts";
+} from "../../olt/scripts/src/engine/runner/models/execution/run-command.ts";
 import type {
   CommandOptions,
   CommandResult,
-} from "../../../olt/scripts/src/engine/runner/types/types.ts";
+} from "../../olt/scripts/src/engine/runner/types/types.ts";
 
 /**
  * Prepare-then-execute in one call. Production runs every command through the durable

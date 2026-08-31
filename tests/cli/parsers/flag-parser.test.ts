@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
-import { parseCommandFlags } from "../../../../olt/scripts/src/cli/registry/flag-parser.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { parseCommandFlags } from "../../../olt/scripts/src/cli/registry/flag-parser.ts";
 import {
   DEFAULT_EXIT_CODES,
   optionalFlag,
@@ -8,7 +8,7 @@ import {
   requiredFlag,
   type CliErrorEnvelope,
   type CommandSpec,
-} from "../../../../olt/scripts/src/cli/registry/types.ts";
+} from "../../../olt/scripts/src/cli/registry/types.ts";
 
 const SAMPLE_SPEC: CommandSpec = {
   name: "test:action",

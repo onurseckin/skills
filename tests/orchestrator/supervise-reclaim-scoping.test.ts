@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { formatMorningReportMarkdown } from "../../../olt/scripts/src/orchestrator/morning-report.ts";
-import { RunSupervisor } from "../../../olt/scripts/src/orchestrator/supervisor.ts";
-import { runSupervisionWatch } from "../../../olt/scripts/src/orchestrator/supervision-watch.ts";
-import { orchestratorSuperviseCommand } from "../../../olt/scripts/src/cli/commands/orchestrator-ops.ts";
-import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
-import { workflowPort } from "../../../olt/scripts/src/integration/store-ports.ts";
-import type { TransactionPort } from "../../../olt/scripts/src/workflow/types.ts";
+import { formatMorningReportMarkdown } from "../../olt/scripts/src/orchestrator/morning-report.ts";
+import { RunSupervisor } from "../../olt/scripts/src/orchestrator/supervisor.ts";
+import { runSupervisionWatch } from "../../olt/scripts/src/orchestrator/supervision-watch.ts";
+import { orchestratorSuperviseCommand } from "../../olt/scripts/src/cli/commands/orchestrator-ops.ts";
+import { claimTask } from "../../olt/scripts/src/workflow/lease/claim.ts";
+import { workflowPort } from "../../olt/scripts/src/integration/store-ports.ts";
+import type { TransactionPort } from "../../olt/scripts/src/workflow/types.ts";
 import { supervisedRun } from "./supervised-run-fixture.ts";
 
 // buildMorningReport's deadAgentsReclaimed (morning-report.ts) is fed the run's ENTIRE persisted

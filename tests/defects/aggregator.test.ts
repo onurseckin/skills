@@ -3,11 +3,11 @@ import {
   aggregateDefectEntries,
   toAggregatedDefect,
   withinDeduplicationWindow,
-} from "../../../olt/scripts/src/mind/defects/aggregator/index.ts";
+} from "../../olt/scripts/src/mind/defects/aggregator/index.ts";
 import type {
   DefectRecordInput,
   DefectResolutionProof,
-} from "../../../olt/scripts/src/mind/defects/core/index.ts";
+} from "../../olt/scripts/src/mind/defects/core/index.ts";
 
 describe("Defect Entry Aggregator", () => {
   describe("toAggregatedDefect", () => {

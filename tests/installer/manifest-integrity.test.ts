@@ -1,15 +1,15 @@
 import { describe, expect, test } from "bun:test";
-import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { canonicalJsonBytes, sha256Bytes } from "../../olt/scripts/src/core/json.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   sealInstallationManifest,
   verifiedManifestPayload,
-} from "../../../olt/scripts/src/installer/manifest-integrity.ts";
+} from "../../olt/scripts/src/installer/manifest-integrity.ts";
 import {
   INSTALL_SCHEMA,
   INSTALL_VERSION,
   SKILL_NAME,
-} from "../../../olt/scripts/src/installer/constants.ts";
+} from "../../olt/scripts/src/installer/constants.ts";
 
 const validDigest = "a".repeat(64);
 

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
-import { renderHealthReport } from "../../../olt/scripts/src/health/report.ts";
-import type { HealthReport, HealthCheckResult } from "../../../olt/scripts/src/health/types.ts";
+import { renderHealthReport } from "../../olt/scripts/src/health/report.ts";
+import type { HealthReport, HealthCheckResult } from "../../olt/scripts/src/health/types.ts";
 
 describe("health/report", () => {
   describe("renderHealthReport", () => {

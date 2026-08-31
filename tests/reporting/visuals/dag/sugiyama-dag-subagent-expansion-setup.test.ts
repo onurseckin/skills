@@ -13,7 +13,7 @@ import {
   renderSugiyamaNodeBox,
   type SugiyamaEdge,
   type SugiyamaNode,
-} from "../../../../../olt/scripts/src/reporting/sugiyama-dag/index.ts";
+} from "../../../../olt/scripts/src/reporting/sugiyama-dag/index.ts";
 
 describe("sugiyama-dag-subagent-expansion-setup", () => {
   describe("Master DAG Layout Compiler & Pipeline Integration", () => {

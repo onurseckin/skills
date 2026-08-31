@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
+import type { TaskRecord } from "../../olt/scripts/src/workflow/types.ts";
 import {
   computeGateTokens,
   computeTaskTokens,
-} from "../../../olt/scripts/src/summary/metrics/index.ts";
+} from "../../olt/scripts/src/summary/metrics/index.ts";
 
 describe("metrics token collector", () => {
   test("computes multi-dimensional token usage with reasoning and cache tokens", () => {

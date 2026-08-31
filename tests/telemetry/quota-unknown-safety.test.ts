@@ -1,12 +1,12 @@
 import { describe, expect, it } from "bun:test";
-import { QuotaCircuitBreaker } from "../../../olt/scripts/src/telemetry/circuit-breaker.ts";
-import { TelemetryNormalizationEngine } from "../../../olt/scripts/src/telemetry/engine.ts";
-import type { TelemetryCollector } from "../../../olt/scripts/src/telemetry/probe-interface.ts";
-import type { PlatformProbeResult } from "../../../olt/scripts/src/telemetry/types.ts";
+import { QuotaCircuitBreaker } from "../../olt/scripts/src/telemetry/circuit-breaker.ts";
+import { TelemetryNormalizationEngine } from "../../olt/scripts/src/telemetry/engine.ts";
+import type { TelemetryCollector } from "../../olt/scripts/src/telemetry/probe-interface.ts";
+import type { PlatformProbeResult } from "../../olt/scripts/src/telemetry/types.ts";
 import {
   ClaudeCollector,
   type CollectorEnvironment,
-} from "../../../olt/scripts/src/telemetry/collectors/index.ts";
+} from "../../olt/scripts/src/telemetry/collectors/index.ts";
 
 function unknownOnlyCollector(platformId: string): TelemetryCollector {
   return {

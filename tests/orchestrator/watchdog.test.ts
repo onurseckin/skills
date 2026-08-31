@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { OrchestratorWatchdog } from "../../../olt/scripts/src/orchestrator/watchdog.ts";
-import type { WatchdogEvent } from "../../../olt/scripts/src/orchestrator/types.ts";
+import { OrchestratorWatchdog } from "../../olt/scripts/src/orchestrator/watchdog.ts";
+import type { WatchdogEvent } from "../../olt/scripts/src/orchestrator/types.ts";
 
 describe("OrchestratorWatchdog Unit Tests", () => {
   it("registers and unregisters monitors correctly", () => {

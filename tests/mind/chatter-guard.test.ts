@@ -18,9 +18,9 @@ import {
   isProgressNarration,
   isRoutinePulse,
   shouldSuppressForOwner,
-} from "../../../olt/scripts/src/mind/chatter-guard.ts";
-import { chatterGuard as barrelChatterGuard } from "../../../olt/scripts/src/mind/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/mind/chatter-guard.ts";
+import { chatterGuard as barrelChatterGuard } from "../../olt/scripts/src/mind/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 
 describe("Mind ChatterGuard Engine (chatter-guard.ts)", () => {
   beforeEach(() => {

@@ -5,9 +5,9 @@ import { tmpdir } from "node:os";
 import {
   loadCommonInstructions,
   verifyCommonInstructions,
-} from "../../../olt/scripts/src/packets/common-instructions.ts";
-import { buildPacketFromPinnedRuntime } from "../../../olt/scripts/src/packets/render-packet.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../olt/scripts/src/packets/common-instructions.ts";
+import { buildPacketFromPinnedRuntime } from "../../olt/scripts/src/packets/render-packet.ts";
+import { initRun } from "../../olt/scripts/src/engine/store/index.ts";
 import { workflowState } from "../workflow/test-port.ts";
 
 const roots: string[] = [];

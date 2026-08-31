@@ -19,10 +19,10 @@ import {
   STANDARD_SUPERVISORY_CRONS,
   __setDagSnapshotPersistenceTestHook,
   type QuotaDagSnapshot,
-} from "../../../olt/scripts/src/telemetry/dag-snapshot.ts";
-import type { CircuitBreakerEvaluation } from "../../../olt/scripts/src/telemetry/circuit-breaker.ts";
-import { resolveQuotaDagSnapshotPath } from "../../../olt/scripts/src/core/shared/paths.ts";
-import { readTelemetryStream } from "../../../olt/scripts/src/reporting/telemetry-stream.ts";
+} from "../../olt/scripts/src/telemetry/dag-snapshot.ts";
+import type { CircuitBreakerEvaluation } from "../../olt/scripts/src/telemetry/circuit-breaker.ts";
+import { resolveQuotaDagSnapshotPath } from "../../olt/scripts/src/core/shared/paths.ts";
+import { readTelemetryStream } from "../../olt/scripts/src/reporting/telemetry-stream.ts";
 
 describe("DAG Snapshot", () => {
   const TMP_DIR = join(process.cwd(), "tests-tmp-dag-snapshot");

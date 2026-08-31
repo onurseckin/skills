@@ -28,14 +28,14 @@ import {
   verifyWatchdogLifecycle,
   type WatchdogRecord,
   type WatchdogStore,
-} from "../../../olt/scripts/src/authority/watchdog/index.ts";
+} from "../../olt/scripts/src/authority/watchdog/index.ts";
 import {
   watchdogCleanupCommand,
   watchdogPhaseCleanupCommand,
   watchdogStatusCommand,
   watchdogVerifyCommand,
-} from "../../../olt/scripts/src/cli/commands/watchdog-ops.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/cli/commands/watchdog-ops.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("WatchdogManager - Store Lifecycle & Resolution", () => {

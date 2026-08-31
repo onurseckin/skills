@@ -7,7 +7,7 @@ import {
   readPackageJson,
   readPythonManifests,
   readTurboJson,
-} from "../../../olt/scripts/src/policy/generator/manifest-readers.ts";
+} from "../../olt/scripts/src/policy/generator/manifest-readers.ts";
 
 describe("manifest-readers", () => {
   it("handles nonexistent files gracefully", () => {

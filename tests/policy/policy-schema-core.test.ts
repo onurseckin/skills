@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   CURRENT_POLICY_SCHEMA_VERSION,
   parseRepoPolicy,
   type AgentHostPolicy,
   type RepoPolicy,
-} from "../../../olt/scripts/src/policy/index.ts";
+} from "../../olt/scripts/src/policy/index.ts";
 
 export function canonicalHosts(model = "gemini-3.7-flash"): Record<string, AgentHostPolicy> {
   return {

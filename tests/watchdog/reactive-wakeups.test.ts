@@ -11,7 +11,7 @@ import {
   type AdaptiveTimerState,
   type ReactiveEvent,
   type WatchdogEvent,
-} from "../../../olt/scripts/src/watchdog/index.ts";
+} from "../../olt/scripts/src/watchdog/index.ts";
 
 describe("REMED-008: Immediate Reactive Wakeups upon Event Arrival", () => {
   it("immediately awakens watchdog and executes tick on string or structured event notification", async () => {

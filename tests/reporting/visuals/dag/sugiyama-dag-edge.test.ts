@@ -7,7 +7,7 @@ import {
   type SugiyamaEdge,
   type SugiyamaLayer,
   type SugiyamaRankedNode,
-} from "../../../../../olt/scripts/src/reporting/sugiyama-dag/index.ts";
+} from "../../../../olt/scripts/src/reporting/sugiyama-dag/index.ts";
 
 function node(
   id: string,

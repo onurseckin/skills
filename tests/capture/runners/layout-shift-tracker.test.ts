@@ -14,12 +14,12 @@ import {
   resolveLayoutShiftTrackerOptions,
   type LayoutShiftEntry,
   type UnstableElementDisplacement,
-} from "../../../../olt/scripts/src/capture/runners/layout-shift-tracker/index.ts";
+} from "../../../olt/scripts/src/capture/runners/layout-shift-tracker/index.ts";
 import type {
   AABB,
   DomPhysicsSnapshot,
   ExtractedElementPhysics,
-} from "../../../../olt/scripts/src/capture/runners/types.ts";
+} from "../../../olt/scripts/src/capture/runners/types.ts";
 
 function createMockElement(
   selector: string,

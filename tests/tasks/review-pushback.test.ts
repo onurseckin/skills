@@ -13,14 +13,14 @@ import {
   validateReviewPushbackInput,
   type PushbackHistory,
   type TaskVerificationEvidenceInput,
-} from "../../../olt/scripts/src/authority/review/index.ts";
+} from "../../olt/scripts/src/authority/review/index.ts";
 import {
   recordCoordinatorPushback,
   validateCoordinatorPushbackInput,
-} from "../../../olt/scripts/src/workflow/review/coordinator-pushback.ts";
-import { isCoordinatorPushbackCause } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import type { TransactionPort, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
+} from "../../olt/scripts/src/workflow/review/coordinator-pushback.ts";
+import { isCoordinatorPushbackCause } from "../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import type { TransactionPort, WorkflowState } from "../../olt/scripts/src/workflow/types.ts";
 
 function createMockTransactionPort(initialState: WorkflowState): TransactionPort {
   let state = structuredClone(initialState);

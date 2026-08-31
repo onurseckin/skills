@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
+import type { TaskRecord } from "../../olt/scripts/src/workflow/types.ts";
 import {
   extractFindingScreenshots,
   mapFindingDetails,
-} from "../../../olt/scripts/src/summary/assets/index.ts";
+} from "../../olt/scripts/src/summary/assets/index.ts";
 
 describe("Round 3: Finding Screenshots & Evidence Extraction", () => {
   test("extracts finding screenshots from string arrays, object arrays, singular screenshot, and evidence references", () => {

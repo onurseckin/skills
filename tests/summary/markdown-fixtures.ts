@@ -1,15 +1,15 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { Manifest } from "../../../olt/scripts/src/core/contracts/index.ts";
-import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
-import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
+import type { Manifest } from "../../olt/scripts/src/core/contracts/index.ts";
+import type { JsonObject } from "../../olt/scripts/src/core/contracts/index.ts";
+import type { TaskRecord } from "../../olt/scripts/src/workflow/types.ts";
 import {
   formatSummaryMarkdown,
   type MarkdownFormatterInput,
-} from "../../../olt/scripts/src/summary/markdown/index.ts";
-import type { GraphDataset } from "../../../olt/scripts/src/summary/graph/index.ts";
-import type { RollupMetrics } from "../../../olt/scripts/src/summary/metrics/index.ts";
+} from "../../olt/scripts/src/summary/markdown/index.ts";
+import type { GraphDataset } from "../../olt/scripts/src/summary/graph/index.ts";
+import type { RollupMetrics } from "../../olt/scripts/src/summary/metrics/index.ts";
 
 const roots: string[] = [];
 

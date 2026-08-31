@@ -15,12 +15,12 @@ import {
   serializeAggregatedDefectLog,
   toAggregatedDefect,
   validateResolutionProof,
-} from "../../../../olt/scripts/src/logging/defects/index.ts";
+} from "../../../olt/scripts/src/logging/defects/index.ts";
 import type {
   AggregatedDefect,
   DefectRecordInput,
   DefectResolutionProof,
-} from "../../../../olt/scripts/src/logging/defects/index.ts";
+} from "../../../olt/scripts/src/logging/defects/index.ts";
 
 describe("Defect Deduplication and Lifecycle Engine", () => {
   test("computeDefectDedupKey normalizes variable patterns in observations", () => {

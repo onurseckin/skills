@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { captureGateEnvironment } from "../../../olt/scripts/src/engine/runner/index.ts";
-import { embeddedCommandIssues } from "../../../olt/scripts/src/engine/runner/models/command/command-shape.ts";
-import { validateCompletionArtifactVerification } from "../../../olt/scripts/src/workflow/completion/artifact-verification.ts";
-import { attachGateResult } from "../../../olt/scripts/src/workflow/gates/attach-result.ts";
+import type { CommandRecord } from "../../olt/scripts/src/core/contracts/index.ts";
+import { captureGateEnvironment } from "../../olt/scripts/src/engine/runner/index.ts";
+import { embeddedCommandIssues } from "../../olt/scripts/src/engine/runner/models/command/command-shape.ts";
+import { validateCompletionArtifactVerification } from "../../olt/scripts/src/workflow/completion/artifact-verification.ts";
+import { attachGateResult } from "../../olt/scripts/src/workflow/gates/attach-result.ts";
 import { at, commandRecord, repositoryBinding, TestPort, workflowState } from "./test-port.ts";
 
 const clock = at("2026-08-13T12:00:00.000Z");

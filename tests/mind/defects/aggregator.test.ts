@@ -11,11 +11,11 @@ import {
   mergeDefectSets,
   toAggregatedDefect,
   withinDeduplicationWindow,
-} from "../../../../olt/scripts/src/mind/defects/aggregator/index.ts";
+} from "../../../olt/scripts/src/mind/defects/aggregator/index.ts";
 import type {
   AggregatedDefect,
   DefectRecordInput,
-} from "../../../../olt/scripts/src/mind/defects/core/index.ts";
+} from "../../../olt/scripts/src/mind/defects/core/index.ts";
 
 describe("Defect Aggregator Suite", () => {
   describe("withinDeduplicationWindow", () => {

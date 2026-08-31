@@ -3,13 +3,13 @@ import { mkdir, mkdtemp, rm, truncate, writeFile } from "node:fs/promises";
 import { openSync, readSync, realpathSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import type { RepositoryBinding } from "../../../../olt/scripts/src/core/contracts/index.ts";
+import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   captureGatePathBindings,
   gatePathBindingIssues,
-} from "../../../../olt/scripts/src/engine/runner/signing/gate-path-bindings.ts";
-import { gateControlBindingsOverlapWriteScopes } from "../../../../olt/scripts/src/engine/runner/signing/gate-path-overlap.ts";
-import { createInternalCommandRunner } from "../../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
+} from "../../../olt/scripts/src/engine/runner/signing/gate-path-bindings.ts";
+import { gateControlBindingsOverlapWriteScopes } from "../../../olt/scripts/src/engine/runner/signing/gate-path-overlap.ts";
+import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 
 const roots: string[] = [];
 const stableRepository = {

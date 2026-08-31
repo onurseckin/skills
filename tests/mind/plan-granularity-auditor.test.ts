@@ -9,7 +9,7 @@ import {
   MONOLITHIC_PLAN_DEFECT,
   PLAN_GRANULARITY_AUDIT,
   type TaskGranularityInput,
-} from "../../../olt/scripts/src/mind/auditing/plan-granularity-auditor.ts";
+} from "../../olt/scripts/src/mind/auditing/plan-granularity-auditor.ts";
 
 describe("Plan Granularity Auditor (Track 02)", () => {
   test("exports standard constants", () => {

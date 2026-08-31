@@ -10,7 +10,7 @@ import {
   MAX_JITTER_RATIO,
   MIN_INTERVAL_MS,
   MIN_JITTER_RATIO,
-} from "../../../../olt/scripts/src/core/scheduling/index.ts";
+} from "../../../olt/scripts/src/core/scheduling/index.ts";
 
 describe("jitter", () => {
   describe("fnv1a32", () => {

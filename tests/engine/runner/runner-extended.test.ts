@@ -1,20 +1,20 @@
 import { describe, expect, it } from "bun:test";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   inspectFailureText,
   classifySignals,
-} from "../../../../olt/scripts/src/engine/runner/core/classify-failure.ts";
-import { shouldRetry } from "../../../../olt/scripts/src/engine/runner/core/retry-policy.ts";
+} from "../../../olt/scripts/src/engine/runner/core/classify-failure.ts";
+import { shouldRetry } from "../../../olt/scripts/src/engine/runner/core/retry-policy.ts";
 import {
   isRestrictedGitGate,
   isGitGateCommand,
   restrictedGateGitArgv,
-} from "../../../../olt/scripts/src/engine/runner/core/restricted-git-gate.ts";
+} from "../../../olt/scripts/src/engine/runner/core/restricted-git-gate.ts";
 import {
   commandId,
   canonicalCommandFingerprint,
-} from "../../../../olt/scripts/src/engine/runner/models/command/command-id.ts";
-import { OutputBudget } from "../../../../olt/scripts/src/engine/runner/receipt/output-budget.ts";
+} from "../../../olt/scripts/src/engine/runner/models/command/command-id.ts";
+import { OutputBudget } from "../../../olt/scripts/src/engine/runner/receipt/output-budget.ts";
 
 describe("engine/runner/core/classify-failure.ts", () => {
   it("inspects failure text and classifies failure signals", () => {

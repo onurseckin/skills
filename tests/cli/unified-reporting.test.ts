@@ -3,8 +3,8 @@ import { realpathSync } from "node:fs";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
+import { transact } from "../../olt/scripts/src/engine/store/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import {
   reportDagCommand,
@@ -14,12 +14,12 @@ import {
   reportHealthCommand,
   reportLeasesCommand,
   reportUnifiedCommand,
-} from "../../../olt/scripts/src/cli/commands/unified-reporting.ts";
+} from "../../olt/scripts/src/cli/commands/unified-reporting.ts";
 import {
   extractLeaseAgentId,
   extractLeaseRole,
   extractLeaseAttempt,
-} from "../../../olt/scripts/src/reporting/lease-agent-extractor.ts";
+} from "../../olt/scripts/src/reporting/lease-agent-extractor.ts";
 
 const roots: string[] = [];
 afterEach(async () => cleanupRoots(roots));

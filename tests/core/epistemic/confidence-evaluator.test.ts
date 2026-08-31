@@ -14,7 +14,7 @@ import {
   type EpistemicEvaluationInput,
   type EpistemicVector,
   type EpistemicWeights,
-} from "../../../../olt/scripts/src/core/epistemic/index.ts";
+} from "../../../olt/scripts/src/core/epistemic/index.ts";
 
 describe("Epistemic Confidence Evaluator & Math Verification", () => {
   it("clamps numeric values into bounds", () => {

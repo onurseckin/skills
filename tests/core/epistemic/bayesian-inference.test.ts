@@ -9,7 +9,7 @@ import {
   probabilityToOdds,
   updateBayesianBelief,
   type BayesianEvidence,
-} from "../../../../olt/scripts/src/core/epistemic/index.ts";
+} from "../../../olt/scripts/src/core/epistemic/index.ts";
 
 describe("Bayesian Belief Inference & Log-Odds Math", () => {
   it("converts between probabilities and odds reversibly with boundaries", () => {

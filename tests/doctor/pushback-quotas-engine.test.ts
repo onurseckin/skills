@@ -3,7 +3,7 @@ import {
   checkPushbackQuotas,
   MIN_ADVERSARIAL_PROBES,
   MANDATORY_COGNITIVE_PUSHBACKS,
-} from "../../../olt/scripts/src/reporting/doctor/pushback-quotas-engine.ts";
+} from "../../olt/scripts/src/reporting/doctor/pushback-quotas-engine.ts";
 
 describe("Wave 2 - Task 2.3: Mandatory Pushback & Adversarial Probe Quota Engine", () => {
   test("enforces MIN_ADVERSARIAL_PROBES = 5 and MANDATORY_COGNITIVE_PUSHBACKS = 5 constants", () => {

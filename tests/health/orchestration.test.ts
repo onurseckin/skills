@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { runHealthCheck, type HealthLayout } from "../../../olt/scripts/src/health/index.ts";
+import { runHealthCheck, type HealthLayout } from "../../olt/scripts/src/health/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 /**

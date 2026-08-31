@@ -8,7 +8,7 @@ import {
   probePlanEnhancementNeeds,
   probeRoleBoundaryAdherence,
   probeWorkSpanParallelizationHealth,
-} from "../../../../olt/scripts/src/engine/scheduler/index.ts";
+} from "../../../olt/scripts/src/engine/scheduler/index.ts";
 import { schedulerState } from "../fixtures.ts";
 
 describe("Core Scheduler Engine — Structured 5-Point Supervisory Health Audit (p24)", () => {

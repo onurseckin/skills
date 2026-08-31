@@ -10,7 +10,7 @@ import {
   checkPushbackQuotas,
   MIN_ADVERSARIAL_PROBES,
   MANDATORY_COGNITIVE_PUSHBACKS,
-} from "../../../olt/scripts/src/reporting/doctor.ts";
+} from "../../olt/scripts/src/reporting/doctor.ts";
 
 describe("Unified Master Doctor - 8 Check Engines", () => {
   describe("Engine 1: checkPlanningDag", () => {

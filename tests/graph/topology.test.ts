@@ -3,7 +3,7 @@ import {
   dependencyData,
   downstreamMap,
   topologicalOrder,
-} from "../../../olt/scripts/src/graph/topology.ts";
+} from "../../olt/scripts/src/graph/topology.ts";
 
 describe("topologicalOrder", () => {
   test("an empty dependency map orders to nothing", () => {

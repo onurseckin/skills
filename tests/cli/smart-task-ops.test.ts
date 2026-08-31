@@ -2,7 +2,7 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
 import {
   smartTaskCycleCommand,
   smartTaskIngestCommand,
@@ -12,8 +12,8 @@ import {
   smartTaskQueuePopCommand,
   smartTaskQueueReclaimCommand,
   smartTaskSynthesizeCommand,
-} from "../../../olt/scripts/src/cli/commands/smart-task-ops.ts";
-import { enqueueTasksBatch } from "../../../olt/scripts/src/task/queue/index.ts";
+} from "../../olt/scripts/src/cli/commands/smart-task-ops.ts";
+import { enqueueTasksBatch } from "../../olt/scripts/src/task/queue/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 
 const roots: string[] = [];

@@ -2,34 +2,34 @@ import { describe, expect, it, beforeEach, afterEach, spyOn } from "bun:test";
 import { existsSync, writeFileSync, rmSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
-import { quotaFreezeCommand } from "../../../olt/scripts/src/cli/commands/quota-freeze.ts";
-import { quotaResumeCommand } from "../../../olt/scripts/src/cli/commands/quota-resume.ts";
-import { planInitCommand } from "../../../olt/scripts/src/cli/commands/plan.ts";
-import { planCompileCommand } from "../../../olt/scripts/src/cli/commands/plan-compile.ts";
+import { quotaFreezeCommand } from "../../olt/scripts/src/cli/commands/quota-freeze.ts";
+import { quotaResumeCommand } from "../../olt/scripts/src/cli/commands/quota-resume.ts";
+import { planInitCommand } from "../../olt/scripts/src/cli/commands/plan.ts";
+import { planCompileCommand } from "../../olt/scripts/src/cli/commands/plan-compile.ts";
 import {
   taskClaimCommand,
   taskSubmitCommand,
-} from "../../../olt/scripts/src/cli/commands/task-claim.ts";
-import { doctorCommand } from "../../../olt/scripts/src/cli/commands/diagnostics-ops.ts";
-import { runCompleteCommand } from "../../../olt/scripts/src/cli/commands/run-ops.ts";
-import { QuotaCircuitBreaker } from "../../../olt/scripts/src/telemetry/circuit-breaker.ts";
-import { loadDagSnapshot } from "../../../olt/scripts/src/telemetry/dag-snapshot.ts";
-import { readTelemetryStream } from "../../../olt/scripts/src/reporting/telemetry-stream.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import type { UnifiedTelemetryReport } from "../../../olt/scripts/src/telemetry/types.ts";
-import * as completeRunModule from "../../../olt/scripts/src/workflow/completion/complete-run.ts";
+} from "../../olt/scripts/src/cli/commands/task-claim.ts";
+import { doctorCommand } from "../../olt/scripts/src/cli/commands/diagnostics-ops.ts";
+import { runCompleteCommand } from "../../olt/scripts/src/cli/commands/run-ops.ts";
+import { QuotaCircuitBreaker } from "../../olt/scripts/src/telemetry/circuit-breaker.ts";
+import { loadDagSnapshot } from "../../olt/scripts/src/telemetry/dag-snapshot.ts";
+import { readTelemetryStream } from "../../olt/scripts/src/reporting/telemetry-stream.ts";
+import { initRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
+import type { UnifiedTelemetryReport } from "../../olt/scripts/src/telemetry/types.ts";
+import * as completeRunModule from "../../olt/scripts/src/workflow/completion/complete-run.ts";
 import {
   formatQuotaBadge,
   formatQuotaTelemetryLine,
   probeLiveQuotaTelemetry,
   type LifecycleQuotaTelemetry,
-} from "../../../olt/scripts/src/workflow/lifecycle/quota-lifecycle.ts";
+} from "../../olt/scripts/src/workflow/lifecycle/quota-lifecycle.ts";
 import {
   executePostFlightDoctorAudit,
   executePreFlightDoctorAudit,
-} from "../../../olt/scripts/src/workflow/lifecycle/harness-hooks.ts";
-import type { CollectorEnvironment } from "../../../olt/scripts/src/telemetry/collectors/index.ts";
+} from "../../olt/scripts/src/workflow/lifecycle/harness-hooks.ts";
+import type { CollectorEnvironment } from "../../olt/scripts/src/telemetry/collectors/index.ts";
 import { setupRun, TASK_ID, CHANGED_FILE } from "../cli/probe-fixture.ts";
 import { cleanupRoots } from "../cli/full-lifecycle-fixture.ts";
 

@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   CANONICAL_HOST_TYPES,
   detectActiveHost,
   isHostType,
-} from "../../../olt/scripts/src/platform/index.ts";
+} from "../../olt/scripts/src/platform/index.ts";
 
 describe("CANONICAL_HOST_TYPES and isHostType", () => {
   test("CANONICAL_HOST_TYPES contains exact 4 canonical host types in expected order", () => {

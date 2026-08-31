@@ -1,18 +1,18 @@
 import { describe, expect, it } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   formatCommandHelp,
   formatCommandTable,
   formatDomainSummary,
   renderHelp,
-} from "../../../olt/scripts/src/cli/help.ts";
+} from "../../olt/scripts/src/cli/help.ts";
 import {
   DEFAULT_EXIT_CODES,
   PRIMARY_VERBS,
   optionalFlag,
   requiredFlag,
   type CommandSpec,
-} from "../../../olt/scripts/src/cli/registry/types.ts";
+} from "../../olt/scripts/src/cli/registry/types.ts";
 
 const SAMPLE_SPEC: CommandSpec = {
   name: "task:sample",

@@ -9,7 +9,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join, resolve } from "node:path";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   __setTaskQueuePersistenceTestHook,
   admitTask,
@@ -33,7 +33,7 @@ import {
   validateTaskQueueDag,
   writeTaskQueue,
   type TaskQueueItem,
-} from "../../../../olt/scripts/src/task/queue/index.ts";
+} from "../../../olt/scripts/src/task/queue/index.ts";
 import { scratchRoot } from "../../../support/scratch-root.ts";
 
 describe("Stateful Task Queue Engine", () => {

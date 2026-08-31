@@ -1,15 +1,15 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import type { MicroCycleRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { recordMicroCycleCritique } from "../../../olt/scripts/src/workflow/review/micro-cycle.ts";
-import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
-import { submitTask } from "../../../olt/scripts/src/workflow/submission/submit.ts";
-import { releaseLease } from "../../../olt/scripts/src/workflow/lease/release.ts";
-import { abandonAttempt } from "../../../olt/scripts/src/workflow/lease/abandon.ts";
-import { recoverStale } from "../../../olt/scripts/src/workflow/lease/recover-stale.ts";
-import { isAttemptOpen } from "../../../olt/scripts/src/workflow/lease/attempt-state.ts";
-import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";
-import type { TaskRecord, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import type { MicroCycleRecord } from "../../olt/scripts/src/core/contracts/index.ts";
+import { recordMicroCycleCritique } from "../../olt/scripts/src/workflow/review/micro-cycle.ts";
+import { claimTask } from "../../olt/scripts/src/workflow/lease/claim.ts";
+import { submitTask } from "../../olt/scripts/src/workflow/submission/submit.ts";
+import { releaseLease } from "../../olt/scripts/src/workflow/lease/release.ts";
+import { abandonAttempt } from "../../olt/scripts/src/workflow/lease/abandon.ts";
+import { recoverStale } from "../../olt/scripts/src/workflow/lease/recover-stale.ts";
+import { isAttemptOpen } from "../../olt/scripts/src/workflow/lease/attempt-state.ts";
+import { tokenDigest } from "../../olt/scripts/src/workflow/lease/token.ts";
+import type { TaskRecord, WorkflowState } from "../../olt/scripts/src/workflow/types.ts";
 import { at, registerTaskPacket, TestPort, workflowState } from "./test-port.ts";
 
 const claimClock = at("2026-08-22T12:00:00.000Z");

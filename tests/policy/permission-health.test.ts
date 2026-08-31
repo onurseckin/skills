@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   auditPermissionHealth,
   type RepoPolicy,
-} from "../../../olt/scripts/src/policy/permission-health.ts";
-import type { UnifiedAgentManifest } from "../../../olt/scripts/src/authority/manifest-schema.ts";
+} from "../../olt/scripts/src/policy/permission-health.ts";
+import type { UnifiedAgentManifest } from "../../olt/scripts/src/authority/manifest-schema.ts";
 
 describe("auditPermissionHealth & Manifest Proof Invariants", () => {
   const basePolicy: RepoPolicy = {

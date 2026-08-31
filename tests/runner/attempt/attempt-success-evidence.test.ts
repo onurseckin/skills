@@ -3,12 +3,12 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { writeSuccessfulAttemptEvidence } from "../../../../olt/scripts/src/engine/runner/models/attempt/attempt-success-evidence.ts";
+import { writeSuccessfulAttemptEvidence } from "../../../olt/scripts/src/engine/runner/models/attempt/attempt-success-evidence.ts";
 import type {
   NormalizedCommandOptions,
   OutputSummary,
-} from "../../../../olt/scripts/src/engine/runner/types/types.ts";
-import type { WatchdogOutcome } from "../../../../olt/scripts/src/engine/runner/telemetry/watchdog.ts";
+} from "../../../olt/scripts/src/engine/runner/types/types.ts";
+import type { WatchdogOutcome } from "../../../olt/scripts/src/engine/runner/telemetry/watchdog.ts";
 
 const roots: string[] = [];
 

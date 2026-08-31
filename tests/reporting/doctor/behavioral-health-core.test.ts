@@ -3,10 +3,10 @@ import type {
   AgentGrantRecord,
   AgentToolUse,
   CommandRecord,
-} from "../../../../olt/scripts/src/core/contracts/index.ts";
-import { auditCoordinatorCodeWriting } from "../../../../olt/scripts/src/reporting/doctor/rules/index.ts";
-import type { BehavioralFinding } from "../../../../olt/scripts/src/reporting/behavioral-auditor/index.ts";
-import type { TaskRecord } from "../../../../olt/scripts/src/workflow/index.ts";
+} from "../../../olt/scripts/src/core/contracts/index.ts";
+import { auditCoordinatorCodeWriting } from "../../../olt/scripts/src/reporting/doctor/rules/index.ts";
+import type { BehavioralFinding } from "../../../olt/scripts/src/reporting/behavioral-auditor/index.ts";
+import type { TaskRecord } from "../../../olt/scripts/src/workflow/index.ts";
 
 describe("Behavioral Health Auditor - Coordinator Behavioral Invariants", () => {
   it("detects coordinator using code-editing tools directly", () => {

@@ -7,7 +7,7 @@ import {
   MindAuditorEngine,
   CognitiveChallengePromptGenerator,
   type AuditorCursor,
-} from "../../../olt/scripts/src/mind/auditing/cognitive/index.ts";
+} from "../../olt/scripts/src/mind/auditing/cognitive/index.ts";
 
 const MIN_MANIFEST_YAML = `role: mind
 tier: 0

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { probeGateCoverageViolations } from "../../../../olt/scripts/src/engine/scheduler/core/tasks/tasks-coverage.ts";
+import { probeGateCoverageViolations } from "../../../olt/scripts/src/engine/scheduler/core/tasks/tasks-coverage.ts";
 
 describe("engine/scheduler/core/tasks/tasks-coverage.ts", () => {
   it("returns default passed result when state is not a record", () => {

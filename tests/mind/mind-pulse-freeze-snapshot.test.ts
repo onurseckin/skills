@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { managePulseSupervisoryCadence } from "../../../olt/scripts/src/mind/pulsing/index.ts";
+import { managePulseSupervisoryCadence } from "../../olt/scripts/src/mind/pulsing/index.ts";
 import {
   loadDagSnapshot,
   resumeDagSnapshot,
-} from "../../../olt/scripts/src/telemetry/snapshot/index.ts";
-import type { UnifiedTelemetryReport } from "../../../olt/scripts/src/telemetry/types.ts";
+} from "../../olt/scripts/src/telemetry/snapshot/index.ts";
+import type { UnifiedTelemetryReport } from "../../olt/scripts/src/telemetry/types.ts";
 
 describe("Mind Pulse Quota Freeze & DAG Snapshot Hardwiring", () => {
   const TEST_DIR = join(process.cwd(), "tests-tmp-mind-pulse-freeze");

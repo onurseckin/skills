@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { readAgentLedgerView } from "../../../olt/scripts/src/summary/metrics/index.ts";
+import { readAgentLedgerView } from "../../olt/scripts/src/summary/metrics/index.ts";
 import {
   AssetRegistry,
   buildGateNode,
   mapGateStatus,
   prepareTaskContext,
-} from "../../../olt/scripts/src/summary/graph/index.ts";
-import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
+} from "../../olt/scripts/src/summary/graph/index.ts";
+import type { TaskRecord } from "../../olt/scripts/src/workflow/types.ts";
 import { makeTask } from "./graph-fixtures.ts";
 
 function contextFor(task: TaskRecord) {

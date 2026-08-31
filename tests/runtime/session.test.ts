@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import type { AgentMetadata } from "../../../olt/scripts/src/runtime/contracts.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import type { AgentMetadata } from "../../olt/scripts/src/runtime/contracts.ts";
 import {
   clearInMemoryAgentMetadata,
   deleteInMemoryAgentMetadata,
@@ -16,7 +16,7 @@ import {
   withAgentMetadataMutationLock,
   writeAgentMetadata,
   writeAgentMetadataUnlocked,
-} from "../../../olt/scripts/src/runtime/session.ts";
+} from "../../olt/scripts/src/runtime/session.ts";
 
 function createValidMetadata(agentId = "test-agent", role = "implementer"): AgentMetadata {
   return {

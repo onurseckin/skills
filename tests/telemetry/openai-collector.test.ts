@@ -2,18 +2,18 @@ import { describe, expect, it } from "bun:test";
 import {
   DefaultCollectorEnvironment,
   type CollectorEnvironment,
-} from "../../../olt/scripts/src/telemetry/collectors/common.ts";
+} from "../../olt/scripts/src/telemetry/collectors/common.ts";
 import {
   parseCliFallback,
   parseCodexStorage,
   parseOpenAIStorage,
   parseRuntimeEnv,
-} from "../../../olt/scripts/src/telemetry/collectors/openai/fallback-parser.ts";
-import { parseCodexRolloutUsage } from "../../../olt/scripts/src/telemetry/collectors/openai/rollout-parser.ts";
+} from "../../olt/scripts/src/telemetry/collectors/openai/fallback-parser.ts";
+import { parseCodexRolloutUsage } from "../../olt/scripts/src/telemetry/collectors/openai/rollout-parser.ts";
 import {
   CodexCollector,
   OpenAICollector,
-} from "../../../olt/scripts/src/telemetry/collectors/openai.ts";
+} from "../../olt/scripts/src/telemetry/collectors/openai.ts";
 
 describe("OpenAI & Codex Rollout and Fallback Parsers", () => {
   describe("parseCodexRolloutUsage", () => {

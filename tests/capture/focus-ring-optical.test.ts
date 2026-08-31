@@ -4,8 +4,8 @@ import { resolve } from "node:path";
 import {
   calculateApcaLightness,
   validateApcaElement,
-} from "../../../olt/scripts/src/capture/validator/mechanical/apca.ts";
-import { validateConcentricRadius } from "../../../olt/scripts/src/capture/validator/mechanical/concentric-radius.ts";
+} from "../../olt/scripts/src/capture/validator/mechanical/apca.ts";
+import { validateConcentricRadius } from "../../olt/scripts/src/capture/validator/mechanical/concentric-radius.ts";
 import {
   auditFocusRingContrast,
   calculateConcentricRadius,
@@ -17,9 +17,9 @@ import {
   type FocusRingDefect,
   type FocusRingGeometry,
   type OpticalCurvatureMetrics,
-} from "../../../olt/scripts/src/capture/validator/mechanical/focus-ring-optical/index.ts";
-import { validateMechanical } from "../../../olt/scripts/src/capture/validator/mechanical/index.ts";
-import { validateSubpixelSnapping } from "../../../olt/scripts/src/capture/validator/mechanical/subpixel-snapping.ts";
+} from "../../olt/scripts/src/capture/validator/mechanical/focus-ring-optical/index.ts";
+import { validateMechanical } from "../../olt/scripts/src/capture/validator/mechanical/index.ts";
+import { validateSubpixelSnapping } from "../../olt/scripts/src/capture/validator/mechanical/subpixel-snapping.ts";
 
 /**
  * Geometric helper types and pure calculation functions for testing.

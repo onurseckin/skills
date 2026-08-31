@@ -1,7 +1,7 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { applyPlan } from "../../../olt/scripts/src/graph/apply-plan.ts";
+import { applyPlan } from "../../olt/scripts/src/graph/apply-plan.ts";
 import { graphDocument, validPlanningDocuments } from "./fixtures.ts";
 import { MemoryPlanningStore } from "./memory-store.ts";
 

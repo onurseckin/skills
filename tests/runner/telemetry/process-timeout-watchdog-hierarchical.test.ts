@@ -7,7 +7,7 @@ import {
   ProcessTimeoutWatchdog,
   createHierarchicalStallProbe,
   createProcessTimeoutWatchdog,
-} from "../../../../olt/scripts/src/engine/runner/process/process-timeout-watchdog.ts";
+} from "../../../olt/scripts/src/engine/runner/process/process-timeout-watchdog.ts";
 
 describe("HierarchicalStallProbe - Supervisor-to-Child Health Probing", () => {
   test("creates probe with supervisor tier and registers child nodes", () => {

@@ -2,18 +2,18 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { computeNormalizedFailureSignature } from "../../../olt/scripts/src/mind/defects/sync/signature.ts";
+import { computeNormalizedFailureSignature } from "../../olt/scripts/src/mind/defects/sync/signature.ts";
 import {
   validateDefectStateTransition as validateTransitionState,
   transitionDefectState as transitionState,
   handleDefectRecurrence,
-} from "../../../olt/scripts/src/mind/defects/sync/state-machine.ts";
+} from "../../olt/scripts/src/mind/defects/sync/state-machine.ts";
 import {
   enforceSequentialLifecycleOrdering,
   validatePhaseTransition,
   validateDefectStateTransition as validateTransitionOrder,
   transitionDefectState as transitionOrder,
-} from "../../../olt/scripts/src/mind/defects/sync/order-enforcement.ts";
+} from "../../olt/scripts/src/mind/defects/sync/order-enforcement.ts";
 import {
   resolveDefectsJsonlPath,
   cleanupVestigialDefectsFile,
@@ -21,7 +21,7 @@ import {
   serializeDefectsJsonl,
   normalizeFindingToDefect,
   syncDoctorFindingsToDefects,
-} from "../../../olt/scripts/src/mind/defects/sync/lifecycle-sync.ts";
+} from "../../olt/scripts/src/mind/defects/sync/lifecycle-sync.ts";
 import {
   requireDistinctLedgerPaths,
   resolveCanonicalDefectLogPath,
@@ -36,19 +36,19 @@ import {
   appendCompletedDefectLogEntry,
   mergeDefectsById,
   formulateBoundaryViolationHypothesis,
-} from "../../../olt/scripts/src/mind/defects/loop/ledger-ops.ts";
+} from "../../olt/scripts/src/mind/defects/loop/ledger-ops.ts";
 import {
   auditDefectLog,
   formatDefectAuditBrief,
   logBoundaryViolationDefect,
   executeDefectAudit,
-} from "../../../olt/scripts/src/mind/defects/loop/audit.ts";
+} from "../../olt/scripts/src/mind/defects/loop/audit.ts";
 import {
   normalizeStatus,
   mergeDefectSets,
-} from "../../../olt/scripts/src/mind/defects/aggregator/aggregator.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import type { DefectEntry } from "../../../olt/scripts/src/mind/defects/core/types.ts";
+} from "../../olt/scripts/src/mind/defects/aggregator/aggregator.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import type { DefectEntry } from "../../olt/scripts/src/mind/defects/core/types.ts";
 
 const roots: string[] = [];
 

@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { abandonAttempt } from "../../../olt/scripts/src/workflow/lease/abandon.ts";
-import { isAttemptOpen } from "../../../olt/scripts/src/workflow/lease/attempt-state.ts";
-import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
-import { recoverStale } from "../../../olt/scripts/src/workflow/lease/recover-stale.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { abandonAttempt } from "../../olt/scripts/src/workflow/lease/abandon.ts";
+import { isAttemptOpen } from "../../olt/scripts/src/workflow/lease/attempt-state.ts";
+import { claimTask } from "../../olt/scripts/src/workflow/lease/claim.ts";
+import { recoverStale } from "../../olt/scripts/src/workflow/lease/recover-stale.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import { at, TestPort, workflowState } from "./test-port.ts";
 
 const start = at("2026-08-19T00:00:00.000Z");

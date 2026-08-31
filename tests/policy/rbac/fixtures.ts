@@ -1,5 +1,5 @@
-import type { RepoPolicy } from "../../../../olt/scripts/src/policy/index.ts";
-import type { AgentMetadata } from "../../../../olt/scripts/src/runtime/index.ts";
+import type { RepoPolicy } from "../../../olt/scripts/src/policy/index.ts";
+import type { AgentMetadata } from "../../../olt/scripts/src/runtime/index.ts";
 
 export const samplePolicy: RepoPolicy = {
   schema_version: 1,

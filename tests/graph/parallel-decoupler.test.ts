@@ -6,7 +6,7 @@ import {
   decoupleDisjointTasks,
   detectArtificialSerialization,
   partitionDynamicLanes,
-} from "../../../olt/scripts/src/graph/parallel-decoupler.ts";
+} from "../../olt/scripts/src/graph/parallel-decoupler.ts";
 
 describe("parallel-decoupler: detectArtificialSerialization", () => {
   test("flags artificial serialization for disjoint tasks without dataflow justification", () => {

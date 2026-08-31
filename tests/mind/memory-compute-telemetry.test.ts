@@ -10,7 +10,7 @@ import {
   type CognitiveTelemetry,
   type MemoryTelemetrySnapshot,
   type MemoryTelemetryTracker,
-} from "../../../olt/scripts/src/mind/memory/index.ts";
+} from "../../olt/scripts/src/mind/memory/index.ts";
 
 describe("computeCognitiveTelemetry", () => {
   beforeEach(() => {

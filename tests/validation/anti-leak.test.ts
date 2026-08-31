@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   assertAcyclicPushbackDelegation,
   assertNoBoundaryLeak,
@@ -17,7 +17,7 @@ import {
   type BoundaryViolation,
   type RepairDelegationOrder,
   type AntiLeakValidationResult,
-} from "../../../olt/scripts/src/validation/anti-leak/index.ts";
+} from "../../olt/scripts/src/validation/anti-leak/index.ts";
 
 describe("Anti-Boundary-Leak Rule & Automated Repair Delegation", () => {
   describe("1. Role and Action Classification Helpers", () => {

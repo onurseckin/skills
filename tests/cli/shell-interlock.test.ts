@@ -15,20 +15,20 @@ import {
   persistStandaloneReceipt,
   setShellCommandDependenciesForTesting,
   shellCommand,
-} from "../../../olt/scripts/src/cli/commands/shell.ts";
-import { runExecCommand } from "../../../olt/scripts/src/cli/commands/run-ops.ts";
-import { scopeExpandCommand } from "../../../olt/scripts/src/cli/commands/scope-expand.ts";
+} from "../../olt/scripts/src/cli/commands/shell.ts";
+import { runExecCommand } from "../../olt/scripts/src/cli/commands/run-ops.ts";
+import { scopeExpandCommand } from "../../olt/scripts/src/cli/commands/scope-expand.ts";
 import {
   checkReadScopeAuthorization,
   isWithinNeighborhood,
-} from "../../../olt/scripts/src/runtime/read-scope-guard.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/runtime/read-scope-guard.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   createAgentMetadata,
   getAgentMetadataPath,
   writeAgentMetadata,
-} from "../../../olt/scripts/src/runtime/index.ts";
-import { workflowPort } from "../../../olt/scripts/src/integration/store-ports.ts";
+} from "../../olt/scripts/src/runtime/index.ts";
+import { workflowPort } from "../../olt/scripts/src/integration/store-ports.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 
 function registerStandaloneActor(actor: string, role: string): void {

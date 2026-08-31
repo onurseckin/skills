@@ -6,9 +6,9 @@ import { tmpdir } from "node:os";
 import {
   autoHealCapsule,
   quarantineTornTail,
-} from "../../../olt/scripts/src/reporting/doctor/auto-heal.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/events/transaction.ts";
+} from "../../olt/scripts/src/reporting/doctor/auto-heal.ts";
+import { initRun } from "../../olt/scripts/src/engine/store/capsule/capsule.ts";
+import { transact } from "../../olt/scripts/src/engine/store/events/transaction.ts";
 
 const roots: string[] = [];
 afterEach(async () => {

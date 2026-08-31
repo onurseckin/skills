@@ -5,7 +5,7 @@ import {
   classifyTaskDomain,
   derivePrimaryValidatorDomain,
   dispatchMultiDomainValidators,
-} from "../../../../olt/scripts/src/engine/scheduler/index.ts";
+} from "../../../olt/scripts/src/engine/scheduler/index.ts";
 
 describe("Multi-Domain Dispatch & Validator Pairing", () => {
   describe("1. Dual-Validation Detection Helpers", () => {

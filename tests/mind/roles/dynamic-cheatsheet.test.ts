@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   generateDynamicRoleCheatSheet,
   synthesizeDynamicRole,
-} from "../../../../olt/scripts/src/mind/roles/index.ts";
-import { formatUniversalCheatSheet } from "../../../../olt/scripts/src/roles/index.ts";
+} from "../../../olt/scripts/src/mind/roles/index.ts";
+import { formatUniversalCheatSheet } from "../../../olt/scripts/src/roles/index.ts";
 
 describe("Mind dynamic role cheat sheet generation", () => {
   test("generates full cheat sheet from dynamic role contract", () => {

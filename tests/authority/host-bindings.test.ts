@@ -2,13 +2,13 @@ import { describe, expect, test } from "bun:test";
 import {
   normalizeRoleKey,
   resolveAgentHostConfiguration,
-} from "../../../olt/scripts/src/authority/host-bindings.ts";
+} from "../../olt/scripts/src/authority/host-bindings.ts";
 import {
   agentBriefCommand,
   executeAgentBrief,
-} from "../../../olt/scripts/src/cli/commands/agent-brief.ts";
-import { generateDefaultRepoPolicy } from "../../../olt/scripts/src/policy/index.ts";
-import type { RepoPolicy } from "../../../olt/scripts/src/policy/types/index.ts";
+} from "../../olt/scripts/src/cli/commands/agent-brief.ts";
+import { generateDefaultRepoPolicy } from "../../olt/scripts/src/policy/index.ts";
+import type { RepoPolicy } from "../../olt/scripts/src/policy/types/index.ts";
 
 describe("host-bindings", () => {
   const defaultPolicy = generateDefaultRepoPolicy();

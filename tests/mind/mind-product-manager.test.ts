@@ -10,7 +10,7 @@ import {
   evaluateAntiStagnation,
   computeProgressSignature,
   recordNonZeroProgress,
-} from "../../../olt/scripts/src/mind/lifecycle/orchestration/index.ts";
+} from "../../olt/scripts/src/mind/lifecycle/orchestration/index.ts";
 import {
   auditMindPreplanningStagnation,
   auditMindCreativeStagnation,
@@ -19,27 +19,27 @@ import {
   suppressZeroDeltaReport,
   MIND_CREATIVE_STAGNATION,
   MIND_PREPLANNING_STAGNATION,
-} from "../../../olt/scripts/src/mind/auditing/mind-stagnation-auditor.ts";
+} from "../../olt/scripts/src/mind/auditing/mind-stagnation-auditor.ts";
 import {
   mindCandidateCommand,
   formatMindCandidateBrief,
-} from "../../../olt/scripts/src/cli/commands/mind-candidate.ts";
+} from "../../olt/scripts/src/cli/commands/mind-candidate.ts";
 import {
   mindObserveCommand,
   formatMindObserveBrief,
-} from "../../../olt/scripts/src/cli/commands/mind-observe.ts";
+} from "../../olt/scripts/src/cli/commands/mind-observe.ts";
 import {
   mindPulseCommand,
   computeMindCognitiveTelemetry,
-} from "../../../olt/scripts/src/cli/commands/mind-pulse.ts";
-import { initRun, loadRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import { writeAgentLedger } from "../../../olt/scripts/src/workflow/agents/ledger.ts";
-import { writeTaskQueue, enqueueTasksBatch } from "../../../olt/scripts/src/task/queue/index.ts";
-import { writeFeedbackQueue } from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
+} from "../../olt/scripts/src/cli/commands/mind-pulse.ts";
+import { initRun, loadRun, transact } from "../../olt/scripts/src/engine/store/index.ts";
+import { writeAgentLedger } from "../../olt/scripts/src/workflow/agents/ledger.ts";
+import { writeTaskQueue, enqueueTasksBatch } from "../../olt/scripts/src/task/queue/index.ts";
+import { writeFeedbackQueue } from "../../olt/scripts/src/mind/feedback/queue/index.ts";
 import {
   readCognitiveMemory,
   writeCognitiveMemory,
-} from "../../../olt/scripts/src/mind/tasks/smart/planner/memory.ts";
+} from "../../olt/scripts/src/mind/tasks/smart/planner/memory.ts";
 
 const roots: string[] = [];
 

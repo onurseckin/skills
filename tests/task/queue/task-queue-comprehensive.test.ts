@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   admitTask,
   admitTaskUnlocked,
@@ -46,7 +46,7 @@ import {
   writeTaskQueueUnlocked,
   type CompletionReceipts,
   type TaskQueueItem,
-} from "../../../../olt/scripts/src/task/queue/index.ts";
+} from "../../../olt/scripts/src/task/queue/index.ts";
 import {
   TASK_QUEUE_STATUSES,
   TASK_PRIORITIES,
@@ -61,24 +61,24 @@ import {
   invokeTaskQueuePersistenceHook,
   validateSourceType,
   deserializeTaskQueueItem,
-} from "../../../../olt/scripts/src/task/queue/types.ts";
+} from "../../../olt/scripts/src/task/queue/types.ts";
 import {
   serializeTaskQueue,
   parseTaskQueue,
   isOwnCode,
   isOwnEnoent,
-} from "../../../../olt/scripts/src/task/queue/storage.ts";
+} from "../../../olt/scripts/src/task/queue/storage.ts";
 import {
   assertValidActiveLease,
   assertWriteScopeASTPurity,
   stageWorktreeProgress,
   translateSuspendedLeases,
-} from "../../../../olt/scripts/src/task/queue/lease.ts";
+} from "../../../olt/scripts/src/task/queue/lease.ts";
 import {
   resolveTaskQueueLockPath,
   withTaskQueueLock,
   withTaskQueueTransaction,
-} from "../../../../olt/scripts/src/task/queue/locks.ts";
+} from "../../../olt/scripts/src/task/queue/locks.ts";
 import { scratchRoot } from "../../../support/scratch-root.ts";
 
 describe("Task Queue Comprehensive Coverage", () => {

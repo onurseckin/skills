@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
 import {
   defectListCommand,
   defectRecordCommand,
   defectResolveCommand,
-} from "../../../olt/scripts/src/cli/commands/defect-ops.ts";
+} from "../../olt/scripts/src/cli/commands/defect-ops.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Defect CLI commands", () => {

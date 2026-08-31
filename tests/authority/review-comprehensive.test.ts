@@ -13,8 +13,8 @@ import {
   validateReviewPushbackInput,
   type CounterfactualEvidenceItem,
   type TaskVerificationEvidenceInput,
-} from "../../../olt/scripts/src/authority/review/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/authority/review/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 
 describe("Authority Review Audit, Evaluators, History and Validation Comprehensive", () => {
   test("appendPushbackRound with all optional metadata and statusAfter branches", () => {

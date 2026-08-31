@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import type { RunState, StateMutator } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
-import { initRun } from "../../../../olt/scripts/src/engine/store/capsule/capsule.ts";
-import { transact } from "../../../../olt/scripts/src/engine/store/events/transaction.ts";
+import type { RunState, StateMutator } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/events/transaction.ts";
 import { scratchRoot } from "../../../support/scratch-root.ts";
 
 function freshRun(label: string): string {

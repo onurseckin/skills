@@ -2,8 +2,8 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { buildRunFacts, type RunFactsInput } from "../../../olt/scripts/src/summary/graph/index.ts";
-import type { WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
+import { buildRunFacts, type RunFactsInput } from "../../olt/scripts/src/summary/graph/index.ts";
+import type { WorkflowState } from "../../olt/scripts/src/workflow/types.ts";
 import { makeEvent, makeState, makeTask } from "./graph-fixtures.ts";
 
 const roots: string[] = [];

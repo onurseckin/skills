@@ -6,16 +6,16 @@ import {
   landPhaseRelease,
   landStation,
   verifyStation,
-} from "../../../../olt/scripts/src/orchestrator/station-landing.ts";
+} from "../../../olt/scripts/src/orchestrator/station-landing.ts";
 import {
   executeGitStagingInvariant,
   verifyGitStagingDurability,
-} from "../../../../olt/scripts/src/orchestrator/subdomain-staging.ts";
+} from "../../../olt/scripts/src/orchestrator/subdomain-staging.ts";
 import type {
   ExecuteLifecycleHooksOptions,
   LifecycleHookExecutionResult,
   RepoPolicy,
-} from "../../../../olt/scripts/src/policy/index.ts";
+} from "../../../olt/scripts/src/policy/index.ts";
 
 describe("Sub-Domain Completion Git Staging & Station Landing Engine (Task 2.3 & Task Hooks 7)", () => {
   it("executes Git staging invariant and produces durable blob safety record", () => {

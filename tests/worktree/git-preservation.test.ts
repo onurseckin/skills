@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { createGitRunner, type GitSpawn } from "../../../olt/scripts/src/workflow/worktree/git.ts";
+import { createGitRunner, type GitSpawn } from "../../olt/scripts/src/workflow/worktree/git.ts";
 
 describe("git runner zero-destructive invariant integration", () => {
   function fakeSpawn(): GitSpawn {

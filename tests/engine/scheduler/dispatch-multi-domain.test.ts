@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   isMultiDomainDispatchEligible,
   classifyTaskDomain,
@@ -7,18 +7,18 @@ import {
   isDualValidationRequired,
   getRequiredValidatorDomains,
   normalizeTask,
-} from "../../../../olt/scripts/src/engine/scheduler/dispatch/multi-domain-types.ts";
-import { resolveParallelismFactor } from "../../../../olt/scripts/src/engine/scheduler/dispatch/multi-domain-factor.ts";
-import { evaluateMultiDomainBatch } from "../../../../olt/scripts/src/engine/scheduler/dispatch/multi-domain-batch.ts";
+} from "../../../olt/scripts/src/engine/scheduler/dispatch/multi-domain-types.ts";
+import { resolveParallelismFactor } from "../../../olt/scripts/src/engine/scheduler/dispatch/multi-domain-factor.ts";
+import { evaluateMultiDomainBatch } from "../../../olt/scripts/src/engine/scheduler/dispatch/multi-domain-batch.ts";
 import {
   dispatchMultiDomainValidators,
   proposeMultiDomainWave,
-} from "../../../../olt/scripts/src/engine/scheduler/dispatch/multi-domain-dispatch.ts";
-import { ParallelWaveDispatchEnforcer } from "../../../../olt/scripts/src/engine/scheduler/dispatch/parallel-enforcer.ts";
+} from "../../../olt/scripts/src/engine/scheduler/dispatch/multi-domain-dispatch.ts";
+import { ParallelWaveDispatchEnforcer } from "../../../olt/scripts/src/engine/scheduler/dispatch/parallel-enforcer.ts";
 import {
   evaluateHierarchicalDecision,
   HIERARCHICAL_TIERS,
-} from "../../../../olt/scripts/src/engine/scheduler/conflict/decision-tree.ts";
+} from "../../../olt/scripts/src/engine/scheduler/conflict/decision-tree.ts";
 
 describe("engine/scheduler/dispatch/multi-domain-types.ts", () => {
   it("evaluates eligibility and domain classification", () => {

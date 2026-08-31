@@ -10,13 +10,13 @@ import {
   isValidatorRole,
   summarizeTierConfinement,
   type TierConfinementFinding,
-} from "../../../olt/scripts/src/reporting/doctor/tier-confinement/index.ts";
+} from "../../olt/scripts/src/reporting/doctor/tier-confinement/index.ts";
 import {
   roleToTier,
   validateTierSpawning,
-} from "../../../olt/scripts/src/authority/thread/index.ts";
-import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
-import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
+} from "../../olt/scripts/src/authority/thread/index.ts";
+import type { JsonObject } from "../../olt/scripts/src/core/contracts/index.ts";
+import type { AgentGrantRecord } from "../../olt/scripts/src/core/contracts/index.ts";
 
 describe("Tier Boundary Confinement Doctor Checks - p21 4-tier hierarchy enforcement", () => {
   test("roleToTier maps all 4 tiers accurately", () => {

@@ -10,7 +10,7 @@ import {
   sliceRuntimePagination,
   type FileCoverageMetric,
   type TestFileRuntime,
-} from "../../../scripts/testing/reporting/index.ts";
+} from "../../scripts/testing/reporting/index.ts";
 
 describe("Test Runtime Telemetry & Pareto Ranking", () => {
   describe("parseDurationToMs", () => {

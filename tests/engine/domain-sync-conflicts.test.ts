@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   assertDomainIsolation,
   assertNonDestructiveWriteScope,
@@ -20,7 +20,7 @@ import {
   validateDomainIsolation,
   type DomainScopeEntry,
   type GitRunner,
-} from "../../../olt/scripts/src/engine/worktree/index.ts";
+} from "../../olt/scripts/src/engine/worktree/index.ts";
 
 const roots: string[] = [];
 afterEach(() => {

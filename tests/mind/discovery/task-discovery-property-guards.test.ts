@@ -3,8 +3,8 @@ import {
   filterOpenDefects,
   isDefectEntry,
   mapDefectToDiscoveryItem,
-} from "../../../../olt/scripts/src/mind/tasks/discovery/index.ts";
-import type { DefectEntry } from "../../../../olt/scripts/src/mind/defects/index.ts";
+} from "../../../olt/scripts/src/mind/tasks/discovery/index.ts";
+import type { DefectEntry } from "../../../olt/scripts/src/mind/defects/index.ts";
 
 describe("Defect Remediation Property Guards & Prescribed Remediation", () => {
   it("handles DefectEntry with optional observation and prescribed_remediation fallback in mapDefectToDiscoveryItem", () => {

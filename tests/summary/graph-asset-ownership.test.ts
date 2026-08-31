@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   AssetRegistry,
   projectFindingsForNode,
-} from "../../../olt/scripts/src/summary/graph/index.ts";
-import type { FindingDetail, MediaAsset } from "../../../olt/scripts/src/summary/graph/index.ts";
+} from "../../olt/scripts/src/summary/graph/index.ts";
+import type { FindingDetail, MediaAsset } from "../../olt/scripts/src/summary/graph/index.ts";
 
 function asset(id: string, url: string): MediaAsset {
   return { id, type: "image", url };

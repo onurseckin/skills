@@ -4,8 +4,8 @@ import { join, resolve } from "node:path";
 import {
   type StagnationTelemetry,
   VerbatimRoleInjector,
-} from "../../../olt/scripts/src/authority/verbatim-role-injector.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/authority/verbatim-role-injector.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 const REPO_ROOT = resolve(import.meta.dir, "../../..");

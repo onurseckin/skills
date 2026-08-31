@@ -3,7 +3,7 @@ import { join } from "node:path";
 import {
   ClaudeCollector,
   type CollectorEnvironment,
-} from "../../../olt/scripts/src/telemetry/collectors/index.ts";
+} from "../../olt/scripts/src/telemetry/collectors/index.ts";
 
 describe("ClaudeCollector", () => {
   it("probes Tier 1 Claude OAuth usage data successfully with multiple quota windows", async () => {

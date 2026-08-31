@@ -9,7 +9,7 @@ import {
   resetLockStore,
   setLockStore,
   type TestLockData,
-} from "../../../scripts/testing/test-mutex.ts";
+} from "../../scripts/testing/test-mutex.ts";
 
 const LOCK_DIR = ".olt/.locks";
 const BROAD_LOCK_FILE = join(LOCK_DIR, "broad-test.lock");

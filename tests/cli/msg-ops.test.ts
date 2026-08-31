@@ -6,16 +6,16 @@ import {
   msgPollCommand,
   msgRecvCommand,
   msgSendCommand,
-} from "../../../olt/scripts/src/cli/commands/index.ts";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { renderHelp } from "../../../olt/scripts/src/cli/help.ts";
-import { findCommand, isPrimaryCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
+} from "../../olt/scripts/src/cli/commands/index.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
+import { renderHelp } from "../../olt/scripts/src/cli/help.ts";
+import { findCommand, isPrimaryCommand } from "../../olt/scripts/src/cli/registry/index.ts";
 import {
   resolveMailboxPaths,
   verifyEnvelopeHmac,
-} from "../../../olt/scripts/src/communication/mailbox/index.ts";
-import type { MailboxEnvelope } from "../../../olt/scripts/src/communication/types.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/communication/mailbox/index.ts";
+import type { MailboxEnvelope } from "../../olt/scripts/src/communication/types.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 
 describe("Mailbox CLI Operations (msg:send, msg:recv, msg:poll, msg:list)", () => {
   let testRoot: string;

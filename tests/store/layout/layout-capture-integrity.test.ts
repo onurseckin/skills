@@ -2,13 +2,13 @@ import { describe, expect, spyOn, test } from "bun:test";
 import * as fs from "node:fs";
 import { chmodSync, linkSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { sha256Bytes } from "../../../../olt/scripts/src/core/json.ts";
-import { putBlobFile } from "../../../../olt/scripts/src/engine/store/layout/blobs.ts";
+import { sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
+import { putBlobFile } from "../../../olt/scripts/src/engine/store/layout/blobs.ts";
 import {
   verifyBlobContents,
   verifyCapsuleDeep,
   verifyCapsuleLayout,
-} from "../../../../olt/scripts/src/engine/store/integrity/layout-integrity.ts";
+} from "../../../olt/scripts/src/engine/store/integrity/layout-integrity.ts";
 import { scratchRoot as makeScratchRoot } from "../../../support/scratch-root.ts";
 
 function scratchRoot(label: string): string {

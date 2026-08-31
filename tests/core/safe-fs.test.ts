@@ -12,7 +12,7 @@ import {
 } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, resolve, sep } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   assertSafeToDelete,
   safeCpSync,
@@ -21,7 +21,7 @@ import {
   safeRmSync,
   safeWriteFileSync,
   type DestructiveAuditEvent,
-} from "../../../olt/scripts/src/core/shared/safe-fs/index.ts";
+} from "../../olt/scripts/src/core/shared/safe-fs/index.ts";
 
 function makeFixtureRoot(): string {
   return realpathSync(mkdtempSync(join(tmpdir(), "safe-fs-test-")));

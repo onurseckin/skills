@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import type { CaptureConfig } from "../../../olt/scripts/src/capture/config/types.ts";
+import type { CaptureConfig } from "../../olt/scripts/src/capture/config/types.ts";
 import {
   computeLayoutMetrics,
   createEmptyDomPhysicsSnapshot,
@@ -19,7 +19,7 @@ import {
   type CapturePageDriver,
   type CompanionManifest,
   type ExtractedElementPhysics,
-} from "../../../olt/scripts/src/capture/runners/index.ts";
+} from "../../olt/scripts/src/capture/runners/index.ts";
 
 describe("Capture Runner & Companion Manifest Writer", () => {
   describe("SessionAuthResolver", () => {

@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { CaptureConfig } from "../../../../olt/scripts/src/capture/config/types.ts";
+import type { CaptureConfig } from "../../../olt/scripts/src/capture/config/types.ts";
 import {
   createSyntheticPngBuffer,
   DefaultFallbackBrowserProvider,
@@ -10,14 +10,14 @@ import {
   resolveCaptureOutputDir,
   resolveViewportsForScreen,
   runLiveCapture,
-} from "../../../../olt/scripts/src/capture/runners/live-capture-runner/index.ts";
+} from "../../../olt/scripts/src/capture/runners/live-capture-runner/index.ts";
 import type {
   CaptureBrowserDriver,
   CaptureBrowserProvider,
   CaptureCookie,
   CapturePageDriver,
   DomPhysicsSnapshot,
-} from "../../../../olt/scripts/src/capture/runners/types.ts";
+} from "../../../olt/scripts/src/capture/runners/types.ts";
 
 describe("live-capture-runner", () => {
   describe("synthetic-png", () => {

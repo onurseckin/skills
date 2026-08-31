@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { isAgentRole } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { resolveRoleContractPath } from "../../../olt/scripts/src/packets/role-contract.ts";
+import { isAgentRole } from "../../olt/scripts/src/core/contracts/index.ts";
+import { resolveRoleContractPath } from "../../olt/scripts/src/packets/role-contract.ts";
 
 const agentsRoot = join(import.meta.dir, "..", "..", "..", "olt", "agents");
 const rolesRoot = dirname(resolveRoleContractPath("planner"));

@@ -13,7 +13,7 @@ import {
   type SugiyamaDagReport,
   type UnifiedAgentRow,
   type UnifiedSectionData,
-} from "../../../../../olt/scripts/src/reporting/unified/index.ts";
+} from "../../../../olt/scripts/src/reporting/unified/index.ts";
 
 describe("unified-setup", () => {
   describe("buildAgentMatrixTable", () => {

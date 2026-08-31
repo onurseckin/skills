@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { outputEvidenceIssues } from "../../../../olt/scripts/src/engine/runner/receipt/output-evidence.ts";
+import { outputEvidenceIssues } from "../../../olt/scripts/src/engine/runner/receipt/output-evidence.ts";
 
 const bytes = (value: string): Uint8Array => new TextEncoder().encode(value);
 

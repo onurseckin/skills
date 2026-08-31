@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import {
   checkGitIndexIntegrity,
   autoHealGitState,
-} from "../../../olt/scripts/src/reporting/doctor/git-index-engine.ts";
+} from "../../olt/scripts/src/reporting/doctor/git-index-engine.ts";
 
 const roots: string[] = [];
 afterEach(async () => {

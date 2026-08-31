@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   CANONICAL_ROLE_CAPABILITIES,
   assertValidManifest,
@@ -15,7 +15,7 @@ import {
   validateAgentManifestSchema,
   validateRoleContractSchema,
   verifyPersonaIntegrity,
-} from "../../../olt/scripts/src/roles/index.ts";
+} from "../../olt/scripts/src/roles/index.ts";
 
 describe("Domain 16: Roles, Personas & Manifest Auditing Hardening", () => {
   describe("1. Role Capability Matrix & Watchdog Boundary Enforcement", () => {

@@ -2,10 +2,10 @@ import { describe, expect, it } from "bun:test";
 import {
   BaseTieredCollector,
   type TierResult,
-} from "../../../olt/scripts/src/telemetry/base-collector.ts";
-import { TelemetryNormalizationEngine } from "../../../olt/scripts/src/telemetry/engine.ts";
-import { redactRecord } from "../../../olt/scripts/src/telemetry/redact.ts";
-import type { NormalizedQuotaMetric } from "../../../olt/scripts/src/telemetry/types.ts";
+} from "../../olt/scripts/src/telemetry/base-collector.ts";
+import { TelemetryNormalizationEngine } from "../../olt/scripts/src/telemetry/engine.ts";
+import { redactRecord } from "../../olt/scripts/src/telemetry/redact.ts";
+import type { NormalizedQuotaMetric } from "../../olt/scripts/src/telemetry/types.ts";
 
 const SECRET = "zTq9-XVERYDISTINCTIVE-RANDOM-TOKEN-8271";
 

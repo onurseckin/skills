@@ -10,8 +10,8 @@ import {
   defaultIsPidAlive,
   readAuditorLeaseLock,
   releaseAuditorLeaseLock,
-} from "../../../olt/scripts/src/authority/guards/singleton-auditor-guard.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/authority/guards/singleton-auditor-guard.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 
 describe("Singleton Skill Auditor Lease Lock Guard", () => {
   let tempDir: string;

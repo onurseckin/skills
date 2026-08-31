@@ -27,8 +27,8 @@ import {
   stageSessionGrant,
   withSessionAuthorityLock,
   type SessionIdentity,
-} from "../../../olt/scripts/src/authority/session/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/authority/session/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Authority Session Paths, Resolver, IO, Grants & Interlock Comprehensive", () => {

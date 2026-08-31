@@ -4,7 +4,7 @@ import {
   generateDefaultRepoPolicy,
   validateRepoPolicy,
   type PlanningPolicy,
-} from "../../../olt/scripts/src/policy/repo-policy.ts";
+} from "../../olt/scripts/src/policy/repo-policy.ts";
 
 describe("Repo Policy Planning Policy Schema & Validation", () => {
   test("DEFAULT_PLANNING_POLICY contains expected default values", () => {

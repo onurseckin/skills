@@ -10,14 +10,14 @@ import {
   isFastPathCompactionEligible,
   MAX_LANES_PER_COORDINATOR,
   verifyAntiSerializationInterlock,
-} from "../../../olt/scripts/src/graph/lane-allocator.ts";
+} from "../../olt/scripts/src/graph/lane-allocator.ts";
 import {
   ARTIFICIAL_SERIALIZATION_WARNING,
   decoupleDisjointTasks,
   detectArtificialSerialization,
   partitionDynamicLanes,
   partitionWaveCoordinators,
-} from "../../../olt/scripts/src/graph/wave-partitioner.ts";
+} from "../../olt/scripts/src/graph/wave-partitioner.ts";
 
 describe("Lane Allocator & Work-Span Metrics", () => {
   it("computes work-span metrics correctly for sequential and parallel tasks", () => {

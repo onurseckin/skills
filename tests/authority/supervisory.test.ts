@@ -6,9 +6,9 @@ import {
   constructSupervisoryPersonaReminder,
   evaluateSupervisoryState,
   parseTimeMs,
-} from "../../../olt/scripts/src/authority/supervisory/index.ts";
-import { loadUnifiedAgentModel } from "../../../olt/scripts/src/authority/manifest/index.ts";
-import type { SupervisoryReminderEvaluationContext } from "../../../olt/scripts/src/authority/supervisory/types.ts";
+} from "../../olt/scripts/src/authority/supervisory/index.ts";
+import { loadUnifiedAgentModel } from "../../olt/scripts/src/authority/manifest/index.ts";
+import type { SupervisoryReminderEvaluationContext } from "../../olt/scripts/src/authority/supervisory/types.ts";
 
 describe("Supervisory Invariant & Protocol Evaluation", () => {
   test("parseTimeMs handles diverse input types and fallbacks", () => {

@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { AuditTrailWriter } from "../../../../olt/scripts/src/policy/audit/audit-trail-writer.ts";
-import { verifyAuditTrailChain } from "../../../../olt/scripts/src/policy/audit/hasher.ts";
-import type { AuditEvent } from "../../../../olt/scripts/src/policy/audit/types.ts";
+import { AuditTrailWriter } from "../../../olt/scripts/src/policy/audit/audit-trail-writer.ts";
+import { verifyAuditTrailChain } from "../../../olt/scripts/src/policy/audit/hasher.ts";
+import type { AuditEvent } from "../../../olt/scripts/src/policy/audit/types.ts";
 
 describe("AuditTrailWriter", () => {
   let tempDir: string;

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { assertCriticIndependent } from "../../../olt/scripts/src/workflow/completion/critic-identity.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { assertCriticIndependent } from "../../olt/scripts/src/workflow/completion/critic-identity.ts";
 import { workflowState } from "./test-port.ts";
 
 // B26: the completeness critic role is refused to any identity this run has already used as an

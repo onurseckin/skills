@@ -7,15 +7,15 @@ import {
   openTaskValidations,
   taskAttemptTurnState,
   validationTurnState,
-} from "../../../olt/scripts/src/workflow/lease/turn-state.ts";
-import { suspendLease } from "../../../olt/scripts/src/workflow/lease/suspension.ts";
+} from "../../olt/scripts/src/workflow/lease/turn-state.ts";
+import { suspendLease } from "../../olt/scripts/src/workflow/lease/suspension.ts";
 import type {
   CompletionCriticAuthorization,
   ScopedLease,
   TaskRecord,
   ValidationAttempt,
   WorkflowState,
-} from "../../../olt/scripts/src/workflow/types.ts";
+} from "../../olt/scripts/src/workflow/types.ts";
 import { workflowState } from "./test-port.ts";
 
 class FakeClock {

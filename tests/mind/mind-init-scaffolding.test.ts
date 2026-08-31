@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { mindInitCommand } from "../../../olt/scripts/src/cli/commands/index.ts";
+import { mindInitCommand } from "../../olt/scripts/src/cli/commands/index.ts";
 
 const SAMPLE_CHARTER = `name: "mind"
 role: "mind"

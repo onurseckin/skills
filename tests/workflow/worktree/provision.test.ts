@@ -5,10 +5,10 @@ import { join } from "node:path";
 import {
   provisionWorktrees,
   type ProvisionWorktreesConfig,
-} from "../../../../olt/scripts/src/workflow/worktree/provision.ts";
-import type { AssignableTask } from "../../../../olt/scripts/src/workflow/worktree/assign.ts";
-import type { TopologyRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import type { GitResult, GitRunner } from "../../../../olt/scripts/src/workflow/worktree/git.ts";
+} from "../../../olt/scripts/src/workflow/worktree/provision.ts";
+import type { AssignableTask } from "../../../olt/scripts/src/workflow/worktree/assign.ts";
+import type { TopologyRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { GitResult, GitRunner } from "../../../olt/scripts/src/workflow/worktree/git.ts";
 import { FakeRunStore, baseLedger, seedLedger } from "./fake-transact.ts";
 
 const roots: string[] = [];

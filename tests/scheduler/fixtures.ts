@@ -1,4 +1,4 @@
-import { dependencyMap } from "../../../olt/scripts/src/graph/dependency-map.ts";
+import { dependencyMap } from "../../olt/scripts/src/graph/dependency-map.ts";
 
 function task(
   id: string,

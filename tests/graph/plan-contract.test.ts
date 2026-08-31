@@ -6,7 +6,7 @@ import {
   requirementContract,
   taskContract,
   taskGates,
-} from "../../../olt/scripts/src/graph/plan-contract.ts";
+} from "../../olt/scripts/src/graph/plan-contract.ts";
 
 describe("requirementContract", () => {
   test("strips runtime fields from every requirement without mutating the source document", () => {

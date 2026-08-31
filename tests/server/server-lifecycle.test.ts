@@ -16,25 +16,25 @@ import {
   clearSnapshot,
   StatePreserver,
   createStatePreserver,
-} from "../../../olt/scripts/src/server/lifecycle/snapshot.ts";
+} from "../../olt/scripts/src/server/lifecycle/snapshot.ts";
 import {
   acquireLock,
   withRestartLock,
   isLocked,
   forceReleaseLock,
   ServerLockError,
-} from "../../../olt/scripts/src/server/lifecycle/lock.ts";
-import { shutdownProcess } from "../../../olt/scripts/src/server/lifecycle/shutdown.ts";
-import { startServer } from "../../../olt/scripts/src/server/lifecycle/starter.ts";
+} from "../../olt/scripts/src/server/lifecycle/lock.ts";
+import { shutdownProcess } from "../../olt/scripts/src/server/lifecycle/shutdown.ts";
+import { startServer } from "../../olt/scripts/src/server/lifecycle/starter.ts";
 import {
   DevServerLifecycleManager,
   createServerLifecycleManager,
-} from "../../../olt/scripts/src/server/lifecycle/coordinator.ts";
+} from "../../olt/scripts/src/server/lifecycle/coordinator.ts";
 import type {
   ServerStateSnapshotInput,
   ServerEndpoint,
   PortConfiguration,
-} from "../../../olt/scripts/src/server/lifecycle/types.ts";
+} from "../../olt/scripts/src/server/lifecycle/types.ts";
 
 const TEST_DIR = join(tmpdir(), "test-lifecycle-tmp-" + process.pid);
 const TEST_LOCK_PATH = join(TEST_DIR, "test-server-restart.lock");

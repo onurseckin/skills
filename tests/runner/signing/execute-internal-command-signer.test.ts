@@ -2,11 +2,11 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { RepositoryBinding } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import { createCommandSigningCapability } from "../../../../olt/scripts/src/engine/runner/execution/attempt-disposition-capability.ts";
-import type { CommandRuntimeCapability } from "../../../../olt/scripts/src/engine/runner/models/execution/command-execution-snapshot.ts";
-import { executeInternalPreparedCommand } from "../../../../olt/scripts/src/engine/runner/core/execute-internal-command.ts";
-import { createInternalCommandRunner } from "../../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
+import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/execution/attempt-disposition-capability.ts";
+import type { CommandRuntimeCapability } from "../../../olt/scripts/src/engine/runner/models/execution/command-execution-snapshot.ts";
+import { executeInternalPreparedCommand } from "../../../olt/scripts/src/engine/runner/core/execute-internal-command.ts";
+import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 
 const roots: string[] = [];
 const digest = (marker: string): string => marker.repeat(64);

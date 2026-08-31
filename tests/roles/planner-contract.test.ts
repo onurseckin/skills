@@ -4,8 +4,8 @@ import { join } from "node:path";
 import {
   loadAgentManifest,
   loadUnifiedAgentModel,
-} from "../../../olt/scripts/src/authority/manifest/index.ts";
-import { loadRoleContract as loadPacketRoleContract } from "../../../olt/scripts/src/packets/role-contract.ts";
+} from "../../olt/scripts/src/authority/manifest/index.ts";
+import { loadRoleContract as loadPacketRoleContract } from "../../olt/scripts/src/packets/role-contract.ts";
 
 describe("Planner & Plan-Validator Role Contracts & Agent Manifests Sync", () => {
   const repoRoot = process.cwd();

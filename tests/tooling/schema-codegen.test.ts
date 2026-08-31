@@ -12,7 +12,7 @@ import {
   type JsonSchemaDocument,
   type ToolDefinition,
   type ToolParameter,
-} from "../../../olt/scripts/src/tooling/index.ts";
+} from "../../olt/scripts/src/tooling/index.ts";
 
 describe("Tool Schema Codegen & Converter Suite", () => {
   describe("String case formatting utilities", () => {

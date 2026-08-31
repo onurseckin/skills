@@ -8,7 +8,7 @@ import {
   mapFeedbackPriorityToTaskPriority,
   proposeCandidateEvolutions,
   sanitizeSlug,
-} from "../../../olt/scripts/src/mind/tasks/discovery/scanners/health-scanner.ts";
+} from "../../olt/scripts/src/mind/tasks/discovery/scanners/health-scanner.ts";
 
 describe("health-scanner unit tests", () => {
   test("mapPriority maps all DiscoverySeverity levels correctly", () => {

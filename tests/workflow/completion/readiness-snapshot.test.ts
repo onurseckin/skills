@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   commandIsSuccessfulGate,
   completionReadinessSnapshot,
-} from "../../../../olt/scripts/src/workflow/completion/readiness-snapshot.ts";
+} from "../../../olt/scripts/src/workflow/completion/readiness-snapshot.ts";
 import { commandRecord, TEST_GATE_ARGV, workflowState } from "../test-port.ts";
 
 describe("completionReadinessSnapshot", () => {

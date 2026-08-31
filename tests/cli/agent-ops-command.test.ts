@@ -1,14 +1,14 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { agentRegisterCommand } from "../../../olt/scripts/src/cli/commands/agent-ops.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
+import { agentRegisterCommand } from "../../olt/scripts/src/cli/commands/agent-ops.ts";
+import { loadRun } from "../../olt/scripts/src/engine/store/index.ts";
 import {
   registerSessionGrant,
   revokeSessionGrant,
   resolveActiveSession,
-} from "../../../olt/scripts/src/authority/session/index.ts";
+} from "../../olt/scripts/src/authority/session/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 

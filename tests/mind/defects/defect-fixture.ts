@@ -9,7 +9,7 @@ import type {
   DefectResolutionProof,
   DefectSeverity,
   DefectStatus,
-} from "../../../../olt/scripts/src/mind/defects/index.ts";
+} from "../../../olt/scripts/src/mind/defects/index.ts";
 
 export function createMockResolutionProof(
   overrides?: Partial<DefectResolutionProof>,

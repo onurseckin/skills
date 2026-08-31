@@ -6,9 +6,9 @@ import {
   initRun,
   loadIndex,
   indexFreshness,
-} from "../../../../olt/scripts/src/engine/store/index.ts";
-import { ingestScreenshots } from "../../../../olt/scripts/src/reporting/screenshot-ingestion.ts";
-import { runDoctor, versionAtLeast } from "../../../../olt/scripts/src/reporting/doctor.ts";
+} from "../../../olt/scripts/src/engine/store/index.ts";
+import { ingestScreenshots } from "../../../olt/scripts/src/reporting/screenshot-ingestion.ts";
+import { runDoctor, versionAtLeast } from "../../../olt/scripts/src/reporting/doctor.ts";
 
 const roots: string[] = [];
 afterEach(async () =>

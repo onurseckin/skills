@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { validateRequirements } from "../../../olt/scripts/src/requirements/validate-requirements.ts";
+import { validateRequirements } from "../../olt/scripts/src/requirements/validate-requirements.ts";
 import { requirementsDocument } from "./fixtures.ts";
 
 describe("malformed requirement documents", () => {

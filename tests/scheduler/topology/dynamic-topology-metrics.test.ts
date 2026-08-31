@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { computeWorkSpanMetrics } from "../../../../olt/scripts/src/engine/scheduler/index.ts";
+import { computeWorkSpanMetrics } from "../../../olt/scripts/src/engine/scheduler/index.ts";
 
 describe("Dynamic Topology: Work & Span Metrics", () => {
   describe("computeWorkSpanMetrics", () => {

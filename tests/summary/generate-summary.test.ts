@@ -2,11 +2,11 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
-import type { RunFiles, RunState } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { RunFiles, RunState } from "../../olt/scripts/src/core/contracts/index.ts";
 import {
   generateSummarySuite,
   loadCommandsFromDir,
-} from "../../../olt/scripts/src/summary/formatters/index.ts";
+} from "../../olt/scripts/src/summary/formatters/index.ts";
 import { makeCommand, makeEvent, makeState, makeTask } from "./graph-fixtures.ts";
 import { manifest } from "./markdown-fixtures.ts";
 

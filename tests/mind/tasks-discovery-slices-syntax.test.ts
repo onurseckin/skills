@@ -7,7 +7,7 @@ import {
   synthesizeTaskFromDiscovery,
   formatTaskDiscoveryBrief,
   discoverTasks,
-} from "../../../olt/scripts/src/mind/tasks/discovery/slices/index.ts";
+} from "../../olt/scripts/src/mind/tasks/discovery/slices/index.ts";
 import type {
   DiscoveryItem,
   CodeQualityFinding,
@@ -15,7 +15,7 @@ import type {
   ArchitecturalHealthFinding,
   DormantCriteriaFinding,
   TaskDiscoveryResult,
-} from "../../../olt/scripts/src/mind/tasks/discovery/types.ts";
+} from "../../olt/scripts/src/mind/tasks/discovery/types.ts";
 
 describe("Task 1.39: Defect Remediation - Syntax Errors and Dangling Statements in mind/tasks/discovery/slices/", () => {
   test("1. All discovery slice modules and barrel exports exist and export required functions", () => {

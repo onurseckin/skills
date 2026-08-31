@@ -4,12 +4,12 @@ import {
   createEmptyDomPhysicsSnapshot,
   DOM_PHYSICS_EXTRACTION_SCRIPT,
   extractDomPhysics,
-} from "../../../../olt/scripts/src/capture/runners/dom-physics-extractor.ts";
+} from "../../../olt/scripts/src/capture/runners/dom-physics-extractor.ts";
 import type {
   CapturePageDriver,
   DomPhysicsSnapshot,
   ExtractedElementPhysics,
-} from "../../../../olt/scripts/src/capture/runners/types.ts";
+} from "../../../olt/scripts/src/capture/runners/types.ts";
 
 function createTestElement(
   overrides: Partial<ExtractedElementPhysics> = {},

@@ -11,12 +11,12 @@ import {
   validateHickHyman,
   validateNormanRecovery,
   validateUiStatesFsm,
-} from "../../../../olt/scripts/src/capture/validator/cognitive/index.ts";
+} from "../../../olt/scripts/src/capture/validator/cognitive/index.ts";
 import type {
   CognitiveAnalysisReport,
   ElementPhysicsSnapshot,
   ValidationContext,
-} from "../../../../olt/scripts/src/capture/validator/types.ts";
+} from "../../../olt/scripts/src/capture/validator/types.ts";
 
 describe("Cognitive Validators", () => {
   describe("Cowan Working Memory 4±1 Chunking (cowan-chunking.ts)", () => {

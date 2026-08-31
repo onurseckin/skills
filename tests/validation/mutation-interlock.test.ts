@@ -1,9 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { assertLeaseTokenForFileMutation } from "../../../olt/scripts/src/validation/anti-leak/index.ts";
-import { registerSessionGrant } from "../../../olt/scripts/src/authority/session/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { assertLeaseTokenForFileMutation } from "../../olt/scripts/src/validation/anti-leak/index.ts";
+import { registerSessionGrant } from "../../olt/scripts/src/authority/session/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Mutation Interlock Enforcement", () => {

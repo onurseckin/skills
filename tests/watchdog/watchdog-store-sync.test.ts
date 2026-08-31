@@ -6,12 +6,12 @@ import {
   loadWatchdogStore,
   saveWatchdogStore,
   syncWatchdogStore,
-} from "../../../olt/scripts/src/watchdog/index.ts";
+} from "../../olt/scripts/src/watchdog/index.ts";
 import {
   createDefaultWatchdogStore,
   type WatchdogRecord,
   type WatchdogStore,
-} from "../../../olt/scripts/src/authority/watchdog/index.ts";
+} from "../../olt/scripts/src/authority/watchdog/index.ts";
 
 describe("watchdog-store-sync File-Backed Synchronization", () => {
   let scratchRoot: string;

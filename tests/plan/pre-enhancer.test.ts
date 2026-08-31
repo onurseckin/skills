@@ -12,7 +12,7 @@
  */
 
 import { describe, test, expect } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   PRE_ENHANCER_VERSION,
   DEFAULT_TASK_PRIORITY,
@@ -42,7 +42,7 @@ import {
   type PreEnhancementTaskInput,
   type DiscriminatingAssertion,
   type AgpCounterfactualProbeTemplate,
-} from "../../../olt/scripts/src/plan/pre-enhancer.ts";
+} from "../../olt/scripts/src/plan/pre-enhancer.ts";
 
 describe("Proactive Plan Pre-Enhancer & Gate Compiler", () => {
   const sampleTaskInput: PreEnhancementTaskInput = {

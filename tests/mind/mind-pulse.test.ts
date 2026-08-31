@@ -2,7 +2,7 @@ import { describe, it, expect } from "bun:test";
 import {
   enforceIsolatedTaskDispatch,
   atomicAdmissionToDispatch,
-} from "../../../olt/scripts/src/mind/lifecycle/index.ts";
+} from "../../olt/scripts/src/mind/lifecycle/index.ts";
 
 describe("mind/mind-pulse", () => {
   it("enforces isolated task dispatch for a candidate", () => {

@@ -2,15 +2,15 @@ import { describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { captureInitCommand } from "../../../olt/scripts/src/cli/commands/capture-init.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { captureInitCommand } from "../../olt/scripts/src/cli/commands/capture-init.ts";
 import {
   CAPTURE_RUN_MISSING_PROVIDER_FIX,
   CAPTURE_RUN_MISSING_PROVIDER_MESSAGE,
   captureRunCommand,
-} from "../../../olt/scripts/src/cli/commands/capture-run.ts";
-import { captureEvalCommand } from "../../../olt/scripts/src/cli/commands/capture-eval.ts";
-import { loadCapabilitySplit } from "../../../olt/scripts/src/cli/manifest-split.ts";
+} from "../../olt/scripts/src/cli/commands/capture-run.ts";
+import { captureEvalCommand } from "../../olt/scripts/src/cli/commands/capture-eval.ts";
+import { loadCapabilitySplit } from "../../olt/scripts/src/cli/manifest-split.ts";
 
 describe("T-CAP-CLI-TESTS: Harness CLI Capture Commands Integration", () => {
   describe("capture:init", () => {

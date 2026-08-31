@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   analyzeTopologyDeclaration,
   assertTopologyJustified,
-} from "../../../olt/scripts/src/graph/topology-declaration.ts";
-import type { TaskDeclaration } from "../../../olt/scripts/src/requirements/compiler.ts";
+} from "../../olt/scripts/src/graph/topology-declaration.ts";
+import type { TaskDeclaration } from "../../olt/scripts/src/requirements/compiler.ts";
 
 function task(overrides: Partial<TaskDeclaration> & Pick<TaskDeclaration, "id">): TaskDeclaration {
   return {

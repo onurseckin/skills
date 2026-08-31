@@ -5,9 +5,9 @@ import {
   agentBriefCommand,
   agentDefineCommand,
   executeAgentBrief,
-} from "../../../olt/scripts/src/cli/commands/agent-brief.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../olt/scripts/src/cli/commands/agent-brief.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { initRun } from "../../olt/scripts/src/engine/store/index.ts";
 
 describe("executeAgentBrief", () => {
   const scratchBase = join(process.cwd(), "coverage", "scratch", "agent-brief");

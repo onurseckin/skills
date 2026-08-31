@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { transact, loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { orphanEvidenceSha256 } from "../../../olt/scripts/src/workflow/orphan-evidence/digest.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
+import { transact, loadRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { orphanEvidenceSha256 } from "../../olt/scripts/src/workflow/orphan-evidence/digest.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 

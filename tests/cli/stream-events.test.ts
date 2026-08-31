@@ -2,8 +2,8 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { streamEventsCommand } from "../../../olt/scripts/src/cli/commands/stream-events.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
+import { streamEventsCommand } from "../../olt/scripts/src/cli/commands/stream-events.ts";
 import { setupCompiledRun } from "./file-persistence-fixture.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 

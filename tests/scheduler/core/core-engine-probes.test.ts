@@ -6,7 +6,7 @@ import {
   probeOrphanedTasks,
   probeScopeCollisionHazards,
   probeStaleLeases,
-} from "../../../../olt/scripts/src/engine/scheduler/index.ts";
+} from "../../../olt/scripts/src/engine/scheduler/index.ts";
 import { schedulerState } from "../fixtures.ts";
 
 describe("Core Scheduler Engine — 5-Point Graph Health Probes", () => {

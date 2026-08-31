@@ -12,13 +12,13 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
-import { mindInitCommand } from "../../../olt/scripts/src/cli/commands/mind-init.ts";
+import { mindInitCommand } from "../../olt/scripts/src/cli/commands/mind-init.ts";
 import {
   formatMindRotateBrief,
   mindRotateCommand,
-} from "../../../olt/scripts/src/cli/commands/mind-rotate.ts";
-import type { JsonObject, JsonValue } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/cli/commands/mind-rotate.ts";
+import type { JsonObject, JsonValue } from "../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   appendArchivedObjectives,
   __setArchivedObjectivesPersistenceTestHook,
@@ -37,24 +37,24 @@ import {
   writeArchivedObjectives,
   BOILERPLATE_CAPSULE_SUBDIRECTORIES,
   type ArchivedObjectiveRecord,
-} from "../../../olt/scripts/src/mind/archival/index.ts";
+} from "../../olt/scripts/src/mind/archival/index.ts";
 import {
   evaluateGate6NotADuplicate,
   type CandidateRecord,
   type GateEvaluationContext,
-} from "../../../olt/scripts/src/mind/proposals/gates/index.ts";
+} from "../../olt/scripts/src/mind/proposals/gates/index.ts";
 import {
   buildMemoryIndex,
   createMemoryDocument,
   indexAllMemory,
   indexArchivedObjectiveDocuments,
   searchMemory,
-} from "../../../olt/scripts/src/mind/memory/core/index.ts";
-import { rotateMindGeneration } from "../../../olt/scripts/src/mind/archival/rotate/index.ts";
-import type { ObjectiveRecord } from "../../../olt/scripts/src/mind/lifecycle/rounds/index.ts";
-import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/index.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../olt/scripts/src/mind/memory/core/index.ts";
+import { rotateMindGeneration } from "../../olt/scripts/src/mind/archival/rotate/index.ts";
+import type { ObjectiveRecord } from "../../olt/scripts/src/mind/lifecycle/rounds/index.ts";
+import { verifyIntegrity } from "../../olt/scripts/src/engine/store/index.ts";
+import { loadRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../olt/scripts/src/engine/store/index.ts";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 
 function scratchRoot(label: string): string {

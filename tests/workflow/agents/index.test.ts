@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import * as agentsIndex from "../../../../olt/scripts/src/workflow/agents/index.ts";
+import * as agentsIndex from "../../../olt/scripts/src/workflow/agents/index.ts";
 
 describe("workflow/agents/index exports", () => {
   test("re-exports all expected agent workflow modules and functions", () => {

@@ -7,7 +7,7 @@ import {
   factoryStatusCommand,
   formatFactoryPreplanBrief,
   formatFactoryStatusBrief,
-} from "../../../olt/scripts/src/cli/commands/factory-ops.ts";
+} from "../../olt/scripts/src/cli/commands/factory-ops.ts";
 
 describe("CLI Operations for Pre-Planning & Assembly Stations (Task 4.1)", () => {
   it("formats factory preplan brief and factory status brief cleanly in markdown", () => {

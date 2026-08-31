@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { openBranch } from "../../../../olt/scripts/src/workflow/branch/open.ts";
-import { readBranchLedger } from "../../../../olt/scripts/src/workflow/branch/ledger.ts";
-import { tokenDigest } from "../../../../olt/scripts/src/workflow/lease/token.ts";
+import { openBranch } from "../../../olt/scripts/src/workflow/branch/open.ts";
+import { readBranchLedger } from "../../../olt/scripts/src/workflow/branch/ledger.ts";
+import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";
 import { branchRecord, subTask } from "./fixture.ts";
 import { FakeRunStore, seedBranchLedger, seedTask } from "./fake-transact.ts";
 

@@ -6,7 +6,7 @@ import {
   feedbackDrainCommand,
   feedbackIngestCommand,
   feedbackListCommand,
-} from "../../../olt/scripts/src/cli/commands/feedback-ops.ts";
+} from "../../olt/scripts/src/cli/commands/feedback-ops.ts";
 
 describe("feedback-ops CLI commands", () => {
   let testDir: string;

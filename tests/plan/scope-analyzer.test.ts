@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { optimizeScopeCollisionDetection } from "../../../olt/scripts/src/plan/scope-analyzer.ts";
+import { optimizeScopeCollisionDetection } from "../../olt/scripts/src/plan/scope-analyzer.ts";
 
 describe("scope-analyzer", () => {
   test("detects overlapping paths between scopes", () => {

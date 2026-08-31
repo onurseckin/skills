@@ -4,7 +4,7 @@ import {
   resetGlobalRoleRegistry,
   synthesizeDynamicRole,
   type DynamicRoleSpec,
-} from "../../../olt/scripts/src/mind/roles/dynamic/index.ts";
+} from "../../olt/scripts/src/mind/roles/dynamic/index.ts";
 import {
   auditDynamicRoles,
   auditSingleRole,
@@ -16,8 +16,8 @@ import {
   renderRoleAuditAsciiTable,
   runAutonomousMindRoleAudit,
   synthesizeNonDuplicatePersona,
-} from "../../../olt/scripts/src/mind/auditing/roles/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/mind/auditing/roles/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 
 describe("Mind Autonomous Role Auditing & Non-Duplicate Persona Synthesis", () => {
   beforeEach(() => {

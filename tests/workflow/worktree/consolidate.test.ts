@@ -5,10 +5,10 @@ import { join } from "node:path";
 import {
   consolidateWorktrees,
   recordConsolidation,
-} from "../../../../olt/scripts/src/workflow/worktree/consolidate.ts";
-import { readWorktreeLedger } from "../../../../olt/scripts/src/workflow/worktree/ledger.ts";
-import type { GitResult, GitRunner } from "../../../../olt/scripts/src/workflow/worktree/git.ts";
-import type { WorktreeLedgerState } from "../../../../olt/scripts/src/core/contracts/index.ts";
+} from "../../../olt/scripts/src/workflow/worktree/consolidate.ts";
+import { readWorktreeLedger } from "../../../olt/scripts/src/workflow/worktree/ledger.ts";
+import type { GitResult, GitRunner } from "../../../olt/scripts/src/workflow/worktree/git.ts";
+import type { WorktreeLedgerState } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { FakeRunStore, baseLedger, seedLedger } from "./fake-transact.ts";
 
 const roots: string[] = [];

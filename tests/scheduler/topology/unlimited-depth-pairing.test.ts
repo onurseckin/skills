@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { pairValidatorsStrictly } from "../../../../olt/scripts/src/engine/scheduler/index.ts";
+import { pairValidatorsStrictly } from "../../../olt/scripts/src/engine/scheduler/index.ts";
 
 describe("Unlimited Depth DAG: Validator Pairing", () => {
   describe("pairValidatorsStrictly", () => {

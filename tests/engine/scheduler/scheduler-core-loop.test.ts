@@ -3,7 +3,7 @@ import {
   probePlanEnhancementNeeds,
   probeAgentRegistryAccuracy,
   probeRoleBoundaryAdherence,
-} from "../../../../olt/scripts/src/engine/scheduler/core/loop.ts";
+} from "../../../olt/scripts/src/engine/scheduler/core/loop.ts";
 
 describe("engine/scheduler/core/loop.ts", () => {
   describe("probePlanEnhancementNeeds", () => {

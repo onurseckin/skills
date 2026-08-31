@@ -1,14 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import { chmodSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   assertPathIdentity,
   assertSafeAncestors,
   ensureSafeDirectory,
   pathIdentity,
   sameIdentity,
-} from "../../../olt/scripts/src/installer/path-safety.ts";
+} from "../../olt/scripts/src/installer/path-safety.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("pathIdentity", () => {

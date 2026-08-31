@@ -4,7 +4,7 @@ import { join } from "node:path";
 import {
   parseUnifiedAgentManifest,
   validateUnifiedAgentManifest,
-} from "../../../olt/scripts/src/authority/manifest-schema.ts";
+} from "../../olt/scripts/src/authority/manifest-schema.ts";
 
 const AGENTS_DIR = join(import.meta.dir, "../../../olt/agents");
 const REPO_ROOT = join(import.meta.dir, "../../../");

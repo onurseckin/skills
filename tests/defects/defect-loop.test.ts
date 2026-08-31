@@ -3,7 +3,7 @@ import {
   ContinuousDefectFeedbackLoop,
   type DomainExecutionContext,
   type DomainExecutionTask,
-} from "../../../olt/scripts/src/mind/defects/loop/index.ts";
+} from "../../olt/scripts/src/mind/defects/loop/index.ts";
 
 describe("Multi-Domain Parallel Execution & Continuous Defect Feedback Loop", () => {
   test("executes tasks across multiple domains in parallel", async () => {

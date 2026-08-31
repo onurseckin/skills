@@ -1,10 +1,10 @@
 import { expect, test } from "bun:test";
-import type { CheckReport, Violation } from "../../../../../scripts/modularity/core/index.ts";
+import type { CheckReport, Violation } from "../../../../scripts/modularity/core/index.ts";
 import {
   renderJsonReport,
   renderMarkdownReport,
   sortViolations,
-} from "../../../../../scripts/modularity/reporting/index.ts";
+} from "../../../../scripts/modularity/reporting/index.ts";
 
 const sampleReport: CheckReport = {
   mode: "strict",

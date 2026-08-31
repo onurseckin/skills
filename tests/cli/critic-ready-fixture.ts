@@ -2,15 +2,15 @@ import { realpathSync } from "node:fs";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
-import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
-import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { inspectRepositoryBinding } from "../../../olt/scripts/src/packets/repository-identity.ts";
-import { captureGateEnvironment } from "../../../olt/scripts/src/engine/runner/index.ts";
-import { captureGatePathBindings } from "../../../olt/scripts/src/engine/runner/index.ts";
-import { canonicalCommandFingerprint } from "../../../olt/scripts/src/engine/runner/index.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
+import type { CommandRecord } from "../../olt/scripts/src/core/contracts/index.ts";
+import type { JsonObject } from "../../olt/scripts/src/core/contracts/index.ts";
+import type { RepositoryBinding } from "../../olt/scripts/src/core/contracts/index.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
+import { inspectRepositoryBinding } from "../../olt/scripts/src/packets/repository-identity.ts";
+import { captureGateEnvironment } from "../../olt/scripts/src/engine/runner/index.ts";
+import { captureGatePathBindings } from "../../olt/scripts/src/engine/runner/index.ts";
+import { canonicalCommandFingerprint } from "../../olt/scripts/src/engine/runner/index.ts";
+import { transact } from "../../olt/scripts/src/engine/store/index.ts";
 import {
   establishSupervisorChain,
   registerUnderChain,

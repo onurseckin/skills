@@ -29,8 +29,8 @@ import {
   type HierarchyScalingResult,
   type MultiCoordinatorWavePartitionResult,
   type SmartTaskPlan,
-} from "../../../olt/scripts/src/mind/tasks/smart/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/mind/tasks/smart/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 
 function createMockTask(
   id: string,

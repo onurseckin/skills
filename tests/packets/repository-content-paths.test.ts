@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { repositoryContentPaths } from "../../../olt/scripts/src/packets/repository-content-paths.ts";
+import { repositoryContentPaths } from "../../olt/scripts/src/packets/repository-content-paths.ts";
 
 /**
  * repositoryContentPaths' non-git walk guards against unbounded directory listings with a

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "bun:test";
-import * as mindIndex from "../../../olt/scripts/src/mind/index.ts";
-import * as lanesIndex from "../../../olt/scripts/src/mind/lanes/index.ts";
-import * as defectsIndex from "../../../olt/scripts/src/mind/defects/index.ts";
+import * as mindIndex from "../../olt/scripts/src/mind/index.ts";
+import * as lanesIndex from "../../olt/scripts/src/mind/lanes/index.ts";
+import * as defectsIndex from "../../olt/scripts/src/mind/defects/index.ts";
 
 describe("mind/index and sub-domain barrel exports", () => {
   it("exports all subsystems from mind/index.ts", () => {

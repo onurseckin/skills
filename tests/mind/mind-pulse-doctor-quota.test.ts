@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { checkQuotaHealth } from "../../../olt/scripts/src/reporting/doctor/index.ts";
-import type { UnifiedTelemetryReport } from "../../../olt/scripts/src/telemetry/types.ts";
+import { checkQuotaHealth } from "../../olt/scripts/src/reporting/doctor/index.ts";
+import type { UnifiedTelemetryReport } from "../../olt/scripts/src/telemetry/types.ts";
 
 describe("Doctor Quota Health Engine Diagnostics", () => {
   function createMockReport(

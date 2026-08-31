@@ -3,7 +3,7 @@ import {
   NOOP_COMMANDS,
   probeScopeCollisionHazards,
   probeWorkSpanParallelizationHealth,
-} from "../../../../olt/scripts/src/engine/scheduler/core/tasks/tasks-advanced.ts";
+} from "../../../olt/scripts/src/engine/scheduler/core/tasks/tasks-advanced.ts";
 
 describe("engine/scheduler/core/tasks/tasks-advanced.ts", () => {
   describe("NOOP_COMMANDS", () => {

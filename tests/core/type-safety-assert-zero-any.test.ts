@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   assertZeroAny,
   collectTsFiles,
@@ -11,7 +11,7 @@ import {
   scanDirectoryForAny,
   scanFileForAny,
   scanSourceCodeForAny,
-} from "../../../olt/scripts/src/core/type-safety/index.ts";
+} from "../../olt/scripts/src/core/type-safety/index.ts";
 
 function createTempDir(prefix: string): string {
   return realpathSync(mkdtempSync(join(tmpdir(), prefix)));

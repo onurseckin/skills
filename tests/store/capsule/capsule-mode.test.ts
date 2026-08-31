@@ -2,8 +2,8 @@ import { describe, expect, it } from "bun:test";
 import { join } from "node:path";
 import { readFileSync, rmSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { initRun } from "../../../../olt/scripts/src/engine/store/capsule/capsule.ts";
-import { assertMindModeAllowed } from "../../../../olt/scripts/src/mind/tasks/smart/index.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
+import { assertMindModeAllowed } from "../../../olt/scripts/src/mind/tasks/smart/index.ts";
 
 describe("Capsule Mode Partitioning", () => {
   const getTempDir = () => mkdtempSync(join(tmpdir(), "capsule-mode-test-"));

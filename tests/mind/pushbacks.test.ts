@@ -6,7 +6,7 @@ import {
   mapFeedbackCategoryToDefectCategory,
   parsePushbackMarkdown,
   ingestPushbacks,
-} from "../../../olt/scripts/src/mind/feedback/pushbacks/index.ts";
+} from "../../olt/scripts/src/mind/feedback/pushbacks/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("mind/pushbacks", () => {

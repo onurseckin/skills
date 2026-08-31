@@ -2,13 +2,13 @@ import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { agentRegisterCommand } from "../../../olt/scripts/src/cli/commands/agent-ops.ts";
+import { agentRegisterCommand } from "../../olt/scripts/src/cli/commands/agent-ops.ts";
 import {
   mindRoundCloseCommand,
   mindRoundOpenCommand,
-} from "../../../olt/scripts/src/cli/commands/mind-round.ts";
-import type { JsonObject, JsonValue } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/cli/commands/mind-round.ts";
+import type { JsonObject, JsonValue } from "../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   carryForwardFindingsAndRequirements,
   formatMindRoundCloseBrief,
@@ -23,8 +23,8 @@ import {
   validatePriorRoundCompleted,
   validateRoundBudget,
   validateRoundCloseArmingRail,
-} from "../../../olt/scripts/src/mind/lifecycle/rounds/index.ts";
-import { initRun, loadRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../olt/scripts/src/mind/lifecycle/rounds/index.ts";
+import { initRun, loadRun, transact } from "../../olt/scripts/src/engine/store/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 interface MindFixture {

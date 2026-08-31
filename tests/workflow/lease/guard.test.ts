@@ -6,9 +6,9 @@ import {
   assertActiveLease,
   verifyLeaseGuard,
   verifyDiskCapsuleLease,
-} from "../../../../olt/scripts/src/workflow/lease/guard.ts";
-import { claimTask } from "../../../../olt/scripts/src/workflow/lease/claim.ts";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+} from "../../../olt/scripts/src/workflow/lease/guard.ts";
+import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { at, TestPort, workflowState } from "../test-port.ts";
 import { scratchRoot } from "../../../support/scratch-root.ts";
 

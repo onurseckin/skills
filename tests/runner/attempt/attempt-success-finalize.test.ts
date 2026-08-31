@@ -2,12 +2,12 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { finalizeSuccessfulAttempt } from "../../../../olt/scripts/src/engine/runner/models/attempt/attempt-success-evidence.ts";
+import { finalizeSuccessfulAttempt } from "../../../olt/scripts/src/engine/runner/models/attempt/attempt-success-evidence.ts";
 import type {
   NormalizedCommandOptions,
   OutputSummary,
-} from "../../../../olt/scripts/src/engine/runner/types/types.ts";
-import type { ProcessIdentity } from "../../../../olt/scripts/src/engine/runner/process/process-identity.ts";
+} from "../../../olt/scripts/src/engine/runner/types/types.ts";
+import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
 
 const roots: string[] = [];
 

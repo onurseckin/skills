@@ -15,9 +15,9 @@ import {
   type TaskVerificationEvidenceInput,
   type TaskVerificationCheckInput,
   type CounterfactualEvidenceItem,
-} from "../../../olt/scripts/src/authority/review/index.ts";
-import { MAX_REPAIR_ROUNDS } from "../../../olt/scripts/src/core/config/contracts.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/authority/review/index.ts";
+import { MAX_REPAIR_ROUNDS } from "../../olt/scripts/src/core/config/contracts.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 
 describe("Review Pushback Subsystem (authority/review-pushback.ts)", () => {
   describe("SUPERFICIAL_PATTERNS and rejectSuperficialClaims", () => {

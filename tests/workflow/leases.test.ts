@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { evidenced } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
-import { heartbeat } from "../../../olt/scripts/src/workflow/lease/heartbeat.ts";
-import { recoverStale } from "../../../olt/scripts/src/workflow/lease/recover-stale.ts";
-import { releaseLease } from "../../../olt/scripts/src/workflow/lease/release.ts";
-import type { Clock } from "../../../olt/scripts/src/workflow/types.ts";
+import { evidenced } from "../../olt/scripts/src/core/contracts/index.ts";
+import { claimTask } from "../../olt/scripts/src/workflow/lease/claim.ts";
+import { heartbeat } from "../../olt/scripts/src/workflow/lease/heartbeat.ts";
+import { recoverStale } from "../../olt/scripts/src/workflow/lease/recover-stale.ts";
+import { releaseLease } from "../../olt/scripts/src/workflow/lease/release.ts";
+import type { Clock } from "../../olt/scripts/src/workflow/types.ts";
 import { TestPort, workflowState } from "./test-port.ts";
 
 class FakeClock implements Clock {

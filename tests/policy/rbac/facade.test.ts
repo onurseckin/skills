@@ -9,9 +9,9 @@ import {
   STATIC_IMPLEMENTER_FORBIDDEN_PATTERNS,
   STATIC_SUPERVISOR_FORBIDDEN_PATTERNS,
   verifyCommandAuthorization,
-} from "../../../../olt/scripts/src/policy/index.ts";
-import type { AgentMetadata } from "../../../../olt/scripts/src/runtime/index.ts";
-import type { RepoPolicy } from "../../../../olt/scripts/src/policy/index.ts";
+} from "../../../olt/scripts/src/policy/index.ts";
+import type { AgentMetadata } from "../../../olt/scripts/src/runtime/index.ts";
+import type { RepoPolicy } from "../../../olt/scripts/src/policy/index.ts";
 
 describe("RBAC Engine Public Facade & Integration", () => {
   const samplePolicy: RepoPolicy = {

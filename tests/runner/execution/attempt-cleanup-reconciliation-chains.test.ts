@@ -3,27 +3,27 @@ import { mkdtemp, mkdir, readFile, rm } from "node:fs/promises";
 import { generateKeyPairSync, sign } from "node:crypto";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import type { CommandRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
+import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   reconcileStrandedCommands,
   runAndRecordCommand,
-} from "../../../../olt/scripts/src/integration/record-command.ts";
+} from "../../../olt/scripts/src/integration/record-command.ts";
 import {
   attemptStartedBaseDigest,
   cleanupDispositionEntryDigest,
   cleanupDispositionSigningBytes,
   type CleanupDispositionPayload,
-} from "../../../../olt/scripts/src/engine/runner/execution/attempt-cleanup-disposition.ts";
-import { createCommandSigningCapability } from "../../../../olt/scripts/src/engine/runner/execution/attempt-disposition-capability.ts";
+} from "../../../olt/scripts/src/engine/runner/execution/attempt-cleanup-disposition.ts";
+import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/execution/attempt-disposition-capability.ts";
 import {
   attemptStartedIssues,
   ownershipTokenDigest,
   settledAttemptTerminalProof,
   startAttemptIntent,
-} from "../../../../olt/scripts/src/engine/runner/execution/attempt-intent.ts";
-import { createInternalCommandRunner } from "../../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
-import { OWNERSHIP_ENV } from "../../../../olt/scripts/src/engine/runner/core/pipe-ownership.ts";
-import { initRun, loadRun } from "../../../../olt/scripts/src/engine/store/index.ts";
+} from "../../../olt/scripts/src/engine/runner/execution/attempt-intent.ts";
+import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
+import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/core/pipe-ownership.ts";
+import { initRun, loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 
 const roots: string[] = [];
 

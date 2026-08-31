@@ -4,7 +4,7 @@ import {
   parsePayloadNumber,
   parsePayloadString,
   parsePayloadStringArray,
-} from "../../../../olt/scripts/src/reporting/living-tracer/index.ts";
+} from "../../../olt/scripts/src/reporting/living-tracer/index.ts";
 
 describe("reporting/living-tracer setup & utilities suite", () => {
   it("parses payload string, number, and string arrays accurately", () => {

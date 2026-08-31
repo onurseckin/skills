@@ -2,53 +2,53 @@ import { describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
-import { initRun } from "../../../../olt/scripts/src/engine/store/capsule/capsule.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
 import {
   captureAssurance,
   isCaptureMode,
   CAPTURE_MODES,
-} from "../../../../olt/scripts/src/engine/store/integrity/assurance.ts";
-import { verifyIntegrity } from "../../../../olt/scripts/src/engine/store/integrity/integrity.ts";
+} from "../../../olt/scripts/src/engine/store/integrity/assurance.ts";
+import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/integrity/integrity.ts";
 import {
   issue,
   throwIntegrity,
-} from "../../../../olt/scripts/src/engine/store/integrity/issues.ts";
-import { verifyCapsuleLayout } from "../../../../olt/scripts/src/engine/store/integrity/layout-integrity.ts";
+} from "../../../olt/scripts/src/engine/store/integrity/issues.ts";
+import { verifyCapsuleLayout } from "../../../olt/scripts/src/engine/store/integrity/layout-integrity.ts";
 import {
   diffProjection,
   applyProjectionPatch,
-} from "../../../../olt/scripts/src/engine/store/projections/projection-patch.ts";
+} from "../../../olt/scripts/src/engine/store/projections/projection-patch.ts";
 import {
   brainstormingProjection,
   materializedProjections,
   materializeProjections,
   materializedProjectionDigests,
-} from "../../../../olt/scripts/src/engine/store/projections/materialized-projections.ts";
+} from "../../../olt/scripts/src/engine/store/projections/materialized-projections.ts";
 import {
   appendCapsuleDefect,
   loadCapsuleDefects,
   resolveCapsuleDefect,
   compactCapsuleDefects,
-} from "../../../../olt/scripts/src/engine/store/recovery/defect-store.ts";
-import { quarantineAndTruncateTail } from "../../../../olt/scripts/src/engine/store/recovery/forensic-tail.ts";
-import { recoverProjection } from "../../../../olt/scripts/src/engine/store/recovery/recovery.ts";
+} from "../../../olt/scripts/src/engine/store/recovery/defect-store.ts";
+import { quarantineAndTruncateTail } from "../../../olt/scripts/src/engine/store/recovery/forensic-tail.ts";
+import { recoverProjection } from "../../../olt/scripts/src/engine/store/recovery/recovery.ts";
 import {
   writeTrace,
   appendTraceStep,
-} from "../../../../olt/scripts/src/engine/store/recovery/trace.ts";
-import { writeBlob, listBlobs } from "../../../../olt/scripts/src/engine/store/layout/blobs.ts";
-import { checkManifest } from "../../../../olt/scripts/src/engine/store/layout/manifest.ts";
-import { text, isRecord } from "../../../../olt/scripts/src/engine/store/layout/layout-json.ts";
-import { commandLayout } from "../../../../olt/scripts/src/engine/store/layout/layout-commands.ts";
-import { packetLayout } from "../../../../olt/scripts/src/engine/store/layout/layout-packets.ts";
+} from "../../../olt/scripts/src/engine/store/recovery/trace.ts";
+import { writeBlob, listBlobs } from "../../../olt/scripts/src/engine/store/layout/blobs.ts";
+import { checkManifest } from "../../../olt/scripts/src/engine/store/layout/manifest.ts";
+import { text, isRecord } from "../../../olt/scripts/src/engine/store/layout/layout-json.ts";
+import { commandLayout } from "../../../olt/scripts/src/engine/store/layout/layout-commands.ts";
+import { packetLayout } from "../../../olt/scripts/src/engine/store/layout/layout-packets.ts";
 import {
   renderLayoutReadme,
   initialCapsuleDirectories,
-} from "../../../../olt/scripts/src/engine/store/layout/layout.ts";
-import { initialState } from "../../../../olt/scripts/src/engine/store/capsule/state.ts";
-import { transact } from "../../../../olt/scripts/src/engine/store/events/transaction.ts";
-import type { HarnessEvent } from "../../../../olt/scripts/src/core/contracts/index.ts";
+} from "../../../olt/scripts/src/engine/store/layout/layout.ts";
+import { initialState } from "../../../olt/scripts/src/engine/store/capsule/state.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/events/transaction.ts";
+import type { HarnessEvent } from "../../../olt/scripts/src/core/contracts/index.ts";
 
 function makeTmpDir(prefix: string): string {
   return realpathSync(mkdtempSync(join(tmpdir(), prefix)));

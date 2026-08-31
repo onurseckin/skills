@@ -3,12 +3,12 @@ import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { agentRegisterCommand } from "../../../olt/scripts/src/cli/commands/agent-ops.ts";
+import { agentRegisterCommand } from "../../olt/scripts/src/cli/commands/agent-ops.ts";
 import {
   formatMindQuiesceBrief,
   mindQuiesceCommand,
-} from "../../../olt/scripts/src/cli/commands/mind-quiesce.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/cli/commands/mind-quiesce.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   buildQuiescentDigest,
   calculateQuiescentInterval,
@@ -18,12 +18,12 @@ import {
   tryParseQuiescentSourceSpec,
   validateQuiescentScan,
   type QuiescentSourceObservation,
-} from "../../../olt/scripts/src/mind/archival/quiesce/index.ts";
-import { MIND_DISCOVERY_SOURCES } from "../../../olt/scripts/src/mind/memory/sources/index.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/index.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../olt/scripts/src/mind/archival/quiesce/index.ts";
+import { MIND_DISCOVERY_SOURCES } from "../../olt/scripts/src/mind/memory/sources/index.ts";
+import { initRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { verifyIntegrity } from "../../olt/scripts/src/engine/store/index.ts";
+import { loadRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../olt/scripts/src/engine/store/index.ts";
 
 const tempRoots: string[] = [];
 

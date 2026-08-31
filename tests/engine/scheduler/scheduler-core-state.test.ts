@@ -6,11 +6,11 @@ import {
   auditGraphHealth,
   auditSupervisoryWatchdog,
   recoverStaleTasks,
-} from "../../../../olt/scripts/src/engine/scheduler/core/state.ts";
+} from "../../../olt/scripts/src/engine/scheduler/core/state.ts";
 import type {
   TransactionPort,
   CapsuleStoreState,
-} from "../../../../olt/scripts/src/workflow/types.ts";
+} from "../../../olt/scripts/src/workflow/types.ts";
 
 describe("engine/scheduler/core/state.ts", () => {
   let tempDir: string;

@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   checkAstPurity,
   scanFileForAstPurity,
-} from "../../../olt/scripts/src/reporting/doctor/ast-purity-engine.ts";
+} from "../../olt/scripts/src/reporting/doctor/ast-purity-engine.ts";
 
 describe("Wave 2 - Task 2.1: Native AST Static Purity Tokenizer", () => {
   test("passes cleanly when code is pure without any suppressions or any types", () => {

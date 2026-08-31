@@ -7,8 +7,8 @@ import {
   runDoctor,
   versionAtLeast,
   formatDoctorReport,
-} from "../../../../olt/scripts/src/reporting/doctor.ts";
-import { initRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
+} from "../../../olt/scripts/src/reporting/doctor.ts";
+import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 
 const roots: string[] = [];
 afterEach(async () =>

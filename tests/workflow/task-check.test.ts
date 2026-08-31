@@ -15,12 +15,12 @@ import {
   type LintCheckResult,
   type TaskCheckSummary,
   type TypeCheckResult,
-} from "../../../olt/scripts/src/cli/commands/task-check.ts";
-import type { Flags } from "../../../olt/scripts/src/cli/options.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { ALL_AST_LINT_RULES } from "../../../olt/scripts/src/linter/ast/index.ts";
-import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
+} from "../../olt/scripts/src/cli/commands/task-check.ts";
+import type { Flags } from "../../olt/scripts/src/cli/options.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { ALL_AST_LINT_RULES } from "../../olt/scripts/src/linter/ast/index.ts";
+import { initRun, transact } from "../../olt/scripts/src/engine/store/index.ts";
+import type { TaskRecord } from "../../olt/scripts/src/workflow/types.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 function createScratchContext(label: string): {

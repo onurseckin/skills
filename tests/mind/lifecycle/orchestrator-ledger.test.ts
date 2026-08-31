@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   DEFAULT_ORCHESTRATOR_LOCK_FILE,
   deregisterOrchestrator,
@@ -12,7 +12,7 @@ import {
   withOrchestratorLedgerLock,
   type NewOrchestratorRecordInput,
   type OrchestratorLifecycleStatus,
-} from "../../../../olt/scripts/src/mind/lifecycle/orchestrator-ledger.ts";
+} from "../../../olt/scripts/src/mind/lifecycle/orchestrator-ledger.ts";
 
 function createValidInput(
   overrides: Partial<NewOrchestratorRecordInput> = {},

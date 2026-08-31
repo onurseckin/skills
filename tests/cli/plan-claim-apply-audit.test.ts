@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
 import { cleanupRoots, writeJson } from "./full-lifecycle-fixture.ts";
 import { graphDocument } from "../graph/fixtures.ts";
 import { requirementsDocument } from "../requirements/fixtures.ts";

@@ -8,7 +8,7 @@ import {
   MAX_FLEET_CONCURRENCY_CAP,
   FleetConcurrencyController,
   type FleetSeat,
-} from "../../../olt/scripts/src/mind/concurrency-cap.ts";
+} from "../../olt/scripts/src/mind/concurrency-cap.ts";
 
 describe("Fleet Concurrency Controller (Max 50 Subagents Cap)", () => {
   describe("hard ceiling of max 50 subagents", () => {

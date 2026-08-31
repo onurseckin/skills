@@ -4,15 +4,15 @@ import { existsSync } from "node:fs";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
 import {
   deriveRunId,
   firstAvailableRunId,
-} from "../../../olt/scripts/src/cli/commands/orchestrate-slug.ts";
+} from "../../olt/scripts/src/cli/commands/orchestrate-slug.ts";
 import {
   extractOrchestrateInlinePrompt,
   shouldAutoReadOrchestrateStdin,
-} from "../../../olt/scripts/src/cli/prompt-input.ts";
+} from "../../olt/scripts/src/cli/prompt-input.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 
 const roots: string[] = [];

@@ -4,7 +4,7 @@ import {
   getNodeStatusGlyph,
   renderRoundedNodeBox,
   renderSugiyamaNodeBox,
-} from "../../../../../olt/scripts/src/reporting/sugiyama-dag/render-box.ts";
+} from "../../../../olt/scripts/src/reporting/sugiyama-dag/render-box.ts";
 import {
   formatCoordinates,
   formatStatusBadge,
@@ -12,8 +12,8 @@ import {
   getStatusBadge,
   getStatusGlyph,
   renderSubagentExpandedItems,
-} from "../../../../../olt/scripts/src/reporting/sugiyama-dag/subagent-expansion.ts";
-import type { SugiyamaNode } from "../../../../../olt/scripts/src/reporting/sugiyama-dag/types.ts";
+} from "../../../../olt/scripts/src/reporting/sugiyama-dag/subagent-expansion.ts";
+import type { SugiyamaNode } from "../../../../olt/scripts/src/reporting/sugiyama-dag/types.ts";
 
 describe("sugiyama-dag-subagent-expansion-edge", () => {
   describe("getNodeStatusGlyph for lifecycle statuses", () => {

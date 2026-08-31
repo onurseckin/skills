@@ -6,7 +6,7 @@ import {
   ensurePathInShellRc,
   generateExportLine,
   isPathDeclaredInContent,
-} from "../../../scripts/sync/shell-rc.ts";
+} from "../../scripts/sync/shell-rc.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("detectShellRcPath", () => {

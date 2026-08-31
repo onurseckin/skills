@@ -2,7 +2,7 @@ import { afterAll, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   admitAndDispatchFeedbackAtomically,
   admitFeedbackToQueue,
@@ -14,7 +14,7 @@ import {
   reconcilePausedAdmittedFeedbacks,
   writeFeedbackQueue,
   type FeedbackItem,
-} from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
+} from "../../olt/scripts/src/mind/feedback/queue/index.ts";
 import {
   assertAntiBatchingRule,
   executeAtomicAdmissionToDispatch,
@@ -34,13 +34,13 @@ import {
   type MultiOrchestratorPrePlanningResult,
   type ProductOwnerIntakeItem,
   type SmartTaskPlan,
-} from "../../../olt/scripts/src/mind/tasks/smart/index.ts";
+} from "../../olt/scripts/src/mind/tasks/smart/index.ts";
 import {
   clearTaskQueue,
   enqueueTasksBatch,
   getQueueStats,
   readTaskQueue,
-} from "../../../olt/scripts/src/task/queue/index.ts";
+} from "../../olt/scripts/src/task/queue/index.ts";
 
 describe("Mind Product Owner Mode & Atomic Dispatch Chaining Test Suite", () => {
   const testRoot = join(

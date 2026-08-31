@@ -2,19 +2,19 @@ import { afterEach, describe, expect, test } from "bun:test";
 import {
   isMicroCycleRecord,
   type MicroCycleRecord,
-} from "../../../olt/scripts/src/core/contracts/index.ts";
+} from "../../olt/scripts/src/core/contracts/index.ts";
 import {
   formatMicroCycleFeedback,
   getLatestMicroCycle,
   getOpenMicroCycles,
   markMicroCycleAddressed,
   recordMicroCycleCritique,
-} from "../../../olt/scripts/src/workflow/review/micro-cycle.ts";
-import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
-import { taskRejectCommand } from "../../../olt/scripts/src/cli/commands/task-reject.ts";
-import { taskReviewCommand } from "../../../olt/scripts/src/cli/commands/task-review.ts";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import type { Clock, TaskRecord, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
+} from "../../olt/scripts/src/workflow/review/micro-cycle.ts";
+import { claimTask } from "../../olt/scripts/src/workflow/lease/claim.ts";
+import { taskRejectCommand } from "../../olt/scripts/src/cli/commands/task-reject.ts";
+import { taskReviewCommand } from "../../olt/scripts/src/cli/commands/task-review.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
+import type { Clock, TaskRecord, WorkflowState } from "../../olt/scripts/src/workflow/types.ts";
 import { cleanupRoots } from "../cli/full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "../cli/file-persistence-fixture.ts";
 import { registerTaskPacket, TestPort, workflowState } from "./test-port.ts";

@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   readProcessIdentity,
   sameProcessIdentity,
-} from "../../../../olt/scripts/src/engine/runner/process/process-identity.ts";
+} from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
 
 describe("readProcessIdentity", () => {
   test("returns undefined for pid 1, 0, negative, or non-integer values without dispatching", () => {

@@ -10,7 +10,7 @@ import {
   type RawBacklogItem,
   type RawDefectItem,
   type ThematicCluster,
-} from "../../../../olt/scripts/src/mind/preplanning/index.ts";
+} from "../../../olt/scripts/src/mind/preplanning/index.ts";
 import { scratchRoot } from "../../../support/scratch-root.ts";
 
 describe("Plan Factory Engine", () => {

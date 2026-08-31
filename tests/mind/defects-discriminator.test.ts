@@ -7,8 +7,8 @@ import {
   computeDefectDiscriminator,
   extractDefectKeywords,
   calculateDefectSimilarity,
-} from "../../../olt/scripts/src/mind/defects/core/index.ts";
-import type { DefectRecordInput } from "../../../olt/scripts/src/mind/defects/core/index.ts";
+} from "../../olt/scripts/src/mind/defects/core/index.ts";
+import type { DefectRecordInput } from "../../olt/scripts/src/mind/defects/core/index.ts";
 
 describe("mind/defects/discriminator", () => {
   describe("normalizeObservationSignature", () => {

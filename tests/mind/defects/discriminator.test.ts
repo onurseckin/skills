@@ -13,7 +13,7 @@ import {
   extractDefectKeywords,
   normalizeObservationSignature,
   type DefectRecordInput,
-} from "../../../../olt/scripts/src/mind/defects/index.ts";
+} from "../../../olt/scripts/src/mind/defects/index.ts";
 
 describe("Defect Discriminator & Hash Suite", () => {
   describe("normalizeObservationSignature", () => {

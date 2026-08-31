@@ -4,8 +4,8 @@ import {
   computeTaskSlack,
   computeWorkSpan,
   type ForensicTaskNode,
-} from "../../../../olt/scripts/src/graph/dag-forensics.ts";
-import { downstreamMap, topologicalOrder } from "../../../../olt/scripts/src/graph/topology.ts";
+} from "../../../olt/scripts/src/graph/dag-forensics.ts";
+import { downstreamMap, topologicalOrder } from "../../../olt/scripts/src/graph/topology.ts";
 
 describe("Forensics Critical Path & Longest-Path Dynamic Programming", () => {
   test("computes topological order on complex DAG with multiple roots and sinks", () => {

@@ -2,11 +2,11 @@ import { describe, expect, it } from "bun:test";
 import {
   ResourceGovernor,
   type SystemMetricsProvider,
-} from "../../../../olt/scripts/src/tooling/sandbox/resource-governor.ts";
+} from "../../../olt/scripts/src/tooling/sandbox/resource-governor.ts";
 import type {
   QuotaViolation,
   ResourceQuota,
-} from "../../../../olt/scripts/src/tooling/sandbox/types.ts";
+} from "../../../olt/scripts/src/tooling/sandbox/types.ts";
 
 class MockSystemMetricsProvider implements SystemMetricsProvider {
   public memory = {

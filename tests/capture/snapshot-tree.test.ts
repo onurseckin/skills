@@ -4,9 +4,9 @@ import {
   createSnapshotTree,
   pruneSnapshotTree,
   SnapshotTree,
-} from "../../../olt/scripts/src/capture/snapshot/index.ts";
-import type { SnapshotContext } from "../../../olt/scripts/src/capture/snapshot/types.ts";
-import type { DomPhysicsSnapshot } from "../../../olt/scripts/src/capture/runners/types.ts";
+} from "../../olt/scripts/src/capture/snapshot/index.ts";
+import type { SnapshotContext } from "../../olt/scripts/src/capture/snapshot/types.ts";
+import type { DomPhysicsSnapshot } from "../../olt/scripts/src/capture/runners/types.ts";
 
 function createDummyContext(screenId = "home"): SnapshotContext {
   return {

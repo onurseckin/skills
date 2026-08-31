@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   cleanupVestigialDefectsFile,
   enforceSequentialLifecycleOrdering,
@@ -16,12 +16,12 @@ import {
   validateDefectStateTransition,
   VALID_DEFECT_STATE_TRANSITIONS,
   type DoctorFindingInput,
-} from "../../../olt/scripts/src/mind/defects/sync/index.ts";
+} from "../../olt/scripts/src/mind/defects/sync/index.ts";
 
 import type {
   DefectEntry,
   EmpiricalFailureProof,
-} from "../../../olt/scripts/src/mind/contracts/defect-contracts.ts";
+} from "../../olt/scripts/src/mind/contracts/defect-contracts.ts";
 
 describe("Defect Lifecycle Sync & Order Enforcement Engine", () => {
   let tempDir: string;

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { parseRawFindings } from "../../../../olt/scripts/src/workflow/completion/parse-raw-findings.ts";
+import { parseRawFindings } from "../../../olt/scripts/src/workflow/completion/parse-raw-findings.ts";
 
 describe("parseRawFindings", () => {
   test("returns an empty list when neither inline text nor a file is supplied", () => {

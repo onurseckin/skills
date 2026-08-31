@@ -6,46 +6,46 @@ import { join } from "node:path";
 import {
   formatMindAuditStartBrief,
   mindAuditStartCommand,
-} from "../../../olt/scripts/src/cli/commands/mind-audit-start.ts";
+} from "../../olt/scripts/src/cli/commands/mind-audit-start.ts";
 import {
   formatMindAuditReportBrief,
   mindAuditReportCommand,
-} from "../../../olt/scripts/src/cli/commands/mind-audit-report.ts";
-import { mindAuditLiveCommand } from "../../../olt/scripts/src/cli/commands/mind-audit-live.ts";
+} from "../../olt/scripts/src/cli/commands/mind-audit-report.ts";
+import { mindAuditLiveCommand } from "../../olt/scripts/src/cli/commands/mind-audit-live.ts";
 import {
   mindRoundOpenCommand,
   mindRoundCloseCommand,
   formatMindRoundOpenBrief,
   formatMindRoundCloseBrief,
-} from "../../../olt/scripts/src/cli/commands/mind-round.ts";
+} from "../../olt/scripts/src/cli/commands/mind-round.ts";
 import {
   mindAdmitCommand,
   mindDeclineCommand,
   formatMindAdmitBrief,
-} from "../../../olt/scripts/src/cli/commands/mind-admit.ts";
+} from "../../olt/scripts/src/cli/commands/mind-admit.ts";
 import {
   mindCandidateCommand,
   formatMindCandidateBrief,
-} from "../../../olt/scripts/src/cli/commands/mind-candidate.ts";
+} from "../../olt/scripts/src/cli/commands/mind-candidate.ts";
 import {
   mindObserveCommand,
   formatMindObserveBrief,
-} from "../../../olt/scripts/src/cli/commands/mind-observe.ts";
+} from "../../olt/scripts/src/cli/commands/mind-observe.ts";
 import {
   mindPulseCommand,
   computeMindCognitiveTelemetry,
   formatMindPulseActiveBrief,
   formatMindPulseOpenedBrief,
   formatPulseDirective,
-} from "../../../olt/scripts/src/cli/commands/mind-pulse.ts";
-import { mindPulseOpenCommand } from "../../../olt/scripts/src/cli/commands/mind-pulse-open.ts";
-import { mindQuiesceCommand } from "../../../olt/scripts/src/cli/commands/mind-quiesce.ts";
-import { mindInitCommand } from "../../../olt/scripts/src/cli/commands/mind-init.ts";
-import { mindWakeCommand } from "../../../olt/scripts/src/cli/commands/mind-wake.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { initRun, loadRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import { writeAgentLedger } from "../../../olt/scripts/src/workflow/agents/ledger.ts";
-import { MindAuditorEngine } from "../../../olt/scripts/src/mind/auditing/cognitive/index.ts";
+} from "../../olt/scripts/src/cli/commands/mind-pulse.ts";
+import { mindPulseOpenCommand } from "../../olt/scripts/src/cli/commands/mind-pulse-open.ts";
+import { mindQuiesceCommand } from "../../olt/scripts/src/cli/commands/mind-quiesce.ts";
+import { mindInitCommand } from "../../olt/scripts/src/cli/commands/mind-init.ts";
+import { mindWakeCommand } from "../../olt/scripts/src/cli/commands/mind-wake.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { initRun, loadRun, transact } from "../../olt/scripts/src/engine/store/index.ts";
+import { writeAgentLedger } from "../../olt/scripts/src/workflow/agents/ledger.ts";
+import { MindAuditorEngine } from "../../olt/scripts/src/mind/auditing/cognitive/index.ts";
 
 const roots: string[] = [];
 

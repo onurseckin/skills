@@ -13,7 +13,7 @@ import {
   isPrimaryCommand,
   type CommandDomain,
   type FlagSpec,
-} from "../../../olt/scripts/src/cli/registry/index.ts";
+} from "../../olt/scripts/src/cli/registry/index.ts";
 
 describe("CLI registry boundaries and behavioral characterization", () => {
   describe("command lookup by name and alias via findCommand", () => {

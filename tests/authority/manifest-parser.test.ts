@@ -18,12 +18,12 @@ import {
   type AgentManifestCommunicationContract,
   type RoleContract,
   type UnifiedAgentModel,
-} from "../../../olt/scripts/src/authority/manifest/index.ts";
+} from "../../olt/scripts/src/authority/manifest/index.ts";
 import {
   parseUnifiedAgentManifest,
   validateUnifiedAgentManifest,
   type UnifiedAgentManifest,
-} from "../../../olt/scripts/src/authority/manifest-schema.ts";
+} from "../../olt/scripts/src/authority/manifest-schema.ts";
 import {
   constructSupervisoryPersonaReminder,
   DECISION_PROTOCOLS,
@@ -32,8 +32,8 @@ import {
   type DecisionProtocolId,
   type SupervisoryPersonaReminder,
   type SupervisoryReminderEvaluationContext,
-} from "../../../olt/scripts/src/authority/supervisory/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/authority/supervisory/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("YAML and Markdown Frontmatter Parser (manifest-parser.ts)", () => {

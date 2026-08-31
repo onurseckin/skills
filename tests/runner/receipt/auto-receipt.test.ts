@@ -2,10 +2,10 @@ import { describe, it, expect } from "bun:test";
 import {
   AutoReceiptLogger,
   setAutoReceiptDependenciesForTesting,
-} from "../../../../olt/scripts/src/engine/runner/receipt/auto-receipt.ts";
-import { initRun, loadRun } from "../../../../olt/scripts/src/engine/store/index.ts";
+} from "../../../olt/scripts/src/engine/runner/receipt/auto-receipt.ts";
+import { initRun, loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { scratchRoot } from "../../../support/scratch-root.ts";
 
 describe("AutoReceiptLogger", () => {

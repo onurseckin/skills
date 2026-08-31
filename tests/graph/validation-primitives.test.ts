@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { validateEdges } from "../../../olt/scripts/src/graph/validate-edges.ts";
-import { validateGates } from "../../../olt/scripts/src/graph/validate-gates.ts";
-import { validateGraph } from "../../../olt/scripts/src/graph/validate-graph.ts";
+import { validateEdges } from "../../olt/scripts/src/graph/validate-edges.ts";
+import { validateGates } from "../../olt/scripts/src/graph/validate-gates.ts";
+import { validateGraph } from "../../olt/scripts/src/graph/validate-graph.ts";
 import { taskById, validPlanningDocuments } from "./fixtures.ts";
 
 // Direct unit tests for the small validator primitives validateGraph composes. The higher-level

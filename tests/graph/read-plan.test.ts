@@ -3,7 +3,7 @@ import type { BigIntStats } from "node:fs";
 import { lstat, mkdtemp, symlink, writeFile, type FileHandle } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { readPlanObject } from "../../../olt/scripts/src/graph/read-plan.ts";
+import { readPlanObject } from "../../olt/scripts/src/graph/read-plan.ts";
 
 describe("graph read plan object", () => {
   test("enforces size bounds, regular non-symlink files, and object json contents", async () => {

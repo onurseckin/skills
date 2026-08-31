@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { probeCircularDependencies } from "../../../../olt/scripts/src/engine/scheduler/core/tasks/tasks-circular.ts";
+import { probeCircularDependencies } from "../../../olt/scripts/src/engine/scheduler/core/tasks/tasks-circular.ts";
 
 describe("engine/scheduler/core/tasks/tasks-circular.ts", () => {
   it("returns default passed result when state is not a record", () => {

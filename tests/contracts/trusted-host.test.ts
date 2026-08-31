@@ -3,8 +3,8 @@ import {
   sameTrustedHostRepositoryBinding,
   trustedHostEvidence,
   trustedHostLimitations,
-} from "../../../olt/scripts/src/core/contracts/index.ts";
-import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
+} from "../../olt/scripts/src/core/contracts/index.ts";
+import type { RepositoryBinding } from "../../olt/scripts/src/core/contracts/index.ts";
 
 function binding(overrides: Partial<RepositoryBinding> = {}): RepositoryBinding {
   return {

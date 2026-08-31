@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import * as Validator from "../../../../olt/scripts/src/capture/validator/index.ts";
+import * as Validator from "../../../olt/scripts/src/capture/validator/index.ts";
 
 describe("Capture Validator Barrel Exports (index.ts)", () => {
   it("exports all mechanical validator functions and utilities", () => {

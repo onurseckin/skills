@@ -2,11 +2,11 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { generateGraphDataset } from "../../../olt/scripts/src/summary/graph/index.ts";
+import { generateGraphDataset } from "../../olt/scripts/src/summary/graph/index.ts";
 import {
   recordCaptures,
   type CaptureRecord,
-} from "../../../olt/scripts/src/engine/store/capsule/captures.ts";
+} from "../../olt/scripts/src/engine/store/capsule/captures.ts";
 import { makeState, makeTask } from "./graph-fixtures.ts";
 
 // B3: "every captured asset, with its dimensions and byte size where known" is part of the

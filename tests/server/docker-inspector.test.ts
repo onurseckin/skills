@@ -18,7 +18,7 @@ import {
   getCandidateSocketPaths,
   type DockerInspectorOptions,
   type DockerRunner,
-} from "../../../olt/scripts/src/server/docker/index.ts";
+} from "../../olt/scripts/src/server/docker/index.ts";
 
 describe("Docker Inspector - Port Range and Mapping Parser", () => {
   it("parses single port ranges correctly", () => {

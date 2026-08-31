@@ -24,7 +24,7 @@ import {
   resolveTelemetryPath,
   resolveWatchdogsPath,
   stripCapsulePath,
-} from "../../../olt/scripts/src/core/shared/paths.ts";
+} from "../../olt/scripts/src/core/shared/paths.ts";
 
 describe("core shared/paths contract and resolution", () => {
   const scratchBase = join(process.cwd(), "coverage", "scratch", "shared-paths-tests");

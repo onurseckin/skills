@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   createPhaseCommitPayload,
   evaluateUpstreamPushPolicy,
@@ -9,7 +9,7 @@ import {
   type PhaseCommitConfig,
   type PhaseGateResult,
   type UpstreamPushPolicy,
-} from "../../../olt/scripts/src/engine/worktree/phase-commits.ts";
+} from "../../olt/scripts/src/engine/worktree/phase-commits.ts";
 
 describe("Phase Commits: Verification and Execution", () => {
   describe("verifyPhasePreconditions", () => {

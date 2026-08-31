@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import * as behavioralAuditorModule from "../../../../olt/scripts/src/reporting/behavioral-auditor/index.ts";
-import * as doctorRulesModule from "../../../../olt/scripts/src/reporting/doctor/rules/index.ts";
-import * as doctorBehavioralRulesModule from "../../../../olt/scripts/src/reporting/doctor/rules/behavioral/index.ts";
+import * as behavioralAuditorModule from "../../../olt/scripts/src/reporting/behavioral-auditor/index.ts";
+import * as doctorRulesModule from "../../../olt/scripts/src/reporting/doctor/rules/index.ts";
+import * as doctorBehavioralRulesModule from "../../../olt/scripts/src/reporting/doctor/rules/behavioral/index.ts";
 import {
   auditBehavioralHealth,
   boundedEvidenceCause,
@@ -13,7 +13,7 @@ import {
   isOrchestratorRole,
   isSubagentRole,
   isValidatorRole,
-} from "../../../../olt/scripts/src/reporting/behavioral-auditor/index.ts";
+} from "../../../olt/scripts/src/reporting/behavioral-auditor/index.ts";
 
 describe("Behavioral Health Auditor - Setup & Facades", () => {
   it("verifies clean facade exports from reporting/behavioral-auditor", () => {

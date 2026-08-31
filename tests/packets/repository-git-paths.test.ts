@@ -3,8 +3,8 @@ import {
   decodeNulRecords,
   gitRepositoryPaths,
   rejectRepositoryGitlinks,
-} from "../../../olt/scripts/src/packets/repository-git-paths.ts";
-import type { RepositoryGitCommand } from "../../../olt/scripts/src/packets/repository-git-command.ts";
+} from "../../olt/scripts/src/packets/repository-git-paths.ts";
+import type { RepositoryGitCommand } from "../../olt/scripts/src/packets/repository-git-command.ts";
 
 function listingCommand(staged: Buffer, untracked: Buffer): RepositoryGitCommand {
   return (_repo, argv) => ({

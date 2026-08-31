@@ -1,7 +1,7 @@
 import { describe, it, expect } from "bun:test";
-import { SkillAuditorPolicy } from "../../../../olt/scripts/src/engine/scheduler/diagnostics/skill-auditor-policy.ts";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
-import type { AgentGrantRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
+import { SkillAuditorPolicy } from "../../../olt/scripts/src/engine/scheduler/diagnostics/skill-auditor-policy.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 
 describe("MetaAuditorPolicy & MindAuditorPolicy (backward compatibility)", () => {
   describe("assertMetaAuditorRequired", () => {

@@ -2,12 +2,12 @@ import { describe, expect, test } from "bun:test";
 import {
   buildPlanValidatorNodes,
   generateGraphDataset,
-} from "../../../olt/scripts/src/summary/graph/index.ts";
+} from "../../olt/scripts/src/summary/graph/index.ts";
 import type {
   PlanReview,
   PlanValidationAuthorization,
   WorkflowState,
-} from "../../../olt/scripts/src/workflow/types.ts";
+} from "../../olt/scripts/src/workflow/types.ts";
 import { makeState, makeTask } from "./graph-fixtures.ts";
 
 function round(overrides: Partial<PlanValidationAuthorization> = {}): PlanValidationAuthorization {

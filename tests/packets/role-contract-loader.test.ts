@@ -7,7 +7,7 @@ import {
   resolveChecklistPath,
   resolveRoleContractPath,
   resolveValidatorDomainContractPath,
-} from "../../../olt/scripts/src/packets/role-contract.ts";
+} from "../../olt/scripts/src/packets/role-contract.ts";
 
 /**
  * loadRoleContract/loadChecklist/loadValidatorDomainContract's own unreadable-file and

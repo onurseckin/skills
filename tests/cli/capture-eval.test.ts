@@ -6,8 +6,8 @@ import {
   captureEvalCommand,
   evaluateManifestFile,
   findManifestsInDir,
-} from "../../../olt/scripts/src/cli/commands/capture-eval.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/cli/commands/capture-eval.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 
 describe("capture-eval CLI command", () => {
   let testDir: string;

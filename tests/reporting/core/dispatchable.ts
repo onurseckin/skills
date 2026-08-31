@@ -1,6 +1,6 @@
-import { parseArguments } from "../../../../olt/scripts/src/cli/arguments.ts";
-import { assertFlags } from "../../../../olt/scripts/src/cli/options.ts";
-import { findCommand, flagShapes } from "../../../../olt/scripts/src/cli/registry/index.ts";
+import { parseArguments } from "../../../olt/scripts/src/cli/arguments.ts";
+import { assertFlags } from "../../../olt/scripts/src/cli/options.ts";
+import { findCommand, flagShapes } from "../../../olt/scripts/src/cli/registry/index.ts";
 
 /**
  * Runs an emitted argv through exactly the checks `execute` applies before dispatch: the command

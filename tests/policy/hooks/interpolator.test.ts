@@ -6,7 +6,7 @@ import {
   interpolateLifecycleHookCommand,
   type HookInterpolationContext,
   type HookVariableContext,
-} from "../../../../olt/scripts/src/policy/hooks/interpolator.ts";
+} from "../../../olt/scripts/src/policy/hooks/interpolator.ts";
 
 describe("formatDuration and formatHookDuration", () => {
   test("formats 0 and negative durations as 0s", () => {

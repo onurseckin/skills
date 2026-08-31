@@ -4,7 +4,7 @@ import type {
   AgentToolUse,
   CommandRecord,
   JsonObject,
-} from "../../../../olt/scripts/src/core/contracts/index.ts";
+} from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   auditImplementerSelfGradingAndTopology,
   auditOrchestratorDirectImplementation,
@@ -12,8 +12,8 @@ import {
   formatBehavioralRoleHealthSection,
   summarizeBehavioralHealth,
   type BehavioralFinding,
-} from "../../../../olt/scripts/src/reporting/behavioral-auditor/index.ts";
-import type { TaskRecord } from "../../../../olt/scripts/src/workflow/index.ts";
+} from "../../../olt/scripts/src/reporting/behavioral-auditor/index.ts";
+import type { TaskRecord } from "../../../olt/scripts/src/workflow/index.ts";
 
 describe("Behavioral Health Auditor - Edge Vectors & Role Violations", () => {
   describe("Orchestrator Direct Implementation Invariants", () => {

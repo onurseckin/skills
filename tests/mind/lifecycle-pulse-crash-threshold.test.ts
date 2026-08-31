@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { DEFAULT_CONSECUTIVE_CRASH_THRESHOLD as THRESHOLD_FROM_TYPES } from "../../../olt/scripts/src/mind/lifecycle/pulse/types.ts";
+import { DEFAULT_CONSECUTIVE_CRASH_THRESHOLD as THRESHOLD_FROM_TYPES } from "../../olt/scripts/src/mind/lifecycle/pulse/types.ts";
 import {
   DEFAULT_CONSECUTIVE_CRASH_THRESHOLD as THRESHOLD_FROM_PULSE_INDEX,
   type LastPulseRecord,
@@ -14,9 +14,9 @@ import {
   pulseProducedActivity,
   parseNowMs,
   reclaimDeadPulse,
-} from "../../../olt/scripts/src/mind/lifecycle/pulse/index.ts";
-import { DEFAULT_CONSECUTIVE_CRASH_THRESHOLD as THRESHOLD_FROM_LIFECYCLE_INDEX } from "../../../olt/scripts/src/mind/lifecycle/index.ts";
-import { DEFAULT_CONSECUTIVE_CRASH_THRESHOLD as THRESHOLD_FROM_LIVENESS_INDEX } from "../../../olt/scripts/src/mind/lifecycle/liveness/index.ts";
+} from "../../olt/scripts/src/mind/lifecycle/pulse/index.ts";
+import { DEFAULT_CONSECUTIVE_CRASH_THRESHOLD as THRESHOLD_FROM_LIFECYCLE_INDEX } from "../../olt/scripts/src/mind/lifecycle/index.ts";
+import { DEFAULT_CONSECUTIVE_CRASH_THRESHOLD as THRESHOLD_FROM_LIVENESS_INDEX } from "../../olt/scripts/src/mind/lifecycle/liveness/index.ts";
 
 describe("DEFAULT_CONSECUTIVE_CRASH_THRESHOLD and pulse exports", () => {
   test("DEFAULT_CONSECUTIVE_CRASH_THRESHOLD is exported from types.ts with canonical value 3", () => {

@@ -18,7 +18,7 @@ import {
   canonicalHostToPlatformId,
   platformIdToCanonicalHost,
   type CollectorEnvironment,
-} from "../../../olt/scripts/src/telemetry/collectors/index.ts";
+} from "../../olt/scripts/src/telemetry/collectors/index.ts";
 
 describe("AntigravityCollector", () => {
   it("probes Tier 1 Connect-RPC Language Server successfully with multiple models and user tier", async () => {

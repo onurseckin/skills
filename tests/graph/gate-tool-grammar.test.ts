@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { verificationToolCommandIsStrong } from "../../../olt/scripts/src/graph/gate-tool-grammar.ts";
+import { verificationToolCommandIsStrong } from "../../olt/scripts/src/graph/gate-tool-grammar.ts";
 
 // verificationToolCommandIsStrong is gate-command-policy's last-resort classifier: it only sees a
 // command after gate-argv-policy and gate-runtime-grammar have both declined an opinion. These

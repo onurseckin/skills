@@ -2,7 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadBaseline } from "../../../../../scripts/modularity/policy/index.ts";
+import { loadBaseline } from "../../../../scripts/modularity/policy/index.ts";
 
 const roots: string[] = [];
 

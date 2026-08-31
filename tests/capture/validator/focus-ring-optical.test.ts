@@ -6,19 +6,19 @@ import {
   hslToRgb,
   parseCssColor,
   srgbChannelToLinear,
-} from "../../../../olt/scripts/src/capture/validator/mechanical/focus-ring-optical/color.ts";
+} from "../../../olt/scripts/src/capture/validator/mechanical/focus-ring-optical/color.ts";
 import {
   calculateConcentricRadius,
   validateNestedConcentricCorners,
-} from "../../../../olt/scripts/src/capture/validator/mechanical/focus-ring-optical/concentricity.ts";
-import { auditFocusRingContrast } from "../../../../olt/scripts/src/capture/validator/mechanical/focus-ring-optical/contrast.ts";
-import { calculateOpticalCurvatureMetrics } from "../../../../olt/scripts/src/capture/validator/mechanical/focus-ring-optical/curvature.ts";
-import { validateFocusRingOpticalSnapping } from "../../../../olt/scripts/src/capture/validator/mechanical/focus-ring-optical/evaluator.ts";
+} from "../../../olt/scripts/src/capture/validator/mechanical/focus-ring-optical/concentricity.ts";
+import { auditFocusRingContrast } from "../../../olt/scripts/src/capture/validator/mechanical/focus-ring-optical/contrast.ts";
+import { calculateOpticalCurvatureMetrics } from "../../../olt/scripts/src/capture/validator/mechanical/focus-ring-optical/curvature.ts";
+import { validateFocusRingOpticalSnapping } from "../../../olt/scripts/src/capture/validator/mechanical/focus-ring-optical/evaluator.ts";
 import {
   getSubpixelFraction,
   snapToDevicePixelRatio,
-} from "../../../../olt/scripts/src/capture/validator/mechanical/focus-ring-optical/snapping.ts";
-import type { FocusRingGeometry } from "../../../../olt/scripts/src/capture/validator/mechanical/focus-ring-optical/types.ts";
+} from "../../../olt/scripts/src/capture/validator/mechanical/focus-ring-optical/snapping.ts";
+import type { FocusRingGeometry } from "../../../olt/scripts/src/capture/validator/mechanical/focus-ring-optical/types.ts";
 
 describe("Focus Ring Optical Engine", () => {
   describe("Color Parsing & Luminance (color.ts)", () => {

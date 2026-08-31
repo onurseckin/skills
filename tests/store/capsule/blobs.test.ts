@@ -13,7 +13,7 @@ import {
 } from "node:fs";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   MAX_BLOB_BYTES,
   blobContentDigest,
@@ -22,7 +22,7 @@ import {
   listBlobs,
   putBlobFile,
   type ViewLinker,
-} from "../../../../olt/scripts/src/engine/store/layout/blobs.ts";
+} from "../../../olt/scripts/src/engine/store/layout/blobs.ts";
 import { scratchRoot as makeScratchRoot } from "../../../support/scratch-root.ts";
 
 function scratchRoot(label: string): string {

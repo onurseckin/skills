@@ -6,12 +6,12 @@ import { join } from "node:path";
 import {
   observedFilesChanged,
   observeRepository,
-} from "../../../../olt/scripts/src/workflow/branch/repository-observation.ts";
+} from "../../../olt/scripts/src/workflow/branch/repository-observation.ts";
 import type {
   RepositoryGitCommand,
   RepositoryGitResult,
-} from "../../../../olt/scripts/src/packets/repository-git-command.ts";
-import type { BranchRepositoryObservation } from "../../../../olt/scripts/src/core/contracts/index.ts";
+} from "../../../olt/scripts/src/packets/repository-git-command.ts";
+import type { BranchRepositoryObservation } from "../../../olt/scripts/src/core/contracts/index.ts";
 
 const roots: string[] = [];
 afterEach(() => {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   MultiCapsuleDAG,
   TrueMultiCapsuleOrchestrator,
@@ -15,7 +15,7 @@ import {
   type CapsuleSpec,
   type CapsuleStateChangeEvent,
   type MultiCapsuleSummary,
-} from "../../../olt/scripts/src/orchestrator/multi-capsule.ts";
+} from "../../olt/scripts/src/orchestrator/multi-capsule.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("True Multi-Capsule Parallel Orchestration & Anti-Sequentiality Engine", () => {

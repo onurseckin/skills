@@ -11,7 +11,7 @@ import {
   DOMAIN_ID_PREFIX,
   type RoleContract,
   type Checklist,
-} from "../../../olt/scripts/src/packets/role-contract.ts";
+} from "../../olt/scripts/src/packets/role-contract.ts";
 
 const encoder = new TextEncoder();
 

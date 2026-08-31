@@ -6,10 +6,10 @@ import type {
   AgentGrantRecord,
   AgentToolUse,
   TelemetryFieldConflict,
-} from "../../../../olt/scripts/src/core/contracts/index.ts";
-import { estimated, evidenced } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import { initRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
-import { writeAgentLedger } from "../../../../olt/scripts/src/workflow/agents/ledger.ts";
+} from "../../../olt/scripts/src/core/contracts/index.ts";
+import { estimated, evidenced } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
+import { writeAgentLedger } from "../../../olt/scripts/src/workflow/agents/ledger.ts";
 import {
   appendTelemetryConflicts,
   applyDerivedTelemetry,
@@ -21,8 +21,8 @@ import {
   refreshAgentDerivedTelemetry,
   transcriptAuditContext,
   type DerivedTelemetryInput,
-} from "../../../../olt/scripts/src/workflow/agents/telemetry-merge.ts";
-import type { AgentTranscriptTelemetry } from "../../../../olt/scripts/src/workflow/agents/transcript-telemetry.ts";
+} from "../../../olt/scripts/src/workflow/agents/telemetry-merge.ts";
+import type { AgentTranscriptTelemetry } from "../../../olt/scripts/src/workflow/agents/transcript-telemetry.ts";
 
 function withRun<T>(body: (runRoot: string) => T): T {
   const repo = mkdtempSync(join(tmpdir(), "telemetry-run-"));

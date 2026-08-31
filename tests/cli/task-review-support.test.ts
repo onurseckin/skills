@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { attachGateResult } from "../../../olt/scripts/src/workflow/gates/attach-result.ts";
-import { finalizePassingTask } from "../../../olt/scripts/src/cli/commands/task-review-support.ts";
-import type { TransactionPort, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import type { JsonObject } from "../../olt/scripts/src/core/contracts/index.ts";
+import { attachGateResult } from "../../olt/scripts/src/workflow/gates/attach-result.ts";
+import { finalizePassingTask } from "../../olt/scripts/src/cli/commands/task-review-support.ts";
+import type { TransactionPort, WorkflowState } from "../../olt/scripts/src/workflow/types.ts";
 import { at, commandRecord, TestPort, workflowState } from "../workflow/test-port.ts";
 
 const clock = at("2026-08-13T12:00:00.000Z");

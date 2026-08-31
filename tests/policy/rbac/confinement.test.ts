@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { verifyCommandAuthorization } from "../../../../olt/scripts/src/policy/rbac/index.ts";
-import { parseRepoPolicy, type RepoPolicy } from "../../../../olt/scripts/src/policy/index.ts";
+import { verifyCommandAuthorization } from "../../../olt/scripts/src/policy/rbac/index.ts";
+import { parseRepoPolicy, type RepoPolicy } from "../../../olt/scripts/src/policy/index.ts";
 import { createActor, samplePolicy } from "./fixtures.ts";
 
 describe("RBAC Role Confinement & Fail-Closed Enforcement", () => {

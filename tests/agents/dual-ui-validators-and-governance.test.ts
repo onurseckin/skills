@@ -4,7 +4,7 @@ import { join } from "node:path";
 import {
   parseUnifiedAgentManifest,
   validateUnifiedAgentManifest,
-} from "../../../olt/scripts/src/authority/manifest-schema.ts";
+} from "../../olt/scripts/src/authority/manifest-schema.ts";
 
 // Updated: 2024-05-22 - Verified Tier 3 Governance Dual UI Validator Suite
 const AGENTS_DIR = join(import.meta.dir, "../../../olt/agents");

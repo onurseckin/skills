@@ -7,25 +7,25 @@ import {
   assertGrantedCommand as assertRawGrantedCommand,
   assertSpawnAuthorized,
   type AuthenticatedCaller,
-} from "../../../olt/scripts/src/packets/command-authority.ts";
+} from "../../olt/scripts/src/packets/command-authority.ts";
 import {
   GRANT_BOOTSTRAP_ALLOWLIST,
   PRE_COMPILE_PLAN_CONSTRUCTION_COMMANDS,
   requiresActingIdentity,
-} from "../../../olt/scripts/src/packets/grant-bootstrap-allowlist.ts";
-import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
-import type { CommandSpec } from "../../../olt/scripts/src/cli/registry/types.ts";
-import type { Flags } from "../../../olt/scripts/src/cli/options.ts";
-import type { AgentRole } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/packets/grant-bootstrap-allowlist.ts";
+import { findCommand } from "../../olt/scripts/src/cli/registry/index.ts";
+import type { CommandSpec } from "../../olt/scripts/src/cli/registry/types.ts";
+import type { Flags } from "../../olt/scripts/src/cli/options.ts";
+import type { AgentRole } from "../../olt/scripts/src/core/contracts/index.ts";
+import { initRun, transact } from "../../olt/scripts/src/engine/store/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import { emptyGrantRun } from "./grant-run-fixture.ts";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
 import {
   registerSessionGrant,
   revokeSessionGrant,
-} from "../../../olt/scripts/src/authority/session/index.ts";
-import { loadDagSnapshot } from "../../../olt/scripts/src/telemetry/dag-snapshot.ts";
+} from "../../olt/scripts/src/authority/session/index.ts";
+import { loadDagSnapshot } from "../../olt/scripts/src/telemetry/dag-snapshot.ts";
 
 function spec(invocation: string) {
   const found = findCommand(invocation);

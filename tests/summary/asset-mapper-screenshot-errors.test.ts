@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   mapMediaAssets,
   mapRunScreenshotAssets,
-} from "../../../olt/scripts/src/summary/assets/index.ts";
+} from "../../olt/scripts/src/summary/assets/index.ts";
 import { makeTask } from "./graph-fixtures.ts";
 
 /**

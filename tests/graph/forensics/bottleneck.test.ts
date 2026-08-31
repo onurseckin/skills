@@ -5,7 +5,7 @@ import {
   computeWorkSpan,
   detectFanOutBottlenecks,
   type ForensicTaskNode,
-} from "../../../../olt/scripts/src/graph/forensics/index.ts";
+} from "../../../olt/scripts/src/graph/forensics/index.ts";
 
 describe("Forensics Structural Bottlenecks and Drag Path Analysis", () => {
   describe("detectFanOutBottlenecks", () => {

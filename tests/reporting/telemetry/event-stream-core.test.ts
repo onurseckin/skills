@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { HarnessEvent } from "../../../../olt/scripts/src/core/contracts/index.ts";
+import type { HarnessEvent } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   deliverEventsToWebhook,
   formatEventToNdjson,
@@ -12,7 +12,7 @@ import {
   readCapsuleEvents,
   renderAsciiEventStreamTable,
   resolveCapsulePath,
-} from "../../../../olt/scripts/src/reporting/event-stream/index.ts";
+} from "../../../olt/scripts/src/reporting/event-stream/index.ts";
 
 describe("reporting/event-stream core suite", () => {
   let tempDir: string;

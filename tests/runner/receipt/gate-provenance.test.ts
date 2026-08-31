@@ -3,19 +3,19 @@ import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises
 import { realpathSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import type { CommandAttemptRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import type { RepositoryBinding } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import { OWNERSHIP_ENV } from "../../../../olt/scripts/src/engine/runner/core/pipe-ownership.ts";
+import type { CommandAttemptRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/core/pipe-ownership.ts";
 
 // The tools' own variable names, held as values so no product names a symbol in this suite.
 const NO_USER_PACKAGE_CONFIG = "NPM_CONFIG_USERCONFIG";
 const NO_TEST_PLUGIN_AUTOLOAD = "PYTEST_DISABLE_PLUGIN_AUTOLOAD";
-import { captureGatePathBindings } from "../../../../olt/scripts/src/engine/runner/signing/gate-path-bindings.ts";
-import { createInternalCommandRunner } from "../../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
+import { captureGatePathBindings } from "../../../olt/scripts/src/engine/runner/signing/gate-path-bindings.ts";
+import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 import type {
   AttemptResult,
   NormalizedCommandOptions,
-} from "../../../../olt/scripts/src/engine/runner/types/types.ts";
+} from "../../../olt/scripts/src/engine/runner/types/types.ts";
 
 const roots: string[] = [];
 const repositoryBinding: RepositoryBinding = {

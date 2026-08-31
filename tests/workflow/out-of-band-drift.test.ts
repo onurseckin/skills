@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import type { RepositoryGitCommand } from "../../../olt/scripts/src/packets/repository-git-command.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import type { RepositoryGitCommand } from "../../olt/scripts/src/packets/repository-git-command.ts";
 import {
   declaredWriteScopeUnion,
   outOfBandPaths,
-} from "../../../olt/scripts/src/workflow/submission/out-of-band-drift.ts";
-import type { WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
+} from "../../olt/scripts/src/workflow/submission/out-of-band-drift.ts";
+import type { WorkflowState } from "../../olt/scripts/src/workflow/types.ts";
 import { inspection } from "../packets/inspection-fixture.ts";
 import { workflowState } from "./test-port.ts";
 

@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { readStableBytes, readStableText } from "../../../olt/scripts/src/installer/stable-file.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { readStableBytes, readStableText } from "../../olt/scripts/src/installer/stable-file.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("readStableBytes", () => {

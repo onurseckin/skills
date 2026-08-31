@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { evidenced } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { evidenced } from "../../olt/scripts/src/core/contracts/index.ts";
 import {
   ABSTRACT_PROFILES,
   ABSTRACT_PROFILE_SET,
@@ -13,7 +13,7 @@ import {
   resolveRoleArchetype,
   roleToProfile,
   type ProfileBindings,
-} from "../../../olt/scripts/src/roles/index.ts";
+} from "../../olt/scripts/src/roles/index.ts";
 
 describe("Roles abstract profiles and resolution", () => {
   test("maps canonical roles to correct abstract profiles", () => {

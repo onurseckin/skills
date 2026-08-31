@@ -11,14 +11,14 @@ import {
   roleToTier,
   validateAgentNamingConvention,
   type StandardAgentRole,
-} from "../../../olt/scripts/src/authority/thread/index.ts";
-import { identifyExecutionContext } from "../../../olt/scripts/src/authority/thread/index.ts";
+} from "../../olt/scripts/src/authority/thread/index.ts";
+import { identifyExecutionContext } from "../../olt/scripts/src/authority/thread/index.ts";
 import {
   findSkillRoot,
   loadAgentManifest,
   loadRoleContract,
-} from "../../../olt/scripts/src/authority/manifest/index.ts";
-import { whoamiCommand } from "../../../olt/scripts/src/cli/commands/whoami.ts";
+} from "../../olt/scripts/src/authority/manifest/index.ts";
+import { whoamiCommand } from "../../olt/scripts/src/cli/commands/whoami.ts";
 
 describe("P54 End-to-End Agent Naming Standardization & Hierarchy Integration", () => {
   const allKnownRoles: StandardAgentRole[] = [

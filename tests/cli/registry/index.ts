@@ -16,4 +16,4 @@ export {
   type CommandDomain,
   type CommandSpec,
   type FlagSpec,
-} from "../../../../olt/scripts/src/cli/registry/index.ts";
+} from "../../../olt/scripts/src/cli/registry/index.ts";

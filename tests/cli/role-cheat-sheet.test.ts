@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { roleCheatSheetCommand } from "../../../olt/scripts/src/cli/commands/role-cheat-sheet.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
+import { roleCheatSheetCommand } from "../../olt/scripts/src/cli/commands/role-cheat-sheet.ts";
 
 describe("role:cheat-sheet CLI command", () => {
   test("generates cheat sheet for a specific role", async () => {

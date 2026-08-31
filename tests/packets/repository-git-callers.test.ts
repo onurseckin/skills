@@ -2,9 +2,9 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ensureHarnessIgnored } from "../../../olt/scripts/src/cli/git-ignore.ts";
-import { ignoredByGit } from "../../../olt/scripts/src/reporting/doctor.ts";
-import { createRepositoryGitCommand } from "../../../olt/scripts/src/packets/repository-git-command.ts";
+import { ensureHarnessIgnored } from "../../olt/scripts/src/cli/git-ignore.ts";
+import { ignoredByGit } from "../../olt/scripts/src/reporting/doctor.ts";
+import { createRepositoryGitCommand } from "../../olt/scripts/src/packets/repository-git-command.ts";
 
 const roots: string[] = [];
 const prefix = [

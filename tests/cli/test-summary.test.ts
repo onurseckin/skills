@@ -2,8 +2,8 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { testSummaryCommand } from "../../../olt/scripts/src/cli/commands/test-summary.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
+import { testSummaryCommand } from "../../olt/scripts/src/cli/commands/test-summary.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 
 const roots: string[] = [];

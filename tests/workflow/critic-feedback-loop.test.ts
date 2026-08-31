@@ -4,10 +4,10 @@ import {
   isDeterministicFindingRepeat,
   trackTaskRepairBudget,
   routeCriticReviewFindings,
-} from "../../../olt/scripts/src/workflow/completion/critic-feedback-loop.ts";
-import type { Finding } from "../../../olt/scripts/src/core/contracts/index.ts";
-import type { CompletionReview } from "../../../olt/scripts/src/workflow/completion/types.ts";
-import type { TaskRecord, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
+} from "../../olt/scripts/src/workflow/completion/critic-feedback-loop.ts";
+import type { Finding } from "../../olt/scripts/src/core/contracts/index.ts";
+import type { CompletionReview } from "../../olt/scripts/src/workflow/completion/types.ts";
+import type { TaskRecord, WorkflowState } from "../../olt/scripts/src/workflow/types.ts";
 import { TestPort, repositoryBinding, workflowState } from "./test-port.ts";
 
 describe("Closed-Loop Recursive Critic Feedback Mechanics", () => {

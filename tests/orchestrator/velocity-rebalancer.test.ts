@@ -11,7 +11,7 @@ import {
   type BrentDecompositionOptions,
   type RebalancedTaskPackage,
   type StragglingTask,
-} from "../../../olt/scripts/src/orchestrator/velocity-rebalancer.ts";
+} from "../../olt/scripts/src/orchestrator/velocity-rebalancer.ts";
 
 describe("Brent Concurrency Decomposition & Velocity Rebalancer (Wave 2 / Task 2.1)", () => {
   it("calculates optimal parallelism P = ceil(W / S) clamped to [5, 15] for standard workloads", () => {

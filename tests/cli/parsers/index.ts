@@ -10,9 +10,9 @@ export {
   type FlagValue,
   type FlagValues,
   type ParsedArguments,
-} from "../../../../olt/scripts/src/cli/arguments.ts";
+} from "../../../olt/scripts/src/cli/arguments.ts";
 
 export {
   parseCommandFlags,
   type ParsedFlags,
-} from "../../../../olt/scripts/src/cli/registry/flag-parser.ts";
+} from "../../../olt/scripts/src/cli/registry/flag-parser.ts";

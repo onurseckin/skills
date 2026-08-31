@@ -12,7 +12,7 @@ import {
   extractSymbolsFromSource,
   findAnchorByPattern,
   formatExactAnchorBriefingMarkdown,
-} from "../../../olt/scripts/src/mind/proposals/builder/index.ts";
+} from "../../olt/scripts/src/mind/proposals/builder/index.ts";
 import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
 
 function scratchRoot(label: string): string {

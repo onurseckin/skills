@@ -6,8 +6,8 @@ import {
   worktreeCreateCommand,
   worktreeListCommand,
   worktreeStatusCommand,
-} from "../../../olt/scripts/src/cli/commands/worktree-ops.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/cli/commands/worktree-ops.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   assertDomainIsolation,
   cleanupTrackWorktree,
@@ -23,7 +23,7 @@ import {
   type DomainLedgerState,
   type GitRunner,
   type WorktreeContext,
-} from "../../../olt/scripts/src/engine/worktree/index.ts";
+} from "../../olt/scripts/src/engine/worktree/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Hermetic Worktree Pipeline", () => {

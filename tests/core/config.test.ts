@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/harness-error.ts";
 import {
   quotaProvenanceSource,
   resolveQuotaFreezeThresholdFact,
@@ -11,7 +11,7 @@ import {
   cacheKey,
   getHarnessConfig,
   resetHarnessConfigCache,
-} from "../../../olt/scripts/src/core/config/env.ts";
+} from "../../olt/scripts/src/core/config/env.ts";
 import {
   canonicalizeHostId,
   resolveHostProviderLoose,
@@ -21,17 +21,17 @@ import {
   CANONICAL_HOSTS,
   KNOWN_UNRESOLVABLE_HOST_IDS,
   TIMER_ARMING_MECHANISMS,
-} from "../../../olt/scripts/src/core/config/host-canon.ts";
+} from "../../olt/scripts/src/core/config/host-canon.ts";
 import {
   discoverHostConcurrencyCeiling,
   deriveGateConcurrencyCeiling,
-} from "../../../olt/scripts/src/core/config/host-concurrency.ts";
+} from "../../olt/scripts/src/core/config/host-concurrency.ts";
 import {
   parseConfigFile,
   parsePolicyLayer,
   inspectHarnessConfigFile,
   HARNESS_CONFIG_KEYS,
-} from "../../../olt/scripts/src/core/config/parser.ts";
+} from "../../olt/scripts/src/core/config/parser.ts";
 import {
   isConfigValueSource,
   unattestedFact,
@@ -40,7 +40,7 @@ import {
   buildConfigProvenanceMap,
   CONFIG_VALUE_SOURCES,
   TRACKED_CONFIG_KEYS,
-} from "../../../olt/scripts/src/core/config/provenance.ts";
+} from "../../olt/scripts/src/core/config/provenance.ts";
 import {
   resolveEffectiveQuotaThreshold,
   positiveCount,
@@ -52,12 +52,12 @@ import {
   safeCause,
   invalidConfig,
   hasOwn,
-} from "../../../olt/scripts/src/core/config/validator.ts";
+} from "../../olt/scripts/src/core/config/validator.ts";
 import {
   DEFAULT_CONFIG,
   DEFAULT_RESOLVED_CONFIG,
   DEFAULT_PROVENANCE_MAP,
-} from "../../../olt/scripts/src/core/config/defaults.ts";
+} from "../../olt/scripts/src/core/config/defaults.ts";
 import {
   QUOTA_FREEZE_THRESHOLD_FLOOR_PCT,
   MANIFEST_SCHEMA,
@@ -69,7 +69,7 @@ import {
   MAX_JSON_FILE_BYTES,
   MIN_ADVERSARIAL_PROBES,
   MAX_REPAIR_ROUNDS,
-} from "../../../olt/scripts/src/core/config/contracts.ts";
+} from "../../olt/scripts/src/core/config/contracts.ts";
 import {
   isCadenceWakeKind,
   classifyCadenceWake,
@@ -78,8 +78,8 @@ import {
   resolveSupervisoryCadence,
   CADENCE_WAKE_KINDS,
   CADENCE_WAKE_REFERENCE_FRAMES,
-} from "../../../olt/scripts/src/core/config/cadence.ts";
-import * as CoreConfigIndex from "../../../olt/scripts/src/core/config/index.ts";
+} from "../../olt/scripts/src/core/config/cadence.ts";
+import * as CoreConfigIndex from "../../olt/scripts/src/core/config/index.ts";
 
 function makeTmpDir(prefix: string): string {
   return mkdtempSync(join(tmpdir(), prefix));

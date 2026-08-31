@@ -3,13 +3,13 @@ import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { agentRegisterCommand } from "../../../olt/scripts/src/cli/commands/agent-ops.ts";
-import { mindCandidateCommand } from "../../../olt/scripts/src/cli/commands/mind-candidate.ts";
-import { mindDeclineCommand } from "../../../olt/scripts/src/cli/commands/mind-admit.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
+import { agentRegisterCommand } from "../../olt/scripts/src/cli/commands/agent-ops.ts";
+import { mindCandidateCommand } from "../../olt/scripts/src/cli/commands/mind-candidate.ts";
+import { mindDeclineCommand } from "../../olt/scripts/src/cli/commands/mind-admit.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { initRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { loadRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../olt/scripts/src/engine/store/index.ts";
 
 // This suite proves the cand-11 wedge (mind-admit.ts:287-291 rejecting decline on
 // status "open", which is the exact status the proposal cap in mind-candidate.ts

@@ -2,15 +2,15 @@ import { describe, it, expect } from "bun:test";
 import {
   BaseTieredCollector,
   type TierResult,
-} from "../../../olt/scripts/src/telemetry/base-collector.ts";
+} from "../../olt/scripts/src/telemetry/base-collector.ts";
 import type {
   ConfidenceLevel,
   NormalizedQuotaMetric,
   PlatformProbeResult,
   TierType,
   UnifiedTelemetryReport,
-} from "../../../olt/scripts/src/telemetry/types.ts";
-import type { TelemetryCollector } from "../../../olt/scripts/src/telemetry/probe-interface.ts";
+} from "../../olt/scripts/src/telemetry/types.ts";
+import type { TelemetryCollector } from "../../olt/scripts/src/telemetry/probe-interface.ts";
 
 class Tier1SuccessCollector extends BaseTieredCollector {
   readonly platformId = "tier1_app";

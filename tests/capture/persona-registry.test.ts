@@ -8,14 +8,14 @@ import {
   getUserPersona,
   isUserPersonaRole,
   resolveSessionCookieTemplate,
-} from "../../../olt/scripts/src/capture/persona-registry.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/capture/persona-registry.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import type {
   CookieTemplateConfig,
   RepoPolicy,
   UserPersonaConfig,
   UserPersonaRole,
-} from "../../../olt/scripts/src/policy/types/index.ts";
+} from "../../olt/scripts/src/policy/types/index.ts";
 
 const customPolicy: RepoPolicy = {
   schema_version: 1,

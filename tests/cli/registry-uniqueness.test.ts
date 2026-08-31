@@ -5,7 +5,7 @@ import {
   commandInvocations,
   findCommand,
   type CommandSpec,
-} from "../../../olt/scripts/src/cli/registry/index.ts";
+} from "../../olt/scripts/src/cli/registry/index.ts";
 
 export interface DuplicateCollision {
   readonly invocation: string;

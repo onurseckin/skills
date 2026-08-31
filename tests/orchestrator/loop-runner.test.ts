@@ -1,11 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   AutonomousLoopRunner,
   executeOrchestratorTrack,
-} from "../../../olt/scripts/src/orchestrator/loop-runner.ts";
+} from "../../olt/scripts/src/orchestrator/loop-runner.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 import type {
   CapsuleChainManifest,
@@ -15,7 +15,7 @@ import type {
   RoundExecutor,
   RoundTelemetry,
   WatchdogEvent,
-} from "../../../olt/scripts/src/orchestrator/types.ts";
+} from "../../olt/scripts/src/orchestrator/types.ts";
 
 describe("AutonomousLoopRunner Unit Tests", () => {
   it("converges in Round 1 when implementation is clean, gates pass, and Critic approves", async () => {

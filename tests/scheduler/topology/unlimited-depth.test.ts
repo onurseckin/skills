@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { scheduleUnlimitedDepthDAG } from "../../../../olt/scripts/src/engine/scheduler/index.ts";
+import { scheduleUnlimitedDepthDAG } from "../../../olt/scripts/src/engine/scheduler/index.ts";
 import { topologyState } from "../fixtures.ts";
 
 describe("Unlimited Depth DAG: Scheduling & Invariants", () => {

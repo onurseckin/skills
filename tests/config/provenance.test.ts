@@ -7,7 +7,7 @@ import {
   attestedFact,
   unattestedFact,
   unreadableFact,
-} from "../../../olt/scripts/src/core/config/provenance.ts";
+} from "../../olt/scripts/src/core/config/provenance.ts";
 
 describe("ConfigValueSource", () => {
   test("is exactly the four ratified variants", () => {

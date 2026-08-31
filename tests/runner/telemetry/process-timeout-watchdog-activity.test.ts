@@ -5,7 +5,7 @@ import {
   ERROR_CLASS_WALL_TIMEOUT,
   ProcessTimeoutWatchdog,
   createProcessTimeoutWatchdog,
-} from "../../../../olt/scripts/src/engine/runner/process/process-timeout-watchdog.ts";
+} from "../../../olt/scripts/src/engine/runner/process/process-timeout-watchdog.ts";
 
 describe("ProcessTimeoutWatchdog - Initialization & Defaults", () => {
   test("initializes with default test timeout limits of 60s wall and 30s idle", () => {

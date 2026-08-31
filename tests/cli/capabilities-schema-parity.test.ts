@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { COMMAND_REGISTRY } from "../../../olt/scripts/src/cli/registry/index.ts";
-import type { CommandSpec } from "../../../olt/scripts/src/cli/registry/types.ts";
+import { COMMAND_REGISTRY } from "../../olt/scripts/src/cli/registry/index.ts";
+import type { CommandSpec } from "../../olt/scripts/src/cli/registry/types.ts";
 
 interface JsonFlagSpec {
   readonly name: string;

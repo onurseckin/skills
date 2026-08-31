@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import { runSupervisionWatch } from "../../../olt/scripts/src/orchestrator/supervision-watch.ts";
+import { transact } from "../../olt/scripts/src/engine/store/index.ts";
+import { runSupervisionWatch } from "../../olt/scripts/src/orchestrator/supervision-watch.ts";
 import { fakeClock, supervisedRun } from "./supervised-run-fixture.ts";
 
 function markDone(run: string, taskId: string): void {

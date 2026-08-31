@@ -1,12 +1,12 @@
 import { describe, expect, it } from "bun:test";
-import { validateCaptureConfig } from "../../../olt/scripts/src/capture/config/config-loader.ts";
-import { CANONICAL_VIEWPORTS } from "../../../olt/scripts/src/capture/config/default-presets.ts";
+import { validateCaptureConfig } from "../../olt/scripts/src/capture/config/config-loader.ts";
+import { CANONICAL_VIEWPORTS } from "../../olt/scripts/src/capture/config/default-presets.ts";
 import {
   generateInitialConfigJson,
   generateInitialConfigYaml,
-} from "../../../olt/scripts/src/cli/commands/capture-init.ts";
-import { resolveViewportsForScreen } from "../../../olt/scripts/src/capture/runners/index.ts";
-import type { CaptureConfig } from "../../../olt/scripts/src/capture/config/types.ts";
+} from "../../olt/scripts/src/cli/commands/capture-init.ts";
+import { resolveViewportsForScreen } from "../../olt/scripts/src/capture/runners/index.ts";
+import type { CaptureConfig } from "../../olt/scripts/src/capture/config/types.ts";
 
 describe("Capture Configuration Schema", () => {
   it("CANONICAL_VIEWPORTS has no isMobile or hasTouch properties", () => {

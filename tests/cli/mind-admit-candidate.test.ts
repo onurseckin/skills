@@ -5,17 +5,17 @@ import {
   formatMindAdmitBrief,
   mindAdmitCommand,
   mindDeclineCommand,
-} from "../../../olt/scripts/src/cli/commands/mind-admit.ts";
+} from "../../olt/scripts/src/cli/commands/mind-admit.ts";
 import {
   formatMindCandidateBrief,
   mindCandidateCommand,
-} from "../../../olt/scripts/src/cli/commands/mind-candidate.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import * as witnessModule from "../../../olt/scripts/src/mind/auditing/witness/index.ts";
-import * as gatesModule from "../../../olt/scripts/src/mind/proposals/gates/index.ts";
+} from "../../olt/scripts/src/cli/commands/mind-candidate.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import * as witnessModule from "../../olt/scripts/src/mind/auditing/witness/index.ts";
+import * as gatesModule from "../../olt/scripts/src/mind/proposals/gates/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../olt/scripts/src/engine/store/index.ts";
 
 const roots: string[] = [];
 afterEach(async () => cleanupRoots(roots));

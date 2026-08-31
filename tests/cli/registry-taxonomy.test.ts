@@ -14,7 +14,7 @@ import {
   isPrimaryCommand,
   type CommandDomain,
   type CommandSpec,
-} from "../../../olt/scripts/src/cli/registry/index.ts";
+} from "../../olt/scripts/src/cli/registry/index.ts";
 
 const APPROVED_ROOT_VERBS: ReadonlySet<string> = new Set([
   "orchestrate",

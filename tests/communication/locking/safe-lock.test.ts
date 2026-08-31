@@ -30,8 +30,8 @@ import {
   setInMemoryLocking,
   withExclusiveLock,
   withExclusiveLockAsync,
-} from "../../../../olt/scripts/src/communication/locking/safe-lock.ts";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+} from "../../../olt/scripts/src/communication/locking/safe-lock.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("SafeLock Advisory Locking Engine (Disk and In-Memory)", () => {
   let tempDir: string;

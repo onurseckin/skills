@@ -2,16 +2,16 @@ import { describe, expect, test } from "bun:test";
 import {
   analyzeTopologyDeclaration,
   assertTopologyJustified,
-} from "../../../../olt/scripts/src/graph/topology-declaration.ts";
+} from "../../../olt/scripts/src/graph/topology-declaration.ts";
 import {
   dependencyData,
   describeCycle,
   downstreamMap,
   topologicalOrder,
   type DependencyMap,
-} from "../../../../olt/scripts/src/graph/topology.ts";
-import { dependencyMap } from "../../../../olt/scripts/src/graph/dependency-map.ts";
-import type { TaskDeclaration } from "../../../../olt/scripts/src/requirements/compiler.ts";
+} from "../../../olt/scripts/src/graph/topology.ts";
+import { dependencyMap } from "../../../olt/scripts/src/graph/dependency-map.ts";
+import type { TaskDeclaration } from "../../../olt/scripts/src/requirements/compiler.ts";
 
 function task(overrides: Partial<TaskDeclaration> & Pick<TaskDeclaration, "id">): TaskDeclaration {
   return {

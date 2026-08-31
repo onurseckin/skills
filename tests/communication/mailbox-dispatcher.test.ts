@@ -4,7 +4,7 @@ import { join } from "node:path";
 import {
   createSignedEnvelope,
   verifyEnvelopeHmac,
-} from "../../../olt/scripts/src/communication/mailbox/envelope.ts";
+} from "../../olt/scripts/src/communication/mailbox/envelope.ts";
 import {
   broadcastWaveNotification,
   clearInMemoryCursors,
@@ -12,19 +12,19 @@ import {
   dispatchPeerMessage,
   getInMemoryCursor,
   resolveRecipientAgentIds,
-} from "../../../olt/scripts/src/communication/mailbox/mailbox-dispatcher.ts";
+} from "../../olt/scripts/src/communication/mailbox/mailbox-dispatcher.ts";
 import {
   clearInMemoryMailboxDirs,
   registerInMemoryMailboxDir,
   resolveMailboxPaths,
-} from "../../../olt/scripts/src/communication/mailbox/mailbox-paths.ts";
+} from "../../olt/scripts/src/communication/mailbox/mailbox-paths.ts";
 import {
   clearInMemoryMailboxStore,
   getInMemoryMailbox,
   setInMemoryStreamMode,
-} from "../../../olt/scripts/src/communication/mailbox/mailbox-stream.ts";
-import type { MailboxEnvelope } from "../../../olt/scripts/src/communication/types.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/communication/mailbox/mailbox-stream.ts";
+import type { MailboxEnvelope } from "../../olt/scripts/src/communication/types.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 
 describe("P2P Mailbox Dispatcher & Role Resolution (In-Memory)", () => {
   const virtualRoot = "virtual://dispatcher-suite";

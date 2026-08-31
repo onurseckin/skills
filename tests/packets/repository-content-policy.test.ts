@@ -2,16 +2,16 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, mkdirSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { inspectRepositoryContent } from "../../../olt/scripts/src/packets/repository-content.ts";
-import { repositoryContentPaths } from "../../../olt/scripts/src/packets/repository-content-paths.ts";
+import { inspectRepositoryContent } from "../../olt/scripts/src/packets/repository-content.ts";
+import { repositoryContentPaths } from "../../olt/scripts/src/packets/repository-content-paths.ts";
 import {
   DEFAULT_REPOSITORY_CONTENT_POLICY,
   decodeRepositoryContentPath,
   resolveRepositoryContentPolicy,
   validateRepositoryContentPath,
-} from "../../../olt/scripts/src/packets/repository-content-policy.ts";
-import { gitRepositoryPaths } from "../../../olt/scripts/src/packets/repository-git-paths.ts";
-import type { RepositoryGitCommand } from "../../../olt/scripts/src/packets/repository-git-command.ts";
+} from "../../olt/scripts/src/packets/repository-content-policy.ts";
+import { gitRepositoryPaths } from "../../olt/scripts/src/packets/repository-git-paths.ts";
+import type { RepositoryGitCommand } from "../../olt/scripts/src/packets/repository-git-command.ts";
 
 const roots: string[] = [];
 

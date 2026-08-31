@@ -3,7 +3,7 @@ import { realpathSync } from "node:fs";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
 import {
   activeAgentBadge,
   analyzeDependencyForensics,
@@ -18,7 +18,7 @@ import {
   statusGlyph,
   type DagNodeSummary,
   type DagViewResult,
-} from "../../../olt/scripts/src/cli/commands/dag-view.ts";
+} from "../../olt/scripts/src/cli/commands/dag-view.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 
 const roots: string[] = [];

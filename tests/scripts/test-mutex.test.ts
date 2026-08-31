@@ -3,7 +3,7 @@ import {
   acquireTestLock,
   isProcessAlive,
   type TestLockData,
-} from "../../../scripts/testing/test-mutex.ts";
+} from "../../scripts/testing/test-mutex.ts";
 import { existsSync, readFileSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 

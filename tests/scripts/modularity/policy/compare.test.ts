@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import {
   compareBaseline,
   type ModularityBaseline,
-} from "../../../../../scripts/modularity/policy/index.ts";
+} from "../../../../scripts/modularity/policy/index.ts";
 
 function baseline(observed: number): ModularityBaseline {
   return {

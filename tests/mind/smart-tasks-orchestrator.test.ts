@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import type { FeedbackItem } from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import type { FeedbackItem } from "../../olt/scripts/src/mind/feedback/queue/index.ts";
 import {
   deriveGateForCategory,
   deriveWriteScopeForCategory,
@@ -8,7 +8,7 @@ import {
   mapFeedbackPriorityToTaskPriority,
   planEnhanceToWavePlan,
   sanitizeSlug,
-} from "../../../olt/scripts/src/mind/tasks/smart/executor/orchestrator.ts";
+} from "../../olt/scripts/src/mind/tasks/smart/executor/orchestrator.ts";
 
 describe("smart-tasks-orchestrator", () => {
   describe("sanitizeSlug", () => {

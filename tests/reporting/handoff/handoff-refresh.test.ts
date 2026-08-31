@@ -2,19 +2,19 @@ import { existsSync, readFileSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, describe, expect, test } from "bun:test";
-import { execute } from "../../../../olt/scripts/src/cli/execute.ts";
+import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import {
   refreshHandoff,
   refreshHandoffOnEscalation,
-} from "../../../../olt/scripts/src/reporting/handoff.ts";
+} from "../../../olt/scripts/src/reporting/handoff.ts";
 import {
   taskClaimCommand,
   taskSubmitCommand,
-} from "../../../../olt/scripts/src/cli/commands/task-claim.ts";
+} from "../../../olt/scripts/src/cli/commands/task-claim.ts";
 import {
   orchestratorSuperviseCommand,
   orchestratorTickCommand,
-} from "../../../../olt/scripts/src/cli/commands/orchestrator-ops.ts";
+} from "../../../olt/scripts/src/cli/commands/orchestrator-ops.ts";
 import { cleanupRoots } from "../../cli/full-lifecycle-fixture.ts";
 import { CHANGED_FILE, setupRun, TASK_ID } from "../../cli/probe-fixture.ts";
 

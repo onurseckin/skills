@@ -3,13 +3,13 @@ import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { readLastPulse } from "../../../olt/scripts/src/mind/lifecycle/index.ts";
-import { reclaimDeadPulse } from "../../../olt/scripts/src/mind/lifecycle/index.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import type { Clock } from "../../../olt/scripts/src/workflow/types.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { readLastPulse } from "../../olt/scripts/src/mind/lifecycle/index.ts";
+import { reclaimDeadPulse } from "../../olt/scripts/src/mind/lifecycle/index.ts";
+import { loadRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { initRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../olt/scripts/src/engine/store/index.ts";
+import type { Clock } from "../../olt/scripts/src/workflow/types.ts";
 
 const roots: string[] = [];
 

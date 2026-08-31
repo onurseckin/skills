@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { enforceTurn1OrchestratorInit } from "../../../olt/scripts/src/orchestrator/lifecycle/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { enforceTurn1OrchestratorInit } from "../../olt/scripts/src/orchestrator/lifecycle/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Orchestrator Turn 1 Init", () => {

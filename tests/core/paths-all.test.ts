@@ -24,7 +24,7 @@ import {
   loadSkillGlobalConfig,
   resolveSkillHomeRepo,
   OLT_FILES,
-} from "../../../olt/scripts/src/core/shared/paths.ts";
+} from "../../olt/scripts/src/core/shared/paths.ts";
 
 function makeTmpDir(prefix: string): string {
   return mkdtempSync(join(tmpdir(), prefix));

@@ -14,11 +14,11 @@ import {
   verifyMultiViewportManifests,
   type MultiViewportBundleInput,
   type ScreenshotArtifact,
-} from "../../../../olt/scripts/src/heuristics/multi-viewport-manifest/index.ts";
+} from "../../../olt/scripts/src/heuristics/multi-viewport-manifest/index.ts";
 import type {
   CompanionManifestV2,
   EvaluatedCriterion,
-} from "../../../../olt/scripts/src/capture/validator/types.ts";
+} from "../../../olt/scripts/src/capture/validator/types.ts";
 
 describe("Extended Heuristics: Multi-Viewport Manifest & 4 Pillars Hierarchy", () => {
   const createMockCriterion = (

@@ -6,14 +6,14 @@ import {
   compareReportDelta,
   computeStateSignature,
   sanitizeFindingForDelta,
-} from "../../../olt/scripts/src/mind/auditing/index.ts";
+} from "../../olt/scripts/src/mind/auditing/index.ts";
 import {
   executeStagnationShockRecovery,
   resolveStagnationIncidents,
   MODE_A_AUTONOMIC_DISCOVERY,
-} from "../../../olt/scripts/src/mind/auditing/stagnation-recovery-interlock.ts";
-import { analyzeRunForensics } from "../../../olt/scripts/src/mind/auditing/meta/index.ts";
-import type { Manifest, RunState } from "../../../olt/scripts/src/core/contracts/index.ts";
+} from "../../olt/scripts/src/mind/auditing/stagnation-recovery-interlock.ts";
+import { analyzeRunForensics } from "../../olt/scripts/src/mind/auditing/meta/index.ts";
+import type { Manifest, RunState } from "../../olt/scripts/src/core/contracts/index.ts";
 
 describe("Domain 4 Hardening Invariants (INV-AUDIT-01 to INV-AUDIT-05)", () => {
   describe("INV-AUDIT-01: Deterministic Delta Invariance", () => {

@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   OrchestratorCompanionAuditor,
   executeBehavioralForensics,
@@ -13,14 +13,14 @@ import {
   verifyCompanionAuditorsHealth,
   assertCompanionAuditorsHealth,
   assertBehavioralCompliance,
-} from "../../../olt/scripts/src/orchestrator/companion-auditor.ts";
+} from "../../olt/scripts/src/orchestrator/companion-auditor.ts";
 import {
   checkCompanionAuditorsDoctor,
   auditCompanionAuditors,
   assertCompanionAuditorsDoctor,
-} from "../../../olt/scripts/src/reporting/doctor/rules/companion-auditors.ts";
-import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
-import type { BehavioralForensicsReport } from "../../../olt/scripts/src/orchestrator/types.ts";
+} from "../../olt/scripts/src/reporting/doctor/rules/companion-auditors.ts";
+import type { AgentGrantRecord } from "../../olt/scripts/src/core/contracts/index.ts";
+import type { BehavioralForensicsReport } from "../../olt/scripts/src/orchestrator/types.ts";
 
 describe("OrchestratorCompanionAuditor Unit Tests", () => {
   const testRoot = join(tmpdir(), `skills-companion-auditor-unit-${Date.now()}`);

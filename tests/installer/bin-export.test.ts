@@ -11,7 +11,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { buildOltBinaryContent, ensureGlobalOltBinary } from "../../../scripts/sync/olt-bin";
+import { buildOltBinaryContent, ensureGlobalOltBinary } from "../../scripts/sync/olt-bin";
 
 const tempRoots: string[] = [];
 

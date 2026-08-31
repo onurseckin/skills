@@ -25,9 +25,9 @@ import {
   timestamp,
   type QuotaDagSnapshot,
   type ResumeDagSnapshotResult,
-} from "../../../olt/scripts/src/telemetry/snapshot/index.ts";
-import type { CircuitBreakerEvaluation } from "../../../olt/scripts/src/telemetry/circuit-breaker.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/telemetry/snapshot/index.ts";
+import type { CircuitBreakerEvaluation } from "../../olt/scripts/src/telemetry/circuit-breaker.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 
 describe("Telemetry Quota DAG Snapshot Suite", () => {
   const TEST_DIR = join(process.cwd(), "tests-tmp-telemetry-snapshot");

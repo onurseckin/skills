@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import type { AgentGrantRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import type { JsonObject } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import { nextActions } from "../../../../olt/scripts/src/reporting/next-actions.ts";
+import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { nextActions } from "../../../olt/scripts/src/reporting/next-actions.ts";
 import { actions, ENTRYPOINT, RUN, view } from "./actions-fixture.ts";
 import { dispatchFailures } from "../core/dispatchable.ts";
 

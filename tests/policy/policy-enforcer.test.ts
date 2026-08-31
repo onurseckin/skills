@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   enforceRepoPolicy,
   generateDefaultRepoPolicy,
   type RepoPolicy,
-} from "../../../olt/scripts/src/policy/index.ts";
+} from "../../olt/scripts/src/policy/index.ts";
 
 const mockPolicy: RepoPolicy = {
   ...generateDefaultRepoPolicy("/mock/repo"),

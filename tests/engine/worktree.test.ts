@@ -1,24 +1,24 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   isDestructiveGitCommand,
   assertZeroDestructiveGit,
   isPathInWriteScope,
   assertNonDestructiveWriteScope,
   buildInclusiveStageArgs,
-} from "../../../olt/scripts/src/engine/worktree/zero-destructive-policy.ts";
+} from "../../olt/scripts/src/engine/worktree/zero-destructive-policy.ts";
 import {
   CONVENTIONAL_COMMIT_TYPES,
   formatConventionalCommit,
   validatePhaseCommitMessage,
-} from "../../../olt/scripts/src/engine/worktree/phase-commits.ts";
+} from "../../olt/scripts/src/engine/worktree/phase-commits.ts";
 import {
   createDomainLedger,
   validateDomainIsolation,
   assertDomainIsolation,
   isDomainSyncEligible,
   type DomainWorktreeConfig,
-} from "../../../olt/scripts/src/engine/worktree/domain-sync.ts";
+} from "../../olt/scripts/src/engine/worktree/domain-sync.ts";
 
 describe("Zero-Destructive Git Invariant", () => {
   test("isDestructiveGitCommand detects destructive git commands", () => {

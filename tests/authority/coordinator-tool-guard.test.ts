@@ -3,8 +3,8 @@ import {
   assertCoordinatorPreToolGuard,
   isCoordinatorFileEditForbidden,
   isCoordinatorRole,
-} from "../../../olt/scripts/src/authority/guards/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/authority/guards/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 
 describe("Coordinator Tool Guard & Pre-Tool Enforcement", () => {
   test("identifies coordinator roles correctly", () => {

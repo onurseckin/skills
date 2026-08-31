@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   clearShutdownHooks,
   formatCliError,
@@ -14,7 +14,7 @@ import {
   SignalTrapManager,
   teardownSignalTraps,
   withSignalTrap,
-} from "../../../olt/scripts/src/cli/signals/index.ts";
+} from "../../olt/scripts/src/cli/signals/index.ts";
 
 describe("CLI Signal Trapping, Shutdown Hooks & Error Propagation", () => {
   beforeEach(() => {

@@ -12,17 +12,17 @@ import {
   resolveCanonicalDefectLogPath,
   resolveCompletedDefectsPath,
   resolveDefectLogPath,
-} from "../../../../olt/scripts/src/mind/defects/loop/ledger-ops.ts";
+} from "../../../olt/scripts/src/mind/defects/loop/ledger-ops.ts";
 import {
   normalizeFindingToDefect,
   parseDefectsJsonl,
   serializeDefectsJsonl,
-} from "../../../../olt/scripts/src/mind/defects/sync/lifecycle-sync.ts";
+} from "../../../olt/scripts/src/mind/defects/sync/lifecycle-sync.ts";
 import {
   executeDefectAudit,
   formatDefectAuditBrief,
   logBoundaryViolationDefect,
-} from "../../../../olt/scripts/src/mind/defects/loop/audit.ts";
+} from "../../../olt/scripts/src/mind/defects/loop/audit.ts";
 import { createMockDefectEntry } from "./defect-fixture.ts";
 
 describe("Defect Sync Ledger & Loop Operations", () => {

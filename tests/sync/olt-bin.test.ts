@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { chmodSync, existsSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { buildOltBinaryContent, ensureGlobalOltBinary } from "../../../scripts/sync/olt-bin.ts";
+import { buildOltBinaryContent, ensureGlobalOltBinary } from "../../scripts/sync/olt-bin.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("buildOltBinaryContent", () => {

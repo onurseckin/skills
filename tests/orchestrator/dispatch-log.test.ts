@@ -4,7 +4,7 @@ import {
   readDispatchHistory,
   recordDispatchOutcome,
   type DispatchLogEvent,
-} from "../../../olt/scripts/src/orchestrator/dispatch-log.ts";
+} from "../../olt/scripts/src/orchestrator/dispatch-log.ts";
 import { TestPort, workflowState } from "../workflow/test-port.ts";
 
 function asEvents(port: TestPort): DispatchLogEvent[] {

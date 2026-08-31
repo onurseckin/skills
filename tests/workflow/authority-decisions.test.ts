@@ -6,9 +6,9 @@ import {
   requirementExecutionState,
   type AuthorityDecisionInput,
   type AuthorityDecisionRecord,
-} from "../../../olt/scripts/src/workflow/authority/index.ts";
-import { decisionHistory } from "../../../olt/scripts/src/workflow/authority/decision-record.ts";
-import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
+} from "../../olt/scripts/src/workflow/authority/index.ts";
+import { decisionHistory } from "../../olt/scripts/src/workflow/authority/decision-record.ts";
+import { claimTask } from "../../olt/scripts/src/workflow/lease/claim.ts";
 import { at, TestPort, workflowState } from "./test-port.ts";
 
 const clock = at("2026-08-13T12:00:00.000Z");

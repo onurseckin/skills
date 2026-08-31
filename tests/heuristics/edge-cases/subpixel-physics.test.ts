@@ -11,8 +11,8 @@ import {
   validateElementSubpixelPhysics,
   validateSubpixelBorders,
   type SubpixelElementInput,
-} from "../../../../olt/scripts/src/heuristics/subpixel-borders/index.ts";
-import type { ElementPhysicsSnapshot } from "../../../../olt/scripts/src/capture/validator/types.ts";
+} from "../../../olt/scripts/src/heuristics/subpixel-borders/index.ts";
+import type { ElementPhysicsSnapshot } from "../../../olt/scripts/src/capture/validator/types.ts";
 
 describe("Extended Heuristics: Subpixel Physics & Viewport Variations", () => {
   it("verifies multi-viewport DPR variations (Desktop-wide @ 1x/2x, Mobile @ 3x Super Retina) on composite UI trees", () => {

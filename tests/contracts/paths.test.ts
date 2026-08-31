@@ -1,7 +1,7 @@
 import { describe, expect, test, afterAll } from "bun:test";
 import { chmodSync, mkdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { safeRepoPath } from "../../../olt/scripts/src/core/paths.ts";
+import { safeRepoPath } from "../../olt/scripts/src/core/paths.ts";
 
 describe("core paths & safeRepoPath safety invariants", () => {
   const scratchBase = join(process.cwd(), "coverage", "scratch", "safe-repo-paths-test");

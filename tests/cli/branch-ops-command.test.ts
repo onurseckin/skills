@@ -2,11 +2,11 @@ import { tmpdir } from "node:os";
 import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, test } from "bun:test";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
 import {
   branchClaimCommand,
   branchOpenCommand,
-} from "../../../olt/scripts/src/cli/commands/branch-ops.ts";
+} from "../../olt/scripts/src/cli/commands/branch-ops.ts";
 import {
   branchCapsule,
   branchChain,

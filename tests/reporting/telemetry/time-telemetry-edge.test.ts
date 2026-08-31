@@ -1,10 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import { getDualTime } from "../../../../olt/scripts/src/core/dual-time/index.ts";
+import { getDualTime } from "../../../olt/scripts/src/core/dual-time/index.ts";
 import {
   computeLatencyPercentiles,
   validateTimeTelemetryHealth,
   type HarnessActionTimeRecord,
-} from "../../../../olt/scripts/src/reporting/time-telemetry/index.ts";
+} from "../../../olt/scripts/src/reporting/time-telemetry/index.ts";
 
 describe("reporting/time-telemetry edge cases suite", () => {
   it("computes percentiles for empty and single-element arrays", () => {

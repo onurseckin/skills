@@ -9,7 +9,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   appendFeedbackItem,
   backpropagateFeedbackResolution,
@@ -31,7 +31,7 @@ import {
   __setFeedbackQueuePersistenceTestHook,
   type FeedbackItem,
   type FeedbackResolutionProof,
-} from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
+} from "../../olt/scripts/src/mind/feedback/queue/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Feedback Queue Engine", () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { InferenceGraph } from "../../../../olt/scripts/src/core/epistemic/index.ts";
+import { InferenceGraph } from "../../../olt/scripts/src/core/epistemic/index.ts";
 
 describe("Inference Graph & Epistemic State Propagation", () => {
   it("creates nodes with defaults, custom grades, and computes size", () => {

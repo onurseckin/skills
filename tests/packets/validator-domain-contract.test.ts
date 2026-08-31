@@ -1,16 +1,16 @@
 import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { buildPacket } from "../../../olt/scripts/src/packets/render-packet.ts";
+import { buildPacket } from "../../olt/scripts/src/packets/render-packet.ts";
 import {
   loadChecklist,
   loadRoleContract,
   loadValidatorDomainContract,
   parseRoleContract,
   VALIDATOR_DOMAINS,
-} from "../../../olt/scripts/src/packets/role-contract.ts";
-import { beginValidation } from "../../../olt/scripts/src/workflow/review/begin-validation.ts";
-import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
-import { submitTask } from "../../../olt/scripts/src/workflow/submission/submit.ts";
+} from "../../olt/scripts/src/packets/role-contract.ts";
+import { beginValidation } from "../../olt/scripts/src/workflow/review/begin-validation.ts";
+import { claimTask } from "../../olt/scripts/src/workflow/lease/claim.ts";
+import { submitTask } from "../../olt/scripts/src/workflow/submission/submit.ts";
 import { at, registerTaskPacket, TestPort, workflowState } from "../workflow/test-port.ts";
 import { inspectionContext } from "./inspection-fixture.ts";
 

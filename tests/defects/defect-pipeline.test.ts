@@ -21,13 +21,13 @@ import {
   serializeAggregatedDefectLog,
   streamDeduplicateDefects,
   toAggregatedDefect,
-} from "../../../olt/scripts/src/mind/defects/index.ts";
+} from "../../olt/scripts/src/mind/defects/index.ts";
 import type {
   AggregatedDefect,
   DefectCategory,
   DefectRecordInput,
   DefectResolutionProof,
-} from "../../../olt/scripts/src/mind/defects/core/index.ts";
+} from "../../olt/scripts/src/mind/defects/core/index.ts";
 import {
   advanceDeliberationRound,
   auditDefectLog,
@@ -46,7 +46,7 @@ import {
   validateResolutionProof,
   verifyResolutionProofEmpirical,
   type DefectEntry,
-} from "../../../olt/scripts/src/mind/defects/index.ts";
+} from "../../olt/scripts/src/mind/defects/index.ts";
 
 describe("Defect Pipeline - Categorization & Discriminator Logic", () => {
   it("categorizes boundary violations correctly", () => {

@@ -10,7 +10,7 @@ import {
   recordMemorySearchTelemetry,
   resetMemoryTelemetry,
   type MemoryTelemetryEvent,
-} from "../../../olt/scripts/src/mind/memory/index.ts";
+} from "../../olt/scripts/src/mind/memory/index.ts";
 
 describe("Mind Memory Telemetry", () => {
   beforeEach(() => {

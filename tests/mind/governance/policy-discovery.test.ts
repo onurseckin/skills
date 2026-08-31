@@ -10,15 +10,15 @@ import {
   type GovernanceCoverageReport,
   type GovernanceToolchainDiscoveryResult,
   type RepoGovernanceStatus,
-} from "../../../../olt/scripts/src/mind/governance/policy-discovery.ts";
+} from "../../../olt/scripts/src/mind/governance/policy-discovery.ts";
 import {
   auditGovernanceReadiness,
   bootstrapRepoGovernance,
   calibrateRepoGovernance,
   scaffoldTailoredRepoPolicy,
   verifyRepoGovernance,
-} from "../../../../olt/scripts/src/mind/governance/policy-scaffold.ts";
-import { computeCharterSha256 } from "../../../../olt/scripts/src/mind/governance/charter.ts";
+} from "../../../olt/scripts/src/mind/governance/policy-scaffold.ts";
+import { computeCharterSha256 } from "../../../olt/scripts/src/mind/governance/charter.ts";
 import {
   CURRENT_POLICY_SCHEMA_VERSION,
   computePolicyChecksum,
@@ -30,14 +30,14 @@ import {
   saveRepoPolicy,
   validateRepoPolicy,
   type RepoPolicy,
-} from "../../../../olt/scripts/src/policy/index.ts";
+} from "../../../olt/scripts/src/policy/index.ts";
 import {
   policyAuditCommand,
   policyCheckDriftCommand,
   policyGetCommand,
   policyInitCommand,
   policySetCommand,
-} from "../../../../olt/scripts/src/cli/commands/policy-ops.ts";
+} from "../../../olt/scripts/src/cli/commands/policy-ops.ts";
 
 describe("Policy & Repository Auto-Discovery Engine", () => {
   let testDir: string;

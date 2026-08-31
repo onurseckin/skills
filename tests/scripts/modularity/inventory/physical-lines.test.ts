@@ -3,7 +3,7 @@ import {
   countPhysicalLines,
   findLineViolations,
   type IndexedBlob,
-} from "../../../../../scripts/modularity/inventory/index.ts";
+} from "../../../../scripts/modularity/inventory/index.ts";
 
 test.each([
   [new Uint8Array(), 0],

@@ -34,7 +34,7 @@ import {
   type SugiyamaNode,
   type SugiyamaRankedNode,
   type SugiyamaSubtask,
-} from "../../../olt/scripts/src/reporting/sugiyama-dag/index.ts";
+} from "../../olt/scripts/src/reporting/sugiyama-dag/index.ts";
 
 function node(id: string, deps: readonly string[] = [], status = "ready"): SugiyamaNode {
   return { id, label: `Task ${id}`, status, dependencies: deps };

@@ -2,37 +2,37 @@ import { describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
-import { initRun } from "../../../../olt/scripts/src/engine/store/capsule/capsule.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
 import {
   buildIndex,
   writeIndex,
   loadIndex,
-} from "../../../../olt/scripts/src/engine/store/capsule/capsule-index.ts";
+} from "../../../olt/scripts/src/engine/store/capsule/capsule-index.ts";
 import {
   captureLedgerDigest,
   optional,
   text,
   integer,
   stringList,
-} from "../../../../olt/scripts/src/engine/store/capsule/capsule-index-types.ts";
+} from "../../../olt/scripts/src/engine/store/capsule/capsule-index-types.ts";
 import {
   readCaptures,
   recordCaptures,
   type CaptureRecord,
-} from "../../../../olt/scripts/src/engine/store/capsule/captures.ts";
-import { runFilePath } from "../../../../olt/scripts/src/engine/store/capsule/paths.ts";
-import { normalizeRunId } from "../../../../olt/scripts/src/engine/store/capsule/run-id.ts";
+} from "../../../olt/scripts/src/engine/store/capsule/captures.ts";
+import { runFilePath } from "../../../olt/scripts/src/engine/store/capsule/paths.ts";
+import { normalizeRunId } from "../../../olt/scripts/src/engine/store/capsule/run-id.ts";
 import {
   loadRun,
   loadRunProjection,
-} from "../../../../olt/scripts/src/engine/store/capsule/load.ts";
+} from "../../../olt/scripts/src/engine/store/capsule/load.ts";
 import {
   businessFields,
   cloneObject,
   initialState,
   isTerminalState,
-} from "../../../../olt/scripts/src/engine/store/capsule/state.ts";
+} from "../../../olt/scripts/src/engine/store/capsule/state.ts";
 
 function makeTmpDir(prefix: string): string {
   return realpathSync(mkdtempSync(join(tmpdir(), prefix)));

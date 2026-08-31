@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   assertZeroMainThreadSpillover,
   enforceZeroMainThreadSpillover,
@@ -7,13 +7,13 @@ import {
   planSupervisionLoopRecycle,
   SupervisionLoopRunner,
   transitionSupervisionLoopToDiscovery,
-} from "../../../../olt/scripts/src/orchestrator/supervision-loop.ts";
+} from "../../../olt/scripts/src/orchestrator/supervision-loop.ts";
 import type {
   RoundExecutionInput,
   RoundExecutionResult,
   RoundExecutor,
-} from "../../../../olt/scripts/src/orchestrator/types.ts";
-import { initRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
+} from "../../../olt/scripts/src/orchestrator/types.ts";
+import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { scratchRoot } from "../../../support/scratch-root.ts";
 import { createMockGitRunner, createMockSyncRunner } from "./fixture.ts";
 

@@ -2,17 +2,17 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import { completionReviewDigest } from "../../../olt/scripts/src/workflow/completion/completion-review-digest.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
+import { initRun, transact } from "../../olt/scripts/src/engine/store/index.ts";
+import { completionReviewDigest } from "../../olt/scripts/src/workflow/completion/completion-review-digest.ts";
 import type {
   CompletionCriticAuthorization,
   CompletionFinding,
   CompletionReview,
-} from "../../../olt/scripts/src/workflow/types.ts";
+} from "../../olt/scripts/src/workflow/types.ts";
 import { commandRecord, repositoryBinding } from "../workflow/test-port.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
-import { registerSessionGrant } from "../../../olt/scripts/src/authority/session/index.ts";
+import { registerSessionGrant } from "../../olt/scripts/src/authority/session/index.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 
 const roots: string[] = [];

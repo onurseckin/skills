@@ -5,7 +5,7 @@ import {
   findRepositoryRoot,
   scanMisplacedCapsulesDirectories,
   verifyStrictRepositoryCapsuleRoot,
-} from "../../../../olt/scripts/src/reporting/doctor/capsule-root.ts";
+} from "../../../olt/scripts/src/reporting/doctor/capsule-root.ts";
 
 const SCRATCH_DIR = resolve(join(process.cwd(), "coverage", "scratch", "capsule-root-tests"));
 

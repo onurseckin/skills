@@ -4,7 +4,7 @@ import {
   virtualFS,
   normalizePosixPath,
   VirtualFSError,
-} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+} from "../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("VirtualMemoryFS Core Engine", () => {
   let fs: VirtualMemoryFS;

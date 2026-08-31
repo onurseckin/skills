@@ -1,14 +1,14 @@
 import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { readPlanBindings } from "../../../olt/scripts/src/cli/commands/plan-replan-bindings.ts";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { readPlanBindings } from "../../olt/scripts/src/cli/commands/plan-replan-bindings.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
 import {
   appendGateProof,
   type GateProofRecord,
-} from "../../../olt/scripts/src/graph/gate-proof.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../olt/scripts/src/graph/gate-proof.ts";
+import { loadRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../olt/scripts/src/engine/store/index.ts";
 import {
   establishSupervisorChain,
   registerUnderChain,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import * as schema from "../../../olt/scripts/src/policy/schema/index.ts";
+import * as schema from "../../olt/scripts/src/policy/schema/index.ts";
 import {
   assertValidPolicy,
   isPolicyValid,
@@ -9,7 +9,7 @@ import {
   validatePolicy,
   validatePolicyStructure,
   validateReviewProtocol,
-} from "../../../olt/scripts/src/policy/validator.ts";
+} from "../../olt/scripts/src/policy/validator.ts";
 
 import { samplePolicy } from "./rbac/fixtures.ts";
 

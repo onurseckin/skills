@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import * as reporting from "../../../scripts/testing/reporting/index.ts";
+import * as reporting from "../../scripts/testing/reporting/index.ts";
 import {
   buildHtmlDocument,
   extractCoverageFileData,
@@ -9,9 +9,9 @@ import {
   getClientScript,
   getHtmlStyles,
   writeInteractiveHtml,
-} from "../../../scripts/testing/reporting/html/index.ts";
-import { getClientScriptHelpers } from "../../../scripts/testing/reporting/html/client-script-helpers.ts";
-import { getCodeViewerStyles } from "../../../scripts/testing/reporting/html/styles-code-viewer.ts";
+} from "../../scripts/testing/reporting/html/index.ts";
+import { getClientScriptHelpers } from "../../scripts/testing/reporting/html/client-script-helpers.ts";
+import { getCodeViewerStyles } from "../../scripts/testing/reporting/html/styles-code-viewer.ts";
 import {
   buildCoverageSummary,
   calculatePct,
@@ -22,12 +22,12 @@ import {
   processCoverageArtifacts,
   writeMarkdownReport,
   writeSummaryJson,
-} from "../../../scripts/testing/reporting/index.ts";
-import { buildMarkdownReport } from "../../../scripts/testing/reporting/markdown-reporter.ts";
+} from "../../scripts/testing/reporting/index.ts";
+import { buildMarkdownReport } from "../../scripts/testing/reporting/markdown-reporter.ts";
 import type {
   CoverageSummary,
   FileCoverageMetric,
-} from "../../../scripts/testing/reporting/types.ts";
+} from "../../scripts/testing/reporting/types.ts";
 
 describe("Testing & Reporting Subsystem - Comprehensive Unit Tests", () => {
   const tmpRoot = join(process.cwd(), ".tmp-test-reporting-suite");

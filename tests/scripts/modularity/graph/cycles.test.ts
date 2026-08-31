@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import {
   type ImportEdge,
   stronglyConnectedComponents,
-} from "../../../../../scripts/modularity/graph/index.ts";
+} from "../../../../scripts/modularity/graph/index.ts";
 
 function edge(from: string, to: string): ImportEdge {
   return { from, to, typeOnly: false, viaFacade: true };

@@ -3,16 +3,16 @@ import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { createInternalCommandRunner } from "../../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
+import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 import {
   reconcileStrandedCommands,
   runAndRecordCommand,
-} from "../../../../olt/scripts/src/integration/record-command.ts";
-import { embeddedCommandIssues } from "../../../../olt/scripts/src/engine/runner/models/command/command-shape.ts";
+} from "../../../olt/scripts/src/integration/record-command.ts";
+import { embeddedCommandIssues } from "../../../olt/scripts/src/engine/runner/models/command/command-shape.ts";
 import {
   MAX_COMMAND_ARGUMENTS,
   MAX_COMMAND_ARGV_BYTES,
-} from "../../../../olt/scripts/src/engine/runner/core/policy.ts";
+} from "../../../olt/scripts/src/engine/runner/core/policy.ts";
 
 const roots: string[] = [];
 

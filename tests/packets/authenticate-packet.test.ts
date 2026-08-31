@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   authenticatePacketIdentity,
   type PacketAuthenticationInput,
-} from "../../../olt/scripts/src/packets/authenticate-packet.ts";
-import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";
+} from "../../olt/scripts/src/packets/authenticate-packet.ts";
+import { tokenDigest } from "../../olt/scripts/src/workflow/lease/token.ts";
 import { at, repositoryBinding, workflowState } from "../workflow/test-port.ts";
 
 const TOKEN = "critic-auth-token";

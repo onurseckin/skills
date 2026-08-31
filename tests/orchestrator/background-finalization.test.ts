@@ -1,7 +1,7 @@
 import { describe, expect, it, test } from "bun:test";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   assertZeroMainThreadSpillover,
   enforceZeroMainThreadSpillover,
@@ -14,15 +14,15 @@ import {
   type GitRunner,
   type GitRunnerResult,
   type SyncRunner,
-} from "../../../olt/scripts/src/orchestrator/supervision-loop.ts";
+} from "../../olt/scripts/src/orchestrator/supervision-loop.ts";
 import type {
   RoundExecutionInput,
   RoundExecutionResult,
   RoundExecutor,
-} from "../../../olt/scripts/src/orchestrator/types.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../olt/scripts/src/orchestrator/types.ts";
+import { initRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { loadRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../olt/scripts/src/engine/store/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 function createMockGitRunner(

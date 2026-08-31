@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   FORBIDDEN_VALIDATOR_COMMANDS,
   validateRoleAuthorityInvariants,
-} from "../../../olt/scripts/src/roles/index.ts";
+} from "../../olt/scripts/src/roles/index.ts";
 
 describe("Roles authority invariants enforcement", () => {
   test("defines forbidden validator commands", () => {

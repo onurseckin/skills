@@ -9,7 +9,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   __setCompletedTasksPersistenceTestHook,
   formatCompletedTasksBrief,
@@ -29,16 +29,16 @@ import {
   validateCompletedTaskStatus,
   writeCompletedTasksLedger,
   type CompletedTaskRecord,
-} from "../../../olt/scripts/src/mind/archival/completed/index.ts";
+} from "../../olt/scripts/src/mind/archival/completed/index.ts";
 import {
   popNextEligibleTaskWithCleanup,
   readTaskQueue,
   writeTaskQueue,
-} from "../../../olt/scripts/src/task/queue/index.ts";
+} from "../../olt/scripts/src/task/queue/index.ts";
 import {
   appendFeedbackItem,
   readFeedbackQueue,
-} from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
+} from "../../olt/scripts/src/mind/feedback/queue/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Completed Tasks Ledger Engine", () => {

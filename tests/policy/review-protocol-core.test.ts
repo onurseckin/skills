@@ -6,8 +6,8 @@ import {
   projectTaskReviewState,
   ReviewProtocolEngine,
   type ReviewChannelEntry,
-} from "../../../olt/scripts/src/policy/index.ts";
-import type { TaskRecord } from "../../../olt/scripts/src/workflow/index.ts";
+} from "../../olt/scripts/src/policy/index.ts";
+import type { TaskRecord } from "../../olt/scripts/src/workflow/index.ts";
 
 describe("ReviewProtocolEngine Core State & Phase Progression", () => {
   const dummyTask: TaskRecord = {

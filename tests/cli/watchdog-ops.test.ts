@@ -6,11 +6,11 @@ import {
   saveWatchdogStore,
   type WatchdogRecord,
   type WatchdogStore,
-} from "../../../olt/scripts/src/authority/watchdog/index.ts";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import { registerSessionGrant } from "../../../olt/scripts/src/authority/session/index.ts";
+} from "../../olt/scripts/src/authority/watchdog/index.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { initRun, transact } from "../../olt/scripts/src/engine/store/index.ts";
+import { registerSessionGrant } from "../../olt/scripts/src/authority/session/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 function authorizeMind(dir: string): string {

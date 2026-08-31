@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   executeAutoSyncAndCommit,
   type AutoSyncOptions,
@@ -9,13 +9,13 @@ import {
   type GitRunnerResult,
   type SyncRunner,
   type SyncRunnerResult,
-} from "../../../olt/scripts/src/workflow/completion/auto-sync-and-commit.ts";
+} from "../../olt/scripts/src/workflow/completion/auto-sync-and-commit.ts";
 import {
   CONVENTIONAL_COMMIT_TYPES,
   formatConventionalCommit,
   formatConventionalCommitMessage,
   validatePhaseCommitMessage,
-} from "../../../olt/scripts/src/engine/worktree/phase-commits.ts";
+} from "../../olt/scripts/src/engine/worktree/phase-commits.ts";
 
 describe("Sync Workflow: Auto-Sync, Conventional Commits & Global Skill Sync (Task 3)", () => {
   describe("Conventional Commit Message Formatting & Exports", () => {

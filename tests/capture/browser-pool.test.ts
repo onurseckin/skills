@@ -5,16 +5,16 @@ import {
   PooledCaptureBrowserDriver,
   PooledCaptureBrowserProvider,
   type BrowserPoolEvent,
-} from "../../../olt/scripts/src/capture/pool/index.ts";
+} from "../../olt/scripts/src/capture/pool/index.ts";
 import {
   AcquireQueue,
   isInstanceExpired,
-} from "../../../olt/scripts/src/capture/pool/pool-queue.ts";
+} from "../../olt/scripts/src/capture/pool/pool-queue.ts";
 import type {
   CaptureBrowserDriver,
   CaptureBrowserProvider,
   CapturePageDriver,
-} from "../../../olt/scripts/src/capture/runners/types.ts";
+} from "../../olt/scripts/src/capture/runners/types.ts";
 
 function createMockDriver(options?: {
   readonly onNewPage?: () => void;

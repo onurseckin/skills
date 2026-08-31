@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { evidenced } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { evidenced } from "../../olt/scripts/src/core/contracts/index.ts";
 import {
   ABSTRACT_PROFILES,
   formatHostDegradation,
@@ -11,7 +11,7 @@ import {
   resolveProfile,
   roleToProfile,
   type ProfileBindings,
-} from "../../../olt/scripts/src/roles/index.ts";
+} from "../../olt/scripts/src/roles/index.ts";
 
 describe("Mind abstract profiles and host degradation", () => {
   test("maps canonical roles to correct abstract profiles per PLAN §10 / PHASE-4 §3.4", () => {

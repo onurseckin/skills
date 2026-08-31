@@ -7,12 +7,12 @@ import {
   type ConcurrencyAuditOptions,
   type ConcurrencyAuditResult,
   type ConcurrencySaturationReport,
-} from "../../../olt/scripts/src/mind/auditing/skill-concurrency-auditor.ts";
+} from "../../olt/scripts/src/mind/auditing/skill-concurrency-auditor.ts";
 import type {
   AssemblyStation,
   GitStagingInvariantRecord,
   StragglerAssessment,
-} from "../../../olt/scripts/src/mind/preplanning/types.ts";
+} from "../../olt/scripts/src/mind/preplanning/types.ts";
 
 describe("Active Anti-Passivity: Skill Concurrency Saturation Auditor (Task 3.2)", () => {
   const sampleStagingRecord: GitStagingInvariantRecord = {

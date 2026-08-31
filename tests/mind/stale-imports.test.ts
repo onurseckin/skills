@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import * as mindIndex from "../../../olt/scripts/src/mind/index.ts";
+import * as mindIndex from "../../olt/scripts/src/mind/index.ts";
 
 const REPO_ROOT = resolve(import.meta.dir, "../../..");
 

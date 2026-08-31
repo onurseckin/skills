@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
-import { executeBackgroundFinalization } from "../../../../olt/scripts/src/orchestrator/supervision-loop.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { executeBackgroundFinalization } from "../../../olt/scripts/src/orchestrator/supervision-loop.ts";
 import { scratchRoot } from "../../../support/scratch-root.ts";
 import { createMockGitRunner, createMockSyncRunner } from "./fixture.ts";
 

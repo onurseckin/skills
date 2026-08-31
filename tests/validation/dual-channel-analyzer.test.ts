@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, test, it } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { createSyntheticPngBuffer } from "../../../olt/scripts/src/capture/runners/live-capture-runner/index.ts";
+import { createSyntheticPngBuffer } from "../../olt/scripts/src/capture/runners/live-capture-runner/index.ts";
 import {
   analyzeDualChannel,
   isUiScope,
@@ -11,7 +11,7 @@ import {
   type ScreenshotMetadata,
   type StructuredFinding,
   type VisualMetricsReport,
-} from "../../../olt/scripts/src/validation/dual-channel-analyzer/index.ts";
+} from "../../olt/scripts/src/validation/dual-channel-analyzer/index.ts";
 
 describe("Dual-Channel Visual Analyzer", () => {
   describe("UI Scope Detection (isUiScope)", () => {

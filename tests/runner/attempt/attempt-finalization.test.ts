@@ -3,22 +3,22 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
 import { relative, join, sep } from "node:path";
 import { tmpdir } from "node:os";
-import type { CommandAttemptRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import type { RepositoryBinding } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import { atomicWriteJson } from "../../../../olt/scripts/src/core/durable-write.ts";
-import { readBoundedBytes, sha256Bytes } from "../../../../olt/scripts/src/core/json.ts";
-import { recoverAggregateFromAttempts } from "../../../../olt/scripts/src/integration/reconcile-command-attempts.ts";
-import { writeAttemptStarted } from "../../../../olt/scripts/src/engine/runner/execution/attempt-intent.ts";
-import { createCommandSigningCapability } from "../../../../olt/scripts/src/engine/runner/execution/attempt-disposition-capability.ts";
-import { embeddedCommandIssues } from "../../../../olt/scripts/src/engine/runner/models/command/command-shape.ts";
-import { createInternalCommandRunner } from "../../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
-import { OWNERSHIP_ENV } from "../../../../olt/scripts/src/engine/runner/core/pipe-ownership.ts";
-import { runAttempt } from "../../../../olt/scripts/src/engine/runner/models/attempt/run-attempt.ts";
+import type { CommandAttemptRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { atomicWriteJson } from "../../../olt/scripts/src/core/durable-write.ts";
+import { readBoundedBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
+import { recoverAggregateFromAttempts } from "../../../olt/scripts/src/integration/reconcile-command-attempts.ts";
+import { writeAttemptStarted } from "../../../olt/scripts/src/engine/runner/execution/attempt-intent.ts";
+import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/execution/attempt-disposition-capability.ts";
+import { embeddedCommandIssues } from "../../../olt/scripts/src/engine/runner/models/command/command-shape.ts";
+import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
+import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/core/pipe-ownership.ts";
+import { runAttempt } from "../../../olt/scripts/src/engine/runner/models/attempt/run-attempt.ts";
 import type {
   AttemptResult,
   BunSpawnApi,
   NormalizedCommandOptions,
-} from "../../../../olt/scripts/src/engine/runner/types/types.ts";
+} from "../../../olt/scripts/src/engine/runner/types/types.ts";
 
 const roots: string[] = [];
 const digest = (marker: string): string => marker.repeat(64);

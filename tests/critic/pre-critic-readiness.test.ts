@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { beginCompletenessCritic } from "../../../olt/scripts/src/workflow/completion/begin-completeness-critic.ts";
+import { beginCompletenessCritic } from "../../olt/scripts/src/workflow/completion/begin-completeness-critic.ts";
 import { at } from "../workflow/test-port.ts";
 import { completionPort, review } from "../workflow/completion-provenance-fixture.ts";
 

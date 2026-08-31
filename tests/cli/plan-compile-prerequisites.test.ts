@@ -2,14 +2,14 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { canonicalJsonBytes, sha256Bytes } from "../../olt/scripts/src/core/json.ts";
 import {
   BRAINSTORMING_SCHEMA,
   BRAINSTORMING_VERSION,
-} from "../../../olt/scripts/src/engine/store/projections/materialized-projections.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../olt/scripts/src/engine/store/projections/materialized-projections.ts";
+import { transact } from "../../olt/scripts/src/engine/store/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 
 const roots: string[] = [];

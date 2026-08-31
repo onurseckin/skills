@@ -16,7 +16,7 @@ import {
   resolveExporterTheme,
   type SugiyamaEdge,
   type SugiyamaNode,
-} from "../../../olt/scripts/src/reporting/dag-exporters/index.ts";
+} from "../../olt/scripts/src/reporting/dag-exporters/index.ts";
 
 function createNode(id: string, overrides: Partial<SugiyamaNode> = {}): SugiyamaNode {
   return {

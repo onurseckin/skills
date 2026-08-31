@@ -8,7 +8,7 @@ import {
   MIND_TASK_DISCOVERY_COMMAND_SPEC,
   MIND_SELF_EVOLVE_COMMAND_SPEC,
   MIND_STRATEGIC_COGNITION_COMMAND_SPEC,
-} from "../../../olt/scripts/src/mind/lifecycle/index.ts";
+} from "../../olt/scripts/src/mind/lifecycle/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("mind/mind.ts Unified Mind Commands and CommandSpecs", () => {

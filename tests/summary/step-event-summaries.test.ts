@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import type { HarnessEvent } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { narrateUnclassifiedEvent } from "../../../olt/scripts/src/summary/metrics/index.ts";
+import type { HarnessEvent } from "../../olt/scripts/src/core/contracts/index.ts";
+import { narrateUnclassifiedEvent } from "../../olt/scripts/src/summary/metrics/index.ts";
 
 function createEvent(
   kind: string,

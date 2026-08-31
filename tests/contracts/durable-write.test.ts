@@ -8,7 +8,7 @@ import {
   fsyncDirectory,
   isTestMode,
   type DurableWriteStep,
-} from "../../../olt/scripts/src/core/durable-write.ts";
+} from "../../olt/scripts/src/core/durable-write.ts";
 
 describe("durable-write & atomic file operations", () => {
   const scratchBase = join(process.cwd(), "coverage", "scratch", "durable-write-contracts");

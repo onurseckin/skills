@@ -20,7 +20,7 @@ import {
   processCoverageArtifacts,
   type FileCoverageMetric,
   type CoverageSummary,
-} from "../../../scripts/testing/reporting/index.ts";
+} from "../../scripts/testing/reporting/index.ts";
 
 const TEST_SCRATCH_DIR = join(process.cwd(), "coverage/scratch/coverage-reporting-test");
 

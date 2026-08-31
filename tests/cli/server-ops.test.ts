@@ -8,14 +8,14 @@ import {
   serverRestartCommand,
   serverStatusCommand,
   type ServerPortStatus,
-} from "../../../olt/scripts/src/cli/commands/server-ops.ts";
-import { SERVER_COMMANDS } from "../../../olt/scripts/src/cli/registry/server.ts";
+} from "../../olt/scripts/src/cli/commands/server-ops.ts";
+import { SERVER_COMMANDS } from "../../olt/scripts/src/cli/registry/server.ts";
 import type {
   ProcessDetails,
   ReclaimResult,
   RestartResult,
   ServerStateSnapshot,
-} from "../../../olt/scripts/src/server/index.ts";
+} from "../../olt/scripts/src/server/index.ts";
 
 describe("CLI server-ops subsystem", () => {
   describe("server:status command", () => {

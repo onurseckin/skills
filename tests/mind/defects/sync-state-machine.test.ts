@@ -4,18 +4,18 @@
  */
 
 import { describe, expect, it } from "bun:test";
-import { computeNormalizedFailureSignature } from "../../../../olt/scripts/src/mind/defects/sync/signature.ts";
+import { computeNormalizedFailureSignature } from "../../../olt/scripts/src/mind/defects/sync/signature.ts";
 import {
   handleDefectRecurrence,
   transitionDefectState as transitionState,
   validateDefectStateTransition as validateTransitionState,
-} from "../../../../olt/scripts/src/mind/defects/sync/state-machine.ts";
+} from "../../../olt/scripts/src/mind/defects/sync/state-machine.ts";
 import {
   enforceSequentialLifecycleOrdering,
   transitionDefectState as transitionOrder,
   validateDefectStateTransition as validateTransitionOrder,
   validatePhaseTransition,
-} from "../../../../olt/scripts/src/mind/defects/sync/order-enforcement.ts";
+} from "../../../olt/scripts/src/mind/defects/sync/order-enforcement.ts";
 import { createMockDefectEntry } from "./defect-fixture.ts";
 
 describe("Defect Sync & State Machine Suite", () => {

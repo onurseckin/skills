@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { gateTally } from "../../../olt/scripts/src/workflow/completion/completion-state.ts";
+import { gateTally } from "../../olt/scripts/src/workflow/completion/completion-state.ts";
 import type {
   GateRuntime,
   RequirementRuntime,
   TaskRecord,
   WorkflowState,
-} from "../../../olt/scripts/src/workflow/types.ts";
+} from "../../olt/scripts/src/workflow/types.ts";
 
 function requirement(id: string): RequirementRuntime {
   return {

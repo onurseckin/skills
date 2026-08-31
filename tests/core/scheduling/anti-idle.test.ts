@@ -4,7 +4,7 @@ import {
   DEFAULT_BASE_INTERVAL_MS,
   DEFAULT_MAX_INTERVAL_MS,
   DEFAULT_MAX_PAUSE_INTERVAL_MS,
-} from "../../../../olt/scripts/src/core/scheduling/index.ts";
+} from "../../../olt/scripts/src/core/scheduling/index.ts";
 
 describe("anti-idle", () => {
   describe("computeAntiIdleInterval", () => {

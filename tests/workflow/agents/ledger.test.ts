@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import type { AgentGrantRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import type { JsonObject } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   AGENT_LEDGER_KEY,
   assertAgentBudget,
@@ -13,7 +13,7 @@ import {
   replaceGrant,
   requireGrant,
   writeAgentLedger,
-} from "../../../../olt/scripts/src/workflow/agents/ledger.ts";
+} from "../../../olt/scripts/src/workflow/agents/ledger.ts";
 
 function sampleGrant(id: string, status: "active" | "released" = "active"): AgentGrantRecord {
   return {

@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   buildHookChildEnvironment,
   type HookDefinition,
-} from "../../../olt/scripts/src/hooks/index.ts";
+} from "../../olt/scripts/src/hooks/index.ts";
 
 describe("Hook child environment sanitization", () => {
   test("admits only approved ambient values, safe hook configuration, and protected lifecycle metadata", () => {

@@ -12,7 +12,7 @@ import {
   loadRepoPolicy,
   parseRepoPolicy,
   validateRepoPolicy,
-} from "../../../olt/scripts/src/policy/index.ts";
+} from "../../olt/scripts/src/policy/index.ts";
 
 describe("Repo Policy Auto-Detection & Schema Validation", () => {
   const scratchBase = join(process.cwd(), "coverage", "scratch", "test-repo-policy-detect");

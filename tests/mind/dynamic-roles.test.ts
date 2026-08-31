@@ -16,8 +16,8 @@ import {
   validateDynamicRoleSpec,
   type DynamicRoleContract,
   type DynamicRoleSpec,
-} from "../../../olt/scripts/src/mind/roles/dynamic/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/mind/roles/dynamic/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 
 describe("Hyper-Conscious Mind Dynamic Role Synthesis Engine", () => {
   beforeEach(() => {

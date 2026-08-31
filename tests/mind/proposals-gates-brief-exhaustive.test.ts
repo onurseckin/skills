@@ -5,16 +5,16 @@ import { join } from "node:path";
 import {
   recordProposal,
   transitionProposalStatusInState,
-} from "../../../olt/scripts/src/mind/proposals/proposal/transitions.ts";
+} from "../../olt/scripts/src/mind/proposals/proposal/transitions.ts";
 import {
   isPathInRepoRoots,
   parseFalsifierArgv,
   executeFalsifier,
   evaluateGate1Witnessed,
-} from "../../../olt/scripts/src/mind/proposals/gates/predicates.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import type { CandidateRecord } from "../../../olt/scripts/src/mind/proposals/gates/types.ts";
+} from "../../olt/scripts/src/mind/proposals/gates/predicates.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { initRun } from "../../olt/scripts/src/engine/store/index.ts";
+import type { CandidateRecord } from "../../olt/scripts/src/mind/proposals/gates/types.ts";
 
 const roots: string[] = [];
 

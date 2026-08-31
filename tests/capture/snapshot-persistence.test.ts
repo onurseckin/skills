@@ -8,8 +8,8 @@ import {
   createSnapshotTree,
   loadSnapshotTree,
   persistSnapshotTree,
-} from "../../../olt/scripts/src/capture/snapshot/index.ts";
-import type { DomPhysicsSnapshot } from "../../../olt/scripts/src/capture/runners/types.ts";
+} from "../../olt/scripts/src/capture/snapshot/index.ts";
+import type { DomPhysicsSnapshot } from "../../olt/scripts/src/capture/runners/types.ts";
 
 function createDummyPhysics(): DomPhysicsSnapshot {
   return {

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import type { BranchRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { generateGraphDataset } from "../../../olt/scripts/src/summary/graph/index.ts";
-import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
+import type { BranchRecord } from "../../olt/scripts/src/core/contracts/index.ts";
+import { generateGraphDataset } from "../../olt/scripts/src/summary/graph/index.ts";
+import type { TaskRecord } from "../../olt/scripts/src/workflow/types.ts";
 import { makeGrant, makeState, makeTask } from "./graph-fixtures.ts";
 
 function withRawValidations(task: TaskRecord, rawValidations: unknown[]): TaskRecord {

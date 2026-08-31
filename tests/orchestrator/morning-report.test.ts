@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   buildMorningReport,
   formatMorningReportMarkdown,
-} from "../../../olt/scripts/src/orchestrator/morning-report.ts";
-import type { DispatchLogEvent } from "../../../olt/scripts/src/orchestrator/dispatch-log.ts";
+} from "../../olt/scripts/src/orchestrator/morning-report.ts";
+import type { DispatchLogEvent } from "../../olt/scripts/src/orchestrator/dispatch-log.ts";
 import { workflowState } from "../workflow/test-port.ts";
 
 describe("buildMorningReport (B28.4)", () => {

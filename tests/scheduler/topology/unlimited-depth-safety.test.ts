@@ -4,7 +4,7 @@ import {
   validateDepthInvariants,
   type DepthMetrics,
   type UnboundedWavePartition,
-} from "../../../../olt/scripts/src/engine/scheduler/index.ts";
+} from "../../../olt/scripts/src/engine/scheduler/index.ts";
 
 describe("Unlimited Depth DAG: Concurrency Safety & Invariants", () => {
   describe("assertUnboundedConcurrencySafety", () => {

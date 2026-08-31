@@ -3,15 +3,15 @@ import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { agentRegisterCommand } from "../../../olt/scripts/src/cli/commands/agent-ops.ts";
+import { agentRegisterCommand } from "../../olt/scripts/src/cli/commands/agent-ops.ts";
 import {
   mindAuditReportCommand,
   mindAuditStartCommand,
-} from "../../../olt/scripts/src/cli/commands/mind-audit.ts";
-import { mindPulseOpenCommand } from "../../../olt/scripts/src/cli/commands/mind-pulse-open.ts";
-import type { HarnessEvent, RunState } from "../../../olt/scripts/src/core/contracts/index.ts";
-import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/cli/commands/mind-audit.ts";
+import { mindPulseOpenCommand } from "../../olt/scripts/src/cli/commands/mind-pulse-open.ts";
+import type { HarnessEvent, RunState } from "../../olt/scripts/src/core/contracts/index.ts";
+import type { JsonObject } from "../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   assertAuditAllowsPulseOpen,
   AUDIT_QUESTION_IDS,
@@ -25,11 +25,11 @@ import {
   checkValueConsistency,
   normalizeQuestionId,
   validateAuditAnswers,
-} from "../../../olt/scripts/src/mind/auditing/index.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/index.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../olt/scripts/src/mind/auditing/index.ts";
+import { initRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { verifyIntegrity } from "../../olt/scripts/src/engine/store/index.ts";
+import { loadRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../olt/scripts/src/engine/store/index.ts";
 
 const roots: string[] = [];
 

@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import type { Finding } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { Finding } from "../../olt/scripts/src/core/contracts/index.ts";
 import {
   assertNoResolutions,
   assertOpenFindingsAnswered,
   resolutionProofs,
-} from "../../../olt/scripts/src/cli/commands/review-resolutions.ts";
+} from "../../olt/scripts/src/cli/commands/review-resolutions.ts";
 
 function finding(overrides: Partial<Finding> & { id: string; class?: string }): Finding {
   return {

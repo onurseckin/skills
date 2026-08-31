@@ -11,7 +11,7 @@ import {
   type QuotaBudgetBadgeItem,
   type TaskBadgeItem,
   type WaveLaneBadgeItem,
-} from "../../../../../olt/scripts/src/engine/scheduler/diagnostics/ascii-badges.ts";
+} from "../../../../olt/scripts/src/engine/scheduler/diagnostics/ascii-badges.ts";
 import {
   buildSchedulerLivePushReport,
   detectStagnation,
@@ -22,11 +22,11 @@ import {
   type SchedulerProgressDiff,
   type SchedulerProgressSnapshot,
   type StagnationWarning,
-} from "../../../../../olt/scripts/src/engine/scheduler/reporting/index.ts";
+} from "../../../../olt/scripts/src/engine/scheduler/reporting/index.ts";
 import {
   formatMindPulseActiveBrief,
   formatPulseDirective,
-} from "../../../../../olt/scripts/src/cli/commands/mind-pulse-formatter.ts";
+} from "../../../../olt/scripts/src/cli/commands/mind-pulse-formatter.ts";
 
 describe("Scheduler Live Chat Push & Progress Reporting Engine", () => {
   describe("ASCII Telemetry Badge Generators", () => {

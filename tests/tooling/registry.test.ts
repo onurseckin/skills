@@ -8,7 +8,7 @@ import {
   type DynamicRoleCatalogExport,
   type DynamicRoleContract,
   type DynamicRoleSpec,
-} from "../../../olt/scripts/src/mind/roles/dynamic/index.ts";
+} from "../../olt/scripts/src/mind/roles/dynamic/index.ts";
 
 describe("Dynamic Tool & Role Registry Unit Test Suite", () => {
   beforeEach(() => {

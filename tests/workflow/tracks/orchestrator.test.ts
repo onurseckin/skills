@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { AutonomousLoopRunner } from "../../../../olt/scripts/src/orchestrator/loop-runner.ts";
-import { landPhaseRelease } from "../../../../olt/scripts/src/orchestrator/station-landing.ts";
+import { AutonomousLoopRunner } from "../../../olt/scripts/src/orchestrator/loop-runner.ts";
+import { landPhaseRelease } from "../../../olt/scripts/src/orchestrator/station-landing.ts";
 import type {
   RoundExecutionInput,
   RoundExecutionResult,
   RoundExecutor,
-} from "../../../../olt/scripts/src/orchestrator/types.ts";
+} from "../../../olt/scripts/src/orchestrator/types.ts";
 import { scratchRoot } from "../../../support/scratch-root.ts";
 
 const TEST_DIR = scratchRoot(import.meta.path, "test-orch-worktree");

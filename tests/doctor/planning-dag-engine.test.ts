@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { checkPlanningDag } from "../../../olt/scripts/src/reporting/doctor/planning-dag-engine.ts";
+import { checkPlanningDag } from "../../olt/scripts/src/reporting/doctor/planning-dag-engine.ts";
 
 describe("Wave 2 - Task 2.2: Planning DAG Engine", () => {
   test("passes cleanly on valid DAG with multiple tasks", () => {

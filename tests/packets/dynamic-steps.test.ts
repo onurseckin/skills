@@ -8,9 +8,9 @@ import {
   validateCognitiveStepCoverage,
   buildDynamicStepsFromWorkflowState,
   buildDynamicStepsFromPacketInput,
-} from "../../../olt/scripts/src/packets/dynamic-steps.ts";
-import type { TaskRecord, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
-import type { PacketInput } from "../../../olt/scripts/src/packets/types.ts";
+} from "../../olt/scripts/src/packets/dynamic-steps.ts";
+import type { TaskRecord, WorkflowState } from "../../olt/scripts/src/workflow/types.ts";
+import type { PacketInput } from "../../olt/scripts/src/packets/types.ts";
 
 describe("dynamic-steps", () => {
   describe("extractAcceptanceCriteria", () => {

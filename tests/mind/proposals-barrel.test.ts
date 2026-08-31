@@ -105,7 +105,7 @@ import {
   type RuntimeStatus,
   type TransitionProposalOptions,
   type WakeBriefResult,
-} from "../../../olt/scripts/src/mind/proposals/index.ts";
+} from "../../olt/scripts/src/mind/proposals/index.ts";
 
 describe("mind/proposals/index.ts - Barrel Facade Integrity", () => {
   test("exports all expected brief functions and formatters", () => {

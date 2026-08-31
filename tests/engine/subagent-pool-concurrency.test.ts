@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   MAX_SUBAGENT_CAPACITY,
   SubagentPool,
@@ -8,7 +8,7 @@ import {
   releaseSubagentSlot,
   resetSubagentPool,
   type SubagentSlotReceipt,
-} from "../../../olt/scripts/src/engine/runner/subagent-pool.ts";
+} from "../../olt/scripts/src/engine/runner/subagent-pool.ts";
 
 describe("SubagentPool Concurrency & Slot Reservation", () => {
   beforeEach(() => {

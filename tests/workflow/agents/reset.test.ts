@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import type { AgentGrantRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import type { JsonObject } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import { AGENT_LEDGER_KEY } from "../../../../olt/scripts/src/workflow/agents/ledger.ts";
+import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { AGENT_LEDGER_KEY } from "../../../olt/scripts/src/workflow/agents/ledger.ts";
 import {
   executeAgentReset,
   formatAgentResetBrief,
   type WorkflowPort,
-} from "../../../../olt/scripts/src/workflow/agents/reset.ts";
+} from "../../../olt/scripts/src/workflow/agents/reset.ts";
 
 class MemoryWorkflowPort implements WorkflowPort {
   constructor(public state: JsonObject) {}

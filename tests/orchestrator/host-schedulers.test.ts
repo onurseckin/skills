@@ -7,11 +7,11 @@ import {
   isHighThinkingEnforced,
   resolveModelForTier,
   validateHostSchedulerConfig,
-} from "../../../olt/scripts/src/orchestrator/host-schedulers.ts";
+} from "../../olt/scripts/src/orchestrator/host-schedulers.ts";
 import type {
   HostSchedulerConfig,
   HostSchedulerId,
-} from "../../../olt/scripts/src/orchestrator/host-schedulers.ts";
+} from "../../olt/scripts/src/orchestrator/host-schedulers.ts";
 
 describe("Host Schedulers Matrix & Thinking Configuration (Wave 3 Task 3.1)", () => {
   it("contains exactly 4 canonical host scheduler configurations", () => {

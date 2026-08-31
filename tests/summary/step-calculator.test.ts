@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { computeExecutionSteps } from "../../../olt/scripts/src/summary/metrics/index.ts";
-import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
+import { computeExecutionSteps } from "../../olt/scripts/src/summary/metrics/index.ts";
+import type { TaskRecord } from "../../olt/scripts/src/workflow/types.ts";
 
 function createTask(id: string, dependencies: string[] = []): TaskRecord {
   return {

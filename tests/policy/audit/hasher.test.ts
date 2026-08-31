@@ -2,8 +2,8 @@ import { describe, expect, it } from "bun:test";
 import {
   computeAuditRecordHash,
   verifyAuditTrailChain,
-} from "../../../../olt/scripts/src/policy/audit/hasher.ts";
-import type { AuditEvent } from "../../../../olt/scripts/src/policy/audit/types.ts";
+} from "../../../olt/scripts/src/policy/audit/hasher.ts";
+import type { AuditEvent } from "../../../olt/scripts/src/policy/audit/types.ts";
 
 describe("Audit Hasher and Chain Verification", () => {
   it("verifies empty audit trail chain", () => {

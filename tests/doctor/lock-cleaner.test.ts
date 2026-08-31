@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import {
   cleanseDanglingLocks,
   isProcessAlive,
-} from "../../../olt/scripts/src/reporting/doctor/lock-cleaner.ts";
+} from "../../olt/scripts/src/reporting/doctor/lock-cleaner.ts";
 
 const roots: string[] = [];
 afterEach(async () => {

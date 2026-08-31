@@ -2,27 +2,27 @@ import { describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
-import { initRun } from "../../../../olt/scripts/src/engine/store/capsule/capsule.ts";
-import { loadRun } from "../../../../olt/scripts/src/engine/store/capsule/load.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
+import { loadRun } from "../../../olt/scripts/src/engine/store/capsule/load.ts";
 import {
   appendProjectionEvent,
   readTransactionMarker,
   clearTransactionMarker,
   transactionRecoveryStatus,
-} from "../../../../olt/scripts/src/engine/store/events/event-append.ts";
+} from "../../../olt/scripts/src/engine/store/events/event-append.ts";
 import {
   transact,
   transactIdempotent,
-} from "../../../../olt/scripts/src/engine/store/events/transaction.ts";
+} from "../../../olt/scripts/src/engine/store/events/transaction.ts";
 import {
   validateProjection,
   validateProjectionPatch,
   exactInteger,
-} from "../../../../olt/scripts/src/engine/store/events/event-validation.ts";
-import { validateEventChain } from "../../../../olt/scripts/src/engine/store/events/event-stream.ts";
-import { streamEventLines } from "../../../../olt/scripts/src/engine/store/events/event-lines.ts";
-import { canonicalJsonBytes, sha256Bytes } from "../../../../olt/scripts/src/core/json.ts";
+} from "../../../olt/scripts/src/engine/store/events/event-validation.ts";
+import { validateEventChain } from "../../../olt/scripts/src/engine/store/events/event-stream.ts";
+import { streamEventLines } from "../../../olt/scripts/src/engine/store/events/event-lines.ts";
+import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
 
 function makeTmpDir(prefix: string): string {
   return realpathSync(mkdtempSync(join(tmpdir(), prefix)));

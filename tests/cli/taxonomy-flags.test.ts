@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   CATEGORY_FLAG_HELP,
   declaredToolFlags,
   tokenExtraFlags,
   toolRefFlags,
-} from "../../../olt/scripts/src/cli/taxonomy-flags.ts";
+} from "../../olt/scripts/src/cli/taxonomy-flags.ts";
 
 describe("taxonomy-flags", () => {
   test("CATEGORY_FLAG_HELP is defined and non-empty", () => {

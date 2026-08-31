@@ -6,7 +6,7 @@ import {
   lintTestAst,
   MOCK_FACTORIES,
   TEST_IDENTIFIERS,
-} from "../../../olt/scripts/src/validation/ast-linter/index.ts";
+} from "../../olt/scripts/src/validation/ast-linter/index.ts";
 
 describe("AST Linter & Anti-Mock Verification", () => {
   describe("1. Identifiers and Extraction Helpers", () => {

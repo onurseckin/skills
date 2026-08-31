@@ -9,8 +9,8 @@ import {
   quarantineViolations,
   RootHygieneEngine,
   scanRootHygiene,
-} from "../../../olt/scripts/src/health/hygiene/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/health/hygiene/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 
 const cleanupPaths: string[] = [];
 

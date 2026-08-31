@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import * as AntiMock from "../../../../olt/scripts/src/validation/anti-mock/index.ts";
-import * as MutationGate from "../../../../olt/scripts/src/validation/mutation-gate/index.ts";
-import * as Validation from "../../../../olt/scripts/src/validation/index.ts";
+import * as AntiMock from "../../../olt/scripts/src/validation/anti-mock/index.ts";
+import * as MutationGate from "../../../olt/scripts/src/validation/mutation-gate/index.ts";
+import * as Validation from "../../../olt/scripts/src/validation/index.ts";
 
 describe("anti-mock-types and MutationCandidate export resolution", () => {
   test("anti-mock/index.ts defines and exports all core anti-mock types and interfaces", () => {

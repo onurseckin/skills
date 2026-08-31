@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { lineOf, scanSource } from "../../../olt/scripts/src/health/scanner.ts";
+import { lineOf, scanSource } from "../../olt/scripts/src/health/scanner.ts";
 import { cleanupTempRoots } from "./fixture.ts";
 
 afterAll(cleanupTempRoots);

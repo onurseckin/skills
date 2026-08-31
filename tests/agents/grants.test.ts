@@ -1,14 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { isAgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { initRun, loadRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
+import { isAgentGrantRecord } from "../../olt/scripts/src/core/contracts/index.ts";
+import { initRun, loadRun, transact } from "../../olt/scripts/src/engine/store/index.ts";
 import {
   recordAgentReport,
   registerAgentGrant,
   releaseAgentGrant,
-} from "../../../olt/scripts/src/workflow/agents/grants.ts";
-import { readAgentLedger } from "../../../olt/scripts/src/workflow/agents/ledger.ts";
+} from "../../olt/scripts/src/workflow/agents/grants.ts";
+import { readAgentLedger } from "../../olt/scripts/src/workflow/agents/ledger.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 function freshRun(label: string): string {

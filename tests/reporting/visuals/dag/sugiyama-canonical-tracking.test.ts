@@ -16,7 +16,7 @@ import {
   buildSugiyamaDagReport,
   type SugiyamaEdge,
   type SugiyamaNode,
-} from "../../../../../olt/scripts/src/reporting/sugiyama-dag/index.ts";
+} from "../../../../olt/scripts/src/reporting/sugiyama-dag/index.ts";
 
 describe("sugiyama-canonical-tracking", () => {
   describe("Layered Ranking", () => {

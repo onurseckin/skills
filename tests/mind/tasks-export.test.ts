@@ -6,9 +6,9 @@ import {
   type DefectTaskTarget,
   type PlanTasksForDefectOptions,
   type SmartTaskPlan,
-} from "../../../olt/scripts/src/mind/tasks/index.ts";
-import { planTasksForDefect as planTasksForDefectFromSmart } from "../../../olt/scripts/src/mind/tasks/smart/index.ts";
-import { planTasksForDefect as planTasksForDefectFromExecutor } from "../../../olt/scripts/src/mind/tasks/smart/executor/index.ts";
+} from "../../olt/scripts/src/mind/tasks/index.ts";
+import { planTasksForDefect as planTasksForDefectFromSmart } from "../../olt/scripts/src/mind/tasks/smart/index.ts";
+import { planTasksForDefect as planTasksForDefectFromExecutor } from "../../olt/scripts/src/mind/tasks/smart/executor/index.ts";
 
 describe("Task 1.35: Named Export 'planTasksForDefect' in mind/tasks/index.ts", () => {
   test("1. planTasksForDefect is exported cleanly across barrel facades", () => {

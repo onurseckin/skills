@@ -2,11 +2,11 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { readFile, realpath } from "node:fs/promises";
 import { mkdirSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { clientLinkPaths } from "../../../olt/scripts/src/installer/client-links.ts";
-import { installSkill, type InstallOptions } from "../../../olt/scripts/src/installer/install.ts";
-import { SKILL_NAME } from "../../../olt/scripts/src/installer/constants.ts";
-import { pathIdentity } from "../../../olt/scripts/src/installer/path-safety.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { clientLinkPaths } from "../../olt/scripts/src/installer/client-links.ts";
+import { installSkill, type InstallOptions } from "../../olt/scripts/src/installer/install.ts";
+import { SKILL_NAME } from "../../olt/scripts/src/installer/constants.ts";
+import { pathIdentity } from "../../olt/scripts/src/installer/path-safety.ts";
 import { cleanInstallerFixtures, installerFixture } from "./helpers.ts";
 
 afterEach(cleanInstallerFixtures);

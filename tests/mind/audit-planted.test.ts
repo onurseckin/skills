@@ -3,17 +3,17 @@ import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { agentRegisterCommand } from "../../../olt/scripts/src/cli/commands/agent-ops.ts";
+import { agentRegisterCommand } from "../../olt/scripts/src/cli/commands/agent-ops.ts";
 import {
   mindAuditReportCommand,
   mindAuditStartCommand,
-} from "../../../olt/scripts/src/cli/commands/mind-audit.ts";
-import { mindPulseCommand } from "../../../olt/scripts/src/cli/commands/mind-pulse.ts";
-import { mindPulseOpenCommand } from "../../../olt/scripts/src/cli/commands/mind-pulse-open.ts";
-import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
-import type { HarnessEvent, RunState } from "../../../olt/scripts/src/core/contracts/index.ts";
-import type { JsonObject, JsonValue } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/cli/commands/mind-audit.ts";
+import { mindPulseCommand } from "../../olt/scripts/src/cli/commands/mind-pulse.ts";
+import { mindPulseOpenCommand } from "../../olt/scripts/src/cli/commands/mind-pulse-open.ts";
+import type { CommandRecord } from "../../olt/scripts/src/core/contracts/index.ts";
+import type { HarnessEvent, RunState } from "../../olt/scripts/src/core/contracts/index.ts";
+import type { JsonObject, JsonValue } from "../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   assertAuditAllowsPulseOpen,
   checkAdmittedCandidateGoals,
@@ -23,12 +23,12 @@ import {
   checkPulseGaps,
   checkScopeViolations,
   checkValueConsistency,
-} from "../../../olt/scripts/src/mind/auditing/index.ts";
-import { calculatePulseValue } from "../../../olt/scripts/src/mind/memory/index.ts";
-import { verifyDefectWitness } from "../../../olt/scripts/src/mind/auditing/witness/index.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../olt/scripts/src/mind/auditing/index.ts";
+import { calculatePulseValue } from "../../olt/scripts/src/mind/memory/index.ts";
+import { verifyDefectWitness } from "../../olt/scripts/src/mind/auditing/witness/index.ts";
+import { initRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { loadRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../olt/scripts/src/engine/store/index.ts";
 
 const roots: string[] = [];
 

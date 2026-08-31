@@ -4,7 +4,7 @@ import { join } from "node:path";
 import {
   checkCognitiveValidatorCommandLock,
   checkCommandLockIntegrity,
-} from "../../../olt/scripts/src/reporting/doctor/command-lock-engine.ts";
+} from "../../olt/scripts/src/reporting/doctor/command-lock-engine.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("checkCognitiveValidatorCommandLock", () => {

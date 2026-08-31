@@ -5,7 +5,7 @@ import {
   auditPlan,
   blockingFindings,
   isAuditInvariantId,
-} from "../../../olt/scripts/src/graph/plan-audit.ts";
+} from "../../olt/scripts/src/graph/plan-audit.ts";
 import { cleanupFixtureRoots, fixtureRepo, task } from "./plan-audit-fixture.ts";
 
 const roots: string[] = [];

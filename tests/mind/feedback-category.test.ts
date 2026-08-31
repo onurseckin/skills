@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   validateCategory,
   type FeedbackCategory,
-} from "../../../olt/scripts/src/mind/feedback/queue/types.ts";
+} from "../../olt/scripts/src/mind/feedback/queue/types.ts";
 
 describe("Feedback Category Normalization & Backlog Parsing", () => {
   test("validates and parses all canonical FeedbackCategory variants", () => {

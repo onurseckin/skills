@@ -10,18 +10,18 @@ import {
   MIND_CREATIVE_STAGNATION,
   MIND_PREPLANNING_STAGNATION,
   suppressZeroDeltaReport,
-} from "../../../olt/scripts/src/mind/auditing/mind-stagnation-auditor.ts";
+} from "../../olt/scripts/src/mind/auditing/mind-stagnation-auditor.ts";
 import {
   CHRONIC_STAGNATION_CYCLE_THRESHOLD,
   executeStagnationShockRecovery,
   MODE_A_AUTONOMIC_DISCOVERY,
   MODE_STANDARD_PREPLAN,
-} from "../../../olt/scripts/src/mind/auditing/stagnation-recovery-interlock.ts";
+} from "../../olt/scripts/src/mind/auditing/stagnation-recovery-interlock.ts";
 import type {
   RawBacklogItem,
   RawDefectItem,
   StagnationAuditResult,
-} from "../../../olt/scripts/src/mind/preplanning/types.ts";
+} from "../../olt/scripts/src/mind/preplanning/types.ts";
 
 describe("Active Anti-Passivity: Mind Pre-Planning Stagnation Auditor (Task 3.1)", () => {
   const nowMs = 1756465000000;

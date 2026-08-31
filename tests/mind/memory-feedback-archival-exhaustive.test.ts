@@ -5,20 +5,20 @@ import { join } from "node:path";
 import {
   extractSnippet,
   scoreDocumentBM25,
-} from "../../../olt/scripts/src/mind/memory/core/bm25.ts";
+} from "../../olt/scripts/src/mind/memory/core/bm25.ts";
 import {
   normalizeFeedbackCategory,
   normalizeFeedbackPriority,
   normalizeFeedbackStatus,
-} from "../../../olt/scripts/src/mind/feedback/normalizer.ts";
-import { parsePushbackMarkdown } from "../../../olt/scripts/src/mind/feedback/pushbacks/parser.ts";
-import { rotateMindGeneration } from "../../../olt/scripts/src/mind/archival/rotate/rotator.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../olt/scripts/src/mind/feedback/normalizer.ts";
+import { parsePushbackMarkdown } from "../../olt/scripts/src/mind/feedback/pushbacks/parser.ts";
+import { rotateMindGeneration } from "../../olt/scripts/src/mind/archival/rotate/rotator.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { initRun, transact } from "../../olt/scripts/src/engine/store/index.ts";
 import type {
   MemoryDocument,
   MemoryIndex,
-} from "../../../olt/scripts/src/mind/memory/core/types.ts";
+} from "../../olt/scripts/src/mind/memory/core/types.ts";
 
 const roots: string[] = [];
 

@@ -5,7 +5,7 @@ import {
   computeLatencyPercentiles,
   OmnipresentTelemetryCollector,
   validateTimeTelemetryHealth,
-} from "../../../../olt/scripts/src/reporting/time-telemetry/index.ts";
+} from "../../../olt/scripts/src/reporting/time-telemetry/index.ts";
 
 describe("reporting/time-telemetry core suite", () => {
   it("categorizes actions accurately", () => {

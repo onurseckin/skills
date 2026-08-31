@@ -7,7 +7,7 @@ import { describe, expect, it } from "bun:test";
 import {
   analyzeBehavioralForensics,
   type ExtractedToolCall,
-} from "../../../olt/scripts/src/heuristics/index.ts";
+} from "../../olt/scripts/src/heuristics/index.ts";
 
 describe("Behavioral Forensics: 7 Core Heuristics Suites", () => {
   it("detects TOKEN_BURNING from excessive reads before first write and high exploration ratio", () => {

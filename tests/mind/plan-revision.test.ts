@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   advanceProposalWithInitiative,
   admitProposalInState,
@@ -32,7 +32,7 @@ import {
   type PlanRevisionProposal,
   type PlanRevisionSignal,
   type ProposalStatus,
-} from "../../../olt/scripts/src/mind/proposals/proposal/index.ts";
+} from "../../olt/scripts/src/mind/proposals/proposal/index.ts";
 import {
   balanceOrchestratorLoad,
   calculateHierarchyCapacity,
@@ -45,7 +45,7 @@ import {
   type HierarchyCapacityMetrics,
   type OrchestratorNodeInfo,
   type ScalingThresholds,
-} from "../../../olt/scripts/src/mind/lifecycle/evolution/index.ts";
+} from "../../olt/scripts/src/mind/lifecycle/evolution/index.ts";
 
 describe("Mind Proposal & Plan Revision Subsystem", () => {
   describe("Proposal Creation, Deduplication & Fingerprinting", () => {

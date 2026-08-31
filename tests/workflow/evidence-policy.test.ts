@@ -2,13 +2,13 @@ import { describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { completionIssues } from "../../../olt/scripts/src/workflow/completion/completion-state.ts";
-import { attachGateResult } from "../../../olt/scripts/src/workflow/gates/attach-result.ts";
-import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
-import { submitTask } from "../../../olt/scripts/src/workflow/submission/submit.ts";
+import { completionIssues } from "../../olt/scripts/src/workflow/completion/completion-state.ts";
+import { attachGateResult } from "../../olt/scripts/src/workflow/gates/attach-result.ts";
+import { claimTask } from "../../olt/scripts/src/workflow/lease/claim.ts";
+import { submitTask } from "../../olt/scripts/src/workflow/submission/submit.ts";
 import { at, commandRecord, TEST_GATE_ARGV, TestPort, workflowState } from "./test-port.ts";
-import { captureGatePathBindings } from "../../../olt/scripts/src/engine/runner/index.ts";
-import { commandFingerprint } from "../../../olt/scripts/src/workflow/gates/gate-policy.ts";
+import { captureGatePathBindings } from "../../olt/scripts/src/engine/runner/index.ts";
+import { commandFingerprint } from "../../olt/scripts/src/workflow/gates/gate-policy.ts";
 
 const clock = at("2026-08-13T12:00:00.000Z");
 describe("submission, gate, and completion evidence", () => {

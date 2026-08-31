@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { loadChecklist } from "../../../../olt/scripts/src/packets/role-contract.ts";
+import { loadChecklist } from "../../../olt/scripts/src/packets/role-contract.ts";
 import {
   validateChecklistCoverage,
   validateFindings,
   validateReview,
-} from "../../../../olt/scripts/src/workflow/review/validate-review.ts";
-import type { TaskRecord } from "../../../../olt/scripts/src/workflow/types.ts";
+} from "../../../olt/scripts/src/workflow/review/validate-review.ts";
+import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
 
 function task(overrides: Partial<TaskRecord> = {}): TaskRecord {
   return {

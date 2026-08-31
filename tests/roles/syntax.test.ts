@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   buildCommandCheatSheet,
   formatCommandSyntax,
-} from "../../../olt/scripts/src/roles/index.ts";
-import type { CommandSpec } from "../../../olt/scripts/src/cli/registry/types.ts";
+} from "../../olt/scripts/src/roles/index.ts";
+import type { CommandSpec } from "../../olt/scripts/src/cli/registry/types.ts";
 
 describe("Roles CLI syntax formatting", () => {
   test("formats command syntax from CommandSpec with required and optional flags", () => {

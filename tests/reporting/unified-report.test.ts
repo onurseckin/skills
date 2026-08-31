@@ -3,8 +3,8 @@ import { realpathSync } from "node:fs";
 import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
+import { transact } from "../../olt/scripts/src/engine/store/index.ts";
 import {
   buildUnifiedReport,
   formatLeaseDecisions,
@@ -12,7 +12,7 @@ import {
   type LeaseRecord,
   type ReplayContext,
   type DynamicTaskState,
-} from "../../../olt/scripts/src/reporting/index.ts";
+} from "../../olt/scripts/src/reporting/index.ts";
 
 const roots: string[] = [];
 

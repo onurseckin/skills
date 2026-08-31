@@ -2,11 +2,11 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { mindAuditLiveCommand } from "../../../olt/scripts/src/cli/commands/mind-audit-live.ts";
-import { skillAuditLiveCommand } from "../../../olt/scripts/src/cli/commands/skill-audit-live.ts";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
-import { AuditorCursorStore } from "../../../olt/scripts/src/mind/auditing/cognitive/index.ts";
+import { mindAuditLiveCommand } from "../../olt/scripts/src/cli/commands/mind-audit-live.ts";
+import { skillAuditLiveCommand } from "../../olt/scripts/src/cli/commands/skill-audit-live.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
+import { findCommand } from "../../olt/scripts/src/cli/registry/index.ts";
+import { AuditorCursorStore } from "../../olt/scripts/src/mind/auditing/cognitive/index.ts";
 
 const MIN_MANIFEST_YAML = `role: mind
 tier: 0

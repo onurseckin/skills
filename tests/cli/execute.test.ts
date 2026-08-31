@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
 
 describe("CLI execute dispatcher", () => {
   test("throws on unknown command", async () => {

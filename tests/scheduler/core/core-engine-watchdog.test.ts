@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   auditSupervisoryWatchdog,
   recoverStaleTasks,
-} from "../../../../olt/scripts/src/engine/scheduler/index.ts";
-import type { TransactionPort, WorkflowState } from "../../../../olt/scripts/src/workflow/types.ts";
+} from "../../../olt/scripts/src/engine/scheduler/index.ts";
+import type { TransactionPort, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 import { schedulerState } from "../fixtures.ts";
 
 function createMockPort(initialState: Record<string, unknown>): TransactionPort {

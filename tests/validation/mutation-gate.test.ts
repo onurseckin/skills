@@ -7,7 +7,7 @@ import {
   type MutantRecord,
   type MutationGateResult,
   type MutationTestRunner,
-} from "../../../olt/scripts/src/validation/mutation-gate/index.ts";
+} from "../../olt/scripts/src/validation/mutation-gate/index.ts";
 
 describe("Mutation Gate & AST Mutators", () => {
   describe("1. Boolean and Unary Mutations", () => {

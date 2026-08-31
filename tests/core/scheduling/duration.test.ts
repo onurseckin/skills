@@ -1,10 +1,10 @@
 import { describe, it, expect } from "bun:test";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   formatIntervalDuration,
   parseDuration,
   parseIntervalDuration,
-} from "../../../../olt/scripts/src/core/scheduling/index.ts";
+} from "../../../olt/scripts/src/core/scheduling/index.ts";
 
 describe("duration", () => {
   describe("parseDuration", () => {

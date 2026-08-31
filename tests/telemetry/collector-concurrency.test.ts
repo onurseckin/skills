@@ -1,16 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { TelemetryCollector } from "../../../olt/scripts/src/telemetry/probe-interface.ts";
-import type { PlatformProbeResult } from "../../../olt/scripts/src/telemetry/types.ts";
-import { TelemetryNormalizationEngine } from "../../../olt/scripts/src/telemetry/engine.ts";
-import { parseCodexRolloutUsage } from "../../../olt/scripts/src/telemetry/collectors/openai/rollout-parser.ts";
-import { parseClaudeUsagePayload } from "../../../olt/scripts/src/telemetry/collectors/claude/stream-parser.ts";
+import type { TelemetryCollector } from "../../olt/scripts/src/telemetry/probe-interface.ts";
+import type { PlatformProbeResult } from "../../olt/scripts/src/telemetry/types.ts";
+import { TelemetryNormalizationEngine } from "../../olt/scripts/src/telemetry/engine.ts";
+import { parseCodexRolloutUsage } from "../../olt/scripts/src/telemetry/collectors/openai/rollout-parser.ts";
+import { parseClaudeUsagePayload } from "../../olt/scripts/src/telemetry/collectors/claude/stream-parser.ts";
 import {
   emitTelemetryEvent,
   readTelemetryStream,
-} from "../../../olt/scripts/src/reporting/telemetry-stream.ts";
-import { readCapsuleEvents } from "../../../olt/scripts/src/reporting/event-stream.ts";
+} from "../../olt/scripts/src/reporting/telemetry-stream.ts";
+import { readCapsuleEvents } from "../../olt/scripts/src/reporting/event-stream.ts";
 
 describe("collector-concurrency telemetry suite", () => {
   const TEST_DIR = join(process.cwd(), "tests-tmp-collector-concurrency");

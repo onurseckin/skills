@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../olt/scripts/src/engine/store/index.ts";
 import {
   RunSupervisor,
   type TaskDispatchInput,
   type TaskDispatchResult,
   type TaskDispatcher,
-} from "../../../olt/scripts/src/orchestrator/supervisor.ts";
+} from "../../olt/scripts/src/orchestrator/supervisor.ts";
 import { fakeClock, supervisedRun } from "./supervised-run-fixture.ts";
 
 function stubDispatcher(

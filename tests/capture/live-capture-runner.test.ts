@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { CaptureConfig } from "../../../olt/scripts/src/capture/config/types.ts";
+import type { CaptureConfig } from "../../olt/scripts/src/capture/config/types.ts";
 import {
   createEmptyDomPhysicsSnapshot,
   createSyntheticPngBuffer,
@@ -18,7 +18,7 @@ import {
   type CaptureCookie,
   type CapturePageDriver,
   type CompanionManifest,
-} from "../../../olt/scripts/src/capture/runners/index.ts";
+} from "../../olt/scripts/src/capture/runners/index.ts";
 
 describe("Task 3.3: Headless Mock Cookie Injector & Viewport PNG Validator", () => {
   describe("Binary PNG IHDR Validator (png-ihdr-validator)", () => {

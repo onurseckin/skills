@@ -4,9 +4,9 @@ import {
   readWorktreeLedger,
   writeWorktreeLedger,
   WORKTREE_LEDGER_KEY,
-} from "../../../../olt/scripts/src/workflow/worktree/ledger.ts";
-import type { WorktreeLedgerState } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import type { JsonObject } from "../../../../olt/scripts/src/core/contracts/index.ts";
+} from "../../../olt/scripts/src/workflow/worktree/ledger.ts";
+import type { WorktreeLedgerState } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 
 function ledger(overrides: Partial<WorktreeLedgerState> = {}): WorktreeLedgerState {
   return {

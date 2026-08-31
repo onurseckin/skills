@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { readRegularFileNoFollow } from "../../../olt/scripts/src/core/no-follow.ts";
+import { readRegularFileNoFollow } from "../../olt/scripts/src/core/no-follow.ts";
 
 describe("core/no-follow.ts", () => {
   it("reads regular file contents safely", () => {

@@ -6,7 +6,7 @@ import {
   readProcessIdentity,
   sameProcessIdentity,
   type ProcessIdentity,
-} from "../../../../olt/scripts/src/engine/runner/process/process-identity.ts";
+} from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
 import { sentinelCommandArgv } from "./sentinel-argv.ts";
 import { captureSentinelOutput } from "./sentinel-output.ts";
 

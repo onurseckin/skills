@@ -3,12 +3,12 @@ import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { agentRegisterCommand } from "../../../olt/scripts/src/cli/commands/agent-ops.ts";
+import { agentRegisterCommand } from "../../olt/scripts/src/cli/commands/agent-ops.ts";
 import {
   formatMindAdmitBrief,
   mindAdmitCommand,
-} from "../../../olt/scripts/src/cli/commands/mind-admit.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/cli/commands/mind-admit.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   evaluateAdmissionGates,
   evaluateGate1Witnessed,
@@ -19,10 +19,10 @@ import {
   evaluateGate6NotADuplicate,
   isPathInRepoRoots,
   type CandidateRecord,
-} from "../../../olt/scripts/src/mind/proposals/gates/index.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../olt/scripts/src/mind/proposals/gates/index.ts";
+import { initRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { loadRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../olt/scripts/src/engine/store/index.ts";
 
 const roots: string[] = [];
 

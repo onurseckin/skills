@@ -7,12 +7,12 @@ import {
   resolveCurrentHost,
   validateHierarchicalSpawning,
   type AuthenticatedCaller,
-} from "../../../olt/scripts/src/packets/command-authority.ts";
-import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
-import type { CommandSpec } from "../../../olt/scripts/src/cli/registry/types.ts";
-import type { Flags } from "../../../olt/scripts/src/cli/options.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/packets/command-authority.ts";
+import { findCommand } from "../../olt/scripts/src/cli/registry/index.ts";
+import type { CommandSpec } from "../../olt/scripts/src/cli/registry/types.ts";
+import type { Flags } from "../../olt/scripts/src/cli/options.ts";
+import { transact } from "../../olt/scripts/src/engine/store/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import { emptyGrantRun } from "./grant-run-fixture.ts";
 
 function spec(invocation: string): CommandSpec {

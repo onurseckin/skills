@@ -11,7 +11,7 @@ import {
   type CoordinatorPushback,
   type Finding,
   type MicroCycleRecord,
-} from "../../../olt/scripts/src/core/contracts/index.ts";
+} from "../../olt/scripts/src/core/contracts/index.ts";
 
 describe("isValidatorDomain", () => {
   test("recognizes the known domains and rejects anything else", () => {

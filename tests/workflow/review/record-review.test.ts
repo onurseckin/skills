@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { recordReview } from "../../../../olt/scripts/src/workflow/review/record-review.ts";
-import { beginValidation } from "../../../../olt/scripts/src/workflow/review/begin-validation.ts";
-import { claimTask } from "../../../../olt/scripts/src/workflow/lease/claim.ts";
-import { submitTask } from "../../../../olt/scripts/src/workflow/submission/submit.ts";
+import { recordReview } from "../../../olt/scripts/src/workflow/review/record-review.ts";
+import { beginValidation } from "../../../olt/scripts/src/workflow/review/begin-validation.ts";
+import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
+import { submitTask } from "../../../olt/scripts/src/workflow/submission/submit.ts";
 import { at, registerCommand, registerTaskPacket, TestPort, workflowState } from "../test-port.ts";
-import { tokenDigest } from "../../../../olt/scripts/src/workflow/lease/token.ts";
-import type { TransactionPort, WorkflowState } from "../../../../olt/scripts/src/workflow/types.ts";
+import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";
+import type { TransactionPort, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 
 const clock = at("2026-08-13T12:00:00.000Z");
 const report = {

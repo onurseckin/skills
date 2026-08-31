@@ -39,11 +39,11 @@ import {
   formatTaskReviewPassBrief,
   formatTaskSubmitBrief,
   formatValidationStartBrief,
-} from "../../../olt/scripts/src/cli/formatters/index.ts";
-import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
-import type { BranchRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { evidenced } from "../../../olt/scripts/src/core/contracts/index.ts";
-import type { TaskLineage } from "../../../olt/scripts/src/workflow/agents/lineage.ts";
+} from "../../olt/scripts/src/cli/formatters/index.ts";
+import type { AgentGrantRecord } from "../../olt/scripts/src/core/contracts/index.ts";
+import type { BranchRecord } from "../../olt/scripts/src/core/contracts/index.ts";
+import { evidenced } from "../../olt/scripts/src/core/contracts/index.ts";
+import type { TaskLineage } from "../../olt/scripts/src/workflow/agents/lineage.ts";
 
 describe("core CLI formatters & brief outputs", () => {
   test("enforceLineLimit clamps markdown to specified line ceiling", () => {

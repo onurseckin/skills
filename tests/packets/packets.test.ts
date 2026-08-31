@@ -3,10 +3,10 @@ import { createHash } from "node:crypto";
 import { mkdtemp, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { buildPacket } from "../../../olt/scripts/src/packets/render-packet.ts";
-import { createPacketBundle } from "../../../olt/scripts/src/packets/packet-bundle.ts";
-import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";
-import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
+import { buildPacket } from "../../olt/scripts/src/packets/render-packet.ts";
+import { createPacketBundle } from "../../olt/scripts/src/packets/packet-bundle.ts";
+import { tokenDigest } from "../../olt/scripts/src/workflow/lease/token.ts";
+import { claimTask } from "../../olt/scripts/src/workflow/lease/claim.ts";
 import { at, TestPort, workflowState } from "../workflow/test-port.ts";
 import { inspectionContext } from "./inspection-fixture.ts";
 

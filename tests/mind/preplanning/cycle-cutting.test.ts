@@ -4,13 +4,13 @@ import {
   detectIllegalBypasses,
   extractFeedbackArcSet,
   reverseCycleEdges,
-} from "../../../../olt/scripts/src/reporting/sugiyama-dag/tarjan.ts";
+} from "../../../olt/scripts/src/reporting/sugiyama-dag/tarjan.ts";
 import type {
   SugiyamaEdge,
   SugiyamaNode,
-} from "../../../../olt/scripts/src/reporting/sugiyama-dag/types.ts";
-import { compileSmartTasksToWavePlan } from "../../../../olt/scripts/src/mind/tasks/smart/planner/waves.ts";
-import type { SmartTaskPlan } from "../../../../olt/scripts/src/mind/tasks/smart/planner/models.ts";
+} from "../../../olt/scripts/src/reporting/sugiyama-dag/types.ts";
+import { compileSmartTasksToWavePlan } from "../../../olt/scripts/src/mind/tasks/smart/planner/waves.ts";
+import type { SmartTaskPlan } from "../../../olt/scripts/src/mind/tasks/smart/planner/models.ts";
 
 describe("Mind Strategic Tarjan SCC Cycle-Cutting & Acyclic Wave Partitioning", () => {
   test("detects and diagnoses simple 3-node cyclic graph", () => {

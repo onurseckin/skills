@@ -2,12 +2,12 @@ import { describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { inspectRepository } from "../../../olt/scripts/src/packets/repository-snapshot.ts";
-import { inspectRepositoryBinding } from "../../../olt/scripts/src/packets/repository-identity.ts";
+import { inspectRepository } from "../../olt/scripts/src/packets/repository-snapshot.ts";
+import { inspectRepositoryBinding } from "../../olt/scripts/src/packets/repository-identity.ts";
 import {
   createRepositoryGitCommand,
   type RepositoryGitCommand,
-} from "../../../olt/scripts/src/packets/repository-git-command.ts";
+} from "../../olt/scripts/src/packets/repository-git-command.ts";
 
 describe("repository-snapshot", () => {
   test("inspects a non-git directory with instructions and conventions", () => {

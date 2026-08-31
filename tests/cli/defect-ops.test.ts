@@ -2,12 +2,12 @@ import { describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
 import {
   defectListCommand,
   defectRecordCommand,
   defectResolveCommand,
-} from "../../../olt/scripts/src/cli/commands/defect-ops.ts";
+} from "../../olt/scripts/src/cli/commands/defect-ops.ts";
 
 describe("CLI Defect Operations (defect-ops)", () => {
   test("defect:record processes raw JSONL content and deduplicates records", () => {

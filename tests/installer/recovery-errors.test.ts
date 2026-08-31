@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   combinedFailure,
   recoveryErrors,
-} from "../../../olt/scripts/src/installer/recovery-errors.ts";
+} from "../../olt/scripts/src/installer/recovery-errors.ts";
 
 describe("recoveryErrors", () => {
   test("returns an empty array when there are no steps", async () => {

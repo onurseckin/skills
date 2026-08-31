@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { testSummaryCommand } from "../../../olt/scripts/src/cli/commands/test-summary.ts";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { testSummaryCommand } from "../../olt/scripts/src/cli/commands/test-summary.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
 import {
   acquireFullSuiteTestLock,
   createTestSummaryRecord,
@@ -16,7 +16,7 @@ import {
   saveTestSummary,
   setInMemoryLockPayload,
   type TestSummaryRecord,
-} from "../../../olt/scripts/src/testing/concurrency-lock.ts";
+} from "../../olt/scripts/src/testing/concurrency-lock.ts";
 
 describe("concurrency-lock (in-memory zero-disk)", () => {
   beforeEach(() => {

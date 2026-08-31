@@ -15,7 +15,7 @@ import {
   ensurePathInShellRc,
   generateExportLine,
   isPathDeclaredInContent,
-} from "../../../scripts/sync/shell-rc";
+} from "../../scripts/sync/shell-rc";
 
 const tempRoots: string[] = [];
 

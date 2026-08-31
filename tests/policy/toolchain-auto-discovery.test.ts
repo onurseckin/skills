@@ -1,15 +1,15 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { mindInitCommand } from "../../../olt/scripts/src/cli/commands/index.ts";
-import { mindObserveCommand } from "../../../olt/scripts/src/cli/commands/index.ts";
+import { mindInitCommand } from "../../olt/scripts/src/cli/commands/index.ts";
+import { mindObserveCommand } from "../../olt/scripts/src/cli/commands/index.ts";
 import {
   discoverToolchain,
   generateDefaultRepoPolicy,
   loadRepoPolicy,
   parseRepoPolicy,
   validateRepoPolicy,
-} from "../../../olt/scripts/src/policy/index.ts";
+} from "../../olt/scripts/src/policy/index.ts";
 
 describe("Toolchain Auto-Discovery & Dynamic Policy Calibration", () => {
   const scratch = join(process.cwd(), "coverage", "scratch", "test-toolchain-discovery");

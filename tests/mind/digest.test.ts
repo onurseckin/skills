@@ -11,8 +11,8 @@ import {
   type DigestFinding,
   type DigestOpenProposal,
   type EscalationDigestData,
-} from "../../../olt/scripts/src/mind/memory/digest/index.ts";
-import { generateTrailingValueSeries } from "../../../olt/scripts/src/mind/lifecycle/interval/index.ts";
+} from "../../olt/scripts/src/mind/memory/digest/index.ts";
+import { generateTrailingValueSeries } from "../../olt/scripts/src/mind/lifecycle/interval/index.ts";
 
 describe("mind/digest.ts - Owner Digest and Escalation Digest", () => {
   const FIXED_NOW = new Date("2026-08-21T12:00:00.000Z");

@@ -10,7 +10,7 @@ import {
   type TopologyDecision,
   type TopologyRecord,
   type TopologyWave,
-} from "../../../olt/scripts/src/core/contracts/index.ts";
+} from "../../olt/scripts/src/core/contracts/index.ts";
 
 describe("core contracts/topology", () => {
   test("TOPOLOGY_REASONS and isTopologyReason validate reasons", () => {

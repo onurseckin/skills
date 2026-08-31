@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { validateGraph } from "../../../olt/scripts/src/graph/validate-graph.ts";
+import { validateGraph } from "../../olt/scripts/src/graph/validate-graph.ts";
 import { taskById, validPlanningDocuments } from "./fixtures.ts";
 
 describe("graph contracts", () => {

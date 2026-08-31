@@ -5,7 +5,7 @@ import {
   computeTaskSlack,
   computeWorkSpan,
   type ForensicTaskNode,
-} from "../../../olt/scripts/src/graph/dag-forensics.ts";
+} from "../../olt/scripts/src/graph/dag-forensics.ts";
 
 describe("DAG Forensics: Work-Span Mathematics", () => {
   test("handles empty graph gracefully", () => {

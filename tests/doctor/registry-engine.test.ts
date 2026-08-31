@@ -3,8 +3,8 @@ import { readFileSync } from "node:fs";
 import {
   checkCliRegistryTaxonomy,
   type CliRegistryTaxonomyCheckOptions,
-} from "../../../olt/scripts/src/reporting/doctor/registry-engine.ts";
-import type { CommandSpec } from "../../../olt/scripts/src/cli/registry/types.ts";
+} from "../../olt/scripts/src/reporting/doctor/registry-engine.ts";
+import type { CommandSpec } from "../../olt/scripts/src/cli/registry/types.ts";
 
 describe("Doctor CLI Registry Taxonomy & Zero-Alias Engine", () => {
   test("passes live COMMAND_REGISTRY with 100% compliance and zero findings", () => {

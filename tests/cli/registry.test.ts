@@ -2,21 +2,21 @@ import { describe, expect, test } from "bun:test";
 import { tmpdir } from "node:os";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
 import {
   COMMAND_DOMAINS,
   COMMAND_REGISTRY,
   commandInvocations,
   findCommand,
-} from "../../../olt/scripts/src/cli/registry/index.ts";
-import { shouldReadPromptStdin } from "../../../olt/scripts/src/cli/prompt-input.ts";
-import { taskCheckCommand } from "../../../olt/scripts/src/cli/commands/task-check.ts";
-import { reportUnifiedCommand } from "../../../olt/scripts/src/cli/commands/unified-reporting.ts";
-import { summaryViewCommand } from "../../../olt/scripts/src/cli/commands/summary-ops.ts";
-import { dagViewCommand } from "../../../olt/scripts/src/cli/commands/dag-view.ts";
-import { autoDeriveCallerIdentity } from "../../../olt/scripts/src/authority/session/index.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../olt/scripts/src/cli/registry/index.ts";
+import { shouldReadPromptStdin } from "../../olt/scripts/src/cli/prompt-input.ts";
+import { taskCheckCommand } from "../../olt/scripts/src/cli/commands/task-check.ts";
+import { reportUnifiedCommand } from "../../olt/scripts/src/cli/commands/unified-reporting.ts";
+import { summaryViewCommand } from "../../olt/scripts/src/cli/commands/summary-ops.ts";
+import { dagViewCommand } from "../../olt/scripts/src/cli/commands/dag-view.ts";
+import { autoDeriveCallerIdentity } from "../../olt/scripts/src/authority/session/index.ts";
+import { initRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { loadRun } from "../../olt/scripts/src/engine/store/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 const EXPECTED_INVOCATIONS: readonly string[] = COMMAND_REGISTRY.map((spec) => spec.name);

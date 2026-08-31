@@ -16,7 +16,7 @@ import {
   type WatchdogFinding,
   type WatchdogHealthAuditReport,
   type WatchdogTickReport,
-} from "../../../olt/scripts/src/watchdog/index.ts";
+} from "../../olt/scripts/src/watchdog/index.ts";
 
 describe("AutonomicWatchdog Core Lifecycle & Configuration", () => {
   it("initializes with complete default configuration values", () => {

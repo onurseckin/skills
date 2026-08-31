@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { exportGraphJsonCommand } from "../../../olt/scripts/src/cli/commands/graph-export.ts";
+import { exportGraphJsonCommand } from "../../olt/scripts/src/cli/commands/graph-export.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 

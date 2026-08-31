@@ -2,18 +2,18 @@ import { describe, expect, it } from "bun:test";
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   formatConventionalCommit,
   formatConventionalCommitMessage,
   validatePhaseCommitMessage,
-} from "../../../olt/scripts/src/engine/worktree/conventional-commit.ts";
-import { isDestructiveGitCommand } from "../../../olt/scripts/src/engine/worktree/zero-destructive-policy.ts";
-import { PolicyEngine } from "../../../olt/scripts/src/engine/policy-engine.ts";
+} from "../../olt/scripts/src/engine/worktree/conventional-commit.ts";
+import { isDestructiveGitCommand } from "../../olt/scripts/src/engine/worktree/zero-destructive-policy.ts";
+import { PolicyEngine } from "../../olt/scripts/src/engine/policy-engine.ts";
 import {
   generateDefaultRepoPolicy,
   saveRepoPolicy,
-} from "../../../olt/scripts/src/policy/index.ts";
+} from "../../olt/scripts/src/policy/index.ts";
 
 function makeTmpDir(prefix: string): string {
   return realpathSync(mkdtempSync(join(tmpdir(), prefix)));

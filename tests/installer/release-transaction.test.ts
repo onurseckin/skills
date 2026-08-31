@@ -3,19 +3,19 @@ import { cp, mkdir, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
-import { canonicalJsonBytes } from "../../../olt/scripts/src/core/json.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { sealInstallationManifest } from "../../../olt/scripts/src/installer/manifest-integrity.ts";
-import { acquireInstallerLock } from "../../../olt/scripts/src/installer/installer-lock.ts";
-import { pathIdentity } from "../../../olt/scripts/src/installer/path-safety.ts";
+import { canonicalJsonBytes } from "../../olt/scripts/src/core/json.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { sealInstallationManifest } from "../../olt/scripts/src/installer/manifest-integrity.ts";
+import { acquireInstallerLock } from "../../olt/scripts/src/installer/installer-lock.ts";
+import { pathIdentity } from "../../olt/scripts/src/installer/path-safety.ts";
 import {
   beginReleaseTransaction,
   recoverReleaseTransaction,
-} from "../../../olt/scripts/src/installer/release-transaction.ts";
-import { SKILL_NAME } from "../../../olt/scripts/src/installer/constants.ts";
-import { treeDigest } from "../../../olt/scripts/src/installer/tree-digest.ts";
-import { validateSkillSource } from "../../../olt/scripts/src/installer/source-validation.ts";
-import { markerPath, readMarker } from "../../../olt/scripts/src/installer/transaction-marker.ts";
+} from "../../olt/scripts/src/installer/release-transaction.ts";
+import { SKILL_NAME } from "../../olt/scripts/src/installer/constants.ts";
+import { treeDigest } from "../../olt/scripts/src/installer/tree-digest.ts";
+import { validateSkillSource } from "../../olt/scripts/src/installer/source-validation.ts";
+import { markerPath, readMarker } from "../../olt/scripts/src/installer/transaction-marker.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 import { cleanInstallerFixtures, installerFixture } from "./helpers.ts";
 

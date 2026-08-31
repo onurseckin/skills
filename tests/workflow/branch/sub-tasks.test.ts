@@ -2,9 +2,9 @@ import { describe, expect, test } from "bun:test";
 import {
   claimSubTask,
   submitSubTask,
-} from "../../../../olt/scripts/src/workflow/branch/sub-tasks.ts";
-import { readBranchLedger } from "../../../../olt/scripts/src/workflow/branch/ledger.ts";
-import { tokenDigest } from "../../../../olt/scripts/src/workflow/lease/token.ts";
+} from "../../../olt/scripts/src/workflow/branch/sub-tasks.ts";
+import { readBranchLedger } from "../../../olt/scripts/src/workflow/branch/ledger.ts";
+import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";
 import { branchRecord, subTask } from "./fixture.ts";
 import { FakeRunStore, seedBranchLedger } from "./fake-transact.ts";
 

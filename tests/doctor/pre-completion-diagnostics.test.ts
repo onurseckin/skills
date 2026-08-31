@@ -2,13 +2,13 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { safeRmSync } from "../../../olt/scripts/src/core/shared/safe-fs/index.ts";
+import { safeRmSync } from "../../olt/scripts/src/core/shared/safe-fs/index.ts";
 import {
   checkPreCompletionDiagnostics,
   generateRemedialGuidance,
   formatDoctorReport,
   runDoctor,
-} from "../../../olt/scripts/src/reporting/doctor.ts";
+} from "../../olt/scripts/src/reporting/doctor.ts";
 
 describe("Pre-Completion Diagnostics & Guidance Engine", () => {
   let scratchDir: string;

@@ -7,16 +7,16 @@ import { describe, expect, it } from "bun:test";
 import {
   auditCriterionSemanticDepth,
   auditManifestSemanticDepth,
-} from "../../../../olt/scripts/src/heuristics/multi-viewport-manifest/index.ts";
+} from "../../../olt/scripts/src/heuristics/multi-viewport-manifest/index.ts";
 import {
   evaluateCognitiveQuestions,
   validateCognitiveSemanticDepth,
-} from "../../../../olt/scripts/src/capture/validator/cognitive/cognitive-questions/index.ts";
+} from "../../../olt/scripts/src/capture/validator/cognitive/cognitive-questions/index.ts";
 import type {
   ElementPhysicsSnapshot,
   EvaluatedCriterion,
   ValidationContext,
-} from "../../../../olt/scripts/src/capture/validator/types.ts";
+} from "../../../olt/scripts/src/capture/validator/types.ts";
 
 describe("Extended Heuristics: Semantic Depth & Anti-Boilerplate Verification", () => {
   it("certifies high-depth semantic criterion with quantitative metrics and qualitative explanation", () => {

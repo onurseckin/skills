@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import type { AgentRole } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { evidenceSchema } from "../../../olt/scripts/src/packets/evidence-schema.ts";
+import type { AgentRole } from "../../olt/scripts/src/core/contracts/index.ts";
+import { evidenceSchema } from "../../olt/scripts/src/packets/evidence-schema.ts";
 
 const expectedGateEvidence = {
   assurance: "trusted_host_observed_v1",

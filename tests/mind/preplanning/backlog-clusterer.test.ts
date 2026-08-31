@@ -13,9 +13,9 @@ import {
   loadDefectItems,
   type RawBacklogItem,
   type RawDefectItem,
-} from "../../../../olt/scripts/src/mind/preplanning/index.ts";
-import { validateTaskQueueDag } from "../../../../olt/scripts/src/task/queue/enqueue.ts";
-import { detectCyclesTarjan } from "../../../../olt/scripts/src/reporting/sugiyama-dag/tarjan.ts";
+} from "../../../olt/scripts/src/mind/preplanning/index.ts";
+import { validateTaskQueueDag } from "../../../olt/scripts/src/task/queue/enqueue.ts";
+import { detectCyclesTarjan } from "../../../olt/scripts/src/reporting/sugiyama-dag/tarjan.ts";
 import { scratchRoot } from "../../../support/scratch-root.ts";
 
 describe("Backlog Clusterer Engine & Cluster DAG Verification", () => {

@@ -6,8 +6,8 @@ import {
   openValidations,
   validationForDomain,
   validationForValidator,
-} from "../../../../olt/scripts/src/workflow/review/validation-state.ts";
-import type { TaskRecord, ValidationAttempt } from "../../../../olt/scripts/src/workflow/types.ts";
+} from "../../../olt/scripts/src/workflow/review/validation-state.ts";
+import type { TaskRecord, ValidationAttempt } from "../../../olt/scripts/src/workflow/types.ts";
 
 function attempt(overrides: Partial<ValidationAttempt> = {}): ValidationAttempt {
   return {

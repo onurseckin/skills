@@ -1,8 +1,8 @@
-import { completionArtifactRequirements } from "../../../olt/scripts/src/workflow/completion/artifact-verification.ts";
-import { recordCompletionReview } from "../../../olt/scripts/src/workflow/completion/record-completion-review.ts";
-import { completionReadinessSnapshot } from "../../../olt/scripts/src/workflow/completion/readiness-snapshot.ts";
-import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";
-import type { TransactionPort } from "../../../olt/scripts/src/workflow/types.ts";
+import { completionArtifactRequirements } from "../../olt/scripts/src/workflow/completion/artifact-verification.ts";
+import { recordCompletionReview } from "../../olt/scripts/src/workflow/completion/record-completion-review.ts";
+import { completionReadinessSnapshot } from "../../olt/scripts/src/workflow/completion/readiness-snapshot.ts";
+import { tokenDigest } from "../../olt/scripts/src/workflow/lease/token.ts";
+import type { TransactionPort } from "../../olt/scripts/src/workflow/types.ts";
 import {
   at,
   commandRecord,
@@ -11,7 +11,7 @@ import {
   TestPort,
   workflowState,
 } from "./test-port.ts";
-import { criticIntegrityDigest } from "../../../olt/scripts/src/packets/critic-integrity-digest.ts";
+import { criticIntegrityDigest } from "../../olt/scripts/src/packets/critic-integrity-digest.ts";
 
 export const clock = at("2026-08-13T12:00:00.000Z");
 export const packetSha = "a".repeat(64);

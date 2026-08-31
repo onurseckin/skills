@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { claimTask } from "../../../../olt/scripts/src/workflow/lease/claim.ts";
-import { heartbeat } from "../../../../olt/scripts/src/workflow/lease/heartbeat.ts";
-import { beginValidation } from "../../../../olt/scripts/src/workflow/review/begin-validation.ts";
-import { submitTask } from "../../../../olt/scripts/src/workflow/submission/submit.ts";
-import type { BranchLease } from "../../../../olt/scripts/src/core/contracts/index.ts";
+import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
+import { heartbeat } from "../../../olt/scripts/src/workflow/lease/heartbeat.ts";
+import { beginValidation } from "../../../olt/scripts/src/workflow/review/begin-validation.ts";
+import { submitTask } from "../../../olt/scripts/src/workflow/submission/submit.ts";
+import type { BranchLease } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   DEAD_AGENT_RECLAIMED_KIND,
   reclaimDeadAgents,
-} from "../../../../olt/scripts/src/orchestrator/dead-agent-detector.ts";
+} from "../../../olt/scripts/src/orchestrator/dead-agent-detector.ts";
 import { at, registerTaskPacket, TestPort, workflowState } from "../../workflow/test-port.ts";
 import { completionPort } from "../../workflow/completion-provenance-fixture.ts";
 

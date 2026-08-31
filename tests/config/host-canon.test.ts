@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   canonicalizeHostId,
   canonicalHostFromOutcome,
   KNOWN_UNRESOLVABLE_HOST_IDS,
   parseHostProfiles,
-} from "../../../olt/scripts/src/core/config/host-canon.ts";
+} from "../../olt/scripts/src/core/config/host-canon.ts";
 
 describe("canonicalizeHostId", () => {
   test("resolves every closed-enum id to itself", () => {

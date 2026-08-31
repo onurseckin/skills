@@ -6,7 +6,7 @@ import {
   compactDefectLogFile,
   readDefectLogFile,
   recordKeyedDefect,
-} from "../../../olt/scripts/src/logging/defect-logger.ts";
+} from "../../olt/scripts/src/logging/defect-logger.ts";
 
 const tempRoots: string[] = [];
 

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { roleCheatSheetCommand } from "../../../olt/scripts/src/cli/commands/role-cheat-sheet.ts";
+import { roleCheatSheetCommand } from "../../olt/scripts/src/cli/commands/role-cheat-sheet.ts";
 import {
   formatUniversalCheatSheet,
   generateRoleCheatSheet,
@@ -8,7 +8,7 @@ import {
   renderAsciiRoleTable,
   type RoleSummary,
   type UniversalRoleSpec,
-} from "../../../olt/scripts/src/roles/index.ts";
+} from "../../olt/scripts/src/roles/index.ts";
 
 const SAMPLE_CONTRACT = `---
 role: implementer

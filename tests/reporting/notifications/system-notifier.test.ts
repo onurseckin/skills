@@ -10,14 +10,14 @@ import {
   type NotificationPayload,
   type NotificationProcessSpawner,
   type PhaseCompletionNotificationOptions,
-} from "../../../../olt/scripts/src/reporting/notifications/index.ts";
+} from "../../../olt/scripts/src/reporting/notifications/index.ts";
 import {
   claimStation,
   createStation,
   landPhaseRelease,
   landStation,
   verifyStation,
-} from "../../../../olt/scripts/src/orchestrator/station-landing.ts";
+} from "../../../olt/scripts/src/orchestrator/station-landing.ts";
 
 describe("Native OS Push Notification & Audio Chime Engine", () => {
   describe("Platform Dispatcher", () => {

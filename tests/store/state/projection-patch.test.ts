@@ -2,13 +2,13 @@ import { describe, expect, test } from "bun:test";
 import type {
   JsonObject,
   ProjectionPatchOp,
-} from "../../../../olt/scripts/src/core/contracts/index.ts";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+} from "../../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   applyProjectionPatch,
   diffProjection,
   reduceEventStream,
-} from "../../../../olt/scripts/src/engine/store/projections/projection-patch.ts";
+} from "../../../olt/scripts/src/engine/store/projections/projection-patch.ts";
 
 function expectIntegrity(operation: () => void): void {
   try {

@@ -6,7 +6,7 @@ import {
   reconstructEpistemicState,
   type EpistemicStateSnapshot,
   type EpistemicStreamEvent,
-} from "../../../../olt/scripts/src/core/epistemic/index.ts";
+} from "../../../olt/scripts/src/core/epistemic/index.ts";
 
 function createMockStreamEvent(partial: Partial<EpistemicStreamEvent> = {}): EpistemicStreamEvent {
   return {

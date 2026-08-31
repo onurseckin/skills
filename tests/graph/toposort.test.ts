@@ -4,9 +4,9 @@ import {
   describeCycle,
   downstreamMap,
   topologicalOrder,
-} from "../../../olt/scripts/src/graph/topology.ts";
-import { validateTaskQueueDag } from "../../../olt/scripts/src/task/queue/enqueue.ts";
-import type { TaskQueueItem } from "../../../olt/scripts/src/task/queue/types.ts";
+} from "../../olt/scripts/src/graph/topology.ts";
+import { validateTaskQueueDag } from "../../olt/scripts/src/task/queue/enqueue.ts";
+import type { TaskQueueItem } from "../../olt/scripts/src/task/queue/types.ts";
 
 describe("Kahn Topological Sorter", () => {
   test("returns empty array for empty dependency map", () => {

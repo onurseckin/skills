@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   auditDefectLog,
   autoPromoteDefect,
@@ -25,7 +25,7 @@ import {
   type DefectEntry,
   type DefectResolutionProof,
   type MindCandidateProposal,
-} from "../../../olt/scripts/src/mind/defects/index.ts";
+} from "../../olt/scripts/src/mind/defects/index.ts";
 
 const tempRoots: string[] = [];
 

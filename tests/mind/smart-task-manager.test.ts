@@ -30,7 +30,7 @@ import {
   validateAntiBatchingIsolation,
   validateAntiBatchingRule,
   type SmartTaskPlan,
-} from "../../../olt/scripts/src/mind/tasks/smart/index.ts";
+} from "../../olt/scripts/src/mind/tasks/smart/index.ts";
 import {
   admitFeedbackToQueue,
   __setFeedbackQueuePersistenceTestHook,
@@ -48,13 +48,13 @@ import {
   updateFeedbackItem,
   type FeedbackItem,
   type FeedbackResolutionProof,
-} from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
+} from "../../olt/scripts/src/mind/feedback/queue/index.ts";
 import {
   clearTaskQueue,
   enqueueTasksBatch,
   getQueueStats,
   readTaskQueue,
-} from "../../../olt/scripts/src/task/queue/index.ts";
+} from "../../olt/scripts/src/task/queue/index.ts";
 
 describe("Smart Task Manager & Autonomic Benchmark Suite", () => {
   const testDir = join(tmpdir(), `test-bench-smart-task-${Date.now()}`);

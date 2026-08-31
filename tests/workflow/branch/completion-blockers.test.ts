@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { openBranchIssues } from "../../../../olt/scripts/src/workflow/branch/completion-blockers.ts";
-import { BRANCH_LEDGER_KEY } from "../../../../olt/scripts/src/workflow/branch/ledger.ts";
-import type { JsonObject } from "../../../../olt/scripts/src/core/contracts/index.ts";
+import { openBranchIssues } from "../../../olt/scripts/src/workflow/branch/completion-blockers.ts";
+import { BRANCH_LEDGER_KEY } from "../../../olt/scripts/src/workflow/branch/ledger.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { branchRecord } from "./fixture.ts";
 
 describe("openBranchIssues", () => {

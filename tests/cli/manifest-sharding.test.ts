@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { writeManifest } from "../../../olt/scripts/generate-cli-manifest.ts";
+import { writeManifest } from "../../olt/scripts/generate-cli-manifest.ts";
 
 const repoRoot = join(import.meta.dir, "..", "..", "..");
 const splitRoot = join(repoRoot, "olt", "references", "cli-capabilities");

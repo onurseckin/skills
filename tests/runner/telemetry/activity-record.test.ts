@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ActivityRecord } from "../../../../olt/scripts/src/engine/runner/reconciliation/activity-record.ts";
+import { ActivityRecord } from "../../../olt/scripts/src/engine/runner/reconciliation/activity-record.ts";
 
 const roots: string[] = [];
 

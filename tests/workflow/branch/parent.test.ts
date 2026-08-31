@@ -6,11 +6,11 @@ import {
   resolveBranchParent,
   resumeParent,
   suspendParent,
-} from "../../../../olt/scripts/src/workflow/branch/parent.ts";
-import { tokenDigest } from "../../../../olt/scripts/src/workflow/lease/token.ts";
+} from "../../../olt/scripts/src/workflow/branch/parent.ts";
+import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";
 import { branchRecord, subTask } from "./fixture.ts";
 import { draftWithTask, scopedLease, taskRecord } from "./task-fixture.ts";
-import type { JsonObject } from "../../../../olt/scripts/src/core/contracts/index.ts";
+import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 
 const NOW = new Date("2026-08-19T00:30:00.000Z");
 

@@ -1,21 +1,21 @@
 import { afterAll, afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   PolicyEngine,
   createPolicyEngine,
   getGlobalPolicyEngine,
   resetGlobalPolicyEngine,
   type PolicyReloadResult,
-} from "../../../olt/scripts/src/engine/policy-engine.ts";
+} from "../../olt/scripts/src/engine/policy-engine.ts";
 import {
   CURRENT_POLICY_SCHEMA_VERSION,
   generateCanonicalDefaultPolicy,
   generateDefaultRepoPolicy,
   saveRepoPolicy,
   type RepoPolicy,
-} from "../../../olt/scripts/src/policy/index.ts";
+} from "../../olt/scripts/src/policy/index.ts";
 import {
   assertValidPolicy,
   isPolicyValid,
@@ -25,7 +25,7 @@ import {
   validatePolicy,
   validatePolicyStructure,
   validateReviewProtocol,
-} from "../../../olt/scripts/src/policy/validator.ts";
+} from "../../olt/scripts/src/policy/validator.ts";
 
 describe("PolicyEngine and Policy Validator", () => {
   const scratchBase = join(process.cwd(), "coverage", "scratch", "engine-policy-engine-test");

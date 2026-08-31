@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { compileRequirementsFromPrompt } from "../../../olt/scripts/src/requirements/compiler.ts";
-import { parseRequirementLines } from "../../../olt/scripts/src/requirements/requirement-lines.ts";
+import { compileRequirementsFromPrompt } from "../../olt/scripts/src/requirements/compiler.ts";
+import { parseRequirementLines } from "../../olt/scripts/src/requirements/requirement-lines.ts";
 
 const PROMPT = [
   "Build the drawer",

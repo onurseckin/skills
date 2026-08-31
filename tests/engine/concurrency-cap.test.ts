@@ -8,14 +8,14 @@ import {
   resetSubagentPool,
   SubagentPool,
   type SubagentSlotReceipt,
-} from "../../../olt/scripts/src/engine/runner/subagent-pool.ts";
+} from "../../olt/scripts/src/engine/runner/subagent-pool.ts";
 import {
   checkQuotaCircuitBreaker,
   CRITICAL_WRAP_UP_MESSAGE,
   DEFAULT_QUOTA_THRESHOLD,
   type QuotaState,
-} from "../../../olt/scripts/src/telemetry/circuit-breaker.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/telemetry/circuit-breaker.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 
 describe("Subagent Concurrency Pool Hard Cap (<= 50 subagents)", () => {
   beforeEach(() => {

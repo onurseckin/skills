@@ -2,19 +2,19 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import type { RepositoryBinding } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import { atomicWriteJson } from "../../../../olt/scripts/src/core/durable-write.ts";
-import { readBoundedBytes, sha256Bytes } from "../../../../olt/scripts/src/core/json.ts";
-import { recoverAggregateFromAttempts } from "../../../../olt/scripts/src/integration/reconcile-command-attempts.ts";
+import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { atomicWriteJson } from "../../../olt/scripts/src/core/durable-write.ts";
+import { readBoundedBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
+import { recoverAggregateFromAttempts } from "../../../olt/scripts/src/integration/reconcile-command-attempts.ts";
 import {
   startAttemptIntent,
   strongAttemptTerminalProof,
-} from "../../../../olt/scripts/src/engine/runner/execution/attempt-intent.ts";
-import { createInternalCommandRunner } from "../../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
-import { createCommandSigningCapability } from "../../../../olt/scripts/src/engine/runner/execution/attempt-disposition-capability.ts";
-import { OWNERSHIP_ENV } from "../../../../olt/scripts/src/engine/runner/core/pipe-ownership.ts";
-import type { ProcessIdentity } from "../../../../olt/scripts/src/engine/runner/process/process-identity.ts";
-import type { PreparedCommand } from "../../../../olt/scripts/src/engine/runner/types/types.ts";
+} from "../../../olt/scripts/src/engine/runner/execution/attempt-intent.ts";
+import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
+import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/execution/attempt-disposition-capability.ts";
+import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/core/pipe-ownership.ts";
+import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
+import type { PreparedCommand } from "../../../olt/scripts/src/engine/runner/types/types.ts";
 
 const roots: string[] = [];
 const identity: ProcessIdentity = { pid: 4242, parent: 100, group: 4242, birth: "birth-1" };

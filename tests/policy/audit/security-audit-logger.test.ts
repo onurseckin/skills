@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { createSecurityAuditLogger } from "../../../../olt/scripts/src/policy/audit/security-logger.ts";
-import type { ViolationAlert } from "../../../../olt/scripts/src/policy/audit/types.ts";
+import { createSecurityAuditLogger } from "../../../olt/scripts/src/policy/audit/security-logger.ts";
+import type { ViolationAlert } from "../../../olt/scripts/src/policy/audit/types.ts";
 
 describe("SecurityAuditLogger", () => {
   it("logs RBAC decisions and updates telemetry and alerts accordingly", async () => {

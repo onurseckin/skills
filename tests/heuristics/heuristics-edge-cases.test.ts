@@ -19,11 +19,11 @@ import {
   type GlassSurfaceLayer,
   type GlassTextElement,
   type ParsedRgba,
-} from "../../../olt/scripts/src/heuristics/glass-surfaces/index.ts";
+} from "../../olt/scripts/src/heuristics/glass-surfaces/index.ts";
 import {
   validateModalFocusTrap,
   type ModalFocusTrapInput,
-} from "../../../olt/scripts/src/heuristics/modal-focus-traps/index.ts";
+} from "../../olt/scripts/src/heuristics/modal-focus-traps/index.ts";
 import {
   evaluateAntiAliasingEdgeContrast,
   evaluateEdgeContrast,
@@ -37,7 +37,7 @@ import {
   validateSubpixelBorders,
   type SubpixelElementBounds,
   type SubpixelElementInput,
-} from "../../../olt/scripts/src/heuristics/subpixel-borders/index.ts";
+} from "../../olt/scripts/src/heuristics/subpixel-borders/index.ts";
 import {
   auditCriterionSemanticDepth,
   auditManifestSemanticDepth,
@@ -50,17 +50,17 @@ import {
   verifyMultiViewportManifests,
   type MultiViewportBundleInput,
   type ScreenshotArtifact,
-} from "../../../olt/scripts/src/heuristics/multi-viewport-manifest/index.ts";
+} from "../../olt/scripts/src/heuristics/multi-viewport-manifest/index.ts";
 import {
   evaluateCognitiveQuestions,
   validateCognitiveSemanticDepth,
-} from "../../../olt/scripts/src/capture/validator/cognitive/cognitive-questions/index.ts";
+} from "../../olt/scripts/src/capture/validator/cognitive/cognitive-questions/index.ts";
 import type {
   CompanionManifestV2,
   ElementPhysicsSnapshot,
   EvaluatedCriterion,
   ValidationContext,
-} from "../../../olt/scripts/src/capture/validator/types.ts";
+} from "../../olt/scripts/src/capture/validator/types.ts";
 
 describe("Extended Heuristics: Nested Glass Surfaces & Translucency Dynamics", () => {
   it("parses diverse color formats accurately (hex3, hex4, hex6, hex8, rgb, rgba with %, hsla, named, malformed)", () => {

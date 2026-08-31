@@ -1,12 +1,12 @@
 import { describe, expect, it } from "bun:test";
-import type { HarnessEvent } from "../../../../olt/scripts/src/core/contracts/index.ts";
+import type { HarnessEvent } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   buildDynamicDagState,
   buildLivingTracerReport,
   buildStepTraceEntries,
   renderAsciiTimeline,
   renderDynamicDagAscii,
-} from "../../../../olt/scripts/src/reporting/living-tracer/index.ts";
+} from "../../../olt/scripts/src/reporting/living-tracer/index.ts";
 
 describe("reporting/living-tracer edge cases suite", () => {
   it("handles empty event stream without crashing", () => {

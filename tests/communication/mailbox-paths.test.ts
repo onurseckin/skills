@@ -7,9 +7,9 @@ import {
   isValidAgentId,
   resolveMailboxLockPath,
   resolveMailboxPaths,
-} from "../../../olt/scripts/src/communication/mailbox/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import type { MailboxPaths } from "../../../olt/scripts/src/communication/types.ts";
+} from "../../olt/scripts/src/communication/mailbox/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import type { MailboxPaths } from "../../olt/scripts/src/communication/types.ts";
 
 describe("Mailbox Paths & Directory Provisioning Engine", () => {
   let tempDir: string;

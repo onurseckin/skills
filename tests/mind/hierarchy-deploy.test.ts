@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { AGENT_ROLES, type AgentRole } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { AGENT_ROLES, type AgentRole } from "../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   ABSTRACT_PROFILES,
   assertAbstractProfile,
@@ -12,14 +12,14 @@ import {
   validateAbstractProfile,
   validateTierSpawn,
   type Tier1DeploymentPacketInput,
-} from "../../../olt/scripts/src/mind/lifecycle/deploy/index.ts";
+} from "../../olt/scripts/src/mind/lifecycle/deploy/index.ts";
 import {
   DEFAULT_MIND_BUDGET,
   DEFAULT_PROHIBITIONS,
   type MindBudget,
   type ParsedCharter,
-} from "../../../olt/scripts/src/mind/lifecycle/charter/index.ts";
-import type { CandidateRecord } from "../../../olt/scripts/src/mind/proposals/gates/index.ts";
+} from "../../olt/scripts/src/mind/lifecycle/charter/index.ts";
+import type { CandidateRecord } from "../../olt/scripts/src/mind/proposals/gates/index.ts";
 
 describe("Phase 4 W4.3: Strict Tier Hierarchy and Deployment", () => {
   describe("1. Strict tier spawn rules and hierarchy constraints", () => {

@@ -22,11 +22,11 @@ import {
   atomicWriteJson,
   durableAppendBytes,
   fsyncDirectory,
-} from "../../../olt/scripts/src/core/durable-write.ts";
+} from "../../olt/scripts/src/core/durable-write.ts";
 import {
   copyPinnedRuntime,
   runtimeTreeSnapshot,
-} from "../../../olt/scripts/src/core/runtime-tree.ts";
+} from "../../olt/scripts/src/core/runtime-tree.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 function fixture(): { root: string; source: string; destination: string } {

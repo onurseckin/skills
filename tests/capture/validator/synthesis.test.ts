@@ -9,12 +9,12 @@ import {
   loadCompanionManifest,
   saveCompanionManifest,
   synthesizeCompanionManifest,
-} from "../../../../olt/scripts/src/capture/validator/synthesis/index.ts";
+} from "../../../olt/scripts/src/capture/validator/synthesis/index.ts";
 import type {
   CompanionManifestV2,
   ElementPhysicsSnapshot,
   ValidationContext,
-} from "../../../../olt/scripts/src/capture/validator/types.ts";
+} from "../../../olt/scripts/src/capture/validator/types.ts";
 
 describe("Synthesis Engine", () => {
   describe("Remediation Generator (remediation-generator.ts)", () => {

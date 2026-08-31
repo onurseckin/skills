@@ -11,7 +11,7 @@ import {
   inspectRepoPolicy,
   loadRepoPolicy,
   saveRepoPolicy,
-} from "../../../olt/scripts/src/policy/index.ts";
+} from "../../olt/scripts/src/policy/index.ts";
 import {
   checkExistingDir,
   ensureDir,
@@ -20,7 +20,7 @@ import {
   resolvePolicyLocation,
   resolveSystemLockPath,
   withLock,
-} from "../../../olt/scripts/src/policy/io-safety.ts";
+} from "../../olt/scripts/src/policy/io-safety.ts";
 
 describe("Repo Policy I/O, Flocking & Generator (Task 1.2)", () => {
   const scratchBase = join(

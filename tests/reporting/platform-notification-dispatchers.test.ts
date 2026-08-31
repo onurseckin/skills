@@ -7,7 +7,7 @@ import {
   WindowsNotificationDispatcher,
   type NotificationPayload,
   type NotificationProcessSpawner,
-} from "../../../olt/scripts/src/reporting/notifications/index.ts";
+} from "../../olt/scripts/src/reporting/notifications/index.ts";
 
 describe("Platform Notification Dispatchers", () => {
   const samplePayload: NotificationPayload = {

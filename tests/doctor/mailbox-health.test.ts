@@ -7,8 +7,8 @@ import {
   checkMailboxHealth,
   healCorruptedCursor,
   pruneOrphanedMailboxes,
-} from "../../../olt/scripts/src/reporting/doctor/mailbox-health-engine.ts";
-import { createSignedEnvelope } from "../../../olt/scripts/src/communication/mailbox/envelope.ts";
+} from "../../olt/scripts/src/reporting/doctor/mailbox-health-engine.ts";
+import { createSignedEnvelope } from "../../olt/scripts/src/communication/mailbox/envelope.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Mailbox Health Engine", () => {

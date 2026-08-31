@@ -1,17 +1,17 @@
 import { describe, expect, test } from "bun:test";
-import { evidenced } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
-import { recoverStale } from "../../../olt/scripts/src/workflow/lease/recover-stale.ts";
-import { submitTask } from "../../../olt/scripts/src/workflow/submission/submit.ts";
-import { beginValidation } from "../../../olt/scripts/src/workflow/review/begin-validation.ts";
-import { recordReview } from "../../../olt/scripts/src/workflow/review/record-review.ts";
-import { recordMicroCycleCritique } from "../../../olt/scripts/src/workflow/review/micro-cycle.ts";
+import { evidenced } from "../../olt/scripts/src/core/contracts/index.ts";
+import { claimTask } from "../../olt/scripts/src/workflow/lease/claim.ts";
+import { recoverStale } from "../../olt/scripts/src/workflow/lease/recover-stale.ts";
+import { submitTask } from "../../olt/scripts/src/workflow/submission/submit.ts";
+import { beginValidation } from "../../olt/scripts/src/workflow/review/begin-validation.ts";
+import { recordReview } from "../../olt/scripts/src/workflow/review/record-review.ts";
+import { recordMicroCycleCritique } from "../../olt/scripts/src/workflow/review/micro-cycle.ts";
 import {
   assertGateProofFalsifiable,
   isBaseShaReconciled,
-} from "../../../olt/scripts/src/workflow/review/pass-preconditions.ts";
-import { openValidations } from "../../../olt/scripts/src/workflow/review/validation-state.ts";
-import { appendGateProof } from "../../../olt/scripts/src/graph/gate-proof.ts";
+} from "../../olt/scripts/src/workflow/review/pass-preconditions.ts";
+import { openValidations } from "../../olt/scripts/src/workflow/review/validation-state.ts";
+import { appendGateProof } from "../../olt/scripts/src/graph/gate-proof.ts";
 import {
   registerCommand,
   registerTaskPacket,

@@ -3,7 +3,7 @@ import {
   evaluateThemeContrastMatrix,
   formatThemeContrastMatrixMarkdown,
   type ElementThemePair,
-} from "../../../../../olt/scripts/src/reporting/theme/index.ts";
+} from "../../../../olt/scripts/src/reporting/theme/index.ts";
 
 describe("theme contrast matrix setup and multi-theme reports", () => {
   it("evaluates fully compliant multi-theme setup", () => {

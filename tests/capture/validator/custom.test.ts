@@ -2,16 +2,16 @@ import { describe, expect, it } from "bun:test";
 import {
   getExpectedAppleTracking,
   validateAppleOpticalTracking,
-} from "../../../../olt/scripts/src/capture/validator/custom/apple-optical-tracking.ts";
-import { validateFloatingUiCollision } from "../../../../olt/scripts/src/capture/validator/custom/floating-ui-collision.ts";
-import { validateGeistTokens } from "../../../../olt/scripts/src/capture/validator/custom/geist-tokens.ts";
-import { validateMaterialStateLayers } from "../../../../olt/scripts/src/capture/validator/custom/material-state-layers.ts";
-import { validateWaiAriaFocusTrap } from "../../../../olt/scripts/src/capture/validator/custom/wai-aria-focus-trap.ts";
-import { validateCustom } from "../../../../olt/scripts/src/capture/validator/custom/index.ts";
+} from "../../../olt/scripts/src/capture/validator/custom/apple-optical-tracking.ts";
+import { validateFloatingUiCollision } from "../../../olt/scripts/src/capture/validator/custom/floating-ui-collision.ts";
+import { validateGeistTokens } from "../../../olt/scripts/src/capture/validator/custom/geist-tokens.ts";
+import { validateMaterialStateLayers } from "../../../olt/scripts/src/capture/validator/custom/material-state-layers.ts";
+import { validateWaiAriaFocusTrap } from "../../../olt/scripts/src/capture/validator/custom/wai-aria-focus-trap.ts";
+import { validateCustom } from "../../../olt/scripts/src/capture/validator/custom/index.ts";
 import type {
   ElementPhysicsSnapshot,
   ValidationContext,
-} from "../../../../olt/scripts/src/capture/validator/types.ts";
+} from "../../../olt/scripts/src/capture/validator/types.ts";
 
 describe("Custom Validators", () => {
   describe("Apple Optical Tracking (validateAppleOpticalTracking & getExpectedAppleTracking)", () => {

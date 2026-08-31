@@ -6,16 +6,16 @@ import { join } from "node:path";
 import {
   buildWakeBrief,
   renderGapLine,
-} from "../../../olt/scripts/src/mind/proposals/brief/index.ts";
+} from "../../olt/scripts/src/mind/proposals/brief/index.ts";
 import {
   readLastPulse,
   reconcileLastPulse,
   writeLastPulse,
   type LastPulseRecord,
-} from "../../../olt/scripts/src/mind/lifecycle/index.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../olt/scripts/src/mind/lifecycle/index.ts";
+import { initRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { loadRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../olt/scripts/src/engine/store/index.ts";
 
 const roots: string[] = [];
 

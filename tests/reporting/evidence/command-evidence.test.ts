@@ -5,8 +5,8 @@ import { join } from "node:path";
 import {
   commandEvidenceView,
   commandRecordPath,
-} from "../../../../olt/scripts/src/reporting/command-evidence.ts";
-import { recordCaptures } from "../../../../olt/scripts/src/engine/store/capsule/captures.ts";
+} from "../../../olt/scripts/src/reporting/command-evidence.ts";
+import { recordCaptures } from "../../../olt/scripts/src/engine/store/capsule/captures.ts";
 
 const roots: string[] = [];
 afterEach(() => {

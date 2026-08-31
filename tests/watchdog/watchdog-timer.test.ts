@@ -13,21 +13,21 @@ import {
   type WatchdogEvent,
   type WatchdogHealthAuditReport,
   type WatchdogTickReport,
-} from "../../../olt/scripts/src/watchdog/index.ts";
+} from "../../olt/scripts/src/watchdog/index.ts";
 import {
   assertSupervisorRoleConfinement,
   auditSupervisorCodeContamination,
   DOCTOR_SUPERVISOR_CODE_CONTAMINATION,
   isSourceCodeFile,
   type TierConfinementFinding,
-} from "../../../olt/scripts/src/reporting/doctor/tier-confinement/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/reporting/doctor/tier-confinement/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import type {
   AgentGrantRecord,
   CommandRecord,
   JsonObject,
-} from "../../../olt/scripts/src/core/contracts/index.ts";
-import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
+} from "../../olt/scripts/src/core/contracts/index.ts";
+import type { TaskRecord } from "../../olt/scripts/src/workflow/types.ts";
 
 function makeCmd(actor: string, argv: string[], mutated = false): CommandRecord {
   const hashA = "aaaa111122223333444455556666777788889999000011112222333344445555";

@@ -11,7 +11,7 @@ import {
   CANONICAL_VIEWPORTS,
   DEFAULT_PRESETS,
   DEFAULT_SIDEBAR_LAYOUT,
-} from "../../../olt/scripts/src/capture/config/index.ts";
+} from "../../olt/scripts/src/capture/config/index.ts";
 
 describe("capture config loader & schema", () => {
   test("provides canonical viewports and presets", () => {

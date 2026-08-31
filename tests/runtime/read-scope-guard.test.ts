@@ -1,18 +1,18 @@
 import { describe, it, expect } from "bun:test";
 import { existsSync, linkSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/harness-error.ts";
 import {
   createAgentMetadata,
   writeAgentMetadata,
   readAgentMetadata,
-} from "../../../olt/scripts/src/runtime/index.ts";
+} from "../../olt/scripts/src/runtime/index.ts";
 import {
   isPathInScopeList,
   isWithinNeighborhood,
   checkReadScopeAuthorization,
   expandReadScope,
-} from "../../../olt/scripts/src/runtime/read-scope-guard.ts";
+} from "../../olt/scripts/src/runtime/read-scope-guard.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Runtime Agent Metadata & Read Scope Guard", () => {

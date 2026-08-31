@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { isRunTerminal } from "../../../olt/scripts/src/orchestrator/run-terminal.ts";
+import { isRunTerminal } from "../../olt/scripts/src/orchestrator/run-terminal.ts";
 import { repositoryBinding, workflowState } from "../workflow/test-port.ts";
 
 describe("isRunTerminal", () => {

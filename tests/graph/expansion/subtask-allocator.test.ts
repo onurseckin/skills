@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   parseGateCommand,
   createImplementerValidatorPair,
   allocateTaskElements,
-} from "../../../../olt/scripts/src/graph/expansion/subtask-allocator.ts";
-import { detectTransitiveBypasses } from "../../../../olt/scripts/src/graph/expansion/bypass-detector.ts";
-import { expandDeeper } from "../../../../olt/scripts/src/graph/expansion/task-decomposition.ts";
-import { expandWider } from "../../../../olt/scripts/src/graph/expansion/wider-expansion.ts";
+} from "../../../olt/scripts/src/graph/expansion/subtask-allocator.ts";
+import { detectTransitiveBypasses } from "../../../olt/scripts/src/graph/expansion/bypass-detector.ts";
+import { expandDeeper } from "../../../olt/scripts/src/graph/expansion/task-decomposition.ts";
+import { expandWider } from "../../../olt/scripts/src/graph/expansion/wider-expansion.ts";
 import { requirementsDocument } from "../../requirements/fixtures.ts";
 import { graphDocument } from "../fixtures.ts";
 

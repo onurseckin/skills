@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   formatQueueListBrief,
   formatQueueWaveBrief,
-} from "../../../olt/scripts/src/cli/formatters/queue-formatter.ts";
+} from "../../olt/scripts/src/cli/formatters/queue-formatter.ts";
 
 describe("formatQueueListBrief", () => {
   test("every non-empty partition is listed by id", () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   clearInMemorySessionStore,
   deleteInMemorySessionData,
@@ -18,7 +18,7 @@ import {
   snapshotSession,
   withSessionAuthorityLock,
   atomicSessionWrite,
-} from "../../../../olt/scripts/src/authority/session/io.ts";
+} from "../../../olt/scripts/src/authority/session/io.ts";
 import {
   assertActiveCapsuleLease,
   pruneStaleSessions,
@@ -26,11 +26,11 @@ import {
   revokeSessionGrant,
   rollbackStagedSessionGrant,
   stageSessionGrant,
-} from "../../../../olt/scripts/src/authority/session/grants.ts";
+} from "../../../olt/scripts/src/authority/session/grants.ts";
 import {
   setSessionLockCleanupFailureForTesting,
   setSessionPersistenceObserverForTesting,
-} from "../../../../olt/scripts/src/authority/session/testing-hooks.ts";
+} from "../../../olt/scripts/src/authority/session/testing-hooks.ts";
 
 describe("Authority Session IO & In-Memory Storage Management", () => {
   beforeEach(() => {

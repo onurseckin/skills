@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { orchestratorRunCommand } from "../../../olt/scripts/src/cli/commands/orchestrator-ops.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { AutonomousLoopRunner } from "../../../olt/scripts/src/orchestrator/loop-runner.ts";
+import { orchestratorRunCommand } from "../../olt/scripts/src/cli/commands/orchestrator-ops.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { AutonomousLoopRunner } from "../../olt/scripts/src/orchestrator/loop-runner.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 function temporaryRepo(name: string): string {

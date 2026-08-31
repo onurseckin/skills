@@ -2,9 +2,9 @@ import { describe, expect, test } from "bun:test";
 import {
   collectCriticEvidenceAssets,
   collectReportAssets,
-} from "../../../olt/scripts/src/summary/assets/index.ts";
-import type { CompletionReview } from "../../../olt/scripts/src/workflow/completion/types.ts";
-import type { MediaAsset } from "../../../olt/scripts/src/summary/graph/index.ts";
+} from "../../olt/scripts/src/summary/assets/index.ts";
+import type { CompletionReview } from "../../olt/scripts/src/workflow/completion/types.ts";
+import type { MediaAsset } from "../../olt/scripts/src/summary/graph/index.ts";
 import { makeTask } from "./graph-fixtures.ts";
 
 function collect<T>(fn: (add: (asset: MediaAsset) => void, nextIndex: () => number) => T): {

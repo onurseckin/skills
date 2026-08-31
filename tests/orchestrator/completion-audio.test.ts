@@ -15,7 +15,7 @@ import {
   type CompletionAudioConfig,
   type CompletionAudioContext,
   type CompletionAudioEvaluationInput,
-} from "../../../olt/scripts/src/orchestrator/completion-audio.ts";
+} from "../../olt/scripts/src/orchestrator/completion-audio.ts";
 
 describe("Orchestrator-Tier Completion Audio & Subagent Anti-Noise Filter", () => {
   describe("isOrchestratorTier", () => {

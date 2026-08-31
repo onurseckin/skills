@@ -6,7 +6,7 @@ import {
   renderPulseQuotaProgressBar,
   renderPulseTelemetryBadges,
   type PulseQuotaEvaluation,
-} from "../../../olt/scripts/src/mind/pulsing/index.ts";
+} from "../../olt/scripts/src/mind/pulsing/index.ts";
 
 describe("Mind Pulse ASCII Telemetry Badges & Progress Bars", () => {
   test("renders precise ASCII progress bars across percentages", () => {

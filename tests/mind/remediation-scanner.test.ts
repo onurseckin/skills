@@ -2,7 +2,7 @@ import { describe, expect, it, afterEach } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import type { DefectEntry } from "../../../olt/scripts/src/mind/defects/index.ts";
+import type { DefectEntry } from "../../olt/scripts/src/mind/defects/index.ts";
 import {
   filterOpenDefects,
   isDefectEntry,
@@ -12,7 +12,7 @@ import {
   mapDefectToDiscoveryItem,
   sanitizeSlug,
   scanDefectRemediations,
-} from "../../../olt/scripts/src/mind/tasks/discovery/scanners/remediation-scanner.ts";
+} from "../../olt/scripts/src/mind/tasks/discovery/scanners/remediation-scanner.ts";
 
 const tempDirs: string[] = [];
 

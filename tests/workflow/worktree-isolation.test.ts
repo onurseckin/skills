@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   assertDomainIsolation,
   assertNonDestructiveWriteScope,
@@ -18,7 +18,7 @@ import {
   type DomainScopeEntry,
   type DomainWorktreeConfig,
   type GitRunner,
-} from "../../../olt/scripts/src/engine/worktree/index.ts";
+} from "../../olt/scripts/src/engine/worktree/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Worktree Isolation - Disjoint Write Scopes", () => {

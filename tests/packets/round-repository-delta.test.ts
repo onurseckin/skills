@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import type { RepositoryGitCommand } from "../../../olt/scripts/src/packets/repository-git-command.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import type { RepositoryGitCommand } from "../../olt/scripts/src/packets/repository-git-command.ts";
 import {
   anchoredChangedPaths,
   diffAnchor,
-} from "../../../olt/scripts/src/packets/round-repository-delta.ts";
+} from "../../olt/scripts/src/packets/round-repository-delta.ts";
 import { inspection } from "./inspection-fixture.ts";
 
 const anchor = diffAnchor(inspection("baseline"));

@@ -7,11 +7,11 @@ import {
   isExecutionToolCategory,
   assertRoleMayInvoke,
   assertGrantedCommand,
-} from "../../../olt/scripts/src/packets/command-authority.ts";
-import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
-import type { Flags } from "../../../olt/scripts/src/cli/options.ts";
-import type { CommandSpec } from "../../../olt/scripts/src/cli/registry/types.ts";
-import { evidenceSchema } from "../../../olt/scripts/src/packets/evidence-schema.ts";
+} from "../../olt/scripts/src/packets/command-authority.ts";
+import { findCommand } from "../../olt/scripts/src/cli/registry/index.ts";
+import type { Flags } from "../../olt/scripts/src/cli/options.ts";
+import type { CommandSpec } from "../../olt/scripts/src/cli/registry/types.ts";
+import { evidenceSchema } from "../../olt/scripts/src/packets/evidence-schema.ts";
 import {
   validateAgentNamingConvention,
   parseStandardAgentId,
@@ -20,12 +20,12 @@ import {
   agentIdToTier,
   roleToTier,
   AGENT_NAMING_STANDARDS,
-} from "../../../olt/scripts/src/authority/thread/index.ts";
+} from "../../olt/scripts/src/authority/thread/index.ts";
 import {
   loadAgentManifest,
   loadRoleContract,
   loadUnifiedAgentModel,
-} from "../../../olt/scripts/src/authority/manifest/index.ts";
+} from "../../olt/scripts/src/authority/manifest/index.ts";
 import {
   SUPERFICIAL_PATTERNS,
   rejectSuperficialClaims,
@@ -33,14 +33,14 @@ import {
   auditTaskVerificationEvidence,
   createPushbackHistory,
   appendPushbackRound,
-} from "../../../olt/scripts/src/authority/review/index.ts";
-import { findCycles, breakCycles } from "../../../olt/scripts/src/graph/dag-forensics.ts";
+} from "../../olt/scripts/src/authority/review/index.ts";
+import { findCycles, breakCycles } from "../../olt/scripts/src/graph/dag-forensics.ts";
 import {
   CANONICAL_VIEWPORTS,
   DEFAULT_PRESETS,
-} from "../../../olt/scripts/src/capture/config/default-presets.ts";
-import { createSyntheticPngBuffer } from "../../../olt/scripts/src/capture/runners/live-capture-runner/index.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../olt/scripts/src/capture/config/default-presets.ts";
+import { createSyntheticPngBuffer } from "../../olt/scripts/src/capture/runners/live-capture-runner/index.ts";
+import { transact } from "../../olt/scripts/src/engine/store/index.ts";
 import { emptyGrantRun } from "../packets/grant-run-fixture.ts";
 
 function spec(invocation: string): CommandSpec {

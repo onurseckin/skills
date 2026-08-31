@@ -2,8 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   PULSE_WRAP_UP_DIRECTIVES,
   managePulseSupervisoryCadence,
-} from "../../../olt/scripts/src/mind/pulsing/index.ts";
-import type { UnifiedTelemetryReport } from "../../../olt/scripts/src/telemetry/types.ts";
+} from "../../olt/scripts/src/mind/pulsing/index.ts";
+import type { UnifiedTelemetryReport } from "../../olt/scripts/src/telemetry/types.ts";
 
 describe("Mind Pulse Supervisory Cadence & Freeze Management", () => {
   function createMockReport(

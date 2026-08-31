@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { validateGraph } from "../../../olt/scripts/src/graph/validate-graph.ts";
+import { validateGraph } from "../../olt/scripts/src/graph/validate-graph.ts";
 import { validPlanningDocuments } from "./fixtures.ts";
 
 // T6: `commandIsWeak` (read-only gate-command-policy.ts) folds path-form rejection and genuine

@@ -7,9 +7,9 @@ import {
   runDoctor,
   formatDoctorReport,
   tierDoctorIssues,
-} from "../../../olt/scripts/src/reporting/doctor.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/events/transaction.ts";
+} from "../../olt/scripts/src/reporting/doctor.ts";
+import { initRun } from "../../olt/scripts/src/engine/store/capsule/capsule.ts";
+import { transact } from "../../olt/scripts/src/engine/store/events/transaction.ts";
 
 const roots: string[] = [];
 afterEach(async () => {

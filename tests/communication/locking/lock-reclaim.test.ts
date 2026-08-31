@@ -5,7 +5,7 @@ import { join } from "node:path";
 import {
   reclaimInMemoryStaleLocks,
   reclaimStaleLocks,
-} from "../../../../olt/scripts/src/communication/locking/lock-reclaim.ts";
+} from "../../../olt/scripts/src/communication/locking/lock-reclaim.ts";
 import {
   acquireMailboxLock,
   getInMemoryLock,
@@ -13,8 +13,8 @@ import {
   resetInMemoryLocks,
   seedInMemoryLock,
   setInMemoryLocking,
-} from "../../../../olt/scripts/src/communication/locking/safe-lock.ts";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+} from "../../../olt/scripts/src/communication/locking/safe-lock.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("Lock Reclaim Engine (Disk and In-Memory)", () => {
   let tempDir: string;

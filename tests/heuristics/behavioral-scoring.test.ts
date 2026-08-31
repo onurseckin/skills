@@ -14,7 +14,7 @@ import {
   renderBehavioralForensicsAsciiTable,
   serializeProposalsToFeedbackJson,
   synthesizePlanInjectionProposals,
-} from "../../../olt/scripts/src/heuristics/index.ts";
+} from "../../olt/scripts/src/heuristics/index.ts";
 
 describe("Behavioral Forensics: Quantitative Efficiency Scoring (0.0% - 100.0%)", () => {
   it("yields 100.0% efficiency on perfectly clean run", () => {

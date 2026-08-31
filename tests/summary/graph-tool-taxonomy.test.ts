@@ -2,10 +2,10 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ingestBrowserRun } from "../../../olt/scripts/src/reporting/browser-run-ingestion.ts";
-import { readBrowserRunReport } from "../../../olt/scripts/src/reporting/browser-run-report.ts";
-import { buildNodeBrowserTests } from "../../../olt/scripts/src/summary/formatters/index.ts";
-import { buildNodeScripts } from "../../../olt/scripts/src/summary/markdown/index.ts";
+import { ingestBrowserRun } from "../../olt/scripts/src/reporting/browser-run-ingestion.ts";
+import { readBrowserRunReport } from "../../olt/scripts/src/reporting/browser-run-report.ts";
+import { buildNodeBrowserTests } from "../../olt/scripts/src/summary/formatters/index.ts";
+import { buildNodeScripts } from "../../olt/scripts/src/summary/markdown/index.ts";
 import { makeCommand } from "./graph-fixtures.ts";
 
 const roots: string[] = [];

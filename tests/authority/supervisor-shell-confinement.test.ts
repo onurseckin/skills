@@ -1,14 +1,14 @@
 import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { loadAgentManifest } from "../../../olt/scripts/src/authority/manifest/index.ts";
+import { loadAgentManifest } from "../../olt/scripts/src/authority/manifest/index.ts";
 import {
   executeShieldedCommand,
   verifyCommandAuthorization,
-} from "../../../olt/scripts/src/authority/rbac/index.ts";
-import { inferCanExecute } from "../../../olt/scripts/src/authority/session/index.ts";
-import { buildDefaultAgents } from "../../../olt/scripts/src/policy/generator/index.ts";
-import type { RepoPolicy } from "../../../olt/scripts/src/policy/types/index.ts";
+} from "../../olt/scripts/src/authority/rbac/index.ts";
+import { inferCanExecute } from "../../olt/scripts/src/authority/session/index.ts";
+import { buildDefaultAgents } from "../../olt/scripts/src/policy/generator/index.ts";
+import type { RepoPolicy } from "../../olt/scripts/src/policy/types/index.ts";
 
 describe("Supervisor and Validator Shell Confinement & Antigravity Enablement", () => {
   it("enables write tools on all supervisory, critic, and validator manifests for host run_command binding", () => {

@@ -1,17 +1,17 @@
 import { describe, expect, test } from "bun:test";
 import { closeSync, mkdirSync, type Stats } from "node:fs";
 import { join } from "node:path";
-import { releaseFlock as releaseNativeFlock } from "../../../../olt/scripts/src/platform/index.ts";
+import { releaseFlock as releaseNativeFlock } from "../../../olt/scripts/src/platform/index.ts";
 import {
   executePreparedCommand,
   setExecutionLockDependenciesForTesting,
-} from "../../../../olt/scripts/src/engine/runner/models/execution/run-command.ts";
+} from "../../../olt/scripts/src/engine/runner/models/execution/run-command.ts";
 import { scratchRoot } from "../../../support/scratch-root.ts";
-import type { InternalCommandRunner } from "../../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
+import type { InternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 import type {
   CommandResult,
   PreparedCommand,
-} from "../../../../olt/scripts/src/engine/runner/types/types.ts";
+} from "../../../olt/scripts/src/engine/runner/types/types.ts";
 
 function broadPrepared(repo: string, argv: readonly string[] = ["bun", "test"]): PreparedCommand {
   return {

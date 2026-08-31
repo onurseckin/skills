@@ -3,12 +3,12 @@ import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { executeRescueLane } from "../../../olt/scripts/src/mind/lanes/index.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import type { WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
+import type { AgentGrantRecord } from "../../olt/scripts/src/core/contracts/index.ts";
+import { executeRescueLane } from "../../olt/scripts/src/mind/lanes/index.ts";
+import { initRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { loadRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../olt/scripts/src/engine/store/index.ts";
+import type { WorkflowState } from "../../olt/scripts/src/workflow/types.ts";
 
 const roots: string[] = [];
 

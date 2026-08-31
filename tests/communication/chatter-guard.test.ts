@@ -9,9 +9,9 @@ import {
   resolveMailboxPaths,
   routeStatusUpdate,
   verifyEnvelopeHmac,
-} from "../../../olt/scripts/src/communication/mailbox/index.ts";
-import type { MailboxEnvelope } from "../../../olt/scripts/src/communication/types.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/communication/mailbox/index.ts";
+import type { MailboxEnvelope } from "../../olt/scripts/src/communication/types.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 
 describe("Chatter Guard & Mid-Flight Progress Narration Interlock", () => {
   let testRoot: string;

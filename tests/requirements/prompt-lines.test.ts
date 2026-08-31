@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { compileRequirementsFromPrompt } from "../../../olt/scripts/src/requirements/compiler.ts";
-import { promptLines } from "../../../olt/scripts/src/requirements/prompt-lines.ts";
-import { promptSource } from "../../../olt/scripts/src/requirements/prompt-source.ts";
-import { validateRequirements } from "../../../olt/scripts/src/requirements/validate-requirements.ts";
+import { compileRequirementsFromPrompt } from "../../olt/scripts/src/requirements/compiler.ts";
+import { promptLines } from "../../olt/scripts/src/requirements/prompt-lines.ts";
+import { promptSource } from "../../olt/scripts/src/requirements/prompt-source.ts";
+import { validateRequirements } from "../../olt/scripts/src/requirements/validate-requirements.ts";
 
 const EXOTIC_PROMPT =
   "Ship the parser\vHandle vertical tabs\fHandle form feeds\u0085Handle next line\u2028Handle line separators\u2029Handle paragraph separators\r\nHandle CRLF\nHandle LF";

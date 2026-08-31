@@ -3,10 +3,10 @@ import {
   ALLOWED_FINDINGS,
   applyAllowances,
   assertAllowancesHaveReasons,
-} from "../../../olt/scripts/src/health/allowlist.ts";
-import { renderHealthReport } from "../../../olt/scripts/src/health/report.ts";
-import { advisory, finding } from "../../../olt/scripts/src/health/types.ts";
-import type { HealthCheckResult } from "../../../olt/scripts/src/health/types.ts";
+} from "../../olt/scripts/src/health/allowlist.ts";
+import { renderHealthReport } from "../../olt/scripts/src/health/report.ts";
+import { advisory, finding } from "../../olt/scripts/src/health/types.ts";
+import type { HealthCheckResult } from "../../olt/scripts/src/health/types.ts";
 import { cleanupTempRoots } from "./fixture.ts";
 
 afterAll(cleanupTempRoots);

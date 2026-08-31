@@ -1,4 +1,4 @@
-import type { WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
+import type { WorkflowState } from "../../olt/scripts/src/workflow/types.ts";
 import { commandRecord, TEST_GATE_ARGV, workflowState } from "./test-port.ts";
 
 export function completionReadyState(): WorkflowState {

@@ -1,10 +1,10 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/harness-error.ts";
 import {
   formatCliError,
   mapErrorToExitCode,
   propagateCliExitCode,
-} from "../../../olt/scripts/src/cli/signals/error-propagation.ts";
+} from "../../olt/scripts/src/cli/signals/error-propagation.ts";
 
 afterAll(() => {
   process.exitCode = 0;

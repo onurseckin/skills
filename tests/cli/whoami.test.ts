@@ -8,9 +8,9 @@ import {
   MAIN_THREAD_ADVISORY,
   recordDefect,
   type DefectRecord,
-} from "../../../olt/scripts/src/authority/thread/index.ts";
-import { whoamiCommand } from "../../../olt/scripts/src/cli/commands/whoami.ts";
-import { commandInvocations, findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
+} from "../../olt/scripts/src/authority/thread/index.ts";
+import { whoamiCommand } from "../../olt/scripts/src/cli/commands/whoami.ts";
+import { commandInvocations, findCommand } from "../../olt/scripts/src/cli/registry/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 

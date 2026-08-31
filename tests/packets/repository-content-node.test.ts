@@ -10,7 +10,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { inspectRepositoryNode } from "../../../olt/scripts/src/packets/repository-content-node.ts";
+import { inspectRepositoryNode } from "../../olt/scripts/src/packets/repository-content-node.ts";
 
 describe("repository-content-node", () => {
   test("inspects a missing repository entry (ENOENT)", () => {

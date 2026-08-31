@@ -19,17 +19,17 @@ import {
   validateMechanical,
   validateSubpixelSnapping,
   validateWaiAriaFocusTrap,
-} from "../../../olt/scripts/src/capture/validator/index.ts";
+} from "../../olt/scripts/src/capture/validator/index.ts";
 import type {
   CompanionManifestV2,
   ElementPhysicsSnapshot,
   ValidationContext,
-} from "../../../olt/scripts/src/capture/validator/types.ts";
+} from "../../olt/scripts/src/capture/validator/types.ts";
 import {
   computeLayoutMetrics,
   createEmptyDomPhysicsSnapshot,
-} from "../../../olt/scripts/src/capture/runners/dom-physics-extractor.ts";
-import { createSyntheticPngBuffer } from "../../../olt/scripts/src/capture/runners/live-capture-runner/index.ts";
+} from "../../olt/scripts/src/capture/runners/dom-physics-extractor.ts";
+import { createSyntheticPngBuffer } from "../../olt/scripts/src/capture/runners/live-capture-runner/index.ts";
 import {
   analyzeDualChannel,
   validateCompanionManifestCriteria,
@@ -38,10 +38,10 @@ import {
   type ScreenshotMetadata,
   type StructuredFinding,
   type VisualMetricsReport,
-} from "../../../olt/scripts/src/validation/dual-channel-analyzer/index.ts";
-import { assertRoleArtifactPresent } from "../../../olt/scripts/src/workflow/review/role-evidence.ts";
-import type { TaskRecord, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/validation/dual-channel-analyzer/index.ts";
+import { assertRoleArtifactPresent } from "../../olt/scripts/src/workflow/review/role-evidence.ts";
+import type { TaskRecord, WorkflowState } from "../../olt/scripts/src/workflow/types.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 
 function createFindingCollector(): {
   readonly findings: StructuredFinding[];

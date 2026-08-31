@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { recordCompletionReview } from "../../../../olt/scripts/src/workflow/completion/record-completion-review.ts";
+import { recordCompletionReview } from "../../../olt/scripts/src/workflow/completion/record-completion-review.ts";
 import { repositoryBinding } from "../test-port.ts";
 import {
   clock,

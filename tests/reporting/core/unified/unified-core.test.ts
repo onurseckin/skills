@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { initRun, transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
+import { initRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
 import {
   buildAgentMatrixRows,
   buildAgentMatrixTable,
@@ -11,7 +11,7 @@ import {
   buildTaskTopologyTable,
   generateUnifiedReport,
   segmentTaskLifecycle,
-} from "../../../../../olt/scripts/src/reporting/unified/index.ts";
+} from "../../../../olt/scripts/src/reporting/unified/index.ts";
 import { scratchRoot } from "../../../../support/scratch-root.ts";
 
 function createMockRun(testName: string) {

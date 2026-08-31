@@ -5,7 +5,7 @@ import {
   findFacadeViolations,
   findMissingFacades,
   resolveImport,
-} from "../../../../../scripts/modularity/graph/index.ts";
+} from "../../../../scripts/modularity/graph/index.ts";
 import { blob, indexedDirectory } from "./graph-fixture.ts";
 
 test("resolves exact files, extensions, then directory facades", () => {

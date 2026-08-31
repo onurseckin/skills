@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { buildRemediationGuidance } from "../../../../olt/scripts/src/engine/runner/process/watchdog-remediation.ts";
+import { buildRemediationGuidance } from "../../../olt/scripts/src/engine/runner/process/watchdog-remediation.ts";
 
 describe("engine/runner/process/watchdog-remediation.ts", () => {
   it("builds remediation guidance for completeness_critic role with default defect reference", () => {

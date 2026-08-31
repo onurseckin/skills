@@ -5,7 +5,7 @@ import {
   computeLexicographicLabels,
   type SugiyamaEdge,
   type SugiyamaNode,
-} from "../../../../../olt/scripts/src/reporting/sugiyama-dag/index.ts";
+} from "../../../../olt/scripts/src/reporting/sugiyama-dag/index.ts";
 
 function createNode(id: string): SugiyamaNode {
   return { id, label: id, status: "ready", dependencies: [] };

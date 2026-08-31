@@ -4,7 +4,7 @@ import {
   calculateExponentialBackoff,
   projectIntervalProgression,
   QUIESCENCE_INTERVAL_MULTIPLIER,
-} from "../../../../olt/scripts/src/core/scheduling/index.ts";
+} from "../../../olt/scripts/src/core/scheduling/index.ts";
 
 describe("backoff", () => {
   describe("calculateExponentialBackoff", () => {

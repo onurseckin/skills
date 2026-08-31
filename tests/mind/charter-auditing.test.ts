@@ -17,11 +17,11 @@ import {
   auditCharterRepoRoots,
   auditLiveCharter,
   parseCharter,
-} from "../../../olt/scripts/src/mind/auditing/charter-auditing.ts";
+} from "../../olt/scripts/src/mind/auditing/charter-auditing.ts";
 import {
   auditCharterGoals as barrelAuditCharterGoals,
   auditCharterManifest as barrelAuditCharterManifest,
-} from "../../../olt/scripts/src/mind/auditing/index.ts";
+} from "../../olt/scripts/src/mind/auditing/index.ts";
 
 describe("Charter Auditing Module (charter-auditing.ts)", () => {
   const SAMPLE_CHARTER_YAML = `

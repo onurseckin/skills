@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { computeCriticalPathDepth } from "../../../../olt/scripts/src/engine/scheduler/index.ts";
+import { computeCriticalPathDepth } from "../../../olt/scripts/src/engine/scheduler/index.ts";
 
 describe("Unlimited Depth DAG: Critical Path", () => {
   describe("computeCriticalPathDepth", () => {

@@ -6,12 +6,12 @@ import {
   resolveClusterFindingRequirement,
   resolveClusterGate,
   type PlanBindings,
-} from "../../../olt/scripts/src/cli/commands/plan-replan-bindings.ts";
+} from "../../olt/scripts/src/cli/commands/plan-replan-bindings.ts";
 import {
   collectReplanFindings,
   UNREPORTED_REMEDIATION,
-} from "../../../olt/scripts/src/cli/commands/plan-replan-findings.ts";
-import { firstAvailableRunId } from "../../../olt/scripts/src/cli/commands/orchestrate-slug.ts";
+} from "../../olt/scripts/src/cli/commands/plan-replan-findings.ts";
+import { firstAvailableRunId } from "../../olt/scripts/src/cli/commands/orchestrate-slug.ts";
 
 describe("parseGateArgv", () => {
   test("splits a whitespace-separated string command", () => {

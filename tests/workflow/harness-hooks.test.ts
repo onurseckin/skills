@@ -7,10 +7,10 @@ import { spawnSync } from "node:child_process";
 import {
   executePreFlightDoctorAudit,
   executePostFlightDoctorAudit,
-} from "../../../olt/scripts/src/workflow/lifecycle/harness-hooks.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/events/transaction.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/workflow/lifecycle/harness-hooks.ts";
+import { initRun } from "../../olt/scripts/src/engine/store/capsule/capsule.ts";
+import { transact } from "../../olt/scripts/src/engine/store/events/transaction.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 
 const roots: string[] = [];
 afterEach(async () => {

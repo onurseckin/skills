@@ -3,7 +3,7 @@ import {
   computeEvidenceConfidence,
   computeShannonEntropy,
   computeWilsonScoreInterval,
-} from "../../../../olt/scripts/src/core/epistemic/index.ts";
+} from "../../../olt/scripts/src/core/epistemic/index.ts";
 
 describe("Shannon Information Entropy Math", () => {
   test("returns 0 for empty data or below minimum length", () => {

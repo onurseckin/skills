@@ -7,8 +7,8 @@ import {
   coverageCheckCommand,
   loadBunfigCoverageThreshold,
   parseCoverageTable,
-} from "../../../olt/scripts/src/cli/commands/coverage-check.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/cli/commands/coverage-check.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 
 describe("coverage-check CLI command", () => {
   let testDir: string;

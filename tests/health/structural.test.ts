@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { defaultLayout, runHealthCheck } from "../../../olt/scripts/src/health/index.ts";
-import type { HealthCheckId, HealthFinding } from "../../../olt/scripts/src/health/types.ts";
+import { defaultLayout, runHealthCheck } from "../../olt/scripts/src/health/index.ts";
+import type { HealthCheckId, HealthFinding } from "../../olt/scripts/src/health/types.ts";
 
 const CONSUMER = new URL("../../../../gvui/", import.meta.url).pathname;
 

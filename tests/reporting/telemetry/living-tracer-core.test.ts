@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { HarnessEvent } from "../../../../olt/scripts/src/core/contracts/index.ts";
+import type { HarnessEvent } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   buildDynamicDagState,
   buildLivingTracerReport,
@@ -12,7 +12,7 @@ import {
   renderDynamicDagAscii,
   type DynamicTaskState,
   type ReplayContext,
-} from "../../../../olt/scripts/src/reporting/living-tracer/index.ts";
+} from "../../../olt/scripts/src/reporting/living-tracer/index.ts";
 
 describe("reporting/living-tracer core suite", () => {
   it("formats sequence numbers and durations accurately", () => {

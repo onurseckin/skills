@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { verifyHtmlReporterTemplatePurity } from "../../../../olt/scripts/src/validation/index.ts";
+import { verifyHtmlReporterTemplatePurity } from "../../../olt/scripts/src/validation/index.ts";
 import {
   buildHtmlDocument,
   extractCoverageFileData,
@@ -11,7 +11,7 @@ import {
   writeInteractiveHtml,
   type CoverageSummary,
   type FileCoverageMetric,
-} from "../../../../scripts/testing/reporting/index.ts";
+} from "../../../scripts/testing/reporting/index.ts";
 
 describe("Defect Remediation: Unterminated template literal TS1160 in scripts/testing/reporting/html/", () => {
   test("runs automated verification audit function and confirms complete remediation", () => {

@@ -2,28 +2,28 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { RunState } from "../../../olt/scripts/src/core/contracts/index.ts";
-import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import type { RunState } from "../../olt/scripts/src/core/contracts/index.ts";
+import type { JsonObject } from "../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   assertNoConclusions,
   priorRoundDemands,
   validatorTaskContract,
-} from "../../../olt/scripts/src/packets/prior-round-demands.ts";
-import { renderValidationRound } from "../../../olt/scripts/src/packets/render-validation-round.ts";
-import type { RepositoryGitCommand } from "../../../olt/scripts/src/packets/repository-git-command.ts";
+} from "../../olt/scripts/src/packets/prior-round-demands.ts";
+import { renderValidationRound } from "../../olt/scripts/src/packets/render-validation-round.ts";
+import type { RepositoryGitCommand } from "../../olt/scripts/src/packets/repository-git-command.ts";
 import {
   filterMechanicTestReceipts,
   isMechanicValidatorReceipt,
   taskCommandEvidence,
   type RecordedCommand,
-} from "../../../olt/scripts/src/packets/round-commands.ts";
+} from "../../olt/scripts/src/packets/round-commands.ts";
 import {
   anchoredDiff,
   diffAnchor,
-} from "../../../olt/scripts/src/packets/round-repository-delta.ts";
-import { validationRoundContext } from "../../../olt/scripts/src/packets/validation-round.ts";
-import type { TaskRecord, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
+} from "../../olt/scripts/src/packets/round-repository-delta.ts";
+import { validationRoundContext } from "../../olt/scripts/src/packets/validation-round.ts";
+import type { TaskRecord, WorkflowState } from "../../olt/scripts/src/workflow/types.ts";
 import { commandRecord, workflowState } from "../workflow/test-port.ts";
 import { inspection } from "./inspection-fixture.ts";
 

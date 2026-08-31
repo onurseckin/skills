@@ -1,9 +1,9 @@
 import { describe, expect, spyOn, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { handleAttemptFailure } from "../../../../olt/scripts/src/engine/runner/execution/attempt-failure-cleanup.ts";
-import type { NormalizedCommandOptions } from "../../../../olt/scripts/src/engine/runner/types/types.ts";
-import type { ProcessIdentity } from "../../../../olt/scripts/src/engine/runner/process/process-identity.ts";
+import { handleAttemptFailure } from "../../../olt/scripts/src/engine/runner/execution/attempt-failure-cleanup.ts";
+import type { NormalizedCommandOptions } from "../../../olt/scripts/src/engine/runner/types/types.ts";
+import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
 
 import { scratchRoot } from "../../../support/scratch-root.ts";
 

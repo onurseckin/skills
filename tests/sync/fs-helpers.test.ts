@@ -11,13 +11,13 @@ import {
   type Stats,
 } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   FALLBACK_MARKER,
   guardedRemoveSync,
   logDestructiveOp,
   smartEnsureSymlink,
-} from "../../../scripts/sync/fs-helpers.ts";
+} from "../../scripts/sync/fs-helpers.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 function git(args: string[], cwd: string): void {

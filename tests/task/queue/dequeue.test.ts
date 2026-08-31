@@ -1,21 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   assertSingleActiveLease,
   dequeueTask,
   admitTask,
   popNextEligibleTask,
   popNextEligibleTaskWithCleanup,
-} from "../../../../olt/scripts/src/task/queue/dequeue.ts";
+} from "../../../olt/scripts/src/task/queue/dequeue.ts";
 import {
   claimTaskLease,
   renewTaskLease,
   releaseTaskLease,
   startTaskValidation,
-} from "../../../../olt/scripts/src/task/queue/lease.ts";
-import { enqueueTask, enqueueTasksBatch } from "../../../../olt/scripts/src/task/queue/enqueue.ts";
+} from "../../../olt/scripts/src/task/queue/lease.ts";
+import { enqueueTask, enqueueTasksBatch } from "../../../olt/scripts/src/task/queue/enqueue.ts";
 import { scratchRoot } from "../../../support/scratch-root.ts";
 
 describe("Task Queue Dequeue Engine & Anti-Batching Guard", () => {

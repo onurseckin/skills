@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { memoryQueryCommand } from "../../../olt/scripts/src/cli/commands/memory-ops.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { memoryQueryCommand } from "../../olt/scripts/src/cli/commands/memory-ops.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   buildMemoryIndex,
   countTokens,
@@ -23,7 +23,7 @@ import {
   type MemoryDocument,
   type MemoryIndex,
   type MemoryKind,
-} from "../../../olt/scripts/src/mind/memory/core/index.ts";
+} from "../../olt/scripts/src/mind/memory/core/index.ts";
 
 const tempRoots: string[] = [];
 

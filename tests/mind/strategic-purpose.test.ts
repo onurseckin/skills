@@ -12,7 +12,7 @@ import {
   verifyMindRoleStrategicInvariants,
   type MacroDagTaskNode,
   type StrategicCandidate,
-} from "../../../olt/scripts/src/mind/lifecycle/purpose/index.ts";
+} from "../../olt/scripts/src/mind/lifecycle/purpose/index.ts";
 
 describe("Tier 0 Mind Strategic Purpose & Proactive Cognition", () => {
   describe("Invariants & Constants", () => {

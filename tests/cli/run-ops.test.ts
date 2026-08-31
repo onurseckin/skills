@@ -7,21 +7,21 @@ import {
   runConsolidateCommand,
   runExecCommand,
   runStatusCommand,
-} from "../../../olt/scripts/src/cli/commands/run-ops.ts";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { createAgentMetadata, writeAgentMetadata } from "../../../olt/scripts/src/runtime/index.ts";
+} from "../../olt/scripts/src/cli/commands/run-ops.ts";
+import { execute } from "../../olt/scripts/src/cli/execute.ts";
+import { createAgentMetadata, writeAgentMetadata } from "../../olt/scripts/src/runtime/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { Flags } from "../../../olt/scripts/src/cli/options.ts";
-import { workflowPort } from "../../../olt/scripts/src/integration/store-ports.ts";
-import { generateDefaultRepoPolicy } from "../../../olt/scripts/src/policy/repo-policy.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import * as completeRunModule from "../../../olt/scripts/src/workflow/completion/complete-run.ts";
-import * as autoSyncModule from "../../../olt/scripts/src/workflow/completion/auto-sync-and-commit.ts";
-import * as summaryModule from "../../../olt/scripts/src/summary/formatters/index.ts";
-import * as archivalModule from "../../../olt/scripts/src/mind/archival/index.ts";
-import type { WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
+import type { Flags } from "../../olt/scripts/src/cli/options.ts";
+import { workflowPort } from "../../olt/scripts/src/integration/store-ports.ts";
+import { generateDefaultRepoPolicy } from "../../olt/scripts/src/policy/repo-policy.ts";
+import { transact } from "../../olt/scripts/src/engine/store/index.ts";
+import * as completeRunModule from "../../olt/scripts/src/workflow/completion/complete-run.ts";
+import * as autoSyncModule from "../../olt/scripts/src/workflow/completion/auto-sync-and-commit.ts";
+import * as summaryModule from "../../olt/scripts/src/summary/formatters/index.ts";
+import * as archivalModule from "../../olt/scripts/src/mind/archival/index.ts";
+import type { WorkflowState } from "../../olt/scripts/src/workflow/types.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 
 async function initializeRun(label: string): Promise<{ repo: string; runRoot: string }> {

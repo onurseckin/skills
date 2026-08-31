@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import * as domEventSim from "../../../../olt/scripts/src/capture/runners/dom-event-simulator/index.ts";
-import * as layoutShiftTracker from "../../../../olt/scripts/src/capture/runners/layout-shift-tracker/index.ts";
-import * as liveCaptureRunner from "../../../../olt/scripts/src/capture/runners/live-capture-runner/index.ts";
-import * as runnersBarrel from "../../../../olt/scripts/src/capture/runners/index.ts";
+import * as domEventSim from "../../../olt/scripts/src/capture/runners/dom-event-simulator/index.ts";
+import * as layoutShiftTracker from "../../../olt/scripts/src/capture/runners/layout-shift-tracker/index.ts";
+import * as liveCaptureRunner from "../../../olt/scripts/src/capture/runners/live-capture-runner/index.ts";
+import * as runnersBarrel from "../../../olt/scripts/src/capture/runners/index.ts";
 
 describe("runners index barrel exports", () => {
   it("exports all expected symbols from dom-event-simulator", () => {

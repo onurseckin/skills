@@ -5,8 +5,8 @@ import { tmpdir } from "node:os";
 import {
   initCapsuleRun,
   ensureCapsuleInitialized,
-} from "../../../olt/scripts/src/engine/store/capsule/init.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+} from "../../olt/scripts/src/engine/store/capsule/init.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 
 describe("capsule-init", () => {
   let testDir: string;

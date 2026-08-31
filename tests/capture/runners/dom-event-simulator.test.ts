@@ -10,16 +10,16 @@ import {
   type DomSimulationOptions,
   type SyntheticDomEvent,
   type UnexpectedShiftDefect,
-} from "../../../../olt/scripts/src/capture/runners/dom-event-simulator/index.ts";
+} from "../../../olt/scripts/src/capture/runners/dom-event-simulator/index.ts";
 import {
   DEFAULT_LAYOUT_SHIFT_OPTIONS,
   type LayoutShiftEntry,
-} from "../../../../olt/scripts/src/capture/runners/layout-shift-tracker/index.ts";
+} from "../../../olt/scripts/src/capture/runners/layout-shift-tracker/index.ts";
 import type {
   CapturePageDriver,
   DomPhysicsSnapshot,
   ExtractedElementPhysics,
-} from "../../../../olt/scripts/src/capture/runners/types.ts";
+} from "../../../olt/scripts/src/capture/runners/types.ts";
 
 function createMockElement(
   selector: string,

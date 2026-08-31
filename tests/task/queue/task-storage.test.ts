@@ -10,7 +10,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   cleanStaleTempFiles,
   clearTaskQueue,
@@ -21,7 +21,7 @@ import {
   withTaskQueueLock,
   withTaskQueueTransaction,
   type TaskQueueItem,
-} from "../../../../olt/scripts/src/task/queue/index.ts";
+} from "../../../olt/scripts/src/task/queue/index.ts";
 import { scratchRoot } from "../../../support/scratch-root.ts";
 
 function createMockTask(id: string, title = "Test Task"): TaskQueueItem {

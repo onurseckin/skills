@@ -4,7 +4,7 @@ import {
   EpistemicEventJournal,
   EpistemicEventStream,
   type EpistemicStreamEvent,
-} from "../../../../olt/scripts/src/core/epistemic/index.ts";
+} from "../../../olt/scripts/src/core/epistemic/index.ts";
 
 function createMockEvent(partial: Partial<EpistemicStreamEvent> = {}): EpistemicStreamEvent {
   return {

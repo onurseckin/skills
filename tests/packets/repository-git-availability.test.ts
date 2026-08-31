@@ -13,13 +13,13 @@ import {
 import type { Stats } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { createRepositoryGitCommand } from "../../../olt/scripts/src/packets/repository-git-command.ts";
-import { preflightRepositoryGitMetadata } from "../../../olt/scripts/src/packets/repository-git-metadata.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
+import { createRepositoryGitCommand } from "../../olt/scripts/src/packets/repository-git-command.ts";
+import { preflightRepositoryGitMetadata } from "../../olt/scripts/src/packets/repository-git-metadata.ts";
 import {
   readRepositoryGitControlFile,
   type RepositoryGitFileHooks,
-} from "../../../olt/scripts/src/packets/repository-git-safe-file.ts";
+} from "../../olt/scripts/src/packets/repository-git-safe-file.ts";
 
 const roots: string[] = [];
 const environment = { PATH: "/usr/bin:/bin" };

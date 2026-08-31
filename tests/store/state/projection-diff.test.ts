@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   applyProjectionPatch,
   diffProjection,
-} from "../../../../olt/scripts/src/engine/store/projections/projection-patch.ts";
+} from "../../../olt/scripts/src/engine/store/projections/projection-patch.ts";
 
 describe("diffProjection", () => {
   test("returns no ops for two identical objects", () => {

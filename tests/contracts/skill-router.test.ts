@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { DEFAULT_RESOLVED_CONFIG } from "../../../olt/scripts/src/core/config/index.ts";
-import { COMMAND_REGISTRY } from "../../../olt/scripts/src/cli/registry/index.ts";
+import { DEFAULT_RESOLVED_CONFIG } from "../../olt/scripts/src/core/config/index.ts";
+import { COMMAND_REGISTRY } from "../../olt/scripts/src/cli/registry/index.ts";
 
 const skillRoot = join(import.meta.dir, "../../../olt");
 const skillPath = join(skillRoot, "SKILL.md");

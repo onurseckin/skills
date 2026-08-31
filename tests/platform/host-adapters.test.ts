@@ -11,7 +11,7 @@ import {
   listSupportedHostProviders,
   resolveHostProvider,
   type SubagentDispatchPacket,
-} from "../../../olt/scripts/src/platform/index.ts";
+} from "../../olt/scripts/src/platform/index.ts";
 
 describe("Host Adapters Architecture — Mechanical-First, Cognitive-Fallback", () => {
   const samplePacket: SubagentDispatchPacket = {

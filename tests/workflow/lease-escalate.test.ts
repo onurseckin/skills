@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
-import { escalateTask } from "../../../olt/scripts/src/workflow/lease/escalate.ts";
+import { claimTask } from "../../olt/scripts/src/workflow/lease/claim.ts";
+import { escalateTask } from "../../olt/scripts/src/workflow/lease/escalate.ts";
 import { at, TestPort, workflowState } from "./test-port.ts";
 
 const start = at("2026-08-19T00:00:00.000Z");

@@ -5,10 +5,10 @@ import { join } from "node:path";
 import {
   detectRepositoryStructure,
   synthesizeSmartTasksFromSelfEvolution,
-} from "../../../olt/scripts/src/mind/tasks/smart/executor/evolution/index.ts";
-import { runInfiniteProductOwnerCycle } from "../../../olt/scripts/src/mind/tasks/smart/executor/product-owner.ts";
-import { validateAntiBatchingRule } from "../../../olt/scripts/src/mind/tasks/smart/planner/partitioning.ts";
-import { readTaskQueue } from "../../../olt/scripts/src/task/queue/index.ts";
+} from "../../olt/scripts/src/mind/tasks/smart/executor/evolution/index.ts";
+import { runInfiniteProductOwnerCycle } from "../../olt/scripts/src/mind/tasks/smart/executor/product-owner.ts";
+import { validateAntiBatchingRule } from "../../olt/scripts/src/mind/tasks/smart/planner/partitioning.ts";
+import { readTaskQueue } from "../../olt/scripts/src/task/queue/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
 describe("Self-Evolution 3-Step Creative Product Manager Flow & Dynamic Repository Inspection", () => {

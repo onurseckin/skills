@@ -10,7 +10,7 @@ import {
   scanAndRegisterTools,
   validateToolSpec,
   type ToolDefinition,
-} from "../../../olt/scripts/src/tooling/index.ts";
+} from "../../olt/scripts/src/tooling/index.ts";
 
 describe("Tool Discovery and Scanning Unit Test Suite", () => {
   const testRoot = join(tmpdir(), `discovery-unit-test-${Date.now()}`);

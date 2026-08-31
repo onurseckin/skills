@@ -4,8 +4,8 @@ import { join } from "node:path";
 import {
   autoHealWorktreeState,
   checkWorktreeHealth,
-} from "../../../olt/scripts/src/reporting/doctor/worktree-health-engine.ts";
-import type { GitRunner } from "../../../olt/scripts/src/workflow/worktree/git.ts";
+} from "../../olt/scripts/src/reporting/doctor/worktree-health-engine.ts";
+import type { GitRunner } from "../../olt/scripts/src/workflow/worktree/git.ts";
 
 const TEST_DIR = join(process.cwd(), ".olt", "scratch", "test-doctor-wt-health");
 

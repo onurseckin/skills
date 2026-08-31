@@ -3,10 +3,10 @@ import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { agentRegisterCommand } from "../../../olt/scripts/src/cli/commands/agent-ops.ts";
-import { mindPulseOpenCommand } from "../../../olt/scripts/src/cli/commands/mind-pulse-open.ts";
-import { mindRoundOpenCommand } from "../../../olt/scripts/src/cli/commands/mind-round.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { agentRegisterCommand } from "../../olt/scripts/src/cli/commands/agent-ops.ts";
+import { mindPulseOpenCommand } from "../../olt/scripts/src/cli/commands/mind-pulse-open.ts";
+import { mindRoundOpenCommand } from "../../olt/scripts/src/cli/commands/mind-round.ts";
+import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   checkDailyPulseLimit,
   checkDailyWallClockLimit,
@@ -21,14 +21,14 @@ import {
   parseNowMs,
   rollDayKeyIfNeeded,
   type BudgetOutcome,
-} from "../../../olt/scripts/src/mind/lifecycle/budget/index.ts";
+} from "../../olt/scripts/src/mind/lifecycle/budget/index.ts";
 import {
   DEFAULT_MIND_BUDGET,
   parseCharter,
-} from "../../../olt/scripts/src/mind/lifecycle/charter/index.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../olt/scripts/src/mind/lifecycle/charter/index.ts";
+import { initRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { loadRun } from "../../olt/scripts/src/engine/store/index.ts";
+import { transact } from "../../olt/scripts/src/engine/store/index.ts";
 
 const roots: string[] = [];
 

@@ -5,7 +5,7 @@ import {
   type SocraticVector,
   type ExpandedBrainstormItem,
   type BrainstormResult,
-} from "../../../olt/scripts/src/graph/brainstorm-engine.ts";
+} from "../../olt/scripts/src/graph/brainstorm-engine.ts";
 
 describe("BrainstormEngine", () => {
   it("exports SOCRATIC_VECTORS with exactly 8 failure vectors", () => {

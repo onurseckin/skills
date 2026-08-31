@@ -8,7 +8,7 @@ import {
   validateNoBackwardsCompatibilityShims,
   validateRepositoryCodingConventions,
   validateZeroCommentsInCode,
-} from "../../../olt/scripts/src/validation/coding-conventions.ts";
+} from "../../olt/scripts/src/validation/coding-conventions.ts";
 
 describe("Coding Conventions Validation", () => {
   describe("validateZeroCommentsInCode", () => {

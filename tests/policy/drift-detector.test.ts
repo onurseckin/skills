@@ -13,7 +13,7 @@ import {
   saveRepoPolicy,
   type PolicyDriftCallbacks,
   type PolicyReloadEvent,
-} from "../../../olt/scripts/src/policy/index.ts";
+} from "../../olt/scripts/src/policy/index.ts";
 
 describe("SHA-256 Policy Drift Watchdog & Fleet Re-Arming (Task 1.3)", () => {
   const scratchBase = join(process.cwd(), "coverage", "scratch", "test-drift-detector");

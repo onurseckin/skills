@@ -3,8 +3,8 @@ import {
   ClaudeCollector,
   CodexCollector,
   type CollectorEnvironment,
-} from "../../../olt/scripts/src/telemetry/collectors/index.ts";
-import { deepRedact, isSensitiveKey } from "../../../olt/scripts/src/telemetry/redact.ts";
+} from "../../olt/scripts/src/telemetry/collectors/index.ts";
+import { deepRedact, isSensitiveKey } from "../../olt/scripts/src/telemetry/redact.ts";
 
 const SECRET_TOKEN = "sk-ant-oat01-ZZZZ9999SUPERSECRETVALUEDONOTLEAK";
 const SECRET_EMAIL = "leaked-user@example.com";
