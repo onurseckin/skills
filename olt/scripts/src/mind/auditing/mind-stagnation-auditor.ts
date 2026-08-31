@@ -11,6 +11,7 @@ import {
   executeStagnationShockRecovery,
   type StagnationShockResult,
 } from "./stagnation-recovery-interlock.ts";
+import { generateZeroDeltaChallengePrompt } from "./cognitive/challenge-generator.ts";
 
 export const MIND_PREPLANNING_STAGNATION = "MIND_PREPLANNING_STAGNATION" as const;
 export const MIND_CREATIVE_STAGNATION = "MIND_CREATIVE_STAGNATION" as const;
@@ -27,6 +28,11 @@ export interface ZeroDeltaComparisonResult {
   readonly signatureChanged: boolean;
   readonly suppressed: boolean;
   readonly summary: string;
+}
+
+export interface MindStagnationAuditResult extends StagnationAuditResult {
+  readonly cognitive_challenge_prompt?: string | undefined;
+  readonly shock_recovery?: StagnationShockResult | undefined;
 }
 
 export interface StagnationAuditOptions {
@@ -51,12 +57,13 @@ export interface StagnationAuditOptions {
 }
 
 export function computeStateSignature(report: Partial<StagnationAuditResult>): string {
-  const isStagnant = report.is_stagnant ?? false;
-  const pending = report.pending_backlog_count ?? 0;
-  const defects = report.open_defects_count ?? 0;
-  const errorCode = report.error_code ?? "NONE";
-  const findingsHash = (report.findings ?? []).join("::");
-  const remediation = report.recommended_remediation ?? "NONE";
+  const isStagnant = report.is_stagnant !== undefined ? report.is_stagnant : false;
+  const pending = report.pending_backlog_count !== undefined ? report.pending_backlog_count : 0;
+  const defects = report.open_defects_count !== undefined ? report.open_defects_count : 0;
+  const errorCode = report.error_code !== undefined ? report.error_code : "NONE";
+  const findingsHash = (report.findings !== undefined ? report.findings : []).join("::");
+  const remediation =
+    report.recommended_remediation !== undefined ? report.recommended_remediation : "NONE";
   return `${isStagnant}|${pending}|${defects}|${errorCode}|${findingsHash}|${remediation}`;
 }
 
@@ -135,7 +142,7 @@ export function suppressZeroDeltaReport(
 
 export function auditMindPreplanningStagnation(
   options?: StagnationAuditOptions | undefined,
-): StagnationAuditResult & { shock_recovery?: StagnationShockResult | undefined } {
+): MindStagnationAuditResult {
   const root =
     options !== undefined && options.rootDir !== undefined ? options.rootDir : process.cwd();
   const customBacklog = options !== undefined ? options.backlogFile : undefined;
@@ -186,20 +193,30 @@ export function auditMindPreplanningStagnation(
       ? options.lastPreplanTimestamp
       : null;
 
-  const previousReport = options?.previousReport;
+  const previousReport = options !== undefined ? options.previousReport : undefined;
   const isMaintenanceLoop =
-    options?.isMaintenanceOnlyLoop === true ||
-    (typeof options?.consecutiveMaintenanceCycles === "number" &&
+    (options !== undefined && options.isMaintenanceOnlyLoop === true) ||
+    (options !== undefined &&
+      typeof options.consecutiveMaintenanceCycles === "number" &&
       options.consecutiveMaintenanceCycles >= maintenanceThreshold &&
       options.productProgressMade !== true);
 
   // Check 1: Maintenance-only loop without product progress (MIND_CREATIVE_STAGNATION)
   if (isMaintenanceLoop) {
-    const cycleCount = options?.consecutiveMaintenanceCycles ?? 1;
+    const cycleCount =
+      options !== undefined && options.consecutiveMaintenanceCycles !== undefined
+        ? options.consecutiveMaintenanceCycles
+        : 1;
     const findings = [
       `Mind is in a maintenance-only loop without product progress (${cycleCount} cycle${cycleCount === 1 ? "" : "s"}) (MIND_CREATIVE_STAGNATION). Autonomic creative overload required.`,
     ];
-    const baseResult: StagnationAuditResult = {
+    const challengePrompt = generateZeroDeltaChallengePrompt(root, {
+      cycleIndex: cycleCount,
+      consecutiveZeroDeltaCount: cycleCount,
+      now: new Date(nowMs).toISOString(),
+    });
+
+    const baseResult: MindStagnationAuditResult = {
       is_stagnant: true,
       pending_backlog_count: eligibleBacklog.length,
       open_defects_count: eligibleDefects.length,
@@ -211,14 +228,15 @@ export function auditMindPreplanningStagnation(
       recommended_remediation: "AUTONOMIC_CREATIVE_OVERLOAD",
       zero_delta: false,
       suppressed: false,
+      cognitive_challenge_prompt: challengePrompt,
     };
 
-    if (options?.triggerShockRecovery) {
+    if (options !== undefined && options.triggerShockRecovery === true) {
       const shockResult = executeStagnationShockRecovery(root, {
         idleDurationSeconds: baseResult.idle_duration_seconds,
         stagnationThresholdSeconds: thresholdSeconds,
         pendingBacklogCount: eligibleBacklog.length,
-        consecutiveCycles: options?.consecutiveStagnationCount,
+        consecutiveCycles: options.consecutiveStagnationCount,
         auditResult: baseResult,
       });
       return {
@@ -230,7 +248,7 @@ export function auditMindPreplanningStagnation(
   }
 
   // Calculate candidate base result for zero-delta comparison
-  let candidateResult: StagnationAuditResult;
+  let candidateResult: MindStagnationAuditResult;
   if (totalUnplanned === 0) {
     candidateResult = {
       is_stagnant: false,
@@ -277,22 +295,38 @@ export function auditMindPreplanningStagnation(
   // Zero-delta comparison
   const delta = compareReportDelta(candidateResult, previousReport);
   const consecutiveZeroDelta = delta.isZeroDelta
-    ? (options?.consecutiveZeroDeltaCount ?? 0) + 1
+    ? (options !== undefined && options.consecutiveZeroDeltaCount !== undefined
+        ? options.consecutiveZeroDeltaCount
+        : 0) + 1
     : 0;
+
+  const challengePrompt =
+    delta.isZeroDelta || totalUnplanned === 0
+      ? generateZeroDeltaChallengePrompt(root, {
+          cycleIndex: consecutiveZeroDelta,
+          consecutiveZeroDeltaCount: consecutiveZeroDelta,
+          now: new Date(nowMs).toISOString(),
+        })
+      : undefined;
 
   // Check 2: Consecutive pulses producing identical state with 0 delta (MIND_CREATIVE_STAGNATION)
   if (
     consecutiveZeroDelta >= zeroDeltaThreshold ||
-    (options?.consecutiveZeroDeltaCount !== undefined &&
+    (options !== undefined &&
+      options.consecutiveZeroDeltaCount !== undefined &&
       options.consecutiveZeroDeltaCount >= zeroDeltaThreshold &&
       delta.isZeroDelta)
   ) {
     const zeroCycles =
-      consecutiveZeroDelta || options?.consecutiveZeroDeltaCount || zeroDeltaThreshold;
+      consecutiveZeroDelta !== 0
+        ? consecutiveZeroDelta
+        : options !== undefined && options.consecutiveZeroDeltaCount !== undefined
+          ? options.consecutiveZeroDeltaCount
+          : zeroDeltaThreshold;
     const findings = [
       `Consecutive pulses produced identical state with 0 delta (${zeroCycles} cycles) (MIND_CREATIVE_STAGNATION). Autonomic creative overload required.`,
     ];
-    const baseResult: StagnationAuditResult = {
+    const baseResult: MindStagnationAuditResult = {
       is_stagnant: true,
       pending_backlog_count: eligibleBacklog.length,
       open_defects_count: eligibleDefects.length,
@@ -305,14 +339,15 @@ export function auditMindPreplanningStagnation(
       zero_delta: true,
       consecutive_zero_delta_count: zeroCycles,
       delta_summary: delta.summary,
+      cognitive_challenge_prompt: challengePrompt,
     };
 
-    if (options?.triggerShockRecovery) {
+    if (options !== undefined && options.triggerShockRecovery === true) {
       const shockResult = executeStagnationShockRecovery(root, {
         idleDurationSeconds: baseResult.idle_duration_seconds,
         stagnationThresholdSeconds: thresholdSeconds,
         pendingBacklogCount: eligibleBacklog.length,
-        consecutiveCycles: options?.consecutiveStagnationCount,
+        consecutiveCycles: options.consecutiveStagnationCount,
         auditResult: baseResult,
       });
       return {
@@ -331,19 +366,20 @@ export function auditMindPreplanningStagnation(
       pendingBacklogCount: eligibleBacklog.length,
     });
 
-    const baseResult: StagnationAuditResult = {
+    const baseResult: MindStagnationAuditResult = {
       ...candidateResult,
       zero_delta: delta.isZeroDelta,
       consecutive_zero_delta_count: consecutiveZeroDelta,
       delta_summary: delta.summary,
+      cognitive_challenge_prompt: challengePrompt,
     };
 
-    if (options?.triggerShockRecovery) {
+    if (options !== undefined && options.triggerShockRecovery === true) {
       const shockResult = executeStagnationShockRecovery(root, {
         idleDurationSeconds,
         stagnationThresholdSeconds: thresholdSeconds,
         pendingBacklogCount: eligibleBacklog.length,
-        consecutiveCycles: options?.consecutiveStagnationCount,
+        consecutiveCycles: options.consecutiveStagnationCount,
         auditResult: baseResult,
       });
       return {
@@ -356,12 +392,14 @@ export function auditMindPreplanningStagnation(
   }
 
   // Healthy result with optional zero-delta suppression
-  const baseResult: StagnationAuditResult = {
+  const baseResult: MindStagnationAuditResult = {
     ...candidateResult,
     zero_delta: delta.isZeroDelta,
-    suppressed: options?.suppressZeroDelta ? delta.isZeroDelta : false,
+    suppressed:
+      options !== undefined && options.suppressZeroDelta === true ? delta.isZeroDelta : false,
     consecutive_zero_delta_count: consecutiveZeroDelta,
     delta_summary: delta.summary,
+    cognitive_challenge_prompt: challengePrompt,
   };
 
   return baseResult;
@@ -369,10 +407,14 @@ export function auditMindPreplanningStagnation(
 
 export function auditMindCreativeStagnation(
   options?: StagnationAuditOptions | undefined,
-): StagnationAuditResult & { shock_recovery?: StagnationShockResult | undefined } {
+): MindStagnationAuditResult {
+  const isMaintenanceOnlyLoop =
+    options !== undefined && options.isMaintenanceOnlyLoop !== undefined
+      ? options.isMaintenanceOnlyLoop
+      : true;
   return auditMindPreplanningStagnation({
     ...options,
-    isMaintenanceOnlyLoop: options?.isMaintenanceOnlyLoop ?? true,
+    isMaintenanceOnlyLoop,
   });
 }
 
