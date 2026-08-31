@@ -106,6 +106,11 @@ test("runs checkModularity in ratchet mode with custom baseline in subdirectory"
 
 test("runs checkModularity in ratchet mode on repo root with default baseline", async () => {
   if (!tempRepo) throw new Error("Missing temp repo");
+  await writeFile(join(tempRepo, "README.md"), "# Test\n");
+  await writeFile(
+    join(tempRepo, "package.json"),
+    JSON.stringify({ name: "test", version: "1.0.0" }),
+  );
   await mkdir(join(tempRepo, "scripts", "modularity", "baseline"), { recursive: true });
   await writeFile(
     join(tempRepo, "scripts", "modularity", "baseline", "index.json"),

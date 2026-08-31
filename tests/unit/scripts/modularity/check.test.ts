@@ -194,6 +194,12 @@ test("runCli executes main when isMain is true and noops when false", async () =
 test("runs check.ts directly via bun cli", async () => {
   if (!tempDir) throw new Error("Missing temp dir");
   await writeFile(join(tempDir, "README.md"), "# Clean\n");
+  await writeFile(
+    join(tempDir, "package.json"),
+    JSON.stringify({ name: "clean", version: "1.0.0" }),
+  );
+  await mkdir(join(tempDir, "src"), { recursive: true });
+  await writeFile(join(tempDir, "src", "index.ts"), "export const value = 1;\n");
   const scriptPath = join(process.cwd(), "scripts/modularity/check.ts");
   const proc = Bun.spawn(
     [
