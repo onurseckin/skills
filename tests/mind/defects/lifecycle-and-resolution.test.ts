@@ -50,7 +50,12 @@ describe("Defect Lifecycle & Resolution Suite", () => {
         createMockDefectEntry({ id: "d1", status: "open", severity: "critical" }),
         createMockDefectEntry({ id: "d2", status: "open", severity: "high" }),
         createMockDefectEntry({ id: "d3", status: "in_progress", severity: "medium" }),
-        createMockDefectEntry({ id: "d4", status: "resolved", severity: "high", resolution: createMockResolutionProof() }),
+        createMockDefectEntry({
+          id: "d4",
+          status: "resolved",
+          severity: "high",
+          resolution: createMockResolutionProof(),
+        }),
         createMockDefectEntry({ id: "d5", status: "wontfix", severity: "low" }),
       ];
 
@@ -73,9 +78,19 @@ describe("Defect Lifecycle & Resolution Suite", () => {
   describe("formulateDefectCandidates", () => {
     it("formulates candidate proposals for open defects", () => {
       const entries: DefectEntry[] = [
-        createMockDefectEntry({ id: "defect-p0", severity: "critical", status: "open", category: "boundary_violation" }),
-        createMockDefectEntry({ id: "defect-p1", severity: "high", status: "open", category: "code_defect" }),
-        createMockDefectEntry({ id: "defect-res", severity: "critical", status: "resolved" }),
+        createMockDefectEntry({
+          id: "def-p0",
+          severity: "critical",
+          status: "open",
+          category: "boundary_violation",
+        }),
+        createMockDefectEntry({
+          id: "def-p1",
+          severity: "high",
+          status: "open",
+          category: "code_defect",
+        }),
+        createMockDefectEntry({ id: "def-res", severity: "critical", status: "resolved" }),
       ];
 
       const candidates = formulateDefectCandidates(entries);
