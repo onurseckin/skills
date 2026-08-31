@@ -1,94 +1,140 @@
-import { constants, existsSync, readFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import * as fs from "node:fs";
+import { resolve } from "node:path";
 import { HarnessError } from "../../core/errors/index.ts";
 import { withExclusiveLock } from "../locking/index.ts";
 import type { MailboxCursor, MailboxEnvelope } from "../types.ts";
 import { createEmptyCursor, isMessageProcessed } from "./cursor-tracker.ts";
 import { verifyEnvelopeHmac } from "./envelope.ts";
 import {
-  atomicRewriteInbox,
   defaultLockPathFor,
-  isValidEnvelopeStructure,
-  writeAndSync,
-} from "./mailbox-stream-io.ts";
-import {
-  appendInMemoryMessage,
-  clearInMemoryMailboxStore,
-  getInMemoryMailbox,
-  getInMemoryQuarantine,
-  isInMemoryStreamMode,
-  setInMemoryMailbox,
-  setInMemoryStreamMode,
-  shouldUseInMemory,
-  writeInMemoryQuarantine,
-} from "./mailbox-stream-store.ts";
-import { escapeQuarantinePayload } from "./quarantine.ts";
+  ensureParentDir,
+  isVirtualMailboxPath,
+  registerInMemoryMailboxDir,
+  type ReadUnreadMessagesOptions,
+  type ReadUnreadMessagesResult,
+  type RotateMailboxOptions,
+} from "./mailbox-paths.ts";
+import * as q from "./quarantine.ts";
+import { getInMemoryQuarantine } from "./quarantine.ts";
 
-export {
-  clearInMemoryMailboxStore,
-  getInMemoryMailbox,
-  getInMemoryQuarantine,
-  isInMemoryStreamMode,
-  setInMemoryMailbox,
-  setInMemoryStreamMode,
+export { defaultLockPathFor, ensureParentDir, getInMemoryQuarantine };
+export type { ReadUnreadMessagesOptions, ReadUnreadMessagesResult, RotateMailboxOptions };
+
+const serialize = (e: unknown) => JSON.stringify(e);
+const inMemoryMailboxes = new Map<string, string[]>();
+let inMemoryStreamModeEnabled = false;
+
+export const setInMemoryStreamMode = (e: boolean): void => {
+  inMemoryStreamModeEnabled = e;
 };
-export { isValidEnvelopeStructure } from "./mailbox-stream-io.ts";
-export { rotateMailboxMessages, type RotateMailboxOptions } from "./mailbox-rotate.ts";
+export const isInMemoryStreamMode = (): boolean => inMemoryStreamModeEnabled;
+export const getInMemoryMailbox = (p: string): readonly string[] | undefined =>
+  inMemoryMailboxes.get(p);
+export const setInMemoryMailbox = (p: string, l: readonly string[]): void => {
+  inMemoryMailboxes.set(p, [...l]);
+};
+export const clearInMemoryMailboxStore = (): void => {
+  inMemoryMailboxes.clear();
+  q.clearInMemoryQuarantines();
+};
+export const shouldUseInMemory = (p: string): boolean =>
+  inMemoryStreamModeEnabled || isVirtualMailboxPath(p) || inMemoryMailboxes.has(p);
 
-export interface ReadUnreadMessagesOptions {
-  readonly quarantinePath?: string;
-  readonly verifyHmac?: boolean;
-  readonly secretKey?: string;
-  readonly lockPath?: string;
+function appendInMemoryMessage(inboxPath: string, env: MailboxEnvelope<unknown>): void {
+  const slash = Math.max(inboxPath.lastIndexOf("/"), inboxPath.lastIndexOf("\\"));
+  registerInMemoryMailboxDir(slash > 0 ? inboxPath.slice(0, slash) : inboxPath);
+  const cur = inMemoryMailboxes.get(inboxPath) ?? [];
+  inMemoryMailboxes.set(inboxPath, cur.concat(serialize(env)));
 }
 
-export interface ReadUnreadMessagesResult {
-  readonly messages: readonly MailboxEnvelope<unknown>[];
-  readonly quarantinedCount: number;
+export function writeAndSync(filePath: string, flags: number, content: string): void {
+  ensureParentDir(filePath);
+  const fd = fs.openSync(filePath, flags, 0o644);
+  try {
+    if (content.length > 0) fs.writeSync(fd, content);
+    fs.fsyncSync(fd);
+  } finally {
+    fs.closeSync(fd);
+  }
 }
 
-interface QuarantinedItem {
-  readonly line: string;
-  readonly reason: string;
+export function isValidEnvelopeStructure(obj: unknown): obj is MailboxEnvelope<unknown> {
+  if (!obj || typeof obj !== "object") return false;
+  const r = obj as Record<string, unknown>,
+    s = (k: string) => typeof r[k] === "string" && Boolean((r[k] as string).trim());
+  return (
+    s("id") &&
+    typeof r.sequence === "number" &&
+    Number.isFinite(r.sequence) &&
+    typeof r.sender_role === "string" &&
+    s("sender_id") &&
+    s("recipient_id") &&
+    s("message_type") &&
+    s("timestamp") &&
+    s("correlation_id") &&
+    s("hmac_signature") &&
+    "payload" in r
+  );
 }
 
-function writeQuarantinedLog(quarantinePath: string, items: readonly QuarantinedItem[]): void {
-  if (items.length === 0) return;
-  const ts = new Date().toISOString();
-  const formatted = items
-    .map((i) => `[${ts}] [REASON: ${i.reason}] ${escapeQuarantinePayload(i.line)}\n`)
-    .join("");
-  if (shouldUseInMemory(quarantinePath)) {
-    writeInMemoryQuarantine(quarantinePath, formatted);
+export function atomicRewriteInbox(
+  inboxPath: string,
+  envelopes: readonly MailboxEnvelope<unknown>[],
+): void {
+  const lines = envelopes.map(serialize);
+  if (shouldUseInMemory(inboxPath)) {
+    inMemoryMailboxes.set(inboxPath, lines);
     return;
   }
+  const tmp = `${inboxPath}.${randomUUID()}.tmp`;
   writeAndSync(
-    quarantinePath,
-    constants.O_WRONLY | constants.O_CREAT | constants.O_APPEND,
-    formatted,
+    tmp,
+    fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_TRUNC,
+    lines.map((s) => s + "\n").join(""),
   );
+  fs.renameSync(tmp, inboxPath);
+}
+
+function writeQuarantinedLog(
+  qPath: string,
+  items: readonly { readonly line: string; readonly reason: string }[],
+): void {
+  if (items.length === 0) return;
+  const formatted = items
+    .map(
+      (i) =>
+        `[${new Date().toISOString()}] [REASON: ${i.reason}] ${q.escapeQuarantinePayload(i.line)}\n`,
+    )
+    .join("");
+  if (shouldUseInMemory(qPath)) q.writeInMemoryQuarantine(qPath, formatted);
+  else
+    writeAndSync(
+      qPath,
+      fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_APPEND,
+      formatted,
+    );
 }
 
 export function appendMailboxMessage(
   inboxPath: string,
-  envelope: MailboxEnvelope<unknown>,
+  env: MailboxEnvelope<unknown>,
   lockPath?: string,
 ): void {
-  if (typeof inboxPath !== "string" || inboxPath.trim().length === 0) {
+  if (!inboxPath?.trim())
     throw new HarnessError("INVALID_ARGUMENT", "inboxPath must be a non-empty string");
-  }
-  if (!isValidEnvelopeStructure(envelope)) {
+  if (!isValidEnvelopeStructure(env))
     throw new HarnessError("INVALID_ARGUMENT", "Invalid MailboxEnvelope structure");
-  }
   if (shouldUseInMemory(inboxPath)) {
-    appendInMemoryMessage(inboxPath, envelope);
+    appendInMemoryMessage(inboxPath, env);
     return;
   }
   const lock = lockPath?.trim() || defaultLockPathFor(inboxPath);
-  withExclusiveLock(lock, envelope.recipient_id || envelope.sender_id || "stream", () => {
+  withExclusiveLock(lock, env.recipient_id || env.sender_id || "stream", () => {
     writeAndSync(
       inboxPath,
-      constants.O_WRONLY | constants.O_CREAT | constants.O_APPEND,
-      JSON.stringify(envelope) + "\n",
+      fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_APPEND,
+      serialize(env) + "\n",
     );
   });
 }
@@ -96,78 +142,129 @@ export function appendMailboxMessage(
 function parseMailboxLines(
   inboxPath: string,
   rawLines: readonly string[],
-  options?: ReadUnreadMessagesOptions,
-): { valid: MailboxEnvelope<unknown>[]; quarantined: QuarantinedItem[] } {
-  const valid: MailboxEnvelope<unknown>[] = [];
-  const quarantined: QuarantinedItem[] = [];
+  opts?: ReadUnreadMessagesOptions,
+) {
+  const valid: MailboxEnvelope<unknown>[] = [],
+    quarantined: { readonly line: string; readonly reason: string }[] = [],
+    qPath = opts?.quarantinePath;
+  const pushQ = (line: string, reason: string, msg: string) => {
+    if (qPath) {
+      quarantined.push({ line, reason });
+      return true;
+    }
+    throw new HarnessError("INTEGRITY", msg);
+  };
   for (const line of rawLines) {
-    if (line.trim().length === 0) continue;
-    let parsed: unknown;
+    if (!line.trim()) continue;
+    let p: unknown;
     try {
-      parsed = JSON.parse(line);
+      p = JSON.parse(line);
     } catch {
-      if (options?.quarantinePath) {
-        quarantined.push({ line, reason: "MALFORMED_JSON_SYNTAX" });
-        continue;
-      }
-      throw new HarnessError("INTEGRITY", `Malformed JSON in mailbox '${inboxPath}'`);
+      pushQ(line, "MALFORMED_JSON_SYNTAX", `Malformed JSON in mailbox '${inboxPath}'`);
+      continue;
     }
-    if (!isValidEnvelopeStructure(parsed)) {
-      if (options?.quarantinePath) {
-        quarantined.push({ line, reason: "INVALID_ENVELOPE_STRUCTURE" });
-        continue;
-      }
-      throw new HarnessError("INTEGRITY", `Invalid envelope structure in mailbox '${inboxPath}'`);
+    if (!isValidEnvelopeStructure(p)) {
+      pushQ(
+        line,
+        "INVALID_ENVELOPE_STRUCTURE",
+        `Invalid envelope structure in mailbox '${inboxPath}'`,
+      );
+      continue;
     }
-    if (options?.verifyHmac) {
-      const v = verifyEnvelopeHmac(parsed, options?.secretKey);
-      if (!v.valid) {
-        if (options?.quarantinePath) {
-          quarantined.push({ line, reason: `HMAC_VERIFICATION_FAILED: ${v.error ?? "invalid"}` });
-          continue;
-        }
-        throw new HarnessError("INTEGRITY", `HMAC failed: ${v.error ?? "invalid"}`);
-      }
+    if (opts?.verifyHmac && !verifyEnvelopeHmac(p, opts.secretKey).valid) {
+      pushQ(line, "HMAC_VERIFICATION_FAILED: invalid", "HMAC failed: invalid");
+      continue;
     }
-    valid.push(parsed);
+    valid.push(p as MailboxEnvelope<unknown>);
   }
   return { valid, quarantined };
+}
+
+function readRawInboxLines(inboxPath: string): readonly string[] {
+  if (shouldUseInMemory(inboxPath)) return inMemoryMailboxes.get(inboxPath) ?? [];
+  return fs.existsSync(inboxPath) ? fs.readFileSync(inboxPath, "utf8").split("\n") : [];
 }
 
 export function readUnreadMessages(
   inboxPath: string,
   cursor?: MailboxCursor | null,
-  options?: ReadUnreadMessagesOptions,
+  opts?: ReadUnreadMessagesOptions,
 ): ReadUnreadMessagesResult {
-  if (typeof inboxPath !== "string" || inboxPath.trim().length === 0) {
+  if (!inboxPath?.trim())
     throw new HarnessError("INVALID_ARGUMENT", "inboxPath must be a non-empty string");
-  }
   const readOp = (): ReadUnreadMessagesResult => {
-    let rawLines: readonly string[];
-    if (shouldUseInMemory(inboxPath)) {
-      if (!getInMemoryMailbox(inboxPath)) return { messages: [], quarantinedCount: 0 };
-      rawLines = getInMemoryMailbox(inboxPath) ?? [];
-    } else {
-      if (!existsSync(inboxPath)) return { messages: [], quarantinedCount: 0 };
-      rawLines = readFileSync(inboxPath, "utf8").split("\n");
-    }
-    const { valid, quarantined } = parseMailboxLines(inboxPath, rawLines, options);
-    if (quarantined.length > 0 && options?.quarantinePath) {
-      writeQuarantinedLog(options.quarantinePath, quarantined);
+    const raw = readRawInboxLines(inboxPath);
+    if (raw.length === 0) return { messages: [], quarantinedCount: 0 };
+    const { valid, quarantined } = parseMailboxLines(inboxPath, raw, opts);
+    if (quarantined.length > 0 && opts?.quarantinePath) {
+      writeQuarantinedLog(opts.quarantinePath, quarantined);
       atomicRewriteInbox(inboxPath, valid);
     }
-    const effectiveCursor = cursor ?? createEmptyCursor();
-    const unread = valid.filter((env) => !isMessageProcessed(env, effectiveCursor));
-    return { messages: unread, quarantinedCount: quarantined.length };
+    const cur = cursor ?? createEmptyCursor();
+    return {
+      messages: valid.filter((e) => !isMessageProcessed(e, cur)),
+      quarantinedCount: quarantined.length,
+    };
   };
-  if (shouldUseInMemory(inboxPath)) return readOp();
-  const lock = options?.lockPath?.trim() || defaultLockPathFor(inboxPath);
-  return withExclusiveLock(lock, "mailbox-reader", readOp);
+  const lock = opts?.lockPath?.trim() || defaultLockPathFor(inboxPath);
+  return shouldUseInMemory(inboxPath)
+    ? readOp()
+    : withExclusiveLock(lock, "mailbox-reader", readOp);
 }
 
 export function quarantineTornLines(inboxPath: string, quarantinePath: string): number {
-  if (typeof quarantinePath !== "string" || quarantinePath.trim().length === 0) {
+  if (!quarantinePath?.trim())
     throw new HarnessError("INVALID_ARGUMENT", "quarantinePath must be a non-empty string");
-  }
   return readUnreadMessages(inboxPath, null, { quarantinePath }).quarantinedCount;
+}
+
+export function rotateMailboxMessages(
+  inboxPath: string,
+  archivePath: string,
+  opts?: RotateMailboxOptions,
+): number {
+  if (!inboxPath?.trim() || !archivePath?.trim())
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "inboxPath and archivePath must be non-empty strings",
+    );
+  if (resolve(inboxPath) === resolve(archivePath))
+    throw new HarnessError("INVALID_ARGUMENT", "inboxPath and archivePath must be distinct paths");
+  const max = opts?.maxActiveMessages ?? 1000;
+  if (!Number.isInteger(max) || max <= 0)
+    throw new HarnessError("INVALID_ARGUMENT", "maxActiveMessages must be a positive integer");
+
+  const rotateOp = (): number => {
+    const raw = readRawInboxLines(inboxPath);
+    if (raw.length === 0) return 0;
+    const envs: MailboxEnvelope<unknown>[] = [];
+    for (const l of raw) {
+      try {
+        const p = JSON.parse(l.trim());
+        if (isValidEnvelopeStructure(p)) envs.push(p);
+      } catch {}
+    }
+    if (envs.length <= max) return 0;
+    const excess = envs.length - max,
+      toArch = envs.slice(0, excess),
+      toRet = envs.slice(excess);
+    if (shouldUseInMemory(inboxPath) || shouldUseInMemory(archivePath)) {
+      const cur = inMemoryMailboxes.get(archivePath) ?? [];
+      inMemoryMailboxes.set(archivePath, cur.concat(toArch.map(serialize)));
+      inMemoryMailboxes.set(inboxPath, toRet.map(serialize));
+      return excess;
+    }
+    writeAndSync(
+      archivePath,
+      fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_APPEND,
+      toArch.map((e) => serialize(e) + "\n").join(""),
+    );
+    atomicRewriteInbox(inboxPath, toRet);
+    return excess;
+  };
+
+  const lock = opts?.lockPath?.trim() || defaultLockPathFor(inboxPath);
+  return shouldUseInMemory(inboxPath)
+    ? rotateOp()
+    : withExclusiveLock(lock, "mailbox-rotator", rotateOp);
 }

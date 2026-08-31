@@ -7,18 +7,33 @@ export {
 } from "./envelope.ts";
 
 export {
+  ensureMailboxDir,
   ensureMailboxDirectories,
+  getInMemoryMailboxDirs,
+  isVirtualMailboxPath,
   isValidAgentId,
+  registerInMemoryMailboxDir,
+  resetInMemoryMailboxDirs,
   resolveMailboxLockPath,
   resolveMailboxPaths,
 } from "./mailbox-paths.ts";
 
 export {
   appendMailboxMessage,
+  clearInMemoryMailboxStore,
+  defaultLockPathFor,
+  ensureParentDir,
+  getInMemoryMailbox,
+  getInMemoryQuarantine,
+  isInMemoryStreamMode,
   isValidEnvelopeStructure,
   quarantineTornLines,
   readUnreadMessages,
   rotateMailboxMessages,
+  setInMemoryMailbox,
+  setInMemoryStreamMode,
+  shouldUseInMemory,
+  writeAndSync,
   type ReadUnreadMessagesOptions,
   type ReadUnreadMessagesResult,
   type RotateMailboxOptions,
@@ -37,9 +52,12 @@ export {
 
 export {
   broadcastWaveNotification,
+  clearInMemoryCursors,
   collectInboxReceipts,
   dispatchPeerMessage,
+  getInMemoryCursor,
   resolveRecipientAgentIds,
+  setInMemoryCursor,
   type CollectReceiptsOptions,
 } from "./mailbox-dispatcher.ts";
 
@@ -53,10 +71,13 @@ export {
 } from "./chatter-guard.ts";
 
 export {
+  clearInMemoryQuarantines,
   escapeQuarantinePayload,
   ingestToQuarantine,
+  setInMemoryQuarantine,
   sweepQuarantineDeadLetters,
   unescapeQuarantinePayload,
+  writeInMemoryQuarantine,
   type QuarantineIngestOptions,
   type QuarantinedDeadLetter,
   type QuarantinedEntry,

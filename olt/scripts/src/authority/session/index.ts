@@ -28,12 +28,20 @@ export {
 
 export {
   atomicSessionWrite,
+  clearInMemorySessionStore,
+  deleteInMemorySessionData,
+  disableInMemorySessionStore,
+  enableInMemorySessionStore,
   formatSafeErrorCause,
+  getInMemorySessionData,
+  getInMemorySessionStore,
   inferCanExecute,
+  isInMemorySessionStoreEnabled,
   readOwnDataString,
   readPersistedSession,
   restoreSnapshotIfUnchanged,
   secureReadSession,
+  setInMemorySessionData,
   snapshotSession,
   withSessionAuthorityLock,
 } from "./io.ts";
@@ -41,6 +49,7 @@ export {
 export {
   assertActiveCapsuleLease,
   pruneStaleSessions,
+  registerInMemorySessionGrant,
   registerSessionGrant,
   revokeSessionGrant,
   rollbackStagedSessionGrant,

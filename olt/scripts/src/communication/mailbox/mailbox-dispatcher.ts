@@ -12,8 +12,11 @@ import type {
 } from "../types.ts";
 import {
   advanceMailboxCursorBatch,
+  clearInMemoryCursors,
   createEmptyCursor,
+  getInMemoryCursor,
   loadMailboxCursor,
+  setInMemoryCursor,
 } from "./cursor-tracker.ts";
 import { createSignedEnvelope } from "./envelope.ts";
 import {
@@ -28,6 +31,8 @@ import {
   readUnreadMessages,
 } from "./mailbox-stream.ts";
 
+export { clearInMemoryCursors, getInMemoryCursor, setInMemoryCursor };
+
 export interface CollectReceiptsOptions {
   readonly correlationId?: string;
   readonly messageType?: MailboxMessageType;
@@ -36,25 +41,14 @@ export interface CollectReceiptsOptions {
   readonly advanceCursor?: boolean;
 }
 
-const inMemoryCursors = new Map<string, MailboxCursor>();
-
-export const getInMemoryCursor = (cursorPath: string): MailboxCursor | undefined =>
-  inMemoryCursors.get(cursorPath);
-export const setInMemoryCursor = (cursorPath: string, cursor: MailboxCursor): void => {
-  inMemoryCursors.set(cursorPath, cursor);
-};
-export const clearInMemoryCursors = (): void => {
-  inMemoryCursors.clear();
-};
-
-function requireNonEmpty(val: unknown, name: string): string {
-  if (typeof val !== "string" || val.trim().length === 0) {
+function reqStr(val: unknown, name: string): string {
+  if (typeof val !== "string" || !val.trim()) {
     throw new HarnessError("INVALID_ARGUMENT", `${name} must be a non-empty string`);
   }
   return val.trim();
 }
 
-function validatePathSafety(target: string): void {
+function checkPathSafety(target: string): void {
   if (
     target === "." ||
     target.includes("..") ||
@@ -69,223 +63,182 @@ function validatePathSafety(target: string): void {
   }
 }
 
-function matchesRoleSubstring(agentId: string, role: string): boolean {
-  const idLower = agentId.toLowerCase();
-  const roleLower = role.toLowerCase();
-  return (
-    idLower === roleLower ||
-    idLower.startsWith(`${roleLower}-`) ||
-    idLower.startsWith(`${roleLower}_`) ||
-    idLower.includes(roleLower)
-  );
-}
+export function resolveRecipientAgentIds(
+  recipientRoleOrId: string,
+  baseDir?: string,
+): readonly string[] {
+  const target = reqStr(recipientRoleOrId, "recipientRoleOrId");
+  checkPathSafety(target);
+  if (baseDir && isVirtualMailboxPath(baseDir)) {
+    const normBase = baseDir.replace(/\/+$/, "");
+    const matching = new Set<string>();
+    for (const dir of getInMemoryMailboxDirs()) {
+      if (!dir.startsWith(normBase)) continue;
+      const mboxMatch = dir.match(/\.olt\/mailboxes\/([^/]+)$/);
+      if (mboxMatch?.[1]) {
+        const id = mboxMatch[1];
+        if (target === "*" || id === target || id.includes(target)) matching.add(id);
+      }
+      const lockMatch = dir.match(/\.olt\/locks\/mailboxes\/([^/]+)\.lock$/);
+      if (lockMatch?.[1]) {
+        const id = lockMatch[1];
+        if (target === "*" || id === target || id.includes(target)) matching.add(id);
+      }
+    }
+    if (matching.size > 0) return Array.from(matching).sort();
+    return [target];
+  }
 
-export function resolveRecipientAgentIds(roleOrId: string, baseDir?: string): readonly string[] {
-  const target = requireNonEmpty(roleOrId, "recipient role or ID");
-  validatePathSafety(target);
-
-  const discoveredIds = new Set<string>();
-
-  for (const dir of getInMemoryMailboxDirs()) {
-    const m = dir.match(
-      new RegExp("[/\\\\].olt[/\\\\](?:mailboxes|locks[/\\\\]mailboxes)[/\\\\]([^/\\\\]+)$"),
-    );
-    if (m && m[1] && !m[1].startsWith(".")) {
-      const id = m[1].endsWith(".lock") ? m[1].slice(0, -5) : m[1];
-      if (id.length > 0) discoveredIds.add(id);
+  const root = baseDir
+    ? baseDir.includes(".olt")
+      ? resolve(baseDir)
+      : join(resolve(baseDir), ".olt")
+    : join(resolve(process.cwd()), ".olt");
+  const mailboxesDir = root.endsWith("mailboxes") ? root : join(root, "mailboxes");
+  if (target === "*") {
+    if (!existsSync(mailboxesDir)) return [];
+    try {
+      return readdirSync(mailboxesDir)
+        .filter((e) => !e.startsWith("."))
+        .sort();
+    } catch {
+      return [];
     }
   }
 
-  const effectiveBase = baseDir !== undefined ? baseDir : process.cwd();
-  if (!effectiveBase.startsWith("virtual:") && !effectiveBase.startsWith("mem:")) {
-    const root = resolve(effectiveBase);
-    const mailboxesDir = join(root, ".olt", "mailboxes");
-    const mailboxLocksDir = join(root, ".olt", "locks", "mailboxes");
-    const generalLocksDir = join(root, ".olt", "locks");
-    const legacyLocksDir = join(mailboxesDir, ".locks");
-
-    if (existsSync(mailboxesDir)) {
-      try {
-        for (const entry of readdirSync(mailboxesDir, { withFileTypes: true })) {
-          if (entry.isDirectory() && !entry.name.startsWith(".")) discoveredIds.add(entry.name);
-        }
-      } catch (err) {
-        if (err instanceof HarnessError) throw err;
-        throw new HarnessError("INTEGRITY", `Failed to read mailboxes directory: ${String(err)}`);
-      }
-    }
-
-    for (const lockDir of [mailboxLocksDir, generalLocksDir, legacyLocksDir]) {
-      if (existsSync(lockDir)) {
-        try {
-          for (const entry of readdirSync(lockDir, { withFileTypes: true })) {
-            if (entry.isFile() && entry.name.endsWith(".lock") && !entry.name.startsWith(".")) {
-              const id = entry.name.slice(0, -5);
-              if (id.length > 0) discoveredIds.add(id);
-            }
-          }
-        } catch (err) {
-          if (err instanceof HarnessError) throw err;
-          throw new HarnessError("INTEGRITY", `Failed to read lock directory: ${String(err)}`);
-        }
-      }
-    }
+  if (existsSync(mailboxesDir)) {
+    try {
+      const found = readdirSync(mailboxesDir).filter(
+        (e) => !e.startsWith(".") && (e === target || e.includes(target)),
+      );
+      if (found.length > 0) return found.sort();
+    } catch {}
   }
-
-  if (discoveredIds.has(target)) return Object.freeze([target]);
-
-  const roleMatches = Array.from(discoveredIds)
-    .filter((id) => matchesRoleSubstring(id, target))
-    .sort();
-
-  if (roleMatches.length > 0) return Object.freeze(roleMatches);
-  return Object.freeze([target]);
+  return [target];
 }
 
 export function dispatchPeerMessage<T = Record<string, unknown>>(
-  options: DispatchMessageOptions<T>,
+  opts: DispatchMessageOptions<T>,
 ): MailboxEnvelope<T> {
-  if (!options || typeof options !== "object") {
-    throw new HarnessError("INVALID_ARGUMENT", "options must be an object");
+  if (!opts || typeof opts !== "object") {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "opts must be a valid DispatchMessageOptions object",
+    );
   }
-  const senderId = requireNonEmpty(options.senderId, "senderId");
-  const senderRole = requireNonEmpty(options.senderRole, "senderRole");
-  const recipientRoleOrId = requireNonEmpty(options.recipientRoleOrId, "recipientRoleOrId");
-  const messageType = requireNonEmpty(options.messageType, "messageType") as MailboxMessageType;
+  const senderId = reqStr(opts.senderId, "senderId");
+  const senderRole = reqStr(opts.senderRole, "senderRole");
+  const recipientRoleOrId = reqStr(opts.recipientRoleOrId, "recipientRoleOrId");
+  checkPathSafety(senderId);
+  checkPathSafety(recipientRoleOrId);
 
-  const resolved = resolveRecipientAgentIds(recipientRoleOrId, options.baseDir);
-  if (resolved.length === 0 || resolved[0] === undefined) {
-    throw new HarnessError("NOT_FOUND", `Recipient '${recipientRoleOrId}' not found`);
+  const targets = resolveRecipientAgentIds(recipientRoleOrId, opts.baseDir);
+  if (targets.length === 0) {
+    throw new HarnessError("INVALID_STATE", `No recipients found for '${recipientRoleOrId}'`);
   }
-  const recipientId = resolved[0];
 
-  const envelopeOptions: CreateEnvelopeOptions<T> = {
+  const primaryRecipient = targets[0]!;
+  const senderPaths = resolveMailboxPaths(senderId, opts.baseDir);
+  ensureMailboxDirectories(senderPaths);
+
+  const envelope = createSignedEnvelope<T>({
     senderId,
     senderRole,
-    recipientId,
-    messageType,
-    payload: options.payload,
-    ...(options.correlationId !== undefined ? { correlationId: options.correlationId } : {}),
-    ...(options.secretKey !== undefined ? { secretKey: options.secretKey } : {}),
-  };
+    recipientId: primaryRecipient,
+    messageType: opts.messageType,
+    payload: opts.payload,
+    ...(opts.correlationId !== undefined ? { correlationId: opts.correlationId } : {}),
+    ...(opts.secretKey !== undefined ? { secretKey: opts.secretKey } : {}),
+  });
 
-  const envelope = createSignedEnvelope<T>(envelopeOptions);
-  const recipientPaths = resolveMailboxPaths(recipientId, options.baseDir);
-  ensureMailboxDirectories(recipientPaths);
-  appendMailboxMessage(
-    recipientPaths.inboxPath,
-    envelope as MailboxEnvelope<unknown>,
-    recipientPaths.lockPath,
-  );
+  for (const targetId of targets) {
+    const targetPaths = resolveMailboxPaths(targetId, opts.baseDir);
+    ensureMailboxDirectories(targetPaths);
+    const targetEnvelope =
+      targetId === primaryRecipient
+        ? envelope
+        : createSignedEnvelope<T>({
+            senderId,
+            senderRole,
+            recipientId: targetId,
+            messageType: opts.messageType,
+            payload: opts.payload,
+            ...(opts.correlationId !== undefined ? { correlationId: opts.correlationId } : {}),
+            ...(opts.secretKey !== undefined ? { secretKey: opts.secretKey } : {}),
+          });
+    appendMailboxMessage(targetPaths.inboxPath, targetEnvelope, targetPaths.lockPath);
+  }
 
-  const senderPaths = resolveMailboxPaths(senderId, options.baseDir);
-  ensureMailboxDirectories(senderPaths);
-  appendMailboxMessage(
-    senderPaths.outboxPath,
-    envelope as MailboxEnvelope<unknown>,
-    senderPaths.lockPath,
-  );
-
+  appendMailboxMessage(senderPaths.outboxPath, envelope, senderPaths.lockPath);
   return envelope;
 }
 
 export function broadcastWaveNotification<T = Record<string, unknown>>(
-  options: BroadcastNotificationOptions<T>,
+  opts: BroadcastNotificationOptions<T>,
 ): readonly MailboxEnvelope<T>[] {
-  if (!options || typeof options !== "object") {
-    throw new HarnessError("INVALID_ARGUMENT", "options must be an object");
+  if (!opts || typeof opts !== "object") {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "opts must be a valid BroadcastNotificationOptions object",
+    );
   }
-  const senderId = requireNonEmpty(options.senderId, "senderId");
-  const senderRole = requireNonEmpty(options.senderRole, "senderRole");
-  const messageType = requireNonEmpty(options.messageType, "messageType") as MailboxMessageType;
-  if (!Array.isArray(options.recipientIds)) {
+  const senderId = reqStr(opts.senderId, "senderId");
+  const senderRole = reqStr(opts.senderRole, "senderRole");
+  checkPathSafety(senderId);
+  if (!Array.isArray(opts.recipientIds)) {
     throw new HarnessError("INVALID_ARGUMENT", "recipientIds must be an array");
   }
-
-  const targetIds: string[] = [];
-  for (const entry of options.recipientIds) {
-    const resolved = resolveRecipientAgentIds(entry, options.baseDir);
-    for (const id of resolved) {
-      if (!targetIds.includes(id)) targetIds.push(id);
-    }
+  if (opts.recipientIds.length === 0) return [];
+  for (const id of opts.recipientIds) {
+    reqStr(id, "recipientId");
+    checkPathSafety(id);
   }
 
-  const results: MailboxEnvelope<T>[] = [];
-  for (const targetId of targetIds) {
-    const dispatchOptions: DispatchMessageOptions<T> = {
-      senderId,
-      senderRole,
-      recipientRoleOrId: targetId,
-      messageType,
-      payload: options.payload,
-      ...(options.correlationId !== undefined ? { correlationId: options.correlationId } : {}),
-      ...(options.baseDir !== undefined ? { baseDir: options.baseDir } : {}),
-      ...(options.secretKey !== undefined ? { secretKey: options.secretKey } : {}),
-    };
-    results.push(dispatchPeerMessage<T>(dispatchOptions));
+  const uniqueTargets = new Set<string>();
+  for (const r of opts.recipientIds) {
+    for (const t of resolveRecipientAgentIds(r, opts.baseDir)) uniqueTargets.add(t);
   }
 
-  return Object.freeze(results);
+  return Array.from(uniqueTargets)
+    .sort()
+    .map((targetId) =>
+      dispatchPeerMessage<T>({
+        senderId,
+        senderRole,
+        recipientRoleOrId: targetId,
+        messageType: opts.messageType,
+        payload: opts.payload,
+        ...(opts.correlationId !== undefined ? { correlationId: opts.correlationId } : {}),
+        ...(opts.baseDir !== undefined ? { baseDir: opts.baseDir } : {}),
+        ...(opts.secretKey !== undefined ? { secretKey: opts.secretKey } : {}),
+      }),
+    );
 }
 
 export function collectInboxReceipts(
   agentId: string,
-  options?: CollectReceiptsOptions,
+  opts?: CollectReceiptsOptions,
 ): ReceiptCollectionResult {
-  const validAgentId = requireNonEmpty(agentId, "agentId");
-  const paths = resolveMailboxPaths(validAgentId, options?.baseDir);
-  let cursor: MailboxCursor | null = null;
-  if (options?.cursor !== undefined) {
-    cursor = options.cursor;
-  } else if (inMemoryCursors.has(paths.cursorPath)) {
-    cursor = inMemoryCursors.get(paths.cursorPath) ?? null;
-  } else if (isVirtualMailboxPath(paths.cursorPath) || isInMemoryStreamMode()) {
-    cursor = createEmptyCursor();
-  } else {
-    cursor = loadMailboxCursor(paths.cursorPath);
-  }
+  const validId = reqStr(agentId, "agentId");
+  const p = resolveMailboxPaths(validId, opts?.baseDir);
+  const cur = opts?.cursor ?? loadMailboxCursor(p.cursorPath);
 
-  const { messages } = readUnreadMessages(paths.inboxPath, cursor, {
-    lockPath: paths.lockPath,
-    quarantinePath: paths.quarantinePath,
+  const { messages } = readUnreadMessages(p.inboxPath, cur, {
+    lockPath: p.lockPath,
+    quarantinePath: p.quarantinePath,
     verifyHmac: true,
   });
 
   let receipts = messages;
-  if (options?.correlationId !== undefined) {
-    const corrId = options.correlationId;
-    receipts = receipts.filter((msg) => msg.correlation_id === corrId);
+  if (opts?.correlationId !== undefined) {
+    receipts = receipts.filter((m) => m.correlation_id === opts.correlationId);
   }
-  if (options?.messageType !== undefined) {
-    const msgType = options.messageType;
-    receipts = receipts.filter((msg) => msg.message_type === msgType);
+  if (opts?.messageType !== undefined) {
+    receipts = receipts.filter((m) => m.message_type === opts.messageType);
   }
 
-  if (options?.advanceCursor === true && receipts.length > 0) {
-    if (
-      isVirtualMailboxPath(paths.cursorPath) ||
-      isInMemoryStreamMode() ||
-      inMemoryCursors.has(paths.cursorPath)
-    ) {
-      const base = cursor ?? createEmptyCursor();
-      let maxSeq = base.last_read_sequence;
-      const seen = new Set(base.seen_ids);
-      for (const r of receipts) {
-        if (r.sequence > maxSeq) maxSeq = r.sequence;
-        seen.add(r.id);
-      }
-      const lastReceipt = receipts[receipts.length - 1];
-      const lastId = lastReceipt ? lastReceipt.id : base.last_read_id;
-      const updated: MailboxCursor = {
-        last_read_sequence: maxSeq,
-        last_read_id: lastId,
-        seen_ids: Array.from(seen),
-        updated_at: new Date().toISOString(),
-      };
-      inMemoryCursors.set(paths.cursorPath, updated);
-    } else {
-      advanceMailboxCursorBatch(paths.cursorPath, receipts, cursor, paths.lockPath);
-    }
+  if (opts?.advanceCursor === true && receipts.length > 0) {
+    advanceMailboxCursorBatch(p.cursorPath, receipts, cur, p.lockPath);
   }
 
   return {
