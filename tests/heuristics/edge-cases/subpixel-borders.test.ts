@@ -13,7 +13,7 @@ import {
   validateSubpixelBorders,
   type SubpixelElementBounds,
   type SubpixelElementInput,
-} from "../../../../olt/scripts/src/heuristics/subpixel-borders/index.ts";
+} from "../../../olt/scripts/src/heuristics/subpixel-borders/index.ts";
 
 describe("Extended Heuristics: Subpixel Borders & Hairline Artifacts", () => {
   it("verifies integer aligned borders across fractional DPR scales", () => {
