@@ -78,7 +78,9 @@ export function computeIsMain(
 ): boolean {
   if (mainVal) return true;
   if (!entryArg) return false;
-  return entryArg.endsWith("scripts/sync/index.ts") || entryArg.endsWith("scripts/sync");
+  if (entryArg.endsWith("scripts/sync/index.ts")) return true;
+  if (entryArg.endsWith("scripts/sync")) return true;
+  return false;
 }
 
 export async function main(argv: string[] = process.argv.slice(2)): Promise<void> {

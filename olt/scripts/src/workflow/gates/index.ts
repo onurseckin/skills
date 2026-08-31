@@ -1,3 +1,12 @@
-export * from "./attach-result.ts";
-export * from "./finish-task.ts";
-export * from "./gate-policy.ts";
+export { attachGateResult } from "./attach-result.ts";
+
+export { finishTask } from "./finish-task.ts";
+
+export {
+  applicableGates,
+  commandArgv,
+  commandFingerprint,
+  commandMatchesGate,
+  taskHasPassedGate,
+  workflowGates,
+} from "./gate-policy.ts";

@@ -32,47 +32,63 @@ function assertInsideRepository(repoRoot: string, baselinePath: string): string 
   const root = resolve(repoRoot);
   const path = resolve(root, baselinePath);
   const pathRelative = relative(root, path);
-  if (pathRelative === ".." || pathRelative.startsWith(`..${sep}`) || pathRelative === "") {
+  if (pathRelative === "") {
+    failure("baseline path is outside the repository");
+  }
+  if (pathRelative === "..") {
+    failure("baseline path is outside the repository");
+  }
+  if (pathRelative.startsWith(`..${sep}`)) {
     failure("baseline path is outside the repository");
   }
   return path;
 }
 
 function validateViolation(value: unknown): Violation {
-  if (typeof value !== "object" || value === null) failure("violation must be an object");
+  if (typeof value !== "object") failure("violation must be an object");
+  if (value === null) failure("violation must be an object");
   const finding = value as Record<string, unknown>;
   const keys = Object.keys(finding);
   if (!keys.every((key) => ["rule", "path", "observed", "limit", "detail"].includes(key))) {
     failure("violation has unknown keys");
   }
-  if (
-    typeof finding.rule !== "string" ||
-    !RULES.includes(finding.rule as ViolationRule) ||
-    typeof finding.path !== "string" ||
-    finding.path.length === 0 ||
-    typeof finding.detail !== "string"
-  ) {
-    failure("violation has invalid required fields");
+  const rule = finding["rule"];
+  if (typeof rule !== "string") failure("violation has invalid required fields");
+  if (!RULES.includes(rule as ViolationRule)) failure("violation has invalid required fields");
+
+  const path = finding["path"];
+  if (typeof path !== "string") failure("violation has invalid required fields");
+  if ((path as string).length === 0) failure("violation has invalid required fields");
+
+  const detail = finding["detail"];
+  if (typeof detail !== "string") failure("violation has invalid required fields");
+
+  const observed = finding["observed"];
+  if (typeof observed !== "string") {
+    if (typeof observed !== "number") {
+      failure("violation has invalid observed value");
+    }
   }
-  if (typeof finding.observed !== "string" && typeof finding.observed !== "number") {
-    failure("violation has invalid observed value");
+  if (typeof observed === "number") {
+    if (!Number.isFinite(observed)) failure("violation has negative or invalid observed value");
+    if (observed < 0) failure("violation has negative or invalid observed value");
   }
-  if (
-    typeof finding.observed === "number" &&
-    (!Number.isFinite(finding.observed) || finding.observed < 0)
-  ) {
-    failure("violation has negative or invalid observed value");
+  const limit = finding["limit"];
+  if (limit !== undefined) {
+    if (typeof limit !== "number") failure("violation has invalid limit");
+    if (limit < 0) failure("violation has invalid limit");
   }
-  if (finding.limit !== undefined && (typeof finding.limit !== "number" || finding.limit < 0)) {
-    failure("violation has invalid limit");
-  }
-  return finding as Violation;
+  return finding as unknown as Violation;
 }
 
 function violationIdentity(violation: Violation): string {
-  return violation.rule === "line_limit" || violation.rule === "directory_fanout"
-    ? `${violation.rule}:${violation.path}`
-    : `${violation.rule}:${violation.path}:${String(violation.observed)}`;
+  if (violation.rule === "line_limit") {
+    return `${violation.rule}:${violation.path}`;
+  }
+  if (violation.rule === "directory_fanout") {
+    return `${violation.rule}:${violation.path}`;
+  }
+  return `${violation.rule}:${violation.path}:${String(violation.observed)}`;
 }
 
 function assertUnique(violations: readonly Violation[]): void {
@@ -85,7 +101,8 @@ function assertUnique(violations: readonly Violation[]): void {
 }
 
 function validateDocument(value: unknown): BaselineDocument {
-  if (typeof value !== "object" || value === null) failure("root must be an object");
+  if (typeof value !== "object") failure("root must be an object");
+  if (value === null) failure("root must be an object");
   const baseline = value as Record<string, unknown>;
   if (
     Object.keys(baseline).some(
@@ -94,24 +111,31 @@ function validateDocument(value: unknown): BaselineDocument {
   ) {
     failure("unknown root key");
   }
-  if (
-    baseline.schema !== "olt-modularity-baseline/v1" ||
-    Array.isArray(baseline.violations) === Array.isArray(baseline.shards)
-  ) {
+  if (baseline["schema"] !== "olt-modularity-baseline/v1") {
     failure("stale or missing schema");
   }
-  if (Array.isArray(baseline.violations)) {
+  const hasViolations = Array.isArray(baseline["violations"]);
+  const hasShards = Array.isArray(baseline["shards"]);
+  if (hasViolations === hasShards) {
+    failure("stale or missing schema");
+  }
+  if (Array.isArray(baseline["violations"])) {
     return {
-      schema: baseline.schema,
-      violations: baseline.violations.map(validateViolation),
+      schema: "olt-modularity-baseline/v1",
+      violations: baseline["violations"].map(validateViolation),
     };
   }
-  if (!baseline.shards?.every((shard) => typeof shard === "string" && shard.length > 0)) {
+  const shards = baseline["shards"];
+  if (!Array.isArray(shards)) {
     failure("invalid shard path");
   }
+  for (const shard of shards as unknown[]) {
+    if (typeof shard !== "string") failure("invalid shard path");
+    if ((shard as string).length === 0) failure("invalid shard path");
+  }
   return {
-    schema: baseline.schema,
-    shards: baseline.shards as readonly string[],
+    schema: "olt-modularity-baseline/v1",
+    shards: shards as readonly string[],
   };
 }
 
@@ -128,10 +152,13 @@ export async function loadBaseline(
   }
   try {
     const document = validateDocument(JSON.parse(text));
-    if (document.violations) return { schema: document.schema, violations: document.violations };
+    if (document.violations !== undefined) {
+      return { schema: document.schema, violations: document.violations };
+    }
     const seen = new Set<string>();
     const violations: Violation[] = [];
-    for (const shard of document.shards ?? []) {
+    const shardList = document.shards !== undefined ? document.shards : [];
+    for (const shard of shardList) {
       const shardPath = assertInsideRepository(repoRoot, resolve(dirname(path), shard));
       if (seen.has(shardPath)) failure(`duplicate shard ${shard}`);
       seen.add(shardPath);

@@ -1,7 +1,9 @@
 import type { ImportEdge } from "./imports.ts";
 
 function compare(left: string, right: string): number {
-  return left < right ? -1 : left > right ? 1 : 0;
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
 }
 
 export function stronglyConnectedComponents(
@@ -22,30 +24,63 @@ export function stronglyConnectedComponents(
   const active = new Set<string>();
   const components: string[][] = [];
   let nextIndex = 0;
+
   const visit = (node: string): void => {
     indices.set(node, nextIndex);
-    lowlinks.set(node, nextIndex++);
+    lowlinks.set(node, nextIndex);
+    nextIndex += 1;
     stack.push(node);
     active.add(node);
-    for (const target of adjacency.get(node) ?? []) {
-      if (!indices.has(target)) {
+
+    const targets = adjacency.get(node);
+    const targetList = targets !== undefined ? targets : [];
+    for (const target of targetList) {
+      const targetIndex = indices.get(target);
+      if (targetIndex === undefined) {
         visit(target);
-        lowlinks.set(node, Math.min(lowlinks.get(node)!, lowlinks.get(target)!));
-      } else if (active.has(target))
-        lowlinks.set(node, Math.min(lowlinks.get(node)!, indices.get(target)!));
+        const nodeLow = lowlinks.get(node);
+        const targetLow = lowlinks.get(target);
+        if (nodeLow !== undefined && targetLow !== undefined) {
+          lowlinks.set(node, Math.min(nodeLow, targetLow));
+        }
+      } else if (active.has(target)) {
+        const nodeLow = lowlinks.get(node);
+        if (nodeLow !== undefined) {
+          lowlinks.set(node, Math.min(nodeLow, targetIndex));
+        }
+      }
     }
+
     if (lowlinks.get(node) !== indices.get(node)) return;
+
     const component: string[] = [];
-    let member: string;
-    do {
-      member = stack.pop()!;
+    let member: string | undefined;
+    while (stack.length > 0) {
+      member = stack.pop();
+      if (member === undefined) break;
       active.delete(member);
       component.push(member);
-    } while (member !== node);
-    if (component.length > 1 || adjacency.get(node)?.includes(node))
+      if (member === node) break;
+    }
+
+    const nodeTargets = adjacency.get(node);
+    const selfEdge = nodeTargets !== undefined && nodeTargets.includes(node);
+    if (component.length > 1) {
       components.push(component.sort(compare));
+    } else if (selfEdge) {
+      components.push(component.sort(compare));
+    }
   };
 
-  for (const node of [...nodes].sort(compare)) visit(node);
-  return components.sort((left, right) => compare(left[0], right[0]));
+  for (const node of [...nodes].sort(compare)) {
+    if (!indices.has(node)) {
+      visit(node);
+    }
+  }
+
+  return components.sort((left, right) => {
+    const leftFirst = left[0] !== undefined ? left[0] : "";
+    const rightFirst = right[0] !== undefined ? right[0] : "";
+    return compare(leftFirst, rightFirst);
+  });
 }

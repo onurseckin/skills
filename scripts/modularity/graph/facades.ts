@@ -5,17 +5,23 @@ import { countExportStars } from "./tokenizer.ts";
 
 function dirname(path: string): string {
   const separator = path.lastIndexOf("/");
-  return separator < 0 ? "." : path.slice(0, separator);
+  if (separator < 0) return ".";
+  return path.slice(0, separator);
 }
 
 function compare(left: string, right: string): number {
-  return left < right ? -1 : left > right ? 1 : 0;
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
 }
 
 export function findMissingFacades(blobs: readonly IndexedBlob[]): readonly Violation[] {
   const directories = new Set(
     blobs
-      .filter((blob) => !blob.path.startsWith("tests/") && classifyPath(blob.path).importScanned)
+      .filter((blob) => {
+        if (blob.path.startsWith("tests/")) return false;
+        return classifyPath(blob.path).importScanned;
+      })
       .map((blob) => dirname(blob.path))
       .filter((directory) => directory !== "."),
   );
@@ -41,7 +47,8 @@ export function findFacadeViolations(edges: readonly ImportEdge[]): readonly Vio
   return [...unique.values()]
     .sort((left, right) => {
       const fromDiff = compare(left.from, right.from);
-      return fromDiff !== 0 ? fromDiff : compare(left.to, right.to);
+      if (fromDiff !== 0) return fromDiff;
+      return compare(left.to, right.to);
     })
     .map((edge) => ({
       rule: "facade_bypass" as const,

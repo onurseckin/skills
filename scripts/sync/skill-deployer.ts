@@ -49,7 +49,14 @@ function assertIsSkillsRepoRoot(sourceRepoRoot: string): string {
   const resolved = resolve(sourceRepoRoot);
   const hasOlt = existsSync(join(resolved, "olt"));
   const hasGit = existsSync(join(resolved, ".git"));
-  if (!hasOlt || !hasGit) {
+  if (!hasOlt) {
+    throw new Error(
+      `refusing to sync from '${resolved}': it does not look like the skills repository ` +
+        `(expected both 'olt/' and '.git' to exist here). Pass an explicit sourceRepoRoot ` +
+        `pointing at the skills checkout.`,
+    );
+  }
+  if (!hasGit) {
     throw new Error(
       `refusing to sync from '${resolved}': it does not look like the skills repository ` +
         `(expected both 'olt/' and '.git' to exist here). Pass an explicit sourceRepoRoot ` +
@@ -65,7 +72,10 @@ export function readJsonStringField(filePath: string, field: string): string | u
   }
   try {
     const value = JSON.parse(readFileSync(filePath, "utf-8")) as unknown;
-    if (!value || typeof value !== "object") {
+    if (!value) {
+      return undefined;
+    }
+    if (typeof value !== "object") {
       return undefined;
     }
     const fieldValue = (value as Record<string, unknown>)[field];
@@ -165,6 +175,7 @@ export async function deployCanonicalSkill(
   if (existsSync(sourceNodeModules)) {
     smartEnsureSymlink(sourceNodeModules, join(targetOlt, "node_modules"), {
       allowedRoots: [targetOlt],
+      allowGitRepositoryDeletion: true,
       onAudit: logDestructiveOp,
     });
   }
@@ -174,6 +185,7 @@ export async function deployCanonicalSkill(
     guardedRemoveSync(join(home, ".agents", "skills", LEGACY_NAME), {
       allowedRoots: [join(home, ".agents", "skills")],
       missingOk: true,
+      allowGitRepositoryDeletion: true,
       onAudit: logDestructiveOp,
     });
   } catch (err) {
@@ -196,12 +208,14 @@ export async function deployCanonicalSkill(
       guardedRemoveSync(legacyPath, {
         allowedRoots: [dir],
         missingOk: true,
+        allowGitRepositoryDeletion: true,
         onAudit: logDestructiveOp,
       });
 
       const oltPath = join(dir, "olt");
       const status = smartEnsureSymlink(targetOlt, oltPath, {
         allowedRoots: [dir],
+        allowGitRepositoryDeletion: true,
         onAudit: logDestructiveOp,
       });
       if (status === "created") {

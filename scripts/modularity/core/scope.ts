@@ -71,9 +71,10 @@ const TYPESCRIPT_FILE: ScopeDecision = {
 function hasExcludedDirectory(path: string): boolean {
   const segments = path.split("/");
   return segments.some((segment, index) => {
-    return (
-      EXCLUDED_ROOTS.has(segment) || segment === ".cache" || (index === 0 && segment === "runtime")
-    );
+    if (EXCLUDED_ROOTS.has(segment)) return true;
+    if (segment === ".cache") return true;
+    if (index === 0 && segment === "runtime") return true;
+    return false;
   });
 }
 
@@ -86,19 +87,24 @@ function isModularityBaselineArtifact(path: string): boolean {
 }
 
 function isNonTypeScriptFixture(path: string, extension: string): boolean {
-  return (
-    extension !== ".ts" &&
-    extension !== ".tsx" &&
-    extension !== ".mts" &&
-    extension !== ".cts" &&
-    path.split("/").some((segment) => segment === "fixtures" || segment === "__snapshots__")
-  );
+  if (extension === ".ts") return false;
+  if (extension === ".tsx") return false;
+  if (extension === ".mts") return false;
+  if (extension === ".cts") return false;
+  return path.split("/").some((segment) => {
+    if (segment === "fixtures") return true;
+    if (segment === "__snapshots__") return true;
+    return false;
+  });
 }
 
 export function classifyPath(path: string): ScopeDecision {
   assertRepositoryRelativePosixPath(path);
 
-  if (hasExcludedDirectory(path) || LOCKFILES.has(path)) {
+  if (hasExcludedDirectory(path)) {
+    return EXCLUDED;
+  }
+  if (LOCKFILES.has(path)) {
     return EXCLUDED;
   }
 
@@ -111,9 +117,10 @@ export function classifyPath(path: string): ScopeDecision {
   }
 
   const extension = extname(path);
-  if (extension === ".ts" || extension === ".tsx" || extension === ".mts" || extension === ".cts") {
-    return TYPESCRIPT_FILE;
-  }
+  if (extension === ".ts") return TYPESCRIPT_FILE;
+  if (extension === ".tsx") return TYPESCRIPT_FILE;
+  if (extension === ".mts") return TYPESCRIPT_FILE;
+  if (extension === ".cts") return TYPESCRIPT_FILE;
 
   if (isNonTypeScriptFixture(path, extension)) {
     return FANOUT_ONLY;
@@ -123,21 +130,22 @@ export function classifyPath(path: string): ScopeDecision {
     return DATA_FILE;
   }
 
-  if (
-    extension === ".jsonl" ||
-    extension === ".md" ||
-    extension === ".yaml" ||
-    extension === ".yml"
-  ) {
-    return FANOUT_ONLY;
-  }
+  if (extension === ".jsonl") return FANOUT_ONLY;
+  if (extension === ".md") return FANOUT_ONLY;
+  if (extension === ".yaml") return FANOUT_ONLY;
+  if (extension === ".yml") return FANOUT_ONLY;
 
   return EXCLUDED;
 }
 
 export function assertRootConvention(paths: readonly string[]): Violation[] {
   return paths
-    .filter((path) => !path.includes("/") && !LOCKFILES.has(path) && !APPROVED_ROOT_PATHS.has(path))
+    .filter((path) => {
+      if (path.includes("/")) return false;
+      if (LOCKFILES.has(path)) return false;
+      if (APPROVED_ROOT_PATHS.has(path)) return false;
+      return true;
+    })
     .sort()
     .map((path) => ({
       rule: "root_no_growth" as const,

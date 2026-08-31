@@ -1,19 +1,13 @@
 import type { CheckReport, Violation } from "../core/index.ts";
 
 function compare(left: Violation, right: Violation): number {
-  return left.rule < right.rule
-    ? -1
-    : left.rule > right.rule
-      ? 1
-      : left.path < right.path
-        ? -1
-        : left.path > right.path
-          ? 1
-          : left.detail < right.detail
-            ? -1
-            : left.detail > right.detail
-              ? 1
-              : 0;
+  if (left.rule < right.rule) return -1;
+  if (left.rule > right.rule) return 1;
+  if (left.path < right.path) return -1;
+  if (left.path > right.path) return 1;
+  if (left.detail < right.detail) return -1;
+  if (left.detail > right.detail) return 1;
+  return 0;
 }
 
 export function sortViolations(violations: readonly Violation[]): readonly Violation[] {

@@ -20,6 +20,13 @@ export interface Violation {
   readonly detail: string;
 }
 
+export interface CheckOptions {
+  readonly repoRoot: string;
+  readonly mode: ModularityMode;
+  readonly source: ScanSource;
+  readonly baselinePath?: string;
+}
+
 export interface CheckReport {
   readonly mode: ModularityMode;
   readonly source: ScanSource;

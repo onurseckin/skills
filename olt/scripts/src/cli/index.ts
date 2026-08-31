@@ -1,46 +1,101 @@
-export type {
-  FlagValue,
-  FlagValues,
-  FlagShape,
-  FlagShapes,
-  ParsedArguments,
-  FlagSuggestion,
-} from "./arguments.ts";
-export { nearestFlagNames, suggestFlag, parseArguments, flagPositions } from "./arguments.ts";
-export { execute, DeductiveStateMachine, CumulativePhaseInvariantEngine } from "./execute.ts";
-export { ensureHarnessIgnored } from "./git-ignore.ts";
-export type { HelpRequest, RenderHelpOptions } from "./help.ts";
-export { helpRequest, renderHelp } from "./help.ts";
-export { probeAgentTelemetry, withHostTelemetryConflicts } from "./host-telemetry-probe.ts";
-export { MANIFEST_SCHEMA } from "./manifest.ts";
-export type { FlagManifest, CommandManifest, CapabilityManifest } from "./manifest.ts";
 export {
+  flagPositions,
+  nearestFlagNames,
+  parseArguments,
+  suggestFlag,
+  type FlagShape,
+  type FlagShapes,
+  type FlagSuggestion,
+  type FlagValue,
+  type FlagValues,
+  type ParsedArguments,
+} from "./arguments.ts";
+
+export { CumulativePhaseInvariantEngine, DeductiveStateMachine, execute } from "./execute.ts";
+
+export { ensureHarnessIgnored } from "./git-ignore.ts";
+
+export {
+  formatCommandHelp,
+  formatCommandTable,
+  formatDomainSummary,
+  helpRequest,
+  renderHelp,
+  type HelpRequest,
+  type RenderHelpOptions,
+} from "./help.ts";
+
+export { probeAgentTelemetry, withHostTelemetryConflicts } from "./host-telemetry-probe.ts";
+
+export {
+  COMMANDS_DIR,
+  DOMAINS_DIR,
+  INDEX_FILE,
+  SPLIT_MANIFEST_SCHEMA,
+  commandFilePath,
+  commandFileSlug,
+  domainFilePath,
+  loadCapabilitySplit,
+  loadCommandDetail,
+  renderCommandDetailFiles,
+  renderCommandDetailJson,
+  renderCommandIndexJsonl,
+  renderSplitManifestJson,
+  splitManifest,
+  type CommandDetailFile,
+  type DomainManifestEntry,
+  type IndexRecord,
+  type LoadCapabilitySplitOptions,
+  type SplitManifest,
+} from "./manifest-split.ts";
+
+export {
+  MANIFEST_SCHEMA,
   capabilityManifest,
-  commandSlice,
-  domainSlice,
   commandSection,
+  commandSlice,
   domainCommandSpecs,
+  domainSlice,
   renderDomainMarkdown,
   renderManifestMarkdown,
+  type CapabilityManifest,
+  type CommandManifest,
+  type FlagManifest,
 } from "./manifest.ts";
-export type { Flags, CommandContext } from "./options.ts";
-export { assertFlags, textFlag, listFlag, boolFlag, integerFlag, actorFlag } from "./options.ts";
-export type { OutputFormatScan } from "./output-format.ts";
-export { stripOutputFormat } from "./output-format.ts";
-export type { OrchestrateArgv } from "./prompt-input.ts";
+
 export {
-  shouldReadPromptStdin,
+  actorFlag,
+  assertFlags,
+  boolFlag,
+  integerFlag,
+  listFlag,
+  textFlag,
+  type CommandContext,
+  type Flags,
+} from "./options.ts";
+
+export { stripOutputFormat, type OutputFormatScan } from "./output-format.ts";
+
+export { capturePromptWithTimeout } from "./prompt-capture.ts";
+
+export {
   extractOrchestrateInlinePrompt,
   shouldAutoReadOrchestrateStdin,
+  shouldReadPromptStdin,
+  type OrchestrateArgv,
 } from "./prompt-input.ts";
-export type { DeclaredCommandTool } from "./taxonomy-flags.ts";
+
 export {
   CATEGORY_FLAG_HELP,
-  toolRefFlags,
-  tokenExtraFlags,
   declaredToolFlags,
+  tokenExtraFlags,
+  toolRefFlags,
+  type DeclaredCommandTool,
 } from "./taxonomy-flags.ts";
 
-export * as commands from "./commands/index.ts";
-export * as formatters from "./formatters/index.ts";
-export * as registry from "./registry/index.ts";
+import * as commands from "./commands/index.ts";
+import * as formatters from "./formatters/index.ts";
+import * as registry from "./registry/index.ts";
+import * as signals from "./signals/index.ts";
+
+export { commands, formatters, registry, signals };

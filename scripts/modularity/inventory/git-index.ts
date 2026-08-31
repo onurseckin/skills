@@ -19,7 +19,7 @@ const INDEX_RECORD = /^(100644|100755|120000) ([0-9a-f]{40}|[0-9a-f]{64}) [0-3]\
 const BATCH_HEADER = /^([0-9a-f]{40}|[0-9a-f]{64}) blob ([0-9]+)$/;
 const DEFAULT_GIT_COMMAND: GitCommandPrefix = ["git"];
 
-async function collect(process: Bun.Subprocess<"pipe", "pipe", "ignore">): Promise<{
+async function collect(process: Bun.Subprocess<"ignore" | "pipe", "pipe", "pipe">): Promise<{
   readonly status: number;
   readonly stdout: Uint8Array;
   readonly stderr: string;
@@ -37,7 +37,9 @@ function failure(message: string): never {
 }
 
 function comparePaths(left: string, right: string): number {
-  return left < right ? -1 : left > right ? 1 : 0;
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
 }
 
 function gitArguments(
@@ -57,7 +59,10 @@ function parseIndexRecords(output: Uint8Array): readonly IndexEntry[] {
     .map((record) => {
       const match = INDEX_RECORD.exec(record);
       if (!match) failure(`malformed ls-files record: ${record}`);
-      const [, , oid, path] = match;
+      const oid = match[2];
+      const path = match[3];
+      if (oid === undefined) failure(`malformed ls-files record: ${record}`);
+      if (path === undefined) failure(`malformed ls-files record: ${record}`);
       assertRepositoryRelativePosixPath(path);
       if (paths.has(path)) failure(`duplicate index path: ${path}`);
       paths.add(path);
@@ -76,13 +81,20 @@ function parseBatch(output: Uint8Array, entries: readonly IndexEntry[]): readonl
       output.subarray(offset, newline),
     );
     const match = BATCH_HEADER.exec(header);
-    if (!match || match[1] !== entry.oid) failure(`malformed cat-file header for ${entry.path}`);
-    const size = Number(match[2]);
+    if (!match) failure(`malformed cat-file header for ${entry.path}`);
+    if (match[1] !== entry.oid) failure(`malformed cat-file header for ${entry.path}`);
+    const sizeStr = match[2];
+    if (sizeStr === undefined) failure(`invalid cat-file size for ${entry.path}`);
+    const size = Number(sizeStr);
     if (!Number.isSafeInteger(size)) failure(`invalid cat-file size for ${entry.path}`);
     offset = newline + 1;
     const end = offset + size;
-    if (end > output.length || output[end] !== 10)
+    if (end > output.length) {
       failure(`truncated cat-file blob for ${entry.path}`);
+    }
+    if (output[end] !== 10) {
+      failure(`truncated cat-file blob for ${entry.path}`);
+    }
     blobs.push({
       path: entry.path,
       oid: entry.oid,

@@ -1,8 +1,6 @@
 {
   "name": "policy:audit",
-  "aliases": [
-    "policy:coverage"
-  ],
+  "aliases": [],
   "domain": "policy",
   "summary": "Audit repository governance coverage and readiness.",
   "flags": [

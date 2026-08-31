@@ -109,7 +109,7 @@ Audit repository governance coverage and readiness.
 
 Inspects .olt/policy.json, backlogs, defects, and session authority.
 
-- **Aliases**: `policy:coverage`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 

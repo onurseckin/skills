@@ -4,7 +4,9 @@ import type { IndexedBlob } from "../inventory/index.ts";
 const GENERATED_ROOT = "olt/references/cli-capabilities/";
 
 function compare(left: string, right: string): number {
-  return left < right ? -1 : left > right ? 1 : 0;
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
 }
 
 function finding(path: string, observed: string): Violation {
@@ -23,7 +25,8 @@ function text(blob: IndexedBlob): string {
 function catalogFindings(byPath: ReadonlyMap<string, IndexedBlob>): readonly Violation[] {
   const manifest = byPath.get(`${GENERATED_ROOT}manifest.json`);
   const index = byPath.get(`${GENERATED_ROOT}index.jsonl`);
-  if (!manifest || !index) return [];
+  if (manifest === undefined) return [];
+  if (index === undefined) return [];
   let records: readonly unknown[];
   try {
     JSON.parse(text(manifest));
@@ -41,20 +44,29 @@ function catalogFindings(byPath: ReadonlyMap<string, IndexedBlob>): readonly Vio
       typeof record === "object" && record !== null
         ? (record as { file?: unknown }).file
         : undefined;
-    if (
-      typeof file !== "string" ||
-      file.length === 0 ||
-      file.startsWith("/") ||
-      file.includes("..")
-    ) {
+    if (typeof file !== "string") {
       findings.push(finding(GENERATED_ROOT, "invalid catalog reference"));
       continue;
     }
-    if (targets.has(file))
+    if (file.length === 0) {
+      findings.push(finding(GENERATED_ROOT, "invalid catalog reference"));
+      continue;
+    }
+    if (file.startsWith("/")) {
+      findings.push(finding(GENERATED_ROOT, "invalid catalog reference"));
+      continue;
+    }
+    if (file.includes("..")) {
+      findings.push(finding(GENERATED_ROOT, "invalid catalog reference"));
+      continue;
+    }
+    if (targets.has(file)) {
       findings.push(finding(GENERATED_ROOT, `duplicate catalog reference: ${file}`));
+    }
     targets.add(file);
-    if (!byPath.has(`${GENERATED_ROOT}${file}`))
+    if (!byPath.has(`${GENERATED_ROOT}${file}`)) {
       findings.push(finding(GENERATED_ROOT, `stale catalog reference: ${file}`));
+    }
   }
   for (const path of byPath.keys()) {
     if (
@@ -63,8 +75,9 @@ function catalogFindings(byPath: ReadonlyMap<string, IndexedBlob>): readonly Vio
       !path.endsWith("/index.json")
     ) {
       const relative = path.slice(GENERATED_ROOT.length);
-      if (!targets.has(relative))
+      if (!targets.has(relative)) {
         findings.push(finding(GENERATED_ROOT, `orphan command file: ${relative}`));
+      }
     }
   }
   return findings;
@@ -92,6 +105,7 @@ export function findGeneratedCatalogViolations(
     }));
   return [...missing, ...catalogFindings(byPath)].sort((left, right) => {
     const pathDiff = compare(left.path, right.path);
-    return pathDiff !== 0 ? pathDiff : compare(String(left.observed), String(right.observed));
+    if (pathDiff !== 0) return pathDiff;
+    return compare(String(left.observed), String(right.observed));
   });
 }

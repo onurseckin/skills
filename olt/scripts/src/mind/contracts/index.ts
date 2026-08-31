@@ -1,1 +1,19 @@
-export * from "./defect-contracts.ts";
+export {
+  type AggregatedDefect,
+  type DefectAggregateMetrics,
+  type DefectCategory,
+  type DefectContext,
+  type DefectCuration,
+  type DefectCurationClass,
+  type DefectDiscriminatorOptions,
+  type DefectEntry,
+  type DefectOccurrence,
+  type DefectRecordInput,
+  type DefectResolutionProof,
+  type DefectSeverity,
+  type DefectStatus,
+  type DefectType,
+  type EmpiricalFailureProof,
+  type SyncDefectResult,
+  type SyncDoctorDefectOptions,
+} from "./defect-contracts.ts";

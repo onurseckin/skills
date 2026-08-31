@@ -5,7 +5,8 @@ const FANOUT_LIMIT = 10;
 
 function dirname(path: string): string {
   const separator = path.lastIndexOf("/");
-  return separator < 0 ? "." : path.slice(0, separator);
+  if (separator < 0) return ".";
+  return path.slice(0, separator);
 }
 
 export function findFanoutViolations(blobs: readonly IndexedBlob[]): readonly Violation[] {
@@ -13,7 +14,9 @@ export function findFanoutViolations(blobs: readonly IndexedBlob[]): readonly Vi
   for (const blob of blobs) {
     if (!classifyPath(blob.path).fanoutCounted) continue;
     const directory = dirname(blob.path);
-    counts.set(directory, (counts.get(directory) ?? 0) + 1);
+    const existing = counts.get(directory);
+    const count = existing !== undefined ? existing + 1 : 1;
+    counts.set(directory, count);
   }
   return [...counts]
     .filter(([, observed]) => observed > FANOUT_LIMIT)

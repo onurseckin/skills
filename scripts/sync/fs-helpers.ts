@@ -22,9 +22,10 @@ export interface GuardedRemoveOptions {
 export function guardedRemoveSync(targetPath: string, options: GuardedRemoveOptions): void {
   safeRmSync(targetPath, {
     allowedRoots: options.allowedRoots,
-    missingOk: options.missingOk ?? true,
-    allowGitRepositoryDeletion: options.allowGitRepositoryDeletion ?? false,
-    onAudit: options.onAudit ?? logDestructiveOp,
+    missingOk: options.missingOk !== undefined ? options.missingOk : true,
+    allowGitRepositoryDeletion:
+      options.allowGitRepositoryDeletion !== undefined ? options.allowGitRepositoryDeletion : false,
+    onAudit: options.onAudit !== undefined ? options.onAudit : logDestructiveOp,
   });
 }
 
@@ -38,6 +39,7 @@ export interface SmartEnsureSymlinkOptions {
   readonly allowedRoots: readonly string[];
   readonly onAudit?: (event: DestructiveAuditEvent) => void;
   readonly fsDriver?: FsDriver;
+  readonly allowGitRepositoryDeletion?: boolean;
 }
 
 function readExistingEntry(
@@ -45,7 +47,7 @@ function readExistingEntry(
   customLstat?: (path: string) => Stats,
 ): Stats | undefined {
   try {
-    const fn = customLstat ?? lstatSync;
+    const fn = customLstat !== undefined ? customLstat : lstatSync;
     return fn(linkPath);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
@@ -64,11 +66,19 @@ export function smartEnsureSymlink(
   linkPath: string,
   options: SmartEnsureSymlinkOptions,
 ): "skipped" | "created" {
-  const onAudit = options.onAudit ?? logDestructiveOp;
-  const readlinkFn = options.fsDriver?.readlinkSync ?? readlinkSync;
-  const symlinkFn = options.fsDriver?.symlinkSync ?? symlinkSync;
+  const onAudit = options.onAudit !== undefined ? options.onAudit : logDestructiveOp;
+  const readlinkFn =
+    options.fsDriver?.readlinkSync !== undefined ? options.fsDriver.readlinkSync : readlinkSync;
+  const symlinkFn =
+    options.fsDriver?.symlinkSync !== undefined ? options.fsDriver.symlinkSync : symlinkSync;
+  const allowGit =
+    options.allowGitRepositoryDeletion !== undefined ? options.allowGitRepositoryDeletion : false;
 
-  assertSafeToDelete(linkPath, { allowedRoots: options.allowedRoots, missingOk: true });
+  assertSafeToDelete(linkPath, {
+    allowedRoots: options.allowedRoots,
+    missingOk: true,
+    allowGitRepositoryDeletion: allowGit,
+  });
   const existing = readExistingEntry(linkPath, options.fsDriver?.lstatSync);
 
   if (existing !== undefined) {
@@ -94,6 +104,7 @@ export function smartEnsureSymlink(
     guardedRemoveSync(linkPath, {
       allowedRoots: options.allowedRoots,
       missingOk: true,
+      allowGitRepositoryDeletion: allowGit,
       onAudit,
     });
   }

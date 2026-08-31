@@ -4,8 +4,8 @@
 # staged-only typecheck would be unsound. Lint and format checks run against
 # the staged set only, so a commit is never blocked by unrelated files that a
 # concurrent workstream left dirty.
-# Pre-push runs only the local skill synchronization.
-# Unit tests and build are handled during development by implementers and critics.
+# Pre-push runs skill synchronization, whole-tree typecheck, and unit tests.
+# Zero-tolerance: Pass or error only, zero warnings allowed, fail-fast quality gates.
 
 pre-commit:
   parallel: true
@@ -17,7 +17,7 @@ pre-commit:
       exclude:
         - ".olt/capsules/**"
         - ".olt/scratch/**"
-      run: bunx oxlint --quiet --no-error-on-unmatched-pattern {staged_files}
+      run: bunx oxlint --deny-warnings --no-error-on-unmatched-pattern {staged_files}
     format-check:
       glob: "*.{ts,tsx,mts,cts,js,jsx,mjs,cjs,json,jsonc,md,yaml,yml}"
       exclude:
@@ -28,6 +28,11 @@ pre-commit:
       run: bun run modularity:staged
 
 pre-push:
+  parallel: true
   commands:
     sync:
       run: bun run sync
+    typecheck:
+      run: bun run typecheck
+    test:
+      run: bun run test

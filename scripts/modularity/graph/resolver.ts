@@ -17,7 +17,8 @@ export function resolveImport(
 ): string {
   if (!reference.specifier.startsWith(".")) failure(reference.from, reference.specifier);
   const resolved = posix.normalize(posix.join(posix.dirname(reference.from), reference.specifier));
-  if (resolved === ".." || resolved.startsWith("../")) failure(reference.from, reference.specifier);
+  if (resolved === "..") failure(reference.from, reference.specifier);
+  if (resolved.startsWith("../")) failure(reference.from, reference.specifier);
   const known = new Set(paths);
   const candidates = [
     resolved,
@@ -25,5 +26,8 @@ export function resolveImport(
     `${resolved}/index.ts`,
   ];
   const target = candidates.find((candidate) => known.has(candidate));
-  return target ?? failure(reference.from, reference.specifier);
+  if (target !== undefined) {
+    return target;
+  }
+  return failure(reference.from, reference.specifier);
 }

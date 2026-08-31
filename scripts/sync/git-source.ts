@@ -100,7 +100,11 @@ export function materializeOltFromHead(
       `git archive HEAD -- olt/ failed in ${repoRoot}: ${firstNonEmpty(archiveResult.stderr?.toString(), archiveResult.error?.message)}`,
     );
   }
-  if (!archiveResult.stdout || archiveResult.stdout.length === 0) {
+  if (!archiveResult.stdout) {
+    removeExtractDir();
+    throw new Error(`git archive HEAD -- olt/ produced no output in ${repoRoot}`);
+  }
+  if (archiveResult.stdout.length === 0) {
     removeExtractDir();
     throw new Error(`git archive HEAD -- olt/ produced no output in ${repoRoot}`);
   }

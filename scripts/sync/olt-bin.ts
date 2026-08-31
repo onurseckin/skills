@@ -15,6 +15,13 @@ export interface EnsureBinaryResult {
   bunBinaryCreated?: boolean | undefined;
 }
 
+export function orDefault<T>(value: T | undefined, fallback: T): T {
+  if (value !== undefined) {
+    return value;
+  }
+  return fallback;
+}
+
 export function buildOltBinaryContent(harnessPath: string): string {
   return `#!/usr/bin/env bash
 set -e
@@ -32,10 +39,13 @@ exec bun "\${GLOBAL_HARNESS}" "$@"
 }
 
 export function ensureGlobalOltBinary(options?: EnsureBinaryOptions): EnsureBinaryResult {
-  const home = options?.homeDir ?? homedir();
-  const targetBinDir = options?.targetBinDir ?? join(home, ".local", "bin");
+  const home = orDefault(options?.homeDir, homedir());
+  const targetBinDir = orDefault(options?.targetBinDir, join(home, ".local", "bin"));
   const binaryPath = join(targetBinDir, "olt");
-  const harnessTarget = options?.harnessPath ?? "${HOME}/.agents/skills/olt/scripts/harness.ts";
+  const harnessTarget = orDefault(
+    options?.harnessPath,
+    "${HOME}/.agents/skills/olt/scripts/harness.ts",
+  );
 
   const expectedContent = buildOltBinaryContent(harnessTarget);
 
@@ -77,6 +87,7 @@ export function ensureGlobalOltBinary(options?: EnsureBinaryOptions): EnsureBina
       const bunOltPath = join(bunBinDir, "olt");
       const symlinkStatus = smartEnsureSymlink(binaryPath, bunOltPath, {
         allowedRoots: [bunBinDir],
+        allowGitRepositoryDeletion: true,
         onAudit: logDestructiveOp,
       });
       bunBinaryCreated = symlinkStatus === "created";

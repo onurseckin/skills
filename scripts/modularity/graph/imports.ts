@@ -17,11 +17,12 @@ export function buildImportEdges(blobs: readonly IndexedBlob[]): readonly Import
     return scanImports(blob).flatMap((reference) => {
       if (!reference.specifier.startsWith(".")) return [];
       const to = resolveImport({ ...reference, from: blob.path }, paths);
+      const isFacade = to === "index.ts" ? true : to.endsWith("/index.ts");
       return {
         from: blob.path,
         to,
         typeOnly: reference.typeOnly,
-        viaFacade: to === "index.ts" || to.endsWith("/index.ts"),
+        viaFacade: isFacade,
       };
     });
   });

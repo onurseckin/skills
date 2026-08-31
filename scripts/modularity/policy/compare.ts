@@ -2,11 +2,16 @@ import type { CheckReport, Violation } from "../core/index.ts";
 import type { ModularityBaseline } from "./baseline.ts";
 
 function identity(violation: Violation): string {
-  return violation.rule === "line_limit" ||
-    violation.rule === "directory_fanout" ||
-    violation.rule === "dependency_cycle"
-    ? `${violation.rule}:${violation.path}`
-    : `${violation.rule}:${violation.path}:${String(violation.observed)}`;
+  if (violation.rule === "line_limit") {
+    return `${violation.rule}:${violation.path}`;
+  }
+  if (violation.rule === "directory_fanout") {
+    return `${violation.rule}:${violation.path}`;
+  }
+  if (violation.rule === "dependency_cycle") {
+    return `${violation.rule}:${violation.path}`;
+  }
+  return `${violation.rule}:${violation.path}:${String(violation.observed)}`;
 }
 
 function index(violations: readonly Violation[]): Map<string, Violation> {
@@ -21,11 +26,9 @@ function index(violations: readonly Violation[]): Map<string, Violation> {
 }
 
 function worsened(baseline: Violation, current: Violation): boolean {
-  return (
-    typeof baseline.observed === "number" &&
-    typeof current.observed === "number" &&
-    current.observed > baseline.observed
-  );
+  if (typeof baseline.observed !== "number") return false;
+  if (typeof current.observed !== "number") return false;
+  return current.observed > baseline.observed;
 }
 
 export function compareBaseline(
@@ -38,8 +41,11 @@ export function compareBaseline(
   const worsenedFindings: Violation[] = [];
   for (const [key, violation] of actual) {
     const existing = expected.get(key);
-    if (!existing) added.push(violation);
-    else if (worsened(existing, violation)) worsenedFindings.push(violation);
+    if (!existing) {
+      added.push(violation);
+    } else if (worsened(existing, violation)) {
+      worsenedFindings.push(violation);
+    }
   }
   const resolved = [...expected]
     .filter(([key]) => !actual.has(key))

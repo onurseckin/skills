@@ -16,21 +16,47 @@ export function parseFlags(args: readonly string[]): Flags {
   let format: Flags["format"] = "markdown";
   let baselinePath: string | undefined;
   for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
     const value = args[index + 1];
-    if (args[index] === "--mode" && (value === "ratchet" || value === "strict")) {
-      mode = value;
-    } else if (args[index] === "--source" && (value === "index" || value === "tree")) {
-      source = value;
-    } else if (args[index] === "--baseline" && typeof value === "string" && value.length > 0) {
-      baselinePath = value;
-    } else if (args[index] === "--format" && (value === "json" || value === "markdown")) {
-      format = value;
+    if (arg === "--mode") {
+      if (value === "ratchet") {
+        mode = "ratchet";
+      } else if (value === "strict") {
+        mode = "strict";
+      } else {
+        throw new Error(`Invalid modularity flag: ${arg}`);
+      }
+    } else if (arg === "--source") {
+      if (value === "index") {
+        source = "index";
+      } else if (value === "tree") {
+        source = "tree";
+      } else {
+        throw new Error(`Invalid modularity flag: ${arg}`);
+      }
+    } else if (arg === "--baseline") {
+      if (typeof value === "string" && value.length > 0) {
+        baselinePath = value;
+      } else {
+        throw new Error(`Invalid modularity flag: ${arg}`);
+      }
+    } else if (arg === "--format") {
+      if (value === "json") {
+        format = "json";
+      } else if (value === "markdown") {
+        format = "markdown";
+      } else {
+        throw new Error(`Invalid modularity flag: ${arg}`);
+      }
     } else {
-      throw new Error(`Invalid modularity flag: ${args[index]}`);
+      throw new Error(`Invalid modularity flag: ${arg}`);
     }
     index += 1;
   }
-  return { mode, source, baselinePath, format };
+  if (baselinePath !== undefined) {
+    return { mode, source, baselinePath, format };
+  }
+  return { mode, source, format };
 }
 
 export async function main(

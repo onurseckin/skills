@@ -28,12 +28,16 @@ import {
 const DEFAULT_BASELINE = "scripts/modularity/baseline/index.json";
 
 function cycleViolations(edges: ReturnType<typeof buildImportEdges>): readonly Violation[] {
-  return stronglyConnectedComponents(edges).map((component) => ({
-    rule: "dependency_cycle" as const,
-    path: component[0],
-    observed: component.join(","),
-    detail: "Import graph contains a strongly connected component.",
-  }));
+  return stronglyConnectedComponents(edges).map((component) => {
+    const firstPath = component[0];
+    const path = firstPath !== undefined ? firstPath : "";
+    return {
+      rule: "dependency_cycle" as const,
+      path,
+      observed: component.join(","),
+      detail: "Import graph contains a strongly connected component.",
+    };
+  });
 }
 
 function currentBaseline(violations: readonly Violation[]): ModularityBaseline {
@@ -51,10 +55,9 @@ function currentBaseline(violations: readonly Violation[]): ModularityBaseline {
 }
 
 export async function checkModularity(options: CheckOptions): Promise<CheckReport> {
+  const baselinePath = options.baselinePath !== undefined ? options.baselinePath : DEFAULT_BASELINE;
   const baseline =
-    options.mode === "ratchet"
-      ? await loadBaseline(options.repoRoot, options.baselinePath ?? DEFAULT_BASELINE)
-      : undefined;
+    options.mode === "ratchet" ? await loadBaseline(options.repoRoot, baselinePath) : undefined;
   const blobs =
     options.source === "index"
       ? await readIndexedBlobs(options.repoRoot)
@@ -83,7 +86,10 @@ export async function checkModularity(options: CheckOptions): Promise<CheckRepor
       passed: violations.length === 0,
     };
   }
-  const comparison = compareBaseline(baseline!, currentBaseline(violations));
+  if (baseline === undefined) {
+    throw new Error("Modularity baseline required in ratchet mode.");
+  }
+  const comparison = compareBaseline(baseline, currentBaseline(violations));
   return {
     mode: options.mode,
     source: options.source,
