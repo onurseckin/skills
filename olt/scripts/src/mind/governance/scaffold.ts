@@ -1,7 +1,14 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { generateDefaultRepoPolicy, saveRepoPolicy } from "../../policy/index.ts";
+import { saveRepoPolicy } from "../../policy/index.ts";
+import { synthesizeCalibratedRepoPolicy } from "../../policy/generator/index.ts";
 import { registerSessionGrant } from "../../authority/session/index.ts";
+import {
+  auditRepoGovernanceCoverage,
+  discoverAndCalibrateRepoPolicy,
+  type GovernanceCoverageReport,
+  type GovernanceToolchainDiscoveryResult,
+} from "./policy-discovery.ts";
 
 export interface RepoGovernanceStatus {
   readonly olt_dir: string;
@@ -40,6 +47,17 @@ export function verifyRepoGovernance(repoRoot: string): RepoGovernanceStatus {
   };
 }
 
+export function calibrateRepoGovernance(repoRoot: string): GovernanceToolchainDiscoveryResult {
+  return discoverAndCalibrateRepoPolicy(repoRoot);
+}
+
+export function auditGovernanceReadiness(
+  repoRoot: string,
+  capsuleRunRoot?: string,
+): GovernanceCoverageReport {
+  return auditRepoGovernanceCoverage(repoRoot, capsuleRunRoot);
+}
+
 export function bootstrapRepoGovernance(
   options: BootstrapRepoGovernanceOptions,
 ): RepoGovernanceStatus {
@@ -50,8 +68,8 @@ export function bootstrapRepoGovernance(
 
   const policyPath = join(oltDir, "policy.json");
   if (!existsSync(policyPath)) {
-    const defaultPolicy = generateDefaultRepoPolicy(options.repoRoot);
-    saveRepoPolicy(defaultPolicy, options.repoRoot);
+    const calibratedPolicy = synthesizeCalibratedRepoPolicy(options.repoRoot);
+    saveRepoPolicy(calibratedPolicy, options.repoRoot);
   }
 
   const backlogPath = join(oltDir, "backlog.jsonl");

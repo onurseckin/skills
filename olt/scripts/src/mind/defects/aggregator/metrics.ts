@@ -21,7 +21,8 @@ export interface DefectMetricsResult {
 }
 
 function parseIsoMs(iso?: string): number {
-  if (!iso || typeof iso !== "string") return 0;
+  if (typeof iso !== "string") return 0;
+  if (iso.length === 0) return 0;
   const parsed = Date.parse(iso);
   return Number.isNaN(parsed) ? 0 : parsed;
 }
@@ -49,7 +50,8 @@ export function calculateDefectAggregateMetrics(
   let resolvedWithTimeCount = 0;
 
   for (const b of defects) {
-    if (!b) continue;
+    if (b === undefined) continue;
+    if (b === null) continue;
     const count = typeof b.count === "number" && b.count > 0 ? b.count : 1;
     totalRecorded += count;
     if (count > 1) {
@@ -57,12 +59,20 @@ export function calculateDefectAggregateMetrics(
     }
 
     const normStatus = typeof b.status === "string" ? b.status.toLowerCase().trim() : "open";
-    if (normStatus === "resolved" || normStatus === "completed" || normStatus === "closed") {
+    if (["resolved", "completed", "closed"].includes(normStatus)) {
       resolvedCount += 1;
-      const res = b.resolution || b.resolution_proof;
-      const resTime = res?.resolved_at;
-      const firstSeen = b.first_seen_at || b.first_seen || b.timestamp;
-      if (resTime && firstSeen) {
+      const res =
+        b.resolution !== undefined && b.resolution !== null
+          ? b.resolution
+          : b.resolution_proof;
+      const resTime = res !== undefined && res !== null ? res.resolved_at : undefined;
+      const firstSeen =
+        b.first_seen_at !== undefined && b.first_seen_at !== ""
+          ? b.first_seen_at
+          : b.first_seen !== undefined && b.first_seen !== ""
+            ? b.first_seen
+            : b.timestamp;
+      if (resTime !== undefined && firstSeen !== undefined) {
         const start = parseIsoMs(firstSeen);
         const end = parseIsoMs(resTime);
         if (end >= start && start > 0) {
@@ -70,7 +80,7 @@ export function calculateDefectAggregateMetrics(
           resolvedWithTimeCount += 1;
         }
       }
-    } else if (normStatus === "wontfix" || normStatus === "wont_fix" || normStatus === "declined") {
+    } else if (["wontfix", "wont_fix", "declined"].includes(normStatus)) {
       wontfixCount += 1;
     } else {
       openCount += 1;
@@ -86,10 +96,12 @@ export function calculateDefectAggregateMetrics(
             ? "code_defect"
             : categorizeDefect(b as DefectEntry);
 
-    categoryCounts[cat] = (categoryCounts[cat] ?? 0) + 1;
+    const prevCatCount = categoryCounts[cat];
+    categoryCounts[cat] = (prevCatCount !== undefined ? prevCatCount : 0) + 1;
 
     const sev = typeof b.severity === "string" ? b.severity.toLowerCase().trim() : "warning";
-    severityCounts[sev] = (severityCounts[sev] ?? 0) + 1;
+    const prevSevCount = severityCounts[sev];
+    severityCounts[sev] = (prevSevCount !== undefined ? prevSevCount : 0) + 1;
   }
 
   const uniqueCount = defects.length;
@@ -118,16 +130,23 @@ export function clusterDefectsBySimilarity(
   const clusters: AggregatedDefect[][] = [];
 
   for (const defect of defects) {
-    if (!defect) continue;
+    if (defect === undefined) continue;
+    if (defect === null) continue;
     let placed = false;
 
-    const sig = normalizeObservationSignature(defect.observation || defect.type);
+    const defectText =
+      defect.observation !== undefined && defect.observation !== ""
+        ? defect.observation
+        : defect.type;
+    const sig = normalizeObservationSignature(defectText);
     for (const cluster of clusters) {
       const representative = cluster[0];
-      if (representative) {
-        const repSig = normalizeObservationSignature(
-          representative.observation || representative.type,
-        );
+      if (representative !== undefined) {
+        const repText =
+          representative.observation !== undefined && representative.observation !== ""
+            ? representative.observation
+            : representative.type;
+        const repSig = normalizeObservationSignature(repText);
         const sim = calculateDefectSimilarity(sig, repSig);
         if (sim >= similarityThreshold && defect.category === representative.category) {
           cluster.push(defect);

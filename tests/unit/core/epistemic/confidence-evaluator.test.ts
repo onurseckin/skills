@@ -67,6 +67,14 @@ describe("Epistemic Confidence Evaluator & Math Verification", () => {
     expect(flawedVector.falsifiability).toBeCloseTo(0.25, 5);
     expect(flawedVector.stability).toBeCloseTo(0.4, 5);
     expect(flawedVector.coverage).toBeCloseTo(0.3, 5);
+
+    // Empty input with defaults
+    const defaultVector = computeEpistemicVector({});
+    expect(defaultVector.empirical).toBe(0);
+    expect(defaultVector.coherence).toBe(1);
+    expect(defaultVector.falsifiability).toBe(0);
+    expect(defaultVector.stability).toBe(0.5);
+    expect(defaultVector.coverage).toBe(0.5);
   });
 
   it("calculates weighted epistemic score with default and custom weights", () => {
@@ -105,7 +113,7 @@ describe("Epistemic Confidence Evaluator & Math Verification", () => {
     expect(computeWeightedEpistemicScore(mixedVector, customWeights)).toBeCloseTo(0.6, 5);
   });
 
-  it("evaluates epistemic confidence result and rejects on contradictions", () => {
+  it("evaluates epistemic confidence result and generates detailed diagnostic failure reasons", () => {
     const passingMetrics: EpistemicEvaluationInput = {
       empiricalEvidenceCount: 5,
       contradictionCount: 0,
@@ -118,9 +126,10 @@ describe("Epistemic Confidence Evaluator & Math Verification", () => {
     expect(passResult.passed).toBe(true);
     expect(passResult.grade).toBe("VERY_HIGH");
     expect(passResult.confidenceScore).toBeGreaterThanOrEqual(DEFAULT_PASS_THRESHOLD);
-    expect(passResult.reasons.length).toBeGreaterThan(0);
+    expect(passResult.reasons.some((r) => r.includes("Epistemic confidence verified with grade"))).toBe(true);
 
-    const contradictoryMetrics: EpistemicEvaluationInput = {
+    // Single contradiction (tests singular 'contradiction')
+    const singleContra: EpistemicEvaluationInput = {
       empiricalEvidenceCount: 5,
       contradictionCount: 1,
       falsifiableGateCount: 4,
@@ -128,9 +137,47 @@ describe("Epistemic Confidence Evaluator & Math Verification", () => {
       historicalStability: 0.9,
       testCoverageRatio: 0.95,
     };
-    const failResult = evaluateEpistemicConfidence(contradictoryMetrics);
-    expect(failResult.passed).toBe(false);
-    expect(failResult.reasons.some((r) => r.includes("Contradictions detected"))).toBe(true);
+    const singleResult = evaluateEpistemicConfidence(singleContra);
+    expect(singleResult.passed).toBe(false);
+    expect(singleResult.reasons.some((r) => r.includes("1 contradiction)"))).toBe(true);
+
+    // Multiple contradictions (tests plural 'contradictions')
+    const multiContra: EpistemicEvaluationInput = {
+      empiricalEvidenceCount: 5,
+      contradictionCount: 3,
+      falsifiableGateCount: 4,
+      totalGateCount: 4,
+      historicalStability: 0.9,
+      testCoverageRatio: 0.95,
+    };
+    const multiResult = evaluateEpistemicConfidence(multiContra);
+    expect(multiResult.reasons.some((r) => r.includes("3 contradictions)"))).toBe(true);
+
+    // All failure reason diagnostics
+    const lowMetrics: EpistemicEvaluationInput = {
+      empiricalEvidenceCount: 1, // empirical < 0.6
+      falsifiableGateCount: 1,
+      totalGateCount: 5, // falsifiability = 0.2 < 0.7
+      historicalStability: 0.3, // stability < 0.6
+      testCoverageRatio: 0.2, // coverage < 0.5
+    };
+    const lowResult = evaluateEpistemicConfidence(lowMetrics, 0.9);
+    expect(lowResult.passed).toBe(false);
+    expect(lowResult.reasons.some((r) => r.includes("Insufficient empirical evidence count"))).toBe(true);
+    expect(lowResult.reasons.some((r) => r.includes("Sub-optimal proportion of falsifiable gates"))).toBe(true);
+    expect(lowResult.reasons.some((r) => r.includes("Historical stability metric is below nominal floor"))).toBe(true);
+    expect(lowResult.reasons.some((r) => r.includes("Test coverage ratio is low or unobserved"))).toBe(true);
+
+    // Zero gates configured
+    const zeroGatesMetrics: EpistemicEvaluationInput = {
+      empiricalEvidenceCount: 5,
+      totalGateCount: 0,
+      falsifiableGateCount: 0,
+      historicalStability: 0.9,
+      testCoverageRatio: 0.9,
+    };
+    const zeroGatesResult = evaluateEpistemicConfidence(zeroGatesMetrics, 0.5);
+    expect(zeroGatesResult.reasons.some((r) => r.includes("Zero falsifiable evidence gates configured"))).toBe(true);
   });
 
   it("evaluates custom threshold and options", () => {

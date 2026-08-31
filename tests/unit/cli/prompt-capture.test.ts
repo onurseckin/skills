@@ -66,7 +66,7 @@ describe("capturePromptWithTimeout - stdin", () => {
     process.stdin.resume = (() => process.stdin) as unknown as typeof process.stdin.resume;
     process.stdin.pause = (() => process.stdin) as unknown as typeof process.stdin.pause;
 
-    const promise = capturePromptWithTimeout(undefined, { timeoutMs: 100 });
+    const promise = capturePromptWithTimeout(undefined, { timeoutMs: 50 });
 
     await expect(promise).rejects.toThrow(/timed out/);
   });
@@ -86,7 +86,7 @@ describe("capturePromptWithTimeout - stdin", () => {
     // simulate data
     const handlerData = handlers["data"];
     if (handlerData) {
-      handlerData("stdin prompt\n");
+      handlerData(Buffer.from("stdin prompt\n"));
     }
     const handlerEnd = handlers["end"];
     if (handlerEnd) {
@@ -95,5 +95,49 @@ describe("capturePromptWithTimeout - stdin", () => {
 
     const result = await promise;
     expect(result).toBe("stdin prompt");
+  });
+
+  it("should reject if stdin ends with empty prompt", async () => {
+    const handlers: Record<string, StreamHandler> = {};
+    process.stdin.on = ((event: string, handler: StreamHandler) => {
+      handlers[event] = handler;
+      return process.stdin;
+    }) as unknown as typeof process.stdin.on;
+    process.stdin.off = (() => process.stdin) as unknown as typeof process.stdin.off;
+    process.stdin.resume = (() => process.stdin) as unknown as typeof process.stdin.resume;
+    process.stdin.pause = (() => process.stdin) as unknown as typeof process.stdin.pause;
+
+    const promise = capturePromptWithTimeout(undefined, { timeoutMs: 100 });
+
+    const handlerData = handlers["data"];
+    if (handlerData) {
+      handlerData("   \n");
+    }
+    const handlerEnd = handlers["end"];
+    if (handlerEnd) {
+      handlerEnd();
+    }
+
+    await expect(promise).rejects.toThrow("received empty prompt from stdin");
+  });
+
+  it("should reject if stdin emits an error event", async () => {
+    const handlers: Record<string, StreamHandler> = {};
+    process.stdin.on = ((event: string, handler: StreamHandler) => {
+      handlers[event] = handler;
+      return process.stdin;
+    }) as unknown as typeof process.stdin.on;
+    process.stdin.off = (() => process.stdin) as unknown as typeof process.stdin.off;
+    process.stdin.resume = (() => process.stdin) as unknown as typeof process.stdin.resume;
+    process.stdin.pause = (() => process.stdin) as unknown as typeof process.stdin.pause;
+
+    const promise = capturePromptWithTimeout(undefined, { timeoutMs: 100 });
+
+    const handlerError = handlers["error"];
+    if (handlerError) {
+      handlerError(new Error("pipe broken"));
+    }
+
+    await expect(promise).rejects.toThrow("failed reading stdin: pipe broken");
   });
 });

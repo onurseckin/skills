@@ -17,10 +17,11 @@ import type {
 export { deduplicateDefectLog, parseAndDeduplicateDefectJsonl, serializeAggregatedDefectLog };
 
 function parseChunkInput(chunk: unknown): DefectRecordInput | null {
-  if (!chunk) return null;
+  if (chunk === undefined) return null;
+  if (chunk === null) return null;
   if (typeof chunk === "string") {
     const trimmed = chunk.trim();
-    if (!trimmed) return null;
+    if (trimmed.length === 0) return null;
     try {
       return JSON.parse(trimmed) as DefectRecordInput;
     } catch {
@@ -37,16 +38,22 @@ export async function* streamDeduplicateDefects(
   source: AsyncIterable<string | DefectRecordInput>,
   options: LiveDeduplicationOptions = {},
 ): AsyncGenerator<AggregatedDefect, void, unknown> {
-  const windowMs = options.windowMs ?? 60_000;
+  const windowMs = options.windowMs !== undefined ? options.windowMs : 60_000;
   const recent = new Map<string, AggregatedDefect>();
 
   for await (const rawChunk of source) {
     const input = parseChunkInput(rawChunk);
     if (!input) continue;
 
-    const key = input.dedup_key || computeDefectDiscriminator(input);
+    const key =
+      input.dedup_key !== undefined && input.dedup_key !== ""
+        ? input.dedup_key
+        : computeDefectDiscriminator(input);
     const existing = recent.get(key);
-    const incomingTs = input.timestamp || new Date().toISOString();
+    const incomingTs =
+      input.timestamp !== undefined && input.timestamp !== ""
+        ? input.timestamp
+        : new Date().toISOString();
 
     if (existing && withinDeduplicationWindow(existing.last_seen_at, incomingTs, windowMs)) {
       const updated = aggregateDefectEntries(existing, input, options);
@@ -67,7 +74,7 @@ export async function* streamDeduplicateDefects(
 export function createDefectDedupTransformStream(
   options: LiveDeduplicationOptions = {},
 ): TransformStream<string | DefectRecordInput, AggregatedDefect> {
-  const windowMs = options.windowMs ?? 60_000;
+  const windowMs = options.windowMs !== undefined ? options.windowMs : 60_000;
   const recent = new Map<string, AggregatedDefect>();
 
   return new TransformStream<string | DefectRecordInput, AggregatedDefect>({
@@ -75,9 +82,15 @@ export function createDefectDedupTransformStream(
       const input = parseChunkInput(chunk);
       if (!input) return;
 
-      const key = input.dedup_key || computeDefectDiscriminator(input);
+      const key =
+        input.dedup_key !== undefined && input.dedup_key !== ""
+          ? input.dedup_key
+          : computeDefectDiscriminator(input);
       const existing = recent.get(key);
-      const incomingTs = input.timestamp || new Date().toISOString();
+      const incomingTs =
+        input.timestamp !== undefined && input.timestamp !== ""
+          ? input.timestamp
+          : new Date().toISOString();
 
       if (existing && withinDeduplicationWindow(existing.last_seen_at, incomingTs, windowMs)) {
         const updated = aggregateDefectEntries(existing, input, options);
@@ -106,7 +119,10 @@ export function filterDefectStream(
     readonly agent_id?: string | undefined;
   },
 ): readonly AggregatedDefect[] {
-  const targetAgent = criteria.agentId || criteria.agent_id;
+  const targetAgent =
+    criteria.agentId !== undefined && criteria.agentId !== ""
+      ? criteria.agentId
+      : criteria.agent_id;
   const sevRank: Record<string, number> = {
     low: 1,
     info: 1,
@@ -115,14 +131,20 @@ export function filterDefectStream(
     high: 3,
     critical: 4,
   };
-  const minRank = criteria.minSeverity ? (sevRank[criteria.minSeverity.toLowerCase()] ?? 0) : 0;
+  let minRank = 0;
+  if (criteria.minSeverity !== undefined) {
+    const r = sevRank[criteria.minSeverity.toLowerCase()];
+    if (r !== undefined) minRank = r;
+  }
 
   return defects.filter((d) => {
     if (criteria.category && d.category !== criteria.category) return false;
     if (criteria.status && d.status !== criteria.status) return false;
     if (targetAgent && d.agent_id !== targetAgent) return false;
     if (minRank > 0) {
-      const rank = sevRank[(d.severity || "").toLowerCase()] ?? 0;
+      const sevStr = d.severity !== undefined ? d.severity : "";
+      const rankVal = sevRank[sevStr.toLowerCase()];
+      const rank = rankVal !== undefined ? rankVal : 0;
       if (rank < minRank) return false;
     }
     return true;

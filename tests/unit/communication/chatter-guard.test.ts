@@ -9,8 +9,8 @@ import {
   resolveMailboxPaths,
   routeStatusUpdate,
   verifyEnvelopeHmac,
-  type MailboxEnvelope,
 } from "../../../olt/scripts/src/communication/mailbox/index.ts";
+import type { MailboxEnvelope } from "../../../olt/scripts/src/communication/types.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("Chatter Guard & Mid-Flight Progress Narration Interlock", () => {
@@ -107,6 +107,12 @@ describe("Chatter Guard & Mid-Flight Progress Narration Interlock", () => {
       expect(() =>
         assertNonChatterPolicy(narration, { recipientRoleOrId: "agent-planner-01" }),
       ).not.toThrow();
+      expect(() =>
+        assertNonChatterPolicy(deliverable, { recipientRoleOrId: "" }),
+      ).not.toThrow();
+      expect(() =>
+        assertNonChatterPolicy(deliverable, { recipientRoleOrId: "  " }),
+      ).not.toThrow();
     });
 
     it("validates input string fail-closed", () => {
@@ -151,6 +157,15 @@ describe("Chatter Guard & Mid-Flight Progress Narration Interlock", () => {
       expect(envelope.message_type).toBe("DEFECT_ESCALATION");
       expect(verifyEnvelopeHmac(envelope, customSecret).valid).toBe(true);
       expect(() => routeStatusUpdate("", "parent-01", {}, { baseDir: testRoot })).toThrow(
+        HarnessError,
+      );
+      expect(() => routeStatusUpdate("agent-a", "", {}, { baseDir: testRoot })).toThrow(
+        HarnessError,
+      );
+      expect(() => routeStatusUpdate("agent-a", 123 as unknown as string, {}, { baseDir: testRoot })).toThrow(
+        HarnessError,
+      );
+      expect(() => routeStatusUpdate(123 as unknown as string, "parent-01", {}, { baseDir: testRoot })).toThrow(
         HarnessError,
       );
     });

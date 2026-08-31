@@ -80,9 +80,13 @@ describe("Mailbox Envelope Cryptographic Serialization & Verification", () => {
       expect(new TextDecoder().decode(bytes)).toBe('{"timestamp":"2026-08-29T12:00:00.000Z"}');
     });
 
-    it("throws TypeError on non-finite numbers or circular references", () => {
+    it("throws TypeError on non-finite numbers, BigInt, or circular references", () => {
       expect(() => canonicalEnvelopeBytes(Number.NaN)).toThrow(TypeError);
       expect(() => canonicalEnvelopeBytes(Number.POSITIVE_INFINITY)).toThrow(TypeError);
+      expect(() => canonicalEnvelopeBytes(BigInt(42))).toThrow(TypeError);
+      expect(new TextDecoder().decode(canonicalEnvelopeBytes(() => {}))).toBe("null");
+      expect(new TextDecoder().decode(canonicalEnvelopeBytes(Symbol("test")))).toBe("null");
+      expect(new TextDecoder().decode(canonicalEnvelopeBytes([() => {}, Symbol("item")]))).toBe("[null,null]");
       const circularObj: { self?: object } = {};
       circularObj.self = circularObj;
       expect(() => canonicalEnvelopeBytes(circularObj)).toThrow(TypeError);
@@ -206,6 +210,13 @@ describe("Mailbox Envelope Cryptographic Serialization & Verification", () => {
       expect(verifyEnvelopeHmac("not-an-object" as unknown as MailboxEnvelope).valid).toBe(false);
       const withInjected = { ...envelope, unauthorized_injected_metadata: "evil" };
       expect(verifyEnvelopeHmac(withInjected as unknown as MailboxEnvelope).valid).toBe(false);
+
+      const circularPayload: { cycle?: object } = {};
+      circularPayload.cycle = circularPayload;
+      const withCircular = { ...envelope, payload: circularPayload };
+      const verifyRes = verifyEnvelopeHmac(withCircular as unknown as MailboxEnvelope);
+      expect(verifyRes.valid).toBe(false);
+      expect(verifyRes.error).toContain("Verification error");
     });
   });
 

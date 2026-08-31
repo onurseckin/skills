@@ -82,7 +82,7 @@ function isTrustedEnoent(error: unknown): boolean {
   }
 }
 
-export { isBroadScopeTest };
+export { isBroadScopeTest, readOwnDataString, isTrustedEnoent };
 
 export async function prepareCommand(
   input: CommandOptions,

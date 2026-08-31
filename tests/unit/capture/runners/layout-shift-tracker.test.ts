@@ -217,6 +217,11 @@ describe("layout-shift-tracker", () => {
         const r3: AABB = { x: 50, y: 50, width: 100, height: 100, left: 50, right: 150, top: 50, bottom: 150 };
         const area = computeRectanglesUnionArea([r1, r2, r3]);
         expect(area).toBe(17500); // 100*100 + 100*100 - 50*50 = 10000 + 10000 - 2500 = 17500
+
+        // Disjoint vertical intervals in the exact same x slice
+        const rTop: AABB = { x: 0, y: 0, width: 100, height: 50, left: 0, right: 100, top: 0, bottom: 50 };
+        const rBottom: AABB = { x: 0, y: 100, width: 100, height: 50, left: 0, right: 100, top: 100, bottom: 150 };
+        expect(computeRectanglesUnionArea([rTop, rBottom])).toBe(10000);
       });
     });
 

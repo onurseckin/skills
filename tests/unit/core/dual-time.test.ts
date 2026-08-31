@@ -22,6 +22,7 @@ import {
   updateSubagentLifecycle,
   type DualTimeRecord,
 } from "../../../olt/scripts/src/core/dual-time/index.ts";
+import { extractTimestampMs } from "../../../olt/scripts/src/core/dual-time/clock.ts";
 
 describe("Dual-Time Engine (DualTimeRecord, Conversion & Formatting)", () => {
   test("getDualTime() defaults to current time with complete valid structure", () => {
@@ -91,14 +92,44 @@ describe("Dual-Time Engine (DualTimeRecord, Conversion & Formatting)", () => {
     expect(converted.timezone).toBe("UTC");
     expect(converted.offset_minutes).toBe(0);
     expect(converted.timestamp_ms).toBe(initial.timestamp_ms);
+
+    // Object with timestamp_ms
+    const fromObjMs = getDualTime({ timestamp_ms: 1787391000000 } as DualTimeRecord, "UTC");
+    expect(fromObjMs.utc).toBe("2026-08-22T09:30:00.000Z");
+
+    // Object with utc string
+    const fromObjUtc = getDualTime({ utc: "2026-08-22T09:30:00.000Z" } as unknown as DualTimeRecord, "UTC");
+    expect(fromObjUtc.timestamp_ms).toBe(1787391000000);
   });
 
   test("getDualTime throws INVALID_ARGUMENT error on invalid inputs", () => {
     expect(() => getDualTime(NaN)).toThrow();
     expect(() => getDualTime(Infinity)).toThrow();
+    expect(() => getDualTime(8.64e15 + 100000)).toThrow();
     expect(() => getDualTime("not-a-valid-date-string")).toThrow();
     expect(() => getDualTime(new Date("invalid"))).toThrow();
     expect(() => getDualTime("2026-08-22T09:30:00.000Z", "Invalid/Timezone_Name")).toThrow();
+    expect(() => getDualTime({ foo: "bar" } as unknown as DualTimeRecord)).toThrow();
+    expect(() => getDualTime({ timestamp_ms: NaN } as unknown as DualTimeRecord)).toThrow();
+    expect(() => getDualTime({ utc: "invalid" } as unknown as DualTimeRecord)).toThrow();
+    expect(() => getDualTime(true as unknown as number)).toThrow();
+  });
+
+  test("extractTimestampMs resolves all input variants and throws on invalid", () => {
+    expect(extractTimestampMs(1787391000000)).toBe(1787391000000);
+    expect(extractTimestampMs(new Date("2026-08-22T09:30:00.000Z"))).toBe(1787391000000);
+    expect(extractTimestampMs("2026-08-22T09:30:00.000Z")).toBe(1787391000000);
+    expect(extractTimestampMs({ timestamp_ms: 1787391000000 } as DualTimeRecord)).toBe(1787391000000);
+    expect(extractTimestampMs({ utc: "2026-08-22T09:30:00.000Z" } as unknown as DualTimeRecord)).toBe(1787391000000);
+
+    expect(() => extractTimestampMs(NaN)).toThrow();
+    expect(() => extractTimestampMs(Infinity)).toThrow();
+    expect(() => extractTimestampMs(new Date("invalid"))).toThrow();
+    expect(() => extractTimestampMs("not-a-date")).toThrow();
+    expect(() => extractTimestampMs({ utc: "not-a-date" } as unknown as DualTimeRecord)).toThrow();
+    expect(() => extractTimestampMs({} as unknown as DualTimeRecord)).toThrow();
+    expect(() => extractTimestampMs(null as unknown as DualTimeRecord)).toThrow();
+    expect(() => extractTimestampMs(false as unknown as number)).toThrow();
   });
 
   test("formatDualTimeDisplay renders clean human-readable local time", () => {
@@ -118,6 +149,17 @@ describe("Dual-Time Engine (DualTimeRecord, Conversion & Formatting)", () => {
     const kathmanduDisplay = formatDualTimeDisplay(kathmanduRecord);
     expect(kathmanduDisplay).toContain("2026-08-22 15:15:00");
     expect(kathmanduDisplay).toContain("(UTC+05:45)");
+
+    // Test fallback when record has invalid timezone
+    const fallbackRecord: DualTimeRecord = {
+      utc: "2026-08-22T09:30:00.000Z",
+      local: "2026-08-22T02:30:00.000-07:00",
+      timezone: "Custom/Invalid_Timezone",
+      offset_minutes: -420,
+      timestamp_ms: 1787391000000,
+    };
+    const fallbackDisplay = formatDualTimeDisplay(fallbackRecord);
+    expect(fallbackDisplay).toContain("2026-08-22 02:30:00 Custom/Invalid_Timezone (UTC-07:00)");
   });
 });
 
@@ -144,6 +186,7 @@ describe("Duration Calculation & Formatting", () => {
     expect(formatDuration(-3500)).toBe("-3.50s");
     expect(formatDuration(-65000)).toBe("-1m 5s");
     expect(formatDuration(-3661000)).toBe("-1h 1m 1s");
+    expect(formatDuration(-90000000)).toBe("-1d 1h 0m");
   });
 
   test("calculateDuration computes duration between various input formats", () => {
@@ -265,6 +308,45 @@ describe("Subagent Lifecycle Telemetry", () => {
     expect(lifecycle.duration_ms).toBe(660000); // 11 minutes from claimed (09:01 to 09:12)
     expect(lifecycle.duration_formatted).toBe("11m 0s");
   });
+
+  test("createSubagentLifecycleTelemetry computes duration when spawned_at and submitted_at are provided directly", () => {
+    const lifecycle = createSubagentLifecycleTelemetry({
+      subagent_id: "agent-instant",
+      actor: "task_implementer",
+      spawned_at: "2026-08-22T09:00:00.000Z",
+      submitted_at: "2026-08-22T09:05:00.000Z",
+      timezone: "UTC",
+    });
+
+    expect(lifecycle.status).toBe("spawned");
+    expect(lifecycle.duration_ms).toBe(300000);
+    expect(lifecycle.duration_formatted).toBe("5m 0s");
+  });
+
+  test("createSubagentLifecycleTelemetry defaults status to running when not spawned", () => {
+    const lifecycle = createSubagentLifecycleTelemetry({
+      subagent_id: "agent-running",
+      actor: "task_implementer",
+    });
+    expect(lifecycle.status).toBe("running");
+  });
+
+  test("updateSubagentLifecycle falls back to spawned_at if claimed_at is missing", () => {
+    const initial = createSubagentLifecycleTelemetry({
+      subagent_id: "agent-spawn-only",
+      actor: "task_implementer",
+      spawned_at: "2026-08-22T09:00:00.000Z",
+      timezone: "UTC",
+    });
+
+    const updated = updateSubagentLifecycle(initial, {
+      submitted_at: "2026-08-22T09:03:00.000Z",
+      timezone: "UTC",
+    });
+
+    expect(updated.duration_ms).toBe(180000);
+    expect(updated.duration_formatted).toBe("3m 0s");
+  });
 });
 
 describe("Tool Execution Telemetry", () => {
@@ -304,6 +386,16 @@ describe("Tool Execution Telemetry", () => {
     expect(toolTelemetry.duration_ms).toBe(50);
     expect(isToolExecutionTelemetry(toolTelemetry)).toBe(true);
   });
+
+  test("createToolExecutionTelemetry defaults finished_at to now and status to success when no error", () => {
+    const toolTelemetry = createToolExecutionTelemetry({
+      tool_name: "write_file",
+      actor: "task_implementer",
+      started_at: Date.now() - 100,
+    });
+    expect(toolTelemetry.status).toBe("success");
+    expect(toolTelemetry.duration_ms).toBeGreaterThanOrEqual(0);
+  });
 });
 
 describe("Unit Test & Gate Telemetry", () => {
@@ -334,6 +426,30 @@ describe("Unit Test & Gate Telemetry", () => {
     expect(isUnitTestTelemetry(unitTelemetry)).toBe(true);
   });
 
+  test("createUnitTestTelemetry computes individual test durations from started_at and completed_at when duration_ms is undefined", () => {
+    const unitTelemetry = createUnitTestTelemetry({
+      test_suite: "tests/unit/core/timing.test.ts",
+      actor: "task_implementer",
+      started_at: "2026-08-22T09:30:00.000Z",
+      individual_tests: [
+        {
+          name: "dynamic timing test",
+          status: "pass",
+          started_at: "2026-08-22T09:30:00.000Z",
+          completed_at: "2026-08-22T09:30:00.250Z",
+        },
+        {
+          name: "zero timing test",
+          status: "pass",
+        },
+      ],
+    });
+
+    expect(unitTelemetry.individual_tests[0].duration_ms).toBe(250);
+    expect(unitTelemetry.individual_tests[0].duration_formatted).toBe("250ms");
+    expect(unitTelemetry.individual_tests[1].duration_ms).toBe(0);
+  });
+
   test("createUnitTestTelemetry marks passed=false when individual tests fail", () => {
     const unitTelemetry = createUnitTestTelemetry({
       test_suite: "tests/unit/core/failing.test.ts",
@@ -360,7 +476,7 @@ describe("Scheduler & Watchdog Telemetry", () => {
     expect(calculateDrift(1000, 1000)).toBe(0);
   });
 
-  test("createSchedulerWatchdogTelemetry captures tick, drift, and elapsed time", () => {
+  test("createSchedulerWatchdogTelemetry captures tick, drift, and elapsed time with defaults", () => {
     const startTime = 1787391000000;
     const expectedTick = 1787391010000; // 10s after start
     const actualTick = 1787391010045; // 45ms late
@@ -383,6 +499,15 @@ describe("Scheduler & Watchdog Telemetry", () => {
     expect(watchdog.tick_utc).toBe("2026-08-22T09:30:10.045Z");
     expect(watchdog.iteration).toBe(1);
     expect(isSchedulerWatchdogTelemetry(watchdog)).toBe(true);
+
+    // Test defaults: component defaults to "scheduler", expected_tick_ms and start_time default to actualMs
+    const defaultWatchdog = createSchedulerWatchdogTelemetry({
+      actor: "default_actor",
+      interval_ms: 5000,
+    });
+    expect(defaultWatchdog.component).toBe("scheduler");
+    expect(defaultWatchdog.drift_ms).toBe(0);
+    expect(defaultWatchdog.elapsed_ms).toBe(0);
   });
 });
 
@@ -425,30 +550,116 @@ describe("GraphJson & Step Machine Telemetry", () => {
     expect(stepTelemetry.duration_ms).toBe(3500);
     expect(stepTelemetry.duration_formatted).toBe("3.50s");
   });
+
+  test("createStepMachineTelemetry computes duration when started_at and completed_at are provided upfront", () => {
+    const stepTelemetry = createStepMachineTelemetry({
+      step_id: "step-direct",
+      step_name: "direct_step",
+      state: "completed",
+      actor: "orchestrator",
+      started_at: "2026-08-22T09:30:00.000Z",
+      completed_at: "2026-08-22T09:30:02.500Z",
+      timezone: "UTC",
+    });
+
+    expect(stepTelemetry.duration_ms).toBe(2500);
+    expect(stepTelemetry.duration_formatted).toBe("2.50s");
+  });
 });
 
 describe("Type Guards Validation", () => {
   test("type guards return false for non-conforming or partial objects", () => {
     expect(isDualTimeRecord(null)).toBe(false);
+    expect(isDualTimeRecord([])).toBe(false);
+    expect(isDualTimeRecord("string")).toBe(false);
     expect(isDualTimeRecord({})).toBe(false);
-    expect(isDualTimeRecord({ utc: "2026", local: "2026" })).toBe(false);
+    expect(isDualTimeRecord({ utc: 123 })).toBe(false);
+    expect(isDualTimeRecord({ utc: "2026", local: 123 })).toBe(false);
+    expect(isDualTimeRecord({ utc: "2026", local: "2026", timezone: 123 })).toBe(false);
+    expect(isDualTimeRecord({ utc: "2026", local: "2026", timezone: "UTC", offset_minutes: "0" })).toBe(false);
+    expect(isDualTimeRecord({ utc: "2026", local: "2026", timezone: "UTC", offset_minutes: 0, timestamp_ms: "invalid" })).toBe(false);
 
     expect(isActionTelemetry(null)).toBe(false);
-    expect(isActionTelemetry({ action_id: "123" })).toBe(false);
+    expect(isActionTelemetry([])).toBe(false);
+    expect(isActionTelemetry({ action_id: 123 })).toBe(false);
+    expect(isActionTelemetry({ action_id: "1", action_type: 123 })).toBe(false);
+    expect(isActionTelemetry({ action_id: "1", action_type: "a", actor: 123 })).toBe(false);
+    expect(isActionTelemetry({ action_id: "1", action_type: "a", actor: "act", display_time: 123 })).toBe(false);
+    expect(isActionTelemetry({ action_id: "1", action_type: "a", actor: "act", display_time: "time", timestamp: null })).toBe(false);
+    expect(isActionTelemetry({
+      action_id: "1",
+      action_type: "a",
+      actor: "act",
+      display_time: "time",
+      timestamp: getDualTime(),
+      details: null,
+    })).toBe(false);
 
     expect(isSubagentLifecycleTelemetry(null)).toBe(false);
-    expect(isSubagentLifecycleTelemetry({ subagent_id: "123" })).toBe(false);
+    expect(isSubagentLifecycleTelemetry([])).toBe(false);
+    expect(isSubagentLifecycleTelemetry({ subagent_id: 123 })).toBe(false);
+    expect(isSubagentLifecycleTelemetry({ subagent_id: "1", actor: 123 })).toBe(false);
+    expect(isSubagentLifecycleTelemetry({ subagent_id: "1", actor: "act", status: 123 })).toBe(false);
+    expect(isSubagentLifecycleTelemetry({ subagent_id: "1", actor: "act", status: "running", role: 123 })).toBe(false);
+    expect(isSubagentLifecycleTelemetry({ subagent_id: "1", actor: "act", status: "running", spawned_at: "invalid" })).toBe(false);
+    expect(isSubagentLifecycleTelemetry({ subagent_id: "1", actor: "act", status: "running", claimed_at: "invalid" })).toBe(false);
+    expect(isSubagentLifecycleTelemetry({ subagent_id: "1", actor: "act", status: "running", heartbeat_at: "invalid" })).toBe(false);
+    expect(isSubagentLifecycleTelemetry({ subagent_id: "1", actor: "act", status: "running", submitted_at: "invalid" })).toBe(false);
+    expect(isSubagentLifecycleTelemetry({ subagent_id: "1", actor: "act", status: "running", reviewed_at: "invalid" })).toBe(false);
+    expect(isSubagentLifecycleTelemetry({ subagent_id: "1", actor: "act", status: "running", duration_ms: "invalid" })).toBe(false);
+    expect(isSubagentLifecycleTelemetry({ subagent_id: "1", actor: "act", status: "running", duration_formatted: 123 })).toBe(false);
+    expect(isSubagentLifecycleTelemetry({ subagent_id: "1", actor: "act", status: "running", metadata: "invalid" })).toBe(false);
 
     expect(isToolExecutionTelemetry(null)).toBe(false);
-    expect(isToolExecutionTelemetry({ tool_name: "test" })).toBe(false);
+    expect(isToolExecutionTelemetry([])).toBe(false);
+    expect(isToolExecutionTelemetry({ tool_name: 123 })).toBe(false);
+    expect(isToolExecutionTelemetry({ tool_name: "t", actor: 123 })).toBe(false);
+    expect(isToolExecutionTelemetry({ tool_name: "t", actor: "a", started_at: "invalid" })).toBe(false);
+    expect(isToolExecutionTelemetry({ tool_name: "t", actor: "a", started_at: getDualTime(), finished_at: "invalid" })).toBe(false);
+    expect(isToolExecutionTelemetry({ tool_name: "t", actor: "a", started_at: getDualTime(), finished_at: getDualTime(), duration_ms: "0" })).toBe(false);
+    expect(isToolExecutionTelemetry({ tool_name: "t", actor: "a", started_at: getDualTime(), finished_at: getDualTime(), duration_ms: 0, duration_formatted: 123 })).toBe(false);
+    expect(isToolExecutionTelemetry({ tool_name: "t", actor: "a", started_at: getDualTime(), finished_at: getDualTime(), duration_ms: 0, duration_formatted: "0ms", status: "unknown" })).toBe(false);
+    expect(isToolExecutionTelemetry({ tool_name: "t", actor: "a", started_at: getDualTime(), finished_at: getDualTime(), duration_ms: 0, duration_formatted: "0ms", status: "success", error: 123 })).toBe(false);
+    expect(isToolExecutionTelemetry({ tool_name: "t", actor: "a", started_at: getDualTime(), finished_at: getDualTime(), duration_ms: 0, duration_formatted: "0ms", status: "success", parameters: "invalid" })).toBe(false);
+    expect(isToolExecutionTelemetry({ tool_name: "t", actor: "a", started_at: getDualTime(), finished_at: getDualTime(), duration_ms: 0, duration_formatted: "0ms", status: "success", details: "invalid" })).toBe(false);
 
     expect(isUnitTestTelemetry(null)).toBe(false);
-    expect(isUnitTestTelemetry({ test_suite: "test" })).toBe(false);
+    expect(isUnitTestTelemetry([])).toBe(false);
+    expect(isUnitTestTelemetry({ test_suite: 123 })).toBe(false);
+    expect(isUnitTestTelemetry({ test_suite: "s", actor: 123 })).toBe(false);
+    expect(isUnitTestTelemetry({ test_suite: "s", actor: "a", started_at: "invalid" })).toBe(false);
+    expect(isUnitTestTelemetry({ test_suite: "s", actor: "a", started_at: getDualTime(), completed_at: "invalid" })).toBe(false);
+    expect(isUnitTestTelemetry({ test_suite: "s", actor: "a", started_at: getDualTime(), completed_at: getDualTime(), test_duration_ms: "0" })).toBe(false);
+    expect(isUnitTestTelemetry({ test_suite: "s", actor: "a", started_at: getDualTime(), completed_at: getDualTime(), test_duration_ms: 0, test_duration_formatted: 123 })).toBe(false);
+    expect(isUnitTestTelemetry({ test_suite: "s", actor: "a", started_at: getDualTime(), completed_at: getDualTime(), test_duration_ms: 0, test_duration_formatted: "0ms", passed: "true" })).toBe(false);
+    expect(isUnitTestTelemetry({ test_suite: "s", actor: "a", started_at: getDualTime(), completed_at: getDualTime(), test_duration_ms: 0, test_duration_formatted: "0ms", passed: true, passed_count: "0" })).toBe(false);
+    expect(isUnitTestTelemetry({ test_suite: "s", actor: "a", started_at: getDualTime(), completed_at: getDualTime(), test_duration_ms: 0, test_duration_formatted: "0ms", passed: true, passed_count: 0, failed_count: "0" })).toBe(false);
+    expect(isUnitTestTelemetry({ test_suite: "s", actor: "a", started_at: getDualTime(), completed_at: getDualTime(), test_duration_ms: 0, test_duration_formatted: "0ms", passed: true, passed_count: 0, failed_count: 0, skipped_count: "0" })).toBe(false);
+    expect(isUnitTestTelemetry({ test_suite: "s", actor: "a", started_at: getDualTime(), completed_at: getDualTime(), test_duration_ms: 0, test_duration_formatted: "0ms", passed: true, passed_count: 0, failed_count: 0, skipped_count: 0, individual_tests: "invalid" })).toBe(false);
 
     expect(isSchedulerWatchdogTelemetry(null)).toBe(false);
-    expect(isSchedulerWatchdogTelemetry({ tick_utc: "2026" })).toBe(false);
+    expect(isSchedulerWatchdogTelemetry([])).toBe(false);
+    expect(isSchedulerWatchdogTelemetry({ tick_utc: 123 })).toBe(false);
+    expect(isSchedulerWatchdogTelemetry({ tick_utc: "u", tick_local: 123 })).toBe(false);
+    expect(isSchedulerWatchdogTelemetry({ tick_utc: "u", tick_local: "l", tick_dual: "invalid" })).toBe(false);
+    expect(isSchedulerWatchdogTelemetry({ tick_utc: "u", tick_local: "l", tick_dual: getDualTime(), interval_ms: "0" })).toBe(false);
+    expect(isSchedulerWatchdogTelemetry({ tick_utc: "u", tick_local: "l", tick_dual: getDualTime(), interval_ms: 0, drift_ms: "0" })).toBe(false);
+    expect(isSchedulerWatchdogTelemetry({ tick_utc: "u", tick_local: "l", tick_dual: getDualTime(), interval_ms: 0, drift_ms: 0, elapsed_ms: "0" })).toBe(false);
+    expect(isSchedulerWatchdogTelemetry({ tick_utc: "u", tick_local: "l", tick_dual: getDualTime(), interval_ms: 0, drift_ms: 0, elapsed_ms: 0, actor: 123 })).toBe(false);
+    expect(isSchedulerWatchdogTelemetry({ tick_utc: "u", tick_local: "l", tick_dual: getDualTime(), interval_ms: 0, drift_ms: 0, elapsed_ms: 0, actor: "a", component: 123 })).toBe(false);
+    expect(isSchedulerWatchdogTelemetry({ tick_utc: "u", tick_local: "l", tick_dual: getDualTime(), interval_ms: 0, drift_ms: 0, elapsed_ms: 0, actor: "a", component: "c", iteration: "invalid" })).toBe(false);
 
     expect(isStepMachineTelemetry(null)).toBe(false);
-    expect(isStepMachineTelemetry({ step_id: "123" })).toBe(false);
+    expect(isStepMachineTelemetry([])).toBe(false);
+    expect(isStepMachineTelemetry({ step_id: 123 })).toBe(false);
+    expect(isStepMachineTelemetry({ step_id: "s", step_name: 123 })).toBe(false);
+    expect(isStepMachineTelemetry({ step_id: "s", step_name: "n", state: 123 })).toBe(false);
+    expect(isStepMachineTelemetry({ step_id: "s", step_name: "n", state: "st", actor: 123 })).toBe(false);
+    expect(isStepMachineTelemetry({ step_id: "s", step_name: "n", state: "st", actor: "a", created_dual: "invalid" })).toBe(false);
+    expect(isStepMachineTelemetry({ step_id: "s", step_name: "n", state: "st", actor: "a", created_dual: getDualTime(), updated_dual: "invalid" })).toBe(false);
+    expect(isStepMachineTelemetry({ step_id: "s", step_name: "n", state: "st", actor: "a", created_dual: getDualTime(), updated_dual: getDualTime(), started_at: "invalid" })).toBe(false);
+    expect(isStepMachineTelemetry({ step_id: "s", step_name: "n", state: "st", actor: "a", created_dual: getDualTime(), updated_dual: getDualTime(), completed_at: "invalid" })).toBe(false);
+    expect(isStepMachineTelemetry({ step_id: "s", step_name: "n", state: "st", actor: "a", created_dual: getDualTime(), updated_dual: getDualTime(), duration_ms: "invalid" })).toBe(false);
+    expect(isStepMachineTelemetry({ step_id: "s", step_name: "n", state: "st", actor: "a", created_dual: getDualTime(), updated_dual: getDualTime(), duration_formatted: 123 })).toBe(false);
   });
 });

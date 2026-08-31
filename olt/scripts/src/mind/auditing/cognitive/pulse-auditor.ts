@@ -4,10 +4,8 @@ import {
   resolveActiveMindGrant,
 } from "./capsule-resolver.ts";
 import { auditRepositoryGovernanceHelper } from "./governance-auditor.ts";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
 import {
-  resolveCapsulesDir,
   resolveSkillHomeRepo,
   resolveDefectsPath,
   resolveBacklogPath,
@@ -17,9 +15,9 @@ import {
   VerbatimRoleInjector,
   type StagnationTelemetry,
 } from "../../../authority/verbatim-role-injector.ts";
-import { readLastPulse } from "../../lifecycle/pulse/index.ts";
 import { executeStagnationShockRecovery } from "../stagnation-recovery-interlock.ts";
 import { AuditorCursorStore } from "./cursor.ts";
+import { CognitiveChallengePromptGenerator } from "./challenge-generator.ts";
 import type { AuditorCursor, MindAuditLiveResult } from "./types.ts";
 
 export function auditMindPulseHelper(
@@ -60,15 +58,20 @@ export function auditMindPulseHelper(
     options !== undefined ? options.capsuleRunRoot : undefined,
   );
 
-  const lastActiveMs = activePulse
-    ? nowMs
-    : pulseMs !== null
-      ? pulseMs
-      : options !== undefined &&
-          options.cursor !== undefined &&
-          typeof options.cursor.lastInspectedTimestamp === "string"
-        ? new Date(options.cursor.lastInspectedTimestamp).getTime()
-        : nowMs - (threshold + 1) * 1000;
+  let lastActiveMs: number;
+  if (activePulse !== null) {
+    lastActiveMs = nowMs;
+  } else if (pulseMs !== null) {
+    lastActiveMs = pulseMs;
+  } else if (
+    options !== undefined &&
+    options.cursor !== undefined &&
+    typeof options.cursor.lastInspectedTimestamp === "string"
+  ) {
+    lastActiveMs = new Date(options.cursor.lastInspectedTimestamp).getTime();
+  } else {
+    lastActiveMs = nowMs - (threshold + 1) * 1000;
+  }
 
   const idleDurationSeconds = Math.max(0, Math.floor((nowMs - lastActiveMs) / 1000));
   const gov = auditRepositoryGovernanceHelper(
@@ -83,22 +86,23 @@ export function auditMindPulseHelper(
       options.cursor !== undefined &&
       typeof options.cursor.lastInspectedTimestamp === "string");
 
-  const isGovernanceDeficient = !gov.policyValid;
   const stagnant =
     (hasNativeMindEvidence && idleDurationSeconds >= threshold) || gov.simulatedExecutionDetected;
 
-  const remediation =
-    activePulse && !gov.simulatedExecutionDetected
-      ? "none"
-      : activeMindGrant === null
-        ? "deploy_mind"
-        : pulseMs === null || gov.simulatedExecutionDetected
-          ? "reconcile_native_mind"
-          : !gov.policyValid
-            ? "deploy_mind"
-            : stagnant
-              ? "wake_mind"
-              : "none";
+  let remediation: "deploy_mind" | "reconcile_native_mind" | "wake_mind" | "none";
+  if (activePulse !== null && !gov.simulatedExecutionDetected) {
+    remediation = "none";
+  } else if (activeMindGrant === null) {
+    remediation = "deploy_mind";
+  } else if (pulseMs === null || gov.simulatedExecutionDetected) {
+    remediation = "reconcile_native_mind";
+  } else if (!gov.policyValid) {
+    remediation = "deploy_mind";
+  } else if (stagnant) {
+    remediation = "wake_mind";
+  } else {
+    remediation = "none";
+  }
 
   let pendingBacklogCount = 0;
   const backlogPath = resolveBacklogPath(repoRoot);
@@ -136,8 +140,15 @@ export function auditMindPulseHelper(
   const localDefectCount =
     localDefectsPath !== mothershipDefectsPath ? countDefectLines(localDefectsPath) : 0;
 
+  let agentId = "unknown";
+  if (activePulse !== null && activePulse.actor !== undefined) {
+    agentId = activePulse.actor;
+  } else if (activeMindGrant !== null && activeMindGrant.actor !== undefined) {
+    agentId = activeMindGrant.actor;
+  }
+
   const telemetry: StagnationTelemetry = {
-    agentId: activePulse?.actor ?? activeMindGrant?.actor ?? "unknown",
+    agentId,
     conversationId: options !== undefined ? options.conversationId : undefined,
     role: "mind",
     idleDurationSeconds,
@@ -147,10 +158,23 @@ export function auditMindPulseHelper(
     lastActiveTimestamp: new Date(lastActiveMs).toISOString(),
   };
 
-  let injectionPrompt: string | undefined;
+  let injectionPrompt: string | undefined = undefined;
+  let cognitiveChallengePrompt: string | undefined = undefined;
   let defectCreated = false;
 
-  const stagnationSignature = `${telemetry.agentId}|${pulseMs ?? "none"}|${threshold}`;
+  if (pendingBacklogCount === 0) {
+    cognitiveChallengePrompt = CognitiveChallengePromptGenerator.generateZeroDeltaChallengePrompt(
+      repoRoot,
+      {
+        cycleIndex: cursor.lastInspectedEventIndex,
+        now: nowIso,
+      },
+    );
+  }
+
+  const pulseSig = pulseMs !== null ? String(pulseMs) : "none";
+  const stagnationSignature = `${telemetry.agentId}|${pulseSig}|${threshold}`;
+
   if (stagnant) {
     executeStagnationShockRecovery(repoRoot, {
       idleDurationSeconds,
@@ -158,7 +182,13 @@ export function auditMindPulseHelper(
       pendingBacklogCount,
       now: nowIso,
     });
-    injectionPrompt = VerbatimRoleInjector.buildInjectionPrompt(repoRoot, "mind", telemetry);
+    const baseInjection = VerbatimRoleInjector.buildInjectionPrompt(repoRoot, "mind", telemetry);
+    if (pendingBacklogCount === 0 && cognitiveChallengePrompt !== undefined) {
+      injectionPrompt = `${baseInjection}\n\n${cognitiveChallengePrompt}`;
+    } else {
+      injectionPrompt = baseInjection;
+    }
+
     if (cursor.lastStagnationSignature !== stagnationSignature) {
       const routeResult = SplitChannelDefectRouter.routeDefect({
         currentRepoRoot: repoRoot,
@@ -194,6 +224,7 @@ export function auditMindPulseHelper(
     telemetry,
     remediation,
     injectionPrompt,
+    cognitiveChallengePrompt,
     defectCreated,
     localDefectCount,
     cursor: updatedCursor,

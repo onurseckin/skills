@@ -7,8 +7,10 @@ export {
 } from "../../../logging/defects/index.ts";
 
 export function extractDefectKeywords(text: string): readonly string[] {
-  if (!text || typeof text !== "string") return [];
-  const words = text.toLowerCase().match(/\b[a-z]{3,}\b/g) ?? [];
+  if (typeof text !== "string") return [];
+  if (text.length === 0) return [];
+  const matchResult = text.toLowerCase().match(/\b[a-z]{3,}\b/g);
+  const words = matchResult !== null ? matchResult : [];
   const stopwords = new Set([
     "the",
     "and",
@@ -28,7 +30,8 @@ export function calculateDefectSimilarity(textA: string, textB: string): number 
   const setA = new Set(extractDefectKeywords(textA));
   const setB = new Set(extractDefectKeywords(textB));
   if (setA.size === 0 && setB.size === 0) return 1.0;
-  if (setA.size === 0 || setB.size === 0) return 0.0;
+  if (setA.size === 0) return 0.0;
+  if (setB.size === 0) return 0.0;
 
   let intersection = 0;
   for (const item of setA) {

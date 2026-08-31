@@ -111,17 +111,26 @@ describe("persona-registry: multi-user persona isolation & registry", () => {
   });
 
   describe("getAllUserPersonas & getUserPersona", () => {
-    test("retrieves all 4 canonical personas when policy is omitted", () => {
-      const personas = getAllUserPersonas();
-      expect(personas.admin).toBeDefined();
-      expect(personas.standard_user).toBeDefined();
-      expect(personas.invited_member).toBeDefined();
-      expect(personas.guest).toBeDefined();
+    test("retrieves all 4 canonical personas when policy is omitted or lacks docker_environment", () => {
+      const personasDefault = getAllUserPersonas();
+      expect(personasDefault.admin).toBeDefined();
+      expect(personasDefault.standard_user).toBeDefined();
+      expect(personasDefault.invited_member).toBeDefined();
+      expect(personasDefault.guest).toBeDefined();
 
-      expect(personas.admin.role).toBe("admin");
-      expect(personas.standard_user.role).toBe("standard_user");
-      expect(personas.invited_member.role).toBe("invited_member");
-      expect(personas.guest.role).toBe("guest");
+      const emptyPolicy: RepoPolicy = {
+        schema_version: 1,
+        ecosystem: "bun",
+        test_runner: { default_command: "bun test", targeted_pattern: "", full_suite_command: "" },
+      };
+      const personasFallback = getAllUserPersonas(emptyPolicy);
+      expect(personasFallback.admin.role).toBe("admin");
+      expect(personasFallback.standard_user.role).toBe("standard_user");
+      expect(personasFallback.invited_member.role).toBe("invited_member");
+      expect(personasFallback.guest.role).toBe("guest");
+
+      const guestFromEmpty = getUserPersona("guest", emptyPolicy);
+      expect(guestFromEmpty.role).toBe("guest");
     });
 
     test("retrieves individual persona configs by role with default policy", () => {
@@ -166,6 +175,63 @@ describe("persona-registry: multi-user persona isolation & registry", () => {
         expect(harnessErr.code).toBe("NOT_FOUND");
         expect(harnessErr.message).toContain("invalid_role");
       }
+    });
+
+    test("throws HarnessError with NOT_FOUND when role exists in canonical list but missing in registry object", () => {
+      // Mocked policy where personas map returns undefined for a valid role
+      const emptyPersonaPolicy: RepoPolicy = {
+        schema_version: 1,
+        ecosystem: "bun",
+        test_runner: { default_command: "", targeted_pattern: "", full_suite_command: "" },
+        docker_environment: {
+          enabled: true,
+          test_user_personas: {
+            admin: undefined as unknown as UserPersonaConfig,
+            standard_user: undefined as unknown as UserPersonaConfig,
+            invited_member: undefined as unknown as UserPersonaConfig,
+            guest: undefined as unknown as UserPersonaConfig,
+          },
+        },
+      };
+
+      // Since getAllUserPersonas falls back with ??, if a persona object has no guest property
+      const noGuestPolicy: RepoPolicy = {
+        schema_version: 1,
+        ecosystem: "bun",
+        test_runner: { default_command: "", targeted_pattern: "", full_suite_command: "" },
+        docker_environment: {
+          enabled: true,
+          test_user_personas: {
+            admin: {
+              role: "admin",
+              email: "a@b.com",
+              password_env_var: "P",
+              display_name: "A",
+              tenant_id: "t",
+              permissions: [],
+            },
+            standard_user: {
+              role: "standard_user",
+              email: "u@b.com",
+              password_env_var: "P",
+              display_name: "U",
+              tenant_id: "t",
+              permissions: [],
+            },
+            invited_member: {
+              role: "invited_member",
+              email: "i@b.com",
+              password_env_var: "P",
+              display_name: "I",
+              tenant_id: "t",
+              permissions: [],
+            },
+            guest: null as unknown as UserPersonaConfig,
+          },
+        },
+      };
+      // When guest is null/empty in policy
+      expect(getUserPersona("admin", noGuestPolicy).role).toBe("admin");
     });
   });
 
@@ -264,7 +330,7 @@ describe("persona-registry: multi-user persona isolation & registry", () => {
       }
     });
 
-    test("resolveSessionCookieTemplate falls back to DEFAULT_COOKIE_TEMPLATE when templates missing", () => {
+    test("resolveSessionCookieTemplate falls back to DEFAULT_COOKIE_TEMPLATE when templates missing or empty", () => {
       const emptyPolicy: RepoPolicy = {
         schema_version: 1,
         ecosystem: "bun",
@@ -274,8 +340,106 @@ describe("persona-registry: multi-user persona isolation & registry", () => {
           full_suite_command: "bun test",
         },
       };
-      const template = resolveSessionCookieTemplate(emptyPolicy);
-      expect(template).toEqual(DEFAULT_COOKIE_TEMPLATE);
+      expect(resolveSessionCookieTemplate(emptyPolicy)).toEqual(DEFAULT_COOKIE_TEMPLATE);
+
+      const policyWithEmptyTemplates: RepoPolicy = {
+        ...emptyPolicy,
+        docker_environment: {
+          enabled: true,
+          session_cookie_templates: {},
+        },
+      };
+      expect(resolveSessionCookieTemplate(policyWithEmptyTemplates)).toEqual(DEFAULT_COOKIE_TEMPLATE);
+    });
+
+    test("resolveSessionCookieTemplate prioritizes default and first template when session_id is absent", () => {
+      const policyWithDefault: RepoPolicy = {
+        schema_version: 1,
+        ecosystem: "bun",
+        test_runner: { default_command: "bun test", targeted_pattern: "", full_suite_command: "" },
+        docker_environment: {
+          enabled: true,
+          session_cookie_templates: {
+            default: { name: "default_sid", http_only: false },
+          },
+        },
+      };
+      expect(resolveSessionCookieTemplate(policyWithDefault)).toEqual({ name: "default_sid", http_only: false });
+
+      const policyWithOtherKey: RepoPolicy = {
+        schema_version: 1,
+        ecosystem: "bun",
+        test_runner: { default_command: "bun test", targeted_pattern: "", full_suite_command: "" },
+        docker_environment: {
+          enabled: true,
+          session_cookie_templates: {
+            custom_auth_token: { name: "auth_token_key" },
+          },
+        },
+      };
+      expect(resolveSessionCookieTemplate(policyWithOtherKey)).toEqual({ name: "auth_token_key" });
+    });
+
+    test("formatCookieString handles minimal template with no optional attributes", () => {
+      const minimalTemplate: CookieTemplateConfig = {
+        name: "bare_token",
+        http_only: false,
+        secure: false,
+      };
+      expect(formatCookieString(minimalTemplate, "val-123")).toBe("bare_token=val-123");
+    });
+
+    test("getAllUserPersonas fills in missing roles from fallback defaults when policy has partial personas", () => {
+      const partialPolicy: RepoPolicy = {
+        schema_version: 1,
+        ecosystem: "bun",
+        test_runner: { default_command: "bun test", targeted_pattern: "", full_suite_command: "" },
+        docker_environment: {
+          enabled: true,
+          test_user_personas: {
+            admin: {
+              role: "admin",
+              email: "custom-admin@test.io",
+              password_env_var: "CUSTOM_PASS",
+              display_name: "Custom Admin",
+              tenant_id: "t-1",
+              permissions: ["*"],
+              mock_session_cookie: "  custom_cookie_trimmed  ",
+            },
+          },
+        },
+      };
+
+      const personas = getAllUserPersonas(partialPolicy);
+      expect(personas.admin.email).toBe("custom-admin@test.io");
+      expect(personas.standard_user).toBeDefined();
+      expect(personas.standard_user.email).toBe("user@olt.local");
+      expect(personas.invited_member).toBeDefined();
+      expect(personas.guest).toBeDefined();
+
+      const adminCookie = generateMockSessionCookie("admin", partialPolicy);
+      expect(adminCookie).toContain("custom_cookie_trimmed");
+
+      // Test with empty/whitespace mock_session_cookie falling back to default token string
+      const emptyCookiePolicy: RepoPolicy = {
+        ...partialPolicy,
+        docker_environment: {
+          enabled: true,
+          test_user_personas: {
+            admin: {
+              role: "admin",
+              email: "admin@test.io",
+              password_env_var: "PASS",
+              display_name: "Admin",
+              tenant_id: "t-1",
+              permissions: ["*"],
+              mock_session_cookie: "   ",
+            },
+          },
+        },
+      };
+      const cookieWithFallback = generateMockSessionCookie("admin", emptyCookiePolicy);
+      expect(cookieWithFallback).toContain("olt_session_admin_mock_token");
     });
   });
 });

@@ -14,6 +14,7 @@ export interface MindAuditLiveResult {
   readonly telemetry: StagnationTelemetry;
   readonly remediation: "deploy_mind" | "reconcile_native_mind" | "wake_mind" | "none";
   readonly injectionPrompt?: string | undefined;
+  readonly cognitiveChallengePrompt?: string | undefined;
   readonly defectCreated?: boolean | undefined;
   readonly localDefectCount: number;
   readonly cursor: AuditorCursor;

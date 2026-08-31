@@ -14,8 +14,8 @@ function createMockStreamEvent(partial: Partial<EpistemicStreamEvent> = {}): Epi
     type: partial.type ?? "claim:registered",
     timestamp: partial.timestamp ?? 1000,
     payload: partial.payload ?? { recordId: "claim-1", tags: ["core", "eval"] },
-    confidence: partial.confidence ?? 0.8,
-    grade: partial.grade ?? "HIGH",
+    confidence: "confidence" in partial ? partial.confidence : 0.8,
+    grade: "grade" in partial ? partial.grade : "HIGH",
     source: partial.source ?? "test",
   };
 }
@@ -59,6 +59,87 @@ describe("Epistemic State Replayer", () => {
     expect(record?.grade).toBe("VERY_HIGH");
     expect(record?.contradictionCount).toBe(2);
     expect(record?.tags).toEqual(["alpha"]);
+
+    replayer.reset();
+    const resetState = replayer.getState();
+    expect(resetState.eventCount).toBe(0);
+    expect(resetState.records.size).toBe(0);
+    expect(resetState.lastEventId).toBeUndefined();
+  });
+
+  test("applies claim:registered with default attributes when properties are omitted", () => {
+    const replayer = new EpistemicStateReplayer();
+    const eDefault = createMockStreamEvent({
+      id: "evt-default",
+      type: "claim:registered",
+      confidence: undefined,
+      grade: undefined,
+      payload: {},
+    });
+
+    replayer.applyEvent(eDefault);
+    const state = replayer.getState();
+    const rec = state.records.get("evt-default");
+    expect(rec).toBeDefined();
+    expect(rec?.score).toBe(0.5);
+    expect(rec?.level).toBe("MODERATE_CONFIDENCE");
+    expect(rec?.grounded).toBe(true);
+    expect(rec?.entropy).toBe(0);
+    expect(rec?.contradictionCount).toBe(0);
+    expect(rec?.tags).toEqual([]);
+  });
+
+  test("handles grade:transition, entropy:shifted, default contradiction increment, and ignores unknown target ids", () => {
+    const replayer = new EpistemicStateReplayer();
+    replayer.applyEvent(createMockStreamEvent({
+      id: "e1",
+      type: "claim:registered",
+      confidence: 0.5,
+      payload: { recordId: "c1" },
+    }));
+
+    // grade:transition
+    replayer.applyEvent(createMockStreamEvent({
+      id: "e2",
+      type: "grade:transition",
+      confidence: 0.9,
+      grade: "VERY_HIGH",
+      payload: { recordId: "c1" },
+    }));
+    expect(replayer.getState().records.get("c1")?.grade).toBe("VERY_HIGH");
+
+    // contradiction:detected with default count
+    replayer.applyEvent(createMockStreamEvent({
+      id: "e3",
+      type: "contradiction:detected",
+      payload: { recordId: "c1" },
+    }));
+    expect(replayer.getState().records.get("c1")?.contradictionCount).toBe(1);
+
+    // entropy:shifted
+    replayer.applyEvent(createMockStreamEvent({
+      id: "e4",
+      type: "entropy:shifted",
+      payload: { recordId: "c1", entropy: 0.45 },
+    }));
+    expect(replayer.getState().records.get("c1")?.entropy).toBe(0.45);
+
+    // events on non-existent record (should not crash)
+    replayer.applyEvent(createMockStreamEvent({
+      id: "e-unknown",
+      type: "score:recalculated",
+      payload: { recordId: "c-unknown" },
+    }));
+    replayer.applyEvent(createMockStreamEvent({
+      id: "e-unknown-contra",
+      type: "contradiction:detected",
+      payload: { recordId: "c-unknown" },
+    }));
+    replayer.applyEvent(createMockStreamEvent({
+      id: "e-unknown-entropy",
+      type: "entropy:shifted",
+      payload: { recordId: "c-unknown", entropy: 0.1 },
+    }));
   });
 
   test("performs point-in-time state reconstruction (time-travel replay)", () => {
@@ -156,6 +237,13 @@ describe("Epistemic State Diffing & Reconstruct Helper", () => {
         grade: "MEDIUM",
         payload: { recordId: "c2" },
       }),
+      createMockStreamEvent({
+        id: "e4",
+        type: "claim:registered",
+        confidence: 0.8,
+        grade: "HIGH",
+        payload: { recordId: "c4" },
+      }),
     ]);
 
     const replayerB = new EpistemicStateReplayer();
@@ -174,6 +262,13 @@ describe("Epistemic State Diffing & Reconstruct Helper", () => {
         grade: "MEDIUM",
         payload: { recordId: "c3" },
       }),
+      createMockStreamEvent({
+        id: "e4",
+        type: "claim:registered",
+        confidence: 0.8,
+        grade: "HIGH",
+        payload: { recordId: "c4" },
+      }),
     ]);
 
     const diff = diffEpistemicStates(replayerA.getState(), replayerB.getState());
@@ -184,7 +279,7 @@ describe("Epistemic State Diffing & Reconstruct Helper", () => {
     expect(diff.gradeTransitions["c1"]).toEqual({ from: "MEDIUM", to: "VERY_HIGH" });
   });
 
-  test("reconstructEpistemicState applies snapshot + delta events", () => {
+  test("reconstructEpistemicState applies snapshot + delta events and handles empty snapshot", () => {
     const snapshot: EpistemicStateSnapshot = {
       timestamp: 1000,
       eventCount: 1,
@@ -221,6 +316,10 @@ describe("Epistemic State Diffing & Reconstruct Helper", () => {
     expect(state.records.get("c1")?.score).toBe(0.92);
     expect(state.records.get("c1")?.grade).toBe("VERY_HIGH");
     expect(state.eventCount).toBe(2);
+
+    // Reconstruct without snapshot
+    const stateNoSnap = reconstructEpistemicState(deltaEvents);
+    expect(stateNoSnap.eventCount).toBe(1);
   });
 
   test("buildSparseIndexFromState produces a queryable index store", () => {

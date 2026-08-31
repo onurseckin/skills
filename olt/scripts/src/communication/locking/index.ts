@@ -5,6 +5,7 @@ export {
   delay,
   isProcessAlive,
   parseLockPayload,
+  readHolderPid,
   acquireMailboxLock,
   releaseMailboxLock,
   withExclusiveLock,

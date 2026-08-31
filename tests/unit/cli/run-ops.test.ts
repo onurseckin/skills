@@ -1,8 +1,12 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, spyOn, test } from "bun:test";
 import {
   appendReleaseFailureWarning,
   resolvePhaseCompletionResult,
+  runArchiveCommand,
+  runCompleteCommand,
+  runConsolidateCommand,
   runExecCommand,
+  runStatusCommand,
 } from "../../../olt/scripts/src/cli/commands/run-ops.ts";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { createAgentMetadata, writeAgentMetadata } from "../../../olt/scripts/src/runtime/index.ts";
@@ -12,6 +16,12 @@ import { join } from "node:path";
 import type { Flags } from "../../../olt/scripts/src/cli/options.ts";
 import { workflowPort } from "../../../olt/scripts/src/integration/store-ports.ts";
 import { generateDefaultRepoPolicy } from "../../../olt/scripts/src/policy/repo-policy.ts";
+import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
+import * as completeRunModule from "../../../olt/scripts/src/workflow/completion/complete-run.ts";
+import * as autoSyncModule from "../../../olt/scripts/src/workflow/completion/auto-sync-and-commit.ts";
+import * as summaryModule from "../../../olt/scripts/src/summary/formatters/index.ts";
+import * as archivalModule from "../../../olt/scripts/src/mind/archival/index.ts";
+import type { WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 import { setupCompiledRun } from "./task-ops-fixture.ts";
 
 async function initializeRun(label: string): Promise<{ repo: string; runRoot: string }> {
@@ -113,6 +123,217 @@ describe("runCompleteCommand", () => {
     expect(appendReleaseFailureWarning("### Run Complete", "sync service unavailable")).toBe(
       "### Run Complete\n- **Warning**: Release completion failed: sync service unavailable",
     );
+    expect(appendReleaseFailureWarning("### Run Complete", undefined)).toBe("### Run Complete");
+  });
+
+  test("completes run lifecycle and captures auto sync release logs and warnings", async () => {
+    const { runRoot } = await initializeRun("run-complete-lifecycle");
+    const actor = "coordinator";
+    grantShellExecution(runRoot, actor);
+
+    const completeSpy = spyOn(completeRunModule, "completeRun").mockReturnValue({
+      tasks: {
+        "T-1": {
+          id: "T-1",
+          status: "done",
+          requirement_ids: [],
+          write_scope: ["."],
+          dependencies: [],
+          attempts: [],
+          history: [],
+          repair_round: 0,
+        },
+      },
+      requirements: [],
+      gates: [],
+      commands: {},
+      completion_result: {
+        status: "complete",
+        completed_at: new Date().toISOString(),
+      },
+    } as unknown as WorkflowState);
+
+    const autoSyncSpy = spyOn(autoSyncModule, "executeAutoSyncAndCommit").mockResolvedValue({
+      synced: false,
+      committed: false,
+      pushed: false,
+      logs: ["[sync] failed to sync skills", "[commit] git clean failed"],
+    });
+
+    const summarySpy = spyOn(summaryModule, "generateSummarySuite").mockImplementation(() => {
+      throw new Error("summary generation warning");
+    });
+
+    const pruneSpy = spyOn(archivalModule, "pruneCapsuleBoilerplate").mockReturnValue({
+      runId: "run-complete-lifecycle-run",
+      prunedDirectories: ["events-archive"],
+      prunedFilesCount: 1,
+      freedBytes: 1024,
+    });
+
+    const res = await runCompleteCommand({
+      run: runRoot,
+      actor,
+      "auth-token": "test-token",
+    });
+
+    expect(res.run_root).toBe(runRoot);
+    expect(res.summary_warning).toBe("summary generation warning");
+    expect(res.pruned_subdirectories).toEqual(["events-archive"]);
+    expect(String(res.markdown)).toContain("Warning");
+
+    completeSpy.mockRestore();
+    autoSyncSpy.mockRestore();
+    summarySpy.mockRestore();
+    pruneSpy.mockRestore();
+  });
+});
+
+describe("runConsolidateCommand and runArchiveCommand", () => {
+  test("runs consolidation command with dryRun and custom directory", () => {
+    const consolidateSpy = spyOn(archivalModule, "consolidateCapsules").mockReturnValue({
+      activeCapsules: [".olt/capsules/run-1"],
+      archivedCapsules: [".olt/capsules/archive/run-0"],
+      prunedSubdirectoriesCount: 3,
+      archiveDir: ".olt/capsules/archive",
+    });
+
+    const res = runConsolidateCommand({
+      repo: "/mock/repo",
+      "capsules-dir": "/mock/repo/.olt/capsules",
+      "dry-run": true,
+    });
+
+    expect(res.activeCapsules).toHaveLength(1);
+    expect(res.archivedCapsules).toHaveLength(1);
+    expect(String(res.markdown)).toContain("Capsule Consolidation Complete");
+
+    consolidateSpy.mockRestore();
+  });
+
+  test("runs archive command with dryRun", () => {
+    const archiveSpy = spyOn(archivalModule, "archiveCapsule").mockReturnValue({
+      runId: "run-archive-1",
+      sourcePath: ".olt/capsules/run-archive-1",
+      archivedPath: ".olt/capsules/archive/run-archive-1",
+      prunedDirectories: ["scratch", "tmp"],
+    });
+
+    const res = runArchiveCommand({
+      run: ".olt/capsules/run-archive-1",
+      "dry-run": true,
+    });
+
+    expect(res.runId).toBe("run-archive-1");
+    expect(String(res.markdown)).toContain("Capsule Archived: `run-archive-1`");
+
+    archiveSpy.mockRestore();
+  });
+});
+
+describe("runStatusCommand", () => {
+  test("reports detailed status across all possible task states and occupancy metrics", async () => {
+    const { runRoot, repo } = await initializeRun("run-status-full");
+
+    transact(runRoot, "coordinator", "setup-various-tasks", {}, (draft) => {
+      draft.graph = { revision: 1 };
+      draft.tasks = {
+        "T-DONE": {
+          id: "T-DONE",
+          status: "done",
+          label: "Completed Task",
+          write_scope: ["src/done.ts"],
+        },
+        "T-SUBMITTED": {
+          id: "T-SUBMITTED",
+          status: "submitted",
+          label: "Submitted Task",
+          original_implementer: "worker-impl",
+          write_scope: ["src/sub.ts"],
+        },
+        "T-LEASED": {
+          id: "T-LEASED",
+          status: "leased",
+          label: "Leased Task",
+          write_scope: ["src/leased.ts"],
+          lease: {
+            agent_id: "worker-1",
+            role: "implementer",
+          },
+        },
+        "T-VAL-ACTIVE": {
+          id: "T-VAL-ACTIVE",
+          status: "validating",
+          label: "Active Validation Task",
+          write_scope: ["src/val.ts"],
+          validations: [
+            {
+              validator_id: "val-1",
+              domain: "quality",
+            },
+          ],
+        },
+        "T-VAL-DONE": {
+          id: "T-VAL-DONE",
+          status: "validating",
+          label: "Finished Validation Task",
+          write_scope: ["src/val2.ts"],
+          validations: [
+            {
+              validator_id: "val-2",
+              domain: "security",
+              verdict: "pass",
+            },
+          ],
+        },
+        "T-VAL-PENDING": {
+          id: "T-VAL-PENDING",
+          status: "validating",
+          label: "Pending Probe Task",
+          write_scope: ["src/val3.ts"],
+          validations: [],
+        },
+        "T-READY": {
+          id: "T-READY",
+          status: "ready",
+          label: "Ready Task",
+          write_scope: ["src/ready.ts"],
+        },
+        "T-PROPOSED": {
+          id: "T-PROPOSED",
+          status: "proposed",
+          label: "Blocked Task",
+          write_scope: ["src/prop.ts"],
+        },
+        "T-REPAIR": {
+          id: "T-REPAIR",
+          status: "changes_requested",
+          label: "Repair Task",
+          write_scope: ["src/repair.ts"],
+        },
+        "T-UNKNOWN": {
+          id: "T-UNKNOWN",
+          status: "custom_status",
+          label: "Unknown Status Task",
+          write_scope: ["src/unk.ts"],
+        },
+      };
+    });
+
+    const statusRes = runStatusCommand({
+      repo,
+      run: runRoot,
+      detailed: true,
+    });
+
+    expect(statusRes.run_root).toBe(runRoot);
+    expect(statusRes.detailed).toBe(true);
+    expect(statusRes.occupancy).toBeDefined();
+    expect(String(statusRes.markdown)).toContain("Completed");
+    expect(String(statusRes.markdown)).toContain("Leased");
+    expect(String(statusRes.markdown)).toContain("Validating");
+    expect(String(statusRes.markdown)).toContain("Standby (Ready)");
+    expect(String(statusRes.markdown)).toContain("Repair Required");
   });
 });
 
@@ -193,6 +414,27 @@ describe("runExecCommand durable metadata authority", () => {
     ).rejects.toMatchObject({
       code: "INVALID_ARGUMENT",
     });
+  });
+
+  test("supports custom cwd, tool flags, and command result capture", async () => {
+    const { repo, runRoot } = await initializeRun("run-exec-cwd-flags");
+    const actor = "impl-cwd-flags";
+    grantShellExecution(runRoot, actor);
+
+    const res = await runExecCommand(
+      {
+        ...runFlags(runRoot, actor),
+        cwd: repo,
+        tool: "shell",
+        "tool-category": "system",
+      },
+      {},
+      ["echo", "cwd test"],
+    );
+
+    expect(res.exit_code).toBe(0);
+    expect(res.evidence).toBeDefined();
+    expect(String(res.markdown)).toContain("echo cwd test");
   });
 });
 

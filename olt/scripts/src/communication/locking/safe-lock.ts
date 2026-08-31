@@ -11,7 +11,6 @@ import {
   statSync,
   unlinkSync,
   writeSync,
-  type Stats,
 } from "node:fs";
 import { dirname, join } from "node:path";
 import { HarnessError } from "../../core/errors/index.ts";
@@ -64,9 +63,8 @@ export function parseLockPayload(content: string): LockPayload | null {
   }
 }
 
-function readHolderPid(lockPath: string): number | null {
+export function readHolderPid(lockPath: string): number | null {
   try {
-    if (!existsSync(lockPath)) return null;
     return parseLockPayload(readFileSync(lockPath, "utf8"))?.pid ?? null;
   } catch {
     return null;
@@ -117,7 +115,7 @@ export function acquireMailboxLock(
     }
   }
 
-  let descriptor: number | undefined;
+  let descriptor: number;
   try {
     descriptor = openSync(lockPath, constants.O_RDWR | constants.O_CREAT, 0o644);
   } catch (error) {
@@ -125,42 +123,26 @@ export function acquireMailboxLock(
   }
 
   const deadline = performance.now() + timeoutMs;
-  let acquired = false;
-  try {
-    while (!(acquired = tryExclusiveFlock(descriptor))) {
-      const remaining = deadline - performance.now();
-      if (remaining <= 0) {
-        const holderPid = readHolderPid(lockPath);
-        closeSync(descriptor);
-        descriptor = undefined;
-        return { acquired: false, lockFd: null, lockPath, holderPid };
-      }
-      delay(Math.min(retryMs, remaining));
+  while (!tryExclusiveFlock(descriptor)) {
+    const remaining = deadline - performance.now();
+    if (remaining <= 0) {
+      const holderPid = readHolderPid(lockPath);
+      closeSync(descriptor);
+      return { acquired: false, lockFd: null, lockPath, holderPid };
     }
-
-    const payload: LockPayload = {
-      pid: process.pid,
-      holder: agentId,
-      created_at: new Date().toISOString(),
-    };
-    const serialized = JSON.stringify(payload) + "\n";
-    ftruncateSync(descriptor, 0);
-    writeSync(descriptor, serialized, 0, "utf8");
-    fsyncSync(descriptor);
-    return { acquired: true, lockFd: descriptor, lockPath, holderPid: process.pid };
-  } catch (error) {
-    if (descriptor !== undefined) {
-      if (acquired) {
-        try {
-          releaseFlock(descriptor);
-        } catch {}
-      }
-      try {
-        closeSync(descriptor);
-      } catch {}
-    }
-    throw error;
+    delay(Math.min(retryMs, remaining));
   }
+
+  const payload: LockPayload = {
+    pid: process.pid,
+    holder: agentId,
+    created_at: new Date().toISOString(),
+  };
+  const serialized = JSON.stringify(payload) + "\n";
+  ftruncateSync(descriptor, 0);
+  writeSync(descriptor, serialized, 0, "utf8");
+  fsyncSync(descriptor);
+  return { acquired: true, lockFd: descriptor, lockPath, holderPid: process.pid };
 }
 
 export function releaseMailboxLock(result: LockAcquisitionResult): void {
@@ -233,17 +215,11 @@ export function reclaimStaleLocks(
   if (!Number.isFinite(staleThresholdMs) || staleThresholdMs < 0) {
     throw new HarnessError("INVALID_ARGUMENT", "staleThresholdMs must be finite and non-negative");
   }
-  if (!existsSync(locksDir)) return [];
-  let dirStat: Stats;
-  try {
-    dirStat = statSync(locksDir);
-  } catch {
-    return [];
-  }
-  if (!dirStat.isDirectory()) return [];
 
   let entries: string[] = [];
   try {
+    const dirStat = statSync(locksDir);
+    if (!dirStat.isDirectory()) return [];
     entries = readdirSync(locksDir);
   } catch {
     return [];

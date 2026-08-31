@@ -233,8 +233,29 @@ export class InferenceGraph {
   }
 
   public hasCycle(): boolean {
-    const order = this.topologicalSort();
-    return order.length !== this.nodes.size;
+    const inDegrees = new Map<string, number>();
+    for (const id of this.nodes.keys()) {
+      const inMap = this.incoming.get(id);
+      inDegrees.set(id, inMap ? inMap.size : 0);
+    }
+    const queue: string[] = [];
+    for (const [id, deg] of inDegrees.entries()) {
+      if (deg === 0) queue.push(id);
+    }
+    let processed = 0;
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      processed += 1;
+      const outMap = this.outgoing.get(current);
+      if (outMap) {
+        for (const targetId of outMap.keys()) {
+          const nextInDeg = (inDegrees.get(targetId) ?? 1) - 1;
+          inDegrees.set(targetId, nextInDeg);
+          if (nextInDeg === 0) queue.push(targetId);
+        }
+      }
+    }
+    return processed !== this.nodes.size;
   }
 
   public getDownstreamDependents(nodeId: string): readonly string[] {

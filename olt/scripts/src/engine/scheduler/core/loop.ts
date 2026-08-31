@@ -33,9 +33,7 @@ export function probePlanEnhancementNeeds(state: unknown): PlanEnhancementAudit 
   if (isRecord(state.requirements)) {
     const list = Array.isArray(state.requirements.requirements)
       ? state.requirements.requirements
-      : Array.isArray(state.requirements)
-        ? state.requirements
-        : [];
+      : [];
     for (const r of list) {
       if (isRecord(r) && typeof r.id === "string") {
         knownReqs.add(r.id);

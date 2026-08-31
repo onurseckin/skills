@@ -11,11 +11,23 @@ import {
 } from "./capsule-resolver.ts";
 import type { AuditorCursor, MindAuditLiveResult } from "./types.ts";
 
+import {
+  generateCognitiveChallengePrompt,
+  generateZeroDeltaChallengePrompt,
+  CognitiveChallengePromptGenerator,
+  type CognitiveChallenge,
+  type CognitiveChallengeOptions,
+  type ZeroDeltaChallengeOptions,
+} from "./challenge-generator.ts";
+
 export class MindAuditorEngine {
   public static resolveActivePulse = resolveActivePulse;
   public static resolveActiveMindGrant = resolveActiveMindGrant;
   public static resolveLatestCapsule = resolveLatestCapsule;
   public static resolveLatestPulseTimestamp = resolveLatestPulseTimestamp;
+  public static generateCognitiveChallengePrompt = generateCognitiveChallengePrompt;
+  public static generateZeroDeltaChallengePrompt = generateZeroDeltaChallengePrompt;
+  public static generateCognitiveChallenge = CognitiveChallengePromptGenerator.generateCognitiveChallenge;
 
   public static auditRepositoryGovernance(
     repoRoot: string,
@@ -51,7 +63,7 @@ export class MindAuditorEngine {
     readonly unprovenClaims: readonly string[];
   } {
     const unprovenClaims: string[] = [];
-    const available = receipts ?? {};
+    const available = receipts !== undefined ? receipts : {};
 
     for (const cmdId of commandIds) {
       const receipt = (available as Record<string, unknown>)[cmdId];

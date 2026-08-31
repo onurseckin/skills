@@ -29,19 +29,12 @@ export function isUserPersonaRole(role: unknown): role is UserPersonaRole {
 }
 
 function resolveRepoRoot(): string {
-  try {
-    return findRepoRoot();
-  } catch {
-    return process.cwd();
-  }
+  return findRepoRoot();
 }
 
 function getFallbackDefaultPersonas(): Record<UserPersonaRole, UserPersonaConfig> {
   const defaultPolicy = generateCanonicalDefaultPolicy(resolveRepoRoot());
-  if (defaultPolicy.docker_environment?.test_user_personas) {
-    return defaultPolicy.docker_environment.test_user_personas;
-  }
-  return {
+  return defaultPolicy.docker_environment?.test_user_personas ?? {
     admin: {
       role: "admin",
       email: "admin@olt.local",
@@ -49,7 +42,6 @@ function getFallbackDefaultPersonas(): Record<UserPersonaRole, UserPersonaConfig
       display_name: "Test Admin",
       tenant_id: "tenant-corp-001",
       permissions: ["*"],
-      mock_session_cookie: "olt_session_admin_mock_token_sec991823",
     },
     standard_user: {
       role: "standard_user",
@@ -58,7 +50,6 @@ function getFallbackDefaultPersonas(): Record<UserPersonaRole, UserPersonaConfig
       display_name: "Standard User",
       tenant_id: "tenant-corp-001",
       permissions: ["read", "write"],
-      mock_session_cookie: "olt_session_user_mock_token_usr102938",
     },
     invited_member: {
       role: "invited_member",
@@ -67,7 +58,6 @@ function getFallbackDefaultPersonas(): Record<UserPersonaRole, UserPersonaConfig
       display_name: "Invited Member",
       tenant_id: "tenant-corp-001",
       permissions: ["read"],
-      mock_session_cookie: "olt_session_invited_mock_token_inv482019",
     },
     guest: {
       role: "guest",
@@ -81,14 +71,7 @@ function getFallbackDefaultPersonas(): Record<UserPersonaRole, UserPersonaConfig
 }
 
 function resolveEffectivePolicy(policy?: RepoPolicy): RepoPolicy {
-  if (policy) {
-    return policy;
-  }
-  try {
-    return loadRepoPolicy();
-  } catch {
-    return generateCanonicalDefaultPolicy(resolveRepoRoot());
-  }
+  return policy ?? loadRepoPolicy();
 }
 
 export function getAllUserPersonas(

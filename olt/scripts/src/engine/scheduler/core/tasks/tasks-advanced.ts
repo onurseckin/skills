@@ -152,7 +152,7 @@ export function probeWorkSpanParallelizationHealth(state: unknown): WorkSpanHeal
       spanUtilizationRatio =
         metrics.span > 0 ? Number((metrics.work / metrics.span).toFixed(2)) : 1;
       dynamicTopologyWaveCount = metrics.minWaves;
-      if (metrics.parallelismFactor < 1.0 && totalTasks > 3 && completedTasks < totalTasks) {
+      if (metrics.parallelismFactor <= 1.0 && totalTasks > 3 && completedTasks < totalTasks) {
         activeBottlenecks.push(
           `Critical path length (${metrics.criticalPath.length}) restricts parallelism ratio to ${metrics.parallelismFactor.toFixed(2)}.`,
         );

@@ -42,25 +42,46 @@ export {
 };
 
 export function validateGovernanceCharter(parsed: ParsedCharter): boolean {
-  if (!parsed || typeof parsed !== "object") {
+  if (!parsed) {
     return false;
   }
-  if (typeof parsed.identity !== "string" || !parsed.identity.trim()) {
+  if (typeof parsed !== "object") {
     return false;
   }
-  if (!Array.isArray(parsed.goals) || parsed.goals.length === 0) {
+  if (typeof parsed.identity !== "string") {
     return false;
   }
-  if (!Array.isArray(parsed.goalIds) || parsed.goalIds.length === 0) {
+  if (parsed.identity.trim().length === 0) {
     return false;
   }
-  if (!Array.isArray(parsed.nonGoals) || parsed.nonGoals.length === 0) {
+  if (!Array.isArray(parsed.goals)) {
     return false;
   }
-  if (!Array.isArray(parsed.repoRoots) || parsed.repoRoots.length === 0) {
+  if (parsed.goals.length === 0) {
     return false;
   }
-  if (typeof parsed.sha256 !== "string" || parsed.sha256.length !== 64) {
+  if (!Array.isArray(parsed.goalIds)) {
+    return false;
+  }
+  if (parsed.goalIds.length === 0) {
+    return false;
+  }
+  if (!Array.isArray(parsed.nonGoals)) {
+    return false;
+  }
+  if (parsed.nonGoals.length === 0) {
+    return false;
+  }
+  if (!Array.isArray(parsed.repoRoots)) {
+    return false;
+  }
+  if (parsed.repoRoots.length === 0) {
+    return false;
+  }
+  if (typeof parsed.sha256 !== "string") {
+    return false;
+  }
+  if (parsed.sha256.length !== 64) {
     return false;
   }
   return true;

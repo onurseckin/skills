@@ -6,6 +6,7 @@ import ts from "typescript";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import {
   collectSourceFilesRecursively,
+  computeTaskCheckVerdict,
   findNearestTsconfig,
   formatTaskCheckMarkdown,
   isSupportedSourceFile,
@@ -425,4 +426,33 @@ describe("task:check command and helpers", () => {
 
     expect(await readFile(eventsPath, "utf-8")).toBe(eventsBefore);
   });
+
+  test("computeTaskCheckVerdict evaluates combinations accurately", () => {
+    expect(computeTaskCheckVerdict(undefined, undefined)).toBe(false);
+    expect(
+      computeTaskCheckVerdict(
+        { passed: true, totalFiles: 1, totalErrors: 0, totalWarnings: 0, diagnostics: [] },
+        undefined,
+      ),
+    ).toBe(true);
+    expect(
+      computeTaskCheckVerdict(
+        undefined,
+        { passed: true, totalFiles: 1, totalViolations: 0, violations: [], summaryByRule: {} },
+      ),
+    ).toBe(true);
+    expect(
+      computeTaskCheckVerdict(
+        { passed: false, totalFiles: 1, totalErrors: 1, totalWarnings: 0, diagnostics: [] },
+        { passed: true, totalFiles: 1, totalViolations: 0, violations: [], summaryByRule: {} },
+      ),
+    ).toBe(false);
+    expect(
+      computeTaskCheckVerdict(
+        { passed: true, totalFiles: 1, totalErrors: 0, totalWarnings: 0, diagnostics: [] },
+        { passed: false, totalFiles: 1, totalViolations: 1, violations: [], summaryByRule: {} },
+      ),
+    ).toBe(false);
+  });
 });
+

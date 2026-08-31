@@ -35,9 +35,14 @@ export class LiveDefectDeduplicator {
   } {
     const key = computeDefectDiscriminator(defect);
     const existing = this.entries.get(key);
-    const strategy = this.options.strategy || "aggregate_synchronous";
-    const windowMs = this.options.windowMs ?? 60_000;
-    const maxOccurrences = this.options.maxOccurrences ?? 50;
+    const strategy =
+      this.options.strategy !== undefined && this.options.strategy !== ""
+        ? this.options.strategy
+        : "aggregate_synchronous";
+    const windowMs =
+      this.options.windowMs !== undefined ? this.options.windowMs : 60_000;
+    const maxOccurrences =
+      this.options.maxOccurrences !== undefined ? this.options.maxOccurrences : 50;
 
     if (!existing) {
       const entry = toAggregatedDefect(defect);
@@ -57,8 +62,9 @@ export class LiveDefectDeduplicator {
       return { isNew: false, entry: existing, occurrenceCount: existing.count };
     }
 
-    if (strategy === "windowed" || strategy === "sliding_window_hash") {
-      const incomingTs = defect.timestamp ?? new Date().toISOString();
+    if (["windowed", "sliding_window_hash"].includes(strategy)) {
+      const incomingTs =
+        defect.timestamp !== undefined ? defect.timestamp : new Date().toISOString();
       if (!withinDeduplicationWindow(existing.last_seen_at, incomingTs, windowMs)) {
         const newEntry = toAggregatedDefect(defect);
         this.entries.set(key, newEntry);
@@ -109,7 +115,10 @@ export class LiveDefectDeduplicator {
 
   public getBySeverity(severity: string): readonly AggregatedDefect[] {
     const norm = severity.toLowerCase().trim();
-    return this.getAll().filter((b) => (b.severity || "").toLowerCase().trim() === norm);
+    return this.getAll().filter((b) => {
+      const s = b.severity !== undefined ? b.severity : "";
+      return s.toLowerCase().trim() === norm;
+    });
   }
 
   public resolve(
@@ -125,7 +134,11 @@ export class LiveDefectDeduplicator {
       status: "resolved",
       resolution: resolvedMindEntry.resolution,
     };
-    this.entries.set(existing.dedup_key || keyOrId, updated);
+    const targetKey =
+      existing.dedup_key !== undefined && existing.dedup_key !== ""
+        ? existing.dedup_key
+        : keyOrId;
+    this.entries.set(targetKey, updated);
     return updated;
   }
 
@@ -152,7 +165,11 @@ export class LiveDefectDeduplicator {
     for (let i = 0; i < excessCount && i < sortedEntries.length; i += 1) {
       const entry = sortedEntries[i];
       if (entry) {
-        this.entries.delete(entry.dedup_key || entry.id);
+        const entryKey =
+          entry.dedup_key !== undefined && entry.dedup_key !== ""
+            ? entry.dedup_key
+            : entry.id;
+        this.entries.delete(entryKey);
         this.idToKey.delete(entry.id);
         evicted += 1;
       }
@@ -171,7 +188,10 @@ export class LiveDefectDeduplicator {
   public importJsonl(jsonl: string): number {
     const parsed = parseAndDeduplicateDefectJsonl(jsonl, this.options);
     for (const entry of parsed) {
-      const key = entry.dedup_key || entry.id;
+      const key =
+        entry.dedup_key !== undefined && entry.dedup_key !== ""
+          ? entry.dedup_key
+          : entry.id;
       this.entries.set(key, entry);
       this.idToKey.set(entry.id, key);
     }

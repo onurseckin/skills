@@ -3,7 +3,7 @@ import { dirname, join, resolve } from "node:path";
 import { HarnessError } from "../../core/errors/index.ts";
 import type { MailboxPaths } from "../types.ts";
 
-function isValidAgentId(agentId: unknown): agentId is string {
+export function isValidAgentId(agentId: unknown): agentId is string {
   if (typeof agentId !== "string") {
     return false;
   }

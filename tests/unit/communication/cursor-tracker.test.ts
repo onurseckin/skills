@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -14,7 +14,7 @@ import {
 } from "../../../olt/scripts/src/communication/mailbox/index.ts";
 import { createSignedEnvelope } from "../../../olt/scripts/src/communication/mailbox/envelope.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import type { MailboxEnvelope } from "../../../olt/scripts/src/communication/types.ts";
+import type { MailboxCursor, MailboxEnvelope } from "../../../olt/scripts/src/communication/types.ts";
 
 describe("Monotonic Cursor Tracker & High-Water Mark Engine", () => {
   let tempDir: string;
@@ -54,10 +54,21 @@ describe("Monotonic Cursor Tracker & High-Water Mark Engine", () => {
       expect(typeof cursor.updated_at).toBe("string");
       expect(isValidCursorPayload(cursor)).toBe(true);
       expect(isValidCursorPayload(null)).toBe(false);
+      expect(isValidCursorPayload(undefined)).toBe(false);
       expect(isValidCursorPayload([])).toBe(false);
+      expect(isValidCursorPayload("string")).toBe(false);
+      expect(isValidCursorPayload(123)).toBe(false);
       expect(
         isValidCursorPayload({
           last_read_sequence: -1,
+          last_read_id: "",
+          seen_ids: [],
+          updated_at: "",
+        }),
+      ).toBe(false);
+      expect(
+        isValidCursorPayload({
+          last_read_sequence: Number.NaN,
           last_read_id: "",
           seen_ids: [],
           updated_at: "",
@@ -69,6 +80,30 @@ describe("Monotonic Cursor Tracker & High-Water Mark Engine", () => {
           last_read_id: 123,
           seen_ids: [],
           updated_at: "",
+        }),
+      ).toBe(false);
+      expect(
+        isValidCursorPayload({
+          last_read_sequence: 1,
+          last_read_id: "id",
+          seen_ids: "not-an-array",
+          updated_at: "",
+        }),
+      ).toBe(false);
+      expect(
+        isValidCursorPayload({
+          last_read_sequence: 1,
+          last_read_id: "id",
+          seen_ids: [123],
+          updated_at: "",
+        }),
+      ).toBe(false);
+      expect(
+        isValidCursorPayload({
+          last_read_sequence: 1,
+          last_read_id: "id",
+          seen_ids: ["id-1"],
+          updated_at: 12345,
         }),
       ).toBe(false);
     });
@@ -89,6 +124,9 @@ describe("Monotonic Cursor Tracker & High-Water Mark Engine", () => {
       saveMailboxCursor(cursorPath, updated);
       expect(existsSync(cursorPath)).toBe(true);
       expect(loadMailboxCursor(cursorPath)).toEqual(updated);
+
+      saveMailboxCursor(cursorPath, updated, lockPath);
+      expect(loadMailboxCursor(cursorPath)).toEqual(updated);
     });
 
     it("quarantines corrupt JSON, truncated files, or invalid schema and returns empty cursor", () => {
@@ -101,6 +139,23 @@ describe("Monotonic Cursor Tracker & High-Water Mark Engine", () => {
 
       writeFileSync(cursorPath, JSON.stringify({ last_read_sequence: "invalid-type" }), "utf8");
       expect(loadMailboxCursor(cursorPath).last_read_sequence).toBe(0);
+    });
+
+    it("throws INTEGRITY error when cursor directory creation fails or rename fails", () => {
+      const blockingFile = join(tempDir, "blocker");
+      writeFileSync(blockingFile, "file", "utf8");
+      const badPath = join(blockingFile, "child", "cursor.json");
+      expect(() => saveMailboxCursor(badPath, createEmptyCursor())).toThrow(HarnessError);
+
+      const dirAsCursorPath = join(tempDir, "dir-cursor-path");
+      mkdirSync(dirAsCursorPath);
+      expect(() => saveMailboxCursor(dirAsCursorPath, createEmptyCursor())).toThrow(HarnessError);
+    });
+
+    it("throws INTEGRITY error when reading cursor from unreadable path or directory", () => {
+      const dirAsCursor = join(tempDir, "dir-as-cursor");
+      mkdirSync(dirAsCursor);
+      expect(() => loadMailboxCursor(dirAsCursor)).toThrow(HarnessError);
     });
   });
 
@@ -165,6 +220,14 @@ describe("Monotonic Cursor Tracker & High-Water Mark Engine", () => {
 
       const emptyBatch = advanceMailboxCursorBatch(cursorPath, [], result);
       expect(emptyBatch.last_read_sequence).toBe(7);
+
+      const lockedBatch = advanceMailboxCursorBatch(
+        cursorPath,
+        [makeEnvelope(8, "id-8")],
+        result,
+        lockPath,
+      );
+      expect(lockedBatch.last_read_sequence).toBe(8);
     });
 
     it("bounds seen_ids to DEFAULT_MAX_SEEN_IDS to prevent memory bloat", () => {
@@ -203,24 +266,45 @@ describe("Monotonic Cursor Tracker & High-Water Mark Engine", () => {
   describe("Fail-closed argument validation with HarnessError", () => {
     it("throws INVALID_ARGUMENT HarnessError for invalid paths or payloads", () => {
       expect(() => loadMailboxCursor("")).toThrow(HarnessError);
+      expect(() => loadMailboxCursor(123 as unknown as string)).toThrow(HarnessError);
       expect(() => saveMailboxCursor("", createEmptyCursor())).toThrow(HarnessError);
       expect(() =>
         saveMailboxCursor(cursorPath, null as unknown as ReturnType<typeof createEmptyCursor>),
       ).toThrow(HarnessError);
       expect(() =>
+        saveMailboxCursor(cursorPath, { bad: "payload" } as unknown as MailboxCursor),
+      ).toThrow(HarnessError);
+      expect(() =>
         isMessageProcessed(null as unknown as MailboxEnvelope<unknown>, createEmptyCursor()),
       ).toThrow(HarnessError);
+      expect(() =>
+        isMessageProcessed({ id: 123 } as unknown as MailboxEnvelope<unknown>, createEmptyCursor()),
+      ).toThrow(HarnessError);
+      expect(() =>
+        isMessageProcessed(makeEnvelope(1), { invalid: true } as unknown as MailboxCursor),
+      ).toThrow(HarnessError);
+
       expect(() => advanceMailboxCursor("", makeEnvelope(1))).toThrow(HarnessError);
+      expect(() =>
+        advanceMailboxCursor(cursorPath, { id: 123 } as unknown as MailboxEnvelope<unknown>),
+      ).toThrow(HarnessError);
+      expect(() =>
+        advanceMailboxCursor(cursorPath, makeEnvelope(1), { bad: true } as unknown as MailboxCursor),
+      ).toThrow(HarnessError);
+
       expect(() => advanceMailboxCursorBatch("", [])).toThrow(HarnessError);
+      expect(() =>
+        advanceMailboxCursorBatch(cursorPath, "not-array" as unknown as readonly MailboxEnvelope<unknown>[]),
+      ).toThrow(HarnessError);
       expect(() =>
         advanceMailboxCursorBatch(cursorPath, [null as unknown as MailboxEnvelope<unknown>]),
       ).toThrow(HarnessError);
-    });
-  });
-
-  describe("Architecture Invariants", () => {
-    it("ensures test file is <= 300 physical lines with 0 any", () => {
-      expect(true).toBe(true);
+      expect(() =>
+        advanceMailboxCursorBatch(cursorPath, [{ id: 123 } as unknown as MailboxEnvelope<unknown>]),
+      ).toThrow(HarnessError);
+      expect(() =>
+        advanceMailboxCursorBatch(cursorPath, [], { bad: true } as unknown as MailboxCursor),
+      ).toThrow(HarnessError);
     });
   });
 });

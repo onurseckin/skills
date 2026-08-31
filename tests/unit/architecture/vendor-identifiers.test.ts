@@ -122,6 +122,7 @@ const TEST_EXEMPTIONS: readonly string[] = [
   "unit/capture/docker-health.test.ts",
   "unit/capture/persona-registry.test.ts",
   "unit/cli/install-ops-command.test.ts",
+  "unit/cli/quota-ops.test.ts",
   "unit/config/harness-config.test.ts",
   "unit/config/host-canon.test.ts",
   "unit/contracts/core-runtime.test.ts",

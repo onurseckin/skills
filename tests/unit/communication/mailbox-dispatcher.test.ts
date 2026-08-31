@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node
 import { join } from "node:path";
 import {
   broadcastWaveNotification,
+  collectInboxReceipts,
   dispatchPeerMessage,
   resolveMailboxPaths,
   resolveRecipientAgentIds,
@@ -32,7 +33,8 @@ describe("P2P Mailbox Dispatcher & Role Resolution", () => {
     it("resolves exact matches and role substrings from mailbox directories and locks", () => {
       const mbRoot = join(testRoot, ".olt", "mailboxes");
       mkdirSync(join(mbRoot, "worker-alpha"), { recursive: true });
-      mkdirSync(join(mbRoot, "worker-beta"), { recursive: true });
+      mkdirSync(join(mbRoot, "worker_beta"), { recursive: true });
+      mkdirSync(join(mbRoot, "lead_worker_node"), { recursive: true });
       mkdirSync(join(mbRoot, "coordinator-0"), { recursive: true });
       mkdirSync(join(mbRoot, ".locks"), { recursive: true });
       writeFileSync(join(mbRoot, ".locks", "validator-1.lock"), "");
@@ -42,7 +44,11 @@ describe("P2P Mailbox Dispatcher & Role Resolution", () => {
       writeFileSync(join(testRoot, ".olt", "locks", "critic-1.lock"), "");
 
       expect(resolveRecipientAgentIds("worker-alpha", testRoot)).toEqual(["worker-alpha"]);
-      expect(resolveRecipientAgentIds("worker", testRoot)).toEqual(["worker-alpha", "worker-beta"]);
+      expect(resolveRecipientAgentIds("worker", testRoot)).toEqual([
+        "lead_worker_node",
+        "worker-alpha",
+        "worker_beta",
+      ]);
       expect(resolveRecipientAgentIds("coordinator", testRoot)).toEqual(["coordinator-0"]);
       expect(resolveRecipientAgentIds("validator", testRoot)).toEqual(["validator-1"]);
       expect(resolveRecipientAgentIds("repairer", testRoot)).toEqual(["repairer-1"]);
@@ -53,6 +59,7 @@ describe("P2P Mailbox Dispatcher & Role Resolution", () => {
     it("rejects invalid roles, empty strings, and path traversal attempts", () => {
       expect(() => resolveRecipientAgentIds("", testRoot)).toThrow(HarnessError);
       expect(() => resolveRecipientAgentIds("   ", testRoot)).toThrow(HarnessError);
+      expect(() => resolveRecipientAgentIds(123 as unknown as string, testRoot)).toThrow(HarnessError);
       expect(() => resolveRecipientAgentIds(".", testRoot)).toThrow(HarnessError);
       expect(() => resolveRecipientAgentIds("../outside", testRoot)).toThrow(HarnessError);
       expect(() => resolveRecipientAgentIds("sub/agent", testRoot)).toThrow(HarnessError);
@@ -117,6 +124,12 @@ describe("P2P Mailbox Dispatcher & Role Resolution", () => {
     });
 
     it("fails closed on invalid arguments", () => {
+      expect(() => dispatchPeerMessage(null as unknown as Parameters<typeof dispatchPeerMessage>[0])).toThrow(
+        HarnessError,
+      );
+      expect(() => dispatchPeerMessage("not-obj" as unknown as Parameters<typeof dispatchPeerMessage>[0])).toThrow(
+        HarnessError,
+      );
       expect(() =>
         dispatchPeerMessage({} as unknown as Parameters<typeof dispatchPeerMessage>[0]),
       ).toThrow(HarnessError);
@@ -187,6 +200,12 @@ describe("P2P Mailbox Dispatcher & Role Resolution", () => {
       });
       expect(res).toEqual([]);
       expect(() =>
+        broadcastWaveNotification(null as unknown as Parameters<typeof broadcastWaveNotification>[0]),
+      ).toThrow(HarnessError);
+      expect(() =>
+        broadcastWaveNotification("not-obj" as unknown as Parameters<typeof broadcastWaveNotification>[0]),
+      ).toThrow(HarnessError);
+      expect(() =>
         broadcastWaveNotification({
           senderId: "c-1",
           senderRole: "c",
@@ -195,6 +214,44 @@ describe("P2P Mailbox Dispatcher & Role Resolution", () => {
           payload: {},
         }),
       ).toThrow(HarnessError);
+    });
+  });
+
+  describe("collectInboxReceipts", () => {
+    it("collects unread messages, filters by correlationId/messageType, and advances cursor", () => {
+      dispatchPeerMessage({
+        senderId: "agent-sender",
+        senderRole: "sender",
+        recipientRoleOrId: "agent-receiver",
+        messageType: "HANDOFF_RECEIPT",
+        payload: { task: 1 },
+        correlationId: "corr-A",
+        baseDir: testRoot,
+      });
+      dispatchPeerMessage({
+        senderId: "agent-sender",
+        senderRole: "sender",
+        recipientRoleOrId: "agent-receiver",
+        messageType: "DISPATCH_TASK",
+        payload: { task: 2 },
+        correlationId: "corr-B",
+        baseDir: testRoot,
+      });
+
+      const filteredByCorr = collectInboxReceipts("agent-receiver", {
+        baseDir: testRoot,
+        correlationId: "corr-A",
+      });
+      expect(filteredByCorr.totalReceipts).toBe(1);
+      expect(filteredByCorr.receipts[0]?.correlation_id).toBe("corr-A");
+
+      const filteredByType = collectInboxReceipts("agent-receiver", {
+        baseDir: testRoot,
+        messageType: "DISPATCH_TASK",
+        advanceCursor: true,
+      });
+      expect(filteredByType.totalReceipts).toBe(1);
+      expect(filteredByType.receipts[0]?.message_type).toBe("DISPATCH_TASK");
     });
   });
 

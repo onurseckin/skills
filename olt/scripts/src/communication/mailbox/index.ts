@@ -8,6 +8,7 @@ export {
 
 export {
   ensureMailboxDirectories,
+  isValidAgentId,
   resolveMailboxLockPath,
   resolveMailboxPaths,
 } from "./mailbox-paths.ts";
