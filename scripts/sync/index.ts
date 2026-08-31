@@ -45,11 +45,11 @@ export async function runSync(options?: SyncOptions): Promise<SyncSummary> {
     console.log(`[sync] Deploying ${sourceOlt} -> ${targetOlt}...`);
   }
 
-  const skillResult = await deployCanonicalSkill(options);
+  const skillResult = await deployCanonicalSkill({ ...options, homeDir: home });
 
-  const binaryResult = ensureGlobalOltBinary(options);
+  const binaryResult = ensureGlobalOltBinary({ ...options, homeDir: home });
 
-  const shellResult = ensurePathInShellRc(options);
+  const shellResult = ensurePathInShellRc({ ...options, homeDir: home });
 
   if (!options?.silent) {
     console.log(

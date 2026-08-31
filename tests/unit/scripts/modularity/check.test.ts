@@ -108,7 +108,7 @@ test("main executes successfully and returns 0 on clean repository", async () =>
 
   try {
     const exitCode = await main(
-      ["--mode", "strict", "--source", "tree", "--format", "json"],
+      ["--mode", "strict", "--source", "index", "--format", "json"],
       tempDir,
     );
     expect(exitCode).toBe(0);
@@ -127,7 +127,7 @@ test("main renders markdown output format", async () => {
   }) as typeof process.stdout.write;
 
   try {
-    await main(["--mode", "ratchet", "--source", "tree", "--format", "markdown"]);
+    await main(["--mode", "ratchet", "--source", "index", "--format", "markdown"]);
     expect(stdoutOutput).toContain("# Modularity report");
   } finally {
     process.stdout.write = originalStdoutWrite;
@@ -139,7 +139,7 @@ test("main returns exitCode 1 when report fails in strict mode", async () => {
   process.stdout.write = (() => true) as typeof process.stdout.write;
 
   try {
-    const exitCode = await main(["--mode", "strict", "--source", "tree", "--format", "json"]);
+    const exitCode = await main(["--mode", "strict", "--source", "index", "--format", "json"]);
     expect(exitCode).toBe(1);
   } finally {
     process.stdout.write = originalStdoutWrite;
@@ -183,7 +183,7 @@ test("runCli executes main when isMain is true and noops when false", async () =
     const noopResult = await runCli(false);
     expect(noopResult).toBeUndefined();
 
-    const mainResult = await runCli(true, ["--mode", "ratchet", "--source", "tree"]);
+    const mainResult = await runCli(true, ["--mode", "ratchet", "--source", "index"]);
     expect(typeof mainResult).toBe("number");
   } finally {
     process.stdout.write = originalStdoutWrite;

@@ -169,4 +169,17 @@ describe("Central Policy & Lifecycle Hooks Engine", () => {
     );
     expect(spawnLog.length).toBe(0);
   });
+
+  test("PolicyDiscoveryEngine.isPolicyCalibrated and ensurePolicyCalibrated enforce mandatory policy calibration", async () => {
+    const dir = join(scratchBase, "auto-calibrate-test");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "bun.lock"), "");
+
+    const { PolicyDiscoveryEngine } = await import("../../../olt/scripts/src/engine/policy-discovery.ts");
+    expect(PolicyDiscoveryEngine.isPolicyCalibrated(dir)).toBe(false);
+
+    const policy = PolicyDiscoveryEngine.ensurePolicyCalibrated(dir);
+    expect(policy).toBeDefined();
+    expect(PolicyDiscoveryEngine.isPolicyCalibrated(dir)).toBe(true);
+  });
 });

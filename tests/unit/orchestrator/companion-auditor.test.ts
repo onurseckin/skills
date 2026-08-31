@@ -8,13 +8,22 @@ import {
   executeBehavioralForensics,
   formatBehavioralForensicsBrief,
   pairCompanionAuditor,
+  pairMindCompanionAuditor,
+  pairAllMandatoryCompanionAuditors,
+  verifyCompanionAuditorsHealth,
+  assertCompanionAuditorsHealth,
   assertBehavioralCompliance,
 } from "../../../olt/scripts/src/orchestrator/companion-auditor.ts";
+import {
+  checkCompanionAuditorsDoctor,
+  auditCompanionAuditors,
+  assertCompanionAuditorsDoctor,
+} from "../../../olt/scripts/src/reporting/doctor/rules/companion-auditors.ts";
 import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { BehavioralForensicsReport } from "../../../olt/scripts/src/orchestrator/types.ts";
 
 describe("OrchestratorCompanionAuditor Unit Tests", () => {
-  const testRoot = join(tmpdir(), `companion-auditor-unit-${Date.now()}`);
+  const testRoot = join(tmpdir(), `skills-companion-auditor-unit-${Date.now()}`);
 
   test("pairCompanion — automatically provisions companion auditor when not present", () => {
     const res = pairCompanionAuditor(testRoot);
@@ -233,6 +242,31 @@ describe("OrchestratorCompanionAuditor Unit Tests", () => {
     expect(res.autoProvisioned).toBe(true);
     expect(res.companionAgentId).toBe("custom-auditor-id");
     expect(res.pairedAt).toBe(customTimestamp);
+  });
+
+  test("pairMindCompanion and pairAllMandatoryCompanions provision mind and skill auditors", () => {
+    const mindRes = pairMindCompanionAuditor(testRoot);
+    expect(mindRes.paired).toBe(true);
+    expect(mindRes.companionAgentId).toBe("mind-auditor-auto");
+
+    const allRes = pairAllMandatoryCompanionAuditors(testRoot);
+    expect(allRes.allPaired).toBe(true);
+    expect(allRes.mindAuditor.paired).toBe(true);
+    expect(allRes.skillAuditor.paired).toBe(true);
+  });
+
+  test("verifyCompanionAuditorsHealth verifies active agent presence and detects missing auditors", () => {
+    const health = verifyCompanionAuditorsHealth(testRoot, []);
+    expect(health.healthy).toBe(false);
+    expect(health.issues.length).toBeGreaterThan(0);
+    expect(() => assertCompanionAuditorsHealth(testRoot, [])).toThrow();
+  });
+
+  test("checkCompanionAuditorsDoctor detects missing companion auditors under doctor rules", () => {
+    const docResult = checkCompanionAuditorsDoctor({ repoRoot: testRoot, grants: [] });
+    expect(docResult.passed).toBe(false);
+    expect(docResult.findings.some((f) => f.code === "MISSING_MIND_AUDITOR")).toBe(true);
+    expect(docResult.findings.some((f) => f.code === "MISSING_SKILL_AUDITOR")).toBe(true);
   });
 
   test("Static AST Invariants: Zero any and Suppressions in companion-auditor unit test", () => {
