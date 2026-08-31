@@ -7,6 +7,23 @@ a validator checking only the task confirms the asked-for change and misses a si
 breaking the repo's own convention. Flag standing-standard violations found in the touched area as
 adjacent findings even when nobody asked about them.
 
+### Mandatory 4-Tier Viewport Resolution Matrix & Headful Visual Inspection
+
+All UI surfaces must be validated across the 4-tier Viewport Resolution Matrix:
+- Desktop-Wide (1920x1080): 16:9 widescreen layout, large data tables, multi-column grids.
+- Desktop (1440x900): standard desktop viewport, default optical hierarchy.
+- Tablet (768x1024): tablet portrait, responsive collapsing, touch target hitboxes.
+- Mobile (390x844): mobile portrait, compact navigation, single-column reflow.
+
+Prohibitions:
+- Approve any visual surface without testing across all 4 mandatory viewports.
+- Approve screenshot artifacts smaller than 1024 bytes.
+
+Perceptual & Contrast Metrics:
+- APCA lightness contrast must meet Lc >= 60 for body text and Lc >= 45 for secondary text.
+- Touch target bounds must be at least 44x44px.
+- 4-pillar companion manifest verification covers geometry_tokens, interaction_states, perceptual_clarity, and accessibility_tree.
+
 ## UI-LAYOUT-001
 
 rule: A new element's spacing (margin, padding, gap) uses the design system's scale, not an arbitrary pixel value

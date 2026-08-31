@@ -17,14 +17,36 @@ import {
 import { claimTask } from "../../workflow/lease/claim.ts";
 import { hashWriteScope } from "../../workflow/lease/write-scope-hash.ts";
 import { findAssignedWorktree, readWorktreeLedger } from "../../workflow/worktree/ledger.ts";
-import { formatTaskClaimBrief } from "../formatters/index.ts";
+import { formatTaskClaimBrief, formatTaskHeartbeatBrief } from "../formatters/index.ts";
 import { probeLiveQuotaTelemetry } from "../../workflow/lifecycle/quota-lifecycle.ts";
 import { detectHostApp } from "../../authority/thread/context.ts";
 import { probeAgentTelemetry, withHostTelemetryConflicts } from "../host-telemetry-probe.ts";
 import { integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
+import { heartbeat } from "../../workflow/lease/heartbeat.ts";
 
-export { taskHeartbeatCommand } from "./task-heartbeat.ts";
 export { taskSubmitCommand } from "./task-submit.ts";
+
+export function taskHeartbeatCommand(flags: Flags): Record<string, unknown> {
+  const run = textFlag(flags, "run")!;
+  const taskId = textFlag(flags, "task")!;
+  const agent = textFlag(flags, "agent")!;
+  const token = textFlag(flags, "token")!;
+
+  const state = heartbeat(workflowPort(run), taskId, agent, token);
+  const task = state.tasks[taskId]!;
+  const lease = task.lease;
+  if (!lease) {
+    throw new HarnessError("INTEGRITY", `heartbeat for ${taskId} left the task without a lease`);
+  }
+  const markdown = formatTaskHeartbeatBrief({
+    taskId,
+    agent,
+    extendedMinutes: Math.round(lease.duration_seconds / 60),
+    newDeadline: lease.expires_at,
+  });
+
+  return { markdown, run_root: run, task };
+}
 
 export function assignedWorktreeForClaim(
   run: string,
@@ -83,9 +105,7 @@ export function probeAtTaskBoundary(
 
 export async function taskClaimCommand(
   flags: Flags,
-  context: CommandContext & {
-    repositoryGitCommand?: RepositoryGitCommand;
-  } = {},
+  context: CommandContext & { repositoryGitCommand?: RepositoryGitCommand } = {},
 ): Promise<Record<string, unknown>> {
   const run = textFlag(flags, "run")!;
   const taskId = textFlag(flags, "task")!;
@@ -101,12 +121,12 @@ export async function taskClaimCommand(
     role === "mind-auditor" ||
     /^orch/i.test(agent) ||
     /^mind/i.test(agent);
-
   const isCoordinator = role === "coordinator" || /^coord/i.test(agent);
 
   if (isOrchestrator || isCoordinator) {
     const roleTitle = isOrchestrator ? "Orchestrators" : "Coordinators";
-    const defect = {
+    appendDefectLedgerRecord(join(run, "defects.jsonl"), {
+      id: `defect-role-confinement-${Date.now()}-${agent}-${taskId}`,
       type: "role_confinement_violation",
       category: "role_boundary",
       actor: agent,
@@ -114,13 +134,7 @@ export async function taskClaimCommand(
       task_id: taskId,
       timestamp: new Date().toISOString(),
       details: `${roleTitle} are mechanically confined from claiming code execution tasks.`,
-    };
-    const defectsPath = join(run, "defects.jsonl");
-    appendDefectLedgerRecord(defectsPath, {
-      id: `defect-role-confinement-${Date.now()}-${agent}-${taskId}`,
-      ...defect,
     });
-
     if (isOrchestrator) {
       throw new HarnessError(
         "ROLE_CONFINEMENT_VIOLATION",

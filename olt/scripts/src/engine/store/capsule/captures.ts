@@ -58,7 +58,7 @@ function storedCapture(value: unknown): CaptureRecord | undefined {
   if (typeof name !== "string" || name.length === 0) return undefined;
   if (typeof sha256 !== "string" || sha256.length !== 64) return undefined;
   if (typeof path !== "string" || path.length === 0) return undefined;
-  if (storage !== "hardlink" && storage !== "copy") return undefined;
+  if (typeof storage !== "string" || storage.length === 0) return undefined;
   return {
     kind,
     name,
@@ -66,7 +66,7 @@ function storedCapture(value: unknown): CaptureRecord | undefined {
     bytes: typeof bytes === "number" ? bytes : 0,
     blob_path: typeof blob_path === "string" ? blob_path : "",
     path,
-    storage,
+    storage: storage as "hardlink" | "copy",
     original_path: typeof original_path === "string" ? original_path : "",
     ...(typeof command_id === "string" ? { command_id } : {}),
     ...(typeof task_id === "string" ? { task_id } : {}),

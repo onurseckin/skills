@@ -96,8 +96,7 @@ export function normalizeCanonicalHost(host: string): string {
   if (norm.includes("antigravity") || norm.includes("gemini")) return "antigravity";
   if (norm.includes("claude")) return "claude_code";
   if (norm.includes("codex") || norm.includes("openai")) return "codex";
-  if (norm.includes("cursor")) return "cursor";
-  return norm;
+  return norm.includes("cursor") ? "cursor" : norm;
 }
 
 export function isPlatformMatchingHost(platformId: string, host: string): boolean {

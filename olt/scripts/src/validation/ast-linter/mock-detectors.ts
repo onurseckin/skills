@@ -95,12 +95,15 @@ export function detectMockDeclarations(
           }
         }
       } else if (ts.isObjectBindingPattern(node.name)) {
-        const isViOrJest =
+        const isMockNamespace =
           (ts.isIdentifier(node.initializer) &&
             (node.initializer.text === "vi" || node.initializer.text === "jest")) ||
           checkInitializer(node.initializer).isMock;
         for (const elem of node.name.elements) {
-          if (ts.isIdentifier(elem.name) && (isViOrJest || MOCK_FACTORIES.has(elem.name.text))) {
+          if (
+            ts.isIdentifier(elem.name) &&
+            (isMockNamespace || MOCK_FACTORIES.has(elem.name.text))
+          ) {
             mocks.push({ varName: elem.name.text });
             destructuredFactories.add(elem.name.text);
           }

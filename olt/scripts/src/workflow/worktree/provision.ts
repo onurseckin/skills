@@ -78,6 +78,8 @@ export interface ProvisionWorktreesResult {
 export function provisionWorktrees(input: ProvisionWorktreesInput): ProvisionWorktreesResult {
   if (!input.config.worktree_isolation) return { enabled: false, ledger: null };
   const runner = input.runner ?? runGit;
+  const isGit = runner(input.repoRoot, ["rev-parse", "--is-inside-work-tree"]).status === 0;
+  if (!isGit) return { enabled: true, ledger: null };
   const loadState = input.loadState ?? ((runRoot: string) => loadRun(runRoot).state);
   const existing = readWorktreeLedger(loadState(input.runRoot));
   const { assignments, worktreeCount } = assignWorktrees(input.topology, input.tasksById);

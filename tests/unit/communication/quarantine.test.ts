@@ -31,7 +31,7 @@ describe("Mailbox Quarantine Engine", () => {
 
   describe("ingestToQuarantine", () => {
     it("appends malformed envelope to quarantine.log and returns structured entry", () => {
-      const _entry = ingestToQuarantine(
+      const entry = ingestToQuarantine(
         "agent-alpha",
         { broken: "payload", raw: 123 },
         "CORRUPTED_PAYLOAD",

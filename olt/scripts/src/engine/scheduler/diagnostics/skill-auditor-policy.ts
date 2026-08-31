@@ -2,8 +2,14 @@ import { HarnessError } from "../../../core/errors/index.ts";
 import type { AgentGrantRecord } from "../../../core/contracts/index.ts";
 
 export class SkillAuditorPolicy {
-  public static isMandatoryTarget(_repoRoot?: string): boolean {
-    return true;
+  public static isMandatoryTarget(repoRoot?: string): boolean {
+    if (!repoRoot) return true;
+    const normalized = repoRoot.toLowerCase();
+    return (
+      normalized.includes("/skills") ||
+      normalized.includes("orchestrating-long-tasks") ||
+      normalized.includes("/olt")
+    );
   }
 
   public static assertSkillAuditorRequired(

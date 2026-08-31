@@ -185,10 +185,18 @@ export function renderSugiyamaDag(
     }
   }
 
+  const realLayers = optimizedLayers
+    .map((l) => ({
+      ...l,
+      nodes: l.nodes.filter((n) => !n.id.startsWith("__dummy_")),
+    }))
+    .filter((l) => l.nodes.length > 0);
+  const realRankedNodes = flatRankedNodes.filter((n) => !n.id.startsWith("__dummy_"));
+
   return {
     renderedDag: lines.join("\n"),
-    layers: optimizedLayers,
-    rankedNodes: flatRankedNodes,
+    layers: realLayers,
+    rankedNodes: realRankedNodes,
     cycleDiagnostic,
     bypassDiagnostic,
   };

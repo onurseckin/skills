@@ -246,40 +246,47 @@ We cross-referenced the forensic failures observed today against the recent 20-d
 
 ---
 
-## 5. Detailed Actionable Recommendations for Remaining Gaps
+### 5. Locked Decisions & Formal Implementation Architecture for the 4 Open Gaps
 
-To ensure that neither `dsa_visualizer` nor any other repository encounters these orchestration failures again, the following skill enhancements are recommended:
+Based on collaborative architectural validation and Product Owner sign-off, the following 4 core enhancements are permanently locked into the OLT skill architecture:
 
-### Gap 1: Eliminate Capsule Runtime Duplication Bloat
+### 🔒 Gap 1 (Locked): The 70/30 Dual-Channel UI Validation Architecture
 
-- **Problem**: Every time an orchestration capsule is created, `.olt/capsules/<name>/runtime/` copies hundreds of CLI source files, ballooning disk usage and cluttering disk I/O.
-- **Remediation**:
-  - Replace physical runtime file copying with a lightweight symlink (`.olt/capsules/<name>/runtime -> /Users/onurseckinsenoglu/.agents/skills/olt/scripts`) or a single global immutable runtime reference in `manifest.json`.
-  - Enforce a maximum capsule metadata ceiling of $< 100\text{ KB}$ per run.
+- **The Ground Truth Paradigm**:
+  - **30% Mechanical Fast Probing (Headless Playwright)**: Rapid syntax validation, route presence checks, and confirming the absence of unhandled JavaScript exceptions.
+  - **70% Authentic Cognitive & Visual Validation (Live Headful Chrome & Vision AI)**:
+    - Dedicated Cognitive UI Validator interacts directly with the running application via `chrome-devtools` MCP in a live Chrome browser on spot.
+    - Simulates authentic human interaction (clicking tabs, scrolling, expanding interactive sections).
+    - Captures high-resolution live interactive PNG screenshots across all 4 mandatory viewports (Mobile 390px, Tablet 768px, Desktop 1440px, Widescreen 1920px).
+    - Uses native multimodal vision capabilities to perform deep aesthetic reviews (Deep Obsidian `#0B0A0D` depth, 1px top specular hairlines, APCA contrast $\ge 60$, touch hitbox floors $\ge 44\text{pt}$ / $\ge 48\text{pt}$, typography descender clearance, and theme harmony).
+- **Prohibitions**: Headless Playwright hydration tricks for capturing fake PNG screenshots are strictly banned.
+- **Harness Enforcement Gate**: When a task has UI scope (`is_ui_scope: true`), the harness CLI (`task:review`) mechanically refuses task approval without authentic live headful PNG captures ($\ge 1024$ bytes) and multimodal product-grade critique receipts on record.
 
-### Gap 2: Mind Mandatory Proactive Scheduling Invariant
+### 🔒 Gap 2 (Locked): Capsule Runtime Storage Bloat Elimination
 
-- **Problem**: When Mind finishes an active reasoning step, it frequently goes silent without scheduling a wake-up timer, leading to expired pulse leases and unhandled coordinator stalls.
-- **Remediation**:
-  - Introduce an execution invariant in `mind:pulse`: Before ending any turn while in state `MODE: work` or `MODE: idle`, Mind **must** invoke `schedule` with a duration $\le 300\text{s}$ (or `TimerCondition: any`).
-  - If a pulse lease expires without closure, Mind Auditor must automatically dispatch a high-priority `WAKEUP_PROBE` to re-engage the Mind agent before the crash reaper triggers.
+- **Zero Physical Tree Copying**: `initRun()` in `engine/store/capsule/capsule.ts` completely removes physical recursive copying of the `olt/scripts/` directory tree.
+- **Cryptographic SHA Pointer**: `manifest.json` computes and stores the recursive SHA-256 tree digest (`runtime_sha256`) of the canonical runtime (`~/.agents/skills/olt/` or repo `olt/scripts/`) for tamper-proof audit verification.
+- **Lightweight Capsule Footprint**: Capsules resolve scripts directly from the canonical skill root or a lightweight symlink (`.olt/capsules/<name>/runtime -> ~/.agents/skills/olt/scripts`), reducing capsule disk size from $\sim 8\text{MB}$ down to $< 50\text{ KB}$ per run with zero startup overhead.
 
-### Gap 3: DOM Ready-State Verification for UI Screenshot Capture
+### 🔒 Gap 3 (Locked): Mind Mandatory Scheduled Timer Invariant
 
-- **Problem**: The mechanic UI validator triggers screenshot captures immediately upon HTTP 200 return, before client-side hydration or routing finishes, capturing blank canvases.
-- **Remediation**:
-  - Mandate that all screenshot tools execute a multi-point DOM readiness check:
-    1. `document.readyState === 'complete'`
-    2. Element `#root` or `body` has non-empty child elements (`children.length > 0`).
-    3. No active full-screen error overlays or uncaught React boundary elements exist.
-    4. Compute total bounding-box visual entropy or pixel variance to detect blank/monochrome pages before accepting the screenshot as valid evidence.
+- **Turn-End Programmatic Guard in `mind:pulse`**: Active Mind cannot conclude a reasoning turn in `MODE: work` or `MODE: idle` without arming a background `schedule` timer ($\le 300\text{s}$) or registering a wait condition (`TimerCondition: any`).
+- **Proactive Auditor Wake-Up Pulse**: If Mind remains silent for $> 120\text{s}$ without active subagents or timers, Mind Auditor immediately dispatches a high-priority `WAKEUP_PROBE` via Mailbox IPC (`.olt/mailboxes/mind/inbox.jsonl`), preventing pulse lease expiration and unclosed crash records.
 
-### Gap 4: Enforce Root-Level Anti-Pollution Sandbox
+### 🔒 Gap 4 (Locked): Hermetic Root-Level Anti-Pollution Sandbox
 
-- **Problem**: `.session.json` and ephemeral test logs frequently spill into the repository root rather than `.olt/`.
-- **Remediation**:
-  - Update `harness.ts` session management to strictly anchor `.session.json` inside `.olt/.sessions/`.
-  - Add an automated pre-flight hook in `doctor` that errors if any unignored dotfiles or screenshot directories appear in the working tree.
+- **Strict Session Relocation**: Process-ancestry session tokens are strictly confined to `.olt/.sessions/<pid>.json` (or `.tmp/.sessions/`). `.session.json` is permanently purged from `ALLOWED_ROOT_FILES`.
+- **Hermetic Test & Reporter Configuration**: Playwright `outputDir` is hardcoded to `.tmp/playwright-results/` and test coverage reporter outputs are forced to `.tmp/` or `.olt/evidence/reports/`.
+- **Pre-Commit Hygiene Interlock**: `doctor` and Lefthook pre-commit hooks fail immediately if any untracked dotfiles, screenshot files, or test folders appear in the repository root.
+
+### 🔒 Gap 5 (Locked): Universal Bidirectional POSIX Mailbox Protocol & Host-Agnostic Sovereign IPC
+
+- **Host-Agnostic Sovereignty**: Eliminates hard dependencies on proprietary host tools (e.g. Antigravity's `send_message`). The POSIX Mailbox subsystem (`.olt/mailboxes/<agentId>/inbox.jsonl` / `outbox.jsonl` with `flock` and `cursor.json`) serves as the universal IPC substrate across all 4 canonical hosts (`antigravity`, `claude_code`, `codex`, `cursor`).
+- **Mandatory Turn-Start Inbox Drain Invariant (`MANDATORY_INBOX_DRAIN_INVARIANT`)**:
+  - Every agent across all 4 tiers (Tier 0 Mind/Auditors, Tier 1 Orchestrators, Tier 2 Coordinators, Tier 3 Workers) MUST execute `bun harness.ts msg:inbox --actor <agentId>` on Step 1 of Turn 1 and at the start of every subsequent reasoning turn.
+  - The harness automatically checks for unread inbox envelopes and injects them directly into turn briefs during pulses and scheduled wake-ups, eliminating unread message accumulation.
+- **Atomic Cursor Advancement**: Reading the inbox advances the atomic read cursor (`cursor.json`) under advisory kernel locks, preventing ghost queues, message loss, or duplicate processing.
+- **Typed Envelopes**: All inter-agent communications flow through strict schema-validated message types (`SYSTEM_ALERT`, `WAKEUP_PROBE`, `DISPATCH_TASK`, `VALIDATION_REQUEST`, `VALIDATION_VERDICT`, `COGNITIVE_PUSHBACK`).
 
 ---
 

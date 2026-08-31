@@ -1,14 +1,12 @@
 import {
   chmodSync,
   copyFileSync,
-  cpSync,
   existsSync,
   lstatSync,
   mkdirSync,
   readdirSync,
   readlinkSync,
   renameSync,
-  rmSync,
   symlinkSync,
   unlinkSync,
   utimesSync,
@@ -16,6 +14,7 @@ import {
 } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { ALLOWED_ROOT_DIRS, ALLOWED_ROOT_FILES } from "../../authority/guards/constants.ts";
+import { safeCpSync, safeRmSync } from "../../core/shared/safe-fs/index.ts";
 import type { QuarantinedFileRecord, RootHygieneFinding } from "./types.ts";
 
 function safeAtomicMove(source: string, dest: string, stats: Stats): void {
@@ -31,8 +30,11 @@ function safeAtomicMove(source: string, dest: string, stats: Stats): void {
       symlinkSync(target, dest);
       unlinkSync(source);
     } else if (stats.isDirectory()) {
-      cpSync(source, dest, { recursive: true, preserveTimestamps: true });
-      rmSync(source, { recursive: true, force: true });
+      safeCpSync(source, dest, {
+        allowedRoots: [resolve(source), resolve(dest)],
+        allowOverwrite: true,
+      });
+      safeRmSync(source, { allowedRoots: [resolve(source)] });
     } else {
       copyFileSync(source, dest);
       chmodSync(dest, stats.mode);

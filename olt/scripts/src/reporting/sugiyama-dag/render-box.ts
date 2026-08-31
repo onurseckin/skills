@@ -77,7 +77,7 @@ export function renderSugiyamaNodeBox(
   task: SugiyamaNode,
   options: RenderSugiyamaNodeBoxOptions = {},
 ): string[] {
-  const glyph = getStatusGlyph(task.status, task.dependencies.length > 0);
+  const glyph = getStatusGlyph(task.status, (task.dependencies?.length ?? 0) > 0);
   const style = options.boxStyle ?? "rounded";
 
   let cornerTL = "╭";

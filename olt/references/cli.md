@@ -19,7 +19,7 @@ there is exactly one description of every command, its flags, its stdin rule and
 A unit test asserts the checked-in tree is byte-identical to what the registry renders, so it cannot
 drift from the code. Hand-written command documentation can, which is why none lives here. Before
 writing a command invocation into any document, check the flag exists in
-`cli-capabilities/index.jsonl` (`grep '"name":"<command>"' cli-capabilities/index.jsonl`) or run
+`cli-capabilities/manifest.json` (`grep '"name": "<command>"' cli-capabilities/manifest.json`) or run
 `bun harness.ts help <command>`. Never read the whole split tree into context at once — grep the one
 record or file you need.
 

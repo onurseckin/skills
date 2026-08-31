@@ -5,7 +5,11 @@ export { runGit };
 export type { GitRunner };
 
 export function headSha(repo: string, runner: GitRunner = runGit): string {
-  return git(repo, ["rev-parse", "HEAD"], runner).trim();
+  const result = runner(repo, ["rev-parse", "HEAD"]);
+  if (result.status !== 0) {
+    return "0".repeat(40);
+  }
+  return result.stdout.trim();
 }
 
 export function branchExists(repo: string, branch: string, runner: GitRunner = runGit): boolean {

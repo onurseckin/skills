@@ -25,11 +25,10 @@ register and dispatch a Tier 1 orchestrator; everything after is its job. Stand 
 
 When invoked via `/olt mind` or when autonomous creative product manager / infinite product owner mode is requested, the main interactive thread MUST immediately:
 
-1. Initialize the mind system if uninitialized (`bun ~/.agents/skills/olt/scripts/harness.ts mind:init --repo . --charter olt/agents/mind.yaml --actor owner`), which automatically invokes the mandatory one-time `policy:init` auto-discovery phase to calibrate toolchains and RBAC rules if uncalibrated.
-2. Register a recurring supervisory watchdog (`schedule` cron) whose arm interval is resolved at runtime via `resolveSupervisoryCadence` (its `arm_interval_source` records the resolved interval's provenance) rather than a value fixed in this doc.
-3. Deploy **BOTH** Tier 0 Mind (`agents/mind.yaml`) and companion Tier 0 Mind Auditor (`agents/mind-auditor.yaml`) in a single 1-shot batch dispatch via Antigravity's `invoke_subagent` (`Subagents: [{ Role: "mind", TypeName: "mind", Prompt: "..." }, { Role: "mind-auditor", TypeName: "mind-auditor", Prompt: "..." }]`).
-4. Inject full verbatim YAML manifests from `agents/mind.yaml` and `agents/mind-auditor.yaml` into their prompts (never ad-hoc summarized prompts).
-5. Stand down and await background milestone messages via `send_message` (zero main-thread tool chatter or code editing).
+1. Initialize mind if needed (`bun ~/.agents/skills/olt/scripts/harness.ts mind:init --repo . --charter olt/agents/mind.yaml --actor owner`), auto-running `policy:init` auto-discovery.
+2. Register a recurring supervisory watchdog (`schedule` cron) whose arm interval is resolved via `resolveSupervisoryCadence`.
+3. Deploy **BOTH** Tier 0 Mind (`agents/mind.yaml`) and companion Tier 0 Mind Auditor (`agents/mind-auditor.yaml`) in a single 1-shot batch via `invoke_subagent` with verbatim YAML manifests injected into their prompts.
+4. Stand down and await background milestone messages via `send_message` (zero main-thread tool chatter or code editing).
 
 ## Why the harness exists
 
@@ -134,10 +133,7 @@ bun olt/scripts/harness.ts help <command>
 - **Plan**: `plan:init`, `plan:enhance`, `plan:add` (use `--auto-partition <glob>`, [`references/topology-exemplar.md`](references/topology-exemplar.md)), `plan:compile`, `dag`, [`references/schema-examples.md`](references/schema-examples.md).
 - **Dispatch**: `queue:wave`, `agent:register`, `task:brief` (zero-exploration exact anchors via `briefing-builder.ts`), `agent:brief`, [`references/host-adapters.md`](references/host-adapters.md) (main-thread isolation, per-host dispatch).
 - **Execute**: `task:claim`, `task:check` (fast incremental type and lint verification), `run:exec`, `task:submit`, `task:release`, [`references/parity-matrix.md`](references/parity-matrix.md).
-- **Forensics & Audit**: `meta-audit` (with `--run`, `--format`, `--inject`, `--json`), `defect:audit` (with `--auto-promote`, `--generate-tests`), `doctor`, `dag`, `report`.
-- **Branch**: `branch:open`, `branch:claim`, `branch:submit`, `branch:collect`, [`references/state-model.md`](references/state-model.md).
-- **Validate**: `task:validate-start`, `task:probe`, `task:reject` (with `--micro-cycle`), `task:review`, [`references/failure-modes.md`](references/failure-modes.md).
-- **Replan & Seal**: `critic:reject`, `plan:replan`, `critic:start`, `critic:review`, `run:complete`. **Recover & Inspect**: `recover`, `doctor`, `summary:export`, `summary:view`, `dag`, `whoami`, `memory:query`, `defect:audit`, `meta-audit`, [`references/cli.md`](references/cli.md), [`references/cli-capabilities.md`](references/cli-capabilities.md) ([`references/cli-capabilities/index.jsonl`](references/cli-capabilities/index.jsonl)).
+- **Replan, Validate & Recover**: `critic:reject`, `plan:replan`, `critic:start`, `critic:review`, `run:complete`, `task:validate-start`, `task:probe`, `task:reject`, `task:review`, `recover`, `doctor`, `summary:export`, `summary:view`, `dag`, `whoami`, `memory:query`, `defect:audit`, `meta-audit`, [`references/failure-modes.md`](references/failure-modes.md), [`references/state-model.md`](references/state-model.md), [`references/cli.md`](references/cli.md), [`references/cli-capabilities.md`](references/cli-capabilities.md) ([`references/cli-capabilities/manifest.json`](references/cli-capabilities/manifest.json)).
 
 ## Critical Anti-Patterns & Operational Guardrails
 

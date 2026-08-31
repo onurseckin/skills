@@ -105,11 +105,11 @@ describe("Doctor Diagnostic Engines - Socratic Hardening Suite", () => {
   });
 
   test("Challenge 4: checkQuotaHealth supports extensible provider aliases and prefix matching", async () => {
-    const deepseekReport: UnifiedTelemetryReport = {
+    const customReport: UnifiedTelemetryReport = {
       timestamp: new Date().toISOString(),
       results: [
         {
-          platformId: "deepseek-api",
+          platformId: "custom-api",
           isDetected: true,
           metrics: [
             {
@@ -130,20 +130,18 @@ describe("Doctor Diagnostic Engines - Socratic Hardening Suite", () => {
       },
     };
 
-    const deepseekRes = await checkQuotaHealth({
-      host: "deepseek",
-      report: deepseekReport,
+    const customRes = await checkQuotaHealth({
+      host: "custom",
+      report: customReport,
       thresholdPercentage: 5.0,
     });
 
-    expect(deepseekRes.passed).toBe(false);
-    expect(deepseekRes.findings.some((f) => f.code === "QUOTA_CRITICAL_BREAKER_TRIPPED")).toBe(
-      true,
-    );
+    expect(customRes.passed).toBe(false);
+    expect(customRes.findings.some((f) => f.code === "QUOTA_CRITICAL_BREAKER_TRIPPED")).toBe(true);
 
     const unknownHostRes = await checkQuotaHealth({
       host: "unknown",
-      report: deepseekReport,
+      report: customReport,
       thresholdPercentage: 5.0,
     });
 

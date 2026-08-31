@@ -1,7 +1,7 @@
 import type { AnchorSymbol } from "./types.ts";
 import { findBalancedBlock } from "./scanner.ts";
 
-const PY_EXTENSIONS = new Set(["py", "python"]);
+const INDENT_EXTENSIONS = new Set(["py"]);
 const MARKDOWN_EXTENSIONS = new Set(["md", "markdown"]);
 const SHELL_EXTENSIONS = new Set(["sh", "bash", "zsh"]);
 const RUST_EXTENSIONS = new Set(["rs"]);
@@ -12,7 +12,7 @@ function getLeadingSpaces(line: string): number {
   return match !== null && match[1] !== undefined ? match[1].length : 0;
 }
 
-function findPythonBlockBoundary(
+function findIndentBlockBoundary(
   lines: readonly string[],
   startLineIndex: number,
 ): { endLine: number } {
@@ -54,11 +54,11 @@ export function extractSymbolsFromGenericSource(
     const trimmed = line.trim();
     const lineNum = i + 1;
 
-    // Python functions & classes with indentation-aware boundary tracking
-    if (ext !== undefined && PY_EXTENSIONS.has(ext)) {
+    // Indented functions & classes with indentation-aware boundary tracking
+    if (ext !== undefined && INDENT_EXTENSIONS.has(ext)) {
       const pyFuncMatch = trimmed.match(/^(?:async\s+)?def\s+([a-zA-Z0-9_]+)\s*\(/);
       if (pyFuncMatch !== null && pyFuncMatch[1] !== undefined) {
-        const boundary = findPythonBlockBoundary(lines, i);
+        const boundary = findIndentBlockBoundary(lines, i);
         symbols.push({
           name: pyFuncMatch[1],
           kind: "function",
@@ -73,7 +73,7 @@ export function extractSymbolsFromGenericSource(
       }
       const pyClassMatch = trimmed.match(/^class\s+([a-zA-Z0-9_]+)/);
       if (pyClassMatch !== null && pyClassMatch[1] !== undefined) {
-        const boundary = findPythonBlockBoundary(lines, i);
+        const boundary = findIndentBlockBoundary(lines, i);
         symbols.push({
           name: pyClassMatch[1],
           kind: "class",

@@ -144,7 +144,7 @@ describe("Domain 13 Hardening: Task Lifecycle & State Machines", () => {
     state.tasks["T-1"]!.original_implementer = "worker-1";
 
     // Register valid check command for val-core
-    registerCommand(port, "C-core", "val-core");
+    registerCommand(port, "C-core", "val-core", { gate_id: "G-1" });
 
     // Begin validation for code-quality domain
     const state1 = beginValidation(port, "T-1", "val-core", undefined, 1200, "code-quality");
