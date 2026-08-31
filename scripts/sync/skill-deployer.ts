@@ -10,7 +10,10 @@ import {
 } from "../../olt/scripts/src/installer/constants.ts";
 import { sealInstallationManifest } from "../../olt/scripts/src/installer/manifest-integrity.ts";
 import { validateSkillSource } from "../../olt/scripts/src/installer/source-validation.ts";
-import { identifiedInstallation } from "../../olt/scripts/src/installer/identity.ts";
+import {
+  identifiedInstallation,
+  readInstallationManifest,
+} from "../../olt/scripts/src/installer/identity.ts";
 import { guardedRemoveSync, logDestructiveOp, smartEnsureSymlink } from "./fs-helpers.ts";
 import { resolveOltSyncSource } from "./git-source.ts";
 
@@ -107,6 +110,8 @@ export async function migrateOwnedLegacyDeployment(
 ): Promise<boolean> {
   if (!existsSync(targetOlt)) return false;
   if (await identifiedInstallation(targetOlt)) return true;
+  const existingManifest = await readInstallationManifest(targetOlt);
+  if (existingManifest !== null) return true;
   if (!isOwnedLegacyDeployment(targetOlt, sourceRepoRoot)) {
     throw new Error(
       `refusing to replace untrusted global skill directory without installation.json: ${targetOlt}`,

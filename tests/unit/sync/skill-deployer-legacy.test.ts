@@ -117,4 +117,24 @@ describe("migrateOwnedLegacyDeployment", () => {
     expect(migrated).toBe(true);
     expect(existsSync(join(targetOlt, "installation.json"))).toBe(true);
   });
+
+  test("returns true if valid installation manifest is already present", async () => {
+    const root = scratchRoot(import.meta.path, "migrate-manifest-present");
+    const targetOlt = join(root, "olt");
+    initFakeTargetOlt(targetOlt, { homeRepoRoot: root });
+
+    const manifest = {
+      schema: "https://schemas.antigravity.dev/installation.json",
+      version: 1,
+      skill_name: "olt",
+      runtime_version: "1.0.0",
+      source_sha256: "fake-sha",
+      installed_at: new Date().toISOString(),
+      clients: ["claude"],
+    };
+    writeFileSync(join(targetOlt, "installation.json"), JSON.stringify(manifest, null, 2), "utf-8");
+
+    const migrated = await migrateOwnedLegacyDeployment(targetOlt, root);
+    expect(migrated).toBe(true);
+  });
 });

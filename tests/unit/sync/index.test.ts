@@ -142,11 +142,16 @@ describe("scripts/sync/index.ts", () => {
     initFakeSkillsRepo(sourceRepo);
 
     const origCwd = process.cwd();
+    const origHome = process.env.HOME;
     try {
+      process.env.HOME = join(root, "home");
       process.chdir(sourceRepo);
       await main(["--allow-dirty"]);
     } finally {
       process.chdir(origCwd);
+      if (origHome !== undefined) {
+        process.env.HOME = origHome;
+      }
     }
   });
 
