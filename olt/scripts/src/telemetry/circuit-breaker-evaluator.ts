@@ -69,10 +69,7 @@ export interface QuotaCircuitBreakerOptions {
 }
 
 export function normalizeCanonicalHost(host: string): string {
-  const norm = host
-    .toLowerCase()
-    .trim()
-    .replace(/[-_ ]+/g, "_");
+  const norm = host.toLowerCase().trim().replace(/[-_ ]+/g, "_");
   if (norm.includes("antigravity") || norm.includes("gemini")) return "antigravity";
   if (norm.includes("claude")) return "claude_code";
   if (norm.includes("codex") || norm.includes("openai")) return "codex";
@@ -81,62 +78,25 @@ export function normalizeCanonicalHost(host: string): string {
 }
 
 export function isPlatformMatchingHost(platformId: string, host: string): boolean {
-  const normP = normalizeCanonicalHost(platformId);
-  const normH = normalizeCanonicalHost(host);
+  const normP = normalizeCanonicalHost(platformId), normH = normalizeCanonicalHost(host);
   if (normP === normH) return true;
-  const p = platformId.toLowerCase().trim();
-  const h = host.toLowerCase().trim();
+  const p = platformId.toLowerCase().trim(), h = host.toLowerCase().trim();
   return p === h || normP.includes(h) || normH.includes(p);
 }
 
-export function detectActiveHost(
-  env: Record<string, string | undefined> = typeof process !== "undefined" ? process.env : {},
-): string | undefined {
-  if (
-    env["ANTIGRAVITY_CLI"] ||
-    env["GEMINI_CLI"] ||
-    env["ANTIGRAVITY_VERSION"] ||
-    env["ANTIGRAVITY_AGENT_ID"]
-  )
-    return "antigravity";
-  if (
-    env["CLAUDE_CODE_VERSION"] ||
-    env["CLAUDE_CLI"] ||
-    env["CLAUDE_CODE_SESSION_ID"] ||
-    env["CLAUDE_CODE_ENTRYPOINT"]
-  )
-    return "claude_code";
-  const termProgram = env["TERM_PROGRAM"] ? env["TERM_PROGRAM"].toLowerCase() : "";
-  if (termProgram === "cursor" || env["CURSOR_VERSION"] || env["CURSOR_MODEL"]) return "cursor";
-  if (env["CODEX_VERSION"] || env["CODEX_CLI"] || env["CODEX"]) return "codex";
+export function detectActiveHost(env: Record<string, string | undefined> = typeof process !== "undefined" ? process.env : {}): string | undefined {
+  if (env["ANTIGRAVITY_CLI"] || env["GEMINI_CLI"] || env["ANTIGRAVITY_VERSION"] || env["ANTIGRAVITY_AGENT_ID"]) return "antigravity";
+  if (env["CURSOR_VERSION"] || env["CURSOR_IS_ACTIVE"]) return "cursor";
+  if (env["CLAUDE_CODE_VERSION"] || env["CLAUDE_IS_ACTIVE"]) return "claude_code";
+  if (env["OPENAI_API_KEY"] && env["CODEX_VERSION"]) return "codex";
   return undefined;
 }
 
 export function extractResetTime(metric: NormalizedQuotaMetric): string | undefined {
-  const p = metric.rawPayload;
+  const p = metric.rawPayload as Record<string, unknown>;
   if (!p || typeof p !== "object") return undefined;
-  const findReset = (obj: unknown): string | undefined => {
-    if (!obj || typeof obj !== "object") return undefined;
-    const r = obj as Record<string, unknown>;
-    if (typeof r["resetTime"] === "string" && r["resetTime"].trim()) return r["resetTime"].trim();
-    if (typeof r["reset_time"] === "string" && r["reset_time"].trim())
-      return r["reset_time"].trim();
-    return undefined;
-  };
-  const rec = p as Record<string, unknown>;
-  const direct = findReset(rec);
-  if (direct) return direct;
-  const qInfo = findReset(rec["quotaInfo"]);
-  if (qInfo) return qInfo;
-  const userStatus = rec["userStatus"];
-  if (userStatus && typeof userStatus === "object") {
-    const uRec = userStatus as Record<string, unknown>;
-    const uq = findReset(uRec["quotaInfo"]);
-    if (uq) return uq;
-    const ur = findReset(uRec);
-    if (ur) return ur;
-  }
-  return undefined;
+  const f = (o?: unknown): string | undefined => typeof o === "object" && o ? (typeof (o as Record<string, unknown>)["resetTime"] === "string" ? (o as Record<string, unknown>)["resetTime"] as string : typeof (o as Record<string, unknown>)["reset_time"] === "string" ? (o as Record<string, unknown>)["reset_time"] as string : undefined) : undefined;
+  return f(p) || f(p["quotaInfo"]) || f((p["userStatus"] as Record<string, unknown> | undefined)?.["quotaInfo"]) || f(p["userStatus"]) || undefined;
 }
 
 export function evaluateCircuitBreaker(
@@ -148,30 +108,11 @@ export function evaluateCircuitBreaker(
     buffer: DEFAULT_AUTO_WAKE_BUFFER_SECONDS,
   },
 ): CircuitBreakerEvaluation {
-  const threshold =
-    options && typeof options.thresholdPercentage === "number"
-      ? options.thresholdPercentage
-      : defaults.threshold;
-  const defaultSafeWindow =
-    options && typeof options.defaultSafeWindowSeconds === "number"
-      ? options.defaultSafeWindowSeconds
-      : defaults.safeWindow;
-  const bufferSec =
-    options && typeof options.bufferSeconds === "number" ? options.bufferSeconds : defaults.buffer;
-  const activeAgentsCount =
-    options && typeof options.activeAgentsCount === "number"
-      ? options.activeAgentsCount
-      : options && options.activeAgentIds
-        ? options.activeAgentIds.length
-        : 0;
-  const nowMs =
-    options && options.now !== undefined
-      ? options.now instanceof Date
-        ? options.now.getTime()
-        : typeof options.now === "string"
-          ? new Date(options.now).getTime()
-          : options.now
-      : Date.now();
+  const threshold = options?.thresholdPercentage ?? defaults.threshold;
+  const defaultSafeWindow = options?.defaultSafeWindowSeconds ?? defaults.safeWindow;
+  const bufferSec = options?.bufferSeconds ?? defaults.buffer;
+  const activeAgentsCount = options?.activeAgentsCount ?? options?.activeAgentIds?.length ?? 0;
+  const nowMs = options?.now !== undefined ? (options.now instanceof Date ? options.now.getTime() : typeof options.now === "string" ? new Date(options.now).getTime() : options.now) : Date.now();
 
   const explicitActiveHost = options && options.activeHost ? options.activeHost.trim() : undefined;
   const summaryActiveHost =

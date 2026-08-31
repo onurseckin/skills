@@ -13,6 +13,20 @@ import type {
   OrchestratorCompanionOptions,
 } from "./types.ts";
 
+export interface MandatoryCompanionsPairingResult {
+  readonly skillAuditor: CompanionPairingResult;
+  readonly mindAuditor: CompanionPairingResult;
+  readonly allPaired: boolean;
+}
+
+export interface CompanionAuditorsHealthStatus {
+  readonly healthy: boolean;
+  readonly mindAuditorActive: boolean;
+  readonly skillAuditorActive: boolean;
+  readonly isMandatoryTarget: boolean;
+  readonly issues: readonly string[];
+}
+
 export class OrchestratorCompanionAuditor {
   /**
    * Automatically pairs or verifies companion Skill Auditor alongside Tier 1 Orchestrator.
@@ -63,6 +77,132 @@ export class OrchestratorCompanionAuditor {
       companionAgentId: pairedAgentId,
       pairedAt: nowIso,
     };
+  }
+
+  /**
+   * Automatically pairs or verifies companion Mind Auditor alongside Tier 0 Mind.
+   */
+  public static pairMindCompanion(
+    repoRoot: string,
+    options?: OrchestratorCompanionOptions,
+  ): CompanionPairingResult {
+    const isMandatory = SkillAuditorPolicy.isMandatoryTarget(repoRoot);
+    const activeAgents: readonly AgentGrantRecord[] =
+      options !== undefined && options.activeAgents !== undefined ? options.activeAgents : [];
+    const pairedAgentId =
+      options !== undefined && typeof options.companionAgentId === "string"
+        ? options.companionAgentId
+        : "mind-auditor-auto";
+    const nowIso =
+      options !== undefined && typeof options.now === "string"
+        ? options.now
+        : new Date().toISOString();
+
+    const hasExplicitAuditor = activeAgents.some((a) => {
+      const r = a.role as string;
+      if (r === "mind-auditor") return true;
+      if (r === "meta-auditor") return true;
+      return false;
+    });
+
+    let paired = false;
+    let autoProvisioned = false;
+
+    if (hasExplicitAuditor) {
+      paired = true;
+    } else {
+      paired = true;
+      autoProvisioned = true;
+    }
+
+    const isStrict = options !== undefined && options.strictPolicy === true;
+    if (isStrict && isMandatory && !hasExplicitAuditor && !autoProvisioned) {
+      SkillAuditorPolicy.assertMindAuditorRequired(repoRoot, activeAgents);
+    }
+
+    return {
+      paired,
+      autoProvisioned,
+      isMandatoryTarget: isMandatory,
+      companionAgentId: pairedAgentId,
+      pairedAt: nowIso,
+    };
+  }
+
+  /**
+   * Pairs both mandatory companion auditors (skill-auditor and mind-auditor).
+   */
+  public static pairAllMandatoryCompanions(
+    repoRoot: string,
+    options?: OrchestratorCompanionOptions,
+  ): MandatoryCompanionsPairingResult {
+    const skillAuditor = this.pairCompanion(repoRoot, options);
+    const mindAuditor = this.pairMindCompanion(repoRoot, options);
+    return {
+      skillAuditor,
+      mindAuditor,
+      allPaired: skillAuditor.paired && mindAuditor.paired,
+    };
+  }
+
+  /**
+   * Actively verifies that mandatory companion auditors are deployed, healthy, and running.
+   */
+  public static verifyCompanionAuditorsHealth(
+    repoRoot: string,
+    activeAgents?: readonly AgentGrantRecord[],
+  ): CompanionAuditorsHealthStatus {
+    const isMandatory = SkillAuditorPolicy.isMandatoryTarget(repoRoot);
+    const agents: readonly AgentGrantRecord[] = activeAgents !== undefined ? activeAgents : [];
+    const active = agents.filter((a) => a.status === "active");
+
+    const mindAuditorActive = active.some(
+      (a) =>
+        (a.role as string) === "mind-auditor" ||
+        (a.role as string) === "meta-auditor" ||
+        a.id.includes("mind-auditor"),
+    );
+
+    const skillAuditorActive = active.some(
+      (a) =>
+        (a.role as string) === "skill-auditor" ||
+        (a.role as string) === "meta-auditor" ||
+        a.id.includes("skill-auditor"),
+    );
+
+    const issues: string[] = [];
+    if (!mindAuditorActive && isMandatory) {
+      issues.push("Mandatory mind-auditor companion is not active in the agent ledger.");
+    }
+    if (!skillAuditorActive && isMandatory) {
+      issues.push("Mandatory skill-auditor companion is not active in the agent ledger.");
+    }
+
+    const healthy = (!isMandatory || (mindAuditorActive && skillAuditorActive)) && issues.length === 0;
+
+    return {
+      healthy,
+      mindAuditorActive,
+      skillAuditorActive,
+      isMandatoryTarget: isMandatory,
+      issues,
+    };
+  }
+
+  /**
+   * Asserts that all mandatory companion auditors are healthy, throwing HarnessError if degraded.
+   */
+  public static assertCompanionAuditorsHealth(
+    repoRoot: string,
+    activeAgents?: readonly AgentGrantRecord[],
+  ): void {
+    const health = this.verifyCompanionAuditorsHealth(repoRoot, activeAgents);
+    if (!health.healthy) {
+      throw new HarnessError(
+        "INVALID_STATE",
+        `[MANDATORY_COMPANION_HEALTH_VIOLATION] Companion auditors health check failed: ${health.issues.join(" ")}`,
+      );
+    }
   }
 
   /**
@@ -219,6 +359,34 @@ export function pairCompanionAuditor(
   options?: OrchestratorCompanionOptions,
 ): CompanionPairingResult {
   return OrchestratorCompanionAuditor.pairCompanion(repoRoot, options);
+}
+
+export function pairMindCompanionAuditor(
+  repoRoot: string,
+  options?: OrchestratorCompanionOptions,
+): CompanionPairingResult {
+  return OrchestratorCompanionAuditor.pairMindCompanion(repoRoot, options);
+}
+
+export function pairAllMandatoryCompanionAuditors(
+  repoRoot: string,
+  options?: OrchestratorCompanionOptions,
+): MandatoryCompanionsPairingResult {
+  return OrchestratorCompanionAuditor.pairAllMandatoryCompanions(repoRoot, options);
+}
+
+export function verifyCompanionAuditorsHealth(
+  repoRoot: string,
+  activeAgents?: readonly AgentGrantRecord[],
+): CompanionAuditorsHealthStatus {
+  return OrchestratorCompanionAuditor.verifyCompanionAuditorsHealth(repoRoot, activeAgents);
+}
+
+export function assertCompanionAuditorsHealth(
+  repoRoot: string,
+  activeAgents?: readonly AgentGrantRecord[],
+): void {
+  OrchestratorCompanionAuditor.assertCompanionAuditorsHealth(repoRoot, activeAgents);
 }
 
 export function executeBehavioralForensics(

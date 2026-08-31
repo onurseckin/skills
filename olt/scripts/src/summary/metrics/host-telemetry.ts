@@ -6,11 +6,16 @@ import { evidenced, type Evidenced } from "../../core/contracts/index.ts";
 import { isJsonObject, type JsonObject } from "../../core/contracts/index.ts";
 import type { HostIdentity } from "./types.ts";
 
+/**
+ * Host-Aware Live Quota Telemetry & Probes.
+ * Permanently evaluated on every pulse, command, and run.
+ */
 export interface DetectHostIdentityOptions {
   homeDir?: string;
   env?: Record<string, string | undefined>;
   cwd?: string;
 }
+
 
 function parseJsonSafe(raw: string): Record<string, unknown> | null {
   try {

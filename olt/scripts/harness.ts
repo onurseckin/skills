@@ -11,6 +11,8 @@ import {
   shouldReadPromptStdin,
 } from "./src/cli/prompt-input.ts";
 import { formatCliError, propagateCliExitCode, setupSignalTraps } from "./src/cli/signals/index.ts";
+import { PolicyDiscoveryEngine } from "./src/engine/policy-discovery.ts";
+import { findRepoRoot } from "./src/core/shared/paths.ts";
 
 async function stdinBytes(maximum = 64 * 1024 * 1024): Promise<Uint8Array> {
   const chunks: Buffer[] = [];
@@ -25,6 +27,13 @@ async function stdinBytes(maximum = 64 * 1024 * 1024): Promise<Uint8Array> {
 }
 
 export async function main(argv: readonly string[]): Promise<void> {
+  try {
+    const repoRoot = findRepoRoot();
+    PolicyDiscoveryEngine.ensurePolicyCalibrated(repoRoot);
+  } catch {
+    // Ignore when invoked outside a sovereign repository root
+  }
+
   const executingRuntime = fileURLToPath(new URL(".", import.meta.url));
   const format = stripOutputFormat(argv);
   const help = helpRequest(format.argv);

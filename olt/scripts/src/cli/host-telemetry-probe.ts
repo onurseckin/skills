@@ -2,11 +2,24 @@ import type { JsonObject } from "../core/contracts/index.ts";
 import type { DerivedTelemetryInput, TelemetryFieldConflict } from "../workflow/agents/grants.ts";
 import { detectHostTelemetry, type HostTelemetryProbe } from "../summary/metrics/index.ts";
 import { readAgentTranscriptTelemetry } from "../workflow/agents/transcript-telemetry.ts";
+import {
+  probeLiveQuotaTelemetry,
+  type LifecycleQuotaTelemetry,
+  type ProbeLifecycleQuotaOptions,
+} from "../workflow/lifecycle/quota-lifecycle.ts";
+
+export { probeLiveQuotaTelemetry, type LifecycleQuotaTelemetry, type ProbeLifecycleQuotaOptions };
 
 export function probeAgentTelemetry(agentId: string): DerivedTelemetryInput {
   const derived = toDerivedTelemetry(detectHostTelemetry(agentId));
   const transcript = readAgentTranscriptTelemetry(agentId);
   return transcript === null ? derived : { ...derived, transcript };
+}
+
+export async function probeHostQuotaTelemetry(
+  options: ProbeLifecycleQuotaOptions = {},
+): Promise<LifecycleQuotaTelemetry> {
+  return await probeLiveQuotaTelemetry(options);
 }
 
 export function withHostTelemetryConflicts(
@@ -33,3 +46,4 @@ function toDerivedTelemetry(probe: HostTelemetryProbe | null): DerivedTelemetryI
     ...(Object.keys(capabilities).length === 0 ? {} : { capabilities }),
   };
 }
+

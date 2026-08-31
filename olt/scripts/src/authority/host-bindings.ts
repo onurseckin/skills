@@ -22,6 +22,10 @@ export const ROLE_KEY_ALIASES: Readonly<Record<string, string>> = {
   "autonomic-watchdog": "autonomic_watchdog",
   autonomic_watchdog: "autonomic_watchdog",
   watchdog: "autonomic_watchdog",
+  "policy-discovery": "policy_discovery",
+  policy_discovery: "policy_discovery",
+  "policy-bootstrapper": "policy_discovery",
+  policy_bootstrapper: "policy_discovery",
 
   // Orchestrator / Tier 1
   orchestrator: "orchestrator",

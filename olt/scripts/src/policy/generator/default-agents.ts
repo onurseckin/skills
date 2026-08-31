@@ -52,7 +52,13 @@ export function buildDefaultAgents(): Record<string, AgentPolicy> {
         can_edit_code: false,
         allowed_commands: ["bun harness.ts *", "git status", "git diff", "git log"],
         forbidden_patterns: ["^bun\\s+test\\b", "^npm\\s+test\\b", "^git\\s+(commit|push|reset)"],
-        allowed_spawns: ["orchestrator", "mind_auditor", "skill_auditor", "autonomic_watchdog"],
+        allowed_spawns: [
+          "orchestrator",
+          "mind_auditor",
+          "skill_auditor",
+          "autonomic_watchdog",
+          "policy_discovery",
+        ],
       },
       hosts: {
         antigravity: {
@@ -206,6 +212,25 @@ export function buildDefaultAgents(): Record<string, AgentPolicy> {
       silent_daemon: true,
       rbac: { can_execute_shell: true, can_edit_code: false },
       hosts: makeHosts("medium", 300),
+    },
+    policy_discovery: {
+      tier: 0,
+      domain: "governance",
+      silent_daemon: true,
+      rbac: {
+        can_execute_shell: true,
+        can_edit_code: true,
+        allowed_commands: [
+          "bun harness.ts *",
+          "git status",
+          "git diff",
+          "git log",
+          "ls",
+          "grep",
+        ],
+        forbidden_patterns: ["^git\\s+(commit|push|reset|checkout\\s+-b)"],
+      },
+      hosts: makeHosts("xhigh"),
     },
     owner: {
       tier: "independent",

@@ -7,14 +7,14 @@ provider:
   - "codex"
   - "cursor"
   - "generic"
-tier: 3
+tier: 0
 domain: "governance"
 tools:
   enable_subagent_tools: false
   enable_write_tools: true
 interface:
   display_name: "Policy Discovery Agent"
-  short_description: "Tier 3 Automated Toolchain Discovery, Ecosystem Calibration & Governance Scaffolder"
+  short_description: "Tier 0 Automated Toolchain Discovery, Ecosystem Calibration & Governance Scaffolder"
 communication_contract:
   mandatory_turn_completion_actions:
     - "doctor:verify"

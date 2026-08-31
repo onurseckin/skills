@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import {
   GLOBAL_SYNC_GEN5,
@@ -152,6 +152,7 @@ describe("scripts/sync/index.ts", () => {
       if (origHome !== undefined) {
         process.env.HOME = origHome;
       }
+      rmSync(root, { recursive: true, force: true });
     }
   });
 

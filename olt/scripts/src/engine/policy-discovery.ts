@@ -445,8 +445,8 @@ export class PolicyDiscoveryEngine {
     }
 
     const policyPath = join(oltDir, "policy.json");
-    if (!existsSync(policyPath)) {
-      PolicyDiscoveryEngine.scaffoldTailoredPolicy(root);
+    if (!existsSync(policyPath) || !PolicyDiscoveryEngine.isPolicyCalibrated(root)) {
+      PolicyDiscoveryEngine.discoverAndCalibrate(root);
     }
 
     const backlogPath = join(oltDir, "backlog.jsonl");
@@ -486,6 +486,36 @@ export class PolicyDiscoveryEngine {
       ready,
     };
   }
+
+  public static isPolicyCalibrated(repoRoot: string): boolean {
+    const root = resolve(repoRoot);
+    const oltDir = join(root, ".olt");
+    const policyPath = join(oltDir, "policy.json");
+    if (!existsSync(policyPath)) return false;
+    const inspection = inspectRepoPolicy(root);
+    if (inspection.status !== "valid_custom") return false;
+    const policy = inspection.policy;
+    if (
+      !policy.test_runner ||
+      typeof policy.test_runner.default_command !== "string" ||
+      policy.test_runner.default_command.trim().length === 0
+    ) {
+      return false;
+    }
+    if (!Array.isArray(policy.allowed_commands) || policy.allowed_commands.length === 0) {
+      return false;
+    }
+    return true;
+  }
+
+  public static ensurePolicyCalibrated(repoRoot: string): RepoPolicy {
+    const root = resolve(repoRoot);
+    if (!PolicyDiscoveryEngine.isPolicyCalibrated(root)) {
+      const result = PolicyDiscoveryEngine.discoverAndCalibrate(root);
+      return result.calibratedPolicy;
+    }
+    return loadRepoPolicy(root);
+  }
 }
 
 export function discoverAndCalibrateRepoPolicy(
@@ -499,4 +529,12 @@ export function auditRepoGovernanceCoverage(
   capsuleRunRoot?: string,
 ): GovernanceCoverageReport {
   return PolicyDiscoveryEngine.auditCoverage(repoRoot, capsuleRunRoot);
+}
+
+export function isRepoPolicyCalibrated(repoRoot: string): boolean {
+  return PolicyDiscoveryEngine.isPolicyCalibrated(repoRoot);
+}
+
+export function ensureCalibratedRepoPolicy(repoRoot: string): RepoPolicy {
+  return PolicyDiscoveryEngine.ensurePolicyCalibrated(repoRoot);
 }

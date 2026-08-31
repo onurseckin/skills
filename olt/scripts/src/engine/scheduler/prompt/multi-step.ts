@@ -6,7 +6,7 @@ import type {
 
 export function generateCognitiveSteps(
   dimension: CognitiveDirectiveDimension,
-  options: CognitivePromptOptions = {},
+  _options: CognitivePromptOptions = {},
 ): readonly CognitiveStep[] {
   const steps: CognitiveStep[] = [];
 

@@ -9,50 +9,15 @@ export interface CognitiveValidatorCommandLockOptions {
   readonly grants?: readonly unknown[] | null | undefined;
 }
 
-const BANNED_VALIDATOR_ROLES = new Set([
-  "validator",
-  "cognitive-validator",
-  "cognitive_validator",
-  "socratic-validator",
-  "socratic_validator",
-  "ui-validator",
-  "plan-validator",
-]);
+const BANNED_VALIDATOR_ROLES = new Set(["validator", "cognitive-validator", "cognitive_validator", "socratic-validator", "socratic_validator", "ui-validator", "plan-validator",]);
 
-const IMPLEMENTER_ROLES = new Set([
-  "implementer",
-  "developer",
-  "coder",
-  "repairer",
-  "worker",
-  "sub-implementer",
-  "custom-implementer",
-]);
+const IMPLEMENTER_ROLES = new Set(["implementer", "developer", "coder", "repairer", "worker", "sub-implementer", "custom-implementer",]);
 
 const normalizeRole = (role: string): string => role.trim().toLowerCase().replace(/_/gu, "-");
 
-const isValidatorRole = (role: string): boolean => {
-  const norm = normalizeRole(role);
-  if (norm.includes("mechanic")) return false;
-  return (
-    BANNED_VALIDATOR_ROLES.has(norm) ||
-    BANNED_VALIDATOR_ROLES.has(role.trim().toLowerCase()) ||
-    norm.startsWith("validator") ||
-    norm.includes("validator") ||
-    norm.includes("critic")
-  );
-};
+const isValidatorRole = (role: string): boolean => { const norm = normalizeRole(role); return norm.includes("mechanic") ? false : (BANNED_VALIDATOR_ROLES.has(norm) || BANNED_VALIDATOR_ROLES.has(role.trim().toLowerCase()) || norm.startsWith("validator") || norm.includes("validator") || norm.includes("critic")); };
 
-const isImplementerRole = (role: string): boolean => {
-  const norm = normalizeRole(role);
-  return (
-    IMPLEMENTER_ROLES.has(norm) ||
-    norm.startsWith("implementer") ||
-    norm.includes("implementer") ||
-    norm.includes("worker") ||
-    norm.includes("repairer")
-  );
-};
+const isImplementerRole = (role: string): boolean => { const norm = normalizeRole(role); return IMPLEMENTER_ROLES.has(norm) || norm.startsWith("implementer") || norm.includes("implementer") || norm.includes("worker") || norm.includes("repairer"); };
 
 const isTestFile = (arg: string): boolean => {
   if (arg.startsWith("-")) return false;
@@ -71,120 +36,42 @@ const isTestFile = (arg: string): boolean => {
 
 const isWholeSuite = (argv: readonly string[]): boolean => {
   if (argv.length === 0) return false;
-  const f = (argv[0] ?? "").toLowerCase();
-  const s = (argv[1] ?? "").toLowerCase();
-  if (f === "vitest" || f === "jest" || f === "pytest") return !argv.slice(1).some(isTestFile);
+  const f = (argv[0] ?? "").toLowerCase(), s = (argv[1] ?? "").toLowerCase();
+  if (["vitest", "jest", "pytest"].includes(f)) return !argv.slice(1).some(isTestFile);
   if (f === "npx" && (s === "vitest" || s === "jest")) return !argv.slice(2).some(isTestFile);
-  if (f === "npm" || f === "pnpm" || f === "yarn") {
-    if (
-      s === "test" ||
-      s === "t" ||
-      (s === "run" && (argv[2] ?? "").toLowerCase().startsWith("test"))
-    ) {
-      return !argv.slice(2).some(isTestFile);
-    }
-  }
-  if (f === "bun") {
-    if (s === "test") return !argv.slice(2).some(isTestFile);
-    if (s === "run" && (argv[2] ?? "").toLowerCase() === "test")
-      return !argv.slice(3).some(isTestFile);
-  }
+  if (["npm", "pnpm", "yarn"].includes(f) && (s === "test" || s === "t" || (s === "run" && (argv[2] ?? "").toLowerCase().startsWith("test")))) return !argv.slice(2).some(isTestFile);
+  if (f === "bun" && s === "test") return !argv.slice(2).some(isTestFile);
+  if (f === "bun" && s === "run" && (argv[2] ?? "").toLowerCase() === "test") return !argv.slice(3).some(isTestFile);
   if (f === "bun-test") return !argv.slice(1).some(isTestFile);
   return false;
 };
 
 const isBadGit = (argv: readonly string[]): boolean => {
-  if (argv.length === 0) return false;
-  if ((argv[0] ?? "").toLowerCase() !== "git") return false;
+  if (argv.length === 0 || (argv[0] ?? "").toLowerCase() !== "git") return false;
   const sub = (argv[1] ?? "").toLowerCase();
   if (sub === "checkout" || sub === "reset") return true;
-  if (sub === "push") {
-    const rest = argv.slice(2);
-    return rest.includes("--force") || rest.includes("-f") || rest.includes("--force-with-lease");
-  }
-  if (sub === "clean") {
-    const rest = argv.slice(2);
-    return (
-      rest.includes("-f") ||
-      rest.includes("-fd") ||
-      rest.includes("-fx") ||
-      rest.includes("-fxd") ||
-      rest.includes("-df") ||
-      rest.includes("--force") ||
-      rest.some((a) => a.startsWith("-") && a.includes("f"))
-    );
-  }
+  if (sub === "push") return argv.slice(2).some((a) => a === "--force" || a === "-f" || a === "--force-with-lease");
+  if (sub === "clean") return argv.slice(2).some((a) => a === "-f" || a === "-fd" || a === "-fx" || a === "-fxd" || a === "-df" || a === "--force" || (a.startsWith("-") && a.includes("f")));
   return false;
 };
 
 const parseArgv = (entry: Record<string, unknown>): readonly string[] => {
-  if (Array.isArray(entry.argv) && entry.argv.every((a) => typeof a === "string"))
-    return entry.argv as string[];
-  if (typeof entry.command === "string")
-    return entry.command
-      .trim()
-      .split(/\s+/u)
-      .filter((s) => s.length > 0);
-  if (typeof entry.id === "string")
-    return entry.id
-      .trim()
-      .split(/\s+/u)
-      .filter((s) => s.length > 0);
+  if (Array.isArray(entry.argv) && entry.argv.every((a) => typeof a === "string")) return entry.argv as string[];
+  if (typeof entry.command === "string") return entry.command.trim().split(/\s+/u).filter((s) => s.length > 0);
+  if (typeof entry.id === "string") return entry.id.trim().split(/\s+/u).filter((s) => s.length > 0);
   return [];
 };
 
 const auditCommand = (
-  agentId: string | undefined,
-  role: string | undefined,
-  argv: readonly string[],
-  cmdText: string,
-  recordId: string | undefined,
-  event: string | undefined,
-  findings: DoctorDiagnosticFinding[],
-  auditImplementers: boolean,
+  agentId: string | undefined, role: string | undefined, argv: readonly string[], cmdText: string, recordId: string | undefined, event: string | undefined, findings: DoctorDiagnosticFinding[], auditImplementers: boolean,
 ): void => {
-  const engine = "checkCognitiveValidatorCommandLock";
-  const prefix = event ? ` in event "${event}"` : "";
+  const engine = "checkCognitiveValidatorCommandLock", prefix = event ? ` in event "${event}"` : "";
+  const baseDetail = { agentId, role, command: cmdText, recordId, eventName: event };
   if (isValidatorRole(role ?? "")) {
-    findings.push({
-      code: "COGNITIVE_VALIDATOR_COMMAND_LOCK_VIOLATION",
-      severity: "ERROR",
-      engine,
-      message: `Cognitive Validator Command Hard-Lock breached${prefix}: Agent "${agentId ?? "unknown"}" with role "${role}" executed command: "${cmdText}"`,
-      details: { agentId, role, command: cmdText, recordId, eventName: event },
-    });
+    findings.push({ code: "COGNITIVE_VALIDATOR_COMMAND_LOCK_VIOLATION", severity: "ERROR", engine, message: `Cognitive Validator Command Hard-Lock breached${prefix}: Agent "${agentId ?? "unknown"}" with role "${role}" executed command: "${cmdText}"`, details: baseDetail });
   } else if (auditImplementers && isImplementerRole(role ?? "")) {
-    if (isWholeSuite(argv)) {
-      findings.push({
-        code: "IMPLEMENTER_COMMAND_LOCK_VIOLATION",
-        severity: "ERROR",
-        engine,
-        message: `Implementer Command Hard-Lock breached${prefix}: Agent "${agentId ?? "unknown"}" with role "${role}" executed whole-suite test command: "${cmdText}". Implementers may only run file-scoped unit tests.`,
-        details: {
-          agentId,
-          role,
-          command: cmdText,
-          recordId,
-          eventName: event,
-          reason: "WHOLE_SUITE_TEST_RUN_DENIED",
-        },
-      });
-    } else if (isBadGit(argv)) {
-      findings.push({
-        code: "IMPLEMENTER_COMMAND_LOCK_VIOLATION",
-        severity: "ERROR",
-        engine,
-        message: `Implementer Command Hard-Lock breached${prefix}: Agent "${agentId ?? "unknown"}" with role "${role}" executed unauthorized git mutation: "${cmdText}"`,
-        details: {
-          agentId,
-          role,
-          command: cmdText,
-          recordId,
-          eventName: event,
-          reason: "UNAUTHORIZED_GIT_MUTATION",
-        },
-      });
-    }
+    if (isWholeSuite(argv)) findings.push({ code: "IMPLEMENTER_COMMAND_LOCK_VIOLATION", severity: "ERROR", engine, message: `Implementer Command Hard-Lock breached${prefix}: Agent "${agentId ?? "unknown"}" with role "${role}" executed whole-suite test command: "${cmdText}". Implementers may only run file-scoped unit tests.`, details: { ...baseDetail, reason: "WHOLE_SUITE_TEST_RUN_DENIED" } });
+    else if (isBadGit(argv)) findings.push({ code: "IMPLEMENTER_COMMAND_LOCK_VIOLATION", severity: "ERROR", engine, message: `Implementer Command Hard-Lock breached${prefix}: Agent "${agentId ?? "unknown"}" with role "${role}" executed unauthorized git mutation: "${cmdText}"`, details: { ...baseDetail, reason: "UNAUTHORIZED_GIT_MUTATION" } });
   }
 };
 

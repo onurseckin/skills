@@ -96,3 +96,31 @@ export function isSchedulerEnabled(
   const config = resolveAgentSchedulerConfig(role, host, policy, repoRoot);
   return config.enabled;
 }
+
+export interface QuotaAwareCadenceOptions {
+  readonly role: string;
+  readonly host?: HostType | undefined;
+  readonly policy?: RepoPolicy | undefined;
+  readonly repoRoot?: string | undefined;
+  readonly quotaPercentage?: number | null | undefined;
+  readonly isTriggered?: boolean | undefined;
+}
+
+export function resolveQuotaAwareSchedulerIntervalSeconds(
+  options: QuotaAwareCadenceOptions,
+): number {
+  const baseInterval = resolveSchedulerIntervalSeconds(
+    options.role,
+    options.host,
+    options.policy,
+    options.repoRoot,
+  );
+  if (
+    options.isTriggered === true ||
+    (typeof options.quotaPercentage === "number" && options.quotaPercentage <= 10)
+  ) {
+    return Math.max(baseInterval, 900);
+  }
+  return baseInterval;
+}
+

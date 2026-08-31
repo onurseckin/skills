@@ -12,6 +12,7 @@ export type NodeRole =
   | "mind"
   | "mind-auditor"
   | "skill-auditor"
+  | "policy-discovery"
   | "coordinator"
   | "meta-auditor"
   | "orchestrator"

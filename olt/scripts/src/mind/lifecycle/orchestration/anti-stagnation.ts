@@ -76,7 +76,7 @@ export function evaluateAntiStagnation(
 
 export function recordNonZeroProgress(
   stepSummary: string,
-  state: AntiStagnationState,
+  _state: AntiStagnationState,
   options: {
     readonly memoryPath?: string | undefined;
     readonly charterGoals?: readonly string[] | undefined;
