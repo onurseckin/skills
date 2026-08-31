@@ -59,10 +59,7 @@ export function rotateInMemoryMailbox(
   toRetain: readonly MailboxEnvelope<unknown>[],
 ): void {
   const existing = inMemoryMailboxes.get(archivePath) ?? [];
-  inMemoryMailboxes.set(archivePath, [
-    ...existing,
-    ...toArchive.map((e) => JSON.stringify(e)),
-  ]);
+  inMemoryMailboxes.set(archivePath, [...existing, ...toArchive.map((e) => JSON.stringify(e))]);
   inMemoryMailboxes.set(
     inboxPath,
     toRetain.map((e) => JSON.stringify(e)),
