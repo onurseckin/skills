@@ -7,7 +7,10 @@ import {
   auditSupervisoryWatchdog,
   recoverStaleTasks,
 } from "../../../../olt/scripts/src/engine/scheduler/core/state.ts";
-import type { TransactionPort, CapsuleStoreState } from "../../../../olt/scripts/src/workflow/types.ts";
+import type {
+  TransactionPort,
+  CapsuleStoreState,
+} from "../../../../olt/scripts/src/workflow/types.ts";
 
 describe("engine/scheduler/core/state.ts", () => {
   let tempDir: string;
@@ -257,7 +260,9 @@ describe("engine/scheduler/core/state.ts", () => {
       expect(report.activeWatchdogsCount).toBe(1);
       expect(report.overdueWatchdogs.length).toBe(1);
       expect(report.hungAgentIds).toContain("agent-hung");
-      expect(report.issues[0]).toContain("Watchdog 'wd-overdue' (agent 'agent-hung') heartbeat overdue");
+      expect(report.issues[0]).toContain(
+        "Watchdog 'wd-overdue' (agent 'agent-hung') heartbeat overdue",
+      );
     });
   });
 

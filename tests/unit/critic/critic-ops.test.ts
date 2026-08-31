@@ -19,7 +19,8 @@ describe("critic-ops: deconstructPromptBytes", () => {
   });
 
   it("splits paragraphs separated by double newlines or CRLF", () => {
-    const prompt = "First paragraph with [link](http://example.com).\n\nSecond paragraph.\r\n\r\nThird paragraph.";
+    const prompt =
+      "First paragraph with [link](http://example.com).\n\nSecond paragraph.\r\n\r\nThird paragraph.";
     const res = deconstructPromptBytes(prompt);
     expect(res).toHaveLength(3);
     expect(res[0]).toEqual({

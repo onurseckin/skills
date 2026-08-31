@@ -158,7 +158,11 @@ describe("host-bindings", () => {
 
     test("throws INVALID_ARGUMENT when host type is invalid", () => {
       expect(() =>
-        resolveAgentHostConfiguration("mind", "invalid_host_type" as unknown as "antigravity", defaultPolicy),
+        resolveAgentHostConfiguration(
+          "mind",
+          "invalid_host_type" as unknown as "antigravity",
+          defaultPolicy,
+        ),
       ).toThrow(/Invalid host type/i);
     });
 

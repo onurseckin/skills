@@ -509,4 +509,3 @@ describe("Unified Reporting CLI Surface", () => {
     expect(health2.markdown).toBeDefined();
   });
 });
-

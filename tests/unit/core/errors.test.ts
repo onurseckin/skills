@@ -5,7 +5,13 @@ import * as ErrorsIndex from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("core/errors/normalize-error.ts", () => {
   it("normalizes HarnessError instances correctly", () => {
-    const errorWithFix = new HarnessError("INVALID_ARGUMENT", "Invalid argument provided", ["issue1"], 3, "check the flags");
+    const errorWithFix = new HarnessError(
+      "INVALID_ARGUMENT",
+      "Invalid argument provided",
+      ["issue1"],
+      3,
+      "check the flags",
+    );
     const normalizedWithFix = normalizeError(errorWithFix);
     expect(normalizedWithFix.code).toBe("INVALID_ARGUMENT");
     expect(normalizedWithFix.message).toBe("Invalid argument provided");
@@ -40,13 +46,15 @@ describe("core/errors/normalize-error.ts", () => {
       code: "INTERNAL",
       message: "Unknown internal failure",
       issues: [],
-      footer: "never read the harness source; run `harness.ts help <command>` or `harness.ts explain INTERNAL`.",
+      footer:
+        "never read the harness source; run `harness.ts help <command>` or `harness.ts explain INTERNAL`.",
     });
     expect(normalizeError(null)).toEqual({
       code: "INTERNAL",
       message: "Unknown internal failure",
       issues: [],
-      footer: "never read the harness source; run `harness.ts help <command>` or `harness.ts explain INTERNAL`.",
+      footer:
+        "never read the harness source; run `harness.ts help <command>` or `harness.ts explain INTERNAL`.",
     });
   });
 

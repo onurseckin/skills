@@ -51,7 +51,10 @@ describe("error-propagation", () => {
     test("formats json output for errors", () => {
       const err = new HarnessError("INVALID_ARGUMENT", "Bad value");
       const jsonOut = formatCliError(err, { json: true });
-      const parsed = JSON.parse(jsonOut) as { ok: boolean; error: { code: string; message: string } };
+      const parsed = JSON.parse(jsonOut) as {
+        ok: boolean;
+        error: { code: string; message: string };
+      };
       expect(parsed.ok).toBe(false);
       expect(parsed.error.code).toBe("INVALID_ARGUMENT");
       expect(parsed.error.message).toBe("Bad value");

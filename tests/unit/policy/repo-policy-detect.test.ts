@@ -14,7 +14,6 @@ import {
   validateRepoPolicy,
 } from "../../../olt/scripts/src/policy/index.ts";
 
-
 describe("Repo Policy Auto-Detection & Schema Validation", () => {
   const scratchBase = join(process.cwd(), "coverage", "scratch", "test-repo-policy-detect");
 
@@ -333,6 +332,3 @@ describe("Repo Policy Auto-Detection & Schema Validation", () => {
     }
   });
 });
-
-
-

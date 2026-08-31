@@ -24,7 +24,6 @@ import { withRunLock } from "../../../olt/scripts/src/platform/index.ts";
 import { clearObserver, publishObserver } from "../../../olt/scripts/src/platform/index.ts";
 import { resolveCapsulesDir } from "../../../olt/scripts/src/core/shared/paths.ts";
 
-
 const lockModule = new URL("../../../olt/scripts/src/platform/index.ts", import.meta.url).pathname;
 
 function runRoot(): string {
@@ -104,8 +103,6 @@ describe("run-lock quality invariants", () => {
       }),
     ).toThrow(/run root disappeared while locked/i);
 
-
-
     // Test relative path resolution against capsules dir
     const capsulesDir = resolveCapsulesDir();
     const relName = `test-run-rel-${Date.now()}`;
@@ -117,9 +114,6 @@ describe("run-lock quality invariants", () => {
       rmSync(absPath, { recursive: true, force: true });
     }
   });
-
-
-
 
   test("withRunLock times out (and its delay() retry loop runs) when another holder already has the lock", () => {
     const run = runRoot();

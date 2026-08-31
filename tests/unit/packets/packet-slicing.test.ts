@@ -650,7 +650,8 @@ describe("Ultra-Lean Packet Architecture & Metadata Slicing", () => {
     });
 
     test("exercises sliceMarkdownSections without header and budget stepping back", () => {
-      const md = "Headerless content here at the start.\n\n## Section 2\nSome more content that extends the byte size significantly.";
+      const md =
+        "Headerless content here at the start.\n\n## Section 2\nSome more content that extends the byte size significantly.";
       const res = sliceMarkdownSections(md, { maxTotalBytes: 70 });
       expect(res).toContain("Headerless content");
       expect(res).toContain("[... Packet truncated to maximum total budget ...]");

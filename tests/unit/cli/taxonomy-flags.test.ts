@@ -23,10 +23,7 @@ describe("taxonomy-flags", () => {
       const refs = toolRefFlags({
         tool: ["read_file", "write_file"],
       });
-      expect(refs).toEqual([
-        { name: "read_file" },
-        { name: "write_file" },
-      ]);
+      expect(refs).toEqual([{ name: "read_file" }, { name: "write_file" }]);
     });
 
     test("parses tool flags with category annotations", () => {

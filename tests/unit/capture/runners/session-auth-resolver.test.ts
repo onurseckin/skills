@@ -4,8 +4,15 @@ import {
   createSessionAuthResolver,
   SessionAuthResolver,
 } from "../../../../olt/scripts/src/capture/runners/session-auth-resolver.ts";
-import type { CaptureAuthConfig, CaptureConfig } from "../../../../olt/scripts/src/capture/config/types.ts";
-import type { CaptureCookie, CapturePageDriver, ResolvedSessionAuth } from "../../../../olt/scripts/src/capture/runners/types.ts";
+import type {
+  CaptureAuthConfig,
+  CaptureConfig,
+} from "../../../../olt/scripts/src/capture/config/types.ts";
+import type {
+  CaptureCookie,
+  CapturePageDriver,
+  ResolvedSessionAuth,
+} from "../../../../olt/scripts/src/capture/runners/types.ts";
 
 describe("session-auth-resolver", () => {
   describe("constructor and initialization", () => {
@@ -251,7 +258,10 @@ describe("session-auth-resolver", () => {
         resolvedAt: new Date().toISOString(),
       };
 
-      const result = resolver.applyAuthToHeaders({ "Accept": "application/json", "X-Custom": "old" }, session);
+      const result = resolver.applyAuthToHeaders(
+        { Accept: "application/json", "X-Custom": "old" },
+        session,
+      );
       expect(result).toEqual({
         Accept: "application/json",
         Authorization: "Bearer xyz",
@@ -286,7 +296,7 @@ describe("session-auth-resolver", () => {
         goto: async () => {},
         waitForSelector: async () => {},
         screenshot: async () => Buffer.alloc(0),
-        evaluate: async () => ({} as never),
+        evaluate: async () => ({}) as never,
       };
 
       await resolver.applyAuthToDriver(driver, session);
@@ -319,7 +329,7 @@ describe("session-auth-resolver", () => {
         goto: async () => {},
         waitForSelector: async () => {},
         screenshot: async () => Buffer.alloc(0),
-        evaluate: async () => ({} as never),
+        evaluate: async () => ({}) as never,
       };
 
       await resolver.applyAuthToDriver(driver, session);
@@ -348,7 +358,7 @@ describe("session-auth-resolver", () => {
         goto: async () => {},
         waitForSelector: async () => {},
         screenshot: async () => Buffer.alloc(0),
-        evaluate: async () => ({} as never),
+        evaluate: async () => ({}) as never,
       };
 
       await resolver.applyAuthToDriver(driver, session);

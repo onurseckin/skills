@@ -75,7 +75,8 @@ export class ContinuousDefectFeedbackLoop {
     const domain = task.domain.trim().toLowerCase();
     if (!this.canRunDomainTask(domain)) {
       return new Promise<DomainTaskResult<TResult>>((resolve, reject) => {
-        const queue = this.taskQueues.get(domain) ?? [];
+        const existingQueue = this.taskQueues.get(domain);
+        const queue = existingQueue !== undefined ? existingQueue : [];
         const entry: QueuedTaskEntry<TResult> = { task, resolve, reject };
         queue.push(entry as QueuedTaskEntry<unknown>);
         this.taskQueues.set(domain, queue);
@@ -100,12 +101,15 @@ export class ContinuousDefectFeedbackLoop {
     const resolvedIds: string[] = [];
 
     for (const defect of openDefects) {
+      const obs = defect.observation !== undefined ? defect.observation : "";
+      const cat =
+        defect.category !== undefined && defect.category !== "" ? defect.category : "code_defect";
       const hypothesis: DefectHypothesis = {
         id: `hypo-${defect.id}`,
         defect_id: defect.id,
-        root_cause: `Root cause for ${defect.type}: ${(defect.observation || "").slice(0, 100)}`,
+        root_cause: `Root cause for ${defect.type}: ${obs.slice(0, 100)}`,
         confidence: defect.count > 1 ? 0.95 : 0.8,
-        category: defect.category || "code_defect",
+        category: cat,
         evidence: [`Observed count: ${defect.count}`, `Last seen: ${defect.last_seen_at}`],
       };
       hypotheses.push(hypothesis);
@@ -114,12 +118,16 @@ export class ContinuousDefectFeedbackLoop {
       if (defect.category === "boundary_violation") actionType = "tighten_boundary";
       else if (defect.category === "model_reasoning_error") actionType = "align_reasoning";
 
+      const rem =
+        defect.remediation !== undefined && defect.remediation !== ""
+          ? defect.remediation
+          : `Remediation for ${defect.type}`;
       const action: DefectRemediationAction = {
         action_id: `act-${defect.id}`,
         defect_id: defect.id,
         target_scope: defect.capsule_root ? [defect.capsule_root] : ["olt/"],
         action_type: actionType,
-        description: defect.remediation || `Remediation for ${defect.type}`,
+        description: rem,
         prescribed_test: `bun test tests/unit/defects/`,
         status: "planned",
       };
@@ -196,7 +204,8 @@ export class ContinuousDefectFeedbackLoop {
   public getDomainMetrics(): Readonly<Record<string, DomainMetrics>> {
     const result: Record<string, DomainMetrics> = {};
     for (const [domain, stats] of this.domainStats.entries()) {
-      const activeWorkers = this.domainActiveWorkers.get(domain) ?? 0;
+      const workers = this.domainActiveWorkers.get(domain);
+      const activeWorkers = workers !== undefined ? workers : 0;
       const avgDurationMs =
         stats.totalTasks > 0 ? Math.round(stats.totalDurationMs / stats.totalTasks) : 0;
       result[domain] = {
@@ -231,10 +240,13 @@ export class ContinuousDefectFeedbackLoop {
   }
 
   private canRunDomainTask(domain: string): boolean {
-    if (this.status === "paused" || this.status === "stopped") return false;
-    const maxPerDomain = this.options.maxConcurrentPerDomain ?? 4;
-    const maxParallelDomains = this.options.maxParallelDomains ?? 8;
-    const currentWorkers = this.domainActiveWorkers.get(domain) ?? 0;
+    if (["paused", "stopped"].includes(this.status)) return false;
+    const maxPerDomain =
+      this.options.maxConcurrentPerDomain !== undefined ? this.options.maxConcurrentPerDomain : 4;
+    const maxParallelDomains =
+      this.options.maxParallelDomains !== undefined ? this.options.maxParallelDomains : 8;
+    const cur = this.domainActiveWorkers.get(domain);
+    const currentWorkers = cur !== undefined ? cur : 0;
     const activeDomains = Array.from(this.domainActiveWorkers.values()).filter((w) => w > 0).length;
     if (currentWorkers >= maxPerDomain) return false;
     if (currentWorkers === 0 && activeDomains >= maxParallelDomains) return false;
@@ -242,7 +254,7 @@ export class ContinuousDefectFeedbackLoop {
   }
 
   private pumpQueues(): void {
-    if (this.status === "paused" || this.status === "stopped") return;
+    if (["paused", "stopped"].includes(this.status)) return;
     for (const [domain, queue] of this.taskQueues.entries()) {
       while (queue.length > 0 && this.canRunDomainTask(domain)) {
         const entry = queue.shift();
@@ -260,15 +272,18 @@ export class ContinuousDefectFeedbackLoop {
     task: DomainExecutionTask<TResult>,
   ): Promise<DomainTaskResult<TResult>> {
     const domain = task.domain.trim().toLowerCase();
-    this.domainActiveWorkers.set(domain, (this.domainActiveWorkers.get(domain) ?? 0) + 1);
+    const prevWorkers = this.domainActiveWorkers.get(domain);
+    this.domainActiveWorkers.set(domain, (prevWorkers !== undefined ? prevWorkers : 0) + 1);
     this.runningPromiseCount += 1;
     this.status = "running";
     const stats = this.getOrCreateDomainStats(domain);
 
+    const defaultTimeout =
+      this.options.defaultTimeoutMs !== undefined ? this.options.defaultTimeoutMs : 30_000;
     const taskResult = await executeDomainTask({
       task,
       domain,
-      defaultTimeoutMs: this.options.defaultTimeoutMs ?? 30_000,
+      defaultTimeoutMs: defaultTimeout,
       recordDefect: (input, dom, tid) => this.recordDefect(input, dom, tid),
     });
 
@@ -286,9 +301,10 @@ export class ContinuousDefectFeedbackLoop {
       stats.failedTasks += 1;
     }
 
+    const curWorkers = this.domainActiveWorkers.get(domain);
     this.domainActiveWorkers.set(
       domain,
-      Math.max(0, (this.domainActiveWorkers.get(domain) ?? 1) - 1),
+      Math.max(0, (curWorkers !== undefined ? curWorkers : 1) - 1),
     );
     this.runningPromiseCount = Math.max(0, this.runningPromiseCount - 1);
     if (this.runningPromiseCount === 0 && this.status === "running") this.status = "idle";

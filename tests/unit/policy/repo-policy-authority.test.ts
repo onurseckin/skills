@@ -80,7 +80,6 @@ describe("Repo Policy Authority, Safety & Concurrency", () => {
           });
         }) as typeof fstatSync,
       }),
-
     ).toThrow(/owned by the current user/i);
 
     const beforeOpen = join(dir, "before-open.json");

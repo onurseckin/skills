@@ -204,7 +204,6 @@ describe("Host Adapters Architecture — Mechanical-First, Cognitive-Fallback", 
         expect(result.toolArguments.model).toBe(model);
         expect(result.toolArguments.reasoning_effort).toBe(reasoningEffort);
       }
-
     });
 
     test("capabilities reflect Codex specifications", () => {
@@ -309,11 +308,15 @@ describe("Host Adapters Architecture — Mechanical-First, Cognitive-Fallback", 
       const minMech = ad.dispatch(minimalPacket);
       expect(minMech.mode).toBe("mechanical");
 
-      const cliSeq = ad.buildMandatoryCliSequence(".olt/capsules/run", "agent-x", "implementer", "task-x");
+      const cliSeq = ad.buildMandatoryCliSequence(
+        ".olt/capsules/run",
+        "agent-x",
+        "implementer",
+        "task-x",
+      );
       expect(cliSeq.agentId).toBe("agent-x");
       expect(cliSeq.taskId).toBe("task-x");
     }
-
   });
 
   test("getHostAdapter throws INVALID_ARGUMENT on unknown host provider", () => {
@@ -323,5 +326,4 @@ describe("Host Adapters Architecture — Mechanical-First, Cognitive-Fallback", 
       ),
     ).toThrow(/Unsupported host provider/);
   });
-
 });

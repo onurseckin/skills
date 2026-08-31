@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import {
   AuditorCursorStore,
   MindAuditorEngine,
+  CognitiveChallengePromptGenerator,
   type AuditorCursor,
 } from "../../../olt/scripts/src/mind/auditing/cognitive/index.ts";
 
@@ -112,6 +113,8 @@ describe("MindAuditorEngine", () => {
     expect(result.injectionPrompt).toContain(
       "CRITICAL SUPERVISORY ALERT: Live Stagnation Detected",
     );
+    expect(result.cognitiveChallengePrompt).toBeDefined();
+    expect(CognitiveChallengePromptGenerator.generateZeroDeltaChallengePrompt).toBeDefined();
     expect(result.telemetry.pendingBacklogCount).toBe(0);
     expect(result.telemetry.role).toBe("mind");
 

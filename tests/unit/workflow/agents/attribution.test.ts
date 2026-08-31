@@ -35,7 +35,11 @@ describe("workflow/agents/attribution", () => {
     });
 
     test("returns grant-released when actor exists but is not active", () => {
-      const inactive = makeGrant({ id: "worker-1", status: "released", released_at: "2026-08-31T01:00:00.000Z" });
+      const inactive = makeGrant({
+        id: "worker-1",
+        status: "released",
+        released_at: "2026-08-31T01:00:00.000Z",
+      });
       const ledger = [inactive];
       const res = resolveAttributionInLedger(ledger, "worker-1");
       expect(res).toEqual({
@@ -75,17 +79,29 @@ describe("workflow/agents/attribution", () => {
     });
 
     test("describes empty-ledger unattributed reason", () => {
-      const desc = describeAttribution({ kind: "unattributed", actor: "worker-1", reason: "empty-ledger" });
+      const desc = describeAttribution({
+        kind: "unattributed",
+        actor: "worker-1",
+        reason: "empty-ledger",
+      });
       expect(desc).toBe("actor worker-1 is unattributed: this capsule granted no agents at all");
     });
 
     test("describes no-such-grant unattributed reason", () => {
-      const desc = describeAttribution({ kind: "unattributed", actor: "worker-1", reason: "no-such-grant" });
+      const desc = describeAttribution({
+        kind: "unattributed",
+        actor: "worker-1",
+        reason: "no-such-grant",
+      });
       expect(desc).toBe("actor worker-1 is unattributed: no grant was ever issued for this id");
     });
 
     test("describes grant-released with recorded released_at timestamp", () => {
-      const inactive = makeGrant({ id: "worker-1", status: "released", released_at: "2026-08-31T01:00:00.000Z" });
+      const inactive = makeGrant({
+        id: "worker-1",
+        status: "released",
+        released_at: "2026-08-31T01:00:00.000Z",
+      });
       const desc = describeAttribution({
         kind: "unattributed",
         actor: "worker-1",

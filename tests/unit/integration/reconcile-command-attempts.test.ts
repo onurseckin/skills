@@ -26,7 +26,13 @@ function freshRun(label: string): { runRoot: string; repo: string } {
   const root = scratchRoot(import.meta.path, label);
   const repo = join(root, "repo");
   mkdirSync(repo, { recursive: true });
-  const runRoot = initRun(repo, `rec-run-${label}`, new TextEncoder().encode("prompt"), "file", true);
+  const runRoot = initRun(
+    repo,
+    `rec-run-${label}`,
+    new TextEncoder().encode("prompt"),
+    "file",
+    true,
+  );
   writeAgentMetadata(
     {
       agent_id: "implementer",
@@ -141,7 +147,12 @@ describe("reconcile-command-attempts", () => {
       signer,
     );
     // Bind a definitely non-existent pid so probeAttemptProcess returns "absent"
-    const deadIdentity: ProcessIdentity = { pid: 999999999, parent: 1, group: 999999999, birth: "dead" };
+    const deadIdentity: ProcessIdentity = {
+      pid: 999999999,
+      parent: 1,
+      group: 999999999,
+      birth: "dead",
+    };
     controller.bindRoot(deadIdentity);
     controller.beginCleanupUncertain(["cleanup"]);
     controller.recordSignal("SIGTERM");
@@ -154,7 +165,9 @@ describe("reconcile-command-attempts", () => {
 
     expect(recovered).toBeDefined();
     expect(recovered?.status).toBe("failed");
-    expect(recovered?.evidence_error).toBe("attempt interrupted before terminal evidence was durable");
+    expect(recovered?.evidence_error).toBe(
+      "attempt interrupted before terminal evidence was durable",
+    );
   });
 
   test("throws INTEGRITY error when attempts exceed policy max_retries", async () => {

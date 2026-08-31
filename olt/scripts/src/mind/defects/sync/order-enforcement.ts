@@ -45,7 +45,8 @@ export const VALID_DEFECT_STATE_TRANSITIONS: Readonly<
 export function validatePhaseTransition(currentPhase: string, nextPhase: string): boolean {
   const currentIndex = PHASE_ORDER_MAP[currentPhase];
   const nextIndex = PHASE_ORDER_MAP[nextPhase];
-  if (currentIndex === undefined || nextIndex === undefined) return true;
+  if (currentIndex === undefined) return true;
+  if (nextIndex === undefined) return true;
   return nextIndex >= currentIndex;
 }
 
@@ -95,19 +96,18 @@ export function validateDefectStateTransition(
 ): boolean {
   if (currentStatus === targetStatus) return true;
   const allowed = VALID_DEFECT_STATE_TRANSITIONS[currentStatus];
-  if (!allowed || !allowed.includes(targetStatus)) {
-    return false;
-  }
+  if (!allowed) return false;
+  if (!allowed.includes(targetStatus)) return false;
+
   if (
-    (currentStatus === "completed" ||
-      currentStatus === "resolved" ||
-      currentStatus === "closed" ||
-      currentStatus === "declined") &&
-    (targetStatus === "open" || targetStatus === "reopened")
+    ["completed", "resolved", "closed", "declined"].includes(currentStatus) &&
+    ["open", "reopened"].includes(targetStatus)
   ) {
-    if (!proof || !proof.commit_sha || !proof.test_assertion || !proof.task_id) {
-      return false;
-    }
+    if (proof === undefined) return false;
+    if (proof === null) return false;
+    if (!proof.commit_sha) return false;
+    if (!proof.test_assertion) return false;
+    if (!proof.task_id) return false;
   }
   return true;
 }
@@ -117,7 +117,8 @@ export function transitionDefectState(
   targetStatus: DefectStatus,
   proof?: EmpiricalFailureProof,
 ): DefectEntry {
-  const currentStatus = (defect.status as DefectStatus) || "open";
+  const currentStatus =
+    defect.status !== undefined && defect.status !== "" ? (defect.status as DefectStatus) : "open";
   if (!validateDefectStateTransition(currentStatus, targetStatus, proof)) {
     throw new HarnessError(
       "INVALID_STATE",
@@ -125,13 +126,14 @@ export function transitionDefectState(
     );
   }
   const now = new Date().toISOString();
+  const prevCount = defect.count !== undefined ? defect.count : 1;
   return {
     ...defect,
     status: targetStatus,
     last_seen_at: now,
-    ...(targetStatus === "open" || targetStatus === "reopened"
+    ...(["open", "reopened"].includes(targetStatus)
       ? {
-          count: (defect.count ?? 1) + 1,
+          count: prevCount + 1,
           reopened_at: now,
           ...(proof ? { failure_proof: proof } : {}),
         }

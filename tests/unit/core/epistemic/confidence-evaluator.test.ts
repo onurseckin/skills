@@ -126,7 +126,9 @@ describe("Epistemic Confidence Evaluator & Math Verification", () => {
     expect(passResult.passed).toBe(true);
     expect(passResult.grade).toBe("VERY_HIGH");
     expect(passResult.confidenceScore).toBeGreaterThanOrEqual(DEFAULT_PASS_THRESHOLD);
-    expect(passResult.reasons.some((r) => r.includes("Epistemic confidence verified with grade"))).toBe(true);
+    expect(
+      passResult.reasons.some((r) => r.includes("Epistemic confidence verified with grade")),
+    ).toBe(true);
 
     // Single contradiction (tests singular 'contradiction')
     const singleContra: EpistemicEvaluationInput = {
@@ -163,10 +165,20 @@ describe("Epistemic Confidence Evaluator & Math Verification", () => {
     };
     const lowResult = evaluateEpistemicConfidence(lowMetrics, 0.9);
     expect(lowResult.passed).toBe(false);
-    expect(lowResult.reasons.some((r) => r.includes("Insufficient empirical evidence count"))).toBe(true);
-    expect(lowResult.reasons.some((r) => r.includes("Sub-optimal proportion of falsifiable gates"))).toBe(true);
-    expect(lowResult.reasons.some((r) => r.includes("Historical stability metric is below nominal floor"))).toBe(true);
-    expect(lowResult.reasons.some((r) => r.includes("Test coverage ratio is low or unobserved"))).toBe(true);
+    expect(lowResult.reasons.some((r) => r.includes("Insufficient empirical evidence count"))).toBe(
+      true,
+    );
+    expect(
+      lowResult.reasons.some((r) => r.includes("Sub-optimal proportion of falsifiable gates")),
+    ).toBe(true);
+    expect(
+      lowResult.reasons.some((r) =>
+        r.includes("Historical stability metric is below nominal floor"),
+      ),
+    ).toBe(true);
+    expect(
+      lowResult.reasons.some((r) => r.includes("Test coverage ratio is low or unobserved")),
+    ).toBe(true);
 
     // Zero gates configured
     const zeroGatesMetrics: EpistemicEvaluationInput = {
@@ -177,7 +189,9 @@ describe("Epistemic Confidence Evaluator & Math Verification", () => {
       testCoverageRatio: 0.9,
     };
     const zeroGatesResult = evaluateEpistemicConfidence(zeroGatesMetrics, 0.5);
-    expect(zeroGatesResult.reasons.some((r) => r.includes("Zero falsifiable evidence gates configured"))).toBe(true);
+    expect(
+      zeroGatesResult.reasons.some((r) => r.includes("Zero falsifiable evidence gates configured")),
+    ).toBe(true);
   });
 
   it("evaluates custom threshold and options", () => {

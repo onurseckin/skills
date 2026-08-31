@@ -52,7 +52,10 @@ describe("quota-resume CLI command", () => {
   test("throws HarnessError on invalid repo path mismatch", async () => {
     const { run } = await setupCompiledRun("quota-resume-path-safety", roots);
 
-    const fakeRepo = join(tmpdir(), `fake-repo-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    const fakeRepo = join(
+      tmpdir(),
+      `fake-repo-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
     roots.push(fakeRepo);
     mkdirSync(fakeRepo, { recursive: true });
     writeFileSync(join(fakeRepo, "package.json"), "{}", "utf-8");

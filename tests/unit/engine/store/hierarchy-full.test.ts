@@ -26,15 +26,9 @@ import {
   createStateCheckpoint,
   pruneExpiredCheckpoints,
 } from "../../../../olt/scripts/src/engine/store/hierarchy/state-checkpointer.ts";
-import {
-  compactWalLog,
-} from "../../../../olt/scripts/src/engine/store/hierarchy/wal-compactor.ts";
-import {
-  fastForwardProjection,
-} from "../../../../olt/scripts/src/engine/store/hierarchy/reconstruction-engine.ts";
-import {
-  recoverDiskState,
-} from "../../../../olt/scripts/src/engine/store/hierarchy/disk-recovery.ts";
+import { compactWalLog } from "../../../../olt/scripts/src/engine/store/hierarchy/wal-compactor.ts";
+import { fastForwardProjection } from "../../../../olt/scripts/src/engine/store/hierarchy/reconstruction-engine.ts";
+import { recoverDiskState } from "../../../../olt/scripts/src/engine/store/hierarchy/disk-recovery.ts";
 import {
   validateEventsFileShaChain,
   validateMigratedRun,
@@ -105,7 +99,12 @@ describe("engine/store/hierarchy/snapshot-manager.ts & state-checkpointer.ts", (
     expect(shouldTriggerCheckpoint({ sequence: 100 }, { intervalSequences: 200 })).toBe(false);
     expect(shouldTriggerCheckpoint({ sequence: 100, forceCheckpoint: true })).toBe(true);
     expect(shouldTriggerCheckpoint({ sequence: 100, isTerminal: true })).toBe(true);
-    expect(shouldTriggerCheckpoint({ sequence: 100, accumulatedDeltaBytes: 5000 }, { maxAccumulatedBytes: 4000 })).toBe(true);
+    expect(
+      shouldTriggerCheckpoint(
+        { sequence: 100, accumulatedDeltaBytes: 5000 },
+        { maxAccumulatedBytes: 4000 },
+      ),
+    ).toBe(true);
   });
 
   it("createStateCheckpoint writes snapshot and prunes historical snapshots", () => {
@@ -165,20 +164,22 @@ describe("engine/store/hierarchy/wal-compactor.ts & disk-recovery.ts", () => {
         tasks: {},
       });
 
-      const event1 = JSON.stringify({
-        sequence: 1,
-        event_head: "sha1",
-        schema: "harness.event",
-        version: 1,
-        projection: { schema: "harness.state", version: 1, revision: 1, event_sequence: 1 },
-      }) + "\n";
-      const event2 = JSON.stringify({
-        sequence: 2,
-        event_head: "sha2",
-        schema: "harness.event",
-        version: 1,
-        projection: { schema: "harness.state", version: 1, revision: 2, event_sequence: 2 },
-      }) + "\n";
+      const event1 =
+        JSON.stringify({
+          sequence: 1,
+          event_head: "sha1",
+          schema: "harness.event",
+          version: 1,
+          projection: { schema: "harness.state", version: 1, revision: 1, event_sequence: 1 },
+        }) + "\n";
+      const event2 =
+        JSON.stringify({
+          sequence: 2,
+          event_head: "sha2",
+          schema: "harness.event",
+          version: 1,
+          projection: { schema: "harness.state", version: 1, revision: 2, event_sequence: 2 },
+        }) + "\n";
       writeFileSync(capPaths.eventsPath, event1 + event2);
 
       const result = compactWalLog(capPaths, { upToSequence: 2 });

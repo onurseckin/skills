@@ -105,4 +105,3 @@ export function runCli(isMain: boolean = computeIsMain()): void {
 
 // Auto-execute if invoked as CLI script
 runCli();
-

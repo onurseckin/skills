@@ -241,7 +241,10 @@ describe("core/config/host-canon.ts", () => {
     expect(canonicalizeHostId("claude")).toEqual({ kind: "resolved", host: "claude-code" });
     expect(canonicalizeHostId("cursor")).toEqual({ kind: "resolved", host: "cursor" });
     expect(canonicalizeHostId("generic")).toEqual({ kind: "known_unresolvable", rawId: "generic" });
-    expect(canonicalizeHostId("unknown-host-xyz")).toEqual({ kind: "unrecognized", rawId: "unknown-host-xyz" });
+    expect(canonicalizeHostId("unknown-host-xyz")).toEqual({
+      kind: "unrecognized",
+      rawId: "unknown-host-xyz",
+    });
   });
 
   it("resolveHostProviderLoose recognizes fuzzy host keywords", () => {
@@ -261,9 +264,13 @@ describe("core/config/host-canon.ts", () => {
   });
 
   it("canonicalHostFromOutcome creates appropriate attested facts", () => {
-    expect(canonicalHostFromOutcome({ kind: "resolved", host: "cursor" })).toEqual(attestedFact("cursor"));
+    expect(canonicalHostFromOutcome({ kind: "resolved", host: "cursor" })).toEqual(
+      attestedFact("cursor"),
+    );
     expect(canonicalHostFromOutcome({ kind: "absent" })).toEqual(unattestedFact(null));
-    expect(canonicalHostFromOutcome({ kind: "unrecognized", rawId: "bad" })).toEqual(unreadableFact(null));
+    expect(canonicalHostFromOutcome({ kind: "unrecognized", rawId: "bad" })).toEqual(
+      unreadableFact(null),
+    );
   });
 
   it("isTimerArmingMechanism validates supported mechanisms", () => {
@@ -305,9 +312,7 @@ describe("core/config/host-canon.ts", () => {
     expect(parsed["claude-code"]?.self_wake_supported).toEqual(attestedFact(true));
     expect(parsed["claude-code"]?.models_available).toEqual(unreadableFact([]));
 
-    expect(() =>
-      parseHostProfiles({ "unknown-host": {} }, "invalid.json"),
-    ).toThrow(HarnessError);
+    expect(() => parseHostProfiles({ "unknown-host": {} }, "invalid.json")).toThrow(HarnessError);
   });
 });
 
@@ -534,45 +539,23 @@ describe("core/config/env.ts", () => {
 
   it("resolveConcurrencyCeiling resolves precedence of explicit override, max_concurrent_agents, host discovery, or default", () => {
     expect(
-      resolveConcurrencyCeiling(
-        { default_max_parallel: 8 },
-        { default_max_parallel: 12 },
-        null,
-      ),
+      resolveConcurrencyCeiling({ default_max_parallel: 8 }, { default_max_parallel: 12 }, null),
     ).toEqual({
       default_max_parallel: 12,
       default_max_parallel_source: "config_override",
     });
 
-    expect(
-      resolveConcurrencyCeiling(
-        { max_concurrent_agents: 6 },
-        null,
-        null,
-      ),
-    ).toEqual({
+    expect(resolveConcurrencyCeiling({ max_concurrent_agents: 6 }, null, null)).toEqual({
       default_max_parallel: 6,
       default_max_parallel_source: "config_override",
     });
 
-    expect(
-      resolveConcurrencyCeiling(
-        null,
-        null,
-        { value: 4, hostTool: "antigravity" },
-      ),
-    ).toEqual({
+    expect(resolveConcurrencyCeiling(null, null, { value: 4, hostTool: "antigravity" })).toEqual({
       default_max_parallel: 4,
       default_max_parallel_source: "host_discovered",
     });
 
-    expect(
-      resolveConcurrencyCeiling(
-        null,
-        null,
-        null,
-      ),
-    ).toEqual({
+    expect(resolveConcurrencyCeiling(null, null, null)).toEqual({
       default_max_parallel: DEFAULT_CONFIG.default_max_parallel,
       default_max_parallel_source: "assumed_default",
     });

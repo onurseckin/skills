@@ -8,19 +8,13 @@ import {
   getRequiredValidatorDomains,
   normalizeTask,
 } from "../../../../olt/scripts/src/engine/scheduler/dispatch/multi-domain-types.ts";
-import {
-  resolveParallelismFactor,
-} from "../../../../olt/scripts/src/engine/scheduler/dispatch/multi-domain-factor.ts";
-import {
-  evaluateMultiDomainBatch,
-} from "../../../../olt/scripts/src/engine/scheduler/dispatch/multi-domain-batch.ts";
+import { resolveParallelismFactor } from "../../../../olt/scripts/src/engine/scheduler/dispatch/multi-domain-factor.ts";
+import { evaluateMultiDomainBatch } from "../../../../olt/scripts/src/engine/scheduler/dispatch/multi-domain-batch.ts";
 import {
   dispatchMultiDomainValidators,
   proposeMultiDomainWave,
 } from "../../../../olt/scripts/src/engine/scheduler/dispatch/multi-domain-dispatch.ts";
-import {
-  ParallelWaveDispatchEnforcer,
-} from "../../../../olt/scripts/src/engine/scheduler/dispatch/parallel-enforcer.ts";
+import { ParallelWaveDispatchEnforcer } from "../../../../olt/scripts/src/engine/scheduler/dispatch/parallel-enforcer.ts";
 import {
   evaluateHierarchicalDecision,
   HIERARCHICAL_TIERS,
@@ -36,8 +30,12 @@ describe("engine/scheduler/dispatch/multi-domain-types.ts", () => {
     expect(classifyTaskDomain({ write_scope: ["src/engine/core.ts"] })).toBe("core-engine");
     expect(classifyTaskDomain({ write_scope: ["src/server/routes.ts"] })).toBe("backend-system");
 
-    expect(derivePrimaryValidatorDomain({ write_scope: ["tests/ui.test.ts"] })).toBe("code-quality");
-    expect(isDualValidationRequired({ write_scope: ["src/auth/jwt.ts", "src/ui/app.tsx"] })).toBe(true);
+    expect(derivePrimaryValidatorDomain({ write_scope: ["tests/ui.test.ts"] })).toBe(
+      "code-quality",
+    );
+    expect(isDualValidationRequired({ write_scope: ["src/auth/jwt.ts", "src/ui/app.tsx"] })).toBe(
+      true,
+    );
     expect(getRequiredValidatorDomains({ write_scope: ["src/auth/jwt.ts"] })).toBeDefined();
 
     const normalized = normalizeTask("task-1", {

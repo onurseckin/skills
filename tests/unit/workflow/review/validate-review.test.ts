@@ -268,7 +268,6 @@ describe("validateChecklistCoverage: malformed entries", () => {
       /revalidation evidence for F-PREV must contain nonempty substantive objects/,
     );
 
-
     const passingReviewWithEvidence = {
       ...passingReviewWithoutEvidence,
       resolved_findings: [

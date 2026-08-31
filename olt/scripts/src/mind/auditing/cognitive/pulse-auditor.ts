@@ -79,22 +79,34 @@ export function auditMindPulseHelper(
     options !== undefined ? options.capsuleRunRoot : undefined,
   );
 
-  const hasNativeMindEvidence =
-    activePulse !== null ||
-    (activeMindGrant !== null && pulseMs !== null) ||
-    (options !== undefined &&
-      options.cursor !== undefined &&
-      typeof options.cursor.lastInspectedTimestamp === "string");
+  let hasNativeMindEvidence = false;
+  if (activePulse !== null) {
+    hasNativeMindEvidence = true;
+  } else if (activeMindGrant !== null && pulseMs !== null) {
+    hasNativeMindEvidence = true;
+  } else if (
+    options !== undefined &&
+    options.cursor !== undefined &&
+    typeof options.cursor.lastInspectedTimestamp === "string"
+  ) {
+    hasNativeMindEvidence = true;
+  }
 
-  const stagnant =
-    (hasNativeMindEvidence && idleDurationSeconds >= threshold) || gov.simulatedExecutionDetected;
+  let stagnant = false;
+  if (hasNativeMindEvidence && idleDurationSeconds >= threshold) {
+    stagnant = true;
+  } else if (gov.simulatedExecutionDetected) {
+    stagnant = true;
+  }
 
   let remediation: "deploy_mind" | "reconcile_native_mind" | "wake_mind" | "none";
   if (activePulse !== null && !gov.simulatedExecutionDetected) {
     remediation = "none";
   } else if (activeMindGrant === null) {
     remediation = "deploy_mind";
-  } else if (pulseMs === null || gov.simulatedExecutionDetected) {
+  } else if (pulseMs === null) {
+    remediation = "reconcile_native_mind";
+  } else if (gov.simulatedExecutionDetected) {
     remediation = "reconcile_native_mind";
   } else if (!gov.policyValid) {
     remediation = "deploy_mind";

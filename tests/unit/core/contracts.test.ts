@@ -35,10 +35,7 @@ import {
   isWorktreeConsolidationRecord,
   isWorktreeLedgerState,
 } from "../../../olt/scripts/src/core/contracts/git/worktree.ts";
-import {
-  isJsonObject,
-  isSafeInteger,
-} from "../../../olt/scripts/src/core/contracts/json.ts";
+import { isJsonObject, isSafeInteger } from "../../../olt/scripts/src/core/contracts/json.ts";
 import {
   isAgentRole,
   isCognitiveValidatorRole,
@@ -111,8 +108,15 @@ describe("core/contracts/system/evidence.ts", () => {
     expect(isEvidenced(null, isSafeInteger)).toBe(false);
     expect(isEvidenced([], isSafeInteger)).toBe(false);
     expect(isEvidenced({ value: 42, evidence_class: "invalid" }, isSafeInteger)).toBe(false);
-    expect(isEvidenced({ value: 42, evidence_class: "harness_observed", is_estimated: "yes" }, isSafeInteger)).toBe(false);
-    expect(isEvidenced({ value: "not_int", evidence_class: "harness_observed" }, isSafeInteger)).toBe(false);
+    expect(
+      isEvidenced(
+        { value: 42, evidence_class: "harness_observed", is_estimated: "yes" },
+        isSafeInteger,
+      ),
+    ).toBe(false);
+    expect(
+      isEvidenced({ value: "not_int", evidence_class: "harness_observed" }, isSafeInteger),
+    ).toBe(false);
   });
 });
 
@@ -238,7 +242,9 @@ describe("core/contracts/agents/agents.ts", () => {
 
   it("validates agent tool refs and telemetry conflicts", () => {
     expect(isAgentToolRef({ name: "bash" })).toBe(true);
-    expect(isAgentToolRef({ name: "bash", category: "shell", extras: { timeout: 100 } })).toBe(true);
+    expect(isAgentToolRef({ name: "bash", category: "shell", extras: { timeout: 100 } })).toBe(
+      true,
+    );
     expect(isAgentToolRef({ name: "  " })).toBe(false);
     expect(isAgentToolRef({ name: "bash", category: "  " })).toBe(false);
     expect(isAgentToolRef(null)).toBe(false);
@@ -275,7 +281,11 @@ describe("core/contracts/agents/agents.ts", () => {
       context_window: evidenced(200000, "agent_reported"),
       tools_granted: evidenced([{ name: "bash" }], "agent_reported"),
       tools_used: [
-        { name: "bash", evidence_class: "harness_observed" as const, first_reported_at: "2026-08-30T00:01:00Z" },
+        {
+          name: "bash",
+          evidence_class: "harness_observed" as const,
+          first_reported_at: "2026-08-30T00:01:00Z",
+        },
       ],
       tokens_in: evidenced(1000, "agent_reported"),
       tokens_out: evidenced(500, "agent_reported"),
@@ -290,7 +300,9 @@ describe("core/contracts/agents/agents.ts", () => {
     expect(isAgentGrantRecord({ ...grant, role: "bad-role" })).toBe(false);
     expect(isAgentGrantRecord({ ...grant, status: "unknown-status" })).toBe(false);
     expect(isAgentGrantRecord({ ...grant, report_count: "3" })).toBe(false);
-    expect(isAgentGrantRecord({ ...grant, tokens_in: { value: "not-int", evidence_class: "derived" } })).toBe(false);
+    expect(
+      isAgentGrantRecord({ ...grant, tokens_in: { value: "not-int", evidence_class: "derived" } }),
+    ).toBe(false);
     expect(isAgentGrantRecord({ ...grant, token_extras: { bad: "not-evidenced" } })).toBe(false);
   });
 });

@@ -28,7 +28,13 @@ function freshRun(label: string): { runRoot: string; repo: string } {
   const root = scratchRoot(import.meta.path, label);
   const repo = join(root, "repo");
   mkdirSync(repo, { recursive: true });
-  const runRoot = initRun(repo, `inc-run-${label}`, new TextEncoder().encode("prompt"), "file", true);
+  const runRoot = initRun(
+    repo,
+    `inc-run-${label}`,
+    new TextEncoder().encode("prompt"),
+    "file",
+    true,
+  );
   writeAgentMetadata(
     {
       agent_id: "implementer",
@@ -107,8 +113,13 @@ describe("incomplete-attempt-recovery", () => {
 
     // Mismatched public key
     const otherSigner = createCommandSigningCapability();
-    const otherIntent = { ...intent, attempt_signing_public_key: otherSigner.verificationPublicKey };
-    expect(() => readStarted(startedPath, otherIntent, 1)).toThrow(/durable attempt start is invalid/);
+    const otherIntent = {
+      ...intent,
+      attempt_signing_public_key: otherSigner.verificationPublicKey,
+    };
+    expect(() => readStarted(startedPath, otherIntent, 1)).toThrow(
+      /durable attempt start is invalid/,
+    );
   });
 
   test("interruptedAttempt() produces failed CommandAttemptRecord and writes files", async () => {
@@ -137,7 +148,13 @@ describe("incomplete-attempt-recovery", () => {
     const startedPath = join(attemptDir, "attempt-started.json");
     const started = readStarted(startedPath, intent, 1);
 
-    const rec = interruptedAttempt(runRoot, intent, attemptDir, started, "2026-08-31T00:01:00.000Z");
+    const rec = interruptedAttempt(
+      runRoot,
+      intent,
+      attemptDir,
+      started,
+      "2026-08-31T00:01:00.000Z",
+    );
     expect(rec.status).toBe("failed");
     expect(rec.failure_class).toBe("interrupted_unverified");
     expect(rec.integrity_failure).toBe("attempt interrupted before terminal evidence was durable");
@@ -154,7 +171,7 @@ describe("incomplete-attempt-recovery", () => {
 
     const deps: AttemptReconciliationDependencies = {
       probeProcess: () => "running",
-      inspectRepository: () => ({} as never),
+      inspectRepository: () => ({}) as never,
       now: () => new Date("2026-08-31T00:01:00.000Z"),
     };
 

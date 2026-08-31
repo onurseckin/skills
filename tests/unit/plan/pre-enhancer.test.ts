@@ -558,8 +558,12 @@ describe("Proactive Plan Pre-Enhancer & Gate Compiler", () => {
       expect(validation.errors).toContain("Missing valid taskId");
       expect(validation.errors).toContain("Missing valid task label");
       expect(validation.errors).toContain("Compiled gate command must not be empty");
-      expect(validation.errors.some((e) => e.includes("Insufficient discriminating assertions"))).toBe(true);
-      expect(validation.errors.some((e) => e.includes("Insufficient AGP counterfactual probes"))).toBe(true);
+      expect(
+        validation.errors.some((e) => e.includes("Insufficient discriminating assertions")),
+      ).toBe(true);
+      expect(
+        validation.errors.some((e) => e.includes("Insufficient AGP counterfactual probes")),
+      ).toBe(true);
       expect(validation.errors.some((e) => e.includes("Scope integrity issue"))).toBe(true);
     });
 
@@ -591,7 +595,9 @@ describe("Proactive Plan Pre-Enhancer & Gate Compiler", () => {
       const validation = validatePreEnhancedPlan(invalidPlan);
       expect(validation.valid).toBe(false);
       expect(validation.errors.some((e) => e.includes("Invalid schema"))).toBe(true);
-      expect(validation.errors.some((e) => e.includes("Plan contains overlapping write scopes"))).toBe(true);
+      expect(
+        validation.errors.some((e) => e.includes("Plan contains overlapping write scopes")),
+      ).toBe(true);
       expect(validation.errors.some((e) => e.includes("Task : Missing valid taskId"))).toBe(true);
 
       const emptyPlan = {

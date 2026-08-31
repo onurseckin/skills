@@ -20,7 +20,7 @@ export async function executeDomainTask<TResult>(params: {
   const { task, domain, defaultTimeoutMs, recordDefect } = params;
   const capturedDefects: AggregatedDefect[] = [];
   const abortController = new AbortController();
-  const timeoutMs = task.timeoutMs ?? defaultTimeoutMs;
+  const timeoutMs = task.timeoutMs !== undefined ? task.timeoutMs : defaultTimeoutMs;
   let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
   let isTimedOut = false;
 
@@ -50,7 +50,7 @@ export async function executeDomainTask<TResult>(params: {
 
   const startTime = Date.now();
   let retriesAttempted = 0;
-  const retryLimit = task.retryLimit ?? 0;
+  const retryLimit = task.retryLimit !== undefined ? task.retryLimit : 0;
   let finalResult: TResult | undefined;
   let finalError: unknown | undefined;
   let finalStatus: DomainExecutionStatus = "failed";

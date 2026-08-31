@@ -315,7 +315,10 @@ describe("Singleton Skill Auditor Lease Lock Guard", () => {
 
         const flockPath = `${lockPath}.flock`;
         const { openSync, closeSync, constants } = require("node:fs");
-        const { tryExclusiveFlock, releaseFlock } = require("../../../olt/scripts/src/platform/index.ts");
+        const {
+          tryExclusiveFlock,
+          releaseFlock,
+        } = require("../../../olt/scripts/src/platform/index.ts");
         const fd = openSync(flockPath, constants.O_RDWR | constants.O_CREAT, 0o600);
         tryExclusiveFlock(fd);
 

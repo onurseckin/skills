@@ -131,7 +131,7 @@ describe("Epistemic Predicate Matching", () => {
     expect(matchesEpistemicPredicate(r)).toBe(true);
     expect(matchesEpistemicPredicate(r, { minConfidence: 0.7, maxConfidence: 0.8 })).toBe(true);
     expect(matchesEpistemicPredicate(r, { minConfidence: 0.85 })).toBe(false);
-    expect(matchesEpistemicPredicate(r, { maxConfidence: 0.70 })).toBe(false);
+    expect(matchesEpistemicPredicate(r, { maxConfidence: 0.7 })).toBe(false);
     expect(matchesEpistemicPredicate(r, { grades: ["HIGH", "VERY_HIGH"] })).toBe(true);
     expect(matchesEpistemicPredicate(r, { grades: ["LOW"] })).toBe(false);
     expect(matchesEpistemicPredicate(r, { levels: ["HIGH_CONFIDENCE"] })).toBe(true);
@@ -216,28 +216,73 @@ describe("Epistemic Query Optimizer & Execution", () => {
 
   test("supports all orderBy sort fields, directions, tie-breaking, and pagination offset", () => {
     const records = [
-      createMockRecord({ id: "r1", score: 0.9, entropy: 0.1, contradictionCount: 0, timestamp: 1000, grade: "VERY_HIGH" }),
-      createMockRecord({ id: "r2", score: 0.5, entropy: 0.4, contradictionCount: 3, timestamp: 2000, grade: "MEDIUM" }),
-      createMockRecord({ id: "r3", score: 0.7, entropy: 0.2, contradictionCount: 1, timestamp: 1500, grade: "HIGH" }),
-      createMockRecord({ id: "r4", score: 0.7, entropy: 0.2, contradictionCount: 1, timestamp: 1500, grade: "HIGH" }),
+      createMockRecord({
+        id: "r1",
+        score: 0.9,
+        entropy: 0.1,
+        contradictionCount: 0,
+        timestamp: 1000,
+        grade: "VERY_HIGH",
+      }),
+      createMockRecord({
+        id: "r2",
+        score: 0.5,
+        entropy: 0.4,
+        contradictionCount: 3,
+        timestamp: 2000,
+        grade: "MEDIUM",
+      }),
+      createMockRecord({
+        id: "r3",
+        score: 0.7,
+        entropy: 0.2,
+        contradictionCount: 1,
+        timestamp: 1500,
+        grade: "HIGH",
+      }),
+      createMockRecord({
+        id: "r4",
+        score: 0.7,
+        entropy: 0.2,
+        contradictionCount: 1,
+        timestamp: 1500,
+        grade: "HIGH",
+      }),
     ];
 
     const optimizer = new EpistemicQueryOptimizer();
 
     // Sort by entropy asc
-    const entropyRes = optimizer.execute({ orderBy: [{ field: "entropy", direction: "asc" }] }, records);
+    const entropyRes = optimizer.execute(
+      { orderBy: [{ field: "entropy", direction: "asc" }] },
+      records,
+    );
     expect((entropyRes.records[0] as unknown as EpistemicRecord).id).toBe("r1");
 
     // Sort by contradictions desc
-    const contraRes = optimizer.execute({ orderBy: [{ field: "contradictions", direction: "desc" }] }, records);
+    const contraRes = optimizer.execute(
+      { orderBy: [{ field: "contradictions", direction: "desc" }] },
+      records,
+    );
     expect((contraRes.records[0] as unknown as EpistemicRecord).id).toBe("r2");
 
     // Sort by timestamp asc with offset
-    const timeRes = optimizer.execute({ orderBy: [{ field: "timestamp", direction: "asc" }], offset: 1, limit: 2 }, records);
+    const timeRes = optimizer.execute(
+      { orderBy: [{ field: "timestamp", direction: "asc" }], offset: 1, limit: 2 },
+      records,
+    );
     expect(timeRes.records.length).toBe(2);
 
     // Sort by grade desc
-    const gradeRes = optimizer.execute({ orderBy: [{ field: "grade", direction: "desc" }, { field: "timestamp", direction: "desc" }] }, records);
+    const gradeRes = optimizer.execute(
+      {
+        orderBy: [
+          { field: "grade", direction: "desc" },
+          { field: "timestamp", direction: "desc" },
+        ],
+      },
+      records,
+    );
     expect((gradeRes.records[0] as unknown as EpistemicRecord).grade).toBe("VERY_HIGH");
   });
 

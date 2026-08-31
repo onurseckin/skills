@@ -21,7 +21,11 @@ import type {
   ExtractedElementPhysics,
 } from "../../../../olt/scripts/src/capture/runners/types.ts";
 
-function createMockElement(selector: string, tagName: string, role?: string): ExtractedElementPhysics {
+function createMockElement(
+  selector: string,
+  tagName: string,
+  role?: string,
+): ExtractedElementPhysics {
   return {
     selector,
     tagName,
@@ -121,7 +125,11 @@ describe("dom-event-simulator", () => {
       });
 
       it("handles no_shift behavior across critical, moderate, and minor severities", () => {
-        const eventWithSel: SyntheticDomEvent = { type: "hover", selector: "#card", expectedBehavior: "no_shift" };
+        const eventWithSel: SyntheticDomEvent = {
+          type: "hover",
+          selector: "#card",
+          expectedBehavior: "no_shift",
+        };
         const eventWithoutSel: SyntheticDomEvent = { type: "scroll", expectedBehavior: "no_shift" };
 
         const critShift = createMockShiftEntry(0.15, 2);
@@ -143,22 +151,37 @@ describe("dom-event-simulator", () => {
       });
 
       it("handles layout_expansion and modal_open when target is matched or omitted", () => {
-        const noSelEvent: SyntheticDomEvent = { type: "click", expectedBehavior: "layout_expansion" };
+        const noSelEvent: SyntheticDomEvent = {
+          type: "click",
+          expectedBehavior: "layout_expansion",
+        };
         const shift = createMockShiftEntry(0.08, 1, [{ selector: "#modal" }]);
         expect(classifyLayoutShift(noSelEvent, shift, 0)).toEqual({ isExpected: true });
 
-        const matchedEvent: SyntheticDomEvent = { type: "click", selector: "#accordion-item", expectedBehavior: "layout_expansion" };
+        const matchedEvent: SyntheticDomEvent = {
+          type: "click",
+          selector: "#accordion-item",
+          expectedBehavior: "layout_expansion",
+        };
         const matchedShift = createMockShiftEntry(0.08, 1, [{ selector: "#accordion-item-body" }]);
         expect(classifyLayoutShift(matchedEvent, matchedShift, 1)).toEqual({ isExpected: true });
 
-        const unmatchedEvent: SyntheticDomEvent = { type: "click", selector: "#accordion", expectedBehavior: "layout_expansion" };
+        const unmatchedEvent: SyntheticDomEvent = {
+          type: "click",
+          selector: "#accordion",
+          expectedBehavior: "layout_expansion",
+        };
         const unmatchedShift = createMockShiftEntry(0.08, 1, [{ selector: "#footer-unrelated" }]);
         const resUnmatched = classifyLayoutShift(unmatchedEvent, unmatchedShift, 2);
         expect(resUnmatched.isExpected).toBe(true);
       });
 
       it("handles feedback_only shifts > 0.01 as defects and <= 0.01 as expected", () => {
-        const event: SyntheticDomEvent = { type: "click", selector: "#btn", expectedBehavior: "feedback_only" };
+        const event: SyntheticDomEvent = {
+          type: "click",
+          selector: "#btn",
+          expectedBehavior: "feedback_only",
+        };
         const smallShift = createMockShiftEntry(0.005, 1);
         expect(classifyLayoutShift(event, smallShift, 0)).toEqual({ isExpected: true });
 
@@ -183,7 +206,10 @@ describe("dom-event-simulator", () => {
         const textbox = createMockElement("#aria-box", "div", "textbox");
         const staticDiv = createMockElement("#container", "div");
 
-        const plan = buildSyntheticInteractionPlan([button, roleButton, input, textarea, textbox, staticDiv], { width: 1440, height: 900 });
+        const plan = buildSyntheticInteractionPlan(
+          [button, roleButton, input, textarea, textbox, staticDiv],
+          { width: 1440, height: 900 },
+        );
 
         expect(plan[0]?.type).toBe("wait");
         expect(plan.some((e) => e.type === "hover" && e.selector === "#submit-btn")).toBe(true);
@@ -206,7 +232,9 @@ describe("dom-event-simulator", () => {
   describe("dispatchers", () => {
     describe("DOM_EVENT_DISPATCH_SCRIPT in-page script evaluation", () => {
       it("executes script against mocked DOM environment covering all dispatch branches", () => {
-        const scriptFn = new Function(`return (${DOM_EVENT_DISPATCH_SCRIPT});`)() as (payload?: unknown) => void;
+        const scriptFn = new Function(`return (${DOM_EVENT_DISPATCH_SCRIPT});`)() as (
+          payload?: unknown,
+        ) => void;
 
         const eventsDispatched: { type: string; event: string }[] = [];
         const classes = new Set<string>();
@@ -253,7 +281,10 @@ describe("dom-event-simulator", () => {
         const origEvent = globalAny.Event;
 
         class MockEvent {
-          constructor(public type: string, public init?: unknown) {}
+          constructor(
+            public type: string,
+            public init?: unknown,
+          ) {}
         }
 
         globalAny.MouseEvent = MockEvent;
@@ -298,11 +329,13 @@ describe("dom-event-simulator", () => {
             ...mockElement,
             click: undefined,
           };
-          (globalAny.document as { querySelector: (s: string) => unknown }).querySelector = () => noClickMethodEl;
+          (globalAny.document as { querySelector: (s: string) => unknown }).querySelector = () =>
+            noClickMethodEl;
           scriptFn({ type: "click", selector: "#no-click" });
 
           // hover, mouseenter, mouseleave
-          (globalAny.document as { querySelector: (s: string) => unknown }).querySelector = () => mockElement;
+          (globalAny.document as { querySelector: (s: string) => unknown }).querySelector = () =>
+            mockElement;
           scriptFn({ type: "hover", selector: "#btn" });
           scriptFn({ type: "mouseleave", selector: "#btn" });
 
@@ -324,20 +357,33 @@ describe("dom-event-simulator", () => {
           scriptFn({ type: "keyup", selector: "#input", key: "Escape" });
 
           // mediaQuery dark theme
-          scriptFn({ type: "mediaQuery", mediaQuery: "screen and (prefers-color-scheme: dark)", matches: true });
+          scriptFn({
+            type: "mediaQuery",
+            mediaQuery: "screen and (prefers-color-scheme: dark)",
+            matches: true,
+          });
           expect(classes.has("dark")).toBe(true);
           expect(attributes["data-theme"]).toBe("dark");
 
-          scriptFn({ type: "mediaQuery", mediaQuery: "screen and (prefers-color-scheme: dark)", matches: false });
+          scriptFn({
+            type: "mediaQuery",
+            mediaQuery: "screen and (prefers-color-scheme: dark)",
+            matches: false,
+          });
           expect(classes.has("dark")).toBe(false);
           expect(attributes["data-theme"]).toBe("light");
 
           // mediaQuery reduced motion
-          scriptFn({ type: "mediaQuery", mediaQuery: "(prefers-reduced-motion: reduce)", matches: true });
+          scriptFn({
+            type: "mediaQuery",
+            mediaQuery: "(prefers-reduced-motion: reduce)",
+            matches: true,
+          });
           expect(attributes["data-reduced-motion"]).toBe("true");
 
           // element not found branch
-          (globalAny.document as { querySelector: (s: string) => unknown }).querySelector = () => null;
+          (globalAny.document as { querySelector: (s: string) => unknown }).querySelector = () =>
+            null;
           scriptFn({ type: "click", selector: "#not-found" });
           scriptFn({ type: "hover", selector: "#not-found" });
           scriptFn({ type: "focus", selector: "#not-found" });
@@ -466,7 +512,10 @@ describe("dom-event-simulator", () => {
         await simulateDomEvent(driver, { type: "keydown", selector: "#input-el", key: "Enter" });
         await simulateDomEvent(driver, { type: "resize", viewport: { width: 375, height: 667 } });
         await simulateDomEvent(driver, { type: "resize" }); // no viewport
-        await simulateDomEvent(driver, { type: "mediaQuery", mediaQuery: { query: "(prefers-color-scheme: dark)", matches: true } });
+        await simulateDomEvent(driver, {
+          type: "mediaQuery",
+          mediaQuery: { query: "(prefers-color-scheme: dark)", matches: true },
+        });
         await simulateDomEvent(driver, { type: "mediaQuery" }); // no mediaQuery
         await simulateDomEvent(driver, { type: "wait", delayMs: 250 });
         await simulateDomEvent(driver, { type: "wait" }); // default delayMs
@@ -516,7 +565,7 @@ describe("dom-event-simulator", () => {
           goto: async () => {},
           waitForSelector: async () => {},
           screenshot: async () => Buffer.alloc(0),
-          evaluate: async () => ({} as never),
+          evaluate: async () => ({}) as never,
         };
 
         const start = Date.now();
@@ -586,7 +635,9 @@ describe("dom-event-simulator", () => {
       };
 
       const simulator = new DomEventSimulator({ settleDelayMs: 5 });
-      const report = await simulator.executeSequence(driverWithoutTimeout, [{ type: "wait", delayMs: 5 }]);
+      const report = await simulator.executeSequence(driverWithoutTimeout, [
+        { type: "wait", delayMs: 5 },
+      ]);
       expect(report.successfulEvents).toBe(1);
     });
 
@@ -639,9 +690,33 @@ describe("dom-event-simulator", () => {
           {
             selector: "#footer",
             tagName: "div",
-            bounds: { x: 0, y: 500, width: 1000, height: 200, left: 0, right: 1000, top: 500, bottom: 700 },
-            computedStyles: { display: "block", position: "static", zIndex: 0, color: "#000", backgroundColor: "#fff", overflowX: "visible", overflowY: "visible" },
-            metrics: { scrollWidth: 1000, clientWidth: 1000, scrollHeight: 200, clientHeight: 200, offsetWidth: 1000, offsetHeight: 200 },
+            bounds: {
+              x: 0,
+              y: 500,
+              width: 1000,
+              height: 200,
+              left: 0,
+              right: 1000,
+              top: 500,
+              bottom: 700,
+            },
+            computedStyles: {
+              display: "block",
+              position: "static",
+              zIndex: 0,
+              color: "#000",
+              backgroundColor: "#fff",
+              overflowX: "visible",
+              overflowY: "visible",
+            },
+            metrics: {
+              scrollWidth: 1000,
+              clientWidth: 1000,
+              scrollHeight: 200,
+              clientHeight: 200,
+              offsetWidth: 1000,
+              offsetHeight: 200,
+            },
           },
         ],
         layoutOverflows: [],
@@ -656,9 +731,33 @@ describe("dom-event-simulator", () => {
           {
             selector: "#footer",
             tagName: "div",
-            bounds: { x: 0, y: 800, width: 1000, height: 200, left: 0, right: 1000, top: 800, bottom: 1000 },
-            computedStyles: { display: "block", position: "static", zIndex: 0, color: "#000", backgroundColor: "#fff", overflowX: "visible", overflowY: "visible" },
-            metrics: { scrollWidth: 1000, clientWidth: 1000, scrollHeight: 200, clientHeight: 200, offsetWidth: 1000, offsetHeight: 200 },
+            bounds: {
+              x: 0,
+              y: 800,
+              width: 1000,
+              height: 200,
+              left: 0,
+              right: 1000,
+              top: 800,
+              bottom: 1000,
+            },
+            computedStyles: {
+              display: "block",
+              position: "static",
+              zIndex: 0,
+              color: "#000",
+              backgroundColor: "#fff",
+              overflowX: "visible",
+              overflowY: "visible",
+            },
+            metrics: {
+              scrollWidth: 1000,
+              clientWidth: 1000,
+              scrollHeight: 200,
+              clientHeight: 200,
+              offsetWidth: 1000,
+              offsetHeight: 200,
+            },
           },
         ],
         layoutOverflows: [],

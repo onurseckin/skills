@@ -8,13 +8,12 @@ import {
   formatConventionalCommitMessage,
   validatePhaseCommitMessage,
 } from "../../../olt/scripts/src/engine/worktree/conventional-commit.ts";
+import { isDestructiveGitCommand } from "../../../olt/scripts/src/engine/worktree/zero-destructive-policy.ts";
+import { PolicyEngine } from "../../../olt/scripts/src/engine/policy-engine.ts";
 import {
-  isDestructiveGitCommand,
-} from "../../../olt/scripts/src/engine/worktree/zero-destructive-policy.ts";
-import {
-  PolicyEngine,
-} from "../../../olt/scripts/src/engine/policy-engine.ts";
-import { generateDefaultRepoPolicy, saveRepoPolicy } from "../../../olt/scripts/src/policy/index.ts";
+  generateDefaultRepoPolicy,
+  saveRepoPolicy,
+} from "../../../olt/scripts/src/policy/index.ts";
 
 function makeTmpDir(prefix: string): string {
   return realpathSync(mkdtempSync(join(tmpdir(), prefix)));
@@ -37,12 +36,12 @@ describe("engine/worktree/conventional-commit.ts", () => {
     expect(formatted).toContain("BREAKING CHANGE: Alters scheduler interface");
     expect(formatted).toContain("Closes: #101, #102");
 
-    expect(() =>
-      formatConventionalCommit({ type: "invalid_type", description: "desc" }),
-    ).toThrow(HarnessError);
-    expect(() =>
-      formatConventionalCommit({ type: "feat", description: "  " }),
-    ).toThrow(HarnessError);
+    expect(() => formatConventionalCommit({ type: "invalid_type", description: "desc" })).toThrow(
+      HarnessError,
+    );
+    expect(() => formatConventionalCommit({ type: "feat", description: "  " })).toThrow(
+      HarnessError,
+    );
   });
 
   it("validates phase commit messages", () => {

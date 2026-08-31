@@ -133,14 +133,12 @@ export function inspectRepoPolicy(
     return { status: "auto_detected", policy, provenance: "auto_detected" };
   }
   try {
-
     ensureDir(loc.root, loc.parent);
     const raw = readVerifiedFile(loc, deps);
     if (raw === undefined) {
       const policy = { ...generateDefaultRepoPolicy(repoRoot), provenance: "auto_detected" };
       return { status: "auto_detected", policy, provenance: "auto_detected" };
     }
-
 
     const parsed = parseRepoPolicy(JSON.parse(raw) as unknown);
     const prov = parsed.provenance !== undefined ? parsed.provenance : "explicit_custom";

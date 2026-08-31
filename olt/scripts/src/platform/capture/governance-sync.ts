@@ -1,13 +1,7 @@
 import { HarnessError } from "../../core/errors/index.ts";
 import { loadRepoPolicy } from "../../policy/index.ts";
-import {
-  evaluateViewportCoverage,
-  getResponsiveViewportMatrix,
-} from "./viewport-matrix.ts";
-import {
-  syncPersonasWithDockerPolicy,
-  validatePersonaGovernance,
-} from "./persona-governance.ts";
+import { evaluateViewportCoverage, getResponsiveViewportMatrix } from "./viewport-matrix.ts";
+import { syncPersonasWithDockerPolicy, validatePersonaGovernance } from "./persona-governance.ts";
 import type {
   CaptureGovernanceReport,
   GovernanceSyncOptions,
@@ -62,9 +56,7 @@ export function synchronizeCaptureGovernance(
   return auditCaptureGovernance(options);
 }
 
-export function assertCaptureGovernanceCompliance(
-  options: GovernanceSyncOptions = {},
-): void {
+export function assertCaptureGovernanceCompliance(options: GovernanceSyncOptions = {}): void {
   const report = auditCaptureGovernance(options);
   if (!report.compliant) {
     throw new HarnessError(

@@ -86,11 +86,19 @@ export function compareReportDelta(
 
   const backlogDelta = current.pending_backlog_count - previous.pending_backlog_count;
   const defectDelta = current.open_defects_count - previous.open_defects_count;
-  const statusDelta =
-    current.is_stagnant !== previous.is_stagnant || current.error_code !== previous.error_code;
-  const findingsDelta =
-    current.findings.length !== previous.findings.length ||
-    current.findings.some((f, idx) => f !== previous.findings[idx]);
+  let statusDelta = false;
+  if (current.is_stagnant !== previous.is_stagnant) {
+    statusDelta = true;
+  } else if (current.error_code !== previous.error_code) {
+    statusDelta = true;
+  }
+
+  let findingsDelta = false;
+  if (current.findings.length !== previous.findings.length) {
+    findingsDelta = true;
+  } else if (current.findings.some((f, idx) => f !== previous.findings[idx])) {
+    findingsDelta = true;
+  }
   const signatureChanged = computeStateSignature(current) !== computeStateSignature(previous);
 
   const isZeroDelta =
@@ -194,12 +202,17 @@ export function auditMindPreplanningStagnation(
       : null;
 
   const previousReport = options !== undefined ? options.previousReport : undefined;
-  const isMaintenanceLoop =
-    (options !== undefined && options.isMaintenanceOnlyLoop === true) ||
-    (options !== undefined &&
-      typeof options.consecutiveMaintenanceCycles === "number" &&
-      options.consecutiveMaintenanceCycles >= maintenanceThreshold &&
-      options.productProgressMade !== true);
+  let isMaintenanceLoop = false;
+  if (options !== undefined && options.isMaintenanceOnlyLoop === true) {
+    isMaintenanceLoop = true;
+  } else if (
+    options !== undefined &&
+    typeof options.consecutiveMaintenanceCycles === "number" &&
+    options.consecutiveMaintenanceCycles >= maintenanceThreshold &&
+    options.productProgressMade !== true
+  ) {
+    isMaintenanceLoop = true;
+  }
 
   // Check 1: Maintenance-only loop without product progress (MIND_CREATIVE_STAGNATION)
   if (isMaintenanceLoop) {
@@ -300,29 +313,41 @@ export function auditMindPreplanningStagnation(
         : 0) + 1
     : 0;
 
-  const challengePrompt =
-    delta.isZeroDelta || totalUnplanned === 0
-      ? generateZeroDeltaChallengePrompt(root, {
-          cycleIndex: consecutiveZeroDelta,
-          consecutiveZeroDeltaCount: consecutiveZeroDelta,
-          now: new Date(nowMs).toISOString(),
-        })
-      : undefined;
+  let shouldChallenge = false;
+  if (delta.isZeroDelta) {
+    shouldChallenge = true;
+  } else if (totalUnplanned === 0) {
+    shouldChallenge = true;
+  }
+
+  const challengePrompt = shouldChallenge
+    ? generateZeroDeltaChallengePrompt(root, {
+        cycleIndex: consecutiveZeroDelta,
+        consecutiveZeroDeltaCount: consecutiveZeroDelta,
+        now: new Date(nowMs).toISOString(),
+      })
+    : undefined;
+
+  let isChronicZeroDelta = false;
+  if (consecutiveZeroDelta >= zeroDeltaThreshold) {
+    isChronicZeroDelta = true;
+  } else if (
+    options !== undefined &&
+    options.consecutiveZeroDeltaCount !== undefined &&
+    options.consecutiveZeroDeltaCount >= zeroDeltaThreshold &&
+    delta.isZeroDelta
+  ) {
+    isChronicZeroDelta = true;
+  }
 
   // Check 2: Consecutive pulses producing identical state with 0 delta (MIND_CREATIVE_STAGNATION)
-  if (
-    consecutiveZeroDelta >= zeroDeltaThreshold ||
-    (options !== undefined &&
-      options.consecutiveZeroDeltaCount !== undefined &&
-      options.consecutiveZeroDeltaCount >= zeroDeltaThreshold &&
-      delta.isZeroDelta)
-  ) {
-    const zeroCycles =
-      consecutiveZeroDelta !== 0
-        ? consecutiveZeroDelta
-        : options !== undefined && options.consecutiveZeroDeltaCount !== undefined
-          ? options.consecutiveZeroDeltaCount
-          : zeroDeltaThreshold;
+  if (isChronicZeroDelta) {
+    let zeroCycles = zeroDeltaThreshold;
+    if (consecutiveZeroDelta !== 0) {
+      zeroCycles = consecutiveZeroDelta;
+    } else if (options !== undefined && options.consecutiveZeroDeltaCount !== undefined) {
+      zeroCycles = options.consecutiveZeroDeltaCount;
+    }
     const findings = [
       `Consecutive pulses produced identical state with 0 delta (${zeroCycles} cycles) (MIND_CREATIVE_STAGNATION). Autonomic creative overload required.`,
     ];

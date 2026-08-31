@@ -4,9 +4,7 @@ import {
   inspectFailureText,
   classifySignals,
 } from "../../../../olt/scripts/src/engine/runner/core/classify-failure.ts";
-import {
-  shouldRetry,
-} from "../../../../olt/scripts/src/engine/runner/core/retry-policy.ts";
+import { shouldRetry } from "../../../../olt/scripts/src/engine/runner/core/retry-policy.ts";
 import {
   isRestrictedGitGate,
   isGitGateCommand,
@@ -16,9 +14,7 @@ import {
   commandId,
   canonicalCommandFingerprint,
 } from "../../../../olt/scripts/src/engine/runner/models/command/command-id.ts";
-import {
-  OutputBudget,
-} from "../../../../olt/scripts/src/engine/runner/receipt/output-budget.ts";
+import { OutputBudget } from "../../../../olt/scripts/src/engine/runner/receipt/output-budget.ts";
 
 describe("engine/runner/core/classify-failure.ts", () => {
   it("inspects failure text and classifies failure signals", () => {
@@ -34,10 +30,36 @@ describe("engine/runner/core/classify-failure.ts", () => {
     expect(transientSignals.networkTransient).toBe(true);
     expect(classifySignals(1, transientSignals, null)).toBe("network_transient");
 
-    expect(classifySignals(0, { authorization: false, testFailure: false, networkTransient: false }, null)).toBeUndefined();
-    expect(classifySignals(1, { authorization: false, testFailure: false, networkTransient: false }, "wall")).toBe("timeout");
-    expect(classifySignals(1, { authorization: false, testFailure: false, networkTransient: false }, null, true)).toBe("host_interruption");
-    expect(classifySignals(1, { authorization: false, testFailure: false, networkTransient: false }, null, false)).toBe("unknown");
+    expect(
+      classifySignals(
+        0,
+        { authorization: false, testFailure: false, networkTransient: false },
+        null,
+      ),
+    ).toBeUndefined();
+    expect(
+      classifySignals(
+        1,
+        { authorization: false, testFailure: false, networkTransient: false },
+        "wall",
+      ),
+    ).toBe("timeout");
+    expect(
+      classifySignals(
+        1,
+        { authorization: false, testFailure: false, networkTransient: false },
+        null,
+        true,
+      ),
+    ).toBe("host_interruption");
+    expect(
+      classifySignals(
+        1,
+        { authorization: false, testFailure: false, networkTransient: false },
+        null,
+        false,
+      ),
+    ).toBe("unknown");
   });
 });
 

@@ -22,11 +22,13 @@ export function auditRepositoryGovernanceHelper(
   const issues: string[] = [];
 
   const policyResult = inspectRepoPolicy(repoRoot);
-  const hasPolicyFile =
-    existsSync(join(repoRoot, ".olt", "policy.json")) || existsSync(join(repoRoot, "policy.json"));
+  const hasPolicyFile = existsSync(join(repoRoot, ".olt", "policy.json"))
+    ? true
+    : existsSync(join(repoRoot, "policy.json"));
   const policyValid = policyResult.status === "valid_custom" && hasPolicyFile;
   if (!policyValid) {
-    issues.push(`Repository policy invalid or missing: ${policyResult.error ?? "unknown error"}`);
+    const errorMsg = policyResult.error !== undefined ? policyResult.error : "unknown error";
+    issues.push(`Repository policy invalid or missing: ${errorMsg}`);
   }
 
   const activeGrant = resolveActiveMindGrantFn
@@ -37,15 +39,20 @@ export function auditRepositoryGovernanceHelper(
     const globalSessions = resolveGlobalSessionsDir(repoRoot);
     const hasGlobalSession =
       existsSync(globalSessions) && readdirSync(globalSessions).some((f) => f.endsWith(".json"));
-    const hasWorkspaceSession =
-      existsSync(join(repoRoot, ".session.json")) ||
-      existsSync(join(repoRoot, ".olt-identity.json"));
-    const targetCapsule =
-      capsuleRunRoot ?? (resolveLatestCapsuleFn ? resolveLatestCapsuleFn(repoRoot) : null);
-    const hasCapsuleSession = targetCapsule
-      ? existsSync(join(targetCapsule, "runtime", "sessions", `${activeGrant.actor}.json`))
-      : false;
-    sessionVerified = hasGlobalSession || hasWorkspaceSession || hasCapsuleSession;
+    const hasWorkspaceSession = existsSync(join(repoRoot, ".session.json"))
+      ? true
+      : existsSync(join(repoRoot, ".olt-identity.json"));
+    let targetCapsule: string | null = null;
+    if (capsuleRunRoot !== undefined) {
+      targetCapsule = capsuleRunRoot;
+    } else if (resolveLatestCapsuleFn !== undefined) {
+      targetCapsule = resolveLatestCapsuleFn(repoRoot);
+    }
+    const hasCapsuleSession =
+      targetCapsule !== null
+        ? existsSync(join(targetCapsule, "runtime", "sessions", `${activeGrant.actor}.json`))
+        : false;
+    sessionVerified = hasGlobalSession ? true : hasWorkspaceSession ? true : hasCapsuleSession;
     if (!sessionVerified) {
       issues.push(
         `Mind agent '${activeGrant.actor}' lacks verified session authority in .session.json or sessions/`,
@@ -57,10 +64,14 @@ export function auditRepositoryGovernanceHelper(
 
   let eventsProgressionValid = true;
   let simulatedExecutionDetected = false;
-  const targetCapsule =
-    capsuleRunRoot ?? (resolveLatestCapsuleFn ? resolveLatestCapsuleFn(repoRoot) : null);
+  let targetCapsule: string | null = null;
+  if (capsuleRunRoot !== undefined) {
+    targetCapsule = capsuleRunRoot;
+  } else if (resolveLatestCapsuleFn !== undefined) {
+    targetCapsule = resolveLatestCapsuleFn(repoRoot);
+  }
 
-  if (targetCapsule && existsSync(join(targetCapsule, "events.jsonl"))) {
+  if (targetCapsule !== null && existsSync(join(targetCapsule, "events.jsonl"))) {
     try {
       const lines = readFileSync(join(targetCapsule, "events.jsonl"), "utf-8")
         .trim()

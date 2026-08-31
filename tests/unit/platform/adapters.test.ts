@@ -14,7 +14,10 @@ import {
   resolveHostProvider,
   type SubagentDispatchPacket,
 } from "../../../olt/scripts/src/platform/index.ts";
-import { isCoordinatorPushbackCause, type JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
+import {
+  isCoordinatorPushbackCause,
+  type JsonObject,
+} from "../../../olt/scripts/src/core/contracts/index.ts";
 
 import {
   recordCoordinatorPushback,
@@ -255,6 +258,5 @@ describe("Coordinator Pushback Execution Logic", () => {
     expect(() => assertNoUnfulfilledDemands(state as unknown as JsonObject)).toThrow(
       /unfulfilled.*demand/i,
     );
-
   });
 });

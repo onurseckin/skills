@@ -138,7 +138,12 @@ describe("Bayesian Belief Inference & Log-Odds Math", () => {
       likelihoodGivenNotHypothesis: 0.1,
       observed: true,
     };
-    const certainStep = updateBayesianBelief(highStep, [evidence2, evidence2, evidence2, evidence2]);
+    const certainStep = updateBayesianBelief(highStep, [
+      evidence2,
+      evidence2,
+      evidence2,
+      evidence2,
+    ]);
     expect(certainStep.posteriorProbability).toBeGreaterThan(0.95);
     expect(certainStep.evidenceCount).toBe(5);
     expect(certainStep.confidenceLevel).toBe("CERTAIN");

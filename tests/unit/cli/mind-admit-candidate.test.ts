@@ -496,7 +496,9 @@ describe("mindAdmitCommand & mindDeclineCommand", () => {
   describe("mindDeclineCommand", () => {
     test("validates required flags", async () => {
       await expect(mindDeclineCommand({})).rejects.toMatchObject({ code: "INVALID_ARGUMENT" });
-      await expect(mindDeclineCommand({ run: "r" })).rejects.toMatchObject({ code: "INVALID_ARGUMENT" });
+      await expect(mindDeclineCommand({ run: "r" })).rejects.toMatchObject({
+        code: "INVALID_ARGUMENT",
+      });
       await expect(mindDeclineCommand({ run: "r", actor: "a" })).rejects.toMatchObject({
         code: "INVALID_ARGUMENT",
       });

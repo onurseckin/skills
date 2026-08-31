@@ -1,5 +1,13 @@
 import { describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
@@ -25,12 +33,8 @@ import {
   recordCaptures,
   type CaptureRecord,
 } from "../../../../olt/scripts/src/engine/store/capsule/captures.ts";
-import {
-  runFilePath,
-} from "../../../../olt/scripts/src/engine/store/capsule/paths.ts";
-import {
-  normalizeRunId,
-} from "../../../../olt/scripts/src/engine/store/capsule/run-id.ts";
+import { runFilePath } from "../../../../olt/scripts/src/engine/store/capsule/paths.ts";
+import { normalizeRunId } from "../../../../olt/scripts/src/engine/store/capsule/run-id.ts";
 import {
   loadRun,
   loadRunProjection,
@@ -178,15 +182,13 @@ describe("engine/store/capsule/capsule.ts & load.ts", () => {
       expect(() =>
         initRun(tmp, "invalid run id with spaces!", new Uint8Array(), "file", true),
       ).toThrow(HarnessError);
-      expect(() =>
-        initRun(tmp, "run-1", new Uint8Array(), "invalid_capture_mode", true),
-      ).toThrow(HarnessError);
-      expect(() =>
-        initRun(tmp, "run-1", "not-bytes" as any, "file", true),
-      ).toThrow(HarnessError);
-      expect(() =>
-        initRun(tmp, "run-1", new Uint8Array(), "file", "not-bool" as any),
-      ).toThrow(HarnessError);
+      expect(() => initRun(tmp, "run-1", new Uint8Array(), "invalid_capture_mode", true)).toThrow(
+        HarnessError,
+      );
+      expect(() => initRun(tmp, "run-1", "not-bytes" as any, "file", true)).toThrow(HarnessError);
+      expect(() => initRun(tmp, "run-1", new Uint8Array(), "file", "not-bool" as any)).toThrow(
+        HarnessError,
+      );
       expect(() =>
         initRun(join(tmp, "nonexistent"), "run-1", new Uint8Array(), "file", true),
       ).toThrow(HarnessError);

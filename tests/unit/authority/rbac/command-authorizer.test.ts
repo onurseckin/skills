@@ -212,48 +212,36 @@ describe("executeShieldedCommand", () => {
 
   test("infers actor role from various actorId patterns and falls back to implementer", async () => {
     // Actor ID with unmatched name falls back to implementer
-    const resFallback = await executeShieldedCommand(
-      "custom-agent-name",
-      ["echo", "hi"],
-      { env: { FOO: "BAR" }, cwd: process.cwd() },
-    );
+    const resFallback = await executeShieldedCommand("custom-agent-name", ["echo", "hi"], {
+      env: { FOO: "BAR" },
+      cwd: process.cwd(),
+    });
     expect(resFallback.authorized).toBe(true);
 
     // Inferred coordinator role blocked from file mutations
-    const resCoord = await executeShieldedCommand(
-      "coordinator-alpha",
-      ["rm", "file.txt"],
-    );
+    const resCoord = await executeShieldedCommand("coordinator-alpha", ["rm", "file.txt"]);
     expect(resCoord.authorized).toBe(false);
     expect(resCoord.reason).toBe("ROLE_BOUNDARY_DEVIATION");
 
     // Inferred orchestrator role blocked from test runs
-    const resOrch = await executeShieldedCommand(
-      "orch_sub_orchestrator",
-      ["bun", "test", "foo.test.ts"],
-    );
+    const resOrch = await executeShieldedCommand("orch_sub_orchestrator", [
+      "bun",
+      "test",
+      "foo.test.ts",
+    ]);
     expect(resOrch.authorized).toBe(false);
     expect(resOrch.reason).toBe("SUPERVISOR_ZERO_TEST_RUNS");
 
     // Inferred mind role
-    const resMind = await executeShieldedCommand(
-      "mind-lead",
-      ["touch", "foo.ts"],
-    );
+    const resMind = await executeShieldedCommand("mind-lead", ["touch", "foo.ts"]);
     expect(resMind.authorized).toBe(false);
 
     // Inferred critic role
-    const resCritic = await executeShieldedCommand(
-      "sub-critic-1",
-      ["bun", "test", "foo.test.ts"],
-    );
+    const resCritic = await executeShieldedCommand("sub-critic-1", ["bun", "test", "foo.test.ts"]);
     expect(resCritic.authorized).toBe(false);
 
     // Inferred worker role allowed file-scoped test
-    const resWorker = await executeShieldedCommand(
-      "worker_node_1",
-      ["echo", "ok"],
-    );
+    const resWorker = await executeShieldedCommand("worker_node_1", ["echo", "ok"]);
     expect(resWorker.authorized).toBe(true);
   });
 
@@ -264,10 +252,14 @@ describe("executeShieldedCommand", () => {
     expect(verifyCommandAuthorization("implementer", ["yarn", "t"]).authorized).toBe(false);
 
     // bun run test (whole suite)
-    expect(verifyCommandAuthorization("implementer", ["bun", "run", "test"]).authorized).toBe(false);
+    expect(verifyCommandAuthorization("implementer", ["bun", "run", "test"]).authorized).toBe(
+      false,
+    );
 
     // bun run test with specific test file (scoped)
-    expect(verifyCommandAuthorization("implementer", ["bun", "run", "test", "foo.test.ts"]).authorized).toBe(true);
+    expect(
+      verifyCommandAuthorization("implementer", ["bun", "run", "test", "foo.test.ts"]).authorized,
+    ).toBe(true);
 
     // Test runner commands for validator (isAnyTestRun)
     expect(verifyCommandAuthorization("validator", ["pytest"]).authorized).toBe(false);
@@ -282,42 +274,81 @@ describe("executeShieldedCommand", () => {
     expect(verifyCommandAuthorization("validator", ["yarn", "run", "test"]).authorized).toBe(false);
     expect(verifyCommandAuthorization("validator", ["cargo", "test"]).authorized).toBe(false);
     expect(verifyCommandAuthorization("validator", ["cargo", "t"]).authorized).toBe(false);
-    expect(verifyCommandAuthorization("validator", ["cargo", "run", "test"]).authorized).toBe(false);
+    expect(verifyCommandAuthorization("validator", ["cargo", "run", "test"]).authorized).toBe(
+      false,
+    );
     expect(verifyCommandAuthorization("validator", ["bun", "run", "test"]).authorized).toBe(false);
     expect(verifyCommandAuthorization("validator", ["bun-test"]).authorized).toBe(false);
 
     // bun run test for implementer
-    expect(verifyCommandAuthorization("implementer", ["bun", "run", "test"]).authorized).toBe(false);
-    expect(verifyCommandAuthorization("implementer", ["bun", "run", "test", "foo.test.ts"]).authorized).toBe(true);
+    expect(verifyCommandAuthorization("implementer", ["bun", "run", "test"]).authorized).toBe(
+      false,
+    );
+    expect(
+      verifyCommandAuthorization("implementer", ["bun", "run", "test", "foo.test.ts"]).authorized,
+    ).toBe(true);
 
     // npm commands that are not whole suite tests
-    expect(verifyCommandAuthorization("implementer", ["npm", "run", "build"]).authorized).toBe(true);
+    expect(verifyCommandAuthorization("implementer", ["npm", "run", "build"]).authorized).toBe(
+      true,
+    );
     expect(verifyCommandAuthorization("implementer", ["npm", "install"]).authorized).toBe(true);
-    expect(verifyCommandAuthorization("implementer", ["pnpm", "run", "build"]).authorized).toBe(true);
+    expect(verifyCommandAuthorization("implementer", ["pnpm", "run", "build"]).authorized).toBe(
+      true,
+    );
     expect(verifyCommandAuthorization("implementer", ["yarn", "build"]).authorized).toBe(true);
 
     // sed mutation commands (covers arg === -i, startsWith -i, startsWith --in-place)
-    expect(verifyCommandAuthorization("validator", ["sed", "-i", "s/a/b/", "file.txt"]).authorized).toBe(false);
-    expect(verifyCommandAuthorization("validator", ["sed", "-i.bak", "s/a/b/", "file.txt"]).authorized).toBe(false);
-    expect(verifyCommandAuthorization("validator", ["sed", "--in-place", "s/a/b/", "file.txt"]).authorized).toBe(false);
-    expect(verifyCommandAuthorization("implementer", ["sed", "-i", "s/a/b/", "file.txt"]).authorized).toBe(true);
+    expect(
+      verifyCommandAuthorization("validator", ["sed", "-i", "s/a/b/", "file.txt"]).authorized,
+    ).toBe(false);
+    expect(
+      verifyCommandAuthorization("validator", ["sed", "-i.bak", "s/a/b/", "file.txt"]).authorized,
+    ).toBe(false);
+    expect(
+      verifyCommandAuthorization("validator", ["sed", "--in-place", "s/a/b/", "file.txt"])
+        .authorized,
+    ).toBe(false);
+    expect(
+      verifyCommandAuthorization("implementer", ["sed", "-i", "s/a/b/", "file.txt"]).authorized,
+    ).toBe(true);
 
     // bun-test with test file argument
-    expect(verifyCommandAuthorization("implementer", ["bun-test", "tests/unit/foo.test.ts"]).authorized).toBe(true);
+    expect(
+      verifyCommandAuthorization("implementer", ["bun-test", "tests/unit/foo.test.ts"]).authorized,
+    ).toBe(true);
 
     // Custom runner with test file argument for validator
-    expect(verifyCommandAuthorization("validator", ["custom-runner", "tests/unit/foo.test.ts"]).authorized).toBe(false);
+    expect(
+      verifyCommandAuthorization("validator", ["custom-runner", "tests/unit/foo.test.ts"])
+        .authorized,
+    ).toBe(false);
 
     // Git clean variants
-    expect(verifyCommandAuthorization("implementer", ["git", "clean", "-xdf"]).authorized).toBe(false);
+    expect(verifyCommandAuthorization("implementer", ["git", "clean", "-xdf"]).authorized).toBe(
+      false,
+    );
     expect(verifyCommandAuthorization("implementer", ["git", "clean", "-n"]).authorized).toBe(true);
     expect(verifyCommandAuthorization("implementer", ["git", "clean"]).authorized).toBe(true);
 
     // various file mutation commands for validator
-    const muts = ["touch", "mv", "cp", "mkdir", "tee", "truncate", "patch", "chmod", "chown", "notebookedit", "apply_diff", "edit_file", "apply_patch"];
+    const muts = [
+      "touch",
+      "mv",
+      "cp",
+      "mkdir",
+      "tee",
+      "truncate",
+      "patch",
+      "chmod",
+      "chown",
+      "notebookedit",
+      "apply_diff",
+      "edit_file",
+      "apply_patch",
+    ];
     for (const m of muts) {
       expect(verifyCommandAuthorization("validator", [m, "arg"]).authorized).toBe(false);
     }
   });
 });
-

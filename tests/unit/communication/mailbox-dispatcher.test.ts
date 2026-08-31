@@ -59,7 +59,9 @@ describe("P2P Mailbox Dispatcher & Role Resolution", () => {
     it("rejects invalid roles, empty strings, and path traversal attempts", () => {
       expect(() => resolveRecipientAgentIds("", testRoot)).toThrow(HarnessError);
       expect(() => resolveRecipientAgentIds("   ", testRoot)).toThrow(HarnessError);
-      expect(() => resolveRecipientAgentIds(123 as unknown as string, testRoot)).toThrow(HarnessError);
+      expect(() => resolveRecipientAgentIds(123 as unknown as string, testRoot)).toThrow(
+        HarnessError,
+      );
       expect(() => resolveRecipientAgentIds(".", testRoot)).toThrow(HarnessError);
       expect(() => resolveRecipientAgentIds("../outside", testRoot)).toThrow(HarnessError);
       expect(() => resolveRecipientAgentIds("sub/agent", testRoot)).toThrow(HarnessError);
@@ -124,12 +126,12 @@ describe("P2P Mailbox Dispatcher & Role Resolution", () => {
     });
 
     it("fails closed on invalid arguments", () => {
-      expect(() => dispatchPeerMessage(null as unknown as Parameters<typeof dispatchPeerMessage>[0])).toThrow(
-        HarnessError,
-      );
-      expect(() => dispatchPeerMessage("not-obj" as unknown as Parameters<typeof dispatchPeerMessage>[0])).toThrow(
-        HarnessError,
-      );
+      expect(() =>
+        dispatchPeerMessage(null as unknown as Parameters<typeof dispatchPeerMessage>[0]),
+      ).toThrow(HarnessError);
+      expect(() =>
+        dispatchPeerMessage("not-obj" as unknown as Parameters<typeof dispatchPeerMessage>[0]),
+      ).toThrow(HarnessError);
       expect(() =>
         dispatchPeerMessage({} as unknown as Parameters<typeof dispatchPeerMessage>[0]),
       ).toThrow(HarnessError);
@@ -200,10 +202,14 @@ describe("P2P Mailbox Dispatcher & Role Resolution", () => {
       });
       expect(res).toEqual([]);
       expect(() =>
-        broadcastWaveNotification(null as unknown as Parameters<typeof broadcastWaveNotification>[0]),
+        broadcastWaveNotification(
+          null as unknown as Parameters<typeof broadcastWaveNotification>[0],
+        ),
       ).toThrow(HarnessError);
       expect(() =>
-        broadcastWaveNotification("not-obj" as unknown as Parameters<typeof broadcastWaveNotification>[0]),
+        broadcastWaveNotification(
+          "not-obj" as unknown as Parameters<typeof broadcastWaveNotification>[0],
+        ),
       ).toThrow(HarnessError);
       expect(() =>
         broadcastWaveNotification({

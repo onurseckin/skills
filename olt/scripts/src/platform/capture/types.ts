@@ -60,10 +60,12 @@ export interface CaptureGovernanceReport {
 export interface GovernanceSyncOptions {
   readonly repoRoot?: string | undefined;
   readonly policy?: RepoPolicy | undefined;
-  readonly config?: {
-    readonly viewports?: Readonly<Record<string, CaptureViewport>> | undefined;
-    readonly auth?: CaptureAuthConfig | undefined;
-  } | undefined;
+  readonly config?:
+    | {
+        readonly viewports?: Readonly<Record<string, CaptureViewport>> | undefined;
+        readonly auth?: CaptureAuthConfig | undefined;
+      }
+    | undefined;
 }
 
 export type {

@@ -107,7 +107,11 @@ describe("Worktree Manager & Landing", () => {
     const deadLockPath = join(lockDir, "track-dead.lock");
     writeFileSync(
       deadLockPath,
-      JSON.stringify({ trackId: "track-dead", pid: 999999999, createdAt: new Date().toISOString() }),
+      JSON.stringify({
+        trackId: "track-dead",
+        pid: 999999999,
+        createdAt: new Date().toISOString(),
+      }),
     );
 
     const mockRunner: GitRunner = (_cwd, _argv) => ({ status: 0, stdout: "", stderr: "" });
@@ -137,7 +141,11 @@ describe("Worktree Manager & Landing", () => {
     // Write lock with current living PID
     writeFileSync(
       lockPath,
-      JSON.stringify({ trackId: "track-locked", pid: process.pid, createdAt: new Date().toISOString() }),
+      JSON.stringify({
+        trackId: "track-locked",
+        pid: process.pid,
+        createdAt: new Date().toISOString(),
+      }),
     );
 
     expect(() =>
@@ -184,7 +192,8 @@ describe("Worktree Manager & Landing", () => {
     mkdirSync(worktreeDir, { recursive: true });
 
     const failingRunner: GitRunner = (_cwd, argv) => {
-      if (argv[0] === "worktree" && argv[1] === "remove") throw new Error("git worktree remove failed");
+      if (argv[0] === "worktree" && argv[1] === "remove")
+        throw new Error("git worktree remove failed");
       return { status: 0, stdout: "", stderr: "" };
     };
 

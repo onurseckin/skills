@@ -45,7 +45,4 @@ export {
   verifyRepoGovernance,
 } from "./scaffold.ts";
 
-export {
-  auditRepoGovernanceCoverage,
-  discoverAndCalibrateRepoPolicy,
-} from "./policy-discovery.ts";
+export { auditRepoGovernanceCoverage, discoverAndCalibrateRepoPolicy } from "./policy-discovery.ts";

@@ -121,7 +121,9 @@ describe("Defects Sync, Loop, and Aggregator - Exhaustive Unit Tests", () => {
       expect(progressed.status).toBe("in_progress");
 
       // Invalid transition throws HarnessError
-      expect(() => transitionState({ ...defect, status: "resolved" as any }, "open")).toThrow(HarnessError);
+      expect(() => transitionState({ ...defect, status: "resolved" as any }, "open")).toThrow(
+        HarnessError,
+      );
 
       // Transition with proof
       const reopened = transitionState(
@@ -185,10 +187,16 @@ describe("Defects Sync, Loop, and Aggregator - Exhaustive Unit Tests", () => {
       expect(validateTransitionOrder("completed", "open", validProof as any)).toBe(true);
       expect(validateTransitionOrder("completed", "open", {} as any)).toBe(false);
 
-      const tRes = transitionOrder({ ...defect, status: "completed" as any }, "open", validProof as any);
+      const tRes = transitionOrder(
+        { ...defect, status: "completed" as any },
+        "open",
+        validProof as any,
+      );
       expect(tRes.status).toBe("open");
 
-      expect(() => transitionOrder({ ...defect, status: "completed" as any }, "open")).toThrow(HarnessError);
+      expect(() => transitionOrder({ ...defect, status: "completed" as any }, "open")).toThrow(
+        HarnessError,
+      );
     });
   });
 
@@ -294,7 +302,9 @@ corrupt_json_line
 
       expect(resolveCanonicalDefectLogPath(tmpDir)).toContain(".olt/defects.jsonl");
       expect(resolveDefectLogPath(activePath)).toBe(activePath);
-      expect(resolveCanonicalCompletedDefectsPath(tmpDir)).toContain(".olt/completed-defects.jsonl");
+      expect(resolveCanonicalCompletedDefectsPath(tmpDir)).toContain(
+        ".olt/completed-defects.jsonl",
+      );
       expect(resolveCompletedDefectsPath(completedPath)).toBe(completedPath);
 
       // Atomic write and read
@@ -376,8 +386,19 @@ corrupt_json_line
         defectsPath,
         [
           JSON.stringify({ id: "d-1", type: "code", category: "code_defect", status: "resolved" }),
-          JSON.stringify({ id: "d-2", type: "model", category: "model_reasoning_error", status: "open", count: 3 }),
-          JSON.stringify({ id: "d-3", type: "other", category: "documentation", status: "wontfix" }),
+          JSON.stringify({
+            id: "d-2",
+            type: "model",
+            category: "model_reasoning_error",
+            status: "open",
+            count: 3,
+          }),
+          JSON.stringify({
+            id: "d-3",
+            type: "other",
+            category: "documentation",
+            status: "wontfix",
+          }),
         ].join("\n") + "\n",
       );
 

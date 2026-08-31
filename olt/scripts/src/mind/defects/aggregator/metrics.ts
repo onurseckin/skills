@@ -62,9 +62,7 @@ export function calculateDefectAggregateMetrics(
     if (["resolved", "completed", "closed"].includes(normStatus)) {
       resolvedCount += 1;
       const res =
-        b.resolution !== undefined && b.resolution !== null
-          ? b.resolution
-          : b.resolution_proof;
+        b.resolution !== undefined && b.resolution !== null ? b.resolution : b.resolution_proof;
       const resTime = res !== undefined && res !== null ? res.resolved_at : undefined;
       const firstSeen =
         b.first_seen_at !== undefined && b.first_seen_at !== ""

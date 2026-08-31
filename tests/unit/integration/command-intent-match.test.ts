@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import type { CommandRecord, RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type {
+  CommandRecord,
+  RepositoryBinding,
+} from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   sameIntent,
   sameOptionalJson,

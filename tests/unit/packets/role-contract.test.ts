@@ -170,8 +170,8 @@ describe("B12.2: the validator-family domain field", () => {
       "instructions: Cognitive validator instructions.",
     ].join("\n");
 
-    expect(() =>
-      parseRoleContract(encoder.encode(yamlManifest), "validator.yaml"),
-    ).toThrow("must not declare run:exec in commands");
+    expect(() => parseRoleContract(encoder.encode(yamlManifest), "validator.yaml")).toThrow(
+      "must not declare run:exec in commands",
+    );
   });
 });

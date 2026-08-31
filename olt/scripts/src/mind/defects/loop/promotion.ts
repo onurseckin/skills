@@ -123,8 +123,7 @@ export function promoteResolvedDefects(
     entries = entriesOrOptions;
     options = maybeOptions !== undefined ? maybeOptions : {};
   } else {
-    options =
-      entriesOrOptions !== undefined ? (entriesOrOptions as DefectPromotionOptions) : {};
+    options = entriesOrOptions !== undefined ? (entriesOrOptions as DefectPromotionOptions) : {};
     entries = undefined;
   }
 
@@ -161,9 +160,7 @@ export function promoteResolvedDefects(
         });
         if (!proof.isValid) {
           const reasonStr =
-            proof.reason !== undefined && proof.reason !== ""
-              ? proof.reason
-              : "unknown error";
+            proof.reason !== undefined && proof.reason !== "" ? proof.reason : "unknown error";
           throw new HarnessError(
             "INTEGRITY",
             `resolved defect '${b.id}' has invalid resolution: ${reasonStr}`,

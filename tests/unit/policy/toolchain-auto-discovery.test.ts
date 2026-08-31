@@ -274,7 +274,6 @@ charter:
       count: "0",
     });
 
-
     expect(existsSync(join(dir, ".olt", "policy.json"))).toBe(true);
     const reloaded = loadRepoPolicy(dir);
     expect(reloaded.ecosystem).toBe("bun");
@@ -301,4 +300,3 @@ charter:
     expect(yarnDisc.typecheckCommand).toBe("yarn tsc --noEmit");
   });
 });
-

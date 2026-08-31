@@ -27,7 +27,10 @@ import {
 } from "../../../olt/scripts/src/packets/command-authority-state.ts";
 import { requiresActingIdentity } from "../../../olt/scripts/src/packets/grant-bootstrap-allowlist.ts";
 import { emptyGrantRun } from "./grant-run-fixture.ts";
-import { registerAgentGrant, releaseAgentGrant } from "../../../olt/scripts/src/workflow/agents/grants.ts";
+import {
+  registerAgentGrant,
+  releaseAgentGrant,
+} from "../../../olt/scripts/src/workflow/agents/grants.ts";
 import type { AuthenticatedCaller } from "../../../olt/scripts/src/packets/command-authority.ts";
 
 function spec(name: string) {
@@ -90,8 +93,12 @@ describe("Command Authority Edge Cases & 100% Branch Coverage", () => {
       expect(formatHierarchicalRemediation(3, 4, "cursor")).toContain("In Cursor");
 
       expect(formatSupervisionRemediation("implementer", 3, "codex")).toContain("In Codex");
-      expect(formatDeclaredSpawnRemediation("orchestrator", "worker", "cursor")).toContain("subagent dispatch");
-      expect(formatRoleContractRemediation("implementer", "task:submit", "codex")).toContain("spawn_agent");
+      expect(formatDeclaredSpawnRemediation("orchestrator", "worker", "cursor")).toContain(
+        "subagent dispatch",
+      );
+      expect(formatRoleContractRemediation("implementer", "task:submit", "codex")).toContain(
+        "spawn_agent",
+      );
 
       expect(formatSessionRemediation("agent:register", "antigravity")).toContain("In Antigravity");
       expect(formatSessionRemediation("task:submit", "codex")).toContain("In Codex");
@@ -99,11 +106,14 @@ describe("Command Authority Edge Cases & 100% Branch Coverage", () => {
     });
 
     test("resolveCurrentHost catches exceptions and defaults to unknown", () => {
-      const badEnv = new Proxy({}, {
-        get() {
-          throw new Error("Env access error");
+      const badEnv = new Proxy(
+        {},
+        {
+          get() {
+            throw new Error("Env access error");
+          },
         },
-      }) as Record<string, string | undefined>;
+      ) as Record<string, string | undefined>;
       expect(resolveCurrentHost(badEnv)).toBe("unknown");
     });
   });
@@ -112,30 +122,42 @@ describe("Command Authority Edge Cases & 100% Branch Coverage", () => {
     test("assertRoleMayInvoke enforces fail-closed on blank or unresolved roles and agentIds", () => {
       expect(() => assertRoleMayInvoke("", spec("task:submit"), "agent-1")).toThrow(HarnessError);
       expect(() => assertRoleMayInvoke(null, spec("task:submit"), "agent-1")).toThrow(HarnessError);
-      expect(() => assertRoleMayInvoke("unresolved", spec("task:submit"), "agent-1")).toThrow(HarnessError);
-      expect(() => assertRoleMayInvoke("implementer", spec("task:submit"), "")).toThrow(HarnessError);
-      expect(() => assertRoleMayInvoke("implementer", spec("task:submit"), null)).toThrow(HarnessError);
-      expect(() => assertRoleMayInvoke("implementer", spec("task:submit"), "unresolved")).toThrow(HarnessError);
+      expect(() => assertRoleMayInvoke("unresolved", spec("task:submit"), "agent-1")).toThrow(
+        HarnessError,
+      );
+      expect(() => assertRoleMayInvoke("implementer", spec("task:submit"), "")).toThrow(
+        HarnessError,
+      );
+      expect(() => assertRoleMayInvoke("implementer", spec("task:submit"), null)).toThrow(
+        HarnessError,
+      );
+      expect(() => assertRoleMayInvoke("implementer", spec("task:submit"), "unresolved")).toThrow(
+        HarnessError,
+      );
     });
 
     test("assertRoleMayInvoke allows meta-auditor for meta-audit", () => {
-      expect(() => assertRoleMayInvoke("meta-auditor", spec("meta-audit"), "agent-1")).not.toThrow();
-      expect(() => assertRoleMayInvoke("meta_auditor", spec("meta-audit"), "agent-1")).not.toThrow();
+      expect(() =>
+        assertRoleMayInvoke("meta-auditor", spec("meta-audit"), "agent-1"),
+      ).not.toThrow();
+      expect(() =>
+        assertRoleMayInvoke("meta_auditor", spec("meta-audit"), "agent-1"),
+      ).not.toThrow();
     });
 
     test("assertRoleMayInvoke cognitive validator executing shell command handles loadRoleContract errors and successes", () => {
       expect(() =>
-        assertRoleMayInvoke("cognitive-validator-custom", spec("run:exec"), "agent-1")
+        assertRoleMayInvoke("cognitive-validator-custom", spec("run:exec"), "agent-1"),
       ).toThrow(HarnessError);
 
-      expect(() =>
-        assertRoleMayInvoke("validator", spec("run:exec"), "agent-1")
-      ).toThrow(HarnessError);
+      expect(() => assertRoleMayInvoke("validator", spec("run:exec"), "agent-1")).toThrow(
+        HarnessError,
+      );
     });
 
     test("assertRoleMayInvoke throws PERMISSION_DENIED on non-existent contract role", () => {
       expect(() =>
-        assertRoleMayInvoke("nonexistent-role-xyz", spec("task:submit"), "agent-1")
+        assertRoleMayInvoke("nonexistent-role-xyz", spec("task:submit"), "agent-1"),
       ).toThrow(HarnessError);
     });
   });
@@ -143,7 +165,13 @@ describe("Command Authority Edge Cases & 100% Branch Coverage", () => {
   describe("command-authority-grants", () => {
     test("assertAgentRegisterHierarchy directly tests edge cases", () => {
       const mockLedger = [
-        { id: "orch-1", role: "orchestrator" as const, status: "active" as const, parent_agent_id: null, parent_task_id: null },
+        {
+          id: "orch-1",
+          role: "orchestrator" as const,
+          status: "active" as const,
+          parent_agent_id: null,
+          parent_task_id: null,
+        },
       ];
 
       // parentAgentId active and agentId undefined -> throws AUTHENTICATION_FAILURE
@@ -152,7 +180,7 @@ describe("Command Authority Edge Cases & 100% Branch Coverage", () => {
           { "parent-agent": "orch-1", role: "coordinator", agent: "coord-1" },
           mockLedger,
           undefined,
-        )
+        ),
       ).toThrow(HarnessError);
 
       // Non-empty ledger, unparented Tier 2 -> throws ROLE_CONFINEMENT_VIOLATION
@@ -161,7 +189,7 @@ describe("Command Authority Edge Cases & 100% Branch Coverage", () => {
           { role: "coordinator", agent: "coord-1" },
           mockLedger,
           "orch-1",
-        )
+        ),
       ).toThrow(HarnessError);
 
       // Non-empty ledger, unparented Tier 1, agentId undefined -> throws INVALID_STATE
@@ -170,7 +198,7 @@ describe("Command Authority Edge Cases & 100% Branch Coverage", () => {
           { role: "orchestrator", agent: "orch-2" },
           mockLedger,
           undefined,
-        )
+        ),
       ).toThrow(HarnessError);
 
       // Non-empty ledger, unparented Tier 1, agentId holds no active grant -> throws INVALID_STATE
@@ -179,29 +207,51 @@ describe("Command Authority Edge Cases & 100% Branch Coverage", () => {
           { role: "orchestrator", agent: "orch-2" },
           mockLedger,
           "inactive-agent",
-        )
+        ),
       ).toThrow(HarnessError);
     });
 
     test("assertSubjectTargetPolicy on agent:report and agent:release", () => {
       const mockLedger = [
-        { id: "orch-1", role: "orchestrator" as const, status: "active" as const, parent_agent_id: null, parent_task_id: null },
-        { id: "coord-1", role: "coordinator" as const, status: "active" as const, parent_agent_id: "orch-1", parent_task_id: null },
+        {
+          id: "orch-1",
+          role: "orchestrator" as const,
+          status: "active" as const,
+          parent_agent_id: null,
+          parent_task_id: null,
+        },
+        {
+          id: "coord-1",
+          role: "coordinator" as const,
+          status: "active" as const,
+          parent_agent_id: "orch-1",
+          parent_task_id: null,
+        },
       ];
 
       // agent:report with target !== caller -> throws AUTHENTICATION_FAILURE
       expect(() =>
-        assertSubjectTargetPolicy(spec("agent:report"), { agent: "orch-1" }, "coord-1", mockLedger)
+        assertSubjectTargetPolicy(spec("agent:report"), { agent: "orch-1" }, "coord-1", mockLedger),
       ).toThrow(HarnessError);
 
       // agent:release with target as direct child of caller -> succeeds
       expect(() =>
-        assertSubjectTargetPolicy(spec("agent:release"), { agent: "coord-1" }, "orch-1", mockLedger)
+        assertSubjectTargetPolicy(
+          spec("agent:release"),
+          { agent: "coord-1" },
+          "orch-1",
+          mockLedger,
+        ),
       ).not.toThrow();
 
       // agent:release with target not child -> throws AUTHENTICATION_FAILURE
       expect(() =>
-        assertSubjectTargetPolicy(spec("agent:release"), { agent: "orch-1" }, "coord-1", mockLedger)
+        assertSubjectTargetPolicy(
+          spec("agent:release"),
+          { agent: "orch-1" },
+          "coord-1",
+          mockLedger,
+        ),
       ).toThrow(HarnessError);
     });
 
@@ -219,13 +269,17 @@ describe("Command Authority Edge Cases & 100% Branch Coverage", () => {
         telemetry: {},
       });
 
-      const caller: AuthenticatedCaller = { actor: "non-existent", role: "orchestrator", verified: true };
+      const caller: AuthenticatedCaller = {
+        actor: "non-existent",
+        role: "orchestrator",
+        verified: true,
+      };
       expect(() =>
         assertGrantedCommand(
           spec("agent:register"),
           { run, "parent-agent": "non-existent", role: "coordinator", agent: "coord-1" },
           caller,
-        )
+        ),
       ).toThrow(HarnessError);
     });
 
@@ -255,7 +309,7 @@ describe("Command Authority Edge Cases & 100% Branch Coverage", () => {
           spec("agent:register"),
           { run, "parent-agent": "orch-1", role: "coordinator", agent: "coord-1" },
           caller,
-        )
+        ),
       ).toThrow(HarnessError);
     });
 
@@ -273,13 +327,17 @@ describe("Command Authority Edge Cases & 100% Branch Coverage", () => {
         telemetry: {},
       });
 
-      const caller: AuthenticatedCaller = { actor: "coord-other", role: "coordinator", verified: true };
+      const caller: AuthenticatedCaller = {
+        actor: "coord-other",
+        role: "coordinator",
+        verified: true,
+      };
       expect(() =>
         assertGrantedCommand(
           spec("agent:register"),
           { run, "parent-agent": "orch-1", role: "coordinator", agent: "coord-1" },
           caller,
-        )
+        ),
       ).toThrow(HarnessError);
     });
 
@@ -303,7 +361,7 @@ describe("Command Authority Edge Cases & 100% Branch Coverage", () => {
           spec("task:claim"),
           { run, actor: "impersonator", task: "T-1" },
           caller,
-        )
+        ),
       ).toThrow(HarnessError);
     });
 
@@ -314,7 +372,7 @@ describe("Command Authority Edge Cases & 100% Branch Coverage", () => {
           spec("queue:drain"),
           { "authority-run": run, actor: "mind-1" },
           { actor: "mind-1", role: "mind", verified: false },
-        )
+        ),
       ).toThrow(HarnessError);
     });
 
@@ -332,13 +390,17 @@ describe("Command Authority Edge Cases & 100% Branch Coverage", () => {
         telemetry: {},
       });
 
-      const caller: AuthenticatedCaller = { actor: "worker-1", role: "implementer", verified: true };
+      const caller: AuthenticatedCaller = {
+        actor: "worker-1",
+        role: "implementer",
+        verified: true,
+      };
       expect(() =>
         assertGrantedCommand(
           spec("queue:drain"),
           { "authority-run": run, actor: "worker-1" },
           caller,
-        )
+        ),
       ).toThrow(HarnessError);
     });
 
@@ -362,7 +424,7 @@ describe("Command Authority Edge Cases & 100% Branch Coverage", () => {
           spec("agent:register"),
           { run, role: "coordinator", agent: "coord-1" },
           { actor: "orch-1", role: "orchestrator", verified: false },
-        )
+        ),
       ).toThrow(HarnessError);
 
       // With parent-agent
@@ -371,7 +433,7 @@ describe("Command Authority Edge Cases & 100% Branch Coverage", () => {
           spec("agent:register"),
           { run, "parent-agent": "orch-1", role: "coordinator", agent: "coord-1" },
           { actor: "orch-1", role: "orchestrator", verified: false },
-        )
+        ),
       ).toThrow(HarnessError);
     });
   });

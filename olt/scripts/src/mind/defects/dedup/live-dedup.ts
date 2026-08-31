@@ -36,11 +36,8 @@ export class LiveDefectDeduplicator {
     const key = computeDefectDiscriminator(defect);
     const existing = this.entries.get(key);
     const strategy =
-      this.options.strategy !== undefined && this.options.strategy !== ""
-        ? this.options.strategy
-        : "aggregate_synchronous";
-    const windowMs =
-      this.options.windowMs !== undefined ? this.options.windowMs : 60_000;
+      this.options.strategy !== undefined ? this.options.strategy : "aggregate_synchronous";
+    const windowMs = this.options.windowMs !== undefined ? this.options.windowMs : 60_000;
     const maxOccurrences =
       this.options.maxOccurrences !== undefined ? this.options.maxOccurrences : 50;
 
@@ -135,9 +132,7 @@ export class LiveDefectDeduplicator {
       resolution: resolvedMindEntry.resolution,
     };
     const targetKey =
-      existing.dedup_key !== undefined && existing.dedup_key !== ""
-        ? existing.dedup_key
-        : keyOrId;
+      existing.dedup_key !== undefined && existing.dedup_key !== "" ? existing.dedup_key : keyOrId;
     this.entries.set(targetKey, updated);
     return updated;
   }
@@ -166,9 +161,7 @@ export class LiveDefectDeduplicator {
       const entry = sortedEntries[i];
       if (entry) {
         const entryKey =
-          entry.dedup_key !== undefined && entry.dedup_key !== ""
-            ? entry.dedup_key
-            : entry.id;
+          entry.dedup_key !== undefined && entry.dedup_key !== "" ? entry.dedup_key : entry.id;
         this.entries.delete(entryKey);
         this.idToKey.delete(entry.id);
         evicted += 1;
@@ -189,9 +182,7 @@ export class LiveDefectDeduplicator {
     const parsed = parseAndDeduplicateDefectJsonl(jsonl, this.options);
     for (const entry of parsed) {
       const key =
-        entry.dedup_key !== undefined && entry.dedup_key !== ""
-          ? entry.dedup_key
-          : entry.id;
+        entry.dedup_key !== undefined && entry.dedup_key !== "" ? entry.dedup_key : entry.id;
       this.entries.set(key, entry);
       this.idToKey.set(entry.id, key);
     }

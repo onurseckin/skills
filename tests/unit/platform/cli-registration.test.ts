@@ -33,7 +33,6 @@ describe("Mandatory CLI Action Registration Protocol", () => {
     );
   });
 
-
   test("buildTaskClaimCommand formats task claim shell command", () => {
     const cmd = buildTaskClaimCommand(runRoot, taskId, agentId, "implementer");
     expect(cmd).toBe(
@@ -98,6 +97,5 @@ describe("Mandatory CLI Action Registration Protocol", () => {
     expect(noAgentsRes.registered).toBeFalse();
 
     expect(() => assertAgentRegistered(state, "nonexistent-agent")).toThrow(HarnessError);
-
   });
 });

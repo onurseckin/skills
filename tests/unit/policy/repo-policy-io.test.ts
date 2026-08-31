@@ -22,10 +22,11 @@ import {
   withLock,
 } from "../../../olt/scripts/src/policy/io-safety.ts";
 
-
 describe("Repo Policy I/O, Flocking & Generator (Task 1.2)", () => {
-  const scratchBase = join(tmpdir(), `test-policy-io-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-
+  const scratchBase = join(
+    tmpdir(),
+    `test-policy-io-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  );
 
   afterAll(() => {
     rmSync(scratchBase, { recursive: true, force: true });
@@ -97,7 +98,6 @@ describe("Repo Policy I/O, Flocking & Generator (Task 1.2)", () => {
     if (!docker) throw new Error("docker undefined");
     expect(docker.enabled).toBe(true);
     expect(docker.test_user_personas.admin.role).toBe("admin");
-
   });
 
   test("strictly governs .olt/policy.json and ignores legacy olt/policy.json fallback", () => {
@@ -205,7 +205,9 @@ for (let i = 0; i < 5; i++) {
 
   test("validates resolveSystemLockPath safety constraints", () => {
     const root = process.cwd();
-    expect(resolveSystemLockPath("policy.lock", root)).toBe(join(root, ".olt", "locks", "policy.lock"));
+    expect(resolveSystemLockPath("policy.lock", root)).toBe(
+      join(root, ".olt", "locks", "policy.lock"),
+    );
 
     expect(() => resolveSystemLockPath(123 as unknown as string)).toThrow(/non-empty string/);
     expect(() => resolveSystemLockPath("")).toThrow(/non-empty string/);
@@ -284,7 +286,6 @@ for (let i = 0; i < 5; i++) {
         }),
       ).toThrow(/Repository policy changed while/);
 
-
       // Test reqNoFollow unsupported flag
 
       expect(() => reqNoFollow(0)).toThrow(/final-component O_NOFOLLOW/);
@@ -310,8 +311,14 @@ for (let i = 0; i < 5; i++) {
 
       // Test withLock when lock is already held
       const lockPath = resolveSystemLockPath("policy.lock", loc.root);
-      const holderFd = require("node:fs").openSync(lockPath, require("node:fs").constants.O_RDWR | require("node:fs").constants.O_CREAT, 0o600);
-      expect(require("../../../olt/scripts/src/platform/index.ts").tryExclusiveFlock(holderFd)).toBe(true);
+      const holderFd = require("node:fs").openSync(
+        lockPath,
+        require("node:fs").constants.O_RDWR | require("node:fs").constants.O_CREAT,
+        0o600,
+      );
+      expect(
+        require("../../../olt/scripts/src/platform/index.ts").tryExclusiveFlock(holderFd),
+      ).toBe(true);
       try {
         const otherLoc = { ...loc, root: loc.root + "-other" };
         const startTime = performance.now();
@@ -324,6 +331,4 @@ for (let i = 0; i < 5; i++) {
       rmSync(dir, { recursive: true, force: true });
     }
   });
-
 });
-

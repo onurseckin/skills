@@ -69,7 +69,10 @@ describe("live-capture-runner", () => {
       });
 
       it("falls back to captures directory when all config paths are empty", () => {
-        const out = resolveCaptureOutputDir({}, { baseUrl: "http://localhost:3000", screens: [], viewports: {} });
+        const out = resolveCaptureOutputDir(
+          {},
+          { baseUrl: "http://localhost:3000", screens: [], viewports: {} },
+        );
         expect(out).toBe(join(process.cwd(), "captures"));
       });
     });
@@ -111,7 +114,12 @@ describe("live-capture-runner", () => {
       });
 
       it("resolves screen-specific viewports when defined including unknown presets", () => {
-        const screen = { id: "s1", name: "Screen 1", path: "/", viewports: ["desktop", "tablet", "custom-unlisted"] };
+        const screen = {
+          id: "s1",
+          name: "Screen 1",
+          path: "/",
+          viewports: ["desktop", "tablet", "custom-unlisted"],
+        };
         const viewports = resolveViewportsForScreen(screen, dummyConfig);
         expect(viewports).toHaveLength(3);
         expect(viewports[0]?.name).toBe("desktop");
@@ -128,7 +136,11 @@ describe("live-capture-runner", () => {
 
       it("falls back to all CANONICAL_VIEWPORTS when config.viewports is empty", () => {
         const screen = { id: "s1", name: "Screen 1", path: "/" };
-        const emptyVpConfig: CaptureConfig = { baseUrl: "http://localhost:3000", screens: [], viewports: {} };
+        const emptyVpConfig: CaptureConfig = {
+          baseUrl: "http://localhost:3000",
+          screens: [],
+          viewports: {},
+        };
         const viewports = resolveViewportsForScreen(screen, emptyVpConfig);
         expect(viewports.length).toBeGreaterThanOrEqual(4);
       });
@@ -185,7 +197,9 @@ describe("live-capture-runner", () => {
 
   describe("runner", () => {
     it("throws error when browserProvider is undefined", async () => {
-      expect(runLiveCapture()).rejects.toThrow("runLiveCapture requires an explicit browserProvider");
+      expect(runLiveCapture()).rejects.toThrow(
+        "runLiveCapture requires an explicit browserProvider",
+      );
     });
 
     it("executes live capture workflow with actions, auth, screenshot validation, and manifest generation", async () => {
@@ -233,7 +247,11 @@ describe("live-capture-runner", () => {
                 },
                 evaluate: async () => {
                   return {
-                    viewport: { width: currentVp.width, height: currentVp.height, deviceScaleFactor: 1 },
+                    viewport: {
+                      width: currentVp.width,
+                      height: currentVp.height,
+                      deviceScaleFactor: 1,
+                    },
                     scrollPosition: { x: 0, y: 0 },
                     elements: [],
                     layoutOverflows: [],
@@ -325,7 +343,7 @@ describe("live-capture-runner", () => {
                   // Returns mismatched 100x100 instead of 1440x900
                   return createSyntheticPngBuffer(100, 100, 1024);
                 },
-                evaluate: async () => ({} as never),
+                evaluate: async () => ({}) as never,
               };
             },
             close: async () => {},
@@ -370,7 +388,7 @@ describe("live-capture-runner", () => {
                   throw "String network connection error";
                 },
                 screenshot: async () => createSyntheticPngBuffer(1440, 900),
-                evaluate: async () => ({} as never),
+                evaluate: async () => ({}) as never,
               };
             },
             close: async () => {},
@@ -412,7 +430,7 @@ describe("live-capture-runner", () => {
                 setExtraHTTPHeaders: async () => {},
                 goto: async () => {},
                 screenshot: async () => createSyntheticPngBuffer(1440, 900),
-                evaluate: async () => ({} as never),
+                evaluate: async () => ({}) as never,
               };
             },
             close: async () => {},

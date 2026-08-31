@@ -107,12 +107,8 @@ describe("Chatter Guard & Mid-Flight Progress Narration Interlock", () => {
       expect(() =>
         assertNonChatterPolicy(narration, { recipientRoleOrId: "agent-planner-01" }),
       ).not.toThrow();
-      expect(() =>
-        assertNonChatterPolicy(deliverable, { recipientRoleOrId: "" }),
-      ).not.toThrow();
-      expect(() =>
-        assertNonChatterPolicy(deliverable, { recipientRoleOrId: "  " }),
-      ).not.toThrow();
+      expect(() => assertNonChatterPolicy(deliverable, { recipientRoleOrId: "" })).not.toThrow();
+      expect(() => assertNonChatterPolicy(deliverable, { recipientRoleOrId: "  " })).not.toThrow();
     });
 
     it("validates input string fail-closed", () => {
@@ -162,12 +158,12 @@ describe("Chatter Guard & Mid-Flight Progress Narration Interlock", () => {
       expect(() => routeStatusUpdate("agent-a", "", {}, { baseDir: testRoot })).toThrow(
         HarnessError,
       );
-      expect(() => routeStatusUpdate("agent-a", 123 as unknown as string, {}, { baseDir: testRoot })).toThrow(
-        HarnessError,
-      );
-      expect(() => routeStatusUpdate(123 as unknown as string, "parent-01", {}, { baseDir: testRoot })).toThrow(
-        HarnessError,
-      );
+      expect(() =>
+        routeStatusUpdate("agent-a", 123 as unknown as string, {}, { baseDir: testRoot }),
+      ).toThrow(HarnessError);
+      expect(() =>
+        routeStatusUpdate(123 as unknown as string, "parent-01", {}, { baseDir: testRoot }),
+      ).toThrow(HarnessError);
     });
   });
 

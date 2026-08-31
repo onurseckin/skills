@@ -309,7 +309,9 @@ describe("AcquireQueue & isInstanceExpired", () => {
     // Disposed status
     const instDisp = new PooledBrowserInstance(driver, "inst-disp-exp");
     await instDisp.close();
-    expect(isInstanceExpired(instDisp, { maxUsesPerInstance: 10, idleTimeoutMs: 10000 })).toBe(true);
+    expect(isInstanceExpired(instDisp, { maxUsesPerInstance: 10, idleTimeoutMs: 10000 })).toBe(
+      true,
+    );
 
     // Exceeded max uses
     const inst2 = new PooledBrowserInstance(driver, "inst-uses");
@@ -501,7 +503,9 @@ describe("BrowserPoolManager & Lifecycle", () => {
     });
 
     await expect(pool.acquire()).rejects.toThrow("Launch failed");
-    expect(events.some((e) => e.type === "error" && e.details?.includes("Launch failed"))).toBe(true);
+    expect(events.some((e) => e.type === "error" && e.details?.includes("Launch failed"))).toBe(
+      true,
+    );
 
     await pool.close();
   });
@@ -536,7 +540,9 @@ describe("BrowserPoolManager & Lifecycle", () => {
     expect(pool.state).toBe("CLOSED");
 
     // Acquire on closed pool throws
-    await expect(pool.acquire()).rejects.toThrow("Cannot acquire browser instance from pool in CLOSED state");
+    await expect(pool.acquire()).rejects.toThrow(
+      "Cannot acquire browser instance from pool in CLOSED state",
+    );
   });
 
   it("performs background housekeeping on expired idle instances", async () => {

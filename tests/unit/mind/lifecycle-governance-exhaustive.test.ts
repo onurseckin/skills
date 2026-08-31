@@ -140,10 +140,13 @@ budgets:
       const budget = readMindBudget(charterYaml);
       expect(budget.pulses_per_day).toBe(50);
 
-      const updated = updateMindBudget((curr) => ({
-        ...curr,
-        pulses_today: curr.pulses_today + 1,
-      }), charterYaml);
+      const updated = updateMindBudget(
+        (curr) => ({
+          ...curr,
+          pulses_today: curr.pulses_today + 1,
+        }),
+        charterYaml,
+      );
       expect(updated.pulses_today).toBe(1);
     });
 

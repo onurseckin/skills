@@ -64,7 +64,9 @@ describe("Authority Session Paths, Resolver, IO, Grants & Interlock Comprehensiv
     // assertRealDirectory with file throws PATH_SAFETY
     const regularFilePath = join(scratch, "regular.json");
     writeFileSync(regularFilePath, "{}", "utf-8");
-    expect(() => assertRealDirectory(regularFilePath, "not a dir")).toThrow("must be a real directory");
+    expect(() => assertRealDirectory(regularFilePath, "not a dir")).toThrow(
+      "must be a real directory",
+    );
     expect(assertSingleLinkRegular(regularFilePath)).toBeDefined();
 
     // assertSafeSessionComponent
@@ -155,12 +157,15 @@ describe("Authority Session Paths, Resolver, IO, Grants & Interlock Comprehensiv
     expect(lockResult).toBe(42);
 
     // Lock contention on root.fd
-    const { tryExclusiveFlock, releaseFlock } = await import("../../../olt/scripts/src/platform/index.ts");
+    const { tryExclusiveFlock, releaseFlock } =
+      await import("../../../olt/scripts/src/platform/index.ts");
     const { closeSync } = await import("node:fs");
     const rootDir = openVerifiedDirectory(scratch, false, "root");
     tryExclusiveFlock(rootDir.fd);
     try {
-      expect(() => withSessionAuthorityLock(scratch, sessionsDir, () => 1)).toThrow("session repository lock is busy");
+      expect(() => withSessionAuthorityLock(scratch, sessionsDir, () => 1)).toThrow(
+        "session repository lock is busy",
+      );
     } finally {
       releaseFlock(rootDir.fd);
       closeSync(rootDir.fd);
@@ -170,7 +175,9 @@ describe("Authority Session Paths, Resolver, IO, Grants & Interlock Comprehensiv
     const sessDir = openVerifiedDirectory(sessionsDir, false, "session");
     tryExclusiveFlock(sessDir.fd);
     try {
-      expect(() => withSessionAuthorityLock(scratch, sessionsDir, () => 1)).toThrow("session directory lock is busy");
+      expect(() => withSessionAuthorityLock(scratch, sessionsDir, () => 1)).toThrow(
+        "session directory lock is busy",
+      );
     } finally {
       releaseFlock(sessDir.fd);
       closeSync(sessDir.fd);

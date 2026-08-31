@@ -19,7 +19,8 @@ export function synthesizeDeliberationRound(params: {
   readonly options?: { readonly maxRounds?: number | undefined } | undefined;
 }): DeliberationSynthesis {
   const { round_number, defects, proofs = [], options } = params;
-  const maxRounds = options !== undefined && options.maxRounds !== undefined ? options.maxRounds : 3;
+  const maxRounds =
+    options !== undefined && options.maxRounds !== undefined ? options.maxRounds : 3;
 
   const resolvedIds = new Set<string>();
   for (const proof of proofs) {

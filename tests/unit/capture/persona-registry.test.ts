@@ -349,7 +349,9 @@ describe("persona-registry: multi-user persona isolation & registry", () => {
           session_cookie_templates: {},
         },
       };
-      expect(resolveSessionCookieTemplate(policyWithEmptyTemplates)).toEqual(DEFAULT_COOKIE_TEMPLATE);
+      expect(resolveSessionCookieTemplate(policyWithEmptyTemplates)).toEqual(
+        DEFAULT_COOKIE_TEMPLATE,
+      );
     });
 
     test("resolveSessionCookieTemplate prioritizes default and first template when session_id is absent", () => {
@@ -364,7 +366,10 @@ describe("persona-registry: multi-user persona isolation & registry", () => {
           },
         },
       };
-      expect(resolveSessionCookieTemplate(policyWithDefault)).toEqual({ name: "default_sid", http_only: false });
+      expect(resolveSessionCookieTemplate(policyWithDefault)).toEqual({
+        name: "default_sid",
+        http_only: false,
+      });
 
       const policyWithOtherKey: RepoPolicy = {
         schema_version: 1,

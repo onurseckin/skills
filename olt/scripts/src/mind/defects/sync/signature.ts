@@ -14,11 +14,13 @@ export interface FailureSignatureInput {
  * signature = SHA256(category || code || normalized_path || normalized_message)
  */
 export function computeNormalizedFailureSignature(input: FailureSignatureInput): string {
-  const category = (input.category ?? "runtime").trim().toLowerCase();
+  const category = (input.category !== undefined ? input.category : "runtime").trim().toLowerCase();
   const code = input.code.trim().toLowerCase();
-  const rawPath = (input.path ?? input.file ?? "").trim();
+  const rawPath = (
+    input.path !== undefined ? input.path : input.file !== undefined ? input.file : ""
+  ).trim();
   const normalizedPath = rawPath.replace(/\\/g, "/").toLowerCase();
-  const rawMessage = (input.message ?? "").trim();
+  const rawMessage = (input.message !== undefined ? input.message : "").trim();
   const normalizedMessage = rawMessage.toLowerCase().replace(/\s+/g, " ");
   const line = input.line !== undefined && input.line > 0 ? String(input.line) : "";
 

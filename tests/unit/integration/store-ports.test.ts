@@ -9,7 +9,13 @@ function freshRun(label: string): string {
   const root = scratchRoot(import.meta.path, label);
   const repo = join(root, "repo");
   mkdirSync(repo, { recursive: true });
-  return initRun(repo, `store-ports-run-${label}`, new TextEncoder().encode("prompt"), "file", true);
+  return initRun(
+    repo,
+    `store-ports-run-${label}`,
+    new TextEncoder().encode("prompt"),
+    "file",
+    true,
+  );
 }
 
 function seedMinimalPlan(run: string): void {

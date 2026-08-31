@@ -13,7 +13,9 @@ export const MANDATORY_VIEWPORT_TIERS: readonly ResponsiveViewportTier[] = [
   "mobile",
 ] as const;
 
-export const RESPONSIVE_4TIER_SPECS: Readonly<Record<ResponsiveViewportTier, ResponsiveViewportSpec>> = {
+export const RESPONSIVE_4TIER_SPECS: Readonly<
+  Record<ResponsiveViewportTier, ResponsiveViewportSpec>
+> = {
   "desktop-wide": {
     name: "desktop-wide",
     tier: "desktop-wide",
@@ -128,7 +130,10 @@ export function toCanonicalCaptureViewport(spec: ResponsiveViewportSpec): Captur
   };
 }
 
-export function getCanonical4TierCaptureViewports(): Record<ResponsiveViewportTier, CaptureViewport> {
+export function getCanonical4TierCaptureViewports(): Record<
+  ResponsiveViewportTier,
+  CaptureViewport
+> {
   return {
     "desktop-wide": toCanonicalCaptureViewport(RESPONSIVE_4TIER_SPECS["desktop-wide"]),
     desktop: toCanonicalCaptureViewport(RESPONSIVE_4TIER_SPECS.desktop),

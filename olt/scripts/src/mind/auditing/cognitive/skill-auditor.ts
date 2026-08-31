@@ -133,13 +133,36 @@ export class SkillAuditorEngine {
     inc: ForensicsIncident,
     capsuleRoots: string[],
   ): boolean {
-    const rawAgent = inc.agentId ?? inc.agent_id;
+    let rawAgent: string | undefined = undefined;
+    if (inc.agentId !== undefined) {
+      rawAgent = inc.agentId;
+    } else if (inc.agent_id !== undefined) {
+      rawAgent = inc.agent_id;
+    }
     let target = "coordinator";
     if (rawAgent && rawAgent.toLowerCase().includes("coord")) {
       target = rawAgent;
     } else {
       const activeCoord = SkillAuditorEngine.findActiveCoordinatorId(capsuleRoots);
       if (activeCoord) target = activeCoord;
+    }
+
+    let observationText: string;
+    if (inc.observation !== undefined) {
+      observationText = inc.observation;
+    } else if (inc.description !== undefined) {
+      observationText = inc.description;
+    } else {
+      observationText = "Direct execution detected";
+    }
+
+    let remediationText: string;
+    if (inc.remediation !== undefined) {
+      remediationText = inc.remediation;
+    } else if (inc.recommendation !== undefined) {
+      remediationText = inc.recommendation;
+    } else {
+      remediationText = "Halt direct execution and dispatch subagents via invoke_subagent.";
     }
 
     try {
@@ -157,11 +180,8 @@ export class SkillAuditorEngine {
           directive: "HALT_DIRECT_EDITS_AND_DISPATCH_SUBAGENTS",
           instructions:
             "Halt direct file modifications and serial execution immediately. Coordinators are pure dispatchers (SUPERVISOR_ZERO_CODE_EDITS). You must compile the task plan and dispatch ready tasks to Tier 3 Implementers and Validators in parallel via invoke_subagent.",
-          observation: inc.observation ?? inc.description,
-          remediation:
-            inc.remediation ??
-            inc.recommendation ??
-            "Halt direct execution and dispatch subagents via invoke_subagent.",
+          observation: observationText,
+          remediation: remediationText,
         },
         correlationId: inc.id,
         baseDir: repoRoot,
@@ -240,10 +260,19 @@ export class SkillAuditorEngine {
     }
 
     let interjectionsSent = 0;
-    const shouldInterject = options === undefined || options.interject !== false;
+    let shouldInterject = true;
+    if (options !== undefined && options.interject === false) {
+      shouldInterject = false;
+    }
     if (shouldInterject) {
       for (const inc of incidents) {
-        if (inc.category === "FALSE_SERIALIZATION" || inc.category === "ROLE_BOUNDARY_DEVIATION") {
+        let isEligible = false;
+        if (inc.category === "FALSE_SERIALIZATION") {
+          isEligible = true;
+        } else if (inc.category === "ROLE_BOUNDARY_DEVIATION") {
+          isEligible = true;
+        }
+        if (isEligible) {
           const sent = SkillAuditorEngine.dispatchInterjection(repoRoot, inc, capsuleRoots);
           if (sent) interjectionsSent++;
         }

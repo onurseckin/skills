@@ -7,9 +7,7 @@ import {
   integrateMacroMetricsIntoMemory,
   rebalanceTaskQueueWithBrentLimits,
 } from "../../../olt/scripts/src/mind/tasks/smart/planner/rebalance.ts";
-import {
-  MindConcurrentLookaheadPipeline,
-} from "../../../olt/scripts/src/mind/tasks/lookahead/index.ts";
+import { MindConcurrentLookaheadPipeline } from "../../../olt/scripts/src/mind/tasks/lookahead/index.ts";
 import {
   parseNowMs,
   findLiveRunRoots,
@@ -208,7 +206,13 @@ describe("Tasks and Lanes - Exhaustive Unit Tests", () => {
         ]);
       });
 
-      const runWithoutCoordinator = initRun(tmpDir, "run-no-coord", Buffer.from("charter"), "file", true);
+      const runWithoutCoordinator = initRun(
+        tmpDir,
+        "run-no-coord",
+        Buffer.from("charter"),
+        "file",
+        true,
+      );
       roots.push(runWithoutCoordinator);
       transact(runWithoutCoordinator, "owner", "init-tasks", {}, (state) => {
         writeAgentLedger(state, [

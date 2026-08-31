@@ -86,7 +86,9 @@ describe("Mailbox Envelope Cryptographic Serialization & Verification", () => {
       expect(() => canonicalEnvelopeBytes(BigInt(42))).toThrow(TypeError);
       expect(new TextDecoder().decode(canonicalEnvelopeBytes(() => {}))).toBe("null");
       expect(new TextDecoder().decode(canonicalEnvelopeBytes(Symbol("test")))).toBe("null");
-      expect(new TextDecoder().decode(canonicalEnvelopeBytes([() => {}, Symbol("item")]))).toBe("[null,null]");
+      expect(new TextDecoder().decode(canonicalEnvelopeBytes([() => {}, Symbol("item")]))).toBe(
+        "[null,null]",
+      );
       const circularObj: { self?: object } = {};
       circularObj.self = circularObj;
       expect(() => canonicalEnvelopeBytes(circularObj)).toThrow(TypeError);

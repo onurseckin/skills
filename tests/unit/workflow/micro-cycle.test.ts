@@ -492,9 +492,9 @@ describe("CLI commands integration: task:reject and task:review with micro-cycle
       task.original_implementer = "   ";
     });
 
-    expect(() =>
-      recordMicroCycleCritique(port, "T-1", "val-1", "critique", { clock }),
-    ).toThrow(/has a blank original_implementer/);
+    expect(() => recordMicroCycleCritique(port, "T-1", "val-1", "critique", { clock })).toThrow(
+      /has a blank original_implementer/,
+    );
   });
 
   test("formatMicroCycleFeedback includes repair lease token when provided", () => {
@@ -511,4 +511,3 @@ describe("CLI commands integration: task:reject and task:review with micro-cycle
     expect(formatted).toContain("`tok_repair_123`");
   });
 });
-

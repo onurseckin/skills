@@ -1,8 +1,8 @@
-# Mind Continuous Pre-Planning Domain Cluster Master Plan
+# Validation Continuous Pre-Planning Domain Cluster Master Plan
 
-> **Tracking ID:** `fb-cluster-mind-78977369`  
+> **Tracking ID:** `fb-cluster-validation-58629ca0`  
 > **Status:** `PHASE 1 - EXHAUSTIVE ARCHITECTURAL SPECIFICATION & TASK BREAKDOWN`  
-> **Target Subsystems:** `olt/scripts/src/mind/`, `tests/unit/mind/`  
+> **Target Subsystems:** `olt/scripts/src/validation/`, `tests/unit/validation/`  
 > **Author:** Tier 0 Strategic Mind Supervisor & Infinite Product Owner  
 > **Created:** 2026-08-31
 
@@ -10,15 +10,15 @@
 
 ## 1. Executive Summary & The Assembly Pipeline Vision
 
-This Phase 1 blueprint coordinates the implementation of the MIND domain cluster.
+This Phase 1 blueprint coordinates the implementation of the VALIDATION domain cluster.
 It addresses 0 backlog requirement(s) and 1 defect remediation(s) under the zero-idle asynchronous pre-planning pipeline.
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────────────────────┐
-│                    MIND DOMAIN ARCHITECTURAL ASSEMBLY MATRIX                             │
+│                    VALIDATION DOMAIN ARCHITECTURAL ASSEMBLY MATRIX                             │
 ├─────────────────────────────────────────────────────────────────────────────────────────────┤
-│  Cluster ID: cluster-mind-78977369                                                       │
-│  Planned At: 2026-08-31T04:57:02.785Z                                                    │
+│  Cluster ID: cluster-validation-58629ca0                                                 │
+│  Planned At: 2026-08-31T05:09:24.652Z                                                    │
 │  Backlog Count: 0                                                                        │
 │  Defect Count:  1                                                                        │
 └─────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -37,16 +37,16 @@ It addresses 0 backlog requirement(s) and 1 defect remediation(s) under the zero
 
 ## 3. Work Breakdown & Disjoint Task Specifications
 
-### Task 1.1: Defect Remediation: Mind Stagnation & Static Auditor Receipts: Mind Transitions to Unauthorized Idle on Empty Queue Instead of Continuous UX/Code Evolution
+### Task 1.1: Defect Remediation: Skill Auditor Missed Supervisor Direct Code Writes: Post-Hoc Capsule Audit Lacked Live Tool-Call Interception
 
 - **Owner / Tier:** Tier 3 Implementer + Independent Validator
-- **Defect Ref:** `defect-mind-unauthorized-idle-stagnation-and-static-auditor-receipts` (Error Code: `MIND_UNAUTHORIZED_IDLE_STAGNATION`)
-- **Write Scope:** `olt/scripts/src/mind/`
+- **Defect Ref:** `defect-skill-auditor-shallow-surveillance-missed-supervisor-edits` (Error Code: `SKILL_AUDITOR_SHALLOW_SURVEILLANCE`)
+- **Write Scope:** `olt/scripts/src/validation/`
 - **Read-Only Scope:** `olt/scripts/src/`
 - **Acceptance Criteria (Stub Must Fail):**
-  - Remediate: Tier 0 Mind transitioned to idle state upon queue exhaustion instead of maintaining continuous creative evaluation, UX interaction exploration, and forward roadmap synthesis. Mind Auditor emitted static machine telemetry receipts with zero delta instead of authoring cognitive, constructive creative prompts that force Mind to re-ignite ideation and explore unaddressed application flows. User has provided this feedback 21 times.
+  - Remediate: Skill Auditor failed to detect Tier 1 Orchestrator and Tier 2 Coordinator executing direct file writes in supervisor threads. The auditor was inspecting post-hoc capsule events.jsonl sequence hashes rather than actively monitoring live subagent tool invocations in real time, forcing the user to manually intervene and point out the role boundary breach.
   - Zero TypeScript `any`, zero compiler suppressions, zero comments in .ts files.
-  - Command: `bun test tests/unit/mind/` (100% PASS).
+  - Command: `bun test tests/unit/validation/` (100% PASS).
 
 ---
 
@@ -60,6 +60,6 @@ Execution Order: [Task 1.1] ──► [Verification] ──► [Git Staging: git
 
 ## 5. Exhaustive Traceability Matrix
 
-| Defect / Backlog ID                                                    | Resolved By Task | Verification Target |
-| :--------------------------------------------------------------------- | :--------------- | :------------------ |
-| `defect-mind-unauthorized-idle-stagnation-and-static-auditor-receipts` | Task 1.x         | `tests/unit/mind/`  |
+| Defect / Backlog ID                                                 | Resolved By Task | Verification Target      |
+| :------------------------------------------------------------------ | :--------------- | :----------------------- |
+| `defect-skill-auditor-shallow-surveillance-missed-supervisor-edits` | Task 1.x         | `tests/unit/validation/` |

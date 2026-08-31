@@ -106,7 +106,9 @@ describe("policy validator", () => {
     const notArrayHooks = {
       pre_claim: "echo start",
     };
-    expect(validateHooksIntegrity(notArrayHooks)).toEqual(["Hook 'pre_claim' must be an array of strings"]);
+    expect(validateHooksIntegrity(notArrayHooks)).toEqual([
+      "Hook 'pre_claim' must be an array of strings",
+    ]);
 
     const invalidItemHooks = {
       pre_claim: ["valid", "", 123, "   "],
@@ -131,15 +133,16 @@ describe("policy validator", () => {
   });
 
   it("handles non-Error thrown during validatePolicyStructure", () => {
-    const proxyObj = new Proxy({}, {
-      get() {
-        throw "custom string error";
+    const proxyObj = new Proxy(
+      {},
+      {
+        get() {
+          throw "custom string error";
+        },
       },
-    });
+    );
     const stringErrResult = validatePolicyStructure(proxyObj);
     expect(stringErrResult.valid).toBe(false);
     expect(stringErrResult.errors).toEqual(["custom string error"]);
   });
 });
-
-

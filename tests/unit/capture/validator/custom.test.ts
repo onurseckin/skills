@@ -190,11 +190,7 @@ describe("Custom Validators", () => {
     });
 
     it("identifies floating elements by isFloating, role, or selector", () => {
-      const selectors = [
-        "div.popover-card",
-        "span.tooltip-label",
-        "ul.dropdown-menu-list",
-      ];
+      const selectors = ["div.popover-card", "span.tooltip-label", "ul.dropdown-menu-list"];
       for (const sel of selectors) {
         const el: ElementPhysicsSnapshot = {
           selector: sel,

@@ -108,24 +108,30 @@ describe("SecurityAuditLogger", () => {
   it("handles logEvent, alert acknowledgment, and telemetry resets", async () => {
     const logger = createSecurityAuditLogger();
 
-    const event1 = await logger.logEvent({
-      category: "rbac",
-      action: "check_permission",
-      actor: { id: "agent_1" },
-      severity: "info",
-      outcome: "allowed",
-      details: { role: "implementer" },
-    }, 5);
+    const event1 = await logger.logEvent(
+      {
+        category: "rbac",
+        action: "check_permission",
+        actor: { id: "agent_1" },
+        severity: "info",
+        outcome: "allowed",
+        details: { role: "implementer" },
+      },
+      5,
+    );
     expect(event1.outcome).toBe("allowed");
 
-    const event2 = await logger.logEvent({
-      category: "rbac",
-      action: "unauthorized_access",
-      actor: { id: "agent_2" },
-      severity: "critical",
-      outcome: "denied",
-      details: { reason: "Forbidden access" },
-    }, 10);
+    const event2 = await logger.logEvent(
+      {
+        category: "rbac",
+        action: "unauthorized_access",
+        actor: { id: "agent_2" },
+        severity: "critical",
+        outcome: "denied",
+        details: { reason: "Forbidden access" },
+      },
+      10,
+    );
     expect(event2.outcome).toBe("denied");
 
     const unacked = logger.getUnacknowledgedAlerts();
@@ -142,4 +148,3 @@ describe("SecurityAuditLogger", () => {
     expect(logger.queryAuditTrail({}).length).toBe(0);
   });
 });
-

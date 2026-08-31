@@ -130,4 +130,3 @@ export function validatePolicyStructure(raw: unknown): PolicyValidationResult {
     return { valid: false, errors: [msg] };
   }
 }
-

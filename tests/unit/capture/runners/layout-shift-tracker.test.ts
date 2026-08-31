@@ -194,33 +194,123 @@ describe("layout-shift-tracker", () => {
       });
 
       it("returns 0 when all rects have right <= left", () => {
-        const invalidRect: AABB = { x: 10, y: 10, width: 0, left: 10, right: 10, top: 10, bottom: 20, height: 10 };
+        const invalidRect: AABB = {
+          x: 10,
+          y: 10,
+          width: 0,
+          left: 10,
+          right: 10,
+          top: 10,
+          bottom: 20,
+          height: 10,
+        };
         expect(computeRectanglesUnionArea([invalidRect, invalidRect])).toBe(0);
       });
 
       it("computes union of non-overlapping rectangles", () => {
-        const r1: AABB = { x: 0, y: 0, width: 10, height: 10, left: 0, right: 10, top: 0, bottom: 10 };
-        const r2: AABB = { x: 20, y: 20, width: 10, height: 10, left: 20, right: 30, top: 20, bottom: 30 };
+        const r1: AABB = {
+          x: 0,
+          y: 0,
+          width: 10,
+          height: 10,
+          left: 0,
+          right: 10,
+          top: 0,
+          bottom: 10,
+        };
+        const r2: AABB = {
+          x: 20,
+          y: 20,
+          width: 10,
+          height: 10,
+          left: 20,
+          right: 30,
+          top: 20,
+          bottom: 30,
+        };
         expect(computeRectanglesUnionArea([r1, r2])).toBe(200);
       });
 
       it("computes union of overlapping rectangles without double counting", () => {
-        const r1: AABB = { x: 0, y: 0, width: 10, height: 10, left: 0, right: 10, top: 0, bottom: 10 };
-        const r2: AABB = { x: 5, y: 0, width: 10, height: 10, left: 5, right: 15, top: 0, bottom: 10 };
+        const r1: AABB = {
+          x: 0,
+          y: 0,
+          width: 10,
+          height: 10,
+          left: 0,
+          right: 10,
+          top: 0,
+          bottom: 10,
+        };
+        const r2: AABB = {
+          x: 5,
+          y: 0,
+          width: 10,
+          height: 10,
+          left: 5,
+          right: 15,
+          top: 0,
+          bottom: 10,
+        };
         // Union width 15, height 10 = 150
         expect(computeRectanglesUnionArea([r1, r2])).toBe(150);
       });
 
       it("handles nested and multiple disjoint slices and vertical interval merges", () => {
-        const r1: AABB = { x: 0, y: 0, width: 100, height: 100, left: 0, right: 100, top: 0, bottom: 100 };
-        const r2: AABB = { x: 20, y: 20, width: 40, height: 40, left: 20, right: 60, top: 20, bottom: 60 };
-        const r3: AABB = { x: 50, y: 50, width: 100, height: 100, left: 50, right: 150, top: 50, bottom: 150 };
+        const r1: AABB = {
+          x: 0,
+          y: 0,
+          width: 100,
+          height: 100,
+          left: 0,
+          right: 100,
+          top: 0,
+          bottom: 100,
+        };
+        const r2: AABB = {
+          x: 20,
+          y: 20,
+          width: 40,
+          height: 40,
+          left: 20,
+          right: 60,
+          top: 20,
+          bottom: 60,
+        };
+        const r3: AABB = {
+          x: 50,
+          y: 50,
+          width: 100,
+          height: 100,
+          left: 50,
+          right: 150,
+          top: 50,
+          bottom: 150,
+        };
         const area = computeRectanglesUnionArea([r1, r2, r3]);
         expect(area).toBe(17500); // 100*100 + 100*100 - 50*50 = 10000 + 10000 - 2500 = 17500
 
         // Disjoint vertical intervals in the exact same x slice
-        const rTop: AABB = { x: 0, y: 0, width: 100, height: 50, left: 0, right: 100, top: 0, bottom: 50 };
-        const rBottom: AABB = { x: 0, y: 100, width: 100, height: 50, left: 0, right: 100, top: 100, bottom: 150 };
+        const rTop: AABB = {
+          x: 0,
+          y: 0,
+          width: 100,
+          height: 50,
+          left: 0,
+          right: 100,
+          top: 0,
+          bottom: 50,
+        };
+        const rBottom: AABB = {
+          x: 0,
+          y: 100,
+          width: 100,
+          height: 50,
+          left: 0,
+          right: 100,
+          top: 100,
+          bottom: 150,
+        };
         expect(computeRectanglesUnionArea([rTop, rBottom])).toBe(10000);
       });
     });
@@ -228,8 +318,28 @@ describe("layout-shift-tracker", () => {
     describe("calculateImpactFraction", () => {
       it("returns 0 for non-positive viewport or empty pairs", () => {
         expect(calculateImpactFraction([], { width: 1000, height: 1000 })).toBe(0);
-        expect(calculateImpactFraction([{ previousRect: { x: 0, y: 0, width: 10, height: 10 }, currentRect: { x: 0, y: 0, width: 10, height: 10 } }], { width: 0, height: 1000 })).toBe(0);
-        expect(calculateImpactFraction([{ previousRect: { x: 0, y: 0, width: 10, height: 10 }, currentRect: { x: 0, y: 0, width: 10, height: 10 } }], { width: 1000, height: -10 })).toBe(0);
+        expect(
+          calculateImpactFraction(
+            [
+              {
+                previousRect: { x: 0, y: 0, width: 10, height: 10 },
+                currentRect: { x: 0, y: 0, width: 10, height: 10 },
+              },
+            ],
+            { width: 0, height: 1000 },
+          ),
+        ).toBe(0);
+        expect(
+          calculateImpactFraction(
+            [
+              {
+                previousRect: { x: 0, y: 0, width: 10, height: 10 },
+                currentRect: { x: 0, y: 0, width: 10, height: 10 },
+              },
+            ],
+            { width: 1000, height: -10 },
+          ),
+        ).toBe(0);
       });
 
       it("returns 0 when rects are completely out of viewport", () => {
@@ -242,8 +352,26 @@ describe("layout-shift-tracker", () => {
 
       it("calculates accurate impact fraction for valid moving rect", () => {
         const pair = {
-          previousRect: { x: 0, y: 0, width: 1000, height: 200, left: 0, right: 1000, top: 0, bottom: 200 },
-          currentRect: { x: 0, y: 100, width: 1000, height: 200, left: 0, right: 1000, top: 100, bottom: 300 },
+          previousRect: {
+            x: 0,
+            y: 0,
+            width: 1000,
+            height: 200,
+            left: 0,
+            right: 1000,
+            top: 0,
+            bottom: 200,
+          },
+          currentRect: {
+            x: 0,
+            y: 100,
+            width: 1000,
+            height: 200,
+            left: 0,
+            right: 1000,
+            top: 100,
+            bottom: 300,
+          },
         };
         // Union area: 1000 * 300 = 300000 / 1000000 = 0.3
         const impact = calculateImpactFraction([pair], { width: 1000, height: 1000 });
@@ -277,7 +405,10 @@ describe("layout-shift-tracker", () => {
   describe("exclusion", () => {
     describe("identifyRootCausingElements", () => {
       it("returns empty arrays for empty displacements", () => {
-        expect(identifyRootCausingElements([])).toEqual({ rootCauses: [], dependentDisplacements: [] });
+        expect(identifyRootCausingElements([])).toEqual({
+          rootCauses: [],
+          dependentDisplacements: [],
+        });
       });
 
       it("passes excluded items directly into dependentDisplacements", () => {
@@ -345,11 +476,15 @@ describe("layout-shift-tracker", () => {
         const result = identifyRootCausingElements([parent, child]);
         expect(result.rootCauses).toHaveLength(1);
         expect(result.rootCauses[0]?.selector).toBe("#parent-box");
-        expect(result.rootCauses[0]?.rootCauseReason).toContain("Element translated vertically by 100px");
+        expect(result.rootCauses[0]?.rootCauseReason).toContain(
+          "Element translated vertically by 100px",
+        );
 
         expect(result.dependentDisplacements).toHaveLength(1);
         expect(result.dependentDisplacements[0]?.selector).toBe("#child-button");
-        expect(result.dependentDisplacements[0]?.exclusionReason).toBe("nested_child_of_shifting_container");
+        expect(result.dependentDisplacements[0]?.exclusionReason).toBe(
+          "nested_child_of_shifting_container",
+        );
       });
 
       it("formats different root cause reasons based on resized vs horizontal vs vertical vs primary", () => {
@@ -408,8 +543,12 @@ describe("layout-shift-tracker", () => {
         };
 
         const result = identifyRootCausingElements([resized, horizontal, primary]);
-        expect(result.rootCauses[0]?.rootCauseReason).toContain("Element resized (dH: 100px, dW: 50px)");
-        expect(result.rootCauses[1]?.rootCauseReason).toContain("Element translated horizontally by 40px");
+        expect(result.rootCauses[0]?.rootCauseReason).toContain(
+          "Element resized (dH: 100px, dW: 50px)",
+        );
+        expect(result.rootCauses[1]?.rootCauseReason).toContain(
+          "Element translated horizontally by 40px",
+        );
         expect(result.rootCauses[2]?.rootCauseReason).toBe("Primary shifting element");
       });
     });
@@ -438,7 +577,12 @@ describe("layout-shift-tracker", () => {
     it("ignores elements missing from previous snapshot or displacement below subpixel tolerance", () => {
       const el1 = createMockElement("#box", "div", { x: 0, y: 0, width: 100, height: 100 });
       const elNew = createMockElement("#new-elem", "div", { x: 0, y: 0, width: 100, height: 100 });
-      const elTinyMove = createMockElement("#box", "div", { x: 0.1, y: 0.1, width: 100.1, height: 100.1 });
+      const elTinyMove = createMockElement("#box", "div", {
+        x: 0.1,
+        y: 0.1,
+        width: 100.1,
+        height: 100.1,
+      });
 
       const snap1 = createMockSnapshot([el1]);
       const snap2 = createMockSnapshot([elTinyMove, elNew]);
@@ -448,21 +592,50 @@ describe("layout-shift-tracker", () => {
       expect(entry.score).toBe(0);
 
       // Width expanded with 0 translation
-      const elWidthChanged = createMockElement("#box", "div", { x: 0, y: 0, width: 150, height: 100 });
-      const entryWidth = detectLayoutShiftBetweenSnapshots(snap1, createMockSnapshot([elWidthChanged]));
+      const elWidthChanged = createMockElement("#box", "div", {
+        x: 0,
+        y: 0,
+        width: 150,
+        height: 100,
+      });
+      const entryWidth = detectLayoutShiftBetweenSnapshots(
+        snap1,
+        createMockSnapshot([elWidthChanged]),
+      );
       expect(entryWidth.sources).toHaveLength(1);
 
       // Height expanded with 0 translation
-      const elHeightChanged = createMockElement("#box", "div", { x: 0, y: 0, width: 100, height: 150 });
-      const entryHeight = detectLayoutShiftBetweenSnapshots(snap1, createMockSnapshot([elHeightChanged]));
+      const elHeightChanged = createMockElement("#box", "div", {
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 150,
+      });
+      const entryHeight = detectLayoutShiftBetweenSnapshots(
+        snap1,
+        createMockSnapshot([elHeightChanged]),
+      );
       expect(entryHeight.sources).toHaveLength(1);
     });
 
     it("marks fixed/sticky elements as excluded", () => {
-      const el1 = createMockElement("#sticky-header", "header", { x: 0, y: 0, width: 1000, height: 50 }, { position: "sticky" });
-      const el2 = createMockElement("#sticky-header", "header", { x: 0, y: 100, width: 1000, height: 50 }, { position: "sticky" });
+      const el1 = createMockElement(
+        "#sticky-header",
+        "header",
+        { x: 0, y: 0, width: 1000, height: 50 },
+        { position: "sticky" },
+      );
+      const el2 = createMockElement(
+        "#sticky-header",
+        "header",
+        { x: 0, y: 100, width: 1000, height: 50 },
+        { position: "sticky" },
+      );
 
-      const entry = detectLayoutShiftBetweenSnapshots(createMockSnapshot([el1]), createMockSnapshot([el2]));
+      const entry = detectLayoutShiftBetweenSnapshots(
+        createMockSnapshot([el1]),
+        createMockSnapshot([el2]),
+      );
       expect(entry.sources).toHaveLength(1);
       expect(entry.sources[0]?.isExcluded).toBe(true);
       expect(entry.sources[0]?.exclusionReason).toBe("fixed_or_sticky");
@@ -470,10 +643,23 @@ describe("layout-shift-tracker", () => {
     });
 
     it("marks off-screen out of bounds elements as excluded", () => {
-      const el1 = createMockElement("#offscreen", "div", { x: 3000, y: 3000, width: 100, height: 100 });
-      const el2 = createMockElement("#offscreen", "div", { x: 3000, y: 3100, width: 100, height: 100 });
+      const el1 = createMockElement("#offscreen", "div", {
+        x: 3000,
+        y: 3000,
+        width: 100,
+        height: 100,
+      });
+      const el2 = createMockElement("#offscreen", "div", {
+        x: 3000,
+        y: 3100,
+        width: 100,
+        height: 100,
+      });
 
-      const entry = detectLayoutShiftBetweenSnapshots(createMockSnapshot([el1]), createMockSnapshot([el2]));
+      const entry = detectLayoutShiftBetweenSnapshots(
+        createMockSnapshot([el1]),
+        createMockSnapshot([el2]),
+      );
       expect(entry.sources).toHaveLength(1);
       expect(entry.sources[0]?.isExcluded).toBe(true);
       expect(entry.sources[0]?.exclusionReason).toBe("out_of_bounds");
@@ -483,10 +669,14 @@ describe("layout-shift-tracker", () => {
       const el1 = createMockElement("#content", "div", { x: 0, y: 0, width: 500, height: 200 });
       const el2 = createMockElement("#content", "div", { x: 0, y: 200, width: 500, height: 200 });
 
-      const entry = detectLayoutShiftBetweenSnapshots(createMockSnapshot([el1]), createMockSnapshot([el2]), {
-        hadRecentInput: true,
-        ignoreUserInputShifts: true,
-      });
+      const entry = detectLayoutShiftBetweenSnapshots(
+        createMockSnapshot([el1]),
+        createMockSnapshot([el2]),
+        {
+          hadRecentInput: true,
+          ignoreUserInputShifts: true,
+        },
+      );
 
       expect(entry.sources).toHaveLength(1);
       expect(entry.sources[0]?.isExcluded).toBe(true);
@@ -506,7 +696,10 @@ describe("layout-shift-tracker", () => {
         const e2 = createSampleShiftEntry("s2", 1500, 0.05);
         const e3 = createSampleShiftEntry("s3", 2000, 0.05);
 
-        const windows = groupSessionWindows([e1, e2, e3], { sessionMaxGapMs: 1000, sessionMaxDurationMs: 5000 });
+        const windows = groupSessionWindows([e1, e2, e3], {
+          sessionMaxGapMs: 1000,
+          sessionMaxDurationMs: 5000,
+        });
         expect(windows).toHaveLength(1);
         expect(windows[0]?.windowScore).toBeCloseTo(0.15, 5);
         expect(windows[0]?.isMaxWindow).toBe(true);
@@ -516,7 +709,10 @@ describe("layout-shift-tracker", () => {
         const e1 = createSampleShiftEntry("s1", 1000, 0.05);
         const e2 = createSampleShiftEntry("s2", 3000, 0.08); // gap is 2000ms > 1000ms
 
-        const windows = groupSessionWindows([e1, e2], { sessionMaxGapMs: 1000, sessionMaxDurationMs: 5000 });
+        const windows = groupSessionWindows([e1, e2], {
+          sessionMaxGapMs: 1000,
+          sessionMaxDurationMs: 5000,
+        });
         expect(windows).toHaveLength(2);
         expect(windows[0]?.windowScore).toBeCloseTo(0.05, 5);
         expect(windows[0]?.isMaxWindow).toBe(false);
@@ -531,7 +727,10 @@ describe("layout-shift-tracker", () => {
         const e4 = createSampleShiftEntry("s4", 3400, 0.05);
         // Total duration from 1000 to 3400 is 2400 > maxDuration 2000
 
-        const windows = groupSessionWindows([e1, e2, e3, e4], { sessionMaxGapMs: 1000, sessionMaxDurationMs: 2000 });
+        const windows = groupSessionWindows([e1, e2, e3, e4], {
+          sessionMaxGapMs: 1000,
+          sessionMaxDurationMs: 2000,
+        });
         expect(windows.length).toBeGreaterThan(1);
       });
     });

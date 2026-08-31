@@ -91,55 +91,69 @@ describe("Epistemic State Replayer", () => {
 
   test("handles grade:transition, entropy:shifted, default contradiction increment, and ignores unknown target ids", () => {
     const replayer = new EpistemicStateReplayer();
-    replayer.applyEvent(createMockStreamEvent({
-      id: "e1",
-      type: "claim:registered",
-      confidence: 0.5,
-      payload: { recordId: "c1" },
-    }));
+    replayer.applyEvent(
+      createMockStreamEvent({
+        id: "e1",
+        type: "claim:registered",
+        confidence: 0.5,
+        payload: { recordId: "c1" },
+      }),
+    );
 
     // grade:transition
-    replayer.applyEvent(createMockStreamEvent({
-      id: "e2",
-      type: "grade:transition",
-      confidence: 0.9,
-      grade: "VERY_HIGH",
-      payload: { recordId: "c1" },
-    }));
+    replayer.applyEvent(
+      createMockStreamEvent({
+        id: "e2",
+        type: "grade:transition",
+        confidence: 0.9,
+        grade: "VERY_HIGH",
+        payload: { recordId: "c1" },
+      }),
+    );
     expect(replayer.getState().records.get("c1")?.grade).toBe("VERY_HIGH");
 
     // contradiction:detected with default count
-    replayer.applyEvent(createMockStreamEvent({
-      id: "e3",
-      type: "contradiction:detected",
-      payload: { recordId: "c1" },
-    }));
+    replayer.applyEvent(
+      createMockStreamEvent({
+        id: "e3",
+        type: "contradiction:detected",
+        payload: { recordId: "c1" },
+      }),
+    );
     expect(replayer.getState().records.get("c1")?.contradictionCount).toBe(1);
 
     // entropy:shifted
-    replayer.applyEvent(createMockStreamEvent({
-      id: "e4",
-      type: "entropy:shifted",
-      payload: { recordId: "c1", entropy: 0.45 },
-    }));
+    replayer.applyEvent(
+      createMockStreamEvent({
+        id: "e4",
+        type: "entropy:shifted",
+        payload: { recordId: "c1", entropy: 0.45 },
+      }),
+    );
     expect(replayer.getState().records.get("c1")?.entropy).toBe(0.45);
 
     // events on non-existent record (should not crash)
-    replayer.applyEvent(createMockStreamEvent({
-      id: "e-unknown",
-      type: "score:recalculated",
-      payload: { recordId: "c-unknown" },
-    }));
-    replayer.applyEvent(createMockStreamEvent({
-      id: "e-unknown-contra",
-      type: "contradiction:detected",
-      payload: { recordId: "c-unknown" },
-    }));
-    replayer.applyEvent(createMockStreamEvent({
-      id: "e-unknown-entropy",
-      type: "entropy:shifted",
-      payload: { recordId: "c-unknown", entropy: 0.1 },
-    }));
+    replayer.applyEvent(
+      createMockStreamEvent({
+        id: "e-unknown",
+        type: "score:recalculated",
+        payload: { recordId: "c-unknown" },
+      }),
+    );
+    replayer.applyEvent(
+      createMockStreamEvent({
+        id: "e-unknown-contra",
+        type: "contradiction:detected",
+        payload: { recordId: "c-unknown" },
+      }),
+    );
+    replayer.applyEvent(
+      createMockStreamEvent({
+        id: "e-unknown-entropy",
+        type: "entropy:shifted",
+        payload: { recordId: "c-unknown", entropy: 0.1 },
+      }),
+    );
   });
 
   test("performs point-in-time state reconstruction (time-travel replay)", () => {

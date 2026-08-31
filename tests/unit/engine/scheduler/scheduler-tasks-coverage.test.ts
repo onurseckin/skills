@@ -126,10 +126,16 @@ describe("engine/scheduler/core/tasks/tasks-coverage.ts", () => {
     expect(result.invalidGates.some((g) => g.includes("invalid identifier"))).toBe(true);
     expect(result.invalidGates.some((g) => g.includes("empty or non-blank command"))).toBe(true);
     expect(result.invalidGates.some((g) => g.includes("weak non-substantive command"))).toBe(true);
-    expect(result.invalidGates.some((g) => g.includes("not a normalized relative path"))).toBe(true);
+    expect(result.invalidGates.some((g) => g.includes("not a normalized relative path"))).toBe(
+      true,
+    );
     expect(result.invalidGates.some((g) => g.includes("invalid scope"))).toBe(true);
     expect(result.invalidGates.some((g) => g.includes("empty requirement_ids"))).toBe(true);
-    expect(result.invalidGates.some((g) => g.includes("Run gate 'gate-run-with-reqs' must not have requirement_ids"))).toBe(true);
+    expect(
+      result.invalidGates.some((g) =>
+        g.includes("Run gate 'gate-run-with-reqs' must not have requirement_ids"),
+      ),
+    ).toBe(true);
   });
 
   it("detects tasks without gate coverage", () => {

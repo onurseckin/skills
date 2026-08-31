@@ -9,16 +9,12 @@ import {
   isCaptureMode,
   CAPTURE_MODES,
 } from "../../../../olt/scripts/src/engine/store/integrity/assurance.ts";
-import {
-  verifyIntegrity,
-} from "../../../../olt/scripts/src/engine/store/integrity/integrity.ts";
+import { verifyIntegrity } from "../../../../olt/scripts/src/engine/store/integrity/integrity.ts";
 import {
   issue,
   throwIntegrity,
 } from "../../../../olt/scripts/src/engine/store/integrity/issues.ts";
-import {
-  verifyCapsuleLayout,
-} from "../../../../olt/scripts/src/engine/store/integrity/layout-integrity.ts";
+import { verifyCapsuleLayout } from "../../../../olt/scripts/src/engine/store/integrity/layout-integrity.ts";
 import {
   diffProjection,
   applyProjectionPatch,
@@ -35,33 +31,17 @@ import {
   resolveCapsuleDefect,
   compactCapsuleDefects,
 } from "../../../../olt/scripts/src/engine/store/recovery/defect-store.ts";
-import {
-  quarantineAndTruncateTail,
-} from "../../../../olt/scripts/src/engine/store/recovery/forensic-tail.ts";
-import {
-  recoverProjection,
-} from "../../../../olt/scripts/src/engine/store/recovery/recovery.ts";
+import { quarantineAndTruncateTail } from "../../../../olt/scripts/src/engine/store/recovery/forensic-tail.ts";
+import { recoverProjection } from "../../../../olt/scripts/src/engine/store/recovery/recovery.ts";
 import {
   writeTrace,
   appendTraceStep,
 } from "../../../../olt/scripts/src/engine/store/recovery/trace.ts";
-import {
-  writeBlob,
-  listBlobs,
-} from "../../../../olt/scripts/src/engine/store/layout/blobs.ts";
-import {
-  checkManifest,
-} from "../../../../olt/scripts/src/engine/store/layout/manifest.ts";
-import {
-  text,
-  isRecord,
-} from "../../../../olt/scripts/src/engine/store/layout/layout-json.ts";
-import {
-  commandLayout,
-} from "../../../../olt/scripts/src/engine/store/layout/layout-commands.ts";
-import {
-  packetLayout,
-} from "../../../../olt/scripts/src/engine/store/layout/layout-packets.ts";
+import { writeBlob, listBlobs } from "../../../../olt/scripts/src/engine/store/layout/blobs.ts";
+import { checkManifest } from "../../../../olt/scripts/src/engine/store/layout/manifest.ts";
+import { text, isRecord } from "../../../../olt/scripts/src/engine/store/layout/layout-json.ts";
+import { commandLayout } from "../../../../olt/scripts/src/engine/store/layout/layout-commands.ts";
+import { packetLayout } from "../../../../olt/scripts/src/engine/store/layout/layout-packets.ts";
 import {
   renderLayoutReadme,
   initialCapsuleDirectories,

@@ -20,12 +20,8 @@ import {
   validateProjectionPatch,
   exactInteger,
 } from "../../../../olt/scripts/src/engine/store/events/event-validation.ts";
-import {
-  validateEventChain,
-} from "../../../../olt/scripts/src/engine/store/events/event-stream.ts";
-import {
-  streamEventLines,
-} from "../../../../olt/scripts/src/engine/store/events/event-lines.ts";
+import { validateEventChain } from "../../../../olt/scripts/src/engine/store/events/event-stream.ts";
+import { streamEventLines } from "../../../../olt/scripts/src/engine/store/events/event-lines.ts";
 import { canonicalJsonBytes, sha256Bytes } from "../../../../olt/scripts/src/core/json.ts";
 
 function makeTmpDir(prefix: string): string {
@@ -68,13 +64,7 @@ describe("engine/store/events/transaction.ts", () => {
     const tmp = makeTmpDir("transaction-test-");
     try {
       mkdirSync(join(tmp, ".olt"), { recursive: true });
-      const runRoot = initRun(
-        tmp,
-        "test-run-tx",
-        new TextEncoder().encode("prompt"),
-        "file",
-        true,
-      );
+      const runRoot = initRun(tmp, "test-run-tx", new TextEncoder().encode("prompt"), "file", true);
       const loaded = loadRun(runRoot, false);
 
       const nextState = transact(
@@ -113,15 +103,9 @@ describe("engine/store/events/transaction.ts", () => {
 
       // Mutating reserved keys throws
       expect(() =>
-        transact(
-          runRoot,
-          "worker",
-          "invalid_mutate",
-          {},
-          (state) => {
-            (state as any).revision = 999;
-          },
-        ),
+        transact(runRoot, "worker", "invalid_mutate", {}, (state) => {
+          (state as any).revision = 999;
+        }),
       ).toThrow(HarnessError);
     } finally {
       rmSync(tmp, { recursive: true, force: true });

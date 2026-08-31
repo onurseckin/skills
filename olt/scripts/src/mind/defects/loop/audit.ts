@@ -63,7 +63,10 @@ export function auditDefectLog(
     } else {
       if (existing.status !== "resolved" && b.status === "resolved") {
         defectMap.set(b.id, b);
-      } else if (b.count && (!existing.count || b.count > existing.count)) {
+      } else if (
+        typeof b.count === "number" &&
+        (existing.count === undefined ? true : b.count > existing.count)
+      ) {
         defectMap.set(b.id, { ...existing, count: b.count, last_seen_at: b.last_seen_at });
       }
     }
@@ -86,16 +89,20 @@ export function auditDefectLog(
   const bySeverity: Record<string, number> = {};
 
   for (const b of uniqueDefects) {
-    const status = (b.status || "open").toLowerCase().trim();
-    if (status === "resolved" || status === "completed") resolvedCount += 1;
-    else if (status === "wontfix" || status === "wont_fix") wontfixCount += 1;
+    const status = (b.status !== undefined && b.status !== "" ? b.status : "open")
+      .toLowerCase()
+      .trim();
+    if (["resolved", "completed"].includes(status)) resolvedCount += 1;
+    else if (["wontfix", "wont_fix"].includes(status)) wontfixCount += 1;
     else openCount += 1;
 
     const cat: DefectCategory = categorizeDefect(b);
-    byCategory[cat] = (byCategory[cat] ?? 0) + 1;
+    const prevCatCount = byCategory[cat];
+    byCategory[cat] = (prevCatCount !== undefined ? prevCatCount : 0) + 1;
 
-    const sev = b.severity || "warning";
-    bySeverity[sev] = (bySeverity[sev] ?? 0) + 1;
+    const sev = b.severity !== undefined && b.severity !== "" ? b.severity : "warning";
+    const prevSevCount = bySeverity[sev];
+    bySeverity[sev] = (prevSevCount !== undefined ? prevSevCount : 0) + 1;
   }
 
   return {
@@ -115,7 +122,12 @@ export function formatDefectAuditBrief(
   report: DefectAuditReport,
   options?: { readonly maxLines?: number | undefined } | number,
 ): string {
-  const maxLines = typeof options === "number" ? options : (options?.maxLines ?? 30);
+  const maxLines =
+    typeof options === "number"
+      ? options
+      : options !== undefined && options.maxLines !== undefined
+        ? options.maxLines
+        : 30;
   const lines: string[] = [
     "### Defect Audit & Remediation Brief",
     `- **Total Defects**: \`${report.total_defects}\` (Open: \`${report.open_count}\`, Resolved: \`${report.resolved_count}\`, Wontfix: \`${report.wontfix_count}\`)`,
@@ -130,9 +142,8 @@ export function formatDefectAuditBrief(
     for (const b of report.defects) {
       const statusIcon =
         b.status === "resolved" ? "✅ resolved" : b.status === "open" ? "⚠️ open" : "⏹ wontfix";
-      lines.push(
-        `- \`${b.id}\` [${statusIcon}] (${b.category}/${b.severity}): ${b.observation || b.type}`,
-      );
+      const obsText = b.observation !== undefined && b.observation !== "" ? b.observation : b.type;
+      lines.push(`- \`${b.id}\` [${statusIcon}] (${b.category}/${b.severity}): ${obsText}`);
     }
   }
 
@@ -153,21 +164,40 @@ export function logBoundaryViolationDefect(params: {
   readonly agent_id?: string | undefined;
   readonly timestamp?: string | undefined;
 }): DefectEntry {
-  if (!params.observation || !params.observation.trim()) {
+  if (typeof params.observation !== "string") {
     throw new HarnessError(
       "INVALID_ARGUMENT",
       "Boundary violation defect requires non-empty observation",
     );
   }
-  if (!params.violation_type || !params.violation_type.trim()) {
+  if (!params.observation.trim()) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "Boundary violation defect requires non-empty observation",
+    );
+  }
+  if (typeof params.violation_type !== "string") {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "Boundary violation defect requires non-empty violation_type",
+    );
+  }
+  if (!params.violation_type.trim()) {
     throw new HarnessError(
       "INVALID_ARGUMENT",
       "Boundary violation defect requires non-empty violation_type",
     );
   }
 
-  const timestamp = params.timestamp?.trim() || new Date().toISOString();
+  const timestamp =
+    params.timestamp !== undefined && params.timestamp.trim() !== ""
+      ? params.timestamp.trim()
+      : new Date().toISOString();
   const id = `defect-boundary-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const remediation =
+    params.remediation !== undefined && params.remediation !== ""
+      ? params.remediation
+      : "Constrain agent execution to declared boundary role rules";
 
   return {
     id,
@@ -176,7 +206,7 @@ export function logBoundaryViolationDefect(params: {
     severity: "critical",
     status: "open",
     observation: params.observation,
-    remediation: params.remediation || "Constrain agent execution to declared boundary role rules",
+    remediation,
     agent_id: params.agent_id,
     timestamp,
     first_seen_at: timestamp,

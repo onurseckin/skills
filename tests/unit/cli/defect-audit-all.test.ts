@@ -55,18 +55,33 @@ describe("Defect Audit APCA & Formatting", () => {
     expect(c2).toBeGreaterThan(60);
 
     // Same color (very low contrast < 0.1)
-    const c3 = calculateApcaLightnessContrast({ r: 100, g: 100, b: 100 }, { r: 100, g: 100, b: 100 });
+    const c3 = calculateApcaLightnessContrast(
+      { r: 100, g: 100, b: 100 },
+      { r: 100, g: 100, b: 100 },
+    );
     expect(c3).toBe(0);
 
     // Using defect-audit/apca.ts version as well
     const c4 = calculateApcaLightnessContrast2({ r: 255, g: 255, b: 255 }, { r: 0, g: 0, b: 0 });
     expect(c4).toBeGreaterThan(60);
-    const c5 = calculateApcaLightnessContrast2({ r: 100, g: 100, b: 100 }, { r: 100, g: 100, b: 100 });
+    const c5 = calculateApcaLightnessContrast2(
+      { r: 100, g: 100, b: 100 },
+      { r: 100, g: 100, b: 100 },
+    );
     expect(c5).toBe(0);
   });
 
   test("getApcaBadgeInfo and renderApcaContrastBadge cover all palettes and fallback", () => {
-    const statuses = ["critical", "warning", "open", "admitted", "resolved", "declined", "ignored", "unknown_custom"];
+    const statuses = [
+      "critical",
+      "warning",
+      "open",
+      "admitted",
+      "resolved",
+      "declined",
+      "ignored",
+      "unknown_custom",
+    ];
     for (const st of statuses) {
       const info = getApcaBadgeInfo(st);
       expect(info.label).toBe(st.toLowerCase());
@@ -195,7 +210,10 @@ describe("Defect Scanner & Discovery", () => {
   let testDir: string;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `defect-audit-scan-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    testDir = join(
+      tmpdir(),
+      `defect-audit-scan-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
     mkdirSync(testDir, { recursive: true });
     writeFileSync(join(testDir, "package.json"), "{}", "utf-8");
   });
@@ -209,7 +227,10 @@ describe("Defect Scanner & Discovery", () => {
   test("discoverDefectFiles finds root, subdirectory, and explicit files", () => {
     const cap1 = join(testDir, "run-1");
     const cap2 = join(testDir, "run-2");
-    const outsideDir = join(tmpdir(), `outside-run-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    const outsideDir = join(
+      tmpdir(),
+      `outside-run-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
     mkdirSync(cap1, { recursive: true });
     mkdirSync(cap2, { recursive: true });
     mkdirSync(outsideDir, { recursive: true });
@@ -252,8 +273,12 @@ describe("Defect Scanner & Discovery", () => {
 
   test("parseDefectsFromFile handles missing files, invalid JSON, and state.json candidates", () => {
     // Non-existent file
-    expect(parseDefectsFromFile({ capsuleName: "c1", filePath: join(testDir, "none.jsonl") }, testDir)).toEqual([]);
-    expect(parseDefectsFromFile2({ capsuleName: "c1", filePath: join(testDir, "none.jsonl") }, testDir)).toEqual([]);
+    expect(
+      parseDefectsFromFile({ capsuleName: "c1", filePath: join(testDir, "none.jsonl") }, testDir),
+    ).toEqual([]);
+    expect(
+      parseDefectsFromFile2({ capsuleName: "c1", filePath: join(testDir, "none.jsonl") }, testDir),
+    ).toEqual([]);
 
     // Directory path causing readFileSync to throw
     expect(parseDefectsFromFile({ capsuleName: "c1", filePath: testDir }, testDir)).toEqual([]);
@@ -311,7 +336,10 @@ describe("Defect Scanner & Discovery", () => {
     ].join("\n");
     writeFileSync(defectsFile, lines, "utf-8");
 
-    const parsed = parseDefectsFromFile({ capsuleName: "cap-test", filePath: defectsFile }, testDir);
+    const parsed = parseDefectsFromFile(
+      { capsuleName: "cap-test", filePath: defectsFile },
+      testDir,
+    );
     expect(parsed).toHaveLength(4);
 
     const d1 = parsed.find((d) => d.id === "d-resolved")!;
@@ -331,7 +359,10 @@ describe("Defect Scanner & Discovery", () => {
     expect(d4.status).toBe("ignored");
 
     // Also run through discovery.ts version
-    const parsed2 = parseDefectsFromFile2({ capsuleName: "cap-test", filePath: defectsFile }, testDir);
+    const parsed2 = parseDefectsFromFile2(
+      { capsuleName: "cap-test", filePath: defectsFile },
+      testDir,
+    );
     expect(parsed2).toHaveLength(4);
   });
 });

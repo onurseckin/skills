@@ -79,8 +79,12 @@ describe("SafeLock Advisory File Locking Engine", () => {
       expect(parseLockPayload("invalid json")).toBeNull();
       expect(parseLockPayload("{ invalid json syntax }")).toBeNull();
       expect(parseLockPayload(JSON.stringify({ pid: "not-a-number" }))).toBeNull();
-      expect(parseLockPayload(JSON.stringify({ pid: 1.5, holder: "a", created_at: "now" }))).toBeNull();
-      expect(parseLockPayload(JSON.stringify({ pid: 1, holder: 123, created_at: "now" }))).toBeNull();
+      expect(
+        parseLockPayload(JSON.stringify({ pid: 1.5, holder: "a", created_at: "now" })),
+      ).toBeNull();
+      expect(
+        parseLockPayload(JSON.stringify({ pid: 1, holder: 123, created_at: "now" })),
+      ).toBeNull();
       expect(parseLockPayload(JSON.stringify({ pid: 1, holder: "a", created_at: 123 }))).toBeNull();
     });
   });
@@ -129,9 +133,15 @@ describe("SafeLock Advisory File Locking Engine", () => {
       expect(() => acquireMailboxLock(123 as unknown as string, "agent-1")).toThrow(HarnessError);
       expect(() => acquireMailboxLock(validPath, "")).toThrow(HarnessError);
       expect(() => acquireMailboxLock(validPath, null as unknown as string)).toThrow(HarnessError);
-      expect(() => acquireMailboxLock(validPath, "agent-1", { timeoutMs: -1 })).toThrow(HarnessError);
-      expect(() => acquireMailboxLock(validPath, "agent-1", { timeoutMs: Infinity })).toThrow(HarnessError);
-      expect(() => acquireMailboxLock(validPath, "agent-1", { staleThresholdMs: Number.NaN })).toThrow(HarnessError);
+      expect(() => acquireMailboxLock(validPath, "agent-1", { timeoutMs: -1 })).toThrow(
+        HarnessError,
+      );
+      expect(() => acquireMailboxLock(validPath, "agent-1", { timeoutMs: Infinity })).toThrow(
+        HarnessError,
+      );
+      expect(() =>
+        acquireMailboxLock(validPath, "agent-1", { staleThresholdMs: Number.NaN }),
+      ).toThrow(HarnessError);
       expect(() => acquireMailboxLock(validPath, "agent-1", { retryMs: -5 })).toThrow(HarnessError);
     });
 
@@ -148,7 +158,12 @@ describe("SafeLock Advisory File Locking Engine", () => {
       const fd = openSync(filePath, "w");
       closeSync(fd);
       expect(() =>
-        releaseMailboxLock({ acquired: true, lockFd: fd, lockPath: filePath, holderPid: process.pid }),
+        releaseMailboxLock({
+          acquired: true,
+          lockFd: fd,
+          lockPath: filePath,
+          holderPid: process.pid,
+        }),
       ).toThrow();
     });
   });
@@ -251,12 +266,10 @@ describe("SafeLock Advisory File Locking Engine", () => {
       const blocker = acquireMailboxLock(lockPath, "async-blocker");
       try {
         await expect(
-          withExclusiveLockAsync(
-            lockPath,
-            "async-waiter",
-            async () => "never",
-            { timeoutMs: 30, retryMs: 10 },
-          ),
+          withExclusiveLockAsync(lockPath, "async-waiter", async () => "never", {
+            timeoutMs: 30,
+            retryMs: 10,
+          }),
         ).rejects.toThrow(HarnessError);
       } finally {
         releaseMailboxLock(blocker);

@@ -468,7 +468,11 @@ describe("Mechanical Validators", () => {
       };
       const defPass = validateSidebarLayout(
         [elProfileValid],
-        { enabled: true, userProfilePosition: "bottom-left", selectors: { userProfile: "div.user-profile" } },
+        {
+          enabled: true,
+          userProfilePosition: "bottom-left",
+          selectors: { userProfile: "div.user-profile" },
+        },
         { width: 1280, height: 800 },
       );
       expect(defPass.length).toBe(0);

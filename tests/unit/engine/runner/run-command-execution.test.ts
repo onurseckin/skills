@@ -17,7 +17,11 @@ import { resolveScratchDir } from "../../../../olt/scripts/src/core/shared/paths
 import { createAgentMetadata } from "../../../../olt/scripts/src/runtime/metadata.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import type { InternalCommandRunner } from "../../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
-import type { CommandOptions, CommandResult, PreparedCommand } from "../../../../olt/scripts/src/engine/runner/types/types.ts";
+import type {
+  CommandOptions,
+  CommandResult,
+  PreparedCommand,
+} from "../../../../olt/scripts/src/engine/runner/types/types.ts";
 import type { Stats } from "node:fs";
 
 describe("engine/runner/models/execution/run-command.ts & run-command-lock.ts", () => {
@@ -52,11 +56,14 @@ describe("engine/runner/models/execution/run-command.ts & run-command-lock.ts", 
       expect(readOwnDataString({ code: 123 }, "code")).toBeNull();
       expect(readOwnDataString({ code: "ENOENT" }, "code")).toBe("ENOENT");
 
-      const throwingProxy = new Proxy({}, {
-        getOwnPropertyDescriptor() {
-          throw new Error("Proxy descriptor failure");
+      const throwingProxy = new Proxy(
+        {},
+        {
+          getOwnPropertyDescriptor() {
+            throw new Error("Proxy descriptor failure");
+          },
         },
-      });
+      );
       expect(readOwnDataString(throwingProxy, "code")).toBeNull();
 
       const enoentErr = new Error("File not found");
@@ -110,7 +117,10 @@ describe("engine/runner/models/execution/run-command.ts & run-command-lock.ts", 
         write_scope: ["."],
         can_execute_shell: canExecuteShell,
       });
-      writeFileSync(join(runRoot, "runtime", `agent-${agentId}.json`), JSON.stringify(meta, null, 2));
+      writeFileSync(
+        join(runRoot, "runtime", `agent-${agentId}.json`),
+        JSON.stringify(meta, null, 2),
+      );
     }
 
     it("throws error if agent metadata is not found", async () => {
@@ -505,13 +515,14 @@ describe("engine/runner/models/execution/run-command.ts & run-command-lock.ts", 
 
     it("throws when repository root is not a real directory", () => {
       restoreDeps = setExecutionLockDependenciesForTesting({
-        lstat: () => ({
-          isDirectory: () => false,
-          isFile: () => true,
-          isSymbolicLink: () => false,
-          dev: 1,
-          ino: 1,
-        } as unknown as Stats),
+        lstat: () =>
+          ({
+            isDirectory: () => false,
+            isFile: () => true,
+            isSymbolicLink: () => false,
+            dev: 1,
+            ino: 1,
+          }) as unknown as Stats,
       });
 
       expect(() => acquireMutexLock(tempDir, ["bun", "test"])).toThrow(HarnessError);
@@ -519,13 +530,14 @@ describe("engine/runner/models/execution/run-command.ts & run-command-lock.ts", 
 
     it("throws when opened repository root fstat reports non-directory", () => {
       restoreDeps = setExecutionLockDependenciesForTesting({
-        fstat: () => ({
-          isDirectory: () => false,
-          isFile: () => true,
-          isSymbolicLink: () => false,
-          dev: 1,
-          ino: 1,
-        } as unknown as Stats),
+        fstat: () =>
+          ({
+            isDirectory: () => false,
+            isFile: () => true,
+            isSymbolicLink: () => false,
+            dev: 1,
+            ino: 1,
+          }) as unknown as Stats,
       });
 
       expect(() => acquireMutexLock(tempDir, ["bun", "test"])).toThrow(HarnessError);
@@ -562,13 +574,14 @@ describe("engine/runner/models/execution/run-command.ts & run-command-lock.ts", 
             ino: lstatCount === 2 ? 9999 : 1,
           } as unknown as Stats;
         },
-        fstat: () => ({
-          isDirectory: () => true,
-          isFile: () => false,
-          isSymbolicLink: () => false,
-          dev: 1,
-          ino: 1,
-        } as unknown as Stats),
+        fstat: () =>
+          ({
+            isDirectory: () => true,
+            isFile: () => false,
+            isSymbolicLink: () => false,
+            dev: 1,
+            ino: 1,
+          }) as unknown as Stats,
       });
 
       expect(() => acquireMutexLock(tempDir, ["bun", "test"])).toThrow(HarnessError);

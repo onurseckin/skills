@@ -15,8 +15,10 @@ export class AuditorCursorStore {
   }
 
   private static parseCursorRecord(value: unknown): AuditorCursor | null {
-    if (!value || typeof value !== "object") return null;
-    if (!("lastInspectedTimestamp" in value) || !("lastInspectedEventIndex" in value)) return null;
+    if (!value) return null;
+    if (typeof value !== "object") return null;
+    if (!("lastInspectedTimestamp" in value)) return null;
+    if (!("lastInspectedEventIndex" in value)) return null;
     const rec = value as Record<string, unknown>;
     const rawTs = rec["lastInspectedTimestamp"];
     const lastTs =

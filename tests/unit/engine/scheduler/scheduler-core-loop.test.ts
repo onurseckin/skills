@@ -43,10 +43,7 @@ describe("engine/scheduler/core/loop.ts", () => {
 
       const stateUncovered = {
         requirements: {
-          requirements: [
-            { id: "req-direct-1" },
-            { id: "req-direct-2" },
-          ],
+          requirements: [{ id: "req-direct-1" }, { id: "req-direct-2" }],
         },
         tasks: {
           t1: { id: "t1", status: "ready", requirement_ids: ["req-direct-1"] },
@@ -58,7 +55,9 @@ describe("engine/scheduler/core/loop.ts", () => {
       expect(resultDirect.totalRequirements).toBe(2);
       expect(resultDirect.unfulfilledRequirementsCount).toBe(1);
       expect(resultDirect.needsReplanning).toBe(true);
-      expect(resultDirect.suggestedEnhancements).toContain("Requirement 'req-direct-2' has no assigned tasks.");
+      expect(resultDirect.suggestedEnhancements).toContain(
+        "Requirement 'req-direct-2' has no assigned tasks.",
+      );
     });
 
     it("identifies tasks in changes_requested or stale status needing repair/replan", () => {
@@ -101,7 +100,9 @@ describe("engine/scheduler/core/loop.ts", () => {
       const result = probePlanEnhancementNeeds(state);
       expect(result.passed).toBe(false);
       expect(result.pendingCandidateCount).toBe(2);
-      expect(result.suggestedEnhancements).toContain("2 proposed mind candidate(s) pending admission.");
+      expect(result.suggestedEnhancements).toContain(
+        "2 proposed mind candidate(s) pending admission.",
+      );
     });
   });
 
@@ -282,7 +283,11 @@ describe("engine/scheduler/core/loop.ts", () => {
 
       const resultError = probeRoleBoundaryAdherence(throwingState, "");
       expect(resultError.passed).toBe(false);
-      expect(resultError.tierConfinementViolations.some((v) => v.includes("behavioral_evidence_unavailable"))).toBe(true);
+      expect(
+        resultError.tierConfinementViolations.some((v) =>
+          v.includes("behavioral_evidence_unavailable"),
+        ),
+      ).toBe(true);
     });
   });
 });

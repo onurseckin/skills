@@ -49,9 +49,7 @@ interface FlockBindings {
   handle: unknown;
 }
 
-export function loadBindings(
-  candidates: readonly string[] = libraryCandidates(),
-): FlockBindings {
+export function loadBindings(candidates: readonly string[] = libraryCandidates()): FlockBindings {
   const errnoName = process.platform === "darwin" ? "__error" : "__errno_location";
   let lastError: unknown;
   for (const path of candidates) {
@@ -107,4 +105,3 @@ export function releaseFlock(descriptor: number): void {
     throw new HarnessError("INVALID_STATE", `flock release failed with errno ${errno}`);
   }
 }
-

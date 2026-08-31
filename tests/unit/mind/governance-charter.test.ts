@@ -194,7 +194,28 @@ charter:
     expect(governanceBarrel.DEFAULT_MIND_BUDGET).toBe(DEFAULT_MIND_BUDGET);
     expect(governanceBarrel.DEFAULT_PROHIBITIONS).toBe(DEFAULT_PROHIBITIONS);
     expect(governanceBarrel.DEFECT_REF).toBe(DEFECT_REF);
+    expect(governanceBarrel.discoverAndCalibrateRepoPolicy).toBeDefined();
+    expect(governanceBarrel.auditRepoGovernanceCoverage).toBeDefined();
+    expect(governanceBarrel.calibrateRepoGovernance).toBeDefined();
+    expect(governanceBarrel.auditGovernanceReadiness).toBeDefined();
     expect(mindBarrel.governance).toBeDefined();
     expect(mindBarrel.charter).toBeDefined();
+  });
+
+  test("discovers toolchain and audits repo governance coverage in scratch repository", () => {
+    const scratch = scratchRoot(import.meta.path, "governance-discovery-test");
+    mkdirSync(join(scratch, ".olt"), { recursive: true });
+    writeFileSync(
+      join(scratch, "package.json"),
+      JSON.stringify({ name: "test-repo", scripts: { test: "bun test" } }),
+    );
+
+    const discovery = governanceBarrel.discoverAndCalibrateRepoPolicy(scratch);
+    expect(discovery.repoRoot).toBe(scratch);
+    expect(discovery.calibratedPolicy).toBeDefined();
+
+    const coverage = governanceBarrel.auditRepoGovernanceCoverage(scratch);
+    expect(coverage.repoRoot).toBe(scratch);
+    expect(coverage.policyPresent).toBe(true);
   });
 });

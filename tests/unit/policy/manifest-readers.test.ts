@@ -31,7 +31,6 @@ describe("manifest-readers", () => {
       expect(py.usesPoetry).toBe(false);
       expect(py.usesPipenv).toBe(false);
 
-
       const make = readMakefile(emptyDir);
       expect(make.exists).toBe(false);
       expect(make.hasTarget("build")).toBe(false);
@@ -64,13 +63,16 @@ describe("manifest-readers", () => {
     const testDir = join(tmpdir(), `test-turbo-tasks-${Date.now()}`);
     mkdirSync(testDir, { recursive: true });
     try {
-      writeFileSync(join(testDir, "turbo.json"), JSON.stringify({ tasks: { "build": {}, "test": {} } }));
+      writeFileSync(
+        join(testDir, "turbo.json"),
+        JSON.stringify({ tasks: { build: {}, test: {} } }),
+      );
       const turboTasks = readTurboJson(testDir);
       expect(turboTasks.exists).toBe(true);
       expect(turboTasks.hasTask("build")).toBe(true);
       expect(turboTasks.hasTask("nonexistent")).toBe(false);
 
-      writeFileSync(join(testDir, "turbo.json"), JSON.stringify({ pipeline: { "lint": {} } }));
+      writeFileSync(join(testDir, "turbo.json"), JSON.stringify({ pipeline: { lint: {} } }));
       const turboPipe = readTurboJson(testDir);
       expect(turboPipe.exists).toBe(true);
       expect(turboPipe.hasTask("lint")).toBe(true);
@@ -140,7 +142,6 @@ strict = true
       expect(py.usesPytest).toBe(true);
       expect(py.usesRuff).toBe(true);
       expect(py.usesMypy).toBe(true);
-
     } finally {
       rmSync(testDir, { recursive: true, force: true });
     }

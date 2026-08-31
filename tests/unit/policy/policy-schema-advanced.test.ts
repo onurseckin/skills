@@ -29,40 +29,65 @@ describe("Policy Schema Advanced - Host Profiles & Persona Enums", () => {
     expect(() => parseRepoPolicy(raw)).toThrow(HarnessError);
 
     const rawMissing = canonicalPolicy();
-    setField(rawMissing, ["agents", "mind_supervisor", "hosts"], { antigravity: { model: "m", model_tier: "high" } });
+    setField(rawMissing, ["agents", "mind_supervisor", "hosts"], {
+      antigravity: { model: "m", model_tier: "high" },
+    });
     expect(() => parseRepoPolicy(rawMissing)).toThrow(HarnessError);
   });
 
   test("rejects invalid model_tier, thinking_effort, and persona roles", () => {
     const rawTier = canonicalPolicy();
-    setField(rawTier, ["agents", "mind_supervisor", "hosts", "antigravity", "model_tier"], "ultra_tier");
+    setField(
+      rawTier,
+      ["agents", "mind_supervisor", "hosts", "antigravity", "model_tier"],
+      "ultra_tier",
+    );
     expect(() => parseRepoPolicy(rawTier)).toThrow(HarnessError);
 
     const rawEffort = canonicalPolicy();
-    setField(rawEffort, ["agents", "mind_supervisor", "hosts", "antigravity", "thinking_effort"], "extreme");
+    setField(
+      rawEffort,
+      ["agents", "mind_supervisor", "hosts", "antigravity", "thinking_effort"],
+      "extreme",
+    );
     expect(() => parseRepoPolicy(rawEffort)).toThrow(HarnessError);
 
     const rawPersona = canonicalPolicy();
-    setField(rawPersona, ["docker_environment", "test_user_personas", "guest", "role"], "superadmin");
+    setField(
+      rawPersona,
+      ["docker_environment", "test_user_personas", "guest", "role"],
+      "superadmin",
+    );
     expect(() => parseRepoPolicy(rawPersona)).toThrow(HarnessError);
   });
 
   test("rejects invalid cookie same_site values", () => {
     const raw = canonicalPolicy();
-    setField(raw, ["docker_environment", "session_cookie_templates", "session_id", "same_site"], "Loose");
+    setField(
+      raw,
+      ["docker_environment", "session_cookie_templates", "session_id", "same_site"],
+      "Loose",
+    );
     expect(() => parseRepoPolicy(raw)).toThrow(HarnessError);
   });
 });
 
-
 describe("Policy Schema Advanced - Numeric Bounds, Types & Command Conflicts", () => {
   test("rejects negative quotas and invalid quota ranges", () => {
     const raw = canonicalPolicy();
-    setField(raw, ["agents", "validator_code_quality", "quotas", "mandatory_cognitive_pushbacks"], -1);
+    setField(
+      raw,
+      ["agents", "validator_code_quality", "quotas", "mandatory_cognitive_pushbacks"],
+      -1,
+    );
     expect(() => parseRepoPolicy(raw)).toThrow(HarnessError);
 
     const rawOver = canonicalPolicy();
-    setField(rawOver, ["agents", "validator_code_quality", "quotas", "mandatory_cognitive_pushbacks"], 101);
+    setField(
+      rawOver,
+      ["agents", "validator_code_quality", "quotas", "mandatory_cognitive_pushbacks"],
+      101,
+    );
     expect(() => parseRepoPolicy(rawOver)).toThrow(HarnessError);
   });
 
@@ -117,7 +142,6 @@ describe("Policy Schema Advanced - Numeric Bounds, Types & Command Conflicts", (
     expect(() => parseRepoPolicy(rawEmptyPort)).toThrow(HarnessError);
   });
 });
-
 
 describe("Policy Schema Advanced - Lifecycle Hooks", () => {
   test("parses valid lifecycle hooks configuration with all event types", () => {
@@ -209,16 +233,28 @@ describe("Policy Schema Advanced - Lifecycle Hooks", () => {
 
   test("validates host temperature bounds and default test_runner fallback", () => {
     const rawValidTemp = canonicalPolicy();
-    setField(rawValidTemp, ["agents", "mind_supervisor", "hosts", "antigravity", "temperature"], 0.7);
+    setField(
+      rawValidTemp,
+      ["agents", "mind_supervisor", "hosts", "antigravity", "temperature"],
+      0.7,
+    );
     const parsed = parseRepoPolicy(rawValidTemp);
     expect(parsed.agents?.["mind_supervisor"]?.hosts["antigravity"]?.temperature).toBe(0.7);
 
     const rawHighTemp = canonicalPolicy();
-    setField(rawHighTemp, ["agents", "mind_supervisor", "hosts", "antigravity", "temperature"], 2.5);
+    setField(
+      rawHighTemp,
+      ["agents", "mind_supervisor", "hosts", "antigravity", "temperature"],
+      2.5,
+    );
     expect(() => parseRepoPolicy(rawHighTemp)).toThrow(HarnessError);
 
     const rawLowTemp = canonicalPolicy();
-    setField(rawLowTemp, ["agents", "mind_supervisor", "hosts", "antigravity", "temperature"], -0.5);
+    setField(
+      rawLowTemp,
+      ["agents", "mind_supervisor", "hosts", "antigravity", "temperature"],
+      -0.5,
+    );
     expect(() => parseRepoPolicy(rawLowTemp)).toThrow(HarnessError);
 
     // Omitted test_runner

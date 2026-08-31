@@ -228,9 +228,7 @@ describe("Synthesis Engine", () => {
 
   describe("Companion Manifest Writer & Loader (manifest-writer.ts)", () => {
     it("formatManifestFilename sanitizes special characters cleanly", () => {
-      expect(formatManifestFilename("checkout", "desktop")).toBe(
-        "checkout-desktop.manifest.json",
-      );
+      expect(formatManifestFilename("checkout", "desktop")).toBe("checkout-desktop.manifest.json");
       expect(formatManifestFilename("screen/path:test", "mobile@390")).toBe(
         "screen_path_test-mobile_390.manifest.json",
       );
@@ -285,13 +283,21 @@ describe("Synthesis Engine", () => {
       const tempDir = await mkdtemp(join(tmpdir(), "manifest-invalid-"));
       try {
         const invalidFilePath = join(tempDir, "invalid.json");
-        await writeFile(invalidFilePath, JSON.stringify({ version: "1.0", screenId: "test" }), "utf8");
+        await writeFile(
+          invalidFilePath,
+          JSON.stringify({ version: "1.0", screenId: "test" }),
+          "utf8",
+        );
 
-        expect(loadCompanionManifest(invalidFilePath)).rejects.toThrow("Invalid Companion Manifest v2.0");
+        expect(loadCompanionManifest(invalidFilePath)).rejects.toThrow(
+          "Invalid Companion Manifest v2.0",
+        );
 
         const nonObjectPath = join(tempDir, "non-obj.json");
         await writeFile(nonObjectPath, JSON.stringify("not-an-object"), "utf8");
-        expect(loadCompanionManifest(nonObjectPath)).rejects.toThrow("Invalid Companion Manifest v2.0");
+        expect(loadCompanionManifest(nonObjectPath)).rejects.toThrow(
+          "Invalid Companion Manifest v2.0",
+        );
       } finally {
         await rm(tempDir, { recursive: true, force: true });
       }

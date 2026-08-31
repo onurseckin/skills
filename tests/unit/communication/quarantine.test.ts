@@ -68,10 +68,14 @@ describe("Mailbox Quarantine Engine", () => {
 
     it("throws HarnessError on invalid agentId or empty reason", () => {
       expect(() => ingestToQuarantine("", "data", "REASON")).toThrow(HarnessError);
-      expect(() => ingestToQuarantine(123 as unknown as string, "data", "REASON")).toThrow(HarnessError);
+      expect(() => ingestToQuarantine(123 as unknown as string, "data", "REASON")).toThrow(
+        HarnessError,
+      );
       expect(() => ingestToQuarantine("agent/traversal", "data", "REASON")).toThrow(HarnessError);
       expect(() => ingestToQuarantine("agent-gamma", "data", "")).toThrow(HarnessError);
-      expect(() => ingestToQuarantine("agent-gamma", "data", 123 as unknown as string)).toThrow(HarnessError);
+      expect(() => ingestToQuarantine("agent-gamma", "data", 123 as unknown as string)).toThrow(
+        HarnessError,
+      );
     });
   });
 

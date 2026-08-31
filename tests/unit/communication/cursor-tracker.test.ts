@@ -14,7 +14,10 @@ import {
 } from "../../../olt/scripts/src/communication/mailbox/index.ts";
 import { createSignedEnvelope } from "../../../olt/scripts/src/communication/mailbox/envelope.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import type { MailboxCursor, MailboxEnvelope } from "../../../olt/scripts/src/communication/types.ts";
+import type {
+  MailboxCursor,
+  MailboxEnvelope,
+} from "../../../olt/scripts/src/communication/types.ts";
 
 describe("Monotonic Cursor Tracker & High-Water Mark Engine", () => {
   let tempDir: string;
@@ -289,12 +292,17 @@ describe("Monotonic Cursor Tracker & High-Water Mark Engine", () => {
         advanceMailboxCursor(cursorPath, { id: 123 } as unknown as MailboxEnvelope<unknown>),
       ).toThrow(HarnessError);
       expect(() =>
-        advanceMailboxCursor(cursorPath, makeEnvelope(1), { bad: true } as unknown as MailboxCursor),
+        advanceMailboxCursor(cursorPath, makeEnvelope(1), {
+          bad: true,
+        } as unknown as MailboxCursor),
       ).toThrow(HarnessError);
 
       expect(() => advanceMailboxCursorBatch("", [])).toThrow(HarnessError);
       expect(() =>
-        advanceMailboxCursorBatch(cursorPath, "not-array" as unknown as readonly MailboxEnvelope<unknown>[]),
+        advanceMailboxCursorBatch(
+          cursorPath,
+          "not-array" as unknown as readonly MailboxEnvelope<unknown>[],
+        ),
       ).toThrow(HarnessError);
       expect(() =>
         advanceMailboxCursorBatch(cursorPath, [null as unknown as MailboxEnvelope<unknown>]),

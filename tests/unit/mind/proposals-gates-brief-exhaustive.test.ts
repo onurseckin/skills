@@ -49,9 +49,9 @@ describe("Proposals, Gates, and Brief - Exhaustive Unit Tests", () => {
       };
 
       // Missing proposal ID
-      expect(() =>
-        transitionProposalStatusInState(state, "", "admitted", "owner"),
-      ).toThrow(HarnessError);
+      expect(() => transitionProposalStatusInState(state, "", "admitted", "owner")).toThrow(
+        HarnessError,
+      );
 
       // Unknown proposal ID
       expect(() =>
@@ -59,58 +59,35 @@ describe("Proposals, Gates, and Brief - Exhaustive Unit Tests", () => {
       ).toThrow(HarnessError);
 
       // Illegal transition: opened -> completed directly
-      expect(() =>
-        transitionProposalStatusInState(state, "prop-1", "completed", "owner"),
-      ).toThrow(HarnessError);
+      expect(() => transitionProposalStatusInState(state, "prop-1", "completed", "owner")).toThrow(
+        HarnessError,
+      );
 
       // Valid transition: opened -> admitted
-      const admitted = transitionProposalStatusInState(
-        state,
-        "prop-1",
-        "admitted",
-        "owner",
-        { witnessCommandId: "cmd-1" },
-      );
+      const admitted = transitionProposalStatusInState(state, "prop-1", "admitted", "owner", {
+        witnessCommandId: "cmd-1",
+      });
       expect(admitted.status).toBe("admitted");
       expect((state.candidates as any[])[0].status).toBe("admitted");
 
       // admitted -> in_progress
-      const inProg = transitionProposalStatusInState(
-        state,
-        "prop-1",
-        "in_progress",
-        "owner",
-      );
+      const inProg = transitionProposalStatusInState(state, "prop-1", "in_progress", "owner");
       expect(inProg.status).toBe("in_progress");
 
       // in_progress -> completed
-      const comp = transitionProposalStatusInState(
-        state,
-        "prop-1",
-        "completed",
-        "owner",
-      );
+      const comp = transitionProposalStatusInState(state, "prop-1", "completed", "owner");
       expect(comp.status).toBe("completed");
 
       // opened -> declined
       (state.candidates as any[])[0].status = "opened";
-      const declined = transitionProposalStatusInState(
-        state,
-        "prop-1",
-        "declined",
-        "owner",
-        { declineReason: "Out of scope" },
-      );
+      const declined = transitionProposalStatusInState(state, "prop-1", "declined", "owner", {
+        declineReason: "Out of scope",
+      });
       expect(declined.status).toBe("declined");
 
       // admitted -> revised
       (state.candidates as any[])[0].status = "admitted";
-      const revised = transitionProposalStatusInState(
-        state,
-        "prop-1",
-        "revised",
-        "owner",
-      );
+      const revised = transitionProposalStatusInState(state, "prop-1", "revised", "owner");
       expect(revised.status).toBe("revised");
     });
   });

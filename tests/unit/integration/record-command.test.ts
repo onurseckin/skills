@@ -21,7 +21,13 @@ function freshRun(label: string): { runRoot: string; repo: string } {
   const root = scratchRoot(import.meta.path, label);
   const repo = join(root, "repo");
   mkdirSync(repo, { recursive: true });
-  const runRoot = initRun(repo, `rec-cmd-run-${label}`, new TextEncoder().encode("prompt"), "file", true);
+  const runRoot = initRun(
+    repo,
+    `rec-cmd-run-${label}`,
+    new TextEncoder().encode("prompt"),
+    "file",
+    true,
+  );
   writeAgentMetadata(
     {
       agent_id: "implementer",

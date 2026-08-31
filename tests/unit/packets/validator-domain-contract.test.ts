@@ -213,7 +213,9 @@ describe("B12.3: delivery of a validator domain's standing checklist through its
     ].join("\n");
 
     const mockRead = () => encoder.encode(yamlManifest);
-    expect(() => loadValidatorDomainContract("security", mockRead)).toThrow(/declares role implementer/u);
+    expect(() => loadValidatorDomainContract("security", mockRead)).toThrow(
+      /declares role implementer/u,
+    );
   });
 
   test("loadValidatorDomainContract throws INTEGRITY when manifest declares mismatched domain", () => {
@@ -239,6 +241,8 @@ describe("B12.3: delivery of a validator domain's standing checklist through its
       return encoder.encode(yamlManifest);
     };
 
-    expect(() => loadValidatorDomainContract("security", mockRead)).toThrow(/declares domain product/u);
+    expect(() => loadValidatorDomainContract("security", mockRead)).toThrow(
+      /declares domain product/u,
+    );
   });
 });

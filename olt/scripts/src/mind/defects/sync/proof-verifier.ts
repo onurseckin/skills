@@ -14,14 +14,22 @@ export interface ProofVerificationResult {
 export function verifyFailureProof(proof: unknown): ProofVerificationResult {
   const errors: string[] = [];
 
-  if (!proof || typeof proof !== "object") {
+  if (proof === undefined) {
+    return { valid: false, errors: ["Failure proof must be a non-null object"] };
+  }
+  if (proof === null) {
+    return { valid: false, errors: ["Failure proof must be a non-null object"] };
+  }
+  if (typeof proof !== "object") {
     return { valid: false, errors: ["Failure proof must be a non-null object"] };
   }
 
   const p = proof as Record<string, unknown>;
 
   const commitSha = typeof p["commit_sha"] === "string" ? p["commit_sha"].trim() : "";
-  if (!commitSha || commitSha === "empirical-proof-pending") {
+  if (commitSha.length === 0) {
+    errors.push("Missing or invalid 'commit_sha' in empirical failure proof");
+  } else if (commitSha === "empirical-proof-pending") {
     errors.push("Missing or invalid 'commit_sha' in empirical failure proof");
   }
 

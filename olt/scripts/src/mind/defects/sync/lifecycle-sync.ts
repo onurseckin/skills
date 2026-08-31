@@ -82,7 +82,9 @@ export function parseDefectsJsonl(
   content: string,
   options?: { readonly capsuleRoot?: string | undefined },
 ): DefectEntry[] {
-  if (!content || !content.trim()) return [];
+  if (content === undefined) return [];
+  if (content === null) return [];
+  if (!content.trim()) return [];
   const entries: DefectEntry[] = [];
   for (const line of content.split("\n")) {
     const trimmed = line.trim();
@@ -118,20 +120,41 @@ export function normalizeFindingToDefect(
   finding: DoctorFindingInput,
   timestamp: string,
 ): DefectEntry {
-  const code = (finding.code || finding.error_code || finding.rule || "doctor_finding").trim();
-  const filePath = (finding.path || finding.file || "").trim();
+  const rawCode =
+    finding.code !== undefined && finding.code !== ""
+      ? finding.code
+      : finding.error_code !== undefined && finding.error_code !== ""
+        ? finding.error_code
+        : finding.rule !== undefined && finding.rule !== ""
+          ? finding.rule
+          : "doctor_finding";
+  const code = rawCode.trim();
+
+  const rawFilePath =
+    finding.path !== undefined && finding.path !== ""
+      ? finding.path
+      : finding.file !== undefined && finding.file !== ""
+        ? finding.file
+        : "";
+  const filePath = rawFilePath.trim();
+
   const line = finding.line !== undefined ? String(finding.line) : "";
-  const desc = (
-    finding.message ||
-    finding.description ||
-    finding.title ||
-    finding.observation ||
-    code
-  ).trim();
+  const rawDesc =
+    finding.message !== undefined && finding.message !== ""
+      ? finding.message
+      : finding.description !== undefined && finding.description !== ""
+        ? finding.description
+        : finding.title !== undefined && finding.title !== ""
+          ? finding.title
+          : finding.observation !== undefined && finding.observation !== ""
+            ? finding.observation
+            : code;
+  const desc = rawDesc.trim();
+
   const category = categorizeDefect({
     type: code,
     observation: desc,
-    remediation: finding.remediation || "",
+    remediation: finding.remediation !== undefined ? finding.remediation : "",
   });
   const dedupKey = computeNormalizedFailureSignature({
     category,
@@ -146,15 +169,21 @@ export function normalizeFindingToDefect(
     .replace(/_/g, "-")
     .replace(/[^a-z0-9-]/g, "-");
   const id =
-    finding.id && finding.id.trim() ? finding.id.trim() : `doctor-${sanitizedCode}-${contentHash}`;
-  const severity =
-    finding.severity === "critical"
-      ? "critical"
-      : finding.severity === "error" || finding.severity === "high"
-        ? "high"
-        : finding.severity === "low" || finding.severity === "info"
-          ? "low"
-          : "warning";
+    finding.id !== undefined && finding.id.trim() !== ""
+      ? finding.id.trim()
+      : `doctor-${sanitizedCode}-${contentHash}`;
+
+  let severity: "critical" | "high" | "low" | "warning" = "warning";
+  if (finding.severity === "critical") severity = "critical";
+  else if (finding.severity === "error") severity = "high";
+  else if (finding.severity === "high") severity = "high";
+  else if (finding.severity === "low") severity = "low";
+  else if (finding.severity === "info") severity = "low";
+
+  const remediation =
+    finding.remediation !== undefined && finding.remediation !== ""
+      ? finding.remediation
+      : `Remediate doctor finding: ${code}`;
 
   return {
     id,
@@ -163,7 +192,7 @@ export function normalizeFindingToDefect(
     severity,
     status: "open",
     observation: desc,
-    remediation: finding.remediation || `Remediate doctor finding: ${code}`,
+    remediation,
     timestamp,
     first_seen_at: timestamp,
     last_seen_at: timestamp,
@@ -200,9 +229,15 @@ function executeDefectSync(
     }
 
     const defectCandidate = normalizeFindingToDefect(finding, now);
-    const existing =
-      (defectCandidate.id ? existingById.get(defectCandidate.id) : undefined) ??
-      (defectCandidate.dedup_key ? existingByDedupKey.get(defectCandidate.dedup_key) : undefined);
+    const byIdCandidate =
+      defectCandidate.id !== undefined && defectCandidate.id !== ""
+        ? existingById.get(defectCandidate.id)
+        : undefined;
+    const byDedupCandidate =
+      defectCandidate.dedup_key !== undefined && defectCandidate.dedup_key !== ""
+        ? existingByDedupKey.get(defectCandidate.dedup_key)
+        : undefined;
+    const existing = byIdCandidate !== undefined ? byIdCandidate : byDedupCandidate;
 
     if (!existing) {
       existingById.set(defectCandidate.id, defectCandidate);
@@ -210,56 +245,99 @@ function executeDefectSync(
         existingByDedupKey.set(defectCandidate.dedup_key, defectCandidate);
       newlyCreated += 1;
     } else {
-      if (
-        existing.status === "resolved" ||
-        existing.status === "completed" ||
-        existing.status === "closed"
-      ) {
-        const failureProof: EmpiricalFailureProof = options.failureProof ?? {
-          commit_sha:
-            options.commitSha ??
-            (typeof finding.context?.["commit_sha"] === "string"
-              ? (finding.context["commit_sha"] as string)
-              : undefined) ??
-            (typeof finding.failure_proof?.commit_sha === "string"
-              ? finding.failure_proof.commit_sha
-              : undefined) ??
-            "empirical-proof-pending",
-          test_assertion:
-            finding.message ||
-            finding.description ||
-            finding.code ||
-            "Doctor check assertion failed",
-          task_id:
-            options.runId ??
-            (typeof finding.context?.["task_id"] === "string"
-              ? (finding.context["task_id"] as string)
-              : undefined) ??
-            "doctor-run",
-          run_id: options.runId,
-          error_code: finding.code || finding.error_code || finding.rule,
-          message: finding.message || finding.description,
-          timestamp: now,
-        };
-
-        if (
-          options.requireStrictProof &&
-          (!failureProof.commit_sha ||
-            failureProof.commit_sha === "empirical-proof-pending" ||
-            !failureProof.test_assertion ||
-            !failureProof.task_id)
+      if (["resolved", "completed", "closed"].includes(existing.status)) {
+        let resolvedCommitSha = "empirical-proof-pending";
+        if (options.commitSha !== undefined && options.commitSha !== "") {
+          resolvedCommitSha = options.commitSha;
+        } else if (
+          typeof finding.context?.["commit_sha"] === "string" &&
+          finding.context["commit_sha"] !== ""
         ) {
-          throw new HarnessError(
-            "INTEGRITY",
-            "Cannot reopen previously completed defect without empirical failure proof (requires commit_sha, test_assertion, task_id)",
-          );
+          resolvedCommitSha = finding.context["commit_sha"] as string;
+        } else if (
+          typeof finding.failure_proof?.commit_sha === "string" &&
+          finding.failure_proof.commit_sha !== ""
+        ) {
+          resolvedCommitSha = finding.failure_proof.commit_sha;
         }
 
+        const resolvedTestAssertion =
+          finding.message !== undefined && finding.message !== ""
+            ? finding.message
+            : finding.description !== undefined && finding.description !== ""
+              ? finding.description
+              : finding.code !== undefined && finding.code !== ""
+                ? finding.code
+                : "Doctor check assertion failed";
+
+        let resolvedTaskId = "doctor-run";
+        if (options.runId !== undefined && options.runId !== "") {
+          resolvedTaskId = options.runId;
+        } else if (
+          typeof finding.context?.["task_id"] === "string" &&
+          finding.context["task_id"] !== ""
+        ) {
+          resolvedTaskId = finding.context["task_id"] as string;
+        }
+
+        const resolvedErrorCode =
+          finding.code !== undefined && finding.code !== ""
+            ? finding.code
+            : finding.error_code !== undefined && finding.error_code !== ""
+              ? finding.error_code
+              : finding.rule;
+
+        const resolvedMessage =
+          finding.message !== undefined && finding.message !== ""
+            ? finding.message
+            : finding.description;
+
+        const failureProof: EmpiricalFailureProof =
+          options.failureProof !== undefined
+            ? options.failureProof
+            : {
+                commit_sha: resolvedCommitSha,
+                test_assertion: resolvedTestAssertion,
+                task_id: resolvedTaskId,
+                run_id: options.runId,
+                error_code: resolvedErrorCode,
+                message: resolvedMessage,
+                timestamp: now,
+              };
+
+        if (options.requireStrictProof) {
+          if (!failureProof.commit_sha) {
+            throw new HarnessError(
+              "INTEGRITY",
+              "Cannot reopen previously completed defect without empirical failure proof (requires commit_sha, test_assertion, task_id)",
+            );
+          }
+          if (failureProof.commit_sha === "empirical-proof-pending") {
+            throw new HarnessError(
+              "INTEGRITY",
+              "Cannot reopen previously completed defect without empirical failure proof (requires commit_sha, test_assertion, task_id)",
+            );
+          }
+          if (!failureProof.test_assertion) {
+            throw new HarnessError(
+              "INTEGRITY",
+              "Cannot reopen previously completed defect without empirical failure proof (requires commit_sha, test_assertion, task_id)",
+            );
+          }
+          if (!failureProof.task_id) {
+            throw new HarnessError(
+              "INTEGRITY",
+              "Cannot reopen previously completed defect without empirical failure proof (requires commit_sha, test_assertion, task_id)",
+            );
+          }
+        }
+
+        const prevCount = existing.count !== undefined ? existing.count : 1;
         const updated: DefectEntry = {
           ...existing,
           status: "open",
           last_seen_at: now,
-          count: (existing.count ?? 1) + 1,
+          count: prevCount + 1,
           reopened_at: now,
           failure_proof: failureProof,
         };
@@ -267,10 +345,11 @@ function executeDefectSync(
         if (existing.dedup_key) existingByDedupKey.set(existing.dedup_key, updated);
         reopened += 1;
       } else {
+        const prevCount = existing.count !== undefined ? existing.count : 1;
         const updated: DefectEntry = {
           ...existing,
           last_seen_at: now,
-          count: (existing.count ?? 1) + 1,
+          count: prevCount + 1,
         };
         existingById.set(existing.id, updated);
         if (existing.dedup_key) existingByDedupKey.set(existing.dedup_key, updated);
@@ -307,8 +386,15 @@ export function syncDoctorFindingsToDefects(
   findings: readonly DoctorFindingInput[],
   options: SyncDoctorDefectOptions = {},
 ): SyncDefectResult {
-  const filePath = resolveDefectsJsonlPath(options.customPath || options.defectsPath);
-  const now = options.timestamp || new Date().toISOString();
+  const targetPathOption =
+    options.customPath !== undefined && options.customPath !== ""
+      ? options.customPath
+      : options.defectsPath;
+  const filePath = resolveDefectsJsonlPath(targetPathOption);
+  const now =
+    options.timestamp !== undefined && options.timestamp !== ""
+      ? options.timestamp
+      : new Date().toISOString();
 
   cleanupVestigialDefectsFile(filePath);
 

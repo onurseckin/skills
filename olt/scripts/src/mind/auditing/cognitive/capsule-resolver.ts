@@ -6,11 +6,13 @@ import { readLastPulse } from "../../lifecycle/pulse/index.ts";
 export function activeMindGrant(capsulePath: string): { actor: string } | null {
   try {
     const state = JSON.parse(readFileSync(join(capsulePath, "state.json"), "utf-8")) as unknown;
-    if (!state || typeof state !== "object") return null;
+    if (!state) return null;
+    if (typeof state !== "object") return null;
     const agents = (state as Record<string, unknown>)["agents"];
     if (!Array.isArray(agents)) return null;
     for (const agent of agents) {
-      if (!agent || typeof agent !== "object") continue;
+      if (!agent) continue;
+      if (typeof agent !== "object") continue;
       const record = agent as Record<string, unknown>;
       if (
         record["status"] === "active" &&
@@ -31,16 +33,20 @@ export function activePulse(
 ): { actor: string; deadlineMs: number } | null {
   try {
     const state = JSON.parse(readFileSync(join(capsulePath, "state.json"), "utf-8")) as unknown;
-    if (!state || typeof state !== "object") return null;
+    if (!state) return null;
+    if (typeof state !== "object") return null;
     const pulse = (state as Record<string, unknown>)["pulse"];
-    if (!pulse || typeof pulse !== "object") return null;
+    if (!pulse) return null;
+    if (typeof pulse !== "object") return null;
     const open = (pulse as Record<string, unknown>)["open"];
-    if (!open || typeof open !== "object") return null;
+    if (!open) return null;
+    if (typeof open !== "object") return null;
     const actor = (open as Record<string, unknown>)["actor"];
     const deadlineAt = (open as Record<string, unknown>)["deadline_at"];
     const deadlineMs = typeof deadlineAt === "string" ? new Date(deadlineAt).getTime() : Number.NaN;
-    if (typeof actor !== "string" || actor.length === 0 || !Number.isFinite(deadlineMs))
-      return null;
+    if (typeof actor !== "string") return null;
+    if (actor.length === 0) return null;
+    if (!Number.isFinite(deadlineMs)) return null;
     return deadlineMs > nowMs ? { actor, deadlineMs } : null;
   } catch {
     return null;
@@ -105,7 +111,9 @@ export function resolveLatestCapsule(repoRoot: string): string | null {
       .sort((a, b) => b.localeCompare(a));
 
     if (entries.length === 0) return null;
-    return join(capsulesDir, entries[0]!);
+    const firstEntry = entries[0];
+    if (firstEntry === undefined) return null;
+    return join(capsulesDir, firstEntry);
   } catch {
     return null;
   }

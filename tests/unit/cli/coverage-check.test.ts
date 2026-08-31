@@ -14,7 +14,10 @@ describe("coverage-check CLI command", () => {
   let testDir: string;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `coverage-check-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    testDir = join(
+      tmpdir(),
+      `coverage-check-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
     fs.mkdirSync(testDir, { recursive: true });
   });
 
@@ -65,13 +68,13 @@ All files                                                                       
     });
 
     test("returns fractional threshold when bunfig.toml has decimal <= 1", () => {
-      fs.writeFileSync(join(testDir, "bunfig.toml"), 'coverageThreshold = 0.85\n', "utf-8");
+      fs.writeFileSync(join(testDir, "bunfig.toml"), "coverageThreshold = 0.85\n", "utf-8");
       const threshold = loadBunfigCoverageThreshold(testDir);
       expect(threshold).toBe(0.85);
     });
 
     test("returns scaled threshold when bunfig.toml has percentage > 1", () => {
-      fs.writeFileSync(join(testDir, "bunfig.toml"), 'coverageThreshold = 95\n', "utf-8");
+      fs.writeFileSync(join(testDir, "bunfig.toml"), "coverageThreshold = 95\n", "utf-8");
       const threshold = loadBunfigCoverageThreshold(testDir);
       expect(threshold).toBe(0.95);
     });
@@ -83,7 +86,7 @@ All files                                                                       
     });
 
     test("returns undefined if readFileSync throws", () => {
-      fs.writeFileSync(join(testDir, "bunfig.toml"), 'coverageThreshold = 0.8\n', "utf-8");
+      fs.writeFileSync(join(testDir, "bunfig.toml"), "coverageThreshold = 0.8\n", "utf-8");
       const spy = spyOn(fs, "readFileSync").mockImplementation(() => {
         throw new Error("read error");
       });

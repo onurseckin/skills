@@ -46,7 +46,9 @@ describe("Mailbox Paths & Directory Provisioning Engine", () => {
       expect(explicit).toBe(join(tempDir, ".olt", "locks", "mailboxes", "worker-1.lock"));
 
       const defaultCwd = resolveMailboxLockPath("worker-2");
-      expect(defaultCwd).toBe(join(resolve(process.cwd()), ".olt", "locks", "mailboxes", "worker-2.lock"));
+      expect(defaultCwd).toBe(
+        join(resolve(process.cwd()), ".olt", "locks", "mailboxes", "worker-2.lock"),
+      );
     });
 
     it("rejects non-string or whitespace agentId with INVALID_ARGUMENT", () => {
@@ -80,7 +82,9 @@ describe("Mailbox Paths & Directory Provisioning Engine", () => {
       expect(paths.lockPath).toBe(join(tempDir, ".olt", "locks", "mailboxes", "coordinator.lock"));
 
       const cwdPaths = resolveMailboxPaths("agent-cwd");
-      expect(cwdPaths.agentMailboxDir).toBe(join(resolve(process.cwd()), ".olt", "mailboxes", "agent-cwd"));
+      expect(cwdPaths.agentMailboxDir).toBe(
+        join(resolve(process.cwd()), ".olt", "mailboxes", "agent-cwd"),
+      );
     });
 
     it("rejects invalid or unsafe agentIds with appropriate HarnessErrors", () => {
@@ -110,7 +114,9 @@ describe("Mailbox Paths & Directory Provisioning Engine", () => {
 
     it("validates paths object and throws INVALID_ARGUMENT on missing fields", () => {
       expect(() => ensureMailboxDirectories(null as unknown as MailboxPaths)).toThrow(HarnessError);
-      expect(() => ensureMailboxDirectories("string" as unknown as MailboxPaths)).toThrow(HarnessError);
+      expect(() => ensureMailboxDirectories("string" as unknown as MailboxPaths)).toThrow(
+        HarnessError,
+      );
       expect(() =>
         ensureMailboxDirectories({
           agentMailboxDir: 123 as unknown as string,

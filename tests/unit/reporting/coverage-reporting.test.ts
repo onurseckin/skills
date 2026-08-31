@@ -24,7 +24,10 @@ import {
   writeSummaryJson,
 } from "../../../scripts/testing/reporting/index.ts";
 import { buildMarkdownReport } from "../../../scripts/testing/reporting/markdown-reporter.ts";
-import type { CoverageSummary, FileCoverageMetric } from "../../../scripts/testing/reporting/types.ts";
+import type {
+  CoverageSummary,
+  FileCoverageMetric,
+} from "../../../scripts/testing/reporting/types.ts";
 
 describe("Testing & Reporting Subsystem - Comprehensive Unit Tests", () => {
   const tmpRoot = join(process.cwd(), ".tmp-test-reporting-suite");
@@ -447,7 +450,7 @@ LH:5
       const html = generateInteractiveHtml(fileMap, summary, tmpRoot);
       expect(html).toContain("<!DOCTYPE html>");
       expect(html).toContain("src/test.ts");
-      expect(html).not.toContain("</script>\"}");
+      expect(html).not.toContain('</script>"}');
 
       // Fallback summary without total
       const emptySummary: CoverageSummary = {};

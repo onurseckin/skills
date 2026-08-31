@@ -31,7 +31,10 @@ import {
   verifyRoleBoundaryAction,
   auditRoleBoundaryActions,
 } from "../../../olt/scripts/src/mind/auditing/roles/auditor.ts";
-import { checkValidatorHardLock, checkSpawning } from "../../../olt/scripts/src/mind/auditing/roles/rules/leaf-checks.ts";
+import {
+  checkValidatorHardLock,
+  checkSpawning,
+} from "../../../olt/scripts/src/mind/auditing/roles/rules/leaf-checks.ts";
 import { isFullTestSuiteCommand } from "../../../olt/scripts/src/mind/auditing/roles/rules/matrix.ts";
 import {
   checkNeverUnattendedActions,
@@ -56,9 +59,7 @@ import {
   extractToolCallsFromEvents,
   calculateEfficiencyScore,
 } from "../../../olt/scripts/src/mind/auditing/meta/timeline.ts";
-import {
-  runExtendedForensicsHeuristics,
-} from "../../../olt/scripts/src/mind/auditing/meta/heuristics-extended.ts";
+import { runExtendedForensicsHeuristics } from "../../../olt/scripts/src/mind/auditing/meta/heuristics-extended.ts";
 import { runForensicsHeuristics } from "../../../olt/scripts/src/mind/auditing/meta/heuristics.ts";
 import { auditMindPreplanningStagnation } from "../../../olt/scripts/src/mind/auditing/mind-stagnation-auditor.ts";
 import {
@@ -275,7 +276,13 @@ archetype: tier_3_implementer
       const asciiEmpty = renderBatchAsciiTable(report);
       expect(asciiEmpty).toBe("(no dynamic roles evaluated)");
 
-      const reportWithRoles = auditDynamicRolesBatch([{ role: "role-one", tier: 3, spec: { name: "role-one", tier: 3, archetype: "tier_3_implementer" } } as any]);
+      const reportWithRoles = auditDynamicRolesBatch([
+        {
+          role: "role-one",
+          tier: 3,
+          spec: { name: "role-one", tier: 3, archetype: "tier_3_implementer" },
+        } as any,
+      ]);
       const asciiWithRoles = renderBatchAsciiTable(reportWithRoles);
       expect(asciiWithRoles).toContain("ROLE");
 
@@ -401,7 +408,9 @@ archetype: tier_3_implementer
       expect(res33.valid).toBe(false);
       expect(res33.reason).toContain("leaf execution agent");
 
-      expect(() => assertParentChildBoundary("coordinator", "orchestrator", "coord-1", "orch-1")).toThrow(HarnessError);
+      expect(() =>
+        assertParentChildBoundary("coordinator", "orchestrator", "coord-1", "orch-1"),
+      ).toThrow(HarnessError);
 
       const watchdog = createRoleBoundaryWatchdog();
       const singleV = verifyRoleBoundaryAction({
@@ -670,12 +679,12 @@ archetype: tier_3_implementer
         events: [],
         addIncident,
         state: {
-          agents: [
-            { id: "agent-overflow", total_tokens: 190000 },
-          ],
+          agents: [{ id: "agent-overflow", total_tokens: 190000 }],
         } as any,
       });
-      expect(incidents.some((i) => i.category === "CONTEXT_OVERFLOW" && i.severity === "CRITICAL")).toBe(true);
+      expect(
+        incidents.some((i) => i.category === "CONTEXT_OVERFLOW" && i.severity === "CRITICAL"),
+      ).toBe(true);
 
       // Boundary violation in events
       runForensicsHeuristics({
@@ -730,4 +739,3 @@ archetype: tier_3_implementer
     });
   });
 });
-

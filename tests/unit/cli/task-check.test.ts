@@ -436,10 +436,13 @@ describe("task:check command and helpers", () => {
       ),
     ).toBe(true);
     expect(
-      computeTaskCheckVerdict(
-        undefined,
-        { passed: true, totalFiles: 1, totalViolations: 0, violations: [], summaryByRule: {} },
-      ),
+      computeTaskCheckVerdict(undefined, {
+        passed: true,
+        totalFiles: 1,
+        totalViolations: 0,
+        violations: [],
+        summaryByRule: {},
+      }),
     ).toBe(true);
     expect(
       computeTaskCheckVerdict(
@@ -455,4 +458,3 @@ describe("task:check command and helpers", () => {
     ).toBe(false);
   });
 });
-

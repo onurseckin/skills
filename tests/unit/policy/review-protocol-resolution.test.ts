@@ -188,7 +188,6 @@ describe("ReviewProtocolEngine Config Resolution & Satisfaction", () => {
         ["f-1"],
       ),
     ).toThrow(/Cognitive deepening protocol not satisfied/i);
-
   });
 
   test("ReviewProtocolEngine recordEntry supports explicit timestamp and partial config", () => {

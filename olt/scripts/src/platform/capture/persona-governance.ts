@@ -96,8 +96,10 @@ export function getAllUserPersonas(
     const defaults = getFallbackDefaultPersonas();
     return {
       admin: personas.admin !== undefined ? personas.admin : defaults.admin,
-      standard_user: personas.standard_user !== undefined ? personas.standard_user : defaults.standard_user,
-      invited_member: personas.invited_member !== undefined ? personas.invited_member : defaults.invited_member,
+      standard_user:
+        personas.standard_user !== undefined ? personas.standard_user : defaults.standard_user,
+      invited_member:
+        personas.invited_member !== undefined ? personas.invited_member : defaults.invited_member,
       guest: personas.guest !== undefined ? personas.guest : defaults.guest,
     };
   }

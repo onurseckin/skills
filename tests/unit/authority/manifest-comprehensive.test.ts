@@ -313,7 +313,7 @@ permissions:
 
     // JSON parse fallback
     expect(parseYaml('{"jsonKey": 123}')).toEqual({ jsonKey: 123 });
-    expect(parseYaml('[10, 20, 30]')).toEqual([10, 20, 30]);
+    expect(parseYaml("[10, 20, 30]")).toEqual([10, 20, 30]);
 
     // Single scalar line
     expect(parseYaml("single_scalar_value")).toBe("single_scalar_value");
@@ -327,7 +327,9 @@ items:
       second line
   - name: item2
 `;
-    const parsedList = parseYaml(listBlockScalar) as { items: Array<{ desc?: string; name?: string }> };
+    const parsedList = parseYaml(listBlockScalar) as {
+      items: Array<{ desc?: string; name?: string }>;
+    };
     expect(parsedList.items[0]?.desc).toContain("first line\nsecond line");
     expect(parsedList.items[1]?.name).toBe("item2");
 

@@ -39,7 +39,6 @@ export function reqNoFollow(flag: number = constants.O_NOFOLLOW): number {
   return flag;
 }
 
-
 export function sameInode(a: Pick<Stats, "dev" | "ino">, b: Pick<Stats, "dev" | "ino">): boolean {
   return a.dev === b.dev && a.ino === b.ino;
 }
@@ -179,7 +178,6 @@ export function readVerifiedFile(
     deps.maxAttempts ??
     (deps.afterLstatBeforeOpen !== undefined || deps.afterOpenBeforeRead !== undefined ? 1 : 5);
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-
     if (!existsSync(loc.filePath)) return undefined;
     const before = lstatSync(loc.filePath);
     assertOwnedPrivateFile(before, loc.filePath);

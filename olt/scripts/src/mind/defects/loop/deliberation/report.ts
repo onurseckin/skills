@@ -5,8 +5,7 @@ export function formatDeliberationReport(
   round: DefectDeliberationRound,
   options?: { readonly maxLines?: number | undefined },
 ): string {
-  const maxLines =
-    options !== undefined && options.maxLines !== undefined ? options.maxLines : 50;
+  const maxLines = options !== undefined && options.maxLines !== undefined ? options.maxLines : 50;
   const lines: string[] = [
     `### Mind Defect Deliberation - Round ${round.round_number}`,
     `- **Status**: \`${round.status}\``,

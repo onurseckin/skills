@@ -159,14 +159,16 @@ export class CognitiveChallengePromptGenerator {
     const chosenDimension: CognitiveChallengeDimension =
       options.preferredDimension !== undefined
         ? options.preferredDimension
-        : COGNITIVE_CHALLENGE_DIMENSIONS[cycle % COGNITIVE_CHALLENGE_DIMENSIONS.length] !== undefined
+        : COGNITIVE_CHALLENGE_DIMENSIONS[cycle % COGNITIVE_CHALLENGE_DIMENSIONS.length] !==
+            undefined
           ? (COGNITIVE_CHALLENGE_DIMENSIONS[
               cycle % COGNITIVE_CHALLENGE_DIMENSIONS.length
             ] as CognitiveChallengeDimension)
           : "ui_ux_exploration";
 
     const template = DIMENSION_TEMPLATES[chosenDimension];
-    const timestamp = options.timestamp !== undefined ? options.timestamp : new Date().toISOString();
+    const timestamp =
+      options.timestamp !== undefined ? options.timestamp : new Date().toISOString();
 
     let seedContext: string | undefined = undefined;
     if (options.repoRoot !== undefined) {
@@ -200,7 +202,9 @@ export class CognitiveChallengePromptGenerator {
     const lines: string[] = [];
     lines.push("================================================================================");
     lines.push(`🧠 COGNITIVE CHALLENGE PROMPT: ${challenge.title.toUpperCase()}`);
-    lines.push(`[Dimension: ${challenge.dimension} | Cycle: ${challenge.cycleIndex} | Generated: ${challenge.generatedAt}]`);
+    lines.push(
+      `[Dimension: ${challenge.dimension} | Cycle: ${challenge.cycleIndex} | Generated: ${challenge.generatedAt}]`,
+    );
     lines.push("================================================================================");
     lines.push("");
     lines.push("⚡ INVARIANT MANDATE: CLOSING_FORBIDDEN_FOR_MIND & INFINITE_MIND_CADENCE");
@@ -224,7 +228,9 @@ export class CognitiveChallengePromptGenerator {
     }
     lines.push("");
     lines.push("================================================================================");
-    lines.push("Execute continuous discovery now: invoke `mind:admit` or explore next feature vectors.");
+    lines.push(
+      "Execute continuous discovery now: invoke `mind:admit` or explore next feature vectors.",
+    );
     return lines.join("\n");
   }
 
@@ -242,9 +248,7 @@ export class CognitiveChallengePromptGenerator {
   }
 }
 
-export function generateCognitiveChallengePrompt(
-  options: CognitiveChallengeOptions = {},
-): string {
+export function generateCognitiveChallengePrompt(options: CognitiveChallengeOptions = {}): string {
   const challenge = CognitiveChallengePromptGenerator.generateCognitiveChallenge(options);
   return CognitiveChallengePromptGenerator.formatCognitiveChallengePrompt(challenge);
 }

@@ -179,22 +179,23 @@ describe("CLI Mind Commands - Exhaustive Unit Tests", () => {
 
       // spy on auditMindPulse to return stagnant with injectionPrompt
       const orig = MindAuditorEngine.auditMindPulse;
-      MindAuditorEngine.auditMindPulse = () => ({
-        stagnant: true,
-        idleDurationSeconds: 400,
-        localDefectCount: 1,
-        defectCreated: true,
-        remediation: "Trigger pulse",
-        injectionPrompt: "INJECT_PULSE_NOW",
-        telemetry: {
-          pendingBacklogCount: 2,
-          unresolvedDefectCount: 1,
-        },
-        cursor: {
-          lastInspectedTimestamp: "2026-08-31T00:00:00Z",
-          lastInspectedPulseSequence: 1,
-        },
-      } as any);
+      MindAuditorEngine.auditMindPulse = () =>
+        ({
+          stagnant: true,
+          idleDurationSeconds: 400,
+          localDefectCount: 1,
+          defectCreated: true,
+          remediation: "Trigger pulse",
+          injectionPrompt: "INJECT_PULSE_NOW",
+          telemetry: {
+            pendingBacklogCount: 2,
+            unresolvedDefectCount: 1,
+          },
+          cursor: {
+            lastInspectedTimestamp: "2026-08-31T00:00:00Z",
+            lastInspectedPulseSequence: 1,
+          },
+        }) as any;
 
       try {
         const resStagnant = await mindAuditLiveCommand({
@@ -418,7 +419,13 @@ describe("CLI Mind Commands - Exhaustive Unit Tests", () => {
 
       const answersObj = [
         { question_id: "Q1", verdict: "pass", command_id: "cmd-1", statement: "clean" },
-        { question_id: "Q2", verdict: "fail", command_id: "cmd-2", statement: "fail stmt", findings: ["Finding A", "Finding B"] },
+        {
+          question_id: "Q2",
+          verdict: "fail",
+          command_id: "cmd-2",
+          statement: "fail stmt",
+          findings: ["Finding A", "Finding B"],
+        },
         { question_id: "Q3", verdict: "pass", command_id: "cmd-3", statement: "clean" },
         { question_id: "Q4", verdict: "pass", command_id: "cmd-4", statement: "clean" },
         { question_id: "Q5", verdict: "pass", command_id: "cmd-5", statement: "clean" },

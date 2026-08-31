@@ -201,7 +201,6 @@ describe("SHA-256 Policy Drift Watchdog & Fleet Re-Arming (Task 1.3)", () => {
     saveRepoPolicy(generateDefaultRepoPolicy(dir), dir, customPolicyRel);
     const initialChecksum = computePolicyChecksum(dir, customPolicyRel);
 
-
     const updatedPolicy = { ...generateDefaultRepoPolicy(dir), read_scope_neighborhood_depth: 3 };
     saveRepoPolicy(updatedPolicy, dir, customPolicyRel);
 
@@ -236,4 +235,3 @@ describe("SHA-256 Policy Drift Watchdog & Fleet Re-Arming (Task 1.3)", () => {
     rmSync(dirname(nonExistentDir), { recursive: true, force: true });
   });
 });
-

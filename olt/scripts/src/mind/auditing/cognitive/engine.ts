@@ -27,7 +27,8 @@ export class MindAuditorEngine {
   public static resolveLatestPulseTimestamp = resolveLatestPulseTimestamp;
   public static generateCognitiveChallengePrompt = generateCognitiveChallengePrompt;
   public static generateZeroDeltaChallengePrompt = generateZeroDeltaChallengePrompt;
-  public static generateCognitiveChallenge = CognitiveChallengePromptGenerator.generateCognitiveChallenge;
+  public static generateCognitiveChallenge =
+    CognitiveChallengePromptGenerator.generateCognitiveChallenge;
 
   public static auditRepositoryGovernance(
     repoRoot: string,
@@ -67,12 +68,18 @@ export class MindAuditorEngine {
 
     for (const cmdId of commandIds) {
       const receipt = (available as Record<string, unknown>)[cmdId];
-      if (!receipt || typeof receipt !== "object") {
+      if (!receipt) {
+        unprovenClaims.push(cmdId);
+        continue;
+      }
+      if (typeof receipt !== "object") {
         unprovenClaims.push(cmdId);
         continue;
       }
       const rec = receipt as Record<string, unknown>;
-      if (rec["exit_code"] !== 0 || rec["status"] !== "succeeded") {
+      if (rec["exit_code"] !== 0) {
+        unprovenClaims.push(cmdId);
+      } else if (rec["status"] !== "succeeded") {
         unprovenClaims.push(cmdId);
       }
     }

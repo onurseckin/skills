@@ -14,7 +14,10 @@ import {
 } from "../../../../olt/scripts/src/engine/store/content-normalization/ecmascript-scanner.ts";
 import { canonicalizeEcmaScriptWhitespace } from "../../../../olt/scripts/src/engine/store/content-normalization/ecmascript-whitespace.ts";
 import { detectContentFormat } from "../../../../olt/scripts/src/engine/store/content-normalization/format.ts";
-import { canonicalizeJson, canonicalizeJsonl } from "../../../../olt/scripts/src/engine/store/content-normalization/json-canonical.ts";
+import {
+  canonicalizeJson,
+  canonicalizeJsonl,
+} from "../../../../olt/scripts/src/engine/store/content-normalization/json-canonical.ts";
 import {
   normalizeContent,
   contentDigest,

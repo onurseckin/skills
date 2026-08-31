@@ -18,7 +18,6 @@ export interface RepoPolicy {
   readonly registered_cli_specs?: readonly string[] | undefined;
 }
 
-
 export function auditPermissionHealth(
   manifest: AgentManifestLike,
   repoPolicy: RepoPolicy,

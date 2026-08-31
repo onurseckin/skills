@@ -1,8 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
-import {
-  synthesizeDynamicTopology,
-} from "../../../../olt/scripts/src/engine/scheduler/topology/dynamic-synthesize.ts";
+import { synthesizeDynamicTopology } from "../../../../olt/scripts/src/engine/scheduler/topology/dynamic-synthesize.ts";
 import {
   partitionOrchestratorDomains,
   calculateValidatorAllocations,
@@ -12,12 +10,8 @@ import {
   computeWorkSpanMetrics,
   computeResourceDisjointness,
 } from "../../../../olt/scripts/src/engine/scheduler/topology/dynamic-metrics.ts";
-import {
-  SkillAuditorPolicy,
-} from "../../../../olt/scripts/src/engine/scheduler/diagnostics/skill-auditor-policy.ts";
-import {
-  probeDoctorErrorResolution,
-} from "../../../../olt/scripts/src/engine/scheduler/core/loop-doctor.ts";
+import { SkillAuditorPolicy } from "../../../../olt/scripts/src/engine/scheduler/diagnostics/skill-auditor-policy.ts";
+import { probeDoctorErrorResolution } from "../../../../olt/scripts/src/engine/scheduler/core/loop-doctor.ts";
 import {
   resolveAgentSchedulerConfig,
   DEFAULT_HOST_INTERVAL_SECONDS,
@@ -89,7 +83,7 @@ describe("engine/scheduler/topology/dynamic", () => {
           status: "proposed",
         },
       ],
-      { "t1": [] },
+      { t1: [] },
     );
     expect(valAlloc).toBeDefined();
 
@@ -132,9 +126,9 @@ describe("engine/scheduler/diagnostics/skill-auditor-policy.ts", () => {
     expect(SkillAuditorPolicy.isMandatoryTarget("/home/user/skills/proj")).toBe(true);
     expect(SkillAuditorPolicy.isMandatoryTarget("/home/user/other-project")).toBe(false);
 
-    expect(() =>
-      SkillAuditorPolicy.assertSkillAuditorRequired("/path/to/skills", []),
-    ).toThrow(HarnessError);
+    expect(() => SkillAuditorPolicy.assertSkillAuditorRequired("/path/to/skills", [])).toThrow(
+      HarnessError,
+    );
 
     expect(() =>
       SkillAuditorPolicy.assertSkillAuditorRequired("/path/to/skills", [
@@ -147,9 +141,9 @@ describe("engine/scheduler/diagnostics/skill-auditor-policy.ts", () => {
       ]),
     ).not.toThrow();
 
-    expect(() =>
-      SkillAuditorPolicy.assertMindAuditorRequired("/path/to/skills", []),
-    ).toThrow(HarnessError);
+    expect(() => SkillAuditorPolicy.assertMindAuditorRequired("/path/to/skills", [])).toThrow(
+      HarnessError,
+    );
   });
 });
 

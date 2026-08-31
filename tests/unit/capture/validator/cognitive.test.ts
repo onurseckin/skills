@@ -208,7 +208,16 @@ describe("Cognitive Validators", () => {
     });
 
     it("identifies destructive actions by keyword or isDestructive flag", () => {
-      const keywords = ["delete", "remove", "destroy", "drop", "purge", "terminate", "wipe", "discard"];
+      const keywords = [
+        "delete",
+        "remove",
+        "destroy",
+        "drop",
+        "purge",
+        "terminate",
+        "wipe",
+        "discard",
+      ];
       for (const kw of keywords) {
         const elText: ElementPhysicsSnapshot = {
           selector: "button.action",
@@ -553,7 +562,8 @@ describe("Cognitive Validators", () => {
             answered: true,
             passed: true,
             verdict: "OPTIMAL",
-            observation: "Primary headline established with high perceptual dominance and 32px font size.",
+            observation:
+              "Primary headline established with high perceptual dominance and 32px font size.",
             evidence: "Measured 32px font-size and 700 font-weight spanning 48px height.",
           },
         ],

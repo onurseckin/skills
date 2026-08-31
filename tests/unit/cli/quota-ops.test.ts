@@ -58,7 +58,9 @@ describe("quota-check CLI command", () => {
       isTriggered: true,
       thresholdPercentage: 10,
       lowestRemainingQuota: 5,
-      constrainedModels: [{ platformId: "anthropic", modelName: "claude-3-5-sonnet", remainingPercentage: 5 }],
+      constrainedModels: [
+        { platformId: "anthropic", modelName: "claude-3-5-sonnet", remainingPercentage: 5 },
+      ],
       wrapUpDirectives: ["Wrap up running tasks"],
       autoWakeSchedule: {
         targetWakeupIso: new Date(Date.now() + 3600000).toISOString(),
@@ -96,7 +98,10 @@ describe("quota-freeze CLI command", () => {
   test("throws HarnessError on invalid repo path mismatch", async () => {
     const { run } = await setupCompiledRun("quota-freeze-path-safety", roots);
 
-    const fakeRepo = join(tmpdir(), `fake-repo-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    const fakeRepo = join(
+      tmpdir(),
+      `fake-repo-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
     roots.push(fakeRepo);
     mkdirSync(fakeRepo, { recursive: true });
     writeFileSync(join(fakeRepo, "package.json"), "{}", "utf-8");
@@ -184,7 +189,9 @@ describe("quota-freeze CLI command", () => {
       isTriggered: true,
       thresholdPercentage: 10,
       lowestRemainingQuota: 2,
-      constrainedModels: [{ platformId: "anthropic", modelName: "claude-3-5-sonnet", remainingPercentage: 2 }],
+      constrainedModels: [
+        { platformId: "anthropic", modelName: "claude-3-5-sonnet", remainingPercentage: 2 },
+      ],
       wrapUpDirectives: ["Wrap up"],
       autoWakeSchedule: {
         targetWakeupIso: new Date(Date.now() + 3600000).toISOString(),

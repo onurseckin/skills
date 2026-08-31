@@ -56,7 +56,9 @@ export function validateSidebarLayout(
     ? elements.find(
         (e) => e && (e.selector === containerSelector || e.selector.includes(containerSelector)),
       )
-    : elements.find((e) => e && (e.tagName.toUpperCase() === "ASIDE" || e.selector.includes("sidebar")));
+    : elements.find(
+        (e) => e && (e.tagName.toUpperCase() === "ASIDE" || e.selector.includes("sidebar")),
+      );
 
   if (sidebarContainer) {
     const width = sidebarContainer.bounds.width;
@@ -114,7 +116,9 @@ export function validateSidebarLayout(
     const profileSel = sidebarConfig.selectors?.userProfile;
     const profileEl = profileSel
       ? elements.find((e) => e && (e.selector === profileSel || e.selector.includes(profileSel)))
-      : elements.find((e) => e && (e.selector.includes("profile") || e.selector.includes("user-avatar")));
+      : elements.find(
+          (e) => e && (e.selector.includes("profile") || e.selector.includes("user-avatar")),
+        );
 
     if (profileEl && (profileEl.bounds.x > 100 || profileEl.bounds.y < vpHeight - 250)) {
       defects.push({

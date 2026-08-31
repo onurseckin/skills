@@ -107,7 +107,6 @@ describe("Workflow Mutation Interlock Gate", () => {
       expect(resReleased.reason).toContain("has been released");
     });
 
-
     it("rejects unleased agent not present in ledger or tasks", () => {
       const state = {
         schema_version: 1,

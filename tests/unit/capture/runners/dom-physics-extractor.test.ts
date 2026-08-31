@@ -11,7 +11,9 @@ import type {
   ExtractedElementPhysics,
 } from "../../../../olt/scripts/src/capture/runners/types.ts";
 
-function createTestElement(overrides: Partial<ExtractedElementPhysics> = {}): ExtractedElementPhysics {
+function createTestElement(
+  overrides: Partial<ExtractedElementPhysics> = {},
+): ExtractedElementPhysics {
   return {
     selector: "#elem",
     tagName: "div",
@@ -63,7 +65,12 @@ describe("dom-physics-extractor", () => {
           public className: string = "",
           public textContent: string = "",
           private readonly style: Record<string, string> = {},
-          private readonly rect: { x: number; y: number; width: number; height: number } = { x: 0, y: 0, width: 100, height: 50 },
+          private readonly rect: { x: number; y: number; width: number; height: number } = {
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 50,
+          },
           private readonly metrics: Record<string, number> = {},
           private readonly attributes: Record<string, string> = {},
         ) {}
@@ -107,23 +114,40 @@ describe("dom-physics-extractor", () => {
 
       class MockSVGElement extends MockHTMLElement {}
 
-      const elWithId = new MockHTMLElement("BUTTON", "submit-btn", "btn btn-primary hover:bg-blue", "Submit form", {
-        display: "block",
-        position: "relative",
-        zIndex: "10",
-        color: "rgb(0,0,0)",
-        backgroundColor: "rgb(255,255,255)",
-        overflowX: "visible",
-        overflowY: "visible",
-      }, { x: 10, y: 20, width: 120, height: 40 }, {}, { role: "button", "aria-label": "Submit" });
+      const elWithId = new MockHTMLElement(
+        "BUTTON",
+        "submit-btn",
+        "btn btn-primary hover:bg-blue",
+        "Submit form",
+        {
+          display: "block",
+          position: "relative",
+          zIndex: "10",
+          color: "rgb(0,0,0)",
+          backgroundColor: "rgb(255,255,255)",
+          overflowX: "visible",
+          overflowY: "visible",
+        },
+        { x: 10, y: 20, width: 120, height: 40 },
+        {},
+        { role: "button", "aria-label": "Submit" },
+      );
 
-      const elWithClass = new MockHTMLElement("DIV", "", "card card-body active:scale", "Card body text", {
-        display: "flex",
-        position: "static",
-        zIndex: "auto",
-        overflowX: "hidden",
-        overflowY: "hidden",
-      }, { x: 0, y: 0, width: 200, height: 100 }, { scrollWidth: 250, clientWidth: 200, scrollHeight: 150, clientHeight: 100 });
+      const elWithClass = new MockHTMLElement(
+        "DIV",
+        "",
+        "card card-body active:scale",
+        "Card body text",
+        {
+          display: "flex",
+          position: "static",
+          zIndex: "auto",
+          overflowX: "hidden",
+          overflowY: "hidden",
+        },
+        { x: 0, y: 0, width: 200, height: 100 },
+        { scrollWidth: 250, clientWidth: 200, scrollHeight: 150, clientHeight: 100 },
+      );
 
       const elHidden = new MockHTMLElement("SPAN", "", "", "Hidden", {
         display: "none",
@@ -164,10 +188,26 @@ describe("dom-physics-extractor", () => {
         getComputedStyle: mockGetComputedStyle,
       };
 
-      Object.defineProperty(globalThis, "window", { value: mockWindow, configurable: true, writable: true });
-      Object.defineProperty(globalThis, "document", { value: mockDocument, configurable: true, writable: true });
-      Object.defineProperty(globalThis, "HTMLElement", { value: MockHTMLElement, configurable: true, writable: true });
-      Object.defineProperty(globalThis, "SVGElement", { value: MockSVGElement, configurable: true, writable: true });
+      Object.defineProperty(globalThis, "window", {
+        value: mockWindow,
+        configurable: true,
+        writable: true,
+      });
+      Object.defineProperty(globalThis, "document", {
+        value: mockDocument,
+        configurable: true,
+        writable: true,
+      });
+      Object.defineProperty(globalThis, "HTMLElement", {
+        value: MockHTMLElement,
+        configurable: true,
+        writable: true,
+      });
+      Object.defineProperty(globalThis, "SVGElement", {
+        value: MockSVGElement,
+        configurable: true,
+        writable: true,
+      });
 
       try {
         const scriptFn = new Function(`return (${DOM_PHYSICS_EXTRACTION_SCRIPT});`);
@@ -471,7 +511,7 @@ describe("dom-physics-extractor", () => {
         goto: async () => {},
         waitForSelector: async () => {},
         screenshot: async () => Buffer.alloc(0),
-        evaluate: async () => ({ invalid: true } as never),
+        evaluate: async () => ({ invalid: true }) as never,
       };
 
       const snapshot = await extractDomPhysics(driver);

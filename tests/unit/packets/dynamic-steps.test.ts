@@ -110,9 +110,18 @@ describe("dynamic-steps", () => {
     test("categorizes different criterion keywords correctly", () => {
       const requirements = [
         { id: "req-falsify", acceptance: [{ criterion: "Ensure counterfactual falsifiability" }] },
-        { id: "req-boundary", acceptance: [{ criterion: "Verify write_scope boundary confinement" }] },
-        { id: "req-evidence", acceptance: [{ criterion: "Verify artifact proof and digest schema" }] },
-        { id: "req-invariant", acceptance: [{ criterion: "Ensure zero any and typing invariant contract" }] },
+        {
+          id: "req-boundary",
+          acceptance: [{ criterion: "Verify write_scope boundary confinement" }],
+        },
+        {
+          id: "req-evidence",
+          acceptance: [{ criterion: "Verify artifact proof and digest schema" }],
+        },
+        {
+          id: "req-invariant",
+          acceptance: [{ criterion: "Ensure zero any and typing invariant contract" }],
+        },
         { id: "req-generic", acceptance: [{ criterion: "Standard functionality behavior" }] },
       ];
 
@@ -127,7 +136,9 @@ describe("dynamic-steps", () => {
       expect(plan.steps[3].category).toBe("domain_invariant");
       expect(plan.steps[4].category).toBe("criterion_verification");
       expect(plan.mappedRequirementIds).toHaveLength(5);
-      expect(plan.summary).toContain("5 explicit cognitive steps generated for 5 mapped requirements");
+      expect(plan.summary).toContain(
+        "5 explicit cognitive steps generated for 5 mapped requirements",
+      );
     });
 
     test("generates default step if criteria list is empty", () => {
@@ -143,7 +154,9 @@ describe("dynamic-steps", () => {
       expect(plan.totalSteps).toBe(1);
       expect(plan.steps[0].requirementId).toBe("task-123-req");
       expect(plan.steps[0].criterion).toContain("Verify Custom Feature satisfies task contract");
-      expect(plan.summary).toContain("1 explicit cognitive step generated for 1 mapped requirement (1 total acceptance criteria).");
+      expect(plan.summary).toContain(
+        "1 explicit cognitive step generated for 1 mapped requirement (1 total acceptance criteria).",
+      );
     });
 
     test("extracts targetRequirementIds from task with string array requirement_ids", () => {
@@ -152,9 +165,7 @@ describe("dynamic-steps", () => {
           id: "task-456",
           requirement_ids: ["req-a", "req-b", 123 as unknown as string],
         } as unknown as TaskRecord,
-        requirements: [
-          { id: "req-a", acceptance: [{ criterion: "A done" }] },
-        ],
+        requirements: [{ id: "req-a", acceptance: [{ criterion: "A done" }] }],
       });
 
       expect(plan.totalSteps).toBe(2);
@@ -214,9 +225,7 @@ describe("dynamic-steps", () => {
 
   describe("computeDynamicStepCount", () => {
     test("computes step count directly from requirements", () => {
-      const reqs = [
-        { id: "r1", acceptance: [{ criterion: "c1" }, { criterion: "c2" }] },
-      ];
+      const reqs = [{ id: "r1", acceptance: [{ criterion: "c1" }, { criterion: "c2" }] }];
       expect(computeDynamicStepCount(reqs)).toBe(2);
       expect(computeDynamicStepCount(reqs, ["r1", "r2"])).toBe(3);
     });
@@ -227,7 +236,10 @@ describe("dynamic-steps", () => {
       const plan = generateDynamicValidationSteps({
         requirements: [
           { id: "req-1", acceptance: [{ id: "crit-1", criterion: "C1" }] },
-          { id: "req-2", acceptance: [{ id: "crit-2", criterion: "C2", evidence: ["proof.json"] }] },
+          {
+            id: "req-2",
+            acceptance: [{ id: "crit-2", criterion: "C2", evidence: ["proof.json"] }],
+          },
         ],
       });
 
@@ -274,9 +286,7 @@ describe("dynamic-steps", () => {
 
     test("when submittedChecks is empty or not passed, coveredCount equals total steps", () => {
       const plan = generateDynamicValidationSteps({
-        requirements: [
-          { id: "req-1", acceptance: [{ id: "crit-1", criterion: "C1" }] },
-        ],
+        requirements: [{ id: "req-1", acceptance: [{ id: "crit-1", criterion: "C1" }] }],
       });
 
       const res = validateCognitiveStepCoverage(plan, []);

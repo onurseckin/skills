@@ -34,40 +34,42 @@ function resolveRepoRoot(): string {
 
 function getFallbackDefaultPersonas(): Record<UserPersonaRole, UserPersonaConfig> {
   const defaultPolicy = generateCanonicalDefaultPolicy(resolveRepoRoot());
-  return defaultPolicy.docker_environment?.test_user_personas ?? {
-    admin: {
-      role: "admin",
-      email: "admin@olt.local",
-      password_env_var: "OLT_TEST_ADMIN_PASSWORD",
-      display_name: "Test Admin",
-      tenant_id: "tenant-corp-001",
-      permissions: ["*"],
-    },
-    standard_user: {
-      role: "standard_user",
-      email: "user@olt.local",
-      password_env_var: "OLT_TEST_USER_PASSWORD",
-      display_name: "Standard User",
-      tenant_id: "tenant-corp-001",
-      permissions: ["read", "write"],
-    },
-    invited_member: {
-      role: "invited_member",
-      email: "invited@olt.local",
-      password_env_var: "OLT_TEST_INVITED_PASSWORD",
-      display_name: "Invited Member",
-      tenant_id: "tenant-corp-001",
-      permissions: ["read"],
-    },
-    guest: {
-      role: "guest",
-      email: "guest@olt.local",
-      password_env_var: "OLT_TEST_GUEST_PASSWORD",
-      display_name: "Guest Visitor",
-      tenant_id: "tenant-corp-001",
-      permissions: ["public_read"],
-    },
-  };
+  return (
+    defaultPolicy.docker_environment?.test_user_personas ?? {
+      admin: {
+        role: "admin",
+        email: "admin@olt.local",
+        password_env_var: "OLT_TEST_ADMIN_PASSWORD",
+        display_name: "Test Admin",
+        tenant_id: "tenant-corp-001",
+        permissions: ["*"],
+      },
+      standard_user: {
+        role: "standard_user",
+        email: "user@olt.local",
+        password_env_var: "OLT_TEST_USER_PASSWORD",
+        display_name: "Standard User",
+        tenant_id: "tenant-corp-001",
+        permissions: ["read", "write"],
+      },
+      invited_member: {
+        role: "invited_member",
+        email: "invited@olt.local",
+        password_env_var: "OLT_TEST_INVITED_PASSWORD",
+        display_name: "Invited Member",
+        tenant_id: "tenant-corp-001",
+        permissions: ["read"],
+      },
+      guest: {
+        role: "guest",
+        email: "guest@olt.local",
+        password_env_var: "OLT_TEST_GUEST_PASSWORD",
+        display_name: "Guest Visitor",
+        tenant_id: "tenant-corp-001",
+        permissions: ["public_read"],
+      },
+    }
+  );
 }
 
 function resolveEffectivePolicy(policy?: RepoPolicy): RepoPolicy {

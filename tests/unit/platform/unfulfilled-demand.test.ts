@@ -198,7 +198,13 @@ describe("Aggressive Unfulfilled-Demand Pushback Engine", () => {
       },
       graph: {
         nodes: [
-          { id: "task-graph-only", type: "task", status: "proposed", write_scope: ["src/g.ts"], label: "Graph Only" },
+          {
+            id: "task-graph-only",
+            type: "task",
+            status: "proposed",
+            write_scope: ["src/g.ts"],
+            label: "Graph Only",
+          },
         ],
       },
     };
@@ -223,9 +229,7 @@ describe("Aggressive Unfulfilled-Demand Pushback Engine", () => {
 
   test("flags admitted candidates when 0 tasks exist in plan under strictCandidates", () => {
     const state: JsonObject = {
-      candidates: [
-        { id: "cand-1", status: "admitted", write_scope: ["src/c1.ts"] },
-      ],
+      candidates: [{ id: "cand-1", status: "admitted", write_scope: ["src/c1.ts"] }],
     };
 
     const report = evaluateUnfulfilledDemands(state, { strictCandidates: true });
@@ -237,4 +241,3 @@ describe("Aggressive Unfulfilled-Demand Pushback Engine", () => {
     expect(candItem?.rootCause).toContain("no execution tasks were planned or completed");
   });
 });
-

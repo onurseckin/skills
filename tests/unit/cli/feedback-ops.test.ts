@@ -13,7 +13,10 @@ describe("feedback-ops CLI commands", () => {
   let queueFile: string;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `feedback-ops-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    testDir = join(
+      tmpdir(),
+      `feedback-ops-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
     mkdirSync(testDir, { recursive: true });
     queueFile = join(testDir, "feedback.jsonl");
   });

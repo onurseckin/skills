@@ -15,7 +15,10 @@ import { parsePushbackMarkdown } from "../../../olt/scripts/src/mind/feedback/pu
 import { rotateMindGeneration } from "../../../olt/scripts/src/mind/archival/rotate/rotator.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import type { MemoryDocument, MemoryIndex } from "../../../olt/scripts/src/mind/memory/core/types.ts";
+import type {
+  MemoryDocument,
+  MemoryIndex,
+} from "../../../olt/scripts/src/mind/memory/core/types.ts";
 
 const roots: string[] = [];
 
@@ -142,7 +145,9 @@ non_goals:
 
       // Missing or invalid run root
       expect(() => rotateMindGeneration({ sourceRunRoot: "" })).toThrow(HarnessError);
-      expect(() => rotateMindGeneration({ sourceRunRoot: join(tmpDir, "nonexistent") })).toThrow(HarnessError);
+      expect(() => rotateMindGeneration({ sourceRunRoot: join(tmpDir, "nonexistent") })).toThrow(
+        HarnessError,
+      );
 
       // Capsule without state.mind
       const invalidRun = initRun(tmpDir, "run-no-mind", Buffer.from("charter"), "file", true);

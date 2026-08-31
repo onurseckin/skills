@@ -134,9 +134,9 @@ describe("workflow/completion/auto-sync-and-commit", () => {
     }));
     expect(res1.committed).toBe(false);
     expect(res1.pushed).toBe(false); // Push skipped when commit fails
-    expect(res1.logs.some((l) => l.includes("Git commit failed (status 1): nothing to commit"))).toBe(
-      true,
-    );
+    expect(
+      res1.logs.some((l) => l.includes("Git commit failed (status 1): nothing to commit")),
+    ).toBe(true);
     expect(
       res1.logs.some((l) => l.includes("[push] Push skipped because commit was not successful")),
     ).toBe(true);
@@ -190,7 +190,9 @@ describe("workflow/completion/auto-sync-and-commit", () => {
       () => ({ status: 0, stdout: "", stderr: "" }),
     );
     expect(resSkip.pushed).toBe(false);
-    expect(resSkip.logs.some((l) => l.includes("[push] Push skipped (skipPush = true)"))).toBe(true);
+    expect(resSkip.logs.some((l) => l.includes("[push] Push skipped (skipPush = true)"))).toBe(
+      true,
+    );
 
     // Push error with stderr vs stdout
     const pushFailRunner: GitRunner = (args) => {
@@ -203,19 +205,19 @@ describe("workflow/completion/auto-sync-and-commit", () => {
       stderr: "",
     }));
     expect(resFail.pushed).toBe(false);
-    expect(resFail.logs.some((l) => l.includes("Git push failed (status 1): remote rejected"))).toBe(
-      true,
-    );
+    expect(
+      resFail.logs.some((l) => l.includes("Git push failed (status 1): remote rejected")),
+    ).toBe(true);
 
     const pushFailStdoutRunner: GitRunner = (args) => {
       if (args[0] === "push") return { status: 1, stdout: "push stdout err", stderr: "" };
       return { status: 0, stdout: "sha-1", stderr: "" };
     };
-    const resFailStdout = await executeAutoSyncAndCommit(
-      baseOptions,
-      pushFailStdoutRunner,
-      () => ({ status: 0, stdout: "", stderr: "" }),
-    );
+    const resFailStdout = await executeAutoSyncAndCommit(baseOptions, pushFailStdoutRunner, () => ({
+      status: 0,
+      stdout: "",
+      stderr: "",
+    }));
     expect(
       resFailStdout.logs.some((l) => l.includes("Git push failed (status 1): push stdout err")),
     ).toBe(true);

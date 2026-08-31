@@ -114,7 +114,6 @@ describe("track worktree landing pipeline", () => {
       return { status: 0, stdout: "", stderr: "" };
     };
 
-
     const result = landTrackToMain({
       trackId: "track-ff",
       repoRoot: TEST_DIR,

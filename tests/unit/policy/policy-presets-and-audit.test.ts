@@ -18,10 +18,7 @@ import {
   readPythonManifests,
   readTurboJson,
 } from "../../../olt/scripts/src/policy/generator/manifest-readers.ts";
-import {
-  inspectRepoPolicy,
-  loadRepoPolicy,
-} from "../../../olt/scripts/src/policy/repo-policy.ts";
+import { inspectRepoPolicy, loadRepoPolicy } from "../../../olt/scripts/src/policy/repo-policy.ts";
 import { detectRepoEcosystem } from "../../../olt/scripts/src/policy/generator/index.ts";
 
 import {
@@ -126,7 +123,6 @@ describe("Policy Presets, Manifest Readers, Audit, Telemetry & RBAC Runners Comp
       allowed: true,
       target: "src/app.ts",
     });
-
 
     const recent = logger.queryAuditTrail({ limit: 10 });
     expect(recent.length).toBeGreaterThan(0);

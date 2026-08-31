@@ -57,20 +57,16 @@ export function validateDefectStateTransition(
 ): boolean {
   if (currentStatus === targetStatus) return true;
   const allowed = VALID_DEFECT_STATE_TRANSITIONS[currentStatus];
-  if (!allowed || !allowed.includes(targetStatus)) {
-    return false;
-  }
+  if (!allowed) return false;
+  if (!allowed.includes(targetStatus)) return false;
 
   // Reopening completed/resolved/closed defects directly to open/reopened requires empirical failure proof
   if (
-    (currentStatus === "completed" ||
-      currentStatus === "resolved" ||
-      currentStatus === "closed" ||
-      currentStatus === "declined" ||
-      currentStatus === "deliberating") &&
-    (targetStatus === "open" || targetStatus === "reopened")
+    ["completed", "resolved", "closed", "declined", "deliberating"].includes(currentStatus) &&
+    ["open", "reopened"].includes(targetStatus)
   ) {
-    if (!proof) return false;
+    if (proof === undefined) return false;
+    if (proof === null) return false;
     const verification = verifyFailureProof(proof);
     if (!verification.valid) return false;
   }
@@ -86,7 +82,8 @@ export function transitionDefectState(
   targetStatus: DefectStatus | DefectLifecycleStatus,
   proof?: EmpiricalFailureProof,
 ): DefectEntry {
-  const currentStatus = (defect.status as string) || "open";
+  const currentStatus =
+    defect.status !== undefined && defect.status !== "" ? (defect.status as string) : "open";
 
   if (!validateDefectStateTransition(currentStatus, targetStatus, proof)) {
     throw new HarnessError(
@@ -96,13 +93,14 @@ export function transitionDefectState(
   }
 
   const now = new Date().toISOString();
+  const prevCount = defect.count !== undefined ? defect.count : 1;
   return {
     ...defect,
     status: targetStatus as DefectStatus,
     last_seen_at: now,
-    ...(targetStatus === "open" || targetStatus === "reopened"
+    ...(["open", "reopened"].includes(targetStatus)
       ? {
-          count: (defect.count ?? 1) + 1,
+          count: prevCount + 1,
           reopened_at: now,
           ...(proof ? { failure_proof: proof } : {}),
         }
@@ -122,11 +120,14 @@ export function handleDefectRecurrence(
     readonly requireStrictProof?: boolean | undefined;
   } = {},
 ): DefectEntry {
-  const now = options.now ?? new Date().toISOString();
-  const currentStatus = existing.status ?? "open";
-  const count = (existing.count ?? 1) + 1;
+  const now =
+    options.now !== undefined && options.now !== "" ? options.now : new Date().toISOString();
+  const currentStatus =
+    existing.status !== undefined && existing.status !== "" ? existing.status : "open";
+  const prevExistingCount = existing.count !== undefined ? existing.count : 1;
+  const count = prevExistingCount + 1;
 
-  if (currentStatus === "resolved" || currentStatus === "completed" || currentStatus === "closed") {
+  if (["resolved", "completed", "closed"].includes(currentStatus)) {
     if (options.proof) {
       if (options.requireStrictProof) {
         assertFailureProofValid(options.proof);
