@@ -14,7 +14,9 @@ import {
   type ReplayContext,
 } from "../../../olt/scripts/src/reporting/living-tracer/index.ts";
 
-describe("reporting/living-tracer core suite", () => {
+export const livingTracerCoreSuiteName = "reporting/living-tracer core suite";
+
+describe(livingTracerCoreSuiteName, () => {
   it("formats sequence numbers and durations accurately", () => {
     expect(formatSeq(5)).toBe("#005");
     expect(formatSeq(123)).toBe("#123");

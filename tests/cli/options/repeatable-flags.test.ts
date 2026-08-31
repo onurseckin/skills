@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   flagPositions,
@@ -14,7 +15,6 @@ import {
   repeatableFlag,
   requiredFlag,
 } from "../../../olt/scripts/src/cli/registry/index.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
 
 const ENHANCE_FLAGS = [
   requiredFlag("run", "string", "Capsule run root."),
@@ -140,8 +140,7 @@ describe("registry-driven required flags", () => {
   });
 
   test("dispatches a real invocation against an existing capsule", async () => {
-    const repo = scratchRoot(import.meta.path, "repeatable-flags-run-status");
-    mkdirSync(repo, { recursive: true });
+    const repo = mkdtempSync(join(tmpdir(), "repeatable-flags-"));
     const promptPath = join(repo, "prompt.txt");
     writeFileSync(promptPath, "Just enough to dispatch run:status against.");
     const init = await execute([
@@ -155,6 +154,7 @@ describe("registry-driven required flags", () => {
     ]);
     const result = await execute(["plan:status", "--run", init.run_root as string]);
     expect(typeof result.markdown).toBe("string");
+    rmSync(repo, { recursive: true, force: true });
   });
 });
 

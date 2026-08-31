@@ -89,7 +89,7 @@ export function runnerReport(overrides: Record<string, unknown> = {}): Record<st
     },
     suites: [
       {
-        file: "tests/e2e/login.spec.ts",
+        file: "tests/browser/login.spec.ts",
         specs: [
           {
             tests: [

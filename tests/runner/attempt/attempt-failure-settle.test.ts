@@ -11,7 +11,10 @@ import {
   type ProcessIdentity,
 } from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
 
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import { afterAll } from "bun:test";
+
+afterAll(cleanupTempRoots);
 
 const mockOptions: NormalizedCommandOptions = {
   commandId: "cmd-1",
@@ -45,7 +48,7 @@ describe("attempt-failure-settle", () => {
   });
 
   test("startAttemptPumpsAndMonitoring starts custom pumps", async () => {
-    const tempDir = scratchRoot(import.meta.path, "cleanup-pumps");
+    const tempDir = tempRoot("cleanup-pumps");
     const child = {
       stdout: new ReadableStream(),
       stderr: new ReadableStream(),

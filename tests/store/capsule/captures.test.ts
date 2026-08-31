@@ -7,7 +7,7 @@ import {
   recordCaptures,
   type CaptureRecord,
 } from "../../../olt/scripts/src/engine/store/capsule/captures.ts";
-import { scratchRoot as makeScratchRoot } from "../../shared/scratch-root.ts";
+import { scratchRoot as makeScratchRoot } from "../store-fixture.ts";
 
 function scratchRoot(label: string): string {
   return makeScratchRoot(import.meta.path, label);

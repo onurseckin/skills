@@ -64,7 +64,9 @@ async function createMidFlightRun(taskCount = 2): Promise<string> {
   return runRoot;
 }
 
-describe("status actions surfacing", () => {
+export const statusActionsSuiteName = "status actions surfacing";
+
+describe(statusActionsSuiteName, () => {
   test("runStatus returns next_actions and next_argv matching handoff.md for mid-flight capsule", async () => {
     const run = await createMidFlightRun(2);
     const status = runStatus(run);

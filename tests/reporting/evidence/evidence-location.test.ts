@@ -7,7 +7,9 @@ import { UNIFIED_EVIDENCE_DIRECTORY } from "../../../olt/scripts/src/validation/
 
 const SCRATCH_DIR = resolve(join(process.cwd(), "coverage", "scratch", "evidence-location-tests"));
 
-describe("doctor/evidence-location", () => {
+export const evidenceLocationSuiteName = "doctor/evidence-location";
+
+describe(evidenceLocationSuiteName, () => {
   beforeEach(() => {
     rmSync(SCRATCH_DIR, { recursive: true, force: true });
     mkdirSync(SCRATCH_DIR, { recursive: true });

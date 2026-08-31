@@ -35,7 +35,7 @@ export function requireTurn1Registration(session: SessionIdentity): void {
   const trimmed = session.run_id.trim();
   let statePath = join(trimmed, "state.json");
   let resolved = trimmed;
-  if (!existsSync(statePath)) {
+  if (!existsSync(statePath) && !io.getInMemorySessionData(statePath)) {
     const candidates = [
       join(process.cwd(), ".olt", "capsules", trimmed),
       join(process.cwd(), "capsules", trimmed),
@@ -55,14 +55,14 @@ export function requireTurn1Registration(session: SessionIdentity): void {
       );
     } catch {}
     for (const cand of candidates) {
-      if (existsSync(join(cand, "state.json"))) {
+      if (existsSync(join(cand, "state.json")) || io.getInMemorySessionData(join(cand, "state.json"))) {
         resolved = resolve(cand);
         statePath = join(resolved, "state.json");
         break;
       }
     }
   }
-  if (!existsSync(statePath)) {
+  if (!existsSync(statePath) && !io.getInMemorySessionData(statePath)) {
     throw new HarnessError(
       "INVALID_STATE",
       `capsule state.json not found for run '${session.run_id}' at ${resolved}; execute run:init first`,

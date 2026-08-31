@@ -9,13 +9,13 @@ import { renderHandoff, writeHandoff } from "../../../olt/scripts/src/reporting/
 import { renderPreplanHandoff } from "../../../olt/scripts/src/reporting/preplan-handoff.ts";
 import { runStatus } from "../../../olt/scripts/src/reporting/status.ts";
 import { runStatusCommand } from "../../../olt/scripts/src/cli/commands/run-ops.ts";
-import { repositoryBinding, commandRecord } from "../../workflow/test-port.ts";
+import { repositoryBinding, commandRecord } from "../../workflow/shared/test-port.ts";
 import { orphanEvidenceSha256 } from "../../../olt/scripts/src/workflow/orphan-evidence/digest.ts";
 import { dispatchFailures, handoffArgv } from "./dispatchable.ts";
 import { generateLeasesReport } from "../../../olt/scripts/src/reporting/unified/index.ts";
 
 const roots: string[] = [];
-const skillRoot = fileURLToPath(new URL("../../../../olt", import.meta.url));
+const skillRoot = join(process.cwd(), "olt");
 const gateEvidence = {
   assurance: "trusted_host_observed_v1",
   sandboxed: false,
@@ -61,7 +61,9 @@ async function fixture() {
   return runRoot;
 }
 
-describe("status handoff and doctor", () => {
+export const reportingSuiteName = "status handoff and doctor";
+
+describe(reportingSuiteName, () => {
   test("hands off an interrupted pre-plan capsule with recoverable planner argv", async () => {
     const repo = await mkdtemp(join(tmpdir(), "harness-preplan-report-"));
     roots.push(repo);

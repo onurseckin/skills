@@ -2,7 +2,10 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { executePreparedCommand } from "../../../olt/scripts/src/engine/runner/models/execution/run-command.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { tempRoot, cleanupTempRoots } from "./fixture.ts";
+import { afterAll } from "bun:test";
+
+afterAll(cleanupTempRoots);
 import type { InternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 import type {
   CommandResult,
@@ -10,7 +13,7 @@ import type {
 } from "../../../olt/scripts/src/engine/runner/types/types.ts";
 
 const runCommandModule = new URL(
-  "../../../../olt/scripts/src/engine/runner/models/execution/run-command.ts",
+  "../../../olt/scripts/src/engine/runner/models/execution/run-command.ts",
   import.meta.url,
 ).href;
 
@@ -73,7 +76,7 @@ function childContenderProgram(
 
 describe("run-command broad scope mutex contenders and signals", () => {
   test("does not install process signal listeners during repeated broad runs", async () => {
-    const repo = scratchRoot(import.meta.path, "mutex-listeners");
+    const repo = tempRoot("mutex-listeners");
     const signals = ["exit", "SIGINT", "SIGTERM"] as const;
     const before = signals.map((signal) => process.listenerCount(signal));
     for (let iteration = 0; iteration < 2; iteration += 1) {
@@ -88,7 +91,7 @@ describe("run-command broad scope mutex contenders and signals", () => {
   });
 
   test("allows only one of two real child contenders to enter a held broad run", async () => {
-    const repo = scratchRoot(import.meta.path, "mutex-child-contenders");
+    const repo = tempRoot("mutex-child-contenders");
     const marker = join(repo, "marker.log");
     const release = join(repo, "release");
     const first = Bun.spawn(
@@ -117,7 +120,7 @@ describe("run-command broad scope mutex contenders and signals", () => {
   });
 
   test("kernel releases a crash holder's flock for a later broad run", async () => {
-    const repo = scratchRoot(import.meta.path, "mutex-crash-release");
+    const repo = tempRoot("mutex-crash-release");
     const marker = join(repo, "crash-marker.log");
     const child = Bun.spawn(
       [process.execPath, "--eval", childContenderProgram(repo, marker, join(repo, "unused"), true)],

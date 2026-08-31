@@ -42,7 +42,13 @@ describe("test output evidence", () => {
 
   test("classifies complete bounded streams rather than an output tail", () => {
     const stdout = bytes(`filters did not match any test files\n${"x".repeat(16_384)}`);
-    expect(outputEvidenceIssues(["bun", "test", "tests/unit.test.ts"], stdout, bytes(""))).toEqual([
+    expect(
+      outputEvidenceIssues(
+        ["bun", "test", "tests/runner/receipt/output-evidence.test.ts"],
+        stdout,
+        bytes(""),
+      ),
+    ).toEqual([
       "test command discovered zero tests",
     ]);
   });

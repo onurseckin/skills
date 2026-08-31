@@ -20,7 +20,9 @@ function record(overrides: Partial<BrowserRunRecord> = {}): BrowserRunRecord {
   return { command_id: "C-1", evidence_classes: {}, ...overrides };
 }
 
-describe("browser run scanner", () => {
+export const browserRunScannerStoreSuiteName = "browser run scanner";
+
+describe(browserRunScannerStoreSuiteName, () => {
   test("finds a report nested under a recognised results directory, skipping node_modules", () => {
     const dir = tempDir("scanner-nested");
     mkdirSync(join(dir, "cypress", "results", "nested"), { recursive: true });

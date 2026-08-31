@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { normalizeVisualReport } from "../../../olt/scripts/src/reporting/visual-report.ts";
 
-describe("normalizeVisualReport", () => {
+export const visualReportSuiteName = "normalizeVisualReport";
+
+describe(visualReportSuiteName, () => {
   test("returns null for anything that is not a plain object", () => {
     expect(normalizeVisualReport(null, "2026-08-19T00:00:00.000Z")).toBeNull();
     expect(normalizeVisualReport("string", undefined)).toBeNull();

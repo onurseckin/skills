@@ -3,7 +3,9 @@ import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.t
 import { orphanEvidenceSha256 } from "../../../olt/scripts/src/workflow/orphan-evidence/digest.ts";
 import { actions, view } from "./actions-fixture.ts";
 
-describe("completion argv after every task is done", () => {
+export const completionActionsSuiteName = "completion argv after every task is done";
+
+describe(completionActionsSuiteName, () => {
   const done = (overrides: JsonObject = {}) => view("done", overrides);
   const withRunGate = {
     commands: [

@@ -15,7 +15,10 @@ import {
   executePreparedCommand,
   setExecutionLockDependenciesForTesting,
 } from "../../../olt/scripts/src/engine/runner/models/execution/run-command.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { tempRoot, cleanupTempRoots } from "./fixture.ts";
+import { afterAll } from "bun:test";
+
+afterAll(cleanupTempRoots);
 import type { InternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 import type {
   CommandResult,
@@ -42,7 +45,7 @@ function broadRunner(onExecute: () => Promise<CommandResult>): InternalCommandRu
 
 describe("run-command broad scope test detection and mutex basic lock", () => {
   test("keeps a persistent regular lock inode after a broad run releases it", async () => {
-    const repo = scratchRoot(import.meta.path, "mutex-broad-test");
+    const repo = tempRoot("mutex-broad-test");
     const lockFile = join(repo, ".olt", ".locks", "execution.lock");
 
     let ran = false;
@@ -58,7 +61,7 @@ describe("run-command broad scope test detection and mutex basic lock", () => {
   });
 
   test("executePreparedCommand bypasses mutex for targeted file-scoped runs", async () => {
-    const repo = scratchRoot(import.meta.path, "mutex-targeted-test");
+    const repo = tempRoot("mutex-targeted-test");
     const lockFile = join(repo, ".olt", ".locks", "execution.lock");
 
     let ran = false;
@@ -76,7 +79,7 @@ describe("run-command broad scope test detection and mutex basic lock", () => {
   });
 
   test("treats malformed stale PID text as irrelevant after flock acquisition", async () => {
-    const repo = scratchRoot(import.meta.path, "mutex-stale-pid");
+    const repo = tempRoot("mutex-stale-pid");
     const lockDir = join(repo, ".olt", ".locks");
     mkdirSync(lockDir, { recursive: true });
     writeFileSync(join(lockDir, "execution.lock"), "not-a-pid", "utf-8");
@@ -93,7 +96,7 @@ describe("run-command broad scope test detection and mutex basic lock", () => {
   });
 
   test("refuses a final-component symlink without touching its target or running", async () => {
-    const repo = scratchRoot(import.meta.path, "mutex-symlink");
+    const repo = tempRoot("mutex-symlink");
     const lockDir = join(repo, ".olt", ".locks");
     mkdirSync(lockDir, { recursive: true });
     const target = join(repo, "outside-lock-target");
@@ -115,7 +118,7 @@ describe("run-command broad scope test detection and mutex basic lock", () => {
   });
 
   test("fails closed for a wrong-kind lock node and injected unreadable lock open", async () => {
-    const repo = scratchRoot(import.meta.path, "mutex-wrong-kind");
+    const repo = tempRoot("mutex-wrong-kind");
     const lockFile = join(repo, ".olt", ".locks", "execution.lock");
     mkdirSync(lockFile, { recursive: true });
     let ran = false;
@@ -130,7 +133,7 @@ describe("run-command broad scope test detection and mutex basic lock", () => {
     ).rejects.toMatchObject({ code: "PATH_SAFETY" });
     expect(ran).toBe(false);
 
-    const unreadableRepo = scratchRoot(import.meta.path, "mutex-unreadable");
+    const unreadableRepo = tempRoot("mutex-unreadable");
     const restore = setExecutionLockDependenciesForTesting({
       openLockFile() {
         const denied = Object.assign(new Error("denied"), { code: "EACCES" });
@@ -154,7 +157,7 @@ describe("run-command broad scope test detection and mutex basic lock", () => {
   });
 
   test("releases after runner failure so a later broad run can acquire the same inode", async () => {
-    const repo = scratchRoot(import.meta.path, "mutex-runner-failure");
+    const repo = tempRoot("mutex-runner-failure");
     await expect(
       executePreparedCommand(
         broadPrepared(repo),
@@ -175,7 +178,7 @@ describe("run-command broad scope test detection and mutex basic lock", () => {
   });
 
   test("preserves an undefined runner failure when cleanup also fails", async () => {
-    const repo = scratchRoot(import.meta.path, "mutex-undefined-runner-failure");
+    const repo = tempRoot("mutex-undefined-runner-failure");
     const restore = setExecutionLockDependenciesForTesting({
       releaseFlock(descriptor) {
         releaseNativeFlock(descriptor);

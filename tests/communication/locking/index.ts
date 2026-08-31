@@ -1,0 +1,26 @@
+export {
+  DEFAULT_LOCK_TIMEOUT_MS,
+  DEFAULT_RETRY_INTERVAL_MS,
+  DEFAULT_STALE_THRESHOLD_MS,
+  acquireMailboxLock,
+  acquireMailboxLockAsync,
+  delay,
+  getInMemoryLock,
+  isInMemoryLocking,
+  isProcessAlive,
+  parseLockPayload,
+  readHolderPid,
+  reclaimStaleLocks,
+  releaseMailboxLock,
+  removeInMemoryLock,
+  resetInMemoryLocks,
+  seedInMemoryLock,
+  setInMemoryLocking,
+  withExclusiveLock,
+  withExclusiveLockAsync,
+} from "../../../olt/scripts/src/communication/locking/index.ts";
+export type {
+  AdvisoryLockOptions,
+  LockPayload,
+  ReclaimedLockInfo,
+} from "../../../olt/scripts/src/communication/types.ts";

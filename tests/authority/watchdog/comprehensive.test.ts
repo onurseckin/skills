@@ -1,0 +1,200 @@
+import { describe, expect, test } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+  cleanupPreviousPhaseWatchdogs,
+  cleanupStaleWatchdogs,
+  createDefaultWatchdogStore,
+  heartbeatWatchdog,
+  listWatchdogs,
+  loadWatchdogStore,
+  parseTimestamp,
+  registerWatchdog,
+  renderAsciiWatchdogTable,
+  resolveWatchdogStorePath,
+  saveWatchdogStore,
+  setWatchdogLockTimingForTesting,
+  terminatePhaseWatchdogs,
+  terminateWatchdog,
+  verifyWatchdogLifecycle,
+  type WatchdogRecord,
+  type WatchdogStore,
+} from "../../../olt/scripts/src/authority/watchdog/index.ts";
+import { delay, openVerifiedParent } from "../../../olt/scripts/src/authority/watchdog/lock.ts";
+
+describe("Authority Watchdog Store, Lock, Operations & Verification Comprehensive", () => {
+  test("setWatchdogLockTimingForTesting timing boundaries and delay utility", () => {
+    expect(() => setWatchdogLockTimingForTesting(-1, 10)).toThrow(
+      "must be finite and non-negative",
+    );
+    expect(() => setWatchdogLockTimingForTesting(100, -5)).toThrow(
+      "must be finite and non-negative",
+    );
+
+    const restore = setWatchdogLockTimingForTesting(500, 5);
+    expect(typeof restore).toBe("function");
+    restore();
+
+    expect(() => delay(1)).not.toThrow();
+  });
+
+  test("resolveWatchdogStorePath, createDefaultWatchdogStore and parseTimestamp edge cases", () => {
+    expect(createDefaultWatchdogStore().watchdogs).toEqual([]);
+    expect(parseTimestamp(123456789)).toBe(123456789);
+    expect(parseTimestamp(new Date("2026-08-31T00:00:00Z"))).toBe(
+      new Date("2026-08-31T00:00:00Z").getTime(),
+    );
+    expect(parseTimestamp(undefined)).toBeGreaterThan(0);
+  });
+
+  test("watchdog store lock, openVerifiedParent and save/load validations", () => {
+    const sandbox = mkdtempSync(join(tmpdir(), "watchdog-lock-test-"));
+    const subDir = join(sandbox, "nested-store");
+    mkdirSync(subDir, { recursive: true });
+
+    try {
+      const parent = openVerifiedParent(subDir, false);
+      expect(parent.descriptor).toBeGreaterThan(0);
+      expect(parent.metadata.isDirectory()).toBe(true);
+
+      const storeFile = join(subDir, "watchdogs.json");
+      const store = createDefaultWatchdogStore();
+      saveWatchdogStore(store, storeFile);
+      const loaded = loadWatchdogStore(storeFile);
+      expect(loaded.schema).toBe("harness.watchdog_store");
+      expect(loaded.watchdogs.length).toBe(0);
+    } finally {
+      rmSync(sandbox, { recursive: true, force: true });
+    }
+  });
+
+  test("registerWatchdog, heartbeatWatchdog, terminateWatchdog, listWatchdogs lifecycle", () => {
+    const sandbox = mkdtempSync(join(tmpdir(), "watchdog-ops-test-"));
+    const storePath = join(sandbox, "watchdogs.json");
+
+    try {
+      const result = registerWatchdog(
+        {
+          pulse_id: "pulse-gen-1",
+          phase: "planning",
+          generation: 1,
+          agent_id: "watchdog_agent_1",
+          run_root: sandbox,
+          pid: process.pid,
+          heartbeat_cadence_ms: 60_000,
+          timeout_ms: 120_000,
+          metadata: { purpose: "test-lifecycle" },
+        },
+        storePath,
+      );
+
+      const record = result.watchdog;
+      expect(record.id).toBeDefined();
+      expect(record.status).toBe("active");
+      expect(record.generation).toBe(1);
+      expect(record.pulse_id).toBe("pulse-gen-1");
+      expect(record.metadata?.purpose).toBe("test-lifecycle");
+
+      const updated = heartbeatWatchdog(record.id, { now: new Date().toISOString() }, storePath);
+      expect(updated.id).toBe(record.id);
+      expect(updated.status).toBe("active");
+
+      expect(() => heartbeatWatchdog("non-existent-wd", {}, storePath)).toThrow("watchdog not found");
+
+      const all = listWatchdogs({}, storePath);
+      expect(all.length).toBe(1);
+      expect(listWatchdogs({ status: "active" }, storePath).length).toBe(1);
+      expect(listWatchdogs({ status: "terminated" }, storePath).length).toBe(0);
+      expect(listWatchdogs({ pulse_id: "pulse-gen-1" }, storePath).length).toBe(1);
+      expect(listWatchdogs({ phase: "planning" }, storePath).length).toBe(1);
+      expect(listWatchdogs({ generation: 1 }, storePath).length).toBe(1);
+
+      const terminated = terminateWatchdog(
+        record.id,
+        { reason: "phase completed successfully" },
+        storePath,
+      );
+      expect(terminated.status).toBe("terminated");
+      expect(terminated.termination_reason).toBe("phase completed successfully");
+
+      expect(() => terminateWatchdog("non-existent-wd", {}, storePath)).toThrow("watchdog not found");
+
+      const phase2Result = registerWatchdog(
+        {
+          pulse_id: "pulse-gen-1",
+          phase: "planning",
+          generation: 1,
+          agent_id: "watchdog_agent_2",
+          run_root: sandbox,
+          pid: process.pid,
+        },
+        storePath,
+      );
+      expect(phase2Result.watchdog.status).toBe("active");
+
+      const phaseTerminated = terminatePhaseWatchdogs(
+        { phase: "planning", reason: "advancing phase" },
+        storePath,
+      );
+      expect(phaseTerminated.terminatedCount).toBe(1);
+
+      const prevPhaseCleaned = cleanupPreviousPhaseWatchdogs(
+        { currentPhase: "execution", pulse_id: "pulse-gen-1" },
+        storePath,
+      );
+      expect(prevPhaseCleaned.terminatedCount).toBe(0);
+
+      const staleCleaned = cleanupStaleWatchdogs({ maxAgeMs: 0 }, storePath);
+      expect(staleCleaned.cleanedCount).toBeGreaterThanOrEqual(0);
+    } finally {
+      rmSync(sandbox, { recursive: true, force: true });
+    }
+  });
+
+  test("verifyWatchdogLifecycle and renderAsciiWatchdogTable", () => {
+    const sandbox = mkdtempSync(join(tmpdir(), "watchdog-verify-test-"));
+    const storePath = join(sandbox, "watchdogs.json");
+
+    try {
+      const store: WatchdogStore = {
+        schema: "harness.watchdog_store",
+        version: 1,
+        updated_at: "2026-08-31T00:00:00Z",
+        watchdogs: [
+          {
+            id: "wd-overdue-1",
+            generation: 1,
+            pulse_id: "pulse-1",
+            phase: "loop",
+            run_id: "run-1",
+            run_root: sandbox,
+            agent_id: "wd-agent-1",
+            pid: 1234,
+            ppid: 1111,
+            started_at: "2026-08-31T00:00:00Z",
+            last_heartbeat_at: "2026-08-31T00:00:00Z",
+            heartbeat_cadence_ms: 10_000,
+            timeout_ms: 20_000,
+            status: "active",
+            terminated_at: null,
+            termination_reason: null,
+          },
+        ],
+      };
+      saveWatchdogStore(store, storePath);
+
+      const verified = verifyWatchdogLifecycle(
+        { now: "2026-08-31T00:01:00Z" },
+        storePath,
+      );
+      expect(verified.valid).toBe(false);
+      expect(verified.violations.length).toBeGreaterThan(0);
+
+      const table = renderAsciiWatchdogTable(store.watchdogs);
+      expect(table).toContain("wd-overdue-1");
+    } finally {
+      rmSync(sandbox, { recursive: true, force: true });
+    }
+  });
+});

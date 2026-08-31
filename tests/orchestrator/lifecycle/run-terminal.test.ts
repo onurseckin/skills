@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { isRunTerminal } from "../../../olt/scripts/src/orchestrator/run-terminal.ts";
-import { repositoryBinding, workflowState } from "../../workflow/test-port.ts";
+import { repositoryBinding, workflowState } from "../../workflow/shared/test-port.ts";
 
 describe("isRunTerminal", () => {
   test("a run with no tasks at all is not terminal", () => {

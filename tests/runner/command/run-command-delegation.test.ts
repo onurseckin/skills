@@ -9,7 +9,10 @@ import type {
   CommandResult,
   PreparedCommand,
 } from "../../../olt/scripts/src/engine/runner/types/types.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { tempRoot, cleanupTempRoots } from "./fixture.ts";
+import { afterAll } from "bun:test";
+
+afterAll(cleanupTempRoots);
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -21,7 +24,7 @@ import { join } from "node:path";
 
 describe("prepareCommand / executePreparedCommand delegation", () => {
   test("prepareCommand forwards its input to the supplied runner unchanged and returns its result", async () => {
-    const repo = scratchRoot(import.meta.path, "delegation-prepare");
+    const repo = tempRoot("delegation-prepare");
     const runtimeDir = join(repo, "runtime");
     mkdirSync(runtimeDir, { recursive: true });
     writeFileSync(

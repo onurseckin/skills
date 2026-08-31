@@ -2,7 +2,10 @@ import { describe, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { prepareCommand } from "../../../olt/scripts/src/engine/runner/models/execution/run-command.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { tempRoot, cleanupTempRoots } from "./fixture.ts";
+import { afterAll } from "bun:test";
+
+afterAll(cleanupTempRoots);
 import type { InternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 import type {
   CommandOptions,
@@ -12,7 +15,7 @@ import type {
 
 describe("prepareCommand authorization & RBAC", () => {
   test("throws ROLE_BOUNDARY_VIOLATION when actor metadata is missing", async () => {
-    const repo = scratchRoot(import.meta.path, "prepare-missing-actor");
+    const repo = tempRoot("prepare-missing-actor");
     const fakeRunner: InternalCommandRunner = {
       prepareCommand: async (opts) => ({
         commandRoot: "root",
@@ -37,7 +40,7 @@ describe("prepareCommand authorization & RBAC", () => {
   });
 
   test("throws when command is not authorized by RBAC policy", async () => {
-    const repo = scratchRoot(import.meta.path, "prepare-unauthorized");
+    const repo = tempRoot("prepare-unauthorized");
     const runtimeDir = join(repo, "runtime");
     mkdirSync(runtimeDir, { recursive: true });
     writeFileSync(

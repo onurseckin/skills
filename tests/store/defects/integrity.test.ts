@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { canonicalJsonBytes } from "../../../olt/scripts/src/core/json.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
 import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/integrity/integrity.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { scratchRoot } from "../store-fixture.ts";
 
 function freshRun(label: string): string {
   const repo = scratchRoot(import.meta.path, label);

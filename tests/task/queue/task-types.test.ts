@@ -22,6 +22,11 @@ import {
   type TaskQueueStats,
   type TaskSourceType,
 } from "../../../olt/scripts/src/task/queue/types.ts";
+import {
+  createSampleQueueItemInput,
+  createSampleActiveQueueItem,
+  TASK_QUEUE_SUITES,
+} from "./index.ts";
 
 describe("Task Queue Types & Schema Validation", () => {
   it("defines standard task statuses and priorities", () => {
@@ -200,7 +205,7 @@ describe("Task Queue Types & Schema Validation", () => {
       exit_code: 0,
       cognitive_verdict: "PASS",
       proof_summary: "All 10 unit tests pass",
-      test_path: "tests/unit/feature.test.ts",
+      test_path: "tests/feature.test.ts",
       assertions: 25,
       runtime_ms: 150,
       commit_sha: "abc1234",
@@ -216,5 +221,11 @@ describe("Task Queue Types & Schema Validation", () => {
     };
     expect(input.id).toBe("task-new");
     expect(input.write_scope).toEqual(["src/new.ts"]);
+
+    const sampleInput = createSampleQueueItemInput();
+    expect(sampleInput.taskId).toBe("task-test-01");
+    const activeItem = createSampleActiveQueueItem();
+    expect(activeItem.taskId).toBe("task-active-01");
+    expect(TASK_QUEUE_SUITES.length).toBe(6);
   });
 });

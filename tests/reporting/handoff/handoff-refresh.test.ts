@@ -21,7 +21,9 @@ import { CHANGED_FILE, setupRun, TASK_ID } from "../../cli/probe-fixture.ts";
 const roots: string[] = [];
 afterEach(async () => cleanupRoots(roots));
 
-describe("refreshHandoff", () => {
+export const handoffRefreshSuiteName = "refreshHandoff";
+
+describe(handoffRefreshSuiteName, () => {
   test("a run that cannot be rendered yields undefined instead of throwing", () => {
     expect(refreshHandoff("/nonexistent/run/root/for/sure")).toBeUndefined();
   });

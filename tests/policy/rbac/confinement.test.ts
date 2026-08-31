@@ -58,7 +58,7 @@ describe("RBAC Role Confinement & Fail-Closed Enforcement", () => {
       "UNBOUNDED_TEST_RUNNER_FORBIDDEN",
     );
     expect(
-      verifyCommandAuthorization(imp, "bun test tests/unit/foo.test.ts", samplePolicy).authorized,
+      verifyCommandAuthorization(imp, "bun test tests/policy/foo.test.ts", samplePolicy).authorized,
     ).toBe(true);
     expect(
       verifyCommandAuthorization(imp, ["curl", "https://example.test"], samplePolicy).error_code,

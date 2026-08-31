@@ -137,7 +137,7 @@ describe("Invariants & Cleanliness Audit - Runner Watchdog", () => {
     const { readFileSync } = require("node:fs");
     const { join } = require("node:path");
     const sourceFiles = [
-      join(__dirname, "../../../../olt/scripts/src/engine/runner/telemetry/watchdog.ts"),
+      join(process.cwd(), "olt/scripts/src/engine/runner/telemetry/watchdog.ts"),
       __filename,
     ];
 

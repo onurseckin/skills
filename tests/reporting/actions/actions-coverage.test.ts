@@ -26,7 +26,9 @@ const text = (branches: readonly BranchView[]) =>
     .argv.map((argv) => argv.join(" "))
     .join("\n");
 
-describe("registry-resolved argv", () => {
+export const actionsCoverageSuiteName = "registry-resolved argv";
+
+describe(actionsCoverageSuiteName, () => {
   test("the guard itself refuses argv that names nothing runnable", () => {
     expect(dispatchFailure(["node", ENTRYPOINT, "run:status"])).toContain(
       "does not start with bun",

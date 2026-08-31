@@ -22,7 +22,8 @@ import {
   withTaskQueueTransaction,
   type TaskQueueItem,
 } from "../../../olt/scripts/src/task/queue/index.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
 
 function createMockTask(id: string, title = "Test Task"): TaskQueueItem {
   return {
@@ -48,14 +49,14 @@ function createMockTask(id: string, title = "Test Task"): TaskQueueItem {
 
 describe("Task Queue Storage and Locking (task-storage.test.ts)", () => {
   test("loadTaskQueue returns empty array when file does not exist", () => {
-    const sandbox = scratchRoot(import.meta.path, "non-existent-file");
+    const sandbox = mkdtempSync(join(tmpdir(), "task-storage-"));
     const nonExistentPath = join(sandbox, "missing.jsonl");
     const tasks = loadTaskQueue(nonExistentPath);
     expect(tasks).toEqual([]);
   });
 
   test("saveTaskQueue writes tasks atomically and loadTaskQueue deserializes accurately", () => {
-    const sandbox = scratchRoot(import.meta.path, "save-load-roundtrip");
+    const sandbox = mkdtempSync(join(tmpdir(), "task-storage-"));
     const queueFile = join(sandbox, "tasks.jsonl");
 
     const t1 = createMockTask("task-1", "Task 1");
@@ -74,7 +75,7 @@ describe("Task Queue Storage and Locking (task-storage.test.ts)", () => {
   });
 
   test("clearTaskQueue resets queue to empty file", () => {
-    const sandbox = scratchRoot(import.meta.path, "clear-queue");
+    const sandbox = mkdtempSync(join(tmpdir(), "task-storage-"));
     const queueFile = join(sandbox, "tasks.jsonl");
 
     saveTaskQueue([createMockTask("task-1")], queueFile);
@@ -86,7 +87,7 @@ describe("Task Queue Storage and Locking (task-storage.test.ts)", () => {
   });
 
   test("loadTaskQueue throws INTEGRITY error on corrupted JSONL line", () => {
-    const sandbox = scratchRoot(import.meta.path, "corrupted-jsonl");
+    const sandbox = mkdtempSync(join(tmpdir(), "task-storage-"));
     const queueFile = join(sandbox, "corrupt.jsonl");
 
     writeFileSync(queueFile, "{ not valid json }\n", "utf8");
@@ -100,7 +101,7 @@ describe("Task Queue Storage and Locking (task-storage.test.ts)", () => {
   });
 
   test("loadTaskQueue throws INTEGRITY on symlink queue file", () => {
-    const sandbox = scratchRoot(import.meta.path, "symlink-guard");
+    const sandbox = mkdtempSync(join(tmpdir(), "task-storage-"));
     const targetFile = join(sandbox, "real-target.jsonl");
     const symlinkFile = join(sandbox, "symlink.jsonl");
 
@@ -117,7 +118,7 @@ describe("Task Queue Storage and Locking (task-storage.test.ts)", () => {
   });
 
   test("loadTaskQueue throws INTEGRITY on hardlink queue file", () => {
-    const sandbox = scratchRoot(import.meta.path, "hardlink-guard");
+    const sandbox = mkdtempSync(join(tmpdir(), "task-storage-"));
     const original = join(sandbox, "original.jsonl");
     const hardlink = join(sandbox, "hardlink.jsonl");
 
@@ -129,7 +130,7 @@ describe("Task Queue Storage and Locking (task-storage.test.ts)", () => {
   });
 
   test("cleanStaleTempFiles removes matching temp files older than maxAgeMs and preserves fresh files", () => {
-    const sandbox = scratchRoot(import.meta.path, "clean-stale-temps");
+    const sandbox = mkdtempSync(join(tmpdir(), "task-storage-"));
     mkdirSync(sandbox, { recursive: true });
 
     const stale1 = join(sandbox, ".task-queue.12345.abc123tmp.tmp");
@@ -155,13 +156,13 @@ describe("Task Queue Storage and Locking (task-storage.test.ts)", () => {
   });
 
   test("cleanStaleTempFiles returns 0 for non-existent directory", () => {
-    const sandbox = scratchRoot(import.meta.path, "clean-missing-dir");
+    const sandbox = mkdtempSync(join(tmpdir(), "task-storage-"));
     const nonExistent = join(sandbox, "does-not-exist-dir");
     expect(cleanStaleTempFiles(nonExistent)).toBe(0);
   });
 
   test("withTaskQueueLock executes sync and async mutations cleanly", async () => {
-    const sandbox = scratchRoot(import.meta.path, "lock-execution");
+    const sandbox = mkdtempSync(join(tmpdir(), "task-storage-"));
     const queueFile = join(sandbox, "tasks.jsonl");
 
     const syncResult = await withTaskQueueLock(queueFile, () => {
@@ -181,7 +182,7 @@ describe("Task Queue Storage and Locking (task-storage.test.ts)", () => {
   });
 
   test("withTaskQueueLock releases lock cleanly when callback throws", async () => {
-    const sandbox = scratchRoot(import.meta.path, "lock-error-handling");
+    const sandbox = mkdtempSync(join(tmpdir(), "task-storage-"));
     const queueFile = join(sandbox, "tasks.jsonl");
 
     let caughtError: unknown;

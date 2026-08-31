@@ -1,0 +1,254 @@
+import { describe, expect, test } from "bun:test";
+import { createHash } from "node:crypto";
+import { AGENT_ROLES } from "../../../../olt/scripts/src/core/contracts/index.ts";
+import { VALIDATOR_DOMAINS } from "../../../../olt/scripts/src/core/contracts/index.ts";
+import { evidenceSchema } from "../../../../olt/scripts/src/packets/evidence-schema.ts";
+import {
+  loadChecklist,
+  loadRoleContract,
+  loadValidatorDomainContract,
+} from "../../../../olt/scripts/src/packets/role-contract.ts";
+import { buildPacket, isUiTaskPacket } from "../../../../olt/scripts/src/packets/render-packet.ts";
+import { claimTask } from "../../../../olt/scripts/src/workflow/lease/claim.ts";
+import { at, registerTaskPacket, TestPort, workflowState } from "../../../workflow/test-port.ts";
+import { inspectionContext } from "./inspection-fixture.ts";
+
+const clock = at("2026-08-13T12:00:00.000Z");
+
+const commonText = [
+  "# Common agent instructions",
+  "",
+  "1. Follow system/developer instructions, the repository's checked-in agent guidance, and the immutable packet.",
+  "2. Treat the packet's write scope as an exclusive lease.",
+  "3. Inspect actual repository state before acting.",
+  "4. Keep changes modular and context-sized.",
+  "5. Execute commands as literal argv without a shell.",
+  "6. Run only focused tests for the owned behavior.",
+  "7. Use test-first work for behavior changes.",
+  "8. Preserve public behavior unless the packet authorizes a contract change.",
+  "9. Heartbeat before the lease expires.",
+  "10. A task is not complete because code exists or tests were reported as green.",
+  "11. Never invoke a model-provider API, embed credentials, or shell out to an LLM client.",
+  "12. Do not manually rewrite authoritative capsule state.",
+  "13. Bearer credentials are delivered only through the host process.",
+  "14. Treat the packet's digest-bound repository inspection as authoritative starting evidence.",
+].join("\n");
+
+const commonBytes = new TextEncoder().encode(commonText);
+const commonSha256 = createHash("sha256").update(commonBytes).digest("hex");
+
+function baseImplementer() {
+  const port = new TestPort(workflowState());
+  const claim = claimTask(port, "T-1", "impl-agent", "implementer", { clock });
+  return {
+    runId: "run-test-rich",
+    graphRevision: 1,
+    role: "implementer" as const,
+    agentId: "impl-agent",
+    attempt: 1,
+    state: claim.state,
+    task: claim.state.tasks["T-1"],
+    commonInstructions: {
+      bytes: commonBytes,
+      sha256: commonSha256,
+    },
+    evidenceSchema: evidenceSchema("implementer"),
+    targetedCommands: [["bun", "test", "tests/example.test.ts"]],
+    leaseToken: claim.token,
+    clock,
+    authoritativeContext: {
+      ...inspectionContext(),
+      mapped_requirements: [
+        {
+          id: "R-1",
+          statement: "Implement multi-viewport responsive layout with high-contrast theme support",
+          acceptance_criteria: [
+            "Desktop-Wide (1920x1080) multi-column grid",
+            "Desktop (1440x900) standard sidebar",
+            "Tablet (768x1024) collapsible navigation",
+            "Mobile (390x844) single-column touch view with 44px+ touch targets",
+            "WCAG AA contrast >= 4.5:1 / APCA Lc >= 60",
+            "Valid screenshot proof artifacts >= 1024 bytes",
+          ],
+        },
+      ],
+      task_contract: {
+        id: "T-1",
+        label: "UI Responsive Enhancement",
+        write_scope: ["src/ui/responsive.tsx", "src/ui/theme.css"],
+      },
+    },
+  };
+}
+
+
+describe("rich instructions - scopes & viewports", () => {
+  describe("UI Design Checklist & Multi-Viewport Verification Criteria", () => {
+    test("validator-ui-design contract embeds 4-tier Viewport Resolution Matrix", () => {
+      const contract = loadValidatorDomainContract("ui-design");
+      expect(contract.role).toBe("validator");
+      expect(contract.domain).toBe("ui-design");
+
+      // Verify Viewport Matrix specifications
+      expect(contract.text).toContain("Desktop-Wide (1920x1080)");
+      expect(contract.text).toContain("Desktop (1440x900)");
+      expect(contract.text).toContain("Tablet (768x1024)");
+      expect(contract.text).toContain("Mobile (390x844)");
+
+      // Verify prohibitions against single-viewport shortcuts
+      expect(contract.text).toContain(
+        "Approve any visual surface without testing across all 4 mandatory viewports",
+      );
+      expect(contract.text).toContain("Approve screenshot artifacts smaller than 1024 bytes");
+    });
+
+    test("validator-ui-design contract embeds quantitative perceptual & contrast metrics", () => {
+      const contract = loadValidatorDomainContract("ui-design");
+
+      // Quantitative APCA and WCAG contrast rules
+      expect(contract.text).toContain("APCA lightness contrast");
+      expect(contract.text).toContain("Lc >= 60");
+      expect(contract.text).toContain("Lc >= 45");
+
+      // DOM bounds & touch target size rules
+      expect(contract.text).toContain("44x44px");
+
+      // 4-pillar companion manifest verification
+      expect(contract.text).toContain("geometry_tokens");
+      expect(contract.text).toContain("interaction_states");
+      expect(contract.text).toContain("perceptual_clarity");
+      expect(contract.text).toContain("accessibility_tree");
+    });
+
+    test("validator-ui-design folds in complete standing checklist with all items", () => {
+      const checklist = loadChecklist("ui-design");
+      const contract = loadValidatorDomainContract("ui-design");
+
+      expect(contract.text).toContain(`## Standing checklist: ${checklist.title}`);
+      for (const item of checklist.items) {
+        expect(contract.text).toContain(`## ${item.id}`);
+        expect(contract.text).toContain(item.rule);
+        expect(contract.text).toContain(item.rationale);
+        expect(contract.text).toContain(item.howToCheck);
+        expect(contract.text).toContain(`severity: ${item.severity}`);
+      }
+
+      // Check specific critical UI checklist items
+      const itemIds = checklist.items.map((i) => i.id);
+      expect(itemIds).toContain("UI-LAYOUT-001");
+      expect(itemIds).toContain("UI-LAYOUT-002");
+      expect(itemIds).toContain("UI-TYPE-001");
+      expect(itemIds).toContain("UI-TYPE-002");
+      expect(itemIds).toContain("UI-COLOR-001");
+      expect(itemIds).toContain("UI-COLOR-002");
+      expect(itemIds).toContain("UI-SPACE-001");
+      expect(itemIds).toContain("UI-RESP-001");
+      expect(itemIds).toContain("UI-RESP-002");
+      expect(itemIds).toContain("UI-A11Y-001");
+      expect(itemIds).toContain("UI-A11Y-002");
+      expect(itemIds).toContain("UI-DARK-001");
+    });
+
+    test("all 5 validator domains fold in their complete checklists without stripping", () => {
+      let totalChecklistItems = 0;
+      for (const domain of VALIDATOR_DOMAINS) {
+        const checklist = loadChecklist(domain);
+        const domainContract = loadValidatorDomainContract(domain);
+
+        expect(domainContract.text).toContain(checklist.title);
+        expect(checklist.items.length).toBeGreaterThanOrEqual(38);
+        totalChecklistItems += checklist.items.length;
+
+        for (const item of checklist.items) {
+          expect(domainContract.text).toContain(item.id);
+        }
+      }
+
+      expect(totalChecklistItems).toBeGreaterThanOrEqual(225);
+    });
+  });
+
+  describe("Job-Specific Acceptance Criteria & Manifest Schemas", () => {
+    test("mapped requirements preserve full requirement statements and acceptance criteria", () => {
+      const input = baseImplementer();
+      input.state.requirements = [
+        {
+          id: "R-1",
+          description: "Full UI redesign",
+          acceptance_criteria: [
+            "Criterion 1: 1920x1080 multi-column grid layout",
+            "Criterion 2: Contrast ratio >= 4.5:1",
+            "Criterion 3: Touch targets >= 44x44px",
+            "Criterion 4: Screenshot byte proofs >= 1024B",
+          ],
+        },
+      ];
+      input.task!.requirement_ids = ["R-1"];
+
+      const packet = buildPacket(input);
+      expect(packet.metadata.requirement_ids).toEqual(["R-1"]);
+      expect(packet.markdown).toContain('"requirement_ids": [\n    "R-1"\n  ]');
+    });
+
+    test("renders complete uncorrupted evidence schema for each role", () => {
+      for (const role of AGENT_ROLES) {
+        const schema = evidenceSchema(role);
+        expect(schema).toBeObject();
+        expect(schema).toHaveProperty("gate_evidence");
+        expect(schema).toHaveProperty("gate_evidence_limitations");
+
+        if (role === "implementer" || role === "repairer" || role === "sub-implementer") {
+          expect(schema).toHaveProperty("summary");
+          expect(schema).toHaveProperty("requirement_ids");
+          expect(schema).toHaveProperty("files_changed");
+          expect(schema).toHaveProperty("checks");
+          expect(schema).toHaveProperty("evidence");
+        } else if (role === "validator" || role === "sub-validator") {
+          expect(schema).toHaveProperty("verdict");
+          expect(schema).toHaveProperty("requirement_ids");
+          expect(schema).toHaveProperty("checks");
+          expect(schema).toHaveProperty("findings");
+          expect(schema).toHaveProperty("resolved_findings");
+        } else if (role === "completeness-critic") {
+          expect(schema).toHaveProperty("status");
+          expect(schema).toHaveProperty("requirement_proofs");
+          expect(schema).toHaveProperty("integrity_evidence");
+          expect(schema).toHaveProperty("findings");
+          expect(schema).toHaveProperty("residual_risks");
+        }
+      }
+    });
+
+    test("packet sha256 covers rendered markdown and changes if any instruction byte changes", () => {
+      const input = baseImplementer();
+      const packet1 = buildPacket(input);
+
+      const tamperedCommon = new TextEncoder().encode(
+        commonText + "\n15. Tampered instruction rule.",
+      );
+      const packet2 = buildPacket({
+        ...input,
+        commonInstructions: {
+          bytes: tamperedCommon,
+          sha256: createHash("sha256").update(tamperedCommon).digest("hex"),
+        },
+      });
+
+      expect(packet1.metadata.common_instructions_sha256).not.toBe(
+        packet2.metadata.common_instructions_sha256,
+      );
+      expect(packet1.metadata.packet_sha256).toBe(
+        createHash("sha256").update(packet1.markdown).digest("hex"),
+      );
+      expect(packet2.metadata.packet_sha256).toBe(
+        createHash("sha256").update(packet2.markdown).digest("hex"),
+      );
+    });
+
+    test("isUiTaskPacket returns false when neither task nor subTask is provided", () => {
+      const input = baseImplementer();
+      expect(isUiTaskPacket({ ...input, task: undefined, subTask: undefined })).toBe(false);
+    });
+  });
+});
+

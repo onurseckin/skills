@@ -25,7 +25,9 @@ const throwingGitCommand = () => {
   throw new Error("git exec failure");
 };
 
-describe("doctor diagnostics and gitignore policy", () => {
+export const doctorSuiteName = "doctor diagnostics and gitignore policy";
+
+describe(doctorSuiteName, () => {
   test("versionAtLeast checks semver ordering", () => {
     expect(versionAtLeast("1.3.14", "1.2.0")).toBe(true);
     expect(versionAtLeast("1.2.0", "1.2.0")).toBe(true);

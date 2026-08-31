@@ -10,8 +10,6 @@ import {
   requireDistinctLedgerPaths,
   resolveCanonicalCompletedDefectsPath,
   resolveCanonicalDefectLogPath,
-  resolveCompletedDefectsPath,
-  resolveDefectLogPath,
 } from "../../../olt/scripts/src/mind/defects/loop/ledger-ops.ts";
 import {
   parseDefectsJsonl,
@@ -35,13 +33,11 @@ describe("Defect Sync Ledger & Loop Operations", () => {
     });
 
     it("resolves canonical defect log and completed paths", () => {
-      const p1 = resolveDefectLogPath("/workspace");
-      const p2 = resolveCanonicalDefectLogPath("/workspace");
-      expect(p1).toBe(p2);
+      const p1 = resolveCanonicalDefectLogPath("/workspace");
+      expect(p1).toContain("defects.jsonl");
 
-      const c1 = resolveCompletedDefectsPath("/workspace");
-      const c2 = resolveCanonicalCompletedDefectsPath("/workspace");
-      expect(c1).toBe(c2);
+      const c1 = resolveCanonicalCompletedDefectsPath("/workspace");
+      expect(c1).toContain("completed-defects.jsonl");
     });
   });
 

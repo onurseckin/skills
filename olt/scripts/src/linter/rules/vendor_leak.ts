@@ -1,10 +1,10 @@
 import ts from "typescript";
+import { type AstLintRuleModule } from "../ast/types.ts";
 import {
   findVendorInWordList,
   isIdentifierNode,
   isInsideVendorConfigDefinition,
-  type AstLintRuleModule,
-} from "../ast/index.ts";
+} from "../ast/utils.ts";
 
 export const vendorLeakRule: AstLintRuleModule = {
   rule: "vendor_leak",

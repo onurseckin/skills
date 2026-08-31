@@ -6,7 +6,10 @@ import {
   executePreparedCommand,
   setExecutionLockDependenciesForTesting,
 } from "../../../olt/scripts/src/engine/runner/models/execution/run-command.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { tempRoot, cleanupTempRoots } from "./fixture.ts";
+import { afterAll } from "bun:test";
+
+afterAll(cleanupTempRoots);
 import type { InternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 import type {
   CommandResult,
@@ -48,7 +51,7 @@ function enoent(): Error & { code: string } {
 describe("run-command broad scope mutex advanced behavior", () => {
   test("surfaces release and close failures even when they throw undefined", async () => {
     for (const failingCleanup of ["release", "close"] as const) {
-      const repo = scratchRoot(import.meta.path, `mutex-${failingCleanup}-undefined`);
+      const repo = tempRoot(`mutex-${failingCleanup}-undefined`);
       let closeAttempts = 0;
       const restore = setExecutionLockDependenciesForTesting({
         releaseFlock(descriptor) {
@@ -78,7 +81,7 @@ describe("run-command broad scope mutex advanced behavior", () => {
   });
 
   test("fails closed after lock-directory replacement only after repository authority is held", async () => {
-    const repo = scratchRoot(import.meta.path, "mutex-lock-directory-replacement");
+    const repo = tempRoot("mutex-lock-directory-replacement");
     const lockDir = join(repo, ".olt", ".locks");
     const lockFile = join(lockDir, "execution.lock");
     const events: string[] = [];
@@ -140,7 +143,7 @@ describe("run-command broad scope mutex advanced behavior", () => {
   });
 
   test("identity-binds the opened repository root before touching its lock directory", async () => {
-    const repo = scratchRoot(import.meta.path, "mutex-repository-identity-replacement");
+    const repo = tempRoot("mutex-repository-identity-replacement");
     const lockDir = join(repo, ".olt", ".locks");
     const lockFile = join(lockDir, "execution.lock");
     const events: string[] = [];
@@ -187,7 +190,7 @@ describe("run-command broad scope mutex advanced behavior", () => {
   });
 
   test("keeps a same-repository normalized path alias mutually exclusive", async () => {
-    const repo = scratchRoot(import.meta.path, "mutex-path-alias");
+    const repo = tempRoot("mutex-path-alias");
     let allowFirstToFinish!: () => void;
     const firstMayFinish = new Promise<void>((resolveFirst) => {
       allowFirstToFinish = resolveFirst;
@@ -216,7 +219,7 @@ describe("run-command broad scope mutex advanced behavior", () => {
   });
 
   test("cleans every opened descriptor on fstat and flock acquisition errors", async () => {
-    const repo = scratchRoot(import.meta.path, "mutex-acquisition-cleanup");
+    const repo = tempRoot("mutex-acquisition-cleanup");
     const lockDir = join(repo, ".olt", ".locks");
     const lockFile = join(lockDir, "execution.lock");
     const lstat = (path: string): Stats => {

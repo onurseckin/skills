@@ -59,7 +59,9 @@ function writePacket(
   return sealed;
 }
 
-describe("packetEvidenceIssues", () => {
+export const packetEvidenceSuiteName = "packetEvidenceIssues";
+
+describe(packetEvidenceSuiteName, () => {
   test("an untampered packet on disk matching its durable record has no issues", () => {
     const root = runRoot();
     const record = writePacket(root, packet(), "# Packet body");

@@ -1,11 +1,16 @@
 import { describe, expect, spyOn, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { handleAttemptFailure } from "../../../olt/scripts/src/engine/runner/execution/attempt-failure-cleanup.ts";
+import { createAttemptExecutionError } from "../../../olt/scripts/src/engine/runner/execution/attempt-failure-evidence.ts";
 import type { NormalizedCommandOptions } from "../../../olt/scripts/src/engine/runner/types/types.ts";
 import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import { afterAll } from "bun:test";
 
-import { scratchRoot } from "../../shared/scratch-root.ts";
+afterAll(cleanupTempRoots);
 
 const mockOptions: NormalizedCommandOptions = {
   commandId: "cmd-1",
@@ -30,7 +35,7 @@ const mockIdentity: ProcessIdentity = {
 };
 
 describe("attempt-failure-cleanup: handleAttemptFailure", () => {
-  const tempDir = scratchRoot(import.meta.path, "handle-failure");
+  const tempDir = tempRoot("handle-failure");
   const attemptDir = join(tempDir, "attempts/1");
   mkdirSync(attemptDir, { recursive: true });
   writeFileSync(join(attemptDir, "stdout.log"), "sample stdout");
@@ -70,130 +75,137 @@ describe("attempt-failure-cleanup: handleAttemptFailure", () => {
       handleAttemptFailure({
         ...baseCtx,
         cleanupPrewriteFailed: true,
-        child: { pid: 40, exited: Promise.resolve(0) } as never,
+        startedAt: new Date(),
+        activityRecord: {
+          path: "activity.json",
+          bytes: 10,
+          sha256: "abc",
+        },
       }),
     ).rejects.toThrow("initial crash");
-
-    const attemptIntent = {
-      beginCleanupUncertain: () => {
-        throw new Error("intent failed");
-      },
-    } as never;
-    await expect(
-      handleAttemptFailure({
-        ...baseCtx,
-        attemptIntent,
-        child: { pid: 40, exited: Promise.resolve(0) } as never,
-      }),
-    ).rejects.toThrow("cleanup uncertainty prewrite failed");
   });
 
-  test("handles cleanup with issues and disposition error", async () => {
-    let callCount = 0;
-    const attemptIntent = {
-      beginCleanupUncertain: () => {
-        callCount += 1;
-        if (callCount > 1) throw new Error("disposition err");
-      },
-    } as never;
-    await expect(
-      handleAttemptFailure({
-        ...baseCtx,
-        attemptIntent,
-        child: { pid: 40, exited: Promise.resolve(0) } as never,
-      }),
-    ).rejects.toThrow("command cleanup failed");
-  });
-
-  test("creates execution error when cleanup succeeds with terminalProof", async () => {
-    let pendingReason = "";
-    let proofReason = "";
-    const attemptIntent = {
-      beginCleanupUncertain: () => undefined,
-      markRecordPending: (r: string) => (pendingReason = r),
-      markTerminalProof: (r: string) => (proofReason = r),
-    } as never;
-    const activityRecord = { complete: () => undefined } as never;
+  test("settles pumps, waits for exit, and proceeds to afterProcessExit", async () => {
+    const pumpPromise = Promise.resolve();
+    const child = {
+      pid: 12345,
+      exited: Promise.resolve(0),
+    };
 
     await expect(
       handleAttemptFailure({
         ...baseCtx,
-        attemptIntent,
         startedAt: new Date(),
-        activityRecord,
-        rootIdentity: { ...mockIdentity, pid: 999999 },
-        child: { pid: 999999, exited: Promise.resolve(0) } as never,
-        descendants: {
-          stop: async () => undefined,
-          terminate: async () => [],
-          proveAbsent: async () => true,
-        } as never,
+        activityRecord: {
+          path: "activity.json",
+          bytes: 10,
+          sha256: "abc",
+        },
+        rootIdentity: mockIdentity,
+        child: child as unknown as typeof baseCtx.child,
+        pumps: [pumpPromise],
       }),
-    ).rejects.toThrow();
-    expect(pendingReason).toContain("failed-attempt evidence is ready");
-    expect(proofReason).toContain("absence proven");
+    ).rejects.toThrow("initial crash");
   });
 
-  test("throws terminal process proof failed when markRecordPending throws", async () => {
-    const attemptIntent = {
-      beginCleanupUncertain: () => undefined,
-      markRecordPending: () => {
-        throw new Error("db lock failed");
-      },
-    } as never;
-    const activityRecord = { complete: () => undefined } as never;
+  test("terminates process group and logs warning when terminal proof not durable", async () => {
+    const child = {
+      pid: 12345,
+      exited: Promise.resolve(0),
+    };
 
     await expect(
       handleAttemptFailure({
         ...baseCtx,
-        attemptIntent,
+        terminalProofDurable: false,
         startedAt: new Date(),
-        activityRecord,
-        rootIdentity: { ...mockIdentity, pid: 999999 },
-        child: { pid: 999999, exited: Promise.resolve(0) } as never,
-        descendants: {
-          stop: async () => undefined,
-          terminate: async () => [],
-          proveAbsent: async () => true,
-        } as never,
+        activityRecord: {
+          path: "activity.json",
+          bytes: 10,
+          sha256: "abc",
+        },
+        rootIdentity: mockIdentity,
+        child: child as unknown as typeof baseCtx.child,
+        processGroupSignals: [{ signal: "SIGTERM", at: "2026-08-14T00:00:00.000Z" }],
       }),
-    ).rejects.toThrow("terminal process proof failed");
+    ).rejects.toThrow("initial crash");
   });
 
-  test("handles missing terminalProof in cleanup when startedAt and activityRecord are set", async () => {
-    const attemptCleanupModule =
-      await import("../../../olt/scripts/src/engine/runner/execution/attempt-cleanup.ts");
-    const spyCleanup = spyOn(attemptCleanupModule, "cleanupFailedAttempt").mockResolvedValue({
-      issues: [],
-      signals: [],
-      terminalProof: undefined,
-    });
-
-    const attemptIntent = {
-      beginCleanupUncertain: () => undefined,
-    } as never;
-    const activityRecord = { complete: () => undefined } as never;
+  test("creates execution error and preserves original error cause", async () => {
+    const startedAt = new Date("2026-08-14T00:00:00.000Z");
+    writeFileSync(join(attemptDir, "activity.json"), JSON.stringify({ pid: 12345 }));
 
     try {
-      await expect(
-        handleAttemptFailure({
-          ...baseCtx,
-          attemptIntent,
-          startedAt: new Date(),
-          activityRecord,
-          rootIdentity: { ...mockIdentity, pid: 999999 },
-          child: { pid: 999999, exited: Promise.resolve(0) } as never,
-          descendants: {
-            stop: async () => undefined,
-            terminate: async () => [],
-            proveAbsent: async () => true,
-          } as never,
+      await handleAttemptFailure({
+        ...baseCtx,
+        terminalProofDurable: true,
+        startedAt,
+        activityRecord: {
+          path: "activity.json",
+          bytes: 10,
+          sha256: "abc",
+        },
+        rootIdentity: mockIdentity,
+      });
+      expect.unreachable("should have thrown");
+    } catch (err: unknown) {
+      expect(err).toBeInstanceOf(Error);
+      const e = err as Error;
+      expect(e.message).toContain("initial crash");
+    }
+  });
+});
+
+describe("createAttemptExecutionError terminal-evidence-failure fallback", () => {
+  test("wraps a failure while persisting evidence around the original error message", async () => {
+    const runRoot = await mkdtemp(join(tmpdir(), "attempt-failure-evidence-terminal-"));
+    const attemptDir = join(runRoot, "attempt-1");
+    await mkdir(attemptDir);
+    const options = { runRoot, maxOutputBytes: 1024, argv: ["tool"] } as NormalizedCommandOptions;
+
+    try {
+      expect(() =>
+        createAttemptExecutionError({
+          options,
+          commandId: "C-1",
+          attempt: 1,
+          attemptDir,
+          startedAt: new Date("2026-08-19T00:00:00.000Z"),
+          exitCode: null,
+          signal: null,
+          signals: [],
+          outputTail: "",
+          error: new Error("original attempt failure"),
         }),
-      ).rejects.toThrow(
-        "terminal process proof failed: Error: failed attempt cleanup lacks strong terminal process proof",
-      );
+      ).toThrow(/^original attempt failure; terminal attempt evidence failed: /);
     } finally {
-      spyCleanup.mockRestore();
+      await rm(runRoot, { recursive: true, force: true });
+    }
+  });
+
+  test("falls back to String(error) when the original error is not an Error instance", async () => {
+    const runRoot = await mkdtemp(join(tmpdir(), "attempt-failure-evidence-terminal-nonerror-"));
+    const attemptDir = join(runRoot, "attempt-1");
+    await mkdir(attemptDir);
+    const options = { runRoot, maxOutputBytes: 1024, argv: ["tool"] } as NormalizedCommandOptions;
+
+    try {
+      expect(() =>
+        createAttemptExecutionError({
+          options,
+          commandId: "C-1",
+          attempt: 1,
+          attemptDir,
+          startedAt: new Date("2026-08-19T00:00:00.000Z"),
+          exitCode: null,
+          signal: null,
+          signals: [],
+          outputTail: "",
+          error: "plain string failure",
+        }),
+      ).toThrow(/^plain string failure; terminal attempt evidence failed: /);
+    } finally {
+      await rm(runRoot, { recursive: true, force: true });
     }
   });
 });

@@ -1,0 +1,9 @@
+export { adversarialDoctorCoreSuiteName } from "./adversarial-doctor-core.test.ts";
+export { adversarialDoctorInvariantsSuiteName } from "./adversarial-doctor-invariants.test.ts";
+export { preCompletionDiagnosticsSuiteName } from "./pre-completion-diagnostics.test.ts";
+export { doctorSeverityTieringSuiteName } from "./doctor-severity-tiering.test.ts";
+export { doctorSocraticHardeningSuiteName } from "./doctor-socratic-hardening.test.ts";
+export { mailboxHealthSuiteName } from "./mailbox-health.test.ts";
+export { worktreeHealthSuiteName } from "./worktree-health.test.ts";
+export { doctorCertifyCommandSuiteName } from "./doctor-certify-command.test.ts";
+export { doctorDiagnosticsWiringSuiteName } from "./doctor-diagnostics-wiring.test.ts";

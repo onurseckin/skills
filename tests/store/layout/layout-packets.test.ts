@@ -3,7 +3,7 @@ import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
 import { packetLayout } from "../../../olt/scripts/src/engine/store/layout/layout-packets.ts";
-import { scratchRoot as makeScratchRoot } from "../../shared/scratch-root.ts";
+import { scratchRoot as makeScratchRoot } from "../store-fixture.ts";
 
 function scratchRoot(label: string): string {
   return makeScratchRoot(import.meta.path, label);

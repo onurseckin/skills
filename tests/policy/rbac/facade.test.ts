@@ -60,10 +60,10 @@ describe("RBAC Engine Public Facade & Integration", () => {
   });
 
   test("evaluates test targets and unbounded test commands through facade", () => {
-    expect(isTargetTestArgument("tests/unit/foo.test.ts")).toBe(true);
+    expect(isTargetTestArgument("tests/policy/foo.test.ts")).toBe(true);
     expect(isTargetTestArgument("-v")).toBe(false);
     expect(isUntargetedTestCommand("bun test")).toBe(true);
-    expect(isUntargetedTestCommand("bun test tests/unit/foo.test.ts")).toBe(false);
+    expect(isUntargetedTestCommand("bun test tests/policy/foo.test.ts")).toBe(false);
   });
 
   test("detects unshielded subshells and command chaining through facade", () => {

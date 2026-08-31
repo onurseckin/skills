@@ -17,7 +17,7 @@ import {
   type ExecutionTier,
 } from "../thread/index.ts";
 import { resolveGlobalSessionsDir, resolveSessionRepositoryRoot } from "./paths.ts";
-import { readPersistedSession, secureReadSession } from "./io.ts";
+import { isInMemorySessionStoreEnabled, readPersistedSession, secureReadSession } from "./io.ts";
 import type { ResolveSessionOptions, SessionIdentity } from "./types.ts";
 
 export function resolveActiveSession(options: ResolveSessionOptions = {}): SessionIdentity | null {
@@ -95,7 +95,7 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
     }
   }
 
-  if (!isTestEnvironment() || repoRoot !== findRepoRoot()) {
+  if (isInMemorySessionStoreEnabled() || !isTestEnvironment() || repoRoot !== findRepoRoot()) {
     for (const checkPid of checkPids) {
       const sessionFile = join(globalSessionsDir, `${checkPid}.json`);
       const mechanism = `process_ancestry_pid_${checkPid}`;
@@ -107,7 +107,7 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
     }
   }
 
-  if (!isTestEnvironment() || cwd !== findRepoRoot()) {
+  if (isInMemorySessionStoreEnabled() || !isTestEnvironment() || cwd !== findRepoRoot()) {
     let currentDir = cwd;
     while (true) {
       const sessionPath = join(currentDir, ".session.json");
@@ -128,7 +128,7 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
       }
 
       const parent = dirname(currentDir);
-      if (parent === currentDir || currentDir === repoRoot) break;
+      if (parent === currentDir || (!isInMemorySessionStoreEnabled() && currentDir === repoRoot)) break;
       currentDir = parent;
     }
   }

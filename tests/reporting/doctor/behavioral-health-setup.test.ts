@@ -15,7 +15,9 @@ import {
   isValidatorRole,
 } from "../../../olt/scripts/src/reporting/behavioral-auditor/index.ts";
 
-describe("Behavioral Health Auditor - Setup & Facades", () => {
+export const behavioralHealthSetupSuiteName = "Behavioral Health Auditor - Setup & Facades";
+
+describe(behavioralHealthSetupSuiteName, () => {
   it("verifies clean facade exports from reporting/behavioral-auditor", () => {
     expect(typeof behavioralAuditorModule.auditBehavioralHealth).toBe("function");
     expect(typeof behavioralAuditorModule.auditCoordinatorCodeWriting).toBe("function");
@@ -68,7 +70,13 @@ describe("Behavioral Health Auditor - Setup & Facades", () => {
     expect(isFullTestSuiteCommand(["bun", "test"])).toBe(true);
     expect(isFullTestSuiteCommand(["bun", "run", "test:unit"])).toBe(true);
     expect(isFullTestSuiteCommand(["npm", "test"])).toBe(true);
-    expect(isFullTestSuiteCommand(["bun", "test", "tests/unit/foo.test.ts"])).toBe(false);
+    expect(
+      isFullTestSuiteCommand([
+        "bun",
+        "test",
+        "tests/reporting/doctor/behavioral-health-setup.test.ts",
+      ]),
+    ).toBe(false);
   });
 
   it("runs auditBehavioralHealth with empty or clean state", () => {

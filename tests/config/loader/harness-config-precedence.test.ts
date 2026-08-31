@@ -1,0 +1,293 @@
+import { describe, expect, test, afterEach } from "bun:test";
+import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { resolveHarnessConfig } from "../../../olt/scripts/src/core/config/index.ts";
+
+describe("harness-config-precedence", () => {
+  const roots: string[] = [];
+  const NO_HOST_CEILING = { hostConcurrency: null } as const;
+
+  function makeTempDir(label: string): string {
+    const dir = realpathSync(mkdtempSync(join(tmpdir(), `cfg-prec-${label}-`)));
+    roots.push(dir);
+    return dir;
+  }
+
+  afterEach(() => {
+    for (const root of roots.splice(0)) {
+      if (existsSync(root)) {
+        rmSync(root, { recursive: true, force: true });
+      }
+    }
+  });
+
+  describe("B27.2 — concurrency ceiling discovery and precedence", () => {
+    test("uses a host-discovered ceiling when nothing local overrides it", () => {
+      const dir = makeTempDir("host-discovered-ceiling");
+      const config = resolveHarnessConfig(dir, undefined, {
+        hostConcurrency: { value: 20, hostTool: "claude-code" },
+      });
+      expect(config.default_max_parallel).toBe(20);
+      expect(config.default_max_parallel_source).toBe("host_discovered");
+    });
+
+    test("an explicit default_max_parallel in the repo config beats host discovery", () => {
+      const dir = makeTempDir("explicit-beats-host");
+      writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ default_max_parallel: 3 }));
+      const config = resolveHarnessConfig(dir, undefined, {
+        hostConcurrency: { value: 20, hostTool: "claude-code" },
+      });
+      expect(config.default_max_parallel).toBe(3);
+      expect(config.default_max_parallel_source).toBe("config_override");
+    });
+
+    test("an explicit max_concurrent_agents beats host discovery but not an explicit default_max_parallel", () => {
+      const dir = makeTempDir("max-concurrent-agents-precedence");
+      writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ max_concurrent_agents: 9 }));
+      const withoutParallelOverride = resolveHarnessConfig(dir, undefined, {
+        hostConcurrency: { value: 20, hostTool: "codex" },
+      });
+      expect(withoutParallelOverride.default_max_parallel).toBe(9);
+      expect(withoutParallelOverride.default_max_parallel_source).toBe("config_override");
+
+      writeFileSync(
+        join(dir, "harness.config.json"),
+        JSON.stringify({ max_concurrent_agents: 9, default_max_parallel: 3 }),
+      );
+      const withBoth = resolveHarnessConfig(dir, undefined, {
+        hostConcurrency: { value: 20, hostTool: "codex" },
+      });
+      expect(withBoth.default_max_parallel).toBe(3);
+    });
+
+    test("falls back to the assumed default only when the host publishes nothing and nothing is configured", () => {
+      const dir = makeTempDir("assumed-default-fallback");
+      const config = resolveHarnessConfig(dir, undefined, { hostConcurrency: null });
+      expect(config.default_max_parallel).toBe(4);
+      expect(config.default_max_parallel_source).toBe("assumed_default");
+    });
+
+    test("derives gate_max_parallel from cores by default — a separate, lower ceiling", () => {
+      const dir = makeTempDir("gate-max-parallel-default");
+      const config = resolveHarnessConfig(dir, undefined, { cpuCount: 10 });
+      expect(config.gate_max_parallel).toBe(5);
+    });
+
+    test("a configured gate_max_parallel overrides the cores-derived default", () => {
+      const dir = makeTempDir("gate-max-parallel-override");
+      writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ gate_max_parallel: 7 }));
+      const config = resolveHarnessConfig(dir, undefined, { cpuCount: 10 });
+      expect(config.gate_max_parallel).toBe(7);
+    });
+
+    test("the general ceiling and the gate ceiling resolve independently of each other", () => {
+      const dir = makeTempDir("independent-ceilings");
+      const config = resolveHarnessConfig(dir, undefined, {
+        hostConcurrency: { value: 40, hostTool: "claude-code" },
+        cpuCount: 10,
+      });
+      expect(config.default_max_parallel).toBe(40);
+      expect(config.gate_max_parallel).toBe(5);
+    });
+  });
+
+  describe("B22.7 — worktree-isolation config knobs", () => {
+    test("defaults: isolation off, no configured root, benign defaults for the rest", () => {
+      const config = resolveHarnessConfig(makeTempDir("worktree-defaults"));
+      expect(config.worktree_isolation).toBe(false);
+      expect(config.worktree_root).toBeUndefined();
+      expect(config.branch_prefix).toBe("harness/");
+      expect(config.commit_per_subphase).toBe(true);
+      expect(config.max_commit_lines).toBe(500);
+    });
+
+    test("reads every worktree knob from harness.config.json", () => {
+      const dir = makeTempDir("worktree-knobs");
+      writeFileSync(
+        join(dir, "harness.config.json"),
+        JSON.stringify({
+          worktree_isolation: true,
+          worktree_root: "../custom-worktrees",
+          branch_prefix: "wt/",
+          commit_per_subphase: false,
+          max_commit_lines: 200,
+        }),
+      );
+      const config = resolveHarnessConfig(dir);
+      expect(config.worktree_isolation).toBe(true);
+      expect(config.worktree_root).toBe("../custom-worktrees");
+      expect(config.branch_prefix).toBe("wt/");
+      expect(config.commit_per_subphase).toBe(false);
+      expect(config.max_commit_lines).toBe(200);
+    });
+
+    test("rejects present wrong-typed worktree values rather than treating them as absent", () => {
+      const dir = makeTempDir("worktree-wrong-types");
+      writeFileSync(
+        join(dir, "harness.config.json"),
+        JSON.stringify({
+          worktree_isolation: "yes",
+        }),
+      );
+      expect(() => resolveHarnessConfig(dir)).toThrow(HarnessError);
+      expect(() => resolveHarnessConfig(dir)).toThrow(/worktree_isolation/i);
+    });
+  });
+
+  describe("provenance generalisation — new config domains", () => {
+    test("max_active_grants_per_run mirrors max_agents in value and provenance, additively", () => {
+      const dir = makeTempDir("max-active-grants-default");
+      const config = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
+      expect(config.max_agents).toBe(100);
+      expect(config.max_active_grants_per_run).toBe(100);
+      expect(config.config_provenance.max_agents).toBe("assumed_default");
+      expect(config.config_provenance.max_active_grants_per_run).toBe("assumed_default");
+
+      writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ max_agents: 15 }));
+      const configured = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
+      expect(configured.max_agents).toBe(15);
+      expect(configured.max_active_grants_per_run).toBe(15);
+      expect(configured.config_provenance.max_active_grants_per_run).toBe("config_override");
+    });
+
+    test("fleet_agent_ceiling is absent when nothing configures it, config_override when set", () => {
+      const dir = makeTempDir("fleet-agent-ceiling-absent");
+      const config = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
+      expect(config.fleet_agent_ceiling).toEqual({ value: null, source: "absent" });
+
+      writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ fleet_agent_ceiling: 40 }));
+      const configured = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
+      expect(configured.fleet_agent_ceiling).toEqual({ value: 40, source: "config_override" });
+    });
+
+    test("fleet_agent_ceiling rejects an invalid configured value", () => {
+      const dir = makeTempDir("fleet-agent-ceiling-invalid");
+      writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ fleet_agent_ceiling: -3 }));
+      expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(HarnessError);
+      expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(
+        /fleet_agent_ceiling/i,
+      );
+    });
+
+    test("supervisory_cadence_seconds is structurally unusable without confronting its source", () => {
+      const dir = makeTempDir("supervisory-cadence-default");
+      const defaultConfig = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
+      expect(defaultConfig.supervisory_cadence_seconds).toEqual({ value: 900, source: "absent" });
+      expect(defaultConfig.config_provenance.supervisory_cadence_seconds).toBe("assumed_default");
+
+      writeFileSync(
+        join(dir, "harness.config.json"),
+        JSON.stringify({ supervisory_cadence_seconds: 600 }),
+      );
+      const configured = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
+      expect(configured.supervisory_cadence_seconds).toEqual({
+        value: 600,
+        source: "config_override",
+      });
+      expect(configured.config_provenance.supervisory_cadence_seconds).toBe("config_override");
+    });
+
+    test("quota_freeze_threshold_pct is absent, not a fabricated percentage, until configured", () => {
+      const dir = makeTempDir("quota-freeze-threshold-absent");
+      const config = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
+      expect(config.quota_freeze_threshold_pct).toEqual({ value: null, source: "absent" });
+
+      writeFileSync(
+        join(dir, "harness.config.json"),
+        JSON.stringify({ quota_freeze_threshold_pct: 85 }),
+      );
+      const configured = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
+      expect(configured.quota_freeze_threshold_pct).toEqual({ value: 85, source: "config_override" });
+      expect(configured.config_provenance.quota_freeze_threshold_pct).toBe("config_override");
+    });
+
+    test("model_by_role rejects every map when any role or model member is invalid", () => {
+      const dir = makeTempDir("model-by-role");
+      writeFileSync(
+        join(dir, "harness.config.json"),
+        JSON.stringify({ model_by_role: { implementer: "opus", "not-a-real-role": "x" } }),
+      );
+      expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(HarnessError);
+      expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(/model_by_role/i);
+    });
+
+    test("rejects unknown harness keys while allowing valid partial configuration and policy schema keys", () => {
+      const dir = makeTempDir("strict-unknown-key");
+      writeFileSync(
+        join(dir, "harness.config.json"),
+        JSON.stringify({ max_agents: 12, typo_max_agnts: 13 }),
+      );
+      expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(HarnessError);
+      expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(/typo_max_agnts/i);
+
+      writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ max_agents: 12 }));
+      expect(resolveHarnessConfig(dir, undefined, NO_HOST_CEILING).max_agents).toBe(12);
+
+      mkdirSync(join(dir, ".olt"), { recursive: true });
+      writeFileSync(
+        join(dir, ".olt", "policy.json"),
+        JSON.stringify({ schema_version: 1, ecosystem: "bun", quota_freeze_threshold_pct: 22 }),
+      );
+      const config = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
+      expect(config.quota_freeze_threshold_pct).toEqual({ value: 22, source: "config_override" });
+
+      writeFileSync(join(dir, ".olt", "policy.json"), "{ malformed");
+      expect(
+        resolveHarnessConfig(dir, undefined, NO_HOST_CEILING).quota_freeze_threshold_pct,
+      ).toEqual({
+        value: null,
+        source: "unreadable",
+      });
+    });
+
+    test("host_profiles configured through resolveHarnessConfig refuses an unknown host id end to end", () => {
+      const dir = makeTempDir("host-profiles-refusal-end-to-end");
+      writeFileSync(
+        join(dir, "harness.config.json"),
+        JSON.stringify({ host_profiles: { generic: { timer_arming_mechanism: "none" } } }),
+      );
+      expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(HarnessError);
+    });
+
+    test("host_profiles configured through resolveHarnessConfig canonicalizes claude onto claude-code", () => {
+      const dir = makeTempDir("host-profiles-canonicalize-end-to-end");
+      writeFileSync(
+        join(dir, "harness.config.json"),
+        JSON.stringify({ host_profiles: { claude: { self_wake_supported: true } } }),
+      );
+      const config = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
+      expect(config.host_profiles.source).toBe("config_override");
+      expect(config.host_profiles.value["claude-code"]?.self_wake_supported).toEqual({
+        value: true,
+        source: "config_override",
+      });
+      expect(Object.keys(config.host_profiles.value)).toEqual(["claude-code"]);
+      expect(config.config_provenance.host_profiles).toBe("config_override");
+    });
+
+    test("host_profiles is absent, not a fabricated empty map, until configured", () => {
+      const dir = makeTempDir("host-profiles-default-absent");
+      const config = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
+      expect(config.host_profiles).toEqual({ value: {}, source: "absent" });
+    });
+
+    test("gate_max_parallel is tagged host_discovered by default, config_override once configured", () => {
+      const dir = makeTempDir("gate-max-parallel-provenance");
+      const discovered = resolveHarnessConfig(dir, undefined, { cpuCount: 10 });
+      expect(discovered.config_provenance.gate_max_parallel).toBe("host_discovered");
+
+      writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ gate_max_parallel: 3 }));
+      const configured = resolveHarnessConfig(dir, undefined, { cpuCount: 10 });
+      expect(configured.config_provenance.gate_max_parallel).toBe("config_override");
+    });
+
+    test("default_max_parallel_source keeps working unchanged for existing 19+ call sites", () => {
+      const dir = makeTempDir("default-max-parallel-source-unchanged");
+      const config = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
+      expect(config.default_max_parallel_source).toBe("assumed_default");
+      expect(config.config_provenance.default_max_parallel).toBe("assumed_default");
+    });
+  });
+});

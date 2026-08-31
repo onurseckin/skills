@@ -9,7 +9,9 @@ import {
 
 const SCRATCH_DIR = resolve(join(process.cwd(), "coverage", "scratch", "capsule-root-tests"));
 
-describe("doctor/capsule-root", () => {
+export const capsuleRootSuiteName = "doctor/capsule-root";
+
+describe(capsuleRootSuiteName, () => {
   beforeEach(() => {
     rmSync(SCRATCH_DIR, { recursive: true, force: true });
     mkdirSync(SCRATCH_DIR, { recursive: true });

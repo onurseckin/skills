@@ -17,7 +17,9 @@ const grant: AgentGrantRecord = {
   status: "active",
 };
 
-describe("state-specific resumable argv", () => {
+export const nextActionsSuiteName = "state-specific resumable argv";
+
+describe(nextActionsSuiteName, () => {
   test("every task status yields commands the registry can dispatch", () => {
     for (const status of [
       "proposed",

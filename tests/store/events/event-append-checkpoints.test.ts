@@ -15,7 +15,7 @@ import {
   cloneObject,
   initialState,
 } from "../../../olt/scripts/src/engine/store/capsule/state.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { scratchRoot } from "../store-fixture.ts";
 
 function freshRun(label: string): { runRoot: string; manifest: Manifest } {
   const repo = scratchRoot(import.meta.path, label);

@@ -5,7 +5,7 @@ import {
 } from "../../../olt/scripts/src/engine/store/recovery/bun-compatibility.ts";
 
 // The manifest/capsule-enforcement cases (real initRun, real hand-tampered manifest.json) live in
-// tests/integration/store-bun-compatibility.test.ts; this file keeps the pure-function cases only.
+// Pure-function cases for Bun compatibility.
 
 describe("compatibleBunVersion", () => {
   test("accepts the exact creating version", () => {

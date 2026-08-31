@@ -33,7 +33,12 @@ export function isSingletonAuditorRole(role: string): boolean {
     norm === "meta-auditor" ||
     norm === "mind-auditor" ||
     norm === "singleton-auditor" ||
-    norm === "auditor"
+    norm === "cognitive-auditor" ||
+    norm === "auditor" ||
+    norm.startsWith("skill-auditor") ||
+    norm.startsWith("cognitive-auditor") ||
+    norm.startsWith("meta-auditor") ||
+    norm.startsWith("singleton-auditor")
   );
 }
 
@@ -73,7 +78,7 @@ export function validateSubagentSpawnRequest(
   request: SubagentSpawnRequest,
   options?: SpawnValidatorOptions,
 ): SubagentSpawnValidationResult {
-  if (!request || typeof request !== "object" || typeof request.role !== "string") {
+  if (!request || typeof request !== "object" || typeof request.role !== "string" || !request.role.trim()) {
     return {
       allowed: false,
       role: typeof request?.role === "string" ? request.role : "unknown",
@@ -146,7 +151,7 @@ export function validateSubagentSpawnRequest(
     return {
       allowed: false,
       role,
-      reason: DUPLICATE_SINGLETON_AUDITOR_MESSAGE,
+      reason: `${DUPLICATE_SINGLETON_AUDITOR_MESSAGE} (id=${lease.auditor_id}, pid=${lease.pid})`,
       active_lease: lease,
     };
   }

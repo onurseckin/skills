@@ -19,7 +19,9 @@ function runRoot(): string {
   return root;
 }
 
-describe("commandRecordPath", () => {
+export const commandEvidenceSuiteName = "commandRecordPath & commandEvidenceView";
+
+describe(commandEvidenceSuiteName, () => {
   test("builds the conventional per-command record path", () => {
     expect(commandRecordPath("C-1")).toBe("commands/C-1/record.json");
   });

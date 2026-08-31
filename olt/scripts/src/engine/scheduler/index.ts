@@ -140,6 +140,8 @@ export type {
 } from "./feedback/pulse-types.ts";
 export { ParallelWaveDispatchEnforcer, type WaveTopology } from "./dispatch/parallel-enforcer.ts";
 export {
+  classifyTaskDomain,
+  derivePrimaryValidatorDomain,
   dispatchMultiDomainValidators,
   evaluateMultiDomainBatch,
   isMultiDomainDispatchEligible,

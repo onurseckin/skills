@@ -1,4 +1,5 @@
 import { dependencyMap } from "../../olt/scripts/src/graph/dependency-map.ts";
+export { TestPort, workflowState } from "../workflow/shared/test-port.ts";
 
 function task(
   id: string,

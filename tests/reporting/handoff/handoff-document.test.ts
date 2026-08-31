@@ -118,7 +118,9 @@ async function capsule(name: string, mutate: (state: RunState) => void = () => {
   return run;
 }
 
-describe("the handoff reflects the system a fresh agent is joining", () => {
+export const handoffDocumentSuiteName = "the handoff reflects the system a fresh agent is joining";
+
+describe(handoffDocumentSuiteName, () => {
   test("reports the live wave, the grants, the branches and the open findings", async () => {
     const run = await capsule("handoff-current", (state) => {
       state.topology = structuredClone(TOPOLOGY);

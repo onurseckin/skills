@@ -28,8 +28,12 @@ export const deleteInMemorySessionData = (path: string): boolean =>
   inMemorySessionStore?.delete(path) ?? false;
 
 export function readOwnDataString(err: unknown, key: "code" | "message"): string | null {
-  const d = err && typeof err === "object" ? Object.getOwnPropertyDescriptor(err, key) : null;
-  return d && typeof d.value === "string" ? d.value : null;
+  try {
+    const d = err && typeof err === "object" ? Object.getOwnPropertyDescriptor(err, key) : null;
+    return d && typeof d.value === "string" ? d.value : null;
+  } catch {
+    return null;
+  }
 }
 
 export function formatSafeErrorCause(err: unknown): string {

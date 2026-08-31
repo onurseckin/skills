@@ -9,7 +9,7 @@ import { detectTransitiveBypasses } from "../../../olt/scripts/src/graph/expansi
 import { expandDeeper } from "../../../olt/scripts/src/graph/expansion/task-decomposition.ts";
 import { expandWider } from "../../../olt/scripts/src/graph/expansion/wider-expansion.ts";
 import { requirementsDocument } from "../../requirements/fixtures.ts";
-import { graphDocument } from "../fixtures.ts";
+import { graphDocument } from "../validation/fixtures.ts";
 
 describe("subtask-allocator: gate parsing and element allocation", () => {
   test("parseGateCommand handles various command strings, arrays, and empty tokens", () => {

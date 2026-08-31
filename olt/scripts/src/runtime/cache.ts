@@ -14,6 +14,7 @@ import { findRepoRoot, resolveCapsulesDir, resolveScratchDir } from "../core/sha
 import { AgentMetadata, AgentMetadataDependencies } from "./contracts.ts";
 import { assertSafeAgentId, validateAgentMetadata } from "./metadata.ts";
 import { formatSafeErrorCause, isTrustedEnoent, requiredNoFollowFlag, sameInode } from "./util.ts";
+import { getInMemoryAgentMetadata, isInMemoryAgentMetadataEnabled } from "./session.ts";
 
 export const defaultAgentMetadataDependencies: AgentMetadataDependencies = {
   findRepoRoot,
@@ -36,6 +37,13 @@ export function setAgentMetadataDependenciesForTesting(
 }
 
 export function readAgentMetadataFileSecure(filePath: string): string {
+  const inMemory = getInMemoryAgentMetadata(filePath);
+  if (inMemory !== undefined) return inMemory;
+  if (isInMemoryAgentMetadataEnabled()) {
+    const error = new Error(`ENOENT: no such file or directory, open '${filePath}'`) as NodeJS.ErrnoException;
+    error.code = "ENOENT";
+    throw error;
+  }
   const root = resolve(dirname(dirname(filePath)));
   const parent = dirname(filePath);
   const before = lstatSync(filePath);

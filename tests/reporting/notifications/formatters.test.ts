@@ -7,7 +7,9 @@ import {
   type PhaseCompletionNotificationOptions,
 } from "../../../olt/scripts/src/reporting/notifications/index.ts";
 
-describe("Notifications Duration & String Formatters", () => {
+export const formattersSuiteName = "Notifications Duration & String Formatters";
+
+describe(formattersSuiteName, () => {
   it("formats millisecond durations into human-readable intervals", () => {
     expect(formatElapsedDuration(0)).toBe("0s");
     expect(formatElapsedDuration(-100)).toBe("0s");

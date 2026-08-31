@@ -31,10 +31,13 @@ function neverExited(): Promise<number> {
   return new Promise<number>(() => undefined);
 }
 
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import { afterAll } from "bun:test";
+
+afterAll(cleanupTempRoots);
 
 function attemptRoot(label: string): { root: string; commandRoot: string } {
-  const root = scratchRoot(import.meta.path, label);
+  const root = tempRoot(label);
   const commandRoot = join(root, "commands", "C-1");
   mkdirSync(commandRoot, { recursive: true });
   return { root, commandRoot };

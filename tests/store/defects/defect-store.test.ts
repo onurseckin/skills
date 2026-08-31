@@ -131,7 +131,7 @@ describe("Store Layer Capsule Defect Engine", () => {
 
     const resolved = resolveCapsuleDefect(runRoot, "defect-to-resolve", {
       task_id: "task-add-export",
-      test_assertion: "bun test tests/unit/export.test.ts",
+      test_assertion: "bun test tests/export.test.ts",
       resolved_at: "2026-08-22T08:45:00.000Z",
       commit_sha: "99887766",
     });

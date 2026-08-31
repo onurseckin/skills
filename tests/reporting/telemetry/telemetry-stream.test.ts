@@ -9,7 +9,9 @@ import {
   type TelemetryEvent,
 } from "../../../olt/scripts/src/reporting/telemetry-stream.ts";
 
-describe("reporting/telemetry-stream", () => {
+export const telemetryStreamSuiteName = "reporting/telemetry-stream";
+
+describe(telemetryStreamSuiteName, () => {
   let tempDir: string;
 
   beforeEach(() => {

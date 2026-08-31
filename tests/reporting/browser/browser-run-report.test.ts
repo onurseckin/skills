@@ -6,7 +6,9 @@ import { cleanupTempDirs, tempDir } from "./browser-run-fixture.ts";
 
 afterEach(cleanupTempDirs);
 
-describe("readBrowserRunReport", () => {
+export const browserRunReportSuiteName = "readBrowserRunReport";
+
+describe(browserRunReportSuiteName, () => {
   test("refuses a file above the byte ceiling rather than parsing it", () => {
     const dir = tempDir("oversize");
     const path = join(dir, "huge.json");

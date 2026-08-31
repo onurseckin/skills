@@ -6,7 +6,10 @@ import {
 import { initRun, loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import { afterAll } from "bun:test";
+
+afterAll(cleanupTempRoots);
 
 describe("AutoReceiptLogger", () => {
   it("can be instantiated", () => {
@@ -25,7 +28,7 @@ describe("AutoReceiptLogger", () => {
   });
 
   it("records command receipt directly into capsule state", () => {
-    const capsuleRoot = scratchRoot(import.meta.path, "auto-receipt-record");
+    const capsuleRoot = tempRoot("auto-receipt-record");
     AutoReceiptLogger.recordReceipt(capsuleRoot, {
       taskId: "task-1",
       actor: "impl-1",
@@ -53,7 +56,7 @@ describe("AutoReceiptLogger", () => {
   });
 
   it("records command receipt via state transaction when capsule ledger is active", () => {
-    const testRepo = scratchRoot(import.meta.path, "auto-receipt-transact-repo");
+    const testRepo = tempRoot("auto-receipt-transact-repo");
     const runRoot = initRun(
       testRepo,
       "test-capsule",
@@ -94,7 +97,7 @@ describe("AutoReceiptLogger", () => {
   });
 
   it("propagates canonical transaction failures without appending an unsequenced legacy event", () => {
-    const testRepo = scratchRoot(import.meta.path, "auto-receipt-transaction-failure");
+    const testRepo = tempRoot("auto-receipt-transaction-failure");
     const runRoot = initRun(
       testRepo,
       "test-capsule",
@@ -128,7 +131,7 @@ describe("AutoReceiptLogger", () => {
   });
 
   it("refuses updateState receipts without a canonical ledger and leaves no legacy event", () => {
-    const ledgerlessRoot = scratchRoot(import.meta.path, "auto-receipt-update-state-ledgerless");
+    const ledgerlessRoot = tempRoot("auto-receipt-update-state-ledgerless");
     expect(() =>
       AutoReceiptLogger.recordReceipt(ledgerlessRoot, {
         taskId: "task-ledgerless",
@@ -144,7 +147,7 @@ describe("AutoReceiptLogger", () => {
   });
 
   it("propagates corrupt canonical state failures without changing events", () => {
-    const testRepo = scratchRoot(import.meta.path, "auto-receipt-corrupt-state");
+    const testRepo = tempRoot("auto-receipt-corrupt-state");
     const runRoot = initRun(
       testRepo,
       "test-capsule",

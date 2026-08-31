@@ -145,7 +145,7 @@ export function mapDefectToDiscoveryItem(defect: DefectEntry): DiscoveryItem {
   const category = (defect.category ?? "code_defect").toLowerCase();
   const charterGoal = category === "boundary_violation" ? "G1" : "G2";
   const priority = mapDefectSeverityToPriority(defect.severity);
-  const scope = ["olt/scripts/src/mind/", "tests/unit/mind/"];
+  const scope = ["olt/scripts/src/mind/", "tests/mind/"];
   const remediation = extractDefectRemediation(defect);
 
   return {

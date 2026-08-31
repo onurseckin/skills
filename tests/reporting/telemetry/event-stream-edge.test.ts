@@ -2,7 +2,9 @@ import { describe, expect, it } from "bun:test";
 import type { HarnessEvent } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { deliverEventsToWebhook } from "../../../olt/scripts/src/reporting/event-stream/index.ts";
 
-describe("reporting/event-stream edge cases suite", () => {
+export const eventStreamEdgeSuiteName = "reporting/event-stream edge cases suite";
+
+describe(eventStreamEdgeSuiteName, () => {
   it("handles HTTP 429 rate limit with Retry-After header", async () => {
     let callCount = 0;
     const timestamps: number[] = [];

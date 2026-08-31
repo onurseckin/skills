@@ -39,7 +39,9 @@ function capsuleCatalogue(runRoot: string) {
   };
 }
 
-describe("versionAtLeast", () => {
+export const statusDoctorGapsSuiteName = "versionAtLeast & status doctor gaps";
+
+describe(statusDoctorGapsSuiteName, () => {
   test("an exact version match is at least the minimum, falling through every component check", () => {
     expect(versionAtLeast("1.3.0", "1.3.0")).toBe(true);
   });

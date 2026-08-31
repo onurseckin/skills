@@ -19,7 +19,9 @@ import {
   verifyStation,
 } from "../../../olt/scripts/src/orchestrator/station-landing.ts";
 
-describe("Native OS Push Notification & Audio Chime Engine", () => {
+export const systemNotifierSuiteName = "Native OS Push Notification & Audio Chime Engine";
+
+describe(systemNotifierSuiteName, () => {
   describe("Platform Dispatcher", () => {
     it("dispatches macOS visual notifications via osascript with non-blocking arguments", () => {
       const spawned: { cmd: string; args: readonly string[]; opts?: unknown }[] = [];

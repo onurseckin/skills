@@ -30,7 +30,7 @@ export function deriveDisjointTaskScope(
         : "task";
 
   const writeScope = `olt/scripts/src/${domain}/${baseSlug}.ts`;
-  const testScope = `tests/unit/${domain}/${baseSlug}.test.ts`;
+  const testScope = `tests/${domain}/${baseSlug}.test.ts`;
   const testCommand = `bun test ${testScope}`;
   const scopeEnvelope = Object.freeze([writeScope, testScope]);
 
@@ -54,7 +54,7 @@ export function generatePlanMarkdown(
     "",
     `> **Tracking ID:** \`${trackingId}\`  `,
     `> **Status:** \`PHASE 1 - EXHAUSTIVE ARCHITECTURAL SPECIFICATION & TASK BREAKDOWN\`  `,
-    `> **Target Subsystems:** \`olt/scripts/src/${cluster.domain}/\`, \`tests/unit/${cluster.domain}/\`  `,
+    `> **Target Subsystems:** \`olt/scripts/src/${cluster.domain}/\`, \`tests/${cluster.domain}/\`  `,
     `> **Author:** Tier 0 Strategic Mind Supervisor & Infinite Product Owner  `,
     `> **Created:** ${dateStr}`,
     "",
@@ -107,7 +107,7 @@ export function generatePlanMarkdown(
     lines.push("- **Owner / Tier:** Tier 3 Implementer + Independent Validator");
     lines.push(`- **Write Scope:** \`${scope.writeScope}\`, \`${scope.testScope}\``);
     lines.push(
-      `- **Read-Only Scope:** \`olt/scripts/src/${cluster.domain}/\`, \`tests/unit/${cluster.domain}/\``,
+      `- **Read-Only Scope:** \`olt/scripts/src/${cluster.domain}/\`, \`tests/${cluster.domain}/\``,
     );
     lines.push("- **Acceptance Criteria (Stub Must Fail):**");
     lines.push(`  - Resolves backlog items: ${backlogSummary}.`);
@@ -136,7 +136,7 @@ export function generatePlanMarkdown(
     lines.push(`- **Backlog Ref:** \`${item.id}\``);
     lines.push(`- **Write Scope:** \`${scope.writeScope}\`, \`${scope.testScope}\``);
     lines.push(
-      `- **Read-Only Scope:** \`olt/scripts/src/${cluster.domain}/\`, \`tests/unit/${cluster.domain}/\``,
+      `- **Read-Only Scope:** \`olt/scripts/src/${cluster.domain}/\`, \`tests/${cluster.domain}/\``,
     );
     lines.push("- **Acceptance Criteria (Stub Must Fail):**");
     lines.push(`  - Implement: ${itemDetail}`);
@@ -175,7 +175,7 @@ export function generatePlanMarkdown(
     lines.push(`- **Defect Ref:** \`${defect.id}\` (Error Code: \`${errCode}\`)`);
     lines.push(`- **Write Scope:** \`${scope.writeScope}\`, \`${scope.testScope}\``);
     lines.push(
-      `- **Read-Only Scope:** \`olt/scripts/src/${cluster.domain}/\`, \`tests/unit/${cluster.domain}/\``,
+      `- **Read-Only Scope:** \`olt/scripts/src/${cluster.domain}/\`, \`tests/${cluster.domain}/\``,
     );
     lines.push("- **Acceptance Criteria (Stub Must Fail):**");
     lines.push(`  - Remediate: ${defectDetail}`);
@@ -192,7 +192,7 @@ export function generatePlanMarkdown(
   lines.push("## 4. Sequential Execution Order & Critical Path");
   lines.push("");
   lines.push("```text");
-  const flowDiagram = `${executionSteps.join(" ──► ")} ──► [Verification: bun test tests/unit/${cluster.domain}/] ──► [Git Staging: git add -A] ──► [Landing]`;
+  const flowDiagram = `${executionSteps.join(" ──► ")} ──► [Verification: bun test tests/${cluster.domain}/] ──► [Git Staging: git add -A] ──► [Landing]`;
   lines.push(`Execution Flow: ${flowDiagram}`);
   lines.push("```");
   lines.push("");
@@ -206,13 +206,13 @@ export function generatePlanMarkdown(
   for (const itemId of cluster.backlog_item_ids) {
     const mapping = taskScopeMap.get(itemId);
     const resolvedBy = mapping?.taskLabel ?? "Task 1.x";
-    const target = mapping?.testScope ?? `tests/unit/${cluster.domain}/`;
+    const target = mapping?.testScope ?? `tests/${cluster.domain}/`;
     lines.push(`| \`${itemId}\` | ${resolvedBy} | \`${target}\` |`);
   }
   for (const defId of cluster.defect_ids) {
     const mapping = taskScopeMap.get(defId);
     const resolvedBy = mapping?.taskLabel ?? "Task 1.x";
-    const target = mapping?.testScope ?? `tests/unit/${cluster.domain}/`;
+    const target = mapping?.testScope ?? `tests/${cluster.domain}/`;
     lines.push(`| \`${defId}\` | ${resolvedBy} | \`${target}\` |`);
   }
 

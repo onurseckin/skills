@@ -1,7 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { writeFileSync } from "node:fs";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import { afterAll } from "bun:test";
+
+afterAll(cleanupTempRoots);
 import {
   configOperand,
   pathOperand,
@@ -59,7 +62,7 @@ describe("pathOperand", () => {
   });
 
   test("resolves an existing extensionless file in cwd", () => {
-    const root = scratchRoot(import.meta.path, "path-operand-exist");
+    const root = tempRoot("path-operand-exist");
     writeFileSync(join(root, "Makefile"), "all:\\n");
     expect(pathOperand("Makefile", root, false)).toBe("Makefile");
     expect(pathOperand("nonexistent_file_no_ext", root, false)).toBeUndefined();

@@ -133,11 +133,20 @@ describe("engine/scheduler/diagnostics/skill-auditor-policy.ts", () => {
     expect(() =>
       SkillAuditorPolicy.assertSkillAuditorRequired("/path/to/skills", [
         {
+          schema: "harness.agent-grant",
+          version: 1,
           agent_id: "auditor-1",
           role: "skill-auditor",
           fingerprint: "fp",
           issued_at: new Date().toISOString(),
-        } as any,
+          grant_id: "grant-1",
+          session_id: "sess-1",
+          status: "active",
+          can_execute_shell: true,
+          capabilities: [],
+          write_scope: [],
+          resource_scope: [],
+        },
       ]),
     ).not.toThrow();
 

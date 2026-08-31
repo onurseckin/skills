@@ -15,7 +15,9 @@ import {
 } from "../../../olt/scripts/src/reporting/behavioral-auditor/index.ts";
 import type { TaskRecord } from "../../../olt/scripts/src/workflow/index.ts";
 
-describe("Behavioral Health Auditor - Edge Vectors & Role Violations", () => {
+export const behavioralHealthEdgeSuiteName = "Behavioral Health Auditor - Edge Vectors & Role Violations";
+
+describe(behavioralHealthEdgeSuiteName, () => {
   describe("Orchestrator Direct Implementation Invariants", () => {
     it("detects orchestrator using code editing tools and holding task leases", () => {
       const roleMap = new Map<string, string>([["orch-1", "orchestrator"]]);

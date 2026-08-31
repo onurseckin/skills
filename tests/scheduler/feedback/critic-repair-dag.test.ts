@@ -6,7 +6,7 @@ import {
   type ClosedLoopRepairPayload,
 } from "../../../olt/scripts/src/engine/scheduler/index.ts";
 import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
-import { TestPort, workflowState } from "../../workflow/test-port.ts";
+import { TestPort, workflowState } from "../fixtures.ts";
 
 describe("Critic Feedback: Repair DAG Compilation & Convergence", () => {
   describe("compileRepairDag", () => {

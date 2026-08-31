@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { routeCriticFeedback } from "../../../olt/scripts/src/engine/scheduler/index.ts";
 import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
-import { TestPort, workflowState } from "../../workflow/test-port.ts";
+import { TestPort, workflowState } from "../fixtures.ts";
 
 describe("Critic Feedback: Routing & Autonomous Remediation", () => {
   describe("routeCriticFeedback with requirement proofs and matching heuristics", () => {

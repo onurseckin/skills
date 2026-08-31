@@ -12,7 +12,7 @@ describe("SecurityAuditLogger", () => {
 
     const allowedEvent = await logger.logRbacDecision({
       actor: { id: "implementer_17", role: "implementer" },
-      command: "bun test tests/unit/policy/audit/security-audit-logger.test.ts",
+      command: "bun test tests/policy/audit/security-audit-logger.test.ts",
       allowed: true,
       reason: "Allowed targeted test",
       durationMs: 12,

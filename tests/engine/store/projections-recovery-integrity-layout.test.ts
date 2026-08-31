@@ -127,14 +127,11 @@ describe("engine/store/recovery", () => {
 
       const defect = appendCapsuleDefect(runRoot, {
         id: "def-1",
-        fingerprint: "fp-1",
-        run_id: "test-run-defects",
-        task_id: "task-1",
-        severity: "medium",
-        kind: "logic_error",
-        status: "open",
-        description: "Test defect",
-      } as any);
+        severity: "high" as const,
+        type: "logic_error",
+        observation: "Test defect",
+        dedup_key: "fp-1",
+      });
       expect(defect).toBeDefined();
 
       const loaded = loadCapsuleDefects(runRoot);

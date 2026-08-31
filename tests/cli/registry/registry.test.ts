@@ -167,6 +167,7 @@ describe("CLI command registry", () => {
       expect(withoutFlag["json"]).not.toBe(true);
       expect(withFlag["json"]).toBe(true);
     }
+    rmSync(repo, { recursive: true, force: true });
   });
 
   test("removes --json from commands whose handler never read it, instead of leaving a flag that silently does nothing", () => {

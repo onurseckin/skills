@@ -104,7 +104,7 @@ describe("engine/store/events/transaction.ts", () => {
       // Mutating reserved keys throws
       expect(() =>
         transact(runRoot, "worker", "invalid_mutate", {}, (state) => {
-          (state as any).revision = 999;
+          (state as unknown as Record<string, unknown>).revision = 999;
         }),
       ).toThrow(HarnessError);
     } finally {

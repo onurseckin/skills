@@ -8,9 +8,9 @@ import type {
   RoundExecutionResult,
   RoundExecutor,
 } from "../../../olt/scripts/src/orchestrator/types.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { tmpdir } from "node:os";
 
-const TEST_DIR = scratchRoot(import.meta.path, "test-orch-worktree");
+const TEST_DIR = join(tmpdir(), "test-orch-worktree");
 
 describe("orchestrator worktree integration", () => {
   test("AutonomousLoopRunner sets up worktree isolation and passes worktreePath to executor", async () => {

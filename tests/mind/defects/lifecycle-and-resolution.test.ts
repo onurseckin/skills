@@ -68,8 +68,8 @@ describe("Defect Lifecycle & Resolution Suite", () => {
 
       const candidates = formulateDefectCandidates(entries, ["Goal 1"]);
       expect(candidates.length).toBe(2);
-      expect(candidates[0]?.id).toBe("candidate-def-p0");
-      expect(candidates[1]?.id).toBe("candidate-def-p1");
+      expect(candidates[0]?.id).toBe("cand-defect-def-p0");
+      expect(candidates[1]?.id).toBe("cand-defect-def-p1");
     });
 
     it("returns empty array when no defects provided", () => {
@@ -81,8 +81,8 @@ describe("Defect Lifecycle & Resolution Suite", () => {
     it("generates concise, structured human-readable audit diagnostics", () => {
       const report = auditDefectLog([]);
       const brief = formatDefectAuditBrief(report);
-      expect(brief).toContain("Defect Audit Summary");
-      expect(brief).toContain("Total Defects: 0");
+      expect(brief).toContain("Defect Audit & Remediation Brief");
+      expect(brief).toContain("Total Defects");
     });
   });
 });

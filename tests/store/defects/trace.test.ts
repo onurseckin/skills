@@ -6,7 +6,7 @@ import {
   appendTraceStep,
   writeTrace,
 } from "../../../olt/scripts/src/engine/store/recovery/trace.ts";
-import { scratchRoot as makeScratchRoot } from "../../shared/scratch-root.ts";
+import { scratchRoot as makeScratchRoot } from "../store-fixture.ts";
 
 function scratchRoot(label: string): string {
   return makeScratchRoot(import.meta.path, label);

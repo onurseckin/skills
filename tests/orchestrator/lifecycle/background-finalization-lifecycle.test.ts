@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { executeBackgroundFinalization } from "../../../olt/scripts/src/orchestrator/supervision-loop.ts";
 import { createMockGitRunner, createMockSyncRunner } from "./fixture.ts";
+import { LIFECYCLE_SUITES } from "./index.ts";
 
 describe("Background Finalization Engine - Lifecycle Execution", () => {
   it("executes full lifecycle: git add, commit, push, and global sync in background thread", async () => {
@@ -146,5 +147,13 @@ describe("Background Finalization Engine - Lifecycle Execution", () => {
         gitRunner,
       }),
     ).rejects.toThrow(HarnessError);
+  });
+
+  it("handles fallback git commands and validates LIFECYCLE_SUITES", () => {
+    const { runner } = createMockGitRunner();
+    const fallback = runner(["unknown-command"], "/virtual/repo");
+    expect(fallback.status).toBe(0);
+    expect(fallback.stdout).toBe("");
+    expect(LIFECYCLE_SUITES.length).toBe(7);
   });
 });

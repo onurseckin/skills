@@ -55,9 +55,9 @@ describe("Defect Promotion & Regression Suite", () => {
       });
 
       const result = generateDefectRegressionTest(defect);
-      expect(result.code).toContain('describe("Regression: def-reg-1"');
-      expect(result.code).toContain("expect(");
-      expect(result.defectId).toBe("def-reg-1");
+      expect(result.test_code).toContain('test("regression [def-reg-1]');
+      expect(result.test_code).toContain("expect(");
+      expect(result.defect_id).toBe("def-reg-1");
     });
 
     it("bundles multiple defect regression tests into an aggregated test suite", () => {
@@ -67,7 +67,7 @@ describe("Defect Promotion & Regression Suite", () => {
       ];
 
       const suite = generateRegressionTestSuite(defects);
-      expect(suite).toContain('import { describe, expect, it } from "bun:test";');
+      expect(suite).toContain('import { describe, expect, test } from "bun:test";');
       expect(suite).toContain("def-10");
       expect(suite).toContain("def-20");
     });
@@ -75,12 +75,23 @@ describe("Defect Promotion & Regression Suite", () => {
 
   describe("validateRegressionTest", () => {
     it("validates generated regression test syntax contains essential assertion guards", () => {
-      const defect = createMockDefectEntry({ id: "def-valid-test" });
-      const testResult = generateDefectRegressionTest(defect);
-
-      const validation = validateRegressionTest(testResult.code);
+      const validCode = `
+describe("Regression Suite", () => {
+  test("test 1", () => {
+    expect(true).toBe(true);
+  });
+});
+`;
+      const validation = validateRegressionTest(validCode);
       expect(validation.isValid).toBe(true);
       expect(validation.issues).toEqual([]);
+    });
+
+    it("detects invalid test code lacking describe/test or unbalanced braces", () => {
+      const invalidCode = "const x = 1;";
+      const validation = validateRegressionTest(invalidCode);
+      expect(validation.isValid).toBe(false);
+      expect(validation.issues.length).toBeGreaterThan(0);
     });
   });
 

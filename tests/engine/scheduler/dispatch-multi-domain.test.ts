@@ -8,7 +8,6 @@ import {
   getRequiredValidatorDomains,
   normalizeTask,
 } from "../../../olt/scripts/src/engine/scheduler/dispatch/multi-domain-types.ts";
-import { resolveParallelismFactor } from "../../../olt/scripts/src/engine/scheduler/dispatch/multi-domain-factor.ts";
 import { evaluateMultiDomainBatch } from "../../../olt/scripts/src/engine/scheduler/dispatch/multi-domain-batch.ts";
 import {
   dispatchMultiDomainValidators,
@@ -19,6 +18,11 @@ import {
   evaluateHierarchicalDecision,
   HIERARCHICAL_TIERS,
 } from "../../../olt/scripts/src/engine/scheduler/conflict/decision-tree.ts";
+import { recoverStaleTasks } from "../../../olt/scripts/src/engine/scheduler/core/state.ts";
+import type {
+  TransactionPort,
+  CapsuleStoreState,
+} from "../../../olt/scripts/src/workflow/types.ts";
 
 describe("engine/scheduler/dispatch/multi-domain-types.ts", () => {
   it("evaluates eligibility and domain classification", () => {
@@ -126,5 +130,143 @@ describe("engine/scheduler/dispatch/multi-domain-batch.ts & dispatch.ts", () => 
 
     const validatorDispatch = dispatchMultiDomainValidators(mockState, { parallelismFactor: 3.0 });
     expect(validatorDispatch).toBeDefined();
+  });
+});
+
+describe("engine/scheduler/core/state.ts - Task Stale Recovery", () => {
+  it("recovers stale tasks with repair round below maxRepairRounds to retry_ready", () => {
+    const mockState: CapsuleStoreState = {
+      schema: "harness.run-state",
+      version: 1,
+      tasks: {
+        t1: {
+          id: "t1",
+          status: "running",
+          requirement_ids: [],
+          write_scope: ["src/a.ts"],
+          repair_round: 1,
+          lease: {
+            agent_id: "stale-worker",
+            role: "implementer",
+            last_heartbeat_at: "2026-08-25T08:00:00.000Z",
+            expires_at: "2026-08-25T08:30:00.000Z",
+          },
+        },
+      },
+    } as unknown as CapsuleStoreState;
+
+    const mockPort: TransactionPort = {
+      transact: (_actor, _action, _context, mutator) => {
+        mutator(mockState);
+        return {
+          commitId: "commit-1",
+          checkpoint: 1,
+          hash: "hash",
+          state: mockState,
+          diff: { schema: "harness.state-diff", version: 1, modified: {}, deleted: [] },
+        };
+      },
+    };
+
+    const result = recoverStaleTasks(mockPort, {
+      now: "2026-08-25T10:00:00.000Z",
+      timeoutMs: 60_000,
+      maxRepairRounds: 3,
+    });
+
+    expect(result.recoveredCount).toBe(1);
+    expect(result.healthy).toBe(false);
+    expect(result.recoveredTasks[0]?.taskId).toBe("t1");
+    expect(result.recoveredTasks[0]?.fromStatus).toBe("running");
+    expect(result.recoveredTasks[0]?.toStatus).toBe("retry_ready");
+    expect(result.recoveredTasks[0]?.agentId).toBe("stale-worker");
+
+    const updatedTask = mockState.tasks["t1"] as Record<string, unknown>;
+    expect(updatedTask.status).toBe("retry_ready");
+    expect(updatedTask.replacement_reason).toBe("stale");
+    expect(updatedTask.lease).toBeUndefined();
+  });
+
+  it("recovers stale tasks with repair round exceeding maxRepairRounds to stale", () => {
+    const mockState: CapsuleStoreState = {
+      schema: "harness.run-state",
+      version: 1,
+      tasks: {
+        t2: {
+          id: "t2",
+          status: "leased",
+          requirement_ids: [],
+          write_scope: ["src/b.ts"],
+          repair_round: 3,
+          lease: {
+            agent_id: "exhausted-worker",
+            role: "implementer",
+            last_heartbeat_at: "2026-08-25T08:00:00.000Z",
+            expires_at: "2026-08-25T08:30:00.000Z",
+          },
+        },
+      },
+    } as unknown as CapsuleStoreState;
+
+    const mockPort: TransactionPort = {
+      transact: (_actor, _action, _context, mutator) => {
+        mutator(mockState);
+        return {
+          commitId: "commit-2",
+          checkpoint: 2,
+          hash: "hash",
+          state: mockState,
+          diff: { schema: "harness.state-diff", version: 1, modified: {}, deleted: [] },
+        };
+      },
+    };
+
+    const result = recoverStaleTasks(mockPort, {
+      now: "2026-08-25T10:00:00.000Z",
+      timeoutMs: 60_000,
+      maxRepairRounds: 3,
+    });
+
+    expect(result.recoveredCount).toBe(1);
+    expect(result.recoveredTasks[0]?.toStatus).toBe("stale");
+
+    const updatedTask = mockState.tasks["t2"] as Record<string, unknown>;
+    expect(updatedTask.status).toBe("stale");
+  });
+
+  it("returns healthy when no tasks require recovery", () => {
+    const mockState: CapsuleStoreState = {
+      schema: "harness.run-state",
+      version: 1,
+      tasks: {
+        t1: {
+          id: "t1",
+          status: "done",
+          requirement_ids: [],
+          write_scope: [],
+        },
+      },
+    } as unknown as CapsuleStoreState;
+
+    const mockPort: TransactionPort = {
+      transact: (_actor, _action, _context, mutator) => {
+        mutator(mockState);
+        return {
+          commitId: "commit-3",
+          checkpoint: 3,
+          hash: "hash",
+          state: mockState,
+          diff: { schema: "harness.state-diff", version: 1, modified: {}, deleted: [] },
+        };
+      },
+    };
+
+    const result = recoverStaleTasks(mockPort, {
+      now: "2026-08-25T10:00:00.000Z",
+    });
+
+    expect(result.recoveredCount).toBe(0);
+    expect(result.healthy).toBe(true);
+    expect(result.details).toEqual([]);
   });
 });

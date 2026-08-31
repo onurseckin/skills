@@ -1,0 +1,299 @@
+import { describe, expect, it } from "bun:test";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import {
+  calculateApcaLightness,
+  formatManifestFilename,
+  isCertifiedManifest,
+  loadCompanionManifest,
+  saveCompanionManifest,
+  synthesizeCompanionManifest,
+  validateApcaElement,
+  validateConcentricRadius,
+  validateCustom,
+  validateFloatingUiCollision,
+  validateMaterialStateLayers,
+  validateMechanical,
+  validateSubpixelSnapping,
+  validateWaiAriaFocusTrap,
+} from "../../../../olt/scripts/src/capture/validator/index.ts";
+import type {
+  CompanionManifestV2,
+  ElementPhysicsSnapshot,
+  ValidationContext,
+} from "../../../../olt/scripts/src/capture/validator/types.ts";
+import {
+  computeLayoutMetrics,
+  createEmptyDomPhysicsSnapshot,
+} from "../../../../olt/scripts/src/capture/runners/dom-physics-extractor.ts";
+import { createSyntheticPngBuffer } from "../../../../olt/scripts/src/capture/runners/live-capture-runner/index.ts";
+import {
+  analyzeDualChannel,
+  validateCompanionManifestCriteria,
+  type CompanionManifestData,
+  type DualChannelInput,
+  type ScreenshotMetadata,
+  type StructuredFinding,
+  type VisualMetricsReport,
+} from "../../../../olt/scripts/src/validation/dual-channel-analyzer/index.ts";
+import { assertRoleArtifactPresent } from "../../../../olt/scripts/src/workflow/review/role-evidence.ts";
+import type { TaskRecord, WorkflowState } from "../../../../olt/scripts/src/workflow/types.ts";
+import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+
+function createFindingCollector(): {
+  readonly findings: StructuredFinding[];
+  readonly addFinding: (
+    category: StructuredFinding["category"],
+    severity: StructuredFinding["severity"],
+    message: string,
+    remediation: string,
+    affectedSelector?: string,
+    viewport?: string,
+  ) => void;
+} {
+  const findings: StructuredFinding[] = [];
+  const addFinding = (
+    category: StructuredFinding["category"],
+    severity: StructuredFinding["severity"],
+    message: string,
+    remediation: string,
+    affectedSelector?: string,
+    viewport?: string,
+  ): void => {
+    findings.push({
+      id: `FINDING-${String(findings.length + 1).padStart(3, "0")}`,
+      category,
+      severity,
+      message,
+      remediation,
+      ...(affectedSelector !== undefined ? { affectedSelector } : {}),
+      ...(viewport !== undefined ? { viewport } : {}),
+    });
+  };
+  return { findings, addFinding };
+}
+describe("Adversarial Edge Cases: Multi-Viewport Companion Manifest Verification", () => {
+  it("rejects dual-channel UI task when required viewports are missing", () => {
+    const input: DualChannelInput = {
+      writeScope: ["src/views/Settings.tsx"],
+      // Only desktop provided, mobile and tablet are missing
+      screenshots: [
+        {
+          name: "settings-desktop.png",
+          path: "/tmp/settings-desktop.png",
+          viewport: "desktop",
+          sizeBytes: 2048,
+        },
+      ],
+    };
+
+    const result = analyzeDualChannel(input);
+    expect(result.isUiTask).toBe(true);
+    expect(result.passed).toBe(false);
+    expect(result.mode).toBe("rejected");
+    const missingVpFindings = result.findings.filter((f) => f.category === "missing_viewport");
+    expect(missingVpFindings.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("rejects dummy screenshot stubs (< 1024 bytes) and generates Anti-Mocking violation", () => {
+    const input: DualChannelInput = {
+      writeScope: ["src/views/Settings.tsx"],
+      screenshots: [
+        {
+          name: "settings-desktop.png",
+          path: "/tmp/settings-desktop.png",
+          viewport: "desktop",
+          sizeBytes: 67, // minimal stub
+        },
+        {
+          name: "settings-tablet.png",
+          path: "/tmp/settings-tablet.png",
+          viewport: "tablet",
+          sizeBytes: 500, // stub
+        },
+        {
+          name: "settings-mobile.png",
+          path: "/tmp/settings-mobile.png",
+          viewport: "mobile",
+          sizeBytes: 0, // zero bytes
+        },
+      ],
+    };
+
+    const result = analyzeDualChannel(input);
+    expect(result.passed).toBe(false);
+    expect(result.mode).toBe("rejected");
+    const stubFindings = result.findings.filter((f) => f.category === "invalid_screenshot_size");
+    expect(stubFindings.length).toBe(3);
+    expect(stubFindings.some((f) => f.message.includes("Anti-Mocking Invariant Violation"))).toBe(
+      true,
+    );
+  });
+
+  it("passes multi-viewport companion manifest verification with genuine screenshots >= 1024 bytes", () => {
+    const shotsDir = join(tmpdir(), "heuristics-test");
+    mkdirSync(shotsDir, { recursive: true });
+    const mobilePath = join(shotsDir, "header-mobile.png");
+    const tabletPath = join(shotsDir, "header-tablet.png");
+    const desktopPath = join(shotsDir, "header-desktop.png");
+    writeFileSync(mobilePath, createSyntheticPngBuffer(390, 844, 1200));
+    writeFileSync(tabletPath, createSyntheticPngBuffer(768, 1024, 1500));
+    writeFileSync(desktopPath, createSyntheticPngBuffer(1440, 900, 2048));
+
+    const input: DualChannelInput = {
+      writeScope: ["src/components/Header.tsx"],
+      screenshots: [
+        {
+          name: "header-mobile.png",
+          path: mobilePath,
+          viewport: "mobile",
+          sizeBytes: 1200,
+        },
+        {
+          name: "header-tablet.png",
+          path: tabletPath,
+          viewport: "tablet",
+          sizeBytes: 1500,
+        },
+        {
+          name: "header-desktop.png",
+          path: desktopPath,
+          viewport: "desktop",
+          sizeBytes: 2048,
+        },
+      ],
+      manifests: [
+        {
+          schema: "companion.manifest.v1",
+          screenId: "header",
+          viewport: "desktop",
+          criteria: [
+            {
+              id: "CRIT-MECH-APCA",
+              pillar: "mechanical",
+              passed: true,
+              details: "APCA compliant",
+              evidence: "Lc=85.0",
+            },
+            {
+              id: "CRIT-COGN-STATES",
+              pillar: "cognitive",
+              passed: true,
+              details: "FSM complete",
+              evidence: "States: 5/5",
+            },
+            {
+              id: "CRIT-PROD-GEIST-TOKENS",
+              pillar: "product",
+              passed: true,
+              details: "Tokens matched",
+              evidence: "Radius 8px",
+            },
+            {
+              id: "CRIT-UX-FOCUS-TRAP",
+              pillar: "ux",
+              passed: true,
+              details: "Trapped focus valid",
+              evidence: "Tab cycle constrained",
+            },
+          ],
+        },
+      ],
+    };
+
+    const audit = analyzeDualChannel(input);
+    expect(audit.isUiTask).toBe(true);
+    expect(audit.passed).toBe(true);
+    expect(audit.mode).toBe("screenshot_gap_filled");
+    expect(audit.proofs).toHaveLength(3);
+    expect(
+      audit.proofs.some((p) => p.verifiedInvariants.includes("manifest_4_pillars_certified")),
+    ).toBe(true);
+  });
+
+  it("enforces assertRoleArtifactPresent constraints across UI and non-UI domains", () => {
+    // Non-UI domain passes without artifacts
+    expect(() => {
+      assertRoleArtifactPresent("task-db-01", false, { hasArtifact: false });
+    }).not.toThrow();
+
+    // UI domain throws HarnessError when no artifact is recorded
+    expect(() => {
+      assertRoleArtifactPresent("task-ui-01", true, { hasArtifact: false });
+    }).toThrow(HarnessError);
+
+    // UI domain throws HarnessError when screenshots are stubs (< 1024 bytes)
+    expect(() => {
+      assertRoleArtifactPresent("task-ui-02", true, {
+        hasArtifact: true,
+        screenshots: [{ sizeBytes: 67, name: "stub.png" }],
+      });
+    }).toThrow(HarnessError);
+
+    // UI domain passes when screenshot is >= 1024 bytes
+    expect(() => {
+      assertRoleArtifactPresent("task-ui-03", true, {
+        hasArtifact: true,
+        screenshots: [{ sizeBytes: 1024, name: "real.png" }],
+      });
+    }).not.toThrow();
+
+    // UI domain passes when companion manifests are present
+    expect(() => {
+      assertRoleArtifactPresent("task-ui-04", true, {
+        hasArtifact: true,
+        manifests: [{ screenId: "home", viewport: "desktop" }],
+      });
+    }).not.toThrow();
+  });
+
+  it("serializes, writes, and loads companion manifests v2.0 correctly and rejects invalid manifests", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "manifest-test-"));
+    try {
+      const syntheticCtx: ValidationContext = {
+        screenId: "checkout-screen",
+        viewport: "mobile",
+        elements: [
+          {
+            selector: "button.checkout-btn",
+            tagName: "BUTTON",
+            text: "Pay Now",
+            bounds: { x: 20, y: 100, width: 300, height: 48 },
+            interactive: true,
+            isTouchTarget: true,
+            computedStyles: {
+              color: "#ffffff",
+              backgroundColor: "#000000",
+              fontSize: 16,
+              fontWeight: 600,
+              borderRadius: 8,
+            },
+            implementedStates: ["default", "hover", "active", "focus", "disabled"],
+          },
+        ],
+        viewportBounds: { width: 375, height: 667 },
+      };
+
+      const manifest = synthesizeCompanionManifest(syntheticCtx);
+      expect(isCertifiedManifest(manifest)).toBe(true);
+
+      const filePath = await saveCompanionManifest(manifest, tempDir);
+      expect(formatManifestFilename(manifest.screenId, manifest.viewport)).toBe(
+        "checkout-screen-mobile.manifest.json",
+      );
+
+      const loaded = await loadCompanionManifest(filePath);
+      expect(loaded.version).toBe("2.0");
+      expect(loaded.screenId).toBe("checkout-screen");
+      expect(loaded.viewport).toBe("mobile");
+      expect(loaded.verdict).toBe("CERTIFIED");
+      expect(loaded.criteria.length).toBeGreaterThanOrEqual(4);
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+});

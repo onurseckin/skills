@@ -2,7 +2,10 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { prepareCommand } from "../../../olt/scripts/src/engine/runner/models/execution/run-command.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { tempRoot, cleanupTempRoots } from "./fixture.ts";
+import { afterAll } from "bun:test";
+
+afterAll(cleanupTempRoots);
 import { resolveScratchDir } from "../../../olt/scripts/src/core/shared/paths.ts";
 import type { InternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 import type {
@@ -13,7 +16,7 @@ import type {
 
 describe("prepareCommand policy and authorization", () => {
   test("rejects a timeout-only policy before invoking the runner or emitting a receipt", async () => {
-    const repo = scratchRoot(import.meta.path, "prepare-policy-timeout");
+    const repo = tempRoot("prepare-policy-timeout");
     const oltDir = join(repo, ".olt");
     mkdirSync(oltDir, { recursive: true });
     writeFileSync(join(oltDir, "policy.json"), JSON.stringify({ timeout_ms: 45000 }));
@@ -66,7 +69,7 @@ describe("prepareCommand policy and authorization", () => {
   });
 
   test("rejects malformed policies before invoking the runner or emitting a receipt", async () => {
-    const repo = scratchRoot(import.meta.path, "prepare-policy-malformed");
+    const repo = tempRoot("prepare-policy-malformed");
     mkdirSync(join(repo, ".olt"), { recursive: true });
     writeFileSync(join(repo, ".olt", "policy.json"), "{ not-json");
     rmSync(resolveScratchDir(repo), { recursive: true, force: true });
@@ -97,7 +100,7 @@ describe("prepareCommand policy and authorization", () => {
   });
 
   test("uses the target repository policy for RBAC after safe runner preparation", async () => {
-    const repo = scratchRoot(import.meta.path, "prepare-target-policy");
+    const repo = tempRoot("prepare-target-policy");
     mkdirSync(join(repo, ".olt"), { recursive: true });
     writeFileSync(
       join(repo, ".olt", "policy.json"),
@@ -157,7 +160,7 @@ describe("prepareCommand policy and authorization", () => {
   });
 
   test("uses the normalized prepared runRoot for metadata when input omits runRoot", async () => {
-    const repo = scratchRoot(import.meta.path, "prepare-omitted-run-root");
+    const repo = tempRoot("prepare-omitted-run-root");
     const normalizedRunRoot = join(repo, ".olt", "capsules", "run-1");
     const commandDir = join(normalizedRunRoot, "commands");
     const runtimeDir = join(normalizedRunRoot, "runtime");
@@ -205,7 +208,7 @@ describe("prepareCommand policy and authorization", () => {
   });
 
   test("keeps an explicit wall timeout while an absent policy uses canonical defaults", async () => {
-    const repo = scratchRoot(import.meta.path, "prepare-policy-default");
+    const repo = tempRoot("prepare-policy-default");
     const runtimeDir = join(repo, "runtime");
     mkdirSync(runtimeDir, { recursive: true });
     writeFileSync(

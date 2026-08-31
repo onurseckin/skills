@@ -15,7 +15,9 @@ import {
 
 afterEach(cleanupTempDirs);
 
-describe("browser run ingestion", () => {
+export const browserRunIngestionSuiteName = "browser run ingestion";
+
+describe(browserRunIngestionSuiteName, () => {
   test("records what the runner reported and what the harness measured, each labelled", () => {
     const harness = browserRunHarness();
     const runRoot = tempDir("run");
@@ -26,7 +28,7 @@ describe("browser run ingestion", () => {
 
     expect(rec?.browser).toBe("chromium");
     expect(rec?.viewport).toEqual({ width: 1440, height: 900 });
-    expect(rec?.test_file).toBe("tests/e2e/login.spec.ts");
+    expect(rec?.test_file).toBe("tests/browser/login.spec.ts");
     expect(rec?.traces).toEqual(["/artifacts/trace.zip"]);
     expect(rec?.videos).toEqual(["/artifacts/session.webm"]);
     expect(rec?.duration_ms).toBe(1500);
@@ -108,7 +110,7 @@ describe("browser run ingestion", () => {
           { name: "mobile", use: { viewport: { width: 390, height: 844 } } },
         ],
       },
-      suites: [{ file: "tests/e2e/layout.spec.ts" }],
+      suites: [{ file: "tests/browser/layout.spec.ts" }],
     });
 
     const rec = harness.ingest(runRoot, repo);
@@ -138,7 +140,7 @@ describe("browser run ingestion", () => {
           },
         ],
       },
-      suites: [{ file: "tests/e2e/cross.spec.ts" }],
+      suites: [{ file: "tests/browser/cross.spec.ts" }],
     });
 
     const rec = harness.ingest(runRoot, repo);

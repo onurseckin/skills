@@ -6,7 +6,9 @@ import {
 } from "../../../olt/scripts/src/reporting/socratic-validator.ts";
 import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 
-describe("Socratic Reflexive Self-Questioning Engine", () => {
+export const socraticValidatorSuiteName = "Socratic Reflexive Self-Questioning Engine";
+
+describe(socraticValidatorSuiteName, () => {
   test("defines all 5 Socratic dimensions", () => {
     expect(SOCRATIC_DIMENSIONS).toHaveLength(5);
     const keys = SOCRATIC_DIMENSIONS.map((d) => d.key);
@@ -22,11 +24,12 @@ describe("Socratic Reflexive Self-Questioning Engine", () => {
       tasks: {
         "task-1": {
           id: "task-1",
-          status: "satisfied",
-          falsifiable: true,
+          status: "done",
           validations: [
             {
               validator_id: "val-1",
+              domain: "unit",
+              review_round: 1,
               verdict: "pass",
               checks: ["cmd-1", "cmd-2"],
             },
@@ -40,7 +43,7 @@ describe("Socratic Reflexive Self-Questioning Engine", () => {
           status: "succeeded",
           exit_code: 0,
           wall_time_ms: 120,
-          argv: ["bun", "test", "tests/unit/test-1.test.ts"],
+          argv: ["bun", "test", "tests/reporting/doctor/socratic-validator.test.ts"],
         },
       },
       baseline: {

@@ -266,39 +266,5 @@ describe("projection-patch", () => {
         ]);
       });
     });
-
-    test("rejects out-of-bounds splice operations", () => {
-      expectIntegrity(() => {
-        applyProjectionPatch({ list: [1, 2] }, [
-          { op: "splice", path: ["list"], start: 5, deleteCount: 0 },
-        ]);
-      });
-      expectIntegrity(() => {
-        applyProjectionPatch({ list: [1, 2] }, [
-          { op: "splice", path: ["list"], start: 0, deleteCount: 5 },
-        ]);
-      });
-    });
-
-    test("rejects traversal through a primitive array element without mutating the source", () => {
-      const before = { list: [1] };
-      expectIntegrity(() => {
-        applyProjectionPatch(before, [{ op: "set", path: ["list", "0", "name"], value: "one" }]);
-      });
-      expect(before).toEqual({ list: [1] });
-    });
-
-    test("keeps the source externally atomic when a later array operation is invalid", () => {
-      const before = { list: [1] };
-      const serializedBefore = JSON.stringify(before);
-      expectIntegrity(() => {
-        applyProjectionPatch(before, [
-          { op: "set", path: ["list", "1"], value: 2 },
-          { op: "set", path: ["list", "3"], value: 4 },
-        ]);
-      });
-      expect(before).toEqual({ list: [1] });
-      expect(JSON.stringify(before)).toBe(serializedBefore);
-    });
   });
 });

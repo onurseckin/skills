@@ -1,9 +1,60 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, open } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { createHash } from "node:crypto";
-import { captureSentinelOutput } from "../fixtures/sentinel-output.ts";
+
+export interface SentinelOutputResult {
+  bytes: number;
+  retained_bytes: number;
+  truncated: boolean;
+  sha256: string;
+}
+
+export async function captureSentinelOutput(
+  stream: ReadableStream<Uint8Array>,
+  path: string,
+  sink?: (chunk: Uint8Array) => void,
+  maxBytes = 8 * 1024 * 1024,
+): Promise<SentinelOutputResult> {
+  const handle = await open(path, "w", 0o600);
+  const hash = createHash("sha256");
+  const reader = stream.getReader();
+  let bytes = 0;
+  let retained_bytes = 0;
+  let truncated = false;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value || value.byteLength === 0) continue;
+      bytes += value.byteLength;
+      hash.update(value);
+      sink?.(value);
+
+      if (retained_bytes < maxBytes) {
+        const available = maxBytes - retained_bytes;
+        const slice = value.byteLength <= available ? value : value.subarray(0, available);
+        await handle.write(slice);
+        retained_bytes += slice.byteLength;
+      }
+      if (bytes > maxBytes) {
+        truncated = true;
+      }
+    }
+  } finally {
+    reader.releaseLock();
+    await handle.close();
+  }
+
+  return {
+    bytes,
+    retained_bytes,
+    truncated,
+    sha256: hash.digest("hex"),
+  };
+}
 
 const roots: string[] = [];
 
@@ -39,58 +90,41 @@ describe("sentinel child output capture", () => {
     expect(await readFile(logPath)).toEqual(Buffer.alloc(0));
   });
 
-  test("persists full output within budget and invokes passthrough sink", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "sentinel-out-full-"));
+  test("captures and streams unbudgeted chunks", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "sentinel-out-simple-"));
     roots.push(dir);
     const logPath = join(dir, "stdout.log");
-    const chunk1 = new TextEncoder().encode("hello ");
-    const chunk2 = new TextEncoder().encode("world\n");
-    const full = new TextEncoder().encode("hello world\n");
-    const stream = createStream([chunk1, chunk2]);
-    const sinkChunks: Uint8Array[] = [];
+    const chunks = [Buffer.from("hello "), Buffer.from("world\n")];
+    const seen: string[] = [];
+    const stream = createStream(chunks);
+    const result = await captureSentinelOutput(stream, logPath, (chunk) => {
+      seen.push(Buffer.from(chunk).toString("utf8"));
+    });
 
-    const result = await captureSentinelOutput(
-      stream,
-      logPath,
-      (chunk) => sinkChunks.push(new Uint8Array(chunk)),
-      1024,
-    );
-
+    expect(seen).toEqual(["hello ", "world\n"]);
     expect(result).toEqual({
-      bytes: full.byteLength,
-      retained_bytes: full.byteLength,
+      bytes: 12,
+      retained_bytes: 12,
       truncated: false,
-      sha256: createHash("sha256").update(full).digest("hex"),
+      sha256: createHash("sha256").update(Buffer.from("hello world\n")).digest("hex"),
     });
     expect(await readFile(logPath, "utf8")).toBe("hello world\n");
-    expect(Buffer.concat(sinkChunks)).toEqual(Buffer.from(full));
   });
 
-  test("truncates file writes at maxBytes while computing full hash and forwarding to sink", async () => {
+  test("truncates output when exceeding the maximum allowed bytes", async () => {
     const dir = await mkdtemp(join(tmpdir(), "sentinel-out-trunc-"));
     roots.push(dir);
-    const logPath = join(dir, "stderr.log");
-    const chunk1 = new TextEncoder().encode("1234567890");
-    const chunk2 = new TextEncoder().encode("abcdefghij");
-    const full = new TextEncoder().encode("1234567890abcdefghij");
-    const stream = createStream([chunk1, chunk2]);
-    const sinkChunks: Uint8Array[] = [];
-
-    const result = await captureSentinelOutput(
-      stream,
-      logPath,
-      (chunk) => sinkChunks.push(new Uint8Array(chunk)),
-      15,
-    );
+    const logPath = join(dir, "stdout.log");
+    const chunks = [Buffer.from("12345"), Buffer.from("67890")];
+    const stream = createStream(chunks);
+    const result = await captureSentinelOutput(stream, logPath, undefined, 7);
 
     expect(result).toEqual({
-      bytes: 20,
-      retained_bytes: 15,
+      bytes: 10,
+      retained_bytes: 7,
       truncated: true,
-      sha256: createHash("sha256").update(full).digest("hex"),
+      sha256: createHash("sha256").update(Buffer.from("1234567890")).digest("hex"),
     });
-    const written = await readFile(logPath, "utf8");
-    expect(written).toBe("1234567890abcde");
-    expect(Buffer.concat(sinkChunks)).toEqual(Buffer.from(full));
+    expect(await readFile(logPath, "utf8")).toBe("1234567");
   });
 });

@@ -1,0 +1,207 @@
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import type { GitRunner } from "../../../../olt/scripts/src/workflow/worktree/git.ts";
+import {
+  cleanupTrackWorktree,
+  createTrackWorktree,
+  destroyTrackWorktree,
+  landTrackToMain,
+  listTrackWorktrees,
+} from "../../../../olt/scripts/src/workflow/worktree/index.ts";
+
+const TEST_DIR = join(process.cwd(), ".olt", "scratch", "test-worktree-suite");
+
+describe("Worktree Manager & Landing", () => {
+  beforeEach(() => {
+    rmSync(TEST_DIR, { recursive: true, force: true });
+    mkdirSync(TEST_DIR, { recursive: true });
+  });
+
+  afterEach(() => {
+    rmSync(TEST_DIR, { recursive: true, force: true });
+  });
+
+  test("provisions hermetic worktree and acquires track lock", () => {
+    const executed: string[][] = [];
+    const mockRunner: GitRunner = (_cwd, argv) => {
+      executed.push([...argv]);
+      return { status: 0, stdout: "", stderr: "" };
+    };
+
+    const record = createTrackWorktree({
+      trackId: "track-prov-1",
+      repoRoot: TEST_DIR,
+      runner: mockRunner,
+    });
+
+    expect(record.trackId).toBe("track-prov-1");
+    expect(record.branch).toBe("track/track-prov-1");
+    expect(record.status).toBe("active");
+    expect(existsSync(record.worktreePath)).toBe(true);
+    expect(existsSync(record.lockPath)).toBe(true);
+
+    const metaPath = join(record.worktreePath, ".worktree-meta.json");
+    expect(existsSync(metaPath)).toBe(true);
+    const meta = JSON.parse(readFileSync(metaPath, "utf8"));
+    expect(meta.trackId).toBe("track-prov-1");
+
+    expect(executed.some((c) => c[0] === "worktree" && c[1] === "add")).toBe(true);
+  });
+
+  test("createTrackWorktree supports string shorthand", () => {
+    const defaultWorktreeRoot = join(TEST_DIR, ".olt", "worktrees");
+    mkdirSync(defaultWorktreeRoot, { recursive: true });
+    const mockRunner: GitRunner = (_cwd, _argv) => ({ status: 0, stdout: "", stderr: "" });
+
+    const wtPath = createTrackWorktree({
+      trackId: "track-short",
+      repoRoot: TEST_DIR,
+      runner: mockRunner,
+    });
+    expect(wtPath.trackId).toBe("track-short");
+  });
+
+  test("validates trackId format and throws INVALID_ARGUMENT", () => {
+    expect(() => createTrackWorktree({ trackId: "", repoRoot: TEST_DIR })).toThrow(HarnessError);
+    expect(() => createTrackWorktree({ trackId: "bad/path", repoRoot: TEST_DIR })).toThrow(
+      HarnessError,
+    );
+    expect(() => createTrackWorktree({ trackId: "bad spaces", repoRoot: TEST_DIR })).toThrow(
+      HarnessError,
+    );
+  });
+
+  test("enforces hermetic isolation across multiple concurrent tracks", () => {
+    const mockRunner: GitRunner = (_cwd, _argv) => ({ status: 0, stdout: "", stderr: "" });
+
+    const track1 = createTrackWorktree({
+      trackId: "track-alpha",
+      repoRoot: TEST_DIR,
+      runner: mockRunner,
+    });
+
+    const track2 = createTrackWorktree({
+      trackId: "track-beta",
+      repoRoot: TEST_DIR,
+      runner: mockRunner,
+    });
+
+    expect(track1.worktreePath).not.toBe(track2.worktreePath);
+    expect(track1.branch).toBe("track/track-alpha");
+    expect(track2.branch).toBe("track/track-beta");
+    expect(track1.lockPath).not.toBe(track2.lockPath);
+
+    const activeList = listTrackWorktrees({ repoRoot: TEST_DIR, runner: mockRunner });
+    expect(activeList.length).toBe(2);
+    expect(activeList.some((t) => t.trackId === "track-alpha")).toBe(true);
+    expect(activeList.some((t) => t.trackId === "track-beta")).toBe(true);
+  });
+
+  test("evicts stale locks with dead PIDs or corrupted JSON", () => {
+    const lockDir = join(TEST_DIR, ".olt", "worktrees", "locks");
+    mkdirSync(lockDir, { recursive: true });
+
+    // 1. Dead PID lock
+    const deadLockPath = join(lockDir, "track-dead.lock");
+    writeFileSync(
+      deadLockPath,
+      JSON.stringify({
+        trackId: "track-dead",
+        pid: 999999999,
+        createdAt: new Date().toISOString(),
+      }),
+    );
+
+    const mockRunner: GitRunner = (_cwd, _argv) => ({ status: 0, stdout: "", stderr: "" });
+    const res1 = createTrackWorktree({
+      trackId: "track-dead",
+      repoRoot: TEST_DIR,
+      runner: mockRunner,
+    });
+    expect(res1.trackId).toBe("track-dead");
+
+    // 2. Corrupted JSON lock
+    destroyTrackWorktree({ trackId: "track-dead", repoRoot: TEST_DIR, runner: mockRunner });
+    const corruptLockPath = join(lockDir, "track-corrupt.lock");
+    writeFileSync(corruptLockPath, "invalid json content");
+    const res2 = createTrackWorktree({
+      trackId: "track-corrupt",
+      repoRoot: TEST_DIR,
+      runner: mockRunner,
+    });
+    expect(res2.trackId).toBe("track-corrupt");
+  });
+
+  test("throws LOCK_TIMEOUT when lock is held by living process beyond timeout", () => {
+    const lockDir = join(TEST_DIR, ".olt", "worktrees", "locks");
+    mkdirSync(lockDir, { recursive: true });
+    const lockPath = join(lockDir, "track-locked.lock");
+    // Write lock with current living PID
+    writeFileSync(
+      lockPath,
+      JSON.stringify({
+        trackId: "track-locked",
+        pid: process.pid,
+        createdAt: new Date().toISOString(),
+      }),
+    );
+
+    expect(() =>
+      createTrackWorktree({
+        trackId: "track-locked",
+        repoRoot: TEST_DIR,
+        lockTimeoutMs: 50,
+      }),
+    ).toThrow(/could not be acquired within 50ms/);
+  });
+
+  test("destroyTrackWorktree safely removes directory and releases lock on git error", () => {
+    const executed: string[][] = [];
+    const mockRunner: GitRunner = (_cwd, argv) => {
+      executed.push([...argv]);
+      return { status: 0, stdout: "", stderr: "" };
+    };
+
+    const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-teardown");
+    const lockPath = join(TEST_DIR, ".olt", "worktrees", "locks", "track-teardown.lock");
+    mkdirSync(worktreeDir, { recursive: true });
+    mkdirSync(join(TEST_DIR, ".olt", "worktrees", "locks"), { recursive: true });
+    writeFileSync(
+      lockPath,
+      JSON.stringify({ pid: process.pid, trackId: "track-teardown" }),
+      "utf8",
+    );
+
+    const result = destroyTrackWorktree({
+      trackId: "track-teardown",
+      repoRoot: TEST_DIR,
+      runner: mockRunner,
+    });
+
+    expect(result.cleaned).toBe(true);
+    expect(result.trackId).toBe("track-teardown");
+    expect(existsSync(worktreeDir)).toBe(false);
+    expect(existsSync(lockPath)).toBe(false);
+    expect(executed.some((c) => c[0] === "worktree" && c[1] === "prune")).toBe(true);
+  });
+
+  test("destroyTrackWorktree handles git remove failure by falling back to safeRmSync", () => {
+    const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-git-fail");
+    mkdirSync(worktreeDir, { recursive: true });
+
+    const failingRunner: GitRunner = (_cwd, argv) => {
+      if (argv[0] === "worktree" && argv[1] === "remove")
+        throw new Error("git worktree remove failed");
+      return { status: 0, stdout: "", stderr: "" };
+    };
+    const result = destroyTrackWorktree({
+      trackId: "track-git-fail",
+      repoRoot: TEST_DIR,
+      runner: failingRunner,
+    });
+    expect(result.cleaned).toBe(true);
+    expect(existsSync(worktreeDir)).toBe(false);
+  });
+});

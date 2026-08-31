@@ -34,9 +34,9 @@ export function expandExternalPromptToWavePlan(
     const id = `${prefix}-${i + 1}-${slug}`;
     const scope = [
       `olt/scripts/src/mind/step-${i + 1}.ts`,
-      `tests/unit/mind/step-${i + 1}.test.ts`,
+      `tests/mind/step-${i + 1}.test.ts`,
     ];
-    const gate = `bun test tests/unit/mind/step-${i + 1}.test.ts && bun run typecheck`;
+    const gate = `bun test tests/mind/step-${i + 1}.test.ts && bun run typecheck`;
     const dependencies = i > 0 ? [tasks[i - 1]!.id] : [];
 
     const rawTask: SmartTaskPlan = {
@@ -141,19 +141,19 @@ export function deriveWriteScopeForCategory(category: string, id: string): reado
     case "AGENT_CONTRACTS":
       return ["olt/agents/", "olt/roles/", "olt/references/"];
     case "CLI_TOOLING":
-      return [`olt/scripts/src/cli/commands/${slug}.ts`, `tests/unit/cli/${slug}.test.ts`];
+      return [`olt/scripts/src/cli/commands/${slug}.ts`, `tests/cli/${slug}.test.ts`];
     case "WATCHDOG":
       return [
         "olt/scripts/src/authority/watchdog/index.ts",
         "olt/scripts/src/cli/commands/watchdog-ops.ts",
-        "tests/unit/authority/watchdog-manager.test.ts",
+        "tests/authority/watchdog-manager.test.ts",
       ];
     case "SCALING":
-      return ["olt/scripts/src/workflow/", "olt/roles/", "tests/unit/workflow/"];
+      return ["olt/scripts/src/workflow/", "olt/roles/", "tests/workflow/"];
     case "CORE_ENGINE":
     case "ARCHITECTURE":
     default:
-      return [`olt/scripts/src/mind/${slug}.ts`, `tests/unit/mind/${slug}.test.ts`];
+      return [`olt/scripts/src/mind/${slug}.ts`, `tests/mind/${slug}.test.ts`];
   }
 }
 

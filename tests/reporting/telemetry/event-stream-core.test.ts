@@ -14,7 +14,9 @@ import {
   resolveCapsulePath,
 } from "../../../olt/scripts/src/reporting/event-stream/index.ts";
 
-describe("reporting/event-stream core suite", () => {
+export const eventStreamCoreSuiteName = "reporting/event-stream core suite";
+
+describe(eventStreamCoreSuiteName, () => {
   let tempDir: string;
 
   beforeEach(() => {

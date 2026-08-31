@@ -129,7 +129,7 @@ describe("Defect Discriminator & Hash Suite", () => {
       expect(withoutCategory.startsWith("any::hallucination::")).toBe(true);
 
       const withoutType = computeDefectDiscriminator(defect, { includeType: false });
-      expect(withoutType.startsWith("model_reasoning_error::any::")).toBe(true);
+      expect(withoutType.startsWith("model_reasoning_error::" + "any" + "::")).toBe(true);
 
       const withoutAgentId = computeDefectDiscriminator(defect, { includeAgentId: false });
       expect(withoutAgentId.startsWith("model_reasoning_error::hallucination::all::")).toBe(true);

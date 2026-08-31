@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync, realpathSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync, realpathSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { buildModules } from "../../olt/scripts/src/health/modules.ts";
@@ -23,7 +23,11 @@ export function writeTree(root: string, files: Record<string, string>): string {
 }
 
 export function cleanupTempRoots(): void {
-  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
+  for (const root of roots.splice(0)) {
+    if (existsSync(root)) {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
 }
 
 /** A single in-memory source file, for checks that read files rather than a module graph. */

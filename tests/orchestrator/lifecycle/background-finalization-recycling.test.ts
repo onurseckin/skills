@@ -13,30 +13,20 @@ import type {
   RoundExecutionResult,
   RoundExecutor,
 } from "../../../olt/scripts/src/orchestrator/types.ts";
-import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
 import { createMockGitRunner, createMockSyncRunner } from "./fixture.ts";
 
 describe("Zero Main-Thread Spillover Invariants", () => {
   it("strictly enforces zero spillover: rejects execution on interactive main thread", async () => {
-    const testDir = scratchRoot(import.meta.path, "spillover-main-thread");
-
+    const testDir = "/virtual/repo/spillover-main-thread";
     expect(
-      executeBackgroundFinalization({
-        repoPath: testDir,
-        isMainThread: true,
-      }),
+      executeBackgroundFinalization({ repoPath: testDir, isMainThread: true }),
     ).rejects.toThrow(HarnessError);
   });
 
   it("strictly enforces role tier: rejects execution by non-orchestrator tier (Tier 2)", async () => {
-    const testDir = scratchRoot(import.meta.path, "spillover-tier-2");
-
+    const testDir = "/virtual/repo/spillover-tier-2";
     expect(
-      executeBackgroundFinalization({
-        repoPath: testDir,
-        executionTier: 2,
-      }),
+      executeBackgroundFinalization({ repoPath: testDir, executionTier: 2 }),
     ).rejects.toThrow(HarnessError);
   });
 
@@ -70,11 +60,7 @@ describe("Zero Main-Thread Spillover Invariants", () => {
   });
 
   it("assertZeroMainThreadSpillover throws HarnessError INTEGRITY on violation", () => {
-    const violation = enforceZeroMainThreadSpillover({
-      executionTier: 2,
-      isMainThread: false,
-    });
-
+    const violation = enforceZeroMainThreadSpillover({ executionTier: 2, isMainThread: false });
     expect(() => assertZeroMainThreadSpillover(violation)).toThrow(HarnessError);
   });
 });
@@ -90,7 +76,7 @@ describe("Autonomous Loop Recycling Transition", () => {
   });
 
   it("marks finalization unsuccessful when an explicit recycling state source cannot load", async () => {
-    const testDir = scratchRoot(import.meta.path, "finalization-unavailable-state");
+    const testDir = "/virtual/repo/finalization-unavailable-state";
     const { runner: gitRunner } = createMockGitRunner();
     const { runner: syncRunner } = createMockSyncRunner();
     const result = await executeBackgroundFinalization({
@@ -115,7 +101,7 @@ describe("Autonomous Loop Recycling Transition", () => {
   });
 
   it("does not invent critic sign-off or a recycling assessment without a state source", async () => {
-    const testDir = scratchRoot(import.meta.path, "finalization-state-free");
+    const testDir = "/virtual/repo/finalization-state-free";
     const { runner: gitRunner } = createMockGitRunner();
     const { runner: syncRunner } = createMockSyncRunner();
     const result = await executeBackgroundFinalization({
@@ -123,36 +109,23 @@ describe("Autonomous Loop Recycling Transition", () => {
       gitRunner,
       syncRunner,
     });
-    expect(result.success).toBeTrue();
+    expect(result.success).toBe(true);
     expect(result.recyclingAssessment).toBeUndefined();
     expect(result.markdown).not.toContain("Autonomous Recycling");
   });
 
-  it("transitions completeness critic sign-off to admitted candidate round opening", async () => {
-    const testDir = scratchRoot(import.meta.path, "recycling-admitted");
-    const charterBytes = new TextEncoder().encode("# Charter\n## goals\n- G1");
-    const run = initRun(testDir, "recycle-run-1", charterBytes, "file", true);
-
-    transact(run, "critic-1", "review-complete", {}, (draft) => {
-      draft.completion_review = {
-        status: "clean",
-        summary: "Critic sign-off complete.",
-      };
-      const draftMind = (draft.mind ?? {}) as Record<string, unknown>;
-      draftMind.candidates = [
-        {
-          id: "cand-wave-2",
-          kind: "defect",
-          statement: "Autonomous wave 2 defect repair",
-          status: "admitted",
-        },
-      ];
-      draft.mind = draftMind;
-    });
+  it("transitions completeness critic sign-off to admitted candidate round opening", () => {
+    const inMemoryState: Record<string, unknown> = {
+      completion_review: { status: "clean", summary: "Critic sign-off complete." },
+      mind: {
+        candidates: [{ id: "cand-wave-2", kind: "defect", statement: "Autonomous wave 2", status: "admitted" }],
+      },
+    };
 
     const assessment = transitionSupervisionLoopToDiscovery({
-      runRoot: run,
+      runRoot: "/virtual/run-recycle-1",
       actor: "orchestrator-tier1",
+      state: inMemoryState,
     });
 
     expect(assessment.canRecycle).toBe(true);
@@ -163,21 +136,15 @@ describe("Autonomous Loop Recycling Transition", () => {
     expect(assessment.infiniteCadence).toBe(true);
   });
 
-  it("transitions completeness critic sign-off to candidate discovery when no candidates are admitted", async () => {
-    const testDir = scratchRoot(import.meta.path, "recycling-discovery");
-    const charterBytes = new TextEncoder().encode("# Charter\n## goals\n- G1");
-    const run = initRun(testDir, "recycle-run-2", charterBytes, "file", true);
-
-    transact(run, "critic-1", "review-complete", {}, (draft) => {
-      draft.completion_review = {
-        status: "clean",
-        summary: "Critic sign-off clean.",
-      };
-    });
+  it("transitions completeness critic sign-off to candidate discovery when no candidates are admitted", () => {
+    const inMemoryState: Record<string, unknown> = {
+      completion_review: { status: "clean", summary: "Critic sign-off clean." },
+    };
 
     const assessment = transitionSupervisionLoopToDiscovery({
-      runRoot: run,
+      runRoot: "/virtual/run-recycle-2",
       actor: "orchestrator-tier1",
+      state: inMemoryState,
     });
 
     expect(assessment.canRecycle).toBe(true);
@@ -191,22 +158,11 @@ describe("Autonomous Loop Recycling Transition", () => {
     const state: Record<string, unknown> = {
       completion_review: { status: "clean" },
       mind: {
-        candidates: [
-          {
-            id: "cand-plan-1",
-            kind: "defect",
-            statement: "Repair issue in component",
-            status: "admitted",
-          },
-        ],
+        candidates: [{ id: "cand-plan-1", kind: "defect", statement: "Repair defect", status: "admitted" }],
       },
     };
 
-    const plan = planSupervisionLoopRecycle(state, {
-      runRoot: "/tmp/test-run",
-      actor: "orchestrator-tier1",
-    });
-
+    const plan = planSupervisionLoopRecycle(state, { runRoot: "/tmp/test-run", actor: "orchestrator-tier1" });
     expect(plan.transition).toBe("candidate_to_planning");
     expect(plan.candidateId).toBe("cand-plan-1");
     expect(plan.markdown).toContain("Autonomous Mind Recycler");
@@ -216,10 +172,8 @@ describe("Autonomous Loop Recycling Transition", () => {
 
 describe("SupervisionLoopRunner - Integrated Background Finalization & Recycling", () => {
   it("automatically triggers background finalization and autonomous recycling on convergence", async () => {
-    const testDir = scratchRoot(import.meta.path, "supervision-loop-converge");
-    const { runner: gitRunner, commands: gitCommands } = createMockGitRunner({
-      commitSha: "sha-final-converge",
-    });
+    const testDir = "/tmp/orchestrator-supervision-loop-converge";
+    const { runner: gitRunner, commands: gitCommands } = createMockGitRunner({ commitSha: "sha-final-converge" });
     const { runner: syncRunner, commands: syncCommands } = createMockSyncRunner();
 
     const mockExecutor: RoundExecutor = {
@@ -238,7 +192,6 @@ describe("SupervisionLoopRunner - Integrated Background Finalization & Recycling
     };
 
     let finalizationCaptured = false;
-
     const runner = new SupervisionLoopRunner({
       baseRunId: "run-supervise-converge",
       repoPath: testDir,
@@ -255,7 +208,6 @@ describe("SupervisionLoopRunner - Integrated Background Finalization & Recycling
     });
 
     const summary = await runner.run();
-
     expect(summary.finalStatus).toBe("converged_success");
     expect(summary.zeroMainThreadSpillover).toBe(true);
     expect(summary.finalization).toBeDefined();
@@ -272,8 +224,8 @@ describe("SupervisionLoopRunner - Integrated Background Finalization & Recycling
     expect(syncCommands).toEqual(["bun scripts/sync/index.ts"]);
   });
 
-  it("does NOT trigger background finalization if round does not converge (e.g. findings open)", async () => {
-    const testDir = scratchRoot(import.meta.path, "supervision-loop-no-converge");
+  it("does NOT trigger background finalization if round does not converge", async () => {
+    const testDir = "/tmp/orchestrator-supervision-loop-no-converge";
     const { runner: gitRunner, commands: gitCommands } = createMockGitRunner();
     const { runner: syncRunner, commands: syncCommands } = createMockSyncRunner();
 
@@ -285,18 +237,16 @@ describe("SupervisionLoopRunner - Integrated Background Finalization & Recycling
           status: "rejected",
           criticDecision: "request_changes",
           tasks: [{ id: "task-01", status: "changes_requested", writeScope: ["src/"] }],
-          findings: [
-            {
-              id: "f-01",
-              requirement_id: "req-1",
-              severity: "critical",
-              observation: "Bug found",
-              evidence: [],
-              remediation: "Fix bug",
-              revalidation: "bun test",
-              status: "open",
-            },
-          ],
+          findings: [{
+            id: "f-01",
+            requirement_id: "req-1",
+            severity: "critical",
+            observation: "Bug found",
+            evidence: [],
+            remediation: "Fix bug",
+            revalidation: "bun test",
+            status: "open",
+          }],
           gateResults: [],
           summary: "Changes requested by Critic.",
         };
@@ -314,7 +264,6 @@ describe("SupervisionLoopRunner - Integrated Background Finalization & Recycling
     });
 
     const summary = await runner.run();
-
     expect(summary.finalStatus).toBe("max_rounds_reached");
     expect(summary.finalization).toBeUndefined();
     expect(gitCommands).toEqual([]);

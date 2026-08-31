@@ -174,7 +174,7 @@ describe("Defect Deduplication and Lifecycle Engine", () => {
   test("validateResolutionProof validates required fields and timestamps", () => {
     const validProof: DefectResolutionProof = {
       task_id: "task-123",
-      test_assertion: "bun test tests/unit/foo.test.ts",
+      test_assertion: "bun test tests/logging/foo.test.ts",
       resolved_at: "2026-08-29T12:00:00.000Z",
       commit_sha: "abcdef123",
     };
@@ -199,20 +199,35 @@ describe("Defect Deduplication and Lifecycle Engine", () => {
   });
 
   test("resolveDefectRecord updates defect status to resolved with proof", () => {
-    const defect = toAggregatedDefect({
-      id: "defect-open",
-      type: "error",
-      observation: "To resolve",
+    const defect: AggregatedDefect = {
+      id: "defect-1",
+      dedup_key: "key-1",
+      category: "code_defect",
+      type: "syntax_error",
       status: "open",
-    });
-
-    const resolved = resolveDefectRecord(defect, {
-      task_id: "task-fix-01",
-      test_assertion: "bun test tests/unit/fix.test.ts",
-      resolved_at: "2026-08-29T12:30:00.000Z",
-    });
+      severity: "critical",
+      observation_signature: "syntax error",
+      count: 1,
+      occurrences: [
+        {
+          id: "defect-1",
+          timestamp: "2026-08-29T12:00:00.000Z",
+          observation: "syntax error",
+        },
+      ],
+      created_at: "2026-08-29T12:00:00.000Z",
+      updated_at: "2026-08-29T12:00:00.000Z",
+    };
+    const proof: DefectResolutionProof = {
+      task_id: "task-456",
+      commit_sha: "def5678",
+      test_assertion: "bun test tests/logging/fix.test.ts",
+      resolved_at: "2026-08-29T13:00:00.000Z",
+    };
+    const resolved = resolveDefectRecord(defect, proof);
 
     expect(resolved.status).toBe("resolved");
-    expect(resolved.resolution?.task_id).toBe("task-fix-01");
+    expect(resolved.resolution?.task_id).toBe("task-456");
   });
 });
+

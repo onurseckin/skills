@@ -8,7 +8,9 @@ import {
   renderDynamicDagAscii,
 } from "../../../olt/scripts/src/reporting/living-tracer/index.ts";
 
-describe("reporting/living-tracer edge cases suite", () => {
+export const livingTracerEdgeSuiteName = "reporting/living-tracer edge cases suite";
+
+describe(livingTracerEdgeSuiteName, () => {
   it("handles empty event stream without crashing", () => {
     const dagState = buildDynamicDagState([]);
     expect(dagState.tasks.size).toBe(0);

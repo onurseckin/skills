@@ -62,7 +62,7 @@ describe("Sub-Domain Completion Git Staging & Station Landing Engine (Task 2.3 &
     expect(claimed.status).toBe("IN_PROGRESS");
     expect(claimed.claimed_at).toBeDefined();
 
-    const verified = verifyStation(claimed, { testPath: "tests/unit/core.test.ts", passed: true });
+    const verified = verifyStation(claimed, { testPath: "tests/core/core.test.ts", passed: true });
     expect(verified.status).toBe("VERIFIED");
     expect(verified.verified_at).toBeDefined();
 
