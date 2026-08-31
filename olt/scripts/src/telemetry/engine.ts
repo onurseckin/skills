@@ -91,19 +91,19 @@ export function formatTierShort(tier: TierType | null): string {
 }
 
 export interface TelemetryNormalizationEngineOptions {
-  activeHost?: CanonicalHost | string;
-  activeModel?: string;
-  processTree?: readonly string[] | string;
-  isolateActiveHost?: boolean;
-  env?: Record<string, string | undefined>;
+  activeHost?: CanonicalHost | string | undefined;
+  activeModel?: string | undefined;
+  processTree?: readonly string[] | string | undefined;
+  isolateActiveHost?: boolean | undefined;
+  env?: Record<string, string | undefined> | undefined;
 }
 
 export interface ProbeAllOptions {
-  activeHost?: CanonicalHost | string;
-  activeModel?: string;
-  processTree?: readonly string[] | string;
-  isolateActiveHost?: boolean;
-  env?: Record<string, string | undefined>;
+  activeHost?: CanonicalHost | string | undefined;
+  activeModel?: string | undefined;
+  processTree?: readonly string[] | string | undefined;
+  isolateActiveHost?: boolean | undefined;
+  env?: Record<string, string | undefined> | undefined;
 }
 
 function resolveEnvOption(
@@ -164,7 +164,7 @@ export class TelemetryNormalizationEngine {
     if (collectors.length === 0) {
       const defaultIsolate = options.isolateActiveHost !== undefined ? options.isolateActiveHost : true;
       for (const collector of createDefaultCollectors({
-        env: options.env,
+        env: resolveEnvOption(undefined, options),
         activeHost: options.activeHost,
         activeModel: options.activeModel,
         processTree: options.processTree,
