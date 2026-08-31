@@ -149,7 +149,12 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
     });
   }
 
-  if (findingObj === null) state = finalizePassingTask(run, taskId, validator, checkIds, state);
+  if (
+    findingObj === null &&
+    (state.tasks[taskId]?.status === "validated" || state.tasks[taskId]?.status === "gating")
+  ) {
+    state = finalizePassingTask(run, taskId, validator, checkIds, state);
+  }
 
   const openCycles = getOpenMicroCycles(state.tasks[taskId] ?? taskBefore);
   if (openCycles.length > 0) state = markMicroCycleAddressed(workflowPort(run), taskId, validator);
