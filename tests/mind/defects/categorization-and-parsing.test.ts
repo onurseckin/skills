@@ -18,18 +18,33 @@ describe("Defect Categorization & Log Serialization", () => {
       expect(categorizeDefect({ category: "code_defect" })).toBe("code_defect");
       expect(categorizeDefect({ category: "model_reasoning_error" })).toBe("model_reasoning_error");
       expect(categorizeDefect({ category: "boundary_violation" })).toBe("boundary_violation");
-      expect(categorizeDefect({ category: "documentation" })).toBe("documentation");
-      expect(categorizeDefect({ category: "security_risk" })).toBe("security_risk");
-      expect(categorizeDefect({ category: "modularity_violation" })).toBe("modularity_violation");
+      expect(categorizeDefect({ category: "process_gap" })).toBe("process_gap");
+      expect(categorizeDefect({ category: "flakiness" })).toBe("flakiness");
+      expect(categorizeDefect({ category: "dependency_drift" })).toBe("dependency_drift");
     });
 
     it("infers category from error messages and descriptions", () => {
-      expect(categorizeDefect({ description: "SyntaxError: Unexpected token in JSON" })).toBe("code_defect");
-      expect(categorizeDefect({ description: "TypeError: Cannot read properties of undefined" })).toBe("code_defect");
-      expect(categorizeDefect({ description: "Model hallucinated invalid tool argument" })).toBe("model_reasoning_error");
-      expect(categorizeDefect({ description: "Permission denied write outside bounds" })).toBe("boundary_violation");
-      expect(categorizeDefect({ description: "Self critique loop failure" })).toBe("model_reasoning_error");
-      expect(categorizeDefect({ description: "Confinement breach on host execution" })).toBe("boundary_violation");
+      expect(categorizeDefect({ description: "SyntaxError: Unexpected token in JSON" })).toBe(
+        "code_defect",
+      );
+      expect(
+        categorizeDefect({ description: "TypeError: Cannot read properties of undefined" }),
+      ).toBe("code_defect");
+      expect(categorizeDefect({ description: "Model hallucinated invalid tool argument" })).toBe(
+        "model_reasoning_error",
+      );
+      expect(categorizeDefect({ description: "Permission denied write outside bounds" })).toBe(
+        "boundary_violation",
+      );
+      expect(categorizeDefect({ description: "Intermittent timeout after 5000ms" })).toBe(
+        "flakiness",
+      );
+      expect(categorizeDefect({ description: "Missing mandatory step in protocol" })).toBe(
+        "process_gap",
+      );
+      expect(categorizeDefect({ description: "Package version mismatch in lockfile" })).toBe(
+        "dependency_drift",
+      );
     });
 
     it("defaults to code_defect when unclassifiable", () => {
@@ -69,7 +84,7 @@ describe("Defect Categorization & Log Serialization", () => {
       const parsed = parseDefectLog(JSON.stringify(minimal));
       expect(parsed.length).toBe(1);
       expect(parsed[0]?.status).toBe("open");
-      expect(parsed[0]?.severity).toBe("warning");
+      expect(parsed[0]?.severity).toBe("P2");
       expect(parsed[0]?.category).toBe("code_defect");
     });
   });
@@ -89,8 +104,8 @@ describe("Defect Categorization & Log Serialization", () => {
 
     it("round-trips serialize and parse without data loss", () => {
       const original: DefectEntry[] = [
-        createMockDefectEntry({ id: "def-rt-1", severity: "critical", category: "boundary_violation" }),
-        createMockDefectEntry({ id: "def-rt-2", severity: "low", category: "documentation" }),
+        createMockDefectEntry({ id: "def-rt-1", severity: "P0", category: "boundary_violation" }),
+        createMockDefectEntry({ id: "def-rt-2", severity: "P3", category: "flakiness" }),
       ];
 
       const jsonl = serializeDefectLog(original);
