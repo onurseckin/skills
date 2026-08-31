@@ -11,6 +11,12 @@ import {
   type LockPayload,
   type SafeLockOptions,
 } from "../types.ts";
+import {
+  isInMemoryLocking,
+  releaseInMemoryLock,
+  tryAcquireInMemoryLock,
+} from "./in-memory-locks.ts";
+import { delay, readHolderPid } from "./lock-payload.ts";
 
 export {
   DEFAULT_LOCK_TIMEOUT_MS,
@@ -21,98 +27,18 @@ export {
   type LockPayload,
   type SafeLockOptions,
 };
+export {
+  getInMemoryLock,
+  getInMemoryLockEntries,
+  isInMemoryLocking,
+  removeInMemoryLock,
+  resetInMemoryLocks,
+  seedInMemoryLock,
+  setInMemoryLocking,
+  type InMemoryLockRecord,
+} from "./in-memory-locks.ts";
+export { delay, isProcessAlive, parseLockPayload, readHolderPid } from "./lock-payload.ts";
 export { reclaimStaleLocks } from "./lock-reclaim.ts";
-
-export interface InMemoryLockRecord {
-  readonly pid: number;
-  readonly holder: string;
-  readonly created_at: string;
-  readonly mtimeMs: number;
-  readonly fd: number;
-}
-
-const IN_MEMORY_LOCKS = new Map<string, InMemoryLockRecord>();
-let inMemoryLockingEnabled = false;
-let syntheticFdCounter = 100_000;
-
-export function setInMemoryLocking(enabled: boolean): void {
-  inMemoryLockingEnabled = enabled;
-}
-export function isInMemoryLocking(): boolean {
-  return inMemoryLockingEnabled;
-}
-export function resetInMemoryLocks(): void {
-  IN_MEMORY_LOCKS.clear();
-  syntheticFdCounter = 100_000;
-}
-export function getInMemoryLock(lockPath: string): InMemoryLockRecord | null {
-  return IN_MEMORY_LOCKS.get(lockPath) ?? null;
-}
-export function removeInMemoryLock(lockPath: string): boolean {
-  return IN_MEMORY_LOCKS.delete(lockPath);
-}
-export function getInMemoryLockEntries(): ReadonlyMap<string, InMemoryLockRecord> {
-  return IN_MEMORY_LOCKS;
-}
-
-export function seedInMemoryLock(
-  lockPath: string,
-  payload: LockPayload,
-  mtimeMs = Date.now(),
-): number {
-  const fd = ++syntheticFdCounter;
-  IN_MEMORY_LOCKS.set(lockPath, {
-    pid: payload.pid,
-    holder: payload.holder,
-    created_at: payload.created_at,
-    mtimeMs,
-    fd,
-  });
-  return fd;
-}
-
-export function delay(milliseconds: number): void {
-  if (milliseconds > 0) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
-}
-
-export function isProcessAlive(pid: number): boolean {
-  if (!Number.isInteger(pid) || pid <= 0) return false;
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error: unknown) {
-    return (error as { code?: string })?.code === "EPERM";
-  }
-}
-
-export function parseLockPayload(content: string): LockPayload | null {
-  const t = content.trim();
-  if (!t.startsWith("{") || !t.endsWith("}")) return null;
-  try {
-    const p = JSON.parse(t) as Record<string, unknown>;
-    if (
-      typeof p["pid"] === "number" &&
-      Number.isInteger(p["pid"]) &&
-      typeof p["holder"] === "string" &&
-      typeof p["created_at"] === "string"
-    ) {
-      return { pid: p["pid"], holder: p["holder"], created_at: p["created_at"] };
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-export function readHolderPid(lockPath: string): number | null {
-  const mem = IN_MEMORY_LOCKS.get(lockPath);
-  if (mem) return mem.pid;
-  try {
-    return parseLockPayload(fs.readFileSync(lockPath, "utf8"))?.pid ?? null;
-  } catch {
-    return null;
-  }
-}
 
 function validateLockArgs(
   lockPath: string,
@@ -154,8 +80,8 @@ function ensureLockDir(lockPath: string): void {
 
 function verifyLockedInode(descriptor: number, lockPath: string): boolean {
   try {
-    const fStat = fs.statSync(lockPath),
-      dStat = fs.fstatSync(descriptor);
+    const fStat = fs.statSync(lockPath);
+    const dStat = fs.fstatSync(descriptor);
     return fStat.ino === dStat.ino && fStat.dev === dStat.dev;
   } catch {
     return false;
@@ -179,22 +105,7 @@ function tryAcquireStep(
   descriptor: number | null,
   inMem: boolean,
 ): { fd: number | null; acquired: boolean; holderPid: number | null } {
-  if (inMem) {
-    const existing = IN_MEMORY_LOCKS.get(lockPath);
-    if (!existing) {
-      const fd = ++syntheticFdCounter;
-      const now = Date.now();
-      IN_MEMORY_LOCKS.set(lockPath, {
-        pid: process.pid,
-        holder: agentId,
-        created_at: new Date(now).toISOString(),
-        mtimeMs: now,
-        fd,
-      });
-      return { fd, acquired: true, holderPid: process.pid };
-    }
-    return { fd: null, acquired: false, holderPid: existing.pid };
-  }
+  if (inMem) return tryAcquireInMemoryLock(lockPath, agentId);
   let fd = descriptor;
   if (fd === null) {
     try {
@@ -235,7 +146,7 @@ function executeAcquire(
   waitFn: (ms: number) => void | Promise<void>,
 ): LockAcquisitionResult | Promise<LockAcquisitionResult> {
   const { timeoutMs, retryMs } = validateLockArgs(lockPath, agentId, options);
-  const inMem = inMemoryLockingEnabled;
+  const inMem = isInMemoryLocking();
   if (!inMem) ensureLockDir(lockPath);
   const deadline = performance.now() + timeoutMs;
   let descriptor: number | null = null;
@@ -280,8 +191,7 @@ export function releaseMailboxLock(result: LockAcquisitionResult): void {
   if (!result.acquired || result.lockFd === null || result.lockFd < 0) return;
   const fd = result.lockFd;
   if (fd >= 100_000) {
-    const existing = IN_MEMORY_LOCKS.get(result.lockPath);
-    if (existing && existing.fd === fd) IN_MEMORY_LOCKS.delete(result.lockPath);
+    releaseInMemoryLock(result.lockPath, fd);
     return;
   }
   let err: unknown;
