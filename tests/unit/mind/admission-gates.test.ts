@@ -17,6 +17,7 @@ import {
   evaluateGate4Scoped,
   evaluateGate5Affordable,
   evaluateGate6NotADuplicate,
+  isPathInRepoRoots,
   type CandidateRecord,
 } from "../../../olt/scripts/src/mind/proposals/gates/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
@@ -534,6 +535,71 @@ describe("Mind Admission Gates (W3.3 / PLAN.md §7.3)", () => {
     });
     expect(vOutside.passed).toBe(false);
     expect(vOutside.reason).toContain("is outside charter repo_roots");
+
+    // Permits any path within repo when repoRoots contains "."
+    const candidateDotRoot: CandidateRecord = {
+      id: "cand-4-dot",
+      kind: "defect",
+      statement: "fix in apps",
+      charter_goal_ids: ["G1"],
+      write_scope: ["apps/web/src/index.ts", "packages/core/src/index.ts", "docs/README.md"],
+      status: "opened",
+    };
+    const vDot = evaluateGate4Scoped(candidateDotRoot, {
+      runRoot: run,
+      repoRoot: repo,
+      actor: "mind-1",
+      state: {},
+      repoRoots: ["."],
+    });
+    expect(vDot.passed).toBe(true);
+
+    // Permits any path within repo when repoRoots is omitted (defaults to ["."])
+    const vOmitted = evaluateGate4Scoped(candidateDotRoot, {
+      runRoot: run,
+      repoRoot: repo,
+      actor: "mind-1",
+      state: {},
+    });
+    expect(vOmitted.passed).toBe(true);
+
+    // Permits any path within repo when repoRoots is empty array (defaults to ["."])
+    const vEmptyRoots = evaluateGate4Scoped(candidateDotRoot, {
+      runRoot: run,
+      repoRoot: repo,
+      actor: "mind-1",
+      state: {},
+      repoRoots: [],
+    });
+    expect(vEmptyRoots.passed).toBe(true);
+  });
+
+  test("Gate 4 (Scoped): isPathInRepoRoots handles root '.' and subpaths cleanly across monorepo layouts", () => {
+    const fakeRepo = "/Users/developer/project";
+
+    // When repoRoots includes "." -> all paths inside repo are allowed
+    expect(isPathInRepoRoots("apps/web/src/App.tsx", ["."], fakeRepo)).toBe(true);
+    expect(isPathInRepoRoots("packages/ui/Button.tsx", ["."], fakeRepo)).toBe(true);
+    expect(isPathInRepoRoots("src/index.ts", ["."], fakeRepo)).toBe(true);
+    expect(isPathInRepoRoots("package.json", ["."], fakeRepo)).toBe(true);
+    expect(isPathInRepoRoots(".", ["."], fakeRepo)).toBe(true);
+    expect(isPathInRepoRoots("./apps/web", ["."], fakeRepo)).toBe(true);
+
+    // When repoRoots is empty or omitted -> defaults to "." allowing all paths inside repo
+    expect(isPathInRepoRoots("apps/api/main.go", [], fakeRepo)).toBe(true);
+
+    // When specific monorepo roots are configured: ["apps/", "packages/"]
+    const monorepoRoots = ["apps/", "packages/"];
+    expect(isPathInRepoRoots("apps/web/src/App.tsx", monorepoRoots, fakeRepo)).toBe(true);
+    expect(isPathInRepoRoots("apps/api/server.ts", monorepoRoots, fakeRepo)).toBe(true);
+    expect(isPathInRepoRoots("packages/common/utils.ts", monorepoRoots, fakeRepo)).toBe(true);
+    expect(isPathInRepoRoots("packages/ui/index.ts", monorepoRoots, fakeRepo)).toBe(true);
+    expect(isPathInRepoRoots("src/legacy.ts", monorepoRoots, fakeRepo)).toBe(false);
+    expect(isPathInRepoRoots("docs/architecture.md", monorepoRoots, fakeRepo)).toBe(false);
+
+    // Path outside repository is always rejected even with root "."
+    expect(isPathInRepoRoots("/etc/passwd", ["."], fakeRepo)).toBe(false);
+    expect(isPathInRepoRoots("../outside/file.ts", ["."], fakeRepo)).toBe(false);
   });
 
   test("Gate 4 (Scoped): Refuses scope conflicting with live task lease", () => {

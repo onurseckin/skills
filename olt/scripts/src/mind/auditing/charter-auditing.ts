@@ -1,3 +1,4 @@
+import { normalize } from "node:path";
 import {
   DEFAULT_CHARTER_RELATIVE_PATH,
   DEFAULT_MIND_BUDGET,
@@ -18,6 +19,9 @@ export const CHARTER_PROHIBITION_VIOLATION = "CHARTER_PROHIBITION_VIOLATION" as 
 export const DEFECT_MIND_AUDITING_MISSING_STATE_CHARTER =
   "defect-mind-auditing-missing-state-charter" as const;
 
+export const CANONICAL_CHARTER_GOAL_IDS = Object.freeze(["G1", "G2", "G3"] as const);
+export const STANDARD_CHARTER_GOALS = CANONICAL_CHARTER_GOAL_IDS;
+
 export {
   DEFAULT_CHARTER_RELATIVE_PATH,
   DEFAULT_MIND_BUDGET,
@@ -35,6 +39,8 @@ export interface CharterAuditOptions {
   readonly pinnedSha256?: string | undefined;
   readonly enforceBudgets?: boolean | undefined;
   readonly referencedGoals?: readonly string[] | undefined;
+  readonly requiredGoals?: readonly string[] | undefined;
+  readonly checkStandardGoals?: boolean | undefined;
   readonly touchedPaths?: readonly string[] | undefined;
   readonly budgetUsage?: CharterBudgetUsageMetrics | undefined;
   readonly hasOwnerAuthorization?: boolean | undefined;
@@ -52,6 +58,7 @@ export interface CharterGoalAuditResult {
   readonly definedGoals: readonly string[];
   readonly referencedGoals: readonly string[];
   readonly unmappedGoals: readonly string[];
+  readonly missingRequiredGoals?: readonly string[] | undefined;
   readonly findings: readonly string[];
 }
 
@@ -97,10 +104,12 @@ export interface CharterAuditReport {
 export function auditCharterGoals(
   charter: ParsedCharter,
   referencedGoalIds: readonly string[] = [],
+  requiredGoalIds?: readonly string[] | undefined,
 ): CharterGoalAuditResult {
   const definedGoals = charter.goalIds;
   const definedSet = new Set(definedGoals);
   const unmappedGoals = referencedGoalIds.filter((g) => !definedSet.has(g));
+  const missingRequiredGoals = (requiredGoalIds ?? []).filter((g) => !definedSet.has(g));
   const findings: string[] = [];
 
   if (definedGoals.length === 0) {
@@ -111,12 +120,18 @@ export function auditCharterGoals(
       `Referenced goal '${unmapped}' is not defined in charter goals [${definedGoals.join(", ")}].`,
     );
   }
+  for (const missing of missingRequiredGoals) {
+    findings.push(
+      `Mandatory charter goal '${missing}' is not defined in charter goals [${definedGoals.join(", ")}].`,
+    );
+  }
 
   return {
     valid: findings.length === 0,
     definedGoals: Object.freeze([...definedGoals]),
     referencedGoals: Object.freeze([...referencedGoalIds]),
     unmappedGoals: Object.freeze(unmappedGoals),
+    missingRequiredGoals: Object.freeze(missingRequiredGoals),
     findings: Object.freeze(findings),
   };
 }
@@ -212,12 +227,25 @@ export function auditCharterRepoRoots(
   const outOfBoundsPaths: string[] = [];
   const findings: string[] = [];
 
+  const allowsAll =
+    allowedRoots.length === 0 ||
+    allowedRoots.includes(".") ||
+    allowedRoots.includes("./") ||
+    allowedRoots.includes("*");
+
   for (const touched of touchedPaths) {
-    const normalized = touched.startsWith("./") ? touched.slice(2) : touched;
+    if (allowsAll) {
+      continue;
+    }
+    const normalized = normalize(touched).replace(/^[./\\]+/, "");
     const inBounds = allowedRoots.some((root) => {
-      const trimmedStart = root.startsWith("./") ? root.slice(2) : root;
-      const normRoot = trimmedStart.endsWith("/") ? trimmedStart.slice(0, -1) : trimmedStart;
-      return normalized === normRoot || normalized.startsWith(`${normRoot}/`);
+      const trimmed = normalize(root)
+        .replace(/^[./\\]+/, "")
+        .replace(/[/\\]+$/, "");
+      if (!trimmed || trimmed === ".") {
+        return true;
+      }
+      return normalized === trimmed || normalized.startsWith(`${trimmed}/`);
     });
     if (!inBounds) {
       outOfBoundsPaths.push(touched);
@@ -275,7 +303,13 @@ export function auditCharterManifest(
   options: CharterAuditOptions = {},
 ): CharterAuditReport {
   const charter = typeof charterInput === "string" ? parseCharter(charterInput) : charterInput;
-  const goalAudit = auditCharterGoals(charter, options.referencedGoals ?? []);
+  const requiredGoals =
+    options.requiredGoals !== undefined
+      ? options.requiredGoals
+      : options.checkStandardGoals
+        ? CANONICAL_CHARTER_GOAL_IDS
+        : undefined;
+  const goalAudit = auditCharterGoals(charter, options.referencedGoals ?? [], requiredGoals);
   const integrityAudit = auditCharterIntegrity(
     options.pinnedSha256 ?? charter.sha256,
     charter.sha256,
@@ -311,5 +345,8 @@ export function auditLiveCharter(
 ): CharterAuditReport {
   const root = repoRoot ?? options.repoRoot ?? process.cwd();
   const charter = loadCharter(root, options.customCharterPath);
-  return auditCharterManifest(charter, options);
+  return auditCharterManifest(charter, {
+    ...options,
+    requiredGoals: options.requiredGoals ?? CANONICAL_CHARTER_GOAL_IDS,
+  });
 }

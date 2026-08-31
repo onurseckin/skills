@@ -93,7 +93,8 @@ export function executeStagnationShockRecovery(
       };
     }
 
-    const escalated = consecutive >= CHRONIC_STAGNATION_CYCLE_THRESHOLD;
+    const isCreative = audit?.error_code === "MIND_CREATIVE_STAGNATION";
+    const escalated = consecutive >= CHRONIC_STAGNATION_CYCLE_THRESHOLD || isCreative;
     const mode = escalated ? MODE_A_AUTONOMIC_DISCOVERY : MODE_STANDARD_PREPLAN;
 
     const recoveryAction = escalated
@@ -111,9 +112,11 @@ export function executeStagnationShockRecovery(
       mode,
       escalated,
       recoveryAction,
-      details: escalated
-        ? `Chronic stagnation threshold reached (${consecutive} cycles). Auto-escalating to Mode A.`
-        : "Standard preplanning recovery synthesis dispatched.",
+      details: isCreative
+        ? "Creative stagnation detected (maintenance loop or zero-delta pulses). Auto-escalating to Mode A Autonomic Discovery."
+        : escalated
+          ? `Chronic stagnation threshold reached (${consecutive} cycles). Auto-escalating to Mode A.`
+          : "Standard preplanning recovery synthesis dispatched.",
       resolvedIncidents: 1,
       timestamp: new Date().toISOString(),
     };

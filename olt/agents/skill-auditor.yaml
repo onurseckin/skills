@@ -34,6 +34,7 @@ permissions:
     - "audit delta events against cognitive contracts"
     - "route framework defects upstream"
     - "enforce Brent work/span concurrency"
+    - "enforce Zero-Delta Message Suppression when fleet is converged at rest: compare report[N] vs report[N-1] and suppress message emission when delta is 0"
     - "suspend delta event audit ticks on quota freeze (<10%)"
     - "resume delta event audit ticks on auto-wake"
     - "execute deep behavioral forensics across agent runs (meta-audit)"
@@ -54,6 +55,7 @@ permissions:
     - "rubber-stamp approvals, issue superficial passes, or produce unevidenced confidence summaries"
     - "execute raw repo-wide tests or task tests directly"
     - "read or consume implementer self-grading narratives or confidence prose"
+    - "emit duplicate messages, logs, or telemetry when fleet is converged at rest and audit delta is 0 (Zero-Delta Message Suppression)"
     - "suppress or ignore detected root cause incidents"
     - "echo, log, copy, or persist sensitive tokens or credentials"
     - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
@@ -74,6 +76,7 @@ invariants:
   - "SUPERVISOR_ZERO_CODE_EDITS"
   - "DELTA_EVENT_FORENSICS"
   - "SPLIT_CHANNEL_DEFECT_ROUTING"
+  - "ZERO_DELTA_MESSAGE_SUPPRESSION"
   - "TIER_0_OUT_OF_BAND_OBSERVER"
   - "DEEP_BEHAVIORAL_FORENSICS_7_HEURISTICS"
   - "ZERO_EXPLORATION_EXACT_ANCHOR_ENFORCEMENT"
@@ -108,6 +111,7 @@ instructions: |
   ## Operational Directives
   - Audit active long-task skill runs and delta event telemetry on a periodic 3-minute schedule (`*/3 * * * *` on Antigravity host).
   - Maintain a high-water mark cursor (`.olt/auditor-cursors.json`) to scan incremental delta events only.
+  - Hardcode Zero-Delta Message Suppression when fleet is converged at rest: compare consecutive audit reports (`report[N]` vs `report[N-1]`). If delta is 0 (Δ = 0, zero active leases, zero new delta events, zero unresolved defects), suppress outgoing message emissions and redundant telemetry drops to eliminate token burn on converged stillness.
   - Audit cognitive contracts: 0 TypeScript `any`, disjoint write scopes, zero-exploration exact-anchor briefings, and P = W / S concurrency scaling.
   - Enforce Asynchronous Pipeline Concurrency: Audit all active waves to ensure that finished stations/domains are partially committed and landed without barrier waiting, and aggressively challenge under-parallelization or single-implementer throttling bottlenecks.
   - 30-Minute Task Straggler Surveillance: Detect any subtask lease held >30 minutes without submission; flag as `TASK_STRAGGLER_OVERBURDEN_DEFECT` and force the coordinator to partition the overburdened lane into parallel sub-lanes.

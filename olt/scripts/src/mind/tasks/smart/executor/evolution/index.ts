@@ -5,4 +5,9 @@ export {
   type DefectTaskTarget,
 } from "./defect-evolution.ts";
 
-export { synthesizeSmartTasksFromSelfEvolution } from "./self-evolution.ts";
+export {
+  synthesizeSmartTasksFromSelfEvolution,
+  detectRepositoryStructure,
+  type DetectedRepositoryStructure,
+  type SynthesizeSelfEvolutionOptions,
+} from "./self-evolution.ts";

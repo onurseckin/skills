@@ -133,6 +133,8 @@ export function runInfiniteProductOwnerCycle(
     if (activeTasks.length === 0) {
       mode = "self_evolution";
       const selfSynth = synthesizeSmartTasksFromSelfEvolution({
+        repoRoot: options.repoRoot,
+        workspaceRoot: options.workspaceRoot,
         capsulesDir: options.capsulesDir,
         queuePath: options.queuePath,
         charterGoals: options.charterGoals,
@@ -147,7 +149,7 @@ export function runInfiniteProductOwnerCycle(
           item_id: t.id,
           admitted: true,
           priority: t.priority ?? "HIGH",
-          rationale: `Product Owner autonomous self-evolution task: ${t.label}`,
+          rationale: `Product Owner autonomous 3-step creative evolution task: ${t.label}`,
           assigned_task_id: t.id,
         });
       }
@@ -182,10 +184,12 @@ export function runInfiniteProductOwnerCycle(
       (curr) => ({
         ...curr,
         strategic_focus: [
-          "Infinite Product Owner Backlog & Admission Governance",
+          "Infinite Product Owner Backlog & 3-Step Creative Evolution Governance",
+          "Step 1: Baseline Quality & Invariant Hygiene (0 any, 0 suppressions)",
+          "Step 2: Product & UX Quality Audit (Screens, Responsive Tiers, Performance)",
+          "Step 3: Autonomous Creative Ideation (PLAN.md Roadmap in docs/planning/)",
           "Continuous Atomic Admission-to-Dispatch Chaining (Zero Paused Admitted)",
           "Concurrent Multi-Orchestrator Disjoint Write Scope Pre-Planning",
-          "Zero-Any & Zero-Suppression Strict Compliance",
         ],
         macro_metrics: macroMetrics,
       }),

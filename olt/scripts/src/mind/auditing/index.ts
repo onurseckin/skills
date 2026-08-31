@@ -194,9 +194,18 @@ export {
 export {
   auditMindPreplanningStagnation,
   auditMindPreplanningLiveness,
+  auditMindCreativeStagnation,
+  compareReportDelta,
+  isZeroDeltaReport,
+  suppressZeroDeltaReport,
+  computeStateSignature,
   MIND_PREPLANNING_STAGNATION,
+  MIND_CREATIVE_STAGNATION,
   DEFAULT_STAGNATION_THRESHOLD_SECONDS,
+  DEFAULT_ZERO_DELTA_THRESHOLD_CYCLES,
+  DEFAULT_MAINTENANCE_LOOP_THRESHOLD_CYCLES,
   type StagnationAuditOptions,
+  type ZeroDeltaComparisonResult,
 } from "./mind-stagnation-auditor.ts";
 
 export {
@@ -242,6 +251,8 @@ export {
   CHARTER_SCOPE_VIOLATION,
   CHARTER_PROHIBITION_VIOLATION,
   DEFECT_MIND_AUDITING_MISSING_STATE_CHARTER,
+  CANONICAL_CHARTER_GOAL_IDS,
+  STANDARD_CHARTER_GOALS,
   type CharterAuditOptions,
   type CharterBudgetUsageMetrics,
   type CharterGoalAuditResult,

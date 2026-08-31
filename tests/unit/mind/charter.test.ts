@@ -102,14 +102,16 @@ charter:
     const parsed = parseCharter(rawYaml);
 
     expect(parsed.identity).toContain(
-      "The autonomous maintenance, verification, and hardening mind",
+      "The autonomous maintenance, product evolution, and strategic innovation mind",
     );
     expect(parsed.goals.length).toBe(3);
     expect(parsed.goalIds).toEqual(["G1", "G2", "G3"]);
     expect(parsed.goals[0].statement).toContain("0 TypeScript any");
-    expect(parsed.goals[1].statement).toContain("multi-agent orchestration invariants");
-    expect(parsed.goals[2].statement).toContain("repository integrity");
-    expect(parsed.repoRoots).toEqual(["olt/", "tests/", "docs/"]);
+    expect(parsed.goals[1].statement).toContain("Relentlessly perfectionize existing applications");
+    expect(parsed.goals[2].statement).toContain(
+      "Continuously act as an autonomous Creative Product Manager",
+    );
+    expect(parsed.repoRoots).toEqual(["."]);
     expect(parsed.stability?.length).toBe(2);
     expect(parsed.stability?.[0].command).toBe("bun test tests/unit");
     expect(parsed.stability?.[1].command).toBe("bun run typecheck");
@@ -118,7 +120,7 @@ charter:
   test("loadCharter helper loads and parses mind.yaml from repository root", () => {
     const parsed = loadCharter(process.cwd());
     expect(parsed.goalIds).toEqual(["G1", "G2", "G3"]);
-    expect(parsed.repoRoots).toEqual(["olt/", "tests/", "docs/"]);
+    expect(parsed.repoRoots).toEqual(["."]);
   });
 
   test("throws HarnessError on invalid budget formats", () => {
@@ -214,22 +216,21 @@ repo_roots:
   - "src/"
 `),
     ).toThrow(HarnessError);
+  });
 
-    // Missing repo_roots
-    expect(() =>
-      parseCharter(`
+  test("defaults repo_roots to ['.'] when omitted or empty", () => {
+    const withoutRepoRoots = `
 identity: "Mind"
 goals:
   - id: "G1"
     statement: "Goal"
 non_goals:
   - "Non-goal"
-`),
-    ).toThrow(HarnessError);
+`;
+    const parsed = parseCharter(withoutRepoRoots);
+    expect(parsed.repoRoots).toEqual(["."]);
 
-    // Empty repo_roots
-    expect(() =>
-      parseCharter(`
+    const withEmptyRepoRoots = `
 identity: "Mind"
 goals:
   - id: "G1"
@@ -237,8 +238,9 @@ goals:
 non_goals:
   - "Non-goal"
 repo_roots: []
-`),
-    ).toThrow(HarnessError);
+`;
+    const parsedEmpty = parseCharter(withEmptyRepoRoots);
+    expect(parsedEmpty.repoRoots).toEqual(["."]);
   });
 
   test("resolveCharterPath finds mind.yaml as canonical SSoT", () => {

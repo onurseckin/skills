@@ -138,9 +138,13 @@ export interface StagnationAuditResult {
   readonly open_defects_count: number;
   readonly last_preplan_timestamp: string | null;
   readonly idle_duration_seconds: number;
-  readonly error_code?: "MIND_PREPLANNING_STAGNATION" | undefined;
+  readonly error_code?: "MIND_PREPLANNING_STAGNATION" | "MIND_CREATIVE_STAGNATION" | undefined;
   readonly findings: readonly string[];
   readonly recommended_remediation?: string | undefined;
+  readonly zero_delta?: boolean | undefined;
+  readonly suppressed?: boolean | undefined;
+  readonly consecutive_zero_delta_count?: number | undefined;
+  readonly delta_summary?: string | undefined;
 }
 
 export interface ConcurrencyAuditResult {
@@ -166,5 +170,5 @@ export interface MindAuditorStagnationReport {
   readonly unclusteredBacklogCount: number;
   readonly unclusteredDefectCount: number;
   readonly idleDurationSeconds: number;
-  readonly violationCode?: "MIND_PREPLANNING_STAGNATION" | undefined;
+  readonly violationCode?: "MIND_PREPLANNING_STAGNATION" | "MIND_CREATIVE_STAGNATION" | undefined;
 }

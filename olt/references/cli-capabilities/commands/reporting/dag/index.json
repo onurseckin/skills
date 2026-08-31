@@ -3,8 +3,8 @@
   "domain": "reporting",
   "entries": [
     {
-      "id": "report:dag",
-      "path": "report-dag.json"
+      "id": "dag",
+      "path": "dag.json"
     }
   ]
 }

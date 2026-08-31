@@ -1,5 +1,4 @@
-import { resolve } from "node:path";
-import { normalize } from "node:path";
+import { isAbsolute, relative, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import type {
   AdmissionGateVerdict,
@@ -13,31 +12,45 @@ export function isPathInRepoRoots(
   repoRoots: readonly string[],
   repoRoot: string,
 ): boolean {
-  if (!targetPath) return false;
+  if (!targetPath || typeof targetPath !== "string" || !targetPath.trim()) {
+    return false;
+  }
+
+  const resolvedRepoRoot = resolve(repoRoot || ".");
+  const absoluteTarget = isAbsolute(targetPath.trim())
+    ? resolve(targetPath.trim())
+    : resolve(resolvedRepoRoot, targetPath.trim());
+
+  // Target must be inside repoRoot or equal to repoRoot
+  const relToRepo = relative(resolvedRepoRoot, absoluteTarget);
+  if (relToRepo.startsWith("..") || isAbsolute(relToRepo)) {
+    return false;
+  }
+
+  const effectiveRoots = repoRoots && repoRoots.length > 0 ? repoRoots : ["."];
+
   if (
-    repoRoots.length === 0 ||
-    repoRoots.includes(".") ||
-    repoRoots.includes("./") ||
-    repoRoots.includes("*")
+    effectiveRoots.some((r) => {
+      const trimmed = r.trim();
+      return trimmed === "." || trimmed === "./" || trimmed === "*" || trimmed === "";
+    })
   ) {
     return true;
   }
 
-  const normalizedTarget = normalize(targetPath).replace(/^[./\\]+/, "");
-  const absoluteTarget = resolve(repoRoot, normalizedTarget);
-
-  for (const root of repoRoots) {
-    const normalizedRoot = normalize(root)
-      .replace(/^[./\\]+/, "")
-      .replace(/[/\\]+$/, "");
-    if (!normalizedRoot || normalizedRoot === ".") return true;
-
-    if (normalizedTarget === normalizedRoot || normalizedTarget.startsWith(`${normalizedRoot}/`)) {
+  for (const root of effectiveRoots) {
+    const trimmedRoot = root.trim();
+    if (!trimmedRoot) continue;
+    if (trimmedRoot === "." || trimmedRoot === "./" || trimmedRoot === "*") {
       return true;
     }
 
-    const absoluteRoot = resolve(repoRoot, normalizedRoot);
-    if (absoluteTarget === absoluteRoot || absoluteTarget.startsWith(`${absoluteRoot}/`)) {
+    const absoluteRoot = isAbsolute(trimmedRoot)
+      ? resolve(trimmedRoot)
+      : resolve(resolvedRepoRoot, trimmedRoot);
+
+    const relToRoot = relative(absoluteRoot, absoluteTarget);
+    if (relToRoot === "" || (!relToRoot.startsWith("..") && !isAbsolute(relToRoot))) {
       return true;
     }
   }

@@ -67,6 +67,7 @@ permissions:
     - "Enforce 1:1 Isolated Task Dispatch and the Anti-Batching Rule across coordinator task graphs (single-implementer and single-validator isolation per task)"
     - "Enforce deterministic CLI verification (`task:check`) for incremental typechecks and AST invariant audits (0 any, 0 suppressions), anchoring mechanic verification directly in deterministic CLI tools"
     - "Execute Plan Archival Upon Completion: upon round convergence and sealing, move completed plan directories from `docs/planning/<plan-slug>/` to `docs/archive/completed-plans/<plan-slug>/` before committing release, keeping `docs/planning/` strictly confined to pending roadmap items"
+    - "Support flexible dynamic repo scopes across single-repository root ('.') and arbitrary multi-module subdirectories, dynamically configuring write scopes across full-stack applications, frontends, backends, toolchains, and packages"
     - "Suspend supervisory cadence crons, keep active coordinators/workers in memory in IDLE state without killing them, preserve all uncommitted file touchpoints unstaged, and await auto-wake sentinel upon Quota Freeze"
     - "Upon auto-wake, re-register supervisory crons, restore wave coordinates from snapshot, and continue multi-round convergence"
   must_not:
@@ -170,6 +171,7 @@ instructions: |
   - **Multi-Attribute Memory Retrieval Across Rounds**: Query cross-generational cognitive memory (`memory:query`) across `--kind`, `--generation`, `--tags`, and `--pattern` filters to inform round prompt synthesis and eliminate repeated blunders.
   - **Automated Blunder Promotion & Regression Protection**: Ensure resolved blunders are auto-promoted via `defect:audit --auto-promote` with empirical proofs and regression test suite generation, protecting the codebase against regressions.
   - **Per-Task/Subgroup Commit, Push & Global Skill Sync**: Upon round convergence and sealing, execute release Conventional Commits (`feat(...)`, `fix(...)`), push to `origin/main` (`git push origin main`), and sync global skills via `bun scripts/sync-global.ts` to `~/.agents/skills/olt/`.
+  - **Flexible Dynamic Repo Scopes**: Orchestrators operate across dynamic and flexible repository scopes, supporting whole-repository scopes (`.`) or targeted multi-module scopes across frontend, backend, packages, and toolchains without artificial directory constraints, while preserving disjoint write scope isolation across concurrent lanes.
   - **Plan Archival Upon Completion**: When a plan in `docs/planning/<plan-slug>/` is fully executed, verified, and sealed by the completeness critic, move `docs/planning/<plan-slug>/` to `docs/archive/completed-plans/<plan-slug>/` and include the relocation in the release commit. `docs/planning/` strictly holds unexecuted pending roadmap items.
   - **Supervisory schedule resolved at runtime & ASCII DAG monitoring.** Enforces a recurring supervisory scheduler cadence (5 minutes / `*/5 * * * *` on Antigravity host) via `schedule`, a systemd timer, or `pulse.sh` across rounds, with the arm interval resolved by `resolveSupervisoryCadence` (its `arm_interval_source` field records where that interval came from) rather than a value fixed in this manifest, and inspects live round DAG status and parallelization bottlenecks via `dag`.
   - **Convergence, not a wave, ends a round.** Watch a round through read-only inspection — `run:status --detailed`, the critic's recorded decision, open findings, `branch:status` — until the completeness critic approves with zero open findings, every gate green, and no open branch. That is clean convergence; declare it and move to final synthesis.
@@ -201,7 +203,7 @@ instructions: |
      - Decompose user instructions, charter goals, and requirements into atomic, falsifiable deliverables.
      - Verify every requirement maps directly to verifiable acceptance criteria.
   2. **Disjoint Write Scope Decomposition**:
-     - Partition files strictly so that no two parallel tasks share overlapping file paths or directory write scopes.
+     - Partition files dynamically across the target repository scope (supporting whole-repository `.` and multi-module paths) so that no two parallel tasks share overlapping file paths or directory write scopes.
      - Enforce the Disjoint Write Scope Invariant (`detectScopeOverlap`).
   3. **Brent Work/Span & Concurrency Optimization ($P = \lceil W / S \rceil$)**:
      - Compute total effort $W$ and critical path span $S$.

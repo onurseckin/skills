@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  CANONICAL_CHARTER_GOAL_IDS,
   CHARTER_AUDIT_PASSED,
   CHARTER_BUDGET_EXCEEDED,
   CHARTER_INTEGRITY_DRIFT,
@@ -7,6 +8,7 @@ import {
   CHARTER_SCOPE_VIOLATION,
   CHARTER_UNRESOLVED_GOALS,
   DEFECT_MIND_AUDITING_MISSING_STATE_CHARTER,
+  STANDARD_CHARTER_GOALS,
   auditCharterBudgetCompliance,
   auditCharterGoals,
   auditCharterIntegrity,
@@ -58,6 +60,8 @@ charter:
     expect(DEFECT_MIND_AUDITING_MISSING_STATE_CHARTER).toBe(
       "defect-mind-auditing-missing-state-charter",
     );
+    expect(CANONICAL_CHARTER_GOAL_IDS).toEqual(["G1", "G2", "G3"]);
+    expect(STANDARD_CHARTER_GOALS).toEqual(["G1", "G2", "G3"]);
   });
 
   test("barrel index re-exports charter auditing functions cleanly", () => {
@@ -79,6 +83,38 @@ charter:
     expect(invalidResult.unmappedGoals).toEqual(["G99"]);
     expect(invalidResult.findings.length).toBe(1);
     expect(invalidResult.findings[0]).toContain("G99");
+  });
+
+  test("auditCharterGoals checks required goals (G1, G2, G3)", () => {
+    const charter = parseCharter(SAMPLE_CHARTER_YAML); // Only has G1, G2
+
+    const requiredResult = auditCharterGoals(charter, ["G1"], CANONICAL_CHARTER_GOAL_IDS);
+    expect(requiredResult.valid).toBe(false);
+    expect(requiredResult.missingRequiredGoals).toEqual(["G3"]);
+    expect(requiredResult.findings.some((f) => f.includes("G3"))).toBe(true);
+
+    const fullCharter = parseCharter(`
+identity: "Complete mind"
+goals:
+  - id: "G1"
+    statement: "Zero any"
+  - id: "G2"
+    statement: "Multi-agent invariants"
+  - id: "G3"
+    statement: "Repo integrity"
+non_goals:
+  - "none"
+repo_roots:
+  - "olt/"
+`);
+    const passResult = auditCharterGoals(
+      fullCharter,
+      ["G1", "G2", "G3"],
+      CANONICAL_CHARTER_GOAL_IDS,
+    );
+    expect(passResult.valid).toBe(true);
+    expect(passResult.missingRequiredGoals).toEqual([]);
+    expect(passResult.findings).toEqual([]);
   });
 
   test("auditCharterBudgetCompliance validates usage metrics against limits", () => {
@@ -145,6 +181,49 @@ charter:
     expect(invalidPaths.findings.length).toBe(1);
   });
 
+  test('auditCharterRepoRoots handles dynamic repo_roots: ["."] and ["./"]', () => {
+    const dotCharter = parseCharter(`
+identity: "Dynamic Mind"
+goals:
+  - id: "G1"
+    statement: "Full workspace freedom"
+non_goals:
+  - "none"
+repo_roots:
+  - "."
+`);
+
+    const result = auditCharterRepoRoots(dotCharter, [
+      "package.json",
+      "src/core/index.ts",
+      "olt/scripts/src/mind/index.ts",
+      "tests/unit/test.ts",
+      "docs/readme.md",
+    ]);
+
+    expect(result.valid).toBe(true);
+    expect(result.allowedRoots).toEqual(["."]);
+    expect(result.outOfBoundsPaths).toEqual([]);
+    expect(result.findings).toEqual([]);
+
+    const slashDotCharter = parseCharter(`
+identity: "Slash Dot Mind"
+goals:
+  - id: "G1"
+    statement: "Full workspace"
+non_goals:
+  - "none"
+repo_roots:
+  - "./"
+`);
+
+    const slashResult = auditCharterRepoRoots(slashDotCharter, [
+      "arbitrary/nested/path/to/file.ts",
+    ]);
+    expect(slashResult.valid).toBe(true);
+    expect(slashResult.outOfBoundsPaths).toEqual([]);
+  });
+
   test("auditCharterProhibitions flags actions matching prohibited directives", () => {
     const charter = parseCharter(SAMPLE_CHARTER_YAML);
 
@@ -161,7 +240,7 @@ charter:
     expect(prohibitedAction.findings.length).toBeGreaterThan(0);
   });
 
-  test("auditCharterManifest compiles full audit report", () => {
+  test("auditCharterManifest compiles full audit report and supports checkStandardGoals", () => {
     const report = auditCharterManifest(SAMPLE_CHARTER_YAML, {
       referencedGoals: ["G1"],
       touchedPaths: ["olt/scripts/src/mind/auditing/index.ts"],
@@ -176,9 +255,15 @@ charter:
     expect(report.budgetAudit?.compliant).toBe(true);
     expect(report.findings).toEqual([]);
     expect(typeof report.timestamp).toBe("string");
+
+    const standardCheckReport = auditCharterManifest(SAMPLE_CHARTER_YAML, {
+      checkStandardGoals: true,
+    });
+    expect(standardCheckReport.valid).toBe(false);
+    expect(standardCheckReport.goalAudit.missingRequiredGoals).toEqual(["G3"]);
   });
 
-  test("auditLiveCharter loads and audits repository charter", () => {
+  test("auditLiveCharter loads and audits repository charter with G1, G2, G3 and dynamic repo roots", () => {
     const report = auditLiveCharter(process.cwd(), {
       referencedGoals: ["G1", "G2", "G3"],
       touchedPaths: ["olt/scripts/src/mind/auditing/index.ts"],
@@ -186,6 +271,9 @@ charter:
 
     expect(report.charterSha256.length).toBe(64);
     expect(report.goalAudit.valid).toBe(true);
+    expect(report.goalAudit.definedGoals).toContain("G1");
+    expect(report.goalAudit.definedGoals).toContain("G2");
+    expect(report.goalAudit.definedGoals).toContain("G3");
     expect(report.repoRootsAudit.valid).toBe(true);
   });
 });

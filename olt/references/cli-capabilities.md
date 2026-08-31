@@ -107,7 +107,7 @@ own status in `exit_code`.
 | `report:leases` | reporting | Active lease and agent matrix. |
 | `report:decisions` | reporting | Inspection of authority decisions and governance audit. |
 | `report:usage` | reporting | Discover and report cross-platform quota, rate limit, and token usage telemetry. |
-| `report:dag` | reporting | Render Sugiyama hierarchical DAG layout with rounded Unicode boxes and cycle diagnostics. |
+| `dag` | reporting | Render Sugiyama hierarchical DAG layout with rounded Unicode boxes and cycle diagnostics. |
 | `report:graph-json` | reporting | Export DAG telemetry and metrics to JSON. |
 | `events:stream` | reporting | Stream, query, and tail structured capsule events. |
 | `events:trace` | reporting | Real-time step tracer and dynamic living DAG expansion timeline. |

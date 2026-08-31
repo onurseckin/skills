@@ -195,7 +195,7 @@ repo_roots:
     expect(() => parseCharter(missingNonGoals)).toThrow(/missing required section: non-goals/);
   });
 
-  test("refuses charter missing repo_roots section", () => {
+  test("defaults repo_roots to ['.'] when section is missing or empty", () => {
     const missingRepoRoots = `
 identity: "Some identity"
 goals:
@@ -204,7 +204,20 @@ goals:
 non_goals:
   - "Non-goal"
 `;
-    expect(() => parseCharter(missingRepoRoots)).toThrow(/missing required section: repo_roots/);
+    const parsed = parseCharter(missingRepoRoots);
+    expect(parsed.repoRoots).toEqual(["."]);
+
+    const emptyRepoRoots = `
+identity: "Some identity"
+goals:
+  - id: "G1"
+    statement: "Valid goal"
+non_goals:
+  - "Non-goal"
+repo_roots: []
+`;
+    const parsedEmpty = parseCharter(emptyRepoRoots);
+    expect(parsedEmpty.repoRoots).toEqual(["."]);
   });
 });
 

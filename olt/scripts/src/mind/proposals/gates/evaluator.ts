@@ -155,7 +155,7 @@ export function evaluateGate4Scoped(
     };
   }
 
-  const repoRoots = context.repoRoots ?? ["."];
+  const repoRoots = context.repoRoots && context.repoRoots.length > 0 ? context.repoRoots : ["."];
   for (const path of scope) {
     if (!isPathInRepoRoots(path, repoRoots, context.repoRoot)) {
       return {
@@ -164,7 +164,7 @@ export function evaluateGate4Scoped(
         name,
         passed: false,
         reason: `write scope '${path}' is outside charter repo_roots (${repoRoots.join(", ")})`,
-        repairArgv: `bun harness.ts mind:candidate --run ${context.runRoot} --actor ${context.actor} --write-scope ${repoRoots[0] ?? "src/"}`,
+        repairArgv: `bun harness.ts mind:candidate --run ${context.runRoot} --actor ${context.actor} --write-scope ${repoRoots[0] ?? "."}`,
       };
     }
   }

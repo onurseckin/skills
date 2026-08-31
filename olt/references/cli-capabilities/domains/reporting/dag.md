@@ -3,13 +3,13 @@
 Generated from `olt/scripts/src/cli/registry` by `olt/scripts/generate-cli-manifest.ts`. Do not edit by
 hand. Index: [`../../cli-capabilities.md`](../../cli-capabilities.md).
 
-### `report:dag`
+### `dag`
 
 Render Sugiyama hierarchical DAG layout with rounded Unicode boxes and cycle diagnostics.
 
 Computes Sugiyama layered layout, crossing minimization via barycenter heuristics, Tarjan cycle alerts, illegal bypass warnings, and orthogonal connectors.
 
-- **Aliases**: none
+- **Aliases**: `report:dag`, `dag:view`, `dag:render`
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 

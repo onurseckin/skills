@@ -213,6 +213,8 @@ export interface InfiniteProductOwnerOptions {
   readonly maxTasks?: number | undefined;
   readonly directIntakeItems?: readonly ProductOwnerIntakeItem[] | undefined;
   readonly autoEnqueue?: boolean | undefined;
+  readonly repoRoot?: string | undefined;
+  readonly workspaceRoot?: string | undefined;
 }
 
 export interface AutonomousDualIntakeResult {

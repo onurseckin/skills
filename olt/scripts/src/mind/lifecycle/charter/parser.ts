@@ -90,33 +90,33 @@ export function parseCharterFromYaml(
     throw new HarnessError("INVALID_ARGUMENT", "charter 'non_goals' section contains no items.");
   }
 
-  // Mandatory repo_roots
-  const rawRepoRoots = (rawCharter.repo_roots ?? rawCharter.repoRoots) as unknown;
-  if (!rawRepoRoots || !Array.isArray(rawRepoRoots) || rawRepoRoots.length === 0) {
-    throw new HarnessError(
-      "INVALID_ARGUMENT",
-      "charter is missing required section: repo_roots. Expected 'repo_roots' array in YAML manifest.",
-    );
-  }
-
+  // Optional repo_roots (defaults to ["."])
   const repoRoots: string[] = [];
-  for (const item of rawRepoRoots as unknown[]) {
-    if (typeof item === "string" && item.trim()) {
-      const clean = item
-        .trim()
-        .replace(/`/g, "")
-        .replace(/^[-*+]\s*/, "");
-      if (clean && !repoRoots.includes(clean)) {
-        repoRoots.push(clean);
+  const rawRepoRoots = (rawCharter.repo_roots ?? rawCharter.repoRoots) as unknown;
+  if (Array.isArray(rawRepoRoots)) {
+    for (const item of rawRepoRoots) {
+      if (typeof item === "string" && item.trim()) {
+        const clean = item
+          .trim()
+          .replace(/`/g, "")
+          .replace(/^[-*+]\s*/, "");
+        if (clean && !repoRoots.includes(clean)) {
+          repoRoots.push(clean);
+        }
       }
+    }
+  } else if (typeof rawRepoRoots === "string" && rawRepoRoots.trim()) {
+    const clean = rawRepoRoots
+      .trim()
+      .replace(/`/g, "")
+      .replace(/^[-*+]\s*/, "");
+    if (clean) {
+      repoRoots.push(clean);
     }
   }
 
   if (repoRoots.length === 0) {
-    throw new HarnessError(
-      "INVALID_ARGUMENT",
-      "charter 'repo_roots' section contains no valid paths.",
-    );
+    repoRoots.push(".");
   }
 
   // Optional stability

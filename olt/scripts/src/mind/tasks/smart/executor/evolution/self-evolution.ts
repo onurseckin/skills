@@ -1,3 +1,5 @@
+import { existsSync, readdirSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { evaluateHierarchyScaling } from "../../../../../graph/parallel-decoupler.ts";
 import { enrichTaskPlanWithExactAnchors } from "../../planner/anti-batching.ts";
 import { assertAntiBatchingRule } from "../../planner/partitioning.ts";
@@ -7,6 +9,7 @@ import type { SmartTaskPlan, SmartTaskSynthesisResult } from "../../planner/mode
 import { updateCognitiveMemory } from "../../../../memory/core/index.ts";
 import { auditDefectLog } from "../../../../defects/index.ts";
 import {
+  findRepoRoot,
   isTestEnvironment,
   resolveScratchDir,
   resolveCapsulesDir,
@@ -18,15 +21,118 @@ import {
   deriveGateForCategory,
 } from "../orchestrator.ts";
 
+export interface DetectedRepositoryStructure {
+  readonly repoRoot: string;
+  readonly apps: readonly string[];
+  readonly packages: readonly string[];
+  readonly src: readonly string[];
+  readonly tests: readonly string[];
+  readonly docs: readonly string[];
+  readonly planning: readonly string[];
+  readonly hasApps: boolean;
+  readonly hasPackages: boolean;
+  readonly hasSrc: boolean;
+  readonly hasTests: boolean;
+  readonly hasDocs: boolean;
+  readonly hasPlanning: boolean;
+}
+
+export function detectRepositoryStructure(customRoot?: string): DetectedRepositoryStructure {
+  let root = customRoot ? resolve(customRoot) : undefined;
+  if (!root || !existsSync(root)) {
+    try {
+      root = findRepoRoot();
+    } catch {
+      root = process.cwd();
+    }
+  }
+
+  const listSubdirs = (relDir: string): string[] => {
+    const full = join(root, relDir);
+    if (!existsSync(full)) return [];
+    try {
+      return readdirSync(full, { withFileTypes: true })
+        .filter((dirent) => dirent.isDirectory() && !dirent.name.startsWith("."))
+        .map((dirent) => `${relDir}/${dirent.name}`);
+    } catch {
+      return [];
+    }
+  };
+
+  const hasDir = (relDir: string): boolean => existsSync(join(root, relDir));
+
+  const appDirs = hasDir("apps")
+    ? ["apps", ...listSubdirs("apps")]
+    : hasDir("app")
+      ? ["app", ...listSubdirs("app")]
+      : [];
+
+  const pkgDirs = hasDir("packages")
+    ? ["packages", ...listSubdirs("packages")]
+    : hasDir("pkg")
+      ? ["pkg", ...listSubdirs("pkg")]
+      : hasDir("modules")
+        ? ["modules", ...listSubdirs("modules")]
+        : [];
+
+  const srcDirs = hasDir("src")
+    ? ["src", ...listSubdirs("src")]
+    : hasDir("lib")
+      ? ["lib", ...listSubdirs("lib")]
+      : hasDir("olt/scripts/src")
+        ? ["olt/scripts/src"]
+        : [];
+
+  const testDirs = hasDir("tests")
+    ? ["tests", ...listSubdirs("tests")]
+    : hasDir("test")
+      ? ["test", ...listSubdirs("test")]
+      : hasDir("spec")
+        ? ["spec", ...listSubdirs("spec")]
+        : [];
+
+  const docDirs = hasDir("docs")
+    ? ["docs", ...listSubdirs("docs")]
+    : hasDir("documentation")
+      ? ["documentation"]
+      : [];
+
+  const planningDirs = hasDir("docs/planning")
+    ? ["docs/planning"]
+    : hasDir("planning")
+      ? ["planning"]
+      : [];
+
+  return {
+    repoRoot: root,
+    apps: appDirs,
+    packages: pkgDirs,
+    src: srcDirs,
+    tests: testDirs,
+    docs: docDirs,
+    planning: planningDirs,
+    hasApps: appDirs.length > 0,
+    hasPackages: pkgDirs.length > 0,
+    hasSrc: srcDirs.length > 0,
+    hasTests: testDirs.length > 0,
+    hasDocs: docDirs.length > 0,
+    hasPlanning: planningDirs.length > 0,
+  };
+}
+
+export interface SynthesizeSelfEvolutionOptions {
+  readonly repoRoot?: string | undefined;
+  readonly workspaceRoot?: string | undefined;
+  readonly capsulesDir?: string | undefined;
+  readonly queuePath?: string | undefined;
+  readonly charterGoals?: readonly string[] | undefined;
+  readonly maxTasks?: number | undefined;
+  readonly autoEnqueue?: boolean | undefined;
+  readonly cognitiveMemoryPath?: string | undefined;
+}
+
 export function synthesizeSmartTasksFromSelfEvolution(
-  options: {
-    readonly capsulesDir?: string | undefined;
-    readonly queuePath?: string | undefined;
-    readonly charterGoals?: readonly string[] | undefined;
-    readonly maxTasks?: number | undefined;
-    readonly autoEnqueue?: boolean | undefined;
-    readonly cognitiveMemoryPath?: string | undefined;
-  } = {},
+  options: SynthesizeSelfEvolutionOptions = {},
 ): SmartTaskSynthesisResult {
   const maxTasks = options.maxTasks ?? 5;
   const targetRoots = options.capsulesDir
@@ -34,6 +140,8 @@ export function synthesizeSmartTasksFromSelfEvolution(
     : [isTestEnvironment() ? resolveScratchDir() : resolveCapsulesDir()];
   const defectAudit = auditDefectLog(targetRoots);
   const openDefects = defectAudit.defects.filter((b) => b.status === "open");
+
+  const structure = detectRepositoryStructure(options.repoRoot ?? options.workspaceRoot);
 
   const selfTasks: SmartTaskPlan[] = [];
 
@@ -73,133 +181,123 @@ export function synthesizeSmartTasksFromSelfEvolution(
     });
   }
 
-  const hardeningScope = [
-    "olt/scripts/src/mind/smart-task-manager.ts",
-    "olt/scripts/src/mind/task-queue.ts",
-    "tests/unit/mind/smart-task-manager.test.ts",
-    "tests/unit/mind/task-queue.test.ts",
-  ];
+  // 3-Step Creative Product Manager Flow
+
+  // Step 1: Baseline Quality & Invariant Hygiene (0 any, 0 suppressions, typecheck, lint)
+  const testRoot = structure.hasTests ? `${structure.tests[0] ?? "tests"}/` : "tests/";
+  const step1Scope = [testRoot];
+  const step1Gate = structure.hasTests
+    ? `bun test ${structure.tests[0]} && bun run typecheck`
+    : "bun test tests/unit && bun run typecheck";
+
   selfTasks.push({
     id: `task-${selfTasks.length + 1}-invariant-hardening`,
-    label: "Continuous Invariant Hardening & Zero-Suppression Assurance",
-    write_scope: hardeningScope,
-    gate: "bun test tests/unit/mind && bun run typecheck",
+    label: "Step 1: Baseline Quality & Invariant Hygiene Assurance (0 any, 0 suppressions)",
+    write_scope: step1Scope,
+    gate: step1Gate,
     charter_goals:
       options.charterGoals && options.charterGoals.length > 0 ? [options.charterGoals[0]!] : ["G1"],
     acceptance_criteria: [
-      "0 TypeScript any across all modules",
+      "0 TypeScript any across all modules and test suites",
       "0 compiler or linter suppressions",
-      "All unit tests pass with exit code 0",
+      "All unit tests pass with exit code 0 and typecheck verification succeeds",
     ],
     dependencies: selfTasks
-      .filter((prev) => detectScopeOverlap(hardeningScope, prev.write_scope).length > 0)
+      .filter((prev) => detectScopeOverlap(step1Scope, prev.write_scope).length > 0)
       .map((prev) => prev.id),
     source_type: "self_evolution",
     priority: "HIGH",
     rationale:
-      "Continuous invariant hardening maintaining zero compiler suppressions and deterministic typed schemas.",
+      "Step 1 Baseline Quality & Invariant Hygiene: Continuous invariant hardening enforcing zero compiler suppressions and deterministic typed schemas.",
     assigned_tier: "Tier_3_Implementer",
     assigned_implementer: "implementer-invariant-hardening",
     assigned_validator: "validator-invariant-hardening",
     metadata: {
+      step: "step_1_baseline_quality",
       assigned_implementer: "implementer-invariant-hardening",
       assigned_validator: "validator-invariant-hardening",
     },
   });
 
-  const charterGapScope = [
-    "olt/agents/mind.yaml",
-    "olt/scripts/src/mind/cognitive-flavor.ts",
-    "tests/unit/mind/cognitive-flavor.test.ts",
-  ];
+  // Step 2: Product & UX Quality Audit (inspecting screens, responsive tiers, interaction feel, performance across apps/ and packages/)
+  const step2Scope: string[] = [];
+  if (structure.hasApps) {
+    step2Scope.push(structure.apps[0] ? `${structure.apps[0]}/` : "apps/");
+  } else if (structure.hasPackages) {
+    step2Scope.push(structure.packages[0] ? `${structure.packages[0]}/` : "packages/");
+  } else if (structure.hasSrc) {
+    step2Scope.push(structure.src[0] ? `${structure.src[0]}/` : "src/");
+  } else {
+    step2Scope.push("apps/");
+  }
+
+  const step2Gate = structure.hasTests
+    ? `bun test ${structure.tests[0]} && bun run typecheck`
+    : "bun test && bun run typecheck";
+
   selfTasks.push({
-    id: `task-${selfTasks.length + 1}-charter-gap-analysis`,
-    label: "Charter Gap Analysis & Cognitive Flavor Posture Verification",
-    write_scope: charterGapScope,
-    gate: "bun test tests/unit/mind/cognitive-flavor.test.ts && bun run typecheck",
+    id: `task-${selfTasks.length + 1}-product-ux-quality-audit`,
+    label:
+      "Step 2: Product & UX Quality Audit (Screens, Responsive Tiers, Interaction Feel, Performance)",
+    write_scope: step2Scope,
+    gate: step2Gate,
     charter_goals:
-      options.charterGoals && options.charterGoals.length > 0 ? [options.charterGoals[0]!] : ["G1"],
+      options.charterGoals && options.charterGoals.length > 0 ? [options.charterGoals[0]!] : ["G2"],
     acceptance_criteria: [
-      "Perform cognitive flavor gap analysis across 4 tiers",
-      "Ensure alignment with Mind Charter invariants and strategic altitude",
+      "Audit client screens, responsive layout tiers (mobile, tablet, desktop), and interaction feel",
+      "Verify smooth state transitions, layout responsiveness, and performance invariants across client surfaces",
+      "Catalog UI/UX polish improvements, interaction fluidity, and accessibility standards",
     ],
     dependencies: selfTasks
-      .filter((prev) => detectScopeOverlap(charterGapScope, prev.write_scope).length > 0)
+      .filter((prev) => detectScopeOverlap(step2Scope, prev.write_scope).length > 0)
       .map((prev) => prev.id),
     source_type: "self_evolution",
     priority: "HIGH",
     rationale:
-      "Autonomous charter gap analysis verifying cognitive flavor alignments and macro objectives.",
+      "Step 2 Product & UX Quality Audit: Autonomous inspection of screens, responsive tiers, interaction feel, and runtime performance across apps and packages.",
     assigned_tier: "Tier_2_Coordinator",
-    assigned_implementer: "implementer-charter-gap",
-    assigned_validator: "validator-charter-gap",
+    assigned_implementer: "implementer-product-ux-audit",
+    assigned_validator: "validator-product-ux-audit",
     metadata: {
-      assigned_implementer: "implementer-charter-gap",
-      assigned_validator: "validator-charter-gap",
+      step: "step_2_product_ux_audit",
+      assigned_implementer: "implementer-product-ux-audit",
+      assigned_validator: "validator-product-ux-audit",
     },
   });
 
-  const brentOptimizationScope = [
-    "olt/scripts/src/mind/strategic-purpose.ts",
-    "tests/unit/mind/strategic-purpose.test.ts",
-  ];
-  selfTasks.push({
-    id: `task-${selfTasks.length + 1}-brent-work-span-optimization`,
-    label: "Macro DAG Work/Span (P = W/S) Optimization & Historical Defect Regression Immunity",
-    write_scope: brentOptimizationScope,
-    gate: "bun test tests/unit/mind/strategic-purpose.test.ts && bun run typecheck",
-    charter_goals:
-      options.charterGoals && options.charterGoals.length > 0 ? [options.charterGoals[0]!] : ["G2"],
-    acceptance_criteria: [
-      "Optimize Work/Span parallelism P = W/S across topological DAG waves",
-      "Verify historical defect regression immunity across test suites",
-    ],
-    dependencies: selfTasks
-      .filter((prev) => detectScopeOverlap(brentOptimizationScope, prev.write_scope).length > 0)
-      .map((prev) => prev.id),
-    source_type: "self_evolution",
-    priority: "MEDIUM",
-    rationale:
-      "Brent's theorem Work/Span (P = W/S) parallelism optimization preventing schedule bottlenecking.",
-    assigned_tier: "Tier_1_Orchestrator",
-    assigned_implementer: "implementer-brent-optimization",
-    assigned_validator: "validator-brent-optimization",
-    metadata: {
-      assigned_implementer: "implementer-brent-optimization",
-      assigned_validator: "validator-brent-optimization",
-    },
-  });
+  // Step 3: Autonomous Creative Ideation (conceiving new features, authoring structured PLAN.md roadmaps in docs/planning/)
+  const step3Scope = ["docs/planning/PLAN.md", "docs/planning/"];
+  const step3Gate = structure.hasTests
+    ? `bun test ${structure.tests[0]} && bun run typecheck`
+    : "bun test && bun run typecheck";
 
-  const autonomicOptScope = [
-    "olt/scripts/src/mind/archival.ts",
-    "olt/scripts/src/mind/recycler.ts",
-    "tests/unit/mind/generational-archival.test.ts",
-    "tests/unit/mind/recycler.test.ts",
-  ];
   selfTasks.push({
-    id: `task-${selfTasks.length + 1}-autonomic-optimization`,
-    label: "Continuous Architecture & Lean Queue Maintenance",
-    write_scope: autonomicOptScope,
-    gate: "bun test tests/unit/mind && bun run typecheck",
+    id: `task-${selfTasks.length + 1}-autonomous-creative-ideation`,
+    label:
+      "Step 3: Autonomous Creative Ideation & Feature Roadmap Authoring (docs/planning/PLAN.md)",
+    write_scope: step3Scope,
+    gate: step3Gate,
     charter_goals:
       options.charterGoals && options.charterGoals.length > 0 ? [options.charterGoals[0]!] : ["G3"],
     acceptance_criteria: [
-      "Autonomic self-evolution cycle maintaining loop cadence and clean metrics",
-      "Pass all mind unit tests cleanly",
+      "Conceive high-leverage product features, architectural evolutions, and user capability enhancements",
+      "Author structured PLAN.md roadmap in docs/planning/ with architecture, milestones, and acceptance criteria",
+      "Align creative ideation with charter goals and autonomous Product Manager directives",
     ],
     dependencies: selfTasks
-      .filter((prev) => detectScopeOverlap(autonomicOptScope, prev.write_scope).length > 0)
+      .filter((prev) => detectScopeOverlap(step3Scope, prev.write_scope).length > 0)
       .map((prev) => prev.id),
     source_type: "self_evolution",
     priority: "MEDIUM",
     rationale:
-      "Autonomic self-evolution cycle maintaining 0 any, 0 suppressions, and zero zombie task accumulation.",
+      "Step 3 Autonomous Creative Ideation: Conceive new high-leverage features and author structured roadmap PLAN.md in docs/planning/.",
     assigned_tier: "Tier_1_Orchestrator",
-    assigned_implementer: "implementer-autonomic-optimization",
-    assigned_validator: "validator-autonomic-optimization",
+    assigned_implementer: "implementer-creative-ideation",
+    assigned_validator: "validator-creative-ideation",
     metadata: {
-      assigned_implementer: "implementer-autonomic-optimization",
-      assigned_validator: "validator-autonomic-optimization",
+      step: "step_3_creative_ideation",
+      assigned_implementer: "implementer-creative-ideation",
+      assigned_validator: "validator-creative-ideation",
     },
   });
 
@@ -212,16 +310,17 @@ export function synthesizeSmartTasksFromSelfEvolution(
       (curr) => ({
         ...curr,
         strategic_focus: [
-          "Continuous Zero-Any & Zero-Suppression Assurance",
-          "Charter Gap Analysis & Cognitive Flavor Checks",
-          "Brent's Theorem Work/Span (P = W/S) Macro DAG Optimization",
-          "Automated FIFO Pop & Clean-up Mechanics (Zero Zombie Accumulation)",
+          "3-Step Creative Product Manager Flow (Hygiene, UX Audit, Creative Ideation)",
+          "Step 1: Baseline Quality & Invariant Hygiene (0 any, 0 suppressions, strict typecheck)",
+          "Step 2: Product & UX Quality Audit across Apps and Packages",
+          "Step 3: Autonomous Creative Ideation & Feature Roadmaps in docs/planning/",
+          "Continuous Atomic Admission-to-Dispatch Chaining (Zero Paused Admitted)",
         ],
         active_hypotheses: [
           {
-            id: "hyp-brent-parallelism",
+            id: "hyp-creative-pm-flow",
             statement:
-              "Disjoint write scope wave partitioning maximizes effective parallelism P = W/S without collision overhead.",
+              "Autonomous 3-step creative cycle (invariant hygiene, UX audit, roadmap ideation) drives continuous product-market fit without regressions.",
             confidence: 0.96,
             status: "active",
             evidence: [
@@ -263,7 +362,7 @@ export function synthesizeSmartTasksFromSelfEvolution(
   return {
     mode: "self_evolution",
     tasks: selectedSelfTasks,
-    summary: `Autonomous self-evolution synthesized ${selectedSelfTasks.length} isolated task(s) on empty queue with 1:1 implementer-validator mapping.`,
+    summary: `Autonomous self-evolution synthesized ${selectedSelfTasks.length} isolated task(s) on empty queue with 1:1 implementer-validator mapping following the 3-step creative PM flow.`,
     source_items_count: openDefects.length,
     anti_batching_enforced: true,
     hierarchy_scaling: hierarchyScaling,

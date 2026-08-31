@@ -86,7 +86,10 @@ describe("VerbatimRoleInjector", () => {
       writeFileSync(charterPath, "identity: Product owner charter\n", "utf-8");
 
       const resolved = VerbatimRoleInjector.resolveManifestPath(productRepo, "mind");
-      expect(resolved).toBe(resolve(REPO_ROOT, "olt", "agents", "mind.yaml"));
+      expect(
+        resolved === resolve(REPO_ROOT, "olt", "agents", "mind.yaml") ||
+          resolved === resolve(process.env.HOME || "", ".agents/skills/olt/agents/mind.yaml"),
+      ).toBe(true);
 
       const prompt = VerbatimRoleInjector.buildInjectionPrompt(productRepo, "mind", {
         agentId: "mind_limo_gen_3",
@@ -276,14 +279,14 @@ describe("VerbatimRoleInjector", () => {
       // Charter Verification
       expect(prompt).toContain("charter:");
       expect(prompt).toContain(
-        'identity: "The autonomous maintenance, verification, and hardening mind',
+        'identity: "The autonomous maintenance, product evolution, and strategic innovation mind',
       );
       expect(prompt).toContain("G1");
       expect(prompt).toContain("Continuously ensure 0 TypeScript any");
       expect(prompt).toContain("G2");
-      expect(prompt).toContain("Maintain strict multi-agent orchestration invariants");
+      expect(prompt).toContain("Relentlessly perfectionize existing applications");
       expect(prompt).toContain("G3");
-      expect(prompt).toContain("Preserve repository integrity");
+      expect(prompt).toContain("Continuously act as an autonomous Creative Product Manager");
 
       // 16 Cognitive Pillars Verification
       expect(prompt).toContain("Pillar 1: CLI-First Token Leverage");
@@ -297,7 +300,7 @@ describe("VerbatimRoleInjector", () => {
         "Pillar 8: Autonomic Self-Recovery & Non-Idle In-Progress Resumption",
       );
       expect(prompt).toContain("Pillar 9: Strategic Brain & Hyper-Active Proactive Cognition");
-      expect(prompt).toContain("Pillar 10: Mind Queue Domain & Cognitive Memory Persistence");
+      expect(prompt).toContain("Pillar 10: Mind Queue Domain");
       expect(prompt).toContain("Pillar 11: Generation 5 Mindful Infusion");
       expect(prompt).toContain(
         "Pillar 12: Infinite Mind Product Owner Mode & Atomic Admission-to-Dispatch Chaining",

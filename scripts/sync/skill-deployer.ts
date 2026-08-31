@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { canonicalJsonBytes } from "../../olt/scripts/src/core/json.ts";
@@ -10,6 +10,7 @@ import {
 } from "../../olt/scripts/src/installer/constants.ts";
 import { sealInstallationManifest } from "../../olt/scripts/src/installer/manifest-integrity.ts";
 import { validateSkillSource } from "../../olt/scripts/src/installer/source-validation.ts";
+import { identifiedInstallation } from "../../olt/scripts/src/installer/identity.ts";
 import { guardedRemoveSync, logDestructiveOp, smartEnsureSymlink } from "./fs-helpers";
 import { resolveOltSyncSource } from "./git-source";
 
@@ -95,7 +96,7 @@ export async function migrateOwnedLegacyDeployment(
   sourceRepoRoot: string,
 ): Promise<boolean> {
   if (!existsSync(targetOlt)) return false;
-  if (existsSync(join(targetOlt, "installation.json"))) return false;
+  if (await identifiedInstallation(targetOlt)) return true;
   if (!isOwnedLegacyDeployment(targetOlt, sourceRepoRoot)) {
     throw new Error(
       `refusing to replace untrusted global skill directory without installation.json: ${targetOlt}`,
@@ -111,7 +112,13 @@ export async function migrateOwnedLegacyDeployment(
     installed_at: new Date().toISOString(),
     clients: ["antigravity", "chatgpt", "claude", "codex"],
   });
-  writeFileSync(join(targetOlt, "installation.json"), canonicalJsonBytes(manifest));
+  const manifestPath = join(targetOlt, "installation.json");
+  if (existsSync(manifestPath)) {
+    try {
+      chmodSync(manifestPath, 0o644);
+    } catch {}
+  }
+  writeFileSync(manifestPath, canonicalJsonBytes(manifest));
   return true;
 }
 
