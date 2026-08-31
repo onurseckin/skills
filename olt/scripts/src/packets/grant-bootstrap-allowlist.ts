@@ -17,6 +17,11 @@ export const CONTEXT_FREE_DIAGNOSTIC_COMMANDS: ReadonlySet<string> = new Set([
   "role:cheat-sheet",
   "agent:brief",
   "task:check",
+  "meta-audit",
+  "meta:audit",
+  "skill:audit:live",
+  "mind:audit:live",
+  "dag",
 ]);
 
 export const PRE_COMPILE_PLAN_CONSTRUCTION_COMMANDS: ReadonlySet<string> = new Set([
