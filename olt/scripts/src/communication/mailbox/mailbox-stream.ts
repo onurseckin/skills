@@ -16,8 +16,29 @@ import { withExclusiveLock } from "../locking/index.ts";
 import type { MailboxCursor, MailboxEnvelope } from "../types.ts";
 import { createEmptyCursor, isMessageProcessed } from "./cursor-tracker.ts";
 import { verifyEnvelopeHmac } from "./envelope.ts";
-import { isVirtualMailboxPath, registerInMemoryMailboxDir } from "./mailbox-paths.ts";
+import {
+  appendInMemoryMessage,
+  clearInMemoryMailboxStore,
+  getInMemoryMailbox,
+  getInMemoryQuarantine,
+  isInMemoryStreamMode,
+  rewriteInMemoryInbox,
+  rotateInMemoryMailbox,
+  setInMemoryMailbox,
+  setInMemoryStreamMode,
+  shouldUseInMemory,
+  writeInMemoryQuarantine,
+} from "./mailbox-stream-store.ts";
 import { escapeQuarantinePayload } from "./quarantine.ts";
+
+export {
+  clearInMemoryMailboxStore,
+  getInMemoryMailbox,
+  getInMemoryQuarantine,
+  isInMemoryStreamMode,
+  setInMemoryMailbox,
+  setInMemoryStreamMode,
+};
 
 export interface ReadUnreadMessagesOptions {
   readonly quarantinePath?: string;
@@ -39,34 +60,6 @@ export interface RotateMailboxOptions {
 interface QuarantinedItem {
   readonly line: string;
   readonly reason: string;
-}
-
-const inMemoryMailboxes = new Map<string, string[]>();
-const inMemoryQuarantines = new Map<string, string[]>();
-let inMemoryStreamModeEnabled = false;
-
-export const setInMemoryStreamMode = (e: boolean): void => {
-  inMemoryStreamModeEnabled = e;
-};
-export const isInMemoryStreamMode = (): boolean => inMemoryStreamModeEnabled;
-export const getInMemoryMailbox = (p: string): readonly string[] | undefined =>
-  inMemoryMailboxes.get(p);
-export const setInMemoryMailbox = (p: string, lines: readonly string[]): void => {
-  inMemoryMailboxes.set(p, [...lines]);
-};
-export const getInMemoryQuarantine = (p: string): readonly string[] | undefined =>
-  inMemoryQuarantines.get(p);
-export const clearInMemoryMailboxStore = (): void => {
-  inMemoryMailboxes.clear();
-  inMemoryQuarantines.clear();
-};
-
-const shouldUseInMemory = (p: string): boolean =>
-  inMemoryStreamModeEnabled || isVirtualMailboxPath(p) || inMemoryMailboxes.has(p);
-
-function getDirname(p: string): string {
-  const lastSlash = Math.max(p.lastIndexOf("/"), p.lastIndexOf("\\"));
-  return lastSlash > 0 ? p.slice(0, lastSlash) : p;
 }
 
 function ensureParentDir(filePath: string): void {
@@ -120,8 +113,7 @@ function writeQuarantinedLog(quarantinePath: string, items: readonly Quarantined
     .map((i) => `[${ts}] [REASON: ${i.reason}] ${escapeQuarantinePayload(i.line)}\n`)
     .join("");
   if (shouldUseInMemory(quarantinePath)) {
-    const existing = inMemoryQuarantines.get(quarantinePath) ?? [];
-    inMemoryQuarantines.set(quarantinePath, [...existing, formatted]);
+    writeInMemoryQuarantine(quarantinePath, formatted);
     return;
   }
   writeAndSync(
@@ -136,10 +128,7 @@ function atomicRewriteInbox(
   envelopes: readonly MailboxEnvelope<unknown>[],
 ): void {
   if (shouldUseInMemory(inboxPath)) {
-    inMemoryMailboxes.set(
-      inboxPath,
-      envelopes.map((env) => JSON.stringify(env)),
-    );
+    rewriteInMemoryInbox(inboxPath, envelopes);
     return;
   }
   const tmp = `${inboxPath}.${randomUUID()}.tmp`;
@@ -163,9 +152,7 @@ export function appendMailboxMessage(
     throw new HarnessError("INVALID_ARGUMENT", "Invalid MailboxEnvelope structure");
   }
   if (shouldUseInMemory(inboxPath)) {
-    registerInMemoryMailboxDir(getDirname(inboxPath));
-    const existing = inMemoryMailboxes.get(inboxPath) ?? [];
-    inMemoryMailboxes.set(inboxPath, [...existing, JSON.stringify(envelope)]);
+    appendInMemoryMessage(inboxPath, envelope);
     return;
   }
   const lock = lockPath?.trim() || defaultLockPathFor(inboxPath);
@@ -230,8 +217,8 @@ export function readUnreadMessages(
   const readOp = (): ReadUnreadMessagesResult => {
     let rawLines: readonly string[];
     if (shouldUseInMemory(inboxPath)) {
-      if (!inMemoryMailboxes.has(inboxPath)) return { messages: [], quarantinedCount: 0 };
-      rawLines = inMemoryMailboxes.get(inboxPath) ?? [];
+      if (!getInMemoryMailbox(inboxPath)) return { messages: [], quarantinedCount: 0 };
+      rawLines = getInMemoryMailbox(inboxPath) ?? [];
     } else {
       if (!existsSync(inboxPath)) return { messages: [], quarantinedCount: 0 };
       rawLines = readFileSync(inboxPath, "utf8").split("\n");
@@ -279,8 +266,8 @@ export function rotateMailboxMessages(
     const isMem = shouldUseInMemory(inboxPath);
     let rawLines: readonly string[] = [];
     if (isMem) {
-      if (!inMemoryMailboxes.has(inboxPath)) return 0;
-      rawLines = inMemoryMailboxes.get(inboxPath) ?? [];
+      if (!getInMemoryMailbox(inboxPath)) return 0;
+      rawLines = getInMemoryMailbox(inboxPath) ?? [];
     } else {
       if (!existsSync(inboxPath)) return 0;
       rawLines = readFileSync(inboxPath, "utf8")
@@ -300,12 +287,7 @@ export function rotateMailboxMessages(
     const toArchive = envelopes.slice(0, excess);
     const toRetain = envelopes.slice(excess);
     if (isMem || shouldUseInMemory(archivePath)) {
-      const existing = inMemoryMailboxes.get(archivePath) ?? [];
-      inMemoryMailboxes.set(archivePath, [...existing, ...toArchive.map((e) => JSON.stringify(e))]);
-      inMemoryMailboxes.set(
-        inboxPath,
-        toRetain.map((e) => JSON.stringify(e)),
-      );
+      rotateInMemoryMailbox(inboxPath, archivePath, toArchive, toRetain);
       return excess;
     }
     writeAndSync(
