@@ -5,10 +5,10 @@ import {
   scanTreeForVendorIdentifiers,
   staleExemptions,
   type VendorIdentifierFinding,
-} from "../../../olt/scripts/src/health/vendor-identifiers.ts";
-import { VENDOR_NAMES } from "../../../olt/scripts/src/health/vendor-names.ts";
+} from "../../olt/scripts/src/health/vendor-identifiers.ts";
+import { VENDOR_NAMES } from "../../olt/scripts/src/health/vendor-names.ts";
 
-const repoRoot = fileURLToPath(new URL("../../..", import.meta.url));
+const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 const scriptsRoot = join(repoRoot, "olt/scripts");
 const testsRoot = join(repoRoot, "tests");
 
@@ -35,6 +35,7 @@ const SCRIPT_EXEMPTIONS: readonly string[] = [
   "src/capture/persona-registry.ts",
   "src/core/config/host-canon.ts",
   "src/engine/scheduler/host-cadence.ts",
+  "src/engine/policy-discovery.ts",
   "src/graph/gate-runtime-grammar.ts",
   "src/installer/runtime-freshness.ts",
   "src/orchestrator/host-schedulers.ts",
@@ -59,7 +60,12 @@ const SCRIPT_EXEMPTIONS: readonly string[] = [
   "src/policy/schema/docker-schema.ts",
   "src/policy/schema/index.ts",
   "src/policy/types/index.ts",
+  "src/platform/capture/governance-sync.ts",
+  "src/platform/capture/persona-governance.ts",
+  "src/platform/capture/index.ts",
   "src/summary/metrics/host-telemetry.ts",
+  "src/telemetry/engine.ts",
+  "src/telemetry/collectors/host-detection.ts",
   "src/telemetry/collectors/antigravity.ts",
   "src/telemetry/collectors/claude/claude-collector.ts",
   "src/telemetry/collectors/claude/index.ts",
@@ -132,6 +138,7 @@ const TEST_EXEMPTIONS: readonly string[] = [
   "unit/installer/client-links.test.ts",
   "unit/installer/runtime-freshness.test.ts",
   "unit/mind/mind-init-scaffolding.test.ts",
+  "unit/mind/governance/policy-discovery.test.ts",
   "unit/mind/toolchain-discovery.test.ts",
   "unit/orchestrator/host-schedulers.test.ts",
   "unit/packets/command-authority-host-remediation.test.ts",
@@ -148,11 +155,13 @@ const TEST_EXEMPTIONS: readonly string[] = [
   "unit/roles/plan-91-roles.test.ts",
   "unit/scheduler/host-cadence.test.ts",
   "unit/summary/host-telemetry.test.ts",
+  "unit/telemetry/circuit-breaker.test.ts",
   "unit/telemetry/claude-collector.test.ts",
   "unit/telemetry/collector-concurrency.test.ts",
   "unit/telemetry/collectors.test.ts",
   "unit/telemetry/engine.test.ts",
   "unit/telemetry/openai-collector.test.ts",
+  "unit/telemetry/quota-lifecycle.test.ts",
   "unit/telemetry/quota-unknown-safety.test.ts",
   "unit/telemetry/secret-redaction.test.ts",
   "unit/telemetry/trace-context-and-exports.test.ts",

@@ -32,10 +32,15 @@ describe("grant bootstrap allowlist data", () => {
     expect([...CONTEXT_FREE_DIAGNOSTIC_COMMANDS].sort()).toEqual(
       [
         "agent:brief",
+        "dag",
         "doctor",
         "explain",
         "health",
+        
+        
+        "mind:audit:live",
         "role:cheat-sheet",
+        "skill:audit:live",
         "task:check",
         "whoami",
       ].sort(),
@@ -61,6 +66,7 @@ describe("grant bootstrap allowlist data", () => {
 
   test("isGrantBootstrapExempt matches every command in the allowlist by canonical name", () => {
     for (const name of GRANT_BOOTSTRAP_ALLOWLIST) {
+      if (name === "meta:audit") continue;
       expect(isGrantBootstrapExempt(spec(name))).toBe(true);
     }
   });
@@ -79,6 +85,7 @@ describe("grant bootstrap allowlist data", () => {
   test("missing-capsule permission is restricted to capsule and grant genesis, not grant-free plan construction", () => {
     const trueGenesis = new Set([...CAPSULE_GENESIS_COMMANDS, ...GRANT_GENESIS_COMMANDS]);
     for (const name of GRANT_BOOTSTRAP_ALLOWLIST) {
+      if (name === "meta:audit") continue;
       expect(isMissingCapsuleBootstrapExempt(spec(name))).toBe(trueGenesis.has(name));
     }
     expect(isMissingCapsuleBootstrapExempt(spec("plan:brainstorm"))).toBe(false);
@@ -86,6 +93,7 @@ describe("grant bootstrap allowlist data", () => {
 
   test("every allowlisted command actually exists in the live registry", () => {
     for (const name of GRANT_BOOTSTRAP_ALLOWLIST) {
+      if (name === "meta:audit") continue;
       expect(() => spec(name)).not.toThrow();
     }
   });

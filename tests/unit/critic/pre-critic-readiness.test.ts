@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { beginCompletenessCritic } from "../../../../olt/scripts/src/workflow/completion/begin-completeness-critic.ts";
-import { at } from "../test-port.ts";
-import { completionPort, review } from "../completion-provenance-fixture.ts";
+import { beginCompletenessCritic } from "../../../olt/scripts/src/workflow/completion/begin-completeness-critic.ts";
+import { at } from "../workflow/test-port.ts";
+import { completionPort, review } from "../workflow/completion-provenance-fixture.ts";
 
 const clock = at("2026-08-13T12:05:00.000Z");
 
@@ -62,6 +62,7 @@ describe("beginCompletenessCritic", () => {
 
   test("rejects reassigning after a fresh critic identity is required", () => {
     const port = completionPort();
+    review(port);
     expect(() => beginCompletenessCritic(port, "critic", { clock })).toThrow(
       /a fresh completeness critic identity is required/,
     );

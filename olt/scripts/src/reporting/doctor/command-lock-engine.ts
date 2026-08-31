@@ -33,12 +33,13 @@ const normalizeRole = (role: string): string => role.trim().toLowerCase().replac
 
 const isValidatorRole = (role: string): boolean => {
   const norm = normalizeRole(role);
-  if (norm.includes("mechanic") || norm.includes("critic")) return false;
+  if (norm.includes("mechanic")) return false;
   return (
     BANNED_VALIDATOR_ROLES.has(norm) ||
     BANNED_VALIDATOR_ROLES.has(role.trim().toLowerCase()) ||
     norm.startsWith("validator") ||
-    norm.includes("validator")
+    norm.includes("validator") ||
+    norm.includes("critic")
   );
 };
 

@@ -696,7 +696,7 @@ describe("Ultra-Lean Packet Architecture & Metadata Slicing", () => {
       });
       expect(sliced.events.length).toBeGreaterThanOrEqual(1);
 
-      const brief = formatLeanMarkdownBrief(null, {
+      const brief = formatLeanMarkdownBrief({
         runId: "run-1",
         customGuidance: ["Check custom rule A", "Check custom rule B"],
       });
