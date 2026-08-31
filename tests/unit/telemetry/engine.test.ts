@@ -539,4 +539,3 @@ describe("TelemetryNormalizationEngine Active Host Quota Isolation", () => {
     expect(result.signal.mechanism).toBe("environment");
   });
 });
-

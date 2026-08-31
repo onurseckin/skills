@@ -224,7 +224,9 @@ describe("Cognitive Scheduler & Probing Directives", () => {
       };
 
       expect(isHighThinkingEnforced(invalidConfig)).toBe(false);
-      expect(() => assertHostThinkingPolicy(invalidConfig)).toThrow("violates high thinking policy");
+      expect(() => assertHostThinkingPolicy(invalidConfig)).toThrow(
+        "violates high thinking policy",
+      );
 
       const validation = validateHostSchedulerConfig(invalidConfig);
       expect(validation.isValid).toBe(false);

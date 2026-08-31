@@ -28,11 +28,13 @@ function isFailedStatus(status: string): boolean {
 
 export function extractSchedulerSnapshot(
   state: Record<string, unknown>,
-  options?: {
-    readonly runRoot?: string | undefined;
-    readonly nowMs?: number | undefined;
-    readonly budget?: QuotaBudgetBadgeItem | undefined;
-  } | undefined,
+  options?:
+    | {
+        readonly runRoot?: string | undefined;
+        readonly nowMs?: number | undefined;
+        readonly budget?: QuotaBudgetBadgeItem | undefined;
+      }
+    | undefined,
 ): SchedulerProgressSnapshot {
   const capturedAt = new Date(options?.nowMs ?? Date.now()).toISOString();
   const runRoot = options?.runRoot ?? (typeof state.run_id === "string" ? state.run_id : "unknown");
@@ -216,7 +218,8 @@ export function extractSchedulerSnapshot(
     }
   }
 
-  const quotaUsedToday = typeof options?.budget?.pulsesToday === "number" ? options.budget.pulsesToday : 0;
+  const quotaUsedToday =
+    typeof options?.budget?.pulsesToday === "number" ? options.budget.pulsesToday : 0;
   const quotaLimitToday =
     options?.budget?.pulsesPerDay === null || options?.budget?.pulsesPerDay === undefined
       ? null
@@ -311,7 +314,9 @@ export function evaluateProgressDiff(
 
   const summaryParts: string[] = [];
   if (newlyCompletedTaskIds.length > 0) {
-    summaryParts.push(`+${newlyCompletedTaskIds.length} completed (${newlyCompletedTaskIds.join(", ")})`);
+    summaryParts.push(
+      `+${newlyCompletedTaskIds.length} completed (${newlyCompletedTaskIds.join(", ")})`,
+    );
   }
   if (newlyLeasedTaskIds.length > 0) {
     summaryParts.push(`+${newlyLeasedTaskIds.length} leased (${newlyLeasedTaskIds.join(", ")})`);

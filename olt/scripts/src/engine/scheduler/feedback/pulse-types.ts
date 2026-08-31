@@ -10,10 +10,7 @@ import type {
   TaskRecoveryResult,
   ScheduledTaskDispatch,
 } from "../core/types.ts";
-import type {
-  CognitiveDirectiveDimension,
-  CognitiveProbingDirective,
-} from "../prompt/index.ts";
+import type { CognitiveDirectiveDimension, CognitiveProbingDirective } from "../prompt/index.ts";
 import type { Clock } from "../../../workflow/types.ts";
 
 export interface PulseTickOptions {

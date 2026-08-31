@@ -24,7 +24,11 @@ import { gateTally } from "../../workflow/completion/completion-state.ts";
 import type { CompletionArtifactRequirements } from "../../workflow/completion/artifact-verification.ts";
 import { attachGateResult } from "../../workflow/gates/attach-result.ts";
 import { finishTask } from "../../workflow/gates/finish-task.ts";
-import { applicableGates, taskHasPassedGate, workflowGates } from "../../workflow/gates/gate-policy.ts";
+import {
+  applicableGates,
+  taskHasPassedGate,
+  workflowGates,
+} from "../../workflow/gates/gate-policy.ts";
 import { findRepoRoot, resolveCapsulesDir } from "../../core/shared/paths.ts";
 import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";
 import { consolidateWorktrees, recordConsolidation } from "../../workflow/worktree/consolidate.ts";

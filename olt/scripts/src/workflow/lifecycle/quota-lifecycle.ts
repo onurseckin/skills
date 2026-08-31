@@ -58,8 +58,7 @@ export async function probeLiveQuotaTelemetry(
     options.thresholdPercentage !== undefined
       ? options.thresholdPercentage
       : DEFAULT_QUOTA_THRESHOLD;
-  const activeAgentsCount =
-    options.activeAgentsCount !== undefined ? options.activeAgentsCount : 0;
+  const activeAgentsCount = options.activeAgentsCount !== undefined ? options.activeAgentsCount : 0;
 
   try {
     const collectors = createDefaultCollectors(env);

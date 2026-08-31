@@ -10,10 +10,7 @@ import {
   type DoctorAutoHealResult,
   type DoctorDiagnosticFinding,
 } from "../../reporting/doctor.ts";
-import {
-  probeLiveQuotaTelemetry,
-  type LifecycleQuotaTelemetry,
-} from "./quota-lifecycle.ts";
+import { probeLiveQuotaTelemetry, type LifecycleQuotaTelemetry } from "./quota-lifecycle.ts";
 
 export interface PreFlightDoctorAuditOptions {
   readonly actor?: string | undefined;
@@ -59,8 +56,7 @@ export async function executePreFlightDoctorAudit(
   runRoot: string,
   options: PreFlightDoctorAuditOptions = {},
 ): Promise<PreFlightDoctorAuditResult> {
-  const repoRoot =
-    options.repoRoot !== undefined ? options.repoRoot : resolve(runRoot, "..", "..");
+  const repoRoot = options.repoRoot !== undefined ? options.repoRoot : resolve(runRoot, "..", "..");
   const autoHealResult = autoHealCapsule(runRoot, {
     actor: options.actor,
     repoRoot,
@@ -96,8 +92,7 @@ export async function executePostFlightDoctorAudit(
   runRoot: string,
   options: PostFlightDoctorAuditOptions = {},
 ): Promise<PostFlightDoctorAuditResult> {
-  const repoRoot =
-    options.repoRoot !== undefined ? options.repoRoot : resolve(runRoot, "..", "..");
+  const repoRoot = options.repoRoot !== undefined ? options.repoRoot : resolve(runRoot, "..", "..");
   const autoStageGit = options.autoStageGit !== undefined ? options.autoStageGit : true;
   const enforceHygiene = options.enforceHygiene !== undefined ? options.enforceHygiene : true;
   const enforceQuotas = options.enforceQuotas !== undefined ? options.enforceQuotas : true;
@@ -129,10 +124,9 @@ export async function executePostFlightDoctorAudit(
   // 3. Mandatory Pushback Quotas Audit
   if (enforceQuotas) {
     const doctorReport = await runDoctor(runRoot, { autoHeal: false });
-    const quotaFindings =
-      Array.isArray(doctorReport.doctor_findings)
-        ? (doctorReport.doctor_findings as DoctorDiagnosticFinding[])
-        : [];
+    const quotaFindings = Array.isArray(doctorReport.doctor_findings)
+      ? (doctorReport.doctor_findings as DoctorDiagnosticFinding[])
+      : [];
     for (const f of quotaFindings) {
       if (f.engine === "checkPushbackQuotas" && f.severity === "ERROR") {
         findings.push(f);

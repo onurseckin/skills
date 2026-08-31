@@ -77,10 +77,7 @@ import {
   type PreCompletionDiagnosticsResult,
   type PreCompletionBlocker,
 } from "./pre-completion.ts";
-import {
-  checkQuotaHealth,
-  type QuotaHealthCheckOptions,
-} from "./quota-health-engine.ts";
+import { checkQuotaHealth, type QuotaHealthCheckOptions } from "./quota-health-engine.ts";
 import {
   generateRemedialGuidance,
   remedialActionsForIntegrityIssues,

@@ -90,7 +90,8 @@ export function generateCognitiveSteps(
           stepNumber: 4,
           title: "Progress Delta Evidencing",
           action: "Ensure the admitted task is ready for dispatch and log non-zero value delta.",
-          requiredProof: "Updated state.json reflecting positive value delta and reset zero-streak.",
+          requiredProof:
+            "Updated state.json reflecting positive value delta and reset zero-streak.",
           forbiddenShortcuts: ["Allowing zero-streak to increment further"],
         },
       );
@@ -126,8 +127,7 @@ export function generateCognitiveSteps(
           title: "Evidence & Submission Report",
           action:
             "Assemble structured submission payload with changed files, test evidence, and summary.",
-          requiredProof:
-            "Validated task:submit payload accepted with exit code 0 by the harness.",
+          requiredProof: "Validated task:submit payload accepted with exit code 0 by the harness.",
           forbiddenShortcuts: ["Submitting without evidence", "Omitting changed file paths"],
         },
       );

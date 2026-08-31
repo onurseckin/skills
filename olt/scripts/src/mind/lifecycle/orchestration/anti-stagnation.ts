@@ -42,7 +42,8 @@ export function evaluateAntiStagnation(
   const maintenanceThreshold = options.maintenanceThreshold ?? 3;
 
   const currentSig = computeProgressSignature(input);
-  const isZeroDelta = input.previousSignature !== undefined && currentSig === input.previousSignature;
+  const isZeroDelta =
+    input.previousSignature !== undefined && currentSig === input.previousSignature;
 
   let zeroDeltaCycles = isZeroDelta ? 1 : 0;
   let maintenanceCycles = input.synthesizedCount === 0 && input.enqueuedCount === 0 ? 1 : 0;
@@ -83,7 +84,9 @@ export function recordNonZeroProgress(
 ): void {
   try {
     updateCognitiveMemory((curr) => {
-      const activeHypotheses = Array.isArray(curr.active_hypotheses) ? [...curr.active_hypotheses] : [];
+      const activeHypotheses = Array.isArray(curr.active_hypotheses)
+        ? [...curr.active_hypotheses]
+        : [];
       const updatedHypotheses = activeHypotheses.map((h) => ({
         ...h,
         updated_at: new Date().toISOString(),

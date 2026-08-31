@@ -57,7 +57,10 @@ describe("Mind Pulse ASCII Telemetry Badges & Progress Bars", () => {
     expect(badges.some((b) => b.includes("75.50%"))).toBe(true);
     expect(badges).toContain("[BREAKER: NOMINAL]");
 
-    const compactBadges = renderPulseTelemetryBadges(mockEval, { compact: true, includeHost: false });
+    const compactBadges = renderPulseTelemetryBadges(mockEval, {
+      compact: true,
+      includeHost: false,
+    });
     expect(compactBadges).not.toContain("[HOST: antigravity]");
     expect(compactBadges.some((b) => b.includes("75.50%"))).toBe(true);
   });

@@ -83,7 +83,9 @@ export function formatDirectiveMarkdown(directive: CognitiveProbingDirective): s
   }
 
   lines.push("================================================================================");
-  lines.push("Execute next verified action now. Preserve all hard invariants and 100% type soundness.");
+  lines.push(
+    "Execute next verified action now. Preserve all hard invariants and 100% type soundness.",
+  );
 
   return lines.join("\n");
 }

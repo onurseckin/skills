@@ -3,15 +3,9 @@ export {
   formatSchedulerLivePushMarkdown,
 } from "./live-push-emitter.ts";
 
-export {
-  evaluateProgressDiff,
-  extractSchedulerSnapshot,
-} from "./diff-evaluator.ts";
+export { evaluateProgressDiff, extractSchedulerSnapshot } from "./diff-evaluator.ts";
 
-export {
-  detectStagnation,
-  type StagnationDetectionOptions,
-} from "./stagnation-detector.ts";
+export { detectStagnation, type StagnationDetectionOptions } from "./stagnation-detector.ts";
 
 export type {
   SchedulerAgentSummary,

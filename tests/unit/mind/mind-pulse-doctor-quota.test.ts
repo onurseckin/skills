@@ -3,7 +3,10 @@ import { checkQuotaHealth } from "../../../olt/scripts/src/reporting/doctor/inde
 import type { UnifiedTelemetryReport } from "../../../olt/scripts/src/telemetry/types.ts";
 
 describe("Doctor Quota Health Engine Diagnostics", () => {
-  function createMockReport(platformId: string, quotaPercent: number | null): UnifiedTelemetryReport {
+  function createMockReport(
+    platformId: string,
+    quotaPercent: number | null,
+  ): UnifiedTelemetryReport {
     return {
       timestamp: new Date().toISOString(),
       results: [

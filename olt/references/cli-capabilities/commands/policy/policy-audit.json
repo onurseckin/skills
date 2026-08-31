@@ -1,8 +1,10 @@
 {
-  "name": "policy:init",
-  "aliases": [],
+  "name": "policy:audit",
+  "aliases": [
+    "policy:coverage"
+  ],
   "domain": "policy",
-  "summary": "Initialize canonical .olt/policy.json with auto-detected ecosystem defaults.",
+  "summary": "Audit repository governance coverage and readiness.",
   "flags": [
     {
       "name": "repo-root",
@@ -26,29 +28,8 @@
       "default": null
     },
     {
-      "name": "ecosystem",
+      "name": "run",
       "type": "string",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    },
-    {
-      "name": "force",
-      "type": "bool",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    },
-    {
-      "name": "calibrate",
-      "type": "bool",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    },
-    {
-      "name": "auto-discover",
-      "type": "bool",
       "required": false,
       "repeatable": false,
       "default": null

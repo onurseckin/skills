@@ -1,6 +1,9 @@
 import type { NormalizedQuotaMetric, UnifiedTelemetryReport } from "./types.ts";
 
-export type CircuitBreakerStatus = "OK" | "QUOTA_EXHAUSTED_CIRCUIT_BROKEN" | "QUOTA_UNKNOWN_CIRCUIT_BROKEN";
+export type CircuitBreakerStatus =
+  | "OK"
+  | "QUOTA_EXHAUSTED_CIRCUIT_BROKEN"
+  | "QUOTA_UNKNOWN_CIRCUIT_BROKEN";
 
 export const DEFAULT_QUOTA_THRESHOLD: number = 10.0;
 export const DEFAULT_SAFE_WINDOW_SECONDS: number = 18000;
@@ -66,7 +69,10 @@ export interface QuotaCircuitBreakerOptions {
 }
 
 export function normalizeCanonicalHost(host: string): string {
-  const norm = host.toLowerCase().trim().replace(/[-_ ]+/g, "_");
+  const norm = host
+    .toLowerCase()
+    .trim()
+    .replace(/[-_ ]+/g, "_");
   if (norm.includes("antigravity") || norm.includes("gemini")) return "antigravity";
   if (norm.includes("claude")) return "claude_code";
   if (norm.includes("codex") || norm.includes("openai")) return "codex";
@@ -86,8 +92,20 @@ export function isPlatformMatchingHost(platformId: string, host: string): boolea
 export function detectActiveHost(
   env: Record<string, string | undefined> = typeof process !== "undefined" ? process.env : {},
 ): string | undefined {
-  if (env["ANTIGRAVITY_CLI"] || env["GEMINI_CLI"] || env["ANTIGRAVITY_VERSION"] || env["ANTIGRAVITY_AGENT_ID"]) return "antigravity";
-  if (env["CLAUDE_CODE_VERSION"] || env["CLAUDE_CLI"] || env["CLAUDE_CODE_SESSION_ID"] || env["CLAUDE_CODE_ENTRYPOINT"]) return "claude_code";
+  if (
+    env["ANTIGRAVITY_CLI"] ||
+    env["GEMINI_CLI"] ||
+    env["ANTIGRAVITY_VERSION"] ||
+    env["ANTIGRAVITY_AGENT_ID"]
+  )
+    return "antigravity";
+  if (
+    env["CLAUDE_CODE_VERSION"] ||
+    env["CLAUDE_CLI"] ||
+    env["CLAUDE_CODE_SESSION_ID"] ||
+    env["CLAUDE_CODE_ENTRYPOINT"]
+  )
+    return "claude_code";
   const termProgram = env["TERM_PROGRAM"] ? env["TERM_PROGRAM"].toLowerCase() : "";
   if (termProgram === "cursor" || env["CURSOR_VERSION"] || env["CURSOR_MODEL"]) return "cursor";
   if (env["CODEX_VERSION"] || env["CODEX_CLI"] || env["CODEX"]) return "codex";
@@ -101,7 +119,8 @@ export function extractResetTime(metric: NormalizedQuotaMetric): string | undefi
     if (!obj || typeof obj !== "object") return undefined;
     const r = obj as Record<string, unknown>;
     if (typeof r["resetTime"] === "string" && r["resetTime"].trim()) return r["resetTime"].trim();
-    if (typeof r["reset_time"] === "string" && r["reset_time"].trim()) return r["reset_time"].trim();
+    if (typeof r["reset_time"] === "string" && r["reset_time"].trim())
+      return r["reset_time"].trim();
     return undefined;
   };
   const rec = p as Record<string, unknown>;
@@ -129,33 +148,59 @@ export function evaluateCircuitBreaker(
     buffer: DEFAULT_AUTO_WAKE_BUFFER_SECONDS,
   },
 ): CircuitBreakerEvaluation {
-  const threshold = options && typeof options.thresholdPercentage === "number" ? options.thresholdPercentage : defaults.threshold;
-  const defaultSafeWindow = options && typeof options.defaultSafeWindowSeconds === "number" ? options.defaultSafeWindowSeconds : defaults.safeWindow;
-  const bufferSec = options && typeof options.bufferSeconds === "number" ? options.bufferSeconds : defaults.buffer;
-  const activeAgentsCount = options && typeof options.activeAgentsCount === "number" ? options.activeAgentsCount : (options && options.activeAgentIds ? options.activeAgentIds.length : 0);
-  const nowMs = options && options.now !== undefined
-    ? (options.now instanceof Date ? options.now.getTime() : (typeof options.now === "string" ? new Date(options.now).getTime() : options.now))
-    : Date.now();
+  const threshold =
+    options && typeof options.thresholdPercentage === "number"
+      ? options.thresholdPercentage
+      : defaults.threshold;
+  const defaultSafeWindow =
+    options && typeof options.defaultSafeWindowSeconds === "number"
+      ? options.defaultSafeWindowSeconds
+      : defaults.safeWindow;
+  const bufferSec =
+    options && typeof options.bufferSeconds === "number" ? options.bufferSeconds : defaults.buffer;
+  const activeAgentsCount =
+    options && typeof options.activeAgentsCount === "number"
+      ? options.activeAgentsCount
+      : options && options.activeAgentIds
+        ? options.activeAgentIds.length
+        : 0;
+  const nowMs =
+    options && options.now !== undefined
+      ? options.now instanceof Date
+        ? options.now.getTime()
+        : typeof options.now === "string"
+          ? new Date(options.now).getTime()
+          : options.now
+      : Date.now();
 
   const explicitActiveHost = options && options.activeHost ? options.activeHost.trim() : undefined;
-  const summaryActiveHost = report.summary && typeof report.summary["activeHost"] === "string"
-    ? (report.summary["activeHost"] as string).trim()
-    : (report.summary && typeof (report.summary as Record<string, unknown>)["active_host"] === "string" ? String((report.summary as Record<string, unknown>)["active_host"]).trim() : undefined);
+  const summaryActiveHost =
+    report.summary && typeof report.summary["activeHost"] === "string"
+      ? (report.summary["activeHost"] as string).trim()
+      : report.summary &&
+          typeof (report.summary as Record<string, unknown>)["active_host"] === "string"
+        ? String((report.summary as Record<string, unknown>)["active_host"]).trim()
+        : undefined;
 
-  const env = options && options.env ? options.env : (typeof process !== "undefined" ? process.env : {});
+  const env =
+    options && options.env ? options.env : typeof process !== "undefined" ? process.env : {};
   const detectedHost = detectActiveHost(env);
   let activeHost: string | undefined = undefined;
   let isFilteredByHost = false;
   let candidateResults = report.results;
 
   if (explicitActiveHost) {
-    candidateResults = report.results.filter((res) => isPlatformMatchingHost(res.platformId, explicitActiveHost));
+    candidateResults = report.results.filter((res) =>
+      isPlatformMatchingHost(res.platformId, explicitActiveHost),
+    );
     activeHost = explicitActiveHost;
     isFilteredByHost = true;
   } else {
     const hostCandidate = summaryActiveHost || detectedHost;
     if (hostCandidate) {
-      const matching = report.results.filter((res) => isPlatformMatchingHost(res.platformId, hostCandidate));
+      const matching = report.results.filter((res) =>
+        isPlatformMatchingHost(res.platformId, hostCandidate),
+      );
       if (matching.length > 0) {
         candidateResults = matching;
         activeHost = hostCandidate;
@@ -182,7 +227,8 @@ export function evaluateCircuitBreaker(
         continue;
       }
       measuredObservationCount += 1;
-      if (lowestRemainingQuota === null || remaining < lowestRemainingQuota) lowestRemainingQuota = remaining;
+      if (lowestRemainingQuota === null || remaining < lowestRemainingQuota)
+        lowestRemainingQuota = remaining;
       if (remaining <= threshold) {
         constrainedModels.push({
           platformId: res.platformId,
@@ -234,11 +280,27 @@ export function evaluateCircuitBreaker(
   }
 
   const wrapUpMessage = isUnknown ? UNMEASURED_QUOTA_WRAP_UP_MESSAGE : CRITICAL_WRAP_UP_MESSAGE;
-  const wrapUpReason = isUnknown ? "Quota availability is unavailable or unmeasured; fail closed." : `Quota threshold breached (<=${threshold}%).`;
+  const wrapUpReason = isUnknown
+    ? "Quota availability is unavailable or unmeasured; fail closed."
+    : `Quota threshold breached (<=${threshold}%).`;
   const wrapUpDirectives: WrapUpDirective[] =
     options && options.activeAgentIds && options.activeAgentIds.length > 0
-      ? options.activeAgentIds.map((agentId) => ({ recipient: agentId, message: wrapUpMessage, action: "idle" as const, forbidKill: true as const, reason: wrapUpReason }))
-      : [{ recipient: "all_active_agents", message: wrapUpMessage, action: "idle" as const, forbidKill: true as const, reason: wrapUpReason }];
+      ? options.activeAgentIds.map((agentId) => ({
+          recipient: agentId,
+          message: wrapUpMessage,
+          action: "idle" as const,
+          forbidKill: true as const,
+          reason: wrapUpReason,
+        }))
+      : [
+          {
+            recipient: "all_active_agents",
+            message: wrapUpMessage,
+            action: "idle" as const,
+            forbidKill: true as const,
+            reason: wrapUpReason,
+          },
+        ];
 
   const validResetDates: Date[] = [];
   for (const model of constrainedModels) {

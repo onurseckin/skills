@@ -1,9 +1,6 @@
 import type { PulseQuotaBadgeOptions, PulseQuotaEvaluation, QuotaHealthStatus } from "./types.ts";
 
-export function renderPulseQuotaProgressBar(
-  percentage: number | null,
-  width = 6,
-): string {
+export function renderPulseQuotaProgressBar(percentage: number | null, width = 6): string {
   if (percentage === null) {
     return `[${"░".repeat(width)}] N/A`;
   }
@@ -23,7 +20,8 @@ export function renderPulseQuotaBadge(
   host: string,
   status: QuotaHealthStatus = "nominal",
 ): string {
-  const hostLabel = typeof host === "string" && host.length > 0 && host !== "unknown" ? `[HOST: ${host}] ` : "";
+  const hostLabel =
+    typeof host === "string" && host.length > 0 && host !== "unknown" ? `[HOST: ${host}] ` : "";
   if (quota === null) {
     return `${hostLabel}[QUOTA: unmeasured · unknown]`;
   }
@@ -54,7 +52,11 @@ export function renderPulseTelemetryBadges(
   const badges: string[] = [];
 
   if (options.includeHost !== false) {
-    if (typeof evaluation.activeHost === "string" && evaluation.activeHost.length > 0 && evaluation.activeHost !== "unknown") {
+    if (
+      typeof evaluation.activeHost === "string" &&
+      evaluation.activeHost.length > 0 &&
+      evaluation.activeHost !== "unknown"
+    ) {
       badges.push(`[HOST: ${evaluation.activeHost}]`);
     }
   }
@@ -63,9 +65,10 @@ export function renderPulseTelemetryBadges(
   if (quota === null) {
     badges.push("[QUOTA: unmeasured]");
   } else {
-    const bar = options.includeProgressBar === false
-      ? `${quota.toFixed(2)}%`
-      : renderPulseQuotaProgressBar(quota, options.compact ? 4 : 6);
+    const bar =
+      options.includeProgressBar === false
+        ? `${quota.toFixed(2)}%`
+        : renderPulseQuotaProgressBar(quota, options.compact ? 4 : 6);
     if (evaluation.status === "critical") {
       badges.push(`[QUOTA: ${quota.toFixed(2)}% 🚨 CRITICAL]`);
     } else if (evaluation.status === "warning") {
@@ -95,15 +98,25 @@ export function renderPulseTelemetryBadges(
 export function formatPulseQuotaHeader(evaluation: PulseQuotaEvaluation): string {
   const lines: string[] = [];
   const statusStr = evaluation.status.toUpperCase();
-  const quotaStr = evaluation.lowestRemainingQuota !== null
-    ? `${evaluation.lowestRemainingQuota.toFixed(2)}%`
-    : "Unavailable";
+  const quotaStr =
+    evaluation.lowestRemainingQuota !== null
+      ? `${evaluation.lowestRemainingQuota.toFixed(2)}%`
+      : "Unavailable";
   const breakerStr = evaluation.isCircuitBreakerTripped ? "🚨 TRIPPED (<10%)" : "NOMINAL";
-  const displayHost = typeof evaluation.activeHost === "string" && evaluation.activeHost.length > 0 ? evaluation.activeHost : "unknown";
+  const displayHost =
+    typeof evaluation.activeHost === "string" && evaluation.activeHost.length > 0
+      ? evaluation.activeHost
+      : "unknown";
 
-  lines.push("┌──────────────────────────────────────────────────────────────────────────────────────────────────┐");
-  lines.push(`│ HOST: ${displayHost.padEnd(16).slice(0, 16)} │ QUOTA: ${quotaStr.padEnd(12).slice(0, 12)} │ STATUS: ${statusStr.padEnd(12).slice(0, 12)} │ BREAKER: ${breakerStr.padEnd(18).slice(0, 18)} │`);
-  lines.push("└──────────────────────────────────────────────────────────────────────────────────────────────────┘");
+  lines.push(
+    "┌──────────────────────────────────────────────────────────────────────────────────────────────────┐",
+  );
+  lines.push(
+    `│ HOST: ${displayHost.padEnd(16).slice(0, 16)} │ QUOTA: ${quotaStr.padEnd(12).slice(0, 12)} │ STATUS: ${statusStr.padEnd(12).slice(0, 12)} │ BREAKER: ${breakerStr.padEnd(18).slice(0, 18)} │`,
+  );
+  lines.push(
+    "└──────────────────────────────────────────────────────────────────────────────────────────────────┘",
+  );
   return lines.join("\n");
 }
 

@@ -537,7 +537,8 @@ export function detectHostFromTerminal(
 }
 
 export function detectActiveHost(options: HostDetectionOptions = {}): HostDetectionResult {
-  const env = options.env !== undefined ? options.env : (typeof process !== "undefined" ? process.env : {});
+  const env =
+    options.env !== undefined ? options.env : typeof process !== "undefined" ? process.env : {};
   const allSignals: HostDetectionSignal[] = [];
 
   const explicitSignal = detectHostFromExplicit(options.explicitHost);

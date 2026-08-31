@@ -21,7 +21,9 @@ export function formatCircuitBreakerMarkdown(
     );
     lines.push(`│ State Status                 │ ${evaluation.status.padEnd(65).slice(0, 65)} │`);
     if (evaluation.activeHost) {
-      lines.push(`│ Active Host                  │ ${evaluation.activeHost.padEnd(65).slice(0, 65)} │`);
+      lines.push(
+        `│ Active Host                  │ ${evaluation.activeHost.padEnd(65).slice(0, 65)} │`,
+      );
     }
     lines.push(
       `│ ${quotaUnknown ? "Lowest Measured Quota" : "Lowest Remaining Quota"}       │ ${(evaluation.lowestRemainingQuota !== null ? `${evaluation.lowestRemainingQuota.toFixed(2)}%` : "Unavailable").padEnd(65).slice(0, 65)} │`,
@@ -107,7 +109,9 @@ export function formatCircuitBreakerMarkdown(
     );
     lines.push(`│ State Status                 │ ${evaluation.status.padEnd(65).slice(0, 65)} │`);
     if (evaluation.activeHost) {
-      lines.push(`│ Active Host                  │ ${evaluation.activeHost.padEnd(65).slice(0, 65)} │`);
+      lines.push(
+        `│ Active Host                  │ ${evaluation.activeHost.padEnd(65).slice(0, 65)} │`,
+      );
     }
     lines.push(
       `│ Lowest Remaining Quota       │ ${(evaluation.lowestRemainingQuota !== null ? `${evaluation.lowestRemainingQuota.toFixed(2)}%` : "None").padEnd(65).slice(0, 65)} │`,

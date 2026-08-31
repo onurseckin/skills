@@ -16,7 +16,9 @@ export function parseClaudeUsagePayload(
   if (typeof statusPayload !== "object") return null;
 
   const parsedRoot = statusPayload as Record<string, unknown>;
-  const cached = (parsedRoot.cachedUsageUtilization !== undefined ? parsedRoot.cachedUsageUtilization : parsedRoot) as Record<string, unknown>;
+  const cached = (
+    parsedRoot.cachedUsageUtilization !== undefined ? parsedRoot.cachedUsageUtilization : parsedRoot
+  ) as Record<string, unknown>;
 
   let utilDataCandidate: unknown = cached.utilization;
   if (utilDataCandidate === undefined) {

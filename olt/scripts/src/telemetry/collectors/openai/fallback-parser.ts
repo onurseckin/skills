@@ -102,7 +102,9 @@ export async function parseOpenAIStorage(
           remaining = parsed.quotaRemaining;
         }
         if (remaining !== undefined) {
-          const reason = isExternalCache ? "[Isolated External Cache] Inactive host cache" : undefined;
+          const reason = isExternalCache
+            ? "[Isolated External Cache] Inactive host cache"
+            : undefined;
           return {
             sourceTier: "tier2_local_storage",
             metrics: [
@@ -156,7 +158,9 @@ export async function parseCodexStorage(
         }
 
         if (remaining !== undefined) {
-          const reason = isExternalCache ? "[Isolated External Cache] Inactive host cache" : undefined;
+          const reason = isExternalCache
+            ? "[Isolated External Cache] Inactive host cache"
+            : undefined;
           return {
             sourceTier: "tier2_local_storage",
             metrics: [
@@ -187,7 +191,9 @@ export async function parseCodexStorage(
         if (parsed.plan_type) hasAuthToken = true;
 
         if (hasAuthToken) {
-          const reason = isExternalCache ? "[Isolated External Cache] Inactive host cache" : undefined;
+          const reason = isExternalCache
+            ? "[Isolated External Cache] Inactive host cache"
+            : undefined;
           return {
             sourceTier: "tier2_local_storage",
             metrics: [
@@ -214,7 +220,9 @@ export async function parseCodexStorage(
           if (content.includes("model")) isConfigToml = true;
         }
         if (isConfigToml) {
-          const reason = isExternalCache ? "[Isolated External Cache] Inactive host cache" : undefined;
+          const reason = isExternalCache
+            ? "[Isolated External Cache] Inactive host cache"
+            : undefined;
           return {
             sourceTier: "tier2_local_storage",
             metrics: [

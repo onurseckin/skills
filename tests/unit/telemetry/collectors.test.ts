@@ -1102,8 +1102,9 @@ describe("Active Host Detection & Isolation", () => {
       expect(res.isDetected).toBe(true);
       expect(res.rawObservations.name).toBe("gemini-3.7-flash-high");
       const activeMetric = res.metrics.find((m) => m.rawMetricName === "Gemini 3.7 Flash (High)");
-      expect((activeMetric?.rawPayload as Record<string, unknown>).name).toBe("gemini-3.7-flash-high");
+      expect((activeMetric?.rawPayload as Record<string, unknown>).name).toBe(
+        "gemini-3.7-flash-high",
+      );
     });
   });
 });
-

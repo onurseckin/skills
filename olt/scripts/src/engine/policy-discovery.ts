@@ -97,7 +97,11 @@ export class PolicyDiscoveryEngine {
     const detectedFormatters: string[] = [];
 
     // 1. Package Manager Detection
-    if (existsSync(join(root, "bun.lock")) || existsSync(join(root, "bun.lockb")) || existsSync(join(root, "bunfig.toml"))) {
+    if (
+      existsSync(join(root, "bun.lock")) ||
+      existsSync(join(root, "bun.lockb")) ||
+      existsSync(join(root, "bunfig.toml"))
+    ) {
       detectedPackageManagers.push("bun");
     }
     if (existsSync(join(root, "pnpm-lock.yaml")) || existsSync(join(root, "pnpm-workspace.yaml"))) {
@@ -151,10 +155,18 @@ export class PolicyDiscoveryEngine {
     if (detectedPackageManagers.includes("bun") || pkgScripts["test"]?.includes("bun test")) {
       detectedTestRunners.push("bun test");
     }
-    if (hasDep("vitest") || existsSync(join(root, "vitest.config.ts")) || existsSync(join(root, "vitest.config.js"))) {
+    if (
+      hasDep("vitest") ||
+      existsSync(join(root, "vitest.config.ts")) ||
+      existsSync(join(root, "vitest.config.js"))
+    ) {
       detectedTestRunners.push("vitest");
     }
-    if (hasDep("jest") || existsSync(join(root, "jest.config.js")) || existsSync(join(root, "jest.config.ts"))) {
+    if (
+      hasDep("jest") ||
+      existsSync(join(root, "jest.config.js")) ||
+      existsSync(join(root, "jest.config.ts"))
+    ) {
       detectedTestRunners.push("jest");
     }
     if (
@@ -202,7 +214,11 @@ export class PolicyDiscoveryEngine {
     ) {
       detectedLinters.push("eslint");
     }
-    if (hasDep("oxlint") || existsSync(join(root, ".oxlintrc.json")) || existsSync(join(root, "oxlint.json"))) {
+    if (
+      hasDep("oxlint") ||
+      existsSync(join(root, ".oxlintrc.json")) ||
+      existsSync(join(root, "oxlint.json"))
+    ) {
       detectedLinters.push("oxlint");
     }
     if (
@@ -260,7 +276,12 @@ export class PolicyDiscoveryEngine {
       formatCommand = "biome format --write .";
     } else if (detectedFormatters.includes("prettier")) {
       const pm = discovered.packageManager ?? "npm";
-      formatCommand = pm === "bun" ? "bunx prettier --write ." : pm === "pnpm" ? "pnpm exec prettier --write ." : "npx prettier --write .";
+      formatCommand =
+        pm === "bun"
+          ? "bunx prettier --write ."
+          : pm === "pnpm"
+            ? "pnpm exec prettier --write ."
+            : "npx prettier --write .";
     } else if (detectedFormatters.includes("ruff format")) {
       formatCommand = "ruff format .";
     } else if (detectedFormatters.includes("rustfmt")) {
@@ -308,7 +329,10 @@ export class PolicyDiscoveryEngine {
     };
   }
 
-  public static auditCoverage(repoRoot: string, _capsuleRunRoot?: string): GovernanceCoverageReport {
+  public static auditCoverage(
+    repoRoot: string,
+    _capsuleRunRoot?: string,
+  ): GovernanceCoverageReport {
     const root = resolve(repoRoot);
     const oltDir = join(root, ".olt");
     const policyFile = join(oltDir, "policy.json");
@@ -339,8 +363,10 @@ export class PolicyDiscoveryEngine {
           typeof policy.test_runner.default_command === "string" &&
           policy.test_runner.default_command.trim().length > 0;
         hasTypecheck =
-          typeof policy.typecheck_command === "string" && policy.typecheck_command.trim().length > 0;
-        hasLinter = typeof policy.lint_command === "string" && policy.lint_command.trim().length > 0;
+          typeof policy.typecheck_command === "string" &&
+          policy.typecheck_command.trim().length > 0;
+        hasLinter =
+          typeof policy.lint_command === "string" && policy.lint_command.trim().length > 0;
         allowedCommandCount = Array.isArray(policy.allowed_commands)
           ? policy.allowed_commands.length
           : 0;
@@ -409,7 +435,9 @@ export class PolicyDiscoveryEngine {
     return policy;
   }
 
-  public static initializeGovernance(options: BootstrapRepoGovernanceOptions): RepoGovernanceStatus {
+  public static initializeGovernance(
+    options: BootstrapRepoGovernanceOptions,
+  ): RepoGovernanceStatus {
     const root = resolve(options.repoRoot);
     const oltDir = join(root, ".olt");
     if (!existsSync(oltDir)) {

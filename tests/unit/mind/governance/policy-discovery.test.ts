@@ -42,7 +42,10 @@ describe("Policy & Repository Auto-Discovery Engine", () => {
   let testDir: string;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `policy-discovery-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+    testDir = join(
+      tmpdir(),
+      `policy-discovery-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    );
     mkdirSync(testDir, { recursive: true });
   });
 
@@ -57,7 +60,10 @@ describe("Policy & Repository Auto-Discovery Engine", () => {
   describe("Multi-Ecosystem Toolchain Inspection & Discovery", () => {
     it("detects Bun ecosystem with bun test, TypeScript, ESLint, Prettier", () => {
       writeFileSync(join(testDir, "bun.lock"), "");
-      writeFileSync(join(testDir, "tsconfig.json"), JSON.stringify({ compilerOptions: { target: "ESNext" } }));
+      writeFileSync(
+        join(testDir, "tsconfig.json"),
+        JSON.stringify({ compilerOptions: { target: "ESNext" } }),
+      );
       writeFileSync(
         join(testDir, "package.json"),
         JSON.stringify({
@@ -154,7 +160,10 @@ describe("Policy & Repository Auto-Discovery Engine", () => {
     });
 
     it("detects Rust ecosystem with Cargo and rustfmt", () => {
-      writeFileSync(join(testDir, "Cargo.toml"), "[package]\nname = 'rust-proj'\nversion = '0.1.0'");
+      writeFileSync(
+        join(testDir, "Cargo.toml"),
+        "[package]\nname = 'rust-proj'\nversion = '0.1.0'",
+      );
       writeFileSync(join(testDir, "rustfmt.toml"), "");
 
       const details = PolicyDiscoveryEngine.inspect(testDir);
@@ -245,7 +254,10 @@ describe("Policy & Repository Auto-Discovery Engine", () => {
       expect(existsSync(status.defects_path)).toBe(true);
       expect(existsSync(status.session_path)).toBe(true);
 
-      const sessionRaw = JSON.parse(readFileSync(status.session_path, "utf8")) as Record<string, unknown>;
+      const sessionRaw = JSON.parse(readFileSync(status.session_path, "utf8")) as Record<
+        string,
+        unknown
+      >;
       expect(sessionRaw.agent_id).toBe("mind-governance-agent");
       expect(sessionRaw.role).toBe("mind");
     });

@@ -6,12 +6,14 @@ import {
 import type { UnifiedTelemetryReport } from "../../../olt/scripts/src/telemetry/types.ts";
 
 describe("Mind Pulse Quota Telemetry Evaluation & Host Isolation", () => {
-  function createMockReport(overrides: {
-    platformId: string;
-    isDetected: boolean;
-    quotaPercent: number | null;
-    modelName?: string;
-  }[]): UnifiedTelemetryReport {
+  function createMockReport(
+    overrides: {
+      platformId: string;
+      isDetected: boolean;
+      quotaPercent: number | null;
+      modelName?: string;
+    }[],
+  ): UnifiedTelemetryReport {
     return {
       timestamp: new Date().toISOString(),
       results: overrides.map((o) => ({
@@ -66,7 +68,12 @@ describe("Mind Pulse Quota Telemetry Evaluation & Host Isolation", () => {
 
   test("isolates active host quota from stale external provider cache", async () => {
     const report = createMockReport([
-      { platformId: "claude_code", isDetected: true, quotaPercent: 92.0, modelName: "claude-3-7-sonnet" },
+      {
+        platformId: "claude_code",
+        isDetected: true,
+        quotaPercent: 92.0,
+        modelName: "claude-3-7-sonnet",
+      },
       { platformId: "openai", isDetected: true, quotaPercent: 2.0, modelName: "gpt-4o" }, // Stale external cache
     ]);
 
@@ -85,7 +92,12 @@ describe("Mind Pulse Quota Telemetry Evaluation & Host Isolation", () => {
 
   test("triggers critical status and circuit breaker when active host quota is <= 10%", async () => {
     const report = createMockReport([
-      { platformId: "antigravity", isDetected: true, quotaPercent: 7.5, modelName: "gemini-2.5-pro" },
+      {
+        platformId: "antigravity",
+        isDetected: true,
+        quotaPercent: 7.5,
+        modelName: "gemini-2.5-pro",
+      },
     ]);
 
     const evalResult = await evaluateMindPulseQuota({

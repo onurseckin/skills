@@ -6,7 +6,10 @@ import { quotaFreezeCommand } from "../../../olt/scripts/src/cli/commands/quota-
 import { quotaResumeCommand } from "../../../olt/scripts/src/cli/commands/quota-resume.ts";
 import { planInitCommand } from "../../../olt/scripts/src/cli/commands/plan.ts";
 import { planCompileCommand } from "../../../olt/scripts/src/cli/commands/plan-compile.ts";
-import { taskClaimCommand, taskSubmitCommand } from "../../../olt/scripts/src/cli/commands/task-claim.ts";
+import {
+  taskClaimCommand,
+  taskSubmitCommand,
+} from "../../../olt/scripts/src/cli/commands/task-claim.ts";
 import { doctorCommand } from "../../../olt/scripts/src/cli/commands/diagnostics-ops.ts";
 import { runCompleteCommand } from "../../../olt/scripts/src/cli/commands/run-ops.ts";
 import { QuotaCircuitBreaker } from "../../../olt/scripts/src/telemetry/circuit-breaker.ts";
@@ -45,7 +48,10 @@ describe("Quota Lifecycle", () => {
     }
     const git = spawnSync("git", ["init", "--quiet", TMP_DIR]);
     if (git.status !== 0) throw new Error("could not initialize quota lifecycle test repository");
-    writeFileSync(join(TMP_DIR, ".gitignore"), ".olt/capsules\ncapsules\n.capsules\nnode_modules\n");
+    writeFileSync(
+      join(TMP_DIR, ".gitignore"),
+      ".olt/capsules\ncapsules\n.capsules\nnode_modules\n",
+    );
     writeFileSync(join(TMP_DIR, "package.json"), "{}");
     spawnSync("git", ["add", "-A"], { cwd: TMP_DIR });
     spawnSync("git", ["commit", "-m", "init", "--allow-empty"], { cwd: TMP_DIR });
@@ -287,11 +293,14 @@ describe("Quota Lifecycle", () => {
 
   describe("CLI Commands Live Quota Telemetry Integration", () => {
     it("plan:init embeds live quota telemetry in return object and markdown", async () => {
-      const initRes = await planInitCommand({
-        repo: TMP_DIR,
-        run: "quota-init-run",
-        "prompt-stdin": true,
-      }, { stdin: new TextEncoder().encode("Plan init prompt") });
+      const initRes = await planInitCommand(
+        {
+          repo: TMP_DIR,
+          run: "quota-init-run",
+          "prompt-stdin": true,
+        },
+        { stdin: new TextEncoder().encode("Plan init prompt") },
+      );
 
       expect(initRes.run_root).toBeDefined();
       expect(initRes.quota_telemetry).toBeDefined();

@@ -100,9 +100,7 @@ export function generateQuotaBudgetBadge(budget: QuotaBudgetBadgeItem): string {
   return `[⏳ Quota: ${parts.join(" | ")}]`;
 }
 
-export function generateWaveLaneBadges(
-  waveLanes: readonly WaveLaneBadgeItem[],
-): readonly string[] {
+export function generateWaveLaneBadges(waveLanes: readonly WaveLaneBadgeItem[]): readonly string[] {
   return waveLanes.map((w) => {
     const activeMark = w.is_active ? " ⚡" : "";
     return `[Wave ${w.wave}: ${w.lane_count} lane(s) (${w.status})${activeMark}]`;
@@ -141,7 +139,6 @@ export function generateSchedulerTelemetryBanner(params: TelemetryBannerParams):
   }
   return parts.join(" | ");
 }
-
 
 export function generateAsciiDagBadges(
   stateOrTasks: unknown,

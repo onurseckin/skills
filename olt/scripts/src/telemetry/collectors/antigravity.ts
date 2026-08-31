@@ -145,7 +145,8 @@ export class AntigravityCollector extends BaseTieredCollector {
           userTier: userStatus.userTier,
           availableCredits: userTier?.availableCredits,
           plan,
-          name: activeModel !== undefined ? activeModel : (typeof plan === "string" ? plan : undefined),
+          name:
+            activeModel !== undefined ? activeModel : typeof plan === "string" ? plan : undefined,
           email: userStatus.email,
           activePort: port,
           queriedAt: new Date().toISOString(),
@@ -164,9 +165,7 @@ export class AntigravityCollector extends BaseTieredCollector {
               ) {
                 matches = true;
               }
-              return matches
-                ? { ...m, rawPayload: { ...m.rawPayload, name: activeModel } }
-                : m;
+              return matches ? { ...m, rawPayload: { ...m.rawPayload, name: activeModel } } : m;
             })
           : metrics;
 

@@ -96,7 +96,11 @@ export function checkQuotaCircuitBreaker(
       typeof record["total"] === "number" &&
       (record["total"] as number) > 0
     ) {
-      remaining = Math.max(0, (((record["total"] as number) - (record["used"] as number)) / (record["total"] as number)) * 100);
+      remaining = Math.max(
+        0,
+        (((record["total"] as number) - (record["used"] as number)) / (record["total"] as number)) *
+          100,
+      );
     } else {
       remaining = 0;
     }

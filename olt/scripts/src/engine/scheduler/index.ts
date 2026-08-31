@@ -138,10 +138,7 @@ export type {
   PulseTickOptions,
   PulseTickResult,
 } from "./feedback/pulse-types.ts";
-export {
-  ParallelWaveDispatchEnforcer,
-  type WaveTopology,
-} from "./dispatch/parallel-enforcer.ts";
+export { ParallelWaveDispatchEnforcer, type WaveTopology } from "./dispatch/parallel-enforcer.ts";
 export {
   dispatchMultiDomainValidators,
   evaluateMultiDomainBatch,

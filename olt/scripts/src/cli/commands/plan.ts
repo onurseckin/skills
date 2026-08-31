@@ -101,7 +101,13 @@ export async function planInitCommand(
     markdown += `\n- **Quota Telemetry**: ${quotaTelemetry.quotaBadge} (${quotaTelemetry.activeHost})`;
   }
 
-  return { markdown, run_root: runRoot, manifest, ignore_assurance, quota_telemetry: quotaTelemetry };
+  return {
+    markdown,
+    run_root: runRoot,
+    manifest,
+    ignore_assurance,
+    quota_telemetry: quotaTelemetry,
+  };
 }
 
 export function planEnhanceCommand(flags: Flags): Record<string, unknown> {

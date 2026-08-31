@@ -12,11 +12,7 @@ export interface ProcessExecResult {
   exitCode: number;
 }
 
-import {
-  detectActiveHost,
-  isPlatformMatchingHost,
-  type CanonicalHost,
-} from "./host-detection.ts";
+import { detectActiveHost, isPlatformMatchingHost, type CanonicalHost } from "./host-detection.ts";
 
 export interface CollectorEnvironment {
   exec?: ((command: string, args: string[]) => Promise<ProcessExecResult | null>) | undefined;

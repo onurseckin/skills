@@ -65,11 +65,13 @@ export interface ProductManagerExpansionResult {
   readonly antiStagnationState: AntiStagnationState;
   readonly cognitiveProgressLogged: boolean;
   readonly summary: string;
-  readonly macroMetrics?: {
-    readonly work: number;
-    readonly span: number;
-    readonly idealConcurrency: number;
-  } | undefined;
+  readonly macroMetrics?:
+    | {
+        readonly work: number;
+        readonly span: number;
+        readonly idealConcurrency: number;
+      }
+    | undefined;
 }
 
 export interface MindProductManagerOptions {

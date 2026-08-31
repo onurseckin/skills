@@ -162,7 +162,8 @@ export class TelemetryNormalizationEngine {
   ) {
     this.defaultOptions = options;
     if (collectors.length === 0) {
-      const defaultIsolate = options.isolateActiveHost !== undefined ? options.isolateActiveHost : true;
+      const defaultIsolate =
+        options.isolateActiveHost !== undefined ? options.isolateActiveHost : true;
       for (const collector of createDefaultCollectors({
         env: resolveEnvOption(undefined, options),
         activeHost: options.activeHost,
@@ -266,8 +267,7 @@ export class TelemetryNormalizationEngine {
     let globalLowestQuota: number | null = null;
     let globalLowestMetric: NormalizedQuotaMetric | null = null;
     const externalDetectedPlatforms: string[] = [];
-    const isolatedExternalCaches: { platformId: string; metricName: string; quota: number }[] =
-      [];
+    const isolatedExternalCaches: { platformId: string; metricName: string; quota: number }[] = [];
 
     for (const res of results) {
       if (!res.isDetected) continue;
@@ -334,8 +334,12 @@ export class TelemetryNormalizationEngine {
     const activeWarnings: string[] = [];
     if (lowestRemainingQuota !== null) {
       if (lowestRemainingQuota < 20) {
-        const providerName = lowestMetric?.canonicalProvider !== undefined ? lowestMetric.canonicalProvider : activeHost;
-        const metricLabel = lowestMetric?.rawMetricName !== undefined ? lowestMetric.rawMetricName : "quota";
+        const providerName =
+          lowestMetric?.canonicalProvider !== undefined
+            ? lowestMetric.canonicalProvider
+            : activeHost;
+        const metricLabel =
+          lowestMetric?.rawMetricName !== undefined ? lowestMetric.rawMetricName : "quota";
         activeWarnings.push(
           `Low quota warning: ${providerName} (${metricLabel}) at ${lowestRemainingQuota}%`,
         );
@@ -475,8 +479,12 @@ export class TelemetryNormalizationEngine {
     );
     lines.push("");
 
-    const detected = typeof report.summary.detectedPlatforms === "number" ? report.summary.detectedPlatforms : 0;
-    const total = typeof report.summary.totalCollectors === "number" ? report.summary.totalCollectors : report.results.length;
+    const detected =
+      typeof report.summary.detectedPlatforms === "number" ? report.summary.detectedPlatforms : 0;
+    const total =
+      typeof report.summary.totalCollectors === "number"
+        ? report.summary.totalCollectors
+        : report.results.length;
     lines.push(`- **Summary**: ${detected}/${total} platforms discovered.`);
 
     const activeHost = report.summary.activeHost;
@@ -502,9 +510,8 @@ export class TelemetryNormalizationEngine {
 
     const lowest = report.summary.lowestRemainingQuota;
     if (typeof lowest === "number") {
-      const isolatedSuffix = report.summary.externalProviderCachesIsolated === true
-        ? " (active host isolated)"
-        : "";
+      const isolatedSuffix =
+        report.summary.externalProviderCachesIsolated === true ? " (active host isolated)" : "";
       lines.push(`- **Lowest Remaining Quota**: ${lowest}%${isolatedSuffix}`);
     }
 
@@ -518,7 +525,8 @@ export class TelemetryNormalizationEngine {
           if (Array.isArray(userTier.availableCredits)) {
             if (userTier.availableCredits[0]) {
               const firstCredit = userTier.availableCredits[0] as Record<string, unknown>;
-              const creditVal = firstCredit.creditAmount !== undefined ? firstCredit.creditAmount : 0;
+              const creditVal =
+                firstCredit.creditAmount !== undefined ? firstCredit.creditAmount : 0;
               credits = `${creditVal} Credits`;
             }
           }

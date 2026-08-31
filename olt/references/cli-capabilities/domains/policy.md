@@ -20,11 +20,14 @@ Scans repository signatures to detect ecosystem and initializes .olt/policy.json
 | `--dir` | string | no | no | - | Alias for --repo-root. |
 | `--ecosystem` | string | no | no | - | Override detected repository ecosystem. |
 | `--force` | bool | no | no | - | Force overwrite if policy already exists. |
+| `--calibrate` | bool | no | no | - | Perform empirical toolchain auto-discovery and calibration. |
+| `--auto-discover` | bool | no | no | - | Alias for --calibrate. |
 | `--json` | bool | no | no | - | Output in JSON format. |
 
 ```bash
 bun harness.ts policy:init
 bun harness.ts policy:init --repo /path/to/repo
+bun harness.ts policy:init --calibrate
 ```
 
 ### `policy:get`
@@ -98,4 +101,27 @@ Computes SHA-256 hash of .olt/policy.json and detects configuration drift.
 ```bash
 bun harness.ts policy:check-drift
 bun harness.ts policy:check-drift --checksum <sha256> --rearm
+```
+
+### `policy:audit`
+
+Audit repository governance coverage and readiness.
+
+Inspects .olt/policy.json, backlogs, defects, and session authority.
+
+- **Aliases**: `policy:coverage`
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--repo-root` | string | no | no | - | Target repository root directory. |
+| `--repo` | string | no | no | - | Alias for --repo-root. |
+| `--dir` | string | no | no | - | Alias for --repo-root. |
+| `--run` | string | no | no | - | Capsule run root directory. |
+| `--json` | bool | no | no | - | Output in JSON format. |
+
+```bash
+bun harness.ts policy:audit
+bun harness.ts policy:audit --repo /path/to/repo
 ```

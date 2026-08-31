@@ -6,9 +6,7 @@ export interface SchedulerLiveChatPushBriefParams {
   readonly maxLines?: number | undefined;
 }
 
-export function formatSchedulerLiveChatPushBrief(
-  params: SchedulerLiveChatPushBriefParams,
-): string {
+export function formatSchedulerLiveChatPushBrief(params: SchedulerLiveChatPushBriefParams): string {
   const maxLines = params.maxLines ?? 45;
   return enforceLineLimit(params.report.markdown, maxLines);
 }
@@ -25,9 +23,7 @@ export function formatSchedulerLivePushStatusCard(params: {
   readonly stagnationBadge?: string | undefined;
 }): string {
   const pct =
-    params.totalTasks > 0
-      ? Math.round((params.completedTasks / params.totalTasks) * 100)
-      : 0;
+    params.totalTasks > 0 ? Math.round((params.completedTasks / params.totalTasks) * 100) : 0;
   const blocks = Math.round(pct / 10);
   const bar = `[${"█".repeat(blocks)}${"░".repeat(10 - blocks)}] ${pct}%`;
 

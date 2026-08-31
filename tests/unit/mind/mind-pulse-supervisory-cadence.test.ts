@@ -6,7 +6,10 @@ import {
 import type { UnifiedTelemetryReport } from "../../../olt/scripts/src/telemetry/types.ts";
 
 describe("Mind Pulse Supervisory Cadence & Freeze Management", () => {
-  function createMockReport(quotaPercent: number | null, platformId = "antigravity"): UnifiedTelemetryReport {
+  function createMockReport(
+    quotaPercent: number | null,
+    platformId = "antigravity",
+  ): UnifiedTelemetryReport {
     return {
       timestamp: new Date().toISOString(),
       results: [
@@ -86,7 +89,9 @@ describe("Mind Pulse Supervisory Cadence & Freeze Management", () => {
     });
 
     expect(result.shouldFreeze).toBe(true);
-    expect(result.wrapUpDirectives).toEqual(expect.arrayContaining(Array.from(PULSE_WRAP_UP_DIRECTIVES)));
+    expect(result.wrapUpDirectives).toEqual(
+      expect.arrayContaining(Array.from(PULSE_WRAP_UP_DIRECTIVES)),
+    );
     expect(result.quotaEvaluation.isCircuitBreakerTripped).toBe(true);
     expect(result.bannerMarkdown).toContain("CRITICAL QUOTA CIRCUIT-BREAKER ACTIVATED");
   });

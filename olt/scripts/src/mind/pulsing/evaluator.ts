@@ -38,9 +38,7 @@ export async function evaluateMindPulseQuota(
 
   const resolvedHost = resolveHostProviderLoose(options.host);
   const activeHost =
-    typeof resolvedHost === "string" && resolvedHost.length > 0
-      ? resolvedHost
-      : "unknown";
+    typeof resolvedHost === "string" && resolvedHost.length > 0 ? resolvedHost : "unknown";
 
   let report: UnifiedTelemetryReport;
   if (options.cachedReport) {
@@ -120,7 +118,9 @@ export async function evaluateMindPulseQuota(
       );
     } else if (lowestQuota < 20.0) {
       status = "warning";
-      warningMessages.push(`Low quota warning on ${activeHost}: ${lowestQuota.toFixed(2)}% remaining`);
+      warningMessages.push(
+        `Low quota warning on ${activeHost}: ${lowestQuota.toFixed(2)}% remaining`,
+      );
     } else {
       status = "nominal";
     }

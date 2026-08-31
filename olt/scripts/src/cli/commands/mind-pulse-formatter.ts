@@ -20,7 +20,10 @@ export interface PulseDirectiveOptions {
 
 export function formatPulseDirective(params: PulseDirectiveOptions): string {
   // 1. Stagnation Directive
-  if (params.isStagnating || (typeof params.stagnationStreak === "number" && params.stagnationStreak >= 2)) {
+  if (
+    params.isStagnating ||
+    (typeof params.stagnationStreak === "number" && params.stagnationStreak >= 2)
+  ) {
     const streak = params.stagnationStreak ?? 2;
     const lines = [
       `### 🚨 STAGNATION MITIGATION DIRECTIVE [STREAK ${streak}]`,
@@ -56,7 +59,11 @@ export function formatPulseDirective(params: PulseDirectiveOptions): string {
   }
 
   // 3. Ready Task Dispatch Directive
-  if (typeof params.readyTasksCount === "number" && params.readyTasksCount > 0 && params.activeRuns === 0) {
+  if (
+    typeof params.readyTasksCount === "number" &&
+    params.readyTasksCount > 0 &&
+    params.activeRuns === 0
+  ) {
     return [
       "### ⚡ READY TASK DISPATCH REQUIRED",
       `- **Ready Queue**: ${params.readyTasksCount} tasks waiting in ready state.`,
@@ -247,4 +254,3 @@ export function formatMindPulseOpenedBrief(params: MindPulseBriefParams): string
   }
   return enforceLineLimit(lines.join("\n"), 40);
 }
-

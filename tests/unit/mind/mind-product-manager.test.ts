@@ -212,7 +212,8 @@ describe("Mind Product Manager Autonomous Expansion & Anti-Stagnation Loop", () 
   });
 
   it("transitions to QUEUE_ACTIVE_EXECUTION when active tasks exist in the task queue", () => {
-    const { repo, queuePath, feedbackPath, memoryPath } = createTestFixture("queue-active-transition");
+    const { repo, queuePath, feedbackPath, memoryPath } =
+      createTestFixture("queue-active-transition");
 
     enqueueTasksBatch(
       [
@@ -297,7 +298,9 @@ describe("Mind Product Manager Autonomous Expansion & Anti-Stagnation Loop", () 
     // Verify cognitive memory was updated
     const memory = readCognitiveMemory(memoryPath);
     expect(memory.strategic_focus.length).toBeGreaterThan(0);
-    expect(memory.strategic_focus.some((f) => f.includes("Mode A Creative Product Manager"))).toBe(true);
+    expect(memory.strategic_focus.some((f) => f.includes("Mode A Creative Product Manager"))).toBe(
+      true,
+    );
   });
 
   it("computes anti-stagnation heuristics and evaluates zero-delta signatures deterministically", () => {
@@ -352,7 +355,9 @@ describe("Mind Product Manager Autonomous Expansion & Anti-Stagnation Loop", () 
     const memory = readCognitiveMemory(memoryPath);
     expect(memory.active_hypotheses.length).toBe(1);
     expect(memory.active_hypotheses[0]!.id).toBe("hyp-1");
-    expect(memory.strategic_focus.some((s) => s.includes("Synthesized 2 grounded feature tasks"))).toBe(true);
+    expect(
+      memory.strategic_focus.some((s) => s.includes("Synthesized 2 grounded feature tasks")),
+    ).toBe(true);
   });
 
   it("Mind Auditor detects MIND_CREATIVE_STAGNATION in maintenance-only loops without product progress", () => {

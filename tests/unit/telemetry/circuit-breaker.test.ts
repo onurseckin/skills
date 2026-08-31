@@ -301,7 +301,10 @@ describe("QuotaCircuitBreaker Engine", () => {
       createMockMetric("gemini-2.5-pro", 3.5, "2026-08-24T14:18:42.000Z"),
     ]);
 
-    const triggeredEval = breaker.evaluate(triggeredReport, { now: fixedNow, activeHost: "antigravity" });
+    const triggeredEval = breaker.evaluate(triggeredReport, {
+      now: fixedNow,
+      activeHost: "antigravity",
+    });
     const triggeredMd = formatCircuitBreakerMarkdown(triggeredEval, true);
 
     expect(triggeredMd).toContain("CRITICAL QUOTA CIRCUIT-BREAKER ACTIVATED (<10%)");
@@ -384,7 +387,9 @@ describe("Active Host Isolation & Inactive Provider Cache Resilience", () => {
         platformId: "antigravity",
         isDetected: true,
         primaryTierUsed: "tier1_cli_command",
-        metrics: [createMockMetric("gemini-2.5-pro", 85.0, "2026-08-24T15:00:00.000Z", "antigravity")],
+        metrics: [
+          createMockMetric("gemini-2.5-pro", 85.0, "2026-08-24T15:00:00.000Z", "antigravity"),
+        ],
         rawObservations: {},
         errors: [],
       },
@@ -423,7 +428,9 @@ describe("Active Host Isolation & Inactive Provider Cache Resilience", () => {
         platformId: "antigravity",
         isDetected: true,
         primaryTierUsed: "tier1_cli_command",
-        metrics: [createMockMetric("gemini-2.5-pro", 95.0, "2026-08-24T15:00:00.000Z", "antigravity")],
+        metrics: [
+          createMockMetric("gemini-2.5-pro", 95.0, "2026-08-24T15:00:00.000Z", "antigravity"),
+        ],
         rawObservations: {},
         errors: [],
       },

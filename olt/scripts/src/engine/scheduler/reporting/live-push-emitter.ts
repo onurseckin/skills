@@ -157,9 +157,7 @@ export function formatSchedulerLivePushMarkdown(params: {
 
   // Progress Bar & Overview
   const pct =
-    snapshot.totalTasks > 0
-      ? Math.round((snapshot.completedTasks / snapshot.totalTasks) * 100)
-      : 0;
+    snapshot.totalTasks > 0 ? Math.round((snapshot.completedTasks / snapshot.totalTasks) * 100) : 0;
   const progressBarBlocks = Math.round(pct / 10);
   const bar = `[${"█".repeat(progressBarBlocks)}${"░".repeat(10 - progressBarBlocks)}] ${pct}%`;
 
@@ -177,16 +175,24 @@ export function formatSchedulerLivePushMarkdown(params: {
     lines.push(`### 🔄 Progress Delta (Previous vs Current)`);
     lines.push(`- **Summary**: ${diff.summary}`);
     if (diff.newlyCompletedTaskIds.length > 0) {
-      lines.push(`- **Newly Completed**: ${diff.newlyCompletedTaskIds.map((id) => `\`${id}\``).join(", ")}`);
+      lines.push(
+        `- **Newly Completed**: ${diff.newlyCompletedTaskIds.map((id) => `\`${id}\``).join(", ")}`,
+      );
     }
     if (diff.newlyLeasedTaskIds.length > 0) {
-      lines.push(`- **Newly Leased**: ${diff.newlyLeasedTaskIds.map((id) => `\`${id}\``).join(", ")}`);
+      lines.push(
+        `- **Newly Leased**: ${diff.newlyLeasedTaskIds.map((id) => `\`${id}\``).join(", ")}`,
+      );
     }
     if (diff.newlyReadyTaskIds.length > 0) {
-      lines.push(`- **Newly Ready**: ${diff.newlyReadyTaskIds.map((id) => `\`${id}\``).join(", ")}`);
+      lines.push(
+        `- **Newly Ready**: ${diff.newlyReadyTaskIds.map((id) => `\`${id}\``).join(", ")}`,
+      );
     }
     if (diff.newlyFailedTaskIds.length > 0) {
-      lines.push(`- **Newly Failed**: ${diff.newlyFailedTaskIds.map((id) => `\`${id}\``).join(", ")}`);
+      lines.push(
+        `- **Newly Failed**: ${diff.newlyFailedTaskIds.map((id) => `\`${id}\``).join(", ")}`,
+      );
     }
   }
 

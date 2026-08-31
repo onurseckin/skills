@@ -17,10 +17,7 @@ export interface StagnationDetectionOptions {
 export function detectStagnation(options: StagnationDetectionOptions): StagnationWarning {
   const warningThreshold = options.warningThreshold ?? 2;
   const criticalThreshold = options.criticalThreshold ?? 4;
-  const streak = Math.max(
-    options.diff.consecutiveZeroProgressTicks,
-    options.zeroValueStreak ?? 0,
-  );
+  const streak = Math.max(options.diff.consecutiveZeroProgressTicks, options.zeroValueStreak ?? 0);
 
   const isAllComplete =
     options.snapshot.totalTasks > 0 &&
@@ -32,8 +29,7 @@ export function detectStagnation(options: StagnationDetectionOptions): Stagnatio
       isStagnating: false,
       streak: 0,
       reason: "All planned tasks in DAG have completed successfully.",
-      remediation:
-        "Execute run:complete or activate Mind Mode A autonomous feature discovery.",
+      remediation: "Execute run:complete or activate Mind Mode A autonomous feature discovery.",
       badge: "[✨ Complete: all tasks done]",
     };
   }
@@ -49,8 +45,7 @@ export function detectStagnation(options: StagnationDetectionOptions): Stagnatio
       isStagnating: true,
       streak: Math.max(streak, 1),
       reason: `${options.snapshot.readyTasks} ready task(s) (${readyIds}) are waiting in queue but 0 active agents are dispatched.`,
-      remediation:
-        "Dispatch workers with agent:register and claim ready tasks using task:claim.",
+      remediation: "Dispatch workers with agent:register and claim ready tasks using task:claim.",
       badge: `[🚨 Worker Starvation: ${options.snapshot.readyTasks} ready, 0 agents]`,
     };
   }
@@ -66,8 +61,7 @@ export function detectStagnation(options: StagnationDetectionOptions): Stagnatio
       isStagnating: true,
       streak: Math.max(streak, 1),
       reason: `${options.snapshot.failedTasks} task(s) (${failedIds}) failed and no repairers are currently leased.`,
-      remediation:
-        "Assign repairer subagents with task:claim --role repairer or run recover.",
+      remediation: "Assign repairer subagents with task:claim --role repairer or run recover.",
       badge: `[🔴 Failed Tasks: ${options.snapshot.failedTasks} blocked]`,
     };
   }
@@ -90,8 +84,7 @@ export function detectStagnation(options: StagnationDetectionOptions): Stagnatio
       isStagnating: true,
       streak,
       reason: `Scheduler progress idling for ${streak} consecutive ticks without task state transitions.`,
-      remediation:
-        "Monitor active worker progress or claim next wave tasks when unblocked.",
+      remediation: "Monitor active worker progress or claim next wave tasks when unblocked.",
       badge: generateStagnationBadge(streak, true),
     };
   }

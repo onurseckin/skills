@@ -23,7 +23,11 @@ export const POLICY_COMMANDS: readonly CommandSpec[] = [
       optionalFlag("dir", "string", "Alias for --repo-root."),
       optionalFlag("ecosystem", "string", "Override detected repository ecosystem."),
       optionalFlag("force", "bool", "Force overwrite if policy already exists."),
-      optionalFlag("calibrate", "bool", "Perform empirical toolchain auto-discovery and calibration."),
+      optionalFlag(
+        "calibrate",
+        "bool",
+        "Perform empirical toolchain auto-discovery and calibration.",
+      ),
       optionalFlag("auto-discover", "bool", "Alias for --calibrate."),
       optionalFlag("json", "bool", "Output in JSON format."),
     ],
@@ -125,7 +129,7 @@ export const POLICY_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "policy:audit",
-    aliases: ["policy:coverage"],
+    aliases: [],
     domain: "policy",
     tier: "internal",
     internal: true,
@@ -141,10 +145,7 @@ export const POLICY_COMMANDS: readonly CommandSpec[] = [
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,
-    examples: [
-      "bun harness.ts policy:audit",
-      "bun harness.ts policy:audit --repo /path/to/repo",
-    ],
+    examples: ["bun harness.ts policy:audit", "bun harness.ts policy:audit --repo /path/to/repo"],
     handler: policyAuditCommand,
   },
 ];

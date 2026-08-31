@@ -39,9 +39,7 @@ export async function checkQuotaHealth(
 
   const resolvedHost = resolveHostProviderLoose(options.host);
   const host =
-    typeof resolvedHost === "string" && resolvedHost.length > 0
-      ? resolvedHost
-      : "unknown";
+    typeof resolvedHost === "string" && resolvedHost.length > 0 ? resolvedHost : "unknown";
 
   const findings: DoctorDiagnosticFinding[] = [];
 

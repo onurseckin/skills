@@ -128,8 +128,7 @@ export const SOCRATIC_CATALOG: Record<CognitiveDirectiveDimension, SocraticTempl
         dimension: "dependency_topology",
         question:
           "Which downstream tasks depend on the artifacts and exported symbols being constructed right now?",
-        rationale:
-          "Breaking public module facades breaks parallel and wave-2 downstream workers.",
+        rationale: "Breaking public module facades breaks parallel and wave-2 downstream workers.",
         falsificationCriterion:
           "Check exported interfaces and directory index facades for complete backward compatibility.",
       },
@@ -229,14 +228,14 @@ export const SOCRATIC_CATALOG: Record<CognitiveDirectiveDimension, SocraticTempl
           "Can prompt payloads be compressed by removing redundant text while preserving 100% of actionable guidance?",
         rationale:
           "Excessive tokens increase LLM latency and risk hitting rate limits or attention dilution.",
-        falsificationCriterion:
-          "Benchmark token counts before and after compression templates.",
+        falsificationCriterion: "Benchmark token counts before and after compression templates.",
       },
       {
         dimension: "execution_speed",
         question:
           "Are disk reads, subprocess spawns, and git queries optimized to complete in minimal wall-clock time?",
-        rationale: "Fast scheduler loops allow high-frequency feedback without latency bottlenecks.",
+        rationale:
+          "Fast scheduler loops allow high-frequency feedback without latency bottlenecks.",
         falsificationCriterion:
           "Verify execution times remain well within the 5-minute single-task SLA boundary.",
       },

@@ -86,8 +86,13 @@ export function projectIntervalProgression(
     });
   }
 
-  const { baseIntervalMs, maxIntervalMs: max, steps: s, multiplier: mult, strategy: strat } =
-    optionsOrBase;
+  const {
+    baseIntervalMs,
+    maxIntervalMs: max,
+    steps: s,
+    multiplier: mult,
+    strategy: strat,
+  } = optionsOrBase;
   const safeSteps = Math.max(0, s);
   const progression: number[] = [];
 
