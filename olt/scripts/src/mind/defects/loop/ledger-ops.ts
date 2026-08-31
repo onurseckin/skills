@@ -38,7 +38,12 @@ export function resolveDefectLogPath(customPath?: string): string {
 }
 
 export function resolveCanonicalCompletedDefectsPath(customRoot?: string): string {
-  const root = customRoot || (isTestEnvironment() ? resolveScratchDir() : process.cwd());
+  const root =
+    customRoot !== undefined && customRoot !== ""
+      ? customRoot
+      : isTestEnvironment()
+        ? resolveScratchDir()
+        : process.cwd();
   return join(root, ".olt", "completed-defects.jsonl");
 }
 
@@ -98,9 +103,17 @@ export function appendDefectLogEntry(
   return withDefectLogMutationLock(targetPath, () => {
     const existing = readExistingDefectLog(targetPath);
     const updated = [
-      ...existing.filter(
-        (e) => e.id !== entry.id && (!entry.dedup_key || e.dedup_key !== entry.dedup_key),
-      ),
+      ...existing.filter((e) => {
+        if (e.id === entry.id) return false;
+        if (
+          entry.dedup_key !== undefined &&
+          entry.dedup_key !== "" &&
+          e.dedup_key === entry.dedup_key
+        ) {
+          return false;
+        }
+        return true;
+      }),
       entry,
     ];
     const raw = serializeDefectsJsonl(updated);
@@ -116,9 +129,17 @@ export function appendCompletedDefectLogEntry(entry: DefectEntry, targetPath?: s
   return withDefectLogMutationLock(p, () => {
     const existing = readExistingDefectLog(p);
     if (
-      existing.some(
-        (e) => e.id === entry.id || (entry.dedup_key && e.dedup_key === entry.dedup_key),
-      )
+      existing.some((e) => {
+        if (e.id === entry.id) return true;
+        if (
+          entry.dedup_key !== undefined &&
+          entry.dedup_key !== "" &&
+          e.dedup_key === entry.dedup_key
+        ) {
+          return true;
+        }
+        return false;
+      })
     ) {
       return p;
     }
@@ -149,27 +170,35 @@ export function formulateBoundaryViolationHypothesis(defect: DefectEntry): Defec
   if (defect.role) evidence.push(`Role: ${defect.role}`);
   if (defect.agent_id) evidence.push(`Agent ID: ${defect.agent_id}`);
 
-  const vType = (defect.type || "").toLowerCase();
-  const rawObs = (defect.observation || "").toLowerCase();
+  const vType = (defect.type !== undefined ? defect.type : "").toLowerCase();
+  const rawObs = (defect.observation !== undefined ? defect.observation : "").toLowerCase();
 
-  if (
-    vType.includes("coordinator_code_writing") ||
-    (rawObs.includes("coordinator") && (rawObs.includes("code") || rawObs.includes("write")))
-  ) {
+  const isCoordCode = rawObs.includes("code") ? true : rawObs.includes("write");
+  const isCoord = vType.includes("coordinator_code_writing")
+    ? true
+    : rawObs.includes("coordinator") && isCoordCode;
+
+  const isOrchTask = rawObs.includes("task") ? true : rawObs.includes("implementation");
+  const isOrch = vType.includes("orchestrator_direct_implementation")
+    ? true
+    : rawObs.includes("orchestrator") && isOrchTask;
+
+  const isUnassignedTest = vType.includes("unassigned_test_running")
+    ? true
+    : rawObs.includes("unassigned test");
+  const isCrossTier = vType.includes("cross_tier_spawning") ? true : rawObs.includes("cross-tier");
+
+  if (isCoord) {
     rootCause = "Tier 2 Coordinator breached zero-tolerance boundary (0 coordinator code writing).";
     confidence = 0.99;
-  } else if (
-    vType.includes("orchestrator_direct_implementation") ||
-    (rawObs.includes("orchestrator") &&
-      (rawObs.includes("task") || rawObs.includes("implementation")))
-  ) {
+  } else if (isOrch) {
     rootCause =
       "Tier 1 Orchestrator breached zero-tolerance boundary (0 orchestrator task implementations).";
     confidence = 0.99;
-  } else if (vType.includes("unassigned_test_running") || rawObs.includes("unassigned test")) {
+  } else if (isUnassignedTest) {
     rootCause = "Agent breached test running confinement (0 unassigned test running).";
     confidence = 0.97;
-  } else if (vType.includes("cross_tier_spawning") || rawObs.includes("cross-tier")) {
+  } else if (isCrossTier) {
     rootCause = "Supervisory agent bypassed 4-tier hierarchical spawning boundaries.";
     confidence = 0.98;
   }

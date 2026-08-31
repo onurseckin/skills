@@ -85,7 +85,10 @@ export function validateRegressionTest(testCode: string): {
   readonly issues: readonly string[];
 } {
   const issues: string[] = [];
-  if (typeof testCode !== "string" || !testCode.trim()) {
+  if (typeof testCode !== "string") {
+    return { isValid: false, issues: ["Test code is empty or not a string"] };
+  }
+  if (!testCode.trim()) {
     return { isValid: false, issues: ["Test code is empty or not a string"] };
   }
   if (!testCode.includes("describe(") && !testCode.includes("test(") && !testCode.includes("it(")) {
@@ -118,9 +121,10 @@ export function promoteResolvedDefects(
 
   if (Array.isArray(entriesOrOptions)) {
     entries = entriesOrOptions;
-    options = maybeOptions ?? {};
+    options = maybeOptions !== undefined ? maybeOptions : {};
   } else {
-    options = (entriesOrOptions as DefectPromotionOptions) ?? {};
+    options =
+      entriesOrOptions !== undefined ? (entriesOrOptions as DefectPromotionOptions) : {};
     entries = undefined;
   }
 
@@ -150,15 +154,19 @@ export function promoteResolvedDefects(
   const remaining: DefectEntry[] = [];
 
   for (const b of activeDefects) {
-    if (b.status === "resolved" || b.status === "completed") {
+    if (["resolved", "completed"].includes(b.status)) {
       if (b.resolution && typeof b.resolution === "object") {
         const proof = verifyResolutionProofEmpirical(b.resolution, {
           requireCommitSha: options.requireCommitSha,
         });
         if (!proof.isValid) {
+          const reasonStr =
+            proof.reason !== undefined && proof.reason !== ""
+              ? proof.reason
+              : "unknown error";
           throw new HarnessError(
             "INTEGRITY",
-            `resolved defect '${b.id}' has invalid resolution: ${proof.reason ?? "unknown error"}`,
+            `resolved defect '${b.id}' has invalid resolution: ${reasonStr}`,
           );
         }
       }
