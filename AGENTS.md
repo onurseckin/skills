@@ -154,6 +154,15 @@ Every agent executing within this repository must adhere to the following non-ne
       - **Mobile (390x844)**: stacked single-column layout, bottom sheets, full-width cards, 44px+ touch targets.
     - **The 8 Optical Dimensions of Visual Inspection:** Inspect for optical and visual defects across: (1) layout & visual hierarchy, (2) optical spacing & rhythm, (3) typography & font rendering (no descender clipping), (4) clipping & overflow (no `overflow-x` leaks), (5) APCA lightness contrast (`Lc >= 60` for body, `Lc >= 45` for large text), (6) theme harmony across both Light and Dark modes, (7) z-index stacking & overlays, and (8) touch target bounds ($\ge 44\times 44\text{px}$).
     - **Strict Ban on Superficial Approvals:** Approving a UI task based solely on Playwright code pass assertions or headless DOM text logs without opening and visually inspecting actual screenshot image files across all 4 viewports is strictly prohibited (`SUPERFICIAL_UI_APPROVAL`).
+39. **UI Design System Standards & Living Ground Truths (`UI_DESIGN_SYSTEM_GROUND_TRUTH`):**
+    - UI implementations across universal mobile, tablet, and web clients must strictly conform to canonical design system references (`docs/references/luxury-design-system/`, `packages/tokens/`, and component living specs).
+    - Enforce obsidian dark foundations (`#0B0A0D`), layered surface ladders (`#050507` to `#2E2A3D`), 1px top specular hairlines (`border-t-white/15` / `rgba(255, 255, 255, 0.15)`), tabular monospace numeral telemetry, APCA contrast (`Lc >= 60` / WCAG AAA $\ge 7.0:1$), and interactive touch target hitbox floors ($\ge 44\times 44\text{pt}$ standard, $\ge 48\times 48\text{pt}$ for in-transit HUDs).
+    - Storybook catalog (`app/(dev)/storybook/`) and Developer Studio (`app/(dev)/`) serve as canonical living ground-truth specifications for visual regression and responsive component inspection.
+40. **Semantic Plan Naming & Completed Wave Archival Lifecycle (`SEMANTIC_PLAN_ARCHIVAL_LIFECYCLE`):**
+    - Wave planning folders must follow clear semantic descriptive slugs: `docs/planning/wave-<num>-<descriptive-slug>/` for active waves.
+    - All completed wave artifacts, implementation DAGs, and validation manifests must be systematically archived into `docs/planning/completed/wave-<num>-<descriptive-slug>/` upon wave closure.
+    - Ephemeral or obsolete handoff scratch files (`docs/planning/handoff/`) must be purged to maintain clean planning hierarchies.
+    - Permanent architecture blueprints and design tokens must be consolidated into `docs/references/` as ground-truth references rather than left in transient planning directories.
 
 ---
 
@@ -483,6 +492,23 @@ To protect repository state and prevent common LLM blunder modes:
     - Arbitrary numbered suite folders (`suite-01/`, `suite-12/`, `suite-26/`, `suite-32/`) are strictly prohibited as mechanical anti-patterns.
     - Test modularity follows the same rules as source code: $\le 300$ physical lines per file, $\le 10$ files per folder, modularized with semantic subdirectories matching domain concepts (e.g., `tests/features/fleet/rebalancing/`), never artificial numbered suites.
     - **Repository Root Scratch Cleanliness:** All agent scratch scripts, one-off python/shell tools, and experimental output directories belong strictly in `.tmp/` (gitignored). Never pollute the root directory.
+29. **UI Design System Compliance & Token Ground Truth (`UI_DESIGN_SYSTEM_GROUND_TRUTH`):**
+    - All UI components, screens, and design tokens must strictly adhere to canonical design system references (`docs/references/luxury-design-system/`, `packages/tokens/`).
+    - Hardcoding ad-hoc hex values, skipping specular top hairlines (`border-t-white/15`), violating APCA contrast (`Lc >= 60`), or using interactive touch targets $< 44\times 44\text{pt}$ is strictly prohibited.
+30. **Semantic Plan Naming & Completed Wave Archival Lifecycle (`SEMANTIC_PLAN_ARCHIVAL_LIFECYCLE`):**
+    - Active wave planning directories must follow semantic hyphenated names (`docs/planning/wave-<num>-<descriptive-slug>/`).
+    - Completed waves must be systematically archived to `docs/planning/completed/wave-<num>-<descriptive-slug>/` upon gate sign-off.
+    - Stale or ephemeral handoff documents (e.g. `docs/planning/handoff/`) must be removed, and permanent design system/architecture specs must reside under `docs/references/`.
+31. **Multi-Wave Parallel Concurrency via Git Worktrees & 50-Subagent Capacity Floor (`MULTI_WAVE_WORKTREE_CONCURRENCY`):**
+    - Multiple disjoint waves can execute concurrently using isolated Git worktrees (`Workspace: "branch"` or `git worktree add .tmp/worktrees/wave-XX`).
+    - Clean rebase and branch consolidation: when a wave finishes, rebase cleanly onto latest `main`, run gates, and merge cleanly (zero `--force` or `--no-verify`). Clean up worktree directory and branch upon completion.
+    - Global Subagent Concurrency Floor: Maximum 50 total active subagents across the monorepo ($P \le 50$) to prevent token burn and provider quota exhaustion.
+    - Dynamic non-blocking wave intake: Mind continually admits and compiles subsequent waves while prior waves are executing in parallel worktrees.
+32. **Interactive End-to-End UI & Cognitive Validation Protocol (`INTERACTIVE_UI_COGNITIVE_VALIDATION`):**
+    - Strict ban on raw Playwright runner report screenshots.
+    - Interactive user journey testing: UI Validators must deploy headless/headful browser automation to actually interact with the living app (fill form fields, trigger gestures, scroll viewports, request rides, test fake data flows across all 4 personas).
+    - Human-like Socratic cognitive critiques assessing luxury aesthetics, Obsidian depth, typography descenders, touch hitboxes, and real-world chauffeur ergonomics.
+    - Mandatory Turn 1 initial reading of `AGENTS.md` by every deployed subagent across all tiers.
 
 ---
 
