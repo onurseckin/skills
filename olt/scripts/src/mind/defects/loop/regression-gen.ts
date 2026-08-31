@@ -21,8 +21,9 @@ export function isDefectEligibleForPromotion(
   defect: DefectEntry,
   options: { readonly requireCommitSha?: boolean | undefined } = {},
 ): boolean {
-  if (defect.status !== "resolved" && defect.status !== "completed") return false;
-  if (!defect.resolution) return false;
+  if (!["resolved", "completed"].includes(defect.status)) return false;
+  if (defect.resolution === undefined) return false;
+  if (defect.resolution === null) return false;
   const verified = verifyResolutionProofEmpirical(defect.resolution, options);
   return verified.isValid;
 }
@@ -31,9 +32,13 @@ export function generateDefectRegressionTest(
   defect: DefectEntry,
   _options?: { readonly includeComments?: boolean | undefined },
 ): GeneratedRegressionTest {
-  const cat = defect.category || categorizeDefect(defect);
+  const cat =
+    defect.category !== undefined && defect.category !== ""
+      ? defect.category
+      : categorizeDefect(defect);
   let filePathHint = "tests/unit/mind/code-defect-regression.test.ts";
-  const testName = `regression [${defect.id}] ${cat} ${defect.type || "defect"}`;
+  const defectType = defect.type !== undefined && defect.type !== "" ? defect.type : "defect";
+  const testName = `regression [${defect.id}] ${cat} ${defectType}`;
   let testBody = "";
   let assertion = "expect(isResolved).toBe(true);";
 
@@ -65,7 +70,10 @@ export function generateRegressionTestSuite(
   defects: readonly DefectEntry[],
   options?: GenerateTestSuiteOptions,
 ): string {
-  const suiteName = options?.suiteName || "Generated Defect Regression Suite";
+  const suiteName =
+    options !== undefined && options.suiteName !== undefined && options.suiteName !== ""
+      ? options.suiteName
+      : "Generated Defect Regression Suite";
   const banner = options?.bannerTitle ? `// ${options.bannerTitle}\n  ` : "";
 
   if (defects.length === 0) {
