@@ -3,12 +3,11 @@ import { usageReportCommand } from "../../../olt/scripts/src/cli/commands/usage-
 import { COMMAND_REGISTRY } from "../../../olt/scripts/src/cli/registry/index.ts";
 
 describe("usage:report CLI command", () => {
-  it("registers usage:report in COMMAND_REGISTRY", () => {
-    const spec = COMMAND_REGISTRY.find((c) => c.name === "usage:report");
+  it("registers report:usage in COMMAND_REGISTRY with zero aliases", () => {
+    const spec = COMMAND_REGISTRY.find((c) => c.name === "report:usage");
     expect(spec).toBeDefined();
     expect(spec?.domain).toBe("reporting");
-    expect(spec?.aliases).toContain("telemetry:usage");
-    expect(spec?.aliases).toContain("quota:report");
+    expect(spec?.aliases).toEqual([]);
   });
 
   const mockEnv = {

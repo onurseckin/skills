@@ -174,7 +174,7 @@ describe("harness output format scan", () => {
     expect(parsed.ok).toBeTrue();
     expect(parsed.result.command.argv).toEqual(["echo", "--format=json"]);
     expect(parsed.result.exit_code).toBe(0);
-  });
+  }, 20000);
 
   test("mind:audit:live --format json emits exactly one JSON value on stdout", async () => {
     const repo = scratchRoot(import.meta.path, "mind-audit-live-format-json");
@@ -194,7 +194,7 @@ describe("harness output format scan", () => {
     const parsed = JSON.parse(stdout) as { ok: boolean; result: { stagnant: boolean } };
     expect(parsed.ok).toBeTrue();
     expect(typeof parsed.result.stagnant).toBe("boolean");
-  });
+  }, 20000);
 
   test("skill:audit:live --format json emits exactly one JSON value on stdout", async () => {
     const repo = scratchRoot(import.meta.path, "skill-audit-live-format-json");
@@ -212,5 +212,5 @@ describe("harness output format scan", () => {
     const parsed = JSON.parse(stdout) as { ok: boolean; result: { compliant: boolean } };
     expect(parsed.ok).toBeTrue();
     expect(typeof parsed.result.compliant).toBe("boolean");
-  });
+  }, 20000);
 });

@@ -9,7 +9,7 @@ Evaluate quota circuit-breaker status, wrap-up directives, and auto-wake timer s
 
 Probes cross-platform quota telemetry, detects exhaustion (<10%), generates wrap-up directives for active agents, and computes one-shot auto-wake scheduler payloads.
 
-- **Aliases**: `quota:circuit-break`, `circuit-breaker:check`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 

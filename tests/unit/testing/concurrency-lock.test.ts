@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { testSummaryCommand } from "../../../olt/scripts/src/cli/commands/test-summary.ts";
 import {

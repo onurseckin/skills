@@ -11,8 +11,8 @@ import {
 import { sealInstallationManifest } from "../../olt/scripts/src/installer/manifest-integrity.ts";
 import { validateSkillSource } from "../../olt/scripts/src/installer/source-validation.ts";
 import { identifiedInstallation } from "../../olt/scripts/src/installer/identity.ts";
-import { guardedRemoveSync, logDestructiveOp, smartEnsureSymlink } from "./fs-helpers";
-import { resolveOltSyncSource } from "./git-source";
+import { guardedRemoveSync, logDestructiveOp, smartEnsureSymlink } from "./fs-helpers.ts";
+import { resolveOltSyncSource } from "./git-source.ts";
 
 export interface DeploySkillOptions {
   sourceRepoRoot?: string | undefined;
@@ -59,7 +59,7 @@ function assertIsSkillsRepoRoot(sourceRepoRoot: string): string {
   return resolved;
 }
 
-function readJsonStringField(filePath: string, field: string): string | undefined {
+export function readJsonStringField(filePath: string, field: string): string | undefined {
   if (!existsSync(filePath)) {
     return undefined;
   }
@@ -122,7 +122,7 @@ export async function migrateOwnedLegacyDeployment(
   return true;
 }
 
-function orDefault<T>(value: T | undefined, fallback: T): T {
+export function orDefault<T>(value: T | undefined, fallback: T): T {
   if (value !== undefined) {
     return value;
   }

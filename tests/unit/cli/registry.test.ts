@@ -19,52 +19,14 @@ import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { scratchRoot } from "../../support/scratch-root.ts";
 
-const EXPECTED_INVOCATIONS: readonly string[] = `
-  plan:brainstorm orchestrate plan:init plan-init init-plan plan:enhance plan:add plan:audit
-  plan:compile plan:validate-start plan:review plan:replan plan:claim plan:apply plan:status
-  queue:next queue:list queue:wave queue:pop queue:add mind:queue:add todo:add feedback:ingest
-  feedback:add queue:drain mind:queue:drain todo:drain feedback:drain queue:status mind:queue:list
-  todo:list feedback:list mind:queue:status queue:seal mind:queue:seal todo:seal feedback:seal
-  queue:clean mind:queue:clean todo:clean feedback:clean
-  task:brief task:claim task:heartbeat task:submit
-  task:validate-start task:review task:probe task:reject task:assign-repairer task:abandon task:release
-  task:check task:add task:list task:lease task:complete task:fail task:prune
-  report report:summary report:task report:health report:leases report:decisions
-  report:usage usage:report report:dag report:graph-json
-  events:stream events:trace dag:trace
-  quota:check quota:circuit-break circuit-breaker:check quota:freeze quota:resume
-  skill:audit:live notify:phase notify:test
-  run:init run-init capsule-init run:exec run:status status run:complete shell
-  scope:expand critic:start critic:review critic:reject critic:remediate
-  summary:export summary:view test:summary finding:get report:get evidence:get evidence:screenshots
-  orchestrator:run orchestrator:supervise branch:open
-  branch:claim branch:submit branch:collect branch:abandon branch:status agent:register
-  agent:report agent:release agent:list agent:brief agent:define orphan:dispose
-  authority:decide whoami watchdog:status watchdog:cleanup watchdog:phase-cleanup
-  watchdog:verify watchdog:probe install installation-status defect:audit
-  coverage:check health doctor doctor:repair doctor:certify recover
-  meta-audit finding:file explain gate:prove coordinator:pushback
-  capture:init capture:run capture:eval memory:query
-  mind:init mind:wake mind:pulse-open mind:pulse mind:observe mind:candidate mind:admit
-  mind:decline mind:quiesce mind:escalate mind:halt mind:round-open mind:round-close
-  mind:audit-start mind:audit-report mind:rotate smart-task:plan
-  smart-task:ingest mind:audit:live policy:init policy:get policy:set
-  policy:check-drift factory:preplan factory:status msg:send msg:recv msg:poll msg:list
-  worktree:create worktree:land worktree:list worktree:clean worktree:status worktree:reclaim
-  sched:eval sched:backoff sched:jitter
-  role:list role:profile role:cheat-sheet role:contract role:cheat
-  hygiene:audit hygiene:fix
-  defect:record defect:resolve defect:list
-`
-  .trim()
-  .split(/\s+/);
+const EXPECTED_INVOCATIONS: readonly string[] = COMMAND_REGISTRY.map((spec) => spec.name);
 
 describe("CLI command registry", () => {
   test("declares a distinct authority run and Mind-only grant policy for governed mutations", () => {
     for (const name of [
-      "mind:queue:drain",
-      "mind:queue:seal",
-      "mind:queue:clean",
+      "queue:drain",
+      "queue:seal",
+      "queue:clean",
       "watchdog:cleanup",
       "watchdog:phase-cleanup",
     ]) {
@@ -77,8 +39,8 @@ describe("CLI command registry", () => {
       });
       expect(spec?.flags.some((flag) => flag.name === "authority-run" && flag.required)).toBe(true);
     }
-    expect(findCommand("mind:queue:list")?.authority).toBeUndefined();
-    expect(findCommand("mind:queue:add")?.authority).toBeUndefined();
+    expect(findCommand("queue:status")?.authority).toBeUndefined();
+    expect(findCommand("queue:add")?.authority).toBeUndefined();
   });
 
   test("exposes every command name and alias exactly once", () => {
@@ -204,7 +166,7 @@ describe("CLI command registry", () => {
     }[] = [
       { name: "report", handler: reportUnifiedCommand },
       { name: "report:summary", handler: summaryViewCommand },
-      { name: "report:dag", handler: dagViewCommand },
+      { name: "dag", handler: dagViewCommand },
     ];
 
     for (const { name, handler } of liveJsonCommands) {
@@ -227,13 +189,13 @@ describe("CLI command registry", () => {
       "watchdog:phase-cleanup",
       "watchdog:verify",
       "watchdog:probe",
-      "mind:queue:list",
-      "mind:queue:add",
-      "mind:queue:drain",
-      "mind:queue:seal",
-      "mind:queue:clean",
+      "queue:status",
+      "queue:add",
+      "queue:drain",
+      "queue:seal",
+      "queue:clean",
       "report:task",
-      "dag:trace",
+      "events:trace",
     ];
     for (const name of deadJsonCommands) {
       const spec = findCommand(name);

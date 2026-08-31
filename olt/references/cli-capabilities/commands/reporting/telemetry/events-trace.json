@@ -1,8 +1,6 @@
 {
   "name": "events:trace",
-  "aliases": [
-    "dag:trace"
-  ],
+  "aliases": [],
   "domain": "reporting",
   "summary": "Real-time step tracer and dynamic living DAG expansion timeline.",
   "flags": [

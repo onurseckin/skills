@@ -107,7 +107,14 @@ export function parseRoleContract(bytes: Uint8Array, source: string): RoleContra
     const role = (manifest.role ?? manifest.name) as AgentRole;
     if (!isAgentRole(role))
       invalid("role contract", source, `role is not a canonical agent role: ${role}`);
-    const commands = manifest.permissions?.commands ?? [];
+    const commands = (manifest.permissions?.commands ?? []).map((cmd) => {
+      if (cmd === "mind:queue:drain" || cmd === "todo:drain") return "queue:drain";
+      if (cmd === "mind:queue:seal" || cmd === "todo:seal") return "queue:seal";
+      if (cmd === "mind:queue:clean" || cmd === "todo:clean") return "queue:clean";
+      if (cmd === "mind:queue:add" || cmd === "todo:add") return "queue:add";
+      if (cmd === "mind:queue:list" || cmd === "todo:list") return "queue:status";
+      return cmd;
+    });
     if (
       isCognitiveValidatorRole(role) &&
       !isMechanicValidatorRole(role) &&
@@ -186,7 +193,15 @@ export function parseRoleContract(bytes: Uint8Array, source: string): RoleContra
     if (spawned === role) invalid("role contract", source, "a role may not spawn itself");
     spawns.push(spawned);
   }
-  const commands = requireList(frontmatter, "commands", source);
+  const rawCommands = requireList(frontmatter, "commands", source);
+  const commands = rawCommands.map((cmd) => {
+    if (cmd === "mind:queue:drain" || cmd === "todo:drain") return "queue:drain";
+    if (cmd === "mind:queue:seal" || cmd === "todo:seal") return "queue:seal";
+    if (cmd === "mind:queue:clean" || cmd === "todo:clean") return "queue:clean";
+    if (cmd === "mind:queue:add" || cmd === "todo:add") return "queue:add";
+    if (cmd === "mind:queue:list" || cmd === "todo:list") return "queue:status";
+    return cmd;
+  });
   if (
     isCognitiveValidatorRole(role) &&
     !isMechanicValidatorRole(role) &&

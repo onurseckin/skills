@@ -56,7 +56,7 @@ function screenshotAssets(
     return;
   }
   for (const record of records) {
-    const url = record.path || record.original_path || record.name;
+    const url = record.path ?? record.original_path ?? record.name;
     if (!url) continue;
     const producer = screenshotProducer(record.actor, options);
     if (producer === undefined || !wants(scope, producer)) continue;
@@ -92,7 +92,7 @@ export function mapRunScreenshotAssets(runRoot: string): MediaAsset[] {
   }
   const assets: MediaAsset[] = [];
   for (const record of records) {
-    const url = record.path || record.original_path || record.name;
+    const url = record.path ?? record.original_path ?? record.name;
     if (!url) continue;
     const props = inferAssetProps(url);
     assets.push({

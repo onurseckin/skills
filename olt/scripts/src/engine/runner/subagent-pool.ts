@@ -71,8 +71,8 @@ export class SubagentPool {
   }
 
   public acquire(options?: SubagentSlotOptions): Promise<SubagentSlotReceipt> {
-    const slotAgentId = options?.agentId || `agent_${Math.random().toString(36).slice(2, 9)}`;
-    const slotRole = options?.role || "implementer";
+    const slotAgentId = options?.agentId ?? `agent_${Math.random().toString(36).slice(2, 9)}`;
+    const slotRole = options?.role ?? "implementer";
     const slotTier = options?.tier ?? 3;
     const slotTaskId = options?.taskId;
 
@@ -94,6 +94,13 @@ export class SubagentPool {
       this.activeSlots.set(receiptId, receipt);
       this.totalAcquiredCount += 1;
       return Promise.resolve(receipt);
+    }
+
+    if (this.waitQueue.length >= 1000) {
+      throw new HarnessError(
+        "CAPACITY_EXCEEDED",
+        `subagent queue capacity exceeded: ${this.waitQueue.length} queued requests exceeds max 1000`,
+      );
     }
 
     return new Promise<SubagentSlotReceipt>((resolve, reject) => {
@@ -143,8 +150,8 @@ export class SubagentPool {
 
       const nextReceiptId = `slot_${crypto.randomUUID()}`;
       const nextAgentId =
-        nextRequest.options.agentId || `agent_${Math.random().toString(36).slice(2, 9)}`;
-      const nextRole = nextRequest.options.role || "implementer";
+        nextRequest.options.agentId ?? `agent_${Math.random().toString(36).slice(2, 9)}`;
+      const nextRole = nextRequest.options.role ?? "implementer";
       const nextTier = nextRequest.options.tier ?? 3;
       const nextTaskId = nextRequest.options.taskId;
 

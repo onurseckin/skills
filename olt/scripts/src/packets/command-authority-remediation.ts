@@ -59,7 +59,7 @@ export function formatHardlockRemediation(host: DetectedHost = resolveCurrentHos
 
 export function formatHierarchicalRemediation(
   parentTier: number,
-  childTier: number,
+  _childTier: number,
   host: DetectedHost = resolveCurrentHost(),
 ): string {
   const hostLabel = getHostDisplayName(host);
@@ -78,8 +78,8 @@ export function formatHierarchicalRemediation(
 }
 
 export function formatSupervisionRemediation(
-  childRole: string,
-  childTier: number,
+  _childRole: string,
+  _childTier: number,
   host: DetectedHost = resolveCurrentHost(),
 ): string {
   const hostLabel = getHostDisplayName(host);
@@ -97,7 +97,7 @@ export function formatDeclaredSpawnRemediation(
 }
 
 export function formatRoleContractRemediation(
-  role: string,
+  _role: string,
   commandName: string,
   host: DetectedHost = resolveCurrentHost(),
 ): string {
@@ -106,7 +106,7 @@ export function formatRoleContractRemediation(
 }
 
 export function formatSessionRemediation(
-  commandName: string,
+  _commandName: string,
   host: DetectedHost = resolveCurrentHost(),
 ): string {
   const hostLabel = getHostDisplayName(host);

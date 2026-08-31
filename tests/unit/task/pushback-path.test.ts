@@ -261,4 +261,48 @@ describe("task pushback path unit tests", () => {
     });
     expect(progression).toBeDefined();
   });
+
+  it("handles validator_id snake_case and missing validatorId in executeCoordinatorPushback", () => {
+    const state = createValidatedState("task-snake", "val-snake", "code-quality");
+    const port = createMockPort(state);
+
+    const updated = executeCoordinatorPushback(port, "task-snake", "coordinator-1", {
+      validator_id: "val-snake",
+      domain: "code-quality",
+      cause: "procedural",
+      observation: "Missing test evidence logs",
+      remediation: "Re-run suite with logging enabled",
+    });
+    expect(updated.tasks["task-snake"]?.status).toBe("validating");
+
+    const state2 = createValidatedState("task-empty-val", "val-empty", "code-quality");
+    const port2 = createMockPort(state2);
+    expect(() =>
+      executeCoordinatorPushback(port2, "task-empty-val", "coordinator-1", {
+        domain: "code-quality",
+        cause: "procedural",
+        observation: "Missing test evidence logs",
+        remediation: "Re-run suite with logging enabled",
+      } as unknown as {
+        cause: CoordinatorPushbackCause;
+        domain: ValidatorDomain;
+        observation: string;
+        remediation: string;
+      }),
+    ).toThrow(HarnessError);
+  });
+
+  it("verifies task/index.ts exports and guards", async () => {
+    const taskIndex = await import("../../../olt/scripts/src/task/index.ts");
+    expect(taskIndex.isCoordinatorPushbackCause("procedural")).toBe(true);
+    expect(taskIndex.isCoordinatorPushbackCause("substantive")).toBe(true);
+    expect(taskIndex.isCoordinatorPushbackCause("other")).toBe(false);
+    expect(taskIndex.isValidatorDomain("code-quality")).toBe(true);
+    expect(taskIndex.isValidatorDomain("security")).toBe(true);
+    expect(taskIndex.isValidatorDomain("unknown")).toBe(false);
+    expect(typeof taskIndex.executeCoordinatorPushback).toBe("function");
+    expect(typeof taskIndex.contestValidatorVerdict).toBe("function");
+    expect(typeof taskIndex.evaluatePushbackReport).toBe("function");
+    expect(typeof taskIndex.assertPushbackSafety).toBe("function");
+  });
 });

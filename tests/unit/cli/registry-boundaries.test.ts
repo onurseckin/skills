@@ -155,9 +155,9 @@ describe("CLI registry boundaries and behavioral characterization", () => {
   describe("registry contracts and boundary constraints", () => {
     test("enforces authority contract for governed mutation commands", () => {
       const governedCommands = [
-        "mind:queue:drain",
-        "mind:queue:seal",
-        "mind:queue:clean",
+        "queue:drain",
+        "queue:seal",
+        "queue:clean",
         "watchdog:cleanup",
         "watchdog:phase-cleanup",
       ];

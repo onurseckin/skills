@@ -49,7 +49,7 @@ describe("dag:view CLI command execution", () => {
   test("renders empty buffer message when no tasks are declared", async () => {
     const { run } = await createBaseRun("empty-buffer");
 
-    const result = (await execute(["dag:view", "--run", run])) as unknown as DagViewResult;
+    const result = (await execute(["dag", "--run", run])) as unknown as DagViewResult;
 
     expect(result.total_tasks).toBe(0);
     expect(result.is_compiled).toBe(false);
@@ -98,7 +98,7 @@ describe("dag:view CLI command execution", () => {
       "planner",
     ]);
 
-    const result = (await execute(["dag:view", "--run", run])) as unknown as DagViewResult;
+    const result = (await execute(["dag", "--run", run])) as unknown as DagViewResult;
 
     expect(result.total_tasks).toBe(2);
     expect(result.is_compiled).toBe(false);
@@ -220,12 +220,7 @@ describe("dag:view CLI command execution", () => {
       "A4-false-barrier:test fixture creates topological waves on purpose",
     ]);
 
-    const result = (await execute([
-      "dag:view",
-      "--run",
-      run,
-      "--detailed",
-    ])) as unknown as DagViewResult;
+    const result = (await execute(["dag", "--run", run, "--detailed"])) as unknown as DagViewResult;
 
     expect(result.total_tasks).toBe(4);
     expect(result.is_compiled).toBe(true);
@@ -310,7 +305,7 @@ describe("dag:view CLI command execution", () => {
       "1200",
     ]);
 
-    const result = (await execute(["dag:view", "--run", run])) as unknown as DagViewResult;
+    const result = (await execute(["dag", "--run", run])) as unknown as DagViewResult;
 
     expect(result.active_agents.length).toBe(1);
     expect(result.active_agents[0]?.id).toBe("implementer-worker-1");
@@ -324,24 +319,25 @@ describe("dag:view CLI command execution", () => {
     expect(result.markdown).toContain("`task-core`");
   });
 
-  test("supports aliases graph:ascii and status:dag", async () => {
+  test("canonical dag execution and rejection of retired aliases", async () => {
     const { run } = await createBaseRun("alias-check");
 
-    const resView = (await execute(["dag:view", "--run", run])) as unknown as DagViewResult;
-    const resGraph = (await execute(["graph:ascii", "--run", run])) as unknown as DagViewResult;
-    const resStatus = (await execute(["status:dag", "--run", run])) as unknown as DagViewResult;
-
-    expect(resGraph.total_tasks).toBe(resView.total_tasks);
-    expect(resStatus.total_tasks).toBe(resView.total_tasks);
-    expect(resGraph.ascii_dag).toBe(resView.ascii_dag);
-    expect(resStatus.ascii_dag).toBe(resView.ascii_dag);
+    const resDag = (await execute(["dag", "--run", run])) as unknown as DagViewResult;
+    expect(resDag.total_tasks).toBe(0);
+    await expect(execute(["graph:ascii", "--run", run])).rejects.toThrow(
+      "unknown command: graph:ascii",
+    );
+    await expect(execute(["status:dag", "--run", run])).rejects.toThrow(
+      "unknown command: status:dag",
+    );
+    await expect(execute(["dag:view", "--run", run])).rejects.toThrow("unknown command: dag:view");
   });
 
   test("honours --all flag and --recommendations flag", async () => {
     const { run } = await createBaseRun("flag-options");
 
     const result = (await execute([
-      "dag:view",
+      "dag",
       "--run",
       run,
       "--all",
@@ -355,14 +351,12 @@ describe("dag:view CLI command execution", () => {
   test("fails with INVALID_ARGUMENT when --run is missing in empty directory", async () => {
     const emptyRepo = realpathSync(await mkdtemp(join(tmpdir(), "harness-empty-repo-")));
     roots.push(emptyRepo);
-    await expect(execute(["dag:view", "--repo", emptyRepo])).rejects.toThrow(
-      "no active capsule found",
-    );
+    await expect(execute(["dag", "--repo", emptyRepo])).rejects.toThrow("no active capsule found");
   });
 
   test("defaults to latest capsule in .capsules when --run is omitted", async () => {
     const { repo, run } = await createBaseRun("default-capsule");
-    const result = (await execute(["dag:view", "--repo", repo])) as unknown as DagViewResult;
+    const result = (await execute(["dag", "--repo", repo])) as unknown as DagViewResult;
     expect(result.run_root).toBe(run);
     expect(result.total_tasks).toBe(0);
   });
@@ -379,9 +373,7 @@ describe("dag:view CLI command execution", () => {
   });
 
   test("fails when run capsule does not exist", async () => {
-    await expect(
-      execute(["dag:view", "--run", "/tmp/does-not-exist-capsule-12345"]),
-    ).rejects.toThrow();
+    await expect(execute(["dag", "--run", "/tmp/does-not-exist-capsule-12345"])).rejects.toThrow();
   });
 });
 

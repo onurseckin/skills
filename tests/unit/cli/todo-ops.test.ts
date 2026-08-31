@@ -689,16 +689,16 @@ describe("CLI todo-ops and mind:queue commands", () => {
     });
   });
 
-  describe("execute CLI harness integration for mind:queue:* and todo:* commands", () => {
-    it("executes mind:queue:add, todo:list, todo:drain, mind:queue:seal, and todo:clean via CLI execute harness", async () => {
+  describe("execute CLI harness integration for queue commands", () => {
+    it("executes queue:add, queue:status, queue:drain, queue:seal, and queue:clean via CLI execute harness", async () => {
       const testDir = scratchRoot(import.meta.path, "cli-execute-harness");
       const authorityRun = authorizeMind(testDir);
       const queueFile = join(testDir, "feedback-queue.jsonl");
       const archiveFile = join(testDir, "completed-tasks.jsonl");
 
-      // 1. mind:queue:add
+      // 1. queue:add
       const addRes = await execute([
-        "mind:queue:add",
+        "queue:add",
         "--title",
         "Harness Dispatched Item",
         "--content",
@@ -715,9 +715,9 @@ describe("CLI todo-ops and mind:queue commands", () => {
       expect(addedItem.title).toBe("Harness Dispatched Item");
       expect(addedItem.priority).toBe("CRITICAL_USER_FEEDBACK");
 
-      // 2. todo:list
+      // 2. queue:status
       const listRes = await execute([
-        "todo:list",
+        "queue:status",
         "--status",
         "PENDING",
         "--all",
@@ -727,9 +727,9 @@ describe("CLI todo-ops and mind:queue commands", () => {
       expect(listRes["count"]).toBe(1);
       expect(listRes["total"]).toBe(1);
 
-      // 3. todo:drain
+      // 3. queue:drain
       const drainRes = await execute([
-        "todo:drain",
+        "queue:drain",
         "--authority-run",
         authorityRun,
         "--limit",
@@ -741,9 +741,9 @@ describe("CLI todo-ops and mind:queue commands", () => {
       ]);
       expect(drainRes["drainedCount"]).toBe(1);
 
-      // 4. mind:queue:seal
+      // 4. queue:seal
       const sealRes = await execute([
-        "mind:queue:seal",
+        "queue:seal",
         "--authority-run",
         authorityRun,
         "--id",
@@ -763,9 +763,9 @@ describe("CLI todo-ops and mind:queue commands", () => {
       ]);
       expect(sealRes["sealed"]).toBe(true);
 
-      // 5. todo:clean
+      // 5. queue:clean
       const cleanRes = await execute([
-        "todo:clean",
+        "queue:clean",
         "--authority-run",
         authorityRun,
         "--queue-file",
@@ -776,38 +776,30 @@ describe("CLI todo-ops and mind:queue commands", () => {
       expect(cleanRes["cleanedCount"]).toBe(1);
       expect(cleanRes["remainingCount"]).toBe(0);
 
-      // 6. todo:list shows 0 items remaining
-      const listEmpty = await execute(["mind:queue:list", "--queue-file", queueFile]);
+      // 6. queue:status shows 0 items remaining
+      const listEmpty = await execute(["queue:status", "--queue-file", queueFile]);
       expect(listEmpty["count"]).toBe(0);
     });
 
-    it("handles alias feedback:list, feedback:ingest, feedback:drain through execute", async () => {
+    it("rejects retired aliases through execute", async () => {
       const testDir = scratchRoot(import.meta.path, "cli-aliases");
-      const authorityRun = authorizeMind(testDir);
       const queueFile = join(testDir, "feedback-queue.jsonl");
 
-      const addRes = await execute([
-        "feedback:ingest",
-        "--title",
-        "Alias Ingest Test",
-        "--content",
-        "Alias content",
-        "--queue-file",
-        queueFile,
-      ]);
-      expect(addRes["item"]).toBeDefined();
-
-      const listRes = await execute(["feedback:list", "--queue-file", queueFile]);
-      expect(listRes["count"]).toBe(1);
-
-      const drainRes = await execute([
-        "feedback:drain",
-        "--authority-run",
-        authorityRun,
-        "--queue-file",
-        queueFile,
-      ]);
-      expect(drainRes["drainedCount"]).toBe(1);
+      await expect(execute(["feedback:ingest", "--queue-file", queueFile])).rejects.toThrow(
+        "unknown command: feedback:ingest",
+      );
+      await expect(execute(["feedback:list", "--queue-file", queueFile])).rejects.toThrow(
+        "unknown command: feedback:list",
+      );
+      await expect(execute(["feedback:drain", "--queue-file", queueFile])).rejects.toThrow(
+        "unknown command: feedback:drain",
+      );
+      await expect(execute(["todo:list", "--queue-file", queueFile])).rejects.toThrow(
+        "unknown command: todo:list",
+      );
+      await expect(execute(["mind:queue:add", "--queue-file", queueFile])).rejects.toThrow(
+        "unknown command: mind:queue:add",
+      );
     });
   });
 });

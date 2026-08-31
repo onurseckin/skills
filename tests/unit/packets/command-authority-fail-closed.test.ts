@@ -212,9 +212,9 @@ describe("assertGrantedCommand hole 1: no --run resolves", () => {
   });
 
   test("permits previously-stranded context-free commands that declare no run/run-id flag at all", () => {
-    expect(() => assertGrantedCommand(spec("mind:queue:list"), {})).not.toThrow();
+    expect(() => assertGrantedCommand(spec("queue:status"), {})).not.toThrow();
     expect(() => assertGrantedCommand(spec("install"), {})).not.toThrow();
-    expect(() => assertGrantedCommand(spec("usage:report"), {})).not.toThrow();
+    expect(() => assertGrantedCommand(spec("report:usage"), {})).not.toThrow();
     expect(() => assertGrantedCommand(spec("quota:check"), {})).not.toThrow();
     expect(() => assertGrantedCommand(spec("agent:define"), {})).not.toThrow();
     expect(() => assertGrantedCommand(spec("coverage:check"), {})).not.toThrow();
@@ -224,10 +224,10 @@ describe("assertGrantedCommand hole 1: no --run resolves", () => {
     expect(() => assertGrantedCommand(spec("smart-task:ingest"), {})).not.toThrow();
     expect(() => assertGrantedCommand(spec("installation-status"), {})).not.toThrow();
     expect(() => assertGrantedCommand(spec("mind:audit:live"), {})).not.toThrow();
-    expect(() => assertGrantedCommand(spec("mind:queue:add"), {})).not.toThrow();
-    expect(() => assertGrantedCommand(spec("mind:queue:drain"), {})).toThrow("authority-run");
-    expect(() => assertGrantedCommand(spec("mind:queue:seal"), {})).toThrow("authority-run");
-    expect(() => assertGrantedCommand(spec("mind:queue:clean"), {})).toThrow("authority-run");
+    expect(() => assertGrantedCommand(spec("queue:add"), {})).not.toThrow();
+    expect(() => assertGrantedCommand(spec("queue:drain"), {})).toThrow("authority-run");
+    expect(() => assertGrantedCommand(spec("queue:seal"), {})).toThrow("authority-run");
+    expect(() => assertGrantedCommand(spec("queue:clean"), {})).toThrow("authority-run");
   });
 
   test("denies a command that declares an optional run flag but omits it, distinct from one that declares none", () => {
@@ -244,9 +244,9 @@ describe("governed mutation authority", () => {
   test("denies every governed mutator without a session using the same fail-closed error", async () => {
     const { run } = await emptyGrantRun("governed-mutator-no-session-");
     const invocations = [
-      ["mind:queue:drain", "--authority-run", run],
-      ["mind:queue:seal", "--authority-run", run, "--id", "feedback-1", "--resolution", "done"],
-      ["mind:queue:clean", "--authority-run", run],
+      ["queue:drain", "--authority-run", run],
+      ["queue:seal", "--authority-run", run, "--id", "feedback-1", "--resolution", "done"],
+      ["queue:clean", "--authority-run", run],
       ["watchdog:cleanup", "--authority-run", run, "--run", run],
       ["watchdog:phase-cleanup", "--authority-run", run, "--run", run, "--phase", "plan"],
     ];
@@ -271,10 +271,10 @@ describe("governed mutation authority", () => {
   test("keeps queue inspection and intake context-free", async () => {
     const { repo } = await emptyGrantRun("queue-context-free-");
     const queueFile = join(repo, ".olt", "context-free-backlog.jsonl");
-    await expect(execute(["mind:queue:list", "--queue-file", queueFile])).resolves.toBeDefined();
+    await expect(execute(["queue:status", "--queue-file", queueFile])).resolves.toBeDefined();
     await expect(
       execute([
-        "mind:queue:add",
+        "queue:add",
         "--title",
         "External intake",
         "--content",
@@ -294,7 +294,7 @@ describe("governed mutation authority", () => {
 
     const queueFile = join(repo, ".olt", "governed-backlog.jsonl");
     const result = await execute([
-      "mind:queue:drain",
+      "queue:drain",
       "--authority-run",
       run,
       "--actor",
@@ -306,15 +306,7 @@ describe("governed mutation authority", () => {
 
     const outside = join(repo, "..", "outside-governed-backlog.jsonl");
     await expect(
-      execute([
-        "mind:queue:drain",
-        "--authority-run",
-        run,
-        "--actor",
-        "mind",
-        "--queue-file",
-        outside,
-      ]),
+      execute(["queue:drain", "--authority-run", run, "--actor", "mind", "--queue-file", outside]),
     ).rejects.toMatchObject({ code: "PATH_SAFETY" });
     expect(existsSync(outside)).toBe(false);
   });
@@ -338,7 +330,7 @@ describe("governed mutation authority", () => {
     await writeFile(outsideArchive, outsideBytes);
 
     await expect(
-      execute(["mind:queue:clean", "--authority-run", run, "--completed-file", outsideArchive]),
+      execute(["queue:clean", "--authority-run", run, "--completed-file", outsideArchive]),
     ).rejects.toMatchObject({ code: "INVALID_ARGUMENT" });
 
     await expect(readFile(queueFile, "utf8")).resolves.toBe(queueBytes);
@@ -369,7 +361,7 @@ describe("governed mutation authority", () => {
     let thrown: unknown;
     try {
       await execute([
-        "mind:queue:clean",
+        "queue:clean",
         "--authority-run",
         run,
         "--actor",
@@ -513,7 +505,7 @@ describe("assertGrantedCommand fail-closed does not flip open for legitimate run
     expect(() => assertGrantedCommand(spec("queue:next"), { run })).not.toThrow();
     expect(() => assertGrantedCommand(spec("queue:list"), { run })).not.toThrow();
     expect(() => assertGrantedCommand(spec("report"), { run })).not.toThrow();
-    expect(() => assertGrantedCommand(spec("report:dag"), { run })).not.toThrow();
+    expect(() => assertGrantedCommand(spec("dag"), { run })).not.toThrow();
     expect(() => assertGrantedCommand(spec("run:status"), { run })).not.toThrow();
     expect(() => assertGrantedCommand(spec("agent:list"), { run })).not.toThrow();
     expect(() => assertGrantedCommand(spec("branch:status"), { run })).not.toThrow();
@@ -693,10 +685,10 @@ describe("assertGrantedCommand end to end: role contract is enforced once a gran
 });
 
 describe("assertGrantedCommand: run-optional identity-free commands permit the no-flag invocation", () => {
-  test("permits report, run:status/status, branch:status, memory:query, queue:wave and plan:status with zero flags", () => {
+  test("permits report, run:status, branch:status, memory:query, queue:wave and plan:status with zero flags", () => {
     expect(() => assertGrantedCommand(spec("report"), {})).not.toThrow();
     expect(() => assertGrantedCommand(spec("run:status"), {})).not.toThrow();
-    expect(() => assertGrantedCommand(spec("status"), {})).not.toThrow();
+    expect(() => assertGrantedCommand(spec("report:summary"), {})).not.toThrow();
     expect(() => assertGrantedCommand(spec("branch:status"), {})).not.toThrow();
     expect(() => assertGrantedCommand(spec("memory:query"), {})).not.toThrow();
     expect(() => assertGrantedCommand(spec("queue:wave"), {})).not.toThrow();
@@ -711,10 +703,10 @@ describe("assertGrantedCommand: run-optional identity-free commands permit the n
     expect(() => assertGrantedCommand(spec("watchdog:probe"), {})).not.toThrow();
   });
 
-  test("permits dag:trace with zero flags despite declaring an --actor display filter", () => {
-    expect(() => assertGrantedCommand(spec("dag:trace"), {})).not.toThrow();
+  test("permits dag with zero flags despite declaring an --actor display filter", () => {
+    expect(() => assertGrantedCommand(spec("dag"), {})).not.toThrow();
     expect(() =>
-      assertGrantedCommand(spec("dag:trace"), { run: "/nonexistent/probe-run", actor: "impl-7" }),
+      assertGrantedCommand(spec("dag"), { run: "/nonexistent/probe-run", actor: "impl-7" }),
     ).not.toThrow();
   });
 });

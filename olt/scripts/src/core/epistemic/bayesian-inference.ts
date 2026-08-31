@@ -81,7 +81,7 @@ export function createBayesianBelief(
 export function updateBayesianBelief(
   current: BayesianBeliefState,
   evidence: BayesianEvidence | readonly BayesianEvidence[],
-  options: BayesianUpdateOptions = {},
+  _options: BayesianUpdateOptions = {},
 ): BayesianBeliefState {
   const evidenceList = Array.isArray(evidence) ? evidence : [evidence];
   if (evidenceList.length === 0) return current;

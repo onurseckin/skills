@@ -28,14 +28,25 @@ export function guardedRemoveSync(targetPath: string, options: GuardedRemoveOpti
   });
 }
 
+export interface FsDriver {
+  readonly lstatSync?: (path: string) => Stats;
+  readonly readlinkSync?: (path: string) => string;
+  readonly symlinkSync?: (target: string, path: string) => void;
+}
+
 export interface SmartEnsureSymlinkOptions {
   readonly allowedRoots: readonly string[];
   readonly onAudit?: (event: DestructiveAuditEvent) => void;
+  readonly fsDriver?: FsDriver;
 }
 
-function readExistingEntry(linkPath: string): Stats | undefined {
+function readExistingEntry(
+  linkPath: string,
+  customLstat?: (path: string) => Stats,
+): Stats | undefined {
   try {
-    return lstatSync(linkPath);
+    const fn = customLstat ?? lstatSync;
+    return fn(linkPath);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
     throw error;
@@ -54,8 +65,11 @@ export function smartEnsureSymlink(
   options: SmartEnsureSymlinkOptions,
 ): "skipped" | "created" {
   const onAudit = options.onAudit ?? logDestructiveOp;
+  const readlinkFn = options.fsDriver?.readlinkSync ?? readlinkSync;
+  const symlinkFn = options.fsDriver?.symlinkSync ?? symlinkSync;
+
   assertSafeToDelete(linkPath, { allowedRoots: options.allowedRoots, missingOk: true });
-  const existing = readExistingEntry(linkPath);
+  const existing = readExistingEntry(linkPath, options.fsDriver?.lstatSync);
 
   if (existing !== undefined) {
     if (!existing.isSymbolicLink()) {
@@ -69,7 +83,7 @@ export function smartEnsureSymlink(
 
     let currentTarget: string | undefined;
     try {
-      currentTarget = readlinkSync(linkPath);
+      currentTarget = readlinkFn(linkPath);
     } catch {
       currentTarget = undefined;
     }
@@ -85,7 +99,7 @@ export function smartEnsureSymlink(
   }
 
   try {
-    symlinkSync(target, linkPath);
+    symlinkFn(target, linkPath);
   } catch {
     safeCpSync(target, linkPath, {
       allowedRoots: options.allowedRoots,

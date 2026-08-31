@@ -23,8 +23,9 @@ export function formatTable(
   rows: readonly (readonly string[])[],
   options?: TableFormatOptions,
 ): string[] {
-  const sanitize = (cell: string): string => {
-    let text = cell.replace(/\r?\n/g, " ").replace(/(?<!\\)\|/g, "\\|");
+  const sanitize = (cell: string | null | undefined): string => {
+    const raw = typeof cell === "string" ? cell : String(cell ?? "");
+    let text = raw.replace(/\r?\n/g, " ").replace(/(?<!\\)\|/g, "\\|");
     if (
       options?.maxColumnWidth &&
       options.maxColumnWidth > 0 &&

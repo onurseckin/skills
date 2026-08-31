@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { COMMAND_REGISTRY } from "../../../olt/scripts/src/cli/registry/index.ts";
+import { COMMAND_REGISTRY, findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
 
 const skillRoot = join(import.meta.dir, "../../../olt");
 const skillPath = join(skillRoot, "SKILL.md");
@@ -85,11 +85,10 @@ describe("Mandatory Supervisory Scheduler Invariant & Rule 16 Contract", () => {
     expect(content).toContain("Tier 1 Background Orchestrator");
   });
 
-  test("dag command is registered in COMMAND_REGISTRY with correct aliases", () => {
-    const dagSpec = COMMAND_REGISTRY.find((spec) => spec.name === "dag");
+  test("dag command is registered in COMMAND_REGISTRY with zero aliases", () => {
+    const dagSpec = findCommand("dag");
     expect(dagSpec).toBeDefined();
-    expect(dagSpec?.aliases).toContain("dag:view");
-    expect(dagSpec?.aliases).toContain("dag:render");
+    expect(dagSpec?.aliases).toEqual([]);
     expect(dagSpec?.domain).toBe("reporting");
   });
 

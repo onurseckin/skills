@@ -335,12 +335,11 @@ describe("QuotaCircuitBreaker Engine", () => {
 });
 
 describe("quota:check CLI Command & Registry", () => {
-  it("registers quota:check in COMMAND_REGISTRY with expected aliases", () => {
+  it("registers quota:check in COMMAND_REGISTRY with zero aliases", () => {
     const cmd = findCommand("quota:check");
     expect(cmd).toBeDefined();
     expect(cmd?.name).toBe("quota:check");
-    expect(cmd?.aliases).toContain("quota:circuit-break");
-    expect(cmd?.aliases).toContain("circuit-breaker:check");
+    expect(cmd?.aliases).toEqual([]);
     expect(cmd?.domain).toBe("reporting");
   });
 

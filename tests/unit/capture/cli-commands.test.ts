@@ -239,14 +239,14 @@ screens:
   });
 
   describe("cli-capabilities contracts", () => {
-    it("validates the cli-capabilities split tree contains standardized mind:queue commands", () => {
+    it("validates the cli-capabilities split tree contains standardized queue commands", () => {
       const manifest = loadCapabilitySplit();
       const commandNames = new Set(manifest.commands.map((c) => c.name));
-      expect(commandNames.has("mind:queue:list")).toBe(true);
-      expect(commandNames.has("mind:queue:add")).toBe(true);
-      expect(commandNames.has("mind:queue:drain")).toBe(true);
-      expect(commandNames.has("mind:queue:seal")).toBe(true);
-      expect(commandNames.has("mind:queue:clean")).toBe(true);
+      expect(commandNames.has("queue:list")).toBe(true);
+      expect(commandNames.has("queue:add")).toBe(true);
+      expect(commandNames.has("queue:drain")).toBe(true);
+      expect(commandNames.has("queue:seal")).toBe(true);
+      expect(commandNames.has("queue:clean")).toBe(true);
     });
   });
 });

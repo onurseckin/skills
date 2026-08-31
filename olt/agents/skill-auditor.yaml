@@ -63,7 +63,7 @@ permissions:
     - "skill:audit:live"
     - "meta-audit"
     - "task:brief"
-    - "todo:add"
+    - "queue:add"
     - "mind:candidate"
     - "agent:report"
     - "doctor"

@@ -40,17 +40,17 @@ export function collectReportAssets(task: TaskRecord, add: AssetSink, nextIndex:
     const props = inferAssetProps(url, undefined, task);
     const object = typeof shot === "string" ? undefined : shot;
     add({
-      id: object?.id || `asset-${task.id}-${nextIndex()}`,
-      type: object?.type || props.type,
+      id: object?.id ?? `asset-${task.id}-${nextIndex()}`,
+      type: object?.type ?? props.type,
       url,
-      title: object?.title || `Test Snapshot: ${url.split("/").pop()}`,
-      description: object?.description || props.description,
+      title: object?.title ?? `Test Snapshot: ${url.split("/").pop()}`,
+      description: object?.description ?? props.description,
       ...(object?.timestamp ? { timestamp: object.timestamp } : {}),
-      mimeType: object?.mimeType || props.mimeType,
+      mimeType: object?.mimeType ?? props.mimeType,
       ...(object?.sizeBytes === undefined ? {} : { sizeBytes: object.sizeBytes }),
       ...(object?.dimensions ? { dimensions: object.dimensions } : {}),
-      ...(object?.author || task.lease?.agent_id
-        ? { author: object?.author || task.lease?.agent_id }
+      ...((object?.author ?? task.lease?.agent_id)
+        ? { author: object?.author ?? task.lease?.agent_id }
         : {}),
       metadata: object?.metadata ?? { stage: "execution" },
     });
@@ -72,13 +72,13 @@ export function collectValidationAssets(
       const props = inferAssetProps(url, undefined, task);
       const object = typeof shot === "string" ? undefined : shot;
       add({
-        id: object?.id || `asset-${task.id}-val-${nextIndex()}`,
-        type: object?.type || props.type,
+        id: object?.id ?? `asset-${task.id}-val-${nextIndex()}`,
+        type: object?.type ?? props.type,
         url,
-        title: object?.title || `Validator Snapshot: ${url.split("/").pop()}`,
+        title: object?.title ?? `Validator Snapshot: ${url.split("/").pop()}`,
         description: `Captured by validator during gate check for task ${task.id}`,
-        ...(object?.timestamp || startedAt ? { timestamp: object?.timestamp || startedAt } : {}),
-        mimeType: object?.mimeType || props.mimeType,
+        ...((object?.timestamp ?? startedAt) ? { timestamp: object?.timestamp ?? startedAt } : {}),
+        mimeType: object?.mimeType ?? props.mimeType,
         ...(object?.sizeBytes === undefined ? {} : { sizeBytes: object.sizeBytes }),
         ...(object?.dimensions ? { dimensions: object.dimensions } : {}),
         ...(entry.validator_id ? { author: entry.validator_id } : {}),
@@ -100,22 +100,22 @@ export function collectFindingAssets(
       if (!shot || typeof shot !== "object" || !shot.url) continue;
       const props = inferAssetProps(shot.url, undefined, context.task);
       const author =
-        shot.author ||
-        finding.author ||
-        finding.validatorId ||
-        context.task?.validations?.[0]?.validator_id ||
+        shot.author ??
+        finding.author ??
+        finding.validatorId ??
+        context.task?.validations?.[0]?.validator_id ??
         context.criticId;
       const scopeId = context.task ? context.task.id : "critic";
       add({
-        id: shot.id || `asset-${scopeId}-finding-${nextIndex()}`,
-        type: shot.type || props.type,
+        id: shot.id ?? `asset-${scopeId}-finding-${nextIndex()}`,
+        type: shot.type ?? props.type,
         url: shot.url,
-        title: shot.title || `Finding Snapshot: ${shot.url.split("/").pop()}`,
-        description: shot.description || `Evidence for finding ${finding.id}`,
-        ...(shot.timestamp || finding.timestamp
-          ? { timestamp: shot.timestamp || finding.timestamp }
+        title: shot.title ?? `Finding Snapshot: ${shot.url.split("/").pop()}`,
+        description: shot.description ?? `Evidence for finding ${finding.id}`,
+        ...((shot.timestamp ?? finding.timestamp)
+          ? { timestamp: shot.timestamp ?? finding.timestamp }
           : {}),
-        mimeType: shot.mimeType || props.mimeType,
+        mimeType: shot.mimeType ?? props.mimeType,
         ...(shot.sizeBytes === undefined ? {} : { sizeBytes: shot.sizeBytes }),
         ...(shot.dimensions ? { dimensions: shot.dimensions } : {}),
         ...(author ? { author } : {}),

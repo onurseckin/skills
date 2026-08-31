@@ -1,7 +1,7 @@
 import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { logDestructiveOp, smartEnsureSymlink } from "./fs-helpers";
+import { logDestructiveOp, smartEnsureSymlink } from "./fs-helpers.ts";
 
 export interface EnsureBinaryOptions {
   targetBinDir?: string | undefined;
@@ -57,6 +57,9 @@ export function ensureGlobalOltBinary(options?: EnsureBinaryOptions): EnsureBina
         status = "updated";
       }
     } catch {
+      try {
+        chmodSync(binaryPath, 0o755);
+      } catch {}
       writeFileSync(binaryPath, expectedContent, { encoding: "utf-8", mode: 0o755 });
       chmodSync(binaryPath, 0o755);
       status = "updated";

@@ -65,9 +65,9 @@ describe("grant bootstrap allowlist data", () => {
     }
   });
 
-  test("isGrantBootstrapExempt matches an allowlisted command through a registered alias", () => {
-    expect(isGrantBootstrapExempt(spec("role:contract"))).toBe(true);
-    expect(isGrantBootstrapExempt(spec("role:cheat"))).toBe(true);
+  test("isGrantBootstrapExempt matches an allowlisted command", () => {
+    expect(isGrantBootstrapExempt(spec("role:cheat-sheet"))).toBe(true);
+    expect(isGrantBootstrapExempt(spec("whoami"))).toBe(true);
   });
 
   test("isGrantBootstrapExempt rejects an ordinary granted command", () => {
@@ -99,8 +99,8 @@ describe("declaresRunIdentityFlag: the structural hole 1 predicate", () => {
     expect(declaresRunIdentityFlag(spec("agent:brief"))).toBe(false);
     expect(declaresRunIdentityFlag(spec("role:cheat-sheet"))).toBe(false);
     expect(declaresRunIdentityFlag(spec("install"))).toBe(false);
-    expect(declaresRunIdentityFlag(spec("mind:queue:list"))).toBe(false);
-    expect(declaresRunIdentityFlag(spec("usage:report"))).toBe(false);
+    expect(declaresRunIdentityFlag(spec("queue:status"))).toBe(false);
+    expect(declaresRunIdentityFlag(spec("queue:add"))).toBe(false);
   });
 
   test("is true for commands that declare a --run/--run-id flag, whether required or optional", () => {

@@ -4,17 +4,17 @@ import {
   deployCanonicalSkill,
   type DeploySkillOptions,
   type DeploySkillResult,
-} from "./skill-deployer";
+} from "./skill-deployer.ts";
 import {
   ensureGlobalOltBinary,
   type EnsureBinaryOptions,
   type EnsureBinaryResult,
-} from "./olt-bin";
+} from "./olt-bin.ts";
 import {
   ensurePathInShellRc,
   type EnsureShellRcOptions,
   type EnsureShellRcResult,
-} from "./shell-rc";
+} from "./shell-rc.ts";
 
 export interface SyncOptions extends DeploySkillOptions, EnsureBinaryOptions, EnsureShellRcOptions {
   silent?: boolean | undefined;
@@ -28,7 +28,7 @@ export interface SyncSummary {
 
 export const GLOBAL_SYNC_GEN5 = true;
 
-function orDefault<T>(value: T | undefined, fallback: T): T {
+export function orDefault<T>(value: T | undefined, fallback: T): T {
   if (value !== undefined) {
     return value;
   }
@@ -72,23 +72,20 @@ export async function runSync(options?: SyncOptions): Promise<SyncSummary> {
   };
 }
 
-function computeIsMain(): boolean {
-  if (import.meta.main) {
-    return true;
-  }
-  const entryArg = process.argv[1];
-  if (entryArg === undefined) {
-    return false;
-  }
-  if (entryArg.endsWith("scripts/sync/index.ts")) {
-    return true;
-  }
-  return entryArg.endsWith("scripts/sync");
+export function computeIsMain(
+  mainVal: boolean = import.meta.main,
+  entryArg: string | undefined = process.argv[1],
+): boolean {
+  if (mainVal) return true;
+  if (!entryArg) return false;
+  return entryArg.endsWith("scripts/sync/index.ts") || entryArg.endsWith("scripts/sync");
 }
 
-const isMain = computeIsMain();
-
-if (isMain) {
-  const allowDirty = process.argv.slice(2).includes("--allow-dirty");
+export async function main(argv: string[] = process.argv.slice(2)): Promise<void> {
+  const allowDirty = argv.includes("--allow-dirty");
   await runSync({ allowDirty });
+}
+
+if (computeIsMain()) {
+  await main();
 }

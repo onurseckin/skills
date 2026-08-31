@@ -73,8 +73,19 @@ export function processCoverageArtifacts(
   };
 }
 
-// Auto-execute if invoked as CLI script
-if (import.meta.main) {
+export function computeIsMain(
+  mainVal: boolean = import.meta.main,
+  entryArg: string | undefined = process.argv[1],
+): boolean {
+  if (mainVal) return true;
+  if (!entryArg) return false;
+  return (
+    entryArg.endsWith("scripts/testing/reporting/index.ts") ||
+    entryArg.endsWith("scripts/testing/reporting")
+  );
+}
+
+export function main(): void {
   const res = processCoverageArtifacts();
   if (res.lcovExists) {
     console.log(
@@ -83,4 +94,9 @@ if (import.meta.main) {
   } else {
     console.log("[coverage] No coverage/lcov.info found to process.");
   }
+}
+
+// Auto-execute if invoked as CLI script
+if (computeIsMain()) {
+  main();
 }

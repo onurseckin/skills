@@ -48,7 +48,7 @@ Display compact terminal cheat sheets and command matrices for system roles.
 
 Renders ASCII tables and formatted markdown cheat sheets detailing tier, granted commands, forbidden actions, spawn rights, and architectural invariants.
 
-- **Aliases**: `role:contract`, `role:cheat`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 

@@ -59,34 +59,26 @@ describe("CLI Registry Uniqueness", () => {
     expect(duplicates).toEqual([]);
   });
 
-  test("resolves plan:init and its aliases deterministically", () => {
+  test("resolves plan:init deterministically and rejects retired aliases", () => {
     const planInitSpec = findCommand("plan:init");
     expect(planInitSpec).toBeDefined();
     expect(planInitSpec?.name).toBe("plan:init");
     expect(planInitSpec?.domain).toBe("plan");
+    expect(planInitSpec?.aliases).toEqual([]);
 
-    const alias1 = findCommand("plan-init");
-    expect(alias1).toBeDefined();
-    expect(alias1).toBe(planInitSpec);
-
-    const alias2 = findCommand("init-plan");
-    expect(alias2).toBeDefined();
-    expect(alias2).toBe(planInitSpec);
+    expect(findCommand("plan-init")).toBeUndefined();
+    expect(findCommand("init-plan")).toBeUndefined();
   });
 
-  test("resolves run:init and its aliases deterministically", () => {
+  test("resolves run:init deterministically and rejects retired aliases", () => {
     const runInitSpec = findCommand("run:init");
     expect(runInitSpec).toBeDefined();
     expect(runInitSpec?.name).toBe("run:init");
     expect(runInitSpec?.domain).toBe("run");
+    expect(runInitSpec?.aliases).toEqual([]);
 
-    const alias1 = findCommand("run-init");
-    expect(alias1).toBeDefined();
-    expect(alias1).toBe(runInitSpec);
-
-    const alias2 = findCommand("capsule-init");
-    expect(alias2).toBeDefined();
-    expect(alias2).toBe(runInitSpec);
+    expect(findCommand("run-init")).toBeUndefined();
+    expect(findCommand("capsule-init")).toBeUndefined();
   });
 
   test("plan:init and run:init resolve to completely distinct command specs without overlap", () => {

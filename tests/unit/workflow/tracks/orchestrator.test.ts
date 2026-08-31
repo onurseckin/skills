@@ -8,19 +8,11 @@ import type {
   RoundExecutionResult,
   RoundExecutor,
 } from "../../../../olt/scripts/src/orchestrator/types.ts";
+import { scratchRoot } from "../../../support/scratch-root.ts";
 
-const TEST_DIR = join(process.cwd(), ".olt", "scratch", "test-orch-worktree");
+const TEST_DIR = scratchRoot(import.meta.path, "test-orch-worktree");
 
 describe("orchestrator worktree integration", () => {
-  beforeEach(() => {
-    rmSync(TEST_DIR, { recursive: true, force: true });
-    mkdirSync(TEST_DIR, { recursive: true });
-  });
-
-  afterEach(() => {
-    rmSync(TEST_DIR, { recursive: true, force: true });
-  });
-
   test("AutonomousLoopRunner sets up worktree isolation and passes worktreePath to executor", async () => {
     let capturedInput: RoundExecutionInput | undefined;
 
@@ -45,7 +37,6 @@ describe("orchestrator worktree integration", () => {
       repoPath: TEST_DIR,
       initialPrompt: "Test prompt",
       maxRounds: 1,
-      capsulesDir: join(TEST_DIR, "capsules"),
       worktreeIsolation: false,
       trackId: "track-orch-1",
       executor: mockExecutor,

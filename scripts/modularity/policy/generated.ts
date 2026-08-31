@@ -90,8 +90,8 @@ export function findGeneratedCatalogViolations(
       observed: "missing index.json",
       detail: "Generated CLI directory requires a catalog index.",
     }));
-  return [...missing, ...catalogFindings(byPath)].sort(
-    (left, right) =>
-      compare(left.path, right.path) || compare(String(left.observed), String(right.observed)),
-  );
+  return [...missing, ...catalogFindings(byPath)].sort((left, right) => {
+    const pathDiff = compare(left.path, right.path);
+    return pathDiff !== 0 ? pathDiff : compare(String(left.observed), String(right.observed));
+  });
 }

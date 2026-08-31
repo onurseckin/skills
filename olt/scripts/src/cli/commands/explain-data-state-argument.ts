@@ -253,6 +253,44 @@ export const INVALID_STATE_AND_ARGUMENT_ENTRIES: readonly ExplainEntry[] = [
     ],
   },
   {
+    code: "CAPACITY_EXCEEDED",
+    summary: "Subagent concurrency or queue capacity has been exceeded.",
+    rule: "The system enforces hard limits on concurrent subagent slots and queue depth to prevent runaway resource consumption.",
+    causes: [
+      cause(
+        "subagent-queue-capacity-exceeded",
+        "Subagent queue capacity exceeded",
+        "The number of queued subagent slot requests exceeded the maximum allowed pool queue depth.",
+        "Wait for active subagent slots to complete before queuing additional requests, or increase throughput by decoupling parallel tasks.",
+        [
+          example(
+            "engine/runner/subagent-pool.ts",
+            "subagent queue capacity exceeded: ${this.waitQueue.length} queued requests exceeds max 1000",
+          ),
+        ],
+      ),
+    ],
+  },
+  {
+    code: "ROLE_BOUNDARY_DEVIATION",
+    summary: "An agent attempted an action strictly prohibited for its assigned role.",
+    rule: "Coordinators and supervisors must not perform direct file modifications and must delegate implementation tasks to Tier 3 Implementers.",
+    causes: [
+      cause(
+        "coordinator-direct-file-edit",
+        "Coordinator direct file modification attempt",
+        "A coordinator holding a supervisory role attempted to execute a file editing or writing tool.",
+        "Coordinators must compile the task plan and dispatch Tier 3 Implementers via invoke_subagent instead of editing files directly.",
+        [
+          example(
+            "authority/guards/coordinator-tool-guard.ts",
+            "Coordinator Anti-Direct-Execution Guard: ${agentDisplay} holds a coordinator grant and is strictly prohibited from executing file modification tool '${toolOrCategory}' (ROLE_BOUNDARY_DEVIATION). Coordinators must compile the task plan and dispatch Tier 3 Implementers via invoke_subagent.",
+          ),
+        ],
+      ),
+    ],
+  },
+  {
     code: "ROLE_CONFINEMENT_VIOLATION",
     summary: "An orchestrator or coordinator attempted to claim or execute a code task directly.",
     rule: "Orchestrators (Tier 1) and Coordinators (Tier 2) are mechanically confined from claiming code execution tasks and must dispatch Tier 3 Implementers.",

@@ -103,7 +103,10 @@ export async function readIndexedBlobs(
     stderr: "pipe",
   });
   const listed = await collect(list);
-  if (listed.status !== 0) failure(listed.stderr.trim() || "git ls-files failed");
+  if (listed.status !== 0) {
+    const errorMsg = listed.stderr.trim();
+    failure(errorMsg.length > 0 ? errorMsg : "git ls-files failed");
+  }
   const entries = parseIndexRecords(listed.stdout);
   if (entries.length === 0) return [];
 
@@ -115,7 +118,10 @@ export async function readIndexedBlobs(
   batch.stdin.write(entries.map((entry) => `${entry.oid}\n`).join(""));
   batch.stdin.end();
   const result = await collect(batch);
-  if (result.status !== 0) failure(result.stderr.trim() || "git cat-file failed");
+  if (result.status !== 0) {
+    const errorMsg = result.stderr.trim();
+    failure(errorMsg.length > 0 ? errorMsg : "git cat-file failed");
+  }
   return parseBatch(result.stdout, entries);
 }
 
@@ -125,7 +131,10 @@ export async function readTreeBlobs(repoRoot: string): Promise<readonly IndexedB
     { stdout: "pipe", stderr: "pipe" },
   );
   const listed = await collect(list);
-  if (listed.status !== 0) failure(listed.stderr.trim() || "git ls-files failed");
+  if (listed.status !== 0) {
+    const errorMsg = listed.stderr.trim();
+    failure(errorMsg.length > 0 ? errorMsg : "git ls-files failed");
+  }
   const paths = new TextDecoder("utf-8", { fatal: true }).decode(listed.stdout).split("\0");
   if (paths.pop() !== "") failure("ls-files output was not NUL-terminated");
   const unique = new Set<string>();

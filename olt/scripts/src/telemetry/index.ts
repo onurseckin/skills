@@ -29,7 +29,6 @@ export {
 export {
   AUTO_WAKE_PROMPT,
   CRITICAL_WRAP_UP_MESSAGE,
-  CircuitBreakerStatus,
   DEFAULT_AUTO_WAKE_BUFFER_SECONDS,
   DEFAULT_QUOTA_THRESHOLD,
   DEFAULT_SAFE_WINDOW_SECONDS,
@@ -39,6 +38,7 @@ export {
   formatCircuitBreakerMarkdown,
   type AutoWakeSchedulePayload,
   type CircuitBreakerEvaluation,
+  type CircuitBreakerStatus,
   type ConstrainedModelInfo,
   type QuotaCircuitBreakerOptions,
   type WrapUpDirective,

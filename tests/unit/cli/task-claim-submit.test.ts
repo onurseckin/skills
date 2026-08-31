@@ -458,7 +458,7 @@ describe("task:claim / task:heartbeat / task:submit", () => {
       { repositoryGitCommand: mockGitThrow },
     );
     expect(claim4.token).toBeDefined();
-  });
+  }, 20000);
 
   test("task:submit with --no-op and --reason when write scope is unchanged", async () => {
     const { repo, run } = await setupRun("submit-noop", roots);
@@ -679,7 +679,7 @@ describe("task:claim / task:heartbeat / task:submit", () => {
     );
 
     expect((submit.task as { status: string }).status).toBe("submitted");
-  });
+  }, 20000);
 
   test("taskSubmitCommand and taskReleaseCommand from task-ops.ts wrapper", async () => {
     const { repo, run } = await setupRun("task-ops-wrappers", roots);

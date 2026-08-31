@@ -25,7 +25,7 @@ export function hygieneAuditCommand(
   };
 }
 
-export async function executeHygieneAudit(argv: readonly string[]): Promise<number> {
+export async function executeHygieneAudit(_argv: readonly string[]): Promise<number> {
   const result = scanRootHygiene({});
   process.stdout.write(JSON.stringify(result) + "\n");
   return result.passed ? 0 : 1;

@@ -1,9 +1,6 @@
 {
   "name": "run:init",
-  "aliases": [
-    "run-init",
-    "capsule-init"
-  ],
+  "aliases": [],
   "domain": "run",
   "summary": "Initialize a capsule run root and write its initial manifest.",
   "flags": [

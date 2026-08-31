@@ -136,7 +136,7 @@ Discover and report cross-platform quota, rate limit, and token usage telemetry.
 
 Autonomously probes frontier LLM platforms (Antigravity, Claude, Cursor, OpenAI/Codex) using a 3-tier fallback strategy and generates unified ASCII telemetry tables.
 
-- **Aliases**: `usage:report`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 

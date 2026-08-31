@@ -90,13 +90,11 @@ describe("CLI - watchdog:status", () => {
     ).rejects.toThrow(HarnessError);
   });
 
-  test("supports watchdog:list alias", async () => {
+  test("rejects retired watchdog:list alias", async () => {
     const dir = scratchRoot(import.meta.path, "cli-status-alias");
-    registerWatchdog({ id: "wd-alias-1", generation: 1 }, dir);
-
-    const result = await execute(["watchdog:list", "--run", dir]);
-    expect(String(result.markdown)).toContain("### Watchdog Lifecycle & Cadence Status");
-    expect((result.watchdogs as unknown as WatchdogRecord[]).length).toBe(1);
+    await expect(execute(["watchdog:list", "--run", dir])).rejects.toThrow(
+      "unknown command: watchdog:list",
+    );
   });
 });
 
@@ -218,12 +216,12 @@ describe("CLI - watchdog:cleanup", () => {
     expect(result.remaining_active).toBe(1);
   });
 
-  test("supports watchdog:clean alias", async () => {
+  test("rejects retired watchdog:clean alias", async () => {
     const dir = scratchRoot(import.meta.path, "cli-cleanup-alias");
     const authorityRun = authorizeMind(dir);
-    const result = await execute(["watchdog:clean", "--authority-run", authorityRun, "--run", dir]);
-    expect(String(result.markdown)).toContain("### Watchdog Stale Cleanup Engine");
-    expect(result.cleaned_count).toBe(0);
+    await expect(
+      execute(["watchdog:clean", "--authority-run", authorityRun, "--run", dir]),
+    ).rejects.toThrow("unknown command: watchdog:clean");
   });
 });
 
@@ -276,21 +274,31 @@ describe("CLI - watchdog:phase-cleanup", () => {
     expect(terminated[0]?.id).toBe("wd-old-step");
   });
 
-  test("supports watchdog:cleanup-phase and watchdog:phase-clean aliases", async () => {
+  test("rejects retired watchdog:cleanup-phase and watchdog:phase-clean aliases", async () => {
     const dir = scratchRoot(import.meta.path, "cli-phase-clean-alias");
     const authorityRun = authorizeMind(dir);
-    registerWatchdog({ id: "wd-alias-test", generation: 1, phase: "draft" }, dir);
-
-    const result = await execute([
-      "watchdog:cleanup-phase",
-      "--authority-run",
-      authorityRun,
-      "--run",
-      dir,
-      "--phase",
-      "draft",
-    ]);
-    expect(result.terminated_count).toBe(1);
+    await expect(
+      execute([
+        "watchdog:cleanup-phase",
+        "--authority-run",
+        authorityRun,
+        "--run",
+        dir,
+        "--phase",
+        "draft",
+      ]),
+    ).rejects.toThrow("unknown command: watchdog:cleanup-phase");
+    await expect(
+      execute([
+        "watchdog:phase-clean",
+        "--authority-run",
+        authorityRun,
+        "--run",
+        dir,
+        "--phase",
+        "draft",
+      ]),
+    ).rejects.toThrow("unknown command: watchdog:phase-clean");
   });
 });
 
@@ -370,10 +378,14 @@ describe("CLI - watchdog:verify", () => {
     expect(String(result.markdown)).toContain("#### Invariant Violations");
   });
 
-  test("supports watchdog:check and watchdog:lint aliases and filters violations by generation", async () => {
+  test("rejects retired watchdog:check and watchdog:lint aliases and filters violations by generation", async () => {
     const dir = scratchRoot(import.meta.path, "cli-verify-alias");
-    const result = await execute(["watchdog:check", "--run", dir]);
-    expect(result.valid).toBe(true);
+    await expect(execute(["watchdog:check", "--run", dir])).rejects.toThrow(
+      "unknown command: watchdog:check",
+    );
+    await expect(execute(["watchdog:lint", "--run", dir])).rejects.toThrow(
+      "unknown command: watchdog:lint",
+    );
 
     const genResult = await execute(["watchdog:verify", "--run", dir, "--generation", "1"]);
     expect(genResult.valid).toBe(true);

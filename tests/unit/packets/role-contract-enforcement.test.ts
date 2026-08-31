@@ -89,6 +89,7 @@ describe("role capability documents bind the CLI", () => {
       "report:get",
       "evidence:get",
       "agent:report",
+      "doctor",
       "whoami",
       "msg:send",
       "msg:recv",

@@ -26,7 +26,7 @@ export function hygieneFixCommand(
   };
 }
 
-export async function executeHygieneFix(argv: readonly string[]): Promise<number> {
+export async function executeHygieneFix(_argv: readonly string[]): Promise<number> {
   const scanResult = scanRootHygiene({});
   const quarantinedFiles =
     scanResult.violations.length > 0

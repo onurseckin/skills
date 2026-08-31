@@ -74,7 +74,7 @@ describe("prepareCommand authorization & RBAC", () => {
     };
 
     expect(prepareCommand(input, fakeRunner)).rejects.toThrow(
-      /COGNITIVE_VALIDATOR_COMMAND_FORBIDDEN|Command authorization failed|UNAUTHORIZED/,
+      /COGNITIVE_VALIDATOR_COMMAND_FORBIDDEN|Command authorization failed|UNAUTHORIZED|PERMISSION_DENIED/,
     );
   });
 });

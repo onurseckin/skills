@@ -15,9 +15,9 @@ export interface ResolvedOltSource {
   cleanup: () => void;
 }
 
-function firstNonEmpty(...values: Array<string | undefined>): string {
+export function firstNonEmpty(...values: Array<string | null | undefined>): string {
   for (const value of values) {
-    if (value !== undefined && value.length > 0) {
+    if (typeof value === "string" && value.length > 0) {
       return value;
     }
   }
@@ -67,7 +67,11 @@ export function refuseSyncSourceMessage(dirtyPaths: readonly string[]): string {
   return `refusing to sync from a dirty olt/ tree; commit these paths or pass --allow-dirty:\n${list}`;
 }
 
-export function materializeOltFromHead(repoRoot: string, tmpParentDir?: string): ResolvedOltSource {
+export function materializeOltFromHead(
+  repoRoot: string,
+  tmpParentDir?: string,
+  customSpawn: typeof spawnSync = spawnSync,
+): ResolvedOltSource {
   let tmpParent: string;
   if (tmpParentDir !== undefined) {
     tmpParent = tmpParentDir;
@@ -86,7 +90,7 @@ export function materializeOltFromHead(repoRoot: string, tmpParentDir?: string):
     });
   };
 
-  const archiveResult = spawnSync("git", ["archive", "--format=tar", "HEAD", "--", "olt/"], {
+  const archiveResult = customSpawn("git", ["archive", "--format=tar", "HEAD", "--", "olt/"], {
     cwd: repoRoot,
     maxBuffer: 1024 * 1024 * 256,
   });
@@ -96,12 +100,12 @@ export function materializeOltFromHead(repoRoot: string, tmpParentDir?: string):
       `git archive HEAD -- olt/ failed in ${repoRoot}: ${firstNonEmpty(archiveResult.stderr?.toString(), archiveResult.error?.message)}`,
     );
   }
-  if (!archiveResult.stdout) {
+  if (!archiveResult.stdout || archiveResult.stdout.length === 0) {
     removeExtractDir();
     throw new Error(`git archive HEAD -- olt/ produced no output in ${repoRoot}`);
   }
 
-  const extractResult = spawnSync("tar", ["-x", "-C", extractDir], {
+  const extractResult = customSpawn("tar", ["-x", "-C", extractDir], {
     input: archiveResult.stdout,
   });
   if (extractResult.status !== 0) {

@@ -1,9 +1,6 @@
 {
   "name": "quota:check",
-  "aliases": [
-    "quota:circuit-break",
-    "circuit-breaker:check"
-  ],
+  "aliases": [],
   "domain": "reporting",
   "summary": "Evaluate quota circuit-breaker status, wrap-up directives, and auto-wake timer schedule.",
   "flags": [

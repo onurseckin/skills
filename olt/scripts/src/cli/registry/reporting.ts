@@ -163,7 +163,7 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "report:usage",
-    aliases: ["usage:report"],
+    aliases: [],
     domain: "reporting",
     summary: "Discover and report cross-platform quota, rate limit, and token usage telemetry.",
     description:
@@ -189,7 +189,7 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "dag",
-    aliases: ["report:dag", "dag:view", "dag:render"],
+    aliases: [],
     domain: "reporting",
     summary:
       "Render Sugiyama hierarchical DAG layout with rounded Unicode boxes and cycle diagnostics.",
@@ -273,7 +273,7 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "events:trace",
-    aliases: ["dag:trace"],
+    aliases: [],
     domain: "reporting",
     summary: "Real-time step tracer and dynamic living DAG expansion timeline.",
     description:
@@ -299,7 +299,7 @@ export const REPORTING_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "quota:check",
-    aliases: ["quota:circuit-break", "circuit-breaker:check"],
+    aliases: [],
     domain: "reporting",
     summary:
       "Evaluate quota circuit-breaker status, wrap-up directives, and auto-wake timer schedule.",

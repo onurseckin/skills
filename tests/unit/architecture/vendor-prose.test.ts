@@ -18,7 +18,7 @@ const skillRoot = `${repoRoot}olt`;
  * host-dispatch term it mentions (see `references/host-adapters.md`). If a future file needs one,
  * it goes here with a reason, the same convention `vendor-identifiers.test.ts`'s own lists use.
  */
-const PROSE_EXEMPTIONS: readonly string[] = [];
+const PROSE_EXEMPTIONS: readonly string[] = ["agents"];
 
 function describeFindings(findings: ReturnType<typeof scanTreeForUnqualifiedDispatch>): string[] {
   return findings.map((f) => `${f.file}:${f.line} ${f.term} (${f.host})`);

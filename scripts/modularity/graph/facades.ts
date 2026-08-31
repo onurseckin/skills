@@ -39,7 +39,10 @@ export function findFacadeViolations(edges: readonly ImportEdge[]): readonly Vio
     }
   }
   return [...unique.values()]
-    .sort((left, right) => compare(left.from, right.from) || compare(left.to, right.to))
+    .sort((left, right) => {
+      const fromDiff = compare(left.from, right.from);
+      return fromDiff !== 0 ? fromDiff : compare(left.to, right.to);
+    })
     .map((edge) => ({
       rule: "facade_bypass" as const,
       path: edge.from,

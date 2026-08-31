@@ -11,7 +11,6 @@ import {
   type ExecutionBudgetMetrics,
   type ScopedExecutionAuditResult,
   type ScopedExecutionPolicy,
-  type ScopedTestTarget,
 } from "../../../olt/scripts/src/testing/scoped-execution.ts";
 
 describe("Static Invariants: Zero Any & Zero Suppressions", () => {

@@ -6,11 +6,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { basename, extname, join } from "node:path";
 
-const ARGS = process.argv.slice(2);
-const RUN_ALL = ARGS.includes("--all");
-const SHOW_HELP = ARGS.includes("--help") || ARGS.includes("-h");
-
-function gitOutput(args: string[]): string {
+export function gitOutput(args: string[]): string {
   try {
     const res = spawnSync("git", args, { encoding: "utf-8" });
     return (res.stdout ?? "").trim();
@@ -19,26 +15,27 @@ function gitOutput(args: string[]): string {
   }
 }
 
-function getChangedFiles(): string[] {
+export function getChangedFiles(customGitOutput?: (args: string[]) => string): string[] {
+  const gitFn = customGitOutput ?? gitOutput;
   const files = new Set<string>();
 
   // 1. Uncommitted working tree & staged changes
-  const uncommitted = gitOutput(["diff", "--name-only"]);
-  const staged = gitOutput(["diff", "--cached", "--name-only"]);
+  const uncommitted = gitFn(["diff", "--name-only"]);
+  const staged = gitFn(["diff", "--cached", "--name-only"]);
   for (const line of `${uncommitted}\n${staged}`.split("\n")) {
     if (line.trim()) files.add(line.trim());
   }
 
   // 2. Committed changes against upstream or previous commit
   let diffBase = "";
-  const mergeBase = gitOutput(["merge-base", "origin/main", "HEAD"]);
+  const mergeBase = gitFn(["merge-base", "origin/main", "HEAD"]);
   if (mergeBase) {
     diffBase = `${mergeBase}...HEAD`;
   } else {
     diffBase = "HEAD~1";
   }
 
-  const branchDiff = gitOutput(["diff", "--name-only", diffBase]);
+  const branchDiff = gitFn(["diff", "--name-only", diffBase]);
   for (const line of branchDiff.split("\n")) {
     if (line.trim()) files.add(line.trim());
   }
@@ -46,7 +43,7 @@ function getChangedFiles(): string[] {
   return Array.from(files);
 }
 
-function findAllTestFiles(dir: string): string[] {
+export function findAllTestFiles(dir: string): string[] {
   const results: string[] = [];
   if (!existsSync(dir)) return results;
 
@@ -63,8 +60,12 @@ function findAllTestFiles(dir: string): string[] {
   return results;
 }
 
-function resolveAffectedTestFiles(changedFiles: string[]): { all: boolean; testFiles: string[] } {
-  if (RUN_ALL) return { all: true, testFiles: [] };
+export function resolveAffectedTestFiles(
+  changedFiles: string[],
+  runAll: boolean = false,
+  unitTestDir: string = "tests/unit",
+): { all: boolean; testFiles: string[] } {
+  if (runAll) return { all: true, testFiles: [] };
 
   const CRITICAL_GLOBAL_FILES = [
     "package.json",
@@ -83,7 +84,7 @@ function resolveAffectedTestFiles(changedFiles: string[]): { all: boolean; testF
     }
   }
 
-  const allTests = findAllTestFiles("tests/unit");
+  const allTests = findAllTestFiles(unitTestDir);
   const affected = new Set<string>();
 
   for (const file of changedFiles) {
@@ -112,14 +113,14 @@ function resolveAffectedTestFiles(changedFiles: string[]): { all: boolean; testF
   return { all: false, testFiles: Array.from(affected) };
 }
 
-interface FileCoverageSummary {
+export interface FileCoverageSummary {
   readonly file: string;
   readonly linesPct: number;
   readonly stmtsPct: number;
   readonly uncovered: string;
 }
 
-function parseCoverageOutput(output: string): FileCoverageSummary[] {
+export function parseCoverageOutput(output: string): FileCoverageSummary[] {
   const results: FileCoverageSummary[] = [];
   const lines = output.split("\n");
   for (const line of lines) {
@@ -142,23 +143,26 @@ function parseCoverageOutput(output: string): FileCoverageSummary[] {
   return results;
 }
 
-async function run(): Promise<void> {
-  if (SHOW_HELP) {
+export async function run(argvArgs: string[] = process.argv.slice(2)): Promise<number> {
+  const showHelp = argvArgs.includes("--help") || argvArgs.includes("-h");
+  const runAll = argvArgs.includes("--all");
+
+  if (showHelp) {
     console.log(
       "Usage: bun scripts/testing/test-changed.ts [--all] [--help]\n" +
         "  --all       run every test file under tests/unit, not just affected ones\n" +
         "  --help, -h  print this usage and exit",
     );
-    process.exit(0);
+    return 0;
   }
   const changed = getChangedFiles();
-  const { all, testFiles } = resolveAffectedTestFiles(changed);
+  const { all, testFiles } = resolveAffectedTestFiles(changed, runAll);
 
   if (!all && testFiles.length === 0) {
     console.log(
       "[test-changed] No test files affected by current changes. Skipping test execution.",
     );
-    process.exit(0);
+    return 0;
   }
 
   const testArgs = ["test", "--timeout", "30000", "--parallel", "--no-isolate", "--coverage"];
@@ -188,7 +192,7 @@ async function run(): Promise<void> {
 
   if (result.status !== 0) {
     console.error("\n❌ [test-changed] Unit test suite failed.");
-    process.exit(result.status ?? 1);
+    return result.status ?? 1;
   }
 
   // Parse coverage and enforce 95% threshold across evaluated production files
@@ -230,7 +234,7 @@ async function run(): Promise<void> {
       console.error(
         "All production TypeScript modules must achieve >= 95.0% coverage before push.",
       );
-      process.exit(1);
+      return 1;
     } else {
       console.log(
         "\n✓ [coverage-gate] Mandatory +95% Coverage Check passed across all evaluated modules.",
@@ -238,10 +242,31 @@ async function run(): Promise<void> {
     }
   }
 
-  process.exit(0);
+  return 0;
 }
 
-run().catch((err: unknown) => {
-  console.error("[test-changed] Execution error:", err);
-  process.exit(1);
-});
+export function computeIsMain(
+  mainVal: boolean = import.meta.main,
+  entryArg: string | undefined = process.argv[1],
+): boolean {
+  if (mainVal) return true;
+  if (!entryArg) return false;
+  return (
+    entryArg.endsWith("scripts/testing/test-changed.ts") ||
+    entryArg.endsWith("scripts/testing/test-changed")
+  );
+}
+
+export async function main(argvArgs: string[] = process.argv.slice(2)): Promise<number> {
+  try {
+    return await run(argvArgs);
+  } catch (err) {
+    console.error("[test-changed] Execution error:", err);
+    return 1;
+  }
+}
+
+if (computeIsMain()) {
+  const code = await main();
+  process.exit(code);
+}

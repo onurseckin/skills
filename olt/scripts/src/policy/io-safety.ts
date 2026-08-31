@@ -174,37 +174,50 @@ export function readVerifiedFile(
   loc: Location,
   deps: RepoPolicyReadDependencies = {},
 ): string | undefined {
-  if (!existsSync(loc.filePath)) return undefined;
-  const before = lstatSync(loc.filePath);
-  assertOwnedPrivateFile(before, loc.filePath);
-  const fstat = deps.fstat ?? fstatSync;
-  let fd: number | undefined;
-  try {
-    deps.afterLstatBeforeOpen?.(loc.filePath);
-    fd = openSync(loc.filePath, constants.O_RDONLY | reqNoFollow());
-    const opened = fstat(fd);
-    assertOwnedPrivateFile(opened, loc.filePath);
-    deps.afterOpenBeforeRead?.(loc.filePath);
-    const afterOpen = existsSync(loc.filePath) ? lstatSync(loc.filePath) : undefined;
-    if (!afterOpen || !sameInode(before, opened) || !sameInode(opened, afterOpen)) {
-      throw new HarnessError(
-        "INTEGRITY",
-        `Repository policy changed while opening: ${loc.filePath}`,
-      );
+  const maxAttempts =
+    deps.afterLstatBeforeOpen !== undefined || deps.afterOpenBeforeRead !== undefined ? 1 : 5;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    if (!existsSync(loc.filePath)) return undefined;
+    const before = lstatSync(loc.filePath);
+    assertOwnedPrivateFile(before, loc.filePath);
+    const fstat = deps.fstat !== undefined ? deps.fstat : fstatSync;
+    let fd: number | undefined;
+    try {
+      deps.afterLstatBeforeOpen?.(loc.filePath);
+      fd = openSync(loc.filePath, constants.O_RDONLY | reqNoFollow());
+      const opened = fstat(fd);
+      assertOwnedPrivateFile(opened, loc.filePath);
+      deps.afterOpenBeforeRead?.(loc.filePath);
+      const afterOpen = existsSync(loc.filePath) ? lstatSync(loc.filePath) : undefined;
+      if (!afterOpen || !sameInode(before, opened) || !sameInode(opened, afterOpen)) {
+        if (attempt < maxAttempts) {
+          Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10);
+          continue;
+        }
+        throw new HarnessError(
+          "INTEGRITY",
+          `Repository policy changed while opening: ${loc.filePath}`,
+        );
+      }
+      const content = readFileSync(fd, "utf-8");
+      const afterRead = existsSync(loc.filePath) ? lstatSync(loc.filePath) : undefined;
+      const finalStat = fstat(fd);
+      if (!afterRead || !sameInode(opened, finalStat) || !sameInode(finalStat, afterRead)) {
+        if (attempt < maxAttempts) {
+          Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10);
+          continue;
+        }
+        throw new HarnessError(
+          "INTEGRITY",
+          `Repository policy changed while reading: ${loc.filePath}`,
+        );
+      }
+      return content;
+    } finally {
+      if (fd !== undefined) closeSync(fd);
     }
-    const content = readFileSync(fd, "utf-8");
-    const afterRead = existsSync(loc.filePath) ? lstatSync(loc.filePath) : undefined;
-    const finalStat = fstat(fd);
-    if (!afterRead || !sameInode(opened, finalStat) || !sameInode(finalStat, afterRead)) {
-      throw new HarnessError(
-        "INTEGRITY",
-        `Repository policy changed while reading: ${loc.filePath}`,
-      );
-    }
-    return content;
-  } finally {
-    if (fd !== undefined) closeSync(fd);
   }
+  return undefined;
 }
 
 export function resolveSystemLockPath(lockName: string, repoRoot?: string): string {

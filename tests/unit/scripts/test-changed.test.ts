@@ -108,7 +108,8 @@ describe("test-changed script", () => {
       };
     });
 
-    await import("../../../scripts/testing/test-changed.ts");
-    expect(recordedExitCode).toBe(0);
+    const mod = await import("../../../scripts/testing/test-changed.ts");
+    const exitCode = await mod.run();
+    expect(exitCode).toBe(0);
   });
 });

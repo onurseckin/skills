@@ -150,7 +150,7 @@ export class DefaultCollectorEnvironment implements Required<CollectorEnvironmen
     } catch {}
 
     try {
-      const token = this.env.CLAUDE_CODE_OAUTH_TOKEN || this.env.ANTHROPIC_OAUTH_TOKEN;
+      const token = this.env.CLAUDE_CODE_OAUTH_TOKEN ?? this.env.ANTHROPIC_OAUTH_TOKEN;
       if (token) {
         const requestOptions = {
           method: "GET",
@@ -205,7 +205,7 @@ export class DefaultCollectorEnvironment implements Required<CollectorEnvironmen
         .filter((e) => e.isFile() && e.name.startsWith("rollout-") && e.name.endsWith(".jsonl"))
         .map((e) => ({
           name: e.name,
-          fullPath: join(e.parentPath || (e as { path?: string }).path || sessionsDir, e.name),
+          fullPath: join(e.parentPath ?? (e as { path?: string }).path ?? sessionsDir, e.name),
         }))
         .sort((a, b) => b.name.localeCompare(a.name));
 

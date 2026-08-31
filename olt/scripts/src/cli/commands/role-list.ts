@@ -11,7 +11,7 @@ export function roleListCommand(flags: Flags, _context?: CommandContext): Record
   };
 }
 
-export async function executeRoleList(argv: readonly string[]): Promise<number> {
+export async function executeRoleList(_argv: readonly string[]): Promise<number> {
   const roles = listAvailableRoles();
   process.stdout.write(JSON.stringify({ roles, total: roles.length }) + "\n");
   return 0;

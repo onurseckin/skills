@@ -341,7 +341,7 @@ describe("Unified Reporting CLI Surface", () => {
     expect(statusResult.markdown as string).toContain("Leased (legacy-worker-99 [implementer])");
     expect(statusResult.markdown as string).not.toContain("Leased (undefined");
 
-    const dagResult = (await execute(["report:dag", "--run", run])) as Record<string, unknown>;
+    const dagResult = (await execute(["dag", "--run", run])) as Record<string, unknown>;
     expect(dagResult.markdown as string).toContain("legacy-worker-99");
     expect(dagResult.markdown as string).not.toContain("undefined");
 

@@ -20,6 +20,7 @@ import {
   __setDagSnapshotPersistenceTestHook,
   type QuotaDagSnapshot,
 } from "../../../olt/scripts/src/telemetry/dag-snapshot.ts";
+import type { CircuitBreakerEvaluation } from "../../../olt/scripts/src/telemetry/circuit-breaker.ts";
 import { resolveQuotaDagSnapshotPath } from "../../../olt/scripts/src/core/shared/paths.ts";
 import { readTelemetryStream } from "../../../olt/scripts/src/reporting/telemetry-stream.ts";
 
@@ -367,12 +368,18 @@ describe("DAG Snapshot", () => {
       autoWakeSchedule: { resetTime: "2024-01-01T01:00:00Z", resumeTime: "2024-01-01T01:01:00Z" },
     };
 
-    const evaluation: any = {
-      status: "constrained" as const,
+    const evaluation: CircuitBreakerEvaluation = {
+      status: "QUOTA_EXHAUSTED_CIRCUIT_BROKEN",
       isTriggered: true,
+      thresholdPercentage: 10,
       lowestRemainingQuota: 2,
-      constrainedModels: [{ modelName: "gemini-pro" }],
-      breakerStates: [],
+      constrainedModels: [
+        { platformId: "antigravity", modelName: "gemini-pro", remainingPercentage: 2 },
+      ],
+      wrapUpDirectives: [],
+      autoWakeSchedule: null,
+      summary: "Constrained",
+      evaluatedAt: "2024-01-01T00:00:00Z",
     };
 
     it("should format snapshot summary", () => {

@@ -136,7 +136,10 @@ export function renderMicroCycleTelemetry(tasks: readonly DashboardTaskState[]):
   return lines;
 }
 
-export function renderTaskSummaryTable(tasks: readonly DashboardTaskState[], width = 80): string[] {
+export function renderTaskSummaryTable(
+  tasks: readonly DashboardTaskState[],
+  _width = 80,
+): string[] {
   const lines: string[] = [
     "┌─ TASK TOPOLOGY ──────────────────────────────────────────────────────────────┐",
     "│ ID         STATUS      EFFORT  SCOPE                     DEPS                │",
@@ -160,7 +163,7 @@ export function renderTaskSummaryTable(tasks: readonly DashboardTaskState[], wid
 
 export function renderAgentMatrixSection(
   agents: readonly DashboardAgentState[],
-  width = 80,
+  _width = 80,
 ): string[] {
   const lines: string[] = [
     "┌─ AGENT MATRIX ───────────────────────────────────────────────────────────────┐",
@@ -187,7 +190,7 @@ export function renderDashboardHeader(
   runId: string,
   phase: string,
   metrics: DashboardMetrics,
-  width = 80,
+  _width = 80,
 ): string[] {
   return [
     "╔═══════════════════════════════════════════════════════════════════════════════╗",

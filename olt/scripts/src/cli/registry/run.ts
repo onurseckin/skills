@@ -17,7 +17,7 @@ const EXEC_EXIT_CODES: readonly ExitCodeSpec[] = [
 export const RUN_COMMANDS: readonly CommandSpec[] = [
   {
     name: "run:init",
-    aliases: ["run-init", "capsule-init"],
+    aliases: [],
     domain: "run",
     summary: "Initialize a capsule run root and write its initial manifest.",
     description:
@@ -79,7 +79,7 @@ export const RUN_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "run:status",
-    aliases: ["status"],
+    aliases: [],
     domain: "run",
     summary: "Show phase, per-task status and progress for the run.",
     description: "Reads the capsule without mutating it and renders the execution table.",

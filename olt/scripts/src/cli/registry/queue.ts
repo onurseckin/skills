@@ -107,7 +107,7 @@ export const QUEUE_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "queue:add",
-    aliases: ["mind:queue:add", "todo:add", "feedback:ingest", "feedback:add"],
+    aliases: [],
     domain: "queue",
     summary: "Add a feedback item to the mind queue.",
     description: "Appends a new feedback item to .olt/backlog.jsonl.",
@@ -129,7 +129,7 @@ export const QUEUE_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "queue:drain",
-    aliases: ["mind:queue:drain", "todo:drain", "feedback:drain"],
+    aliases: [],
     domain: "queue",
     summary: "Drain and mark pending feedback items for execution.",
     description: "Drains pending items from .olt/backlog.jsonl in FIFO order.",
@@ -168,7 +168,7 @@ export const QUEUE_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "queue:status",
-    aliases: ["mind:queue:list", "todo:list", "feedback:list", "mind:queue:status"],
+    aliases: [],
     domain: "queue",
     summary: "List and inspect mind feedback queue items.",
     description:
@@ -190,7 +190,7 @@ export const QUEUE_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "queue:seal",
-    aliases: ["mind:queue:seal", "todo:seal", "feedback:seal"],
+    aliases: [],
     domain: "queue",
     summary: "Seal completed queue items with empirical verification proofs.",
     description: "Marks queue items completed and attaches proof records.",
@@ -231,7 +231,7 @@ export const QUEUE_COMMANDS: readonly CommandSpec[] = [
   },
   {
     name: "queue:clean",
-    aliases: ["mind:queue:clean", "todo:clean", "feedback:clean"],
+    aliases: [],
     domain: "queue",
     summary: "Prune resolved items from queue into completed-tasks archive.",
     description: "Moves sealed items from .olt/backlog.jsonl to .olt/completed-tasks.jsonl.",

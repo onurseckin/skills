@@ -85,7 +85,7 @@ Add a feedback item to the mind queue.
 
 Appends a new feedback item to .olt/backlog.jsonl.
 
-- **Aliases**: `mind:queue:add`, `todo:add`, `feedback:ingest`, `feedback:add`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
@@ -110,7 +110,7 @@ Drain and mark pending feedback items for execution.
 
 Drains pending items from .olt/backlog.jsonl in FIFO order.
 
-- **Aliases**: `mind:queue:drain`, `todo:drain`, `feedback:drain`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
@@ -136,7 +136,7 @@ List and inspect mind feedback queue items.
 
 Lists active feedback items from the canonical feedback queue (.olt/backlog.jsonl).
 
-- **Aliases**: `mind:queue:list`, `todo:list`, `feedback:list`, `mind:queue:status`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
@@ -160,7 +160,7 @@ Seal completed queue items with empirical verification proofs.
 
 Marks queue items completed and attaches proof records.
 
-- **Aliases**: `mind:queue:seal`, `todo:seal`, `feedback:seal`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
@@ -190,7 +190,7 @@ Prune resolved items from queue into completed-tasks archive.
 
 Moves sealed items from .olt/backlog.jsonl to .olt/completed-tasks.jsonl.
 
-- **Aliases**: `mind:queue:clean`, `todo:clean`, `feedback:clean`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 

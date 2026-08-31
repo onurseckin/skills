@@ -37,14 +37,13 @@ describe("role:cheat-sheet CLI command", () => {
     expect(result.markdown).toContain("Available Role Contracts");
   });
 
-  test("dispatches via execute and aliases", async () => {
+  test("dispatches via execute and rejects retired aliases", async () => {
     const sheet = await execute(["role:cheat-sheet", "--role", "planner"]);
     expect(sheet.role).toBe("planner");
 
-    const aliasContract = await execute(["role:contract", "--role", "validator"]);
-    expect(aliasContract.role).toBe("validator");
-
-    const aliasCheat = await execute(["role:cheat", "--all"]);
-    expect(aliasCheat.total_roles).toBeGreaterThan(0);
+    await expect(execute(["role:contract", "--role", "validator"])).rejects.toThrow(
+      "unknown command: role:contract",
+    );
+    await expect(execute(["role:cheat", "--all"])).rejects.toThrow("unknown command: role:cheat");
   });
 });

@@ -139,7 +139,7 @@ describe("CLI capability manifest", () => {
     expect(exec?.flags.map((flag) => flag.name)).toContain("gate");
     const init = manifest.commands.find((entry) => entry.name === "plan:init");
     expect(init?.reads_stdin).toBeTrue();
-    expect(init?.aliases).toEqual(["plan-init", "init-plan"]);
+    expect(init?.aliases).toEqual([]);
   });
 
   test("contains mind command domain registrations", () => {
@@ -173,9 +173,9 @@ describe("CLI capability manifest", () => {
     expect(execSlice?.name).toBe("run:exec");
     expect(execSlice?.takes_remainder).toBeTrue();
 
-    const initAliasSlice = commandSlice("plan-init");
-    expect(initAliasSlice).toBeDefined();
-    expect(initAliasSlice?.name).toBe("plan:init");
+    const initSlice = commandSlice("plan:init");
+    expect(initSlice).toBeDefined();
+    expect(initSlice?.name).toBe("plan:init");
 
     const nonExistent = commandSlice("non:existent:command");
     expect(nonExistent).toBeUndefined();

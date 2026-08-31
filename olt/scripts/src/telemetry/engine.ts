@@ -215,8 +215,8 @@ export class TelemetryNormalizationEngine {
       } else {
         for (let mIdx = 0; mIdx < res.metrics.length; mIdx++) {
           const metric = res.metrics[mIdx]!;
-          const modelName = (metric.rawMetricName || "unknown").padEnd(30).slice(0, 30);
-          const winPad = (metric.windowType || "-").padEnd(10).slice(0, 10);
+          const modelName = (metric.rawMetricName ?? "unknown").padEnd(30).slice(0, 30);
+          const winPad = (metric.windowType ?? "-").padEnd(10).slice(0, 10);
           const bar =
             metric.remainingPercentage === null
               ? "[??????] Unknown"
@@ -266,7 +266,7 @@ export class TelemetryNormalizationEngine {
     for (const res of report.results) {
       if (res.platformId === "antigravity" && res.rawObservations.userTier) {
         const userTier = res.rawObservations.userTier as Record<string, unknown>;
-        const tierName = userTier.name || "unknown";
+        const tierName = userTier.name ?? "unknown";
         const credits =
           Array.isArray(userTier.availableCredits) && userTier.availableCredits[0]
             ? `${(userTier.availableCredits[0] as Record<string, unknown>).creditAmount ?? 0} Credits`
@@ -278,7 +278,7 @@ export class TelemetryNormalizationEngine {
 
       if (
         (res.platformId === "codex" || res.platformId === "openai") &&
-        (res.rawObservations.planType || res.rawObservations.plan_type || res.rawObservations.plan)
+        (res.rawObservations.planType ?? res.rawObservations.plan_type ?? res.rawObservations.plan)
       ) {
         const plan =
           res.rawObservations.planType ?? res.rawObservations.plan_type ?? res.rawObservations.plan;

@@ -49,6 +49,15 @@ test("returns index paths in lexical order and preserves NUL-safe names", async 
   ]);
 });
 
+test("returns empty array when index has no entries", async () => {
+  const repo = await createIndexedFixture({ staged: "root", working: "root" });
+  fixtures.push(repo);
+  const blobs = await readWithFakeGit(repo, {
+    lsFilesOutput: "",
+  });
+  expect(blobs).toEqual([]);
+});
+
 test("uses final index paths after staged deletion and rename", async () => {
   const repo = await createIndexedFixture({ staged: "root", working: "root" });
   fixtures.push(repo);
@@ -191,4 +200,16 @@ test("reads working-tree bytes and an untracked in-scope file for tree provenanc
     new TextDecoder().decode(blobs.find((blob) => blob.path === "slice/index.ts")?.bytes),
   ).toBe("b\n".repeat(301));
   expect(blobs.map((blob) => blob.path)).toContain("slice/untracked.ts");
+});
+
+test("rejects readTreeBlobs on invalid directory", async () => {
+  await expect(readTreeBlobs("/nonexistent/invalid/directory")).rejects.toThrow(
+    "Unable to read Git index",
+  );
+});
+
+test("gitInFixture throws on failed git command", async () => {
+  const repo = await createIndexedFixture({ staged: "root", working: "root" });
+  fixtures.push(repo);
+  await expect(gitInFixture(repo, ["checkout", "nonexistent-branch"])).rejects.toThrow();
 });

@@ -99,7 +99,7 @@ describe("restricted repository Git callers", () => {
     const scriptsRoot = join(import.meta.dir, "..", "..", "..", "olt", "scripts");
     for (const path of [
       join(scriptsRoot, "src", "cli", "git-ignore.ts"),
-      join(scriptsRoot, "src", "reporting", "doctor.ts"),
+      join(scriptsRoot, "src", "reporting", "doctor", "facts.ts"),
     ]) {
       const source = readFileSync(path, "utf8");
       expect(source).not.toMatch(/spawnSync[\s\S]{0,200}["']git["']/u);

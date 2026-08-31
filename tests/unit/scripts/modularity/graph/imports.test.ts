@@ -9,10 +9,35 @@ import {
 import { blob, indexedDirectory } from "./graph-fixture.ts";
 
 test("resolves exact files, extensions, then directory facades", () => {
-  const paths = ["slice/a.ts", "slice/b.ts", "slice/target/index.ts"];
+  const paths = [
+    "slice/a.ts",
+    "slice/b.ts",
+    "slice/comp.tsx",
+    "slice/mod.mts",
+    "slice/comm.cts",
+    "slice/target/index.ts",
+  ];
   expect(
     resolveImport({ from: "slice/a.ts", specifier: "./b", typeOnly: false, kind: "import" }, paths),
   ).toBe("slice/b.ts");
+  expect(
+    resolveImport(
+      { from: "slice/a.ts", specifier: "./comp", typeOnly: false, kind: "import" },
+      paths,
+    ),
+  ).toBe("slice/comp.tsx");
+  expect(
+    resolveImport(
+      { from: "slice/a.ts", specifier: "./mod", typeOnly: false, kind: "import" },
+      paths,
+    ),
+  ).toBe("slice/mod.mts");
+  expect(
+    resolveImport(
+      { from: "slice/a.ts", specifier: "./comm", typeOnly: false, kind: "import" },
+      paths,
+    ),
+  ).toBe("slice/comm.cts");
   expect(
     resolveImport(
       {
@@ -35,6 +60,28 @@ test("resolves exact files, extensions, then directory facades", () => {
       paths,
     ),
   ).toThrow("Unable to resolve relative import");
+  expect(() =>
+    resolveImport(
+      {
+        from: "slice/a.ts",
+        specifier: "lodash",
+        typeOnly: false,
+        kind: "import",
+      },
+      paths,
+    ),
+  ).toThrow("Unable to resolve relative import");
+  expect(() =>
+    resolveImport(
+      {
+        from: "slice/a.ts",
+        specifier: "../../outside.ts",
+        typeOnly: false,
+        kind: "import",
+      },
+      paths,
+    ),
+  ).toThrow("Unable to resolve relative import");
 });
 
 test.each(["olt/scripts", "scripts", "scripts/testing"])(
@@ -44,6 +91,12 @@ test.each(["olt/scripts", "scripts", "scripts/testing"])(
     expect(findings.map((finding) => finding.path)).toContain(directory);
   },
 );
+
+test("findMissingFacades ignores root files and non-importScanned files", () => {
+  expect(
+    findMissingFacades([blob("index.ts", "export const x = 1;"), blob("data/config.json", "{}")]),
+  ).toEqual([]);
+});
 
 test("permits same-directory imports but rejects a cross-directory private target", () => {
   const blobs = [
@@ -92,17 +145,23 @@ test("reports export-star separately", () => {
   ).toEqual([expect.objectContaining({ rule: "export_star", path: "slice/index.ts" })]);
 });
 
-test("reports test-origin and missing-facade bypasses once per edge identity", () => {
+test("reports test-origin and missing-facade bypasses once per edge identity and sorts with tie-break", () => {
   const edges = [
     {
       from: "tests/unit/source.ts",
-      to: "src/private.ts",
+      to: "src/private_b.ts",
       typeOnly: false,
       viaFacade: false,
     },
     {
       from: "tests/unit/source.ts",
-      to: "src/private.ts",
+      to: "src/private_a.ts",
+      typeOnly: false,
+      viaFacade: false,
+    },
+    {
+      from: "tests/unit/source.ts",
+      to: "src/private_a.ts",
       typeOnly: false,
       viaFacade: false,
     },
@@ -120,14 +179,9 @@ test("reports test-origin and missing-facade bypasses once per edge identity", (
     },
   ];
 
-  expect(findFacadeViolations(edges)).toEqual([
-    expect.objectContaining({
-      path: "src/source.ts",
-      observed: "missing/private.ts",
-    }),
-    expect.objectContaining({
-      path: "tests/unit/source.ts",
-      observed: "src/private.ts",
-    }),
-  ]);
+  const violations = findFacadeViolations(edges);
+  expect(violations.length).toBe(3);
+  expect(violations[0].path).toBe("src/source.ts");
+  expect(violations[1].observed).toBe("src/private_a.ts");
+  expect(violations[2].observed).toBe("src/private_b.ts");
 });

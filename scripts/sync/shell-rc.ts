@@ -32,12 +32,9 @@ export function detectShellRcPath(options?: {
   }
 
   if (currentShell.endsWith("bash") || currentShell.includes("bash")) {
-    if (process.platform === "darwin") {
-      const bashProfile = join(home, ".bash_profile");
-      if (existsSync(bashProfile)) {
-        return bashProfile;
-      }
-      return join(home, ".bashrc");
+    const bashProfile = join(home, ".bash_profile");
+    if (process.platform === "darwin" && existsSync(bashProfile)) {
+      return bashProfile;
     }
     return join(home, ".bashrc");
   }

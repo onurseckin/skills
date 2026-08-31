@@ -264,6 +264,18 @@ export async function shellCommand(
     );
   }
 
+  const roleName = metadata.role;
+  if (
+    roleName === "validator" ||
+    roleName.startsWith("validator_") ||
+    roleName === "completeness_critic"
+  ) {
+    throw new HarnessError(
+      "ROLE_CONFINEMENT_VIOLATION",
+      `[COGNITIVE_VALIDATOR_COMMAND_FORBIDDEN] Role '${roleName}' is a cognitive validator. Cognitive Validators are locked to 0 command execution.`,
+    );
+  }
+
   const policy = loadRepoPolicy(repoRoot);
 
   // 2. Perform Hard-Coded Mechanical RBAC Authorization

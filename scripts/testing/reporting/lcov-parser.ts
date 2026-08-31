@@ -6,8 +6,13 @@ import { relative, resolve } from "node:path";
 import type { FileCoverageMetric } from "./types.ts";
 import { createMetricItem } from "./types.ts";
 
+function parseCount(raw: string): number {
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
 export function parseLcov(lcovContent: string, repoRoot?: string): Map<string, FileCoverageMetric> {
-  const root = repoRoot ? resolve(repoRoot) : process.cwd();
+  const root = repoRoot !== undefined ? resolve(repoRoot) : process.cwd();
   const fileMap = new Map<string, FileCoverageMetric>();
 
   const lines = lcovContent.split(/\r?\n/);
@@ -32,24 +37,24 @@ export function parseLcov(lcovContent: string, repoRoot?: string): Map<string, F
       uncoveredLines.length = 0;
       lineHitsMap.clear();
     } else if (trimmed.startsWith("FNF:")) {
-      fnFound = parseInt(trimmed.slice(4), 10) || 0;
+      fnFound = parseCount(trimmed.slice(4));
     } else if (trimmed.startsWith("FNH:")) {
-      fnHit = parseInt(trimmed.slice(4), 10) || 0;
+      fnHit = parseCount(trimmed.slice(4));
     } else if (trimmed.startsWith("LF:")) {
-      lineFound = parseInt(trimmed.slice(3), 10) || 0;
+      lineFound = parseCount(trimmed.slice(3));
     } else if (trimmed.startsWith("LH:")) {
-      lineHit = parseInt(trimmed.slice(3), 10) || 0;
+      lineHit = parseCount(trimmed.slice(3));
     } else if (trimmed.startsWith("DA:")) {
       const parts = trimmed.slice(3).split(",");
-      const lineNo = parseInt(parts[0] ?? "0", 10);
-      const hitCount = parseInt(parts[1] ?? "0", 10);
+      const lineNo = parseCount(parts[0] ?? "0");
+      const hitCount = parseCount(parts[1] ?? "0");
       if (lineNo > 0) {
         lineHitsMap.set(lineNo, hitCount);
         if (hitCount === 0) {
           uncoveredLines.push(lineNo);
         }
       }
-    } else if (trimmed === "end_of_record" && currentFile) {
+    } else if (trimmed === "end_of_record" && currentFile !== null) {
       const relPath = relative(root, resolve(root, currentFile));
       const lineMetric = createMetricItem(lineHit, lineFound);
       const fnMetric = createMetricItem(fnHit, fnFound);

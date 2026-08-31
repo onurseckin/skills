@@ -96,7 +96,7 @@ function maxGeneratedDirectoryFanout(): number {
 describe("CLI capability manifest sharding and modularity", () => {
   test("large domains render bounded semantic shards with indexes", () => {
     writeManifest();
-    expect(readCatalog("commands/mind/index.json").entries).toHaveLength(7);
+    expect(readCatalog("commands/mind/index.json").entries).toHaveLength(6);
     expect(maxGeneratedPhysicalLines()).toBeLessThanOrEqual(300);
     expect(maxGeneratedDirectoryFanout()).toBeLessThanOrEqual(10);
   });

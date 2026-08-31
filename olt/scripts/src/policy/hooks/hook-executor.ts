@@ -182,6 +182,14 @@ export function executeHookCommand(
       ? options.customSpawn(interpolated, spawnOpts)
       : spawn(executable, args, spawnOpts);
     if (
+      child !== null &&
+      typeof child === "object" &&
+      "on" in child &&
+      typeof (child as { on?: unknown }).on === "function"
+    ) {
+      (child as { on: (evt: string, cb: (err: unknown) => void) => void }).on("error", () => {});
+    }
+    if (
       isNonBlocking &&
       child !== null &&
       typeof child === "object" &&

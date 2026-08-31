@@ -33,6 +33,12 @@ import {
 } from "./domain-sync-types.ts";
 
 export { CONVENTIONAL_COMMIT_TYPES, recordDomainCommit, recordDomainSync, recordGlobalSync };
+export {
+  syncDomainToGlobal,
+  syncGlobalToDomain,
+  synchronizeAllDomains,
+} from "./domain-sync-ops.ts";
+export { landHermeticWorktree } from "./landing-ops.ts";
 export type { CreateHermeticWorktreeOptions, WorktreeContext };
 
 function resolveRepo(repoRoot?: string): string {

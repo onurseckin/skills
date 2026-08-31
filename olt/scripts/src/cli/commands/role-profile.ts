@@ -45,7 +45,7 @@ export function roleProfileCommand(
   };
 }
 
-export async function executeRoleProfile(argv: readonly string[]): Promise<number> {
+export async function executeRoleProfile(_argv: readonly string[]): Promise<number> {
   const result = roleProfileCommand({});
   process.stdout.write(JSON.stringify(result) + "\n");
   return 0;

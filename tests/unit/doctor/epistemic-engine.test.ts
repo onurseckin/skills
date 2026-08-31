@@ -205,6 +205,7 @@ describe("Physical Density and Zero-Comment Invariants", () => {
       "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/core/epistemic/types.ts",
       "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/core/epistemic/math.ts",
       "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/core/epistemic/evaluator.ts",
+      "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/core/epistemic/predicate.ts",
       "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/core/epistemic/query.ts",
       "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/core/epistemic/streaming.ts",
       "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/core/epistemic/state-replay.ts",
