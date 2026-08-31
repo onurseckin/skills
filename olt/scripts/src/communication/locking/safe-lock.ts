@@ -16,7 +16,12 @@ import {
   type InMemoryLockRecord,
 } from "./lock-reclaim.ts";
 
-export * from "../types.ts";
+export {
+  DEFAULT_LOCK_TIMEOUT_MS,
+  DEFAULT_RETRY_INTERVAL_MS,
+  DEFAULT_STALE_THRESHOLD_MS,
+} from "../types.ts";
+export type { LockAcquisitionResult, LockOptions, LockPayload, SafeLockOptions } from "../types.ts";
 export {
   getInMemoryLock,
   getInMemoryLockEntries,

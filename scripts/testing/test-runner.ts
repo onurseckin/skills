@@ -9,9 +9,7 @@ export function executeTestRunner(rawArgs: string[] = process.argv.slice(2)): nu
   const fileTargets = rawArgs.filter((arg) => !arg.startsWith("-"));
   const isBroadScope =
     fileTargets.length === 0 ||
-    fileTargets.some(
-      (t) => t === "tests" || t === "tests/unit" || t === "tests/" || t === "tests/unit/",
-    );
+    fileTargets.some((t) => t === "tests" || t === "tests/");
 
   const releaseLock = acquireTestLock(isBroadScope || isCoverage, rawArgs);
 

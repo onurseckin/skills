@@ -16,12 +16,11 @@ export function gitOutput(args: string[]): string {
 }
 
 export function parseDiffOutput(diffText: string): string[] {
-  const files = new Set<string>();
-  for (const line of diffText.split("\n")) {
-    const trimmed = line.trim();
-    if (trimmed) files.add(trimmed);
-  }
-  return Array.from(files);
+  const lines = diffText
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  return Array.from(new Set(lines));
 }
 
 export function parseGitStatusPorcelain(statusText: string): string[] {
@@ -30,11 +29,9 @@ export function parseGitStatusPorcelain(statusText: string): string[] {
     const line = rawLine.trim();
     if (!line) continue;
     const match = line.match(/^[MADRCU?!]{1,2}\s+(.+)$/);
-    if (match && match[1]) {
-      const rawTarget = match[1];
-      const target = rawTarget.includes(" -> ")
-        ? (rawTarget.split(" -> ")[1]?.trim() ?? rawTarget)
-        : rawTarget.trim();
+    if (match?.[1]) {
+      const raw = match[1];
+      const target = (raw.includes(" -> ") ? raw.split(" -> ")[1] : raw)?.trim();
       if (target) files.add(target);
     }
   }
@@ -45,14 +42,12 @@ export function parseUnifiedDiffHeaders(rawDiff: string): string[] {
   const files = new Set<string>();
   for (const line of rawDiff.split("\n")) {
     const gitMatch = line.match(/^diff --git a\/(.+?) b\/(.+)$/);
-    if (gitMatch && gitMatch[2]) {
+    if (gitMatch?.[2]) {
       files.add(gitMatch[2].trim());
       continue;
     }
     const plusMatch = line.match(/^\+\+\+ b\/(.+)$/);
-    if (plusMatch && plusMatch[1] && plusMatch[1] !== "/dev/null") {
-      files.add(plusMatch[1].trim());
-    }
+    if (plusMatch?.[1] && plusMatch[1] !== "/dev/null") files.add(plusMatch[1].trim());
   }
   return Array.from(files);
 }
@@ -68,17 +63,12 @@ export function getChangedFiles(customGitOutput?: (args: string[]) => string): s
 }
 
 export function findAllTestFiles(dir: string): string[] {
+  if (!existsSync(dir)) return [];
   const results: string[] = [];
-  if (!existsSync(dir)) return results;
-
   for (const entry of readdirSync(dir)) {
     const full = join(dir, entry);
-    const stat = statSync(full);
-    if (stat.isDirectory()) {
-      results.push(...findAllTestFiles(full));
-    } else if (/\.(test|spec)\.(ts|tsx)$/.test(entry)) {
-      results.push(full);
-    }
+    if (statSync(full).isDirectory()) results.push(...findAllTestFiles(full));
+    else if (/\.(test|spec)\.(ts|tsx)$/.test(entry)) results.push(full);
   }
   return results;
 }
@@ -96,38 +86,38 @@ export function buildTestIndex(testFiles: readonly string[]): Map<string, string
   return index;
 }
 
-const CRITICAL_GLOBAL_FILES = [
+const CRITICAL_GLOBAL_FILES = new Set([
   "package.json",
   "bunfig.toml",
   "tsconfig.json",
   "lefthook.yml",
   "scripts/testing/test-changed.ts",
-];
+]);
 
 export function resolveAffectedTestFiles(
   changedFiles: readonly string[],
   runAll = false,
-  unitTestDir = "tests/unit",
+  unitTestDir = "tests",
   allTestsOverride?: readonly string[],
 ): { all: boolean; testFiles: string[] } {
-  if (runAll) return { all: true, testFiles: [] };
+  const allTests = allTestsOverride ? Array.from(allTestsOverride) : findAllTestFiles(unitTestDir);
+  if (runAll) return { all: true, testFiles: allTests };
 
   for (const file of changedFiles) {
-    if (CRITICAL_GLOBAL_FILES.includes(file)) {
+    if (CRITICAL_GLOBAL_FILES.has(file)) {
       console.log(
         `[test-changed] Critical config file changed (${file}), running full test suite.`,
       );
-      return { all: true, testFiles: [] };
+      return { all: true, testFiles: allTests };
     }
   }
 
-  const allTests = allTestsOverride ? Array.from(allTestsOverride) : findAllTestFiles(unitTestDir);
   const testIndex = buildTestIndex(allTests);
   const affected = new Set<string>();
 
   for (const file of changedFiles) {
     if (
-      (file.startsWith("tests/unit/") || file.startsWith(unitTestDir)) &&
+      (file.startsWith("tests/") || file.startsWith(unitTestDir)) &&
       /\.(test|spec)\.(ts|tsx)$/.test(file)
     ) {
       if (allTestsOverride ? allTests.includes(file) : existsSync(file)) {
@@ -164,16 +154,13 @@ export function parseCoverageOutput(output: string): FileCoverageSummary[] {
   const results: FileCoverageSummary[] = [];
   for (const line of output.split("\n")) {
     const match = line.match(/^\s*(\S+\.ts)\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)\s*\|\s*(.*)$/);
-    if (match) {
-      const [, file, rawLines, rawStmts, rawUncovered] = match;
-      if (file !== undefined && rawLines !== undefined && rawStmts !== undefined) {
-        results.push({
-          file,
-          linesPct: parseFloat(rawLines),
-          stmtsPct: parseFloat(rawStmts),
-          uncovered: (rawUncovered ?? "").trim(),
-        });
-      }
+    if (match?.[1] && match[2] && match[3]) {
+      results.push({
+        file: match[1],
+        linesPct: parseFloat(match[2]),
+        stmtsPct: parseFloat(match[3]),
+        uncovered: (match[4] ?? "").trim(),
+      });
     }
   }
   return results;
@@ -186,7 +173,7 @@ export async function run(argvArgs: string[] = process.argv.slice(2)): Promise<n
   if (showHelp) {
     console.log(
       "Usage: bun scripts/testing/test-changed.ts [--all] [--help]\n" +
-        "  --all       run every test file under tests/unit, not just affected ones\n" +
+        "  --all       run every test file under tests, not just affected ones\n" +
         "  --help, -h  print this usage and exit",
     );
     return 0;
@@ -202,21 +189,27 @@ export async function run(argvArgs: string[] = process.argv.slice(2)): Promise<n
   }
 
   const testArgs = ["test", "--timeout", "30000", "--parallel", "--no-isolate", "--coverage"];
+  const defaultDir = "tests";
+  const targetFiles = testFiles.length > 0 ? testFiles : findAllTestFiles(defaultDir);
+
+  if (targetFiles.length === 0) {
+    console.log("[test-changed] No test files found. Skipping test execution.");
+    return 0;
+  }
+
+  testArgs.push(...targetFiles);
   if (all) {
-    testArgs.push("tests/unit");
-    console.log(
-      `[test-changed] Running full test suite (${all ? "all files" : `${testFiles.length} files`})...`,
-    );
+    console.log(`[test-changed] Running full test suite (${targetFiles.length} files)...`);
   } else {
-    testArgs.push(...testFiles);
-    console.log(`[test-changed] Running ${testFiles.length} affected test file(s):`);
-    for (const f of testFiles) console.log(`  - ${f}`);
+    console.log(`[test-changed] Running ${targetFiles.length} affected test file(s):`);
+    for (const f of targetFiles) console.log(`  - ${f}`);
   }
 
   const result = spawnSync("bun", testArgs, {
     encoding: "utf-8",
     maxBuffer: 64 * 1024 * 1024,
     cwd: process.cwd(),
+    env: { ...process.env, OLT_VIRTUAL_FS: "1", BUN_ENV: "test" },
   });
 
   if (result.stdout) process.stdout.write(result.stdout);
