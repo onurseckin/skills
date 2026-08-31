@@ -478,6 +478,11 @@ To protect repository state and prevent common LLM blunder modes:
     - Never approve a UI surface based solely on green Playwright test logs, headless DOM node assertions, or JSX source inspection. Automated DOM checks and script runs are strictly **ONLY HALF OF THE JOB**.
     - Cognitive UI Validators MUST open and visually inspect actual screenshot image files (`.png`, `.jpg`, `.webp` $\ge 1024$ bytes) across all 4 mandatory viewports: Desktop-Wide (1920x1080), Desktop (1440x900), Tablet (768x1024), Mobile (390x844) in both Light and Dark themes.
     - Inspect the 8 optical dimensions: visual layout & hierarchy, optical spacing & rhythm, font rendering & typography, clipping/overflow (no `overflow-x` leaks), APCA contrast (`Lc >= 60`), theme harmony, z-index layering, and touch target bounds ($\ge 44\times 44\text{px}$). Approving without visual inspection is audited as `SUPERFICIAL_UI_APPROVAL`.
+28. **Semantic Test Directory Mirroring & Ban on Arbitrary `suite-XX` Numbering (`SEMANTIC_TEST_MIRRORING_INVARIANT`):**
+    - Test files must strictly mirror the application source code domain directory hierarchy (e.g., `apps/universal/src/features/fleet/demand-rebalancing/` $\to$ `apps/universal/tests/features/fleet/demand-rebalancing.test.tsx`).
+    - Arbitrary numbered suite folders (`suite-01/`, `suite-12/`, `suite-26/`, `suite-32/`) are strictly prohibited as mechanical anti-patterns.
+    - Test modularity follows the same rules as source code: $\le 300$ physical lines per file, $\le 10$ files per folder, modularized with semantic subdirectories matching domain concepts (e.g., `tests/features/fleet/rebalancing/`), never artificial numbered suites.
+    - **Repository Root Scratch Cleanliness:** All agent scratch scripts, one-off python/shell tools, and experimental output directories belong strictly in `.tmp/` (gitignored). Never pollute the root directory.
 
 ---
 
