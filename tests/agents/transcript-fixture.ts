@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 /** One assistant turn carrying real usage and, optionally, a tool call. */
 export function assistantLine(opts: {

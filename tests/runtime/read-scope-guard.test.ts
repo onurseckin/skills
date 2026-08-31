@@ -13,7 +13,7 @@ import {
   checkReadScopeAuthorization,
   expandReadScope,
 } from "../../olt/scripts/src/runtime/read-scope-guard.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("Runtime Agent Metadata & Read Scope Guard", () => {
   const caller = import.meta.path;

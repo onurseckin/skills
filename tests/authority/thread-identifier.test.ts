@@ -23,7 +23,7 @@ import {
 } from "../../olt/scripts/src/authority/thread/index.ts";
 import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 function defectFixture(cwd: string, id: string) {
   return {

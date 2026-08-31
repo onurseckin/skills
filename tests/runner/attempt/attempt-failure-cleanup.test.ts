@@ -5,7 +5,7 @@ import { handleAttemptFailure } from "../../../olt/scripts/src/engine/runner/exe
 import type { NormalizedCommandOptions } from "../../../olt/scripts/src/engine/runner/types/types.ts";
 import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
 
-import { scratchRoot } from "../../../support/scratch-root.ts";
+import { scratchRoot } from "../../shared/scratch-root.ts";
 
 const mockOptions: NormalizedCommandOptions = {
   commandId: "cmd-1",

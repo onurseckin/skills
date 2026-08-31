@@ -34,7 +34,7 @@ import {
   writeTaskQueue,
   type TaskQueueItem,
 } from "../../../olt/scripts/src/task/queue/index.ts";
-import { scratchRoot } from "../../../support/scratch-root.ts";
+import { scratchRoot } from "../../shared/scratch-root.ts";
 
 describe("Stateful Task Queue Engine", () => {
   const testDir = scratchRoot(import.meta.path, "test-task-queue");

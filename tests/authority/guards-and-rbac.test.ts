@@ -23,7 +23,7 @@ import {
 } from "../../olt/scripts/src/authority/rbac/command-authorizer.ts";
 import { VerbatimRoleInjector } from "../../olt/scripts/src/authority/verbatim-role-injector.ts";
 import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("Authority Guards, Host Bindings, RBAC Authorizer & Verbatim Injector Comprehensive", () => {
   test("RootDirectoryHygieneGuard blocks loose root files and runtime files in static package", () => {

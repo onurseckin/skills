@@ -79,7 +79,7 @@ import {
   withTaskQueueLock,
   withTaskQueueTransaction,
 } from "../../../olt/scripts/src/task/queue/locks.ts";
-import { scratchRoot } from "../../../support/scratch-root.ts";
+import { scratchRoot } from "../../shared/scratch-root.ts";
 
 describe("Task Queue Comprehensive Coverage", () => {
   const testDirQueue = scratchRoot(import.meta.path, "test-task-queue-comp-q");

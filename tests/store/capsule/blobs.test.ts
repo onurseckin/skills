@@ -23,7 +23,7 @@ import {
   putBlobFile,
   type ViewLinker,
 } from "../../../olt/scripts/src/engine/store/layout/blobs.ts";
-import { scratchRoot as makeScratchRoot } from "../../../support/scratch-root.ts";
+import { scratchRoot as makeScratchRoot } from "../../shared/scratch-root.ts";
 
 function scratchRoot(label: string): string {
   return makeScratchRoot(import.meta.path, label);

@@ -11,7 +11,7 @@ import {
   writeAtomicSnapshot,
   type SnapshotRecord,
 } from "../../olt/scripts/src/engine/store/hierarchy/snapshot-manager.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("Snapshot Manager Engine", () => {
   describe("shouldCreateSnapshot", () => {

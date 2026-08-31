@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { chainCapsules } from "../../olt/scripts/src/orchestrator/capsule-chainer.ts";
 import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import type { CapsuleChainManifest } from "../../olt/scripts/src/orchestrator/types.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("Capsule Chainer Unit Tests", () => {
   it("chains capsule state, carryover requirements, and unresolved findings", () => {

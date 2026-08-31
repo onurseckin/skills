@@ -11,7 +11,7 @@ import {
 } from "../../olt/scripts/src/validation/index.ts";
 import type { TaskRecord } from "../../olt/scripts/src/workflow/types.ts";
 import { createSyntheticPngBuffer } from "../../olt/scripts/src/capture/runners/live-capture-runner/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("Validation Layer Hardening & Dual-Validation Requirements", () => {
   describe("1. Validation Index Re-exports", () => {

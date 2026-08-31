@@ -27,7 +27,7 @@ import {
 } from "../../olt/scripts/src/mind/archival/recycler/index.ts";
 import type { RoundRecord } from "../../olt/scripts/src/mind/lifecycle/rounds/index.ts";
 import { loadRun, transact } from "../../olt/scripts/src/engine/store/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 const SAMPLE_CHARTER = `
 name: "mind"

@@ -9,7 +9,7 @@ import { installationStatus } from "../../olt/scripts/src/installer/installation
 import { sealInstallationManifest } from "../../olt/scripts/src/installer/manifest-integrity.ts";
 import { treeDigest } from "../../olt/scripts/src/installer/tree-digest.ts";
 import { validateSkillSource } from "../../olt/scripts/src/installer/source-validation.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 import { cleanInstallerFixtures, installerFixture } from "./helpers.ts";
 
 afterEach(cleanInstallerFixtures);

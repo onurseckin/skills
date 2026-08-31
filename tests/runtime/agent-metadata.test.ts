@@ -17,7 +17,7 @@ import {
   setAgentMetadataDependenciesForTesting,
   writeAgentMetadata,
 } from "../../olt/scripts/src/runtime/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 const caller = import.meta.path;
 

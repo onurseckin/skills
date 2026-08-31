@@ -25,7 +25,7 @@ import {
 } from "../../olt/scripts/src/authority/watchdog/index.ts";
 import { delay, openVerifiedParent } from "../../olt/scripts/src/authority/watchdog/lock.ts";
 import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("Authority Watchdog Store, Lock, Operations & Verification Comprehensive", () => {
   test("setWatchdogLockTimingForTesting timing boundaries and delay utility", () => {

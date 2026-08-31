@@ -32,7 +32,7 @@ import {
   runSync,
   smartEnsureSymlink,
 } from "../../scripts/sync/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 function git(args: string[], cwd: string): void {
   const result = spawnSync("git", args, { cwd, encoding: "utf-8" });

@@ -10,7 +10,7 @@ import {
 } from "../../olt/scripts/src/cli/commands/run-ops.ts";
 import { execute } from "../../olt/scripts/src/cli/execute.ts";
 import { createAgentMetadata, writeAgentMetadata } from "../../olt/scripts/src/runtime/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Flags } from "../../olt/scripts/src/cli/options.ts";

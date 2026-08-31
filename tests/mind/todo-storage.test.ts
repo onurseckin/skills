@@ -43,7 +43,7 @@ import {
   updateCognitiveMemory,
   type CognitiveMemoryState,
 } from "../../olt/scripts/src/mind/tasks/smart/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("Mind & Todo Storage Canonical Layout and Transparent Resolvers", () => {
   describe("Standardized Canonical Constants & Layout Naming", () => {

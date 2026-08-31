@@ -13,7 +13,7 @@ import {
 import { executeRepairLane } from "../../olt/scripts/src/mind/lanes/repair.ts";
 import { initRun } from "../../olt/scripts/src/engine/store/index.ts";
 import { transact } from "../../olt/scripts/src/engine/store/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("Escalation Digest and REPAIR Lane", () => {
   describe("Golden-file comparison", () => {

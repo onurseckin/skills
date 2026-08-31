@@ -9,7 +9,7 @@ import {
   updateSparseIndex,
   type EventSparseIndex,
 } from "../../olt/scripts/src/engine/store/hierarchy/sparse-index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 function createEventLine(seq: number): string {
   const obj = {

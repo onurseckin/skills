@@ -8,7 +8,7 @@ import {
   replaceBoundPath,
 } from "../../olt/scripts/src/installer/bound-mutations.ts";
 import { pathIdentity } from "../../olt/scripts/src/installer/path-safety.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("moveBoundPath", () => {
   test("moves the path and calls beforeRename first", async () => {

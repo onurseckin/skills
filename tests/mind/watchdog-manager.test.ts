@@ -10,7 +10,7 @@ import {
   CANONICAL_WATCHDOG_FILE,
   DEFAULT_WATCHDOG_FILE,
 } from "../../olt/scripts/src/mind/lifecycle/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("mind/watchdog-manager", () => {
   let scratchDir: string;

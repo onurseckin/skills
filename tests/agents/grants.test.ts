@@ -9,7 +9,7 @@ import {
   releaseAgentGrant,
 } from "../../olt/scripts/src/workflow/agents/grants.ts";
 import { readAgentLedger } from "../../olt/scripts/src/workflow/agents/ledger.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 function freshRun(label: string): string {
   const root = scratchRoot(import.meta.path, label);

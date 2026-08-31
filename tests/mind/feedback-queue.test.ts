@@ -32,7 +32,7 @@ import {
   type FeedbackItem,
   type FeedbackResolutionProof,
 } from "../../olt/scripts/src/mind/feedback/queue/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("Feedback Queue Engine", () => {
   const testDir = scratchRoot(import.meta.path, "test-feedback-queue");

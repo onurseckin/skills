@@ -7,7 +7,7 @@ import {
   generateExportLine,
   isPathDeclaredInContent,
 } from "../../scripts/sync/shell-rc.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("detectShellRcPath", () => {
   test("detects fish shell configuration path", () => {

@@ -10,7 +10,7 @@ import {
   sha256Bytes,
 } from "../../olt/scripts/src/core/json.ts";
 import { safeRepoPath } from "../../olt/scripts/src/core/paths.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("canonical JSON", () => {
   test("serializes nested JSON deterministically without a newline", () => {

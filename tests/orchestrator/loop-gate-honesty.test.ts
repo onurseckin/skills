@@ -10,7 +10,7 @@ import type {
   RoundExecutor,
   RoundTelemetry,
 } from "../../olt/scripts/src/orchestrator/types.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 function telemetry(round: number, gateStatus: RoundTelemetry["gateStatus"]): RoundTelemetry {
   return {

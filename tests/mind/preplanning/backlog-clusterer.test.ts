@@ -16,7 +16,7 @@ import {
 } from "../../../olt/scripts/src/mind/preplanning/index.ts";
 import { validateTaskQueueDag } from "../../../olt/scripts/src/task/queue/enqueue.ts";
 import { detectCyclesTarjan } from "../../../olt/scripts/src/reporting/sugiyama-dag/tarjan.ts";
-import { scratchRoot } from "../../../support/scratch-root.ts";
+import { scratchRoot } from "../../shared/scratch-root.ts";
 
 describe("Backlog Clusterer Engine & Cluster DAG Verification", () => {
   const testDir = scratchRoot(import.meta.path, "test-backlog-clusterer");

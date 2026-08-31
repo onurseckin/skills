@@ -35,7 +35,7 @@ import {
   readFeedbackQueue,
 } from "../../olt/scripts/src/mind/feedback/queue/index.ts";
 import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("Deep Behavioral Forensics Engine (meta-auditor)", () => {
   describe("Root Cause Categories & Severities", () => {

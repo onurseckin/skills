@@ -29,7 +29,7 @@ import {
   enqueueTask,
   readTaskQueue,
 } from "../../olt/scripts/src/task/queue/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("Autonomous Mind Self-Evolution Loop & Perpetual Cadence", () => {
   const testDir = scratchRoot(import.meta.path, "test-self-evolution");

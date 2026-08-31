@@ -4,7 +4,7 @@ import type { JsonObject } from "../../olt/scripts/src/core/contracts/index.ts";
 import { initRun, loadRun, transact } from "../../olt/scripts/src/engine/store/index.ts";
 import { registerAgentGrant } from "../../olt/scripts/src/workflow/agents/grants.ts";
 import { readAgentLedger } from "../../olt/scripts/src/workflow/agents/ledger.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 /**
  * A run with `task-1` and `task-2` seeded directly into state — the minimum a grant can bind to.

@@ -7,7 +7,7 @@ import {
   scanMisplacedCapsulesDirectories,
   verifyStrictRepositoryCapsuleRoot,
 } from "../../olt/scripts/src/reporting/doctor/capsule-root.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 const roots: string[] = [];
 afterEach(async () => {

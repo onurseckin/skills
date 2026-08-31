@@ -7,7 +7,7 @@ import {
   SchedulerEngine,
 } from "../../../olt/scripts/src/engine/scheduler/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { scratchRoot as makeScratchRoot } from "../../../support/scratch-root.ts";
+import { scratchRoot as makeScratchRoot } from "../../shared/scratch-root.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import type { TransactionPort, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 import { schedulerState } from "../fixtures.ts";

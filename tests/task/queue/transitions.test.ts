@@ -16,7 +16,7 @@ import {
   validateCompletionReceipts,
   type TaskQueueItem,
 } from "../../../olt/scripts/src/task/queue/index.ts";
-import { scratchRoot } from "../../../support/scratch-root.ts";
+import { scratchRoot } from "../../shared/scratch-root.ts";
 
 describe("Task Queue Transitions Engine", () => {
   const testDir = scratchRoot(import.meta.path, "test-transitions");

@@ -7,7 +7,7 @@ import {
 } from "../../olt/scripts/src/workflow/lease/index.ts";
 import { tokenDigest } from "../../olt/scripts/src/workflow/lease/token.ts";
 import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("Workflow Mutation Interlock Gate", () => {
   let sandboxDir: string;

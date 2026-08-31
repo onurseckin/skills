@@ -6,7 +6,7 @@ import {
 import { initRun, loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { scratchRoot } from "../../../support/scratch-root.ts";
+import { scratchRoot } from "../../shared/scratch-root.ts";
 
 describe("AutoReceiptLogger", () => {
   it("can be instantiated", () => {

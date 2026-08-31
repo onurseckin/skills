@@ -16,7 +16,7 @@ import { dagViewCommand } from "../../../olt/scripts/src/cli/commands/dag-view.t
 import { autoDeriveCallerIdentity } from "../../../olt/scripts/src/authority/session/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { scratchRoot } from "../../../support/scratch-root.ts";
+import { scratchRoot } from "../../shared/scratch-root.ts";
 
 const EXPECTED_INVOCATIONS: readonly string[] = COMMAND_REGISTRY.map((spec) => spec.name);
 

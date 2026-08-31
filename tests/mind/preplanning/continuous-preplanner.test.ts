@@ -21,7 +21,7 @@ import {
   detectCyclesTarjan,
   extractFeedbackArcSet,
 } from "../../../olt/scripts/src/reporting/sugiyama-dag/tarjan.ts";
-import { scratchRoot } from "../../../support/scratch-root.ts";
+import { scratchRoot } from "../../shared/scratch-root.ts";
 
 describe("Continuous Preplanner Engine & PO Toposort Verification", () => {
   const testDir = scratchRoot(import.meta.path, "test-continuous-preplanner");

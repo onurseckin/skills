@@ -31,7 +31,7 @@ function neverExited(): Promise<number> {
   return new Promise<number>(() => undefined);
 }
 
-import { scratchRoot } from "../../../support/scratch-root.ts";
+import { scratchRoot } from "../../shared/scratch-root.ts";
 
 function attemptRoot(label: string): { root: string; commandRoot: string } {
   const root = scratchRoot(import.meta.path, label);

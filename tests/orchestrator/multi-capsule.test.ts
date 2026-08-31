@@ -16,7 +16,7 @@ import {
   type CapsuleStateChangeEvent,
   type MultiCapsuleSummary,
 } from "../../olt/scripts/src/orchestrator/multi-capsule.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("True Multi-Capsule Parallel Orchestration & Anti-Sequentiality Engine", () => {
   describe("1. MultiCapsuleDAG & Wave Partitioning", () => {

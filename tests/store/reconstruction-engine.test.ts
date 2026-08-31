@@ -10,7 +10,7 @@ import {
   fastForwardProjection,
   reconstructStateAtSequence,
 } from "../../olt/scripts/src/engine/store/hierarchy/reconstruction-engine.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 function createEventLine(seq: number, patchOps?: ProjectionPatchOp[]): string {
   const ops: ProjectionPatchOp[] =

@@ -22,7 +22,7 @@ import { validateReview } from "../../olt/scripts/src/workflow/review/validate-r
 import { parseCompletionAssessment } from "../../olt/scripts/src/workflow/completion/review-input.ts";
 import type { TaskRecord, WorkflowState } from "../../olt/scripts/src/workflow/types.ts";
 import type { FeedbackItem } from "../../olt/scripts/src/mind/feedback/queue/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Verification", () => {
   const testDir = scratchRoot(import.meta.path, "test-anti-batching");

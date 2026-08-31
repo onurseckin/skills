@@ -9,7 +9,7 @@ import {
   pruneOrphanedMailboxes,
 } from "../../olt/scripts/src/reporting/doctor/mailbox-health-engine.ts";
 import { createSignedEnvelope } from "../../olt/scripts/src/communication/mailbox/envelope.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("Mailbox Health Engine", () => {
   test("checkMailboxDiskActivity returns passed when mailboxes dir does not exist", () => {

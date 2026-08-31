@@ -26,7 +26,7 @@ import {
   resolveCapsulesDir,
   resolveScratchDir,
 } from "../../olt/scripts/src/core/shared/paths.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 import { initRun, transact } from "../../olt/scripts/src/engine/store/index.ts";
 
 type PersistedSessionReader = (path: string, encoding: "utf8") => string;

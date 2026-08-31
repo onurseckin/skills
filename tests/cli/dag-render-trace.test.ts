@@ -8,7 +8,7 @@ import {
   executeDagRenderCommand,
   executeDagTraceCommand,
 } from "../../olt/scripts/src/cli/commands/dag.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("CLI dag:render and dag:trace commands", () => {
   describe("dagRenderCommand and executeDagRenderCommand", () => {

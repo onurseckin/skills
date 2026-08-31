@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { initRun } from "../../olt/scripts/src/engine/store/index.ts";
 import { recordCaptures } from "../../olt/scripts/src/engine/store/capsule/captures.ts";
 import { runDoctor } from "../../olt/scripts/src/reporting/doctor.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("runDoctor wires capsule-root and evidence-location checks", () => {
   test("a freshly initialised capsule under the canonical .olt/capsules/ layout stays healthy", async () => {

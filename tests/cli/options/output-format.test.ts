@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { stripOutputFormat } from "../../../olt/scripts/src/cli/output-format.ts";
 import { main } from "../../../olt/scripts/harness.ts";
-import { scratchRoot } from "../../../support/scratch-root.ts";
+import { scratchRoot } from "../../shared/scratch-root.ts";
 
 const MIN_MIND_MANIFEST_YAML = `role: mind
 tier: 0

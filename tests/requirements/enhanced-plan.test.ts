@@ -14,7 +14,7 @@ import {
 } from "../../olt/scripts/src/requirements/enhanced-plan.ts";
 import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import { canonicalJsonBytes, sha256Bytes } from "../../olt/scripts/src/core/json.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 function input(overrides: Partial<EnhancedPlanInput> = {}): EnhancedPlanInput {
   return {

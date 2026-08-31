@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { orchestratorRunCommand } from "../../olt/scripts/src/cli/commands/orchestrator-ops.ts";
 import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import { AutonomousLoopRunner } from "../../olt/scripts/src/orchestrator/loop-runner.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 function temporaryRepo(name: string): string {
   return scratchRoot(import.meta.path, name);

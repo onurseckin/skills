@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { chmodSync, existsSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { buildOltBinaryContent, ensureGlobalOltBinary } from "../../scripts/sync/olt-bin.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("buildOltBinaryContent", () => {
   test("generates expected bash wrapper script with multi-path Bun discovery", () => {

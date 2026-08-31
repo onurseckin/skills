@@ -6,7 +6,7 @@ import {
   AutonomousLoopRunner,
   executeOrchestratorTrack,
 } from "../../olt/scripts/src/orchestrator/loop-runner.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 import type {
   CapsuleChainManifest,
   DefectSynthesis,

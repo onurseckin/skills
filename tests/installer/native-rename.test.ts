@@ -6,7 +6,7 @@ import {
   exchangePaths,
   renameNoReplace,
 } from "../../olt/scripts/src/installer/native-rename.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("renameNoReplace", () => {
   test("moves a directory to a new, non-existent destination", () => {

@@ -15,7 +15,7 @@ import {
   resolveTraceContext,
   type TraceContext,
 } from "../../olt/scripts/src/telemetry/trace-context.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("Telemetry Trace Context (task-cli-03)", () => {
   test("resolves trace context from explicit command flags", () => {

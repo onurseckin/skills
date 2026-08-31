@@ -1,7 +1,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { initRun, transact } from "../../olt/scripts/src/engine/store/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 /**
  * One ready, dependency-free task ("t-1") with its requirement pre-authorized, plus enough of a

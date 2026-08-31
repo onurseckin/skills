@@ -15,7 +15,7 @@ import {
   compactSnippet,
   applyTokenEconomy,
 } from "../../olt/scripts/src/cli/briefing/index.ts";
-import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot as makeScratchRoot } from "../shared/scratch-root.ts";
 
 function scratchRoot(label: string): string {
   return makeScratchRoot(import.meta.path, label);

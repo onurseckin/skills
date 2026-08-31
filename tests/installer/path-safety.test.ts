@@ -9,7 +9,7 @@ import {
   pathIdentity,
   sameIdentity,
 } from "../../olt/scripts/src/installer/path-safety.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("pathIdentity", () => {
   test("returns null for a path that does not exist", async () => {

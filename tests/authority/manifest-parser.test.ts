@@ -34,7 +34,7 @@ import {
   type SupervisoryReminderEvaluationContext,
 } from "../../olt/scripts/src/authority/supervisory/index.ts";
 import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("YAML and Markdown Frontmatter Parser (manifest-parser.ts)", () => {
   test("parses plain scalars, booleans, numbers, and nulls correctly", () => {

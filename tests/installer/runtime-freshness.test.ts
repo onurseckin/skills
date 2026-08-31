@@ -11,7 +11,7 @@ import {
   type RuntimeFreshnessReport,
 } from "../../olt/scripts/src/installer/runtime-freshness.ts";
 import { validateSkillSource } from "../../olt/scripts/src/installer/source-validation.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 import { cleanInstallerFixtures, installerFixture } from "./helpers.ts";
 
 afterEach(cleanInstallerFixtures);

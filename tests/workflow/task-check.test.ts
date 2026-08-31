@@ -21,7 +21,7 @@ import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import { ALL_AST_LINT_RULES } from "../../olt/scripts/src/linter/ast/index.ts";
 import { initRun, transact } from "../../olt/scripts/src/engine/store/index.ts";
 import type { TaskRecord } from "../../olt/scripts/src/workflow/types.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 function createScratchContext(label: string): {
   readonly rootDir: string;

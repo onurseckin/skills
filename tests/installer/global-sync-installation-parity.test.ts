@@ -7,7 +7,7 @@ import {
   deployCanonicalSkill,
   migrateOwnedLegacyDeployment,
 } from "../../scripts/sync/skill-deployer.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 const REPOSITORY_ROOT = join(import.meta.dir, "../../..");
 

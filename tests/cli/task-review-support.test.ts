@@ -358,7 +358,7 @@ describe("task-review-support additional helpers", () => {
   test("persistProbeReport and persistReviewReport write JSON files to reports directory", async () => {
     const { persistProbeReport, persistReviewReport } =
       await import("../../../olt/scripts/src/cli/commands/task-review-support.ts");
-    const { scratchRoot } = await import("../../support/scratch-root.ts");
+    const { scratchRoot } = await import("../shared/scratch-root.ts");
     const runDir = scratchRoot(import.meta.path, "reports-test");
 
     const probePath = persistProbeReport(runDir, "T-1", 1, { demand: "proof 1" });
@@ -385,7 +385,7 @@ describe("task-review-support additional helpers", () => {
       repoRootOf,
       reviewPolicyFor,
     } = await import("../../../olt/scripts/src/cli/commands/task-review-support.ts");
-    const { scratchRoot } = await import("../../support/scratch-root.ts");
+    const { scratchRoot } = await import("../shared/scratch-root.ts");
     const runDir = scratchRoot(import.meta.path, "manifests-test");
 
     // Create captures directory and companion manifest

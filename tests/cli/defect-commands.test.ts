@@ -7,7 +7,7 @@ import {
   defectRecordCommand,
   defectResolveCommand,
 } from "../../olt/scripts/src/cli/commands/defect-ops.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("Defect CLI commands", () => {
   test("defect:record ingests and deduplicates defect JSONL", () => {

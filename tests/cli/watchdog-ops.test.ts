@@ -11,7 +11,7 @@ import { execute } from "../../olt/scripts/src/cli/execute.ts";
 import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import { initRun, transact } from "../../olt/scripts/src/engine/store/index.ts";
 import { registerSessionGrant } from "../../olt/scripts/src/authority/session/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 function authorizeMind(dir: string): string {
   const run = initRun(dir, "watchdog-authority", new TextEncoder().encode("prompt"), "file", true);

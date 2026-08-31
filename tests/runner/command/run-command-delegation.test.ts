@@ -9,7 +9,7 @@ import type {
   CommandResult,
   PreparedCommand,
 } from "../../../olt/scripts/src/engine/runner/types/types.ts";
-import { scratchRoot } from "../../../support/scratch-root.ts";
+import { scratchRoot } from "../../shared/scratch-root.ts";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 

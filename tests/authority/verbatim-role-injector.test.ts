@@ -6,7 +6,7 @@ import {
   VerbatimRoleInjector,
 } from "../../olt/scripts/src/authority/verbatim-role-injector.ts";
 import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 const REPO_ROOT = resolve(import.meta.dir, "../../..");
 

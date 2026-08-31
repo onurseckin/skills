@@ -3,7 +3,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { initRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
 import { generateUnifiedReport } from "../../../../olt/scripts/src/reporting/unified/index.ts";
-import { scratchRoot } from "../../../../support/scratch-root.ts";
+import { scratchRoot } from "../../../shared/scratch-root.ts";
 
 function createMockRun(testName: string) {
   const root = scratchRoot(import.meta.url, testName);

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot as makeScratchRoot } from "../shared/scratch-root.ts";
 import { AGENT_ROLES, type AgentRole } from "../../olt/scripts/src/core/contracts/index.ts";
 import { loadMindContract } from "../../olt/scripts/src/mind/lifecycle/deploy/index.ts";
 

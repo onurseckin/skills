@@ -6,7 +6,7 @@ import {
   DEFAULT_RESOLVED_CONFIG,
   resolveHarnessConfig,
 } from "../../olt/scripts/src/core/config/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 function makeTempDir(label: string): string {
   return scratchRoot(import.meta.path, label);

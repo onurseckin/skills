@@ -14,7 +14,7 @@ import { loadRun } from "../../olt/scripts/src/engine/store/index.ts";
 import { transact } from "../../olt/scripts/src/engine/store/index.ts";
 import { readAgentLedger } from "../../olt/scripts/src/workflow/agents/ledger.ts";
 import type { WorkflowState } from "../../olt/scripts/src/workflow/types.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 interface MindDamageFixture {
   readonly repo: string;

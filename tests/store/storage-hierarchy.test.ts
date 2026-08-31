@@ -15,7 +15,7 @@ import {
   validateEventsFileShaChain,
   validateMigratedRun,
 } from "../../olt/scripts/src/engine/store/hierarchy/storage-migrator.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 function createValidEvent(
   runId: string,

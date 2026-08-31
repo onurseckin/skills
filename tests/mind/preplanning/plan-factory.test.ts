@@ -11,7 +11,7 @@ import {
   type RawDefectItem,
   type ThematicCluster,
 } from "../../../olt/scripts/src/mind/preplanning/index.ts";
-import { scratchRoot } from "../../../support/scratch-root.ts";
+import { scratchRoot } from "../../shared/scratch-root.ts";
 
 describe("Plan Factory Engine", () => {
   const testDir = scratchRoot(import.meta.path, "test-plan-factory");

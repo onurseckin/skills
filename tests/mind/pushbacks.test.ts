@@ -7,7 +7,7 @@ import {
   parsePushbackMarkdown,
   ingestPushbacks,
 } from "../../olt/scripts/src/mind/feedback/pushbacks/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("mind/pushbacks", () => {
   let scratchDir: string;

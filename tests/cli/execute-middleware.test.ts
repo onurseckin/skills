@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { execute } from "../../olt/scripts/src/cli/execute.ts";
 import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import { cleanupRoots } from "./full-lifecycle-fixture.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 const roots: string[] = [];
 afterEach(async () => cleanupRoots(roots));

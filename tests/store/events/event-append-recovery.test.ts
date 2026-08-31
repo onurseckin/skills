@@ -15,7 +15,7 @@ import {
   cloneObject,
   initialState,
 } from "../../../olt/scripts/src/engine/store/capsule/state.ts";
-import { scratchRoot } from "../../../support/scratch-root.ts";
+import { scratchRoot } from "../../shared/scratch-root.ts";
 import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
 import { recoverProjection } from "../../../olt/scripts/src/engine/store/recovery/recovery.ts";
 import { brainstormingProjection } from "../../../olt/scripts/src/engine/store/projections/materialized-projections.ts";

@@ -26,7 +26,7 @@ import {
   isTargetTestArgument,
   isUntargetedTestCommand,
 } from "../../olt/scripts/src/policy/rbac/test-runners.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("Policy Presets, Manifest Readers, Audit, Telemetry & RBAC Runners Comprehensive", () => {
   test("toolchain presets returns ecosystem analysis structures", () => {

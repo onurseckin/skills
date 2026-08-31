@@ -19,7 +19,7 @@ import { rotateMindGeneration } from "../../olt/scripts/src/mind/archival/rotate
 import { verifyIntegrity } from "../../olt/scripts/src/engine/store/index.ts";
 import { loadRun } from "../../olt/scripts/src/engine/store/index.ts";
 import { transact } from "../../olt/scripts/src/engine/store/index.ts";
-import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot as makeScratchRoot } from "../shared/scratch-root.ts";
 
 function scratchRoot(label: string): string {
   return makeScratchRoot(import.meta.path, label);

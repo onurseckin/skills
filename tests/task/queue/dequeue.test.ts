@@ -16,7 +16,7 @@ import {
   startTaskValidation,
 } from "../../../olt/scripts/src/task/queue/lease.ts";
 import { enqueueTask, enqueueTasksBatch } from "../../../olt/scripts/src/task/queue/enqueue.ts";
-import { scratchRoot } from "../../../support/scratch-root.ts";
+import { scratchRoot } from "../../shared/scratch-root.ts";
 
 describe("Task Queue Dequeue Engine & Anti-Batching Guard", () => {
   const testDir = scratchRoot(import.meta.path, "test-dequeue-queue");

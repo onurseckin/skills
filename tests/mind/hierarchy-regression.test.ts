@@ -53,7 +53,7 @@ import {
 import { initRun } from "../../olt/scripts/src/engine/store/index.ts";
 import { loadRun } from "../../olt/scripts/src/engine/store/index.ts";
 import { transact } from "../../olt/scripts/src/engine/store/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 function createMindTestCapsule(
   callerPath: string,

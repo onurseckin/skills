@@ -8,7 +8,7 @@ import {
   hygieneAuditCommand,
   hygieneFixCommand,
 } from "../../olt/scripts/src/cli/commands/hygiene-ops.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("Hygiene CLI Commands & JSON Contract Verification", () => {
   test("hygiene:audit passes on clean workspace and satisfies JSON contracts", () => {

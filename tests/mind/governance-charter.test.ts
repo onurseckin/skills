@@ -32,7 +32,7 @@ import {
 } from "../../olt/scripts/src/mind/governance/charter.ts";
 import * as governanceBarrel from "../../olt/scripts/src/mind/governance/index.ts";
 import * as mindBarrel from "../../olt/scripts/src/mind/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("Mind Governance Charter Module (mind/governance/charter.ts)", () => {
   const SAMPLE_YAML = `

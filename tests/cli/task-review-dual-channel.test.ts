@@ -21,7 +21,7 @@ import type { ScreenshotRecord } from "../../olt/scripts/src/reporting/screensho
 import type { CompanionManifestData } from "../../olt/scripts/src/validation/channels/index.ts";
 import { createAgentMetadata, writeAgentMetadata } from "../../olt/scripts/src/runtime/index.ts";
 import { createSyntheticPngBuffer } from "../../olt/scripts/src/capture/runners/live-capture-runner/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 function createValidScreenshotFixtures(label: string): ScreenshotRecord[] {
   const dir = scratchRoot(import.meta.path, label);

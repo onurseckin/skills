@@ -8,7 +8,7 @@ import type {
   RoundExecutionResult,
   RoundExecutor,
 } from "../../../olt/scripts/src/orchestrator/types.ts";
-import { scratchRoot } from "../../../support/scratch-root.ts";
+import { scratchRoot } from "../../shared/scratch-root.ts";
 
 const TEST_DIR = scratchRoot(import.meta.path, "test-orch-worktree");
 

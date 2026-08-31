@@ -4,7 +4,7 @@ import { rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import { validateSkillSource } from "../../olt/scripts/src/installer/source-validation.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 import { cleanInstallerFixtures, installerFixture } from "./helpers.ts";
 
 afterEach(cleanInstallerFixtures);

@@ -22,7 +22,7 @@ import {
   withTaskQueueTransaction,
   type TaskQueueItem,
 } from "../../../olt/scripts/src/task/queue/index.ts";
-import { scratchRoot } from "../../../support/scratch-root.ts";
+import { scratchRoot } from "../../shared/scratch-root.ts";
 
 function createMockTask(id: string, title = "Test Task"): TaskQueueItem {
   return {

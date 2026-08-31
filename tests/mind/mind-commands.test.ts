@@ -9,7 +9,7 @@ import {
   MIND_SELF_EVOLVE_COMMAND_SPEC,
   MIND_STRATEGIC_COGNITION_COMMAND_SPEC,
 } from "../../olt/scripts/src/mind/lifecycle/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("mind/mind.ts Unified Mind Commands and CommandSpecs", () => {
   let scratchDir: string;

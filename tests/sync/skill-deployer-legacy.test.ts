@@ -7,7 +7,7 @@ import {
   orDefault,
   readJsonStringField,
 } from "../../scripts/sync/skill-deployer.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 import { initFakeSkillsRepo, initFakeTargetOlt } from "./skill-deployer-fixtures.ts";
 
 describe("getAssistantSkillDirs", () => {

@@ -27,7 +27,7 @@ import type {
   RepositoryGitCommand,
   RepositoryGitResult,
 } from "../../olt/scripts/src/packets/repository-git-command.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 /** A directory carrying only a real `.git` marker — `hasRepositoryGitMetadata` only needs that
  *  directory to exist; every actual `git` invocation is intercepted by the fake below instead, so

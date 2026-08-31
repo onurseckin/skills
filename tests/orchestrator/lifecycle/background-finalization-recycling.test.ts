@@ -14,7 +14,7 @@ import type {
   RoundExecutor,
 } from "../../../olt/scripts/src/orchestrator/types.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import { scratchRoot } from "../../../support/scratch-root.ts";
+import { scratchRoot } from "../../shared/scratch-root.ts";
 import { createMockGitRunner, createMockSyncRunner } from "./fixture.ts";
 
 describe("Zero Main-Thread Spillover Invariants", () => {

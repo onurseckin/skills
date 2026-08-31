@@ -10,7 +10,7 @@ import {
   type ClientLinkPlan,
 } from "../../olt/scripts/src/installer/client-links.ts";
 import { pathIdentity } from "../../olt/scripts/src/installer/path-safety.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 import { cleanInstallerFixtures } from "./helpers.ts";
 
 afterEach(cleanInstallerFixtures);

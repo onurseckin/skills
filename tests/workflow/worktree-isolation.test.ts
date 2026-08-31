@@ -19,7 +19,7 @@ import {
   type DomainWorktreeConfig,
   type GitRunner,
 } from "../../olt/scripts/src/engine/worktree/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("Worktree Isolation - Disjoint Write Scopes", () => {
   it("validates mutually disjoint domain write scopes as isolated", () => {

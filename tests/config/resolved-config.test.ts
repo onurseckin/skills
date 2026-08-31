@@ -7,7 +7,7 @@ import {
   resetHarnessConfigCache,
   resolveHarnessConfig,
 } from "../../olt/scripts/src/core/config/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("resolved harness config", () => {
   // scratchRoot() creates and tears down each directory itself (see tests/support/README.md) —

@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { runHealthCheck, type HealthLayout } from "../../olt/scripts/src/health/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 /**
  * A tiny synthetic tree, distinct from the real skill tree runHealthCheck normally scans (see

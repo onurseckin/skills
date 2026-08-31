@@ -3,7 +3,7 @@ import { realpathSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { runFilePath } from "../../../olt/scripts/src/engine/store/capsule/paths.ts";
-import { scratchRoot } from "../../../support/scratch-root.ts";
+import { scratchRoot } from "../../shared/scratch-root.ts";
 
 describe("runFilePath", () => {
   test("resolves a plain file name inside the run root", () => {

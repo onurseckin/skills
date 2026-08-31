@@ -10,7 +10,7 @@ import type {
   ExternallyAttestedFact,
   ExternallyAttestedSource,
 } from "../../olt/scripts/src/core/config/provenance.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 const moduleExports = harnessConfigModule as unknown as Record<string, unknown>;
 

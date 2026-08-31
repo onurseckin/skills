@@ -41,7 +41,7 @@ import {
 } from "../../olt/scripts/src/hooks/index.ts";
 import { findRepoRoot } from "../../olt/scripts/src/core/shared/paths.ts";
 import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 function fakeRunner(handler: (executable: string, args: readonly string[]) => ProcessRunResult): {
   runner: ProcessRunner;

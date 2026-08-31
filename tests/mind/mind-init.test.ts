@@ -18,7 +18,7 @@ import {
 import { verifyIntegrity } from "../../olt/scripts/src/engine/store/index.ts";
 import { loadRun } from "../../olt/scripts/src/engine/store/index.ts";
 import { readAgentLedger } from "../../olt/scripts/src/workflow/agents/ledger.ts";
-import { scratchRoot as makeScratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot as makeScratchRoot } from "../shared/scratch-root.ts";
 
 function scratchRoot(label: string): string {
   return makeScratchRoot(import.meta.path, label);

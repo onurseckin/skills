@@ -16,7 +16,7 @@ import {
   resolveAffectedTestFiles,
   run,
 } from "../../scripts/testing/test-changed.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("test-changed script", () => {
   const scriptPath = join(process.cwd(), "scripts/testing/test-changed.ts");

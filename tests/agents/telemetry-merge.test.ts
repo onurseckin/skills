@@ -18,7 +18,7 @@ import {
   transcriptAuditContext,
 } from "../../olt/scripts/src/workflow/agents/telemetry-merge.ts";
 import type { AgentTranscriptTelemetry } from "../../olt/scripts/src/workflow/agents/transcript-telemetry.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("mergeObservedCount", () => {
   test("passes an undefined observation through unchanged", () => {

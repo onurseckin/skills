@@ -36,7 +36,7 @@ import {
   watchdogVerifyCommand,
 } from "../../olt/scripts/src/cli/commands/watchdog-ops.ts";
 import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("WatchdogManager - Store Lifecycle & Resolution", () => {
   test("resolves store path for directory or explicit json file", () => {

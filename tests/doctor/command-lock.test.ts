@@ -5,7 +5,7 @@ import {
   checkCognitiveValidatorCommandLock,
   checkCommandLockIntegrity,
 } from "../../olt/scripts/src/reporting/doctor/command-lock-engine.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("checkCognitiveValidatorCommandLock", () => {
   test("passes when implementer executes file-scoped test and validator has zero commands", () => {

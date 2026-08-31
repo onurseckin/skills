@@ -24,7 +24,7 @@ import {
   type GitRunner,
   type WorktreeContext,
 } from "../../olt/scripts/src/engine/worktree/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("Hermetic Worktree Pipeline", () => {
   let testDir: string;

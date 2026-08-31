@@ -13,7 +13,7 @@ import type {
 } from "../../olt/scripts/src/cli/registry/types.ts";
 import { executeTaskAdd } from "../../olt/scripts/src/cli/commands/task-add.ts";
 import { executeTaskList } from "../../olt/scripts/src/cli/commands/task-list.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("Distributed Trace Context & Error Envelopes", () => {
   const originalEnv = { ...process.env };

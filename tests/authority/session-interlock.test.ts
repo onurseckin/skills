@@ -8,7 +8,7 @@ import {
   type SessionIdentity,
 } from "../../olt/scripts/src/authority/session/index.ts";
 import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("Session Capsule Interlock & Turn 1 Registration", () => {
   let sandboxDir: string;

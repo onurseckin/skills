@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import { syncTree } from "../../olt/scripts/src/installer/durable-tree.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("syncTree", () => {
   test("fsyncs every file and directory in a nested tree without throwing", () => {

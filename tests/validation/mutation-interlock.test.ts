@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { assertLeaseTokenForFileMutation } from "../../olt/scripts/src/validation/anti-leak/index.ts";
 import { registerSessionGrant } from "../../olt/scripts/src/authority/session/index.ts";
 import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("Mutation Interlock Enforcement", () => {
   it("throws INVALID_ARGUMENT when target file path is empty or whitespace", () => {

@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { inspectHarnessConfigFile } from "../../olt/scripts/src/core/config/parser.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 function makeTempDir(label: string): string {
   return scratchRoot(import.meta.path, label);

@@ -27,7 +27,7 @@ import {
   copyPinnedRuntime,
   runtimeTreeSnapshot,
 } from "../../olt/scripts/src/core/runtime-tree.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 function fixture(): { root: string; source: string; destination: string } {
   const root = mkdtempSync(join(tmpdir(), "harness-runtime-"));

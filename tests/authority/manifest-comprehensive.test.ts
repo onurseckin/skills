@@ -20,7 +20,7 @@ import {
   validateUnifiedAgentManifest,
   type UnifiedAgentManifest,
 } from "../../olt/scripts/src/authority/manifest-schema.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("Authority Manifest Schema, Parsers, Discovery and Loader Comprehensive", () => {
   test("normalizeRoleName applies alias mappings and normalizes string", () => {

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { execute } from "../../olt/scripts/src/cli/execute.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("Task queue CLI commands & Cowan Pagination", () => {
   test("task:add enqueues tasks and task:list queries them", async () => {

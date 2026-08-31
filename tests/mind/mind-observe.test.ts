@@ -5,7 +5,7 @@ import {
   resolveCanonicalObservationsPath,
   resolveObservationsPath,
 } from "../../olt/scripts/src/mind/lifecycle/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("mind/mind-observe", () => {
   let scratchDir: string;

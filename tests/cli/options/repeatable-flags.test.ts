@@ -14,7 +14,7 @@ import {
   repeatableFlag,
   requiredFlag,
 } from "../../../olt/scripts/src/cli/registry/index.ts";
-import { scratchRoot } from "../../../support/scratch-root.ts";
+import { scratchRoot } from "../../shared/scratch-root.ts";
 
 const ENHANCE_FLAGS = [
   requiredFlag("run", "string", "Capsule run root."),

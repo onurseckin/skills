@@ -11,7 +11,7 @@ import {
   parseCharterYaml,
   resolveCharterPath,
 } from "../../olt/scripts/src/mind/lifecycle/charter/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 describe("Mind Charter Module (charter.ts) - Pure YAML Manifest SSoT", () => {
   const VALID_MIND_YAML = `

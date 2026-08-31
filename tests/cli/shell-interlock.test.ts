@@ -270,7 +270,7 @@ describe("CLI Shell Interlock & Read Scope Expansion", () => {
       const { join } = await import("node:path");
       const { writeFile } = await import("node:fs/promises");
       const { execute } = await import("../../../olt/scripts/src/cli/execute.ts");
-      const { scratchRoot } = await import("../../support/scratch-root.ts");
+      const { scratchRoot } = await import("../shared/scratch-root.ts");
 
       const scratch = scratchRoot(import.meta.path, "shell-capsule-run");
       const promptPath = join(scratch, "prompt.txt");

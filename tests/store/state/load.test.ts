@@ -8,7 +8,7 @@ import {
   loadRun,
   loadRunProjection,
 } from "../../../olt/scripts/src/engine/store/capsule/load.ts";
-import { scratchRoot } from "../../../support/scratch-root.ts";
+import { scratchRoot } from "../../shared/scratch-root.ts";
 
 function freshRun(label: string): string {
   const repo = scratchRoot(import.meta.path, label);

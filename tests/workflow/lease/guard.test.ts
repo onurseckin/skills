@@ -10,7 +10,7 @@ import {
 import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { at, TestPort, workflowState } from "../test-port.ts";
-import { scratchRoot } from "../../../support/scratch-root.ts";
+import { scratchRoot } from "../../shared/scratch-root.ts";
 
 const start = at("2026-08-19T00:00:00.000Z");
 const afterExpiry = at("2026-08-19T01:00:00.000Z");

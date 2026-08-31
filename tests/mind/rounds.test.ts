@@ -25,7 +25,7 @@ import {
   validateRoundCloseArmingRail,
 } from "../../olt/scripts/src/mind/lifecycle/rounds/index.ts";
 import { initRun, loadRun, transact } from "../../olt/scripts/src/engine/store/index.ts";
-import { scratchRoot } from "../../support/scratch-root.ts";
+import { scratchRoot } from "../shared/scratch-root.ts";
 
 interface MindFixture {
   readonly repo: string;
