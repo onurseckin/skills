@@ -105,13 +105,19 @@ test("runs checkModularity in ratchet mode with custom baseline in subdirectory"
 });
 
 test("runs checkModularity in ratchet mode on repo root with default baseline", async () => {
+  if (!tempRepo) throw new Error("Missing temp repo");
+  await mkdir(join(tempRepo, "scripts", "modularity", "baseline"), { recursive: true });
+  await writeFile(
+    join(tempRepo, "scripts", "modularity", "baseline", "index.json"),
+    JSON.stringify({ schema: "olt-modularity-baseline/v1", violations: [] }),
+  );
   const report = await checkModularity({
-    repoRoot: process.cwd(),
+    repoRoot: tempRepo,
     mode: "ratchet",
-    source: "index",
+    source: "tree",
   });
 
   expect(report.mode).toBe("ratchet");
-  expect(report.source).toBe("index");
+  expect(report.source).toBe("tree");
   expect(typeof report.passed).toBe("boolean");
 });

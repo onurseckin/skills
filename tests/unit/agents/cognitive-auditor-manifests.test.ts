@@ -7,6 +7,9 @@ import {
 } from "../../../olt/scripts/src/authority/manifest-schema.ts";
 
 const AGENTS_DIR = join(import.meta.dir, "../../../olt/agents");
+const REPO_ROOT = join(import.meta.dir, "../../../");
+const AGENTS_MD_PATH = join(REPO_ROOT, "AGENTS.md");
+const SKILL_MD_PATH = join(REPO_ROOT, "olt/SKILL.md");
 
 describe("Cognitive Auditor Manifests (mind-auditor.yaml & skill-auditor.yaml)", () => {
   describe("mind-auditor.yaml", () => {
@@ -125,6 +128,42 @@ describe("Cognitive Auditor Manifests (mind-auditor.yaml & skill-auditor.yaml)",
         expect(manifest.invariants).toContain("SUPERVISOR_ZERO_CODE_EDITS");
         expect(manifest.invariants).toContain("TIER_0_OUT_OF_BAND_OBSERVER");
       }
+    });
+  });
+
+  describe("Documentation Synchronization (AGENTS.md & SKILL.md)", () => {
+    it("verifies AGENTS.md and SKILL.md include Step Machines G, H, I and policy-discovery Tier 0 definition", () => {
+      const agentsMd = readFileSync(AGENTS_MD_PATH, "utf-8");
+      const skillMd = readFileSync(SKILL_MD_PATH, "utf-8");
+
+      // Step Machine G: Tier 0 Policy Discovery Protocol
+      expect(agentsMd).toContain("### G. Tier 0 Policy Discovery & Toolchain Bootstrapping Step-Machine");
+      expect(agentsMd).toContain("TIER 0 POLICY DISCOVERY & TOOLCHAIN BOOTSTRAPPING STEP-MACHINE");
+      expect(agentsMd).toContain("Tier 0 Policy Discovery");
+      expect(skillMd).toContain("Tier 0 Policy Discovery");
+      expect(skillMd).toContain("policy:init");
+
+      // Step Machine H: Mandatory Companion Auditors
+      expect(agentsMd).toContain("### H. Mandatory Companion Auditor Lifecycle & Doctor Health Check Step-Machine");
+      expect(agentsMd).toContain("MANDATORY COMPANION AUDITORS & DOCTOR HEALTH CHECK STEP-MACHINE");
+      expect(agentsMd).toContain("Mandatory Companion Auditor");
+      expect(skillMd).toContain("Mandatory Companion Auditors");
+      expect(skillMd).toContain("mind-auditor");
+      expect(skillMd).toContain("skill-auditor");
+
+      // Step Machine I: Live Host-Aware Quota Telemetry
+      expect(agentsMd).toContain("### I. Live Host-Aware Quota Telemetry & Circuit-Breaker Step-Machine");
+      expect(agentsMd).toContain("LIVE HOST-AWARE QUOTA TELEMETRY & CIRCUIT-BREAKER STEP-MACHINE");
+      expect(agentsMd).toContain("Live Host-Aware Quota Telemetry");
+      expect(skillMd).toContain("Live Host-Aware Quota Telemetry");
+      expect(skillMd).toContain(".olt/telemetry.jsonl");
+
+      // policy-discovery Tier 0 definition
+      expect(agentsMd).toContain("policy-discovery");
+      expect(agentsMd).toContain("Elevation of Policy Discovery to Tier 0 Autonomous Governance Bootstrapper");
+      expect(agentsMd).toContain("| **`policy-discovery`**    |  0   |");
+      expect(skillMd).toContain("| `policy-discovery` (0)");
+      expect(skillMd).toContain("`policy-discovery` (Tier 0)");
     });
   });
 });

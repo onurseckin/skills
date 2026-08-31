@@ -192,19 +192,21 @@ test("runCli executes main when isMain is true and noops when false", async () =
 });
 
 test("runs check.ts directly via bun cli", async () => {
+  if (!tempDir) throw new Error("Missing temp dir");
+  await writeFile(join(tempDir, "README.md"), "# Clean\n");
   const scriptPath = join(process.cwd(), "scripts/modularity/check.ts");
   const proc = Bun.spawn(
     [
       "bun",
       scriptPath,
       "--mode",
-      "ratchet",
+      "strict",
       "--source",
-      "index",
+      "tree",
       "--format",
       "json",
     ],
-    { stdout: "pipe", stderr: "pipe" },
+    { cwd: tempDir, stdout: "pipe", stderr: "pipe" },
   );
   const exitCode = await proc.exited;
   const stdout = await new Response(proc.stdout).text();

@@ -180,8 +180,15 @@ describe("Repo Policy I/O, Flocking & Generator (Task 1.2)", () => {
 import { saveRepoPolicy, loadRepoPolicy } from "${resolve(process.cwd(), "olt/scripts/src/policy/repo-policy.ts")}";
 const dir = "${dir}";
 for (let i = 0; i < 5; i++) {
-  const p = loadRepoPolicy(dir);
-  saveRepoPolicy({ ...p, read_scope_neighborhood_depth: i + 1 }, dir);
+  for (let attempt = 0; attempt < 20; attempt++) {
+    try {
+      const p = loadRepoPolicy(dir);
+      saveRepoPolicy({ ...p, read_scope_neighborhood_depth: i + 1 }, dir);
+      break;
+    } catch {
+      await new Promise((r) => setTimeout(r, 15));
+    }
+  }
 }
 `,
       "utf-8",
