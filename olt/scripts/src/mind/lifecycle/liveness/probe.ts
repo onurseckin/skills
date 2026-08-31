@@ -296,7 +296,3 @@ export function analyzeLivenessTrends(
     latestStatus: latestLiveness.status,
   };
 }
-
-/**
- * Formats a human-readable markdown brief of liveness status.
- */

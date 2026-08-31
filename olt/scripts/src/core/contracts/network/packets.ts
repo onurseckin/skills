@@ -10,11 +10,16 @@ export type AgentRole =
   | "orchestrator"
   | "plan-validator"
   | "planner"
+  | "policy-discovery"
   | "repairer"
   | "skill-auditor"
   | "sub-implementer"
   | "sub-investigator"
   | "sub-validator"
+  | "ui-headless-validator"
+  | "ui-mechanic-validator"
+  | "ui-optical-validator"
+  | "ui-validator"
   | "validator";
 
 export const AGENT_ROLES: readonly AgentRole[] = [
@@ -27,11 +32,16 @@ export const AGENT_ROLES: readonly AgentRole[] = [
   "orchestrator",
   "plan-validator",
   "planner",
+  "policy-discovery",
   "repairer",
   "skill-auditor",
   "sub-implementer",
   "sub-investigator",
   "sub-validator",
+  "ui-headless-validator",
+  "ui-mechanic-validator",
+  "ui-optical-validator",
+  "ui-validator",
   "validator",
 ];
 
@@ -46,6 +56,7 @@ export function isCognitiveValidatorRole(role: string): boolean {
   return (
     normalized === "validator" ||
     normalized === "ui-validator" ||
+    normalized === "ui-optical-validator" ||
     normalized.startsWith("validator-")
   );
 }
@@ -55,6 +66,7 @@ export function isMechanicValidatorRole(role: string): boolean {
   return (
     normalized === "mechanic-validator" ||
     normalized === "ui-mechanic-validator" ||
+    normalized === "ui-headless-validator" ||
     normalized === "mechanic_validator"
   );
 }

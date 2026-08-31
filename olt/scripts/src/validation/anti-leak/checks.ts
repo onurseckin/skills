@@ -46,9 +46,12 @@ export function isMechanicValidatorRole(role: string): boolean {
   return (
     normalized === "mechanic-validator" ||
     normalized === "ui-mechanic-validator" ||
+    normalized === "ui-headless-validator" ||
+    normalized === "headless-validator" ||
     normalized === "mechanic_validator" ||
     normalized.startsWith("mechanic-") ||
-    normalized.endsWith("-mechanic-validator")
+    normalized.endsWith("-mechanic-validator") ||
+    normalized.endsWith("-headless-validator")
   );
 }
 
@@ -58,7 +61,10 @@ export function isCognitiveValidatorRole(role: string): boolean {
   return (
     normalized === "validator" ||
     normalized === "ui-validator" ||
-    normalized.startsWith("validator-")
+    normalized === "ui-optical-validator" ||
+    normalized === "optical-validator" ||
+    normalized.startsWith("validator-") ||
+    normalized.endsWith("-optical-validator")
   );
 }
 

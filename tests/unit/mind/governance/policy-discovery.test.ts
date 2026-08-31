@@ -6,10 +6,15 @@ import {
   PolicyDiscoveryEngine,
   auditRepoGovernanceCoverage,
   discoverAndCalibrateRepoPolicy,
+  awakenTier0Governance,
+  testRepoToolchainEmpirically,
+  createTier0AgentGrants,
   type DiscoveredToolchainDetails,
   type GovernanceCoverageReport,
   type GovernanceToolchainDiscoveryResult,
   type RepoGovernanceStatus,
+  type Tier0AwakeningResult,
+  type EmpiricalToolchainReport,
 } from "../../../../olt/scripts/src/mind/governance/policy-discovery.ts";
 import {
   auditGovernanceReadiness,
@@ -217,7 +222,7 @@ describe("Policy & Repository Auto-Discovery Engine", () => {
       expect(discovery.calibratedPolicy.schema_version).toBe(CURRENT_POLICY_SCHEMA_VERSION);
       expect(discovery.calibratedPolicy.ecosystem).toBe("bun");
       expect(discovery.calibratedPolicy.test_runner.default_command).toContain("bun test");
-      expect(discovery.calibratedPolicy.allowed_commands.length).toBeGreaterThan(0);
+      expect(discovery.calibratedPolicy.allowed_commands?.length).toBeGreaterThan(0);
 
       const policyFilePath = join(testDir, ".olt", "policy.json");
       expect(existsSync(policyFilePath)).toBe(true);
@@ -363,7 +368,10 @@ describe("Policy & Repository Auto-Discovery Engine", () => {
       const policyPath = join(testDir, ".olt", "policy.json");
       const mutated: RepoPolicy = {
         ...policy,
-        allowed_commands: [...policy.allowed_commands, "bun mutate --test"],
+        allowed_commands: [
+          ...(policy.allowed_commands !== undefined ? policy.allowed_commands : []),
+          "bun mutate --test",
+        ],
       };
       writeFileSync(policyPath, JSON.stringify(mutated, null, 2), "utf8");
 
@@ -533,10 +541,99 @@ describe("Policy & Repository Auto-Discovery Engine", () => {
 
       const defaultAgents = buildDefaultAgents();
       expect(defaultAgents.policy_discovery).toBeDefined();
-      expect(defaultAgents.policy_discovery.tier).toBe(0);
-      expect(defaultAgents.policy_discovery.domain).toBe("governance");
+      expect(defaultAgents.policy_discovery?.tier).toBe(0);
+      expect(defaultAgents.policy_discovery?.domain).toBe("governance");
       expect(ROLE_KEY_ALIASES["policy-discovery"]).toBe("policy_discovery");
       expect(ROLE_KEY_ALIASES["policy-bootstrapper"]).toBe("policy_discovery");
+    });
+  });
+
+  describe("Cold-Start First Responder, Empirical Testing & Tier 0 Mind Awakening", () => {
+    it("empirically tests discovered toolchain commands", () => {
+      writeFileSync(join(testDir, "bun.lock"), "");
+      writeFileSync(
+        join(testDir, "package.json"),
+        JSON.stringify({
+          name: "empirical-test-pkg",
+          scripts: { test: "bun test" },
+        }),
+      );
+
+      const empirical = PolicyDiscoveryEngine.testToolchainEmpirically(testDir);
+      expect(empirical.repoRoot).toBe(testDir);
+      expect(empirical.verifiedCommands.length).toBeGreaterThan(0);
+      expect(empirical.passed).toBe(true);
+
+      const bunTestCheck = empirical.verifiedCommands.find((c) => c.command.includes("bun"));
+      expect(bunTestCheck).toBeDefined();
+      expect(bunTestCheck?.available).toBe(true);
+      expect(bunTestCheck?.executionTimeMs).toBeGreaterThanOrEqual(0);
+    });
+
+    it("acts as cold-start first responder: calibrates repo policy and awakens Tier 0 Mind ecosystem", () => {
+      writeFileSync(join(testDir, "bun.lock"), "");
+      writeFileSync(
+        join(testDir, "package.json"),
+        JSON.stringify({
+          name: "cold-start-project",
+          scripts: { test: "bun test" },
+        }),
+      );
+
+      const runRoot = join(testDir, ".olt", "capsules", "run-cold-start");
+      mkdirSync(runRoot, { recursive: true });
+
+      const result = PolicyDiscoveryEngine.awakenTier0Ecosystem({
+        repoRoot: testDir,
+        runRoot,
+        mindId: "mind-primary",
+        testCommands: true,
+      });
+
+      expect(result.status).toBe("awakened");
+      expect(result.ready).toBe(true);
+      expect(existsSync(result.policyPath)).toBe(true);
+      expect(result.policy.ecosystem).toBe("bun");
+      expect(result.governance.ready).toBe(true);
+      expect(result.awakenedAgents.length).toBe(3);
+
+      const agentRoles = result.awakenedAgents.map((a) => a.role);
+      expect(agentRoles).toContain("mind");
+      expect(agentRoles).toContain("mind-auditor");
+      expect(agentRoles).toContain("skill-auditor");
+
+      // Verify agents ledger was written to runRoot
+      const agentLedgerPath = join(runRoot, "agents.jsonl");
+      expect(existsSync(agentLedgerPath)).toBe(true);
+      const ledgerContent = readFileSync(agentLedgerPath, "utf8");
+      expect(ledgerContent).toContain("mind-auditor");
+      expect(ledgerContent).toContain("skill-auditor");
+    });
+
+    it("executes CLI policyInitCommand with --awaken flag to trigger cold-start first responder", async () => {
+      writeFileSync(join(testDir, "bun.lock"), "");
+      writeFileSync(
+        join(testDir, "package.json"),
+        JSON.stringify({
+          name: "cli-awakened-project",
+          scripts: { test: "bun test" },
+        }),
+      );
+
+      const runRoot = join(testDir, ".olt", "capsules", "run-cli-awaken");
+      mkdirSync(runRoot, { recursive: true });
+
+      const cliResult = await policyInitCommand({
+        repo: testDir,
+        run: runRoot,
+        awaken: true,
+      });
+
+      expect(cliResult.ok).toBe(true);
+      expect(cliResult.awakened).toBe(true);
+      expect(cliResult.file_path).toBe(join(testDir, ".olt", "policy.json"));
+      expect(Array.isArray(cliResult.awakened_agents)).toBe(true);
+      expect((cliResult.awakened_agents as Array<{ role: string }>).length).toBe(3);
     });
   });
 });

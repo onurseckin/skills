@@ -6,9 +6,14 @@ import { registerSessionGrant } from "../../authority/session/index.ts";
 import {
   auditRepoGovernanceCoverage,
   discoverAndCalibrateRepoPolicy,
+  awakenTier0Governance as engineAwakenTier0,
+  testRepoToolchainEmpirically as engineTestToolchain,
   type GovernanceCoverageReport,
   type GovernanceToolchainDiscoveryResult,
+  type Tier0AwakeningResult,
+  type EmpiricalToolchainReport,
 } from "./policy-discovery.ts";
+import type { RepoEcosystem } from "../../policy/types/index.ts";
 
 export interface RepoGovernanceStatus {
   readonly olt_dir: string;
@@ -56,6 +61,19 @@ export function auditGovernanceReadiness(
   capsuleRunRoot?: string,
 ): GovernanceCoverageReport {
   return auditRepoGovernanceCoverage(repoRoot, capsuleRunRoot);
+}
+
+export function testRepoToolchainEmpirically(repoRoot: string): EmpiricalToolchainReport {
+  return engineTestToolchain(repoRoot);
+}
+
+export function awakenTier0Governance(
+  options: BootstrapRepoGovernanceOptions & {
+    testCommands?: boolean | undefined;
+    overrideEcosystem?: RepoEcosystem | undefined;
+  },
+): Tier0AwakeningResult {
+  return engineAwakenTier0(options);
 }
 
 export function bootstrapRepoGovernance(

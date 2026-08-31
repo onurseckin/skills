@@ -1,0 +1,152 @@
+import type { JsonObject } from "../../../core/contracts/index.ts";
+import { HarnessError } from "../../../core/errors/index.ts";
+import { loadChecklist, type ValidatorDomain } from "../../../packets/role-contract.ts";
+import { requireSubstantiveObjects } from "../../evidence.ts";
+import { jsonCopy, requireText } from "../../task-state.ts";
+
+export type ChecklistDisposition = "checked" | "not_applicable" | "could_not_check";
+
+const CHECKLIST_DISPOSITIONS = new Set<string>(["checked", "not_applicable", "could_not_check"]);
+
+function isChecklistDisposition(value: unknown): value is ChecklistDisposition {
+  return typeof value === "string" && CHECKLIST_DISPOSITIONS.has(value);
+}
+
+const SEVERITIES = new Set(["critical", "important", "minor"]);
+
+function isSeverity(value: unknown): value is "critical" | "important" | "minor" {
+  return typeof value === "string" && SEVERITIES.has(value);
+}
+
+export interface ChecklistCoverageEntry extends JsonObject {
+  id: string;
+  disposition: ChecklistDisposition;
+  reason?: string;
+}
+
+export interface AdjacentFinding extends JsonObject {
+  id: string;
+  checklist_item_id: string;
+  severity: "critical" | "important" | "minor";
+  observation: string;
+  remediation: string;
+  evidence: JsonObject[];
+}
+
+export interface ChecklistCoverageReport extends JsonObject {
+  domain: ValidatorDomain;
+  items: ChecklistCoverageEntry[];
+  adjacent_findings: AdjacentFinding[];
+}
+
+function validateCoverageEntry(
+  raw: unknown,
+  index: number,
+  expectedIds: ReadonlySet<string>,
+  seen: Set<string>,
+): ChecklistCoverageEntry {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `checklist_coverage.items[${index}] must be an object`,
+    );
+  }
+  const entry = raw as Record<string, unknown>;
+  const id = requireText(entry.id, `checklist_coverage.items[${index}].id`);
+  if (!expectedIds.has(id)) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `checklist_coverage.items references an item this checklist does not declare: ${id}`,
+    );
+  }
+  if (seen.has(id)) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `checklist_coverage.items reports ${id} more than once`,
+    );
+  }
+  seen.add(id);
+  if (!isChecklistDisposition(entry.disposition)) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `${id}: disposition must be checked, not_applicable or could_not_check`,
+    );
+  }
+  if (entry.disposition === "checked") return jsonCopy({ id, disposition: entry.disposition });
+  const reason = requireText(entry.reason, `checklist_coverage item ${id}.reason`);
+  return jsonCopy({ id, disposition: entry.disposition, reason });
+}
+
+function validateAdjacentFinding(
+  raw: unknown,
+  index: number,
+  expectedIds: ReadonlySet<string>,
+  seen: Set<string>,
+): AdjacentFinding {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+    throw new HarnessError("INVALID_ARGUMENT", `adjacent_findings[${index}] must be an object`);
+  }
+  const finding = raw as Record<string, unknown>;
+  const id = requireText(finding.id, `adjacent_findings[${index}].id`);
+  if (seen.has(id)) throw new HarnessError("INVALID_ARGUMENT", `duplicate adjacent finding: ${id}`);
+  seen.add(id);
+  const checklistItemId = requireText(finding.checklist_item_id, `${id}.checklist_item_id`);
+  if (!expectedIds.has(checklistItemId)) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `adjacent finding ${id} cites an item this checklist does not declare: ${checklistItemId}`,
+    );
+  }
+  if (!isSeverity(finding.severity)) {
+    throw new HarnessError("INVALID_ARGUMENT", `adjacent finding ${id}: invalid severity`);
+  }
+  const observation = requireText(finding.observation, `${id}.observation`);
+  const remediation = requireText(finding.remediation, `${id}.remediation`);
+  const evidence = requireSubstantiveObjects(finding.evidence, `adjacent finding ${id} evidence`);
+  return jsonCopy({
+    id,
+    checklist_item_id: checklistItemId,
+    severity: finding.severity,
+    observation,
+    remediation,
+    evidence,
+  });
+}
+
+export function validateChecklistCoverage(
+  domain: ValidatorDomain,
+  value: unknown,
+): ChecklistCoverageReport {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw new HarnessError("INVALID_ARGUMENT", "checklist coverage must be an object");
+  }
+  const raw = value as Record<string, unknown>;
+  const checklist = loadChecklist(domain);
+  const expectedIds = new Set(checklist.items.map((item) => item.id));
+
+  if (!Array.isArray(raw.items)) {
+    throw new HarnessError("INVALID_ARGUMENT", "checklist_coverage.items must be an array");
+  }
+  const seenItems = new Set<string>();
+  const items = raw.items.map((entry, index) =>
+    validateCoverageEntry(entry, index, expectedIds, seenItems),
+  );
+  const missing = [...expectedIds].filter((id) => !seenItems.has(id));
+  if (missing.length > 0) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `checklist coverage omits ${missing.length} item(s) of ${checklist.title}: ${missing.sort().join(", ")}`,
+    );
+  }
+
+  const adjacentRaw = raw.adjacent_findings ?? [];
+  if (!Array.isArray(adjacentRaw)) {
+    throw new HarnessError("INVALID_ARGUMENT", "adjacent_findings must be an array");
+  }
+  const seenAdjacent = new Set<string>();
+  const adjacentFindings = adjacentRaw.map((entry, index) =>
+    validateAdjacentFinding(entry, index, expectedIds, seenAdjacent),
+  );
+
+  return jsonCopy({ domain, items, adjacent_findings: adjacentFindings });
+}

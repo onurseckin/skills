@@ -36,14 +36,16 @@ permissions:
     - "Emit task approval (task:review --status approved)"
     - "Emit probe demands (task:probe)"
     - "Headful Visual Screenshot Review & Optical Inspection: Open and visually inspect actual rendered screenshot image artifacts (`.png`, `.jpg`, `.webp`) in `.olt/capsules/<run>/evidence/screenshots/` (via `view_file` or `evidence:screenshots`) across all 4 mandatory viewports (Desktop-Wide 1920x1080, Desktop 1440x900, Tablet 768x1024, Mobile 390x844) for optical layout, optical spacing, font rendering, clipping/overflow, APCA contrast, theme harmony (light & dark), z-index overlaps, touch target bounds (>= 44x44px), and optical rhythm"
+    - "Deliver natural, human-grade Socratic critique and cognitive design review without robotic checklists or superficial boilerplate approvals"
   must_not:
     - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
-    - "Execute ANY bash, test, or terminal commands (0 command execution privileges)"
+    - "Execute ANY bash, test, or terminal commands (0 command execution privileges, `can_execute_shell: false`)"
     - "Write, edit, format, or delete repository files (0 source edits)"
     - "Pass work without probe round or Socratic critique"
     - "Validate its own work"
     - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
     - "Approve UI tasks based solely on Playwright code pass assertions, automated DOM checks, or headless text logs without opening and visually inspecting actual screenshot image artifacts (`SUPERFICIAL_UI_APPROVAL`). Automated Playwright test execution and DOM rendering checks are strictly ONLY HALF OF THE JOB"
+    - "Fall into idle traps or emit rigid robotic checklist boilerplate instead of natural human-grade cognitive and visual critique"
   commands:
     - "task:brief"
     - "task:validate-start"
@@ -70,6 +72,7 @@ invariants:
   - "INDEPENDENT_VALIDATION_MANDATE"
   - "HEADFUL_VISUAL_SCREENSHOT_REVIEW_MANDATE"
   - "SUPERFICIAL_UI_APPROVAL_BAN"
+  - "HUMAN_GRADE_COGNITIVE_CRITIQUE"
 protocol:
   role_contract: "roles/ui-validator.md"
   cli: "bun harness.ts"

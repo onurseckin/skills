@@ -29,9 +29,44 @@ export interface SkillAuditLiveResult {
   readonly cursor: AuditorCursor;
   readonly eventsAnalyzed: number;
   readonly timestamp: string;
+  readonly zero_delta?: boolean | undefined;
+  readonly suppressed?: boolean | undefined;
+  readonly delta_summary?: string | undefined;
 }
 
 export interface StoredAuditorCursors {
   readonly mind?: AuditorCursor | undefined;
   readonly skill?: AuditorCursor | undefined;
 }
+
+export interface SkillAuditOptions {
+  readonly cursor?: AuditorCursor | undefined;
+  readonly capsuleRunRoot?: string | undefined;
+  readonly logDefects?: boolean | undefined;
+  readonly interject?: boolean | undefined;
+  readonly now?: string | undefined;
+  readonly previousReport?: SkillAuditLiveResult | null | undefined;
+  readonly suppressZeroDelta?: boolean | undefined;
+}
+
+export interface SkillZeroDeltaResult {
+  readonly isZeroDelta: boolean;
+  readonly eventsDelta: number;
+  readonly incidentsDelta: number;
+  readonly defectsDelta: number;
+  readonly suppressed: boolean;
+  readonly summary: string;
+}
+
+
+export type {
+  OpticalDimension,
+  OpticalViewport,
+  OpticalViewportSpec,
+  CognitiveUiFinding,
+  ParsedUiCritique,
+  ActionableDesignIteration,
+  ParseCritiqueOptions,
+  DesignIterationOptions,
+} from "./critique-parser.ts";
+

@@ -3,15 +3,7 @@ export function isJsonObject(value: unknown): value is Record<string, unknown> {
 }
 
 import { createHash, randomBytes } from "node:crypto";
-import {
-  existsSync,
-  lstatSync,
-  mkdirSync,
-  readFileSync,
-  readdirSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import type { FeedbackPriority, FeedbackCategory, FeedbackItem } from "../../feedback/index.ts";
 import type { AgentGrantRecord, HarnessEvent } from "../../../core/contracts/index.ts";
 export type { FeedbackPriority, FeedbackCategory, FeedbackItem, AgentGrantRecord, HarnessEvent };

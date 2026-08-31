@@ -6,6 +6,9 @@ export {
   generateCognitiveChallengePrompt,
   generateZeroDeltaChallengePrompt,
   COGNITIVE_CHALLENGE_DIMENSIONS,
+  CognitiveUiCritiqueParser,
+  OPTICAL_DIMENSIONS,
+  OPTICAL_VIEWPORTS,
   type AuditorCursor,
   type MindAuditLiveResult,
   type SkillAuditLiveResult,
@@ -14,7 +17,16 @@ export {
   type CognitiveChallenge,
   type CognitiveChallengeOptions,
   type ZeroDeltaChallengeOptions,
+  type OpticalDimension,
+  type OpticalViewport,
+  type OpticalViewportSpec,
+  type CognitiveUiFinding,
+  type ParsedUiCritique,
+  type ActionableDesignIteration,
+  type ParseCritiqueOptions,
+  type DesignIterationOptions,
 } from "./cognitive/index.ts";
+
 
 export {
   CANONICAL_SELF_QUESTIONING_QUESTION,

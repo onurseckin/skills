@@ -12,63 +12,37 @@ import {
   type RootCauseCategory,
 } from "../meta/index.ts";
 import {
-  resolveBacklogPath,
   resolveCapsulesDir,
-  resolveSkillHomeRepo,
-  resolveDefectsPath,
 } from "../../../core/shared/paths.ts";
 import { dispatchPeerMessage } from "../../../communication/mailbox/index.ts";
 import { SplitChannelDefectRouter } from "../../../reporting/split-channel-defect-router.ts";
 import { AuditorCursorStore } from "./cursor.ts";
-import type { AuditorCursor, SkillAuditLiveResult } from "./types.ts";
+import type { AuditorCursor, SkillAuditLiveResult, SkillAuditOptions, SkillZeroDeltaResult } from "./types.ts";
 
 export class SkillAuditorEngine {
-  /**
-   * Every capsule this repo can see, used when the caller omits --run. Omitting --run asks for
-   * the default scope, not zero scope (see skill-audit-live.ts / cli-capabilities.md); mirrors
-   * MindAuditorEngine.resolveLatestPulseTimestamp's own repoRoot / .olt/capsules / .capsules walk.
-   */
+  public static readonly DEFAULT_CADENCE_INTERVAL_SECONDS = 60;
+  public static readonly DEFAULT_CADENCE_INTERVAL_MS = 60_000;
+
+
   private static discoverCapsuleRoots(repoRoot: string): string[] {
     const roots = new Set<string>();
     const addIfCapsule = (p: string): void => {
       if (existsSync(join(p, "events.jsonl"))) roots.add(resolve(p));
     };
-
     addIfCapsule(repoRoot);
-
-    const capsulesDir = resolveCapsulesDir(repoRoot);
-    if (existsSync(capsulesDir)) {
-      try {
-        for (const entry of readdirSync(capsulesDir, { withFileTypes: true })) {
-          if (entry.isDirectory()) addIfCapsule(join(capsulesDir, entry.name));
-        }
-      } catch {}
+    for (const d of [resolveCapsulesDir(repoRoot), join(repoRoot, ".capsules")]) {
+      if (existsSync(d)) {
+        try {
+          for (const e of readdirSync(d, { withFileTypes: true })) {
+            if (e.isDirectory()) addIfCapsule(join(d, e.name));
+          }
+        } catch {}
+      }
     }
-
-    const dotCapsules = join(repoRoot, ".capsules");
-    if (existsSync(dotCapsules) && dotCapsules !== capsulesDir) {
-      try {
-        for (const entry of readdirSync(dotCapsules, { withFileTypes: true })) {
-          if (entry.isDirectory()) addIfCapsule(join(dotCapsules, entry.name));
-        }
-      } catch {}
-    }
-
     return [...roots];
   }
 
-  /**
-   * TOKEN_BURNING / FALSE_SERIALIZATION / ROLE_BOUNDARY_DEVIATION are cross-event heuristics
-   * (read/write ratios, task write-scope overlap, agent-role-vs-tool-call mismatches); no single
-   * event line carries any of them as a tag, so per-line predicate matching against evt.type /
-   * evt.error_code / evt.kind can never fire -- `type` and `error_code` are not keys the harness
-   * event envelope has at all, and `kind` never carries these values (verified against 1241 live
-   * events across 20 capsules: 0 matches; `boundary_violation` etc. occur only as
-   * DefectCategory/category values already written to defects.jsonl, never as an event
-   * type/kind/error_code). analyzeRunForensics is the engine orchestrator/companion-auditor.ts
-   * already trusts to derive these same three categories from real tool-call and task-state
-   * signal; reuse it instead of re-deriving a second, structurally-unreachable copy.
-   */
+
   private static scanCapsuleForIncidents(
     capsuleRoot: string,
     cursor: AuditorCursor,
@@ -81,13 +55,12 @@ export class SkillAuditorEngine {
 
     if (hasEvents) {
       try {
-        const lines = readFileSync(eventsPath, "utf-8")
-          .split("\n")
-          .filter((l) => l.trim().length > 0);
+        const lines = readFileSync(eventsPath, "utf-8").split("\n").filter((l) => l.trim().length > 0);
         for (let i = 0; i < lines.length; i++) {
-          if (i <= cursor.lastInspectedEventIndex) continue;
-          eventsAnalyzed++;
-          maxEventSeq = Math.max(maxEventSeq, i);
+          if (i > cursor.lastInspectedEventIndex) {
+            eventsAnalyzed++;
+            maxEventSeq = Math.max(maxEventSeq, i);
+          }
         }
       } catch {}
     }
@@ -103,7 +76,6 @@ export class SkillAuditorEngine {
       lastInspectedEventIndex: maxEventSeq,
       lastAuditTimestamp: nowIso,
     };
-
     return { incidents, eventsAnalyzed, updatedCursor };
   }
 
@@ -116,9 +88,7 @@ export class SkillAuditorEngine {
           if (raw && Array.isArray(raw.agents)) {
             const coord = raw.agents.find(
               (a: { id?: string; role?: string; status?: string }) =>
-                a.status === "active" &&
-                typeof a.role === "string" &&
-                a.role.toLowerCase().includes("coordinator"),
+                a.status === "active" && typeof a.role === "string" && a.role.toLowerCase().includes("coordinator"),
             );
             if (coord && typeof coord.id === "string") return coord.id;
           }
@@ -128,17 +98,13 @@ export class SkillAuditorEngine {
     return undefined;
   }
 
+
   public static dispatchInterjection(
     repoRoot: string,
     inc: ForensicsIncident,
     capsuleRoots: string[],
   ): boolean {
-    let rawAgent: string | undefined = undefined;
-    if (inc.agentId !== undefined) {
-      rawAgent = inc.agentId;
-    } else if (inc.agent_id !== undefined) {
-      rawAgent = inc.agent_id;
-    }
+    let rawAgent: string | undefined = inc.agentId ?? inc.agent_id;
     let target = "coordinator";
     if (rawAgent && rawAgent.toLowerCase().includes("coord")) {
       target = rawAgent;
@@ -147,23 +113,8 @@ export class SkillAuditorEngine {
       if (activeCoord) target = activeCoord;
     }
 
-    let observationText: string;
-    if (inc.observation !== undefined) {
-      observationText = inc.observation;
-    } else if (inc.description !== undefined) {
-      observationText = inc.description;
-    } else {
-      observationText = "Direct execution detected";
-    }
-
-    let remediationText: string;
-    if (inc.remediation !== undefined) {
-      remediationText = inc.remediation;
-    } else if (inc.recommendation !== undefined) {
-      remediationText = inc.recommendation;
-    } else {
-      remediationText = "Halt direct execution and dispatch subagents via invoke_subagent.";
-    }
+    const observation = inc.observation ?? inc.description ?? "Direct execution detected";
+    const remediation = inc.remediation ?? inc.recommendation ?? "Halt direct execution and dispatch subagents via invoke_subagent.";
 
     try {
       dispatchPeerMessage({
@@ -180,8 +131,8 @@ export class SkillAuditorEngine {
           directive: "HALT_DIRECT_EDITS_AND_DISPATCH_SUBAGENTS",
           instructions:
             "Halt direct file modifications and serial execution immediately. Coordinators are pure dispatchers (SUPERVISOR_ZERO_CODE_EDITS). You must compile the task plan and dispatch ready tasks to Tier 3 Implementers and Validators in parallel via invoke_subagent.",
-          observation: observationText,
-          remediation: remediationText,
+          observation,
+          remediation,
         },
         correlationId: inc.id,
         baseDir: repoRoot,
@@ -192,21 +143,74 @@ export class SkillAuditorEngine {
     }
   }
 
+
+  public static compareSkillReportDelta(
+    current: SkillAuditLiveResult,
+    previous?: SkillAuditLiveResult | null,
+  ): SkillZeroDeltaResult {
+    if (!previous) {
+      return {
+        isZeroDelta: false,
+        eventsDelta: current.eventsAnalyzed,
+        incidentsDelta: current.incidents.length,
+        defectsDelta: current.defectsLogged,
+        suppressed: false,
+        summary: "Initial baseline skill compliance report established.",
+      };
+    }
+
+    const eventsDelta = current.eventsAnalyzed;
+    const incidentsDelta = current.incidents.length - previous.incidents.length;
+    const defectsDelta = current.defectsLogged - previous.defectsLogged;
+    const isZeroDelta =
+      current.eventsAnalyzed === 0 &&
+      current.incidents.length === 0 &&
+      previous.incidents.length === 0 &&
+      current.compliant === previous.compliant;
+
+    const summary = isZeroDelta
+      ? "Zero-delta state detected: fleet converged at rest with 0 new events and 0 incidents."
+      : `Delta detected: events=${eventsDelta}, incidents=${incidentsDelta > 0 ? `+${incidentsDelta}` : incidentsDelta}, defects=${defectsDelta > 0 ? `+${defectsDelta}` : defectsDelta}.`;
+
+    return {
+      isZeroDelta,
+      eventsDelta,
+      incidentsDelta,
+      defectsDelta,
+      suppressed: isZeroDelta,
+      summary,
+    };
+  }
+
+  public static isZeroDeltaReport(
+    current: SkillAuditLiveResult,
+    previous?: SkillAuditLiveResult | null,
+  ): boolean {
+    return SkillAuditorEngine.compareSkillReportDelta(current, previous).isZeroDelta;
+  }
+
+  public static suppressZeroDeltaReport(
+    current: SkillAuditLiveResult,
+    previous?: SkillAuditLiveResult | null,
+  ): SkillAuditLiveResult {
+    const delta = SkillAuditorEngine.compareSkillReportDelta(current, previous);
+    return {
+      ...current,
+      zero_delta: delta.isZeroDelta,
+      suppressed: delta.isZeroDelta,
+      delta_summary: delta.isZeroDelta
+        ? "Suppressed duplicate zero-delta skill compliance report."
+        : delta.summary,
+    };
+  }
+
+
   public static auditSkillCompliance(
     repoRoot: string,
-    options?: {
-      cursor?: AuditorCursor | undefined;
-      capsuleRunRoot?: string | undefined;
-      logDefects?: boolean | undefined;
-      interject?: boolean | undefined;
-      now?: string | undefined;
-    },
+    options?: SkillAuditOptions,
   ): SkillAuditLiveResult {
-    const nowIso =
-      options !== undefined && typeof options.now === "string"
-        ? options.now
-        : new Date().toISOString();
-    const explicitRunRoot = options !== undefined ? options.capsuleRunRoot : undefined;
+    const nowIso = options?.now ?? new Date().toISOString();
+    const explicitRunRoot = options?.capsuleRunRoot;
 
     const capsuleRoots = explicitRunRoot
       ? [resolve(explicitRunRoot)]
@@ -218,7 +222,7 @@ export class SkillAuditorEngine {
 
     for (const capsuleRoot of capsuleRoots) {
       const scopedCursor =
-        options !== undefined && options.cursor !== undefined && explicitRunRoot !== undefined
+        options?.cursor !== undefined && explicitRunRoot !== undefined
           ? options.cursor
           : AuditorCursorStore.loadCursor(repoRoot, "skill", capsuleRoot);
 
@@ -231,12 +235,29 @@ export class SkillAuditorEngine {
       }
     }
 
+    const previousReport = options?.previousReport;
+    const rollupCursor: AuditorCursor = {
+      lastInspectedTimestamp: nowIso,
+      lastInspectedEventIndex: rollupMaxSeq,
+      lastAuditTimestamp: nowIso,
+    };
+    AuditorCursorStore.saveCursor(repoRoot, "skill", rollupCursor);
+
+    const candidateResult: SkillAuditLiveResult = {
+      compliant: incidents.length === 0,
+      incidents,
+      defectsLogged: 0,
+      interjectionsSent: 0,
+      cursor: rollupCursor,
+      eventsAnalyzed,
+      timestamp: nowIso,
+    };
+
+    const delta = SkillAuditorEngine.compareSkillReportDelta(candidateResult, previousReport);
+    const shouldSuppress = (options?.suppressZeroDelta === true || previousReport !== undefined) && delta.isZeroDelta;
+
     let defectsLogged = 0;
-    let shouldLogDefects = true;
-    if (options !== undefined && options.logDefects === false) {
-      shouldLogDefects = false;
-    }
-    if (shouldLogDefects) {
+    if (options?.logDefects !== false && !shouldSuppress) {
       for (const inc of incidents) {
         const routeResult = SplitChannelDefectRouter.routeDefect({
           currentRepoRoot: repoRoot,
@@ -246,54 +267,30 @@ export class SkillAuditorEngine {
             title: `Skill Compliance Incident: ${inc.category}`,
             description: inc.description,
             actor: "skill-auditor",
-            context: {
-              incidentId: inc.id,
-              severity: inc.severity,
-              mitigationSuggestion: inc.recommendation,
-            },
+            context: { incidentId: inc.id, severity: inc.severity, mitigationSuggestion: inc.recommendation },
           },
         });
-        if (routeResult.routed) {
-          defectsLogged++;
-        }
+        if (routeResult.routed) defectsLogged++;
       }
     }
 
     let interjectionsSent = 0;
-    let shouldInterject = true;
-    if (options !== undefined && options.interject === false) {
-      shouldInterject = false;
-    }
-    if (shouldInterject) {
+    if (options?.interject !== false && !shouldSuppress) {
       for (const inc of incidents) {
-        let isEligible = false;
-        if (inc.category === "FALSE_SERIALIZATION") {
-          isEligible = true;
-        } else if (inc.category === "ROLE_BOUNDARY_DEVIATION") {
-          isEligible = true;
-        }
-        if (isEligible) {
-          const sent = SkillAuditorEngine.dispatchInterjection(repoRoot, inc, capsuleRoots);
-          if (sent) interjectionsSent++;
+        if (inc.category === "FALSE_SERIALIZATION" || inc.category === "ROLE_BOUNDARY_DEVIATION") {
+          if (SkillAuditorEngine.dispatchInterjection(repoRoot, inc, capsuleRoots)) interjectionsSent++;
         }
       }
     }
 
-    const rollupCursor: AuditorCursor = {
-      lastInspectedTimestamp: nowIso,
-      lastInspectedEventIndex: rollupMaxSeq,
-      lastAuditTimestamp: nowIso,
-    };
-    AuditorCursorStore.saveCursor(repoRoot, "skill", rollupCursor);
-
     return {
-      compliant: incidents.length === 0,
-      incidents,
+      ...candidateResult,
       defectsLogged,
       interjectionsSent,
-      cursor: rollupCursor,
-      eventsAnalyzed,
-      timestamp: nowIso,
+      zero_delta: delta.isZeroDelta,
+      suppressed: shouldSuppress,
+      delta_summary: delta.summary,
     };
   }
 }
+

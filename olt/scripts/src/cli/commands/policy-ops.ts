@@ -13,6 +13,7 @@ import {
 import {
   auditRepoGovernanceCoverage,
   discoverAndCalibrateRepoPolicy,
+  awakenTier0Governance,
 } from "../../mind/governance/policy-discovery.ts";
 import { boolFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 
@@ -20,14 +21,20 @@ function getNestedValue(obj: unknown, path: string): unknown {
   const parts = path.split(".");
   let current: unknown = obj;
   for (const part of parts) {
-    if (
-      current === null ||
-      typeof current !== "object" ||
-      !(part in (current as Record<string, unknown>))
-    ) {
+    if (current === null) {
       return undefined;
     }
-    current = (current as Record<string, unknown>)[part];
+    if (current === undefined) {
+      return undefined;
+    }
+    if (typeof current !== "object") {
+      return undefined;
+    }
+    const record = current as Record<string, unknown>;
+    if (!Object.prototype.hasOwnProperty.call(record, part)) {
+      return undefined;
+    }
+    current = record[part];
   }
   return current;
 }
@@ -41,14 +48,24 @@ function setNestedValue(
   const root = JSON.parse(JSON.stringify(obj)) as Record<string, unknown>;
   let current = root;
   for (let i = 0; i < parts.length - 1; i++) {
-    const part = parts[i]!;
-    if (typeof current[part] !== "object" || current[part] === null) {
+    const part = parts[i];
+    if (part === undefined) {
+      continue;
+    }
+    const sub = current[part];
+    if (typeof sub !== "object") {
+      current[part] = {};
+    } else if (sub === null) {
+      current[part] = {};
+    } else if (sub === undefined) {
       current[part] = {};
     }
     current = current[part] as Record<string, unknown>;
   }
-  const lastKey = parts[parts.length - 1]!;
-  current[lastKey] = value;
+  const lastKey = parts[parts.length - 1];
+  if (lastKey !== undefined) {
+    current[lastKey] = value;
+  }
   return root;
 }
 
@@ -68,18 +85,54 @@ export async function policyInitCommand(
   flags: Flags,
   _context?: CommandContext,
 ): Promise<Record<string, unknown>> {
+  const flagRepo = textFlag(flags, "repo", false);
+  const flagRepoRoot = textFlag(flags, "repo-root", false);
+  const flagDir = textFlag(flags, "dir", false);
   const repo =
-    textFlag(flags, "repo", false) ??
-    textFlag(flags, "repo-root", false) ??
-    textFlag(flags, "dir", false);
+    flagRepo !== undefined
+      ? flagRepo
+      : flagRepoRoot !== undefined
+        ? flagRepoRoot
+        : flagDir;
+
+  const flagRun = textFlag(flags, "run", false);
+  const flagRunRoot = textFlag(flags, "run-root", false);
+  const capsuleRun = flagRun !== undefined ? flagRun : flagRunRoot;
+
   const explicitEcosystem = textFlag(flags, "ecosystem", false) as RepoEcosystem | undefined;
-  const calibrate = boolFlag(flags, "calibrate") || boolFlag(flags, "auto-discover");
+  const calibrate = boolFlag(flags, "calibrate") ? true : boolFlag(flags, "auto-discover");
+  const awaken = boolFlag(flags, "awaken") ? true : boolFlag(flags, "first-responder");
+  const testCommands = boolFlag(flags, "test-commands");
 
   let policy: RepoPolicy;
   let filePath: string;
 
+  if (awaken) {
+    const targetRepo = repo !== undefined ? repo : ".";
+    const targetRun = capsuleRun !== undefined ? capsuleRun : "";
+    const awakening = awakenTier0Governance({
+      repoRoot: targetRepo,
+      runRoot: targetRun,
+      mindId: "mind",
+      testCommands: testCommands ? true : true,
+      overrideEcosystem: explicitEcosystem,
+    });
+    return {
+      ok: true,
+      awakened: true,
+      file_path: awakening.policyPath,
+      policy: awakening.policy,
+      ecosystem: awakening.policy.ecosystem,
+      awakened_agents: awakening.awakenedAgents,
+      empirical_report: awakening.empiricalReport,
+      governance: awakening.governance,
+      markdown: `### Policy Initialized & Tier 0 Awakened\n\n- **File**: \`${awakening.policyPath}\`\n- **Ecosystem**: \`${awakening.policy.ecosystem}\`\n- **Awakened Agents**: ${awakening.awakenedAgents.map((a) => a.role).join(", ")}\n- **Commands Verified**: ${awakening.empiricalReport.verifiedCommands.length}`,
+    };
+  }
+
   if (calibrate && !explicitEcosystem) {
-    const result = discoverAndCalibrateRepoPolicy(repo ?? ".");
+    const targetRepo = repo !== undefined ? repo : ".";
+    const result = discoverAndCalibrateRepoPolicy(targetRepo);
     policy = result.calibratedPolicy;
     filePath = saveRepoPolicy(policy, repo);
   } else {
@@ -104,7 +157,7 @@ export async function policyGetCommand(
   const key = textFlag(flags, "key", false);
 
   const policy = loadRepoPolicy(repo);
-  if (key) {
+  if (key !== undefined && key.length > 0) {
     const value = getNestedValue(policy, key);
     if (value === undefined) {
       throw new HarnessError(
@@ -133,8 +186,21 @@ export async function policySetCommand(
   _context?: CommandContext,
 ): Promise<Record<string, unknown>> {
   const repo = textFlag(flags, "repo", false);
-  const key = textFlag(flags, "key", true)!;
-  const rawValue = textFlag(flags, "value", true)!;
+  const key = textFlag(flags, "key", true);
+  const rawValue = textFlag(flags, "value", true);
+
+  if (key === undefined) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "--key and --value flags are required for policy:set",
+    );
+  }
+  if (rawValue === undefined) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      "--key and --value flags are required for policy:set",
+    );
+  }
 
   const parsedValue = parseCoercedValue(rawValue);
   const currentPolicy = loadRepoPolicy(repo);
@@ -178,10 +244,15 @@ export async function policyCheckDriftCommand(
     drifted = true;
   }
 
-  if (strict && (drifted || inspection.status === "invalid_custom")) {
+  const isInvalid = strict && (drifted ? true : inspection.status === "invalid_custom");
+  if (isInvalid) {
+    const errorMsg =
+      inspection.error !== undefined
+        ? inspection.error
+        : `checksum ${currentChecksum} != expected ${expectedChecksum}`;
     throw new HarnessError(
       "INTEGRITY",
-      `Policy drift or corruption detected for repository: ${inspection.error ?? `checksum ${currentChecksum} != expected ${expectedChecksum}`}`,
+      `Policy drift or corruption detected for repository: ${errorMsg}`,
     );
   }
 
@@ -200,13 +271,22 @@ export async function policyAuditCommand(
   flags: Flags,
   _context?: CommandContext,
 ): Promise<Record<string, unknown>> {
+  const flagRepo = textFlag(flags, "repo", false);
+  const flagRepoRoot = textFlag(flags, "repo-root", false);
+  const flagDir = textFlag(flags, "dir", false);
   const repo =
-    textFlag(flags, "repo", false) ??
-    textFlag(flags, "repo-root", false) ??
-    textFlag(flags, "dir", false);
-  const capsuleRun = textFlag(flags, "run", false) ?? textFlag(flags, "run-root", false);
+    flagRepo !== undefined
+      ? flagRepo
+      : flagRepoRoot !== undefined
+        ? flagRepoRoot
+        : flagDir;
 
-  const report = auditRepoGovernanceCoverage(repo ?? ".", capsuleRun);
+  const flagRun = textFlag(flags, "run", false);
+  const flagRunRoot = textFlag(flags, "run-root", false);
+  const capsuleRun = flagRun !== undefined ? flagRun : flagRunRoot;
+
+  const targetRepo = repo !== undefined ? repo : ".";
+  const report = auditRepoGovernanceCoverage(targetRepo, capsuleRun);
 
   return {
     ok: true,

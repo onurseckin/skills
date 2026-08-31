@@ -233,6 +233,7 @@ const ROLE_CONTRACTS: Readonly<Record<AgentRole, JsonObject>> = {
   implementer: taskSubmission,
   mind: mindRecord,
   "mind-auditor": mindAuditorRecord,
+  "policy-discovery": mindRecord,
   "skill-auditor": metaAuditorRecord,
   orchestrator: loopSynthesisRecord,
   "plan-validator": planValidatorReview,
@@ -243,6 +244,10 @@ const ROLE_CONTRACTS: Readonly<Record<AgentRole, JsonObject>> = {
   "sub-validator": validatorReview,
   validator: validatorReview,
   "mechanic-validator": mechanicValidatorReview,
+  "ui-headless-validator": mechanicValidatorReview,
+  "ui-mechanic-validator": mechanicValidatorReview,
+  "ui-optical-validator": validatorReview,
+  "ui-validator": validatorReview,
 };
 
 export function evidenceSchema(role: AgentRole): JsonObject {

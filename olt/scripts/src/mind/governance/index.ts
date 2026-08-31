@@ -12,6 +12,10 @@ export type { RepoGovernanceStatus, BootstrapRepoGovernanceOptions } from "./sca
 export type {
   GovernanceCoverageReport,
   GovernanceToolchainDiscoveryResult,
+  DiscoveredToolchainDetails,
+  EmpiricalCommandTestResult,
+  EmpiricalToolchainReport,
+  Tier0AwakeningResult,
 } from "./policy-discovery.ts";
 
 export {
@@ -43,6 +47,14 @@ export {
   bootstrapRepoGovernance,
   calibrateRepoGovernance,
   verifyRepoGovernance,
+  awakenTier0Governance,
+  testRepoToolchainEmpirically,
 } from "./scaffold.ts";
 
-export { auditRepoGovernanceCoverage, discoverAndCalibrateRepoPolicy } from "./policy-discovery.ts";
+export {
+  auditRepoGovernanceCoverage,
+  discoverAndCalibrateRepoPolicy,
+  isRepoPolicyCalibrated,
+  ensureCalibratedRepoPolicy,
+  createTier0AgentGrants,
+} from "./policy-discovery.ts";

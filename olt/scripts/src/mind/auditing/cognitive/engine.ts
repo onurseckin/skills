@@ -19,6 +19,13 @@ import {
   type CognitiveChallengeOptions,
   type ZeroDeltaChallengeOptions,
 } from "./challenge-generator.ts";
+import {
+  CognitiveUiCritiqueParser,
+  type ParsedUiCritique,
+  type ActionableDesignIteration,
+  type ParseCritiqueOptions,
+  type DesignIterationOptions,
+} from "./critique-parser.ts";
 
 export class MindAuditorEngine {
   public static resolveActivePulse = resolveActivePulse;
@@ -29,6 +36,10 @@ export class MindAuditorEngine {
   public static generateZeroDeltaChallengePrompt = generateZeroDeltaChallengePrompt;
   public static generateCognitiveChallenge =
     CognitiveChallengePromptGenerator.generateCognitiveChallenge;
+  public static parseUiCritique = CognitiveUiCritiqueParser.parseCritique;
+  public static synthesizeDesignIterations = CognitiveUiCritiqueParser.synthesizeDesignIterations;
+  public static critiqueToFeedbackItems = CognitiveUiCritiqueParser.toFeedbackItems;
+
 
   public static auditRepositoryGovernance(
     repoRoot: string,

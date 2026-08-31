@@ -25,9 +25,14 @@ const CODEX_ROLE_DISPATCH_DEFAULTS: Readonly<
   "completeness-critic": { model: "gpt-5.6-luna", reasoningEffort: "xhigh" },
   "mechanic-validator": { model: "gpt-5.6-luna", reasoningEffort: "xhigh" },
   "mind-auditor": { model: "gpt-5.6-luna", reasoningEffort: "xhigh" },
+  "policy-discovery": { model: "gpt-5.6-sol", reasoningEffort: "xhigh" },
   "skill-auditor": { model: "gpt-5.6-luna", reasoningEffort: "xhigh" },
   "plan-validator": { model: "gpt-5.6-luna", reasoningEffort: "xhigh" },
   "sub-validator": { model: "gpt-5.6-luna", reasoningEffort: "xhigh" },
+  "ui-headless-validator": { model: "gpt-5.6-luna", reasoningEffort: "xhigh" },
+  "ui-mechanic-validator": { model: "gpt-5.6-luna", reasoningEffort: "xhigh" },
+  "ui-optical-validator": { model: "gpt-5.6-luna", reasoningEffort: "xhigh" },
+  "ui-validator": { model: "gpt-5.6-luna", reasoningEffort: "xhigh" },
   validator: { model: "gpt-5.6-luna", reasoningEffort: "xhigh" },
 };
 

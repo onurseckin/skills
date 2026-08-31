@@ -10,8 +10,10 @@ describe("Documentation Separation & Boundary Invariant Unit Tests", () => {
   const capsulesDir = join(repoRoot, ".olt");
   const mindRolePath = join(repoRoot, "olt", "agents", "mind.yaml");
 
-  it("verifies olt/docs directory is completely removed and does not exist", () => {
-    expect(existsSync(skillDocsDir)).toBe(false);
+  it("verifies canonical guideline SSoT exists in olt/docs/guidelines.md", () => {
+    const canonicalGuidelines = join(skillDocsDir, "guidelines.md");
+    expect(existsSync(canonicalGuidelines)).toBe(true);
+    expect(statSync(canonicalGuidelines).size).toBeGreaterThan(1000);
   });
 
   it("verifies root docs/ directory contains strictly repository-wide skill collection guidelines and human educational docs", () => {
@@ -24,6 +26,8 @@ describe("Documentation Separation & Boundary Invariant Unit Tests", () => {
       "planning",
       "blueprints",
       "archive",
+      "book",
+      "references",
     ]);
     const entries = readdirSync(rootDocsDir);
     expect(entries.length).toBeGreaterThan(0);

@@ -33,11 +33,14 @@ const SCRIPT_EXEMPTIONS: readonly string[] = [
   "src/authority/manifest/constants.ts",
   "src/capture/docker-health.ts",
   "src/capture/persona-registry.ts",
+  "src/cli/commands/server-ops.ts",
   "src/core/config/host-canon.ts",
   "src/engine/scheduler/host-cadence.ts",
   "src/engine/policy-discovery.ts",
   "src/graph/gate-runtime-grammar.ts",
   "src/installer/runtime-freshness.ts",
+  "src/mind/governance/policy-coverage.ts",
+  "src/mind/governance/toolchain-inspector.ts",
   "src/orchestrator/host-schedulers.ts",
   "src/platform/host/antigravity.ts",
   "src/platform/host/chatgpt.ts",
@@ -63,6 +66,11 @@ const SCRIPT_EXEMPTIONS: readonly string[] = [
   "src/platform/capture/governance-sync.ts",
   "src/platform/capture/persona-governance.ts",
   "src/platform/capture/index.ts",
+  "src/server/docker/index.ts",
+  "src/server/docker/inspector.ts",
+  "src/server/docker/parser.ts",
+  "src/server/docker/socket.ts",
+  "src/server/docker/types.ts",
   "src/summary/metrics/host-telemetry.ts",
   "src/telemetry/engine.ts",
   "src/telemetry/collectors/host-detection.ts",
@@ -81,6 +89,9 @@ const SCRIPT_EXEMPTIONS: readonly string[] = [
   "src/telemetry/collectors/openai/rollout-parser.ts",
   "src/telemetry/collectors/openai.ts",
   "src/telemetry/index.ts",
+  "src/validation/index.ts",
+  "src/validation/ui/index.ts",
+  "src/validation/ui/types.ts",
 ];
 
 /**
@@ -121,6 +132,8 @@ const SCRIPT_EXEMPTIONS: readonly string[] = [
  *   for named hosts.
  */
 const TEST_EXEMPTIONS: readonly string[] = [
+  "e2e/server-guard.test.ts",
+  "integration/server-conflict.test.ts",
   "unit/agents/transcript-telemetry.test.ts",
   "unit/agents/whoami-profiling.test.ts",
   "unit/authority/host-bindings.test.ts",
@@ -129,6 +142,7 @@ const TEST_EXEMPTIONS: readonly string[] = [
   "unit/capture/persona-registry.test.ts",
   "unit/cli/install-ops-command.test.ts",
   "unit/cli/quota-ops.test.ts",
+  "unit/cli/server-ops.test.ts",
   "unit/config/harness-config.test.ts",
   "unit/config/host-canon.test.ts",
   "unit/contracts/core-runtime.test.ts",
@@ -154,6 +168,7 @@ const TEST_EXEMPTIONS: readonly string[] = [
   "unit/policy/toolchain-auto-discovery.test.ts",
   "unit/roles/plan-91-roles.test.ts",
   "unit/scheduler/host-cadence.test.ts",
+  "unit/server/docker-inspector.test.ts",
   "unit/summary/host-telemetry.test.ts",
   "unit/telemetry/circuit-breaker.test.ts",
   "unit/telemetry/claude-collector.test.ts",

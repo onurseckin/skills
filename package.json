@@ -27,6 +27,9 @@
     "format:check": "oxfmt '!**/.olt/capsules/**' '!**/.olt/scratch/**' --check",
     "modularity:staged": "bun scripts/modularity/check.ts --mode ratchet --source index",
     "modularity:check": "bun scripts/modularity/check.ts --mode ratchet --source tree",
+    "server:status": "bun olt/scripts/harness.ts server:status",
+    "server:restart": "bun olt/scripts/harness.ts server:restart",
+    "server:clean": "bun olt/scripts/harness.ts server:clean",
     "sync": "bun scripts/sync/index.ts",
     "sync:local": "bun run sync",
     "sync:remote": "npx skills update olt -g -y"

@@ -210,7 +210,7 @@ export const INVALID_STATE_AND_ARGUMENT_ENTRIES: readonly ExplainEntry[] = [
           ),
           example("workflow/submission/validate-report.ts", "report must be an object"),
           example(
-            "workflow/review/validate-review.ts",
+            "workflow/review/checklist/coverage-validator.ts",
             'checklist coverage omits ${missing.length} item(s) of ${checklist.title}: ${missing.sort().join(", ")}',
           ),
         ],

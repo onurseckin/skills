@@ -23,3 +23,18 @@ export {
 } from "./challenge-generator.ts";
 
 export { auditRepositoryGovernance, type GovernanceAuditResult } from "./governance-auditor.ts";
+
+export {
+  CognitiveUiCritiqueParser,
+  OPTICAL_DIMENSIONS,
+  OPTICAL_VIEWPORTS,
+  type OpticalDimension,
+  type OpticalViewport,
+  type OpticalViewportSpec,
+  type CognitiveUiFinding,
+  type ParsedUiCritique,
+  type ActionableDesignIteration,
+  type ParseCritiqueOptions,
+  type DesignIterationOptions,
+} from "./critique-parser.ts";
+

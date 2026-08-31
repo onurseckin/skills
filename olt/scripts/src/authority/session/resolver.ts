@@ -76,6 +76,29 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
     if (typeof parsed["granted_at"] === "string") grantedAt = parsed["granted_at"];
   };
 
+  if (options.runRoot && options.explicitActor) {
+    const trimmed = options.runRoot.trim();
+    const resolvedRunRoot =
+      isAbsolute(trimmed) || isInsideCapsule(trimmed)
+        ? resolve(trimmed)
+        : join(resolveCapsulesDir(repoRoot), trimmed);
+    const runtimeSessionPath = join(
+      resolvedRunRoot,
+      "runtime",
+      "sessions",
+      `${options.explicitActor.trim()}.json`,
+    );
+    const parsed = readPersistedSession(
+      runtimeSessionPath,
+      "capsule_runtime_session",
+      readSessionFile,
+    );
+    if (parsed) {
+      mechanisms.push("capsule_runtime_session");
+      applyParsed(parsed);
+    }
+  }
+
   if (!isTestEnvironment() || repoRoot !== findRepoRoot()) {
     for (const checkPid of checkPids) {
       const sessionFile = join(globalSessionsDir, `${checkPid}.json`);
@@ -111,29 +134,6 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
       const parent = dirname(currentDir);
       if (parent === currentDir || currentDir === repoRoot) break;
       currentDir = parent;
-    }
-  }
-
-  if (options.runRoot && options.explicitActor) {
-    const trimmed = options.runRoot.trim();
-    const resolvedRunRoot =
-      isAbsolute(trimmed) || isInsideCapsule(trimmed)
-        ? resolve(trimmed)
-        : join(resolveCapsulesDir(repoRoot), trimmed);
-    const runtimeSessionPath = join(
-      resolvedRunRoot,
-      "runtime",
-      "sessions",
-      `${options.explicitActor.trim()}.json`,
-    );
-    const parsed = readPersistedSession(
-      runtimeSessionPath,
-      "capsule_runtime_session",
-      readSessionFile,
-    );
-    if (parsed) {
-      mechanisms.push("capsule_runtime_session");
-      applyParsed(parsed);
     }
   }
 

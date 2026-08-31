@@ -80,8 +80,7 @@ export function beginValidation(
       task.original_implementer === validatorId ||
       task.attempts.some((attempt) => attempt.agent_id === validatorId) ||
       open.some((entry) => entry.validator_id === validatorId) ||
-      (task.validation_history ?? []).some((entry) => entry.validator_id === validatorId) ||
-      task.history.some((entry) => entry.to === "validating" && entry.actor === validatorId)
+      (task.validation_history ?? []).some((entry) => entry.validator_id === validatorId)
     ) {
       throw new HarnessError("INVALID_STATE", "validator must be independent from implementers");
     }

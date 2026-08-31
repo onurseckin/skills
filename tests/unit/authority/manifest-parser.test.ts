@@ -1650,7 +1650,7 @@ mapping:
   test("all agent manifests in olt/agents declaring commands contain msg:send, msg:recv, msg:poll", () => {
     const agentsDir = join(findSkillRoot(), "agents");
     const manifestFiles = readdirSync(agentsDir).filter((f) => f.endsWith(".yaml"));
-    expect(manifestFiles.length).toBe(29);
+    expect(manifestFiles.length).toBe(31);
 
     for (const file of manifestFiles) {
       const content = readFileSync(join(agentsDir, file), "utf-8");
@@ -1683,7 +1683,7 @@ mapping:
       const manifestFiles = readdirSync(agentsDir)
         .filter((f) => f.endsWith(".yaml"))
         .sort();
-      expect(manifestFiles.length).toBe(29);
+      expect(manifestFiles.length).toBe(31);
 
       for (const file of manifestFiles) {
         const fullPath = join(agentsDir, file);

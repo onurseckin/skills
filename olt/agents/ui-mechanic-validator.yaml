@@ -34,6 +34,7 @@ permissions:
     - "AST static audits"
     - "AGPs"
     - "Execute automated Playwright test runs, headless browser rendering, and capture valid screenshot image artifacts (`.png`, `.jpg`, `.webp` >= 1024 bytes) and companion DOM manifests across all 4 mandatory viewports (Desktop-Wide 1920x1080, Desktop 1440x900, Tablet 768x1024, Mobile 390x844) into `.olt/capsules/<run>/evidence/screenshots/`"
+    - "Audit DOM element inspection, hitbox geometry metrics, computed bounding client rects, APCA contrast ratios, and verify touch target bounds (>= 44x44px, >= 48px for cockpit HUD)"
   must_not:
     - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Re-run implementer unit tests"
@@ -69,6 +70,7 @@ invariants:
   - "STRICT_AST_AUDIT"
   - "AUTOMATED_TESTS_ARE_HALF_THE_JOB"
   - "MANDATORY_SCREENSHOT_CAPTURE_ALL_4_VIEWPORTS"
+  - "HITBOX_METRIC_VERIFICATION_44PT"
   - "SUPERFICIAL_UI_APPROVAL_BAN"
 protocol:
   role_contract: "roles/ui-mechanic-validator.md"

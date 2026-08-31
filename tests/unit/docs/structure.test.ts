@@ -6,8 +6,8 @@ describe("Documentation Structure, Diátaxis Modules & Semantic Mirroring Invari
   const repoRoot = resolve(import.meta.dir, "../../..");
   const rootDocsDir = join(repoRoot, "docs");
   const skillDocsDir = join(rootDocsDir, "olt");
-  const forbiddenSkillDocs = join(repoRoot, "olt", "docs");
-  const forbiddenPlanningDir = join(rootDocsDir, "planning");
+  const forbiddenCharterDocs = join(repoRoot, "docs", "CHARTER.md");
+  const forbiddenReferenceCharter = join(repoRoot, "olt", "references", "CHARTER.md");
   const scriptsSrcDir = join(repoRoot, "olt", "scripts", "src");
   const testsUnitDir = join(repoRoot, "tests", "unit");
 
@@ -32,8 +32,9 @@ describe("Documentation Structure, Diátaxis Modules & Semantic Mirroring Invari
     "17-verification-engines-and-gates",
   ] as const;
 
-  it("verifies forbidden directories do not exist", () => {
-    expect(existsSync(forbiddenSkillDocs)).toBe(false);
+  it("verifies forbidden legacy charter files do not exist", () => {
+    expect(existsSync(forbiddenCharterDocs)).toBe(false);
+    expect(existsSync(forbiddenReferenceCharter)).toBe(false);
   });
 
   it("verifies docs/olt contains README.md and all 13 educational modules", () => {
