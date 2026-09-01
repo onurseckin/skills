@@ -11,7 +11,7 @@ import {
   type ElementLayoutNode,
   type BackdropOcclusionResult,
   type OverlayDismissalErgonomicsResult,
-} from "./types.ts";
+} from "./overlay-types.ts";
 export class OverlayOrchestrator {
   /**
    * Validates z-index values against the canonical z-index elevation hierarchy

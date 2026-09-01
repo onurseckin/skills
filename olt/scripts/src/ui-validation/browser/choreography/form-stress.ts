@@ -10,7 +10,7 @@ import {
   type FormStressTestPlan,
   type FormStressTestResult,
   type FormFieldEvaluationInput,
-} from "./types.ts";
+} from "./overlay-types.ts";
 export class FormStressExplorer {
   /**
    * Generates boundary edge stress inputs appropriate for a given field descriptor
