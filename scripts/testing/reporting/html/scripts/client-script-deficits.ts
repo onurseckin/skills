@@ -137,8 +137,8 @@ export function getClientScriptDeficits(): string {
 
         html += '<tr>';
         html += '<td><span class="deficit-rank">#' + globalRank + '</span></td>';
-        html += '<td><a class="deficit-target-link" onclick="openDeficitCluster(\'' + escapeHtml(c.file) + '\', ' + c.startLine + ')" title="Open in Coverage Matrix at Line ' + c.startLine + '"><strong>' + escapeHtml(c.file) + '</strong> <span style="color: var(--text-dim); font-size: 0.8rem;">(' + lineRangeText + ')</span></a></td>';
-        html += '<td><span style="font-family: \\'JetBrains Mono\\', monospace; font-weight: 700; color: #f87171;">' + c.lineCount + ' lines</span></td>';
+        html += '<td><a class="deficit-target-link" data-file="' + escapeHtml(c.file) + '" data-line="' + c.startLine + '" onclick="openDeficitCluster(this.dataset.file, parseInt(this.dataset.line, 10))" title="Open in Coverage Matrix at Line ' + c.startLine + '"><strong>' + escapeHtml(c.file) + '</strong> <span style="color: var(--text-dim); font-size: 0.8rem;">(' + lineRangeText + ')</span></a></td>';
+        html += '<td><span style="font-family: monospace; font-weight: 700; color: #f87171;">' + c.lineCount + ' lines</span></td>';
         html += '<td><span class="gain-badge-repo">+' + c.repoImpactPct + '%</span></td>';
         html += '<td><span class="gain-badge-file">+' + c.fileImpactPct + '%</span></td>';
         html += '<td><span class="' + catBadgeClass + '">' + escapeHtml(c.category) + '</span></td>';

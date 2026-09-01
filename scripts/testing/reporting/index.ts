@@ -133,6 +133,18 @@ export function processCoverageArtifacts(
       options.totalDurationMs,
     );
   }
+  if (!runtime && existsSync(join(coverageDir, "coverage-summary.json"))) {
+    try {
+      const summaryOnDisk = JSON.parse(
+        readFileSync(join(coverageDir, "coverage-summary.json"), "utf-8"),
+      );
+      if (summaryOnDisk.runtime) {
+        runtime = summaryOnDisk.runtime;
+      }
+    } catch {
+      // ignore read error
+    }
+  }
 
   const fileMap = parseLcov(lcovContent, root);
   const summary = buildCoverageSummary(fileMap, runtime);

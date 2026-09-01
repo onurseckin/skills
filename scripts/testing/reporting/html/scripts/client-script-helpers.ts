@@ -37,7 +37,7 @@ export function getClientScriptHelpers(): string {
         const durText = f.testDurationMs !== undefined ? f.testDurationMs + 'ms' : 'Telemetry';
         html += '<a href="#runtime?file=' + encodeURIComponent(f.testFile) + '" class="badge badge-neutral" style="text-decoration: none; cursor: pointer;" title="View test runtime ranking">Test: ' + durText + '</a>';
       }
-      html += '<button class="btn" onclick="copyPath(\\'' + escapeHtml(f.path) + '\\')">Copy</button>';
+      html += '<button class="btn" data-path="' + escapeHtml(f.path) + '" onclick="copyPath(this.dataset.path)">Copy</button>';
       html += '</div>';
       html += '</div>';
 
@@ -63,7 +63,7 @@ export function getClientScriptHelpers(): string {
           const hitsColor = isMiss ? "var(--status-fail)" : "var(--status-pass)";
 
           html += '<div class="code-line ' + cls + '" id="line-' + line.no + '">';
-          html += '<div class="line-num" onclick="selectLine(\\'' + escapeHtml(f.path) + '\\', ' + line.no + ')" style="cursor: pointer;" title="Click to copy link to Line ' + line.no + '">' + line.no + '</div>';
+          html += '<div class="line-num" data-path="' + escapeHtml(f.path) + '" data-line="' + line.no + '" onclick="selectLine(this.dataset.path, parseInt(this.dataset.line, 10))" style="cursor: pointer;" title="Click to copy link to Line ' + line.no + '">' + line.no + '</div>';
           html += '<div class="line-hits" style="color:' + hitsColor + '">' + hitsText + '</div>';
           html += '<div class="line-content">' + escapeHtml(line.code) + '</div>';
           html += '</div>';

@@ -193,7 +193,7 @@ export function getClientScript(payloadJson: string): string {
           const fnPct = totalFuncs > 0 ? Math.round((coveredFuncs / totalFuncs) * 10000) / 100 : 100;
           const targetFolder = currentPath ? currentPath + "/" + item.name : item.name;
 
-          html += '<tr onclick="openFolder(\\'' + targetFolder + '\\')" style="cursor: pointer;">';
+          html += '<tr data-folder="' + targetFolder + '" onclick="openFolder(this.dataset.folder)" style="cursor: pointer;">';
           html += '<td><div class="item-name"><strong style="color: var(--text-main);">' + item.name + '</strong> <span class="badge badge-neutral">' + item.files.length + ' files</span></div></td>';
           html += '<td><span class="badge ' + badgeClass(linePct) + '">' + linePct + '%</span> (' + coveredLines + '/' + totalLines + ')<div class="mini-progress"><div class="mini-progress-fill" style="width:' + linePct + '%; background:' + colorForPct(linePct) + '"></div></div></td>';
           html += '<td><span class="badge ' + badgeClass(stmtPct) + '">' + stmtPct + '%</span> (' + coveredStmts + '/' + totalStmts + ')</td>';
@@ -206,12 +206,12 @@ export function getClientScript(payloadJson: string): string {
             ? f.uncoveredLines.slice(0, 6).join(", ") + (f.uncoveredLines.length > 6 ? ' (+' + (f.uncoveredLines.length - 6) + ')' : '')
             : '<span style="color: var(--status-pass); font-weight: 600;">None (100%)</span>';
 
-          html += '<tr onclick="openFile(\\'' + f.path + '\\')" style="cursor: pointer;">';
+          html += '<tr data-file="' + f.path + '" onclick="openFile(this.dataset.file)" style="cursor: pointer;">';
           html += '<td><div class="item-name"><span style="color: var(--text-main);">' + item.name + '</span></div></td>';
           html += '<td><span class="badge ' + badgeClass(f.linesPct) + '">' + f.linesPct + '%</span> (' + f.linesCovered + '/' + f.linesTotal + ')<div class="mini-progress"><div class="mini-progress-fill" style="width:' + f.linesPct + '%; background:' + colorForPct(f.linesPct) + '"></div></div></td>';
           html += '<td><span class="badge ' + badgeClass(f.statementsPct) + '">' + f.statementsPct + '%</span> (' + f.statementsCovered + '/' + f.statementsTotal + ')</td>';
           html += '<td><span class="badge ' + badgeClass(f.funcsPct) + '">' + f.funcsPct + '%</span> (' + f.funcsCovered + '/' + f.funcsTotal + ')</td>';
-          html += '<td style="font-family: \\'JetBrains Mono\\', monospace; font-size: 0.8rem; color: #f87171;">' + uncov + '</td>';
+          html += '<td style="font-family: monospace; font-size: 0.8rem; color: #f87171;">' + uncov + '</td>';
           html += '</tr>';
         }
       });

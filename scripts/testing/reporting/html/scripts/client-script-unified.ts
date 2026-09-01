@@ -147,14 +147,14 @@ export function getClientScriptUnified(): string {
 
       if (isDir) {
         const arrow = isExpanded ? '&#9660;' : '&#9654;';
-        html += '<span class="tree-expander" onclick="event.stopPropagation(); toggleUnifiedFolder(\\'' + escapeHtml(n.path) + '\\')">' + arrow + '</span>';
-        html += '<span onclick="toggleUnifiedFolder(\\'' + escapeHtml(n.path) + '\\')" style="cursor:pointer; font-weight: 600;">' + escapeHtml(n.name) + '</span>';
+        html += '<span class="tree-expander" data-path="' + escapeHtml(n.path) + '" onclick="event.stopPropagation(); toggleUnifiedFolder(this.dataset.path)">' + arrow + '</span>';
+        html += '<span data-path="' + escapeHtml(n.path) + '" onclick="toggleUnifiedFolder(this.dataset.path)" style="cursor:pointer; font-weight: 600;">' + escapeHtml(n.name) + '</span>';
         if (n.children) {
           html += ' <span class="badge badge-neutral" style="font-size: 0.7rem; margin-left: 4px;">' + n.children.length + '</span>';
         }
       } else {
         html += '<span class="tree-expander-leaf"></span>';
-        html += '<span onclick="openFile(\\'' + escapeHtml(n.path) + '\\')" style="cursor:pointer; color: var(--text-main);">' + escapeHtml(n.name) + '</span>';
+        html += '<span data-path="' + escapeHtml(n.path) + '" onclick="openFile(this.dataset.path)" style="cursor:pointer; color: var(--text-main);">' + escapeHtml(n.name) + '</span>';
       }
       html += '</div></td>';
 
@@ -168,10 +168,11 @@ export function getClientScriptUnified(): string {
       // Test Latency & Pareto Badge
       html += '<td><div class="test-telemetry-cell">';
       if (n.testDurationMs !== undefined) {
+        const roundedDur = Math.round(n.testDurationMs * 100) / 100;
         if (n.testFile) {
-          html += '<a href="#runtime?file=' + encodeURIComponent(n.testFile) + '" style="text-decoration: none; font-family: \\'JetBrains Mono\\', monospace; font-weight: 700; color: var(--text-main);" title="Jump to runtime ranking">' + n.testDurationMs + 'ms</a>';
+          html += '<a href="#runtime?file=' + encodeURIComponent(n.testFile) + '" style="text-decoration: none; font-family: monospace; font-weight: 700; color: var(--text-main);" title="Jump to runtime ranking">' + roundedDur + 'ms</a>';
         } else {
-          html += '<span style="font-family: \\'JetBrains Mono\\', monospace; font-weight: 700; color: var(--text-main);">' + n.testDurationMs + 'ms</span>';
+          html += '<span style="font-family: monospace; font-weight: 700; color: var(--text-main);">' + roundedDur + 'ms</span>';
         }
         if (n.paretoClass === "p50") {
           html += '<span class="badge badge-p50" title="Top 50% Latency Hotspot">P50</span>';
