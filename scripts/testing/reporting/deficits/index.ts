@@ -10,3 +10,11 @@ export {
   formatDeficitRoadmapMarkdown,
   type ContiguousLineSegment,
 } from "./deficit-clustering.ts";
+
+export type {
+  DeficitCategory,
+  DeficitCategoryBreakdown,
+  DeficitCluster,
+  DeficitRoadmap,
+  DeficitClusteringOptions,
+} from "./types.ts";

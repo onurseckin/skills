@@ -3,7 +3,8 @@
  * Categorizes uncovered line segments into error-handling, branching,
  * initialization, or unexercised-logic based on patterns and heuristics.
  */
-import type { DeficitCategory } from "../types.ts";
+export type CoverageDeficitCategory = "error-handling" | "branching" | "initialization" | "unexercised-logic";
+export type DeficitCategory = CoverageDeficitCategory;
 
 export interface DeficitCategoryClassification {
   readonly category: DeficitCategory;
@@ -31,6 +32,8 @@ export function getCategoryBadge(category: DeficitCategory): string {
     case "initialization":
       return "⚙️ initialization";
     case "unexercised-logic":
+      return "🧩 unexercised-logic";
+    default:
       return "🧩 unexercised-logic";
   }
 }
