@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { RawValuePolicyValidator, validateZeroRawValues } from "./raw-value-validator.ts";
 import { TokenComplianceImmunity } from "./immunity-defense.ts";
 import { CompositionalDialecticEngine } from "./compositional-dialectic.ts";

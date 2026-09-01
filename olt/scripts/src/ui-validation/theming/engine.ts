@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { PermutationGridManager } from "./permutation-grid.ts";
 import { MathematicalContrastPreFilter } from "./contrast-prefilter.ts";
 import { ThematicGateVerifier } from "./thematic-gate.ts";

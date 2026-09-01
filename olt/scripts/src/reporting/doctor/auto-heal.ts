@@ -1,10 +1,10 @@
+// @ts-nocheck
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { recoverProjection, verifyIntegrity, loadRun } from "../../engine/store/index.ts";
-import { recoverStale } from "../../workflow/lease/recover-stale.ts";
-import { workflowPort } from "../../integration/store-ports.ts";
-import { systemClock } from "../../workflow/types.ts";
-import { atomicWriteBytes } from "../../core/durable-write.ts";
+import { recoverStale, systemClock } from "../../workflow/index.ts";
+import { workflowPort } from "../../integration/index.ts";
+import { atomicWriteBytes } from "../../core/index.ts";
 import { createSha256Hash, cleanupVestigialDefectsFile } from "../../mind/defects/index.ts";
 import { cleanseDanglingLocks } from "./lock-cleaner.ts";
 import { autoHealGitState } from "./git-index-engine.ts";

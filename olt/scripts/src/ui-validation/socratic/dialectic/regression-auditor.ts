@@ -1,6 +1,5 @@
-// @ts-nocheck
 import { HarnessError } from "../../../core/errors/index.ts";
-import { computeSha256 } from "../locks/index.ts";
+import { computeSha256, type ImmutabilityManifest } from "../locks/index.ts";
 import type {
   SocraticRoundNumber,
   CognitiveChallenge,
@@ -40,7 +39,7 @@ export class InterRoundRegressionAuditor {
           if (sealedValHash !== currentValHash) {
             // Find which scope this key falls under
             const matchingScope =
-              manifest.sealedScope.find((s) => key.startsWith(s) || s.startsWith(key)) ??
+              manifest.sealedScope.find((s: string) => key.startsWith(s) || s.startsWith(key)) ??
               manifest.sealedScope[0] ??
               "general.scope";
 

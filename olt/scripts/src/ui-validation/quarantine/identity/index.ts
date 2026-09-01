@@ -17,14 +17,20 @@ export {
   base64UrlEncode,
   base64UrlDecode,
   MOCK_JWT_SECRET,
-} from "./types.ts";
+} from "./tokens.ts";
+
+export {
+  detectSessionDegradation,
+  executeAutonomousReauthentication,
+} from "./session.ts";
+
+export {
+  simulatePermissionBoundary,
+} from "./permissions.ts";
 
 export {
   IdentityGovernanceEngine,
   getDefaultIdentityGovernanceEngine,
   setDefaultIdentityGovernanceEngine,
   resetDefaultIdentityGovernanceEngine,
-  detectSessionDegradation,
-  executeAutonomousReauthentication,
-  simulatePermissionBoundary,
 } from "./engine.ts";

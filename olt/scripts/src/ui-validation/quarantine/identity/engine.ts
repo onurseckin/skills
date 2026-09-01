@@ -10,14 +10,19 @@ import type {
   SessionDegradationResult,
   ReauthExecutionPlan,
   PermissionBoundaryAuditResult,
-  PersonaAccessEvaluation,
-  PermissionAuditExpectation,
 } from "./types.ts";
 import {
   base64UrlEncode,
   base64UrlDecode,
   MOCK_JWT_SECRET,
-} from "./types.ts";
+} from "./tokens.ts";
+import {
+  detectSessionDegradation,
+  executeAutonomousReauthentication,
+} from "./session.ts";
+import {
+  simulatePermissionBoundary,
+} from "./permissions.ts";
 
 export class IdentityGovernanceEngine {
   public generateMockToken(
@@ -235,104 +240,13 @@ export class IdentityGovernanceEngine {
     };
   }
 
+  /**
+   * Inspect in-flight state and detect mid-flight session degradation
+   */
   public detectSessionDegradation(
     params: SessionDegradationInspectionParams,
   ): SessionDegradationResult {
-    const { statusCode, currentUrl, pageTitle, domSnippet, token, activePersona, loginPathPatterns } = params;
-
-    if (statusCode === 401) {
-      return {
-        degraded: true,
-        cause: "STATUS_401",
-        confidence: 1.0,
-        targetPersona: activePersona.role,
-        detectedAtUrl: currentUrl,
-        recommendedAction: "RE_AUTHENTICATE",
-        reason: "Received HTTP 401 Unauthorized status code.",
-      };
-    }
-
-    if (statusCode === 403) {
-      return {
-        degraded: true,
-        cause: "STATUS_403",
-        confidence: 0.95,
-        targetPersona: activePersona.role,
-        detectedAtUrl: currentUrl,
-        recommendedAction: "SWITCH_PERSONA",
-        reason: "Received HTTP 403 Forbidden status code.",
-      };
-    }
-
-    if (statusCode === 419) {
-      return {
-        degraded: true,
-        cause: "STATUS_419",
-        confidence: 1.0,
-        targetPersona: activePersona.role,
-        detectedAtUrl: currentUrl,
-        recommendedAction: "REFRESH_TOKEN",
-        reason: "Received HTTP 419 Page Expired (CSRF/Session token timeout).",
-      };
-    }
-
-    const defaultLoginPatterns = loginPathPatterns ?? ["/login", "/signin", "/auth/login", "/auth/signin"];
-    const isLoginPage = defaultLoginPatterns.some((p) => currentUrl.includes(p));
-    if (isLoginPage && !currentUrl.includes("return_to=") && activePersona.role !== "guest") {
-      return {
-        degraded: true,
-        cause: "REDIRECT_TO_LOGIN",
-        confidence: 0.9,
-        targetPersona: activePersona.role,
-        detectedAtUrl: currentUrl,
-        recommendedAction: "RE_AUTHENTICATE",
-        reason: `Redirected to login page (${currentUrl}) while acting as authenticated persona '${activePersona.role}'.`,
-      };
-    }
-
-    if (token && this.isTokenExpired(token)) {
-      return {
-        degraded: true,
-        cause: "EXPIRED_JWT",
-        confidence: 1.0,
-        targetPersona: activePersona.role,
-        detectedAtUrl: currentUrl,
-        recommendedAction: "REFRESH_TOKEN",
-        reason: "JWT authentication token expiration timestamp has elapsed.",
-      };
-    }
-
-    if (domSnippet) {
-      const bannerPatterns = [
-        /session\s+expired/i,
-        /please\s+log\s+in/i,
-        /unauthorized\s+access/i,
-        /you\s+have\s+been\s+logged\s+out/i,
-      ];
-      for (const pat of bannerPatterns) {
-        if (pat.test(domSnippet) || (pageTitle && pat.test(pageTitle))) {
-          return {
-            degraded: true,
-            cause: "VISUAL_UNAUTHORIZED_BANNER",
-            confidence: 0.85,
-            targetPersona: activePersona.role,
-            detectedAtUrl: currentUrl,
-            recommendedAction: "RE_AUTHENTICATE",
-            reason: "Detected visual session expiration or unauthorized banner in DOM/Title.",
-          };
-        }
-      }
-    }
-
-    return {
-      degraded: false,
-      cause: "NONE",
-      confidence: 1.0,
-      targetPersona: activePersona.role,
-      detectedAtUrl: currentUrl,
-      recommendedAction: "IGNORE",
-      reason: "Session is active and valid.",
-    };
+    return detectSessionDegradation.call(this, params);
   }
 
   public executeAutonomousReauthentication(
@@ -343,24 +257,7 @@ export class IdentityGovernanceEngine {
       readonly resumeUrl?: string | undefined;
     },
   ): ReauthExecutionPlan {
-    const freshContext = this.createPersonaSessionContext(persona, options);
-    const resumeUrl = options?.resumeUrl ?? degradation.detectedAtUrl;
-    const injectionSteps = [
-      `1. Minted fresh mock JWT token for persona '${persona.role}' (exp=${Math.floor(freshContext.expiresAt / 1000)})`,
-      `2. Generated ${freshContext.cookies.length} session cookies for domain '${freshContext.cookies[0]?.domain ?? "localhost"}'`,
-      `3. Prepared storageState payload with local storage authentication tokens`,
-      `4. Injected authorization headers: Authorization Bearer token`,
-      `5. Resuming navigation to target URL: '${resumeUrl}'`,
-    ];
-
-    return {
-      persona,
-      freshContext,
-      resumeUrl,
-      injectionSteps,
-      success: true,
-      diagnostics: `Autonomous re-authentication completed successfully for persona '${persona.role}'. Cause resolved: ${degradation.cause}`,
-    };
+    return executeAutonomousReauthentication.call(this, degradation, persona, options);
   }
 
   public simulatePermissionBoundary(
@@ -368,59 +265,7 @@ export class IdentityGovernanceEngine {
     routeRequiredPermissions: readonly string[],
     personas: readonly PersonaDefinition[],
   ): PermissionBoundaryAuditResult {
-    const evaluations: PersonaAccessEvaluation[] = [];
-
-    for (const persona of personas) {
-      const hasWildcard = persona.permissions.includes("*");
-      const hasDirectPermission = routeRequiredPermissions.some((p) =>
-        persona.permissions.includes(p),
-      );
-      const isPublicRoute = routeRequiredPermissions.length === 0 || routeRequiredPermissions.includes("public_read");
-
-      const isPermitted = hasWildcard || hasDirectPermission || isPublicRoute;
-
-      const isPrivileged = persona.role === "admin" || persona.permissions.includes("*");
-      let expectedResult: PermissionAuditExpectation = "ALLOW";
-      if (!isPermitted) {
-        expectedResult = persona.role === "guest" ? "DENY_REDIRECT_LOGIN" : "DENY_FORBIDDEN";
-      }
-
-      const actualResult = isPermitted ? "ALLOW" : persona.role === "guest" ? "DENY_REDIRECT_LOGIN" : "DENY_FORBIDDEN";
-
-      const status =
-        expectedResult === actualResult
-          ? "COMPLIANT"
-          : isPermitted && !isPrivileged
-            ? "PRIVILEGE_LEAKAGE"
-            : "FALSE_POSITIVE_REJECTION";
-
-      evaluations.push({
-        persona: persona.role,
-        role: persona.role,
-        expectedResult,
-        actualResult,
-        status,
-        details: `Persona '${persona.role}' with permissions [${persona.permissions.join(", ")}] evaluated against required [${routeRequiredPermissions.join(", ")}]. Result: ${actualResult}.`,
-      });
-    }
-
-    const privilegeLeakages = evaluations.filter((e) => e.status === "PRIVILEGE_LEAKAGE");
-    const falsePositiveRejections = evaluations.filter((e) => e.status === "FALSE_POSITIVE_REJECTION");
-    const compliant = privilegeLeakages.length === 0 && falsePositiveRejections.length === 0;
-
-    const securityScore = compliant
-      ? 100
-      : Math.max(0, 100 - privilegeLeakages.length * 40 - falsePositiveRejections.length * 20);
-
-    return {
-      targetRouteOrAction,
-      evaluations,
-      compliant,
-      privilegeLeakages,
-      falsePositiveRejections,
-      securityScore,
-      timestamp: new Date().toISOString(),
-    };
+    return simulatePermissionBoundary(targetRouteOrAction, routeRequiredPermissions, personas);
   }
 }
 
@@ -439,16 +284,4 @@ export function setDefaultIdentityGovernanceEngine(engine: IdentityGovernanceEng
 
 export function resetDefaultIdentityGovernanceEngine(): void {
   defaultIdentityEngine = null;
-}
-
-export function detectSessionDegradation(params: SessionDegradationInspectionParams): SessionDegradationResult {
-  return getDefaultIdentityGovernanceEngine().detectSessionDegradation(params);
-}
-
-export function executeAutonomousReauthentication(degradation: SessionDegradationResult, persona: PersonaDefinition): ReauthExecutionPlan {
-  return getDefaultIdentityGovernanceEngine().executeAutonomousReauthentication(degradation, persona);
-}
-
-export function simulatePermissionBoundary(targetRouteOrAction: string, routeRequiredPermissions: readonly string[], personas: readonly PersonaDefinition[]): PermissionBoundaryAuditResult {
-  return getDefaultIdentityGovernanceEngine().simulatePermissionBoundary(targetRouteOrAction, routeRequiredPermissions, personas);
 }

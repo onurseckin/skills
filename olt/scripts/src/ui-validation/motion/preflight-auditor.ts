@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { HarnessError } from "../../core/errors/index.ts";
 import {
   GPU_ACCELERATED_PROPERTIES,

@@ -1,7 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-import type { RepoPolicy } from "../../../policy/types/index.ts";
-export type { RepoPolicy };
+export type { RepoPolicy } from "../../../policy/index.ts";
 
 /**
  * Deductive Parameter Structures

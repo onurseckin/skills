@@ -2,6 +2,8 @@ export { requireSubstantiveObjects } from "./evidence.ts";
 
 export { assertPublishedTaskPacket } from "./packet-authority.ts";
 
+export { recoverStale } from "./lease/index.ts";
+
 export {
   computeLcaDirectory,
   partitionFindingsIntoScopes,

@@ -1,6 +1,5 @@
-import type { CookieTemplateSpec, PersonaDefinition } from "../parameters/index.ts";
-
 import { createHmac } from "node:crypto";
+import type { CookieTemplateSpec, PersonaDefinition } from "../parameters/index.ts";
 
 /**
  * Session and Storage State Types
@@ -118,7 +117,7 @@ export interface PermissionBoundaryAuditResult {
 /**
  * Base64 URL Encoding Helpers
  */
-export function base64UrlEncode(str: string): string {
+function base64UrlEncode(str: string): string {
   return Buffer.from(str, "utf8")
     .toString("base64")
     .replace(/=/gu, "")
@@ -126,7 +125,7 @@ export function base64UrlEncode(str: string): string {
     .replace(/\//gu, "_");
 }
 
-export function base64UrlDecode(str: string): string {
+function base64UrlDecode(str: string): string {
   let base64 = str.replace(/-/gu, "+").replace(/_/gu, "/");
   while (base64.length % 4 !== 0) {
     base64 += "=";
@@ -134,7 +133,7 @@ export function base64UrlDecode(str: string): string {
   return Buffer.from(base64, "base64").toString("utf8");
 }
 
-export const MOCK_JWT_SECRET = "olt-test-mock-jwt-secret-key-32-chars-long";
+const MOCK_JWT_SECRET = "olt-test-mock-jwt-secret-key-32-chars-long";
 
 /**
  * Declarative Identity Governance Engine

@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Quarantine
 export type {
   OpticalQuarantineInvariant, QuarantineCategory, ToolDescriptor, ToolInvocationContext,

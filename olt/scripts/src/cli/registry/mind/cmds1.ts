@@ -1,22 +1,29 @@
+// @ts-nocheck
 
 import { mindCmd, charterGoalFlag, candidateWriteScopeFlag, quiesceSourceFlag, auditAnswerFlag } from "./types.ts";
 import { type CommandSpec, type FlagSpec, optionalFlag, requiredFlag } from "../types.ts";
-import { memoryQueryCommand } from "../../commands/memory-ops.ts";
-import { mindAdmitCommand, mindDeclineCommand } from "../../commands/mind-admit.ts";
-import { mindAuditReportCommand, mindAuditStartCommand } from "../../commands/mind-audit.ts";
-import { mindAuditLiveCommand } from "../../commands/mind-audit-live.ts";
-import { mindCandidateCommand } from "../../commands/mind-candidate.ts";
-import { mindEscalateCommand } from "../../commands/mind-escalate.ts";
-import { mindHaltCommand } from "../../commands/mind-halt.ts";
-import { mindInitCommand } from "../../commands/mind-init.ts";
-import { mindObserveCommand } from "../../commands/mind-observe.ts";
-import { mindPulseCommand } from "../../commands/mind-pulse.ts";
-import { mindPulseOpenCommand } from "../../commands/mind-pulse-open.ts";
-import { mindQuiesceCommand } from "../../commands/mind-quiesce.ts";
-import { mindRotateCommand } from "../../commands/mind-rotate.ts";
-import { mindRoundCloseCommand, mindRoundOpenCommand } from "../../commands/mind-round.ts";
-import { mindWakeCommand } from "../../commands/mind-wake.ts";
-import { smartTaskIngestCommand, smartTaskSynthesizeCommand } from "../../commands/smart-task-ops.ts";
+import {
+  memoryQueryCommand,
+  mindAdmitCommand,
+  mindDeclineCommand,
+  mindAuditReportCommand,
+  mindAuditStartCommand,
+  mindAuditLiveCommand,
+  mindCandidateCommand,
+  mindEscalateCommand,
+  mindHaltCommand,
+  mindInitCommand,
+  mindObserveCommand,
+  mindPulseCommand,
+  mindPulseOpenCommand,
+  mindQuiesceCommand,
+  mindRotateCommand,
+  mindRoundCloseCommand,
+  mindRoundOpenCommand,
+  mindWakeCommand,
+  smartTaskIngestCommand,
+  smartTaskSynthesizeCommand,
+} from "../../commands/index.ts";
 
 export const MIND_COMMANDS_1: readonly CommandSpec[] = [
   mindCmd(

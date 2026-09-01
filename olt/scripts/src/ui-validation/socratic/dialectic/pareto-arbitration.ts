@@ -38,14 +38,9 @@ export class ParetoArbitrationEngine {
     }
 
     // Rank candidates: score * weighted sum of competing forces
-    const totalForceWeight = input.competingForces.reduce((sum: number, f: CompetingForce) => sum + f.weight, 0) || 1;
-    const scoredResolutions = input.candidateResolutions.map((cand: CandidateResolution) => {
-      let weightedScoreSum = 0;
-      for (const force of input.competingForces) {
-        const forceScore = cand.forceScores[force.name] ?? 50;
-        weightedScoreSum += forceScore * force.weight;
-      }
-      const normalizedScore = weightedScoreSum / totalForceWeight;
+    const totalForceWeight = input.competingForces.reduce((sum, f) => sum + f.weight, 0) || 1;
+    const scoredResolutions = input.candidateResolutions.map((cand) => {
+      const normalizedScore = cand.score * (1 / totalForceWeight);
       return {
         ...cand,
         finalRankScore: normalizedScore,
@@ -53,10 +48,7 @@ export class ParetoArbitrationEngine {
     });
 
     // Sort descending by final rank score
-    scoredResolutions.sort(
-      (a: any, b: any) =>
-        b.finalRankScore - a.finalRankScore,
-    );
+    scoredResolutions.sort((a, b) => b.finalRankScore - a.finalRankScore);
     const winningResolution = scoredResolutions[0];
     if (!winningResolution) {
       throw new HarnessError(
@@ -67,8 +59,8 @@ export class ParetoArbitrationEngine {
 
     const bindingDirectives = [
       `Binding resolution adopted: "${winningResolution.description}"`,
-      `Arbitration strategy: PARETO_OPTIMAL`,
-      `Trade-offs accepted: ${winningResolution.tradeOffSummary || "Equilibrium balance achieved across competing forces."}`,
+      `Arbitration strategy: ${input.arbitrationStrategy ?? "PARETO_OPTIMAL"}`,
+      `Trade-offs accepted: ${winningResolution.tradeoffs ?? "Equilibrium balance achieved across competing forces."}`,
       `Mandatory compliance directive: All subsequent rounds must adhere to this binding resolution.`,
     ];
 
@@ -77,11 +69,12 @@ export class ParetoArbitrationEngine {
     const decision: ParetoArbitrationDecision = {
       arbitrationId,
       challengeId: challenge.challengeId,
-      winningResolutionId: winningResolution.resolutionId,
+      roundNumber: challenge.roundNumber,
+      winningResolutionId: winningResolution.id,
       winningResolutionDescription: winningResolution.description,
-      compositeParetoScore: Math.round(winningResolution.finalRankScore),
-      arbitratedScore: Math.min(100, Math.round(winningResolution.finalRankScore)),
       bindingDirectives,
+      arbitratedScore: Math.min(100, Math.round(winningResolution.score)),
+      status: "BINDING_RESOLVED",
       arbitratedAt: new Date().toISOString(),
     };
 

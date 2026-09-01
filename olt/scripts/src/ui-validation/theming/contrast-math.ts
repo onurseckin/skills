@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { RgbColor } from "./types.ts";
 export function parseColorToRgb(color: string): RgbColor {
   const c = color.trim().toLowerCase();

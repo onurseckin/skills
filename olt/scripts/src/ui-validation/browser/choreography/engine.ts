@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { JourneyFlowEngine } from "./journey-flow.ts";
 import { FormStressExplorer } from "./form-stress.ts";
 import { OverlayOrchestrator } from "./overlay-orchestrator.ts";

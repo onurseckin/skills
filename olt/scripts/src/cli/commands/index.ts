@@ -396,3 +396,4 @@ export {
   executeHygieneFix,
 } from "./hygiene-ops.ts";
 export { defectRecordCommand, defectResolveCommand, defectListCommand } from "./defect-ops.ts";
+export { mindAuditLiveCommand } from "./mind-audit-live.ts";

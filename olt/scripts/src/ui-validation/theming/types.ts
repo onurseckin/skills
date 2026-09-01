@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { HarnessError } from "../../core/errors/index.ts";
 
 export type ThemeMode = "light" | "dark" | "high-contrast";

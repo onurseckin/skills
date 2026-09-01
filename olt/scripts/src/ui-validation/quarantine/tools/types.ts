@@ -1,5 +1,4 @@
-// @ts-nocheck
-import { extname } from "node:path";
+import type { JsonValue } from "../../../core/contracts/json.ts";
 import { HarnessError } from "../../../core/errors/index.ts";
 
 /**
@@ -31,12 +30,18 @@ export type QuarantineCategory =
   | "FORBIDDEN_SOURCE_EDITING"
   | "FORBIDDEN_SUBAGENT_SPAWNING";
 
+/**
+ * Tool descriptor object representation
+ */
 export interface ToolDescriptor {
   readonly name: string;
   readonly description?: string | undefined;
   readonly parameters?: Record<string, unknown> | undefined;
 }
 
+/**
+ * Invocation context for runtime validation
+ */
 export interface ToolInvocationContext {
   readonly agentId: string;
   readonly role: string;
@@ -46,6 +51,9 @@ export interface ToolInvocationContext {
   readonly callId?: string | undefined;
 }
 
+/**
+ * Result of capability check
+ */
 export interface QuarantineCheckResult {
   readonly allowed: boolean;
   readonly reason: string;
@@ -53,6 +61,9 @@ export interface QuarantineCheckResult {
   readonly violations: readonly string[];
 }
 
+/**
+ * Result of backdoor bypass detection
+ */
 export interface BackdoorDetectionResult {
   readonly detected: boolean;
   readonly severity: "NONE" | "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
@@ -61,6 +72,9 @@ export interface BackdoorDetectionResult {
   readonly matchedPattern?: string | undefined;
 }
 
+/**
+ * Result of runtime boundary enforcement
+ */
 export interface QuarantineEnforcementResult {
   readonly action: "ALLOW" | "BLOCK" | "STRIP" | "TERMINATE";
   readonly reason: string;
@@ -68,6 +82,9 @@ export interface QuarantineEnforcementResult {
   readonly violationInvariant?: OpticalQuarantineInvariant | undefined;
 }
 
+/**
+ * Audit log entry for quarantined tool calls
+ */
 export interface QuarantineAuditRecord {
   readonly callId: string;
   readonly agentId: string;

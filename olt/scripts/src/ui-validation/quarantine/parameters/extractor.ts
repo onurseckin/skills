@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   CANONICAL_DEFAULT_PERSONAS,
   CANONICAL_FEATURE_SCOPES,

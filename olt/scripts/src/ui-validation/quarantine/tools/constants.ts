@@ -1,10 +1,4 @@
-// @ts-nocheck
-import type {
-  QuarantineCategory,
-  ToolDescriptor,
-  ToolInvocationContext,
-  OpticalQuarantineInvariant,
-} from "./types.ts";
+import type { QuarantineCategory } from "./types.ts";
 
 export const PERMITTED_IMAGE_EXTENSIONS: ReadonlySet<string> = new Set([
   ".png",
@@ -58,52 +52,95 @@ export const FORBIDDEN_SOURCE_EXTENSIONS: ReadonlySet<string> = new Set([
   ".astro",
   ".md",
   ".mdx",
+  ".txt",
+  ".log",
   ".sql",
+  ".prisma",
   ".graphql",
-  ".proto",
+  ".gql",
 ]);
 
 /**
- * Base lists of authorized tool names for UI Optical Validator
+ * Whitelist of authorized browser-use tools
  */
 export const AUTHORIZED_BROWSER_TOOLS: ReadonlySet<string> = new Set([
-  "click",
-  "fill",
-  "fill_form",
-  "hover",
-  "press_key",
-  "type_text",
+  // Core Navigation & Viewport
   "navigate_page",
   "take_screenshot",
   "take_snapshot",
   "resize_page",
-  "wait_for",
-  "list_pages",
   "select_page",
+  "list_pages",
   "new_page",
   "close_page",
   "handle_dialog",
   "emulate",
+
+  // Interaction (Pure User-level actions)
+  "click",
+  "fill",
+  "fill_form",
+  "type_text",
+  "press_key",
+  "hover",
   "drag",
   "upload_file",
+
+  // Observation & Auditing
   "get_console_message",
   "list_console_messages",
   "get_network_request",
   "list_network_requests",
-  "evaluate_script", // Subject to strict runtime backdoor parameter inspection
+  "performance_start_trace",
+  "performance_stop_trace",
+  "performance_analyze_insight",
+  "lighthouse_audit",
+
+  // Safe client-side DOM evaluation
+  "evaluate_script",
+
+  // Native prefixed tool aliases
+  "chrome-devtools:click",
+  "chrome-devtools:fill",
+  "chrome-devtools:fill_form",
+  "chrome-devtools:hover",
+  "chrome-devtools:press_key",
+  "chrome-devtools:type_text",
+  "chrome-devtools:take_screenshot",
+  "chrome-devtools:take_snapshot",
+  "chrome-devtools:navigate_page",
+  "chrome-devtools:resize_page",
+  "chrome-devtools:select_page",
+  "chrome-devtools:list_pages",
+  "chrome-devtools:new_page",
+  "chrome-devtools:close_page",
+  "chrome-devtools:handle_dialog",
+  "chrome-devtools:emulate",
+  "chrome-devtools:drag",
+  "chrome-devtools:upload_file",
+  "chrome-devtools:get_console_message",
+  "chrome-devtools:list_console_messages",
+  "chrome-devtools:get_network_request",
+  "chrome-devtools:list_network_requests",
+  "chrome-devtools:performance_start_trace",
+  "chrome-devtools:performance_stop_trace",
+  "chrome-devtools:performance_analyze_insight",
+  "chrome-devtools:lighthouse_audit",
+  "chrome-devtools:evaluate_script",
+
+  // MCP format aliases
   "mcp_chrome-devtools_click",
   "mcp_chrome-devtools_fill",
   "mcp_chrome-devtools_fill_form",
   "mcp_chrome-devtools_hover",
   "mcp_chrome-devtools_press_key",
   "mcp_chrome-devtools_type_text",
-  "mcp_chrome-devtools_navigate_page",
   "mcp_chrome-devtools_take_screenshot",
   "mcp_chrome-devtools_take_snapshot",
+  "mcp_chrome-devtools_navigate_page",
   "mcp_chrome-devtools_resize_page",
-  "mcp_chrome-devtools_wait_for",
-  "mcp_chrome-devtools_list_pages",
   "mcp_chrome-devtools_select_page",
+  "mcp_chrome-devtools_list_pages",
   "mcp_chrome-devtools_new_page",
   "mcp_chrome-devtools_close_page",
   "mcp_chrome-devtools_handle_dialog",
@@ -118,7 +155,7 @@ export const AUTHORIZED_BROWSER_TOOLS: ReadonlySet<string> = new Set([
 ]);
 
 export const AUTHORIZED_VISUAL_TOOLS: ReadonlySet<string> = new Set([
-  "view_file", // Subject to image-extension and path-safety inspection
+  "view_file",
   "evidence:screenshots",
   "evidence:get",
   "finding:get",
@@ -183,92 +220,5 @@ export const FORBIDDEN_TOOLS: ReadonlyMap<string, QuarantineCategory> = new Map(
   // Subagent Spawning
   ["invoke_subagent", "FORBIDDEN_SUBAGENT_SPAWNING"],
   ["spawn_agent", "FORBIDDEN_SUBAGENT_SPAWNING"],
-  ["send_message", "FORBIDDEN_SUBAGENT_SPAWNING"], // Native host bypass forbidden; mailbox IPC must be used
+  ["send_message", "FORBIDDEN_SUBAGENT_SPAWNING"],
 ]);
-
-/**
- * Tool descriptor object representation
- */
-export interface ToolDescriptor {
-  readonly name: string;
-  readonly description?: string | undefined;
-  readonly parameters?: Record<string, unknown> | undefined;
-}
-
-/**
- * Invocation context for runtime validation
- */
-export interface ToolInvocationContext {
-  readonly agentId: string;
-  readonly role: string;
-  readonly toolName: string;
-  readonly args: Record<string, unknown>;
-  readonly timestamp?: string | undefined;
-  readonly callId?: string | undefined;
-}
-
-/**
- * Result of capability check
- */
-export interface QuarantineCheckResult {
-  readonly allowed: boolean;
-  readonly reason: string;
-  readonly category: QuarantineCategory;
-  readonly violations: readonly string[];
-}
-
-/**
- * Result of backdoor bypass detection
- */
-export interface BackdoorDetectionResult {
-  readonly detected: boolean;
-  readonly severity: "NONE" | "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
-  readonly vector?: string | undefined;
-  readonly description?: string | undefined;
-  readonly matchedPattern?: string | undefined;
-}
-
-/**
- * Result of runtime boundary enforcement
- */
-export interface QuarantineEnforcementResult {
-  readonly action: "ALLOW" | "BLOCK" | "STRIP" | "TERMINATE";
-  readonly reason: string;
-  readonly bypassAttempt?: BackdoorDetectionResult | undefined;
-  readonly violationInvariant?: OpticalQuarantineInvariant | undefined;
-}
-
-/**
- * Audit log entry for quarantined tool calls
- */
-export interface QuarantineAuditRecord {
-  readonly callId: string;
-  readonly agentId: string;
-  readonly role: string;
-  readonly toolName: string;
-  readonly timestamp: string;
-  readonly decision: "ALLOWED" | "BLOCKED";
-  readonly category: QuarantineCategory;
-  readonly bypassDetected: boolean;
-  readonly details?: string | undefined;
-  readonly violationInvariant?: OpticalQuarantineInvariant | undefined;
-}
-
-/**
- * Helper to determine if a given role is an optical cognitive validator
- */
-export function isOpticalValidatorRole(role: string): boolean {
-  const norm = role.trim().toLowerCase().replace(/_/gu, "-");
-  return (
-    norm === "ui-optical-validator" ||
-    norm === "ui-validator" ||
-    norm === "optical-validator" ||
-    norm === "cognitive-ui-validator" ||
-    norm === "ui-optical-cognitive-validator" ||
-    norm === "ui-cognitive-validator"
-  );
-}
-
-/**
- * Backdoor inspection regex patterns
- */

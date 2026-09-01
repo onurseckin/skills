@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { createHash } from "node:crypto";
 import { HarnessError } from "../../core/errors/index.ts";
 import type {

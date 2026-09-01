@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { CompositeKeyParser } from "./composite-key-parser.ts";
 import { OpticalStabilityBarrier } from "./stability-barrier.ts";
 import { LifecycleManager } from "./lifecycle-manager.ts";
