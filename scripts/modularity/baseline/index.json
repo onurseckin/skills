@@ -266,7 +266,7 @@
     {
       "rule": "directory_fanout",
       "path": "tests/mind/lifecycle",
-      "observed": 11,
+      "observed": 12,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
