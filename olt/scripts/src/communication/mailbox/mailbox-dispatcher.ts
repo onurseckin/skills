@@ -147,6 +147,7 @@ export function dispatchPeerMessage<T = Record<string, unknown>>(
     recipientId: primaryRecipient,
     messageType: opts.messageType,
     payload: opts.payload,
+    ...(opts.sequence !== undefined ? { sequence: opts.sequence } : {}),
     ...(opts.correlationId !== undefined ? { correlationId: opts.correlationId } : {}),
     ...(opts.secretKey !== undefined ? { secretKey: opts.secretKey } : {}),
   });
@@ -163,6 +164,7 @@ export function dispatchPeerMessage<T = Record<string, unknown>>(
             recipientId: targetId,
             messageType: opts.messageType,
             payload: opts.payload,
+            ...(opts.sequence !== undefined ? { sequence: opts.sequence } : {}),
             ...(opts.correlationId !== undefined ? { correlationId: opts.correlationId } : {}),
             ...(opts.secretKey !== undefined ? { secretKey: opts.secretKey } : {}),
           });

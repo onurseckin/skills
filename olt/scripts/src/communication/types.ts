@@ -85,6 +85,7 @@ export interface DispatchMessageOptions<T = Record<string, unknown>> {
   readonly recipientRoleOrId: string;
   readonly messageType: MailboxMessageType;
   readonly payload: T;
+  readonly sequence?: number;
   readonly correlationId?: string;
   readonly baseDir?: string;
   readonly secretKey?: string;

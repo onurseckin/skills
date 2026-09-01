@@ -199,4 +199,82 @@ export const DECISION_PROTOCOLS: Readonly<Record<DecisionProtocolId, DecisionPro
         "Direct all supervisory diagnostics and inter-agent directives to recipient mailboxes, keeping the main thread quiet.",
       applicableTiers: [0, 1, 2, 3],
     },
+    three_strike_mechanical_containment: {
+      id: "three_strike_mechanical_containment",
+      name: "Three-Strike Mechanical Supervisory Containment",
+      summary:
+        "Enforce hard boundary containment on supervisors: Strike 1 (Intercept & Force Delegation), Strike 2 (Hard Capability Revocation / lock tools), Strike 3 (Persona Re-Spawn).",
+      formulaOrRule: "Strike 1: Intercept -> Strike 2: Lock Tools -> Strike 3: Re-Spawn",
+      keyInvariants: [
+        "Strike 1: Direct file modifications or test runs by supervisors are intercepted, denied, and delegated to Tier 3.",
+        "Strike 2: Repeated violations trigger tool revocation, lease cancellation, and capability clamping.",
+        "Strike 3: Persistent violations terminate rogue persona and re-spawn clean grounded instance.",
+      ],
+      operationalGuidance:
+        "Mechanically contain supervisory boundary drift and protect pure delegation purity across all tiers.",
+      applicableTiers: [0, 1, 2],
+    },
+    anti_makework_genuine_value: {
+      id: "anti_makework_genuine_value",
+      name: "Anti-Make-Work & 5 Pillars of Genuine Value",
+      summary:
+        "Admit and execute tasks strictly delivering verifiable value across 5 Pillars (Utility, Simplification, Performance, Reliability, Observability), aggressively rejecting synthetic churn.",
+      formulaOrRule:
+        "Admit iff Value(Utility, Simplification, Performance, Reliability, Observability) > 0",
+      keyInvariants: [
+        "Reject Cosmetic Churn: block arbitrary file reorganizations, module renames, or styling without functional benefit.",
+        "Reject Abstraction Bloat: block gratuitous wrappers, boilerplate factories, or excessive indirection.",
+        "Reject Speculative Refactoring: block rewriting code for unevidenced hypothetical future requirements.",
+      ],
+      operationalGuidance:
+        "Filter all candidate tasks through the 5 Pillars of Genuine Value before admission or dispatch.",
+      applicableTiers: [0, 1, 2, 3],
+    },
+    cumulative_socratic_progression: {
+      id: "cumulative_socratic_progression",
+      name: "Cumulative Dialectical Socratic Progression",
+      summary:
+        "Challenge architectural and product assumptions across 3 cumulative levels (L1: prior trade-offs, L2: second-order effects, L3: emergent paradigms) with historical debate memory.",
+      formulaOrRule:
+        "Ladder = L1 (Trade-offs) -> L2 (Systemic Impact) -> L3 (First-Principles Simplification)",
+      keyInvariants: [
+        "L1: Verify historical commitments and previously accepted trade-offs before proceeding.",
+        "L2: Interrogate second-order systemic effects, latency, and cognitive load.",
+        "L3: Synthesize radical first-principles simplifications and paradigm leaps.",
+      ],
+      operationalGuidance:
+        "Engage Mind Auditor Socratic challenges to deepen reasoning and prevent premature shallow convergence.",
+      applicableTiers: [0, 1],
+    },
+    pre_declared_pareto_arbitration: {
+      id: "pre_declared_pareto_arbitration",
+      name: "Pre-Declared Pareto Arbitration",
+      summary:
+        "When architectural debates or candidate evaluations exceed 2 cycles without consensus, enforce Pareto arbitration along the 80/20 value-to-complexity boundary to break deadlock immediately.",
+      formulaOrRule: "Debate Cycles > 2 -> Select max(Value / Complexity) on 80/20 Frontier",
+      keyInvariants: [
+        "Strict 2-cycle debate threshold: no unbounded bikeshedding or speculative deadlock.",
+        "Select the path delivering 80% of empirical value with 20% of implementation complexity.",
+        "Record decision rationale in cognitive memory and immediately unblock execution.",
+      ],
+      operationalGuidance:
+        "Trigger Pareto arbitration immediately upon detecting 2 consecutive stalled debate ticks.",
+      applicableTiers: [0, 1],
+    },
+    ergonomic_walkthrough_auditing: {
+      id: "ergonomic_walkthrough_auditing",
+      name: "Ergonomic Walkthrough Auditing & 5 Pillars of Product Craft",
+      summary:
+        "Audit user-facing UI, CLI, and interaction deliverables against the 5 Pillars of Product Craft (Completeness, Hierarchy, Ergonomics, Multi-Viewport, Delight).",
+      formulaOrRule:
+        "Craft Proof = Completeness + Visual Polish + Zero Friction + 4 Viewports + Delight",
+      keyInvariants: [
+        "Verify full journey completeness and graceful error degradation.",
+        "Verify typography, spacing, visual hierarchy, and APCA contrast compliance.",
+        "Validate multi-viewport responsive fluidity across 390px, 768px, 1440px, 1920px.",
+      ],
+      operationalGuidance:
+        "Conduct structured ergonomic walkthroughs before certifying feature release completion.",
+      applicableTiers: [0, 1, 2, 3],
+    },
   };

@@ -56,3 +56,49 @@ export {
   runPreplanningTick,
   startPreplanningDaemon,
 } from "./continuous-preplanner.ts";
+
+export type {
+  DiffSummary,
+  FileChangeStatus,
+  GitStashEntry,
+  InFlightEngineOptions,
+  InFlightSnapshot,
+  InFlightSnapshotOptions,
+  InFlightSnapshotSummary,
+  InFlightWorkInspection,
+  LoadSnapshotOptions,
+  SaveSnapshotOptions,
+  UncommittedFileEntry,
+} from "./inflight-ingestion.ts";
+
+export {
+  InFlightIngestionEngine,
+  createInFlightSnapshot,
+  inspectInFlightWork,
+  listInFlightSnapshots,
+  loadInFlightSnapshot,
+  parseDiffSummary,
+  parseGitStashes,
+  parseGitStatusOutput,
+  saveInFlightSnapshot,
+} from "./inflight-ingestion.ts";
+
+export type {
+  BacklogOptions,
+  IntentCategory,
+  IntentDomain,
+  IntentExtractionOptions,
+  PriorityOneDeliverable,
+  RoadmapAction,
+  UserIntentRecord,
+  UserIntentRoadmapIntegration,
+} from "./intent-extraction.ts";
+
+export {
+  UserIntentExtractionEngine,
+  extractUserIntent,
+  integrateUserIntentIntoRoadmap,
+  structureUserIntentAsBacklogDeliverable,
+  toCanonicalDomainCategory,
+} from "./intent-extraction.ts";
+

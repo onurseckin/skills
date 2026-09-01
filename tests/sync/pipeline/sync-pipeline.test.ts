@@ -183,14 +183,14 @@ describe("scripts/sync/index.ts", () => {
     const sourceRepo = join(root, "repo");
     initFakeSkillsRepo(sourceRepo);
 
-    const origCwd = process.cwd();
     const origHome = process.env.HOME;
+    const fakeHome = join(root, "home");
+    const cwdSpy = spyOn(process, "cwd").mockReturnValue(sourceRepo);
     try {
-      process.env.HOME = join(root, "home");
-      process.chdir(sourceRepo);
-      await main(["--allow-dirty"]);
+      process.env.HOME = fakeHome;
+      await main(["--allow-dirty"], { sourceRepoRoot: sourceRepo, homeDir: fakeHome });
     } finally {
-      process.chdir(origCwd);
+      cwdSpy.mockRestore();
       if (origHome !== undefined) {
         process.env.HOME = origHome;
       }
@@ -202,21 +202,21 @@ describe("scripts/sync/index.ts", () => {
     const repo = join(root, "repo");
     initFakeSkillsRepo(repo);
 
-    const origCwd = process.cwd();
+    const fakeHome = join(root, "home");
     const origHome = process.env.HOME;
     const logs: string[] = [];
     const logSpy = spyOn(console, "log").mockImplementation((msg) => {
       logs.push(String(msg));
     });
+    const cwdSpy = spyOn(process, "cwd").mockReturnValue(repo);
 
     try {
-      process.env.HOME = join(root, "home");
-      process.chdir(repo);
-      await main(["--allow-dirty"]);
+      process.env.HOME = fakeHome;
+      await main(["--allow-dirty"], { sourceRepoRoot: repo, homeDir: fakeHome });
       expect(logs.some((l) => l.includes("Global skill sync complete"))).toBeTrue();
     } finally {
+      cwdSpy.mockRestore();
       logSpy.mockRestore();
-      process.chdir(origCwd);
       if (origHome !== undefined) {
         process.env.HOME = origHome;
       }

@@ -171,6 +171,7 @@ Our documentation follows the **Diátaxis Documentation Framework**, systematica
 ### 1. Monorepo Standards and Governance
 
 - [**Skill Collection Guidelines**](./SKILL_COLLECTION_GUIDELINES.md): The binding authoring, packaging, testing, and quality standards for all skills in `@onurseckin/skills`.
+- [**Test Runner, Coverage Governance & Analytics Architecture**](./architecture/test-runner-and-coverage-architecture.md): The authoritative specification for the Bun-native test runner, real-time streaming ticker, mandatory >= 90% coverage gate, deficit clustering engine, virtual filesystem sandbox, and widescreen obsidian analytics dashboard.
 - [**Repository README**](../README.md): Top-level repository overview, packaging instructions, and client installation guides.
 - [**Universal Multi-Agent Specification (AGENTS.md)**](../AGENTS.md): Repository-wide multi-agent role definitions, capability grants, and supervisory constraints.
 

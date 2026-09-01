@@ -32,7 +32,10 @@ export function getShardKey(commandName: string, domain: string): string {
     if (["memory", "smart-task"].some((k) => commandName.includes(k))) return "knowledge";
     if (commandName.includes("pulse")) return "pulse";
     if (commandName.includes("round")) return "round";
-    if (["admit", "decline", "candidate"].some((k) => commandName.includes(k))) return "admission";
+    if (
+      ["admit", "decline", "candidate", "bootstrap", "init"].some((k) => commandName.includes(k))
+    )
+      return "admission";
     return "lifecycle";
   }
   if (domain === "reporting") {

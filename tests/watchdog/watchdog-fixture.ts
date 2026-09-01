@@ -4,7 +4,6 @@
  * Provides 100% in-memory virtual filesystem mocking with zero disk writes.
  */
 
-import { afterEach, beforeEach } from "bun:test";
 import { createHash } from "node:crypto";
 import * as path from "node:path";
 import { VirtualMemoryFS } from "../../olt/scripts/src/testing/virtual-fs/index.ts";
@@ -38,30 +37,28 @@ export function resetVirtualWatchdogStore(): void {
   vfs.mkdirSync(VIRTUAL_SCRATCH_BASE, { recursive: true });
 }
 
+let activeSpies: Array<{ mockRestore: () => void }> = [];
+
 export function setupVirtualWatchdogFS(): VirtualMemoryFS {
-  createWatchdogFsSpies(state);
+  cleanupVirtualWatchdogFS();
+  activeSpies = createWatchdogFsSpies(state);
   resetVirtualWatchdogStore();
   return vfs;
 }
 
 export function cleanupVirtualWatchdogFS(): void {
+  for (const s of activeSpies) {
+    try {
+      s.mockRestore();
+    } catch {}
+  }
+  activeSpies = [];
   resetVirtualWatchdogStore();
 }
 
 export function getVirtualWatchdogFS(): VirtualMemoryFS {
   return vfs;
 }
-
-// Automatically ensure virtual filesystem session is active for all watchdog tests
-setupVirtualWatchdogFS();
-
-beforeEach(() => {
-  setupVirtualWatchdogFS();
-});
-
-afterEach(() => {
-  cleanupVirtualWatchdogFS();
-});
 
 function slug(value: string): string {
   const cleaned = value

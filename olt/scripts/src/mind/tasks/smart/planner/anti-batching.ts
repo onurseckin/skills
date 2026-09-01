@@ -20,7 +20,11 @@ export function deriveTargetFiles(
   if (explicitTargets && explicitTargets.length > 0) {
     return explicitTargets;
   }
-  return writeScope.filter((item) => item.includes(".") || !item.endsWith("/"));
+  const filtered = writeScope.filter((item) => item.includes(".") || !item.endsWith("/"));
+  if (filtered.length > 0) {
+    return filtered;
+  }
+  return writeScope.map((item) => (item.endsWith("/") ? `${item}index.ts` : `${item}/index.ts`));
 }
 
 export function extractFileAnchors(

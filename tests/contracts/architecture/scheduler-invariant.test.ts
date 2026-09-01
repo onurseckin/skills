@@ -1,12 +1,21 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { findRepoRoot } from "../../../olt/scripts/src/core/shared/paths.ts";
 import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
 
 export const schedulerInvariantSuiteName =
   "Mandatory Supervisory Scheduler Invariant & Rule 16 Contract";
 
-const skillRoot = join(process.cwd(), "olt");
+function getRepoRoot(): string {
+  try {
+    return findRepoRoot(import.meta.dir);
+  } catch {
+    return resolve(import.meta.dir, "../../..");
+  }
+}
+
+const skillRoot = join(getRepoRoot(), "olt");
 const skillPath = join(skillRoot, "SKILL.md");
 const mindRolePath = join(skillRoot, "agents/mind.yaml");
 const coordinatorRolePath = join(skillRoot, "agents/coordinator.yaml");

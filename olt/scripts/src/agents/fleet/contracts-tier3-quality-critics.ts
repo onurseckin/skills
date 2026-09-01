@@ -1,0 +1,172 @@
+import type { AgentOperationalContract } from "./types.ts";
+import { defineContract, FORBIDDEN_WRITE_TOOLS, FORBIDDEN_EXEC_TOOLS } from "./archetypes.ts";
+
+export const CONTRACTS_TIER_3_QUALITY_CRITICS: readonly AgentOperationalContract[] = [
+  defineContract({
+    id: "general-validator",
+    name: "General Validator",
+    role: "general-validator",
+    tier: 3,
+    category: "quality",
+    aliases: ["validator", "general_validator", "test-validator"],
+    toolBoundaries: {
+      canWriteCode: false,
+      canExecuteCommands: false,
+      canSpawnSubagents: false,
+      canClaimLeases: false,
+      allowedTools: ["task:brief", "task:validate-start", "task:probe", "task:reject", "task:review", "finding:get", "msg:send", "msg:recv", "msg:poll"],
+      forbiddenTools: [...FORBIDDEN_WRITE_TOOLS, ...FORBIDDEN_EXEC_TOOLS],
+    },
+    permissions: {
+      may: ["Execute adversarial validation probes and Socratic review cycles"],
+      mustNot: ["Execute shell commands or test re-runs", "Write or edit code"],
+      allowedCommands: ["task:brief", "task:validate-start", "task:probe", "task:reject", "task:review", "finding:get", "report:get", "msg:send", "msg:recv", "msg:poll"],
+      forbiddenCommands: [...FORBIDDEN_WRITE_TOOLS, ...FORBIDDEN_EXEC_TOOLS],
+      allowedSpawns: [],
+    },
+    invariants: ["ANTI_BOUNDARY_LEAK", "COGNITIVE_HARD_LOCK", "READ_ONLY_OBSERVER", "NO_TEST_RE_RUNS"],
+    certifiedDeliverables: [
+      { type: "validation_probe_verdict", description: "Adversarial Validation Probe Verdict", evidenceRequired: true },
+    ],
+  }),
+
+  defineContract({
+    id: "sub-validator",
+    name: "Sub Validator",
+    role: "sub-validator",
+    tier: 3,
+    category: "quality",
+    aliases: ["sub_validator", "leaf-validator"],
+    toolBoundaries: {
+      canWriteCode: false,
+      canExecuteCommands: false,
+      canSpawnSubagents: false,
+      canClaimLeases: false,
+      allowedTools: ["task:brief", "task:probe", "task:reject", "task:review", "msg:send", "msg:recv", "msg:poll"],
+      forbiddenTools: [...FORBIDDEN_WRITE_TOOLS, ...FORBIDDEN_EXEC_TOOLS],
+    },
+    permissions: {
+      may: ["Perform sub-component validation checks and emit findings"],
+      mustNot: ["Execute terminal commands", "Modify files"],
+      allowedCommands: ["task:brief", "task:probe", "task:reject", "task:review", "msg:send", "msg:recv", "msg:poll"],
+      forbiddenCommands: [...FORBIDDEN_WRITE_TOOLS, ...FORBIDDEN_EXEC_TOOLS],
+      allowedSpawns: [],
+    },
+    invariants: ["ANTI_BOUNDARY_LEAK", "COGNITIVE_HARD_LOCK"],
+    certifiedDeliverables: [
+      { type: "sub_validation_verdict", description: "Sub-Component Validation Verdict", evidenceRequired: true },
+    ],
+  }),
+
+  defineContract({
+    id: "mechanic-validator",
+    name: "Mechanic Validator",
+    role: "mechanic-validator",
+    tier: 3,
+    category: "quality",
+    aliases: ["mechanic_validator", "mechanic"],
+    toolBoundaries: {
+      canWriteCode: false,
+      canExecuteCommands: false,
+      canSpawnSubagents: false,
+      canClaimLeases: false,
+      allowedTools: ["task:brief", "task:check", "task:probe", "task:reject", "task:review", "finding:get", "report:get", "msg:send", "msg:recv", "msg:poll"],
+      forbiddenTools: [...FORBIDDEN_WRITE_TOOLS, ...FORBIDDEN_EXEC_TOOLS],
+    },
+    permissions: {
+      may: ["Audit deterministic task execution receipts, CLI exit codes, and evidence logs"],
+      mustNot: ["Execute shell commands or test re-runs", "Write code"],
+      allowedCommands: ["task:brief", "task:check", "task:probe", "task:reject", "task:review", "finding:get", "report:get", "msg:send", "msg:recv", "msg:poll"],
+      forbiddenCommands: [...FORBIDDEN_WRITE_TOOLS, ...FORBIDDEN_EXEC_TOOLS],
+      allowedSpawns: [],
+    },
+    invariants: ["DETERMINISTIC_RECEIPT_VERIFICATION", "NO_TEST_RE_RUNS", "COGNITIVE_HARD_LOCK"],
+    certifiedDeliverables: [
+      { type: "receipt_audit_verdict", description: "Execution Receipt Audit Verdict", evidenceRequired: true },
+    ],
+  }),
+
+  defineContract({
+    id: "completeness-critic",
+    name: "Completeness Critic",
+    role: "completeness-critic",
+    tier: 3,
+    category: "quality",
+    aliases: ["completeness_critic", "critic-completeness"],
+    toolBoundaries: {
+      canWriteCode: false,
+      canExecuteCommands: false,
+      canSpawnSubagents: false,
+      canClaimLeases: false,
+      allowedTools: ["task:brief", "task:probe", "task:reject", "task:review", "finding:get", "msg:send", "msg:recv", "msg:poll"],
+      forbiddenTools: [...FORBIDDEN_WRITE_TOOLS, ...FORBIDDEN_EXEC_TOOLS],
+    },
+    permissions: {
+      may: ["Perform adversarial completeness critique, edge-case analysis, and falsifiability audits"],
+      mustNot: ["Execute terminal commands", "Write source files"],
+      allowedCommands: ["task:brief", "task:probe", "task:reject", "task:review", "finding:get", "msg:send", "msg:recv", "msg:poll"],
+      forbiddenCommands: [...FORBIDDEN_WRITE_TOOLS, ...FORBIDDEN_EXEC_TOOLS],
+      allowedSpawns: [],
+    },
+    invariants: ["ANTI_BOUNDARY_LEAK", "COGNITIVE_HARD_LOCK", "MANDATORY_ADVERSARIAL_CRITIQUE"],
+    certifiedDeliverables: [
+      { type: "completeness_critique_receipt", description: "Completeness & Edge Case Critique Receipt", evidenceRequired: true },
+    ],
+  }),
+
+  defineContract({
+    id: "system-critic",
+    name: "System Critic",
+    role: "system-critic",
+    tier: 3,
+    category: "quality",
+    aliases: ["critic", "system_critic", "validator-system-design"],
+    toolBoundaries: {
+      canWriteCode: false,
+      canExecuteCommands: false,
+      canSpawnSubagents: false,
+      canClaimLeases: false,
+      allowedTools: ["task:brief", "task:probe", "task:reject", "task:review", "msg:send", "msg:recv", "msg:poll"],
+      forbiddenTools: [...FORBIDDEN_WRITE_TOOLS, ...FORBIDDEN_EXEC_TOOLS],
+    },
+    permissions: {
+      may: ["Audit architectural boundaries, cross-module dependency coupling, and system invariants"],
+      mustNot: ["Execute commands", "Write files"],
+      allowedCommands: ["task:brief", "task:probe", "task:reject", "task:review", "msg:send", "msg:recv", "msg:poll"],
+      forbiddenCommands: [...FORBIDDEN_WRITE_TOOLS, ...FORBIDDEN_EXEC_TOOLS],
+      allowedSpawns: [],
+    },
+    invariants: ["SYSTEM_ARCHITECTURE_COHERENCE", "COGNITIVE_HARD_LOCK"],
+    certifiedDeliverables: [
+      { type: "system_architecture_critique", description: "System Architecture & Coherence Critique", evidenceRequired: true },
+    ],
+  }),
+
+  defineContract({
+    id: "task-critic",
+    name: "Task Critic",
+    role: "task-critic",
+    tier: 3,
+    category: "quality",
+    aliases: ["validator-code-quality", "validator-product", "task_critic", "critic-task"],
+    toolBoundaries: {
+      canWriteCode: false,
+      canExecuteCommands: false,
+      canSpawnSubagents: false,
+      canClaimLeases: false,
+      allowedTools: ["task:brief", "task:probe", "task:reject", "task:review", "msg:send", "msg:recv", "msg:poll"],
+      forbiddenTools: [...FORBIDDEN_WRITE_TOOLS, ...FORBIDDEN_EXEC_TOOLS],
+    },
+    permissions: {
+      may: ["Audit task-level acceptance criteria, product alignment, and code cleanliness"],
+      mustNot: ["Execute commands", "Edit files"],
+      allowedCommands: ["task:brief", "task:probe", "task:reject", "task:review", "msg:send", "msg:recv", "msg:poll"],
+      forbiddenCommands: [...FORBIDDEN_WRITE_TOOLS, ...FORBIDDEN_EXEC_TOOLS],
+      allowedSpawns: [],
+    },
+    invariants: ["TASK_SPEC_CONFORMANCE", "COGNITIVE_HARD_LOCK"],
+    certifiedDeliverables: [
+      { type: "task_quality_critique", description: "Task Quality & Acceptance Conformance Critique", evidenceRequired: true },
+    ],
+  }),
+];

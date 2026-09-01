@@ -42,6 +42,7 @@ export function quarantineAndTruncateTail(
   try {
     source = openSync(eventsPath, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
     if (!fstatSync(source).isFile()) throw new Error("events.jsonl is not a regular file");
+    if (!existsSync(quarantineDirectory)) throw new Error("Quarantine directory does not exist");
     output = openSync(
       temporary,
       constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | (constants.O_NOFOLLOW ?? 0),

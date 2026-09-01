@@ -22,8 +22,11 @@ export function parseDurationToMs(durationStr: string): number {
   return Number.isNaN(val) ? 0 : Math.round(val * 100) / 100;
 }
 
+const ESC = String.fromCharCode(27);
+const ANSI_PATTERN = new RegExp(`${ESC}\\[[0-9;]*[a-zA-Z]`, "g");
+
 export function stripAnsi(str: string): string {
-  return str.replace(/\u001b\[\d+;?\d*m/gu, "");
+  return str.replace(ANSI_PATTERN, "");
 }
 
 export function calculateParetoThreshold(

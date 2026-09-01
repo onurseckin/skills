@@ -238,7 +238,10 @@ Ran 5 tests across 2 files. [250.00ms]
 
       const sample = createSampleRuntimeSummary();
       expect(sample.totalFiles).toBe(2);
-      expect(RANKING_SUITES.length).toBe(3);
+      expect(RANKING_SUITES.length).toBeGreaterThanOrEqual(5);
+      expect(RANKING_SUITES).toContain("runtime-ranking");
+      expect(RANKING_SUITES).toContain("unified-dashboard");
+      expect(RANKING_SUITES).toContain("deeplinks");
     });
   });
 });

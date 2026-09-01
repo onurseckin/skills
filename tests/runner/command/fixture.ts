@@ -26,78 +26,91 @@ import * as attemptIntentValidation from "../../../olt/scripts/src/engine/runner
 
 const activeRoots: string[] = [];
 let activeSession: VirtualFSSession | null = null;
+const runnerSpies: Array<{ mockRestore: () => void }> = [];
 
 export function getRunnerVfs(): VirtualMemoryFS {
   if (!activeSession) {
     activeSession = createVirtualFSSession(new VirtualMemoryFS());
-    spyOn(os, "tmpdir").mockReturnValue("/virtual/tmp");
+    runnerSpies.push(spyOn(os, "tmpdir").mockReturnValue("/virtual/tmp"));
     const activePids = new Set<number>([999999]);
     const origKill = process.kill;
     try {
-      spyOn(process, "kill").mockImplementation(((pid: number, signal?: string | number) => {
-        const absPid = Math.abs(pid);
-        if (activePids.has(absPid)) {
-          activePids.delete(absPid);
-          const handlers = (globalThis as unknown as Record<string, unknown>)
-            .__virtualFsKillHandlers as Map<number, () => void> | undefined;
-          handlers?.get(absPid)?.();
-          return true;
-        }
-        return origKill.call(process, pid, signal as never);
-      }) as never);
-      const origProcessSnapshot = processTree.processSnapshot;
-      spyOn(processTree, "processSnapshot").mockImplementation(async (spawnSnapshot) => {
-        if (spawnSnapshot) {
-          return origProcessSnapshot(spawnSnapshot);
-        }
-        const snap = new Map([[process.pid, { pid: process.pid, parent: 1, group: process.pid }]]);
-        if (activePids.has(999999)) {
-          snap.set(999999, { pid: 999999, parent: process.pid, group: 999999 });
-        }
-        return snap;
-      });
-      const origReadProcessIdentity = processIdentity.readProcessIdentity;
-      spyOn(processIdentity, "readProcessIdentity").mockImplementation(
-        (pid: number, platform?: string) => {
-          if (platform && platform !== process.platform) {
-            return origReadProcessIdentity(pid, platform);
+      runnerSpies.push(
+        spyOn(process, "kill").mockImplementation(((pid: number, signal?: string | number) => {
+          const absPid = Math.abs(pid);
+          if (activePids.has(absPid)) {
+            activePids.delete(absPid);
+            const handlers = (globalThis as unknown as Record<string, unknown>)
+              .__virtualFsKillHandlers as Map<number, () => void> | undefined;
+            handlers?.get(absPid)?.();
+            return true;
           }
+          return origKill.call(process, pid, signal as never);
+        }) as never),
+      );
+      const origProcessSnapshot = processTree.processSnapshot;
+      runnerSpies.push(
+        spyOn(processTree, "processSnapshot").mockImplementation(async (spawnSnapshot) => {
+          if (spawnSnapshot) {
+            return origProcessSnapshot(spawnSnapshot);
+          }
+          const snap = new Map([[process.pid, { pid: process.pid, parent: 1, group: process.pid }]]);
+          if (activePids.has(999999)) {
+            snap.set(999999, { pid: 999999, parent: process.pid, group: 999999 });
+          }
+          return snap;
+        }),
+      );
+      const origReadProcessIdentity = processIdentity.readProcessIdentity;
+      runnerSpies.push(
+        spyOn(processIdentity, "readProcessIdentity").mockImplementation(
+          (pid: number, platform?: string) => {
+            if (platform && platform !== process.platform) {
+              return origReadProcessIdentity(pid, platform);
+            }
+            if (pid === 999999 && activePids.has(999999)) {
+              return { pid: 999999, parent: process.pid, group: 999999, birth: "virtual-birth" };
+            }
+            if (pid === process.pid) {
+              return origReadProcessIdentity(pid, platform);
+            }
+            return undefined;
+          },
+        ),
+      );
+      const origDarwinProcessIdentity = darwinPipes.darwinProcessIdentity;
+      runnerSpies.push(
+        spyOn(darwinPipes, "darwinProcessIdentity").mockImplementation((pid: number) => {
           if (pid === 999999 && activePids.has(999999)) {
             return { pid: 999999, parent: process.pid, group: 999999, birth: "virtual-birth" };
           }
           if (pid === process.pid) {
-            return origReadProcessIdentity(pid, platform);
+            try {
+              return origDarwinProcessIdentity(pid);
+            } catch {
+              return { pid: process.pid, parent: 1, group: process.pid, birth: "virtual-self-birth" };
+            }
           }
           return undefined;
-        },
+        }),
       );
-      const origDarwinProcessIdentity = darwinPipes.darwinProcessIdentity;
-      spyOn(darwinPipes, "darwinProcessIdentity").mockImplementation((pid: number) => {
-        if (pid === 999999 && activePids.has(999999)) {
-          return { pid: 999999, parent: process.pid, group: 999999, birth: "virtual-birth" };
-        }
-        if (pid === process.pid) {
-          try {
-            return origDarwinProcessIdentity(pid);
-          } catch {
-            return { pid: process.pid, parent: 1, group: process.pid, birth: "virtual-self-birth" };
-          }
-        }
-        return undefined;
-      });
-      spyOn(attemptIntentValidation, "probeAttemptProcess").mockImplementation((expected) => {
-        return activePids.has(expected.pid) ? "live" : "absent";
-      });
-      spyOn(attemptIntent, "probeAttemptProcess").mockImplementation((expected) => {
-        return activePids.has(expected.pid) ? "live" : "absent";
-      });
-      spyOn(darwinPipes, "darwinTokenOwnerIdentities").mockImplementation(() => []);
-      spyOn(darwinPipes, "darwinPipeOwners").mockImplementation(() => new Set());
-      spyOn(darwinPipes, "darwinPipeHandles").mockImplementation(() => new Set());
-      spyOn(pipeOwnership, "ownershipTokenIdentities").mockImplementation(() => []);
-      spyOn(pipeOwnership, "ownedProcessPids").mockImplementation(() => new Set());
-      spyOn(pipeOwnership, "runnerPipeHandles").mockImplementation(() => new Set());
-      spyOn(pipeOwnership, "addedPipeHandles").mockImplementation(() => new Set());
+      runnerSpies.push(
+        spyOn(attemptIntentValidation, "probeAttemptProcess").mockImplementation((expected) => {
+          return activePids.has(expected.pid) ? "live" : "absent";
+        }),
+      );
+      runnerSpies.push(
+        spyOn(attemptIntent, "probeAttemptProcess").mockImplementation((expected) => {
+          return activePids.has(expected.pid) ? "live" : "absent";
+        }),
+      );
+      runnerSpies.push(spyOn(darwinPipes, "darwinTokenOwnerIdentities").mockImplementation(() => []));
+      runnerSpies.push(spyOn(darwinPipes, "darwinPipeOwners").mockImplementation(() => new Set()));
+      runnerSpies.push(spyOn(darwinPipes, "darwinPipeHandles").mockImplementation(() => new Set()));
+      runnerSpies.push(spyOn(pipeOwnership, "ownershipTokenIdentities").mockImplementation(() => []));
+      runnerSpies.push(spyOn(pipeOwnership, "ownedProcessPids").mockImplementation(() => new Set()));
+      runnerSpies.push(spyOn(pipeOwnership, "runnerPipeHandles").mockImplementation(() => new Set()));
+      runnerSpies.push(spyOn(pipeOwnership, "addedPipeHandles").mockImplementation(() => new Set()));
     } catch {
       // ignore if on non-darwin
     }
@@ -138,18 +151,25 @@ export function writeTree(base: string, files: Record<string, string>): string {
  * Deterministically removes all active temporary roots and resets virtual memory.
  */
 export function cleanupTempRoots(): void {
-  const vfs = getRunnerVfs();
   while (activeRoots.length > 0) {
     const root = activeRoots.pop();
-    if (root) {
+    if (root && activeSession) {
       try {
-        vfs.rmSync(root, { recursive: true, force: true });
+        activeSession.vfs.rmSync(root, { recursive: true, force: true });
       } catch {
         // Ignore teardown errors
       }
     }
   }
+  while (runnerSpies.length > 0) {
+    try {
+      runnerSpies.pop()?.mockRestore();
+    } catch {
+      // Ignore restore errors
+    }
+  }
+  if (activeSession) {
+    activeSession.cleanup();
+    activeSession = null;
+  }
 }
-
-// Auto-initialize runner virtual filesystem on module import
-getRunnerVfs();

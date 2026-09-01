@@ -4,7 +4,6 @@
  * Provides 100% in-memory virtual filesystem mocking with zero disk writes.
  */
 
-import { afterEach, beforeEach } from "bun:test";
 import { createHash } from "node:crypto";
 import * as path from "node:path";
 import type {
@@ -32,6 +31,8 @@ const state: VirtualTaskState = {
   nextInode: 50000,
 };
 
+let activeSpies: Array<{ mockRestore: () => void }> = [];
+
 export function resetVirtualTaskStore(): void {
   state.openDescriptors.clear();
   state.customModes.clear();
@@ -46,29 +47,27 @@ export function resetVirtualTaskStore(): void {
 }
 
 export function setupVirtualTaskFS(): VirtualMemoryFS {
-  createTaskFsSpies(state);
+  cleanupVirtualTaskFS();
+  activeSpies = createTaskFsSpies(state);
   resetVirtualTaskStore();
   return vfs;
 }
 
 export function cleanupVirtualTaskFS(): void {
+  for (const s of activeSpies) {
+    try {
+      s.mockRestore();
+    } catch {
+      // ignore
+    }
+  }
+  activeSpies = [];
   resetVirtualTaskStore();
 }
 
 export function getVirtualTaskFS(): VirtualMemoryFS {
   return vfs;
 }
-
-// Automatically ensure virtual filesystem session is active for all task tests
-setupVirtualTaskFS();
-
-beforeEach(() => {
-  setupVirtualTaskFS();
-});
-
-afterEach(() => {
-  cleanupVirtualTaskFS();
-});
 
 function slug(value: string): string {
   const cleaned = value

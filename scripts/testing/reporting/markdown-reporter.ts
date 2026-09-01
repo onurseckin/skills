@@ -4,6 +4,7 @@
  */
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { formatDeficitRoadmapMarkdown, generateDeficitRoadmap } from "./deficit-clustering.ts";
 import type { CoverageSummary, FileCoverageMetric, TestRuntimeSummary } from "./types.ts";
 
 export function formatRuntimeMarkdown(runtime: TestRuntimeSummary): string[] {
@@ -116,7 +117,11 @@ export function buildMarkdownReport(
     );
   }
 
-  lines.push("");
+  const roadmap = generateDeficitRoadmap(fileMap);
+  if (roadmap.clusters.length > 0) {
+    lines.push(formatDeficitRoadmapMarkdown(roadmap, 10));
+  }
+
   lines.push("---");
   lines.push("_Report generated automatically by `@onurseckin/skills` test reporting pipeline._");
   lines.push("");

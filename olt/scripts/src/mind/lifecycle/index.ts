@@ -270,3 +270,64 @@ export type {
   RosterReconciliationResult,
   TerminateOptions,
 } from "./ghost-reconciler.ts";
+
+export type {
+  CanDispatchResult,
+  ExternalThrottleEvent,
+  GovernorStatus,
+  ResourceGovernorLimits,
+  ResourceGovernorOptions,
+  ResourceGovernorState,
+  ResourceHeadroom,
+  ResourceType,
+} from "./resource-governor.ts";
+
+export {
+  ResourceGovernor,
+  calculateRemainingHeadroom,
+  calculateUtilizationRatio,
+  createResourceGovernor,
+  isStateStricter,
+} from "./resource-governor.ts";
+
+export type {
+  AutoWakeProbeConfig,
+  FrozenTimer,
+  PausableTask,
+  RestorationResult,
+  SuspendedAnimationSnapshot,
+  SuspendedTaskNode,
+} from "./suspended-animation.ts";
+
+export {
+  AutoWakeProber,
+  SuspendedAnimationEngine,
+  archiveSnapshotFile,
+  canonicalJsonStringify,
+  cleanupSnapshotFile,
+  computeExponentialBackoffDelay,
+  computeSnapshotChecksum,
+  createSuspendedAnimationEngine,
+  readSnapshotFromDisk,
+  resolveSuspendedStatePath,
+  validateTaskDagAcyclicity,
+  verifySnapshotIntegrity,
+  writeSnapshotToDisk,
+} from "./suspended-animation.ts";
+
+export type {
+  CharterResolutionResult,
+  MindInitFlowOptions,
+  MindInitFlowResult,
+  MindInitOptions,
+  MindInitResult,
+} from "./mind-init-flow.ts";
+
+export {
+  AutonomousMindInitializer,
+  CANONICAL_BEDROCK_INVARIANTS_LIST,
+  DEFAULT_STANDARD_CHARTER_YAML,
+  executeAutonomousMindInit,
+  resolveOrGenerateCharter,
+} from "./mind-init-flow.ts";
+

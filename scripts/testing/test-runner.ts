@@ -1,29 +1,25 @@
 #!/usr/bin/env bun
 import { spawnSync } from "node:child_process";
-import { processCoverageArtifacts } from "./reporting/index.ts";
+import {
+  evaluateCoverageGate,
+  formatCoverageGateMessage,
+  processCoverageArtifacts,
+} from "./reporting/index.ts";
 import { acquireTestLock } from "./test-mutex.ts";
+import { executeStreamingRunner } from "./runner/index.ts";
+import { parseRunnerArgs } from "./runner/arg-parser.ts";
+
+export { executeStreamingRunner };
 
 export function executeTestRunner(rawArgs: string[] = process.argv.slice(2)): number {
-  // Detect if broad scope or targeted
-  const isCoverage = rawArgs.includes("--coverage");
-  const fileTargets = rawArgs.filter((arg) => !arg.startsWith("-"));
-  const isBroadScope =
-    fileTargets.length === 0 || fileTargets.some((t) => t === "tests" || t === "tests/");
-
-  const releaseLock = acquireTestLock(isBroadScope || isCoverage, rawArgs);
+  const parsed = parseRunnerArgs(rawArgs);
+  const releaseLock = acquireTestLock(parsed.isBroadScope || parsed.isCoverage, rawArgs);
 
   try {
-    const defaultFlags = ["--timeout", "30000", "--parallel"];
-    const coverageFlags = isCoverage
-      ? ["--coverage-reporter=lcov", "--coverage-reporter=text", "--coverage-dir=coverage"]
-      : [];
-
-    const finalArgs = ["test", ...defaultFlags, ...coverageFlags, ...rawArgs];
-
     const startMs = Date.now();
     const startTime = new Date(startMs).toISOString();
 
-    const result = spawnSync("bun", finalArgs, {
+    const result = spawnSync("bun", parsed.bunTestArgs, {
       stdio: "pipe",
       encoding: "utf-8",
       maxBuffer: 100 * 1024 * 1024,
@@ -45,18 +41,29 @@ export function executeTestRunner(rawArgs: string[] = process.argv.slice(2)): nu
       process.stderr.write(result.stderr);
     }
 
-    if (isCoverage) {
+    if (parsed.isCoverage) {
       const outputText = [result.stdout ?? "", result.stderr ?? ""].join("\n");
-      const reportRes = processCoverageArtifacts(process.cwd(), "coverage", {
+      const reportRes = processCoverageArtifacts(process.cwd(), parsed.coverageDir ?? "coverage", {
         testOutput: outputText,
         startTime,
         endTime,
         totalDurationMs,
       });
-      if (reportRes.lcovExists) {
-        console.log(
-          `\n[coverage] Generated coverage/lcov.info, coverage/coverage-summary.json, coverage/REPORT.md, and coverage/index.html across ${reportRes.filesCount} files (${reportRes.totalPct}% line coverage).`,
-        );
+      if (reportRes.lcovExists && reportRes.summary) {
+        const gateResult = evaluateCoverageGate(reportRes.summary);
+        const message = formatCoverageGateMessage(gateResult);
+        if (gateResult.passed) {
+          console.log(
+            `\n[coverage] Generated coverage/lcov.info, coverage/coverage-summary.json, coverage/REPORT.md, and coverage/index.html across ${reportRes.filesCount} files (${reportRes.totalPct}% line coverage).\n${message}`,
+          );
+        } else {
+          console.error(
+            `\n[coverage] Generated coverage artifacts across ${reportRes.filesCount} files (${reportRes.totalPct}% line coverage).\n${message}`,
+          );
+          if ((result.status ?? 0) === 0) {
+            return 1;
+          }
+        }
       }
     }
 

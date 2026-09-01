@@ -4,7 +4,6 @@
  * Provides 100% in-memory virtual filesystem mocking with zero disk writes.
  */
 
-import { afterEach, beforeEach } from "bun:test";
 import { createHash } from "node:crypto";
 import * as path from "node:path";
 import { VirtualMemoryFS } from "../../olt/scripts/src/testing/virtual-fs/index.ts";
@@ -38,30 +37,28 @@ export function resetVirtualRequirementsStore(): void {
   vfs.mkdirSync(VIRTUAL_SCRATCH_BASE, { recursive: true });
 }
 
+let activeSpies: Array<{ mockRestore: () => void }> = [];
+
 export function setupVirtualRequirementsFS(): VirtualMemoryFS {
-  createRequirementsFsSpies(state);
+  cleanupVirtualRequirementsFS();
+  activeSpies = createRequirementsFsSpies(state);
   resetVirtualRequirementsStore();
   return vfs;
 }
 
 export function cleanupVirtualRequirementsFS(): void {
+  for (const s of activeSpies) {
+    try {
+      s.mockRestore();
+    } catch {}
+  }
+  activeSpies = [];
   resetVirtualRequirementsStore();
 }
 
 export function getVirtualRequirementsFS(): VirtualMemoryFS {
   return vfs;
 }
-
-// Automatically ensure virtual filesystem session is active for all requirements tests
-setupVirtualRequirementsFS();
-
-beforeEach(() => {
-  setupVirtualRequirementsFS();
-});
-
-afterEach(() => {
-  cleanupVirtualRequirementsFS();
-});
 
 function slug(value: string): string {
   const cleaned = value

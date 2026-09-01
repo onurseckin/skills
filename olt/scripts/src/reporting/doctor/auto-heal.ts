@@ -5,12 +5,11 @@ import { recoverStale } from "../../workflow/lease/recover-stale.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
 import { systemClock } from "../../workflow/types.ts";
 import { atomicWriteBytes } from "../../core/durable-write.ts";
-import { createSha256Hash } from "../../mind/defects/core/discriminator.ts";
+import { createSha256Hash, cleanupVestigialDefectsFile } from "../../mind/defects/index.ts";
 import { cleanseDanglingLocks } from "./lock-cleaner.ts";
 import { autoHealGitState } from "./git-index-engine.ts";
 import { autoHealMailboxState } from "./mailbox-health-engine.ts";
 import { autoHealWorktreeState } from "./worktree-health-engine.ts";
-import { cleanupVestigialDefectsFile } from "../../mind/defects/sync/lifecycle-sync.ts";
 import type { AutoHealOptions, DoctorAutoHealResult } from "./types.ts";
 
 export type { AutoHealOptions };

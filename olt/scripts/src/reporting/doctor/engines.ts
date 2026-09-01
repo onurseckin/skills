@@ -89,6 +89,15 @@ import {
   type GuidanceGenerationOptions,
   type DoctorGuidanceResult,
 } from "./guidance.ts";
+import {
+  checkAntiStagnationDoctor,
+  auditAntiStagnationHealth,
+  type AntiStagnationDoctorOptions,
+  type AntiStagnationAuditReport,
+  type InvariantAuditResult,
+  type MindCharterInvariant,
+  MIND_CHARTER_INVARIANTS,
+} from "./anti-stagnation/index.ts";
 
 export {
   checkPlanningDag,
@@ -123,11 +132,14 @@ export {
   checkEpistemicConfidence,
   checkCliRegistryTaxonomy,
   checkTier0CompanionsHealth,
+  checkAntiStagnationDoctor,
+  auditAntiStagnationHealth,
   checkPreCompletionDiagnostics,
   generateRemedialGuidance,
   remedialActionsForIntegrityIssues,
   MIN_ADVERSARIAL_PROBES,
   MANDATORY_COGNITIVE_PUSHBACKS,
+  MIND_CHARTER_INVARIANTS,
 };
 
 export type {
@@ -140,6 +152,10 @@ export type {
   CognitiveValidatorCommandLockOptions,
   RoleBoundaryInterlockOptions,
   PushbackQuotasCheckOptions,
+  AntiStagnationDoctorOptions,
+  AntiStagnationAuditReport,
+  InvariantAuditResult,
+  MindCharterInvariant,
   QuotaHealthCheckOptions,
   RepositoryHygieneOptions,
   GitIndexCheckOptions,

@@ -1,0 +1,31 @@
+import { describe, expect, it } from "bun:test";
+import {
+  calculateCompositeCraftScore,
+  CRAFT_PASS_THRESHOLD,
+  createErgonomicWalkthroughAuditor,
+  DEFAULT_PILLAR_WEIGHTS,
+  DEFICIT_SEVERITIES,
+  ErgonomicWalkthroughAuditor,
+  formatProductCraftAuditMarkdown,
+  generateAestheticDeficitNotice,
+  PERCEPTUAL_LATENCY_TARGET_MS,
+  PRODUCT_CRAFT_PILLAR_DEFINITIONS,
+  PRODUCT_CRAFT_PILLAR_LIST,
+  PRODUCT_CRAFT_PILLARS,
+  renderProductCraftAsciiTable,
+  type AestheticDeficitNotice,
+  type CreateDeficitNoticeInput,
+  type DeficitInput,
+  type DeficitSeverity,
+  type ErgonomicAuditResult,
+  type MilestoneAuditOptions,
+  type MilestoneSignOffStatus,
+  type PillarEvaluation,
+  type PillarScoreInput,
+  type ProductCraftPillar,
+  type ProductCraftPillarDefinition,
+  type UserJourney,
+  type UserJourneyStep,
+} from "../../../olt/scripts/src/mind/auditing/product-craft.ts";
+
+

@@ -109,6 +109,13 @@ export class DefaultCollectorEnvironment implements Required<CollectorEnvironmen
 
   public async exec(command: string, args: string[]): Promise<ProcessExecResult | null> {
     if (this.overrides.exec) return this.overrides.exec(command, args);
+    if (
+      process.env.NODE_ENV === "test" ||
+      process.env.BUN_ENV === "test" ||
+      process.env.OLT_VIRTUAL_FS === "1"
+    ) {
+      return null;
+    }
     try {
       const { stdout, stderr } = await new Promise<{ stdout: string; stderr: string }>(
         (resolve, reject) => {

@@ -90,6 +90,7 @@ export function resetVirtualLoggingStore(): void {
 }
 
 export function setupVirtualLoggingFS(): VirtualMemoryFS {
+  cleanupVirtualLoggingFS();
   spies = createFsSpies({
     vfs,
     openDescriptors,

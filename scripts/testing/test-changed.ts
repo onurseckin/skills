@@ -3,8 +3,10 @@
  * Runs only test files affected by changes since origin/main or HEAD~1.
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { basename, extname, join } from "node:path";
+
+import { DEFAULT_COVERAGE_THRESHOLD } from "./reporting/index.ts";
 
 export function gitOutput(args: string[]): string {
   try {
@@ -65,10 +67,18 @@ export function getChangedFiles(customGitOutput?: (args: string[]) => string): s
 export function findAllTestFiles(dir: string): string[] {
   if (!existsSync(dir)) return [];
   const results: string[] = [];
-  for (const entry of readdirSync(dir)) {
-    const full = join(dir, entry);
-    if (statSync(full).isDirectory()) results.push(...findAllTestFiles(full));
-    else if (/\.(test|spec)\.(ts|tsx)$/.test(entry)) results.push(full);
+  try {
+    const entries = readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const full = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        results.push(...findAllTestFiles(full));
+      } else if (/\.(test|spec)\.(ts|tsx)$/.test(entry.name)) {
+        results.push(full);
+      }
+    }
+  } catch {
+    // Gracefully handle unreadable directories
   }
   return results;
 }
@@ -224,7 +234,7 @@ export async function run(argvArgs: string[] = process.argv.slice(2)): Promise<n
 
   const coverageRecords = parseCoverageOutput(`${combinedStdout}\n${combinedStderr}`);
   if (coverageRecords.length > 0) {
-    const COVERAGE_THRESHOLD = 95.0;
+    const COVERAGE_THRESHOLD = DEFAULT_COVERAGE_THRESHOLD;
     const failingFiles = coverageRecords.filter(
       (r) =>
         !r.file.includes(".test.ts") &&
@@ -233,7 +243,9 @@ export async function run(argvArgs: string[] = process.argv.slice(2)): Promise<n
     );
 
     if (failingFiles.length > 0) {
-      console.error("\n❌ [coverage-gate] Mandatory +95% Coverage Check Failed for file(s):");
+      console.error(
+        `\n❌ [coverage-gate] Mandatory +${COVERAGE_THRESHOLD}% Coverage Check Failed for file(s):`,
+      );
       for (const f of failingFiles) {
         console.error(
           `  - ${f.file}: Lines ${f.linesPct}%, Stmts ${f.stmtsPct}% (Uncovered: ${f.uncovered})`,
@@ -242,7 +254,7 @@ export async function run(argvArgs: string[] = process.argv.slice(2)): Promise<n
       return 1;
     }
     console.log(
-      "\n✓ [coverage-gate] Mandatory +95% Coverage Check passed across all evaluated modules.",
+      `\n✓ [coverage-gate] Mandatory +${COVERAGE_THRESHOLD}% Coverage Check passed across all evaluated modules.`,
     );
   }
 

@@ -79,6 +79,27 @@ export interface FileDetailData {
   readonly funcsTotal: number;
   readonly uncoveredLines: readonly number[];
   readonly sourceLines?: readonly SourceLineDetail[] | undefined;
+  readonly testFile?: string | undefined;
+  readonly testDurationMs?: number | undefined;
+  readonly testPassed?: boolean | undefined;
+  readonly testCount?: number | undefined;
+  readonly paretoClass?: "p50" | "p90" | "normal" | undefined;
+}
+
+export interface UnifiedHierarchyNode {
+  readonly name: string;
+  readonly path: string;
+  readonly type: "file" | "dir";
+  readonly lines: MetricItem;
+  readonly statements: MetricItem;
+  readonly functions: MetricItem;
+  readonly uncoveredLines: readonly number[];
+  readonly testDurationMs?: number | undefined;
+  readonly testPassed?: boolean | undefined;
+  readonly testCount?: number | undefined;
+  readonly testFile?: string | undefined;
+  readonly paretoClass?: "p50" | "p90" | "normal" | undefined;
+  readonly children?: readonly UnifiedHierarchyNode[] | undefined;
 }
 
 export interface CoverageArtifactResult {
@@ -107,6 +128,46 @@ export interface WriteCoverageOptions {
   readonly writeToDisk?: boolean | undefined;
   readonly skipIfUnchanged?: boolean | undefined;
   readonly runtime?: TestRuntimeSummary | undefined;
+}
+
+export type DeficitCategory =
+  | "error-handling"
+  | "branching"
+  | "unexercised-logic"
+  | "initialization";
+
+export interface DeficitCategoryBreakdown {
+  readonly "error-handling": number;
+  readonly branching: number;
+  readonly "unexercised-logic": number;
+  readonly initialization: number;
+}
+
+export interface DeficitCluster {
+  readonly id: string;
+  readonly file: string;
+  readonly startLine: number;
+  readonly endLine: number;
+  readonly lineCount: number;
+  readonly category: DeficitCategory;
+  readonly categoryReason: string;
+  readonly repoImpactPct: number;
+  readonly fileImpactPct: number;
+  readonly sampleCodeSnippet?: string | undefined;
+}
+
+export interface DeficitRoadmap {
+  readonly totalUncoveredLines: number;
+  readonly totalClusters: number;
+  readonly totalRepoLines: number;
+  readonly categoryBreakdown: DeficitCategoryBreakdown;
+  readonly clusters: readonly DeficitCluster[];
+}
+
+export interface DeficitClusteringOptions {
+  readonly topN?: number | undefined;
+  readonly sourceResolver?: ((file: string) => string | readonly string[] | undefined) | undefined;
+  readonly rootDir?: string | undefined;
 }
 
 export function calculatePct(covered: number, total: number): number {

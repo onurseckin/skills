@@ -250,12 +250,10 @@ describe("Coverage Reporting Modules", () => {
     test("executes CLI script and main() logs status appropriately", () => {
       const logs: string[] = [];
       const origLog = console.log;
-      const origCwd = process.cwd();
       console.log = (...args: unknown[]) => logs.push(args.map(String).join(" "));
 
       try {
-        process.chdir(TEST_SCRATCH_DIR);
-        main();
+        main(TEST_SCRATCH_DIR);
         expect(logs.some((l) => l.includes("No coverage/lcov.info found"))).toBe(true);
 
         logs.length = 0;
@@ -266,10 +264,9 @@ describe("Coverage Reporting Modules", () => {
           "SF:src/cli.ts\nLF:5\nLH:5\nend_of_record",
           "utf-8",
         );
-        main();
+        main(TEST_SCRATCH_DIR);
         expect(logs.some((l) => l.includes("Generated coverage/lcov.info"))).toBe(true);
       } finally {
-        process.chdir(origCwd);
         console.log = origLog;
       }
     });

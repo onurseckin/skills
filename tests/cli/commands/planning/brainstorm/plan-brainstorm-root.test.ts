@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { link, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { existsSync } from "node:fs";
@@ -11,13 +11,12 @@ import { HarnessError } from "../../../../../olt/scripts/src/core/errors/index.t
 import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 import { freshRun } from "../../fixtures/plan-workflow-fixture.ts";
 
-async function withIsolatedCwd<T>(dir: string, fn: () => T): Promise<T> {
-  const originalCwd = process.cwd();
-  process.chdir(dir);
+async function withIsolatedCwd<T>(dir: string, fn: () => T | Promise<T>): Promise<T> {
+  const cwdSpy = spyOn(process, "cwd").mockReturnValue(dir);
   try {
-    return fn();
+    return await fn();
   } finally {
-    process.chdir(originalCwd);
+    cwdSpy.mockRestore();
   }
 }
 

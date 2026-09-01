@@ -3,28 +3,6 @@
 Generated from `olt/scripts/src/cli/registry` by `olt/scripts/generate-cli-manifest.ts`. Do not edit by
 hand. Index: [`../../cli-capabilities.md`](../../cli-capabilities.md).
 
-### `mind:init`
-
-Initialize a mind capsule from an owner charter.
-
-Validates the markdown charter file per CONTRACTS.md §7, creates the mind capsule (mind-gen-<generation>), pins the charter digest into manifest.json, seeds the state projection, and writes the initial last_pulse.json.
-
-- **Aliases**: none
-- **Stdin**: not read
-- **Arguments after `--`**: rejected
-
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--repo` | string | yes | no | - | Repository root the mind serves. |
-| `--charter` | string | yes | no | - | Path to the owner's charter file. |
-| `--actor` | string | yes | no | - | Recorded on mind-initialized. |
-| `--mind-id` | string | no | no | `mind-gen-1` | Mind capsule run id; defaults to mind-gen-1. |
-| `--capsules-dir` | string | no | no | - | Override .olt/capsules/ directory location. |
-
-```bash
-bun harness.ts mind:init --repo . --charter olt/agents/mind.yaml --actor owner
-```
-
 ### `mind:wake`
 
 Produce the Tier A orientation brief and reclaim expired pulses.

@@ -111,7 +111,7 @@ describe("Epistemic Event Stream Core & Operators", () => {
 
     stream.emit(42);
     // Allow async promises to reject and run catch handlers
-    await new Promise((r) => setTimeout(r, 20));
+    await new Promise((r) => setTimeout(r, 1));
 
     expect(errors).toContain("sync failure");
     expect(errors).toContain("string failure");
@@ -153,7 +153,7 @@ describe("Epistemic Event Stream Core & Operators", () => {
   test("supports debounce, throttle, and sample stream operators", async () => {
     // Debounce
     const debStream = new EpistemicEventStream<number>();
-    const debounced = debStream.debounce(20);
+    const debounced = debStream.debounce(3);
     let debVal: number | undefined;
     debounced.subscribe((v) => {
       debVal = v;
@@ -163,25 +163,25 @@ describe("Epistemic Event Stream Core & Operators", () => {
     debStream.emit(2);
     debStream.emit(3);
     expect(debVal).toBeUndefined();
-    await new Promise((r) => setTimeout(r, 40));
+    await new Promise((r) => setTimeout(r, 8));
     expect(debVal).toBe(3);
 
     // Throttle
     const thrStream = new EpistemicEventStream<number>();
-    const throttled = thrStream.throttle(30);
+    const throttled = thrStream.throttle(4);
     const thrVals: number[] = [];
     throttled.subscribe((v) => thrVals.push(v));
 
     thrStream.emit(10);
     thrStream.emit(20);
     expect(thrVals).toEqual([10]);
-    await new Promise((r) => setTimeout(r, 35));
+    await new Promise((r) => setTimeout(r, 8));
     thrStream.emit(30);
     expect(thrVals).toEqual([10, 30]);
 
     // Sample
     const smpStream = new EpistemicEventStream<number>();
-    const sampled = smpStream.sample(25);
+    const sampled = smpStream.sample(4);
     let sampledVal: number | undefined;
     sampled.subscribe((v) => {
       sampledVal = v;
@@ -189,7 +189,7 @@ describe("Epistemic Event Stream Core & Operators", () => {
 
     smpStream.emit(100);
     smpStream.emit(200);
-    await new Promise((r) => setTimeout(r, 60));
+    await new Promise((r) => setTimeout(r, 10));
     expect(sampledVal).toBe(200);
   });
 

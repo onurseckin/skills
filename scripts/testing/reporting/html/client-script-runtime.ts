@@ -15,16 +15,29 @@ export function getClientScriptRuntime(): string {
 
       const covSection = document.getElementById("coverage-section");
       const rtSection = document.getElementById("runtime-section");
-      if (covSection && rtSection) {
-        if (tab === "runtime") {
-          covSection.style.display = "none";
-          rtSection.style.display = "block";
-          renderRuntimeView();
-        } else {
-          covSection.style.display = "block";
-          rtSection.style.display = "none";
-          render();
-        }
+      const uniSection = document.getElementById("unified-section");
+      const defSection = document.getElementById("deficits-section");
+
+      if (covSection) covSection.style.display = tab === "coverage" ? "block" : "none";
+      if (rtSection) rtSection.style.display = tab === "runtime" ? "block" : "none";
+      if (uniSection) uniSection.style.display = tab === "unified" ? "block" : "none";
+      if (defSection) defSection.style.display = tab === "deficits" ? "block" : "none";
+
+      if (tab === "deficits") {
+        const qs = [];
+        if (deficitCategoryFilter !== "all") qs.push("category=" + encodeURIComponent(deficitCategoryFilter));
+        if (deficitSearch) qs.push("search=" + encodeURIComponent(deficitSearch));
+        updateHash(qs.length > 0 ? "#deficits?" + qs.join("&") : "#deficits");
+        renderDeficitView();
+      } else if (tab === "runtime") {
+        updateHash("#runtime" + (runtimeSearch ? "?search=" + encodeURIComponent(runtimeSearch) : ""));
+        renderRuntimeView();
+      } else if (tab === "unified") {
+        updateHash("#unified" + (unifiedSearch ? "?search=" + encodeURIComponent(unifiedSearch) : ""));
+        renderUnifiedView();
+      } else {
+        updateHash(currentFile ? "#coverage/" + currentFile.path : (currentPath ? "#coverage/" + currentPath : "#coverage"));
+        render();
       }
     }
 
@@ -82,6 +95,47 @@ export function getClientScriptRuntime(): string {
       renderRuntimeView();
     }
 
+    function findSourceForTest(testFile) {
+      if (!DATA.files || DATA.files.length === 0) return undefined;
+      const direct = DATA.files.find(item => item.testFile === testFile);
+      if (direct) return direct.path;
+      const stem = testFile.split("/").pop().replace(/(\\.(test|spec))?\\.(ts|tsx|js|jsx|mjs|cjs)$/i, "").toLowerCase();
+      const cand = DATA.files.find(item => {
+        const itemStem = item.path.split("/").pop().replace(/(\\.(test|spec))?\\.(ts|tsx|js|jsx|mjs|cjs)$/i, "").toLowerCase();
+        return itemStem === stem;
+      });
+      return cand ? cand.path : undefined;
+    }
+
+    function focusRuntimeFile(testFile) {
+      if (!DATA.runtime || !DATA.runtime.files || DATA.runtime.files.length === 0) return;
+      const cleanTarget = decodeURIComponent(testFile).toLowerCase();
+      let idx = DATA.runtime.files.findIndex(f => f.file.toLowerCase() === cleanTarget);
+      if (idx === -1) {
+        idx = DATA.runtime.files.findIndex(f => f.file.toLowerCase().includes(cleanTarget) || cleanTarget.includes(f.file.toLowerCase()));
+      }
+      if (idx !== -1) {
+        runtimePage = Math.floor(idx / runtimePageSize) + 1;
+        renderRuntimeView();
+        const targetFile = DATA.runtime.files[idx].file;
+        const rowId = "rt-row-" + encodeURIComponent(targetFile);
+        setTimeout(() => {
+          const rowEl = document.getElementById(rowId);
+          if (rowEl) {
+            rowEl.scrollIntoView({ behavior: "smooth", block: "center" });
+            rowEl.style.outline = "2px solid var(--brand-accent)";
+            rowEl.style.backgroundColor = "rgba(99, 102, 241, 0.15)";
+            setTimeout(() => {
+              rowEl.style.outline = "none";
+              rowEl.style.backgroundColor = "";
+            }, 2500);
+          }
+        }, 50);
+      } else {
+        renderRuntimeView();
+      }
+    }
+
     function renderRuntimeView() {
       if (!DATA.runtime || !DATA.runtime.files) return;
       initRuntimeMetrics();
@@ -96,7 +150,7 @@ export function getClientScriptRuntime(): string {
         let valA = a.durationMs, valB = b.durationMs;
         if (runtimeSortCol === "file") {
           valA = a.file; valB = b.file;
-          return runtimeSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+          return runtimeSortAsc ? valA.localeCompare(valB) : valB.localeCompare(a.file);
         } else if (runtimeSortCol === "pct") {
           valA = a.percentage; valB = b.percentage;
         }
@@ -125,10 +179,15 @@ export function getClientScriptRuntime(): string {
         const globalRank = startIdx + idx + 1;
         const durBarPct = maxDur > 0 ? Math.min(100, Math.round((f.durationMs / maxDur) * 100)) : 0;
         const statusBadge = f.passed === false ? '<span class="badge badge-fail">FAIL</span>' : '<span class="badge badge-pass">PASS</span>';
+        const matchedSource = findSourceForTest(f.file);
+        const sourceLink = matchedSource 
+          ? '<a href="#coverage/' + escapeHtml(matchedSource) + '" class="badge badge-neutral" style="text-decoration: none; margin-left: 0.5rem; font-size: 0.72rem; cursor: pointer;" title="Inspect ' + escapeHtml(matchedSource) + ' in Coverage Matrix">📄 Matrix</a>'
+          : '';
+        const rowId = "rt-row-" + encodeURIComponent(f.file);
 
-        html += '<tr>';
+        html += '<tr id="' + rowId + '" data-test-file="' + escapeHtml(f.file) + '">';
         html += '<td style="font-family: \\'JetBrains Mono\\', monospace; color: var(--text-dim);">' + globalRank + '</td>';
-        html += '<td><div class="item-name">🧪 <strong>' + escapeHtml(f.file) + '</strong></div></td>';
+        html += '<td><div class="item-name">🧪 <strong>' + escapeHtml(f.file) + '</strong>' + sourceLink + '</div></td>';
         html += '<td><span style="font-family: \\'JetBrains Mono\\', monospace; font-weight: 700; color: var(--text-main);">' + f.durationMs + 'ms</span></td>';
         html += '<td><span class="badge badge-neutral">' + f.percentage + '%</span></td>';
         html += '<td><div class="runtime-bar-cell"><div class="runtime-bar-track"><div class="runtime-bar-fill" style="width:' + durBarPct + '%"></div></div><span style="font-size: 0.75rem; color: var(--text-dim); font-family: \\'JetBrains Mono\\', monospace;">' + durBarPct + '%</span></div></td>';

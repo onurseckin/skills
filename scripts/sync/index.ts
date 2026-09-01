@@ -169,9 +169,12 @@ export function computeIsMain(
   return false;
 }
 
-export async function main(argv: string[] = process.argv.slice(2)): Promise<void> {
+export async function main(
+  argv: string[] = process.argv.slice(2),
+  options?: Partial<SyncOptions>,
+): Promise<void> {
   const allowDirty = argv.includes("--allow-dirty");
-  await runSync({ allowDirty });
+  await runSync({ allowDirty, ...options });
 }
 
 if (computeIsMain()) {

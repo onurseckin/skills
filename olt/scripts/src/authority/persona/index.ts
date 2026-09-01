@@ -18,7 +18,13 @@ export type {
   WatchdogPersonaGroundingOptions,
 } from "./types.ts";
 
-export { SEVERITY_WEIGHTS, SUPERVISORY_ROLE_BOUNDARIES } from "./constants.ts";
+export {
+  ANTI_MAKEWORK_PILLARS,
+  PRODUCT_CRAFT_PILLARS,
+  SEVERITY_WEIGHTS,
+  SUPERVISORY_ROLE_BOUNDARIES,
+  THREE_STRIKE_CONTAINMENT_RULES,
+} from "./constants.ts";
 
 export {
   findOverlappingScopes,

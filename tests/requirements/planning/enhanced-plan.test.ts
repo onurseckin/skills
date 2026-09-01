@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import { join } from "node:path";
 import { renderEnhancedPlanMarkdown } from "../../../olt/scripts/src/requirements/enhanced-plan-markdown.ts";
@@ -14,7 +14,15 @@ import {
 } from "../../../olt/scripts/src/requirements/enhanced-plan.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
-import { scratchRoot } from "../requirements-fixture.ts";
+import { cleanupVirtualRequirementsFS, scratchRoot, setupVirtualRequirementsFS } from "../requirements-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualRequirementsFS();
+});
+
+afterEach(() => {
+  cleanupVirtualRequirementsFS();
+});
 
 function input(overrides: Partial<EnhancedPlanInput> = {}): EnhancedPlanInput {
   return {

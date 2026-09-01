@@ -23,8 +23,7 @@ export function isVirtualPath(p: string): boolean {
     s.includes("capsule") ||
     s.includes("scratch") ||
     s.includes("coverage") ||
-    s.includes("tmp") ||
-    s.includes("test")
+    s.includes("tmp")
   );
 }
 

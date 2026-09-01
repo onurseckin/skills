@@ -1,5 +1,8 @@
+import { getClientScriptDeeplink } from "./client-script-deeplink.ts";
+import { getClientScriptDeficits } from "./client-script-deficits.ts";
 import { getClientScriptHelpers } from "./client-script-helpers.ts";
 import { getClientScriptRuntime } from "./client-script-runtime.ts";
+import { getClientScriptUnified } from "./client-script-unified.ts";
 
 export function getClientScript(payloadJson: string): string {
   return `
@@ -68,6 +71,8 @@ export function getClientScript(payloadJson: string): string {
       if (gaugeFiles) gaugeFiles.innerHTML = createGaugeSvg(100, "var(--brand-accent)");
 
       initRuntimeMetrics();
+      initUnifiedMetrics();
+      initDeficitMetrics();
     }
 
     function setFilter(f) {
@@ -76,6 +81,7 @@ export function getClientScript(payloadJson: string): string {
       const btn = document.getElementById("filter-" + f);
       if (btn) btn.classList.add("active");
       currentFile = null;
+      updateHash(f === "all" ? (currentPath ? "#coverage/" + currentPath : "#coverage") : "#coverage?filter=" + f);
       render();
     }
 
@@ -87,7 +93,7 @@ export function getClientScript(payloadJson: string): string {
       const rootCrumb = document.createElement("span");
       rootCrumb.className = "crumb-chip" + (!currentPath && !currentFile ? " crumb-active" : "");
       rootCrumb.textContent = "📦 root";
-      rootCrumb.onclick = () => { currentPath = ""; currentFile = null; render(); };
+      rootCrumb.onclick = () => { currentPath = ""; currentFile = null; updateHash("#coverage"); render(); };
       el.appendChild(rootCrumb);
 
       if (currentPath || currentFile) {
@@ -112,7 +118,7 @@ export function getClientScript(payloadJson: string): string {
             link.className = "crumb-chip" + (isLast && !currentFile ? " crumb-active" : "");
             link.textContent = seg;
             const target = accumulated;
-            link.onclick = () => { currentPath = target; currentFile = null; render(); };
+            link.onclick = () => { currentPath = target; currentFile = null; updateHash("#coverage/" + target); render(); };
             el.appendChild(link);
           }
         });
@@ -217,5 +223,10 @@ export function getClientScript(payloadJson: string): string {
     
     ${getClientScriptHelpers()}
     ${getClientScriptRuntime()}
+    ${getClientScriptUnified()}
+    ${getClientScriptDeficits()}
+    ${getClientScriptDeeplink()}
+
+    initDeepLinks();
   `.trim();
 }

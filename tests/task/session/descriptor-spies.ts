@@ -5,6 +5,7 @@
 
 import { spyOn, type Mock } from "bun:test";
 import * as fs from "node:fs";
+import * as path from "node:path";
 import * as nodeChildProcess from "node:child_process";
 import * as childProcess from "child_process";
 import * as platform from "../../../olt/scripts/src/platform/index.ts";
@@ -41,18 +42,23 @@ export function createDescriptorSpies(s: VirtualTaskState): Array<{ mockRestore:
   return [
     spy("openSync", (p: fs.PathLike, flags: string | number) => {
       const t = norm(String(p));
+      if (!isVirtualPath(t) && !s.vfs.existsSync(t)) {
+        return orig.openSync(t, flags as Parameters<typeof orig.openSync>[1]);
+      }
       const numFlags = typeof flags === "number" ? flags : 0;
       const isW =
         (numFlags & (fs.constants.O_WRONLY | fs.constants.O_RDWR | fs.constants.O_CREAT)) !== 0;
       const isA = (numFlags & fs.constants.O_APPEND) !== 0;
       if (!isW && !s.vfs.existsSync(t)) {
-        if (!isVirtualPath(t))
-          return orig.openSync(t, flags as Parameters<typeof orig.openSync>[1]);
         const err = new Error(`ENOENT: no such file or directory, open '${t}'`);
         (err as unknown as { code: string }).code = "ENOENT";
         throw err;
       }
       if (isW && !s.vfs.existsSync(t) && (numFlags & (fs.constants.O_DIRECTORY ?? 0)) === 0) {
+        const parent = path.dirname(t);
+        if (parent && !s.vfs.existsSync(parent)) {
+          s.vfs.mkdirSync(parent, { recursive: true });
+        }
         s.vfs.writeFileSync(t, "");
       }
       const len =
@@ -118,9 +124,19 @@ export function createDescriptorSpies(s: VirtualTaskState): Array<{ mockRestore:
           entry.path,
           typeof m === "number" ? m : m instanceof Date ? m.getTime() : Date.now(),
         );
+      } else {
+        orig.futimesSync(
+          fd,
+          _a as Parameters<typeof orig.futimesSync>[1],
+          m as Parameters<typeof orig.futimesSync>[2],
+        );
       }
     }),
-    spy("fsyncSync", () => {}),
+    spy("fsyncSync", (fd: number) => {
+      if (!s.openDescriptors.has(fd)) {
+        orig.fsyncSync(fd);
+      }
+    }),
     spyOn(platform, "tryExclusiveFlock").mockReturnValue(true) as never,
     spyOn(platform, "releaseFlock").mockImplementation(() => {}) as never,
     spyOn(flockFfi, "tryExclusiveFlock").mockReturnValue(true) as never,

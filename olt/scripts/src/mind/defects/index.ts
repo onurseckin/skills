@@ -131,3 +131,39 @@ export type {
   DefectAuditReport,
   LogBoundaryViolationOptions,
 } from "./loop/index.ts";
+
+export {
+  DEFICIT_CRITICALITY_CLASSES,
+  DEFICIT_CRITICALITY_WEIGHTS,
+  DIAGNOSTIC_ERROR_KINDS,
+  DEFAULT_KNOWN_SUBSYSTEMS,
+  inferSubsystemFromPath,
+  extractStackFrames,
+  computeStackSignature,
+  parseRawDiagnostics,
+  clusterDiagnosticErrors,
+  runEmpiricalBaselineProbes,
+  formatDeficitTopologyMatrixMarkdown,
+  DiagnosticClusteringEngine,
+} from "./diagnostic-clustering.ts";
+
+export type {
+  DeficitCriticalityClass,
+  DiagnosticErrorKind,
+  ParsedDiagnosticError,
+  DeficitClusterNode,
+  DeficitTopologySummary,
+  RecommendedRoadmapAllocation,
+  DeficitTopologyMatrix,
+  ProbeExecutionOutput,
+  ProbeDefinition,
+  SingleProbeResult,
+  BaselineProbeOptions,
+  BaselineProbeResult,
+  ClusteringOptions,
+  RawDiagnosticEntryInput,
+  RawDiagnosticInput,
+  DiagnosticEngineConfig,
+  ProbeKind,
+} from "./diagnostic-clustering.ts";
+

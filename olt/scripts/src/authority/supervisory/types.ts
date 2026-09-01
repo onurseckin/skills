@@ -29,7 +29,12 @@ export type DecisionProtocolId =
   | "quota_freeze_zero_kill_resume"
   | "perpetual_creative_product_owner"
   | "mandatory_tier_0_companion_auditors"
-  | "mailbox_ipc_main_thread_silence";
+  | "mailbox_ipc_main_thread_silence"
+  | "three_strike_mechanical_containment"
+  | "anti_makework_genuine_value"
+  | "cumulative_socratic_progression"
+  | "pre_declared_pareto_arbitration"
+  | "ergonomic_walkthrough_auditing";
 
 export interface DecisionProtocolDefinition {
   readonly id: DecisionProtocolId;

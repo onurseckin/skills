@@ -3,6 +3,53 @@
 Generated from `olt/scripts/src/cli/registry` by `olt/scripts/generate-cli-manifest.ts`. Do not edit by
 hand. Index: [`../../cli-capabilities.md`](../../cli-capabilities.md).
 
+### `mind:init`
+
+Single-touch autonomous initialization of the Tier 0 Mind capsule.
+
+Performs 3-stage autonomous initialization: (1) In-flight worktree snapshot & user intent extraction, (2) Active empirical baseline diagnostic probing & clustering, (3) Strategic hierarchy mobilization (Mind, Mind Auditor, Skill Auditor, Domain Orchestrator), 70/20/10 portfolio governance, and live executive dashboard initialization into a perpetual sovereign execution loop.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--repo` | string | no | no | `.` | Repository root the mind serves; defaults to cwd. |
+| `--charter` | string | no | no | - | Path to owner's charter file; auto-detected if omitted. |
+| `--actor` | string | no | no | `owner` | Recorded on mind-initialized; defaults to owner. |
+| `--mind-id` | string | no | no | `mind-gen-1` | Mind capsule run id; defaults to mind-gen-1. |
+| `--generation` | int | no | no | `1` | Mind generation index (>=1). |
+| `--capsules-dir` | string | no | no | - | Override .olt/capsules/ directory location. |
+
+```bash
+bun harness.ts mind:init
+bun harness.ts mind:init --repo . --charter olt/agents/mind.yaml
+```
+
+### `mind:bootstrap`
+
+Single-touch autonomous initialization of the Tier 0 Mind capsule (bootstrap entrypoint).
+
+Performs 3-stage autonomous initialization: (1) In-flight worktree snapshot & user intent extraction, (2) Active empirical baseline diagnostic probing & clustering, (3) Strategic hierarchy mobilization (Mind, Mind Auditor, Skill Auditor, Domain Orchestrator), 70/20/10 portfolio governance, and live executive dashboard initialization into a perpetual sovereign execution loop.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--repo` | string | no | no | `.` | Repository root the mind serves; defaults to cwd. |
+| `--charter` | string | no | no | - | Path to owner's charter file; auto-detected if omitted. |
+| `--actor` | string | no | no | `owner` | Recorded on mind-initialized; defaults to owner. |
+| `--mind-id` | string | no | no | `mind-gen-1` | Mind capsule run id; defaults to mind-gen-1. |
+| `--generation` | int | no | no | `1` | Mind generation index (>=1). |
+| `--capsules-dir` | string | no | no | - | Override .olt/capsules/ directory location. |
+
+```bash
+bun harness.ts mind:bootstrap
+```
+
 ### `mind:candidate`
 
 Record a discovery candidate (defect or proposal).

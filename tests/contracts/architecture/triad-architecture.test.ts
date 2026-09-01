@@ -1,12 +1,21 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { findRepoRoot } from "../../../olt/scripts/src/core/shared/paths.ts";
 
 export const triadArchitectureSuiteName =
   "Directive p06: Agent Triad Architecture & Host Provider Taxonomy";
 
+function getRepoRoot(): string {
+  try {
+    return findRepoRoot(import.meta.dir);
+  } catch {
+    return resolve(import.meta.dir, "../../..");
+  }
+}
+
 describe(triadArchitectureSuiteName, () => {
-  const root = process.cwd();
+  const root = getRepoRoot();
   const skillRoot = join(root, "olt");
   const agentsDir = join(skillRoot, "agents");
   const referencesDir = join(skillRoot, "references");

@@ -46,10 +46,13 @@ const VIRTUAL_SEGMENTS = [
   ".olt/worktrees",
   ".olt/runs",
   ".olt/locks",
+  ".olt/capsules",
+  "/fixture",
 ];
 
 export function isVirtualPath(s: string): boolean {
-  return VIRTUAL_SEGMENTS.some((p) => s.includes(p));
+  const norm = normPath(s);
+  return VIRTUAL_SEGMENTS.some((p) => s.includes(p) || norm.includes(p));
 }
 
 export function getInode(state: VirtualFSSpyState, targetPath: string): number {
@@ -229,14 +232,21 @@ export function mockReadFile(
 ): string | Buffer {
   if (typeof p === "number") {
     const entry = state.openDescriptors.get(p);
-    if (!entry) return origRead(p, opts as BufferEncoding);
+    if (!entry) {
+      try {
+        return origRead(p, opts as BufferEncoding);
+      } catch {
+        throw fsErr("EBADF", `bad file descriptor, read ${p}`);
+      }
+    }
     if (state.vfs.statSync(entry.path, { throwIfNoEntry: false })?.isDirectory()) return "";
     return typeof opts === "string" || (typeof opts === "object" && opts?.encoding)
       ? state.vfs.readFileSync(entry.path, "utf8")
       : Buffer.from(state.vfs.readFileSync(entry.path));
   }
   const s = String(p);
-  const lookup = state.vfs.existsSync(normPath(s)) ? normPath(s) : s;
+  const norm = normPath(s);
+  const lookup = state.vfs.existsSync(norm) ? norm : s;
   if (state.vfs.existsSync(lookup)) {
     if (state.vfs.statSync(lookup, { throwIfNoEntry: false })?.isDirectory()) {
       throw fsErr("EISDIR", `illegal operation on a directory, read '${lookup}'`);
@@ -245,9 +255,11 @@ export function mockReadFile(
       ? state.vfs.readFileSync(lookup, "utf8")
       : Buffer.from(state.vfs.readFileSync(lookup));
   }
-  try {
-    return origRead(s, opts as BufferEncoding);
-  } catch {}
+  if (!isVirtualPath(s) && !isVirtualPath(norm)) {
+    try {
+      return origRead(s, opts as BufferEncoding);
+    } catch {}
+  }
   throw fsErr("ENOENT", `no such file or directory, open '${lookup}'`);
 }
 
@@ -257,17 +269,20 @@ export function mockReaddir(
   opts?: { withFileTypes?: boolean } | BufferEncoding | null,
 ): string[] | fs.Dirent[] {
   const s = String(p);
-  const lookup = state.vfs.existsSync(normPath(s)) ? normPath(s) : s;
+  const norm = normPath(s);
+  const lookup = state.vfs.existsSync(norm) ? norm : s;
   if (state.vfs.existsSync(lookup)) {
     return (typeof opts === "object" && opts?.withFileTypes
       ? state.vfs.readdirSync(lookup, { withFileTypes: true })
       : state.vfs.readdirSync(lookup)) as unknown as fs.Dirent[] & string[];
   }
-  try {
-    return origReaddir(s, opts as Parameters<typeof origReaddir>[1]) as unknown as fs.Dirent[] &
-      string[];
-  } catch {}
-  return state.vfs.readdirSync(lookup) as unknown as fs.Dirent[] & string[];
+  if (!isVirtualPath(s) && !isVirtualPath(norm)) {
+    try {
+      return origReaddir(s, opts as Parameters<typeof origReaddir>[1]) as unknown as fs.Dirent[] &
+        string[];
+    } catch {}
+  }
+  throw fsErr("ENOENT", `no such file or directory, scandir '${lookup}'`);
 }
 
 export function mockStat(
@@ -276,16 +291,19 @@ export function mockStat(
   opts?: fs.StatOptions,
 ): fs.Stats {
   const s = String(p);
-  const target = state.symlinks.get(normPath(s)) ?? normPath(s);
+  const norm = normPath(s);
+  const target = state.symlinks.get(norm) ?? norm;
   checkParentExec(state, target, "stat");
   const isBig = Boolean(opts && typeof opts === "object" && opts.bigint);
   const vs =
     state.vfs.statSync(target, { throwIfNoEntry: false }) ??
     state.vfs.statSync(s, { throwIfNoEntry: false });
   if (vs) return makeFsStats(state, vs, target, false, isBig);
-  try {
-    return origStat(s, opts as never);
-  } catch {}
+  if (!isVirtualPath(s) && !isVirtualPath(norm)) {
+    try {
+      return origStat(s, opts as never);
+    } catch {}
+  }
   throw fsErr("ENOENT", `no such file or directory, stat '${s}'`);
 }
 
@@ -311,9 +329,11 @@ export function mockLstat(
     state.vfs.statSync(norm, { throwIfNoEntry: false }) ??
     state.vfs.statSync(s, { throwIfNoEntry: false });
   if (vs) return makeFsStats(state, vs, norm, false, isBig);
-  try {
-    return origLstat(s, opts as never);
-  } catch {}
+  if (!isVirtualPath(s) && !isVirtualPath(norm)) {
+    try {
+      return origLstat(s, opts as never);
+    } catch {}
+  }
   throw fsErr("ENOENT", `no such file or directory, lstat '${s}'`);
 }
 
@@ -382,7 +402,8 @@ export function mockOpendir(
   opts?: fs.OpenDirOptions,
 ): fs.Dir {
   const s = String(p);
-  const lookup = state.vfs.existsSync(normPath(s)) ? normPath(s) : s;
+  const norm = normPath(s);
+  const lookup = state.vfs.existsSync(norm) ? norm : s;
   if (state.vfs.existsSync(lookup)) {
     const entries = state.vfs.readdirSync(lookup) as string[];
     let idx = 0;
@@ -427,6 +448,10 @@ export function mockOpendir(
     };
     return dirObj as unknown as fs.Dir;
   }
-  if (!isVirtualPath(s)) return origOpendir(s, opts as fs.OpenDirOptions);
+  if (!isVirtualPath(s) && !isVirtualPath(norm)) {
+    try {
+      return origOpendir(s, opts as fs.OpenDirOptions);
+    } catch {}
+  }
   throw fsErr("ENOENT", `no such file or directory, opendir '${lookup}'`);
 }

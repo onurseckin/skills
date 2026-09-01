@@ -1,12 +1,21 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { findRepoRoot } from "../../../olt/scripts/src/core/shared/paths.ts";
 import { COMMAND_REGISTRY } from "../../../olt/scripts/src/cli/registry/index.ts";
 
 export const hostAdaptersSuiteName = "host adapters & two-tier architecture specifications";
 
+function getRepoRoot(): string {
+  try {
+    return findRepoRoot(import.meta.dir);
+  } catch {
+    return resolve(import.meta.dir, "../../..");
+  }
+}
+
 describe(hostAdaptersSuiteName, () => {
-  const root = process.cwd();
+  const root = getRepoRoot();
   const hostAdaptersPath = join(root, "olt/references/host-adapters.md");
   const skillPath = join(root, "olt/SKILL.md");
   const cliDocPath = join(root, "olt/references/cli.md");

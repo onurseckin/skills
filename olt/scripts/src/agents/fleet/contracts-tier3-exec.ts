@@ -1,0 +1,169 @@
+import type { AgentOperationalContract } from "./types.ts";
+import { defineContract, FORBIDDEN_WRITE_TOOLS, FORBIDDEN_EXEC_TOOLS } from "./archetypes.ts";
+
+export const CONTRACTS_TIER_3_EXEC: readonly AgentOperationalContract[] = [
+  defineContract({
+    id: "sub-implementer",
+    name: "Sub Implementer",
+    role: "sub-implementer",
+    tier: 3,
+    category: "execution",
+    aliases: ["sub_implementer", "leaf-implementer"],
+    toolBoundaries: {
+      canWriteCode: true,
+      canExecuteCommands: true,
+      canSpawnSubagents: false,
+      canClaimLeases: true,
+      allowedTools: ["write_to_file", "replace_file_content", "bun test *", "bun harness.ts *"],
+      forbiddenTools: ["authority:decide", "mind:admit", "mind:rotate"],
+    },
+    permissions: {
+      may: ["Execute focused leaf code edits within leased file boundaries", "Run leaf unit tests"],
+      mustNot: ["Spawn further subagents", "Run whole-suite tests", "Modify files outside assigned sub-lease"],
+      allowedCommands: ["bun harness.ts *", "bun test *"],
+      forbiddenCommands: ["authority:decide", "mind:admit"],
+      allowedSpawns: [],
+    },
+    invariants: ["LEAF_WORKER_CONFINEMENT", "STRICT_LEASE_CONFINEMENT", "ZERO_ANY_INVARIANT"],
+    certifiedDeliverables: [
+      { type: "leaf_implementation_diff", description: "Leaf Component Implementation Diff", evidenceRequired: true },
+    ],
+  }),
+
+  defineContract({
+    id: "sub-investigator",
+    name: "Sub Investigator",
+    role: "sub-investigator",
+    tier: 3,
+    category: "execution",
+    aliases: ["sub_investigator", "leaf-investigator", "investigator"],
+    toolBoundaries: {
+      canWriteCode: false,
+      canExecuteCommands: false,
+      canSpawnSubagents: false,
+      canClaimLeases: false,
+      allowedTools: ["grep_search", "find_by_name", "view_file", "list_dir", "bun harness.ts *"],
+      forbiddenTools: [...FORBIDDEN_WRITE_TOOLS, ...FORBIDDEN_EXEC_TOOLS],
+    },
+    permissions: {
+      may: ["Perform read-only forensic inspection, codebase searches, and defect root-cause analysis"],
+      mustNot: ["Edit files", "Execute commands", "Claim write leases"],
+      allowedCommands: ["task:brief", "finding:get", "msg:send", "msg:recv", "msg:poll"],
+      forbiddenCommands: [...FORBIDDEN_WRITE_TOOLS, ...FORBIDDEN_EXEC_TOOLS],
+      allowedSpawns: [],
+    },
+    invariants: ["READ_ONLY_CONFINEMENT", "ZERO_MUTATION_FORENSICS"],
+    certifiedDeliverables: [
+      { type: "forensic_investigation_report", description: "Forensic Investigation & Root Cause Report", evidenceRequired: true },
+    ],
+  }),
+
+  defineContract({
+    id: "autonomous-repairer",
+    name: "Autonomous Repairer",
+    role: "autonomous-repairer",
+    tier: 3,
+    category: "execution",
+    aliases: ["repairer", "autonomous_repairer", "auto-repairer"],
+    toolBoundaries: {
+      canWriteCode: true,
+      canExecuteCommands: true,
+      canSpawnSubagents: false,
+      canClaimLeases: true,
+      allowedTools: ["write_to_file", "replace_file_content", "bun test *", "bun harness.ts *"],
+      forbiddenTools: ["authority:decide", "mind:admit"],
+    },
+    permissions: {
+      may: ["Claim remediation leases on defective tasks", "Apply surgical bug fixes and test patches"],
+      mustNot: ["Spawn subagents", "Re-open broad architectural scope beyond defect boundary"],
+      allowedCommands: ["bun harness.ts *", "bun test *"],
+      forbiddenCommands: ["authority:decide", "mind:admit"],
+      allowedSpawns: [],
+    },
+    invariants: ["REPAIR_LEASE_CONFINEMENT", "ZERO_ANY_INVARIANT", "SURGICAL_DEFECT_REMEDIATION"],
+    certifiedDeliverables: [
+      { type: "defect_remediation_diff", description: "Surgical Defect Remediation Diff", evidenceRequired: true },
+      { type: "regression_test_receipt", description: "Regression Test Verification Receipt", evidenceRequired: true },
+    ],
+  }),
+
+  defineContract({
+    id: "general-task-worker",
+    name: "General Task Worker",
+    role: "general-task-worker",
+    tier: 3,
+    category: "execution",
+    aliases: ["worker", "general_task_worker", "task-worker"],
+    toolBoundaries: {
+      canWriteCode: true,
+      canExecuteCommands: true,
+      canSpawnSubagents: false,
+      canClaimLeases: true,
+      allowedTools: ["write_to_file", "replace_file_content", "bun test *", "bun harness.ts *"],
+      forbiddenTools: ["authority:decide"],
+    },
+    permissions: {
+      may: ["Execute generic implementation tickets and asset scaffolding"],
+      mustNot: ["Spawn subagents", "Bypass task lease limits"],
+      allowedCommands: ["bun harness.ts *", "bun test *"],
+      forbiddenCommands: ["authority:decide"],
+      allowedSpawns: [],
+    },
+    invariants: ["STRICT_LEASE_CONFINEMENT"],
+    certifiedDeliverables: [
+      { type: "worker_task_deliverable", description: "General Worker Task Deliverable", evidenceRequired: true },
+    ],
+  }),
+
+  // --- Tier 3 Quality & Validation (10) ---
+  defineContract({
+    id: "ui-cognitive-validator",
+    name: "UI Cognitive Validator",
+    role: "ui-cognitive-validator",
+    tier: 3,
+    category: "quality",
+    aliases: ["ui-optical-validator", "ui_cognitive_validator", "optical-validator"],
+    toolBoundaries: {
+      canWriteCode: false,
+      canExecuteCommands: false,
+      canSpawnSubagents: true,
+      canClaimLeases: false,
+      allowedTools: ["view_file", "evidence:screenshots", "task:brief", "task:validate-start", "task:probe", "task:reject", "task:review", "msg:send", "msg:recv", "msg:poll"],
+      forbiddenTools: [...FORBIDDEN_WRITE_TOOLS, ...FORBIDDEN_EXEC_TOOLS],
+    },
+    permissions: {
+      may: [
+        "Headful visual screenshot inspection across all 4 mandatory viewports (1920x1080, 1440x900, 768x1024, 390x844)",
+        "Audit the 8 Optical Dimensions (visual hierarchy, optical spacing rhythm, typography, clipping, APCA contrast, theme harmony, z-index overlays, touch targets >= 44px)",
+        "Deliver human-grade Socratic pushback critique and edge-case probing",
+        "Spawn sub-validators for parallel viewport audits",
+      ],
+      mustNot: [
+        "Execute ANY bash, test, or terminal commands (0 command execution privileges)",
+        "Write, edit, format, or delete repository source files (0 source edits)",
+        "Validate its own work",
+        "Approve UI tasks without visually inspecting actual screenshot image artifacts",
+      ],
+      allowedCommands: ["task:brief", "task:validate-start", "task:probe", "task:reject", "task:review", "finding:get", "report:get", "evidence:get", "evidence:screenshots", "agent:register", "agent:report", "agent:release", "whoami", "msg:send", "msg:recv", "msg:poll"],
+      forbiddenCommands: [...FORBIDDEN_WRITE_TOOLS, ...FORBIDDEN_EXEC_TOOLS],
+      allowedSpawns: ["sub-validator"],
+    },
+    invariants: [
+      "COGNITIVE_VALIDATOR_ZERO_COMMANDS_HARDLOCK",
+      "SOCRATIC_PROBING_CONTRACT",
+      "HEADFUL_VISUAL_SCREENSHOT_REVIEW_MANDATE",
+      "OPTICAL_8_DIMENSIONS_AUDIT",
+      "FOUR_VIEWPORT_MANDATE",
+      "SUPERFICIAL_UI_APPROVAL_BAN",
+      "SOURCE_CODE_BLINDNESS_QUARANTINE",
+    ],
+    isHeadfulReviewer: true,
+    isSourceCodeBlind: true,
+    manifestPath: "olt/agents/ui-optical-validator.yaml",
+    certifiedDeliverables: [
+      { type: "cognitive_optical_review", description: "8-Dimension Optical Quality Review", evidenceRequired: true },
+      { type: "viewport_inspection_receipt", description: "4-Viewport Visual Verification Receipt", evidenceRequired: true },
+    ],
+  }),
+
+];

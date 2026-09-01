@@ -4,7 +4,6 @@
  * Provides 100% in-memory virtual filesystem mocking with zero disk writes.
  */
 
-import { afterEach, beforeEach } from "bun:test";
 import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -50,12 +49,11 @@ export function resetVirtualStore(): void {
   vfs.mkdirSync(VIRTUAL_SCRATCH_BASE, { recursive: true });
 }
 
-let spiesInstalled = false;
+let activeSpies: Array<{ mockRestore: () => void }> = [];
+
 export function setupVirtualStoreFS(): VirtualMemoryFS {
-  if (!spiesInstalled) {
-    createStoreFsSpies(state);
-    spiesInstalled = true;
-  }
+  cleanupVirtualStoreFS();
+  activeSpies = createStoreFsSpies(state);
   resetVirtualStore();
   restoreDefectDeps = setDefectLogDependenciesForTesting({
     readFile: (p, opt) => fs.readFileSync(p, opt),
@@ -64,6 +62,12 @@ export function setupVirtualStoreFS(): VirtualMemoryFS {
 }
 
 export function cleanupVirtualStoreFS(): void {
+  for (const s of activeSpies) {
+    try {
+      s.mockRestore();
+    } catch {}
+  }
+  activeSpies = [];
   resetVirtualStore();
   if (restoreDefectDeps) {
     try {
@@ -76,17 +80,6 @@ export function cleanupVirtualStoreFS(): void {
 export function getVirtualStoreFS(): VirtualMemoryFS {
   return vfs;
 }
-
-// Automatically ensure virtual filesystem session is active for all store tests
-setupVirtualStoreFS();
-
-beforeEach(() => {
-  setupVirtualStoreFS();
-});
-
-afterEach(() => {
-  cleanupVirtualStoreFS();
-});
 
 function slug(value: string): string {
   const cleaned = value

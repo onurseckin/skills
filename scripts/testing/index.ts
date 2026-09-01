@@ -14,10 +14,14 @@ export { acquireTestLock, isProcessAlive, type TestLockData } from "./test-mutex
 
 export {
   computeIsMain as computeIsRunnerMain,
+  executeStreamingRunner,
   executeTestRunner,
   main as runTestRunnerMain,
 } from "./test-runner.ts";
 
-import * as reporting from "./reporting/index.ts";
+export * from "./runner/index.ts";
 
-export { reporting };
+import * as reporting from "./reporting/index.ts";
+import * as runner from "./runner/index.ts";
+
+export { reporting, runner };

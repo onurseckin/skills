@@ -3,6 +3,14 @@
   "domain": "mind",
   "entries": [
     {
+      "id": "mind:init",
+      "path": "mind-init.json"
+    },
+    {
+      "id": "mind:bootstrap",
+      "path": "mind-bootstrap.json"
+    },
+    {
       "id": "mind:candidate",
       "path": "mind-candidate.json"
     },

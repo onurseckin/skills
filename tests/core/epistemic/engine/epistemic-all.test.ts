@@ -122,18 +122,18 @@ describe("core/epistemic streaming edge cases", () => {
 
     // Stream debounce
     const testStream = new EpistemicEventStream<number>();
-    const debounced = testStream.debounce(10);
+    const debounced = testStream.debounce(3);
     let debouncedVal: number | null = null;
     debounced.subscribe((val) => {
       debouncedVal = val;
     });
     testStream.emit(1);
     testStream.emit(2);
-    await new Promise((r) => setTimeout(r, 25));
+    await new Promise((r) => setTimeout(r, 8));
     expect(debouncedVal).toBe(2);
 
     // Stream throttle
-    const throttled = testStream.throttle(10);
+    const throttled = testStream.throttle(3);
     const throttledVals: number[] = [];
     throttled.subscribe((val) => throttledVals.push(val));
     testStream.emit(10);
@@ -141,13 +141,13 @@ describe("core/epistemic streaming edge cases", () => {
     expect(throttledVals).toContain(10);
 
     // Stream sample
-    const sampled = testStream.sample(20);
+    const sampled = testStream.sample(3);
     let sampledVal: number | null = null;
     sampled.subscribe((val) => {
       sampledVal = val;
     });
     testStream.emit(99);
-    await new Promise((r) => setTimeout(r, 40));
+    await new Promise((r) => setTimeout(r, 8));
     expect(sampledVal).toBe(99);
   });
 });

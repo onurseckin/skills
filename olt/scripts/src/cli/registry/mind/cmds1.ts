@@ -1,0 +1,204 @@
+
+import { mindCmd, charterGoalFlag, candidateWriteScopeFlag, quiesceSourceFlag, auditAnswerFlag } from "./types.ts";
+import { type CommandSpec, type FlagSpec, optionalFlag, requiredFlag } from "../types.ts";
+import { memoryQueryCommand } from "../../commands/memory-ops.ts";
+import { mindAdmitCommand, mindDeclineCommand } from "../../commands/mind-admit.ts";
+import { mindAuditReportCommand, mindAuditStartCommand } from "../../commands/mind-audit.ts";
+import { mindAuditLiveCommand } from "../../commands/mind-audit-live.ts";
+import { mindCandidateCommand } from "../../commands/mind-candidate.ts";
+import { mindEscalateCommand } from "../../commands/mind-escalate.ts";
+import { mindHaltCommand } from "../../commands/mind-halt.ts";
+import { mindInitCommand } from "../../commands/mind-init.ts";
+import { mindObserveCommand } from "../../commands/mind-observe.ts";
+import { mindPulseCommand } from "../../commands/mind-pulse.ts";
+import { mindPulseOpenCommand } from "../../commands/mind-pulse-open.ts";
+import { mindQuiesceCommand } from "../../commands/mind-quiesce.ts";
+import { mindRotateCommand } from "../../commands/mind-rotate.ts";
+import { mindRoundCloseCommand, mindRoundOpenCommand } from "../../commands/mind-round.ts";
+import { mindWakeCommand } from "../../commands/mind-wake.ts";
+import { smartTaskIngestCommand, smartTaskSynthesizeCommand } from "../../commands/smart-task-ops.ts";
+
+export const MIND_COMMANDS_1: readonly CommandSpec[] = [
+  mindCmd(
+    "memory:query",
+    "Query indexed cross-run knowledge, decisions, and memory documents.",
+    "Performs full-text retrieval and ranking across knowledge base, charter, findings, decisions, and past run summaries with zero external file reads required.",
+    [
+      optionalFlag("query", "string", "Search query terms."),
+      optionalFlag("run", "string", "Filter by capsule run root."),
+      optionalFlag("capsules-dir", "string", "Override capsules root directory."),
+      optionalFlag("repo", "string", "Repository root path."),
+      optionalFlag("kind", "string", "Filter by document kind."),
+      optionalFlag("limit", "int", "Maximum number of search results.", 10),
+      optionalFlag("min-score", "string", "Minimum similarity/match score threshold."),
+      optionalFlag("all", "bool", "Display all matching documents without truncation."),
+      optionalFlag("now", "string", "Timestamp override (ISO8601)."),
+    ],
+    memoryQueryCommand,
+    ['bun harness.ts memory:query --query "authentication refactor"'],
+  ),
+  mindCmd(
+    "mind:init",
+    "Single-touch autonomous initialization of the Tier 0 Mind capsule.",
+    "Performs 3-stage autonomous initialization: (1) In-flight worktree snapshot & user intent extraction, (2) Active empirical baseline diagnostic probing & clustering, (3) Strategic hierarchy mobilization (Mind, Mind Auditor, Skill Auditor, Domain Orchestrator), 70/20/10 portfolio governance, and live executive dashboard initialization into a perpetual sovereign execution loop.",
+    [
+      optionalFlag("repo", "string", "Repository root the mind serves; defaults to cwd.", "."),
+      optionalFlag("charter", "string", "Path to owner's charter file; auto-detected if omitted."),
+      optionalFlag("actor", "string", "Recorded on mind-initialized; defaults to owner.", "owner"),
+      optionalFlag(
+        "mind-id",
+        "string",
+        "Mind capsule run id; defaults to mind-gen-1.",
+        "mind-gen-1",
+      ),
+      optionalFlag("generation", "int", "Mind generation index (>=1).", 1),
+      optionalFlag("capsules-dir", "string", "Override .olt/capsules/ directory location."),
+    ],
+    mindInitCommand,
+    [
+      "bun harness.ts mind:init",
+      "bun harness.ts mind:init --repo . --charter olt/agents/mind.yaml",
+    ],
+    [],
+  ),
+  mindCmd(
+    "mind:bootstrap",
+    "Single-touch autonomous initialization of the Tier 0 Mind capsule (bootstrap entrypoint).",
+    "Performs 3-stage autonomous initialization: (1) In-flight worktree snapshot & user intent extraction, (2) Active empirical baseline diagnostic probing & clustering, (3) Strategic hierarchy mobilization (Mind, Mind Auditor, Skill Auditor, Domain Orchestrator), 70/20/10 portfolio governance, and live executive dashboard initialization into a perpetual sovereign execution loop.",
+    [
+      optionalFlag("repo", "string", "Repository root the mind serves; defaults to cwd.", "."),
+      optionalFlag("charter", "string", "Path to owner's charter file; auto-detected if omitted."),
+      optionalFlag("actor", "string", "Recorded on mind-initialized; defaults to owner.", "owner"),
+      optionalFlag(
+        "mind-id",
+        "string",
+        "Mind capsule run id; defaults to mind-gen-1.",
+        "mind-gen-1",
+      ),
+      optionalFlag("generation", "int", "Mind generation index (>=1).", 1),
+      optionalFlag("capsules-dir", "string", "Override .olt/capsules/ directory location."),
+    ],
+    mindInitCommand,
+    ["bun harness.ts mind:bootstrap"],
+    [],
+  ),
+  mindCmd(
+    "mind:wake",
+    "Produce the Tier A orientation brief and reclaim expired pulses.",
+    "Inspects the mind capsule state and budget, reclaims any open pulse past its deadline via mind-pulse-reclaimed, and outputs the Tier A orientation brief ending in prescribed next actions.",
+    [
+      requiredFlag("run", "string", "The mind capsule root."),
+      optionalFlag("actor", "string", "Recorded only if the call reclaims a dead pulse."),
+      optionalFlag("depth", "string", "Orientation depth: brief (default) or run.", "brief"),
+      optionalFlag(
+        "target-run",
+        "string",
+        "With --depth run, the run capsule whose handoff to render.",
+      ),
+    ],
+    mindWakeCommand,
+    ["bun harness.ts mind:wake --run .olt/capsules/mind-gen-1"],
+  ),
+  mindCmd(
+    "mind:pulse-open",
+    "Open an active mind pulse under budget constraints.",
+    "Opens a new pulse cycle, validating budget headroom, daily pulse and wall-clock caps, quiet hours, and charter digest consistency before appending mind-pulse-opened.",
+    [
+      requiredFlag("run", "string", "The mind capsule root."),
+      requiredFlag("actor", "string", "The tier-0 agent id."),
+      requiredFlag("host", "string", "Host runtime as reported."),
+      requiredFlag("driver", "string", "Driver identity as reported."),
+    ],
+    mindPulseOpenCommand,
+    [
+      "bun harness.ts mind:pulse-open --run .olt/capsules/mind-gen-1 --actor mind-1 --host antigravity --driver bash-loop",
+    ],
+  ),
+  mindCmd(
+    "mind:pulse",
+    "Unified perpetual mind pulse: report active telemetry or open a new pulse.",
+    "Unified perpetual mind pulse command. If a pulse is open, outputs active pulse telemetry and next scheduled interval. If no pulse is open, automatically opens a new perpetual pulse. Enforces CLOSING_FORBIDDEN_FOR_MIND invariant.",
+    [
+      requiredFlag("run", "string", "The mind capsule root."),
+      optionalFlag("actor", "string", "The acting agent id.", "mind-1"),
+      optionalFlag("host", "string", "Host runtime as reported.", "antigravity"),
+      optionalFlag("driver", "string", "Driver identity as reported.", "perpetual-loop"),
+      optionalFlag("arm", "string", "Scheduled duration for the next interval, e.g. 15m."),
+      optionalFlag("arm-mechanism", "string", "How the pulse was armed, as reported."),
+      optionalFlag("now", "string", "Timestamp override (ISO8601)."),
+    ],
+    mindPulseCommand,
+    ["bun harness.ts mind:pulse --run .olt/capsules/mind-gen-1 --actor mind-1"],
+  ),
+  mindCmd(
+    "mind:observe",
+    "Record a discovery source scan count evidenced by a command record.",
+    "Records an observation from one of the ten discovery sources evidenced by a recorded command id, appending mind-observed.",
+    [
+      requiredFlag("run", "string", "The mind capsule root."),
+      requiredFlag("actor", "string", "Acting agent."),
+      requiredFlag("source", "string", "One of the ten source ids in PLAN.md §7.2."),
+      requiredFlag("command-id", "string", "The recorded command whose output this is."),
+      requiredFlag("count", "int", "How many items that source returned."),
+    ],
+    mindObserveCommand,
+    [
+      "bun harness.ts mind:observe --run .olt/capsules/mind-gen-1 --actor mind-1 --source intent-drift --command-id cmd-41 --count 0",
+    ],
+  ),
+  mindCmd(
+    "mind:candidate",
+    "Record a discovery candidate (defect or proposal).",
+    "Proposes a defect or proposal candidate. Defects require a witness command record and falsifier argv. Validates charter goal alignment and write scope before recording mind-candidate-opened.",
+    [
+      requiredFlag("run", "string", "The mind capsule root."),
+      requiredFlag("actor", "string", "Acting agent."),
+      requiredFlag("kind", "string", "Candidate kind: defect or proposal."),
+      requiredFlag("statement", "string", "One line statement, recorded agent_reported."),
+      optionalFlag(
+        "witness",
+        "string",
+        "Command id evidencing the defect; required unless --kind proposal.",
+      ),
+      charterGoalFlag,
+      optionalFlag(
+        "falsifier",
+        "string",
+        "Argv that fails now and would pass if fixed (defects only).",
+      ),
+      candidateWriteScopeFlag,
+      optionalFlag("rationale", "string", "Proposals only."),
+    ],
+    mindCandidateCommand,
+    [
+      'bun harness.ts mind:candidate --run .olt/capsules/mind-gen-1 --actor mind-1 --kind defect --statement "typecheck fails" --witness cmd-123 --charter-goal G1 --falsifier "bun run typecheck" --write-scope olt/scripts/src/health/',
+    ],
+  ),
+  mindCmd(
+    "mind:admit",
+    "Run admission gates on a candidate and admit it.",
+    "Runs the six admission gates (falsifier verification, scope disjointness, charter alignment, etc.) in order and admits the candidate, appending mind-candidate-admitted.",
+    [
+      requiredFlag("run", "string", "The mind capsule root."),
+      requiredFlag("actor", "string", "Acting agent."),
+      requiredFlag("candidate", "string", "Candidate id."),
+    ],
+    mindAdmitCommand,
+    ["bun harness.ts mind:admit --run .olt/capsules/mind-gen-1 --actor mind-1 --candidate cand-12"],
+  ),
+  mindCmd(
+    "mind:decline",
+    "Permanently decline a candidate with a recorded reason.",
+    "Marks a candidate permanently declined with a recorded reason and gate failure attribution, appending mind-candidate-declined.",
+    [
+      requiredFlag("run", "string", "The mind capsule root."),
+      requiredFlag("actor", "string", "Acting agent."),
+      requiredFlag("candidate", "string", "Candidate id."),
+      requiredFlag("reason", "string", "Reason why candidate was declined."),
+    ],
+    mindDeclineCommand,
+    [
+      'bun harness.ts mind:decline --run .olt/capsules/mind-gen-1 --actor mind-1 --candidate cand-12 --reason "scope overlaps active lease"',
+    ],
+  ),
+];

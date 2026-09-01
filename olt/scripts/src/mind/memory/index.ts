@@ -121,3 +121,56 @@ export {
   calculateCacheHitRate,
   computeCognitiveTelemetry,
 } from "./telemetry.ts";
+
+export {
+  type EpistemicStatus,
+  type SupersessionNode,
+  type RegisterSupersessionNodeOptions,
+  type LineageValidationResult,
+  type SupersessionIndexState,
+  EPISTEMIC_STATUSES,
+  isEpistemicStatus,
+  SupersessionIndex,
+} from "./supersession-index.ts";
+
+export type {
+  CleanInsightBundle,
+  MemoryTier,
+  SandboxQueryOptions,
+  SandboxQueryResultItem,
+  SandboxRetrievalTelemetry,
+  SuccessorGuidance,
+} from "./retrieval-sandbox.ts";
+
+export {
+  RetrievalSandbox,
+  executeRetrievalSandbox,
+  formatCleanInsightBundleMarkdown,
+} from "./retrieval-sandbox.ts";
+
+export type {
+  AddArchivedEpicOptions,
+  AddBedrockInvariantOptions,
+  AddWorkingMemoryEntryOptions,
+  ArchivedEpicEntry,
+  ArchivedEpicFilter,
+  BedrockInvariant,
+  BedrockInvariantCategory,
+  CompactAndArchiveEpicOptions,
+  EpicArchivalOutcome,
+  PromoteParetoOptions,
+  PruneResult,
+  PruneWorkingMemoryOptions,
+  ThreeTierMemorySnapshot,
+  UpdateWorkingMemoryEntryOptions,
+  WorkingMemoryCategory,
+  WorkingMemoryEntry,
+  WorkingMemoryFilter,
+  WorkingMemoryStatus,
+} from "./three-tier-memory.ts";
+
+export {
+  ThreeTierMemoryEngine,
+} from "./three-tier-memory.ts";
+
+

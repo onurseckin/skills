@@ -6,7 +6,9 @@ import {
   establishSupervisorChain,
   registerUnderChain,
 } from "../../../shared/chains/agent-supervisor-chain.ts";
-import { setupVirtualCliFS } from "./full-lifecycle-fixture.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "./full-lifecycle-fixture.ts";
+
+export { cleanupVirtualCliFS, setupVirtualCliFS };
 
 export async function setupCompiledRun(
   name: string,

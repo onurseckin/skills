@@ -47,6 +47,11 @@ export function getRuntimeStyles(): string {
       display: flex;
       flex-direction: column;
       justify-content: space-between;
+      backdrop-filter: blur(12px);
+    }
+    .runtime-kpi-card:hover {
+      border-color: var(--border-strong);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
     }
     .kpi-header {
       display: flex;
@@ -88,6 +93,7 @@ export function getRuntimeStyles(): string {
       margin-top: 1rem;
       flex-wrap: wrap;
       gap: 0.75rem;
+      backdrop-filter: blur(12px);
     }
     .page-controls {
       display: flex;

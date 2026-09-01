@@ -36,3 +36,19 @@ export {
   isCoordinatorFileEditForbidden,
   isCoordinatorRole,
 } from "./coordinator-tool-guard.ts";
+export {
+  assertSupervisoryContainment,
+  checkSupervisoryContainment,
+  detectSupervisoryViolation,
+  getDefaultContainmentEngine,
+  isSupervisoryRoleForContainment,
+  registerContainmentEngineFactory,
+  resetDefaultContainmentEngine,
+  setDefaultContainmentEngine,
+  type ContainmentEngine,
+  type ContainmentEngineLike,
+  type ContainmentResult,
+  type SupervisoryContainmentCheckParams,
+  type SupervisoryViolationDetection,
+  type SupervisoryViolationType,
+} from "./containment.ts";

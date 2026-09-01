@@ -29,10 +29,14 @@ export function getClientScriptHelpers(): string {
       html += '<button class="btn" onclick="goBack()">&larr; Back to Tree</button>';
       html += '<div style="font-family: \\'JetBrains Mono\\', monospace; font-weight: 600;">' + escapeHtml(f.path) + '</div>';
       html += '</div>';
-      html += '<div style="display: flex; gap: 0.5rem; align-items: center;">';
+      html += '<div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">';
       html += '<span class="badge ' + badgeClass(f.linesPct) + '">Lines: ' + f.linesPct + '%</span>';
       html += '<span class="badge ' + badgeClass(f.statementsPct) + '">Statements: ' + f.statementsPct + '%</span>';
       html += '<span class="badge ' + badgeClass(f.funcsPct) + '">Funcs: ' + f.funcsPct + '%</span>';
+      if (f.testFile) {
+        const durText = f.testDurationMs !== undefined ? f.testDurationMs + 'ms' : 'Telemetry';
+        html += '<a href="#runtime?file=' + encodeURIComponent(f.testFile) + '" class="badge badge-neutral" style="text-decoration: none; cursor: pointer;" title="View test runtime ranking">⚡ Test: ' + durText + '</a>';
+      }
       html += '<button class="btn" onclick="copyPath(\\'' + escapeHtml(f.path) + '\\')">📋 Copy</button>';
       html += '</div>';
       html += '</div>';
@@ -59,7 +63,7 @@ export function getClientScriptHelpers(): string {
           const hitsColor = isMiss ? "var(--status-fail)" : "var(--status-pass)";
 
           html += '<div class="code-line ' + cls + '" id="line-' + line.no + '">';
-          html += '<div class="line-num">' + line.no + '</div>';
+          html += '<div class="line-num" onclick="selectLine(\\'' + escapeHtml(f.path) + '\\', ' + line.no + ')" style="cursor: pointer;" title="Click to copy link to Line ' + line.no + '">' + line.no + '</div>';
           html += '<div class="line-hits" style="color:' + hitsColor + '">' + hitsText + '</div>';
           html += '<div class="line-content">' + escapeHtml(line.code) + '</div>';
           html += '</div>';
@@ -79,28 +83,56 @@ export function getClientScriptHelpers(): string {
     function openFolder(folder) {
       currentPath = folder;
       currentFile = null;
+      updateHash(folder ? '#coverage/' + folder : '#coverage');
       render();
     }
 
-    function openFile(path) {
+    function openFile(path, lineNo) {
       const f = DATA.files.find(item => item.path === path);
       if (f) {
         currentFile = f;
-        render();
+        const hash = '#coverage/' + path + (lineNo ? ':L' + lineNo : '');
+        updateHash(hash);
+        if (activeTab !== "coverage") {
+          switchTab("coverage");
+        } else {
+          render();
+        }
+        if (lineNo) {
+          setTimeout(() => jumpToLine(lineNo), 50);
+        }
       }
     }
 
     function goBack() {
       currentFile = null;
+      updateHash(currentPath ? '#coverage/' + currentPath : '#coverage');
       render();
     }
 
     function jumpToLine(lineNo) {
+      if (currentFile) {
+        updateHash('#coverage/' + currentFile.path + ':L' + lineNo);
+      }
       const el = document.getElementById("line-" + lineNo);
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "center" });
         el.style.outline = "2px solid var(--status-fail)";
-        setTimeout(() => { el.style.outline = "none"; }, 1800);
+        el.style.backgroundColor = "rgba(239, 68, 68, 0.15)";
+        setTimeout(() => {
+          el.style.outline = "none";
+          el.style.backgroundColor = "";
+        }, 2000);
+      }
+    }
+
+    function selectLine(path, lineNo) {
+      const hash = '#coverage/' + path + ':L' + lineNo;
+      updateHash(hash);
+      jumpToLine(lineNo);
+      if (navigator && navigator.clipboard) {
+        const fullUrl = window.location.origin + window.location.pathname + hash;
+        navigator.clipboard.writeText(fullUrl);
       }
     }
 
@@ -124,6 +156,7 @@ export function getClientScriptHelpers(): string {
       searchEl.addEventListener("input", (e) => {
         searchQuery = e.target.value.trim();
         currentFile = null;
+        updateHash(searchQuery ? "#coverage?search=" + encodeURIComponent(searchQuery) : "#coverage");
         render();
       });
     }
@@ -133,11 +166,31 @@ export function getClientScriptHelpers(): string {
       rtSearchEl.addEventListener("input", (e) => {
         runtimeSearch = e.target.value.trim();
         runtimePage = 1;
+        updateHash(runtimeSearch ? "#runtime?search=" + encodeURIComponent(runtimeSearch) : "#runtime");
         renderRuntimeView();
       });
     }
 
-    initMetrics();
-    render();
+    const uniSearchEl = document.getElementById("unified-search-box");
+    if (uniSearchEl) {
+      uniSearchEl.addEventListener("input", (e) => {
+        unifiedSearch = e.target.value.trim();
+        updateHash(unifiedSearch ? "#unified?search=" + encodeURIComponent(unifiedSearch) : "#unified");
+        renderUnifiedView();
+      });
+    }
+
+    const defSearchEl = document.getElementById("deficit-search-box");
+    if (defSearchEl) {
+      defSearchEl.addEventListener("input", (e) => {
+        deficitSearch = e.target.value.trim();
+        deficitPage = 1;
+        const qs = [];
+        if (deficitCategoryFilter !== "all") qs.push("category=" + encodeURIComponent(deficitCategoryFilter));
+        if (deficitSearch) qs.push("search=" + encodeURIComponent(deficitSearch));
+        updateHash(qs.length > 0 ? "#deficits?" + qs.join("&") : "#deficits");
+        renderDeficitView();
+      });
+    }
   `;
 }

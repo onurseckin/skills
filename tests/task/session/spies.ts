@@ -50,6 +50,10 @@ export function createTaskFsSpies(s: VirtualTaskState): Array<{ mockRestore: () 
           return;
         }
         const t = norm(String(p));
+        if (!isVirtualPath(t) && !s.vfs.existsSync(t)) {
+          orig.writeFileSync(t, d, opts);
+          return;
+        }
         const parent = path.dirname(t);
         if (parent && !s.vfs.existsSync(parent)) s.vfs.mkdirSync(parent, { recursive: true });
         s.vfs.writeFileSync(t, typeof d === "string" ? d : Buffer.from(d as Uint8Array));
@@ -256,14 +260,25 @@ export function createTaskFsSpies(s: VirtualTaskState): Array<{ mockRestore: () 
       );
     }),
     spy("appendFileSync", (p: fs.PathOrFileDescriptor, d: string | Uint8Array) => {
+      if (typeof p === "number") {
+        handleRw(s, p, d, 0, (d as { length?: number })?.length ?? 0, null, true);
+        return;
+      }
       const t = norm(String(p));
+      if (!isVirtualPath(t) && !s.vfs.existsSync(t)) {
+        orig.appendFileSync(t, d);
+        return;
+      }
       const cur = s.vfs.existsSync(t) ? s.vfs.readFileSync(t, "utf8") : "";
       s.vfs.writeFileSync(t, cur + (typeof d === "string" ? d : Buffer.from(d).toString("utf8")));
     }),
     spy("mkdtempSync", (prefix: string) => {
-      const dir = norm(`${prefix}${Date.now()}-${s.nextInode++}`);
-      s.vfs.mkdirSync(dir, { recursive: true });
-      return dir;
+      if (isVirtualPath(prefix)) {
+        const dir = norm(`${prefix}${Date.now()}-${s.nextInode++}`);
+        s.vfs.mkdirSync(dir, { recursive: true });
+        return dir;
+      }
+      return orig.mkdtempSync(prefix);
     }),
   ];
 

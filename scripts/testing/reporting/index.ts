@@ -7,13 +7,7 @@ import { join, resolve } from "node:path";
 import { writeInteractiveHtml } from "./html/index.ts";
 import { parseLcov } from "./lcov-parser.ts";
 import { writeMarkdownReport } from "./markdown-reporter.ts";
-import {
-  calculateParetoThreshold,
-  computeRuntimeSummary,
-  parseDurationToMs,
-  parseTestRuntimeOutput,
-  sliceRuntimePagination,
-} from "./runtime-telemetry.ts";
+import { parseTestRuntimeOutput } from "./runtime-telemetry.ts";
 import { buildCoverageSummary, writeSummaryJson } from "./summary-reporter.ts";
 import type {
   CoverageArtifactResult,
@@ -25,6 +19,11 @@ export type {
   CoverageArtifactResult,
   CoverageSummary,
   CoverageSummaryItem,
+  DeficitCategory,
+  DeficitCategoryBreakdown,
+  DeficitCluster,
+  DeficitClusteringOptions,
+  DeficitRoadmap,
   FileCoverageMetric,
   FileDetailData,
   MetricItem,
@@ -33,8 +32,30 @@ export type {
   SourceLineDetail,
   TestFileRuntime,
   TestRuntimeSummary,
+  UnifiedHierarchyNode,
   WriteCoverageOptions,
 } from "./types.ts";
+export type { ContiguousLineSegment, DeficitCategoryClassification } from "./deficit-clustering.ts";
+export type {
+  CoverageGateOptions,
+  CoverageGateResult,
+  FailingFileCoverage,
+} from "./coverage-gate.ts";
+export type { HashRoute } from "./html/index.ts";
+export {
+  DEFAULT_COVERAGE_THRESHOLD,
+  evaluateCoverageGate,
+  formatCoverageGateMessage,
+} from "./coverage-gate.ts";
+export {
+  buildDeficitClusters,
+  calculateImpactPct,
+  classifyDeficitCategory,
+  formatDeficitRoadmapMarkdown,
+  generateDeficitRoadmap,
+  getCategoryBadge,
+  groupContiguousLines,
+} from "./deficit-clustering.ts";
 export { calculatePct, createMetricItem } from "./types.ts";
 export { parseLcov } from "./lcov-parser.ts";
 export { buildCoverageSummary, writeSummaryJson } from "./summary-reporter.ts";
@@ -52,10 +73,24 @@ export {
 } from "./runtime-telemetry.ts";
 export {
   buildHtmlDocument,
+  buildUnifiedHierarchy,
   extractCoverageFileData,
+  findMatchingSourceFile,
+  findMatchingTestFile,
+  formatHash,
   generateInteractiveHtml,
   getClientScript,
+  getClientScriptDeeplink,
+  getClientScriptDeficits,
+  getClientScriptHelpers,
+  getClientScriptRuntime,
+  getClientScriptUnified,
+  getCodeViewerStyles,
+  getDeficitStyles,
   getHtmlStyles,
+  getRuntimeStyles,
+  getUnifiedStyles,
+  parseHash,
   writeInteractiveHtml,
 } from "./html/index.ts";
 
@@ -141,8 +176,8 @@ export function computeIsMain(
   return false;
 }
 
-export function main(): void {
-  const res = processCoverageArtifacts();
+export function main(repoRoot?: string): void {
+  const res = processCoverageArtifacts(repoRoot);
   if (res.lcovExists) {
     console.log(
       `[coverage] Generated coverage/lcov.info, coverage/coverage-summary.json, coverage/REPORT.md, and coverage/index.html across ${res.filesCount} files (${res.totalPct}% line coverage).`,

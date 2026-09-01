@@ -47,7 +47,7 @@ own status in `exit_code`.
 | diagnostics | 11 | [cli-capabilities/domains/diagnostics.md](cli-capabilities/domains/diagnostics.md) |
 | gate | 1 | [cli-capabilities/domains/gate.md](cli-capabilities/domains/gate.md) |
 | capture | 3 | [cli-capabilities/domains/capture.md](cli-capabilities/domains/capture.md) |
-| mind | 22 | [cli-capabilities/domains/mind.md](cli-capabilities/domains/mind.md) |
+| mind | 23 | [cli-capabilities/domains/mind.md](cli-capabilities/domains/mind.md) |
 | policy | 5 | [cli-capabilities/domains/policy.md](cli-capabilities/domains/policy.md) |
 | msg | 4 | [cli-capabilities/domains/msg.md](cli-capabilities/domains/msg.md) |
 | worktree | 6 | [cli-capabilities/domains/worktree.md](cli-capabilities/domains/worktree.md) |
@@ -175,7 +175,8 @@ own status in `exit_code`.
 | `capture:run` | capture | Execute multi-viewport UI capture and companion manifest persistence. |
 | `capture:eval` | capture | Evaluate companion manifests against 4-pillar validation engines. |
 | `memory:query` | mind | Query indexed cross-run knowledge, decisions, and memory documents. |
-| `mind:init` | mind | Initialize a mind capsule from an owner charter. |
+| `mind:init` | mind | Single-touch autonomous initialization of the Tier 0 Mind capsule. |
+| `mind:bootstrap` | mind | Single-touch autonomous initialization of the Tier 0 Mind capsule (bootstrap entrypoint). |
 | `mind:wake` | mind | Produce the Tier A orientation brief and reclaim expired pulses. |
 | `mind:pulse-open` | mind | Open an active mind pulse under budget constraints. |
 | `mind:pulse` | mind | Unified perpetual mind pulse: report active telemetry or open a new pulse. |

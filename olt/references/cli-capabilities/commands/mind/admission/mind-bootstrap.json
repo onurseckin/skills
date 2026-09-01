@@ -1,0 +1,52 @@
+{
+  "name": "mind:bootstrap",
+  "aliases": [],
+  "domain": "mind",
+  "summary": "Single-touch autonomous initialization of the Tier 0 Mind capsule (bootstrap entrypoint).",
+  "flags": [
+    {
+      "name": "repo",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": "."
+    },
+    {
+      "name": "charter",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "actor",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": "owner"
+    },
+    {
+      "name": "mind-id",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": "mind-gen-1"
+    },
+    {
+      "name": "generation",
+      "type": "int",
+      "required": false,
+      "repeatable": false,
+      "default": 1
+    },
+    {
+      "name": "capsules-dir",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}
