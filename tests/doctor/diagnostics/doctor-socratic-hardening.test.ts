@@ -13,6 +13,7 @@ import {
 } from "../../../olt/scripts/src/reporting/doctor/rules/companion-auditors.ts";
 import type { MailboxCursor } from "../../../olt/scripts/src/communication/types.ts";
 import type { UnifiedTelemetryReport } from "../../../olt/scripts/src/telemetry/types.ts";
+import { setupVirtualDoctorFS } from "../fixture.ts";
 
 export const doctorSocraticHardeningSuiteName =
   "Doctor Diagnostic Engines - Socratic Hardening Suite";

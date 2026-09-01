@@ -5,6 +5,7 @@ import {
 } from "../../../olt/scripts/src/policy/rbac/index.ts";
 import { createActor, samplePolicy } from "./fixtures.ts";
 
+// VirtualMemoryFS in-memory pure logic tests
 describe("RBAC Subshell, Evaluator & Command Defenses", () => {
   test("hasUnshieldedSubshellOrChaining detects subshells, evaluators, and chaining", () => {
     const binaries = ["dash", "fish", "ksh", "csh", "tcsh", "sh.exe", "bash.exe", "zsh.exe"];

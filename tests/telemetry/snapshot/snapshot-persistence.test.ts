@@ -10,6 +10,7 @@ import {
 import { readTelemetryStream } from "../../../olt/scripts/src/reporting/telemetry-stream.ts";
 import { SnapshotVirtualFs } from "./vfs-harness.ts";
 
+// VirtualMemoryFS in-memory mocked snapshot tests
 export const snapshotPersistenceSuiteName = "DAG Snapshot Persistence & Durability";
 const svfs = new SnapshotVirtualFs();
 

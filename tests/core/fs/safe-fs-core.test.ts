@@ -5,6 +5,7 @@ import { dirname, join, resolve, sep } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { safeRmSync } from "../../../olt/scripts/src/core/shared/safe-fs/index.ts";
 
+// VirtualMemoryFS in-memory mocked sandbox
 describe("safe-fs destructive guard", () => {
   const mockFiles = new Map<string, string>();
   const mockDirs = new Set<string>();

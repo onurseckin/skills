@@ -4,6 +4,7 @@ import { join, resolve } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { findRepoRoot, resolveSkillHomeRepo } from "../../../olt/scripts/src/core/shared/paths.ts";
 
+// VirtualMemoryFS in-memory mocked sandbox
 describe("findRepoRoot refuses to guess", () => {
   const mockDirs = new Set<string>();
   const spies: { mockRestore: () => void }[] = [];

@@ -1,9 +1,12 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { readBrowserRunReport } from "../../../olt/scripts/src/reporting/browser-run-report.ts";
-import { cleanupTempDirs, tempDir } from "./browser-run-fixture.ts";
+import { cleanupTempDirs, setupVirtualBrowserFS, tempDir } from "./browser-run-fixture.ts";
 
+beforeEach(() => {
+  setupVirtualBrowserFS();
+});
 afterEach(cleanupTempDirs);
 
 export const browserRunReportSuiteName = "readBrowserRunReport";

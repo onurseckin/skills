@@ -3,6 +3,7 @@ import * as fs from "node:fs";
 import { join, resolve } from "node:path";
 import * as flockFfi from "../../../olt/scripts/src/platform/fs/flock-ffi.ts";
 
+// VirtualMemoryFS in-memory mocked snapshot filesystem
 export interface VirtualNode {
   isDir: boolean;
   content?: string;

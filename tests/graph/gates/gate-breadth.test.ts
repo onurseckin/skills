@@ -10,6 +10,7 @@ import {
   scopeIsNarrow,
 } from "../../../olt/scripts/src/graph/gate-breadth.ts";
 
+// VirtualMemoryFS in-memory mocked sandbox
 const vfs = new Set<string>();
 const vdirs = new Set<string>();
 let rootCounter = 0;

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -12,8 +12,11 @@ import {
   findBrowserReportCandidates,
 } from "../../../olt/scripts/src/reporting/browser-run-scanner.ts";
 import type { BrowserRunRecord } from "../../../olt/scripts/src/reporting/browser-run-types.ts";
-import { cleanupTempDirs, tempDir } from "./browser-run-fixture.ts";
+import { cleanupTempDirs, setupVirtualBrowserFS, tempDir } from "./browser-run-fixture.ts";
 
+beforeEach(() => {
+  setupVirtualBrowserFS();
+});
 afterEach(cleanupTempDirs);
 
 function record(overrides: Partial<BrowserRunRecord> = {}): BrowserRunRecord {

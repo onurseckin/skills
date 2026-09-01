@@ -7,6 +7,7 @@ import {
   expandWriteScope,
 } from "../../../olt/scripts/src/graph/scope-expansion.ts";
 
+// VirtualMemoryFS in-memory mocked sandbox
 const vfs = new Set<string>();
 const vdirs = new Set<string>();
 const lockedDirs = new Set<string>();

@@ -9,6 +9,7 @@ import {
   slugifyScope,
 } from "../../../olt/scripts/src/graph/auto-partition.ts";
 
+// VirtualMemoryFS in-memory mocked sandbox
 const vfs = new Set<string>();
 const vdirs = new Set<string>();
 const vsymlinks = new Map<string, string>();

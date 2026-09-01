@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { proveGateFalsifiable } from "../../../olt/scripts/src/graph/gate-proof.ts";
@@ -6,11 +6,16 @@ import {
   cleanupProofRepos,
   fakeGit,
   fsCheckSpawn,
+  installGateProofSpies,
   noopSpawn,
   repoWithoutRealGit,
 } from "./gate-proof-fixture.ts";
 
 describe("proveGateFalsifiable: core falsifiability", () => {
+  beforeEach(() => {
+    installGateProofSpies();
+  });
+
   afterEach(() => {
     cleanupProofRepos();
   });
