@@ -227,6 +227,7 @@ export function runStateAssertion(): string[] {
 }
 
 export async function cleanupRoots(roots: string[]): Promise<void> {
+  cleanupVirtualCliFS();
   roots.splice(0);
 }
 
