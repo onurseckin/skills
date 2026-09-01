@@ -25,9 +25,9 @@ export function normPath(p: string | number): string {
 export function makeStats(s: VirtualStats, targetPath: string): fs.Stats {
   const norm = normPath(targetPath);
   const mtimeMs = customMtimes.get(norm) ?? s.mtimeMs;
-  const atimeMs = s.atimeMs;
-  const ctimeMs = s.ctimeMs;
-  const birthtimeMs = s.birthtimeMs;
+  const atimeMs = s.atimeMs,
+    ctimeMs = s.ctimeMs,
+    birthtimeMs = s.birthtimeMs;
   const mode = customModes.get(norm) ?? (s.isDirectory() ? 0o755 : 0o644);
   const uid = typeof process.getuid === "function" ? process.getuid() : 0;
   const gid = typeof process.getgid === "function" ? process.getgid() : 0;

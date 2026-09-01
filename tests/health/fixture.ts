@@ -2,11 +2,7 @@ import { join } from "node:path";
 import { buildModules } from "../../olt/scripts/src/health/modules.ts";
 import { loadSources, type SourceFile } from "../../olt/scripts/src/health/sources.ts";
 import { scanSource } from "../../olt/scripts/src/health/scanner.ts";
-import {
-  cleanupVirtualHealthFS,
-  ensureVirtualHealthFS,
-  vfs,
-} from "./virtual-fs.ts";
+import { cleanupVirtualHealthFS, ensureVirtualHealthFS, vfs } from "./virtual-fs.ts";
 
 export {
   cleanupVirtualHealthFS,

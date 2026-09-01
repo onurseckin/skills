@@ -8,7 +8,11 @@ import {
   type WatchdogStore,
 } from "../../../olt/scripts/src/authority/watchdog/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { cleanupVirtualAuthorityFS, getVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
+import {
+  cleanupVirtualAuthorityFS,
+  getVirtualAuthorityFS,
+  setupVirtualAuthorityFS,
+} from "../fixture.ts";
 
 describe("WatchdogManager - Store Lifecycle & Resolution", () => {
   beforeEach(() => {

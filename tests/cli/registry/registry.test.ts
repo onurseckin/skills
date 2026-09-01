@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import {
@@ -125,7 +124,8 @@ describe("CLI command registry", () => {
   });
 
   test("task:check never attributes an omitted --actor to a fabricated role-name literal", async () => {
-    const repo = mkdtempSync(join(tmpdir(), "task-check-actor-"));
+    const repo = "/virtual/task-check-actor";
+    mkdirSync(repo, { recursive: true });
     const cleanPath = join(repo, "clean.ts");
     writeFileSync(cleanPath, "export const cleanVal = 10;\n");
     const runRoot = initRun(
@@ -146,11 +146,11 @@ describe("CLI command registry", () => {
     const receiptEntry = receipts[receiptKeys[0] as string];
     expect(receiptEntry?.actor).not.toBe("mechanic-validator");
     expect(receiptEntry?.actor).toBe(autoDeriveCallerIdentity().actor);
-    rmSync(repo, { recursive: true, force: true });
   });
 
   test("a declared --json flag actually changes what the handler returns, for every command this lane owns", () => {
-    const repo = mkdtempSync(join(tmpdir(), "declared-json-"));
+    const repo = "/virtual/declared-json";
+    mkdirSync(repo, { recursive: true });
     const run = initRun(
       repo,
       "declared-json-flag-run",
@@ -177,7 +177,6 @@ describe("CLI command registry", () => {
       expect(withoutFlag["json"]).not.toBe(true);
       expect(withFlag["json"]).toBe(true);
     }
-    rmSync(repo, { recursive: true, force: true });
   });
 
   test("removes --json from commands whose handler never read it, instead of leaving a flag that silently does nothing", () => {

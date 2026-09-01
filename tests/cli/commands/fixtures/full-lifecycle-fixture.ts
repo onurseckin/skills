@@ -14,18 +14,56 @@ import {
 import { spyOn } from "bun:test";
 import * as childProcess from "node:child_process";
 
+import {
+  disableInMemoryAgentMetadata,
+  enableInMemoryAgentMetadata,
+} from "../../../../olt/scripts/src/runtime/session.ts";
+import * as processTree from "../../../../olt/scripts/src/engine/runner/process/process-tree.ts";
+
 let vfs = new VirtualMemoryFS();
 let session: VirtualFSSession | undefined;
 let restoreDefectDeps: (() => void) | undefined;
 let execFileSpy: { mockRestore: () => void } | undefined;
+let spawnSyncSpy: { mockRestore: () => void } | undefined;
+let execSyncSpy: { mockRestore: () => void } | undefined;
+let bunSpawnSpy: { mockRestore: () => void } | undefined;
+let processSnapshotSpy: { mockRestore: () => void } | undefined;
 let fetchSpy: { mockRestore: () => void } | undefined;
 
 function normPath(p: string): string {
   return path.resolve(String(p)).replace(/\\/g, "/");
 }
 
+function createMockChildProcess(exitCode = 0, stdoutText = "", stderrText = "") {
+  const encoder = new TextEncoder();
+  const stdoutStream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      if (stdoutText) controller.enqueue(encoder.encode(stdoutText));
+      controller.close();
+    },
+  });
+  const stderrStream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      if (stderrText) controller.enqueue(encoder.encode(stderrText));
+      controller.close();
+    },
+  });
+  return {
+    pid: 99999,
+    exitCode,
+    exited: Promise.resolve(exitCode),
+    stdout: stdoutStream,
+    stderr: stderrStream,
+    stdin: undefined,
+    kill: () => {},
+    ref: () => {},
+    unref: () => {},
+  };
+}
+
 export function setupVirtualCliFS(): VirtualMemoryFS {
   cleanupVirtualCliFS();
+  enableInMemoryAgentMetadata();
   vfs = new VirtualMemoryFS();
   const repoRoot = normPath(process.cwd());
   vfs.mkdirSync(repoRoot, { recursive: true });
@@ -59,10 +97,68 @@ export function setupVirtualCliFS(): VirtualMemoryFS {
             ? (argsOrCallback as (err: null, stdout: string, stderr: string) => void)
             : undefined;
     if (cb) {
-      queueMicrotask(() => cb(null, "", ""));
+      queueMicrotask(() => cb(null, `${process.pid} 1 ${process.pid}\n`, ""));
     }
     return {} as never;
   }) as never);
+
+  spawnSyncSpy = spyOn(childProcess, "spawnSync").mockImplementation(((
+    cmd: string,
+    args?: string[],
+  ) => {
+    const argStr = Array.isArray(args) ? args.join(" ") : "";
+    if (
+      argStr.includes("missing-shell-input") ||
+      argStr.includes("false") ||
+      argStr.includes("exit 1")
+    ) {
+      return { status: 1, stdout: "", stderr: "mock command error" };
+    }
+    if (argStr.includes("rev-parse --show-toplevel")) {
+      return { status: 0, stdout: repoRoot, stderr: "" };
+    }
+    if (argStr.includes("rev-parse HEAD")) {
+      return { status: 0, stdout: "0123456789abcdef0123456789abcdef01234567\n", stderr: "" };
+    }
+    return { status: 0, stdout: "", stderr: "" };
+  }) as never);
+
+  execSyncSpy = spyOn(childProcess, "execSync").mockImplementation((() => {
+    return Buffer.from("");
+  }) as never);
+
+  bunSpawnSpy = spyOn(Bun, "spawn").mockImplementation(((...args: unknown[]) => {
+    const first = args[0];
+    let cmd: string[] = [];
+    if (Array.isArray(first)) {
+      cmd = first as string[];
+    } else if (
+      typeof first === "object" &&
+      first !== null &&
+      "cmd" in first &&
+      Array.isArray((first as { cmd: unknown }).cmd)
+    ) {
+      cmd = (first as { cmd: string[] }).cmd;
+    }
+    const cmdStr = cmd.join(" ") + " " + JSON.stringify(args);
+    if (
+      cmdStr.includes("missing-shell-input") ||
+      cmdStr.includes("false") ||
+      cmdStr.includes("exit 1") ||
+      cmdStr.includes("gate-red")
+    ) {
+      return createMockChildProcess(1, "", "mock command error");
+    }
+    return createMockChildProcess(0, "", "");
+  }) as never);
+
+  processSnapshotSpy = spyOn(processTree, "processSnapshot").mockImplementation(async () => {
+    return new Map([
+      [process.pid, { pid: process.pid, parent: 1, group: process.pid }],
+      [99999, { pid: 99999, parent: process.pid, group: 99999 }],
+    ]);
+  });
+
   fetchSpy = spyOn(globalThis, "fetch").mockImplementation((() =>
     Promise.reject(new Error("network disabled in tests"))) as never);
   session = createVirtualFSSession(vfs);
@@ -71,6 +167,30 @@ export function setupVirtualCliFS(): VirtualMemoryFS {
 }
 
 export function cleanupVirtualCliFS(): void {
+  if (processSnapshotSpy) {
+    try {
+      processSnapshotSpy.mockRestore();
+    } catch {}
+    processSnapshotSpy = undefined;
+  }
+  if (bunSpawnSpy) {
+    try {
+      bunSpawnSpy.mockRestore();
+    } catch {}
+    bunSpawnSpy = undefined;
+  }
+  if (execSyncSpy) {
+    try {
+      execSyncSpy.mockRestore();
+    } catch {}
+    execSyncSpy = undefined;
+  }
+  if (spawnSyncSpy) {
+    try {
+      spawnSyncSpy.mockRestore();
+    } catch {}
+    spawnSyncSpy = undefined;
+  }
   if (fetchSpy) {
     try {
       fetchSpy.mockRestore();
@@ -91,6 +211,7 @@ export function cleanupVirtualCliFS(): void {
     restoreDefectDeps();
     restoreDefectDeps = undefined;
   }
+  disableInMemoryAgentMetadata();
   vfs.reset();
 }
 

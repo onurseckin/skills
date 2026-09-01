@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   type AnchorSymbol,
@@ -25,7 +24,7 @@ describe("Domain 17: Zero-Exploration Exact-Anchor Briefing Engine - Scope & Ass
   });
   describe("Challenge 4: Write-Scope Directory Expansion & Planned Path Disambiguation", () => {
     it("expands directory write-scopes into candidate files and filters out gitignored/scratch paths", () => {
-      const root = mkdtempSync(join(tmpdir(), "briefing-scope-"));
+      const root = "/virtual/briefing-scope";
       mkdirSync(join(root, "src"), { recursive: true });
       mkdirSync(join(root, "scratch"), { recursive: true });
       mkdirSync(join(root, ".git"), { recursive: true });
@@ -45,7 +44,6 @@ describe("Domain 17: Zero-Exploration Exact-Anchor Briefing Engine - Scope & Ass
       expect(expanded).not.toContain("scratch/temp.ts");
       expect(expanded.some((f) => f.includes("node_modules"))).toBe(false);
       expect(expanded.some((f) => f.includes(".git"))).toBe(false);
-      rmSync(root, { recursive: true, force: true });
     });
 
     it("disambiguates planned code files from planned extensionless directory paths", () => {
@@ -58,7 +56,8 @@ describe("Domain 17: Zero-Exploration Exact-Anchor Briefing Engine - Scope & Ass
       expect(isTargetFilePath("package-lock.json")).toBe(true);
       expect(isTargetFilePath("bun.lockb")).toBe(false);
 
-      const root = mkdtempSync(join(tmpdir(), "briefing-disambig-"));
+      const root = "/virtual/briefing-disambig";
+      mkdirSync(root, { recursive: true });
       const expanded = expandWriteScope(
         ["src/modules/auth/service.ts", "src/modules/auth", "src/auth/"],
         root,
@@ -66,7 +65,6 @@ describe("Domain 17: Zero-Exploration Exact-Anchor Briefing Engine - Scope & Ass
       expect(expanded).toContain("src/modules/auth/service.ts");
       expect(expanded).not.toContain("src/modules/auth");
       expect(expanded).not.toContain("src/auth/");
-      rmSync(root, { recursive: true, force: true });
     });
   });
 
@@ -117,7 +115,7 @@ describe("Domain 17: Zero-Exploration Exact-Anchor Briefing Engine - Scope & Ass
     });
 
     it("generates full exact-anchor briefing through buildExactAnchorBriefing pipeline", () => {
-      const root = mkdtempSync(join(tmpdir(), "briefing-pipeline-"));
+      const root = "/virtual/briefing-pipeline";
       mkdirSync(join(root, "src"), { recursive: true });
       const filePath = join(root, "src", "service.ts");
       writeFileSync(
@@ -144,7 +142,6 @@ describe("Domain 17: Zero-Exploration Exact-Anchor Briefing Engine - Scope & Ass
       expect(briefing.symbols.some((s) => s.name === "runPipeline")).toBe(true);
       expect(briefing.anchors.length).toBeGreaterThan(0);
       expect(briefing.waitMsMandate).toBe(10000);
-      rmSync(root, { recursive: true, force: true });
     });
   });
 });

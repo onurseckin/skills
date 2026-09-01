@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, afterEach, spyOn } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import * as fs from "node:fs";
 import { dirname, join, resolve, sep } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
@@ -11,17 +11,20 @@ import {
   safeWriteFileSync,
   type DestructiveAuditEvent,
 } from "../../../olt/scripts/src/core/shared/safe-fs/index.ts";
+import {
+  createSafeFsMockState,
+  createSafeFsSpies,
+  type SafeFsMockState,
+} from "./safe-fs-fixtures.ts";
 
 describe("safe-fs: directory guards and atomic operations", () => {
-  const mockFiles = new Map<string, string>();
-  const mockDirs = new Set<string>();
-  const mockSymlinks = new Map<string, string>();
+  let state: SafeFsMockState;
   const spies: { mockRestore: () => void }[] = [];
   let rootCounter = 0;
 
   function makeFixtureRoot(): string {
     const root = `/tmp/virtual/safe-fs-fixture-${++rootCounter}`;
-    mockDirs.add(root);
+    state.mockDirs.add(root);
     return root;
   }
 
@@ -40,139 +43,8 @@ describe("safe-fs: directory guards and atomic operations", () => {
   }
 
   beforeEach(() => {
-    mockFiles.clear();
-    mockDirs.clear();
-    mockSymlinks.clear();
-
-    const resolveSymlinksInPath = (p: string): string => {
-      let current = "";
-      for (const part of p.split(sep)) {
-        if (!part && !current) {
-          current = sep;
-          continue;
-        }
-        current = current === sep ? sep + part : join(current, part);
-        if (mockSymlinks.has(current)) current = mockSymlinks.get(current)!;
-      }
-      return current;
-    };
-
-    spies.push(
-      spyOn(fs, "existsSync").mockImplementation(
-        (p: fs.PathLike) =>
-          mockFiles.has(String(p)) ||
-          mockDirs.has(String(p)) ||
-          mockSymlinks.has(String(p)) ||
-          String(p) === "/" ||
-          String(p) === sep,
-      ),
-      spyOn(fs, "mkdirSync").mockImplementation(((p: fs.PathLike) => {
-        let s = String(p);
-        while (s && s !== "/" && s !== ".") {
-          mockDirs.add(s);
-          s = dirname(s);
-        }
-        return undefined as unknown as string;
-      }) as unknown as typeof fs.mkdirSync),
-      spyOn(fs, "writeFileSync").mockImplementation(((
-        p: fs.PathOrFileDescriptor,
-        data: string | NodeJS.ArrayBufferView,
-      ) => {
-        mockFiles.set(
-          String(p),
-          typeof data === "string" ? data : Buffer.from(data as Uint8Array).toString("utf8"),
-        );
-      }) as unknown as typeof fs.writeFileSync),
-      spyOn(fs, "symlinkSync").mockImplementation(((target: fs.PathLike, p: fs.PathLike) => {
-        mockSymlinks.set(String(p), String(target));
-      }) as unknown as typeof fs.symlinkSync),
-      spyOn(fs, "realpathSync").mockImplementation(((p: fs.PathLike) =>
-        String(p) === "/" || String(p) === sep
-          ? String(p)
-          : resolveSymlinksInPath(String(p))) as unknown as typeof fs.realpathSync),
-      spyOn(fs, "lstatSync").mockImplementation(((p: fs.PathLike) => {
-        const s = String(p);
-        if (s === "/" || s === sep)
-          return {
-            isDirectory: () => true,
-            isFile: () => false,
-            isSymbolicLink: () => false,
-          } as unknown as fs.Stats;
-        if (mockSymlinks.has(s))
-          return {
-            isDirectory: () => false,
-            isFile: () => false,
-            isSymbolicLink: () => true,
-          } as unknown as fs.Stats;
-        if (mockDirs.has(s))
-          return {
-            isDirectory: () => true,
-            isFile: () => false,
-            isSymbolicLink: () => false,
-          } as unknown as fs.Stats;
-        if (mockFiles.has(s))
-          return {
-            isDirectory: () => false,
-            isFile: () => true,
-            isSymbolicLink: () => false,
-          } as unknown as fs.Stats;
-        const err = new Error(`ENOENT: no such file or directory, lstat '${s}'`) as Error & {
-          code: string;
-        };
-        err.code = "ENOENT";
-        throw err;
-      }) as unknown as typeof fs.lstatSync),
-      spyOn(fs, "rmSync").mockImplementation(((p: fs.PathLike) => {
-        const s = String(p);
-        mockFiles.delete(s);
-        mockDirs.delete(s);
-        mockSymlinks.delete(s);
-        for (const f of Array.from(mockFiles.keys()))
-          if (f.startsWith(s + "/")) mockFiles.delete(f);
-        for (const d of Array.from(mockDirs)) if (d.startsWith(s + "/")) mockDirs.delete(d);
-        for (const sym of Array.from(mockSymlinks.keys()))
-          if (sym.startsWith(s + "/")) mockSymlinks.delete(sym);
-      }) as unknown as typeof fs.rmSync),
-      spyOn(fs, "renameSync").mockImplementation(((from: fs.PathLike, to: fs.PathLike) => {
-        const fromStr = String(from);
-        const toStr = String(to);
-        const val = mockFiles.get(fromStr);
-        if (val !== undefined) {
-          mockFiles.set(toStr, val);
-          mockFiles.delete(fromStr);
-        }
-        if (mockDirs.has(fromStr)) {
-          mockDirs.delete(fromStr);
-          mockDirs.add(toStr);
-        }
-        for (const f of Array.from(mockFiles.keys())) {
-          if (f.startsWith(fromStr + "/")) {
-            mockFiles.set(toStr + f.slice(fromStr.length), mockFiles.get(f)!);
-            mockFiles.delete(f);
-          }
-        }
-        for (const d of Array.from(mockDirs)) {
-          if (d.startsWith(fromStr + "/")) {
-            mockDirs.add(toStr + d.slice(fromStr.length));
-            mockDirs.delete(d);
-          }
-        }
-      }) as unknown as typeof fs.renameSync),
-      spyOn(fs, "cpSync").mockImplementation(((from: fs.PathLike, to: fs.PathLike) => {
-        const fromStr = String(from);
-        const toStr = String(to);
-        const val = mockFiles.get(fromStr);
-        if (val !== undefined) mockFiles.set(toStr, val);
-        if (mockDirs.has(fromStr)) mockDirs.add(toStr);
-        for (const f of Array.from(mockFiles.keys())) {
-          if (f.startsWith(fromStr + "/"))
-            mockFiles.set(toStr + f.slice(fromStr.length), mockFiles.get(f)!);
-        }
-        for (const d of Array.from(mockDirs)) {
-          if (d.startsWith(fromStr + "/")) mockDirs.add(toStr + d.slice(fromStr.length));
-        }
-      }) as unknown as typeof fs.cpSync),
-    );
+    state = createSafeFsMockState();
+    spies.push(...createSafeFsSpies(state));
   });
 
   afterEach(() => {

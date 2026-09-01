@@ -30,7 +30,11 @@ import {
   loadRepoPolicy,
   verifyCommandAuthorization,
 } from "../../../olt/scripts/src/policy/index.ts";
-import { cleanupVirtualAuthorityFS, getVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
+import {
+  cleanupVirtualAuthorityFS,
+  getVirtualAuthorityFS,
+  setupVirtualAuthorityFS,
+} from "../fixture.ts";
 
 function createCapsule(name: string): { readonly repo: string; readonly run: string } {
   const vfs = getVirtualAuthorityFS();

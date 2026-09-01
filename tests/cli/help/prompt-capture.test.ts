@@ -1,8 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { capturePromptWithTimeout } from "../../../olt/scripts/src/cli/prompt-capture.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { mkdtemp, writeFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   cleanupVirtualCliFS,
@@ -12,15 +11,12 @@ import {
 describe("capturePromptWithTimeout", () => {
   let tempDir = "";
 
-  beforeEach(async () => {
+  beforeEach(() => {
     setupVirtualCliFS();
-    tempDir = await mkdtemp(join(tmpdir(), "prompt-cap-"));
+    tempDir = "/virtual/prompt-cap";
   });
 
-  afterEach(async () => {
-    if (tempDir) {
-      await rm(tempDir, { recursive: true, force: true });
-    }
+  afterEach(() => {
     cleanupVirtualCliFS();
   });
 

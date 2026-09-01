@@ -1,6 +1,5 @@
-import { afterAll, afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   agentBriefCommand,
@@ -19,7 +18,7 @@ describe("executeAgentBrief", () => {
 
   beforeEach(() => {
     setupVirtualCliFS();
-    scratchBase = mkdtempSync(join(tmpdir(), "agent-brief-suite-"));
+    scratchBase = "/virtual/agent-brief-suite";
   });
 
   afterEach(() => {

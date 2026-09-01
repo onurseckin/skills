@@ -1,11 +1,11 @@
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../../olt/scripts/src/cli/execute.ts";
 import {
   establishSupervisorChain,
   registerUnderChain,
 } from "../../../shared/chains/agent-supervisor-chain.ts";
+import { setupVirtualCliFS } from "./full-lifecycle-fixture.ts";
 export { establishSupervisorChain, registerUnderChain };
 
 /** Two tasks, one depending on the other, compiled and ready to be claimed. */
@@ -14,7 +14,8 @@ export async function setupCompiledRun(
   roots: string[],
   config?: Record<string, boolean | number | string>,
 ) {
-  const repo = await mkdtemp(join(tmpdir(), `task-ops-${name}-`));
+  setupVirtualCliFS();
+  const repo = `/virtual/cli/task-ops-${name}-${Math.random().toString(36).slice(2)}`;
   roots.push(repo);
   await mkdir(join(repo, ".git"), { recursive: true });
   const promptPath = join(repo, "prompt.txt");
@@ -92,7 +93,8 @@ export async function setupCompiledRun(
 }
 
 export async function setupCompiledRunUncompiled(name: string, roots: string[]) {
-  const repo = await mkdtemp(join(tmpdir(), `task-ops-${name}-`));
+  setupVirtualCliFS();
+  const repo = `/virtual/cli/task-ops-uncomp-${name}-${Math.random().toString(36).slice(2)}`;
   roots.push(repo);
   await mkdir(join(repo, ".git"), { recursive: true });
   const promptPath = join(repo, "prompt.txt");

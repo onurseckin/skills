@@ -13,29 +13,27 @@ import {
   disableInMemoryAgentMetadata,
   enableInMemoryAgentMetadata,
 } from "../../../../olt/scripts/src/runtime/session.ts";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Flags } from "../../../../olt/scripts/src/cli/options.ts";
 import { generateDefaultRepoPolicy } from "../../../../olt/scripts/src/policy/repo-policy.ts";
 import { transact } from "../../../../olt/scripts/src/engine/store/index.ts";
+import {
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../commands/fixtures/full-lifecycle-fixture.ts";
 
-const roots: string[] = [];
 beforeEach(() => {
-  enableInMemoryAgentMetadata();
+  setupVirtualCliFS();
 });
 
 afterEach(() => {
-  disableInMemoryAgentMetadata();
-  for (const root of roots) {
-    rmSync(root, { recursive: true, force: true });
-  }
-  roots.length = 0;
+  cleanupVirtualCliFS();
 });
 
 async function initializeRun(label: string): Promise<{ repo: string; runRoot: string }> {
-  const repo = mkdtempSync(join(tmpdir(), `run-ops-status-${label}-`));
-  roots.push(repo);
+  const repo = `/virtual/run-ops-status-${label}-${Math.random().toString(36).slice(2)}`;
+  mkdirSync(repo, { recursive: true });
   const promptPath = join(repo, "prompt.txt");
   writeFileSync(promptPath, "runner metadata authority test", "utf-8");
   const initialized = await execute([

@@ -7,7 +7,11 @@ import {
   withWatchdogStoreLock,
 } from "../../../olt/scripts/src/authority/watchdog/index.ts";
 import { openVerifiedParent } from "../../../olt/scripts/src/authority/watchdog/lock.ts";
-import { cleanupVirtualAuthorityFS, getVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
+import {
+  cleanupVirtualAuthorityFS,
+  getVirtualAuthorityFS,
+  setupVirtualAuthorityFS,
+} from "../fixture.ts";
 
 describe("WatchdogManager - Concurrency & Lock Exclusivity", () => {
   beforeEach(() => {

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import { join } from "node:path";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
@@ -8,9 +8,18 @@ import { HarnessError } from "../../../../../olt/scripts/src/core/errors/index.t
 import { scratchRoot } from "../../../../shared/fixtures/scratch-root.ts";
 import { initRun, transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
 import { registerSessionGrant } from "../../../../../olt/scripts/src/authority/session/index.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
 const PREEXISTING_BACKLOG_LINE =
   '{"id":"existing-remediation","timestamp":"2026-08-26T00:00:00.000Z","priority":"LOW","status":"PENDING","category":"CORE_ENGINE","title":"Existing remediation","content":"Keep this sentinel","candidate_id":null,"resolution_note":null,"processed_at":null}\n';
+
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+
+afterEach(() => {
+  cleanupVirtualCliFS();
+});
 
 function setupInjectableMetaAuditRun(
   label: string,

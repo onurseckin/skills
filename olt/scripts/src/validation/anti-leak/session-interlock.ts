@@ -2,7 +2,10 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { HarnessError } from "../../core/errors/index.ts";
 import { findRepoRoot, resolveScratchDir } from "../../core/shared/paths.ts";
-import { getInMemorySessionStore, resolveGlobalSessionsDir } from "../../authority/session/paths.ts";
+import {
+  getInMemorySessionStore,
+  resolveGlobalSessionsDir,
+} from "../../authority/session/paths.ts";
 import { resolveActiveSession } from "../../authority/session/resolver.ts";
 import type { SessionIdentity } from "../../authority/session/types.ts";
 

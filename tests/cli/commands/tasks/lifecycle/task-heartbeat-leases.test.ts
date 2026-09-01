@@ -1,4 +1,4 @@
-import { readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { afterEach, describe, expect, test } from "bun:test";
@@ -143,21 +143,23 @@ describe("task:heartbeat and task:claim Leases", () => {
     spawnSync("git", ["config", "user.name", "Test"], { cwd: repo });
     spawnSync("git", ["commit", "--allow-empty", "-m", "init"], { cwd: repo });
 
-    await Bun.write(
+    mkdirSync(join(repo, ".olt"), { recursive: true });
+    writeFileSync(
       join(repo, "harness.config.json"),
       JSON.stringify({ worktree_isolation: true, commit_per_subphase: true }),
     );
-    await Bun.write(
+    writeFileSync(
       join(repo, ".olt", "harness.config.json"),
       JSON.stringify({ worktree_isolation: true, commit_per_subphase: true }),
     );
-    await Bun.write(
+    writeFileSync(
       join(resolve(run, "..", ".."), "harness.config.json"),
       JSON.stringify({ worktree_isolation: true, commit_per_subphase: true }),
     );
 
     const wtDir = join(repo, ".worktrees", "task-core");
-    await Bun.write(join(wtDir, "tests/core/probe-target.ts"), "export const a = 1;\n");
+    mkdirSync(join(wtDir, "tests/core"), { recursive: true });
+    writeFileSync(join(wtDir, "tests/core/probe-target.ts"), "export const a = 1;\n");
 
     transact(run, "coordinator", "worktree-assigned", {}, (draft) => {
       draft.worktree_ledger = {

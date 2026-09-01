@@ -18,7 +18,11 @@ import {
   type WatchdogStore,
 } from "../../../olt/scripts/src/authority/watchdog/index.ts";
 import { delay, openVerifiedParent } from "../../../olt/scripts/src/authority/watchdog/lock.ts";
-import { cleanupVirtualAuthorityFS, getVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
+import {
+  cleanupVirtualAuthorityFS,
+  getVirtualAuthorityFS,
+  setupVirtualAuthorityFS,
+} from "../fixture.ts";
 
 describe("Authority Watchdog Store, Lock, Operations & Verification Comprehensive", () => {
   beforeEach(() => {

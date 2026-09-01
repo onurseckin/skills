@@ -26,9 +26,15 @@ export function setupVirtualCaptureFS(): VirtualMemoryFS {
     currentVfs = new VirtualMemoryFS();
     const repoRoot = normPath(process.cwd());
     currentVfs.mkdirSync(repoRoot, { recursive: true });
+    currentVfs.mkdirSync(path.join(repoRoot, ".git"), { recursive: true });
     currentVfs.mkdirSync(path.join(repoRoot, ".olt", "capsules"), { recursive: true });
     currentVfs.mkdirSync(path.join(repoRoot, ".olt", "scratch"), { recursive: true });
     currentVfs.mkdirSync(path.join(repoRoot, ".tmp"), { recursive: true });
+    currentVfs.writeFileSync(
+      path.join(repoRoot, "package.json"),
+      JSON.stringify({ name: "skills" }),
+    );
+    currentVfs.chdir(repoRoot);
     currentSession = createVirtualFSSession(currentVfs);
   }
   return currentVfs;

@@ -2,6 +2,7 @@ export { createSampleStragglerTask } from "./fixture.ts";
 
 export const STRAGGLERS_SUITES = [
   "companion-auditor",
+  "companion-forensics",
   "completion-audio",
   "morning-report",
   "straggler-sla",

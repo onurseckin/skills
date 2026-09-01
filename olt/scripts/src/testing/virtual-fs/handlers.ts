@@ -63,6 +63,22 @@ export function getInode(state: VirtualFSSpyState, targetPath: string): number {
   return ino;
 }
 
+export function checkRmPermissions(
+  state: VirtualFSSpyState,
+  np: string,
+  opts?: fs.RmOptions,
+): void {
+  for (const [k, mode] of state.customModes.entries()) {
+    const isDir = state.vfs.statSync(k, { throwIfNoEntry: false })?.isDirectory();
+    if (isDir && (k === np || k.startsWith(np + "/")) && (mode & 0o222) === 0) {
+      throw Object.assign(new Error(`EACCES: permission denied, rm '${k}'`), { code: "EACCES" });
+    }
+    if (!opts?.force && k === np && (mode & 0o222) === 0) {
+      throw Object.assign(new Error(`EACCES: permission denied, rm '${k}'`), { code: "EACCES" });
+    }
+  }
+}
+
 export function makeFsStats(
   state: VirtualFSSpyState,
   s: VirtualStats,
@@ -77,41 +93,9 @@ export function makeFsStats(
   const nlink = state.hardlinks?.get(ino) ?? 1;
   const uid = typeof process.getuid === "function" ? process.getuid() : 0;
   const gid = typeof process.getgid === "function" ? process.getgid() : 0;
-  if (bigint) {
-    const bMtimeMs = BigInt(mtimeMs);
-    return {
-      isFile: () => !isLink && s.isFile(),
-      isDirectory: () => !isLink && s.isDirectory(),
-      isSymbolicLink: () => isLink,
-      isBlockDevice: NOOP_FALSE,
-      isCharacterDevice: NOOP_FALSE,
-      isFIFO: NOOP_FALSE,
-      isSocket: NOOP_FALSE,
-      size: BigInt(s.size),
-      atimeMs: BigInt(s.atimeMs),
-      mtimeMs: bMtimeMs,
-      ctimeMs: BigInt(s.ctimeMs),
-      birthtimeMs: BigInt(s.birthtimeMs),
-      atimeNs: BigInt(s.atimeMs) * 1000000n,
-      mtimeNs: bMtimeMs * 1000000n,
-      ctimeNs: BigInt(s.ctimeMs) * 1000000n,
-      birthtimeNs: BigInt(s.birthtimeMs) * 1000000n,
-      atime: s.atime,
-      mtime: new Date(mtimeMs),
-      ctime: s.ctime,
-      birthtime: s.birthtime,
-      mode: BigInt(mode),
-      ino: BigInt(ino),
-      dev: 1n,
-      nlink: BigInt(nlink),
-      uid: BigInt(uid),
-      gid: BigInt(gid),
-      rdev: 0n,
-      blksize: 4096n,
-      blocks: BigInt(Math.ceil(s.size / 512)),
-    } as unknown as fs.Stats;
-  }
-  return {
+  const B = bigint ? BigInt : Number;
+  const bm = BigInt(mtimeMs);
+  const res: Record<string, unknown> = {
     isFile: () => !isLink && s.isFile(),
     isDirectory: () => !isLink && s.isDirectory(),
     isSymbolicLink: () => isLink,
@@ -119,25 +103,32 @@ export function makeFsStats(
     isCharacterDevice: NOOP_FALSE,
     isFIFO: NOOP_FALSE,
     isSocket: NOOP_FALSE,
-    size: s.size,
-    atimeMs: s.atimeMs,
-    mtimeMs,
-    ctimeMs: s.ctimeMs,
-    birthtimeMs: s.birthtimeMs,
+    size: B(s.size),
+    atimeMs: B(s.atimeMs),
+    mtimeMs: B(mtimeMs),
+    ctimeMs: B(s.ctimeMs),
+    birthtimeMs: B(s.birthtimeMs),
     atime: s.atime,
     mtime: new Date(mtimeMs),
     ctime: s.ctime,
     birthtime: s.birthtime,
-    mode,
-    ino,
-    dev: 1,
-    nlink,
-    uid,
-    gid,
-    rdev: 0,
-    blksize: 4096,
-    blocks: Math.ceil(s.size / 512),
-  } as unknown as fs.Stats;
+    mode: B(mode),
+    ino: B(ino),
+    dev: B(1),
+    nlink: B(nlink),
+    uid: B(uid),
+    gid: B(gid),
+    rdev: B(0),
+    blksize: B(4096),
+    blocks: B(Math.ceil(s.size / 512)),
+  };
+  if (bigint) {
+    res["atimeNs"] = BigInt(s.atimeMs) * 1000000n;
+    res["mtimeNs"] = bm * 1000000n;
+    res["ctimeNs"] = BigInt(s.ctimeMs) * 1000000n;
+    res["birthtimeNs"] = BigInt(s.birthtimeMs) * 1000000n;
+  }
+  return res as unknown as fs.Stats;
 }
 
 export function copyDirRecursive(vfs: VirtualMemoryFS, srcStr: string, dstStr: string): void {
@@ -297,9 +288,11 @@ export function mockLstat(
   const isBig = Boolean(opts && typeof opts === "object" && opts.bigint);
   if (state.symlinks.has(norm)) {
     const target = state.symlinks.get(norm)!;
-    const vs =
-      state.vfs.statSync(target, { throwIfNoEntry: false }) ??
-      new VirtualStats({ isDir: false, size: target.length });
+    const targetBytes = Buffer.byteLength(target);
+    const existing = state.vfs.statSync(norm, { throwIfNoEntry: false });
+    const vs = existing
+      ? existing.clone({ size: targetBytes })
+      : new VirtualStats({ isDir: false, size: targetBytes, mtimeMs: 0, ctimeMs: 0 });
     return makeFsStats(state, vs, norm, true, isBig);
   }
   const vs =
@@ -315,8 +308,8 @@ export function mockLstat(
 }
 
 export function mockRename(state: VirtualFSSpyState, src: fs.PathLike, dst: fs.PathLike): void {
-  const srcStr = normPath(String(src));
-  const dstStr = normPath(String(dst));
+  const srcStr = normPath(String(src)),
+    dstStr = normPath(String(dst));
   if (state.symlinks.has(srcStr)) {
     const target = state.symlinks.get(srcStr)!;
     state.symlinks.delete(srcStr);
@@ -364,8 +357,8 @@ export function mockRename(state: VirtualFSSpyState, src: fs.PathLike, dst: fs.P
 }
 
 export function mockLink(state: VirtualFSSpyState, src: fs.PathLike, dst: fs.PathLike): void {
-  const srcStr = normPath(String(src));
-  const dstStr = normPath(String(dst));
+  const srcStr = normPath(String(src)),
+    dstStr = normPath(String(dst));
   const stat = state.vfs.statSync(srcStr, { throwIfNoEntry: false });
   if (!stat)
     throw Object.assign(
@@ -380,8 +373,8 @@ export function mockLink(state: VirtualFSSpyState, src: fs.PathLike, dst: fs.Pat
 }
 
 export function mockCp(state: VirtualFSSpyState, src: string | URL, dst: string | URL): void {
-  const srcStr = normPath(String(src));
-  const dstStr = normPath(String(dst));
+  const srcStr = normPath(String(src)),
+    dstStr = normPath(String(dst));
   const stat = state.vfs.statSync(srcStr, { throwIfNoEntry: false });
   if (!stat) {
     throw Object.assign(

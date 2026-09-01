@@ -1,21 +1,21 @@
-import { afterAll, describe, expect, test } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../../olt/scripts/src/cli/execute.ts";
 import { testSummaryCommand } from "../../../../olt/scripts/src/cli/commands/test-summary.ts";
-const roots: string[] = [];
-afterAll(async () => {
-  for (const root of roots) {
-    await rm(root, { recursive: true, force: true }).catch(() => {});
-  }
-  roots.length = 0;
-});
+import {
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../commands/fixtures/full-lifecycle-fixture.ts";
 
 describe("test:summary CLI command", () => {
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
+  afterEach(() => {
+    cleanupVirtualCliFS();
+  });
+
   test("returns empty summary when no test summary exists", async () => {
-    const root = await mkdtemp(join(tmpdir(), "test-summary-empty-"));
-    roots.push(root);
+    const root = "/virtual/test-summary-empty";
 
     const result = await testSummaryCommand({
       run: root,
@@ -27,8 +27,7 @@ describe("test:summary CLI command", () => {
   });
 
   test("saves and queries test summary with full options", async () => {
-    const root = await mkdtemp(join(tmpdir(), "test-summary-save-"));
-    roots.push(root);
+    const root = "/virtual/test-summary-save";
 
     // Save with percentage > 1
     const saveResult = await testSummaryCommand({
@@ -74,8 +73,7 @@ describe("test:summary CLI command", () => {
   });
 
   test("dispatches test:summary via execute", async () => {
-    const root = await mkdtemp(join(tmpdir(), "test-summary-exec-"));
-    roots.push(root);
+    const root = "/virtual/test-summary-exec";
 
     const saved = await execute(["test:summary", "--run", root, "--passed", "25", "--failed", "0"]);
     expect(saved.saved).toBe(true);

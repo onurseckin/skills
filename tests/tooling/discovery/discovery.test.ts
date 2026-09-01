@@ -229,10 +229,7 @@ describe("Tool Discovery and Scanning Unit Test Suite", () => {
       expect(discoverToolsFromManifest(badJsonPath)).toEqual([]);
 
       const mixedArrayPath = join(edgeDir, "mixed.json");
-      writeFileSync(
-        mixedArrayPath,
-        JSON.stringify([null, "not-an-object", 123, sampleToolSpec1]),
-      );
+      writeFileSync(mixedArrayPath, JSON.stringify([null, "not-an-object", 123, sampleToolSpec1]));
       const res = discoverToolsFromManifest(mixedArrayPath);
       expect(res.length).toBe(1);
       expect(res[0]?.name).toBe("calculatorTool");

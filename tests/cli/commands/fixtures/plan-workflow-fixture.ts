@@ -1,7 +1,7 @@
-import { mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../../olt/scripts/src/cli/execute.ts";
+import { setupVirtualCliFS } from "./full-lifecycle-fixture.ts";
 
 /** A freshly plan:init'd run with a throwaway repo and a synthetic multi-line prompt. */
 export async function freshRun(
@@ -9,7 +9,8 @@ export async function freshRun(
   roots: string[],
   promptLines: string[] = ["Line one", "Line two", "Line three"],
 ): Promise<{ repo: string; run: string }> {
-  const repo = await mkdtemp(join(tmpdir(), `harness-plan-workflow-${name}-`));
+  setupVirtualCliFS();
+  const repo = `/virtual/cli/plan-workflow-${name}-${Math.random().toString(36).slice(2)}`;
   roots.push(repo);
   await mkdir(join(repo, ".git"), { recursive: true });
   const promptPath = join(repo, "prompt.txt");

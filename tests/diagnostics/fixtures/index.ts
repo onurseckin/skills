@@ -8,4 +8,3 @@ export {
   scratchRoot,
   SCRATCH_BASE,
 } from "./diagnostics-fixtures.ts";
-

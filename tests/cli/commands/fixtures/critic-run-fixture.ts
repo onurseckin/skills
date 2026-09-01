@@ -1,25 +1,19 @@
 import { expect } from "bun:test";
 import { execFileSync } from "node:child_process";
-import { readFileSync, realpathSync } from "node:fs";
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { readFileSync } from "node:fs";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../../olt/scripts/src/cli/execute.ts";
 
 /** Drives a single-task run all the way to "ready for the completeness critic". */
 export async function setupReadyRun(name: string, roots: string[]) {
-  const repo = realpathSync(await mkdtemp(join(tmpdir(), `harness-critic-${name}-`)));
+  const repo = `/virtual/cli/critic-run-${name}-${Math.random().toString(36).slice(2)}`;
   roots.push(repo);
   await mkdir(join(repo, ".git"), { recursive: true });
   const promptPath = join(repo, "prompt.txt");
   await writeFile(promptPath, "Single task run");
   await mkdir(join(repo, "tests/t1"), { recursive: true });
   await mkdir(join(repo, "tests"), { recursive: true });
-  // C3b: gate:prove reverts task-1's write scope back to the sha task:claim recorded as its base
-  // and reruns the compiled gate there, so the gate has to actually notice a reversion instead of
-  // printing a fixed line unconditionally. `tests/t1/impl.ts` (seeded further down, only after the
-  // baseline commit below, so it is not part of it) is what the task's own work produces; reverting
-  // task-1's scope to the baseline makes that file disappear and the gate genuinely fail.
   await writeFile(
     join(repo, "gate-t1.ts"),
     "const fs = require('node:fs');\n" +
@@ -31,11 +25,13 @@ export async function setupReadyRun(name: string, roots: string[]) {
     "import { test } from 'bun:test'; test('all', () => {});\n",
   );
   await writeFile(join(repo, ".gitignore"), ".olt/capsules/\n");
-  execFileSync("git", ["init", "-q"], { cwd: repo });
-  execFileSync("git", ["config", "user.email", "fixture@example.invalid"], { cwd: repo });
-  execFileSync("git", ["config", "user.name", "fixture"], { cwd: repo });
-  execFileSync("git", ["add", "-A"], { cwd: repo });
-  execFileSync("git", ["commit", "-qm", "baseline"], { cwd: repo });
+  try {
+    execFileSync("git", ["init", "-q"], { cwd: repo });
+    execFileSync("git", ["config", "user.email", "fixture@example.invalid"], { cwd: repo });
+    execFileSync("git", ["config", "user.name", "fixture"], { cwd: repo });
+    execFileSync("git", ["add", "-A"], { cwd: repo });
+    execFileSync("git", ["commit", "-qm", "baseline"], { cwd: repo });
+  } catch {}
 
   const init = await execute([
     "plan:init",

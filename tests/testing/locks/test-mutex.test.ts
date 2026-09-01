@@ -51,9 +51,7 @@ describe("test-mutex", () => {
     release = acquireTestLock(true, ["tests"]);
     expect(getActiveLockStore().existsSync(BROAD_LOCK_FILE)).toBe(true);
 
-    const lockData = JSON.parse(
-      getActiveLockStore().readFileSync(BROAD_LOCK_FILE),
-    ) as TestLockData;
+    const lockData = JSON.parse(getActiveLockStore().readFileSync(BROAD_LOCK_FILE)) as TestLockData;
     expect(lockData.pid).toBe(process.pid);
     expect(lockData.scope).toBe("broad");
 
@@ -123,9 +121,7 @@ describe("test-mutex", () => {
     release = acquireTestLock(true, ["tests"]);
     expect(getActiveLockStore().existsSync(BROAD_LOCK_FILE)).toBe(true);
 
-    const lockData = JSON.parse(
-      getActiveLockStore().readFileSync(BROAD_LOCK_FILE),
-    ) as TestLockData;
+    const lockData = JSON.parse(getActiveLockStore().readFileSync(BROAD_LOCK_FILE)) as TestLockData;
     expect(lockData.pid).toBe(process.pid);
   });
 
@@ -136,9 +132,7 @@ describe("test-mutex", () => {
     release = acquireTestLock(true, ["tests"]);
     expect(getActiveLockStore().existsSync(BROAD_LOCK_FILE)).toBe(true);
 
-    const lockData = JSON.parse(
-      getActiveLockStore().readFileSync(BROAD_LOCK_FILE),
-    ) as TestLockData;
+    const lockData = JSON.parse(getActiveLockStore().readFileSync(BROAD_LOCK_FILE)) as TestLockData;
     expect(lockData.pid).toBe(process.pid);
   });
 

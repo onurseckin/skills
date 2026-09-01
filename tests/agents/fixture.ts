@@ -38,9 +38,14 @@ export function setupVirtualAgentsFS(): VirtualMemoryFS {
     currentVfs.mkdirSync(path.join(repoRoot, ".olt", "scratch"), { recursive: true });
     currentVfs.mkdirSync(path.join(repoRoot, ".olt", "runs"), { recursive: true });
     currentVfs.mkdirSync(path.join(repoRoot, ".tmp"), { recursive: true });
+    currentVfs.writeFileSync(
+      path.join(repoRoot, "package.json"),
+      JSON.stringify({ name: "@onurseckin/skills" }),
+    );
     currentVfs.mkdirSync("/virtual/agents-scratch", { recursive: true });
     currentVfs.mkdirSync("/virtual/.git", { recursive: true });
     currentVfs.mkdirSync("/virtual/.olt", { recursive: true });
+    currentVfs.chdir(repoRoot);
     currentSession = createVirtualFSSession(currentVfs);
   }
   return currentVfs;

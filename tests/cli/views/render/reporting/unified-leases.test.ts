@@ -1,7 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { realpathSync } from "node:fs";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
@@ -16,18 +14,15 @@ import {
   setupVirtualCliFS,
 } from "../../../commands/fixtures/full-lifecycle-fixture.ts";
 
-const roots: string[] = [];
 beforeEach(() => {
   setupVirtualCliFS();
 });
 afterEach(() => {
-  roots.length = 0;
   cleanupVirtualCliFS();
 });
 
 async function createBaseRun(name: string): Promise<{ repo: string; run: string }> {
-  const repo = realpathSync(await mkdtemp(join(tmpdir(), `harness-unified-leases-${name}-`)));
-  roots.push(repo);
+  const repo = `/virtual/unified-leases-${name}-${Math.random().toString(36).slice(2)}`;
   await mkdir(join(repo, ".git"), { recursive: true });
   await mkdir(join(repo, ".olt"), { recursive: true });
   const promptPath = join(repo, "prompt.txt");

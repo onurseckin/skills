@@ -1,13 +1,20 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import type { JsonObject } from "../../../../../olt/scripts/src/core/contracts/index.ts";
-import { branchCapsule, openBranchVia } from "../../../../branch/index.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  branchCapsule,
+  cleanupRoots as cleanupBranchRoots,
+  openBranchVia,
+} from "../../../../branch/index.ts";
+import { cleanupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "../../fixtures/task-ops-fixture.ts";
 import { transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+afterEach(async () => {
+  cleanupVirtualCliFS();
+  await cleanupBranchRoots(roots);
+});
 
 function expireTaskLease(run: string, taskId: string): void {
   transact(run, "test-setup", "lease-expired-for-test", {}, (draft) => {
@@ -113,13 +120,47 @@ describe("recover command", () => {
   });
 
   test("reclaims a branch sub-task whose sub-agent's lease has expired", async () => {
-    const fixture = await branchCapsule(roots, "recover-sub-lease");
-    const opened = await openBranchVia(fixture);
+    const { repo, run } = await setupCompiledRun("recover-sub-lease", roots);
+    const claimed = await execute([
+      "task:claim",
+      "--run",
+      run,
+      "--task",
+      "task-core",
+      "--agent",
+      "worker-1",
+      "--role",
+      "implementer",
+      "--lease-seconds",
+      "600",
+    ]);
+    const token = String(claimed.token);
+    const opened = await execute([
+      "branch:open",
+      "--run",
+      run,
+      "--repo",
+      repo,
+      "--parent-task",
+      "task-core",
+      "--token",
+      token,
+      "--agent",
+      "worker-1",
+      "--reason",
+      "Fix parser subtask",
+      "--sub-task",
+      "S-1",
+      "--sub-label",
+      "S-1=Fix the parser",
+      "--sub-scope",
+      "S-1=tests/core/sub",
+    ]);
     const branchId = String(opened.branch_id);
     await execute([
       "agent:register",
       "--run",
-      fixture.run,
+      run,
       "--agent",
       "sub-1",
       "--role",
@@ -136,9 +177,9 @@ describe("recover command", () => {
     await execute([
       "branch:claim",
       "--run",
-      fixture.run,
+      run,
       "--repo",
-      fixture.repo,
+      repo,
       "--branch",
       branchId,
       "--sub-task",
@@ -148,9 +189,9 @@ describe("recover command", () => {
       "--role",
       "sub-implementer",
     ]);
-    expireBranchSubTaskLease(fixture.run, branchId, "S-1");
+    expireBranchSubTaskLease(run, branchId, "S-1");
 
-    const result = await execute(["recover", "--run", fixture.run, "--actor", "coordinator"]);
+    const result = await execute(["recover", "--run", run, "--actor", "coordinator"]);
     expect(result.recovered_sub_tasks).toEqual(["S-1"]);
   });
 });

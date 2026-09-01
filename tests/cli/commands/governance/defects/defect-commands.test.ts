@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
@@ -8,8 +8,17 @@ import {
   defectResolveCommand,
 } from "../../../../../olt/scripts/src/cli/commands/defect-ops.ts";
 import { scratchRoot } from "../../../../shared/fixtures/scratch-root.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
 describe("Defect CLI commands", () => {
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualCliFS();
+  });
+
   test("defect:record ingests and deduplicates defect JSONL", () => {
     const rawJsonl = [
       JSON.stringify({ id: "d1", observation: "Null pointer in router", severity: "high" }),

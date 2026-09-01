@@ -49,16 +49,16 @@ interface ShellCommandDependencies {
 }
 
 const defaultShellCommandDependencies: ShellCommandDependencies = {
-  runExecCommand,
-  existsSync,
-  mkdirSync,
-  openSync,
-  writeSync,
-  fsyncSync,
-  closeSync,
-  renameSync,
-  unlinkSync,
-  resolveEvidenceDir,
+  runExecCommand: (...args) => runExecCommand(...args),
+  existsSync: (p) => existsSync(p),
+  mkdirSync: (p, opts) => mkdirSync(p, opts),
+  openSync: (p, flags, mode) => openSync(p, flags, mode),
+  writeSync: (...args) => (writeSync as any)(...args),
+  fsyncSync: (fd) => fsyncSync(fd),
+  closeSync: (fd) => closeSync(fd),
+  renameSync: (oldP, newP) => renameSync(oldP, newP),
+  unlinkSync: (p) => unlinkSync(p),
+  resolveEvidenceDir: (...args) => resolveEvidenceDir(...args),
 };
 
 let shellCommandDependencies = defaultShellCommandDependencies;

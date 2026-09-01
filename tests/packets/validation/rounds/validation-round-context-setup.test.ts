@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { join } from "node:path";
 import type { JsonObject } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import { renderValidationRound } from "../../../../olt/scripts/src/packets/render-validation-round.ts";
@@ -155,7 +156,13 @@ describe("the round-N record carries facts and demands", () => {
 
   test("the gate carries the run bound to it and the pass already on record", () => {
     const state = workflowState();
-    state.commands["C-gate"] = commandRecord("C-gate", { actor: "validator-r1", task_id: "T-1" });
+    const repoRoot = join(import.meta.dir, "..", "..", "..", "..");
+    state.commands["C-gate"] = commandRecord("C-gate", {
+      actor: "validator-r1",
+      task_id: "T-1",
+      repository_root: repoRoot,
+      cwd: repoRoot,
+    });
     const task = rejectedTask(state);
     const round = validationRoundContext({
       runRoot: "/missing",

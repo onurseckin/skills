@@ -1,6 +1,7 @@
+import * as childProcess from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { isVirtualPath, normPath, type VirtualFSSpyState } from "./handlers.ts";
+import { copyDirRecursive, normPath, type VirtualFSSpyState } from "./handlers.ts";
 
 export const origOpenSync = fs.openSync;
 export const origReadSync = fs.readSync;
@@ -130,4 +131,126 @@ export function mockWrite(
   state.vfs.writeFileSync(entry.path, newBuf);
   entry.position = pos + slice.length;
   return slice.length;
+}
+
+export function mockSpawnSync(
+  state: VirtualFSSpyState,
+  cmd: unknown,
+  args: unknown,
+  opts: unknown,
+): childProcess.SpawnSyncReturns<Buffer | string> {
+  const vfs = state.vfs;
+  const argList = Array.isArray(args) ? args.map(String) : [];
+  const options = (Array.isArray(args) ? opts : args) as
+    | { encoding?: string; cwd?: string }
+    | undefined;
+  const isStr =
+    typeof options === "object" &&
+    options !== null &&
+    typeof options?.encoding === "string" &&
+    options.encoding !== "buffer";
+  const cIdx = argList.indexOf("-C");
+  const cwd =
+    cIdx !== -1 && argList[cIdx + 1] ? argList[cIdx + 1] : (options?.cwd ?? "/virtual/repo");
+
+  if (String(cmd).includes("tar")) {
+    if (cIdx !== -1 && argList[cIdx + 1]) {
+      const extractDir = argList[cIdx + 1];
+      const oltDst = `${extractDir}/olt`;
+      const oltSrc = `${cwd}/olt`;
+      if (vfs.existsSync(oltSrc)) copyDirRecursive(vfs, oltSrc, oltDst);
+      else {
+        vfs.mkdirSync(oltDst, { recursive: true });
+        vfs.writeFileSync(`${oltDst}/SKILL.md`, "canonical-skill\n");
+      }
+      if (
+        vfs.existsSync(`${oltDst}/SKILL.md`) &&
+        String(vfs.readFileSync(`${oltDst}/SKILL.md`)).includes("dirty")
+      ) {
+        vfs.writeFileSync(`${oltDst}/SKILL.md`, "canonical-skill\n");
+      }
+    }
+    return {
+      status: 0,
+      stdout: isStr ? "" : Buffer.alloc(0),
+      stderr: isStr ? "" : Buffer.alloc(0),
+      output: [null, null, null],
+      pid: 1234,
+      signal: null,
+    };
+  }
+
+  if (String(cmd).includes("git")) {
+    if (argList.includes("init")) {
+      vfs.mkdirSync(`${cwd}/.git`, { recursive: true });
+      return {
+        status: 0,
+        stdout: isStr ? "" : Buffer.alloc(0),
+        stderr: isStr ? "" : Buffer.alloc(0),
+        output: [null, null, null],
+        pid: 1234,
+        signal: null,
+      };
+    }
+    if (
+      argList.includes("diff") &&
+      (argList.includes("--no-index") || argList.some((a) => String(a).includes("missing")))
+    ) {
+      const stderrMsg = "fatal: No such file or directory\n";
+      return {
+        status: 2,
+        stdout: isStr ? "" : Buffer.alloc(0),
+        stderr: isStr ? stderrMsg : Buffer.from(stderrMsg),
+        output: [null, isStr ? "" : Buffer.alloc(0), isStr ? stderrMsg : Buffer.from(stderrMsg)],
+        pid: 1234,
+        signal: null,
+      };
+    }
+    if (!vfs.existsSync(`${cwd}/.git`)) {
+      return {
+        status: 128,
+        stdout: isStr ? "" : Buffer.alloc(0),
+        stderr: isStr
+          ? "fatal: not a git repository\n"
+          : Buffer.from("fatal: not a git repository\n"),
+        output: [null, null, null],
+        pid: 1234,
+        signal: null,
+      };
+    }
+  }
+
+  let status = 0;
+  let out = "main\n";
+  if (argList.includes("--get-regexp") || argList.includes("--null")) {
+    status = 1;
+    out = "";
+  } else if (argList.includes("--is-inside-work-tree")) out = "true\n";
+  else if (argList.includes("config.worktree")) out = `${cwd}/.git/config.worktree\n`;
+  else if (argList.includes("--absolute-git-dir") || argList.includes("--git-common-dir"))
+    out = `${cwd}/.git\n`;
+  else if (argList.some((a) => a.startsWith("--porcelain"))) {
+    let dirty = "";
+    if (vfs.existsSync(`${cwd}/olt/untracked.ts`)) dirty += "?? olt/untracked.ts\n";
+    if (vfs.existsSync(`${cwd}/olt/harness-renamed.ts`))
+      dirty += " D olt/harness.ts\n?? olt/harness-renamed.ts\n";
+    if (vfs.existsSync(`${cwd}/olt/SKILL.md`)) {
+      const content = String(vfs.readFileSync(`${cwd}/olt/SKILL.md`, "utf8"));
+      if (content !== "canonical-skill\n" && !content.startsWith("---\nname: olt"))
+        dirty += " M olt/SKILL.md\n";
+    }
+    out = dirty;
+  } else if (argList.includes("-z") || argList.includes("ls-files")) out = "";
+  else if (argList.includes("--show-toplevel")) out = `${cwd}\n`;
+  else if (argList.includes("archive")) out = "mock-archive\n";
+  const stdout = isStr ? out : Buffer.from(out);
+  const stderr = isStr ? "" : Buffer.alloc(0);
+  return {
+    status,
+    stdout,
+    stderr,
+    output: [null, stdout, stderr],
+    pid: 1234,
+    signal: null,
+  };
 }

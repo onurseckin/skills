@@ -1,25 +1,24 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, rmSync, existsSync } from "node:fs";
+import { mkdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { runInitCommand } from "../../../../olt/scripts/src/cli/commands/run-init.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import {
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../commands/fixtures/full-lifecycle-fixture.ts";
 
 describe("run:init CLI command", () => {
   let testDir: string;
 
   beforeEach(() => {
-    testDir = join(
-      tmpdir(),
-      `run-init-cli-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    );
+    setupVirtualCliFS();
+    testDir = `/virtual/run-init-cli-test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     mkdirSync(testDir, { recursive: true });
   });
 
   afterEach(() => {
-    if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true, force: true });
-    }
+    cleanupVirtualCliFS();
   });
 
   test("throws INVALID_ARGUMENT when neither --run nor --run-id is provided", async () => {

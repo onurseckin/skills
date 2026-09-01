@@ -1,14 +1,22 @@
-import { afterAll, describe, expect, test } from "bun:test";
-import { mkdtemp } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../../olt/scripts/src/cli/execute.ts";
 import { streamEventsCommand } from "../../../../olt/scripts/src/cli/commands/stream-events.ts";
 import { setupCompiledRun } from "../../commands/fixtures/file-persistence-fixture.ts";
-import { cleanupRoots } from "../../commands/fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../commands/fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
-afterAll(async () => cleanupRoots(roots));
+
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+
+afterEach(() => {
+  roots.length = 0;
+  cleanupVirtualCliFS();
+});
 
 describe("stream:events CLI command", () => {
   test("streams events with sequence ranges, filters, and formats", async () => {

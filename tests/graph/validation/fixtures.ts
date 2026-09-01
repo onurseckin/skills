@@ -1,8 +1,4 @@
-import { spyOn } from "bun:test";
-import type { BigIntStats } from "node:fs";
-import * as fsp from "node:fs/promises";
-import type { FileHandle } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { requirementsDocument } from "../../requirements/validation/fixtures.ts";
 import {
   applyPlan,
@@ -10,151 +6,17 @@ import {
   type PlanningSnapshot,
   type PlanningStore,
 } from "../../../olt/scripts/src/graph/apply-plan.ts";
+import {
+  clearPlanFs,
+  getNextPlanDir,
+  installPlanFsSpies,
+  normPlanPath,
+  vPlanDirs,
+  vPlanFs,
+  vPlanSymlinks,
+} from "./plan-fs-fixture.ts";
 
-export const vPlanFs = new Map<string, Uint8Array>();
-export const vPlanDirs = new Set<string>();
-export const vPlanSymlinks = new Map<string, string>();
-let planDirCounter = 0;
-const vPlanSpies: Array<{ mockRestore: () => void }> = [];
-
-const norm = (p: string): string => resolve(p).replace(/\/+$/, "");
-
-export function installPlanFsSpies(): void {
-  if (vPlanSpies.length > 0) return;
-  const olstat = fsp.lstat.bind(fsp),
-    oopen = fsp.open.bind(fsp);
-  const owrite = fsp.writeFile.bind(fsp),
-    osymlink = fsp.symlink.bind(fsp),
-    orm = fsp.rm.bind(fsp);
-
-  vPlanSpies.push(
-    spyOn(fsp, "mkdtemp").mockImplementation(async () => {
-      const dir = `/virtual/plan-dir-${++planDirCounter}`;
-      vPlanDirs.add(dir);
-      return dir;
-    }),
-    spyOn(fsp, "writeFile").mockImplementation(async (path, data) => {
-      const s = norm(String(path));
-      if (s.startsWith("/virtual/")) {
-        vPlanFs.set(
-          s,
-          typeof data === "string" ? Buffer.from(data, "utf-8") : Buffer.from(data as Uint8Array),
-        );
-        return;
-      }
-      return owrite(path, data);
-    }),
-    spyOn(fsp, "symlink").mockImplementation(async (target, path) => {
-      const s = norm(String(path));
-      if (s.startsWith("/virtual/")) {
-        vPlanSymlinks.set(s, String(target));
-        return;
-      }
-      return osymlink(target, path);
-    }),
-    spyOn(fsp, "rm").mockImplementation(async (path) => {
-      const s = norm(String(path));
-      if (s.startsWith("/virtual/")) {
-        vPlanFs.delete(s);
-        vPlanDirs.delete(s);
-        vPlanSymlinks.delete(s);
-        for (const k of Array.from(vPlanFs.keys())) if (k.startsWith(`${s}/`)) vPlanFs.delete(k);
-        for (const d of Array.from(vPlanDirs)) if (d.startsWith(`${s}/`)) vPlanDirs.delete(d);
-        return;
-      }
-      return orm(path, { force: true, recursive: true });
-    }),
-    spyOn(fsp, "lstat").mockImplementation(async (path, options?: unknown) => {
-      const s = norm(String(path));
-      if (s.startsWith("/virtual/")) {
-        if (vPlanSymlinks.has(s))
-          return {
-            isSymbolicLink: () => true,
-            isFile: () => false,
-            isDirectory: () => false,
-            dev: 1n,
-            ino: 2n,
-            mode: 0o120000n,
-            size: 0n,
-            mtimeNs: 0n,
-          } as unknown as BigIntStats;
-        if (vPlanDirs.has(s))
-          return {
-            isSymbolicLink: () => false,
-            isFile: () => false,
-            isDirectory: () => true,
-            dev: 1n,
-            ino: 3n,
-            mode: 0o040755n,
-            size: 0n,
-            mtimeNs: 0n,
-          } as unknown as BigIntStats;
-        const file = vPlanFs.get(s);
-        if (!file) {
-          const err = new Error(`ENOENT: ${s}`) as NodeJS.ErrnoException;
-          err.code = "ENOENT";
-          throw err;
-        }
-        return {
-          isSymbolicLink: () => false,
-          isFile: () => true,
-          isDirectory: () => false,
-          dev: 1n,
-          ino: 1n,
-          mode: 0o100644n,
-          size: BigInt(file.length),
-          mtimeNs: 0n,
-        } as unknown as BigIntStats;
-      }
-      return olstat(path, options as Parameters<typeof olstat>[1]);
-    }),
-    spyOn(fsp, "open").mockImplementation(async (path, flags) => {
-      const s = norm(String(path));
-      if (s.startsWith("/virtual/")) {
-        if (vPlanSymlinks.has(s)) {
-          const err = new Error(
-            `ELOOP: symbolic link encountered, open '${s}'`,
-          ) as NodeJS.ErrnoException;
-          err.code = "ELOOP";
-          throw err;
-        }
-        const file = vPlanFs.get(s);
-        if (!file) {
-          const err = new Error(`ENOENT: ${s}`) as NodeJS.ErrnoException;
-          err.code = "ENOENT";
-          throw err;
-        }
-        return {
-          stat: async () =>
-            ({
-              isSymbolicLink: () => false,
-              isFile: () => true,
-              isDirectory: () => false,
-              dev: 1n,
-              ino: 1n,
-              mode: 0o100644n,
-              size: BigInt(file.length),
-              mtimeNs: 0n,
-            }) as unknown as BigIntStats,
-          read: async (buf: Uint8Array, offset: number, length: number, position: number) => {
-            const slice = file.subarray(position, position + length);
-            buf.set(slice, offset);
-            return { bytesRead: slice.length, buffer: buf };
-          },
-          close: async () => {},
-        } as unknown as FileHandle;
-      }
-      return oopen(path, flags);
-    }),
-  );
-}
-
-export function clearPlanFs(): void {
-  for (const s of vPlanSpies.splice(0)) s.mockRestore();
-  vPlanFs.clear();
-  vPlanDirs.clear();
-  vPlanSymlinks.clear();
-}
+export { clearPlanFs, installPlanFsSpies, normPlanPath, vPlanDirs, vPlanFs, vPlanSymlinks };
 
 export function graphDocument(
   requirements: Record<string, unknown>,
@@ -290,9 +152,7 @@ export class PlanFixture {
 
   public async setup(): Promise<void> {
     installPlanFsSpies();
-    planDirCounter += 1;
-    this.root = `/virtual/plan-dir-${planDirCounter}`;
-    vPlanDirs.add(this.root);
+    this.root = getNextPlanDir();
     this.requirementsPath = join(this.root, "requirements.json");
     this.graphPath = join(this.root, "graph.json");
     await this.write();
@@ -305,8 +165,8 @@ export class PlanFixture {
   public async write(): Promise<void> {
     const reqBytes = Buffer.from(JSON.stringify(this.requirements), "utf-8");
     const graphBytes = Buffer.from(JSON.stringify(this.graph), "utf-8");
-    vPlanFs.set(norm(this.requirementsPath), reqBytes);
-    vPlanFs.set(norm(this.graphPath), graphBytes);
+    vPlanFs.set(normPlanPath(this.requirementsPath), reqBytes);
+    vPlanFs.set(normPlanPath(this.graphPath), graphBytes);
   }
 
   public apply(expectedRevision: number | null = 0): Promise<Record<string, unknown>> {

@@ -1,6 +1,4 @@
-import {
-  resolveDefectsPath,
-} from "../../../olt/scripts/src/core/shared/paths.ts";
+import { resolveDefectsPath } from "../../../olt/scripts/src/core/shared/paths.ts";
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import {

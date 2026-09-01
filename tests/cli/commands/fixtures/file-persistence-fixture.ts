@@ -1,19 +1,19 @@
 import { randomUUID } from "node:crypto";
-import { realpathSync } from "node:fs";
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../../olt/scripts/src/cli/execute.ts";
 import {
   establishSupervisorChain,
   registerUnderChain,
 } from "../../../shared/chains/agent-supervisor-chain.ts";
+import { setupVirtualCliFS } from "./full-lifecycle-fixture.ts";
 
 export async function setupCompiledRun(
   name: string,
   roots: string[],
 ): Promise<{ repo: string; run: string }> {
-  const repo = realpathSync(await mkdtemp(join(tmpdir(), `file-persist-${name}-`)));
+  setupVirtualCliFS();
+  const repo = `/virtual/cli/file-persist-${name}-${randomUUID()}`;
   roots.push(repo);
   await mkdir(join(repo, ".git"), { recursive: true });
   const promptPath = join(repo, "prompt.txt");

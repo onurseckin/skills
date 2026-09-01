@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   flagPositions,
@@ -30,13 +29,14 @@ const ENHANCE_FLAGS = [
 
 const SHAPES: FlagShapes = flagShapes(ENHANCE_FLAGS);
 
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(() => {
+  cleanupVirtualCliFS();
+});
+
 describe("repeatable flags", () => {
-  beforeEach(() => {
-    setupVirtualCliFS();
-  });
-  afterEach(() => {
-    cleanupVirtualCliFS();
-  });
   test("collects every occurrence in order and reads back as a list", () => {
     const parsed = parseArguments(
       [
@@ -150,7 +150,8 @@ describe("registry-driven required flags", () => {
   });
 
   test("dispatches a real invocation against an existing capsule", async () => {
-    const repo = mkdtempSync(join(tmpdir(), "repeatable-flags-"));
+    const repo = "/virtual/repeatable-flags";
+    mkdirSync(repo, { recursive: true });
     const promptPath = join(repo, "prompt.txt");
     writeFileSync(promptPath, "Just enough to dispatch run:status against.");
     const init = await execute([
@@ -164,7 +165,6 @@ describe("registry-driven required flags", () => {
     ]);
     const result = await execute(["plan:status", "--run", init.run_root as string]);
     expect(typeof result.markdown).toBe("string");
-    rmSync(repo, { recursive: true, force: true });
   });
 });
 

@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { stripOutputFormat } from "../../../olt/scripts/src/cli/output-format.ts";
 import { main } from "../../../olt/scripts/harness.ts";
@@ -46,29 +45,38 @@ describe("harness output format scan", () => {
     cleanupVirtualCliFS();
   });
   test("removes the harness --format flag in both spellings", () => {
-    expect(stripOutputFormat(["run:status", "--run", "/tmp/run", "--format=json"])).toEqual({
+    expect(stripOutputFormat(["run:status", "--run", "/virtual/run", "--format=json"])).toEqual({
       json: true,
-      argv: ["run:status", "--run", "/tmp/run"],
+      argv: ["run:status", "--run", "/virtual/run"],
     });
-    expect(stripOutputFormat(["run:status", "--format", "json", "--run", "/tmp/run"])).toEqual({
+    expect(stripOutputFormat(["run:status", "--format", "json", "--run", "/virtual/run"])).toEqual({
       json: true,
-      argv: ["run:status", "--run", "/tmp/run"],
+      argv: ["run:status", "--run", "/virtual/run"],
     });
   });
 
   test("reports markdown output when no format flag is present", () => {
-    expect(stripOutputFormat(["run:status", "--run", "/tmp/run"])).toEqual({
+    expect(stripOutputFormat(["run:status", "--run", "/virtual/run"])).toEqual({
       json: false,
-      argv: ["run:status", "--run", "/tmp/run"],
+      argv: ["run:status", "--run", "/virtual/run"],
     });
   });
 
   test("leaves a child command's own --format untouched after the -- boundary", () => {
     expect(
-      stripOutputFormat(["run:exec", "--run", "/tmp/run", "--", "bun", "test", "--format", "json"]),
+      stripOutputFormat([
+        "run:exec",
+        "--run",
+        "/virtual/run",
+        "--",
+        "bun",
+        "test",
+        "--format",
+        "json",
+      ]),
     ).toEqual({
       json: false,
-      argv: ["run:exec", "--run", "/tmp/run", "--", "bun", "test", "--format", "json"],
+      argv: ["run:exec", "--run", "/virtual/run", "--", "bun", "test", "--format", "json"],
     });
     expect(
       stripOutputFormat([
@@ -76,16 +84,19 @@ describe("harness output format scan", () => {
         "--format",
         "json",
         "--run",
-        "/tmp/run",
+        "/virtual/run",
         "--",
         "x",
         "--format=json",
       ]),
-    ).toEqual({ json: true, argv: ["run:exec", "--run", "/tmp/run", "--", "x", "--format=json"] });
+    ).toEqual({
+      json: true,
+      argv: ["run:exec", "--run", "/virtual/run", "--", "x", "--format=json"],
+    });
   });
 
   test("passes the child argv through the harness unchanged", async () => {
-    const repo = mkdtempSync(join(tmpdir(), "harness-format-"));
+    const repo = "/virtual/harness-format";
     mkdirSync(join(repo, "src"), { recursive: true });
     writeFileSync(join(repo, "src", "file.ts"), "export const x = 1;\n");
     const prompt = join(repo, "prompt.txt");
@@ -155,11 +166,10 @@ describe("harness output format scan", () => {
     expect(parsed.ok).toBeTrue();
     expect(parsed.result.command.argv).toEqual(["echo", "--format=json"]);
     expect(parsed.result.exit_code).toBe(0);
-    rmSync(repo, { recursive: true, force: true });
   });
 
   test("mind:audit:live --format json emits exactly one JSON value on stdout", async () => {
-    const repo = mkdtempSync(join(tmpdir(), "mind-audit-format-"));
+    const repo = "/virtual/mind-audit-format";
     mkdirSync(join(repo, ".olt"), { recursive: true });
     mkdirSync(join(repo, "olt", "agents"), { recursive: true });
     writeFileSync(join(repo, "olt", "agents", "mind.yaml"), MIN_MIND_MANIFEST_YAML);
@@ -172,11 +182,10 @@ describe("harness output format scan", () => {
     const parsed = JSON.parse(stdout) as { ok: boolean; result: { stagnant: boolean } };
     expect(parsed.ok).toBeTrue();
     expect(typeof parsed.result.stagnant).toBe("boolean");
-    rmSync(repo, { recursive: true, force: true });
   });
 
   test("skill:audit:live --format json emits exactly one JSON value on stdout", async () => {
-    const repo = mkdtempSync(join(tmpdir(), "skill-audit-format-"));
+    const repo = "/virtual/skill-audit-format";
     mkdirSync(join(repo, ".olt"), { recursive: true });
 
     const res = await runHarnessInProcess(["skill:audit:live", "--repo", repo, "--format", "json"]);
@@ -187,6 +196,5 @@ describe("harness output format scan", () => {
     const parsed = JSON.parse(stdout) as { ok: boolean; result: { compliant: boolean } };
     expect(parsed.ok).toBeTrue();
     expect(typeof parsed.result.compliant).toBe("boolean");
-    rmSync(repo, { recursive: true, force: true });
   });
 });

@@ -1,20 +1,23 @@
-import { realpathSync } from "node:fs";
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { CommandRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import type { JsonObject } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import type { RepositoryBinding } from "../../../../olt/scripts/src/core/contracts/index.ts";
+import type {
+  CommandRecord,
+  JsonObject,
+  RepositoryBinding,
+} from "../../../../olt/scripts/src/core/contracts/index.ts";
 import { execute } from "../../../../olt/scripts/src/cli/execute.ts";
 import { inspectRepositoryBinding } from "../../../../olt/scripts/src/packets/repository-identity.ts";
-import { captureGateEnvironment } from "../../../../olt/scripts/src/engine/runner/index.ts";
-import { captureGatePathBindings } from "../../../../olt/scripts/src/engine/runner/index.ts";
-import { canonicalCommandFingerprint } from "../../../../olt/scripts/src/engine/runner/index.ts";
+import {
+  captureGateEnvironment,
+  captureGatePathBindings,
+  canonicalCommandFingerprint,
+} from "../../../../olt/scripts/src/engine/runner/index.ts";
 import { transact } from "../../../../olt/scripts/src/engine/store/index.ts";
 import {
   establishSupervisorChain,
   registerUnderChain,
 } from "../../../shared/chains/agent-supervisor-chain.ts";
+import { setupVirtualCliFS } from "./full-lifecycle-fixture.ts";
 
 /**
  * critic:start readiness gate fixture. Synthesizes task-done / requirement-satisfied /
@@ -153,7 +156,8 @@ function buildCommandRecord(
 
 // Sets up a ready run for completeness critic testing
 export async function setupReadyRun(name: string, roots: string[]): Promise<ReadyRun> {
-  const repo = realpathSync(await mkdtemp(join(tmpdir(), `harness-critic-ready-${name}-`)));
+  setupVirtualCliFS();
+  const repo = `/virtual/cli/critic-ready-${name}-${Math.random().toString(36).slice(2)}`;
   roots.push(repo);
   await mkdir(join(repo, ".git"), { recursive: true });
   const promptPath = join(repo, "prompt.txt");

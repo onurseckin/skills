@@ -1,7 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import {
-  verifyEnvelopeHmac,
-} from "../../../olt/scripts/src/communication/mailbox/envelope.ts";
+import { verifyEnvelopeHmac } from "../../../olt/scripts/src/communication/mailbox/envelope.ts";
 import {
   broadcastWaveNotification,
   clearInMemoryCursors,

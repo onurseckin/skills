@@ -22,7 +22,6 @@ import {
 } from "../../../scripts/testing/test-changed.ts";
 
 const TEST_SCRATCH_DIR = "/virtual/coverage-scratch/test-changed-runner";
-
 let vfs: VirtualMemoryFS;
 let session: VirtualFSSession | undefined;
 
@@ -33,7 +32,6 @@ function getEphemeralDir(label: string): string {
 }
 
 describe("test-changed script", () => {
-  const scriptPath = join(process.cwd(), "scripts/testing/test-changed.ts");
   let logSpy: ReturnType<typeof spyOn>;
   let errorSpy: ReturnType<typeof spyOn>;
   let stdoutSpy: ReturnType<typeof spyOn>;

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { writeFile, mkdir } from "node:fs/promises";
 import { execute } from "../../../../olt/scripts/src/cli/execute.ts";
@@ -9,11 +9,23 @@ import {
   executeDagTraceCommand,
 } from "../../../../olt/scripts/src/cli/commands/dag.ts";
 import { scratchRoot } from "../../../shared/fixtures/scratch-root.ts";
+import {
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../commands/fixtures/full-lifecycle-fixture.ts";
 
 describe("CLI dag:render and dag:trace commands", () => {
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
+  afterEach(() => {
+    cleanupVirtualCliFS();
+  });
+
   describe("dagRenderCommand and executeDagRenderCommand", () => {
     test("renders uncompiled planning buffer DAG with box-styles", async () => {
       const scratch = scratchRoot(import.meta.path, "dag-render-uncompiled");
+      await mkdir(scratch, { recursive: true });
       const promptPath = join(scratch, "prompt.txt");
       await writeFile(promptPath, "Test uncompiled DAG rendering");
 
@@ -84,6 +96,7 @@ describe("CLI dag:render and dag:trace commands", () => {
 
     test("renders compiled graph DAG with tasks, leases, and agents", async () => {
       const scratch = scratchRoot(import.meta.path, "dag-render-compiled");
+      await mkdir(scratch, { recursive: true });
       const promptPath = join(scratch, "prompt.txt");
       await writeFile(promptPath, "Test compiled DAG rendering");
       await mkdir(join(scratch, "src/core"), { recursive: true });
@@ -162,6 +175,7 @@ describe("CLI dag:render and dag:trace commands", () => {
   describe("dagTraceCommand and executeDagTraceCommand", () => {
     test("traces living execution events with filters and sequencing", async () => {
       const scratch = scratchRoot(import.meta.path, "dag-trace-run");
+      await mkdir(scratch, { recursive: true });
       const promptPath = join(scratch, "prompt.txt");
       await writeFile(promptPath, "Test living trace rendering");
 

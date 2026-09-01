@@ -79,6 +79,7 @@ export {
   type GitRunner,
   type GitSpawn,
   createGitRunner,
+  setGitRunnerForTesting,
   runGit,
   git,
 } from "../../workflow/worktree/git.ts";

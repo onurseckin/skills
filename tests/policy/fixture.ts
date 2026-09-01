@@ -37,6 +37,7 @@ export function setupVirtualPolicyFS(): VirtualMemoryFS {
     path.join(repoRoot, ".olt", "policy.json"),
     JSON.stringify(generateCanonicalDefaultPolicy(repoRoot, "bun")),
   );
+  vfs.chdir(repoRoot);
   session = createVirtualFSSession(vfs);
   return vfs;
 }

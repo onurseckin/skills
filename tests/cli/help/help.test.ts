@@ -3,15 +3,44 @@ import { join } from "node:path";
 import { helpRequest, renderHelp } from "../../../olt/scripts/src/cli/help.ts";
 import { COMMAND_REGISTRY } from "../../../olt/scripts/src/cli/registry/index.ts";
 
-const entrypoint = join(import.meta.dir, "..", "..", "..", "olt", "scripts", "harness.ts");
+import {
+  formatCliError,
+  propagateCliExitCode,
+} from "../../../olt/scripts/src/cli/signals/index.ts";
+import { stripOutputFormat } from "../../../olt/scripts/src/cli/output-format.ts";
+import { main } from "../../../olt/scripts/harness.ts";
 
-async function harness(args: readonly string[]) {
-  const spawned = Bun.spawn(["bun", entrypoint, ...args], { stdout: "pipe", stderr: "pipe" });
-  return {
-    exit: await spawned.exited,
-    stdout: await new Response(spawned.stdout).text(),
-    stderr: await new Response(spawned.stderr).text(),
-  };
+async function harness(
+  args: readonly string[],
+): Promise<{ exit: number; stdout: string; stderr: string }> {
+  let stdout = "";
+  let stderr = "";
+  const origStdout = process.stdout.write.bind(process.stdout);
+  const origStderr = process.stderr.write.bind(process.stderr);
+  const origExitCode = process.exitCode;
+  process.exitCode = 0;
+  process.stdout.write = ((chunk: unknown) => {
+    stdout += String(chunk);
+    return true;
+  }) as typeof process.stdout.write;
+  process.stderr.write = ((chunk: unknown) => {
+    stderr += String(chunk);
+    return true;
+  }) as typeof process.stderr.write;
+
+  try {
+    await main(args);
+  } catch (error: unknown) {
+    const isJson = stripOutputFormat(args).json;
+    process.stderr.write(formatCliError(error, { json: isJson }));
+    propagateCliExitCode(error);
+  } finally {
+    process.stdout.write = origStdout;
+    process.stderr.write = origStderr;
+  }
+  const exit = process.exitCode ?? 0;
+  process.exitCode = origExitCode;
+  return { exit, stdout, stderr };
 }
 
 describe("CLI help", () => {

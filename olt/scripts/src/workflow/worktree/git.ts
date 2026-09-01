@@ -64,8 +64,21 @@ export type GitSpawn = (
 const nodeGitSpawn: GitSpawn = (command, args, options) =>
   spawnSync(command, args, options) as GitSpawnResult;
 
+let activeGitRunner: GitRunner | undefined;
+
+export function setGitRunnerForTesting(runner?: GitRunner): () => void {
+  const previous = activeGitRunner;
+  activeGitRunner = runner;
+  return () => {
+    activeGitRunner = previous;
+  };
+}
+
 export function createGitRunner(spawn: GitSpawn = nodeGitSpawn): GitRunner {
   return (cwd, argv) => {
+    if (activeGitRunner && spawn === nodeGitSpawn) {
+      return activeGitRunner(cwd, argv);
+    }
     assertZeroDestructiveGit(argv);
     const result = spawn("git", [...argv], {
       cwd,
@@ -91,7 +104,14 @@ export function createGitRunner(spawn: GitSpawn = nodeGitSpawn): GitRunner {
   };
 }
 
-export const runGit: GitRunner = createGitRunner();
+const defaultGitRunner: GitRunner = createGitRunner();
+
+export const runGit: GitRunner = (cwd, argv) => {
+  if (activeGitRunner) {
+    return activeGitRunner(cwd, argv);
+  }
+  return defaultGitRunner(cwd, argv);
+};
 
 export function git(cwd: string, argv: readonly string[], runner: GitRunner = runGit): string {
   const result = runner(cwd, argv);

@@ -19,7 +19,11 @@ import {
   verifyCommandAuthorization,
 } from "../../../olt/scripts/src/authority/rbac/command-authorizer.ts";
 import { VerbatimRoleInjector } from "../../../olt/scripts/src/authority/verbatim-role-injector.ts";
-import { cleanupVirtualAuthorityFS, getVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
+import {
+  cleanupVirtualAuthorityFS,
+  getVirtualAuthorityFS,
+  setupVirtualAuthorityFS,
+} from "../fixture.ts";
 
 describe("Authority Guards, Host Bindings, RBAC Authorizer & Verbatim Injector Comprehensive", () => {
   beforeEach(() => {

@@ -36,6 +36,7 @@ export {
 export {
   worktreeGitEnvironment,
   createGitRunner,
+  setGitRunnerForTesting,
   runGit,
   git,
   type GitResult,

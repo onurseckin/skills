@@ -41,4 +41,33 @@ describe("Smart Task Manager - Wave Partitioning & Scope Collisions", () => {
     expect(plan.waves[0].task_ids).toEqual(["T1"]);
     expect(plan.waves[1].task_ids).toEqual(["T2"]);
   });
+
+  it("calculateScopeCollisions finds overlapping write scopes between independent tasks", () => {
+    const tasks: SmartTaskPlan[] = [
+      {
+        id: "T1",
+        label: "Task 1",
+        rationale: "R1",
+        write_scope: ["src/shared.ts"],
+        gate: "true",
+        dependencies: [],
+        implementer_role: "imp",
+        validator_role: "val",
+      },
+      {
+        id: "T2",
+        label: "Task 2",
+        rationale: "R2",
+        write_scope: ["src/shared.ts"],
+        gate: "true",
+        dependencies: [],
+        implementer_role: "imp",
+        validator_role: "val",
+      },
+    ];
+    const collisions = calculateScopeCollisions(tasks);
+    expect(collisions.length).toBeGreaterThan(0);
+    expect(collisions[0].scope).toBe("src/shared.ts");
+    expect(collisions[0].task_ids).toEqual(["T1", "T2"]);
+  });
 });

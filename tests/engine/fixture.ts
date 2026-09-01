@@ -1,4 +1,8 @@
 import * as path from "node:path";
+import {
+  setGitRunnerForTesting,
+  type GitRunner,
+} from "../../olt/scripts/src/engine/worktree/index.ts";
 import { setDefectLogDependenciesForTesting } from "../../olt/scripts/src/logging/lock.ts";
 import { generateCanonicalDefaultPolicy } from "../../olt/scripts/src/policy/generator/index.ts";
 import {
@@ -10,6 +14,7 @@ import {
 let vfs = new VirtualMemoryFS();
 let session: VirtualFSSession | undefined;
 let restoreDefectDeps: (() => void) | undefined;
+let restoreGitRunner: (() => void) | undefined;
 
 function normPath(p: string): string {
   return path.resolve(String(p)).replace(/\\/g, "/");
@@ -35,6 +40,19 @@ export function setupVirtualEngineFS(): VirtualMemoryFS {
       return vfs.readFileSync(np, enc as BufferEncoding);
     },
   });
+
+  const defaultMockGitRunner: GitRunner = (_cwd, argv) => {
+    if (argv[0] === "rev-parse") return { status: 0, stdout: "main\n", stderr: "" };
+    if (argv[0] === "worktree") return { status: 0, stdout: "", stderr: "" };
+    if (argv[0] === "show-ref") return { status: 1, stdout: "", stderr: "" };
+    if (argv[0] === "branch") return { status: 0, stdout: "main\n", stderr: "" };
+    if (argv[0] === "status") return { status: 0, stdout: "", stderr: "" };
+    if (argv[0] === "diff") return { status: 0, stdout: "", stderr: "" };
+    if (argv[0] === "commit") return { status: 0, stdout: "[main 1234567] commit\n", stderr: "" };
+    return { status: 0, stdout: "", stderr: "" };
+  };
+  restoreGitRunner = setGitRunnerForTesting(defaultMockGitRunner);
+
   return vfs;
 }
 
@@ -46,6 +64,10 @@ export function cleanupVirtualEngineFS(): void {
   if (restoreDefectDeps) {
     restoreDefectDeps();
     restoreDefectDeps = undefined;
+  }
+  if (restoreGitRunner) {
+    restoreGitRunner();
+    restoreGitRunner = undefined;
   }
   vfs.reset();
 }

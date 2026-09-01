@@ -5,8 +5,7 @@
 
 export const nodesSuite = [
   "graph-asset-completeness",
-  "graph-asset-ownership",
-  "graph-generator-gate-nodes",
+  "graph-generator-gate-and-ownership-nodes",
   "graph-node-evidence-logs",
   "graph-node-evidence-transitions",
   "graph-plan-validator-nodes",

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import * as fs from "node:fs";
 import {
   buildCoverageSummary,
@@ -204,12 +204,19 @@ LH:5
       expect(summary["fileB.ts"]?.lines.pct).toBe(100);
     });
 
-    it("buildCoverageSummary handles empty fileMap", () => {
-      const summary = buildCoverageSummary(new Map());
+    it("buildCoverageSummary handles runtime and empty fileMap", () => {
+      const summary = buildCoverageSummary(new Map(), {
+        totalTests: 10,
+        passedTests: 10,
+        failedTests: 0,
+        skippedTests: 0,
+        durationMs: 120,
+      });
       expect(summary.total).toBeDefined();
       expect(summary.total.lines.total).toBe(0);
       expect(summary.total.lines.covered).toBe(0);
       expect(summary.total.lines.pct).toBe(100);
+      expect(summary.runtime?.totalTests).toBe(10);
     });
 
     it("writeSummaryJson writes valid JSON file and creates directory if missing", () => {
@@ -222,15 +229,33 @@ LH:5
         },
       };
 
-      const outPath = writeSummaryJson(summary, tmpRoot, "cov-output");
+      const skippedPath = writeSummaryJson(summary, tmpRoot, "cov-output", { writeToDisk: false });
+      expect(skippedPath).toContain("coverage-summary.json");
+
+      const outPath = writeSummaryJson(summary, tmpRoot, "cov-output", {
+        runtime: { totalTests: 5, passedTests: 5, failedTests: 0, skippedTests: 0, durationMs: 50 },
+      });
       expect(fs.existsSync(outPath)).toBe(true);
 
       const content = fs.readFileSync(outPath, "utf-8");
       const parsed = JSON.parse(content) as CoverageSummary;
       expect(parsed.total?.lines.pct).toBe(100);
+      expect(parsed.runtime?.totalTests).toBe(5);
 
-      const outPath2 = writeSummaryJson(summary, tmpRoot, "cov-output");
+      const outPath2 = writeSummaryJson(summary, tmpRoot, "cov-output", {
+        runtime: { totalTests: 5, passedTests: 5, failedTests: 0, skippedTests: 0, durationMs: 50 },
+      });
       expect(outPath2).toBe(outPath);
+
+      // Verify read error recovery during write
+      const readSpy = spyOn(fs, "readFileSync").mockImplementationOnce(() => {
+        throw new Error("EACCES");
+      });
+      const outPath3 = writeSummaryJson(summary, tmpRoot, "cov-output", {
+        runtime: { totalTests: 5, passedTests: 5, failedTests: 0, skippedTests: 0, durationMs: 50 },
+      });
+      expect(outPath3).toBe(outPath);
+      readSpy.mockRestore();
     });
   });
 });

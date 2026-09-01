@@ -1,28 +1,30 @@
-import { describe, it, expect, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
 import {
   identifyExecutionContext,
-  detectHostApp,
-  buildCapabilitiesProfile,
-  parseTierValue,
-  roleToTier,
-  agentIdToTier,
-  agentIdToRole,
   MAIN_THREAD_ADVISORY,
   type HostProfile,
 } from "../../../olt/scripts/src/authority/thread/index.ts";
 import { whoamiCommand } from "../../../olt/scripts/src/cli/commands/whoami.ts";
-import { taskClaimCommand } from "../../../olt/scripts/src/cli/commands/task-ops.ts";
-import { cleanupRoots } from "../../cli/commands/fixtures/full-lifecycle-fixture.ts";
-import { setupCompiledRun } from "../../cli/commands/fixtures/task-ops-fixture.ts";
-import {
-  TASK_ID,
-  VALIDATOR,
-  claimSubmitValidate,
-  setupRun,
-} from "../../cli/commands/fixtures/probe-fixture.ts";
+import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
+import { registerAgentGrant } from "../../../olt/scripts/src/workflow/agents/grants.ts";
+import { cleanupVirtualAgentsFS, scratchRoot, setupVirtualAgentsFS } from "../fixture.ts";
 
-const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+beforeEach(() => {
+  setupVirtualAgentsFS();
+});
+
+afterEach(() => {
+  cleanupVirtualAgentsFS();
+});
+
+function createWhoamiRun(label: string): string {
+  const root = scratchRoot("whoami-test", label);
+  const repo = join(root, "repo");
+  mkdirSync(repo, { recursive: true });
+  return initRun(repo, `run-${label}`, new TextEncoder().encode("whoami test"), "file", true);
+}
 
 describe("Agent Whoami Profiling - Context & Actions", () => {
   describe("Compliance & Supervisory Auditing", () => {
@@ -71,8 +73,33 @@ describe("Agent Whoami Profiling - Context & Actions", () => {
       expect(host.os_platform).toBeDefined();
     });
 
-    it("surfaces run active grants and active leases when run capsule is provided", async () => {
-      const { run } = await setupCompiledRun("whoami-profiling-run", roots);
+    it("surfaces run active grants and active leases when run capsule is provided", () => {
+      const run = createWhoamiRun("grants-and-leases");
+      registerAgentGrant({
+        runRoot: run,
+        agentId: "planner",
+        role: "planner",
+        parentAgentId: null,
+        parentTaskId: null,
+        host: "test-host",
+        authority: { kind: "conditional_genesis" },
+        maxAgents: 10,
+        telemetry: {},
+        now: new Date(),
+      });
+      transact(run, "test", "seed-lease", {}, (draft) => {
+        draft.tasks = {
+          "task-core": {
+            id: "task-core",
+            status: "claimed",
+            lease: {
+              agent_id: "planner",
+              role: "planner",
+              expires_at: "2026-08-19T01:00:00.000Z",
+            },
+          },
+        };
+      });
 
       const result = whoamiCommand({
         run,
@@ -114,15 +141,33 @@ describe("Agent Whoami Profiling - Context & Actions", () => {
   });
 
   describe("whoami Next Actions are role and state aware", () => {
-    it("tells an implementer holding a lease to heartbeat and submit that exact task", async () => {
-      const { run } = await setupCompiledRun("whoami-lease-aware", roots);
-      const claim = await taskClaimCommand({
-        run,
-        task: "task-core",
-        agent: "worker-1",
+    it("tells an implementer holding a lease to heartbeat and submit that exact task", () => {
+      const run = createWhoamiRun("lease-aware");
+      registerAgentGrant({
+        runRoot: run,
+        agentId: "worker-1",
         role: "implementer",
+        parentAgentId: null,
+        parentTaskId: null,
+        host: "test-host",
+        authority: { kind: "conditional_genesis" },
+        maxAgents: 10,
+        telemetry: {},
+        now: new Date(),
       });
-      expect(claim.token).toBeDefined();
+      transact(run, "test", "seed-lease", {}, (draft) => {
+        draft.tasks = {
+          "task-core": {
+            id: "task-core",
+            status: "claimed",
+            lease: {
+              agent_id: "worker-1",
+              role: "implementer",
+              expires_at: "2026-08-19T01:00:00.000Z",
+            },
+          },
+        };
+      });
 
       const result = whoamiCommand({ run, agent: "worker-1" });
       const md = String(result.markdown);
@@ -135,8 +180,8 @@ describe("Agent Whoami Profiling - Context & Actions", () => {
       expect(md).not.toContain("agent:register");
     });
 
-    it("tells an unregistered agent to agent:register with its exact declared role", async () => {
-      const { run } = await setupCompiledRun("whoami-no-grant", roots);
+    it("tells an unregistered agent to agent:register with its exact declared role", () => {
+      const run = createWhoamiRun("no-grant");
 
       const result = whoamiCommand({ run, agent: "nobody-1", role: "implementer" });
       const md = String(result.markdown);
@@ -146,17 +191,45 @@ describe("Agent Whoami Profiling - Context & Actions", () => {
       expect(md).not.toContain("task:heartbeat");
     });
 
-    it("tells a validator holding an open validation to probe and review that exact task", async () => {
-      const { repo, run } = await setupRun("whoami-validator-aware", roots);
-      await claimSubmitValidate(repo, run);
+    it("tells a validator holding an open validation to probe and review that exact task", () => {
+      const run = createWhoamiRun("validator-aware");
+      const validatorId = "val-inspector-1";
+      const taskId = "task-validate-01";
+      registerAgentGrant({
+        runRoot: run,
+        agentId: validatorId,
+        role: "validator",
+        parentAgentId: null,
+        parentTaskId: null,
+        host: "test-host",
+        authority: { kind: "conditional_genesis" },
+        maxAgents: 10,
+        telemetry: {},
+        now: new Date(),
+      });
+      transact(run, "test", "seed-validation", {}, (draft) => {
+        draft.tasks = {
+          [taskId]: {
+            id: taskId,
+            status: "validating",
+            validations: [
+              {
+                validator_id: validatorId,
+                domain: "code-quality",
+                deadline_at: "2026-08-19T01:00:00.000Z",
+              },
+            ],
+          },
+        };
+      });
 
-      const result = whoamiCommand({ run, agent: VALIDATOR });
+      const result = whoamiCommand({ run, agent: validatorId });
       const md = String(result.markdown);
       expect(md).toContain(
-        `bun harness.ts task:probe --run ${run} --task ${TASK_ID} --validator ${VALIDATOR}`,
+        `bun harness.ts task:probe --run ${run} --task ${taskId} --validator ${validatorId}`,
       );
       expect(md).toContain(
-        `bun harness.ts task:review --run ${run} --task ${TASK_ID} --validator ${VALIDATOR}`,
+        `bun harness.ts task:review --run ${run} --task ${taskId} --validator ${validatorId}`,
       );
       expect(md).not.toContain("agent:register");
     });

@@ -1,18 +1,25 @@
-import { afterEach, describe, expect, it } from "bun:test";
-import { mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../../olt/scripts/src/cli/execute.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
-import { cleanupRoots } from "../../commands/fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../commands/fixtures/full-lifecycle-fixture.ts";
 
-const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+
+afterEach(() => {
+  cleanupVirtualCliFS();
+});
 
 describe("execute universal middleware", () => {
   it("blocks task commands if planning phase has no compiled tasks", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "middleware-test-"));
-    roots.push(repo);
+    const repo = `/virtual/middleware-test-${Date.now()}`;
+    await mkdir(repo, { recursive: true });
     const promptPath = join(repo, "prompt.txt");
     await writeFile(promptPath, "Prompt content");
     const init = await execute([
@@ -52,8 +59,8 @@ describe("execute universal middleware", () => {
   });
 
   it("lets run:status inspect a run before the plan phase is verified instead of refusing", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "run-status-pre-plan-"));
-    roots.push(repo);
+    const repo = `/virtual/run-status-pre-plan-${Date.now()}`;
+    await mkdir(repo, { recursive: true });
     const promptPath = join(repo, "prompt.txt");
     await writeFile(promptPath, "Prompt content");
     const init = await execute([
@@ -72,8 +79,8 @@ describe("execute universal middleware", () => {
   });
 
   it("refuses to auto-fill --agent/--role for an unauthenticated caller instead of defaulting to mind", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "unauth-claim-"));
-    roots.push(repo);
+    const repo = `/virtual/unauth-claim-${Date.now()}`;
+    await mkdir(repo, { recursive: true });
     const promptPath = join(repo, "prompt.txt");
     await writeFile(promptPath, "Prompt content");
     const init = await execute([

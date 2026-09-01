@@ -1,5 +1,4 @@
-import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, writeFile, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { readPlanBindings } from "../../../../olt/scripts/src/cli/commands/plan-replan-bindings.ts";
 import { execute } from "../../../../olt/scripts/src/cli/execute.ts";
@@ -13,6 +12,7 @@ import {
   establishSupervisorChain,
   registerUnderChain,
 } from "../../../shared/chains/agent-supervisor-chain.ts";
+import { setupVirtualCliFS } from "./full-lifecycle-fixture.ts";
 
 export const TASK_ID = "task-core";
 export const VALIDATOR = "val-1";
@@ -23,14 +23,12 @@ export async function setupRun(
   roots: string[],
   config?: Record<string, boolean | number | string>,
 ): Promise<{ repo: string; run: string }> {
-  const repo = await mkdtemp(join(tmpdir(), `harness-probe-${name}-`));
+  setupVirtualCliFS();
+  const repo = `/virtual/cli/probe-${name}-${Math.random().toString(36).slice(2)}`;
   roots.push(repo);
   await mkdir(join(repo, ".git"), { recursive: true });
   const staleWorktrees = join(dirname(repo), ".harness-worktrees", name);
   roots.push(staleWorktrees);
-  try {
-    await rm(staleWorktrees, { recursive: true, force: true });
-  } catch {}
   await writeFile(
     join(repo, "harness.config.json"),
     JSON.stringify({ min_adversarial_probes: 1, ...config }),

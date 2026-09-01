@@ -78,6 +78,29 @@ describe(coverageMarkdownSuiteName, () => {
       expect(markdown).toContain("**100%**");
     });
 
+    it("buildMarkdownReport handles runtime performance and slowest files", () => {
+      const fileMap = new Map<string, FileCoverageMetric>();
+      const summary = buildCoverageSummary(fileMap);
+      const runtime = {
+        totalDurationMs: 1200,
+        totalFiles: 2,
+        avgDurationMs: 600,
+        medianDurationMs: 600,
+        pareto50: { fileCount: 1 },
+        pareto90: { fileCount: 2 },
+        slowestFile: { file: "src/slow.test.ts", durationMs: 800, percentage: 66.7 },
+        files: [
+          { file: "src/slow.test.ts", durationMs: 800, percentage: 66.7, passed: true },
+          { file: "src/fail.test.ts", durationMs: 400, percentage: 33.3, passed: false },
+        ],
+      };
+      const markdown = buildMarkdownReport(fileMap, summary, runtime);
+      expect(markdown).toContain("⚡ Test Runtime Performance & Telemetry");
+      expect(markdown).toContain("src/slow.test.ts");
+      expect(markdown).toContain("🔴 FAIL");
+      expect(markdown).toContain("🟢 PASS");
+    });
+
     it("writeMarkdownReport writes REPORT.md and creates directory if missing", () => {
       const tmpRoot = tempDir("cov-md-writer");
       const fileMap = new Map<string, FileCoverageMetric>();

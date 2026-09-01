@@ -6,8 +6,9 @@ import * as path from "node:path";
 import * as nativeRename from "../../installer/native-rename.ts";
 import { HarnessError } from "../../core/errors/index.ts";
 import * as platform from "../../platform/index.ts";
-import { mockOpen, mockRead, mockWrite } from "./descriptors.ts";
+import { mockOpen, mockRead, mockWrite, mockSpawnSync } from "./descriptors.ts";
 import {
+  checkRmPermissions,
   copyDirRecursive,
   isVirtualPath,
   makeFsStats,
@@ -105,6 +106,7 @@ export function createVirtualFSSession(vfs: VirtualMemoryFS): VirtualFSSession {
       if (!vfs.existsSync(parent)) vfs.mkdirSync(parent, { recursive: true });
       if (!vfs.existsSync(np)) vfs.writeFileSync(np, "");
     }),
+    spy("linkSync", (src: fs.PathLike, dst: fs.PathLike) => mockLink(state, src, dst)),
     spy(
       "readlinkSync",
       (p: fs.PathLike, opts?: fs.BufferEncodingOption | { encoding?: BufferEncoding | null }) => {
@@ -159,25 +161,14 @@ export function createVirtualFSSession(vfs: VirtualMemoryFS): VirtualFSSession {
     }),
     spy("rmSync", (p: fs.PathLike, opts?: fs.RmOptions) => {
       const np = normPath(String(p));
-      if (!opts?.force) {
-        for (const [k, mode] of state.customModes.entries()) {
-          if (k === np && (mode & 0o222) === 0) {
-            throw Object.assign(new Error(`EACCES: permission denied, rm '${k}'`), {
-              code: "EACCES",
-            });
-          }
-        }
-      }
+      checkRmPermissions(state, np, opts);
       state.inodeMap.delete(np);
       state.customModes.delete(np);
       state.customMtimes.delete(np);
       state.symlinks.delete(np);
-      for (const k of state.symlinks.keys()) {
-        if (k.startsWith(np + "/")) state.symlinks.delete(k);
-      }
-      for (const k of state.customModes.keys()) {
+      for (const k of state.symlinks.keys()) if (k.startsWith(np + "/")) state.symlinks.delete(k);
+      for (const k of state.customModes.keys())
         if (k.startsWith(np + "/")) state.customModes.delete(k);
-      }
       vfs.rmSync(np, opts as Parameters<typeof vfs.rmSync>[1]);
     }),
     spy("unlinkSync", (p: fs.PathLike) => {
@@ -293,13 +284,14 @@ export function createVirtualFSSession(vfs: VirtualMemoryFS): VirtualFSSession {
     fspSpy("lstat", async (p: fs.PathLike, opts?: fs.StatOptions) => mockLstat(state, p, opts)),
     fspSpy("rm", async (p: fs.PathLike, opts?: fs.RmOptions) => {
       const np = normPath(String(p));
+      checkRmPermissions(state, np, opts);
       state.inodeMap.delete(np);
       state.customModes.delete(np);
       state.customMtimes.delete(np);
       state.symlinks.delete(np);
-      for (const k of state.symlinks.keys()) {
-        if (k.startsWith(np + "/")) state.symlinks.delete(k);
-      }
+      for (const k of state.symlinks.keys()) if (k.startsWith(np + "/")) state.symlinks.delete(k);
+      for (const k of state.customModes.keys())
+        if (k.startsWith(np + "/")) state.customModes.delete(k);
       vfs.rmSync(np, opts as Parameters<typeof vfs.rmSync>[1]);
     }),
     fspSpy("unlink", async (p: fs.PathLike) => {
@@ -332,6 +324,7 @@ export function createVirtualFSSession(vfs: VirtualMemoryFS): VirtualFSSession {
       if (!vfs.existsSync(parent)) vfs.mkdirSync(parent, { recursive: true });
       if (!vfs.existsSync(np)) vfs.writeFileSync(np, "");
     }),
+    fspSpy("link", async (src: fs.PathLike, dst: fs.PathLike) => mockLink(state, src, dst)),
     fspSpy(
       "readlink",
       async (
@@ -394,107 +387,7 @@ export function createVirtualFSSession(vfs: VirtualMemoryFS): VirtualFSSession {
     }),
     spyOn(platform, "tryExclusiveFlock").mockReturnValue(true) as never,
     spyOn(platform, "releaseFlock").mockImplementation(() => {}) as never,
-    spawnSpy((cmd: unknown, args: unknown, opts: unknown) => {
-      const argList = Array.isArray(args) ? args.map(String) : [];
-      const options = (Array.isArray(args) ? opts : args) as
-        | { encoding?: string; cwd?: string }
-        | undefined;
-      const isStr =
-        typeof options === "object" &&
-        options !== null &&
-        typeof options?.encoding === "string" &&
-        options.encoding !== "buffer";
-      const cIdx = argList.indexOf("-C"),
-        cwd =
-          cIdx !== -1 && argList[cIdx + 1] ? argList[cIdx + 1] : (options?.cwd ?? "/virtual/repo");
-      if (String(cmd).includes("tar")) {
-        if (cIdx !== -1 && argList[cIdx + 1]) {
-          const extractDir = argList[cIdx + 1],
-            oltDst = `${extractDir}/olt`,
-            oltSrc = `${cwd}/olt`;
-          if (vfs.existsSync(oltSrc)) copyDirRecursive(vfs, oltSrc, oltDst);
-          else {
-            vfs.mkdirSync(oltDst, { recursive: true });
-            vfs.writeFileSync(`${oltDst}/SKILL.md`, "canonical-skill\n");
-          }
-          if (
-            vfs.existsSync(`${oltDst}/SKILL.md`) &&
-            String(vfs.readFileSync(`${oltDst}/SKILL.md`)).includes("dirty")
-          )
-            vfs.writeFileSync(`${oltDst}/SKILL.md`, "canonical-skill\n");
-        }
-        return {
-          status: 0,
-          stdout: isStr ? "" : Buffer.alloc(0),
-          stderr: isStr ? "" : Buffer.alloc(0),
-          output: [null, null, null],
-          pid: 1234,
-          signal: null,
-          error: undefined,
-        };
-      }
-      if (String(cmd).includes("git")) {
-        if (argList.includes("init")) {
-          vfs.mkdirSync(`${cwd}/.git`, { recursive: true });
-          return {
-            status: 0,
-            stdout: isStr ? "" : Buffer.alloc(0),
-            stderr: isStr ? "" : Buffer.alloc(0),
-            output: [null, null, null],
-            pid: 1234,
-            signal: null,
-            error: undefined,
-          };
-        }
-        if (!vfs.existsSync(`${cwd}/.git`)) {
-          return {
-            status: 128,
-            stdout: isStr ? "" : Buffer.alloc(0),
-            stderr: isStr
-              ? "fatal: not a git repository\n"
-              : Buffer.from("fatal: not a git repository\n"),
-            output: [null, null, null],
-            pid: 1234,
-            signal: null,
-            error: undefined,
-          };
-        }
-      }
-      let status = 0,
-        out = "main\n";
-      if (argList.includes("--get-regexp") || argList.includes("--null")) {
-        status = 1;
-        out = "";
-      } else if (argList.includes("--is-inside-work-tree")) out = "true\n";
-      else if (argList.includes("config.worktree")) out = `${cwd}/.git/config.worktree\n`;
-      else if (argList.includes("--absolute-git-dir") || argList.includes("--git-common-dir"))
-        out = `${cwd}/.git\n`;
-      else if (argList.some((a) => a.startsWith("--porcelain"))) {
-        let dirty = "";
-        if (vfs.existsSync(`${cwd}/olt/untracked.ts`)) dirty += "?? olt/untracked.ts\n";
-        if (vfs.existsSync(`${cwd}/olt/harness-renamed.ts`))
-          dirty += " D olt/harness.ts\n?? olt/harness-renamed.ts\n";
-        if (vfs.existsSync(`${cwd}/olt/SKILL.md`)) {
-          const content = String(vfs.readFileSync(`${cwd}/olt/SKILL.md`, "utf8"));
-          if (content !== "canonical-skill\n" && !content.startsWith("---\nname: olt"))
-            dirty += " M olt/SKILL.md\n";
-        }
-        out = dirty;
-      } else if (argList.includes("-z") || argList.includes("ls-files")) out = "";
-      else if (argList.includes("--show-toplevel")) out = `${cwd}\n`;
-      else if (argList.includes("archive")) out = "mock-archive\n";
-      const stdout = isStr ? out : Buffer.from(out),
-        stderr = isStr ? "" : Buffer.alloc(0);
-      return {
-        status,
-        stdout,
-        stderr,
-        output: [null, stdout, stderr],
-        pid: 1234,
-        signal: null,
-        error: undefined,
-      };
-    }),
+    spawnSpy((cmd: unknown, args: unknown, opts: unknown) => mockSpawnSync(state, cmd, args, opts)),
     spyOn(childProcess, "execFileSync").mockImplementation(((
       cmd: unknown,
       args: unknown,

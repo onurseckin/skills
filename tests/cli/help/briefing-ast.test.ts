@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   escapeRegExp,
@@ -57,7 +56,8 @@ export class AccountModel {
     });
 
     it("respects includeDocstrings option in extractFileAnchors", () => {
-      const root = mkdtempSync(join(tmpdir(), "briefing-doc-"));
+      const root = "/virtual/briefing-doc";
+      mkdirSync(root, { recursive: true });
       const filePath = join(root, "service.ts");
       const content = `/**
  * Core authentication service.
@@ -85,7 +85,6 @@ export function authenticateUser(token: string): boolean {
       expect(withoutDocs[0]?.contextSnippet.startsWith("export function authenticateUser")).toBe(
         true,
       );
-      rmSync(root, { recursive: true, force: true });
     });
 
     it("handles destructured bindings and multi-declarator scope isolation", () => {
@@ -159,7 +158,8 @@ export const { alpha, beta } = { alpha: "a", beta: "b" };
     });
 
     it("safely finds pattern anchor even when pattern has special characters", () => {
-      const root = mkdtempSync(join(tmpdir(), "briefing-pat-"));
+      const root = "/virtual/briefing-pat";
+      mkdirSync(root, { recursive: true });
       const filePath = join(root, "patterns.ts");
       const content = `// Header
 export const config$Map = {
@@ -172,7 +172,6 @@ export const config$Map = {
       expect(anchor).toBeDefined();
       expect(anchor?.startLine).toBe(2);
       expect(anchor?.endLine).toBe(4);
-      rmSync(root, { recursive: true, force: true });
     });
   });
 

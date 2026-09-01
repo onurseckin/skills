@@ -1,6 +1,5 @@
-import { describe, expect, it, beforeEach, afterEach, spyOn } from "bun:test";
-import * as fs from "node:fs";
-import { dirname, join, basename } from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   assertZeroAny,
@@ -11,121 +10,19 @@ import {
   scanFileForAny,
   scanSourceCodeForAny,
 } from "../../../olt/scripts/src/core/type-safety/index.ts";
+import {
+  createTypeSafetyMockState,
+  createTypeSafetyFsSpies,
+  type TypeSafetyMockState,
+} from "./fixtures.ts";
 
 describe("assertZeroAny and type-safety scanner", () => {
-  const mockFiles = new Map<string, string>();
-  const mockDirs = new Set<string>();
+  let state: TypeSafetyMockState;
   const spies: { mockRestore: () => void }[] = [];
 
   beforeEach(() => {
-    mockFiles.clear();
-    mockDirs.clear();
-    spies.push(
-      spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => {
-        const s = String(p);
-        return mockFiles.has(s) || mockDirs.has(s);
-      }),
-      spyOn(fs, "realpathSync").mockImplementation(((p: fs.PathLike) =>
-        String(p)) as unknown as typeof fs.realpathSync),
-      spyOn(fs, "statSync").mockImplementation(((p: fs.PathLike) => {
-        const s = String(p);
-        if (mockDirs.has(s))
-          return {
-            isDirectory: () => true,
-            isFile: () => false,
-            isSymbolicLink: () => false,
-          } as unknown as fs.Stats;
-        if (mockFiles.has(s))
-          return {
-            isDirectory: () => false,
-            isFile: () => true,
-            isSymbolicLink: () => false,
-          } as unknown as fs.Stats;
-        throw new Error(`ENOENT: no such file or directory, stat '${s}'`);
-      }) as unknown as typeof fs.statSync),
-      spyOn(fs, "lstatSync").mockImplementation(((p: fs.PathLike) => {
-        const s = String(p);
-        if (mockDirs.has(s))
-          return {
-            isDirectory: () => true,
-            isFile: () => false,
-            isSymbolicLink: () => false,
-          } as unknown as fs.Stats;
-        if (mockFiles.has(s))
-          return {
-            isDirectory: () => false,
-            isFile: () => true,
-            isSymbolicLink: () => false,
-          } as unknown as fs.Stats;
-        throw new Error(`ENOENT: no such file or directory, lstat '${s}'`);
-      }) as unknown as typeof fs.lstatSync),
-      spyOn(fs, "readFileSync").mockImplementation(((p: fs.PathOrFileDescriptor) => {
-        const s = String(p);
-        const val = mockFiles.get(s);
-        if (val !== undefined) return val;
-        throw new Error(`ENOENT: no such file or directory, open '${s}'`);
-      }) as unknown as typeof fs.readFileSync),
-      spyOn(fs, "mkdirSync").mockImplementation(((p: fs.PathLike) => {
-        mockDirs.add(String(p));
-        return undefined as unknown as string;
-      }) as unknown as typeof fs.mkdirSync),
-      spyOn(fs, "writeFileSync").mockImplementation(((
-        p: fs.PathOrFileDescriptor,
-        data: string | NodeJS.ArrayBufferView,
-      ) => {
-        const s = String(p);
-        mockFiles.set(
-          s,
-          typeof data === "string" ? data : Buffer.from(data as Uint8Array).toString("utf-8"),
-        );
-      }) as unknown as typeof fs.writeFileSync),
-      spyOn(fs, "readdirSync").mockImplementation(((
-        p: fs.PathLike,
-        options?: fs.ObjectEncodingOptions & { withFileTypes?: boolean },
-      ) => {
-        const s = String(p);
-        const childNames = new Set<string>();
-        const childDirents: {
-          name: string;
-          isFile: () => boolean;
-          isDirectory: () => boolean;
-          isSymbolicLink: () => boolean;
-        }[] = [];
-
-        for (const dir of mockDirs) {
-          if (dirname(dir) === s && dir !== s) {
-            const name = basename(dir);
-            if (!childNames.has(name)) {
-              childNames.add(name);
-              childDirents.push({
-                name,
-                isFile: () => false,
-                isDirectory: () => true,
-                isSymbolicLink: () => false,
-              });
-            }
-          }
-        }
-        for (const file of mockFiles.keys()) {
-          if (dirname(file) === s) {
-            const name = basename(file);
-            if (!childNames.has(name)) {
-              childNames.add(name);
-              childDirents.push({
-                name,
-                isFile: () => true,
-                isDirectory: () => false,
-                isSymbolicLink: () => false,
-              });
-            }
-          }
-        }
-        if (options && typeof options === "object" && options.withFileTypes) {
-          return childDirents as unknown as string[];
-        }
-        return Array.from(childNames) as unknown as string[];
-      }) as unknown as typeof fs.readdirSync),
-    );
+    state = createTypeSafetyMockState();
+    spies.push(...createTypeSafetyFsSpies(state));
   });
 
   afterEach(() => {
@@ -213,11 +110,11 @@ describe("assertZeroAny and type-safety scanner", () => {
   describe("file and directory scanning", () => {
     it("scans files and throws on violations", () => {
       const tempDir = "/virtual-type-safety-file";
-      mockDirs.add(tempDir);
+      state.mockDirs.add(tempDir);
       const cleanFile = join(tempDir, "clean.ts");
       const dirtyFile = join(tempDir, "dirty.ts");
-      mockFiles.set(cleanFile, "export const PI: number = 3.14;");
-      mockFiles.set(dirtyFile, "export const bad: any = true;");
+      state.mockFiles.set(cleanFile, "export const PI: number = 3.14;");
+      state.mockFiles.set(dirtyFile, "export const bad: any = true;");
 
       expect(() => assertZeroAny(cleanFile)).not.toThrow();
 
@@ -234,15 +131,15 @@ describe("assertZeroAny and type-safety scanner", () => {
 
     it("scans entire directories and enforces zero any", () => {
       const tempDir = "/virtual-type-safety-dir";
-      mockDirs.add(tempDir);
+      state.mockDirs.add(tempDir);
       const subDir = join(tempDir, "nested");
-      mockDirs.add(subDir);
-      mockFiles.set(join(tempDir, "a.ts"), "export const a: string = 'ok';");
-      mockFiles.set(join(subDir, "b.tsx"), "export const b = 42;");
+      state.mockDirs.add(subDir);
+      state.mockFiles.set(join(tempDir, "a.ts"), "export const a: string = 'ok';");
+      state.mockFiles.set(join(subDir, "b.tsx"), "export const b = 42;");
 
       expect(() => assertZeroAny(tempDir)).not.toThrow();
 
-      mockFiles.set(join(subDir, "c.ts"), "export function fail(x: any): void {}");
+      state.mockFiles.set(join(subDir, "c.ts"), "export function fail(x: any): void {}");
 
       let caught: unknown;
       try {
@@ -305,13 +202,13 @@ describe("assertZeroAny and type-safety scanner", () => {
 
     it("collects typescript files excluding node_modules and dot folders", () => {
       const tempDir = "/virtual-type-safety-collect";
-      mockDirs.add(tempDir);
+      state.mockDirs.add(tempDir);
       const nodeModules = join(tempDir, "node_modules");
-      mockDirs.add(nodeModules);
-      mockFiles.set(join(nodeModules, "ignored.ts"), "const x: any = 1;");
-      mockFiles.set(join(tempDir, "valid.ts"), "const x = 1;");
-      mockFiles.set(join(tempDir, "valid.tsx"), "const x = 1;");
-      mockFiles.set(join(tempDir, "ignored.txt"), "some text");
+      state.mockDirs.add(nodeModules);
+      state.mockFiles.set(join(nodeModules, "ignored.ts"), "const x: any = 1;");
+      state.mockFiles.set(join(tempDir, "valid.ts"), "const x = 1;");
+      state.mockFiles.set(join(tempDir, "valid.tsx"), "const x = 1;");
+      state.mockFiles.set(join(tempDir, "ignored.txt"), "some text");
 
       const collected = collectTsFiles(tempDir);
       expect(collected.length).toBe(2);
