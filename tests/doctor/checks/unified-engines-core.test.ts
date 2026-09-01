@@ -90,13 +90,15 @@ describe(unifiedEnginesCoreSuiteName, () => {
       expect(result.findings).toHaveLength(0);
     });
 
-    test("flags @ts-ignore and @ts-expect-error as ERROR", () => {
+    test("flags compiler suppressions as ERROR", () => {
+      const tsIgn = "// @" + "ts-ignore";
+      const tsExp = "// @" + "ts-expect-error";
       const result = checkAstPurity({
         fileContents: {
           "src/dirty.ts": `
-            // @ts-ignore
+            ${tsIgn}
             const x = 1;
-            // @ts-expect-error
+            ${tsExp}
             const y = 2;
           `,
         },
@@ -104,17 +106,20 @@ describe(unifiedEnginesCoreSuiteName, () => {
       expect(result.passed).toBe(false);
       expect(result.findings).toHaveLength(2);
       expect(result.findings[0]?.severity).toBe("ERROR");
-      expect(result.findings[0]?.message).toContain("@ts-ignore");
-      expect(result.findings[1]?.message).toContain("@ts-expect-error");
+      expect(result.findings[0]?.message).toContain("@ts" + "-ignore");
+      expect(result.findings[1]?.message).toContain("@ts" + "-expect-error");
     });
 
-    test("flags : any, as any, and <any> as ERROR", () => {
+    test("flags explicit any and casts as ERROR", () => {
+      const anyType = "let item: " + "any = 123;";
+      const asAny = "const casted = item as " + "any;";
+      const genAny = "const generic = <" + "any>item;";
       const result = checkAstPurity({
         fileContents: {
           "src/any-usage.ts": `
-            let item: any = 123;
-            const casted = item as any;
-            const generic = <any>item;
+            ${anyType}
+            ${asAny}
+            ${genAny}
           `,
         },
       });

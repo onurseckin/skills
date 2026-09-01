@@ -1,5 +1,3 @@
-import { spyOn } from "bun:test";
-import * as fs from "node:fs";
 import type { Manifest } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
@@ -9,104 +7,45 @@ import {
 } from "../../../olt/scripts/src/summary/markdown/index.ts";
 import type { GraphDataset } from "../../../olt/scripts/src/summary/graph/index.ts";
 import type { RollupMetrics } from "../../../olt/scripts/src/summary/metrics/index.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
-const vfs = new Map<string, string>();
-const vdirs = new Set<string>();
+let vfs = new VirtualMemoryFS();
+let session: VirtualFSSession | null = null;
 let rootCounter = 0;
 
-const origExists = fs.existsSync.bind(fs);
-const origRead = fs.readFileSync.bind(fs);
-const origWrite = fs.writeFileSync.bind(fs);
-const origMkdir = fs.mkdirSync.bind(fs);
-const origRm = fs.rmSync.bind(fs);
-
-spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike): boolean => {
-  const s = String(p);
-  if (s.startsWith("/virtual/")) {
-    if (vfs.has(s) || vdirs.has(s)) return true;
-    for (const k of vfs.keys()) {
-      if (k.startsWith(`${s}/`)) return true;
-    }
-    for (const d of vdirs) {
-      if (d.startsWith(`${s}/`)) return true;
-    }
-    return false;
-  }
-  return origExists(p);
-});
-
-spyOn(fs, "readFileSync").mockImplementation((p: fs.PathLike, opt?: unknown): string | Buffer => {
-  const s = String(p);
-  if (s.startsWith("/virtual/")) {
-    const content = vfs.get(s);
-    if (content === undefined) {
-      throw new Error(`ENOENT: no such file or directory, open '${s}'`);
-    }
-    if (
-      opt === "utf-8" ||
-      opt === "utf8" ||
-      (typeof opt === "object" &&
-        opt !== null &&
-        "encoding" in opt &&
-        (opt as { encoding?: string }).encoding)
-    ) {
-      return content;
-    }
-    return Buffer.from(content, "utf-8");
-  }
-  return origRead(p, opt as Parameters<typeof origRead>[1]) as string | Buffer;
-});
-
-spyOn(fs, "writeFileSync").mockImplementation(
-  (p: fs.PathLike, data: string | NodeJS.ArrayBufferView): void => {
-    const s = String(p);
-    if (s.startsWith("/virtual/")) {
-      vfs.set(
-        s,
-        typeof data === "string"
-          ? data
-          : Buffer.from(data.buffer, data.byteOffset, data.byteLength).toString("utf-8"),
-      );
-      return;
-    }
-    origWrite(p, data);
-  },
-);
-
-spyOn(fs, "mkdirSync").mockImplementation((p: fs.PathLike): string | undefined => {
-  const s = String(p);
-  if (s.startsWith("/virtual/")) {
-    vdirs.add(s);
-    return undefined;
-  }
-  return origMkdir(p) as string | undefined;
-});
-
-spyOn(fs, "rmSync").mockImplementation((p: fs.PathLike): void => {
-  const s = String(p);
-  if (s.startsWith("/virtual/")) {
-    vfs.delete(s);
-    vdirs.delete(s);
-    for (const k of Array.from(vfs.keys())) {
-      if (k.startsWith(`${s}/`)) vfs.delete(k);
-    }
-    for (const d of Array.from(vdirs)) {
-      if (d.startsWith(`${s}/`)) vdirs.delete(d);
-    }
-    return;
-  }
-  origRm(p, { recursive: true, force: true });
-});
+export function setupVirtualFormattersFS(): VirtualMemoryFS {
+  cleanupRoots();
+  vfs = new VirtualMemoryFS();
+  session = createVirtualFSSession(vfs);
+  return vfs;
+}
 
 export function cleanupRoots(): void {
-  vfs.clear();
-  vdirs.clear();
+  if (session) {
+    session.cleanup();
+    session = null;
+  }
+  vfs = new VirtualMemoryFS();
+}
+
+export function getVirtualFormattersFS(): VirtualMemoryFS {
+  if (!session) {
+    setupVirtualFormattersFS();
+  }
+  return vfs;
 }
 
 export function tempRoot(): string {
+  if (!session) {
+    setupVirtualFormattersFS();
+  }
   rootCounter += 1;
   const root = `/virtual/harness-md-${rootCounter}`;
-  vdirs.add(root);
+  vfs.mkdirSync(root, { recursive: true });
   return root;
 }
 

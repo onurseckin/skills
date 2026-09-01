@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   compileEffectiveForbiddenPatterns,
   FORBIDDEN_SUBSHELL_AND_EVAL_PATTERNS,
@@ -12,8 +12,17 @@ import {
 } from "../../../olt/scripts/src/policy/index.ts";
 import type { AgentMetadata } from "../../../olt/scripts/src/runtime/index.ts";
 import type { RepoPolicy } from "../../../olt/scripts/src/policy/index.ts";
+import { cleanupVirtualPolicyFS, setupVirtualPolicyFS } from "../fixture.ts";
 
 describe("RBAC Engine Public Facade & Integration", () => {
+  beforeEach(() => {
+    setupVirtualPolicyFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualPolicyFS();
+  });
+
   const samplePolicy: RepoPolicy = {
     schema_version: 1,
     ecosystem: "bun",

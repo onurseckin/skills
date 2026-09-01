@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -23,6 +23,16 @@ import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 let vfsCleanup: (() => void) | undefined;
 let sc = 0;
+
+beforeEach(() => {
+  const setup = setupWorkflowVirtualFs();
+  vfsCleanup = setup.cleanup;
+});
+
+afterEach(() => {
+  vfsCleanup?.();
+  vfsCleanup = undefined;
+});
 
 describe("Worktree Isolation - Disjoint Write Scopes", () => {
   it("validates mutually disjoint domain write scopes as isolated", () => {
@@ -129,21 +139,9 @@ describe("Worktree Isolation - Write Scope Path Confinement", () => {
 });
 
 describe("Worktree Isolation - Domain Worktree Lifecycle & Commits", () => {
-  let testRoot: string;
-
-  beforeEach(() => {
-    const setup = setupWorkflowVirtualFs();
-    vfsCleanup = setup.cleanup;
-    testRoot = `/virtual/tmp/worktree-isolation-test-${++sc}`;
-    mkdirSync(testRoot, { recursive: true });
-  });
-
-  afterEach(() => {
-    vfsCleanup?.();
-    vfsCleanup = undefined;
-  });
-
   it("provisions domain worktree in dedicated isolation path", () => {
+    const testRoot = `/virtual/tmp/worktree-isolation-test-${++sc}`;
+    mkdirSync(testRoot, { recursive: true });
     const ledger = createDomainLedger(
       "harness-main",
       "abc1234",
@@ -175,6 +173,8 @@ describe("Worktree Isolation - Domain Worktree Lifecycle & Commits", () => {
   });
 
   it("enforces conventional commit compliance and write scope confinement during subphase commit", () => {
+    const testRoot = `/virtual/tmp/worktree-isolation-test-${++sc}`;
+    mkdirSync(testRoot, { recursive: true });
     const executed: string[][] = [];
     const mockRunner: GitRunner = (_cwd, argv) => {
       executed.push([...argv]);

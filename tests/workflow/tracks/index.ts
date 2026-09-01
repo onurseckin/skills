@@ -1,3 +1,6 @@
 export {
-  // Tracks module facade
-} from "./manifest.test.ts";
+  cleanupVirtualTracksFS,
+  getVirtualTracksFS,
+  scratchRoot,
+  setupVirtualTracksFS,
+} from "./tracks-fixture.ts";

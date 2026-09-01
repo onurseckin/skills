@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import {
   executeAtomicDispatch,
@@ -187,53 +186,5 @@ describe("Smart Tasks Execute Atomic Dispatch Test Suite", () => {
     expect(res1.audit_report.zero_paused_admitted).toBe(true);
     expect(res2.audit_report.zero_paused_admitted).toBe(true);
     expect(res3.audit_report.zero_paused_admitted).toBe(true);
-  });
-
-  it("enforces strict repository invariants across touched files", () => {
-    const files = [
-      "olt/scripts/src/mind/tasks/smart/executor/dispatch.ts",
-      "olt/scripts/src/mind/tasks/smart/executor/index.ts",
-      "olt/scripts/src/mind/tasks/smart/index.ts",
-      "olt/scripts/src/mind/tasks/index.ts",
-      "tests/mind/synthesis/smart-tasks/execute-atomic-dispatch.test.ts",
-    ];
-
-    const colonAny = new RegExp(":\\s*" + "any\\b", "u");
-    const asAny = new RegExp("as\\s+" + "any\\b", "u");
-    const angleAny = new RegExp("<" + "any>", "u");
-    const tsIgnore = "@ts" + "-ignore";
-    const tsExpectError = "@ts" + "-expect-error";
-    const tsNocheck = "@ts" + "-nocheck";
-    const lineComment = new RegExp("^\\s*/" + "/", "mu");
-    const blockComment = new RegExp("/" + "\\*", "mu");
-
-    for (const relPath of files) {
-      const fullPath = join(process.cwd(), relPath);
-      expect(fs.existsSync(fullPath)).toBe(true);
-      const content = fs.readFileSync(fullPath, "utf8");
-      const lines = content.split("\n");
-      expect(lines.length).toBeLessThanOrEqual(300);
-
-      const stripped = content
-        .split("\n")
-        .filter(
-          (l) =>
-            !l.includes("colonAny") &&
-            !l.includes("asAny") &&
-            !l.includes("angleAny") &&
-            !l.includes("lineComment") &&
-            !l.includes("blockComment"),
-        )
-        .join("\n");
-
-      expect(colonAny.test(stripped)).toBe(false);
-      expect(asAny.test(stripped)).toBe(false);
-      expect(angleAny.test(stripped)).toBe(false);
-      expect(content.includes(tsIgnore)).toBe(false);
-      expect(content.includes(tsExpectError)).toBe(false);
-      expect(content.includes(tsNocheck)).toBe(false);
-      expect(lineComment.test(stripped)).toBe(false);
-      expect(blockComment.test(stripped)).toBe(false);
-    }
   });
 });

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { completionIssues } from "../../../../olt/scripts/src/workflow/completion/completion-state.ts";
@@ -16,7 +16,23 @@ import { captureGatePathBindings } from "../../../../olt/scripts/src/engine/runn
 import { commandFingerprint } from "../../../../olt/scripts/src/workflow/gates/gate-policy.ts";
 import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
+let vfsCleanup: (() => void) | undefined;
+let vfsInstance: ReturnType<typeof setupWorkflowVirtualFs>["vfs"] | undefined;
+let sc = 0;
 const clock = at("2026-08-13T12:00:00.000Z");
+
+beforeEach(() => {
+  const setup = setupWorkflowVirtualFs();
+  vfsCleanup = setup.cleanup;
+  vfsInstance = setup.vfs;
+});
+
+afterEach(() => {
+  vfsCleanup?.();
+  vfsCleanup = undefined;
+  vfsInstance = undefined;
+});
+
 describe("submission, gate, and completion evidence", () => {
   test("submission covers exactly every mapped requirement", () => {
     const state = workflowState();
@@ -74,48 +90,43 @@ describe("submission, gate, and completion evidence", () => {
   });
 
   test("gate attachment rechecks control-input overlap against current task scopes", async () => {
-    const { vfs, cleanup } = setupWorkflowVirtualFs();
-    const repositoryRoot = "/virtual/tmp/gate-attachment-scope";
-    vfs.mkdirSync(repositoryRoot, { recursive: true });
-    try {
-      await mkdir(join(repositoryRoot, "tools"));
-      await writeFile(join(repositoryRoot, "tools", "verify"), "#!/bin/sh\nexit 0\n", {
-        mode: 0o700,
-      });
-      const argv = ["./tools/verify"];
-      const state = workflowState();
-      Object.assign(state.tasks["T-1"]!, {
-        status: "validated",
-        write_scope: ["tools/verify"],
-        report: { summary: "done" },
-        validations: [
-          {
-            validator_id: "v",
-            domain: "code-quality",
-            started_at: clock.now().toISOString(),
-            deadline_at: clock.now().toISOString(),
-            verdict: "pass",
-            reviewed_requirement_ids: ["R-1"],
-          },
-        ],
-      });
-      state.gates[0]!.command = argv;
-      state.commands["C-1"] = commandRecord("C-1", {
-        argv,
-        cwd: repositoryRoot,
-        cwd_relative: ".",
-        repository_root: repositoryRoot,
-        task_id: "T-1",
-        gate_id: "G-1",
-        fingerprint: commandFingerprint(repositoryRoot, argv),
-        path_bindings: captureGatePathBindings(repositoryRoot, repositoryRoot, argv),
-      });
-      expect(() =>
-        attachGateResult(new TestPort(state), "T-1", "G-1", "C-1", "coordinator", clock),
-      ).toThrow(/prove the gate contract/i);
-    } finally {
-      cleanup();
-    }
+    const repositoryRoot = `/virtual/tmp/gate-attachment-scope-${++sc}`;
+    vfsInstance!.mkdirSync(repositoryRoot, { recursive: true });
+    await mkdir(join(repositoryRoot, "tools"), { recursive: true });
+    await writeFile(join(repositoryRoot, "tools", "verify"), "#!/bin/sh\nexit 0\n", {
+      mode: 0o700,
+    });
+    const argv = ["./tools/verify"];
+    const state = workflowState();
+    Object.assign(state.tasks["T-1"]!, {
+      status: "validated",
+      write_scope: ["tools/verify"],
+      report: { summary: "done" },
+      validations: [
+        {
+          validator_id: "v",
+          domain: "code-quality",
+          started_at: clock.now().toISOString(),
+          deadline_at: clock.now().toISOString(),
+          verdict: "pass",
+          reviewed_requirement_ids: ["R-1"],
+        },
+      ],
+    });
+    state.gates[0]!.command = argv;
+    state.commands["C-1"] = commandRecord("C-1", {
+      argv,
+      cwd: repositoryRoot,
+      cwd_relative: ".",
+      repository_root: repositoryRoot,
+      task_id: "T-1",
+      gate_id: "G-1",
+      fingerprint: commandFingerprint(repositoryRoot, argv),
+      path_bindings: captureGatePathBindings(repositoryRoot, repositoryRoot, argv),
+    });
+    expect(() =>
+      attachGateResult(new TestPort(state), "T-1", "G-1", "C-1", "coordinator", clock),
+    ).toThrow(/prove the gate contract/i);
   });
 
   test("completion derives authoritative run gates and blocks missing critic provenance", () => {

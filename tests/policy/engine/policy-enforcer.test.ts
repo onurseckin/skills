@@ -1,10 +1,11 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   enforceRepoPolicy,
   generateDefaultRepoPolicy,
   type RepoPolicy,
 } from "../../../olt/scripts/src/policy/index.ts";
+import { cleanupVirtualPolicyFS, setupVirtualPolicyFS } from "../fixture.ts";
 
 const mockPolicy: RepoPolicy = {
   ...generateDefaultRepoPolicy("/mock/repo"),
@@ -20,6 +21,14 @@ const mockPolicy: RepoPolicy = {
 };
 
 describe("Central Policy Enforcement Engine", () => {
+  beforeEach(() => {
+    setupVirtualPolicyFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualPolicyFS();
+  });
+
   describe("Worktree Policy Rules", () => {
     test("allows compliant worktree provision and write scope", () => {
       const result = enforceRepoPolicy(mockPolicy, {

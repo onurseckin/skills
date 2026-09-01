@@ -1,6 +1,7 @@
-import { describe, expect, test, beforeEach, afterEach, spyOn } from "bun:test";
+import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import * as fs from "node:fs";
 import { join } from "node:path";
+import { setupVirtualMindFS, cleanupVirtualMindFS, scratchRoot } from "../../fixtures/index.ts";
 import {
   scanArchitecturalHealth,
   mapPriority,
@@ -10,83 +11,16 @@ import {
 } from "../../../../olt/scripts/src/mind/tasks/discovery/scanners/health-scanner.ts";
 
 describe("health-scanner unit tests (in-memory virtual)", () => {
-  const virtualDir = `${process.cwd()}/.olt/virtual-health-scanner`;
-  const mockFiles = new Map<string, string>();
-  const mockDirs = new Set<string>();
-  const spies: { mockRestore: () => void }[] = [];
+  let virtualDir: string;
 
   beforeEach(() => {
-    mockFiles.clear();
-    mockDirs.clear();
-    mockDirs.add(virtualDir);
-
-    const existsSpy = spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => {
-      const pathStr = String(p);
-      return mockFiles.has(pathStr) || mockDirs.has(pathStr);
-    });
-    spies.push(existsSpy);
-
-    const readdirSpy = spyOn(fs, "readdirSync").mockImplementation(
-      (p: fs.PathLike, options?: unknown) => {
-        const pathStr = String(p);
-        const dirNames: string[] = [];
-        for (const dir of mockDirs) {
-          if (dir.startsWith(pathStr) && dir !== pathStr) {
-            const sub = dir.slice(pathStr.length).replace(/^\/+/, "");
-            const top = sub.split("/")[0];
-            if (top && !dirNames.includes(top)) dirNames.push(top);
-          }
-        }
-        const fileNames: string[] = [];
-        for (const file of mockFiles.keys()) {
-          if (file.startsWith(pathStr)) {
-            const sub = file.slice(pathStr.length).replace(/^\/+/, "");
-            const top = sub.split("/")[0];
-            if (top && !dirNames.includes(top) && !fileNames.includes(top)) fileNames.push(top);
-          }
-        }
-        const withFileTypes =
-          typeof options === "object" &&
-          options !== null &&
-          Boolean((options as { withFileTypes?: boolean }).withFileTypes);
-
-        if (withFileTypes) {
-          const results = [
-            ...dirNames.map((name) => ({ name, isDirectory: () => true, isFile: () => false })),
-            ...fileNames.map((name) => ({ name, isDirectory: () => false, isFile: () => true })),
-          ];
-          return results as unknown as fs.Dirent[];
-        }
-        return [...dirNames, ...fileNames] as unknown as fs.Dirent[];
-      },
-    );
-    spies.push(readdirSpy);
-
-    const readSpy = spyOn(fs, "readFileSync").mockImplementation((p: fs.PathOrFileDescriptor) => {
-      const pathStr = String(p);
-      const val = mockFiles.get(pathStr);
-      if (val !== undefined) return val;
-      throw new Error(`ENOENT: no such file or directory, open '${pathStr}'`);
-    });
-    spies.push(readSpy);
-
-    const statSpy = spyOn(fs, "statSync").mockImplementation((p: fs.PathLike) => {
-      const pathStr = String(p);
-      if (mockDirs.has(pathStr)) {
-        return { isDirectory: () => true, isFile: () => false } as unknown as fs.Stats;
-      }
-      if (mockFiles.has(pathStr)) {
-        return { isDirectory: () => false, isFile: () => true } as unknown as fs.Stats;
-      }
-      return { isDirectory: () => false, isFile: () => false } as unknown as fs.Stats;
-    });
-    spies.push(statSpy);
+    setupVirtualMindFS();
+    virtualDir = scratchRoot("health-scanner", "test");
+    fs.mkdirSync(virtualDir, { recursive: true });
   });
 
   afterEach(() => {
-    while (spies.length > 0) {
-      spies.pop()?.mockRestore();
-    }
+    cleanupVirtualMindFS();
   });
 
   test("mapPriority maps all DiscoverySeverity levels correctly", () => {
@@ -114,9 +48,8 @@ describe("health-scanner unit tests (in-memory virtual)", () => {
 
   test("scanArchitecturalHealth detects broken imports and circular dependencies", () => {
     const testDir = join(virtualDir, "circ-test");
-    mockDirs.add(testDir);
     const subDir = join(testDir, "sub");
-    mockDirs.add(subDir);
+    fs.mkdirSync(subDir, { recursive: true });
 
     const fileA = join(testDir, "fileA.ts");
     const fileB = join(testDir, "fileB.ts");
@@ -124,11 +57,11 @@ describe("health-scanner unit tests (in-memory virtual)", () => {
     const fileD = join(testDir, "fileD.ts");
     const indexFile = join(subDir, "index.ts");
 
-    mockFiles.set(fileA, `import { b } from "./fileB.ts";\nexport const a = 1;`);
-    mockFiles.set(fileB, `import { a } from "./fileA.ts";\nexport const b = 2;`);
-    mockFiles.set(fileC, `import { missing } from "./nonExistentFile.ts";\nexport const c = 3;`);
-    mockFiles.set(fileD, `import { sub } from "./sub";\nexport const d = 4;`);
-    mockFiles.set(indexFile, `export const sub = "sub";`);
+    fs.writeFileSync(fileA, `import { b } from "./fileB.ts";\nexport const a = 1;`);
+    fs.writeFileSync(fileB, `import { a } from "./fileA.ts";\nexport const b = 2;`);
+    fs.writeFileSync(fileC, `import { missing } from "./nonExistentFile.ts";\nexport const c = 3;`);
+    fs.writeFileSync(fileD, `import { sub } from "./sub";\nexport const d = 4;`);
+    fs.writeFileSync(indexFile, `export const sub = "sub";`);
 
     const result = scanArchitecturalHealth({
       sourceRoots: [testDir],
@@ -151,13 +84,13 @@ describe("health-scanner unit tests (in-memory virtual)", () => {
 
   test("scanArchitecturalHealth handles clean workspace with zero findings", () => {
     const testDir = join(virtualDir, "clean-test");
-    mockDirs.add(testDir);
+    fs.mkdirSync(testDir, { recursive: true });
 
     const fileA = join(testDir, "cleanA.ts");
     const fileB = join(testDir, "cleanB.ts");
 
-    mockFiles.set(fileA, `export const a = 10;`);
-    mockFiles.set(fileB, `import { a } from "./cleanA.ts";\nexport const b = a + 20;`);
+    fs.writeFileSync(fileA, `export const a = 10;`);
+    fs.writeFileSync(fileB, `import { a } from "./cleanA.ts";\nexport const b = a + 20;`);
 
     const result = scanArchitecturalHealth({
       sourceRoots: [testDir],

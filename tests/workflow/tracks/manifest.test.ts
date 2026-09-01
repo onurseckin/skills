@@ -1,13 +1,24 @@
-import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
+import {
+  cleanupVirtualTracksFS,
+  getVirtualTracksFS,
+  setupVirtualTracksFS,
+} from "./tracks-fixture.ts";
 
-describe("agent manifests worktree permissions", () => {
-  const root = process.cwd();
+describe("agent manifests worktree permissions (in-memory virtualization)", () => {
+  beforeEach(() => {
+    setupVirtualTracksFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualTracksFS();
+  });
 
   test("orchestrator.yaml declares all worktree commands", () => {
-    const filePath = join(root, "olt", "agents", "orchestrator.yaml");
-    const content = readFileSync(filePath, "utf8");
+    const vfs = getVirtualTracksFS();
+    const filePath = join(process.cwd(), "olt", "agents", "orchestrator.yaml");
+    const content = vfs.readFileSync(filePath, "utf8");
 
     expect(content).toContain('"worktree:create"');
     expect(content).toContain('"worktree:land"');
@@ -19,8 +30,9 @@ describe("agent manifests worktree permissions", () => {
   });
 
   test("coordinator.yaml declares all worktree commands", () => {
-    const filePath = join(root, "olt", "agents", "coordinator.yaml");
-    const content = readFileSync(filePath, "utf8");
+    const vfs = getVirtualTracksFS();
+    const filePath = join(process.cwd(), "olt", "agents", "coordinator.yaml");
+    const content = vfs.readFileSync(filePath, "utf8");
 
     expect(content).toContain('"worktree:create"');
     expect(content).toContain('"worktree:land"');

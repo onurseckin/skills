@@ -1,7 +1,7 @@
-import { afterEach, beforeEach, describe, expect, test, spyOn } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import { join } from "node:path";
-import * as durableWriteModule from "../../../../olt/scripts/src/core/durable-write.ts";
+import { setupVirtualMindFS, cleanupVirtualMindFS, scratchRoot } from "../../fixtures/index.ts";
 import {
   auditOrchestratorLiveness,
   defaultIsPidAlive,
@@ -33,13 +33,10 @@ function createInput(
 }
 
 describe("Orchestrator Liveness & Zombie Auditor (in-memory virtual)", () => {
-  const tempDir = `${process.cwd()}/.olt/virtual-liveness-auditor-test`;
-  const ledgerPath = join(tempDir, "orchestrators.jsonl");
-  const lockPath = join(tempDir, "orchestrators.lock");
-  const capsulesDir = join(tempDir, ".olt", "capsules");
-  const mockFiles = new Map<string, string>();
-  const mockDirs = new Set<string>();
-  const spies: { mockRestore: () => void }[] = [];
+  let tempDir: string;
+  let ledgerPath: string;
+  let lockPath: string;
+  let capsulesDir: string;
 
   const spawn = (id: string, pid = 10001) => {
     registerOrchestratorSpawn(createInput({ orchestrator_id: id, pid }), ledgerPath, lockPath);
@@ -60,67 +57,16 @@ describe("Orchestrator Liveness & Zombie Auditor (in-memory virtual)", () => {
   const firstStatus = () => loadOrchestratorLedger(ledgerPath)[0]?.status;
 
   beforeEach(() => {
-    mockFiles.clear();
-    mockDirs.clear();
-    mockDirs.add(tempDir);
-    mockDirs.add(capsulesDir);
-    spies.push(
-      spyOn(fs, "existsSync").mockImplementation(
-        (p) => mockFiles.has(String(p)) || mockDirs.has(String(p)),
-      ),
-      spyOn(fs, "readdirSync").mockImplementation((p, opt) => {
-        const pStr = String(p);
-        const dirs = new Set<string>();
-        const files = new Set<string>();
-        for (const d of mockDirs) {
-          if (d.startsWith(pStr) && d !== pStr) {
-            const top = d.slice(pStr.length).replace(/^\/+/, "").split("/")[0];
-            if (top) dirs.add(top);
-          }
-        }
-        for (const f of mockFiles.keys()) {
-          if (f.startsWith(pStr)) {
-            const top = f.slice(pStr.length).replace(/^\/+/, "").split("/")[0];
-            if (top && !dirs.has(top)) files.add(top);
-          }
-        }
-        const withT =
-          typeof opt === "object" &&
-          opt !== null &&
-          Boolean((opt as { withFileTypes?: boolean }).withFileTypes);
-        if (withT) {
-          return [
-            ...[...dirs].map((name) => ({ name, isDirectory: () => true, isFile: () => false })),
-            ...[...files].map((name) => ({ name, isDirectory: () => false, isFile: () => true })),
-          ] as unknown as fs.Dirent[];
-        }
-        return [...dirs, ...files] as unknown as fs.Dirent[];
-      }),
-      spyOn(fs, "readFileSync").mockImplementation((p) => {
-        const val = mockFiles.get(String(p));
-        if (val !== undefined) return val;
-        throw new Error(`ENOENT: no such file, open '${String(p)}'`);
-      }),
-      spyOn(fs, "writeFileSync").mockImplementation((p, d) => {
-        mockFiles.set(
-          String(p),
-          typeof d === "string" ? d : Buffer.from(d as Uint8Array).toString("utf-8"),
-        );
-      }),
-      spyOn(fs, "mkdirSync").mockImplementation((p) => {
-        mockDirs.add(String(p));
-        return undefined as unknown as string;
-      }),
-      spyOn(fs, "openSync").mockImplementation(() => 100),
-      spyOn(fs, "closeSync").mockImplementation(() => undefined),
-      spyOn(durableWriteModule, "atomicWriteBytes").mockImplementation((tp, bytes) => {
-        mockFiles.set(tp, new TextDecoder().decode(bytes));
-      }),
-    );
+    setupVirtualMindFS();
+    tempDir = scratchRoot("liveness-auditor", "test");
+    ledgerPath = join(tempDir, "orchestrators.jsonl");
+    lockPath = join(tempDir, "orchestrators.lock");
+    capsulesDir = join(tempDir, ".olt", "capsules");
+    fs.mkdirSync(capsulesDir, { recursive: true });
   });
 
   afterEach(() => {
-    while (spies.length > 0) spies.pop()?.mockRestore();
+    cleanupVirtualMindFS();
   });
 
   describe("constants and helpers", () => {
@@ -206,8 +152,8 @@ describe("Orchestrator Liveness & Zombie Auditor (in-memory virtual)", () => {
   describe("multi-capsule discovery and ghost detection", () => {
     test("detects detached orchestrator in isolated capsule directory", () => {
       const cap1 = join(capsulesDir, "capsule-alpha");
-      mockDirs.add(cap1);
-      mockFiles.set(
+      fs.mkdirSync(cap1, { recursive: true });
+      fs.writeFileSync(
         join(cap1, "manifest.json"),
         JSON.stringify({ pid: 8888, orchestrator_id: "orch-alpha-detached" }),
       );

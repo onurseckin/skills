@@ -1,6 +1,7 @@
-import { describe, expect, it, beforeEach, afterEach, spyOn } from "bun:test";
+import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import * as fs from "node:fs";
 import { join } from "node:path";
+import { setupVirtualMindFS, cleanupVirtualMindFS, scratchRoot } from "../../fixtures/index.ts";
 import type { DefectEntry } from "../../../../olt/scripts/src/mind/defects/index.ts";
 import {
   filterOpenDefects,
@@ -14,77 +15,16 @@ import {
 } from "../../../../olt/scripts/src/mind/tasks/discovery/scanners/remediation-scanner.ts";
 
 describe("Remediation Scanner Engine (in-memory virtual)", () => {
-  const virtualDir = `${process.cwd()}/.olt/virtual-remediation-scanner`;
-  const mockFiles = new Map<string, string>();
-  const mockDirs = new Set<string>();
-  const spies: { mockRestore: () => void }[] = [];
+  let virtualDir: string;
 
   beforeEach(() => {
-    mockFiles.clear();
-    mockDirs.clear();
-    mockDirs.add(virtualDir);
-
-    spies.push(
-      spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => {
-        const s = String(p);
-        return mockFiles.has(s) || mockDirs.has(s);
-      }),
-    );
-
-    spies.push(
-      spyOn(fs, "readdirSync").mockImplementation((p: fs.PathLike, options?: unknown) => {
-        const pathStr = String(p);
-        const dirNames: string[] = [];
-        for (const dir of mockDirs) {
-          if (dir.startsWith(pathStr) && dir !== pathStr) {
-            const top = dir.slice(pathStr.length).replace(/^\/+/, "").split("/")[0];
-            if (top && !dirNames.includes(top)) dirNames.push(top);
-          }
-        }
-        const fileNames: string[] = [];
-        for (const file of mockFiles.keys()) {
-          if (file.startsWith(pathStr)) {
-            const top = file.slice(pathStr.length).replace(/^\/+/, "").split("/")[0];
-            if (top && !dirNames.includes(top) && !fileNames.includes(top)) fileNames.push(top);
-          }
-        }
-        const withFileTypes =
-          typeof options === "object" &&
-          options !== null &&
-          Boolean((options as { withFileTypes?: boolean }).withFileTypes);
-        if (withFileTypes) {
-          return [
-            ...dirNames.map((name) => ({ name, isDirectory: () => true, isFile: () => false })),
-            ...fileNames.map((name) => ({ name, isDirectory: () => false, isFile: () => true })),
-          ] as unknown as fs.Dirent[];
-        }
-        return [...dirNames, ...fileNames] as unknown as fs.Dirent[];
-      }),
-    );
-
-    spies.push(
-      spyOn(fs, "readFileSync").mockImplementation((p: fs.PathOrFileDescriptor) => {
-        const s = String(p);
-        const val = mockFiles.get(s);
-        if (val !== undefined) return val;
-        throw new Error(`ENOENT: no such file, open '${s}'`);
-      }),
-    );
-
-    spies.push(
-      spyOn(fs, "statSync").mockImplementation((p: fs.PathLike) => {
-        const s = String(p);
-        if (mockDirs.has(s))
-          return { isDirectory: () => true, isFile: () => false } as unknown as fs.Stats;
-        if (mockFiles.has(s))
-          return { isDirectory: () => false, isFile: () => true } as unknown as fs.Stats;
-        return { isDirectory: () => false, isFile: () => false } as unknown as fs.Stats;
-      }),
-    );
+    setupVirtualMindFS();
+    virtualDir = scratchRoot("remediation-scanner", "test");
+    fs.mkdirSync(virtualDir, { recursive: true });
   });
 
   afterEach(() => {
-    while (spies.length > 0) spies.pop()?.mockRestore();
+    cleanupVirtualMindFS();
   });
 
   const sampleOpenDefect: DefectEntry = {
@@ -242,13 +182,13 @@ describe("Remediation Scanner Engine (in-memory virtual)", () => {
 
   it("scans defect records from capsule directory on disk", () => {
     const capsuleDir = join(virtualDir, "capsule-alpha");
-    mockDirs.add(capsuleDir);
+    fs.mkdirSync(capsuleDir, { recursive: true });
 
     const defectJsonl = [
       JSON.stringify(sampleOpenDefect),
       JSON.stringify(sampleResolvedDefect),
     ].join("\n");
-    mockFiles.set(join(capsuleDir, "defects.jsonl"), `${defectJsonl}\n`);
+    fs.writeFileSync(join(capsuleDir, "defects.jsonl"), `${defectJsonl}\n`);
 
     const result = scanDefectRemediations({ capsulesDir: capsuleDir });
     expect(result.totalDefects).toBe(2);

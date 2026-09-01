@@ -1,4 +1,4 @@
-import { describe, expect, test, spyOn } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test, spyOn } from "bun:test";
 import { join } from "node:path";
 import { findCommand } from "../../../../olt/scripts/src/cli/registry/index.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
@@ -26,6 +26,7 @@ import {
 } from "../../../../olt/scripts/src/packets/command-authority-state.ts";
 import { requiresActingIdentity } from "../../../../olt/scripts/src/packets/grant-bootstrap-allowlist.ts";
 import { emptyGrantRun } from "../../validation/grants/grant-run-fixture.ts";
+import { cleanupVirtualAuthorityFS, setupVirtualAuthorityFS } from "./command-authority-fixture.ts";
 import {
   registerAgentGrant,
   releaseAgentGrant,
@@ -39,6 +40,14 @@ function spec(name: string) {
 }
 
 describe("Command Authority Edges - Hierarchy & Policies", () => {
+  beforeAll(() => {
+    setupVirtualAuthorityFS();
+  });
+
+  afterAll(() => {
+    cleanupVirtualAuthorityFS();
+  });
+
   describe("command-authority-grants-edge-cases", () => {
     test("assertSubjectTargetPolicy on agent:report and agent:release", () => {
       const mockLedger = [

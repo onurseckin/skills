@@ -162,7 +162,7 @@ describe("recover command", () => {
       "--run",
       run,
       "--agent",
-      "sub-1",
+      "sub-recover",
       "--role",
       "sub-implementer",
       "--host",
@@ -185,7 +185,7 @@ describe("recover command", () => {
       "--sub-task",
       "S-1",
       "--agent",
-      "sub-1",
+      "sub-recover",
       "--role",
       "sub-implementer",
     ]);

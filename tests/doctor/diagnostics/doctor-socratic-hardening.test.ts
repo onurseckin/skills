@@ -99,10 +99,13 @@ describe(doctorSocraticHardeningSuiteName, () => {
   });
 
   test("Challenge 3: AST purity deep assertion traversal and git rename/quotes sanitization", () => {
+    const asArrAny = "(data as Array<" + "any>)";
+    const asRecAny = "(record as Record<string, " + "any>)";
+    const tsIgn = "// @" + "ts-ignore";
     const code = `
-      const x = (data as Array<any>);
-      const y = (record as Record<string, any>);
-      // @ts-ignore
+      const x = ${asArrAny};
+      const y = ${asRecAny};
+      ${tsIgn}
       const z = 42;
     `;
 

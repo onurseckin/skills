@@ -1,8 +1,17 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { join } from "node:path";
 import { createSecurityAuditLogger } from "../../../olt/scripts/src/policy/audit/security-logger.ts";
 import type { ViolationAlert } from "../../../olt/scripts/src/policy/audit/types.ts";
+import { cleanupVirtualPolicyFS, getVirtualPolicyFS, setupVirtualPolicyFS } from "../fixture.ts";
 
 describe("SecurityAuditLogger", () => {
+  beforeEach(() => {
+    setupVirtualPolicyFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualPolicyFS();
+  });
   it("logs RBAC decisions and updates telemetry and alerts accordingly", async () => {
     const logger = createSecurityAuditLogger();
     const alerts: ViolationAlert[] = [];
@@ -146,5 +155,34 @@ describe("SecurityAuditLogger", () => {
 
     logger.clearAuditTrail();
     expect(logger.queryAuditTrail({}).length).toBe(0);
+  });
+
+  it("supports file persistence and reload over virtual filesystem", async () => {
+    const logFile = "/virtual/policy/audit/sec-logger.jsonl";
+    const logger1 = createSecurityAuditLogger({
+      writerOptions: {
+        logFilePath: logFile,
+        enableFilePersistence: true,
+      },
+    });
+
+    await logger1.logRbacDecision({
+      actor: { id: "implementer_1", role: "implementer" },
+      command: "bun test tests/policy/audit/security-audit-logger.test.ts",
+      allowed: true,
+    });
+
+    expect(getVirtualPolicyFS().existsSync(logFile)).toBe(true);
+
+    const logger2 = createSecurityAuditLogger({
+      writerOptions: {
+        logFilePath: logFile,
+        enableFilePersistence: true,
+      },
+    });
+
+    const events = logger2.queryAuditTrail({});
+    expect(events.length).toBe(1);
+    expect(events[0]?.actor.id).toBe("implementer_1");
   });
 });

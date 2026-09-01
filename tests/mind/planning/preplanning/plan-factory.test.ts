@@ -1,6 +1,7 @@
-import { afterEach, beforeEach, describe, expect, test, spyOn } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import { join } from "node:path";
+import { setupVirtualMindFS, cleanupVirtualMindFS, scratchRoot } from "../../fixtures/index.ts";
 import {
   assertValidBlueprintStructure,
   deriveDisjointTaskScope,
@@ -13,52 +14,15 @@ import {
 } from "../../../../olt/scripts/src/mind/preplanning/index.ts";
 
 describe("Plan Factory Engine (in-memory virtual)", () => {
-  const testDir = `${process.cwd()}/.olt/virtual-preplan-scratch`;
-  const mockFiles = new Map<string, string>();
-  const mockDirs = new Set<string>();
-  const spies: { mockRestore: () => void }[] = [];
+  let testDir: string;
 
   beforeEach(() => {
-    mockFiles.clear();
-    mockDirs.clear();
-    mockDirs.add(testDir);
-
-    const existsSpy = spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => {
-      const pathStr = String(p);
-      return mockFiles.has(pathStr) || mockDirs.has(pathStr);
-    });
-    spies.push(existsSpy);
-
-    const mkdirSpy = spyOn(fs, "mkdirSync").mockImplementation((p: fs.PathLike) => {
-      mockDirs.add(String(p));
-      return undefined as unknown as string;
-    });
-    spies.push(mkdirSpy);
-
-    const writeSpy = spyOn(fs, "writeFileSync").mockImplementation(
-      (p: fs.PathOrFileDescriptor, data: string | NodeJS.ArrayBufferView) => {
-        const pathStr = String(p);
-        mockFiles.set(
-          pathStr,
-          typeof data === "string" ? data : Buffer.from(data as Uint8Array).toString("utf-8"),
-        );
-      },
-    );
-    spies.push(writeSpy);
-
-    const readSpy = spyOn(fs, "readFileSync").mockImplementation((p: fs.PathOrFileDescriptor) => {
-      const pathStr = String(p);
-      const val = mockFiles.get(pathStr);
-      if (val !== undefined) return val;
-      throw new Error(`ENOENT: no such file or directory, open '${pathStr}'`);
-    });
-    spies.push(readSpy);
+    setupVirtualMindFS();
+    testDir = scratchRoot("plan-factory", "test");
   });
 
   afterEach(() => {
-    while (spies.length > 0) {
-      spies.pop()?.mockRestore();
-    }
+    cleanupVirtualMindFS();
   });
 
   const mockCluster: ThematicCluster = {

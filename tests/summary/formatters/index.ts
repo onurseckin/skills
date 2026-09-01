@@ -7,9 +7,11 @@ export {
   cleanupRoots,
   emptyGraph,
   emptyState,
+  getVirtualFormattersFS,
   manifest,
   metrics,
   render,
+  setupVirtualFormattersFS,
   task,
   tempRoot,
 } from "./markdown-fixtures-core.ts";

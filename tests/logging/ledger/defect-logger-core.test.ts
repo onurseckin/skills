@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -8,7 +8,15 @@ import {
   setDefectLogDependenciesForTesting,
 } from "../../../olt/scripts/src/logging/defect-logger.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { createLoggingSandbox, cleanupLoggingSandboxes } from "../fixtures/index.ts";
+import {
+  cleanupLoggingSandboxes,
+  createLoggingSandbox,
+  setupVirtualLoggingFS,
+} from "../fixtures/index.ts";
+
+beforeEach(() => {
+  setupVirtualLoggingFS();
+});
 
 afterEach(() => {
   cleanupLoggingSandboxes();

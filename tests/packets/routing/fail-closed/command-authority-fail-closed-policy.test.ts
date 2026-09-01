@@ -1,4 +1,14 @@
-import { afterEach, beforeEach, describe, expect, test, spyOn, type Mock } from "bun:test";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+  spyOn,
+  type Mock,
+} from "bun:test";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -25,8 +35,20 @@ import {
 } from "../../../../olt/scripts/src/authority/session/index.ts";
 import { loadDagSnapshot } from "../../../../olt/scripts/src/telemetry/dag-snapshot.ts";
 import { TelemetryNormalizationEngine } from "../../../../olt/scripts/src/telemetry/engine.ts";
+import {
+  cleanupVirtualAuthorityFS,
+  setupVirtualAuthorityFS,
+} from "../authority/command-authority-fixture.ts";
 
 let probeSpy: Mock<() => Promise<unknown>> | undefined;
+
+beforeAll(() => {
+  setupVirtualAuthorityFS();
+});
+
+afterAll(() => {
+  cleanupVirtualAuthorityFS();
+});
 
 beforeEach(() => {
   probeSpy = spyOn(TelemetryNormalizationEngine.prototype, "probeAll").mockResolvedValue({

@@ -1,7 +1,15 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 import { scratchRoot } from "../../../../shared/fixtures/scratch-root.ts";
+
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(() => {
+  cleanupVirtualCliFS();
+});
 
 describe("Task queue CLI commands & Cowan Pagination", () => {
   test("task:add enqueues tasks and task:list queries them", async () => {

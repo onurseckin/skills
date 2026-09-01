@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import {
   assertGrantedCommand as assertRawGrantedCommand,
@@ -18,6 +18,7 @@ import type { Flags } from "../../../../olt/scripts/src/cli/options.ts";
 import { transact } from "../../../../olt/scripts/src/engine/store/index.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import { emptyGrantRun } from "../../validation/grants/grant-run-fixture.ts";
+import { cleanupVirtualAuthorityFS, setupVirtualAuthorityFS } from "./command-authority-fixture.ts";
 
 function spec(invocation: string) {
   const found = findCommand(invocation);
@@ -50,6 +51,14 @@ function assertGrantedCommand(
 }
 
 describe("assertGrantedCommand supervision rules", () => {
+  beforeAll(() => {
+    setupVirtualAuthorityFS();
+  });
+
+  afterAll(() => {
+    cleanupVirtualAuthorityFS();
+  });
+
   test("CRITICAL 1: --parent-agent given but no acting identity resolves is refused outright, never routed on into the hierarchy check", async () => {
     const { run } = await emptyGrantRun("command-authority-critical1-repro-");
     const bootstrapOrchestrator: Flags = {

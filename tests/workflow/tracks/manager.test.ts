@@ -1,5 +1,4 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import * as fs from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import type { GitRunner } from "../../../olt/scripts/src/workflow/worktree/git.ts";
@@ -9,97 +8,28 @@ import {
   destroyTrackWorktree,
   listTrackWorktrees,
 } from "../../../olt/scripts/src/workflow/worktree/index.ts";
+import {
+  cleanupVirtualTracksFS,
+  getVirtualTracksFS,
+  setupVirtualTracksFS,
+} from "./tracks-fixture.ts";
 
 const TEST_DIR = "/virtual/worktree-mgr-repo";
 
 describe("track worktree manager (in-memory virtualization)", () => {
-  let harness: { files: Map<string, string>; dirs: Set<string>; restore: () => void };
-
   beforeEach(() => {
-    const files = new Map<string, string>();
-    const dirs = new Set<string>([TEST_DIR]);
-
-    const existsSpy = spyOn(fs, "existsSync").mockImplementation((p) => {
-      const s = String(p);
-      return files.has(s) || dirs.has(s);
-    });
-    const mkdirSpy = spyOn(fs, "mkdirSync").mockImplementation((p) => {
-      dirs.add(String(p));
-      return undefined as unknown as string;
-    });
-    const writeSpy = spyOn(fs, "writeFileSync").mockImplementation((p, data) => {
-      files.set(String(p), String(data));
-    });
-    const readSpy = spyOn(fs, "readFileSync").mockImplementation((p) => {
-      const val = files.get(String(p));
-      if (val === undefined) {
-        throw Object.assign(new Error(`ENOENT: open '${String(p)}'`), { code: "ENOENT" });
-      }
-      return val;
-    });
-    const rmSpy = spyOn(fs, "rmSync").mockImplementation((p) => {
-      const s = String(p);
-      files.delete(s);
-      dirs.delete(s);
-    });
-    const unlinkSpy = spyOn(fs, "unlinkSync").mockImplementation((p) => {
-      files.delete(String(p));
-    });
-    const readdirSpy = spyOn(fs, "readdirSync").mockImplementation((p, options) => {
-      const s = String(p);
-      const entries: string[] = [];
-      for (const d of dirs) {
-        if (d.startsWith(s) && d !== s) {
-          const rel = d
-            .slice(s.length)
-            .replace(/^[/\\]+/, "")
-            .split(/[/\\]/)[0];
-          if (rel && !entries.includes(rel)) entries.push(rel);
-        }
-      }
-      if (
-        typeof options === "object" &&
-        options !== null &&
-        (options as { withFileTypes?: boolean }).withFileTypes
-      ) {
-        return entries.map((name) => ({
-          name,
-          isDirectory: () => true,
-          isFile: () => false,
-          isSymbolicLink: () => false,
-        })) as unknown as fs.Dirent[];
-      }
-      return entries as unknown as string[];
-    });
-    const statSpy = spyOn(fs, "statSync").mockImplementation((p) => {
-      return {
-        mtimeMs: Date.now(),
-        isDirectory: () => dirs.has(String(p)),
-        isFile: () => files.has(String(p)),
-      } as unknown as fs.Stats;
-    });
-
-    harness = {
-      files,
-      dirs,
-      restore() {
-        existsSpy.mockRestore();
-        mkdirSpy.mockRestore();
-        writeSpy.mockRestore();
-        readSpy.mockRestore();
-        rmSpy.mockRestore();
-        unlinkSpy.mockRestore();
-        readdirSpy.mockRestore();
-        statSpy.mockRestore();
-      },
-    };
+    const vfs = setupVirtualTracksFS();
+    vfs.mkdirSync(TEST_DIR, { recursive: true });
+    vfs.mkdirSync(join(TEST_DIR, ".olt", "worktrees"), { recursive: true });
+    vfs.mkdirSync(join(TEST_DIR, ".olt", "worktrees", "locks"), { recursive: true });
   });
 
   afterEach(() => {
-    harness.restore();
+    cleanupVirtualTracksFS();
   });
 
   test("createTrackWorktree creates worktree and acquires lock", () => {
+    const vfs = getVirtualTracksFS();
     const mockRunner: GitRunner = (_cwd, argv) => {
       if (argv[0] === "rev-parse") return { status: 1, stdout: "", stderr: "" };
       if (argv[0] === "worktree" && argv[1] === "add") return { status: 0, stdout: "", stderr: "" };
@@ -117,9 +47,9 @@ describe("track worktree manager (in-memory virtualization)", () => {
     expect(record.baseBranch).toBe("main");
     expect(record.worktreePath).toBe(join(TEST_DIR, ".olt", "worktrees", "track-alpha"));
     expect(record.lockPath).toBe(join(TEST_DIR, ".olt", "worktrees", "locks", "track-alpha.lock"));
-    expect(harness.files.has(record.lockPath)).toBe(true);
+    expect(vfs.existsSync(record.lockPath)).toBe(true);
 
-    const lockContent = JSON.parse(harness.files.get(record.lockPath) ?? "{}");
+    const lockContent = JSON.parse(vfs.readFileSync(record.lockPath, "utf8"));
     expect(lockContent.trackId).toBe("track-alpha");
     expect(lockContent.pid).toBe(process.pid);
   });
@@ -129,6 +59,7 @@ describe("track worktree manager (in-memory virtualization)", () => {
   });
 
   test("createTrackWorktree fails and cleans lock on git error", () => {
+    const vfs = getVirtualTracksFS();
     const failingRunner: GitRunner = (_cwd, argv) => {
       if (argv[0] === "worktree") {
         return { status: 128, stdout: "", stderr: "fatal: branch already exists" };
@@ -145,10 +76,11 @@ describe("track worktree manager (in-memory virtualization)", () => {
     ).toThrow(HarnessError);
 
     const lockPath = join(TEST_DIR, ".olt", "worktrees", "locks", "track-err.lock");
-    expect(harness.files.has(lockPath)).toBe(false);
+    expect(vfs.existsSync(lockPath)).toBe(false);
   });
 
   test("cleanupTrackWorktree removes worktree directory, branch and lock", () => {
+    const vfs = getVirtualTracksFS();
     const executedGit: string[][] = [];
     const mockRunner: GitRunner = (_cwd, argv) => {
       executedGit.push([...argv]);
@@ -157,9 +89,8 @@ describe("track worktree manager (in-memory virtualization)", () => {
 
     const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-beta");
     const lockPath = join(TEST_DIR, ".olt", "worktrees", "locks", "track-beta.lock");
-    harness.dirs.add(worktreeDir);
-    harness.dirs.add(join(TEST_DIR, ".olt", "worktrees", "locks"));
-    harness.files.set(lockPath, JSON.stringify({ pid: process.pid, trackId: "track-beta" }));
+    vfs.mkdirSync(worktreeDir, { recursive: true });
+    vfs.writeFileSync(lockPath, JSON.stringify({ pid: process.pid, trackId: "track-beta" }));
 
     const result = cleanupTrackWorktree({
       trackId: "track-beta",
@@ -170,7 +101,7 @@ describe("track worktree manager (in-memory virtualization)", () => {
 
     expect(result.trackId).toBe("track-beta");
     expect(result.cleaned).toBe(true);
-    expect(harness.files.has(lockPath)).toBe(false);
+    expect(vfs.existsSync(lockPath)).toBe(false);
 
     expect(executedGit.some((args) => args[0] === "worktree" && args[1] === "remove")).toBe(true);
     expect(executedGit.some((args) => args[0] === "branch" && args[1] === "-D")).toBe(true);
@@ -178,11 +109,11 @@ describe("track worktree manager (in-memory virtualization)", () => {
   });
 
   test("listTrackWorktrees reads worktree metadata from disk", () => {
+    const vfs = getVirtualTracksFS();
     const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-1");
-    harness.dirs.add(worktreeDir);
-    harness.dirs.add(join(TEST_DIR, ".olt", "worktrees"));
+    vfs.mkdirSync(worktreeDir, { recursive: true });
     const metaPath = join(worktreeDir, ".worktree-meta.json");
-    harness.files.set(
+    vfs.writeFileSync(
       metaPath,
       JSON.stringify({
         trackId: "track-1",
@@ -228,6 +159,7 @@ describe("track worktree manager (in-memory virtualization)", () => {
   });
 
   test("destroyTrackWorktree with options cleans worktree and lock", () => {
+    const vfs = getVirtualTracksFS();
     const executedGit: string[][] = [];
     const mockRunner: GitRunner = (_cwd, argv) => {
       executedGit.push([...argv]);
@@ -236,9 +168,8 @@ describe("track worktree manager (in-memory virtualization)", () => {
 
     const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-delta");
     const lockPath = join(TEST_DIR, ".olt", "worktrees", "locks", "track-delta.lock");
-    harness.dirs.add(worktreeDir);
-    harness.dirs.add(join(TEST_DIR, ".olt", "worktrees", "locks"));
-    harness.files.set(lockPath, JSON.stringify({ pid: process.pid, trackId: "track-delta" }));
+    vfs.mkdirSync(worktreeDir, { recursive: true });
+    vfs.writeFileSync(lockPath, JSON.stringify({ pid: process.pid, trackId: "track-delta" }));
 
     const result = destroyTrackWorktree({
       trackId: "track-delta",
@@ -248,7 +179,7 @@ describe("track worktree manager (in-memory virtualization)", () => {
 
     expect(result.trackId).toBe("track-delta");
     expect(result.cleaned).toBe(true);
-    expect(harness.files.has(lockPath)).toBe(false);
+    expect(vfs.existsSync(lockPath)).toBe(false);
     expect(executedGit.some((args) => args[0] === "worktree" && args[1] === "prune")).toBe(true);
   });
 });

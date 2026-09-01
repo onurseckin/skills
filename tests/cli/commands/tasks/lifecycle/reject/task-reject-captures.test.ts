@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { writeFile } from "node:fs/promises";
 import { execute } from "../../../../../../olt/scripts/src/cli/execute.ts";
 import {
   linkBlobIntoView,
@@ -37,7 +38,7 @@ describe("task:reject - Aliases, Captures and Screenshots", () => {
       "--role",
       "implementer",
     ]);
-    await Bun.write(`${repo}/tests/core/impl.ts`, "export const x = 2;\n");
+    await writeFile(`${repo}/tests/core/impl.ts`, "export const x = 2;\n");
     await execute([
       "run:exec",
       "--run",
@@ -149,7 +150,7 @@ describe("task:reject - Aliases, Captures and Screenshots", () => {
       "--role",
       "implementer",
     ]);
-    await Bun.write(`${repo}/tests/core/impl.ts`, "export const x = 3;\n");
+    await writeFile(`${repo}/tests/core/impl.ts`, "export const x = 3;\n");
     await execute([
       "run:exec",
       "--run",
@@ -216,7 +217,7 @@ describe("task:reject - Aliases, Captures and Screenshots", () => {
     ]);
 
     const tmpScreenshot = `${repo}/before-reject.png`;
-    await Bun.write(tmpScreenshot, "fake-png-bytes");
+    await writeFile(tmpScreenshot, "fake-png-bytes");
     const blob = putBlobFile(run, tmpScreenshot);
     const view = linkBlobIntoView(run, blob, "evidence", "before-reject.png");
     recordCaptures(run, [

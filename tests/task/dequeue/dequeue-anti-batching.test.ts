@@ -1,5 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, rmSync } from "node:fs";
+import { describe, expect, it } from "bun:test";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -26,15 +25,6 @@ import { scratchRoot } from "../task-fixture.ts";
 describe("Task Queue Dequeue Engine & Anti-Batching Guard", () => {
   const testDir = scratchRoot(import.meta.path, "dequeue");
   const queuePath = join(testDir, "TASK_QUEUE.jsonl");
-
-  beforeEach(() => {
-    if (existsSync(testDir)) rmSync(testDir, { recursive: true, force: true });
-    mkdirSync(testDir, { recursive: true });
-  });
-
-  afterEach(() => {
-    if (existsSync(testDir)) rmSync(testDir, { recursive: true, force: true });
-  });
 
   it("assertSingleActiveLease passes when agent holds no active leases", () => {
     expect(() => assertSingleActiveLease([], "agent-1")).not.toThrow();

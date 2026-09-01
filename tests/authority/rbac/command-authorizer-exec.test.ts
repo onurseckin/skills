@@ -1,7 +1,87 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import * as childProcess from "node:child_process";
+import { EventEmitter } from "node:events";
+import { Readable } from "node:stream";
 import { executeShieldedCommand } from "../../../olt/scripts/src/authority/rbac/index.ts";
+import { cleanupVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
+
+interface MockChildProcess extends EventEmitter {
+  stdout: Readable;
+  stderr: Readable;
+  stdin: null;
+  pid: number;
+  kill: () => boolean;
+}
+
+function createMockProcess(command: string, args: readonly string[]): MockChildProcess {
+  const emitter = new EventEmitter() as MockChildProcess;
+  const stdout = new Readable({ read() {} });
+  const stderr = new Readable({ read() {} });
+  emitter.stdout = stdout;
+  emitter.stderr = stderr;
+  emitter.stdin = null;
+  emitter.pid = 12345;
+  emitter.kill = () => true;
+
+  queueMicrotask(() => {
+    if (command === "non_existent_binary_xyz_123456789") {
+      emitter.emit("error", new Error("spawn non_existent_binary_xyz_123456789 ENOENT"));
+      return;
+    }
+    const fullCmd = [command, ...args].join(" ");
+    if (fullCmd.includes("shielded-execution-pass")) {
+      stdout.push("shielded-execution-pass\n");
+      stdout.push(null);
+      stderr.push(null);
+      emitter.emit("close", 0);
+    } else if (fullCmd.includes("validator-read-pass")) {
+      stdout.push("validator-read-pass\n");
+      stdout.push(null);
+      stderr.push(null);
+      emitter.emit("close", 0);
+    } else if (fullCmd.includes("process.exit(42)")) {
+      stdout.push(null);
+      stderr.push(null);
+      emitter.emit("close", 42);
+    } else if (fullCmd.includes("critical stderr test output")) {
+      stdout.push(null);
+      stderr.push("critical stderr test output\n");
+      stderr.push(null);
+      emitter.emit("close", 0);
+    } else if (command === "echo") {
+      stdout.push(`${args.join(" ")}\n`);
+      stdout.push(null);
+      stderr.push(null);
+      emitter.emit("close", 0);
+    } else {
+      stdout.push(null);
+      stderr.push(null);
+      emitter.emit("close", 0);
+    }
+  });
+
+  return emitter;
+}
 
 describe("Authority RBAC - Command Authorizer Execution Shield", () => {
+  let spawnSpy: { mockRestore: () => void } | undefined;
+
+  beforeEach(() => {
+    setupVirtualAuthorityFS();
+    spawnSpy = spyOn(childProcess, "spawn").mockImplementation(
+      (cmd: string, args?: readonly string[]) =>
+        createMockProcess(cmd, args ?? []) as unknown as childProcess.ChildProcess,
+    );
+  });
+
+  afterEach(() => {
+    if (spawnSpy) {
+      spawnSpy.mockRestore();
+      spawnSpy = undefined;
+    }
+    cleanupVirtualAuthorityFS();
+  });
+
   test("denies file mutation commands for supervisor/validator without execution", async () => {
     const result = await executeShieldedCommand("validator-1", ["rm", "-rf", "src/core"], {
       actorRole: "validator",
@@ -79,7 +159,7 @@ describe("Authority RBAC - Command Authorizer Execution Shield", () => {
   test("infers actor role from various actorId patterns and falls back to implementer", async () => {
     const resFallback = await executeShieldedCommand("custom-agent-name", ["echo", "hi"], {
       env: { FOO: "BAR" },
-      cwd: process.cwd(),
+      cwd: "/virtual/repo",
     });
     expect(resFallback.authorized).toBe(true);
 

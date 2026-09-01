@@ -1,6 +1,7 @@
-import { afterEach, beforeEach, describe, expect, test, spyOn } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import { join } from "node:path";
+import { setupVirtualMindFS, cleanupVirtualMindFS, scratchRoot } from "../../fixtures/index.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import {
   isPreplanningNeeded,
@@ -57,63 +58,36 @@ function mkCluster(id: string, domain: string, bId: string, dId: string): Themat
 }
 
 describe("Continuous Preplanner Engine & PO Toposort Verification (in-memory virtual)", () => {
-  const testDir = `${process.cwd()}/.olt/virtual-preplan-continuous-scratch`;
-  const oltDir = join(testDir, ".olt");
-  const backlogPath = join(oltDir, "backlog.jsonl");
-  const defectsPath = join(oltDir, "defects.jsonl");
-  const mockFiles = new Map<string, string>();
-  const mockDirs = new Set<string>();
-  const spies: { mockRestore: () => void }[] = [];
+  let testDir: string;
+  let oltDir: string;
+  let backlogPath: string;
+  let defectsPath: string;
 
   beforeEach(() => {
-    mockFiles.clear();
-    mockDirs.clear();
-    mockDirs.add(testDir);
-    mockDirs.add(oltDir);
-    spies.push(
-      spyOn(fs, "existsSync").mockImplementation(
-        (p) => mockFiles.has(String(p)) || mockDirs.has(String(p)),
-      ),
-      spyOn(fs, "mkdirSync").mockImplementation((p) => {
-        mockDirs.add(String(p));
-        return undefined as unknown as string;
-      }),
-      spyOn(fs, "openSync").mockImplementation(() => 100),
-      spyOn(fs, "closeSync").mockImplementation(() => undefined),
-      spyOn(fs, "writeFileSync").mockImplementation((p, d) => {
-        mockFiles.set(
-          String(p),
-          typeof d === "string" ? d : Buffer.from(d as Uint8Array).toString("utf-8"),
-        );
-      }),
-      spyOn(fs, "renameSync").mockImplementation((oldP, newP) => {
-        mockFiles.set(String(newP), mockFiles.get(String(oldP)) ?? "");
-        mockFiles.delete(String(oldP));
-      }),
-      spyOn(fs, "readFileSync").mockImplementation((p) => {
-        const val = mockFiles.get(String(p));
-        if (val !== undefined) return val;
-        throw new Error(`ENOENT: no such file, open '${String(p)}'`);
-      }),
-    );
+    setupVirtualMindFS();
+    testDir = scratchRoot("continuous-preplanner", "test");
+    oltDir = join(testDir, ".olt");
+    backlogPath = join(oltDir, "backlog.jsonl");
+    defectsPath = join(oltDir, "defects.jsonl");
+    fs.mkdirSync(oltDir, { recursive: true });
   });
 
   afterEach(() => {
-    while (spies.length > 0) spies.pop()?.mockRestore();
+    cleanupVirtualMindFS();
   });
 
   test("isPreplanningNeeded evaluates backlog and defect eligibility", () => {
-    mockFiles.set(backlogPath, `${JSON.stringify(mkItem("b1", "core", "COMPLETED"))}\n`);
-    mockFiles.set(defectsPath, `${JSON.stringify(mkDefect("d1", "core", "RESOLVED"))}\n`);
+    fs.writeFileSync(backlogPath, `${JSON.stringify(mkItem("b1", "core", "COMPLETED"))}\n`);
+    fs.writeFileSync(defectsPath, `${JSON.stringify(mkDefect("d1", "core", "RESOLVED"))}\n`);
     expect(isPreplanningNeeded({ rootDir: testDir })).toBe(false);
 
-    mockFiles.set(backlogPath, `${JSON.stringify(mkItem("b1", "core", "PENDING"))}\n`);
+    fs.writeFileSync(backlogPath, `${JSON.stringify(mkItem("b1", "core", "PENDING"))}\n`);
     expect(isPreplanningNeeded({ rootDir: testDir })).toBe(true);
   });
 
   test("runPreplanningTick generates plans and updates bridge state (including dryRun)", () => {
-    mockFiles.set(backlogPath, `${JSON.stringify(mkItem("b-core-1", "core"))}\n`);
-    mockFiles.set(defectsPath, `${JSON.stringify(mkDefect("d-core-1", "core"))}\n`);
+    fs.writeFileSync(backlogPath, `${JSON.stringify(mkItem("b-core-1", "core"))}\n`);
+    fs.writeFileSync(defectsPath, `${JSON.stringify(mkDefect("d-core-1", "core"))}\n`);
 
     const result = runPreplanningTick({ rootDir: testDir });
     expect(result.clusters.length).toBe(1);
@@ -121,17 +95,17 @@ describe("Continuous Preplanner Engine & PO Toposort Verification (in-memory vir
     expect(result.defects_planned).toBe(1);
     expect(result.plan_files_written.length).toBe(1);
     expect(fs.existsSync(result.plan_files_written[0]!)).toBe(true);
-    expect(mockFiles.get(backlogPath)).toContain('"status":"PLANNED"');
-    expect(mockFiles.get(defectsPath)).toContain('"status":"PLANNED"');
+    expect(fs.readFileSync(backlogPath, "utf-8")).toContain('"status":"PLANNED"');
+    expect(fs.readFileSync(defectsPath, "utf-8")).toContain('"status":"PLANNED"');
 
-    mockFiles.set(backlogPath, `${JSON.stringify(mkItem("b-dry", "engine"))}\n`);
+    fs.writeFileSync(backlogPath, `${JSON.stringify(mkItem("b-dry", "engine"))}\n`);
     const dryRes = runPreplanningTick({ rootDir: testDir, dryRun: true });
     expect(dryRes.items_planned).toBe(1);
-    expect(mockFiles.get(backlogPath)).toContain('"status":"PENDING"');
+    expect(fs.readFileSync(backlogPath, "utf-8")).toContain('"status":"PENDING"');
   });
 
   test("startPreplanningDaemon executes ticks and aggregates counts", async () => {
-    mockFiles.set(backlogPath, `${JSON.stringify(mkItem("b-daemon", "reporting"))}\n`);
+    fs.writeFileSync(backlogPath, `${JSON.stringify(mkItem("b-daemon", "reporting"))}\n`);
     const res = await startPreplanningDaemon({ rootDir: testDir, maxTicks: 2, intervalMs: 10 });
     expect(res.totalTicks).toBe(2);
     expect(res.totalPlanned).toBe(1);
@@ -142,16 +116,20 @@ describe("Continuous Preplanner Engine & PO Toposort Verification (in-memory vir
     const item2 = mkItem("b2", "engine");
     const defect1 = mkDefect("d1", "core");
     const defect2 = mkDefect("d2", "engine");
-    mockFiles.set(backlogPath, `${JSON.stringify(item1)}\n${JSON.stringify(item2)}\n`);
-    mockFiles.set(defectsPath, `${JSON.stringify(defect1)}\n${JSON.stringify(defect2)}\n`);
+    fs.writeFileSync(backlogPath, `${JSON.stringify(item1)}\n${JSON.stringify(item2)}\n`);
+    fs.writeFileSync(defectsPath, `${JSON.stringify(defect1)}\n${JSON.stringify(defect2)}\n`);
 
     const c1 = mkCluster("c1", "core", "b1", "d1");
     const c2 = mkCluster("c2", "engine", "b2", "d2");
     const batchRes = updateBridgeStateBatch([c1, c2], { rootDir: testDir });
     expect(batchRes.itemsUpdated).toBe(2);
     expect(batchRes.defectsUpdated).toBe(2);
-    expect(mockFiles.get(backlogPath)).toContain('"plan_path":"docs/planning/c1/PLAN.md"');
-    expect(mockFiles.get(defectsPath)).toContain('"plan_path":"docs/planning/c2/PLAN.md"');
+    expect(fs.readFileSync(backlogPath, "utf-8")).toContain(
+      '"plan_path":"docs/planning/c1/PLAN.md"',
+    );
+    expect(fs.readFileSync(defectsPath, "utf-8")).toContain(
+      '"plan_path":"docs/planning/c2/PLAN.md"',
+    );
   });
 
   test("Kahn topologicalOrder handles dangling prerequisites without deadlocking or false cycles", () => {

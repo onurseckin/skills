@@ -1,4 +1,5 @@
 import { expect, test, describe, beforeEach, afterEach, spyOn } from "bun:test";
+import { join } from "node:path";
 import {
   acquireTestLock,
   createMemoryLockStore,
@@ -8,7 +9,11 @@ import {
   type LockStore,
   type TestLockData,
 } from "../../../scripts/testing/test-mutex.ts";
-import { join } from "node:path";
+import {
+  createVirtualFSSession,
+  type VirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 const LOCK_DIR = ".olt/.locks";
 const BROAD_LOCK_FILE = join(LOCK_DIR, "broad-test.lock");
@@ -16,9 +21,11 @@ const BROAD_LOCK_FILE = join(LOCK_DIR, "broad-test.lock");
 describe("test-mutex (in-memory virtual)", () => {
   let release: (() => void) | undefined;
   let memStore: LockStore;
+  let vfsSession: VirtualFSSession;
   const spies: { mockRestore: () => void }[] = [];
 
   beforeEach(() => {
+    vfsSession = createVirtualFSSession(new VirtualMemoryFS());
     memStore = createMemoryLockStore();
     setLockStore(memStore);
     spies.push(
@@ -38,6 +45,7 @@ describe("test-mutex (in-memory virtual)", () => {
     }
     resetLockStore();
     while (spies.length > 0) spies.pop()?.mockRestore();
+    vfsSession.cleanup();
   });
 
   test("Targeted runs bypass broad lock", () => {

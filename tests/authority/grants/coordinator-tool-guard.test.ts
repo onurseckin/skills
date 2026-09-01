@@ -1,12 +1,20 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   assertCoordinatorPreToolGuard,
   isCoordinatorFileEditForbidden,
   isCoordinatorRole,
 } from "../../../olt/scripts/src/authority/guards/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { cleanupVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
 
 describe("Coordinator Tool Guard & Pre-Tool Enforcement", () => {
+  beforeEach(() => {
+    setupVirtualAuthorityFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualAuthorityFS();
+  });
   test("identifies coordinator roles correctly", () => {
     expect(isCoordinatorRole("coordinator")).toBe(true);
     expect(isCoordinatorRole("coordinator-1")).toBe(true);

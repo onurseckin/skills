@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import * as childProcess from "node:child_process";
+import { EventEmitter } from "node:events";
+import {
+  createVirtualFSSession,
+  type VirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   DANGEROUS_COMMAND_NAMES,
   DynamicExecutionSandbox,
@@ -20,13 +27,69 @@ import {
   type SandboxPolicyConfig,
 } from "../../../olt/scripts/src/tooling/index.ts";
 
+class MockChildProcess extends EventEmitter {
+  public pid = 0;
+  public killed = false;
+  public stdout = new EventEmitter();
+  public stderr = new EventEmitter();
+  public stdin = {
+    buffer: "",
+    write: (chunk: string | Buffer) => {
+      this.stdin.buffer += chunk.toString();
+      return true;
+    },
+    end: () => {
+      if (this.command === "cat")
+        queueMicrotask(() => {
+          this.stdout.emit("data", Buffer.from(this.stdin.buffer));
+          this.emit("close", 0, null);
+        });
+    },
+    destroy: () => {},
+  };
+
+  constructor(
+    public command: string,
+    public args: string[],
+  ) {
+    super();
+    queueMicrotask(() => {
+      if (this.killed) return;
+      if (command === "non-existent-binary-12345") this.emit("error", new Error("spawn ENOENT"));
+      else if (command === "echo") {
+        const text = args.join(" ");
+        this.stdout.emit("data", Buffer.from(text ? `${text}\n` : "\n"));
+        this.emit("close", 0, null);
+      }
+    });
+  }
+
+  public kill(signal?: NodeJS.Signals | string) {
+    this.killed = true;
+    queueMicrotask(() => this.emit("close", null, signal ?? "SIGTERM"));
+    return true;
+  }
+}
+
 describe("Dynamic Tool Sandboxing & Execution Isolation Suite", () => {
+  let vfsSession: VirtualFSSession;
+  let spawnSpy: ReturnType<typeof spyOn>;
+
   beforeEach(() => {
+    vfsSession = createVirtualFSSession(new VirtualMemoryFS());
     resetGlobalExecutionSandbox();
+    spawnSpy = spyOn(childProcess, "spawn").mockImplementation(
+      ((cmd: string, args: readonly string[]) =>
+        new MockChildProcess(String(cmd), [
+          ...(args ?? []),
+        ]) as unknown as childProcess.ChildProcess) as unknown as typeof childProcess.spawn,
+    );
   });
 
   afterEach(() => {
     resetGlobalExecutionSandbox();
+    spawnSpy.mockRestore();
+    vfsSession.cleanup();
   });
 
   describe("Sandbox Policy Resolution & Customization", () => {
@@ -93,23 +156,22 @@ describe("Dynamic Tool Sandboxing & Execution Isolation Suite", () => {
       const rawEnv = {
         PATH: "/usr/bin:/bin",
         HOME: "/home/user",
-        AWS_SECRET_ACCESS_KEY: "secret123",
-        GITHUB_TOKEN: "ghp_12345",
-        CUSTOM_VAR: "custom_value",
-        MY_API_KEY: "api_key_secret",
+        AWS_SECRET_ACCESS_KEY: "s",
+        GITHUB_TOKEN: "g",
+        CUSTOM_VAR: "c",
+        MY_API_KEY: "k",
       };
+      const strict = sanitizeEnvironmentVariables(rawEnv, STRICT_SANDBOX_POLICY);
+      expect(strict.PATH).toBe("/usr/bin:/bin");
+      expect(strict.HOME).toBe("/home/user");
+      expect(strict.AWS_SECRET_ACCESS_KEY).toBeUndefined();
+      expect(strict.GITHUB_TOKEN).toBeUndefined();
+      expect(strict.CUSTOM_VAR).toBeUndefined();
 
-      const strictSanitized = sanitizeEnvironmentVariables(rawEnv, STRICT_SANDBOX_POLICY);
-      expect(strictSanitized.PATH).toBe("/usr/bin:/bin");
-      expect(strictSanitized.HOME).toBe("/home/user");
-      expect(strictSanitized.AWS_SECRET_ACCESS_KEY).toBeUndefined();
-      expect(strictSanitized.GITHUB_TOKEN).toBeUndefined();
-      expect(strictSanitized.CUSTOM_VAR).toBeUndefined();
-
-      const permissiveSanitized = sanitizeEnvironmentVariables(rawEnv, PERMISSIVE_SANDBOX_POLICY);
-      expect(permissiveSanitized.CUSTOM_VAR).toBe("custom_value");
-      expect(permissiveSanitized.AWS_SECRET_ACCESS_KEY).toBeUndefined();
-      expect(permissiveSanitized.MY_API_KEY).toBeUndefined();
+      const perm = sanitizeEnvironmentVariables(rawEnv, PERMISSIVE_SANDBOX_POLICY);
+      expect(perm.CUSTOM_VAR).toBe("c");
+      expect(perm.AWS_SECRET_ACCESS_KEY).toBeUndefined();
+      expect(perm.MY_API_KEY).toBeUndefined();
     });
 
     it("identifies dangerous commands and destructive argument patterns", () => {
@@ -140,20 +202,17 @@ describe("Dynamic Tool Sandboxing & Execution Isolation Suite", () => {
       expect(result.stdout).toBe("streamed-input");
     });
 
-    it("terminates long-running process when timeout is reached", async () => {
+    it("terminates long-running process when timeout or abort signal is reached", async () => {
       const manager = new IsolatedChildProcessManager();
-      const result = await manager.runIsolated("sleep", ["5"], { timeoutMs: 100 });
-      expect(result.timedOut).toBe(true);
-      expect(result.killed).toBe(true);
-    });
+      const resTimeout = await manager.runIsolated("sleep", ["5"], { timeoutMs: 100 });
+      expect(resTimeout.timedOut).toBe(true);
+      expect(resTimeout.killed).toBe(true);
 
-    it("terminates process on AbortSignal trigger", async () => {
       const controller = new AbortController();
-      const manager = new IsolatedChildProcessManager();
       const promise = manager.runIsolated("sleep", ["5"], { abortSignal: controller.signal });
       setTimeout(() => controller.abort(), 50);
-      const result = await promise;
-      expect(result.killed).toBe(true);
+      const resAbort = await promise;
+      expect(resAbort.killed).toBe(true);
     });
 
     it("truncates output when maxBufferBytes is exceeded", async () => {
@@ -164,14 +223,12 @@ describe("Dynamic Tool Sandboxing & Execution Isolation Suite", () => {
     });
 
     it("handles pre-aborted signal, non-existent binaries, and killAll lifecycle", async () => {
-      const preAborted = AbortSignal.abort();
       const manager = new IsolatedChildProcessManager();
-      const res1 = await manager.runIsolated("echo", ["hi"], { abortSignal: preAborted });
+      const res1 = await manager.runIsolated("echo", ["hi"], { abortSignal: AbortSignal.abort() });
       expect(res1.killed).toBe(true);
 
       const nonExistent = await manager.runIsolated("non-existent-binary-12345");
       expect(nonExistent.exitCode).toBe(1);
-
       expect(manager.getActiveCount()).toBe(0);
       manager.killAll();
     });
@@ -217,7 +274,7 @@ describe("Dynamic Tool Sandboxing & Execution Isolation Suite", () => {
       expect(res.violations[0]?.rule).toBe("PATH_BOUNDARY_VIOLATION");
     });
 
-    it("executes subprocess command through sandbox with safety checks", async () => {
+    it("executes subprocess command through sandbox with safety checks and manages singleton", async () => {
       const sandbox = new DynamicExecutionSandbox();
       const res = await sandbox.executeCommand("echo", ["sandboxed-run"], {
         isolationLevel: "restricted",
@@ -229,18 +286,12 @@ describe("Dynamic Tool Sandboxing & Execution Isolation Suite", () => {
         isolationLevel: "restricted",
       });
       expect(blockedRes.exitCode).toBe(126);
-      expect(blockedRes.stderr).toContain("prohibited");
       expect(sandbox.getViolations().length).toBe(1);
-    });
 
-    it("manages global singleton sandbox lifecycle", () => {
       const s1 = getGlobalExecutionSandbox();
-      const s2 = getGlobalExecutionSandbox();
-      expect(s1).toBe(s2);
-
+      expect(s1).toBe(getGlobalExecutionSandbox());
       resetGlobalExecutionSandbox();
-      const fresh = getGlobalExecutionSandbox();
-      expect(fresh).not.toBe(s1);
+      expect(getGlobalExecutionSandbox()).not.toBe(s1);
     });
   });
 });

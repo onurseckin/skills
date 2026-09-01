@@ -6,4 +6,12 @@ export {
   assertSpawnAuthorized,
   type AuthenticatedCaller,
 } from "../../../../olt/scripts/src/packets/command-authority.ts";
-export { spec, testCaller, installMetaAuditGrant } from "./command-authority-fixture.ts";
+export {
+  cleanupVirtualAuthorityFS,
+  getVirtualAuthorityFS,
+  installMetaAuditGrant,
+  scratchRoot,
+  setupVirtualAuthorityFS,
+  spec,
+  testCaller,
+} from "./command-authority-fixture.ts";

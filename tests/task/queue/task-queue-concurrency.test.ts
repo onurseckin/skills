@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
   admitTask,
@@ -22,17 +22,7 @@ describe("Stateful Task Queue Engine", () => {
   const testDir = scratchRoot(import.meta.path, "concurrency");
   const queuePath = join(testDir, "TASK_QUEUE.jsonl");
 
-  function setup() {
-    if (existsSync(testDir)) rmSync(testDir, { recursive: true, force: true });
-    mkdirSync(testDir, { recursive: true });
-  }
-
-  function teardown() {
-    if (existsSync(testDir)) rmSync(testDir, { recursive: true, force: true });
-  }
-
   it("computes stats, lists tasks with filters, and prunes completed tasks", () => {
-    setup();
     enqueueTasksBatch(
       [
         {
@@ -71,11 +61,9 @@ describe("Stateful Task Queue Engine", () => {
     const remaining = readTaskQueue(queuePath);
     expect(remaining.length).toBe(1);
     expect(remaining[0]!.id).toBe("t2");
-    teardown();
   });
 
   it("admitTask transitions PENDING task to ADMITTED status and records metadata", () => {
-    setup();
     enqueueTask(
       {
         id: "task-admit-1",
@@ -99,11 +87,9 @@ describe("Stateful Task Queue Engine", () => {
     const stats = getQueueStats(queuePath);
     expect(stats.admitted).toBe(1);
     expect(stats.pending).toBe(0);
-    teardown();
   });
 
   it("popNextEligibleTask claims ADMITTED tasks with high priority", () => {
-    setup();
     enqueueTask(
       {
         id: "task-pending-low",
@@ -136,11 +122,9 @@ describe("Stateful Task Queue Engine", () => {
     expect(popped).not.toBeNull();
     expect(popped!.task.id).toBe("task-admitted-crit");
     expect(popped!.task.status).toBe("IN_PROGRESS");
-    teardown();
   });
 
   it("startTaskValidation transitions leased task to VALIDATING state", () => {
-    setup();
     enqueueTask(
       {
         id: "task-validate-1",
@@ -176,11 +160,9 @@ describe("Stateful Task Queue Engine", () => {
       customPath: queuePath,
     });
     expect(comp.completedTask.status).toBe("COMPLETED");
-    teardown();
   });
 
   it("escalateTask transitions task to ESCALATED and marks dependents as BLOCKED", () => {
-    setup();
     enqueueTasksBatch(
       [
         {
@@ -221,11 +203,9 @@ describe("Stateful Task Queue Engine", () => {
     const stats = getQueueStats(queuePath);
     expect(stats.escalated).toBe(1);
     expect(stats.blocked).toBe(1);
-    teardown();
   });
 
   it("failTask with escalateOnMaxRetries triggers escalation when retries exhausted", () => {
-    setup();
     enqueueTask(
       {
         id: "task-fail-esc",
@@ -255,7 +235,6 @@ describe("Stateful Task Queue Engine", () => {
     expect(r2.retried).toBe(false);
     expect(r2.escalated).toBe(true);
     expect(r2.task.status).toBe("ESCALATED");
-    teardown();
   });
 });
 

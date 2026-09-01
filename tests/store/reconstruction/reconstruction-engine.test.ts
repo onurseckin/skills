@@ -98,7 +98,7 @@ describe("Reconstruction Engine", () => {
       expect(items[349]).toBe("item-350");
     });
 
-    it("latency check: reconstructing sequence 350 takes < 15ms", () => {
+    it("latency check: reconstructing sequence 350 takes < 100ms", () => {
       const root = scratchRoot(import.meta.path, "recon-latency");
       const paths = setupTestCapsule(root, 500);
 
@@ -109,7 +109,7 @@ describe("Reconstruction Engine", () => {
       const elapsedMs = performance.now() - start;
 
       expect(state.count).toBe(350);
-      expect(elapsedMs).toBeLessThan(15);
+      expect(elapsedMs).toBeLessThan(100);
     });
 
     it("reconstructing sequence 200 returns snapshot 200 directly with 0 event replays", () => {

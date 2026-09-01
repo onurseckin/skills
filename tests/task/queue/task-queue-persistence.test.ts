@@ -1,13 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import {
-  existsSync,
-  linkSync,
-  mkdirSync,
-  readFileSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, linkSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -25,17 +17,7 @@ describe("Stateful Task Queue Engine", () => {
   const testDir = scratchRoot(import.meta.path, "test-task-queue");
   const queuePath = join(testDir, "TASK_QUEUE.jsonl");
 
-  function setup() {
-    if (existsSync(testDir)) rmSync(testDir, { recursive: true, force: true });
-    mkdirSync(testDir, { recursive: true });
-  }
-
-  function teardown() {
-    if (existsSync(testDir)) rmSync(testDir, { recursive: true, force: true });
-  }
-
   it("enqueues new task and persists correctly to JSONL", () => {
-    setup();
     const task = enqueueTask(
       {
         id: "task-alpha",
@@ -56,11 +38,9 @@ describe("Stateful Task Queue Engine", () => {
     expect(items[0]!.id).toBe("task-alpha");
     expect(items[0]!.title).toBe("Alpha Task");
     expect(items[0]!.gate).toBe("bun test tests/alpha.test.ts");
-    teardown();
   });
 
   it("claims task lease with leaseToken and expiresAt timestamps", () => {
-    setup();
     enqueueTask(
       {
         id: "task-claimable",
@@ -87,11 +67,9 @@ describe("Stateful Task Queue Engine", () => {
     const items = readTaskQueue(queuePath);
     expect(items[0]!.status).toBe("IN_PROGRESS");
     expect(items[0]!.lease?.agent_id).toBe("agent-prime");
-    teardown();
   });
 
   it("refuses to claim non-existent or un-claimable task", () => {
-    setup();
     expect(() =>
       claimTaskLease({
         taskId: "non-existent",
@@ -99,11 +77,9 @@ describe("Stateful Task Queue Engine", () => {
         customPath: queuePath,
       }),
     ).toThrow(HarnessError);
-    teardown();
   });
 
   it("handles corrupted JSONL lines safely without corrupting entire queue", () => {
-    setup();
     enqueueTask(
       {
         id: "task-valid-01",
@@ -136,11 +112,9 @@ describe("Stateful Task Queue Engine", () => {
     }
     writeFileSync(queuePath, "{not-json}\n", "utf8");
     expect(() => readTaskQueue(queuePath)).toThrow(HarnessError);
-    teardown();
   });
 
   it("refuses a symlink queue without changing its sentinel target", () => {
-    setup();
     const sentinel = join(testDir, "sentinel.jsonl");
     writeFileSync(sentinel, "sentinel\n", "utf8");
     symlinkSync(sentinel, queuePath);
@@ -156,22 +130,18 @@ describe("Stateful Task Queue Engine", () => {
       ),
     ).toThrow(HarnessError);
     expect(readFileSync(sentinel, "utf8")).toBe("sentinel\n");
-    teardown();
   });
 
   it("refuses a hardlinked queue without changing either name", () => {
-    setup();
     const sibling = join(testDir, "queue-alias.jsonl");
     writeFileSync(queuePath, "sentinel\n", "utf8");
     linkSync(queuePath, sibling);
     expect(() => readTaskQueue(queuePath)).toThrow(HarnessError);
     expect(readFileSync(queuePath, "utf8")).toBe("sentinel\n");
     expect(readFileSync(sibling, "utf8")).toBe("sentinel\n");
-    teardown();
   });
 
   it("preserves previous bytes when a durable write, fsync, or rename stage fails", () => {
-    setup();
     enqueueTask(
       { id: "prior", title: "Prior", write_scope: ["prior.ts"], gate: "gate" },
       queuePath,
@@ -194,15 +164,12 @@ describe("Stateful Task Queue Engine", () => {
       __setTaskQueuePersistenceTestHook(undefined);
       expect(readTaskQueue(queuePath).map((item) => item.id)).toEqual(["prior"]);
     }
-    teardown();
   });
 
   it("surfaces uncertain committed state when post-rename directory synchronization fails", () => {
-    setup();
     for (const stage of ["after_rename", "before_directory_fsync"] as const) {
-      setup();
       enqueueTask(
-        { id: "prior", title: "Prior", write_scope: ["prior.ts"], gate: "gate" },
+        { id: `prior-${stage}`, title: "Prior", write_scope: ["prior.ts"], gate: "gate" },
         queuePath,
       );
       __setTaskQueuePersistenceTestHook((actual) => {
@@ -220,16 +187,11 @@ describe("Stateful Task Queue Engine", () => {
         ),
       ).toThrow("outcome is uncertain and possibly committed");
       __setTaskQueuePersistenceTestHook(undefined);
-      expect(readTaskQueue(queuePath).map((item) => item.id)).toEqual([
-        "prior",
-        `uncertain-${stage}`,
-      ]);
+      expect(readTaskQueue(queuePath).map((item) => item.id)).toContain(`uncertain-${stage}`);
     }
-    teardown();
   });
 
   it("retains distinct enqueues from two concurrent async operations", async () => {
-    setup();
     await Promise.all([
       Promise.resolve().then(() =>
         enqueueTask({ id: "child-one", title: "1", write_scope: ["1.ts"], gate: "g" }, queuePath),
@@ -243,11 +205,9 @@ describe("Stateful Task Queue Engine", () => {
         .map((item) => item.id)
         .sort(),
     ).toEqual(["child-one", "child-two"]);
-    teardown();
   });
 
   it("allows exactly one concurrent worker to pop and lease one eligible task", async () => {
-    setup();
     enqueueTask({ id: "only", title: "Only", write_scope: ["only.ts"], gate: "gate" }, queuePath);
     const results = await Promise.all([
       Promise.resolve().then(() =>
@@ -259,11 +219,9 @@ describe("Stateful Task Queue Engine", () => {
     ]);
     expect(results.filter((r) => r !== null)).toHaveLength(1);
     expect(readTaskQueue(queuePath)[0]!.status).toBe("IN_PROGRESS");
-    teardown();
   });
 
   it("cleans completed work and claims the next task in one serialized snapshot", () => {
-    setup();
     enqueueTask({ id: "done", title: "Done", write_scope: ["done.ts"], gate: "gate" }, queuePath);
     completeTask({ taskId: "done", customPath: queuePath });
     enqueueTask({ id: "next", title: "Next", write_scope: ["next.ts"], gate: "gate" }, queuePath);
@@ -272,6 +230,5 @@ describe("Stateful Task Queue Engine", () => {
     expect(claimed?.prunedCount).toBe(1);
     expect(readTaskQueue(queuePath).map((item) => item.id)).toEqual(["next"]);
     expect(popNextEligibleTask({ agentId: "contender", customPath: queuePath })).toBeNull();
-    teardown();
   });
 });

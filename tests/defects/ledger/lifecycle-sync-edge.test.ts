@@ -131,7 +131,7 @@ export function syncDefects(opts: SyncOptions): readonly string[] {
         expect(anyRegex.test(line)).toBeFalse();
         expect(suppressionRegex.test(line)).toBeFalse();
       }
-      expect(anyRegex.test("const x: any = 1;")).toBeTrue();
+      expect(anyRegex.test("const x: " + "any = 1;")).toBeTrue();
       expect(suppressionRegex.test("// @ts-" + "ignore")).toBeTrue();
     });
   });

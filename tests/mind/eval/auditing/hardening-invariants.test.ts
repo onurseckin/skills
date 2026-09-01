@@ -1,6 +1,7 @@
-import { describe, expect, it, beforeEach, afterEach, spyOn } from "bun:test";
+import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import * as fs from "node:fs";
 import { join } from "node:path";
+import { setupVirtualMindFS, cleanupVirtualMindFS, scratchRoot } from "../../fixtures/index.ts";
 import {
   computeStateSignature,
   compareReportDelta,
@@ -14,61 +15,17 @@ import {
 import type { Manifest, RunState } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import type { StagnationAuditResult } from "../../../../olt/scripts/src/mind/preplanning/types.ts";
 
-const origExists = fs.existsSync;
-const origRead = fs.readFileSync;
-
 describe("Domain 4 Hardening Invariants (INV-AUDIT-01 to INV-AUDIT-04) (in-memory virtual)", () => {
-  const scratch = `${process.cwd()}/.olt/virtual-hardening-scratch`;
-  const mockFiles = new Map<string, string>();
-  const mockDirs = new Set<string>();
-  const spies: { mockRestore: () => void }[] = [];
+  let scratch: string;
 
   beforeEach(() => {
-    mockFiles.clear();
-    mockDirs.clear();
-    mockDirs.add(scratch);
-    mockDirs.add(join(scratch, ".olt"));
-
-    spies.push(
-      spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => {
-        const s = String(p);
-        if (mockFiles.has(s) || mockDirs.has(s)) return true;
-        try {
-          return origExists(p);
-        } catch {
-          return false;
-        }
-      }),
-    );
-
-    spies.push(
-      spyOn(fs, "readFileSync").mockImplementation((p: fs.PathOrFileDescriptor) => {
-        const s = String(p);
-        const val = mockFiles.get(s);
-        if (val !== undefined) return val;
-        return origRead(p as string, "utf-8");
-      }),
-    );
-
-    spies.push(
-      spyOn(fs, "writeFileSync").mockImplementation((p, data) => {
-        mockFiles.set(
-          String(p),
-          typeof data === "string" ? data : Buffer.from(data as Uint8Array).toString("utf-8"),
-        );
-      }),
-    );
-
-    spies.push(
-      spyOn(fs, "mkdirSync").mockImplementation((p) => {
-        mockDirs.add(String(p));
-        return undefined as unknown as string;
-      }),
-    );
+    setupVirtualMindFS();
+    scratch = scratchRoot("hardening", "test");
+    fs.mkdirSync(join(scratch, ".olt"), { recursive: true });
   });
 
   afterEach(() => {
-    while (spies.length > 0) spies.pop()?.mockRestore();
+    cleanupVirtualMindFS();
   });
 
   describe("INV-AUDIT-01: Deterministic Delta Invariance", () => {
@@ -111,7 +68,7 @@ describe("Domain 4 Hardening Invariants (INV-AUDIT-01 to INV-AUDIT-04) (in-memor
         created_at: "2026-08-31T00:00:00.000Z",
         entry_task_id: "task-1",
       };
-      mockFiles.set(join(scratch, "manifest.json"), JSON.stringify(manifest));
+      fs.writeFileSync(join(scratch, "manifest.json"), JSON.stringify(manifest));
 
       const state: RunState = {
         version: "2.0.0",
@@ -137,7 +94,7 @@ describe("Domain 4 Hardening Invariants (INV-AUDIT-01 to INV-AUDIT-04) (in-memor
           },
         ],
       };
-      mockFiles.set(join(scratch, "state.json"), JSON.stringify(state));
+      fs.writeFileSync(join(scratch, "state.json"), JSON.stringify(state));
 
       const events = [
         {
@@ -155,7 +112,7 @@ describe("Domain 4 Hardening Invariants (INV-AUDIT-01 to INV-AUDIT-04) (in-memor
           timestamp: "2026-08-31T00:02:00.000Z",
         },
       ];
-      mockFiles.set(
+      fs.writeFileSync(
         join(scratch, "events.jsonl"),
         events.map((e) => JSON.stringify(e)).join("\n") + "\n",
       );
@@ -174,7 +131,7 @@ describe("Domain 4 Hardening Invariants (INV-AUDIT-01 to INV-AUDIT-04) (in-memor
         created_at: "2026-08-31T00:00:00.000Z",
         entry_task_id: "task-1",
       };
-      mockFiles.set(join(scratch, "manifest.json"), JSON.stringify(manifest));
+      fs.writeFileSync(join(scratch, "manifest.json"), JSON.stringify(manifest));
 
       const state: RunState = {
         version: "2.0.0",
@@ -225,8 +182,8 @@ describe("Domain 4 Hardening Invariants (INV-AUDIT-01 to INV-AUDIT-04) (in-memor
           { id: "agent-2", role: "implementer", status: "released" },
         ],
       };
-      mockFiles.set(join(scratch, "state.json"), JSON.stringify(state));
-      mockFiles.set(join(scratch, "events.jsonl"), "");
+      fs.writeFileSync(join(scratch, "state.json"), JSON.stringify(state));
+      fs.writeFileSync(join(scratch, "events.jsonl"), "");
 
       const result = analyzeRunForensics({ runRoot: scratch });
       const fsIncidents = result.incidents.filter((i) => i.category === "FALSE_SERIALIZATION");
@@ -245,7 +202,7 @@ describe("Domain 4 Hardening Invariants (INV-AUDIT-01 to INV-AUDIT-04) (in-memor
         { id: "d3", error_code: "MIND_CREATIVE_STAGNATION", status: "OPEN" },
         { id: "d4", error_code: "OTHER_DEFECT", status: "OPEN" },
       ];
-      mockFiles.set(
+      fs.writeFileSync(
         join(oltDir, "defects.jsonl"),
         defects.map((d) => JSON.stringify(d)).join("\n") + "\n",
       );

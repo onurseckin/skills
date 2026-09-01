@@ -1,6 +1,7 @@
-import { describe, expect, it, beforeEach, afterEach, spyOn } from "bun:test";
+import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import * as fs from "node:fs";
 import { join } from "node:path";
+import { setupVirtualMindFS, cleanupVirtualMindFS, scratchRoot } from "../../fixtures/index.ts";
 import {
   injectRemediationToFeedbackQueue,
   type FeedbackInjectionOptions,
@@ -12,161 +13,17 @@ import {
 } from "../../../../olt/scripts/src/mind/feedback/queue/index.ts";
 
 describe("Meta Auditor - Feedback Queue Remediation Injection (in-memory virtual)", () => {
-  const scratchDir = `${process.cwd()}/.olt/virtual-feedback-injection`;
-  const queuePath = join(scratchDir, "FEEDBACK_QUEUE.jsonl");
-  const mockFiles = new Map<string, string>();
-  const mockDirs = new Set<string>();
-  const spies: { mockRestore: () => void }[] = [];
+  let scratchDir: string;
+  let queuePath: string;
 
   beforeEach(() => {
-    mockFiles.clear();
-    mockDirs.clear();
-    mockDirs.add(scratchDir);
-
-    let fdCounter = 100;
-    const fdMap = new Map<number, string>();
-
-    const existsSpy = spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => {
-      const pathStr = String(p);
-      return mockFiles.has(pathStr) || mockDirs.has(pathStr);
-    });
-    spies.push(existsSpy);
-
-    const openSpy = spyOn(fs, "openSync").mockImplementation((p: fs.PathLike) => {
-      const pathStr = String(p);
-      const fd = ++fdCounter;
-      fdMap.set(fd, pathStr);
-      return fd;
-    });
-    spies.push(openSpy);
-
-    const closeSpy = spyOn(fs, "closeSync").mockImplementation((fd: number) => {
-      fdMap.delete(fd);
-    });
-    spies.push(closeSpy);
-
-    const getIno = (pathStr: string) => {
-      let h = 0;
-      for (let i = 0; i < pathStr.length; i++) h = (h * 31 + pathStr.charCodeAt(i)) | 0;
-      return Math.abs(h) + 10;
-    };
-
-    const lstatSpy = spyOn(fs, "lstatSync").mockImplementation((p: fs.PathLike) => {
-      const pathStr = String(p);
-      const ino = getIno(pathStr);
-      if (mockFiles.has(pathStr)) {
-        return {
-          isFile: () => true,
-          isDirectory: () => false,
-          nlink: 1,
-          dev: 1,
-          ino,
-        } as unknown as fs.Stats;
-      }
-      if (pathStr.endsWith(".jsonl") || pathStr.endsWith(".tmp") || pathStr.includes(".tmp")) {
-        const err = new Error(`ENOENT: no such file or directory, lstat '${pathStr}'`) as Error & {
-          code: string;
-        };
-        err.code = "ENOENT";
-        throw err;
-      }
-      return {
-        isFile: () => false,
-        isDirectory: () => true,
-        nlink: 1,
-        dev: 1,
-        ino,
-      } as unknown as fs.Stats;
-    });
-    spies.push(lstatSpy);
-
-    const fstatSpy = spyOn(fs, "fstatSync").mockImplementation((fd: number) => {
-      const pathStr = fdMap.get(fd) ?? "";
-      const ino = getIno(pathStr);
-      if (mockFiles.has(pathStr)) {
-        return {
-          isFile: () => true,
-          isDirectory: () => false,
-          nlink: 1,
-          dev: 1,
-          ino,
-        } as unknown as fs.Stats;
-      }
-      return {
-        isFile: () => false,
-        isDirectory: () => true,
-        nlink: 1,
-        dev: 1,
-        ino,
-      } as unknown as fs.Stats;
-    });
-    spies.push(fstatSpy);
-
-    const writeSyncSpy = spyOn(fs, "writeSync").mockImplementation(
-      (fd: number, buffer: NodeJS.ArrayBufferView, offset?: number, length?: number) => {
-        const pathStr = fdMap.get(fd) ?? "";
-        const buf = Buffer.from(buffer.buffer, buffer.byteOffset, buffer.byteLength);
-        const text = buf.toString("utf8");
-        const prev = mockFiles.get(pathStr) ?? "";
-        mockFiles.set(pathStr, prev + text);
-        return length ?? buffer.byteLength;
-      },
-    );
-    spies.push(writeSyncSpy);
-
-    const fsyncSpy = spyOn(fs, "fsyncSync").mockImplementation(() => undefined);
-    spies.push(fsyncSpy);
-
-    const renameSpy = spyOn(fs, "renameSync").mockImplementation(
-      (oldPath: fs.PathLike, newPath: fs.PathLike) => {
-        const oldStr = String(oldPath);
-        const newStr = String(newPath);
-        const val = mockFiles.get(oldStr) ?? "";
-        mockFiles.set(newStr, val);
-        mockFiles.delete(oldStr);
-      },
-    );
-    spies.push(renameSpy);
-
-    const readSpy = spyOn(fs, "readFileSync").mockImplementation((p: fs.PathOrFileDescriptor) => {
-      const pathStr = typeof p === "number" ? (fdMap.get(p) ?? "") : String(p);
-      const val = mockFiles.get(pathStr);
-      if (val !== undefined) return val;
-      const err = new Error(`ENOENT: no such file or directory, open '${pathStr}'`) as Error & {
-        code: string;
-      };
-      err.code = "ENOENT";
-      throw err;
-    });
-    spies.push(readSpy);
-
-    const writeSpy = spyOn(fs, "writeFileSync").mockImplementation(
-      (p: fs.PathOrFileDescriptor, data: string | NodeJS.ArrayBufferView) => {
-        const pathStr = typeof p === "number" ? (fdMap.get(p) ?? "") : String(p);
-        mockFiles.set(
-          pathStr,
-          typeof data === "string" ? data : Buffer.from(data as Uint8Array).toString("utf-8"),
-        );
-      },
-    );
-    spies.push(writeSpy);
-
-    const mkdirSpy = spyOn(fs, "mkdirSync").mockImplementation((p: fs.PathLike) => {
-      mockDirs.add(String(p));
-      return undefined as unknown as string;
-    });
-    spies.push(mkdirSpy);
-
-    const unlinkSpy = spyOn(fs, "unlinkSync").mockImplementation((p: fs.PathLike) => {
-      mockFiles.delete(String(p));
-    });
-    spies.push(unlinkSpy);
+    setupVirtualMindFS();
+    scratchDir = scratchRoot("feedback-injection", "test");
+    queuePath = join(scratchDir, "FEEDBACK_QUEUE.jsonl");
   });
 
   afterEach(() => {
-    while (spies.length > 0) {
-      spies.pop()?.mockRestore();
-    }
+    cleanupVirtualMindFS();
   });
 
   it("returns zero counts when empty proposals/incidents provided", () => {

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { createHash } from "node:crypto";
-import * as fs from "node:fs";
 import { join } from "node:path";
+import { setupVirtualMindFS, cleanupVirtualMindFS, scratchRoot } from "../../fixtures/index.ts";
 import {
   CLOSING_FORBIDDEN_FOR_MIND,
   computeMindCognitiveTelemetry,
@@ -11,33 +11,26 @@ import {
   mindPulseCommand,
 } from "../../../../olt/scripts/src/cli/commands/mind-pulse.ts";
 import * as storeModule from "../../../../olt/scripts/src/engine/store/index.ts";
-import * as durableWriteModule from "../../../../olt/scripts/src/core/durable-write.ts";
 import type { RunState } from "../../../../olt/scripts/src/core/contracts/index.ts";
 
-const origExists = fs.existsSync;
-const origRead = fs.readFileSync;
-
 describe("cli/commands/mind-pulse smart-task integration (in-memory virtual)", () => {
-  const repo = `${process.cwd()}/.olt/virtual-mind-pulse-repo`;
-  const run = `${repo}/.olt/capsules/mind-gen-cmd-test`;
-  const mockFiles = new Map<string, string>();
-  const mockDirs = new Set<string>();
+  let repo: string;
+  let run: string;
   const spies: { mockRestore: () => void }[] = [];
   let inMemoryState: RunState;
 
   beforeEach(() => {
-    mockFiles.clear();
-    mockDirs.clear();
-    mockDirs.add(repo);
-    mockDirs.add(run);
-    mockDirs.add(join(repo, ".olt"));
-    mockDirs.add(join(repo, ".olt", "capsules"));
-    mockDirs.add(join(repo, "olt", "agents"));
+    const vfs = setupVirtualMindFS();
+    repo = scratchRoot("cli-smart-task", "repo");
+    run = `${repo}/.olt/capsules/mind-gen-cmd-test`;
+
+    vfs.mkdirSync(join(repo, "olt", "agents"), { recursive: true });
+    vfs.mkdirSync(run, { recursive: true });
 
     const charterContent = `name: "mind"\nrole: "mind"\ncharter:\n  identity: "Test Mind"\n  goals:\n    - id: "G1"\n      statement: "Goal 1"\n  non_goals:\n    - "Self-termination"\n  repo_roots:\n    - "src/"\n`;
     const charterSha = createHash("sha256").update(charterContent).digest("hex");
-    mockFiles.set(join(repo, "olt", "agents", "mind.yaml"), charterContent);
-    mockFiles.set(join(run, "events.jsonl"), "");
+    vfs.writeFileSync(join(repo, "olt", "agents", "mind.yaml"), charterContent);
+    vfs.writeFileSync(join(run, "events.jsonl"), "");
 
     inMemoryState = {
       version: "2.0.0",
@@ -64,57 +57,6 @@ describe("cli/commands/mind-pulse smart-task integration (in-memory virtual)", (
     } as unknown as RunState;
 
     spies.push(
-      spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => {
-        const s = String(p);
-        if (mockFiles.has(s) || mockDirs.has(s)) return true;
-        try {
-          return origExists(p);
-        } catch {
-          return false;
-        }
-      }),
-    );
-
-    spies.push(
-      spyOn(fs, "readFileSync").mockImplementation((p: fs.PathOrFileDescriptor) => {
-        const s = String(p);
-        const val = mockFiles.get(s);
-        if (val !== undefined) return val;
-        return origRead(p as string, "utf-8");
-      }),
-    );
-
-    spies.push(
-      spyOn(fs, "writeFileSync").mockImplementation((p, data) => {
-        mockFiles.set(
-          String(p),
-          typeof data === "string" ? data : Buffer.from(data as Uint8Array).toString("utf-8"),
-        );
-      }),
-    );
-
-    spies.push(
-      spyOn(fs, "lstatSync").mockImplementation((p: fs.PathLike) => {
-        const s = String(p);
-        if (mockFiles.has(s))
-          return { isFile: () => true, isDirectory: () => false } as unknown as fs.Stats;
-        return { isFile: () => false, isDirectory: () => true } as unknown as fs.Stats;
-      }),
-    );
-
-    spies.push(
-      spyOn(fs, "mkdirSync").mockImplementation((p) => {
-        mockDirs.add(String(p));
-        return undefined as unknown as string;
-      }),
-    );
-
-    spies.push(
-      spyOn(durableWriteModule, "atomicWriteBytes").mockImplementation((targetPath, bytes) => {
-        mockFiles.set(targetPath, new TextDecoder().decode(bytes));
-      }),
-    );
-    spies.push(
       spyOn(storeModule, "loadRun").mockImplementation(
         () =>
           ({
@@ -137,6 +79,7 @@ describe("cli/commands/mind-pulse smart-task integration (in-memory virtual)", (
 
   afterEach(() => {
     while (spies.length > 0) spies.pop()?.mockRestore();
+    cleanupVirtualMindFS();
   });
 
   it("exports canonical CLOSING_FORBIDDEN_FOR_MIND invariant constant", () => {

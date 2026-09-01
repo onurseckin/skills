@@ -1,7 +1,7 @@
-import { afterEach, beforeEach, describe, expect, test, spyOn } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import { join } from "node:path";
-import * as durableWriteModule from "../../../../olt/scripts/src/core/durable-write.ts";
+import { setupVirtualMindFS, cleanupVirtualMindFS, scratchRoot } from "../../fixtures/index.ts";
 import {
   AuditorCursorStore,
   MindAuditorEngine,
@@ -10,89 +10,21 @@ import {
 import { writeLastPulse } from "../../../../olt/scripts/src/mind/lifecycle/index.ts";
 
 const MIN_MANIFEST_YAML = `role: mind\ntier: 0\nspawns:\n  - orchestrator\nmay:\n  - Coordinate strategic goals\nmust_not:\n  - Implement code directly\n`;
-const origExists = fs.existsSync;
-const origRead = fs.readFileSync;
 
 describe("Liveness and Scope Compliance Suite (in-memory virtual)", () => {
-  const mockFiles = new Map<string, string>();
-  const mockDirs = new Set<string>();
-  const spies: { mockRestore: () => void }[] = [];
-
   beforeEach(() => {
-    mockFiles.clear();
-    mockDirs.clear();
-    spies.push(
-      spyOn(fs, "existsSync").mockImplementation((p) => {
-        const s = String(p);
-        if (mockFiles.has(s) || mockDirs.has(s)) return true;
-        try {
-          return origExists(p);
-        } catch {
-          return false;
-        }
-      }),
-      spyOn(fs, "readdirSync").mockImplementation((p, options) => {
-        const pStr = String(p);
-        const dirs: string[] = [];
-        const files: string[] = [];
-        for (const d of mockDirs) {
-          if (d.startsWith(pStr) && d !== pStr) {
-            const top = d.slice(pStr.length).replace(/^\/+/, "").split("/")[0];
-            if (top && !dirs.includes(top)) dirs.push(top);
-          }
-        }
-        for (const f of mockFiles.keys()) {
-          if (f.startsWith(pStr)) {
-            const top = f.slice(pStr.length).replace(/^\/+/, "").split("/")[0];
-            if (top && !dirs.includes(top) && !files.includes(top)) files.push(top);
-          }
-        }
-        const withTypes =
-          typeof options === "object" &&
-          options !== null &&
-          Boolean((options as { withFileTypes?: boolean }).withFileTypes);
-        if (withTypes) {
-          return [
-            ...dirs.map((name) => ({ name, isDirectory: () => true, isFile: () => false })),
-            ...files.map((name) => ({ name, isDirectory: () => false, isFile: () => true })),
-          ] as unknown as fs.Dirent[];
-        }
-        return [...dirs, ...files] as unknown as fs.Dirent[];
-      }),
-      spyOn(fs, "readFileSync").mockImplementation((p) => {
-        const val = mockFiles.get(String(p));
-        return val !== undefined ? val : origRead(p as string, "utf-8");
-      }),
-      spyOn(fs, "writeFileSync").mockImplementation((p, data) => {
-        mockFiles.set(
-          String(p),
-          typeof data === "string" ? data : Buffer.from(data as Uint8Array).toString("utf-8"),
-        );
-      }),
-      spyOn(fs, "mkdirSync").mockImplementation((p) => {
-        mockDirs.add(String(p));
-        return undefined as unknown as string;
-      }),
-      spyOn(durableWriteModule, "durableAppendBytes").mockImplementation((fp, bytes) => {
-        mockFiles.set(fp, (mockFiles.get(fp) ?? "") + new TextDecoder().decode(bytes));
-      }),
-      spyOn(durableWriteModule, "atomicWriteBytes").mockImplementation((tp, bytes) => {
-        mockFiles.set(tp, new TextDecoder().decode(bytes));
-      }),
-    );
+    setupVirtualMindFS();
   });
 
   afterEach(() => {
-    while (spies.length > 0) spies.pop()?.mockRestore();
+    cleanupVirtualMindFS();
   });
 
   function freshRepoRoot(prefix: string): string {
-    const repo = `${process.cwd()}/.olt/virtual-auditor-liveness-${prefix}`;
-    mockDirs.add(repo);
-    mockDirs.add(join(repo, ".olt"));
-    mockDirs.add(join(repo, ".olt", "capsules"));
-    mockDirs.add(join(repo, "olt", "agents"));
-    mockFiles.set(join(repo, "olt", "agents", "mind.yaml"), MIN_MANIFEST_YAML);
+    const repo = scratchRoot("liveness-scope", prefix);
+    fs.mkdirSync(join(repo, ".olt", "capsules"), { recursive: true });
+    fs.mkdirSync(join(repo, "olt", "agents"), { recursive: true });
+    fs.writeFileSync(join(repo, "olt", "agents", "mind.yaml"), MIN_MANIFEST_YAML);
     return repo;
   }
 
@@ -100,16 +32,16 @@ describe("Liveness and Scope Compliance Suite (in-memory virtual)", () => {
     capsuleRoot: string,
     lines: readonly Record<string, unknown>[],
   ): void {
-    mockDirs.add(capsuleRoot);
-    mockFiles.set(
+    fs.mkdirSync(capsuleRoot, { recursive: true });
+    fs.writeFileSync(
       join(capsuleRoot, "events.jsonl"),
       lines.map((l) => JSON.stringify(l)).join("\n") + "\n",
     );
   }
 
   function writeCapsuleState(capsuleRoot: string, state: Record<string, unknown>): void {
-    mockDirs.add(capsuleRoot);
-    mockFiles.set(join(capsuleRoot, "state.json"), JSON.stringify(state));
+    fs.mkdirSync(capsuleRoot, { recursive: true });
+    fs.writeFileSync(join(capsuleRoot, "state.json"), JSON.stringify(state));
   }
 
   function simpleEvent(
@@ -176,7 +108,7 @@ describe("Liveness and Scope Compliance Suite (in-memory virtual)", () => {
     test("watchdog fires when the Mind is stale even while the auditor cursor keeps advancing", () => {
       const repoRoot = freshRepoRoot("watchdog-fires");
       const capsuleRoot = join(repoRoot, ".olt", "capsules", "mind-gen-1");
-      mockDirs.add(capsuleRoot);
+      fs.mkdirSync(capsuleRoot, { recursive: true });
       writeLastPulse(capsuleRoot, {
         at: "2026-08-24T20:00:00.000Z",
         pulse_id: "pulse-9",
@@ -218,7 +150,7 @@ describe("Liveness and Scope Compliance Suite (in-memory virtual)", () => {
     test("an unexpired active pulse beats a stale last-pulse snapshot and retains its registered actor", () => {
       const repoRoot = freshRepoRoot("active-pulse-liveness");
       const capsuleRoot = join(repoRoot, ".olt", "capsules", "mind-gen-2");
-      mockDirs.add(capsuleRoot);
+      fs.mkdirSync(capsuleRoot, { recursive: true });
       writeLastPulse(capsuleRoot, {
         at: "2026-08-25T04:29:30.952Z",
         pulse_id: "pulse-7",
@@ -266,7 +198,7 @@ describe("Liveness and Scope Compliance Suite (in-memory virtual)", () => {
     test("treats an active Harness-only Codex grant as recovery work, not native Mind liveness", () => {
       const repoRoot = freshRepoRoot("harness-only-codex-grant");
       const capsuleRoot = join(repoRoot, ".olt", "capsules", "mind-gen-3");
-      mockDirs.add(capsuleRoot);
+      fs.mkdirSync(capsuleRoot, { recursive: true });
       writeCapsuleState(capsuleRoot, {
         agents: [
           {

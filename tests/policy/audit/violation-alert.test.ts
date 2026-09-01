@@ -1,8 +1,16 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { ViolationAlertDispatcher } from "../../../olt/scripts/src/policy/audit/violation-alert.ts";
 import type { ViolationAlert } from "../../../olt/scripts/src/policy/audit/types.ts";
+import { cleanupVirtualPolicyFS, setupVirtualPolicyFS } from "../fixture.ts";
 
 describe("ViolationAlertDispatcher", () => {
+  beforeEach(() => {
+    setupVirtualPolicyFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualPolicyFS();
+  });
   it("dispatches alerts to subscribers asynchronously", async () => {
     const dispatcher = new ViolationAlertDispatcher();
     const received: ViolationAlert[] = [];

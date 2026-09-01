@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import {
   assertGrantedCommand as assertRawGrantedCommand,
@@ -23,6 +23,10 @@ import {
   revokeSessionGrant,
 } from "../../../../olt/scripts/src/authority/session/index.ts";
 import { loadDagSnapshot } from "../../../../olt/scripts/src/telemetry/dag-snapshot.ts";
+import {
+  cleanupVirtualAuthorityFS,
+  setupVirtualAuthorityFS,
+} from "../authority/command-authority-fixture.ts";
 
 function spec(invocation: string) {
   const found = findCommand(invocation);
@@ -70,6 +74,14 @@ function installMetaAuditGrant(
     ];
   });
 }
+
+beforeAll(() => {
+  setupVirtualAuthorityFS();
+});
+
+afterAll(() => {
+  cleanupVirtualAuthorityFS();
+});
 
 describe("assertGrantedCommand hole 6: agent:register --parent-agent binding fails open when the actor is absent", () => {
   async function seedActiveMind(run: string): Promise<void> {

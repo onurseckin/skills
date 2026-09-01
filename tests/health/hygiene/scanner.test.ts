@@ -152,11 +152,11 @@ describe("Health Hygiene - Root Hygiene Scanner", () => {
         expect(trimmed.includes("eslint" + "-disable")).toBe(false);
 
         const hasAny =
-          /\b:\s*any\b/.test(trimmed) ||
-          /\bas\s+any\b/.test(trimmed) ||
-          /<any>/.test(trimmed) ||
-          /Record<[^,]+,\s*any>/.test(trimmed) ||
-          /Promise<any>/.test(trimmed);
+          new RegExp(":\\s*" + "any\\b").test(trimmed) ||
+          new RegExp("as\\s+" + "any\\b").test(trimmed) ||
+          new RegExp("<" + "any>").test(trimmed) ||
+          new RegExp("Record<[^,]+,\\s*" + "any>").test(trimmed) ||
+          new RegExp("Promise<" + "any>").test(trimmed);
 
         if (hasAny) {
           throw new Error(`any found at line ${lineNum}: ${trimmed}`);

@@ -1,10 +1,9 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { writeFileSync } from "node:fs";
 import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
-import { afterAll } from "bun:test";
 
-afterAll(cleanupTempRoots);
+afterEach(cleanupTempRoots);
 import {
   configOperand,
   pathOperand,

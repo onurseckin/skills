@@ -1,5 +1,4 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import * as fs from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   worktreeCleanCommand,
   worktreeCreateCommand,
@@ -8,21 +7,17 @@ import {
   worktreeStatusCommand,
 } from "../../../olt/scripts/src/cli/commands/worktree-ops.ts";
 import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
+import { cleanupVirtualTracksFS, setupVirtualTracksFS } from "./tracks-fixture.ts";
 
 const TEST_DIR = "/virtual/worktree-cli-repo";
 
 describe("worktree CLI commands & registry (in-memory virtualization)", () => {
-  let existsSpy: ReturnType<typeof spyOn>;
-  let readdirSpy: ReturnType<typeof spyOn>;
-
   beforeEach(() => {
-    existsSpy = spyOn(fs, "existsSync").mockReturnValue(false);
-    readdirSpy = spyOn(fs, "readdirSync").mockReturnValue([]);
+    setupVirtualTracksFS();
   });
 
   afterEach(() => {
-    existsSpy.mockRestore();
-    readdirSpy.mockRestore();
+    cleanupVirtualTracksFS();
   });
 
   test("CLI registry includes all worktree commands", () => {

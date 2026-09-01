@@ -1,5 +1,4 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import * as fs from "node:fs";
+import { afterEach, beforeEach, describe, expect, spyOn, test, type Mock } from "bun:test";
 import { AutonomousLoopRunner } from "../../../olt/scripts/src/orchestrator/loop-runner.ts";
 import { landPhaseRelease } from "../../../olt/scripts/src/orchestrator/station-landing.ts";
 import type {
@@ -7,23 +6,26 @@ import type {
   RoundExecutionResult,
   RoundExecutor,
 } from "../../../olt/scripts/src/orchestrator/types.ts";
-
 import * as preCompletionModule from "../../../olt/scripts/src/reporting/doctor/pre-completion.ts";
+import {
+  cleanupVirtualTracksFS,
+  getVirtualTracksFS,
+  setupVirtualTracksFS,
+} from "./tracks-fixture.ts";
 
 const TEST_DIR = "/virtual/test-orch-worktree";
 
 describe("orchestrator worktree integration (in-memory virtualization)", () => {
-  let existsSpy: ReturnType<typeof spyOn>;
-  let mkdirSpy: ReturnType<typeof spyOn>;
-  let writeSpy: ReturnType<typeof spyOn>;
-  let readdirSpy: ReturnType<typeof spyOn>;
-  let preCompSpy: ReturnType<typeof spyOn>;
+  let preCompSpy: Mock<typeof preCompletionModule.checkPreCompletionDiagnostics> | undefined;
 
   beforeEach(() => {
-    existsSpy = spyOn(fs, "existsSync").mockReturnValue(true);
-    mkdirSpy = spyOn(fs, "mkdirSync").mockImplementation(() => undefined as unknown as string);
-    writeSpy = spyOn(fs, "writeFileSync").mockImplementation(() => undefined);
-    readdirSpy = spyOn(fs, "readdirSync").mockReturnValue([]);
+    const vfs = setupVirtualTracksFS();
+    vfs.mkdirSync(TEST_DIR, { recursive: true });
+    vfs.mkdirSync(`${TEST_DIR}/.git`, { recursive: true });
+    vfs.mkdirSync(`${TEST_DIR}/.olt/worktrees`, { recursive: true });
+    vfs.mkdirSync(`${TEST_DIR}/.olt/worktrees/locks`, { recursive: true });
+    vfs.writeFileSync(`${TEST_DIR}/.olt/policy.json`, "{}");
+
     preCompSpy = spyOn(preCompletionModule, "checkPreCompletionDiagnostics").mockReturnValue({
       readyForCompletion: true,
       healthy: true,
@@ -36,11 +38,8 @@ describe("orchestrator worktree integration (in-memory virtualization)", () => {
   });
 
   afterEach(() => {
-    existsSpy.mockRestore();
-    mkdirSpy.mockRestore();
-    writeSpy.mockRestore();
-    readdirSpy.mockRestore();
-    preCompSpy.mockRestore();
+    preCompSpy?.mockRestore();
+    cleanupVirtualTracksFS();
   });
 
   test("AutonomousLoopRunner sets up worktree isolation and passes worktreePath to executor", async () => {

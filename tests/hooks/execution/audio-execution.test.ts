@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   DEFAULT_DARWIN_SOUND_PATH,
   executeAudioAction,
@@ -7,6 +7,7 @@ import {
   type ProcessRunner,
   type ProcessRunResult,
 } from "../../../olt/scripts/src/hooks/index.ts";
+import { cleanupVirtualHooksFS, setupVirtualHooksFS } from "../fixture.ts";
 
 function fakeRunner(handler: (executable: string, args: readonly string[]) => ProcessRunResult): {
   runner: ProcessRunner;
@@ -29,6 +30,14 @@ function fakeRunner(handler: (executable: string, args: readonly string[]) => Pr
 }
 
 describe("Lifecycle Hooks - Audio Action Resolution & Handling", () => {
+  beforeEach(() => {
+    setupVirtualHooksFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualHooksFS();
+  });
+
   test("resolves sound file paths accurately", () => {
     expect(resolveAudioSoundPath("Bottle")).toBe("/System/Library/Sounds/Bottle.aiff");
     expect(resolveAudioSoundPath("Hero")).toBe("/System/Library/Sounds/Hero.aiff");

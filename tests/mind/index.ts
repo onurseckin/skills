@@ -12,6 +12,13 @@ export { STRATEGY_DOMAINS } from "./strategy/index.ts";
 export { HEURISTICS_DOMAINS } from "./heuristics/index.ts";
 export { FEEDBACK_DOMAINS } from "./feedback/index.ts";
 export { ASSEMBLY_DOMAINS } from "./assembly/index.ts";
+export {
+  setupVirtualMindFS,
+  cleanupVirtualMindFS,
+  getVirtualMindFS,
+  resetVirtualMindStore,
+  scratchRoot,
+} from "./fixtures/index.ts";
 
 export const MIND_DOMAINS = [
   "defects",

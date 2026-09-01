@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import * as path from "node:path";
 import { findCommand } from "../../../../olt/scripts/src/cli/registry/index.ts";
 import type { CommandSpec } from "../../../../olt/scripts/src/cli/registry/types.ts";
 import type { Flags } from "../../../../olt/scripts/src/cli/options.ts";
@@ -6,6 +8,65 @@ import {
   type AuthenticatedCaller,
 } from "../../../../olt/scripts/src/packets/command-authority.ts";
 import { transact } from "../../../../olt/scripts/src/engine/store/index.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import {
+  disableInMemorySessionStore,
+  enableInMemorySessionStore,
+} from "../../../../olt/scripts/src/authority/session/paths.ts";
+
+let currentSession: VirtualFSSession | null = null;
+let currentVfs: VirtualMemoryFS = new VirtualMemoryFS();
+let counter = 0;
+
+function normPath(p: string): string {
+  return path.resolve(String(p)).replace(/\\/g, "/");
+}
+
+export function setupVirtualAuthorityFS(): VirtualMemoryFS {
+  enableInMemorySessionStore();
+  if (!currentSession) {
+    currentVfs = new VirtualMemoryFS();
+    const repoRoot = normPath(process.cwd());
+
+    currentVfs.mkdirSync(repoRoot, { recursive: true });
+    currentVfs.mkdirSync(path.join(repoRoot, ".git"), { recursive: true });
+    currentVfs.mkdirSync(path.join(repoRoot, ".olt"), { recursive: true });
+    currentVfs.mkdirSync(path.join(repoRoot, ".olt", "scratch"), { recursive: true });
+
+    currentVfs.chdir(repoRoot);
+    currentSession = createVirtualFSSession(currentVfs);
+  }
+  return currentVfs;
+}
+
+export function cleanupVirtualAuthorityFS(): void {
+  disableInMemorySessionStore();
+  if (currentSession) {
+    currentSession.cleanup();
+    currentSession = null;
+  }
+  currentVfs.reset();
+}
+
+export function getVirtualAuthorityFS(): VirtualMemoryFS {
+  return currentVfs;
+}
+
+export function scratchRoot(callerPath = "authority-test", label = "test"): string {
+  const vfs = setupVirtualAuthorityFS();
+  counter += 1;
+  const digest = createHash("sha256")
+    .update(`${callerPath}:${label}:${counter}`)
+    .digest("hex")
+    .slice(0, 8);
+  const root = `/virtual/authority-scratch/${callerPath}-${label}-${counter}-${digest}`;
+  vfs.mkdirSync(root, { recursive: true });
+  return root;
+}
 
 export function spec(invocation: string): CommandSpec {
   const found = findCommand(invocation);

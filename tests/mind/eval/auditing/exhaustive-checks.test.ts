@@ -1,6 +1,7 @@
-import { beforeEach, afterEach, describe, expect, it, spyOn } from "bun:test";
+import { beforeEach, afterEach, describe, expect, it } from "bun:test";
 import * as fs from "node:fs";
 import { join } from "node:path";
+import { setupVirtualMindFS, cleanupVirtualMindFS, scratchRoot } from "../../fixtures/index.ts";
 import {
   auditDynamicRoles as auditDynamicRolesHierarchy,
   runAutonomousMindRoleAudit,
@@ -70,27 +71,12 @@ import { DynamicRoleRegistry } from "../../../../olt/scripts/src/mind/roles/dyna
 import type { DynamicRoleSpec } from "../../../../olt/scripts/src/mind/roles/dynamic/types.ts";
 import type { HarnessEvent, RunState } from "../../../../olt/scripts/src/core/contracts/index.ts";
 
-const mockFiles = new Map<string, string>();
-const spies: { mockRestore: () => void }[] = [];
-
 beforeEach(() => {
-  mockFiles.clear();
-  spies.push(
-    spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => {
-      return mockFiles.has(String(p));
-    }),
-  );
-  spies.push(
-    spyOn(fs, "readFileSync").mockImplementation((p: fs.PathOrFileDescriptor) => {
-      const val = mockFiles.get(String(p));
-      if (val !== undefined) return val;
-      throw new Error(`ENOENT: no such file, open '${String(p)}'`);
-    }),
-  );
+  setupVirtualMindFS();
 });
 
 afterEach(() => {
-  while (spies.length > 0) spies.pop()?.mockRestore();
+  cleanupVirtualMindFS();
 });
 
 describe("Auditing & Roles Exhaustive Unit Test Suite", () => {
@@ -189,7 +175,8 @@ describe("Auditing & Roles Exhaustive Unit Test Suite", () => {
 
   describe("Contract Auditor Rules & Cross-Tier Violations", () => {
     it("audits single role from string file path and string YAML content", () => {
-      const roleFile = `${process.cwd()}/.olt/virtual-roles/sample-role.md`;
+      const roleDir = scratchRoot("exhaustive-roles", "test");
+      const roleFile = join(roleDir, "sample-role.md");
       const yamlContent = `---
 role: sample-file-role
 tier: 3
@@ -201,7 +188,7 @@ grantedCommands:
 ---
 # Role Definition
 `;
-      mockFiles.set(roleFile, yamlContent);
+      fs.writeFileSync(roleFile, yamlContent);
 
       const findingsFromFile = auditSingleRole(roleFile);
       expect(findingsFromFile.length).toBe(0);

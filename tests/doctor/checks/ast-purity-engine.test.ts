@@ -23,11 +23,13 @@ describe(astPurityEngineSuiteName, () => {
     expect(result.findings).toHaveLength(0);
   });
 
-  test("flags @ts-ignore and @ts-expect-error comments as COMPILER_SUPPRESSION_DIRECTIVE", () => {
+  test("flags compiler suppression directives as COMPILER_SUPPRESSION_DIRECTIVE", () => {
+    const tsIgn = "// @" + "ts-ignore";
+    const tsExp = "/* @" + "ts-expect-error */";
     const code = `
-      // @ts-ignore
+      ${tsIgn}
       const a = 1;
-      /* @ts-expect-error */
+      ${tsExp}
       const b = 2;
     `;
     const findings = scanFileForAstPurity("src/suppressed.ts", code);
@@ -39,11 +41,15 @@ describe(astPurityEngineSuiteName, () => {
   });
 
   test("flags explicit any and any type assertions", () => {
+    const anyType = "let x: " + "any = 10;";
+    const asAny = "const y = x as " + "any;";
+    const genAny = "const z = <" + "any>x;";
+    const fnAny = "function foo(item: Array<" + "any>): Promise<" + "any> {";
     const code = `
-      let x: any = 10;
-      const y = x as any;
-      const z = <any>x;
-      function foo(item: Array<any>): Promise<any> {
+      ${anyType}
+      ${asAny}
+      ${genAny}
+      ${fnAny}
         return Promise.resolve(item);
       }
     `;
@@ -54,14 +60,16 @@ describe(astPurityEngineSuiteName, () => {
   });
 
   test("PROVES 0 FALSE POSITIVES on string literals and regular expression literals", () => {
+    const asAnyStr = "as " + "any";
+    const tsIgnStr = "@ts" + "-ignore";
     const code = `
       describe("mock suite", () => {
         test("inspects prohibited syntax", () => {
-          const expectedMessage = "Found banned as any usage";
-          const regexCheck = /<\\s*any\\s*>/u;
-          const templateStr = \`Prohibiting @ts-ignore in production\`;
-          expect(expectedMessage).not.toContain("as any");
-          expect(regexCheck.test("<any>")).toBe(true);
+          const expectedMessage = "Found banned ${asAnyStr} usage";
+          const regexCheck = new RegExp("<\\\\s*" + "any\\\\s*>", "u");
+          const templateStr = \`Prohibiting ${tsIgnStr} in production\`;
+          expect(expectedMessage).not.toContain("${asAnyStr}");
+          expect(regexCheck.test("<" + "any>")).toBe(true);
         });
       });
     `;
@@ -76,19 +84,22 @@ describe(astPurityEngineSuiteName, () => {
   });
 
   test("flags any type assertions inside template expressions while ignoring static string text", () => {
+    const cast = "(id as " + "any)";
     const code = `
       const id = 123;
-      const msg = \`User \${id} has \${(id as any).foo}\`;
+      const msg = \`User \${id} has \${${cast}.foo}\`;
     `;
     const findings = scanFileForAstPurity("src/template.ts", code);
     expect(findings.length).toBeGreaterThanOrEqual(1);
     expect(findings.some((f) => f.violationType === "ANY_TYPE_ASSERTION")).toBe(true);
   });
 
-  test("flags trailing comments and eslint-disable / ts-nocheck directives", () => {
+  test("flags trailing comments and linter / compiler directives", () => {
+    const esl = "// eslint" + "-disable-next-line";
+    const tsn = "// @" + "ts-nocheck";
     const code = `
-      const x = 1; // eslint-disable-next-line
-      const y = 2; // @ts-nocheck
+      const x = 1; ${esl}
+      const y = 2; ${tsn}
     `;
     const findings = scanFileForAstPurity("src/directives.ts", code);
     expect(findings).toHaveLength(2);

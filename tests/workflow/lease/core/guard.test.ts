@@ -15,6 +15,19 @@ import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 const start = at("2026-08-19T00:00:00.000Z");
 const afterExpiry = at("2026-08-19T01:00:00.000Z");
 
+let vfsCleanup: (() => void) | undefined;
+let sc = 0;
+
+beforeEach(() => {
+  const setup = setupWorkflowVirtualFs();
+  vfsCleanup = setup.cleanup;
+});
+
+afterEach(() => {
+  vfsCleanup?.();
+  vfsCleanup = undefined;
+});
+
 describe("lease-guard", () => {
   test("returns valid: false when task is not in state", () => {
     const state = workflowState();
@@ -121,19 +134,6 @@ describe("verifyLeaseGuard", () => {
 });
 
 describe("verifyDiskCapsuleLease", () => {
-  let vfsCleanup: (() => void) | undefined;
-  let sc = 0;
-
-  beforeEach(() => {
-    const setup = setupWorkflowVirtualFs();
-    vfsCleanup = setup.cleanup;
-  });
-
-  afterEach(() => {
-    vfsCleanup?.();
-    vfsCleanup = undefined;
-  });
-
   test("returns invalid when capsule state does not exist on disk", () => {
     const res = verifyDiskCapsuleLease("/virtual/tmp/non-existent-run-id", "task-1");
     expect(res.valid).toBe(false);

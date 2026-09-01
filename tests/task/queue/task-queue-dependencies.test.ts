@@ -1,5 +1,4 @@
 import { describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import {
   claimTaskLease,
@@ -12,17 +11,7 @@ describe("Stateful Task Queue Engine", () => {
   const testDir = scratchRoot(import.meta.path, "dependencies");
   const queuePath = join(testDir, "TASK_QUEUE.jsonl");
 
-  function setup() {
-    if (existsSync(testDir)) rmSync(testDir, { recursive: true, force: true });
-    mkdirSync(testDir, { recursive: true });
-  }
-
-  function teardown() {
-    if (existsSync(testDir)) rmSync(testDir, { recursive: true, force: true });
-  }
-
   it("refuses duplicate task IDs", () => {
-    setup();
     enqueueTask(
       {
         id: "task-dup",
@@ -44,11 +33,9 @@ describe("Stateful Task Queue Engine", () => {
         queuePath,
       );
     }).toThrow("already exists in the queue");
-    teardown();
   });
 
   it("refuses self-referential dependencies", () => {
-    setup();
     expect(() => {
       enqueueTask(
         {
@@ -61,11 +48,9 @@ describe("Stateful Task Queue Engine", () => {
         queuePath,
       );
     }).toThrow("cannot depend on itself");
-    teardown();
   });
 
   it("correctly marks tasks as BLOCKED when depending on incomplete tasks", () => {
-    setup();
     const t1 = enqueueTask(
       {
         id: "task-parent",
@@ -92,11 +77,9 @@ describe("Stateful Task Queue Engine", () => {
 
     expect(t2.status).toBe("BLOCKED");
     expect(t2.blocked_by).toEqual(["task-parent"]);
-    teardown();
   });
 
   it("detects and rejects circular dependencies across batch enqueue", () => {
-    setup();
     expect(() => {
       enqueueTasksBatch(
         [
@@ -125,11 +108,9 @@ describe("Stateful Task Queue Engine", () => {
         queuePath,
       );
     }).toThrow("circular dependency detected");
-    teardown();
   });
 
   it("claims task lease with lease token and expires_at", () => {
-    setup();
     enqueueTask(
       {
         id: "task-lease-1",
@@ -162,6 +143,5 @@ describe("Stateful Task Queue Engine", () => {
         customPath: queuePath,
       });
     }).toThrow("actively leased to agent 'agent-mind-1'");
-    teardown();
   });
 });

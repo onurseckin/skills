@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { setDefectLogDependenciesForTesting } from "../../olt/scripts/src/logging/lock.ts";
@@ -11,9 +12,23 @@ import {
 let vfs = new VirtualMemoryFS();
 let session: VirtualFSSession | undefined;
 let restoreDefectDeps: (() => void) | undefined;
+let counter = 0;
 
 function normPath(p: string): string {
   return path.resolve(String(p)).replace(/\\/g, "/");
+}
+
+function slug(value: string): string {
+  const cleaned = value
+    .replace(/\.+/g, "-")
+    .replace(/[^a-zA-Z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const trimmed = cleaned.slice(0, 20).replace(/-+$/, "");
+  return trimmed.length > 0 ? trimmed : "root";
+}
+
+function shortDigest(value: string): string {
+  return createHash("sha256").update(value).digest("hex").slice(0, 8);
 }
 
 export function setupVirtualAuthorityFS(): VirtualMemoryFS {
@@ -53,4 +68,23 @@ export function cleanupVirtualAuthorityFS(): void {
 
 export function getVirtualAuthorityFS(): VirtualMemoryFS {
   return vfs;
+}
+
+export function scratchRoot(callerPath = "authority-test", label = "test"): string {
+  const currentFs = setupVirtualAuthorityFS();
+  counter += 1;
+  const fileTag = slug(callerPath);
+  const labelTag = slug(label);
+  const digest = shortDigest(`${fileTag}:${labelTag}:${counter}`);
+  const raw = `${fileTag}-${labelTag}-${counter}-${digest}`
+    .replace(/--+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const dirName = raw.slice(0, 50).replace(/-+$/, "");
+  const root = `/virtual/authority-scratch/${dirName}`;
+  currentFs.mkdirSync(root, { recursive: true });
+  return root;
+}
+
+export function createSandboxDir(label = "sandbox"): string {
+  return scratchRoot("sandbox", label);
 }

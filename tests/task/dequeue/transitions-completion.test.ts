@@ -1,5 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, rmSync } from "node:fs";
+import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -15,15 +14,6 @@ import { scratchRoot } from "../task-fixture.ts";
 describe("Task Queue Transitions Engine", () => {
   const testDir = scratchRoot(import.meta.path, "transitions");
   const queuePath = join(testDir, "TASK_QUEUE.jsonl");
-
-  beforeEach(() => {
-    if (existsSync(testDir)) rmSync(testDir, { recursive: true, force: true });
-    mkdirSync(testDir, { recursive: true });
-  });
-
-  afterEach(() => {
-    if (existsSync(testDir)) rmSync(testDir, { recursive: true, force: true });
-  });
 
   test("completeTask completes an active task with valid lease and receipts", () => {
     enqueueTask(

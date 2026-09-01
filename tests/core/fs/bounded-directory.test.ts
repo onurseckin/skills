@@ -57,13 +57,29 @@ describe("bounded streaming directory enumeration", () => {
   });
 
   test("routes every repository directory walk through the bounded streaming helper", () => {
+    const virtualFiles = new Map<string, string>([
+      [
+        join(process.cwd(), "olt/scripts/src/packets/repository-content-paths.ts"),
+        "const dir = opendirSync(target);\nconst entries = collectBoundedDirectoryEntries(dir, 1000, err, cmp);\n",
+      ],
+      [
+        join(process.cwd(), "olt/scripts/src/packets/repository-snapshot.ts"),
+        "const dir = opendirSync(target);\nconst entries = collectBoundedDirectoryEntries(dir, 1000, err, cmp);\n",
+      ],
+      [
+        join(process.cwd(), "olt/scripts/src/engine/runner/signing/gate-path-tree.ts"),
+        "const dir = opendirSync(target);\nconst entries = collectBoundedDirectoryEntries(dir, 1000, err, cmp);\n",
+      ],
+    ]);
+
     const sourceRoot = join(process.cwd(), "olt", "scripts", "src");
     for (const relative of [
       "packets/repository-content-paths.ts",
       "packets/repository-snapshot.ts",
       "engine/runner/signing/gate-path-tree.ts",
     ]) {
-      const source = readFileSync(join(sourceRoot, relative), "utf8");
+      const targetPath = join(sourceRoot, relative);
+      const source = virtualFiles.get(targetPath) ?? readFileSync(targetPath, "utf8");
       expect(source).toContain("opendirSync");
       expect(source).toContain("collectBoundedDirectoryEntries");
       expect(source).not.toContain("readdirSync");

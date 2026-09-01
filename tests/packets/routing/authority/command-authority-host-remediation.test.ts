@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import {
   assertCognitiveValidatorHardlock,
@@ -14,6 +14,7 @@ import type { Flags } from "../../../../olt/scripts/src/cli/options.ts";
 import { transact } from "../../../../olt/scripts/src/engine/store/index.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import { emptyGrantRun } from "../../validation/grants/grant-run-fixture.ts";
+import { cleanupVirtualAuthorityFS, setupVirtualAuthorityFS } from "./command-authority-fixture.ts";
 
 function spec(invocation: string): CommandSpec {
   const found = findCommand(invocation);
@@ -166,6 +167,14 @@ describe("hierarchical spawning host remediation", () => {
 });
 
 describe("assertGrantedCommand host-aware remediation", () => {
+  beforeAll(() => {
+    setupVirtualAuthorityFS();
+  });
+
+  afterAll(() => {
+    cleanupVirtualAuthorityFS();
+  });
+
   test("includes host remediation when cognitive validator executes banned tools", async () => {
     const { run } = await emptyGrantRun("command-authority-host-tool-ban-");
     transact(run, "test-setup", "grant-agent", {}, (draft) => {

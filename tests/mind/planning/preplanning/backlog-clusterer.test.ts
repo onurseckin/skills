@@ -1,6 +1,7 @@
-import { afterEach, beforeEach, describe, expect, test, spyOn } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import { join } from "node:path";
+import { setupVirtualMindFS, cleanupVirtualMindFS, scratchRoot } from "../../fixtures/index.ts";
 import {
   CANONICAL_DOMAINS,
   classifyDomain,
@@ -18,57 +19,20 @@ import { validateTaskQueueDag } from "../../../../olt/scripts/src/task/queue/enq
 import { detectCyclesTarjan } from "../../../../olt/scripts/src/reporting/sugiyama-dag/tarjan.ts";
 
 describe("Backlog Clusterer Engine & Cluster DAG Verification (in-memory virtual)", () => {
-  const testDir = `${process.cwd()}/.olt/virtual-preplan-cluster-scratch`;
-  const mockFiles = new Map<string, string>();
-  const mockDirs = new Set<string>();
-  const spies: { mockRestore: () => void }[] = [];
+  let testDir: string;
 
   beforeEach(() => {
-    mockFiles.clear();
-    mockDirs.clear();
-    mockDirs.add(testDir);
-
-    const existsSpy = spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => {
-      const pathStr = String(p);
-      return mockFiles.has(pathStr) || mockDirs.has(pathStr);
-    });
-    spies.push(existsSpy);
-
-    const mkdirSpy = spyOn(fs, "mkdirSync").mockImplementation((p: fs.PathLike) => {
-      mockDirs.add(String(p));
-      return undefined as unknown as string;
-    });
-    spies.push(mkdirSpy);
-
-    const writeSpy = spyOn(fs, "writeFileSync").mockImplementation(
-      (p: fs.PathOrFileDescriptor, data: string | NodeJS.ArrayBufferView) => {
-        const pathStr = String(p);
-        mockFiles.set(
-          pathStr,
-          typeof data === "string" ? data : Buffer.from(data as Uint8Array).toString("utf-8"),
-        );
-      },
-    );
-    spies.push(writeSpy);
-
-    const readSpy = spyOn(fs, "readFileSync").mockImplementation((p: fs.PathOrFileDescriptor) => {
-      const pathStr = String(p);
-      const val = mockFiles.get(pathStr);
-      if (val !== undefined) return val;
-      throw new Error(`ENOENT: no such file or directory, open '${pathStr}'`);
-    });
-    spies.push(readSpy);
+    setupVirtualMindFS();
+    testDir = scratchRoot("backlog-clusterer", "test");
   });
 
   afterEach(() => {
-    while (spies.length > 0) {
-      spies.pop()?.mockRestore();
-    }
+    cleanupVirtualMindFS();
   });
 
   test("filterEligibleBacklogItems checks actual disk existence rather than path prefix", () => {
     const existingPlan = join(testDir, "existing-plan.md");
-    mockFiles.set(existingPlan, "# Existing Plan\n");
+    fs.writeFileSync(existingPlan, "# Existing Plan\n");
 
     const items: RawBacklogItem[] = [
       { id: "i1", status: "PENDING" },
@@ -91,7 +55,7 @@ describe("Backlog Clusterer Engine & Cluster DAG Verification (in-memory virtual
 
   test("filterEligibleDefects checks disk existence for plan path and filters in-flight defects", () => {
     const existingPlan = join(testDir, "existing-defect-plan.md");
-    mockFiles.set(existingPlan, "# Defect Plan\n");
+    fs.writeFileSync(existingPlan, "# Defect Plan\n");
 
     const defects: RawDefectItem[] = [
       { id: "d1", status: "open" },
@@ -169,7 +133,7 @@ describe("Backlog Clusterer Engine & Cluster DAG Verification (in-memory virtual
     expect(loadDefectItems(join(testDir, "missing.jsonl"))).toEqual([]);
 
     const backlogFile = join(testDir, "backlog.jsonl");
-    mockFiles.set(
+    fs.writeFileSync(
       backlogFile,
       '{"id":"b1","title":"Item 1"}\n\n{"id":"b2","title":"Item 2"}\ninvalid-json\n',
     );
@@ -179,7 +143,10 @@ describe("Backlog Clusterer Engine & Cluster DAG Verification (in-memory virtual
     expect(loadedItems[1]!.id).toBe("b2");
 
     const defectsFile = join(testDir, "defects.jsonl");
-    mockFiles.set(defectsFile, '{"id":"d1","title":"Defect 1"}\n{"id":"d2","title":"Defect 2"}\n');
+    fs.writeFileSync(
+      defectsFile,
+      '{"id":"d1","title":"Defect 1"}\n{"id":"d2","title":"Defect 2"}\n',
+    );
     const loadedDefects = loadDefectItems(defectsFile);
     expect(loadedDefects.length).toBe(2);
   });

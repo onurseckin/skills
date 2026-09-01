@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   dispatchLifecycleHook,
   dispatchSingleHook,
@@ -7,8 +7,16 @@ import {
   type HookConfig,
   type HookDefinition,
 } from "../../../olt/scripts/src/hooks/index.ts";
+import { cleanupVirtualHooksFS, setupVirtualHooksFS } from "../fixture.ts";
 
 describe("Lifecycle Hooks - Event Pattern Matching", () => {
+  beforeEach(() => {
+    setupVirtualHooksFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualHooksFS();
+  });
   test("exact matches succeed for standard and custom events", () => {
     expect(matchesEvent("orchestrator:complete", "orchestrator:complete")).toBe(true);
     expect(matchesEvent("run:complete", "run:complete")).toBe(true);

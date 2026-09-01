@@ -1,70 +1,30 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import * as fs from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import type { GitRunner } from "../../../olt/scripts/src/workflow/worktree/git.ts";
 import { landTrackToMain } from "../../../olt/scripts/src/workflow/worktree/index.ts";
+import {
+  cleanupVirtualTracksFS,
+  getVirtualTracksFS,
+  setupVirtualTracksFS,
+} from "./tracks-fixture.ts";
 
 const TEST_DIR = "/virtual/worktree-land-repo";
 
 describe("track worktree landing pipeline (in-memory virtualization)", () => {
-  let harness: { files: Map<string, string>; dirs: Set<string>; restore: () => void };
-
   beforeEach(() => {
-    const files = new Map<string, string>();
-    const dirs = new Set<string>([TEST_DIR]);
-
-    const existsSpy = spyOn(fs, "existsSync").mockImplementation((p) => {
-      const s = String(p);
-      return files.has(s) || dirs.has(s);
-    });
-    const mkdirSpy = spyOn(fs, "mkdirSync").mockImplementation((p) => {
-      dirs.add(String(p));
-      return undefined as unknown as string;
-    });
-    const writeSpy = spyOn(fs, "writeFileSync").mockImplementation((p, data) => {
-      files.set(String(p), String(data));
-    });
-    const appendSpy = spyOn(fs, "appendFileSync").mockImplementation((p, data) => {
-      const prev = files.get(String(p)) ?? "";
-      files.set(String(p), prev + String(data));
-    });
-    const readSpy = spyOn(fs, "readFileSync").mockImplementation((p) => {
-      const val = files.get(String(p));
-      if (val === undefined) {
-        throw Object.assign(new Error(`ENOENT: open '${String(p)}'`), { code: "ENOENT" });
-      }
-      return val;
-    });
-    const rmSpy = spyOn(fs, "rmSync").mockImplementation((p) => {
-      const s = String(p);
-      files.delete(s);
-      dirs.delete(s);
-    });
-    const unlinkSpy = spyOn(fs, "unlinkSync").mockImplementation((p) => {
-      files.delete(String(p));
-    });
-
-    harness = {
-      files,
-      dirs,
-      restore() {
-        existsSpy.mockRestore();
-        mkdirSpy.mockRestore();
-        writeSpy.mockRestore();
-        appendSpy.mockRestore();
-        readSpy.mockRestore();
-        rmSpy.mockRestore();
-        unlinkSpy.mockRestore();
-      },
-    };
+    const vfs = setupVirtualTracksFS();
+    vfs.mkdirSync(TEST_DIR, { recursive: true });
+    vfs.mkdirSync(join(TEST_DIR, ".olt", "worktrees"), { recursive: true });
+    vfs.mkdirSync(join(TEST_DIR, ".olt", "worktrees", "locks"), { recursive: true });
   });
 
   afterEach(() => {
-    harness.restore();
+    cleanupVirtualTracksFS();
   });
 
   test("landTrackToMain successfully rebases, pushes, writes telemetry and cleans up", () => {
+    const vfs = getVirtualTracksFS();
     const executed: string[][] = [];
     const mockRunner: GitRunner = (_cwd, argv) => {
       executed.push([...argv]);
@@ -80,9 +40,8 @@ describe("track worktree landing pipeline (in-memory virtualization)", () => {
 
     const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-landing-1");
     const lockPath = join(TEST_DIR, ".olt", "worktrees", "locks", "track-landing-1.lock");
-    harness.dirs.add(worktreeDir);
-    harness.dirs.add(join(TEST_DIR, ".olt", "worktrees", "locks"));
-    harness.files.set(lockPath, JSON.stringify({ pid: process.pid, trackId: "track-landing-1" }));
+    vfs.mkdirSync(worktreeDir, { recursive: true });
+    vfs.writeFileSync(lockPath, JSON.stringify({ pid: process.pid, trackId: "track-landing-1" }));
 
     let hookCalled = false;
     const result = landTrackToMain({
@@ -106,17 +65,18 @@ describe("track worktree landing pipeline (in-memory virtualization)", () => {
     expect(result.durationMs).toBeGreaterThanOrEqual(0);
 
     const telemetryPath = join(TEST_DIR, ".olt", "telemetry.jsonl");
-    expect(harness.files.has(telemetryPath)).toBe(true);
-    const line = (harness.files.get(telemetryPath) ?? "").trim();
+    expect(vfs.existsSync(telemetryPath)).toBe(true);
+    const line = vfs.readFileSync(telemetryPath, "utf8").trim();
     const parsed = JSON.parse(line);
     expect(parsed.trackId).toBe("track-landing-1");
     expect(parsed.event).toBe("track_landed");
     expect(parsed.commitSha).toBe("abc123def456");
 
-    expect(harness.files.has(lockPath)).toBe(false);
+    expect(vfs.existsSync(lockPath)).toBe(false);
   });
 
   test("landTrackToMain handles local-only repository gracefully", () => {
+    const vfs = getVirtualTracksFS();
     const mockRunner: GitRunner = (_cwd, argv) => {
       if (argv[0] === "rev-parse" && argv[1] === "HEAD")
         return { status: 0, stdout: "localsha123\n", stderr: "" };
@@ -125,7 +85,7 @@ describe("track worktree landing pipeline (in-memory virtualization)", () => {
     };
 
     const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-local");
-    harness.dirs.add(worktreeDir);
+    vfs.mkdirSync(worktreeDir, { recursive: true });
 
     const result = landTrackToMain({
       trackId: "track-local",
@@ -145,8 +105,9 @@ describe("track worktree landing pipeline (in-memory virtualization)", () => {
   });
 
   test("landTrackToMain handles activeBranch === targetBranch with fast-forward merge", () => {
+    const vfs = getVirtualTracksFS();
     const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-ff");
-    harness.dirs.add(worktreeDir);
+    vfs.mkdirSync(worktreeDir, { recursive: true });
 
     const executed: string[][] = [];
     const mockRunner: GitRunner = (_cwd, argv) => {
@@ -171,8 +132,9 @@ describe("track worktree landing pipeline (in-memory virtualization)", () => {
   });
 
   test("landTrackToMain handles remote fetch failure and non-atomic push fallback", () => {
+    const vfs = getVirtualTracksFS();
     const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-fallback");
-    harness.dirs.add(worktreeDir);
+    vfs.mkdirSync(worktreeDir, { recursive: true });
 
     let pushCount = 0;
     const mockRunner: GitRunner = (_cwd, argv) => {
@@ -202,8 +164,9 @@ describe("track worktree landing pipeline (in-memory virtualization)", () => {
   });
 
   test("landTrackToMain throws INTEGRITY when rebase encounters conflicts", () => {
+    const vfs = getVirtualTracksFS();
     const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-conflict");
-    harness.dirs.add(worktreeDir);
+    vfs.mkdirSync(worktreeDir, { recursive: true });
 
     const mockRunner: GitRunner = (_cwd, argv) => {
       if (argv[0] === "rebase")
@@ -222,8 +185,9 @@ describe("track worktree landing pipeline (in-memory virtualization)", () => {
   });
 
   test("landTrackToMain string overload executes asynchronously", async () => {
+    const vfs = getVirtualTracksFS();
     const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-str");
-    harness.dirs.add(worktreeDir);
+    vfs.mkdirSync(worktreeDir, { recursive: true });
 
     await expect(landTrackToMain("track-str")).rejects.toBeDefined();
   });

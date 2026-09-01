@@ -1,6 +1,7 @@
-import { describe, expect, it, beforeEach, afterEach, spyOn } from "bun:test";
+import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import * as fs from "node:fs";
 import { join } from "node:path";
+import { setupVirtualMindFS, cleanupVirtualMindFS, scratchRoot } from "../../fixtures/index.ts";
 import {
   MindAuditorEngine,
   SkillAuditorEngine,
@@ -11,72 +12,17 @@ import {
 } from "../../../../olt/scripts/src/mind/auditing/cognitive/index.ts";
 
 describe("Mind Auditor Repository Governance, Anti-Stagnation & Critique Processing", () => {
-  const testDir = `${process.cwd()}/.olt/virtual-test-gov`;
-  const mockFiles = new Map<string, string>();
-  const mockDirs = new Set<string>();
-  const spies: { mockRestore: () => void }[] = [];
+  let testDir: string;
 
   beforeEach(() => {
-    mockFiles.clear();
-    mockDirs.clear();
-    mockDirs.add(testDir);
-    mockDirs.add(join(testDir, ".olt"));
-    mockDirs.add(process.cwd());
-    mockDirs.add(join(process.cwd(), ".olt"));
-    mockFiles.set(join(process.cwd(), "package.json"), "{}");
-
-    spies.push(
-      spyOn(fs, "existsSync").mockImplementation(
-        (p) => mockFiles.has(String(p)) || mockDirs.has(String(p)),
-      ),
-      spyOn(fs, "readdirSync").mockImplementation((p, options) => {
-        const pStr = String(p);
-        const dirs: string[] = [];
-        const files: string[] = [];
-        for (const d of mockDirs) {
-          if (d.startsWith(pStr) && d !== pStr) {
-            const top = d.slice(pStr.length).replace(/^\/+/, "").split("/")[0];
-            if (top && !dirs.includes(top)) dirs.push(top);
-          }
-        }
-        for (const f of mockFiles.keys()) {
-          if (f.startsWith(pStr)) {
-            const top = f.slice(pStr.length).replace(/^\/+/, "").split("/")[0];
-            if (top && !dirs.includes(top) && !files.includes(top)) files.push(top);
-          }
-        }
-        const withTypes =
-          typeof options === "object" &&
-          options !== null &&
-          Boolean((options as { withFileTypes?: boolean }).withFileTypes);
-        if (withTypes) {
-          return [
-            ...dirs.map((name) => ({ name, isDirectory: () => true, isFile: () => false })),
-            ...files.map((name) => ({ name, isDirectory: () => false, isFile: () => true })),
-          ] as unknown as fs.Dirent[];
-        }
-        return [...dirs, ...files] as unknown as fs.Dirent[];
-      }),
-      spyOn(fs, "readFileSync").mockImplementation((p) => {
-        const val = mockFiles.get(String(p));
-        if (val !== undefined) return val;
-        throw new Error(`ENOENT: no such file, open '${String(p)}'`);
-      }),
-      spyOn(fs, "writeFileSync").mockImplementation((p, data) => {
-        mockFiles.set(
-          String(p),
-          typeof data === "string" ? data : Buffer.from(data as Uint8Array).toString("utf-8"),
-        );
-      }),
-      spyOn(fs, "mkdirSync").mockImplementation((p) => {
-        mockDirs.add(String(p));
-        return undefined as unknown as string;
-      }),
-    );
+    setupVirtualMindFS();
+    testDir = scratchRoot("gov-test", "test");
+    fs.mkdirSync(join(testDir, ".olt"), { recursive: true });
+    fs.writeFileSync(join(testDir, "package.json"), "{}");
   });
 
   afterEach(() => {
-    while (spies.length > 0) spies.pop()?.mockRestore();
+    cleanupVirtualMindFS();
   });
 
   it("detects missing policy.json and records governance issue", () => {
@@ -88,16 +34,16 @@ describe("Mind Auditor Repository Governance, Anti-Stagnation & Critique Process
 
   it("detects ungrounded simulated execution when pulse claims ignition but events sequence is <= 1", () => {
     const capsuleDir = join(testDir, ".olt", "capsules", "run-1");
-    mockDirs.add(capsuleDir);
-    mockFiles.set(
+    fs.mkdirSync(capsuleDir, { recursive: true });
+    fs.writeFileSync(
       join(testDir, "last_pulse.json"),
       JSON.stringify({ at: new Date().toISOString() }),
     );
-    mockFiles.set(
+    fs.writeFileSync(
       join(capsuleDir, "last_pulse.json"),
       JSON.stringify({ at: new Date().toISOString() }),
     );
-    mockFiles.set(
+    fs.writeFileSync(
       join(capsuleDir, "events.jsonl"),
       JSON.stringify({ sequence: 1, kind: "mind-initialized" }) + "\n",
     );

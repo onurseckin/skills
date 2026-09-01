@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import * as path from "node:path";
 import {
   createVirtualFSSession,
@@ -14,9 +15,23 @@ import {
 
 let vfs = new VirtualMemoryFS();
 let session: VirtualFSSession | undefined;
+let counter = 0;
 
 function normPath(p: string): string {
   return path.resolve(String(p)).replace(/\\/g, "/");
+}
+
+function slug(value: string): string {
+  const cleaned = value
+    .replace(/\.+/g, "-")
+    .replace(/[^a-zA-Z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const trimmed = cleaned.slice(0, 20).replace(/-+$/, "");
+  return trimmed.length > 0 ? trimmed : "root";
+}
+
+function shortDigest(value: string): string {
+  return createHash("sha256").update(value).digest("hex").slice(0, 8);
 }
 
 export function setupVirtualPolicyFS(): VirtualMemoryFS {
@@ -53,4 +68,23 @@ export function cleanupVirtualPolicyFS(): void {
 
 export function getVirtualPolicyFS(): VirtualMemoryFS {
   return vfs;
+}
+
+export function scratchRoot(callerPath = "policy-test", label = "test"): string {
+  const currentFs = setupVirtualPolicyFS();
+  counter += 1;
+  const fileTag = slug(callerPath);
+  const labelTag = slug(label);
+  const digest = shortDigest(`${fileTag}:${labelTag}:${counter}`);
+  const raw = `${fileTag}-${labelTag}-${counter}-${digest}`
+    .replace(/--+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const dirName = raw.slice(0, 50).replace(/-+$/, "");
+  const root = `/virtual/policy-scratch/${dirName}`;
+  currentFs.mkdirSync(root, { recursive: true });
+  return root;
+}
+
+export function createSandboxDir(label = "sandbox"): string {
+  return scratchRoot("sandbox", label);
 }

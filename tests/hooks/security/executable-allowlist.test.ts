@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   ALLOWED_SHELL_EXECUTABLES,
   executeShellAction,
@@ -7,6 +7,7 @@ import {
   type ProcessRunner,
   type ProcessRunResult,
 } from "../../../olt/scripts/src/hooks/index.ts";
+import { cleanupVirtualHooksFS, setupVirtualHooksFS } from "../fixture.ts";
 
 function fakeRunner(handler: (executable: string, args: readonly string[]) => ProcessRunResult): {
   runner: ProcessRunner;
@@ -29,6 +30,14 @@ function fakeRunner(handler: (executable: string, args: readonly string[]) => Pr
 }
 
 describe("Lifecycle Hooks - Executable Allowlist", () => {
+  beforeEach(() => {
+    setupVirtualHooksFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualHooksFS();
+  });
+
   test("only a small, justified set of executables is allowlisted", () => {
     expect(ALLOWED_SHELL_EXECUTABLES).toEqual(["echo", "printf", "pwd", "date"]);
     expect(isAllowedShellExecutable("echo")).toBe(true);

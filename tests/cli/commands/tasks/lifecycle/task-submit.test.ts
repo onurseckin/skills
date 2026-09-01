@@ -1,4 +1,5 @@
 import { join, resolve } from "node:path";
+import { writeFile } from "node:fs/promises";
 import { afterEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import {
@@ -58,7 +59,7 @@ describe("task:submit - Completion & Worktree Commits", () => {
     ];
 
     const reportPath = join(repo, "custom-report.json");
-    await Bun.write(
+    await writeFile(
       reportPath,
       JSON.stringify({
         summary: "Implemented via custom report file",
@@ -69,7 +70,7 @@ describe("task:submit - Completion & Worktree Commits", () => {
       }),
     );
 
-    await Bun.write(join(repo, "tests/core/probe-target.ts"), "export const updated = true;\n");
+    await writeFile(join(repo, "tests/core/probe-target.ts"), "export const updated = true;\n");
 
     const submit = await execute([
       "task:submit",
@@ -95,22 +96,22 @@ describe("task:submit - Completion & Worktree Commits", () => {
     });
     await installRuntimeMetadata(run, "worker-1");
 
-    await Bun.write(
+    await writeFile(
       join(repo, "harness.config.json"),
       JSON.stringify({ worktree_isolation: true, commit_per_subphase: true }),
     );
-    await Bun.write(
+    await writeFile(
       join(repo, ".olt", "harness.config.json"),
       JSON.stringify({ worktree_isolation: true, commit_per_subphase: true }),
     );
-    await Bun.write(
+    await writeFile(
       join(resolve(run, "..", ".."), "harness.config.json"),
       JSON.stringify({ worktree_isolation: true, commit_per_subphase: true }),
     );
 
     const wtPath = join(repo, ".worktrees", "task-core");
-    await Bun.write(join(wtPath, "tests/core/probe-target.ts"), "export const a = 1;\n");
-    await Bun.write(join(repo, "tests/core/probe-target.ts"), "export const a = 1;\n");
+    await writeFile(join(wtPath, "tests/core/probe-target.ts"), "export const a = 1;\n");
+    await writeFile(join(repo, "tests/core/probe-target.ts"), "export const a = 1;\n");
 
     transact(run, "coordinator", "worktree-assigned", {}, (draft) => {
       draft.worktree_ledger = {
@@ -162,8 +163,8 @@ describe("task:submit - Completion & Worktree Commits", () => {
       "gate-core.ts",
     ]);
 
-    await Bun.write(join(wtPath, "tests/core/probe-target.ts"), "export const a = 2;\n");
-    await Bun.write(join(repo, "tests/core/probe-target.ts"), "export const a = 2;\n");
+    await writeFile(join(wtPath, "tests/core/probe-target.ts"), "export const a = 2;\n");
+    await writeFile(join(repo, "tests/core/probe-target.ts"), "export const a = 2;\n");
 
     const mockRunner = () => ({
       status: 0,
@@ -241,7 +242,7 @@ describe("task:submit - Completion & Worktree Commits", () => {
       "gate-core.ts",
     ]);
 
-    await Bun.write(join(repo, "tests/core/probe-target.ts"), "export const opsDone = true;\n");
+    await writeFile(join(repo, "tests/core/probe-target.ts"), "export const opsDone = true;\n");
 
     const submitRes = await opsSubmit({
       run,

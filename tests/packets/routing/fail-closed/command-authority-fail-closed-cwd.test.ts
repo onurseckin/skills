@@ -1,10 +1,12 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   assertGrantedCommand,
+  cleanupVirtualAuthorityFS,
   installMetaAuditGrant,
+  setupVirtualAuthorityFS,
   spec,
 } from "../authority/command-authority-fixture.ts";
 import { assertGrantedCommand as assertRawGrantedCommand } from "../../../../olt/scripts/src/packets/command-authority.ts";
@@ -15,6 +17,14 @@ import { execute } from "../../../../olt/scripts/src/cli/execute.ts";
 import { registerSessionGrant } from "../../../../olt/scripts/src/authority/session/index.ts";
 
 describe("assertGrantedCommand hole 1: no --run resolves", () => {
+  beforeAll(() => {
+    setupVirtualAuthorityFS();
+  });
+
+  afterAll(() => {
+    cleanupVirtualAuthorityFS();
+  });
+
   test("denies a non-allowlisted command with no --run", () => {
     expect(() => assertGrantedCommand(spec("task:heartbeat"), {})).toThrow(
       "not on the grant bootstrap allowlist",

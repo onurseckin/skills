@@ -1,10 +1,23 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { assertGrantedCommand, spec } from "../authority/command-authority-fixture.ts";
+import {
+  assertGrantedCommand,
+  cleanupVirtualAuthorityFS,
+  setupVirtualAuthorityFS,
+  spec,
+} from "../authority/command-authority-fixture.ts";
 import { assertGrantedCommand as assertRawGrantedCommand } from "../../../../olt/scripts/src/packets/command-authority.ts";
 import type { Flags } from "../../../../olt/scripts/src/cli/options.ts";
 import { emptyGrantRun } from "../../validation/grants/grant-run-fixture.ts";
+
+beforeAll(() => {
+  setupVirtualAuthorityFS();
+});
+
+afterAll(() => {
+  cleanupVirtualAuthorityFS();
+});
 
 describe("assertGrantedCommand hole 2: no acting identity resolves", () => {
   test("denies a non-allowlisted command with --run but no identity flag", () => {

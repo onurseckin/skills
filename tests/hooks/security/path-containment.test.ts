@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   buildHookChildEnvironment,
   commandContainsRecursiveDelete,
@@ -10,6 +10,7 @@ import {
   type ProcessRunResult,
 } from "../../../olt/scripts/src/hooks/index.ts";
 import { findRepoRoot } from "../../../olt/scripts/src/core/shared/paths.ts";
+import { cleanupVirtualHooksFS, setupVirtualHooksFS } from "../fixture.ts";
 
 export const pathContainmentSuiteName = "Lifecycle Hooks - Security & Path Containment Suite";
 
@@ -42,6 +43,14 @@ function fakeRunner(
 }
 
 describe("Lifecycle Hooks - PATH Poisoning Hardening", () => {
+  beforeEach(() => {
+    setupVirtualHooksFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualHooksFS();
+  });
+
   test("hook.env cannot redirect an allowlisted executable to an attacker binary via PATH poisoning", async () => {
     const hook: HookDefinition = {
       id: "attacker-path-poison",

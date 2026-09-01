@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   registerWatchdog,
   saveWatchdogStore,
@@ -9,7 +9,15 @@ import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { HarnessError } from "../../../../../olt/scripts/src/core/errors/index.ts";
 import { initRun, transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
 import { registerSessionGrant } from "../../../../../olt/scripts/src/authority/session/index.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 import { scratchRoot } from "../../../../shared/fixtures/scratch-root.ts";
+
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(() => {
+  cleanupVirtualCliFS();
+});
 
 function authorizeMind(dir: string): string {
   const run = initRun(dir, "watchdog-authority", new TextEncoder().encode("prompt"), "file", true);

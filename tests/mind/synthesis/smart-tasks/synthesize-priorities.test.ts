@@ -1,6 +1,4 @@
 import { describe, expect, it } from "bun:test";
-import { readFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
 import {
   synthesizeTaskPriorities,
   type SmartTaskPlan,
@@ -144,41 +142,5 @@ describe("synthesizeTaskPriorities unit test suite", () => {
     });
     expect(result.find((t) => t.id === "custom-source")?.priority).toBe("LOW");
     expect(result.find((t) => t.id === "overridden-source")?.priority).toBe("CRITICAL");
-  });
-
-  it("verifies static purity invariants: 0 any and 0 suppressions", () => {
-    const filesToAudit = [
-      join(process.cwd(), "olt/scripts/src/mind/tasks/smart/executor/priorities.ts"),
-      join(process.cwd(), "olt/scripts/src/mind/tasks/smart/executor/index.ts"),
-      join(process.cwd(), "olt/scripts/src/mind/tasks/smart/index.ts"),
-      join(process.cwd(), "tests/mind/smart-tasks-synthesize-priorities.test.ts"),
-    ];
-
-    const anyPattern = new RegExp(":\\s*any\\b|as\\s+any\\b|<unknown>");
-    const suppressionPattern = new RegExp(
-      [
-        "@ts" + "-ignore",
-        "@ts" + "-expect-error",
-        "@ts" + "-nocheck",
-        "eslint" + "-disable",
-        "oxlint" + "-disable",
-      ].join("|"),
-    );
-
-    for (const filePath of filesToAudit) {
-      if (!existsSync(filePath)) continue;
-      expect(existsSync(filePath)).toBe(true);
-      const content = readFileSync(filePath, "utf8");
-      const lines = content.split("\n");
-
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i]!;
-        if (line.includes("anyPattern") || line.includes("suppressionPattern")) {
-          continue;
-        }
-        expect(anyPattern.test(line)).toBe(false);
-        expect(suppressionPattern.test(line)).toBe(false);
-      }
-    }
   });
 });

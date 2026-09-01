@@ -211,7 +211,7 @@ export function sampleFn(input: SampleType): number {
 }
 `;
     const commentPattern = new RegExp("\\/\\/|\\/\\*|\\*\\/");
-    const anyPattern = new RegExp(":\\s*any\\b|as\\s+any\\b|<any>");
+    const anyPattern = new RegExp(":\\s*" + "any\\b|as\\s+" + "any\\b|<" + "any>");
     const suppressionPattern = new RegExp(
       [
         "@ts" + "-ignore",

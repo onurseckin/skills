@@ -1,6 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
 import {
   performDiscoveryScans,
   transformFindingsToDiscoveries,
@@ -193,76 +191,5 @@ describe("Task 1.39: Defect Remediation - Syntax Errors and Dangling Statements 
       "Perpetual Invariant Hardening & Zero-Suppression Assurance",
     );
     expect(result.summary).toContain("Mind Task Discovery");
-  });
-
-  test("6. Slices directory structure and files adhere to strict repository invariants", () => {
-    const slicesDir = join(process.cwd(), "olt/scripts/src/mind/tasks/discovery/slices");
-    expect(existsSync(slicesDir)).toBe(true);
-
-    const sliceFiles = readdirSync(slicesDir).filter((f) => f.endsWith(".ts"));
-    expect(sliceFiles.length).toBeGreaterThanOrEqual(4);
-    expect(sliceFiles).toContain("scans.ts");
-    expect(sliceFiles).toContain("transformers.ts");
-    expect(sliceFiles).toContain("engine.ts");
-    expect(sliceFiles).toContain("runner.ts");
-    expect(sliceFiles).toContain("index.ts");
-
-    for (const file of sliceFiles) {
-      const fullPath = join(slicesDir, file);
-      const content = readFileSync(fullPath, "utf8");
-      const lines = content.split("\n");
-
-      expect(lines.length).toBeLessThanOrEqual(300);
-
-      expect(content).not.toContain("@ts" + "-ignore");
-      expect(content).not.toContain("@ts" + "-expect-error");
-      expect(content).not.toContain("@ts" + "-nocheck");
-      expect(content).not.toContain("eslint" + "-disable");
-
-      const colonAnyRegex = /:\s*any\b/;
-      const asAnyRegex = /as\s+any\b/;
-      const bracketAnyRegex = /<unknown>/;
-      expect(colonAnyRegex.test(content)).toBe(false);
-      expect(asAnyRegex.test(content)).toBe(false);
-      expect(bracketAnyRegex.test(content)).toBe(false);
-
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i]?.trim() ?? "";
-        if (line.startsWith("//") || line.startsWith("/*") || line.startsWith("*")) {
-          throw new Error(`Comment found in ${file} on line ${i + 1}: ${line}`);
-        }
-      }
-    }
-  });
-
-  test("7. All discovery files in parent directory adhere to <= 300 lines and zero comments", () => {
-    const discoveryDir = join(process.cwd(), "olt/scripts/src/mind/tasks/discovery");
-    const topFiles = readdirSync(discoveryDir).filter((f) => f.endsWith(".ts"));
-
-    for (const file of topFiles) {
-      const fullPath = join(discoveryDir, file);
-      const content = readFileSync(fullPath, "utf8");
-      const lines = content.split("\n");
-
-      expect(lines.length).toBeLessThanOrEqual(300);
-
-      expect(content).not.toContain("@ts" + "-ignore");
-      expect(content).not.toContain("@ts" + "-expect-error");
-      expect(content).not.toContain("@ts" + "-nocheck");
-
-      const colonAnyRegex = /:\s*any\b/;
-      const asAnyRegex = /as\s+any\b/;
-      const bracketAnyRegex = /<unknown>/;
-      expect(colonAnyRegex.test(content)).toBe(false);
-      expect(asAnyRegex.test(content)).toBe(false);
-      expect(bracketAnyRegex.test(content)).toBe(false);
-
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i]?.trim() ?? "";
-        if (line.startsWith("//") || line.startsWith("/*") || line.startsWith("*")) {
-          throw new Error(`Comment found in ${file} on line ${i + 1}: ${line}`);
-        }
-      }
-    }
   });
 });

@@ -1,4 +1,4 @@
-import { describe, expect, test, spyOn } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test, spyOn } from "bun:test";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { findCommand } from "../../../../olt/scripts/src/cli/registry/index.ts";
@@ -27,6 +27,7 @@ import {
 } from "../../../../olt/scripts/src/packets/command-authority-state.ts";
 import { requiresActingIdentity } from "../../../../olt/scripts/src/packets/grant-bootstrap-allowlist.ts";
 import { emptyGrantRun } from "../../validation/grants/grant-run-fixture.ts";
+import { cleanupVirtualAuthorityFS, setupVirtualAuthorityFS } from "./command-authority-fixture.ts";
 import {
   registerAgentGrant,
   releaseAgentGrant,
@@ -40,6 +41,14 @@ function spec(name: string) {
 }
 
 describe("Command Authority Edges - Invocations & Grants", () => {
+  beforeAll(() => {
+    setupVirtualAuthorityFS();
+  });
+
+  afterAll(() => {
+    cleanupVirtualAuthorityFS();
+  });
+
   describe("grant-bootstrap-allowlist", () => {
     test("requiresActingIdentity returns true when authority declares it and false for display filter or no acting flags", () => {
       expect(requiresActingIdentity(spec("task:claim"))).toBe(true);

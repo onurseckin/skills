@@ -1,7 +1,15 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { verifyCommandAuthorization } from "../../../olt/scripts/src/authority/rbac/index.ts";
+import { cleanupVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
 
 describe("Authority RBAC - Command Authorizer Core Verification", () => {
+  beforeEach(() => {
+    setupVirtualAuthorityFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualAuthorityFS();
+  });
   test("rejects empty command list", () => {
     const result = verifyCommandAuthorization("implementer", []);
     expect(result.authorized).toBe(false);

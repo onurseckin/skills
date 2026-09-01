@@ -1,4 +1,9 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import {
+  createVirtualFSSession,
+  type VirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   DynamicToolRegistry,
   detectCommandInjection,
@@ -12,6 +17,15 @@ import {
 } from "../../../olt/scripts/src/tooling/index.ts";
 
 describe("Tool Schemas & Security Validation Unit Test Suite", () => {
+  let vfsSession: VirtualFSSession;
+
+  beforeEach(() => {
+    vfsSession = createVirtualFSSession(new VirtualMemoryFS());
+  });
+
+  afterEach(() => {
+    vfsSession.cleanup();
+  });
   describe("Security Sanitization & Threat Protection", () => {
     it("escapes shell arguments safely against command injection", () => {
       expect(sanitizeShellArgument("hello")).toBe("'hello'");

@@ -1,4 +1,5 @@
 import { afterAll, describe, expect, test } from "bun:test";
+import { writeFile } from "node:fs/promises";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { taskValidateStartCommand } from "../../../../../olt/scripts/src/cli/commands/task-validation-start.ts";
 import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
@@ -40,7 +41,7 @@ describe("task:validate-start", () => {
       "--role",
       "implementer",
     ]);
-    await Bun.write(
+    await writeFile(
       `${repo}/${CHANGED_FILE}`,
       "export const probed = true;\nexport const x = 1;\n",
     );

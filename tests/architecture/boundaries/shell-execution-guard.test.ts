@@ -1,11 +1,23 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { readdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  cleanupVirtualArchitectureFS,
+  setupVirtualArchitectureFS,
+} from "../fixtures/architecture-fixture.ts";
 
 const repoRoot = fileURLToPath(new URL("../../..", import.meta.url));
 const oltScriptsRoot = join(repoRoot, "olt/scripts/src");
 const syncScriptsRoot = join(repoRoot, "scripts");
+
+beforeEach(() => {
+  setupVirtualArchitectureFS();
+});
+
+afterEach(() => {
+  cleanupVirtualArchitectureFS();
+});
 
 async function filesBelow(root: string): Promise<string[]> {
   const entries = await readdir(root, { withFileTypes: true });

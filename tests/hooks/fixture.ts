@@ -31,6 +31,7 @@ export function setupVirtualHooksFS(): VirtualMemoryFS {
     currentVfs.mkdirSync(path.join(repoRoot, ".olt", "runs"), { recursive: true });
     currentVfs.mkdirSync(path.join(repoRoot, ".tmp"), { recursive: true });
     currentVfs.mkdirSync("/virtual/hooks-scratch", { recursive: true });
+    currentVfs.chdir(repoRoot);
     currentSession = createVirtualFSSession(currentVfs);
   }
   return currentVfs;

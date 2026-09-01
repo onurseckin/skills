@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   CompletionAudioManager,
   DEFAULT_ALLOWED_ORCHESTRATOR_EVENTS,
@@ -15,6 +15,11 @@ import {
   type CompletionAudioConfig,
   type CompletionAudioEvaluationInput,
 } from "../../../olt/scripts/src/orchestrator/completion-audio.ts";
+import {
+  createVirtualFSSession,
+  type VirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 const split = (s: string) => s.split(",");
 const baseInput: CompletionAudioEvaluationInput = {
@@ -24,6 +29,15 @@ const baseInput: CompletionAudioEvaluationInput = {
 };
 
 describe("Orchestrator-Tier Completion Audio & Subagent Anti-Noise Filter", () => {
+  let vfsSession: VirtualFSSession;
+
+  beforeEach(() => {
+    vfsSession = createVirtualFSSession(new VirtualMemoryFS());
+  });
+
+  afterEach(() => {
+    vfsSession.cleanup();
+  });
   test("isOrchestratorTier identifies tiers and rejects subagent roles", () => {
     split(
       "orchestrator,root,supervisor,coordinator,coordinator_authority_cadence,run-supervisor,parent",

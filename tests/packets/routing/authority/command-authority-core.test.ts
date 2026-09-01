@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
@@ -15,9 +15,22 @@ import type { Flags } from "../../../../olt/scripts/src/cli/options.ts";
 import { transact } from "../../../../olt/scripts/src/engine/store/index.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import { emptyGrantRun } from "../../validation/grants/grant-run-fixture.ts";
-import { spec, assertGrantedCommand } from "./command-authority-fixture.ts";
+import {
+  cleanupVirtualAuthorityFS,
+  setupVirtualAuthorityFS,
+  spec,
+  assertGrantedCommand,
+} from "./command-authority-fixture.ts";
 
 describe("command predicates and classification", () => {
+  beforeAll(() => {
+    setupVirtualAuthorityFS();
+  });
+
+  afterAll(() => {
+    cleanupVirtualAuthorityFS();
+  });
+
   test("isExecutionCommand identifies execution commands and aliases", () => {
     expect(isExecutionCommand(spec("run:exec"))).toBe(true);
     expect(isExecutionCommand(spec("task:submit"))).toBe(false);

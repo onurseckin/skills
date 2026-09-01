@@ -1,43 +1,23 @@
-import { describe, expect, test, beforeEach, spyOn } from "bun:test";
+import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import * as fs from "node:fs";
 import { join } from "node:path";
+import { setupVirtualMindFS, cleanupVirtualMindFS, scratchRoot } from "../../fixtures/index.ts";
 import {
   AuditorCursorStore,
   type AuditorCursor,
 } from "../../../../olt/scripts/src/mind/auditing/cognitive/index.ts";
 
 describe("AuditorCursorStore in-memory virtual suite", () => {
-  const testDir = `${process.cwd()}/.olt/virtual-test-cursor`;
-  const mockFiles = new Map<string, string>();
+  let testDir: string;
 
   beforeEach(() => {
-    mockFiles.clear();
+    setupVirtualMindFS();
+    testDir = scratchRoot("auditor-cursor", "test");
+    fs.mkdirSync(join(testDir, ".olt"), { recursive: true });
+  });
 
-    spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => {
-      const pathStr = String(p);
-      return mockFiles.has(pathStr) || pathStr.endsWith(".olt");
-    });
-
-    spyOn(fs, "readFileSync").mockImplementation((p: fs.PathOrFileDescriptor) => {
-      const pathStr = String(p);
-      const val = mockFiles.get(pathStr);
-      if (val === undefined) {
-        throw new Error(`ENOENT: no such file or directory, open '${pathStr}'`);
-      }
-      return val;
-    });
-
-    spyOn(fs, "writeFileSync").mockImplementation(
-      (p: fs.PathOrFileDescriptor, data: string | NodeJS.ArrayBufferView) => {
-        const pathStr = String(p);
-        mockFiles.set(
-          pathStr,
-          typeof data === "string" ? data : Buffer.from(data as Uint8Array).toString("utf-8"),
-        );
-      },
-    );
-
-    spyOn(fs, "mkdirSync").mockImplementation(() => undefined as unknown as string);
+  afterEach(() => {
+    cleanupVirtualMindFS();
   });
 
   test("resolveCursorPath points to .olt/auditor-cursors.json", () => {
@@ -57,7 +37,7 @@ describe("AuditorCursorStore in-memory virtual suite", () => {
 
   test("loadCursor handles corrupt JSON gracefully and returns default cursor", () => {
     const p = AuditorCursorStore.resolveCursorPath(testDir);
-    mockFiles.set(p, "{ this is not valid json }");
+    fs.writeFileSync(p, "{ this is not valid json }");
 
     const cursor = AuditorCursorStore.loadCursor(testDir, "mind");
     expect(cursor.lastInspectedTimestamp).toBe("1970-01-01T00:00:00.000Z");
@@ -103,7 +83,7 @@ describe("AuditorCursorStore in-memory virtual suite", () => {
     expect(loadedSkill.lastInspectedEventIndex).toBe(99);
 
     const cursorPath = AuditorCursorStore.resolveCursorPath(testDir);
-    const raw = mockFiles.get(cursorPath) ?? "{}";
+    const raw = fs.existsSync(cursorPath) ? fs.readFileSync(cursorPath, "utf-8") : "{}";
     const parsed = JSON.parse(raw) as Record<string, unknown>;
     expect(parsed).toHaveProperty("mind");
     expect(parsed).toHaveProperty("skill");

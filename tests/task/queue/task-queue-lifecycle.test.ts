@@ -1,7 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   claimTaskLease,
   completeTask,
@@ -13,7 +11,6 @@ import {
   reclaimExpiredLeases,
   releaseTaskLease,
   renewTaskLease,
-  type TaskQueueItem,
 } from "../../../olt/scripts/src/task/queue/index.ts";
 import { scratchRoot } from "../task-fixture.ts";
 
@@ -21,17 +18,7 @@ describe("Stateful Task Queue Engine", () => {
   const testDir = scratchRoot(import.meta.path, "lifecycle");
   const queuePath = join(testDir, "TASK_QUEUE.jsonl");
 
-  function setup() {
-    if (existsSync(testDir)) rmSync(testDir, { recursive: true, force: true });
-    mkdirSync(testDir, { recursive: true });
-  }
-
-  function teardown() {
-    if (existsSync(testDir)) rmSync(testDir, { recursive: true, force: true });
-  }
-
   it("pops highest priority eligible task from queue", () => {
-    setup();
     enqueueTasksBatch(
       [
         {
@@ -82,11 +69,9 @@ describe("Stateful Task Queue Engine", () => {
       customPath: queuePath,
     });
     expect(thirdPopped).toBeNull();
-    teardown();
   });
 
   it("completes task and unblocks dependent tasks cleanly", () => {
-    setup();
     enqueueTasksBatch(
       [
         {
@@ -144,11 +129,9 @@ describe("Stateful Task Queue Engine", () => {
     const finalQueue = readTaskQueue(queuePath);
     expect(finalQueue.find((t) => t.id === "task-dependent-2")!.status).toBe("PENDING");
     expect(finalQueue.find((t) => t.id === "task-dependent-2")!.blocked_by).toEqual([]);
-    teardown();
   });
 
   it("handles task failure and retries up to max_retries", () => {
-    setup();
     enqueueTask(
       {
         id: "task-fail-retry",
@@ -189,11 +172,9 @@ describe("Stateful Task Queue Engine", () => {
     expect(res3.retried).toBe(false);
     expect(res3.task.status).toBe("FAILED");
     expect(res3.task.failed_at).toBeDefined();
-    teardown();
   });
 
   it("reclaims expired leases and resets them to PENDING", () => {
-    setup();
     enqueueTask(
       {
         id: "task-timeout",
@@ -227,11 +208,9 @@ describe("Stateful Task Queue Engine", () => {
     expect(reclaimResult.tasks[0]!.status).toBe("PENDING");
     expect(reclaimResult.tasks[0]!.retry_count).toBe(1);
     expect(reclaimResult.tasks[0]!.lease).toBeNull();
-    teardown();
   });
 
   it("renews and releases task leases", () => {
-    setup();
     enqueueTask(
       {
         id: "task-renew-release",
@@ -268,6 +247,5 @@ describe("Stateful Task Queue Engine", () => {
 
     expect(released.status).toBe("PENDING");
     expect(released.lease).toBeNull();
-    teardown();
   });
 });

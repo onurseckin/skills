@@ -250,4 +250,6 @@ export {
   setupVirtualAuthorityFS,
   cleanupVirtualAuthorityFS,
   getVirtualAuthorityFS,
+  scratchRoot,
+  createSandboxDir,
 } from "./fixture.ts";

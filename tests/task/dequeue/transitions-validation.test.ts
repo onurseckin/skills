@@ -1,6 +1,6 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -18,15 +18,6 @@ import { scratchRoot } from "../task-fixture.ts";
 describe("Task Queue Transitions Engine", () => {
   const testDir = scratchRoot(import.meta.path, "transitions-val");
   const queuePath = join(testDir, "TASK_QUEUE.jsonl");
-
-  beforeEach(() => {
-    if (existsSync(testDir)) rmSync(testDir, { recursive: true, force: true });
-    mkdirSync(testDir, { recursive: true });
-  });
-
-  afterEach(() => {
-    if (existsSync(testDir)) rmSync(testDir, { recursive: true, force: true });
-  });
 
   test("failTask supports escalateOnMaxRetries", () => {
     enqueueTask(

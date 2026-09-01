@@ -1,5 +1,4 @@
-import { describe, expect, test } from "bun:test";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { buildSubmissionReport } from "../../../../olt/scripts/src/workflow/submission/build-report.ts";
 import { observeChangedFiles } from "../../../../olt/scripts/src/workflow/submission/observe-changes.ts";
@@ -8,7 +7,20 @@ import type { TaskRecord } from "../../../../olt/scripts/src/workflow/types.ts";
 import { commandRecord, workflowState } from "../../shared/test-port.ts";
 import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
-const SOURCE_ROOT = join(import.meta.dir, "../../../../olt/scripts/src");
+let vfsCleanup: (() => void) | undefined;
+const VIRTUAL_REPO = "/virtual/repo/honesty";
+
+beforeEach(() => {
+  const setup = setupWorkflowVirtualFs();
+  vfsCleanup = setup.cleanup;
+  setup.vfs.mkdirSync(VIRTUAL_REPO, { recursive: true });
+  setup.vfs.mkdirSync(join(VIRTUAL_REPO, ".git"), { recursive: true });
+});
+
+afterEach(() => {
+  vfsCleanup?.();
+  vfsCleanup = undefined;
+});
 
 function task(): TaskRecord {
   return workflowState().tasks["T-1"]!;
@@ -20,14 +32,6 @@ function gitStub(records: readonly string[]): RepositoryGitCommand {
     const payload = records.length === 0 ? "" : `${records.join("\0")}\0`;
     return { status: 0, bytes: Buffer.from(payload, "utf8") };
   };
-}
-
-function sourceFiles(directory: string): string[] {
-  return readdirSync(directory).flatMap((entry) => {
-    const path = join(directory, entry);
-    if (statSync(path).isDirectory()) return sourceFiles(path);
-    return path.endsWith(".ts") ? [path] : [];
-  });
 }
 
 describe("submission report construction", () => {
@@ -176,46 +180,45 @@ describe("submission report construction", () => {
     ]);
   });
 
-  test("no source file carries the placeholder path the submission used to invent", () => {
-    const offenders = sourceFiles(SOURCE_ROOT).filter((path) =>
-      readFileSync(path, "utf-8").includes('"src/index.ts"'),
-    );
-    expect(offenders).toEqual([]);
+  test("does not invent placeholder changed files when allowEmptyFiles is false", () => {
+    expect(() =>
+      buildSubmissionReport({
+        task: task(),
+        agentId: "agent-1",
+        summary: "implemented",
+        observedFiles: null,
+        commands: { "C-1": commandRecord("C-1", { actor: "agent-1" }) },
+      }),
+    ).toThrow(/cannot determine files_changed for T-1/);
   });
 });
 
 describe("working-tree change observation", () => {
   test("reports every status path once, sorted", () => {
-    expect(observeChangedFiles(process.cwd(), gitStub(["M  src/a.ts", "?? src/b.ts"]))).toEqual([
+    expect(observeChangedFiles(VIRTUAL_REPO, gitStub(["M  src/a.ts", "?? src/b.ts"]))).toEqual([
       "src/a.ts",
       "src/b.ts",
     ]);
   });
 
   test("keeps both halves of a rename record", () => {
-    expect(observeChangedFiles(process.cwd(), gitStub(["R  src/new.ts", "src/old.ts"]))).toEqual([
+    expect(observeChangedFiles(VIRTUAL_REPO, gitStub(["R  src/new.ts", "src/old.ts"]))).toEqual([
       "src/new.ts",
       "src/old.ts",
     ]);
   });
 
   test("an unchanged tree observes nothing rather than failing", () => {
-    expect(observeChangedFiles(process.cwd(), gitStub([]))).toEqual([]);
+    expect(observeChangedFiles(VIRTUAL_REPO, gitStub([]))).toEqual([]);
   });
 
   test("a directory with no Git metadata yields no observation at all", () => {
-    const { vfs, cleanup } = setupWorkflowVirtualFs();
     const outside = "/virtual/tmp/harness-no-git";
-    vfs.mkdirSync(outside, { recursive: true });
-    try {
-      expect(observeChangedFiles(outside, gitStub(["M  src/a.ts"]))).toBeNull();
-    } finally {
-      cleanup();
-    }
+    expect(observeChangedFiles(outside, gitStub(["M  src/a.ts"]))).toBeNull();
   });
 
   test("a malformed status record is an integrity failure", () => {
-    expect(() => observeChangedFiles(process.cwd(), gitStub(["M"]))).toThrow(
+    expect(() => observeChangedFiles(VIRTUAL_REPO, gitStub(["M"]))).toThrow(
       "repository status record is malformed",
     );
   });
