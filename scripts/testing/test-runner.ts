@@ -5,7 +5,7 @@ import {
   formatCoverageGateMessage,
   processCoverageArtifacts,
 } from "./reporting/index.ts";
-import { acquireTestLock } from "./test-mutex.ts";
+import { acquireTestLock } from "./mutex/index.ts";
 import { executeStreamingRunner, parseRunnerArgs } from "./runner/index.ts";
 
 export { executeStreamingRunner };

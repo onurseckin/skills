@@ -1,5 +1,4 @@
-import { HarnessError } from "../../../core/errors/index.ts";
-import type { JsonValue } from "../../../core/contracts/json.ts";
+import { HarnessError, type JsonValue } from "../../../core/index.ts";
 import type {
   ImmutabilityManifest,
   ManifestIntegrityResult,

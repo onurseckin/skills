@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import * as childProcess from "node:child_process";
 import { EventEmitter } from "node:events";
 import * as reporting from "../../../scripts/testing/reporting/index.ts";
-import * as testMutex from "../../../scripts/testing/test-mutex.ts";
+import * as testMutex from "../../../scripts/testing/index.ts";
 import { executeStreamingRunner } from "../../../scripts/testing/runner/streaming-runner.ts";
 
 describe("streaming-runner", () => {

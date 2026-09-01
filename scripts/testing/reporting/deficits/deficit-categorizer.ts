@@ -3,7 +3,7 @@
  * Categorizes uncovered line segments into error-handling, branching,
  * initialization, or unexercised-logic based on patterns and heuristics.
  */
-import type { DeficitCategory } from "./types.ts";
+import type { DeficitCategory } from "../types.ts";
 
 export interface DeficitCategoryClassification {
   readonly category: DeficitCategory;

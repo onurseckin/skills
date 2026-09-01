@@ -187,4 +187,27 @@ export type JourneyStepHandler = (
   actualRoute?: string;
   error?: string;
 }>;
-export type { FormFieldType, FormFieldDescriptor, ValidationBannerInfo, OverflowInspectionResult, FormStressFieldResult, FormStressTestPlan, FormStressTestResult, FormFieldEvaluationInput, OverlayType, OverlayDescriptor, ZIndexHierarchyViolation, ElementBounds, ElementLayoutNode, BackdropOcclusionResult, OverlayDismissalErgonomicsResult, TouchHitbox, TouchHitboxResult, MobileMenuTransitionMetrics, MobileMenuTransitionResult, BreakpointLayoutMetrics, BreakpointReflowResult } from "./overlay-types.ts";
+
+export type {
+  FormFieldType,
+  FormFieldDescriptor,
+  ValidationBannerInfo,
+  OverflowInspectionResult,
+  FormStressFieldResult,
+  FormStressTestPlan,
+  FormStressTestResult,
+  FormFieldEvaluationInput,
+  OverlayType,
+  OverlayDescriptor,
+  ZIndexHierarchyViolation,
+  ElementBounds,
+  ElementLayoutNode,
+  BackdropOcclusionResult,
+  OverlayDismissalErgonomicsResult,
+  TouchHitbox,
+  TouchHitboxResult,
+  MobileMenuTransitionMetrics,
+  MobileMenuTransitionResult,
+  BreakpointLayoutMetrics,
+  BreakpointReflowResult,
+} from "./overlay-types.ts";

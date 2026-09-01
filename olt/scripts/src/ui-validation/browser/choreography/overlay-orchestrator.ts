@@ -38,7 +38,7 @@ export class OverlayOrchestrator {
     };
 
     for (const overlay of overlays) {
-      const expectedLayer = overlayLayerMap[overlay.type || "modal"] || "MODAL";
+      const expectedLayer = overlayLayerMap[overlay.type ?? "modal"] ?? "MODAL";
       const range = Z_INDEX_LAYER_RANGES[expectedLayer];
 
       if (overlay.zIndex < range.min || overlay.zIndex > range.max) {

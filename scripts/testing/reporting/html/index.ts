@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { generateDeficitRoadmap } from "../deficit-clustering.ts";
+import { generateDeficitRoadmap } from "../deficits/index.ts";
 import type { CoverageSummary, FileCoverageMetric, TestRuntimeSummary } from "../types.ts";
 import { buildUnifiedHierarchy, extractCoverageFileData } from "./data-extractor.ts";
 import { getHtmlStyles, getUnifiedStyles, getDeficitStyles, getCodeViewerStyles, getRuntimeStyles } from "./styles/index.ts";

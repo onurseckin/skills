@@ -5,7 +5,7 @@ import {
   processCoverageArtifacts,
   type CoverageArtifactResult,
 } from "../reporting/index.ts";
-import { acquireTestLock } from "../test-mutex.ts";
+import { acquireTestLock } from "../mutex/index.ts";
 import { buildBunTestArgs, parseRunnerArgs } from "./arg-parser.ts";
 import { StreamParser } from "./stream-parser.ts";
 import { formatSummaryTable } from "./summary-table.ts";

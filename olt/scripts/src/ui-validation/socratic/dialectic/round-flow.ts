@@ -1,5 +1,4 @@
-import { HarnessError } from "../../../core/errors/index.ts";
-import type { JsonValue } from "../../../core/contracts/json.ts";
+import { HarnessError, type JsonValue } from "../../../core/index.ts";
 import {
   MANDATORY_CHALLENGE_QUOTA_R1_R4,
   MAX_CONVERGENCE_CYCLES_PER_GATE,

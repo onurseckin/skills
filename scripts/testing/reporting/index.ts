@@ -36,7 +36,7 @@ export type {
   UnifiedHierarchyNode,
   WriteCoverageOptions,
 } from "./types.ts";
-export type { ContiguousLineSegment, DeficitCategoryClassification } from "./deficit-clustering.ts";
+export type { ContiguousLineSegment, DeficitCategoryClassification } from "./deficits/index.ts";
 export type {
   CoverageGateOptions,
   CoverageGateResult,
@@ -56,7 +56,7 @@ export {
   generateDeficitRoadmap,
   getCategoryBadge,
   groupContiguousLines,
-} from "./deficit-clustering.ts";
+} from "./deficits/index.ts";
 export { calculatePct, createMetricItem } from "./types.ts";
 export { parseLcov } from "./lcov-parser.ts";
 export { buildCoverageSummary, writeSummaryJson } from "./summary-reporter.ts";

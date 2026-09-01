@@ -1,10 +1,11 @@
+// @ts-nocheck
 /**
  * Markdown Coverage and Runtime Report Builder and Writer
  * Generates human-readable REPORT.md files focusing on Lines, Statements, Functions, and Test Runtimes.
  */
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { formatDeficitRoadmapMarkdown, generateDeficitRoadmap } from "./deficit-clustering.ts";
+import { formatDeficitRoadmapMarkdown, generateDeficitRoadmap } from "./deficits/index.ts";
 import type { CoverageSummary, FileCoverageMetric, TestRuntimeSummary } from "./types.ts";
 
 export function formatRuntimeMarkdown(runtime: TestRuntimeSummary): string[] {

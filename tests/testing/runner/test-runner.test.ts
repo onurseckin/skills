@@ -1,7 +1,7 @@
 import { describe, expect, test, spyOn, beforeEach, afterEach } from "bun:test";
 import * as childProcess from "node:child_process";
 import * as reporting from "../../../scripts/testing/reporting/index.ts";
-import * as testMutex from "../../../scripts/testing/test-mutex.ts";
+import * as testMutex from "../../../scripts/testing/index.ts";
 import { computeIsMain, executeTestRunner, main } from "../../../scripts/testing/test-runner.ts";
 
 describe("test-runner script", () => {

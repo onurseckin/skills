@@ -9,7 +9,7 @@ import {
   setLockStore,
   type LockStore,
   type TestLockData,
-} from "../../../scripts/testing/test-mutex.ts";
+} from "../../../scripts/testing/index.ts";
 import {
   createVirtualFSSession,
   type VirtualFSSession,
