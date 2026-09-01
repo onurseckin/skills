@@ -136,14 +136,21 @@ export function mockGitSpawnSync(
     committedBlobs.set("feature.ts", "export const x = 1;\n");
     return { status: 0, stdout: out(""), stderr: out("") };
   }
-  if (s.includes("ls-tree") && committedBlobs.has("feature.ts"))
+  if (s.includes("ls-tree") && s.includes("HEAD") && committedBlobs.has("feature.ts")) {
     return {
       status: 0,
       stdout: out("100644 blob 0123456789abcdef\tfeature.ts\n"),
       stderr: out(""),
     };
-  if (s.includes("show") && s.includes("feature.ts") && committedBlobs.has("feature.ts"))
+  }
+  if (
+    s.includes("show") &&
+    s.includes("HEAD") &&
+    s.includes("feature.ts") &&
+    committedBlobs.has("feature.ts")
+  ) {
     return { status: 0, stdout: out("export const x = 1;\n"), stderr: out("") };
+  }
   const cIdx = args.indexOf("-C"),
     target = (cIdx !== -1 ? args[cIdx + 1] : undefined) ?? opts.cwd ?? repoRoot;
   if (s.includes("--git-path"))
@@ -200,5 +207,11 @@ export function mockGitSpawnSync(
     return staged
       ? { status: 0, stdout: out(`${staged}\0`), stderr: out("") }
       : { status: 0, stdout: out(""), stderr: out("") };
+  if (s.includes("diff")) {
+    const changed = committedBlobs.has("feature.ts") ? "feature.ts" : staged;
+    return changed
+      ? { status: 0, stdout: out(`${changed}\n`), stderr: out("") }
+      : { status: 0, stdout: out(""), stderr: out("") };
+  }
   return { status: 0, stdout: out(""), stderr: out("") };
 }
