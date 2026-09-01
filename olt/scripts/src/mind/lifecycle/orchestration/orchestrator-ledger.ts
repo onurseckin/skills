@@ -1,7 +1,6 @@
 import { closeSync, constants, existsSync, mkdirSync, openSync, readFileSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
-import { atomicWriteBytes } from "../../../core/durable-write.ts";
-import { HarnessError } from "../../../core/errors/index.ts";
+import { atomicWriteBytes, HarnessError } from "../../../core/index.ts";
 import { releaseFlock, tryExclusiveFlock } from "../../../platform/index.ts";
 
 import {

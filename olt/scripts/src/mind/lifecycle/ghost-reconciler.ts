@@ -7,7 +7,6 @@ import {
 import { validateCapsuleManifestBinding } from "./manifest-sync.ts";
 
 export type GhostReason = "UNREGISTERED_IN_LEDGER" | "DESYNCHRONIZED_MANIFEST" | "DETACHED_ORPHAN";
-
 export type GhostActionTaken = "TERMINATED" | "QUARANTINED" | "ALERTED";
 
 export interface GhostOrchestratorFinding {
@@ -20,7 +19,6 @@ export interface GhostOrchestratorFinding {
 }
 
 export const DEFAULT_GHOST_STARTUP_GRACE_WINDOW_MS = 5_000;
-
 export interface LiveSubagentInfo {
   readonly subagent_id: string;
   readonly role: string;
