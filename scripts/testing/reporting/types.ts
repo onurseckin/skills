@@ -5,6 +5,8 @@
  * Includes Test Runtime Telemetry and Pareto ranking models.
  */
 
+export type { MetricItem, FileCoverageMetric } from "./metric-types.ts";
+/*
 export interface MetricItem {
   readonly total: number;
   readonly covered: number;
@@ -19,7 +21,7 @@ export interface FileCoverageMetric {
   readonly functions: MetricItem;
   readonly uncoveredLines: readonly number[];
   readonly lineHits: ReadonlyMap<number, number>;
-}
+}*/
 
 export interface CoverageSummaryItem {
   readonly lines: MetricItem;

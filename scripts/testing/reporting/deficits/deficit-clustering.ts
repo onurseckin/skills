@@ -15,7 +15,7 @@ import type {
   DeficitCluster,
   DeficitRoadmap,
 } from "./types.ts";
-import type { FileCoverageMetric } from "../types.ts";
+import type { FileCoverageMetric } from "../metric-types.ts";
 
 export type { DeficitCategoryClassification };
 export { classifyDeficitCategory, getCategoryBadge };
