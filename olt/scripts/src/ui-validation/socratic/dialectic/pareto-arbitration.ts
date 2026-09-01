@@ -54,7 +54,7 @@ export class ParetoArbitrationEngine {
 
     // Sort descending by final rank score
     scoredResolutions.sort(
-      (a: { finalRankScore: number }, b: { finalRankScore: number }) =>
+      (a: any, b: any) =>
         b.finalRankScore - a.finalRankScore,
     );
     const winningResolution = scoredResolutions[0];
