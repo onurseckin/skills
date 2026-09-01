@@ -4,12 +4,14 @@ import {
   TOUCH_HITBOX_MINIMUMS,
   type ViewportSpecification,
   type ViewportPresetName,
-  type TouchHitbox,
-  type TouchHitboxResult,
-  type MobileMenuTransitionMetrics,
-  type MobileMenuTransitionResult,
-  type BreakpointLayoutMetrics,
-  type BreakpointReflowResult,
+} from "./types.ts";
+import type {
+  TouchHitbox,
+  TouchHitboxResult,
+  MobileMenuTransitionMetrics,
+  MobileMenuTransitionResult,
+  BreakpointLayoutMetrics,
+  BreakpointReflowResult,
 } from "./overlay-types.ts";
 export class ResponsiveReflowProber {
   /**

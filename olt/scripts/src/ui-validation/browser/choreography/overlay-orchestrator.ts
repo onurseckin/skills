@@ -4,13 +4,15 @@ import {
   Z_INDEX_LAYER_RANGES,
   type ZIndexLayer,
   type ZIndexRange,
-  type OverlayType,
-  type OverlayDescriptor,
-  type ZIndexHierarchyViolation,
-  type ElementBounds,
-  type ElementLayoutNode,
-  type BackdropOcclusionResult,
-  type OverlayDismissalErgonomicsResult,
+} from "./types.ts";
+import type {
+  OverlayType,
+  OverlayDescriptor,
+  ZIndexHierarchyViolation,
+  ElementBounds,
+  ElementLayoutNode,
+  BackdropOcclusionResult,
+  OverlayDismissalErgonomicsResult,
 } from "./overlay-types.ts";
 export class OverlayOrchestrator {
   /**

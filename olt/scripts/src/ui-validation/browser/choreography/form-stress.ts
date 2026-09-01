@@ -2,14 +2,16 @@ import { HarnessError } from "../../../core/errors/index.ts";
 import {
   CANONICAL_STRESS_INPUTS,
   type CanonicalStressInputKey,
-  type FormFieldType,
-  type FormFieldDescriptor,
-  type ValidationBannerInfo,
-  type OverflowInspectionResult,
-  type FormStressFieldResult,
-  type FormStressTestPlan,
-  type FormStressTestResult,
-  type FormFieldEvaluationInput,
+} from "./types.ts";
+import type {
+  FormFieldType,
+  FormFieldDescriptor,
+  ValidationBannerInfo,
+  OverflowInspectionResult,
+  FormStressFieldResult,
+  FormStressTestPlan,
+  FormStressTestResult,
+  FormFieldEvaluationInput,
 } from "./overlay-types.ts";
 export class FormStressExplorer {
   /**
