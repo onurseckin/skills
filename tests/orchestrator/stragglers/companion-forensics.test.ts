@@ -1,4 +1,4 @@
-import { describe, expect, test, beforeEach, afterEach, spyOn } from "bun:test";
+import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import * as fs from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
@@ -8,66 +8,28 @@ import {
   assertBehavioralCompliance,
 } from "../../../olt/scripts/src/orchestrator/companion-auditor.ts";
 import type { BehavioralForensicsReport } from "../../../olt/scripts/src/orchestrator/types.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("OrchestratorCompanionAuditor Unit Tests - Behavioral Forensics", () => {
-  const mockFiles = new Map<string, string>();
-  const mockDirs = new Set<string>();
-  const spies: { mockRestore: () => void }[] = [];
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession | undefined;
   const testRoot = "/virtual/skills-companion-forensics-unit";
 
-  const origExists = fs.existsSync.bind(fs);
-  const origRead = fs.readFileSync.bind(fs);
-  const isVirt = (s: string) => s.startsWith("/tmp/virtual-") || s.startsWith("/virtual/");
-
   beforeEach(() => {
-    mockFiles.clear();
-    mockDirs.clear();
-    mockDirs.add(testRoot);
-    spies.push(
-      spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => {
-        const s = String(p);
-        if (isVirt(s)) return mockFiles.has(s) || mockDirs.has(s);
-        return origExists(p);
-      }),
-      spyOn(fs, "mkdirSync").mockImplementation(((p: fs.PathLike) => {
-        const s = String(p);
-        mockDirs.add(s);
-        return undefined as unknown as string;
-      }) as unknown as typeof fs.mkdirSync),
-      spyOn(fs, "readFileSync").mockImplementation(((p: fs.PathOrFileDescriptor) => {
-        const s = String(p);
-        if (isVirt(s)) {
-          const val = mockFiles.get(s);
-          if (val !== undefined) return val;
-          throw new Error(`ENOENT: no such file, open '${s}'`);
-        }
-        return origRead(p as never);
-      }) as unknown as typeof fs.readFileSync),
-      spyOn(fs, "writeFileSync").mockImplementation(((
-        p: fs.PathOrFileDescriptor,
-        data: string | NodeJS.ArrayBufferView,
-      ) => {
-        const s = String(p);
-        mockFiles.set(
-          s,
-          typeof data === "string"
-            ? data
-            : Buffer.from(data.buffer, data.byteOffset, data.byteLength).toString("utf8"),
-        );
-      }) as unknown as typeof fs.writeFileSync),
-      spyOn(fs, "rmSync").mockImplementation(((p: fs.PathLike) => {
-        const s = String(p);
-        mockFiles.delete(s);
-        mockDirs.delete(s);
-        for (const f of Array.from(mockFiles.keys()))
-          if (f.startsWith(s + "/")) mockFiles.delete(f);
-        for (const d of Array.from(mockDirs)) if (d.startsWith(s + "/")) mockDirs.delete(d);
-      }) as unknown as typeof fs.rmSync),
-    );
+    vfs = new VirtualMemoryFS();
+    vfs.mkdirSync(testRoot, { recursive: true });
+    session = createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
-    while (spies.length > 0) spies.pop()?.mockRestore();
+    if (session) {
+      session.cleanup();
+      session = undefined;
+    }
   });
 
   test("executeForensics — returns clean compliant report on empty run", () => {

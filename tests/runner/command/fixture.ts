@@ -14,6 +14,16 @@ import {
 } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/memory-fs.ts";
 
+import * as darwinPipes from "../../../olt/scripts/src/engine/runner/process/darwin/darwin-pipes.ts";
+import * as pipeOwnership from "../../../olt/scripts/src/engine/runner/core/pipe-ownership.ts";
+
+import * as processTree from "../../../olt/scripts/src/engine/runner/process/process-tree.ts";
+
+import * as processIdentity from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
+
+import * as attemptIntent from "../../../olt/scripts/src/engine/runner/execution/attempt-intent.ts";
+import * as attemptIntentValidation from "../../../olt/scripts/src/engine/runner/execution/attempt-intent-validation.ts";
+
 const activeRoots: string[] = [];
 let activeSession: VirtualFSSession | null = null;
 
@@ -21,6 +31,51 @@ export function getRunnerVfs(): VirtualMemoryFS {
   if (!activeSession) {
     activeSession = createVirtualFSSession(new VirtualMemoryFS());
     spyOn(os, "tmpdir").mockReturnValue("/virtual/tmp");
+    const activePids = new Set<number>([999999]);
+    try {
+      spyOn(process, "kill").mockImplementation(((pid: number) => {
+        const absPid = Math.abs(pid);
+        activePids.delete(absPid);
+        const handlers = (globalThis as unknown as Record<string, unknown>)
+          .__virtualFsKillHandlers as Map<number, () => void> | undefined;
+        handlers?.get(absPid)?.();
+        return true;
+      }) as never);
+      spyOn(processTree, "processSnapshot").mockImplementation(async () => {
+        const snap = new Map([[process.pid, { pid: process.pid, parent: 1, group: process.pid }]]);
+        if (activePids.has(999999)) {
+          snap.set(999999, { pid: 999999, parent: process.pid, group: 999999 });
+        }
+        return snap;
+      });
+      spyOn(processIdentity, "readProcessIdentity").mockImplementation((pid: number) => {
+        if (pid === 999999 && activePids.has(999999)) {
+          return { pid: 999999, parent: process.pid, group: 999999, birth: "virtual-birth" };
+        }
+        return undefined;
+      });
+      spyOn(darwinPipes, "darwinProcessIdentity").mockImplementation((pid: number) => {
+        if (pid === 999999 && activePids.has(999999)) {
+          return { pid: 999999, parent: process.pid, group: 999999, birth: "virtual-birth" };
+        }
+        return undefined;
+      });
+      spyOn(attemptIntentValidation, "probeAttemptProcess").mockImplementation((expected) => {
+        return activePids.has(expected.pid) ? "live" : "absent";
+      });
+      spyOn(attemptIntent, "probeAttemptProcess").mockImplementation((expected) => {
+        return activePids.has(expected.pid) ? "live" : "absent";
+      });
+      spyOn(darwinPipes, "darwinTokenOwnerIdentities").mockImplementation(() => []);
+      spyOn(darwinPipes, "darwinPipeOwners").mockImplementation(() => new Set());
+      spyOn(darwinPipes, "darwinPipeHandles").mockImplementation(() => new Set());
+      spyOn(pipeOwnership, "ownershipTokenIdentities").mockImplementation(() => []);
+      spyOn(pipeOwnership, "ownedProcessPids").mockImplementation(() => new Set());
+      spyOn(pipeOwnership, "runnerPipeHandles").mockImplementation(() => new Set());
+      spyOn(pipeOwnership, "addedPipeHandles").mockImplementation(() => new Set());
+    } catch {
+      // ignore if on non-darwin
+    }
   }
   return activeSession.vfs;
 }

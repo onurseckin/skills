@@ -1,85 +1,36 @@
-import { describe, expect, test, beforeEach, afterEach, spyOn } from "bun:test";
+import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import * as fs from "node:fs";
 import { join } from "node:path";
 import { orchestratorRunCommand } from "../../../olt/scripts/src/cli/commands/orchestrator-ops.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { AutonomousLoopRunner } from "../../../olt/scripts/src/orchestrator/loop-runner.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("a loop with no round executor", () => {
-  const mockFiles = new Map<string, string>();
-  const mockDirs = new Set<string>();
-  const spies: { mockRestore: () => void }[] = [];
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession | undefined;
   let rootCounter = 0;
 
   function temporaryRepo(name: string): string {
-    const dir = `/tmp/virtual-exec-req-${++rootCounter}-${name}`;
-    mockDirs.add(dir);
+    const dir = `/virtual/exec-req-${++rootCounter}-${name}`;
+    vfs.mkdirSync(dir, { recursive: true });
     return dir;
   }
 
-  const origExists = fs.existsSync.bind(fs);
-  const origRead = fs.readFileSync.bind(fs);
-  const isVirt = (s: string) => s.startsWith("/tmp/virtual-") || s.startsWith("/virtual/");
-
   beforeEach(() => {
-    mockFiles.clear();
-    mockDirs.clear();
-    spies.push(
-      spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => {
-        const s = String(p);
-        if (isVirt(s)) return mockFiles.has(s) || mockDirs.has(s);
-        return origExists(p);
-      }),
-      spyOn(fs, "mkdirSync").mockImplementation(((
-        p: fs.PathLike,
-        opts?: fs.MakeDirectoryOptions | boolean,
-      ) => {
-        const s = String(p);
-        mockDirs.add(s);
-        return undefined as unknown as string;
-      }) as unknown as typeof fs.mkdirSync),
-      spyOn(fs, "readdirSync").mockImplementation(((p: fs.PathLike) => {
-        const s = String(p);
-        const base = s.endsWith("/") ? s : s + "/";
-        const childNames = new Set<string>();
-        for (const f of mockFiles.keys())
-          if (f.startsWith(base)) {
-            const name = f.slice(base.length).split("/")[0];
-            if (name) childNames.add(name);
-          }
-        for (const d of mockDirs)
-          if (d.startsWith(base)) {
-            const name = d.slice(base.length).split("/")[0];
-            if (name) childNames.add(name);
-          }
-        return Array.from(childNames).sort() as unknown as fs.Dirent[];
-      }) as unknown as typeof fs.readdirSync),
-      spyOn(fs, "readFileSync").mockImplementation(((p: fs.PathOrFileDescriptor) => {
-        const s = String(p);
-        if (isVirt(s)) {
-          const val = mockFiles.get(s);
-          if (val !== undefined) return val;
-          throw new Error(`ENOENT: no such file, open '${s}'`);
-        }
-        return origRead(p as never);
-      }) as unknown as typeof fs.readFileSync),
-      spyOn(fs, "writeFileSync").mockImplementation(((
-        p: fs.PathOrFileDescriptor,
-        data: string | NodeJS.ArrayBufferView,
-      ) => {
-        const s = String(p);
-        mockFiles.set(
-          s,
-          typeof data === "string"
-            ? data
-            : Buffer.from(data.buffer, data.byteOffset, data.byteLength).toString("utf8"),
-        );
-      }) as unknown as typeof fs.writeFileSync),
-    );
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
-    while (spies.length > 0) spies.pop()?.mockRestore();
+    if (session) {
+      session.cleanup();
+      session = undefined;
+    }
   });
 
   test("refuses to run instead of reporting a round nobody executed", async () => {

@@ -1,71 +1,40 @@
-import { describe, expect, test, beforeEach, afterEach, spyOn } from "bun:test";
-import * as fs from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   DEFAULT_RESOLVED_CONFIG,
   resetHarnessConfigCache,
   resolveHarnessConfig,
 } from "../../../olt/scripts/src/core/config/index.ts";
-
-const writeFileSync = (p: fs.PathOrFileDescriptor, d: string | NodeJS.ArrayBufferView) =>
-  fs.writeFileSync(p, d);
-const mkdirSync = (p: fs.PathLike, opts?: fs.MakeDirectoryOptions | boolean) =>
-  fs.mkdirSync(p, opts);
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("harness-config-resolution", () => {
-  const mockFiles = new Map<string, string>();
-  const mockDirs = new Set<string>();
-  const spies: { mockRestore: () => void }[] = [];
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession | null = null;
   const NO_HOST_CEILING = { hostConcurrency: null } as const;
   let dirCounter = 0;
 
   function makeTempDir(label: string): string {
     const dir = `/virtual/cfg-res-${++dirCounter}-${label}`;
-    mockDirs.add(dir);
+    vfs.mkdirSync(dir, { recursive: true });
     return dir;
   }
 
-  const origExists = fs.existsSync.bind(fs);
-  const origRead = fs.readFileSync.bind(fs);
-  const isVirt = (s: string) => s.startsWith("/virtual/") || s.startsWith("/tmp/");
-
   beforeEach(() => {
     resetHarnessConfigCache();
-    mockFiles.clear();
-    mockDirs.clear();
-    spies.push(
-      spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) =>
-        isVirt(String(p)) ? mockFiles.has(String(p)) || mockDirs.has(String(p)) : origExists(p),
-      ),
-      spyOn(fs, "mkdirSync").mockImplementation(((p: fs.PathLike) => {
-        mockDirs.add(String(p));
-        return undefined as unknown as string;
-      }) as unknown as typeof fs.mkdirSync),
-      spyOn(fs, "readFileSync").mockImplementation(((p: fs.PathOrFileDescriptor) => {
-        if (isVirt(String(p))) {
-          const val = mockFiles.get(String(p));
-          if (val !== undefined) return val;
-          throw new Error(`ENOENT: ${String(p)}`);
-        }
-        return origRead(p as never);
-      }) as unknown as typeof fs.readFileSync),
-      spyOn(fs, "writeFileSync").mockImplementation(((
-        p: fs.PathOrFileDescriptor,
-        d: string | NodeJS.ArrayBufferView,
-      ) => {
-        mockFiles.set(
-          String(p),
-          typeof d === "string"
-            ? d
-            : Buffer.from(d.buffer, d.byteOffset, d.byteLength).toString("utf8"),
-        );
-      }) as unknown as typeof fs.writeFileSync),
-    );
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
-    while (spies.length > 0) spies.pop()?.mockRestore();
+    if (session) {
+      session.cleanup();
+      session = null;
+    }
   });
 
   test("returns DEFAULT_RESOLVED_CONFIG when no config file exists", () => {
@@ -90,7 +59,7 @@ describe("harness-config-resolution", () => {
       default_lease_seconds: 900,
       default_max_parallel: 2,
     };
-    writeFileSync(join(dir, "harness.config.json"), JSON.stringify(custom));
+    vfs.writeFileSync(join(dir, "harness.config.json"), JSON.stringify(custom));
 
     const config = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
     expect(config).toEqual({
@@ -127,7 +96,7 @@ describe("harness-config-resolution", () => {
     const custom = {
       max_repair_rounds: 7,
     };
-    writeFileSync(join(dir, ".harness.config.json"), JSON.stringify(custom));
+    vfs.writeFileSync(join(dir, ".harness.config.json"), JSON.stringify(custom));
 
     const config = resolveHarnessConfig(dir);
     expect(config.max_repair_rounds).toBe(7);
@@ -137,8 +106,8 @@ describe("harness-config-resolution", () => {
 
   test("prefers harness.config.json over .harness.config.json", () => {
     const dir = makeTempDir("prefers-harness-config-json");
-    writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ max_repair_rounds: 10 }));
-    writeFileSync(join(dir, ".harness.config.json"), JSON.stringify({ max_repair_rounds: 3 }));
+    vfs.writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ max_repair_rounds: 10 }));
+    vfs.writeFileSync(join(dir, ".harness.config.json"), JSON.stringify({ max_repair_rounds: 3 }));
 
     const config = resolveHarnessConfig(dir);
     expect(config.max_repair_rounds).toBe(10);
@@ -148,11 +117,14 @@ describe("harness-config-resolution", () => {
     const repoDir = makeTempDir("repo-layer");
     const capDir = makeTempDir("capsule-layer");
 
-    writeFileSync(
+    vfs.writeFileSync(
       join(capDir, "config.json"),
       JSON.stringify({ max_repair_rounds: 4, default_max_parallel: 8 }),
     );
-    writeFileSync(join(repoDir, "harness.config.json"), JSON.stringify({ max_repair_rounds: 6 }));
+    vfs.writeFileSync(
+      join(repoDir, "harness.config.json"),
+      JSON.stringify({ max_repair_rounds: 6 }),
+    );
 
     const config = resolveHarnessConfig(repoDir, capDir);
     expect(config.max_repair_rounds).toBe(6);
@@ -164,7 +136,10 @@ describe("harness-config-resolution", () => {
     const repoDir = makeTempDir("repo-layer-capsule-fallback");
     const capDir = makeTempDir("capsule-layer-fallback");
 
-    writeFileSync(join(capDir, "harness.config.json"), JSON.stringify({ max_repair_rounds: 9 }));
+    vfs.writeFileSync(
+      join(capDir, "harness.config.json"),
+      JSON.stringify({ max_repair_rounds: 9 }),
+    );
 
     const config = resolveHarnessConfig(repoDir, capDir, NO_HOST_CEILING);
     expect(config.max_repair_rounds).toBe(9);
@@ -172,17 +147,17 @@ describe("harness-config-resolution", () => {
 
   test("refuses malformed JSON or non-object files rather than silently defaulting", () => {
     const dir = makeTempDir("invalid-json-refusal");
-    writeFileSync(join(dir, "harness.config.json"), "{ invalid-json }");
+    vfs.writeFileSync(join(dir, "harness.config.json"), "{ invalid-json }");
     expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(HarnessError);
     expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(/not valid JSON/);
 
-    writeFileSync(join(dir, "harness.config.json"), JSON.stringify(["not", "an", "object"]));
+    vfs.writeFileSync(join(dir, "harness.config.json"), JSON.stringify(["not", "an", "object"]));
     expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(HarnessError);
     expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(
       /JSON object at its root/,
     );
 
-    writeFileSync(join(dir, "harness.config.json"), JSON.stringify(null));
+    vfs.writeFileSync(join(dir, "harness.config.json"), JSON.stringify(null));
     expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(HarnessError);
     expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(
       /JSON object at its root/,
@@ -203,7 +178,7 @@ describe("harness-config-resolution", () => {
       default_lease_seconds: 2,
       default_max_parallel: 0,
     };
-    writeFileSync(join(dir, "harness.config.json"), JSON.stringify(invalidFields));
+    vfs.writeFileSync(join(dir, "harness.config.json"), JSON.stringify(invalidFields));
 
     expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(HarnessError);
     expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(

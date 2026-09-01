@@ -1,22 +1,28 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { realpathSync } from "node:fs";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import type { DagViewResult } from "../../../../../olt/scripts/src/cli/commands/dag-view.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
+beforeEach(() => {
+  setupVirtualCliFS();
+});
 afterEach(async () => {
-  for (const root of roots) {
-    await rm(root, { recursive: true, force: true }).catch(() => {});
-  }
-  roots.length = 0;
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
 });
 
 async function createBaseRun(name: string): Promise<{ repo: string; run: string }> {
-  const repo = realpathSync(await mkdtemp(join(tmpdir(), `harness-dag-render-${name}-`)));
+  const repo = `/virtual/cli/harness-dag-render-${name}`;
   roots.push(repo);
+  await mkdir(repo, { recursive: true });
+  await mkdir(join(repo, ".git"), { recursive: true });
   const promptPath = join(repo, "prompt.txt");
   await writeFile(
     promptPath,

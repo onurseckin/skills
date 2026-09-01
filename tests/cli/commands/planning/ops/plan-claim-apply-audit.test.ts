@@ -1,14 +1,16 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
-import { cleanupRoots, writeJson } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+  writeJson,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 import { graphDocument } from "../../../../graph/validation/fixtures.ts";
 import { requirementsDocument } from "../../../../requirements/validation/fixtures.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
 
 async function registerPlanner(run: string, agent = "planner"): Promise<void> {
   await execute([
@@ -25,9 +27,19 @@ async function registerPlanner(run: string, agent = "planner"): Promise<void> {
 }
 
 describe("plan:claim / plan:apply", () => {
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualCliFS();
+    roots.length = 0;
+  });
+
   test("plan:claim issues a planner packet naming the planning write scope", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "harness-plan-claim-"));
+    const repo = `/virtual/cli/harness-plan-claim-${Math.random().toString(36).slice(2)}`;
     roots.push(repo);
+    await mkdir(join(repo, ".git"), { recursive: true });
     const promptPath = join(repo, "prompt.txt");
     await writeFile(promptPath, "Implement one independently verified change");
     const init = await execute([
@@ -48,8 +60,9 @@ describe("plan:claim / plan:apply", () => {
   });
 
   test("plan:apply validates and commits requirements/graph as revision 1, honouring --expected-revision", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "harness-plan-apply-"));
+    const repo = `/virtual/cli/harness-plan-apply-${Math.random().toString(36).slice(2)}`;
     roots.push(repo);
+    await mkdir(join(repo, ".git"), { recursive: true });
     const prompt = "Implement one independently verified change";
     const promptPath = join(repo, "prompt.txt");
     await writeFile(promptPath, prompt);
@@ -92,8 +105,9 @@ describe("plan:claim / plan:apply", () => {
   });
 
   test("plan:apply refuses a stale --expected-revision", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "harness-plan-apply-stale-"));
+    const repo = `/virtual/cli/harness-plan-apply-stale-${Math.random().toString(36).slice(2)}`;
     roots.push(repo);
+    await mkdir(join(repo, ".git"), { recursive: true });
     const prompt = "Implement one independently verified change";
     const promptPath = join(repo, "prompt.txt");
     await writeFile(promptPath, prompt);
@@ -135,8 +149,9 @@ describe("plan:claim / plan:apply", () => {
   });
 
   test("plan:apply defaults its paths to planning/requirements.json and planning/graph.json", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "harness-plan-apply-default-paths-"));
+    const repo = `/virtual/cli/harness-plan-apply-default-paths-${Math.random().toString(36).slice(2)}`;
     roots.push(repo);
+    await mkdir(join(repo, ".git"), { recursive: true });
     const prompt = "Implement one independently verified change";
     const promptPath = join(repo, "prompt.txt");
     await writeFile(promptPath, prompt);
@@ -167,9 +182,19 @@ describe("plan:claim / plan:apply", () => {
 });
 
 describe("plan:audit", () => {
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualCliFS();
+    roots.length = 0;
+  });
+
   test("refuses to audit an empty planning buffer", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "harness-plan-audit-empty-"));
+    const repo = `/virtual/cli/harness-plan-audit-empty-${Math.random().toString(36).slice(2)}`;
     roots.push(repo);
+    await mkdir(join(repo, ".git"), { recursive: true });
     const promptPath = join(repo, "prompt.txt");
     await writeFile(promptPath, "Do one thing");
     const init = await execute([
@@ -188,8 +213,9 @@ describe("plan:audit", () => {
   });
 
   test("audits a nonempty buffer and reports findings and revision", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "harness-plan-audit-basic-"));
+    const repo = `/virtual/cli/harness-plan-audit-basic-${Math.random().toString(36).slice(2)}`;
     roots.push(repo);
+    await mkdir(join(repo, ".git"), { recursive: true });
     const promptPath = join(repo, "prompt.txt");
     await writeFile(promptPath, "Do one thing");
     const init = await execute([
@@ -225,8 +251,9 @@ describe("plan:audit", () => {
   });
 
   test("capsulePlanningStore throws INTEGRITY when mutation returns a Promise", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "harness-plan-store-async-"));
+    const repo = `/virtual/cli/harness-plan-store-async-${Math.random().toString(36).slice(2)}`;
     roots.push(repo);
+    await mkdir(join(repo, ".git"), { recursive: true });
     const promptPath = join(repo, "prompt.txt");
     await writeFile(promptPath, "Test prompt");
     const init = await execute([

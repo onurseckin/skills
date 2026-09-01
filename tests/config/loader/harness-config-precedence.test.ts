@@ -1,67 +1,38 @@
-import { describe, expect, test, beforeEach, afterEach, spyOn } from "bun:test";
-import * as fs from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   resetHarnessConfigCache,
   resolveHarnessConfig,
 } from "../../../olt/scripts/src/core/config/index.ts";
-
-const writeFileSync = (p: fs.PathOrFileDescriptor, d: string | NodeJS.ArrayBufferView) =>
-  fs.writeFileSync(p, d);
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("harness-config-precedence", () => {
-  const mockFiles = new Map<string, string>();
-  const mockDirs = new Set<string>();
-  const spies: { mockRestore: () => void }[] = [];
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession | null = null;
   let dirCounter = 0;
 
   function makeTempDir(label: string): string {
     const dir = `/virtual/cfg-prec-${++dirCounter}-${label}`;
-    mockDirs.add(dir);
+    vfs.mkdirSync(dir, { recursive: true });
     return dir;
   }
 
-  const origExists = fs.existsSync.bind(fs);
-  const origRead = fs.readFileSync.bind(fs);
-  const isVirt = (s: string) => s.startsWith("/virtual/") || s.startsWith("/tmp/");
-
   beforeEach(() => {
     resetHarnessConfigCache();
-    mockFiles.clear();
-    mockDirs.clear();
-    spies.push(
-      spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) =>
-        isVirt(String(p)) ? mockFiles.has(String(p)) || mockDirs.has(String(p)) : origExists(p),
-      ),
-      spyOn(fs, "mkdirSync").mockImplementation(((p: fs.PathLike) => {
-        mockDirs.add(String(p));
-        return undefined as unknown as string;
-      }) as unknown as typeof fs.mkdirSync),
-      spyOn(fs, "readFileSync").mockImplementation(((p: fs.PathOrFileDescriptor) => {
-        if (isVirt(String(p))) {
-          const val = mockFiles.get(String(p));
-          if (val !== undefined) return val;
-          throw new Error(`ENOENT: ${String(p)}`);
-        }
-        return origRead(p as never);
-      }) as unknown as typeof fs.readFileSync),
-      spyOn(fs, "writeFileSync").mockImplementation(((
-        p: fs.PathOrFileDescriptor,
-        d: string | NodeJS.ArrayBufferView,
-      ) => {
-        mockFiles.set(
-          String(p),
-          typeof d === "string"
-            ? d
-            : Buffer.from(d.buffer, d.byteOffset, d.byteLength).toString("utf8"),
-        );
-      }) as unknown as typeof fs.writeFileSync),
-    );
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
-    while (spies.length > 0) spies.pop()?.mockRestore();
+    if (session) {
+      session.cleanup();
+      session = null;
+    }
   });
 
   describe("B27.2 — concurrency ceiling discovery and precedence", () => {
@@ -76,7 +47,10 @@ describe("harness-config-precedence", () => {
 
     test("an explicit default_max_parallel in the repo config beats host discovery", () => {
       const dir = makeTempDir("explicit-beats-host");
-      writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ default_max_parallel: 3 }));
+      vfs.writeFileSync(
+        join(dir, "harness.config.json"),
+        JSON.stringify({ default_max_parallel: 3 }),
+      );
       const config = resolveHarnessConfig(dir, undefined, {
         hostConcurrency: { value: 20, hostTool: "claude-code" },
       });
@@ -86,14 +60,17 @@ describe("harness-config-precedence", () => {
 
     test("an explicit max_concurrent_agents beats host discovery but not an explicit default_max_parallel", () => {
       const dir = makeTempDir("max-concurrent-agents-precedence");
-      writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ max_concurrent_agents: 9 }));
+      vfs.writeFileSync(
+        join(dir, "harness.config.json"),
+        JSON.stringify({ max_concurrent_agents: 9 }),
+      );
       const withoutParallelOverride = resolveHarnessConfig(dir, undefined, {
         hostConcurrency: { value: 20, hostTool: "codex" },
       });
       expect(withoutParallelOverride.default_max_parallel).toBe(9);
       expect(withoutParallelOverride.default_max_parallel_source).toBe("config_override");
 
-      writeFileSync(
+      vfs.writeFileSync(
         join(dir, "harness.config.json"),
         JSON.stringify({ max_concurrent_agents: 9, default_max_parallel: 3 }),
       );
@@ -118,7 +95,7 @@ describe("harness-config-precedence", () => {
 
     test("a configured gate_max_parallel overrides the cores-derived default", () => {
       const dir = makeTempDir("gate-max-parallel-override");
-      writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ gate_max_parallel: 7 }));
+      vfs.writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ gate_max_parallel: 7 }));
       const config = resolveHarnessConfig(dir, undefined, { cpuCount: 10 });
       expect(config.gate_max_parallel).toBe(7);
     });
@@ -146,7 +123,7 @@ describe("harness-config-precedence", () => {
 
     test("reads every worktree knob from harness.config.json", () => {
       const dir = makeTempDir("worktree-knobs");
-      writeFileSync(
+      vfs.writeFileSync(
         join(dir, "harness.config.json"),
         JSON.stringify({
           worktree_isolation: true,
@@ -166,7 +143,7 @@ describe("harness-config-precedence", () => {
 
     test("rejects present wrong-typed worktree values rather than treating them as absent", () => {
       const dir = makeTempDir("worktree-wrong-types");
-      writeFileSync(
+      vfs.writeFileSync(
         join(dir, "harness.config.json"),
         JSON.stringify({ worktree_isolation: "yes" }),
       );

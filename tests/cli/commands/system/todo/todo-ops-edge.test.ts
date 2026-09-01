@@ -1,18 +1,23 @@
-import { afterEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { registerSessionGrant } from "../../../../../olt/scripts/src/authority/session/index.ts";
 import { initRun, transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
 import type { FeedbackItem } from "../../../../../olt/scripts/src/mind/feedback/queue/index.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
-afterEach(() => {
-  for (const root of roots) {
-    rmSync(root, { recursive: true, force: true });
-  }
-  roots.length = 0;
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(async () => {
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
 });
 
 function authorizeMind(repo: string): string {
@@ -35,7 +40,8 @@ function authorizeMind(repo: string): string {
 }
 
 function getTestDir(label: string): string {
-  const dir = realpathSync(mkdtempSync(join(tmpdir(), `todo-edge-${label}-`)));
+  const dir = `/virtual/cli/todo-edge-${label}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  mkdirSync(dir, { recursive: true });
   roots.push(dir);
   return dir;
 }

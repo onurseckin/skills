@@ -1,12 +1,13 @@
 import { expect } from "bun:test";
-import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../../olt/scripts/src/cli/execute.ts";
+import { setupVirtualCliFS } from "./full-lifecycle-fixture.ts";
 
 /** Drives a single-task run all the way to "ready for the completeness critic". */
 export async function setupReadyRun(name: string, roots: string[]) {
+  setupVirtualCliFS();
   const repo = `/virtual/cli/critic-run-${name}-${Math.random().toString(36).slice(2)}`;
   roots.push(repo);
   await mkdir(join(repo, ".git"), { recursive: true });
@@ -25,13 +26,6 @@ export async function setupReadyRun(name: string, roots: string[]) {
     "import { test } from 'bun:test'; test('all', () => {});\n",
   );
   await writeFile(join(repo, ".gitignore"), ".olt/capsules/\n");
-  try {
-    execFileSync("git", ["init", "-q"], { cwd: repo });
-    execFileSync("git", ["config", "user.email", "fixture@example.invalid"], { cwd: repo });
-    execFileSync("git", ["config", "user.name", "fixture"], { cwd: repo });
-    execFileSync("git", ["add", "-A"], { cwd: repo });
-    execFileSync("git", ["commit", "-qm", "baseline"], { cwd: repo });
-  } catch {}
 
   const init = await execute([
     "plan:init",

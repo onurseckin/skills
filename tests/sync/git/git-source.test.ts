@@ -1,6 +1,7 @@
-import { describe, expect, test } from "bun:test";
-import { spawnSync } from "node:child_process";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import * as childProcess from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import * as os from "node:os";
 import { join } from "node:path";
 import {
   areSignalHooksRegistered,
@@ -14,26 +15,22 @@ import {
   resolveOltSyncSource,
 } from "../../../scripts/sync/git-source.ts";
 import { scratchRoot } from "../sync-fixture.ts";
+import { defaultMockSpawnSync, initSkillsRepoAt } from "./git-fixture.ts";
 
-function git(args: string[], cwd: string): void {
-  const result = spawnSync("git", args, { cwd, encoding: "utf-8" });
-  if (result.status !== 0) {
-    throw new Error(`git ${args.join(" ")} failed in ${cwd}: ${result.stderr}`);
-  }
-}
+let spawnSpy: { mockRestore: () => void } | undefined;
+let tmpdirSpy: { mockRestore: () => void } | undefined;
 
-function initSkillsRepoAt(repoRoot: string): void {
-  mkdirSync(join(repoRoot, "olt"), { recursive: true });
-  writeFileSync(join(repoRoot, "olt", "SKILL.md"), "canonical-skill\n", "utf-8");
-  writeFileSync(join(repoRoot, "olt", "harness.ts"), "console.log('harness');\n", "utf-8");
-  writeFileSync(join(repoRoot, "package.json"), '{"name":"skills"}\n', "utf-8");
+beforeEach(() => {
+  spawnSpy = spyOn(childProcess, "spawnSync").mockImplementation(
+    defaultMockSpawnSync as typeof childProcess.spawnSync,
+  );
+  tmpdirSpy = spyOn(os, "tmpdir").mockReturnValue("/virtual/sync/tmp");
+});
 
-  git(["init", "--quiet", "--initial-branch", "main"], repoRoot);
-  git(["config", "user.email", "test@example.com"], repoRoot);
-  git(["config", "user.name", "Test"], repoRoot);
-  git(["add", "-A"], repoRoot);
-  git(["commit", "--quiet", "-m", "init"], repoRoot);
-}
+afterEach(() => {
+  spawnSpy?.mockRestore();
+  tmpdirSpy?.mockRestore();
+});
 
 describe("decideSyncSource", () => {
   test("clean tree without --allow-dirty proceeds from HEAD", () => {
@@ -119,7 +116,6 @@ describe("getDirtyOltPaths", () => {
 
     writeFileSync(join(root, "olt", "SKILL.md"), "dirty-edit\n", "utf-8");
     writeFileSync(join(root, "olt", "untracked.ts"), "new\n", "utf-8");
-    git(["add", "-N", "olt/untracked.ts"], root);
     renameSync(join(root, "olt", "harness.ts"), join(root, "olt", "harness-renamed.ts"));
 
     const dirty = getDirtyOltPaths(root);
@@ -182,27 +178,14 @@ describe("materializeOltFromHead", () => {
   test("throws if git archive produces empty stdout", () => {
     const root = scratchRoot(import.meta.path, "materialize-empty-stdout");
     initSkillsRepoAt(root);
-
-    const mockSpawn = ((cmd: string) => {
-      if (cmd === "git") {
-        return {
-          status: 0,
-          stdout: Buffer.alloc(0),
-          stderr: Buffer.alloc(0),
-          pid: 1,
-          output: [],
-          signal: null,
-        };
-      }
-      return {
-        status: 0,
-        stdout: Buffer.alloc(0),
-        stderr: Buffer.alloc(0),
-        pid: 1,
-        output: [],
-        signal: null,
-      };
-    }) as unknown as typeof spawnSync;
+    const mockSpawn = (() => ({
+      status: 0,
+      stdout: Buffer.alloc(0),
+      stderr: Buffer.alloc(0),
+      pid: 1,
+      output: [],
+      signal: null,
+    })) as unknown as typeof childProcess.spawnSync;
 
     expect(() => materializeOltFromHead(root, undefined, mockSpawn)).toThrow(/produced no output/);
   });
@@ -210,7 +193,6 @@ describe("materializeOltFromHead", () => {
   test("throws if tar extract fails", () => {
     const root = scratchRoot(import.meta.path, "materialize-tar-fail");
     initSkillsRepoAt(root);
-
     const mockSpawn = ((cmd: string) => {
       if (cmd === "git") {
         return {
@@ -222,25 +204,15 @@ describe("materializeOltFromHead", () => {
           signal: null,
         };
       }
-      if (cmd === "tar") {
-        return {
-          status: 1,
-          stdout: Buffer.alloc(0),
-          stderr: Buffer.from("tar extract error"),
-          pid: 1,
-          output: [],
-          signal: null,
-        };
-      }
       return {
-        status: 0,
+        status: 1,
         stdout: Buffer.alloc(0),
-        stderr: Buffer.alloc(0),
+        stderr: Buffer.from("tar extract error"),
         pid: 1,
         output: [],
         signal: null,
       };
-    }) as unknown as typeof spawnSync;
+    }) as unknown as typeof childProcess.spawnSync;
 
     expect(() => materializeOltFromHead(root, undefined, mockSpawn)).toThrow(
       /failed to extract HEAD olt\/ archive/,

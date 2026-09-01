@@ -16,78 +16,50 @@ import type {
   RoundExecutor,
   WatchdogEvent,
 } from "../../../olt/scripts/src/orchestrator/types.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("AutonomousLoopRunner Unit Tests", () => {
-  const mockFiles = new Map<string, string>();
-  const mockDirs = new Set<string>();
-  const spies: { mockRestore: () => void }[] = [];
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession | undefined;
+  let worktreeSpy: { mockRestore: () => void } | undefined;
   let rootCounter = 0;
 
   function testDir(name: string): string {
-    const dir = `/tmp/virtual-autonomous-loop-${++rootCounter}-${name}`;
-    mockDirs.add(dir);
+    const dir = `/virtual/autonomous-loop-${++rootCounter}-${name}`;
+    vfs.mkdirSync(dir, { recursive: true });
     return dir;
   }
 
-  const origExists = fs.existsSync.bind(fs);
-  const origRead = fs.readFileSync.bind(fs);
-  const isVirt = (s: string) => s.startsWith("/tmp/virtual-") || s.startsWith("/virtual/");
-
   beforeEach(() => {
-    mockFiles.clear();
-    mockDirs.clear();
-    spies.push(
-      spyOn(worktreeModule, "createTrackWorktree").mockImplementation(((opts?: unknown) => {
-        const trackId =
-          typeof opts === "string"
-            ? opts
-            : ((opts as { trackId?: string })?.trackId ?? "track-test");
-        return {
-          trackId,
-          branch: `track/${trackId}`,
-          worktreePath: `/tmp/virtual-worktree-${trackId}`,
-          createdAt: new Date().toISOString(),
-        };
-      }) as unknown as typeof worktreeModule.createTrackWorktree),
-      spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => {
-        const s = String(p);
-        if (isVirt(s)) return mockFiles.has(s) || mockDirs.has(s);
-        return origExists(p);
-      }),
-      spyOn(fs, "mkdirSync").mockImplementation(((
-        p: fs.PathLike,
-        opts?: fs.MakeDirectoryOptions | boolean,
-      ) => {
-        const s = String(p);
-        mockDirs.add(s);
-        return undefined as unknown as string;
-      }) as unknown as typeof fs.mkdirSync),
-      spyOn(fs, "readFileSync").mockImplementation(((p: fs.PathOrFileDescriptor) => {
-        const s = String(p);
-        if (isVirt(s)) {
-          const val = mockFiles.get(s);
-          if (val !== undefined) return val;
-          throw new Error(`ENOENT: no such file, open '${s}'`);
-        }
-        return origRead(p as never);
-      }) as unknown as typeof fs.readFileSync),
-      spyOn(fs, "writeFileSync").mockImplementation(((
-        p: fs.PathOrFileDescriptor,
-        data: string | NodeJS.ArrayBufferView,
-      ) => {
-        const s = String(p);
-        mockFiles.set(
-          s,
-          typeof data === "string"
-            ? data
-            : Buffer.from(data.buffer, data.byteOffset, data.byteLength).toString("utf8"),
-        );
-      }) as unknown as typeof fs.writeFileSync),
-    );
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    worktreeSpy = spyOn(worktreeModule, "createTrackWorktree").mockImplementation(((
+      opts?: unknown,
+    ) => {
+      const trackId =
+        typeof opts === "string" ? opts : ((opts as { trackId?: string })?.trackId ?? "track-test");
+      return {
+        trackId,
+        branch: `track/${trackId}`,
+        worktreePath: `/virtual/worktree-${trackId}`,
+        createdAt: new Date().toISOString(),
+      };
+    }) as unknown as typeof worktreeModule.createTrackWorktree);
   });
 
   afterEach(() => {
-    while (spies.length > 0) spies.pop()?.mockRestore();
+    if (worktreeSpy) {
+      worktreeSpy.mockRestore();
+      worktreeSpy = undefined;
+    }
+    if (session) {
+      session.cleanup();
+      session = undefined;
+    }
   });
 
   const finding = (

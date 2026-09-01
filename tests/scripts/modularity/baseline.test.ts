@@ -1,34 +1,33 @@
-import { afterEach, beforeEach, describe, expect, test, spyOn } from "bun:test";
-import * as fsPromises from "node:fs/promises";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { loadBaseline } from "../../../scripts/modularity/policy/index.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("modularity baseline loader (in-memory virtual)", () => {
-  const root = `${process.cwd()}/.olt/virtual-modularity-baseline`;
-  const mockFiles = new Map<string, string>();
-  const spies: { mockRestore: () => void }[] = [];
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession | null = null;
+  const root = "/virtual/modularity-baseline";
 
   beforeEach(() => {
-    mockFiles.clear();
-    spies.push(
-      spyOn(fsPromises, "readFile").mockImplementation(
-        async (p: Parameters<typeof fsPromises.readFile>[0]) => {
-          const pathStr = String(p);
-          const content = mockFiles.get(pathStr);
-          if (content !== undefined) return content;
-          throw new Error(`ENOENT: no such file or directory, open '${pathStr}'`);
-        },
-      ),
-    );
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    vfs.mkdirSync(root, { recursive: true });
   });
 
   afterEach(() => {
-    while (spies.length > 0) spies.pop()?.mockRestore();
+    if (session) {
+      session.cleanup();
+      session = null;
+    }
   });
 
   function setFile(relativePath: string, data: unknown): void {
     const fullPath = join(root, relativePath);
-    mockFiles.set(fullPath, typeof data === "string" ? data : JSON.stringify(data));
+    vfs.writeFileSync(fullPath, typeof data === "string" ? data : JSON.stringify(data));
   }
 
   test("loads bounded shards and rejects a duplicate identity across them", async () => {

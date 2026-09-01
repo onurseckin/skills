@@ -1,6 +1,5 @@
-import { describe, expect, test, afterEach } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../../../olt/scripts/src/core/errors/index.ts";
 import { finalizePassingTask } from "../../../../../olt/scripts/src/cli/commands/task-review-support.ts";
@@ -11,14 +10,9 @@ import {
   TestPort,
   workflowState,
 } from "../../../../workflow/shared/test-port.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
-afterEach(() => {
-  while (roots.length > 0) {
-    const dir = roots.pop();
-    if (dir) rmSync(dir, { recursive: true, force: true });
-  }
-});
 
 const clock = at("2026-08-13T12:00:00.000Z");
 
@@ -54,6 +48,15 @@ function validatedPort(): TestPort {
 }
 
 describe("finalizePassingTask - Preconditions & Helpers", () => {
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualCliFS();
+    roots.length = 0;
+  });
+
   test("keeps finish precondition failures visible instead of leaving the task silently unfinished", () => {
     const cases: Array<{ name: string; prepare: (state: WorkflowState) => void }> = [
       { name: "missing report", prepare: (state) => delete state.tasks["T-1"]!.report },
@@ -179,8 +182,9 @@ describe("finalizePassingTask - Preconditions & Helpers", () => {
   test("persistProbeReport and persistReviewReport write JSON files to reports directory", async () => {
     const { persistProbeReport, persistReviewReport } =
       await import("../../../../../olt/scripts/src/cli/commands/task-review-support.ts");
-    const runDir = mkdtempSync(join(tmpdir(), "review-supp-reports-"));
+    const runDir = `/virtual/cli/review-supp-reports-${Math.random().toString(36).slice(2)}`;
     roots.push(runDir);
+    mkdirSync(runDir, { recursive: true });
 
     const probePath = persistProbeReport(runDir, "T-1", 1, { demand: "proof 1" });
     expect(existsSync(probePath)).toBeTrue();
@@ -206,7 +210,7 @@ describe("finalizePassingTask - Preconditions & Helpers", () => {
       repoRootOf,
       reviewPolicyFor,
     } = await import("../../../../../olt/scripts/src/cli/commands/task-review-support.ts");
-    const runDir = mkdtempSync(join(tmpdir(), "review-supp-manifests-"));
+    const runDir = `/virtual/cli/review-supp-manifests-${Math.random().toString(36).slice(2)}`;
     roots.push(runDir);
     mkdirSync(join(runDir, ".capsules"), { recursive: true });
     mkdirSync(join(runDir, ".olt"), { recursive: true });
@@ -215,7 +219,7 @@ describe("finalizePassingTask - Preconditions & Helpers", () => {
     // Create captures directory and companion manifest
     const capturesDir = `${runDir}/captures`;
     const manifestPath = `${capturesDir}/button.manifest.json`;
-    await Bun.write(
+    writeFileSync(
       manifestPath,
       JSON.stringify({
         id: "btn-manifest",
@@ -223,7 +227,7 @@ describe("finalizePassingTask - Preconditions & Helpers", () => {
         criteria: [],
       }),
     );
-    await Bun.write(`${capturesDir}/other.txt`, "hello");
+    writeFileSync(`${capturesDir}/other.txt`, "hello");
 
     const manifests = collectCompanionManifests(runDir, "T-UI");
     expect(manifests.length).toBeGreaterThanOrEqual(1);

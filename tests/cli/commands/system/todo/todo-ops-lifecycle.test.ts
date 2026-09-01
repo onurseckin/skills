@@ -1,6 +1,5 @@
-import { afterEach, describe, expect, it } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import {
   mindQueueDrainCommand,
@@ -14,17 +13,24 @@ import {
   writeFeedbackQueue,
   type FeedbackItem,
 } from "../../../../../olt/scripts/src/mind/feedback/queue/index.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
-afterEach(() => {
-  for (const root of roots) {
-    rmSync(root, { recursive: true, force: true });
-  }
-  roots.length = 0;
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(async () => {
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
 });
 
 function getTestDir(label: string): string {
-  const dir = mkdtempSync(join(tmpdir(), `todo-lifecycle-${label}-`));
+  const dir = `/virtual/cli/todo-lifecycle-${label}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  mkdirSync(dir, { recursive: true });
   roots.push(dir);
   return dir;
 }

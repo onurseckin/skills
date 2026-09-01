@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, rmSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import {
   msgRecvCommand,
@@ -14,11 +14,16 @@ import {
 import { verifyEnvelopeHmac } from "../../../../../../olt/scripts/src/communication/mailbox/index.ts";
 import type { MailboxEnvelope } from "../../../../../../olt/scripts/src/communication/types.ts";
 import { HarnessError } from "../../../../../../olt/scripts/src/core/errors/index.ts";
+import {
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../../fixtures/full-lifecycle-fixture.ts";
 
 describe("Mailbox CLI Operations - Core Send/Recv Workflows", () => {
   let testRoot: string;
 
   beforeEach(() => {
+    setupVirtualCliFS();
     testRoot = join(
       process.cwd(),
       "coverage",
@@ -29,7 +34,7 @@ describe("Mailbox CLI Operations - Core Send/Recv Workflows", () => {
   });
 
   afterEach(() => {
-    if (existsSync(testRoot)) rmSync(testRoot, { recursive: true, force: true });
+    cleanupVirtualCliFS();
   });
 
   describe("registry and specification", () => {

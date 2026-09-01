@@ -1,7 +1,6 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import {
   policyCheckDriftCommand,
   policyGetCommand,
@@ -13,27 +12,21 @@ import {
   generateDefaultRepoPolicy,
   saveRepoPolicy,
 } from "../../../../../olt/scripts/src/policy/index.ts";
-
-const tempDirs: string[] = [];
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
 function createTempRepo(label: string): string {
-  const dir = join(
-    tmpdir(),
-    `policy-ops-test-${label}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-  );
+  const dir = `/virtual/cli/policy-ops-test-${label}-${Date.now()}`;
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, "package.json"), "{}", "utf-8");
-  tempDirs.push(dir);
   return dir;
 }
 
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+
 afterEach(() => {
-  for (const dir of tempDirs) {
-    try {
-      rmSync(dir, { recursive: true, force: true });
-    } catch {}
-  }
-  tempDirs.length = 0;
+  cleanupVirtualCliFS();
 });
 
 describe("policy-ops CLI commands", () => {

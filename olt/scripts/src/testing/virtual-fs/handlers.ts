@@ -27,31 +27,30 @@ export const {
   closeSync: origClose,
 } = fs;
 
+const NOOP_FALSE = () => false;
+const fsErr = (code: string, msg: string) => Object.assign(new Error(`${code}: ${msg}`), { code });
+
 export function normPath(p: string | number): string {
-  let resolved = path.resolve(String(p)).replace(/\\/g, "/");
-  if (resolved.startsWith("/private/var/")) resolved = "/var/" + resolved.slice(13);
-  else if (resolved.startsWith("/private/tmp/")) resolved = "/tmp/" + resolved.slice(13);
-  else if (resolved === "/private/var") resolved = "/var";
-  else if (resolved === "/private/tmp") resolved = "/tmp";
-  return resolved;
+  const resolved = path.resolve(String(p)).replace(/\\/g, "/");
+  return resolved.replace(/^\/private\/(var|tmp)(\/|$)/, "/$1$2");
 }
+
+const VIRTUAL_SEGMENTS = [
+  "/virtual",
+  "/scratch",
+  "/coverage",
+  "/tmp",
+  "/runner",
+  "\\runner",
+  "skills-runner",
+  ".olt/worktrees",
+  ".olt/runs",
+  ".olt/locks",
+];
 
 export function isVirtualPath(s: string): boolean {
-  return (
-    s.startsWith("/virtual") ||
-    s.includes("/scratch") ||
-    s.includes("/coverage") ||
-    s.includes("/tmp") ||
-    s.includes("/runner") ||
-    s.includes("\\runner") ||
-    s.includes("skills-runner") ||
-    s.includes(".olt/worktrees") ||
-    s.includes(".olt/runs") ||
-    s.includes(".olt/locks")
-  );
+  return VIRTUAL_SEGMENTS.some((p) => s.includes(p));
 }
-
-const NOOP_FALSE = () => false;
 
 export function getInode(state: VirtualFSSpyState, targetPath: string): number {
   const norm = normPath(targetPath);
@@ -70,11 +69,31 @@ export function checkRmPermissions(
 ): void {
   for (const [k, mode] of state.customModes.entries()) {
     const isDir = state.vfs.statSync(k, { throwIfNoEntry: false })?.isDirectory();
-    if (isDir && (k === np || k.startsWith(np + "/")) && (mode & 0o222) === 0) {
-      throw Object.assign(new Error(`EACCES: permission denied, rm '${k}'`), { code: "EACCES" });
+    const denied = (mode & 0o222) === 0;
+    if (isDir && (k === np || k.startsWith(np + "/")) && denied) {
+      throw fsErr("EACCES", `permission denied, rm '${k}'`);
     }
-    if (!opts?.force && k === np && (mode & 0o222) === 0) {
-      throw Object.assign(new Error(`EACCES: permission denied, rm '${k}'`), { code: "EACCES" });
+    if (!opts?.force && k === np && denied) {
+      throw fsErr("EACCES", `permission denied, rm '${k}'`);
+    }
+  }
+}
+
+function checkParentExec(state: VirtualFSSpyState, target: string, op: string): void {
+  const parentMode = state.customModes.get(path.dirname(target));
+  if (parentMode !== undefined && (parentMode & 0o111) === 0) {
+    throw fsErr("EACCES", `permission denied, ${op} '${target}'`);
+  }
+}
+
+function remapPrefix(map: Map<string, number>, src: string, dst: string): void {
+  for (const [k, v] of map) {
+    if (k === src) {
+      map.delete(k);
+      map.set(dst, v);
+    } else if (k.startsWith(src + "/")) {
+      map.delete(k);
+      map.set(dst + k.slice(src.length), v);
     }
   }
 }
@@ -94,7 +113,6 @@ export function makeFsStats(
   const uid = typeof process.getuid === "function" ? process.getuid() : 0;
   const gid = typeof process.getgid === "function" ? process.getgid() : 0;
   const B = bigint ? BigInt : Number;
-  const bm = BigInt(mtimeMs);
   const res: Record<string, unknown> = {
     isFile: () => !isLink && s.isFile(),
     isDirectory: () => !isLink && s.isDirectory(),
@@ -123,31 +141,43 @@ export function makeFsStats(
     blocks: B(Math.ceil(s.size / 512)),
   };
   if (bigint) {
-    res["atimeNs"] = BigInt(s.atimeMs) * 1000000n;
-    res["mtimeNs"] = bm * 1000000n;
-    res["ctimeNs"] = BigInt(s.ctimeMs) * 1000000n;
-    res["birthtimeNs"] = BigInt(s.birthtimeMs) * 1000000n;
+    const scale = (ms: number) => BigInt(ms) * 1000000n;
+    res["atimeNs"] = scale(s.atimeMs);
+    res["mtimeNs"] = scale(mtimeMs);
+    res["ctimeNs"] = scale(s.ctimeMs);
+    res["birthtimeNs"] = scale(s.birthtimeMs);
   }
   return res as unknown as fs.Stats;
 }
 
-export function copyDirRecursive(vfs: VirtualMemoryFS, srcStr: string, dstStr: string): void {
+export function copyDirRecursive(
+  vfs: VirtualMemoryFS,
+  srcStr: string,
+  dstStr: string,
+  state?: VirtualFSSpyState,
+): void {
   vfs.mkdirSync(dstStr, { recursive: true });
   for (const entry of vfs.readdirSync(srcStr, { recursive: true }) as string[]) {
     const cSrc = `${srcStr}/${entry}`;
     const cDst = `${dstStr}/${entry}`;
-    if (vfs.statSync(cSrc, { throwIfNoEntry: false })?.isDirectory())
+    if (vfs.statSync(cSrc, { throwIfNoEntry: false })?.isDirectory()) {
       vfs.mkdirSync(cDst, { recursive: true });
-    else if (vfs.statSync(cSrc, { throwIfNoEntry: false })?.isFile())
+    } else if (vfs.statSync(cSrc, { throwIfNoEntry: false })?.isFile()) {
       vfs.writeFileSync(cDst, vfs.readFileSync(cSrc));
+      if (state) {
+        const m = state.customModes.get(normPath(cSrc));
+        if (m !== undefined) state.customModes.set(normPath(cDst), m);
+      }
+    }
   }
 }
 
 export function mockExists(state: VirtualFSSpyState, p: fs.PathLike): boolean {
   const s = String(p);
   const norm = normPath(s);
-  if (state.vfs.existsSync(s) || state.vfs.existsSync(norm) || state.symlinks.has(norm))
+  if (state.vfs.existsSync(s) || state.vfs.existsSync(norm) || state.symlinks.has(norm)) {
     return true;
+  }
   if (isVirtualPath(s)) return false;
   try {
     return origExists(s);
@@ -162,8 +192,9 @@ export function mockMkdir(
   opts?: fs.MakeDirectoryOptions | boolean,
 ): string | undefined {
   const target = normPath(String(p));
-  if (typeof opts === "object" && opts !== null && typeof opts.mode === "number")
+  if (typeof opts === "object" && opts !== null && typeof opts.mode === "number") {
     state.customModes.set(target, opts.mode);
+  }
   return state.vfs.mkdirSync(target, opts as Parameters<typeof state.vfs.mkdirSync>[1]);
 }
 
@@ -178,18 +209,17 @@ export function mockWriteFile(
   if (parent) {
     const parentMode = state.customModes.get(parent);
     if (parentMode !== undefined && (parentMode & 0o200) === 0) {
-      throw Object.assign(new Error(`EACCES: permission denied, open '${target}'`), {
-        code: "EACCES",
-      });
+      throw fsErr("EACCES", `permission denied, open '${target}'`);
     }
+    if (!state.vfs.existsSync(parent)) state.vfs.mkdirSync(parent, { recursive: true });
   }
-  if (parent && !state.vfs.existsSync(parent)) state.vfs.mkdirSync(parent, { recursive: true });
   state.vfs.writeFileSync(
     target,
     typeof data === "string" ? data : Buffer.from(data as Uint8Array),
   );
-  if (typeof opts === "object" && opts !== null && typeof opts.mode === "number")
+  if (typeof opts === "object" && opts !== null && typeof opts.mode === "number") {
     state.customModes.set(target, opts.mode);
+  }
 }
 
 export function mockReadFile(
@@ -209,9 +239,7 @@ export function mockReadFile(
   const lookup = state.vfs.existsSync(normPath(s)) ? normPath(s) : s;
   if (state.vfs.existsSync(lookup)) {
     if (state.vfs.statSync(lookup, { throwIfNoEntry: false })?.isDirectory()) {
-      throw Object.assign(new Error(`EISDIR: illegal operation on a directory, read '${lookup}'`), {
-        code: "EISDIR",
-      });
+      throw fsErr("EISDIR", `illegal operation on a directory, read '${lookup}'`);
     }
     return typeof opts === "string" || (typeof opts === "object" && opts?.encoding)
       ? state.vfs.readFileSync(lookup, "utf8")
@@ -220,9 +248,7 @@ export function mockReadFile(
   try {
     return origRead(s, opts as BufferEncoding);
   } catch {}
-  throw Object.assign(new Error(`ENOENT: no such file or directory, open '${lookup}'`), {
-    code: "ENOENT",
-  });
+  throw fsErr("ENOENT", `no such file or directory, open '${lookup}'`);
 }
 
 export function mockReaddir(
@@ -249,15 +275,9 @@ export function mockStat(
   p: fs.PathLike,
   opts?: fs.StatOptions,
 ): fs.Stats {
-  const s = String(p),
-    target = state.symlinks.get(normPath(s)) ?? normPath(s);
-  const parent = path.dirname(target),
-    parentMode = state.customModes.get(parent);
-  if (parentMode !== undefined && (parentMode & 0o111) === 0) {
-    throw Object.assign(new Error(`EACCES: permission denied, stat '${target}'`), {
-      code: "EACCES",
-    });
-  }
+  const s = String(p);
+  const target = state.symlinks.get(normPath(s)) ?? normPath(s);
+  checkParentExec(state, target, "stat");
   const isBig = Boolean(opts && typeof opts === "object" && opts.bigint);
   const vs =
     state.vfs.statSync(target, { throwIfNoEntry: false }) ??
@@ -266,9 +286,7 @@ export function mockStat(
   try {
     return origStat(s, opts as never);
   } catch {}
-  throw Object.assign(new Error(`ENOENT: no such file or directory, stat '${s}'`), {
-    code: "ENOENT",
-  });
+  throw fsErr("ENOENT", `no such file or directory, stat '${s}'`);
 }
 
 export function mockLstat(
@@ -276,15 +294,9 @@ export function mockLstat(
   p: fs.PathLike,
   opts?: fs.StatOptions,
 ): fs.Stats {
-  const s = String(p),
-    norm = normPath(s);
-  const parent = path.dirname(norm),
-    parentMode = state.customModes.get(parent);
-  if (parentMode !== undefined && (parentMode & 0o111) === 0) {
-    throw Object.assign(new Error(`EACCES: permission denied, lstat '${norm}'`), {
-      code: "EACCES",
-    });
-  }
+  const s = String(p);
+  const norm = normPath(s);
+  checkParentExec(state, norm, "lstat");
   const isBig = Boolean(opts && typeof opts === "object" && opts.bigint);
   if (state.symlinks.has(norm)) {
     const target = state.symlinks.get(norm)!;
@@ -302,14 +314,12 @@ export function mockLstat(
   try {
     return origLstat(s, opts as never);
   } catch {}
-  const err = new Error(`ENOENT: no such file or directory, lstat '${s}'`);
-  (err as unknown as { code: string }).code = "ENOENT";
-  throw err;
+  throw fsErr("ENOENT", `no such file or directory, lstat '${s}'`);
 }
 
 export function mockRename(state: VirtualFSSpyState, src: fs.PathLike, dst: fs.PathLike): void {
-  const srcStr = normPath(String(src)),
-    dstStr = normPath(String(dst));
+  const srcStr = normPath(String(src));
+  const dstStr = normPath(String(dst));
   if (state.symlinks.has(srcStr)) {
     const target = state.symlinks.get(srcStr)!;
     state.symlinks.delete(srcStr);
@@ -320,35 +330,15 @@ export function mockRename(state: VirtualFSSpyState, src: fs.PathLike, dst: fs.P
   }
   const stat = state.vfs.statSync(srcStr, { throwIfNoEntry: false });
   if (!stat) {
-    throw Object.assign(
-      new Error(`ENOENT: no such file or directory, rename '${srcStr}' -> '${dstStr}'`),
-      { code: "ENOENT" },
-    );
+    throw fsErr("ENOENT", `no such file or directory, rename '${srcStr}' -> '${dstStr}'`);
   }
-  for (const [k, v] of state.customModes) {
-    if (k === srcStr) {
-      state.customModes.delete(k);
-      state.customModes.set(dstStr, v);
-    } else if (k.startsWith(srcStr + "/")) {
-      state.customModes.delete(k);
-      state.customModes.set(dstStr + k.slice(srcStr.length), v);
-    }
-  }
-  for (const [k, v] of state.customMtimes) {
-    if (k === srcStr) {
-      state.customMtimes.delete(k);
-      state.customMtimes.set(dstStr, v);
-    } else if (k.startsWith(srcStr + "/")) {
-      state.customMtimes.delete(k);
-      state.customMtimes.set(dstStr + k.slice(srcStr.length), v);
-    }
-  }
+  remapPrefix(state.customModes, srcStr, dstStr);
+  remapPrefix(state.customMtimes, srcStr, dstStr);
   const srcIno = state.inodeMap.get(srcStr);
   state.inodeMap.delete(srcStr);
-  if (srcIno !== undefined) state.inodeMap.set(dstStr, srcIno);
-  else state.inodeMap.set(dstStr, state.nextIno.value++);
+  state.inodeMap.set(dstStr, srcIno ?? state.nextIno.value++);
   if (stat.isDirectory()) {
-    copyDirRecursive(state.vfs, srcStr, dstStr);
+    copyDirRecursive(state.vfs, srcStr, dstStr, state);
     state.vfs.rmSync(srcStr, { recursive: true, force: true });
   } else {
     state.vfs.writeFileSync(dstStr, state.vfs.readFileSync(srcStr));
@@ -357,14 +347,12 @@ export function mockRename(state: VirtualFSSpyState, src: fs.PathLike, dst: fs.P
 }
 
 export function mockLink(state: VirtualFSSpyState, src: fs.PathLike, dst: fs.PathLike): void {
-  const srcStr = normPath(String(src)),
-    dstStr = normPath(String(dst));
+  const srcStr = normPath(String(src));
+  const dstStr = normPath(String(dst));
   const stat = state.vfs.statSync(srcStr, { throwIfNoEntry: false });
-  if (!stat)
-    throw Object.assign(
-      new Error(`ENOENT: no such file or directory, link '${srcStr}' -> '${dstStr}'`),
-      { code: "ENOENT" },
-    );
+  if (!stat) {
+    throw fsErr("ENOENT", `no such file or directory, link '${srcStr}' -> '${dstStr}'`);
+  }
   state.vfs.writeFileSync(dstStr, state.vfs.readFileSync(srcStr));
   const ino = getInode(state, srcStr);
   state.inodeMap.set(dstStr, ino);
@@ -373,17 +361,19 @@ export function mockLink(state: VirtualFSSpyState, src: fs.PathLike, dst: fs.Pat
 }
 
 export function mockCp(state: VirtualFSSpyState, src: string | URL, dst: string | URL): void {
-  const srcStr = normPath(String(src)),
-    dstStr = normPath(String(dst));
+  const srcStr = normPath(String(src));
+  const dstStr = normPath(String(dst));
   const stat = state.vfs.statSync(srcStr, { throwIfNoEntry: false });
   if (!stat) {
-    throw Object.assign(
-      new Error(`ENOENT: no such file or directory, cp '${srcStr}' -> '${dstStr}'`),
-      { code: "ENOENT" },
-    );
+    throw fsErr("ENOENT", `no such file or directory, cp '${srcStr}' -> '${dstStr}'`);
   }
-  if (stat.isDirectory()) copyDirRecursive(state.vfs, srcStr, dstStr);
-  else state.vfs.writeFileSync(dstStr, state.vfs.readFileSync(srcStr));
+  if (stat.isDirectory()) {
+    copyDirRecursive(state.vfs, srcStr, dstStr, state);
+  } else {
+    state.vfs.writeFileSync(dstStr, state.vfs.readFileSync(srcStr));
+    const m = state.customModes.get(srcStr);
+    if (m !== undefined) state.customModes.set(dstStr, m);
+  }
 }
 
 export function mockOpendir(
@@ -395,21 +385,19 @@ export function mockOpendir(
   const lookup = state.vfs.existsSync(normPath(s)) ? normPath(s) : s;
   if (state.vfs.existsSync(lookup)) {
     const entries = state.vfs.readdirSync(lookup) as string[];
-    let idx = 0,
-      closed = false;
+    let idx = 0;
+    let closed = false;
+    const isBuf = (opts as { encoding?: string } | undefined)?.encoding === "buffer";
     const dirObj = {
       path: s,
       readSync(): fs.Dirent | null {
         if (closed || idx >= entries.length) return null;
-        const name = entries[idx++]!,
-          ep = `${lookup}/${name}`,
-          vs = state.vfs.statSync(ep, { throwIfNoEntry: false }),
-          isSym = state.symlinks.has(normPath(ep));
+        const name = entries[idx++]!;
+        const ep = `${lookup}/${name}`;
+        const vs = state.vfs.statSync(ep, { throwIfNoEntry: false });
+        const isSym = state.symlinks.has(normPath(ep));
         return {
-          name:
-            (opts as { encoding?: string } | undefined)?.encoding === "buffer"
-              ? Buffer.from(name)
-              : name,
+          name: isBuf ? Buffer.from(name) : name,
           isDirectory: () => (vs?.isDirectory() ?? false) && !isSym,
           isFile: () => (vs?.isFile() ?? false) && !isSym,
           isSymbolicLink: () => isSym,
@@ -440,7 +428,5 @@ export function mockOpendir(
     return dirObj as unknown as fs.Dir;
   }
   if (!isVirtualPath(s)) return origOpendir(s, opts as fs.OpenDirOptions);
-  throw Object.assign(new Error(`ENOENT: no such file or directory, opendir '${lookup}'`), {
-    code: "ENOENT",
-  });
+  throw fsErr("ENOENT", `no such file or directory, opendir '${lookup}'`);
 }

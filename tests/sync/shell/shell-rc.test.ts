@@ -214,7 +214,11 @@ describe("ensurePathInShellRc", () => {
   });
 
   test("handles errors gracefully and returns error reason", () => {
-    const invalidRcPath = "/dev/null/impossible/path/.zshrc";
+    const root = scratchRoot(import.meta.path, "shell-rc-error");
+    const blockedFile = join(root, "blocking-file");
+    writeFileSync(blockedFile, "file-not-dir", "utf-8");
+
+    const invalidRcPath = join(blockedFile, "impossible", ".zshrc");
     const result = ensurePathInShellRc({
       customRcPath: invalidRcPath,
     });

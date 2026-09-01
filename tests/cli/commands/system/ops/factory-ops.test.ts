@@ -1,6 +1,5 @@
-import { describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   factoryPreplanCommand,
@@ -8,8 +7,17 @@ import {
   formatFactoryPreplanBrief,
   formatFactoryStatusBrief,
 } from "../../../../../olt/scripts/src/cli/commands/factory-ops.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
 describe("CLI Operations for Pre-Planning & Assembly Stations (Task 4.1)", () => {
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualCliFS();
+  });
+
   it("formats factory preplan brief and factory status brief cleanly in markdown", () => {
     const mockPreplanResult = {
       clusters: [
@@ -52,59 +60,51 @@ describe("CLI Operations for Pre-Planning & Assembly Stations (Task 4.1)", () =>
   });
 
   it("executes factoryPreplanCommand and generates plans on workspace", () => {
-    const tempDir = mkdtempSync(join(tmpdir(), "factory-cli-test-"));
-    try {
-      const oltDir = join(tempDir, ".olt");
-      mkdirSync(oltDir, { recursive: true });
-      const backlogFile = join(oltDir, "backlog.jsonl");
-      const defectsFile = join(oltDir, "defects.jsonl");
+    const tempDir = `/virtual/cli/factory-cli-test-${Date.now()}`;
+    const oltDir = join(tempDir, ".olt");
+    mkdirSync(oltDir, { recursive: true });
+    const backlogFile = join(oltDir, "backlog.jsonl");
+    const defectsFile = join(oltDir, "defects.jsonl");
 
-      writeFileSync(
-        backlogFile,
-        JSON.stringify({
-          id: "fb-cli-1",
-          title: "Implement CLI factory commands",
-          category: "tooling",
-          status: "PENDING",
-        }) + "\n",
-      );
-      writeFileSync(defectsFile, "");
+    writeFileSync(
+      backlogFile,
+      JSON.stringify({
+        id: "fb-cli-1",
+        title: "Implement CLI factory commands",
+        category: "tooling",
+        status: "PENDING",
+      }) + "\n",
+    );
+    writeFileSync(defectsFile, "");
 
-      const res = factoryPreplanCommand({ root: tempDir });
-      expect(res.result.clusters.length).toBe(1);
-      expect(res.result.items_planned).toBe(1);
-      expect(res.markdown).toContain("Clusters Created**: 1");
-    } finally {
-      rmSync(tempDir, { recursive: true, force: true });
-    }
+    const res = factoryPreplanCommand({ root: tempDir });
+    expect(res.result.clusters.length).toBe(1);
+    expect(res.result.items_planned).toBe(1);
+    expect(res.markdown).toContain("Clusters Created**: 1");
   });
 
   it("executes factoryStatusCommand and reports accurate queue and audit metrics", () => {
-    const tempDir = mkdtempSync(join(tmpdir(), "factory-status-test-"));
-    try {
-      const oltDir = join(tempDir, ".olt");
-      mkdirSync(oltDir, { recursive: true });
-      const backlogFile = join(oltDir, "backlog.jsonl");
-      const defectsFile = join(oltDir, "defects.jsonl");
+    const tempDir = `/virtual/cli/factory-status-test-${Date.now()}`;
+    const oltDir = join(tempDir, ".olt");
+    mkdirSync(oltDir, { recursive: true });
+    const backlogFile = join(oltDir, "backlog.jsonl");
+    const defectsFile = join(oltDir, "defects.jsonl");
 
-      writeFileSync(
-        backlogFile,
-        JSON.stringify({
-          id: "fb-open-1",
-          title: "Open feedback item",
-          category: "core",
-          status: "PENDING",
-        }) + "\n",
-      );
-      writeFileSync(defectsFile, "");
+    writeFileSync(
+      backlogFile,
+      JSON.stringify({
+        id: "fb-open-1",
+        title: "Open feedback item",
+        category: "core",
+        status: "PENDING",
+      }) + "\n",
+    );
+    writeFileSync(defectsFile, "");
 
-      const res = factoryStatusCommand({ root: tempDir });
-      expect(res.status.pending_backlog).toBe(1);
-      expect(res.status.open_defects).toBe(0);
-      expect(res.status.preplanning_needed).toBe(true);
-      expect(res.markdown).toContain("Factory Engine & Assembly Pipeline Status");
-    } finally {
-      rmSync(tempDir, { recursive: true, force: true });
-    }
+    const res = factoryStatusCommand({ root: tempDir });
+    expect(res.status.pending_backlog).toBe(1);
+    expect(res.status.open_defects).toBe(0);
+    expect(res.status.preplanning_needed).toBe(true);
+    expect(res.markdown).toContain("Factory Engine & Assembly Pipeline Status");
   });
 });

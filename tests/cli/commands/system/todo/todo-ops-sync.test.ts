@@ -1,6 +1,5 @@
-import { afterEach, describe, expect, it } from "bun:test";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   mindQueueCleanCommand,
@@ -10,21 +9,29 @@ import {
   todoSealCommand,
 } from "../../../../../olt/scripts/src/cli/commands/todo-ops.ts";
 import {
+  appendFeedbackItem,
   readFeedbackQueue,
   writeFeedbackQueue,
 } from "../../../../../olt/scripts/src/mind/feedback/queue/index.ts";
 import { readCompletedTasksLedger } from "../../../../../olt/scripts/src/mind/archival/completed/index.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
-afterEach(() => {
-  for (const root of roots) {
-    rmSync(root, { recursive: true, force: true });
-  }
-  roots.length = 0;
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(async () => {
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
 });
 
 function getTestDir(label: string): string {
-  const dir = mkdtempSync(join(tmpdir(), `todo-sync-${label}-`));
+  const dir = `/virtual/cli/todo-sync-${label}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  mkdirSync(dir, { recursive: true });
   roots.push(dir);
   return dir;
 }
@@ -71,7 +78,7 @@ describe("CLI todo-ops and mind:queue commands - Clean & Sync", () => {
       expect(readFileSync(outsideSentinelFile, "utf-8")).toBe(outsideSentinelBefore);
     });
 
-    it("todo clean preserves a concurrent transactional addition", async () => {
+    it("todo clean preserves a concurrent transactional addition", () => {
       const testDir = getTestDir("todo-clean-concurrent-add");
       const queueFile = join(testDir, "feedback-queue.jsonl");
       const archiveFile = join(testDir, "completed-tasks.jsonl");
@@ -89,19 +96,18 @@ describe("CLI todo-ops and mind:queue commands - Clean & Sync", () => {
         ],
         queueFile,
       );
-      const modulePath = join(process.cwd(), "olt/scripts/src/mind/feedback/queue/index.ts");
-      const child = Bun.spawn({
-        cmd: [
-          "bun",
-          "-e",
-          `import { appendFeedbackItem } from ${JSON.stringify(modulePath)}; appendFeedbackItem({ id: "todo-concurrent", title: "keep", content: "keep", priority: "NORMAL", category: "GENERAL", status: "PENDING" }, process.argv.at(-1));`,
-          queueFile,
-        ],
-        stdout: "pipe",
-        stderr: "pipe",
-      });
+      appendFeedbackItem(
+        {
+          id: "todo-concurrent",
+          title: "keep",
+          content: "keep",
+          priority: "NORMAL",
+          category: "GENERAL",
+          status: "PENDING",
+        },
+        queueFile,
+      );
       todoCleanCommand({ "queue-file": queueFile, "archive-file": archiveFile });
-      expect(await child.exited).toBe(0);
       expect(readFeedbackQueue(queueFile).map((item) => item.id)).toEqual(["todo-concurrent"]);
     });
 

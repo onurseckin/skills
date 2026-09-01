@@ -1,15 +1,15 @@
 import { describe, expect, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { readAgentTranscriptTelemetry } from "../../../../olt/scripts/src/workflow/agents/transcript-telemetry.ts";
 import { setupWorkflowVirtualFs } from "../../shared/index.ts";
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
-function withTempDir<T>(fn: (dir: string) => T): T {
+function withTempDir<T>(fn: (dir: string, vfs: VirtualMemoryFS) => T): T {
   const { vfs, cleanup } = setupWorkflowVirtualFs();
   try {
     const dir = "/virtual/tmp/transcript-test";
     vfs.mkdirSync(dir, { recursive: true });
-    return fn(dir);
+    return fn(dir, vfs);
   } finally {
     cleanup();
   }
@@ -35,19 +35,19 @@ describe("workflow/agents/transcript-telemetry", () => {
   });
 
   test("parses full direct transcript and meta file with tool uses, errors, token cache and timestamps", () => {
-    withTempDir((homeDir) => {
+    withTempDir((homeDir, vfs) => {
       const sessionId = "sess-abc";
       const projectSlug = "test-project";
       const sessionDir = join(homeDir, ".claude", "projects", projectSlug, sessionId);
       const subagentsDir = join(sessionDir, "subagents");
-      mkdirSync(subagentsDir, { recursive: true });
+      vfs.mkdirSync(subagentsDir, { recursive: true });
 
       const agentId = "agent-xyz";
       const jsonlPath = join(subagentsDir, `agent-${agentId}.jsonl`);
       const metaPath = join(subagentsDir, `agent-${agentId}.meta.json`);
 
       // Write .meta.json
-      writeFileSync(
+      vfs.writeFileSync(
         metaPath,
         JSON.stringify({
           agentType: "critic",
@@ -117,12 +117,12 @@ describe("workflow/agents/transcript-telemetry", () => {
           },
         }),
       ];
-      writeFileSync(jsonlPath, lines.join("\n"));
+      vfs.writeFileSync(jsonlPath, lines.join("\n"));
 
       // Also create workflows directory with wf_1.json matching run context
       const workflowsDir = join(sessionDir, "workflows");
-      mkdirSync(workflowsDir, { recursive: true });
-      writeFileSync(
+      vfs.mkdirSync(workflowsDir, { recursive: true });
+      vfs.writeFileSync(
         join(workflowsDir, "wf_test.json"),
         JSON.stringify({
           runId: "wf-run-99",

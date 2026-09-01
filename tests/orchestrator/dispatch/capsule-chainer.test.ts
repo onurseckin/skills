@@ -1,55 +1,36 @@
-import { describe, expect, it, beforeEach, afterEach, spyOn } from "bun:test";
+import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import * as fs from "node:fs";
 import { join } from "node:path";
 import { chainCapsules } from "../../../olt/scripts/src/orchestrator/capsule-chainer.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import type { CapsuleChainManifest } from "../../../olt/scripts/src/orchestrator/types.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Capsule Chainer Unit Tests", () => {
-  const mockFiles = new Map<string, string>();
-  const mockDirs = new Set<string>();
-  const spies: { mockRestore: () => void }[] = [];
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession | undefined;
   let rootCounter = 0;
 
   function getTestDir(name: string): string {
-    const dir = `/tmp/virtual-chain-${++rootCounter}-${name}`;
-    mockDirs.add(dir);
+    const dir = `/virtual/chain-${++rootCounter}-${name}`;
+    vfs.mkdirSync(dir, { recursive: true });
     return dir;
   }
 
   beforeEach(() => {
-    mockFiles.clear();
-    mockDirs.clear();
-    spies.push(
-      spyOn(fs, "existsSync").mockImplementation(
-        (p: fs.PathLike) => mockFiles.has(String(p)) || mockDirs.has(String(p)),
-      ),
-      spyOn(fs, "mkdirSync").mockImplementation(((p: fs.PathLike) => {
-        mockDirs.add(String(p));
-        return undefined as unknown as string;
-      }) as unknown as typeof fs.mkdirSync),
-      spyOn(fs, "readFileSync").mockImplementation(((p: fs.PathOrFileDescriptor) => {
-        const s = String(p);
-        const val = mockFiles.get(s);
-        if (val !== undefined) return val;
-        throw new Error(`ENOENT: no such file, open '${s}'`);
-      }) as unknown as typeof fs.readFileSync),
-      spyOn(fs, "writeFileSync").mockImplementation(((
-        p: fs.PathOrFileDescriptor,
-        data: string | NodeJS.ArrayBufferView,
-      ) => {
-        mockFiles.set(
-          String(p),
-          typeof data === "string"
-            ? data
-            : Buffer.from(data.buffer, data.byteOffset, data.byteLength).toString("utf8"),
-        );
-      }) as unknown as typeof fs.writeFileSync),
-    );
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
-    while (spies.length > 0) spies.pop()?.mockRestore();
+    if (session) {
+      session.cleanup();
+      session = undefined;
+    }
   });
 
   it("chains capsule state, carryover requirements, and unresolved findings", () => {

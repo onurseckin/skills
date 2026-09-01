@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { execute } from "../../../../../../olt/scripts/src/cli/execute.ts";
 import {
@@ -9,11 +9,16 @@ import {
   msgSendCommand,
 } from "../../../../../../olt/scripts/src/cli/commands/index.ts";
 import { resolveMailboxPaths } from "../../../../../../olt/scripts/src/communication/mailbox/index.ts";
+import {
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../../fixtures/full-lifecycle-fixture.ts";
 
 describe("Mailbox IPC CLI Commands - Poll and List", () => {
   let testRoot: string;
 
   beforeEach(() => {
+    setupVirtualCliFS();
     testRoot = join(
       process.cwd(),
       "coverage",
@@ -24,7 +29,7 @@ describe("Mailbox IPC CLI Commands - Poll and List", () => {
   });
 
   afterEach(() => {
-    if (existsSync(testRoot)) rmSync(testRoot, { recursive: true, force: true });
+    cleanupVirtualCliFS();
   });
 
   describe("msg:poll command", () => {

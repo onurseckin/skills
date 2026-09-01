@@ -1,24 +1,45 @@
-import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { afterAll, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import { setGitRunnerForTesting } from "../../../../../olt/scripts/src/workflow/worktree/git.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "../../fixtures/task-ops-fixture.ts";
 
 const roots: string[] = [];
-afterAll(async () => cleanupRoots(roots));
+let restoreGitRunner: (() => void) | undefined;
+
+beforeEach(() => {
+  setupVirtualCliFS();
+  restoreGitRunner = setGitRunnerForTesting((_cwd, argv) => {
+    if (argv[0] === "rev-parse" && argv[1] === "HEAD") {
+      return { status: 0, stdout: "0123456789abcdef0123456789abcdef01234567\n", stderr: "" };
+    }
+    if (argv[0] === "symbolic-ref") {
+      return { status: 0, stdout: "main\n", stderr: "" };
+    }
+    return { status: 0, stdout: "", stderr: "" };
+  });
+});
+
+afterEach(async () => {
+  if (restoreGitRunner) {
+    restoreGitRunner();
+    restoreGitRunner = undefined;
+  }
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+});
 
 function createTestGitRepo(): string {
-  const repo = mkdtempSync(join(tmpdir(), "worktree-cli-test-"));
+  const repo = `/virtual/cli/worktree-cli-test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   roots.push(repo);
-  const opts = { cwd: repo, stdio: "ignore" as const };
-  spawnSync("git", ["init", "--quiet", "--initial-branch", "main"], opts);
-  spawnSync("git", ["config", "user.email", "test@test.test"], opts);
-  spawnSync("git", ["config", "user.name", "Test"], opts);
-  spawnSync("git", ["commit", "--allow-empty", "-m", "init"], opts);
+  mkdirSync(join(repo, ".git"), { recursive: true });
   return repo;
 }
 
@@ -58,7 +79,6 @@ describe("worktree:create", () => {
 
   test("creates a track worktree with custom base branch", async () => {
     const repo = createTestGitRepo();
-    spawnSync("git", ["branch", "custom-base"], { cwd: repo, stdio: "ignore" });
 
     const result = await execute([
       "worktree:create",
@@ -222,10 +242,7 @@ describe("worktree:reclaim", () => {
     const { repo, run } = await setupCompiledRun("worktree-reclaim-success", roots, {
       worktree_isolation: true,
     });
-    spawnSync("git", ["init", "--quiet", "--initial-branch", "main"], { cwd: repo });
-    spawnSync("git", ["config", "user.email", "test@test.test"], { cwd: repo });
-    spawnSync("git", ["config", "user.name", "Test"], { cwd: repo });
-    spawnSync("git", ["commit", "--allow-empty", "-m", "init"], { cwd: repo });
+    mkdirSync(join(repo, ".git"), { recursive: true });
     await seedLedger(run);
 
     const result = await execute(["worktree:reclaim", "--run", run, "--actor", "coordinator"]);
@@ -238,10 +255,7 @@ describe("worktree:reclaim", () => {
     const { repo, run } = await setupCompiledRun("worktree-reclaim-sealed", roots, {
       worktree_isolation: true,
     });
-    spawnSync("git", ["init", "--quiet", "--initial-branch", "main"], { cwd: repo });
-    spawnSync("git", ["config", "user.email", "test@test.test"], { cwd: repo });
-    spawnSync("git", ["config", "user.name", "Test"], { cwd: repo });
-    spawnSync("git", ["commit", "--allow-empty", "-m", "init"], { cwd: repo });
+    mkdirSync(join(repo, ".git"), { recursive: true });
     transact(run, "test-seed", "seed-worktree-ledger-and-seal", {}, (state) => {
       state.worktree_ledger = {
         harness_branch: "harness/worktree-ops-test",

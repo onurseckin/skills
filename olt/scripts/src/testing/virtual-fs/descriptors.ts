@@ -79,7 +79,13 @@ export function mockRead(
   const data = state.vfs.readFileSync(entry.path);
   const pos = position !== null && position !== undefined ? Number(position) : entry.position;
   const readLen = Math.min(length, Math.max(0, data.length - pos));
-  const targetBuf = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer.buffer);
+  const targetBuf = Buffer.isBuffer(buffer)
+    ? buffer
+    : Buffer.from(
+        buffer.buffer,
+        (buffer as ArrayBufferView).byteOffset,
+        (buffer as ArrayBufferView).byteLength,
+      );
   Buffer.from(data)
     .subarray(pos, pos + readLen)
     .copy(targetBuf, offset, 0, readLen);
@@ -116,7 +122,11 @@ export function mockWrite(
       ? Buffer.from(buffer)
       : Buffer.isBuffer(buffer)
         ? buffer
-        : Buffer.from(buffer.buffer);
+        : Buffer.from(
+            buffer.buffer,
+            (buffer as ArrayBufferView).byteOffset,
+            (buffer as ArrayBufferView).byteLength,
+          );
   const off = typeof offset === "number" ? offset : 0;
   const len = typeof length === "number" ? length : byteBuf.length;
   const slice = byteBuf.subarray(off, off + len);

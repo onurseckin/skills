@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import * as fs from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import * as harnessConfigModule from "../../../olt/scripts/src/core/config/index.ts";
 import {
@@ -11,16 +11,11 @@ import type {
   ExternallyAttestedFact,
   ExternallyAttestedSource,
 } from "../../../olt/scripts/src/core/config/provenance.ts";
-
-const writeFileSync = (p: fs.PathOrFileDescriptor, d: string | NodeJS.ArrayBufferView) =>
-  fs.writeFileSync(p, d);
-const mkdirSync = (p: fs.PathLike, opts?: fs.MakeDirectoryOptions | boolean) =>
-  fs.mkdirSync(p, opts);
-const readFileSync = (
-  p: fs.PathOrFileDescriptor,
-  opts?: { encoding?: BufferEncoding; flag?: string } | BufferEncoding,
-) => fs.readFileSync(p, opts as never);
-const readdirSync = fs.readdirSync.bind(fs);
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 const moduleExports = harnessConfigModule as unknown as Record<string, unknown>;
 
@@ -47,20 +42,19 @@ const HARNESS_CONFIG_SOURCE = join(HARNESS_SOURCE_ROOT, "core", "config", "contr
 const PROVENANCE_SOURCE = join(HARNESS_SOURCE_ROOT, "core", "config", "provenance.ts");
 
 describe("quota freeze threshold resolution", () => {
-  const mockFiles = new Map<string, string>();
-  const mockDirs = new Set<string>();
-  const spies: { mockRestore: () => void }[] = [];
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession | null = null;
   let dirCounter = 0;
 
   function makeTempDir(label: string): string {
     const dir = `/virtual/cfg-quota-${++dirCounter}-${label}`;
-    mockDirs.add(dir);
+    vfs.mkdirSync(dir, { recursive: true });
     return dir;
   }
 
   function writePolicy(dir: string, contents: string): void {
-    mkdirSync(join(dir, ".olt"), { recursive: true });
-    writeFileSync(join(dir, ".olt", "policy.json"), contents);
+    vfs.mkdirSync(join(dir, ".olt"), { recursive: true });
+    vfs.writeFileSync(join(dir, ".olt", "policy.json"), contents);
   }
 
   function readAccessor(): ThresholdAccessor {
@@ -83,50 +77,18 @@ describe("quota freeze threshold resolution", () => {
     return found;
   }
 
-  const origExists = fs.existsSync.bind(fs);
-  const origRead = fs.readFileSync.bind(fs);
-  const isVirt = (s: string) => s.startsWith("/virtual/") || s.startsWith("/tmp/");
-
   beforeEach(() => {
     resetHarnessConfigCache();
-    mockFiles.clear();
-    mockDirs.clear();
-    spies.push(
-      spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) =>
-        isVirt(String(p)) ? mockFiles.has(String(p)) || mockDirs.has(String(p)) : origExists(p),
-      ),
-      spyOn(fs, "mkdirSync").mockImplementation(((p: fs.PathLike) => {
-        mockDirs.add(String(p));
-        return undefined as unknown as string;
-      }) as unknown as typeof fs.mkdirSync),
-      spyOn(fs, "readFileSync").mockImplementation(((
-        p: fs.PathOrFileDescriptor,
-        opts?: unknown,
-      ) => {
-        if (isVirt(String(p))) {
-          const val = mockFiles.get(String(p));
-          if (val !== undefined) return val;
-          throw new Error(`ENOENT: ${String(p)}`);
-        }
-        return origRead(p as never, opts as never);
-      }) as unknown as typeof fs.readFileSync),
-      spyOn(fs, "writeFileSync").mockImplementation(((
-        p: fs.PathOrFileDescriptor,
-        d: string | NodeJS.ArrayBufferView,
-      ) => {
-        mockFiles.set(
-          String(p),
-          typeof d === "string"
-            ? d
-            : Buffer.from(d.buffer, d.byteOffset, d.byteLength).toString("utf8"),
-        );
-      }) as unknown as typeof fs.writeFileSync),
-    );
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
     resetHarnessConfigCache();
-    while (spies.length > 0) spies.pop()?.mockRestore();
+    if (session) {
+      session.cleanup();
+      session = null;
+    }
   });
 
   test("the operating floor is one named exported constant equal to 10", () => {
@@ -185,7 +147,7 @@ describe("quota freeze threshold resolution", () => {
   test("harness.config.json outranks .olt/policy.json for the same key", () => {
     const dir = makeTempDir("policy-layer-precedence");
     writePolicy(dir, JSON.stringify({ quota_freeze_threshold_pct: 22 }));
-    writeFileSync(
+    vfs.writeFileSync(
       join(dir, "harness.config.json"),
       JSON.stringify({ quota_freeze_threshold_pct: 41 }),
     );

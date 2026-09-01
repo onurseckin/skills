@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, spyOn, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -6,12 +6,22 @@ import {
   mindDeclineCommand,
 } from "../../../../../olt/scripts/src/cli/commands/index.ts";
 import * as gatesModule from "../../../../../olt/scripts/src/mind/proposals/gates/index.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "../../fixtures/task-ops-fixture.ts";
 import { transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(async () => {
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+});
 
 function grantRole(run: string, agentId: string, role: string): void {
   transact(run, "coordinator", `grant-${agentId}`, {}, (draft) => {

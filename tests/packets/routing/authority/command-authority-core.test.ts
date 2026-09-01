@@ -2,8 +2,6 @@ import { describe, expect, test } from "bun:test";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
-  assertGrantedCommand as assertRawGrantedCommand,
-  type AuthenticatedCaller,
   isExecutionCommand,
   isExecutionToolCategory,
   isProhibitedCognitiveTool,
@@ -13,42 +11,11 @@ import {
   assertCognitiveValidatorHardlock,
   assertRoleMayInvoke,
 } from "../../../../olt/scripts/src/packets/command-authority.ts";
-import { findCommand } from "../../../../olt/scripts/src/cli/registry/index.ts";
-import type { CommandSpec } from "../../../../olt/scripts/src/cli/registry/types.ts";
 import type { Flags } from "../../../../olt/scripts/src/cli/options.ts";
 import { transact } from "../../../../olt/scripts/src/engine/store/index.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import { emptyGrantRun } from "../../validation/grants/grant-run-fixture.ts";
-
-function spec(invocation: string) {
-  const found = findCommand(invocation);
-  if (!found) throw new Error(`the registry has no command named ${invocation}`);
-  return found;
-}
-
-function testCaller(specification: CommandSpec, flags: Flags): AuthenticatedCaller | undefined {
-  const callerFlag = ["actor", "validator", "critic", "agent"].find((name) => {
-    if (
-      (specification.name === "agent:register" ||
-        specification.name === "agent:report" ||
-        specification.name === "agent:release") &&
-      name === "agent"
-    ) {
-      return false;
-    }
-    return typeof flags[name] === "string" && flags[name].trim() !== "";
-  });
-  if (callerFlag === undefined) return undefined;
-  return { actor: flags[callerFlag] as string, role: "test", verified: true };
-}
-
-function assertGrantedCommand(
-  specification: CommandSpec,
-  flags: Flags,
-  caller?: AuthenticatedCaller,
-) {
-  return assertRawGrantedCommand(specification, flags, caller ?? testCaller(specification, flags));
-}
+import { spec, assertGrantedCommand } from "./command-authority-fixture.ts";
 
 describe("command predicates and classification", () => {
   test("isExecutionCommand identifies execution commands and aliases", () => {

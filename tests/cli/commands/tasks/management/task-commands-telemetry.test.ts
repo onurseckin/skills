@@ -1,6 +1,5 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import {
   executeTaskAdd,
@@ -11,16 +10,27 @@ import {
   resolveTraceContext,
   type TraceContext,
 } from "../../../../../olt/scripts/src/telemetry/trace-context.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
-afterEach(async () => {
-  while (roots.length > 0) {
-    const dir = roots.pop();
-    if (dir) await rm(dir, { recursive: true, force: true }).catch(() => {});
-  }
-});
+
+async function createVirtualDir(prefix: string): Promise<string> {
+  const dir = `/virtual/cli/${prefix}-${Math.random().toString(36).slice(2)}`;
+  roots.push(dir);
+  await mkdir(dir, { recursive: true });
+  return dir;
+}
 
 describe("Telemetry Trace Context (task-cli-03)", () => {
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualCliFS();
+    roots.length = 0;
+  });
+
   test("resolves trace context from explicit command flags", () => {
     const context = resolveTraceContext({
       "trace-id": "4bf92f3577b34da6a3ce929d0e0e4736",
@@ -96,9 +106,17 @@ describe("Telemetry Trace Context (task-cli-03)", () => {
 });
 
 describe("Task CLI Enqueue and List Operations (task-cli-04)", () => {
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualCliFS();
+    roots.length = 0;
+  });
+
   test("executeTaskAdd enqueues task and returns exit code 0", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "cli-task-add-success-"));
-    roots.push(dir);
+    const dir = await createVirtualDir("cli-task-add-success");
     const queuePath = join(dir, "task-queue.json");
     const exitCode = await executeTaskAdd([
       "task:add",
@@ -128,8 +146,7 @@ describe("Task CLI Enqueue and List Operations (task-cli-04)", () => {
   });
 
   test("executeTaskAdd returns exit code 2 on invalid flag argument", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "cli-task-add-invalid-"));
-    roots.push(dir);
+    const dir = await createVirtualDir("cli-task-add-invalid");
     const queuePath = join(dir, "task-queue.json");
     const exitCode = await executeTaskAdd([
       "task:add",

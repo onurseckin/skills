@@ -1,20 +1,13 @@
-import { describe, expect, it, afterEach } from "bun:test";
-import { execSync } from "node:child_process";
-import { rmSync, writeFileSync, mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { describe, expect, it, afterEach, beforeEach } from "bun:test";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { taskReviewCommand } from "../../../../../olt/scripts/src/cli/commands/task-review.ts";
 import { criticReviewCommand } from "../../../../../olt/scripts/src/cli/commands/critic-ops.ts";
 import { initRun, transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
 import { HarnessError } from "../../../../../olt/scripts/src/core/errors/index.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
-afterEach(() => {
-  while (roots.length > 0) {
-    const dir = roots.pop();
-    if (dir) rmSync(dir, { recursive: true, force: true });
-  }
-});
 
 const setupTestCapsule = async (): Promise<{
   runPath: string;
@@ -22,15 +15,12 @@ const setupTestCapsule = async (): Promise<{
   validatorToken: string;
   checkId: string;
 }> => {
-  const testDir = mkdtempSync(join(tmpdir(), "test-rubber-stamp-"));
+  const testDir = `/virtual/cli/test-rubber-stamp-${Math.random().toString(36).slice(2)}`;
   roots.push(testDir);
-  execSync("git init -b main", { cwd: testDir });
-  execSync("git config user.name 'Test Runner'", { cwd: testDir });
-  execSync("git config user.email 'test@example.com'", { cwd: testDir });
-  execSync("git config commit.gpgsign false", { cwd: testDir });
+  mkdirSync(testDir, { recursive: true });
+  mkdirSync(join(testDir, ".git"), { recursive: true });
   writeFileSync(join(testDir, ".gitignore"), ".capsules/\n.olt/\nscreenshots/\n");
   writeFileSync(join(testDir, "README.md"), "# Test\n");
-  execSync("git add .gitignore README.md && git commit -m 'initial commit'", { cwd: testDir });
 
   const promptBytes = new TextEncoder().encode("Test prompt");
   const runRoot = initRun(testDir, "test-run", promptBytes, "file", true);
@@ -62,6 +52,15 @@ const setupTestCapsule = async (): Promise<{
 };
 
 describe("task:review & critic:review - Rubber-Stamp Rejections", () => {
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualCliFS();
+    roots.length = 0;
+  });
+
   it("taskReviewCommand rejects rubber-stamp and generic sign-off summaries", async () => {
     const { runPath, taskId, validatorToken, checkId } = await setupTestCapsule();
     const genericSummaries = [

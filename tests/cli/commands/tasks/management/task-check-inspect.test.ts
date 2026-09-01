@@ -1,6 +1,5 @@
-import { afterAll, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   collectSourceFilesRecursively,
@@ -12,12 +11,27 @@ import {
   SUPPORTED_EXTENSIONS,
   type TaskCheckSummary,
 } from "../../../../../olt/scripts/src/cli/commands/task-check.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
-afterAll(async () => cleanupRoots(roots));
+
+async function createVirtualDir(prefix: string): Promise<string> {
+  const dir = `/virtual/cli/${prefix}-${Math.random().toString(36).slice(2)}`;
+  roots.push(dir);
+  await mkdir(dir, { recursive: true });
+  return dir;
+}
 
 describe("task:check - File Inspection & AST Linting", () => {
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualCliFS();
+    roots.length = 0;
+  });
+
   test("isSupportedSourceFile identifies valid extensions", () => {
     expect(SUPPORTED_EXTENSIONS.length).toBeGreaterThan(0);
     expect(isSupportedSourceFile("test.ts")).toBe(true);
@@ -34,8 +48,7 @@ describe("task:check - File Inspection & AST Linting", () => {
   });
 
   test("collectSourceFilesRecursively collects nested files", async () => {
-    const root = await mkdtemp(join(tmpdir(), "task-check-collect-"));
-    roots.push(root);
+    const root = await createVirtualDir("task-check-collect");
 
     await mkdir(join(root, "src", "nested"), { recursive: true });
     await mkdir(join(root, "node_modules", "pkg"), { recursive: true });
@@ -54,8 +67,7 @@ describe("task:check - File Inspection & AST Linting", () => {
   });
 
   test("findNearestTsconfig locates tsconfig up directory tree", async () => {
-    const root = await mkdtemp(join(tmpdir(), "task-check-tsconfig-"));
-    roots.push(root);
+    const root = await createVirtualDir("task-check-tsconfig");
 
     const nested = join(root, "a", "b", "c");
     await mkdir(nested, { recursive: true });
@@ -67,8 +79,7 @@ describe("task:check - File Inspection & AST Linting", () => {
   });
 
   test("performAstLintCheck detects forbidden patterns (any, ts-ignore, eslint-disable)", async () => {
-    const root = await mkdtemp(join(tmpdir(), "task-check-lint-"));
-    roots.push(root);
+    const root = await createVirtualDir("task-check-lint");
 
     const badFile = join(root, "bad.ts");
     await writeFile(
@@ -96,8 +107,7 @@ describe("task:check - File Inspection & AST Linting", () => {
   });
 
   test("performIncrementalTypecheck checks files with ts program", async () => {
-    const root = await mkdtemp(join(tmpdir(), "task-check-typecheck-"));
-    roots.push(root);
+    const root = await createVirtualDir("task-check-typecheck");
 
     const validTs = join(root, "valid.ts");
     await writeFile(validTs, "export const num: number = 10;");

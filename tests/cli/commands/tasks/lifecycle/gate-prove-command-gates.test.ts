@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -13,9 +13,6 @@ import { transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
 import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
 
 const gitRoots: string[] = [];
-afterAll(() => {
-  for (const root of gitRoots.splice(0)) rmSync(root, { recursive: true, force: true });
-});
 const roots: string[] = [];
 
 function clearCallerSession(run?: string, agentId = "worker-1"): void {
@@ -25,9 +22,15 @@ function clearCallerSession(run?: string, agentId = "worker-1"): void {
 beforeEach(() => {
   clearCallerSession();
 });
+
 afterEach(async () => {
   clearCallerSession();
   await cleanupRoots(roots);
+  for (const root of gitRoots.splice(0)) {
+    try {
+      rmSync(root, { recursive: true, force: true });
+    } catch {}
+  }
 });
 
 function git(repo: string, argv: readonly string[]): void {

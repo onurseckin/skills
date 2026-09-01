@@ -1,18 +1,26 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 import { setupCompiledRun, setupCompiledRunUncompiled } from "../../fixtures/task-ops-fixture.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
 
 describe("plan:compile", () => {
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualCliFS();
+    roots.length = 0;
+  });
+
   test("compiles an empty planning buffer with 0 tasks", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "harness-plan-compile-empty-"));
+    const repo = `/virtual/cli/harness-plan-compile-empty-${Math.random().toString(36).slice(2)}`;
     roots.push(repo);
+    await mkdir(join(repo, ".git"), { recursive: true });
     const promptPath = join(repo, "prompt.txt");
     await writeFile(promptPath, "Do one thing");
     const init = await execute([
@@ -39,8 +47,9 @@ describe("plan:compile", () => {
   });
 
   test("refuses overlapping write scopes between two buffered tasks", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "harness-plan-compile-collision-"));
+    const repo = `/virtual/cli/harness-plan-compile-collision-${Math.random().toString(36).slice(2)}`;
     roots.push(repo);
+    await mkdir(join(repo, ".git"), { recursive: true });
     const promptPath = join(repo, "prompt.txt");
     await writeFile(promptPath, "Do one thing\n\nDo another thing");
     const init = await execute([

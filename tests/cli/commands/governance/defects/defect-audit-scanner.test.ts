@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import {
   discoverDefectFiles,
   parseDefectsFromFile,
@@ -10,36 +9,33 @@ import {
   discoverDefectFiles as discoverDefectFiles2,
   parseDefectsFromFile as parseDefectsFromFile2,
 } from "../../../../../olt/scripts/src/cli/commands/defect-audit/discovery.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
 
 describe("Defect Scanner & Discovery", () => {
   let testDir: string;
 
   beforeEach(() => {
-    testDir = join(
-      tmpdir(),
-      `defect-audit-scan-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    );
+    setupVirtualCliFS();
+    testDir = `/virtual/cli/defect-audit-scan-${Date.now()}`;
     mkdirSync(testDir, { recursive: true });
     writeFileSync(join(testDir, "package.json"), "{}", "utf-8");
   });
 
-  afterEach(() => {
-    if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true, force: true });
-    }
+  afterEach(async () => {
+    await cleanupRoots(roots);
+    cleanupVirtualCliFS();
   });
 
   test("discoverDefectFiles finds root, subdirectory, and explicit files", () => {
     const cap1 = join(testDir, "run-1");
     const cap2 = join(testDir, "run-2");
-    const outsideDir = join(
-      tmpdir(),
-      `outside-run-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    );
+    const outsideDir = `/virtual/cli/outside-run-${Date.now()}`;
     mkdirSync(cap1, { recursive: true });
     mkdirSync(cap2, { recursive: true });
     mkdirSync(outsideDir, { recursive: true });

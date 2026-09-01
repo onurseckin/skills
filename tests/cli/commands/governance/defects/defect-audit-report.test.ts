@@ -1,14 +1,24 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { defectAuditCommand } from "../../../../../olt/scripts/src/cli/commands/defect-audit.ts";
 import { defectAuditCommand as defectAuditCommand2 } from "../../../../../olt/scripts/src/cli/commands/defect-audit/command.ts";
 import { HarnessError } from "../../../../../olt/scripts/src/core/errors/index.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "../../fixtures/task-ops-fixture.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(async () => {
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+});
 
 describe("Defect Audit Command Executions", () => {
   test("defectAuditCommand validates invalid --now timestamp and missing capsules-dir", async () => {

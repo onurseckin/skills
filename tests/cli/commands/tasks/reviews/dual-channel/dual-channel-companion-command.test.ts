@@ -1,7 +1,5 @@
-import { afterEach, describe, expect, it } from "bun:test";
-import { execSync } from "node:child_process";
-import { mkdirSync, rmSync, writeFileSync, mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { taskReviewCommand } from "../../../../../../olt/scripts/src/cli/commands/task-review.ts";
 import { initRun, transact } from "../../../../../../olt/scripts/src/engine/store/index.ts";
@@ -16,26 +14,30 @@ import {
   writeAgentMetadata,
 } from "../../../../../../olt/scripts/src/runtime/index.ts";
 import { createSyntheticPngBuffer } from "../../../../../../olt/scripts/src/capture/runners/live-capture-runner/index.ts";
+import {
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../../fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
-afterEach(() => {
-  while (roots.length > 0) {
-    const dir = roots.pop();
-    if (dir) rmSync(dir, { recursive: true, force: true });
-  }
-});
 
 describe("Task Review Dual-Channel - Companion Manifest Command Depth Check", () => {
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualCliFS();
+    roots.length = 0;
+  });
+
   it("taskReviewCommand throws HarnessError and refuses pass when companion manifest is shallow under --require-semantic-depth", async () => {
-    const testDir = mkdtempSync(join(tmpdir(), "test-dual-chan-capsule-"));
+    const testDir = `/virtual/cli/test-dual-chan-capsule-${Math.random().toString(36).slice(2)}`;
     roots.push(testDir);
-    execSync("git init -b main", { cwd: testDir });
-    execSync("git config user.name 'Test Runner'", { cwd: testDir });
-    execSync("git config user.email 'test@example.com'", { cwd: testDir });
-    execSync("git config commit.gpgsign false", { cwd: testDir });
+    mkdirSync(testDir, { recursive: true });
+    mkdirSync(join(testDir, ".git"), { recursive: true });
     writeFileSync(join(testDir, ".gitignore"), ".capsules/\n.olt/\nscreenshots/\n");
     writeFileSync(join(testDir, "README.md"), "# Test\n");
-    execSync("git add .gitignore README.md && git commit -m 'initial commit'", { cwd: testDir });
 
     const promptBytes = new TextEncoder().encode("Test prompt for dual-channel validation");
     const runRoot = initRun(testDir, "test-run", promptBytes, "file", true);

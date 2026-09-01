@@ -1,6 +1,5 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { HarnessError } from "../../../../../olt/scripts/src/core/errors/index.ts";
@@ -10,17 +9,17 @@ import {
   BRAINSTORMING_VERSION,
 } from "../../../../../olt/scripts/src/engine/store/projections/materialized-projections.ts";
 import { transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
 
 async function createTestRun(
   prefix: string,
   promptText = "Build an edge-case aware service",
 ): Promise<{ repo: string; run: string }> {
-  const repo = await mkdtemp(join(tmpdir(), prefix));
+  const repo = `/virtual/cli/${prefix}-${Math.random().toString(36).slice(2)}`;
   roots.push(repo);
+  await mkdir(join(repo, ".git"), { recursive: true });
   const promptPath = join(repo, "prompt.txt");
   await writeFile(promptPath, promptText, "utf-8");
   const init = await execute([
@@ -37,6 +36,15 @@ async function createTestRun(
 }
 
 describe("plan:compile prerequisites", () => {
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualCliFS();
+    roots.length = 0;
+  });
+
   test("throws INVALID_STATE / MANDATORY_PLAN_STEP_SKIPPED when plan:brainstorm was not executed", async () => {
     const { run } = await createTestRun("harness-plan-compile-nobrainstorm-");
 
@@ -196,7 +204,6 @@ describe("plan:compile prerequisites", () => {
 
   test("succeeds when .olt/brainstorming.json is present", async () => {
     const { run } = await createTestRun("harness-plan-compile-dot-olt-json-");
-    const { mkdir } = await import("node:fs/promises");
     await mkdir(join(run, ".olt"), { recursive: true });
     await writeFile(join(run, ".olt", "brainstorming.json"), "{}", "utf-8");
 

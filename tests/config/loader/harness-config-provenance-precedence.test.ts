@@ -1,70 +1,39 @@
-import { describe, expect, test, beforeEach, afterEach, spyOn } from "bun:test";
-import * as fs from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   resetHarnessConfigCache,
   resolveHarnessConfig,
 } from "../../../olt/scripts/src/core/config/index.ts";
-
-const writeFileSync = (p: fs.PathOrFileDescriptor, d: string | NodeJS.ArrayBufferView) =>
-  fs.writeFileSync(p, d);
-const mkdirSync = (p: fs.PathLike, opts?: fs.MakeDirectoryOptions | boolean) =>
-  fs.mkdirSync(p, opts);
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("harness-config-provenance-precedence", () => {
-  const mockFiles = new Map<string, string>();
-  const mockDirs = new Set<string>();
-  const spies: { mockRestore: () => void }[] = [];
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession | null = null;
   const NO_HOST_CEILING = { hostConcurrency: null } as const;
   let dirCounter = 0;
 
   function makeTempDir(label: string): string {
     const dir = `/virtual/cfg-prov-prec-${++dirCounter}-${label}`;
-    mockDirs.add(dir);
+    vfs.mkdirSync(dir, { recursive: true });
     return dir;
   }
 
-  const origExists = fs.existsSync.bind(fs);
-  const origRead = fs.readFileSync.bind(fs);
-  const isVirt = (s: string) => s.startsWith("/virtual/") || s.startsWith("/tmp/");
-
   beforeEach(() => {
     resetHarnessConfigCache();
-    mockFiles.clear();
-    mockDirs.clear();
-    spies.push(
-      spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) =>
-        isVirt(String(p)) ? mockFiles.has(String(p)) || mockDirs.has(String(p)) : origExists(p),
-      ),
-      spyOn(fs, "mkdirSync").mockImplementation(((p: fs.PathLike) => {
-        mockDirs.add(String(p));
-        return undefined as unknown as string;
-      }) as unknown as typeof fs.mkdirSync),
-      spyOn(fs, "readFileSync").mockImplementation(((p: fs.PathOrFileDescriptor) => {
-        if (isVirt(String(p))) {
-          const val = mockFiles.get(String(p));
-          if (val !== undefined) return val;
-          throw new Error(`ENOENT: ${String(p)}`);
-        }
-        return origRead(p as never);
-      }) as unknown as typeof fs.readFileSync),
-      spyOn(fs, "writeFileSync").mockImplementation(((
-        p: fs.PathOrFileDescriptor,
-        d: string | NodeJS.ArrayBufferView,
-      ) => {
-        mockFiles.set(
-          String(p),
-          typeof d === "string"
-            ? d
-            : Buffer.from(d.buffer, d.byteOffset, d.byteLength).toString("utf8"),
-        );
-      }) as unknown as typeof fs.writeFileSync),
-    );
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
-    while (spies.length > 0) spies.pop()?.mockRestore();
+    if (session) {
+      session.cleanup();
+      session = null;
+    }
   });
 
   describe("provenance generalisation — new config domains", () => {
@@ -76,7 +45,7 @@ describe("harness-config-provenance-precedence", () => {
       expect(config.config_provenance.max_agents).toBe("assumed_default");
       expect(config.config_provenance.max_active_grants_per_run).toBe("assumed_default");
 
-      writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ max_agents: 15 }));
+      vfs.writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ max_agents: 15 }));
       const configured = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
       expect(configured.max_agents).toBe(15);
       expect(configured.max_active_grants_per_run).toBe(15);
@@ -88,14 +57,20 @@ describe("harness-config-provenance-precedence", () => {
       const config = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
       expect(config.fleet_agent_ceiling).toEqual({ value: null, source: "absent" });
 
-      writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ fleet_agent_ceiling: 40 }));
+      vfs.writeFileSync(
+        join(dir, "harness.config.json"),
+        JSON.stringify({ fleet_agent_ceiling: 40 }),
+      );
       const configured = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
       expect(configured.fleet_agent_ceiling).toEqual({ value: 40, source: "config_override" });
     });
 
     test("fleet_agent_ceiling rejects an invalid configured value", () => {
       const dir = makeTempDir("fleet-agent-ceiling-invalid");
-      writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ fleet_agent_ceiling: -3 }));
+      vfs.writeFileSync(
+        join(dir, "harness.config.json"),
+        JSON.stringify({ fleet_agent_ceiling: -3 }),
+      );
       expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(HarnessError);
       expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(
         /fleet_agent_ceiling/i,
@@ -108,7 +83,7 @@ describe("harness-config-provenance-precedence", () => {
       expect(defaultConfig.supervisory_cadence_seconds).toEqual({ value: 900, source: "absent" });
       expect(defaultConfig.config_provenance.supervisory_cadence_seconds).toBe("assumed_default");
 
-      writeFileSync(
+      vfs.writeFileSync(
         join(dir, "harness.config.json"),
         JSON.stringify({ supervisory_cadence_seconds: 600 }),
       );
@@ -125,7 +100,7 @@ describe("harness-config-provenance-precedence", () => {
       const config = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
       expect(config.quota_freeze_threshold_pct).toEqual({ value: null, source: "absent" });
 
-      writeFileSync(
+      vfs.writeFileSync(
         join(dir, "harness.config.json"),
         JSON.stringify({ quota_freeze_threshold_pct: 85 }),
       );
@@ -139,7 +114,7 @@ describe("harness-config-provenance-precedence", () => {
 
     test("model_by_role rejects every map when any role or model member is invalid", () => {
       const dir = makeTempDir("model-by-role");
-      writeFileSync(
+      vfs.writeFileSync(
         join(dir, "harness.config.json"),
         JSON.stringify({ model_by_role: { implementer: "opus", "not-a-real-role": "x" } }),
       );
@@ -149,7 +124,7 @@ describe("harness-config-provenance-precedence", () => {
 
     test("rejects unknown harness keys while allowing valid partial configuration and policy schema keys", () => {
       const dir = makeTempDir("strict-unknown-key");
-      writeFileSync(
+      vfs.writeFileSync(
         join(dir, "harness.config.json"),
         JSON.stringify({ max_agents: 12, typo_max_agnts: 13 }),
       );
@@ -158,18 +133,18 @@ describe("harness-config-provenance-precedence", () => {
         /typo_max_agnts/i,
       );
 
-      writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ max_agents: 12 }));
+      vfs.writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ max_agents: 12 }));
       expect(resolveHarnessConfig(dir, undefined, NO_HOST_CEILING).max_agents).toBe(12);
 
-      mkdirSync(join(dir, ".olt"), { recursive: true });
-      writeFileSync(
+      vfs.mkdirSync(join(dir, ".olt"), { recursive: true });
+      vfs.writeFileSync(
         join(dir, ".olt", "policy.json"),
         JSON.stringify({ schema_version: 1, ecosystem: "bun", quota_freeze_threshold_pct: 22 }),
       );
       const config = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
       expect(config.quota_freeze_threshold_pct).toEqual({ value: 22, source: "config_override" });
 
-      writeFileSync(join(dir, ".olt", "policy.json"), "{ malformed");
+      vfs.writeFileSync(join(dir, ".olt", "policy.json"), "{ malformed");
       expect(
         resolveHarnessConfig(dir, undefined, NO_HOST_CEILING).quota_freeze_threshold_pct,
       ).toEqual({ value: null, source: "unreadable" });
@@ -177,7 +152,7 @@ describe("harness-config-provenance-precedence", () => {
 
     test("host_profiles configured through resolveHarnessConfig refuses an unknown host id end to end", () => {
       const dir = makeTempDir("host-profiles-refusal-end-to-end");
-      writeFileSync(
+      vfs.writeFileSync(
         join(dir, "harness.config.json"),
         JSON.stringify({ host_profiles: { generic: { timer_arming_mechanism: "none" } } }),
       );
@@ -186,7 +161,7 @@ describe("harness-config-provenance-precedence", () => {
 
     test("host_profiles configured through resolveHarnessConfig canonicalizes claude onto claude-code", () => {
       const dir = makeTempDir("host-profiles-canonicalize-end-to-end");
-      writeFileSync(
+      vfs.writeFileSync(
         join(dir, "harness.config.json"),
         JSON.stringify({ host_profiles: { claude: { self_wake_supported: true } } }),
       );
@@ -211,7 +186,7 @@ describe("harness-config-provenance-precedence", () => {
       const discovered = resolveHarnessConfig(dir, undefined, { cpuCount: 10 });
       expect(discovered.config_provenance.gate_max_parallel).toBe("host_discovered");
 
-      writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ gate_max_parallel: 3 }));
+      vfs.writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ gate_max_parallel: 3 }));
       const configured = resolveHarnessConfig(dir, undefined, { cpuCount: 10 });
       expect(configured.config_provenance.gate_max_parallel).toBe("config_override");
     });

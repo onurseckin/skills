@@ -1,76 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import {
-  assertGrantedCommand as assertRawGrantedCommand,
-  assertSpawnAuthorized,
-  type AuthenticatedCaller,
-} from "../../../../olt/scripts/src/packets/command-authority.ts";
-import {
-  GRANT_BOOTSTRAP_ALLOWLIST,
-  PRE_COMPILE_PLAN_CONSTRUCTION_COMMANDS,
-  requiresActingIdentity,
-} from "../../../../olt/scripts/src/packets/grant-bootstrap-allowlist.ts";
-import { findCommand } from "../../../../olt/scripts/src/cli/registry/index.ts";
-import type { CommandSpec } from "../../../../olt/scripts/src/cli/registry/types.ts";
+import { assertGrantedCommand, spec } from "../authority/command-authority-fixture.ts";
+import { assertGrantedCommand as assertRawGrantedCommand } from "../../../../olt/scripts/src/packets/command-authority.ts";
 import type { Flags } from "../../../../olt/scripts/src/cli/options.ts";
-import type { AgentRole } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import { initRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import { emptyGrantRun } from "../../validation/grants/grant-run-fixture.ts";
-import { execute } from "../../../../olt/scripts/src/cli/execute.ts";
-import {
-  registerSessionGrant,
-  revokeSessionGrant,
-} from "../../../../olt/scripts/src/authority/session/index.ts";
-import { loadDagSnapshot } from "../../../../olt/scripts/src/telemetry/dag-snapshot.ts";
-
-function spec(invocation: string) {
-  const found = findCommand(invocation);
-  if (!found) throw new Error(`the registry has no command named ${invocation}`);
-  return found;
-}
-
-function testCaller(specification: CommandSpec, flags: Flags): AuthenticatedCaller | undefined {
-  const callerFlag = ["actor", "validator", "critic", "agent"].find((name) => {
-    if (
-      (specification.name === "agent:register" ||
-        specification.name === "agent:report" ||
-        specification.name === "agent:release") &&
-      name === "agent"
-    ) {
-      return false;
-    }
-    return typeof flags[name] === "string" && flags[name].trim() !== "";
-  });
-  if (callerFlag === undefined) return undefined;
-  return { actor: flags[callerFlag] as string, role: "test", verified: true };
-}
-
-function assertGrantedCommand(specification: CommandSpec, flags: Flags): void {
-  assertRawGrantedCommand(specification, flags, testCaller(specification, flags));
-}
-
-function installMetaAuditGrant(
-  run: string,
-  id: string,
-  role: string,
-  status: "active" | "released" = "active",
-): void {
-  transact(run, "test-setup", "grant-agent", {}, (draft) => {
-    draft.agents = [
-      {
-        id,
-        role,
-        parent_agent_id: null,
-        parent_task_id: null,
-        host: "test",
-        granted_at: new Date().toISOString(),
-        status,
-      },
-    ];
-  });
-}
 
 describe("assertGrantedCommand hole 2: no acting identity resolves", () => {
   test("denies a non-allowlisted command with --run but no identity flag", () => {

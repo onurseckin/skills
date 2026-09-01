@@ -1,14 +1,22 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
 import type { JsonObject } from "../../../../../olt/scripts/src/core/contracts/index.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "../../fixtures/task-ops-fixture.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+beforeEach(() => setupVirtualCliFS());
+afterEach(async () => {
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+});
 
 async function recordGateCommand(run: string, repo: string, actor: string): Promise<string> {
   transact(run, "test-setup", "task-validating-for-test", {}, (draft) => {
@@ -57,12 +65,16 @@ function seedCriticFinding(run: string): void {
   });
 }
 
+async function writeReport(run: string, name: string, data: Record<string, unknown>) {
+  await mkdir(join(run, "reports"), { recursive: true });
+  await writeFile(join(run, "reports", `${name}.json`), JSON.stringify(data));
+}
+
 describe("finding:get", () => {
   test("without id, lists findings across tasks and critic review", async () => {
     const { run } = await setupCompiledRun("finding-get-list", roots);
     seedFinding(run, "task-core", "F-TASK-1");
     seedCriticFinding(run);
-
     const result = await execute(["finding:get", "--run", run]);
     expect(result.count).toBe(2);
     const findings = result.findings as { id: string }[];
@@ -72,7 +84,6 @@ describe("finding:get", () => {
   test("--id returns one finding by id", async () => {
     const { run } = await setupCompiledRun("finding-get-one", roots);
     seedFinding(run, "task-core", "F-TASK-1");
-
     const result = await execute(["finding:get", "--run", run, "--id", "F-TASK-1"]);
     expect(result.id).toBe("F-TASK-1");
     const finding = result.finding as { id: string; task_id: string };
@@ -82,7 +93,6 @@ describe("finding:get", () => {
   test("--finding is an alias for --id, and a trailing .json is stripped", async () => {
     const { run } = await setupCompiledRun("finding-get-alias", roots);
     seedFinding(run, "task-core", "F-TASK-1");
-
     const result = await execute(["finding:get", "--run", run, "--finding", "F-TASK-1.json"]);
     expect(result.id).toBe("F-TASK-1");
   });
@@ -96,11 +106,6 @@ describe("finding:get", () => {
 });
 
 describe("report:get", () => {
-  async function writeReport(run: string, name: string, data: Record<string, unknown>) {
-    await mkdir(join(run, "reports"), { recursive: true });
-    await writeFile(join(run, "reports", `${name}.json`), JSON.stringify(data));
-  }
-
   test("--task prefers review report, falling back to submission report", async () => {
     const { run } = await setupCompiledRun("report-get-task-review", roots);
     await writeReport(run, "task-core-review", { verdict: "pass" });

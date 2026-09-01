@@ -1,12 +1,11 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "../../fixtures/task-ops-fixture.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
 
 function passAnswers(): string[] {
   return [
@@ -26,6 +25,15 @@ function passAnswers(): string[] {
 }
 
 describe("plan:review - Edge Cases & Guard Verification", () => {
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualCliFS();
+    roots.length = 0;
+  });
+
   test("--findings-file reads a JSON payload from disk", async () => {
     const { repo, run } = await setupCompiledRun("plan-review-findings-file", roots);
     const started = await execute([

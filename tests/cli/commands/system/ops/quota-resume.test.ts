@@ -1,7 +1,6 @@
-import { afterEach, describe, expect, spyOn, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { quotaResumeCommand } from "../../../../../olt/scripts/src/cli/commands/quota-resume.ts";
 import {
   persistDagSnapshot,
@@ -11,11 +10,21 @@ import { QuotaCircuitBreaker } from "../../../../../olt/scripts/src/telemetry/ci
 import { HarnessError } from "../../../../../olt/scripts/src/core/errors/index.ts";
 import { findRepoRoot } from "../../../../../olt/scripts/src/core/shared/paths.ts";
 import { loadRun } from "../../../../../olt/scripts/src/engine/store/index.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "../../fixtures/task-ops-fixture.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(async () => {
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+});
 
 async function seedFrozenSnapshot(repoRoot: string, runRoot: string): Promise<void> {
   const snap: QuotaDagSnapshot = {
@@ -52,10 +61,7 @@ describe("quota-resume CLI command", () => {
   test("throws HarnessError on invalid repo path mismatch", async () => {
     const { run } = await setupCompiledRun("quota-resume-path-safety", roots);
 
-    const fakeRepo = join(
-      tmpdir(),
-      `fake-repo-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    );
+    const fakeRepo = `/virtual/cli/fake-repo-${Date.now()}`;
     roots.push(fakeRepo);
     mkdirSync(fakeRepo, { recursive: true });
     writeFileSync(join(fakeRepo, "package.json"), "{}", "utf-8");

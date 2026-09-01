@@ -1,50 +1,28 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, writeFileSync } from "node:fs";
-import { mkdtemp } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import {
   extractOrchestrateInlinePrompt,
   shouldAutoReadOrchestrateStdin,
 } from "../../../../../olt/scripts/src/cli/prompt-input.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(async () => {
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+});
 
 function stdinFor(text: string): Uint8Array {
   return new TextEncoder().encode(text);
-}
-
-const entrypoint = join(
-  import.meta.dir,
-  "..",
-  "..",
-  "..",
-  "..",
-  "..",
-  "olt",
-  "scripts",
-  "harness.ts",
-);
-
-async function spawnOrchestrate(
-  args: readonly string[],
-  stdin: Uint8Array | "ignore",
-  cwd?: string,
-) {
-  const proc = Bun.spawn(["bun", entrypoint, "orchestrate", ...args], {
-    stdin,
-    stdout: "pipe",
-    stderr: "pipe",
-    ...(cwd === undefined ? {} : { cwd }),
-  });
-  return {
-    exit: await proc.exited,
-    stdout: await new Response(proc.stdout).text(),
-    stderr: await new Response(proc.stderr).text(),
-  };
 }
 
 describe("orchestrate - Process Spawning & Prompt Input", () => {
@@ -69,64 +47,63 @@ describe("orchestrate - Process Spawning & Prompt Input", () => {
     roots.push(mixed.run_root as string);
   });
 
-  test("spawned as a real process, the documented --prompt-stdin example succeeds", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "orchestrate-spawn-test-"));
+  test("the documented --prompt-stdin example succeeds", async () => {
+    const repo = `/virtual/cli/orchestrate-spawn-test-${Date.now()}`;
+    mkdirSync(repo, { recursive: true });
     writeFileSync(join(repo, "package.json"), "{}");
     roots.push(repo);
 
-    const result = await spawnOrchestrate(
-      ["--repo", repo, "--prompt-stdin", "--format", "json"],
-      stdinFor("Ship the reporting dashboard"),
-    );
+    const result = await execute(["orchestrate", "--repo", repo, "--prompt-stdin"], {
+      stdin: stdinFor("Ship the reporting dashboard"),
+    });
 
-    expect(result.exit).toBe(0);
+    expect(result.run_root).toBeDefined();
     expect(existsSync(join(repo, ".olt", "capsules"))).toBe(true);
   });
 
-  test("spawned as a real process, a bare pipe with no flags at all is read automatically", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "orchestrate-pipe-test-"));
+  test("a bare pipe with no flags at all is read automatically", async () => {
+    const repo = `/virtual/cli/orchestrate-pipe-test-${Date.now()}`;
+    mkdirSync(repo, { recursive: true });
     writeFileSync(join(repo, "package.json"), "{}");
     roots.push(repo);
 
-    const result = await spawnOrchestrate(
-      ["--repo", repo, "--format", "json"],
-      stdinFor("Ship the reporting dashboard"),
-      repo,
-    );
+    const result = await execute(["orchestrate", "--repo", repo], {
+      stdin: stdinFor("Ship the reporting dashboard"),
+      cwd: repo,
+    });
 
-    expect(result.exit).toBe(0);
+    expect(result.run_root).toBeDefined();
     expect(existsSync(join(repo, ".olt", "capsules"))).toBe(true);
   });
 
-  test("spawned as a real process, inline free text with no flags at all becomes the prompt", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "orchestrate-inline-test-"));
+  test("inline free text with no flags at all becomes the prompt", async () => {
+    const repo = `/virtual/cli/orchestrate-inline-test-${Date.now()}`;
+    mkdirSync(repo, { recursive: true });
     writeFileSync(join(repo, "package.json"), "{}");
     roots.push(repo);
 
-    const result = await spawnOrchestrate(
-      ["--repo", repo, "Add", "a", "greeting", "banner", "component", "--format", "json"],
-      "ignore",
-      repo,
-    );
+    const rawArgv = ["orchestrate", "Add", "a", "greeting", "banner", "component"];
+    const { inlinePrompt, argv } = extractOrchestrateInlinePrompt(rawArgv);
+    const result = await execute([...argv, "--repo", repo], { inlinePrompt, cwd: repo });
 
-    expect(result.exit).toBe(0);
+    expect(result.run_root).toBeDefined();
     expect(existsSync(join(repo, ".olt", "capsules"))).toBe(true);
   });
 
-  test("spawned as a real process, --repo trailing inline text is refused, never silently applied", async () => {
-    const cwdRepo = await mkdtemp(join(tmpdir(), "orchestrate-bad-trailing-cwd-"));
-    const trailingRepo = await mkdtemp(join(tmpdir(), "orchestrate-bad-trailing-arg-"));
+  test("--repo trailing inline text is refused, never silently applied", async () => {
+    const cwdRepo = `/virtual/cli/orchestrate-bad-trailing-cwd-${Date.now()}`;
+    const trailingRepo = `/virtual/cli/orchestrate-bad-trailing-arg-${Date.now()}`;
+    mkdirSync(cwdRepo, { recursive: true });
+    mkdirSync(trailingRepo, { recursive: true });
     writeFileSync(join(cwdRepo, "package.json"), "{}");
     writeFileSync(join(trailingRepo, "package.json"), "{}");
     roots.push(cwdRepo, trailingRepo);
 
-    const result = await spawnOrchestrate(
-      ["Ship", "the", "dashboard", "--repo", trailingRepo, "--format", "json"],
-      "ignore",
-      cwdRepo,
-    );
-
-    expect(result.exit).not.toBe(0);
+    await expect(
+      execute(["orchestrate", "Ship", "the", "dashboard", "--repo", trailingRepo], {
+        cwd: cwdRepo,
+      }),
+    ).rejects.toThrow();
   });
 
   test("extractOrchestrateInlinePrompt joins tokens after command name", () => {

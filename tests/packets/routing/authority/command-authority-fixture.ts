@@ -32,8 +32,12 @@ export function testCaller(
   return { actor: flags[callerFlag] as string, role: "test", verified: true };
 }
 
-export function assertGrantedCommand(specification: CommandSpec, flags: Flags): void {
-  assertRawGrantedCommand(specification, flags, testCaller(specification, flags));
+export function assertGrantedCommand(
+  specification: CommandSpec,
+  flags: Flags,
+  caller?: AuthenticatedCaller,
+): void {
+  assertRawGrantedCommand(specification, flags, caller ?? testCaller(specification, flags));
 }
 
 export function installMetaAuditGrant(

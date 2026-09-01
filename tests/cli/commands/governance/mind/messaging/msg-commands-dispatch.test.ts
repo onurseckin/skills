@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { execute } from "../../../../../../olt/scripts/src/cli/execute.ts";
 import {
@@ -18,11 +18,16 @@ import {
 } from "../../../../../../olt/scripts/src/communication/mailbox/index.ts";
 import type { MailboxEnvelope } from "../../../../../../olt/scripts/src/communication/types.ts";
 import { HarnessError } from "../../../../../../olt/scripts/src/core/errors/index.ts";
+import {
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../../fixtures/full-lifecycle-fixture.ts";
 
 describe("Mailbox IPC CLI Commands - Registry, Send and Receive", () => {
   let testRoot: string;
 
   beforeEach(() => {
+    setupVirtualCliFS();
     testRoot = join(
       process.cwd(),
       "coverage",
@@ -33,7 +38,7 @@ describe("Mailbox IPC CLI Commands - Registry, Send and Receive", () => {
   });
 
   afterEach(() => {
-    if (existsSync(testRoot)) rmSync(testRoot, { recursive: true, force: true });
+    cleanupVirtualCliFS();
   });
 
   describe("registry and help rendering", () => {

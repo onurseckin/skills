@@ -1,17 +1,14 @@
-import { tmpdir } from "node:os";
-import { mkdtempSync } from "node:fs";
-import { join } from "node:path";
 import { afterEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { branchClaimCommand } from "../../../../../olt/scripts/src/cli/commands/branch-ops.ts";
 import {
   branchCapsule,
   branchesOf,
+  cleanupRoots,
   openBranchVia,
   taskOf,
   type BranchFixture,
 } from "../../../../branch/index.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
 afterEach(async () => cleanupRoots(roots));
@@ -128,7 +125,7 @@ describe("branch:claim", () => {
   test("rejects non-sub roles from claiming branch tasks", async () => {
     const base = {
       run: "run-mock",
-      repo: mkdtempSync(join(tmpdir(), "olt-test-")),
+      repo: "/virtual/cli/olt-test-fake",
       branch: "unused-branch",
       "sub-task": "S-1",
       agent: "sub-1",

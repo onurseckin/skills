@@ -1,14 +1,22 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 import { freshRun } from "../../fixtures/plan-workflow-fixture.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
 
 describe("plan:enhance", () => {
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualCliFS();
+    roots.length = 0;
+  });
+
   test("writes an enhanced plan document and reports revision 1 on the first call", async () => {
     const { run } = await freshRun("enhance-first", roots);
     const result = await execute([
@@ -54,6 +62,15 @@ describe("plan:enhance", () => {
 });
 
 describe("plan:status", () => {
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualCliFS();
+    roots.length = 0;
+  });
+
   test("reports the uncompiled buffer with is_compiled false", async () => {
     const { run } = await freshRun("status-uncompiled", roots);
     await execute([

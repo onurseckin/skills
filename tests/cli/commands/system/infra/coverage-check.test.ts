@@ -2,29 +2,25 @@ import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:
 import * as childProcess from "node:child_process";
 import * as fs from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import {
   coverageCheckCommand,
   loadBunfigCoverageThreshold,
   parseCoverageTable,
 } from "../../../../../olt/scripts/src/cli/commands/coverage-check.ts";
 import { HarnessError } from "../../../../../olt/scripts/src/core/errors/index.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
 describe("coverage-check CLI command", () => {
   let testDir: string;
 
   beforeEach(() => {
-    testDir = join(
-      tmpdir(),
-      `coverage-check-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    );
+    setupVirtualCliFS();
+    testDir = `/virtual/cli/coverage-check-test-${Date.now()}`;
     fs.mkdirSync(testDir, { recursive: true });
   });
 
   afterEach(() => {
-    if (fs.existsSync(testDir)) {
-      fs.rmSync(testDir, { recursive: true, force: true });
-    }
+    cleanupVirtualCliFS();
   });
 
   describe("parseCoverageTable", () => {

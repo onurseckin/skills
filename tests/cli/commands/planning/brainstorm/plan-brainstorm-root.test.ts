@@ -1,15 +1,14 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { link, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { link, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { existsSync, realpathSync } from "node:fs";
+import { existsSync } from "node:fs";
 import {
   executePlanBrainstorm,
   resolveBrainstormRunRoot,
   type PlanBrainstormOutput,
 } from "../../../../../olt/scripts/src/cli/commands/plan-brainstorm.ts";
 import { HarnessError } from "../../../../../olt/scripts/src/core/errors/index.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 import { freshRun } from "../../fixtures/plan-workflow-fixture.ts";
 
 async function withIsolatedCwd<T>(dir: string, fn: () => T): Promise<T> {
@@ -23,21 +22,17 @@ async function withIsolatedCwd<T>(dir: string, fn: () => T): Promise<T> {
 }
 
 const roots: string[] = [];
-afterEach(async () => {
-  await cleanupRoots(roots);
-  while (roots.length > 0) {
-    const dir = roots.pop();
-    if (dir && existsSync(dir)) {
-      try {
-        await rm(dir, { recursive: true, force: true });
-      } catch {
-        // Ignore cleanup errors
-      }
-    }
-  }
-});
 
 describe("plan:brainstorm CLI command and executePlanBrainstorm - Root Resolution", () => {
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualCliFS();
+    roots.length = 0;
+  });
+
   test("persists a brainstorming result only in a verified capsule and appends one canonical event", async () => {
     const { run } = await freshRun("brainstorm-persist", roots, [
       "Implement deterministic DAG wave scheduler",
@@ -105,8 +100,9 @@ describe("plan:brainstorm CLI command and executePlanBrainstorm - Root Resolutio
   });
 
   test("a nonexistent bare --run name creates nothing outside or inside canonical capsules", async () => {
-    const fakeRepo = realpathSync(await mkdtemp(join(tmpdir(), "brainstorm-escape-repo-")));
+    const fakeRepo = `/virtual/cli/brainstorm-escape-repo-${Math.random().toString(36).slice(2)}`;
     roots.push(fakeRepo);
+    await mkdir(fakeRepo, { recursive: true });
     await writeFile(join(fakeRepo, "package.json"), "{}", "utf-8");
 
     await expect(
@@ -131,17 +127,16 @@ describe("plan:brainstorm CLI command and executePlanBrainstorm - Root Resolutio
     const output = await withIsolatedCwd(repo, () =>
       executePlanBrainstorm({ run: "brainstorm-bare-canonical", prompt: "Canonical prompt" }),
     );
-    expect(output.run_root).toBe(
-      realpathSync(join(repo, ".olt", "capsules", "brainstorm-bare-canonical")),
-    );
+    expect(output.run_root).toBe(join(repo, ".olt", "capsules", "brainstorm-bare-canonical"));
     expect(existsSync(join(repo, "brainstorm-bare-canonical"))).toBe(false);
   });
 
   test("absolute and separator run paths that are not capsules leave their existing bytes untouched", async () => {
-    const root = await mkdtemp(join(tmpdir(), "brainstorm-noncapsule-"));
+    const root = `/virtual/cli/brainstorm-noncapsule-${Math.random().toString(36).slice(2)}`;
     roots.push(root);
+    await mkdir(root, { recursive: true });
     const nested = join(root, "nested", "not-a-capsule");
-    await mkdir(join(root, "nested"));
+    await mkdir(join(root, "nested"), { recursive: true });
     await writeFile(nested, "sentinel", "utf-8");
 
     expect(() => executePlanBrainstorm({ runRoot: nested, prompt: "Valid prompt" })).toThrow(
@@ -151,8 +146,9 @@ describe("plan:brainstorm CLI command and executePlanBrainstorm - Root Resolutio
   });
 
   test("a runRoot that is itself a stray non-capsule absolute path is rejected without creating it", async () => {
-    const fakeRepo = await mkdtemp(join(tmpdir(), "brainstorm-explicit-path-"));
+    const fakeRepo = `/virtual/cli/brainstorm-explicit-path-${Math.random().toString(36).slice(2)}`;
     roots.push(fakeRepo);
+    await mkdir(fakeRepo, { recursive: true });
     const explicitRunRoot = join(fakeRepo, "any", "nested", "path");
 
     expect(() =>

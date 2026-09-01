@@ -1,30 +1,26 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, rmSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import {
   feedbackDrainCommand,
   feedbackIngestCommand,
   feedbackListCommand,
 } from "../../../../../olt/scripts/src/cli/commands/feedback-ops.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
 describe("feedback-ops CLI commands", () => {
   let testDir: string;
   let queueFile: string;
 
   beforeEach(() => {
-    testDir = join(
-      tmpdir(),
-      `feedback-ops-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    );
+    setupVirtualCliFS();
+    testDir = `/virtual/cli/feedback-ops-test-${Date.now()}`;
     mkdirSync(testDir, { recursive: true });
     queueFile = join(testDir, "feedback.jsonl");
   });
 
   afterEach(() => {
-    if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true, force: true });
-    }
+    cleanupVirtualCliFS();
   });
 
   test("feedbackIngestCommand ingests feedback with default and custom options", () => {

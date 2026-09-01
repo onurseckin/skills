@@ -404,6 +404,27 @@ export function createVirtualFSSession(vfs: VirtualMemoryFS): VirtualFSSession {
       String(cmd).includes("git")
         ? Buffer.from("main\n")
         : (childProcess.execSync as (...args: unknown[]) => unknown)(cmd, opts)) as never),
+    spyOn(childProcess, "execFile").mockImplementation(((
+      cmd: unknown,
+      args: unknown,
+      optionsOrCallback: unknown,
+      callback?: unknown,
+    ) => {
+      const cb = typeof optionsOrCallback === "function" ? optionsOrCallback : callback;
+      const cmdStr = String(cmd);
+      let stdout = "";
+      if (cmdStr.includes("ps")) {
+        stdout = `${process.pid} 1 ${process.pid}\n`;
+      } else if (cmdStr.includes("git")) {
+        stdout = "main\n";
+      }
+      if (typeof cb === "function") {
+        queueMicrotask(() => {
+          (cb as (err: Error | null, stdout: string, stderr: string) => void)(null, stdout, "");
+        });
+      }
+      return {} as childProcess.ChildProcess;
+    }) as never),
     spyOn(
       Bun as unknown as Record<string, (...args: unknown[]) => unknown>,
       "spawn" as never,
@@ -414,9 +435,19 @@ export function createVirtualFSSession(vfs: VirtualMemoryFS): VirtualFSSession {
           : options.cmd?.[0] === "echo"
             ? options.cmd.slice(1).join(" ") + "\n"
             : "main\n";
+      const isSleep = options.cmd?.[0] === "sleep";
+      let resolveExit: ((code: number) => void) | undefined;
+      const exitedPromise = new Promise<number>((resolve) => {
+        resolveExit = resolve;
+        if (!isSleep) resolve(0);
+      });
+      const killHandlers = ((
+        globalThis as unknown as Record<string, unknown>
+      ).__virtualFsKillHandlers ??= new Map<number, () => void>()) as Map<number, () => void>;
+      killHandlers.set(999999, () => resolveExit?.(143));
       return {
         pid: 999999,
-        exited: Promise.resolve(0),
+        exited: exitedPromise,
         stdout: new ReadableStream({
           start(c) {
             c.enqueue(new TextEncoder().encode(outText));
@@ -428,7 +459,9 @@ export function createVirtualFSSession(vfs: VirtualMemoryFS): VirtualFSSession {
             c.close();
           },
         }),
-        kill: () => {},
+        kill: () => {
+          resolveExit?.(143);
+        },
         ref: () => {},
         unref: () => {},
       };

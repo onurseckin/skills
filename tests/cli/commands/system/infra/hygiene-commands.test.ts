@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
@@ -9,8 +9,15 @@ import {
   hygieneFixCommand,
 } from "../../../../../olt/scripts/src/cli/commands/hygiene-ops.ts";
 import { scratchRoot } from "../../../../shared/fixtures/scratch-root.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
 describe("Hygiene CLI Commands & JSON Contract Verification", () => {
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
+  afterEach(() => {
+    cleanupVirtualCliFS();
+  });
   test("hygiene:audit passes on clean workspace and satisfies JSON contracts", () => {
     const dir = scratchRoot(import.meta.path, "hygiene-clean-contract");
     mkdirSync(join(dir, "scripts"), { recursive: true });

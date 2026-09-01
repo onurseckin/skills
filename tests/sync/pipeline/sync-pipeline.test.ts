@@ -1,5 +1,4 @@
 import { describe, expect, spyOn, test } from "bun:test";
-import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -34,13 +33,6 @@ import {
 } from "../../../scripts/sync/index.ts";
 import { scratchRoot } from "../sync-fixture.ts";
 
-function git(args: string[], cwd: string): void {
-  const result = spawnSync("git", args, { cwd, encoding: "utf-8" });
-  if (result.status !== 0) {
-    throw new Error(`git ${args.join(" ")} failed in ${cwd}: ${result.stderr}`);
-  }
-}
-
 function initFakeSkillsRepo(repoRoot: string): void {
   mkdirSync(join(repoRoot, "olt", "scripts", "src"), { recursive: true });
   writeFileSync(
@@ -64,11 +56,7 @@ function initFakeSkillsRepo(repoRoot: string): void {
     "utf-8",
   );
 
-  git(["init", "--quiet", "--initial-branch", "main"], repoRoot);
-  git(["config", "user.email", "test@example.com"], repoRoot);
-  git(["config", "user.name", "Test"], repoRoot);
-  git(["add", "-A"], repoRoot);
-  git(["commit", "--quiet", "-m", "init"], repoRoot);
+  mkdirSync(join(repoRoot, ".git"), { recursive: true });
 }
 
 describe("scripts/sync/index.ts", () => {

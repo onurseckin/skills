@@ -1,31 +1,26 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { link, mkdir, mkdtemp, readFile, rename, rm, symlink, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { link, mkdir, readFile, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { existsSync } from "node:fs";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { executePlanBrainstorm } from "../../../../../olt/scripts/src/cli/commands/plan-brainstorm.ts";
 import { HarnessError } from "../../../../../olt/scripts/src/core/errors/index.ts";
 import { loadRun, transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 import { freshRun } from "../../fixtures/plan-workflow-fixture.ts";
 
 const roots: string[] = [];
-afterEach(async () => {
-  await cleanupRoots(roots);
-  while (roots.length > 0) {
-    const dir = roots.pop();
-    if (dir && existsSync(dir)) {
-      try {
-        await rm(dir, { recursive: true, force: true });
-      } catch {
-        // Ignore cleanup errors
-      }
-    }
-  }
-});
 
 describe("plan:brainstorm - Capsule Persistence & Invariants", () => {
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualCliFS();
+    roots.length = 0;
+  });
+
   test("rejects symlinked capsule roots and unsafe manifest or state files before persistence", async () => {
     const { run } = await freshRun("brainstorm-unsafe-capsule", roots);
     const moved = `${run}-moved`;
@@ -175,8 +170,9 @@ describe("plan:brainstorm - Capsule Persistence & Invariants", () => {
   });
 
   test("prompt-only brainstorming performs no durable filesystem operation", async () => {
-    const root = await mkdtemp(join(tmpdir(), "brainstorm-prompt-only-"));
+    const root = `/virtual/cli/brainstorm-prompt-only-${Math.random().toString(36).slice(2)}`;
     roots.push(root);
+    await mkdir(root, { recursive: true });
     const output = executePlanBrainstorm({ prompt: "In-memory only" });
     expect(output.success).toBe(true);
     expect(existsSync(join(root, "brainstorming.json"))).toBe(false);

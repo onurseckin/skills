@@ -1,23 +1,23 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import {
   executeFindingFileCommand,
   findingFileCommand,
 } from "../../../../../olt/scripts/src/cli/commands/finding-ops.ts";
 import { parseDefectsJsonl } from "../../../../../olt/scripts/src/mind/defects/sync/index.ts";
-
-const roots: string[] = [];
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
 describe("Wave 3 - Task 3.3: Universal finding:file CLI Subcommand", () => {
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
+  afterEach(() => {
+    cleanupVirtualCliFS();
+  });
+
   test("executeFindingFileCommand writes finding to defects.jsonl", async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), "finding-cli-test-"));
-    roots.push(tempDir);
+    const tempDir = `/virtual/cli/finding-cli-test-${Date.now()}`;
     const defectsPath = join(tempDir, ".olt", "defects.jsonl");
 
     const result = await executeFindingFileCommand({
@@ -44,8 +44,7 @@ describe("Wave 3 - Task 3.3: Universal finding:file CLI Subcommand", () => {
   });
 
   test("findingFileCommand CLI handler processes parsed flags", async () => {
-    const tempDir = await mkdtemp(join(tmpdir(), "finding-handler-test-"));
-    roots.push(tempDir);
+    const tempDir = `/virtual/cli/finding-handler-test-${Date.now()}`;
     const defectsPath = join(tempDir, ".olt", "defects.jsonl");
 
     const flags = {

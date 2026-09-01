@@ -1,28 +1,35 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { realpathSync } from "node:fs";
-import { mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { coordinatorPushbackCommand } from "../../../../../olt/scripts/src/cli/commands/coordinator-pushback.ts";
 import { workflowPort } from "../../../../../olt/scripts/src/integration/store-ports.ts";
 import { loadRun } from "../../../../../olt/scripts/src/engine/store/index.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(async () => {
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+});
 
 const TASK_ID = "task-1";
 
 /**
- * Builds a real, on-disk capsule via the actual CLI (plan:init/plan:add/plan:compile), then
- * plants `task-1` directly at `validated` with one recorded pass — the same shortcut
- * `critic-ready-fixture.ts` takes for readiness state, in place of a full claim/submit/validate/
- * gate:prove round trip this command's own precondition (`status === "validated"`) does not need.
+ * Builds a capsule via the CLI, then plants `task-1` directly at `validated` with one recorded pass.
  */
 async function setupValidatedRun(name: string): Promise<{ run: string }> {
-  const repo = realpathSync(await mkdtemp(join(tmpdir(), `harness-coordpushback-${name}-`)));
+  const repo = `/virtual/cli/coordpushback-${name}`;
   roots.push(repo);
+  await mkdir(repo, { recursive: true });
+  await mkdir(join(repo, ".git"), { recursive: true });
   const promptPath = join(repo, "prompt.txt");
   await writeFile(promptPath, "Fix the retry backoff in the queue worker");
 

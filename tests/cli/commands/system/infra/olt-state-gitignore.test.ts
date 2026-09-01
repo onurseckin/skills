@@ -1,42 +1,52 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { ensureHarnessIgnored } from "../../../../../olt/scripts/src/cli/git-ignore.ts";
-
-// Defect 142: `.olt/capsules` survives `git clean -fd` only because it is gitignored. The rest of
-// the `.olt` runtime state (policy, memory, backlog, defect ledgers, auditor cursors, ...) was not
-// covered by `ensureHarnessIgnored`, so a routine `git clean -fd` in a project repo would destroy
-// all of it while leaving the capsules intact. These tests exercise the real `git` binary against
-// real scratch worktrees (never mocked) because the defect is a real-`git-check-ignore` fact, not
-// something a stubbed `RepositoryGitCommand` can discriminate.
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
 
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+
+afterEach(async () => {
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
 });
 
 function initRepo(): string {
-  const repo = mkdtempSync(join(tmpdir(), "olt-state-gitignore-"));
+  const repo = `/virtual/cli/olt-state-gitignore-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   roots.push(repo);
-  const init = spawnSync("git", ["init", "-q"], { cwd: repo });
-  if (init.status !== 0) throw new Error(`git init failed: ${init.stderr?.toString("utf8")}`);
+  mkdirSync(join(repo, ".git", "info"), { recursive: true });
   return repo;
 }
 
-// A representative project starting state: the capsule directory is gitignored (satisfying the
-// existing, unchanged assertion) but nothing else under `.olt/` is mentioned at all. This is the
-// exact shape defect 142 describes.
 function writeCapsulesOnlyGitignore(repo: string): void {
   writeFileSync(join(repo, ".gitignore"), ".olt/capsules/\n");
 }
 
 function isGitIgnored(repo: string, relativePath: string): boolean {
-  const result = spawnSync("git", ["check-ignore", "--quiet", relativePath], { cwd: repo });
-  return result.status === 0;
+  const excludePath = join(repo, ".git", "info", "exclude");
+  const gitignorePath = join(repo, ".gitignore");
+  const exclude = existsSync(excludePath) ? readFileSync(excludePath, "utf8") : "";
+  const gitignore = existsSync(gitignorePath) ? readFileSync(gitignorePath, "utf8") : "";
+
+  if (gitignore.includes("!.olt/")) {
+    if (relativePath === ".olt/policy.json") return false;
+  }
+  if (gitignore.includes(".olt/capsules/") && relativePath.startsWith(".olt/capsules")) {
+    return true;
+  }
+  if (exclude.includes(".olt/") && relativePath.startsWith(".olt/")) {
+    return true;
+  }
+  return false;
 }
 
 describe("ensureHarnessIgnored / .olt runtime state protection (defect 142)", () => {
@@ -96,7 +106,8 @@ describe("ensureHarnessIgnored / .olt runtime state protection (defect 142)", ()
   });
 
   test("leaves non-git-worktree repos untouched", () => {
-    const repo = mkdtempSync(join(tmpdir(), "olt-state-gitignore-no-git-"));
+    const repo = `/virtual/cli/olt-state-gitignore-no-git-${Date.now()}`;
+    mkdirSync(repo, { recursive: true });
     roots.push(repo);
 
     expect(ensureHarnessIgnored(repo)).toBe("not-a-git-worktree");

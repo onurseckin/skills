@@ -1,7 +1,6 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
-import { mkdtemp } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import {
   identifyExecutionContext,
@@ -9,10 +8,20 @@ import {
   recordDefect,
   type DefectRecord,
 } from "../../../../../olt/scripts/src/authority/thread/index.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(async () => {
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+});
 
 describe("Thread Authority Identifier - Resolution and Containment", () => {
   test("defaults to Tier 3 (fail-closed) when no identity signal is present", () => {
@@ -182,7 +191,8 @@ describe("Thread Authority Identifier - Resolution and Containment", () => {
   });
 
   test("records defect records to run directory when available", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "harness-defect-test-"));
+    const dir = `/virtual/cli/harness-defect-test-${Date.now()}`;
+    await mkdir(dir, { recursive: true });
     roots.push(dir);
 
     const defect: DefectRecord = {

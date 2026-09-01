@@ -1,29 +1,25 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import {
   captureEvalCommand,
   evaluateManifestFile,
   findManifestsInDir,
 } from "../../../../../olt/scripts/src/cli/commands/capture-eval.ts";
 import { HarnessError } from "../../../../../olt/scripts/src/core/errors/index.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
 describe("capture-eval CLI command", () => {
   let testDir: string;
 
   beforeEach(() => {
-    testDir = join(
-      tmpdir(),
-      `capture-eval-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    );
+    setupVirtualCliFS();
+    testDir = `/virtual/cli/capture-eval-test-${Date.now()}`;
     mkdirSync(testDir, { recursive: true });
   });
 
   afterEach(() => {
-    if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true, force: true });
-    }
+    cleanupVirtualCliFS();
   });
 
   describe("evaluateManifestFile", () => {

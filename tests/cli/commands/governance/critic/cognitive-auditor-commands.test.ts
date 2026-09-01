@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { mindAuditLiveCommand } from "../../../../../olt/scripts/src/cli/commands/mind-audit-live.ts";
 import { skillAuditLiveCommand } from "../../../../../olt/scripts/src/cli/commands/skill-audit-live.ts";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { findCommand } from "../../../../../olt/scripts/src/cli/registry/index.ts";
 import { AuditorCursorStore } from "../../../../../olt/scripts/src/mind/auditing/cognitive/index.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
 const MIN_MANIFEST_YAML = `role: mind
 tier: 0
@@ -23,10 +23,8 @@ describe("CLI Cognitive Auditor Commands (mind:audit:live & skill:audit:live)", 
   let runDir: string;
 
   beforeEach(() => {
-    testDir = join(
-      tmpdir(),
-      `test-cognitive-cli-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    );
+    setupVirtualCliFS();
+    testDir = `/virtual/cli/test-cognitive-cli-${Date.now()}`;
     runDir = join(testDir, "capsules", "run-1");
     mkdirSync(join(testDir, ".olt"), { recursive: true });
     mkdirSync(join(testDir, "olt", "agents"), { recursive: true });
@@ -35,9 +33,7 @@ describe("CLI Cognitive Auditor Commands (mind:audit:live & skill:audit:live)", 
   });
 
   afterEach(() => {
-    if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true, force: true });
-    }
+    cleanupVirtualCliFS();
   });
 
   describe("Command Registry Verification", () => {

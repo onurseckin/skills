@@ -1,7 +1,9 @@
 import * as fs from "node:fs";
 import { writeFile } from "node:fs/promises";
-import * as path from "node:path";
-import { basename, join } from "node:path";
+import { basename, join, resolve } from "node:path";
+import { spyOn } from "bun:test";
+import * as childProcess from "node:child_process";
+import ts from "typescript";
 import { execute } from "../../../../olt/scripts/src/cli/execute.ts";
 import { setDefectLogDependenciesForTesting } from "../../../../olt/scripts/src/logging/lock.ts";
 import { generateCanonicalDefaultPolicy } from "../../../../olt/scripts/src/policy/generator/index.ts";
@@ -10,10 +12,6 @@ import {
   VirtualMemoryFS,
   type VirtualFSSession,
 } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
-
-import { spyOn } from "bun:test";
-import * as childProcess from "node:child_process";
-
 import {
   disableInMemoryAgentMetadata,
   enableInMemoryAgentMetadata,
@@ -29,31 +27,35 @@ let execSyncSpy: { mockRestore: () => void } | undefined;
 let bunSpawnSpy: { mockRestore: () => void } | undefined;
 let processSnapshotSpy: { mockRestore: () => void } | undefined;
 let fetchSpy: { mockRestore: () => void } | undefined;
+const origTs = {
+  readFile: ts.sys.readFile,
+  fileExists: ts.sys.fileExists,
+  directoryExists: ts.sys.directoryExists,
+  getCurrentDirectory: ts.sys.getCurrentDirectory,
+};
 
 function normPath(p: string): string {
-  return path.resolve(String(p)).replace(/\\/g, "/");
+  return resolve(String(p)).replace(/\\/g, "/");
 }
 
 function createMockChildProcess(exitCode = 0, stdoutText = "", stderrText = "") {
-  const encoder = new TextEncoder();
-  const stdoutStream = new ReadableStream<Uint8Array>({
-    start(controller) {
-      if (stdoutText) controller.enqueue(encoder.encode(stdoutText));
-      controller.close();
-    },
-  });
-  const stderrStream = new ReadableStream<Uint8Array>({
-    start(controller) {
-      if (stderrText) controller.enqueue(encoder.encode(stderrText));
-      controller.close();
-    },
-  });
+  const enc = new TextEncoder();
   return {
     pid: 99999,
     exitCode,
     exited: Promise.resolve(exitCode),
-    stdout: stdoutStream,
-    stderr: stderrStream,
+    stdout: new ReadableStream<Uint8Array>({
+      start(c) {
+        if (stdoutText) c.enqueue(enc.encode(stdoutText));
+        c.close();
+      },
+    }),
+    stderr: new ReadableStream<Uint8Array>({
+      start(c) {
+        if (stderrText) c.enqueue(enc.encode(stderrText));
+        c.close();
+      },
+    }),
     stdin: undefined,
     kill: () => {},
     ref: () => {},
@@ -67,14 +69,14 @@ export function setupVirtualCliFS(): VirtualMemoryFS {
   vfs = new VirtualMemoryFS();
   const repoRoot = normPath(process.cwd());
   vfs.mkdirSync(repoRoot, { recursive: true });
-  vfs.mkdirSync(path.join(repoRoot, ".olt"), { recursive: true });
-  vfs.mkdirSync(path.join(repoRoot, ".git"), { recursive: true });
+  vfs.mkdirSync(join(repoRoot, ".olt"), { recursive: true });
+  vfs.mkdirSync(join(repoRoot, ".git"), { recursive: true });
   vfs.writeFileSync(
-    path.join(repoRoot, "package.json"),
+    join(repoRoot, "package.json"),
     JSON.stringify({ name: "skills", version: "1.0.0" }),
   );
   vfs.writeFileSync(
-    path.join(repoRoot, ".olt", "policy.json"),
+    join(repoRoot, ".olt", "policy.json"),
     JSON.stringify(generateCanonicalDefaultPolicy(repoRoot, "bun")),
   );
   vfs.mkdirSync("/virtual/coverage/scratch", { recursive: true });
@@ -96,9 +98,7 @@ export function setupVirtualCliFS(): VirtualMemoryFS {
           : typeof argsOrCallback === "function"
             ? (argsOrCallback as (err: null, stdout: string, stderr: string) => void)
             : undefined;
-    if (cb) {
-      queueMicrotask(() => cb(null, `${process.pid} 1 ${process.pid}\n`, ""));
-    }
+    if (cb) queueMicrotask(() => cb(null, `${process.pid} 1 ${process.pid}\n`, ""));
     return {} as never;
   }) as never);
 
@@ -114,25 +114,21 @@ export function setupVirtualCliFS(): VirtualMemoryFS {
     ) {
       return { status: 1, stdout: "", stderr: "mock command error" };
     }
-    if (argStr.includes("rev-parse --show-toplevel")) {
+    if (argStr.includes("rev-parse --show-toplevel"))
       return { status: 0, stdout: repoRoot, stderr: "" };
-    }
-    if (argStr.includes("rev-parse HEAD")) {
+    if (argStr.includes("rev-parse HEAD"))
       return { status: 0, stdout: "0123456789abcdef0123456789abcdef01234567\n", stderr: "" };
-    }
     return { status: 0, stdout: "", stderr: "" };
   }) as never);
 
-  execSyncSpy = spyOn(childProcess, "execSync").mockImplementation((() => {
-    return Buffer.from("");
-  }) as never);
+  execSyncSpy = spyOn(childProcess, "execSync").mockImplementation((() =>
+    Buffer.from("")) as never);
 
   bunSpawnSpy = spyOn(Bun, "spawn").mockImplementation(((...args: unknown[]) => {
     const first = args[0];
     let cmd: string[] = [];
-    if (Array.isArray(first)) {
-      cmd = first as string[];
-    } else if (
+    if (Array.isArray(first)) cmd = first as string[];
+    else if (
       typeof first === "object" &&
       first !== null &&
       "cmd" in first &&
@@ -152,57 +148,62 @@ export function setupVirtualCliFS(): VirtualMemoryFS {
     return createMockChildProcess(0, "", "");
   }) as never);
 
-  processSnapshotSpy = spyOn(processTree, "processSnapshot").mockImplementation(async () => {
-    return new Map([
-      [process.pid, { pid: process.pid, parent: 1, group: process.pid }],
-      [99999, { pid: 99999, parent: process.pid, group: 99999 }],
-    ]);
-  });
+  processSnapshotSpy = spyOn(processTree, "processSnapshot").mockImplementation(
+    async () =>
+      new Map([
+        [process.pid, { pid: process.pid, parent: 1, group: process.pid }],
+        [99999, { pid: 99999, parent: process.pid, group: 99999 }],
+      ]),
+  );
 
   fetchSpy = spyOn(globalThis, "fetch").mockImplementation((() =>
     Promise.reject(new Error("network disabled in tests"))) as never);
   session = createVirtualFSSession(vfs);
   vfs.chdir(repoRoot);
+
+  ts.sys.readFile = (p: string, encoding?: string) => {
+    try {
+      return fs.readFileSync(p, (encoding as BufferEncoding) || "utf8");
+    } catch {
+      return origTs.readFile(p, encoding);
+    }
+  };
+  ts.sys.fileExists = (p: string) => fs.existsSync(p) || origTs.fileExists(p);
+  ts.sys.directoryExists = (p: string) => {
+    try {
+      return fs.statSync(p).isDirectory();
+    } catch {
+      return origTs.directoryExists(p);
+    }
+  };
+  ts.sys.getCurrentDirectory = () => normPath(process.cwd());
+
   return vfs;
 }
 
 export function cleanupVirtualCliFS(): void {
-  if (processSnapshotSpy) {
+  ts.sys.readFile = origTs.readFile;
+  ts.sys.fileExists = origTs.fileExists;
+  ts.sys.directoryExists = origTs.directoryExists;
+  ts.sys.getCurrentDirectory = origTs.getCurrentDirectory;
+  for (const s of [
+    processSnapshotSpy,
+    bunSpawnSpy,
+    execSyncSpy,
+    spawnSyncSpy,
+    fetchSpy,
+    execFileSpy,
+  ]) {
     try {
-      processSnapshotSpy.mockRestore();
+      s?.mockRestore();
     } catch {}
-    processSnapshotSpy = undefined;
   }
-  if (bunSpawnSpy) {
-    try {
-      bunSpawnSpy.mockRestore();
-    } catch {}
-    bunSpawnSpy = undefined;
-  }
-  if (execSyncSpy) {
-    try {
-      execSyncSpy.mockRestore();
-    } catch {}
-    execSyncSpy = undefined;
-  }
-  if (spawnSyncSpy) {
-    try {
-      spawnSyncSpy.mockRestore();
-    } catch {}
-    spawnSyncSpy = undefined;
-  }
-  if (fetchSpy) {
-    try {
-      fetchSpy.mockRestore();
-    } catch {}
-    fetchSpy = undefined;
-  }
-  if (execFileSpy) {
-    try {
-      execFileSpy.mockRestore();
-    } catch {}
-    execFileSpy = undefined;
-  }
+  processSnapshotSpy = undefined;
+  bunSpawnSpy = undefined;
+  execSyncSpy = undefined;
+  spawnSyncSpy = undefined;
+  fetchSpy = undefined;
+  execFileSpy = undefined;
   if (session) {
     session.cleanup();
     session = undefined;

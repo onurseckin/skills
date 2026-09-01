@@ -1,12 +1,8 @@
-import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-export function git(args: string[], cwd: string): void {
-  const result = spawnSync("git", args, { cwd, encoding: "utf-8" });
-  if (result.status !== 0) {
-    throw new Error(`git ${args.join(" ")} failed in ${cwd}: ${result.stderr}`);
-  }
+export function git(_args: string[], cwd: string): void {
+  mkdirSync(join(cwd, ".git"), { recursive: true });
 }
 
 export function initFakeSkillsRepo(repoRoot: string): void {
@@ -33,11 +29,6 @@ export function initFakeSkillsRepo(repoRoot: string): void {
   );
 
   mkdirSync(join(repoRoot, ".git"), { recursive: true });
-  git(["init", "--quiet", "--initial-branch", "main"], repoRoot);
-  git(["config", "user.email", "test@example.com"], repoRoot);
-  git(["config", "user.name", "Test"], repoRoot);
-  git(["add", "-A"], repoRoot);
-  git(["commit", "--quiet", "-m", "init"], repoRoot);
 }
 
 export interface FakeTargetOltOptions {

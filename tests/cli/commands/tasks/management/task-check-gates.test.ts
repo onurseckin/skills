@@ -1,6 +1,5 @@
-import { afterAll, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import {
@@ -11,16 +10,30 @@ import {
 import { HarnessError } from "../../../../../olt/scripts/src/core/errors/index.ts";
 import { setAutoReceiptDependenciesForTesting } from "../../../../../olt/scripts/src/engine/runner/receipt/auto-receipt.ts";
 import { initRun, transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "../../fixtures/task-ops-fixture.ts";
 
 const roots: string[] = [];
-afterAll(async () => cleanupRoots(roots));
+
+async function createVirtualDir(prefix: string): Promise<string> {
+  const dir = `/virtual/cli/${prefix}-${Math.random().toString(36).slice(2)}`;
+  roots.push(dir);
+  await mkdir(dir, { recursive: true });
+  return dir;
+}
 
 describe("task:check - Command Execution & Verifications", () => {
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualCliFS();
+    roots.length = 0;
+  });
+
   test("resolveTargetFiles handles file flags, task scopes, and whole run", async () => {
-    const root = await mkdtemp(join(tmpdir(), "task-check-resolve-"));
-    roots.push(root);
+    const root = await createVirtualDir("task-check-resolve");
 
     const f1 = join(root, "f1.ts");
     const f2 = join(root, "f2.ts");
@@ -140,8 +153,7 @@ describe("task:check - Command Execution & Verifications", () => {
   }, 30_000);
 
   test("explicit --run propagates mandatory receipt failures without recording an event", async () => {
-    const repositoryRoot = await mkdtemp(join(tmpdir(), "task-check-receipt-failure-"));
-    roots.push(repositoryRoot);
+    const repositoryRoot = await createVirtualDir("task-check-receipt-failure");
     const runRoot = initRun(
       repositoryRoot,
       "receipt-failure-run",

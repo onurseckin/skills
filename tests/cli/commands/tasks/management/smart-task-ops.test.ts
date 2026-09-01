@@ -1,6 +1,5 @@
-import { afterAll, describe, expect, test } from "bun:test";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import {
@@ -14,16 +13,29 @@ import {
   smartTaskSynthesizeCommand,
 } from "../../../../../olt/scripts/src/cli/commands/smart-task-ops.ts";
 import { enqueueTasksBatch } from "../../../../../olt/scripts/src/task/queue/index.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
-afterAll(async () => cleanupRoots(roots));
+
+async function createVirtualDir(prefix: string): Promise<string> {
+  const dir = `/virtual/cli/${prefix}-${Math.random().toString(36).slice(2)}`;
+  roots.push(dir);
+  await mkdir(dir, { recursive: true });
+  return dir;
+}
 
 describe("smart-task-ops CLI commands", () => {
-  test("smartTaskSynthesizeCommand executes autonomous task synthesis", async () => {
-    const root = await mkdtemp(join(tmpdir(), "smart-synth-"));
-    roots.push(root);
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
 
+  afterEach(() => {
+    cleanupVirtualCliFS();
+    roots.length = 0;
+  });
+
+  test("smartTaskSynthesizeCommand executes autonomous task synthesis", async () => {
+    const root = await createVirtualDir("smart-synth");
     const queueFile = join(root, "task-queue.json");
     const capsulesDir = join(root, "capsules");
 
@@ -42,9 +54,7 @@ describe("smart-task-ops CLI commands", () => {
   });
 
   test("smartTaskIngestCommand ingests external prompt and produces enhanced plan", async () => {
-    const root = await mkdtemp(join(tmpdir(), "smart-ingest-"));
-    roots.push(root);
-
+    const root = await createVirtualDir("smart-ingest");
     const queueFile = join(root, "task-queue.json");
 
     const result = smartTaskIngestCommand({
@@ -64,9 +74,7 @@ describe("smart-task-ops CLI commands", () => {
   });
 
   test("smartTaskQueueListCommand lists queue stats and filtered tasks", async () => {
-    const root = await mkdtemp(join(tmpdir(), "smart-queue-list-"));
-    roots.push(root);
-
+    const root = await createVirtualDir("smart-queue-list");
     const queueFile = join(root, "task-queue.json");
 
     // Enqueue a sample batch
@@ -111,9 +119,7 @@ describe("smart-task-ops CLI commands", () => {
   });
 
   test("smartTaskQueuePopCommand pops and leases ready tasks", async () => {
-    const root = await mkdtemp(join(tmpdir(), "smart-queue-pop-"));
-    roots.push(root);
-
+    const root = await createVirtualDir("smart-queue-pop");
     const queueFile = join(root, "task-queue.json");
 
     // Empty queue pop
@@ -153,9 +159,7 @@ describe("smart-task-ops CLI commands", () => {
   });
 
   test("smartTaskQueueCompleteCommand completes leased task and unblocks dependents", async () => {
-    const root = await mkdtemp(join(tmpdir(), "smart-queue-complete-"));
-    roots.push(root);
-
+    const root = await createVirtualDir("smart-queue-complete");
     const queueFile = join(root, "task-queue.json");
 
     enqueueTasksBatch(
@@ -202,9 +206,7 @@ describe("smart-task-ops CLI commands", () => {
   });
 
   test("smartTaskQueueFailCommand handles retry and permanent failure", async () => {
-    const root = await mkdtemp(join(tmpdir(), "smart-queue-fail-"));
-    roots.push(root);
-
+    const root = await createVirtualDir("smart-queue-fail");
     const queueFile = join(root, "task-queue.json");
 
     enqueueTasksBatch(
@@ -242,9 +244,7 @@ describe("smart-task-ops CLI commands", () => {
   });
 
   test("smartTaskQueueReclaimCommand reclaims expired leases", async () => {
-    const root = await mkdtemp(join(tmpdir(), "smart-queue-reclaim-"));
-    roots.push(root);
-
+    const root = await createVirtualDir("smart-queue-reclaim");
     const queueFile = join(root, "task-queue.json");
 
     const result = smartTaskQueueReclaimCommand({
@@ -256,9 +256,7 @@ describe("smart-task-ops CLI commands", () => {
   });
 
   test("smartTaskCycleCommand runs autonomous dual intake cycle", async () => {
-    const root = await mkdtemp(join(tmpdir(), "smart-cycle-"));
-    roots.push(root);
-
+    const root = await createVirtualDir("smart-cycle");
     const queueFile = join(root, "task-queue.json");
     const capsulesDir = join(root, "capsules");
 

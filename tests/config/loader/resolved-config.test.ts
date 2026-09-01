@@ -1,5 +1,4 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import * as fs from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import {
   DEFAULT_RESOLVED_CONFIG,
@@ -7,63 +6,35 @@ import {
   resetHarnessConfigCache,
   resolveHarnessConfig,
 } from "../../../olt/scripts/src/core/config/index.ts";
-
-const writeFileSync = (p: fs.PathOrFileDescriptor, d: string | NodeJS.ArrayBufferView) =>
-  fs.writeFileSync(p, d);
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("resolved harness config", () => {
-  const mockFiles = new Map<string, string>();
-  const mockDirs = new Set<string>();
-  const spies: { mockRestore: () => void }[] = [];
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession | null = null;
   let dirCounter = 0;
 
   function makeTempDir(label: string): string {
     const dir = `/virtual/cfg-resolved-${++dirCounter}-${label}`;
-    mockDirs.add(dir);
+    vfs.mkdirSync(dir, { recursive: true });
     return dir;
   }
 
-  const origExists = fs.existsSync.bind(fs);
-  const origRead = fs.readFileSync.bind(fs);
-  const isVirt = (s: string) => s.startsWith("/virtual/") || s.startsWith("/tmp/");
-
   beforeEach(() => {
     resetHarnessConfigCache();
-    mockFiles.clear();
-    mockDirs.clear();
-    spies.push(
-      spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) =>
-        isVirt(String(p)) ? mockFiles.has(String(p)) || mockDirs.has(String(p)) : origExists(p),
-      ),
-      spyOn(fs, "mkdirSync").mockImplementation(((p: fs.PathLike) => {
-        mockDirs.add(String(p));
-        return undefined as unknown as string;
-      }) as unknown as typeof fs.mkdirSync),
-      spyOn(fs, "readFileSync").mockImplementation(((p: fs.PathOrFileDescriptor) => {
-        if (isVirt(String(p))) {
-          const val = mockFiles.get(String(p));
-          if (val !== undefined) return val;
-          throw new Error(`ENOENT: ${String(p)}`);
-        }
-        return origRead(p as never);
-      }) as unknown as typeof fs.readFileSync),
-      spyOn(fs, "writeFileSync").mockImplementation(((
-        p: fs.PathOrFileDescriptor,
-        d: string | NodeJS.ArrayBufferView,
-      ) => {
-        mockFiles.set(
-          String(p),
-          typeof d === "string"
-            ? d
-            : Buffer.from(d.buffer, d.byteOffset, d.byteLength).toString("utf8"),
-        );
-      }) as unknown as typeof fs.writeFileSync),
-    );
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
     resetHarnessConfigCache();
-    while (spies.length > 0) spies.pop()?.mockRestore();
+    if (session) {
+      session.cleanup();
+      session = null;
+    }
   });
 
   test("defaults to one adversarial probe and six repair rounds", () => {
@@ -78,7 +49,7 @@ describe("resolved harness config", () => {
 
   test("reads the probe key from a config file", () => {
     const probeDir = makeTempDir("probe-key");
-    writeFileSync(
+    vfs.writeFileSync(
       join(probeDir, "harness.config.json"),
       JSON.stringify({ min_adversarial_probes: 3 }),
     );
@@ -88,7 +59,7 @@ describe("resolved harness config", () => {
 
   test("rejects non-integer and negative probe counts", () => {
     const dir = makeTempDir("invalid-probe-count");
-    writeFileSync(
+    vfs.writeFileSync(
       join(dir, "harness.config.json"),
       JSON.stringify({ min_adversarial_probes: -1, max_repair_rounds: 1.5 }),
     );
@@ -100,11 +71,11 @@ describe("resolved harness config", () => {
   test("lets a repo layer override a capsule layer", () => {
     const repoDir = makeTempDir("repo-layer");
     const capDir = makeTempDir("capsule-layer");
-    writeFileSync(
+    vfs.writeFileSync(
       join(capDir, "config.json"),
       JSON.stringify({ min_adversarial_probes: 4, default_max_parallel: 8 }),
     );
-    writeFileSync(
+    vfs.writeFileSync(
       join(repoDir, "harness.config.json"),
       JSON.stringify({ min_adversarial_probes: 2 }),
     );
@@ -116,12 +87,18 @@ describe("resolved harness config", () => {
 
   test("caches per root pair and rereads after a reset", () => {
     const dir = makeTempDir("cache-reset");
-    writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ min_adversarial_probes: 2 }));
+    vfs.writeFileSync(
+      join(dir, "harness.config.json"),
+      JSON.stringify({ min_adversarial_probes: 2 }),
+    );
     const first = getHarnessConfig(dir);
     expect(first.min_adversarial_probes).toBe(2);
     expect(getHarnessConfig(dir)).toBe(first);
 
-    writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ min_adversarial_probes: 7 }));
+    vfs.writeFileSync(
+      join(dir, "harness.config.json"),
+      JSON.stringify({ min_adversarial_probes: 7 }),
+    );
     expect(getHarnessConfig(dir).min_adversarial_probes).toBe(2);
 
     resetHarnessConfigCache();

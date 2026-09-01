@@ -1,22 +1,36 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import {
   establishSupervisorChain,
   registerUnderChain,
 } from "../../../../shared/chains/agent-supervisor-chain.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "../../fixtures/task-ops-fixture.ts";
 import { transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
+
+const roots: string[] = [];
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(async () => {
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+});
 
 async function setupTwoIndependentTasks(
   name: string,
   roots2: string[],
 ): Promise<{ repo: string; run: string }> {
-  const repo = await mkdtemp(join(tmpdir(), `harness-queue-independent-${name}-`));
+  const repo = `/virtual/cli/harness-queue-independent-${name}-${Date.now()}`;
   roots2.push(repo);
+  await mkdir(repo, { recursive: true });
+  await mkdir(join(repo, ".git"), { recursive: true });
   const promptPath = join(repo, "prompt.txt");
   await writeFile(promptPath, "Do task one\n\nDo task two");
   const init = await execute([
@@ -79,9 +93,6 @@ async function setupTwoIndependentTasks(
   }
   return { repo, run };
 }
-
-const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
 
 describe("queue:next / queue:list / queue:wave / queue:pop", () => {
   test("queue:next reports highest-priority ready task, or empty markdown", async () => {

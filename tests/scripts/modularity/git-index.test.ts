@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test, spyOn } from "bun:test";
-import * as fsPromises from "node:fs/promises";
 import { readIndexedBlobs, readTreeBlobs } from "../../../scripts/modularity/inventory/index.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 function mockSubprocess(stdout: string | Uint8Array, status = 0, stderr = "") {
   const stdoutBytes = typeof stdout === "string" ? new TextEncoder().encode(stdout) : stdout;
@@ -17,23 +21,23 @@ function indexRecord(mode: string, oid: string, path: string): string {
 }
 
 describe("readIndexedBlobs and readTreeBlobs (in-memory virtual)", () => {
-  const repoRoot = `${process.cwd()}/.olt/virtual-git-index-repo`;
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession | null = null;
+  const repoRoot = "/virtual/git-index-repo";
   const spies: { mockRestore: () => void }[] = [];
-  const mockFiles = new Map<string, string>();
 
   beforeEach(() => {
-    mockFiles.clear();
-    spies.push(
-      spyOn(fsPromises, "readFile").mockImplementation(async (p) => {
-        const val = mockFiles.get(String(p));
-        if (val !== undefined) return Buffer.from(val) as unknown as Buffer & string;
-        throw new Error(`ENOENT: no such file, open '${String(p)}'`);
-      }),
-    );
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    vfs.mkdirSync(repoRoot, { recursive: true });
   });
 
   afterEach(() => {
     while (spies.length > 0) spies.pop()?.mockRestore();
+    if (session) {
+      session.cleanup();
+      session = null;
+    }
   });
 
   function mockSpawnSteps(lsOut: string, catOut: string) {
@@ -159,8 +163,9 @@ describe("readIndexedBlobs and readTreeBlobs (in-memory virtual)", () => {
   });
 
   test("reads working-tree bytes and an untracked in-scope file for tree provenance", async () => {
-    mockFiles.set(`${repoRoot}/slice/index.ts`, "b\n".repeat(301));
-    mockFiles.set(`${repoRoot}/slice/untracked.ts`, "export const value = 1;");
+    vfs.mkdirSync(`${repoRoot}/slice`, { recursive: true });
+    vfs.writeFileSync(`${repoRoot}/slice/index.ts`, "b\n".repeat(301));
+    vfs.writeFileSync(`${repoRoot}/slice/untracked.ts`, "export const value = 1;");
     spies.push(
       spyOn(Bun, "spawn").mockImplementation(() =>
         mockSubprocess("slice/index.ts\0slice/untracked.ts\0"),

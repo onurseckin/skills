@@ -1,14 +1,23 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import type { OrchestratorCommandContext } from "../../../../../olt/scripts/src/cli/commands/orchestrator-ops.ts";
 import type { RoundExecutionResult } from "../../../../../olt/scripts/src/orchestrator/types.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(async () => {
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+});
 
 const stubExecutor: NonNullable<OrchestratorCommandContext["executor"]> = {
   async executeRound(input): Promise<RoundExecutionResult> {
@@ -29,8 +38,10 @@ async function repoWithPrompt(
   name: string,
   prompt: string,
 ): Promise<{ repo: string; promptPath: string }> {
-  const repo = await mkdtemp(join(tmpdir(), `harness-orchestrator-ops-${name}-`));
+  const repo = `/virtual/cli/harness-orchestrator-ops-${name}-${Date.now()}`;
   roots.push(repo);
+  await mkdir(repo, { recursive: true });
+  await mkdir(join(repo, ".git"), { recursive: true });
   const promptPath = join(repo, "prompt.txt");
   await writeFile(promptPath, prompt);
   return { repo, promptPath };

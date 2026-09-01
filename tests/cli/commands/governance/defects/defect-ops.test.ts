@@ -1,6 +1,5 @@
-import { describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import {
@@ -8,8 +7,16 @@ import {
   defectRecordCommand,
   defectResolveCommand,
 } from "../../../../../olt/scripts/src/cli/commands/defect-ops.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
 describe("CLI Defect Operations (defect-ops)", () => {
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
+  afterEach(() => {
+    cleanupVirtualCliFS();
+  });
+
   test("defect:record processes raw JSONL content and deduplicates records", () => {
     const rawJsonl = [
       JSON.stringify({ id: "d1", observation: "Null pointer in worker", severity: "high" }),
@@ -29,53 +36,50 @@ describe("CLI Defect Operations (defect-ops)", () => {
   });
 
   test("defect:record supports file paths, window-ms, and strategies", () => {
-    const tmpDir = mkdtempSync(join(tmpdir(), "defect-rec-"));
+    const tmpDir = `/virtual/cli/defect-rec-${Date.now()}`;
+    mkdirSync(tmpDir, { recursive: true });
     const tmpFile = join(tmpDir, "input-defects.jsonl");
 
-    try {
-      const lines = [
-        JSON.stringify({
-          id: "d1",
-          observation: "Mem leak",
-          timestamp: "2026-08-29T10:00:00.000Z",
-        }),
-        JSON.stringify({
-          id: "d2",
-          observation: "Mem leak",
-          timestamp: "2026-08-29T10:00:10.000Z",
-        }),
-      ];
-      writeFileSync(tmpFile, lines.join("\n"));
+    const lines = [
+      JSON.stringify({
+        id: "d1",
+        observation: "Mem leak",
+        timestamp: "2026-08-29T10:00:00.000Z",
+      }),
+      JSON.stringify({
+        id: "d2",
+        observation: "Mem leak",
+        timestamp: "2026-08-29T10:00:10.000Z",
+      }),
+    ];
+    writeFileSync(tmpFile, lines.join("\n"));
 
-      const fileRes = defectRecordCommand({
-        file: tmpFile,
-        strategy: "windowed",
-        "window-ms": 30_000,
-      });
+    const fileRes = defectRecordCommand({
+      file: tmpFile,
+      strategy: "windowed",
+      "window-ms": 30_000,
+    });
 
-      expect(fileRes.count).toBe(1);
-      expect(fileRes.defects[0]?.count).toBe(2);
+    expect(fileRes.count).toBe(1);
+    expect(fileRes.defects[0]?.count).toBe(2);
 
-      const stdinRes = defectRecordCommand(
-        {},
-        {
-          stdin: new TextEncoder().encode(
-            JSON.stringify({ id: "stdin-1", observation: "Stdin defect" }),
-          ),
-        },
-      );
-      expect(stdinRes.count).toBe(1);
+    const stdinRes = defectRecordCommand(
+      {},
+      {
+        stdin: new TextEncoder().encode(
+          JSON.stringify({ id: "stdin-1", observation: "Stdin defect" }),
+        ),
+      },
+    );
+    expect(stdinRes.count).toBe(1);
 
-      const promptRes = defectRecordCommand(
-        {},
-        {
-          inlinePrompt: JSON.stringify({ id: "prompt-1", observation: "Inline prompt defect" }),
-        },
-      );
-      expect(promptRes.count).toBe(1);
-    } finally {
-      rmSync(tmpDir, { recursive: true, force: true });
-    }
+    const promptRes = defectRecordCommand(
+      {},
+      {
+        inlinePrompt: JSON.stringify({ id: "prompt-1", observation: "Inline prompt defect" }),
+      },
+    );
+    expect(promptRes.count).toBe(1);
   });
 
   test("defect:resolve resolves targeted defect with validation and empirical proof", () => {
@@ -128,48 +132,45 @@ describe("CLI Defect Operations (defect-ops)", () => {
   });
 
   test("defect:list parses, filters by status/category, and limits defect entries", () => {
-    const tmpDir = mkdtempSync(join(tmpdir(), "defect-list-"));
+    const tmpDir = `/virtual/cli/defect-list-${Date.now()}`;
+    mkdirSync(tmpDir, { recursive: true });
     const tmpFile = join(tmpDir, "defects.jsonl");
 
-    try {
-      const records = [
-        JSON.stringify({
-          id: "d1",
-          status: "open",
-          category: "boundary_violation",
-          observation: "Conf breach",
-        }),
-        JSON.stringify({
-          id: "d2",
-          status: "resolved",
-          category: "code_defect",
-          observation: "Syntax error",
-        }),
-        JSON.stringify({
-          id: "d3",
-          status: "open",
-          category: "code_defect",
-          observation: "Type error",
-        }),
-      ];
-      writeFileSync(tmpFile, records.join("\n"));
+    const records = [
+      JSON.stringify({
+        id: "d1",
+        status: "open",
+        category: "boundary_violation",
+        observation: "Conf breach",
+      }),
+      JSON.stringify({
+        id: "d2",
+        status: "resolved",
+        category: "code_defect",
+        observation: "Syntax error",
+      }),
+      JSON.stringify({
+        id: "d3",
+        status: "open",
+        category: "code_defect",
+        observation: "Type error",
+      }),
+    ];
+    writeFileSync(tmpFile, records.join("\n"));
 
-      const allRes = defectListCommand({ file: tmpFile });
-      expect(allRes.count).toBe(3);
+    const allRes = defectListCommand({ file: tmpFile });
+    expect(allRes.count).toBe(3);
 
-      const openRes = defectListCommand({ file: tmpFile, "filter-status": "open" });
-      expect(openRes.count).toBe(2);
-      expect(openRes.defects.every((d) => d.status === "open")).toBeTrue();
+    const openRes = defectListCommand({ file: tmpFile, "filter-status": "open" });
+    expect(openRes.count).toBe(2);
+    expect(openRes.defects.every((d) => d.status === "open")).toBeTrue();
 
-      const catRes = defectListCommand({ file: tmpFile, "filter-category": "boundary_violation" });
-      expect(catRes.count).toBe(1);
-      expect(catRes.defects[0]?.id).toBe("d1");
+    const catRes = defectListCommand({ file: tmpFile, "filter-category": "boundary_violation" });
+    expect(catRes.count).toBe(1);
+    expect(catRes.defects[0]?.id).toBe("d1");
 
-      const limitRes = defectListCommand({ file: tmpFile, limit: 2 });
-      expect(limitRes.count).toBe(2);
-    } finally {
-      rmSync(tmpDir, { recursive: true, force: true });
-    }
+    const limitRes = defectListCommand({ file: tmpFile, limit: 2 });
+    expect(limitRes.count).toBe(2);
   });
 
   test("CLI execute integration dispatches defect commands", async () => {
