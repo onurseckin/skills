@@ -8,15 +8,26 @@ import {
 } from "../../../olt/scripts/src/graph/apply-plan.ts";
 import {
   clearPlanFs,
+  cleanupVirtualGraphFS,
   getNextPlanDir,
   installPlanFsSpies,
   normPlanPath,
+  setupVirtualGraphFS,
   vPlanDirs,
   vPlanFs,
   vPlanSymlinks,
 } from "./plan-fs-fixture.ts";
 
-export { clearPlanFs, installPlanFsSpies, normPlanPath, vPlanDirs, vPlanFs, vPlanSymlinks };
+export {
+  clearPlanFs,
+  cleanupVirtualGraphFS,
+  installPlanFsSpies,
+  normPlanPath,
+  setupVirtualGraphFS,
+  vPlanDirs,
+  vPlanFs,
+  vPlanSymlinks,
+};
 
 export function graphDocument(
   requirements: Record<string, unknown>,

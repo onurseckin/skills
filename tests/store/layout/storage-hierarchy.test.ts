@@ -15,7 +15,9 @@ import {
   validateEventsFileShaChain,
   validateMigratedRun,
 } from "../../../olt/scripts/src/engine/store/hierarchy/storage-migrator.ts";
-import { scratchRoot } from "../store-fixture.ts";
+import { scratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
+
+setupVirtualStoreFS();
 
 function createValidEvent(
   runId: string,

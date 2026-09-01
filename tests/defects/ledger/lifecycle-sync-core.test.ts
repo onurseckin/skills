@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { beforeEach, describe, expect, it } from "bun:test";
 import * as fs from "node:fs";
 import { dirname, join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
@@ -13,11 +13,15 @@ import type {
   DefectEntry,
   EmpiricalFailureProof,
 } from "../../../olt/scripts/src/mind/contracts/defect-contracts.ts";
-import { scratchRoot } from "../defects-fixture.ts";
+import { scratchRoot, setupVirtualDefectsFS } from "../defects-fixture.ts";
 
 export const lifecycleSyncCoreSuiteName = "Defect Lifecycle Sync & Key Generation Core Engine";
 
 describe(lifecycleSyncCoreSuiteName, () => {
+  beforeEach(() => {
+    setupVirtualDefectsFS();
+  });
+
   function createTestPaths() {
     const tempDir = scratchRoot(import.meta.path, "lifecycle-core");
     const defectsPath = join(tempDir, ".olt", "defects.jsonl");

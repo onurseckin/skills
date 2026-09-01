@@ -3,11 +3,18 @@ import { symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { applyPlan } from "../../../olt/scripts/src/graph/apply-plan.ts";
 import { readPlanObject } from "../../../olt/scripts/src/graph/read-plan.ts";
-import { PlanFixture, taskById } from "../validation/fixtures.ts";
+import {
+  PlanFixture,
+  installPlanFsSpies,
+  setupVirtualGraphFS,
+  taskById,
+} from "../validation/fixtures.ts";
 
 describe("plan application", () => {
   let fixture: PlanFixture;
   beforeEach(async () => {
+    installPlanFsSpies();
+    setupVirtualGraphFS();
     fixture = new PlanFixture();
     await fixture.setup();
   });

@@ -13,7 +13,13 @@ import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.t
 import { CAPSULE_LAYOUT } from "../../../olt/scripts/src/engine/store/layout/layout.ts";
 import { resolveCapsulesDir } from "../../../olt/scripts/src/core/shared/paths.ts";
 import { safeRmSync } from "../../../olt/scripts/src/core/shared/safe-fs/index.ts";
-import { scratchRoot as makeScratchRoot } from "../store-fixture.ts";
+import {
+  createStoreFsSpies,
+  scratchRoot as makeScratchRoot,
+  setupVirtualStoreFS,
+} from "../store-fixture.ts";
+
+setupVirtualStoreFS();
 
 function scratchRoot(label: string): string {
   return makeScratchRoot(import.meta.path, label);

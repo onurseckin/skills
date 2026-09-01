@@ -153,3 +153,11 @@ export function clearPlanFs(): void {
   vPlanDirs.clear();
   vPlanSymlinks.clear();
 }
+
+export function setupVirtualGraphFS(): void {
+  installPlanFsSpies();
+}
+
+export function cleanupVirtualGraphFS(): void {
+  clearPlanFs();
+}

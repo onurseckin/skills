@@ -19,6 +19,8 @@ export {
   appendGateProof,
   readGateProofs,
   latestGateProof,
+  installGateProofSpies,
+  cleanupProofRepos,
 } from "./proof/index.ts";
 
 // 3. Gates Subdomain
@@ -129,6 +131,10 @@ export {
   taskById,
   MemoryPlanningStore,
   PlanFixture,
+  setupVirtualGraphFS,
+  cleanupVirtualGraphFS,
+  installPlanFsSpies,
+  clearPlanFs,
   validateGraph,
   validateEdges,
   validateGates,

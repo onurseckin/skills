@@ -4,6 +4,10 @@ export {
   taskById,
   MemoryPlanningStore,
   PlanFixture,
+  setupVirtualGraphFS,
+  cleanupVirtualGraphFS,
+  installPlanFsSpies,
+  clearPlanFs,
 } from "./fixtures.ts";
 export { validateGraph } from "../../../olt/scripts/src/graph/validate-graph.ts";
 export { validateEdges } from "../../../olt/scripts/src/graph/validate-edges.ts";

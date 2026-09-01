@@ -10,11 +10,17 @@ import {
   sha256Bytes,
 } from "../../../olt/scripts/src/core/json.ts";
 import { safeRepoPath } from "../../../olt/scripts/src/core/paths.ts";
-import { createPathsMockState, createPathsFsSpies, type PathsMockState } from "./fixtures.ts";
+import {
+  createPathsMockState,
+  createSafeFsSpies,
+  setupVirtualCoreFS,
+  type PathsMockState,
+  type VirtualCoreSession,
+} from "./fixtures.ts";
 
 describe("canonical JSON & safe paths", () => {
+  let session: VirtualCoreSession;
   let state: PathsMockState;
-  const spies: { mockRestore: () => void }[] = [];
   let sandboxCounter = 0;
 
   function makeSandbox(): string {
@@ -25,11 +31,11 @@ describe("canonical JSON & safe paths", () => {
 
   beforeEach(() => {
     state = createPathsMockState();
-    spies.push(...createPathsFsSpies(state));
+    session = setupVirtualCoreFS(state);
   });
 
   afterEach(() => {
-    while (spies.length > 0) spies.pop()?.mockRestore();
+    session.cleanup();
   });
 
   test("serializes nested JSON deterministically without a newline", () => {

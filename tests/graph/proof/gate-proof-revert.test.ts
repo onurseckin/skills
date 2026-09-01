@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -15,16 +15,21 @@ import {
   installGateProofSpies,
   noopSpawn,
   repoWithoutRealGit,
+  setupVirtualGraphFS,
   vdirs,
 } from "./gate-proof-fixture.ts";
 
 describe("proveGateFalsifiable: revert errors, mode handling and nodeSpawnGate", () => {
+  beforeEach(() => {
+    installGateProofSpies();
+    setupVirtualGraphFS();
+  });
+
   afterEach(() => {
     cleanupProofRepos();
   });
 
   test("throws when the repository root carries no Git metadata", () => {
-    installGateProofSpies();
     const plain = "/virtual/repo/gate-proof-no-git-fixture";
     vdirs.add(plain);
     writeFileSync(join(plain, "a.ts"), "export const a = 1;\n");

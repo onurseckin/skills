@@ -152,3 +152,23 @@ export function createPathsFsSpies(state: PathsMockState): Array<{ mockRestore: 
     }) as unknown as typeof fs.writeFileSync),
   ];
 }
+
+export const createSafeFsSpies = createPathsFsSpies;
+
+export interface VirtualCoreSession {
+  readonly state: PathsMockState;
+  readonly spies: Array<{ mockRestore: () => void }>;
+  readonly cleanup: () => void;
+}
+
+export function setupVirtualCoreFS(customState?: PathsMockState): VirtualCoreSession {
+  const state = customState ?? createPathsMockState();
+  const spies = createSafeFsSpies(state);
+  return {
+    state,
+    spies,
+    cleanup: () => {
+      while (spies.length > 0) spies.pop()?.mockRestore();
+    },
+  };
+}

@@ -4,7 +4,13 @@ import { basename, join } from "node:path";
 import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
 import { checkManifest } from "../../../olt/scripts/src/engine/store/layout/manifest.ts";
 import type { Manifest } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { scratchRoot as makeScratchRoot } from "../store-fixture.ts";
+import {
+  createStoreFsSpies,
+  scratchRoot as makeScratchRoot,
+  setupVirtualStoreFS,
+} from "../store-fixture.ts";
+
+setupVirtualStoreFS();
 
 function scratchRoot(label: string): string {
   return makeScratchRoot(import.meta.path, label);

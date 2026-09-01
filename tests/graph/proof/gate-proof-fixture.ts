@@ -227,6 +227,10 @@ export function cleanupProofRepos(): void {
   vmodes.clear();
 }
 
+export function setupVirtualGraphFS(): void {
+  installGateProofSpies();
+}
+
 /** Scripts `repositoryGit` by argv[0] (ls-files / ls-tree / show). */
 export function fakeGit(script: Record<string, RepositoryGitResult>): RepositoryGitCommand {
   return (_repo: string, argv: readonly string[]): RepositoryGitResult => {

@@ -19,6 +19,7 @@ import { initialState } from "../../olt/scripts/src/engine/store/capsule/state.t
 import { setDefectLogDependenciesForTesting } from "../../olt/scripts/src/logging/lock.ts";
 import { VirtualMemoryFS } from "../../olt/scripts/src/testing/virtual-fs/index.ts";
 import { createStoreFsSpies, type VirtualStoreState } from "./session/index.ts";
+export { createStoreFsSpies } from "./session/index.ts";
 
 const VIRTUAL_SCRATCH_BASE = "/virtual/store-scratch";
 

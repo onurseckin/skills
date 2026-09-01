@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import { join } from "node:path";
 import {
@@ -6,11 +6,14 @@ import {
   readDefectLogFile,
   recordKeyedDefect,
 } from "../../../olt/scripts/src/logging/defect-logger.ts";
-import { scratchRoot } from "../defects-fixture.ts";
+import { scratchRoot, setupVirtualDefectsFS } from "../defects-fixture.ts";
 
 export const defectLoggerSuiteName = "Keyed Defect Logger & Compaction File Engine";
 
 describe(defectLoggerSuiteName, () => {
+  beforeEach(() => {
+    setupVirtualDefectsFS();
+  });
   test("records and aggregates defects live on disk", () => {
     const dir = scratchRoot(import.meta.path, "logger-live");
     const filePath = join(dir, "defects.jsonl");

@@ -9,11 +9,13 @@ import {
   installGateProofSpies,
   noopSpawn,
   repoWithoutRealGit,
+  setupVirtualGraphFS,
 } from "./gate-proof-fixture.ts";
 
 describe("proveGateFalsifiable: core falsifiability", () => {
   beforeEach(() => {
     installGateProofSpies();
+    setupVirtualGraphFS();
   });
 
   afterEach(() => {

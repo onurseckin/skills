@@ -1,6 +1,8 @@
 export {
   repoWithoutRealGit,
   cleanupProofRepos,
+  installGateProofSpies,
+  setupVirtualGraphFS,
   fakeGit,
   noopSpawn,
   fsCheckSpawn,

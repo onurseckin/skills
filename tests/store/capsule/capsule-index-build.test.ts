@@ -3,7 +3,13 @@ import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { RunState } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { buildIndex } from "../../../olt/scripts/src/engine/store/capsule/capsule-index.ts";
-import { scratchRoot as makeScratchRoot } from "../store-fixture.ts";
+import {
+  createStoreFsSpies,
+  scratchRoot as makeScratchRoot,
+  setupVirtualStoreFS,
+} from "../store-fixture.ts";
+
+setupVirtualStoreFS();
 
 function scratchRoot(label: string): string {
   return makeScratchRoot(import.meta.path, label);

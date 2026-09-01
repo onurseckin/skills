@@ -2,7 +2,9 @@ import { describe, expect, test } from "bun:test";
 import { chmodSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { reportsLayout } from "../../../olt/scripts/src/engine/store/layout/layout-reports.ts";
-import { scratchRoot as makeScratchRoot } from "../store-fixture.ts";
+import { scratchRoot as makeScratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
+
+setupVirtualStoreFS();
 
 function scratchRoot(label: string): string {
   return makeScratchRoot(import.meta.path, label);
