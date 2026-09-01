@@ -2,7 +2,7 @@ import type {
   ParetoApproachCandidate,
   ParetoArbitrationResult,
   ParetoPriorityLevel,
-} from "../planning/pareto-arbitration.ts";
+} from "../planning/index.ts";
 
 /**
  * Minimum empirical performance/functional delta required to challenge or reopen

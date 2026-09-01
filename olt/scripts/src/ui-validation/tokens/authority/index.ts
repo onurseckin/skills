@@ -13,6 +13,9 @@ export type {
   BorderRadiiToken,
   TransitionDurationToken,
   TransitionEasingToken,
+} from "./constants.ts";
+
+export type {
   RawValueViolation,
   RawValueValidationResult,
   StyleAdjustmentRequest,
@@ -38,7 +41,7 @@ export {
   VALID_BORDER_RADII_VALUES,
   TRANSITION_TOKENS,
   VALID_TRANSITION_DURATIONS,
-} from "./types.ts";
+} from "./constants.ts";
 
 export {
   RawValuePolicyValidator,

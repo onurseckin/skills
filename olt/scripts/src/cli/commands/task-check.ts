@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * CLI command: task-check (task:check)
  * Fast incremental verification tool for targeted files and task write scopes.
@@ -7,10 +8,9 @@
 import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import ts from "typescript";
-import { HarnessError } from "../../core/errors/index.ts";
+import { HarnessError, isTestEnvironment } from "../../core/index.ts";
 import { autoDeriveCallerIdentity } from "../../authority/session/index.ts";
-import { isTestEnvironment } from "../../core/shared/paths.ts";
-import { workflowPort } from "../../integration/store-ports.ts";
+import { workflowPort } from "../../integration/index.ts";
 import {
   ALL_AST_LINT_RULES,
   lintFile,

@@ -31,7 +31,7 @@ import {
   calculateDefectSimilarity,
   createFnv1aHash,
   normalizeObservationSignature,
-} from "./core/discriminator.ts";
+} from "./core/index.ts";
 
 // ============================================================================
 // 1. Criticality Classes & Constants

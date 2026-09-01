@@ -1,7 +1,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
-import { findRepoRoot } from "../../../core/shared/paths.ts";
+import { findRepoRoot } from "../../../core/index.ts";
 import { loadRun } from "../../../engine/store/index.ts";
 import {
   HistoricalDebateMemory,
@@ -32,7 +32,7 @@ import type {
   DoctorCheckEngineResult,
   DoctorDiagnosticFinding,
   DoctorSeverity,
-} from "../types.ts";
+} from "../index.ts";
 
 
 // ============================================================================

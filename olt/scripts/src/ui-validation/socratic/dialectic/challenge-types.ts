@@ -1,5 +1,6 @@
 import type { ImmutabilityManifest, MilestoneLockEngine } from "../locks/index.ts";
-import type { SocraticRoundNumber } from "./types.ts";
+
+export type SocraticRoundNumber = 1 | 2 | 3 | 4 | 5;
 
 export type CognitiveChallengeSeverity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
 

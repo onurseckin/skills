@@ -2,7 +2,7 @@
 import type {
   DoctorDiagnosticFinding,
   DoctorSeverity,
-} from "../types.ts";
+} from "../index.ts";
 import {
   type SerializedDebateMemory,
   type HistoricalDebateMemory,

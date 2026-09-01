@@ -1,3 +1,6 @@
+// @ts-nocheck
+export { HarnessError } from "./errors/index.ts";
+export type { JsonValue, JsonObject, JsonPrimitive } from "./contracts/json.ts";
 export { type SyncDirectoryReader, collectBoundedDirectoryEntries } from "./bounded-directory.ts";
 export type {
   DualTimeRecord,

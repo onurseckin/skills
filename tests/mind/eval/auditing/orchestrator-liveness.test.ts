@@ -16,7 +16,7 @@ import {
   loadOrchestratorLedger,
   registerOrchestratorSpawn,
   type NewOrchestratorRecordInput,
-} from "../../../../olt/scripts/src/mind/lifecycle/orchestrator-ledger.ts";
+} from "../../../../olt/scripts/src/mind/lifecycle/index.ts";
 
 function createInput(
   overrides: Partial<NewOrchestratorRecordInput> = {},

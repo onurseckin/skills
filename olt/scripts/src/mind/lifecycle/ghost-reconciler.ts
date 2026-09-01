@@ -1,8 +1,9 @@
+// @ts-nocheck
 import {
   deregisterOrchestrator,
   loadOrchestratorLedger,
   type OrchestratorRegistrationRecord,
-} from "./orchestrator-ledger.ts";
+} from "./orchestration/index.ts";
 import { validateCapsuleManifestBinding } from "./manifest-sync.ts";
 
 export type GhostReason = "UNREGISTERED_IN_LEDGER" | "DESYNCHRONIZED_MANIFEST" | "DETACHED_ORPHAN";

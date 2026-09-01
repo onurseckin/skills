@@ -3,7 +3,7 @@
  * Standardized data models for argument parsing, stream event bus, stats telemetry, and execution options.
  */
 
-import type { CoverageArtifactResult } from "../reporting/types.ts";
+import type { CoverageArtifactResult } from "../reporting/index.ts";
 
 export type StreamEventType =
   | "suite_start"

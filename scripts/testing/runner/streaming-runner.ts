@@ -3,8 +3,8 @@ import {
   evaluateCoverageGate,
   formatCoverageGateMessage,
   processCoverageArtifacts,
+  type CoverageArtifactResult,
 } from "../reporting/index.ts";
-import type { CoverageArtifactResult } from "../reporting/types.ts";
 import { acquireTestLock } from "../test-mutex.ts";
 import { buildBunTestArgs, parseRunnerArgs } from "./arg-parser.ts";
 import { StreamParser } from "./stream-parser.ts";

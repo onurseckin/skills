@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHmac, randomBytes } from "node:crypto";
 import type { JsonValue } from "../../../core/contracts/json.ts";
 import { HarnessError } from "../../../core/errors/index.ts";
 

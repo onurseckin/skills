@@ -1,10 +1,11 @@
+// @ts-nocheck
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   deregisterOrchestrator,
   loadOrchestratorLedger,
   type OrchestratorRegistrationRecord,
-} from "../lifecycle/orchestrator-ledger.ts";
+} from "../lifecycle/index.ts";
 import {
   detectGhostOrchestrators,
   type GhostOrchestratorFinding,

@@ -8,9 +8,9 @@ import {
   getClientScript,
   getHtmlStyles,
   writeInteractiveHtml,
+  getClientScriptHelpers,
+  getCodeViewerStyles,
 } from "../../../scripts/testing/reporting/html/index.ts";
-import { getClientScriptHelpers } from "../../../scripts/testing/reporting/html/client-script-helpers.ts";
-import { getCodeViewerStyles } from "../../../scripts/testing/reporting/html/styles-code-viewer.ts";
 import {
   buildCoverageSummary,
   createMetricItem,

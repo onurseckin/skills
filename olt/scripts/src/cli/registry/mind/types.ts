@@ -6,7 +6,7 @@ import {
   type CommandHandler,
   type CommandSpec,
   type FlagSpec,
-} from "../types.ts";
+} from "../index.ts";
 
 export const charterGoalFlag: FlagSpec = {
   name: "charter-goal",

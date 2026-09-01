@@ -3,7 +3,7 @@ import {
   type ParetoApproachCandidate,
   type ParetoArbitrationOptions,
   type ParetoArbitrationResult,
-} from "../planning/pareto-arbitration.ts";
+} from "../planning/index.ts";
 import { SettledInvariantRepository } from "./bedrock-commitment.ts";
 import {
   DEFAULT_SPIKE_TIMEBOX_MS,

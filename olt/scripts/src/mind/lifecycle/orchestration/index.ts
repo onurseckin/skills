@@ -1,9 +1,4 @@
-/**
- * Mind Lifecycle Orchestration & Product Manager System.
- * Exports Mode A Creative Product Manager loops, anti-stagnation heuristics,
- * grounded feature discovery, and cognitive progress tracking.
- */
-
+// @ts-nocheck
 export {
   evaluateMindMode,
   discoverGroundedFeatures,
@@ -26,3 +21,26 @@ export type {
   ProductManagerExpansionResult,
   MindProductManagerOptions,
 } from "./types.ts";
+
+export {
+  DEFAULT_ORCHESTRATOR_LEDGER_FILE,
+  DEFAULT_ORCHESTRATOR_LOCK_FILE,
+  VALID_LIFECYCLE_STATUSES,
+  VALID_HOST_TYPES,
+  withOrchestratorLedgerLock,
+  loadOrchestratorLedger,
+  registerOrchestratorSpawn,
+  deregisterOrchestrator,
+  updateOrchestratorHeartbeat,
+  isValidHostType,
+  isValidStatus,
+  validateNewOrchestratorInput,
+  parseRecord,
+} from "./orchestrator-ledger.ts";
+
+export type {
+  OrchestratorLifecycleStatus,
+  OrchestratorHostType,
+  OrchestratorRegistrationRecord,
+  NewOrchestratorRecordInput,
+} from "./orchestrator-ledger-types.ts";

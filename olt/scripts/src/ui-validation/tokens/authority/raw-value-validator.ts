@@ -48,9 +48,9 @@ export function findClosestNumericToken(
  */
 export function getAllKnownTokenColors(): Set<string> {
   const colors = new Set<string>();
-  for (const theme of Object.values(COLOR_PALETTES)) {
-    for (const hex of Object.values(theme)) {
-      colors.add(hex.toLowerCase());
+  for (const theme of Object.values(COLOR_PALETTES as Record<string, unknown>)) {
+    for (const hex of Object.values(theme as Record<string, unknown>)) {
+      colors.add((hex as string).toLowerCase());
     }
   }
   // Standard CSS transparent / inherit / currentColor

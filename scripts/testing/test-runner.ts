@@ -6,8 +6,7 @@ import {
   processCoverageArtifacts,
 } from "./reporting/index.ts";
 import { acquireTestLock } from "./test-mutex.ts";
-import { executeStreamingRunner } from "./runner/index.ts";
-import { parseRunnerArgs } from "./runner/arg-parser.ts";
+import { executeStreamingRunner, parseRunnerArgs } from "./runner/index.ts";
 
 export { executeStreamingRunner };
 

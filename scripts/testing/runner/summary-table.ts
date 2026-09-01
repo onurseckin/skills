@@ -1,4 +1,4 @@
-import type { CoverageArtifactResult } from "../reporting/types.ts";
+import type { CoverageArtifactResult } from "../reporting/index.ts";
 import type { RunnerStats } from "./types.ts";
 
 export interface SummaryTableOptions {

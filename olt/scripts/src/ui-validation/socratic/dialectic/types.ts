@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import type { JsonValue } from "../../../core/contracts/json.ts";
 import { HarnessError } from "../../../core/errors/index.ts";
+import type { JsonValue } from "../../../core/contracts/json.ts";
 import {
   type ImmutabilityManifest,
   type LockSystemIntegrityReport,
@@ -16,7 +16,8 @@ import {
  * ============================================================================
  */
 
-export type SocraticRoundNumber = 1 | 2 | 3 | 4 | 5;
+import type { SocraticRoundNumber } from "./challenge-types.ts";
+export type { SocraticRoundNumber };
 
 export type SocraticRoundId =
   | "MACRO_LAYOUT"

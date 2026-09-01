@@ -19,7 +19,44 @@ export {
   main as runTestRunnerMain,
 } from "./test-runner.ts";
 
-export * from "./runner/index.ts";
+export {
+  createDefaultRunnerStats,
+  type ParsedRunnerArgs,
+  type RawLineEvent,
+  type RunnerOptions,
+  type RunnerResult,
+  type RunnerStats,
+  type StreamEvent,
+  type StreamEventListener,
+  type StreamEventType,
+  type SuiteEndEvent,
+  type SuiteStartEvent,
+  type SummaryEvent,
+  type TestFailEvent,
+  type TestFailureInfo,
+  type TestPassEvent,
+  type TestSkipEvent,
+  type TickerOptions,
+  type WrapperOptions,
+  buildBunTestArgs,
+  DEFAULT_COVERAGE_DIR,
+  DEFAULT_COVERAGE_REPORTERS,
+  DEFAULT_PARALLEL,
+  DEFAULT_TIMEOUT_MS,
+  isBroadScopeTargets,
+  parseRunnerArgs,
+  parseDurationMs,
+  StreamParser,
+  stripAnsi,
+  formatElapsedSeconds,
+  isInteractiveTerminal,
+  TerminalTicker,
+  type TerminalTickerOptions,
+  formatDuration,
+  formatSummaryTable,
+  getExecutionBadge,
+  type SummaryTableOptions,
+} from "./runner/index.ts";
 
 import * as reporting from "./reporting/index.ts";
 import * as runner from "./runner/index.ts";
