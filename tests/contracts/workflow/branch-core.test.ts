@@ -15,7 +15,8 @@ import {
   type BranchSubTaskStatus,
 } from "../../../olt/scripts/src/core/contracts/index.ts";
 
-export const branchCoreSuiteName = "isBranchStatus, isBranchSubTask, isBranchLease & status predicates";
+export const branchCoreSuiteName =
+  "isBranchStatus, isBranchSubTask, isBranchLease & status predicates";
 
 function subTask(overrides: Partial<BranchSubTask> = {}): BranchSubTask {
   return {

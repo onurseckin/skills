@@ -1,17 +1,13 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { RunState } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { renderHandoff } from "../../../olt/scripts/src/reporting/handoff.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { dispatchFailures, handoffArgv } from "../core/dispatchable.ts";
-
-const roots: string[] = [];
-
-afterEach(async () =>
-  Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))),
-);
+import {
+  cleanupVirtualBrowserFS,
+  setupVirtualBrowserFS,
+  tempDir,
+} from "../browser/browser-run-fixture.ts";
 
 const TASKS = {
   "task-1": {
@@ -100,9 +96,8 @@ const DESCRIBED_AGENT = {
   tokens_in: { value: 1200, evidence_class: "derived", is_estimated: true },
 };
 
-async function capsule(name: string, mutate: (state: RunState) => void = () => {}) {
-  const repo = await mkdtemp(join(tmpdir(), `harness-${name}-`));
-  roots.push(repo);
+function capsule(name: string, mutate: (state: RunState) => void = () => {}) {
+  const repo = tempDir(`harness-${name}`);
   const run = initRun(repo, name, new TextEncoder().encode("Keep every instruction"), "file", true);
   transact(run, "planner", "plan-applied", {}, (state) => {
     state.graph = { revision: 3, gates: [] };
@@ -121,8 +116,16 @@ async function capsule(name: string, mutate: (state: RunState) => void = () => {
 export const handoffDocumentSuiteName = "the handoff reflects the system a fresh agent is joining";
 
 describe(handoffDocumentSuiteName, () => {
-  test("reports the live wave, the grants, the branches and the open findings", async () => {
-    const run = await capsule("handoff-current", (state) => {
+  beforeEach(() => {
+    setupVirtualBrowserFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualBrowserFS();
+  });
+
+  test("reports the live wave, the grants, the branches and the open findings", () => {
+    const run = capsule("handoff-current", (state) => {
       state.topology = structuredClone(TOPOLOGY);
       state.agents = [structuredClone(UNDESCRIBED_AGENT), structuredClone(DESCRIBED_AGENT)];
       state.branches = [structuredClone(BRANCH)];
@@ -139,8 +142,8 @@ describe(handoffDocumentSuiteName, () => {
     expect(dispatchFailures(handoffArgv(document))).toEqual([]);
   });
 
-  test("renders telemetry the host never reported as unknown", async () => {
-    const run = await capsule("handoff-unknown", (state) => {
+  test("renders telemetry the host never reported as unknown", () => {
+    const run = capsule("handoff-unknown", (state) => {
       state.agents = [structuredClone(UNDESCRIBED_AGENT), structuredClone(DESCRIBED_AGENT)];
     });
     const document = renderHandoff(run);
@@ -163,8 +166,8 @@ describe(handoffDocumentSuiteName, () => {
     });
   });
 
-  test("reports an absent topology as absent rather than deriving one", async () => {
-    const run = await capsule("handoff-no-topology");
+  test("reports an absent topology as absent rather than deriving one", () => {
+    const run = capsule("handoff-no-topology");
     const document = renderHandoff(run);
     expect(document).toContain(
       "Live wave: unknown (no topology recorded; plan:compile records one)",
@@ -173,8 +176,8 @@ describe(handoffDocumentSuiteName, () => {
     expect(document).toContain("no agent grants recorded");
   });
 
-  test("reports a topology that no unfinished task appears in", async () => {
-    const run = await capsule("handoff-stale-topology", (state) => {
+  test("reports a topology that no unfinished task appears in", () => {
+    const run = capsule("handoff-stale-topology", (state) => {
       state.topology = { ...structuredClone(TOPOLOGY), waves: [{ wave: 1, task_ids: ["task-1"] }] };
     });
     expect(renderHandoff(run)).toContain(
@@ -182,8 +185,8 @@ describe(handoffDocumentSuiteName, () => {
     );
   });
 
-  test("reports every wave as finished when every task is done", async () => {
-    const run = await capsule("handoff-finished", (state) => {
+  test("reports every wave as finished when every task is done", () => {
+    const run = capsule("handoff-finished", (state) => {
       state.topology = structuredClone(TOPOLOGY);
       const tasks = state.tasks as Record<string, { status: string }>;
       tasks["task-2"]!.status = "done";
@@ -193,8 +196,8 @@ describe(handoffDocumentSuiteName, () => {
     );
   });
 
-  test("keeps an uncollected branch and its next command in front of the reader", async () => {
-    const run = await capsule("handoff-branch", (state) => {
+  test("keeps an uncollected branch and its next command in front of the reader", () => {
+    const run = capsule("handoff-branch", (state) => {
       state.branches = [structuredClone(BRANCH)];
     });
     const document = renderHandoff(run);

@@ -8,7 +8,8 @@ import {
   MANDATORY_COGNITIVE_PUSHBACKS,
 } from "../../../olt/scripts/src/reporting/doctor.ts";
 
-export const unifiedEnginesIsolationSuiteName = "Unified Master Doctor - Isolation & Enforcement Engines (UI, Command Lock, Role Boundary, Quotas)";
+export const unifiedEnginesIsolationSuiteName =
+  "Unified Master Doctor - Isolation & Enforcement Engines (UI, Command Lock, Role Boundary, Quotas)";
 
 describe(unifiedEnginesIsolationSuiteName, () => {
   describe("Engine 5: checkDualChannelUi", () => {

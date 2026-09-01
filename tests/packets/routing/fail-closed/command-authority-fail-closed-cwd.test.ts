@@ -74,7 +74,6 @@ function installMetaAuditGrant(
   });
 }
 
-
 describe("assertGrantedCommand hole 1: no --run resolves", () => {
   test("denies a non-allowlisted command with no --run", () => {
     expect(() => assertGrantedCommand(spec("task:heartbeat"), {})).toThrow(

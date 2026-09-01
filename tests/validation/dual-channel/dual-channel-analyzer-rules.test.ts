@@ -13,7 +13,6 @@ import {
   type VisualMetricsReport,
 } from "../../../olt/scripts/src/validation/dual-channel-analyzer/index.ts";
 
-
 describe("Dual-Channel Visual Analyzer - Rules & IHDR", () => {
   describe("Dual-Channel Gap Filling & Cross-Corroboration", () => {
     const cleanDomReport: VisualMetricsReport = {
@@ -246,4 +245,3 @@ describe("Real PNG IHDR Anti-Mocking Verification", () => {
     expect(result.findings.some((f) => f.category === "missing_viewport")).toBe(true);
   });
 });
-

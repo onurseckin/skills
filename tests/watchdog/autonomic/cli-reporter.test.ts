@@ -18,7 +18,8 @@ describe("formatCliStatusReport Markdown Generation", () => {
       summary: "Autonomic watchdog healthy: 2 subagents compliant, 2 active monitors.",
     };
 
-    const table = "| Agent ID | Role | Whoami | Doctor |\n|---|---|---|---|\n| ag-1 | impl | ✅ | ✅ |";
+    const table =
+      "| Agent ID | Role | Whoami | Doctor |\n|---|---|---|---|\n| ag-1 | impl | ✅ | ✅ |";
     const report = formatCliStatusReport(health, table);
 
     expect(report).toContain("### Autonomic Watchdog Status & Boot-Gate Enforcer");
@@ -57,6 +58,8 @@ describe("formatCliStatusReport Markdown Generation", () => {
 
     expect(report).toContain("- **Overall Health**: UNHEALTHY ❌");
     expect(report).toContain("#### Active Watchdog Findings");
-    expect(report).toContain("- [CRITICAL] **stalled_agent**: Agent 'ag-stalled' has exceeded watchdog heartbeat timeout.");
+    expect(report).toContain(
+      "- [CRITICAL] **stalled_agent**: Agent 'ag-stalled' has exceeded watchdog heartbeat timeout.",
+    );
   });
 });

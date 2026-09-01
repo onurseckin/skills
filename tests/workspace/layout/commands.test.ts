@@ -15,7 +15,7 @@ describe("Workspace Layout: Commands Directory & Attempt Records", () => {
   it("detects invalid command ID formats", () => {
     const state = {
       commands: {
-        "invalid_id_format": {
+        invalid_id_format: {
           record_path: "commands/invalid/record.json",
         },
       },

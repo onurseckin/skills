@@ -5,7 +5,7 @@ import {
   expandWider,
 } from "../../../olt/scripts/src/graph/dynamic-expansion.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { requirementsDocument } from "../../requirements/fixtures.ts";
+import { requirementsDocument } from "../../requirements/index.ts";
 import { graphDocument } from "../validation/fixtures.ts";
 
 describe("dynamic-expansion: expandDeeper", () => {

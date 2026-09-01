@@ -17,7 +17,23 @@ import {
   resolveScratchDir,
 } from "../../core/shared/paths.ts";
 
-import { getInMemorySessionData, isInMemorySessionStoreEnabled } from "./io.ts";
+let inMemorySessionStore: Map<string, string> | undefined;
+
+export const enableInMemorySessionStore = (init?: Record<string, string>): Map<string, string> =>
+  (inMemorySessionStore = new Map(Object.entries(init ?? {})));
+export const disableInMemorySessionStore = (): void => {
+  inMemorySessionStore = undefined;
+};
+export const clearInMemorySessionStore = (): void => inMemorySessionStore?.clear();
+export const isInMemorySessionStoreEnabled = (): boolean => inMemorySessionStore !== undefined;
+export const getInMemorySessionStore = (): Map<string, string> | undefined => inMemorySessionStore;
+export const setInMemorySessionData = (path: string, payload: string): void => {
+  inMemorySessionStore?.set(path, payload);
+};
+export const getInMemorySessionData = (path: string): string | undefined =>
+  inMemorySessionStore?.get(path);
+export const deleteInMemorySessionData = (path: string): boolean =>
+  inMemorySessionStore?.delete(path) ?? false;
 
 export function resolveGlobalSessionsDir(repoRoot?: string): string {
   if (repoRoot) {
@@ -136,7 +152,11 @@ export function resolveCapsuleStateCandidate(
 ): string | undefined {
   const trimmed = runId.trim();
   const statePath = join(trimmed, "state.json");
-  if (existsSync(statePath) || (isInMemorySessionStoreEnabled() && getInMemorySessionData(statePath))) return resolve(statePath);
+  if (
+    existsSync(statePath) ||
+    (isInMemorySessionStoreEnabled() && getInMemorySessionData(statePath))
+  )
+    return resolve(statePath);
   const cwd = customCwd ?? (typeof process !== "undefined" ? process.cwd() : ".");
   const candidates = [join(cwd, ".olt", "capsules", trimmed), join(cwd, "capsules", trimmed)];
   try {
@@ -155,7 +175,11 @@ export function resolveCapsuleStateCandidate(
   } catch {}
   for (const cand of candidates) {
     const candState = join(cand, "state.json");
-    if (existsSync(candState) || (isInMemorySessionStoreEnabled() && getInMemorySessionData(candState))) return resolve(candState);
+    if (
+      existsSync(candState) ||
+      (isInMemorySessionStoreEnabled() && getInMemorySessionData(candState))
+    )
+      return resolve(candState);
   }
   return undefined;
 }

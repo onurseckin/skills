@@ -272,7 +272,7 @@ export function aggregateDefectEntries(
   const occurrences = [...(target.occurrences ?? []), newOccurrence].slice(-maxOccurrences);
   const mergedContext =
     target.context || incoming.context
-      ? { ...(target.context ?? {}), ...(incoming.context ?? {}) }
+      ? { ...target.context, ...incoming.context }
       : undefined;
   return {
     ...target,
@@ -325,7 +325,7 @@ export function deduplicateDefectLog(
   if (strat === "windowed" || strat === "sliding_window_hash") {
     const keyOpts =
       strat === "sliding_window_hash"
-        ? { ...(opts.keyOptions ?? {}), useContentHash: true }
+        ? { ...opts.keyOptions, useContentHash: true }
         : opts.keyOptions;
     const res: AggregatedDefect[] = [];
     for (const b of defects) {

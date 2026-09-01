@@ -14,11 +14,7 @@ export {
   tempRoot,
 } from "./markdown-fixtures-core.ts";
 
-export {
-  populatedGraph,
-  populatedRunRoot,
-  populatedState,
-} from "./markdown-fixtures-dag.ts";
+export { populatedGraph, populatedRunRoot, populatedState } from "./markdown-fixtures-dag.ts";
 
 export const formattersSuite = [
   "checklist-coverage-section",

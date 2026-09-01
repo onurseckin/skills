@@ -33,7 +33,8 @@ describe("Rule Engine: Lifecycle, Registry & Execution", () => {
   });
 
   it("executes multi-rule composite scans and summarizes violations by rule", () => {
-    const code = "const x" + ": " + "any = 10;\nconst val = map.get('k')!;\nconst count = val ?? 0;";
+    const code =
+      "const x" + ": " + "any = 10;\nconst val = map.get('k')!;\nconst count = val ?? 0;";
     const result = lintSourceCode(code, "test.ts", {
       enabledRules: ["any_type", "non_null_assertion", "nullish_coalescing"],
     });

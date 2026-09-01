@@ -250,7 +250,12 @@ describe("Stateful Task Queue Engine", () => {
     expect(r1.retried).toBe(true);
     expect(r1.escalated).toBe(false);
 
-    const r2 = failTask({ taskId: "task-fail-esc", errorMessage: "Second fail permanent", escalateOnMaxRetries: true, customPath: queuePath });
+    const r2 = failTask({
+      taskId: "task-fail-esc",
+      errorMessage: "Second fail permanent",
+      escalateOnMaxRetries: true,
+      customPath: queuePath,
+    });
     expect(r2.retried).toBe(false);
     expect(r2.escalated).toBe(true);
     expect(r2.task.status).toBe("ESCALATED");
@@ -266,8 +271,18 @@ describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions
       import.meta.path,
     ];
 
-    const anyPattern = new RegExp([":\\s*" + "any\\b", "as\\s+" + "any\\b", "<" + "any>"].join("|"));
-    const suppressionPattern = new RegExp(["@ts" + "-ignore", "@ts" + "-expect-error", "@ts" + "-nocheck", "eslint" + "-disable", "oxlint" + "-disable"].join("|"));
+    const anyPattern = new RegExp(
+      [":\\s*" + "any\\b", "as\\s+" + "any\\b", "<" + "any>"].join("|"),
+    );
+    const suppressionPattern = new RegExp(
+      [
+        "@ts" + "-ignore",
+        "@ts" + "-expect-error",
+        "@ts" + "-nocheck",
+        "eslint" + "-disable",
+        "oxlint" + "-disable",
+      ].join("|"),
+    );
 
     for (const filePath of filesToAudit) {
       const content = readFileSync(filePath, "utf-8");

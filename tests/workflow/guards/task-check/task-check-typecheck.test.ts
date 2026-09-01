@@ -187,5 +187,4 @@ export function createConfig(): ServiceConfig {
     expect(result.passed).toBe(true);
     expect((result.files_checked as string[]).length).toBe(2);
   });
-
 });

@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { publishPacket } from "../../../olt/scripts/src/packets/persist-packet.ts";
 import type { BuiltPacket } from "../../../olt/scripts/src/packets/types.ts";
-import { TestPort, at, workflowState } from "../../workflow/test-port.ts";
+import { TestPort, at, workflowState } from "../../workflow/index.ts";
 import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";
 
 /**

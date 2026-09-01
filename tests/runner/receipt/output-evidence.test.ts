@@ -48,8 +48,6 @@ describe("test output evidence", () => {
         stdout,
         bytes(""),
       ),
-    ).toEqual([
-      "test command discovered zero tests",
-    ]);
+    ).toEqual(["test command discovered zero tests"]);
   });
 });

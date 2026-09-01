@@ -10,7 +10,4 @@ export {
   resolveHookConfigFile,
   saveHookConfig,
 } from "../../../olt/scripts/src/hooks/index.ts";
-export type {
-  HookConfig,
-  HookDefinition,
-} from "../../../olt/scripts/src/hooks/index.ts";
+export type { HookConfig, HookDefinition } from "../../../olt/scripts/src/hooks/index.ts";

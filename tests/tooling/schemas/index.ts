@@ -2,21 +2,28 @@
  * Tool Schemas, Validation & Security Sanitizer Facade.
  */
 export {
-  parseToolParameterSchema,
-  buildToolJsonSchema,
-  validateToolArgument,
-  validateToolInput,
-  type ToolParameterSchema,
-  type ToolSchemaValidationResult,
-} from "../../../olt/scripts/src/tooling/schema.ts";
+  buildJsonSchemaFromTool,
+  parseParameterConstraint,
+  parseParameterSchema,
+  parseToolSchema,
+  type ParameterSchemaParseResult,
+  type ToolSchemaParseResult,
+} from "../../../olt/scripts/src/tooling/schema-parser.ts";
 
 export {
-  escapeShellArgument,
-  detectShellInjection,
-  detectPathTraversal,
+  validateConstraints,
+  validateParameterType,
+  validateParameterValue,
+  validateToolArguments,
+} from "../../../olt/scripts/src/tooling/input-validator.ts";
+
+export {
+  detectCommandInjection,
   detectPrototypePollution,
-  sanitizeDangerousHtml,
-  sanitizeToolPayload,
-  type SecurityPolicy,
-  type PayloadSanitizationResult,
-} from "../../../olt/scripts/src/tooling/payload-sanitizer.ts";
+  isSafeExecutionPayload,
+  sanitizeHtmlContent,
+  sanitizePathTraversal,
+  sanitizeShellArgument,
+  sanitizeToolInput,
+  sanitizeValueByPolicy,
+} from "../../../olt/scripts/src/tooling/security-sanitizer.ts";

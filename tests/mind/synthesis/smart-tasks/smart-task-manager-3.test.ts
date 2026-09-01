@@ -2,9 +2,8 @@ import { describe, expect, it } from "bun:test";
 import {
   planWaveExecution,
   detectScopeOverlap,
-  calculateScopeCollisions,
+  type SmartTaskPlan,
 } from "../../../../olt/scripts/src/mind/tasks/smart/index.ts";
-import type { TaskPlanEntry } from "../../../../olt/scripts/src/mind/tasks/smart/types.ts";
 
 describe("Smart Task Manager - Wave Partitioning & Scope Collisions", () => {
   it("detectScopeOverlap accurately flags exact matches and directory containment", () => {
@@ -14,9 +13,27 @@ describe("Smart Task Manager - Wave Partitioning & Scope Collisions", () => {
   });
 
   it("planWaveExecution partitions tasks into ordered topological waves", () => {
-    const tasks: TaskPlanEntry[] = [
-      { id: "T1", label: "Task 1", rationale: "R1", write_scope: ["src/a.ts"], gate: "true", dependencies: [], implementer_role: "imp", validator_role: "val" },
-      { id: "T2", label: "Task 2", rationale: "R2", write_scope: ["src/b.ts"], gate: "true", dependencies: ["T1"], implementer_role: "imp", validator_role: "val" },
+    const tasks: SmartTaskPlan[] = [
+      {
+        id: "T1",
+        label: "Task 1",
+        rationale: "R1",
+        write_scope: ["src/a.ts"],
+        gate: "true",
+        dependencies: [],
+        implementer_role: "imp",
+        validator_role: "val",
+      },
+      {
+        id: "T2",
+        label: "Task 2",
+        rationale: "R2",
+        write_scope: ["src/b.ts"],
+        gate: "true",
+        dependencies: ["T1"],
+        implementer_role: "imp",
+        validator_role: "val",
+      },
     ];
     const plan = planWaveExecution(tasks);
     expect(plan.waves.length).toBe(2);

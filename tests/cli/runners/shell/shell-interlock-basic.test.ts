@@ -60,20 +60,14 @@ describe("CLI Shell Interlock - Basic & Role Confinement", () => {
     const harnessErr = thrown as HarnessError;
     expect(harnessErr.code).toBe("ROLE_CONFINEMENT_VIOLATION");
     expect(harnessErr.message).toContain("[COGNITIVE_VALIDATOR_COMMAND_FORBIDDEN]");
-    expect(harnessErr.message).toContain(
-      "Cognitive Validators are locked to 0 command execution",
-    );
+    expect(harnessErr.message).toContain("Cognitive Validators are locked to 0 command execution");
   });
 
   test("instantly blocks unshielded subshells and chaining attempts", async () => {
     registerStandaloneActor("imp-test", "implementer");
     let thrownSh: unknown;
     try {
-      await shellCommand({ actor: "imp-test", role: "implementer" }, {}, [
-        "sh",
-        "-c",
-        "bun test",
-      ]);
+      await shellCommand({ actor: "imp-test", role: "implementer" }, {}, ["sh", "-c", "bun test"]);
     } catch (err) {
       thrownSh = err;
     }

@@ -4,9 +4,15 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import {
   ensureMailboxDirectories,
+  ensureMailboxDir,
+  getInMemoryMailboxDirs,
+  isInMemoryMailboxDir,
   isValidAgentId,
+  listMailboxAgentIds,
+  resetInMemoryMailboxDirs,
   resolveMailboxLockPath,
   resolveMailboxPaths,
+  resolveSystemLockPath,
 } from "../../../olt/scripts/src/communication/mailbox/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import type { MailboxPaths } from "../../../olt/scripts/src/communication/types.ts";
@@ -156,6 +162,49 @@ describe("Mailbox Paths & Directory Provisioning Engine", () => {
         quarantinePath: "",
       };
       expect(() => ensureMailboxDirectories(badPaths)).toThrow(HarnessError);
+    });
+
+    it("handles virtual in-memory mailbox paths and directories provisioning", () => {
+      const vPaths = resolveMailboxPaths("virt-agent", "virtual:/memory/root");
+      expect(vPaths.agentMailboxDir).toBe("virtual:/memory/root/.olt/mailboxes/virt-agent");
+      expect(vPaths.inboxPath).toBe("virtual:/memory/root/.olt/mailboxes/virt-agent/inbox.jsonl");
+
+      ensureMailboxDirectories(vPaths);
+      expect(isInMemoryMailboxDir(vPaths.agentMailboxDir)).toBe(true);
+      expect(getInMemoryMailboxDirs()).toContain(vPaths.agentMailboxDir);
+
+      const ensured = ensureMailboxDir("virt-agent-2", "virtual:/memory/root");
+      expect(isInMemoryMailboxDir(ensured.agentMailboxDir)).toBe(true);
+
+      const ids = listMailboxAgentIds("virtual:/memory/root/.olt/mailboxes");
+      expect(ids).toContain("virt-agent");
+      expect(ids).toContain("virt-agent-2");
+
+      resetInMemoryMailboxDirs();
+      expect(getInMemoryMailboxDirs().length).toBe(0);
+      expect(isInMemoryMailboxDir(vPaths.agentMailboxDir)).toBe(false);
+      expect(listMailboxAgentIds()).toEqual([]);
+    });
+  });
+
+  describe("resolveSystemLockPath", () => {
+    it("resolves system lock path under .olt/locks", () => {
+      const resolved = resolveSystemLockPath("policy.lock", tempDir);
+      expect(resolved).toBe(join(tempDir, ".olt", "locks", "policy.lock"));
+
+      const defaultCwd = resolveSystemLockPath("system.lock");
+      expect(defaultCwd).toBe(join(resolve(process.cwd()), ".olt", "locks", "system.lock"));
+
+      const oltRoot = resolveSystemLockPath("run.lock", join(tempDir, ".olt"));
+      expect(oltRoot).toBe(join(tempDir, ".olt", "locks", "run.lock"));
+    });
+
+    it("rejects empty, non-string, or traversal lock names", () => {
+      expect(() => resolveSystemLockPath("")).toThrow(HarnessError);
+      expect(() => resolveSystemLockPath("   ")).toThrow(HarnessError);
+      expect(() => resolveSystemLockPath(null as unknown as string)).toThrow(HarnessError);
+      expect(() => resolveSystemLockPath("../escape.lock")).toThrow(HarnessError);
+      expect(() => resolveSystemLockPath("bad/name.lock")).toThrow(HarnessError);
     });
   });
 });

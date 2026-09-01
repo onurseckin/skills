@@ -116,7 +116,11 @@ describe("Mechanical Validators: Spacing, Typography & Layout Aggregate", () => 
         tagName: "HEADER",
         bounds: { x: 0, y: 0, width: 1200, height: 60 },
       };
-      const defNav = validateSidebarLayout([elHeader], { enabled: true, requireZeroNavbar: true }, { width: 1280, height: 800 });
+      const defNav = validateSidebarLayout(
+        [elHeader],
+        { enabled: true, requireZeroNavbar: true },
+        { width: 1280, height: 800 },
+      );
       expect(defNav.length).toBe(1);
 
       const elAside: ElementPhysicsSnapshot = {
@@ -124,7 +128,9 @@ describe("Mechanical Validators: Spacing, Typography & Layout Aggregate", () => 
         tagName: "ASIDE",
         bounds: { x: 0, y: 0, width: 280, height: 800 },
       };
-      expect(validateSidebarLayout([elAside], { enabled: true, minWidth: 240, maxWidth: 320 }).length).toBe(0);
+      expect(
+        validateSidebarLayout([elAside], { enabled: true, minWidth: 240, maxWidth: 320 }).length,
+      ).toBe(0);
       expect(validateSidebarLayout([elAside], { enabled: true, minWidth: 300 }).length).toBe(1);
 
       const elOver: ElementPhysicsSnapshot = {
@@ -139,14 +145,22 @@ describe("Mechanical Validators: Spacing, Typography & Layout Aggregate", () => 
         tagName: "IMG",
         bounds: { x: 200, y: 200, width: 100, height: 40 },
       };
-      expect(validateSidebarLayout([elLogo], { enabled: true, logoPosition: "top-left" }).length).toBe(1);
+      expect(
+        validateSidebarLayout([elLogo], { enabled: true, logoPosition: "top-left" }).length,
+      ).toBe(1);
 
       const elProfile: ElementPhysicsSnapshot = {
         selector: "div.user-profile",
         tagName: "DIV",
         bounds: { x: 200, y: 200, width: 100, height: 40 },
       };
-      expect(validateSidebarLayout([elProfile], { enabled: true, userProfilePosition: "bottom-left" }, { width: 1280, height: 800 }).length).toBe(1);
+      expect(
+        validateSidebarLayout(
+          [elProfile],
+          { enabled: true, userProfilePosition: "bottom-left" },
+          { width: 1280, height: 800 },
+        ).length,
+      ).toBe(1);
     });
   });
 

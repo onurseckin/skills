@@ -6,7 +6,8 @@ import {
   lintFile,
 } from "../../../olt/scripts/src/linter/ast/index.ts";
 
-export const complianceGuardSuiteName = "AST Zero-Fallback Assertion Guards & Self Compliance Invariants";
+export const complianceGuardSuiteName =
+  "AST Zero-Fallback Assertion Guards & Self Compliance Invariants";
 
 describe(complianceGuardSuiteName, () => {
   describe("assertZeroFallbackCompliance Assertion Guard", () => {

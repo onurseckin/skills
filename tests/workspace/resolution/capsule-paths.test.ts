@@ -1,8 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import {
-  isInsideCapsule,
-  stripCapsulePath,
-} from "../../../olt/scripts/src/core/shared/paths.ts";
+import { isInsideCapsule, stripCapsulePath } from "../../../olt/scripts/src/core/shared/paths.ts";
 
 describe("Workspace Resolution: Capsule Paths & Containment", () => {
   it("detects paths inside .olt/capsules/", () => {

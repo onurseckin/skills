@@ -1,7 +1,6 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   findSkillRoot,
@@ -30,26 +29,12 @@ import {
   auditPermissionHealth,
   generateDefaultRepoPolicy,
   loadRepoPolicy,
+  verifyCommandAuthorization,
 } from "../../../olt/scripts/src/policy/index.ts";
-import { verifyCommandAuthorization } from "../../../olt/scripts/src/policy/index.ts";
-
-const roots: string[] = [];
-
-afterEach(() => {
-  for (const root of roots) {
-    try {
-      rmSync(root, { recursive: true, force: true });
-    } catch {
-      // cleanup error ignored
-    }
-  }
-  roots.length = 0;
-});
+import { cleanupVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
 
 function createCapsule(name: string): { readonly repo: string; readonly run: string } {
-  const repo = mkdtempSync(join(tmpdir(), `owner-role-test-${name}-`));
-  roots.push(repo);
-
+  const repo = `/virtual/owner-role/capsule-${name}`;
   const charterDir = join(repo, "olt", "agents");
   mkdirSync(charterDir, { recursive: true });
   const charterPath = join(charterDir, "mind.yaml");
@@ -82,6 +67,13 @@ function createCapsule(name: string): { readonly repo: string; readonly run: str
 }
 
 describe("Task 4.2: Owner Role Genesis & Manifest Schema Optionality", () => {
+  beforeEach(() => {
+    setupVirtualAuthorityFS();
+  });
+  afterEach(() => {
+    cleanupVirtualAuthorityFS();
+  });
+
   describe("Manifest Schema Optionality (hb-s6-manifest-schema-coerces-absent-commands)", () => {
     test("handles undefined commands vs explicit empty array commands", () => {
       const omittedYaml = `name: "no-commands-agent"\nrole: "custom"\ntier: 3\npermissions:\n  may:\n    - "read files"\n  must_not:\n    - "write files"\n`;

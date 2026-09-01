@@ -234,8 +234,11 @@ describe("Coding Conventions Validation", () => {
         targetFiles: [
           {
             path: "src/bad/index.ts",
-            content:
-              ["// comment here", ["export", "*", "from", '"./sub.ts";'].join(" "), "export const legacyHelper = 1;"].join("\n"),
+            content: [
+              "// comment here",
+              ["export", "*", "from", '"./sub.ts";'].join(" "),
+              "export const legacyHelper = 1;",
+            ].join("\n"),
           },
         ],
         directories: [{ path: "src/bad", fileCount: 15 }],

@@ -1,7 +1,6 @@
-import { describe, expect, it } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import {
   DynamicToolRegistry,
   discoverToolsFromDirectory,
@@ -11,9 +10,18 @@ import {
   validateToolSpec,
   type ToolDefinition,
 } from "../../../olt/scripts/src/tooling/index.ts";
+import { cleanupVirtualDiscoveryFS, setupVirtualDiscoveryFS } from "../fixtures/index.ts";
 
 describe("Tool Discovery and Scanning Unit Test Suite", () => {
-  const testRoot = join(tmpdir(), `discovery-unit-test-${Date.now()}`);
+  const testRoot = "/virtual/discovery-unit-test";
+
+  beforeEach(() => {
+    setupVirtualDiscoveryFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualDiscoveryFS();
+  });
 
   const sampleToolSpec1 = {
     name: "calculatorTool",
@@ -259,9 +267,17 @@ describe("Tool Discovery and Scanning Unit Test Suite", () => {
       expect(report.errors.length).toBeGreaterThan(0);
     });
 
-    it("cleans up temporary test directory", () => {
-      rmSync(testRoot, { recursive: true, force: true });
-      expect(true).toBe(true);
+    it("handles malformed JSON manifest and non-tool files gracefully", () => {
+      const edgeDir = join(testRoot, "edge-test");
+      mkdirSync(edgeDir, { recursive: true });
+      const badManifest = join(edgeDir, "bad-manifest.json");
+      writeFileSync(badManifest, "invalid JSON content{{{");
+      expect(discoverToolsFromManifest(badManifest)).toEqual([]);
+
+      const notATool = join(edgeDir, "not-a-tool.json");
+      writeFileSync(notATool, JSON.stringify({ invalid: true }));
+      const found = discoverToolsFromDirectory(edgeDir);
+      expect(found.length).toBe(0);
     });
   });
 });

@@ -1,25 +1,72 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import * as fs from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import type { GitRunner } from "../../../olt/scripts/src/workflow/worktree/git.ts";
 import { landTrackToMain } from "../../../olt/scripts/src/workflow/worktree/index.ts";
 
-const TEST_DIR = join(process.cwd(), ".olt", "scratch", "test-worktree-land");
+const TEST_DIR = "/virtual/worktree-land-repo";
 
-describe("track worktree landing pipeline", () => {
+describe("track worktree landing pipeline (in-memory virtualization)", () => {
+  let harness: { files: Map<string, string>; dirs: Set<string>; restore: () => void };
+
   beforeEach(() => {
-    rmSync(TEST_DIR, { recursive: true, force: true });
-    mkdirSync(TEST_DIR, { recursive: true });
+    const files = new Map<string, string>();
+    const dirs = new Set<string>([TEST_DIR]);
+
+    const existsSpy = spyOn(fs, "existsSync").mockImplementation((p) => {
+      const s = String(p);
+      return files.has(s) || dirs.has(s);
+    });
+    const mkdirSpy = spyOn(fs, "mkdirSync").mockImplementation((p) => {
+      dirs.add(String(p));
+      return undefined as unknown as string;
+    });
+    const writeSpy = spyOn(fs, "writeFileSync").mockImplementation((p, data) => {
+      files.set(String(p), String(data));
+    });
+    const appendSpy = spyOn(fs, "appendFileSync").mockImplementation((p, data) => {
+      const prev = files.get(String(p)) ?? "";
+      files.set(String(p), prev + String(data));
+    });
+    const readSpy = spyOn(fs, "readFileSync").mockImplementation((p) => {
+      const val = files.get(String(p));
+      if (val === undefined) {
+        throw Object.assign(new Error(`ENOENT: open '${String(p)}'`), { code: "ENOENT" });
+      }
+      return val;
+    });
+    const rmSpy = spyOn(fs, "rmSync").mockImplementation((p) => {
+      const s = String(p);
+      files.delete(s);
+      dirs.delete(s);
+    });
+    const unlinkSpy = spyOn(fs, "unlinkSync").mockImplementation((p) => {
+      files.delete(String(p));
+    });
+
+    harness = {
+      files,
+      dirs,
+      restore() {
+        existsSpy.mockRestore();
+        mkdirSpy.mockRestore();
+        writeSpy.mockRestore();
+        appendSpy.mockRestore();
+        readSpy.mockRestore();
+        rmSpy.mockRestore();
+        unlinkSpy.mockRestore();
+      },
+    };
   });
 
   afterEach(() => {
-    rmSync(TEST_DIR, { recursive: true, force: true });
+    harness.restore();
   });
 
   test("landTrackToMain successfully rebases, pushes, writes telemetry and cleans up", () => {
     const executed: string[][] = [];
-    const mockRunner: GitRunner = (cwd, argv) => {
+    const mockRunner: GitRunner = (_cwd, argv) => {
       executed.push([...argv]);
       if (argv[0] === "fetch") return { status: 0, stdout: "", stderr: "" };
       if (argv[0] === "rebase") return { status: 0, stdout: "", stderr: "" };
@@ -33,13 +80,9 @@ describe("track worktree landing pipeline", () => {
 
     const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-landing-1");
     const lockPath = join(TEST_DIR, ".olt", "worktrees", "locks", "track-landing-1.lock");
-    mkdirSync(worktreeDir, { recursive: true });
-    mkdirSync(join(TEST_DIR, ".olt", "worktrees", "locks"), { recursive: true });
-    writeFileSync(
-      lockPath,
-      JSON.stringify({ pid: process.pid, trackId: "track-landing-1" }),
-      "utf8",
-    );
+    harness.dirs.add(worktreeDir);
+    harness.dirs.add(join(TEST_DIR, ".olt", "worktrees", "locks"));
+    harness.files.set(lockPath, JSON.stringify({ pid: process.pid, trackId: "track-landing-1" }));
 
     let hookCalled = false;
     const result = landTrackToMain({
@@ -63,18 +106,18 @@ describe("track worktree landing pipeline", () => {
     expect(result.durationMs).toBeGreaterThanOrEqual(0);
 
     const telemetryPath = join(TEST_DIR, ".olt", "telemetry.jsonl");
-    expect(existsSync(telemetryPath)).toBe(true);
-    const line = readFileSync(telemetryPath, "utf8").trim();
+    expect(harness.files.has(telemetryPath)).toBe(true);
+    const line = (harness.files.get(telemetryPath) ?? "").trim();
     const parsed = JSON.parse(line);
     expect(parsed.trackId).toBe("track-landing-1");
     expect(parsed.event).toBe("track_landed");
     expect(parsed.commitSha).toBe("abc123def456");
 
-    expect(existsSync(lockPath)).toBe(false);
+    expect(harness.files.has(lockPath)).toBe(false);
   });
 
   test("landTrackToMain handles local-only repository gracefully", () => {
-    const mockRunner: GitRunner = (cwd, argv) => {
+    const mockRunner: GitRunner = (_cwd, argv) => {
       if (argv[0] === "rev-parse" && argv[1] === "HEAD")
         return { status: 0, stdout: "localsha123\n", stderr: "" };
       if (argv[0] === "branch" && argv[1] === "-f") return { status: 0, stdout: "", stderr: "" };
@@ -82,7 +125,7 @@ describe("track worktree landing pipeline", () => {
     };
 
     const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-local");
-    mkdirSync(worktreeDir, { recursive: true });
+    harness.dirs.add(worktreeDir);
 
     const result = landTrackToMain({
       trackId: "track-local",
@@ -103,10 +146,10 @@ describe("track worktree landing pipeline", () => {
 
   test("landTrackToMain handles activeBranch === targetBranch with fast-forward merge", () => {
     const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-ff");
-    mkdirSync(worktreeDir, { recursive: true });
+    harness.dirs.add(worktreeDir);
 
     const executed: string[][] = [];
-    const mockRunner: GitRunner = (cwd, argv) => {
+    const mockRunner: GitRunner = (_cwd, argv) => {
       executed.push([...argv]);
       if (argv[0] === "symbolic-ref") return { status: 0, stdout: "main\n", stderr: "" };
       if (argv[0] === "rev-parse" && argv[1] === "HEAD")
@@ -129,10 +172,10 @@ describe("track worktree landing pipeline", () => {
 
   test("landTrackToMain handles remote fetch failure and non-atomic push fallback", () => {
     const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-fallback");
-    mkdirSync(worktreeDir, { recursive: true });
+    harness.dirs.add(worktreeDir);
 
     let pushCount = 0;
-    const mockRunner: GitRunner = (cwd, argv) => {
+    const mockRunner: GitRunner = (_cwd, argv) => {
       if (argv[0] === "fetch") throw new Error("fetch offline");
       if (argv[0] === "rebase") return { status: 0, stdout: "", stderr: "" };
       if (argv[0] === "rev-parse" && argv[1] === "HEAD")
@@ -155,14 +198,14 @@ describe("track worktree landing pipeline", () => {
 
     expect(result.success).toBe(true);
     expect(result.pushed).toBe(true);
-    expect(pushCount).toBe(2); // atomic failed -> regular succeeded
+    expect(pushCount).toBe(2);
   });
 
   test("landTrackToMain throws INTEGRITY when rebase encounters conflicts", () => {
     const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-conflict");
-    mkdirSync(worktreeDir, { recursive: true });
+    harness.dirs.add(worktreeDir);
 
-    const mockRunner: GitRunner = (cwd, argv) => {
+    const mockRunner: GitRunner = (_cwd, argv) => {
       if (argv[0] === "rebase")
         return { status: 1, stdout: "CONFLICT (content): Merge conflict in src/a.ts", stderr: "" };
       if (argv[0] === "diff") return { status: 0, stdout: "src/a.ts\n", stderr: "" };
@@ -180,10 +223,8 @@ describe("track worktree landing pipeline", () => {
 
   test("landTrackToMain string overload executes asynchronously", async () => {
     const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-str");
-    mkdirSync(worktreeDir, { recursive: true });
+    harness.dirs.add(worktreeDir);
 
-    // Calling with string parameter returns Promise<void>
-    // In test environment, without git repo it will throw INVALID_STATE if worktree doesn't exist or fail gracefully
     await expect(landTrackToMain("track-str")).rejects.toBeDefined();
   });
 });

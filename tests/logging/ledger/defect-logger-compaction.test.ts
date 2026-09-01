@@ -1,11 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import {
-  linkSync,
-  mkdirSync,
-  readFileSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { linkSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   compactDefectLogFile,
@@ -14,10 +8,7 @@ import {
   recordKeyedDefect,
 } from "../../../olt/scripts/src/logging/defect-logger.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import {
-  createLoggingSandbox,
-  cleanupLoggingSandboxes,
-} from "../fixtures/index.ts";
+import { createLoggingSandbox, cleanupLoggingSandboxes } from "../fixtures/index.ts";
 
 afterEach(() => {
   cleanupLoggingSandboxes();

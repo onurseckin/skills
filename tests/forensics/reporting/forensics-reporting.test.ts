@@ -1,44 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
 import {
-  analyzeRunForensics,
-  calculateEfficiencyScore,
   formatForensicsReport,
-  injectRemediationToFeedbackQueue,
-  isPollTool,
-  isReadTool,
-  isWriteTool,
   renderForensicsAsciiTable,
-  synthesizeRemediationPlan,
-  ROOT_CAUSE_CATEGORIES,
-  FORENSICS_SEVERITIES,
-  type AnalyzeRunForensicsOptions,
-  type FeedbackInjectionOptions,
   type ForensicsAnalysisResult,
   type ForensicsIncident,
   type ForensicsMetrics,
-  type ForensicsSeverity,
-  type PlanInjectionProposal,
-  type RootCauseCategory,
 } from "../../../olt/scripts/src/mind/auditing/meta/index.ts";
-import {
-  formatMetaAuditReport,
-  metaAuditCommand,
-  renderEfficiencyMetricsTable,
-  renderForensicsIncidentTable,
-} from "../../../olt/scripts/src/cli/commands/meta-audit.ts";
-import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
-import type { Manifest, RunState } from "../../../olt/scripts/src/core/contracts/index.ts";
-import {
-  __setFeedbackQueuePersistenceTestHook,
-  readFeedbackQueue,
-} from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-
-
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
 
 describe("Meta Auditor - Forensics Report & Table Formatters", () => {
   describe("Forensics Report & ASCII Table Formatters", () => {
@@ -181,5 +148,4 @@ describe("Meta Auditor - Forensics Report & Table Formatters", () => {
       expect(devReport).toContain("Mandate Standard Async WaitMsBeforeAsync");
     });
   });
-
 });

@@ -13,7 +13,8 @@ import type {
   DefectEntry,
 } from "../../../olt/scripts/src/mind/defects/core/index.ts";
 
-export const deliberationRoundSuiteName = "Defect Deliberation Rounds, Convergence & Markdown Reports";
+export const deliberationRoundSuiteName =
+  "Defect Deliberation Rounds, Convergence & Markdown Reports";
 
 describe(deliberationRoundSuiteName, () => {
   it("synthesizes deliberation rounds determining convergence vs round advance", () => {

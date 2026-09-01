@@ -131,7 +131,7 @@ function archivedHandoffEdges(params: TaskEdgeFactoryParams): GraphEdgeData[] {
 function submissionEdges(params: TaskEdgeFactoryParams): GraphEdgeData[] {
   const { task, taskNodeId, gateNodeId, validatorNodeId, taskStep, gateStep, files } = params;
   const detail = files.length > 0 ? `${files.length} files changed` : "Diff submission";
-  const observed = { ...(reportBytes(task) !== undefined ? { bytes: reportBytes(task) } : {}) };
+  const observed = (reportBytes(task) !== undefined ? { bytes: reportBytes(task) } : {});
 
   if (validatorNodeId === undefined) {
     return [

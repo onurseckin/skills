@@ -302,10 +302,11 @@ export function loadUnifiedAgentModel(
 }
 
 export function listAvailableRoles(options?: ManifestLoaderOptions): readonly string[] {
-  const skillRoot = options?.skillRoot ?? findSkillRoot();
-  const searchDir = options?.agentsDir ?? options?.rolesDir ?? join(skillRoot, "agents");
+  const searchDir =
+    options?.agentsDir ??
+    options?.rolesDir ??
+    join(options?.skillRoot ?? findSkillRoot(), "agents");
   const rolesSet = new Set<string>();
-
   if (existsSync(searchDir)) {
     try {
       for (const file of readdirSync(searchDir)) {
@@ -319,10 +320,8 @@ export function listAvailableRoles(options?: ManifestLoaderOptions): readonly st
 }
 
 export function listAvailableManifests(options?: ManifestLoaderOptions): readonly string[] {
-  const skillRoot = options?.skillRoot ?? findSkillRoot();
-  const agentsDir = options?.agentsDir ?? join(skillRoot, "agents");
+  const agentsDir = options?.agentsDir ?? join(options?.skillRoot ?? findSkillRoot(), "agents");
   const agentsSet = new Set<string>();
-
   if (existsSync(agentsDir)) {
     try {
       for (const file of readdirSync(agentsDir)) {

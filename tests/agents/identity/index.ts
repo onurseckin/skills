@@ -4,17 +4,15 @@
 export {
   AGENT_NAMING_STANDARDS,
   parseStandardAgentId,
-  recommendAgentId,
-  validateAgentNamingStandard,
+  recommendStandardAgentId as recommendAgentId,
+  validateAgentNamingConvention as validateAgentNamingStandard,
   roleToTier,
   agentIdToTier,
-} from "../../../olt/scripts/src/authority/naming.ts";
-
-export {
   detectHostApp,
   buildCapabilitiesProfile,
-  parseTier,
-  roleToExecutionTier,
-  agentIdToRoleAndTier,
-  whoamiCommand,
-} from "../../../olt/scripts/src/cli/whoami.ts";
+  parseTierValue as parseTier,
+  roleToTier as roleToExecutionTier,
+  agentIdToRole as agentIdToRoleAndTier,
+} from "../../../olt/scripts/src/authority/thread/index.ts";
+
+export { whoamiCommand } from "../../../olt/scripts/src/cli/commands/whoami.ts";

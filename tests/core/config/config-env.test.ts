@@ -17,9 +17,7 @@ import {
   unreadableFact,
   attestedFact,
 } from "../../../olt/scripts/src/core/config/provenance.ts";
-import {
-  DEFAULT_CONFIG,
-} from "../../../olt/scripts/src/core/config/defaults.ts";
+import { DEFAULT_CONFIG } from "../../../olt/scripts/src/core/config/defaults.ts";
 import {
   isCadenceWakeKind,
   classifyCadenceWake,

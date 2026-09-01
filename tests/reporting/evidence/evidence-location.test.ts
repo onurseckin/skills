@@ -1,26 +1,28 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import * as fs from "node:fs";
+import { join } from "node:path";
 import { verifyUnifiedEvidenceLocation } from "../../../olt/scripts/src/reporting/doctor/evidence-location.ts";
 import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { UNIFIED_EVIDENCE_DIRECTORY } from "../../../olt/scripts/src/validation/reporters/index.ts";
-
-const SCRATCH_DIR = resolve(join(process.cwd(), "coverage", "scratch", "evidence-location-tests"));
+import {
+  cleanupVirtualBrowserFS,
+  setupVirtualBrowserFS,
+  tempDir,
+} from "../browser/browser-virtual-fs.ts";
 
 export const evidenceLocationSuiteName = "doctor/evidence-location";
 
 describe(evidenceLocationSuiteName, () => {
   beforeEach(() => {
-    rmSync(SCRATCH_DIR, { recursive: true, force: true });
-    mkdirSync(SCRATCH_DIR, { recursive: true });
+    setupVirtualBrowserFS();
   });
 
   afterEach(() => {
-    rmSync(SCRATCH_DIR, { recursive: true, force: true });
+    cleanupVirtualBrowserFS();
   });
 
   it("returns valid result when no captures, state, or evidence directory exist", () => {
-    const emptyRunRoot = join(SCRATCH_DIR, "empty-run");
+    const emptyRunRoot = tempDir("empty-run");
     const result = verifyUnifiedEvidenceLocation(emptyRunRoot, null);
 
     expect(result.valid).toBe(true);
@@ -31,10 +33,7 @@ describe(evidenceLocationSuiteName, () => {
   });
 
   it("audits captures ledger with valid unified paths and flags non-unified paths", () => {
-    const runRoot = join(SCRATCH_DIR, "captures-run");
-    mkdirSync(runRoot, { recursive: true });
-
-    // Write a captures.jsonl ledger
+    const runRoot = tempDir("captures-run");
     const capturesFile = join(runRoot, "captures.json");
     const ledger = {
       schema: "harness.captures",
@@ -63,7 +62,7 @@ describe(evidenceLocationSuiteName, () => {
       ],
       updated_at: "2026-08-24T00:00:00.000Z",
     };
-    writeFileSync(capturesFile, JSON.stringify(ledger, null, 2), "utf-8");
+    fs.writeFileSync(capturesFile, JSON.stringify(ledger, null, 2), "utf-8");
 
     const result = verifyUnifiedEvidenceLocation(runRoot, null);
     expect(result.valid).toBe(false);
@@ -75,8 +74,7 @@ describe(evidenceLocationSuiteName, () => {
   });
 
   it("audits task validation findings in state and flags invalid paths", () => {
-    const runRoot = join(SCRATCH_DIR, "state-task-run");
-    mkdirSync(runRoot, { recursive: true });
+    const runRoot = tempDir("state-task-run");
 
     const state: JsonObject = {
       tasks: {
@@ -93,11 +91,11 @@ describe(evidenceLocationSuiteName, () => {
                     { path: "/outside/unauthorized.png" },
                   ],
                 },
-                null, // Non-object finding
-                "invalid-finding", // Non-object
+                null,
+                "invalid-finding",
               ],
             },
-            null, // Non-object validation
+            null,
           ],
         },
         "task-invalid": "not-an-object",
@@ -113,8 +111,7 @@ describe(evidenceLocationSuiteName, () => {
   });
 
   it("audits packet evidence in state and flags invalid paths", () => {
-    const runRoot = join(SCRATCH_DIR, "state-packet-run");
-    mkdirSync(runRoot, { recursive: true });
+    const runRoot = tempDir("state-packet-run");
 
     const state: JsonObject = {
       packets: {
@@ -124,8 +121,8 @@ describe(evidenceLocationSuiteName, () => {
             evidence: [
               { path: "evidence/packet-valid.json" },
               { path: "/tmp/invalid-packet.json" },
-              { path: 123 }, // Non-string path ignored
-              null, // Non-object ignored
+              { path: 123 },
+              null,
             ],
           },
         },
@@ -146,11 +143,11 @@ describe(evidenceLocationSuiteName, () => {
   });
 
   it("audits physical evidence directory entries", () => {
-    const runRoot = join(SCRATCH_DIR, "physical-evidence-run");
+    const runRoot = tempDir("physical-evidence-run");
     const evidenceDir = join(runRoot, UNIFIED_EVIDENCE_DIRECTORY);
-    mkdirSync(evidenceDir, { recursive: true });
-    writeFileSync(join(evidenceDir, "file1.txt"), "evidence 1");
-    writeFileSync(join(evidenceDir, "file2.txt"), "evidence 2");
+    fs.mkdirSync(evidenceDir, { recursive: true });
+    fs.writeFileSync(join(evidenceDir, "file1.txt"), "evidence 1");
+    fs.writeFileSync(join(evidenceDir, "file2.txt"), "evidence 2");
 
     const result = verifyUnifiedEvidenceLocation(runRoot, null);
     expect(result.valid).toBe(true);

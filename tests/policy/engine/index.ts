@@ -16,6 +16,4 @@ export {
   type PolicyDriftCallbacks,
   type PolicyReloadEvent,
 } from "../../../olt/scripts/src/policy/drift-detector.ts";
-export {
-  auditPermissionHealth,
-} from "../../../olt/scripts/src/policy/permission-health.ts";
+export { auditPermissionHealth } from "../../../olt/scripts/src/policy/permission-health.ts";

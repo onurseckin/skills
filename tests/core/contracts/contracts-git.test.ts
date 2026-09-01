@@ -14,9 +14,7 @@ import {
   isWorktreeConsolidationRecord,
   isWorktreeLedgerState,
 } from "../../../olt/scripts/src/core/contracts/git/worktree.ts";
-import {
-  evidenced,
-} from "../../../olt/scripts/src/core/contracts/system/evidence.ts";
+import { evidenced } from "../../../olt/scripts/src/core/contracts/system/evidence.ts";
 
 describe("core/contracts/git/branch.ts", () => {
   it("validates branch status, subtasks, records, and terminal checks", () => {

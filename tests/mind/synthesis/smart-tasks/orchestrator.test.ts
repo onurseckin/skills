@@ -85,7 +85,7 @@ describe("smart-tasks-orchestrator", () => {
 
       const scopeWithoutTest = ["docs/", "olt/references/"];
       expect(deriveGateForCategory("DOCUMENTATION", scopeWithoutTest)).toBe(
-        "bun test tests/unit && bun run typecheck",
+        "bun test tests/mind && bun run typecheck",
       );
     });
   });

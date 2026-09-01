@@ -1,6 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import { recordCompletionRemediation } from "../../../../olt/scripts/src/workflow/completion/record-completion-remediation.ts";
-import { at, commandRecord, repositoryBinding, TestPort, workflowState } from "../../shared/test-port.ts";
+import {
+  at,
+  commandRecord,
+  repositoryBinding,
+  TestPort,
+  workflowState,
+} from "../../shared/test-port.ts";
 import type { CompletionReview } from "../../../../olt/scripts/src/workflow/completion/types.ts";
 
 const clock = at("2026-08-19T00:00:00.000Z");

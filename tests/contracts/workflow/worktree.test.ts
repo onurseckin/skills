@@ -10,7 +10,8 @@ import {
   type WorktreeRecord,
 } from "../../../olt/scripts/src/core/contracts/index.ts";
 
-export const worktreeSuiteName = "isWorktreeConsolidationRecord & isWorktreeLedgerState contract guards";
+export const worktreeSuiteName =
+  "isWorktreeConsolidationRecord & isWorktreeLedgerState contract guards";
 
 function worktree(overrides: Partial<WorktreeRecord> = {}): WorktreeRecord {
   return {
@@ -96,7 +97,9 @@ describe(worktreeSuiteName, () => {
       expect(
         isWorktreeConsolidationRecord(consolidation({ merged_worktree_ids: "wt-1" as never })),
       ).toBeFalse();
-      expect(isWorktreeConsolidationRecord(consolidation({ rebased: "false" as never }))).toBeFalse();
+      expect(
+        isWorktreeConsolidationRecord(consolidation({ rebased: "false" as never })),
+      ).toBeFalse();
       expect(
         isWorktreeConsolidationRecord(consolidation({ removed_worktree_ids: [1] as never })),
       ).toBeFalse();
@@ -115,7 +118,9 @@ describe(worktreeSuiteName, () => {
           consolidation({ merge_conflict: { paths: "not-array" } as never }),
         ),
       ).toBeFalse();
-      expect(isWorktreeConsolidationRecord(consolidation({ rebase_target: 7 as never }))).toBeFalse();
+      expect(
+        isWorktreeConsolidationRecord(consolidation({ rebase_target: 7 as never })),
+      ).toBeFalse();
       expect(
         isWorktreeConsolidationRecord(consolidation({ rebase_conflict_paths: [7] as never })),
       ).toBeFalse();

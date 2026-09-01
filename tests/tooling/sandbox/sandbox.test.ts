@@ -162,6 +162,19 @@ describe("Dynamic Tool Sandboxing & Execution Isolation Suite", () => {
       });
       expect(result.stdout).toContain("[STDOUT TRUNCATED: MAX BUFFER EXCEEDED]");
     });
+
+    it("handles pre-aborted signal, non-existent binaries, and killAll lifecycle", async () => {
+      const preAborted = AbortSignal.abort();
+      const manager = new IsolatedChildProcessManager();
+      const res1 = await manager.runIsolated("echo", ["hi"], { abortSignal: preAborted });
+      expect(res1.killed).toBe(true);
+
+      const nonExistent = await manager.runIsolated("non-existent-binary-12345");
+      expect(nonExistent.exitCode).toBe(1);
+
+      expect(manager.getActiveCount()).toBe(0);
+      manager.killAll();
+    });
   });
 
   describe("Dynamic Execution Sandbox Engine", () => {

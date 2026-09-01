@@ -9,7 +9,7 @@ import {
 } from "../../../olt/scripts/src/installer/release-actions.ts";
 import type { ReleaseTransaction } from "../../../olt/scripts/src/installer/release-transaction.ts";
 import type { TransactionStage } from "../../../olt/scripts/src/installer/transaction-marker.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
 
 function fakeTransaction() {
   const stages: TransactionStage[] = [];

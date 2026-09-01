@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { sanitizeSlug, DEFAULT_EXCLUDE_PATTERNS } from "../../../../olt/scripts/src/mind/tasks/discovery/index.ts";
+import {
+  sanitizeSlug,
+  DEFAULT_EXCLUDE_PATTERNS,
+} from "../../../../olt/scripts/src/mind/tasks/discovery/index.ts";
 
 describe("Task Discovery Sanitation & Patterns Suite (Part 1)", () => {
   it("sanitizes slugs correctly", () => {

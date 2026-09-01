@@ -23,27 +23,16 @@ import {
   TOPOLOGY_REASONS,
 } from "../../../olt/scripts/src/core/contracts/system/topology.ts";
 import {
-  isPacketType,
-  isProtocolVersion,
-  isPacketMetadata,
-  isPublishedPacket,
   isAgentRole,
   isCognitiveValidatorRole,
   isMechanicValidatorRole,
-  isAnyValidatorRole,
   AGENT_ROLES,
-  PACKET_TYPES,
-  PROTOCOL_VERSIONS,
 } from "../../../olt/scripts/src/core/contracts/network/packets.ts";
 import {
-  isAssuranceLevel,
-  isGateObservationOutcome,
   sameTrustedHostRepositoryBinding,
   trustedHostEvidence,
   trustedHostLimitations,
   TRUSTED_HOST_ASSURANCE,
-  ASSURANCE_LEVELS,
-  GATE_OBSERVATION_OUTCOMES,
 } from "../../../olt/scripts/src/core/contracts/network/trusted-host.ts";
 
 describe("core/contracts/json.ts", () => {

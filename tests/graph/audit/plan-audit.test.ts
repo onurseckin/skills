@@ -69,12 +69,7 @@ describe("A2-parallelism: grounded against the prompt's non-blank line count", (
       task({ taskId: `task-${letter}`, writeScope: [`src/${letter}`] }),
     );
     const chained = task({ taskId: "task-e", writeScope: ["src/a/inner"], deps: ["task-a"] });
-    const result = auditPlan(
-      fixtureRepo(),
-      [...independentRoots, chained],
-      {},
-      manyLinePrompt(12),
-    );
+    const result = auditPlan(fixtureRepo(), [...independentRoots, chained], {}, manyLinePrompt(12));
     expect(result.findings.some((f) => f.invariant === "A2-parallelism")).toBe(true);
   });
 });
@@ -95,9 +90,7 @@ describe("blockingFindings and advisoryFindings", () => {
   });
 
   test("both return an empty list for a plan with no findings", () => {
-    const result = auditPlan(fixtureRepo(), [
-      task({ taskId: "task-a", writeScope: ["src/a"] }),
-    ]);
+    const result = auditPlan(fixtureRepo(), [task({ taskId: "task-a", writeScope: ["src/a"] })]);
     expect(blockingFindings(result)).toEqual([]);
     expect(advisoryFindings(result)).toEqual([]);
   });

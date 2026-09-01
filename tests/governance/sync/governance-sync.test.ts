@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { auditCaptureGovernance, synchronizeCaptureGovernance } from "../../../olt/scripts/src/platform/capture/governance-sync.ts";
+import {
+  auditCaptureGovernance,
+  synchronizeCaptureGovernance,
+} from "../../../olt/scripts/src/platform/capture/governance-sync.ts";
 
 describe("Platform Governance Synchronization", () => {
   it("audits capture governance state safely", () => {

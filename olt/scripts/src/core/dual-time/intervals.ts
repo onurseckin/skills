@@ -166,7 +166,7 @@ export function updateSubagentLifecycle(
     duration_formatted,
     metadata:
       update.metadata !== undefined || current.metadata !== undefined
-        ? { ...(current.metadata ?? {}), ...(update.metadata ?? {}) }
+        ? { ...current.metadata, ...update.metadata }
         : undefined,
   };
 }

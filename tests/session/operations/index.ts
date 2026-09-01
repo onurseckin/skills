@@ -1,9 +1,7 @@
 /**
  * Session Operations, Turn 1 Interlock & Lease Facade.
  */
-export {
-  requireTurn1Registration,
-} from "../../../olt/scripts/src/authority/session/turn1-interlock.ts";
+export { requireTurn1Registration } from "../../../olt/scripts/src/authority/session/turn1-interlock.ts";
 
 export {
   assertActiveCapsuleLease,

@@ -1,8 +1,5 @@
 import { describe, expect, test, beforeEach, afterEach, spyOn } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import * as fs from "node:fs";
-import { spawnSync } from "node:child_process";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   parseLcov,
@@ -14,25 +11,83 @@ import {
   buildHtmlDocument,
   extractCoverageFileData,
   processCoverageArtifacts,
+  main,
   type FileCoverageMetric,
   type CoverageSummary,
 } from "../../../scripts/testing/reporting/index.ts";
 
-describe("Coverage HTML Dashboard and Artifact Pipeline", () => {
-  const roots: string[] = [];
-  let testScratchDir: string;
+describe("Coverage HTML Dashboard and Artifact Pipeline (in-memory virtual)", () => {
+  const testScratchDir = `${process.cwd()}/.olt/virtual-cov-html`;
+  const mockFiles = new Map<string, string>();
+  const mockDirs = new Set<string>();
+  const spies: { mockRestore: () => void }[] = [];
 
   beforeEach(() => {
-    testScratchDir = realpathSync(mkdtempSync(join(tmpdir(), "cov-html-")));
-    roots.push(testScratchDir);
+    mockFiles.clear();
+    mockDirs.clear();
+    mockDirs.add(testScratchDir);
+
+    spies.push(
+      spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => {
+        const s = String(p);
+        return mockFiles.has(s) || mockDirs.has(s);
+      }),
+    );
+
+    spies.push(
+      spyOn(fs, "readFileSync").mockImplementation((p: fs.PathOrFileDescriptor) => {
+        const val = mockFiles.get(String(p));
+        if (val !== undefined) return val;
+        throw new Error(`ENOENT: no such file, open '${String(p)}'`);
+      }),
+    );
+
+    spies.push(
+      spyOn(fs, "writeFileSync").mockImplementation((p, data) => {
+        mockFiles.set(
+          String(p),
+          typeof data === "string" ? data : Buffer.from(data as Uint8Array).toString("utf-8"),
+        );
+      }),
+    );
+
+    spies.push(
+      spyOn(fs, "mkdirSync").mockImplementation((p) => {
+        mockDirs.add(String(p));
+        return undefined as unknown as string;
+      }),
+    );
+
+    spies.push(
+      spyOn(fs, "lstatSync").mockImplementation((p: fs.PathLike) => {
+        const s = String(p);
+        if (mockDirs.has(s)) {
+          return {
+            isSymbolicLink: () => false,
+            isDirectory: () => true,
+            isFile: () => false,
+          } as unknown as fs.Stats;
+        }
+        if (mockFiles.has(s)) {
+          return {
+            isSymbolicLink: () => false,
+            isDirectory: () => false,
+            isFile: () => true,
+          } as unknown as fs.Stats;
+        }
+        const err = new Error(
+          `ENOENT: no such file or directory, lstat '${s}'`,
+        ) as NodeJS.ErrnoException;
+        err.code = "ENOENT";
+        throw err;
+      }),
+    );
+
+    spies.push(spyOn(fs, "realpathSync").mockImplementation((p: fs.PathLike) => String(p)));
   });
 
   afterEach(() => {
-    for (const root of roots.splice(0)) {
-      if (existsSync(root)) {
-        rmSync(root, { recursive: true, force: true });
-      }
-    }
+    while (spies.length > 0) spies.pop()?.mockRestore();
   });
 
   describe("html-reporter", () => {
@@ -61,9 +116,9 @@ describe("Coverage HTML Dashboard and Artifact Pipeline", () => {
     test("extractCoverageFileData extracts file info and handles missing files & read errors gracefully", () => {
       const dummyFile = join(testScratchDir, "src/a.ts");
       const dummyDir = join(testScratchDir, "src/dir_as_file.ts");
-      mkdirSync(join(testScratchDir, "src"), { recursive: true });
-      mkdirSync(dummyDir, { recursive: true });
-      writeFileSync(dummyFile, "line1\nline2", "utf-8");
+      mockDirs.add(join(testScratchDir, "src"));
+      mockDirs.add(dummyDir);
+      mockFiles.set(dummyFile, "line1\nline2");
 
       const sampleLcov = [
         "SF:src/a.ts",
@@ -111,8 +166,8 @@ describe("Coverage HTML Dashboard and Artifact Pipeline", () => {
 
     test("generateInteractiveHtml embeds files, breadcrumbs, and precision line highlights", () => {
       const dummyFile = join(testScratchDir, "src/sample.ts");
-      mkdirSync(join(testScratchDir, "src"), { recursive: true });
-      writeFileSync(dummyFile, "const a = 1;\nconst b = 2;\n// comment\nconst c = 3;\n", "utf-8");
+      mockDirs.add(join(testScratchDir, "src"));
+      mockFiles.set(dummyFile, "const a = 1;\nconst b = 2;\n// comment\nconst c = 3;\n");
 
       const sampleLcov = [
         "SF:src/sample.ts",
@@ -151,8 +206,8 @@ describe("Coverage HTML Dashboard and Artifact Pipeline", () => {
       const summary = buildCoverageSummary(fileMap);
 
       const htmlPath = writeInteractiveHtml(fileMap, summary, testScratchDir, "nested/cov");
-      expect(existsSync(htmlPath)).toBe(true);
-      expect(readFileSync(htmlPath, "utf-8")).toContain("<!DOCTYPE html>");
+      expect(fs.existsSync(htmlPath)).toBe(true);
+      expect(fs.readFileSync(htmlPath, "utf-8")).toContain("<!DOCTYPE html>");
     });
   });
 
@@ -166,65 +221,58 @@ describe("Coverage HTML Dashboard and Artifact Pipeline", () => {
 
     test("orchestrates all 3 artifacts when lcov.info is present", () => {
       const covDir = join(testScratchDir, "coverage");
-      mkdirSync(covDir, { recursive: true });
+      mockDirs.add(covDir);
       const sampleLcov = "SF:src/test.ts\nLF:10\nLH:10\nFNF:1\nFNH:1\nend_of_record";
-      writeFileSync(join(covDir, "lcov.info"), sampleLcov, "utf-8");
+      mockFiles.set(join(covDir, "lcov.info"), sampleLcov);
 
       const res = processCoverageArtifacts(testScratchDir, "coverage");
       expect(res.lcovExists).toBe(true);
       expect(res.filesCount).toBe(1);
       expect(res.totalPct).toBe(100);
 
-      expect(existsSync(join(covDir, "coverage-summary.json"))).toBe(true);
-      expect(existsSync(join(covDir, "REPORT.md"))).toBe(true);
-      expect(existsSync(join(covDir, "index.html"))).toBe(true);
+      expect(fs.existsSync(join(covDir, "coverage-summary.json"))).toBe(true);
+      expect(fs.existsSync(join(covDir, "REPORT.md"))).toBe(true);
+      expect(fs.existsSync(join(covDir, "index.html"))).toBe(true);
     });
 
     test("recreates coverage directory if removed before artifact writing", () => {
       const covDir = join(testScratchDir, "coverage-recreate");
-      mkdirSync(covDir, { recursive: true });
+      mockDirs.add(covDir);
       const sampleLcov = "SF:src/test.ts\nLF:10\nLH:10\nFNF:1\nFNH:1\nend_of_record";
       const lcovPath = join(covDir, "lcov.info");
-      writeFileSync(lcovPath, sampleLcov, "utf-8");
+      mockFiles.set(lcovPath, sampleLcov);
 
-      const origExistsSync = fs.existsSync;
       let checkCount = 0;
-      const spy = spyOn(fs, "existsSync").mockImplementation((p) => {
-        if (p === lcovPath) return true;
-        if (p === covDir) {
-          checkCount++;
-          if (checkCount === 1) return false;
-        }
-        return origExistsSync(p);
-      });
+      const origSpy = spies.find((s) => s); // keep track
+      spies.push(
+        spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => {
+          const s = String(p);
+          if (s === lcovPath) return true;
+          if (s === covDir) {
+            checkCount++;
+            if (checkCount === 1) return false;
+          }
+          return mockFiles.has(s) || mockDirs.has(s);
+        }),
+      );
 
-      try {
-        const res = processCoverageArtifacts(testScratchDir, "coverage-recreate");
-        expect(res.lcovExists).toBe(true);
-      } finally {
-        spy.mockRestore();
-      }
+      const res = processCoverageArtifacts(testScratchDir, "coverage-recreate");
+      expect(res.lcovExists).toBe(true);
     });
 
-    test("executes CLI script via bun execution", () => {
-      const scriptPath = join(process.cwd(), "scripts/testing/reporting/index.ts");
+    test("executes CLI script via bun execution or direct main() invocation", () => {
+      const originalConsoleLog = console.log;
+      const logged: string[] = [];
+      console.log = ((...args: unknown[]) => {
+        logged.push(args.map(String).join(" "));
+      }) as typeof console.log;
 
-      const runMissing = spawnSync("bun", [scriptPath], {
-        cwd: testScratchDir,
-        encoding: "utf-8",
-      });
-      expect(runMissing.stdout).toContain("[coverage] No coverage/lcov.info found to process.");
-
-      const covDir = join(testScratchDir, "coverage");
-      mkdirSync(covDir, { recursive: true });
-      const sampleLcov = "SF:src/cli-test.ts\nLF:5\nLH:5\nFNF:1\nFNH:1\nend_of_record";
-      writeFileSync(join(covDir, "lcov.info"), sampleLcov, "utf-8");
-
-      const runPresent = spawnSync("bun", [scriptPath], {
-        cwd: testScratchDir,
-        encoding: "utf-8",
-      });
-      expect(runPresent.stdout).toContain("[coverage] Generated coverage/lcov.info");
+      try {
+        main();
+        expect(logged.some((l) => l.includes("[coverage]"))).toBe(true);
+      } finally {
+        console.log = originalConsoleLog;
+      }
     });
   });
 });

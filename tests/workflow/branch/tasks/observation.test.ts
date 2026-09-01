@@ -133,7 +133,7 @@ describe("observeRepository", () => {
     });
     // sorted by path
     expect(observation.entries.map((e) => e.path)).toEqual(
-      [...observation.entries.map((e) => e.path)].sort(),
+      observation.entries.map((e) => e.path).sort(),
     );
   });
 

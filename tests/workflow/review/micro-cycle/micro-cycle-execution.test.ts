@@ -1,11 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { type MicroCycleRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import {
-  isMicroCycleRecord,
-  type MicroCycleRecord,
-} from "../../../../olt/scripts/src/core/contracts/index.ts";
-import {
-  formatMicroCycleFeedback,
-  getLatestMicroCycle,
   getOpenMicroCycles,
   markMicroCycleAddressed,
   recordMicroCycleCritique,
@@ -13,10 +11,13 @@ import {
 import { claimTask } from "../../../../olt/scripts/src/workflow/lease/claim.ts";
 import { taskRejectCommand } from "../../../../olt/scripts/src/cli/commands/task-reject.ts";
 import { taskReviewCommand } from "../../../../olt/scripts/src/cli/commands/task-review.ts";
-import { execute } from "../../../../olt/scripts/src/cli/execute.ts";
-import type { Clock, TaskRecord, WorkflowState } from "../../../../olt/scripts/src/workflow/types.ts";
-import { cleanupRoots } from "../../../cli/full-lifecycle-fixture.ts";
-import { setupCompiledRun } from "../../../cli/file-persistence-fixture.ts";
+import { initRun } from "../../../../olt/scripts/src/engine/store/capsule/capsule.ts";
+import { transact } from "../../../../olt/scripts/src/engine/store/events/transaction.ts";
+import type {
+  Clock,
+  TaskRecord,
+  WorkflowState,
+} from "../../../../olt/scripts/src/workflow/types.ts";
 import { registerTaskPacket, TestPort, workflowState } from "../../shared/test-port.ts";
 
 class FakeClock implements Clock {
@@ -34,7 +35,63 @@ class FakeClock implements Clock {
 }
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+afterEach(() => {
+  for (const root of roots.splice(0)) {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+function setupLeasedRun(name: string): { repo: string; run: string } {
+  const repo = mkdtempSync(join(tmpdir(), `mc-exec-${name}-`));
+  roots.push(repo);
+  const run = initRun(repo, name, new TextEncoder().encode("prompt"), "file", true);
+
+  transact(run, "coord", "task-planned", {}, (state) => {
+    state.agents = [
+      {
+        agent_id: "w-1",
+        role: "implementer",
+        status: "active",
+        registered_at: new Date().toISOString(),
+        parent_agent_id: "coord",
+        parent_task_id: "task-core",
+        host: "antigravity",
+        authority: { kind: "genesis" },
+      },
+    ];
+    state.tasks = {
+      "task-core": {
+        id: "task-core",
+        label: "Core Task",
+        status: "leased",
+        write_scope: ["src/core"],
+        requirements: ["REQ-1"],
+        repair_round: 0,
+        original_implementer: "w-1",
+        lease: {
+          agent_id: "w-1",
+          role: "implementer",
+          token_digest: "digest-123",
+          acquired_at: new Date().toISOString(),
+          expires_at: new Date(Date.now() + 600_000).toISOString(),
+          write_scope: ["src/core"],
+          attempt: 1,
+        },
+      },
+    };
+    state.requirements = [
+      {
+        id: "REQ-1",
+        label: "Requirement 1",
+        category: "functional",
+        status: "open",
+        description: "Test requirement",
+      },
+    ];
+  });
+
+  return { repo, run };
+}
 
 const taskIn = (s: WorkflowState, id = "T-1"): TaskRecord => s.tasks[id]!;
 
@@ -47,32 +104,7 @@ function leasedPort(clock: FakeClock): { port: TestPort; token: string } {
 
 describe("CLI commands integration: task:reject and task:review with micro-cycles", () => {
   test("taskRejectCommand with --micro-cycle records critique and keeps implementer lease active", async () => {
-    const { run } = await setupCompiledRun("micro-cycle-reject-test", roots);
-    await execute([
-      "agent:register",
-      "--run",
-      run,
-      "--agent",
-      "w-1",
-      "--role",
-      "implementer",
-      "--host",
-      "antigravity",
-      "--parent-task",
-      "task-core",
-    ]);
-    const claim = await execute([
-      "task:claim",
-      "--run",
-      run,
-      "--task",
-      "task-core",
-      "--agent",
-      "w-1",
-      "--role",
-      "implementer",
-    ]);
-    expect(claim.token).toBeDefined();
+    const { run } = setupLeasedRun("reject-test");
 
     const r1 = await taskRejectCommand({
       run,
@@ -106,31 +138,7 @@ describe("CLI commands integration: task:reject and task:review with micro-cycle
   });
 
   test("taskReviewCommand with --micro-cycle and --status fail records in-lease critique", async () => {
-    const { run } = await setupCompiledRun("micro-cycle-review-fail-test", roots);
-    await execute([
-      "agent:register",
-      "--run",
-      run,
-      "--agent",
-      "w-1",
-      "--role",
-      "implementer",
-      "--host",
-      "antigravity",
-      "--parent-task",
-      "task-core",
-    ]);
-    await execute([
-      "task:claim",
-      "--run",
-      run,
-      "--task",
-      "task-core",
-      "--agent",
-      "w-1",
-      "--role",
-      "implementer",
-    ]);
+    const { run } = setupLeasedRun("review-fail-test");
 
     const r = await taskReviewCommand({
       run,

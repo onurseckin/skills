@@ -1,7 +1,7 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import * as fs from "node:fs";
 import { join } from "node:path";
+import * as storeModule from "../../../../olt/scripts/src/engine/store/index.ts";
 import {
   provisionWorktrees,
   type ProvisionWorktreesConfig,
@@ -11,15 +11,8 @@ import type { TopologyRecord } from "../../../../olt/scripts/src/core/contracts/
 import type { GitResult, GitRunner } from "../../../../olt/scripts/src/workflow/worktree/git.ts";
 import { FakeRunStore, baseLedger, seedLedger } from "../fixtures/fake-transact.ts";
 
-const roots: string[] = [];
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { force: true, recursive: true });
-});
-
 function trackedDir(prefix: string): string {
-  const dir = mkdtempSync(join(tmpdir(), `harness-${prefix}-`));
-  roots.push(dir);
-  return dir;
+  return `/virtual/harness-${prefix}`;
 }
 
 type Call = { cwd: string; argv: readonly string[] };
@@ -64,7 +57,17 @@ function config(
   };
 }
 
-describe("provisionWorktrees guards and errors", () => {
+describe("provisionWorktrees guards and errors (in-memory virtualization)", () => {
+  let mkdirSpy: ReturnType<typeof spyOn>;
+
+  beforeEach(() => {
+    mkdirSpy = spyOn(fs, "mkdirSync").mockImplementation(() => undefined as unknown as string);
+  });
+
+  afterEach(() => {
+    mkdirSpy.mockRestore();
+  });
+
   test("extends an existing ledger with only the additional worktrees a wider wave needs", () => {
     const store = new FakeRunStore();
     const repoRoot = trackedDir("provision-extend-repo");
@@ -87,7 +90,7 @@ describe("provisionWorktrees guards and errors", () => {
       }),
     );
     const { runner, calls } = scripted((call) => {
-      if (call.argv[0] === "rev-parse" && call.argv.includes("--verify")) return ok(); // branch exists
+      if (call.argv[0] === "rev-parse" && call.argv.includes("--verify")) return ok();
       return ok();
     });
     const result = provisionWorktrees({
@@ -108,13 +111,6 @@ describe("provisionWorktrees guards and errors", () => {
     expect(addCalls[0]!.argv).toContain("harness/run-1--wt-1");
   });
 
-  // `existing.assignments` comes back from the canonical (key-sorted) JSON store while
-  // `assignWorktrees` builds plain object literals in field order `{task_id, worktree_id, wave}` —
-  // a raw `JSON.stringify` comparison between the two would mismatch on key order alone even when
-  // nothing semantically changed. `assignmentsEqual` compares the three fields directly so this
-  // fast path stays reachable on a rerun (e.g. `plan:compile` re-invoked for the same run) once
-  // every task already has a slot: no new git calls, and no redundant re-persist of an equivalent
-  // ledger either.
   test("skips re-persisting and issues no git worktree calls when every task already has a slot", () => {
     const store = new FakeRunStore();
     const repoRoot = trackedDir("provision-noop-repo");
@@ -122,7 +118,6 @@ describe("provisionWorktrees guards and errors", () => {
     const existing = baseLedger({
       harness_branch: "harness/run-1",
       base_sha: "base-sha-000",
-      root: wtRoot,
       worktrees: [
         {
           id: "wt-0",
@@ -152,10 +147,9 @@ describe("provisionWorktrees guards and errors", () => {
       loadState: store.loadState,
       transact: store.transact,
     });
-    expect(result.ledger?.worktrees).toEqual(existing.worktrees);
-    expect(result.ledger?.assignments).toEqual(existing.assignments);
+    expect(result.ledger).toEqual(existing);
     expect(calls.filter((c) => c.argv[0] === "worktree" && c.argv[1] === "add")).toHaveLength(0);
-    expect(store.events.length).toBe(eventsBefore);
+    expect(store.events).toHaveLength(eventsBefore);
   });
 
   test("re-persists when the topology widens even though every existing task keeps its slot", () => {
@@ -165,7 +159,6 @@ describe("provisionWorktrees guards and errors", () => {
     const existing = baseLedger({
       harness_branch: "harness/run-1",
       base_sha: "base-sha-000",
-      root: wtRoot,
       worktrees: [
         {
           id: "wt-0",
@@ -198,31 +191,45 @@ describe("provisionWorktrees guards and errors", () => {
     expect(store.events.length).toBeGreaterThan(eventsBefore);
   });
 
-  test("provisionWorktrees works with default loadState and transact functions", async () => {
-    const { setupCompiledRun } = await import("../../../cli/file-persistence-fixture.ts");
-    const { repo, run } = await setupCompiledRun("provision-defaults", roots);
-    const wtRoot = trackedDir("provision-defaults-wtroot");
+  test("provisionWorktrees works with default loadState and transact functions", () => {
+    const store = new FakeRunStore();
+    const loadSpy = spyOn(storeModule, "loadRun").mockImplementation(
+      () =>
+        ({
+          state: store.read(),
+          events: store.events,
+        }) as unknown as ReturnType<typeof storeModule.loadRun>,
+    );
+    const transactSpy = spyOn(storeModule, "transact").mockImplementation(store.transact);
+
+    const wtRoot = "/virtual/provision-defaults-wtroot";
+    const repo = "/virtual/provision-defaults-repo";
 
     const { runner } = scripted((call) => {
       if (call.argv[0] === "rev-parse" && call.argv.includes("--verify")) return ok();
-      if (call.argv[0] === "rev-parse" && call.argv[1] === "HEAD") return ok("deadbeef000\n");
+      if (call.argv[0] === "rev-parse" && call.argv.includes("HEAD")) return ok("deadbeef000\n");
       if (call.argv[0] === "branch" && call.argv.includes("--show-current")) return ok("main\n");
       return ok();
     });
 
-    const result = provisionWorktrees({
-      runRoot: run,
-      repoRoot: repo,
-      runId: "default-run",
-      actor: "coordinator",
-      topology: topology([["task-core"]]),
-      tasksById: tasks(["task-core"]),
-      config: config(wtRoot),
-      runner,
-    });
+    try {
+      const result = provisionWorktrees({
+        runRoot: store.runRoot,
+        repoRoot: repo,
+        runId: "default-run",
+        actor: "coordinator",
+        topology: topology([["task-core"]]),
+        tasksById: tasks(["task-core"]),
+        config: config(wtRoot),
+        runner,
+      });
 
-    expect(result.enabled).toBe(true);
-    expect(result.ledger).toBeDefined();
-    expect(result.ledger?.worktrees).toHaveLength(1);
+      expect(result.enabled).toBe(true);
+      expect(result.ledger).toBeDefined();
+      expect(result.ledger?.worktrees).toHaveLength(1);
+    } finally {
+      loadSpy.mockRestore();
+      transactSpy.mockRestore();
+    }
   });
 });

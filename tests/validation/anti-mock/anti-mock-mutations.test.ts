@@ -15,8 +15,6 @@ import type {
   MutationTestRunOutcome,
 } from "../../../olt/scripts/src/validation/anti-mock/index.ts";
 
-
-
 describe("Pillar 3: Mutation Gate Engine", () => {
   test("generates mutations across boolean, arithmetic, return, comparison, and function body types", () => {
     const code = `
@@ -203,5 +201,3 @@ describe("Pillar 3: Mutation Gate Engine", () => {
     expect(result.mutationScore).toBe(100);
   });
 });
-
-

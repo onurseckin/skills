@@ -55,7 +55,6 @@ function createMockPort(initialState: JsonObject = {}): {
   };
 }
 
-
 describe("executeAgentReset", () => {
   test("releases specific active agents and returns kill directive", () => {
     const ledger: AgentGrantRecord[] = [
@@ -247,4 +246,3 @@ describe("formatAgentResetBrief", () => {
     expect(brief).toContain("- **Summary**: No active agent grants were released.");
   });
 });
-

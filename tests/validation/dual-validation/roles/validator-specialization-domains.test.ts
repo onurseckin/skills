@@ -49,7 +49,6 @@ function spec(invocation: string): CommandSpec {
   return found;
 }
 
-
 describe("Validator Specialization - Domains & Command Bans", () => {
   describe("1. Strict Command-Running Ban on Regular & Cognitive Validators", () => {
     const cognitiveRoles = [
@@ -282,5 +281,4 @@ describe("Validator Specialization - Domains & Command Bans", () => {
       expect(sampleReceipt.status).toBe("passed|failed");
     });
   });
-
 });

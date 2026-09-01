@@ -1,7 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  executeShieldedCommand,
-} from "../../../olt/scripts/src/authority/rbac/index.ts";
+import { executeShieldedCommand } from "../../../olt/scripts/src/authority/rbac/index.ts";
 
 describe("Authority RBAC - Command Authorizer Execution Shield", () => {
   test("denies file mutation commands for supervisor/validator without execution", async () => {

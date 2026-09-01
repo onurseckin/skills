@@ -1,17 +1,8 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import {
-  cleanupRoots,
-  emptyState,
-  render,
-  tempRoot,
-} from "./markdown-fixtures-core.ts";
-import {
-  populatedGraph,
-  populatedRunRoot,
-  populatedState,
-} from "./markdown-fixtures-dag.ts";
+import { cleanupRoots, emptyState, render, tempRoot } from "./markdown-fixtures-core.ts";
+import { populatedGraph, populatedRunRoot, populatedState } from "./markdown-fixtures-dag.ts";
 
 afterEach(cleanupRoots);
 

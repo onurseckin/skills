@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { mindInitCommand } from "../../../olt/scripts/src/cli/commands/index.ts";
@@ -8,12 +8,17 @@ import {
   loadRepoPolicy,
   validateRepoPolicy,
 } from "../../../olt/scripts/src/policy/index.ts";
+import { cleanupVirtualDiscoveryFS, setupVirtualDiscoveryFS } from "../fixtures/index.ts";
 
 describe("Toolchain Discovery - Auto-Calibration & Commands", () => {
-  const scratch = join(process.cwd(), "coverage", "scratch", "toolchain-discovery-commands");
+  const scratch = "/virtual/toolchain-discovery-commands";
 
-  afterAll(() => {
-    rmSync(scratch, { recursive: true, force: true });
+  beforeEach(() => {
+    setupVirtualDiscoveryFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualDiscoveryFS();
   });
 
   test("calibrates .olt/policy.json automatically on mind:init and mind:observe", () => {

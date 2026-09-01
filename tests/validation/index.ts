@@ -3,6 +3,15 @@
  * Explicit named exports - zero wildcard export *.
  */
 export {
+  scratchRoot,
+  createSandboxDir,
+  createMockPngBuffer,
+  createMockFeedbackItem,
+  createMockTaskRecord,
+  createMockDualChannelFinding,
+} from "./validation-fixture.ts";
+
+export {
   assertAntiBatchingRule,
   validateBatchBoundary,
   verifySingleItemLease,
@@ -38,17 +47,9 @@ export {
   type ValidatorDomain,
 } from "./dual-validation/index.ts";
 
-export {
-  MutationGate,
-  type MutationCandidate,
-  type MutationReport,
-} from "./mutation/index.ts";
+export { MutationGate, type MutationCandidate, type MutationReport } from "./mutation/index.ts";
 
-export {
-  AstLinter,
-  validateCodingConventions,
-  extractDomViolations,
-} from "./linting/index.ts";
+export { AstLinter, validateCodingConventions, extractDomViolations } from "./linting/index.ts";
 
 export {
   auditDefectAssertions,

@@ -25,14 +25,14 @@ export interface ExecutionLockDependencies {
 }
 
 const defaultExecutionLockDependencies: ExecutionLockDependencies = {
-  mkdirLockDirectory: mkdirSync,
-  lstat: lstatSync,
-  openRepositoryRoot: openSync,
-  openLockFile: openSync,
-  fstat: fstatSync,
-  close: closeSync,
-  tryExclusiveFlock,
-  releaseFlock,
+  mkdirLockDirectory: (p, options) => mkdirSync(p, options),
+  lstat: (p) => lstatSync(p),
+  openRepositoryRoot: (p, flags) => openSync(p, flags),
+  openLockFile: (p, flags, mode) => openSync(p, flags, mode),
+  fstat: (descriptor) => fstatSync(descriptor),
+  close: (descriptor) => closeSync(descriptor),
+  tryExclusiveFlock: (descriptor) => tryExclusiveFlock(descriptor),
+  releaseFlock: (descriptor) => releaseFlock(descriptor),
 };
 
 let executionLockDependencies = defaultExecutionLockDependencies;

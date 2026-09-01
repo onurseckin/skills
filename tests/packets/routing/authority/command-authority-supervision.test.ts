@@ -51,7 +51,6 @@ function assertGrantedCommand(
   return assertRawGrantedCommand(specification, flags, caller ?? testCaller(specification, flags));
 }
 
-
 describe("assertGrantedCommand supervision rules", () => {
   test("CRITICAL 1: --parent-agent given but no acting identity resolves is refused outright, never routed on into the hierarchy check", async () => {
     const { run } = await emptyGrantRun("command-authority-critical1-repro-");
@@ -222,5 +221,4 @@ describe("assertGrantedCommand supervision rules", () => {
       }),
     ).not.toThrow();
   });
-
 });

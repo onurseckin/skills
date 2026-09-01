@@ -96,11 +96,11 @@ describe("putBlobFile", () => {
 
     const spy = spyOn(fs, "readSync").mockImplementation(
       (
-        fd: number,
-        buffer: NodeJS.ArrayBufferView,
-        offset: number,
-        length: number,
-        position: fs.ReadPosition | null,
+        _fd: number,
+        _buffer: NodeJS.ArrayBufferView,
+        _offset: number,
+        _length: number,
+        _position: fs.ReadPosition | null,
       ) => {
         spy.mockRestore();
         return MAX_BLOB_BYTES + 1;

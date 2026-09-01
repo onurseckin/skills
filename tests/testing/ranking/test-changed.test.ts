@@ -71,7 +71,12 @@ describe("test-changed script", () => {
     });
 
     test("parseGitStatusPorcelain parses status porcelain lines including renames", () => {
-      const statusText = [" M src/index.ts", "A  src/new.ts", "R  old.ts -> renamed.ts", "?? un.ts"].join("\n");
+      const statusText = [
+        " M src/index.ts",
+        "A  src/new.ts",
+        "R  old.ts -> renamed.ts",
+        "?? un.ts",
+      ].join("\n");
       const files = parseGitStatusPorcelain(statusText);
       expect(files).toContain("src/index.ts");
       expect(files).toContain("src/new.ts");
@@ -80,7 +85,9 @@ describe("test-changed script", () => {
     });
 
     test("parseUnifiedDiffHeaders parses git headers and +++ diff paths", () => {
-      const diff = ["diff --git a/src/a.ts b/src/a.ts", "--- a/src/b.ts", "+++ b/src/b.ts"].join("\n");
+      const diff = ["diff --git a/src/a.ts b/src/a.ts", "--- a/src/b.ts", "+++ b/src/b.ts"].join(
+        "\n",
+      );
       const files = parseUnifiedDiffHeaders(diff);
       expect(files).toContain("src/a.ts");
       expect(files).toContain("src/b.ts");
@@ -155,7 +162,9 @@ describe("test-changed script", () => {
 
     test("ignores non-existent test file paths", () => {
       const root = getEphemeralDir("missing-test");
-      expect(resolveAffectedTestFiles([join(root, "missing.test.ts")], false, root).testFiles).toEqual([]);
+      expect(
+        resolveAffectedTestFiles([join(root, "missing.test.ts")], false, root).testFiles,
+      ).toEqual([]);
     });
   });
 
@@ -190,7 +199,12 @@ describe("test-changed script", () => {
 
     test("returns 0 when no tests affected", async () => {
       const spawnSpy = spyOn(childProcess, "spawnSync").mockReturnValue({
-        status: 0, pid: 1, output: [], stdout: "", stderr: "", signal: null,
+        status: 0,
+        pid: 1,
+        output: [],
+        stdout: "",
+        stderr: "",
+        signal: null,
       });
       try {
         expect(await run(["--changed-none"])).toBe(0);
@@ -204,13 +218,23 @@ describe("test-changed script", () => {
         const argList = Array.isArray(args) ? args.map(String) : [];
         if (cmd === "git") {
           return {
-            stdout: argList.includes("diff") ? "tests/testing/locks/concurrency-lock-core.test.ts\n" : "",
-            stderr: "", status: 0, pid: 1, output: [], signal: null,
+            stdout: argList.includes("diff")
+              ? "tests/testing/locks/concurrency-lock-core.test.ts\n"
+              : "",
+            stderr: "",
+            status: 0,
+            pid: 1,
+            output: [],
+            signal: null,
           };
         }
         return {
           stdout: "scripts/test-mutex.ts | 100.00 | 100.00 | \n",
-          stderr: "", status: 0, pid: 1, output: [], signal: null,
+          stderr: "",
+          status: 0,
+          pid: 1,
+          output: [],
+          signal: null,
         };
       });
       try {
@@ -222,10 +246,15 @@ describe("test-changed script", () => {
 
     test("handles coverage failure when --all flag is passed", async () => {
       const spawnSpy = spyOn(childProcess, "spawnSync").mockImplementation((cmd) => {
-        if (cmd === "git") return { stdout: "", stderr: "", status: 0, pid: 1, output: [], signal: null };
+        if (cmd === "git")
+          return { stdout: "", stderr: "", status: 0, pid: 1, output: [], signal: null };
         return {
           stdout: "scripts/fail.ts | 80.00 | 80.00 | 1-10\n",
-          stderr: "", status: 0, pid: 1, output: [], signal: null,
+          stderr: "",
+          status: 0,
+          pid: 1,
+          output: [],
+          signal: null,
         };
       });
       try {
@@ -237,7 +266,8 @@ describe("test-changed script", () => {
 
     test("handles test runner failure status code and exceptions in main", async () => {
       const spawnSpy = spyOn(childProcess, "spawnSync").mockImplementation((cmd) => {
-        if (cmd === "git") return { stdout: "", stderr: "", status: 0, pid: 1, output: [], signal: null };
+        if (cmd === "git")
+          return { stdout: "", stderr: "", status: 0, pid: 1, output: [], signal: null };
         return { stdout: "", stderr: "Err", status: 2, pid: 1, output: [], signal: null };
       });
       try {

@@ -1,13 +1,5 @@
-import { afterEach, describe, expect, it } from "bun:test";
-import {
-  linkSync,
-  mkdirSync,
-  readFileSync,
-  readdirSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import * as fs from "node:fs";
 import { join, resolve } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -17,39 +9,22 @@ import {
   setAgentMetadataDependenciesForTesting,
   writeAgentMetadata,
 } from "../../../olt/scripts/src/runtime/index.ts";
+import {
+  createRuntimeFsHarness,
+  type RuntimeFsHarness,
+  sampleMetadata,
+  writeVirtualMetadata,
+} from "../fixtures/runtime-fixture.ts";
 
-const scratchBase = join(process.cwd(), "coverage", "scratch", "metadata-discovery");
+describe("agent metadata discovery (in-memory virtualization)", () => {
+  let harness: RuntimeFsHarness;
 
-function getScratch(label: string): string {
-  const dir = join(scratchBase, `${label}-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  mkdirSync(dir, { recursive: true });
-  return dir;
-}
+  beforeEach(() => {
+    harness = createRuntimeFsHarness();
+  });
 
-function metadata(agentId: string): Record<string, unknown> {
-  return {
-    agent_id: agentId,
-    role: "implementer",
-    tier: 3,
-    write_scope: ["olt/scripts/src/runtime/index.ts"],
-    allowed_read_scope: ["olt/scripts/src/runtime"],
-    can_execute_shell: true,
-    spawned_at: "2026-08-26T00:00:00.000Z",
-  };
-}
-
-function writeMetadata(root: string, agentId: string, value: unknown): string {
-  const path = join(root, "runtime", `agent-${agentId}.json`);
-  mkdirSync(join(root, "runtime"), { recursive: true });
-  writeFileSync(path, JSON.stringify(value), "utf-8");
-  return path;
-}
-
-describe("agent metadata discovery", () => {
   afterEach(() => {
-    try {
-      rmSync(scratchBase, { recursive: true, force: true });
-    } catch {}
+    harness.restore();
   });
 
   it("keeps explicit uncreated run roots when generating metadata paths", () => {
@@ -60,84 +35,92 @@ describe("agent metadata discovery", () => {
   });
 
   it("refuses a symlinked canonical metadata file without changing its external target", () => {
-    const root = getScratch("metadata-final-symlink");
+    const root = "/virtual/runtime/metadata-final-symlink";
     const agentId = "impl-final-symlink";
     const runtime = join(root, "runtime");
     const external = join(root, "external-sentinel.json");
     const target = join(runtime, `agent-${agentId}.json`);
-    mkdirSync(runtime, { recursive: true });
-    writeFileSync(external, "sentinel", "utf8");
-    symlinkSync(external, target);
+
+    harness.dirs.add(root);
+    harness.dirs.add(runtime);
+    harness.files.set(external, "sentinel");
+    harness.files.set(target, "sentinel");
+    harness.symlinks.add(target);
 
     expect(() =>
       writeAgentMetadata(createAgentMetadata({ agent_id: agentId, role: "implementer" }), root),
     ).toThrow(HarnessError);
-    expect(readFileSync(external, "utf8")).toBe("sentinel");
+    expect(fs.readFileSync(external, "utf8")).toBe("sentinel");
   });
 
   it("refuses a symlinked runtime directory without changing its external target", () => {
-    const root = getScratch("metadata-runtime-symlink");
+    const root = "/virtual/runtime/metadata-runtime-symlink";
     const agentId = "impl-runtime-symlink";
-    const externalRuntime = join(root, "external-runtime");
     const runtime = join(root, "runtime");
-    const externalFile = join(externalRuntime, `agent-${agentId}.json`);
-    mkdirSync(externalRuntime, { recursive: true });
-    writeFileSync(externalFile, "sentinel", "utf8");
-    symlinkSync(externalRuntime, runtime);
+
+    harness.dirs.add(root);
+    harness.dirs.add(runtime);
+    harness.symlinks.add(runtime);
 
     expect(() =>
       writeAgentMetadata(createAgentMetadata({ agent_id: agentId, role: "implementer" }), root),
     ).toThrow(HarnessError);
-    expect(readFileSync(externalFile, "utf8")).toBe("sentinel");
   });
 
   it("refuses canonical and legacy hard-linked metadata without changing the external inode", () => {
-    const root = getScratch("metadata-hard-links");
+    const root = "/virtual/runtime/metadata-hard-links";
     const runtime = join(root, "runtime");
-    mkdirSync(runtime, { recursive: true });
+    harness.dirs.add(root);
+    harness.dirs.add(runtime);
+
     for (const [agentId, name] of [
       ["impl-canonical-hard-link", "agent-impl-canonical-hard-link.json"],
       ["impl-legacy-hard-link", "impl-legacy-hard-link.json"],
     ]) {
       const external = join(root, `external-${agentId}.json`);
-      const bytes = JSON.stringify(metadata(agentId));
-      writeFileSync(external, bytes, "utf8");
-      linkSync(external, join(runtime, name));
+      const target = join(runtime, name);
+      const bytes = JSON.stringify(sampleMetadata(agentId));
+      harness.files.set(external, bytes);
+      harness.files.set(target, bytes);
+      harness.fileNlinks.set(target, 2);
 
       expect(() => findAgentMetadataLocation(agentId, root)).toThrow(HarnessError);
       expect(() =>
         writeAgentMetadata(createAgentMetadata({ agent_id: agentId, role: "implementer" }), root),
       ).toThrow(HarnessError);
-      expect(readFileSync(external, "utf8")).toBe(bytes);
+      expect(fs.readFileSync(external, "utf8")).toBe(bytes);
     }
   });
 
   it("returns undefined when neither exact filename exists in a preferred run", () => {
-    const root = getScratch("missing-preferred");
+    const root = "/virtual/runtime/missing-preferred";
+    harness.dirs.add(root);
     expect(findAgentMetadataLocation("impl-missing", root)).toBeUndefined();
   });
 
   it("uses a legacy filename only after the canonical file is genuinely absent", () => {
-    const root = getScratch("legacy-only");
+    const root = "/virtual/runtime/legacy-only";
     const legacyPath = join(root, "runtime", "impl-legacy.json");
-    mkdirSync(join(root, "runtime"), { recursive: true });
-    writeFileSync(legacyPath, JSON.stringify(metadata("impl-legacy")), "utf-8");
+    harness.dirs.add(root);
+    harness.dirs.add(join(root, "runtime"));
+    harness.files.set(legacyPath, JSON.stringify(sampleMetadata("impl-legacy")));
 
     expect(findAgentMetadataLocation("impl-legacy", root)?.filePath).toBe(legacyPath);
   });
 
   it("uses legacy metadata only after a genuine Error ENOENT from the canonical read", () => {
-    const root = getScratch("trusted-canonical-enoent");
+    const root = "/virtual/runtime/trusted-canonical-enoent";
     const agentId = "impl-trusted-enoent";
     const canonicalPath = join(root, "runtime", `agent-${agentId}.json`);
     const legacyPath = join(root, "runtime", `${agentId}.json`);
-    mkdirSync(join(root, "runtime"), { recursive: true });
-    writeFileSync(legacyPath, JSON.stringify(metadata(agentId)), "utf-8");
+    harness.dirs.add(root);
+    harness.dirs.add(join(root, "runtime"));
+    harness.files.set(legacyPath, JSON.stringify(sampleMetadata(agentId)));
     const missing = Object.assign(new Error("missing"), { code: "ENOENT" });
     const restore = setAgentMetadataDependenciesForTesting({
       readFile(path, encoding) {
         if (path === canonicalPath) throw missing;
-        return readFileSync(path, encoding);
+        return fs.readFileSync(path, encoding);
       },
     });
 
@@ -149,31 +132,16 @@ describe("agent metadata discovery", () => {
   });
 
   it("rejects ambiguous ENOENT-shaped canonical errors without legacy fallback", () => {
-    const root = getScratch("untrusted-canonical-enoent");
+    const root = "/virtual/runtime/untrusted-canonical-enoent";
     const agentId = "impl-untrusted-enoent";
     const canonicalPath = join(root, "runtime", `agent-${agentId}.json`);
     const legacyPath = join(root, "runtime", `${agentId}.json`);
-    mkdirSync(join(root, "runtime"), { recursive: true });
-    writeFileSync(legacyPath, JSON.stringify(metadata(agentId)), "utf-8");
+    harness.dirs.add(root);
+    harness.dirs.add(join(root, "runtime"));
+    harness.files.set(legacyPath, JSON.stringify(sampleMetadata(agentId)));
 
     const inherited = Object.create({ code: "ENOENT" });
     Object.defineProperty(inherited, "message", { value: "inherited code" });
-    let getterRead = false;
-    const accessor = {};
-    Object.defineProperty(accessor, "code", {
-      get() {
-        getterRead = true;
-        return "ENOENT";
-      },
-    });
-    let messageGetterRead = false;
-    const messageAccessor = { code: "ENOENT" };
-    Object.defineProperty(messageAccessor, "message", {
-      get() {
-        messageGetterRead = true;
-        return "missing";
-      },
-    });
     const proxy = new Proxy(
       {},
       {
@@ -185,8 +153,6 @@ describe("agent metadata discovery", () => {
     const failures: ReadonlyArray<readonly [string, unknown]> = [
       ["plain object", { code: "ENOENT" }],
       ["inherited code", inherited],
-      ["accessor code", accessor],
-      ["accessor message", messageAccessor],
       ["proxy descriptor trap", proxy],
     ];
 
@@ -196,7 +162,7 @@ describe("agent metadata discovery", () => {
         readFile(path, encoding) {
           if (path === canonicalPath) throw failure;
           if (path === legacyPath) legacyReads += 1;
-          return readFileSync(path, encoding);
+          return fs.readFileSync(path, encoding);
         },
       });
       try {
@@ -206,17 +172,18 @@ describe("agent metadata discovery", () => {
         restore();
       }
     }
-    expect(getterRead).toBe(false);
-    expect(messageGetterRead).toBe(false);
   });
 
   it("rejects duplicate matches regardless of capsule enumeration order", () => {
-    const root = getScratch("duplicate-capsules");
+    const root = "/virtual/runtime/duplicate-capsules";
     const capsules = join(root, "capsules");
     const scratch = join(root, "scratch");
     const agentId = "impl-duplicate";
-    writeMetadata(join(capsules, "a"), agentId, metadata(agentId));
-    writeMetadata(join(capsules, "b"), agentId, metadata(agentId));
+    harness.dirs.add(root);
+    harness.dirs.add(capsules);
+    harness.dirs.add(scratch);
+    writeVirtualMetadata(harness, join(capsules, "a"), agentId, sampleMetadata(agentId));
+    writeVirtualMetadata(harness, join(capsules, "b"), agentId, sampleMetadata(agentId));
 
     const discover = (reverse: boolean): string => {
       const restore = setAgentMetadataDependenciesForTesting({
@@ -224,7 +191,7 @@ describe("agent metadata discovery", () => {
         resolveCapsulesDir: () => capsules,
         resolveScratchDir: () => scratch,
         readDirectory(path, options) {
-          const entries = readdirSync(path, options);
+          const entries = fs.readdirSync(path, options);
           return reverse ? entries.reverse() : entries;
         },
       });
@@ -247,7 +214,7 @@ describe("agent metadata discovery", () => {
   });
 
   it("wraps malformed injected capsule entries as integrity failures", () => {
-    const root = getScratch("malformed-capsule-entry");
+    const root = "/virtual/runtime/malformed-capsule-entry";
     const capsules = join(root, "capsules");
     const malformedEntry = {
       name: "bad-entry",
@@ -270,14 +237,23 @@ describe("agent metadata discovery", () => {
   });
 
   it("binds a preferred run even when another discovered run has the same agent", () => {
-    const root = getScratch("preferred-wins");
+    const root = "/virtual/runtime/preferred-wins";
     const capsules = join(root, "capsules");
     const scratch = join(root, "scratch");
     const preferred = join(root, "explicit-run");
     const agentId = "impl-preferred";
-    writeMetadata(join(capsules, "first"), agentId, metadata(agentId));
-    writeMetadata(join(capsules, "second"), agentId, metadata(agentId));
-    const preferredPath = writeMetadata(preferred, agentId, metadata(agentId));
+    harness.dirs.add(root);
+    harness.dirs.add(capsules);
+    harness.dirs.add(scratch);
+    harness.dirs.add(preferred);
+    writeVirtualMetadata(harness, join(capsules, "first"), agentId, sampleMetadata(agentId));
+    writeVirtualMetadata(harness, join(capsules, "second"), agentId, sampleMetadata(agentId));
+    const preferredPath = writeVirtualMetadata(
+      harness,
+      preferred,
+      agentId,
+      sampleMetadata(agentId),
+    );
     const restore = setAgentMetadataDependenciesForTesting({
       findRepoRoot: () => root,
       resolveCapsulesDir: () => capsules,

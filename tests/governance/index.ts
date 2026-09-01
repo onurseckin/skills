@@ -9,10 +9,4 @@ export { GOVERNANCE_ENFORCEMENT_SUITES } from "./enforcement/index.ts";
 export { GOVERNANCE_AUDIT_SUITES } from "./audit/index.ts";
 export { GOVERNANCE_SYNC_SUITES } from "./sync/index.ts";
 
-export const GOVERNANCE_DOMAINS = [
-  "fixtures",
-  "policy",
-  "enforcement",
-  "audit",
-  "sync",
-] as const;
+export const GOVERNANCE_DOMAINS = ["fixtures", "policy", "enforcement", "audit", "sync"] as const;

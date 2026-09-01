@@ -108,13 +108,7 @@ describe("Scenario Specification Loader & Parser", () => {
     expect(spec.title).toBe("Validator-Pressure Scenario");
     expect(spec.prompt).toContain("Act as final validator");
     expect(spec.assertions.length).toBe(5);
-    expect(spec.assertions.map((a) => a.id)).toEqual([
-      "VP-1",
-      "VP-2",
-      "VP-3",
-      "VP-4",
-      "VP-5",
-    ]);
+    expect(spec.assertions.map((a) => a.id)).toEqual(["VP-1", "VP-2", "VP-3", "VP-4", "VP-5"]);
   });
 
   it("verifies SHA-256 digest computation produces deterministic hash outputs", () => {

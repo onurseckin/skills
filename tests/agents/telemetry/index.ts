@@ -9,14 +9,17 @@ export {
   checkParentAgentConflict,
   appendTelemetryConflicts,
   refreshAgentDerivedTelemetry,
-} from "../../../olt/scripts/src/workflow/agents/telemetry-derived.ts";
+} from "../../../olt/scripts/src/workflow/agents/telemetry-merge.ts";
 
 export {
-  writeAgentModelTelemetry,
-  readAgentModelTelemetry,
-} from "../../../olt/scripts/src/workflow/agents/telemetry.ts";
+  extractTranscriptTelemetry,
+  readAgentTranscriptTelemetry,
+} from "../../../olt/scripts/src/workflow/agents/transcript-telemetry.ts";
 
 export {
-  buildTranscriptFixture,
-  type TranscriptFixtureOptions,
+  assistantLine,
+  toolResultLine,
+  writeDirectTranscript,
+  mktemp,
+  cleanupTranscriptRoots,
 } from "./transcript-fixture.ts";

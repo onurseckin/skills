@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { readFileSync, statSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test, spyOn } from "bun:test";
+import * as fs from "node:fs";
 import { join } from "node:path";
 import { renderEnhancedPlanMarkdown } from "../../../olt/scripts/src/requirements/enhanced-plan-markdown.ts";
 import {
@@ -14,8 +14,7 @@ import {
 } from "../../../olt/scripts/src/requirements/enhanced-plan.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import * as durableWriteModule from "../../../olt/scripts/src/core/durable-write.ts";
 
 function input(overrides: Partial<EnhancedPlanInput> = {}): EnhancedPlanInput {
   return {
@@ -83,34 +82,67 @@ describe("buildEnhancedPlan", () => {
   });
 });
 
-describe("writeEnhancedPlan", () => {
-  let createdRoots: string[] = [];
+describe("writeEnhancedPlan (in-memory virtual)", () => {
+  const mockFiles = new Map<string, Uint8Array>();
+  const mockStats = new Map<string, { mode: number }>();
+  const spies: { mockRestore: () => void }[] = [];
+
+  beforeEach(() => {
+    mockFiles.clear();
+    mockStats.clear();
+
+    spies.push(spyOn(fs, "mkdirSync").mockImplementation(() => undefined as unknown as string));
+    spies.push(
+      spyOn(fs, "readFileSync").mockImplementation((p: fs.PathOrFileDescriptor) => {
+        const val = mockFiles.get(String(p));
+        if (val !== undefined) return Buffer.from(val) as unknown as string & Buffer;
+        throw new Error(`ENOENT: no such file, open '${String(p)}'`);
+      }),
+    );
+    spies.push(
+      spyOn(fs, "statSync").mockImplementation((p: fs.PathLike) => {
+        const val = mockStats.get(String(p));
+        if (val !== undefined) return val as unknown as fs.Stats;
+        return { mode: 0o644 } as unknown as fs.Stats;
+      }),
+    );
+    spies.push(
+      spyOn(durableWriteModule, "atomicWriteBytes").mockImplementation(
+        (targetPath, bytes, options) => {
+          mockFiles.set(targetPath, bytes);
+          const mode =
+            typeof options === "object" &&
+            options !== null &&
+            typeof (options as { mode?: number }).mode === "number"
+              ? (options as { mode?: number }).mode!
+              : 0o644;
+          mockStats.set(targetPath, { mode });
+        },
+      ),
+    );
+  });
 
   afterEach(() => {
-    for (const root of createdRoots) {
-      rmSync(root, { recursive: true, force: true });
-    }
-    createdRoots = [];
+    while (spies.length > 0) spies.pop()?.mockRestore();
   });
+
   test("writes both files under planning/, and reports hashes that match what landed on disk", () => {
-    const runRoot = mkdtempSync(join(tmpdir(), "enhanced-plan-"));
-    createdRoots.push(runRoot);
+    const runRoot = `${process.cwd()}/.olt/virtual-enhanced-plan-run`;
     const document = buildEnhancedPlan(input({ summary: "Ship it", todos: ["Do the thing"] }));
     const artifacts = writeEnhancedPlan(runRoot, document);
 
     expect(artifacts.json_path).toBe(join(PLANNING_DIRECTORY, ENHANCED_PLAN_JSON_FILE));
     expect(artifacts.markdown_path).toBe(join(PLANNING_DIRECTORY, ENHANCED_PLAN_MARKDOWN_FILE));
 
-    const jsonBytes = readFileSync(join(runRoot, artifacts.json_path));
-    const markdownBytes = readFileSync(join(runRoot, artifacts.markdown_path));
+    const jsonBytes = fs.readFileSync(join(runRoot, artifacts.json_path));
+    const markdownBytes = fs.readFileSync(join(runRoot, artifacts.markdown_path));
     expect(sha256Bytes(jsonBytes)).toBe(artifacts.json_sha256);
     expect(sha256Bytes(markdownBytes)).toBe(artifacts.markdown_sha256);
     expect(jsonBytes).toEqual(Buffer.from(canonicalJsonBytes(document)));
     expect(markdownBytes.toString("utf8")).toBe(renderEnhancedPlanMarkdown(document));
 
-    // Both artifacts are written read-only — nothing downstream may edit a recorded plan in place.
-    expect(statSync(join(runRoot, artifacts.json_path)).mode & 0o777).toBe(0o444);
-    expect(statSync(join(runRoot, artifacts.markdown_path)).mode & 0o777).toBe(0o444);
+    expect(fs.statSync(join(runRoot, artifacts.json_path)).mode & 0o777).toBe(0o444);
+    expect(fs.statSync(join(runRoot, artifacts.markdown_path)).mode & 0o777).toBe(0o444);
   });
 });
 
@@ -141,11 +173,14 @@ describe("renderEnhancedPlanMarkdown", () => {
 
   test("numbers todos and bullets sources when both are present", () => {
     const document = buildEnhancedPlan(
-      input({ todos: ["First todo", "Second todo"], sources: ["src/a.ts", "src/b.ts"] }),
+      input({
+        todos: ["First item", "Second item"],
+        sources: ["src/a.ts", "src/b.ts"],
+      }),
     );
     const markdown = renderEnhancedPlanMarkdown(document);
-    expect(markdown).toContain("1. First todo");
-    expect(markdown).toContain("2. Second todo");
+    expect(markdown).toContain("1. First item");
+    expect(markdown).toContain("2. Second item");
     expect(markdown).toContain("- `src/a.ts`");
     expect(markdown).toContain("- `src/b.ts`");
   });

@@ -1,6 +1,5 @@
 import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { realpathSync } from "node:fs";
 import { commandFingerprint } from "../../../olt/scripts/src/workflow/gates/gate-policy.ts";
 import { captureGatePathBindings } from "../../../olt/scripts/src/engine/runner/index.ts";
 import { captureGateEnvironment } from "../../../olt/scripts/src/engine/runner/index.ts";
@@ -114,7 +113,7 @@ export function workflowState() {
 export const at = (iso: string) => ({ now: () => new Date(iso) });
 
 export function commandRecord(id: string, overrides: Partial<CommandRecord> = {}): CommandRecord {
-  const root = realpathSync(process.cwd());
+  const root = process.cwd();
   const repositoryRoot = overrides.repository_root ?? root;
   const argv = overrides.argv ?? TEST_GATE_ARGV;
   const cwd = overrides.cwd ?? root;

@@ -6,7 +6,13 @@ import { completionIssues } from "../../../../olt/scripts/src/workflow/completio
 import { attachGateResult } from "../../../../olt/scripts/src/workflow/gates/attach-result.ts";
 import { claimTask } from "../../../../olt/scripts/src/workflow/lease/claim.ts";
 import { submitTask } from "../../../../olt/scripts/src/workflow/submission/submit.ts";
-import { at, commandRecord, TEST_GATE_ARGV, TestPort, workflowState } from "../../shared/test-port.ts";
+import {
+  at,
+  commandRecord,
+  TEST_GATE_ARGV,
+  TestPort,
+  workflowState,
+} from "../../shared/test-port.ts";
 import { captureGatePathBindings } from "../../../../olt/scripts/src/engine/runner/index.ts";
 import { commandFingerprint } from "../../../../olt/scripts/src/workflow/gates/gate-policy.ts";
 

@@ -5,7 +5,8 @@ import {
 } from "../../../olt/scripts/src/reporting/doctor/tier-confinement/index.ts";
 import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 
-export const tierConfinementInvariantsSuiteName = "Tier Boundary Confinement Doctor Checks - Tool Execution & Command Confinement Invariants";
+export const tierConfinementInvariantsSuiteName =
+  "Tier Boundary Confinement Doctor Checks - Tool Execution & Command Confinement Invariants";
 
 describe(tierConfinementInvariantsSuiteName, () => {
   test("auditTierConfinement detects orchestrator direct implementation command", () => {
@@ -104,7 +105,9 @@ describe(tierConfinementInvariantsSuiteName, () => {
     expect(
       isFullTestSuiteCommand(["bun", "test", "tests/doctor/rules/tier-confinement-core.test.ts"]),
     ).toBe(false);
-    expect(isFullTestSuiteCommand(["pytest", "tests/authority/guards-and-rbac.test.ts"])).toBe(false);
+    expect(isFullTestSuiteCommand(["pytest", "tests/authority/guards-and-rbac.test.ts"])).toBe(
+      false,
+    );
   });
 
   test("auditTierConfinement detects orchestrator running full test suite (defect-20260822-20)", () => {

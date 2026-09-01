@@ -1,6 +1,5 @@
 import { afterAll, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   executeAtomicDispatch,
@@ -18,10 +17,7 @@ import {
 import { readTaskQueue } from "../../../../olt/scripts/src/task/queue/index.ts";
 
 describe("Smart Tasks Execute Atomic Dispatch Test Suite", () => {
-  const testRoot = join(
-    tmpdir(),
-    `test-exec-atomic-dispatch-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-  );
+  const testRoot = `${process.cwd()}/.olt/virtual-exec-atomic-dispatch`;
   const feedbackFile = join(testRoot, ".olt", "capsules", "FEEDBACK_QUEUE.jsonl");
   const taskQueueFile = join(testRoot, ".olt", "capsules", "TASK_QUEUE.jsonl");
 

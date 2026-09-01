@@ -1,23 +1,22 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, rmSync, existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   auditGraphHealth,
   auditSupervisoryWatchdog,
 } from "../../../olt/scripts/src/engine/scheduler/core/state.ts";
+import { cleanupVirtualEngineFS, getVirtualEngineFS, setupVirtualEngineFS } from "../fixture.ts";
 
 describe("engine/scheduler/core/state.ts - Audit Graph & Watchdog", () => {
-  let tempDir: string;
+  const tempDir = "/virtual/state-audit-test";
 
   beforeEach(() => {
-    tempDir = join(process.cwd(), "coverage", "scratch", `state-audit-test-${Date.now()}`);
-    mkdirSync(tempDir, { recursive: true });
+    setupVirtualEngineFS();
+    const vfs = getVirtualEngineFS();
+    vfs.mkdirSync(tempDir, { recursive: true });
   });
 
   afterEach(() => {
-    if (existsSync(tempDir)) {
-      rmSync(tempDir, { recursive: true, force: true });
-    }
+    cleanupVirtualEngineFS();
   });
 
   describe("auditGraphHealth", () => {
@@ -29,7 +28,7 @@ describe("engine/scheduler/core/state.ts - Audit Graph & Watchdog", () => {
           schema: "harness.graph",
           version: 1,
           revision: 1,
-          nodes: [{ id: "t1" }],
+          nodes: [{ id: "t1", type: "task" }],
           edges: [],
           gates: [
             {
@@ -64,62 +63,74 @@ describe("engine/scheduler/core/state.ts - Audit Graph & Watchdog", () => {
       expect(report.probes.scopeCollisionHazards.passed).toBe(true);
     });
 
-    it("aggregates issues from multiple failing probes", () => {
+    it("aggregates issues and flags unhealthy on multiple probe failures", () => {
       const state = {
         schema: "harness.run-state",
         version: 1,
+        graph: {
+          schema: "harness.graph",
+          version: 1,
+          revision: 1,
+          nodes: [
+            { id: "t-cycle-1", type: "task" },
+            { id: "t-cycle-2", type: "task" },
+          ],
+          edges: [
+            { source: "t-cycle-1", target: "t-cycle-2", type: "depends_on" },
+            { source: "t-cycle-2", target: "t-cycle-1", type: "depends_on" },
+          ],
+          gates: [],
+        },
+        requirements: [{ id: "req-uncovered" }],
         tasks: {
-          t1: {
-            id: "t1",
-            status: "running",
+          "t-cycle-1": {
+            id: "t-cycle-1",
+            status: "leased",
             requirement_ids: ["req-uncovered"],
             write_scope: ["src/shared.ts"],
             resource_scope: [],
-            dependencies: ["t1"],
             lease: {
-              agent_id: "agent-stale",
-              role: "implementer",
               expires_at: "2026-08-25T08:00:00.000Z",
+              agent_id: "agent-1",
+              role: "implementer",
             },
           },
-          t2: {
-            id: "t2",
-            status: "running",
-            requirement_ids: [],
+          "t-cycle-2": {
+            id: "t-cycle-2",
+            status: "leased",
+            requirement_ids: ["req-uncovered"],
             write_scope: ["src/shared.ts"],
             resource_scope: [],
-            dependencies: ["non_existent_orphan_parent"],
             lease: {
-              agent_id: "agent-active",
+              expires_at: "2026-08-25T08:00:00.000Z",
+              agent_id: "agent-2",
               role: "implementer",
-              expires_at: "2026-08-25T12:00:00.000Z",
             },
           },
+          "t-orphan": {
+            id: "t-orphan",
+            status: "proposed",
+            requirement_ids: [],
+            write_scope: [],
+            resource_scope: [],
+          },
         },
-        requirements: [{ id: "req-uncovered" }],
-        gates: [],
       };
 
-      const report = auditGraphHealth(state, {
-        now: "2026-08-25T10:00:00.000Z",
-        timeoutMs: 60_000,
-      });
-
+      const report = auditGraphHealth(state, { now: "2026-08-25T10:00:00.000Z" });
       expect(report.healthy).toBe(false);
-      expect(report.totalTasks).toBe(2);
+      expect(report.totalTasks).toBe(3);
       expect(report.issues.length).toBeGreaterThan(0);
-
-      const probeTypes = report.issues.map((i) => i.probe);
-      expect(probeTypes).toContain("stale_leases");
-      expect(probeTypes).toContain("scope_collisions");
-      expect(probeTypes).toContain("gate_coverage");
-      expect(probeTypes).toContain("circular_dependencies");
-      expect(probeTypes).toContain("orphaned_tasks");
+      expect(report.probes.orphanedTasks.passed).toBe(false);
+      expect(report.probes.staleLeases.passed).toBe(false);
+      expect(report.probes.circularDependencies.passed).toBe(false);
+      expect(report.probes.gateCoverageViolations.passed).toBe(false);
+      expect(report.probes.scopeCollisionHazards.passed).toBe(false);
     });
   });
 
   describe("auditSupervisoryWatchdog", () => {
-    it("reports healthy watchdog state when no watchdogs are overdue", () => {
+    it("reports healthy when watchdog store has no overdue watchdogs", () => {
       const watchdogStore = {
         schema: "harness.watchdog_store",
         version: 1,
@@ -201,7 +212,7 @@ describe("engine/scheduler/core/state.ts - Audit Graph & Watchdog", () => {
       };
 
       const storePath = join(tempDir, "watchdogs.json");
-      writeFileSync(storePath, JSON.stringify(watchdogStore, null, 2));
+      getVirtualEngineFS().writeFileSync(storePath, JSON.stringify(watchdogStore, null, 2));
 
       const report = auditSupervisoryWatchdog(storePath, {
         now: "2026-08-25T10:00:30.000Z",
@@ -245,7 +256,7 @@ describe("engine/scheduler/core/state.ts - Audit Graph & Watchdog", () => {
       };
 
       const storePath = join(tempDir, "watchdogs.json");
-      writeFileSync(storePath, JSON.stringify(watchdogStore, null, 2));
+      getVirtualEngineFS().writeFileSync(storePath, JSON.stringify(watchdogStore, null, 2));
 
       const report = auditSupervisoryWatchdog(storePath, {
         now: "2026-08-25T10:00:00.000Z",

@@ -1,276 +1,289 @@
 import { afterEach, describe, expect, spyOn, test } from "bun:test";
-import {
-  chmodSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  rmSync,
-  statSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
-import { join } from "node:path";
+import * as fs from "node:fs";
+import { join, resolve } from "node:path";
 import {
   DEFAULT_HOOK_CONFIG,
-  DEFAULT_HOOK_SCHEMA,
-  DEFAULT_HOOK_VERSION,
   loadHookConfig,
   resolveHookConfigFile,
   saveHookConfig,
-  type HookConfig,
 } from "../../../olt/scripts/src/hooks/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
-const scratchBase = join(process.cwd(), "coverage", "scratch", "config-resolver");
+export const configResolverSuiteName = "Lifecycle Hooks - Canonical Config Resolution & Security";
 
-function getScratch(label: string): string {
-  const dir = join(scratchBase, `${label}-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  mkdirSync(dir, { recursive: true });
-  return dir;
+interface VirtualNode {
+  isDir: boolean;
+  content?: string;
+  mode?: number;
+  uid?: number;
+  isSymlink?: boolean;
+  symlinkTarget?: string;
 }
 
-function loadHookConfigError(action: () => HookConfig): HarnessError {
-  try {
-    action();
-  } catch (error) {
-    if (error instanceof HarnessError) return error;
-    throw error;
+const vfs = new Map<string, VirtualNode>();
+const spies: Array<{ mockRestore: () => void }> = [];
+const currentUid = typeof process.getuid === "function" ? process.getuid() : 501;
+
+const resolveReal = (p: string): string => {
+  const s = String(p).replace(/\/+$/, "");
+  let cur = s.startsWith("/") ? "" : process.cwd();
+  for (const part of s.split("/").filter(Boolean)) {
+    const next = `${cur}/${part}`,
+      n = vfs.get(next);
+    cur = n?.isSymlink && n.symlinkTarget ? resolveReal(n.symlinkTarget) : next;
   }
-  throw new Error("expected loadHookConfig to throw a HarnessError");
+  return cur || "/";
+};
+
+const mkStat = (
+  uid: number,
+  isD: boolean,
+  isSym = false,
+  sz = 0,
+  m = isSym ? 0o777 : isD ? 0o755 : 0o644,
+): fs.Stats =>
+  ({
+    dev: 1,
+    ino: 1,
+    nlink: 1,
+    uid,
+    gid: 0,
+    isFile: () => !isD && !isSym,
+    isDirectory: () => isD,
+    isSymbolicLink: () => isSym,
+    mode: m,
+    size: sz,
+    mtimeMs: Date.now(),
+  }) as fs.Stats;
+
+const getStats = (p: fs.PathLike, isLstat: boolean): fs.Stats => {
+  const raw = String(p).replace(/\/+$/, ""),
+    direct = vfs.get(raw);
+  if (isLstat && direct?.isSymlink) return mkStat(direct.uid ?? currentUid, false, true, 0, 0o777);
+  const s = resolveReal(raw),
+    n = vfs.get(s);
+  if (n)
+    return mkStat(
+      n.uid ?? currentUid,
+      n.isDir,
+      false,
+      n.content ? Buffer.byteLength(n.content) : 0,
+      n.mode,
+    );
+  if (Array.from(vfs.keys()).some((k) => k.startsWith(`${s}/`)))
+    return mkStat(currentUid, true, false, 0);
+  const err = new Error(`ENOENT: ${raw}`) as Error & { code: string };
+  err.code = "ENOENT";
+  throw err;
+};
+
+const strData = (d: string | NodeJS.ArrayBufferView) =>
+  typeof d === "string" ? d : new TextDecoder().decode(d as Uint8Array);
+
+const readVirtualFile = (p: fs.PathLike, opt: unknown): string | Buffer => {
+  const t = vfs.get(resolveReal(String(p)));
+  if (!t || t.content === undefined) {
+    const err = new Error(`ENOENT: ${String(p)}`) as Error & { code: string };
+    err.code = "ENOENT";
+    throw err;
+  }
+  const enc = typeof opt === "string" ? opt : (opt as { encoding?: string } | undefined)?.encoding;
+  return enc === "utf-8" || enc === "utf8"
+    ? t.content
+    : (Buffer.from(t.content) as unknown as string);
+};
+
+const setSymlink = (t: fs.PathLike, p: fs.PathLike) => {
+  vfs.set(String(p).replace(/\/+$/, ""), {
+    isDir: false,
+    isSymlink: true,
+    symlinkTarget: resolve(String(t)),
+  });
+};
+
+function setupVirtualFs(): void {
+  vfs.clear();
+  vfs.set(process.cwd(), { isDir: true });
+  vfs.set(join(process.cwd(), ".git"), { isDir: true });
+  vfs.set(join(process.cwd(), "package.json"), { content: "{}", isDir: false });
+  spies.push(
+    spyOn(fs, "existsSync").mockImplementation(
+      (p) =>
+        vfs.has(resolveReal(String(p))) ||
+        Array.from(vfs.keys()).some((k) => k.startsWith(`${resolveReal(String(p))}/`)),
+    ),
+    spyOn(fs, "statSync").mockImplementation((p) => getStats(p, false)),
+    spyOn(fs, "lstatSync").mockImplementation((p) => getStats(p, true)),
+    spyOn(fs, "realpathSync").mockImplementation((p) => resolveReal(String(p))),
+    spyOn(fs, "readFileSync").mockImplementation(readVirtualFile as never),
+    spyOn(fs, "writeFileSync").mockImplementation((p, d) => {
+      vfs.set(resolveReal(String(p)), { content: strData(d), isDir: false });
+    }),
+    spyOn(fs, "mkdirSync").mockImplementation((p) => {
+      vfs.set(resolveReal(String(p)), { isDir: true });
+      return undefined;
+    }),
+    spyOn(fs, "chmodSync").mockImplementation((p, m) => {
+      const n = vfs.get(resolveReal(String(p)));
+      if (n) n.mode = Number(m);
+    }),
+    spyOn(fs, "symlinkSync").mockImplementation(setSymlink as never),
+  );
 }
 
-describe("Lifecycle Hooks - Canonical Config Resolution & Security", () => {
-  afterEach(() => {
-    try {
-      rmSync(scratchBase, { recursive: true, force: true });
-    } catch {}
+afterEach(() => {
+  for (const s of spies.splice(0)) s.mockRestore();
+  vfs.clear();
+});
+
+const errCode = (fn: () => unknown) => {
+  try {
+    fn();
+  } catch (e) {
+    if (e instanceof HarnessError) return e.code;
+    throw e;
+  }
+  throw new Error("Expected HarnessError");
+};
+
+const scratch = (s: string) => join(process.cwd(), "coverage", "scratch", s);
+const initRepo = (d: string) => {
+  vfs.set(d, { isDir: true });
+  vfs.set(`${d}/.git`, { isDir: true });
+};
+const mkHook = (id: string, ev = "run:complete") => ({
+  id,
+  events: [ev],
+  action: "shell",
+  commandArgv: ["echo", "canonical"],
+});
+const setHooks = (p: string, hooks: unknown[]) => {
+  vfs.set(p, {
+    content: JSON.stringify({ schema: "harness.hooks_config", version: 1, enabled: true, hooks }),
+    isDir: false,
   });
-
-  test("uses only the repository canonical config when a nested cwd contains bare hooks.json", () => {
-    const dir = getScratch("canonical-config-from-nested-cwd");
-    const capsulesDir = join(dir, ".olt", "capsules");
-    const nestedDir = join(dir, "nested", "workspace");
-    mkdirSync(capsulesDir, { recursive: true });
-    mkdirSync(nestedDir, { recursive: true });
-
-    const customConfig: HookConfig = {
+};
+const setSym = (p: string, target: string, isDir = false) =>
+  vfs.set(p, { isDir, isSymlink: true, symlinkTarget: target });
+const setNode = (p: string, content = "", isDir = false, mode?: number, uid?: number) =>
+  vfs.set(p, { isDir, content, mode, uid });
+const saveCfg = (p: string, id: string, sound?: string) =>
+  saveHookConfig(
+    {
       schema: "harness.hooks_config",
       version: 1,
       enabled: true,
-      hooks: [
-        {
-          id: "canonical-hook",
-          events: ["orchestrator:complete"],
-          action: "shell",
-          commandArgv: ["echo", "canonical"],
-        },
-      ],
-    };
+      hooks: [{ id, events: ["run:complete"], action: "audio", ...(sound ? { sound } : {}) }],
+    },
+    p,
+  );
 
-    writeFileSync(join(capsulesDir, "hooks.json"), JSON.stringify(customConfig), "utf8");
-    writeFileSync(
-      join(nestedDir, "hooks.json"),
-      JSON.stringify({ ...customConfig, hooks: [{ ...customConfig.hooks[0]!, id: "nested-hook" }] }),
-      "utf8",
+describe(configResolverSuiteName, () => {
+  test("canonical config resolution, security invariants, path safety, permissions, durable saves, and cross-repo isolation", () => {
+    setupVirtualFs();
+    const [d1, d2, d3] = [
+      scratch("nested-repo"),
+      scratch("legacy-repo"),
+      scratch("explicit-dir-repo"),
+    ];
+    const n1 = join(d1, "nested", "workspace"),
+      n3 = join(d3, "nested", "workspace");
+    initRepo(d1);
+    initRepo(d2);
+    initRepo(d3);
+    setNode(n3, "", true);
+    setHooks(join(d1, ".olt", "capsules", "hooks.json"), [
+      mkHook("canonical-hook", "orchestrator:complete"),
+    ]);
+    setHooks(join(n1, "hooks.json"), [mkHook("nested-hook", "orchestrator:complete")]);
+    setHooks(join(d2, "olt", "hooks.json"), [mkHook("legacy-hook")]);
+    setHooks(join(d2, ".capsules", "hooks.json"), [mkHook("legacy-hook")]);
+    setHooks(join(d3, ".olt", "capsules", "hooks.json"), [
+      { ...DEFAULT_HOOK_CONFIG.hooks[0]!, id: "explicit-directory" },
+    ]);
+
+    expect(
+      loadHookConfig(undefined, n1).hooks[0]?.id === "canonical-hook" &&
+        loadHookConfig(undefined, d2),
+    ).toEqual(DEFAULT_HOOK_CONFIG);
+    expect(
+      resolveHookConfigFile(n3) === join(d3, ".olt", "capsules", "hooks.json") &&
+        loadHookConfig(n3).hooks[0]?.id === "explicit-directory",
+    ).toBe(true);
+
+    const [s1, s2, s3, s4, s5, s6, sD, rA, rB, dur] = [
+      scratch("symlink-repo"),
+      scratch("symlinked-parent-repo"),
+      scratch("writable-mode-repo"),
+      scratch("wrong-owner-repo"),
+      scratch("traversal-repo"),
+      scratch("symlink-traversal-repo"),
+      scratch("save-reload-repo"),
+      scratch("repo-a"),
+      scratch("repo-b"),
+      scratch("durable-repo"),
+    ];
+    for (const d of [s1, s2, s3, s4, s5, s6, sD, rA, rB, dur]) initRepo(d);
+    const tP = join(s1, "trusted-target.json"),
+      out2 = "/tmp/outside-parent-dir",
+      out6 = "/tmp/outside-dir-link";
+    const cfgStr = JSON.stringify(DEFAULT_HOOK_CONFIG);
+    setNode(tP, cfgStr);
+    setSym(join(s1, ".olt", "capsules", "hooks.json"), tP);
+    setNode(join(out2, "capsules", "hooks.json"), cfgStr);
+    setSym(join(s2, ".olt"), out2, true);
+    setNode(join(s3, ".olt", "capsules", "hooks.json"), cfgStr, false, 0o666);
+    setNode(
+      join(s4, ".olt", "capsules", "hooks.json"),
+      cfgStr,
+      false,
+      undefined,
+      (process.getuid() ?? 501) + 1,
     );
+    setNode(join(s5, ".olt"), "", true);
+    setNode(join(s6, ".olt"), "", true);
+    setNode(join(out6, "hooks.json"), cfgStr);
+    setSym(join(s6, "linked"), out6, true);
 
-    const loaded = loadHookConfig(undefined, nestedDir);
-    expect(loaded.hooks.length).toBe(1);
-    expect(loaded.hooks[0]?.id).toBe("canonical-hook");
-    expect(loaded.hooks[0]?.commandArgv).toEqual(["echo", "canonical"]);
-  });
+    setNode(join(sD, ".olt"), "", true);
+    const targetFile = join(sD, "config", "hooks.json"),
+      load1 = loadHookConfig(targetFile, sD);
+    saveCfg(targetFile, "saved-explicit-hook");
+    const load2 = loadHookConfig(targetFile, sD);
 
-  test("ignores legacy olt and capsule hook locations", () => {
-    const dir = getScratch("ignore-legacy-hook-locations");
-    mkdirSync(join(dir, ".olt"), { recursive: true });
-    mkdirSync(join(dir, "olt"), { recursive: true });
-    mkdirSync(join(dir, ".capsules"), { recursive: true });
+    setNode(join(rA, ".olt"), "", true);
+    setNode(join(rB, "custom-hooks.json"), cfgStr);
+    setNode(join(rB, ".olt", "capsules", "hooks.json"), cfgStr);
 
-    const customConfig: HookConfig = {
-      schema: "harness.hooks_config",
-      version: 1,
-      enabled: true,
-      hooks: [
-        {
-          id: "legacy-hook",
-          events: ["run:complete"],
-          action: "shell",
-          commandArgv: ["echo", "legacy"],
-        },
-      ],
-    };
+    const durTarget = join(dur, "hooks.json");
+    saveCfg(durTarget, "persisted-hook-1", "Ping");
+    const durLoad = loadHookConfig(durTarget, dur);
 
-    writeFileSync(join(dir, "olt", "hooks.json"), JSON.stringify(customConfig), "utf8");
-    writeFileSync(join(dir, ".capsules", "hooks.json"), JSON.stringify(customConfig), "utf8");
-
-    expect(loadHookConfig(undefined, dir)).toEqual(DEFAULT_HOOK_CONFIG);
-  });
-
-  test("resolves an explicit directory through its repository canonical config", () => {
-    const dir = getScratch("explicit-directory-canonical-config");
-    const nestedDir = join(dir, "nested", "workspace");
-    const canonicalPath = join(dir, ".olt", "capsules", "hooks.json");
-    mkdirSync(nestedDir, { recursive: true });
-    mkdirSync(join(dir, ".olt", "capsules"), { recursive: true });
-    writeFileSync(
-      canonicalPath,
-      JSON.stringify({
-        ...DEFAULT_HOOK_CONFIG,
-        hooks: [{ ...DEFAULT_HOOK_CONFIG.hooks[0]!, id: "explicit-directory" }],
-      }),
-      "utf8",
-    );
-
-    expect(resolveHookConfigFile(nestedDir)).toBe(canonicalPath);
-    expect(loadHookConfig(nestedDir).hooks[0]?.id).toBe("explicit-directory");
-  });
-
-  test("fails loudly when the canonical hook config is a symlink", () => {
-    const dir = getScratch("canonical-hook-config-symlink");
-    const canonicalPath = join(dir, ".olt", "capsules", "hooks.json");
-    const targetPath = join(dir, "trusted-target.json");
-    mkdirSync(join(dir, ".olt", "capsules"), { recursive: true });
-    writeFileSync(targetPath, JSON.stringify(DEFAULT_HOOK_CONFIG), "utf8");
-    symlinkSync(targetPath, canonicalPath);
-
-    const error = loadHookConfigError(() => loadHookConfig(undefined, dir));
-    expect(error.code).toBe("PATH_SAFETY");
-  });
-
-  test("fails loudly when the canonical config resolves outside its repository through a symlinked parent", () => {
-    const dir = getScratch("canonical-hook-config-symlinked-parent");
-    const outsideDir = getScratch("canonical-hook-config-outside-parent");
-    mkdirSync(join(outsideDir, "capsules"), { recursive: true });
-    writeFileSync(
-      join(outsideDir, "capsules", "hooks.json"),
-      JSON.stringify(DEFAULT_HOOK_CONFIG),
-      "utf8",
-    );
-    symlinkSync(outsideDir, join(dir, ".olt"));
-
-    const error = loadHookConfigError(() => loadHookConfig(undefined, dir));
-    expect(error.code).toBe("PATH_SAFETY");
-  });
-
-  test("fails loudly when the canonical hook config is group or world writable on POSIX", () => {
-    if (process.platform === "win32") return;
-
-    const dir = getScratch("canonical-hook-config-writable-mode");
-    const canonicalPath = join(dir, ".olt", "capsules", "hooks.json");
-    mkdirSync(join(dir, ".olt", "capsules"), { recursive: true });
-    writeFileSync(canonicalPath, JSON.stringify(DEFAULT_HOOK_CONFIG), "utf8");
-    chmodSync(canonicalPath, 0o666);
-
-    const error = loadHookConfigError(() => loadHookConfig(undefined, dir));
-    expect(error.code).toBe("INTEGRITY");
-  });
-
-  test("fails loudly when the canonical hook config owner differs from the current user on POSIX", () => {
-    if (process.platform === "win32" || typeof process.getuid !== "function") return;
-
-    const dir = getScratch("canonical-hook-config-wrong-owner");
-    const canonicalPath = join(dir, ".olt", "capsules", "hooks.json");
-    mkdirSync(join(dir, ".olt", "capsules"), { recursive: true });
-    writeFileSync(canonicalPath, JSON.stringify(DEFAULT_HOOK_CONFIG), "utf8");
-    const bytesBefore = readFileSync(canonicalPath, "utf8");
-    const actualUid = statSync(canonicalPath).uid;
-    const getuidSpy = spyOn(process, "getuid").mockReturnValue(actualUid + 1);
-
-    try {
-      const error = loadHookConfigError(() => loadHookConfig(undefined, dir));
-      expect(error.code).toBe("INTEGRITY");
-      expect(error.message).toContain("not owned by the current user");
-      expect(readFileSync(canonicalPath, "utf8")).toBe(bytesBefore);
-    } finally {
-      getuidSpy.mockRestore();
+    expect(
+      errCode(() => loadHookConfig(undefined, s1)) === "PATH_SAFETY" &&
+        errCode(() => loadHookConfig(undefined, s2)) === "PATH_SAFETY",
+    ).toBe(true);
+    if (process.platform !== "win32" && typeof process.getuid === "function") {
+      expect(
+        errCode(() => loadHookConfig(undefined, s3)) === "INTEGRITY" &&
+          errCode(() => loadHookConfig(undefined, s4)) === "INTEGRITY",
+      ).toBe(true);
     }
-  });
-
-  test("rejects an explicit path that traverses outside the current repository", () => {
-    const dir = getScratch("explicit-hook-config-traversal");
-    const nestedDir = join(dir, "nested");
-    mkdirSync(join(dir, ".olt"), { recursive: true });
-    mkdirSync(nestedDir, { recursive: true });
-
-    const error = loadHookConfigError(() => loadHookConfig("../../outside.json", nestedDir));
-    expect(error.code).toBe("PATH_SAFETY");
-  });
-
-  test("rejects an explicit path inside the repository when a symlinked parent resolves outside", () => {
-    const dir = getScratch("explicit-hook-config-symlinked-parent");
-    const outsideDir = getScratch("explicit-hook-config-outside-parent");
-    const outsideConfig = join(outsideDir, "hooks.json");
-    mkdirSync(join(dir, ".olt"), { recursive: true });
-    writeFileSync(outsideConfig, JSON.stringify(DEFAULT_HOOK_CONFIG), "utf8");
-    symlinkSync(outsideDir, join(dir, "linked"));
-
-    const error = loadHookConfigError(() => loadHookConfig(join("linked", "hooks.json"), dir));
-    expect(error.code).toBe("PATH_SAFETY");
-  });
-
-  test("keeps a missing explicit JSON path compatible with saveHookConfig and trusted reload", () => {
-    const dir = getScratch("save-reload-missing-explicit-hook-config");
-    const targetFile = join(dir, "config", "hooks.json");
-    mkdirSync(join(dir, ".olt"), { recursive: true });
-
-    expect(loadHookConfig(targetFile, dir)).toEqual(DEFAULT_HOOK_CONFIG);
-    saveHookConfig(
-      {
-        schema: DEFAULT_HOOK_SCHEMA,
-        version: DEFAULT_HOOK_VERSION,
-        enabled: true,
-        hooks: [{ id: "saved-explicit-hook", events: ["run:complete"], action: "audio" }],
-      },
-      targetFile,
-    );
-
-    expect(loadHookConfig(targetFile, dir).hooks[0]?.id).toBe("saved-explicit-hook");
-  });
-
-  test("rejects a file from another repository while explicit directory lookup resolves that repository", () => {
-    const repoA = getScratch("explicit-hook-config-repo-a");
-    const repoB = getScratch("explicit-hook-config-repo-b");
-    const repoBFile = join(repoB, "custom-hooks.json");
-    const repoBCanonical = join(repoB, ".olt", "capsules", "hooks.json");
-    mkdirSync(join(repoA, ".olt"), { recursive: true });
-    mkdirSync(join(repoB, ".olt", "capsules"), { recursive: true });
-    writeFileSync(repoBFile, JSON.stringify(DEFAULT_HOOK_CONFIG), "utf8");
-    writeFileSync(repoBCanonical, JSON.stringify(DEFAULT_HOOK_CONFIG), "utf8");
-
-    const error = loadHookConfigError(() => loadHookConfig(repoBFile, repoA));
-    expect(error.code).toBe("PATH_SAFETY");
-    expect(resolveHookConfigFile(repoB, repoA)).toBe(repoBCanonical);
-  });
-
-  test("saveHookConfig durably saves and reloads config", () => {
-    const dir = getScratch("save-reload-config");
-    const targetFile = join(dir, "hooks.json");
-
-    const customConfig: HookConfig = {
-      schema: "harness.hooks_config",
-      version: 1,
-      enabled: true,
-      hooks: [
-        {
-          id: "persisted-hook-1",
-          events: ["task:complete"],
-          action: "audio",
-          sound: "Ping",
-        },
-      ],
-    };
-
-    saveHookConfig(customConfig, targetFile);
-    expect(existsSync(targetFile)).toBe(true);
-
-    const loaded = loadHookConfig(targetFile);
-    expect(loaded.hooks.length).toBe(1);
-    expect(loaded.hooks[0]?.id).toBe("persisted-hook-1");
-    expect(loaded.hooks[0]?.sound).toBe("Ping");
-  });
-
-  test("resolveHookConfigFile returns null when no hook file exists", () => {
-    const dir = getScratch("empty-search-dir");
-    expect(resolveHookConfigFile(dir)).toBeNull();
+    expect(
+      errCode(() => loadHookConfig("../../outside.json", join(s5, "nested"))) === "PATH_SAFETY" &&
+        errCode(() => loadHookConfig(join("linked", "hooks.json"), s6)) === "PATH_SAFETY",
+    ).toBe(true);
+    expect(load1).toEqual(DEFAULT_HOOK_CONFIG);
+    expect(
+      load2.hooks[0]?.id === "saved-explicit-hook" &&
+        errCode(() => loadHookConfig(join(rB, "custom-hooks.json"), rA)) === "PATH_SAFETY" &&
+        resolveHookConfigFile(rB, rA) === join(rB, ".olt", "capsules", "hooks.json"),
+    ).toBe(true);
+    expect(
+      fs.existsSync(durTarget) &&
+        durLoad.hooks[0]?.id === "persisted-hook-1" &&
+        durLoad.hooks[0]?.sound === "Ping" &&
+        resolveHookConfigFile(dur) === null,
+    ).toBe(true);
   });
 });

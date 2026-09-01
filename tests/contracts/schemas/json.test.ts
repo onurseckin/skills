@@ -1,7 +1,6 @@
-import { describe, expect, test, afterAll } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import * as fs from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import {
   canonicalJsonBytes,
   jsonCopy,
@@ -13,14 +12,21 @@ import {
   sha256Bytes,
 } from "../../../olt/scripts/src/core/json.ts";
 import { readRegularFileNoFollow } from "../../../olt/scripts/src/core/no-follow.ts";
+import {
+  cleanupVirtualBrowserFS,
+  setupVirtualBrowserFS,
+  tempDir,
+} from "../../reporting/browser/browser-virtual-fs.ts";
 
 export const jsonSuiteName = "core json & no-follow contracts";
 
 describe(jsonSuiteName, () => {
-  const scratchBase = join(tmpdir(), `json-contracts-tests-${Date.now()}`);
+  beforeEach(() => {
+    setupVirtualBrowserFS();
+  });
 
-  afterAll(() => {
-    rmSync(scratchBase, { recursive: true, force: true });
+  afterEach(() => {
+    cleanupVirtualBrowserFS();
   });
 
   test("canonicalJsonBytes serializes primitives, arrays, and objects with key sorting", () => {
@@ -70,10 +76,9 @@ describe(jsonSuiteName, () => {
   });
 
   test("readBoundedBytes and readCanonicalObject validate files and enforce canonical formatting", () => {
-    const dir = join(scratchBase, "file-checks");
-    mkdirSync(dir, { recursive: true });
+    const dir = tempDir("file-checks");
     const target = join(dir, "canonical.json");
-    writeFileSync(target, '{"a":1,"b":2}', "utf-8");
+    fs.writeFileSync(target, '{"a":1,"b":2}', "utf-8");
 
     const bytes = readBoundedBytes(target, 1024);
     expect(bytes.byteLength).toBeGreaterThan(0);
@@ -83,14 +88,14 @@ describe(jsonSuiteName, () => {
 
     // Non-canonical formatting (spaces / unsorted keys) throws
     const nonCanonical = join(dir, "non-canonical.json");
-    writeFileSync(nonCanonical, '{\n  "b": 2,\n  "a": 1\n}', "utf-8");
+    fs.writeFileSync(nonCanonical, '{\n  "b": 2,\n  "a": 1\n}', "utf-8");
     expect(() => readCanonicalObject(nonCanonical, "non-canonical.json")).toThrow(
       /not canonical JSON/i,
     );
 
     // Array instead of object throws
     const arrayFile = join(dir, "array.json");
-    writeFileSync(arrayFile, "[1,2,3]", "utf-8");
+    fs.writeFileSync(arrayFile, "[1,2,3]", "utf-8");
     expect(() => readCanonicalObject(arrayFile, "array.json")).toThrow(
       /must contain a JSON object/i,
     );
@@ -100,10 +105,8 @@ describe(jsonSuiteName, () => {
 
     // Null instead of object in readCanonicalObject throws
     const nullFile = join(dir, "null.json");
-    writeFileSync(nullFile, "null", "utf-8");
+    fs.writeFileSync(nullFile, "null", "utf-8");
     expect(() => readCanonicalObject(nullFile, "null.json")).toThrow(/must contain a JSON object/i);
-
-    rmSync(dir, { recursive: true, force: true });
   });
 
   test("normalizeJson, jsonCopy, and sameJson provide deterministic operations", () => {
@@ -122,16 +125,13 @@ describe(jsonSuiteName, () => {
   });
 
   test("readRegularFileNoFollow reads regular files and rejects directories or invalid descriptors", () => {
-    const dir = join(scratchBase, "no-follow-test");
-    mkdirSync(dir, { recursive: true });
+    const dir = tempDir("no-follow-test");
     const target = join(dir, "regular.bin");
-    writeFileSync(target, new Uint8Array([1, 2, 3, 4]));
+    fs.writeFileSync(target, new Uint8Array([1, 2, 3, 4]));
 
     const content = readRegularFileNoFollow(target);
     expect(content).toEqual(new Uint8Array([1, 2, 3, 4]));
 
     expect(() => readRegularFileNoFollow(dir)).toThrow(/not a regular file/i);
-
-    rmSync(dir, { recursive: true, force: true });
   });
 });

@@ -237,7 +237,7 @@ export function layoutSugiyamaDag(
       layers: [],
     };
   const rankMap = assignSugiyamaLayers(nodes, maxLaneWidth);
-  const maxRank = Math.max(0, ...[...rankMap.values()]);
+  const maxRank = Math.max(0, ...rankMap.values());
   const rawLayers: SugiyamaRankedNode[][] = [];
   for (let r = 0; r <= maxRank; r++) {
     const inRank = nodes

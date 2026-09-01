@@ -6,15 +6,7 @@ import {
   startAttemptPumpsAndMonitoring,
 } from "../../../olt/scripts/src/engine/runner/execution/attempt-failure-cleanup.ts";
 import type { NormalizedCommandOptions } from "../../../olt/scripts/src/engine/runner/types/types.ts";
-import {
-  readProcessIdentity,
-  type ProcessIdentity,
-} from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
-
-import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
-import { afterAll } from "bun:test";
-
-afterAll(cleanupTempRoots);
+import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
 
 const mockOptions: NormalizedCommandOptions = {
   commandId: "cmd-1",
@@ -48,7 +40,7 @@ describe("attempt-failure-settle", () => {
   });
 
   test("startAttemptPumpsAndMonitoring starts custom pumps", async () => {
-    const tempDir = tempRoot("cleanup-pumps");
+    const tempDir = process.cwd();
     const child = {
       stdout: new ReadableStream(),
       stderr: new ReadableStream(),
@@ -79,28 +71,49 @@ describe("attempt-failure-settle", () => {
   });
 
   test("settleAndTerminateAttempt terminates detached process group and records signal", async () => {
-    const child = Bun.spawn(["sleep", "5"], { detached: true });
-    const rootIdentity = readProcessIdentity(child.pid);
-    const tracker = {
-      terminate: async () => [],
-      proveAbsent: async () => true,
-    } as never;
-    const pgSignals: NodeJS.Signals[] = [];
-    const recorded: NodeJS.Signals[] = [];
+    const attemptIntentModule =
+      await import("../../../olt/scripts/src/engine/runner/execution/attempt-intent.ts");
+    const probeSpy = spyOn(attemptIntentModule, "probeAttemptProcess").mockReturnValue("absent");
+    const killSpy = spyOn(process, "kill").mockImplementation(() => true);
+    const procIdentModule =
+      await import("../../../olt/scripts/src/engine/runner/process/process-identity.ts");
+    const rootIdentity: ProcessIdentity = {
+      pid: 999991,
+      parent: 1,
+      group: 999991,
+      birth: "2026-08-14T00:00:00.000Z",
+    };
+    const readSpy = spyOn(procIdentModule, "readProcessIdentity").mockReturnValue(rootIdentity);
+    try {
+      const child = {
+        pid: 999991,
+        exited: Promise.resolve(0),
+      };
+      const tracker = {
+        terminate: async () => [],
+        proveAbsent: async () => true,
+      } as never;
+      const pgSignals: NodeJS.Signals[] = [];
+      const recorded: NodeJS.Signals[] = [];
 
-    const res = await settleAndTerminateAttempt(
-      child as never,
-      tracker,
-      rootIdentity,
-      { ...mockOptions, graceMs: 50 },
-      { timeout: "wall", code: null, interrupted: false },
-      pgSignals,
-      (s) => recorded.push(s),
-    );
-    expect(res.descendantsAbsent).toBe(true);
-    expect(res.rootProof).toBe(true);
-    expect(pgSignals).toContain("SIGTERM");
-    expect(recorded).toContain("SIGTERM");
+      const res = await settleAndTerminateAttempt(
+        child as never,
+        tracker,
+        rootIdentity,
+        { ...mockOptions, graceMs: 50 },
+        { timeout: "wall", code: null, interrupted: false },
+        pgSignals,
+        (s) => recorded.push(s),
+      );
+      expect(res.descendantsAbsent).toBe(true);
+      expect(res.rootProof).toBe(true);
+      expect(pgSignals).toContain("SIGTERM");
+      expect(recorded).toContain("SIGTERM");
+    } finally {
+      readSpy.mockRestore();
+      probeSpy.mockRestore();
+      killSpy.mockRestore();
+    }
   });
 
   test("settleAndTerminateAttempt validates root identity and timeouts", async () => {

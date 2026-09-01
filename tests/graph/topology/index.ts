@@ -9,9 +9,7 @@ export {
   analyzeTopologyDeclaration,
   assertTopologyJustified,
 } from "../../../olt/scripts/src/graph/topology-declaration.ts";
-export {
-  dependencyMap,
-} from "../../../olt/scripts/src/graph/dependency-map.ts";
+export { dependencyMap } from "../../../olt/scripts/src/graph/dependency-map.ts";
 export {
   assignSugiyamaRanks,
   barycentricSort,

@@ -11,7 +11,8 @@ import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/i
 import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
 
-export const supervisorCodeEditingBanSuiteName = "Mechanical Supervisor Code-Editing Ban & Doctor Enforcement (p46)";
+export const supervisorCodeEditingBanSuiteName =
+  "Mechanical Supervisor Code-Editing Ban & Doctor Enforcement (p46)";
 
 describe(supervisorCodeEditingBanSuiteName, () => {
   test("auditOrchestratorConfinement flags critical finding when Orchestrator uses write tools", () => {

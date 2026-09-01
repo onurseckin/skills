@@ -3,7 +3,12 @@ import {
   completionArtifactRequirements,
   validateCompletionArtifactVerification,
 } from "../../../../olt/scripts/src/workflow/completion/artifact-verification.ts";
-import { commandRecord, repositoryBinding, TEST_GATE_ARGV, workflowState } from "../../shared/test-port.ts";
+import {
+  commandRecord,
+  repositoryBinding,
+  TEST_GATE_ARGV,
+  workflowState,
+} from "../../shared/test-port.ts";
 import type { WorkflowState } from "../../../../olt/scripts/src/workflow/types.ts";
 import type { CompletionRemediation } from "../../../../olt/scripts/src/workflow/completion/types.ts";
 

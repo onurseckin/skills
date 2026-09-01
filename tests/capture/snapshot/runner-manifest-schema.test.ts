@@ -8,7 +8,7 @@ import {
   resolveViewportsForScreen,
   runLiveCapture,
 } from "../../../olt/scripts/src/capture/runners/index.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
 
 describe("Companion Manifest Resolution & Error Protection", () => {
   test("resolves output directory and screen viewport routing correctly", () => {

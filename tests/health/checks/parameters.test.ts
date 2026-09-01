@@ -47,7 +47,9 @@ describe("Health Checks - Unread Parameter Detection", () => {
 
     test("a renamed destructured binding is checked under the name the body would use", () => {
       expect(
-        keys("export function f({ outer: inner }: { outer: number }): number {\n  return inner;\n}"),
+        keys(
+          "export function f({ outer: inner }: { outer: number }): number {\n  return inner;\n}",
+        ),
       ).toEqual([]);
     });
   });
@@ -83,7 +85,9 @@ describe("Health Checks - Unread Parameter Detection", () => {
 
     test("an object return type annotation is skipped before the body is read", () => {
       expect(
-        keys("export function f(value: number): { total: number } {\n  return { total: value };\n}"),
+        keys(
+          "export function f(value: number): { total: number } {\n  return { total: value };\n}",
+        ),
       ).toEqual([]);
     });
 

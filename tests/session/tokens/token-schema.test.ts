@@ -38,9 +38,9 @@ describe("Authority Session Registry - Schema & Fail-Closed Validation", () => {
       JSON.stringify({ agent_id: "workspace-agent", role: "implementer" }),
     );
 
-    expect(() => resolveActiveSession({ cwd: sandboxDir, runRoot: sandboxDir, pid: 55555, ppid: 0, env: {} })).toThrow(
-      HarnessError,
-    );
+    expect(() =>
+      resolveActiveSession({ cwd: sandboxDir, runRoot: sandboxDir, pid: 55555, ppid: 0, env: {} }),
+    ).toThrow(HarnessError);
   });
 
   it("fails closed when a corrupt process record precedes valid environment evidence", () => {
@@ -66,9 +66,9 @@ describe("Authority Session Registry - Schema & Fail-Closed Validation", () => {
       JSON.stringify({ agent_id: "parent-agent", role: "implementer" }),
     );
 
-    expect(() => resolveActiveSession({ cwd: workspaceDir, runRoot: sandboxDir, pid: 0, ppid: 0, env: {} })).toThrow(
-      HarnessError,
-    );
+    expect(() =>
+      resolveActiveSession({ cwd: workspaceDir, runRoot: sandboxDir, pid: 0, ppid: 0, env: {} }),
+    ).toThrow(HarnessError);
   });
 
   it("fails closed when persisted session evidence has an empty agent_id", () => {
@@ -76,9 +76,9 @@ describe("Authority Session Registry - Schema & Fail-Closed Validation", () => {
     const sessionPath = `${sessionsDir}/55557.json`;
     setInMemorySessionData(sessionPath, JSON.stringify({ agent_id: "" }));
 
-    expect(() => resolveActiveSession({ cwd: sandboxDir, runRoot: sandboxDir, pid: 55557, ppid: 0, env: {} })).toThrow(
-      HarnessError,
-    );
+    expect(() =>
+      resolveActiveSession({ cwd: sandboxDir, runRoot: sandboxDir, pid: 55557, ppid: 0, env: {} }),
+    ).toThrow(HarnessError);
   });
 
   it("fails closed when the parent process session is corrupt before a valid child PID record", () => {
@@ -91,7 +91,13 @@ describe("Authority Session Registry - Schema & Fail-Closed Validation", () => {
     );
 
     expect(() =>
-      resolveActiveSession({ cwd: sandboxDir, runRoot: sandboxDir, pid: 55559, ppid: 55558, env: {} }),
+      resolveActiveSession({
+        cwd: sandboxDir,
+        runRoot: sandboxDir,
+        pid: 55559,
+        ppid: 55558,
+        env: {},
+      }),
     ).toThrow(HarnessError);
   });
 
@@ -144,9 +150,12 @@ describe("Authority Session Registry - Schema & Fail-Closed Validation", () => {
 
     for (const [name, readError, cause] of errorCases) {
       try {
-        resolveWithInjectedRead({ cwd: sandboxDir, runRoot: sandboxDir, pid: 55560, ppid: 0, env: {} }, () => {
-          throw readError;
-        });
+        resolveWithInjectedRead(
+          { cwd: sandboxDir, runRoot: sandboxDir, pid: 55560, ppid: 0, env: {} },
+          () => {
+            throw readError;
+          },
+        );
         expect.unreachable(`${name} must not be treated as absent`);
       } catch (error: unknown) {
         expect(error).toBeInstanceOf(HarnessError);
@@ -210,7 +219,13 @@ describe("Authority Session Registry - Schema & Fail-Closed Validation", () => {
       JSON.stringify({ agent_id: "legacy-agent" }),
     );
 
-    const resolved = resolveActiveSession({ cwd: sandboxDir, runRoot: sandboxDir, pid: 0, ppid: 0, env: {} });
+    const resolved = resolveActiveSession({
+      cwd: sandboxDir,
+      runRoot: sandboxDir,
+      pid: 0,
+      ppid: 0,
+      env: {},
+    });
 
     expect(resolved?.agent_id).toBe("legacy-agent");
     expect(resolved?.role).toBe("implementer");

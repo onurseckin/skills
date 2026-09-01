@@ -27,7 +27,7 @@ import {
   copyPinnedRuntime,
   runtimeTreeSnapshot,
 } from "../../../olt/scripts/src/core/runtime-tree.ts";
-import { mkdtempSync } from "node:fs";
+
 function fixture(): { root: string; source: string; destination: string } {
   const root = mkdtempSync(join(tmpdir(), "harness-runtime-"));
   const source = join(root, "source");

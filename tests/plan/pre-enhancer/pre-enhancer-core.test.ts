@@ -62,7 +62,11 @@ describe("pre-enhancer-core (constants, gate compilation, assertions, AGP probes
     });
 
     test("parses array gate command cleanly", () => {
-      const parsed = parseGateCommand(["bun", "test", "tests/plan/pre-enhancer/pre-enhancer-core.test.ts"]);
+      const parsed = parseGateCommand([
+        "bun",
+        "test",
+        "tests/plan/pre-enhancer/pre-enhancer-core.test.ts",
+      ]);
       expect(parsed).toEqual(["bun", "test", "tests/plan/pre-enhancer/pre-enhancer-core.test.ts"]);
     });
 
@@ -93,7 +97,11 @@ describe("pre-enhancer-core (constants, gate compilation, assertions, AGP probes
 
     test("compileDiscriminatingGate preserves explicit test target", () => {
       const compiled = compileDiscriminatingGate(sampleTaskInput);
-      expect(compiled).toEqual(["bun", "test", "tests/plan/pre-enhancer/pre-enhancer-core.test.ts"]);
+      expect(compiled).toEqual([
+        "bun",
+        "test",
+        "tests/plan/pre-enhancer/pre-enhancer-core.test.ts",
+      ]);
     });
   });
 

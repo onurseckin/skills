@@ -1,8 +1,5 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
-import { fileURLToPath } from "node:url";
 import { initRun, loadRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { runDoctor } from "../../../olt/scripts/src/reporting/doctor.ts";
 import { renderHandoff, writeHandoff } from "../../../olt/scripts/src/reporting/handoff.ts";
@@ -13,8 +10,12 @@ import { repositoryBinding, commandRecord } from "../../workflow/shared/test-por
 import { orphanEvidenceSha256 } from "../../../olt/scripts/src/workflow/orphan-evidence/digest.ts";
 import { dispatchFailures, handoffArgv } from "./dispatchable.ts";
 import { generateLeasesReport } from "../../../olt/scripts/src/reporting/unified/index.ts";
+import {
+  cleanupVirtualBrowserFS,
+  setupVirtualBrowserFS,
+  tempDir,
+} from "../browser/browser-virtual-fs.ts";
 
-const roots: string[] = [];
 const skillRoot = join(process.cwd(), "olt");
 const gateEvidence = {
   assurance: "trusted_host_observed_v1",
@@ -26,13 +27,9 @@ const gateEvidenceLimitations = [
   "Same-user mutate, execute, and restore between observations is outside this assurance.",
   "Process ownership signaling remains independently fail-closed.",
 ];
-afterEach(async () =>
-  Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))),
-);
 
-async function fixture() {
-  const repo = await mkdtemp(join(tmpdir(), "harness-report-"));
-  roots.push(repo);
+function fixture(): string {
+  const repo = tempDir("harness-report");
   const runRoot = initRun(
     repo,
     "handoff-run",
@@ -64,9 +61,16 @@ async function fixture() {
 export const reportingSuiteName = "status handoff and doctor";
 
 describe(reportingSuiteName, () => {
+  beforeEach(() => {
+    setupVirtualBrowserFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualBrowserFS();
+  });
+
   test("hands off an interrupted pre-plan capsule with recoverable planner argv", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "harness-preplan-report-"));
-    roots.push(repo);
+    const repo = tempDir("harness-preplan-report");
     const run = initRun(
       repo,
       "preplan-run",
@@ -98,13 +102,10 @@ describe(reportingSuiteName, () => {
       ]),
     );
 
-    // Every command the handoff names must be one the CLI can actually dispatch.
     const named = handoffArgv(handoff);
     expect(named.length).toBeGreaterThan(0);
     expect(dispatchFailures(named)).toEqual([]);
 
-    // A capsule that has only been initialised has no events, so the document says so; once the
-    // planner records one, the same document has to show it rather than keep reporting none.
     expect(handoff).toContain("none");
     transact(run, "planner", "task-declared", {}, (state) => {
       state.planning = { tasks: [{ id: "task-1" }] };
@@ -112,8 +113,8 @@ describe(reportingSuiteName, () => {
     expect(renderPreplanHandoff(loadRun(run), entrypoint)).toContain("| planner | task-declared");
   });
 
-  test("renders deterministic resumable state and exact argv", async () => {
-    const run = await fixture();
+  test("renders deterministic resumable state and exact argv", () => {
+    const run = fixture();
     const first = renderHandoff(run);
     const second = renderHandoff(run);
     expect(second).toBe(first);
@@ -141,21 +142,36 @@ describe(reportingSuiteName, () => {
         "implementer",
       ]),
     );
-    // Every line under the argv heading, on the compiled path as well as the pre-plan one.
     expect(dispatchFailures(handoffArgv(first))).toEqual([]);
     const path = writeHandoff(run);
     expect(path).toBe(join(run, "handoff.md"));
   });
 
-  test("status exposes resumable workflow evidence and blockers without secrets", async () => {
-    const run = await fixture();
+  test("status exposes resumable workflow evidence and blockers without secrets", () => {
+    const run = fixture();
     transact(run, "coordinator", "orphan-recorded", {}, (state) => {
       state.orphan_evidence = [{ task_id: "task-1", reason: "late report" }];
       state.commands ??= {};
-      state.commands["C-GATE"] = commandRecord("C-GATE", {
+      state.commands["C-GATE"] = {
+        id: "C-GATE",
         task_id: "task-1",
         gate_id: "G-1",
-      });
+        argv: ["bun", "test"],
+        cwd: ".",
+        cwd_relative: ".",
+        repository_root: "/virtual",
+        status: "succeeded",
+        actor: "validator",
+        started_at: "2026-08-13T12:00:00.000Z",
+        finished_at: "2026-08-13T12:00:01.000Z",
+        exit_code: 0,
+        signal: null,
+        timeout_kind: null,
+        signals_sent: [],
+        fingerprint: "fp",
+        assurance: "trusted_host_observed_v1",
+        repository_after: repositoryBinding,
+      } as unknown as ReturnType<typeof commandRecord>;
     });
     const status = runStatus(run);
     const evidence = { task_id: "task-1", reason: "late report" };
@@ -189,8 +205,8 @@ describe(reportingSuiteName, () => {
     expect(handoff).toContain("--grace-seconds 0");
   });
 
-  test("never exposes critic token digests in status or handoff", async () => {
-    const run = await fixture();
+  test("never exposes critic token digests in status or handoff", () => {
+    const run = fixture();
     transact(run, "coordinator", "critic-fixture", {}, (state) => {
       state.completion_critic = {
         critic_id: "critic",
@@ -207,8 +223,8 @@ describe(reportingSuiteName, () => {
     expect(renderHandoff(run)).not.toContain("token_digest");
   });
 
-  test("the run:status an agent actually invokes carries no lease token digest", async () => {
-    const run = await fixture();
+  test("the run:status an agent actually invokes carries no lease token digest", () => {
+    const run = fixture();
     transact(run, "coordinator", "lease-fixture", {}, (state) => {
       const tasks = state.tasks as Record<string, Record<string, unknown>>;
       tasks["task-1"]!.status = "leased";
@@ -224,7 +240,7 @@ describe(reportingSuiteName, () => {
   });
 
   test("doctor reports integrity and workflow issues separately", async () => {
-    const run = await fixture();
+    const run = fixture();
     const report = await runDoctor(run);
     expect(report.gate_evidence).toEqual(gateEvidence);
     expect(report.gate_evidence_limitations).toEqual(gateEvidenceLimitations);
@@ -235,9 +251,8 @@ describe(reportingSuiteName, () => {
   });
 
   test("doctor can include authoritative global installation drift", async () => {
-    const run = await fixture();
-    const home = await mkdtemp(join(tmpdir(), "harness-doctor-home-"));
-    roots.push(home);
+    const run = fixture();
+    const home = tempDir("harness-doctor-home");
     const report = await runDoctor(run, {
       installation: { source: skillRoot, home, clients: ["codex", "claude"] },
     });
@@ -245,8 +260,8 @@ describe(reportingSuiteName, () => {
     expect(report.installation_issues).toContain("installation: not installed");
   });
 
-  test("generateLeasesReport generates active lease matrix correctly", async () => {
-    const run = await fixture();
+  test("generateLeasesReport generates active lease matrix correctly", () => {
+    const run = fixture();
     const result = generateLeasesReport(run);
     expect(result.matrix).toBeArray();
     expect(result.markdown).toContain("Active Leases Matrix");

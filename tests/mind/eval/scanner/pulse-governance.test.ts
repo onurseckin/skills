@@ -1,7 +1,6 @@
-import { describe, expect, it } from "bun:test";
-import { mkdirSync, rmSync } from "node:fs";
+import { describe, expect, it, beforeEach, afterEach, spyOn } from "bun:test";
+import * as fs from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import {
   MindAuditorEngine,
   SkillAuditorEngine,
@@ -12,48 +11,100 @@ import {
 } from "../../../../olt/scripts/src/mind/auditing/cognitive/index.ts";
 
 describe("Mind Auditor Repository Governance, Anti-Stagnation & Critique Processing", () => {
-  it("detects missing policy.json and records governance issue", () => {
-    const testDir = join(
-      tmpdir(),
-      `test-mind-gov-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    );
-    mkdirSync(testDir, { recursive: true });
+  const testDir = `${process.cwd()}/.olt/virtual-test-gov`;
+  const mockFiles = new Map<string, string>();
+  const mockDirs = new Set<string>();
+  const spies: { mockRestore: () => void }[] = [];
 
-    try {
-      const audit = MindAuditorEngine.auditRepositoryGovernance(testDir);
-      expect(audit.policyValid).toBe(false);
-      expect(audit.issues.length).toBeGreaterThan(0);
-      expect(audit.issues.some((i) => i.toLowerCase().includes("policy"))).toBe(true);
-    } finally {
-      rmSync(testDir, { recursive: true, force: true });
-    }
+  beforeEach(() => {
+    mockFiles.clear();
+    mockDirs.clear();
+    mockDirs.add(testDir);
+    mockDirs.add(join(testDir, ".olt"));
+    mockDirs.add(process.cwd());
+    mockDirs.add(join(process.cwd(), ".olt"));
+    mockFiles.set(join(process.cwd(), "package.json"), "{}");
+
+    spies.push(
+      spyOn(fs, "existsSync").mockImplementation(
+        (p) => mockFiles.has(String(p)) || mockDirs.has(String(p)),
+      ),
+      spyOn(fs, "readdirSync").mockImplementation((p, options) => {
+        const pStr = String(p);
+        const dirs: string[] = [];
+        const files: string[] = [];
+        for (const d of mockDirs) {
+          if (d.startsWith(pStr) && d !== pStr) {
+            const top = d.slice(pStr.length).replace(/^\/+/, "").split("/")[0];
+            if (top && !dirs.includes(top)) dirs.push(top);
+          }
+        }
+        for (const f of mockFiles.keys()) {
+          if (f.startsWith(pStr)) {
+            const top = f.slice(pStr.length).replace(/^\/+/, "").split("/")[0];
+            if (top && !dirs.includes(top) && !files.includes(top)) files.push(top);
+          }
+        }
+        const withTypes =
+          typeof options === "object" &&
+          options !== null &&
+          Boolean((options as { withFileTypes?: boolean }).withFileTypes);
+        if (withTypes) {
+          return [
+            ...dirs.map((name) => ({ name, isDirectory: () => true, isFile: () => false })),
+            ...files.map((name) => ({ name, isDirectory: () => false, isFile: () => true })),
+          ] as unknown as fs.Dirent[];
+        }
+        return [...dirs, ...files] as unknown as fs.Dirent[];
+      }),
+      spyOn(fs, "readFileSync").mockImplementation((p) => {
+        const val = mockFiles.get(String(p));
+        if (val !== undefined) return val;
+        throw new Error(`ENOENT: no such file, open '${String(p)}'`);
+      }),
+      spyOn(fs, "writeFileSync").mockImplementation((p, data) => {
+        mockFiles.set(
+          String(p),
+          typeof data === "string" ? data : Buffer.from(data as Uint8Array).toString("utf-8"),
+        );
+      }),
+      spyOn(fs, "mkdirSync").mockImplementation((p) => {
+        mockDirs.add(String(p));
+        return undefined as unknown as string;
+      }),
+    );
   });
 
-  it("detects ungrounded simulated execution when pulse claims ignition but events sequence is <= 1", async () => {
-    const testDir = join(
-      tmpdir(),
-      `test-sim-exec-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    );
-    const capsuleDir = join(testDir, ".olt", "capsules", "run-1");
-    mkdirSync(capsuleDir, { recursive: true });
+  afterEach(() => {
+    while (spies.length > 0) spies.pop()?.mockRestore();
+  });
 
-    await Bun.write(
+  it("detects missing policy.json and records governance issue", () => {
+    const audit = MindAuditorEngine.auditRepositoryGovernance(testDir);
+    expect(audit.policyValid).toBe(false);
+    expect(audit.issues.length).toBeGreaterThan(0);
+    expect(audit.issues.some((i) => i.toLowerCase().includes("policy"))).toBe(true);
+  });
+
+  it("detects ungrounded simulated execution when pulse claims ignition but events sequence is <= 1", () => {
+    const capsuleDir = join(testDir, ".olt", "capsules", "run-1");
+    mockDirs.add(capsuleDir);
+    mockFiles.set(
       join(testDir, "last_pulse.json"),
       JSON.stringify({ at: new Date().toISOString() }),
     );
-
-    await Bun.write(
+    mockFiles.set(
+      join(capsuleDir, "last_pulse.json"),
+      JSON.stringify({ at: new Date().toISOString() }),
+    );
+    mockFiles.set(
       join(capsuleDir, "events.jsonl"),
       JSON.stringify({ sequence: 1, kind: "mind-initialized" }) + "\n",
     );
 
-    try {
-      const audit = MindAuditorEngine.auditRepositoryGovernance(testDir, capsuleDir);
-      expect(audit.simulatedExecutionDetected).toBe(true);
-      expect(audit.eventsProgressionValid).toBe(false);
-    } finally {
-      rmSync(testDir, { recursive: true, force: true });
-    }
+    const audit = MindAuditorEngine.auditRepositoryGovernance(testDir, capsuleDir);
+    expect(audit.simulatedExecutionDetected).toBe(true);
+    expect(audit.eventsProgressionValid).toBe(false);
   });
 
   describe("Cognitive UI Critique Processing & Design Iterations", () => {
@@ -67,7 +118,6 @@ describe("Mind Auditor Repository Governance, Anti-Stagnation & Critique Process
       expect(OPTICAL_DIMENSIONS).toContain("theme_harmony");
       expect(OPTICAL_DIMENSIONS).toContain("z_index_overlay");
       expect(OPTICAL_DIMENSIONS).toContain("touch_targets");
-
       expect(OPTICAL_VIEWPORTS.length).toBe(4);
       expect(OPTICAL_VIEWPORTS.map((v) => v.id)).toEqual([
         "desktop_wide",
@@ -80,18 +130,16 @@ describe("Mind Auditor Repository Governance, Anti-Stagnation & Critique Process
     it("parses human-grade cognitive UI feedback into structured findings", () => {
       const critiqueText = `
         # Optical Inspection & Aesthetic Critique
-        - Visual Hierarchy: The primary call-to-action button lacks visual dominance over secondary links on Desktop (1440x900).
-        - Optical Spacing: Layout grid shows irregular 12px padding rhythm instead of 16px unit grid.
+        - Visual Hierarchy: The primary CTA lacks dominance on Desktop (1440x900).
+        - Optical Spacing: Layout grid shows irregular 12px padding rhythm instead of 16px.
         - Contrast Fidelity: Subdued label text fails APCA contrast threshold (Lc < 45).
-        - Touch Targets: Header icon buttons are only 36x36px on mobile (390x844), violating >= 44x44px ergonomic touch bounds.
+        - Touch Targets: Header icon buttons are only 36x36px on mobile (390x844).
         - Action: Increase CTA prominence and add Liquid Glass specular border.
         - Action: Standardize container padding rhythm to 16px baseline.
         - Action: Elevate muted text color to reach APCA Lc >= 60.
         - Action: Expand mobile icon touch targets to minimum 44x44px.
       `;
-
       const parsed = CognitiveUiCritiqueParser.parseCritique(critiqueText);
-
       expect(parsed.isHumanGrade).toBe(true);
       expect(parsed.dimensionsCovered.length).toBeGreaterThanOrEqual(4);
       expect(parsed.dimensionsCovered).toContain("visual_hierarchy");
@@ -105,14 +153,12 @@ describe("Mind Auditor Repository Governance, Anti-Stagnation & Critique Process
     it("synthesizes actionable design iterations with concrete write scopes and verification gates", () => {
       const critiqueText = `
         - Typography: Headings clip container bounds on Mobile (390px) due to fixed 32px line-height.
-        - Touch Targets: Action buttons have 40px touch bounding box. Must be >= 44px for general touch and >= 48px for cockpit HUD.
+        - Touch Targets: Action buttons have 40px touch bounding box. Must be >= 44px.
         - Action: Switch line-height to relative 1.25em and allow responsive wrapping.
         - Action: Pad touch bounds to 44x44px with touch-target pseudos.
       `;
-
       const parsed = MindAuditorEngine.parseUiCritique(critiqueText);
       const iterations = MindAuditorEngine.synthesizeDesignIterations(parsed);
-
       expect(iterations.length).toBeGreaterThanOrEqual(2);
       for (const iter of iterations) {
         expect(iter.id).toMatch(/^task-ui-iteration-/);
@@ -120,7 +166,6 @@ describe("Mind Auditor Repository Governance, Anti-Stagnation & Critique Process
         expect(iter.gate).toContain("bun test");
         expect(iter.acceptanceCriteria.length).toBeGreaterThan(0);
       }
-
       const feedbackItems = MindAuditorEngine.critiqueToFeedbackItems(parsed);
       expect(feedbackItems.length).toBe(iterations.length);
       expect(feedbackItems[0]?.status).toBe("PENDING");
@@ -140,20 +185,15 @@ describe("Mind Auditor Repository Governance, Anti-Stagnation & Critique Process
         incidents: [],
         defectsLogged: 0,
         interjectionsSent: 0,
-        cursor: {
-          lastInspectedTimestamp: new Date().toISOString(),
-          lastInspectedEventIndex: 10,
-        },
+        cursor: { lastInspectedTimestamp: new Date().toISOString(), lastInspectedEventIndex: 10 },
         eventsAnalyzed: 0,
         timestamp: new Date().toISOString(),
       };
-
       const delta = SkillAuditorEngine.compareSkillReportDelta(baseReport, baseReport);
       expect(delta.isZeroDelta).toBe(true);
       expect(delta.suppressed).toBe(true);
       expect(delta.summary).toContain("Zero-delta state detected");
       expect(SkillAuditorEngine.isZeroDeltaReport(baseReport, baseReport)).toBe(true);
-
       const suppressed = SkillAuditorEngine.suppressZeroDeltaReport(baseReport, baseReport);
       expect(suppressed.zero_delta).toBe(true);
       expect(suppressed.suppressed).toBe(true);
@@ -169,7 +209,6 @@ describe("Mind Auditor Repository Governance, Anti-Stagnation & Critique Process
         eventsAnalyzed: 5,
         timestamp: "2026-08-31T06:00:00Z",
       };
-
       const currReport: SkillAuditLiveResult = {
         compliant: false,
         incidents: [
@@ -177,11 +216,11 @@ describe("Mind Auditor Repository Governance, Anti-Stagnation & Critique Process
             id: "inc-1",
             category: "ROLE_BOUNDARY_DEVIATION",
             severity: "HIGH",
-            title: "Coordinator Direct Edit",
-            description: "Direct write",
-            observation: "Direct write",
-            remediation: "Dispatch subagents",
-            recommendation: "Dispatch subagents",
+            title: "Edit",
+            description: "write",
+            observation: "write",
+            remediation: "dispatch",
+            recommendation: "dispatch",
           },
         ],
         defectsLogged: 1,
@@ -190,7 +229,6 @@ describe("Mind Auditor Repository Governance, Anti-Stagnation & Critique Process
         eventsAnalyzed: 5,
         timestamp: "2026-08-31T06:01:00Z",
       };
-
       const delta = SkillAuditorEngine.compareSkillReportDelta(currReport, prevReport);
       expect(delta.isZeroDelta).toBe(false);
       expect(delta.suppressed).toBe(false);
@@ -204,7 +242,6 @@ describe("Mind Auditor Repository Governance, Anti-Stagnation & Critique Process
         cycleIndex: 0,
         pendingBacklogCount: 0,
       });
-
       expect(challenge.dimension).toBeDefined();
       expect(challenge.title.length).toBeGreaterThan(0);
       expect(challenge.directive.length).toBeGreaterThan(0);

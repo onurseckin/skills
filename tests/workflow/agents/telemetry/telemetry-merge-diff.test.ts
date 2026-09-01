@@ -4,25 +4,17 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type {
   AgentGrantRecord,
-  AgentToolUse,
   TelemetryFieldConflict,
 } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import { estimated, evidenced } from "../../../../olt/scripts/src/core/contracts/index.ts";
+import { evidenced } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import { initRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
 import { writeAgentLedger } from "../../../../olt/scripts/src/workflow/agents/ledger.ts";
 import {
   appendTelemetryConflicts,
   applyDerivedTelemetry,
   checkParentAgentConflict,
-  mergeDerivedField,
-  mergeObservedCount,
-  mergeObservedExtras,
-  mergeObservedTools,
-  refreshAgentDerivedTelemetry,
-  transcriptAuditContext,
   type DerivedTelemetryInput,
 } from "../../../../olt/scripts/src/workflow/agents/telemetry-merge.ts";
-import type { AgentTranscriptTelemetry } from "../../../../olt/scripts/src/workflow/agents/transcript-telemetry.ts";
 
 function withRun<T>(body: (runRoot: string) => T): T {
   const repo = mkdtempSync(join(tmpdir(), "telemetry-run-"));
@@ -48,7 +40,6 @@ function createGrant(id: string, overrides?: Partial<AgentGrantRecord>): AgentGr
 }
 
 describe("telemetry merge advanced scenarios", () => {
-
   test("checkParentAgentConflict detects mismatches between declared and observed parent", () => {
     const conflicts: TelemetryFieldConflict[] = [];
 

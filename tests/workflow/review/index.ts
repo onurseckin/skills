@@ -1,1 +1,7 @@
-export { planProposal } from "./fixtures/index.ts";
+export {
+  compiledPort,
+  compiledPortWithDependency,
+  registerAgent,
+  clock,
+  fourAnswers,
+} from "./fixtures/index.ts";

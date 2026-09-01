@@ -39,7 +39,6 @@ function spec(name: string) {
   return found;
 }
 
-
 describe("Command Authority Edges - Invocations & Grants", () => {
   describe("grant-bootstrap-allowlist", () => {
     test("requiresActingIdentity returns true when authority declares it and false for display filter or no acting flags", () => {
@@ -184,6 +183,15 @@ describe("Command Authority Edges - Invocations & Grants", () => {
         ),
       ).toThrow(HarnessError);
 
+      // parentAgentId active and agentId !== parentAgentId -> throws AUTHENTICATION_FAILURE
+      expect(() =>
+        assertAgentRegisterHierarchy(
+          { "parent-agent": "orch-1", role: "coordinator", agent: "coord-1" },
+          mockLedger,
+          "other-agent",
+        ),
+      ).toThrow("does not match --parent-agent");
+
       // Non-empty ledger, unparented Tier 2 -> throws ROLE_CONFINEMENT_VIOLATION
       expect(() =>
         assertAgentRegisterHierarchy(
@@ -212,5 +220,15 @@ describe("Command Authority Edges - Invocations & Grants", () => {
       ).toThrow(HarnessError);
     });
 
+    test("assertGrantedCommand throws AUTHENTICATION_FAILURE when unverified caller claims parent-agent", async () => {
+      const { run } = await emptyGrantRun("unverified-parent-");
+      expect(() =>
+        assertGrantedCommand(
+          spec("agent:register"),
+          { run, "parent-agent": "orch-1", role: "coordinator", agent: "coord-1" },
+          { actor: "orch-1", role: "orchestrator", verified: false },
+        ),
+      ).toThrow("claim --parent-agent 'orch-1' spawn authority");
+    });
   });
 });

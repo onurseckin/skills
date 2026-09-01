@@ -165,7 +165,8 @@ describe("synthesizeTaskPriorities unit test suite", () => {
       ].join("|"),
     );
 
-    for (const filePath of filesToAudit) { if (!existsSync(filePath)) continue;
+    for (const filePath of filesToAudit) {
+      if (!existsSync(filePath)) continue;
       expect(existsSync(filePath)).toBe(true);
       const content = readFileSync(filePath, "utf8");
       const lines = content.split("\n");

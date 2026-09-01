@@ -177,5 +177,4 @@ describe("Task Queue Transitions Engine", () => {
     expect(res2.task.status).toBe("FAILED");
     expect(res2.task.error_message).toBe("Fatal error");
   });
-
 });

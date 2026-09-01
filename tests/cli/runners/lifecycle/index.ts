@@ -1,6 +1,4 @@
-export {
-  execute,
-} from "../../../../olt/scripts/src/cli/execute.ts";
+export { execute } from "../../../../olt/scripts/src/cli/execute.ts";
 
 export {
   runArchiveCommand,

@@ -245,7 +245,13 @@ export function resolveSystemLockPath(lockName: string, repoRoot?: string): stri
   return join(root, ".olt", "locks", trimmed);
 }
 
-export function withLock<T>(loc: Location, fn: () => T): T {
+export interface LockDependencies {
+  readonly tryExclusiveFlock?: (fd: number) => boolean;
+  readonly releaseFlock?: (fd: number) => void;
+  readonly now?: () => number;
+}
+
+export function withLock<T>(loc: Location, fn: () => T, deps: LockDependencies = {}): T {
   const lockPath = resolveSystemLockPath("policy.lock", loc.root);
   ensureDir(loc.root, dirname(lockPath));
   if (activeLocks.has(loc.root)) {
@@ -254,12 +260,15 @@ export function withLock<T>(loc: Location, fn: () => T): T {
   activeLocks.add(loc.root);
   let fd: number | undefined;
   let acquired = false;
+  const tryFlock = deps.tryExclusiveFlock ?? tryExclusiveFlock;
+  const relFlock = deps.releaseFlock ?? releaseFlock;
+  const getTime = deps.now ?? (() => performance.now());
   try {
     fd = openSync(lockPath, constants.O_RDWR | constants.O_CREAT | reqNoFollow(), 0o600);
     assertOwnedPrivateFile(fstatSync(fd), lockPath);
-    const deadline = performance.now() + 10_000;
-    while (!(acquired = tryExclusiveFlock(fd))) {
-      const rem = deadline - performance.now();
+    const deadline = getTime() + 10_000;
+    while (!(acquired = tryFlock(fd))) {
+      const rem = deadline - getTime();
       if (rem <= 0) {
         throw new HarnessError(
           "LOCK_TIMEOUT",
@@ -270,7 +279,7 @@ export function withLock<T>(loc: Location, fn: () => T): T {
     }
     return fn();
   } finally {
-    if (fd !== undefined && acquired) releaseFlock(fd);
+    if (fd !== undefined && acquired) relFlock(fd);
     if (fd !== undefined) closeSync(fd);
     activeLocks.delete(loc.root);
   }

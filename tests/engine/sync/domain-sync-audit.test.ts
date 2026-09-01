@@ -1,6 +1,5 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdirSync } from "node:fs";
 import {
   createDomainLedger,
   isDomainSyncEligible,
@@ -15,26 +14,24 @@ import {
   type GitRunner,
   type GlobalSyncSummary,
 } from "../../../olt/scripts/src/engine/worktree/index.ts";
-
-const roots: string[] = [];
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { force: true, recursive: true });
-});
-
-function trackedDir(prefix: string): string {
-  const dir = join(process.cwd(), "coverage", "scratch", `domain-sync-audit-${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  mkdirSync(dir, { recursive: true });
-  roots.push(dir);
-  return dir;
-}
+import { cleanupVirtualEngineFS, setupVirtualEngineFS } from "../fixture.ts";
 
 const ok = (stdout = "") => ({ status: 0, stdout, stderr: "" });
 
 describe("Domain Sync & Ledger Audit and History", () => {
+  beforeEach(() => {
+    setupVirtualEngineFS();
+  });
+  afterEach(() => {
+    cleanupVirtualEngineFS();
+  });
+
   describe("Synchronization and History Transitions", () => {
     test("syncDomainToGlobal merges commits into harness branch and logs history", () => {
-      const repoRoot = trackedDir("repo");
-      const ledgerRoot = trackedDir("ledger");
+      const repoRoot = "/virtual/sync/audit-repo-1";
+      const ledgerRoot = "/virtual/sync/audit-ledger-1";
+      mkdirSync(repoRoot, { recursive: true });
+      mkdirSync(ledgerRoot, { recursive: true });
       const ledger = createDomainLedger("main", "base-sha", ledgerRoot);
       const runner: GitRunner = (_cwd, argv) => {
         if (argv[0] === "worktree" || argv[0] === "merge") return ok();
@@ -73,8 +70,10 @@ describe("Domain Sync & Ledger Audit and History", () => {
     });
 
     test("syncDomainToGlobal updates status to conflict on merge collision", () => {
-      const repoRoot = trackedDir("repo");
-      const ledgerRoot = trackedDir("ledger");
+      const repoRoot = "/virtual/sync/audit-repo-2";
+      const ledgerRoot = "/virtual/sync/audit-ledger-2";
+      mkdirSync(repoRoot, { recursive: true });
+      mkdirSync(ledgerRoot, { recursive: true });
       const ledger = createDomainLedger("main", "base-sha", ledgerRoot);
       const runner: GitRunner = (_cwd, argv) => {
         if (argv[0] === "merge")
@@ -121,8 +120,10 @@ describe("Domain Sync & Ledger Audit and History", () => {
     });
 
     test("syncGlobalToDomain rebase and merge updates domain worktree head", () => {
-      const repoRoot = trackedDir("repo");
-      const ledgerRoot = trackedDir("ledger");
+      const repoRoot = "/virtual/sync/audit-repo-3";
+      const ledgerRoot = "/virtual/sync/audit-ledger-3";
+      mkdirSync(repoRoot, { recursive: true });
+      mkdirSync(ledgerRoot, { recursive: true });
       const ledger = createDomainLedger("main", "base-sha", ledgerRoot);
       const runner: GitRunner = (_cwd, argv) => {
         if (argv[0] === "rebase" || argv[0] === "merge") return ok();
@@ -155,8 +156,10 @@ describe("Domain Sync & Ledger Audit and History", () => {
 
   describe("Global Synchronization and Summary Consolidation", () => {
     test("synchronizeAllDomains consolidates all active domains into global summary", () => {
-      const repoRoot = trackedDir("repo");
-      const ledgerRoot = trackedDir("ledger");
+      const repoRoot = "/virtual/sync/audit-repo-4";
+      const ledgerRoot = "/virtual/sync/audit-ledger-4";
+      mkdirSync(repoRoot, { recursive: true });
+      mkdirSync(ledgerRoot, { recursive: true });
       const ledger = createDomainLedger("main", "base-sha", ledgerRoot, "origin/main");
       const runner: GitRunner = (_cwd, argv) => {
         if (argv[0] === "diff" && argv[1] === "--stat")
@@ -166,7 +169,7 @@ describe("Domain Sync & Ledger Audit and History", () => {
       };
 
       const d1 = provisionDomainWorktree(repoRoot, ledger, "domain-alpha", "run-all", runner);
-      const d2 = provisionDomainWorktree(repoRoot, ledger, "domain-beta", "run-all", runner);
+      const _d2 = provisionDomainWorktree(repoRoot, ledger, "domain-beta", "run-all", runner);
 
       ledger.commits.push({
         taskId: "t1",

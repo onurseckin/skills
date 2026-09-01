@@ -3,9 +3,7 @@
  * Explicit named exports for report formatting, runner orchestration, and structural assertions.
  */
 
-export {
-  renderHealthReport,
-} from "../../../olt/scripts/src/health/report.ts";
+export { renderHealthReport } from "../../../olt/scripts/src/health/report.ts";
 
 export {
   runHealthCheck,

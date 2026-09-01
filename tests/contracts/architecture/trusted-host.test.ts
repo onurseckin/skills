@@ -6,7 +6,8 @@ import {
   type RepositoryBinding,
 } from "../../../olt/scripts/src/core/contracts/index.ts";
 
-export const trustedHostSuiteName = "trustedHostEvidence / trustedHostLimitations & repository binding";
+export const trustedHostSuiteName =
+  "trustedHostEvidence / trustedHostLimitations & repository binding";
 
 function binding(overrides: Partial<RepositoryBinding> = {}): RepositoryBinding {
   return {

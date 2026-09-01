@@ -23,7 +23,9 @@ describe("Defect Promotion & Regression Suite", () => {
     });
 
     it("rejects proof with missing test assertion or empty task_id", () => {
-      expect(() => validateResolutionProof(createMockResolutionProof({ test_assertion: "" }))).toThrow();
+      expect(() =>
+        validateResolutionProof(createMockResolutionProof({ test_assertion: "" })),
+      ).toThrow();
       expect(() => validateResolutionProof(createMockResolutionProof({ task_id: "" }))).toThrow();
     });
   });

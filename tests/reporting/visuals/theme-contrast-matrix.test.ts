@@ -19,7 +19,8 @@ import {
   type ElementThemePair,
 } from "../../../olt/scripts/src/reporting/theme/index.ts";
 
-export const themeContrastMatrixSuiteName = "theme contrast matrix, color-space core, and multi-theme evaluation";
+export const themeContrastMatrixSuiteName =
+  "theme contrast matrix, color-space core, and multi-theme evaluation";
 
 describe(themeContrastMatrixSuiteName, () => {
   describe("color-space core", () => {

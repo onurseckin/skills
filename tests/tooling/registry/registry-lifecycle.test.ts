@@ -26,7 +26,6 @@ describe("Tooling System Test Suite", () => {
     rmSync(tempDir, { recursive: true, force: true });
   });
 
-
   describe("DynamicToolRegistry lifecycle and registration", () => {
     it("manages registry registration, aliases, and removal", () => {
       const registry = new DynamicToolRegistry();
@@ -142,5 +141,4 @@ describe("Tooling System Test Suite", () => {
       expect(registry.count(true)).toBe(2);
     });
   });
-
 });

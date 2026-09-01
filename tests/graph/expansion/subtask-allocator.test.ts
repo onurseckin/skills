@@ -8,7 +8,7 @@ import {
 import { detectTransitiveBypasses } from "../../../olt/scripts/src/graph/expansion/bypass-detector.ts";
 import { expandDeeper } from "../../../olt/scripts/src/graph/expansion/task-decomposition.ts";
 import { expandWider } from "../../../olt/scripts/src/graph/expansion/wider-expansion.ts";
-import { requirementsDocument } from "../../requirements/fixtures.ts";
+import { requirementsDocument } from "../../requirements/index.ts";
 import { graphDocument } from "../validation/fixtures.ts";
 
 describe("subtask-allocator: gate parsing and element allocation", () => {

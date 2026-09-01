@@ -1,7 +1,13 @@
-import type { DomainCommitRecord, DomainLedgerState } from "../../../olt/scripts/src/engine/worktree/index.ts";
+import type {
+  DomainCommitRecord,
+  DomainLedgerState,
+} from "../../../olt/scripts/src/engine/worktree/index.ts";
 import type { SchedulerProgressSnapshot } from "../../../olt/scripts/src/engine/scheduler/reporting/index.ts";
 
-export function createTestDomainCommit(domain = "domain-test", taskId = "task-1"): DomainCommitRecord {
+export function createTestDomainCommit(
+  domain = "domain-test",
+  taskId = "task-1",
+): DomainCommitRecord {
   return {
     taskId,
     domain,
@@ -26,7 +32,9 @@ export function createTestDomainLedger(harnessBranch = "main"): DomainLedgerStat
   };
 }
 
-export function createTestProgressSnapshot(overrides: Partial<SchedulerProgressSnapshot> = {}): SchedulerProgressSnapshot {
+export function createTestProgressSnapshot(
+  overrides: Partial<SchedulerProgressSnapshot> = {},
+): SchedulerProgressSnapshot {
   return {
     capturedAt: "2026-08-31T01:00:00.000Z",
     runRoot: "test-run",

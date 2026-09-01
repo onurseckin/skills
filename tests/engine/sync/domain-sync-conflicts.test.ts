@@ -1,6 +1,5 @@
-import { afterEach, describe, expect, it } from "bun:test";
-import { mkdirSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { mkdirSync } from "node:fs";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   assertDomainIsolation,
@@ -20,22 +19,18 @@ import {
   type DomainScopeEntry,
   type GitRunner,
 } from "../../../olt/scripts/src/engine/worktree/index.ts";
-
-const roots: string[] = [];
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { force: true, recursive: true });
-});
-
-function trackedDir(prefix: string): string {
-  const dir = join(process.cwd(), "coverage", "scratch", `domain-sync-conflicts-${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  mkdirSync(dir, { recursive: true });
-  roots.push(dir);
-  return dir;
-}
+import { cleanupVirtualEngineFS, setupVirtualEngineFS } from "../fixture.ts";
 
 const ok = (stdout = "") => ({ status: 0, stdout, stderr: "" });
 
 describe("Domain Sync Conflicts, Isolation & Zero-Destructive Invariant", () => {
+  beforeEach(() => {
+    setupVirtualEngineFS();
+  });
+  afterEach(() => {
+    cleanupVirtualEngineFS();
+  });
+
   describe("Domain Scope Isolation & Overlap Detection", () => {
     it("validates mutually disjoint domain scopes as isolated", () => {
       const domains: DomainScopeEntry[] = [
@@ -71,8 +66,10 @@ describe("Domain Sync Conflicts, Isolation & Zero-Destructive Invariant", () => 
 
   describe("Collision Rollback & Merge/Rebase Conflict Handling", () => {
     it("handles merge conflict in syncDomainToGlobal with automatic cleanup", () => {
-      const repoRoot = trackedDir("repo");
-      const ledgerRoot = trackedDir("ledger");
+      const repoRoot = "/virtual/sync/conflicts-repo-1";
+      const ledgerRoot = "/virtual/sync/conflicts-ledger-1";
+      mkdirSync(repoRoot, { recursive: true });
+      mkdirSync(ledgerRoot, { recursive: true });
       const ledger = createDomainLedger("main", "base-sha-1", ledgerRoot);
       const runner: GitRunner = (_cwd, argv) => {
         if (argv[0] === "merge") {
@@ -108,8 +105,10 @@ describe("Domain Sync Conflicts, Isolation & Zero-Destructive Invariant", () => 
     });
 
     it("handles rebase conflict in syncGlobalToDomain", () => {
-      const repoRoot = trackedDir("repo");
-      const ledgerRoot = trackedDir("ledger");
+      const repoRoot = "/virtual/sync/conflicts-repo-2";
+      const ledgerRoot = "/virtual/sync/conflicts-ledger-2";
+      mkdirSync(repoRoot, { recursive: true });
+      mkdirSync(ledgerRoot, { recursive: true });
       const ledger = createDomainLedger("main", "base-sha-2", ledgerRoot);
       const runner: GitRunner = (_cwd, argv) => {
         if (argv[0] === "rebase") {
@@ -132,8 +131,10 @@ describe("Domain Sync Conflicts, Isolation & Zero-Destructive Invariant", () => 
     });
 
     it("synchronizeAllDomains aggregates failed domains and collisions", () => {
-      const repoRoot = trackedDir("repo");
-      const ledgerRoot = trackedDir("ledger");
+      const repoRoot = "/virtual/sync/conflicts-repo-3";
+      const ledgerRoot = "/virtual/sync/conflicts-ledger-3";
+      mkdirSync(repoRoot, { recursive: true });
+      mkdirSync(ledgerRoot, { recursive: true });
       const ledger = createDomainLedger("main", "base-sha-3", ledgerRoot);
       const runner: GitRunner = (_cwd, argv) => {
         if (argv[0] === "merge")

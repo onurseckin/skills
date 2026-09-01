@@ -9,7 +9,7 @@ import {
   repositoryBinding,
   TestPort,
   workflowState,
-} from "../../workflow/test-port.ts";
+} from "../../workflow/index.ts";
 import { inspectionContext } from "../payloads/slicing/inspection-fixture.ts";
 import { completionReadinessSnapshot } from "../../../olt/scripts/src/workflow/completion/readiness-snapshot.ts";
 

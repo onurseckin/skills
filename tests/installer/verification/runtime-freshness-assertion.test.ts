@@ -9,7 +9,7 @@ import {
   freshnessFindings,
   type RuntimeFreshnessReport,
 } from "../../../olt/scripts/src/installer/runtime-freshness.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
 import { cleanInstallerFixtures, installerFixture } from "../helpers.ts";
 
 afterEach(cleanInstallerFixtures);

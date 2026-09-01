@@ -185,7 +185,11 @@ describe("SnapshotTree Management & Memory Leak Prevention", () => {
 
   it("prunes tree by max age, depth, and max node limit (LRU leaf pruning)", async () => {
     const emptyTree = new SnapshotTree();
-    expect(pruneSnapshotTree(emptyTree)).toEqual({ prunedNodeIds: [], retainedNodeCount: 0, bytesReleasedEstimated: 0 });
+    expect(pruneSnapshotTree(emptyTree)).toEqual({
+      prunedNodeIds: [],
+      retainedNodeCount: 0,
+      bytesReleasedEstimated: 0,
+    });
 
     const tree = new SnapshotTree();
     const context = createDummyContext();

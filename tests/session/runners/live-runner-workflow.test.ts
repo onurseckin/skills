@@ -13,7 +13,7 @@ import type {
   CapturePageDriver,
   DomPhysicsSnapshot,
 } from "../../../olt/scripts/src/capture/runners/types.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { scratchRoot } from "../session-fixture.ts";
 
 describe("live-capture-runner: workflow & provider execution", () => {
   describe("fallback-provider", () => {
@@ -62,7 +62,9 @@ describe("live-capture-runner: workflow & provider execution", () => {
 
   describe("runner execution", () => {
     it("throws error when browserProvider is undefined", async () => {
-      expect(runLiveCapture()).rejects.toThrow("runLiveCapture requires an explicit browserProvider");
+      expect(runLiveCapture()).rejects.toThrow(
+        "runLiveCapture requires an explicit browserProvider",
+      );
     });
 
     it("executes live capture workflow with actions, auth, screenshot validation, and manifest generation", async () => {
@@ -81,15 +83,25 @@ describe("live-capture-runner: workflow & provider execution", () => {
           newPage: async (): Promise<CapturePageDriver> => {
             let currentVp = { width: 1440, height: 900 };
             return {
-              setViewportSize: async (vp) => { currentVp = vp; },
+              setViewportSize: async (vp) => {
+                currentVp = vp;
+              },
               setExtraHTTPHeaders: async () => {},
               setCookies: async () => {},
               goto: async () => {},
               waitForSelector: async () => {},
-              click: async (sel) => { clicked.push(sel); },
-              fill: async (sel, val) => { filled.push({ selector: sel, value: val }); },
-              hover: async (sel) => { hovered.push(sel); },
-              waitForTimeout: async (ms) => { waitedTime += ms; },
+              click: async (sel) => {
+                clicked.push(sel);
+              },
+              fill: async (sel, val) => {
+                filled.push({ selector: sel, value: val });
+              },
+              hover: async (sel) => {
+                hovered.push(sel);
+              },
+              waitForTimeout: async (ms) => {
+                waitedTime += ms;
+              },
               screenshot: async (opts) => {
                 const buf = createSyntheticPngBuffer(currentVp.width, currentVp.height, 1024);
                 if (opts?.path) {
@@ -98,17 +110,24 @@ describe("live-capture-runner: workflow & provider execution", () => {
                 }
                 return buf;
               },
-              evaluate: async () => ({
-                viewport: { width: currentVp.width, height: currentVp.height, deviceScaleFactor: 1 },
-                scrollPosition: { x: 0, y: 0 },
-                elements: [],
-                layoutOverflows: [],
-                textClippings: [],
-                capturedAt: new Date().toISOString(),
-              } as never),
+              evaluate: async () =>
+                ({
+                  viewport: {
+                    width: currentVp.width,
+                    height: currentVp.height,
+                    deviceScaleFactor: 1,
+                  },
+                  scrollPosition: { x: 0, y: 0 },
+                  elements: [],
+                  layoutOverflows: [],
+                  textClippings: [],
+                  capturedAt: new Date().toISOString(),
+                }) as never,
             };
           },
-          close: async () => { closed = true; },
+          close: async () => {
+            closed = true;
+          },
         }),
       };
 
@@ -116,7 +135,9 @@ describe("live-capture-runner: workflow & provider execution", () => {
         baseUrl: "http://localhost:8080",
         outputDir: testDir,
         auth: {
-          users: { adminUser: { id: "admin-1", name: "Admin", role: "admin", token: "secret-token" } },
+          users: {
+            adminUser: { id: "admin-1", name: "Admin", role: "admin", token: "secret-token" },
+          },
         },
         screens: [
           {
@@ -211,7 +232,9 @@ describe("live-capture-runner: workflow & provider execution", () => {
           newPage: async (): Promise<CapturePageDriver> => ({
             setViewportSize: async () => {},
             setExtraHTTPHeaders: async () => {},
-            goto: async () => { throw "String network connection error"; },
+            goto: async () => {
+              throw "String network connection error";
+            },
             screenshot: async () => createSyntheticPngBuffer(1440, 900),
             evaluate: async () => ({}) as never,
           }),

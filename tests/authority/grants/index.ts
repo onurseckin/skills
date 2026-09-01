@@ -9,9 +9,7 @@ export {
   isCoordinatorRole,
 } from "../../../olt/scripts/src/authority/guards/coordinator-tool-guard.ts";
 
-export {
-  RootDirectoryHygieneGuard,
-} from "../../../olt/scripts/src/authority/guards/root-hygiene.ts";
+export { RootDirectoryHygieneGuard } from "../../../olt/scripts/src/authority/guards/root-hygiene.ts";
 
 export {
   acquireAuditorLeaseLock,

@@ -127,8 +127,9 @@ describe("Health Vendors - Host Dispatch Call In Prose Documentation", () => {
   describe("an exemption is a decision, and it cannot outlive what it covered", () => {
     test("an exempt path is not reported", () => {
       expect(
-        scan({ "drafts/scratch.md": "this is the shape of the call: `invoke_subagent`" }, ["drafts"])
-          .findings,
+        scan({ "drafts/scratch.md": "this is the shape of the call: `invoke_subagent`" }, [
+          "drafts",
+        ]).findings,
       ).toEqual([]);
     });
 

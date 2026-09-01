@@ -1,4 +1,1 @@
-export {
-  createSyntheticDagDeps,
-  createSyntheticToolTrace,
-} from "./forensic-fixtures.ts";
+export { createSyntheticDagDeps, createSyntheticToolTrace } from "./forensic-fixtures.ts";

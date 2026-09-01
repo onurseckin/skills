@@ -7,6 +7,14 @@ import type {
   ScreenshotMetadata,
   VisualMetricsReport,
 } from "../../../olt/scripts/src/validation/channels/dual-channel-types.ts";
+import {
+  createMockDualChannelFinding,
+  createMockFeedbackItem,
+  createMockPngBuffer,
+  createMockTaskRecord,
+  createSandboxDir,
+  scratchRoot,
+} from "../validation-fixture.ts";
 
 describe("normalizeViewportName", () => {
   test("falls back to width-based classification when the name is blank or absent", () => {
@@ -77,5 +85,28 @@ describe("validateCrossChannelConsistency", () => {
       consistent: true,
       discrepancies: [],
     });
+  });
+
+  test("in-memory validation fixture helpers create valid RAM structures", () => {
+    const png = createMockPngBuffer(10, 10);
+    expect(png.length).toBeGreaterThan(0);
+    expect(png[0]).toBe(137); // PNG signature magic byte
+
+    const fb = createMockFeedbackItem({ feedback: "test feedback" });
+    expect(fb.feedback).toBe("test feedback");
+    expect(fb.status).toBe("pending");
+
+    const task = createMockTaskRecord({ priority: "critical" });
+    expect(task.priority).toBe("critical");
+    expect(task.id).toBe("task-001");
+
+    const finding = createMockDualChannelFinding({ ruleId: "TEST_RULE" });
+    expect(finding.ruleId).toBe("TEST_RULE");
+    expect(finding.channel).toBe("headless");
+
+    const root = scratchRoot(import.meta.path, "test");
+    expect(typeof root).toBe("string");
+    const sandbox = createSandboxDir("test-sandbox");
+    expect(typeof sandbox).toBe("string");
   });
 });

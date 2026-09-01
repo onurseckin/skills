@@ -1,4 +1,6 @@
 export {
+  scratchRoot,
+  createSandboxDir,
   createMockGitSpawn,
   createSampleCoverageTableRow,
   createSampleProvisionInput,

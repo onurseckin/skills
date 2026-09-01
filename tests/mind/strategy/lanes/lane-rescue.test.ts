@@ -14,7 +14,10 @@ describe("Mind Strategy Lanes & Repair Suite", () => {
   });
 
   it("derives gate commands for repair lanes", () => {
-    const gate = deriveGateForCategory("CORE_ENGINE", ["olt/scripts/src/mind/core.ts", "tests/mind/core.test.ts"]);
+    const gate = deriveGateForCategory("CORE_ENGINE", [
+      "olt/scripts/src/mind/core.ts",
+      "tests/mind/core.test.ts",
+    ]);
     expect(gate).toContain("bun test");
   });
 });

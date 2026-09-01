@@ -3,7 +3,13 @@ import { recordReview } from "../../../../olt/scripts/src/workflow/review/record
 import { beginValidation } from "../../../../olt/scripts/src/workflow/review/begin-validation.ts";
 import { claimTask } from "../../../../olt/scripts/src/workflow/lease/claim.ts";
 import { submitTask } from "../../../../olt/scripts/src/workflow/submission/submit.ts";
-import { at, registerCommand, registerTaskPacket, TestPort, workflowState } from "../../shared/test-port.ts";
+import {
+  at,
+  registerCommand,
+  registerTaskPacket,
+  TestPort,
+  workflowState,
+} from "../../shared/test-port.ts";
 import { tokenDigest } from "../../../../olt/scripts/src/workflow/lease/token.ts";
 import type { TransactionPort, WorkflowState } from "../../../../olt/scripts/src/workflow/types.ts";
 

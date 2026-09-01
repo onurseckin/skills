@@ -1,24 +1,22 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
+import * as fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { renderHandoff } from "../../../olt/scripts/src/reporting/handoff.ts";
 import { formatStatusBrief, runStatus } from "../../../olt/scripts/src/reporting/status.ts";
 import type { NextActions } from "../../../olt/scripts/src/reporting/action-types.ts";
 import { dispatchFailures, handoffArgv } from "../core/dispatchable.ts";
+import {
+  cleanupVirtualBrowserFS,
+  setupVirtualBrowserFS,
+  tempDir,
+} from "../browser/browser-run-fixture.ts";
 
-const roots: string[] = [];
 const entrypoint = fileURLToPath(new URL("../../../../olt/scripts/harness.ts", import.meta.url));
 
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
-
-async function createMidFlightRun(taskCount = 2): Promise<string> {
-  const repo = await mkdtemp(join(tmpdir(), "harness-status-actions-"));
-  roots.push(repo);
+function createMidFlightRun(taskCount = 2): string {
+  const repo = tempDir("status-actions");
   const runRoot = initRun(
     repo,
     "status-actions-run",
@@ -67,8 +65,16 @@ async function createMidFlightRun(taskCount = 2): Promise<string> {
 export const statusActionsSuiteName = "status actions surfacing";
 
 describe(statusActionsSuiteName, () => {
-  test("runStatus returns next_actions and next_argv matching handoff.md for mid-flight capsule", async () => {
-    const run = await createMidFlightRun(2);
+  beforeEach(() => {
+    setupVirtualBrowserFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualBrowserFS();
+  });
+
+  test("runStatus returns next_actions and next_argv matching handoff.md for mid-flight capsule", () => {
+    const run = createMidFlightRun(2);
     const status = runStatus(run);
 
     expect(status.next_actions).toBeDefined();
@@ -86,9 +92,8 @@ describe(statusActionsSuiteName, () => {
     expect(failures).toEqual([]);
   });
 
-  test("runStatus on preplan capsule returns empty next_actions without crashing", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "harness-preplan-status-"));
-    roots.push(repo);
+  test("runStatus on preplan capsule returns empty next_actions without crashing", () => {
+    const repo = tempDir("preplan-status");
     const run = initRun(
       repo,
       "preplan-status-run",
@@ -104,9 +109,9 @@ describe(statusActionsSuiteName, () => {
     expect((status.markdown as string).split("\n").length).toBeLessThanOrEqual(30);
   });
 
-  test("runStatus on corrupt capsule reports empty next_actions and lists integrity issues", async () => {
-    const run = await createMidFlightRun(1);
-    await writeFile(join(run, "state.json"), "{ broken json", "utf-8");
+  test("runStatus on corrupt capsule reports empty next_actions and lists integrity issues", () => {
+    const run = createMidFlightRun(1);
+    fs.writeFileSync(join(run, "state.json"), "{ broken json", "utf-8");
 
     const status = runStatus(run);
     expect(status.next_actions).toEqual({ argv: [], unavailable: [] });

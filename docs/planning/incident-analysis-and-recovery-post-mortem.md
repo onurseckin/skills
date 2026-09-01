@@ -11,16 +11,18 @@
 ## 1. Executive Summary
 
 During the repository restructuring wave aiming to:
+
 1. Purge legacy directories (`tests/e2e/`, `tests/integration/`, `tests/support/`).
 2. Flatten the test hierarchy directly under `tests/<domain>/` (dissolving `tests/unit/`).
 3. Enforce the modularity budget ($\le 10$ files per directory, $\le 300$ LOC per file) across 55+ test domains.
 4. Convert all test suites to zero-disk in-memory virtual harnesses (`MemoryFsAdapter`, synthetic clocks).
 
-A critical desynchronization occurred: background subagents (`custom_system_orchestrator`, `custom_domain_implementer`, `coverage_runtime_implementer`) lost their active parent IPC connection due to a provider-level `RESOURCE_EXHAUSTED` (429) quota interruption. 
+A critical desynchronization occurred: background subagents (`custom_system_orchestrator`, `custom_domain_implementer`, `coverage_runtime_implementer`) lost their active parent IPC connection due to a provider-level `RESOURCE_EXHAUSTED` (429) quota interruption.
 
 Operating under an outdated charter mental model where `tests/unit/` was the expected baseline, detached subagents repeatedly attempted to "heal" or recreate `tests/unit/` and restore missing legacy folders. When standard `manage_subagents` calls were issued, the host API reported 0 active subagents because the conversation associations were broken. Consequently, manual working tree edits were repeatedly reverted by the detached processes until a hard process-level scan and hard git reset to `git reflog` objects permanently restored the correct state.
 
 **Result of Recovery:**
+
 - **Zero Work Lost:** 100% of the 1,391 test files across all 55+ domains and the work from all 40+ subagents were completely recovered from git reflog and committed to `main` in `d64a4a68`.
 - **Target Architecture Locked:** `tests/` is flattened with 0 subdirectories named `unit/`, `e2e/`, `integration/`, or `support/`.
 
@@ -31,7 +33,7 @@ Operating under an outdated charter mental model where `tests/unit/` was the exp
 ### 2.1 The Four Trigger Mechanisms
 
 ```
-[User Request: Flatten tests/] 
+[User Request: Flatten tests/]
          │
          ▼
 [Parent Agent Initiates Restructuring]
@@ -69,18 +71,20 @@ Operating under an outdated charter mental model where `tests/unit/` was the exp
 
 A full forensic verification was performed against `git reflog`, `git fsck --lost-found`, and the committed tree:
 
-| Metric | Pre-Incident State | Post-Recovery State (`d64a4a68`) | Recovery Status |
-| :--- | :--- | :--- | :--- |
-| **Total Test Suites** | 1,391 files | 1,391 files | **100% Intact** |
-| **Active Test Domains** | 55 domains | 55 domains | **100% Intact** |
-| **Legacy `tests/unit/`** | Present | **Permanently Purged** | **Clean** |
-| **Legacy `tests/e2e/`** | Present | **Permanently Purged** | **Clean** |
-| **Legacy `tests/integration/`** | Present | **Permanently Purged** | **Clean** |
-| **Legacy `tests/support/`** | Present | **Permanently Purged** | **Clean** |
-| **Working Tree Status** | Dirty / Reverting | **100% Clean & Pushed to Main** | **Verified** |
+| Metric                          | Pre-Incident State | Post-Recovery State (`d64a4a68`) | Recovery Status |
+| :------------------------------ | :----------------- | :------------------------------- | :-------------- |
+| **Total Test Suites**           | 1,391 files        | 1,391 files                      | **100% Intact** |
+| **Active Test Domains**         | 55 domains         | 55 domains                       | **100% Intact** |
+| **Legacy `tests/unit/`**        | Present            | **Permanently Purged**           | **Clean**       |
+| **Legacy `tests/e2e/`**         | Present            | **Permanently Purged**           | **Clean**       |
+| **Legacy `tests/integration/`** | Present            | **Permanently Purged**           | **Clean**       |
+| **Legacy `tests/support/`**     | Present            | **Permanently Purged**           | **Clean**       |
+| **Working Tree Status**         | Dirty / Reverting  | **100% Clean & Pushed to Main**  | **Verified**    |
 
 ### Recovered Subagent Domain Improvements
+
 All modularity improvements from the 40+ subagent swarm have been validated and preserved:
+
 - `tests/cli/options/` & `tests/cli/registry/` modular subdirectories.
 - `tests/heuristics/edge-cases/` glass surfaces and subpixel physics test modules.
 - `tests/mind/defects/` deduplication stream, discriminator, and sync ledger suites.
@@ -94,17 +98,22 @@ All modularity improvements from the 40+ subagent swarm have been validated and 
 To guarantee that this desynchronization and rogue subagent regression NEVER occurs again:
 
 ### Directive 1: Kill-Before-Mutate Invariant (`KILL_BEFORE_MUTATE_INVARIANT`)
+
 When any unexpected directory recreation, rollback, or file flapping is detected, the agent MUST NEVER attempt filesystem edits or git recovery commands until all processes and subagents are systematically verified dead via:
+
 1. `manage_subagents` (`Action: 'kill_all'`).
 2. `manage_task` (`Action: 'list'`).
 3. OS process table inspection (`ps aux | grep ...`) with explicit PID verification.
 
 ### Directive 2: Mandatory Plan Alignment on Subagent Dispatch (`MANDATORY_DISPATCH_PLAN_ALIGNMENT`)
+
 Every newly spawned subagent MUST receive the explicit updated architecture in its initial prompt:
+
 - `"tests/unit/", "tests/e2e/", "tests/integration/", "tests/support/" NO LONGER EXIST.`
 - `"All tests reside strictly under tests/<domain>/*. Never recreate tests/unit."`
 
 ### Directive 3: Anti-Batching & Scope Lease Fencing (`SCOPE_LEASE_FENCING`)
+
 Subagents must be assigned strict, disjoint `write_scope` definitions. A subagent assigned to `tests/cli/` is mechanically barred from touching `tests/mind/` or creating root-level folders.
 
 ---

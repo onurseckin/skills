@@ -13,7 +13,6 @@ import {
   type VisualMetricsReport,
 } from "../../../olt/scripts/src/validation/dual-channel-analyzer/index.ts";
 
-
 describe("Semantic Depth Quality Checks (Part 2)", () => {
   it("passes analyzeDualChannel when requireSemanticDepth is active and manifests provide deep quantitative proof", () => {
     const semanticDepthDir = mkdtempSync(join(tmpdir(), "dual-channel-semantic-depth-"));

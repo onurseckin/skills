@@ -2,7 +2,10 @@ import { describe, expect, it } from "bun:test";
 import { QuotaCircuitBreaker } from "../../../olt/scripts/src/telemetry/circuit-breaker.ts";
 import { TelemetryNormalizationEngine } from "../../../olt/scripts/src/telemetry/engine.ts";
 import type { TelemetryCollector } from "../../../olt/scripts/src/telemetry/probe-interface.ts";
-import type { PlatformProbeResult, UnifiedTelemetryReport } from "../../../olt/scripts/src/telemetry/types.ts";
+import type {
+  PlatformProbeResult,
+  UnifiedTelemetryReport,
+} from "../../../olt/scripts/src/telemetry/types.ts";
 import {
   ClaudeCollector,
   type CollectorEnvironment,

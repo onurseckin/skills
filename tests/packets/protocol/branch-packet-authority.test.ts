@@ -11,7 +11,7 @@ import { buildPacket } from "../../../olt/scripts/src/packets/render-packet.ts";
 import type { BuiltPacket } from "../../../olt/scripts/src/packets/types.ts";
 import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";
 import type { WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
-import { at, TestPort, workflowState } from "../../workflow/test-port.ts";
+import { at, TestPort, workflowState } from "../../workflow/index.ts";
 import { inspectionContext } from "../payloads/slicing/inspection-fixture.ts";
 
 const clock = at("2026-08-13T12:30:00.000Z");

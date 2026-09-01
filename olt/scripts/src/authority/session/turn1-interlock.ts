@@ -55,7 +55,10 @@ export function requireTurn1Registration(session: SessionIdentity): void {
       );
     } catch {}
     for (const cand of candidates) {
-      if (existsSync(join(cand, "state.json")) || io.getInMemorySessionData(join(cand, "state.json"))) {
+      if (
+        existsSync(join(cand, "state.json")) ||
+        io.getInMemorySessionData(join(cand, "state.json"))
+      ) {
         resolved = resolve(cand);
         statePath = join(resolved, "state.json");
         break;

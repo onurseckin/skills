@@ -2,9 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import {
-  scanRootHygiene,
-} from "../../../olt/scripts/src/health/hygiene/index.ts";
+import { scanRootHygiene } from "../../../olt/scripts/src/health/hygiene/index.ts";
 
 const cleanupPaths: string[] = [];
 

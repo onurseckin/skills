@@ -9,6 +9,4 @@ export {
   type TreeTarget,
 } from "../../../olt/scripts/src/health/vendors.ts";
 
-export {
-  VENDOR_NAMES,
-} from "../../../olt/scripts/src/health/vendor-names.ts";
+export { VENDOR_NAMES } from "../../../olt/scripts/src/health/vendor-names.ts";

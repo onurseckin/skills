@@ -281,5 +281,4 @@ describe("Workflow Mutation Interlock Gate", () => {
       expect(deniedRes.reason).toContain("outside write scope");
     });
   });
-
 });

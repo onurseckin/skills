@@ -139,8 +139,7 @@ describe("dom-event-simulator: in-page dispatch script & keyboard evaluation", (
       });
       expect(attributes["data-reduced-motion"]).toBe("true");
 
-      (globalAny.document as { querySelector: (s: string) => unknown }).querySelector = () =>
-        null;
+      (globalAny.document as { querySelector: (s: string) => unknown }).querySelector = () => null;
       scriptFn({ type: "click", selector: "#not-found" });
       scriptFn({ type: "hover", selector: "#not-found" });
       scriptFn({ type: "focus", selector: "#not-found" });

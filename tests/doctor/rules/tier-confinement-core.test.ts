@@ -2,11 +2,6 @@ import { describe, expect, test } from "bun:test";
 import {
   auditCrossTierSpawning,
   auditTierConfinement,
-  isCoordinatorRole,
-  isImplementerRole,
-  isOrchestratorRole,
-  isTier3Role,
-  isValidatorRole,
   summarizeTierConfinement,
   type TierConfinementFinding,
 } from "../../../olt/scripts/src/reporting/doctor/tier-confinement/index.ts";
@@ -17,7 +12,8 @@ import {
 import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 
-export const tierConfinementCoreSuiteName = "Tier Boundary Confinement Doctor Checks - Core Hierarchy & Spawning Rules";
+export const tierConfinementCoreSuiteName =
+  "Tier Boundary Confinement Doctor Checks - Core Hierarchy & Spawning Rules";
 
 describe(tierConfinementCoreSuiteName, () => {
   test("roleToTier maps all 4 tiers accurately", () => {

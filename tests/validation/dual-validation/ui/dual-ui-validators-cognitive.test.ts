@@ -19,7 +19,6 @@ import {
   validateUiMechanic,
 } from "../../../../olt/scripts/src/validation/ui/index.ts";
 
-
 describe("Dual UI Validators - Cognitive & Gate Evaluation", () => {
   describe("3. Cognitive UI Validator (Optical Hierarchy, Descenders, Aesthetic Harmony, 0 Shell)", () => {
     it("enforces 0 shell commands hardlock", () => {
@@ -193,5 +192,4 @@ describe("Dual UI Validators - Cognitive & Gate Evaluation", () => {
       expect(result.mode).toBe("mechanic_only");
     });
   });
-
 });

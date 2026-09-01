@@ -1,16 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import {
-  existsSync,
-  linkSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  realpathSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import * as fs from "node:fs";
 import { join } from "node:path";
 import {
   persistDagSnapshot,
@@ -19,23 +8,23 @@ import {
   type QuotaDagSnapshot,
 } from "../../../olt/scripts/src/telemetry/dag-snapshot.ts";
 import { readTelemetryStream } from "../../../olt/scripts/src/reporting/telemetry-stream.ts";
+import { SnapshotVirtualFs } from "./vfs-harness.ts";
 
-describe("DAG Snapshot Persistence & Durability", () => {
-  const roots: string[] = [];
+export const snapshotPersistenceSuiteName = "DAG Snapshot Persistence & Durability";
+const svfs = new SnapshotVirtualFs();
+
+describe(snapshotPersistenceSuiteName, () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = realpathSync(mkdtempSync(join(tmpdir(), "snap-persist-")));
-    roots.push(tmpDir);
+    svfs.setup();
+    tmpDir = "/virtual/snap-persist";
+    svfs.setFile(tmpDir, "", true);
   });
 
   afterEach(() => {
     __setDagSnapshotPersistenceTestHook(undefined);
-    for (const root of roots.splice(0)) {
-      if (existsSync(root)) {
-        rmSync(root, { recursive: true, force: true });
-      }
-    }
+    svfs.cleanup();
   });
 
   function frozenSnapshot(
@@ -55,14 +44,11 @@ describe("DAG Snapshot Persistence & Durability", () => {
       uncommittedFiles: [],
       lowestQuotaObserved,
       constrainedModels: [],
-      autoWakeSchedule: {
-        resetTime: "2024-01-01T01:00:00Z",
-        resumeTime: "2024-01-01T01:01:00Z",
-      },
+      autoWakeSchedule: { resetTime: "2024-01-01T01:00:00Z", resumeTime: "2024-01-01T01:01:00Z" },
     };
   }
 
-  it("should load correctly after manually writing a snapshot file", () => {
+  it("loads manually written snapshot files and rejects corrupted snapshots", () => {
     const snapshot: QuotaDagSnapshot = {
       version: "2",
       repositoryRoot: tmpDir,
@@ -77,65 +63,48 @@ describe("DAG Snapshot Persistence & Durability", () => {
       constrainedModels: [],
       autoWakeSchedule: { resetTime: "2024-01-01T01:00:00Z", resumeTime: "2024-01-01T01:01:00Z" },
     };
-
     persistDagSnapshot(snapshot);
     const loaded = loadDagSnapshot(tmpDir);
-    expect(loaded).toBeDefined();
-    expect(loaded?.frozenAt).toBe(snapshot.frozenAt);
-    expect(loaded?.status).toBe("frozen");
-  });
+    expect(loaded?.frozenAt === snapshot.frozenAt && loaded?.status === "frozen").toBe(true);
 
-  it("rejects a corrupted canonical snapshot instead of treating it as absent", () => {
     const snapshotPath = join(tmpDir, ".olt", "quota-dag-snapshot.json");
-    mkdirSync(join(tmpDir, ".olt"), { recursive: true });
-    writeFileSync(snapshotPath, "{ bad json }");
+    svfs.setFile(join(tmpDir, ".olt"), "", true);
+    svfs.setFile(snapshotPath, "{ bad json }", false);
     expect(() => loadDagSnapshot(tmpDir)).toThrow("quota snapshot contains invalid JSON");
   });
 
-  it("refuses a symlinked canonical snapshot without touching its external target", () => {
+  it("refuses symlinked and hardlinked canonical snapshots without touching external targets", () => {
     const external = join(tmpDir, "external-snapshot.json");
     const snapshotPath = join(tmpDir, ".olt", "quota-dag-snapshot.json");
-    mkdirSync(join(tmpDir, ".olt"), { recursive: true });
-    writeFileSync(external, "external sentinel", "utf8");
-    symlinkSync(external, snapshotPath);
-
+    svfs.setFile(join(tmpDir, ".olt"), "", true);
+    svfs.setFile(external, "external sentinel", false);
+    fs.symlinkSync(external, snapshotPath);
     expect(() => loadDagSnapshot(tmpDir)).toThrow();
-    expect(readFileSync(external, "utf8")).toBe("external sentinel");
+    expect(fs.readFileSync(external, "utf8")).toBe("external sentinel");
+
+    svfs.vfs.delete(snapshotPath);
+    fs.linkSync(external, snapshotPath);
+    expect(() => loadDagSnapshot(tmpDir)).toThrow();
+    expect(fs.readFileSync(external, "utf8")).toBe("external sentinel");
   });
 
-  it("refuses a hardlinked canonical snapshot without touching its external inode", () => {
-    const external = join(tmpDir, "external-snapshot.json");
-    const snapshotPath = join(tmpDir, ".olt", "quota-dag-snapshot.json");
-    mkdirSync(join(tmpDir, ".olt"), { recursive: true });
-    writeFileSync(external, "external sentinel", "utf8");
-    linkSync(external, snapshotPath);
-
-    expect(() => loadDagSnapshot(tmpDir)).toThrow();
-    expect(readFileSync(external, "utf8")).toBe("external sentinel");
-  });
-
-  it("preserves the prior bytes when write, file-fsync, or rename fails before commit", () => {
+  it("preserves prior bytes on write/fsync/rename failures and reports post-rename uncertainty", () => {
     persistDagSnapshot(frozenSnapshot());
     const path = join(tmpDir, ".olt", "quota-dag-snapshot.json");
-    const before = readFileSync(path, "utf8");
+    const before = fs.readFileSync(path, "utf8");
 
     for (const stage of ["before_write", "before_file_fsync", "before_rename"] as const) {
       __setDagSnapshotPersistenceTestHook((observed) => {
         if (observed === stage) throw new Error(`fault:${stage}`);
       });
-      expect(() => persistDagSnapshot(frozenSnapshot(tmpDir, tmpDir, 2))).toThrow(
-        `fault:${stage}`,
-      );
+      expect(() => persistDagSnapshot(frozenSnapshot(tmpDir, tmpDir, 2))).toThrow(`fault:${stage}`);
       __setDagSnapshotPersistenceTestHook(undefined);
-      expect(readFileSync(path, "utf8")).toBe(before);
+      expect(fs.readFileSync(path, "utf8")).toBe(before);
     }
-  });
 
-  it("reports post-rename durability uncertainty without false success telemetry", () => {
-    persistDagSnapshot(frozenSnapshot());
     for (const stage of ["after_rename", "before_directory_fsync"] as const) {
       const repo = join(tmpDir, stage);
-      mkdirSync(repo);
+      svfs.setFile(repo, "", true);
       persistDagSnapshot(frozenSnapshot(repo, tmpDir, 1));
       __setDagSnapshotPersistenceTestHook((observed) => {
         if (observed === stage) throw new Error(`fault:${stage}`);

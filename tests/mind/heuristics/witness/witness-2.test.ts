@@ -3,7 +3,10 @@ import { evaluateGate1Witnessed } from "../../../../olt/scripts/src/mind/proposa
 
 describe("Mind Heuristics Witness Suite", () => {
   it("evaluates witnessed candidates accurately", () => {
-    const res = evaluateGate1Witnessed({ kind: "proposal", id: "p1", statement: "stmt" }, { repoRoots: [] });
+    const res = evaluateGate1Witnessed(
+      { kind: "proposal", id: "p1", statement: "stmt" },
+      { repoRoots: [] },
+    );
     expect(res).toBeDefined();
     expect(typeof res.passed).toBe("boolean");
   });

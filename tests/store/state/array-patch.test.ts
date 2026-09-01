@@ -42,7 +42,7 @@ describe("array-patch", () => {
     });
 
     test("returns false for non-arrays or sparse slots", () => {
-      const sparse: unknown[] = new Array(3);
+      const sparse: unknown[] = [];
       sparse[0] = 1;
       sparse[2] = 3;
       expect(isMonotonicArrayAppend(sparse, [1, 2, 3])).toBe(false);

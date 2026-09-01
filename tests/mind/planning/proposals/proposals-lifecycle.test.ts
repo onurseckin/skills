@@ -1,30 +1,44 @@
-import { describe, expect, it } from "bun:test";
-import {
-  checkProposalRateLimits,
-  formatProposalBrief,
-  getProposal,
-  recordProposal,
-  transitionProposalStatus,
-  PROPOSAL_LIFECYCLE_STATUSES,
-} from "../../../../olt/scripts/src/mind/proposals/index.ts";
-import type { ProposalRecord, ProposalLifecycleStatus } from "../../../../olt/scripts/src/core/contracts/index.ts";
+import { describe, expect, it, beforeEach, afterEach, spyOn } from "bun:test";
+import { recordProposal } from "../../../../olt/scripts/src/mind/proposals/index.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
-import { initRun } from "../../../../olt/scripts/src/engine/store/index.ts";
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import * as storeModule from "../../../../olt/scripts/src/engine/store/index.ts";
+import type { RunState } from "../../../../olt/scripts/src/core/contracts/index.ts";
 
-function setupCapsule(): string {
-  const repo = mkdtempSync(join(tmpdir(), "prop-test-"));
-  mkdirSync(join(repo, "olt", "agents"), { recursive: true });
-  writeFileSync(join(repo, "olt", "agents", "mind.yaml"), "role: mind\n");
-  const run = initRun(repo, "test-run", Buffer.from("role: mind\n"), "file", true);
-  return run;
-}
+describe("mind/proposal.ts - Proposal Lifecycle and Creation (in-memory virtual)", () => {
+  const runRoot = `${process.cwd()}/.olt/virtual-prop-lifecycle-run`;
+  let inMemoryState: RunState;
+  const spies: { mockRestore: () => void }[] = [];
 
-describe("mind/proposal.ts - Proposal Lifecycle and Creation", () => {
+  beforeEach(() => {
+    inMemoryState = {
+      version: "2.0.0",
+      run_id: "test-run",
+      status: "active",
+      created_at: "2026-08-21T00:00:00.000Z",
+      updated_at: "2026-08-21T00:00:00.000Z",
+      tasks: {},
+      agents: [],
+      candidates: [],
+      requirements: [],
+    };
+
+    spies.push(spyOn(storeModule, "loadRun").mockImplementation(() => inMemoryState));
+    spies.push(
+      spyOn(storeModule, "transact").mockImplementation((...args: unknown[]) => {
+        const mutator = args.find((a) => typeof a === "function") as
+          | ((s: RunState) => unknown)
+          | undefined;
+        if (mutator) mutator(inMemoryState);
+        return inMemoryState;
+      }),
+    );
+  });
+
+  afterEach(() => {
+    while (spies.length > 0) spies.pop()?.mockRestore();
+  });
+
   it("proposals without witnesses accepted: creates needs_authority proposal and requirement", () => {
-    const runRoot = setupCapsule();
     const record = recordProposal(runRoot, {
       statement: "Implement feature X",
       rationale: "Improves modularity",
@@ -38,7 +52,6 @@ describe("mind/proposal.ts - Proposal Lifecycle and Creation", () => {
   });
 
   it("proposals with witnesses are refused upon creation", () => {
-    const runRoot = setupCapsule();
     expect(() =>
       recordProposal(runRoot, {
         statement: "Implement feature X",
@@ -53,12 +66,33 @@ describe("mind/proposal.ts - Proposal Lifecycle and Creation", () => {
   });
 
   it("proposal input validation: rejects blank statement, rationale, or missing goals", () => {
-    const runRoot = setupCapsule();
     expect(() =>
       recordProposal(runRoot, {
         statement: "",
         rationale: "Rationale",
         charter_goal_ids: ["G1"],
+        actor: "mind-1",
+        pulseId: "pulse-1",
+        now: "2026-08-21T00:00:00.000Z",
+      }),
+    ).toThrow(HarnessError);
+
+    expect(() =>
+      recordProposal(runRoot, {
+        statement: "Statement",
+        rationale: "",
+        charter_goal_ids: ["G1"],
+        actor: "mind-1",
+        pulseId: "pulse-1",
+        now: "2026-08-21T00:00:00.000Z",
+      }),
+    ).toThrow(HarnessError);
+
+    expect(() =>
+      recordProposal(runRoot, {
+        statement: "Statement",
+        rationale: "Rationale",
+        charter_goal_ids: [],
         actor: "mind-1",
         pulseId: "pulse-1",
         now: "2026-08-21T00:00:00.000Z",

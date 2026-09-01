@@ -1,7 +1,6 @@
-import { describe, expect, test, afterAll } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import * as fs from "node:fs";
 import { join, resolve } from "node:path";
-import { tmpdir } from "node:os";
 import {
   findRepoRoot,
   isInsideCapsule,
@@ -16,14 +15,22 @@ import {
   resolveWatchdogsPath,
   stripCapsulePath,
 } from "../../../olt/scripts/src/core/shared/paths.ts";
+import {
+  cleanupVirtualBrowserFS,
+  setupVirtualBrowserFS,
+  tempDir,
+} from "../../reporting/browser/browser-virtual-fs.ts";
 
-export const sharedPathsCoreSuiteName = "core shared/paths: environment detection, repo root discovery, capsule confinement";
+export const sharedPathsCoreSuiteName =
+  "core shared/paths: environment detection, repo root discovery, capsule confinement";
 
 describe(sharedPathsCoreSuiteName, () => {
-  const scratchBase = join(tmpdir(), `shared-paths-core-tests-${Date.now()}`);
+  beforeEach(() => {
+    setupVirtualBrowserFS();
+  });
 
-  afterAll(() => {
-    rmSync(scratchBase, { recursive: true, force: true });
+  afterEach(() => {
+    cleanupVirtualBrowserFS();
   });
 
   test("isTestEnvironment correctly identifies test runtime and argv branches", () => {
@@ -90,80 +97,71 @@ describe(sharedPathsCoreSuiteName, () => {
   });
 
   test("findRepoRoot discovers repo root upward across .olt, .git, and package.json markers", () => {
-    const root = join(scratchBase, "find-root");
+    const root = tempDir("find-root");
     const sub1 = join(root, "level1");
     const sub2 = join(sub1, "level2");
-    mkdirSync(sub2, { recursive: true });
+    fs.mkdirSync(sub2, { recursive: true });
 
     // With package.json
-    writeFileSync(join(root, "package.json"), "{}", "utf-8");
+    fs.writeFileSync(join(root, "package.json"), "{}", "utf-8");
     expect(findRepoRoot(sub2)).toBe(resolve(root));
 
     // With .git
-    const gitRoot = join(scratchBase, "git-root");
+    const gitRoot = tempDir("git-root");
     const gitSub = join(gitRoot, "a", "b");
-    mkdirSync(join(gitRoot, ".git"), { recursive: true });
-    mkdirSync(gitSub, { recursive: true });
+    fs.mkdirSync(join(gitRoot, ".git"), { recursive: true });
+    fs.mkdirSync(gitSub, { recursive: true });
     expect(findRepoRoot(gitSub)).toBe(resolve(gitRoot));
 
     // With .olt
-    const oltRoot = join(scratchBase, "olt-root");
+    const oltRoot = tempDir("olt-root");
     const oltSub = join(oltRoot, "x", "y");
-    mkdirSync(join(oltRoot, OLT_DIR_NAME), { recursive: true });
-    mkdirSync(oltSub, { recursive: true });
+    fs.mkdirSync(join(oltRoot, OLT_DIR_NAME), { recursive: true });
+    fs.mkdirSync(oltSub, { recursive: true });
     expect(findRepoRoot(oltSub)).toBe(resolve(oltRoot));
 
     expect(() => findRepoRoot("/")).toThrow(/no repository anchor/);
 
-    const oltCapsuleMatrixRoot = join(scratchBase, "olt-capsule-matrix-repo");
-    mkdirSync(join(oltCapsuleMatrixRoot, ".olt", "capsules", "run-123", "task-1"), {
+    const oltCapsuleMatrixRoot = tempDir("olt-capsule-matrix-repo");
+    fs.mkdirSync(join(oltCapsuleMatrixRoot, ".olt", "capsules", "run-123", "task-1"), {
       recursive: true,
     });
-    writeFileSync(join(oltCapsuleMatrixRoot, "package.json"), "{}", "utf-8");
+    fs.writeFileSync(join(oltCapsuleMatrixRoot, "package.json"), "{}", "utf-8");
     expect(findRepoRoot(join(oltCapsuleMatrixRoot, ".olt", "capsules", "run-123", "task-1"))).toBe(
       resolve(oltCapsuleMatrixRoot),
     );
 
-    const dotCapsuleMatrixRoot = join(scratchBase, "dot-capsule-matrix-repo");
-    mkdirSync(join(dotCapsuleMatrixRoot, ".capsules", "run-123", "task-1"), { recursive: true });
-    writeFileSync(join(dotCapsuleMatrixRoot, "package.json"), "{}", "utf-8");
+    const dotCapsuleMatrixRoot = tempDir("dot-capsule-matrix-repo");
+    fs.mkdirSync(join(dotCapsuleMatrixRoot, ".capsules", "run-123", "task-1"), { recursive: true });
+    fs.writeFileSync(join(dotCapsuleMatrixRoot, "package.json"), "{}", "utf-8");
     expect(findRepoRoot(join(dotCapsuleMatrixRoot, ".capsules", "run-123", "task-1"))).toBe(
       resolve(dotCapsuleMatrixRoot),
     );
 
-    const testRepo = join(scratchBase, "sovereign-repo");
+    const testRepo = tempDir("sovereign-repo");
     const testCapsule = join(testRepo, ".olt", "capsules", "run-nested");
     const inCapsuleOlt = join(testCapsule, ".olt");
     const inCapsuleWorkspace = join(testCapsule, "workspace");
-    mkdirSync(inCapsuleOlt, { recursive: true });
-    mkdirSync(inCapsuleWorkspace, { recursive: true });
-    writeFileSync(join(testRepo, "package.json"), "{}", "utf-8");
-    writeFileSync(join(inCapsuleWorkspace, "package.json"), "{}", "utf-8");
+    fs.mkdirSync(inCapsuleOlt, { recursive: true });
+    fs.mkdirSync(inCapsuleWorkspace, { recursive: true });
+    fs.writeFileSync(join(testRepo, "package.json"), "{}", "utf-8");
+    fs.writeFileSync(join(inCapsuleWorkspace, "package.json"), "{}", "utf-8");
 
     expect(findRepoRoot(testCapsule)).toBe(resolve(testRepo));
     expect(findRepoRoot(inCapsuleOlt)).toBe(resolve(testRepo));
     expect(findRepoRoot(inCapsuleWorkspace)).toBe(resolve(testRepo));
     expect(findRepoRoot(join(inCapsuleWorkspace, "package.json"))).toBe(resolve(testRepo));
 
-    const worktreeRoot = join(scratchBase, "git-worktree");
+    const worktreeRoot = tempDir("git-worktree");
     const worktreeSub = join(worktreeRoot, "sub", "dir");
-    mkdirSync(worktreeSub, { recursive: true });
-    writeFileSync(join(worktreeRoot, ".git"), "gitdir: /fake/main/.git/worktrees/wt\n", "utf-8");
+    fs.mkdirSync(worktreeSub, { recursive: true });
+    fs.writeFileSync(join(worktreeRoot, ".git"), "gitdir: /fake/main/.git/worktrees/wt\n", "utf-8");
     expect(findRepoRoot(worktreeSub)).toBe(resolve(worktreeRoot));
 
-    const normalCapsulesRoot = join(scratchBase, "normal-repo");
+    const normalCapsulesRoot = tempDir("normal-repo");
     const normalCapsulesSub = join(normalCapsulesRoot, "src", "capsules");
-    mkdirSync(normalCapsulesSub, { recursive: true });
-    writeFileSync(join(normalCapsulesRoot, "package.json"), "{}", "utf-8");
+    fs.mkdirSync(normalCapsulesSub, { recursive: true });
+    fs.writeFileSync(join(normalCapsulesRoot, "package.json"), "{}", "utf-8");
     expect(findRepoRoot(normalCapsulesSub)).toBe(resolve(normalCapsulesRoot));
-
-    rmSync(root, { recursive: true, force: true });
-    rmSync(gitRoot, { recursive: true, force: true });
-    rmSync(oltRoot, { recursive: true, force: true });
-    rmSync(testRepo, { recursive: true, force: true });
-    rmSync(worktreeRoot, { recursive: true, force: true });
-    rmSync(normalCapsulesRoot, { recursive: true, force: true });
-    rmSync(oltCapsuleMatrixRoot, { recursive: true, force: true });
-    rmSync(dotCapsuleMatrixRoot, { recursive: true, force: true });
   });
 });

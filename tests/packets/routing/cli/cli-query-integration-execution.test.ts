@@ -36,7 +36,6 @@ async function fixtureCapsuleRun() {
   return { root, repo, run };
 }
 
-
 describe("CLI Query Integration - Role Grants & Authority", () => {
   describe("Role Contract Query Command Grants & Authority", () => {
     test("implementer contract grants on-demand CLI query commands", () => {

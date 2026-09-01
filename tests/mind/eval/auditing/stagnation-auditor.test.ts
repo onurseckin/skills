@@ -1,13 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import {
-  auditMindCreativeStagnation,
   auditMindPreplanningStagnation,
   compareReportDelta,
   computeStateSignature,
-  DEFAULT_MAINTENANCE_LOOP_THRESHOLD_CYCLES,
-  DEFAULT_ZERO_DELTA_THRESHOLD_CYCLES,
   isZeroDeltaReport,
-  MIND_CREATIVE_STAGNATION,
   MIND_PREPLANNING_STAGNATION,
   suppressZeroDeltaReport,
 } from "../../../../olt/scripts/src/mind/auditing/mind-stagnation-auditor.ts";
@@ -22,7 +18,6 @@ import type {
   RawDefectItem,
   StagnationAuditResult,
 } from "../../../../olt/scripts/src/mind/preplanning/types.ts";
-
 
 describe("Active Anti-Passivity: Mind Pre-Planning Stagnation Auditor (Task 3.1)", () => {
   const nowMs = 1756465000000;

@@ -1,7 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { describe, expect, it } from "bun:test";
+import * as fs from "node:fs";
+import { spyOn } from "bun:test";
 import type { HarnessEvent } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   deliverEventsToWebhook,
@@ -11,26 +10,12 @@ import {
   parseNdjsonStream,
   readCapsuleEvents,
   renderAsciiEventStreamTable,
-  resolveCapsulePath,
 } from "../../../olt/scripts/src/reporting/event-stream/index.ts";
+import { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 export const eventStreamCoreSuiteName = "reporting/event-stream core suite";
 
 describe(eventStreamCoreSuiteName, () => {
-  let tempDir: string;
-
-  beforeEach(() => {
-    tempDir = join(
-      tmpdir(),
-      `event-stream-test-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    );
-    mkdirSync(tempDir, { recursive: true });
-  });
-
-  afterEach(() => {
-    rmSync(tempDir, { recursive: true, force: true });
-  });
-
   it("validates HarnessEvent structure with isHarnessEvent", () => {
     const valid: HarnessEvent = {
       schema: "harness-event-v1",
@@ -46,13 +31,13 @@ describe(eventStreamCoreSuiteName, () => {
     expect(isHarnessEvent({ schema: "v1", sequence: "1" })).toBe(false);
   });
 
-  it("reads and filters capsule events from disk", () => {
-    const runDir = join(tempDir, "run-1");
-    mkdirSync(runDir, { recursive: true });
-    writeFileSync(
-      join(runDir, "manifest.json"),
+  it("reads and filters capsule events from in-memory virtual filesystem", () => {
+    const vfs = new VirtualMemoryFS();
+    const runDir = "/virtual/capsules/run-1";
+    vfs.mkdirSync(runDir, { recursive: true });
+    vfs.writeFileSync(
+      `${runDir}/manifest.json`,
       JSON.stringify({ run_id: "test-run-1", capsule_id: "cap-1" }),
-      "utf-8",
     );
 
     const event1: HarnessEvent = {
@@ -80,23 +65,42 @@ describe(eventStreamCoreSuiteName, () => {
       payload: { task_id: "t1" },
     };
 
-    writeFileSync(
-      join(runDir, "events.jsonl"),
+    vfs.writeFileSync(
+      `${runDir}/events.jsonl`,
       [JSON.stringify(event1), JSON.stringify(event2), JSON.stringify(event3)].join("\n") + "\n",
-      "utf-8",
     );
 
-    const result = readCapsuleEvents(runDir, { filterActor: "impl_1" });
-    expect(result.runId).toBe("test-run-1");
-    expect(result.capsuleId).toBe("cap-1");
-    expect(result.totalAvailable).toBe(3);
-    expect(result.matchingEvents.length).toBe(2);
-    expect(result.latestSeq).toBe(3);
-    expect(result.hasMore).toBe(false);
+    const existsSpy = spyOn(fs, "existsSync").mockImplementation((p) => vfs.existsSync(String(p)));
+    const lstatSpy = spyOn(fs, "lstatSync").mockImplementation((p) => {
+      const stat = vfs.statSync(String(p));
+      return {
+        isFile: () => !stat?.isDirectory(),
+        isDirectory: () => Boolean(stat?.isDirectory()),
+      } as unknown as fs.Stats;
+    });
+    const realpathSpy = spyOn(fs, "realpathSync").mockImplementation((p) => String(p));
+    const readSpy = spyOn(fs, "readFileSync").mockImplementation((p) =>
+      vfs.readFileSync(String(p), "utf8"),
+    );
 
-    const seqFiltered = readCapsuleEvents(runDir, { fromSeq: 2, toSeq: 2 });
-    expect(seqFiltered.matchingEvents.length).toBe(1);
-    expect(seqFiltered.matchingEvents[0]?.actor).toBe("val_1");
+    try {
+      const result = readCapsuleEvents(runDir, { filterActor: "impl_1" });
+      expect(result.runId).toBe("test-run-1");
+      expect(result.capsuleId).toBe("cap-1");
+      expect(result.totalAvailable).toBe(3);
+      expect(result.matchingEvents.length).toBe(2);
+      expect(result.latestSeq).toBe(3);
+      expect(result.hasMore).toBe(false);
+
+      const seqFiltered = readCapsuleEvents(runDir, { fromSeq: 2, toSeq: 2 });
+      expect(seqFiltered.matchingEvents.length).toBe(1);
+      expect(seqFiltered.matchingEvents[0]?.actor).toBe("val_1");
+    } finally {
+      existsSpy.mockRestore();
+      lstatSpy.mockRestore();
+      realpathSpy.mockRestore();
+      readSpy.mockRestore();
+    }
   });
 
   it("handles ndjson formatting and parsing", () => {

@@ -242,4 +242,3 @@ describe("gates and completion", () => {
     expect(done.requirements[1]).toMatchObject({ status: "planned", evidence: [] });
   });
 });
-

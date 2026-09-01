@@ -1,3 +1,11 @@
+export { CLI_RENDER_REPORTING_SUITES } from "./reporting/index.ts";
+
+export const CLI_RENDER_SUITES = [
+  "dag-render-cross-tier",
+  "dag-render-trace",
+  "dag-render-verification",
+] as const;
+
 export {
   formatAutoPartitionBrief,
   formatCapsuleInitBrief,
@@ -13,9 +21,7 @@ export {
   formatTaskRegisteredBrief,
 } from "../../../../olt/scripts/src/cli/formatters/plan-formatter.ts";
 
-export {
-  formatQueueStatusBrief,
-} from "../../../../olt/scripts/src/cli/formatters/queue-formatter.ts";
+export { formatQueueStatusBrief } from "../../../../olt/scripts/src/cli/formatters/queue-formatter.ts";
 
 export {
   reportDagCommand,

@@ -1,11 +1,19 @@
 import { spawnSync } from "node:child_process";
-import { realpathSync } from "node:fs";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { readBranchLedger } from "../../../olt/scripts/src/workflow/branch/ledger.ts";
+import {
+  enableInMemoryAgentMetadata,
+  disableInMemoryAgentMetadata,
+} from "../../../olt/scripts/src/runtime/session.ts";
+import {
+  enableInMemorySessionStore,
+  disableInMemorySessionStore,
+} from "../../../olt/scripts/src/authority/session/index.ts";
+import { enableInMemoryTelemetrySink } from "../../../olt/scripts/src/reporting/index.ts";
+import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
 
 export interface BranchFixture {
   repo: string;
@@ -14,6 +22,8 @@ export interface BranchFixture {
 }
 
 export async function cleanupRoots(roots: string[]): Promise<void> {
+  disableInMemoryAgentMetadata();
+  disableInMemorySessionStore();
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 }
 
@@ -41,7 +51,11 @@ export async function branchCapsule(
   name: string,
   config: Record<string, number> = {},
 ): Promise<BranchFixture> {
-  const repo = realpathSync(await mkdtemp(join(tmpdir(), `harness-${name}-`)));
+  enableInMemoryAgentMetadata();
+  enableInMemorySessionStore();
+  enableInMemoryTelemetrySink();
+
+  const repo = scratchRoot(import.meta.path, name);
   roots.push(repo);
   if (Object.keys(config).length > 0) {
     // Written before the first command runs: the resolved config is cached per root pair.

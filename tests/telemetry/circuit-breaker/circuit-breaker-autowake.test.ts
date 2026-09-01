@@ -1,10 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import {
-  extractResetTime,
-} from "../../../olt/scripts/src/telemetry/circuit-breaker.ts";
-import type {
-  NormalizedQuotaMetric,
-} from "../../../olt/scripts/src/telemetry/types.ts";
+import { extractResetTime } from "../../../olt/scripts/src/telemetry/circuit-breaker.ts";
+import type { NormalizedQuotaMetric } from "../../../olt/scripts/src/telemetry/types.ts";
 
 function createMockMetric(
   modelName: string,

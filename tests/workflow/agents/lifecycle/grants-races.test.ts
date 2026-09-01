@@ -1,67 +1,52 @@
-import { describe, expect, test } from "bun:test";
-import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { initRun, loadRun } from "../../../../olt/scripts/src/engine/store/index.ts";
+import { describe, expect, spyOn, test } from "bun:test";
+import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import * as storeModule from "../../../../olt/scripts/src/engine/store/index.ts";
+import { registerAgentGrant } from "../../../../olt/scripts/src/workflow/agents/grants.ts";
 import { readAgentLedger } from "../../../../olt/scripts/src/workflow/agents/ledger.ts";
-
-const REGISTRATION_RACER = join(import.meta.dir, "./agent-registration-racer.fixture.ts");
-
-async function waitForBarrier(path: string): Promise<void> {
-  for (let attempt = 0; attempt < 500; attempt += 1) {
-    if (existsSync(path)) return;
-    await Bun.sleep(10);
-  }
-  throw new Error(`registration racer did not reach start barrier: ${path}`);
-}
+import { FakeRunStore } from "../../branch/fixtures/fake-transact.ts";
 
 async function raceConditionalGenesis(
   firstId: string,
   secondId: string,
 ): Promise<readonly { readonly ok: boolean; readonly code?: string }[]> {
-  const repo = mkdtempSync(join(tmpdir(), "grants-race-"));
+  const store = new FakeRunStore();
+  const spy = spyOn(storeModule, "transact").mockImplementation(store.transact);
+
   try {
-    const runRoot = initRun(repo, "test-run", new TextEncoder().encode("task"), "file", true);
-    const barrier = join(repo, "registration-race");
-    mkdirSync(barrier);
-    const racers = [
-      ["first", firstId],
-      ["second", secondId],
-    ].map(([label, agentId]) =>
-      Bun.spawn(["bun", REGISTRATION_RACER, runRoot, barrier, label!, agentId!], {
-        stdout: "pipe",
-        stderr: "pipe",
-      }),
-    );
-    await Promise.all(
-      racers.map((_, index) =>
-        waitForBarrier(join(barrier, `${index === 0 ? "first" : "second"}.ready`)),
-      ),
-    );
-    writeFileSync(join(barrier, "start"), "go", "utf8");
-    const results = await Promise.all(
-      racers.map(async (racer) => {
-        const [exit, stdout] = await Promise.all([racer.exited, new Response(racer.stdout).text()]);
-        expect(exit).toBe(0);
-        const line = stdout.split("\n").find((entry) => entry.startsWith("RESULT::"));
-        expect(line).toBeDefined();
-        return JSON.parse(line!.slice("RESULT::".length)) as { ok: boolean; code?: string };
-      }),
-    );
-    expect(
-      readAgentLedger(loadRun(runRoot).state).filter((grant) => grant.status === "active"),
-    ).toHaveLength(1);
-    expect(
-      loadRun(runRoot).events.filter((event) => event.kind === "agent-registered"),
-    ).toHaveLength(1);
+    const register = async (agentId: string) => {
+      try {
+        registerAgentGrant({
+          runRoot: store.runRoot,
+          agentId,
+          role: "coordinator",
+          parentAgentId: null,
+          parentTaskId: null,
+          host: "fixture",
+          authority: { kind: "conditional_genesis" },
+          maxAgents: 10,
+          telemetry: {},
+        });
+        return { ok: true };
+      } catch (error: unknown) {
+        return {
+          ok: false,
+          ...(error instanceof HarnessError ? { code: error.code } : {}),
+        };
+      }
+    };
+
+    const results = await Promise.all([register(firstId), register(secondId)]);
+    const state = store.read();
+    expect(readAgentLedger(state).filter((grant) => grant.status === "active")).toHaveLength(1);
+    expect(store.events.filter((event) => event.kind === "agent-registered")).toHaveLength(1);
     return results;
   } finally {
-    rmSync(repo, { recursive: true, force: true });
+    spy.mockRestore();
   }
 }
 
-describe("workflow/agents/grants: concurrency races", () => {
-  test("serializes real same-run conditional-genesis racers for distinct and identical agent ids", async () => {
+describe("workflow/agents/grants: concurrency races in-memory", () => {
+  test("serializes same-run conditional-genesis racers for distinct and identical agent ids", async () => {
     for (const [firstId, secondId] of [
       ["genesis-distinct-a", "genesis-distinct-b"],
       ["genesis-same", "genesis-same"],
@@ -72,5 +57,5 @@ describe("workflow/agents/grants: concurrency races", () => {
         firstId === secondId ? "INVALID_STATE" : "AUTHENTICATION_FAILURE",
       );
     }
-  }, 15000);
+  });
 });

@@ -1,7 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { describe, expect, it } from "bun:test";
 import {
   recordProposal,
   transitionProposalStatusInState,
@@ -13,19 +10,7 @@ import {
   evaluateGate1Witnessed,
 } from "../../../../olt/scripts/src/mind/proposals/gates/predicates.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
-import { initRun } from "../../../../olt/scripts/src/engine/store/index.ts";
 import type { CandidateRecord } from "../../../../olt/scripts/src/mind/proposals/gates/types.ts";
-
-const roots: string[] = [];
-
-afterEach(() => {
-  for (const root of roots) {
-    try {
-      rmSync(root, { recursive: true, force: true });
-    } catch {}
-  }
-  roots.length = 0;
-});
 
 describe("Proposals, Gates, and Brief - Exhaustive Unit Tests", () => {
   describe("Proposal Transitions & Lifecycle", () => {
@@ -68,7 +53,9 @@ describe("Proposals, Gates, and Brief - Exhaustive Unit Tests", () => {
         witnessCommandId: "cmd-1",
       });
       expect(admitted.status).toBe("admitted");
-      expect((state.candidates as unknown as Array<Record<string, unknown>>)[0].status).toBe("admitted");
+      expect((state.candidates as unknown as Array<Record<string, unknown>>)[0].status).toBe(
+        "admitted",
+      );
 
       // admitted -> in_progress
       const inProg = transitionProposalStatusInState(state, "prop-1", "in_progress", "owner");
@@ -143,14 +130,20 @@ describe("Proposals, Gates, and Brief - Exhaustive Unit Tests", () => {
         witness_command_id: "owner-decision",
         status: "opened",
       };
-      expect(evaluateGate1Witnessed(propWithDecision, context as unknown as Record<string, unknown>).passed).toBe(true);
+      expect(
+        evaluateGate1Witnessed(propWithDecision, context as unknown as Record<string, unknown>)
+          .passed,
+      ).toBe(true);
 
       // Proposal without owner-decision -> fail
       const propNoDecision: CandidateRecord = {
         ...propWithDecision,
         witness_command_id: undefined,
       };
-      expect(evaluateGate1Witnessed(propNoDecision, context as unknown as Record<string, unknown>).passed).toBe(false);
+      expect(
+        evaluateGate1Witnessed(propNoDecision, context as unknown as Record<string, unknown>)
+          .passed,
+      ).toBe(false);
 
       // Defect with missing witness -> fail
       const defNoWitness: CandidateRecord = {
@@ -159,21 +152,29 @@ describe("Proposals, Gates, and Brief - Exhaustive Unit Tests", () => {
         statement: "AssertionError",
         status: "opened",
       };
-      expect(evaluateGate1Witnessed(defNoWitness, context as unknown as Record<string, unknown>).passed).toBe(false);
+      expect(
+        evaluateGate1Witnessed(defNoWitness, context as unknown as Record<string, unknown>).passed,
+      ).toBe(false);
 
       // Defect with non-existent witness -> fail
       const defUnknownWitness: CandidateRecord = {
         ...defNoWitness,
         witness_command_id: "cmd-unknown",
       };
-      expect(evaluateGate1Witnessed(defUnknownWitness, context as unknown as Record<string, unknown>).passed).toBe(false);
+      expect(
+        evaluateGate1Witnessed(defUnknownWitness, context as unknown as Record<string, unknown>)
+          .passed,
+      ).toBe(false);
 
       // Defect with passing command (exit 0) -> fail
       const defPassWitness: CandidateRecord = {
         ...defNoWitness,
         witness_command_id: "cmd-pass",
       };
-      expect(evaluateGate1Witnessed(defPassWitness, context as unknown as Record<string, unknown>).passed).toBe(false);
+      expect(
+        evaluateGate1Witnessed(defPassWitness, context as unknown as Record<string, unknown>)
+          .passed,
+      ).toBe(false);
 
       // Defect with failing command (exit 1) -> pass
       const defFailWitness: CandidateRecord = {
@@ -181,7 +182,10 @@ describe("Proposals, Gates, and Brief - Exhaustive Unit Tests", () => {
         witness_command_id: "cmd-fail",
         statement: "AssertionError",
       };
-      expect(evaluateGate1Witnessed(defFailWitness, context as unknown as Record<string, unknown>).passed).toBe(true);
+      expect(
+        evaluateGate1Witnessed(defFailWitness, context as unknown as Record<string, unknown>)
+          .passed,
+      ).toBe(true);
     });
   });
 });

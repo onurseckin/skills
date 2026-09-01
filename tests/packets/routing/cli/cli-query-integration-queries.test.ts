@@ -36,7 +36,6 @@ async function fixtureCapsuleRun() {
   return { root, repo, run };
 }
 
-
 describe("CLI Query Integration - Query Execution", () => {
   describe("On-Demand Memory Retrieval Commands", () => {
     test("whoamiCommand identifies execution context, active grants, and held leases", async () => {
@@ -285,5 +284,4 @@ describe("CLI Query Integration - Query Execution", () => {
       expect(Array.isArray(screenshotsResult.screenshots)).toBe(true);
     });
   });
-
 });

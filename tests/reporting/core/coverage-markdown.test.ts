@@ -1,6 +1,5 @@
-import { describe, expect, it } from "bun:test";
-import { existsSync, readFileSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import * as fs from "node:fs";
 import {
   buildCoverageSummary,
   createMetricItem,
@@ -11,17 +10,22 @@ import type {
   CoverageSummary,
   FileCoverageMetric,
 } from "../../../scripts/testing/reporting/types.ts";
+import {
+  cleanupVirtualBrowserFS,
+  setupVirtualBrowserFS,
+  tempDir,
+} from "../browser/browser-virtual-fs.ts";
 
 export const coverageMarkdownSuiteName = "Coverage Markdown Report Generation & Artifact Output";
 
 describe(coverageMarkdownSuiteName, () => {
-  const tmpRoot = join(process.cwd(), ".tmp-test-reporting-suite-markdown");
+  beforeEach(() => {
+    setupVirtualBrowserFS();
+  });
 
-  function cleanupTmp(): void {
-    if (existsSync(tmpRoot)) {
-      rmSync(tmpRoot, { recursive: true, force: true });
-    }
-  }
+  afterEach(() => {
+    cleanupVirtualBrowserFS();
+  });
 
   describe("markdown-reporter", () => {
     it("buildMarkdownReport formats table, status glyphs, and uncovered line lists", () => {
@@ -75,20 +79,18 @@ describe(coverageMarkdownSuiteName, () => {
     });
 
     it("writeMarkdownReport writes REPORT.md and creates directory if missing", () => {
-      cleanupTmp();
+      const tmpRoot = tempDir("cov-md-writer");
       const fileMap = new Map<string, FileCoverageMetric>();
       const summary = buildCoverageSummary(fileMap);
 
       const reportPath = writeMarkdownReport(fileMap, summary, tmpRoot, "cov-report");
-      expect(existsSync(reportPath)).toBe(true);
+      expect(fs.existsSync(reportPath)).toBe(true);
 
-      const content = readFileSync(reportPath, "utf-8");
+      const content = fs.readFileSync(reportPath, "utf-8");
       expect(content).toContain("# Repository Unit Test Coverage Report");
 
       const reportPath2 = writeMarkdownReport(fileMap, summary, tmpRoot, "cov-report");
       expect(reportPath2).toBe(reportPath);
-
-      cleanupTmp();
     });
   });
 });

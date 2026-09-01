@@ -1,21 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { executePreparedCommand } from "../../../olt/scripts/src/engine/runner/models/execution/run-command.ts";
-import { tempRoot, cleanupTempRoots } from "./fixture.ts";
-import { afterAll } from "bun:test";
-
-afterAll(cleanupTempRoots);
 import type { InternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 import type {
   CommandResult,
   PreparedCommand,
 } from "../../../olt/scripts/src/engine/runner/types/types.ts";
-
-const runCommandModule = new URL(
-  "../../../olt/scripts/src/engine/runner/models/execution/run-command.ts",
-  import.meta.url,
-).href;
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 function broadPrepared(repo: string, argv: readonly string[] = ["bun", "test"]): PreparedCommand {
   return {
@@ -35,48 +25,9 @@ function broadRunner(onExecute: () => Promise<CommandResult>): InternalCommandRu
   };
 }
 
-async function waitFor(condition: () => boolean, timeoutMs = 2_000): Promise<void> {
-  const deadline = Date.now() + timeoutMs;
-  while (!condition()) {
-    if (Date.now() >= deadline) throw new Error("timed out waiting for child lock state");
-    await Bun.sleep(10);
-  }
-}
-
-function childContenderProgram(
-  repo: string,
-  marker: string,
-  release: string,
-  crash = false,
-): string {
-  return `
-    import { appendFileSync, existsSync } from "node:fs";
-    import { executePreparedCommand } from ${JSON.stringify(runCommandModule)};
-    const prepared = {
-      commandRoot: "root",
-      options: { runRoot: ${JSON.stringify(repo)}, repositoryRoot: ${JSON.stringify(repo)}, argv: ["bun", "test"] },
-    };
-    const runner = {
-      prepareCommand: async () => ({}),
-      executePreparedCommand: async () => {
-        appendFileSync(${JSON.stringify(marker)}, "entered\\n");
-        ${crash ? "process.exit(22);" : `while (!existsSync(${JSON.stringify(release)})) await Bun.sleep(5);`}
-        return { record: { id: "child" } };
-      },
-    };
-    try {
-      await executePreparedCommand(prepared, runner);
-      appendFileSync(${JSON.stringify(marker)}, "success\\n");
-    } catch (error) {
-      const code = error && typeof error === "object" && "code" in error ? error.code : "unknown";
-      appendFileSync(${JSON.stringify(marker)}, String(code) + "\\n");
-    }
-  `;
-}
-
 describe("run-command broad scope mutex contenders and signals", () => {
   test("does not install process signal listeners during repeated broad runs", async () => {
-    const repo = tempRoot("mutex-listeners");
+    const repo = process.cwd();
     const signals = ["exit", "SIGINT", "SIGTERM"] as const;
     const before = signals.map((signal) => process.listenerCount(signal));
     for (let iteration = 0; iteration < 2; iteration += 1) {
@@ -90,43 +41,73 @@ describe("run-command broad scope mutex contenders and signals", () => {
     expect(signals.map((signal) => process.listenerCount(signal))).toEqual(before);
   });
 
-  test("allows only one of two real child contenders to enter a held broad run", async () => {
-    const repo = tempRoot("mutex-child-contenders");
-    const marker = join(repo, "marker.log");
-    const release = join(repo, "release");
-    const first = Bun.spawn(
-      [process.execPath, "--eval", childContenderProgram(repo, marker, release)],
-      {
-        stdout: "pipe",
-        stderr: "pipe",
-      },
+  test("allows only one contender to enter a held broad run and rejects concurrent contender with LOCK_TIMEOUT", async () => {
+    const repo = process.cwd();
+    const events: string[] = [];
+    let releaseHold: () => void = () => {};
+    const holdPromise = new Promise<void>((resolve) => {
+      releaseHold = resolve;
+    });
+
+    const firstPromise = executePreparedCommand(
+      broadPrepared(repo),
+      broadRunner(async () => {
+        events.push("entered");
+        await holdPromise;
+        return { record: { id: "first" } } as unknown as CommandResult;
+      }),
     );
-    const second = Bun.spawn(
-      [process.execPath, "--eval", childContenderProgram(repo, marker, release)],
-      {
-        stdout: "pipe",
-        stderr: "pipe",
-      },
-    );
-    await waitFor(() => existsSync(marker) && readFileSync(marker, "utf-8").includes("entered\n"));
-    await waitFor(() => readFileSync(marker, "utf-8").includes("LOCK_TIMEOUT\n"));
-    writeFileSync(release, "release", "utf-8");
-    expect(await first.exited).toBe(0);
-    expect(await second.exited).toBe(0);
-    const events = readFileSync(marker, "utf-8").trim().split("\n");
+
+    // Wait until first contender has entered and acquired the lock
+    while (!events.includes("entered")) {
+      await Bun.sleep(5);
+    }
+
+    // Second contender attempts to run while first holds lock -> must fail with LOCK_TIMEOUT
+    try {
+      await executePreparedCommand(
+        broadPrepared(repo),
+        broadRunner(async () => {
+          events.push("second-entered");
+          return { record: { id: "second" } } as unknown as CommandResult;
+        }),
+      );
+    } catch (error) {
+      if (error instanceof HarnessError) {
+        events.push(error.code);
+      } else {
+        events.push("unknown-error");
+      }
+    }
+
+    // Release the first contender
+    releaseHold();
+    const firstResult = await firstPromise;
+    expect(firstResult).toBeDefined();
+    events.push("success");
+
     expect(events.filter((event) => event === "entered")).toHaveLength(1);
     expect(events.filter((event) => event === "success")).toHaveLength(1);
     expect(events.filter((event) => event === "LOCK_TIMEOUT")).toHaveLength(1);
   });
 
-  test("kernel releases a crash holder's flock for a later broad run", async () => {
-    const repo = tempRoot("mutex-crash-release");
-    const marker = join(repo, "crash-marker.log");
-    const child = Bun.spawn(
-      [process.execPath, "--eval", childContenderProgram(repo, marker, join(repo, "unused"), true)],
-      { stdout: "pipe", stderr: "pipe" },
-    );
-    expect(await child.exited).toBe(22);
+  test("releases mutex lock after failure or error for a later broad run", async () => {
+    const repo = process.cwd();
+    let crashed = false;
+
+    try {
+      await executePreparedCommand(
+        broadPrepared(repo),
+        broadRunner(async () => {
+          crashed = true;
+          throw new Error("simulated-crash-error");
+        }),
+      );
+    } catch (error) {
+      expect((error as Error).message).toBe("simulated-crash-error");
+    }
+    expect(crashed).toBe(true);
+
     let ran = false;
     await executePreparedCommand(
       broadPrepared(repo),

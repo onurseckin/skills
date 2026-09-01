@@ -1,8 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  executeCustomAction,
-  type HookDefinition,
-} from "../../../olt/scripts/src/hooks/index.ts";
+import { executeCustomAction, type HookDefinition } from "../../../olt/scripts/src/hooks/index.ts";
 
 describe("Lifecycle Hooks - Custom In-Process Handler", () => {
   test("executes custom handler and receives event and payload", async () => {

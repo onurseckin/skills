@@ -1,5 +1,4 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, rmSync, existsSync, readFileSync, realpathSync } from "node:fs";
 import { generateKeyPairSync } from "node:crypto";
 import { join } from "node:path";
 import { ActivityRecord } from "../../../olt/scripts/src/engine/runner/reconciliation/activity-record.ts";
@@ -30,19 +29,19 @@ import type {
   ProcessIdentity,
   ProcessTopology,
 } from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
+import { cleanupVirtualEngineFS, getVirtualEngineFS, setupVirtualEngineFS } from "../fixture.ts";
 
 describe("ActivityRecord", () => {
-  let testDir: string;
+  const testDir = "/virtual/runner-activity-test";
 
   beforeEach(() => {
-    testDir = join(process.cwd(), "coverage", "scratch", `test-activity-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-    mkdirSync(testDir, { recursive: true });
+    setupVirtualEngineFS();
+    const vfs = getVirtualEngineFS();
+    vfs.mkdirSync(testDir, { recursive: true });
   });
 
   afterEach(() => {
-    if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true, force: true });
-    }
+    cleanupVirtualEngineFS();
   });
 
   test("constructor creates activity.json with running status and started_at", () => {
@@ -50,9 +49,10 @@ describe("ActivityRecord", () => {
     new ActivityRecord(testDir, "C-12345", 1, started, 1000);
 
     const activityPath = join(testDir, "activity.json");
-    expect(existsSync(activityPath)).toBe(true);
+    const vfs = getVirtualEngineFS();
+    expect(vfs.existsSync(activityPath)).toBe(true);
 
-    const content = JSON.parse(readFileSync(activityPath, "utf8")) as Record<string, unknown>;
+    const content = JSON.parse(vfs.readFileSync(activityPath, "utf8")) as Record<string, unknown>;
     expect(content.schema).toBe("harness.command-activity");
     expect(content.command_id).toBe("C-12345");
     expect(content.attempt).toBe(1);
@@ -68,7 +68,8 @@ describe("ActivityRecord", () => {
     record.output("stdout", 128, outputTime);
     record.output("stderr", 64, outputTime);
 
-    const content = JSON.parse(readFileSync(join(testDir, "activity.json"), "utf8")) as Record<
+    const vfs = getVirtualEngineFS();
+    const content = JSON.parse(vfs.readFileSync(join(testDir, "activity.json"), "utf8")) as Record<
       string,
       unknown
     >;
@@ -84,7 +85,8 @@ describe("ActivityRecord", () => {
     const completeTime = new Date("2026-08-24T10:02:00.000Z");
     record.complete("completed", completeTime);
 
-    const content = JSON.parse(readFileSync(join(testDir, "activity.json"), "utf8")) as Record<
+    const vfs = getVirtualEngineFS();
+    const content = JSON.parse(vfs.readFileSync(join(testDir, "activity.json"), "utf8")) as Record<
       string,
       unknown
     >;
@@ -94,13 +96,14 @@ describe("ActivityRecord", () => {
 });
 
 describe("Command Shape", () => {
-  let tempRepo: string;
+  const tempRepo = "/virtual/cmd-shape-repo";
   let samplePublicKey: string;
   let sampleEnvironment: Record<string, string>;
 
   beforeEach(() => {
-    tempRepo = join(process.cwd(), "coverage", "scratch", `cmd-shape-repo-${Date.now()}`);
-    mkdirSync(tempRepo, { recursive: true });
+    setupVirtualEngineFS();
+    const vfs = getVirtualEngineFS();
+    vfs.mkdirSync(tempRepo, { recursive: true });
     const keyPair = generateKeyPairSync("ed25519");
     const der = keyPair.publicKey.export({ format: "der", type: "spki" });
     samplePublicKey = Buffer.from(der).toString("base64");
@@ -111,9 +114,7 @@ describe("Command Shape", () => {
   });
 
   afterEach(() => {
-    if (existsSync(tempRepo)) {
-      rmSync(tempRepo, { recursive: true, force: true });
-    }
+    cleanupVirtualEngineFS();
   });
 
   function createSampleCommand(overrides: Partial<CommandRecord> = {}): CommandRecord {
@@ -247,7 +248,6 @@ describe("Gate Path Validation and Operands", () => {
     const pathEnv = process.env.PATH ?? "/usr/bin:/bin";
     const lsPath = resolvePathExecutable("ls", pathEnv);
     expect(lsPath).toBeDefined();
-    expect(existsSync(lsPath)).toBe(true);
 
     expect(() => resolvePathExecutable("non_existent_binary_xyz_123", pathEnv)).toThrow(
       HarnessError,

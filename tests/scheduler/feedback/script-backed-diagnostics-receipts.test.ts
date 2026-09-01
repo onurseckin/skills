@@ -1,4 +1,5 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import * as fs from "node:fs";
 import { resolve } from "node:path";
 import {
   formatDiagnosticReceiptsMarkdown,
@@ -11,14 +12,22 @@ import {
 } from "../../../olt/scripts/src/engine/scheduler/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { scratchRoot as makeScratchRoot } from "../../shared/scratch-root.ts";
+import {
+  cleanupVirtualBrowserFS,
+  setupVirtualBrowserFS,
+  tempDir,
+} from "../../reporting/browser/browser-virtual-fs.ts";
 import { schedulerState } from "../fixtures.ts";
 
-function scratchRoot(label: string): string {
-  return makeScratchRoot(import.meta.path, label);
-}
-
 describe("Script-Backed Diagnostics: Execution & Receipts", () => {
+  beforeEach(() => {
+    setupVirtualBrowserFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualBrowserFS();
+  });
+
   describe("1. Script-Backed Diagnostics Execution & Receipts", () => {
     test("runScriptBackedDiagnostics executes all default inspectors and returns healthy result", async () => {
       const state = schedulerState();
@@ -152,7 +161,7 @@ describe("Script-Backed Diagnostics: Execution & Receipts", () => {
       const receipt2 = await runInspectorDoctor("/nonexistent/invalid/run/dir");
       expect(receipt2.status).toBe("skipped");
 
-      const root = scratchRoot("diag-doc-test");
+      const root = tempDir("diag-doc-test");
       const runRoot = initRun(
         root,
         "diag-doc-run",
@@ -164,11 +173,10 @@ describe("Script-Backed Diagnostics: Execution & Receipts", () => {
       expect(receipt3.status).toBe("passed");
       expect(receipt3.badge).toBe("[RECEIPT: doctor PASS]");
 
-      const corruptDocRoot = scratchRoot("corrupt-doc-test");
+      const corruptDocRoot = tempDir("corrupt-doc-test");
       const corruptDocRun = resolve(corruptDocRoot, "corrupt-run");
-      const { mkdirSync, writeFileSync } = await import("node:fs");
-      mkdirSync(corruptDocRun, { recursive: true });
-      writeFileSync(resolve(corruptDocRun, "manifest.json"), "NOT_JSON");
+      fs.mkdirSync(corruptDocRun, { recursive: true });
+      fs.writeFileSync(resolve(corruptDocRun, "manifest.json"), "NOT_JSON");
       const receiptCorrupt = await runInspectorDoctor(corruptDocRun);
       expect(receiptCorrupt.status).toBe("failed");
     });
@@ -194,7 +202,7 @@ describe("Script-Backed Diagnostics: Execution & Receipts", () => {
       const receipt2 = await runInspectorDagView(undefined, undefined);
       expect(receipt2.status).toBe("passed");
 
-      const root = scratchRoot("diag-dag-test");
+      const root = tempDir("diag-dag-test");
       const runRoot = initRun(
         root,
         "diag-dag-run",
@@ -228,7 +236,7 @@ describe("Script-Backed Diagnostics: Execution & Receipts", () => {
       const receiptSkip = await runInspectorUnifiedReport(undefined, undefined);
       expect(receiptSkip.status).toBe("skipped");
 
-      const root = scratchRoot("diag-unified-test");
+      const root = tempDir("diag-unified-test");
       const runRoot = initRun(
         root,
         "diag-unified-run",
@@ -239,10 +247,9 @@ describe("Script-Backed Diagnostics: Execution & Receipts", () => {
       const receiptReal = await runInspectorUnifiedReport(runRoot);
       expect(receiptReal.status).toBe("passed");
 
-      const corruptRoot = scratchRoot("corrupt-unified-test");
+      const corruptRoot = tempDir("corrupt-unified-test");
       const corruptRunRoot = resolve(corruptRoot, "corrupt-run");
-      const { mkdirSync } = await import("node:fs");
-      mkdirSync(corruptRunRoot, { recursive: true });
+      fs.mkdirSync(corruptRunRoot, { recursive: true });
       const receiptCatch = await runInspectorUnifiedReport(corruptRunRoot);
       expect(receiptCatch.status).toBe("failed");
     });

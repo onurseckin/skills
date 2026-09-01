@@ -262,5 +262,12 @@ describe("SafeLock Advisory Locking Engine (Disk and In-Memory)", () => {
     const res3 = await acquireMailboxLockAsync(lockPath, "async-2", { timeoutMs: 50, retryMs: 5 });
     expect(res3.acquired).toBe(true);
     releaseMailboxLock(res3);
+
+    await expect(
+      withExclusiveLockAsync(lockPath, "error-agent", async () => {
+        throw new Error("action error");
+      }),
+    ).rejects.toThrow("action error");
+    expect(getInMemoryLock(lockPath)).toBeNull();
   });
 });

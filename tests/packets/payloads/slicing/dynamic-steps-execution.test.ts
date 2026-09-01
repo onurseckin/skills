@@ -1,6 +1,5 @@
 import { describe, test, expect } from "bun:test";
 import {
-  extractAcceptanceCriteria,
   generateDynamicValidationSteps,
   renderDynamicValidationSteps,
   formatDynamicValidationChecklist,
@@ -11,7 +10,6 @@ import {
 } from "../../../../olt/scripts/src/packets/dynamic-steps.ts";
 import type { TaskRecord, WorkflowState } from "../../../../olt/scripts/src/workflow/types.ts";
 import type { PacketInput } from "../../../../olt/scripts/src/packets/types.ts";
-
 
 describe("dynamic-steps execution & rendering", () => {
   describe("renderDynamicValidationSteps & formatDynamicValidationChecklist", () => {
@@ -169,4 +167,3 @@ describe("dynamic-steps execution & rendering", () => {
     });
   });
 });
-

@@ -17,7 +17,8 @@ import {
   type SugiyamaRankedNode,
 } from "../../../olt/scripts/src/reporting/sugiyama-dag/index.ts";
 
-export const sugiyamaDagPipelineSuiteName = "Sugiyama Visual DAG Pipeline (Cycles, Ranks, Crossing Minimization)";
+export const sugiyamaDagPipelineSuiteName =
+  "Sugiyama Visual DAG Pipeline (Cycles, Ranks, Crossing Minimization)";
 
 function createNode(id: string, deps: readonly string[] = [], status = "ready"): SugiyamaNode {
   return { id, label: `Task ${id}`, status, dependencies: deps };

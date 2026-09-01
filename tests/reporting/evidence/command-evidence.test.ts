@@ -1,23 +1,14 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   commandEvidenceView,
   commandRecordPath,
 } from "../../../olt/scripts/src/reporting/command-evidence.ts";
 import { recordCaptures } from "../../../olt/scripts/src/engine/store/capsule/captures.ts";
-
-const roots: string[] = [];
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
-});
-
-function runRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "command-evidence-"));
-  roots.push(root);
-  return root;
-}
+import {
+  cleanupVirtualBrowserFS,
+  setupVirtualBrowserFS,
+  tempDir,
+} from "../browser/browser-virtual-fs.ts";
 
 export const commandEvidenceSuiteName = "commandRecordPath & commandEvidenceView";
 
@@ -28,8 +19,16 @@ describe(commandEvidenceSuiteName, () => {
 });
 
 describe("commandEvidenceView", () => {
+  beforeEach(() => {
+    setupVirtualBrowserFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualBrowserFS();
+  });
+
   test("annotates a command with its id, path, and any screenshots taken during it", () => {
-    const root = runRoot();
+    const root = tempDir("command-evidence");
     recordCaptures(root, [
       {
         kind: "screenshot",
@@ -39,7 +38,7 @@ describe("commandEvidenceView", () => {
         blob_path: "blobs/aa/shot",
         path: "evidence/screenshots/shot.png",
         storage: "hardlink",
-        original_path: "/tmp/shot.png",
+        original_path: "/virtual/shot.png",
         command_id: "C-1",
       },
     ]);
@@ -55,13 +54,13 @@ describe("commandEvidenceView", () => {
   });
 
   test("carries only the full screenshot records, not a redundant path-only projection", () => {
-    const root = runRoot();
+    const root = tempDir("command-evidence-empty");
     const view = commandEvidenceView(root, {}, "C-3");
     expect("screenshots" in view).toBe(false);
   });
 
   test("a command with no screenshots gets an empty evidence array, not an omitted one", () => {
-    const root = runRoot();
+    const root = tempDir("command-evidence-none");
     const view = commandEvidenceView(root, {}, "C-2");
     expect(view.screenshot_records).toEqual([]);
   });

@@ -17,7 +17,14 @@ function createStubCollector(
       metrics: [
         {
           rawMetricName: `${platformId}_metric`,
-          canonicalProvider: platformId === "antigravity" ? "google" : platformId === "claude" ? "anthropic" : platformId === "cursor" ? "cursor" : "openai",
+          canonicalProvider:
+            platformId === "antigravity"
+              ? "google"
+              : platformId === "claude"
+                ? "anthropic"
+                : platformId === "cursor"
+                  ? "cursor"
+                  : "openai",
           windowType: "5_hour",
           remainingPercentage,
           sourceTier: isExternal ? "tier2_local_storage" : "tier1_cli_command",

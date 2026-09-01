@@ -13,7 +13,6 @@ import {
   type VisualMetricsReport,
 } from "../../../olt/scripts/src/validation/dual-channel-analyzer/index.ts";
 
-
 describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
   it("verifies dual-channel test and source files contain zero any and zero suppressions", () => {
     const filesToAudit = [
@@ -124,4 +123,3 @@ describe("Ultra-Lean Packet Invariants & Fake Completion Purging Verification", 
     expect("stale_evidence" in nested).toBe(false);
   });
 });
-

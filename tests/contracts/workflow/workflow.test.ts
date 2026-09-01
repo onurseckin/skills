@@ -13,7 +13,8 @@ import {
   type MicroCycleRecord,
 } from "../../../olt/scripts/src/core/contracts/index.ts";
 
-export const workflowSuiteName = "validator domain classification, pushbacks, microcycles & findings";
+export const workflowSuiteName =
+  "validator domain classification, pushbacks, microcycles & findings";
 
 describe(workflowSuiteName, () => {
   describe("isValidatorDomain", () => {
@@ -61,9 +62,9 @@ describe(workflowSuiteName, () => {
 
     test("ignores empty or non-matching requirement text", () => {
       expect(applicableValidatorDomains(["src/services/auth.ts"], [])).toEqual(["code-quality"]);
-      expect(applicableValidatorDomains(["src/services/auth.ts"], ["Fix the retry backoff"])).toEqual(
-        ["code-quality"],
-      );
+      expect(
+        applicableValidatorDomains(["src/services/auth.ts"], ["Fix the retry backoff"]),
+      ).toEqual(["code-quality"]);
     });
   });
 

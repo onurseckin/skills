@@ -41,9 +41,21 @@ function spec(invocation: string): CommandSpec {
 
 describe("Validator Hard-Lock - Confinement & Static Invariants", () => {
   describe("2. Cognitive Validator Hard-Lock Interlock", () => {
-    const cognitiveValidatorRoles = ["validator", "ui-validator", "validator-code-quality", "validator-ui-design", "validator-security", "validator-product", "validator-system-design"] as const;
+    const cognitiveValidatorRoles = [
+      "validator",
+      "ui-validator",
+      "validator-code-quality",
+      "validator-ui-design",
+      "validator-security",
+      "validator-product",
+      "validator-system-design",
+    ] as const;
 
-    const mechanicValidatorRoles = ["mechanic-validator", "ui-mechanic-validator", "mechanic_validator"] as const;
+    const mechanicValidatorRoles = [
+      "mechanic-validator",
+      "ui-mechanic-validator",
+      "mechanic_validator",
+    ] as const;
 
     it("correctly differentiates cognitive validators from mechanic validators", () => {
       for (const role of cognitiveValidatorRoles) {

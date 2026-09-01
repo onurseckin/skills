@@ -16,7 +16,7 @@ import {
 import { evidenceSchema } from "../../../../olt/scripts/src/packets/evidence-schema.ts";
 import { loadRoleContract } from "../../../../olt/scripts/src/packets/role-contract.ts";
 import { claimTask } from "../../../../olt/scripts/src/workflow/lease/claim.ts";
-import { at, TestPort, workflowState } from "../../../workflow/test-port.ts";
+import { at, TestPort, workflowState } from "../../../workflow/index.ts";
 import { getCapsuleCliCommands } from "../../../../olt/scripts/src/packets/capsule-memory.ts";
 import { inspectionContext } from "../slicing/inspection-fixture.ts";
 
@@ -250,4 +250,3 @@ describe("Decoupled Capsule Memory - Hardening & Exclusion", () => {
     });
   });
 });
-

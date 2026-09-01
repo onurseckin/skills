@@ -136,5 +136,4 @@ describe("Dual-Channel Visual Analyzer - Viewport Normalization", () => {
       ).toBe(true);
     });
   });
-
 });

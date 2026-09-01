@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { JsonObject } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import { validationRoundContext } from "../../../../olt/scripts/src/packets/validation-round.ts";
-import { commandRecord, workflowState } from "../../../workflow/test-port.ts";
+import { commandRecord, workflowState } from "../../../workflow/index.ts";
 
 /**
  * gateStatus (validation-round.ts) sorts a gate's runs by started_at before taking the latest

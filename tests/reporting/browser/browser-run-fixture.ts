@@ -1,8 +1,14 @@
-import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { ingestBrowserRun } from "../../../olt/scripts/src/reporting/browser-run-ingestion.ts";
 import type { BrowserRunRecord } from "../../../olt/scripts/src/reporting/browser-run-types.ts";
+import {
+  cleanupVirtualBrowserFS,
+  cleanupTempDirs,
+  setVirtualMtime,
+  setupVirtualBrowserFS,
+  tempDir,
+} from "./browser-virtual-fs.ts";
+
+export { cleanupVirtualBrowserFS, cleanupTempDirs, setupVirtualBrowserFS, tempDir };
 
 type IngestOverrides = Partial<Parameters<typeof ingestBrowserRun>[0]>;
 
@@ -16,38 +22,18 @@ export interface BrowserRunHarness {
   ingest(runRoot: string, repo: string, overrides?: IngestOverrides): BrowserRunRecord | null;
 }
 
-const roots: string[] = [];
-
-export function tempDir(name: string): string {
-  const dir = mkdtempSync(join(tmpdir(), `browser-run-${name}-`));
-  roots.push(dir);
-  return dir;
-}
-
-export function cleanupTempDirs(): void {
-  for (const root of roots) rmSync(root, { recursive: true, force: true });
-  roots.length = 0;
-}
-
 export function writeReport(dir: string, name: string, body: unknown): string {
-  mkdirSync(dir, { recursive: true });
-  const path = join(dir, name);
-  writeFileSync(path, JSON.stringify(body), "utf-8");
+  const vfs = setupVirtualBrowserFS();
+  vfs.mkdirSync(dir, { recursive: true });
+  const path = `${dir}/${name}`;
+  vfs.writeFileSync(path, JSON.stringify(body));
   return path;
 }
 
 function stamp(path: string, at: number): void {
-  const when = new Date(at);
-  utimesSync(path, when, when);
+  setVirtualMtime(path, at);
 }
 
-/**
- * Opens the command window at the moment the test body asks for it, so call it there and not at
- * module scope. Ingestion accepts a report only when its mtime falls inside the window, and these
- * fixtures write their reports with the real clock — no file can be written in a fixed past. A
- * window opened once at module load therefore stops describing reality the moment a body runs later
- * than the import, which is precisely what a parallel run does to every test but the first.
- */
 export function browserRunHarness(): BrowserRunHarness {
   const startedMs = Date.now();
   const finishedMs = startedMs + 1500;

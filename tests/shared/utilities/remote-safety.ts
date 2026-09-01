@@ -56,11 +56,19 @@ export function isPushTargetInert(pushUrl: string | undefined): boolean {
   return false;
 }
 
+export type GitRemoteSpawner = (
+  cmd: string[],
+  opts: { cwd: string; env: Record<string, string | undefined>; stdout: "pipe"; stderr: "pipe" },
+) => { exitCode: number; stdout: Uint8Array; stderr: Uint8Array };
+
 /**
  * Audits git remote URLs in a repository directory to ensure no push capability exists.
  */
-export function auditRemoteUrls(repoDir: string): RemoteUrlAuditResult {
-  const proc = Bun.spawnSync(["git", "remote", "-v"], {
+export function auditRemoteUrls(
+  repoDir: string,
+  customSpawn: GitRemoteSpawner = (cmd, opts) => Bun.spawnSync(cmd, opts),
+): RemoteUrlAuditResult {
+  const proc = customSpawn(["git", "remote", "-v"], {
     cwd: repoDir,
     env: {
       ...process.env,

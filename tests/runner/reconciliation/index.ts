@@ -1,15 +1,21 @@
 /**
  * Runner Reconciliation Subdomain Test Facade.
- * Explicit named exports for attempt reconciliation, interrupted state recovery, and descendant tracking.
  */
-
+export { ActivityRecord } from "../../../olt/scripts/src/engine/runner/reconciliation/activity-record.ts";
 export {
-  reconcileInterruptedAttempt,
-  reconcilePendingRetryAttempt,
-  type AttemptReconciliationResult,
-} from "../../../olt/scripts/src/engine/runner/reconciliation/reconcile-interrupted-attempt.ts";
-
+  MAX_POLL_DELAY_MS,
+  MIN_POLL_DELAY_MS,
+  nextPollDelayMs,
+} from "../../../olt/scripts/src/engine/runner/reconciliation/descendant-poll-policy.ts";
 export {
-  trackDescendants,
-  type DescendantTracker,
+  expandDescendants,
+  liveTrackedParents,
+} from "../../../olt/scripts/src/engine/runner/reconciliation/descendant-topology.ts";
+export {
+  trackerDependencies,
+  type TrackerDependencies,
+} from "../../../olt/scripts/src/engine/runner/reconciliation/descendant-tracker-dependencies.ts";
+export {
+  DescendantTracker,
+  type ProcessIdentity,
 } from "../../../olt/scripts/src/engine/runner/reconciliation/descendant-tracker.ts";

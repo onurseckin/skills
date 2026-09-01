@@ -64,10 +64,13 @@ export {
   checkParentAgentConflict,
   appendTelemetryConflicts,
   refreshAgentDerivedTelemetry,
-  writeAgentModelTelemetry,
-  readAgentModelTelemetry,
-  buildTranscriptFixture,
-  type TranscriptFixtureOptions,
+  extractTranscriptTelemetry,
+  readAgentTranscriptTelemetry,
+  assistantLine,
+  toolResultLine,
+  writeDirectTranscript,
+  mktemp,
+  cleanupTranscriptRoots,
 } from "./telemetry/index.ts";
 
 export {

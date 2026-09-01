@@ -4,11 +4,12 @@ import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   assertPathIdentity,
+  assertSafeAncestors,
   ensureSafeDirectory,
   pathIdentity,
   sameIdentity,
 } from "../../../olt/scripts/src/installer/path-safety.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
 
 describe("pathIdentity", () => {
   test("returns null for a path that does not exist", async () => {
@@ -142,5 +143,26 @@ describe("ensureSafeDirectory", () => {
     await expect(ensureSafeDirectory(homeRoot, join(homeRoot, "child"))).rejects.toThrow(
       HarnessError,
     );
+  });
+});
+
+describe("assertSafeAncestors", () => {
+  test("resolves when directory is within homeRoot and all existing ancestors are safe", async () => {
+    const root = scratchRoot(import.meta.path, "ancestors-safe");
+    mkdirSync(join(root, "a", "b"), { recursive: true });
+    await expect(assertSafeAncestors(root, join(root, "a", "b", "c"))).resolves.toBeUndefined();
+  });
+
+  test("returns early when an ancestor does not exist", async () => {
+    const root = scratchRoot(import.meta.path, "ancestors-missing");
+    await expect(
+      assertSafeAncestors(root, join(root, "nonexistent", "child")),
+    ).resolves.toBeUndefined();
+  });
+
+  test("throws when target directory escapes homeRoot", async () => {
+    const root = scratchRoot(import.meta.path, "ancestors-escape");
+    const outside = scratchRoot(import.meta.path, "ancestors-outside");
+    await expect(assertSafeAncestors(root, outside)).rejects.toThrow(HarnessError);
   });
 });

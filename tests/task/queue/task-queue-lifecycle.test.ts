@@ -270,5 +270,4 @@ describe("Stateful Task Queue Engine", () => {
     expect(released.lease).toBeNull();
     teardown();
   });
-
 });

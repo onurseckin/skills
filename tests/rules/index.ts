@@ -34,11 +34,7 @@ export {
 } from "./design/index.ts";
 
 // 3. Supervisory Rules Subdomain
-export {
-  evaluateRulesBatch1,
-  evaluateRulesBatch2,
-  readFrontmatter,
-} from "./supervisory/index.ts";
+export { evaluateRulesBatch1, evaluateRulesBatch2, readFrontmatter } from "./supervisory/index.ts";
 
 // 4. Engine Subdomain
 export {

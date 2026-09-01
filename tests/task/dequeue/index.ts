@@ -1,16 +1,10 @@
-export {
-  createSampleTaskLease,
-  createSampleCompletionReceipts,
-} from "./fixture.ts";
+export { createSampleTaskLease, createSampleCompletionReceipts } from "./fixture.ts";
 
 export {
   dequeueTask,
   assertSingleActiveLease,
   popNextEligibleTask,
   popNextEligibleTaskWithCleanup,
-} from "../../../olt/scripts/src/engine/tasks/queue/dequeue.ts";
-
-export {
   completeTask,
   completeTaskUnlocked,
   failTask,
@@ -18,7 +12,7 @@ export {
   assertValidActiveLease,
   validateCompletionReceipts,
   translateSuspendedLeases,
-} from "../../../olt/scripts/src/engine/tasks/queue/transitions.ts";
+} from "../../../olt/scripts/src/task/queue/index.ts";
 
 export const TASK_DEQUEUE_SUITES = [
   "dequeue-anti-batching",

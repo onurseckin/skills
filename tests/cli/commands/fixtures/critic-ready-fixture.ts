@@ -14,21 +14,11 @@ import { transact } from "../../../../olt/scripts/src/engine/store/index.ts";
 import {
   establishSupervisorChain,
   registerUnderChain,
-} from "../../../shared/agent-supervisor-chain.ts";
+} from "../../../shared/chains/agent-supervisor-chain.ts";
 
 /**
- * critic:start's readiness gate (completionReadinessIssues) demands a task done with validator
- * approval and an authoritative gate command, a satisfied+evidenced requirement, and an
- * authoritative mandatory run-gate command - and "authoritative" is checked structurally
- * (embeddedCommandIssues / commandMatchesGate: real fingerprints, real repository content
- * hashes, real openable gate-path bindings) rather than by re-verifying a subprocess actually
- * ran. Nothing in that structural check requires the gate to have been spawned: it can be
- * satisfied by writing a CommandRecord shaped exactly like the trusted-host runner would have
- * produced, computed with the runner's own fingerprint/environment/path-binding/repository-
- * binding functions against a real (but never executed) repo. That is what this fixture does,
- * in place of critic-run-fixture.ts's full claim/submit/validate/probe/review/run:exec round
- * trip (which spawns 3 real subprocesses purely to reach the same, otherwise-untested-here,
- * "every task is done" state).
+ * critic:start readiness gate fixture. Synthesizes task-done / requirement-satisfied /
+ * authoritative-command records without spawning redundant subprocesses.
  */
 
 const FIXTURE_STARTED_AT = "2026-01-01T00:00:00.000Z";
@@ -161,12 +151,7 @@ function buildCommandRecord(
   };
 }
 
-/**
- * Drives a single-task run to "ready for the completeness critic" the cheap way: plan:init /
- * plan:add / plan:compile (structural, no subprocess) build the real graph, then one transact()
- * directly writes the task-done / requirement-satisfied / authoritative-command state that the
- * claim -> submit -> validate -> probe -> review -> run:exec round trip would otherwise produce.
- */
+// Sets up a ready run for completeness critic testing
 export async function setupReadyRun(name: string, roots: string[]): Promise<ReadyRun> {
   const repo = realpathSync(await mkdtemp(join(tmpdir(), `harness-critic-ready-${name}-`)));
   roots.push(repo);
@@ -178,8 +163,7 @@ export async function setupReadyRun(name: string, roots: string[]): Promise<Read
     join(repo, "tests/run.test.ts"),
     "import { test } from 'bun:test'; test('all', () => {});\n",
   );
-  // C4 parity with the claim/submit fixture: task-1 reads as genuinely implemented content,
-  // even though nothing here validates it was written by a task:submit call.
+  // Task-1 implemented content for readiness checks
   await writeFile(join(repo, "tests/t1/impl.ts"), "export const implemented = true;\n");
 
   const init = await execute([
@@ -289,13 +273,7 @@ export async function setupReadyRun(name: string, roots: string[]): Promise<Read
   return { repo, run, taskGateCommandId, runGateCommandId };
 }
 
-/**
- * Registers a bare, authoritative, non-gate command observed by `actor` - the fixture
- * equivalent of a critic running its own repository-inspection command (`run:exec ... -- bun
- * gate-t1.ts` in the pre-rewrite fixture). Used both as `--repository-command-ids` evidence and
- * as the critic's own check command (criticReviewCommand only credits checks whose actor matches
- * the reviewing critic).
- */
+// Register bare authoritative inspection command
 export function registerInspectionCommand(
   run: string,
   repo: string,

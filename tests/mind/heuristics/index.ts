@@ -8,9 +8,4 @@ export { HEURISTICS_GUARDS_SUITES } from "./guards/index.ts";
 export { HEURISTICS_WITNESS_SUITES } from "./witness/index.ts";
 export { HEURISTICS_SOAK_SUITES } from "./soak/index.ts";
 
-export const HEURISTICS_DOMAINS = [
-  "safety",
-  "guards",
-  "witness",
-  "soak",
-] as const;
+export const HEURISTICS_DOMAINS = ["safety", "guards", "witness", "soak"] as const;

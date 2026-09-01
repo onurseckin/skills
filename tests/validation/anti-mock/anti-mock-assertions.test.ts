@@ -15,8 +15,6 @@ import type {
   MutationTestRunOutcome,
 } from "../../../olt/scripts/src/validation/anti-mock/index.ts";
 
-
-
 describe("Pillar 2: Assertion Count Floor Enforcer", () => {
   test("flags tests containing zero assertions", () => {
     const code = `

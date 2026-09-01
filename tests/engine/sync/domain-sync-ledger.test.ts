@@ -1,6 +1,5 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdirSync } from "node:fs";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   commitAndPushDomainSubphase,
@@ -12,22 +11,18 @@ import {
   type DomainLedgerState,
   type GitRunner,
 } from "../../../olt/scripts/src/engine/worktree/index.ts";
-
-const roots: string[] = [];
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { force: true, recursive: true });
-});
-
-function trackedDir(prefix: string): string {
-  const dir = join(process.cwd(), "coverage", "scratch", `domain-sync-ledger-${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  mkdirSync(dir, { recursive: true });
-  roots.push(dir);
-  return dir;
-}
+import { cleanupVirtualEngineFS, setupVirtualEngineFS } from "../fixture.ts";
 
 const ok = (stdout = "") => ({ status: 0, stdout, stderr: "" });
 
 describe("Domain Sync & Ledger State Verification", () => {
+  beforeEach(() => {
+    setupVirtualEngineFS();
+  });
+  afterEach(() => {
+    cleanupVirtualEngineFS();
+  });
+
   describe("Ledger Creation and Worktree Provisioning", () => {
     test("initializes domain ledger with valid parameters and defaults", () => {
       const ledger = createDomainLedger("main", "base-sha-123", "/root/ledger", "upstream-main");
@@ -47,8 +42,10 @@ describe("Domain Sync & Ledger State Verification", () => {
     });
 
     test("provisions domain worktree and updates ledger state", () => {
-      const repoRoot = trackedDir("repo");
-      const ledgerRoot = trackedDir("ledger");
+      const repoRoot = "/virtual/sync/ledger-repo";
+      const ledgerRoot = "/virtual/sync/ledger-root";
+      mkdirSync(repoRoot, { recursive: true });
+      mkdirSync(ledgerRoot, { recursive: true });
       const ledger = createDomainLedger("main", "base-sha-123", ledgerRoot);
       const runner: GitRunner = () => ok();
       const now = new Date("2026-08-29T12:00:00.000Z");
@@ -142,7 +139,12 @@ describe("Domain Sync & Ledger State Verification", () => {
     });
 
     test("sync index and fixture exports are valid", async () => {
-      const { createTestDomainCommit, createTestDomainLedger, createTestProgressSnapshot, SYNC_SUITES } = await import("./index.ts");
+      const {
+        createTestDomainCommit,
+        createTestDomainLedger,
+        createTestProgressSnapshot,
+        SYNC_SUITES,
+      } = await import("./index.ts");
       const commit = createTestDomainCommit("test-dom");
       expect(commit.domain).toBe("test-dom");
       const ledger = createTestDomainLedger("dev");

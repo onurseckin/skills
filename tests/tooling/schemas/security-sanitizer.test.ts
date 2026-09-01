@@ -22,7 +22,6 @@ import {
 } from "../../../olt/scripts/src/tooling/index.ts";
 
 describe("Tool Schemas & Security Validation Unit Test Suite", () => {
-
   describe("Security Sanitization & Threat Protection", () => {
     it("escapes shell arguments safely against command injection", () => {
       expect(sanitizeShellArgument("hello")).toBe("'hello'");
@@ -109,6 +108,29 @@ describe("Tool Schemas & Security Validation Unit Test Suite", () => {
       expect(res.safe).toBe(false);
       expect(res.violations.length).toBeGreaterThanOrEqual(2);
     });
+
+    it("enforces max depth, string/array limits, null byte guards, and blocked patterns", () => {
+      const depthViol = detectPrototypePollution({ a: { b: { c: 1 } } }, 10, 5);
+      expect(depthViol?.threatType).toBe("PAYLOAD_TOO_LARGE");
+
+      const nullByteRes = sanitizeToolInput({ str: "unsafe\0char" });
+      expect(nullByteRes.safe).toBe(false);
+      expect(nullByteRes.violations.some((v) => v.threatType === "NULL_BYTE_INJECTION")).toBe(true);
+
+      const arrayLimitRes = sanitizeToolInput({ items: [1, 2, 3, 4, 5] }, { maxArrayLength: 3 });
+      expect(arrayLimitRes.safe).toBe(false);
+      expect(arrayLimitRes.violations.some((v) => v.threatType === "PAYLOAD_TOO_LARGE")).toBe(true);
+
+      const patternRes = sanitizeToolInput(
+        { key: "secret_api_key_123" },
+        { blockedPatterns: [/secret_/] },
+      );
+      expect(patternRes.safe).toBe(false);
+      expect(patternRes.violations.some((v) => v.threatType === "FORBIDDEN_PATTERN")).toBe(true);
+
+      expect(sanitizeValueByPolicy("safe/path/../file", "path")).toBe("safe/file");
+      expect(sanitizeValueByPolicy("text\u0000\u001Fvalue", "json-safe")).toBe("textvalue");
+    });
   });
 
   describe("DynamicToolRegistry Security Integration", () => {
@@ -151,4 +173,3 @@ describe("Tool Schemas & Security Validation Unit Test Suite", () => {
     });
   });
 });
-

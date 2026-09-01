@@ -1,11 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { auditPlan } from "../../../olt/scripts/src/graph/plan-audit.ts";
-import {
-  fixtureRepo,
-  gateProof,
-  runStateWithProofs,
-  task,
-} from "./plan-audit-fixture.ts";
+import { fixtureRepo, gateProof, runStateWithProofs, task } from "./plan-audit-fixture.ts";
 
 describe("A6-whole-suite-gate", () => {
   test("blocks a task gate that runs the whole test tree, regardless of how narrow its scope is", () => {

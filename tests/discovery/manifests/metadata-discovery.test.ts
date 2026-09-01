@@ -1,13 +1,13 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
   linkSync,
   mkdirSync,
   readFileSync,
   readdirSync,
-  rmSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
+import type * as fs from "node:fs";
 import { join, resolve } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -17,9 +17,13 @@ import {
   setAgentMetadataDependenciesForTesting,
   writeAgentMetadata,
 } from "../../../olt/scripts/src/runtime/index.ts";
+import {
+  cleanupVirtualDiscoveryFS,
+  createSyntheticAgentMetadata,
+  setupVirtualDiscoveryFS,
+} from "../fixtures/index.ts";
 
-import { tmpdir } from "node:os";
-const scratchBase = join(tmpdir(), "metadata-discovery");
+const scratchBase = "/virtual/metadata-discovery";
 
 function getScratch(label: string): string {
   const dir = join(scratchBase, `${label}-${Date.now()}-${Math.random().toString(36).slice(2)}`);
@@ -28,15 +32,7 @@ function getScratch(label: string): string {
 }
 
 function metadata(agentId: string): Record<string, unknown> {
-  return {
-    agent_id: agentId,
-    role: "implementer",
-    tier: 3,
-    write_scope: ["olt/scripts/src/runtime/index.ts"],
-    allowed_read_scope: ["olt/scripts/src/runtime"],
-    can_execute_shell: true,
-    spawned_at: "2026-08-26T00:00:00.000Z",
-  };
+  return createSyntheticAgentMetadata(agentId);
 }
 
 function writeMetadata(root: string, agentId: string, value: unknown): string {
@@ -47,10 +43,12 @@ function writeMetadata(root: string, agentId: string, value: unknown): string {
 }
 
 describe("agent metadata discovery", () => {
+  beforeEach(() => {
+    setupVirtualDiscoveryFS();
+  });
+
   afterEach(() => {
-    try {
-      rmSync(scratchBase, { recursive: true, force: true });
-    } catch {}
+    cleanupVirtualDiscoveryFS();
   });
 
   it("keeps explicit uncreated run roots when generating metadata paths", () => {

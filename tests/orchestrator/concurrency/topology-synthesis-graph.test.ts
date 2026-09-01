@@ -97,10 +97,14 @@ describe("Topology Synthesis Graph, Acyclicity & Invariants", () => {
         { id: "task-1", dependencies: [] },
         { id: "task-1", dependencies: [] },
       ];
-      expect(() => validateTopologyAcyclicity(duplicateTasks, { strict: true })).toThrow(HarnessError);
+      expect(() => validateTopologyAcyclicity(duplicateTasks, { strict: true })).toThrow(
+        HarnessError,
+      );
 
       const unknownDepTasks = [{ id: "task-1", dependencies: ["non-existent"] }];
-      expect(() => validateTopologyAcyclicity(unknownDepTasks, { strict: true })).toThrow(HarnessError);
+      expect(() => validateTopologyAcyclicity(unknownDepTasks, { strict: true })).toThrow(
+        HarnessError,
+      );
     });
   });
 
@@ -111,9 +115,27 @@ describe("Topology Synthesis Graph, Acyclicity & Invariants", () => {
         prompt: "Synthesize full execution topology with anti-batching and critic feedback",
         tasks: [
           { id: "t-arch", label: "Architecture", writeScope: ["src/arch.ts"], effort: 2 },
-          { id: "t-engine", label: "Engine", writeScope: ["src/engine.ts"], dependencies: ["t-arch"], effort: 4 },
-          { id: "t-tests", label: "Tests", writeScope: ["tests/engine.test.ts"], dependencies: ["t-engine"], effort: 3 },
-          { id: "t-docs", label: "Documentation", writeScope: ["docs/README.md"], dependencies: ["t-arch"], effort: 1 },
+          {
+            id: "t-engine",
+            label: "Engine",
+            writeScope: ["src/engine.ts"],
+            dependencies: ["t-arch"],
+            effort: 4,
+          },
+          {
+            id: "t-tests",
+            label: "Tests",
+            writeScope: ["tests/engine.test.ts"],
+            dependencies: ["t-engine"],
+            effort: 3,
+          },
+          {
+            id: "t-docs",
+            label: "Documentation",
+            writeScope: ["docs/README.md"],
+            dependencies: ["t-arch"],
+            effort: 1,
+          },
         ],
         maxParallel: 4,
       };

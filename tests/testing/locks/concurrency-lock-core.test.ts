@@ -53,13 +53,19 @@ describe("concurrency-lock-core (in-memory zero-disk)", () => {
     });
 
     test("identifies scoped single-file test commands as false", () => {
-      expect(isFullSuiteTestCommand("bun test tests/orchestrator/agents/grants.test.ts")).toBe(false);
+      expect(isFullSuiteTestCommand("bun test tests/orchestrator/agents/grants.test.ts")).toBe(
+        false,
+      );
       expect(
-        isFullSuiteTestCommand(["bun", "test", "tests/testing/locks/concurrency-lock-core.test.ts"]),
+        isFullSuiteTestCommand([
+          "bun",
+          "test",
+          "tests/testing/locks/concurrency-lock-core.test.ts",
+        ]),
       ).toBe(false);
-      expect(
-        isFullSuiteTestCommand("bun test --coverage tests/cli/coverage-check.test.ts"),
-      ).toBe(false);
+      expect(isFullSuiteTestCommand("bun test --coverage tests/cli/coverage-check.test.ts")).toBe(
+        false,
+      );
       expect(isFullSuiteTestCommand("bun test ./tests/testing/foo.spec.ts")).toBe(false);
       expect(isFullSuiteTestCommand("bun test --bail tests/testing/bar.test.js")).toBe(false);
     });

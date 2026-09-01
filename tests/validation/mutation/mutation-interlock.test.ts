@@ -6,7 +6,6 @@ import { assertLeaseTokenForFileMutation } from "../../../olt/scripts/src/valida
 import { registerSessionGrant } from "../../../olt/scripts/src/authority/session/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
-
 describe("Mutation Interlock Enforcement", () => {
   it("throws INVALID_ARGUMENT when target file path is empty or whitespace", () => {
     expect(() => assertLeaseTokenForFileMutation("", "tok_live_1234567890")).toThrow(HarnessError);
@@ -38,7 +37,10 @@ describe("Mutation Interlock Enforcement", () => {
   });
 
   it("permits mutation when a valid token is provided with an authorized active session", () => {
-    const sandboxDir = join(tmpdir(), "mutation-interlock-valid-token-allow-" + Math.random().toString(36).slice(2));
+    const sandboxDir = join(
+      tmpdir(),
+      "mutation-interlock-valid-token-allow-" + Math.random().toString(36).slice(2),
+    );
     mkdirSync(join(sandboxDir, ".olt", ".sessions"), { recursive: true });
 
     const session = registerSessionGrant({
@@ -79,7 +81,10 @@ describe("Mutation Interlock Enforcement", () => {
   });
 
   it("rejects file mutation when the authenticated session role cannot edit files", () => {
-    const sandboxDir = join(tmpdir(), "mutation-interlock-val-mutation-block-" + Math.random().toString(36).slice(2));
+    const sandboxDir = join(
+      tmpdir(),
+      "mutation-interlock-val-mutation-block-" + Math.random().toString(36).slice(2),
+    );
     mkdirSync(join(sandboxDir, ".olt", ".sessions"), { recursive: true });
 
     const session = registerSessionGrant({
@@ -109,7 +114,10 @@ describe("Mutation Interlock Enforcement", () => {
   });
 
   it("rejects file mutation when target file is outside the leased write scope", () => {
-    const sandboxDir = join(tmpdir(), "mutation-interlock-scope-mutation-block-" + Math.random().toString(36).slice(2));
+    const sandboxDir = join(
+      tmpdir(),
+      "mutation-interlock-scope-mutation-block-" + Math.random().toString(36).slice(2),
+    );
     mkdirSync(join(sandboxDir, ".olt", ".sessions"), { recursive: true });
 
     const session = registerSessionGrant({
@@ -138,7 +146,10 @@ describe("Mutation Interlock Enforcement", () => {
   });
 
   it("permits file mutation when target file is inside the leased write scope", () => {
-    const sandboxDir = join(tmpdir(), "mutation-interlock-scope-mutation-allow-" + Math.random().toString(36).slice(2));
+    const sandboxDir = join(
+      tmpdir(),
+      "mutation-interlock-scope-mutation-allow-" + Math.random().toString(36).slice(2),
+    );
     mkdirSync(join(sandboxDir, ".olt", ".sessions"), { recursive: true });
 
     const session = registerSessionGrant({

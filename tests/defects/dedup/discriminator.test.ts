@@ -70,7 +70,8 @@ describe(discriminatorSuiteName, () => {
         {
           input: {
             type: "revision_paralysis",
-            observation: "Self-critique loop resulted in plan revision paralysis and passive inertia",
+            observation:
+              "Self-critique loop resulted in plan revision paralysis and passive inertia",
           },
           expected: "model_reasoning_error",
         },
@@ -103,7 +104,10 @@ describe(discriminatorSuiteName, () => {
           expected: "code_defect",
         },
         {
-          input: { type: "unhandled_rejection", observation: "Unhandled promise rejection in store" },
+          input: {
+            type: "unhandled_rejection",
+            observation: "Unhandled promise rejection in store",
+          },
           expected: "code_defect",
         },
       ];

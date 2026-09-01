@@ -1,19 +1,12 @@
-import { describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
-  MAIN_THREAD_ADVISORY,
-  TIER_NAMES,
   agentIdToRole,
   agentIdToTier,
   buildCapabilitiesProfile,
-  detectHostApp,
   formatThreadIdentificationBrief,
   identifyExecutionContext,
   isStandardAgentId,
   parseStandardAgentId,
-  parseTierValue,
   recommendStandardAgentId,
   recordDefect,
   roleToTier,
@@ -22,8 +15,16 @@ import {
   type DefectRecord,
   type ExecutionTier,
 } from "../../../olt/scripts/src/authority/thread/index.ts";
+import { cleanupVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
 
 describe("Authority Thread Context, Naming, Role Mapping & Spawning Comprehensive", () => {
+  beforeEach(() => {
+    setupVirtualAuthorityFS();
+  });
+  afterEach(() => {
+    cleanupVirtualAuthorityFS();
+  });
+
   test("validateTierSpawning default roles and invalid tiers", () => {
     expect(validateTierSpawning(0, 1).allowed).toBe(true);
     expect(validateTierSpawning(0, 2).allowed).toBe(false);
@@ -117,48 +118,44 @@ describe("Authority Thread Context, Naming, Role Mapping & Spawning Comprehensiv
   });
 
   test("identifyExecutionContext and recordDefect", () => {
-    const sandbox = mkdtempSync(join(tmpdir(), "thread-context-test-"));
-    try {
-      const ctx = identifyExecutionContext({
-        cwd: sandbox,
-        role: "coordinator",
-        agentId: "coordinator_wave-1",
-        env: {
-          AGENT_ID: "coordinator_wave-1",
-          ROLE: "coordinator",
-        },
-      });
-      expect(ctx.tier).toBe(2);
-      expect(ctx.role).toBe("coordinator");
-      expect(ctx.agent_id).toBe("coordinator_wave-1");
+    const sandbox = "/virtual/thread-tokens/context";
+    const ctx = identifyExecutionContext({
+      cwd: sandbox,
+      role: "coordinator",
+      agentId: "coordinator_wave-1",
+      env: {
+        AGENT_ID: "coordinator_wave-1",
+        ROLE: "coordinator",
+      },
+    });
+    expect(ctx.tier).toBe(2);
+    expect(ctx.role).toBe("coordinator");
+    expect(ctx.agent_id).toBe("coordinator_wave-1");
 
-      const defect: DefectRecord = {
-        id: "defect-test-1",
-        type: "main_thread_direct_execution",
-        severity: "critical",
-        timestamp: new Date().toISOString(),
-        pid: process.pid,
-        ppid: 1,
-        agent_id: "main-user",
-        observation: "Direct file modification on main thread",
-        remediation: "Dispatch Tier 2 coordinator",
-        context: { cwd: sandbox, indicators: {} },
-      };
+    const defect: DefectRecord = {
+      id: "defect-test-1",
+      type: "main_thread_direct_execution",
+      severity: "critical",
+      timestamp: new Date().toISOString(),
+      pid: process.pid,
+      ppid: 1,
+      agent_id: "main-user",
+      observation: "Direct file modification on main thread",
+      remediation: "Dispatch Tier 2 coordinator",
+      context: { cwd: sandbox, indicators: {} },
+    };
 
-      recordDefect(defect, { cwd: sandbox });
-      expect(recordDefect).toBeDefined();
+    recordDefect(defect, { cwd: sandbox });
+    expect(recordDefect).toBeDefined();
 
-      const ctxWithDefect = identifyExecutionContext({
-        cwd: sandbox,
-        runRoot: sandbox,
-        isInteractiveMainThread: true,
-        argv: ["bun", "harness.ts", "task:claim"],
-        recordDefectInTest: true,
-      });
-      expect(ctxWithDefect.defect).toBeDefined();
-      expect(ctxWithDefect.defect?.severity).toBe("critical");
-    } finally {
-      rmSync(sandbox, { recursive: true, force: true });
-    }
+    const ctxWithDefect = identifyExecutionContext({
+      cwd: sandbox,
+      runRoot: sandbox,
+      isInteractiveMainThread: true,
+      argv: ["bun", "harness.ts", "task:claim"],
+      recordDefectInTest: true,
+    });
+    expect(ctxWithDefect.defect).toBeDefined();
+    expect(ctxWithDefect.defect?.severity).toBe("critical");
   });
 });

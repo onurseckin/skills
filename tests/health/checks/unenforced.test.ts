@@ -149,7 +149,10 @@ describe("Health Checks - Unenforced Assertions & Declarations", () => {
 
     test("a role outside the vocabulary the code enforces is reported", () => {
       expect(
-        keysFor({ "agents/ghost.yaml": ROLE.replace('role: "validator"', 'role: "archivist"') }, {}),
+        keysFor(
+          { "agents/ghost.yaml": ROLE.replace('role: "validator"', 'role: "archivist"') },
+          {},
+        ),
       ).toContain("role-unknown:agents/ghost.yaml");
     });
   });
@@ -201,9 +204,11 @@ describe("Health Checks - Unenforced Assertions & Declarations", () => {
       "references/guide.md": "Run `bun harness.ts task:invent`.",
     });
     const tree = loadTree("foreign", {
-      "src/config/index.ts": ["export interface HarnessConfig {", "  orphan_knob: string;", "}"].join(
-        "\n",
-      ),
+      "src/config/index.ts": [
+        "export interface HarnessConfig {",
+        "  orphan_knob: string;",
+        "}",
+      ].join("\n"),
     });
     const result = checkDeclarations({
       production: tree.modules,

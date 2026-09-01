@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { isUserPersonaRole, MANDATORY_PERSONA_ROLES } from "../../../olt/scripts/src/platform/capture/persona-governance.ts";
+import {
+  isUserPersonaRole,
+  MANDATORY_PERSONA_ROLES,
+} from "../../../olt/scripts/src/platform/capture/persona-governance.ts";
 
 describe("Persona Governance Evaluation", () => {
   it("identifies mandatory user persona roles accurately", () => {

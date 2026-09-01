@@ -1,23 +1,23 @@
 import { describe, expect, test, spyOn, beforeEach, afterEach } from "bun:test";
 import * as childProcess from "node:child_process";
-import { join } from "node:path";
+import {
+  parseDiffOutput,
+  parseGitStatusPorcelain,
+  parseUnifiedDiffHeaders,
+  run,
+  main,
+} from "../../../scripts/testing/test-changed.ts";
 
-describe("test-changed script", () => {
-  const scriptPath = join(process.cwd(), "scripts/testing/test-changed.ts");
+describe("test-changed script (in-memory virtual)", () => {
   let exitSpy: ReturnType<typeof spyOn>;
   let logSpy: ReturnType<typeof spyOn>;
   let errorSpy: ReturnType<typeof spyOn>;
   let stdoutSpy: ReturnType<typeof spyOn>;
   let stderrSpy: ReturnType<typeof spyOn>;
   let spawnSyncSpy: ReturnType<typeof spyOn>;
-  let recordedExitCode: number | undefined;
 
   beforeEach(() => {
-    recordedExitCode = undefined;
-    exitSpy = spyOn(process, "exit").mockImplementation((code) => {
-      recordedExitCode = typeof code === "number" ? code : 0;
-      return undefined as never;
-    });
+    exitSpy = spyOn(process, "exit").mockImplementation(() => undefined as never);
     logSpy = spyOn(console, "log").mockImplementation(() => {});
     errorSpy = spyOn(console, "error").mockImplementation(() => {});
     stdoutSpy = spyOn(process.stdout, "write").mockImplementation(() => true);
@@ -35,13 +35,19 @@ describe("test-changed script", () => {
     }
   });
 
-  test("runs standalone script check via spawnSync", () => {
-    const result = childProcess.spawnSync("bun", [scriptPath, "--help"], {
-      encoding: "utf-8",
-      cwd: process.cwd(),
-      timeout: 30000,
-    });
-    expect(typeof result.status).toBe("number");
+  test("diff parsing functions handle various git diff headers and porcelain outputs", () => {
+    expect(parseDiffOutput("a.ts\nb.ts\n\n")).toEqual(["a.ts", "b.ts"]);
+
+    const porcelain = " M foo.ts\n?? bar.ts\nR  old.ts -> new.ts\n";
+    expect(parseGitStatusPorcelain(porcelain).sort()).toEqual(["bar.ts", "foo.ts", "new.ts"]);
+
+    const unified = "diff --git a/src/a.ts b/src/a.ts\n+++ b/src/b.ts\n";
+    expect(parseUnifiedDiffHeaders(unified).sort()).toEqual(["src/a.ts", "src/b.ts"]);
+  });
+
+  test("handles --help flag directly without child process spawn", async () => {
+    const code = await run(["--help"]);
+    expect(code).toBe(0);
   });
 
   test("in-process execution handles git diff resolution, test execution, and 95% coverage gating with mocks", async () => {
@@ -108,8 +114,7 @@ describe("test-changed script", () => {
       };
     });
 
-    const mod = await import("../../../scripts/testing/test-changed.ts");
-    const exitCode = await mod.run();
+    const exitCode = await main([]);
     expect(exitCode).toBe(0);
   });
 });

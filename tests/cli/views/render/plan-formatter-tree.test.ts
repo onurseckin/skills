@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import type { AuditFinding, AuditNotEvaluated } from "../../../../olt/scripts/src/graph/plan-audit.ts";
+import type {
+  AuditFinding,
+  AuditNotEvaluated,
+} from "../../../../olt/scripts/src/graph/plan-audit.ts";
 import {
   formatAutoPartitionBrief,
   formatPlanApplyBrief,

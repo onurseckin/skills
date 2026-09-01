@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { publishPacket } from "../../../olt/scripts/src/packets/persist-packet.ts";
 import { createPacketBundle } from "../../../olt/scripts/src/packets/packet-bundle.ts";
 import type { BuiltPacket } from "../../../olt/scripts/src/packets/types.ts";
-import { TestPort, workflowState, repositoryBinding } from "../../workflow/test-port.ts";
+import { TestPort, workflowState, repositoryBinding } from "../../workflow/index.ts";
 import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";
 
 function createPacket(

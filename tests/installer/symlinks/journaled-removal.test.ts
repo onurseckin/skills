@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { removeJournaledPath } from "../../../olt/scripts/src/installer/journaled-removal.ts";
 import { pathIdentity } from "../../../olt/scripts/src/installer/path-safety.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
 
 describe("removeJournaledPath", () => {
   test("is a no-op when the path is already gone", async () => {

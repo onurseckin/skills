@@ -12,13 +12,7 @@ import {
   type TaskTimestampSummary,
   type ValidationInterval,
 } from "./metrics-collector-helpers.ts";
-import type {
-  FileChurnRecord,
-  RollupMetrics,
-  TimingBreakdown,
-  TokenEstimation,
-  TokenUsageDetail,
-} from "./types.ts";
+import type { FileChurnRecord, RollupMetrics, TokenEstimation } from "./types.ts";
 import type { GraphDataset } from "../graph/graph-types.ts";
 
 export {
@@ -95,8 +89,8 @@ export function collectMetrics(input: MetricsInput): RollupMetrics {
   const { runId, manifest, state, events } = input;
   const tasks = Object.values(state.tasks ?? {}) as TaskRecord[];
   const commandMap = {
-    ...(state.commands ?? {}),
-    ...(input.commands ?? {}),
+    ...state.commands,
+    ...input.commands,
   } as Record<string, CommandRecord>;
   const commands = Object.values(commandMap);
 

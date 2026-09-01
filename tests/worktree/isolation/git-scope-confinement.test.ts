@@ -22,9 +22,7 @@ describe("P55 Write Scope Confinement and Unfamiliar User Edits Preservation", (
 
     expect(isPathInWriteScope("src/authority/thread-identifier.ts", writeScope)).toBe(true);
     expect(isPathInWriteScope("src/authority/sub/deep/module.ts", writeScope)).toBe(true);
-    expect(isPathInWriteScope("tests/worktree/git-preservation.test.ts", writeScope)).toBe(
-      true,
-    );
+    expect(isPathInWriteScope("tests/worktree/git-preservation.test.ts", writeScope)).toBe(true);
     expect(isPathInWriteScope("tests/worktree/nested/deep.test.ts", writeScope)).toBe(true);
     expect(isPathInWriteScope("docs/guide.md", writeScope)).toBe(true);
     expect(isPathInWriteScope("config.json", writeScope)).toBe(true);

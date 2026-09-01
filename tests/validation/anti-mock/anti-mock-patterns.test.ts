@@ -15,7 +15,6 @@ import type {
   MutationTestRunOutcome,
 } from "../../../olt/scripts/src/validation/anti-mock/index.ts";
 
-
 describe("Unified AntiMockEngine & Diagnostics", () => {
   test("evaluates complete suite passing all 3 pillars", async () => {
     const testSource = `
@@ -205,4 +204,3 @@ describe("Unified AntiMockEngine & Diagnostics", () => {
     expect(formatted).toContain("ANTI-MOCK AGP VALIDATION ENGINE REPORT");
   });
 });
-

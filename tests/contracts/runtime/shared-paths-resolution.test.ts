@@ -1,7 +1,7 @@
-import { describe, expect, test, afterAll } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import * as fs from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { tmpdir, homedir } from "node:os";
+import { homedir } from "node:os";
 import {
   findRepoRoot,
   loadSkillGlobalConfig,
@@ -22,20 +22,28 @@ import {
   resolveTelemetryPath,
   resolveWatchdogsPath,
 } from "../../../olt/scripts/src/core/shared/paths.ts";
+import {
+  cleanupVirtualBrowserFS,
+  setupVirtualBrowserFS,
+  tempDir,
+} from "../../reporting/browser/browser-virtual-fs.ts";
 
-export const sharedPathsResolutionSuiteName = "core shared/paths: canonical directory resolution, file paths, global config";
+export const sharedPathsResolutionSuiteName =
+  "core shared/paths: canonical directory resolution, file paths, global config";
 
 describe(sharedPathsResolutionSuiteName, () => {
-  const scratchBase = join(tmpdir(), `shared-paths-resolution-tests-${Date.now()}`);
+  beforeEach(() => {
+    setupVirtualBrowserFS();
+  });
 
-  afterAll(() => {
-    rmSync(scratchBase, { recursive: true, force: true });
+  afterEach(() => {
+    cleanupVirtualBrowserFS();
   });
 
   test("resolveCapsulesDir and resolveOltDir are idempotent and never double-nest (Matrix rows 9-10)", () => {
-    const base = join(scratchBase, "idempotent-repo");
-    mkdirSync(join(base, ".olt", "capsules"), { recursive: true });
-    writeFileSync(join(base, "package.json"), "{}", "utf-8");
+    const base = tempDir("idempotent-repo");
+    fs.mkdirSync(join(base, ".olt", "capsules"), { recursive: true });
+    fs.writeFileSync(join(base, "package.json"), "{}", "utf-8");
 
     expect(resolveCapsulesDir(base)).toBe(join(base, ".olt", "capsules"));
     expect(resolveCapsulesDir(join(base, ".olt"))).toBe(join(base, ".olt", "capsules"));
@@ -43,8 +51,6 @@ describe(sharedPathsResolutionSuiteName, () => {
 
     expect(resolveOltDir(base)).toBe(join(base, ".olt"));
     expect(resolveOltDir(join(base, ".olt"))).toBe(join(base, ".olt"));
-
-    rmSync(base, { recursive: true, force: true });
   });
 
   test("resolveScratchDir creates predictable process-isolated scratch paths", () => {
@@ -54,8 +60,7 @@ describe(sharedPathsResolutionSuiteName, () => {
   });
 
   test("resolves all canonical OLT file and directory paths with and without custom overrides", () => {
-    const customRepo = join(scratchBase, "custom-repo");
-    mkdirSync(customRepo, { recursive: true });
+    const customRepo = tempDir("custom-repo");
 
     expect(resolveOltDir(customRepo)).toBe(join(customRepo, OLT_DIR_NAME));
     expect(resolveOltDir()).toBe(join(findRepoRoot(), OLT_DIR_NAME));
@@ -119,16 +124,10 @@ describe(sharedPathsResolutionSuiteName, () => {
     expect(resolveWatchdogsPath()).toContain(OLT_FILES.WATCHDOGS);
 
     // Evidence directory resolution
-    const runRoot = join(scratchBase, "active-run");
-    mkdirSync(runRoot, { recursive: true });
+    const runRoot = tempDir("active-run");
     expect(resolveEvidenceDir(customRepo, runRoot)).toBe(join(runRoot, "evidence"));
-    expect(resolveEvidenceDir(customRepo, join(scratchBase, "nonexistent-run"))).toContain(
-      "evidence",
-    );
+    expect(resolveEvidenceDir(customRepo, tempDir("nonexistent-run"))).toContain("evidence");
     expect(resolveEvidenceDir()).toContain("evidence");
-
-    rmSync(customRepo, { recursive: true, force: true });
-    rmSync(runRoot, { recursive: true, force: true });
   });
 
   test("resolveSkillGlobalConfigPath returns canonical skill-config.json path under ~/.agents/skills/olt", () => {
@@ -140,63 +139,49 @@ describe(sharedPathsResolutionSuiteName, () => {
   test("loadSkillGlobalConfig correctly reads valid config, or returns null for corrupted / missing file", () => {
     const configPath = resolveSkillGlobalConfigPath();
     const configDir = dirname(configPath);
-    const backup = existsSync(configPath) ? readFileSync(configPath, "utf-8") : null;
+    fs.mkdirSync(configDir, { recursive: true });
 
-    try {
-      mkdirSync(configDir, { recursive: true });
+    // 1. Valid config
+    const validConfig = {
+      home_repo_root: "/path/to/home/repo",
+      synced_at: "2026-08-24T12:00:00.000Z",
+      version: "1.0.0",
+    };
+    fs.writeFileSync(configPath, JSON.stringify(validConfig, null, 2), "utf-8");
+    const loaded = loadSkillGlobalConfig();
+    expect(loaded).not.toBeNull();
+    expect(loaded?.home_repo_root).toBe("/path/to/home/repo");
+    expect(loaded?.version).toBe("1.0.0");
+    expect(loaded?.synced_at).toBe("2026-08-24T12:00:00.000Z");
 
-      // 1. Valid config
-      const validConfig = {
-        home_repo_root: "/path/to/home/repo",
-        synced_at: "2026-08-24T12:00:00.000Z",
-        version: "1.0.0",
-      };
-      writeFileSync(configPath, JSON.stringify(validConfig, null, 2), "utf-8");
-      const loaded = loadSkillGlobalConfig();
-      expect(loaded).not.toBeNull();
-      expect(loaded?.home_repo_root).toBe("/path/to/home/repo");
-      expect(loaded?.version).toBe("1.0.0");
-      expect(loaded?.synced_at).toBe("2026-08-24T12:00:00.000Z");
+    // 2. Corrupted JSON
+    fs.writeFileSync(configPath, "{ malformed json: true", "utf-8");
+    expect(loadSkillGlobalConfig()).toBeNull();
 
-      // 2. Corrupted JSON
-      writeFileSync(configPath, "{ malformed json: true", "utf-8");
-      expect(loadSkillGlobalConfig()).toBeNull();
+    // 3. Object without home_repo_root or non-string home_repo_root
+    fs.writeFileSync(configPath, JSON.stringify({ version: "1.0.0" }), "utf-8");
+    expect(loadSkillGlobalConfig()).toBeNull();
 
-      // 3. Object without home_repo_root or non-string home_repo_root
-      writeFileSync(configPath, JSON.stringify({ version: "1.0.0" }), "utf-8");
-      expect(loadSkillGlobalConfig()).toBeNull();
+    fs.writeFileSync(configPath, JSON.stringify({ home_repo_root: 123 }), "utf-8");
+    expect(loadSkillGlobalConfig()).toBeNull();
 
-      writeFileSync(configPath, JSON.stringify({ home_repo_root: 123 }), "utf-8");
-      expect(loadSkillGlobalConfig()).toBeNull();
-
-      // 4. Non-existent file
-      rmSync(configPath, { force: true });
-      expect(loadSkillGlobalConfig()).toBeNull();
-    } finally {
-      if (backup !== null) {
-        writeFileSync(configPath, backup, "utf-8");
-      } else {
-        rmSync(configPath, { force: true });
-      }
-    }
+    // 4. Non-existent file
+    fs.rmSync(configPath, { force: true });
+    expect(loadSkillGlobalConfig()).toBeNull();
   });
 
   test("resolveSkillHomeRepo: an explicit currentRepoRoot always wins; only an omitted argument falls through env, then global config, then findRepoRoot", () => {
-    const testDir = join(scratchBase, "skill-home-test");
-    const customHome = join(scratchBase, "custom-home-repo");
-    const globalHome = join(scratchBase, "global-home-repo");
-    mkdirSync(testDir, { recursive: true });
-    mkdirSync(customHome, { recursive: true });
-    mkdirSync(globalHome, { recursive: true });
+    const testDir = tempDir("skill-home-test");
+    const customHome = tempDir("custom-home-repo");
+    const globalHome = tempDir("global-home-repo");
 
     const configPath = resolveSkillGlobalConfigPath();
     const configDir = dirname(configPath);
-    const backup = existsSync(configPath) ? readFileSync(configPath, "utf-8") : null;
     const oldEnv = process.env["OLT_SKILL_HOME_REPO"];
 
     try {
-      mkdirSync(configDir, { recursive: true });
-      writeFileSync(
+      fs.mkdirSync(configDir, { recursive: true });
+      fs.writeFileSync(
         configPath,
         JSON.stringify({
           home_repo_root: globalHome,
@@ -211,13 +196,13 @@ describe(sharedPathsResolutionSuiteName, () => {
 
       expect(resolveSkillHomeRepo()).toBe(resolve(customHome));
 
-      process.env["OLT_SKILL_HOME_REPO"] = join(scratchBase, "nonexistent-dir");
+      process.env["OLT_SKILL_HOME_REPO"] = "/virtual/scratch/nonexistent-dir";
       expect(resolveSkillHomeRepo()).toBe(resolve(globalHome));
 
-      writeFileSync(
+      fs.writeFileSync(
         configPath,
         JSON.stringify({
-          home_repo_root: join(scratchBase, "nonexistent-global-root"),
+          home_repo_root: "/virtual/scratch/nonexistent-global-root",
           synced_at: new Date().toISOString(),
           version: "1.0.0",
         }),
@@ -226,7 +211,7 @@ describe(sharedPathsResolutionSuiteName, () => {
       delete process.env["OLT_SKILL_HOME_REPO"];
       expect(resolveSkillHomeRepo()).toBe(findRepoRoot());
 
-      rmSync(configPath, { force: true });
+      fs.rmSync(configPath, { force: true });
       expect(resolveSkillHomeRepo()).toBe(findRepoRoot());
     } finally {
       if (oldEnv !== undefined) {
@@ -234,16 +219,6 @@ describe(sharedPathsResolutionSuiteName, () => {
       } else {
         delete process.env["OLT_SKILL_HOME_REPO"];
       }
-
-      if (backup !== null) {
-        writeFileSync(configPath, backup, "utf-8");
-      } else {
-        rmSync(configPath, { force: true });
-      }
-
-      rmSync(testDir, { recursive: true, force: true });
-      rmSync(customHome, { recursive: true, force: true });
-      rmSync(globalHome, { recursive: true, force: true });
     }
   });
 });

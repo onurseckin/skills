@@ -260,5 +260,30 @@ describe("Tool Schema Codegen & Converter Suite", () => {
       expect(catalogCode).toContain('"tool_beta": ToolBetaArgs;');
       expect(catalogCode).toContain("export type AppToolsName = keyof AppToolsMap;");
     });
+
+    it("generates type alias and handles nested object parameters", () => {
+      const tool: ToolDefinition = {
+        name: "configure_server",
+        description: "Configures server instance",
+        category: "infra",
+        parameters: [
+          {
+            name: "options",
+            type: "object",
+            description: "Server options",
+            required: true,
+            properties: [
+              { name: "port", type: "number", description: "Port number", required: true },
+              { name: "ssl", type: "boolean", description: "Enable SSL" },
+            ],
+          },
+        ],
+      };
+
+      const typeCode = toolDefinitionToTypeScript(tool, { exportType: "type" });
+      expect(typeCode).toContain("export type ConfigureServerArgs = {");
+      expect(typeCode).toContain("port: number;");
+      expect(typeCode).toContain("ssl?: boolean;");
+    });
   });
 });

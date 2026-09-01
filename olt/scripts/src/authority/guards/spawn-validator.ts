@@ -78,7 +78,12 @@ export function validateSubagentSpawnRequest(
   request: SubagentSpawnRequest,
   options?: SpawnValidatorOptions,
 ): SubagentSpawnValidationResult {
-  if (!request || typeof request !== "object" || typeof request.role !== "string" || !request.role.trim()) {
+  if (
+    !request ||
+    typeof request !== "object" ||
+    typeof request.role !== "string" ||
+    !request.role.trim()
+  ) {
     return {
       allowed: false,
       role: typeof request?.role === "string" ? request.role : "unknown",

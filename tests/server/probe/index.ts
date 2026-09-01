@@ -3,7 +3,4 @@
  * Facade for Server Probe test suite.
  */
 
-export const serverProbeSuite = [
-  "socket-conflict",
-  "tcp-probe",
-] as const;
+export const serverProbeSuite = ["socket-conflict", "tcp-probe"] as const;

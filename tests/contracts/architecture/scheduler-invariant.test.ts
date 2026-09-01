@@ -3,7 +3,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
 
-export const schedulerInvariantSuiteName = "Mandatory Supervisory Scheduler Invariant & Rule 16 Contract";
+export const schedulerInvariantSuiteName =
+  "Mandatory Supervisory Scheduler Invariant & Rule 16 Contract";
 
 const skillRoot = join(process.cwd(), "olt");
 const skillPath = join(skillRoot, "SKILL.md");

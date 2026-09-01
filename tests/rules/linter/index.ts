@@ -17,15 +17,9 @@ export {
   trivialEarlyReturnRule,
 } from "../../../olt/scripts/src/linter/rules/index.ts";
 
-export {
-  lintSourceCode,
-  lintFile,
-} from "../../../olt/scripts/src/linter/ast/runner.ts";
+export { lintSourceCode, lintFile } from "../../../olt/scripts/src/linter/ast/runner.ts";
 
-export {
-  lintDirectory,
-  collectSourceFiles,
-} from "../../../olt/scripts/src/linter/ast/scanner.ts";
+export { lintDirectory, collectSourceFiles } from "../../../olt/scripts/src/linter/ast/scanner.ts";
 
 export type {
   AstLintRuleModule,

@@ -4,6 +4,7 @@
  */
 
 export { VirtualMemoryFS, normalizePosixPath, virtualFS } from "./memory-fs.ts";
+export { createVirtualFSSession, type VirtualFSSession } from "./spies.ts";
 
 export {
   VirtualDirent,

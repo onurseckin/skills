@@ -38,7 +38,8 @@ describe("Review Pushback - Counterfactuals & Verification Audit", () => {
   it("auditTaskVerificationEvidence performs complete multi-check validation", () => {
     const input: TaskVerificationEvidenceInput = {
       taskId: "task-100",
-      summary: "Implemented in-memory session store with comprehensive test coverage and passed proofs.",
+      summary:
+        "Implemented in-memory session store with comprehensive test coverage and passed proofs.",
       domainEvidence: {
         "code-quality": { testsPass: true },
         security: { sanitizePath: true },
@@ -50,9 +51,7 @@ describe("Review Pushback - Counterfactuals & Verification Audit", () => {
           falsified: true,
         },
       ],
-      checks: [
-        { command: "bun test", exit_code: 0, output: "10 pass" },
-      ],
+      checks: [{ command: "bun test", exit_code: 0, output: "10 pass" }],
     };
 
     const audit = auditTaskVerificationEvidence(input, {

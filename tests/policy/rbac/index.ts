@@ -3,19 +3,16 @@ export {
   isTargetTestArgument,
   isUntargetedTestCommand,
   hasUnshieldedSubshellOrChaining,
-  isCommandAuthorizedForRole,
-  isActionAllowedForRole,
-  FORBIDDEN_SUPERVISOR_PATTERNS,
-  FORBIDDEN_COGNITIVE_VALIDATOR_PATTERNS,
-  FORBIDDEN_IMPLEMENTER_PATTERNS,
+  verifyCommandAuthorization,
+  FORBIDDEN_SUBSHELL_AND_EVAL_PATTERNS,
+  STATIC_SUPERVISOR_FORBIDDEN_PATTERNS,
+  STATIC_IMPLEMENTER_FORBIDDEN_PATTERNS,
 } from "../../../olt/scripts/src/policy/rbac/index.ts";
 export type {
-  Role,
-  ActionType,
-  RBACDecision,
-  RBACVerificationResult,
-  EffectiveForbiddenRules,
-} from "../../../olt/scripts/src/policy/rbac/types.ts";
-export {
-  mockRolePolicies,
-} from "./fixtures.ts";
+  AuthorizationResult,
+  TestRunnerSpec,
+  ActorInput,
+  CommandDispatch,
+  SubshellDetectionResult,
+} from "../../../olt/scripts/src/policy/rbac/index.ts";
+export { samplePolicy, createActor } from "./fixtures.ts";

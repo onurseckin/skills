@@ -72,8 +72,8 @@ export function admitAndDispatchFeedbackAtomically(
   }
 
   const updatedMetadata: Record<string, unknown> = {
-    ...(targetItem.metadata ?? {}),
-    ...(dispatchRes.metadata ?? {}),
+    ...targetItem.metadata,
+    ...dispatchRes.metadata,
     dispatched_task_id: dispatchRes.taskId.trim(),
     atomic_dispatched_at: nowIso,
   };

@@ -1,40 +1,51 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, test, spyOn } from "bun:test";
 import { checkModularity } from "../../../scripts/modularity/index.ts";
 import { findGeneratedCatalogViolations } from "../../../scripts/modularity/policy/index.ts";
+import * as inventoryModule from "../../../scripts/modularity/inventory/index.ts";
+import * as policyModule from "../../../scripts/modularity/policy/index.ts";
+import type { IndexedBlob } from "../../../scripts/modularity/inventory/index.ts";
 
-function blob(path: string, content: string) {
-  return { path, bytes: new TextEncoder().encode(content) };
+function blob(path: string, content: string): IndexedBlob {
+  return { path, oid: "oid-test", bytes: new TextEncoder().encode(content) };
 }
 
-async function gitInFixture(repo: string, args: readonly string[]): Promise<void> {
-  const proc = Bun.spawn(["git", "-C", repo, ...args], { stderr: "pipe" });
-  if ((await proc.exited) !== 0) {
-    throw new Error(await new Response(proc.stderr).text());
-  }
-}
+describe("checkModularity orchestrator (in-memory virtual)", () => {
+  const repoRoot = `${process.cwd()}/.olt/virtual-mod-checker-repo`;
+  let memoryTreeBlobs: IndexedBlob[] = [];
+  let memoryIndexBlobs: IndexedBlob[] = [];
+  const spies: { mockRestore: () => void }[] = [];
 
-describe("checkModularity orchestrator", () => {
-  let tempRepo: string | undefined;
+  beforeEach(() => {
+    memoryTreeBlobs = [];
+    memoryIndexBlobs = [];
 
-  beforeEach(async () => {
-    tempRepo = await mkdtemp(join(tmpdir(), "mod-checker-test-"));
-    await gitInFixture(tempRepo, ["init", "--quiet", "--initial-branch", "main"]);
+    spies.push(
+      spyOn(inventoryModule, "readTreeBlobs").mockImplementation(async () => memoryTreeBlobs),
+    );
+    spies.push(
+      spyOn(inventoryModule, "readIndexedBlobs").mockImplementation(async () => memoryIndexBlobs),
+    );
+    spies.push(
+      spyOn(policyModule, "loadBaseline").mockImplementation(async (_root, baselinePath) => {
+        if (baselinePath.includes("outside")) {
+          throw new Error("Invalid modularity baseline: baseline path is outside the repository");
+        }
+        return {
+          schema: "olt-modularity-baseline/v1",
+          violations: [],
+        };
+      }),
+    );
   });
 
-  afterEach(async () => {
-    if (tempRepo) {
-      await rm(tempRepo, { recursive: true, force: true });
-      tempRepo = undefined;
-    }
+  afterEach(() => {
+    while (spies.length > 0) spies.pop()?.mockRestore();
   });
 
   test("rejects a baseline path outside the repository", async () => {
     await expect(
       checkModularity({
-        repoRoot: process.cwd(),
+        repoRoot,
         mode: "ratchet",
         source: "index",
         baselinePath: "../outside.json",
@@ -43,17 +54,14 @@ describe("checkModularity orchestrator", () => {
   });
 
   test("runs checkModularity in strict mode on tree with clean repository", async () => {
-    if (!tempRepo) throw new Error("Missing temp repo");
-    await writeFile(join(tempRepo, "README.md"), "# Test\n");
-    await writeFile(
-      join(tempRepo, "package.json"),
-      JSON.stringify({ name: "test", version: "1.0.0" }),
-    );
-    await mkdir(join(tempRepo, "src"), { recursive: true });
-    await writeFile(join(tempRepo, "src", "index.ts"), "export const a = 1;\n");
+    memoryTreeBlobs = [
+      blob("README.md", "# Test\n"),
+      blob("package.json", JSON.stringify({ name: "test", version: "1.0.0" })),
+      blob("src/index.ts", "export const a = 1;\n"),
+    ];
 
     const report = await checkModularity({
-      repoRoot: tempRepo,
+      repoRoot,
       mode: "strict",
       source: "tree",
     });
@@ -66,18 +74,16 @@ describe("checkModularity orchestrator", () => {
   });
 
   test("runs checkModularity in strict mode on index with violations", async () => {
-    if (!tempRepo) throw new Error("Missing temp repo");
-    await writeFile(join(tempRepo, "unapproved.txt"), "hello");
-    await mkdir(join(tempRepo, "src"), { recursive: true });
-    await writeFile(join(tempRepo, "src", "index.ts"), "export const x = 1;\n".repeat(305));
-    await writeFile(join(tempRepo, "src", "a.ts"), 'import "./b.ts";\nexport const a = 1;\n');
-    await writeFile(join(tempRepo, "src", "b.ts"), 'import "./a.ts";\nexport const b = 2;\n');
-    await writeFile(join(tempRepo, "src", "star.ts"), 'export * from "./a.ts";\n');
-
-    await gitInFixture(tempRepo, ["add", "."]);
+    memoryIndexBlobs = [
+      blob("unapproved.txt", "hello"),
+      blob("src/index.ts", "export const x = 1;\n".repeat(305)),
+      blob("src/a.ts", 'import "./b.ts";\nexport const a = 1;\n'),
+      blob("src/b.ts", 'import "./a.ts";\nexport const b = 2;\n'),
+      blob("src/star.ts", 'export * from "./a.ts";\n'),
+    ];
 
     const report = await checkModularity({
-      repoRoot: tempRepo,
+      repoRoot,
       mode: "strict",
       source: "index",
     });
@@ -89,20 +95,13 @@ describe("checkModularity orchestrator", () => {
   });
 
   test("runs checkModularity in ratchet mode with custom baseline in subdirectory", async () => {
-    if (!tempRepo) throw new Error("Missing temp repo");
-    await writeFile(join(tempRepo, "README.md"), "# Test\n");
-    await mkdir(join(tempRepo, "src"), { recursive: true });
-    await writeFile(join(tempRepo, "src", "index.ts"), "export const a = 1;\n");
-    await mkdir(join(tempRepo, "config"), { recursive: true });
-
-    const baselineContent = JSON.stringify({
-      schema: "olt-modularity-baseline/v1",
-      violations: [],
-    });
-    await writeFile(join(tempRepo, "config", "baseline.json"), baselineContent);
+    memoryTreeBlobs = [
+      blob("README.md", "# Test\n"),
+      blob("src/index.ts", "export const a = 1;\n"),
+    ];
 
     const report = await checkModularity({
-      repoRoot: tempRepo,
+      repoRoot,
       mode: "ratchet",
       source: "tree",
       baselinePath: "config/baseline.json",
@@ -113,19 +112,13 @@ describe("checkModularity orchestrator", () => {
   });
 
   test("runs checkModularity in ratchet mode on repo root with default baseline", async () => {
-    if (!tempRepo) throw new Error("Missing temp repo");
-    await writeFile(join(tempRepo, "README.md"), "# Test\n");
-    await writeFile(
-      join(tempRepo, "package.json"),
-      JSON.stringify({ name: "test", version: "1.0.0" }),
-    );
-    await mkdir(join(tempRepo, "scripts", "modularity", "baseline"), { recursive: true });
-    await writeFile(
-      join(tempRepo, "scripts", "modularity", "baseline", "index.json"),
-      JSON.stringify({ schema: "olt-modularity-baseline/v1", violations: [] }),
-    );
+    memoryTreeBlobs = [
+      blob("README.md", "# Test\n"),
+      blob("package.json", JSON.stringify({ name: "test", version: "1.0.0" })),
+    ];
+
     const report = await checkModularity({
-      repoRoot: tempRepo,
+      repoRoot,
       mode: "ratchet",
       source: "tree",
     });

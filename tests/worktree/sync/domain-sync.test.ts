@@ -11,12 +11,7 @@ import {
   type DomainSyncResult,
   type GlobalSyncSummary,
 } from "../../../olt/scripts/src/engine/worktree/domain-sync.ts";
-import {
-  FakeRunStore,
-  baseLedger,
-  seedLedger,
-  seedTask,
-} from "../../workflow/worktree/fixtures/fake-transact.ts";
+import { FakeRunStore, baseLedger, seedLedger, seedTask } from "../fixtures/index.ts";
 
 describe("Domain Sync: Isolation, Eligibility & Store Records", () => {
   describe("domain isolation validation", () => {

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, spyOn, test } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
@@ -202,19 +202,30 @@ describe("scripts/sync/index.ts", () => {
     }
   });
 
-  test("runs as CLI entrypoint with spawnSync", () => {
+  test("runs as CLI entrypoint with main", async () => {
     const root = scratchRoot(import.meta.path, "sync-cli-exec");
     const repo = join(root, "repo");
     initFakeSkillsRepo(repo);
 
-    const scriptPath = join(process.cwd(), "scripts/sync/index.ts");
-    const result = spawnSync("bun", [scriptPath, "--allow-dirty"], {
-      cwd: repo,
-      encoding: "utf-8",
-      env: { ...process.env, HOME: join(root, "home") },
+    const origCwd = process.cwd();
+    const origHome = process.env.HOME;
+    const logs: string[] = [];
+    const logSpy = spyOn(console, "log").mockImplementation((msg) => {
+      logs.push(String(msg));
     });
 
-    expect(result.status).toBe(0);
-    expect(result.stdout).toContain("Global skill sync complete");
+    try {
+      process.env.HOME = join(root, "home");
+      process.chdir(repo);
+      await main(["--allow-dirty"]);
+      expect(logs.some((l) => l.includes("Global skill sync complete"))).toBeTrue();
+    } finally {
+      logSpy.mockRestore();
+      process.chdir(origCwd);
+      if (origHome !== undefined) {
+        process.env.HOME = origHome;
+      }
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

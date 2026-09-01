@@ -72,7 +72,12 @@ describe("Authority Session Comprehensive - Operations & Lifecycle", () => {
         write_scope: ["src/file.ts"],
       }),
     );
-    const pidSession = resolveActiveSession({ cwd: sandbox, runRoot: sandbox, pid: 98765, env: {} });
+    const pidSession = resolveActiveSession({
+      cwd: sandbox,
+      runRoot: sandbox,
+      pid: 98765,
+      env: {},
+    });
     expect(pidSession?.task_id).toBe("task-1");
   });
 
@@ -119,7 +124,10 @@ describe("Authority Session Comprehensive - Operations & Lifecycle", () => {
 
     expect(() => pruneStaleSessions(0)).not.toThrow();
 
-    const derived = autoDeriveCallerIdentity({ explicitActor: "implementer_task-1", explicitToken: "tok-1" });
+    const derived = autoDeriveCallerIdentity({
+      explicitActor: "implementer_task-1",
+      explicitToken: "tok-1",
+    });
     expect(derived.actor).toBe("implementer_task-1");
     expect(derived.role).toBe("implementer");
     expect(derived.token).toBe("tok-1");
@@ -147,11 +155,19 @@ describe("Authority Session Comprehensive - Operations & Lifecycle", () => {
     };
 
     expect(() =>
-      requireTurn1Registration({ ...dummyBase, token: "unauthenticated", mechanisms_detected: ["registration"] }),
+      requireTurn1Registration({
+        ...dummyBase,
+        token: "unauthenticated",
+        mechanisms_detected: ["registration"],
+      }),
     ).toThrow("unauthenticated: turn 1 registration token required");
 
     expect(() =>
-      requireTurn1Registration({ ...dummyBase, token: "tok_valid", mechanisms_detected: ["interactive_terminal_fallback"] }),
+      requireTurn1Registration({
+        ...dummyBase,
+        token: "tok_valid",
+        mechanisms_detected: ["interactive_terminal_fallback"],
+      }),
     ).toThrow("missing run_id in session identity");
 
     expect(() =>
@@ -220,7 +236,15 @@ describe("Authority Session Comprehensive - Operations & Lifecycle", () => {
     const activeState = {
       schema_version: 1,
       run_id: "run-lease-1",
-      tasks: { "task-1": { id: "task-1", lease: { agent_id: "active-worker", expires_at: new Date(Date.now() + 60000).toISOString() } } },
+      tasks: {
+        "task-1": {
+          id: "task-1",
+          lease: {
+            agent_id: "active-worker",
+            expires_at: new Date(Date.now() + 60000).toISOString(),
+          },
+        },
+      },
       agents: [],
     };
     setInMemorySessionData(`${capsuleDir}/state.json`, JSON.stringify(activeState));
@@ -229,7 +253,15 @@ describe("Authority Session Comprehensive - Operations & Lifecycle", () => {
     const expiredState = {
       schema_version: 1,
       run_id: "run-lease-1",
-      tasks: { "task-1": { id: "task-1", lease: { agent_id: "expired-worker", expires_at: new Date(Date.now() - 60000).toISOString() } } },
+      tasks: {
+        "task-1": {
+          id: "task-1",
+          lease: {
+            agent_id: "expired-worker",
+            expires_at: new Date(Date.now() - 60000).toISOString(),
+          },
+        },
+      },
       agents: [],
     };
     setInMemorySessionData(`${capsuleDir}/state.json`, JSON.stringify(expiredState));

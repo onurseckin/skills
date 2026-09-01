@@ -1,19 +1,14 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import * as fs from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
-import {
-  initRun,
-  loadIndex,
-  indexFreshness,
-} from "../../../olt/scripts/src/engine/store/index.ts";
+import { initRun, loadIndex, indexFreshness } from "../../../olt/scripts/src/engine/store/index.ts";
 import { ingestScreenshots } from "../../../olt/scripts/src/reporting/screenshot-ingestion.ts";
 import { runDoctor, versionAtLeast } from "../../../olt/scripts/src/reporting/doctor.ts";
-
-const roots: string[] = [];
-afterEach(async () =>
-  Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))),
-);
+import {
+  cleanupVirtualBrowserFS,
+  setupVirtualBrowserFS,
+  tempDir,
+} from "../browser/browser-run-fixture.ts";
 
 function capsuleCatalogue(runRoot: string) {
   let index;
@@ -42,6 +37,14 @@ function capsuleCatalogue(runRoot: string) {
 export const statusDoctorGapsSuiteName = "versionAtLeast & status doctor gaps";
 
 describe(statusDoctorGapsSuiteName, () => {
+  beforeEach(() => {
+    setupVirtualBrowserFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualBrowserFS();
+  });
+
   test("an exact version match is at least the minimum, falling through every component check", () => {
     expect(versionAtLeast("1.3.0", "1.3.0")).toBe(true);
   });
@@ -62,13 +65,20 @@ describe(statusDoctorGapsSuiteName, () => {
 });
 
 describe("capsule catalogue byte accounting", () => {
-  test("stored_bytes sums the actual size of every stored blob", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "harness-catalogue-"));
-    roots.push(repo);
+  beforeEach(() => {
+    setupVirtualBrowserFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualBrowserFS();
+  });
+
+  test("stored_bytes sums the actual size of every stored blob", () => {
+    const repo = tempDir("harness-catalogue");
     const run = initRun(repo, "catalogue-run", new TextEncoder().encode("Prompt"), "file", true);
 
     const source = join(repo, "shot.png");
-    await writeFile(source, "0123456789", "utf-8");
+    fs.writeFileSync(source, "0123456789", "utf-8");
     ingestScreenshots({ runRoot: run, explicitPaths: [source] });
 
     const catalogue = capsuleCatalogue(run);
@@ -78,22 +88,28 @@ describe("capsule catalogue byte accounting", () => {
     expect(catalogue.stored_bytes).toBe(10);
   });
 
-  test("an unreadable index is reported as unavailable rather than thrown", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "harness-catalogue-broken-"));
-    roots.push(repo);
+  test("an unreadable index is reported as unavailable rather than thrown", () => {
+    const repo = tempDir("harness-catalogue-broken");
     const run = initRun(repo, "broken-index-run", new TextEncoder().encode("Prompt"), "file", true);
-    await writeFile(join(run, "index.json"), "{not json", "utf-8");
+    fs.writeFileSync(join(run, "index.json"), "{not json", "utf-8");
 
     expect(capsuleCatalogue(run)).toEqual({ available: false, freshness: "unknown" });
   });
 });
 
 describe("doctor integrity reporting", () => {
+  beforeEach(() => {
+    setupVirtualBrowserFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualBrowserFS();
+  });
+
   test("a corrupt state.json is surfaced as a code-labelled integrity issue", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "harness-doctor-corrupt-"));
-    roots.push(repo);
+    const repo = tempDir("harness-doctor-corrupt");
     const run = initRun(repo, "corrupt-run", new TextEncoder().encode("Prompt"), "file", true);
-    await writeFile(join(run, "state.json"), "{not json", "utf-8");
+    fs.writeFileSync(join(run, "state.json"), "{not json", "utf-8");
 
     const report = await runDoctor(run);
 

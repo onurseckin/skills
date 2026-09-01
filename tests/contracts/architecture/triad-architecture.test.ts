@@ -2,7 +2,8 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-export const triadArchitectureSuiteName = "Directive p06: Agent Triad Architecture & Host Provider Taxonomy";
+export const triadArchitectureSuiteName =
+  "Directive p06: Agent Triad Architecture & Host Provider Taxonomy";
 
 describe(triadArchitectureSuiteName, () => {
   const root = process.cwd();

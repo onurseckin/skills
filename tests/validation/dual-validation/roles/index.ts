@@ -3,7 +3,13 @@
  */
 export {
   assertCognitiveValidatorHardlock,
-  assertValidatorRoleConfinement,
-  loadValidatorDomainContract,
-  type ValidatorDomain,
-} from "../../../../olt/scripts/src/validation/dual-validation.ts";
+  isCognitiveValidatorRole,
+  isMechanicValidatorRole,
+  isExecutionCommand,
+  isExecutionToolCategory,
+  isProhibitedCognitiveTool,
+  validateHierarchicalSpawning,
+  assertHierarchicalSpawning,
+  assertRoleMayInvoke,
+  assertGrantedCommand,
+} from "../../../../olt/scripts/src/packets/command-authority.ts";

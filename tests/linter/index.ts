@@ -1,7 +1,4 @@
-export {
-  autofixTransformsSuiteName,
-  refactoringSuggestionsSuiteName,
-} from "./autofix/index.ts";
+export { autofixTransformsSuiteName, refactoringSuggestionsSuiteName } from "./autofix/index.ts";
 
 export {
   complianceGuardSuiteName,
@@ -9,10 +6,7 @@ export {
   linterEngineSuiteName,
 } from "./engine/index.ts";
 
-export {
-  helperGuardsSuiteName,
-  lintReporterSuiteName,
-} from "./formatting/index.ts";
+export { helperGuardsSuiteName, lintReporterSuiteName } from "./formatting/index.ts";
 
 export {
   fallbackRulesSuiteName,

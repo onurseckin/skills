@@ -101,25 +101,13 @@ describe("plan:validate-start and plan:review - Validation Lifecycle", () => {
   test("rejects plan:validate-start with unrecognised validator agent", async () => {
     const { run } = await setupCompiledRun("plan-val-bad-agent", roots);
     await expect(
-      execute([
-        "plan:validate-start",
-        "--run",
-        run,
-        "--validator",
-        "impostor-agent",
-      ]),
+      execute(["plan:validate-start", "--run", run, "--validator", "impostor-agent"]),
     ).rejects.toThrow();
   });
 
   test("rejects review with wrong validator token", async () => {
     const { run } = await setupCompiledRun("plan-val-bad-token", roots);
-    await execute([
-      "plan:validate-start",
-      "--run",
-      run,
-      "--validator",
-      "plan-val-1",
-    ]);
+    await execute(["plan:validate-start", "--run", run, "--validator", "plan-val-1"]);
     await expect(
       execute([
         "plan:review",

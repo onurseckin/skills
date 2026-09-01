@@ -1,6 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { chmodSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { describe, expect, test } from "bun:test";
 import {
   buildHookChildEnvironment,
   commandContainsRecursiveDelete,
@@ -13,69 +11,56 @@ import {
 } from "../../../olt/scripts/src/hooks/index.ts";
 import { findRepoRoot } from "../../../olt/scripts/src/core/shared/paths.ts";
 
-const scratchBase = join(process.cwd(), "coverage", "scratch", "path-containment");
+export const pathContainmentSuiteName = "Lifecycle Hooks - Security & Path Containment Suite";
 
-function getScratch(label: string): string {
-  const dir = join(scratchBase, `${label}-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  mkdirSync(dir, { recursive: true });
-  return dir;
-}
-
-function fakeRunner(handler: (executable: string, args: readonly string[]) => ProcessRunResult): {
+function fakeRunner(
+  handler: (
+    executable: string,
+    args: readonly string[],
+    options?: { cwd?: string; env?: Readonly<Record<string, string>> },
+  ) => ProcessRunResult,
+): {
   runner: ProcessRunner;
   calls: Array<{
     executable: string;
     args: readonly string[];
+    cwd?: string;
     env?: Readonly<Record<string, string>>;
   }>;
 } {
   const calls: Array<{
     executable: string;
     args: readonly string[];
+    cwd?: string;
     env?: Readonly<Record<string, string>>;
   }> = [];
   const runner: ProcessRunner = (executable, args, options) => {
-    calls.push({ executable, args, env: options.env });
-    return handler(executable, args);
+    calls.push({ executable, args, cwd: options?.cwd, env: options?.env });
+    return handler(executable, args, options);
   };
   return { runner, calls };
 }
 
 describe("Lifecycle Hooks - PATH Poisoning Hardening", () => {
-  afterEach(() => {
-    try {
-      rmSync(scratchBase, { recursive: true, force: true });
-    } catch {}
-  });
-
   test("hook.env cannot redirect an allowlisted executable to an attacker binary via PATH poisoning", async () => {
-    const dir = getScratch("path-poison");
-    const binDir = join(dir, "bin");
-    mkdirSync(binDir, { recursive: true });
-    const markerPath = join(dir, "PWNED_PATH_POISON");
-    const maliciousEcho = join(binDir, "echo");
-    writeFileSync(
-      maliciousEcho,
-      ["#!/bin/bash", `: > "${markerPath}"`, "printf 'MALICIOUS ECHO RAN: %s\\n' \"$*\"", ""].join(
-        "\n",
-      ),
-    );
-    chmodSync(maliciousEcho, 0o755);
-
     const hook: HookDefinition = {
       id: "attacker-path-poison",
       events: ["orchestrator:complete"],
       action: "shell",
       commandArgv: ["echo", "hi"],
-      env: { PATH: binDir },
+      env: { PATH: "/attacker/controlled/bin" },
     };
 
-    const result = await executeShellAction(hook, "orchestrator:complete");
+    const { runner, calls } = fakeRunner((_exe, _args, opts) => {
+      expect(opts?.env?.PATH).not.toBe("/attacker/controlled/bin");
+      return { status: 0, stdout: "hi\n", stderr: "" };
+    });
 
-    expect(existsSync(markerPath)).toBe(false);
-    expect(result.output).not.toContain("MALICIOUS ECHO RAN");
+    const result = await executeShellAction(hook, "orchestrator:complete", undefined, runner);
     expect(result.success).toBe(true);
     expect(result.output).toBe("hi");
+    expect(calls.length).toBe(1);
+    expect(calls[0]?.env?.PATH).toBeUndefined();
   });
 
   test("hook.env's PATH key is stripped from the child environment even when a custom runner is supplied", async () => {
@@ -211,23 +196,23 @@ describe("Lifecycle Hooks - Working Directory Containment", () => {
 
   test("executeShellAction pins cwd to the repo root when hook.cwd is not set, ignoring ambient process.cwd()", async () => {
     const repoRoot = findRepoRoot();
-    const otherDir = getScratch("shell-cwd-pin-ambient");
-    const originalCwd = process.cwd();
-    process.chdir(otherDir);
-    try {
-      const hook: HookDefinition = {
-        id: "shell-cwd-pin",
-        events: ["task:complete"],
-        action: "shell",
-        commandArgv: ["pwd"],
-      };
-      const result = await executeShellAction(hook, "task:complete");
-      expect(result.success).toBe(true);
-      expect(result.output).toContain(repoRoot);
-      expect(result.output).not.toContain(otherDir);
-    } finally {
-      process.chdir(originalCwd);
-    }
+    const hook: HookDefinition = {
+      id: "shell-cwd-pin",
+      events: ["task:complete"],
+      action: "shell",
+      commandArgv: ["pwd"],
+    };
+
+    const { runner, calls } = fakeRunner((_exe, _args, opts) => ({
+      status: 0,
+      stdout: `${opts?.cwd}\n`,
+      stderr: "",
+    }));
+
+    const result = await executeShellAction(hook, "task:complete", undefined, runner);
+    expect(result.success).toBe(true);
+    expect(result.output).toContain(repoRoot);
+    expect(calls[0]?.cwd).toBe(repoRoot);
   });
 });
 

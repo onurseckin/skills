@@ -4,6 +4,16 @@ import { TASK_PUSHBACK_SUITES } from "./pushback/index.ts";
 import { TASK_COVERAGE_SUITES } from "./coverage/index.ts";
 
 export {
+  scratchRoot,
+  createSandboxDir,
+  createInMemoryTaskItem,
+  createInMemoryTaskLease,
+  createInMemoryCompletionReceipts,
+  createInMemoryTaskQueue,
+  InMemoryTaskQueue,
+} from "./task-fixture.ts";
+
+export {
   createSampleQueueItemInput,
   createSampleActiveQueueItem,
   loadTaskQueue,
@@ -46,10 +56,10 @@ export {
 
 export {
   createSamplePushbackInput,
-  resolveTaskPushbackPath,
-  auditTaskVerificationClaims,
-  validateAuthorityReviewPushbackCriteria,
-  executeReviewPushback,
+  isCoordinatorPushbackCause,
+  isValidatorDomain,
+  executeCoordinatorPushback,
+  validateReviewPushbackCriteria,
   TASK_PUSHBACK_SUITES,
 } from "./pushback/index.ts";
 
@@ -59,10 +69,6 @@ export {
   pruneTaskQueue,
   getTaskQueueStats,
   listTasks,
-  isTaskItem,
-  isTaskStatus,
-  isTaskPriority,
-  validateTaskItem,
   TASK_COVERAGE_SUITES,
 } from "./coverage/index.ts";
 

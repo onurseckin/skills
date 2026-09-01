@@ -4,7 +4,13 @@ import { captureGateEnvironment } from "../../../../olt/scripts/src/engine/runne
 import { embeddedCommandIssues } from "../../../../olt/scripts/src/engine/runner/models/command/command-shape.ts";
 import { validateCompletionArtifactVerification } from "../../../../olt/scripts/src/workflow/completion/artifact-verification.ts";
 import { attachGateResult } from "../../../../olt/scripts/src/workflow/gates/attach-result.ts";
-import { at, commandRecord, repositoryBinding, TestPort, workflowState } from "../../shared/test-port.ts";
+import {
+  at,
+  commandRecord,
+  repositoryBinding,
+  TestPort,
+  workflowState,
+} from "../../shared/test-port.ts";
 
 const clock = at("2026-08-13T12:00:00.000Z");
 const argv = ["bun", "test", "tests/runner/signing/gate-path-binding.test.ts"];

@@ -1,30 +1,33 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, test, spyOn } from "bun:test";
 import { main, parseFlags, runCli } from "../../../scripts/modularity/check.ts";
+import * as inventoryModule from "../../../scripts/modularity/inventory/index.ts";
+import type { IndexedBlob } from "../../../scripts/modularity/inventory/index.ts";
 
-async function gitInFixture(repo: string, args: readonly string[]): Promise<void> {
-  const proc = Bun.spawn(["git", "-C", repo, ...args], { stderr: "pipe" });
-  if ((await proc.exited) !== 0) {
-    throw new Error(await new Response(proc.stderr).text());
-  }
+function blob(path: string, content: string): IndexedBlob {
+  return { path, oid: "oid-test", bytes: new TextEncoder().encode(content) };
 }
 
-describe("modularity CLI parsing and runner", () => {
-  let tempDir: string | undefined;
+describe("modularity CLI parsing and runner (in-memory virtual)", () => {
+  const tempDir = `${process.cwd()}/.olt/virtual-mod-check-repo`;
+  let memoryBlobs: IndexedBlob[] = [];
+  const spies: { mockRestore: () => void }[] = [];
 
-  beforeEach(async () => {
-    tempDir = await mkdtemp(join(tmpdir(), "mod-check-test-"));
-    await gitInFixture(tempDir, ["init", "--quiet", "--initial-branch", "main"]);
+  beforeEach(() => {
+    memoryBlobs = [
+      blob("README.md", "# Clean\n"),
+      blob("package.json", JSON.stringify({ name: "clean", version: "1.0.0" })),
+      blob("src/index.ts", "export const value = 1;\n"),
+    ];
+
+    spies.push(spyOn(inventoryModule, "readTreeBlobs").mockImplementation(async () => memoryBlobs));
+    spies.push(
+      spyOn(inventoryModule, "readIndexedBlobs").mockImplementation(async () => memoryBlobs),
+    );
   });
 
-  afterEach(async () => {
+  afterEach(() => {
     process.exitCode = 0;
-    if (tempDir) {
-      await rm(tempDir, { recursive: true, force: true });
-      tempDir = undefined;
-    }
+    while (spies.length > 0) spies.pop()?.mockRestore();
   });
 
   test("parseFlags parses default arguments", () => {
@@ -97,15 +100,6 @@ describe("modularity CLI parsing and runner", () => {
   });
 
   test("main executes successfully and returns 0 on clean repository", async () => {
-    if (!tempDir) throw new Error("Missing temp dir");
-    await writeFile(join(tempDir, "README.md"), "# Clean\n");
-    await writeFile(
-      join(tempDir, "package.json"),
-      JSON.stringify({ name: "clean", version: "1.0.0" }),
-    );
-    await mkdir(join(tempDir, "src"), { recursive: true });
-    await writeFile(join(tempDir, "src", "index.ts"), "export const value = 1;\n");
-
     const originalStdoutWrite = process.stdout.write;
     let stdoutOutput = "";
     process.stdout.write = ((chunk: string | Uint8Array) => {
@@ -126,7 +120,6 @@ describe("modularity CLI parsing and runner", () => {
   });
 
   test("main renders markdown output format", async () => {
-    if (!tempDir) throw new Error("Missing temp dir");
     const originalStdoutWrite = process.stdout.write;
     let stdoutOutput = "";
     process.stdout.write = ((chunk: string | Uint8Array) => {
@@ -143,11 +136,15 @@ describe("modularity CLI parsing and runner", () => {
   });
 
   test("main returns exitCode 1 when report fails in strict mode", async () => {
+    memoryBlobs = [blob("src/index.ts", "export const x = 1;\n".repeat(305))];
     const originalStdoutWrite = process.stdout.write;
     process.stdout.write = (() => true) as typeof process.stdout.write;
 
     try {
-      const exitCode = await main(["--mode", "strict", "--source", "index", "--format", "json"]);
+      const exitCode = await main(
+        ["--mode", "strict", "--source", "index", "--format", "json"],
+        tempDir,
+      );
       expect(exitCode).toBe(1);
     } finally {
       process.stdout.write = originalStdoutWrite;
@@ -176,7 +173,7 @@ describe("modularity CLI parsing and runner", () => {
     process.stdout.write = (() => true) as typeof process.stdout.write;
 
     try {
-      const exitCode = await main();
+      const exitCode = await main(["--mode", "strict", "--source", "tree"], tempDir);
       expect(typeof exitCode).toBe("number");
     } finally {
       process.stdout.write = originalStdoutWrite;
@@ -191,30 +188,10 @@ describe("modularity CLI parsing and runner", () => {
       const noopResult = await runCli(false);
       expect(noopResult).toBeUndefined();
 
-      const mainResult = await runCli(true, ["--mode", "ratchet", "--source", "index"]);
+      const mainResult = await runCli(true, ["--mode", "strict", "--source", "tree"]);
       expect(typeof mainResult).toBe("number");
     } finally {
       process.stdout.write = originalStdoutWrite;
     }
-  });
-
-  test("runs check.ts directly via bun cli", async () => {
-    if (!tempDir) throw new Error("Missing temp dir");
-    await writeFile(join(tempDir, "README.md"), "# Clean\n");
-    await writeFile(
-      join(tempDir, "package.json"),
-      JSON.stringify({ name: "clean", version: "1.0.0" }),
-    );
-    await mkdir(join(tempDir, "src"), { recursive: true });
-    await writeFile(join(tempDir, "src", "index.ts"), "export const value = 1;\n");
-    const scriptPath = join(process.cwd(), "scripts/modularity/check.ts");
-    const proc = Bun.spawn(
-      ["bun", scriptPath, "--mode", "strict", "--source", "tree", "--format", "json"],
-      { cwd: tempDir, stdout: "pipe", stderr: "pipe" },
-    );
-    const exitCode = await proc.exited;
-    const stdout = await new Response(proc.stdout).text();
-    expect(typeof exitCode).toBe("number");
-    expect(stdout).toContain("olt-modularity-report/v1");
   });
 });

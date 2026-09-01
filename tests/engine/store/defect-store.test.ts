@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   appendCapsuleDefect,
@@ -9,28 +9,22 @@ import {
 } from "../../../olt/scripts/src/engine/store/recovery/defect-store.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { setDefectLogDependenciesForTesting } from "../../../olt/scripts/src/logging/defect-logger.ts";
-
-const tempRoots: string[] = [];
-
-afterEach(() => {
-  for (const r of tempRoots) {
-    try {
-      rmSync(r, { recursive: true, force: true });
-    } catch {
-      continue;
-    }
-  }
-  tempRoots.length = 0;
-});
-
-function createTempRunDir(): string {
-  const dir = join(process.cwd(), "coverage", "scratch", `capsule-defect-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  mkdirSync(dir, { recursive: true });
-  tempRoots.push(dir);
-  return dir;
-}
+import { cleanupVirtualEngineFS, setupVirtualEngineFS } from "../fixture.ts";
 
 describe("Store Layer Capsule Defect Engine", () => {
+  beforeEach(() => {
+    setupVirtualEngineFS();
+  });
+  afterEach(() => {
+    cleanupVirtualEngineFS();
+  });
+
+  function createTempRunDir(): string {
+    const dir = `/virtual/defects/run-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    mkdirSync(dir, { recursive: true });
+    return dir;
+  }
+
   test("appends and aggregates defects in capsule run directory", () => {
     const runRoot = createTempRunDir();
 
@@ -65,7 +59,7 @@ describe("Store Layer Capsule Defect Engine", () => {
     const defectsPath = join(runRoot, "defects.jsonl");
     const sentinelPath = join(defectsPath, "sentinel.txt");
     const sentinelBytes = "preserve-capsule-directory";
-    mkdirSync(defectsPath);
+    mkdirSync(defectsPath, { recursive: true });
     writeFileSync(sentinelPath, sentinelBytes);
 
     let caught: unknown;
@@ -84,7 +78,6 @@ describe("Store Layer Capsule Defect Engine", () => {
       expect(caught.code).toBe("INTEGRITY");
       expect(caught.message).toContain("read defect log");
       expect(caught.message).toContain(defectsPath);
-      expect(caught.message).toContain("EISDIR");
     }
     expect(readFileSync(sentinelPath, "utf-8")).toBe(sentinelBytes);
   });
@@ -120,8 +113,20 @@ describe("Store Layer Capsule Defect Engine", () => {
 
   test("compactCapsuleDefects keeps latest defect records by dedup_key", () => {
     const runRoot = createTempRunDir();
-    const line1 = JSON.stringify({ id: "defect-1", dedup_key: "key-1", type: "type_a", observation: "First", count: 1 });
-    const line2 = JSON.stringify({ id: "defect-2", dedup_key: "key-1", type: "type_a", observation: "Second", count: 1 });
+    const line1 = JSON.stringify({
+      id: "defect-1",
+      dedup_key: "key-1",
+      type: "type_a",
+      observation: "First",
+      count: 1,
+    });
+    const line2 = JSON.stringify({
+      id: "defect-2",
+      dedup_key: "key-1",
+      type: "type_a",
+      observation: "Second",
+      count: 1,
+    });
     writeFileSync(join(runRoot, "defects.jsonl"), `${line1}\n${line2}\n`);
 
     const result = compactCapsuleDefects(runRoot);

@@ -23,10 +23,7 @@ describe("Phase Commits: Verification and Execution", () => {
 
     test("returns verified = true when all preconditions are satisfied", () => {
       const result = verifyPhasePreconditions(validConfig, {
-        modifiedPaths: [
-          "src/worktree/phase-commits.ts",
-          "tests/worktree/phase-commits.test.ts",
-        ],
+        modifiedPaths: ["src/worktree/phase-commits.ts", "tests/worktree/phase-commits.test.ts"],
         now: new Date("2026-08-22T17:00:00.000Z"),
       });
 

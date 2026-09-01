@@ -5,7 +5,8 @@ import {
   MANDATORY_COGNITIVE_PUSHBACKS,
 } from "../../../olt/scripts/src/reporting/doctor/pushback-quotas-engine.ts";
 
-export const pushbackQuotasEngineSuiteName = "Wave 2 - Task 2.3: Mandatory Pushback & Adversarial Probe Quota Engine";
+export const pushbackQuotasEngineSuiteName =
+  "Wave 2 - Task 2.3: Mandatory Pushback & Adversarial Probe Quota Engine";
 
 describe(pushbackQuotasEngineSuiteName, () => {
   test("enforces MIN_ADVERSARIAL_PROBES = 5 and MANDATORY_COGNITIVE_PUSHBACKS = 5 constants", () => {

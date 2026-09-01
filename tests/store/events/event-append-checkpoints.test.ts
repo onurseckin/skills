@@ -11,10 +11,7 @@ import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.t
 import { appendProjectionEvent } from "../../../olt/scripts/src/engine/store/events/event-append.ts";
 import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/integrity/integrity.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/capsule/load.ts";
-import {
-  cloneObject,
-  initialState,
-} from "../../../olt/scripts/src/engine/store/capsule/state.ts";
+import { cloneObject, initialState } from "../../../olt/scripts/src/engine/store/capsule/state.ts";
 import { scratchRoot } from "../store-fixture.ts";
 
 function freshRun(label: string): { runRoot: string; manifest: Manifest } {

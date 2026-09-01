@@ -1,4 +1,1 @@
-export {
-  createSampleDefectRecord,
-  createSampleAuditReport,
-} from "./fixtures/index.ts";
+export { createSampleDefectRecord, createSampleAuditReport } from "./fixtures/index.ts";

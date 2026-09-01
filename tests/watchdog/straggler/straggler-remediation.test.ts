@@ -7,7 +7,7 @@ import {
   evaluateActiveTasks,
   type MonitoredTask,
 } from "../../../olt/scripts/src/watchdog/straggler-watchdog.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
 
 describe("StragglerWatchdog Remediation & Defect Emission", () => {
   it("recommends RECLAIM_LEASE for dead or abandoned straggler tasks", () => {
@@ -51,7 +51,10 @@ describe("StragglerWatchdog Remediation & Defect Emission", () => {
       span_length: 2,
     };
 
-    const res = assessTaskStraggler(taskOverburdened, now, { minParallelism: 2, maxParallelism: 4 });
+    const res = assessTaskStraggler(taskOverburdened, now, {
+      minParallelism: 2,
+      maxParallelism: 4,
+    });
     expect(res.is_straggler).toBe(true);
     expect(res.recommended_action).toBe("DECOMPOSE_PARALLEL");
     expect(res.decomposition_plan).not.toBeUndefined();

@@ -256,5 +256,4 @@ describe("Stateful Task Queue Engine", () => {
     expect(popNextEligibleTask({ agentId: "contender", customPath: queuePath })).toBeNull();
     teardown();
   });
-
 });

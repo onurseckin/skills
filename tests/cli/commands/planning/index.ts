@@ -1,6 +1,4 @@
-export {
-  planAddCommand,
-} from "./add/index.ts";
+export { planAddCommand } from "./add/index.ts";
 
 export {
   planBrainstormCommand,

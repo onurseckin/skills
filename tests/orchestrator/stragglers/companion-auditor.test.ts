@@ -13,9 +13,7 @@ import {
   assertCompanionAuditorsHealth,
   assertBehavioralCompliance,
 } from "../../../olt/scripts/src/orchestrator/companion-auditor.ts";
-import {
-  checkCompanionAuditorsDoctor,
-} from "../../../olt/scripts/src/reporting/doctor/rules/companion-auditors.ts";
+import { checkCompanionAuditorsDoctor } from "../../../olt/scripts/src/reporting/doctor/rules/companion-auditors.ts";
 import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { BehavioralForensicsReport } from "../../../olt/scripts/src/orchestrator/types.ts";
 

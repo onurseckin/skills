@@ -49,7 +49,11 @@ describe("Defect Sync Ledger & Loop Operations", () => {
       ];
 
       const updates = [
-        createMockDefectEntry({ id: "d1", status: "in_progress", observation: "Updated observation" }),
+        createMockDefectEntry({
+          id: "d1",
+          status: "in_progress",
+          observation: "Updated observation",
+        }),
         createMockDefectEntry({ id: "d3", status: "open" }),
       ];
 

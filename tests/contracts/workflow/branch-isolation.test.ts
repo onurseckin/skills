@@ -8,7 +8,8 @@ import {
   type BranchSubTask,
 } from "../../../olt/scripts/src/core/contracts/index.ts";
 
-export const branchIsolationSuiteName = "isBranchRecord repository observations & comprehensive structural invariants";
+export const branchIsolationSuiteName =
+  "isBranchRecord repository observations & comprehensive structural invariants";
 
 function subTask(overrides: Partial<BranchSubTask> = {}): BranchSubTask {
   return {

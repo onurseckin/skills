@@ -61,7 +61,7 @@ async function deliverSingleBatch(
           "Content-Type": "application/json",
           Accept: "application/json, text/plain",
           "User-Agent": "olt/event-stream-bridge",
-          ...(options.headers ?? {}),
+          ...options.headers,
         },
         body: bodyStr,
         signal: controller.signal,

@@ -74,7 +74,6 @@ function installMetaAuditGrant(
   });
 }
 
-
 describe("assertGrantedCommand hole 2: no acting identity resolves", () => {
   test("denies a non-allowlisted command with --run but no identity flag", () => {
     const flags: Flags = { run: "/nonexistent/capsule" };
@@ -188,4 +187,3 @@ describe("assertGrantedCommand fail-closed does not flip open for legitimate run
     );
   });
 });
-

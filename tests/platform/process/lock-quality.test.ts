@@ -21,26 +21,18 @@ import {
   withRunLock,
 } from "../../../olt/scripts/src/platform/index.ts";
 import { resolveCapsulesDir } from "../../../olt/scripts/src/core/shared/paths.ts";
+import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
 
 const lockModule = new URL("../../../olt/scripts/src/platform/index.ts", import.meta.url).pathname;
 
-const scratchBase = join(process.cwd(), "coverage", "scratch", "lock-quality-test");
-
 function runRoot(): string {
-  mkdirSync(scratchBase, { recursive: true });
-  const root = mkdtempSync(join(scratchBase, "run-"));
+  const root = scratchRoot(import.meta.path, "lock-quality");
   const run = join(root, "run");
   mkdirSync(run, { recursive: true });
   return run;
 }
 
 describe("run-lock quality invariants", () => {
-  afterEach(() => {
-    try {
-      rmSync(scratchBase, { recursive: true, force: true });
-    } catch {}
-  });
-
   test("distinguishes invalid flock errors from lock contention", () => {
     expect(() => tryExclusiveFlock(-1)).toThrow(/flock|errno/i);
     expect(() => releaseFlock(-1)).toThrow(/flock release failed with errno/i);

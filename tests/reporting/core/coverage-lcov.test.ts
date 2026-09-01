@@ -1,6 +1,5 @@
-import { describe, expect, it } from "bun:test";
-import { existsSync, readFileSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import * as fs from "node:fs";
 import {
   buildCoverageSummary,
   calculatePct,
@@ -13,17 +12,22 @@ import type {
   CoverageSummary,
   FileCoverageMetric,
 } from "../../../scripts/testing/reporting/types.ts";
+import {
+  cleanupVirtualBrowserFS,
+  setupVirtualBrowserFS,
+  tempDir,
+} from "../browser/browser-virtual-fs.ts";
 
 export const coverageLcovSuiteName = "Coverage LCOV Parsing & Summary Calculations";
 
 describe(coverageLcovSuiteName, () => {
-  const tmpRoot = join(process.cwd(), ".tmp-test-reporting-suite-lcov");
+  beforeEach(() => {
+    setupVirtualBrowserFS();
+  });
 
-  function cleanupTmp(): void {
-    if (existsSync(tmpRoot)) {
-      rmSync(tmpRoot, { recursive: true, force: true });
-    }
-  }
+  afterEach(() => {
+    cleanupVirtualBrowserFS();
+  });
 
   describe("types and metric helpers", () => {
     it("calculatePct handles zero and negative totals gracefully", () => {
@@ -72,6 +76,7 @@ describe(coverageLcovSuiteName, () => {
     });
 
     it("parseLcov parses valid LCOV records with all sections", () => {
+      const tmpRoot = tempDir("cov-lcov-parse");
       const lcovSample = `
 SF:src/utils/math.ts
 FNF:4
@@ -120,6 +125,7 @@ end_of_record
     });
 
     it("parseLcov handles invalid/missing numbers and malformed DA lines gracefully", () => {
+      const tmpRoot = tempDir("cov-lcov-malformed");
       const lcovSample = `
 SF:src/broken.ts
 FNF:invalid
@@ -207,7 +213,7 @@ LH:5
     });
 
     it("writeSummaryJson writes valid JSON file and creates directory if missing", () => {
-      cleanupTmp();
+      const tmpRoot = tempDir("cov-lcov-summary");
       const summary: CoverageSummary = {
         total: {
           lines: createMetricItem(10, 10),
@@ -217,16 +223,14 @@ LH:5
       };
 
       const outPath = writeSummaryJson(summary, tmpRoot, "cov-output");
-      expect(existsSync(outPath)).toBe(true);
+      expect(fs.existsSync(outPath)).toBe(true);
 
-      const content = readFileSync(outPath, "utf-8");
+      const content = fs.readFileSync(outPath, "utf-8");
       const parsed = JSON.parse(content) as CoverageSummary;
       expect(parsed.total?.lines.pct).toBe(100);
 
       const outPath2 = writeSummaryJson(summary, tmpRoot, "cov-output");
       expect(outPath2).toBe(outPath);
-
-      cleanupTmp();
     });
   });
 });

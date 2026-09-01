@@ -1,5 +1,4 @@
-import { afterAll, afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -26,26 +25,26 @@ import {
   validateReviewProtocol,
 } from "../../../olt/scripts/src/policy/validator.ts";
 import { POLICY_SUITES } from "./index.ts";
+import { cleanupVirtualEngineFS, getVirtualEngineFS, setupVirtualEngineFS } from "../fixture.ts";
 
 describe("PolicyEngine and Policy Validator", () => {
-  const scratchBase = join(process.cwd(), "coverage", "scratch", "engine-policy-engine-test");
+  const scratchBase = "/virtual/engine-policy-engine-test";
 
   beforeEach(() => {
+    setupVirtualEngineFS();
     resetGlobalPolicyEngine();
   });
 
   afterEach(() => {
     resetGlobalPolicyEngine();
-  });
-
-  afterAll(() => {
-    rmSync(scratchBase, { recursive: true, force: true });
+    cleanupVirtualEngineFS();
   });
 
   test("creates policy engine with auto-detected defaults when no policy file exists", () => {
     const dir = join(scratchBase, "defaults");
-    mkdirSync(dir, { recursive: true });
-    writeFileSync(join(dir, "bun.lock"), "");
+    const vfs = getVirtualEngineFS();
+    vfs.mkdirSync(dir, { recursive: true });
+    vfs.writeFileSync(join(dir, "bun.lock"), "");
 
     const engine = createPolicyEngine({ repoRoot: dir });
     const policy = engine.getPolicy();
@@ -59,7 +58,8 @@ describe("PolicyEngine and Policy Validator", () => {
 
   test("loads custom policy and verifies policy path and checksum", () => {
     const dir = join(scratchBase, "custom-policy");
-    mkdirSync(join(dir, ".olt"), { recursive: true });
+    const vfs = getVirtualEngineFS();
+    vfs.mkdirSync(join(dir, ".olt"), { recursive: true });
     const canonical = generateCanonicalDefaultPolicy(dir);
     const customPolicy: RepoPolicy = {
       ...canonical,
@@ -74,7 +74,8 @@ describe("PolicyEngine and Policy Validator", () => {
 
   test("detects drift when policy file changes on disk and reloads", async () => {
     const dir = join(scratchBase, "drift-test");
-    mkdirSync(join(dir, ".olt"), { recursive: true });
+    const vfs = getVirtualEngineFS();
+    vfs.mkdirSync(join(dir, ".olt"), { recursive: true });
     const canonical = generateCanonicalDefaultPolicy(dir);
     saveRepoPolicy(canonical, dir);
 
@@ -98,7 +99,8 @@ describe("PolicyEngine and Policy Validator", () => {
 
   test("subscribes to policy reload events and fires listeners", async () => {
     const dir = join(scratchBase, "listeners-test");
-    mkdirSync(join(dir, ".olt"), { recursive: true });
+    const vfs = getVirtualEngineFS();
+    vfs.mkdirSync(join(dir, ".olt"), { recursive: true });
     const canonical = generateCanonicalDefaultPolicy(dir);
     saveRepoPolicy(canonical, dir);
 
@@ -133,7 +135,8 @@ describe("PolicyEngine and Policy Validator", () => {
 
   test("updates policy atomically via updatePolicy and updates in-memory state", () => {
     const dir = join(scratchBase, "update-policy-test");
-    mkdirSync(join(dir, ".olt"), { recursive: true });
+    const vfs = getVirtualEngineFS();
+    vfs.mkdirSync(join(dir, ".olt"), { recursive: true });
     const canonical = generateCanonicalDefaultPolicy(dir);
     saveRepoPolicy(canonical, dir);
 
@@ -149,7 +152,8 @@ describe("PolicyEngine and Policy Validator", () => {
 
   test("manages auto-reload timer lifecycle", () => {
     const dir = join(scratchBase, "auto-reload-test");
-    mkdirSync(dir, { recursive: true });
+    const vfs = getVirtualEngineFS();
+    vfs.mkdirSync(dir, { recursive: true });
 
     const engine = createPolicyEngine({ repoRoot: dir, autoReloadIntervalMs: 100 });
     expect(engine.isAutoReloadRunning()).toBe(true);
@@ -166,7 +170,8 @@ describe("PolicyEngine and Policy Validator", () => {
 
   test("provides global singleton instance and reset", () => {
     const dir = join(scratchBase, "global-singleton");
-    mkdirSync(dir, { recursive: true });
+    const vfs = getVirtualEngineFS();
+    vfs.mkdirSync(dir, { recursive: true });
 
     const e1 = getGlobalPolicyEngine({ repoRoot: dir });
     const e2 = getGlobalPolicyEngine();
@@ -179,7 +184,8 @@ describe("PolicyEngine and Policy Validator", () => {
 
   test("verifies command authorization via verifyCommand", () => {
     const dir = join(scratchBase, "auth-command");
-    mkdirSync(dir, { recursive: true });
+    const vfs = getVirtualEngineFS();
+    vfs.mkdirSync(dir, { recursive: true });
 
     const engine = createPolicyEngine({ repoRoot: dir });
     const result = engine.verifyCommand("git status", "implementer");

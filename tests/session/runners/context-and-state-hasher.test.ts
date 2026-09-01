@@ -13,6 +13,13 @@ import {
 } from "../../../olt/scripts/src/capture/snapshot/index.ts";
 import type { DomPhysicsSnapshot } from "../../../olt/scripts/src/capture/runners/types.ts";
 import type { SnapshotNode } from "../../../olt/scripts/src/capture/snapshot/types.ts";
+import {
+  createInMemorySessionAuth,
+  createInMemorySessionContext,
+  createInMemorySessionToken,
+  createSandboxDir,
+  scratchRoot,
+} from "../session-fixture.ts";
 
 function createSamplePhysics(): DomPhysicsSnapshot {
   return {
@@ -164,5 +171,24 @@ describe("Context Capture & Cryptographic State Hashing", () => {
       label: "Modified Render Without Re-hashing",
     };
     expect(verifySnapshotIntegrity(tamperedNode)).toBe(false);
+  });
+
+  it("verifies pure in-memory session fixture generators and sandboxing", () => {
+    const auth = createInMemorySessionAuth({ userId: "custom-user" });
+    expect(auth.userId).toBe("custom-user");
+    expect(auth.role).toBe("implementer");
+    expect(auth.headers["Authorization"]).toContain("Bearer");
+
+    const token = createInMemorySessionToken("test-token");
+    expect(token.startsWith("test-token-")).toBe(true);
+
+    const ctx = createInMemorySessionContext({ role: "validator" });
+    expect(ctx.role).toBe("validator");
+    expect(ctx.status).toBe("active");
+
+    const root = scratchRoot(import.meta.path, "test");
+    expect(typeof root).toBe("string");
+    const sandbox = createSandboxDir("test-sandbox");
+    expect(typeof sandbox).toBe("string");
   });
 });

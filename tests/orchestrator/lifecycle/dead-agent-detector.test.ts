@@ -8,7 +8,12 @@ import {
   DEAD_AGENT_RECLAIMED_KIND,
   reclaimDeadAgents,
 } from "../../../olt/scripts/src/orchestrator/dead-agent-detector.ts";
-import { at, registerTaskPacket, TestPort, workflowState } from "../../workflow/shared/test-port.ts";
+import {
+  at,
+  registerTaskPacket,
+  TestPort,
+  workflowState,
+} from "../../workflow/shared/test-port.ts";
 import { completionPort } from "../../workflow/completion/fixtures/completion-provenance-fixture.ts";
 
 const start = at("2026-08-19T00:00:00.000Z");

@@ -51,7 +51,6 @@ function assertGrantedCommand(
   return assertRawGrantedCommand(specification, flags, caller ?? testCaller(specification, flags));
 }
 
-
 describe("command predicates and classification", () => {
   test("isExecutionCommand identifies execution commands and aliases", () => {
     expect(isExecutionCommand(spec("run:exec"))).toBe(true);
@@ -292,5 +291,4 @@ describe("assertGrantedCommand", () => {
       "may only dispatch Tier 3 workers",
     );
   });
-
-  });
+});

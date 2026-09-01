@@ -1,7 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import { lintSourceCode } from "../../../olt/scripts/src/linter/ast/index.ts";
 
-export const typeSuppressionRulesSuiteName = "AST Type Safety & Compiler Suppression Rules (any, @ts-ignore)";
+export const typeSuppressionRulesSuiteName =
+  "AST Type Safety & Compiler Suppression Rules (any, @ts-ignore)";
 
 describe(typeSuppressionRulesSuiteName, () => {
   describe("Any Type Annotation Rule", () => {

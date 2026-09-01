@@ -1,16 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 import { AGENT_ROLES } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import { VALIDATOR_DOMAINS } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import { evidenceSchema } from "../../../../olt/scripts/src/packets/evidence-schema.ts";
-import {
-  loadChecklist,
-  loadRoleContract,
-  loadValidatorDomainContract,
-} from "../../../../olt/scripts/src/packets/role-contract.ts";
-import { buildPacket, isUiTaskPacket } from "../../../../olt/scripts/src/packets/render-packet.ts";
+import { loadRoleContract } from "../../../../olt/scripts/src/packets/role-contract.ts";
+import { buildPacket } from "../../../../olt/scripts/src/packets/render-packet.ts";
 import { claimTask } from "../../../../olt/scripts/src/workflow/lease/claim.ts";
-import { at, registerTaskPacket, TestPort, workflowState } from "../../../workflow/test-port.ts";
+import { at, registerTaskPacket, TestPort, workflowState } from "../../../workflow/index.ts";
 import { inspectionContext } from "./inspection-fixture.ts";
 
 const clock = at("2026-08-13T12:00:00.000Z");
@@ -80,7 +75,6 @@ function baseImplementer() {
     },
   };
 }
-
 
 describe("rich instructions - core & contracts", () => {
   describe("Universal Core Instructions & Role Contracts", () => {
@@ -169,5 +163,4 @@ describe("rich instructions - core & contracts", () => {
       expect(packet.markdown).toContain("# repairer packet");
     });
   });
-
 });

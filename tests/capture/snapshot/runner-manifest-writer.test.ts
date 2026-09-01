@@ -12,7 +12,7 @@ import {
   type CapturePageDriver,
   type CompanionManifest,
 } from "../../../olt/scripts/src/capture/runners/index.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
 
 describe("Live Capture Runner & Multi-Viewport Companion Manifest Writer", () => {
   test("executes multi-viewport capture and persists companion manifest alongside PNG", async () => {
@@ -54,9 +54,7 @@ describe("Live Capture Runner & Multi-Viewport Companion Manifest Writer", () =>
       expect(existsSync(item.manifestPath)).toBe(true);
       expect(item.manifestPath).toBe(item.imagePath.replace(/\.png$/, ".manifest.json"));
 
-      const manifest = JSON.parse(
-        readFileSync(item.manifestPath, "utf-8"),
-      ) as CompanionManifest;
+      const manifest = JSON.parse(readFileSync(item.manifestPath, "utf-8")) as CompanionManifest;
       expect(manifest.schema).toBe("companion.manifest.v1");
       expect(manifest.screenId).toBe("dashboard");
       expect(manifest.viewport).toBe(item.viewport);

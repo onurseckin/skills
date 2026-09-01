@@ -5,21 +5,11 @@ export {
   MemoryPlanningStore,
   PlanFixture,
 } from "./fixtures.ts";
-export {
-  validateGraph,
-} from "../../../olt/scripts/src/graph/validate-graph.ts";
-export {
-  validateEdges,
-} from "../../../olt/scripts/src/graph/validate-edges.ts";
-export {
-  validateGates,
-} from "../../../olt/scripts/src/graph/validate-gates.ts";
-export {
-  validateRoles,
-} from "../../../olt/scripts/src/graph/validate-roles.ts";
-export {
-  validateTasks,
-} from "../../../olt/scripts/src/graph/validate-tasks.ts";
+export { validateGraph } from "../../../olt/scripts/src/graph/validate-graph.ts";
+export { validateEdges } from "../../../olt/scripts/src/graph/validate-edges.ts";
+export { validateGates } from "../../../olt/scripts/src/graph/validate-gates.ts";
+export { validateRoles } from "../../../olt/scripts/src/graph/validate-roles.ts";
+export { validateTasks } from "../../../olt/scripts/src/graph/validate-tasks.ts";
 export {
   analyzeScopeIndependence,
   checkScopeOverlap,

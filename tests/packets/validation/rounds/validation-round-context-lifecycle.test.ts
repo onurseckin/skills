@@ -14,7 +14,7 @@ import {
 } from "../../../../olt/scripts/src/packets/round-commands.ts";
 import { validationRoundContext } from "../../../../olt/scripts/src/packets/validation-round.ts";
 import type { TaskRecord } from "../../../../olt/scripts/src/workflow/types.ts";
-import { commandRecord, workflowState } from "../../../workflow/test-port.ts";
+import { commandRecord, workflowState } from "../../../workflow/index.ts";
 import {
   DIFF,
   OBSERVATION,

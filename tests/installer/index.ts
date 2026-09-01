@@ -9,9 +9,4 @@ export { INSTALLER_SYMLINKS_SUITES } from "./symlinks/index.ts";
 export { INSTALLER_VERIFICATION_SUITES } from "./verification/index.ts";
 export { cleanInstallerFixtures, installerFixture } from "./helpers.ts";
 
-export const INSTALLER_CLUSTERS = [
-  "bootstrap",
-  "env",
-  "symlinks",
-  "verification",
-] as const;
+export const INSTALLER_CLUSTERS = ["bootstrap", "env", "symlinks", "verification"] as const;

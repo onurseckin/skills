@@ -1,7 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  verifyCommandAuthorization,
-} from "../../../olt/scripts/src/authority/rbac/index.ts";
+import { verifyCommandAuthorization } from "../../../olt/scripts/src/authority/rbac/index.ts";
 
 describe("Authority RBAC - Command Authorizer Core Verification", () => {
   test("rejects empty command list", () => {
@@ -30,7 +28,11 @@ describe("Authority RBAC - Command Authorizer Core Verification", () => {
     ];
 
     for (const role of supervisoryAndValidatorRoles) {
-      const resTest = verifyCommandAuthorization(role, ["bun", "test", "tests/authority/rbac/a.test.ts"]);
+      const resTest = verifyCommandAuthorization(role, [
+        "bun",
+        "test",
+        "tests/authority/rbac/a.test.ts",
+      ]);
       expect(resTest.authorized).toBe(false);
       expect(resTest.reason).toBe("SUPERVISOR_ZERO_TEST_RUNS");
 
@@ -186,7 +188,8 @@ describe("Authority RBAC - Command Authorizer Core Verification", () => {
     ).toBe(true);
 
     expect(
-      verifyCommandAuthorization("implementer", ["bun-test", "tests/authority/rbac/foo.test.ts"]).authorized,
+      verifyCommandAuthorization("implementer", ["bun-test", "tests/authority/rbac/foo.test.ts"])
+        .authorized,
     ).toBe(true);
     expect(
       verifyCommandAuthorization("validator", ["custom-runner", "tests/authority/rbac/foo.test.ts"])

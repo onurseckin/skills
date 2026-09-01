@@ -26,7 +26,8 @@ import type { BranchRecord } from "../../../olt/scripts/src/core/contracts/index
 import { evidenced } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { TaskLineage } from "../../../olt/scripts/src/workflow/agents/lineage.ts";
 
-export const formattersTerminalSuiteName = "core CLI formatters: agent, branch, finding, report, evidence & orchestration briefs";
+export const formattersTerminalSuiteName =
+  "core CLI formatters: agent, branch, finding, report, evidence & orchestration briefs";
 
 describe(formattersTerminalSuiteName, () => {
   test("agent, branch, inspection, and screenshot formatters", () => {

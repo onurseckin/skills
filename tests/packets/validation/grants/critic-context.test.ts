@@ -3,7 +3,7 @@ import { criticContext } from "../../../../olt/scripts/src/packets/critic-contex
 import type { PacketInput } from "../../../../olt/scripts/src/packets/types.ts";
 import { repositoryBindingFromInspection } from "../../../../olt/scripts/src/packets/repository-inspection.ts";
 import { completionReadinessSnapshot } from "../../../../olt/scripts/src/workflow/completion/readiness-snapshot.ts";
-import { commandRecord, workflowState } from "../../../workflow/test-port.ts";
+import { commandRecord, workflowState } from "../../../workflow/index.ts";
 import { inspection } from "../../payloads/slicing/inspection-fixture.ts";
 
 const COMMAND_ID = "C-11111111-1111-4111-8111-111111111111";

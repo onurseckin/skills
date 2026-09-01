@@ -74,18 +74,18 @@ function unwrapCommand(argv: readonly string[]): string[] | null {
   let index = 1;
   while (index < argv.length) {
     const value = argv[index]!;
-    if (value === "--") return [...argv.slice(index + 1)];
+    if (value === "--") return argv.slice(index + 1);
     if (value === "-v" || value === "-V" || /^-[p]*[vV]/u.test(value)) return null;
     if (value === "-p" || /^-p+$/u.test(value)) index += 1;
     else if (value.startsWith("-")) return null;
     else break;
   }
-  return [...argv.slice(index)];
+  return argv.slice(index);
 }
 
 function unwrapEnv(argv: readonly string[]): string[] | null {
   const args = argv.slice(1);
-  if (args[0] === "--") return [...args.slice(1)];
+  if (args[0] === "--") return args.slice(1);
   if ((args[0] ?? "").startsWith("-") || /^[A-Za-z_][A-Za-z0-9_]*=/u.test(args[0] ?? ""))
     return null;
   return [...args];

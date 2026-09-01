@@ -19,7 +19,6 @@ import {
   validateUiMechanic,
 } from "../../../../olt/scripts/src/validation/ui/index.ts";
 
-
 describe("Dual UI Validators - Pairing & Viewports", () => {
   describe("1. Canonical 4-Tier Viewports & Constants", () => {
     it("defines canonical 4 viewport tiers with exact pixel dimensions", () => {
@@ -138,5 +137,4 @@ describe("Dual UI Validators - Pairing & Viewports", () => {
       expect(report.validScreenshotsCount).toBe(0);
     });
   });
-
 });

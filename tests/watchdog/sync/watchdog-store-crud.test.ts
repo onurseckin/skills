@@ -1,15 +1,12 @@
 import { describe, expect, it } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import {
-  loadWatchdogStore,
-  saveWatchdogStore,
-} from "../../../olt/scripts/src/watchdog/index.ts";
+import { loadWatchdogStore, saveWatchdogStore } from "../../../olt/scripts/src/watchdog/index.ts";
 import type {
   WatchdogRecord,
   WatchdogStore,
 } from "../../../olt/scripts/src/authority/watchdog/index.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
 
 describe("WatchdogStore CRUD & Schema Validation", () => {
   it("loads default empty store when target file does not exist", () => {

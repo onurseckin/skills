@@ -8,17 +8,10 @@
  */
 
 // 1. Scope Subdomain
-export {
-  assertSubScopes,
-  scopeContains,
-  scopeStrictlyContains,
-} from "./scope/index.ts";
+export { assertSubScopes, scopeContains, scopeStrictlyContains } from "./scope/index.ts";
 
 // 2. Formatter Subdomain
-export {
-  formatBranchCollectBrief,
-  formatBranchStatusBrief,
-} from "./formatter/index.ts";
+export { formatBranchCollectBrief, formatBranchStatusBrief } from "./formatter/index.ts";
 
 // 3. Lifecycle Subdomain
 export {

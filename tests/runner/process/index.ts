@@ -13,11 +13,11 @@ export {
   readProcessIdentity,
   sameProcessIdentity,
   type ProcessIdentity,
-} from "../../../olt/scripts/src/engine/runner/process/identity.ts";
+} from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
 
 export {
   processSnapshot,
   ancestry,
   matchesTopology,
   type ProcessSnapshotEntry,
-} from "../../../olt/scripts/src/engine/runner/process/snapshot.ts";
+} from "../../../olt/scripts/src/engine/runner/process/process-tree.ts";

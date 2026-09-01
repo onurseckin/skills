@@ -170,4 +170,3 @@ describe("workflow/agents/transcript-telemetry", () => {
     });
   });
 });
-

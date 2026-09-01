@@ -3,6 +3,14 @@
  * Explicit named exports - zero wildcard export *.
  */
 export {
+  scratchRoot,
+  createSandboxDir,
+  createInMemorySessionAuth,
+  createInMemorySessionToken,
+  createInMemorySessionContext,
+} from "./session-fixture.ts";
+
+export {
   resolveActiveSession,
   autoDeriveCallerIdentity,
   registerSessionGrant,

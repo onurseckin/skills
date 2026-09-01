@@ -24,10 +24,18 @@ describe("Defect Categorization & Log Serialization", () => {
     });
 
     it("infers category from error messages and descriptions", () => {
-      expect(categorizeDefect({ observation: "syntax error unexpected token in JSON" })).toBe("code_defect");
-      expect(categorizeDefect({ observation: "hallucination in model prompt generation" })).toBe("model_reasoning_error");
-      expect(categorizeDefect({ observation: "permission denied breach of container bounds" })).toBe("boundary_violation");
-      expect(categorizeDefect({ observation: "unauthorized file access escalation" })).toBe("boundary_violation");
+      expect(categorizeDefect({ observation: "syntax error unexpected token in JSON" })).toBe(
+        "code_defect",
+      );
+      expect(categorizeDefect({ observation: "hallucination in model prompt generation" })).toBe(
+        "model_reasoning_error",
+      );
+      expect(
+        categorizeDefect({ observation: "permission denied breach of container bounds" }),
+      ).toBe("boundary_violation");
+      expect(categorizeDefect({ observation: "unauthorized file access escalation" })).toBe(
+        "boundary_violation",
+      );
     });
 
     it("defaults to code_defect when unclassifiable", () => {
@@ -87,7 +95,11 @@ describe("Defect Categorization & Log Serialization", () => {
 
     it("round-trips serialize and parse without data loss", () => {
       const original: DefectEntry[] = [
-        createMockDefectEntry({ id: "def-rt-1", severity: "critical", category: "boundary_violation" }),
+        createMockDefectEntry({
+          id: "def-rt-1",
+          severity: "critical",
+          category: "boundary_violation",
+        }),
         createMockDefectEntry({ id: "def-rt-2", severity: "low", category: "documentation" }),
       ];
 

@@ -1,4 +1,6 @@
-export function createSampleFinding(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+export function createSampleFinding(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
   return {
     id: "F-01",
     severity: "critical",

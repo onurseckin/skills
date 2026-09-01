@@ -1,6 +1,4 @@
 import { describe, expect, it } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   MultiCapsuleDAG,
@@ -34,9 +32,24 @@ describe("Multi-Capsule DAG, Wave Partitioning & Anti-Sequentiality", () => {
     it("partitions dependent capsules into topologically ordered waves", () => {
       const specs: CapsuleSpec[] = [
         { id: "cap-root", repoPath: "/repo", writeScope: ["src/root/"] },
-        { id: "cap-child-1", repoPath: "/repo", writeScope: ["src/child1/"], dependencies: ["cap-root"] },
-        { id: "cap-child-2", repoPath: "/repo", writeScope: ["src/child2/"], dependencies: ["cap-root"] },
-        { id: "cap-grandchild", repoPath: "/repo", writeScope: ["src/grandchild/"], dependencies: ["cap-child-1", "cap-child-2"] },
+        {
+          id: "cap-child-1",
+          repoPath: "/repo",
+          writeScope: ["src/child1/"],
+          dependencies: ["cap-root"],
+        },
+        {
+          id: "cap-child-2",
+          repoPath: "/repo",
+          writeScope: ["src/child2/"],
+          dependencies: ["cap-root"],
+        },
+        {
+          id: "cap-grandchild",
+          repoPath: "/repo",
+          writeScope: ["src/grandchild/"],
+          dependencies: ["cap-child-1", "cap-child-2"],
+        },
       ];
 
       const dag = new MultiCapsuleDAG(specs);
@@ -63,11 +76,18 @@ describe("Multi-Capsule DAG, Wave Partitioning & Anti-Sequentiality", () => {
 
     it("throws HarnessError on undeclared dependency reference", () => {
       const specs: CapsuleSpec[] = [
-        { id: "cap-01", repoPath: "/repo", writeScope: ["src/a/"], dependencies: ["cap-nonexistent"] },
+        {
+          id: "cap-01",
+          repoPath: "/repo",
+          writeScope: ["src/a/"],
+          dependencies: ["cap-nonexistent"],
+        },
       ];
 
       expect(() => new MultiCapsuleDAG(specs)).toThrow(HarnessError);
-      expect(() => new MultiCapsuleDAG(specs)).toThrow("references undeclared dependency 'cap-nonexistent'");
+      expect(() => new MultiCapsuleDAG(specs)).toThrow(
+        "references undeclared dependency 'cap-nonexistent'",
+      );
     });
 
     it("throws HarnessError on self dependency", () => {
@@ -98,7 +118,9 @@ describe("Multi-Capsule DAG, Wave Partitioning & Anti-Sequentiality", () => {
         { id: "cap-2", repoPath: "/repo", writeScope: ["src/shared/"] },
       ];
 
-      const report = validateAntiSequentiality(specs, { allowScopeOverlapInIsolatedWorktrees: true });
+      const report = validateAntiSequentiality(specs, {
+        allowScopeOverlapInIsolatedWorktrees: true,
+      });
       expect(report.compliant).toBe(false);
       expect(report.violations.length).toBe(1);
       expect(report.violations[0]?.type).toBe("SCOPE_COLLISION_WITHOUT_WORKTREE_ISOLATION");
@@ -107,11 +129,23 @@ describe("Multi-Capsule DAG, Wave Partitioning & Anti-Sequentiality", () => {
 
     it("allows shared write scope when capsules declare distinct isolated worktrees", () => {
       const specs: CapsuleSpec[] = [
-        { id: "cap-1", repoPath: "/repo", writeScope: ["src/shared/feature.ts"], worktreePath: "/worktrees/wt-1" },
-        { id: "cap-2", repoPath: "/repo", writeScope: ["src/shared/feature.ts"], worktreePath: "/worktrees/wt-2" },
+        {
+          id: "cap-1",
+          repoPath: "/repo",
+          writeScope: ["src/shared/feature.ts"],
+          worktreePath: "/worktrees/wt-1",
+        },
+        {
+          id: "cap-2",
+          repoPath: "/repo",
+          writeScope: ["src/shared/feature.ts"],
+          worktreePath: "/worktrees/wt-2",
+        },
       ];
 
-      const report = validateAntiSequentiality(specs, { allowScopeOverlapInIsolatedWorktrees: true });
+      const report = validateAntiSequentiality(specs, {
+        allowScopeOverlapInIsolatedWorktrees: true,
+      });
       expect(report.compliant).toBe(true);
       expect(report.violations.length).toBe(0);
     });
@@ -119,7 +153,13 @@ describe("Multi-Capsule DAG, Wave Partitioning & Anti-Sequentiality", () => {
     it("detects artificial sequential bottlenecks from unjustified dependencies", () => {
       const specs: CapsuleSpec[] = [
         { id: "cap-independent-1", repoPath: "/repo", writeScope: ["src/lane-1/"] },
-        { id: "cap-independent-2", repoPath: "/repo", writeScope: ["src/lane-2/"], dependencies: ["cap-independent-1"], metadata: { pure_parallel: true } },
+        {
+          id: "cap-independent-2",
+          repoPath: "/repo",
+          writeScope: ["src/lane-2/"],
+          dependencies: ["cap-independent-1"],
+          metadata: { pure_parallel: true },
+        },
       ];
 
       const report = validateAntiSequentiality(specs);
@@ -149,7 +189,9 @@ describe("Multi-Capsule DAG, Wave Partitioning & Anti-Sequentiality", () => {
         { id: "cap-2", repoPath: "/repo", writeScope: ["src/a.ts"] },
       ];
 
-      expect(() => assertAntiSequentiality(specs, { allowScopeOverlapInIsolatedWorktrees: false })).toThrow(HarnessError);
+      expect(() =>
+        assertAntiSequentiality(specs, { allowScopeOverlapInIsolatedWorktrees: false }),
+      ).toThrow(HarnessError);
     });
 
     it("correctly identifies scope overlap helper with prefixes and exact paths", () => {

@@ -25,9 +25,7 @@ export {
 } from "./behavioral/index.ts";
 
 // 2. Edge Cases Subdomain
-export {
-  HEURISTICS_EDGE_CASES_SUITES,
-} from "./edge-cases/index.ts";
+export { HEURISTICS_EDGE_CASES_SUITES } from "./edge-cases/index.ts";
 
 // 3. Core Subdomain
 export {

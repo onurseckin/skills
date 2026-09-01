@@ -33,6 +33,4 @@ export {
   withLock,
   type Location,
 } from "../../../olt/scripts/src/policy/io-safety.ts";
-export {
-  sampleIoPolicy,
-} from "./fixtures.ts";
+export { sampleIoPolicy } from "./fixtures.ts";

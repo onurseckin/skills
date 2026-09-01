@@ -1,7 +1,6 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import * as fs from "node:fs";
 import { join } from "node:path";
 import {
   CLOSING_FORBIDDEN_FOR_MIND,
@@ -11,48 +10,48 @@ import {
   formatPulseDirective,
   mindPulseCommand,
 } from "../../../../olt/scripts/src/cli/commands/mind-pulse.ts";
-import { initRun, loadRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
-import type { JsonObject } from "../../../../olt/scripts/src/core/contracts/index.ts";
+import * as storeModule from "../../../../olt/scripts/src/engine/store/index.ts";
+import * as durableWriteModule from "../../../../olt/scripts/src/core/durable-write.ts";
+import type { RunState } from "../../../../olt/scripts/src/core/contracts/index.ts";
 
-const testRoots: string[] = [];
+const origExists = fs.existsSync;
+const origRead = fs.readFileSync;
 
-afterEach(() => {
-  for (const root of testRoots) {
-    try {
-      rmSync(root, { recursive: true, force: true });
-    } catch {}
-  }
-  testRoots.length = 0;
-});
+describe("cli/commands/mind-pulse smart-task integration (in-memory virtual)", () => {
+  const repo = `${process.cwd()}/.olt/virtual-mind-pulse-repo`;
+  const run = `${repo}/.olt/capsules/mind-gen-cmd-test`;
+  const mockFiles = new Map<string, string>();
+  const mockDirs = new Set<string>();
+  const spies: { mockRestore: () => void }[] = [];
+  let inMemoryState: RunState;
 
-function setupFixture(name: string): { repo: string; run: string } {
-  const repo = mkdtempSync(join(tmpdir(), `mind-pulse-smart-${name}-`));
-  testRoots.push(repo);
+  beforeEach(() => {
+    mockFiles.clear();
+    mockDirs.clear();
+    mockDirs.add(repo);
+    mockDirs.add(run);
+    mockDirs.add(join(repo, ".olt"));
+    mockDirs.add(join(repo, ".olt", "capsules"));
+    mockDirs.add(join(repo, "olt", "agents"));
 
-  const charterDir = join(repo, "olt", "agents");
-  mkdirSync(charterDir, { recursive: true });
-  const charterPath = join(charterDir, "mind.yaml");
-  const charterContent = `name: "mind"\nrole: "mind"\ncharter:\n  identity: "Test Mind"\n  goals:\n    - id: "G1"\n      statement: "Goal 1"\n  non_goals:\n    - "Self-termination"\n  repo_roots:\n    - "src/"\n`;
-  writeFileSync(charterPath, charterContent, "utf-8");
+    const charterContent = `name: "mind"\nrole: "mind"\ncharter:\n  identity: "Test Mind"\n  goals:\n    - id: "G1"\n      statement: "Goal 1"\n  non_goals:\n    - "Self-termination"\n  repo_roots:\n    - "src/"\n`;
+    const charterSha = createHash("sha256").update(charterContent).digest("hex");
+    mockFiles.set(join(repo, "olt", "agents", "mind.yaml"), charterContent);
+    mockFiles.set(join(run, "events.jsonl"), "");
 
-  const charterBytes = readFileSync(charterPath);
-  const charterSha = createHash("sha256").update(charterBytes).digest("hex");
-
-  const run = initRun(repo, `mind-gen-${name}`, charterBytes, "file", true);
-
-  transact(
-    run,
-    "mind-init",
-    "mind-initialized",
-    {
-      generation: 1,
-      charter_source_path: "olt/agents/mind.yaml",
-      pinned_sha256: charterSha,
-    },
-    (working) => {
-      working.mind = {
+    inMemoryState = {
+      version: "2.0.0",
+      run_id: "mind-gen-cmd-test",
+      status: "active",
+      created_at: "2026-08-29T10:00:00.000Z",
+      updated_at: "2026-08-29T10:00:00.000Z",
+      tasks: {},
+      agents: [],
+      candidates: [],
+      requirements: [],
+      mind: {
         generation: 1,
-        opened_at: new Date().toISOString(),
+        opened_at: "2026-08-29T10:00:00.000Z",
         charter: {
           source_path: "olt/agents/mind.yaml",
           pinned_sha256: charterSha,
@@ -61,14 +60,85 @@ function setupFixture(name: string): { repo: string; run: string } {
           evidence_class: "harness_observed",
         },
         actor: "mind-1",
-      };
-    },
-  );
+      },
+    } as unknown as RunState;
 
-  return { repo, run };
-}
+    spies.push(
+      spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => {
+        const s = String(p);
+        if (mockFiles.has(s) || mockDirs.has(s)) return true;
+        try {
+          return origExists(p);
+        } catch {
+          return false;
+        }
+      }),
+    );
 
-describe("cli/commands/mind-pulse smart-task integration", () => {
+    spies.push(
+      spyOn(fs, "readFileSync").mockImplementation((p: fs.PathOrFileDescriptor) => {
+        const s = String(p);
+        const val = mockFiles.get(s);
+        if (val !== undefined) return val;
+        return origRead(p as string, "utf-8");
+      }),
+    );
+
+    spies.push(
+      spyOn(fs, "writeFileSync").mockImplementation((p, data) => {
+        mockFiles.set(
+          String(p),
+          typeof data === "string" ? data : Buffer.from(data as Uint8Array).toString("utf-8"),
+        );
+      }),
+    );
+
+    spies.push(
+      spyOn(fs, "lstatSync").mockImplementation((p: fs.PathLike) => {
+        const s = String(p);
+        if (mockFiles.has(s))
+          return { isFile: () => true, isDirectory: () => false } as unknown as fs.Stats;
+        return { isFile: () => false, isDirectory: () => true } as unknown as fs.Stats;
+      }),
+    );
+
+    spies.push(
+      spyOn(fs, "mkdirSync").mockImplementation((p) => {
+        mockDirs.add(String(p));
+        return undefined as unknown as string;
+      }),
+    );
+
+    spies.push(
+      spyOn(durableWriteModule, "atomicWriteBytes").mockImplementation((targetPath, bytes) => {
+        mockFiles.set(targetPath, new TextDecoder().decode(bytes));
+      }),
+    );
+    spies.push(
+      spyOn(storeModule, "loadRun").mockImplementation(
+        () =>
+          ({
+            state: inMemoryState,
+            manifest: { version: "2.0.0", run_id: "mind-gen-cmd-test" },
+            events: [],
+          }) as unknown as ReturnType<typeof storeModule.loadRun>,
+      ),
+    );
+    spies.push(
+      spyOn(storeModule, "transact").mockImplementation((...args: unknown[]) => {
+        const mutator = args.find((a) => typeof a === "function") as
+          | ((s: RunState) => unknown)
+          | undefined;
+        if (mutator) mutator(inMemoryState);
+        return inMemoryState;
+      }),
+    );
+  });
+
+  afterEach(() => {
+    while (spies.length > 0) spies.pop()?.mockRestore();
+  });
+
   it("exports canonical CLOSING_FORBIDDEN_FOR_MIND invariant constant", () => {
     expect(CLOSING_FORBIDDEN_FOR_MIND).toBe("CLOSING_FORBIDDEN_FOR_MIND");
   });
@@ -156,12 +226,11 @@ describe("cli/commands/mind-pulse smart-task integration", () => {
   });
 
   it("executes mindPulseCommand for opening and active telemetry cycles", async () => {
-    const fixture = setupFixture("cmd-test");
     const openTime = "2026-08-29T10:00:00.000Z";
     const checkTime = "2026-08-29T10:05:00.000Z";
 
     const openedResult = await mindPulseCommand({
-      run: fixture.run,
+      run,
       actor: "mind-1",
       host: "antigravity",
       driver: "perpetual-loop",
@@ -175,7 +244,7 @@ describe("cli/commands/mind-pulse smart-task integration", () => {
     expect(openedResult.invariant).toBe(CLOSING_FORBIDDEN_FOR_MIND);
 
     const activeResult = await mindPulseCommand({
-      run: fixture.run,
+      run,
       actor: "mind-1",
       now: checkTime,
     });

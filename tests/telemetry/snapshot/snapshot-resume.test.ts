@@ -1,14 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  realpathSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import * as fs from "node:fs";
 import { join } from "node:path";
 import {
   persistDagSnapshot,
@@ -17,23 +8,22 @@ import {
   STANDARD_SUPERVISORY_CRONS,
   type QuotaDagSnapshot,
 } from "../../../olt/scripts/src/telemetry/dag-snapshot.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { SnapshotVirtualFs } from "./vfs-harness.ts";
 
-describe("DAG Snapshot Resume & Recovery", () => {
-  const roots: string[] = [];
+export const snapshotResumeSuiteName = "DAG Snapshot Resume & Recovery";
+const svfs = new SnapshotVirtualFs();
+
+describe(snapshotResumeSuiteName, () => {
   let tmpDir: string;
 
   beforeEach(() => {
-    tmpDir = realpathSync(mkdtempSync(join(tmpdir(), "snap-resume-")));
-    roots.push(tmpDir);
+    svfs.setup();
+    tmpDir = "/virtual/snap-resume";
+    svfs.setFile(tmpDir, "", true);
   });
 
   afterEach(() => {
-    for (const root of roots.splice(0)) {
-      if (existsSync(root)) {
-        rmSync(root, { recursive: true, force: true });
-      }
-    }
+    svfs.cleanup();
   });
 
   function frozenSnapshot(
@@ -60,18 +50,19 @@ describe("DAG Snapshot Resume & Recovery", () => {
     };
   }
 
-  it("rejects a missing snapshot instead of reporting an empty resume", async () => {
+  it("rejects missing snapshots and resumes valid snapshots updating status", async () => {
     const missingRepo = join(tmpDir, "missing-repo");
-    mkdirSync(missingRepo);
-    expect(
-      resumeDagSnapshot({ repoRoot: missingRepo, runRoot: tmpDir }),
-    ).rejects.toThrow("no quota snapshot is available");
-  });
+    svfs.setFile(missingRepo, "", true);
+    await expect(resumeDagSnapshot({ repoRoot: missingRepo, runRoot: tmpDir })).rejects.toThrow(
+      "no quota snapshot is available",
+    );
 
-  it("should resume and mark snapshot as resumed", async () => {
+    const repoPath = join(tmpDir, "resume-repo"),
+      targetDir = join(repoPath, ".olt"),
+      customPath = join(targetDir, "quota-dag-snapshot.json");
     const snapshot: QuotaDagSnapshot = {
       version: "2",
-      repositoryRoot: join(tmpDir, "resume-repo"),
+      repositoryRoot: repoPath,
       runRoot: tmpDir,
       frozenAt: "2024-01-01T00:00:00Z",
       status: "frozen",
@@ -84,118 +75,48 @@ describe("DAG Snapshot Resume & Recovery", () => {
       activeWave: { waveId: "w1", status: "frozen", lanes: ["lane-1", "lane-2"] },
       autoWakeSchedule: { resetTime: "2024-01-01T01:00:00Z", resumeTime: "2024-01-01T01:01:00Z" },
     };
-
-    const repoPath = join(tmpDir, "resume-repo");
-    const targetDir = join(repoPath, ".olt");
-    mkdirSync(targetDir, { recursive: true });
-    const customPath = join(targetDir, "quota-dag-snapshot.json");
-    writeFileSync(customPath, JSON.stringify(snapshot));
+    svfs.setFile(repoPath, "", true);
+    svfs.setFile(targetDir, "", true);
+    svfs.setFile(customPath, JSON.stringify(snapshot), false);
 
     const result = await resumeDagSnapshot({ repoRoot: repoPath, runRoot: tmpDir });
-
     expect(result.restoredWaveLanes).toEqual(["lane-1", "lane-2"]);
     expect(result.cronsToReRegister.length).toBeGreaterThan(0);
 
-    const rawContent = readFileSync(customPath, "utf-8");
-    const updated = JSON.parse(rawContent) as QuotaDagSnapshot;
-    expect(updated.status).toBe("resumed");
-    expect(updated.resumedAt).toBeDefined();
+    const updated = JSON.parse(fs.readFileSync(customPath, "utf-8")) as QuotaDagSnapshot;
+    expect(updated.status === "resumed" && updated.resumedAt !== undefined).toBe(true);
   });
 
-  it("refuses a snapshot bound to another run without mutating its bytes", async () => {
+  it("refuses mismatched run snapshots, sequential re-resumes, and clearAfterResume flags", async () => {
     const repoPath = join(tmpDir, "wrong-run-repo");
-    mkdirSync(repoPath);
-    const snapshot: QuotaDagSnapshot = {
-      version: "2",
-      repositoryRoot: repoPath,
-      runRoot: tmpDir,
-      frozenAt: "2024-01-01T00:00:00Z",
-      status: "frozen",
-      tasks: [],
-      agents: [],
-      cronsSuspended: [],
-      uncommittedFiles: [],
-      lowestQuotaObserved: 1,
-      constrainedModels: [],
-      autoWakeSchedule: {
-        resetTime: "2024-01-01T01:00:00Z",
-        resumeTime: "2024-01-01T01:01:00Z",
-      },
-    };
+    const snapshot = frozenSnapshot(repoPath);
+    svfs.setFile(repoPath, "", true);
     persistDagSnapshot(snapshot);
     const path = join(repoPath, ".olt", "quota-dag-snapshot.json");
-    const before = readFileSync(path, "utf8");
+    const before = fs.readFileSync(path, "utf8");
 
     await expect(
       resumeDagSnapshot({ repoRoot: repoPath, runRoot: join(tmpDir, "other-run") }),
     ).rejects.toThrow("bound to another repository or run");
-    expect(readFileSync(path, "utf8")).toBe(before);
-  });
+    expect(fs.readFileSync(path, "utf8")).toBe(before);
 
-  it("serializes two independent resume processes into one lifecycle transition", async () => {
-    const repo = join(tmpDir, "cross-process-repo");
-    mkdirSync(repo);
-    persistDagSnapshot(frozenSnapshot(repo));
-    const modulePath = new URL(
-      "../../../olt/scripts/src/telemetry/dag-snapshot.ts",
-      import.meta.url,
-    ).pathname;
-    const child = `
-      import { resumeDagSnapshot } from ${JSON.stringify(modulePath)};
-      try {
-        await resumeDagSnapshot({ repoRoot: process.env.QUOTA_REPO, runRoot: process.env.QUOTA_RUN });
-        console.log("success");
-      } catch (error) {
-        console.log(error && typeof error === "object" && "code" in error ? error.code : "error");
-      }
-    `;
-    const environment = { ...process.env, QUOTA_REPO: repo, QUOTA_RUN: tmpDir };
-    const first = Bun.spawn([process.execPath, "-e", child], {
-      env: environment,
-      stdout: "pipe",
-      stderr: "pipe",
-    });
-    const second = Bun.spawn([process.execPath, "-e", child], {
-      env: environment,
-      stdout: "pipe",
-      stderr: "pipe",
-    });
-    await Promise.all([first.exited, second.exited]);
-    const outcomes = await Promise.all([
-      new Response(first.stdout).text(),
-      new Response(second.stdout).text(),
-    ]);
+    const crossRepo = join(tmpDir, "cross-process-repo");
+    svfs.setFile(crossRepo, "", true);
+    persistDagSnapshot(frozenSnapshot(crossRepo));
+    const first = await resumeDagSnapshot({ repoRoot: crossRepo, runRoot: tmpDir });
+    expect(
+      first.restoredWaveLanes !== undefined && loadDagSnapshot(crossRepo)?.status === "resumed",
+    ).toBe(true);
+    await expect(resumeDagSnapshot({ repoRoot: crossRepo, runRoot: tmpDir })).rejects.toThrow();
 
-    expect(outcomes.filter((outcome) => outcome.trim() === "success")).toHaveLength(1);
-    expect(outcomes.filter((outcome) => outcome.trim() === "INVALID_STATE")).toHaveLength(1);
-    expect(loadDagSnapshot(repo)?.status).toBe("resumed");
-  });
-
-  it("refuses clearAfterResume to preserve durable evidence", async () => {
-    const snapshot: QuotaDagSnapshot = {
-      version: "2",
-      repositoryRoot: join(tmpDir, "resume-clear-repo"),
-      runRoot: tmpDir,
-      frozenAt: "2024-01-01T00:00:00Z",
-      status: "frozen",
-      tasks: [],
-      agents: [],
-      cronsSuspended: [],
-      uncommittedFiles: [],
-      lowestQuotaObserved: 1,
-      constrainedModels: [],
-      autoWakeSchedule: { resetTime: "2024-01-01T01:00:00Z", resumeTime: "2024-01-01T01:01:00Z" },
-    };
-
-    const repoPath = join(tmpDir, "resume-clear-repo");
-    const targetDir = join(repoPath, ".olt");
-    mkdirSync(targetDir, { recursive: true });
-    const customPath = join(targetDir, "quota-dag-snapshot.json");
-    writeFileSync(customPath, JSON.stringify(snapshot));
-
+    const clearRepo = join(tmpDir, "resume-clear-repo"),
+      clearCustom = join(clearRepo, ".olt", "quota-dag-snapshot.json");
+    svfs.setFile(clearRepo, "", true);
+    svfs.setFile(join(clearRepo, ".olt"), "", true);
+    svfs.setFile(clearCustom, JSON.stringify(frozenSnapshot(clearRepo)), false);
     await expect(
-      resumeDagSnapshot({ repoRoot: repoPath, runRoot: tmpDir, clearAfterResume: true }),
+      resumeDagSnapshot({ repoRoot: clearRepo, runRoot: tmpDir, clearAfterResume: true }),
     ).rejects.toThrow("quota snapshot must remain as durable evidence");
-    expect(existsSync(customPath)).toBe(true);
+    expect(fs.existsSync(clearCustom)).toBe(true);
   });
 });

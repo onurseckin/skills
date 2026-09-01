@@ -13,7 +13,6 @@ import {
   type VisualMetricsReport,
 } from "../../../olt/scripts/src/validation/dual-channel-analyzer/index.ts";
 
-
 describe("Semantic Depth Quality Checks & requireSemanticDepth Enforcement", () => {
   const findingsCollector = () => {
     const findings: StructuredFinding[] = [];
@@ -193,5 +192,4 @@ describe("Semantic Depth Quality Checks & requireSemanticDepth Enforcement", () 
       ),
     ).toBe(true);
   });
-
 });

@@ -64,6 +64,12 @@ describe("Extended Heuristics: Nested Glass Surfaces & Translucency Dynamics", (
 
     const transparentComp = compositeRgba({ r: 0, g: 0, b: 0, a: 0 }, { r: 0, g: 0, b: 0, a: 0 });
     expect(transparentComp.a).toBe(0);
+
+    const closeToZero = calculateApcaLightnessContrast(
+      { r: 128, g: 128, b: 128, a: 1 },
+      { r: 128, g: 128, b: 128, a: 1 },
+    );
+    expect(closeToZero).toBe(0);
   });
 
   it("validates high-contrast compliant text over nested glass stack", () => {
@@ -79,7 +85,6 @@ describe("Extended Heuristics: Nested Glass Surfaces & Translucency Dynamics", (
         backdropFilter: "blur(8px)",
       },
     ];
-
     const text: GlassTextElement = {
       selector: ".heading",
       text: "Certified Dashboard",
@@ -105,7 +110,6 @@ describe("Extended Heuristics: Nested Glass Surfaces & Translucency Dynamics", (
       { selector: ".l3", backgroundColor: "rgba(255,255,255,0.3)", backdropFilter: "blur(4px)" },
       { selector: ".l4", backgroundColor: "rgba(255,255,255,0.3)", backdropFilter: "blur(4px)" },
     ];
-
     const result = analyzeGlassSurfaces(stack);
     expect(result.isCompliant).toBe(false);
     expect(result.defects.some((d) => d.category === "glass-blur-overdraw")).toBe(true);
@@ -139,7 +143,6 @@ describe("Extended Heuristics: Nested Glass Surfaces & Translucency Dynamics", (
         backdropFilter: "blur(2px)",
       },
     ];
-
     const text: GlassTextElement = {
       selector: ".badge-text",
       text: "VIP Access",
@@ -164,7 +167,6 @@ describe("Extended Heuristics: Nested Glass Surfaces & Translucency Dynamics", (
         backdropFilter: "blur(10px)",
       },
     ];
-
     const result = analyzeGlassSurfaces(stack);
     expect(result.isCompliant).toBe(false);
     expect(result.defects.some((d) => d.category === "glass-transparency-washout")).toBe(true);
@@ -178,7 +180,6 @@ describe("Extended Heuristics: Nested Glass Surfaces & Translucency Dynamics", (
         backdropFilter: "blur(10px)",
       },
     ];
-
     const result = analyzeGlassSurfaces(stack);
     expect(result.effectiveLayerOpacity).toBeGreaterThanOrEqual(0.15);
     expect(result.defects.some((d) => d.category === "glass-transparency-washout")).toBe(false);
@@ -192,7 +193,6 @@ describe("Extended Heuristics: Nested Glass Surfaces & Translucency Dynamics", (
         backdropFilter: "blur(12px)",
       },
     ];
-
     const text: GlassTextElement = {
       selector: ".white-label",
       text: "Subhead Label",
@@ -224,7 +224,6 @@ describe("Extended Heuristics: Nested Glass Surfaces & Translucency Dynamics", (
         backdropFilter: "blur(8px)",
       },
     ];
-
     const text: GlassTextElement = {
       selector: ".mid-gray-text",
       text: "Vibrating text label",
@@ -253,7 +252,6 @@ describe("Extended Heuristics: Nested Glass Surfaces & Translucency Dynamics", (
       fontSize: 24,
       fontWeight: 700,
     };
-
     const customSubstrates: readonly ParsedRgba[] = [
       { r: 255, g: 255, b: 255, a: 1 },
       { r: 0, g: 0, b: 0, a: 1 },
@@ -267,29 +265,23 @@ describe("Extended Heuristics: Nested Glass Surfaces & Translucency Dynamics", (
 
   it("flags translucent surface missing backdrop blur", () => {
     const stack: GlassSurfaceLayer[] = [
-      {
-        selector: ".no-blur-glass",
-        backgroundColor: "rgba(255, 255, 255, 0.5)",
-      },
+      { selector: ".no-blur-glass", backgroundColor: "rgba(255, 255, 255, 0.5)" },
     ];
-
     const result = analyzeGlassSurfaces(stack);
     expect(result.isCompliant).toBe(false);
     expect(result.defects.some((d) => d.category === "glass-missing-blur")).toBe(true);
   });
 
-  it("handles extreme alphas (0.001, 0.05, 0.999) without NaN in APCA or sRGB luminance", () => {
+  it("handles extreme alphas and edge-case color conversions without NaN", () => {
     const extremeColors = [
       { r: 255, g: 255, b: 255, a: 0.001 },
       { r: 0, g: 0, b: 0, a: 0.05 },
       { r: 255, g: 0, b: 0, a: 0.999 },
     ];
-
     for (const c of extremeColors) {
       const lum = sRgbToLuminanceY(c);
       expect(isNaN(lum)).toBe(false);
       expect(lum).toBeGreaterThanOrEqual(0);
-
       const lc = calculateApcaLightnessContrast(c, { r: 255, g: 255, b: 255, a: 1 });
       expect(isNaN(lc)).toBe(false);
     }

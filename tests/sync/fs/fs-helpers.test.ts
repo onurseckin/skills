@@ -20,20 +20,9 @@ import {
 } from "../../../scripts/sync/fs-helpers.ts";
 import { scratchRoot } from "../sync-fixture.ts";
 
-function git(args: string[], cwd: string): void {
-  const result = spawnSync("git", args, { cwd, encoding: "utf-8" });
-  if (result.status !== 0)
-    throw new Error(`git ${args.join(" ")} failed in ${cwd}: ${result.stderr}`);
-}
-
 function initRealGitRepoAt(dirPath: string): void {
-  mkdirSync(dirPath, { recursive: true });
+  mkdirSync(join(dirPath, ".git"), { recursive: true });
   writeFileSync(join(dirPath, "precious.txt"), "do-not-delete-me\n", "utf-8");
-  git(["init", "-q", "-b", "main"], dirPath);
-  git(["config", "user.email", "test@example.com"], dirPath);
-  git(["config", "user.name", "Test"], dirPath);
-  git(["add", "-A"], dirPath);
-  git(["commit", "-q", "-m", "init"], dirPath);
 }
 
 describe("logDestructiveOp", () => {
@@ -46,7 +35,12 @@ describe("logDestructiveOp", () => {
     }) as typeof process.stderr.write;
 
     try {
-      logDestructiveOp({ operation: "delete", requestedPath: "/tmp/foo", resolvedPath: "/tmp/foo", timestamp: "2026-08-30T00:00:00Z" });
+      logDestructiveOp({
+        operation: "delete",
+        requestedPath: "/tmp/foo",
+        resolvedPath: "/tmp/foo",
+        timestamp: "2026-08-30T00:00:00Z",
+      });
       expect(captured).toContain("[sync-audit]");
       expect(captured).toContain('"requestedPath":"/tmp/foo"');
     } finally {
@@ -70,7 +64,9 @@ describe("smartEnsureSymlink refuses to destroy a real directory", () => {
     writeFileSync(join(targetOlt, "SKILL.md"), "canonical\n", "utf-8");
     initRealGitRepoAt(linkPath);
 
-    expect(() => smartEnsureSymlink(targetOlt, linkPath, { allowedRoots: [assistantDir] })).toThrow(HarnessError);
+    expect(() => smartEnsureSymlink(targetOlt, linkPath, { allowedRoots: [assistantDir] })).toThrow(
+      HarnessError,
+    );
     expect(existsSync(linkPath)).toBe(true);
     expect(lstatSync(linkPath).isSymbolicLink()).toBe(false);
     expect(existsSync(join(linkPath, ".git"))).toBe(true);
@@ -82,7 +78,9 @@ describe("smartEnsureSymlink refuses to destroy a real directory", () => {
     mkdirSync(linkPath, { recursive: true });
     writeFileSync(join(linkPath, "keepme.txt"), "still-here\n", "utf-8");
 
-    expect(() => smartEnsureSymlink(targetOlt, linkPath, { allowedRoots: [assistantDir] })).toThrow(HarnessError);
+    expect(() => smartEnsureSymlink(targetOlt, linkPath, { allowedRoots: [assistantDir] })).toThrow(
+      HarnessError,
+    );
     expect(existsSync(linkPath)).toBe(true);
     expect(lstatSync(linkPath).isDirectory()).toBe(true);
     expect(readFileSync(join(linkPath, "keepme.txt"), "utf-8")).toBe("still-here\n");
@@ -92,14 +90,22 @@ describe("smartEnsureSymlink refuses to destroy a real directory", () => {
     const { assistantDir, targetOlt, linkPath } = setupAssistantRoots("symlink-vs-plain-file");
     writeFileSync(linkPath, "not-a-symlink\n", "utf-8");
 
-    expect(() => smartEnsureSymlink(targetOlt, linkPath, { allowedRoots: [assistantDir] })).toThrow(HarnessError);
+    expect(() => smartEnsureSymlink(targetOlt, linkPath, { allowedRoots: [assistantDir] })).toThrow(
+      HarnessError,
+    );
     expect(readFileSync(linkPath, "utf-8")).toBe("not-a-symlink\n");
   });
 
   test("throws when readExistingEntry encounters non-ENOENT error", () => {
     const root = scratchRoot(import.meta.path, "symlink-non-enoent");
     const linkPath = join(root, "test-entry");
-    const customDriver = { lstatSync: () => { const err = new Error("Permission denied") as NodeJS.ErrnoException; err.code = "EACCES"; throw err; } };
+    const customDriver = {
+      lstatSync: () => {
+        const err = new Error("Permission denied") as NodeJS.ErrnoException;
+        err.code = "EACCES";
+        throw err;
+      },
+    };
     expect(() =>
       smartEnsureSymlink(join(root, "target"), linkPath, {
         allowedRoots: [root],
@@ -224,7 +230,9 @@ describe("smartEnsureSymlink normal operation", () => {
     mkdirSync(otherDir, { recursive: true });
 
     const linkPath = join(otherDir, "olt");
-    expect(() => smartEnsureSymlink(targetOlt, linkPath, { allowedRoots: [assistantDir] })).toThrow(HarnessError);
+    expect(() => smartEnsureSymlink(targetOlt, linkPath, { allowedRoots: [assistantDir] })).toThrow(
+      HarnessError,
+    );
     expect(existsSync(linkPath)).toBe(false);
   });
 });
@@ -244,7 +252,9 @@ describe("guardedRemoveSync", () => {
 
   test("is a no-op by default when the target is already missing", () => {
     const root = scratchRoot(import.meta.path, "guarded-remove-missing");
-    expect(() => guardedRemoveSync(join(root, "never-existed"), { allowedRoots: [root] })).not.toThrow();
+    expect(() =>
+      guardedRemoveSync(join(root, "never-existed"), { allowedRoots: [root] }),
+    ).not.toThrow();
   });
 
   test("refuses to delete a directory containing a .git entry without an explicit override", () => {

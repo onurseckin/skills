@@ -1,7 +1,5 @@
-import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { describe, expect, test, beforeEach, afterEach, spyOn } from "bun:test";
+import * as fs from "node:fs";
 import {
   calculatePct,
   createMetricItem,
@@ -14,21 +12,53 @@ import {
   type CoverageSummary,
 } from "../../../scripts/testing/reporting/index.ts";
 
-describe("Coverage Metrics and Markdown Reporting", () => {
-  const roots: string[] = [];
-  let testScratchDir: string;
+describe("Coverage Metrics and Markdown Reporting (in-memory virtual)", () => {
+  const testScratchDir = `${process.cwd()}/.olt/virtual-cov-met`;
+  const mockFiles = new Map<string, string>();
+  const mockDirs = new Set<string>();
+  const spies: { mockRestore: () => void }[] = [];
 
   beforeEach(() => {
-    testScratchDir = realpathSync(mkdtempSync(join(tmpdir(), "cov-met-")));
-    roots.push(testScratchDir);
+    mockFiles.clear();
+    mockDirs.clear();
+    mockDirs.add(testScratchDir);
+
+    spies.push(
+      spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => {
+        const s = String(p);
+        return mockFiles.has(s) || mockDirs.has(s);
+      }),
+    );
+
+    spies.push(
+      spyOn(fs, "readFileSync").mockImplementation((p: fs.PathOrFileDescriptor) => {
+        const val = mockFiles.get(String(p));
+        if (val !== undefined) return val;
+        throw new Error(`ENOENT: no such file, open '${String(p)}'`);
+      }),
+    );
+
+    spies.push(
+      spyOn(fs, "writeFileSync").mockImplementation((p, data) => {
+        mockFiles.set(
+          String(p),
+          typeof data === "string" ? data : Buffer.from(data as Uint8Array).toString("utf-8"),
+        );
+      }),
+    );
+
+    spies.push(
+      spyOn(fs, "mkdirSync").mockImplementation((p) => {
+        mockDirs.add(String(p));
+        return undefined as unknown as string;
+      }),
+    );
+
+    spies.push(spyOn(fs, "realpathSync").mockImplementation((p: fs.PathLike) => String(p)));
   });
 
   afterEach(() => {
-    for (const root of roots.splice(0)) {
-      if (existsSync(root)) {
-        rmSync(root, { recursive: true, force: true });
-      }
-    }
+    while (spies.length > 0) spies.pop()?.mockRestore();
   });
 
   describe("types and metric helpers", () => {
@@ -93,7 +123,7 @@ describe("Coverage Metrics and Markdown Reporting", () => {
     });
 
     test("parseLcov resolves absolute paths relative to rootDir", () => {
-      const absPath = join(testScratchDir, "src/bar.ts");
+      const absPath = `${testScratchDir}/src/bar.ts`;
       const sampleLcov = `SF:${absPath}\nLF:5\nLH:5\nend_of_record`;
       const fileMap = parseLcov(sampleLcov, testScratchDir);
       expect(fileMap.has("src/bar.ts")).toBe(true);
@@ -151,9 +181,9 @@ describe("Coverage Metrics and Markdown Reporting", () => {
       const summary = buildCoverageSummary(fileMap);
 
       const outPath = writeSummaryJson(summary, testScratchDir, "nested/coverage");
-      expect(existsSync(outPath)).toBe(true);
+      expect(fs.existsSync(outPath)).toBe(true);
 
-      const content = JSON.parse(readFileSync(outPath, "utf-8"));
+      const content = JSON.parse(fs.readFileSync(outPath, "utf-8"));
       expect(content.total.lines.pct).toBe(100);
     });
   });
@@ -217,8 +247,10 @@ describe("Coverage Metrics and Markdown Reporting", () => {
       const summary = buildCoverageSummary(fileMap);
 
       const reportPath = writeMarkdownReport(fileMap, summary, testScratchDir, "nested/cov");
-      expect(existsSync(reportPath)).toBe(true);
-      expect(readFileSync(reportPath, "utf-8")).toContain("# Repository Unit Test Coverage Report");
+      expect(fs.existsSync(reportPath)).toBe(true);
+      expect(fs.readFileSync(reportPath, "utf-8")).toContain(
+        "# Repository Unit Test Coverage Report",
+      );
     });
   });
 });

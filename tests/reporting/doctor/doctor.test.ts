@@ -1,7 +1,6 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import * as fs from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import {
   ignoredByGit,
   runDoctor,
@@ -9,11 +8,11 @@ import {
   formatDoctorReport,
 } from "../../../olt/scripts/src/reporting/doctor.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
-
-const roots: string[] = [];
-afterEach(async () =>
-  Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))),
-);
+import {
+  cleanupVirtualBrowserFS,
+  setupVirtualBrowserFS,
+  tempDir,
+} from "../browser/browser-run-fixture.ts";
 
 const exitCode =
   (status: number, stdout = "") =>
@@ -28,6 +27,14 @@ const throwingGitCommand = () => {
 export const doctorSuiteName = "doctor diagnostics and gitignore policy";
 
 describe(doctorSuiteName, () => {
+  beforeEach(() => {
+    setupVirtualBrowserFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualBrowserFS();
+  });
+
   test("versionAtLeast checks semver ordering", () => {
     expect(versionAtLeast("1.3.14", "1.2.0")).toBe(true);
     expect(versionAtLeast("1.2.0", "1.2.0")).toBe(true);
@@ -36,15 +43,14 @@ describe(doctorSuiteName, () => {
     expect(versionAtLeast("1.0.0", "2.0.0")).toBe(false);
   });
 
-  test("ignoredByGit answers true, false, or unknown and never guesses", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "harness-git-doc-"));
-    roots.push(repo);
+  test("ignoredByGit answers true, false, or unknown and never guesses", () => {
+    const repo = tempDir("harness-git-doc");
     const runRoot = join(repo, ".olt", "capsules", "run-1");
 
     // Nothing to ask: the directory is not a repository.
     expect(ignoredByGit(runRoot)).toBeNull();
 
-    await mkdir(join(repo, ".git"));
+    fs.mkdirSync(join(repo, ".git"), { recursive: true });
     expect(ignoredByGit(runRoot, exitCode(0))).toBe(true);
     expect(ignoredByGit(runRoot, exitCode(1))).toBe(false);
 
@@ -90,9 +96,8 @@ describe(doctorSuiteName, () => {
   });
 
   test("runDoctor collects command, packet, workflow, and git diff issues", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "harness-doc-full-"));
-    roots.push(repo);
-    await mkdir(join(repo, ".git"));
+    const repo = tempDir("harness-doc-full");
+    fs.mkdirSync(join(repo, ".git"), { recursive: true });
 
     const runRoot = initRun(
       repo,
@@ -144,8 +149,7 @@ describe(doctorSuiteName, () => {
   });
 
   test("runDoctor handles corrupted run directory where loadRun fails", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "harness-doc-corrupted-"));
-    roots.push(repo);
+    const repo = tempDir("harness-doc-corrupted");
     const runRoot = join(repo, ".capsules", "empty-nonexistent");
 
     const report = await runDoctor(runRoot);
@@ -154,8 +158,7 @@ describe(doctorSuiteName, () => {
   });
 
   test("runDoctor handles options.installation status check", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "harness-doc-install-"));
-    roots.push(repo);
+    const repo = tempDir("harness-doc-install");
     const runRoot = initRun(
       repo,
       "install-run",
@@ -164,14 +167,14 @@ describe(doctorSuiteName, () => {
       true,
     );
 
-    await writeFile(join(repo, "SKILL.md"), "---\nname: olt\ndescription: test\n---\n", "utf-8");
-    await mkdir(join(repo, "scripts", "src", "core", "config"), { recursive: true });
-    await writeFile(
+    fs.writeFileSync(join(repo, "SKILL.md"), "---\nname: olt\ndescription: test\n---\n", "utf-8");
+    fs.mkdirSync(join(repo, "scripts", "src", "core", "config"), { recursive: true });
+    fs.writeFileSync(
       join(repo, "scripts", "package.json"),
       JSON.stringify({ name: "@local/olt-runtime" }),
       "utf-8",
     );
-    await writeFile(
+    fs.writeFileSync(
       join(repo, "scripts", "src", "core", "config", "contracts.ts"),
       'export const RUNTIME_VERSION = "0.2.0";\n',
       "utf-8",
@@ -189,9 +192,8 @@ describe(doctorSuiteName, () => {
   });
 
   test("runDoctor flags run capsule when not gitignored", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "harness-doc-unignored-"));
-    roots.push(repo);
-    await mkdir(join(repo, ".git"));
+    const repo = tempDir("harness-doc-unignored");
+    fs.mkdirSync(join(repo, ".git"), { recursive: true });
     const runRoot = initRun(
       repo,
       "unignored-run",
@@ -205,9 +207,8 @@ describe(doctorSuiteName, () => {
   });
 
   test("runDoctor reports an unanswerable gitignore probe as unknown, not as a violation", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "harness-doc-unknown-ignore-"));
-    roots.push(repo);
-    await mkdir(join(repo, ".git"));
+    const repo = tempDir("harness-doc-unknown-ignore");
+    fs.mkdirSync(join(repo, ".git"), { recursive: true });
     const runRoot = initRun(
       repo,
       "unknown-ignore-run",
@@ -221,8 +222,7 @@ describe(doctorSuiteName, () => {
   });
 
   test("runDoctor evaluates Socratic Reflexive Self-Questioning Engine diagnostics", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "harness-doc-socratic-"));
-    roots.push(repo);
+    const repo = tempDir("harness-doc-socratic");
     const runRoot = initRun(
       repo,
       "socratic-run",

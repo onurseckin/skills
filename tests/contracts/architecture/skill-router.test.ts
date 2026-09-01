@@ -79,7 +79,9 @@ describe(skillRouterSuiteName, () => {
       expect(skill).toContain("Never read");
       const roleRows = skill
         .split("\n")
-        .filter((line) => /^\| `(?:coordinator|planner|implementer|repairer|validator)/u.test(line));
+        .filter((line) =>
+          /^\| `(?:coordinator|planner|implementer|repairer|validator)/u.test(line),
+        );
       expect(roleRows.length).toBe(5);
       for (const row of roleRows) expect(row.split("|").length).toBe(6);
     });

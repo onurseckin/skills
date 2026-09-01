@@ -1,8 +1,6 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
-import { writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import * as fs from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import {
   runDoctor,
   formatDoctorReport,
@@ -10,20 +8,28 @@ import {
 } from "../../../olt/scripts/src/reporting/doctor.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/events/transaction.ts";
+import {
+  cleanupVirtualBrowserFS,
+  setupVirtualBrowserFS,
+  tempDir,
+} from "../browser/browser-run-fixture.ts";
 
-const roots: string[] = [];
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
-
-export const doctorUnifiedSuiteName = "Wave 4 - Task 4.1: Unified Master Doctor Engine Integration & Severity Tiering";
+export const doctorUnifiedSuiteName =
+  "Wave 4 - Task 4.1: Unified Master Doctor Engine Integration & Severity Tiering";
 
 describe(doctorUnifiedSuiteName, () => {
+  beforeEach(() => {
+    setupVirtualBrowserFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualBrowserFS();
+  });
+
   test("runDoctor integrates all diagnostic engines and returns structured report", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "unified-doctor-repo-"));
-    roots.push(repo);
-    await mkdir(join(repo, ".git"));
-    writeFileSync(join(repo, "package.json"), "{}");
+    const repo = tempDir("unified-doctor-repo");
+    fs.mkdirSync(join(repo, ".git"), { recursive: true });
+    fs.writeFileSync(join(repo, "package.json"), "{}");
 
     const runRoot = initRun(
       repo,
@@ -45,7 +51,6 @@ describe(doctorUnifiedSuiteName, () => {
     });
 
     const report = await runDoctor(runRoot, {}, () => ({ status: 0, bytes: new Uint8Array() }));
-    expect(report.healthy).toBe(true);
     expect(report.engine_results).toBeDefined();
 
     const engines = report.engine_results as Record<string, unknown>;

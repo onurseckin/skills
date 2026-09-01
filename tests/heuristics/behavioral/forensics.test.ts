@@ -195,4 +195,73 @@ describe("Behavioral Forensics: 7 Core Heuristics Suites", () => {
     expect(result.metrics.stragglerTasksCount).toBe(1);
     expect(result.incidents.some((i) => i.category === "STRAGGLER")).toBe(true);
   });
+
+  it("detects ledger boundary violations and extracts tasks/agents from raw state payload", () => {
+    const result = analyzeBehavioralForensics({
+      runId: "run-state-and-events",
+      events: [
+        {
+          type: "boundary_violation",
+          actor: "coord-rogue",
+          command_id: "cmd-write-1",
+          message: "Unauthorized code edit attempt",
+        },
+      ],
+      state: {
+        agents: [{ agent_id: "zombie-state-agent", status: "released" }],
+        tasks: {
+          "task-state-orphaned": {
+            status: "leased",
+            write_scope: ["src/state.ts"],
+            started_at: 1000,
+            completed_at: 1500,
+            lease: { agent_id: "zombie-state-agent" },
+          },
+          "task-state-disjoint-1": {
+            status: "done",
+            write_scope: ["src/other1.ts"],
+            started_at: 1600,
+            completed_at: 2000,
+          },
+          "task-state-disjoint-2": {
+            status: "done",
+            write_scope: ["src/other2.ts"],
+            started_at: 2100,
+            completed_at: 2500,
+          },
+        },
+      },
+    });
+
+    expect(result.isClean).toBe(false);
+    expect(result.incidents.some((i) => i.category === "ROLE_BOUNDARY_DEVIATION")).toBe(true);
+    expect(result.incidents.some((i) => i.category === "GHOST_LEASE")).toBe(true);
+    expect(result.incidents.some((i) => i.category === "FALSE_SERIALIZATION")).toBe(true);
+  });
+
+  it("detects high exploration ratio across large tool call sequences", () => {
+    const calls: ExtractedToolCall[] = [];
+    for (let i = 0; i < 18; i++) {
+      calls.push({
+        agentId: "impl-x",
+        name: "view_file",
+        isRead: true,
+        isWrite: false,
+        isPoll: false,
+      });
+    }
+    calls.push({
+      agentId: "impl-x",
+      name: "replace_file_content",
+      isRead: false,
+      isWrite: true,
+      isPoll: false,
+    });
+
+    const result = analyzeBehavioralForensics({
+      runId: "run-high-expl",
+      allToolCalls: calls,
+    });
+    expect(result.incidents.some((i) => i.title.includes("High Exploration"))).toBe(true);
+  });
 });

@@ -147,4 +147,18 @@ strict = true
       rmSync(testDir, { recursive: true, force: true });
     }
   });
+
+  it("handles unreadable paths or directories gracefully in safeReadText", () => {
+    const testDir = join(scratchBase, `dir-manifest-${Date.now()}`);
+    mkdirSync(join(testDir, "Makefile"), { recursive: true });
+    mkdirSync(join(testDir, "package.json"), { recursive: true });
+    try {
+      const make = readMakefile(testDir);
+      expect(make.exists).toBe(false);
+      const pkg = readPackageJson(testDir);
+      expect(pkg.exists).toBe(false);
+    } finally {
+      rmSync(testDir, { recursive: true, force: true });
+    }
+  });
 });

@@ -3,7 +3,7 @@ import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { readStableBytes, readStableText } from "../../../olt/scripts/src/installer/stable-file.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
 
 describe("readStableBytes", () => {
   test("reads the exact bytes of a small file", () => {

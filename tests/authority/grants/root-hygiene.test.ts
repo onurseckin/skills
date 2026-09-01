@@ -1,20 +1,24 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
-import { writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { RootDirectoryHygieneGuard } from "../../../olt/scripts/src/authority/guards/root-hygiene.ts";
 import {
   checkRepositoryHygiene,
-  purgeOrphanedScratch,
 } from "../../../olt/scripts/src/reporting/doctor/hygiene-engine.ts";
-
-const roots: string[] = [];
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
+import {
+  cleanupVirtualAuthorityFS,
+  getVirtualAuthorityFS,
+  setupVirtualAuthorityFS,
+} from "../fixture.ts";
 
 describe("Wave 1 - Task 1.3: Repository Hygiene Guard (Invariant 30)", () => {
+  beforeEach(() => {
+    setupVirtualAuthorityFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualAuthorityFS();
+  });
+
   describe("RootDirectoryHygieneGuard", () => {
     test("allows approved root files and directories", () => {
       expect(() => {
@@ -39,14 +43,15 @@ describe("Wave 1 - Task 1.3: Repository Hygiene Guard (Invariant 30)", () => {
 
   describe("checkRepositoryHygiene & purgeOrphanedScratch", () => {
     test("detects unapproved loose files and migrates with fix=true", async () => {
-      const repo = await mkdtemp(join(tmpdir(), "hygiene-repo-"));
-      roots.push(repo);
+      const repo = "/virtual/grants/hygiene-repo";
+      const vfs = getVirtualAuthorityFS();
+      vfs.mkdirSync(repo, { recursive: true });
 
       // Create approved file
-      writeFileSync(join(repo, "package.json"), "{}");
+      vfs.writeFileSync(join(repo, "package.json"), "{}");
 
       // Create loose scratch file in root
-      writeFileSync(join(repo, "fix-test.ts"), "console.log('fix');");
+      vfs.writeFileSync(join(repo, "fix-test.ts"), "console.log('fix');");
 
       const checkBefore = checkRepositoryHygiene({ repoRoot: repo });
       expect(checkBefore.passed).toBe(false);

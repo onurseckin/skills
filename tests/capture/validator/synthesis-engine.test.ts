@@ -14,7 +14,7 @@ import type {
   ElementPhysicsSnapshot,
   ValidationContext,
 } from "../../../olt/scripts/src/capture/validator/types.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
 
 describe("Synthesis Engine & Manifest Certification", () => {
   describe("Remediation Generator", () => {

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test, afterAll } from "bun:test";
 import {
   agentRegisterCommand,
   agentReportCommand,
@@ -9,7 +9,16 @@ import {
   buildNodeTools,
   readAgentLedgerView,
 } from "../../../olt/scripts/src/summary/metrics/index.ts";
-import { ledgerOf, registerCoordinator, seededRun } from "../grants/agent-grant-fixtures.ts";
+import {
+  cleanupGrantRoots,
+  ledgerOf,
+  registerCoordinator,
+  seededRun,
+} from "../grants/agent-grant-fixtures.ts";
+
+afterAll(() => {
+  cleanupGrantRoots();
+});
 
 /** A model string with a tier, a vendor and a date in it: none of which may be read out of it. */
 const REPORTED_MODEL = "vendor-model-9-huge-20260101";

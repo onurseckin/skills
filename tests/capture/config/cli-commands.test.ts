@@ -10,7 +10,7 @@ import {
 } from "../../../olt/scripts/src/cli/commands/capture-run.ts";
 import { captureEvalCommand } from "../../../olt/scripts/src/cli/commands/capture-eval.ts";
 import { capabilityManifest, commandSlice } from "../../../olt/scripts/src/cli/manifest.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
 
 describe("T-CAP-CLI-TESTS: Harness CLI Capture Commands Integration", () => {
   describe("capture:init", () => {

@@ -4,9 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { existsSync } from "node:fs";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
-import {
-  executePlanBrainstorm,
-} from "../../../../../olt/scripts/src/cli/commands/plan-brainstorm.ts";
+import { executePlanBrainstorm } from "../../../../../olt/scripts/src/cli/commands/plan-brainstorm.ts";
 import { HarnessError } from "../../../../../olt/scripts/src/core/errors/index.ts";
 import { loadRun, transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
 import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";

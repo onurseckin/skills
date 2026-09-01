@@ -3,12 +3,10 @@ import {
   appendGateProof,
   type GateProofRecord,
 } from "../../../../olt/scripts/src/graph/gate-proof.ts";
-import { assignReplacementRepairer } from "../../../../olt/scripts/src/workflow/review/assign-repairer.ts";
 import { beginValidation } from "../../../../olt/scripts/src/workflow/review/begin-validation.ts";
 import { isProbeDemand } from "../../../../olt/scripts/src/workflow/review/finding-class.ts";
 import {
   failingGateRuns,
-  probeRoundsRecorded,
 } from "../../../../olt/scripts/src/workflow/review/pass-preconditions.ts";
 import { recordProbe } from "../../../../olt/scripts/src/workflow/review/record-probe.ts";
 import { recordReview } from "../../../../olt/scripts/src/workflow/review/record-review.ts";
@@ -63,16 +61,7 @@ const demand = {
   revalidation: "Cite a command id that proves this for T-1",
 };
 
-const defect = {
-  id: "F-1",
-  class: "defect",
-  requirement_id: "R-1",
-  severity: "important",
-  observation: "empty payload crashes the parser",
-  evidence: [{ path: "a.ts" }],
-  remediation: "guard the empty payload",
-  revalidation: "bun test",
-};
+
 
 function submitted(commands: Record<string, ReturnType<typeof commandRecord>> = {}): TestPort {
   const state = workflowState();
@@ -202,5 +191,4 @@ describe("the adversarial probe is not a rejection", () => {
       ),
     ).toThrow(/mandatory gate evidence records a failure/);
   });
-
 });

@@ -11,17 +11,9 @@ import {
   writeFileSync,
 } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { dirname, join, resolve, sep } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import {
-  assertSafeToDelete,
-  safeCpSync,
-  safeMkdirSync,
-  safeRenameSync,
-  safeRmSync,
-  safeWriteFileSync,
-  type DestructiveAuditEvent,
-} from "../../../olt/scripts/src/core/shared/safe-fs/index.ts";
+import { safeRmSync } from "../../../olt/scripts/src/core/shared/safe-fs/index.ts";
 
 function makeFixtureRoot(): string {
   return realpathSync(mkdtempSync(join(tmpdir(), "safe-fs-test-")));
@@ -182,4 +174,3 @@ describe("safe-fs destructive guard", () => {
     );
   });
 });
-

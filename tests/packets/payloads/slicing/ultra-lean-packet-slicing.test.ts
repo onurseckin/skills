@@ -20,7 +20,7 @@ import {
 import { buildPacket } from "../../../../olt/scripts/src/packets/render-packet.ts";
 import { evidenceSchema } from "../../../../olt/scripts/src/packets/evidence-schema.ts";
 import { claimTask } from "../../../../olt/scripts/src/workflow/lease/claim.ts";
-import { at, TestPort, workflowState } from "../../../workflow/test-port.ts";
+import { at, TestPort, workflowState } from "../../../workflow/index.ts";
 import { inspectionContext } from "./inspection-fixture.ts";
 import type { TaskRecord, WorkflowState } from "../../../../olt/scripts/src/workflow/types.ts";
 import type { JsonObject } from "../../../../olt/scripts/src/core/contracts/index.ts";
@@ -37,7 +37,6 @@ function createFixtureState() {
     token: claim.token,
   };
 }
-
 
 describe("ultra lean packet - slicing & budgeting", () => {
   describe("Packet Size Metrics & Budget Enforcement", () => {
@@ -274,5 +273,4 @@ describe("ultra lean packet - slicing & budgeting", () => {
       expect(sliceDepth2.nodes.map((n) => n.id)).not.toContain("T-99");
     });
   });
-
 });

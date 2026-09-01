@@ -9,11 +9,7 @@ export {
   promptSource,
 } from "./compiler/index.ts";
 
-export {
-  validateRequirements,
-  requirement,
-  requirementsDocument,
-} from "./validation/index.ts";
+export { validateRequirements, requirement, requirementsDocument } from "./validation/index.ts";
 
 export {
   buildEnhancedPlan,

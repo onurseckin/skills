@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import {
   isMicroCycleRecord,
   type MicroCycleRecord,
@@ -11,12 +11,11 @@ import {
   recordMicroCycleCritique,
 } from "../../../../olt/scripts/src/workflow/review/micro-cycle.ts";
 import { claimTask } from "../../../../olt/scripts/src/workflow/lease/claim.ts";
-import { taskRejectCommand } from "../../../../olt/scripts/src/cli/commands/task-reject.ts";
-import { taskReviewCommand } from "../../../../olt/scripts/src/cli/commands/task-review.ts";
-import { execute } from "../../../../olt/scripts/src/cli/execute.ts";
-import type { Clock, TaskRecord, WorkflowState } from "../../../../olt/scripts/src/workflow/types.ts";
-import { cleanupRoots } from "../../../cli/full-lifecycle-fixture.ts";
-import { setupCompiledRun } from "../../../cli/file-persistence-fixture.ts";
+import type {
+  Clock,
+  TaskRecord,
+  WorkflowState,
+} from "../../../../olt/scripts/src/workflow/types.ts";
 import { registerTaskPacket, TestPort, workflowState } from "../../shared/test-port.ts";
 
 class FakeClock implements Clock {
@@ -32,9 +31,6 @@ class FakeClock implements Clock {
     return this.now().toISOString();
   }
 }
-
-const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
 
 const taskIn = (s: WorkflowState, id = "T-1"): TaskRecord => s.tasks[id]!;
 

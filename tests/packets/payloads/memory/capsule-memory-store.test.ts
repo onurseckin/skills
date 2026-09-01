@@ -25,7 +25,7 @@ import {
 import { evidenceSchema } from "../../../../olt/scripts/src/packets/evidence-schema.ts";
 import { buildPacket } from "../../../../olt/scripts/src/packets/render-packet.ts";
 import { claimTask } from "../../../../olt/scripts/src/workflow/lease/claim.ts";
-import { at, TestPort, workflowState } from "../../../workflow/test-port.ts";
+import { at, TestPort, workflowState } from "../../../workflow/index.ts";
 import { inspectionContext } from "../slicing/inspection-fixture.ts";
 
 const roots: string[] = [];
@@ -48,7 +48,6 @@ function baseImplementerState() {
     token: claim.token,
   };
 }
-
 
 describe("Decoupled Capsule Memory - Store & Structure", () => {
   describe("Capsule Memory Structure & Paths", () => {

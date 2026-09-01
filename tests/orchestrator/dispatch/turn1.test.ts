@@ -55,10 +55,7 @@ describe("Orchestrator Turn 1 Init", () => {
   });
 
   test("throws INVALID_STATE when runRoot directory does not exist", () => {
-    const nonExistentPath = join(
-      getTurn1Sandbox("missing-dir"),
-      "does-not-exist-dir",
-    );
+    const nonExistentPath = join(getTurn1Sandbox("missing-dir"), "does-not-exist-dir");
     expect(() => enforceTurn1OrchestratorInit(nonExistentPath, "orchestrator")).toThrow(
       HarnessError,
     );

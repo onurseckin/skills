@@ -1,6 +1,11 @@
-import { createTestSummaryRecord, type TestSummaryRecord } from "../../../olt/scripts/src/testing/concurrency-lock.ts";
+import {
+  createTestSummaryRecord,
+  type TestSummaryRecord,
+} from "../../../olt/scripts/src/testing/concurrency-lock.ts";
 
-export function createSampleTestSummary(overrides: Partial<TestSummaryRecord> = {}): TestSummaryRecord {
+export function createSampleTestSummary(
+  overrides: Partial<TestSummaryRecord> = {},
+): TestSummaryRecord {
   return createTestSummaryRecord({
     passed_count: 10,
     failed_count: 0,

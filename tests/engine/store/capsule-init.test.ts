@@ -1,44 +1,39 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, rmSync, existsSync, lstatSync } from "node:fs";
 import { join } from "node:path";
 import {
   initCapsuleRun,
   ensureCapsuleInitialized,
 } from "../../../olt/scripts/src/engine/store/capsule/init.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { cleanupVirtualEngineFS, getVirtualEngineFS, setupVirtualEngineFS } from "../fixture.ts";
 
 describe("capsule-init", () => {
-  let testDir: string;
+  const testDir = "/virtual/store/capsule-init";
 
   beforeEach(() => {
-    testDir = join(
-      process.cwd(),
-      "coverage",
-      "scratch",
-      `capsule-init-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    );
-    mkdirSync(testDir, { recursive: true });
+    setupVirtualEngineFS();
+    const vfs = getVirtualEngineFS();
+    vfs.mkdirSync(testDir, { recursive: true });
   });
 
   afterEach(() => {
-    if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true, force: true });
-    }
+    cleanupVirtualEngineFS();
   });
 
   test("initializes new capsule run with all expected files and evidence dir", () => {
     const runId = "test-run-init-1";
     const res = initCapsuleRun(runId, { repo: testDir, prompt: "Test prompt content" });
 
+    const vfs = getVirtualEngineFS();
     expect(res.existed).toBe(false);
-    expect(existsSync(res.runRoot)).toBe(true);
-    expect(existsSync(join(res.runRoot, "manifest.json"))).toBe(true);
-    expect(existsSync(join(res.runRoot, "state.json"))).toBe(true);
-    expect(existsSync(join(res.runRoot, "events.jsonl"))).toBe(true);
-    expect(existsSync(join(res.runRoot, "README.md"))).toBe(true);
-    expect(existsSync(join(res.runRoot, "prompt.md"))).toBe(true);
-    expect(existsSync(join(res.runRoot, "evidence"))).toBe(true);
-    expect(lstatSync(join(res.runRoot, "evidence")).isDirectory()).toBe(true);
+    expect(vfs.existsSync(res.runRoot)).toBe(true);
+    expect(vfs.existsSync(join(res.runRoot, "manifest.json"))).toBe(true);
+    expect(vfs.existsSync(join(res.runRoot, "state.json"))).toBe(true);
+    expect(vfs.existsSync(join(res.runRoot, "events.jsonl"))).toBe(true);
+    expect(vfs.existsSync(join(res.runRoot, "README.md"))).toBe(true);
+    expect(vfs.existsSync(join(res.runRoot, "prompt.md"))).toBe(true);
+    expect(vfs.existsSync(join(res.runRoot, "evidence"))).toBe(true);
+    expect(vfs.statSync(join(res.runRoot, "evidence")).isDirectory()).toBe(true);
   });
 
   test("handles Uint8Array and default prompt correctly", () => {
@@ -78,7 +73,7 @@ describe("capsule-init", () => {
   test("ensureCapsuleInitialized returns runRoot for new and existing runs", () => {
     const runId = "test-run-ensure";
     const root1 = ensureCapsuleInitialized(runId, testDir);
-    expect(existsSync(root1)).toBe(true);
+    expect(getVirtualEngineFS().existsSync(root1)).toBe(true);
 
     const root2 = ensureCapsuleInitialized(runId, testDir);
     expect(root2).toBe(root1);

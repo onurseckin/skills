@@ -6,6 +6,7 @@ import {
   extractValidatorDomainSection,
   isCognitiveValidatorContract,
   isMechanicValidatorContract,
+  loadValidatorDomainContract,
   DOMAIN_ID_PREFIX,
   type Checklist,
 } from "../../../olt/scripts/src/packets/role-contract.ts";
@@ -223,5 +224,50 @@ describe("role contract boundary & checklist validation", () => {
 
     const uiSection = extractValidatorDomainSection(compositeManifest, "ui-design");
     expect(uiSection).toBeNull();
+  });
+
+  test("loadValidatorDomainContract parses matched section when manifest instructions embed domain contract", () => {
+    const yamlManifestWithSection = [
+      "role: validator",
+      "tier: 3",
+      "permissions:",
+      "  may: [Analyze]",
+      "  must_not: [Bypass]",
+      "  commands: [finding:get]",
+      "  spawns: []",
+      "instructions: |",
+      "  ---",
+      "  role: validator",
+      "  tier: 3",
+      "  domain: code-quality",
+      "  may:",
+      "    - Deep code quality review",
+      "  must_not:",
+      "    - Suppress errors",
+      "  commands:",
+      "    - finding:get",
+      "  spawns: []",
+      "  ---",
+      "  # Code Quality Validator",
+    ].join("\n");
+
+    const validItem = [
+      "## CQ-CLEAN-001",
+      "rule: Zero any types",
+      "rationale: Type safety is required across all modules",
+      "how-to-check: Run typescript compiler and search for any",
+      "severity: critical",
+      "sources:",
+      "  - repo-invariants.md",
+    ].join("\n");
+
+    const contract = loadValidatorDomainContract("code-quality", (path: string) => {
+      if (path.includes("checklists")) {
+        return checklistDoc("code-quality", "Code Quality Checklist", validItem);
+      }
+      return new TextEncoder().encode(yamlManifestWithSection);
+    });
+    expect(contract.domain).toBe("code-quality");
+    expect(contract.may).toContain("Deep code quality review");
   });
 });

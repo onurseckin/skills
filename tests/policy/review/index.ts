@@ -9,7 +9,7 @@ export {
   type ReviewChannelEntry,
   type ReviewProtocolConfig,
   type TaskReviewState,
-} from "../../../olt/scripts/src/policy/review/index.ts";
+} from "../../../olt/scripts/src/policy/review-protocol.ts";
 export {
   assertValidPolicy,
   isPolicyValid,

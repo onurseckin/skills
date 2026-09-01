@@ -5,12 +5,15 @@ import { VALIDATOR_DOMAINS } from "../../../../olt/scripts/src/core/contracts/in
 import { evidenceSchema } from "../../../../olt/scripts/src/packets/evidence-schema.ts";
 import {
   loadChecklist,
-  loadRoleContract,
   loadValidatorDomainContract,
 } from "../../../../olt/scripts/src/packets/role-contract.ts";
 import { buildPacket, isUiTaskPacket } from "../../../../olt/scripts/src/packets/render-packet.ts";
+import {
+  sliceTaskContract,
+  sliceMarkdownSections,
+} from "../../../../olt/scripts/src/packets/packet-slicing.ts";
 import { claimTask } from "../../../../olt/scripts/src/workflow/lease/claim.ts";
-import { at, registerTaskPacket, TestPort, workflowState } from "../../../workflow/test-port.ts";
+import { at, TestPort, workflowState } from "../../../workflow/index.ts";
 import { inspectionContext } from "./inspection-fixture.ts";
 
 const clock = at("2026-08-13T12:00:00.000Z");
@@ -80,7 +83,6 @@ function baseImplementer() {
     },
   };
 }
-
 
 describe("rich instructions - scopes & viewports", () => {
   describe("UI Design Checklist & Multi-Viewport Verification Criteria", () => {
@@ -249,6 +251,35 @@ describe("rich instructions - scopes & viewports", () => {
       const input = baseImplementer();
       expect(isUiTaskPacket({ ...input, task: undefined, subTask: undefined })).toBe(false);
     });
+
+    test("sliceTaskContract handles validator and sub-validator roles and sliceMarkdownSections handles multibyte truncation", () => {
+      const taskObj = {
+        id: "T-1",
+        status: "ready",
+        label: "Focal Task",
+        write_scope: ["src/app.ts"],
+        resource_scope: ["res/config.json"],
+        requirement_ids: ["R-1"],
+        dependencies: ["T-0"],
+        gate: "bun test",
+        repair_round: 2,
+        attempts: [{ attempt: 1 }],
+      };
+
+      const valContract = sliceTaskContract(taskObj, "validator");
+      expect(valContract.id).toBe("T-1");
+      expect(valContract.repair_round).toBe(2);
+      expect(valContract.attempt_count).toBe(1);
+
+      const subValContract = sliceTaskContract(taskObj, "sub-validator");
+      expect(subValContract.id).toBe("T-1");
+      expect(subValContract.repair_round).toBe(2);
+
+      // Multibyte truncation loop in sliceMarkdownSections
+      const multibyteText = "🔥".repeat(20);
+      const sliced = sliceMarkdownSections(multibyteText, { maxTotalBytes: 51 });
+      expect(Buffer.from(sliced, "utf-8").byteLength).toBeLessThanOrEqual(51);
+      expect(sliced).toContain("truncated");
+    });
   });
 });
-

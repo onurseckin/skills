@@ -3,7 +3,4 @@
  * Facade for Server Process test suite.
  */
 
-export const serverProcessSuite = [
-  "port-occupancy",
-  "process-escalation",
-] as const;
+export const serverProcessSuite = ["port-occupancy", "process-escalation"] as const;

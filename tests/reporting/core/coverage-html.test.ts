@@ -1,5 +1,5 @@
-import { describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import * as fs from "node:fs";
 import { join } from "node:path";
 import {
   buildHtmlDocument,
@@ -19,17 +19,22 @@ import type {
   CoverageSummary,
   FileCoverageMetric,
 } from "../../../scripts/testing/reporting/types.ts";
+import {
+  cleanupVirtualBrowserFS,
+  setupVirtualBrowserFS,
+  tempDir,
+} from "../browser/browser-virtual-fs.ts";
 
 export const coverageHtmlSuiteName = "Coverage HTML Interactive Report Generation & Templating";
 
 describe(coverageHtmlSuiteName, () => {
-  const tmpRoot = join(process.cwd(), ".tmp-test-reporting-suite-html");
+  beforeEach(() => {
+    setupVirtualBrowserFS();
+  });
 
-  function cleanupTmp(): void {
-    if (existsSync(tmpRoot)) {
-      rmSync(tmpRoot, { recursive: true, force: true });
-    }
-  }
+  afterEach(() => {
+    cleanupVirtualBrowserFS();
+  });
 
   describe("html styles, code viewer, and templates", () => {
     it("getHtmlStyles returns valid CSS string containing core theme and viewer tokens", () => {
@@ -53,7 +58,9 @@ describe(coverageHtmlSuiteName, () => {
     it("buildHtmlDocument formats valid HTML5 document embedding styles and script", () => {
       const doc = buildHtmlDocument("/* custom-styles */", "/* custom-script */");
       expect(doc).toContain("<!DOCTYPE html>");
-      expect(doc).toContain("<title>Test Coverage & Runtime Dashboard - @onurseckin/skills</title>");
+      expect(doc).toContain(
+        "<title>Test Coverage & Runtime Dashboard - @onurseckin/skills</title>",
+      );
       expect(doc).toContain("/* custom-styles */");
       expect(doc).toContain("/* custom-script */");
       expect(doc).toContain('id="val-lines"');
@@ -85,11 +92,11 @@ describe(coverageHtmlSuiteName, () => {
 
   describe("html data-extractor", () => {
     it("extractCoverageFileData extracts file info and handles missing files & read errors gracefully", () => {
-      cleanupTmp();
-      mkdirSync(join(tmpRoot, "src"), { recursive: true });
+      const tmpRoot = tempDir("cov-html-extract");
+      fs.mkdirSync(join(tmpRoot, "src"), { recursive: true });
       const testSource = "function test() {\n  return 42;\n}\n";
       const srcFile = join(tmpRoot, "src/sample.ts");
-      writeFileSync(srcFile, testSource, "utf-8");
+      fs.writeFileSync(srcFile, testSource, "utf-8");
 
       const fileMap = new Map<string, FileCoverageMetric>();
       fileMap.set("src/sample.ts", {
@@ -130,7 +137,7 @@ describe(coverageHtmlSuiteName, () => {
       expect(missingData?.sourceLines).toBeUndefined();
 
       const directoryAsFile = join(tmpRoot, "src/dir_as_file");
-      mkdirSync(directoryAsFile, { recursive: true });
+      fs.mkdirSync(directoryAsFile, { recursive: true });
       const brokenMap = new Map<string, FileCoverageMetric>();
       brokenMap.set("src/dir_as_file", {
         file: "src/dir_as_file",
@@ -144,14 +151,12 @@ describe(coverageHtmlSuiteName, () => {
       const brokenExtracted = extractCoverageFileData(brokenMap, tmpRoot);
       expect(brokenExtracted.length).toBe(1);
       expect(brokenExtracted[0]?.sourceLines).toBeUndefined();
-
-      cleanupTmp();
     });
   });
 
   describe("html generator and writer", () => {
     it("generateInteractiveHtml embeds files, breadcrumbs, and safely escapes script tags", () => {
-      cleanupTmp();
+      const tmpRoot = tempDir("cov-html-gen");
       const fileMap = new Map<string, FileCoverageMetric>();
       fileMap.set("src/test.ts", {
         file: "src/test.ts",
@@ -172,25 +177,21 @@ describe(coverageHtmlSuiteName, () => {
       const htmlFallback = generateInteractiveHtml(fileMap, emptySummary, tmpRoot);
       expect(htmlFallback).toContain("<!DOCTYPE html>");
       expect(htmlFallback).toContain('"total":{"lines":{"total":0');
-
-      cleanupTmp();
     });
 
     it("writeInteractiveHtml writes index.html file and creates directory if missing", () => {
-      cleanupTmp();
+      const tmpRoot = tempDir("cov-html-writer");
       const fileMap = new Map<string, FileCoverageMetric>();
       const summary = buildCoverageSummary(fileMap);
 
       const outPath = writeInteractiveHtml(fileMap, summary, tmpRoot, "cov-html");
-      expect(existsSync(outPath)).toBe(true);
+      expect(fs.existsSync(outPath)).toBe(true);
 
-      const content = readFileSync(outPath, "utf-8");
+      const content = fs.readFileSync(outPath, "utf-8");
       expect(content).toContain("<!DOCTYPE html>");
 
       const outPath2 = writeInteractiveHtml(fileMap, summary, tmpRoot, "cov-html");
       expect(outPath2).toBe(outPath);
-
-      cleanupTmp();
     });
   });
 });

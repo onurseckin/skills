@@ -1,7 +1,6 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { afterEach, describe, expect, spyOn, test } from "bun:test";
+import * as fs from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { verifyUnifiedEvidenceLocation } from "../../../olt/scripts/src/reporting/doctor/evidence-location.ts";
 import {
   isUnifiedEvidenceRelativePath,
@@ -9,11 +8,40 @@ import {
 } from "../../../olt/scripts/src/validation/reporters/index.ts";
 import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 
-export const evidenceLocationSuiteName = "Evidence Location Doctor Checks - p18 unified validator evidence location";
+export const evidenceLocationSuiteName =
+  "Evidence Location Doctor Checks - p18 unified validator evidence location";
 
-const roots: string[] = [];
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
+interface VirtualNode {
+  isDir: boolean;
+  content?: string;
+}
+
+const vfs = new Map<string, VirtualNode>();
+const spies: Array<{ mockRestore: () => void }> = [];
+
+function setupVirtualFs(): void {
+  vfs.clear();
+  const existsSpy = spyOn(fs, "existsSync").mockImplementation((p) => {
+    const s = String(p).replace(/\/+$/, "");
+    if (vfs.has(s)) return true;
+    const prefix = `${s}/`;
+    for (const k of vfs.keys()) {
+      if (k.startsWith(prefix)) return true;
+    }
+    return false;
+  });
+  const readSpy = spyOn(fs, "readFileSync").mockImplementation((p) => {
+    const s = String(p);
+    const n = vfs.get(s);
+    if (!n || n.content === undefined) throw new Error(`ENOENT: ${s}`);
+    return n.content;
+  });
+  spies.push(existsSpy, readSpy);
+}
+
+afterEach(() => {
+  for (const s of spies.splice(0)) s.mockRestore();
+  vfs.clear();
 });
 
 describe(evidenceLocationSuiteName, () => {
@@ -39,11 +67,11 @@ describe(evidenceLocationSuiteName, () => {
     expect(formatUnifiedEvidencePath("report.json", "reports")).toBe("evidence/report.json");
   });
 
-  test("verifyUnifiedEvidenceLocation passes when captures use unified evidence paths", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "harness-evid-valid-"));
-    roots.push(repo);
+  test("verifyUnifiedEvidenceLocation passes when captures use unified evidence paths", () => {
+    setupVirtualFs();
+    const repo = "/virtual/repo-evid-valid";
     const runRoot = join(repo, ".olt", "capsules", "run-evid-1");
-    await mkdir(join(runRoot, "evidence", "screenshots"), { recursive: true });
+    vfs.set(join(runRoot, "evidence", "screenshots"), { isDir: true });
 
     const capturesData = {
       schema: "harness.captures",
@@ -73,7 +101,10 @@ describe(evidenceLocationSuiteName, () => {
       updated_at: new Date().toISOString(),
     };
 
-    await writeFile(join(runRoot, "captures.json"), JSON.stringify(capturesData));
+    vfs.set(join(runRoot, "captures.json"), {
+      content: JSON.stringify(capturesData),
+      isDir: false,
+    });
 
     const audit = verifyUnifiedEvidenceLocation(runRoot);
     expect(audit.valid).toBe(true);
@@ -81,11 +112,11 @@ describe(evidenceLocationSuiteName, () => {
     expect(audit.issues).toHaveLength(0);
   });
 
-  test("verifyUnifiedEvidenceLocation flags captures with non-unified evidence paths", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "harness-evid-invalid-"));
-    roots.push(repo);
+  test("verifyUnifiedEvidenceLocation flags captures with non-unified evidence paths", () => {
+    setupVirtualFs();
+    const repo = "/virtual/repo-evid-invalid";
     const runRoot = join(repo, ".olt", "capsules", "run-evid-2");
-    await mkdir(runRoot, { recursive: true });
+    vfs.set(runRoot, { isDir: true });
 
     const capturesData = {
       schema: "harness.captures",
@@ -105,7 +136,10 @@ describe(evidenceLocationSuiteName, () => {
       updated_at: new Date().toISOString(),
     };
 
-    await writeFile(join(runRoot, "captures.json"), JSON.stringify(capturesData));
+    vfs.set(join(runRoot, "captures.json"), {
+      content: JSON.stringify(capturesData),
+      isDir: false,
+    });
 
     const audit = verifyUnifiedEvidenceLocation(runRoot);
     expect(audit.valid).toBe(false);
@@ -118,11 +152,11 @@ describe(evidenceLocationSuiteName, () => {
     ).toBe(true);
   });
 
-  test("verifyUnifiedEvidenceLocation audits validation finding evidence in state", async () => {
-    const repo = await mkdtemp(join(tmpdir(), "harness-evid-state-"));
-    roots.push(repo);
+  test("verifyUnifiedEvidenceLocation audits validation finding evidence in state", () => {
+    setupVirtualFs();
+    const repo = "/virtual/repo-evid-state";
     const runRoot = join(repo, ".olt", "capsules", "run-evid-3");
-    await mkdir(runRoot, { recursive: true });
+    vfs.set(runRoot, { isDir: true });
 
     const state: JsonObject = {
       tasks: {

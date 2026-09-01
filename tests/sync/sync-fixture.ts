@@ -45,7 +45,9 @@ export function scratchRoot(callerPath = "sync-test", label = "test"): string {
   const fileTag = slug(callerPath);
   const labelTag = slug(label);
   const digest = shortDigest(`${fileTag}:${labelTag}:${counter}`);
-  const raw = `${fileTag}-${labelTag}-${counter}-${digest}`.replace(/--+/g, "-").replace(/^-+|-+$/g, "");
+  const raw = `${fileTag}-${labelTag}-${counter}-${digest}`
+    .replace(/--+/g, "-")
+    .replace(/^-+|-+$/g, "");
   const dirName = raw.slice(0, 50).replace(/-+$/, "");
   const root = join(SCRATCH_BASE, dirName);
 

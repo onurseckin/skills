@@ -16,7 +16,7 @@ import {
 import { evidenceSchema } from "../../../../olt/scripts/src/packets/evidence-schema.ts";
 import { loadRoleContract } from "../../../../olt/scripts/src/packets/role-contract.ts";
 import { claimTask } from "../../../../olt/scripts/src/workflow/lease/claim.ts";
-import { at, TestPort, workflowState } from "../../../workflow/test-port.ts";
+import { at, TestPort, workflowState } from "../../../workflow/index.ts";
 import { getCapsuleCliCommands } from "../../../../olt/scripts/src/packets/capsule-memory.ts";
 import { inspectionContext } from "../slicing/inspection-fixture.ts";
 
@@ -38,7 +38,6 @@ function baseTaskState() {
     token: claim.token,
   };
 }
-
 
 describe("Decoupled Capsule Memory - Read & Sanitization", () => {
   describe("Absence of Raw Bloated Orchestration Metadata in Packet Markdown", () => {
@@ -218,5 +217,4 @@ describe("Decoupled Capsule Memory - Read & Sanitization", () => {
       expect(VALIDATOR_EXCLUSIONS).toContain("validator_reports");
     });
   });
-
 });

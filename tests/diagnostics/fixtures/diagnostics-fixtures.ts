@@ -1,4 +1,7 @@
-import type { DefectEntry, DefectAuditReport } from "../../../olt/scripts/src/mind/defects/index.ts";
+import type {
+  DefectEntry,
+  DefectAuditReport,
+} from "../../../olt/scripts/src/mind/defects/index.ts";
 
 export function createSampleDefectRecord(partial: Partial<DefectEntry> = {}): DefectEntry {
   return {

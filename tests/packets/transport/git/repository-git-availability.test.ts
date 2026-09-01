@@ -228,4 +228,14 @@ describe("repository Git availability controls", () => {
       }),
     ).toThrow("Permission denied");
   });
+
+  test("returns false when repository has no git metadata all the way to root", () => {
+    const enoent = Object.assign(new Error("ENOENT"), { code: "ENOENT" });
+    const hasGit = preflightRepositoryGitMetadata("/tmp", {
+      lstatPath: () => {
+        throw enoent;
+      },
+    });
+    expect(hasGit).toBe(false);
+  });
 });

@@ -4,9 +4,12 @@ import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import { renderValidationRound } from "../../../../olt/scripts/src/packets/render-validation-round.ts";
 import type { RepositoryGitCommand } from "../../../../olt/scripts/src/packets/repository-git-command.ts";
 import { taskCommandEvidence } from "../../../../olt/scripts/src/packets/round-commands.ts";
-import { anchoredDiff, diffAnchor } from "../../../../olt/scripts/src/packets/round-repository-delta.ts";
+import {
+  anchoredDiff,
+  diffAnchor,
+} from "../../../../olt/scripts/src/packets/round-repository-delta.ts";
 import { validationRoundContext } from "../../../../olt/scripts/src/packets/validation-round.ts";
-import { commandRecord, workflowState } from "../../../workflow/test-port.ts";
+import { commandRecord, workflowState } from "../../../workflow/index.ts";
 import { inspection } from "../../payloads/slicing/inspection-fixture.ts";
 import {
   DIFF,

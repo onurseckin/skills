@@ -1,6 +1,8 @@
 import type { ScopedExecutionPolicy } from "../../../olt/scripts/src/testing/scoped-execution.ts";
 
-export function createSampleScopedPolicy(overrides: Partial<ScopedExecutionPolicy> = {}): ScopedExecutionPolicy {
+export function createSampleScopedPolicy(
+  overrides: Partial<ScopedExecutionPolicy> = {},
+): ScopedExecutionPolicy {
   return {
     allowedDomains: ["testing", "engine"],
     maxAllowedTestFiles: 1,

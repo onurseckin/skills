@@ -5,6 +5,11 @@ import { join } from "node:path";
 import { inspectRepository } from "../../../../olt/scripts/src/packets/repository-snapshot.ts";
 import { inspectRepositoryBinding } from "../../../../olt/scripts/src/packets/repository-identity.ts";
 import {
+  validateRepositoryInspectionPair,
+  repositoryInspectionContext,
+  repositoryInspectionDigest,
+} from "../../../../olt/scripts/src/packets/repository-inspection.ts";
+import {
   createRepositoryGitCommand,
   type RepositoryGitCommand,
 } from "../../../../olt/scripts/src/packets/repository-git-command.ts";
@@ -133,6 +138,62 @@ describe("repository-snapshot", () => {
 
     expect(() => inspectRepositoryBinding(repo, {}, { command: driftingCommand })).toThrow(
       "repository Git identity changed during scan",
+    );
+  });
+
+  test("validateRepositoryInspectionPair and repositoryInspectionContext reject corrupted inspection fields and mismatched bindings", () => {
+    const validBase = {
+      schema: "harness.repository-inspection",
+      version: 3,
+      phase: "baseline",
+      captured_at: "2026-08-14T00:00:00.000Z",
+      repository_root: "/repo",
+      repository_identity_sha256: "a".repeat(64),
+      repository_git_identity_sha256: "b".repeat(64),
+      repository_content_sha256: "c".repeat(64),
+      repository_file_count: 10,
+      repository_total_bytes: 1000,
+    };
+    const validBaseWithDigest = {
+      ...validBase,
+      inspection_sha256: repositoryInspectionDigest(validBase),
+    };
+
+    // Invalid file count (< 0) -> throws INTEGRITY
+    expect(() =>
+      validateRepositoryInspectionPair({
+        baseline_repository_state: { ...validBaseWithDigest, repository_file_count: -1 },
+        current_repository_state: validBaseWithDigest,
+      }),
+    ).toThrow("baseline repository inspection is invalid");
+
+    // Empty repository_root -> throws INTEGRITY
+    expect(() =>
+      validateRepositoryInspectionPair({
+        baseline_repository_state: { ...validBaseWithDigest, repository_root: "" },
+        current_repository_state: validBaseWithDigest,
+      }),
+    ).toThrow("baseline repository inspection is invalid");
+
+    // fromState with mismatched binding
+    const mockState = {
+      baseline_repository_inspection_sha256: validBaseWithDigest.inspection_sha256,
+      repository_inspections: {
+        [validBaseWithDigest.inspection_sha256]: validBaseWithDigest,
+      },
+      baseline_repository_binding: {
+        schema: "harness.repository-binding",
+        version: 1,
+        inspection_sha256: "mismatched",
+        git_identity_sha256: "b".repeat(64),
+        content_sha256: "c".repeat(64),
+        file_count: 10,
+        total_bytes: 1000,
+      },
+    } as unknown as Parameters<typeof repositoryInspectionContext>[0];
+
+    expect(() => repositoryInspectionContext(mockState, false)).toThrow(
+      "baseline repository binding differs",
     );
   });
 });

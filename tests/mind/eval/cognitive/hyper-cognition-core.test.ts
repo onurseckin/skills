@@ -28,7 +28,6 @@ import {
 
 describe("Hyper-Active Mind Cognition Engine", () => {
   describe("Constants, Matrix & Taxonomy", () => {
-
     it("defines canonical version and perpetual non-idle mantra", () => {
       expect(HYPER_COGNITION_VERSION).toBe("gen3_hyper_active_v1");
       expect(MIND_NEVER_IDLE_MANTRA).toContain("Mind must never idle");

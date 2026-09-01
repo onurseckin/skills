@@ -95,7 +95,7 @@ export function executeAtomicAdmissionToDispatch(
     return {
       ...feedback,
       metadata: {
-        ...(feedback.metadata ?? {}),
+        ...feedback.metadata,
         feedback_dispatch_state: "PREPARED",
         feedback_dispatch_task_id: taskId,
         feedback_dispatch_prepared_at: preparedAt,
@@ -122,7 +122,7 @@ export function executeAtomicAdmissionToDispatch(
         status: "ADMITTED",
         processed_at: nowIso,
         metadata: {
-          ...(fb.metadata ?? {}),
+          ...fb.metadata,
           dispatched_task_id: matchedTaskId,
           atomic_dispatched_at: nowIso,
           feedback_dispatch_state: "COMMITTED",
@@ -205,7 +205,7 @@ export function reconcileAdmissionToDispatchState(
         status: "ADMITTED",
         processed_at: committedAt,
         metadata: {
-          ...(feedback.metadata ?? {}),
+          ...feedback.metadata,
           dispatched_task_id: taskId,
           atomic_dispatched_at: committedAt,
           feedback_dispatch_state: "COMMITTED",

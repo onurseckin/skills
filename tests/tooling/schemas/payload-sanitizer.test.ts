@@ -221,5 +221,40 @@ describe("Runtime Payload Sanitizer & Type Validator Suite", () => {
       expect(res.valid).toBe(false);
       expect(res.errors.some((e) => e.code === "UNKNOWN_PROPERTY")).toBe(true);
     });
+
+    it("sanitizes arrays with itemType constraints and nested objects", () => {
+      const complexParams: readonly ToolParameter[] = [
+        {
+          name: "scores",
+          type: "array",
+          description: "Numeric scores",
+          itemType: "number",
+        },
+        {
+          name: "meta",
+          type: "object",
+          description: "Metadata container",
+          properties: [
+            { name: "author", type: "string", description: "Author name", required: true },
+            { name: "version", type: "number", description: "Version code" },
+          ],
+        },
+      ];
+
+      const validPayload = {
+        scores: ["10", 20, "30"],
+        meta: { author: "Alice", version: "2" },
+        customField: "retained",
+      };
+
+      const res = sanitizeAndValidatePayload(complexParams, validPayload, {
+        coerceTypes: true,
+      });
+
+      expect(res.valid).toBe(true);
+      expect(res.sanitized.scores).toEqual([10, 20, 30]);
+      expect(res.sanitized.meta).toEqual({ author: "Alice", version: 2 });
+      expect(res.sanitized.customField).toBe("retained");
+    });
   });
 });

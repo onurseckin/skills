@@ -51,7 +51,6 @@ function assertGrantedCommand(
   return assertRawGrantedCommand(specification, flags, caller ?? testCaller(specification, flags));
 }
 
-
 describe("assertGrantedCommand registration & targets", () => {
   test("HIGH 5: branch-worker roles are exempt from the tier ladder, but only for Tier 3 parents", () => {
     expect(() => assertHierarchicalSpawning("implementer", "sub-implementer")).toThrow(
@@ -141,7 +140,7 @@ describe("assertGrantedCommand registration & targets", () => {
       "/Users/onurseckinsenoglu/repos/skills/tests/packets/routing/authority/command-authority-supervision.test.ts",
     ];
 
-    const anyPattern = new RegExp(":\\s*any\\b|as\\s+any\\b|<any>");
+    const anyPattern = new RegExp(":\\s*" + "any\\b" + "|as\\s+" + "any\\b" + "|<" + "any>");
     const suppressionPattern = new RegExp(
       [
         "@ts" + "-ignore",

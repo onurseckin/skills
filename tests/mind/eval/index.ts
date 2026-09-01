@@ -8,9 +8,4 @@ export { EVAL_COGNITIVE_SUITES } from "./cognitive/index.ts";
 export { EVAL_AUDITING_SUITES } from "./auditing/index.ts";
 export { EVAL_SCANNER_SUITES } from "./scanner/index.ts";
 
-export const EVAL_DOMAINS = [
-  "meta",
-  "cognitive",
-  "auditing",
-  "scanner",
-] as const;
+export const EVAL_DOMAINS = ["meta", "cognitive", "auditing", "scanner"] as const;

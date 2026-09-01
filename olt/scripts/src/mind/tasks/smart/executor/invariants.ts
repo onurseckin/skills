@@ -130,7 +130,7 @@ export function stageTasksForMultiOrchestratorExecution(
           assigned_tier: "Tier_1_Orchestrator",
           assigned_role: `orchestrator-${orch.orchestrator_id}`,
           metadata: {
-            ...(task.metadata ?? {}),
+            ...task.metadata,
             assigned_orchestrator: orch.orchestrator_id,
             orchestrator_wave: wave.wave_number,
             disjoint_scope_group: orch.orchestrator_id,

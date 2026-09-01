@@ -1,8 +1,4 @@
-export {
-  helpRequest,
-  renderHelp,
-  type HelpRequest,
-} from "../../../olt/scripts/src/cli/help.ts";
+export { helpRequest, renderHelp, type HelpRequest } from "../../../olt/scripts/src/cli/help.ts";
 
 export {
   agentBriefCommand,

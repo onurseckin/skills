@@ -12,7 +12,8 @@ import {
   TuiStateStore,
 } from "../../../olt/scripts/src/reporting/tui/index.ts";
 
-export const tuiSuiteName = "Track 2 Extensions - Terminal Dashboard Keybindings & Live TUI Streams";
+export const tuiSuiteName =
+  "Track 2 Extensions - Terminal Dashboard Keybindings & Live TUI Streams";
 
 describe(tuiSuiteName, () => {
   describe("Key Parsing and Keybindings Engine", () => {

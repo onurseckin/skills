@@ -20,7 +20,7 @@ import {
 import { buildPacket } from "../../../../olt/scripts/src/packets/render-packet.ts";
 import { evidenceSchema } from "../../../../olt/scripts/src/packets/evidence-schema.ts";
 import { claimTask } from "../../../../olt/scripts/src/workflow/lease/claim.ts";
-import { at, TestPort, workflowState } from "../../../workflow/test-port.ts";
+import { at, TestPort, workflowState } from "../../../workflow/index.ts";
 import { inspectionContext } from "./inspection-fixture.ts";
 import type { TaskRecord, WorkflowState } from "../../../../olt/scripts/src/workflow/types.ts";
 import type { JsonObject } from "../../../../olt/scripts/src/core/contracts/index.ts";
@@ -37,7 +37,6 @@ function createFixtureState() {
     token: claim.token,
   };
 }
-
 
 describe("Ultra-Lean Packet - Rendering & Formats", () => {
   describe("Evidence Log Slicing", () => {
@@ -229,12 +228,13 @@ describe("Ultra-Lean Packet - Rendering & Formats", () => {
       expect(brief).toContain(
         "- **Assigned Write Scope**: `src/packets/packet-slicing.ts`, `tests/packets/payloads/slicing/ultra-lean-packet-slicing.test.ts`",
       );
-      expect(brief).toContain("- **Gate**: `bun test tests/packets/payloads/slicing/ultra-lean-packet-slicing.test.ts`");
+      expect(brief).toContain(
+        "- **Gate**: `bun test tests/packets/payloads/slicing/ultra-lean-packet-slicing.test.ts`",
+      );
       expect(brief).toContain("⚡ On-Demand Capsule Memory Queries:");
       expect(brief).toContain(
         "bun harness.ts report:task --run .capsules/run-lean-1 --task task-p37-packet-slicing",
       );
     });
   });
-
 });

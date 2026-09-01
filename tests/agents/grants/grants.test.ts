@@ -1,5 +1,6 @@
-import { describe, expect, test } from "bun:test";
-import { mkdirSync } from "node:fs";
+import { describe, expect, test, afterAll } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { isAgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { initRun, loadRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
@@ -9,11 +10,20 @@ import {
   releaseAgentGrant,
 } from "../../../olt/scripts/src/workflow/agents/grants.ts";
 import { readAgentLedger } from "../../../olt/scripts/src/workflow/agents/ledger.ts";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
 
-function freshRun(label: string): string {
+const activeRoots: string[] = [];
+
+afterAll(() => {
+  for (const root of activeRoots) {
+    try {
+      rmSync(root, { recursive: true, force: true });
+    } catch {}
+  }
+});
+
+function freshRun(_label: string): string {
   const root = mkdtempSync(join(tmpdir(), "agent-grants-test-"));
+  activeRoots.push(root);
   const repo = join(root, "repo");
   mkdirSync(repo);
   return initRun(repo, "grants-run", new TextEncoder().encode("prompt"), "file", true);

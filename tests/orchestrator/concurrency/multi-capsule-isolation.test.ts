@@ -155,7 +155,12 @@ describe("True Multi-Capsule Parallel Execution Engine & Isolation", () => {
 
     const specs: CapsuleSpec[] = [
       { id: "failing-root", repoPath: testDir, writeScope: ["src/failing/"] },
-      { id: "dependent-child", repoPath: testDir, writeScope: ["src/dep/"], dependencies: ["failing-root"] },
+      {
+        id: "dependent-child",
+        repoPath: testDir,
+        writeScope: ["src/dep/"],
+        dependencies: ["failing-root"],
+      },
       { id: "independent-lane", repoPath: testDir, writeScope: ["src/independent/"] },
     ];
 
@@ -185,7 +190,9 @@ describe("True Multi-Capsule Parallel Execution Engine & Isolation", () => {
     ];
 
     await expect(orchestrator.orchestrate(collidingSpecs)).rejects.toThrow(HarnessError);
-    await expect(orchestrator.orchestrate(collidingSpecs)).rejects.toThrow("Strict Anti-Sequentiality violation");
+    await expect(orchestrator.orchestrate(collidingSpecs)).rejects.toThrow(
+      "Strict Anti-Sequentiality violation",
+    );
   });
 
   it("verifies zero TypeScript any and zero suppressions across all multi-capsule source and test files", () => {
@@ -196,7 +203,13 @@ describe("True Multi-Capsule Parallel Execution Engine & Isolation", () => {
 
     const anyPattern = new RegExp(":\\s*any\\b|as\\s+any\\b|<any>");
     const suppressionPattern = new RegExp(
-      ["@ts" + "-ignore", "@ts" + "-expect-error", "@ts" + "-nocheck", "eslint" + "-disable", "oxlint" + "-disable"].join("|"),
+      [
+        "@ts" + "-ignore",
+        "@ts" + "-expect-error",
+        "@ts" + "-nocheck",
+        "eslint" + "-disable",
+        "oxlint" + "-disable",
+      ].join("|"),
     );
 
     for (const filePath of pathsToCheck) {

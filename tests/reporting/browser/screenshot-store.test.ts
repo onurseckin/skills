@@ -1,6 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import {
   getVisualReport,
@@ -10,16 +8,10 @@ import {
   recordCaptures,
   type CaptureRecord,
 } from "../../../olt/scripts/src/engine/store/capsule/captures.ts";
-
-const roots: string[] = [];
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
-});
+import { cleanupVirtualBrowserFS, setupVirtualBrowserFS, tempDir } from "./browser-run-fixture.ts";
 
 function runRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "screenshot-store-"));
-  roots.push(root);
-  return root;
+  return tempDir("screenshot-store");
 }
 
 function screenshot(overrides: Partial<CaptureRecord> = {}): CaptureRecord {
@@ -39,6 +31,14 @@ function screenshot(overrides: Partial<CaptureRecord> = {}): CaptureRecord {
 export const screenshotStoreSuiteName = "queryScreenshots & screenshot store";
 
 describe(screenshotStoreSuiteName, () => {
+  beforeEach(() => {
+    setupVirtualBrowserFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualBrowserFS();
+  });
+
   test("only returns captures of kind screenshot", () => {
     const root = runRoot();
     recordCaptures(root, [
@@ -75,6 +75,16 @@ describe(screenshotStoreSuiteName, () => {
 });
 
 describe("getVisualReport", () => {
+  let vfs: ReturnType<typeof setupVirtualBrowserFS>;
+
+  beforeEach(() => {
+    vfs = setupVirtualBrowserFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualBrowserFS();
+  });
+
   test("returns null when no visual report has been captured", () => {
     expect(getVisualReport(runRoot())).toBeNull();
   });
@@ -82,11 +92,10 @@ describe("getVisualReport", () => {
   test("reads and normalizes the most recently captured visual report", () => {
     const root = runRoot();
     const blobPath = "blobs/report.json";
-    mkdirSync(join(root, "blobs"), { recursive: true });
-    writeFileSync(
+    vfs.mkdirSync(join(root, "blobs"), { recursive: true });
+    vfs.writeFileSync(
       join(root, blobPath),
       JSON.stringify({ viewports: { desktop: { width: 800, height: 600 } } }),
-      "utf-8",
     );
     recordCaptures(root, [
       {
@@ -108,8 +117,8 @@ describe("getVisualReport", () => {
 
   test("filters visual reports by taskId when provided", () => {
     const root = runRoot();
-    mkdirSync(join(root, "blobs"), { recursive: true });
-    writeFileSync(join(root, "blobs", "report.json"), JSON.stringify({ viewports: {} }), "utf-8");
+    vfs.mkdirSync(join(root, "blobs"), { recursive: true });
+    vfs.writeFileSync(join(root, "blobs", "report.json"), JSON.stringify({ viewports: {} }));
     recordCaptures(root, [
       {
         kind: "visual_report",
@@ -148,8 +157,8 @@ describe("getVisualReport", () => {
 
   test("returns null when the recorded blob is not valid JSON", () => {
     const root = runRoot();
-    mkdirSync(join(root, "blobs"), { recursive: true });
-    writeFileSync(join(root, "blobs", "bad.json"), "{not json", "utf-8");
+    vfs.mkdirSync(join(root, "blobs"), { recursive: true });
+    vfs.writeFileSync(join(root, "blobs", "bad.json"), "{not json");
     recordCaptures(root, [
       {
         kind: "visual_report",

@@ -1,4 +1,7 @@
-import type { NewTaskQueueInput, TaskQueueItem } from "../../../olt/scripts/src/task/queue/index.ts";
+import type {
+  NewTaskQueueInput,
+  TaskQueueItem,
+} from "../../../olt/scripts/src/task/queue/index.ts";
 
 export function createSampleQueueItemInput(
   overrides: Partial<NewTaskQueueInput> = {},
@@ -14,9 +17,7 @@ export function createSampleQueueItemInput(
   };
 }
 
-export function createSampleActiveQueueItem(
-  overrides: Partial<TaskQueueItem> = {},
-): TaskQueueItem {
+export function createSampleActiveQueueItem(overrides: Partial<TaskQueueItem> = {}): TaskQueueItem {
   return {
     taskId: "task-active-01",
     role: "implementer",

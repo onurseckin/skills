@@ -40,7 +40,9 @@ export function readAgentMetadataFileSecure(filePath: string): string {
   const inMemory = getInMemoryAgentMetadata(filePath);
   if (inMemory !== undefined) return inMemory;
   if (isInMemoryAgentMetadataEnabled()) {
-    const error = new Error(`ENOENT: no such file or directory, open '${filePath}'`) as NodeJS.ErrnoException;
+    const error = new Error(
+      `ENOENT: no such file or directory, open '${filePath}'`,
+    ) as NodeJS.ErrnoException;
     error.code = "ENOENT";
     throw error;
   }

@@ -74,7 +74,6 @@ function installMetaAuditGrant(
   });
 }
 
-
 describe("assertGrantedCommand hole 6: agent:register --parent-agent binding fails open when the actor is absent", () => {
   async function seedActiveMind(run: string): Promise<void> {
     transact(run, "test-setup", "grant-agent", {}, (draft) => {
@@ -212,4 +211,3 @@ describe("assertSpawnAuthorized: an unreadable declared-spawn role contract deni
     expect(() => assertSpawnAuthorized("orchestrator", "coordinator")).not.toThrow();
   });
 });
-

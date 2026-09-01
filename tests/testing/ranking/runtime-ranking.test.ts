@@ -232,7 +232,9 @@ Ran 5 tests across 2 files. [250.00ms]
       expect(res.totalPct).toBe(100);
       expect(res.runtime).toBeDefined();
       expect(res.runtime?.totalFiles).toBe(1);
-      expect(res.runtime?.slowestFile?.file).toBe("tests/testing/virtual-fs/virtual-memory-fs.test.ts");
+      expect(res.runtime?.slowestFile?.file).toBe(
+        "tests/testing/virtual-fs/virtual-memory-fs.test.ts",
+      );
 
       const sample = createSampleRuntimeSummary();
       expect(sample.totalFiles).toBe(2);

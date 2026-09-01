@@ -5,7 +5,7 @@ import {
   propagateCliExitCode,
 } from "../../../olt/scripts/src/cli/signals/error-propagation.ts";
 
-describe("CLI Error Propagation & Exit Code Mapping", () => {
+describe("CLI Error Propagation & Exit Code Mapping (in-memory virtualization)", () => {
   it("maps HarnessError exit codes directly", () => {
     const err = new HarnessError("LOCK_TIMEOUT", "Lock busy");
     expect(mapErrorToExitCode(err)).toBe(4);
@@ -18,12 +18,11 @@ describe("CLI Error Propagation & Exit Code Mapping", () => {
   });
 
   it("propagates exit code to process.exitCode safely", () => {
-    const initial = process.exitCode;
-try {
-  const code = propagateCliExitCode(new HarnessError("INVALID_ARGUMENT", "Invalid"));
-  expect(code).toBe(3);
-} finally {
-  process.exitCode = 0;
-}
+    try {
+      const code = propagateCliExitCode(new HarnessError("INVALID_ARGUMENT", "Invalid"));
+      expect(code).toBe(3);
+    } finally {
+      process.exitCode = 0;
+    }
   });
 });

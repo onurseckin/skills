@@ -64,7 +64,7 @@ export function admitTaskUnlocked(
     status: task.blocked_by.length > 0 ? "BLOCKED" : "ADMITTED",
     updated_at: nowIso,
     metadata: {
-      ...(task.metadata ?? {}),
+      ...task.metadata,
       ...(params.admittedBy ? { admitted_by: params.admittedBy } : {}),
       admitted_at: nowIso,
     },

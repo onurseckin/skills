@@ -74,7 +74,6 @@ function installMetaAuditGrant(
   });
 }
 
-
 describe("assertGrantedCommand: run-optional identity-free commands permit the no-flag invocation", () => {
   test("permits report, run:status, branch:status, memory:query, queue:wave and plan:status with zero flags", () => {
     expect(() => assertGrantedCommand(spec("report"), {})).not.toThrow();
@@ -187,4 +186,3 @@ describe("assertGrantedCommand: the false-positive repair does not widen into a 
     );
   });
 });
-

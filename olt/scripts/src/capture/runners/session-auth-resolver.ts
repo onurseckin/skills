@@ -125,7 +125,7 @@ export class SessionAuthResolver {
 
   private buildSessionFromUser(user: CaptureUserConfig): ResolvedSessionAuth {
     const tokenHeader = this.resolveTokenHeaderName();
-    const headers: Record<string, string> = { ...(user.headers ?? {}) };
+    const headers: Record<string, string> = { ...user.headers };
 
     if (user.token) {
       const formattedToken =

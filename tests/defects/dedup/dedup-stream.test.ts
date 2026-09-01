@@ -183,7 +183,9 @@ describe(dedupStreamSuiteName, () => {
       }
 
       expect(results.length).toBe(3);
-      const lastOccurrence = results.find((r) => r.observation === "Stream error 1" && r.count === 2);
+      const lastOccurrence = results.find(
+        (r) => r.observation === "Stream error 1" && r.count === 2,
+      );
       expect(lastOccurrence).toBeDefined();
     });
 

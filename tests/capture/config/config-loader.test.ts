@@ -11,7 +11,7 @@ import {
   DEFAULT_PRESETS,
   DEFAULT_SIDEBAR_LAYOUT,
 } from "../../../olt/scripts/src/capture/config/index.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
 
 describe("capture config loader & schema", () => {
   test("provides canonical viewports and presets", () => {

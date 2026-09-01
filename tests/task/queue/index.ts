@@ -1,7 +1,4 @@
-export {
-  createSampleQueueItemInput,
-  createSampleActiveQueueItem,
-} from "./fixture.ts";
+export { createSampleQueueItemInput, createSampleActiveQueueItem } from "./fixture.ts";
 
 export {
   loadTaskQueue,
@@ -9,27 +6,21 @@ export {
   clearTaskQueue,
   cleanStaleTempFiles,
   withTaskQueueLock,
-  withTaskQueueWriteLock,
-} from "../../../olt/scripts/src/engine/tasks/queue/storage.ts";
-
-export {
-  TASK_STATUSES,
+  withTaskQueueTransaction as withTaskQueueWriteLock,
+  TASK_QUEUE_STATUSES as TASK_STATUSES,
   TASK_PRIORITIES,
   DEFAULT_TASK_QUEUE_FILE,
-  type TaskItem,
-  type TaskStatus,
+  type TaskQueueItem as TaskItem,
+  type TaskQueueStatus as TaskStatus,
   type TaskPriority,
   type TaskSourceType,
-} from "../../../olt/scripts/src/engine/tasks/queue/types.ts";
-
-export {
   enqueueTask,
   claimTaskLease,
   renewTaskLease,
   releaseTaskLease,
   reclaimExpiredLeases,
   popNextEligibleTask,
-} from "../../../olt/scripts/src/engine/tasks/queue/task-queue.ts";
+} from "../../../olt/scripts/src/task/queue/index.ts";
 
 export const TASK_QUEUE_SUITES = [
   "task-queue-concurrency",

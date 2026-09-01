@@ -3,7 +3,4 @@
  * Facade for Configuration Hosts test suite.
  */
 
-export const configHostsSuite = [
-  "host-canon",
-  "host-concurrency",
-] as const;
+export const configHostsSuite = ["host-canon", "host-concurrency"] as const;

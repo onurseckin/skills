@@ -49,7 +49,7 @@ function addIfReport(candidate: string, baseDir: string | undefined, into: Set<s
 
 export function extractBrowserReportsFromText(text: string, baseDir?: string): string[] {
   if (!text) return [];
-  const pattern = /[a-zA-Z0-9_\-.\/\\~]*\.json/gi;
+  const pattern = /[a-zA-Z0-9_\-./\\~]*\.json/gi;
   const found = new Set<string>();
   for (const match of text.match(pattern) ?? []) {
     const candidate = match.trim();

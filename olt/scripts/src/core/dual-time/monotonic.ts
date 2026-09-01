@@ -137,7 +137,7 @@ export function updateStepMachineTelemetry(
     duration_formatted,
     details:
       update.details !== undefined || current.details !== undefined
-        ? { ...(current.details ?? {}), ...(update.details ?? {}) }
+        ? { ...current.details, ...update.details }
         : undefined,
   };
 }

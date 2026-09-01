@@ -1,10 +1,9 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, spyOn, test } from "bun:test";
 import {
   processHasToken,
   scanDarwinTokenOwners,
 } from "../../../olt/scripts/src/engine/runner/process/darwin/darwin-token-owners.ts";
 import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("scanDarwinTokenOwners edge cases", () => {
   test("returns empty array when token is empty", () => {
@@ -58,13 +57,15 @@ describe("scanDarwinTokenOwners edge cases", () => {
   });
 
   test("rethrows error when processHasToken throws and identity is unchanged", () => {
-    const child = Bun.spawn(["sleep", "10"]);
+    const origPid = process.pid;
+    const realPid = origPid;
     const origRead = Buffer.prototype.readBigUInt64LE;
     Buffer.prototype.readBigUInt64LE = function () {
       return 10_000_000n;
     };
+    const pidSpy = spyOn(process, "pid", "get").mockReturnValue(999990);
     try {
-      const pids = Array(8).fill(child.pid);
+      const pids = Array(8).fill(realPid);
       const identify = (pid: number): ProcessIdentity | undefined => ({
         pid,
         parent: 1,
@@ -76,19 +77,20 @@ describe("scanDarwinTokenOwners edge cases", () => {
         "ownership-token environment scan is too large",
       );
     } finally {
+      pidSpy.mockRestore();
       Buffer.prototype.readBigUInt64LE = origRead;
-      child.kill();
     }
   });
 
   test("throws identity changed when processHasToken throws and identity changed", () => {
-    const child = Bun.spawn(["sleep", "10"]);
+    const realPid = process.pid;
     const origRead = Buffer.prototype.readBigUInt64LE;
     Buffer.prototype.readBigUInt64LE = function () {
       return 10_000_000n;
     };
+    const pidSpy = spyOn(process, "pid", "get").mockReturnValue(999990);
     try {
-      const pids = Array(8).fill(child.pid);
+      const pids = Array(8).fill(realPid);
       let callCount = 0;
       const identify = (pid: number): ProcessIdentity | undefined => {
         callCount += 1;
@@ -103,19 +105,20 @@ describe("scanDarwinTokenOwners edge cases", () => {
         /process identity changed during ownership-token scan/,
       );
     } finally {
+      pidSpy.mockRestore();
       Buffer.prototype.readBigUInt64LE = origRead;
-      child.kill();
     }
   });
 
   test("skips pid when processHasToken throws but process exited afterwards", () => {
-    const child = Bun.spawn(["sleep", "10"]);
+    const realPid = process.pid;
     const origRead = Buffer.prototype.readBigUInt64LE;
     Buffer.prototype.readBigUInt64LE = function () {
       return 10_000_000n;
     };
+    const pidSpy = spyOn(process, "pid", "get").mockReturnValue(999990);
     try {
-      const pids = Array(8).fill(child.pid);
+      const pids = Array(8).fill(realPid);
       let callCount = 0;
       const identify = (pid: number): ProcessIdentity | undefined => {
         callCount += 1;
@@ -127,8 +130,8 @@ describe("scanDarwinTokenOwners edge cases", () => {
       const result = scanDarwinTokenOwners(pids, "token", identify);
       expect(result).toEqual([]);
     } finally {
+      pidSpy.mockRestore();
       Buffer.prototype.readBigUInt64LE = origRead;
-      child.kill();
     }
   });
 });

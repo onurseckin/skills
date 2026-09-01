@@ -1,27 +1,21 @@
 /**
  * Session Capture Runners & Browser Pool Facade.
  */
-export {
-  BrowserPoolManager,
-  isInstanceExpired,
-} from "../../../olt/scripts/src/capture/runners/browser-pool-manager.ts";
+export { BrowserPoolManager } from "../../../olt/scripts/src/capture/pool/index.ts";
+export { isInstanceExpired } from "../../../olt/scripts/src/capture/pool/pool-queue.ts";
 
 export {
   DefaultFallbackBrowserProvider,
-  DefaultFallbackBrowserDriver,
-  runLiveCaptureWorkflow,
-} from "../../../olt/scripts/src/capture/runners/live-capture-runner.ts";
-
-export {
-  createSyntheticPngBuffer,
-  resolveCaptureOutputDir,
   filterScreens,
+  resolveCaptureOutputDir,
   resolveViewportsForScreen,
-} from "../../../olt/scripts/src/capture/runners/live-capture-path-resolver.ts";
+  runLiveCapture,
+  createSyntheticPngBuffer,
+} from "../../../olt/scripts/src/capture/runners/live-capture-runner/index.ts";
 
 export {
-  captureContext,
-  computeStateHash,
+  createSnapshotContext,
+  computeNodeStateHash,
   computeMerkleRoot,
   verifySnapshotIntegrity,
-} from "../../../olt/scripts/src/capture/runners/context-and-state-hasher.ts";
+} from "../../../olt/scripts/src/capture/snapshot/index.ts";

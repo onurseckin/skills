@@ -1,6 +1,10 @@
 import ts from "typescript";
-import { COMPILER_SUPPRESSION_DIRECTIVES, type AstLintRuleModule } from "../ast/types.ts";
-import { isCommentToken, isJsxFile } from "../ast/utils.ts";
+import {
+  COMPILER_SUPPRESSION_DIRECTIVES,
+  isCommentToken,
+  isJsxFile,
+  type AstLintRuleModule,
+} from "../ast/index.ts";
 
 export const compilerSuppressionRule: AstLintRuleModule = {
   rule: "compiler_suppression",

@@ -13,7 +13,6 @@ import {
   type VisualMetricsReport,
 } from "../../../olt/scripts/src/validation/dual-channel-analyzer/index.ts";
 
-
 describe("Companion Manifest 4-Pillar Criteria Enforcement", () => {
   const findingsCollector = () => {
     const findings: StructuredFinding[] = [];
@@ -222,4 +221,3 @@ describe("Companion Manifest 4-Pillar Criteria Enforcement", () => {
     expect(failedErrors[0]?.message).toContain("CRIT-MECH-APCA");
   });
 });
-

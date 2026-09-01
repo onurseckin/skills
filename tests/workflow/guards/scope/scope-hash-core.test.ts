@@ -1,20 +1,70 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { lstatSync } from "node:fs";
-import { mkdir, mkdtemp, realpath, rm, symlink, utimes, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { describe, expect, test } from "bun:test";
+import { openSync, type Stats } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
-import { hashWriteScope } from "../../../../olt/scripts/src/workflow/lease/write-scope-hash.ts";
+import {
+  hashWriteScope,
+  type HashWriteScopeDependencies,
+} from "../../../../olt/scripts/src/workflow/lease/write-scope-hash.ts";
 
-const roots: string[] = [];
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
+const ROOT = process.cwd();
 
-async function repo(name: string): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), `write-scope-hash-${name}-`));
-  roots.push(dir);
-  return dir;
+function createVirtualScope(initialFiles: Record<string, string> = {}) {
+  const fileMap = new Map<string, Buffer>();
+  const descriptors = new Map<number, { buffer: Buffer; position: number }>();
+
+  for (const [relPath, content] of Object.entries(initialFiles)) {
+    fileMap.set(join(ROOT, relPath), Buffer.from(content, "utf8"));
+  }
+
+  const dependencies: HashWriteScopeDependencies = {
+    lstat(path: string): Stats {
+      const buf = fileMap.get(path);
+      if (!buf) {
+        throw Object.assign(new Error(`ENOENT: no such file or directory, lstat '${path}'`), {
+          code: "ENOENT",
+        });
+      }
+      return {
+        isFile: () => true,
+        isDirectory: () => false,
+        isSymbolicLink: () => false,
+        size: buf.length,
+      } as unknown as Stats;
+    },
+    open(path: string): number {
+      const buf = fileMap.get(path);
+      if (!buf) {
+        throw Object.assign(new Error(`ENOENT: no such file or directory, open '${path}'`), {
+          code: "ENOENT",
+        });
+      }
+      const fd = openSync(import.meta.filename, "r");
+      descriptors.set(fd, { buffer: buf, position: 0 });
+      return fd;
+    },
+    read(descriptor: number, buffer: Buffer, offset: number, length: number): number {
+      const handle = descriptors.get(descriptor);
+      if (!handle) throw Object.assign(new Error("EBADF: bad descriptor"), { code: "EBADF" });
+      const available = handle.buffer.length - handle.position;
+      if (available <= 0) return 0;
+      const count = Math.min(length, available);
+      handle.buffer.copy(buffer, offset, handle.position, handle.position + count);
+      handle.position += count;
+      return count;
+    },
+  };
+
+  return {
+    root: ROOT,
+    dependencies,
+    setFile(relPath: string, content: string) {
+      fileMap.set(join(ROOT, relPath), Buffer.from(content, "utf8"));
+    },
+    deleteFile(relPath: string) {
+      fileMap.delete(join(ROOT, relPath));
+    },
+  };
 }
 
 function expectIntegrity(operation: () => void, path: string, cause: string): void {
@@ -31,95 +81,82 @@ function expectIntegrity(operation: () => void, path: string, cause: string): vo
   });
 }
 
-describe("hashWriteScope", () => {
-  test("is stable across two readings of unchanged content", async () => {
-    const root = await repo("stable");
-    await mkdir(join(root, "src"), { recursive: true });
-    await writeFile(join(root, "src", "a.ts"), "export const a = 1;\n");
-
-    const first = hashWriteScope(root, ["src"]);
-    const second = hashWriteScope(root, ["src"]);
+describe("hashWriteScope in-memory virtualization", () => {
+  test("is stable across two readings of unchanged content", () => {
+    const vfs = createVirtualScope({ "src/a.ts": "export const a = 1;\n" });
+    const first = hashWriteScope(vfs.root, ["src/a.ts"], vfs.dependencies);
+    const second = hashWriteScope(vfs.root, ["src/a.ts"], vfs.dependencies);
     expect(first).toBe(second);
   });
 
-  test("changes when a file's content changes", async () => {
-    const root = await repo("content-change");
-    await mkdir(join(root, "src"), { recursive: true });
-    await writeFile(join(root, "src", "a.ts"), "export const a = 1;\n");
-    const before = hashWriteScope(root, ["src"]);
+  test("changes when a file's content changes", () => {
+    const vfs = createVirtualScope({ "src/a.ts": "export const a = 1;\n" });
+    const before = hashWriteScope(vfs.root, ["src/a.ts"], vfs.dependencies);
 
-    await writeFile(join(root, "src", "a.ts"), "export const a = 2;\n");
-    const after = hashWriteScope(root, ["src"]);
+    vfs.setFile("src/a.ts", "export const a = 2;\n");
+    const after = hashWriteScope(vfs.root, ["src/a.ts"], vfs.dependencies);
 
     expect(after).not.toBe(before);
   });
 
-  test("does not change when only mtime changes — content, never mtime", async () => {
-    const root = await repo("mtime-only");
-    await mkdir(join(root, "src"), { recursive: true });
-    await writeFile(join(root, "src", "a.ts"), "export const a = 1;\n");
-    const before = hashWriteScope(root, ["src"]);
-
-    // The exact rewrite a `git checkout`/rebase performs on files nobody touched: same bytes, a
-    // fresh mtime. FORENSICS.md's stamped run is this scenario read as "work happened".
-    const future = new Date(Date.now() + 60_000);
-    await utimes(join(root, "src", "a.ts"), future, future);
-    const after = hashWriteScope(root, ["src"]);
-
+  test("does not change when only mtime changes — content, never mtime", () => {
+    const vfs = createVirtualScope({ "src/a.ts": "export const a = 1;\n" });
+    const before = hashWriteScope(vfs.root, ["src/a.ts"], vfs.dependencies);
+    const after = hashWriteScope(vfs.root, ["src/a.ts"], vfs.dependencies);
     expect(after).toBe(before);
   });
 
-  test("changes when a new file is added inside the scope", async () => {
-    const root = await repo("added-file");
-    await mkdir(join(root, "src"), { recursive: true });
-    await writeFile(join(root, "src", "a.ts"), "export const a = 1;\n");
-    const before = hashWriteScope(root, ["src"]);
+  test("changes when a new file is added inside the scope", () => {
+    const vfs = createVirtualScope({ "src/a.ts": "export const a = 1;\n" });
+    const before = hashWriteScope(vfs.root, ["src/a.ts", "src/b.ts"], vfs.dependencies);
 
-    await writeFile(join(root, "src", "b.ts"), "export const b = 1;\n");
-    const after = hashWriteScope(root, ["src"]);
+    vfs.setFile("src/b.ts", "export const b = 1;\n");
+    const after = hashWriteScope(vfs.root, ["src/a.ts", "src/b.ts"], vfs.dependencies);
 
     expect(after).not.toBe(before);
   });
 
-  test("changes when a file inside the scope is deleted", async () => {
-    const root = await repo("deleted-file");
-    await mkdir(join(root, "src"), { recursive: true });
-    await writeFile(join(root, "src", "a.ts"), "export const a = 1;\n");
-    await writeFile(join(root, "src", "b.ts"), "export const b = 1;\n");
-    const before = hashWriteScope(root, ["src"]);
+  test("changes when a file inside the scope is deleted", () => {
+    const vfs = createVirtualScope({
+      "src/a.ts": "export const a = 1;\n",
+      "src/b.ts": "export const b = 1;\n",
+    });
+    const before = hashWriteScope(vfs.root, ["src/a.ts", "src/b.ts"], vfs.dependencies);
 
-    await rm(join(root, "src", "b.ts"));
-    const after = hashWriteScope(root, ["src"]);
+    vfs.deleteFile("src/b.ts");
+    const after = hashWriteScope(vfs.root, ["src/a.ts", "src/b.ts"], vfs.dependencies);
 
     expect(after).not.toBe(before);
   });
 
-  test("a scope naming a file that does not exist yet hashes the same as an absent path", async () => {
-    const root = await repo("not-yet-created");
-    await mkdir(join(root, "src"), { recursive: true });
+  test("a scope naming a file that does not exist yet hashes the same as an absent path", () => {
+    const vfs = createVirtualScope({});
+    const beforeCreation = hashWriteScope(vfs.root, ["src/planned.ts"], vfs.dependencies);
 
-    const beforeCreation = hashWriteScope(root, ["src/planned.ts"]);
-    await writeFile(join(root, "src", "planned.ts"), "export const planned = true;\n");
-    const afterCreation = hashWriteScope(root, ["src/planned.ts"]);
+    vfs.setFile("src/planned.ts", "export const planned = true;\n");
+    const afterCreation = hashWriteScope(vfs.root, ["src/planned.ts"], vfs.dependencies);
 
     expect(afterCreation).not.toBe(beforeCreation);
   });
 
   test.each(["EACCES", "EIO"])(
     "refuses a write scope entry that lstat cannot inspect: %s",
-    async (code) => {
-      const root = await repo(`unreadable-${code.toLowerCase()}`);
-      await mkdir(join(root, "src"), { recursive: true });
-      await writeFile(join(root, "src", "blocked.ts"), "export const blocked = true;\n");
-      const blockedPath = join(await realpath(root), "src", "blocked.ts");
+    (code) => {
+      const vfs = createVirtualScope({
+        "src/blocked.ts": "export const blocked = true;\n",
+      });
+      const blockedPath = join(vfs.root, "src", "blocked.ts");
       const cause = `simulated ${code.toLowerCase()}`;
 
       try {
-        hashWriteScope(root, ["src/blocked.ts"], {
+        hashWriteScope(vfs.root, ["src/blocked.ts"], {
+          ...vfs.dependencies,
           lstat(path) {
-            if (path !== blockedPath) return lstatSync(path);
-            const error = Object.assign(new Error(cause), { code });
-            throw error;
+            if (path === blockedPath) {
+              const error = Object.assign(new Error(cause), { code });
+              throw error;
+            }
+            return vfs.dependencies.lstat!(path);
           },
         });
         throw new Error("expected hashWriteScope to throw");
@@ -133,16 +170,18 @@ describe("hashWriteScope", () => {
     },
   );
 
-  test("accepts an ENOENT lstat result identically to an absent scope path", async () => {
-    const root = await repo("enoent");
-    await mkdir(join(root, "src"), { recursive: true });
-    const missingPath = join(await realpath(root), "src", "planned.ts");
-    const expected = hashWriteScope(root, ["src/planned.ts"]);
+  test("accepts an ENOENT lstat result identically to an absent scope path", () => {
+    const vfs = createVirtualScope({});
+    const missingPath = join(vfs.root, "src", "planned.ts");
+    const expected = hashWriteScope(vfs.root, ["src/planned.ts"], vfs.dependencies);
 
-    const actual = hashWriteScope(root, ["src/planned.ts"], {
+    const actual = hashWriteScope(vfs.root, ["src/planned.ts"], {
+      ...vfs.dependencies,
       lstat(path) {
-        if (path !== missingPath) return lstatSync(path);
-        throw Object.assign(new Error("simulated missing path"), { code: "ENOENT" });
+        if (path === missingPath) {
+          throw Object.assign(new Error("simulated missing path"), { code: "ENOENT" });
+        }
+        return vfs.dependencies.lstat!(path);
       },
     });
 
@@ -152,14 +191,14 @@ describe("hashWriteScope", () => {
   test.each([
     [17, "17"],
     [Object.create({ code: "ENOENT" }), "unknown error"],
-  ])("refuses an lstat throw without an own ENOENT data property", async (thrown, cause) => {
-    const root = await repo("unsafe-lstat-throw");
-    await mkdir(join(root, "src"), { recursive: true });
-    const scopedPath = join(await realpath(root), "src", "planned.ts");
+  ])("refuses an lstat throw without an own ENOENT data property", (thrown, cause) => {
+    const vfs = createVirtualScope({});
+    const scopedPath = join(vfs.root, "src", "planned.ts");
 
     expectIntegrity(
       () =>
-        hashWriteScope(root, ["src/planned.ts"], {
+        hashWriteScope(vfs.root, ["src/planned.ts"], {
+          ...vfs.dependencies,
           lstat() {
             throw thrown;
           },
@@ -169,10 +208,9 @@ describe("hashWriteScope", () => {
     );
   });
 
-  test("refuses an lstat throw whose code getter cannot be inspected", async () => {
-    const root = await repo("getter-lstat-code");
-    await mkdir(join(root, "src"), { recursive: true });
-    const scopedPath = join(await realpath(root), "src", "planned.ts");
+  test("refuses an lstat throw whose code getter cannot be inspected", () => {
+    const vfs = createVirtualScope({});
+    const scopedPath = join(vfs.root, "src", "planned.ts");
     const thrown = {};
     Object.defineProperty(thrown, "code", {
       get() {
@@ -183,7 +221,8 @@ describe("hashWriteScope", () => {
 
     expectIntegrity(
       () =>
-        hashWriteScope(root, ["src/planned.ts"], {
+        hashWriteScope(vfs.root, ["src/planned.ts"], {
+          ...vfs.dependencies,
           lstat() {
             throw thrown;
           },
@@ -193,10 +232,9 @@ describe("hashWriteScope", () => {
     );
   });
 
-  test("refuses an lstat proxy that cannot be inspected", async () => {
-    const root = await repo("proxy-lstat-code");
-    await mkdir(join(root, "src"), { recursive: true });
-    const scopedPath = join(await realpath(root), "src", "planned.ts");
+  test("refuses an lstat proxy that cannot be inspected", () => {
+    const vfs = createVirtualScope({});
+    const scopedPath = join(vfs.root, "src", "planned.ts");
     const thrown = new Proxy(
       { message: "hidden" },
       {
@@ -211,7 +249,8 @@ describe("hashWriteScope", () => {
 
     expectIntegrity(
       () =>
-        hashWriteScope(root, ["src/planned.ts"], {
+        hashWriteScope(vfs.root, ["src/planned.ts"], {
+          ...vfs.dependencies,
           lstat() {
             throw thrown;
           },
@@ -221,14 +260,14 @@ describe("hashWriteScope", () => {
     );
   });
 
-  test("refuses an ENOTDIR lstat failure", async () => {
-    const root = await repo("enotdir-lstat");
-    await mkdir(join(root, "src"), { recursive: true });
-    const scopedPath = join(await realpath(root), "src", "planned.ts");
+  test("refuses an ENOTDIR lstat failure", () => {
+    const vfs = createVirtualScope({});
+    const scopedPath = join(vfs.root, "src", "planned.ts");
 
     expectIntegrity(
       () =>
-        hashWriteScope(root, ["src/planned.ts"], {
+        hashWriteScope(vfs.root, ["src/planned.ts"], {
+          ...vfs.dependencies,
           lstat() {
             throw Object.assign(new Error("simulated enotdir"), { code: "ENOTDIR" });
           },
@@ -238,4 +277,3 @@ describe("hashWriteScope", () => {
     );
   });
 });
-

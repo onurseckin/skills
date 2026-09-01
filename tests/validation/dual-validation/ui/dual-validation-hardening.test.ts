@@ -58,7 +58,10 @@ describe("Validation Layer Hardening & Dual-Validation Requirements", () => {
     });
 
     it("accepts UI task with valid multi-viewport screenshots (>= 1024 bytes)", () => {
-      const dir = join(tmpdir(), "dual-val-hardening-valid-shots-" + Math.random().toString(36).slice(2));
+      const dir = join(
+        tmpdir(),
+        "dual-val-hardening-valid-shots-" + Math.random().toString(36).slice(2),
+      );
       mkdirSync(dir, { recursive: true });
       const mobilePath = join(dir, "header-mobile.png");
       const tabletPath = join(dir, "header-tablet.png");
@@ -104,7 +107,11 @@ describe("Validation Layer Hardening & Dual-Validation Requirements", () => {
     });
 
     it("resolves capsule-relative screenshot paths (as produced by the real ingestion/linkBlobIntoView pipeline) against a supplied runRoot", () => {
-      const runRoot = join(tmpdir(), "dual-val-hardening-resolves-capsule-relative-screenshot-paths-" + Math.random().toString(36).slice(2));
+      const runRoot = join(
+        tmpdir(),
+        "dual-val-hardening-resolves-capsule-relative-screenshot-paths-" +
+          Math.random().toString(36).slice(2),
+      );
       const evidenceDir = join(runRoot, "evidence", "screenshots");
       mkdirSync(evidenceDir, { recursive: true });
       writeFileSync(
@@ -131,7 +138,11 @@ describe("Validation Layer Hardening & Dual-Validation Requirements", () => {
     });
 
     it("does not let a capsule-relative path escape runRoot via '..' traversal", () => {
-      const runRoot = join(tmpdir(), "dual-val-hardening-rejects-runroot-escaping-screenshot-paths-" + Math.random().toString(36).slice(2));
+      const runRoot = join(
+        tmpdir(),
+        "dual-val-hardening-rejects-runroot-escaping-screenshot-paths-" +
+          Math.random().toString(36).slice(2),
+      );
 
       const input: DualChannelInput = {
         taskFiles: ["src/components/Header.tsx"],

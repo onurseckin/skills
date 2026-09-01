@@ -39,7 +39,6 @@ function spec(invocation: string): CommandSpec {
   return found;
 }
 
-
 describe("Validator Hard-Lock - Boundary Supervision (Part 1)", () => {
   describe("1. Hierarchical Parent-Child Boundary Supervision", () => {
     it("validates direct hierarchical spawning transitions across all 4 tiers", () => {
@@ -241,6 +240,5 @@ describe("Validator Hard-Lock - Boundary Supervision (Part 1)", () => {
         ),
       ).toBe(true);
     });
-
   });
 });

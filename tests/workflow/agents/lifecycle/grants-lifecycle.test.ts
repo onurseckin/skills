@@ -173,4 +173,3 @@ describe("workflow/agents/grants: lifecycle and reporting", () => {
     });
   });
 });
-

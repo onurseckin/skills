@@ -1,7 +1,9 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
+
+const activeTranscriptRoots: string[] = [];
 
 /** One assistant turn carrying real usage and, optionally, a tool call. */
 export function assistantLine(opts: {
@@ -68,5 +70,16 @@ export async function writeDirectTranscript(
 }
 
 export function mktemp(callerPath: string, label: string): string {
-  return mkdtempSync(join(tmpdir(), "agent-transcript-"));
+  const root = mkdtempSync(join(tmpdir(), "agent-transcript-"));
+  activeTranscriptRoots.push(root);
+  return root;
+}
+
+export async function cleanupTranscriptRoots(): Promise<void> {
+  const roots = activeTranscriptRoots.splice(0);
+  for (const root of roots) {
+    try {
+      rmSync(root, { recursive: true, force: true });
+    } catch {}
+  }
 }

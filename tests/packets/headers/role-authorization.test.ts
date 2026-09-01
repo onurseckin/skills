@@ -7,7 +7,7 @@ import { publishPacket } from "../../../olt/scripts/src/packets/persist-packet.t
 import type { BuiltPacket } from "../../../olt/scripts/src/packets/types.ts";
 import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";
 import type { WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
-import { TestPort, workflowState } from "../../workflow/test-port.ts";
+import { TestPort, workflowState } from "../../workflow/index.ts";
 
 const clock = { now: () => new Date("2026-08-13T12:30:00.000Z") };
 const TOKEN = "branch-child-token";

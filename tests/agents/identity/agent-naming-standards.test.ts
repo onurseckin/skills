@@ -285,5 +285,4 @@ describe("Agent Naming - Standards & Tiers", () => {
       expect(isStandardAgentId("")).toBe(false);
     });
   });
-
 });

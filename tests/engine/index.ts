@@ -8,7 +8,12 @@ export { createTestPolicy, POLICY_SUITES } from "./policy/index.ts";
 export { createTestAgentMetadata, RUNNER_SUITES } from "./runner/index.ts";
 export { createTestTask, createTestRunState, SCHEDULER_SUITES } from "./scheduler/index.ts";
 export { createTestDefect, createTestEventPayload, STORE_SUITES } from "./store/index.ts";
-export { createTestDomainCommit, createTestDomainLedger, createTestProgressSnapshot, SYNC_SUITES } from "./sync/index.ts";
+export {
+  createTestDomainCommit,
+  createTestDomainLedger,
+  createTestProgressSnapshot,
+  SYNC_SUITES,
+} from "./sync/index.ts";
 
 export const ENGINE_DOMAIN_SUITES = {
   policy: POLICY_SUITES,

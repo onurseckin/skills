@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   worktreeCleanCommand,
@@ -24,18 +23,19 @@ import {
   type GitRunner,
   type WorktreeContext,
 } from "../../../olt/scripts/src/engine/worktree/index.ts";
+import { cleanupVirtualEngineFS, getVirtualEngineFS, setupVirtualEngineFS } from "../fixture.ts";
 
 describe("Hermetic Worktree Pipeline", () => {
-  const testDir = join(process.cwd(), "coverage", "scratch", "engine-worktree-isolation-test");
+  const testDir = "/virtual/engine-worktree-isolation-test";
 
   beforeEach(() => {
-    mkdirSync(testDir, { recursive: true });
+    setupVirtualEngineFS();
+    const vfs = getVirtualEngineFS();
+    vfs.mkdirSync(testDir, { recursive: true });
   });
 
   afterEach(() => {
-    if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true, force: true });
-    }
+    cleanupVirtualEngineFS();
   });
 
   test("createHermeticWorktree provisions isolated worktree and returns context", async () => {
@@ -56,7 +56,7 @@ describe("Hermetic Worktree Pipeline", () => {
     expect(ctx.branch).toBe("track/lane-alpha");
     expect(ctx.baseBranch).toBe("main");
     expect(ctx.worktreePath).toBe(join(testDir, ".olt", "worktrees", "lane-alpha"));
-    expect(existsSync(ctx.worktreePath)).toBe(true);
+    expect(getVirtualEngineFS().existsSync(ctx.worktreePath)).toBe(true);
 
     const activeList = listTrackWorktrees({ repoRoot: testDir });
     expect(activeList.some((w) => w.trackId === "lane-alpha")).toBe(true);
@@ -189,8 +189,9 @@ describe("Hermetic Worktree Pipeline", () => {
     };
 
     const wtDir = join(testDir, ".olt", "worktrees", "track-landing-lane");
-    mkdirSync(wtDir, { recursive: true });
-    writeFileSync(join(wtDir, "result.txt"), "done\n", "utf8");
+    const vfs = getVirtualEngineFS();
+    vfs.mkdirSync(wtDir, { recursive: true });
+    vfs.writeFileSync(join(wtDir, "result.txt"), "done\n");
 
     const ctx: WorktreeContext = {
       trackId: "track-landing-lane",

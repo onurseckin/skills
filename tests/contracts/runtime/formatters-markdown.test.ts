@@ -21,7 +21,8 @@ import {
   formatValidationStartBrief,
 } from "../../../olt/scripts/src/cli/formatters/index.ts";
 
-export const formattersMarkdownSuiteName = "core CLI formatters: markdown layout, plan, queue, task & run briefs";
+export const formattersMarkdownSuiteName =
+  "core CLI formatters: markdown layout, plan, queue, task & run briefs";
 
 describe(formattersMarkdownSuiteName, () => {
   test("enforceLineLimit clamps markdown to specified line ceiling", () => {

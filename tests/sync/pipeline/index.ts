@@ -3,6 +3,4 @@
  * Facade for Sync Pipeline subpackage
  */
 
-export const SYNC_PIPELINE_SUITES = [
-  "sync-pipeline",
-] as const;
+export const SYNC_PIPELINE_SUITES = ["sync-pipeline"] as const;

@@ -6,6 +6,13 @@ import {
   type GitSpawn,
 } from "../../../olt/scripts/src/workflow/worktree/git.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import {
+  createMockGitSpawn,
+  createSampleCoverageTableRow,
+  createSampleProvisionInput,
+  createSandboxDir,
+  scratchRoot,
+} from "../fixtures/index.ts";
 
 describe("coverage sweep gap tests: git runner edge cases", () => {
   test("worktreeGitEnvironment filters undefined and empty string keys and preserves passthrough", () => {
@@ -81,5 +88,24 @@ describe("coverage sweep gap tests: git runner edge cases", () => {
       stderr: "",
     });
     expect(git("/tmp", ["rev-parse", "HEAD"], successRunner)).toBe("commit-hash-abc123\n");
+  });
+
+  test("coverage sweep fixture generators produce expected in-memory shapes", () => {
+    const mockSpawn = createMockGitSpawn({ stdout: "mock-out", status: 0 });
+    const res = mockSpawn("git", ["status"]);
+    expect(res.status).toBe(0);
+    expect(res.stdout).toBe("mock-out");
+
+    const row = createSampleCoverageTableRow();
+    expect(row).toContain("src/lib/index.ts");
+
+    const provisionInput = createSampleProvisionInput({ runId: "custom-run" });
+    expect(provisionInput.runId).toBe("custom-run");
+    expect(provisionInput.actor).toBe("coordinator");
+
+    const root = scratchRoot(import.meta.path, "test");
+    expect(typeof root).toBe("string");
+    const sandbox = createSandboxDir("test-sandbox");
+    expect(typeof sandbox).toBe("string");
   });
 });

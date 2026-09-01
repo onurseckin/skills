@@ -1,5 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import { sanitizeSlug, DEFAULT_EXCLUDE_PATTERNS } from "../../../olt/scripts/src/mind/tasks/discovery/index.ts";
+import {
+  DEFAULT_EXCLUDE_PATTERNS,
+  mapFeedbackPriorityToTaskPriority,
+  mapPriority,
+  sanitizeSlug,
+} from "../../../olt/scripts/src/mind/tasks/discovery/index.ts";
 
 describe("Task Discovery Sanitation & Patterns Suite (Part 1)", () => {
   it("sanitizes slugs correctly", () => {
@@ -11,9 +16,6 @@ describe("Task Discovery Sanitation & Patterns Suite (Part 1)", () => {
     expect(DEFAULT_EXCLUDE_PATTERNS).toContain("node_modules");
   });
 });
-
-import { describe, expect, it } from "bun:test";
-import { mapPriority, mapFeedbackPriorityToTaskPriority } from "../../../olt/scripts/src/mind/tasks/discovery/index.ts";
 
 describe("Task Discovery Priority Mapping Suite (Part 2)", () => {
   it("maps discovery severity to task priority correctly", () => {

@@ -122,7 +122,7 @@ export function collectFindingAssets(
         metadata: {
           stage: context.task ? "validation" : "critic",
           findingId: finding.id,
-          ...(shot.metadata ?? {}),
+          ...shot.metadata,
         },
       });
     }

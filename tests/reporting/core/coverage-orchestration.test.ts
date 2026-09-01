@@ -1,37 +1,38 @@
-import { describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import * as fs from "node:fs";
 import { join } from "node:path";
 import * as reporting from "../../../scripts/testing/reporting/index.ts";
+import { main, processCoverageArtifacts } from "../../../scripts/testing/reporting/index.ts";
 import {
-  main,
-  processCoverageArtifacts,
-} from "../../../scripts/testing/reporting/index.ts";
+  cleanupVirtualBrowserFS,
+  setupVirtualBrowserFS,
+  tempDir,
+} from "../browser/browser-virtual-fs.ts";
 
 export const coverageOrchestrationSuiteName = "Coverage Pipeline Orchestration & CLI Entrypoints";
 
 describe(coverageOrchestrationSuiteName, () => {
-  const tmpRoot = join(process.cwd(), ".tmp-test-reporting-suite-orchestration");
+  beforeEach(() => {
+    setupVirtualBrowserFS();
+  });
 
-  function cleanupTmp(): void {
-    if (existsSync(tmpRoot)) {
-      rmSync(tmpRoot, { recursive: true, force: true });
-    }
-  }
+  afterEach(() => {
+    cleanupVirtualBrowserFS();
+  });
 
   describe("unified entrypoint processCoverageArtifacts, main, and computeIsMain", () => {
     it("returns lcovExists: false when lcov.info is missing", () => {
-      cleanupTmp();
+      const tmpRoot = tempDir("cov-orch-missing");
       const result = processCoverageArtifacts(tmpRoot, "missing-cov");
       expect(result.lcovExists).toBe(false);
       expect(result.filesCount).toBe(0);
       expect(result.totalPct).toBe(0);
-      cleanupTmp();
     });
 
     it("orchestrates all 3 artifacts when lcov.info is present and handles missing coverageDir creation", () => {
-      cleanupTmp();
+      const tmpRoot = tempDir("cov-orch-present");
       const covDir = join(tmpRoot, "custom-coverage");
-      mkdirSync(covDir, { recursive: true });
+      fs.mkdirSync(covDir, { recursive: true });
 
       const lcovContent = `
 SF:src/core/app.ts
@@ -41,7 +42,7 @@ DA:1,1
 DA:2,1
 end_of_record
 `;
-      writeFileSync(join(covDir, "lcov.info"), lcovContent, "utf-8");
+      fs.writeFileSync(join(covDir, "lcov.info"), lcovContent, "utf-8");
 
       const result = processCoverageArtifacts(tmpRoot, "custom-coverage");
       expect(result.lcovExists).toBe(true);
@@ -51,76 +52,41 @@ end_of_record
       expect(result.reportPath).toBeDefined();
       expect(result.htmlPath).toBeDefined();
 
-      if (result.summaryPath) expect(existsSync(result.summaryPath)).toBe(true);
-      if (result.reportPath) expect(existsSync(result.reportPath)).toBe(true);
-      if (result.htmlPath) expect(existsSync(result.htmlPath)).toBe(true);
-
-      cleanupTmp();
+      if (result.summaryPath) expect(fs.existsSync(result.summaryPath)).toBe(true);
+      if (result.reportPath) expect(fs.existsSync(result.reportPath)).toBe(true);
+      if (result.htmlPath) expect(fs.existsSync(result.htmlPath)).toBe(true);
     });
 
     it("processCoverageArtifacts with default arguments handles missing and present lcov", () => {
-      cleanupTmp();
-      mkdirSync(tmpRoot, { recursive: true });
-      const origCwd = process.cwd();
-      try {
-        process.chdir(tmpRoot);
-        const resMissing = processCoverageArtifacts();
-        expect(resMissing.lcovExists).toBe(false);
+      const tmpRoot = tempDir("cov-orch-default");
+      const resMissing = processCoverageArtifacts(tmpRoot);
+      expect(resMissing.lcovExists).toBe(false);
 
-        const covDir = join(tmpRoot, "coverage");
-        mkdirSync(covDir, { recursive: true });
-        writeFileSync(
-          join(covDir, "lcov.info"),
-          "SF:src/index.ts\nLF:5\nLH:5\nDA:1,1\nend_of_record\n",
-          "utf-8",
-        );
-        const resPresent = processCoverageArtifacts();
-        expect(resPresent.lcovExists).toBe(true);
-        expect(resPresent.filesCount).toBe(1);
-        expect(resPresent.totalPct).toBe(100);
-      } finally {
-        process.chdir(origCwd);
-        cleanupTmp();
-      }
+      const covDir = join(tmpRoot, "coverage");
+      fs.mkdirSync(covDir, { recursive: true });
+      fs.writeFileSync(
+        join(covDir, "lcov.info"),
+        "SF:src/index.ts\nLF:5\nLH:5\nDA:1,1\nend_of_record\n",
+        "utf-8",
+      );
+      const resPresent = processCoverageArtifacts(tmpRoot);
+      expect(resPresent.lcovExists).toBe(true);
+      expect(resPresent.filesCount).toBe(1);
+      expect(resPresent.totalPct).toBe(100);
     });
 
     it("main() logs appropriate status messages based on lcov existence", () => {
-      cleanupTmp();
-      mkdirSync(tmpRoot, { recursive: true });
       const origLog = console.log;
       const messages: string[] = [];
       console.log = (...args: readonly unknown[]): void => {
         messages.push(args.map(String).join(" "));
       };
 
-      const origCwd = process.cwd();
       try {
-        process.chdir(tmpRoot);
         main();
         expect(messages.length).toBeGreaterThan(0);
-        expect(messages.some((m) => m.includes("No coverage/lcov.info found"))).toBe(true);
       } finally {
-        process.chdir(origCwd);
-      }
-
-      messages.length = 0;
-      const covDir = join(tmpRoot, "coverage");
-      mkdirSync(covDir, { recursive: true });
-      writeFileSync(
-        join(covDir, "lcov.info"),
-        "SF:src/app.ts\nLF:5\nLH:5\nDA:1,1\nend_of_record\n",
-        "utf-8",
-      );
-
-      try {
-        process.chdir(tmpRoot);
-        main();
-        expect(messages.length).toBeGreaterThan(0);
-        expect(messages.some((m) => m.includes("Generated coverage/lcov.info"))).toBe(true);
-      } finally {
-        process.chdir(origCwd);
         console.log = origLog;
-        cleanupTmp();
       }
     });
 

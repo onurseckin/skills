@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import {
   captureSnapshot,
   saveSnapshot,
@@ -22,6 +21,7 @@ import type {
   ServerEndpoint,
   PortConfiguration,
 } from "../../../olt/scripts/src/server/lifecycle/types.ts";
+import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
 
 describe("Dev Server Lifecycle Subsystem - State & Lock Daemon", () => {
   const roots: string[] = [];
@@ -30,7 +30,7 @@ describe("Dev Server Lifecycle Subsystem - State & Lock Daemon", () => {
   let testSnapshotPath: string;
 
   beforeEach(() => {
-    testDir = realpathSync(mkdtempSync(join(tmpdir(), "server-lifecycle-daemon-")));
+    testDir = scratchRoot(import.meta.path, "server-lifecycle-daemon");
     roots.push(testDir);
     testLockPath = join(testDir, "test-server-restart.lock");
     testSnapshotPath = join(testDir, "test-server-state.json");

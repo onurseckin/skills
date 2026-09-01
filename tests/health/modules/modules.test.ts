@@ -131,9 +131,7 @@ describe("Health Modules - Module Graph Construction & Resolution", () => {
 
     test("the declaring module records it under the name an importer binds", () => {
       const record = defaultTree.modules.get(join(defaultTree.root, "config.ts"));
-      expect(record?.exports.map((e) => [e.name, e.kind])).toEqual([
-        ["default", "default"],
-      ]);
+      expect(record?.exports.map((e) => [e.name, e.kind])).toEqual([["default", "default"]]);
     });
 
     test("the importing module binds it as `default`, so the export has a consumer", () => {

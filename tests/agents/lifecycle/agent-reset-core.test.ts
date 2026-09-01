@@ -55,7 +55,6 @@ function createMockPort(initialState: JsonObject = {}): {
   };
 }
 
-
 describe("releaseGrantInLedger", () => {
   test("releases an active grant with specified reason and timestamp", () => {
     const ledger: AgentGrantRecord[] = [
@@ -170,4 +169,3 @@ describe("releaseAllActiveGrants", () => {
     expect(typeof updated[0]?.released_at).toBe("string");
   });
 });
-

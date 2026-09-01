@@ -11,7 +11,7 @@ import {
 import { beginValidation } from "../../../../olt/scripts/src/workflow/review/begin-validation.ts";
 import { claimTask } from "../../../../olt/scripts/src/workflow/lease/claim.ts";
 import { submitTask } from "../../../../olt/scripts/src/workflow/submission/submit.ts";
-import { at, registerTaskPacket, TestPort, workflowState } from "../../../workflow/test-port.ts";
+import { at, registerTaskPacket, TestPort, workflowState } from "../../../workflow/index.ts";
 import { inspectionContext } from "../../payloads/slicing/inspection-fixture.ts";
 
 const encoder = new TextEncoder();

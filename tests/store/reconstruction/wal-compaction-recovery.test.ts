@@ -1,28 +1,20 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { describe, expect, it } from "bun:test";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   compactWalLog,
   createStateCheckpoint,
-  loadLatestSnapshot,
   pruneExpiredCheckpoints,
   recoverDiskState,
   resolveCapsulePaths,
   shouldTriggerCheckpoint,
-  updateSparseIndex,
   writeAtomicSnapshot,
 } from "../../../olt/scripts/src/engine/store/index.ts";
+import { scratchRoot } from "../store-fixture.ts";
 
-const TEST_ROOT = join(process.cwd(), ".tmp", `test-wal-compaction-${Date.now()}`);
-
-beforeEach(() => {
-  rmSync(TEST_ROOT, { recursive: true, force: true });
-  mkdirSync(TEST_ROOT, { recursive: true });
-});
-
-afterEach(() => {
-  rmSync(TEST_ROOT, { recursive: true, force: true });
-});
+function getTestRoot(label = "wal-compaction"): string {
+  return scratchRoot(import.meta.path, label);
+}
 
 function createTestEvent(
   seq: number,
@@ -86,7 +78,7 @@ describe("WAL Compaction & State Checkpointing Extensions", () => {
 
   describe("createStateCheckpoint & pruneExpiredCheckpoints", () => {
     it("creates snapshots and prunes older ones adhering to retention limits", () => {
-      const paths = resolveCapsulePaths("run-chk-01", TEST_ROOT);
+      const paths = resolveCapsulePaths("run-chk-01", getTestRoot("chk-01"));
       mkdirSync(paths.snapshotsDir, { recursive: true });
 
       createStateCheckpoint(paths.snapshotsDir, 100, { count: 100 });
@@ -112,7 +104,7 @@ describe("WAL Compaction & State Checkpointing Extensions", () => {
 
   describe("compactWalLog", () => {
     it("compacts events up to latest snapshot and archives pruned events", () => {
-      const paths = resolveCapsulePaths("run-compact-01", TEST_ROOT);
+      const paths = resolveCapsulePaths("run-compact-01", getTestRoot("compact-01"));
       mkdirSync(paths.runRoot, { recursive: true });
       mkdirSync(paths.snapshotsDir, { recursive: true });
 
@@ -155,7 +147,7 @@ describe("WAL Compaction & State Checkpointing Extensions", () => {
     });
 
     it("returns early when no snapshot or sequence <= 1", () => {
-      const paths = resolveCapsulePaths("run-compact-02", TEST_ROOT);
+      const paths = resolveCapsulePaths("run-compact-02", getTestRoot("compact-02"));
       mkdirSync(paths.runRoot, { recursive: true });
       writeFileSync(
         paths.eventsPath,
@@ -170,7 +162,7 @@ describe("WAL Compaction & State Checkpointing Extensions", () => {
 
   describe("recoverDiskState", () => {
     it("recovers state from disk snapshot and delta replay", () => {
-      const paths = resolveCapsulePaths("run-rec-01", TEST_ROOT);
+      const paths = resolveCapsulePaths("run-rec-01", getTestRoot("rec-01"));
       mkdirSync(paths.runRoot, { recursive: true });
       mkdirSync(paths.snapshotsDir, { recursive: true });
 
@@ -199,7 +191,7 @@ describe("WAL Compaction & State Checkpointing Extensions", () => {
     });
 
     it("quarantines torn trailing bytes and recovers clean events", () => {
-      const paths = resolveCapsulePaths("run-rec-torn-01", TEST_ROOT);
+      const paths = resolveCapsulePaths("run-rec-torn-01", getTestRoot("rec-torn-01"));
       mkdirSync(paths.runRoot, { recursive: true });
       mkdirSync(paths.snapshotsDir, { recursive: true });
 
@@ -221,7 +213,7 @@ describe("WAL Compaction & State Checkpointing Extensions", () => {
     });
 
     it("falls back to earlier valid snapshot when latest is corrupted", () => {
-      const paths = resolveCapsulePaths("run-rec-corrupt-snap", TEST_ROOT);
+      const paths = resolveCapsulePaths("run-rec-corrupt-snap", getTestRoot("rec-corrupt"));
       mkdirSync(paths.runRoot, { recursive: true });
       mkdirSync(paths.snapshotsDir, { recursive: true });
 

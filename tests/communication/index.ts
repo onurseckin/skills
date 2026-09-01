@@ -78,7 +78,4 @@ export {
   setInMemoryStreamMode,
 } from "./mailbox/index.ts";
 
-export {
-  ingestToQuarantine,
-  sweepQuarantineDeadLetters,
-} from "./quarantine/index.ts";
+export { ingestToQuarantine, sweepQuarantineDeadLetters } from "./quarantine/index.ts";

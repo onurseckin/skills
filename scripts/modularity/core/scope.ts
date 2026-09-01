@@ -15,15 +15,14 @@ const APPROVED_ROOT_PATHS = new Set([
   "tsconfig.json",
 ]);
 
+const ALWAYS_EXCLUDED_DIRS = new Set([".git", ".olt", ".cache", "node_modules"]);
+
 const EXCLUDED_ROOTS = new Set([
-  ".git",
-  ".olt",
   "build",
   "cache",
   "capsules",
   "coverage",
   "dist",
-  "node_modules",
   "out",
   "scratch",
   "vendor",
@@ -71,9 +70,8 @@ const TYPESCRIPT_FILE: ScopeDecision = {
 function hasExcludedDirectory(path: string): boolean {
   const segments = path.split("/");
   return segments.some((segment, index) => {
-    if (EXCLUDED_ROOTS.has(segment)) return true;
-    if (segment === ".cache") return true;
-    if (index === 0 && segment === "runtime") return true;
+    if (ALWAYS_EXCLUDED_DIRS.has(segment)) return true;
+    if (index === 0 && (EXCLUDED_ROOTS.has(segment) || segment === "runtime")) return true;
     return false;
   });
 }

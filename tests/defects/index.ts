@@ -4,11 +4,7 @@ export {
   invariantsSuiteName,
 } from "./aggregation/index.ts";
 
-export {
-  dedupStreamSuiteName,
-  discriminatorSuiteName,
-  liveDedupSuiteName,
-} from "./dedup/index.ts";
+export { dedupStreamSuiteName, discriminatorSuiteName, liveDedupSuiteName } from "./dedup/index.ts";
 
 export {
   deliberationRoundSuiteName,
@@ -22,7 +18,4 @@ export {
   lifecycleSyncEdgeSuiteName,
 } from "./ledger/index.ts";
 
-export {
-  defectLoopControlSuiteName,
-  defectLoopCoreSuiteName,
-} from "./loop/index.ts";
+export { defectLoopControlSuiteName, defectLoopCoreSuiteName } from "./loop/index.ts";

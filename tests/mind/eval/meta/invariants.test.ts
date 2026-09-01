@@ -36,10 +36,6 @@ import {
 } from "../../../../olt/scripts/src/mind/feedback/queue/index.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 
-
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
-
 describe("Meta Auditor - Invariants, Predicates & Efficiency Score", () => {
   describe("Root Cause Categories & Severities", () => {
     it("exports all 7 canonical root cause categories in expected sequence", () => {
@@ -240,5 +236,4 @@ describe("Meta Auditor - Invariants, Predicates & Efficiency Score", () => {
       expect(fractionalScore).toBeCloseTo(98.0, 1);
     });
   });
-
 });

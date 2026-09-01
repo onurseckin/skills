@@ -92,7 +92,9 @@ describe(timeTelemetrySuiteName, () => {
       expect(collector.getRecords().length).toBe(1);
       expect(record.status).toBe("success");
 
-      const report = buildTimeTelemetryReport(collector.getRecords(), 0, { runId: "run-time-test" });
+      const report = buildTimeTelemetryReport(collector.getRecords(), 0, {
+        runId: "run-time-test",
+      });
       expect(report.runId).toBe("run-time-test");
       expect(report.totalDurationMs).toBeGreaterThanOrEqual(0);
 

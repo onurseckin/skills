@@ -20,7 +20,6 @@ import {
 } from "../../../olt/scripts/src/validation/anti-leak/index.ts";
 
 describe("Anti-Boundary-Leak Rule & Automated Repair Delegation", () => {
-
   describe("1. Role and Action Classification Helpers", () => {
     it("correctly identifies critic and validator roles", () => {
       expect(isCriticOrValidatorRole("validator")).toBe(true);
@@ -273,5 +272,4 @@ describe("Anti-Boundary-Leak Rule & Automated Repair Delegation", () => {
       expect(result.violations.length).toBe(1);
     });
   });
-
 });

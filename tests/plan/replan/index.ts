@@ -1,8 +1,3 @@
-export {
-  createSampleFinding,
-  createSampleOpenTaskFinding,
-} from "./fixture.ts";
+export { createSampleFinding, createSampleOpenTaskFinding } from "./fixture.ts";
 
-export const REPLAN_SUITES = [
-  "replan-findings-ingestion",
-] as const;
+export const REPLAN_SUITES = ["replan-findings-ingestion"] as const;

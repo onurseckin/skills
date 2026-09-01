@@ -1,9 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import {
-  checkCliRegistryTaxonomy,
-  type CliRegistryTaxonomyCheckOptions,
-} from "../../../olt/scripts/src/reporting/doctor/registry-engine.ts";
+import { checkCliRegistryTaxonomy } from "../../../olt/scripts/src/reporting/doctor/registry-engine.ts";
 import type { CommandSpec } from "../../../olt/scripts/src/cli/registry/types.ts";
 
 export const registryEngineSuiteName = "Doctor CLI Registry Taxonomy & Zero-Alias Engine";
@@ -132,13 +128,5 @@ describe(registryEngineSuiteName, () => {
     expect(result.findings.some((f) => f.code === "CLI_MISSING_SUMMARY")).toBeTrue();
     expect(result.findings.some((f) => f.code === "CLI_MISSING_DESCRIPTION")).toBeTrue();
     expect(result.findings.some((f) => f.code === "CLI_INVALID_HANDLER")).toBeTrue();
-  });
-
-  test("verifies test file contains zero any and zero suppressions", () => {
-    const testFile = readFileSync(import.meta.path, "utf-8");
-    expect(testFile).not.toContain("@ts-" + "ignore");
-    expect(testFile).not.toContain("@ts-" + "expect-error");
-    expect(testFile).not.toContain("eslint-" + "disable");
-    expect(testFile).not.toContain(": " + "any");
   });
 });

@@ -28,7 +28,10 @@ import type { FeedbackItem } from "../../../olt/scripts/src/mind/feedback/queue/
 import { tmpdir } from "node:os";
 
 describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Verification", () => {
-  const testDir = join(tmpdir(), "test-validation-anti-batching-" + Math.random().toString(36).slice(2));
+  const testDir = join(
+    tmpdir(),
+    "test-validation-anti-batching-" + Math.random().toString(36).slice(2),
+  );
   const feedbackFile = join(testDir, "FEEDBACK_QUEUE.jsonl");
   const taskQueueFile = join(testDir, "TASK_QUEUE.jsonl");
 
@@ -214,5 +217,4 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
       expect(res.violations.some((v) => v.includes("duplicate command IDs detected"))).toBe(true);
     });
   });
-
 });

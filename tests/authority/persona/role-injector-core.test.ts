@@ -1,15 +1,20 @@
-import { describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import {
-  VerbatimRoleInjector,
-} from "../../../olt/scripts/src/authority/verbatim-role-injector.ts";
+import { VerbatimRoleInjector } from "../../../olt/scripts/src/authority/verbatim-role-injector.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { cleanupVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
 
 const REPO_ROOT = resolve(import.meta.dir, "../../..");
 
 describe("VerbatimRoleInjector - Core Resolution & Manifest Loading", () => {
+  beforeEach(() => {
+    setupVirtualAuthorityFS();
+  });
+  afterEach(() => {
+    cleanupVirtualAuthorityFS();
+  });
+
   describe("resolveManifestPath", () => {
     it("resolves valid manifests from olt/agents/mind.yaml and olt/agents/orchestrator.yaml", () => {
       const mindPath = VerbatimRoleInjector.resolveManifestPath(REPO_ROOT, "mind");
@@ -39,60 +44,51 @@ describe("VerbatimRoleInjector - Core Resolution & Manifest Loading", () => {
     });
 
     it("resolves candidates in precedence order: olt/agents/*.yaml, olt/agents/*.yml, agents/*.yaml, agents/*.yml", () => {
-      const sandbox = mkdtempSync(join(tmpdir(), "candidate-precedence-"));
+      const sandbox = "/virtual/role-injector/candidate-precedence";
+      const agentsDir = join(sandbox, "agents");
+      mkdirSync(agentsDir, { recursive: true });
+      const agentsYmlPath = join(agentsDir, "test-role.yml");
+      writeFileSync(agentsYmlPath, "name: agents-yml\n", "utf-8");
 
-      try {
-        const agentsDir = join(sandbox, "agents");
-        mkdirSync(agentsDir, { recursive: true });
-        const agentsYmlPath = join(agentsDir, "test-role.yml");
-        writeFileSync(agentsYmlPath, "name: agents-yml\n", "utf-8");
+      expect(VerbatimRoleInjector.resolveManifestPath(sandbox, "test-role")).toBe(
+        resolve(agentsYmlPath),
+      );
 
-        expect(VerbatimRoleInjector.resolveManifestPath(sandbox, "test-role")).toBe(
-          resolve(agentsYmlPath),
-        );
+      const agentsYamlPath = join(agentsDir, "test-role.yaml");
+      writeFileSync(agentsYamlPath, "name: agents-yaml\n", "utf-8");
 
-        const agentsYamlPath = join(agentsDir, "test-role.yaml");
-        writeFileSync(agentsYamlPath, "name: agents-yaml\n", "utf-8");
+      expect(VerbatimRoleInjector.resolveManifestPath(sandbox, "test-role")).toBe(
+        resolve(agentsYamlPath),
+      );
 
-        expect(VerbatimRoleInjector.resolveManifestPath(sandbox, "test-role")).toBe(
-          resolve(agentsYamlPath),
-        );
+      const oltAgentsDir = join(sandbox, "olt", "agents");
+      mkdirSync(oltAgentsDir, { recursive: true });
+      const oltAgentsYmlPath = join(oltAgentsDir, "test-role.yml");
+      writeFileSync(oltAgentsYmlPath, "name: olt-agents-yml\n", "utf-8");
 
-        const oltAgentsDir = join(sandbox, "olt", "agents");
-        mkdirSync(oltAgentsDir, { recursive: true });
-        const oltAgentsYmlPath = join(oltAgentsDir, "test-role.yml");
-        writeFileSync(oltAgentsYmlPath, "name: olt-agents-yml\n", "utf-8");
+      expect(VerbatimRoleInjector.resolveManifestPath(sandbox, "test-role")).toBe(
+        resolve(oltAgentsYmlPath),
+      );
 
-        expect(VerbatimRoleInjector.resolveManifestPath(sandbox, "test-role")).toBe(
-          resolve(oltAgentsYmlPath),
-        );
+      const oltAgentsYamlPath = join(oltAgentsDir, "test-role.yaml");
+      writeFileSync(oltAgentsYamlPath, "name: olt-agents-yaml\n", "utf-8");
 
-        const oltAgentsYamlPath = join(oltAgentsDir, "test-role.yaml");
-        writeFileSync(oltAgentsYamlPath, "name: olt-agents-yaml\n", "utf-8");
-
-        expect(VerbatimRoleInjector.resolveManifestPath(sandbox, "test-role")).toBe(
-          resolve(oltAgentsYamlPath),
-        );
-      } finally {
-        rmSync(sandbox, { recursive: true, force: true });
-      }
+      expect(VerbatimRoleInjector.resolveManifestPath(sandbox, "test-role")).toBe(
+        resolve(oltAgentsYamlPath),
+      );
     });
 
     it("falls back to the installed skill role manifest when a product repository has only an owner charter", () => {
-      const productRepo = mkdtempSync(join(tmpdir(), "owner-charter-global-"));
-      try {
-        const charterPath = join(productRepo, ".olt", "charter.yaml");
-        mkdirSync(join(productRepo, ".olt"), { recursive: true });
-        writeFileSync(charterPath, "identity: Product owner charter\n", "utf-8");
+      const productRepo = "/virtual/role-injector/owner-charter-global";
+      const charterPath = join(productRepo, ".olt", "charter.yaml");
+      mkdirSync(join(productRepo, ".olt"), { recursive: true });
+      writeFileSync(charterPath, "identity: Product owner charter\n", "utf-8");
 
-        const resolved = VerbatimRoleInjector.resolveManifestPath(productRepo, "mind");
-        expect(
-          resolved === resolve(REPO_ROOT, "olt", "agents", "mind.yaml") ||
-            resolved === resolve(process.env.HOME || "", ".agents/skills/olt/agents/mind.yaml"),
-        ).toBe(true);
-      } finally {
-        rmSync(productRepo, { recursive: true, force: true });
-      }
+      const resolved = VerbatimRoleInjector.resolveManifestPath(productRepo, "mind");
+      expect(
+        resolved === resolve(REPO_ROOT, "olt", "agents", "mind.yaml") ||
+          resolved === resolve(process.env.HOME || "", ".agents/skills/olt/agents/mind.yaml"),
+      ).toBe(true);
     });
   });
 

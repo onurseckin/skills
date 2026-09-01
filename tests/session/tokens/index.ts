@@ -7,6 +7,4 @@ export {
   assertSafeSessionComponent,
 } from "../../../olt/scripts/src/authority/session/io.ts";
 
-export {
-  type SessionIdentity,
-} from "../../../olt/scripts/src/authority/session/types.ts";
+export { type SessionIdentity } from "../../../olt/scripts/src/authority/session/types.ts";

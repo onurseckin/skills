@@ -17,10 +17,7 @@ import {
   recordCoordinatorPushback,
   validateCoordinatorPushbackInput,
 } from "../../../olt/scripts/src/workflow/review/coordinator-pushback.ts";
-import type {
-  TransactionPort,
-  WorkflowState,
-} from "../../../olt/scripts/src/workflow/types.ts";
+import type { TransactionPort, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 
 function createMockPortWithValidatedTask(taskId: string = "task-1"): {
   port: TransactionPort;

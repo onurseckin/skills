@@ -9,9 +9,11 @@ describe("Health Modules - Intent Drift & Test Path Verification", () => {
   describe("health/allowlist.ts quoting a path token is not evidence the repo uses it", () => {
     const result = (production: Parameters<typeof checkIntentDrift>[0]["production"]) => {
       const root = writeTree(tempRoot("allowlist-self-reference"), {
-        "SPEC.md": ["## 1. R1 - a produced artifact", "", "- Produces `.tmp/scratch/build.ts`."].join(
-          "\n",
-        ),
+        "SPEC.md": [
+          "## 1. R1 - a produced artifact",
+          "",
+          "- Produces `.tmp/scratch/build.ts`.",
+        ].join("\n"),
       });
       return checkIntentDrift({
         documents: [{ relative: "SPEC.md", absolute: join(root, "SPEC.md"), headingLevel: 2 }],
@@ -52,12 +54,16 @@ describe("Health Modules - Intent Drift & Test Path Verification", () => {
       const report = checkIntentDrift({
         documents: [{ relative: "SPEC.md", absolute: join(root, "SPEC.md"), headingLevel: 2 }],
         production: [],
-        tests: [sourceOf("tests/health/modules/completeness.test.ts", "test('covers it', () => {});")],
+        tests: [
+          sourceOf("tests/health/modules/completeness.test.ts", "test('covers it', () => {});"),
+        ],
         paths: [testPath],
         registryApplies: true,
       });
       expect(report.findings.map((entry) => entry.key)).not.toContain("intent-untested:SPEC.md:R1");
-      expect(report.limitations.join(" ")).toContain("1 token(s) name a `.test.ts`/`.spec.ts` file");
+      expect(report.limitations.join(" ")).toContain(
+        "1 token(s) name a `.test.ts`/`.spec.ts` file",
+      );
     });
 
     test("a `.test.ts` token that lives only in a consumer repo is still proven", () => {
@@ -103,7 +109,9 @@ describe("Health Modules - Intent Drift & Test Path Verification", () => {
       });
       const report = checkIntentDrift({
         documents: [{ relative: "SPEC.md", absolute: join(root, "SPEC.md"), headingLevel: 2 }],
-        production: [sourceOf("some/generator.ts", "// see tests/health/modules/phantom.test.ts for context")],
+        production: [
+          sourceOf("some/generator.ts", "// see tests/health/modules/phantom.test.ts for context"),
+        ],
         tests: [],
         paths: [join(root, "SPEC.md")],
         registryApplies: true,

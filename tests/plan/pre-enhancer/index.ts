@@ -1,7 +1,4 @@
-export {
-  createCleanTypeScriptCode,
-  createSampleTaskInput,
-} from "./fixture.ts";
+export { createCleanTypeScriptCode, createSampleTaskInput } from "./fixture.ts";
 
 export const PRE_ENHANCER_SUITES = [
   "pre-enhancer-core",

@@ -48,7 +48,9 @@ describe("Recovery-Pressure Scenario Contract Verification (RP-1..RP-6)", () => 
   it("RP-6: excludes prior validator notes from a fresh validator authoritative packet", () => {
     expect(spec.assertions.some((a) => a.id === "RP-6")).toBe(true);
     expect(content).toContain("RP-6");
-    expect(content).toContain("Exclude prior validator notes from a fresh validator's authoritative packet");
+    expect(content).toContain(
+      "Exclude prior validator notes from a fresh validator's authoritative packet",
+    );
     expect(content).toContain("quarantined");
   });
 });

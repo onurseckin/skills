@@ -1,8 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  assertSubScopes,
-  scopeContains,
-} from "../../../olt/scripts/src/workflow/branch/scope.ts";
+import { assertSubScopes, scopeContains } from "../../../olt/scripts/src/workflow/branch/scope.ts";
 
 describe("Branch Scope: Containment & Boundaries", () => {
   test("accepts a scope the parent already owns", () => {

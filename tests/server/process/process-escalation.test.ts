@@ -31,7 +31,11 @@ describe("process reclaimer subsystem - escalation logic and batch operations", 
       const signaled: Array<{ pid: number; sig: string }> = [];
       const mockExec = async (cmd: string): Promise<CommandExecutionResult> => {
         if (cmd === "ps") {
-          return { stdout: "1234 1 S 1000 Mon Aug 31 05:00:00 2026 node app.js\n", stderr: "", exitCode: 0 };
+          return {
+            stdout: "1234 1 S 1000 Mon Aug 31 05:00:00 2026 node app.js\n",
+            stderr: "",
+            exitCode: 0,
+          };
         }
         return { stdout: "", stderr: "", exitCode: 1 };
       };
@@ -203,10 +207,18 @@ describe("process reclaimer subsystem - escalation logic and batch operations", 
         if (cmd === "lsof") return { stdout: "101\n102\n", stderr: "", exitCode: 0 };
         if (cmd === "ps") {
           if (args.includes("101")) {
-            return { stdout: "101 1 S 1000 Mon Aug 31 05:00:00 2026 node app.js\n", stderr: "", exitCode: 0 };
+            return {
+              stdout: "101 1 S 1000 Mon Aug 31 05:00:00 2026 node app.js\n",
+              stderr: "",
+              exitCode: 0,
+            };
           }
           if (args.includes("102")) {
-            return { stdout: "102 5000 S 1000 Mon Aug 31 05:00:00 2026 /sbin/launchd\n", stderr: "", exitCode: 0 };
+            return {
+              stdout: "102 5000 S 1000 Mon Aug 31 05:00:00 2026 /sbin/launchd\n",
+              stderr: "",
+              exitCode: 0,
+            };
           }
         }
         return { stdout: "", stderr: "", exitCode: 1 };
@@ -232,7 +244,11 @@ describe("process reclaimer subsystem - escalation logic and batch operations", 
       ): Promise<CommandExecutionResult> => {
         if (cmd === "lsof") return { stdout: "5050\n", stderr: "", exitCode: 0 };
         if (cmd === "ps") {
-          return { stdout: "5050 1 S 5000 Mon Aug 31 05:00:00 2026 bun dev\n", stderr: "", exitCode: 0 };
+          return {
+            stdout: "5050 1 S 5000 Mon Aug 31 05:00:00 2026 bun dev\n",
+            stderr: "",
+            exitCode: 0,
+          };
         }
         return { stdout: "", stderr: "", exitCode: 1 };
       };

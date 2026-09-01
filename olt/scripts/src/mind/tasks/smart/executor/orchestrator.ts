@@ -32,10 +32,7 @@ export function expandExternalPromptToWavePlan(
     const line = lines[i]!;
     const slug = sanitizeSlug(line.slice(0, 25));
     const id = `${prefix}-${i + 1}-${slug}`;
-    const scope = [
-      `olt/scripts/src/mind/step-${i + 1}.ts`,
-      `tests/mind/step-${i + 1}.test.ts`,
-    ];
+    const scope = [`olt/scripts/src/mind/step-${i + 1}.ts`, `tests/mind/step-${i + 1}.test.ts`];
     const gate = `bun test tests/mind/step-${i + 1}.test.ts && bun run typecheck`;
     const dependencies = i > 0 ? [tasks[i - 1]!.id] : [];
 
@@ -163,7 +160,7 @@ export function deriveGateForCategory(_category: string, writeScope: readonly st
     const cleaned = testFile.endsWith("/") ? testFile.slice(0, -1) : testFile;
     return `bun test ${cleaned} && bun run typecheck`;
   }
-  return "bun test tests/unit && bun run typecheck";
+  return "bun test tests/mind && bun run typecheck";
 }
 
 export function sanitizeSlug(val: string): string {

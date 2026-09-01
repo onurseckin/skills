@@ -1,25 +1,23 @@
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { DefectEntry } from "../../../olt/scripts/src/mind/defects/index.ts";
+import { cleanupVirtualLoggingFS, setupVirtualLoggingFS } from "./virtual-fs-fixture.ts";
 
-const tempRoots: string[] = [];
+let initialized = false;
 
 export function createLoggingSandbox(prefix: string = "logging-test-"): string {
-  const dir = mkdtempSync(join(tmpdir(), prefix));
-  tempRoots.push(dir);
+  if (!initialized) {
+    setupVirtualLoggingFS();
+    initialized = true;
+  }
+  const dir = join("/virtual", `${prefix}${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  mkdirSync(dir, { recursive: true });
   return dir;
 }
 
 export function cleanupLoggingSandboxes(): void {
-  for (const r of tempRoots) {
-    try {
-      rmSync(r, { recursive: true, force: true });
-    } catch {
-      // Ignore cleanup error
-    }
-  }
-  tempRoots.length = 0;
+  cleanupVirtualLoggingFS();
+  initialized = false;
 }
 
 export function createSampleDefectRecord(partial: Partial<DefectEntry> = {}): DefectEntry {

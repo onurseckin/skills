@@ -1,11 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { auditPlan } from "../../../olt/scripts/src/graph/plan-audit.ts";
-import {
-  fixtureRepo,
-  gateProof,
-  runStateWithProofs,
-  task,
-} from "./plan-audit-fixture.ts";
+import { fixtureRepo, gateProof, runStateWithProofs, task } from "./plan-audit-fixture.ts";
 
 describe("A3-gate-discrimination", () => {
   test("blocks two disjoint tasks sharing an identical gate — the forensics shape", () => {

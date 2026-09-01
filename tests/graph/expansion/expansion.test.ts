@@ -14,7 +14,7 @@ import {
   replanFromFindings,
   type ReplanFindingInput,
 } from "../../../olt/scripts/src/graph/dag-expansion.ts";
-import { requirementsDocument } from "../../requirements/fixtures.ts";
+import { requirementsDocument } from "../../requirements/index.ts";
 import { graphDocument } from "../validation/fixtures.ts";
 
 describe("task decomposition: expandDeeper", () => {

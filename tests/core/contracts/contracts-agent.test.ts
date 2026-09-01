@@ -19,9 +19,7 @@ import {
   isCoordinatorPushback,
   VALIDATOR_DOMAINS,
 } from "../../../olt/scripts/src/core/contracts/agents/workflow.ts";
-import {
-  evidenced,
-} from "../../../olt/scripts/src/core/contracts/system/evidence.ts";
+import { evidenced } from "../../../olt/scripts/src/core/contracts/system/evidence.ts";
 describe("core/contracts/agents/agents.ts", () => {
   it("validates thinking levels and model tiers", () => {
     for (const lvl of THINKING_LEVELS) {

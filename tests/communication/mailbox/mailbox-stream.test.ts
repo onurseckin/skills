@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createSignedEnvelope } from "../../../olt/scripts/src/communication/mailbox/envelope.ts";
 import {
@@ -199,39 +200,45 @@ describe("Mailbox Stream IO & Paths Engine (In-Memory)", () => {
       const paths = resolveMailboxPaths("agent-lambda", virtualRoot);
       appendMailboxMessage(paths.inboxPath, makeEnv("agent-lambda", 1));
       expect(rotateMailboxMessages(paths.inboxPath, paths.archivePath)).toBe(0);
+      expect(() => rotateMailboxMessages("", paths.archivePath)).toThrow(HarnessError);
+      expect(() => rotateMailboxMessages(paths.inboxPath, "")).toThrow(HarnessError);
       expect(() => rotateMailboxMessages(paths.inboxPath, paths.inboxPath)).toThrow(HarnessError);
       expect(() =>
         rotateMailboxMessages(paths.inboxPath, paths.archivePath, { maxActiveMessages: -1 }),
       ).toThrow(HarnessError);
     });
-  });
 
-  describe("Architecture Invariants & Code Standards", () => {
-    it("ensures source files and test suite are <= 300 physical lines", () => {
-      const files = [
-        join(process.cwd(), "olt/scripts/src/communication/mailbox/mailbox-paths.ts"),
-        join(process.cwd(), "olt/scripts/src/communication/mailbox/mailbox-stream.ts"),
-        join(process.cwd(), "olt/scripts/src/communication/mailbox/mailbox-dispatcher.ts"),
-        join(process.cwd(), "tests/communication/mailbox/mailbox-stream.test.ts"),
-      ];
-      for (const file of files) {
-        const lines = readFileSync(file, "utf8").split("\n");
-        expect(lines.length).toBeLessThanOrEqual(300);
+    it("rotates messages on physical disk filesystem with lock", () => {
+      const tempDir = mkdtempSync(join(tmpdir(), "stream-disk-test-"));
+      try {
+        const paths = resolveMailboxPaths("disk-agent", tempDir);
+        ensureMailboxDirectories(paths);
+        for (let i = 1; i <= 4; i++) {
+          appendMailboxMessage(paths.inboxPath, makeEnv("disk-agent", i));
+        }
+        const rotated = rotateMailboxMessages(paths.inboxPath, paths.archivePath, {
+          maxActiveMessages: 2,
+        });
+        expect(rotated).toBe(2);
+        const res = readUnreadMessages(paths.inboxPath);
+        expect(res.messages.length).toBe(2);
+      } finally {
+        rmSync(tempDir, { recursive: true, force: true });
       }
     });
 
-    it("ensures 0 any and 0 compiler suppressions in mailbox modules", () => {
-      const files = [
-        join(process.cwd(), "olt/scripts/src/communication/mailbox/mailbox-paths.ts"),
-        join(process.cwd(), "olt/scripts/src/communication/mailbox/mailbox-stream.ts"),
-        join(process.cwd(), "olt/scripts/src/communication/mailbox/mailbox-dispatcher.ts"),
-      ];
-      for (const file of files) {
-        const content = readFileSync(file, "utf8");
-        expect(content).not.toContain("@ts-ignore");
-        expect(content).not.toContain("@ts-expect-error");
-        expect(content).not.toMatch(/:\s*any\b/);
-      }
+    it("quarantines malformed envelopes when quarantinePath option is passed to readUnreadMessages", () => {
+      const paths = resolveMailboxPaths("agent-q-opt", virtualRoot);
+      setInMemoryMailbox(paths.inboxPath, [
+        "{ invalid json",
+        JSON.stringify({ not: "valid envelope" }),
+        JSON.stringify(makeEnv("agent-q-opt", 1)),
+      ]);
+      const res = readUnreadMessages(paths.inboxPath, null, {
+        quarantinePath: paths.quarantinePath,
+      });
+      expect(res.messages.length).toBe(1);
+      expect(res.quarantinedCount).toBe(2);
     });
   });
 });

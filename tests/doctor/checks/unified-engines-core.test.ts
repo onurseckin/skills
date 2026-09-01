@@ -6,7 +6,8 @@ import {
   checkAntiBatchingIsolation,
 } from "../../../olt/scripts/src/reporting/doctor.ts";
 
-export const unifiedEnginesCoreSuiteName = "Unified Master Doctor - Core Engines (DAG, AST, Anti-Mock, Anti-Batching)";
+export const unifiedEnginesCoreSuiteName =
+  "Unified Master Doctor - Core Engines (DAG, AST, Anti-Mock, Anti-Batching)";
 
 describe(unifiedEnginesCoreSuiteName, () => {
   describe("Engine 1: checkPlanningDag", () => {

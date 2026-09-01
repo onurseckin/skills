@@ -8,7 +8,7 @@ import { acquireInstallerLock } from "../../../olt/scripts/src/installer/install
 import { pathIdentity } from "../../../olt/scripts/src/installer/path-safety.ts";
 import { beginReleaseTransaction } from "../../../olt/scripts/src/installer/release-transaction.ts";
 import { markerPath, readMarker } from "../../../olt/scripts/src/installer/transaction-marker.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
 
 describe("beginReleaseTransaction", () => {
   test("writes a marker readable back with the expected fields", async () => {

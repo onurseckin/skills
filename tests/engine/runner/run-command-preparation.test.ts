@@ -1,5 +1,4 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, rmSync, existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   isBroadScopeTest,
@@ -9,28 +8,37 @@ import {
 } from "../../../olt/scripts/src/engine/runner/models/execution/run-command.ts";
 import { resolveScratchDir } from "../../../olt/scripts/src/core/shared/paths.ts";
 import { createAgentMetadata } from "../../../olt/scripts/src/runtime/metadata.ts";
+import {
+  disableInMemoryAgentMetadata,
+  enableInMemoryAgentMetadata,
+  setInMemoryAgentMetadata,
+} from "../../../olt/scripts/src/runtime/session.ts";
 import type { InternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 import type {
   CommandOptions,
   CommandResult,
   PreparedCommand,
 } from "../../../olt/scripts/src/engine/runner/types/types.ts";
+import { cleanupVirtualEngineFS, getVirtualEngineFS, setupVirtualEngineFS } from "../fixture.ts";
 
 describe("engine/runner/models/execution/run-command.ts - Preparation & Broad Scope Checks", () => {
   let tempDir: string;
   let runRoot: string;
 
   beforeEach(() => {
-    tempDir = join(process.cwd(), "coverage", "scratch", `run-cmd-prep-${Date.now()}`);
+    setupVirtualEngineFS();
+    enableInMemoryAgentMetadata();
+    tempDir = "/virtual/run-cmd-prep";
     runRoot = join(tempDir, ".olt", "runs", "test-run");
-    mkdirSync(join(runRoot, "runtime"), { recursive: true });
-    mkdirSync(join(tempDir, ".olt", ".locks"), { recursive: true });
+    const vfs = getVirtualEngineFS();
+    vfs.mkdirSync(tempDir, { recursive: true });
+    vfs.mkdirSync(join(runRoot, "runtime"), { recursive: true });
+    vfs.mkdirSync(join(tempDir, ".olt", ".locks"), { recursive: true });
   });
 
   afterEach(() => {
-    if (existsSync(tempDir)) {
-      rmSync(tempDir, { recursive: true, force: true });
-    }
+    disableInMemoryAgentMetadata();
+    cleanupVirtualEngineFS();
   });
 
   describe("readOwnDataString & isTrustedEnoent", () => {
@@ -104,10 +112,9 @@ describe("engine/runner/models/execution/run-command.ts - Preparation & Broad Sc
         write_scope: ["."],
         can_execute_shell: canExecuteShell,
       });
-      writeFileSync(
-        join(runRoot, "runtime", `agent-${agentId}.json`),
-        JSON.stringify(meta, null, 2),
-      );
+      const metaPath = join(runRoot, "runtime", `agent-${agentId}.json`);
+      setInMemoryAgentMetadata(metaPath, JSON.stringify(meta, null, 2));
+      getVirtualEngineFS().writeFileSync(metaPath, JSON.stringify(meta, null, 2));
     }
 
     it("throws error if agent metadata is not found", async () => {
@@ -209,7 +216,7 @@ describe("engine/runner/models/execution/run-command.ts - Preparation & Broad Sc
 
       const scratchDir = resolveScratchDir(tempDir);
       const evidenceDir = join(scratchDir, "evidence");
-      expect(existsSync(evidenceDir)).toBe(true);
+      expect(getVirtualEngineFS().existsSync(evidenceDir)).toBe(true);
     });
 
     it("skips signed receipt when gateId is present", async () => {

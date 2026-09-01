@@ -10,7 +10,7 @@ import {
 import type { ReleaseTransaction } from "../../../olt/scripts/src/installer/release-transaction.ts";
 import type { TransactionStage } from "../../../olt/scripts/src/installer/transaction-marker.ts";
 import type { ReleaseCopyHooks } from "../../../olt/scripts/src/installer/release-copy.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
 
 /** A transaction double: records every stage transition and finish() call without touching disk. */
 function fakeTransaction() {

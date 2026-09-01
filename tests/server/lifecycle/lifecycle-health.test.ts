@@ -1,8 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { existsSync, mkdtempSync, realpathSync, rmSync } from "node:fs";
+import { existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
-import { captureSnapshot, loadSnapshot } from "../../../olt/scripts/src/server/lifecycle/snapshot.ts";
+import {
+  captureSnapshot,
+  loadSnapshot,
+} from "../../../olt/scripts/src/server/lifecycle/snapshot.ts";
 import { forceReleaseLock, isLocked } from "../../../olt/scripts/src/server/lifecycle/lock.ts";
 import { shutdownProcess } from "../../../olt/scripts/src/server/lifecycle/shutdown.ts";
 import { startServer } from "../../../olt/scripts/src/server/lifecycle/starter.ts";
@@ -11,6 +13,7 @@ import {
   createServerLifecycleManager,
 } from "../../../olt/scripts/src/server/lifecycle/coordinator.ts";
 import type { PortConfiguration } from "../../../olt/scripts/src/server/lifecycle/types.ts";
+import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
 
 describe("Dev Server Lifecycle Subsystem - Health & Shutdown Coordinator", () => {
   const roots: string[] = [];
@@ -19,7 +22,7 @@ describe("Dev Server Lifecycle Subsystem - Health & Shutdown Coordinator", () =>
   let testSnapshotPath: string;
 
   beforeEach(() => {
-    testDir = realpathSync(mkdtempSync(join(tmpdir(), "server-lifecycle-health-")));
+    testDir = scratchRoot(import.meta.path, "server-lifecycle-health");
     roots.push(testDir);
     testLockPath = join(testDir, "test-server-restart.lock");
     testSnapshotPath = join(testDir, "test-server-state.json");

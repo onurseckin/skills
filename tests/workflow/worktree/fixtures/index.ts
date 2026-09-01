@@ -1,1 +1,1 @@
-export { FakeRunStore, seedWorktreeLedger } from "./fake-transact.ts";
+export { FakeRunStore, seedLedger, seedTask, baseLedger, FAKE_RUN_ROOT } from "./fake-transact.ts";

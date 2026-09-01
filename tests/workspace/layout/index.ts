@@ -3,7 +3,11 @@
  * Explicit named exports for capsule layouts, command structures, and reports.
  */
 
-export { CAPSULE_LAYOUT, type LayoutEntry, type LayoutRole } from "../../../olt/scripts/src/engine/store/layout/layout.ts";
+export {
+  CAPSULE_LAYOUT,
+  type LayoutEntry,
+  type LayoutRole,
+} from "../../../olt/scripts/src/engine/store/layout/layout.ts";
 export { commandLayout } from "../../../olt/scripts/src/engine/store/layout/layout-commands.ts";
 export { packetLayout } from "../../../olt/scripts/src/engine/store/layout/layout-packets.ts";
 export { reportsLayout } from "../../../olt/scripts/src/engine/store/layout/layout-reports.ts";

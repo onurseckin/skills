@@ -41,14 +41,13 @@ import {
 } from "../../../../olt/scripts/src/capture/config/default-presets.ts";
 import { createSyntheticPngBuffer } from "../../../../olt/scripts/src/capture/runners/live-capture-runner/index.ts";
 import { transact } from "../../../../olt/scripts/src/engine/store/index.ts";
-import { emptyGrantRun } from "../../packets/grant-run-fixture.ts";
+import { emptyGrantRun } from "../../../packets/validation/grants/grant-run-fixture.ts";
 
 function spec(invocation: string): CommandSpec {
   const found = findCommand(invocation);
   if (!found) throw new Error(`The registry has no command named ${invocation}`);
   return found;
 }
-
 
 describe("Validator Specialization - Split Architecture & Model", () => {
   describe("3. UI Validator Split Architecture (ui-mechanic-validator vs ui-validator)", () => {
@@ -213,5 +212,4 @@ describe("Validator Specialization - Split Architecture & Model", () => {
       });
     });
   });
-
 });

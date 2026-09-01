@@ -1,7 +1,5 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { realpathSync } from "node:fs";
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
@@ -13,24 +11,16 @@ import {
   type ReplayContext,
   type DynamicTaskState,
 } from "../../../olt/scripts/src/reporting/index.ts";
+import {
+  cleanupVirtualBrowserFS,
+  setupVirtualBrowserFS,
+  tempDir,
+} from "../browser/browser-virtual-fs.ts";
 
 export const unifiedReportSuiteName = "Unified Master Reporting Dashboard";
 
-const roots: string[] = [];
-
-afterEach(async () => {
-  for (const root of roots) {
-    try {
-      const { rm } = await import("node:fs/promises");
-      await rm(root, { recursive: true, force: true });
-    } catch {}
-  }
-  roots.length = 0;
-});
-
 async function createTestRun(name: string): Promise<{ repo: string; run: string }> {
-  const repo = realpathSync(await mkdtemp(join(tmpdir(), `unified-report-test-${name}-`)));
-  roots.push(repo);
+  const repo = tempDir(`unified-report-test-${name}`);
   const promptPath = join(repo, "prompt.txt");
   await writeFile(
     promptPath,
@@ -50,6 +40,14 @@ async function createTestRun(name: string): Promise<{ repo: string; run: string 
 }
 
 describe(unifiedReportSuiteName, () => {
+  beforeEach(() => {
+    setupVirtualBrowserFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualBrowserFS();
+  });
+
   test("buildUnifiedReport and generateUnifiedReport assemble dashboard view", async () => {
     const { repo, run } = await createTestRun("test-dashboard-view");
     await mkdir(join(repo, "src/core"), { recursive: true });

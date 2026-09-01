@@ -199,7 +199,10 @@ describe("harness-config-precedence", () => {
         JSON.stringify({ quota_freeze_threshold_pct: 85 }),
       );
       const configured = resolveHarnessConfig(dir, undefined, NO_HOST_CEILING);
-      expect(configured.quota_freeze_threshold_pct).toEqual({ value: 85, source: "config_override" });
+      expect(configured.quota_freeze_threshold_pct).toEqual({
+        value: 85,
+        source: "config_override",
+      });
       expect(configured.config_provenance.quota_freeze_threshold_pct).toBe("config_override");
     });
 
@@ -220,7 +223,9 @@ describe("harness-config-precedence", () => {
         JSON.stringify({ max_agents: 12, typo_max_agnts: 13 }),
       );
       expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(HarnessError);
-      expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(/typo_max_agnts/i);
+      expect(() => resolveHarnessConfig(dir, undefined, NO_HOST_CEILING)).toThrow(
+        /typo_max_agnts/i,
+      );
 
       writeFileSync(join(dir, "harness.config.json"), JSON.stringify({ max_agents: 12 }));
       expect(resolveHarnessConfig(dir, undefined, NO_HOST_CEILING).max_agents).toBe(12);

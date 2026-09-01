@@ -23,118 +23,111 @@ describe("Authority Session Comprehensive - Operations & Lifecycle", () => {
   afterEach(() => disableInMemorySessionStore());
 
   test("resolveActiveSession across diverse detection mechanisms", () => {
-    const capsuleDir = `${sandbox}/.olt/capsules/run-active-1`;
-    const state = {
-      schema_version: 1,
-      run_id: "run-active-1",
-      tasks: {},
-      agents: [
-        {
-          agent_id: "implementer_task-1",
-          role: "implementer",
-          status: "active",
-          grant: { task_id: "task-1", write_scope: ["src/file.ts"], token: "tok-test-123" },
-        },
-      ],
-    };
-    setInMemorySessionData(`${capsuleDir}/state.json`, JSON.stringify(state));
+    const cDir = `${sandbox}/.olt/capsules/run-active-1`;
+    setInMemorySessionData(
+      `${cDir}/state.json`,
+      JSON.stringify({
+        schema_version: 1,
+        run_id: "run-active-1",
+        tasks: {},
+        agents: [
+          {
+            agent_id: "impl_t1",
+            role: "implementer",
+            status: "active",
+            grant: { task_id: "t1", write_scope: ["src/a.ts"], token: "tok-123" },
+          },
+        ],
+      }),
+    );
 
-    const envSession = resolveActiveSession({
+    const envS = resolveActiveSession({
       cwd: sandbox,
-      runRoot: capsuleDir,
-      env: { HARNESS_TOKEN: "tok_test_env_1", AGENT_ID: "coordinator_wave-1", ROLE: "coordinator" },
+      runRoot: cDir,
+      env: { HARNESS_TOKEN: "tok_e1", AGENT_ID: "coord_w1", ROLE: "coordinator" },
     });
-    expect(envSession?.agent_id).toBe("coordinator_wave-1");
-    expect(envSession?.role).toBe("coordinator");
-    expect(envSession?.token).toBe("tok_test_env_1");
+    expect(envS?.agent_id).toBe("coord_w1");
+    expect(envS?.role).toBe("coordinator");
+    expect(envS?.token).toBe("tok_e1");
 
     setInMemorySessionData(
       `${sandbox}/.session.json`,
       JSON.stringify({
-        agent_id: "orchestrator_phase-1",
+        agent_id: "orch_p1",
         role: "orchestrator",
-        token: "tok_workspace_1",
+        token: "tok_w1",
         can_execute_shell: true,
         can_edit_files: false,
       }),
     );
-    const wsSession = resolveActiveSession({ cwd: sandbox, runRoot: capsuleDir, env: {} });
-    expect(wsSession?.role).toBe("orchestrator");
+    expect(resolveActiveSession({ cwd: sandbox, runRoot: cDir, env: {} })?.role).toBe(
+      "orchestrator",
+    );
 
-    const pidSessionFile = `${sandbox}/.olt/.sessions/98765.json`;
     setInMemorySessionData(
-      pidSessionFile,
+      `${sandbox}/.olt/.sessions/98765.json`,
       JSON.stringify({
-        agent_id: "implementer_task-1",
+        agent_id: "impl_t1",
         role: "implementer",
-        token: "tok-test-123",
-        task_id: "task-1",
-        write_scope: ["src/file.ts"],
+        token: "tok-123",
+        task_id: "t1",
+        write_scope: ["src/a.ts"],
       }),
     );
-    const pidSession = resolveActiveSession({ cwd: sandbox, runRoot: sandbox, pid: 98765, env: {} });
-    expect(pidSession?.task_id).toBe("task-1");
+    expect(
+      resolveActiveSession({ cwd: sandbox, runRoot: sandbox, pid: 98765, env: {} })?.task_id,
+    ).toBe("t1");
   });
 
   test("stageSessionGrant, registerSessionGrant and cleanupSessionGrants lifecycle", () => {
-    const capsuleDir = `${sandbox}/.olt/capsules/run-grants-1`;
+    const cDir = `${sandbox}/.olt/capsules/run-grants-1`;
     setInMemorySessionData(
-      `${capsuleDir}/state.json`,
+      `${cDir}/state.json`,
       JSON.stringify({ schema_version: 1, run_id: "run-grants-1", tasks: {}, agents: [] }),
     );
 
     const staged = stageSessionGrant({
-      agentId: "implementer_task-2-worker",
+      agentId: "impl_w2",
       role: "implementer",
-      runRoot: capsuleDir,
+      runRoot: cDir,
       pid: 44444,
       ppid: 33333,
-      taskId: "task-2",
-      writeScope: ["src/feature.ts"],
-      customToken: "tok_custom_grant_1",
+      taskId: "t2",
+      writeScope: ["src/f.ts"],
+      customToken: "tok_g1",
       bindProcessAncestry: true,
     });
-    expect(staged.session.agent_id).toBe("implementer_task-2-worker");
+    expect(staged.session.agent_id).toBe("impl_w2");
 
-    const registered = registerSessionGrant({
-      agentId: "validator_subsystem",
+    const reg = registerSessionGrant({
+      agentId: "val_sub",
       role: "validator",
-      runRoot: capsuleDir,
+      runRoot: cDir,
       pid: 55555,
       ppid: 44444,
-      customToken: "tok_val_grant_1",
+      customToken: "tok_vg1",
       bindProcessAncestry: true,
     });
-    expect(registered.agent_id).toBe("validator_subsystem");
-    expect(registered.role).toBe("validator");
+    expect(reg.agent_id).toBe("val_sub");
+    expect(reg.role).toBe("validator");
 
     expect(() =>
-      revokeSessionGrant({
-        runRoot: capsuleDir,
-        agentId: registered.agent_id,
-        pid: registered.pid,
-        ppid: registered.ppid,
-      }),
+      revokeSessionGrant({ runRoot: cDir, agentId: reg.agent_id, pid: reg.pid, ppid: reg.ppid }),
     ).not.toThrow();
-
     expect(() => pruneStaleSessions(0)).not.toThrow();
 
-    const derived = autoDeriveCallerIdentity({ explicitActor: "implementer_task-1", explicitToken: "tok-1" });
-    expect(derived.actor).toBe("implementer_task-1");
+    const derived = autoDeriveCallerIdentity({ explicitActor: "impl_t1", explicitToken: "tok-1" });
+    expect(derived.actor).toBe("impl_t1");
     expect(derived.role).toBe("implementer");
-    expect(derived.token).toBe("tok-1");
     expect(derived.verified).toBe(false);
-
-    const ledgerBacked = isSessionLedgerBacked(capsuleDir, "implementer_task-1", "implementer");
-    expect(typeof ledgerBacked).toBe("boolean");
+    expect(typeof isSessionLedgerBacked(cDir, "impl_t1", "implementer")).toBe("boolean");
   });
 
   test("requireTurn1Registration edge cases and failures", () => {
     expect(() => requireTurn1Registration(null as unknown as SessionIdentity)).toThrow(
       "session identity is required",
     );
-
-    const dummyBase = {
+    const base = {
       agent_id: "a1",
       role: "implementer" as const,
       tier: 3,
@@ -145,23 +138,28 @@ describe("Authority Session Comprehensive - Operations & Lifecycle", () => {
       host: "generic",
       granted_at: new Date().toISOString(),
     };
-
-    expect(() =>
-      requireTurn1Registration({ ...dummyBase, token: "unauthenticated", mechanisms_detected: ["registration"] }),
-    ).toThrow("unauthenticated: turn 1 registration token required");
-
-    expect(() =>
-      requireTurn1Registration({ ...dummyBase, token: "tok_valid", mechanisms_detected: ["interactive_terminal_fallback"] }),
-    ).toThrow("missing run_id in session identity");
-
     expect(() =>
       requireTurn1Registration({
-        ...dummyBase,
+        ...base,
+        token: "unauthenticated",
+        mechanisms_detected: ["registration"],
+      }),
+    ).toThrow("turn 1 registration token required");
+    expect(() =>
+      requireTurn1Registration({
+        ...base,
         token: "tok_valid",
-        run_id: "run-non-existent-xyz",
         mechanisms_detected: ["interactive_terminal_fallback"],
       }),
-    ).toThrow("no valid durable registration mechanism");
+    ).toThrow("missing run_id");
+    expect(() =>
+      requireTurn1Registration({
+        ...base,
+        token: "tok_valid",
+        run_id: "run-xyz",
+        mechanisms_detected: ["interactive_terminal_fallback"],
+      }),
+    ).toThrow("no valid durable registration");
   });
 
   test("requireTurn1Registration and capsule runtime session files", () => {
@@ -173,10 +171,10 @@ describe("Authority Session Comprehensive - Operations & Lifecycle", () => {
 
     expect(() =>
       requireTurn1Registration({
-        agent_id: "agent-1",
+        agent_id: "a1",
         role: "implementer",
         tier: 3,
-        token: "tok_turn1_valid",
+        token: "tok_v",
         run_id: candDir,
         pid: process.pid,
         ppid: process.ppid,
@@ -188,16 +186,15 @@ describe("Authority Session Comprehensive - Operations & Lifecycle", () => {
       }),
     ).not.toThrow();
 
-    const runtimeSessionsDir = `${candDir}/runtime/sessions`;
     setInMemorySessionData(
-      `${runtimeSessionsDir}/implementer-worker-1.json`,
+      `${candDir}/runtime/sessions/impl_w1.json`,
       JSON.stringify({
-        agent_id: "implementer-worker-1",
+        agent_id: "impl_w1",
         role: "implementer",
-        token: "tok-rt-session",
+        token: "tok-rt",
         can_execute_shell: true,
         can_edit_files: true,
-        task_id: "task-rt-1",
+        task_id: "t_rt",
         write_scope: ["src/rt.ts"],
       }),
     );
@@ -205,50 +202,48 @@ describe("Authority Session Comprehensive - Operations & Lifecycle", () => {
     const session = resolveActiveSession({
       cwd: sandbox,
       runRoot: candDir,
-      explicitActor: "implementer-worker-1",
+      explicitActor: "impl_w1",
       env: {},
     });
-    expect(session?.agent_id).toBe("implementer-worker-1");
+    expect(session?.agent_id).toBe("impl_w1");
     expect(session?.mechanisms_detected).toContain("capsule_runtime_session");
-    expect(session?.task_id).toBe("task-rt-1");
+    expect(session?.task_id).toBe("t_rt");
   });
 
   test("assertActiveCapsuleLease handles active, expired, and corrupt states", () => {
-    const capsuleDir = `${sandbox}/.olt/capsules/run-lease-1`;
-    expect(() => assertActiveCapsuleLease("", "agent-1")).toThrow("capsule runRoot is required");
+    const cDir = `${sandbox}/.olt/capsules/run-lease-1`;
+    expect(() => assertActiveCapsuleLease("", "a1")).toThrow("capsule runRoot is required");
 
-    const activeState = {
-      schema_version: 1,
-      run_id: "run-lease-1",
-      tasks: { "task-1": { id: "task-1", lease: { agent_id: "active-worker", expires_at: new Date(Date.now() + 60000).toISOString() } } },
-      agents: [],
-    };
-    setInMemorySessionData(`${capsuleDir}/state.json`, JSON.stringify(activeState));
-    expect(() => assertActiveCapsuleLease(capsuleDir, "active-worker")).not.toThrow();
+    const mk = (w: string, ms: number) =>
+      JSON.stringify({
+        schema_version: 1,
+        run_id: "run-lease-1",
+        agents: [],
+        tasks: {
+          t1: {
+            id: "t1",
+            lease: { agent_id: w, expires_at: new Date(Date.now() + ms).toISOString() },
+          },
+        },
+      });
 
-    const expiredState = {
-      schema_version: 1,
-      run_id: "run-lease-1",
-      tasks: { "task-1": { id: "task-1", lease: { agent_id: "expired-worker", expires_at: new Date(Date.now() - 60000).toISOString() } } },
-      agents: [],
-    };
-    setInMemorySessionData(`${capsuleDir}/state.json`, JSON.stringify(expiredState));
-    expect(() => assertActiveCapsuleLease(capsuleDir, "expired-worker")).toThrow(
-      "does not hold an active lease",
-    );
+    setInMemorySessionData(`${cDir}/state.json`, mk("w_act", 60000));
+    expect(() => assertActiveCapsuleLease(cDir, "w_act")).not.toThrow();
 
-    setInMemorySessionData(`${capsuleDir}/state.json`, "{ invalid json");
-    expect(() => assertActiveCapsuleLease(capsuleDir, "any-agent")).toThrow(
-      "failed to load capsule state",
-    );
+    setInMemorySessionData(`${cDir}/state.json`, mk("w_exp", -60000));
+    expect(() => assertActiveCapsuleLease(cDir, "w_exp")).toThrow("does not hold an active lease");
+
+    setInMemorySessionData(`${cDir}/state.json`, "{ invalid json");
+    expect(() => assertActiveCapsuleLease(cDir, "any")).toThrow("failed to load capsule state");
   });
 
   test("formatSafeErrorCause handles throwing objects and symbols", () => {
-    const throwingObj = {
-      toString() {
-        throw new Error("toString failure");
-      },
-    };
-    expect(formatSafeErrorCause(throwingObj)).toBe("unknown error");
+    expect(
+      formatSafeErrorCause({
+        toString() {
+          throw new Error("fail");
+        },
+      }),
+    ).toBe("unknown error");
   });
 });

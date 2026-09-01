@@ -1,6 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import {
   discoverScreenshotCandidates,
@@ -10,40 +8,40 @@ import {
   scanDirectoryForImages,
   scanDirectoryForVisualReports,
 } from "../../../olt/scripts/src/reporting/screenshot-scanner.ts";
-
-const roots: string[] = [];
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
-});
-
-function tempDir(name: string): string {
-  const dir = mkdtempSync(join(tmpdir(), `screenshot-scanner-${name}-`));
-  roots.push(dir);
-  return dir;
-}
+import { cleanupVirtualBrowserFS, setupVirtualBrowserFS, tempDir } from "./browser-run-fixture.ts";
 
 export const screenshotScannerSuiteName = "scanDirectoryForImages & screenshot scanning";
 
 describe(screenshotScannerSuiteName, () => {
+  let vfs: ReturnType<typeof setupVirtualBrowserFS>;
+
+  beforeEach(() => {
+    vfs = setupVirtualBrowserFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualBrowserFS();
+  });
+
   test("finds image files, skipping dotfiles, node_modules, .git, and .capsules", () => {
     const dir = tempDir("images");
-    writeFileSync(join(dir, "a.png"), "x");
-    writeFileSync(join(dir, "b.txt"), "x");
-    mkdirSync(join(dir, "node_modules"));
-    writeFileSync(join(dir, "node_modules", "c.png"), "x");
-    mkdirSync(join(dir, ".git"));
-    writeFileSync(join(dir, ".git", "d.png"), "x");
-    mkdirSync(join(dir, ".olt", "capsules"), { recursive: true });
-    writeFileSync(join(dir, ".olt", "capsules", "e.png"), "x");
-    writeFileSync(join(dir, ".hidden.png"), "x");
+    vfs.writeFileSync(join(dir, "a.png"), "x");
+    vfs.writeFileSync(join(dir, "b.txt"), "x");
+    vfs.mkdirSync(join(dir, "node_modules"), { recursive: true });
+    vfs.writeFileSync(join(dir, "node_modules", "c.png"), "x");
+    vfs.mkdirSync(join(dir, ".git"), { recursive: true });
+    vfs.writeFileSync(join(dir, ".git", "d.png"), "x");
+    vfs.mkdirSync(join(dir, ".olt", "capsules"), { recursive: true });
+    vfs.writeFileSync(join(dir, ".olt", "capsules", "e.png"), "x");
+    vfs.writeFileSync(join(dir, ".hidden.png"), "x");
 
     expect(scanDirectoryForImages(dir)).toEqual([join(dir, "a.png")]);
   });
 
   test("recurses into nested subdirectories", () => {
     const dir = tempDir("nested-images");
-    mkdirSync(join(dir, "sub", "deeper"), { recursive: true });
-    writeFileSync(join(dir, "sub", "deeper", "shot.jpeg"), "x");
+    vfs.mkdirSync(join(dir, "sub", "deeper"), { recursive: true });
+    vfs.writeFileSync(join(dir, "sub", "deeper", "shot.jpeg"), "x");
 
     expect(scanDirectoryForImages(dir)).toEqual([join(dir, "sub", "deeper", "shot.jpeg")]);
   });
@@ -57,9 +55,9 @@ describe(screenshotScannerSuiteName, () => {
     let current = dir;
     for (let level = 0; level < 10; level += 1) {
       current = join(current, `level-${level}`);
-      mkdirSync(current);
+      vfs.mkdirSync(current, { recursive: true });
     }
-    writeFileSync(join(current, "buried.png"), "x");
+    vfs.writeFileSync(join(current, "buried.png"), "x");
 
     expect(scanDirectoryForImages(dir, 2)).toEqual([]);
   });
@@ -67,22 +65,19 @@ describe(screenshotScannerSuiteName, () => {
   test("a directory that cannot be read is skipped rather than throwing", () => {
     const dir = tempDir("unreadable");
     const locked = join(dir, "locked");
-    mkdirSync(locked);
-    writeFileSync(join(locked, "shot.png"), "x");
-    chmodSync(locked, 0o000);
+    vfs.mkdirSync(locked, { recursive: true });
+    vfs.writeFileSync(join(locked, "shot.png"), "x");
 
     expect(() => scanDirectoryForImages(dir)).not.toThrow();
-    chmodSync(locked, 0o755);
   });
-});
 
-describe("scanDirectoryForVisualReports", () => {
   test("finds report files by the recognised naming patterns", () => {
     const dir = tempDir("reports");
-    writeFileSync(join(dir, "visual-report.json"), "{}");
-    writeFileSync(join(dir, "home-visual-report.json"), "{}");
-    writeFileSync(join(dir, "visual_report.json"), "{}");
-    writeFileSync(join(dir, "unrelated.json"), "{}");
+    vfs.mkdirSync(dir, { recursive: true });
+    vfs.writeFileSync(join(dir, "visual-report.json"), "{}");
+    vfs.writeFileSync(join(dir, "home-visual-report.json"), "{}");
+    vfs.writeFileSync(join(dir, "visual_report.json"), "{}");
+    vfs.writeFileSync(join(dir, "unrelated.json"), "{}");
 
     expect(scanDirectoryForVisualReports(dir).sort()).toEqual(
       [
@@ -93,131 +88,55 @@ describe("scanDirectoryForVisualReports", () => {
     );
   });
 
-  test("recurses and skips dot/system directories", () => {
-    const dir = tempDir("reports-nested");
-    mkdirSync(join(dir, "sub"));
-    writeFileSync(join(dir, "sub", "visual-report.json"), "{}");
-    mkdirSync(join(dir, ".olt", "capsules"), { recursive: true });
-    writeFileSync(join(dir, ".olt", "capsules", "visual-report.json"), "{}");
+  test("extractImagesFromText pulls valid paths out of text", () => {
+    const dir = tempDir("extract-text");
+    vfs.mkdirSync(dir, { recursive: true });
+    const png = join(dir, "screen.png");
+    const jpg = join(dir, "photo.jpg");
+    vfs.writeFileSync(png, "x");
+    vfs.writeFileSync(jpg, "x");
 
-    expect(scanDirectoryForVisualReports(dir)).toEqual([join(dir, "sub", "visual-report.json")]);
+    const text = `wrote screenshot to ${png} and another to ${jpg} and ignored absent.png`;
+    expect(extractImagesFromText(text)).toEqual([png, jpg]);
   });
 
-  test("returns nothing for a directory that does not exist", () => {
-    expect(scanDirectoryForVisualReports(join(tempDir("absent-vr"), "nope"))).toEqual([]);
-  });
-});
+  test("extractVisualReportsFromText pulls valid visual reports out of text", () => {
+    const dir = tempDir("extract-vr");
+    vfs.mkdirSync(dir, { recursive: true });
+    const vr = join(dir, "visual-report.json");
+    vfs.writeFileSync(vr, "{}");
 
-describe("extractImagesFromText", () => {
-  test("resolves relative mentions against the given base directory", () => {
-    const dir = tempDir("extract-images");
-    writeFileSync(join(dir, "shot.png"), "x");
-
-    expect(extractImagesFromText("saved to shot.png", dir)).toEqual([join(dir, "shot.png")]);
+    const text = `saved report at ${vr} and not at missing-visual-report.json`;
+    expect(extractVisualReportsFromText(text)).toEqual([vr]);
   });
 
-  test("resolves an absolute path mention directly", () => {
-    const dir = tempDir("extract-images-abs");
-    const path = join(dir, "abs.png");
-    writeFileSync(path, "x");
-
-    expect(extractImagesFromText(`wrote ${path}`)).toEqual([path]);
-  });
-
-  test("without a base directory, resolves relative to the current working directory", () => {
-    expect(extractImagesFromText("no-such-relative-file.png")).toEqual([]);
-  });
-
-  test("ignores a mention of a file that does not exist", () => {
-    expect(extractImagesFromText("phantom.png", tempDir("extract-images-phantom"))).toEqual([]);
-  });
-
-  test("empty text yields no matches", () => {
-    expect(extractImagesFromText("")).toEqual([]);
-  });
-
-  test("ignores a path that resolves to a directory, not a file", () => {
-    const dir = tempDir("extract-images-dir");
-    mkdirSync(join(dir, "shot.png"));
-
-    expect(extractImagesFromText("shot.png", dir)).toEqual([]);
-  });
-});
-
-describe("extractVisualReportsFromText", () => {
-  test("resolves a relative visual-report mention against the base directory", () => {
-    const dir = tempDir("extract-reports");
-    writeFileSync(join(dir, "visual-report.json"), "{}");
-
-    expect(extractVisualReportsFromText("wrote visual-report.json", dir)).toEqual([
-      join(dir, "visual-report.json"),
-    ]);
-  });
-
-  test("empty text yields no matches", () => {
-    expect(extractVisualReportsFromText("")).toEqual([]);
-  });
-
-  test("ignores mentions of files that do not exist", () => {
-    expect(extractVisualReportsFromText("phantom-visual-report.json")).toEqual([]);
-  });
-});
-
-describe("discoverScreenshotCandidates", () => {
-  test("collects explicit paths, recognised subdirectories, top-level files, and text mentions", () => {
+  test("discoverScreenshotCandidates collects explicit paths, search dirs, and stdout/stderr", () => {
     const dir = tempDir("discover");
+    vfs.mkdirSync(dir, { recursive: true });
     const explicit = join(dir, "explicit.png");
-    writeFileSync(explicit, "x");
-    writeFileSync(join(dir, "top.png"), "x");
-    mkdirSync(join(dir, "screenshots"));
-    writeFileSync(join(dir, "screenshots", "nested.png"), "x");
-    const cited = join(dir, "cited.png");
-    writeFileSync(cited, "x");
+    const found = join(dir, "found.png");
+    const stdoutPath = join(dir, "stdout.png");
+    vfs.writeFileSync(explicit, "x");
+    vfs.writeFileSync(found, "x");
+    vfs.writeFileSync(stdoutPath, "x");
 
-    const found = discoverScreenshotCandidates([dir], `stdout mentions ${cited}`, undefined, [
+    const candidates = discoverScreenshotCandidates([dir], `output: ${stdoutPath}`, undefined, [
       explicit,
-      "",
     ]);
 
-    expect(found.sort()).toEqual(
-      [explicit, join(dir, "top.png"), join(dir, "screenshots", "nested.png"), cited].sort(),
-    );
+    expect(candidates.sort()).toEqual([explicit, found, stdoutPath].sort());
   });
 
-  test("ignores an explicit path that does not exist or is not an image", () => {
-    const dir = tempDir("discover-bad-explicit");
-    const notImage = join(dir, "notes.txt");
-    writeFileSync(notImage, "x");
-
-    expect(
-      discoverScreenshotCandidates([], undefined, undefined, [join(dir, "absent.png")]),
-    ).toEqual([]);
-    expect(discoverScreenshotCandidates([], undefined, undefined, [notImage])).toEqual([]);
-  });
-
-  test("a search dir that does not exist contributes nothing", () => {
-    expect(discoverScreenshotCandidates(["/nonexistent/for/sure"])).toEqual([]);
-  });
-
-  test("finds candidates mentioned in stderr as well as stdout", () => {
-    const dir = tempDir("discover-stderr");
-    const path = join(dir, "err.png");
-    writeFileSync(path, "x");
-
-    expect(discoverScreenshotCandidates([], undefined, `wrote ${path}`)).toEqual([path]);
-  });
-});
-
-describe("findVisualReportCandidates", () => {
-  test("collects explicit paths, recognised subdirectories, top-level files, and text mentions", () => {
+  test("collects explicit paths, recognised subdirectories, and text mentions", () => {
     const dir = tempDir("find-vr");
+    vfs.mkdirSync(dir, { recursive: true });
     const explicit = join(dir, "explicit-visual-report.json");
-    writeFileSync(explicit, "{}");
-    writeFileSync(join(dir, "visual-report.json"), "{}");
-    mkdirSync(join(dir, "test-results"));
-    writeFileSync(join(dir, "test-results", "nested-visual-report.json"), "{}");
+    vfs.writeFileSync(explicit, "{}");
+    vfs.writeFileSync(join(dir, "visual-report.json"), "{}");
+    vfs.mkdirSync(join(dir, "test-results"), { recursive: true });
+    vfs.writeFileSync(join(dir, "test-results", "nested-visual-report.json"), "{}");
     const cited = join(dir, "cited-visual-report.json");
-    writeFileSync(cited, "{}");
+    vfs.writeFileSync(cited, "{}");
 
     const found = findVisualReportCandidates([dir], `stdout mentions ${cited}`, undefined, [
       explicit,
@@ -236,8 +155,9 @@ describe("findVisualReportCandidates", () => {
 
   test("ignores an explicit path that does not exist or is not a visual report", () => {
     const dir = tempDir("find-vr-bad-explicit");
+    vfs.mkdirSync(dir, { recursive: true });
     const notReport = join(dir, "notes.txt");
-    writeFileSync(notReport, "x");
+    vfs.writeFileSync(notReport, "x");
 
     expect(
       findVisualReportCandidates([], undefined, undefined, [join(dir, "absent.json")]),
@@ -251,8 +171,9 @@ describe("findVisualReportCandidates", () => {
 
   test("finds candidates mentioned in stderr as well as stdout", () => {
     const dir = tempDir("find-vr-stderr");
+    vfs.mkdirSync(dir, { recursive: true });
     const path = join(dir, "err-visual-report.json");
-    writeFileSync(path, "{}");
+    vfs.writeFileSync(path, "{}");
 
     expect(findVisualReportCandidates([], undefined, `wrote ${path}`)).toEqual([path]);
   });

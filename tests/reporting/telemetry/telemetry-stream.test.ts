@@ -1,9 +1,13 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
+import * as fs from "node:fs";
 import {
+  clearInMemoryTelemetrySink,
+  disableInMemoryTelemetrySink,
   emitTelemetryEvent,
+  enableInMemoryTelemetrySink,
+  getInMemoryTelemetrySink,
+  isInMemoryTelemetrySinkEnabled,
   readTelemetryStream,
   resolveTelemetryFilePath,
   type TelemetryEvent,
@@ -12,31 +16,41 @@ import {
 export const telemetryStreamSuiteName = "reporting/telemetry-stream";
 
 describe(telemetryStreamSuiteName, () => {
-  let tempDir: string;
+  const virtualDir = "/virtual/telemetry-test-repo";
 
   beforeEach(() => {
-    tempDir = join(
-      tmpdir(),
-      `telemetry-stream-test-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    );
-    mkdirSync(tempDir, { recursive: true });
+    enableInMemoryTelemetrySink();
   });
 
   afterEach(() => {
-    rmSync(tempDir, { recursive: true, force: true });
+    clearInMemoryTelemetrySink();
+    disableInMemoryTelemetrySink();
   });
 
   it("resolves default and custom telemetry file paths", () => {
-    const customPath = join(tempDir, "custom", "telemetry.jsonl");
-    const resolvedCustom = resolveTelemetryFilePath(tempDir, customPath);
+    const customPath = join(virtualDir, "custom", "telemetry.jsonl");
+    const resolvedCustom = resolveTelemetryFilePath(virtualDir, customPath);
     expect(resolvedCustom).toBe(customPath);
 
-    const resolvedDefault = resolveTelemetryFilePath(tempDir);
+    const resolvedDefault = resolveTelemetryFilePath(virtualDir);
     expect(resolvedDefault).toContain("telemetry.jsonl");
   });
 
-  it("emits events and reads back telemetry event stream", () => {
-    const customPath = join(tempDir, "events", "stream.jsonl");
+  it("verifies in-memory sink enablement and state helpers", () => {
+    expect(isInMemoryTelemetrySinkEnabled()).toBe(true);
+    const sink = getInMemoryTelemetrySink();
+    expect(sink).toBeDefined();
+
+    clearInMemoryTelemetrySink();
+    expect(sink?.size).toBe(0);
+
+    disableInMemoryTelemetrySink();
+    expect(isInMemoryTelemetrySinkEnabled()).toBe(false);
+    expect(getInMemoryTelemetrySink()).toBeUndefined();
+  });
+
+  it("emits events and reads back telemetry event stream in-memory", () => {
+    const customPath = join(virtualDir, "events", "stream.jsonl");
     const event1: TelemetryEvent = {
       timestamp: "2026-08-24T00:00:00.000Z",
       actor: "impl-1",
@@ -55,10 +69,10 @@ describe(telemetryStreamSuiteName, () => {
       status: "failure",
     };
 
-    emitTelemetryEvent(event1, tempDir, customPath);
-    emitTelemetryEvent(event2, tempDir, customPath);
+    emitTelemetryEvent(event1, virtualDir, customPath);
+    emitTelemetryEvent(event2, virtualDir, customPath);
 
-    const stream = readTelemetryStream(tempDir, customPath);
+    const stream = readTelemetryStream(virtualDir, customPath);
     expect(stream.length).toBe(2);
     expect(stream[0]?.actor).toBe("impl-1");
     expect(stream[0]?.task_id).toBe("task-1");
@@ -67,15 +81,18 @@ describe(telemetryStreamSuiteName, () => {
     expect(stream[1]?.status).toBe("failure");
   });
 
-  it("returns empty array if telemetry file does not exist", () => {
-    const nonExistent = join(tempDir, "nonexistent.jsonl");
-    const stream = readTelemetryStream(tempDir, nonExistent);
+  it("returns empty array if telemetry file does not exist in-memory", () => {
+    const nonExistent = join(virtualDir, "nonexistent.jsonl");
+    const stream = readTelemetryStream(virtualDir, nonExistent);
     expect(stream).toEqual([]);
   });
 
-  it("skips malformed and incomplete JSON lines in telemetry file", () => {
-    const filePath = join(tempDir, "malformed.jsonl");
-    const content = [
+  it("skips malformed and incomplete JSON lines in in-memory telemetry buffer", () => {
+    const filePath = join(virtualDir, "malformed.jsonl");
+    const sink = getInMemoryTelemetrySink();
+    expect(sink).toBeDefined();
+
+    sink?.set(filePath, [
       JSON.stringify({
         timestamp: "2026-08-24T00:00:00.000Z",
         actor: "agent-1",
@@ -92,19 +109,26 @@ describe(telemetryStreamSuiteName, () => {
         status: "success",
       }),
       "",
-    ].join("\n");
+    ]);
 
-    writeFileSync(filePath, content, "utf-8");
-
-    const stream = readTelemetryStream(tempDir, filePath);
+    const stream = readTelemetryStream(virtualDir, filePath);
     expect(stream.length).toBe(2);
     expect(stream[0]?.actor).toBe("agent-1");
     expect(stream[1]?.actor).toBe("agent-2");
   });
 
-  it("gracefully catches filesystem errors during emit and read without crashing", () => {
-    // Attempting to emit to a directory path instead of a file
-    const invalidFilePath = tempDir;
+  it("gracefully catches errors during fallback disk emit and read without crashing", () => {
+    disableInMemoryTelemetrySink();
+
+    const existsSpy = spyOn(fs, "existsSync").mockReturnValue(true);
+    const appendSpy = spyOn(fs, "appendFileSync").mockImplementation(() => {
+      throw new Error("Simulated append failure");
+    });
+    const readSpy = spyOn(fs, "readFileSync").mockImplementation(() => {
+      throw new Error("Simulated read failure");
+    });
+
+    const invalidFilePath = join(virtualDir, "error.jsonl");
     expect(() => {
       emitTelemetryEvent(
         {
@@ -113,13 +137,16 @@ describe(telemetryStreamSuiteName, () => {
           action: "test",
           status: "success",
         },
-        tempDir,
+        virtualDir,
         invalidFilePath,
       );
     }).not.toThrow();
 
-    // Attempting to read a directory path instead of a file triggers readFileSync catch block
-    const res = readTelemetryStream(tempDir, invalidFilePath);
+    const res = readTelemetryStream(virtualDir, invalidFilePath);
     expect(res).toEqual([]);
+
+    existsSpy.mockRestore();
+    appendSpy.mockRestore();
+    readSpy.mockRestore();
   });
 });

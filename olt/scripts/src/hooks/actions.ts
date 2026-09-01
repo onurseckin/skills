@@ -13,7 +13,7 @@ export async function executeWebhookAction(
     const method = typeof hook.method === "string" ? hook.method : "POST";
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      ...(hook.headers ?? {}),
+      ...hook.headers,
     };
 
     const hasBody = method !== "GET";

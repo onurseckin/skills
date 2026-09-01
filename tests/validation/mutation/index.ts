@@ -2,7 +2,19 @@
  * Mutation Facade.
  */
 export {
-  MutationGate,
-  type MutationCandidate,
-  type MutationReport,
-} from "../../../olt/scripts/src/validation/mutation-gate.ts";
+  generateMutants,
+  shouldSkipStringLiteral,
+  isSyntaxOrCompilationError,
+  runMutationGate,
+} from "../../../olt/scripts/src/validation/mutation-gate/index.ts";
+
+export type {
+  MutantExecutionResult,
+  MutantRecord,
+  MutationCandidate,
+  MutationGateOptions,
+  MutationGateResult,
+  MutationTestRunner,
+  MutationType,
+  MutationViolation,
+} from "../../../olt/scripts/src/validation/mutation-gate/index.ts";

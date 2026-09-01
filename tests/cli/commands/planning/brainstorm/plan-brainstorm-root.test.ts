@@ -80,7 +80,7 @@ describe("plan:brainstorm CLI command and executePlanBrainstorm - Root Resolutio
     const eventsFile = join(run, "events.jsonl");
     expect(existsSync(eventsFile)).toBe(true);
     const eventsContent = await readFile(eventsFile, "utf-8");
-    expect(eventsContent.match(/\"kind\":\"plan-brainstormed\"/g)).toHaveLength(1);
+    expect(eventsContent.match(/"kind":"plan-brainstormed"/g)).toHaveLength(1);
     expect(eventsContent).toContain("planner-test");
   });
 

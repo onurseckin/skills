@@ -4,7 +4,13 @@ import { claimTask } from "../../../../olt/scripts/src/workflow/lease/claim.ts";
 import { beginValidation } from "../../../../olt/scripts/src/workflow/review/begin-validation.ts";
 import { recordReview } from "../../../../olt/scripts/src/workflow/review/record-review.ts";
 import { submitTask } from "../../../../olt/scripts/src/workflow/submission/submit.ts";
-import { at, registerCommand, registerTaskPacket, TestPort, workflowState } from "../../shared/test-port.ts";
+import {
+  at,
+  registerCommand,
+  registerTaskPacket,
+  TestPort,
+  workflowState,
+} from "../../shared/test-port.ts";
 
 const clock = at("2026-08-13T12:00:00.000Z");
 const INDEPENDENCE = "validator must be independent from implementers";

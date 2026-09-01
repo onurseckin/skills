@@ -10,11 +10,16 @@ import {
   MAIN_THREAD_ADVISORY,
   type HostProfile,
 } from "../../../olt/scripts/src/authority/thread/index.ts";
-import { whoamiCommand } from "../../../olt/scripts/src/cli/commands/whoami";
+import { whoamiCommand } from "../../../olt/scripts/src/cli/commands/whoami.ts";
 import { taskClaimCommand } from "../../../olt/scripts/src/cli/commands/task-ops.ts";
-import { cleanupRoots } from "../../cli/full-lifecycle-fixture";
-import { setupCompiledRun } from "../../cli/task-ops-fixture";
-import { TASK_ID, VALIDATOR, claimSubmitValidate, setupRun } from "../../cli/probe-fixture";
+import { cleanupRoots } from "../../cli/commands/fixtures/full-lifecycle-fixture.ts";
+import { setupCompiledRun } from "../../cli/commands/fixtures/task-ops-fixture.ts";
+import {
+  TASK_ID,
+  VALIDATOR,
+  claimSubmitValidate,
+  setupRun,
+} from "../../cli/commands/fixtures/probe-fixture.ts";
 
 const roots: string[] = [];
 afterEach(async () => cleanupRoots(roots));

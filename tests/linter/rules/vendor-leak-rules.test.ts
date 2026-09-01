@@ -1,8 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import {
-  lintSourceCode,
-  type AstLintOptions,
-} from "../../../olt/scripts/src/linter/ast/index.ts";
+import { lintSourceCode, type AstLintOptions } from "../../../olt/scripts/src/linter/ast/index.ts";
 
 export const vendorLeakRulesSuiteName = "AST Vendor Identifier Leak Rules";
 

@@ -29,7 +29,10 @@ describe("pre-enhancer-plan (readiness scoring, plan pre-enhancement, validation
     });
 
     test("deducts score for missing test file in write scope", () => {
-      const sourceOnlyTask: PreEnhancementTaskInput = { ...sampleTaskInput, writeScope: ["src/only-source.ts"] };
+      const sourceOnlyTask: PreEnhancementTaskInput = {
+        ...sampleTaskInput,
+        writeScope: ["src/only-source.ts"],
+      };
       const assertions = compileDiscriminatingAssertions(sourceOnlyTask);
       const probes = compileAgpCounterfactualProbes(sourceOnlyTask);
       expect(calculateTaskReadinessScore(sourceOnlyTask, assertions, probes, [])).toBe(85);
@@ -39,12 +42,22 @@ describe("pre-enhancer-plan (readiness scoring, plan pre-enhancement, validation
       const emptyAssertions: DiscriminatingAssertion[] = [];
       const probes: AgpCounterfactualProbeTemplate[] = [];
       const astIssues = ["src/test.ts:1 - Prohibited any"];
-      expect(calculateTaskReadinessScore(sampleTaskInput, emptyAssertions, probes, astIssues)).toBe(40);
+      expect(calculateTaskReadinessScore(sampleTaskInput, emptyAssertions, probes, astIssues)).toBe(
+        40,
+      );
     });
 
     test("clamps score within [MIN_READINESS_SCORE, MAX_READINESS_SCORE]", () => {
-      const emptyTask: PreEnhancementTaskInput = { taskId: "task-bad", label: "Bad Task", writeScope: [], dependencies: [], gateCommand: "" };
-      expect(calculateTaskReadinessScore(emptyTask, [], [], ["i1", "i2", "i3", "i4"])).toBe(MIN_READINESS_SCORE);
+      const emptyTask: PreEnhancementTaskInput = {
+        taskId: "task-bad",
+        label: "Bad Task",
+        writeScope: [],
+        dependencies: [],
+        gateCommand: "",
+      };
+      expect(calculateTaskReadinessScore(emptyTask, [], [], ["i1", "i2", "i3", "i4"])).toBe(
+        MIN_READINESS_SCORE,
+      );
     });
   });
 
@@ -53,7 +66,11 @@ describe("pre-enhancer-plan (readiness scoring, plan pre-enhancement, validation
       const result = preEnhanceTask(sampleTaskInput);
       expect(result.taskId).toBe(sampleTaskInput.taskId);
       expect(result.label).toBe(sampleTaskInput.label);
-      expect(result.compiledGateCommand).toEqual(["bun", "test", "tests/plan/pre-enhancer/pre-enhancer-core.test.ts"]);
+      expect(result.compiledGateCommand).toEqual([
+        "bun",
+        "test",
+        "tests/plan/pre-enhancer/pre-enhancer-core.test.ts",
+      ]);
       expect(result.discriminatingAssertions.length).toBeGreaterThanOrEqual(7);
       expect(result.agpProbes.length).toBe(5);
       expect(result.invariantChecklist.invariants.length).toBe(5);
@@ -77,14 +94,18 @@ describe("pre-enhancer-plan (readiness scoring, plan pre-enhancement, validation
     test("detects ast issues when sourceCodeMap contains forbidden syntax", () => {
       const anyKw = "a" + "n" + "y";
       const result = preEnhanceTask(sampleTaskInput, {
-        sourceCodeMap: { "olt/scripts/src/plan/pre-enhancer.ts": `const x: ${anyKw} = 123; const y = a ?? b;` },
+        sourceCodeMap: {
+          "olt/scripts/src/plan/pre-enhancer.ts": `const x: ${anyKw} = 123; const y = a ?? b;`,
+        },
       });
       expect(result.astBoundaries.some((b) => !b.compliant)).toBe(true);
       expect(result.readinessScore).toBeLessThan(100);
     });
 
     test("throws INVALID_ARGUMENT for invalid task structures", () => {
-      expect(() => preEnhanceTask(null as unknown as PreEnhancementTaskInput)).toThrow(HarnessError);
+      expect(() => preEnhanceTask(null as unknown as PreEnhancementTaskInput)).toThrow(
+        HarnessError,
+      );
       expect(() => preEnhanceTask({ ...sampleTaskInput, taskId: "" })).toThrow(HarnessError);
       expect(() => preEnhanceTask({ ...sampleTaskInput, label: "" })).toThrow(HarnessError);
       expect(() => preEnhanceTask({ ...sampleTaskInput, writeScope: [] })).toThrow(HarnessError);
@@ -105,7 +126,10 @@ describe("pre-enhancer-plan (readiness scoring, plan pre-enhancement, validation
     const taskB: PreEnhancementTaskInput = {
       taskId: "task-p74-proactive-plan-pre-enhancer",
       label: "Proactive Plan Pre-Enhancer & Discriminating Gate Compiler",
-      writeScope: ["olt/scripts/src/plan/pre-enhancer.ts", "tests/plan/pre-enhancer/pre-enhancer-core.test.ts"],
+      writeScope: [
+        "olt/scripts/src/plan/pre-enhancer.ts",
+        "tests/plan/pre-enhancer/pre-enhancer-core.test.ts",
+      ],
       dependencies: ["task-p72-hyper-active-mind-cognition"],
       gateCommand: "bun test tests/plan/pre-enhancer/pre-enhancer-core.test.ts",
       effort: 3,
@@ -128,7 +152,10 @@ describe("pre-enhancer-plan (readiness scoring, plan pre-enhancement, validation
     test("detects cross-task scope collisions in multi-task plan", () => {
       const overlappingTaskB: PreEnhancementTaskInput = {
         ...taskB,
-        writeScope: ["olt/scripts/src/mind/hyper-cognition.ts", "tests/plan/pre-enhancer/pre-enhancer-core.test.ts"],
+        writeScope: [
+          "olt/scripts/src/mind/hyper-cognition.ts",
+          "tests/plan/pre-enhancer/pre-enhancer-core.test.ts",
+        ],
       };
       const planResult = preEnhancePlan([taskA, overlappingTaskB]);
       expect(planResult.allScopesDisjoint).toBe(false);
@@ -163,8 +190,12 @@ describe("pre-enhancer-plan (readiness scoring, plan pre-enhancement, validation
       expect(validation.errors).toContain("Missing valid taskId");
       expect(validation.errors).toContain("Missing valid task label");
       expect(validation.errors).toContain("Compiled gate command must not be empty");
-      expect(validation.errors.some((e) => e.includes("Insufficient discriminating assertions"))).toBe(true);
-      expect(validation.errors.some((e) => e.includes("Insufficient AGP counterfactual probes"))).toBe(true);
+      expect(
+        validation.errors.some((e) => e.includes("Insufficient discriminating assertions")),
+      ).toBe(true);
+      expect(
+        validation.errors.some((e) => e.includes("Insufficient AGP counterfactual probes")),
+      ).toBe(true);
       expect(validation.errors.some((e) => e.includes("Scope integrity issue"))).toBe(true);
     });
 
@@ -192,7 +223,9 @@ describe("pre-enhancer-plan (readiness scoring, plan pre-enhancement, validation
       const validation = validatePreEnhancedPlan(invalidPlan);
       expect(validation.valid).toBe(false);
       expect(validation.errors.some((e) => e.includes("Invalid schema"))).toBe(true);
-      expect(validation.errors.some((e) => e.includes("Plan contains overlapping write scopes"))).toBe(true);
+      expect(
+        validation.errors.some((e) => e.includes("Plan contains overlapping write scopes")),
+      ).toBe(true);
       expect(validation.errors.some((e) => e.includes("Task : Missing valid taskId"))).toBe(true);
 
       const emptyPlan = {

@@ -12,10 +12,7 @@ describe("Domain Test Suite & Subsystem Mirror Invariant Tests", () => {
     expect(existsSync(testsDir)).toBe(true);
 
     const nameMap: Record<string, string> = {
-      task: "tasks",
       integration: "workflow",
-      critic: "critic",
-      engine: "engine",
     };
 
     const srcSubsystems = readdirSync(scriptsSrcDir, { withFileTypes: true })
@@ -39,14 +36,7 @@ describe("Domain Test Suite & Subsystem Mirror Invariant Tests", () => {
   });
 
   it("verifies Lane 9 domains contain explicit named facades across all clusters", () => {
-    const lane9Domains = [
-      "installer",
-      "capture",
-      "watchdog",
-      "scheduler",
-      "scenarios",
-      "docs",
-    ];
+    const lane9Domains = ["installer", "capture", "watchdog", "scheduler", "scenarios", "docs"];
 
     for (const domain of lane9Domains) {
       const facadePath = join(testsDir, domain, "index.ts");

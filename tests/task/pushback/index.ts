@@ -1,6 +1,4 @@
-export {
-  createSamplePushbackInput,
-} from "./fixture.ts";
+export { createSamplePushbackInput } from "./fixture.ts";
 
 export {
   isCoordinatorPushbackCause,

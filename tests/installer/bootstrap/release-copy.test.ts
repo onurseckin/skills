@@ -17,7 +17,7 @@ import { markerPath } from "../../../olt/scripts/src/installer/transaction-marke
 import { pathIdentity } from "../../../olt/scripts/src/installer/path-safety.ts";
 import { validateSkillSource } from "../../../olt/scripts/src/installer/source-validation.ts";
 import { SKILL_NAME } from "../../../olt/scripts/src/installer/constants.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
 import { cleanInstallerFixtures, installerFixture } from "../helpers.ts";
 
 afterEach(cleanInstallerFixtures);

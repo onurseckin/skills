@@ -9,7 +9,7 @@ import type {
   WatchdogRecord,
   WatchdogStore,
 } from "../../../olt/scripts/src/authority/watchdog/index.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
 
 describe("watchdog-store-sync File-Backed Synchronization", () => {
   it("synchronizes in-memory changes with disk state preserving latest timestamps and statuses", () => {
@@ -111,7 +111,12 @@ describe("watchdog-store-sync File-Backed Synchronization", () => {
     };
 
     saveWatchdogStore(
-      { schema: "harness.watchdog_store", version: 1, updated_at: "2026-08-20T10:00:00.000Z", watchdogs: [recActive] },
+      {
+        schema: "harness.watchdog_store",
+        version: 1,
+        updated_at: "2026-08-20T10:00:00.000Z",
+        watchdogs: [recActive],
+      },
       storePath,
     );
 
@@ -123,7 +128,12 @@ describe("watchdog-store-sync File-Backed Synchronization", () => {
     };
 
     syncWatchdogStore(
-      { schema: "harness.watchdog_store", version: 1, updated_at: "2026-08-20T10:05:00.000Z", watchdogs: [recTerminated] },
+      {
+        schema: "harness.watchdog_store",
+        version: 1,
+        updated_at: "2026-08-20T10:05:00.000Z",
+        watchdogs: [recTerminated],
+      },
       storePath,
     );
 

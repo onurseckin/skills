@@ -2,16 +2,8 @@ import { describe, test, expect } from "bun:test";
 import {
   extractAcceptanceCriteria,
   generateDynamicValidationSteps,
-  renderDynamicValidationSteps,
-  formatDynamicValidationChecklist,
-  computeDynamicStepCount,
-  validateCognitiveStepCoverage,
-  buildDynamicStepsFromWorkflowState,
-  buildDynamicStepsFromPacketInput,
 } from "../../../../olt/scripts/src/packets/dynamic-steps.ts";
-import type { TaskRecord, WorkflowState } from "../../../../olt/scripts/src/workflow/types.ts";
-import type { PacketInput } from "../../../../olt/scripts/src/packets/types.ts";
-
+import type { TaskRecord } from "../../../../olt/scripts/src/workflow/types.ts";
 
 describe("dynamic-steps criteria & generation", () => {
   describe("extractAcceptanceCriteria", () => {
@@ -187,5 +179,4 @@ describe("dynamic-steps criteria & generation", () => {
       expect(planNullTask.totalSteps).toBe(1);
     });
   });
-
 });

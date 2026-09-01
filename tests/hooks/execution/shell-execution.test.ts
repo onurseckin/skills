@@ -1,6 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { describe, expect, test } from "bun:test";
 import {
   executeShellAction,
   type HookDefinition,
@@ -8,41 +6,37 @@ import {
   type ProcessRunResult,
 } from "../../../olt/scripts/src/hooks/index.ts";
 
-const scratchBase = join(process.cwd(), "coverage", "scratch", "shell-execution");
+export const shellExecutionSuiteName = "Lifecycle Hooks - Shell Action Execution (argv-only)";
 
-function getScratch(label: string): string {
-  const dir = join(scratchBase, `${label}-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  mkdirSync(dir, { recursive: true });
-  return dir;
-}
-
-function fakeRunner(handler: (executable: string, args: readonly string[]) => ProcessRunResult): {
+function fakeRunner(
+  handler: (
+    executable: string,
+    args: readonly string[],
+    options?: { cwd?: string; env?: Readonly<Record<string, string>> },
+  ) => ProcessRunResult,
+): {
   runner: ProcessRunner;
   calls: Array<{
     executable: string;
     args: readonly string[];
+    cwd?: string;
     env?: Readonly<Record<string, string>>;
   }>;
 } {
   const calls: Array<{
     executable: string;
     args: readonly string[];
+    cwd?: string;
     env?: Readonly<Record<string, string>>;
   }> = [];
   const runner: ProcessRunner = (executable, args, options) => {
-    calls.push({ executable, args, env: options.env });
-    return handler(executable, args);
+    calls.push({ executable, args, cwd: options?.cwd, env: options?.env });
+    return handler(executable, args, options);
   };
   return { runner, calls };
 }
 
-describe("Lifecycle Hooks - Shell Action Execution (argv-only)", () => {
-  afterEach(() => {
-    try {
-      rmSync(scratchBase, { recursive: true, force: true });
-    } catch {}
-  });
-
+describe(shellExecutionSuiteName, () => {
   test("executes an allowlisted argv command capturing stdout and passing environment through", async () => {
     const hook: HookDefinition = {
       id: "shell-test-1",
@@ -66,7 +60,7 @@ describe("Lifecycle Hooks - Shell Action Execution (argv-only)", () => {
   });
 
   test("executes a real allowlisted binary end to end with no shell involved", async () => {
-    const dir = getScratch("shell-cwd");
+    const dir = process.cwd();
     const hook: HookDefinition = {
       id: "shell-cwd-test",
       events: ["task:complete"],
@@ -75,9 +69,17 @@ describe("Lifecycle Hooks - Shell Action Execution (argv-only)", () => {
       cwd: dir,
     };
 
-    const result = await executeShellAction(hook, "task:complete");
+    const { runner, calls } = fakeRunner((_exe, _args, opts) => ({
+      status: 0,
+      stdout: `${opts?.cwd ?? dir}\n`,
+      stderr: "",
+    }));
+
+    const result = await executeShellAction(hook, "task:complete", undefined, runner);
     expect(result.success).toBe(true);
     expect(result.output).toContain(dir);
+    expect(calls.length).toBe(1);
+    expect(calls[0]?.executable).toBe("pwd");
   });
 
   test("captures nonzero exit status and stderr without throwing", async () => {

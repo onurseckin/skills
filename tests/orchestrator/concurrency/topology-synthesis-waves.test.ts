@@ -138,7 +138,11 @@ describe("Topology Synthesis Wave Partitioning & Critic Feedback", () => {
             parentTaskId: "t-core",
             subTasks: [
               { id: "t-core-lexer", writeScope: ["src/core/lexer.ts"] },
-              { id: "t-core-parser", writeScope: ["src/core/parser.ts"], dependencies: ["t-core-lexer"] },
+              {
+                id: "t-core-parser",
+                writeScope: ["src/core/parser.ts"],
+                dependencies: ["t-core-lexer"],
+              },
             ],
           },
         ],

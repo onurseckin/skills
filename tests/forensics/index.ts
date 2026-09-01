@@ -1,4 +1,1 @@
-export {
-  createSyntheticDagDeps,
-  createSyntheticToolTrace,
-} from "./fixtures/index.ts";
+export { createSyntheticDagDeps, createSyntheticToolTrace } from "./fixtures/index.ts";

@@ -74,7 +74,6 @@ function installMetaAuditGrant(
   });
 }
 
-
 describe("meta-audit execute authority", () => {
   test("denies ghost, released, and implementer actors through execute", async () => {
     for (const [id, role, status] of [

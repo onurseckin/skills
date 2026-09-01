@@ -1,5 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { mapPriority, mapFeedbackPriorityToTaskPriority } from "../../../../olt/scripts/src/mind/tasks/discovery/index.ts";
+import {
+  mapPriority,
+  mapFeedbackPriorityToTaskPriority,
+} from "../../../../olt/scripts/src/mind/tasks/discovery/index.ts";
 
 describe("Task Discovery Priority Mapping Suite (Part 2)", () => {
   it("maps discovery severity to task priority correctly", () => {

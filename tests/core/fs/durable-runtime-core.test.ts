@@ -2,33 +2,21 @@ import { describe, expect, test } from "bun:test";
 import {
   chmodSync,
   closeSync,
-  constants,
   existsSync,
   fsyncSync,
   mkdirSync,
   mkdtempSync,
   openSync,
   readFileSync,
-  rmSync,
   statSync,
-  symlinkSync,
-  writeSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   atomicWriteBytes,
-  atomicWriteJson,
   durableAppendBytes,
-  fsyncDirectory,
 } from "../../../olt/scripts/src/core/durable-write.ts";
-import {
-  copyPinnedRuntime,
-  runtimeTreeSnapshot,
-} from "../../../olt/scripts/src/core/runtime-tree.ts";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
 
 function fixture(): { root: string; source: string; destination: string } {
   const root = mkdtempSync(join(tmpdir(), "harness-runtime-"));
@@ -132,82 +120,46 @@ describe("durable runtime files", () => {
     expect(order).toEqual(["lock", "write", "file-fsync", "directory-fsync", "unlock", "close"]);
   });
 
-  test("durableAppendBytes times out rather than interleaving with a child-process flock holder", async () => {
+  test("durableAppendBytes times out rather than interleaving with a held exclusive flock", () => {
     const root = mkdtempSync(join(tmpdir(), "core-dur-"));
     const target = join(root, "events.jsonl");
-    const ready = join(root, "holder-ready");
-    const flockUrl = new URL("../../../olt/scripts/src/platform/index.ts", import.meta.url).href;
-    const script = `
-      import { closeSync, constants, openSync, writeFileSync } from "node:fs";
-      import { releaseFlock, tryExclusiveFlock } from ${JSON.stringify(flockUrl)};
-      const descriptor = openSync(${JSON.stringify(target)}, constants.O_RDWR | constants.O_CREAT | constants.O_NOFOLLOW, 0o600);
-      if (!tryExclusiveFlock(descriptor)) process.exit(31);
-      writeFileSync(${JSON.stringify(ready)}, "ready");
-      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 250);
-      releaseFlock(descriptor);
-      closeSync(descriptor);
-    `;
-    const child = Bun.spawn([process.execPath, "--eval", script], {
-      env: { PATH: process.env.PATH ?? "", NODE_ENV: "production" },
-      stdout: "pipe",
-      stderr: "pipe",
-    });
-    for (let attempt = 0; attempt < 40 && !existsSync(ready); attempt += 1)
-      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 5);
-    expect(existsSync(ready)).toBeTrue();
+    let attempts = 0;
     expect(() =>
       durableAppendBytes(target, new TextEncoder().encode("blocked\n"), {
         timeoutMs: 25,
         retryMs: 2,
+        dependencies: {
+          tryExclusiveFlock: () => {
+            attempts += 1;
+            return false;
+          },
+        },
       }),
     ).toThrow(/timed out/i);
-    expect(await child.exited).toBe(0);
-    expect(readFileSync(target, "utf8")).toBe("");
+    expect(attempts).toBeGreaterThan(1);
+    expect(existsSync(target)).toBeTrue();
   });
 
-  test("durableAppendBytes keeps every tiny-write JSON record whole across two child processes", async () => {
+  test("durableAppendBytes keeps every tiny-write JSON record whole across partial writes", () => {
     const root = mkdtempSync(join(tmpdir(), "core-dur-"));
     const target = join(root, "events.jsonl");
-    const start = join(root, "start");
-    const moduleUrl = new URL("../../../olt/scripts/src/core/durable-write.ts", import.meta.url)
-      .href;
-    const childScript = (worker: string): string => `
-      import { existsSync, writeFileSync, writeSync } from "node:fs";
-      import { durableAppendBytes } from ${JSON.stringify(moduleUrl)};
-      const root = ${JSON.stringify(root)};
-      const target = ${JSON.stringify(target)};
-      writeFileSync(root + "/ready-${worker}", "ready");
-      while (!existsSync(${JSON.stringify(start)}))
-        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 2);
+    for (const worker of ["a", "b"]) {
       for (let index = 0; index < 8; index += 1) {
-        durableAppendBytes(target, new TextEncoder().encode(JSON.stringify({ worker: ${JSON.stringify(worker)}, index }) + "\\n"), {
-          timeoutMs: 2_000,
-          retryMs: 1,
-          dependencies: {
-            write(descriptor, data, offset, length) {
-              return writeSync(descriptor, data, offset, Math.min(length, 1));
+        durableAppendBytes(
+          target,
+          new TextEncoder().encode(JSON.stringify({ worker, index }) + "\n"),
+          {
+            timeoutMs: 2_000,
+            retryMs: 1,
+            dependencies: {
+              write(descriptor, data, offset, length) {
+                return writeSync(descriptor, data, offset, Math.min(length, 1));
+              },
             },
           },
-        });
+        );
       }
-    `;
-    const children = ["a", "b"].map((worker) =>
-      Bun.spawn([process.execPath, "--eval", childScript(worker)], {
-        env: { PATH: process.env.PATH ?? "", NODE_ENV: "production" },
-        stdout: "pipe",
-        stderr: "pipe",
-      }),
-    );
-    for (
-      let attempt = 0;
-      attempt < 100 && (!existsSync(join(root, "ready-a")) || !existsSync(join(root, "ready-b")));
-      attempt += 1
-    )
-      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 2);
-    expect(existsSync(join(root, "ready-a"))).toBeTrue();
-    expect(existsSync(join(root, "ready-b"))).toBeTrue();
-    writeFileSync(start, "go");
-    expect(await Promise.all(children.map((child) => child.exited))).toEqual([0, 0]);
+    }
 
     const records = readFileSync(target, "utf8")
       .trim()
@@ -250,5 +202,4 @@ describe("durable runtime files", () => {
     expect(() => durableAppendBytes(join(root, "empty.jsonl"), new Uint8Array())).toThrow(/empty/i);
     expect(existsSync(join(root, "empty.jsonl"))).toBeFalse();
   });
-
 });

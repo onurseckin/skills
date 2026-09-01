@@ -1,39 +1,43 @@
-import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { describe, expect, test, beforeEach, spyOn } from "bun:test";
+import * as fs from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import {
   AuditorCursorStore,
-  MindAuditorEngine,
-  SkillAuditorEngine,
   type AuditorCursor,
 } from "../../../../olt/scripts/src/mind/auditing/cognitive/index.ts";
 
-const MIN_MANIFEST_YAML = `role: mind
-tier: 0
-spawns:
-  - orchestrator
-may:
-  - Coordinate strategic goals
-must_not:
-  - Implement code directly
-`;
-
-describe("AuditorCursorStore", () => {
-  let testDir: string;
+describe("AuditorCursorStore in-memory virtual suite", () => {
+  const testDir = `${process.cwd()}/.olt/virtual-test-cursor`;
+  const mockFiles = new Map<string, string>();
 
   beforeEach(() => {
-    testDir = join(
-      tmpdir(),
-      `test-auditor-cursor-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    );
-    mkdirSync(join(testDir, ".olt"), { recursive: true });
-  });
+    mockFiles.clear();
 
-  afterEach(() => {
-    if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true, force: true });
-    }
+    spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => {
+      const pathStr = String(p);
+      return mockFiles.has(pathStr) || pathStr.endsWith(".olt");
+    });
+
+    spyOn(fs, "readFileSync").mockImplementation((p: fs.PathOrFileDescriptor) => {
+      const pathStr = String(p);
+      const val = mockFiles.get(pathStr);
+      if (val === undefined) {
+        throw new Error(`ENOENT: no such file or directory, open '${pathStr}'`);
+      }
+      return val;
+    });
+
+    spyOn(fs, "writeFileSync").mockImplementation(
+      (p: fs.PathOrFileDescriptor, data: string | NodeJS.ArrayBufferView) => {
+        const pathStr = String(p);
+        mockFiles.set(
+          pathStr,
+          typeof data === "string" ? data : Buffer.from(data as Uint8Array).toString("utf-8"),
+        );
+      },
+    );
+
+    spyOn(fs, "mkdirSync").mockImplementation(() => undefined as unknown as string);
   });
 
   test("resolveCursorPath points to .olt/auditor-cursors.json", () => {
@@ -53,7 +57,7 @@ describe("AuditorCursorStore", () => {
 
   test("loadCursor handles corrupt JSON gracefully and returns default cursor", () => {
     const p = AuditorCursorStore.resolveCursorPath(testDir);
-    writeFileSync(p, "{ this is not valid json }", "utf-8");
+    mockFiles.set(p, "{ this is not valid json }");
 
     const cursor = AuditorCursorStore.loadCursor(testDir, "mind");
     expect(cursor.lastInspectedTimestamp).toBe("1970-01-01T00:00:00.000Z");
@@ -98,7 +102,8 @@ describe("AuditorCursorStore", () => {
     expect(loadedSkill.lastInspectedTimestamp).toBe("2026-08-24T11:00:00.000Z");
     expect(loadedSkill.lastInspectedEventIndex).toBe(99);
 
-    const raw = readFileSync(AuditorCursorStore.resolveCursorPath(testDir), "utf-8");
+    const cursorPath = AuditorCursorStore.resolveCursorPath(testDir);
+    const raw = mockFiles.get(cursorPath) ?? "{}";
     const parsed = JSON.parse(raw) as Record<string, unknown>;
     expect(parsed).toHaveProperty("mind");
     expect(parsed).toHaveProperty("skill");

@@ -2,13 +2,18 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  clearInMemoryQuarantines,
   createSignedEnvelope,
   ensureMailboxDirectories,
+  getInMemoryQuarantine,
   ingestToQuarantine,
   quarantineTornLines,
   readUnreadMessages,
+  registerInMemoryMailboxDir,
   resolveMailboxPaths,
+  setInMemoryQuarantine,
   sweepQuarantineDeadLetters,
+  writeInMemoryQuarantine,
 } from "../../../olt/scripts/src/communication/mailbox/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
@@ -253,6 +258,38 @@ describe("Mailbox Quarantine Engine", () => {
       const sweep = sweepQuarantineDeadLetters({ baseDir: testRoot, agentId: "agent-escapes" });
       expect(sweep.deadLetters.length).toBe(1);
       expect(sweep.deadLetters[0]?.rawEnvelope).toBe(jsonWithEscapes);
+    });
+
+    it("handles in-memory quarantine store, ingest, sweep, and purge in virtual mode", () => {
+      const vRoot = "virtual://quarantine-suite";
+      const p = "virtual://quarantine-suite/.olt/mailboxes/agent-virt/quarantine.log";
+      setInMemoryQuarantine(p, ["[2026-08-30T00:00:00.000Z] [REASON: IN_MEM_ERR] payload\n"]);
+      expect(getInMemoryQuarantine(p)?.length).toBe(1);
+
+      writeInMemoryQuarantine(p, "[2026-08-30T00:00:01.000Z] [REASON: IN_MEM_ERR_2] payload2\n");
+      expect(getInMemoryQuarantine(p)?.length).toBe(2);
+
+      const vEntry = ingestToQuarantine("agent-virt", "virt error", "VIRT_ERR", { baseDir: vRoot });
+      expect(vEntry.agentId).toBe("agent-virt");
+
+      const sweep = sweepQuarantineDeadLetters({
+        baseDir: vRoot,
+        agentId: "agent-virt",
+        purge: true,
+      });
+      expect(sweep.totalEntries).toBeGreaterThanOrEqual(1);
+      expect(sweep.purgedEntries).toBeGreaterThanOrEqual(1);
+
+      registerInMemoryMailboxDir("virtual://auto-sweep/.olt/mailboxes/agent-auto");
+      writeInMemoryQuarantine(
+        "virtual://auto-sweep/.olt/mailboxes/agent-auto/quarantine.log",
+        "[2026-08-30T00:00:00.000Z] [REASON: AUTO_ERR] data\n",
+      );
+      const autoSweep = sweepQuarantineDeadLetters({ baseDir: "virtual://auto-sweep" });
+      expect(autoSweep.deadLetters.length).toBeGreaterThanOrEqual(1);
+
+      clearInMemoryQuarantines();
+      expect(getInMemoryQuarantine(p)).toBeUndefined();
     });
   });
 });

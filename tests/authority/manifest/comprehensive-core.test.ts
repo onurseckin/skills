@@ -1,6 +1,4 @@
-import { describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join, resolve } from "node:path";
 import {
   clearManifestCache,
@@ -14,8 +12,23 @@ import {
   parseMarkdownFrontmatter,
   parseRoleContract,
 } from "../../../olt/scripts/src/authority/manifest/index.ts";
+import {
+  cleanupVirtualAuthorityFS,
+  getVirtualAuthorityFS,
+  setupVirtualAuthorityFS,
+} from "../fixture.ts";
 
 describe("Authority Manifest Comprehensive - Core & Loader", () => {
+  beforeEach(() => {
+    setupVirtualAuthorityFS();
+    clearManifestCache();
+  });
+
+  afterEach(() => {
+    clearManifestCache();
+    cleanupVirtualAuthorityFS();
+  });
+
   test("normalizeRoleName applies alias mappings and normalizes string", () => {
     expect(normalizeRoleName("coord")).toBe("coordinator");
     expect(normalizeRoleName("orch")).toBe("orchestrator");
@@ -58,92 +71,93 @@ permissions:
     - edit_file
   commands:
     - run:exec
-  spawns:
-    - sub-worker
-instructions: "Custom instructions here"
 `;
-    const contractFromYaml = parseRoleContract(yamlContent, "/path/to/test-agent.yaml");
-    expect(contractFromYaml.role).toBe("test-agent");
-    expect(contractFromYaml.tier).toBe(3);
-    expect(contractFromYaml.domain).toBe("test-domain");
-    expect(contractFromYaml.may).toEqual(["task:claim"]);
-    expect(contractFromYaml.mustNot).toEqual(["edit_file"]);
-    expect(contractFromYaml.commands).toEqual(["run:exec"]);
-    expect(contractFromYaml.spawns).toEqual(["sub-worker"]);
-    expect(contractFromYaml.body).toBe("Custom instructions here");
+    const parsedYaml = parseRoleContract(yamlContent, "test-agent.yaml");
+    expect(parsedYaml.role).toBe("test-agent");
+    expect(parsedYaml.tier).toBe(3);
+    expect(parsedYaml.may).toContain("task:claim");
+    expect(parsedYaml.mustNot).toContain("edit_file");
 
     const mdContent = `---
-role: coordinator
+name: doc-agent
+role: doc-agent
 tier: 2
-domain: execution
 permissions:
-  may: [task:delegate]
-  must_not: [task:implement]
-  commands: [queue:wave]
-  spawns: [implementer]
+  may:
+    - audit:read
 ---
-# Coordinator Body
+# Instructions
+Markdown instructions body here.
 `;
-    const contractFromMd = parseRoleContract(mdContent, "/path/to/coordinator.md");
-    expect(contractFromMd.role).toBe("coordinator");
-    expect(contractFromMd.tier).toBe(2);
-    expect(contractFromMd.domain).toBe("execution");
-    expect(contractFromMd.may).toEqual(["task:delegate"]);
-    expect(contractFromMd.mustNot).toEqual(["task:implement"]);
-    expect(contractFromMd.commands).toEqual(["queue:wave"]);
-    expect(contractFromMd.spawns).toEqual(["implementer"]);
-    expect(contractFromMd.body).toBe("# Coordinator Body");
+    const parsedMd = parseRoleContract(mdContent, "doc-agent.md");
+    expect(parsedMd.role).toBe("doc-agent");
+    expect(parsedMd.tier).toBe(2);
+    expect(parsedMd.body).toContain("Markdown instructions body here.");
+    expect(parsedMd.may).toContain("audit:read");
   });
 
-  test("loadRoleContract and loadAgentManifest with custom directories and cache bypass", () => {
-    const sandbox = mkdtempSync(join(tmpdir(), "manifest-loader-test-"));
+  test("loads custom agent manifests and contracts from sandbox directory", () => {
+    const sandbox = "/virtual/manifest/test-sandbox";
     const agentsDir = join(sandbox, "agents");
-    mkdirSync(agentsDir, { recursive: true });
+    const vfs = getVirtualAuthorityFS();
+    vfs.mkdirSync(agentsDir, { recursive: true });
 
-    const agentYaml = `
+    const customAgentYaml = `
 name: custom-worker
 role: custom-worker
 tier: 3
 interface:
-  display_name: "Custom Worker"
-  short_description: "Executes custom tasks"
+  display_name: Custom Worker
+  short_description: Scoped execution worker
 permissions:
-  may: [task:claim]
-  must_not: [run:complete]
-  commands: [task:exec]
-  spawns: []
+  may:
+    - task:claim
+  must_not:
+    - modify_core
 `;
-    writeFileSync(join(agentsDir, "custom-worker.yaml"), agentYaml, "utf-8");
+    vfs.writeFileSync(join(agentsDir, "custom-worker.yaml"), customAgentYaml);
 
-    try {
-      clearManifestCache();
+    const customAgentMd = `---
+name: custom-worker
+role: custom-worker
+tier: 3
+interface:
+  display_name: Custom Worker
+  short_description: Scoped execution worker
+permissions:
+  may:
+    - task:claim
+  must_not:
+    - modify_core
+---
+# Instructions
+Custom worker autonomous execution instructions.
+`;
+    vfs.writeFileSync(join(agentsDir, "custom-worker.md"), customAgentMd);
 
-      const loadedManifest = loadAgentManifest("custom-worker", { agentsDir, bypassCache: true });
-      expect(loadedManifest.name).toBe("custom-worker");
+    const loadedManifest = loadAgentManifest("custom-worker", { agentsDir, bypassCache: true });
+    expect(loadedManifest.name).toBe("custom-worker");
 
-      const loadedContract = loadRoleContract("custom-worker", { agentsDir, bypassCache: true });
-      expect(loadedContract.role).toBe("custom-worker");
-      expect(loadedContract.tier).toBe(3);
+    const loadedContract = loadRoleContract("custom-worker", { agentsDir, bypassCache: true });
+    expect(loadedContract.role).toBe("custom-worker");
+    expect(loadedContract.tier).toBe(3);
 
-      const unified = loadUnifiedAgentModel("custom-worker", { agentsDir, bypassCache: true });
-      expect(unified.role).toBe("custom-worker");
-      expect(unified.displayName).toBe("Custom Worker");
-      expect(unified.archetype).toBe("Autonomous Worker");
+    const unified = loadUnifiedAgentModel("custom-worker", { agentsDir, bypassCache: true });
+    expect(unified.role).toBe("custom-worker");
+    expect(unified.displayName).toBe("Custom Worker");
+    expect(unified.archetype).toBe("Autonomous Worker");
 
-      const fallbackModel = loadUnifiedAgentModel("non-existent-role-xyz", {
-        agentsDir,
-        bypassCache: true,
-      });
-      expect(fallbackModel.role).toBe("non-existent-role-xyz");
-      expect(fallbackModel.tier).toBe(3);
+    const fallbackModel = loadUnifiedAgentModel("non-existent-role-xyz", {
+      agentsDir,
+      bypassCache: true,
+    });
+    expect(fallbackModel.role).toBe("non-existent-role-xyz");
+    expect(fallbackModel.tier).toBe(3);
 
-      const roles = listAvailableRoles({ agentsDir });
-      expect(roles).toContain("custom-worker");
-      const manifests = listAvailableManifests({ agentsDir });
-      expect(manifests).toContain("custom-worker");
-    } finally {
-      rmSync(sandbox, { recursive: true, force: true });
-    }
+    const roles = listAvailableRoles({ agentsDir });
+    expect(roles).toContain("custom-worker");
+    const manifests = listAvailableManifests({ agentsDir });
+    expect(manifests).toContain("custom-worker");
   });
 
   test("getArchetypeAndMandate archetypes across all tier levels", () => {

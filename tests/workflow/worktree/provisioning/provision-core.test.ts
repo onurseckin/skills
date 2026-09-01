@@ -177,5 +177,4 @@ describe("provisionWorktrees", () => {
     });
     expect(calls.some((c) => c.argv[0] === "branch" && c.argv[1] === "harness/run-1")).toBe(false);
   });
-
 });

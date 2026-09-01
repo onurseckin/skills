@@ -28,7 +28,10 @@ import type { FeedbackItem } from "../../../olt/scripts/src/mind/feedback/queue/
 import { tmpdir } from "node:os";
 
 describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Verification", () => {
-  const testDir = join(tmpdir(), "test-validation-anti-batching-" + Math.random().toString(36).slice(2));
+  const testDir = join(
+    tmpdir(),
+    "test-validation-anti-batching-" + Math.random().toString(36).slice(2),
+  );
   const feedbackFile = join(testDir, "FEEDBACK_QUEUE.jsonl");
   const taskQueueFile = join(testDir, "TASK_QUEUE.jsonl");
 
@@ -44,7 +47,6 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
       rmSync(testDir, { recursive: true, force: true });
     }
   }
-
 
   describe("3. 1:1 Implementer and Validator Assignment & Self-Validation Refusal", () => {
     it("rejects task plans where implementer is assigned as validator (self-validation)", () => {
@@ -286,5 +288,4 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
       }).not.toThrow();
     });
   });
-
 });

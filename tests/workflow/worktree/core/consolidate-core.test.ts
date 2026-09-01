@@ -262,4 +262,3 @@ describe("consolidateWorktrees", () => {
     expect(new Date(result.consolidated_at).getTime()).toBeGreaterThanOrEqual(before);
   });
 });
-

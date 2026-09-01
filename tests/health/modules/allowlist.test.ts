@@ -161,7 +161,9 @@ describe("Health Modules - Allowlist & Opt-Out Management", () => {
           reason: "stale: nothing under this check matches",
         },
       ]);
-      expect(checks[0]?.findings[0]?.acknowledged).toBe("genuinely excuses the unused-code finding");
+      expect(checks[0]?.findings[0]?.acknowledged).toBe(
+        "genuinely excuses the unused-code finding",
+      );
       expect(stale).toHaveLength(1);
       expect(stale[0]?.detail).toContain(collidingKey);
     });

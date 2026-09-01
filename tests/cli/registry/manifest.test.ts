@@ -11,7 +11,6 @@ import {
   renderManifestMarkdown,
 } from "../../../olt/scripts/src/cli/manifest.ts";
 import {
-  commandFilePath,
   loadCapabilitySplit,
   loadCommandDetail,
   renderCommandDetailJson,
@@ -19,10 +18,7 @@ import {
   renderSplitManifestJson,
   SPLIT_MANIFEST_SCHEMA,
 } from "../../../olt/scripts/src/cli/manifest-split.ts";
-import {
-  COMMAND_DOMAINS,
-  COMMAND_REGISTRY,
-} from "../../../olt/scripts/src/cli/registry/index.ts";
+import { COMMAND_DOMAINS, COMMAND_REGISTRY } from "../../../olt/scripts/src/cli/registry/index.ts";
 
 const references = join(import.meta.dir, "..", "..", "..", "olt", "references");
 const splitRoot = join(references, "cli-capabilities");

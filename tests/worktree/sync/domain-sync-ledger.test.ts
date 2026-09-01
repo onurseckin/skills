@@ -1,6 +1,5 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { GitResult, GitRunner } from "../../../olt/scripts/src/workflow/worktree/git.ts";
 import {
@@ -8,15 +7,22 @@ import {
   createDomainLedger,
   provisionDomainWorktree,
 } from "../../../olt/scripts/src/engine/worktree/domain-sync.ts";
+import { cleanupVirtualWorktreeFS, setupVirtualWorktreeFS } from "../fixtures/index.ts";
 
-const roots: string[] = [];
+beforeEach(() => {
+  setupVirtualWorktreeFS();
+});
+
 afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { force: true, recursive: true });
+  cleanupVirtualWorktreeFS();
 });
 
 function trackedDir(prefix: string): string {
-  const dir = mkdtempSync(join(tmpdir(), `domain-sync-${prefix}-`));
-  roots.push(dir);
+  const dir = join(
+    "/virtual",
+    `domain-sync-${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  );
+  mkdirSync(dir, { recursive: true });
   return dir;
 }
 

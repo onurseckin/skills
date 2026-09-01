@@ -8,7 +8,8 @@ import { auditCoordinatorCodeWriting } from "../../../olt/scripts/src/reporting/
 import type { BehavioralFinding } from "../../../olt/scripts/src/reporting/behavioral-auditor/index.ts";
 import type { TaskRecord } from "../../../olt/scripts/src/workflow/index.ts";
 
-export const behavioralHealthCoreSuiteName = "Behavioral Health Auditor - Coordinator Behavioral Invariants";
+export const behavioralHealthCoreSuiteName =
+  "Behavioral Health Auditor - Coordinator Behavioral Invariants";
 
 describe(behavioralHealthCoreSuiteName, () => {
   it("detects coordinator using code-editing tools directly", () => {

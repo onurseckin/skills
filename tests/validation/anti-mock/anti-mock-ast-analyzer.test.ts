@@ -15,7 +15,6 @@ import type {
   MutationTestRunOutcome,
 } from "../../../olt/scripts/src/validation/anti-mock/index.ts";
 
-
 describe("Pillar 1: AST Early-Return & Mock Tautology Linter", () => {
   test("detects empty test functions (arrow and function expressions)", () => {
     const code = `
@@ -231,4 +230,3 @@ describe("Pillar 1: AST Early-Return & Mock Tautology Linter", () => {
     expect(result.mockTautologyCount).toBeGreaterThan(0);
   });
 });
-

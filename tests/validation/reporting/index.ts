@@ -2,8 +2,14 @@
  * Reporting Facade.
  */
 export {
-  auditDefectAssertions,
-  extractDefectProse,
-  adaptValidationReport,
+  adaptIngestedVisualReport,
+  adaptScreenshotRecords,
+} from "../../../olt/scripts/src/validation/reporters/index.ts";
+
+export {
+  buildHtmlDocument,
   generateInteractiveHtml,
-} from "../../../olt/scripts/src/validation/report-adapter.ts";
+  getClientScript,
+  getHtmlStyles,
+  writeInteractiveHtml,
+} from "../../../scripts/testing/reporting/index.ts";

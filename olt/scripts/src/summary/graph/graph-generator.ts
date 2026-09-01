@@ -46,8 +46,8 @@ export function generateGraphDataset(input: GraphGeneratorInput): GraphDataset {
   const { runId, state, promptText = "", events, manifest, runRoot, gitCommand } = input;
   const tasks = Object.values(state.tasks ?? {}) as TaskRecord[];
   const commands = Object.values({
-    ...(state.commands ?? {}),
-    ...(input.commands ?? {}),
+    ...state.commands,
+    ...input.commands,
   } as Record<string, CommandRecord>);
 
   const steps = computeExecutionSteps(tasks, state);

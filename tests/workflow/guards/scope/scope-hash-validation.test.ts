@@ -1,20 +1,64 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { lstatSync } from "node:fs";
-import { mkdir, mkdtemp, realpath, rm, symlink, utimes, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { describe, expect, test } from "bun:test";
+import { openSync, type Stats } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
-import { hashWriteScope } from "../../../../olt/scripts/src/workflow/lease/write-scope-hash.ts";
+import {
+  hashWriteScope,
+  type HashWriteScopeDependencies,
+} from "../../../../olt/scripts/src/workflow/lease/write-scope-hash.ts";
 
-const roots: string[] = [];
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
+const ROOT = process.cwd();
 
-async function repo(name: string): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), `write-scope-hash-${name}-`));
-  roots.push(dir);
-  return dir;
+function createVirtualScope(initialFiles: Record<string, string> = {}) {
+  const fileMap = new Map<string, Buffer>();
+  const descriptors = new Map<number, { buffer: Buffer; position: number }>();
+
+  for (const [relPath, content] of Object.entries(initialFiles)) {
+    fileMap.set(join(ROOT, relPath), Buffer.from(content, "utf8"));
+  }
+
+  const dependencies: HashWriteScopeDependencies = {
+    lstat(path: string): Stats {
+      const buf = fileMap.get(path);
+      if (!buf) {
+        throw Object.assign(new Error(`ENOENT: no such file or directory, lstat '${path}'`), {
+          code: "ENOENT",
+        });
+      }
+      return {
+        isFile: () => true,
+        isDirectory: () => false,
+        isSymbolicLink: () => false,
+        size: buf.length,
+      } as unknown as Stats;
+    },
+    open(path: string): number {
+      const buf = fileMap.get(path);
+      if (!buf) {
+        throw Object.assign(new Error(`ENOENT: no such file or directory, open '${path}'`), {
+          code: "ENOENT",
+        });
+      }
+      const fd = openSync(import.meta.filename, "r");
+      descriptors.set(fd, { buffer: buf, position: 0 });
+      return fd;
+    },
+    read(descriptor: number, buffer: Buffer, offset: number, length: number): number {
+      const handle = descriptors.get(descriptor);
+      if (!handle) throw Object.assign(new Error("EBADF: bad descriptor"), { code: "EBADF" });
+      const available = handle.buffer.length - handle.position;
+      if (available <= 0) return 0;
+      const count = Math.min(length, available);
+      handle.buffer.copy(buffer, offset, handle.position, handle.position + count);
+      handle.position += count;
+      return count;
+    },
+  };
+
+  return {
+    root: ROOT,
+    dependencies,
+  };
 }
 
 function expectIntegrity(operation: () => void, path: string, cause: string): void {
@@ -31,21 +75,20 @@ function expectIntegrity(operation: () => void, path: string, cause: string): vo
   });
 }
 
-describe("assertWriteScopeUnmodified and validation", () => {
-  test("refuses an EIO lstat failure in a scoped directory child", async () => {
-    const root = await repo("recursive-eio");
-    await mkdir(join(root, "src"), { recursive: true });
-    await writeFile(join(root, "src", "blocked.ts"), "export const blocked = true;\n");
-    const canonicalRoot = await realpath(root);
-    const blockedPath = join(canonicalRoot, "src", "blocked.ts");
+describe("assertWriteScopeUnmodified and validation in-memory virtualization", () => {
+  test("refuses an EIO lstat failure in a scoped child", () => {
+    const vfs = createVirtualScope({ "src/blocked.ts": "export const blocked = true;\n" });
+    const blockedPath = join(vfs.root, "src", "blocked.ts");
 
     expectIntegrity(
       () =>
-        hashWriteScope(root, ["src"], {
+        hashWriteScope(vfs.root, ["src/blocked.ts"], {
+          ...vfs.dependencies,
           lstat(path) {
-            if (path === blockedPath)
+            if (path === blockedPath) {
               throw Object.assign(new Error("simulated child eio"), { code: "EIO" });
-            return lstatSync(path);
+            }
+            return vfs.dependencies.lstat!(path);
           },
         }),
       blockedPath,
@@ -53,18 +96,16 @@ describe("assertWriteScopeUnmodified and validation", () => {
     );
   });
 
-  test("accepts an open ENOENT race identically to an absent scope path", async () => {
-    const root = await repo("open-enoent");
-    await mkdir(join(root, "src"), { recursive: true });
-    await writeFile(join(root, "fixture.ts"), "export const fixture = true;\n");
-    const canonicalRoot = await realpath(root);
-    const scopedPath = join(canonicalRoot, "src", "planned.ts");
-    const expected = hashWriteScope(root, ["src/planned.ts"]);
+  test("accepts an open ENOENT race identically to an absent scope path", () => {
+    const vfs = createVirtualScope({ "src/fixture.ts": "export const fixture = true;\n" });
+    const scopedPath = join(vfs.root, "src", "planned.ts");
+    const expected = hashWriteScope(vfs.root, ["src/planned.ts"], vfs.dependencies);
 
-    const actual = hashWriteScope(root, ["src/planned.ts"], {
+    const actual = hashWriteScope(vfs.root, ["src/planned.ts"], {
+      ...vfs.dependencies,
       lstat(path) {
-        if (path === scopedPath) return lstatSync(join(canonicalRoot, "fixture.ts"));
-        return lstatSync(path);
+        if (path === scopedPath) return vfs.dependencies.lstat!(join(vfs.root, "src/fixture.ts"));
+        return vfs.dependencies.lstat!(path);
       },
       open() {
         throw Object.assign(new Error("simulated open race"), { code: "ENOENT" });
@@ -74,13 +115,12 @@ describe("assertWriteScopeUnmodified and validation", () => {
     expect(actual).toBe(expected);
   });
 
-  test("accepts a read ENOENT race identically to an absent scope path", async () => {
-    const root = await repo("read-enoent");
-    await mkdir(join(root, "src"), { recursive: true });
-    await writeFile(join(root, "src", "entry.ts"), "export const entry = true;\n");
-    const expected = hashWriteScope(root, ["src/planned.ts"]);
+  test("accepts a read ENOENT race identically to an absent scope path", () => {
+    const vfs = createVirtualScope({ "src/entry.ts": "export const entry = true;\n" });
+    const expected = hashWriteScope(vfs.root, ["src/planned.ts"], vfs.dependencies);
 
-    const actual = hashWriteScope(root, ["src/entry.ts"], {
+    const actual = hashWriteScope(vfs.root, ["src/entry.ts"], {
+      ...vfs.dependencies,
       read() {
         throw Object.assign(new Error("simulated read race"), { code: "ENOENT" });
       },
@@ -92,16 +132,15 @@ describe("assertWriteScopeUnmodified and validation", () => {
   test.each([
     ["open", "EACCES", "simulated open access"],
     ["read", "EIO", "simulated read io"],
-  ])("refuses a non-ENOENT %s failure while hashing", async (operation, code, cause) => {
-    const root = await repo(`hash-${operation}-${code.toLowerCase()}`);
-    await mkdir(join(root, "src"), { recursive: true });
-    await writeFile(join(root, "src", "entry.ts"), "export const entry = true;\n");
-    const scopedPath = join(await realpath(root), "src", "entry.ts");
+  ])("refuses a non-ENOENT %s failure while hashing", (operation, code, cause) => {
+    const vfs = createVirtualScope({ "src/entry.ts": "export const entry = true;\n" });
+    const scopedPath = join(vfs.root, "src", "entry.ts");
     const error = Object.assign(new Error(cause), { code });
 
     expectIntegrity(
       () =>
-        hashWriteScope(root, ["src/entry.ts"], {
+        hashWriteScope(vfs.root, ["src/entry.ts"], {
+          ...vfs.dependencies,
           ...(operation === "open"
             ? {
                 open() {
@@ -119,34 +158,46 @@ describe("assertWriteScopeUnmodified and validation", () => {
     );
   });
 
-  test("is independent of directory traversal order", async () => {
-    const root = await repo("order");
-    await mkdir(join(root, "src"), { recursive: true });
-    await writeFile(join(root, "src", "z.ts"), "export const z = 1;\n");
-    await writeFile(join(root, "src", "a.ts"), "export const a = 1;\n");
+  test("is independent of directory traversal order", () => {
+    const vfs = createVirtualScope({
+      "src/a.ts": "export const a = 1;\n",
+      "src/z.ts": "export const z = 1;\n",
+    });
 
-    const inOrder = hashWriteScope(root, ["src/a.ts", "src/z.ts"]);
-    const reversed = hashWriteScope(root, ["src/z.ts", "src/a.ts"]);
+    const inOrder = hashWriteScope(vfs.root, ["src/a.ts", "src/z.ts"], vfs.dependencies);
+    const reversed = hashWriteScope(vfs.root, ["src/z.ts", "src/a.ts"], vfs.dependencies);
     expect(inOrder).toBe(reversed);
   });
 
-  test("a write scope outside the repository root is refused", async () => {
-    const root = await repo("path-safety");
-    expect(() => hashWriteScope(root, ["../escaped"])).toThrow(HarnessError);
+  test("a write scope outside the repository root is refused", () => {
+    expect(() => hashWriteScope(ROOT, ["../escaped"])).toThrow(HarnessError);
   });
 
-  test("a symlink inside the scope is refused rather than silently followed", async () => {
-    const root = await repo("symlink");
-    await mkdir(join(root, "src"), { recursive: true });
-    await writeFile(join(root, "real.ts"), "export const real = true;\n");
-    await symlink(join(root, "real.ts"), join(root, "src", "link.ts"));
-    expect(() => hashWriteScope(root, ["src"])).toThrow(HarnessError);
+  test("a symlink inside the scope is refused rather than silently followed", () => {
+    const vfs = createVirtualScope({ "src/link.ts": "export const link = true;\n" });
+    const symlinkPath = join(vfs.root, "src", "link.ts");
+
+    expect(() =>
+      hashWriteScope(vfs.root, ["src/link.ts"], {
+        ...vfs.dependencies,
+        lstat(path) {
+          if (path === symlinkPath) {
+            return {
+              isFile: () => false,
+              isDirectory: () => false,
+              isSymbolicLink: () => true,
+              size: 10,
+            } as unknown as Stats;
+          }
+          return vfs.dependencies.lstat!(path);
+        },
+      }),
+    ).toThrow(HarnessError);
   });
 
-  test("safeCause handles errors where toString throws", async () => {
-    const root = await repo("throwing-error");
-    await mkdir(join(root, "src"), { recursive: true });
-    const scopedPath = join(await realpath(root), "src", "planned.ts");
+  test("safeCause handles errors where toString throws", () => {
+    const vfs = createVirtualScope({});
+    const scopedPath = join(vfs.root, "src", "planned.ts");
 
     const weirdError = Object.create(null);
     Object.defineProperty(weirdError, "toString", {
@@ -157,7 +208,8 @@ describe("assertWriteScopeUnmodified and validation", () => {
 
     expectIntegrity(
       () =>
-        hashWriteScope(root, ["src/planned.ts"], {
+        hashWriteScope(vfs.root, ["src/planned.ts"], {
+          ...vfs.dependencies,
           lstat() {
             throw weirdError;
           },

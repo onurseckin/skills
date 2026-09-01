@@ -22,7 +22,10 @@ describe("ReactiveDispatcher & Trigger Normalization", () => {
 
   describe("normalizeReactiveTrigger", () => {
     it("normalizes string triggers into reactive event objects", () => {
-      const { normalized, resolvedMs } = normalizeReactiveTrigger("subagent_progress", 1700000000000);
+      const { normalized, resolvedMs } = normalizeReactiveTrigger(
+        "subagent_progress",
+        1700000000000,
+      );
       expect(resolvedMs).toBe(1700000000000);
       expect(normalized.type).toBe("subagent_progress");
       expect(normalized.timestamp).toBe(new Date(1700000000000).toISOString());

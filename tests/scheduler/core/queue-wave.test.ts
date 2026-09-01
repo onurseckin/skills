@@ -1,6 +1,5 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import * as fs from "node:fs";
 import { join } from "node:path";
 import {
   queueListCommand,
@@ -12,6 +11,11 @@ import { formatQueueWaveBrief } from "../../../olt/scripts/src/cli/formatters/qu
 import { resetHarnessConfigCache } from "../../../olt/scripts/src/core/config/index.ts";
 import { readySet, recordTopology } from "../../../olt/scripts/src/engine/scheduler/index.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
+import {
+  cleanupVirtualBrowserFS,
+  setupVirtualBrowserFS,
+  tempDir,
+} from "../../reporting/browser/browser-virtual-fs.ts";
 import { queueCapsuleState, schedulerState } from "../fixtures.ts";
 
 interface ReadyEntryShape {
@@ -21,17 +25,10 @@ interface ReadyEntryShape {
   write_scope: string[];
 }
 
-const roots: string[] = [];
-afterEach(() => {
-  resetHarnessConfigCache();
-  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
-});
-
 function compiledRun(name: string, maxParallel?: number): string {
-  const repo = mkdtempSync(join(tmpdir(), `harness-${name}-`));
-  roots.push(repo);
+  const repo = tempDir(`harness-${name}`);
   if (maxParallel !== undefined) {
-    writeFileSync(
+    fs.writeFileSync(
       join(repo, "harness.config.json"),
       JSON.stringify({ default_max_parallel: maxParallel }),
     );
@@ -53,6 +50,15 @@ function compiledRun(name: string, maxParallel?: number): string {
 }
 
 describe("queue:wave", () => {
+  beforeEach(() => {
+    setupVirtualBrowserFS();
+  });
+
+  afterEach(() => {
+    resetHarnessConfigCache();
+    cleanupVirtualBrowserFS();
+  });
+
   test("lists every claimable task, where queue:next names only the first", () => {
     const run = compiledRun("wave-batch", 4);
 
@@ -69,8 +75,6 @@ describe("queue:wave", () => {
     expect(String(wave.markdown)).toContain("each row is independently claimable now");
   });
 
-  // plan:compile records the topology, so the absent path belongs to capsules compiled before it
-  // did; the state fixture stands in for one.
   test("reports an unrecorded topology as absent and never guesses a wave number", () => {
     const selection = readySet(schedulerState(), 4);
 
@@ -105,22 +109,14 @@ describe("queue:wave", () => {
     expect(String(wave.markdown)).toContain("recorded at graph revision 1");
   });
 
-  // B24/B25: the recorded wave is a planning-time annotation, never an execution barrier. A
-  // capsule whose topology split two independent tasks across waves — because compile-time
-  // capacity was narrow — must still hand back both together the moment runtime capacity allows
-  // it. A regression here would mean "wave" silently became a gate again.
   test("a task recorded into a later wave dispatches alongside an earlier one once capacity allows it", () => {
     const run = compiledRun("wave-not-a-barrier");
-    // Compile-time capacity of 1 forces the topology to record t-alpha and t-beta — mutually
-    // independent — into separate waves, purely because only one slot existed when it was decided.
     const { topology } = recordTopology(run, "planner", { default_max_parallel: 1 });
     expect(topology.waves.slice(0, 2)).toEqual([
       { wave: 1, task_ids: ["t-alpha"] },
       { wave: 2, task_ids: ["t-beta"] },
     ]);
 
-    // Runtime capacity is wider, and nothing has claimed t-alpha yet, so both are claimable now —
-    // the recorded wave 2 on t-beta never blocks it.
     const wave = queueWaveCommand({ run, "max-parallel": "4" });
     const entries = wave.wave as ReadyEntryShape[];
     expect(entries.map((entry) => entry.task_id)).toEqual(["t-alpha", "t-beta"]);

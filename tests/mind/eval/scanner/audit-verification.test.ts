@@ -10,9 +10,7 @@ import {
   checkValueConsistency,
 } from "../../../../olt/scripts/src/mind/auditing/index.ts";
 
-
 describe("Phase 5 W5.2 - Mind Audit Verification Functions", () => {
-
   describe("8 Verification Check Functions", () => {
     test("Q1 checkPulseGaps detects gaps in open/close pairs and sequence jumps", () => {
       const cleanEvents: HarnessEvent[] = [

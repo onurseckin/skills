@@ -244,4 +244,24 @@ describe("Extended Heuristics: Semantic Depth & Anti-Boilerplate Verification", 
     expect(depthAudit.defects.length).toBeGreaterThanOrEqual(3);
     expect(depthAudit.deepCount).toBe(0);
   });
+
+  it("handles empty details and manifests with non-array criteria safely", () => {
+    const emptyDetailsCriterion = {
+      id: "CRIT-EMPTY-DET",
+      pillar: "mechanical",
+      details: "",
+      evidence: "Evaluated 10 elements with 0 violations.",
+    };
+    const audit1 = auditCriterionSemanticDepth(emptyDetailsCriterion);
+    expect(audit1.isDeep).toBe(false);
+    expect(audit1.defects.some((d) => d.category === "boilerplate_evidence")).toBe(true);
+
+    const emptyManifestAudit = auditManifestSemanticDepth({
+      version: "2.0",
+      viewport: "desktop",
+      criteria: "invalid-not-array" as unknown as [],
+    });
+    expect(emptyManifestAudit.passed).toBe(false);
+    expect(emptyManifestAudit.evaluatedCount).toBe(0);
+  });
 });

@@ -1,5 +1,4 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, rmSync, existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   CAPSULE_LAYOUT,
@@ -8,7 +7,6 @@ import {
 } from "../../../olt/scripts/src/engine/store/layout/layout.ts";
 import {
   detectContentFormat,
-  normalizeContent,
   contentDigest,
   contentEquals,
 } from "../../../olt/scripts/src/engine/store/content-normalization/index.ts";
@@ -24,6 +22,7 @@ import {
 import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/events/transaction.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { cleanupVirtualEngineFS, getVirtualEngineFS, setupVirtualEngineFS } from "../fixture.ts";
 
 describe("Store Layout", () => {
   test("CAPSULE_LAYOUT contains all core files and valid roles", () => {
@@ -97,22 +96,16 @@ describe("Content Normalization", () => {
 });
 
 describe("Defect Store", () => {
-  let testDir: string;
+  const testDir = "/virtual/store/test-defect-store";
 
   beforeEach(() => {
-    testDir = join(
-      process.cwd(),
-      "coverage",
-      "scratch",
-      `test-defect-store-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    );
-    mkdirSync(testDir, { recursive: true });
+    setupVirtualEngineFS();
+    const vfs = getVirtualEngineFS();
+    vfs.mkdirSync(testDir, { recursive: true });
   });
 
   afterEach(() => {
-    if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true, force: true });
-    }
+    cleanupVirtualEngineFS();
   });
 
   test("appendCapsuleDefect logs defects to defects.jsonl and loadCapsuleDefects retrieves them", () => {
@@ -192,17 +185,13 @@ describe("Defect Store", () => {
 });
 
 describe("Capsule Transaction and Event Append", () => {
-  let testRepo: string;
+  const testRepo = "/virtual/store/test-store-run";
   let runRoot: string;
 
   beforeEach(() => {
-    testRepo = join(
-      process.cwd(),
-      "coverage",
-      "scratch",
-      `test-store-run-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    );
-    mkdirSync(testRepo, { recursive: true });
+    setupVirtualEngineFS();
+    const vfs = getVirtualEngineFS();
+    vfs.mkdirSync(testRepo, { recursive: true });
     runRoot = initRun(
       testRepo,
       "test-run-1",
@@ -213,9 +202,7 @@ describe("Capsule Transaction and Event Append", () => {
   });
 
   afterEach(() => {
-    if (existsSync(testRepo)) {
-      rmSync(testRepo, { recursive: true, force: true });
-    }
+    cleanupVirtualEngineFS();
   });
 
   test("transact executes state mutations and appends projection events with incrementing sequence", () => {
@@ -247,7 +234,8 @@ describe("Capsule Transaction and Event Append", () => {
     expect(state2.revision).toBe(2);
     expect(state2.phase).toBe("executing");
 
-    const eventsContent = readFileSync(join(runRoot, "events.jsonl"), "utf8");
+    const vfs = getVirtualEngineFS();
+    const eventsContent = vfs.readFileSync(join(runRoot, "events.jsonl"), "utf8");
     const lines = eventsContent.trim().split("\n");
     expect(lines.length).toBe(2);
   });

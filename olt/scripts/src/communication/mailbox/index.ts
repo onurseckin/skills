@@ -10,12 +10,15 @@ export {
   ensureMailboxDir,
   ensureMailboxDirectories,
   getInMemoryMailboxDirs,
+  isInMemoryMailboxDir,
   isVirtualMailboxPath,
   isValidAgentId,
+  listMailboxAgentIds,
   registerInMemoryMailboxDir,
   resetInMemoryMailboxDirs,
   resolveMailboxLockPath,
   resolveMailboxPaths,
+  resolveSystemLockPath,
 } from "./mailbox-paths.ts";
 
 export {

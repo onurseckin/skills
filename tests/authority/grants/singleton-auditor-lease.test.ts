@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   acquireAuditorLeaseLock,
@@ -12,20 +11,21 @@ import {
   releaseAuditorLeaseLock,
 } from "../../../olt/scripts/src/authority/guards/singleton-auditor-guard.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { cleanupVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
 
 describe("Singleton Skill Auditor Lease Guard - Lease Management", () => {
   let tempDir: string;
   let lockPath: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "auditor-lease-test-"));
+    setupVirtualAuthorityFS();
+    tempDir = "/virtual/auditor-lease";
+    mkdirSync(tempDir, { recursive: true });
     lockPath = join(tempDir, "skill_auditor.lock");
   });
 
   afterEach(() => {
-    try {
-      rmSync(tempDir, { recursive: true, force: true });
-    } catch {}
+    cleanupVirtualAuthorityFS();
   });
 
   describe("constants and defaults", () => {

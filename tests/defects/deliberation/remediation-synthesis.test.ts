@@ -10,7 +10,8 @@ import type {
   DefectResolutionProof,
 } from "../../../olt/scripts/src/mind/defects/core/index.ts";
 
-export const remediationSynthesisSuiteName = "Defect Remediation Action Synthesis & Empirical Proofs";
+export const remediationSynthesisSuiteName =
+  "Defect Remediation Action Synthesis & Empirical Proofs";
 
 describe(remediationSynthesisSuiteName, () => {
   it("validates resolution proofs strictly and rejects invalid formats", () => {

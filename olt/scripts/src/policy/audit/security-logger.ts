@@ -138,7 +138,7 @@ export class SecurityAuditLogger {
         allowed: params.allowed,
         violations: params.violations ?? [],
         warnings: params.warnings ?? [],
-        ...(params.details ?? {}),
+        ...params.details,
       },
     });
     this.telemetryCollector.recordEvaluation(params.durationMs ?? 0, outcome, category, severity);
@@ -150,7 +150,7 @@ export class SecurityAuditLogger {
         actor: params.actor,
         message: `Policy enforcement failure on ${params.actionType}: ${params.violations[0]}`,
         violations: params.violations,
-        context: { target: params.target, ...(params.details ?? {}) },
+        context: { target: params.target, ...params.details },
       });
     }
     return event;
@@ -174,7 +174,7 @@ export class SecurityAuditLogger {
       details: {
         driftDetected: params.detected,
         reason: params.reason ?? (params.detected ? "Policy drift detected" : "Policy clean"),
-        ...(params.details ?? {}),
+        ...params.details,
       },
     });
     if (params.detected) {

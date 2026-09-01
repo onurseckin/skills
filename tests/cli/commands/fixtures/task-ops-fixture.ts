@@ -5,7 +5,7 @@ import { execute } from "../../../../olt/scripts/src/cli/execute.ts";
 import {
   establishSupervisorChain,
   registerUnderChain,
-} from "../../../shared/agent-supervisor-chain.ts";
+} from "../../../shared/chains/agent-supervisor-chain.ts";
 export { establishSupervisorChain, registerUnderChain };
 
 /** Two tasks, one depending on the other, compiled and ready to be claimed. */
@@ -19,7 +19,7 @@ export async function setupCompiledRun(
   const promptPath = join(repo, "prompt.txt");
   await writeFile(promptPath, "Core unit tests\n\nSecondary tests");
   await mkdir(join(repo, "tests/core"), { recursive: true });
-  await mkdir(join(repo, "tests/unit/sec"), { recursive: true });
+  await mkdir(join(repo, "tests/cli/sec"), { recursive: true });
   await writeFile(join(repo, "gate-core.ts"), "console.log('gate-core');\n");
   await writeFile(join(repo, "gate-sec.ts"), "console.log('gate-sec');\n");
   if (config) {
@@ -62,7 +62,7 @@ export async function setupCompiledRun(
     "--label",
     "Secondary Tests",
     "--scope",
-    "tests/unit/sec",
+    "tests/cli/sec",
     "--gate",
     "bun gate-sec.ts",
     "--deps",
@@ -90,16 +90,13 @@ export async function setupCompiledRun(
   return { repo, run };
 }
 
-export async function setupCompiledRunUncompiled(
-  name: string,
-  roots: string[],
-) {
+export async function setupCompiledRunUncompiled(name: string, roots: string[]) {
   const repo = await mkdtemp(join(tmpdir(), `task-ops-${name}-`));
   roots.push(repo);
   const promptPath = join(repo, "prompt.txt");
   await writeFile(promptPath, "Core unit tests\n\nSecondary tests");
   await mkdir(join(repo, "tests/core"), { recursive: true });
-  await mkdir(join(repo, "tests/unit/sec"), { recursive: true });
+  await mkdir(join(repo, "tests/cli/sec"), { recursive: true });
   await writeFile(join(repo, "gate-core.ts"), "console.log('gate-core');\n");
   await writeFile(join(repo, "gate-sec.ts"), "console.log('gate-sec');\n");
 
@@ -139,7 +136,7 @@ export async function setupCompiledRunUncompiled(
     "--label",
     "Secondary Tests",
     "--scope",
-    "tests/unit/sec",
+    "tests/cli/sec",
     "--gate",
     "bun gate-sec.ts",
     "--deps",

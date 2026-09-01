@@ -1,7 +1,5 @@
-import { describe, expect, test } from "bun:test";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { afterEach, describe, expect, spyOn, test } from "bun:test";
+import * as fs from "node:fs";
 import { checkAntiMockMutation } from "../../../olt/scripts/src/reporting/doctor/anti-mock-engine.ts";
 import {
   checkAstPurity,
@@ -16,7 +14,13 @@ import {
 import type { MailboxCursor } from "../../../olt/scripts/src/communication/types.ts";
 import type { UnifiedTelemetryReport } from "../../../olt/scripts/src/telemetry/types.ts";
 
-export const doctorSocraticHardeningSuiteName = "Doctor Diagnostic Engines - Socratic Hardening Suite";
+export const doctorSocraticHardeningSuiteName =
+  "Doctor Diagnostic Engines - Socratic Hardening Suite";
+
+const spies: Array<{ mockRestore: () => void }> = [];
+afterEach(() => {
+  for (const s of spies.splice(0)) s.mockRestore();
+});
 
 describe(doctorSocraticHardeningSuiteName, () => {
   test("Challenge 1: checkAntiMockMutation inspects target files and ignores negative matchers / unequal literals", () => {
@@ -47,12 +51,9 @@ describe(doctorSocraticHardeningSuiteName, () => {
   });
 
   test("Challenge 2: healCorruptedCursor protects unacknowledged actionable envelopes even when outbox is empty", () => {
-    const scratch = join(
-      tmpdir(),
-      `mb-cursor-starvation-empty-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-    );
-    const agentDir = join(scratch, ".olt", "mailboxes", "worker-1");
-    mkdirSync(agentDir, { recursive: true });
+    const vfs = new Map<string, string>();
+    const cursorPath = "/virtual/mailboxes/worker-1/cursor.json";
+    const inboxPath = "/virtual/mailboxes/worker-1/inbox.jsonl";
 
     const env1 = {
       id: "env-1",
@@ -66,21 +67,35 @@ describe(doctorSocraticHardeningSuiteName, () => {
       payload: { taskId: "task-1" },
     };
 
-    // Outbox does not exist (0 requests answered)
-    writeFileSync(join(agentDir, "inbox.jsonl"), `${JSON.stringify(env1)}\n`);
-    writeFileSync(join(agentDir, "cursor.json"), "invalid json");
+    vfs.set(inboxPath, `${JSON.stringify(env1)}\n`);
+    vfs.set(cursorPath, "invalid json");
 
-    const cursorPath = join(agentDir, "cursor.json");
-    const inboxPath = join(agentDir, "inbox.jsonl");
+    const existsSpy = spyOn(fs, "existsSync").mockImplementation((p) => vfs.has(String(p)));
+    const readSpy = spyOn(fs, "readFileSync").mockImplementation((p) => {
+      const pathStr = String(p);
+      const c = vfs.get(pathStr);
+      if (c === undefined) throw new Error(`ENOENT: ${pathStr}`);
+      return c;
+    });
+    const writeSpy = spyOn(fs, "writeFileSync").mockImplementation((p, data) => {
+      vfs.set(String(p), String(data));
+    });
+    const renameSpy = spyOn(fs, "renameSync").mockImplementation((from, to) => {
+      const c = vfs.get(String(from));
+      if (c !== undefined) {
+        vfs.set(String(to), c);
+        vfs.delete(String(from));
+      }
+    });
+    const mkdirSpy = spyOn(fs, "mkdirSync").mockImplementation(() => undefined);
+    spies.push(existsSpy, readSpy, writeSpy, renameSpy, mkdirSpy);
 
     const success = healCorruptedCursor(cursorPath, inboxPath);
     expect(success).toBe(true);
 
-    const parsedCursor = JSON.parse(readFileSync(cursorPath, "utf8")) as MailboxCursor;
+    const parsedCursor = JSON.parse(vfs.get(cursorPath) ?? "{}") as MailboxCursor;
     expect(parsedCursor.last_read_sequence).toBe(0);
     expect(parsedCursor.seen_ids).toEqual([]);
-
-    rmSync(scratch, { recursive: true, force: true });
   });
 
   test("Challenge 3: AST purity deep assertion traversal and git rename/quotes sanitization", () => {

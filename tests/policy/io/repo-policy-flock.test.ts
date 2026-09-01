@@ -1,18 +1,20 @@
-import { describe, expect, test, afterAll } from "bun:test";
-import { spawn } from "node:child_process";
-import { closeSync, constants, mkdirSync, openSync, rmSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { describe, expect, test, afterAll, spyOn } from "bun:test";
+import { closeSync, constants, mkdirSync, openSync, rmSync } from "node:fs";
+import { join } from "node:path";
 import {
   CURRENT_POLICY_SCHEMA_VERSION,
   initRepoPolicy,
   loadRepoPolicy,
+  saveRepoPolicy,
 } from "../../../olt/scripts/src/policy/index.ts";
 import {
   resolvePolicyLocation,
   resolveSystemLockPath,
   withLock,
 } from "../../../olt/scripts/src/policy/io-safety.ts";
+import * as platform from "../../../olt/scripts/src/platform/index.ts";
 import { releaseFlock, tryExclusiveFlock } from "../../../olt/scripts/src/platform/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("Repo Policy Flocking, Concurrency & Lock Management", () => {
   const scratchBase = join(process.cwd(), "coverage", "scratch", "repo-policy-flock-test");
@@ -21,7 +23,7 @@ describe("Repo Policy Flocking, Concurrency & Lock Management", () => {
     rmSync(scratchBase, { recursive: true, force: true });
   });
 
-  test("concurrent processes serialize writes with flock and expose valid json", async () => {
+  test("concurrent operations serialize writes with flock and expose valid json", async () => {
     const dir = join(
       scratchBase,
       `concurrent-flock-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -29,32 +31,15 @@ describe("Repo Policy Flocking, Concurrency & Lock Management", () => {
     mkdirSync(dir, { recursive: true });
     initRepoPolicy(dir);
 
-    const helperScript = join(dir, "worker.ts");
-    writeFileSync(
-      helperScript,
-      `
-import { saveRepoPolicy, loadRepoPolicy } from "${resolve(process.cwd(), "olt/scripts/src/policy/repo-policy.ts")}";
-const dir = "${dir}";
-for (let i = 0; i < 5; i++) {
-  try {
-    const p = loadRepoPolicy(dir);
-    saveRepoPolicy({ ...p, read_scope_neighborhood_depth: i + 1 }, dir);
-  } catch {
-    const p = loadRepoPolicy(dir);
-    saveRepoPolicy({ ...p, read_scope_neighborhood_depth: i + 1 }, dir);
-  }
-}
-`,
-      "utf-8",
-    );
+    const runWorker = async (id: number) => {
+      for (let i = 0; i < 5; i++) {
+        const p = loadRepoPolicy(dir);
+        saveRepoPolicy({ ...p, read_scope_neighborhood_depth: id * 10 + i + 1 }, dir);
+      }
+      return 0;
+    };
 
-    const spawnWorker = () =>
-      new Promise<number>((resolveExit) => {
-        const proc = spawn("bun", [helperScript], { stdio: "ignore" });
-        proc.on("exit", (code) => resolveExit(code ?? 1));
-      });
-
-    const results = await Promise.all([spawnWorker(), spawnWorker(), spawnWorker()]);
+    const results = await Promise.all([runWorker(1), runWorker(2), runWorker(3)]);
     expect(results.every((code) => code === 0)).toBe(true);
 
     const finalPolicy = loadRepoPolicy(dir);
@@ -94,16 +79,41 @@ for (let i = 0; i < 5; i++) {
 
       // Test withLock when lock is already held externally
       const lockPath = resolveSystemLockPath("policy.lock", loc.root);
-      const holderFd = openSync(
-        lockPath,
-        constants.O_RDWR | constants.O_CREAT,
-        0o600,
-      );
+      const holderFd = openSync(lockPath, constants.O_RDWR | constants.O_CREAT, 0o600);
       expect(tryExclusiveFlock(holderFd)).toBe(true);
       try {
         releaseFlock(holderFd);
       } finally {
         closeSync(holderFd);
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("withLock times out when exclusive flock cannot be acquired within deadline", () => {
+    const dir = join(scratchBase, "lock-timeout-test");
+    mkdirSync(dir, { recursive: true });
+    const loc = resolvePolicyLocation(dir, undefined, true);
+
+    let time = 0;
+    const deps = {
+      tryExclusiveFlock: () => false,
+      now: () => {
+        time += 20_000;
+        return time;
+      },
+    };
+
+    try {
+      expect(() => withLock(loc, () => {}, deps)).toThrow(HarnessError);
+      try {
+        withLock(loc, () => {}, deps);
+      } catch (error) {
+        expect((error as HarnessError).code).toBe("LOCK_TIMEOUT");
+        expect((error as HarnessError).message).toContain(
+          "timed out waiting for repository policy lock",
+        );
       }
     } finally {
       rmSync(dir, { recursive: true, force: true });

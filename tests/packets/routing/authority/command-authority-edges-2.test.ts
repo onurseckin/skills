@@ -39,7 +39,6 @@ function spec(name: string) {
   return found;
 }
 
-
 describe("Command Authority Edges - Hierarchy & Policies", () => {
   describe("command-authority-grants-edge-cases", () => {
     test("assertSubjectTargetPolicy on agent:report and agent:release", () => {
@@ -269,4 +268,3 @@ describe("Command Authority Edges - Hierarchy & Policies", () => {
     });
   });
 });
-

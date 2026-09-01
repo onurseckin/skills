@@ -204,5 +204,4 @@ describe("Stateful Task Queue Engine", () => {
     }).toThrow("actively leased to agent 'agent-mind-1'");
     teardown();
   });
-
 });

@@ -1,47 +1,102 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
+import * as fs from "node:fs";
+import { join } from "node:path";
 import {
   findRepositoryRoot,
   scanMisplacedCapsulesDirectories,
   verifyStrictRepositoryCapsuleRoot,
 } from "../../../olt/scripts/src/reporting/doctor/capsule-root.ts";
+import { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
-const SCRATCH_DIR = resolve(join(process.cwd(), "coverage", "scratch", "capsule-root-tests"));
+const VIRTUAL_SCRATCH_DIR = "/virtual/capsule-root-tests";
 
 export const capsuleRootSuiteName = "doctor/capsule-root";
 
 describe(capsuleRootSuiteName, () => {
+  let vfs: VirtualMemoryFS;
+  let spies: Array<{ mockRestore: () => void }> = [];
+
   beforeEach(() => {
-    rmSync(SCRATCH_DIR, { recursive: true, force: true });
-    mkdirSync(SCRATCH_DIR, { recursive: true });
+    vfs = new VirtualMemoryFS();
+    vfs.mkdirSync(VIRTUAL_SCRATCH_DIR, { recursive: true });
+
+    const existsSpy = spyOn(fs, "existsSync").mockImplementation((p) => {
+      return vfs.existsSync(String(p));
+    });
+
+    const mkdirSpy = spyOn(fs, "mkdirSync").mockImplementation((p, opts) => {
+      return vfs.mkdirSync(String(p), opts as Parameters<typeof vfs.mkdirSync>[1]);
+    });
+
+    const writeFileSpy = spyOn(fs, "writeFileSync").mockImplementation((p, data) => {
+      vfs.writeFileSync(
+        String(p),
+        typeof data === "string" ? data : Buffer.from(data as Uint8Array),
+      );
+    });
+
+    const readFileSpy = spyOn(fs, "readFileSync").mockImplementation((p, opts) => {
+      if (typeof opts === "string" || (typeof opts === "object" && opts?.encoding)) {
+        return vfs.readFileSync(String(p), "utf8");
+      }
+      return vfs.readFileSync(String(p));
+    });
+
+    const readdirSpy = spyOn(fs, "readdirSync").mockImplementation((p, opts) => {
+      if (typeof opts === "object" && opts?.withFileTypes) {
+        return vfs.readdirSync(String(p), { withFileTypes: true }) as unknown as fs.Dirent[];
+      }
+      return vfs.readdirSync(String(p)) as unknown as string[];
+    });
+
+    const statSpy = spyOn(fs, "statSync").mockImplementation((p) => {
+      const s = vfs.statSync(String(p));
+      if (!s) throw new Error(`ENOENT: no such file or directory, stat '${String(p)}'`);
+      return {
+        isFile: () => s.isFile(),
+        isDirectory: () => s.isDirectory(),
+        size: s.size,
+        mtime: s.mtime,
+        mtimeMs: s.mtimeMs,
+        birthtime: s.birthtime,
+        birthtimeMs: s.birthtimeMs,
+        atime: s.atime,
+        atimeMs: s.atimeMs,
+        ctime: s.ctime,
+        ctimeMs: s.ctimeMs,
+        mode: s.mode,
+      } as unknown as fs.Stats;
+    });
+
+    const realpathSpy = spyOn(fs, "realpathSync").mockImplementation((p) => String(p));
+
+    spies = [existsSpy, mkdirSpy, writeFileSpy, readFileSpy, readdirSpy, statSpy, realpathSpy];
   });
 
   afterEach(() => {
-    rmSync(SCRATCH_DIR, { recursive: true, force: true });
+    for (const s of spies) {
+      s.mockRestore();
+    }
+    spies = [];
   });
 
   describe("findRepositoryRoot", () => {
     it("finds repository root by walking upwards looking for .git", () => {
-      const repoDir = join(SCRATCH_DIR, "git-repo");
+      const repoDir = join(VIRTUAL_SCRATCH_DIR, "git-repo");
       const subDir = join(repoDir, "a", "b", "c");
-      mkdirSync(join(repoDir, ".git"), { recursive: true });
-      mkdirSync(subDir, { recursive: true });
+      vfs.mkdirSync(join(repoDir, ".git"), { recursive: true });
+      vfs.mkdirSync(subDir, { recursive: true });
 
       const found = findRepositoryRoot(subDir);
       expect(found).toBe(repoDir);
     });
 
     it("falls back to splitting on .capsules when .git is absent", () => {
-      const tempPath = join(require("node:os").tmpdir(), "no-git-capsules-test-" + Date.now());
+      const tempPath = join(VIRTUAL_SCRATCH_DIR, "no-git-capsules-test");
       const runDir = join(tempPath, ".capsules", "run-123");
-      mkdirSync(runDir, { recursive: true });
-      try {
-        const found = findRepositoryRoot(runDir);
-        expect(found).toBe(tempPath);
-      } finally {
-        rmSync(tempPath, { recursive: true, force: true });
-      }
+      vfs.mkdirSync(runDir, { recursive: true });
+      const found = findRepositoryRoot(runDir);
+      expect(found).toBe(tempPath);
     });
 
     it("falls back to process.cwd() when no .git or .capsules exists", () => {
@@ -57,39 +112,41 @@ describe(capsuleRootSuiteName, () => {
 
   describe("scanMisplacedCapsulesDirectories", () => {
     it("returns empty array for non-existent directory", () => {
-      expect(scanMisplacedCapsulesDirectories(join(SCRATCH_DIR, "does-not-exist"))).toEqual([]);
+      expect(scanMisplacedCapsulesDirectories(join(VIRTUAL_SCRATCH_DIR, "does-not-exist"))).toEqual(
+        [],
+      );
     });
 
     it("returns empty array when currentDepth exceeds maxDepth", () => {
-      const dir = join(SCRATCH_DIR, "depth-test");
-      mkdirSync(dir, { recursive: true });
+      const dir = join(VIRTUAL_SCRATCH_DIR, "depth-test");
+      vfs.mkdirSync(dir, { recursive: true });
       expect(scanMisplacedCapsulesDirectories(dir, 2, 3)).toEqual([]);
     });
 
     it("skips node_modules, .git, and .tmp directories", () => {
-      const repo = join(SCRATCH_DIR, "ignored-dirs");
-      mkdirSync(join(repo, "node_modules", ".capsules"), { recursive: true });
-      mkdirSync(join(repo, ".git", ".capsules"), { recursive: true });
-      mkdirSync(join(repo, ".tmp", ".capsules"), { recursive: true });
+      const repo = join(VIRTUAL_SCRATCH_DIR, "ignored-dirs");
+      vfs.mkdirSync(join(repo, "node_modules", ".capsules"), { recursive: true });
+      vfs.mkdirSync(join(repo, ".git", ".capsules"), { recursive: true });
+      vfs.mkdirSync(join(repo, ".tmp", ".capsules"), { recursive: true });
 
       const misplaced = scanMisplacedCapsulesDirectories(repo);
       expect(misplaced).toEqual([]);
     });
 
     it("detects misplaced .capsules in subdirectories at depth > 0", () => {
-      const repo = join(SCRATCH_DIR, "misplaced-test");
+      const repo = join(VIRTUAL_SCRATCH_DIR, "misplaced-test");
       const nestedCapsules = join(repo, "packages", "service-a", ".capsules");
-      mkdirSync(nestedCapsules, { recursive: true });
+      vfs.mkdirSync(nestedCapsules, { recursive: true });
       // Root-level .capsules should NOT be flagged
-      mkdirSync(join(repo, ".capsules"), { recursive: true });
+      vfs.mkdirSync(join(repo, ".capsules"), { recursive: true });
 
       const misplaced = scanMisplacedCapsulesDirectories(repo);
       expect(misplaced).toEqual([nestedCapsules]);
     });
 
     it("handles filesystem read errors gracefully", () => {
-      const filePath = join(SCRATCH_DIR, "not-a-directory.txt");
-      writeFileSync(filePath, "hello");
+      const filePath = join(VIRTUAL_SCRATCH_DIR, "not-a-directory.txt");
+      vfs.writeFileSync(filePath, "hello");
       // Calling with a file instead of directory causes readdirSync to throw, exercising catch block
       expect(scanMisplacedCapsulesDirectories(filePath)).toEqual([]);
     });
@@ -97,10 +154,10 @@ describe(capsuleRootSuiteName, () => {
 
   describe("verifyStrictRepositoryCapsuleRoot", () => {
     it("validates compliant runRoot inside <repo-root>/.capsules/<run-id>", () => {
-      const repo = join(SCRATCH_DIR, "valid-capsule-repo");
-      mkdirSync(join(repo, ".git"), { recursive: true });
+      const repo = join(VIRTUAL_SCRATCH_DIR, "valid-capsule-repo");
+      vfs.mkdirSync(join(repo, ".git"), { recursive: true });
       const runRoot = join(repo, ".capsules", "run-valid-1");
-      mkdirSync(runRoot, { recursive: true });
+      vfs.mkdirSync(runRoot, { recursive: true });
 
       const audit = verifyStrictRepositoryCapsuleRoot(runRoot, repo);
       expect(audit.valid).toBe(true);
@@ -110,10 +167,10 @@ describe(capsuleRootSuiteName, () => {
     });
 
     it("detects invalid runRoot outside repository root .capsules/", () => {
-      const repo = join(SCRATCH_DIR, "invalid-capsule-repo");
-      mkdirSync(join(repo, ".git"), { recursive: true });
+      const repo = join(VIRTUAL_SCRATCH_DIR, "invalid-capsule-repo");
+      vfs.mkdirSync(join(repo, ".git"), { recursive: true });
       const invalidRunRoot = join(repo, "packages", "service", ".capsules", "run-nested");
-      mkdirSync(invalidRunRoot, { recursive: true });
+      vfs.mkdirSync(invalidRunRoot, { recursive: true });
 
       const audit = verifyStrictRepositoryCapsuleRoot(invalidRunRoot, repo);
       expect(audit.valid).toBe(false);
@@ -125,13 +182,13 @@ describe(capsuleRootSuiteName, () => {
     });
 
     it("detects misplaced capsules even if current runRoot is compliant", () => {
-      const repo = join(SCRATCH_DIR, "partially-invalid-repo");
-      mkdirSync(join(repo, ".git"), { recursive: true });
+      const repo = join(VIRTUAL_SCRATCH_DIR, "partially-invalid-repo");
+      vfs.mkdirSync(join(repo, ".git"), { recursive: true });
       const runRoot = join(repo, ".capsules", "run-ok");
-      mkdirSync(runRoot, { recursive: true });
+      vfs.mkdirSync(runRoot, { recursive: true });
 
       const misplaced = join(repo, "subproject", ".capsules");
-      mkdirSync(misplaced, { recursive: true });
+      vfs.mkdirSync(misplaced, { recursive: true });
 
       const audit = verifyStrictRepositoryCapsuleRoot(runRoot, repo);
       expect(audit.valid).toBe(false);
@@ -143,10 +200,10 @@ describe(capsuleRootSuiteName, () => {
     });
 
     it("works when explicitRepoRoot is not provided and discovers it automatically", () => {
-      const repo = join(SCRATCH_DIR, "auto-discover-repo");
-      mkdirSync(join(repo, ".git"), { recursive: true });
+      const repo = join(VIRTUAL_SCRATCH_DIR, "auto-discover-repo");
+      vfs.mkdirSync(join(repo, ".git"), { recursive: true });
       const runRoot = join(repo, ".capsules", "run-auto");
-      mkdirSync(runRoot, { recursive: true });
+      vfs.mkdirSync(runRoot, { recursive: true });
 
       const audit = verifyStrictRepositoryCapsuleRoot(runRoot);
       expect(audit.valid).toBe(true);

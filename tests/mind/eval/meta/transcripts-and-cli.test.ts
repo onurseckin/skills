@@ -1,53 +1,66 @@
-import { describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { describe, expect, it, beforeEach, afterEach, spyOn } from "bun:test";
+import * as fs from "node:fs";
+import { join } from "node:path";
 import {
   analyzeRunForensics,
-  calculateEfficiencyScore,
-  formatForensicsReport,
-  injectRemediationToFeedbackQueue,
-  isPollTool,
-  isReadTool,
-  isWriteTool,
-  renderForensicsAsciiTable,
-  synthesizeRemediationPlan,
-  ROOT_CAUSE_CATEGORIES,
-  FORENSICS_SEVERITIES,
   type AnalyzeRunForensicsOptions,
-  type FeedbackInjectionOptions,
-  type ForensicsAnalysisResult,
-  type ForensicsIncident,
-  type ForensicsMetrics,
-  type ForensicsSeverity,
-  type PlanInjectionProposal,
-  type RootCauseCategory,
 } from "../../../../olt/scripts/src/mind/auditing/meta/index.ts";
-import {
-  formatMetaAuditReport,
-  metaAuditCommand,
-  renderEfficiencyMetricsTable,
-  renderForensicsIncidentTable,
-} from "../../../../olt/scripts/src/cli/commands/meta-audit.ts";
-import type { AgentGrantRecord, Manifest, RunState } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import {
-  __setFeedbackQueuePersistenceTestHook,
-  readFeedbackQueue,
-} from "../../../../olt/scripts/src/mind/feedback/queue/index.ts";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import { metaAuditCommand } from "../../../../olt/scripts/src/cli/commands/meta-audit.ts";
+import type {
+  AgentGrantRecord,
+  Manifest,
+  RunState,
+} from "../../../../olt/scripts/src/core/contracts/index.ts";
 
-describe("Meta Auditor - Transcripts Parsing & CLI Command", () => {
+describe("Meta Auditor - Transcripts Parsing & CLI Command (in-memory virtual)", () => {
+  const scratchDir = `${process.cwd()}/.olt/virtual-meta-tx-scratch`;
+  const mockFiles = new Map<string, string>();
+  const mockDirs = new Set<string>();
+  const spies: { mockRestore: () => void }[] = [];
+
+  beforeEach(() => {
+    mockFiles.clear();
+    mockDirs.clear();
+    mockDirs.add(scratchDir);
+
+    spies.push(
+      spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => {
+        const s = String(p);
+        return mockFiles.has(s) || mockDirs.has(s);
+      }),
+    );
+
+    spies.push(
+      spyOn(fs, "readFileSync").mockImplementation((p: fs.PathOrFileDescriptor) => {
+        const s = String(p);
+        const val = mockFiles.get(s);
+        if (val !== undefined) return val;
+        throw new Error(`ENOENT: no such file, open '${s}'`);
+      }),
+    );
+
+    spies.push(
+      spyOn(fs, "writeFileSync").mockImplementation((p, data) => {
+        mockFiles.set(
+          String(p),
+          typeof data === "string" ? data : Buffer.from(data as Uint8Array).toString("utf-8"),
+        );
+      }),
+    );
+  });
+
+  afterEach(() => {
+    while (spies.length > 0) spies.pop()?.mockRestore();
+  });
+
   it("filters analysis by agent filter option", () => {
-    const scratchDir = mkdtempSync(join(tmpdir(), "meta-scratch-"));
-    mkdirSync(scratchDir, { recursive: true });
-
     const manifest: Manifest = {
       version: "2.0.0",
       run_id: "run-filter-test",
       created_at: "2026-08-23T00:00:00.000Z",
       entry_task_id: "task-1",
     };
-    writeFileSync(join(scratchDir, "manifest.json"), JSON.stringify(manifest, null, 2));
+    mockFiles.set(join(scratchDir, "manifest.json"), JSON.stringify(manifest, null, 2));
 
     const state: RunState = {
       version: "2.0.0",
@@ -73,8 +86,8 @@ describe("Meta Auditor - Transcripts Parsing & CLI Command", () => {
         },
       ],
     };
-    writeFileSync(join(scratchDir, "state.json"), JSON.stringify(state, null, 2));
-    writeFileSync(join(scratchDir, "events.jsonl"), "");
+    mockFiles.set(join(scratchDir, "state.json"), JSON.stringify(state, null, 2));
+    mockFiles.set(join(scratchDir, "events.jsonl"), "");
 
     const resultB = analyzeRunForensics({
       runRoot: scratchDir,
@@ -88,41 +101,30 @@ describe("Meta Auditor - Transcripts Parsing & CLI Command", () => {
   });
 
   it("parses transcripts in JSON format and regex log format", () => {
-    const scratchDir = mkdtempSync(join(tmpdir(), "meta-scratch-"));
-    mkdirSync(scratchDir, { recursive: true });
-
     const manifest: Manifest = {
       version: "2.0.0",
       run_id: "run-tx-test",
       created_at: "2026-08-23T00:00:00.000Z",
       entry_task_id: "task-1",
     };
-    writeFileSync(join(scratchDir, "manifest.json"), JSON.stringify(manifest, null, 2));
-    writeFileSync(
+    mockFiles.set(join(scratchDir, "manifest.json"), JSON.stringify(manifest, null, 2));
+    mockFiles.set(
       join(scratchDir, "state.json"),
       JSON.stringify({ version: "2.0.0", run_id: "run-tx-test", tasks: {}, agents: [] }),
     );
-    writeFileSync(join(scratchDir, "events.jsonl"), "");
+    mockFiles.set(join(scratchDir, "events.jsonl"), "");
 
     const jsonTranscriptPath = join(scratchDir, "transcript1.json");
-    writeFileSync(
+    mockFiles.set(
       jsonTranscriptPath,
       JSON.stringify([
-        {
-          tool: "view_file",
-          agent_id: "agent-json",
-          arguments: { AbsolutePath: "/src/foo.ts" },
-        },
-        {
-          tool: "write_to_file",
-          agent_id: "agent-json",
-          arguments: { TargetFile: "/src/foo.ts" },
-        },
+        { tool: "view_file", agent_id: "agent-json", arguments: { AbsolutePath: "/src/foo.ts" } },
+        { tool: "write_to_file", agent_id: "agent-json", arguments: { TargetFile: "/src/foo.ts" } },
       ]),
     );
 
     const regexTranscriptPath = join(scratchDir, "transcript2.log");
-    writeFileSync(
+    mockFiles.set(
       regexTranscriptPath,
       `
       call: default_api:grep_search
@@ -142,9 +144,6 @@ describe("Meta Auditor - Transcripts Parsing & CLI Command", () => {
   });
 
   it("accepts custom agentLedger passed in analysis options", () => {
-    const scratchDir = mkdtempSync(join(tmpdir(), "meta-scratch-"));
-    mkdirSync(scratchDir, { recursive: true });
-
     const customLedger: readonly AgentGrantRecord[] = [
       {
         id: "custom-agent-1",
@@ -167,21 +166,18 @@ describe("Meta Auditor - Transcripts Parsing & CLI Command", () => {
 
   describe("CLI Command metaAuditCommand", () => {
     it("executes metaAuditCommand with markdown format", async () => {
-      const scratchDir = mkdtempSync(join(tmpdir(), "meta-scratch-"));
-      mkdirSync(scratchDir, { recursive: true });
-
       const manifest: Manifest = {
         version: "2.0.0",
         run_id: "run-cli-md",
         created_at: "2026-08-23T00:00:00.000Z",
         entry_task_id: "task-1",
       };
-      writeFileSync(join(scratchDir, "manifest.json"), JSON.stringify(manifest, null, 2));
-      writeFileSync(
+      mockFiles.set(join(scratchDir, "manifest.json"), JSON.stringify(manifest, null, 2));
+      mockFiles.set(
         join(scratchDir, "state.json"),
         JSON.stringify({ version: "2.0.0", run_id: "run-cli-md", tasks: {}, agents: [] }),
       );
-      writeFileSync(join(scratchDir, "events.jsonl"), "");
+      mockFiles.set(join(scratchDir, "events.jsonl"), "");
 
       const result = await metaAuditCommand({
         run: scratchDir,
@@ -195,21 +191,18 @@ describe("Meta Auditor - Transcripts Parsing & CLI Command", () => {
     });
 
     it("executes metaAuditCommand with json format", async () => {
-      const scratchDir = mkdtempSync(join(tmpdir(), "meta-scratch-"));
-      mkdirSync(scratchDir, { recursive: true });
-
       const manifest: Manifest = {
         version: "2.0.0",
         run_id: "run-cli-json",
         created_at: "2026-08-23T00:00:00.000Z",
         entry_task_id: "task-1",
       };
-      writeFileSync(join(scratchDir, "manifest.json"), JSON.stringify(manifest, null, 2));
-      writeFileSync(
+      mockFiles.set(join(scratchDir, "manifest.json"), JSON.stringify(manifest, null, 2));
+      mockFiles.set(
         join(scratchDir, "state.json"),
         JSON.stringify({ version: "2.0.0", run_id: "run-cli-json", tasks: {}, agents: [] }),
       );
-      writeFileSync(join(scratchDir, "events.jsonl"), "");
+      mockFiles.set(join(scratchDir, "events.jsonl"), "");
 
       const result = await metaAuditCommand({
         run: scratchDir,

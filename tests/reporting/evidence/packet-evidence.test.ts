@@ -1,22 +1,15 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import * as fs from "node:fs";
 import { join } from "node:path";
 import { canonicalJsonBytes } from "../../../olt/scripts/src/core/json.ts";
 import { packetEvidenceIssues } from "../../../olt/scripts/src/reporting/packet-evidence.ts";
 import type { PacketRecord } from "../../../olt/scripts/src/workflow/types.ts";
-
-const roots: string[] = [];
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
-});
-
-function runRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "packet-evidence-"));
-  roots.push(root);
-  return root;
-}
+import {
+  cleanupVirtualBrowserFS,
+  setupVirtualBrowserFS,
+  tempDir,
+} from "../browser/browser-virtual-fs.ts";
 
 function packet(overrides: Partial<PacketRecord> = {}): PacketRecord {
   return {
@@ -44,8 +37,8 @@ function writePacket(
   const digest = createHash("sha256").update(markdown).digest("hex");
   const sealed: PacketRecord = { ...record, packet_sha256: digest };
   const dir = join(root, "packets", record.id);
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, "packet.md"), markdown, "utf-8");
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(join(dir, "packet.md"), markdown, "utf-8");
   const metadata = {
     packet_sha256: sealed.packet_sha256,
     role: sealed.role,
@@ -55,22 +48,30 @@ function writePacket(
     graph_revision: sealed.graph_revision,
     ...metadataOverrides,
   };
-  writeFileSync(join(dir, "metadata.json"), Buffer.from(canonicalJsonBytes(metadata)), "utf-8");
+  fs.writeFileSync(join(dir, "metadata.json"), Buffer.from(canonicalJsonBytes(metadata)), "utf-8");
   return sealed;
 }
 
 export const packetEvidenceSuiteName = "packetEvidenceIssues";
 
 describe(packetEvidenceSuiteName, () => {
+  beforeEach(() => {
+    setupVirtualBrowserFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualBrowserFS();
+  });
+
   test("an untampered packet on disk matching its durable record has no issues", () => {
-    const root = runRoot();
+    const root = tempDir("packet-evidence");
     const record = writePacket(root, packet(), "# Packet body");
 
     expect(packetEvidenceIssues(root, { "P-1": record })).toEqual([]);
   });
 
   test("flags a record whose recorded paths do not follow the packet id convention", () => {
-    const root = runRoot();
+    const root = tempDir("packet-evidence-wrong");
     const record = writePacket(
       root,
       packet({ markdown_path: "packets/WRONG/packet.md" }),
@@ -83,9 +84,8 @@ describe(packetEvidenceSuiteName, () => {
   });
 
   test("flags a packet whose markdown file is missing", () => {
-    const root = runRoot();
+    const root = tempDir("packet-evidence-missing");
     const record = packet({ packet_sha256: "a".repeat(64) });
-    // No files written at all for this packet.
 
     const issues = packetEvidenceIssues(root, { "P-1": record });
     expect(issues).toHaveLength(1);
@@ -93,17 +93,16 @@ describe(packetEvidenceSuiteName, () => {
   });
 
   test("flags a packet whose markdown bytes no longer match the sealed digest", () => {
-    const root = runRoot();
+    const root = tempDir("packet-evidence-tampered");
     const record = writePacket(root, packet(), "# Original body");
-    // Tamper with the markdown after sealing without updating the recorded digest.
-    writeFileSync(join(root, "packets", "P-1", "packet.md"), "# Tampered body", "utf-8");
+    fs.writeFileSync(join(root, "packets", "P-1", "packet.md"), "# Tampered body", "utf-8");
 
     const issues = packetEvidenceIssues(root, { "P-1": record });
     expect(issues[0]).toContain("markdown digest differs");
   });
 
   test("flags a packet whose metadata.json disagrees with the durable record", () => {
-    const root = runRoot();
+    const root = tempDir("packet-evidence-meta");
     const record = writePacket(root, packet(), "# Body", { agent_id: "someone-else" });
 
     const issues = packetEvidenceIssues(root, { "P-1": record });
@@ -111,15 +110,13 @@ describe(packetEvidenceSuiteName, () => {
   });
 
   test("checks every mismatched metadata field: role, task_id, attempt, graph_revision", () => {
-    const root = runRoot();
     for (const overrides of [
       { role: "other-role" },
       { task_id: "other-task" },
       { attempt: 99 },
       { graph_revision: 99 },
     ]) {
-      rmSync(root, { recursive: true, force: true });
-      mkdirSync(root, { recursive: true });
+      const root = tempDir("packet-evidence-fields");
       const record = writePacket(root, packet(), "# Body", overrides);
       expect(packetEvidenceIssues(root, { "P-1": record })[0]).toContain(
         "metadata differs from durable state",
@@ -128,7 +125,7 @@ describe(packetEvidenceSuiteName, () => {
   });
 
   test("reports multiple packets sorted by id", () => {
-    const root = runRoot();
+    const root = tempDir("packet-evidence-multiple");
     const second = writePacket(
       root,
       packet({
@@ -146,6 +143,6 @@ describe(packetEvidenceSuiteName, () => {
   });
 
   test("no packets means no issues", () => {
-    expect(packetEvidenceIssues(runRoot(), {})).toEqual([]);
+    expect(packetEvidenceIssues(tempDir("packet-evidence-none"), {})).toEqual([]);
   });
 });

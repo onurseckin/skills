@@ -1,26 +1,30 @@
-import { describe, expect, test } from "bun:test";
-import { mkdirSync } from "node:fs";
+import { describe, expect, test, afterAll } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { evidenced, estimated } from "../../../olt/scripts/src/core/contracts/index.ts";
-import type {
-  AgentToolUse,
-  TelemetryFieldConflict,
-} from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { TelemetryFieldConflict } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { registerAgentGrant } from "../../../olt/scripts/src/workflow/agents/grants.ts";
+import {
+  registerAgentGrant,
+  releaseAgentGrant,
+} from "../../../olt/scripts/src/workflow/agents/grants.ts";
 import {
   appendTelemetryConflicts,
   checkParentAgentConflict,
-  mergeObservedCount,
-  mergeObservedExtras,
-  mergeObservedTools,
   refreshAgentDerivedTelemetry,
   transcriptAuditContext,
 } from "../../../olt/scripts/src/workflow/agents/telemetry-merge.ts";
 import type { AgentTranscriptTelemetry } from "../../../olt/scripts/src/workflow/agents/transcript-telemetry.ts";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
 
+const activeRoots: string[] = [];
+
+afterAll(() => {
+  for (const root of activeRoots) {
+    try {
+      rmSync(root, { recursive: true, force: true });
+    } catch {}
+  }
+});
 
 function transcript(overrides: Partial<AgentTranscriptTelemetry> = {}): AgentTranscriptTelemetry {
   return { sourcePath: "/path/to/transcript.jsonl", tools: [], ...overrides };
@@ -110,8 +114,9 @@ describe("appendTelemetryConflicts", () => {
   });
 });
 
-function freshRun(label: string): string {
+function freshRun(_label: string): string {
   const root = mkdtempSync(join(tmpdir(), "agent-telemetry-run-"));
+  activeRoots.push(root);
   const repo = join(root, "repo");
   mkdirSync(repo);
   return initRun(repo, "telemetry-merge-run", new TextEncoder().encode("prompt"), "file", true);
@@ -138,9 +143,6 @@ describe("refreshAgentDerivedTelemetry", () => {
       actor: "coordinator",
       boundary: "post-tool",
       derived: {
-        // Recording capabilities (and their source host tool) alongside a transcript-only
-        // observation exercises the event payload's host_capabilities/host_capabilities_source
-        // passthrough — a field the returned grant itself does not carry, only the transaction.
         capabilities: { max_context: 200_000 },
         hostTool: "claude-code",
         transcript: {
@@ -181,5 +183,41 @@ describe("refreshAgentDerivedTelemetry", () => {
     });
     expect(outcome).toBeNull();
   });
-});
 
+  test("returns grant as-is without modifying ledger when grant is already released", () => {
+    const run = freshRun("released-grant-refresh");
+    registerAgentGrant({
+      runRoot: run,
+      agentId: "agent-1",
+      role: "implementer",
+      parentAgentId: null,
+      parentTaskId: null,
+      host: "some-host",
+      authority: { kind: "conditional_genesis" },
+      maxAgents: 10,
+      telemetry: {},
+    });
+
+    releaseAgentGrant({
+      runRoot: run,
+      actor: "agent-1",
+      agentId: "agent-1",
+      reason: "completed",
+    });
+
+    const outcome = refreshAgentDerivedTelemetry({
+      runRoot: run,
+      agentId: "agent-1",
+      actor: "coordinator",
+      boundary: "post-tool",
+      derived: {
+        transcript: {
+          sourcePath: "/sessions/x.jsonl",
+          tokensIn: 200,
+          tools: [],
+        },
+      },
+    });
+    expect(outcome).toBeNull();
+  });
+});

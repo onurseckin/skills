@@ -1,17 +1,17 @@
 import { afterAll, afterEach, describe, expect, test } from "bun:test";
 import { readdirSync, readFileSync } from "node:fs";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import type { RunState } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
-import { renderHandoff } from "../../../olt/scripts/src/reporting/handoff.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import { commandRecord } from "../../workflow/shared/test-port.ts";
-import { handoffArgv } from "../core/dispatchable.ts";
+import {
+  cleanupVirtualBrowserFS,
+  setupVirtualBrowserFS,
+  tempDir,
+} from "../browser/browser-virtual-fs.ts";
 
-export const handoffArgvRegistryCoreSuiteName = "every command the restart document can name resolves in registry";
+export const handoffArgvRegistryCoreSuiteName =
+  "every command the restart document can name resolves in registry";
 
 const REPORTING = join(process.cwd(), "olt/scripts/src/reporting");
 
@@ -93,15 +93,16 @@ describe(handoffArgvRegistryCoreSuiteName, () => {
 
 export const roots: string[] = [];
 
-afterEach(async () =>
-  Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))),
-);
+afterEach(() => {
+  roots.length = 0;
+});
 
 export const sharedRoots: string[] = [];
 
-afterAll(async () =>
-  Promise.all(sharedRoots.splice(0).map((root) => rm(root, { recursive: true, force: true }))),
-);
+afterAll(() => {
+  sharedRoots.length = 0;
+  cleanupVirtualBrowserFS();
+});
 
 const ahead = () => new Date(Date.now() + 3_600_000).toISOString();
 const HELD = new Set(["leased", "running"]);
@@ -124,25 +125,6 @@ const RUN_GATE = {
   mandatory: true,
 };
 
-const BRANCH = {
-  id: "B-1",
-  parent_task_id: "task-1",
-  parent_agent_id: "worker-1",
-  reason: "the parser rewrite blocks the API change",
-  depth: 1,
-  status: "open",
-  opened_at: "2026-08-13T12:00:00.000Z",
-  sub_tasks: [
-    {
-      id: "S-1",
-      label: "Fix the parser",
-      write_scope: ["src/parser"],
-      status: "claimed",
-      agent_id: "sub-1",
-    },
-  ],
-};
-
 const AGENT = {
   id: "worker-1",
   role: "implementer",
@@ -160,19 +142,14 @@ const TOPOLOGY = {
   decisions: [],
 };
 
-const REPOSITORY_BINDING = {
-  repository_root: "/repo",
-  head_sha: "b".repeat(40),
-  dirty: false,
-};
-
 export async function capsule(
   name: string,
   status: string,
   mutate: (state: RunState) => void = () => {},
   sink: string[] = roots,
 ): Promise<string> {
-  const repo = await mkdtemp(join(tmpdir(), `harness-argv-${name}-`));
+  setupVirtualBrowserFS();
+  const repo = tempDir(`argv-${name}`);
   sink.push(repo);
   const run = initRun(repo, `argv-${name}`, new TextEncoder().encode("Ship it"), "file", true);
   transact(run, "planner", "plan-applied", {}, (state: RunState) => {

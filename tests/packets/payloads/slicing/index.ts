@@ -28,7 +28,4 @@ export {
   buildDynamicStepsFromWorkflowState,
   buildDynamicStepsFromPacketInput,
 } from "../../../../olt/scripts/src/packets/dynamic-steps.ts";
-export {
-  inspection,
-  inspectionContext,
-} from "./inspection-fixture.ts";
+export { inspection, inspectionContext } from "./inspection-fixture.ts";

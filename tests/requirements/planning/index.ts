@@ -12,6 +12,4 @@ export {
   type EnhancedPlanInput,
 } from "../../../olt/scripts/src/requirements/enhanced-plan.ts";
 
-export {
-  renderEnhancedPlanMarkdown,
-} from "../../../olt/scripts/src/requirements/enhanced-plan-markdown.ts";
+export { renderEnhancedPlanMarkdown } from "../../../olt/scripts/src/requirements/enhanced-plan-markdown.ts";

@@ -191,7 +191,16 @@ export {
 } from "./event-stream/index.ts";
 
 export type { TelemetryEvent } from "./telemetry-stream.ts";
-export { emitTelemetryEvent, readTelemetryStream } from "./telemetry-stream.ts";
+export {
+  clearInMemoryTelemetrySink,
+  disableInMemoryTelemetrySink,
+  emitTelemetryEvent,
+  enableInMemoryTelemetrySink,
+  getInMemoryTelemetrySink,
+  isInMemoryTelemetrySinkEnabled,
+  readTelemetryStream,
+  resolveTelemetryFilePath,
+} from "./telemetry-stream.ts";
 
 export {
   ACTION_EXECUTION_STATUSES,

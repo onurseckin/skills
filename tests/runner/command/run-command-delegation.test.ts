@@ -9,7 +9,7 @@ import type {
   CommandResult,
   PreparedCommand,
 } from "../../../olt/scripts/src/engine/runner/types/types.ts";
-import { tempRoot, cleanupTempRoots } from "./fixture.ts";
+import { tempRoot, cleanupTempRoots, writeTree } from "./fixture.ts";
 import { afterAll } from "bun:test";
 
 afterAll(cleanupTempRoots);
@@ -85,5 +85,11 @@ describe("prepareCommand / executePreparedCommand delegation", () => {
     const result = await executePreparedCommand(prepared, fakeRunner);
     expect(result).toBe(resultStub);
     expect(seenPrepared).toEqual([prepared]);
+  });
+
+  test("fixture writeTree creates nested files and directories", () => {
+    const root = tempRoot("fixture-tree");
+    const res = writeTree(root, { "nested/deep/file.txt": "hello" });
+    expect(res).toBe(root);
   });
 });

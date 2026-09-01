@@ -1,15 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  realpathSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import * as fs from "node:fs";
+import * as cp from "node:child_process";
 import { join } from "node:path";
-import { spawnSync } from "node:child_process";
 import {
   STANDARD_SUPERVISORY_CRONS,
   captureDagSnapshot,
@@ -19,23 +11,110 @@ import {
 import type { CircuitBreakerEvaluation } from "../../../olt/scripts/src/telemetry/circuit-breaker.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
-describe("Telemetry Quota DAG Snapshot Capture Suite", () => {
-  const roots: string[] = [];
+export const snapshotCaptureSuiteName = "Telemetry Quota DAG Snapshot Capture Suite";
+
+const vfs = new Map<string, { isDir: boolean; content?: string }>();
+const spies: Array<{ mockRestore: () => void }> = [];
+
+function setupVirtualFs(): void {
+  vfs.clear();
+  vfs.set(process.cwd(), { isDir: true });
+  vfs.set(join(process.cwd(), ".git"), { isDir: true });
+  vfs.set(join(process.cwd(), "package.json"), { content: "{}", isDir: false });
+
+  const existsSpy = spyOn(fs, "existsSync").mockImplementation((p) => {
+    const s = String(p).replace(/\/+$/, "");
+    if (vfs.has(s)) return true;
+    const prefix = `${s}/`;
+    for (const k of vfs.keys()) {
+      if (k.startsWith(prefix)) return true;
+    }
+    return false;
+  });
+  const statSpy = spyOn(fs, "statSync").mockImplementation((p) => {
+    const s = String(p).replace(/\/+$/, "");
+    const n = vfs.get(s);
+    if (!n) throw new Error(`ENOENT: ${s}`);
+    return {
+      dev: 1,
+      ino: 1,
+      nlink: 1,
+      isFile: () => !n.isDir,
+      isDirectory: () => n.isDir,
+      isSymbolicLink: () => false,
+      mode: n.isDir ? 0o755 : 0o644,
+      size: n.content ? Buffer.byteLength(n.content) : 0,
+      mtimeMs: Date.now(),
+    } as fs.Stats;
+  });
+  const lstatSpy = spyOn(fs, "lstatSync").mockImplementation((p) => {
+    const s = String(p).replace(/\/+$/, "");
+    const n = vfs.get(s);
+    if (!n) throw new Error(`ENOENT: ${s}`);
+    return {
+      dev: 1,
+      ino: 1,
+      nlink: 1,
+      isFile: () => !n.isDir,
+      isDirectory: () => n.isDir,
+      isSymbolicLink: () => false,
+      mode: n.isDir ? 0o755 : 0o644,
+      size: n.content ? Buffer.byteLength(n.content) : 0,
+      mtimeMs: Date.now(),
+    } as fs.Stats;
+  });
+  const realpathSpy = spyOn(fs, "realpathSync").mockImplementation((p) => String(p));
+  const readSpy = spyOn(fs, "readFileSync").mockImplementation((p, options) => {
+    const s = String(p);
+    const n = vfs.get(s);
+    if (!n || n.content === undefined) {
+      const err = new Error(`ENOENT: ${s}`) as Error & { code: string };
+      err.code = "ENOENT";
+      throw err;
+    }
+    const enc =
+      typeof options === "string"
+        ? options
+        : (options as { encoding?: string } | undefined)?.encoding;
+    return enc === "utf-8" || enc === "utf8"
+      ? n.content
+      : (Buffer.from(n.content) as unknown as string);
+  });
+  const writeSpy = spyOn(fs, "writeFileSync").mockImplementation((p, data) => {
+    vfs.set(String(p), {
+      content: typeof data === "string" ? data : new TextDecoder().decode(data as Uint8Array),
+      isDir: false,
+    });
+  });
+  const mkdirSpy = spyOn(fs, "mkdirSync").mockImplementation((p) => {
+    vfs.set(String(p), { isDir: true });
+    return undefined;
+  });
+  const spawnSpy = spyOn(cp, "spawnSync").mockImplementation(() => ({
+    status: 0,
+    stdout: "" as unknown as Buffer,
+    stderr: "" as unknown as Buffer,
+    pid: 1234,
+    output: [null, "" as unknown as Buffer, "" as unknown as Buffer],
+    signal: null,
+  }));
+
+  spies.push(existsSpy, statSpy, lstatSpy, realpathSpy, readSpy, writeSpy, mkdirSpy, spawnSpy);
+}
+
+describe(snapshotCaptureSuiteName, () => {
   let testDir: string;
 
   beforeEach(() => {
-    testDir = realpathSync(mkdtempSync(join(tmpdir(), "snapshot-capture-")));
-    roots.push(testDir);
-    const git = spawnSync("git", ["init", "--quiet", testDir]);
-    if (git.status !== 0) throw new Error("git init failed");
+    setupVirtualFs();
+    testDir = "/virtual/snapshot-capture";
+    vfs.set(testDir, { isDir: true });
+    vfs.set(join(testDir, ".git"), { isDir: true });
   });
 
   afterEach(() => {
-    for (const root of roots.splice(0)) {
-      if (existsSync(root)) {
-        rmSync(root, { recursive: true, force: true });
-      }
-    }
+    for (const s of spies.splice(0)) s.mockRestore();
+    vfs.clear();
   });
 
   function createTestSnapshot(
@@ -85,7 +164,7 @@ describe("Telemetry Quota DAG Snapshot Capture Suite", () => {
       agents: [{ id: "agent-alpha", role: "implementer", status: "busy" }],
       activeWave: { waveId: "wave-001", status: "in_progress", lanes: ["lane-a", "lane-b"] },
     };
-    writeFileSync(join(testDir, "memory.json"), JSON.stringify(memoryData));
+    vfs.set(join(testDir, "memory.json"), { content: JSON.stringify(memoryData), isDir: false });
 
     const snap = await captureDagSnapshot({
       runRoot: testDir,

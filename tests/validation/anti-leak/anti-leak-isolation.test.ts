@@ -20,7 +20,6 @@ import {
 } from "../../../olt/scripts/src/validation/anti-leak/index.ts";
 
 describe("Anti-Boundary-Leak Rule & Automated Repair Delegation", () => {
-
   describe("4. Strict Invariant Assertion (assertNoBoundaryLeak)", () => {
     it("does not throw on compliant checks", () => {
       const compliantCheck: BoundaryLeakCheck = {
@@ -185,5 +184,4 @@ describe("Anti-Boundary-Leak Rule & Automated Repair Delegation", () => {
       }).toThrow("writeScope must contain at least one target path");
     });
   });
-
 });

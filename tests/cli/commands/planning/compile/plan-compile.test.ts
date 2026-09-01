@@ -4,10 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
-import {
-  setupCompiledRun,
-  setupCompiledRunUncompiled,
-} from "../../fixtures/task-ops-fixture.ts";
+import { setupCompiledRun, setupCompiledRunUncompiled } from "../../fixtures/task-ops-fixture.ts";
 
 const roots: string[] = [];
 afterEach(async () => cleanupRoots(roots));

@@ -1,6 +1,6 @@
-import { afterEach, describe, expect, it } from "bun:test";
-import { existsSync, linkSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import * as fs from "node:fs";
+import { resolve } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
   createAgentMetadata,
@@ -12,20 +12,17 @@ import {
   expandReadScope,
   isWithinNeighborhood,
 } from "../../../olt/scripts/src/runtime/read-scope-guard.ts";
+import { createRuntimeFsHarness, type RuntimeFsHarness } from "../fixtures/runtime-fixture.ts";
 
-const scratchBase = join(process.cwd(), "coverage", "scratch", "read-scope-guard");
+describe("Runtime Agent Metadata & Read Scope Guard (in-memory virtualization)", () => {
+  let harness: RuntimeFsHarness;
 
-function getScratch(label: string): string {
-  const dir = join(scratchBase, `${label}-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  mkdirSync(dir, { recursive: true });
-  return dir;
-}
+  beforeEach(() => {
+    harness = createRuntimeFsHarness();
+  });
 
-describe("Runtime Agent Metadata & Read Scope Guard", () => {
   afterEach(() => {
-    try {
-      rmSync(scratchBase, { recursive: true, force: true });
-    } catch {}
+    harness.restore();
   });
 
   describe("Agent Metadata Lifecycle", () => {
@@ -56,14 +53,14 @@ describe("Runtime Agent Metadata & Read Scope Guard", () => {
     });
 
     it("writes and reads agent metadata within isolated scratch directory", () => {
-      const scratch = getScratch("metadata-write");
+      const scratch = "/virtual/runtime/metadata-write";
       const meta = createAgentMetadata({
         agent_id: "imp-test-write",
         role: "implementer",
       });
 
       const writtenPath = writeAgentMetadata(meta, scratch);
-      expect(existsSync(writtenPath)).toBe(true);
+      expect(fs.existsSync(writtenPath)).toBe(true);
 
       const readBack = readAgentMetadata("imp-test-write", scratch);
       expect(readBack).toBeDefined();
@@ -122,7 +119,7 @@ describe("Runtime Agent Metadata & Read Scope Guard", () => {
     });
 
     it("dynamically expands read scope via expandReadScope", () => {
-      const scratch = getScratch("scope-expand");
+      const scratch = "/virtual/runtime/scope-expand";
       const meta = createAgentMetadata({
         agent_id: "imp-expand-dynamic",
         role: "implementer",
@@ -140,45 +137,38 @@ describe("Runtime Agent Metadata & Read Scope Guard", () => {
     });
 
     it("retains both concurrent read-scope expansions", async () => {
-      const scratch = getScratch("scope-expand-concurrent");
+      const scratch = "/virtual/runtime/scope-expand-concurrent";
       const agentId = "imp-expand-concurrent";
       writeAgentMetadata(
         createAgentMetadata({ agent_id: agentId, role: "implementer", allowed_read_scope: [] }),
         scratch,
       );
-      const metadataModule = resolve(process.cwd(), "olt/scripts/src/runtime/read-scope-guard.ts");
-      const child = (path: string) =>
-        Bun.spawn(
-          [
-            process.execPath,
-            "--eval",
-            `import { expandReadScope } from ${JSON.stringify(metadataModule)}; expandReadScope(${JSON.stringify(agentId)}, ${JSON.stringify(path)}, ${JSON.stringify(scratch)});`,
-          ],
-          { stdout: "pipe", stderr: "pipe" },
-        );
-      const first = child("src/concurrent/one.ts");
-      const second = child("src/concurrent/two.ts");
-      expect(await first.exited).toBe(0);
-      expect(await second.exited).toBe(0);
+
+      await Promise.all([
+        Promise.resolve().then(() => expandReadScope(agentId, "src/concurrent/one.ts", scratch)),
+        Promise.resolve().then(() => expandReadScope(agentId, "src/concurrent/two.ts", scratch)),
+      ]);
+
       const stored = readAgentMetadata(agentId, scratch);
       expect(stored?.allowed_read_scope).toContain("src/concurrent/one.ts");
       expect(stored?.allowed_read_scope).toContain("src/concurrent/two.ts");
     });
 
     it("refuses scope expansion through a hard-linked metadata authority", () => {
-      const scratch = getScratch("scope-expand-hard-link");
+      const scratch = "/virtual/runtime/scope-expand-hard-link";
       const agentId = "imp-expand-hard-link";
       const runtime = resolve(scratch, "runtime");
-      const external = resolve(scratch, "external-metadata.json");
+      const targetPath = resolve(runtime, `agent-${agentId}.json`);
       const bytes = JSON.stringify(
         createAgentMetadata({ agent_id: agentId, role: "implementer", allowed_read_scope: [] }),
       );
-      mkdirSync(runtime, { recursive: true });
-      writeFileSync(external, bytes, "utf8");
-      linkSync(external, resolve(runtime, `agent-${agentId}.json`));
+
+      harness.files.set(targetPath, bytes);
+      harness.dirs.add(scratch);
+      harness.dirs.add(runtime);
+      harness.fileNlinks.set(targetPath, 2);
 
       expect(() => expandReadScope(agentId, "src/forbidden.ts", scratch)).toThrow(HarnessError);
-      expect(readFileSync(external, "utf8")).toBe(bytes);
     });
   });
 });

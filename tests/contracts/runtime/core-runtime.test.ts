@@ -1,12 +1,6 @@
-import { afterAll, describe, expect, test } from "bun:test";
-import {
-  existsSync,
-  mkdirSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import * as fs from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import {
   collectBoundedDirectoryEntries,
   type SyncDirectoryReader,
@@ -28,14 +22,22 @@ import {
   copyPinnedRuntime,
   runtimeTreeSnapshot,
 } from "../../../olt/scripts/src/core/runtime-tree.ts";
+import {
+  cleanupVirtualBrowserFS,
+  setupVirtualBrowserFS,
+  tempDir,
+} from "../../reporting/browser/browser-virtual-fs.ts";
 
-export const coreRuntimeSuiteName = "core runtime utilities: bounded directory, git, filter, concurrency, runtime-tree";
+export const coreRuntimeSuiteName =
+  "core runtime utilities: bounded directory, git, filter, concurrency, runtime-tree";
 
 describe(coreRuntimeSuiteName, () => {
-  const scratchBase = join(tmpdir(), `core-runtime-tests-${Date.now()}`);
+  beforeEach(() => {
+    setupVirtualBrowserFS();
+  });
 
-  afterAll(() => {
-    rmSync(scratchBase, { recursive: true, force: true });
+  afterEach(() => {
+    cleanupVirtualBrowserFS();
   });
 
   test("collectBoundedDirectoryEntries collects sorted entries within limit and closes directory", () => {
@@ -121,7 +123,7 @@ describe(coreRuntimeSuiteName, () => {
       expect(ceiling.value).toBeGreaterThanOrEqual(1);
     }
 
-    const isolatedHome = join(scratchBase, "isolated-home");
+    const isolatedHome = tempDir("isolated-home");
     const claudeCeiling = discoverHostConcurrencyCeiling({
       homeDir: isolatedHome,
       env: {
@@ -193,12 +195,12 @@ describe(coreRuntimeSuiteName, () => {
   });
 
   test("runtime-tree snapshot and copyPinnedRuntime securely copies runtime directory and handles error conditions", () => {
-    const sourceDir = join(scratchBase, "source-runtime");
-    const destDir = join(scratchBase, "dest-runtime");
-    mkdirSync(join(sourceDir, "src"), { recursive: true });
-    writeFileSync(join(sourceDir, "package.json"), '{"name":"mock"}', "utf-8");
-    writeFileSync(join(sourceDir, "harness.ts"), "// harness", "utf-8");
-    writeFileSync(join(sourceDir, "src", "index.ts"), 'console.log("ok");', "utf-8");
+    const sourceDir = tempDir("source-runtime");
+    const destDir = join(tempDir("dest-container"), "dest-runtime");
+    fs.mkdirSync(join(sourceDir, "src"), { recursive: true });
+    fs.writeFileSync(join(sourceDir, "package.json"), '{"name":"mock"}', "utf-8");
+    fs.writeFileSync(join(sourceDir, "harness.ts"), "// harness", "utf-8");
+    fs.writeFileSync(join(sourceDir, "src", "index.ts"), 'console.log("ok");', "utf-8");
 
     const snapshot = runtimeTreeSnapshot(sourceDir, { filterRuntimeSource: true });
     expect(snapshot.fileCount).toBe(3);
@@ -207,27 +209,26 @@ describe(coreRuntimeSuiteName, () => {
     const copiedSnapshot = copyPinnedRuntime(sourceDir, destDir);
     expect(copiedSnapshot.fileCount).toBe(3);
     expect(copiedSnapshot.digest).toBe(snapshot.digest);
-    expect(existsSync(join(destDir, "src", "index.ts"))).toBe(true);
+    expect(fs.existsSync(join(destDir, "src", "index.ts"))).toBe(true);
 
-    const modDest = join(scratchBase, "mod-dest");
+    const modDest = join(tempDir("mod-container"), "mod-dest");
     expect(() =>
       copyPinnedRuntime(sourceDir, modDest, {
         beforeSourceRecheck: () => {
-          writeFileSync(join(sourceDir, "harness.ts"), "// changed mid-flight", "utf-8");
+          fs.writeFileSync(join(sourceDir, "harness.ts"), "// changed mid-flight", "utf-8");
         },
       }),
     ).toThrow(/runtime source changed while it was being copied/i);
 
     expect(() =>
-      copyPinnedRuntime(join(scratchBase, "nonexistent-source"), join(scratchBase, "dest2")),
+      copyPinnedRuntime(
+        join(tempDir("nonexistent-container"), "nonexistent-source"),
+        join(tempDir("dest2-container"), "dest2"),
+      ),
     ).toThrow(/runtime source must be a real directory/i);
 
     expect(() =>
-      copyPinnedRuntime(join(sourceDir, "package.json"), join(scratchBase, "dest3")),
+      copyPinnedRuntime(join(sourceDir, "package.json"), join(tempDir("dest3-container"), "dest3")),
     ).toThrow(/runtime source must be a real directory/i);
-
-    rmSync(sourceDir, { recursive: true, force: true });
-    rmSync(destDir, { recursive: true, force: true });
-    rmSync(modDest, { recursive: true, force: true });
   });
 });

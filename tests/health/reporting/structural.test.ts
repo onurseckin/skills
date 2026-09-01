@@ -65,7 +65,9 @@ describe("Health Reporting - Structural Invariants & Drift Ratchets", () => {
       expect(swept).toBeDefined();
       if (hasConsumer) {
         expect(swept?.limitations.join(" ")).toContain("consumer");
-        expect(findings.filter((entry) => entry.key.startsWith("vendor-root-missing:"))).toEqual([]);
+        expect(findings.filter((entry) => entry.key.startsWith("vendor-root-missing:"))).toEqual(
+          [],
+        );
       } else {
         expect(swept?.limitations.join(" ")).toContain("producer");
       }

@@ -1,4 +1,2 @@
-export {
-  AgentRegistrationRacer,
-  type WorkerBarrierResult,
-} from "./lifecycle/index.ts";
+// Empty barrel for agents fixtures
+export {};

@@ -1,7 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { ERROR_CODES, HarnessError, normalizeError } from "../../../olt/scripts/src/core/errors/index.ts";
+import {
+  ERROR_CODES,
+  HarnessError,
+  normalizeError,
+} from "../../../olt/scripts/src/core/errors/index.ts";
 
-export const harnessErrorSuiteName = "core errors contract: HarnessError, codes, and normalizeError";
+export const harnessErrorSuiteName =
+  "core errors contract: HarnessError, codes, and normalizeError";
 
 describe(harnessErrorSuiteName, () => {
   test("ERROR_CODES contains all canonical error code variants", () => {

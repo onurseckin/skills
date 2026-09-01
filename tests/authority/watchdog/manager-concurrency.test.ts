@@ -1,6 +1,5 @@
-import { describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import {
   createDefaultWatchdogStore,
@@ -9,35 +8,35 @@ import {
   withWatchdogStoreLock,
 } from "../../../olt/scripts/src/authority/watchdog/index.ts";
 import { openVerifiedParent } from "../../../olt/scripts/src/authority/watchdog/lock.ts";
+import { cleanupVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
 
 describe("WatchdogManager - Concurrency & Lock Exclusivity", () => {
+  beforeEach(() => {
+    setupVirtualAuthorityFS();
+  });
+  afterEach(() => {
+    cleanupVirtualAuthorityFS();
+  });
+
   test("openVerifiedParent opens real directory descriptor cleanly", () => {
-    const dir = mkdtempSync(join(tmpdir(), "lock-parent-"));
-    try {
-      const sub = join(dir, "store-dir");
-      mkdirSync(sub);
-      const parent = openVerifiedParent(sub, false);
-      expect(parent.descriptor).toBeGreaterThan(0);
-      expect(parent.metadata.isDirectory()).toBe(true);
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
+    const dir = "/virtual/watchdog/concurrency-parent";
+    const sub = join(dir, "store-dir");
+    mkdirSync(sub, { recursive: true });
+    const parent = openVerifiedParent(sub, false);
+    expect(parent.descriptor).toBeGreaterThan(0);
+    expect(parent.metadata.isDirectory()).toBe(true);
   });
 
   test("withWatchdogStoreLock acquires lock and executes callback", async () => {
-    const dir = mkdtempSync(join(tmpdir(), "lock-callback-"));
-    try {
-      const storeFile = join(dir, "watchdogs.json");
-      saveWatchdogStore(createDefaultWatchdogStore(), storeFile);
+    const dir = "/virtual/watchdog/concurrency-callback";
+    const storeFile = join(dir, "watchdogs.json");
+    saveWatchdogStore(createDefaultWatchdogStore(), storeFile);
 
-      let executed = false;
-      await withWatchdogStoreLock(storeFile, async () => {
-        executed = true;
-      });
-      expect(executed).toBe(true);
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
+    let executed = false;
+    await withWatchdogStoreLock(storeFile, async () => {
+      executed = true;
+    });
+    expect(executed).toBe(true);
   });
 
   test("setWatchdogLockTimingForTesting rejects negative durations and restores clean callback", () => {

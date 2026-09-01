@@ -6,9 +6,12 @@ import {
   DEFAULT_MAX_SEEN_IDS,
   advanceMailboxCursor,
   advanceMailboxCursorBatch,
+  clearInMemoryCursors,
   createEmptyCursor,
+  getInMemoryCursor,
   loadMailboxCursor,
   saveMailboxCursor,
+  setInMemoryCursor,
 } from "../../../olt/scripts/src/communication/mailbox/index.ts";
 import { createSignedEnvelope } from "../../../olt/scripts/src/communication/mailbox/envelope.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
@@ -221,6 +224,29 @@ describe("Cursor Tracker Persistence & Advancement", () => {
       expect(() =>
         advanceMailboxCursorBatch(cursorPath, [], { bad: true } as unknown as MailboxCursor),
       ).toThrow(HarnessError);
+    });
+
+    it("operates seamlessly in in-memory mode with setInMemoryCursor and virtual paths", () => {
+      const vPath = "virtual://cursor-suite/.olt/mailboxes/agent-1/cursor.json";
+      const cur = {
+        last_read_sequence: 42,
+        last_read_id: "id-42",
+        seen_ids: ["id-42"],
+        updated_at: new Date().toISOString(),
+      };
+      setInMemoryCursor(vPath, cur);
+      expect(getInMemoryCursor(vPath)).toEqual(cur);
+      expect(loadMailboxCursor(vPath)).toEqual(cur);
+
+      const advanced = advanceMailboxCursor(vPath, makeEnvelope(43, "id-43"), cur);
+      expect(advanced.last_read_sequence).toBe(43);
+      expect(loadMailboxCursor(vPath).last_read_sequence).toBe(43);
+
+      saveMailboxCursor(vPath, { ...cur, last_read_sequence: 99 });
+      expect(loadMailboxCursor(vPath).last_read_sequence).toBe(99);
+
+      clearInMemoryCursors();
+      expect(loadMailboxCursor(vPath).last_read_sequence).toBe(0);
     });
   });
 });

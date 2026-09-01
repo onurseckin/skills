@@ -8,10 +8,7 @@ export {
   verifyMindRoleStrategicInvariants,
 } from "./contracts/index.ts";
 
-export {
-  loadAgentManifest,
-  loadUnifiedAgentModel,
-} from "./ecosystem/index.ts";
+export { loadAgentManifest, loadUnifiedAgentModel } from "./ecosystem/index.ts";
 
 export {
   isExecutionCommand,

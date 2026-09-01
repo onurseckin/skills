@@ -91,7 +91,7 @@ export function scanDirectoryForVisualReports(
 
 export function extractImagesFromText(text: string, baseDir?: string): string[] {
   if (!text) return [];
-  const pattern = /(?:[a-zA-Z0-9_\-\.\/\\~]+\.(?:png|jpg|jpeg|webp|gif|bmp|svg))/gi;
+  const pattern = /(?:[a-zA-Z0-9_\-./\\~]+\.(?:png|jpg|jpeg|webp|gif|bmp|svg))/gi;
   const matches = text.match(pattern) ?? [];
   const validPaths: string[] = [];
 
@@ -118,8 +118,7 @@ export function extractImagesFromText(text: string, baseDir?: string): string[] 
 
 export function extractVisualReportsFromText(text: string, baseDir?: string): string[] {
   if (!text) return [];
-  const pattern =
-    /(?:[a-zA-Z0-9_\-\.\/\\~]*(?:visual-report|visual_report)[a-zA-Z0-9_\-\.]*\.json)/gi;
+  const pattern = /(?:[a-zA-Z0-9_\-./\\~]*(?:visual-report|visual_report)[a-zA-Z0-9_\-.]*\.json)/gi;
   const matches = text.match(pattern) ?? [];
   const validPaths: string[] = [];
 

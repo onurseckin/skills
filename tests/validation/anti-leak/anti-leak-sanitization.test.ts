@@ -20,7 +20,6 @@ import {
 } from "../../../olt/scripts/src/validation/anti-leak/index.ts";
 
 describe("Anti-Boundary-Leak Rule & Automated Repair Delegation", () => {
-
   describe("7. Acyclic Pushback Delegation & Structured Remediation Enforcement", () => {
     it("detects cycles in dependency graphs", () => {
       const acyclicGraph = {
@@ -194,4 +193,3 @@ describe("Anti-Boundary-Leak Rule & Automated Repair Delegation", () => {
     });
   });
 });
-

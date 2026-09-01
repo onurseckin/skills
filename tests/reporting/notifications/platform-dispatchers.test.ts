@@ -32,7 +32,9 @@ describe(platformDispatchersSuiteName, () => {
       expect(result.command).toContain("osascript -e");
       expect(calls.length).toBe(1);
       expect(calls[0]?.cmd).toBe("osascript");
-      expect(calls[0]?.args[1]).toContain('display notification "All 10 tasks verified successfully"');
+      expect(calls[0]?.args[1]).toContain(
+        'display notification "All 10 tasks verified successfully"',
+      );
     });
 
     it("chimes via afplay", () => {

@@ -1,4 +1,8 @@
-export { createTestDomainCommit, createTestDomainLedger, createTestProgressSnapshot } from "./fixture.ts";
+export {
+  createTestDomainCommit,
+  createTestDomainLedger,
+  createTestProgressSnapshot,
+} from "./fixture.ts";
 
 export const SYNC_SUITES = [
   "domain-sync-conflicts",

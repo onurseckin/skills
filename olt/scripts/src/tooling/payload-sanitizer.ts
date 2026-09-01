@@ -39,8 +39,7 @@ export function coerceValue(value: unknown, targetType: ToolParameterType): unkn
         const num = Number(trimmed);
         return Number.isNaN(num) ? value : num;
       }
-      if (typeof value === "boolean") return value ? 1 : 0;
-      return value;
+      return typeof value === "boolean" ? (value ? 1 : 0) : value;
     }
     case "boolean": {
       if (typeof value === "boolean") return value;
@@ -131,17 +130,18 @@ export function validateParameter(
     });
   }
 
-  if (param.enumValues && param.enumValues.length > 0) {
-    const matched = param.enumValues.some((allowed) => allowed === value);
-    if (!matched) {
-      errors.push({
-        field: fieldName,
-        code: "INVALID_ENUM",
-        message: `Parameter '${fieldName}' must be one of: ${param.enumValues.join(", ")}`,
-        received: value,
-        expected: param.enumValues.join(" | "),
-      });
-    }
+  if (
+    param.enumValues &&
+    param.enumValues.length > 0 &&
+    !param.enumValues.some((allowed) => allowed === value)
+  ) {
+    errors.push({
+      field: fieldName,
+      code: "INVALID_ENUM",
+      message: `Parameter '${fieldName}' must be one of: ${param.enumValues.join(", ")}`,
+      received: value,
+      expected: param.enumValues.join(" | "),
+    });
   }
 
   if (param.type === "string" && typeof value === "string") {

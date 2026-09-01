@@ -1,4 +1,1 @@
-export {
-  createSampleDefectRecord,
-  createSampleAuditReport,
-} from "./diagnostics-fixtures.ts";
+export { createSampleDefectRecord, createSampleAuditReport } from "./diagnostics-fixtures.ts";

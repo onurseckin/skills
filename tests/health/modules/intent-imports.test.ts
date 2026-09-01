@@ -162,7 +162,9 @@ describe("Health Modules - Intent Drift & Symbol Mapping", () => {
         ].join("\n"),
       });
       return checkIntentDrift({
-        documents: [{ relative: "BACKLOG.md", absolute: join(root, "BACKLOG.md"), headingLevel: 2 }],
+        documents: [
+          { relative: "BACKLOG.md", absolute: join(root, "BACKLOG.md"), headingLevel: 2 },
+        ],
         production: [],
         tests: [],
         paths: [],

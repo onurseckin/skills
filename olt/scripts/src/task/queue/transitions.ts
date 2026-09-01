@@ -66,7 +66,7 @@ export function escalateTaskUnlocked(
     assigned_tier: params.escalationTier ?? task.assigned_tier ?? "Tier_0_Mind",
     updated_at: nowIso,
     metadata: {
-      ...(task.metadata ?? {}),
+      ...task.metadata,
       escalated_by: params.agentId ?? "system",
       escalation_reason: params.reason,
       escalation_timestamp: nowIso,

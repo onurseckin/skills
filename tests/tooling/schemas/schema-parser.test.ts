@@ -22,7 +22,6 @@ import {
 } from "../../../olt/scripts/src/tooling/index.ts";
 
 describe("Tool Schemas & Security Validation Unit Test Suite", () => {
-
   describe("Dynamic Tool Schema Parsing", () => {
     it("parses valid tool parameter schemas with constraints", () => {
       const rawParam = {
@@ -213,5 +212,4 @@ describe("Tool Schemas & Security Validation Unit Test Suite", () => {
       expect(res2.errors[0].code).toBe("UNKNOWN_PARAMETER");
     });
   });
-
 });

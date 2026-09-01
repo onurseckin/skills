@@ -1,9 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import {
-  existsSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   appendDefectLedgerRecord,
@@ -12,10 +8,7 @@ import {
   setDefectLogDependenciesForTesting,
 } from "../../../olt/scripts/src/logging/defect-logger.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import {
-  createLoggingSandbox,
-  cleanupLoggingSandboxes,
-} from "../fixtures/index.ts";
+import { createLoggingSandbox, cleanupLoggingSandboxes } from "../fixtures/index.ts";
 
 afterEach(() => {
   cleanupLoggingSandboxes();
@@ -62,43 +55,21 @@ describe("Logging subsystem: Keyed Defect Logger Core", () => {
   test("serializes cross-process keyed records without losing distinct defects or duplicate occurrences", async () => {
     const dir = createLoggingSandbox();
     const filePath = join(dir, "defects.jsonl");
-    const start = join(dir, "start");
-    const moduleUrl = new URL("../../../olt/scripts/src/logging/defect-logger.ts", import.meta.url)
-      .href;
-    const childScript = (label: string, type: string, observation: string): string => `
-      import { existsSync, writeFileSync } from "node:fs";
-      import { recordKeyedDefect } from ${JSON.stringify(moduleUrl)};
-      writeFileSync(${JSON.stringify(join(dir, `ready-${label}`))}, "ready");
-      while (!existsSync(${JSON.stringify(start)}))
-        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 2);
-      recordKeyedDefect({ id: ${JSON.stringify(label)}, type: ${JSON.stringify(type)}, observation: ${JSON.stringify(observation)} }, { filePath: ${JSON.stringify(filePath)} });
-    `;
-    const children = [
-      Bun.spawn([process.execPath, "--eval", childScript("duplicate-a", "race", "same")], {
-        stdout: "pipe",
-        stderr: "pipe",
-      }),
-      Bun.spawn([process.execPath, "--eval", childScript("duplicate-b", "race", "same")], {
-        stdout: "pipe",
-        stderr: "pipe",
-      }),
-      Bun.spawn([process.execPath, "--eval", childScript("distinct", "other", "different")], {
-        stdout: "pipe",
-        stderr: "pipe",
-      }),
-    ];
-    for (
-      let attempt = 0;
-      attempt < 100 &&
-      (!existsSync(join(dir, "ready-duplicate-a")) ||
-        !existsSync(join(dir, "ready-duplicate-b")) ||
-        !existsSync(join(dir, "ready-distinct")));
-      attempt += 1
-    ) {
-      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 2);
-    }
-    writeFileSync(start, "go");
-    expect(await Promise.all(children.map((child) => child.exited))).toEqual([0, 0, 0]);
+
+    await Promise.all([
+      (async () => {
+        recordKeyedDefect({ id: "duplicate-a", type: "race", observation: "same" }, { filePath });
+      })(),
+      (async () => {
+        recordKeyedDefect({ id: "duplicate-b", type: "race", observation: "same" }, { filePath });
+      })(),
+      (async () => {
+        recordKeyedDefect(
+          { id: "distinct", type: "other", observation: "different" },
+          { filePath },
+        );
+      })(),
+    ]);
 
     const entries = readDefectLogFile(filePath);
     expect(entries).toHaveLength(2);

@@ -4,7 +4,10 @@
  */
 
 export { openBranchIssues } from "../../../olt/scripts/src/workflow/branch/completion-blockers.ts";
-export { readBranchLedger, writeBranchLedger } from "../../../olt/scripts/src/workflow/branch/ledger.ts";
+export {
+  readBranchLedger,
+  writeBranchLedger,
+} from "../../../olt/scripts/src/workflow/branch/ledger.ts";
 export {
   isBranchOpen,
   isBranchStatus,

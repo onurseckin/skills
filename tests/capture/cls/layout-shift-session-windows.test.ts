@@ -66,6 +66,29 @@ function createMockSnapshot(
   };
 }
 
+function disp(
+  partial: Partial<UnstableElementDisplacement> & { selector: string; tagName: string },
+): UnstableElementDisplacement {
+  const p = partial.previousRect ?? { x: 0, y: 0, width: 50, height: 50 };
+  const c = partial.currentRect ?? { x: 0, y: 10, width: 50, height: 50 };
+  return {
+    deltaX: 0,
+    deltaY: 10,
+    deltaWidth: 0,
+    deltaHeight: 0,
+    maxDisplacement: 10,
+    horizontalDisplacement: 0,
+    verticalDisplacement: 10,
+    isRootCause: false,
+    isExcluded: false,
+    previousStyles: {} as never,
+    currentStyles: {} as never,
+    ...partial,
+    previousRect: p,
+    currentRect: c,
+  };
+}
+
 describe("layout-shift-tracker: snapshot detection & root cause analysis", () => {
   describe("identifyRootCausingElements", () => {
     it("returns empty arrays for empty displacements", () => {
@@ -76,24 +99,12 @@ describe("layout-shift-tracker: snapshot detection & root cause analysis", () =>
     });
 
     it("passes excluded items directly into dependentDisplacements", () => {
-      const excluded: UnstableElementDisplacement = {
+      const excluded = disp({
         selector: "#excluded",
         tagName: "div",
-        previousRect: { x: 0, y: 0, width: 50, height: 50 },
-        currentRect: { x: 0, y: 10, width: 50, height: 50 },
-        deltaX: 0,
-        deltaY: 10,
-        deltaWidth: 0,
-        deltaHeight: 0,
-        maxDisplacement: 10,
-        horizontalDisplacement: 0,
-        verticalDisplacement: 10,
-        isRootCause: false,
         isExcluded: true,
         exclusionReason: "fixed_or_sticky",
-        previousStyles: {} as never,
-        currentStyles: {} as never,
-      };
+      });
 
       const result = identifyRootCausingElements([excluded]);
       expect(result.dependentDisplacements).toHaveLength(1);
@@ -101,108 +112,85 @@ describe("layout-shift-tracker: snapshot detection & root cause analysis", () =>
     });
 
     it("distinguishes root cause container and dependent nested child with same delta", () => {
-      const parent: UnstableElementDisplacement = {
+      const parent = disp({
         selector: "#parent-box",
         tagName: "div",
         previousRect: { x: 0, y: 0, width: 500, height: 500 },
         currentRect: { x: 0, y: 100, width: 500, height: 500 },
-        deltaX: 0,
         deltaY: 100,
-        deltaWidth: 0,
-        deltaHeight: 0,
         maxDisplacement: 100,
-        horizontalDisplacement: 0,
         verticalDisplacement: 100,
         isRootCause: true,
-        isExcluded: false,
-        previousStyles: {} as never,
-        currentStyles: {} as never,
-      };
+      });
 
-      const child: UnstableElementDisplacement = {
+      const child = disp({
         selector: "#child-button",
         tagName: "button",
         previousRect: { x: 50, y: 50, width: 100, height: 40 },
         currentRect: { x: 50, y: 150, width: 100, height: 40 },
-        deltaX: 0,
         deltaY: 100,
-        deltaWidth: 0,
-        deltaHeight: 0,
         maxDisplacement: 100,
-        horizontalDisplacement: 0,
         verticalDisplacement: 100,
         isRootCause: true,
-        isExcluded: false,
-        previousStyles: {} as never,
-        currentStyles: {} as never,
-      };
+      });
 
       const result = identifyRootCausingElements([parent, child]);
       expect(result.rootCauses).toHaveLength(1);
       expect(result.rootCauses[0]?.selector).toBe("#parent-box");
-      expect(result.rootCauses[0]?.rootCauseReason).toContain("Element translated vertically by 100px");
+      expect(result.rootCauses[0]?.rootCauseReason).toContain(
+        "Element translated vertically by 100px",
+      );
       expect(result.dependentDisplacements).toHaveLength(1);
       expect(result.dependentDisplacements[0]?.selector).toBe("#child-button");
     });
 
     it("formats different root cause reasons based on resized vs horizontal vs vertical vs primary", () => {
-      const resized: UnstableElementDisplacement = {
+      const resized = disp({
         selector: "#resized",
         tagName: "div",
         previousRect: { x: 0, y: 0, width: 100, height: 100 },
         currentRect: { x: 0, y: 0, width: 150, height: 200 },
-        deltaX: 0,
         deltaY: 0,
         deltaWidth: 50,
         deltaHeight: 100,
         maxDisplacement: 100,
-        horizontalDisplacement: 0,
         verticalDisplacement: 0,
         isRootCause: true,
-        isExcluded: false,
-        previousStyles: {} as never,
-        currentStyles: {} as never,
-      };
+      });
 
-      const horizontal: UnstableElementDisplacement = {
+      const horizontal = disp({
         selector: "#horizontal",
         tagName: "div",
         previousRect: { x: 0, y: 0, width: 100, height: 100 },
         currentRect: { x: 40, y: 0, width: 100, height: 100 },
         deltaX: 40,
         deltaY: 0,
-        deltaWidth: 0,
-        deltaHeight: 0,
         maxDisplacement: 40,
         horizontalDisplacement: 40,
         verticalDisplacement: 0,
         isRootCause: true,
-        isExcluded: false,
-        previousStyles: {} as never,
-        currentStyles: {} as never,
-      };
+      });
 
-      const primary: UnstableElementDisplacement = {
+      const primary = disp({
         selector: "#primary",
         tagName: "div",
         previousRect: { x: 500, y: 500, width: 100, height: 100 },
         currentRect: { x: 500, y: 500, width: 102, height: 102 },
-        deltaX: 0,
         deltaY: 0,
         deltaWidth: 2,
         deltaHeight: 2,
         maxDisplacement: 2,
-        horizontalDisplacement: 0,
         verticalDisplacement: 0,
         isRootCause: true,
-        isExcluded: false,
-        previousStyles: {} as never,
-        currentStyles: {} as never,
-      };
+      });
 
       const result = identifyRootCausingElements([resized, horizontal, primary]);
-      expect(result.rootCauses[0]?.rootCauseReason).toContain("Element resized (dH: 100px, dW: 50px)");
-      expect(result.rootCauses[1]?.rootCauseReason).toContain("Element translated horizontally by 40px");
+      expect(result.rootCauses[0]?.rootCauseReason).toContain(
+        "Element resized (dH: 100px, dW: 50px)",
+      );
+      expect(result.rootCauses[1]?.rootCauseReason).toContain(
+        "Element translated horizontally by 40px",
+      );
       expect(result.rootCauses[2]?.rootCauseReason).toBe("Primary shifting element");
     });
   });

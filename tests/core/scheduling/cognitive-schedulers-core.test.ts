@@ -1,10 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import {
   COGNITIVE_DIRECTIVE_DIMENSIONS,
-  CognitiveDirectiveGenerator,
   assessStagnationState,
   extractContextAnchors,
-  formatDirectiveMarkdown,
   generateAntiStagnationTriggers,
   generateCognitiveDirective,
   generateCognitiveSchedulerPrompt,
@@ -14,7 +12,6 @@ import {
   SOCRATIC_CATALOG,
 } from "../../../olt/scripts/src/engine/scheduler/prompt/index.ts";
 import {
-  HOST_SCHEDULERS_MATRIX,
   assertHostThinkingPolicy,
   getAllHostSchedulers,
   getHostSchedulerConfig,
@@ -23,27 +20,6 @@ import {
   validateHostSchedulerConfig,
   type HostSchedulerConfig,
 } from "../../../olt/scripts/src/orchestrator/host-schedulers.ts";
-import {
-  AdaptiveTimerController,
-  DEFAULT_BASE_INTERVAL_MS,
-  DEFAULT_MAX_INTERVAL_MS,
-  DEFAULT_MAX_PAUSE_INTERVAL_MS,
-  applyIntervalJitter,
-  calculateBackoffWithStrategy,
-  calculateExponentialBackoff,
-  computeAntiIdleInterval,
-  extractTrailingValueSeriesFromEvents,
-  extractTrailingValueSeriesFromState,
-  formatIntervalDuration,
-  formatRawValueSeries,
-  generateTrailingValueSeries,
-  parseDuration,
-  parseIntervalDuration,
-  projectIntervalProgression,
-  type TrailingValuePoint,
-} from "../../../olt/scripts/src/core/scheduling/index.ts";
-import { executePulseTick } from "../../../olt/scripts/src/engine/scheduler/feedback/pulse-core.ts";
-import type { TransactionPort } from "../../../olt/scripts/src/workflow/types.ts";
 
 describe("Cognitive Scheduler & Probing Directives", () => {
   describe("Prompt Subsystem & Directive Generators", () => {
@@ -236,5 +212,4 @@ describe("Cognitive Scheduler & Probing Directives", () => {
       expect(validation.errors.some((e) => e.includes("SLA"))).toBe(true);
     });
   });
-
 });

@@ -5,7 +5,7 @@ node_modules/
 .cache/
 .turbo/
 .expo/
-coverage/
+/coverage/
 .vite/
 .pytest_cache/
 __pycache__/

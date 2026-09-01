@@ -1,6 +1,5 @@
-import { afterEach, describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { beforeEach, afterEach, describe, expect, it, spyOn } from "bun:test";
+import * as fs from "node:fs";
 import { join } from "node:path";
 import {
   auditDynamicRoles as auditDynamicRolesHierarchy,
@@ -71,17 +70,28 @@ import { DynamicRoleRegistry } from "../../../../olt/scripts/src/mind/roles/dyna
 import type { DynamicRoleSpec } from "../../../../olt/scripts/src/mind/roles/dynamic/types.ts";
 import type { HarnessEvent, RunState } from "../../../../olt/scripts/src/core/contracts/index.ts";
 
-const roots: string[] = [];
+const mockFiles = new Map<string, string>();
+const spies: { mockRestore: () => void }[] = [];
 
-afterEach(() => {
-  for (const root of roots) {
-    try {
-      rmSync(root, { recursive: true, force: true });
-    } catch {}
-  }
-  roots.length = 0;
+beforeEach(() => {
+  mockFiles.clear();
+  spies.push(
+    spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => {
+      return mockFiles.has(String(p));
+    }),
+  );
+  spies.push(
+    spyOn(fs, "readFileSync").mockImplementation((p: fs.PathOrFileDescriptor) => {
+      const val = mockFiles.get(String(p));
+      if (val !== undefined) return val;
+      throw new Error(`ENOENT: no such file, open '${String(p)}'`);
+    }),
+  );
 });
 
+afterEach(() => {
+  while (spies.length > 0) spies.pop()?.mockRestore();
+});
 
 describe("Auditing & Roles Exhaustive Unit Test Suite", () => {
   describe("Hierarchy & Role Auditing Rules", () => {
@@ -142,7 +152,10 @@ describe("Auditing & Roles Exhaustive Unit Test Suite", () => {
       expect(compactMd).toBeDefined();
 
       const nonDupSummary = formatNonDuplicatePersonaSummary({
-        contract: { role: "test-role-c", tier: 3, spec: specA } as unknown as Record<string, unknown>,
+        contract: { role: "test-role-c", tier: 3, spec: specA } as unknown as Record<
+          string,
+          unknown
+        >,
         action: "synthesized_disambiguated",
         deduplicated: false,
         signature: { signatureHash: "1234567890abcdef1234" } as unknown as Record<string, unknown>,
@@ -164,7 +177,10 @@ describe("Auditing & Roles Exhaustive Unit Test Suite", () => {
         writeScopePolicy: "lease_bounded",
         grantedCommands: ["task:claim"],
       };
-      reg.register({ role: "auto-role", tier: 3, spec, sha256: "sha-auto" } as unknown as Record<string, unknown>);
+      reg.register({ role: "auto-role", tier: 3, spec, sha256: "sha-auto" } as unknown as Record<
+        string,
+        unknown
+      >);
 
       const report = runAutonomousMindRoleAudit(reg as unknown as Record<string, unknown>);
       expect(report.summary.totalRolesAudited).toBe(1);
@@ -173,10 +189,7 @@ describe("Auditing & Roles Exhaustive Unit Test Suite", () => {
 
   describe("Contract Auditor Rules & Cross-Tier Violations", () => {
     it("audits single role from string file path and string YAML content", () => {
-      const tmpDir = mkdtempSync(join(tmpdir(), "contract-audit-test-"));
-      roots.push(tmpDir);
-
-      const roleFile = join(tmpDir, "sample-role.md");
+      const roleFile = `${process.cwd()}/.olt/virtual-roles/sample-role.md`;
       const yamlContent = `---
 role: sample-file-role
 tier: 3
@@ -188,7 +201,7 @@ grantedCommands:
 ---
 # Role Definition
 `;
-      writeFileSync(roleFile, yamlContent);
+      mockFiles.set(roleFile, yamlContent);
 
       const findingsFromFile = auditSingleRole(roleFile);
       expect(findingsFromFile.length).toBe(0);

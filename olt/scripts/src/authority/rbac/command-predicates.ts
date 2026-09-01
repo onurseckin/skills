@@ -124,6 +124,7 @@ export const FILE_MUTATION_COMMANDS = new Set([
   "write",
   "edit",
   "notebookedit",
+  "notebook_edit",
   "apply_patch",
 ]);
 

@@ -6,7 +6,10 @@ export function createSampleTaskInput(
   return {
     taskId: "task-p74-proactive-plan-pre-enhancer",
     label: "Proactive Plan Pre-Enhancer & Discriminating Gate Compiler",
-    writeScope: ["olt/scripts/src/plan/pre-enhancer.ts", "tests/plan/pre-enhancer/pre-enhancer-core.test.ts"],
+    writeScope: [
+      "olt/scripts/src/plan/pre-enhancer.ts",
+      "tests/plan/pre-enhancer/pre-enhancer-core.test.ts",
+    ],
     dependencies: ["task-p72-hyper-active-mind-cognition"],
     gateCommand: "bun test tests/plan/pre-enhancer/pre-enhancer-core.test.ts",
     effort: 3,

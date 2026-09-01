@@ -144,7 +144,9 @@ describe("per-agent telemetry comes only from the grant ledger", () => {
   test("a malformed ledger is reported on the plan node instead of silently emptied", () => {
     const dataset = generateGraphDataset({
       runId: "run-broken-ledger",
-      state: makeState([leasedTask("worker-1")], { agents: [{ id: "worker-1" }] as unknown as WorkflowState["agents"] }),
+      state: makeState([leasedTask("worker-1")], {
+        agents: [{ id: "worker-1" }] as unknown as WorkflowState["agents"],
+      }),
     });
     const plan = dataset.nodes.find((entry) => entry.id === "node-orchestrator-plan");
 

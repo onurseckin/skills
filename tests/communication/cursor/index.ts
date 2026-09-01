@@ -8,6 +8,4 @@ export {
   loadMailboxCursor,
   saveMailboxCursor,
 } from "../../../olt/scripts/src/communication/mailbox/cursor-tracker.ts";
-export type {
-  MailboxCursor,
-} from "../../../olt/scripts/src/communication/types.ts";
+export type { MailboxCursor } from "../../../olt/scripts/src/communication/types.ts";

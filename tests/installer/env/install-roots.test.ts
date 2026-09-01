@@ -3,7 +3,7 @@ import { chmodSync, mkdirSync, realpathSync, symlinkSync, writeFileSync } from "
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { validatedHome } from "../../../olt/scripts/src/installer/install-roots.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
 
 describe("validatedHome", () => {
   test("creates a brand new home directory and returns its real path", async () => {

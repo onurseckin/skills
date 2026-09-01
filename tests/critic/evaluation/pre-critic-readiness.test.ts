@@ -1,7 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { beginCompletenessCritic } from "../../../olt/scripts/src/workflow/completion/begin-completeness-critic.ts";
 import { at } from "../../workflow/shared/test-port.ts";
-import { completionPort, review } from "../../workflow/completion/fixtures/completion-provenance-fixture.ts";
+import {
+  completionPort,
+  review,
+} from "../../workflow/completion/fixtures/completion-provenance-fixture.ts";
 
 const clock = at("2026-08-13T12:05:00.000Z");
 

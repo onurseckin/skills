@@ -4,7 +4,7 @@ import {
   type PacketAuthenticationInput,
 } from "../../../../olt/scripts/src/packets/authenticate-packet.ts";
 import { tokenDigest } from "../../../../olt/scripts/src/workflow/lease/token.ts";
-import { at, repositoryBinding, workflowState } from "../../../workflow/test-port.ts";
+import { at, repositoryBinding, workflowState } from "../../../workflow/index.ts";
 
 const TOKEN = "critic-auth-token";
 

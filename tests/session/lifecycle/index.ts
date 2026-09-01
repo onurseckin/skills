@@ -33,4 +33,4 @@ export {
   PooledBrowserInstance,
   PooledCaptureBrowserDriver,
   PooledCaptureBrowserProvider,
-} from "../../../olt/scripts/src/capture/runners/browser-pool-manager.ts";
+} from "../../../olt/scripts/src/capture/pool/index.ts";

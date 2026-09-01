@@ -2,7 +2,13 @@ import { describe, expect, test } from "bun:test";
 import { beginCompletenessCritic } from "../../../../olt/scripts/src/workflow/completion/begin-completeness-critic.ts";
 import { completionReadinessSnapshot } from "../../../../olt/scripts/src/workflow/completion/readiness-snapshot.ts";
 import { recoverStale } from "../../../../olt/scripts/src/workflow/lease/recover-stale.ts";
-import { at, commandRecord, TEST_GATE_ARGV, TestPort, workflowState } from "../../shared/test-port.ts";
+import {
+  at,
+  commandRecord,
+  TEST_GATE_ARGV,
+  TestPort,
+  workflowState,
+} from "../../shared/test-port.ts";
 
 const started = at("2026-08-13T12:00:00.000Z");
 const expired = at("2026-08-13T12:21:00.000Z");

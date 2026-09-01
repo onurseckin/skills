@@ -1,6 +1,8 @@
 import type { DispatchLogEvent } from "../../../olt/scripts/src/orchestrator/dispatch-log.ts";
 
-export function createSampleDispatchLogEvent(overrides: Partial<DispatchLogEvent> = {}): DispatchLogEvent {
+export function createSampleDispatchLogEvent(
+  overrides: Partial<DispatchLogEvent> = {},
+): DispatchLogEvent {
   return {
     kind: "supervisor-dispatch-outcome",
     payload: {

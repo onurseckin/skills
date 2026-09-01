@@ -11,7 +11,9 @@ describe("Validator-Pressure Scenario Contract Verification (VP-1..VP-5)", () =>
   it("VP-1: excludes implementer confidence and report narrative from validator context", () => {
     expect(spec.assertions.some((a) => a.id === "VP-1")).toBe(true);
     expect(content).toContain("VP-1");
-    expect(content).toContain("Exclude implementer confidence and report narrative from validator context");
+    expect(content).toContain(
+      "Exclude implementer confidence and report narrative from validator context",
+    );
     expect(content).toContain("I excluded the submitted prose and reported results");
   });
 
@@ -24,7 +26,9 @@ describe("Validator-Pressure Scenario Contract Verification (VP-1..VP-5)", () =>
   it("VP-3: gives every reject finding requirement ID, severity, observation, evidence, remediation, and revalidation command", () => {
     expect(spec.assertions.some((a) => a.id === "VP-3")).toBe(true);
     expect(content).toContain("VP-3");
-    expect(content).toContain("Give every reject finding a requirement ID, severity, observation, evidence, remediation, and revalidation command");
+    expect(content).toContain(
+      "Give every reject finding a requirement ID, severity, observation, evidence, remediation, and revalidation command",
+    );
   });
 
   it("VP-4: routes rejected work to the original implementer for repair", () => {

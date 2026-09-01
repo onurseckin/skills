@@ -238,7 +238,7 @@ export function enrichTaskPlanWithExactAnchors(
     exact_anchors: exactAnchors,
     exact_briefing: briefing,
     metadata: {
-      ...(plan.metadata ?? {}),
+      ...plan.metadata,
       ...(plan.feedback_id !== undefined ? { feedback_id: plan.feedback_id } : {}),
       ...(plan.candidate_id !== undefined ? { candidate_id: plan.candidate_id } : {}),
       target_files: targetFiles,

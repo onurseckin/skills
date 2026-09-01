@@ -1,7 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  parseYaml,
-} from "../../../olt/scripts/src/authority/manifest/index.ts";
+import { parseYaml } from "../../../olt/scripts/src/authority/manifest/index.ts";
 import {
   parseUnifiedAgentManifest,
   validateUnifiedAgentManifest,

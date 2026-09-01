@@ -3,6 +3,16 @@
  * Root Facade for Store domain
  */
 
+export {
+  scratchRoot,
+  createSandboxDir,
+  createInMemoryManifest,
+  createInMemoryRunState,
+  createInMemoryEvent,
+  createInMemoryRunHarness,
+  InMemoryRunHarness,
+} from "./store-fixture.ts";
+
 export { STORE_CAPSULE_SUITES } from "./capsule/index.ts";
 export { STORE_CONTENT_NORMALIZATION_SUITES } from "./content-normalization/index.ts";
 export { STORE_DEFECTS_SUITES } from "./defects/index.ts";

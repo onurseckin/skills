@@ -19,7 +19,6 @@ import {
   validateUiMechanic,
 } from "../../../../olt/scripts/src/validation/ui/index.ts";
 
-
 describe("Dual UI Validators - Hardened Invariants", () => {
   describe("5. Hardened Invariants (4-Viewport Matrix, Optical Weight, DPR Tolerance, Entropy & Lifecycle)", () => {
     it("enforces strict 4-viewport matrix gate hardlock on missing tiers", () => {

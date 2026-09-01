@@ -64,9 +64,7 @@ describe("resolveScopedTestTargets", () => {
     expect(resolveScopedTestTargets("tests/orchestrator/agents/grants.test.ts")[0]!.domain).toBe(
       "orchestrator",
     );
-    expect(resolveScopedTestTargets("tests/engine/store/store.test.ts")[0]!.domain).toBe(
-      "engine",
-    );
+    expect(resolveScopedTestTargets("tests/engine/store/store.test.ts")[0]!.domain).toBe("engine");
     expect(resolveScopedTestTargets("src/components/button.test.tsx")[0]!.domain).toBe(
       "components",
     );
@@ -122,11 +120,16 @@ describe("assertScopedExecutionPolicy", () => {
     expect(() => assertScopedExecutionPolicy([], strictPolicy)).toThrow(HarnessError);
     expect(() =>
       assertScopedExecutionPolicy(
-        ["tests/testing/locks/concurrency-lock-core.test.ts", "tests/testing/isolation/isolation.test.ts"],
+        [
+          "tests/testing/locks/concurrency-lock-core.test.ts",
+          "tests/testing/isolation/isolation.test.ts",
+        ],
         strictPolicy,
       ),
     ).toThrow(HarnessError);
-    expect(() => assertScopedExecutionPolicy(["tests/testing"], strictPolicy)).toThrow(HarnessError);
+    expect(() => assertScopedExecutionPolicy(["tests/testing"], strictPolicy)).toThrow(
+      HarnessError,
+    );
     expect(() =>
       assertScopedExecutionPolicy(["tests/testing/locks/concurrency-lock-core.test.ts"], {
         allowedDomains: ["cli"],
@@ -153,13 +156,21 @@ describe("buildScopedTestCommand", () => {
     const npmCmd = buildScopedTestCommand(["tests/testing/locks/concurrency-lock-core.test.ts"], {
       runner: "npm",
     });
-    expect(npmCmd).toEqual(["npm", "test", "--", "tests/testing/locks/concurrency-lock-core.test.ts"]);
+    expect(npmCmd).toEqual([
+      "npm",
+      "test",
+      "--",
+      "tests/testing/locks/concurrency-lock-core.test.ts",
+    ]);
 
-    const vitestCmd = buildScopedTestCommand(["tests/testing/locks/concurrency-lock-core.test.ts"], {
-      runner: "vitest",
-      timeoutMs: 5000,
-      filter: "isTestFilePath",
-    });
+    const vitestCmd = buildScopedTestCommand(
+      ["tests/testing/locks/concurrency-lock-core.test.ts"],
+      {
+        runner: "vitest",
+        timeoutMs: 5000,
+        filter: "isTestFilePath",
+      },
+    );
     expect(vitestCmd).toEqual([
       "vitest",
       "run",

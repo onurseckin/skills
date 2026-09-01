@@ -61,7 +61,11 @@ describe("VerbatimRoleInjector - Prompt Building & Template Injections", () => {
         unresolvedDefectCount: 0,
       };
 
-      const prompt = VerbatimRoleInjector.buildInjectionPrompt(REPO_ROOT, "orchestrator", telemetry);
+      const prompt = VerbatimRoleInjector.buildInjectionPrompt(
+        REPO_ROOT,
+        "orchestrator",
+        telemetry,
+      );
       expect(prompt).toContain("MODE B: ACTIVE INTAKE & WORK/SPAN SCALING MANDATE");
     });
   });

@@ -3,294 +3,232 @@ import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { AutonomousLoopRunner, executeOrchestratorTrack } from "../../../olt/scripts/src/orchestrator/loop-runner.ts";
+import {
+  AutonomousLoopRunner,
+  executeOrchestratorTrack,
+} from "../../../olt/scripts/src/orchestrator/loop-runner.ts";
 import type {
   CapsuleChainManifest,
   DefectSynthesis,
+  FindingDetail,
   RoundExecutionInput,
   RoundExecutionResult,
   RoundExecutor,
-  RoundTelemetry,
   WatchdogEvent,
 } from "../../../olt/scripts/src/orchestrator/types.ts";
 
-function getLoopTestDir(name: string): string {
-  const dir = join(tmpdir(), `orchestrator-loop-runner-${Date.now()}-${name}`);
+function testDir(name: string): string {
+  const dir = join(tmpdir(), `loop-runner-${Date.now()}-${name}`);
   mkdirSync(dir, { recursive: true });
   return dir;
 }
 
+const finding = (
+  id: string,
+  status: "open" | "resolved" = "open",
+  severity: "critical" | "important" = "critical",
+): FindingDetail => ({
+  id,
+  requirement_id: "req-01",
+  severity,
+  observation: "Memory leak",
+  evidence: [],
+  remediation: "Add cleanup",
+  revalidation: "bun test",
+  status,
+});
+
+const makeResult = (
+  runId: string,
+  round: number,
+  status: "completed" | "rejected" | "failed",
+  critic: "approve" | "request_changes" | "rejected",
+  findings: FindingDetail[] = [],
+  gatePassed = true,
+  summary = "",
+): RoundExecutionResult => ({
+  runId,
+  round,
+  status,
+  criticDecision: critic,
+  tasks: [
+    {
+      id: "t1",
+      status: status === "rejected" ? "changes_requested" : "done",
+      writeScope: ["src/"],
+    },
+  ],
+  findings,
+  gateResults: [{ gate_id: "g1", command_id: "c1", status: gatePassed ? "passed" : "failed" }],
+  summary,
+});
+
+const exec = (fn: (inp: RoundExecutionInput) => RoundExecutionResult): RoundExecutor => ({
+  executeRound: async (inp) => fn(inp),
+});
+
 describe("AutonomousLoopRunner Unit Tests", () => {
   it("converges in Round 1 when implementation is clean, gates pass, and Critic approves", async () => {
-    const testDir = getLoopTestDir("round-1-converge");
-    const mockExecutor: RoundExecutor = {
-      executeRound: async (input: RoundExecutionInput): Promise<RoundExecutionResult> => ({
-        runId: input.runId,
-        round: input.round,
-        status: "completed",
-        criticDecision: "approve",
-        tasks: [{ id: "task-01", status: "done", writeScope: ["src/"] }],
-        findings: [],
-        gateResults: [{ gate_id: "gate-01", command_id: "cmd-1", status: "passed" }],
-        summary: "All requirements met and verified.",
-      }),
-    };
-
-    const startRounds: number[] = [];
-    const completedTelemetries: RoundTelemetry[] = [];
+    const dir = testDir("r1-converge");
+    const rounds: number[] = [];
     const summary = await new AutonomousLoopRunner({
-      baseRunId: "run-test-r1-converge",
-      repoPath: testDir,
+      baseRunId: "run-test-r1",
+      repoPath: dir,
       initialPrompt: "Implement feature X",
-      executor: mockExecutor,
-      onRoundStart: (round) => startRounds.push(round),
-      onRoundComplete: (tel) => completedTelemetries.push(tel),
+      executor: exec((i) =>
+        makeResult(i.runId, i.round, "completed", "approve", [], true, "Verified."),
+      ),
+      onRoundStart: (r) => rounds.push(r),
     }).run();
 
     expect(summary.totalRoundsExecuted).toBe(1);
     expect(summary.finalStatus).toBe("converged_success");
     expect(summary.gateStatus).toBe("passed");
     expect(summary.finalCriticDecision).toBe("approve");
-    expect(startRounds).toEqual([1]);
-    expect(completedTelemetries.length).toBe(1);
-    expect(summary.finalMarkdownSummary).toContain("Autonomous Multi-Round Loop Summary");
-
-    const persistedSummary = join(testDir, ".olt", "capsules", "run-test-r1-converge-loop-summary.json");
-    expect(existsSync(persistedSummary)).toBe(true);
+    expect(rounds).toEqual([1]);
+    expect(existsSync(join(dir, ".olt", "capsules", "run-test-r1-loop-summary.json"))).toBe(true);
   });
 
-  it("does NOT converge if validation gates failed even if Critic approved and zero open findings", async () => {
-    const testDir = getLoopTestDir("gate-fail-then-pass");
-    let roundCounter = 0;
-    const failingGateExecutor: RoundExecutor = {
-      executeRound: async (input: RoundExecutionInput): Promise<RoundExecutionResult> => {
-        roundCounter++;
-        return {
-          runId: input.runId,
-          round: roundCounter,
-          status: "completed",
-          criticDecision: "approve",
-          tasks: [{ id: "task-01", status: "done", writeScope: ["src/"] }],
-          findings: [],
-          gateResults: [{ gate_id: "gate-01", command_id: "cmd-g", status: roundCounter === 1 ? "failed" : "passed" }],
-          summary: roundCounter === 1 ? "Gate failed in R1." : "Gate passed in R2.",
-        };
-      },
-    };
-
+  it("does NOT converge if validation gates failed even if Critic approved", async () => {
+    const dir = testDir("gate-fail");
+    let count = 0;
     const summary = await new AutonomousLoopRunner({
-      baseRunId: "run-gate-check",
-      repoPath: testDir,
-      initialPrompt: "Ensure gate verification is mandatory",
+      baseRunId: "run-gate",
+      repoPath: dir,
+      initialPrompt: "Gate check",
       maxRounds: 3,
-      executor: failingGateExecutor,
+      executor: exec((i) => makeResult(i.runId, ++count, "completed", "approve", [], count > 1)),
     }).run();
-
     expect(summary.totalRoundsExecuted).toBe(2);
     expect(summary.finalStatus).toBe("converged_success");
   });
 
-  it("executes multi-round loop with defect synthesis and capsule chaining (R1 fail -> R2 pass)", async () => {
-    const testDir = getLoopTestDir("round-2-chain");
-    let r2PromptReceived = "";
-    const mockExecutor: RoundExecutor = {
-      executeRound: async (input: RoundExecutionInput): Promise<RoundExecutionResult> => {
-        if (input.round === 1) {
-          return {
-            runId: input.runId,
-            round: 1,
-            status: "rejected",
-            criticDecision: "request_changes",
-            tasks: [{ id: "task-01", status: "changes_requested", writeScope: ["src/"] }],
-            findings: [{ id: "f-01", requirement_id: "req-01", severity: "critical", observation: "Memory leak", evidence: [], remediation: "Add cleanup", revalidation: "bun test", status: "open" }],
-            gateResults: [{ gate_id: "gate-01", command_id: "cmd-1", status: "passed" }],
-            summary: "Critic detected memory leak.",
-          };
-        }
-        r2PromptReceived = input.prompt;
-        return {
-          runId: input.runId,
-          round: 2,
-          status: "completed",
-          criticDecision: "approve",
-          tasks: [{ id: "task-01", status: "done", writeScope: ["src/"] }],
-          findings: [{ id: "f-01", requirement_id: "req-01", severity: "critical", observation: "Memory leak", evidence: [], remediation: "Add cleanup", revalidation: "bun test", status: "resolved" }],
-          gateResults: [{ gate_id: "gate-01", command_id: "cmd-2", status: "passed" }],
-          summary: "Memory leak resolved cleanly in Round 2.",
-        };
-      },
-    };
-
+  it("executes multi-round loop with defect synthesis and capsule chaining", async () => {
+    const dir = testDir("chain");
+    let r2Prompt = "";
     const syntheses: DefectSynthesis[] = [];
-    const chainedManifests: CapsuleChainManifest[] = [];
+    const manifests: CapsuleChainManifest[] = [];
     const summary = await new AutonomousLoopRunner({
-      baseRunId: "run-test-r2-chain",
-      repoPath: testDir,
-      initialPrompt: "Build streaming data pipeline",
-      executor: mockExecutor,
+      baseRunId: "run-chain",
+      repoPath: dir,
+      initialPrompt: "Build pipeline",
+      executor: exec((i) => {
+        if (i.round === 1)
+          return makeResult(i.runId, 1, "rejected", "request_changes", [finding("f-01", "open")]);
+        r2Prompt = i.prompt;
+        return makeResult(i.runId, 2, "completed", "approve", [finding("f-01", "resolved")]);
+      }),
       onDefectSynthesis: (s) => syntheses.push(s),
-      onCapsuleChained: (m) => chainedManifests.push(m),
+      onCapsuleChained: (m) => manifests.push(m),
     }).run();
 
     expect(summary.totalRoundsExecuted).toBe(2);
     expect(summary.finalStatus).toBe("converged_success");
-    expect(syntheses.length).toBe(1);
     expect(syntheses[0]?.unresolvedFindings[0]?.id).toBe("f-01");
-    expect(chainedManifests.length).toBe(1);
-    expect(chainedManifests[0]?.sourceRunId).toBe("run-test-r2-chain-round-1");
-    expect(r2PromptReceived).toContain("🔴 Critical Findings");
+    expect(manifests[0]?.sourceRunId).toBe("run-chain-round-1");
+    expect(r2Prompt).toContain("🔴 Critical Findings");
   });
 
-  it("enforces max rounds limit and stops with max_rounds_reached", async () => {
-    const testDir = getLoopTestDir("max-rounds");
-    const mockExecutor: RoundExecutor = {
-      executeRound: async (input: RoundExecutionInput): Promise<RoundExecutionResult> => ({
-        runId: input.runId,
-        round: input.round,
-        status: "rejected",
-        criticDecision: "request_changes",
-        tasks: [{ id: "task-01", status: "changes_requested", writeScope: ["src/"] }],
-        findings: [{ id: `f-${input.round}`, requirement_id: "req-01", severity: "important", observation: "Issue", evidence: [], remediation: "Remediate", revalidation: "bun test", status: "open" }],
-        gateResults: [],
-        summary: `Round ${input.round} pushback.`,
-      }),
-    };
-
-    const summary = await new AutonomousLoopRunner({
-      baseRunId: "run-test-max-rounds",
-      repoPath: testDir,
-      initialPrompt: "Persistent failing task",
+  it("enforces max rounds limit and handles unrecoverable failure", async () => {
+    const dir = testDir("max-rounds");
+    const summary1 = await new AutonomousLoopRunner({
+      baseRunId: "run-max",
+      repoPath: dir,
+      initialPrompt: "Fail task",
       maxRounds: 3,
-      executor: mockExecutor,
+      executor: exec((i) =>
+        makeResult(i.runId, i.round, "rejected", "request_changes", [
+          finding(`f-${i.round}`, "open", "important"),
+        ]),
+      ),
     }).run();
+    expect(summary1.totalRoundsExecuted).toBe(3);
+    expect(summary1.finalStatus).toBe("max_rounds_reached");
 
-    expect(summary.totalRoundsExecuted).toBe(3);
-    expect(summary.finalStatus).toBe("max_rounds_reached");
-  });
-
-  it("exposes maxRoundsConfigured and clamps requested maxRounds to MAX_ALLOWED_ROUNDS (10)", () => {
-    const testDir = getLoopTestDir("clamp");
-    const rLarge = new AutonomousLoopRunner({ baseRunId: "run-l", repoPath: testDir, initialPrompt: "P", maxRounds: 25 });
-    expect(rLarge.maxRoundsConfigured).toBe(10);
-    expect(rLarge.maxRounds).toBe(10);
-    expect(rLarge.getRoundRunId(10)).toBe("run-l-round-10");
-
-    const rDef = new AutonomousLoopRunner({ baseRunId: "run-d", repoPath: testDir, initialPrompt: "P" });
-    expect(rDef.maxRoundsConfigured).toBe(10);
-
-    const rSmall = new AutonomousLoopRunner({ baseRunId: "run-s", repoPath: testDir, initialPrompt: "P", maxRounds: 4 });
-    expect(rSmall.maxRoundsConfigured).toBe(4);
-  });
-
-  it("handles unrecoverable failure and halts immediately", async () => {
-    const testDir = getLoopTestDir("unrecoverable-fail");
-    const mockExecutor: RoundExecutor = {
-      executeRound: async (input: RoundExecutionInput): Promise<RoundExecutionResult> => ({
-        runId: input.runId,
-        round: input.round,
-        status: "failed",
-        criticDecision: "rejected",
-        tasks: [],
-        findings: [],
-        gateResults: [],
-        summary: "Fatal crash.",
-      }),
-    };
-
-    const summary = await new AutonomousLoopRunner({
-      baseRunId: "run-test-fatal",
-      repoPath: testDir,
-      initialPrompt: "Crashing task",
+    const summary2 = await new AutonomousLoopRunner({
+      baseRunId: "run-fatal",
+      repoPath: dir,
+      initialPrompt: "Crash",
       maxRounds: 5,
-      executor: mockExecutor,
+      executor: exec((i) => makeResult(i.runId, i.round, "failed", "rejected")),
     }).run();
-
-    expect(summary.totalRoundsExecuted).toBe(1);
-    expect(summary.finalStatus).toBe("failed");
+    expect(summary2.totalRoundsExecuted).toBe(1);
+    expect(summary2.finalStatus).toBe("failed");
   });
 
-  it("normalizes a .capsules/-prefixed baseRunId without double-joining", async () => {
-    const testDir = getLoopTestDir("capsules-prefixed-run-id");
-    const mockExecutor: RoundExecutor = {
-      executeRound: async (input: RoundExecutionInput): Promise<RoundExecutionResult> => ({
-        runId: input.runId,
-        round: input.round,
-        status: "completed",
-        criticDecision: "approve",
-        tasks: [{ id: "task-01", status: "done", writeScope: ["src/"] }],
-        findings: [],
-        gateResults: [{ gate_id: "gate-01", command_id: "cmd-1", status: "passed" }],
-        summary: "Converged.",
-      }),
-    };
+  it("clamps maxRounds and normalizes .capsules/-prefixed baseRunId", async () => {
+    const dir = testDir("clamp-prefix");
+    expect(
+      new AutonomousLoopRunner({
+        baseRunId: "run-l",
+        repoPath: dir,
+        initialPrompt: "P",
+        maxRounds: 25,
+      }).maxRoundsConfigured,
+    ).toBe(10);
+    expect(
+      new AutonomousLoopRunner({ baseRunId: "run-d", repoPath: dir, initialPrompt: "P" })
+        .maxRoundsConfigured,
+    ).toBe(10);
+    expect(
+      new AutonomousLoopRunner({
+        baseRunId: "run-s",
+        repoPath: dir,
+        initialPrompt: "P",
+        maxRounds: 4,
+      }).maxRoundsConfigured,
+    ).toBe(4);
 
-    const runner = new AutonomousLoopRunner({
+    const rPrefix = new AutonomousLoopRunner({
       baseRunId: ".olt/capsules/2026-08-20-curriculum",
-      repoPath: testDir,
-      initialPrompt: "Implement curriculum",
-      executor: mockExecutor,
+      repoPath: dir,
+      initialPrompt: "Implement",
+      executor: exec((i) => makeResult(i.runId, i.round, "completed", "approve")),
     });
-
-    expect(runner.baseRunId).toBe("2026-08-20-curriculum");
-    const summary = await runner.run();
-    expect(summary.baseRunId).toBe("2026-08-20-curriculum");
-    expect(summary.loopId).toBe("loop-2026-08-20-curriculum");
+    expect(rPrefix.baseRunId).toBe("2026-08-20-curriculum");
+    expect((await rPrefix.run()).loopId).toBe("loop-2026-08-20-curriculum");
   });
 
-  it("executes orchestrator track through executeOrchestratorTrack helper", async () => {
-    const testDir = getLoopTestDir("exec-track");
-    Bun.spawnSync(["git", "init", "-b", "main"], { cwd: testDir });
-    Bun.spawnSync(["git", "config", "user.email", "test@test.com"], { cwd: testDir });
-    Bun.spawnSync(["git", "config", "user.name", "test"], { cwd: testDir });
-    Bun.spawnSync(["git", "commit", "--allow-empty", "-m", "init"], { cwd: testDir });
+  it("executes orchestrator track, validates options, and forwards watchdog stall events", async () => {
+    const dir = testDir("track-opts-stall");
+    Bun.spawnSync(["git", "init", "-b", "main"], { cwd: dir });
+    Bun.spawnSync(["git", "config", "user.email", "test@test.com"], { cwd: dir });
+    Bun.spawnSync(["git", "config", "user.name", "test"], { cwd: dir });
+    Bun.spawnSync(["git", "commit", "--allow-empty", "-m", "init"], { cwd: dir });
 
-    const mockExecutor: RoundExecutor = {
-      executeRound: async (input: RoundExecutionInput): Promise<RoundExecutionResult> => ({
-        runId: input.runId,
-        round: input.round,
-        status: "completed",
-        criticDecision: "approve",
-        tasks: [{ id: "task-01", status: "done", writeScope: ["src/"] }],
-        findings: [],
-        gateResults: [{ gate_id: "gate-01", command_id: "cmd-1", status: "passed" }],
-        summary: "Track executed cleanly.",
-      }),
-    };
-
-    const summary = await executeOrchestratorTrack({
-      trackId: "track-test-helper",
-      repoPath: testDir,
-      initialPrompt: "Run orchestrator track",
-      executor: mockExecutor,
+    const trackSummary = await executeOrchestratorTrack({
+      trackId: "track-test",
+      repoPath: dir,
+      initialPrompt: "Run track",
       maxRounds: 2,
+      executor: exec((i) =>
+        makeResult(i.runId, i.round, "completed", "approve", [], true, "Track done."),
+      ),
     });
+    expect(trackSummary.finalStatus).toBe("converged_success");
+    expect(trackSummary.totalRoundsExecuted).toBe(1);
 
-    expect(summary.finalStatus).toBe("converged_success");
-    expect(summary.totalRoundsExecuted).toBe(1);
-  });
+    expect(
+      () => new AutonomousLoopRunner({ baseRunId: "", repoPath: "/tmp", initialPrompt: "P" }),
+    ).toThrow(HarnessError);
+    expect(
+      () => new AutonomousLoopRunner({ baseRunId: "r1", repoPath: "", initialPrompt: "P" }),
+    ).toThrow(HarnessError);
+    expect(
+      () => new AutonomousLoopRunner({ baseRunId: "r1", repoPath: "/tmp", initialPrompt: "" }),
+    ).toThrow(HarnessError);
 
-  it("validates required options and throws HarnessError INVALID_ARGUMENT", () => {
-    expect(() => new AutonomousLoopRunner({ baseRunId: "", repoPath: "/tmp", initialPrompt: "Prompt" })).toThrow(HarnessError);
-    expect(() => new AutonomousLoopRunner({ baseRunId: "run-1", repoPath: "", initialPrompt: "Prompt" })).toThrow(HarnessError);
-    expect(() => new AutonomousLoopRunner({ baseRunId: "run-1", repoPath: "/tmp", initialPrompt: "" })).toThrow(HarnessError);
-  });
-
-  it("integrates with watchdog and forwards stall events to onStall hook", async () => {
-    const testDir = getLoopTestDir("watchdog-stall");
     const stallEvents: WatchdogEvent[] = [];
     const runner = new AutonomousLoopRunner({
-      baseRunId: "run-stall-test",
-      repoPath: testDir,
-      initialPrompt: "Stall test",
+      baseRunId: "run-stall",
+      repoPath: dir,
+      initialPrompt: "Stall",
       maxRounds: 1,
       onStall: (e) => stallEvents.push(e as WatchdogEvent),
     });
-
     const watchdog = runner.getWatchdog();
     watchdog.registerMonitor("test-mon", { agentId: "agent-x" });
     watchdog.triggerAutoWake("test-mon", "Simulated stall");
-
-    expect(stallEvents.length).toBe(1);
     expect(stallEvents[0]?.type).toBe("auto_wake");
   });
 });

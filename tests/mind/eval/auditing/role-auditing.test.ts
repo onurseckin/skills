@@ -19,7 +19,6 @@ import {
 } from "../../../../olt/scripts/src/mind/auditing/roles/index.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 
-
 describe("Mind Autonomous Role Auditing & Non-Duplicate Persona Synthesis", () => {
   beforeEach(() => {
     resetGlobalRoleRegistry();

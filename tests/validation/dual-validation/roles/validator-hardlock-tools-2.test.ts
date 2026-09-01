@@ -39,7 +39,6 @@ function spec(invocation: string): CommandSpec {
   return found;
 }
 
-
 describe("Validator Hard-Lock - Boundary Supervision (Part 2)", () => {
   describe("1. Hierarchical Parent-Child Boundary Supervision", () => {
     it("enforces hierarchical spawning in real-time RoleBoundaryWatchdog", () => {

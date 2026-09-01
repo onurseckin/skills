@@ -1,5 +1,4 @@
-import { describe, expect, it } from "bun:test";
-import { mkdirSync, rmSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -12,12 +11,7 @@ import {
   generateDefaultRepoPolicy,
   saveRepoPolicy,
 } from "../../../olt/scripts/src/policy/index.ts";
-
-function makeScratchDir(prefix: string): string {
-  const dir = join(process.cwd(), "coverage", "scratch", `${prefix}-${Date.now()}`);
-  mkdirSync(dir, { recursive: true });
-  return dir;
-}
+import { cleanupVirtualEngineFS, getVirtualEngineFS, setupVirtualEngineFS } from "../fixture.ts";
 
 describe("engine/worktree/conventional-commit.ts", () => {
   it("formats conventional commit messages correctly", () => {
@@ -73,35 +67,40 @@ describe("engine/worktree/zero-destructive-policy.ts", () => {
 });
 
 describe("engine/policy-engine.ts", () => {
+  beforeEach(() => {
+    setupVirtualEngineFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualEngineFS();
+  });
+
   it("initializes policy engine, handles drift and checks authorization", async () => {
-    const tmp = makeScratchDir("policy-engine-test");
-    try {
-      mkdirSync(join(tmp, ".olt"), { recursive: true });
-      const policy = generateDefaultRepoPolicy(tmp);
-      saveRepoPolicy(policy, tmp);
+    const tmp = "/virtual/policy-engine-test";
+    const vfs = getVirtualEngineFS();
+    vfs.mkdirSync(join(tmp, ".olt"), { recursive: true });
+    const policy = generateDefaultRepoPolicy(tmp);
+    saveRepoPolicy(policy, tmp);
 
-      const engine = new PolicyEngine({ repoRoot: tmp });
-      expect(engine.getPolicy()).toBeDefined();
-      expect(typeof engine.getChecksum()).toBe("string");
+    const engine = new PolicyEngine({ repoRoot: tmp });
+    expect(engine.getPolicy()).toBeDefined();
+    expect(typeof engine.getChecksum()).toBe("string");
 
-      const drift = engine.checkDrift();
-      expect(drift.drifted).toBe(false);
+    const drift = engine.checkDrift();
+    expect(drift.drifted).toBe(false);
 
-      const reload = await engine.reload();
-      expect(reload.reloaded).toBe(false);
+    const reload = await engine.reload();
+    expect(reload.reloaded).toBe(false);
 
-      const auth = engine.verifyCommand("git status", "implementer");
-      expect(auth).toBeDefined();
+    const auth = engine.verifyCommand("git status", "implementer");
+    expect(auth).toBeDefined();
 
-      let listenerCalled = false;
-      const unsubs = engine.subscribe(() => {
-        listenerCalled = true;
-      });
-      expect(unsubs).toBeDefined();
+    let listenerCalled = false;
+    const unsubs = engine.subscribe(() => {
+      listenerCalled = true;
+    });
+    expect(unsubs).toBeDefined();
 
-      engine.stopAutoReload();
-    } finally {
-      rmSync(tmp, { recursive: true, force: true });
-    }
+    engine.stopAutoReload();
   });
 });

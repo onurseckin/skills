@@ -1,17 +1,27 @@
-import { afterAll, describe, expect, test } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   discoverToolchain,
   generateDefaultRepoPolicy,
   parseRepoPolicy,
 } from "../../../olt/scripts/src/policy/index.ts";
+import {
+  getCargoPresets,
+  getPythonPresets,
+  getUnknownPresets,
+} from "../../../olt/scripts/src/policy/generator/toolchain-presets.ts";
+import { cleanupVirtualDiscoveryFS, setupVirtualDiscoveryFS } from "../fixtures/index.ts";
 
 describe("Toolchain Discovery - Ecosystems (Bun, Node, Cargo, Python, Make)", () => {
-  const scratch = join(process.cwd(), "coverage", "scratch", "toolchain-discovery-ecosystems");
+  const scratch = "/virtual/toolchain-discovery-ecosystems";
 
-  afterAll(() => {
-    rmSync(scratch, { recursive: true, force: true });
+  beforeEach(() => {
+    setupVirtualDiscoveryFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualDiscoveryFS();
   });
 
   test("discovers bun toolchain with typescript and custom scripts", () => {
@@ -202,5 +212,35 @@ describe("Toolchain Discovery - Ecosystems (Bun, Node, Cargo, Python, Make)", ()
     expect(discovered.allowedCommands).toContain("make");
     expect(discovered.allowedCommands).toContain("make test");
     expect(discovered.allowedCommands).toContain("make lint");
+  });
+
+  test("returns cargo, python, and unknown presets", () => {
+    const cargo = getCargoPresets();
+    expect(cargo.ecosystem).toBe("cargo");
+    expect(cargo.buildCommand).toBe("cargo build");
+
+    const python = getPythonPresets();
+    expect(python.ecosystem).toBe("python");
+    expect(python.testRunner.default_command).toBe("pytest");
+
+    const unknown = getUnknownPresets();
+    expect(unknown.ecosystem).toBe("unknown");
+    expect(unknown.packageManager).toBeUndefined();
+  });
+
+  test("discovers turborepo tasks format in turbo.json", () => {
+    const dir = join(scratch, "turbo-tasks");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      join(dir, "package.json"),
+      JSON.stringify({ devDependencies: { turbo: "^2.0.0" } }),
+    );
+    writeFileSync(
+      join(dir, "turbo.json"),
+      JSON.stringify({ tasks: { typecheck: {}, lint: {}, test: {} } }),
+    );
+    const discovered = discoverToolchain(dir, "node");
+    expect(discovered.isMonorepo).toBe(true);
+    expect(discovered.typecheckCommand).toBe("turbo run typecheck");
   });
 });

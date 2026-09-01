@@ -126,10 +126,7 @@ describe("Unlimited Depth DAG: Scheduling & Invariants", () => {
 
   describe("Static Invariants & Typing", () => {
     test("index.ts contains 0 any types and 0 linter/compiler suppressions", () => {
-      const filePath = join(
-        import.meta.dir,
-        "../../../olt/scripts/src/engine/scheduler/index.ts",
-      );
+      const filePath = join(import.meta.dir, "../../../olt/scripts/src/engine/scheduler/index.ts");
       const content = readFileSync(filePath, "utf-8");
 
       expect(content).not.toMatch(/: any\b/);

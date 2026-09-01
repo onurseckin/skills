@@ -1,24 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
 import { evidenced, estimated } from "../../../olt/scripts/src/core/contracts/index.ts";
-import type {
-  AgentToolUse,
-  TelemetryFieldConflict,
-} from "../../../olt/scripts/src/core/contracts/index.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { registerAgentGrant } from "../../../olt/scripts/src/workflow/agents/grants.ts";
+import type { AgentToolUse } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
-  appendTelemetryConflicts,
-  checkParentAgentConflict,
   mergeObservedCount,
   mergeObservedExtras,
   mergeObservedTools,
-  refreshAgentDerivedTelemetry,
-  transcriptAuditContext,
 } from "../../../olt/scripts/src/workflow/agents/telemetry-merge.ts";
-import type { AgentTranscriptTelemetry } from "../../../olt/scripts/src/workflow/agents/transcript-telemetry.ts";
-
 
 describe("mergeObservedCount", () => {
   test("passes an undefined observation through unchanged", () => {
@@ -156,4 +143,3 @@ describe("mergeObservedTools", () => {
 function transcript(overrides: Partial<AgentTranscriptTelemetry> = {}): AgentTranscriptTelemetry {
   return { sourcePath: "/path/to/transcript.jsonl", tools: [], ...overrides };
 }
-

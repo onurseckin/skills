@@ -4,7 +4,10 @@ import {
   defaultProcessLivenessChecker,
   HealthAuditor,
 } from "../../../olt/scripts/src/watchdog/autonomic-watchdog/health-auditor.ts";
-import type { AgentActivityState, WatchdogFinding } from "../../../olt/scripts/src/watchdog/autonomic-watchdog/types.ts";
+import type {
+  AgentActivityState,
+  WatchdogFinding,
+} from "../../../olt/scripts/src/watchdog/autonomic-watchdog/types.ts";
 
 describe("HealthAuditor & Process Liveness Auditing", () => {
   it("defaultProcessLivenessChecker returns false for invalid PIDs and catches kill signals", () => {

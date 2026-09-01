@@ -128,7 +128,8 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
       }
 
       const parent = dirname(currentDir);
-      if (parent === currentDir || (!isInMemorySessionStoreEnabled() && currentDir === repoRoot)) break;
+      if (parent === currentDir || (!isInMemorySessionStoreEnabled() && currentDir === repoRoot))
+        break;
       currentDir = parent;
     }
   }

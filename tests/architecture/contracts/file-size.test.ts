@@ -84,9 +84,9 @@ describe("runtime architecture", () => {
   test("contains no model-provider SDK or hardcoded API transport", async () => {
     const manifest = JSON.parse(await readFile(join(repoRoot, "package.json"), "utf8"));
     const packages = Object.keys({
-      ...(manifest.dependencies ?? {}),
-      ...(manifest.optionalDependencies ?? {}),
-      ...(manifest.peerDependencies ?? {}),
+      ...manifest.dependencies,
+      ...manifest.optionalDependencies,
+      ...manifest.peerDependencies,
     });
     expect(
       packages.filter((name) =>

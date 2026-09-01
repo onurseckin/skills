@@ -16,6 +16,12 @@ export function createSyntheticToolTrace(): ExtractedToolCall[] {
     { agentId: "impl-1", name: "view_file", isRead: true, isWrite: false, isPoll: false },
     { agentId: "impl-1", name: "list_dir", isRead: true, isWrite: false, isPoll: false },
     { agentId: "impl-1", name: "grep_search", isRead: true, isWrite: false, isPoll: false },
-    { agentId: "impl-1", name: "replace_file_content", isRead: false, isWrite: true, isPoll: false },
+    {
+      agentId: "impl-1",
+      name: "replace_file_content",
+      isRead: false,
+      isWrite: true,
+      isPoll: false,
+    },
   ];
 }

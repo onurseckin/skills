@@ -1,28 +1,21 @@
-import { describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
 import {
   captureAssurance,
   isCaptureMode,
-  CAPTURE_MODES,
 } from "../../../olt/scripts/src/engine/store/integrity/assurance.ts";
 import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/integrity/integrity.ts";
-import {
-  issue,
-  throwIntegrity,
-} from "../../../olt/scripts/src/engine/store/integrity/issues.ts";
+import { issue, throwIntegrity } from "../../../olt/scripts/src/engine/store/integrity/issues.ts";
 import { verifyCapsuleLayout } from "../../../olt/scripts/src/engine/store/integrity/layout-integrity.ts";
 import {
   diffProjection,
   applyProjectionPatch,
 } from "../../../olt/scripts/src/engine/store/projections/projection-patch.ts";
 import {
-  brainstormingProjection,
   materializedProjections,
-  materializeProjections,
   materializedProjectionDigests,
 } from "../../../olt/scripts/src/engine/store/projections/materialized-projections.ts";
 import {
@@ -49,12 +42,16 @@ import {
 import { initialState } from "../../../olt/scripts/src/engine/store/capsule/state.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/events/transaction.ts";
 import type { HarnessEvent } from "../../../olt/scripts/src/core/contracts/index.ts";
-
-function makeTmpDir(prefix: string): string {
-  return realpathSync(mkdtempSync(join(tmpdir(), prefix)));
-}
+import { cleanupVirtualEngineFS, setupVirtualEngineFS } from "../fixture.ts";
 
 describe("engine/store/integrity", () => {
+  beforeEach(() => {
+    setupVirtualEngineFS();
+  });
+  afterEach(() => {
+    cleanupVirtualEngineFS();
+  });
+
   it("validates capture assurance and modes", () => {
     expect(isCaptureMode("file")).toBe(true);
     expect(isCaptureMode("invalid")).toBe(false);
@@ -72,25 +69,21 @@ describe("engine/store/integrity", () => {
   });
 
   it("verifies capsule layout and overall integrity", () => {
-    const tmp = makeTmpDir("integrity-test-");
-    try {
-      mkdirSync(join(tmp, ".olt"), { recursive: true });
-      const runRoot = initRun(
-        tmp,
-        "test-run-integ",
-        new TextEncoder().encode("prompt"),
-        "file",
-        true,
-      );
+    const tmp = "/virtual/projections/integrity";
+    mkdirSync(join(tmp, ".olt"), { recursive: true });
+    const runRoot = initRun(
+      tmp,
+      "test-run-integ",
+      new TextEncoder().encode("prompt"),
+      "file",
+      true,
+    );
 
-      const layoutIssues = verifyCapsuleLayout(runRoot);
-      expect(layoutIssues.length).toBe(0);
+    const layoutIssues = verifyCapsuleLayout(runRoot);
+    expect(layoutIssues.length).toBe(0);
 
-      const integIssues = verifyIntegrity(runRoot);
-      expect(integIssues.length).toBe(0);
-    } finally {
-      rmSync(tmp, { recursive: true, force: true });
-    }
+    const integIssues = verifyIntegrity(runRoot);
+    expect(integIssues.length).toBe(0);
   });
 });
 
@@ -113,153 +106,151 @@ describe("engine/store/projections", () => {
 });
 
 describe("engine/store/recovery", () => {
+  beforeEach(() => {
+    setupVirtualEngineFS();
+  });
+  afterEach(() => {
+    cleanupVirtualEngineFS();
+  });
+
   it("appends, loads, resolves, and compacts defects", () => {
-    const tmp = makeTmpDir("defects-test-");
-    try {
-      mkdirSync(join(tmp, ".olt"), { recursive: true });
-      const runRoot = initRun(
-        tmp,
-        "test-run-defects",
-        new TextEncoder().encode("prompt"),
-        "file",
-        true,
-      );
+    const tmp = "/virtual/projections/defects";
+    mkdirSync(join(tmp, ".olt"), { recursive: true });
+    const runRoot = initRun(
+      tmp,
+      "test-run-defects",
+      new TextEncoder().encode("prompt"),
+      "file",
+      true,
+    );
 
-      const defect = appendCapsuleDefect(runRoot, {
-        id: "def-1",
-        severity: "high" as const,
-        type: "logic_error",
-        observation: "Test defect",
-        dedup_key: "fp-1",
-      });
-      expect(defect).toBeDefined();
+    const defect = appendCapsuleDefect(runRoot, {
+      id: "def-1",
+      severity: "high" as const,
+      type: "logic_error",
+      observation: "Test defect",
+      dedup_key: "fp-1",
+    });
+    expect(defect).toBeDefined();
 
-      const loaded = loadCapsuleDefects(runRoot);
-      expect(loaded.length).toBe(1);
+    const loaded = loadCapsuleDefects(runRoot);
+    expect(loaded.length).toBe(1);
 
-      const resolved = resolveCapsuleDefect(runRoot, defect.id, {
-        task_id: "task-1",
-        test_assertion: "defect_resolved_by_test",
-        resolved_at: new Date().toISOString(),
-        verified_by: "actor",
-      });
-      expect(resolved).toBeDefined();
-      expect(resolved?.status).toBe("resolved");
+    const resolved = resolveCapsuleDefect(runRoot, defect.id, {
+      task_id: "task-1",
+      test_assertion: "defect_resolved_by_test",
+      resolved_at: new Date().toISOString(),
+      verified_by: "actor",
+    });
+    expect(resolved).toBeDefined();
+    expect(resolved?.status).toBe("resolved");
 
-      const compacted = compactCapsuleDefects(runRoot);
-      expect(compacted.totalBefore).toBeGreaterThanOrEqual(1);
-    } finally {
-      rmSync(tmp, { recursive: true, force: true });
-    }
+    const compacted = compactCapsuleDefects(runRoot);
+    expect(compacted.totalBefore).toBeGreaterThanOrEqual(1);
   });
 
   it("handles quarantine of torn tail and projection recovery", () => {
-    const tmp = makeTmpDir("recovery-test-");
-    try {
-      mkdirSync(join(tmp, ".olt"), { recursive: true });
-      const runRoot = initRun(
-        tmp,
-        "test-run-recov",
-        new TextEncoder().encode("prompt"),
-        "file",
-        true,
-      );
+    const tmp = "/virtual/projections/recovery";
+    mkdirSync(join(tmp, ".olt"), { recursive: true });
+    const runRoot = initRun(
+      tmp,
+      "test-run-recov",
+      new TextEncoder().encode("prompt"),
+      "file",
+      true,
+    );
 
-      transact(runRoot, "actor", "setup", { ready: true }, (state) => {
-        state.tasks = { "t-1": { id: "t-1", status: "ready", requirement_ids: [] } };
-      });
+    transact(runRoot, "actor", "setup", { ready: true }, (state) => {
+      state.tasks = { "t-1": { id: "t-1", status: "ready", requirement_ids: [] } };
+    });
 
-      const state = recoverProjection(runRoot, "actor");
-      expect(state.revision).toBeGreaterThanOrEqual(1);
-      expect(state.tasks["t-1"]).toBeDefined();
+    const state = recoverProjection(runRoot, "actor");
+    expect(state.revision).toBeGreaterThanOrEqual(1);
+    expect(state.tasks["t-1"]).toBeDefined();
 
-      const eventsPath = join(runRoot, "events.jsonl");
-      const quarDir = join(runRoot, "quarantine");
-      mkdirSync(quarDir, { recursive: true });
-      const frag = quarantineAndTruncateTail(eventsPath, 0, quarDir);
-      expect(typeof frag).toBe("string");
-    } finally {
-      rmSync(tmp, { recursive: true, force: true });
-    }
+    const eventsPath = join(runRoot, "events.jsonl");
+    const quarDir = join(runRoot, "quarantine");
+    mkdirSync(quarDir, { recursive: true });
+    const frag = quarantineAndTruncateTail(eventsPath, 0, quarDir);
+    expect(typeof frag).toBe("string");
   });
 
   it("writes and appends trace records", () => {
-    const tmp = makeTmpDir("trace-test-");
-    try {
-      mkdirSync(join(tmp, ".olt"), { recursive: true });
-      const runRoot = initRun(
-        tmp,
-        "test-run-trace",
-        new TextEncoder().encode("prompt"),
-        "file",
-        true,
-      );
+    const tmp = "/virtual/projections/trace";
+    mkdirSync(join(tmp, ".olt"), { recursive: true });
+    const runRoot = initRun(
+      tmp,
+      "test-run-trace",
+      new TextEncoder().encode("prompt"),
+      "file",
+      true,
+    );
 
-      const mockEvent: HarnessEvent = {
-        schema: "harness.event",
-        version: 1,
-        sequence: 1,
-        revision: 1,
-        timestamp: "2026-08-30T00:00:00Z",
-        actor: "coordinator",
-        kind: "task_started",
-        hash: "sha123",
-        previous_hash: null,
-        payload: { task_id: "task-1", status: "running" },
-      };
+    const mockEvent: HarnessEvent = {
+      schema: "harness.event",
+      version: 1,
+      sequence: 1,
+      revision: 1,
+      timestamp: "2026-08-30T00:00:00Z",
+      actor: "coordinator",
+      kind: "task_started",
+      hash: "sha123",
+      previous_hash: null,
+      payload: { task_id: "task-1", status: "running" },
+    };
 
-      writeTrace(runRoot, [mockEvent]);
-      expect(existsSync(join(runRoot, "trace.md"))).toBe(true);
+    writeTrace(runRoot, [mockEvent]);
+    expect(existsSync(join(runRoot, "trace.md"))).toBe(true);
 
-      appendTraceStep(runRoot, mockEvent);
-    } finally {
-      rmSync(tmp, { recursive: true, force: true });
-    }
+    appendTraceStep(runRoot, mockEvent);
   });
 });
 
 describe("engine/store/layout", () => {
+  beforeEach(() => {
+    setupVirtualEngineFS();
+  });
+  afterEach(() => {
+    cleanupVirtualEngineFS();
+  });
+
   it("reads and writes blobs and validates command and packet layouts", () => {
-    const tmp = makeTmpDir("layout-test-");
-    try {
-      mkdirSync(join(tmp, ".olt"), { recursive: true });
-      const runRoot = initRun(
-        tmp,
-        "test-run-layout",
-        new TextEncoder().encode("prompt"),
-        "file",
-        true,
-      );
+    const tmp = "/virtual/projections/layout";
+    mkdirSync(join(tmp, ".olt"), { recursive: true });
+    const runRoot = initRun(
+      tmp,
+      "test-run-layout",
+      new TextEncoder().encode("prompt"),
+      "file",
+      true,
+    );
 
-      const blobSource = join(tmp, "source-blob.txt");
-      writeFileSync(blobSource, "blob content");
-      const blob = writeBlob(runRoot, blobSource);
-      expect(blob.sha256).toBeDefined();
+    const blobSource = join(tmp, "source-blob.txt");
+    writeFileSync(blobSource, "blob content");
+    const blob = writeBlob(runRoot, blobSource);
+    expect(blob.sha256).toBeDefined();
 
-      const blobs = listBlobs(runRoot);
-      expect(blobs.length).toBe(1);
+    const blobs = listBlobs(runRoot);
+    expect(blobs.length).toBe(1);
 
-      expect(text("hello")).toBe("hello");
-      expect(text("")).toBeUndefined();
-      expect(isRecord({ a: 1 })).toBe(true);
-      expect(isRecord("str")).toBe(false);
+    expect(text("hello")).toBe("hello");
+    expect(text("")).toBeUndefined();
+    expect(isRecord({ a: 1 })).toBe(true);
+    expect(isRecord("str")).toBe(false);
 
-      const cmdIssues = commandLayout(runRoot, {});
-      expect(cmdIssues.length).toBe(0);
+    const cmdIssues = commandLayout(runRoot, {});
+    expect(cmdIssues.length).toBe(0);
 
-      const pktIssues = packetLayout(runRoot, {});
-      expect(pktIssues.length).toBe(0);
+    const pktIssues = packetLayout(runRoot, {});
+    expect(pktIssues.length).toBe(0);
 
-      const check = checkManifest(runRoot);
-      expect(check.issues.length).toBe(0);
+    const check = checkManifest(runRoot);
+    expect(check.issues.length).toBe(0);
 
-      const readme = renderLayoutReadme("test-run-layout");
-      expect(readme).toContain("test-run-layout");
+    const readme = renderLayoutReadme("test-run-layout");
+    expect(readme).toContain("test-run-layout");
 
-      const dirs = initialCapsuleDirectories();
-      expect(dirs).toContain("planning");
-    } finally {
-      rmSync(tmp, { recursive: true, force: true });
-    }
+    const dirs = initialCapsuleDirectories();
+    expect(dirs).toContain("planning");
   });
 });

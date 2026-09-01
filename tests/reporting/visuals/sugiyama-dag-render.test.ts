@@ -21,7 +21,8 @@ import {
   type SugiyamaSubtask,
 } from "../../../olt/scripts/src/reporting/sugiyama-dag/index.ts";
 
-export const sugiyamaDagRenderSuiteName = "Sugiyama Visual DAG Rendering (Boxes, Routing, Markdown Reports)";
+export const sugiyamaDagRenderSuiteName =
+  "Sugiyama Visual DAG Rendering (Boxes, Routing, Markdown Reports)";
 
 function createNode(id: string, deps: readonly string[] = [], status = "ready"): SugiyamaNode {
   return { id, label: `Task ${id}`, status, dependencies: deps };

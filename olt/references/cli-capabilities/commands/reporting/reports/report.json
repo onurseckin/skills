@@ -1,0 +1,45 @@
+{
+  "name": "report",
+  "aliases": [],
+  "domain": "reporting",
+  "summary": "Deliver unified topology, lifecycle tier breakdown, agent roles, IDs, and timestamps.",
+  "flags": [
+    {
+      "name": "run",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "run-id",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "repo",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": "."
+    },
+    {
+      "name": "detailed",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "json",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

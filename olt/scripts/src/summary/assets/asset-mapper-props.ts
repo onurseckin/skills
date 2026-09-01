@@ -26,7 +26,7 @@ export function isImageExtension(str: string): boolean {
 
 export function extractMediaPaths(text: string): string[] {
   const matches = text.match(
-    /(?:[a-zA-Z0-9_\-\.\/]+?\.(?:png|jpg|jpeg|webp|gif|svg|bmp|webm|mp4|pdf|log))\b/gi,
+    /(?:[a-zA-Z0-9_\-./]+?\.(?:png|jpg|jpeg|webp|gif|svg|bmp|webm|mp4|pdf|log))\b/gi,
   );
   return matches
     ? Array.from(

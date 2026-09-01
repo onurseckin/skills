@@ -13,7 +13,6 @@ import {
   type VisualMetricsReport,
 } from "../../../olt/scripts/src/validation/dual-channel-analyzer/index.ts";
 
-
 describe("Dual-Channel Visual Analyzer", () => {
   describe("UI Scope Detection (isUiScope)", () => {
     test("detects UI file extensions (.tsx, .jsx, .vue, .svelte, .html, .css, .scss, .svg)", () => {
@@ -212,5 +211,4 @@ describe("Dual-Channel Visual Analyzer", () => {
       expect(result.findings.some((f) => f.affectedSelector === ".item-08")).toBe(false);
     });
   });
-
 });

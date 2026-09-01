@@ -25,7 +25,10 @@ describe("Health Checks - Dead Code Detection & Duplicate Helpers", () => {
 
     test("a commented-out block counts every line it holds", () => {
       expect(
-        findings("sample.ts", ["/*", " * if (ready) {", " *   run();", " * }", " */"].join("\n"))[0],
+        findings(
+          "sample.ts",
+          ["/*", " * if (ready) {", " *   run();", " * }", " */"].join("\n"),
+        )[0],
       ).toContain("3 line(s)");
     });
 

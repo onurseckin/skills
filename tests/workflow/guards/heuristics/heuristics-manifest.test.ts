@@ -1,10 +1,4 @@
 import { describe, expect, it } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
 import {
   calculateApcaLightness,
   formatManifestFilename,
@@ -152,5 +146,4 @@ describe("Adversarial Edge Cases: Multi-Viewport Companion Manifest Verification
       ),
     ).toBe(true);
   });
-
 });

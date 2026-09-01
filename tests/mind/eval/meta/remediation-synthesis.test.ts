@@ -36,10 +36,6 @@ import {
 } from "../../../../olt/scripts/src/mind/feedback/queue/index.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 
-
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
-
 describe("Meta Auditor - Remediation Plan Synthesis", () => {
   describe("Remediation Plan Synthesis", () => {
     it("synthesizes proposals for all 7 behavioral root causes", () => {
@@ -224,5 +220,4 @@ describe("Meta Auditor - Remediation Plan Synthesis", () => {
       expect(proposals[0]?.rootCause).toBe("TOKEN_BURNING");
     });
   });
-
 });

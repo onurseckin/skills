@@ -10,7 +10,7 @@ import {
   repositoryBinding,
   TestPort,
   workflowState,
-} from "../../workflow/test-port.ts";
+} from "../../workflow/index.ts";
 import { inspectionContext } from "../payloads/slicing/inspection-fixture.ts";
 
 const bytes = new TextEncoder().encode("Canonical common instructions.\n");

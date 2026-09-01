@@ -9,7 +9,7 @@ import {
   registerTaskPacket,
   TestPort,
   workflowState,
-} from "../../workflow/test-port.ts";
+} from "../../workflow/index.ts";
 
 // The "a granted role cannot invoke a command its contract withholds" cases are covered directly
 // against assertRoleMayInvoke in role-contract-enforcement.test.ts; this file keeps the in-memory

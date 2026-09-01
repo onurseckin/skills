@@ -86,10 +86,7 @@ describe("Worktree Isolation - Write Scope Path Confinement", () => {
       "docs/readme.md",
     ];
     const filtered = filterPathsToScope(paths, allowedScope);
-    expect(filtered).toEqual([
-      "src/workflow/worktree/git.ts",
-      "tests/workflow/worktree.test.ts",
-    ]);
+    expect(filtered).toEqual(["src/workflow/worktree/git.ts", "tests/workflow/worktree.test.ts"]);
   });
 
   it("asserts non-destructive write scope confinement and rejects out-of-scope edits", () => {

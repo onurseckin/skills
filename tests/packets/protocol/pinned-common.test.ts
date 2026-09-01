@@ -8,7 +8,7 @@ import {
 } from "../../../olt/scripts/src/packets/common-instructions.ts";
 import { buildPacketFromPinnedRuntime } from "../../../olt/scripts/src/packets/render-packet.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { workflowState } from "../../workflow/test-port.ts";
+import { workflowState } from "../../workflow/index.ts";
 
 const roots: string[] = [];
 afterEach(async () => Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true }))));

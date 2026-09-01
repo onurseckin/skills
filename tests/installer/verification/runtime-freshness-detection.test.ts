@@ -1,11 +1,12 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, spyOn, test } from "bun:test";
+import * as os from "node:os";
 import { cp, mkdir, realpath, symlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { clientLinkPaths } from "../../../olt/scripts/src/installer/client-links.ts";
 import { SKILL_NAME } from "../../../olt/scripts/src/installer/constants.ts";
 import { installedRuntimeFreshness } from "../../../olt/scripts/src/installer/runtime-freshness.ts";
 import { validateSkillSource } from "../../../olt/scripts/src/installer/source-validation.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
 import { cleanInstallerFixtures, installerFixture } from "../helpers.ts";
 
 afterEach(cleanInstallerFixtures);
@@ -174,8 +175,13 @@ describe("installedRuntimeFreshness", () => {
   });
 
   test("defaults home to the OS home directory when omitted", async () => {
-    const { source } = await installerFixture();
+    const { source, home } = await installerFixture();
     const reference = await validateSkillSource(source);
-    await expect(installedRuntimeFreshness(reference)).resolves.toBeDefined();
+    const spy = spyOn(os, "homedir").mockReturnValue(home);
+    try {
+      await expect(installedRuntimeFreshness(reference)).resolves.toBeDefined();
+    } finally {
+      spy.mockRestore();
+    }
   });
 });

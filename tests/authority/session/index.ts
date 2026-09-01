@@ -38,9 +38,7 @@ export {
   autoDeriveCallerIdentity,
 } from "../../../olt/scripts/src/authority/session/resolver.ts";
 
-export {
-  requireTurn1Registration,
-} from "../../../olt/scripts/src/authority/session/turn1-interlock.ts";
+export { requireTurn1Registration } from "../../../olt/scripts/src/authority/session/turn1-interlock.ts";
 
 export {
   resolveGlobalSessionsDir,

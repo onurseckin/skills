@@ -19,7 +19,7 @@ export function calculateHierarchyCapacity(params: {
 }): HierarchyCapacityMetrics {
   const thresholds: ScalingThresholds = {
     ...DEFAULT_SCALING_THRESHOLDS,
-    ...(params.thresholds ?? {}),
+    ...params.thresholds,
   };
 
   const tasks = params.taskQueue ?? [];
@@ -131,7 +131,7 @@ export function evaluateHierarchyScaling(
 ): HierarchyScalingDecision {
   const thresholds: ScalingThresholds = {
     ...DEFAULT_SCALING_THRESHOLDS,
-    ...(customThresholds ?? {}),
+    ...customThresholds,
   };
 
   const spawns: { readonly role: "orchestrator" | "coordinator"; readonly domainSlug: string }[] =

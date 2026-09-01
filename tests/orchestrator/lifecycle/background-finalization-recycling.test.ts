@@ -25,9 +25,9 @@ describe("Zero Main-Thread Spillover Invariants", () => {
 
   it("strictly enforces role tier: rejects execution by non-orchestrator tier (Tier 2)", async () => {
     const testDir = "/virtual/repo/spillover-tier-2";
-    expect(
-      executeBackgroundFinalization({ repoPath: testDir, executionTier: 2 }),
-    ).rejects.toThrow(HarnessError);
+    expect(executeBackgroundFinalization({ repoPath: testDir, executionTier: 2 })).rejects.toThrow(
+      HarnessError,
+    );
   });
 
   it("enforceZeroMainThreadSpillover reports detailed compliance and violation states", () => {
@@ -118,7 +118,9 @@ describe("Autonomous Loop Recycling Transition", () => {
     const inMemoryState: Record<string, unknown> = {
       completion_review: { status: "clean", summary: "Critic sign-off complete." },
       mind: {
-        candidates: [{ id: "cand-wave-2", kind: "defect", statement: "Autonomous wave 2", status: "admitted" }],
+        candidates: [
+          { id: "cand-wave-2", kind: "defect", statement: "Autonomous wave 2", status: "admitted" },
+        ],
       },
     };
 
@@ -158,11 +160,16 @@ describe("Autonomous Loop Recycling Transition", () => {
     const state: Record<string, unknown> = {
       completion_review: { status: "clean" },
       mind: {
-        candidates: [{ id: "cand-plan-1", kind: "defect", statement: "Repair defect", status: "admitted" }],
+        candidates: [
+          { id: "cand-plan-1", kind: "defect", statement: "Repair defect", status: "admitted" },
+        ],
       },
     };
 
-    const plan = planSupervisionLoopRecycle(state, { runRoot: "/tmp/test-run", actor: "orchestrator-tier1" });
+    const plan = planSupervisionLoopRecycle(state, {
+      runRoot: "/tmp/test-run",
+      actor: "orchestrator-tier1",
+    });
     expect(plan.transition).toBe("candidate_to_planning");
     expect(plan.candidateId).toBe("cand-plan-1");
     expect(plan.markdown).toContain("Autonomous Mind Recycler");
@@ -173,7 +180,9 @@ describe("Autonomous Loop Recycling Transition", () => {
 describe("SupervisionLoopRunner - Integrated Background Finalization & Recycling", () => {
   it("automatically triggers background finalization and autonomous recycling on convergence", async () => {
     const testDir = "/tmp/orchestrator-supervision-loop-converge";
-    const { runner: gitRunner, commands: gitCommands } = createMockGitRunner({ commitSha: "sha-final-converge" });
+    const { runner: gitRunner, commands: gitCommands } = createMockGitRunner({
+      commitSha: "sha-final-converge",
+    });
     const { runner: syncRunner, commands: syncCommands } = createMockSyncRunner();
 
     const mockExecutor: RoundExecutor = {
@@ -237,16 +246,18 @@ describe("SupervisionLoopRunner - Integrated Background Finalization & Recycling
           status: "rejected",
           criticDecision: "request_changes",
           tasks: [{ id: "task-01", status: "changes_requested", writeScope: ["src/"] }],
-          findings: [{
-            id: "f-01",
-            requirement_id: "req-1",
-            severity: "critical",
-            observation: "Bug found",
-            evidence: [],
-            remediation: "Fix bug",
-            revalidation: "bun test",
-            status: "open",
-          }],
+          findings: [
+            {
+              id: "f-01",
+              requirement_id: "req-1",
+              severity: "critical",
+              observation: "Bug found",
+              evidence: [],
+              remediation: "Fix bug",
+              revalidation: "bun test",
+              status: "open",
+            },
+          ],
           gateResults: [],
           summary: "Changes requested by Critic.",
         };

@@ -2,9 +2,25 @@
  * Dual-Channel Facade.
  */
 export {
-  analyzeDualChannel,
-  isUiScope,
+  normalizeViewportName,
   validateCrossChannelConsistency,
-  type DualChannelAnalysisResult,
-  type DualChannelFinding,
-} from "../../../olt/scripts/src/validation/dual-channel.ts";
+  extractDomViolations,
+  type FindingAdder,
+} from "../../../olt/scripts/src/validation/channels/index.ts";
+
+export type {
+  ClippingViolation,
+  CompanionManifestData,
+  ContrastViolation,
+  CrossChannelProof,
+  DualChannelAuditResult,
+  DualChannelInput,
+  EvaluatedCriterion,
+  OrphanViolation,
+  OverflowViolation,
+  ScreenshotMetadata,
+  StackingViolation,
+  StructuredFinding,
+  ViewportMetrics,
+  VisualMetricsReport,
+} from "../../../olt/scripts/src/validation/channels/index.ts";

@@ -9,23 +9,27 @@ import * as paths from "./paths.ts";
 import { sessionLockCleanupFault, sessionPersistenceObserver } from "./testing-hooks.ts";
 import type { SessionSnapshot } from "./types.ts";
 
-let inMemorySessionStore: Map<string, string> | undefined;
+import {
+  clearInMemorySessionStore,
+  deleteInMemorySessionData,
+  disableInMemorySessionStore,
+  enableInMemorySessionStore,
+  getInMemorySessionData,
+  getInMemorySessionStore,
+  isInMemorySessionStoreEnabled,
+  setInMemorySessionData,
+} from "./paths.ts";
 
-export const enableInMemorySessionStore = (init?: Record<string, string>): Map<string, string> =>
-  (inMemorySessionStore = new Map(Object.entries(init ?? {})));
-export const disableInMemorySessionStore = (): void => {
-  inMemorySessionStore = undefined;
+export {
+  clearInMemorySessionStore,
+  deleteInMemorySessionData,
+  disableInMemorySessionStore,
+  enableInMemorySessionStore,
+  getInMemorySessionData,
+  getInMemorySessionStore,
+  isInMemorySessionStoreEnabled,
+  setInMemorySessionData,
 };
-export const clearInMemorySessionStore = (): void => inMemorySessionStore?.clear();
-export const isInMemorySessionStoreEnabled = (): boolean => inMemorySessionStore !== undefined;
-export const getInMemorySessionStore = (): Map<string, string> | undefined => inMemorySessionStore;
-export const setInMemorySessionData = (path: string, payload: string): void => {
-  inMemorySessionStore?.set(path, payload);
-};
-export const getInMemorySessionData = (path: string): string | undefined =>
-  inMemorySessionStore?.get(path);
-export const deleteInMemorySessionData = (path: string): boolean =>
-  inMemorySessionStore?.delete(path) ?? false;
 
 export function readOwnDataString(err: unknown, key: "code" | "message"): string | null {
   try {

@@ -3,7 +3,13 @@ import { HarnessError, normalizeError } from "../../../olt/scripts/src/core/erro
 
 describe("Error Normalization Handler", () => {
   it("normalizes HarnessError with custom fix and footers", () => {
-    const harnessErr = new HarnessError("INVALID_STATE", "Task not claimable", ["issue-1"], 3, "Use valid task");
+    const harnessErr = new HarnessError(
+      "INVALID_STATE",
+      "Task not claimable",
+      ["issue-1"],
+      3,
+      "Use valid task",
+    );
     const normalized = normalizeError(harnessErr);
     expect(normalized.code).toBe("INVALID_STATE");
     expect(normalized.message).toBe("Task not claimable");

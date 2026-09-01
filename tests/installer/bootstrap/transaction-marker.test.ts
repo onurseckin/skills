@@ -13,7 +13,7 @@ import {
   type TransactionMarker,
 } from "../../../olt/scripts/src/installer/transaction-marker.ts";
 import { SKILL_NAME } from "../../../olt/scripts/src/installer/constants.ts";
-import { scratchRoot } from "../../shared/scratch-root.ts";
+import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
 
 const validDigest = "c".repeat(64);
 

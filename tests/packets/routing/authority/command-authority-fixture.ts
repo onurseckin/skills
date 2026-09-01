@@ -13,7 +13,10 @@ export function spec(invocation: string): CommandSpec {
   return found;
 }
 
-export function testCaller(specification: CommandSpec, flags: Flags): AuthenticatedCaller | undefined {
+export function testCaller(
+  specification: CommandSpec,
+  flags: Flags,
+): AuthenticatedCaller | undefined {
   const callerFlag = ["actor", "validator", "critic", "agent"].find((name) => {
     if (
       (specification.name === "agent:register" ||

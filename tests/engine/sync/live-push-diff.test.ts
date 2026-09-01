@@ -7,6 +7,25 @@ import {
 } from "../../../olt/scripts/src/engine/scheduler/reporting/index.ts";
 import { createTestProgressSnapshot } from "./index.ts";
 
+const mkTask = (
+  id: string,
+  status: string,
+  assignedAgent: string | null = null,
+  dependencies: string[] = [],
+  wave = 1,
+  lane = 1,
+) => ({
+  id,
+  status,
+  dependencies,
+  wave,
+  lane,
+  effort: 1,
+  assignedAgent,
+  role: assignedAgent ? "implementer" : null,
+  writeScope: [],
+});
+
 describe("Snapshot Extraction, Diff Evaluator & Counterfactuals", () => {
   describe("Snapshot Extraction & Diff Evaluator", () => {
     it("extracts comprehensive progress snapshot from state object", () => {
@@ -56,13 +75,35 @@ describe("Snapshot Extraction, Diff Evaluator & Counterfactuals", () => {
         readyTasks: 1,
         proposedTasks: 1,
         tasks: [
-          { id: "task-1", status: "leased", dependencies: [], wave: 1, lane: 1, effort: 1, assignedAgent: "worker-1", role: "implementer", writeScope: [] },
-          { id: "task-2", status: "ready", dependencies: [], wave: 1, lane: 2, effort: 1, assignedAgent: null, role: null, writeScope: [] },
-          { id: "task-3", status: "proposed", dependencies: ["task-1"], wave: 2, lane: 1, effort: 1, assignedAgent: null, role: null, writeScope: [] },
+          mkTask("task-1", "leased", "worker-1", [], 1, 1),
+          mkTask("task-2", "ready", null, [], 1, 2),
+          mkTask("task-3", "proposed", null, ["task-1"], 2, 1),
         ],
         waves: [
-          { wave: 1, totalTasks: 2, completedTasks: 0, leasedTasks: 1, readyTasks: 1, failedTasks: 0, status: "running", isActive: true, laneCount: 2, taskIds: ["task-1", "task-2"] },
-          { wave: 2, totalTasks: 1, completedTasks: 0, leasedTasks: 0, readyTasks: 0, failedTasks: 0, status: "pending", isActive: false, laneCount: 1, taskIds: ["task-3"] },
+          {
+            wave: 1,
+            totalTasks: 2,
+            completedTasks: 0,
+            leasedTasks: 1,
+            readyTasks: 1,
+            failedTasks: 0,
+            status: "running",
+            isActive: true,
+            laneCount: 2,
+            taskIds: ["task-1", "task-2"],
+          },
+          {
+            wave: 2,
+            totalTasks: 1,
+            completedTasks: 0,
+            leasedTasks: 0,
+            readyTasks: 0,
+            failedTasks: 0,
+            status: "pending",
+            isActive: false,
+            laneCount: 1,
+            taskIds: ["task-3"],
+          },
         ],
       });
 
@@ -74,9 +115,9 @@ describe("Snapshot Extraction, Diff Evaluator & Counterfactuals", () => {
         readyTasks: 0,
         proposedTasks: 1,
         tasks: [
-          { id: "task-1", status: "completed", dependencies: [], wave: 1, lane: 1, effort: 1, assignedAgent: "worker-1", role: "implementer", writeScope: [] },
-          { id: "task-2", status: "leased", dependencies: [], wave: 1, lane: 2, effort: 1, assignedAgent: "worker-2", role: "implementer", writeScope: [] },
-          { id: "task-3", status: "proposed", dependencies: ["task-1"], wave: 2, lane: 1, effort: 1, assignedAgent: null, role: null, writeScope: [] },
+          mkTask("task-1", "completed", "worker-1", [], 1, 1),
+          mkTask("task-2", "leased", "worker-2", [], 1, 2),
+          mkTask("task-3", "proposed", null, ["task-1"], 2, 1),
         ],
         activeAgents: [
           { id: "worker-2", role: "implementer", task_id: "task-2", host: "claude-code" },
@@ -101,8 +142,8 @@ describe("Snapshot Extraction, Diff Evaluator & Counterfactuals", () => {
         readyTasks: 1,
         proposedTasks: 0,
         tasks: [
-          { id: "task-1", status: "leased", dependencies: [], wave: 1, lane: 1, effort: 1, assignedAgent: "worker-1", role: "implementer", writeScope: [] },
-          { id: "task-2", status: "ready", dependencies: [], wave: 1, lane: 2, effort: 1, assignedAgent: null, role: null, writeScope: [] },
+          mkTask("task-1", "leased", "worker-1", [], 1, 1),
+          mkTask("task-2", "ready", null, [], 1, 2),
         ],
       });
 
@@ -143,8 +184,8 @@ describe("Snapshot Extraction, Diff Evaluator & Counterfactuals", () => {
         leasedTasks: 1,
         readyTasks: 1,
         tasks: [
-          { id: "task-1", status: "leased", dependencies: [], wave: 1, lane: 1, effort: 1, assignedAgent: "w1", role: "implementer", writeScope: [] },
-          { id: "task-2", status: "ready", dependencies: [], wave: 1, lane: 2, effort: 1, assignedAgent: null, role: null, writeScope: [] },
+          mkTask("task-1", "leased", "w1", [], 1, 1),
+          mkTask("task-2", "ready", null, [], 1, 2),
         ],
       });
 
@@ -154,8 +195,8 @@ describe("Snapshot Extraction, Diff Evaluator & Counterfactuals", () => {
         completedTasks: 1,
         leasedTasks: 0,
         tasks: [
-          { id: "task-1", status: "completed", dependencies: [], wave: 1, lane: 1, effort: 1, assignedAgent: "w1", role: "implementer", writeScope: [] },
-          { id: "task-2", status: "ready", dependencies: [], wave: 1, lane: 2, effort: 1, assignedAgent: null, role: null, writeScope: [] },
+          mkTask("task-1", "completed", "w1", [], 1, 1),
+          mkTask("task-2", "ready", null, [], 1, 2),
         ],
       });
 

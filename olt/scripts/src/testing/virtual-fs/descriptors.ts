@@ -1,0 +1,91 @@
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { normPath, type VirtualFSSpyState } from "./handlers.ts";
+
+export function mockOpen(state: VirtualFSSpyState, p: fs.PathLike, flags: string | number): number {
+  const target = normPath(String(p));
+  const numFlags = typeof flags === "number" ? flags : 0;
+  if ((numFlags & (fs.constants.O_NOFOLLOW ?? 0)) !== 0 && state.symlinks.has(target)) {
+    const err = new Error(`ELOOP: too many levels of symbolic links, open '${target}'`);
+    (err as unknown as { code: string }).code = "ELOOP";
+    throw err;
+  }
+  const isWrite =
+    (numFlags & (fs.constants.O_WRONLY | fs.constants.O_RDWR | fs.constants.O_CREAT)) !== 0;
+  if (isWrite && state.vfs.statSync(target, { throwIfNoEntry: false })?.isDirectory()) {
+    const err = new Error(`EISDIR: illegal operation on a directory, open '${target}'`);
+    (err as unknown as { code: string }).code = "EISDIR";
+    throw err;
+  }
+  if (isWrite && !(numFlags & (fs.constants.O_DIRECTORY ?? 0))) {
+    const parent = path.dirname(target);
+    if (!state.vfs.existsSync(parent)) state.vfs.mkdirSync(parent, { recursive: true });
+    if (!state.vfs.existsSync(target)) state.vfs.writeFileSync(target, "");
+  }
+  const isAppend = (numFlags & fs.constants.O_APPEND) !== 0;
+  const existingLen =
+    state.vfs.existsSync(target) &&
+    !state.vfs.statSync(target, { throwIfNoEntry: false })?.isDirectory()
+      ? state.vfs.readFileSync(target).length
+      : 0;
+  const fd = state.nextFd.value++;
+  state.openDescriptors.set(fd, {
+    path: target,
+    position: isAppend ? existingLen : 0,
+    flags: numFlags,
+  });
+  return fd;
+}
+
+export function mockRead(
+  state: VirtualFSSpyState,
+  fd: number,
+  buffer: NodeJS.ArrayBufferView,
+  offset: number,
+  length: number,
+  position?: number | bigint | null,
+): number {
+  const entry = state.openDescriptors.get(fd);
+  if (!entry || state.vfs.statSync(entry.path, { throwIfNoEntry: false })?.isDirectory()) return 0;
+  const data = state.vfs.readFileSync(entry.path);
+  const pos = position !== null && position !== undefined ? Number(position) : entry.position;
+  const readLen = Math.min(length, Math.max(0, data.length - pos));
+  const targetBuf = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer.buffer);
+  Buffer.from(data)
+    .subarray(pos, pos + readLen)
+    .copy(targetBuf, offset, 0, readLen);
+  entry.position = pos + readLen;
+  return readLen;
+}
+
+export function mockWrite(
+  state: VirtualFSSpyState,
+  fd: number,
+  buffer: NodeJS.ArrayBufferView | string,
+  offset?: number | null,
+  length?: number | null,
+  position?: number | bigint | null,
+): number {
+  const entry = state.openDescriptors.get(fd);
+  if (!entry) return 0;
+  const byteBuf =
+    typeof buffer === "string"
+      ? Buffer.from(buffer)
+      : Buffer.isBuffer(buffer)
+        ? buffer
+        : Buffer.from(buffer.buffer);
+  const off = typeof offset === "number" ? offset : 0;
+  const len = typeof length === "number" ? length : byteBuf.length;
+  const slice = byteBuf.subarray(off, off + len);
+  const existing = state.vfs.existsSync(entry.path)
+    ? Buffer.from(state.vfs.readFileSync(entry.path))
+    : Buffer.alloc(0);
+  const isAppend = entry.flags !== undefined && (entry.flags & fs.constants.O_APPEND) !== 0;
+  const pos = typeof position === "number" ? position : isAppend ? existing.length : entry.position;
+  const newBuf = Buffer.alloc(Math.max(existing.length, pos + slice.length));
+  existing.copy(newBuf);
+  slice.copy(newBuf, pos);
+  state.vfs.writeFileSync(entry.path, newBuf);
+  entry.position = pos + slice.length;
+  return slice.length;
+}

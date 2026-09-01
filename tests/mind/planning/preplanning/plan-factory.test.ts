@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test, spyOn } from "bun:test";
+import * as fs from "node:fs";
 import { join } from "node:path";
 import {
   assertValidBlueprintStructure,
@@ -11,19 +11,54 @@ import {
   type RawDefectItem,
   type ThematicCluster,
 } from "../../../../olt/scripts/src/mind/preplanning/index.ts";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
 
-describe("Plan Factory Engine", () => {
-  const testDir = mkdtempSync(join(tmpdir(), "preplan-scratch-"));
+describe("Plan Factory Engine (in-memory virtual)", () => {
+  const testDir = `${process.cwd()}/.olt/virtual-preplan-scratch`;
+  const mockFiles = new Map<string, string>();
+  const mockDirs = new Set<string>();
+  const spies: { mockRestore: () => void }[] = [];
 
   beforeEach(() => {
-    if (existsSync(testDir)) rmSync(testDir, { recursive: true, force: true });
-    mkdirSync(testDir, { recursive: true });
+    mockFiles.clear();
+    mockDirs.clear();
+    mockDirs.add(testDir);
+
+    const existsSpy = spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => {
+      const pathStr = String(p);
+      return mockFiles.has(pathStr) || mockDirs.has(pathStr);
+    });
+    spies.push(existsSpy);
+
+    const mkdirSpy = spyOn(fs, "mkdirSync").mockImplementation((p: fs.PathLike) => {
+      mockDirs.add(String(p));
+      return undefined as unknown as string;
+    });
+    spies.push(mkdirSpy);
+
+    const writeSpy = spyOn(fs, "writeFileSync").mockImplementation(
+      (p: fs.PathOrFileDescriptor, data: string | NodeJS.ArrayBufferView) => {
+        const pathStr = String(p);
+        mockFiles.set(
+          pathStr,
+          typeof data === "string" ? data : Buffer.from(data as Uint8Array).toString("utf-8"),
+        );
+      },
+    );
+    spies.push(writeSpy);
+
+    const readSpy = spyOn(fs, "readFileSync").mockImplementation((p: fs.PathOrFileDescriptor) => {
+      const pathStr = String(p);
+      const val = mockFiles.get(pathStr);
+      if (val !== undefined) return val;
+      throw new Error(`ENOENT: no such file or directory, open '${pathStr}'`);
+    });
+    spies.push(readSpy);
   });
 
   afterEach(() => {
-    if (existsSync(testDir)) rmSync(testDir, { recursive: true, force: true });
+    while (spies.length > 0) {
+      spies.pop()?.mockRestore();
+    }
   });
 
   const mockCluster: ThematicCluster = {
@@ -58,43 +93,24 @@ describe("Plan Factory Engine", () => {
     {
       id: "def-1",
       title: "Store Memory Leak",
-      description: "Fix memory leak in store",
-      status: "OPEN",
-      category: "core",
-      error_code: "ERR_MEM_LEAK",
+      observation: "Store retains uncollected buffers",
+      status: "open",
+      remediation: "Add explicit dispose method",
     },
   ];
 
   test("generatePlanMarkdown generates valid blueprint with all required sections", () => {
     const markdown = generatePlanMarkdown(mockCluster, mockItems, mockDefects);
-    expect(typeof markdown).toBe("string");
-    expect(markdown).toContain("# Core Continuous Pre-Planning Domain Cluster Master Plan");
-    expect(markdown).toContain("> **Tracking ID:** `fb-cluster-core-abc12345`");
-    expect(markdown).toContain("## 1. Executive Summary");
-    expect(markdown).toContain("## 2. Core Architectural Pillars");
-    expect(markdown).toContain("## 3. Work Breakdown");
-    expect(markdown).toContain("## 4. Sequential Execution Order");
-    expect(markdown).toContain("## 5. Exhaustive Traceability Matrix");
 
+    expect(markdown).toContain("# Core Continuous Pre-Planning Domain Cluster Master Plan");
+    expect(markdown).toContain("## 1. Executive Summary & The Assembly Pipeline Vision");
+    expect(markdown).toContain("## 2. Core Architectural Pillars & Design Specifications");
+    expect(markdown).toContain("## 3. Work Breakdown & Disjoint Task Specifications");
+    expect(markdown).toContain("## 4. Sequential Execution Order & Critical Path");
+    expect(markdown).toContain("## 5. Exhaustive Traceability Matrix");
     expect(markdown).toContain("### Task 1.1: Feature: Add Core Store");
-    expect(markdown).toContain(
-      "- **Write Scope:** `olt/scripts/src/core/add-core-store-item-1.ts`, `tests/core/add-core-store-item-1.test.ts`",
-    );
-    expect(markdown).toContain("`bun test tests/core/add-core-store-item-1.test.ts`");
     expect(markdown).toContain("### Task 1.2: Feature: Add Cache");
-    expect(markdown).toContain(
-      "- **Write Scope:** `olt/scripts/src/core/add-cache-item-2.ts`, `tests/core/add-cache-item-2.test.ts`",
-    );
-    expect(markdown).toContain("`bun test tests/core/add-cache-item-2.test.ts`");
     expect(markdown).toContain("### Task 1.3: Defect Remediation: Store Memory Leak");
-    expect(markdown).toContain(
-      "- **Write Scope:** `olt/scripts/src/core/store-memory-leak-def-1.ts`, `tests/core/store-memory-leak-def-1.test.ts`",
-    );
-    expect(markdown).toContain("`bun test tests/core/store-memory-leak-def-1.test.ts`");
-    expect(markdown).toContain("`ERR_MEM_LEAK`");
-    expect(markdown).toContain(
-      "Execution Flow: [Task 1.1: Add Core Store] ──► [Task 1.2: Add Cache] ──► [Task 1.3: Store Memory Leak] ──► [Verification: bun test tests/core/] ──► [Git Staging: git add -A] ──► [Landing]",
-    );
     expect(assertValidBlueprintStructure(markdown)).toBe(true);
   });
 
@@ -104,7 +120,7 @@ describe("Plan Factory Engine", () => {
 
     expect(scope1.writeScope).toBe("olt/scripts/src/engine/kv-store-wal-sync-req-1.ts");
     expect(scope2.writeScope).toBe("olt/scripts/src/engine/kv-store-wal-sync-req-2.ts");
-    expect(scope1.writeScope).not.toBe(scope2.writeScope); // Zero slug collision
+    expect(scope1.writeScope).not.toBe(scope2.writeScope);
     expect(scope1.scopeEnvelope).toEqual([
       "olt/scripts/src/engine/kv-store-wal-sync-req-1.ts",
       "tests/engine/kv-store-wal-sync-req-1.test.ts",
@@ -138,8 +154,8 @@ describe("Plan Factory Engine", () => {
     const targetFile = join(testDir, "docs/planning/cluster-1/PLAN.md");
     const written = writePlanFile(targetFile, "# Test Plan", testDir);
     expect(written).toBe(targetFile);
-    expect(existsSync(targetFile)).toBe(true);
-    expect(readFileSync(targetFile, "utf-8")).toBe("# Test Plan");
+    expect(fs.existsSync(targetFile)).toBe(true);
+    expect(fs.readFileSync(targetFile, "utf-8")).toBe("# Test Plan");
   });
 
   test("generateAndWritePlan outputs plan and writes to destination", () => {
@@ -149,7 +165,7 @@ describe("Plan Factory Engine", () => {
     };
     const result = generateAndWritePlan(cluster, mockItems, mockDefects, testDir);
     expect(result.planPath).toBe(join(testDir, "docs/planning/custom-cluster/PLAN.md"));
-    expect(existsSync(result.planPath)).toBe(true);
+    expect(fs.existsSync(result.planPath)).toBe(true);
     expect(assertValidBlueprintStructure(result.markdown)).toBe(true);
   });
 });

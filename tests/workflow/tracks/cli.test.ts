@@ -1,6 +1,5 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import * as fs from "node:fs";
 import {
   worktreeCleanCommand,
   worktreeCreateCommand,
@@ -10,16 +9,20 @@ import {
 } from "../../../olt/scripts/src/cli/commands/worktree-ops.ts";
 import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
 
-const TEST_DIR = join(process.cwd(), ".olt", "scratch", "test-worktree-cli");
+const TEST_DIR = "/virtual/worktree-cli-repo";
 
-describe("worktree CLI commands & registry", () => {
+describe("worktree CLI commands & registry (in-memory virtualization)", () => {
+  let existsSpy: ReturnType<typeof spyOn>;
+  let readdirSpy: ReturnType<typeof spyOn>;
+
   beforeEach(() => {
-    rmSync(TEST_DIR, { recursive: true, force: true });
-    mkdirSync(TEST_DIR, { recursive: true });
+    existsSpy = spyOn(fs, "existsSync").mockReturnValue(false);
+    readdirSpy = spyOn(fs, "readdirSync").mockReturnValue([]);
   });
 
   afterEach(() => {
-    rmSync(TEST_DIR, { recursive: true, force: true });
+    existsSpy.mockRestore();
+    readdirSpy.mockRestore();
   });
 
   test("CLI registry includes all worktree commands", () => {

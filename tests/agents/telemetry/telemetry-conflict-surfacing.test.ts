@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test, afterAll } from "bun:test";
 import {
   isAgentGrantRecord,
   isTelemetryFieldConflict,
@@ -9,7 +9,16 @@ import {
   registerAgentGrant,
 } from "../../../olt/scripts/src/workflow/agents/grants.ts";
 import { appendTelemetryConflicts } from "../../../olt/scripts/src/workflow/agents/telemetry-merge.ts";
-import { ledgerOf, registerCoordinator, seededRun } from "../grants/agent-grant-fixtures.ts";
+import {
+  cleanupGrantRoots,
+  ledgerOf,
+  registerCoordinator,
+  seededRun,
+} from "../grants/agent-grant-fixtures.ts";
+
+afterAll(() => {
+  cleanupGrantRoots();
+});
 
 function worker(run: string) {
   return ledgerOf(run).find((grant) => grant.id === "worker-1")!;

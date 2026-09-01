@@ -1,5 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import { findRepoRoot, resolveOltDir, resolveCapsulesDir, safeRepoPath } from "../resolution/index.ts";
+import {
+  findRepoRoot,
+  resolveOltDir,
+  resolveCapsulesDir,
+  safeRepoPath,
+} from "../resolution/index.ts";
 import { CAPSULE_LAYOUT, checkManifest } from "../layout/index.ts";
 import { withRunLock } from "../isolation/index.ts";
 

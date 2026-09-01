@@ -1,8 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import {
-  autoFixSourceCode,
-  isAutoFixResult,
-} from "../../../olt/scripts/src/linter/ast/index.ts";
+import { autoFixSourceCode, isAutoFixResult } from "../../../olt/scripts/src/linter/ast/index.ts";
 
 export const autofixTransformsSuiteName = "AST Source Code Auto-Fix Transforms";
 

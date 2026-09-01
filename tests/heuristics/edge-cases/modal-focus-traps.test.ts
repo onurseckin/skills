@@ -126,4 +126,21 @@ describe("Extended Heuristics: Modal Focus Traps", () => {
     expect(result.passed).toBe(true);
     expect(result.defects.length).toBe(0);
   });
+
+  it("flags modal missing aria-modal attribute and elements outside modal container subtree", () => {
+    const input: ModalFocusTrapInput = {
+      modalSelector: "#unmodal-dialog",
+      isOpen: true,
+      ariaModal: false,
+      focusableElements: [
+        { selector: "#modal-btn-1", tabIndex: 0, isInsideModal: true },
+        { selector: "#outside-sidebar-btn", tabIndex: 0, isInsideModal: false },
+      ],
+    };
+
+    const result = validateModalFocusTrap(input);
+    expect(result.passed).toBe(false);
+    expect(result.defects.some((d) => d.category === "modal-missing-aria-modal")).toBe(true);
+    expect(result.defects.some((d) => d.category === "modal-focus-escaped")).toBe(true);
+  });
 });

@@ -74,7 +74,6 @@ function installMetaAuditGrant(
   });
 }
 
-
 describe("assertGrantedCommand hole 5: revocation is honoured, not theatre", () => {
   test("denies a released agent outright, distinct from an unregistered ghost", async () => {
     const { run } = await emptyGrantRun("fail-closed-hole5-released-");
@@ -238,4 +237,3 @@ describe("assertGrantedCommand end to end: role contract is enforced once a gran
     expect(message).toContain("no grant");
   });
 });
-

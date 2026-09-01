@@ -26,7 +26,6 @@ describe("Tooling System Test Suite", () => {
     rmSync(tempDir, { recursive: true, force: true });
   });
 
-
   describe("DynamicToolRegistry execution and parameter validation", () => {
     it("validates parameters and executes handlers successfully", async () => {
       const registry = new DynamicToolRegistry();
@@ -274,4 +273,3 @@ describe("Tooling System Test Suite", () => {
     });
   });
 });
-

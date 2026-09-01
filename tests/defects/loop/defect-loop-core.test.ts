@@ -5,7 +5,8 @@ import {
   type DomainExecutionTask,
 } from "../../../olt/scripts/src/mind/defects/loop/index.ts";
 
-export const defectLoopCoreSuiteName = "Multi-Domain Parallel Execution & Defect Feedback Core Engine";
+export const defectLoopCoreSuiteName =
+  "Multi-Domain Parallel Execution & Defect Feedback Core Engine";
 
 describe(defectLoopCoreSuiteName, () => {
   test("executes tasks across multiple domains in parallel", async () => {
