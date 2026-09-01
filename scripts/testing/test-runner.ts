@@ -13,7 +13,7 @@ export function executeTestRunner(rawArgs: string[] = process.argv.slice(2)): nu
   const releaseLock = acquireTestLock(isBroadScope || isCoverage, rawArgs);
 
   try {
-    const defaultFlags = ["--timeout", "30000", "--parallel", "--no-isolate"];
+    const defaultFlags = ["--timeout", "30000", "--parallel"];
     const coverageFlags = isCoverage
       ? ["--coverage-reporter=lcov", "--coverage-reporter=text", "--coverage-dir=coverage"]
       : [];
