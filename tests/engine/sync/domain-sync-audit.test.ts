@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync } from "node:fs";
 import {
   createDomainLedger,
   isDomainSyncEligible,
@@ -14,7 +13,7 @@ import {
   type GitRunner,
   type GlobalSyncSummary,
 } from "../../../olt/scripts/src/engine/worktree/index.ts";
-import { cleanupVirtualEngineFS, setupVirtualEngineFS } from "../fixture.ts";
+import { cleanupVirtualEngineFS, getVirtualEngineFS, setupVirtualEngineFS } from "../fixture.ts";
 
 const ok = (stdout = "") => ({ status: 0, stdout, stderr: "" });
 
@@ -28,10 +27,11 @@ describe("Domain Sync & Ledger Audit and History", () => {
 
   describe("Synchronization and History Transitions", () => {
     test("syncDomainToGlobal merges commits into harness branch and logs history", () => {
+      const vfs = getVirtualEngineFS();
       const repoRoot = "/virtual/sync/audit-repo-1";
       const ledgerRoot = "/virtual/sync/audit-ledger-1";
-      mkdirSync(repoRoot, { recursive: true });
-      mkdirSync(ledgerRoot, { recursive: true });
+      vfs.mkdirSync(repoRoot, { recursive: true });
+      vfs.mkdirSync(ledgerRoot, { recursive: true });
       const ledger = createDomainLedger("main", "base-sha", ledgerRoot);
       const runner: GitRunner = (_cwd, argv) => {
         if (argv[0] === "worktree" || argv[0] === "merge") return ok();
@@ -69,11 +69,12 @@ describe("Domain Sync & Ledger Audit and History", () => {
       expect(ledger.syncHistory[0]?.syncedSha).toBe("merged-head-sha-777");
     });
 
-    test("syncDomainToGlobal updates status to conflict on merge collision", () => {
+    test("syncGlobalToDomain merges or rebases upstream commits into domain branch", () => {
+      const vfs = getVirtualEngineFS();
       const repoRoot = "/virtual/sync/audit-repo-2";
       const ledgerRoot = "/virtual/sync/audit-ledger-2";
-      mkdirSync(repoRoot, { recursive: true });
-      mkdirSync(ledgerRoot, { recursive: true });
+      vfs.mkdirSync(repoRoot, { recursive: true });
+      vfs.mkdirSync(ledgerRoot, { recursive: true });
       const ledger = createDomainLedger("main", "base-sha", ledgerRoot);
       const runner: GitRunner = (_cwd, argv) => {
         if (argv[0] === "merge")
@@ -120,10 +121,11 @@ describe("Domain Sync & Ledger Audit and History", () => {
     });
 
     test("syncGlobalToDomain rebase and merge updates domain worktree head", () => {
+      const vfs = getVirtualEngineFS();
       const repoRoot = "/virtual/sync/audit-repo-3";
       const ledgerRoot = "/virtual/sync/audit-ledger-3";
-      mkdirSync(repoRoot, { recursive: true });
-      mkdirSync(ledgerRoot, { recursive: true });
+      vfs.mkdirSync(repoRoot, { recursive: true });
+      vfs.mkdirSync(ledgerRoot, { recursive: true });
       const ledger = createDomainLedger("main", "base-sha", ledgerRoot);
       const runner: GitRunner = (_cwd, argv) => {
         if (argv[0] === "rebase" || argv[0] === "merge") return ok();
@@ -156,10 +158,11 @@ describe("Domain Sync & Ledger Audit and History", () => {
 
   describe("Global Synchronization and Summary Consolidation", () => {
     test("synchronizeAllDomains consolidates all active domains into global summary", () => {
+      const vfs = getVirtualEngineFS();
       const repoRoot = "/virtual/sync/audit-repo-4";
       const ledgerRoot = "/virtual/sync/audit-ledger-4";
-      mkdirSync(repoRoot, { recursive: true });
-      mkdirSync(ledgerRoot, { recursive: true });
+      vfs.mkdirSync(repoRoot, { recursive: true });
+      vfs.mkdirSync(ledgerRoot, { recursive: true });
       const ledger = createDomainLedger("main", "base-sha", ledgerRoot, "origin/main");
       const runner: GitRunner = (_cwd, argv) => {
         if (argv[0] === "diff" && argv[1] === "--stat")

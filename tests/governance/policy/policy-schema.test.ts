@@ -3,7 +3,6 @@ import {
   parseDurationOrNumber,
   parseBudgetsObject,
   DEFAULT_MIND_BUDGET,
-  DEFAULT_PROHIBITIONS,
   parseCharter,
 } from "../../../olt/scripts/src/mind/governance/index.ts";
 

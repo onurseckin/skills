@@ -26,11 +26,16 @@ export function setupVirtualAuthorityFS(): VirtualMemoryFS {
     path.join(repoRoot, ".olt", "policy.json"),
     JSON.stringify(generateCanonicalDefaultPolicy(repoRoot, "bun")),
   );
+  vfs.chdir(repoRoot);
 
-  restoreDefectDeps = setDefectLogDependenciesForTesting({
-    readFile: (p, opt) => fs.readFileSync(p, opt),
-  });
   session = createVirtualFSSession(vfs);
+  restoreDefectDeps = setDefectLogDependenciesForTesting({
+    readFile: (p, opt) => {
+      const np = normPath(String(p));
+      const enc = typeof opt === "string" ? opt : opt?.encoding;
+      return vfs.readFileSync(np, enc as BufferEncoding);
+    },
+  });
   return vfs;
 }
 

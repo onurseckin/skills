@@ -155,6 +155,7 @@ function buildCommandRecord(
 export async function setupReadyRun(name: string, roots: string[]): Promise<ReadyRun> {
   const repo = realpathSync(await mkdtemp(join(tmpdir(), `harness-critic-ready-${name}-`)));
   roots.push(repo);
+  await mkdir(join(repo, ".git"), { recursive: true });
   const promptPath = join(repo, "prompt.txt");
   await writeFile(promptPath, "Single task run");
   await mkdir(join(repo, "tests/t1"), { recursive: true });

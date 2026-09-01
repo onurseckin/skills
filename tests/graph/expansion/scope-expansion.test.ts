@@ -18,9 +18,6 @@ beforeEach(() => {
   const oe = fs.existsSync.bind(fs),
     ostat = fs.statSync.bind(fs),
     oreaddir = fs.readdirSync.bind(fs);
-  const om = fs.mkdirSync.bind(fs),
-    ow = fs.writeFileSync.bind(fs),
-    ochmod = fs.chmodSync.bind(fs);
 
   spies.push(
     spyOn(fs, "existsSync").mockImplementation((p) => {
@@ -82,28 +79,19 @@ beforeEach(() => {
     }),
     spyOn(fs, "mkdirSync").mockImplementation((p) => {
       const s = norm(p);
-      if (s.startsWith("/virtual/")) {
-        vdirs.add(s);
-        return undefined;
-      }
-      return om(p) as string | undefined;
+      vdirs.add(s);
+      return undefined;
     }),
     spyOn(fs, "writeFileSync").mockImplementation((p) => {
       const s = norm(p);
-      if (s.startsWith("/virtual/")) {
-        vfs.add(s);
-        return;
-      }
-      ow(p, "");
+      vfs.add(s);
+      return;
     }),
     spyOn(fs, "chmodSync").mockImplementation((p, mode) => {
       const s = norm(p);
-      if (s.startsWith("/virtual/")) {
-        if (mode === 0o000 || mode === 0) lockedDirs.add(s);
-        else lockedDirs.delete(s);
-        return;
-      }
-      ochmod(p, mode);
+      if (mode === 0o000 || mode === 0) lockedDirs.add(s);
+      else lockedDirs.delete(s);
+      return;
     }),
   );
 });

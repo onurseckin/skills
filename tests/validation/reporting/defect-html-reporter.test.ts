@@ -81,6 +81,11 @@ describe("Defect Remediation: Unterminated template literal TS1160 in scripts/te
   });
 
   test("extracts per-file coverage detail payloads and line hit metadata", () => {
+    const vfs = setupVirtualValidationFS();
+    const filePath = join(process.cwd(), "scripts/testing/reporting/html/index.ts");
+    vfs.mkdirSync(join(process.cwd(), "scripts/testing/reporting/html"), { recursive: true });
+    vfs.writeFileSync(filePath, 'export * from "./styles.ts";\nexport * from "./templates.ts";\n');
+
     const fileMap = new Map<string, FileCoverageMetric>();
     fileMap.set("scripts/testing/reporting/html/index.ts", {
       lines: { total: 50, covered: 50, skipped: 0, pct: 100 },

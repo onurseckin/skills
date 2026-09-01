@@ -1,10 +1,8 @@
 import {
   resolveDefectsPath,
-  resolveBacklogPath,
 } from "../../../olt/scripts/src/core/shared/paths.ts";
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import {
   parseDefectLog,
   serializeDefectLog,
@@ -12,7 +10,6 @@ import {
 } from "../../../olt/scripts/src/mind/defects/index.ts";
 
 describe("Diagnostics Defect Ingestion Engine", () => {
-  const repoRoot = process.cwd();
   const historicalDefectsPath = resolveDefectsPath(process.cwd());
 
   describe("Historical .capsules/defects.jsonl Ingestion", () => {

@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import {
   createDefaultWatchdogStore,
@@ -8,7 +7,7 @@ import {
   withWatchdogStoreLock,
 } from "../../../olt/scripts/src/authority/watchdog/index.ts";
 import { openVerifiedParent } from "../../../olt/scripts/src/authority/watchdog/lock.ts";
-import { cleanupVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
+import { cleanupVirtualAuthorityFS, getVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
 
 describe("WatchdogManager - Concurrency & Lock Exclusivity", () => {
   beforeEach(() => {
@@ -19,9 +18,10 @@ describe("WatchdogManager - Concurrency & Lock Exclusivity", () => {
   });
 
   test("openVerifiedParent opens real directory descriptor cleanly", () => {
+    const vfs = getVirtualAuthorityFS();
     const dir = "/virtual/watchdog/concurrency-parent";
     const sub = join(dir, "store-dir");
-    mkdirSync(sub, { recursive: true });
+    vfs.mkdirSync(sub, { recursive: true });
     const parent = openVerifiedParent(sub, false);
     expect(parent.descriptor).toBeGreaterThan(0);
     expect(parent.metadata.isDirectory()).toBe(true);

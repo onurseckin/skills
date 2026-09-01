@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
 import {
   acquireSubagentSlot,
   getSubagentPoolStats,
@@ -203,14 +202,16 @@ describe("Physical Density and Zero-Comment Invariants", () => {
     cleanupVirtualEngineFS();
   });
 
-  test("all created and touched files are <= 300 lines with zero code comments", () => {
+  test("all created and touched files are <= 300 lines with zero code comments", async () => {
+    const fs = await import("node:fs");
+    const { resolve } = await import("node:path");
+    const root = resolve(import.meta.dir, "../../..");
     const files = [
-      "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/engine/runner/subagent-pool.ts",
-      "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/engine/runner/index.ts",
-      "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/telemetry/circuit-breaker.ts",
-      "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/telemetry/circuit-breaker-evaluator.ts",
-      "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/telemetry/circuit-breaker-markdown.ts",
-      "/Users/onurseckinsenoglu/repos/skills/tests/engine/policy/concurrency-cap.test.ts",
+      resolve(root, "olt/scripts/src/engine/runner/subagent-pool.ts"),
+      resolve(root, "olt/scripts/src/telemetry/circuit-breaker.ts"),
+      resolve(root, "olt/scripts/src/telemetry/circuit-breaker-evaluator.ts"),
+      resolve(root, "olt/scripts/src/telemetry/circuit-breaker-markdown.ts"),
+      resolve(import.meta.dir, "concurrency-cap.test.ts"),
     ];
     const commentPattern = new RegExp("\\/\\/|\\/\\*|\\*\\/");
     const anyPattern = new RegExp(":\\s*any\\b|as\\s+any\\b|<any>");
@@ -223,8 +224,8 @@ describe("Physical Density and Zero-Comment Invariants", () => {
     ];
 
     for (const file of files) {
-      expect(existsSync(file)).toBe(true);
-      const content = readFileSync(file, "utf-8");
+      expect(fs.existsSync(file)).toBe(true);
+      const content = fs.readFileSync(file, "utf-8");
       const lines = content.split("\n");
       expect(lines.length).toBeLessThanOrEqual(300);
       for (const line of lines) {

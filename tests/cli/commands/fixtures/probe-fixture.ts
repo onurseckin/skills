@@ -25,6 +25,7 @@ export async function setupRun(
 ): Promise<{ repo: string; run: string }> {
   const repo = await mkdtemp(join(tmpdir(), `harness-probe-${name}-`));
   roots.push(repo);
+  await mkdir(join(repo, ".git"), { recursive: true });
   const staleWorktrees = join(dirname(repo), ".harness-worktrees", name);
   roots.push(staleWorktrees);
   try {

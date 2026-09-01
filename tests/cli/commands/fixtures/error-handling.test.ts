@@ -20,6 +20,7 @@ import {
   mapErrorToExitCode,
   propagateCliExitCode,
 } from "../../../../olt/scripts/src/cli/signals/error-propagation.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "./full-lifecycle-fixture.ts";
 
 afterAll(() => {
   process.exitCode = 0;
@@ -29,6 +30,7 @@ describe("Distributed Trace Context & Error Envelopes", () => {
   const originalEnv = { ...process.env };
 
   beforeEach(() => {
+    setupVirtualCliFS();
     delete process.env.OLT_TRACE_ID;
     delete process.env.OLT_SPAN_ID;
     delete process.env.OLT_PARENT_SPAN_ID;
@@ -40,6 +42,7 @@ describe("Distributed Trace Context & Error Envelopes", () => {
   });
 
   afterEach(() => {
+    cleanupVirtualCliFS();
     process.env = { ...originalEnv };
   });
 

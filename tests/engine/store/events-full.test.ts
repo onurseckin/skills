@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
@@ -16,7 +15,7 @@ import {
 import { validateEventChain } from "../../../olt/scripts/src/engine/store/events/event-stream.ts";
 import { streamEventLines } from "../../../olt/scripts/src/engine/store/events/event-lines.ts";
 import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
-import { cleanupVirtualEngineFS, setupVirtualEngineFS } from "../fixture.ts";
+import { cleanupVirtualEngineFS, getVirtualEngineFS, setupVirtualEngineFS } from "../fixture.ts";
 
 describe("engine/store/events/event-validation.ts", () => {
   it("exactInteger validates integer matches", () => {
@@ -59,7 +58,7 @@ describe("engine/store/events/transaction.ts", () => {
 
   it("executes state transactions and appends events", () => {
     const tmp = "/virtual/events/tx-test";
-    mkdirSync(join(tmp, ".olt"), { recursive: true });
+    getVirtualEngineFS().mkdirSync(join(tmp, ".olt"), { recursive: true });
     const runRoot = initRun(tmp, "test-run-tx", new TextEncoder().encode("prompt"), "file", true);
     const loaded = loadRun(runRoot, false);
 
@@ -107,7 +106,7 @@ describe("engine/store/events/transaction.ts", () => {
 
   it("transactIdempotent prevents duplicate commits", () => {
     const tmp = "/virtual/events/tx-idempotent-test";
-    mkdirSync(join(tmp, ".olt"), { recursive: true });
+    getVirtualEngineFS().mkdirSync(join(tmp, ".olt"), { recursive: true });
     const runRoot = initRun(tmp, "test-run-idem", new TextEncoder().encode("prompt"), "file", true);
 
     const body = {

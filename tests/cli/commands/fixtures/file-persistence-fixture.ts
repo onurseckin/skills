@@ -15,6 +15,7 @@ export async function setupCompiledRun(
 ): Promise<{ repo: string; run: string }> {
   const repo = realpathSync(await mkdtemp(join(tmpdir(), `file-persist-${name}-`)));
   roots.push(repo);
+  await mkdir(join(repo, ".git"), { recursive: true });
   const promptPath = join(repo, "prompt.txt");
   await writeFile(promptPath, "Core unit tests\n\nSecondary tests");
   await mkdir(join(repo, "tests/core"), { recursive: true });

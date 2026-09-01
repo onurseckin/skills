@@ -1,7 +1,5 @@
-import { describe, expect, test } from "bun:test";
-import { mkdir, readFile, symlink, writeFile } from "node:fs/promises";
+import { afterEach, beforeEach, describe, expect, test, spyOn, type Mock } from "bun:test";
 import { existsSync } from "node:fs";
-import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import {
   assertGrantedCommand as assertRawGrantedCommand,
@@ -26,6 +24,40 @@ import {
   revokeSessionGrant,
 } from "../../../../olt/scripts/src/authority/session/index.ts";
 import { loadDagSnapshot } from "../../../../olt/scripts/src/telemetry/dag-snapshot.ts";
+import { TelemetryNormalizationEngine } from "../../../../olt/scripts/src/telemetry/engine.ts";
+
+let probeSpy: Mock<() => Promise<unknown>> | undefined;
+
+beforeEach(() => {
+  probeSpy = spyOn(TelemetryNormalizationEngine.prototype, "probeAll").mockResolvedValue({
+    timestamp: new Date().toISOString(),
+    results: [
+      {
+        platformId: "antigravity",
+        isDetected: true,
+        primaryTierUsed: "tier1_cli_command",
+        metrics: [
+          {
+            rawMetricName: "5_hour",
+            canonicalProvider: "google",
+            windowType: "5_hour",
+            remainingPercentage: 80,
+            sourceTier: "tier1_cli_command",
+            confidence: "verified_exact",
+            rawPayload: {},
+          },
+        ],
+        rawObservations: {},
+        errors: [],
+      },
+    ],
+    summary: {},
+  } as never);
+});
+
+afterEach(() => {
+  probeSpy?.mockRestore();
+});
 
 function spec(invocation: string) {
   const found = findCommand(invocation);

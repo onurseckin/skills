@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { HarnessError } from "../../core/errors/index.ts";
 import { findRepoRoot, resolveScratchDir } from "../../core/shared/paths.ts";
-import { resolveGlobalSessionsDir } from "../../authority/session/paths.ts";
+import { getInMemorySessionStore, resolveGlobalSessionsDir } from "../../authority/session/paths.ts";
 import { resolveActiveSession } from "../../authority/session/resolver.ts";
 import type { SessionIdentity } from "../../authority/session/types.ts";
 
@@ -25,6 +25,16 @@ export function findSessionByToken(
   file?: string,
   options?: { readonly runRoot?: string; readonly cwd?: string },
 ): SessionIdentity | null {
+  const memStore = getInMemorySessionStore();
+  if (memStore) {
+    for (const payload of memStore.values()) {
+      try {
+        const parsed = JSON.parse(payload) as SessionIdentity;
+        if (parsed && typeof parsed === "object" && parsed.token === token) return parsed;
+      } catch {}
+    }
+  }
+
   const cur = resolveActiveSession({
     explicitToken: token,
     ...(options?.runRoot ? { runRoot: options.runRoot } : {}),

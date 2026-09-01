@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -31,22 +31,24 @@ import {
 } from "../validation-fixture.ts";
 
 describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Verification", () => {
-  const testDir = scratchRoot("anti-batching-pipeline", "pipeline");
-  const feedbackFile = join(testDir, "FEEDBACK_QUEUE.jsonl");
-  const taskQueueFile = join(testDir, "TASK_QUEUE.jsonl");
+  let testDir: string;
+  let feedbackFile: string;
+  let taskQueueFile: string;
 
-  function setup(): void {
+  beforeEach(() => {
     setupVirtualValidationFS();
+    testDir = scratchRoot("anti-batching-pipeline", "pipeline");
+    feedbackFile = join(testDir, "FEEDBACK_QUEUE.jsonl");
+    taskQueueFile = join(testDir, "TASK_QUEUE.jsonl");
     mkdirSync(testDir, { recursive: true });
-  }
+  });
 
-  function teardown(): void {
+  afterEach(() => {
     cleanupVirtualValidationFS();
-  }
+  });
 
   describe("1. Strict 1:1 Feedback & Directive Partitioning", () => {
     it("partitions multiple pending feedback items into strictly isolated 1:1 task nodes", () => {
-      setup();
       const feedbacks: readonly FeedbackItem[] = [
         {
           id: "fb-opt-1",
@@ -103,8 +105,6 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
         expect(task?.assigned_validator).toBeDefined();
         expect(task?.assigned_implementer).not.toBe(task?.assigned_validator);
       }
-
-      teardown();
     });
 
     it("partitionGroupedFeedbacksStrictly enforces 1:1 node isolation and dedicated implementer/validator assignment", () => {

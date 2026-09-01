@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -30,7 +29,7 @@ import {
   migrateLegacyCapsules,
   relocateVestigialLedgers,
 } from "../../../olt/scripts/src/engine/store/hierarchy/storage-migrator.ts";
-import { cleanupVirtualEngineFS, setupVirtualEngineFS } from "../fixture.ts";
+import { cleanupVirtualEngineFS, getVirtualEngineFS, setupVirtualEngineFS } from "../fixture.ts";
 
 describe("engine/store/hierarchy/storage-paths.ts", () => {
   beforeEach(() => {
@@ -41,8 +40,9 @@ describe("engine/store/hierarchy/storage-paths.ts", () => {
   });
 
   it("resolves storage and capsule paths correctly", () => {
+    const vfs = getVirtualEngineFS();
     const tmp = "/virtual/hierarchy/storage-paths";
-    mkdirSync(join(tmp, ".olt"), { recursive: true });
+    vfs.mkdirSync(join(tmp, ".olt"), { recursive: true });
     const storage = resolveStoragePaths(tmp);
     expect(storage.repoRoot).toBe(tmp);
     expect(storage.oltDir).toBe(join(tmp, ".olt"));
@@ -74,13 +74,14 @@ describe("engine/store/hierarchy/snapshot-manager.ts & state-checkpointer.ts", (
   });
 
   it("writes and loads snapshots", () => {
+    const vfs = getVirtualEngineFS();
     const tmp = "/virtual/hierarchy/snapshots";
     const snapDir = join(tmp, "snapshots");
-    mkdirSync(snapDir, { recursive: true });
+    vfs.mkdirSync(snapDir, { recursive: true });
 
     const snap1 = writeAtomicSnapshot(snapDir, 100, { revision: 1, state: "ok" });
     expect(snap1.sequence).toBe(100);
-    expect(existsSync(join(snapDir, "state.100.json"))).toBe(true);
+    expect(vfs.existsSync(join(snapDir, "state.100.json"))).toBe(true);
 
     const snap2 = writeAtomicSnapshot(snapDir, 200, { revision: 2, state: "ok2" });
     expect(snap2.sequence).toBe(200);
@@ -106,9 +107,10 @@ describe("engine/store/hierarchy/snapshot-manager.ts & state-checkpointer.ts", (
   });
 
   it("createStateCheckpoint writes snapshot and prunes historical snapshots", () => {
+    const vfs = getVirtualEngineFS();
     const tmp = "/virtual/hierarchy/checkpointer";
     const snapDir = join(tmp, "snapshots");
-    mkdirSync(snapDir, { recursive: true });
+    vfs.mkdirSync(snapDir, { recursive: true });
 
     const snap = createStateCheckpoint(snapDir, 100, { key: "value" });
     expect(snap.sequence).toBe(100);
@@ -127,15 +129,16 @@ describe("engine/store/hierarchy/sparse-index.ts", () => {
   });
 
   it("loads, builds, and seeks sparse index", () => {
+    const vfs = getVirtualEngineFS();
     const tmp = "/virtual/hierarchy/sparse-index";
-    mkdirSync(tmp, { recursive: true });
+    vfs.mkdirSync(tmp, { recursive: true });
     const idxPath = join(tmp, "index.sparse.json");
     expect(loadSparseIndex(idxPath)).toBeNull();
 
     const eventsPath = join(tmp, "events.jsonl");
     const event1 = JSON.stringify({ sequence: 1, event_head: "sha1", payload: {} }) + "\n";
     const event2 = JSON.stringify({ sequence: 2, event_head: "sha2", payload: {} }) + "\n";
-    writeFileSync(eventsPath, event1 + event2);
+    vfs.writeFileSync(eventsPath, event1 + event2);
 
     const built = rebuildSparseIndex(eventsPath, idxPath, 1);
     expect(built.version).toBe(1);
@@ -155,10 +158,11 @@ describe("engine/store/hierarchy/wal-compactor.ts & disk-recovery.ts", () => {
   });
 
   it("compacts WAL log based on snapshot", () => {
+    const vfs = getVirtualEngineFS();
     const tmp = "/virtual/hierarchy/wal-compactor";
-    mkdirSync(join(tmp, ".olt"), { recursive: true });
+    vfs.mkdirSync(join(tmp, ".olt"), { recursive: true });
     const capPaths = resolveCapsulePaths("run-wal", tmp);
-    mkdirSync(capPaths.snapshotsDir, { recursive: true });
+    vfs.mkdirSync(capPaths.snapshotsDir, { recursive: true });
 
     writeAtomicSnapshot(capPaths.snapshotsDir, 2, {
       schema: "harness.state",
@@ -184,7 +188,7 @@ describe("engine/store/hierarchy/wal-compactor.ts & disk-recovery.ts", () => {
         version: 1,
         projection: { schema: "harness.state", version: 1, revision: 2, event_sequence: 2 },
       }) + "\n";
-    writeFileSync(capPaths.eventsPath, event1 + event2);
+    vfs.writeFileSync(capPaths.eventsPath, event1 + event2);
 
     const result = compactWalLog(capPaths, { upToSequence: 2 });
     expect(result.success).toBe(true);
@@ -206,15 +210,16 @@ describe("engine/store/hierarchy/storage-migrator.ts", () => {
   });
 
   it("validates event sha chain and migrates layouts", () => {
+    const vfs = getVirtualEngineFS();
     const tmp = "/virtual/hierarchy/migrator";
-    mkdirSync(join(tmp, ".olt"), { recursive: true });
+    vfs.mkdirSync(join(tmp, ".olt"), { recursive: true });
     const eventsFile = join(tmp, "events.jsonl");
-    writeFileSync(eventsFile, "");
+    vfs.writeFileSync(eventsFile, "");
     expect(validateEventsFileShaChain(eventsFile).valid).toBe(true);
 
     const legacyCapDir = join(tmp, ".capsules", "legacy-run");
-    mkdirSync(legacyCapDir, { recursive: true });
-    writeFileSync(join(legacyCapDir, "manifest.json"), "{}");
+    vfs.mkdirSync(legacyCapDir, { recursive: true });
+    vfs.writeFileSync(join(legacyCapDir, "manifest.json"), "{}");
 
     const migRes = migrateLegacyCapsules(tmp);
     expect(migRes.errors.length).toBe(0);

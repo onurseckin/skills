@@ -11,6 +11,10 @@ import {
   createVirtualFSSession,
   type VirtualFSSession,
 } from "../../olt/scripts/src/testing/virtual-fs/index.ts";
+import {
+  disableInMemorySessionStore,
+  enableInMemorySessionStore,
+} from "../../olt/scripts/src/authority/session/paths.ts";
 import type { TaskRecord } from "../../olt/scripts/src/workflow/types.ts";
 import type { FeedbackItem } from "../../olt/scripts/src/mind/feedback/queue/index.ts";
 import type { DualChannelFinding } from "./dual-channel/index.ts";
@@ -20,6 +24,7 @@ let currentVfs: VirtualMemoryFS = new VirtualMemoryFS();
 let counter = 0;
 
 export function setupVirtualValidationFS(): VirtualMemoryFS {
+  enableInMemorySessionStore();
   if (!currentSession) {
     currentVfs = new VirtualMemoryFS();
     currentSession = createVirtualFSSession(currentVfs);
@@ -28,6 +33,7 @@ export function setupVirtualValidationFS(): VirtualMemoryFS {
 }
 
 export function cleanupVirtualValidationFS(): void {
+  disableInMemorySessionStore();
   if (currentSession) {
     currentSession.cleanup();
     currentSession = null;

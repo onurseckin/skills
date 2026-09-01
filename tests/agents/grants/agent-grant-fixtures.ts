@@ -13,6 +13,8 @@ export function seededRun(callerPath: string, label: string): string {
   const root = scratchRoot(callerPath, label);
   const repo = join(root, "repo");
   mkdirSync(repo, { recursive: true });
+  mkdirSync(join(repo, ".git"), { recursive: true });
+  mkdirSync(join(repo, ".olt"), { recursive: true });
   const run = initRun(repo, label, new TextEncoder().encode("Build the thing.\n"), "file", true);
   transact(run, "test-setup", "seed-graph", {}, (draft) => {
     draft.tasks = { "task-1": { id: "task-1" }, "task-2": { id: "task-2" } };

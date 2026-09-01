@@ -6,25 +6,23 @@ import {
   auditDefectLog,
   categorizeDefect,
   formulateDefectCandidates,
-  parseDefectLog,
   resolveDefect,
-  serializeDefectLog,
   type DefectEntry,
   type DefectResolutionProof,
 } from "../../../olt/scripts/src/mind/defects/index.ts";
 import {
-  cleanupVirtualBrowserFS,
-  setupVirtualBrowserFS,
+  cleanupVirtualDiagnosticsFS,
+  setupVirtualDiagnosticsFS,
   tempDir,
-} from "../../reporting/browser/browser-virtual-fs.ts";
+} from "../fixtures/diagnostics-fixtures.ts";
 
 describe("Diagnostics Dual-State Remediation Engine", () => {
   beforeEach(() => {
-    setupVirtualBrowserFS();
+    setupVirtualDiagnosticsFS();
   });
 
   afterEach(() => {
-    cleanupVirtualBrowserFS();
+    cleanupVirtualDiagnosticsFS();
   });
   describe("Scenario 1: Main Thread Boundary Violation (Direct Execution)", () => {
     const unhandledDefect: DefectEntry = {

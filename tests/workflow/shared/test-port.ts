@@ -126,7 +126,14 @@ export function commandRecord(id: string, overrides: Partial<CommandRecord> = {}
     actor.startsWith("validator")
       ? "G-1"
       : (overrides.gate_id ?? null);
-  const environment = captureGateEnvironment(process.env, "00000000-0000-4000-8000-000000000000");
+  const safePath = (process.env.PATH ?? "")
+    .split(":")
+    .filter((p) => !p.includes(repositoryRoot) && !p.includes("node_modules"))
+    .join(":");
+  const environment = captureGateEnvironment(
+    { ...process.env, PATH: safePath || "/usr/local/bin:/usr/bin:/bin" },
+    "00000000-0000-4000-8000-000000000000",
+  );
   const emptySha = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
   const logs = {
     stdout: { path: `commands/${id}/attempts/1/stdout.log`, bytes: 0, sha256: emptySha },

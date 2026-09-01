@@ -5,7 +5,6 @@ import { scanSource } from "../../olt/scripts/src/health/scanner.ts";
 import {
   cleanupVirtualHealthFS,
   ensureVirtualHealthFS,
-  setupVirtualHealthFS,
   vfs,
 } from "./virtual-fs.ts";
 

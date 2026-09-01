@@ -5,6 +5,9 @@
 export {
   scratchRoot,
   createSandboxDir,
+  setupVirtualSessionFS,
+  cleanupVirtualSessionFS,
+  getVirtualSessionFS,
   createInMemorySessionAuth,
   createInMemorySessionToken,
   createInMemorySessionContext,

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { scanRootHygiene } from "../../../olt/scripts/src/health/hygiene/index.ts";
 import { cleanupVirtualHealthFS, setupVirtualHealthFS } from "../fixture.ts";

@@ -1,15 +1,9 @@
-import {
-  resolveDefectsPath,
-  resolveBacklogPath,
-} from "../../../olt/scripts/src/core/shared/paths.ts";
 import { describe, expect, test } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import {
   getFeedbackStats,
   readFeedbackQueue,
-  type FeedbackCategory,
-  type FeedbackItem,
 } from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
 import {
   ingestPushbacks,
@@ -17,13 +11,11 @@ import {
   parsePushbackMarkdown,
   resolvePushbackMarkdownPath,
   type PushbackAuditReport,
-  type PushbackRecord,
 } from "../../../olt/scripts/src/mind/feedback/pushbacks/index.ts";
 
 describe("Diagnostics Pushback Ingestion Engine", () => {
   const repoRoot = process.cwd();
   const feedbackQueuePath = join(repoRoot, ".olt", "capsules", "FEEDBACK_QUEUE.jsonl");
-  const pushbackDocPath = join(repoRoot, "USER_PUSHBACK_AND_SELF_AUDIT.md");
 
   describe("FEEDBACK_QUEUE.jsonl Ingestion", () => {
     test("reads and parses all items from actual FEEDBACK_QUEUE.jsonl", () => {

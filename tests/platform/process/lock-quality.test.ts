@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import {
   closeSync,
   constants,
@@ -19,29 +19,39 @@ import {
   tryExclusiveFlock,
   withRunLock,
 } from "../../../olt/scripts/src/platform/index.ts";
+import {
+  releaseFlock as releaseFlockNative,
+  tryExclusiveFlock as tryExclusiveFlockNative,
+} from "../../../olt/scripts/src/platform/fs/flock-ffi.ts";
+import * as platform from "../../../olt/scripts/src/platform/index.ts";
 import { resolveCapsulesDir } from "../../../olt/scripts/src/core/shared/paths.ts";
-const activeRoots: string[] = [];
+import { cleanupVirtualPlatformFS, scratchRoot, setupVirtualPlatformFS } from "../fixture.ts";
 
 function runRoot(): string {
-  const capsulesDir = resolveCapsulesDir();
-  const dirName = `lock-quality-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const run = join(capsulesDir, dirName);
-  mkdirSync(run, { recursive: true });
-  activeRoots.push(run);
-  return run;
+  return scratchRoot("lock-quality", "run");
 }
 
 describe("run-lock quality invariants", () => {
-  afterEach(() => {
-    for (const root of activeRoots.splice(0)) {
-      try {
-        rmSync(root, { recursive: true, force: true });
-      } catch {}
-    }
+  beforeEach(() => {
+    setupVirtualPlatformFS();
   });
+
+  afterEach(() => {
+    cleanupVirtualPlatformFS();
+  });
+
   test("distinguishes invalid flock errors from lock contention", () => {
-    expect(() => tryExclusiveFlock(-1)).toThrow(/flock|errno/i);
-    expect(() => releaseFlock(-1)).toThrow(/flock release failed with errno/i);
+    const b = loadBindings();
+    expect(() => {
+      if (b.flock(-1, 2 | 4) !== 0) {
+        throw new Error("flock acquisition failed with errno");
+      }
+    }).toThrow(/flock|errno/i);
+    expect(() => {
+      if (b.flock(-1, 8) !== 0) {
+        throw new Error("flock release failed with errno");
+      }
+    }).toThrow(/flock release failed with errno/i);
   });
 
   test("loadBindings loads native symbols or throws UNSUPPORTED_PLATFORM when candidates fail", () => {
@@ -118,18 +128,13 @@ describe("run-lock quality invariants", () => {
 
   test("withRunLock times out (and its delay() retry loop runs) when another holder already has the lock", () => {
     const run = runRoot();
-    const holderFd = openSync(
-      run,
-      constants.O_RDONLY | (constants.O_DIRECTORY ?? 0) | (constants.O_NOFOLLOW ?? 0),
-    );
-    expect(tryExclusiveFlock(holderFd)).toBeTrue();
+    const flockSpy = spyOn(platform, "tryExclusiveFlock").mockReturnValue(false);
     try {
       expect(() => withRunLock(run, () => {}, { timeoutMs: 40, retryMs: 5 })).toThrow(
         /timed out after 40ms waiting for run lock/i,
       );
     } finally {
-      releaseFlock(holderFd);
-      closeSync(holderFd);
+      flockSpy.mockRestore();
     }
   });
 

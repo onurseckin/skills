@@ -1,7 +1,11 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
+import {
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/memory-fs.ts";
 import {
   DynamicToolRegistry,
   discoverToolsFromDirectory,
@@ -13,7 +17,18 @@ import {
 } from "../../../olt/scripts/src/tooling/index.ts";
 
 describe("Tool Discovery and Scanning Unit Test Suite", () => {
-  const testRoot = join(tmpdir(), `discovery-unit-test-${Date.now()}`);
+  let vfsSession: VirtualFSSession;
+  let testRoot: string;
+
+  beforeEach(() => {
+    vfsSession = createVirtualFSSession(new VirtualMemoryFS());
+    testRoot = `/virtual/discovery-unit-test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    mkdirSync(testRoot, { recursive: true });
+  });
+
+  afterEach(() => {
+    vfsSession.cleanup();
+  });
 
   const sampleToolSpec1 = {
     name: "calculatorTool",
@@ -204,6 +219,23 @@ describe("Tool Discovery and Scanning Unit Test Suite", () => {
       const tools = discoverToolsFromManifest(manifestPath, "manifestFallback");
       expect(tools.length).toBe(1);
       expect(tools[0]?.category).toBe("manifestFallback");
+    });
+
+    it("handles malformed JSON and non-object items in manifest gracefully", () => {
+      const edgeDir = join(testRoot, "manifest-edge-cases");
+      mkdirSync(edgeDir, { recursive: true });
+      const badJsonPath = join(edgeDir, "malformed.json");
+      writeFileSync(badJsonPath, "{ not valid json");
+      expect(discoverToolsFromManifest(badJsonPath)).toEqual([]);
+
+      const mixedArrayPath = join(edgeDir, "mixed.json");
+      writeFileSync(
+        mixedArrayPath,
+        JSON.stringify([null, "not-an-object", 123, sampleToolSpec1]),
+      );
+      const res = discoverToolsFromManifest(mixedArrayPath);
+      expect(res.length).toBe(1);
+      expect(res[0]?.name).toBe("calculatorTool");
     });
   });
 

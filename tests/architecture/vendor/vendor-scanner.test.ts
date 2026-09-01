@@ -1,6 +1,5 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   identifierWords,
@@ -9,12 +8,22 @@ import {
   staleExemptions,
   stripCommentsAndStrings,
 } from "../../../olt/scripts/src/health/vendor-identifiers.ts";
+import {
+  cleanupVirtualArchitectureFS,
+  scratchRoot,
+  setupVirtualArchitectureFS,
+} from "../fixtures/architecture-fixture.ts";
 
-const roots: string[] = [];
+beforeEach(() => {
+  setupVirtualArchitectureFS();
+});
+
+afterEach(() => {
+  cleanupVirtualArchitectureFS();
+});
 
 function tree(files: Record<string, string>): string {
-  const root = mkdtempSync(join(tmpdir(), "vendor-scan-"));
-  roots.push(root);
+  const root = scratchRoot(import.meta.path, "vendor-scan");
   for (const [path, content] of Object.entries(files)) {
     const full = join(root, path);
     mkdirSync(join(full, ".."), { recursive: true });
@@ -22,10 +31,6 @@ function tree(files: Record<string, string>): string {
   }
   return root;
 }
-
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
-});
 
 describe("blanking literals before the scan", () => {
   test("keeps line numbers so a finding points at the line it is on", () => {

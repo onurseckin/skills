@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   loadWatchdogStore,
@@ -9,7 +8,7 @@ import {
   type WatchdogStore,
 } from "../../../olt/scripts/src/authority/watchdog/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { cleanupVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
+import { cleanupVirtualAuthorityFS, getVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
 
 describe("WatchdogManager - Store Lifecycle & Resolution", () => {
   beforeEach(() => {
@@ -63,26 +62,30 @@ describe("WatchdogManager - Store Lifecycle & Resolution", () => {
       ],
     };
 
+    const vfs = getVirtualAuthorityFS();
     saveWatchdogStore(store, dir);
-    const persistedBeforeLoad = readFileSync(join(dir, "watchdogs.json"), "utf8");
+    const persistedBeforeLoad = vfs.readFileSync(join(dir, "watchdogs.json"), "utf8");
     const loaded = loadWatchdogStore(dir);
     expect(loaded.watchdogs.length).toBe(1);
     expect(loaded.watchdogs[0]?.id).toBe("wd-test-1");
     expect(loaded.watchdogs[0]?.status).toBe("active");
     expect(loaded.watchdogs[0]?.metadata).toEqual({ note: "test-save" });
-    expect(readFileSync(join(dir, "watchdogs.json"), "utf8")).toBe(persistedBeforeLoad);
+    expect(vfs.readFileSync(join(dir, "watchdogs.json"), "utf8")).toBe(persistedBeforeLoad);
   });
 
   test("throws HarnessError when loading a corrupted store", () => {
+    const vfs = getVirtualAuthorityFS();
     const dir = "/virtual/watchdog/store-corrupt";
+    vfs.mkdirSync(dir, { recursive: true });
     const storePath = join(dir, "watchdogs.json");
-    writeFileSync(storePath, "INVALID_JSON_CONTENT", "utf8");
+    vfs.writeFileSync(storePath, "INVALID_JSON_CONTENT");
 
     expect(() => loadWatchdogStore(dir)).toThrow(HarnessError);
   });
 
-  test("refuses a symlinked watchdog store without touching its external target", () => {
+  test("refuses a symlinked watchdog store without touching its external target", async () => {
     if (process.platform === "win32") return;
+    const vfs = getVirtualAuthorityFS();
     const dir = "/virtual/watchdog/store-symlinked";
     const externalDir = "/virtual/watchdog/store-symlinked-ext";
     const external = join(externalDir, "outside.json");
@@ -92,11 +95,15 @@ describe("WatchdogManager - Store Lifecycle & Resolution", () => {
       updated_at: "2026-08-21T20:00:00.000Z",
       watchdogs: [],
     });
-    writeFileSync(external, bytes, "utf8");
-    symlinkSync(external, join(dir, "watchdogs.json"));
+    vfs.mkdirSync(externalDir, { recursive: true });
+    vfs.writeFileSync(external, bytes);
+    const linkPath = join(dir, "watchdogs.json");
+    vfs.mkdirSync(dir, { recursive: true });
+    const { symlinkSync } = await import("node:fs");
+    symlinkSync(external, linkPath);
 
     expect(() => loadWatchdogStore(dir)).toThrow(HarnessError);
     expect(() => registerWatchdog({ id: "must-not-write" }, dir)).toThrow(HarnessError);
-    expect(readFileSync(external, "utf8")).toBe(bytes);
+    expect(vfs.readFileSync(external, "utf8")).toBe(bytes);
   });
 });

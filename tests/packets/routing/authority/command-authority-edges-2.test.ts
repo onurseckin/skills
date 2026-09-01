@@ -1,6 +1,5 @@
 import { describe, expect, test, spyOn } from "bun:test";
 import { join } from "node:path";
-import { writeFile } from "node:fs/promises";
 import { findCommand } from "../../../../olt/scripts/src/cli/registry/index.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import {

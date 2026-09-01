@@ -26,11 +26,14 @@ export function setupVirtualPlatformFS(): VirtualMemoryFS {
     currentVfs = new VirtualMemoryFS();
     const repoRoot = normPath(process.cwd());
     currentVfs.mkdirSync(repoRoot, { recursive: true });
+    currentVfs.mkdirSync(path.join(repoRoot, ".git"), { recursive: true });
+    currentVfs.writeFileSync(path.join(repoRoot, "package.json"), "{}");
     currentVfs.mkdirSync(path.join(repoRoot, ".olt", "capsules"), { recursive: true });
     currentVfs.mkdirSync(path.join(repoRoot, ".olt", "scratch"), { recursive: true });
     currentVfs.mkdirSync(path.join(repoRoot, ".olt", "runs"), { recursive: true });
     currentVfs.mkdirSync(path.join(repoRoot, ".tmp"), { recursive: true });
     currentVfs.mkdirSync("/virtual/platform-scratch", { recursive: true });
+    currentVfs.chdir(repoRoot);
     currentSession = createVirtualFSSession(currentVfs);
   }
   return currentVfs;

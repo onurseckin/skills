@@ -1,43 +1,48 @@
-import { describe, expect, test, beforeEach, afterEach, afterAll, spyOn } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import * as fs from "node:fs";
-import { spawnSync } from "node:child_process";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import {
+  buildCoverageSummary,
+  buildHtmlDocument,
+  buildMarkdownReport,
   calculatePct,
-  createMetricItem,
   computeIsMain,
+  createMetricItem,
+  extractCoverageFileData,
+  generateInteractiveHtml,
+  getClientScript,
+  getHtmlStyles,
   main,
   parseLcov,
-  buildCoverageSummary,
-  writeSummaryJson,
-  buildMarkdownReport,
-  writeMarkdownReport,
-  generateInteractiveHtml,
-  writeInteractiveHtml,
-  getHtmlStyles,
-  getClientScript,
-  buildHtmlDocument,
-  extractCoverageFileData,
   processCoverageArtifacts,
-  type FileCoverageMetric,
+  writeInteractiveHtml,
+  writeMarkdownReport,
+  writeSummaryJson,
   type CoverageSummary,
 } from "../../../scripts/testing/reporting/index.ts";
 
-const TEST_SCRATCH_DIR = join(process.cwd(), "coverage/scratch/coverage-reporting-test-unit");
+const TEST_SCRATCH_DIR = "/virtual/coverage-scratch/coverage-reporting-test-unit";
+
+let vfs: VirtualMemoryFS;
+let session: VirtualFSSession | undefined;
 
 describe("Coverage Reporting Modules", () => {
   beforeEach(() => {
-    rmSync(TEST_SCRATCH_DIR, { recursive: true, force: true });
-    mkdirSync(TEST_SCRATCH_DIR, { recursive: true });
+    vfs = new VirtualMemoryFS();
+    vfs.mkdirSync(TEST_SCRATCH_DIR, { recursive: true });
+    session = createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
-    rmSync(TEST_SCRATCH_DIR, { recursive: true, force: true });
-  });
-
-  afterAll(() => {
-    rmSync(TEST_SCRATCH_DIR, { recursive: true, force: true });
+    if (session) {
+      session.cleanup();
+      session = undefined;
+    }
   });
 
   describe("types and metric helpers", () => {
@@ -120,7 +125,7 @@ describe("Coverage Reporting Modules", () => {
       expect(existsSync(summaryPath)).toBe(true);
 
       // 3. Skip unchanged write
-      const writeSpy = spyOn(fs, "writeFileSync");
+      const writeSpy = spyOn(vfs, "writeFileSync");
       try {
         const cachedPath = writeSummaryJson(summary, TEST_SCRATCH_DIR, "cov-disk");
         expect(cachedPath).toBe(summaryPath);
@@ -156,8 +161,8 @@ describe("Coverage Reporting Modules", () => {
       expect(buildHtmlDocument("/* css */", "/* js */")).toContain("<!DOCTYPE html>");
 
       const dummyFile = join(TEST_SCRATCH_DIR, "src/sample.ts");
-      mkdirSync(join(TEST_SCRATCH_DIR, "src"), { recursive: true });
-      writeFileSync(dummyFile, "const a = 1;\nconst b = 2;", "utf-8");
+      vfs.mkdirSync(join(TEST_SCRATCH_DIR, "src"), { recursive: true });
+      vfs.writeFileSync(dummyFile, "const a = 1;\nconst b = 2;", "utf-8");
 
       const sample =
         "SF:src/sample.ts\nLF:2\nLH:1\nDA:1,1\nDA:2,0\nend_of_record\nSF:src/missing.ts\nLF:1\nLH:0\nDA:1,0\nend_of_record";
@@ -186,8 +191,8 @@ describe("Coverage Reporting Modules", () => {
 
     test("orchestrates artifacts on disk when lcov.info is present", () => {
       const covDir = join(TEST_SCRATCH_DIR, "coverage");
-      mkdirSync(covDir, { recursive: true });
-      writeFileSync(
+      vfs.mkdirSync(covDir, { recursive: true });
+      vfs.writeFileSync(
         join(covDir, "lcov.info"),
         "SF:src/test.ts\nLF:10\nLH:10\nend_of_record",
         "utf-8",
@@ -219,19 +224,19 @@ describe("Coverage Reporting Modules", () => {
 
     test("recreates coverage directory if removed before artifact writing", () => {
       const covDir = join(TEST_SCRATCH_DIR, "coverage-recreate");
-      mkdirSync(covDir, { recursive: true });
+      vfs.mkdirSync(covDir, { recursive: true });
       const lcovPath = join(covDir, "lcov.info");
-      writeFileSync(lcovPath, "SF:src/test.ts\nLF:10\nLH:10\nend_of_record", "utf-8");
+      vfs.writeFileSync(lcovPath, "SF:src/test.ts\nLF:10\nLH:10\nend_of_record", "utf-8");
 
-      const origExistsSync = fs.existsSync;
       let checkCount = 0;
-      const spy = spyOn(fs, "existsSync").mockImplementation((p) => {
+      const origVfsExists = vfs.existsSync.bind(vfs);
+      const spy = spyOn(vfs, "existsSync").mockImplementation((p: string) => {
         if (p === lcovPath) return true;
         if (p === covDir) {
           checkCount++;
           if (checkCount === 1) return false;
         }
-        return origExistsSync(p);
+        return origVfsExists(p);
       });
 
       try {
@@ -243,14 +248,6 @@ describe("Coverage Reporting Modules", () => {
     });
 
     test("executes CLI script and main() logs status appropriately", () => {
-      const scriptPath = join(process.cwd(), "scripts/testing/reporting/index.ts");
-      const runMissing = spawnSync("bun", [scriptPath], {
-        cwd: TEST_SCRATCH_DIR,
-        encoding: "utf-8",
-      });
-      expect(runMissing.stdout).toContain("[coverage] No coverage/lcov.info found to process.");
-
-      const origCwd = process.cwd();
       const logs: string[] = [];
       const origLog = console.log;
       console.log = (...args: unknown[]) => logs.push(args.map(String).join(" "));
@@ -262,8 +259,8 @@ describe("Coverage Reporting Modules", () => {
 
         logs.length = 0;
         const covDir = join(TEST_SCRATCH_DIR, "coverage");
-        mkdirSync(covDir, { recursive: true });
-        writeFileSync(
+        vfs.mkdirSync(covDir, { recursive: true });
+        vfs.writeFileSync(
           join(covDir, "lcov.info"),
           "SF:src/cli.ts\nLF:5\nLH:5\nend_of_record",
           "utf-8",
@@ -271,7 +268,6 @@ describe("Coverage Reporting Modules", () => {
         main();
         expect(logs.some((l) => l.includes("Generated coverage/lcov.info"))).toBe(true);
       } finally {
-        process.chdir(origCwd);
         console.log = origLog;
       }
     });

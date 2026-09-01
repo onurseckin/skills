@@ -94,7 +94,7 @@ describe("putBlobFile", () => {
     const source = join(root, "dynamic.bin");
     writeFileSync(source, "initial");
 
-    const spy = spyOn(fs, "readSync").mockImplementation(
+    spyOn(fs, "readSync").mockImplementation(
       (
         _fd: number,
         _buffer: NodeJS.ArrayBufferView,

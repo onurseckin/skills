@@ -1,5 +1,4 @@
-import { describe, expect, test, beforeEach, afterEach, spyOn } from "bun:test";
-import { existsSync, readFileSync, rmSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { join } from "node:path";
 import {
   acquireTestLock,
@@ -8,6 +7,7 @@ import {
   isProcessAlive,
   resetLockStore,
   setLockStore,
+  type LockStore,
   type TestLockData,
 } from "../../../scripts/testing/test-mutex.ts";
 
@@ -18,10 +18,11 @@ describe("test-mutex", () => {
   let release: (() => void) | undefined;
   let exitSpy: ReturnType<typeof spyOn>;
   let errorSpy: ReturnType<typeof spyOn>;
+  let memStore: LockStore;
 
   beforeEach(() => {
-    resetLockStore();
-    rmSync(LOCK_DIR, { recursive: true, force: true });
+    memStore = createMemoryLockStore();
+    setLockStore(memStore);
     exitSpy = spyOn(process, "exit").mockImplementation((code) => {
       throw new Error(`process.exit called with ${code as string | number}`);
     });
@@ -36,33 +37,34 @@ describe("test-mutex", () => {
       release = undefined;
     }
     resetLockStore();
-    rmSync(LOCK_DIR, { recursive: true, force: true });
     exitSpy.mockRestore();
     errorSpy.mockRestore();
   });
 
   test("Targeted runs bypass broad lock", () => {
     release = acquireTestLock(false, ["tests/testing/locks/test-mutex.test.ts"]);
-    expect(existsSync(BROAD_LOCK_FILE)).toBe(false);
+    expect(getActiveLockStore().existsSync(BROAD_LOCK_FILE)).toBe(false);
     expect(() => release?.()).not.toThrow();
   });
 
   test("Broad run creates lock and can be released cleanly", () => {
     release = acquireTestLock(true, ["tests"]);
-    expect(existsSync(BROAD_LOCK_FILE)).toBe(true);
+    expect(getActiveLockStore().existsSync(BROAD_LOCK_FILE)).toBe(true);
 
-    const lockData = JSON.parse(readFileSync(BROAD_LOCK_FILE, "utf-8")) as TestLockData;
+    const lockData = JSON.parse(
+      getActiveLockStore().readFileSync(BROAD_LOCK_FILE),
+    ) as TestLockData;
     expect(lockData.pid).toBe(process.pid);
     expect(lockData.scope).toBe("broad");
 
     release();
-    expect(existsSync(BROAD_LOCK_FILE)).toBe(false);
+    expect(getActiveLockStore().existsSync(BROAD_LOCK_FILE)).toBe(false);
     expect(() => release?.()).not.toThrow();
   });
 
   test("Release does not unlink if lock file is owned by another PID", () => {
     release = acquireTestLock(true, ["tests"]);
-    expect(existsSync(BROAD_LOCK_FILE)).toBe(true);
+    expect(getActiveLockStore().existsSync(BROAD_LOCK_FILE)).toBe(true);
 
     // Tamper with the lock file so it's owned by a different PID
     const foreignLock: TestLockData = {
@@ -76,7 +78,7 @@ describe("test-mutex", () => {
 
     release();
     // File should still exist because we don't own it
-    expect(existsSync(BROAD_LOCK_FILE)).toBe(true);
+    expect(getActiveLockStore().existsSync(BROAD_LOCK_FILE)).toBe(true);
   });
 
   test("Release handles missing or corrupt lock file gracefully", () => {
@@ -95,7 +97,7 @@ describe("test-mutex", () => {
   test("Concurrent broad run is blocked with exit code 1", () => {
     // Acquire first lock
     release = acquireTestLock(true, ["tests"]);
-    expect(existsSync(BROAD_LOCK_FILE)).toBe(true);
+    expect(getActiveLockStore().existsSync(BROAD_LOCK_FILE)).toBe(true);
 
     // Second broad acquisition should fail and attempt process.exit(1)
     expect(() => {
@@ -114,25 +116,29 @@ describe("test-mutex", () => {
       scope: "broad",
       targets: ["tests"],
     };
-    getActiveLockStore().mkdirSync(LOCK_DIR, { recursive: true });
+    getActiveLockStore().mkdirSync(LOCK_DIR);
     getActiveLockStore().writeFileSync(BROAD_LOCK_FILE, JSON.stringify(staleLock));
 
     // Acquisition should reclaim the stale lock rather than exiting
     release = acquireTestLock(true, ["tests"]);
-    expect(existsSync(BROAD_LOCK_FILE)).toBe(true);
+    expect(getActiveLockStore().existsSync(BROAD_LOCK_FILE)).toBe(true);
 
-    const lockData = JSON.parse(readFileSync(BROAD_LOCK_FILE, "utf-8")) as TestLockData;
+    const lockData = JSON.parse(
+      getActiveLockStore().readFileSync(BROAD_LOCK_FILE),
+    ) as TestLockData;
     expect(lockData.pid).toBe(process.pid);
   });
 
   test("Corrupt lock file (invalid JSON) is reclaimed automatically", () => {
-    getActiveLockStore().mkdirSync(LOCK_DIR, { recursive: true });
+    getActiveLockStore().mkdirSync(LOCK_DIR);
     getActiveLockStore().writeFileSync(BROAD_LOCK_FILE, "CORRUPT_DATA");
 
     release = acquireTestLock(true, ["tests"]);
-    expect(existsSync(BROAD_LOCK_FILE)).toBe(true);
+    expect(getActiveLockStore().existsSync(BROAD_LOCK_FILE)).toBe(true);
 
-    const lockData = JSON.parse(readFileSync(BROAD_LOCK_FILE, "utf-8")) as TestLockData;
+    const lockData = JSON.parse(
+      getActiveLockStore().readFileSync(BROAD_LOCK_FILE),
+    ) as TestLockData;
     expect(lockData.pid).toBe(process.pid);
   });
 
@@ -147,7 +153,7 @@ describe("test-mutex", () => {
     }) as unknown as typeof process.on);
 
     release = acquireTestLock(true, ["tests"]);
-    expect(existsSync(BROAD_LOCK_FILE)).toBe(true);
+    expect(getActiveLockStore().existsSync(BROAD_LOCK_FILE)).toBe(true);
 
     expect(listeners["SIGINT"]).toBeDefined();
     expect(listeners["SIGTERM"]).toBeDefined();
@@ -158,7 +164,7 @@ describe("test-mutex", () => {
       listeners["SIGINT"]!();
     }).toThrow("process.exit called with 130");
 
-    expect(existsSync(BROAD_LOCK_FILE)).toBe(false);
+    expect(getActiveLockStore().existsSync(BROAD_LOCK_FILE)).toBe(false);
 
     processOnSpy.mockRestore();
   });
@@ -169,14 +175,14 @@ describe("test-mutex", () => {
   });
 
   test("In-memory mode operates with zero disk I/O", () => {
-    const memStore = createMemoryLockStore();
-    setLockStore(memStore);
+    const localMemStore = createMemoryLockStore();
+    setLockStore(localMemStore);
 
     // Acquire lock in memory
     release = acquireTestLock(true, ["tests"]);
-    expect(memStore.existsSync(BROAD_LOCK_FILE)).toBe(true);
+    expect(localMemStore.existsSync(BROAD_LOCK_FILE)).toBe(true);
 
-    const data = JSON.parse(memStore.readFileSync(BROAD_LOCK_FILE, "utf-8")) as TestLockData;
+    const data = JSON.parse(localMemStore.readFileSync(BROAD_LOCK_FILE)) as TestLockData;
     expect(data.pid).toBe(process.pid);
     expect(data.scope).toBe("broad");
 
@@ -186,15 +192,15 @@ describe("test-mutex", () => {
     }).toThrow("process.exit called with 1");
 
     release();
-    expect(memStore.existsSync(BROAD_LOCK_FILE)).toBe(false);
+    expect(localMemStore.existsSync(BROAD_LOCK_FILE)).toBe(false);
   });
 
   test("In-memory lock handles missing file on read and reclaim of dead PID", () => {
-    const memStore = createMemoryLockStore();
-    setLockStore(memStore);
+    const localMemStore = createMemoryLockStore();
+    setLockStore(localMemStore);
 
     // Read on missing file should throw ENOENT in memStore
-    expect(() => memStore.readFileSync("/nonexistent/file.lock", "utf-8")).toThrow();
+    expect(() => localMemStore.readFileSync("/nonexistent/file.lock")).toThrow();
 
     // Dead PID stale lock recovery in memory
     const staleLock: TestLockData = {
@@ -204,12 +210,12 @@ describe("test-mutex", () => {
       scope: "broad",
       targets: ["tests"],
     };
-    memStore.mkdirSync(LOCK_DIR, { recursive: true });
-    memStore.writeFileSync(BROAD_LOCK_FILE, JSON.stringify(staleLock));
+    localMemStore.mkdirSync(LOCK_DIR);
+    localMemStore.writeFileSync(BROAD_LOCK_FILE, JSON.stringify(staleLock));
 
     release = acquireTestLock(true, ["tests"]);
-    expect(memStore.existsSync(BROAD_LOCK_FILE)).toBe(true);
-    const data = JSON.parse(memStore.readFileSync(BROAD_LOCK_FILE, "utf-8")) as TestLockData;
+    expect(localMemStore.existsSync(BROAD_LOCK_FILE)).toBe(true);
+    const data = JSON.parse(localMemStore.readFileSync(BROAD_LOCK_FILE)) as TestLockData;
     expect(data.pid).toBe(process.pid);
   });
 });

@@ -1,29 +1,13 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { beforeEach, describe, expect, it } from "bun:test";
 import {
   DynamicToolRegistry,
-  discoverToolsFromDirectory,
-  discoverToolsFromManifest,
-  getGlobalToolRegistry,
-  parseToolSpec,
   resetGlobalToolRegistry,
-  scanAndRegisterTools,
-  validateToolSpec,
   type ToolDefinition,
 } from "../../../olt/scripts/src/tooling/index.ts";
 
 describe("Tooling System Test Suite", () => {
-  let tempDir: string;
-
   beforeEach(() => {
     resetGlobalToolRegistry();
-    tempDir = mkdtempSync(join(tmpdir(), "tool-registry-test-"));
-  });
-
-  afterEach(() => {
-    rmSync(tempDir, { recursive: true, force: true });
   });
 
   describe("DynamicToolRegistry lifecycle and registration", () => {

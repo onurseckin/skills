@@ -130,12 +130,23 @@ describe("Dual-Channel Visual Analyzer - Rules & IHDR", () => {
       expect(mismatchFindings[0]?.message).toContain("Cross-Channel Discrepancy");
       expect(mismatchFindings[0]?.message).toContain("Dimension mismatch for viewport 'mobile'");
     });
+
+    afterEach(() => {
+      cleanupVirtualValidationFS();
+    });
   });
 });
 
 describe("Real PNG IHDR Anti-Mocking Verification", () => {
-  const withTempDir = (run: (dir: string) => void): void => {
+  beforeEach(() => {
     setupVirtualValidationFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualValidationFS();
+  });
+
+  const withTempDir = (run: (dir: string) => void): void => {
     const dir = scratchRoot("dual-channel-ihdr", "ihdr");
     run(dir);
   };

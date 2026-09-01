@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   findSkillRoot,
@@ -31,20 +30,18 @@ import {
   loadRepoPolicy,
   verifyCommandAuthorization,
 } from "../../../olt/scripts/src/policy/index.ts";
-import { cleanupVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
+import { cleanupVirtualAuthorityFS, getVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
 
 function createCapsule(name: string): { readonly repo: string; readonly run: string } {
+  const vfs = getVirtualAuthorityFS();
   const repo = `/virtual/owner-role/capsule-${name}`;
   const charterDir = join(repo, "olt", "agents");
-  mkdirSync(charterDir, { recursive: true });
+  vfs.mkdirSync(charterDir, { recursive: true });
   const charterPath = join(charterDir, "mind.yaml");
-  writeFileSync(
-    charterPath,
-    `name: "mind"\nrole: "mind"\ncharter:\n  identity: "Test Mind"\n  goals:\n    - id: "G1"\n      statement: "Discovery"\n  repo_roots:\n    - "src/"\n`,
-    "utf-8",
-  );
+  const charterContent = `name: "mind"\nrole: "mind"\ncharter:\n  identity: "Test Mind"\n  goals:\n    - id: "G1"\n      statement: "Discovery"\n  repo_roots:\n    - "src/"\n`;
+  vfs.writeFileSync(charterPath, charterContent);
 
-  const charterBytes = readFileSync(charterPath);
+  const charterBytes = new TextEncoder().encode(charterContent);
   const charterSha = createHash("sha256").update(charterBytes).digest("hex");
   const run = initRun(repo, `owner-run-${name}`, charterBytes, "file", true);
 
@@ -119,26 +116,23 @@ describe("Task 4.2: Owner Role Genesis & Manifest Schema Optionality", () => {
 
   describe("Owner Manifest Definition (hb-s8-owner-yaml-behind-sync-bar)", () => {
     test("olt/agents/owner.yaml exists, parses cleanly, and passes validation", () => {
-      const skillRoot = findSkillRoot();
-      const ownerYamlPath = join(skillRoot, "agents", "owner.yaml");
-      const rawYaml = readFileSync(ownerYamlPath, "utf-8");
-      const manifest = parseUnifiedAgentManifest(rawYaml, ownerYamlPath);
+      const manifest = loadAgentManifest("owner", { bypassCache: true });
 
       expect(manifest.name).toBe("owner");
       expect(manifest.role).toBe("owner");
       expect(manifest.tier).toBe("independent");
-      expect(manifest.tools.enable_write_tools).toBe(true);
-      expect(manifest.tools.enable_subagent_tools).toBe(true);
-      expect(manifest.permissions.commands).toContain("authority:decide");
-      expect(manifest.permissions.commands).toContain("agent:register");
-      expect(manifest.permissions.commands).toContain("recover");
+      expect(manifest.tools?.enable_write_tools).toBe(true);
+      expect(manifest.tools?.enable_subagent_tools).toBe(true);
+      expect(manifest.permissions?.commands).toContain("authority:decide");
+      expect(manifest.permissions?.commands).toContain("agent:register");
+      expect(manifest.permissions?.commands).toContain("recover");
 
-      const policy = loadRepoPolicy();
+      const policy = loadRepoPolicy(process.cwd());
       const manifestLike = {
         ...manifest,
         permissions: {
           ...manifest.permissions,
-          commands: manifest.permissions.commands ?? [],
+          commands: manifest.permissions?.commands ?? [],
         },
       };
       const health = auditPermissionHealth(manifestLike, policy);

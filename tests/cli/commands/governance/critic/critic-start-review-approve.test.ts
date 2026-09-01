@@ -7,6 +7,10 @@ import { loadRun } from "../../../../../olt/scripts/src/engine/store/index.ts";
 import { requirementIds } from "../../fixtures/critic-run-fixture.ts";
 import { registerInspectionCommand, setupReadyRun } from "../../fixtures/critic-ready-fixture.ts";
 import {
+  disableInMemoryAgentMetadata,
+  enableInMemoryAgentMetadata,
+} from "../../../../../olt/scripts/src/runtime/session.ts";
+import {
   cleanupRoots,
   cleanupVirtualCliFS,
   setupVirtualCliFS,
@@ -15,8 +19,10 @@ import {
 const roots: string[] = [];
 beforeEach(() => {
   setupVirtualCliFS();
+  enableInMemoryAgentMetadata();
 });
 afterEach(async () => {
+  disableInMemoryAgentMetadata();
   await cleanupRoots(roots);
   cleanupVirtualCliFS();
 });

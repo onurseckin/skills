@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   MAIN_THREAD_ADVISORY,
@@ -8,7 +7,7 @@ import {
   type DefectRecord,
 } from "../../../olt/scripts/src/authority/thread/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { cleanupVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
+import { cleanupVirtualAuthorityFS, getVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
 
 function defectFixture(cwd: string, id: string): DefectRecord {
   return {
@@ -51,24 +50,26 @@ describe("Thread Identifier - Defect Logging, Main Thread Restraints, & Security
   });
 
   test("recordDefect persists defect log into runRoot or capsules dir", () => {
+    const vfs = getVirtualAuthorityFS();
     const sandbox = "/virtual/thread-lifecycle/persist";
-    mkdirSync(sandbox, { recursive: true });
+    vfs.mkdirSync(sandbox, { recursive: true });
     const defectRecord = defectFixture(sandbox, "defect-test-123");
     recordDefect(defectRecord, { runRoot: sandbox });
     recordDefect(defectRecord, { runRoot: sandbox });
     const defectsFile = join(sandbox, "defects.jsonl");
-    expect(existsSync(defectsFile)).toBe(true);
-    const content = readFileSync(defectsFile, "utf8");
+    expect(vfs.existsSync(defectsFile)).toBe(true);
+    const content = vfs.readFileSync(defectsFile, "utf8");
     expect(content.split("\n").filter(Boolean)).toHaveLength(2);
     expect(content).toContain("defect-test-123");
     expect(content).toContain("main_thread_direct_execution");
   });
 
   test("recordDefect fails closed when the resolved ledger is a directory", () => {
+    const vfs = getVirtualAuthorityFS();
     const sandbox = "/virtual/thread-lifecycle/dir-fail";
-    mkdirSync(sandbox, { recursive: true });
+    vfs.mkdirSync(sandbox, { recursive: true });
     const ledger = join(sandbox, "defects.jsonl");
-    mkdirSync(ledger, { recursive: true });
+    vfs.mkdirSync(ledger, { recursive: true });
     const defectRecord = defectFixture(sandbox, "defect-directory-123");
     expectIntegrityDefectWriteFailure(
       () => recordDefect(defectRecord, { runRoot: sandbox }),
@@ -76,13 +77,15 @@ describe("Thread Identifier - Defect Logging, Main Thread Restraints, & Security
     );
   });
 
-  test("recordDefect rejects final symlinks without changing an external ledger", () => {
+  test("recordDefect rejects final symlinks without changing an external ledger", async () => {
     if (process.platform === "win32") return;
+    const vfs = getVirtualAuthorityFS();
     const sandbox = "/virtual/thread-lifecycle/symlink-reject";
-    mkdirSync(sandbox, { recursive: true });
+    vfs.mkdirSync(sandbox, { recursive: true });
     const external = join(sandbox, "external-defects.jsonl");
     const ledger = join(sandbox, "defects.jsonl");
-    writeFileSync(external, "external\n");
+    vfs.writeFileSync(external, "external\n");
+    const { symlinkSync } = await import("node:fs");
     symlinkSync(external, ledger);
     const defectRecord = defectFixture(sandbox, "defect-symlink-123");
 
@@ -90,12 +93,13 @@ describe("Thread Identifier - Defect Logging, Main Thread Restraints, & Security
       () => recordDefect(defectRecord, { runRoot: sandbox }),
       defectRecord.id,
     );
-    expect(readFileSync(external, "utf8")).toBe("external\n");
+    expect(vfs.readFileSync(external, "utf8")).toBe("external\n");
   });
 
   test("recordDefect wraps cyclic and BigInt serialization failures as INTEGRITY", () => {
+    const vfs = getVirtualAuthorityFS();
     const sandbox = "/virtual/thread-lifecycle/serial-fail";
-    mkdirSync(sandbox, { recursive: true });
+    vfs.mkdirSync(sandbox, { recursive: true });
     const cyclic = defectFixture(sandbox, "defect-cyclic-123") as DefectRecord & { loop?: unknown };
     cyclic.loop = cyclic;
     expectIntegrityDefectWriteFailure(() => recordDefect(cyclic, { runRoot: sandbox }), cyclic.id);
@@ -108,11 +112,12 @@ describe("Thread Identifier - Defect Logging, Main Thread Restraints, & Security
   });
 
   test("identifyExecutionContext records defect when mutating action is run on main thread in non-test mode", () => {
+    const vfs = getVirtualAuthorityFS();
     const originalNodeEnv = process.env.NODE_ENV;
     const originalBunTest = process.env.BUN_TEST;
     const originalTest = process.env.TEST;
     const testScratch = "/virtual/thread-lifecycle/mutating-action";
-    mkdirSync(testScratch, { recursive: true });
+    vfs.mkdirSync(testScratch, { recursive: true });
 
     try {
       process.env.NODE_ENV = "production";

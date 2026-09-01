@@ -13,6 +13,11 @@ import {
   type VirtualFSSession,
 } from "../../olt/scripts/src/testing/virtual-fs/index.ts";
 
+import {
+  disableInMemorySessionStore,
+  enableInMemorySessionStore,
+} from "../../olt/scripts/src/authority/session/paths.ts";
+
 let currentSession: VirtualFSSession | null = null;
 let currentVfs: VirtualMemoryFS = new VirtualMemoryFS();
 let counter = 0;
@@ -22,21 +27,27 @@ function normPath(p: string): string {
 }
 
 export function setupVirtualAgentsFS(): VirtualMemoryFS {
+  enableInMemorySessionStore();
   if (!currentSession) {
     currentVfs = new VirtualMemoryFS();
     const repoRoot = normPath(process.cwd());
     currentVfs.mkdirSync(repoRoot, { recursive: true });
+    currentVfs.mkdirSync(path.join(repoRoot, ".git"), { recursive: true });
+    currentVfs.mkdirSync(path.join(repoRoot, ".olt"), { recursive: true });
     currentVfs.mkdirSync(path.join(repoRoot, ".olt", "capsules"), { recursive: true });
     currentVfs.mkdirSync(path.join(repoRoot, ".olt", "scratch"), { recursive: true });
     currentVfs.mkdirSync(path.join(repoRoot, ".olt", "runs"), { recursive: true });
     currentVfs.mkdirSync(path.join(repoRoot, ".tmp"), { recursive: true });
     currentVfs.mkdirSync("/virtual/agents-scratch", { recursive: true });
+    currentVfs.mkdirSync("/virtual/.git", { recursive: true });
+    currentVfs.mkdirSync("/virtual/.olt", { recursive: true });
     currentSession = createVirtualFSSession(currentVfs);
   }
   return currentVfs;
 }
 
 export function cleanupVirtualAgentsFS(): void {
+  disableInMemorySessionStore();
   if (currentSession) {
     currentSession.cleanup();
     currentSession = null;
@@ -78,6 +89,8 @@ export function scratchRoot(callerPath = "agents-test", label = "test"): string 
     .replace(/-+$/, "");
   const root = `/virtual/agents-scratch/${dirName}`;
   vfs.mkdirSync(root, { recursive: true });
+  vfs.mkdirSync(path.join(root, ".git"), { recursive: true });
+  vfs.mkdirSync(path.join(root, ".olt"), { recursive: true });
   return root;
 }
 

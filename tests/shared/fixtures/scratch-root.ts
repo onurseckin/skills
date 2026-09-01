@@ -1,5 +1,6 @@
 import { afterEach } from "bun:test";
 import { createHash } from "node:crypto";
+import * as fs from "node:fs";
 import { join, relative, sep } from "node:path";
 import { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
@@ -52,7 +53,17 @@ export function scratchRoot(callerPath: string, label: string): string {
     } catch {
       // Ignore if absent
     }
+    try {
+      fs.rmSync(root, { recursive: true, force: true });
+    } catch {
+      // Ignore if absent
+    }
     scratchVirtualFs.mkdirSync(root, { recursive: true });
+    try {
+      fs.mkdirSync(root, { recursive: true });
+    } catch {
+      // Ignore if absent
+    }
 
     const claim: ScratchClaim = {
       root,
@@ -68,6 +79,11 @@ export function scratchRoot(callerPath: string, label: string): string {
         activeClaims.delete(root);
         try {
           scratchVirtualFs.rmSync(root, { recursive: true, force: true });
+        } catch {
+          // ignore cleanup errors
+        }
+        try {
+          fs.rmSync(root, { recursive: true, force: true });
         } catch {
           // ignore cleanup errors
         }

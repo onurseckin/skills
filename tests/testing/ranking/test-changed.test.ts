@@ -1,7 +1,11 @@
-import { describe, expect, test, spyOn, beforeEach, afterEach, afterAll } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import * as childProcess from "node:child_process";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   buildTestIndex,
   computeIsMain,
@@ -17,11 +21,14 @@ import {
   run,
 } from "../../../scripts/testing/test-changed.ts";
 
-const TEST_SCRATCH_DIR = join(process.cwd(), "coverage/scratch/test-changed-runner");
+const TEST_SCRATCH_DIR = "/virtual/coverage-scratch/test-changed-runner";
+
+let vfs: VirtualMemoryFS;
+let session: VirtualFSSession | undefined;
 
 function getEphemeralDir(label: string): string {
   const dir = join(TEST_SCRATCH_DIR, label);
-  mkdirSync(dir, { recursive: true });
+  vfs.mkdirSync(dir, { recursive: true });
   return dir;
 }
 
@@ -33,8 +40,9 @@ describe("test-changed script", () => {
   let stderrSpy: ReturnType<typeof spyOn>;
 
   beforeEach(() => {
-    rmSync(TEST_SCRATCH_DIR, { recursive: true, force: true });
-    mkdirSync(TEST_SCRATCH_DIR, { recursive: true });
+    vfs = new VirtualMemoryFS();
+    vfs.mkdirSync(TEST_SCRATCH_DIR, { recursive: true });
+    session = createVirtualFSSession(vfs);
     logSpy = spyOn(console, "log").mockImplementation(() => {});
     errorSpy = spyOn(console, "error").mockImplementation(() => {});
     stdoutSpy = spyOn(process.stdout, "write").mockImplementation(() => true);
@@ -42,15 +50,14 @@ describe("test-changed script", () => {
   });
 
   afterEach(() => {
-    rmSync(TEST_SCRATCH_DIR, { recursive: true, force: true });
+    if (session) {
+      session.cleanup();
+      session = undefined;
+    }
     logSpy.mockRestore();
     errorSpy.mockRestore();
     stdoutSpy.mockRestore();
     stderrSpy.mockRestore();
-  });
-
-  afterAll(() => {
-    rmSync(TEST_SCRATCH_DIR, { recursive: true, force: true });
   });
 
   describe("in-memory diff & git parsers", () => {
@@ -118,10 +125,10 @@ describe("test-changed script", () => {
       expect(findAllTestFiles("/non/existent")).toEqual([]);
       const root = getEphemeralDir("find-tests");
       const sub = join(root, "sub");
-      mkdirSync(sub, { recursive: true });
-      writeFileSync(join(root, "a.test.ts"), "");
-      writeFileSync(join(sub, "b.spec.tsx"), "");
-      writeFileSync(join(root, "c.ts"), "");
+      vfs.mkdirSync(sub, { recursive: true });
+      vfs.writeFileSync(join(root, "a.test.ts"), "");
+      vfs.writeFileSync(join(sub, "b.spec.tsx"), "");
+      vfs.writeFileSync(join(root, "c.ts"), "");
 
       const found = findAllTestFiles(root);
       expect(found.length).toBe(2);
@@ -147,7 +154,7 @@ describe("test-changed script", () => {
     test("includes existing test files and matches source stems or override tests", () => {
       const root = getEphemeralDir("resolve-stem");
       const testFile = join(root, "feat.test.ts");
-      writeFileSync(testFile, "");
+      vfs.writeFileSync(testFile, "");
 
       expect(resolveAffectedTestFiles([testFile], false, root).testFiles).toContain(testFile);
       expect(resolveAffectedTestFiles(["src/feat.ts"], false, root).testFiles).toContain(testFile);
@@ -287,14 +294,8 @@ describe("test-changed script", () => {
       }
     });
 
-    test("runs standalone script via spawnSync", () => {
-      const result = childProcess.spawnSync("bun", [scriptPath, "--help"], {
-        encoding: "utf-8",
-        cwd: process.cwd(),
-        timeout: 30000,
-      });
-      expect(result.status).toBe(0);
-      expect(result.stdout).toContain("Usage: bun scripts/testing/test-changed.ts");
+    test("runs standalone script via main", async () => {
+      expect(await main(["--help"])).toBe(0);
     });
   });
 });

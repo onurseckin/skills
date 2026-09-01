@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync } from "node:fs";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   commitAndPushDomainSubphase,
@@ -11,7 +10,7 @@ import {
   type DomainLedgerState,
   type GitRunner,
 } from "../../../olt/scripts/src/engine/worktree/index.ts";
-import { cleanupVirtualEngineFS, setupVirtualEngineFS } from "../fixture.ts";
+import { cleanupVirtualEngineFS, getVirtualEngineFS, setupVirtualEngineFS } from "../fixture.ts";
 
 const ok = (stdout = "") => ({ status: 0, stdout, stderr: "" });
 
@@ -42,10 +41,11 @@ describe("Domain Sync & Ledger State Verification", () => {
     });
 
     test("provisions domain worktree and updates ledger state", () => {
+      const vfs = getVirtualEngineFS();
       const repoRoot = "/virtual/sync/ledger-repo";
       const ledgerRoot = "/virtual/sync/ledger-root";
-      mkdirSync(repoRoot, { recursive: true });
-      mkdirSync(ledgerRoot, { recursive: true });
+      vfs.mkdirSync(repoRoot, { recursive: true });
+      vfs.mkdirSync(ledgerRoot, { recursive: true });
       const ledger = createDomainLedger("main", "base-sha-123", ledgerRoot);
       const runner: GitRunner = () => ok();
       const now = new Date("2026-08-29T12:00:00.000Z");

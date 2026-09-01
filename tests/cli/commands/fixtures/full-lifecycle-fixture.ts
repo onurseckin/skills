@@ -1,6 +1,5 @@
 import * as fs from "node:fs";
-import { chmodSync, readdirSync } from "node:fs";
-import { rm, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import { basename, join } from "node:path";
 import { execute } from "../../../../olt/scripts/src/cli/execute.ts";
@@ -12,9 +11,14 @@ import {
   type VirtualFSSession,
 } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
+import { spyOn } from "bun:test";
+import * as childProcess from "node:child_process";
+
 let vfs = new VirtualMemoryFS();
 let session: VirtualFSSession | undefined;
 let restoreDefectDeps: (() => void) | undefined;
+let execFileSpy: { mockRestore: () => void } | undefined;
+let fetchSpy: { mockRestore: () => void } | undefined;
 
 function normPath(p: string): string {
   return path.resolve(String(p)).replace(/\\/g, "/");
@@ -26,19 +30,59 @@ export function setupVirtualCliFS(): VirtualMemoryFS {
   const repoRoot = normPath(process.cwd());
   vfs.mkdirSync(repoRoot, { recursive: true });
   vfs.mkdirSync(path.join(repoRoot, ".olt"), { recursive: true });
+  vfs.mkdirSync(path.join(repoRoot, ".git"), { recursive: true });
+  vfs.writeFileSync(
+    path.join(repoRoot, "package.json"),
+    JSON.stringify({ name: "skills", version: "1.0.0" }),
+  );
   vfs.writeFileSync(
     path.join(repoRoot, ".olt", "policy.json"),
     JSON.stringify(generateCanonicalDefaultPolicy(repoRoot, "bun")),
   );
+  vfs.mkdirSync("/virtual/coverage/scratch", { recursive: true });
 
   restoreDefectDeps = setDefectLogDependenciesForTesting({
     readFile: (p, opt) => fs.readFileSync(p, opt),
   });
+  execFileSpy = spyOn(childProcess, "execFile").mockImplementation(((
+    _cmd: string,
+    argsOrCallback?: unknown,
+    optionsOrCallback?: unknown,
+    callback?: unknown,
+  ) => {
+    const cb =
+      typeof callback === "function"
+        ? (callback as (err: null, stdout: string, stderr: string) => void)
+        : typeof optionsOrCallback === "function"
+          ? (optionsOrCallback as (err: null, stdout: string, stderr: string) => void)
+          : typeof argsOrCallback === "function"
+            ? (argsOrCallback as (err: null, stdout: string, stderr: string) => void)
+            : undefined;
+    if (cb) {
+      queueMicrotask(() => cb(null, "", ""));
+    }
+    return {} as never;
+  }) as never);
+  fetchSpy = spyOn(globalThis, "fetch").mockImplementation((() =>
+    Promise.reject(new Error("network disabled in tests"))) as never);
   session = createVirtualFSSession(vfs);
+  vfs.chdir(repoRoot);
   return vfs;
 }
 
 export function cleanupVirtualCliFS(): void {
+  if (fetchSpy) {
+    try {
+      fetchSpy.mockRestore();
+    } catch {}
+    fetchSpy = undefined;
+  }
+  if (execFileSpy) {
+    try {
+      execFileSpy.mockRestore();
+    } catch {}
+    execFileSpy = undefined;
+  }
   if (session) {
     session.cleanup();
     session = undefined;
@@ -60,27 +104,8 @@ export function runStateAssertion(): string[] {
   return ["bun", GATE_SCRIPT];
 }
 
-function makeWritable(path: string): void {
-  try {
-    chmodSync(path, 0o700);
-    for (const entry of readdirSync(path, { withFileTypes: true })) {
-      const child = join(path, entry.name);
-      if (entry.isDirectory()) makeWritable(child);
-      else chmodSync(child, 0o600);
-    }
-  } catch {}
-}
-
 export async function cleanupRoots(roots: string[]): Promise<void> {
-  const toClean = roots.splice(0);
-  await Promise.all(
-    toClean.map(async (root) => {
-      try {
-        makeWritable(root);
-        await rm(root, { recursive: true, force: true });
-      } catch {}
-    }),
-  );
+  roots.splice(0);
 }
 
 export async function writeJson(root: string, name: string, value: unknown): Promise<string> {

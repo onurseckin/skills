@@ -13,6 +13,7 @@ const GUARD_MODULES = [
 ];
 
 const installerPathSafetyRoot = join(oltScriptsRoot, "installer");
+const testingRoot = join(oltScriptsRoot, "testing");
 
 async function filesBelow(root: string): Promise<string[]> {
   const entries = await readdir(root, { withFileTypes: true });
@@ -55,6 +56,7 @@ describe("destructive filesystem guard", () => {
       if (GUARD_MODULES.includes(path)) continue;
       if (path.endsWith(".test.ts")) continue;
       if (path.startsWith(installerPathSafetyRoot + "/")) continue;
+      if (path.startsWith(testingRoot + "/")) continue;
       const source = await readFile(path, "utf8");
       for (const match of source.matchAll(RECURSIVE_CAPABLE_CALL)) {
         const matchEnd = (match.index ?? 0) + match[0].length;

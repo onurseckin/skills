@@ -16,6 +16,7 @@ export async function setupCompiledRun(
 ) {
   const repo = await mkdtemp(join(tmpdir(), `task-ops-${name}-`));
   roots.push(repo);
+  await mkdir(join(repo, ".git"), { recursive: true });
   const promptPath = join(repo, "prompt.txt");
   await writeFile(promptPath, "Core unit tests\n\nSecondary tests");
   await mkdir(join(repo, "tests/core"), { recursive: true });
@@ -93,6 +94,7 @@ export async function setupCompiledRun(
 export async function setupCompiledRunUncompiled(name: string, roots: string[]) {
   const repo = await mkdtemp(join(tmpdir(), `task-ops-${name}-`));
   roots.push(repo);
+  await mkdir(join(repo, ".git"), { recursive: true });
   const promptPath = join(repo, "prompt.txt");
   await writeFile(promptPath, "Core unit tests\n\nSecondary tests");
   await mkdir(join(repo, "tests/core"), { recursive: true });

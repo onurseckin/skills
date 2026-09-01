@@ -115,6 +115,12 @@ export function setupVirtualLoggingFS(): VirtualMemoryFS {
 
 export function cleanupVirtualLoggingFS(): void {
   resetVirtualLoggingStore();
+  for (const s of spies) {
+    try {
+      s.mockRestore();
+    } catch {}
+  }
+  spies = [];
   if (restoreDefectDeps) {
     try {
       restoreDefectDeps();

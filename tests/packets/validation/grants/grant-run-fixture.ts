@@ -16,10 +16,16 @@ import {
   type VirtualFSSession,
 } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
+import {
+  disableInMemorySessionStore,
+  enableInMemorySessionStore,
+} from "../../../../olt/scripts/src/authority/session/paths.ts";
+
 let vfs = new VirtualMemoryFS();
 let session: VirtualFSSession | undefined;
 
 function ensureSession(): VirtualMemoryFS {
+  enableInMemorySessionStore();
   if (!session) {
     session = createVirtualFSSession(vfs);
   }
@@ -27,6 +33,7 @@ function ensureSession(): VirtualMemoryFS {
 }
 
 afterAll(() => {
+  disableInMemorySessionStore();
   if (session) {
     session.cleanup();
     session = undefined;
@@ -46,6 +53,10 @@ export async function emptyGrantRun(prefix: string): Promise<GrantRun> {
   const root = `/virtual/${prefix}-${Math.random().toString(36).slice(2)}`;
   const repo = join(root, "repo");
   memFs.mkdirSync(repo, { recursive: true });
+  memFs.mkdirSync(join(repo, ".git"), { recursive: true });
+  memFs.mkdirSync(join(repo, ".olt"), { recursive: true });
+  memFs.mkdirSync(join(root, ".git"), { recursive: true });
+  memFs.mkdirSync(join(root, ".olt"), { recursive: true });
   const run = initRun(repo, "grant-run", new TextEncoder().encode("Build the thing"), "file", true);
   return { repo, run, port: workflowPort(run) };
 }

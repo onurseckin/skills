@@ -1,7 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { mkdir, readFile, symlink, writeFile } from "node:fs/promises";
-import { existsSync } from "node:fs";
-import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import {
   assertGrantedCommand as assertRawGrantedCommand,

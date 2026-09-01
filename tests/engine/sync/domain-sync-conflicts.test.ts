@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync } from "node:fs";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   assertDomainIsolation,
@@ -19,7 +18,7 @@ import {
   type DomainScopeEntry,
   type GitRunner,
 } from "../../../olt/scripts/src/engine/worktree/index.ts";
-import { cleanupVirtualEngineFS, setupVirtualEngineFS } from "../fixture.ts";
+import { cleanupVirtualEngineFS, getVirtualEngineFS, setupVirtualEngineFS } from "../fixture.ts";
 
 const ok = (stdout = "") => ({ status: 0, stdout, stderr: "" });
 
@@ -66,10 +65,11 @@ describe("Domain Sync Conflicts, Isolation & Zero-Destructive Invariant", () => 
 
   describe("Collision Rollback & Merge/Rebase Conflict Handling", () => {
     it("handles merge conflict in syncDomainToGlobal with automatic cleanup", () => {
+      const vfs = getVirtualEngineFS();
       const repoRoot = "/virtual/sync/conflicts-repo-1";
       const ledgerRoot = "/virtual/sync/conflicts-ledger-1";
-      mkdirSync(repoRoot, { recursive: true });
-      mkdirSync(ledgerRoot, { recursive: true });
+      vfs.mkdirSync(repoRoot, { recursive: true });
+      vfs.mkdirSync(ledgerRoot, { recursive: true });
       const ledger = createDomainLedger("main", "base-sha-1", ledgerRoot);
       const runner: GitRunner = (_cwd, argv) => {
         if (argv[0] === "merge") {
@@ -105,10 +105,11 @@ describe("Domain Sync Conflicts, Isolation & Zero-Destructive Invariant", () => 
     });
 
     it("handles rebase conflict in syncGlobalToDomain", () => {
+      const vfs = getVirtualEngineFS();
       const repoRoot = "/virtual/sync/conflicts-repo-2";
       const ledgerRoot = "/virtual/sync/conflicts-ledger-2";
-      mkdirSync(repoRoot, { recursive: true });
-      mkdirSync(ledgerRoot, { recursive: true });
+      vfs.mkdirSync(repoRoot, { recursive: true });
+      vfs.mkdirSync(ledgerRoot, { recursive: true });
       const ledger = createDomainLedger("main", "base-sha-2", ledgerRoot);
       const runner: GitRunner = (_cwd, argv) => {
         if (argv[0] === "rebase") {
@@ -131,10 +132,11 @@ describe("Domain Sync Conflicts, Isolation & Zero-Destructive Invariant", () => 
     });
 
     it("synchronizeAllDomains aggregates failed domains and collisions", () => {
+      const vfs = getVirtualEngineFS();
       const repoRoot = "/virtual/sync/conflicts-repo-3";
       const ledgerRoot = "/virtual/sync/conflicts-ledger-3";
-      mkdirSync(repoRoot, { recursive: true });
-      mkdirSync(ledgerRoot, { recursive: true });
+      vfs.mkdirSync(repoRoot, { recursive: true });
+      vfs.mkdirSync(ledgerRoot, { recursive: true });
       const ledger = createDomainLedger("main", "base-sha-3", ledgerRoot);
       const runner: GitRunner = (_cwd, argv) => {
         if (argv[0] === "merge")

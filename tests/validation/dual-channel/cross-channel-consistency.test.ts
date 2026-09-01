@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import {
   normalizeViewportName,
   validateCrossChannelConsistency,
@@ -8,6 +8,7 @@ import type {
   VisualMetricsReport,
 } from "../../../olt/scripts/src/validation/channels/dual-channel-types.ts";
 import {
+  cleanupVirtualValidationFS,
   createMockDualChannelFinding,
   createMockFeedbackItem,
   createMockPngBuffer,
@@ -15,6 +16,10 @@ import {
   createSandboxDir,
   scratchRoot,
 } from "../validation-fixture.ts";
+
+afterEach(() => {
+  cleanupVirtualValidationFS();
+});
 
 describe("normalizeViewportName", () => {
   test("falls back to width-based classification when the name is blank or absent", () => {

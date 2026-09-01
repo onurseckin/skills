@@ -8,17 +8,23 @@ import {
   VirtualMemoryFS,
   type VirtualFSSession,
 } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import {
+  disableInMemorySessionStore,
+  enableInMemorySessionStore,
+} from "../../../../olt/scripts/src/authority/session/paths.ts";
 import { inspection } from "../../payloads/slicing/inspection-fixture.ts";
 
 let vfs = new VirtualMemoryFS();
 let session: VirtualFSSession | undefined;
 
 function ensureSession(): VirtualMemoryFS {
+  enableInMemorySessionStore();
   if (!session) session = createVirtualFSSession(vfs);
   return vfs;
 }
 
 afterAll(() => {
+  disableInMemorySessionStore();
   if (session) {
     session.cleanup();
     session = undefined;

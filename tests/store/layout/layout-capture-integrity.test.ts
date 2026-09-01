@@ -102,7 +102,7 @@ describe("capture references (via verifyCapsuleLayout)", () => {
     writeFileSync(viewPath, "hello");
     writeCaptures(root, [captureFixture({ sha256: digest, blob_path: `blobs/ee/${digest}` })]);
 
-    const spy = spyOn(fs, "statSync").mockImplementation(() => {
+    spyOn(fs, "statSync").mockImplementation(() => {
       throw new Error("stat error");
     });
     try {

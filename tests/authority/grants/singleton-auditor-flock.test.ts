@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import * as fs from "node:fs";
 import {
   acquireAuditorLeaseLock,
@@ -143,10 +143,11 @@ describe("Singleton Skill Auditor Lease Guard - Locking & Edge Cases", () => {
 
   describe("zero TypeScript any & zero suppressions invariant", () => {
     it("verifies source files contain zero any and zero suppressions", () => {
-      const guardSource = fs.readFileSync(
-        join(process.cwd(), "olt/scripts/src/authority/guards/singleton-auditor-guard.ts"),
-        "utf-8",
+      const guardFile = resolve(
+        import.meta.dir,
+        "../../../olt/scripts/src/authority/guards/singleton-auditor-guard.ts",
       );
+      const guardSource = fs.readFileSync(guardFile, "utf-8");
       expect(guardSource).not.toMatch(/: any\b/);
       expect(guardSource).not.toMatch(/\bas any\b/);
       expect(guardSource).not.toMatch(/@ts-(ignore|expect-error|nocheck)/);

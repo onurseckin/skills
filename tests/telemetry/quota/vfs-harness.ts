@@ -124,12 +124,13 @@ function mockSyncHandlers(self: QuotaVirtualFs): void {
     else if (list.includes("HEAD") && list.includes("rev-parse"))
       out = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n";
     else if (list.includes("symbolic-ref")) out = "refs/heads/main\n";
+    const isString = typeof opts === "object" && opts !== null && "encoding" in opts && Boolean((opts as { encoding?: string }).encoding);
     return {
       status,
-      stdout: Buffer.from(out),
-      stderr: Buffer.alloc(0),
+      stdout: isString ? out : Buffer.from(out),
+      stderr: isString ? "" : Buffer.alloc(0),
       pid: 1234,
-      output: [null, Buffer.from(out), Buffer.alloc(0)],
+      output: [null, isString ? out : Buffer.from(out), isString ? "" : Buffer.alloc(0)],
       signal: null,
     };
   });

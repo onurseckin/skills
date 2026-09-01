@@ -11,6 +11,7 @@ export async function freshRun(
 ): Promise<{ repo: string; run: string }> {
   const repo = await mkdtemp(join(tmpdir(), `harness-plan-workflow-${name}-`));
   roots.push(repo);
+  await mkdir(join(repo, ".git"), { recursive: true });
   const promptPath = join(repo, "prompt.txt");
   await writeFile(promptPath, promptLines.join("\n"));
   const init = await execute([

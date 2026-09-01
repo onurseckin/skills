@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
@@ -29,7 +28,7 @@ import {
   initialState,
   isTerminalState,
 } from "../../../olt/scripts/src/engine/store/capsule/state.ts";
-import { cleanupVirtualEngineFS, setupVirtualEngineFS } from "../fixture.ts";
+import { cleanupVirtualEngineFS, getVirtualEngineFS, setupVirtualEngineFS } from "../fixture.ts";
 
 describe("engine/store/capsule/run-id.ts", () => {
   beforeEach(() => {
@@ -59,8 +58,9 @@ describe("engine/store/capsule/paths.ts", () => {
   });
 
   it("resolves safe file paths and throws on traversal attempts", () => {
+    const vfs = getVirtualEngineFS();
     const tmp = "/virtual/capsule/paths-test";
-    mkdirSync(tmp, { recursive: true });
+    vfs.mkdirSync(tmp, { recursive: true });
     const p = runFilePath(tmp, "manifest.json");
     expect(p).toBe(join(tmp, "manifest.json"));
     expect(() => runFilePath(tmp, "../outside.json")).toThrow(HarnessError);
@@ -76,8 +76,9 @@ describe("engine/store/capsule/captures.ts", () => {
   });
 
   it("records and reads captures correctly", () => {
+    const vfs = getVirtualEngineFS();
     const tmp = "/virtual/capsule/captures-test";
-    mkdirSync(join(tmp, "blobs"), { recursive: true });
+    vfs.mkdirSync(join(tmp, "blobs"), { recursive: true });
     const record: CaptureRecord = {
       kind: "screenshot",
       name: "screen.png",
@@ -146,8 +147,9 @@ describe("engine/store/capsule/capsule-index.ts & types", () => {
   });
 
   it("builds, writes, and loads capsule index", () => {
+    const vfs = getVirtualEngineFS();
     const tmp = "/virtual/capsule/index-test";
-    mkdirSync(join(tmp, ".olt"), { recursive: true });
+    vfs.mkdirSync(join(tmp, ".olt"), { recursive: true });
     const runRoot = initRun(
       tmp,
       "test-run-index",
@@ -203,8 +205,9 @@ describe("engine/store/capsule/capsule.ts & load.ts", () => {
   });
 
   it("initRun rejects invalid arguments and initializes run directory", () => {
+    const vfs = getVirtualEngineFS();
     const tmp = "/virtual/capsule/init-test";
-    mkdirSync(join(tmp, ".olt"), { recursive: true });
+    vfs.mkdirSync(join(tmp, ".olt"), { recursive: true });
     expect(() =>
       initRun(tmp, "invalid run id with spaces!", new Uint8Array(), "file", true),
     ).toThrow(HarnessError);
@@ -228,7 +231,7 @@ describe("engine/store/capsule/capsule.ts & load.ts", () => {
       "file",
       true,
     );
-    expect(existsSync(runRoot)).toBe(true);
+    expect(vfs.existsSync(runRoot)).toBe(true);
 
     const loaded = loadRun(runRoot, false);
     expect(loaded.manifest.run_id).toBe("valid-run-1");
@@ -242,12 +245,13 @@ describe("engine/store/capsule/capsule.ts & load.ts", () => {
   });
 
   it("supports reference runtime linking mode without duplicating files", () => {
+    const vfs = getVirtualEngineFS();
     const tmp = "/virtual/capsule/ref-runtime-test";
-    mkdirSync(join(tmp, ".olt"), { recursive: true });
+    vfs.mkdirSync(join(tmp, ".olt"), { recursive: true });
     const runtimeDir = join(tmp, "canonical-runtime");
-    mkdirSync(runtimeDir, { recursive: true });
-    writeFileSync(join(runtimeDir, "harness.ts"), "export const ok = true;\n");
-    writeFileSync(join(runtimeDir, "package.json"), "{}\n");
+    vfs.mkdirSync(runtimeDir, { recursive: true });
+    vfs.writeFileSync(join(runtimeDir, "harness.ts"), "export const ok = true;\n");
+    vfs.writeFileSync(join(runtimeDir, "package.json"), "{}\n");
 
     const runRoot = initRun(
       tmp,
@@ -261,8 +265,8 @@ describe("engine/store/capsule/capsule.ts & load.ts", () => {
       },
     );
 
-    expect(existsSync(runRoot)).toBe(true);
-    expect(existsSync(join(runRoot, "runtime"))).toBe(false);
+    expect(vfs.existsSync(runRoot)).toBe(true);
+    expect(vfs.existsSync(join(runRoot, "runtime"))).toBe(false);
 
     const loaded = loadRun(runRoot, false);
     expect(loaded.manifest.runtime_sha256).toBeDefined();

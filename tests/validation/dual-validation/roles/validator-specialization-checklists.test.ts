@@ -206,7 +206,7 @@ describe("Validator Specialization - Workflow & Invariants", () => {
         "olt/scripts/src/authority/thread/constants.ts",
         "olt/scripts/src/authority/thread/index.ts",
         "olt/scripts/src/capture/runners/live-capture-runner/index.ts",
-        "olt/scripts/src/capture/runners/types.ts",
+        "olt/scripts/src/capture/runners/live-capture-runner/synthetic-png.ts",
         "olt/scripts/src/packets/command-authority.ts",
         "tests/validation/dual-validation/roles/validator-specialization-domains.test.ts",
       ];

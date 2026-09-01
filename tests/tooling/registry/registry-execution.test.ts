@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import {
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/memory-fs.ts";
 import {
   DynamicToolRegistry,
   discoverToolsFromDirectory,
@@ -15,15 +19,18 @@ import {
 } from "../../../olt/scripts/src/tooling/index.ts";
 
 describe("Tooling System Test Suite", () => {
+  let vfsSession: VirtualFSSession;
   let tempDir: string;
 
   beforeEach(() => {
     resetGlobalToolRegistry();
-    tempDir = mkdtempSync(join(tmpdir(), "tool-registry-test-"));
+    vfsSession = createVirtualFSSession(new VirtualMemoryFS());
+    tempDir = `/virtual/tool-registry-test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    mkdirSync(tempDir, { recursive: true });
   });
 
   afterEach(() => {
-    rmSync(tempDir, { recursive: true, force: true });
+    vfsSession.cleanup();
   });
 
   describe("DynamicToolRegistry execution and parameter validation", () => {

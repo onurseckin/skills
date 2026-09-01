@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
@@ -42,7 +41,7 @@ import {
 import { initialState } from "../../../olt/scripts/src/engine/store/capsule/state.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/events/transaction.ts";
 import type { HarnessEvent } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { cleanupVirtualEngineFS, setupVirtualEngineFS } from "../fixture.ts";
+import { cleanupVirtualEngineFS, getVirtualEngineFS, setupVirtualEngineFS } from "../fixture.ts";
 
 describe("engine/store/integrity", () => {
   beforeEach(() => {
@@ -69,8 +68,9 @@ describe("engine/store/integrity", () => {
   });
 
   it("verifies capsule layout and overall integrity", () => {
+    const vfs = getVirtualEngineFS();
     const tmp = "/virtual/projections/integrity";
-    mkdirSync(join(tmp, ".olt"), { recursive: true });
+    vfs.mkdirSync(join(tmp, ".olt"), { recursive: true });
     const runRoot = initRun(
       tmp,
       "test-run-integ",
@@ -114,8 +114,9 @@ describe("engine/store/recovery", () => {
   });
 
   it("appends, loads, resolves, and compacts defects", () => {
+    const vfs = getVirtualEngineFS();
     const tmp = "/virtual/projections/defects";
-    mkdirSync(join(tmp, ".olt"), { recursive: true });
+    vfs.mkdirSync(join(tmp, ".olt"), { recursive: true });
     const runRoot = initRun(
       tmp,
       "test-run-defects",
@@ -150,8 +151,9 @@ describe("engine/store/recovery", () => {
   });
 
   it("handles quarantine of torn tail and projection recovery", () => {
+    const vfs = getVirtualEngineFS();
     const tmp = "/virtual/projections/recovery";
-    mkdirSync(join(tmp, ".olt"), { recursive: true });
+    vfs.mkdirSync(join(tmp, ".olt"), { recursive: true });
     const runRoot = initRun(
       tmp,
       "test-run-recov",
@@ -170,14 +172,15 @@ describe("engine/store/recovery", () => {
 
     const eventsPath = join(runRoot, "events.jsonl");
     const quarDir = join(runRoot, "quarantine");
-    mkdirSync(quarDir, { recursive: true });
+    vfs.mkdirSync(quarDir, { recursive: true });
     const frag = quarantineAndTruncateTail(eventsPath, 0, quarDir);
     expect(typeof frag).toBe("string");
   });
 
   it("writes and appends trace records", () => {
+    const vfs = getVirtualEngineFS();
     const tmp = "/virtual/projections/trace";
-    mkdirSync(join(tmp, ".olt"), { recursive: true });
+    vfs.mkdirSync(join(tmp, ".olt"), { recursive: true });
     const runRoot = initRun(
       tmp,
       "test-run-trace",
@@ -200,7 +203,7 @@ describe("engine/store/recovery", () => {
     };
 
     writeTrace(runRoot, [mockEvent]);
-    expect(existsSync(join(runRoot, "trace.md"))).toBe(true);
+    expect(vfs.existsSync(join(runRoot, "trace.md"))).toBe(true);
 
     appendTraceStep(runRoot, mockEvent);
   });
@@ -215,8 +218,9 @@ describe("engine/store/layout", () => {
   });
 
   it("reads and writes blobs and validates command and packet layouts", () => {
+    const vfs = getVirtualEngineFS();
     const tmp = "/virtual/projections/layout";
-    mkdirSync(join(tmp, ".olt"), { recursive: true });
+    vfs.mkdirSync(join(tmp, ".olt"), { recursive: true });
     const runRoot = initRun(
       tmp,
       "test-run-layout",
@@ -226,7 +230,7 @@ describe("engine/store/layout", () => {
     );
 
     const blobSource = join(tmp, "source-blob.txt");
-    writeFileSync(blobSource, "blob content");
+    vfs.writeFileSync(blobSource, "blob content");
     const blob = writeBlob(runRoot, blobSource);
     expect(blob.sha256).toBeDefined();
 

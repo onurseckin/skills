@@ -1,25 +1,54 @@
 /**
  * @file session-fixture.ts
- * In-memory test sandbox fixture and pure RAM session generator harness for tests/session domain
+ * In-memory virtual test sandbox fixture and pure RAM session generator harness for tests/session domain.
+ * 100% zero disk writes, backed by VirtualMemoryFS and virtual descriptor session.
  */
 
 import { afterEach } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdirSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import * as path from "node:path";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../olt/scripts/src/testing/virtual-fs/index.ts";
 import type { ResolvedSessionAuth } from "../../olt/scripts/src/capture/runners/types.ts";
 
-const SCRATCH_BASE = join(tmpdir(), "session-scratch");
-const rootsToClean: string[] = [];
+let currentSession: VirtualFSSession | null = null;
+let currentVfs: VirtualMemoryFS = new VirtualMemoryFS();
+let counter = 0;
+
+function normPath(p: string): string {
+  return path.resolve(String(p)).replace(/\\/g, "/");
+}
+
+export function setupVirtualSessionFS(): VirtualMemoryFS {
+  if (!currentSession) {
+    currentVfs = new VirtualMemoryFS();
+    const repoRoot = normPath(process.cwd());
+    currentVfs.mkdirSync(repoRoot, { recursive: true });
+    currentVfs.mkdirSync(path.join(repoRoot, ".git"), { recursive: true });
+    currentVfs.writeFileSync(path.join(repoRoot, "package.json"), "{}");
+    currentVfs.mkdirSync(path.join(repoRoot, ".olt", "sessions"), { recursive: true });
+    currentVfs.mkdirSync(path.join(repoRoot, ".olt", "scratch"), { recursive: true });
+    currentVfs.mkdirSync(path.join(repoRoot, ".tmp"), { recursive: true });
+    currentVfs.mkdirSync("/virtual/session-scratch", { recursive: true });
+    currentVfs.chdir(repoRoot);
+    currentSession = createVirtualFSSession(currentVfs);
+  }
+  return currentVfs;
+}
+
+export function cleanupVirtualSessionFS(): void {
+  if (currentSession) {
+    currentSession.cleanup();
+    currentSession = null;
+  }
+  currentVfs = new VirtualMemoryFS();
+}
 
 afterEach(() => {
-  for (const root of rootsToClean) {
-    try {
-      rmSync(root, { recursive: true, force: true });
-    } catch {}
-  }
-  rootsToClean.length = 0;
+  cleanupVirtualSessionFS();
 });
 
 function slug(value: string): string {
@@ -35,13 +64,12 @@ function shortDigest(value: string): string {
   return createHash("sha256").update(value).digest("hex").slice(0, 8);
 }
 
-let counter = 0;
-
 /**
- * Creates an isolated scratch sandbox directory for testing session and browser runners.
- * Automatically registered for cleanup in afterEach hooks.
+ * Creates an in-memory virtual scratch sandbox directory for testing session and browser runners.
+ * Zero physical disk writes occur.
  */
 export function scratchRoot(callerPath = "session-test", label = "test"): string {
+  const vfs = setupVirtualSessionFS();
   counter += 1;
   const fileTag = slug(callerPath);
   const labelTag = slug(label);
@@ -50,19 +78,17 @@ export function scratchRoot(callerPath = "session-test", label = "test"): string
     .replace(/--+/g, "-")
     .replace(/^-+|-+$/g, "");
   const dirName = raw.slice(0, 50).replace(/-+$/, "");
-  const root = join(SCRATCH_BASE, dirName);
-
-  try {
-    rmSync(root, { recursive: true, force: true });
-  } catch {}
-
-  mkdirSync(root, { recursive: true });
-  rootsToClean.push(root);
+  const root = `/virtual/session-scratch/${dirName}`;
+  vfs.mkdirSync(root, { recursive: true });
   return root;
 }
 
 export function createSandboxDir(label = "sandbox"): string {
   return scratchRoot("sandbox", label);
+}
+
+export function getVirtualSessionFS(): VirtualMemoryFS {
+  return currentVfs;
 }
 
 export function createInMemorySessionAuth(

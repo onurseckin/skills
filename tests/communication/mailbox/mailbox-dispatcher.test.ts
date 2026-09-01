@@ -1,8 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import {
-  createSignedEnvelope,
   verifyEnvelopeHmac,
 } from "../../../olt/scripts/src/communication/mailbox/envelope.ts";
 import {

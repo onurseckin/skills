@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import {
   cleanupPreviousPhaseWatchdogs,
@@ -19,7 +18,7 @@ import {
   type WatchdogStore,
 } from "../../../olt/scripts/src/authority/watchdog/index.ts";
 import { delay, openVerifiedParent } from "../../../olt/scripts/src/authority/watchdog/lock.ts";
-import { cleanupVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
+import { cleanupVirtualAuthorityFS, getVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
 
 describe("Authority Watchdog Store, Lock, Operations & Verification Comprehensive", () => {
   beforeEach(() => {
@@ -54,9 +53,10 @@ describe("Authority Watchdog Store, Lock, Operations & Verification Comprehensiv
   });
 
   test("watchdog store lock, openVerifiedParent and save/load validations", () => {
+    const vfs = getVirtualAuthorityFS();
     const sandbox = "/virtual/watchdog/comprehensive-lock";
     const subDir = join(sandbox, "nested-store");
-    mkdirSync(subDir, { recursive: true });
+    vfs.mkdirSync(subDir, { recursive: true });
 
     const parent = openVerifiedParent(subDir, false);
     expect(parent.descriptor).toBeGreaterThan(0);

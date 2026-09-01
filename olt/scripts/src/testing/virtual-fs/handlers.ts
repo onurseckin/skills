@@ -42,7 +42,8 @@ export function isVirtualPath(s: string): boolean {
     s.includes("/scratch") ||
     s.includes("/coverage") ||
     s.includes("/tmp") ||
-    s.includes("runner") ||
+    s.includes("/runner") ||
+    s.includes("\\runner") ||
     s.includes("skills-runner") ||
     s.includes(".olt/worktrees") ||
     s.includes(".olt/runs") ||

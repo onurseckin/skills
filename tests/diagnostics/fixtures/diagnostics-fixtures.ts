@@ -1,7 +1,56 @@
+import { afterEach } from "bun:test";
+import { join } from "node:path";
 import type {
   DefectEntry,
   DefectAuditReport,
 } from "../../../olt/scripts/src/mind/defects/index.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+
+let vfs = new VirtualMemoryFS();
+let session: VirtualFSSession | null = null;
+let counter = 0;
+
+export const SCRATCH_BASE = "/virtual/diagnostics";
+
+export function setupVirtualDiagnosticsFS(): VirtualMemoryFS {
+  cleanupVirtualDiagnosticsFS();
+  vfs = new VirtualMemoryFS();
+  session = createVirtualFSSession(vfs);
+  return vfs;
+}
+
+export function cleanupVirtualDiagnosticsFS(): void {
+  if (session) {
+    session.cleanup();
+    session = null;
+  }
+}
+
+export function getVirtualDiagnosticsFS(): VirtualMemoryFS {
+  return vfs;
+}
+
+afterEach(() => {
+  cleanupVirtualDiagnosticsFS();
+});
+
+export function tempDir(prefix = "diag"): string {
+  if (!session) {
+    setupVirtualDiagnosticsFS();
+  }
+  counter += 1;
+  const dir = join(SCRATCH_BASE, `${prefix}-${Date.now()}-${counter}`);
+  vfs.mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
+export function scratchRoot(callerPath = "diag-test", label = "test"): string {
+  return tempDir(label);
+}
 
 export function createSampleDefectRecord(partial: Partial<DefectEntry> = {}): DefectEntry {
   return {

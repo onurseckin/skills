@@ -1,8 +1,9 @@
 import { homedir } from "node:os";
 import { readFile, readdir, stat } from "node:fs/promises";
+import * as childProcess from "node:child_process";
 import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import { join } from "node:path";
+import { promisify } from "node:util";
 import { detectActiveHost, isPlatformMatchingHost, type CanonicalHost } from "./host-detection.ts";
 
 const execFileAsync = promisify(execFile);
@@ -109,12 +110,24 @@ export class DefaultCollectorEnvironment implements Required<CollectorEnvironmen
   public async exec(command: string, args: string[]): Promise<ProcessExecResult | null> {
     if (this.overrides.exec) return this.overrides.exec(command, args);
     try {
-      const { stdout, stderr } = await execFileAsync(command, args, {
-        timeout: 1000,
-        encoding: "utf8",
-        env: this.env as NodeJS.ProcessEnv,
-        windowsHide: true,
-      });
+      const { stdout, stderr } = await new Promise<{ stdout: string; stderr: string }>(
+        (resolve, reject) => {
+          childProcess.execFile(
+            command,
+            args,
+            {
+              timeout: 1000,
+              encoding: "utf8",
+              env: this.env as NodeJS.ProcessEnv,
+              windowsHide: true,
+            },
+            (error, stdout, stderr) => {
+              if (error) reject(error);
+              else resolve({ stdout: String(stdout ?? ""), stderr: String(stderr ?? "") });
+            },
+          );
+        },
+      );
       return { stdout, stderr, exitCode: 0 };
     } catch {
       return null;

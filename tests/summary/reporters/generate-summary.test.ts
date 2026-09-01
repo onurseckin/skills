@@ -19,9 +19,6 @@ const norm = (p: fs.PathLike) => resolve(String(p)).replace(/\/+$/, "");
 beforeEach(() => {
   const oe = fs.existsSync.bind(fs),
     or = fs.readFileSync.bind(fs),
-    ow = fs.writeFileSync.bind(fs);
-  const om = fs.mkdirSync.bind(fs),
-    orm = fs.rmSync.bind(fs),
     oreaddir = fs.readdirSync.bind(fs);
 
   spies.push(
@@ -44,34 +41,23 @@ beforeEach(() => {
     }),
     spyOn(fs, "writeFileSync").mockImplementation((p, d) => {
       const s = norm(p);
-      if (s.startsWith("/virtual/")) {
-        vfs.set(
-          s,
-          typeof d === "string"
-            ? d
-            : Buffer.from(d.buffer, d.byteOffset, d.byteLength).toString("utf-8"),
-        );
-        return;
-      }
-      ow(p, d);
+      vfs.set(
+        s,
+        typeof d === "string"
+          ? d
+          : Buffer.from(d.buffer, d.byteOffset, d.byteLength).toString("utf-8"),
+      );
     }),
     spyOn(fs, "mkdirSync").mockImplementation((p) => {
       const s = norm(p);
-      if (s.startsWith("/virtual/")) {
-        vdirs.add(s);
-        return undefined;
-      }
-      return om(p) as string | undefined;
+      vdirs.add(s);
+      return undefined;
     }),
     spyOn(fs, "rmSync").mockImplementation((p) => {
       const s = norm(p);
-      if (s.startsWith("/virtual/")) {
-        vfs.delete(s);
-        vdirs.delete(s);
-        for (const k of Array.from(vfs.keys())) if (k.startsWith(`${s}/`)) vfs.delete(k);
-        return;
-      }
-      orm(p, { recursive: true, force: true });
+      vfs.delete(s);
+      vdirs.delete(s);
+      for (const k of Array.from(vfs.keys())) if (k.startsWith(`${s}/`)) vfs.delete(k);
     }),
     spyOn(fs, "readdirSync").mockImplementation((p: fs.PathLike, opt?: unknown): unknown => {
       const s = norm(p);

@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { RootDirectoryHygieneGuard } from "../../../olt/scripts/src/authority/guards/root-hygiene.ts";
 import {
@@ -20,7 +19,7 @@ import {
   verifyCommandAuthorization,
 } from "../../../olt/scripts/src/authority/rbac/command-authorizer.ts";
 import { VerbatimRoleInjector } from "../../../olt/scripts/src/authority/verbatim-role-injector.ts";
-import { cleanupVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
+import { cleanupVirtualAuthorityFS, getVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
 
 describe("Authority Guards, Host Bindings, RBAC Authorizer & Verbatim Injector Comprehensive", () => {
   beforeEach(() => {
@@ -55,8 +54,9 @@ describe("Authority Guards, Host Bindings, RBAC Authorizer & Verbatim Injector C
   });
 
   test("Singleton Auditor Guard lease acquisition, renewal, and cleanup lifecycle", () => {
+    const vfs = getVirtualAuthorityFS();
     const sandbox = "/virtual/guards-rbac/auditor";
-    mkdirSync(join(sandbox, ".olt", "locks"), { recursive: true });
+    vfs.mkdirSync(join(sandbox, ".olt", "locks"), { recursive: true });
     const lockPath = join(sandbox, ".olt", "locks", "skill_auditor.lock");
 
     expect(readAuditorLeaseLock(lockPath)).toBeNull();
@@ -151,19 +151,18 @@ describe("Authority Guards, Host Bindings, RBAC Authorizer & Verbatim Injector C
   });
 
   test("VerbatimRoleInjector buildSupervisoryPrompt, buildImplementerPrompt, buildValidatorPrompt", () => {
+    const vfs = getVirtualAuthorityFS();
     const sandbox = "/virtual/guards-rbac/verbatim";
     const agentsDir = join(sandbox, "agents");
-    mkdirSync(agentsDir, { recursive: true });
-    writeFileSync(join(agentsDir, "mind.yaml"), "name: mind\nrole: mind\ntier: 0\n", "utf-8");
-    writeFileSync(
+    vfs.mkdirSync(agentsDir, { recursive: true });
+    vfs.writeFileSync(join(agentsDir, "mind.yaml"), "name: mind\nrole: mind\ntier: 0\n");
+    vfs.writeFileSync(
       join(agentsDir, "coordinator.yaml"),
       "name: coordinator\nrole: coordinator\ntier: 2\n",
-      "utf-8",
     );
-    writeFileSync(
+    vfs.writeFileSync(
       join(agentsDir, "implementer.yaml"),
       "name: implementer\nrole: implementer\ntier: 3\n",
-      "utf-8",
     );
 
     const promptModeA = VerbatimRoleInjector.buildInjectionPrompt(sandbox, "mind", {

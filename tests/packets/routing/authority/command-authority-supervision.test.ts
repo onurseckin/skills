@@ -1,7 +1,5 @@
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { mkdir, writeFile } from "node:fs/promises";
-import { existsSync, readFileSync } from "node:fs";
 import {
   assertGrantedCommand as assertRawGrantedCommand,
   type AuthenticatedCaller,

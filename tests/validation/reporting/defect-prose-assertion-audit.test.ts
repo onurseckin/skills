@@ -219,6 +219,7 @@ Invariants were enforced.
 
   describe("4. Static Invariant Verification", () => {
     it("verifies zero comments, zero any, and zero suppressions across defect files", () => {
+      cleanupVirtualValidationFS();
       const filesToCheck = [
         "olt/scripts/src/validation/evidence/auditor.ts",
         "olt/scripts/src/validation/index.ts",

@@ -159,11 +159,13 @@ export function createVirtualFSSession(vfs: VirtualMemoryFS): VirtualFSSession {
     }),
     spy("rmSync", (p: fs.PathLike, opts?: fs.RmOptions) => {
       const np = normPath(String(p));
-      for (const [k, mode] of state.customModes.entries()) {
-        if ((k === np || k.startsWith(np + "/")) && (mode & 0o222) === 0) {
-          throw Object.assign(new Error(`EACCES: permission denied, rm '${k}'`), {
-            code: "EACCES",
-          });
+      if (!opts?.force) {
+        for (const [k, mode] of state.customModes.entries()) {
+          if (k === np && (mode & 0o222) === 0) {
+            throw Object.assign(new Error(`EACCES: permission denied, rm '${k}'`), {
+              code: "EACCES",
+            });
+          }
         }
       }
       state.inodeMap.delete(np);
@@ -172,6 +174,9 @@ export function createVirtualFSSession(vfs: VirtualMemoryFS): VirtualFSSession {
       state.symlinks.delete(np);
       for (const k of state.symlinks.keys()) {
         if (k.startsWith(np + "/")) state.symlinks.delete(k);
+      }
+      for (const k of state.customModes.keys()) {
+        if (k.startsWith(np + "/")) state.customModes.delete(k);
       }
       vfs.rmSync(np, opts as Parameters<typeof vfs.rmSync>[1]);
     }),
@@ -360,7 +365,7 @@ export function createVirtualFSSession(vfs: VirtualMemoryFS): VirtualFSSession {
       if (typeof mode === "number") state.customModes.set(target, mode);
       return {
         fd,
-        stat: async () => mockStat(state, p),
+        stat: async (opts?: fs.StatOptions) => mockStat(state, p, opts),
         read: async (b: NodeJS.ArrayBufferView, off = 0, len = b.byteLength, pos = null) => ({
           bytesRead: mockRead(state, fd, b, off, len, pos),
           buffer: b,

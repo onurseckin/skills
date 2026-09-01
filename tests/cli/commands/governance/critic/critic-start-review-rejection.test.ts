@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -6,10 +6,26 @@ import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { criticReviewCommand } from "../../../../../olt/scripts/src/cli/commands/critic-ops.ts";
 import { requirementIds } from "../../fixtures/critic-run-fixture.ts";
 import { registerInspectionCommand, setupReadyRun } from "../../fixtures/critic-ready-fixture.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  disableInMemoryAgentMetadata,
+  enableInMemoryAgentMetadata,
+} from "../../../../../olt/scripts/src/runtime/session.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+beforeEach(() => {
+  setupVirtualCliFS();
+  enableInMemoryAgentMetadata();
+});
+afterEach(async () => {
+  disableInMemoryAgentMetadata();
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+});
 
 describe("CLI critic-ops commands - Rejections, Findings and Validation", () => {
   test("critic:review request_changes records findings", async () => {

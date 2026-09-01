@@ -130,7 +130,7 @@ describe("Task 1.35: Named Export 'planTasksForDefect' in mind/tasks/index.ts", 
       "olt/scripts/src/mind/tasks/smart/index.ts",
       "olt/scripts/src/mind/tasks/smart/executor/index.ts",
       "olt/scripts/src/mind/tasks/smart/executor/evolution/defect-evolution.ts",
-      "tests/mind/synthesis/discovery/tasks-export.test.ts",
+      "tests/discovery/scanners/tasks-export.test.ts",
     ];
 
     for (const relPath of targetFiles) {
