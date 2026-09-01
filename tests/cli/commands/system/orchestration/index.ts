@@ -5,5 +5,8 @@ export const CLI_SYSTEM_ORCHESTRATION_SUITES = [
   "orchestrator-watch-lifecycle",
   "orchestrator-watch-stalls",
   "prompt-command",
+  "run-ops-complete-lifecycle",
+  "run-ops-comprehensive",
+  "run-ops-execution-gates",
   "whoami-command",
 ] as const;

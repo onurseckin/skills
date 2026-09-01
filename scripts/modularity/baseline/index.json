@@ -265,6 +265,20 @@
     },
     {
       "rule": "directory_fanout",
+      "path": "tests/cli/commands/system/orchestration",
+      "observed": 11,
+      "limit": 10,
+      "detail": "Directory exceeds the 10 direct-file limit."
+    },
+    {
+      "rule": "directory_fanout",
+      "path": "tests/cli/commands/tasks/management",
+      "observed": 11,
+      "limit": 10,
+      "detail": "Directory exceeds the 10 direct-file limit."
+    },
+    {
+      "rule": "directory_fanout",
       "path": "tests/mind/lifecycle",
       "observed": 12,
       "limit": 10,
@@ -14539,8 +14553,43 @@
     },
     {
       "rule": "line_limit",
+      "path": "tests/cli/commands/governance/critic/critic-ops-comprehensive.test.ts",
+      "observed": 301,
+      "limit": 300,
+      "detail": "File exceeds the 300 physical-line limit."
+    },
+    {
+      "rule": "line_limit",
+      "path": "tests/cli/commands/governance/defects/defect-audit-comprehensive.test.ts",
+      "observed": 307,
+      "limit": 300,
+      "detail": "File exceeds the 300 physical-line limit."
+    },
+    {
+      "rule": "line_limit",
+      "path": "tests/cli/commands/governance/todo/todo-ops-comprehensive.test.ts",
+      "observed": 318,
+      "limit": 300,
+      "detail": "File exceeds the 300 physical-line limit."
+    },
+    {
+      "rule": "line_limit",
+      "path": "tests/cli/commands/system/dag/dag-view-comprehensive.test.ts",
+      "observed": 313,
+      "limit": 300,
+      "detail": "File exceeds the 300 physical-line limit."
+    },
+    {
+      "rule": "line_limit",
       "path": "tests/cli/commands/system/infra/inspection-ops-command.test.ts",
       "observed": 457,
+      "limit": 300,
+      "detail": "File exceeds the 300 physical-line limit."
+    },
+    {
+      "rule": "line_limit",
+      "path": "tests/cli/commands/system/orchestration/run-ops-execution-gates.test.ts",
+      "observed": 343,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
@@ -14567,8 +14616,43 @@
     },
     {
       "rule": "line_limit",
+      "path": "tests/mind/governance/empirical-tester.test.ts",
+      "observed": 310,
+      "limit": 300,
+      "detail": "File exceeds the 300 physical-line limit."
+    },
+    {
+      "rule": "line_limit",
+      "path": "tests/mind/lifecycle/pulse-reclaim.test.ts",
+      "observed": 371,
+      "limit": 300,
+      "detail": "File exceeds the 300 physical-line limit."
+    },
+    {
+      "rule": "line_limit",
+      "path": "tests/mind/planning/innovation-portfolio.test.ts",
+      "observed": 321,
+      "limit": 300,
+      "detail": "File exceeds the 300 physical-line limit."
+    },
+    {
+      "rule": "line_limit",
+      "path": "tests/mind/planning/pareto-arbitration.test.ts",
+      "observed": 316,
+      "limit": 300,
+      "detail": "File exceeds the 300 physical-line limit."
+    },
+    {
+      "rule": "line_limit",
       "path": "tests/mind/proposals/gates-table.test.ts",
       "observed": 337,
+      "limit": 300,
+      "detail": "File exceeds the 300 physical-line limit."
+    },
+    {
+      "rule": "line_limit",
+      "path": "tests/mind/tasks/product-owner-executor.test.ts",
+      "observed": 401,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
