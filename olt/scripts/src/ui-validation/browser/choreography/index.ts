@@ -12,6 +12,9 @@ export type {
   JourneyFlowResult,
   JourneyStepHandlerContext,
   JourneyStepHandler,
+} from "./types.ts";
+
+export type {
   FormFieldType,
   FormFieldDescriptor,
   ValidationBannerInfo,
@@ -33,7 +36,7 @@ export type {
   MobileMenuTransitionResult,
   BreakpointLayoutMetrics,
   BreakpointReflowResult,
-} from "./types.ts";
+} from "./overlay-types.ts";
 
 export {
   Z_INDEX_HIERARCHY,

@@ -187,5 +187,3 @@ export type JourneyStepHandler = (
   actualRoute?: string;
   error?: string;
 }>;
-
-export * from "./overlay-types.ts";

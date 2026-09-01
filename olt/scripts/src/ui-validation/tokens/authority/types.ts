@@ -7,8 +7,6 @@ import type {
   BorderRadiiToken,
 } from "./constants.ts";
 
-export * from "./constants.ts";
-
 export interface RawValueViolation {
   readonly property: string;
   readonly rawValue: string | number;
