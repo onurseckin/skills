@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { InstallerLock } from "../../../olt/scripts/src/installer/installer-lock.ts";
@@ -10,6 +10,10 @@ import {
 import type { ReleaseTransaction } from "../../../olt/scripts/src/installer/release-transaction.ts";
 import type { TransactionStage } from "../../../olt/scripts/src/installer/transaction-marker.ts";
 import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
+import { cleanupVirtualInstallerFS, setupVirtualInstallerFS } from "../helpers.ts";
+
+beforeEach(setupVirtualInstallerFS);
+afterEach(cleanupVirtualInstallerFS);
 
 function fakeTransaction() {
   const stages: TransactionStage[] = [];

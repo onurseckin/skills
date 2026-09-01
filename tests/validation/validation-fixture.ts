@@ -1,27 +1,42 @@
 /**
  * @file validation-fixture.ts
- * In-memory / fast test sandbox fixture and harness for tests/validation domain
+ * In-memory virtual test sandbox fixture and harness for tests/validation domain.
+ * 100% zero disk writes, backed by VirtualMemoryFS and virtual descriptor session.
  */
 
 import { afterEach } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdirSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../olt/scripts/src/testing/virtual-fs/index.ts";
 import type { TaskRecord } from "../../olt/scripts/src/workflow/types.ts";
 import type { FeedbackItem } from "../../olt/scripts/src/mind/feedback/queue/index.ts";
 import type { DualChannelFinding } from "./dual-channel/index.ts";
 
-const SCRATCH_BASE = join(tmpdir(), "validation-scratch");
-const rootsToClean: string[] = [];
+let currentSession: VirtualFSSession | null = null;
+let currentVfs: VirtualMemoryFS = new VirtualMemoryFS();
+let counter = 0;
+
+export function setupVirtualValidationFS(): VirtualMemoryFS {
+  if (!currentSession) {
+    currentVfs = new VirtualMemoryFS();
+    currentSession = createVirtualFSSession(currentVfs);
+  }
+  return currentVfs;
+}
+
+export function cleanupVirtualValidationFS(): void {
+  if (currentSession) {
+    currentSession.cleanup();
+    currentSession = null;
+  }
+  currentVfs = new VirtualMemoryFS();
+}
 
 afterEach(() => {
-  for (const root of rootsToClean) {
-    try {
-      rmSync(root, { recursive: true, force: true });
-    } catch {}
-  }
-  rootsToClean.length = 0;
+  cleanupVirtualValidationFS();
 });
 
 function slug(value: string): string {
@@ -37,29 +52,23 @@ function shortDigest(value: string): string {
   return createHash("sha256").update(value).digest("hex").slice(0, 8);
 }
 
-let counter = 0;
-
 /**
- * Creates an isolated scratch sandbox directory for validation tests.
- * Automatically registered for cleanup in afterEach hooks.
+ * Creates an in-memory virtual scratch sandbox directory for validation tests.
+ * Zero physical disk writes occur.
  */
 export function scratchRoot(callerPath = "validation-test", label = "test"): string {
+  const vfs = setupVirtualValidationFS();
   counter += 1;
   const fileTag = slug(callerPath);
   const labelTag = slug(label);
   const digest = shortDigest(`${fileTag}:${labelTag}:${counter}`);
-  const raw = `${fileTag}-${labelTag}-${counter}-${digest}`
+  const dirName = `${fileTag}-${labelTag}-${counter}-${digest}`
     .replace(/--+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  const dirName = raw.slice(0, 50).replace(/-+$/, "");
-  const root = join(SCRATCH_BASE, dirName);
-
-  try {
-    rmSync(root, { recursive: true, force: true });
-  } catch {}
-
-  mkdirSync(root, { recursive: true });
-  rootsToClean.push(root);
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 50)
+    .replace(/-+$/, "");
+  const root = `/virtual/validation-scratch/${dirName}`;
+  vfs.mkdirSync(root, { recursive: true });
   return root;
 }
 

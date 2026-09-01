@@ -1,6 +1,6 @@
 export {
-  freshCriticReadyRun,
   registerInspectionCommand,
+  setupReadyRun,
   REQUIREMENT_ID,
   RUN_GATE_ID,
   TASK_GATE_ID,
@@ -8,23 +8,27 @@ export {
   type ReadyRun,
 } from "./critic-ready-fixture.ts";
 
-export { freshCriticRun, requirementIds } from "./critic-run-fixture.ts";
+export { requirementIds } from "./critic-run-fixture.ts";
 
-export { freshPersistedRun } from "./file-persistence-fixture.ts";
+export { setupCompiledRun as setupPersistedCompiledRun } from "./file-persistence-fixture.ts";
 
 export {
   cleanCompletionReview,
   cleanupRoots,
-  freshRun,
+  cleanupVirtualCliFS,
+  getVirtualCliFS,
   runStateAssertion,
+  setupVirtualCliFS,
+  successfulCommand,
+  writeJson,
   GATE_SCRIPT,
 } from "./full-lifecycle-fixture.ts";
 
-export { freshPlanWorkflowRun } from "./plan-workflow-fixture.ts";
+export { freshRun as freshPlanWorkflowRun } from "./plan-workflow-fixture.ts";
 
 export {
+  setupRun as setupProbeRun,
   answeredBy,
-  freshProbeRun,
   reviewPass,
   seedGateProof,
   CHANGED_FILE,
@@ -32,4 +36,4 @@ export {
   VALIDATOR as PROBE_VALIDATOR,
 } from "./probe-fixture.ts";
 
-export { freshTaskOpsRun } from "./task-ops-fixture.ts";
+export { setupCompiledRun as setupTaskOpsCompiledRun } from "./task-ops-fixture.ts";

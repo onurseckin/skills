@@ -146,7 +146,7 @@ export interface ViewLinker {
   link(source: string, target: string): void;
 }
 
-const hardlink: ViewLinker = { link: linkSync };
+const hardlink: ViewLinker = { link: (source, target) => linkSync(source, target) };
 
 export function linkBlobIntoView(
   runRoot: string,

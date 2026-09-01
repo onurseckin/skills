@@ -1,6 +1,4 @@
 import { describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
 import {
   analyzeRunForensics,
   calculateEfficiencyScore,

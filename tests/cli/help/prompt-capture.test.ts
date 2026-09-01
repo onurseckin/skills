@@ -1,14 +1,19 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { capturePromptWithTimeout } from "../../../olt/scripts/src/cli/prompt-capture.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import {
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../commands/fixtures/full-lifecycle-fixture.ts";
 
 describe("capturePromptWithTimeout", () => {
   let tempDir = "";
 
   beforeEach(async () => {
+    setupVirtualCliFS();
     tempDir = await mkdtemp(join(tmpdir(), "prompt-cap-"));
   });
 
@@ -16,6 +21,7 @@ describe("capturePromptWithTimeout", () => {
     if (tempDir) {
       await rm(tempDir, { recursive: true, force: true });
     }
+    cleanupVirtualCliFS();
   });
 
   it("should return inline text immediately if provided", async () => {

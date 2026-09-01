@@ -1,7 +1,6 @@
-import { afterAll, beforeAll, describe, expect, test, it } from "bun:test";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { createSyntheticPngBuffer } from "../../../olt/scripts/src/capture/runners/live-capture-runner/index.ts";
 import {
   analyzeDualChannel,
@@ -12,6 +11,11 @@ import {
   type StructuredFinding,
   type VisualMetricsReport,
 } from "../../../olt/scripts/src/validation/dual-channel-analyzer/index.ts";
+import {
+  cleanupVirtualValidationFS,
+  scratchRoot,
+  setupVirtualValidationFS,
+} from "../validation-fixture.ts";
 
 describe("Dual-Channel Visual Analyzer - Rules & IHDR", () => {
   describe("Dual-Channel Gap Filling & Cross-Corroboration", () => {
@@ -27,17 +31,18 @@ describe("Dual-Channel Visual Analyzer - Rules & IHDR", () => {
     let gapFillDir: string;
     let validScreenshots: ScreenshotMetadata[];
 
-    beforeAll(() => {
-      gapFillDir = mkdtempSync(join(tmpdir(), "dual-channel-gap-fill-"));
+    beforeEach(() => {
+      const vfs = setupVirtualValidationFS();
+      gapFillDir = scratchRoot("dual-channel-gap-fill", "gap");
       const mobilePath = join(gapFillDir, "mobile.png");
       const tabletPath = join(gapFillDir, "tablet.png");
       const desktopPath = join(gapFillDir, "desktop.png");
       const mobileBuf = createSyntheticPngBuffer(390, 844, 5000);
       const tabletBuf = createSyntheticPngBuffer(768, 1024, 12000);
       const desktopBuf = createSyntheticPngBuffer(1440, 900, 25000);
-      writeFileSync(mobilePath, mobileBuf);
-      writeFileSync(tabletPath, tabletBuf);
-      writeFileSync(desktopPath, desktopBuf);
+      vfs.writeFileSync(mobilePath, mobileBuf);
+      vfs.writeFileSync(tabletPath, tabletBuf);
+      vfs.writeFileSync(desktopPath, desktopBuf);
 
       validScreenshots = [
         {
@@ -65,10 +70,6 @@ describe("Dual-Channel Visual Analyzer - Rules & IHDR", () => {
           sizeBytes: desktopBuf.byteLength,
         },
       ];
-    });
-
-    afterAll(() => {
-      rmSync(gapFillDir, { recursive: true, force: true });
     });
 
     test("when screenshots missing -> DOM metrics fill gap (dom_gap_filled)", () => {
@@ -134,12 +135,9 @@ describe("Dual-Channel Visual Analyzer - Rules & IHDR", () => {
 
 describe("Real PNG IHDR Anti-Mocking Verification", () => {
   const withTempDir = (run: (dir: string) => void): void => {
-    const dir = mkdtempSync(join(tmpdir(), "dual-channel-ihdr-"));
-    try {
-      run(dir);
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
+    setupVirtualValidationFS();
+    const dir = scratchRoot("dual-channel-ihdr", "ihdr");
+    run(dir);
   };
 
   test("rejects a fabricated placeholder PNG whose real dimensions contradict its claimed viewport", () => {

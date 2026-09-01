@@ -1,6 +1,5 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { describe, expect, test } from "bun:test";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   appendCapsuleDefect,
@@ -10,29 +9,15 @@ import {
 } from "../../../olt/scripts/src/engine/store/recovery/defect-store.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { setDefectLogDependenciesForTesting } from "../../../olt/scripts/src/logging/defect-logger.ts";
+import { scratchRoot as makeScratchRoot } from "../store-fixture.ts";
 
-const tempRoots: string[] = [];
-
-afterEach(() => {
-  for (const r of tempRoots) {
-    try {
-      rmSync(r, { recursive: true, force: true });
-    } catch {
-      // Ignore cleanup error
-    }
-  }
-  tempRoots.length = 0;
-});
-
-function createTempRunDir(): string {
-  const dir = mkdtempSync(join(tmpdir(), "capsule-run-test-"));
-  tempRoots.push(dir);
-  return dir;
+function createTempRunDir(label = "capsule-defect"): string {
+  return makeScratchRoot(import.meta.path, label);
 }
 
 describe("Store Layer Capsule Defect Engine", () => {
   test("appends and aggregates defects in capsule run directory", () => {
-    const runRoot = createTempRunDir();
+    const runRoot = createTempRunDir("append-aggregate");
 
     const b1 = appendCapsuleDefect(runRoot, {
       id: "defect-cap-1",
@@ -61,11 +46,11 @@ describe("Store Layer Capsule Defect Engine", () => {
   });
 
   test("refuses an existing defects directory instead of returning an aggregated defect", () => {
-    const runRoot = createTempRunDir();
+    const runRoot = createTempRunDir("refuse-dir");
     const defectsPath = join(runRoot, "defects.jsonl");
     const sentinelPath = join(defectsPath, "sentinel.txt");
     const sentinelBytes = "preserve-capsule-directory";
-    mkdirSync(defectsPath);
+    mkdirSync(defectsPath, { recursive: true });
     writeFileSync(sentinelPath, sentinelBytes);
 
     let caught: unknown;
@@ -90,7 +75,7 @@ describe("Store Layer Capsule Defect Engine", () => {
   });
 
   test("propagates a structured atomic-write failure without a fabricated capsule defect", () => {
-    const runRoot = createTempRunDir();
+    const runRoot = createTempRunDir("atomic-write-failure");
     const defectsPath = join(runRoot, "defects.jsonl");
     const originalBytes = "prior capsule bytes\n";
     const expected = new HarnessError("INTEGRITY", "durable write failed");
@@ -119,7 +104,7 @@ describe("Store Layer Capsule Defect Engine", () => {
   });
 
   test("resolves a defect by ID or dedup key with resolution proof", () => {
-    const runRoot = createTempRunDir();
+    const runRoot = createTempRunDir("resolve-proof");
 
     const b1 = appendCapsuleDefect(runRoot, {
       id: "defect-to-resolve",
@@ -148,7 +133,7 @@ describe("Store Layer Capsule Defect Engine", () => {
   });
 
   test("compacts capsule defects in run directory", () => {
-    const runRoot = createTempRunDir();
+    const runRoot = createTempRunDir("compact-defects");
     const defectPath = join(runRoot, "defects.jsonl");
 
     const lines: string[] = [
@@ -190,7 +175,7 @@ describe("Store Layer Capsule Defect Engine", () => {
   });
 
   test("resolveCapsuleDefect returns null when defects.jsonl does not exist or defect is not found", () => {
-    const runRoot = createTempRunDir();
+    const runRoot = createTempRunDir("resolve-null");
 
     // 1. File does not exist yet
     const notFound1 = resolveCapsuleDefect(runRoot, "non-existent-defect", {

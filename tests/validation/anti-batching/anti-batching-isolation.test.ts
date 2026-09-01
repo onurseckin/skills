@@ -24,28 +24,24 @@ import {
 import { validateReview } from "../../../olt/scripts/src/workflow/review/validate-review.ts";
 import { parseCompletionAssessment } from "../../../olt/scripts/src/workflow/completion/review-input.ts";
 import type { TaskRecord, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
-import type { FeedbackItem } from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
-import { tmpdir } from "node:os";
+import {
+  cleanupVirtualValidationFS,
+  scratchRoot,
+  setupVirtualValidationFS,
+} from "../validation-fixture.ts";
 
 describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Verification", () => {
-  const testDir = join(
-    tmpdir(),
-    "test-validation-anti-batching-" + Math.random().toString(36).slice(2),
-  );
+  const testDir = scratchRoot("anti-batching-isolation", "isolation");
   const feedbackFile = join(testDir, "FEEDBACK_QUEUE.jsonl");
   const taskQueueFile = join(testDir, "TASK_QUEUE.jsonl");
 
   function setup(): void {
-    if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true, force: true });
-    }
+    setupVirtualValidationFS();
     mkdirSync(testDir, { recursive: true });
   }
 
   function teardown(): void {
-    if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true, force: true });
-    }
+    cleanupVirtualValidationFS();
   }
 
   describe("3. 1:1 Implementer and Validator Assignment & Self-Validation Refusal", () => {

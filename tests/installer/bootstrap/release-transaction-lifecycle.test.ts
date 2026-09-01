@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdir, readdir, rm } from "node:fs/promises";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
@@ -9,6 +9,10 @@ import { pathIdentity } from "../../../olt/scripts/src/installer/path-safety.ts"
 import { beginReleaseTransaction } from "../../../olt/scripts/src/installer/release-transaction.ts";
 import { markerPath, readMarker } from "../../../olt/scripts/src/installer/transaction-marker.ts";
 import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
+import { cleanupVirtualInstallerFS, setupVirtualInstallerFS } from "../helpers.ts";
+
+beforeEach(setupVirtualInstallerFS);
+afterEach(cleanupVirtualInstallerFS);
 
 describe("beginReleaseTransaction", () => {
   test("writes a marker readable back with the expected fields", async () => {

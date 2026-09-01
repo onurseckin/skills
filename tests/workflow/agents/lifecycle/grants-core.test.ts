@@ -1,24 +1,26 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { initRun, loadRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
+import { enableInMemoryAgentMetadata } from "../../../../olt/scripts/src/runtime/session.ts";
 import {
   registerAgentGrant,
   releaseAgentGrant,
 } from "../../../../olt/scripts/src/workflow/agents/grants.ts";
 import { readAgentLedger } from "../../../../olt/scripts/src/workflow/agents/ledger.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 function withRun<T>(body: (runRoot: string) => T): T {
-  const repo = mkdtempSync(join(tmpdir(), "grants-run-"));
+  const { vfs, cleanup } = setupWorkflowVirtualFs();
+  enableInMemoryAgentMetadata();
   try {
+    const repo = "/virtual/tmp/grants-run-core";
+    vfs.mkdirSync(repo, { recursive: true });
     const runRoot = initRun(repo, "test-run", new TextEncoder().encode("task"), "file", true);
     transact(runRoot, "setup", "add-task", {}, (draft) => {
       draft.tasks = { "T-1": { id: "T-1" } };
     });
     return body(runRoot);
   } finally {
-    rmSync(repo, { recursive: true, force: true });
+    cleanup();
   }
 }
 

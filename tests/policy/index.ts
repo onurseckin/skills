@@ -6,6 +6,7 @@ export * as rbac from "./rbac/index.ts";
 export * as review from "./review/index.ts";
 export * as schema from "./schema/index.ts";
 export * as toolchain from "./toolchain/index.ts";
+export { setupVirtualPolicyFS, cleanupVirtualPolicyFS, getVirtualPolicyFS } from "./fixture.ts";
 
 export {
   computeAuditRecordHash,

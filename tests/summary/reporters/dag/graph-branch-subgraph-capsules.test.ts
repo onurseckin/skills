@@ -1,6 +1,5 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import * as fs from "node:fs";
 import { join } from "node:path";
 import type { BranchRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import type { RepositoryGitCommand } from "../../../../olt/scripts/src/packets/repository-git-command.ts";
@@ -36,10 +35,49 @@ function branch(overrides: Partial<BranchRecord> = {}): BranchRecord {
   };
 }
 
+const vfs = new Map<string, string>();
+let rootCounter = 0;
+const spies: Array<{ mockRestore: () => void }> = [];
+
+const origExists = fs.existsSync.bind(fs);
+const origRead = fs.readFileSync.bind(fs);
+
+beforeEach(() => {
+  spies.push(
+    spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike): boolean => {
+      const s = String(p);
+      if (s.startsWith("/virtual/")) {
+        if (vfs.has(s)) return true;
+        for (const k of vfs.keys()) {
+          if (k.startsWith(`${s}/`)) return true;
+        }
+        return false;
+      }
+      return origExists(p);
+    }),
+    spyOn(fs, "readFileSync").mockImplementation(
+      (p: fs.PathLike, opt?: unknown): string | Buffer => {
+        const s = String(p);
+        if (s.startsWith("/virtual/")) {
+          const content = vfs.get(s);
+          if (content === undefined) {
+            throw new Error(`ENOENT: no such file or directory, open '${s}'`);
+          }
+          if (opt === "utf-8" || opt === "utf8" || (typeof opt === "object" && opt !== null)) {
+            return content;
+          }
+          return Buffer.from(content, "utf-8");
+        }
+        return origRead(p, opt as Parameters<typeof origRead>[1]) as string | Buffer;
+      },
+    ),
+  );
+});
+
 describe("branch region files carry a diff (B3/B15.2)", () => {
-  const roots: string[] = [];
   afterEach(() => {
-    for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
+    for (const s of spies.splice(0)) s.mockRestore();
+    vfs.clear();
   });
 
   const HEAD_COMMIT = "f".repeat(40);
@@ -63,12 +101,11 @@ describe("branch region files carry a diff (B3/B15.2)", () => {
   }
 
   function seedRunRoot(): string {
-    const root = mkdtempSync(join(tmpdir(), "branch-diff-"));
-    roots.push(root);
+    rootCounter += 1;
+    const root = `/virtual/branch-diff-${rootCounter}`;
     const runRoot = join(root, ".olt", "capsules", "run-1");
-    mkdirSync(runRoot, { recursive: true });
     const digest = "d".repeat(64);
-    writeFileSync(
+    vfs.set(
       join(runRoot, "state.json"),
       JSON.stringify({
         baseline_repository_inspection_sha256: digest,

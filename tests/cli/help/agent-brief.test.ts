@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, test } from "bun:test";
+import { afterAll, afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -9,12 +9,21 @@ import {
 } from "../../../olt/scripts/src/cli/commands/agent-brief.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import {
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../commands/fixtures/full-lifecycle-fixture.ts";
 
 describe("executeAgentBrief", () => {
-  const scratchBase = mkdtempSync(join(tmpdir(), "agent-brief-suite-"));
+  let scratchBase = "";
 
-  afterAll(() => {
-    rmSync(scratchBase, { recursive: true, force: true });
+  beforeEach(() => {
+    setupVirtualCliFS();
+    scratchBase = mkdtempSync(join(tmpdir(), "agent-brief-suite-"));
+  });
+
+  afterEach(() => {
+    cleanupVirtualCliFS();
   });
 
   test("renders allowed commands from the canonical repository policy", () => {

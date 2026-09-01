@@ -1,15 +1,17 @@
 import { describe, expect, it } from "bun:test";
 import { join } from "node:path";
-import { readFileSync, rmSync, mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync } from "node:fs";
 import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
 import { assertMindModeAllowed } from "../../../olt/scripts/src/mind/tasks/smart/index.ts";
+import { scratchRoot as makeScratchRoot } from "../store-fixture.ts";
+
+function scratchRoot(label: string): string {
+  return makeScratchRoot(import.meta.path, label);
+}
 
 describe("Capsule Mode Partitioning", () => {
-  const getTempDir = () => mkdtempSync(join(tmpdir(), "capsule-mode-test-"));
-
   it("should initialize a feature capsule by default", () => {
-    const root = getTempDir();
+    const root = scratchRoot("feature-default");
     const runId = "test-feature";
     const prompt = new Uint8Array();
     const runRoot = initRun(root, runId, prompt, "file", true);
@@ -22,12 +24,10 @@ describe("Capsule Mode Partitioning", () => {
     const statePath = join(runRoot, "state.json");
     const state = JSON.parse(readFileSync(statePath, "utf-8"));
     expect(state.mind).toBeUndefined();
-
-    rmSync(root, { recursive: true, force: true });
   });
 
   it("should initialize a mind capsule when mode is 'mind'", () => {
-    const root = getTempDir();
+    const root = scratchRoot("mind-mode");
     const runId = "test-mind";
     const prompt = new Uint8Array();
     const runRoot = initRun(root, runId, prompt, "file", true, { mode: "mind" });
@@ -36,12 +36,10 @@ describe("Capsule Mode Partitioning", () => {
     const manifest = JSON.parse(readFileSync(manifestPath, "utf-8"));
 
     expect(manifest.mode).toBe("mind");
-
-    rmSync(root, { recursive: true, force: true });
   });
 
   it("should assert mind mode correctly", () => {
-    const root = getTempDir();
+    const root = scratchRoot("assert-mind");
     const runIdFeature = "test-feature";
     const prompt = new Uint8Array();
     const runRootFeature = initRun(root, runIdFeature, prompt, "file", true);
@@ -55,7 +53,5 @@ describe("Capsule Mode Partitioning", () => {
 
     // Should not throw
     assertMindModeAllowed(runRootMind, "mind:init");
-
-    rmSync(root, { recursive: true, force: true });
   });
 });

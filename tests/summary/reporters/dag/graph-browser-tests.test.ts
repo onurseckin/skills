@@ -1,6 +1,5 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import * as fs from "node:fs";
 import { join } from "node:path";
 import { buildNodeBrowserTests } from "../../../../olt/scripts/src/summary/formatters/index.ts";
 import { generateGraphDataset } from "../../../../olt/scripts/src/summary/graph/index.ts";
@@ -9,16 +8,139 @@ import type { BrowserRunRecord } from "../../../../olt/scripts/src/reporting/bro
 import type { GraphNodeData } from "../../../../olt/scripts/src/summary/graph/index.ts";
 import { makeCommand, makeState, makeTask } from "./graph-fixtures.ts";
 
-const roots: string[] = [];
+const vfs = new Map<string, string>();
+const vdirs = new Set<string>();
+let rootCounter = 0;
+const spies: Array<{ mockRestore: () => void }> = [];
+
+const origExists = fs.existsSync.bind(fs);
+const origRead = fs.readFileSync.bind(fs);
+const origWrite = fs.writeFileSync.bind(fs);
+const origMkdir = fs.mkdirSync.bind(fs);
+const origRm = fs.rmSync.bind(fs);
+const origReaddir = fs.readdirSync.bind(fs);
+
+beforeEach(() => {
+  spies.push(
+    spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike): boolean => {
+      const s = String(p).replace(/\/+$/, "");
+      if (s.startsWith("/virtual/")) {
+        if (vfs.has(s) || vdirs.has(s)) return true;
+        for (const k of vfs.keys()) {
+          if (k.startsWith(`${s}/`)) return true;
+        }
+        for (const d of vdirs) {
+          if (d.startsWith(`${s}/`)) return true;
+        }
+        return false;
+      }
+      return origExists(p);
+    }),
+    spyOn(fs, "readFileSync").mockImplementation(
+      (p: fs.PathLike, opt?: unknown): string | Buffer => {
+        const s = String(p).replace(/\/+$/, "");
+        if (s.startsWith("/virtual/")) {
+          const content = vfs.get(s);
+          if (content === undefined) {
+            throw new Error(`ENOENT: no such file or directory, open '${s}'`);
+          }
+          if (opt === "utf-8" || opt === "utf8" || (typeof opt === "object" && opt !== null)) {
+            return content;
+          }
+          return Buffer.from(content, "utf-8");
+        }
+        return origRead(p, opt as Parameters<typeof origRead>[1]) as string | Buffer;
+      },
+    ),
+    spyOn(fs, "writeFileSync").mockImplementation(
+      (p: fs.PathLike, data: string | NodeJS.ArrayBufferView): void => {
+        const s = String(p).replace(/\/+$/, "");
+        if (s.startsWith("/virtual/")) {
+          vfs.set(
+            s,
+            typeof data === "string"
+              ? data
+              : Buffer.from(data.buffer, data.byteOffset, data.byteLength).toString("utf-8"),
+          );
+          return;
+        }
+        origWrite(p, data);
+      },
+    ),
+    spyOn(fs, "mkdirSync").mockImplementation((p: fs.PathLike): string | undefined => {
+      const s = String(p).replace(/\/+$/, "");
+      if (s.startsWith("/virtual/")) {
+        vdirs.add(s);
+        return undefined;
+      }
+      return origMkdir(p) as string | undefined;
+    }),
+    spyOn(fs, "rmSync").mockImplementation((p: fs.PathLike): void => {
+      const s = String(p).replace(/\/+$/, "");
+      if (s.startsWith("/virtual/")) {
+        vfs.delete(s);
+        vdirs.delete(s);
+        for (const k of Array.from(vfs.keys())) {
+          if (k.startsWith(`${s}/`)) vfs.delete(k);
+        }
+        for (const d of Array.from(vdirs)) {
+          if (d.startsWith(`${s}/`)) vdirs.delete(d);
+        }
+        return;
+      }
+      origRm(p, { recursive: true, force: true });
+    }),
+    spyOn(fs, "readdirSync").mockImplementation((p: fs.PathLike, opt?: unknown): unknown => {
+      const s = String(p).replace(/\/+$/, "");
+      if (s.startsWith("/virtual/")) {
+        const prefix = `${s}/`;
+        const entries = new Map<string, boolean>();
+        for (const k of vfs.keys()) {
+          if (k.startsWith(prefix) && k.length > prefix.length) {
+            const rel = k.slice(prefix.length);
+            const firstSeg = rel.split("/")[0]!;
+            const isDir = rel.includes("/");
+            if (!entries.has(firstSeg)) entries.set(firstSeg, isDir);
+          }
+        }
+        for (const d of vdirs) {
+          if (d.startsWith(prefix) && d.length > prefix.length) {
+            const rel = d.slice(prefix.length);
+            const firstSeg = rel.split("/")[0]!;
+            entries.set(firstSeg, true);
+          }
+        }
+        const withTypes =
+          typeof opt === "object" &&
+          opt !== null &&
+          "withFileTypes" in opt &&
+          Boolean((opt as { withFileTypes?: boolean }).withFileTypes);
+        if (withTypes) {
+          return Array.from(entries.entries()).map(([name, isDir]) => ({
+            name,
+            isDirectory: () => isDir,
+            isFile: () => !isDir,
+            isSymbolicLink: () => false,
+          })) as unknown as fs.Dirent[];
+        }
+        return Array.from(entries.keys());
+      }
+      return origReaddir(p, opt as Parameters<typeof origReaddir>[1]);
+    }),
+  );
+});
+
 afterEach(() => {
-  for (const root of roots) rmSync(root, { recursive: true, force: true });
-  roots.length = 0;
+  for (const s of spies.splice(0)) s.mockRestore();
+  vfs.clear();
+  vdirs.clear();
 });
 
 function runRootWith(records: readonly BrowserRunRecord[]): string {
-  const root = mkdtempSync(join(tmpdir(), "graph-browser-"));
-  roots.push(root);
-  mkdirSync(join(root, "evidence"), { recursive: true });
+  rootCounter += 1;
+  const root = `/virtual/graph-browser-${rootCounter}`;
+  vdirs.add(root);
+  vdirs.add(join(root, "evidence"));
   for (const record of records) writeBrowserRunRecord(root, record);
   return root;
 }

@@ -1,13 +1,13 @@
 /**
  * @file store-fixture.ts
- * In-memory / fast test sandbox fixture and harness for tests/store domain
+ * In-memory / fast test sandbox fixture and harness for tests/store domain.
+ * Provides 100% in-memory virtual filesystem mocking with zero disk writes.
  */
 
-import { afterEach } from "bun:test";
+import { afterEach, beforeEach } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdirSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import type {
   HarnessEvent,
   JsonObject,
@@ -16,17 +16,87 @@ import type {
 } from "../../olt/scripts/src/core/contracts/index.ts";
 import { canonicalJsonBytes, sha256Bytes } from "../../olt/scripts/src/core/json.ts";
 import { initialState } from "../../olt/scripts/src/engine/store/capsule/state.ts";
+import { setDefectLogDependenciesForTesting } from "../../olt/scripts/src/logging/lock.ts";
+import {
+  VirtualMemoryFS,
+} from "../../olt/scripts/src/testing/virtual-fs/index.ts";
+import {
+  createStoreFsSpies,
+  type VirtualStoreState,
+} from "./virtual-fs-session.ts";
 
-const SCRATCH_BASE = join(tmpdir(), "store-scratch");
-const rootsToClean: string[] = [];
+const VIRTUAL_SCRATCH_BASE = "/virtual/store-scratch";
 
-afterEach(() => {
-  for (const root of rootsToClean) {
+let vfs = new VirtualMemoryFS();
+let spies: Array<{ mockRestore: () => void }> = [];
+let restoreDefectDeps: (() => void) | undefined;
+let state: VirtualStoreState = {
+  vfs,
+  openDescriptors: new Map(),
+  customModes: new Map(),
+  customMtimes: new Map(),
+  inodeMap: new Map(),
+  symlinks: new Map(),
+  hardlinks: new Map(),
+  nextFd: 1000,
+  nextInode: 50000,
+};
+
+export function setupVirtualStoreFS(): VirtualMemoryFS {
+  cleanupVirtualStoreFS();
+  vfs = new VirtualMemoryFS();
+  state = {
+    vfs,
+    openDescriptors: new Map(),
+    customModes: new Map(),
+    customMtimes: new Map(),
+    inodeMap: new Map(),
+    symlinks: new Map(),
+    hardlinks: new Map(),
+    nextFd: 1000,
+    nextInode: 50000,
+  };
+  vfs.mkdirSync(VIRTUAL_SCRATCH_BASE, { recursive: true });
+  spies = createStoreFsSpies(state);
+  restoreDefectDeps = setDefectLogDependenciesForTesting({
+    readFile: (p, opt) => fs.readFileSync(p, opt),
+  });
+  return vfs;
+}
+
+export function cleanupVirtualStoreFS(): void {
+  if (restoreDefectDeps) {
     try {
-      rmSync(root, { recursive: true, force: true });
+      restoreDefectDeps();
+    } catch {}
+    restoreDefectDeps = undefined;
+  }
+  for (const s of spies) {
+    try {
+      s.mockRestore();
     } catch {}
   }
-  rootsToClean.length = 0;
+  spies = [];
+  state.openDescriptors.clear();
+  state.customModes.clear();
+  state.customMtimes.clear();
+  state.inodeMap.clear();
+  state.symlinks.clear();
+  state.hardlinks.clear();
+  vfs.reset();
+}
+
+export function getVirtualStoreFS(): VirtualMemoryFS {
+  return vfs;
+}
+
+// Automatically ensure virtual filesystem session is active for all store tests
+beforeEach(() => {
+  setupVirtualStoreFS();
+});
+
+afterEach(() => {
+  cleanupVirtualStoreFS();
 });
 
 function slug(value: string): string {
@@ -45,8 +115,8 @@ function shortDigest(value: string): string {
 let counter = 0;
 
 /**
- * Creates an isolated scratch sandbox directory for testing.
- * Automatically registered for cleanup in afterEach hooks.
+ * Creates an isolated in-memory scratch sandbox directory for testing.
+ * 100% RAM resident with zero disk writes.
  */
 export function scratchRoot(callerPath = "store-test", label = "test"): string {
   counter += 1;
@@ -57,14 +127,9 @@ export function scratchRoot(callerPath = "store-test", label = "test"): string {
     .replace(/--+/g, "-")
     .replace(/^-+|-+$/g, "");
   const dirName = raw.slice(0, 50).replace(/-+$/, "");
-  const root = join(SCRATCH_BASE, dirName);
+  const root = path.join(VIRTUAL_SCRATCH_BASE, dirName);
 
-  try {
-    rmSync(root, { recursive: true, force: true });
-  } catch {}
-
-  mkdirSync(root, { recursive: true });
-  rootsToClean.push(root);
+  vfs.mkdirSync(root, { recursive: true });
   return root;
 }
 

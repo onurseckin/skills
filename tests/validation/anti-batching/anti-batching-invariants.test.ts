@@ -24,28 +24,24 @@ import {
 import { validateReview } from "../../../olt/scripts/src/workflow/review/validate-review.ts";
 import { parseCompletionAssessment } from "../../../olt/scripts/src/workflow/completion/review-input.ts";
 import type { TaskRecord, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
-import type { FeedbackItem } from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
-import { tmpdir } from "node:os";
+import {
+  cleanupVirtualValidationFS,
+  scratchRoot,
+  setupVirtualValidationFS,
+} from "../validation-fixture.ts";
 
 describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Verification", () => {
-  const testDir = join(
-    tmpdir(),
-    "test-validation-anti-batching-" + Math.random().toString(36).slice(2),
-  );
+  const testDir = scratchRoot("anti-batching-invariants", "invariants");
   const feedbackFile = join(testDir, "FEEDBACK_QUEUE.jsonl");
   const taskQueueFile = join(testDir, "TASK_QUEUE.jsonl");
 
   function setup(): void {
-    if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true, force: true });
-    }
+    setupVirtualValidationFS();
     mkdirSync(testDir, { recursive: true });
   }
 
   function teardown(): void {
-    if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true, force: true });
-    }
+    cleanupVirtualValidationFS();
   }
 
   describe("1. Strict 1:1 Feedback & Directive Partitioning", () => {
@@ -119,8 +115,11 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
     describe("8. Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
       it("verifies zero TypeScript any and zero suppressions across all anti-batching pipeline source and test files", () => {
         const filesToAudit = [
-          "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/validation/anti-batching.ts",
-          "/Users/onurseckinsenoglu/repos/skills/tests/validation/anti-batching/anti-batching-pipeline.test.ts",
+          join(process.cwd(), "olt/scripts/src/validation/anti-batching.ts"),
+          join(
+            process.cwd(),
+            "tests/validation/anti-batching/anti-batching-pipeline.test.ts",
+          ),
         ];
 
         const anyPattern = new RegExp(":\\s*any\\b|as\\s+any\\b|<any>");

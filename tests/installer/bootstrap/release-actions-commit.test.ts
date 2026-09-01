@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { InstallerLock } from "../../../olt/scripts/src/installer/installer-lock.ts";
@@ -11,6 +11,10 @@ import type { ReleaseTransaction } from "../../../olt/scripts/src/installer/rele
 import type { TransactionStage } from "../../../olt/scripts/src/installer/transaction-marker.ts";
 import type { ReleaseCopyHooks } from "../../../olt/scripts/src/installer/release-copy.ts";
 import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
+import { cleanupVirtualInstallerFS, setupVirtualInstallerFS } from "../helpers.ts";
+
+beforeEach(setupVirtualInstallerFS);
+afterEach(cleanupVirtualInstallerFS);
 
 /** A transaction double: records every stage transition and finish() call without touching disk. */
 function fakeTransaction() {

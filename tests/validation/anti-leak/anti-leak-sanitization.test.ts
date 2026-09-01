@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   assertAcyclicPushbackDelegation,
@@ -157,14 +158,17 @@ describe("Anti-Boundary-Leak Rule & Automated Repair Delegation", () => {
 
   describe("8. Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
     it("verifies zero TypeScript any and zero suppressions across anti-leak source and test files", () => {
-      const filesToAudit = [
-        "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/validation/anti-leak/types.ts",
-        "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/validation/anti-leak/checks.ts",
-        "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/validation/anti-leak/validator.ts",
-        "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/validation/anti-leak/delegator.ts",
-        "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/validation/anti-leak/index.ts",
-        "/Users/onurseckinsenoglu/repos/skills/tests/validation/anti-leak/anti-leak-detection.test.ts",
-      ];
+        const filesToAudit = [
+          join(process.cwd(), "olt/scripts/src/validation/anti-leak/types.ts"),
+          join(process.cwd(), "olt/scripts/src/validation/anti-leak/checks.ts"),
+          join(process.cwd(), "olt/scripts/src/validation/anti-leak/validator.ts"),
+          join(process.cwd(), "olt/scripts/src/validation/anti-leak/delegator.ts"),
+          join(process.cwd(), "olt/scripts/src/validation/anti-leak/index.ts"),
+          join(
+            process.cwd(),
+            "tests/validation/anti-leak/anti-leak-detection.test.ts",
+          ),
+        ];
 
       const anyPattern = new RegExp(":\\s*any\\b|as\\s+any\\b|<any>");
       const suppressionPattern = new RegExp(

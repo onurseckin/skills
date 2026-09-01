@@ -1,7 +1,58 @@
+import * as fs from "node:fs";
 import { chmodSync, readdirSync } from "node:fs";
 import { rm, writeFile } from "node:fs/promises";
+import * as path from "node:path";
 import { basename, join } from "node:path";
 import { execute } from "../../../../olt/scripts/src/cli/execute.ts";
+import { setDefectLogDependenciesForTesting } from "../../../../olt/scripts/src/logging/lock.ts";
+import { generateCanonicalDefaultPolicy } from "../../../../olt/scripts/src/policy/generator/index.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
+
+let vfs = new VirtualMemoryFS();
+let session: VirtualFSSession | undefined;
+let restoreDefectDeps: (() => void) | undefined;
+
+function normPath(p: string): string {
+  return path.resolve(String(p)).replace(/\\/g, "/");
+}
+
+export function setupVirtualCliFS(): VirtualMemoryFS {
+  cleanupVirtualCliFS();
+  vfs = new VirtualMemoryFS();
+  const repoRoot = normPath(process.cwd());
+  vfs.mkdirSync(repoRoot, { recursive: true });
+  vfs.mkdirSync(path.join(repoRoot, ".olt"), { recursive: true });
+  vfs.writeFileSync(
+    path.join(repoRoot, ".olt", "policy.json"),
+    JSON.stringify(generateCanonicalDefaultPolicy(repoRoot, "bun")),
+  );
+
+  restoreDefectDeps = setDefectLogDependenciesForTesting({
+    readFile: (p, opt) => fs.readFileSync(p, opt),
+  });
+  session = createVirtualFSSession(vfs);
+  return vfs;
+}
+
+export function cleanupVirtualCliFS(): void {
+  if (session) {
+    session.cleanup();
+    session = undefined;
+  }
+  if (restoreDefectDeps) {
+    restoreDefectDeps();
+    restoreDefectDeps = undefined;
+  }
+  vfs.reset();
+}
+
+export function getVirtualCliFS(): VirtualMemoryFS {
+  return vfs;
+}
 
 export const GATE_SCRIPT = "gate-check.ts";
 

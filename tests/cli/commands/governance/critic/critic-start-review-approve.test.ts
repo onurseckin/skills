@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -6,10 +6,20 @@ import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { loadRun } from "../../../../../olt/scripts/src/engine/store/index.ts";
 import { requirementIds } from "../../fixtures/critic-run-fixture.ts";
 import { registerInspectionCommand, setupReadyRun } from "../../fixtures/critic-ready-fixture.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(async () => {
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+});
 
 describe("CLI critic-ops commands - Approve and Review Flows", () => {
   test("critic:start and critic:review approve flow", async () => {

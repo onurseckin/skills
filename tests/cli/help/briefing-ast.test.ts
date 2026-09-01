@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -9,8 +9,18 @@ import {
   findAnchorByPattern,
   findBalancedBlock,
 } from "../../../olt/scripts/src/cli/briefing/index.ts";
+import {
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../commands/fixtures/full-lifecycle-fixture.ts";
 
 describe("Domain 17: Zero-Exploration Exact-Anchor Briefing Engine - AST & Patterns", () => {
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
+  afterEach(() => {
+    cleanupVirtualCliFS();
+  });
   describe("Challenge 1: AST Anchor Drift & Trivia/Docstring Enclosure", () => {
     it("differentiates enclosingStartLine (with JSDoc) and declarationStartLine", () => {
       const source = `

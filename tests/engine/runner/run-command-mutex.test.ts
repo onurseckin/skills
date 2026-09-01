@@ -32,6 +32,7 @@ describe("engine/runner/models/execution/run-command.ts - Mutex Locking", () => 
   });
 
   afterEach(() => {
+    activeExecutionRootInodes.clear();
     if (restoreDeps) {
       restoreDeps();
       restoreDeps = undefined;

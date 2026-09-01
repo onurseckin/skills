@@ -1,34 +1,24 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   chmodSync,
   existsSync,
   mkdirSync,
-  mkdtempSync,
   readFileSync,
-  rmSync,
   statSync,
   writeFileSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildOltBinaryContent, ensureGlobalOltBinary } from "../../../scripts/sync/olt-bin.ts";
+import { cleanupVirtualInstallerFS, setupVirtualInstallerFS } from "../helpers.ts";
 
-const tempRoots: string[] = [];
+let tempDirCount = 0;
 
-afterEach(() => {
-  for (const root of tempRoots) {
-    try {
-      rmSync(root, { recursive: true, force: true });
-    } catch {
-      // Best-effort cleanup
-    }
-  }
-  tempRoots.length = 0;
-});
+beforeEach(setupVirtualInstallerFS);
+afterEach(cleanupVirtualInstallerFS);
 
 function createTempDir(prefix: string): string {
-  const dir = mkdtempSync(join(tmpdir(), prefix));
-  tempRoots.push(dir);
+  const dir = `/virtual/bin-export-${prefix}-${++tempDirCount}`;
+  mkdirSync(dir, { recursive: true });
   return dir;
 }
 

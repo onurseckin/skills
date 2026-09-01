@@ -1,4 +1,4 @@
-import { describe, expect, test, afterAll } from "bun:test";
+import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import {
   chmodSync,
   fstatSync,
@@ -6,11 +6,11 @@ import {
   mkdirSync,
   readFileSync,
   renameSync,
-  rmSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
+import { cleanupVirtualPolicyFS, setupVirtualPolicyFS } from "../fixture.ts";
 import {
   CURRENT_POLICY_SCHEMA_VERSION,
   generateDefaultRepoPolicy,
@@ -24,10 +24,14 @@ import {
 } from "../../../olt/scripts/src/policy/index.ts";
 
 describe("Repo Policy Authority, Safety & Concurrency", () => {
-  const scratchBase = join(process.cwd(), "coverage", "scratch", "test-repo-policy-authority");
+  const scratchBase = "/virtual/policy/io/authority";
 
-  afterAll(() => {
-    rmSync(scratchBase, { recursive: true, force: true });
+  beforeEach(() => {
+    setupVirtualPolicyFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualPolicyFS();
   });
 
   test("authority loading rejects escaped, linked, and hard-linked custom policy targets", () => {
@@ -51,8 +55,6 @@ describe("Repo Policy Authority, Safety & Concurrency", () => {
     expect(() => loadRepoPolicy(dir, join(linkedParent, "outside-policy.json"))).toThrow(
       /PATH_SAFETY|real directory/i,
     );
-    rmSync(dir, { recursive: true, force: true });
-    rmSync(outside, { force: true });
   });
 
   test("authority loading rejects group-writable files and replacements during open", () => {
@@ -86,7 +88,6 @@ describe("Repo Policy Authority, Safety & Concurrency", () => {
         afterOpenBeforeRead: () => renameSync(afterOpen, policyPath),
       }),
     ).toThrow(/changed while opening/i);
-    rmSync(dir, { recursive: true, force: true });
   });
 
   test("saves, loads and initializes repo policy while distinguishing missing and invalid policy", () => {
@@ -107,8 +108,6 @@ describe("Repo Policy Authority, Safety & Concurrency", () => {
 
     const initDir = join(scratchBase, "init-policy-dir");
     expect(initRepoPolicy(initDir).schema_version).toBe(CURRENT_POLICY_SCHEMA_VERSION);
-    rmSync(dir, { recursive: true, force: true });
-    rmSync(initDir, { recursive: true, force: true });
   });
 
   test("atomic policy saves preserve prior bytes on write/fsync/rename failures", () => {
@@ -146,7 +145,6 @@ describe("Repo Policy Authority, Safety & Concurrency", () => {
       }),
     ).toThrow(/outcome is uncertain/i);
     expect(loadRepoPolicy(dir).forbidden_commands).toContain("curl");
-    rmSync(dir, { recursive: true, force: true });
   });
 
   test("concurrent tasks serialize policy saves and expose only complete valid JSON", async () => {
@@ -163,7 +161,6 @@ describe("Repo Policy Authority, Safety & Concurrency", () => {
     const finalBytes = readFileSync(policyPath, "utf-8");
     expect(() => parseRepoPolicy(JSON.parse(finalBytes) as unknown)).not.toThrow();
     expect(loadRepoPolicy(dir).schema_version).toBe(CURRENT_POLICY_SCHEMA_VERSION);
-    rmSync(dir, { recursive: true, force: true });
   });
 
   test("authority loading handles TOCTOU read race conditions, retries, and error propagation", () => {
@@ -204,7 +201,6 @@ describe("Repo Policy Authority, Safety & Concurrency", () => {
 
     const loc = resolvePolicyLocation(dir, join(dir, "missing.json"), false);
     expect(readVerifiedFile(loc)).toBeUndefined();
-    rmSync(dir, { recursive: true, force: true });
   });
 
   test("inspectRepoPolicy accurately reports auto_detected, valid_custom, and invalid_custom status", () => {
@@ -220,7 +216,5 @@ describe("Repo Policy Authority, Safety & Concurrency", () => {
 
     writeFileSync(customPolicyPath, "{ malformed json", "utf-8");
     expect(inspectRepoPolicy(dir, customPolicyPath).status).toBe("invalid_custom");
-
-    rmSync(dir, { recursive: true, force: true });
   });
 });

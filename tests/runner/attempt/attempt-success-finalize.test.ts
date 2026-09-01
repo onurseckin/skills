@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { finalizeSuccessfulAttempt } from "../../../olt/scripts/src/engine/runner/models/attempt/attempt-success-evidence.ts";
 import type {
@@ -8,16 +7,12 @@ import type {
   OutputSummary,
 } from "../../../olt/scripts/src/engine/runner/types/types.ts";
 import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
-const roots: string[] = [];
-
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
+afterEach(cleanupTempRoots);
 
 async function attemptFixture(name: string) {
-  const runRoot = await mkdtemp(join(tmpdir(), name));
-  roots.push(runRoot);
+  const runRoot = tempRoot(name);
   const attemptDir = join(runRoot, "attempt-1");
   await mkdir(attemptDir);
   const stdoutPath = join(attemptDir, "stdout.log");

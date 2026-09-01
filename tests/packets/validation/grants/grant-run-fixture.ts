@@ -1,7 +1,4 @@
 import { afterAll } from "bun:test";
-import { realpathSync } from "node:fs";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { CommandRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import type { RepositoryBinding } from "../../../../olt/scripts/src/core/contracts/index.ts";
@@ -13,19 +10,29 @@ import { captureGateEnvironment } from "../../../../olt/scripts/src/engine/runne
 import { captureGatePathBindings } from "../../../../olt/scripts/src/engine/runner/index.ts";
 import { canonicalCommandFingerprint } from "../../../../olt/scripts/src/engine/runner/index.ts";
 import type { TransactionPort } from "../../../../olt/scripts/src/workflow/types.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
-/**
- * Non-CLI, non-git capsule + graph fixture shared by the packet-grant unit tests
- * (role-grant, critic-grant, plan-validator-grant, planner-packet). loadRun's integrity
- * verification and the repository inspection walk both need a real capsule on disk, but
- * nothing here spawns a subprocess: initRun/transact are pure fs, and the fixture repo is
- * never git-initialized so repository-snapshot's git probing short-circuits to unavailable.
- */
+let vfs = new VirtualMemoryFS();
+let session: VirtualFSSession | undefined;
 
-const roots: string[] = [];
-afterAll(async () =>
-  Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))),
-);
+function ensureSession(): VirtualMemoryFS {
+  if (!session) {
+    session = createVirtualFSSession(vfs);
+  }
+  return vfs;
+}
+
+afterAll(() => {
+  if (session) {
+    session.cleanup();
+    session = undefined;
+  }
+  vfs.reset();
+});
 
 export interface GrantRun {
   repo: string;
@@ -33,12 +40,12 @@ export interface GrantRun {
   port: TransactionPort;
 }
 
-/** Creates an empty capsule (no graph/tasks yet) under a disposable repo directory. */
+/** Creates an empty capsule (no graph/tasks yet) under an in-memory virtual directory. */
 export async function emptyGrantRun(prefix: string): Promise<GrantRun> {
-  const root = realpathSync(await mkdtemp(join(tmpdir(), prefix)));
-  roots.push(root);
+  const memFs = ensureSession();
+  const root = `/virtual/${prefix}-${Math.random().toString(36).slice(2)}`;
   const repo = join(root, "repo");
-  await mkdir(repo);
+  memFs.mkdirSync(repo, { recursive: true });
   const run = initRun(repo, "grant-run", new TextEncoder().encode("Build the thing"), "file", true);
   return { repo, run, port: workflowPort(run) };
 }
@@ -211,7 +218,7 @@ export async function seedRunGateCommand(
   const commandId = options.commandId ?? "C-RUN-GATE-EVIDENCE";
   const actor = options.actor ?? "coordinator";
   const argv = ["bun", "run-gate.ts"];
-  await writeFile(join(repo, "run-gate.ts"), "console.log('run gate');\n");
+  ensureSession().writeFileSync(join(repo, "run-gate.ts"), "console.log('run gate');\n");
   const binding = inspectRepositoryBinding(repo);
   const record = runGateCommandRecord(repo, binding, commandId, argv, gateId, actor);
   transact(run, "test-setup", "seed-run-gate", {}, (draft) => {

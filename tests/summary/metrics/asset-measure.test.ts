@@ -1,7 +1,6 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import * as fs from "node:fs";
+import { join, resolve } from "node:path";
 import {
   measureAssets,
   measureCapsuleAsset,
@@ -9,15 +8,154 @@ import {
 } from "../../../olt/scripts/src/summary/assets/index.ts";
 import type { MediaAsset } from "../../../olt/scripts/src/summary/graph/index.ts";
 
-const roots: string[] = [];
+interface VirtualNode {
+  content?: Buffer;
+  isDir: boolean;
+  symlinkTarget?: string;
+  mode?: number;
+}
+
+const vfs = new Map<string, VirtualNode>();
+const openFds = new Map<number, { path: string; node: VirtualNode }>();
+let nextFd = 100;
+let rootCounter = 0;
+const spies: Array<{ mockRestore: () => void }> = [];
+
+function norm(p: string): string {
+  return resolve(p).replace(/\/+$/, "") || "/";
+}
+
+function resolvePath(p: string, seen = new Set<string>()): string {
+  const normalized = norm(p);
+  if (seen.has(normalized)) return normalized;
+  seen.add(normalized);
+
+  const parts = normalized.split("/").filter(Boolean);
+  let current = "";
+  for (let i = 0; i < parts.length; i++) {
+    const next = `${current}/${parts[i]}`;
+    const pnode = vfs.get(next);
+    if (pnode?.symlinkTarget) {
+      const rest = parts.slice(i + 1).join("/");
+      const target = resolve(pnode.symlinkTarget, rest);
+      return resolvePath(target, seen);
+    }
+    current = next;
+  }
+  return normalized;
+}
+
+function getVirtualNode(p: string): { path: string; node: VirtualNode } | undefined {
+  const n = norm(p);
+  const node = vfs.get(n);
+  if (node) return { path: n, node };
+  for (const k of vfs.keys()) {
+    if (k.startsWith(`${n}/`)) return { path: n, node: { isDir: true } };
+  }
+  return undefined;
+}
+
+beforeEach(() => {
+  spies.push(
+    spyOn(fs, "realpathSync").mockImplementation((p: fs.PathLike): string => {
+      const s = String(p);
+      const target = resolvePath(s);
+      if (!getVirtualNode(target) && !s.startsWith("/virtual/")) {
+        throw new Error(`ENOENT: no such file or directory, realpath '${s}'`);
+      }
+      return target;
+    }),
+    spyOn(fs, "lstatSync").mockImplementation((p: fs.PathLike): fs.Stats => {
+      const s = String(p);
+      const entry = getVirtualNode(resolve(s));
+      if (!entry) {
+        throw new Error(`ENOENT: no such file or directory, lstat '${s}'`);
+      }
+      const node = entry.node;
+      const isSymlink = Boolean(node.symlinkTarget);
+      const size = node.content ? node.content.length : 0;
+      return {
+        isFile: () => !node.isDir && !isSymlink,
+        isDirectory: () => node.isDir,
+        isSymbolicLink: () => isSymlink,
+        size,
+        mode: node.mode ?? (node.isDir ? 0o755 : 0o644),
+      } as unknown as fs.Stats;
+    }),
+    spyOn(fs, "openSync").mockImplementation((p: fs.PathLike): number => {
+      const s = String(p);
+      const target = resolvePath(s);
+      const entry = getVirtualNode(target);
+      if (!entry || entry.node.isDir) {
+        throw new Error(`ENOENT: no such file or directory, open '${s}'`);
+      }
+      if (entry.node.mode === 0o000) {
+        throw new Error(`EACCES: permission denied, open '${s}'`);
+      }
+      const fd = ++nextFd;
+      openFds.set(fd, entry);
+      return fd;
+    }),
+    spyOn(fs, "readSync").mockImplementation(
+      (
+        fd: number,
+        buffer: NodeJS.ArrayBufferView,
+        offset = 0,
+        length = buffer.byteLength,
+        position: fs.ReadPosition | null = 0,
+      ): number => {
+        const openFile = openFds.get(fd);
+        if (!openFile) throw new Error("EBADF: bad file descriptor, read");
+        const content = openFile.node.content ?? Buffer.alloc(0);
+        const pos = typeof position === "number" ? position : 0;
+        const slice = content.subarray(pos, pos + length);
+        const targetBuf = Buffer.from(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+        slice.copy(targetBuf, offset);
+        return slice.length;
+      },
+    ),
+    spyOn(fs, "closeSync").mockImplementation((fd: number): void => {
+      openFds.delete(fd);
+    }),
+    spyOn(fs, "writeFileSync").mockImplementation(
+      (p: fs.PathLike, data: string | NodeJS.ArrayBufferView): void => {
+        const s = norm(String(p));
+        const buf = Buffer.isBuffer(data)
+          ? data
+          : typeof data === "string"
+            ? Buffer.from(data, "utf-8")
+            : Buffer.from(data.buffer, data.byteOffset, data.byteLength);
+        vfs.set(s, { content: buf, isDir: false });
+      },
+    ),
+    spyOn(fs, "mkdirSync").mockImplementation((p: fs.PathLike): string | undefined => {
+      const s = norm(String(p));
+      vfs.set(s, { isDir: true });
+      return undefined;
+    }),
+    spyOn(fs, "symlinkSync").mockImplementation((target: fs.PathLike, p: fs.PathLike): void => {
+      const s = norm(String(p));
+      vfs.set(s, { isDir: false, symlinkTarget: norm(String(target)) });
+    }),
+    spyOn(fs, "chmodSync").mockImplementation((p: fs.PathLike, mode: fs.Mode): void => {
+      const s = norm(String(p));
+      const node = vfs.get(s);
+      if (node) node.mode = typeof mode === "number" ? mode : Number.parseInt(String(mode), 8);
+    }),
+  );
+});
+
 afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
+  for (const s of spies.splice(0)) s.mockRestore();
+  vfs.clear();
+  openFds.clear();
 });
 
 function runRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "asset-measure-"));
-  roots.push(root);
-  mkdirSync(join(root, "evidence"), { recursive: true });
+  rootCounter += 1;
+  const root = `/virtual/asset-measure-${rootCounter}`;
+  vfs.set(root, { isDir: true });
+  vfs.set(`${root}/evidence`, { isDir: true });
   return root;
 }
 
@@ -44,7 +182,6 @@ function bmp(width: number, height: number): Buffer {
   const header = Buffer.alloc(30);
   header.write("BM", 0, "latin1");
   header.writeInt32LE(width, 18);
-  // A negative height is how a bitmap says it is stored top-down; the size is still its magnitude.
   header.writeInt32LE(-height, 22);
   return header;
 }
@@ -57,7 +194,7 @@ describe("measuring an asset the capsule still holds", () => {
   test("reads the byte size and the pixel size out of a PNG header", () => {
     const root = runRoot();
     const bytes = png(1440, 900);
-    writeFileSync(join(root, "evidence", "shot.png"), bytes);
+    fs.writeFileSync(join(root, "evidence", "shot.png"), bytes);
 
     expect(measureCapsuleAsset(root, "evidence/shot.png")).toEqual({
       sizeBytes: bytes.length,
@@ -67,8 +204,8 @@ describe("measuring an asset the capsule still holds", () => {
 
   test("reads a GIF and a top-down BMP, whose headers state their size differently", () => {
     const root = runRoot();
-    writeFileSync(join(root, "evidence", "loop.gif"), gif(320, 240));
-    writeFileSync(join(root, "evidence", "raster.bmp"), bmp(64, 48));
+    fs.writeFileSync(join(root, "evidence", "loop.gif"), gif(320, 240));
+    fs.writeFileSync(join(root, "evidence", "raster.bmp"), bmp(64, 48));
 
     expect(measureCapsuleAsset(root, "evidence/loop.gif")?.dimensions).toEqual({
       width: 320,
@@ -82,11 +219,10 @@ describe("measuring an asset the capsule still holds", () => {
 
   test("reports the size but no dimensions for a format it cannot read", () => {
     const root = runRoot();
-    writeFileSync(join(root, "evidence", "trace.zip"), Buffer.alloc(12, 7));
+    fs.writeFileSync(join(root, "evidence", "trace.zip"), Buffer.alloc(12, 7));
 
     const measured = measureCapsuleAsset(root, "evidence/trace.zip");
     expect(measured?.sizeBytes).toBe(12);
-    // A guessed resolution would be indistinguishable from a measured one, so there is none.
     expect(measured?.dimensions).toBeUndefined();
   });
 
@@ -100,12 +236,11 @@ describe("measuring an asset the capsule still holds", () => {
 
   test("refuses to follow a url out of the capsule, however it is written", () => {
     const root = runRoot();
-    const outside = mkdtempSync(join(tmpdir(), "asset-outside-"));
-    roots.push(outside);
-    writeFileSync(join(outside, "secret.png"), png(10, 10));
-    symlinkSync(join(outside, "secret.png"), join(root, "evidence", "linked.png"));
+    rootCounter += 1;
+    const outside = `/virtual/asset-outside-${rootCounter}`;
+    fs.writeFileSync(join(outside, "secret.png"), png(10, 10));
+    fs.symlinkSync(join(outside, "secret.png"), join(root, "evidence", "linked.png"));
 
-    // An asset url is a string a command printed; following it must not let a log pick the reads.
     expect(measureCapsuleAsset(root, "../../secret.png")).toBeUndefined();
     expect(measureCapsuleAsset(root, join(outside, "secret.png"))).toBeUndefined();
     expect(measureCapsuleAsset(root, "https://example.invalid/secret.png")).toBeUndefined();
@@ -114,12 +249,10 @@ describe("measuring an asset the capsule still holds", () => {
 
   test("refuses a path whose parent directory is itself a link out of the capsule", () => {
     const root = runRoot();
-    const outside = mkdtempSync(join(tmpdir(), "asset-outside-dir-"));
-    roots.push(outside);
-    writeFileSync(join(outside, "secret.png"), png(10, 10));
-    // The url stays under the run root and the file at the end of it is a regular file; only the
-    // directory on the way in is the link, which is why containment is re-asked of the real path.
-    symlinkSync(outside, join(root, "evidence", "elsewhere"));
+    rootCounter += 1;
+    const outside = `/virtual/asset-outside-dir-${rootCounter}`;
+    fs.writeFileSync(join(outside, "secret.png"), png(10, 10));
+    fs.symlinkSync(outside, join(root, "evidence", "elsewhere"));
 
     expect(measureCapsuleAsset(root, "evidence/elsewhere/secret.png")).toBeUndefined();
   });
@@ -132,15 +265,13 @@ describe("measuring an asset the capsule still holds", () => {
   test("reports nothing when the file passes containment checks but cannot be opened", () => {
     const root = runRoot();
     const target = join(root, "evidence", "locked.png");
-    writeFileSync(target, png(4, 4));
-    chmodSync(target, 0o000);
+    fs.writeFileSync(target, png(4, 4));
+    fs.chmodSync(target, 0o000);
 
-    // Permission loss alone denies capsuleFile's own realpath containment check before
-    // readHeader ever runs, so this covers readHeader's own open failure directly.
     try {
       expect(readHeader(target)).toBeUndefined();
     } finally {
-      chmodSync(target, 0o644);
+      fs.chmodSync(target, 0o644);
     }
   });
 });
@@ -149,7 +280,7 @@ describe("filling in what nobody measured", () => {
   test("fills the gaps and leaves every recorded value alone", () => {
     const root = runRoot();
     const bytes = png(800, 600);
-    writeFileSync(join(root, "evidence", "shot.png"), bytes);
+    fs.writeFileSync(join(root, "evidence", "shot.png"), bytes);
 
     const [measured, reported, absent] = measureAssets(
       [
@@ -166,7 +297,6 @@ describe("filling in what nobody measured", () => {
 
     expect(measured?.sizeBytes).toBe(bytes.length);
     expect(measured?.dimensions).toEqual({ width: 800, height: 600 });
-    // What a source reported stands; this pass measures what nobody measured.
     expect(reported?.sizeBytes).toBe(11);
     expect(reported?.dimensions).toEqual({ width: 1, height: 2 });
     expect(absent?.sizeBytes).toBeUndefined();
@@ -175,7 +305,7 @@ describe("filling in what nobody measured", () => {
 
   test("keeps the size a source reported while adding the pixels it did not", () => {
     const root = runRoot();
-    writeFileSync(join(root, "evidence", "shot.png"), png(120, 90));
+    fs.writeFileSync(join(root, "evidence", "shot.png"), png(120, 90));
 
     const [only] = measureAssets([asset("evidence/shot.png", { sizeBytes: 4 })], root);
     expect(only?.sizeBytes).toBe(4);

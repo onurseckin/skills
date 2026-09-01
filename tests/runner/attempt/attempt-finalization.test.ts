@@ -1,8 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
 import { relative, join, sep } from "node:path";
-import { tmpdir } from "node:os";
 import type { CommandAttemptRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { atomicWriteJson } from "../../../olt/scripts/src/core/durable-write.ts";
@@ -19,8 +18,9 @@ import type {
   BunSpawnApi,
   NormalizedCommandOptions,
 } from "../../../olt/scripts/src/engine/runner/types/types.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
-const roots: string[] = [];
+afterEach(cleanupTempRoots);
 const digest = (marker: string): string => marker.repeat(64);
 
 function binding(marker: string): RepositoryBinding {
@@ -95,14 +95,9 @@ async function successfulAttempt(
   return { record, attempt, stdoutPath, stderrPath, activityPath, outputTail: "raw success" };
 }
 
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
-
 describe("two-phase command attempt finalization", () => {
   test("persists a started marker before invoking the spawn dependency", async () => {
-    const root = await mkdtemp(join(tmpdir(), "attempt-started-"));
-    roots.push(root);
+    const root = tempRoot("attempt-started");
     const commandRoot = join(root, "commands", "C-started");
     await mkdir(commandRoot, { recursive: true });
     const ownershipToken = "12345678-1234-4234-8234-123456789abc";
@@ -150,8 +145,7 @@ describe("two-phase command attempt finalization", () => {
   });
 
   test("leaves an unreturned started attempt running for conservative reconciliation", async () => {
-    const root = await mkdtemp(join(tmpdir(), "attempt-unreturned-"));
-    roots.push(root);
+    const root = tempRoot("attempt-unreturned");
     const runRoot = join(root, ".olt", "capsules");
     await mkdir(join(runRoot, "commands"), { recursive: true });
     const runner = createInternalCommandRunner({
@@ -193,8 +187,7 @@ describe("two-phase command attempt finalization", () => {
   });
 
   test("retains raw attempt evidence when the repository changes after the child exits", async () => {
-    const root = await mkdtemp(join(tmpdir(), "attempt-finalization-"));
-    roots.push(root);
+    const root = tempRoot("attempt-finalization");
     const runRoot = join(root, ".olt", "capsules");
     await mkdir(join(runRoot, "commands"), { recursive: true });
     await mkdir(join(root, "bin"));
@@ -260,8 +253,7 @@ describe("two-phase command attempt finalization", () => {
   });
 
   test("captures repository_after for a successful gate terminalization", async () => {
-    const root = await mkdtemp(join(tmpdir(), "attempt-success-after-"));
-    roots.push(root);
+    const root = tempRoot("attempt-success-after");
     const runRoot = join(root, ".olt", "capsules");
     await mkdir(join(runRoot, "commands"), { recursive: true });
     await mkdir(join(root, "bin"));

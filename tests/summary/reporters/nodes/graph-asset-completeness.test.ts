@@ -1,7 +1,7 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import * as fs from "node:fs";
+import { writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { generateGraphDataset } from "../../../../olt/scripts/src/summary/graph/index.ts";
 import {
   recordCaptures,
@@ -9,15 +9,174 @@ import {
 } from "../../../../olt/scripts/src/engine/store/capsule/captures.ts";
 import { makeState, makeTask } from "../dag/graph-fixtures.ts";
 
-const roots: string[] = [];
+const vfs = new Map<string, Buffer>();
+const vdirs = new Set<string>();
+const openFds = new Map<number, { path: string; content: Buffer }>();
+let nextFd = 100;
+let rootCounter = 0;
+const spies: Array<{ mockRestore: () => void }> = [];
+
+const origExists = fs.existsSync.bind(fs);
+const origRead = fs.readFileSync.bind(fs);
+const origWrite = fs.writeFileSync.bind(fs);
+const origMkdir = fs.mkdirSync.bind(fs);
+const origRm = fs.rmSync.bind(fs);
+const origRealpath = fs.realpathSync.bind(fs);
+const origLstat = fs.lstatSync.bind(fs);
+const origOpen = fs.openSync.bind(fs);
+const origReadSync = fs.readSync.bind(fs);
+const origClose = fs.closeSync.bind(fs);
+
+beforeEach(() => {
+  spies.push(
+    spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike): boolean => {
+      const s = resolve(String(p)).replace(/\/+$/, "");
+      if (s.startsWith("/virtual/")) {
+        if (vfs.has(s) || vdirs.has(s)) return true;
+        for (const k of vfs.keys()) {
+          if (k.startsWith(`${s}/`)) return true;
+        }
+        for (const d of vdirs) {
+          if (d.startsWith(`${s}/`)) return true;
+        }
+        return false;
+      }
+      return origExists(p);
+    }),
+    spyOn(fs, "readFileSync").mockImplementation(
+      (p: fs.PathLike, opt?: unknown): string | Buffer => {
+        const s = resolve(String(p)).replace(/\/+$/, "");
+        if (s.startsWith("/virtual/")) {
+          const content = vfs.get(s);
+          if (content === undefined) {
+            throw new Error(`ENOENT: no such file or directory, open '${s}'`);
+          }
+          if (opt === "utf-8" || opt === "utf8" || (typeof opt === "object" && opt !== null)) {
+            return content.toString("utf-8");
+          }
+          return content;
+        }
+        return origRead(p, opt as Parameters<typeof origRead>[1]) as string | Buffer;
+      },
+    ),
+    spyOn(fs, "writeFileSync").mockImplementation(
+      (p: fs.PathLike, data: string | NodeJS.ArrayBufferView): void => {
+        const s = resolve(String(p)).replace(/\/+$/, "");
+        if (s.startsWith("/virtual/")) {
+          const buf = Buffer.isBuffer(data)
+            ? data
+            : typeof data === "string"
+              ? Buffer.from(data, "utf-8")
+              : Buffer.from(data.buffer, data.byteOffset, data.byteLength);
+          vfs.set(s, buf);
+          return;
+        }
+        origWrite(p, data);
+      },
+    ),
+    spyOn(fs, "mkdirSync").mockImplementation((p: fs.PathLike): string | undefined => {
+      const s = resolve(String(p)).replace(/\/+$/, "");
+      if (s.startsWith("/virtual/")) {
+        vdirs.add(s);
+        return undefined;
+      }
+      return origMkdir(p) as string | undefined;
+    }),
+    spyOn(fs, "rmSync").mockImplementation((p: fs.PathLike): void => {
+      const s = resolve(String(p)).replace(/\/+$/, "");
+      if (s.startsWith("/virtual/")) {
+        vfs.delete(s);
+        vdirs.delete(s);
+        for (const k of Array.from(vfs.keys())) {
+          if (k.startsWith(`${s}/`)) vfs.delete(k);
+        }
+        for (const d of Array.from(vdirs)) {
+          if (d.startsWith(`${s}/`)) vdirs.delete(d);
+        }
+        return;
+      }
+      origRm(p, { recursive: true, force: true });
+    }),
+    spyOn(fs, "realpathSync").mockImplementation((p: fs.PathLike): string => {
+      const s = resolve(String(p)).replace(/\/+$/, "");
+      if (s.startsWith("/virtual/")) {
+        return s;
+      }
+      return origRealpath(p);
+    }),
+    spyOn(fs, "lstatSync").mockImplementation((p: fs.PathLike): fs.Stats => {
+      const s = resolve(String(p)).replace(/\/+$/, "");
+      if (s.startsWith("/virtual/")) {
+        const isFile = vfs.has(s);
+        const isDir = vdirs.has(s) || (!isFile && Array.from(vfs.keys()).some((k) => k.startsWith(`${s}/`)));
+        if (!isFile && !isDir) {
+          throw new Error(`ENOENT: no such file or directory, lstat '${s}'`);
+        }
+        const size = isFile ? vfs.get(s)!.length : 0;
+        return {
+          isFile: () => isFile,
+          isDirectory: () => isDir,
+          isSymbolicLink: () => false,
+          size,
+        } as unknown as fs.Stats;
+      }
+      return origLstat(p);
+    }),
+    spyOn(fs, "openSync").mockImplementation((p: fs.PathLike, flags: fs.OpenMode): number => {
+      const s = resolve(String(p)).replace(/\/+$/, "");
+      if (s.startsWith("/virtual/")) {
+        const content = vfs.get(s);
+        if (!content) {
+          throw new Error(`ENOENT: no such file or directory, open '${s}'`);
+        }
+        const fd = ++nextFd;
+        openFds.set(fd, { path: s, content });
+        return fd;
+      }
+      return origOpen(p, flags);
+    }),
+    spyOn(fs, "readSync").mockImplementation(
+      (
+        fd: number,
+        buffer: NodeJS.ArrayBufferView,
+        offset = 0,
+        length = buffer.byteLength,
+        position: fs.ReadPosition | null = 0,
+      ): number => {
+        const openFile = openFds.get(fd);
+        if (openFile) {
+          const content = openFile.content;
+          const pos = typeof position === "number" ? position : 0;
+          const slice = content.subarray(pos, pos + length);
+          const targetBuf = Buffer.from(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+          slice.copy(targetBuf, offset);
+          return slice.length;
+        }
+        return origReadSync(fd, buffer, offset, length, position);
+      },
+    ),
+    spyOn(fs, "closeSync").mockImplementation((fd: number): void => {
+      if (openFds.has(fd)) {
+        openFds.delete(fd);
+        return;
+      }
+      origClose(fd);
+    }),
+  );
+});
+
 afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
+  for (const s of spies.splice(0)) s.mockRestore();
+  vfs.clear();
+  vdirs.clear();
+  openFds.clear();
 });
 
 function runRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "graph-asset-completeness-"));
-  roots.push(root);
-  mkdirSync(join(root, "evidence"), { recursive: true });
+  rootCounter += 1;
+  const root = `/virtual/graph-asset-completeness-${rootCounter}`;
+  vdirs.add(root);
+  vdirs.add(join(root, "evidence"));
   return root;
 }
 

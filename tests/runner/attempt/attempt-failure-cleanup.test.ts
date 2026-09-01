@@ -1,15 +1,15 @@
 import { describe, expect, spyOn, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { handleAttemptFailure } from "../../../olt/scripts/src/engine/runner/execution/attempt-failure-cleanup.ts";
 import { createAttemptExecutionError } from "../../../olt/scripts/src/engine/runner/execution/attempt-failure-evidence.ts";
 import type { NormalizedCommandOptions } from "../../../olt/scripts/src/engine/runner/types/types.ts";
 import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
 import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
-import { afterAll } from "bun:test";
+import { afterAll, afterEach } from "bun:test";
 
+afterEach(cleanupTempRoots);
 afterAll(cleanupTempRoots);
 
 const mockOptions: NormalizedCommandOptions = {
@@ -158,54 +158,46 @@ describe("attempt-failure-cleanup: handleAttemptFailure", () => {
 
 describe("createAttemptExecutionError terminal-evidence-failure fallback", () => {
   test("wraps a failure while persisting evidence around the original error message", async () => {
-    const runRoot = await mkdtemp(join(tmpdir(), "attempt-failure-evidence-terminal-"));
+    const runRoot = tempRoot("attempt-failure-evidence-terminal");
     const attemptDir = join(runRoot, "attempt-1");
     await mkdir(attemptDir);
     const options = { runRoot, maxOutputBytes: 1024, argv: ["tool"] } as NormalizedCommandOptions;
 
-    try {
-      expect(() =>
-        createAttemptExecutionError({
-          options,
-          commandId: "C-1",
-          attempt: 1,
-          attemptDir,
-          startedAt: new Date("2026-08-19T00:00:00.000Z"),
-          exitCode: null,
-          signal: null,
-          signals: [],
-          outputTail: "",
-          error: new Error("original attempt failure"),
-        }),
-      ).toThrow(/^original attempt failure; terminal attempt evidence failed: /);
-    } finally {
-      await rm(runRoot, { recursive: true, force: true });
-    }
+    expect(() =>
+      createAttemptExecutionError({
+        options,
+        commandId: "C-1",
+        attempt: 1,
+        attemptDir,
+        startedAt: new Date("2026-08-19T00:00:00.000Z"),
+        exitCode: null,
+        signal: null,
+        signals: [],
+        outputTail: "",
+        error: new Error("original attempt failure"),
+      }),
+    ).toThrow(/^original attempt failure; terminal attempt evidence failed: /);
   });
 
   test("falls back to String(error) when the original error is not an Error instance", async () => {
-    const runRoot = await mkdtemp(join(tmpdir(), "attempt-failure-evidence-terminal-nonerror-"));
+    const runRoot = tempRoot("attempt-failure-evidence-terminal-nonerror");
     const attemptDir = join(runRoot, "attempt-1");
     await mkdir(attemptDir);
     const options = { runRoot, maxOutputBytes: 1024, argv: ["tool"] } as NormalizedCommandOptions;
 
-    try {
-      expect(() =>
-        createAttemptExecutionError({
-          options,
-          commandId: "C-1",
-          attempt: 1,
-          attemptDir,
-          startedAt: new Date("2026-08-19T00:00:00.000Z"),
-          exitCode: null,
-          signal: null,
-          signals: [],
-          outputTail: "",
-          error: "plain string failure",
-        }),
-      ).toThrow(/^plain string failure; terminal attempt evidence failed: /);
-    } finally {
-      await rm(runRoot, { recursive: true, force: true });
-    }
+    expect(() =>
+      createAttemptExecutionError({
+        options,
+        commandId: "C-1",
+        attempt: 1,
+        attemptDir,
+        startedAt: new Date("2026-08-19T00:00:00.000Z"),
+        exitCode: null,
+        signal: null,
+        signals: [],
+        outputTail: "",
+        error: "plain string failure",
+      }),
+    ).toThrow(/^plain string failure; terminal attempt evidence failed: /);
   });
 });

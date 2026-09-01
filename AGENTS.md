@@ -178,19 +178,24 @@ Every agent executing within this repository must adhere to the following non-ne
     - **1-Shot Batch Auto-Deployment**: When `/olt mind` is invoked, the entrypoint MUST deploy both `mind` and `mind-auditor` in a single 1-shot batch invocation (`Subagents: [{ Role: "mind", ... }, { Role: "mind-auditor", ... }]`).
     - **Supervisory Cadence & Liveness**: Supervisory pulses (`mind:pulse`) actively inspect companion auditor liveness and report health status.
     - **Doctor Health Verification**: Pre-completion doctor checks (`doctor`, `doctor:verify`, `doctor:repair`) validate companion auditor configuration, mailbox IPC channels, lock integrity, cursor state, and policy calibration before any task or wave completes.
-44. **Permanent Live Host-Aware Quota Telemetry Evaluation Across Pulses & Operations (`LIVE_HOST_AWARE_QUOTA_TELEMETRY`):**
+44. **100% In-Memory Virtual Mocking Invariant (`ZERO_DISK_IO_TESTING_INVARIANT`):**
+    - **Absolute Ban on Real Disk I/O in Unit Tests:** Unit tests across all domains (`tests/<domain>/*`) must NEVER perform real filesystem writes (`writeFileSync`, `mkdirSync`, `rmSync`, `appendFileSync`, `unlinkSync`, etc.), spawn real subprocesses for unit testing, or create directories/files (such as `./runtime/`, `.tmp/`, or root scratch files).
+    - **Mandatory In-Memory Mocking & Virtual Adapters:** All test suites must strictly execute using in-memory virtual adapters (`MemoryFsAdapter`), synthetic in-memory metadata (`enableInMemoryAgentMetadata()` / `disableInMemoryAgentMetadata()`), synthetic virtual clocks, and deterministic in-memory fixtures.
+    - **Millisecond Execution & Parallel Isolation:** In-memory virtual mocked tests must execute in milliseconds ($\le 10\text{ms}$ per suite), ensuring 100% parallel isolation, zero disk contention, zero lock collisions, and instantaneous whole-monorepo coverage analysis.
+    - **Triple-100% Coverage Mandate:** Every unit test suite must push for 100% line coverage, 100% statement coverage, and 100% function coverage across all touched source files using comprehensive in-memory mock branches.
+45. **Permanent Live Host-Aware Quota Telemetry Evaluation Across Pulses & Operations (`LIVE_HOST_AWARE_QUOTA_TELEMETRY`):**
     - Live host-aware quota telemetry is permanently evaluated on every supervisory pulse (`mind:pulse`), command execution, and run iteration.
     - Host telemetry probes (`host-telemetry-probe`, `host-cadence`) actively inspect provider token usage, rate limits, and remaining execution budget, streaming structured metrics to `.olt/telemetry.jsonl` and embedding quota receipts into pulse briefs.
     - When remaining quota drops below 10% (`QUOTA_EXHAUSTED_CIRCUIT_BROKEN`), recurring supervisory crons are gracefully suspended while active workers sleep in RAM (Zero-Kill Invariant) until auto-wake sentinel resumption.
-45. **Perpetual Creative Product Owner Invariant & Zero-Idle Cadence (`PERPETUAL_CREATIVE_PRODUCT_OWNER`):**
+46. **Perpetual Creative Product Owner Invariant & Zero-Idle Cadence (`PERPETUAL_CREATIVE_PRODUCT_OWNER`):**
     - When active queues and feedback backlogs are clear, Tier 0 Mind is **strictly forbidden from remaining passive, sleeping, or reporting `waiting_for_dependents`**.
     - Mind must immediately engage Mode A Autonomous Self-Evolution across the 3-Step Flow: (1) Baseline Quality & Invariants Audit, (2) Multi-Viewport UI/UX Perfection (390px, 768px, 1440px, 1920px), (3) Creative Feature Ideation & Roadmap Authoring.
     - Mind dynamically leverages git worktrees (`workspace_mode: 'branch' | 'share'`) to parallelize independent feature waves without working-tree file collisions.
-46. **Mandatory Tier 0 Companion Fleet & Zero-Termination Invariant (`TIER_0_FLEET_ZERO_TERMINATION`):**
+47. **Mandatory Tier 0 Companion Fleet & Zero-Termination Invariant (`TIER_0_FLEET_ZERO_TERMINATION`):**
     - Deploying Tier 0 Mind automatically bootstraps `mind-auditor` and `skill-auditor` companions.
     - Tier 0 companions are permanently active and immune to automatic teardown or timeout expiration when child campaigns finish.
     - If Mind reports back-to-back zero-delta pulses ($\ge 2$ consecutive cycles in `idle` or `waiting_for_dependents`), Mind Auditor immediately delivers an authoritative Socratic cognitive shock via Mailbox IPC (`.olt/mailboxes/mind.jsonl`), forcing Mind out of stagnation.
-47. **Mailbox IPC & Main-Thread Noise Elimination (`MAILBOX_IPC_MAIN_THREAD_SILENCE`):**
+48. **Mailbox IPC & Main-Thread Noise Elimination (`MAILBOX_IPC_MAIN_THREAD_SILENCE`):**
     - All routine inter-agent status updates, supervisory heartbeats, and audit receipts flow exclusively through Mailbox IPC (`.olt/mailboxes/`).
     - Agents must NEVER spam the main interactive thread with repetitive "Supervisory Watchdog Heartbeat ... Standing down" messages. The main interactive thread is strictly reserved for fatal unrecoverable errors and user-requested milestones.
 

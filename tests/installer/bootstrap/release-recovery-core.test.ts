@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { cp, mkdir, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { canonicalJsonBytes } from "../../../olt/scripts/src/core/json.ts";
@@ -10,8 +10,9 @@ import { treeDigest } from "../../../olt/scripts/src/installer/tree-digest.ts";
 import { validateSkillSource } from "../../../olt/scripts/src/installer/source-validation.ts";
 import type { TransactionMarker } from "../../../olt/scripts/src/installer/transaction-marker.ts";
 import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
-import { cleanInstallerFixtures, installerFixture } from "../helpers.ts";
+import { cleanInstallerFixtures, installerFixture, setupVirtualInstallerFS } from "../helpers.ts";
 
+beforeEach(setupVirtualInstallerFS);
 afterEach(cleanInstallerFixtures);
 
 async function makeRelease(sourceRoot: string, dir: string): Promise<string> {

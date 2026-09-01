@@ -1,22 +1,21 @@
 import * as path from "node:path";
-import { setDefectLogDependenciesForTesting } from "../../olt/scripts/src/logging/lock.ts";
-import { generateCanonicalDefaultPolicy } from "../../olt/scripts/src/policy/generator/index.ts";
 import {
   createVirtualFSSession,
   VirtualMemoryFS,
   type VirtualFSSession,
 } from "../../olt/scripts/src/testing/virtual-fs/index.ts";
 
+import { generateCanonicalDefaultPolicy } from "../../olt/scripts/src/policy/generator/index.ts";
+
 let vfs = new VirtualMemoryFS();
 let session: VirtualFSSession | undefined;
-let restoreDefectDeps: (() => void) | undefined;
 
 function normPath(p: string): string {
   return path.resolve(String(p)).replace(/\\/g, "/");
 }
 
-export function setupVirtualEngineFS(): VirtualMemoryFS {
-  cleanupVirtualEngineFS();
+export function setupVirtualPolicyFS(): VirtualMemoryFS {
+  cleanupVirtualPolicyFS();
   vfs = new VirtualMemoryFS();
   const repoRoot = normPath(process.cwd());
   vfs.mkdirSync(repoRoot, { recursive: true });
@@ -25,30 +24,18 @@ export function setupVirtualEngineFS(): VirtualMemoryFS {
     path.join(repoRoot, ".olt", "policy.json"),
     JSON.stringify(generateCanonicalDefaultPolicy(repoRoot, "bun")),
   );
-
   session = createVirtualFSSession(vfs);
-  restoreDefectDeps = setDefectLogDependenciesForTesting({
-    readFile: (p, opt) => {
-      const np = normPath(String(p));
-      const enc = typeof opt === "string" ? opt : opt?.encoding;
-      return vfs.readFileSync(np, enc as BufferEncoding);
-    },
-  });
   return vfs;
 }
 
-export function cleanupVirtualEngineFS(): void {
+export function cleanupVirtualPolicyFS(): void {
   if (session) {
     session.cleanup();
     session = undefined;
   }
-  if (restoreDefectDeps) {
-    restoreDefectDeps();
-    restoreDefectDeps = undefined;
-  }
   vfs.reset();
 }
 
-export function getVirtualEngineFS(): VirtualMemoryFS {
+export function getVirtualPolicyFS(): VirtualMemoryFS {
   return vfs;
 }

@@ -11,3 +11,4 @@ export {
 } from "./test-port.ts";
 
 export { integrityGateIssues } from "./integrity-review-fixture.ts";
+export { setupWorkflowVirtualFs, type WorkflowVirtualFsSession } from "./virtual-fs.ts";

@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 import {
@@ -11,18 +10,13 @@ import {
 } from "../../../olt/scripts/src/engine/runner/models/attempt/attempt-support.ts";
 import { writeAttemptStarted } from "../../../olt/scripts/src/engine/runner/execution/attempt-intent.ts";
 import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/execution/attempt-disposition-capability.ts";
-
-const roots: string[] = [];
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
 function scratchDir(): string {
-  const root = mkdtempSync(join(tmpdir(), "attempt-support-"));
-  roots.push(root);
-  return root;
+  return tempRoot("attempt-support");
 }
 
-afterEach(() => {
-  while (roots.length > 0) rmSync(roots.pop()!, { recursive: true, force: true });
-});
+afterEach(cleanupTempRoots);
 
 describe("raceWithTimeout", () => {
   test("resolves with the work result when it settles before the timeout", async () => {

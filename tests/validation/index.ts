@@ -9,6 +9,8 @@ export {
   createMockFeedbackItem,
   createMockTaskRecord,
   createMockDualChannelFinding,
+  setupVirtualValidationFS,
+  cleanupVirtualValidationFS,
 } from "./validation-fixture.ts";
 
 export {

@@ -1,24 +1,23 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { AuditTrailWriter } from "../../../olt/scripts/src/policy/audit/audit-trail-writer.ts";
 import { verifyAuditTrailChain } from "../../../olt/scripts/src/policy/audit/hasher.ts";
 import type { AuditEvent } from "../../../olt/scripts/src/policy/audit/types.ts";
+import { cleanupVirtualPolicyFS, getVirtualPolicyFS, setupVirtualPolicyFS } from "../fixture.ts";
 
 describe("AuditTrailWriter", () => {
   let tempDir: string;
   let logFile: string;
 
   beforeEach(() => {
-    tempDir = join(tmpdir(), `audit-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    setupVirtualPolicyFS();
+    tempDir = "/virtual/policy/audit";
     logFile = join(tempDir, "audit.jsonl");
+    getVirtualPolicyFS().mkdirSync(tempDir, { recursive: true });
   });
 
   afterEach(() => {
-    if (existsSync(tempDir)) {
-      rmSync(tempDir, { recursive: true, force: true });
-    }
+    cleanupVirtualPolicyFS();
   });
 
   it("records in-memory events with sequence numbers and cryptographic hashes", () => {
@@ -79,7 +78,7 @@ describe("AuditTrailWriter", () => {
       details: { checksum: "abc123" },
     });
 
-    expect(existsSync(logFile)).toBe(true);
+    expect(getVirtualPolicyFS().existsSync(logFile)).toBe(true);
 
     const writer2 = new AuditTrailWriter({
       logFilePath: logFile,

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { cp, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
@@ -18,8 +18,9 @@ import { pathIdentity } from "../../../olt/scripts/src/installer/path-safety.ts"
 import { validateSkillSource } from "../../../olt/scripts/src/installer/source-validation.ts";
 import { SKILL_NAME } from "../../../olt/scripts/src/installer/constants.ts";
 import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
-import { cleanInstallerFixtures, installerFixture } from "../helpers.ts";
+import { cleanInstallerFixtures, installerFixture, setupVirtualInstallerFS } from "../helpers.ts";
 
+beforeEach(setupVirtualInstallerFS);
 afterEach(cleanInstallerFixtures);
 
 async function validManifest(source: string): Promise<Record<string, unknown>> {

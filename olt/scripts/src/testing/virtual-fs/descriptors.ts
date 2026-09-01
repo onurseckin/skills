@@ -2,6 +2,11 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { normPath, type VirtualFSSpyState } from "./handlers.ts";
 
+export const origOpenSync = fs.openSync;
+export const origReadSync = fs.readSync;
+export const origWriteSync = fs.writeSync;
+export const origCloseSync = fs.closeSync;
+
 export function mockOpen(state: VirtualFSSpyState, p: fs.PathLike, flags: string | number): number {
   const target = normPath(String(p));
   const numFlags = typeof flags === "number" ? flags : 0;
@@ -16,6 +21,9 @@ export function mockOpen(state: VirtualFSSpyState, p: fs.PathLike, flags: string
     const err = new Error(`EISDIR: illegal operation on a directory, open '${target}'`);
     (err as unknown as { code: string }).code = "EISDIR";
     throw err;
+  }
+  if (!isWrite && !state.vfs.existsSync(target) && !state.symlinks.has(target) && !String(p).startsWith("/virtual")) {
+    return origOpenSync(p, flags);
   }
   if (isWrite && !(numFlags & (fs.constants.O_DIRECTORY ?? 0))) {
     const parent = path.dirname(target);
@@ -46,7 +54,16 @@ export function mockRead(
   position?: number | bigint | null,
 ): number {
   const entry = state.openDescriptors.get(fd);
-  if (!entry || state.vfs.statSync(entry.path, { throwIfNoEntry: false })?.isDirectory()) return 0;
+  if (!entry) {
+    return origReadSync(
+      fd,
+      buffer as NodeJS.ArrayBufferView,
+      offset,
+      length,
+      position as number | null | undefined,
+    );
+  }
+  if (state.vfs.statSync(entry.path, { throwIfNoEntry: false })?.isDirectory()) return 0;
   const data = state.vfs.readFileSync(entry.path);
   const pos = position !== null && position !== undefined ? Number(position) : entry.position;
   const readLen = Math.min(length, Math.max(0, data.length - pos));
@@ -67,7 +84,17 @@ export function mockWrite(
   position?: number | bigint | null,
 ): number {
   const entry = state.openDescriptors.get(fd);
-  if (!entry) return 0;
+  if (!entry) {
+    return typeof buffer === "string"
+      ? (origWriteSync as (...args: unknown[]) => number)(fd, buffer, position as number | undefined)
+      : (origWriteSync as (...args: unknown[]) => number)(
+          fd,
+          buffer,
+          offset ?? undefined,
+          length ?? undefined,
+          position ?? undefined,
+        );
+  }
   const byteBuf =
     typeof buffer === "string"
       ? Buffer.from(buffer)

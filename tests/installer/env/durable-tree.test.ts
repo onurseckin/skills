@@ -1,11 +1,17 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
-import { createServer, type Server } from "node:net";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { syncTree } from "../../../olt/scripts/src/installer/durable-tree.ts";
 import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
+import {
+  cleanupVirtualInstallerFS,
+  registerSpecialFile,
+  setupVirtualInstallerFS,
+} from "../helpers.ts";
+
+beforeEach(setupVirtualInstallerFS);
+afterEach(cleanupVirtualInstallerFS);
 
 describe("syncTree", () => {
   test("fsyncs every file and directory in a nested tree without throwing", () => {
@@ -38,30 +44,15 @@ describe("syncTree", () => {
   });
 
   describe("special files", () => {
-    let server: Server | undefined;
-    let shortRoot: string | undefined;
-
-    afterEach(() => {
-      server?.close();
-      server = undefined;
-      if (shortRoot) rmSync(shortRoot, { recursive: true, force: true });
-      shortRoot = undefined;
-    });
-
-    test("throws on a non-regular, non-directory path such as a unix socket", async () => {
-      // A real AF_UNIX socket path is capped at ~104 bytes on macOS, well under the length that
-      // the shared scratchRoot()'s repo-nested directories produce, so this one case deliberately
-      // uses a short-lived, short-path temp dir instead and cleans it up itself.
-      shortRoot = mkdtempSync(join(tmpdir(), "dt-"));
+    test("throws on a non-regular, non-directory path such as a unix socket", () => {
+      const shortRoot = "/virtual/dt-special";
+      mkdirSync(shortRoot, { recursive: true });
       const socketPath = join(shortRoot, "socket");
-      server = createServer();
-      await new Promise<void>((resolve, reject) => {
-        server?.once("error", reject);
-        server?.listen(socketPath, resolve);
-      });
-      expect(() => syncTree(shortRoot!)).toThrow(HarnessError);
+      writeFileSync(socketPath, "");
+      registerSpecialFile(socketPath, "socket");
+      expect(() => syncTree(shortRoot)).toThrow(HarnessError);
       try {
-        syncTree(shortRoot!);
+        syncTree(shortRoot);
         throw new Error("expected throw");
       } catch (error) {
         expect(error).toBeInstanceOf(HarnessError);

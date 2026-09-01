@@ -1,30 +1,37 @@
-import { afterAll, beforeAll, describe, expect, test, it } from "bun:test";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { join } from "node:path";
 import { createSyntheticPngBuffer } from "../../../olt/scripts/src/capture/runners/live-capture-runner/index.ts";
 import {
   analyzeDualChannel,
-  isUiScope,
-  validateCompanionManifestCriteria,
   type DualChannelInput,
-  type ScreenshotMetadata,
-  type StructuredFinding,
-  type VisualMetricsReport,
 } from "../../../olt/scripts/src/validation/dual-channel-analyzer/index.ts";
+import {
+  cleanupVirtualValidationFS,
+  scratchRoot,
+  setupVirtualValidationFS,
+} from "../validation-fixture.ts";
 
 describe("Semantic Depth Quality Checks (Part 2)", () => {
+  beforeEach(() => {
+    setupVirtualValidationFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualValidationFS();
+  });
+
   it("passes analyzeDualChannel when requireSemanticDepth is active and manifests provide deep quantitative proof", () => {
-    const semanticDepthDir = mkdtempSync(join(tmpdir(), "dual-channel-semantic-depth-"));
+    const semanticDepthDir = scratchRoot("dual-channel-semantic-depth", "depth");
     const desktopPath = join(semanticDepthDir, "header-desktop.png");
     const tabletPath = join(semanticDepthDir, "header-tablet.png");
     const mobilePath = join(semanticDepthDir, "header-mobile.png");
     const desktopBuf = createSyntheticPngBuffer(1440, 900, 4096);
     const tabletBuf = createSyntheticPngBuffer(768, 1024, 3072);
     const mobileBuf = createSyntheticPngBuffer(390, 844, 2048);
-    writeFileSync(desktopPath, desktopBuf);
-    writeFileSync(tabletPath, tabletBuf);
-    writeFileSync(mobilePath, mobileBuf);
+    const vfs = setupVirtualValidationFS();
+    vfs.writeFileSync(desktopPath, desktopBuf);
+    vfs.writeFileSync(tabletPath, tabletBuf);
+    vfs.writeFileSync(mobilePath, mobileBuf);
 
     const input: DualChannelInput = {
       writeScope: ["src/components/Header.tsx"],
@@ -100,14 +107,10 @@ describe("Semantic Depth Quality Checks (Part 2)", () => {
       ],
     };
 
-    try {
-      const result = analyzeDualChannel(input);
-      expect(result.isUiTask).toBe(true);
-      expect(result.passed).toBe(true);
-      expect(result.findings.filter((f) => f.severity === "error")).toHaveLength(0);
-    } finally {
-      rmSync(semanticDepthDir, { recursive: true, force: true });
-    }
+    const result = analyzeDualChannel(input);
+    expect(result.isUiTask).toBe(true);
+    expect(result.passed).toBe(true);
+    expect(result.findings.filter((f) => f.severity === "error")).toHaveLength(0);
   });
 
   it("fails analyzeDualChannel when requireSemanticDepth is active and manifest has superficial details", () => {
