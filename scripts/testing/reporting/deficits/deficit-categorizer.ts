@@ -30,15 +30,15 @@ const LOGIC_REGEX = /\b(function|async|await|return|while|for|yield|class|extend
 export function getCategoryBadge(category: DeficitCategory): string {
   switch (category) {
     case "error-handling":
-      return "🛡️ error-handling";
+      return "error-handling";
     case "branching":
-      return "🔀 branching";
+      return "branching";
     case "initialization":
-      return "⚙️ initialization";
+      return "initialization";
     case "unexercised-logic":
-      return "🧩 unexercised-logic";
+      return "unexercised-logic";
     default:
-      return "🧩 unexercised-logic";
+      return "unexercised-logic";
   }
 }
 

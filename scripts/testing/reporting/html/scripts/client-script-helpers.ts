@@ -35,15 +35,15 @@ export function getClientScriptHelpers(): string {
       html += '<span class="badge ' + badgeClass(f.funcsPct) + '">Funcs: ' + f.funcsPct + '%</span>';
       if (f.testFile) {
         const durText = f.testDurationMs !== undefined ? f.testDurationMs + 'ms' : 'Telemetry';
-        html += '<a href="#runtime?file=' + encodeURIComponent(f.testFile) + '" class="badge badge-neutral" style="text-decoration: none; cursor: pointer;" title="View test runtime ranking">⚡ Test: ' + durText + '</a>';
+        html += '<a href="#runtime?file=' + encodeURIComponent(f.testFile) + '" class="badge badge-neutral" style="text-decoration: none; cursor: pointer;" title="View test runtime ranking">Test: ' + durText + '</a>';
       }
-      html += '<button class="btn" onclick="copyPath(\\'' + escapeHtml(f.path) + '\\')">📋 Copy</button>';
+      html += '<button class="btn" onclick="copyPath(\\'' + escapeHtml(f.path) + '\\')">Copy</button>';
       html += '</div>';
       html += '</div>';
 
       if (f.uncoveredLines.length > 0) {
         html += '<div class="missed-chips-bar">';
-        html += '<span style="font-size: 0.8rem; font-weight: 700; color: #f87171;">⚠️ ' + f.uncoveredLines.length + ' UNCOVERED LINES:</span>';
+        html += '<span style="font-size: 0.8rem; font-weight: 700; color: #f87171;">' + f.uncoveredLines.length + ' UNCOVERED LINES:</span>';
         f.uncoveredLines.forEach(lineNo => {
           html += '<button class="miss-chip" onclick="jumpToLine(' + lineNo + ')">L' + lineNo + '</button>';
         });

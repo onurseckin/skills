@@ -148,13 +148,13 @@ export function getClientScriptUnified(): string {
       if (isDir) {
         const arrow = isExpanded ? '&#9660;' : '&#9654;';
         html += '<span class="tree-expander" onclick="event.stopPropagation(); toggleUnifiedFolder(\\'' + escapeHtml(n.path) + '\\')">' + arrow + '</span>';
-        html += '<span onclick="toggleUnifiedFolder(\\'' + escapeHtml(n.path) + '\\')" style="cursor:pointer;">' + (isExpanded ? '📂' : '📁') + ' <strong>' + escapeHtml(n.name) + '</strong></span>';
+        html += '<span onclick="toggleUnifiedFolder(\\'' + escapeHtml(n.path) + '\\')" style="cursor:pointer; font-weight: 600;">' + escapeHtml(n.name) + '</span>';
         if (n.children) {
           html += ' <span class="badge badge-neutral" style="font-size: 0.7rem; margin-left: 4px;">' + n.children.length + '</span>';
         }
       } else {
         html += '<span class="tree-expander-leaf"></span>';
-        html += '<span onclick="openFile(\\'' + escapeHtml(n.path) + '\\')" style="cursor:pointer;">📄 ' + escapeHtml(n.name) + '</span>';
+        html += '<span onclick="openFile(\\'' + escapeHtml(n.path) + '\\')" style="cursor:pointer; color: var(--text-main);">' + escapeHtml(n.name) + '</span>';
       }
       html += '</div></td>';
 
@@ -174,11 +174,11 @@ export function getClientScriptUnified(): string {
           html += '<span style="font-family: \\'JetBrains Mono\\', monospace; font-weight: 700; color: var(--text-main);">' + n.testDurationMs + 'ms</span>';
         }
         if (n.paretoClass === "p50") {
-          html += '<span class="badge badge-p50" title="Top 50% Latency Hotspot">🎯 P50</span>';
+          html += '<span class="badge badge-p50" title="Top 50% Latency Hotspot">P50</span>';
         } else if (n.paretoClass === "p90") {
-          html += '<span class="badge badge-p90" title="Top 90% Latency Hotspot">📈 P90</span>';
+          html += '<span class="badge badge-p90" title="Top 90% Latency Hotspot">P90</span>';
         } else if (n.paretoClass === "normal") {
-          html += '<span class="badge badge-pnormal">⚡</span>';
+          html += '<span class="badge badge-pnormal">Fast</span>';
         }
       } else {
         html += '<span style="color: var(--text-dim);">-</span>';

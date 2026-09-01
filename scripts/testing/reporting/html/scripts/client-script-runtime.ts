@@ -180,14 +180,14 @@ export function getClientScriptRuntime(): string {
         const durBarPct = maxDur > 0 ? Math.min(100, Math.round((f.durationMs / maxDur) * 100)) : 0;
         const statusBadge = f.passed === false ? '<span class="badge badge-fail">FAIL</span>' : '<span class="badge badge-pass">PASS</span>';
         const matchedSource = findSourceForTest(f.file);
-        const sourceLink = matchedSource 
-          ? '<a href="#coverage/' + escapeHtml(matchedSource) + '" class="badge badge-neutral" style="text-decoration: none; margin-left: 0.5rem; font-size: 0.72rem; cursor: pointer;" title="Inspect ' + escapeHtml(matchedSource) + ' in Coverage Matrix">📄 Matrix</a>'
+        const matrixLink = matchedSource 
+          ? '<a href="#coverage/' + escapeHtml(matchedSource) + '" class="badge badge-neutral" style="text-decoration: none; margin-left: 0.5rem; font-size: 0.72rem; cursor: pointer;" title="Inspect ' + escapeHtml(matchedSource) + ' in Coverage Matrix">Matrix</a>'
           : '';
         const rowId = "rt-row-" + encodeURIComponent(f.file);
 
         html += '<tr id="' + rowId + '" data-test-file="' + escapeHtml(f.file) + '">';
         html += '<td style="font-family: \\'JetBrains Mono\\', monospace; color: var(--text-dim);">' + globalRank + '</td>';
-        html += '<td><div class="item-name">🧪 <strong>' + escapeHtml(f.file) + '</strong>' + sourceLink + '</div></td>';
+        html += '<td><div class="item-name"><strong style="color: var(--text-main);">' + escapeHtml(f.file) + '</strong>' + matrixLink + '</div></td>';
         html += '<td><span style="font-family: \\'JetBrains Mono\\', monospace; font-weight: 700; color: var(--text-main);">' + f.durationMs + 'ms</span></td>';
         html += '<td><span class="badge badge-neutral">' + f.percentage + '%</span></td>';
         html += '<td><div class="runtime-bar-cell"><div class="runtime-bar-track"><div class="runtime-bar-fill" style="width:' + durBarPct + '%"></div></div><span style="font-size: 0.75rem; color: var(--text-dim); font-family: \\'JetBrains Mono\\', monospace;">' + durBarPct + '%</span></div></td>';

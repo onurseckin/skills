@@ -193,7 +193,7 @@ export function generateDeficitRoadmap(
  * Formats a DeficitRoadmap into a clean, human-readable Markdown section.
  */
 export function formatDeficitRoadmapMarkdown(roadmap: DeficitRoadmap, topN: number = 10): string {
-  const lines: string[] = ["## 🎯 Coverage Deficit & Remediation Roadmap", ""];
+  const lines: string[] = ["## Coverage Deficit & Remediation Roadmap", ""];
 
   if (roadmap.clusters.length === 0) {
     lines.push("_No coverage deficits detected. Repository is 100% covered!_", "");
@@ -205,12 +205,12 @@ export function formatDeficitRoadmapMarkdown(roadmap: DeficitRoadmap, topN: numb
     "| :--- | :--- | :--- |",
     `| **Total Uncovered Lines** | **${roadmap.totalUncoveredLines}** | Total deficit lines across repository |`,
     `| **Risk Clusters** | **${roadmap.totalClusters}** | Contiguous uncovered line segments |`,
-    `| **🛡️ Error Handling** | **${roadmap.categoryBreakdown["error-handling"]}** | Catch blocks, throw guards, and error paths |`,
-    `| **🔀 Branching** | **${roadmap.categoryBreakdown.branching}** | Conditional switches, ternaries, and guards |`,
-    `| **⚙️ Initialization** | **${roadmap.categoryBreakdown.initialization}** | Bootstrap, defaults, and constructor paths |`,
-    `| **🧩 Unexercised Logic** | **${roadmap.categoryBreakdown["unexercised-logic"]}** | Functions, routines, and algorithmic bodies |`,
+    `| **Error Handling** | **${roadmap.categoryBreakdown["error-handling"]}** | Catch blocks, throw guards, and error paths |`,
+    `| **Branching** | **${roadmap.categoryBreakdown.branching}** | Conditional switches, ternaries, and guards |`,
+    `| **Initialization** | **${roadmap.categoryBreakdown.initialization}** | Bootstrap, defaults, and constructor paths |`,
+    `| **Unexercised Logic** | **${roadmap.categoryBreakdown["unexercised-logic"]}** | Functions, routines, and algorithmic bodies |`,
     "",
-    "### 🚀 Prioritized Deficit Remediation Plan",
+    "### Prioritized Deficit Remediation Plan",
     "",
     "| Rank | Target File & Range | Uncovered Lines | Repo Gain | File Gain | Category | Heuristic Detail |",
     "| :--- | :--- | :--- | :--- | :--- | :--- | :--- |",

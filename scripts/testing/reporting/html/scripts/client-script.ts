@@ -92,7 +92,7 @@ export function getClientScript(payloadJson: string): string {
 
       const rootCrumb = document.createElement("span");
       rootCrumb.className = "crumb-chip" + (!currentPath && !currentFile ? " crumb-active" : "");
-      rootCrumb.textContent = "📦 root";
+      rootCrumb.textContent = "root";
       rootCrumb.onclick = () => { currentPath = ""; currentFile = null; updateHash("#coverage"); render(); };
       el.appendChild(rootCrumb);
 
@@ -168,8 +168,8 @@ export function getClientScript(payloadJson: string): string {
           valA = a.type === "file" ? a.file.statementsPct : getFolderLinesPct(a);
           valB = b.type === "file" ? b.file.statementsPct : getFolderLinesPct(b);
         } else if (sortColumn === "funcs") {
-          valA = a.type === "file" ? a.file.funcsPct : getFolderFuncsPct(a);
-          valB = b.type === "file" ? b.file.funcsPct : getFolderFuncsPct(b);
+          valA = a.type === "file" ? a.file.funcsPct : getFolderLinesPct(a);
+          valB = b.type === "file" ? b.file.funcsPct : getFolderLinesPct(b);
         }
         if (valA < valB) return sortAsc ? -1 : 1;
         if (valA > valB) return sortAsc ? 1 : -1;
@@ -194,7 +194,7 @@ export function getClientScript(payloadJson: string): string {
           const targetFolder = currentPath ? currentPath + "/" + item.name : item.name;
 
           html += '<tr onclick="openFolder(\\'' + targetFolder + '\\')" style="cursor: pointer;">';
-          html += '<td><div class="item-name">📁 <strong>' + item.name + '</strong> <span class="badge badge-neutral">' + item.files.length + ' files</span></div></td>';
+          html += '<td><div class="item-name"><strong style="color: var(--text-main);">' + item.name + '</strong> <span class="badge badge-neutral">' + item.files.length + ' files</span></div></td>';
           html += '<td><span class="badge ' + badgeClass(linePct) + '">' + linePct + '%</span> (' + coveredLines + '/' + totalLines + ')<div class="mini-progress"><div class="mini-progress-fill" style="width:' + linePct + '%; background:' + colorForPct(linePct) + '"></div></div></td>';
           html += '<td><span class="badge ' + badgeClass(stmtPct) + '">' + stmtPct + '%</span> (' + coveredStmts + '/' + totalStmts + ')</td>';
           html += '<td><span class="badge ' + badgeClass(fnPct) + '">' + fnPct + '%</span> (' + coveredFuncs + '/' + totalFuncs + ')</td>';
@@ -207,7 +207,7 @@ export function getClientScript(payloadJson: string): string {
             : '<span style="color: var(--status-pass); font-weight: 600;">None (100%)</span>';
 
           html += '<tr onclick="openFile(\\'' + f.path + '\\')" style="cursor: pointer;">';
-          html += '<td><div class="item-name">📄 ' + item.name + '</div></td>';
+          html += '<td><div class="item-name"><span style="color: var(--text-main);">' + item.name + '</span></div></td>';
           html += '<td><span class="badge ' + badgeClass(f.linesPct) + '">' + f.linesPct + '%</span> (' + f.linesCovered + '/' + f.linesTotal + ')<div class="mini-progress"><div class="mini-progress-fill" style="width:' + f.linesPct + '%; background:' + colorForPct(f.linesPct) + '"></div></div></td>';
           html += '<td><span class="badge ' + badgeClass(f.statementsPct) + '">' + f.statementsPct + '%</span> (' + f.statementsCovered + '/' + f.statementsTotal + ')</td>';
           html += '<td><span class="badge ' + badgeClass(f.funcsPct) + '">' + f.funcsPct + '%</span> (' + f.funcsCovered + '/' + f.funcsTotal + ')</td>';

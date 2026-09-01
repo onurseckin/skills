@@ -10,7 +10,7 @@ import type { CoverageSummary, FileCoverageMetric, TestRuntimeSummary } from "./
 
 export function formatRuntimeMarkdown(runtime: TestRuntimeSummary): string[] {
   const lines: string[] = [
-    "## ⚡ Test Runtime Performance & Telemetry",
+    "## Test Runtime Performance & Telemetry",
     "",
     "| Runtime Metric | Value | Detail |",
     "| :--- | :--- | :--- |",
@@ -29,27 +29,27 @@ export function formatRuntimeMarkdown(runtime: TestRuntimeSummary): string[] {
       : 0;
 
   lines.push(
-    `| **🎯 Top 50% Concentration** | **${runtime.pareto50.fileCount} files** (${p50Pct}%) | Account for 50% of total run time |`,
+    `| **Top 50% Concentration** | **${runtime.pareto50.fileCount} files** (${p50Pct}%) | Account for 50% of total run time |`,
   );
   lines.push(
-    `| **📈 Top 90% Concentration** | **${runtime.pareto90.fileCount} files** (${p90Pct}%) | Account for 90% of total run time |`,
+    `| **Top 90% Concentration** | **${runtime.pareto90.fileCount} files** (${p90Pct}%) | Account for 90% of total run time |`,
   );
 
   if (runtime.slowestFile) {
     lines.push(
-      `| **🚨 Slowest Test File** | \`${runtime.slowestFile.file}\` | ${runtime.slowestFile.durationMs}ms (${runtime.slowestFile.percentage}%) |`,
+      `| **Slowest Test File** | \`${runtime.slowestFile.file}\` | ${runtime.slowestFile.durationMs}ms (${runtime.slowestFile.percentage}%) |`,
     );
   }
 
   lines.push("");
-  lines.push("### 🐢 Top 10 Slowest Test Files");
+  lines.push("### Top 10 Slowest Test Files");
   lines.push("");
   lines.push("| Rank | Test File | Duration (ms) | Time Share | Result |");
   lines.push("| :--- | :--- | :--- | :--- | :--- |");
 
   const top10 = runtime.files.slice(0, 10);
   top10.forEach((f, idx) => {
-    const statusBadge = f.passed === false ? "🔴 FAIL" : "🟢 PASS";
+    const statusBadge = f.passed === false ? "FAIL" : "PASS";
     lines.push(
       `| ${idx + 1} | \`${f.file}\` | **${f.durationMs}ms** | ${f.percentage}% | ${statusBadge} |`,
     );
@@ -78,13 +78,13 @@ export function buildMarkdownReport(
     "",
     `_Generated: ${new Date().toISOString()}_`,
     "",
-    "## 📊 Executive Summary",
+    "## Executive Summary",
     "",
     "| Metric | Total | Covered | Coverage (%) | Status |",
     "| :--- | :--- | :--- | :--- | :--- |",
-    `| **Lines** | ${total.lines.total} | ${total.lines.covered} | **${total.lines.pct}%** | ${total.lines.pct >= 100 ? "🟢 PASS" : "⚠️ NEEDS WORK"} |`,
-    `| **Statements** | ${total.statements.total} | ${total.statements.covered} | **${total.statements.pct}%** | ${total.statements.pct >= 100 ? "🟢 PASS" : "⚠️ NEEDS WORK"} |`,
-    `| **Functions** | ${total.functions.total} | ${total.functions.covered} | **${total.functions.pct}%** | ${total.functions.pct >= 100 ? "🟢 PASS" : "⚠️ NEEDS WORK"} |`,
+    `| **Lines** | ${total.lines.total} | ${total.lines.covered} | **${total.lines.pct}%** | ${total.lines.pct >= 100 ? "PASS" : "NEEDS WORK"} |`,
+    `| **Statements** | ${total.statements.total} | ${total.statements.covered} | **${total.statements.pct}%** | ${total.statements.pct >= 100 ? "PASS" : "NEEDS WORK"} |`,
+    `| **Functions** | ${total.functions.total} | ${total.functions.covered} | **${total.functions.pct}%** | ${total.functions.pct >= 100 ? "PASS" : "NEEDS WORK"} |`,
     "",
   ];
 
@@ -93,7 +93,7 @@ export function buildMarkdownReport(
     lines.push(...formatRuntimeMarkdown(activeRuntime));
   }
 
-  lines.push("## 📁 Detailed File Breakdown");
+  lines.push("## Detailed File Breakdown");
   lines.push("");
   lines.push(
     "| Source File | Line Coverage | Statement Coverage | Function Coverage | Uncovered Lines |",
@@ -103,10 +103,6 @@ export function buildMarkdownReport(
   const sortedFiles = Array.from(fileMap.values()).sort((a, b) => a.file.localeCompare(b.file));
 
   for (const f of sortedFiles) {
-    const lineGlyph = f.lines.pct >= 100 ? "🟢" : f.lines.pct >= 80 ? "🟡" : "🔴";
-    const stmtGlyph = f.statements.pct >= 100 ? "🟢" : f.statements.pct >= 80 ? "🟡" : "🔴";
-    const fnGlyph = f.functions.pct >= 100 ? "🟢" : f.functions.pct >= 80 ? "🟡" : "🔴";
-
     const uncoveredStr =
       f.uncoveredLines.length > 0
         ? f.uncoveredLines.slice(0, 10).join(", ") +
@@ -114,7 +110,7 @@ export function buildMarkdownReport(
         : "_None (100%)_";
 
     lines.push(
-      `| \`${f.file}\` | ${lineGlyph} ${f.lines.pct}% (${f.lines.covered}/${f.lines.total}) | ${stmtGlyph} ${f.statements.pct}% (${f.statements.covered}/${f.statements.total}) | ${fnGlyph} ${f.functions.pct}% (${f.functions.covered}/${f.functions.total}) | ${uncoveredStr} |`,
+      `| \`${f.file}\` | ${f.lines.pct}% (${f.lines.covered}/${f.lines.total}) | ${f.statements.pct}% (${f.statements.covered}/${f.statements.total}) | ${f.functions.pct}% (${f.functions.covered}/${f.functions.total}) | ${uncoveredStr} |`,
     );
   }
 
