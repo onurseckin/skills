@@ -63,6 +63,9 @@ export function createAsyncFsSpies(
       const data = vfs.readFileSync(t);
       return (enc ? Buffer.from(data).toString(enc as BufferEncoding) : Buffer.from(data)) as never;
     }
+    if (orig.existsSync(t)) {
+      return orig.readFile(t, o as BufferEncoding) as never;
+    }
     if (isVirtualPath(t)) {
       const err = new Error(`ENOENT: no such file or directory, open '${t}'`);
       (err as unknown as { code: string }).code = "ENOENT";

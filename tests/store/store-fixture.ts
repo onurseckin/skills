@@ -49,8 +49,12 @@ export function resetVirtualStore(): void {
   vfs.mkdirSync(VIRTUAL_SCRATCH_BASE, { recursive: true });
 }
 
+let spiesInstalled = false;
 export function setupVirtualStoreFS(): VirtualMemoryFS {
-  createStoreFsSpies(state);
+  if (!spiesInstalled) {
+    createStoreFsSpies(state);
+    spiesInstalled = true;
+  }
   resetVirtualStore();
   restoreDefectDeps = setDefectLogDependenciesForTesting({
     readFile: (p, opt) => fs.readFileSync(p, opt),
