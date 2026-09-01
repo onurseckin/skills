@@ -65,7 +65,7 @@ export class SplitChannelDefectRouter {
     try {
       const isMothership = options.domain === "skill-framework";
       const targetRepoRoot = isMothership
-        ? resolve(resolveSkillHomeRepo())
+        ? resolve(resolveSkillHomeRepo(options.currentRepoRoot))
         : resolve(options.currentRepoRoot);
       targetDefectsPath = resolveDefectsPath(targetRepoRoot);
       const contextSupplied = options.defect.context !== undefined;

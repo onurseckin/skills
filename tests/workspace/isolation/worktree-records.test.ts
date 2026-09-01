@@ -3,7 +3,6 @@ import {
   isWorktreeConsolidationRecord,
   isWorktreeLedgerState,
   type WorktreeLedgerState,
-  type WorktreeRecord,
 } from "../../../olt/scripts/src/core/contracts/git/worktree.ts";
 
 describe("Workspace Isolation: Worktree Records & Ledger State", () => {

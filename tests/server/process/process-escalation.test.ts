@@ -11,15 +11,37 @@ import {
 import type { CommandExecutionResult } from "../../../olt/scripts/src/server/process/index.ts";
 
 describe("process reclaimer subsystem - escalation logic and batch operations", () => {
+  const defaultSyntheticExec = async (
+    cmd: string,
+    args: readonly string[] = [],
+  ): Promise<CommandExecutionResult> => {
+    if (cmd === "ps") {
+      const pid = args.find((a) => /^\d+$/.test(a)) ?? "1000";
+      return {
+        stdout: `${pid} 1 S 1000 Mon Aug 31 05:00:00 2026 node app.js\n`,
+        stderr: "",
+        exitCode: 0,
+      };
+    }
+    return { stdout: "", stderr: "", exitCode: 1 };
+  };
+
+  const createSignalTracker = () => {
+    const signaled: Array<{ pid: number; sig: string }> = [];
+    const signalSender = (pid: number, sig: string) => {
+      signaled.push({ pid, sig });
+      return true;
+    };
+    return { signaled, signalSender };
+  };
+
   describe("reclaimProcess & escalation logic", () => {
     it("handles nonexistent PID cleanly without signaling", async () => {
-      const signaled: Array<{ pid: number; sig: string }> = [];
+      const { signaled, signalSender } = createSignalTracker();
       const result = await reclaimProcess(99999, 3000, {
         isAliveChecker: () => false,
-        signalSender: (pid, sig) => {
-          signaled.push({ pid, sig });
-          return true;
-        },
+        signalSender,
+        execCommand: defaultSyntheticExec,
       });
       expect(result.pid).toBe(99999);
       expect(result.reclaimed).toBe(true);
@@ -28,25 +50,17 @@ describe("process reclaimer subsystem - escalation logic and batch operations", 
     });
 
     it("dry-run mode does not send signals and reports non-reclaimed", async () => {
-      const signaled: Array<{ pid: number; sig: string }> = [];
-      const mockExec = async (cmd: string): Promise<CommandExecutionResult> => {
-        if (cmd === "ps") {
-          return {
-            stdout: "1234 1 S 1000 Mon Aug 31 05:00:00 2026 node app.js\n",
-            stderr: "",
-            exitCode: 0,
-          };
-        }
-        return { stdout: "", stderr: "", exitCode: 1 };
-      };
+      const { signaled, signalSender } = createSignalTracker();
+      const mockExec = async (cmd: string): Promise<CommandExecutionResult> => ({
+        stdout: cmd === "ps" ? "1234 1 S 1000 Mon Aug 31 05:00:00 2026 node app.js\n" : "",
+        stderr: "",
+        exitCode: cmd === "ps" ? 0 : 1,
+      });
 
       const result = await reclaimProcess(1234, 3000, {
         dryRun: true,
         isAliveChecker: () => true,
-        signalSender: (pid, sig) => {
-          signaled.push({ pid, sig });
-          return true;
-        },
+        signalSender,
         execCommand: mockExec,
       });
 
@@ -58,18 +72,19 @@ describe("process reclaimer subsystem - escalation logic and batch operations", 
     });
 
     it("force mode immediately sends SIGKILL and reclaims", async () => {
-      const signaled: Array<{ pid: number; sig: string }> = [];
+      const { signaled, signalSender } = createSignalTracker();
       let alive = true;
 
       const result = await reclaimProcess(5555, 8080, {
         force: true,
         isAliveChecker: () => alive,
         signalSender: (pid, sig) => {
-          signaled.push({ pid, sig });
+          signalSender(pid, sig);
           if (sig === "SIGKILL") alive = false;
           return true;
         },
         sleepFn: async () => {},
+        execCommand: defaultSyntheticExec,
       });
 
       expect(result.pid).toBe(5555);
@@ -79,21 +94,16 @@ describe("process reclaimer subsystem - escalation logic and batch operations", 
     });
 
     it("graceful escalation terminates with SIGTERM if responsive", async () => {
-      const signaled: Array<{ pid: number; sig: string }> = [];
+      const { signaled, signalSender } = createSignalTracker();
       let checkCount = 0;
 
       const result = await reclaimProcess(7777, 3000, {
         gracePeriodMs: 500,
         pollIntervalMs: 10,
-        isAliveChecker: () => {
-          checkCount++;
-          return checkCount <= 2;
-        },
-        signalSender: (pid, sig) => {
-          signaled.push({ pid, sig });
-          return true;
-        },
+        isAliveChecker: () => ++checkCount <= 2,
+        signalSender,
         sleepFn: async () => {},
+        execCommand: defaultSyntheticExec,
       });
 
       expect(result.reclaimed).toBe(true);
@@ -102,7 +112,7 @@ describe("process reclaimer subsystem - escalation logic and batch operations", 
     });
 
     it("graceful escalation escalates to SIGKILL if process ignores SIGTERM", async () => {
-      const signaled: Array<{ pid: number; sig: string }> = [];
+      const { signaled, signalSender } = createSignalTracker();
       let isDead = false;
 
       const result = await reclaimProcess(8888, 3000, {
@@ -114,9 +124,8 @@ describe("process reclaimer subsystem - escalation logic and batch operations", 
           if (sig === "SIGKILL") isDead = true;
           return true;
         },
-        sleepFn: async (ms) => {
-          await new Promise((r) => setTimeout(r, ms));
-        },
+        sleepFn: async (ms) => new Promise((r) => setTimeout(r, ms)),
+        execCommand: defaultSyntheticExec,
       });
 
       expect(result.reclaimed).toBe(true);
@@ -128,25 +137,21 @@ describe("process reclaimer subsystem - escalation logic and batch operations", 
     });
 
     it("reports error if process remains unkillable even after SIGKILL", async () => {
-      const signaled: Array<{ pid: number; sig: string }> = [];
-
+      const { signaled, signalSender } = createSignalTracker();
       const result = await reclaimProcess(9999, 3000, {
         gracePeriodMs: 10,
         pollIntervalMs: 5,
         isAliveChecker: () => true,
-        signalSender: (pid, sig) => {
-          signaled.push({ pid, sig });
-          return true;
-        },
-        sleepFn: async (ms) => {
-          await new Promise((r) => setTimeout(r, ms));
-        },
+        signalSender,
+        sleepFn: async (ms) => new Promise((r) => setTimeout(r, ms)),
+        execCommand: defaultSyntheticExec,
       });
 
       expect(result.reclaimed).toBe(false);
       expect(result.signalSent).toBe("SIGKILL");
       expect(result.error).toBeDefined();
       expect(result.error).toContain("did not respond to SIGTERM or SIGKILL escalation");
+      expect(signaled.length).toBeGreaterThan(0);
     });
 
     it("fails fast immediately on EPERM without polling", async () => {
@@ -165,32 +170,30 @@ describe("process reclaimer subsystem - escalation logic and batch operations", 
         sleepFn: async () => {
           pollCount++;
         },
+        execCommand: defaultSyntheticExec,
       });
 
-      const elapsed = performance.now() - start;
       expect(result.reclaimed).toBe(false);
       expect(result.error).toContain("Permission denied");
       expect(result.error).toContain("EPERM");
       expect(pollCount).toBe(0);
-      expect(elapsed).toBeLessThan(100);
+      expect(performance.now() - start).toBeLessThan(100);
     });
   });
 
   describe("batch reclaimer functions & ProcessReclaimer class", () => {
     it("reclaimPort reclaims all processes on a port", async () => {
-      const signaled: Array<{ pid: number; sig: string }> = [];
-      const mockExec = async (cmd: string): Promise<CommandExecutionResult> => {
-        if (cmd === "lsof") return { stdout: "101\n102\n", stderr: "", exitCode: 0 };
-        return { stdout: "", stderr: "", exitCode: 1 };
-      };
+      const { signalSender } = createSignalTracker();
+      const mockExec = async (cmd: string): Promise<CommandExecutionResult> => ({
+        stdout: cmd === "lsof" ? "101\n102\n" : "",
+        stderr: "",
+        exitCode: cmd === "lsof" ? 0 : 1,
+      });
 
       const results = await reclaimPort(3000, {
         execCommand: mockExec,
         isAliveChecker: () => false,
-        signalSender: (pid, sig) => {
-          signaled.push({ pid, sig });
-          return true;
-        },
+        signalSender,
       });
 
       expect(results.length).toBe(2);
@@ -199,7 +202,7 @@ describe("process reclaimer subsystem - escalation logic and batch operations", 
     });
 
     it("reclaimZombieProcesses only targets orphaned, zombie, or runtime processes", async () => {
-      const signaled: Array<{ pid: number; sig: string }> = [];
+      const { signalSender } = createSignalTracker();
       const mockExec = async (
         cmd: string,
         args: readonly string[],
@@ -227,10 +230,7 @@ describe("process reclaimer subsystem - escalation logic and batch operations", 
       const results = await reclaimZombieProcesses([3000], {
         execCommand: mockExec,
         isAliveChecker: () => false,
-        signalSender: (pid, sig) => {
-          signaled.push({ pid, sig });
-          return true;
-        },
+        signalSender,
       });
 
       expect(results.length).toBe(1);
@@ -238,29 +238,23 @@ describe("process reclaimer subsystem - escalation logic and batch operations", 
     });
 
     it("ProcessReclaimer class encapsulates all methods with defaults", async () => {
-      const mockExec = async (
-        cmd: string,
-        _args: readonly string[],
-      ): Promise<CommandExecutionResult> => {
-        if (cmd === "lsof") return { stdout: "5050\n", stderr: "", exitCode: 0 };
-        if (cmd === "ps") {
-          return {
-            stdout: "5050 1 S 5000 Mon Aug 31 05:00:00 2026 bun dev\n",
-            stderr: "",
-            exitCode: 0,
-          };
-        }
-        return { stdout: "", stderr: "", exitCode: 1 };
-      };
+      const mockExec = async (cmd: string): Promise<CommandExecutionResult> => ({
+        stdout:
+          cmd === "lsof"
+            ? "5050\n"
+            : cmd === "ps"
+              ? "5050 1 S 5000 Mon Aug 31 05:00:00 2026 bun dev\n"
+              : "",
+        stderr: "",
+        exitCode: cmd === "lsof" || cmd === "ps" ? 0 : 1,
+      });
 
       const reclaimer = new ProcessReclaimer({
         execCommand: mockExec,
         isAliveChecker: () => false,
       });
 
-      const pids = await reclaimer.findPidsOnPort(3000);
-      expect(pids).toEqual([5050]);
-
+      expect(await reclaimer.findPidsOnPort(3000)).toEqual([5050]);
       const details = await reclaimer.getProcessDetails(5050);
       expect(details?.pid).toBe(5050);
       expect(details?.name).toBe("bun");
@@ -269,24 +263,16 @@ describe("process reclaimer subsystem - escalation logic and batch operations", 
       expect(occupancy.port).toBe(3000);
       expect(occupancy.processes.length).toBe(1);
 
-      const occupancies = await reclaimer.inspectPorts([3000]);
-      expect(occupancies.length).toBe(1);
-
-      const reclaimRes = await reclaimer.reclaim(5050, 3000);
-      expect(reclaimRes.reclaimed).toBe(true);
-
-      const reclaimPortRes = await reclaimer.reclaimPort(3000);
-      expect(reclaimPortRes.length).toBe(1);
-
-      const reclaimZombiesRes = await reclaimer.reclaimZombies([3000]);
-      expect(reclaimZombiesRes.length).toBe(1);
+      expect((await reclaimer.inspectPorts([3000])).length).toBe(1);
+      expect((await reclaimer.reclaim(5050, 3000)).reclaimed).toBe(true);
+      expect((await reclaimer.reclaimPort(3000)).length).toBe(1);
+      expect((await reclaimer.reclaimZombies([3000])).length).toBe(1);
     });
 
     it("default helpers execute without throwing", async () => {
       expect(defaultIsProcessAlive(process.pid)).toBe(true);
       expect(defaultIsProcessAlive(-1)).toBe(false);
       expect(defaultIsProcessAlive(0)).toBe(false);
-
       expect(defaultSignalSender(-1, "SIGTERM")).toBe(false);
 
       const start = Date.now();

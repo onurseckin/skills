@@ -23,6 +23,8 @@ describe("True Multi-Capsule Parallel Execution Engine & Isolation", () => {
 
   beforeEach(() => {
     vfs = new VirtualMemoryFS();
+    vfs.mkdirSync(process.cwd(), { recursive: true });
+    vfs.writeFileSync(join(process.cwd(), "package.json"), "{}");
     session = createVirtualFSSession(vfs);
   });
 
@@ -198,6 +200,8 @@ describe("True Multi-Capsule Parallel Execution Engine & Isolation", () => {
 
   it("enforces strict anti-sequentiality option by throwing HarnessError if violations present", async () => {
     const testDir = "/tmp/orchestrator-mc-strict";
+    vfs.mkdirSync(join(testDir, ".git"), { recursive: true });
+    vfs.writeFileSync(join(testDir, "package.json"), "{}");
     const orchestrator = new TrueMultiCapsuleOrchestrator({
       strictAntiSequentiality: true,
       allowScopeOverlapInIsolatedWorktrees: false,

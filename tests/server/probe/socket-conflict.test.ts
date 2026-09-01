@@ -1,5 +1,4 @@
-import { describe, expect, test, afterAll, beforeAll } from "bun:test";
-import { createServer, type Server } from "node:net";
+import { describe, expect, test, afterEach, beforeEach } from "bun:test";
 import {
   checkPortAvailability,
   detectInterfaceConflicts,
@@ -10,36 +9,22 @@ import {
   type ComprehensivePortStatus,
   type SocketConflictResult,
 } from "../../../olt/scripts/src/server/probe/index.ts";
+import { setupVirtualNetwork, cleanupVirtualNetwork } from "../fixture.ts";
 
 describe("TCP Port Probe Subsystem - Socket Conflicts & Batch Search", () => {
-  let ipv4Server: Server | undefined;
-  let ipv4Port = 0;
+  const ipv4Port = 49152;
 
-  beforeAll(async () => {
-    await new Promise<void>((resolve, reject) => {
-      const server = createServer();
-      server.listen(0, "127.0.0.1", () => {
-        const addr = server.address();
-        if (addr !== null && typeof addr === "object") {
-          ipv4Port = addr.port;
-          ipv4Server = server;
-          resolve();
-        } else {
-          reject(new Error("Failed to get IPv4 server address"));
-        }
-      });
-      server.once("error", reject);
-    });
+  beforeEach(() => {
+    setupVirtualNetwork([
+      { port: ipv4Port, host: "127.0.0.1" },
+      { port: ipv4Port, host: "0.0.0.0" },
+      { port: ipv4Port, host: "::1" },
+      { port: ipv4Port, host: "::" },
+    ]);
   });
 
-  afterAll(async () => {
-    await new Promise<void>((resolve) => {
-      if (ipv4Server !== undefined) {
-        ipv4Server.close(() => resolve());
-      } else {
-        resolve();
-      }
-    });
+  afterEach(() => {
+    cleanupVirtualNetwork();
   });
 
   describe("Batch Probing (probePorts)", () => {

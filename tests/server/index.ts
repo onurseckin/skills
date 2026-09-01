@@ -12,4 +12,7 @@ export {
   cleanupVirtualServerFS,
   getVirtualServerFS,
   scratchRoot,
+  setupVirtualNetwork,
+  cleanupVirtualNetwork,
+  type VirtualNetworkSession,
 } from "./fixture.ts";

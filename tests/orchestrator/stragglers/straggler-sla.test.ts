@@ -107,6 +107,6 @@ describe("Domain 20: 5-Minute Straggler SLA Partitioning", () => {
     const task = createSampleStragglerTask({ id: "task-custom-sla" });
     expect(task.id).toBe("task-custom-sla");
     expect(task.elapsed_seconds).toBe(350);
-    expect(STRAGGLERS_SUITES.length).toBe(5);
+    expect(STRAGGLERS_SUITES.length).toBe(6);
   });
 });

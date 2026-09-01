@@ -108,9 +108,10 @@ describe("sync-fs-helpers (in-memory virtual)", () => {
         mockFiles.delete(s);
         mockDirs.delete(s);
         mockSymlinks.delete(s);
-        for (const k of [...mockFiles.keys()]) if (k.startsWith(s)) mockFiles.delete(k);
-        for (const k of [...mockDirs]) if (k.startsWith(s)) mockDirs.delete(k);
-        for (const k of [...mockSymlinks.keys()]) if (k.startsWith(s)) mockSymlinks.delete(k);
+        for (const k of Array.from(mockFiles.keys())) if (k.startsWith(s)) mockFiles.delete(k);
+        for (const k of Array.from(mockDirs)) if (k.startsWith(s)) mockDirs.delete(k);
+        for (const k of Array.from(mockSymlinks.keys()))
+          if (k.startsWith(s)) mockSymlinks.delete(k);
       }),
       spyOn(fs, "realpathSync").mockImplementation((p) => String(p)),
     );

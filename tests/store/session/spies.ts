@@ -10,7 +10,8 @@ import { createDescriptorSpies } from "./descriptor-spies.ts";
 import {
   checkReadPermission,
   checkTraversePermission,
-  copyDirRecursive,
+  handleCp,
+  handleRename,
   handleRw,
   isVirtualPath,
   makeFsStats,
@@ -224,26 +225,7 @@ export function createStoreFsSpies(s: VirtualStoreState): Array<{ mockRestore: (
       const sStr = norm(String(src));
       const dStr = norm(String(dst));
       if (s.vfs.existsSync(sStr)) {
-        const st = s.vfs.statSync(sStr);
-        if (st?.isDirectory()) {
-          copyDirRecursive(s.vfs, sStr, dStr, s);
-          s.vfs.rmSync(sStr, { recursive: true, force: true });
-        } else {
-          const parent = path.dirname(dStr);
-          if (parent && !s.vfs.existsSync(parent)) s.vfs.mkdirSync(parent, { recursive: true });
-          s.vfs.writeFileSync(dStr, s.vfs.readFileSync(sStr));
-          s.vfs.unlinkSync(sStr);
-          const mode = s.customModes.get(sStr);
-          if (mode !== undefined) {
-            s.customModes.delete(sStr);
-            s.customModes.set(dStr, mode);
-          }
-          const mtime = s.customMtimes.get(sStr);
-          if (mtime !== undefined) {
-            s.customMtimes.delete(sStr);
-            s.customMtimes.set(dStr, mtime);
-          }
-        }
+        handleRename(s, sStr, dStr);
         return;
       }
       orig.renameSync(sStr, dStr);
@@ -252,15 +234,7 @@ export function createStoreFsSpies(s: VirtualStoreState): Array<{ mockRestore: (
       const sStr = norm(String(src));
       const dStr = norm(String(dst));
       if (s.vfs.existsSync(sStr)) {
-        const st = s.vfs.statSync(sStr);
-        if (st?.isDirectory()) copyDirRecursive(s.vfs, sStr, dStr, s);
-        else {
-          const parent = path.dirname(dStr);
-          if (parent && !s.vfs.existsSync(parent)) s.vfs.mkdirSync(parent, { recursive: true });
-          s.vfs.writeFileSync(dStr, s.vfs.readFileSync(sStr));
-          const mode = s.customModes.get(sStr);
-          if (mode !== undefined) s.customModes.set(dStr, mode);
-        }
+        handleCp(s, sStr, dStr);
         return;
       }
       orig.cpSync(sStr, dStr);

@@ -15,7 +15,6 @@ import {
   resetGlobalToolRegistry,
   scanAndRegisterTools,
   validateToolSpec,
-  type ToolDefinition,
 } from "../../../olt/scripts/src/tooling/index.ts";
 
 describe("Tooling System Test Suite", () => {

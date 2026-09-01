@@ -1,5 +1,5 @@
 import { describe, expect, test, afterEach } from "bun:test";
-import { rmSync, mkdtempSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { HarnessError } from "../../../../../olt/scripts/src/core/errors/index.ts";
@@ -183,8 +183,8 @@ describe("finalizePassingTask - Preconditions & Helpers", () => {
     roots.push(runDir);
 
     const probePath = persistProbeReport(runDir, "T-1", 1, { demand: "proof 1" });
-    expect(await Bun.file(probePath).exists()).toBeTrue();
-    const probeData = await Bun.file(probePath).json();
+    expect(existsSync(probePath)).toBeTrue();
+    const probeData = JSON.parse(readFileSync(probePath, "utf8"));
     expect(probeData.demand).toBe("proof 1");
 
     const reviewPath = persistReviewReport(
@@ -193,8 +193,8 @@ describe("finalizePassingTask - Preconditions & Helpers", () => {
       { status: "pass", verdict: "pass" },
       false,
     );
-    expect(await Bun.file(reviewPath).exists()).toBeTrue();
-    const reviewData = await Bun.file(reviewPath).json();
+    expect(existsSync(reviewPath)).toBeTrue();
+    const reviewData = JSON.parse(readFileSync(reviewPath, "utf8"));
     expect(reviewData.status).toBe("pass");
   });
 

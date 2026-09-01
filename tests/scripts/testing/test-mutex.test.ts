@@ -2,7 +2,6 @@ import { expect, test, describe, beforeEach, afterEach, spyOn } from "bun:test";
 import {
   acquireTestLock,
   createMemoryLockStore,
-  getActiveLockStore,
   isProcessAlive,
   resetLockStore,
   setLockStore,

@@ -213,3 +213,38 @@ export function checkTraversePermission(s: VirtualStoreState, targetPath: string
     curr = next;
   }
 }
+
+export function handleRename(s: VirtualStoreState, src: string, dst: string): void {
+  const st = s.vfs.statSync(src);
+  if (st?.isDirectory()) {
+    copyDirRecursive(s.vfs, src, dst, s);
+    s.vfs.rmSync(src, { recursive: true, force: true });
+  } else {
+    const parent = path.dirname(dst);
+    if (parent && !s.vfs.existsSync(parent)) s.vfs.mkdirSync(parent, { recursive: true });
+    s.vfs.writeFileSync(dst, s.vfs.readFileSync(src));
+    s.vfs.unlinkSync(src);
+    const mode = s.customModes.get(src);
+    if (mode !== undefined) {
+      s.customModes.delete(src);
+      s.customModes.set(dst, mode);
+    }
+    const mtime = s.customMtimes.get(src);
+    if (mtime !== undefined) {
+      s.customMtimes.delete(src);
+      s.customMtimes.set(dst, mtime);
+    }
+  }
+}
+
+export function handleCp(s: VirtualStoreState, src: string, dst: string): void {
+  const st = s.vfs.statSync(src);
+  if (st?.isDirectory()) copyDirRecursive(s.vfs, src, dst, s);
+  else {
+    const parent = path.dirname(dst);
+    if (parent && !s.vfs.existsSync(parent)) s.vfs.mkdirSync(parent, { recursive: true });
+    s.vfs.writeFileSync(dst, s.vfs.readFileSync(src));
+    const mode = s.customModes.get(src);
+    if (mode !== undefined) s.customModes.set(dst, mode);
+  }
+}

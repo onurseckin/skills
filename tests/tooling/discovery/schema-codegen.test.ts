@@ -1,13 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import {
   generateToolCatalogTypeScript,
-  jsonSchemaPropertyToToolParameter,
   jsonSchemaToToolDefinition,
   toCamelCase,
   toolDefinitionToJsonSchema,
   toolDefinitionToTypeScript,
   toolParameterToJsonSchemaProperty,
-  toolParametersToTypeScriptFields,
   toPascalCase,
   type JsonSchemaDocument,
   type ToolDefinition,

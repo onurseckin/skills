@@ -2,7 +2,6 @@ import { describe, expect, it } from "bun:test";
 import {
   buildSyntheticInteractionPlan,
   classifyLayoutShift,
-  DEFAULT_DOM_SIMULATION_OPTIONS,
   resolveDomSimulationOptions,
   type DomSimulationOptions,
   type SyntheticDomEvent,
@@ -55,7 +54,7 @@ function createMockShiftEntry(
     distanceFraction: score > 0 ? score / 0.5 : 0,
     score,
     hadRecentInput: false,
-    sources: new Array(sourcesCount).fill({ isExcluded: false }) as never,
+    sources: Array.from({ length: sourcesCount }).fill({ isExcluded: false }) as never,
     rootCauses: rootCauses.map((rc) => ({
       selector: rc.selector,
       tagName: "div",

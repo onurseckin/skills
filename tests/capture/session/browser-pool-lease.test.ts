@@ -39,7 +39,7 @@ describe("AcquireQueue & isInstanceExpired", () => {
     expect(queue.length).toBe(0);
     expect(queue.dequeue()).toBeUndefined();
 
-    let resolvedInstance: unknown;
+    let _resolvedInstance: unknown;
     let rejectedError: unknown;
 
     const timer1 = setTimeout(() => {}, 10000);
@@ -47,7 +47,7 @@ describe("AcquireQueue & isInstanceExpired", () => {
 
     queue.enqueue({
       resolve: (inst) => {
-        resolvedInstance = inst;
+        _resolvedInstance = inst;
       },
       reject: (err) => {
         rejectedError = err;

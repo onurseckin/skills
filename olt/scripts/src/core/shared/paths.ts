@@ -1,6 +1,6 @@
-import { existsSync, lstatSync, readFileSync, realpathSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { isAbsolute, join, relative, resolve, sep } from "node:path";
+import { join, resolve, sep } from "node:path";
 import { HarnessError } from "../errors/harness-error.ts";
 
 export const OLT_DIR_NAME = ".olt";
@@ -119,9 +119,11 @@ export function resolveScratchDir(_repoRoot?: string): string {
 function resolveSafeRoot(repoRoot?: string): string {
   if (repoRoot) {
     const resolved = resolve(repoRoot);
-    if (isTestEnvironment() && resolved === findRepoRoot()) {
-      return resolveScratchDir();
-    }
+    try {
+      if (isTestEnvironment() && resolved === findRepoRoot()) {
+        return resolveScratchDir();
+      }
+    } catch {}
     return resolved;
   }
   if (isTestEnvironment()) {

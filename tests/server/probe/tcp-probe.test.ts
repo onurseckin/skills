@@ -1,5 +1,4 @@
-import { describe, expect, test, afterAll, beforeAll } from "bun:test";
-import { createServer, type Server } from "node:net";
+import { describe, expect, test, afterEach, beforeEach } from "bun:test";
 import {
   isIpv6,
   isPortInUse,
@@ -11,64 +10,25 @@ import {
   validatePort,
   type TcpProbeResult,
 } from "../../../olt/scripts/src/server/probe/index.ts";
+import { setupVirtualNetwork, cleanupVirtualNetwork } from "../fixture.ts";
 
 describe("TCP Port Probe Subsystem - Connection & Validation", () => {
-  let ipv4Server: Server | undefined;
-  let ipv4Port = 0;
-  let ipv6Server: Server | undefined;
-  let ipv6Port = 0;
+  const ipv4Port = 49153;
+  const ipv6Port = 49154;
 
-  beforeAll(async () => {
-    await new Promise<void>((resolve, reject) => {
-      const server = createServer();
-      server.listen(0, "127.0.0.1", () => {
-        const addr = server.address();
-        if (addr !== null && typeof addr === "object") {
-          ipv4Port = addr.port;
-          ipv4Server = server;
-          resolve();
-        } else {
-          reject(new Error("Failed to get IPv4 server address"));
-        }
-      });
-      server.once("error", reject);
-    });
-
-    await new Promise<void>((resolve) => {
-      const server = createServer();
-      server.listen(0, "::1", () => {
-        const addr = server.address();
-        if (addr !== null && typeof addr === "object") {
-          ipv6Port = addr.port;
-          ipv6Server = server;
-          resolve();
-        } else {
-          resolve();
-        }
-      });
-      server.once("error", () => {
-        resolve();
-      });
-    });
+  beforeEach(() => {
+    setupVirtualNetwork([
+      { port: ipv4Port, host: "127.0.0.1" },
+      { port: ipv4Port, host: "0.0.0.0" },
+      { port: ipv4Port, host: "::1" },
+      { port: ipv4Port, host: "::" },
+      { port: ipv6Port, host: "::1" },
+      { port: ipv6Port, host: "::" },
+    ]);
   });
 
-  afterAll(async () => {
-    await Promise.all([
-      new Promise<void>((resolve) => {
-        if (ipv4Server !== undefined) {
-          ipv4Server.close(() => resolve());
-        } else {
-          resolve();
-        }
-      }),
-      new Promise<void>((resolve) => {
-        if (ipv6Server !== undefined) {
-          ipv6Server.close(() => resolve());
-        } else {
-          resolve();
-        }
-      }),
-    ]);
+  afterEach(() => {
+    cleanupVirtualNetwork();
   });
 
   describe("Utility & Validation Functions", () => {

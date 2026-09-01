@@ -79,9 +79,9 @@ describe("sync-git-source (in-memory virtual)", () => {
         const s = String(p);
         mockFiles.delete(s);
         mockDirs.delete(s);
-        for (const k of [...mockFiles.keys()])
+        for (const k of Array.from(mockFiles.keys()))
           if (k === s || k.startsWith(s + "/") || k.startsWith(s)) mockFiles.delete(k);
-        for (const k of [...mockDirs])
+        for (const k of Array.from(mockDirs))
           if (k === s || k.startsWith(s + "/") || k.startsWith(s)) mockDirs.delete(k);
       }),
       spyOn(fs, "realpathSync").mockImplementation((p) => String(p)),

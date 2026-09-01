@@ -27,3 +27,10 @@ export {
   type RoleResolutionInput,
   type RoleResolutionResult,
 } from "./profiles/index.ts";
+
+export {
+  setupVirtualRolesFS,
+  cleanupVirtualRolesFS,
+  getVirtualRolesFS,
+  scratchRoot,
+} from "./fixture.ts";

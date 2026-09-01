@@ -1,24 +1,14 @@
 import { describe, expect, it } from "bun:test";
 import {
   DynamicToolRegistry,
-  buildJsonSchemaFromTool,
   detectCommandInjection,
   detectPrototypePollution,
   isSafeExecutionPayload,
-  parseParameterConstraint,
-  parseParameterSchema,
-  parseToolSchema,
   sanitizeHtmlContent,
   sanitizePathTraversal,
   sanitizeShellArgument,
   sanitizeToolInput,
   sanitizeValueByPolicy,
-  validateConstraints,
-  validateParameterType,
-  validateParameterValue,
-  validateToolArguments,
-  type ToolDefinition,
-  type ToolParameterSchema,
 } from "../../../olt/scripts/src/tooling/index.ts";
 
 describe("Tool Schemas & Security Validation Unit Test Suite", () => {

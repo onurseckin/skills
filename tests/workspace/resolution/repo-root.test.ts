@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { resolve, join } from "node:path";
+import { join } from "node:path";
 import { findRepoRoot } from "../../../olt/scripts/src/core/shared/paths.ts";
 
 describe("Workspace Resolution: Sovereign Repo Root", () => {

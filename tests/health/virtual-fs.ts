@@ -18,8 +18,10 @@ const origStatSync = fs.statSync.bind(fs);
 const origLstatSync = fs.lstatSync.bind(fs);
 const origRealpathSync = fs.realpathSync.bind(fs);
 
-export function normPath(p: string | number): string {
-  return resolve(String(p)).replace(/\\/g, "/");
+export const normPath = (p: string | number): string => resolve(String(p)).replace(/\\/g, "/");
+
+function makeFsError(msg: string, code: string): Error {
+  return Object.assign(new Error(msg), { code });
 }
 
 export function makeStats(s: VirtualStats, targetPath: string): fs.Stats {
@@ -66,9 +68,10 @@ export function handleRenameSync(src: fs.PathLike, dst: fs.PathLike): void {
     dstStr = normPath(String(dst));
   const stat = vfs.statSync(srcStr, { throwIfNoEntry: false });
   if (!stat) {
-    const err = new Error(`ENOENT: no such file or directory, rename '${srcStr}' -> '${dstStr}'`);
-    (err as unknown as { code: string }).code = "ENOENT";
-    throw err;
+    throw makeFsError(
+      `ENOENT: no such file or directory, rename '${srcStr}' -> '${dstStr}'`,
+      "ENOENT",
+    );
   }
   const cMode = customModes.get(srcStr),
     cTime = customMtimes.get(srcStr);
@@ -85,9 +88,11 @@ export function handleRenameSync(src: fs.PathLike, dst: fs.PathLike): void {
     for (const entry of vfs.readdirSync(srcStr, { recursive: true }) as string[]) {
       const cSrc = `${srcStr}/${entry}`,
         cDst = `${dstStr}/${entry}`;
-      if (vfs.statSync(cSrc, { throwIfNoEntry: false })?.isDirectory())
+      if (vfs.statSync(cSrc, { throwIfNoEntry: false })?.isDirectory()) {
         vfs.mkdirSync(cDst, { recursive: true });
-      else vfs.writeFileSync(cDst, vfs.readFileSync(cSrc));
+      } else {
+        vfs.writeFileSync(cDst, vfs.readFileSync(cSrc));
+      }
     }
     vfs.rmSync(srcStr, { recursive: true, force: true });
   } else {
@@ -106,9 +111,7 @@ function handleStat(p: fs.PathLike, opts?: fs.StatOptions, isLstat = false): fs.
       : true;
   if (deletedPaths.has(norm)) {
     if (!throwIfNoEntry) return undefined;
-    const err = new Error(`ENOENT: no such file or directory, stat '${norm}'`);
-    (err as unknown as { code: string }).code = "ENOENT";
-    throw err;
+    throw makeFsError(`ENOENT: no such file or directory, stat '${norm}'`, "ENOENT");
   }
   const s = vfs.statSync(norm, { throwIfNoEntry: false });
   if (s) return makeStats(s, norm);
@@ -123,9 +126,7 @@ function handleStat(p: fs.PathLike, opts?: fs.StatOptions, isLstat = false): fs.
     }
   }
   if (!throwIfNoEntry) return undefined;
-  const err = new Error(`ENOENT: no such file or directory, stat '${norm}'`);
-  (err as unknown as { code: string }).code = "ENOENT";
-  throw err;
+  throw makeFsError(`ENOENT: no such file or directory, stat '${norm}'`, "ENOENT");
 }
 
 export function setupVirtualHealthFS(): VirtualMemoryFS {
@@ -156,8 +157,9 @@ export function setupVirtualHealthFS(): VirtualMemoryFS {
       const norm = normPath(String(p));
       deletedPaths.delete(norm);
       const res = vfs.mkdirSync(norm, opts as Parameters<typeof vfs.mkdirSync>[1]);
-      if (typeof opts === "object" && opts !== null && typeof opts.mode === "number")
+      if (typeof opts === "object" && opts !== null && typeof opts.mode === "number") {
         customModes.set(norm, opts.mode);
+      }
       return res;
     }),
     spy("mkdtempSync", (prefix: string) => {
@@ -182,15 +184,11 @@ export function setupVirtualHealthFS(): VirtualMemoryFS {
       ) => {
         const norm = normPath(String(p));
         if (deletedPaths.has(norm)) {
-          const err = new Error(`ENOENT: no such file or directory, open '${norm}'`);
-          (err as unknown as { code: string }).code = "ENOENT";
-          throw err;
+          throw makeFsError(`ENOENT: no such file or directory, open '${norm}'`, "ENOENT");
         }
         if (vfs.existsSync(norm)) {
           if (vfs.statSync(norm, { throwIfNoEntry: false })?.isDirectory()) {
-            const err = new Error(`EISDIR: illegal operation on a directory, read '${norm}'`);
-            (err as unknown as { code: string }).code = "EISDIR";
-            throw err;
+            throw makeFsError(`EISDIR: illegal operation on a directory, read '${norm}'`, "EISDIR");
           }
           return typeof opts === "string" || (typeof opts === "object" && opts?.encoding)
             ? vfs.readFileSync(norm, "utf8")
@@ -204,9 +202,7 @@ export function setupVirtualHealthFS(): VirtualMemoryFS {
             );
           } catch {}
         }
-        const err = new Error(`ENOENT: no such file or directory, open '${norm}'`);
-        (err as unknown as { code: string }).code = "ENOENT";
-        throw err;
+        throw makeFsError(`ENOENT: no such file or directory, open '${norm}'`, "ENOENT");
       },
     ),
     spy(
@@ -214,9 +210,7 @@ export function setupVirtualHealthFS(): VirtualMemoryFS {
       (p: fs.PathLike, opts?: { withFileTypes?: boolean } | BufferEncoding | null) => {
         const norm = normPath(String(p));
         if (deletedPaths.has(norm)) {
-          const err = new Error(`ENOENT: no such file or directory, scandir '${norm}'`);
-          (err as unknown as { code: string }).code = "ENOENT";
-          throw err;
+          throw makeFsError(`ENOENT: no such file or directory, scandir '${norm}'`, "ENOENT");
         }
         if (vfs.existsSync(norm)) {
           return (typeof opts === "object" && opts?.withFileTypes
@@ -231,9 +225,7 @@ export function setupVirtualHealthFS(): VirtualMemoryFS {
             ) as unknown as fs.Dirent[] & string[];
           } catch {}
         }
-        const err = new Error(`ENOENT: no such file or directory, scandir '${norm}'`);
-        (err as unknown as { code: string }).code = "ENOENT";
-        throw err;
+        throw makeFsError(`ENOENT: no such file or directory, scandir '${norm}'`, "ENOENT");
       },
     ),
     spy("statSync", (p: fs.PathLike, opts?: fs.StatOptions) => handleStat(p, opts, false)),

@@ -1,9 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import {
-  CAPSULE_LAYOUT,
-  type LayoutEntry,
-  type LayoutRole,
-} from "../../../olt/scripts/src/engine/store/layout/layout.ts";
+import { CAPSULE_LAYOUT } from "../../../olt/scripts/src/engine/store/layout/layout.ts";
 
 describe("Workspace Layout: Capsule Layout Definition", () => {
   it("defines standard capsule layout entries", () => {

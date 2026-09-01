@@ -44,3 +44,11 @@ export {
   lintDirectory,
   collectSourceFiles,
 } from "./engine/index.ts";
+
+// 5. Fixture Subdomain
+export {
+  setupVirtualRulesFS,
+  cleanupVirtualRulesFS,
+  getVirtualRulesFS,
+  scratchRoot,
+} from "./fixture.ts";

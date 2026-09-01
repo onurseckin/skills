@@ -243,7 +243,6 @@ describe("Coverage HTML Dashboard and Artifact Pipeline (in-memory virtual)", ()
       mockFiles.set(lcovPath, sampleLcov);
 
       let checkCount = 0;
-      const origSpy = spies.find((s) => s); // keep track
       spies.push(
         spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => {
           const s = String(p);

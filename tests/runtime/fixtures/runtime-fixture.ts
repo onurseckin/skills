@@ -83,6 +83,18 @@ export function createRuntimeFsHarness(): RuntimeFsHarness {
     return isUtf8 ? val : Buffer.from(val, "utf8");
   });
 
+  const makeStat = (isF: boolean, isD: boolean, isSym: boolean, size: number, nlink = 1) =>
+    ({
+      isFile: () => isF,
+      isDirectory: () => isD,
+      isSymbolicLink: () => isSym,
+      size,
+      nlink,
+      ino: 12345,
+      dev: 1,
+      mtimeMs: Date.now(),
+    }) as unknown as fs.Stats;
+
   const lstatSpy = spyOn(fs, "lstatSync").mockImplementation((p) => {
     const s = normalize(String(p));
     if (!s.startsWith("/virtual/")) return originalLstat(p);
@@ -93,16 +105,7 @@ export function createRuntimeFsHarness(): RuntimeFsHarness {
       throw Object.assign(new Error(`ENOENT: lstat '${s}'`), { code: "ENOENT" });
     const content = files.get(s) ?? "";
     const nlink = fileNlinks.get(s) ?? 1;
-    return {
-      isFile: () => isF && !isSym,
-      isDirectory: () => isD && !isSym,
-      isSymbolicLink: () => isSym,
-      size: Buffer.byteLength(content),
-      nlink,
-      ino: 12345,
-      dev: 1,
-      mtimeMs: Date.now(),
-    } as unknown as fs.Stats;
+    return makeStat(isF && !isSym, isD && !isSym, isSym, Buffer.byteLength(content), nlink);
   });
 
   const statSpy = spyOn(fs, "statSync").mockImplementation((p) => {
@@ -113,16 +116,7 @@ export function createRuntimeFsHarness(): RuntimeFsHarness {
     if (!isD && !isF) throw Object.assign(new Error(`ENOENT: stat '${s}'`), { code: "ENOENT" });
     const content = files.get(s) ?? "";
     const nlink = fileNlinks.get(s) ?? 1;
-    return {
-      isFile: () => isF,
-      isDirectory: () => isD,
-      isSymbolicLink: () => false,
-      size: Buffer.byteLength(content),
-      nlink,
-      ino: 12345,
-      dev: 1,
-      mtimeMs: Date.now(),
-    } as unknown as fs.Stats;
+    return makeStat(isF, isD, false, Buffer.byteLength(content), nlink);
   });
 
   const openSpy = spyOn(fs, "openSync").mockImplementation((p, flags) => {
@@ -141,16 +135,13 @@ export function createRuntimeFsHarness(): RuntimeFsHarness {
     if ((fd as number) < 5000) return originalFstatSync(fd);
     const handle = descriptors.get(fd as number);
     if (!handle) throw Object.assign(new Error("EBADF: fstat"), { code: "EBADF" });
-    return {
-      isFile: () => !handle.isDirectory,
-      isDirectory: () => handle.isDirectory,
-      isSymbolicLink: () => false,
-      size: handle.buffer.length,
-      nlink: handle.nlink,
-      ino: 12345,
-      dev: 1,
-      mtimeMs: Date.now(),
-    } as unknown as fs.Stats;
+    return makeStat(
+      !handle.isDirectory,
+      handle.isDirectory,
+      false,
+      handle.buffer.length,
+      handle.nlink,
+    );
   });
 
   const readSyncSpy = spyOn(fs, "readSync").mockImplementation(
@@ -246,29 +237,33 @@ export function createRuntimeFsHarness(): RuntimeFsHarness {
   const flockSpy = spyOn(flockFfi, "tryExclusiveFlock").mockReturnValue(true);
   const releaseFlockSpy = spyOn(flockFfi, "releaseFlock").mockReturnValue(undefined as never);
 
+  const spies = [
+    existsSpy,
+    mkdirSpy,
+    writeSpy,
+    readSpy,
+    lstatSpy,
+    statSpy,
+    openSpy,
+    fstatSpy,
+    readSyncSpy,
+    writeSyncSpy,
+    renameSpy,
+    chmodSpy,
+    closeSpy,
+    fsyncSpy,
+    readdirSpy,
+    flockSpy,
+    releaseFlockSpy,
+  ];
+
   return {
     files,
     dirs,
     symlinks,
     fileNlinks,
     restore() {
-      existsSpy.mockRestore();
-      mkdirSpy.mockRestore();
-      writeSpy.mockRestore();
-      readSpy.mockRestore();
-      lstatSpy.mockRestore();
-      statSpy.mockRestore();
-      openSpy.mockRestore();
-      fstatSpy.mockRestore();
-      readSyncSpy.mockRestore();
-      writeSyncSpy.mockRestore();
-      renameSpy.mockRestore();
-      chmodSpy.mockRestore();
-      closeSpy.mockRestore();
-      fsyncSpy.mockRestore();
-      readdirSpy.mockRestore();
-      flockSpy.mockRestore();
-      releaseFlockSpy.mockRestore();
+      for (const s of spies) s.mockRestore();
     },
   };
 }
