@@ -30,7 +30,8 @@ export function evaluateSubstantiveDefense(submission: DefenseSubmission): Defen
 
   // 3. Evidence references or architectural tradeoff explanation check
   const evidenceCount = submission.evidenceReferences?.length ?? 0;
-  const hasTradeoff = !!submission.architecturalTradeoff && submission.architecturalTradeoff.trim().length >= 10;
+  const hasTradeoff =
+    !!submission.architecturalTradeoff && submission.architecturalTradeoff.trim().length >= 10;
 
   if (evidenceCount === 0 && !hasTradeoff) {
     reasons.push(

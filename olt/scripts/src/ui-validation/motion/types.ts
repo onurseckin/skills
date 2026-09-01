@@ -144,7 +144,6 @@ export interface MotionHeadlessPreFlightResult {
   readonly violations: readonly string[];
 }
 
-
 export interface KeyframeSamplePoint {
   readonly point: "0%" | "50%" | "100%" | number;
   readonly timestampMs: number;
@@ -176,7 +175,6 @@ export interface TemporalKeyframeInspectionResult {
   readonly blurArtifactDetected: boolean;
   readonly violations: readonly string[];
 }
-
 
 export interface FocusRingMetrics {
   readonly selector: string;
@@ -240,4 +238,3 @@ export interface SpringPhysicsInspectionResult {
   readonly jitterDetected: boolean;
   readonly violations: readonly string[];
 }
-

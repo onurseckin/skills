@@ -30,11 +30,7 @@ export class OpticalStabilityBarrier {
   /**
    * Verifies the authenticity and freshness of a readiness token
    */
-  public verifyReadinessToken(
-    token: string,
-    keyString: string,
-    maxAgeMs: number = 60000,
-  ): boolean {
+  public verifyReadinessToken(token: string, keyString: string, maxAgeMs: number = 60000): boolean {
     if (!token || !token.startsWith("ost_")) {
       return false;
     }
@@ -76,8 +72,7 @@ export class OpticalStabilityBarrier {
 
     // Factor 1: Network Quiescence
     const networkSettled =
-      input.inFlightRequests === 0 &&
-      input.networkQuiescenceDurationMs >= minQuiescence;
+      input.inFlightRequests === 0 && input.networkQuiescenceDurationMs >= minQuiescence;
     if (input.inFlightRequests > 0) {
       failureReasons.push(
         `Network active: ${input.inFlightRequests} in-flight HTTP/WebSocket requests`,
@@ -89,8 +84,7 @@ export class OpticalStabilityBarrier {
     }
 
     // Factor 2: Font & Asset Settling
-    const fontAndAssetsSettled =
-      input.fontsReady && input.unrenderedAssetCount === 0;
+    const fontAndAssetsSettled = input.fontsReady && input.unrenderedAssetCount === 0;
     if (!input.fontsReady) {
       failureReasons.push("Document fonts (document.fonts.ready) not yet resolved");
     }
@@ -121,9 +115,7 @@ export class OpticalStabilityBarrier {
     if (layoutAndAnimationsSettled) score += 0.3;
 
     const stable = score >= 0.99 && failureReasons.length === 0;
-    const readinessToken = stable
-      ? this.generateReadinessToken(keyString, Date.now())
-      : undefined;
+    const readinessToken = stable ? this.generateReadinessToken(keyString, Date.now()) : undefined;
 
     return {
       stable,
@@ -140,4 +132,3 @@ export class OpticalStabilityBarrier {
 // ============================================================================
 // 3. Three-Tier Visual Evidence Lifecycle Architecture
 // ============================================================================
-

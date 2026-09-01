@@ -18,10 +18,7 @@ export class JourneyFlowEngine {
     observedBreadcrumbs: readonly string[],
   ): BreadcrumbVerificationResult {
     if (!expectedBreadcrumbs || !observedBreadcrumbs) {
-      throw new HarnessError(
-        "INVALID_ARGUMENT",
-        "Breadcrumb arrays must not be undefined or null",
-      );
+      throw new HarnessError("INVALID_ARGUMENT", "Breadcrumb arrays must not be undefined or null");
     }
 
     const missingBreadcrumbs = expectedBreadcrumbs.filter(
@@ -59,17 +56,11 @@ export class JourneyFlowEngine {
     stepHandler?: JourneyStepHandler,
   ): Promise<JourneyFlowResult> {
     if (!flow || !flow.id || !flow.steps) {
-      throw new HarnessError(
-        "INVALID_ARGUMENT",
-        "Invalid journey flow structure supplied",
-      );
+      throw new HarnessError("INVALID_ARGUMENT", "Invalid journey flow structure supplied");
     }
 
     if (flow.steps.length === 0) {
-      throw new HarnessError(
-        "INVALID_ARGUMENT",
-        "Journey flow must contain at least one step",
-      );
+      throw new HarnessError("INVALID_ARGUMENT", "Journey flow must contain at least one step");
     }
 
     const executedSteps: JourneyStepResult[] = [];

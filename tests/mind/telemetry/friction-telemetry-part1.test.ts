@@ -34,5 +34,3 @@ import type {
   RecordExecutionEventInput,
   StrategicFrictionIntervention,
 } from "../../../olt/scripts/src/mind/telemetry/types.ts";
-
-

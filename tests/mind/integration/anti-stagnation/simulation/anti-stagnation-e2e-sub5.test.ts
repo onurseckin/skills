@@ -82,7 +82,7 @@ import {
 } from "../../../../../olt/scripts/src/mind/telemetry/index.ts";
 
 describe("Anti-Stagnation End-to-End Multi-Hour Sovereign Simulation Suite", () => {
-let testRepoRoot: string;
+  let testRepoRoot: string;
 
   beforeEach(() => {
     testRepoRoot = join(
@@ -103,7 +103,7 @@ let testRepoRoot: string;
     }
   });
 
-describe("6. Autonomous Resource Governor & Suspended Animation Protocol", () => {
+  describe("6. Autonomous Resource Governor & Suspended Animation Protocol", () => {
     it("freezes state and sub-second timers upon quota exhaustion, then performs lossless auto-wake resumption", async () => {
       const snapPath = join(testRepoRoot, ".olt", "suspended-state.json");
       const governor = createResourceGovernor({

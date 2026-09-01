@@ -29,7 +29,7 @@ import {
 } from "../../../../../olt/scripts/src/mind/memory/index.ts";
 
 describe("ThreeTierMemoryEngine Test Suite", () => {
-describe("Snapshot Persistence & Restoration Roundtrips", () => {
+  describe("Snapshot Persistence & Restoration Roundtrips", () => {
     it("exports full 3-tier memory snapshot and faithfully restores from state", () => {
       const engine = new ThreeTierMemoryEngine();
 
@@ -82,9 +82,7 @@ describe("Snapshot Persistence & Restoration Roundtrips", () => {
       expect(restoredWork?.totalMilestones).toBe(5);
 
       expect(restored.getArchivedEpicCount()).toBe(1);
-      expect(restored.getArchivedEntry("arch-snap-1")?.summaryAbstract).toBe(
-        "Archived abstract.",
-      );
+      expect(restored.getArchivedEntry("arch-snap-1")?.summaryAbstract).toBe("Archived abstract.");
 
       const restoredIndex = restored.getSupersessionIndex();
       expect(restoredIndex.hasEntry("inv-snap-1")).toBe(true);

@@ -169,8 +169,4 @@ export type {
   WorkingMemoryStatus,
 } from "./three-tier-memory.ts";
 
-export {
-  ThreeTierMemoryEngine,
-} from "./three-tier-memory.ts";
-
-
+export { ThreeTierMemoryEngine } from "./three-tier-memory.ts";

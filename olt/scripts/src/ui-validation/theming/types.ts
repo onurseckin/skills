@@ -63,18 +63,13 @@ export interface HighContrastBoundaryReport {
   readonly issues: readonly string[];
 }
 
-
 /**
  * ============================================================================
  * 1. 12-Permutation Surface Grid Architecture
  * ============================================================================
  */
 
-export const PERMUTATION_THEMES: readonly ThemeMode[] = [
-  "light",
-  "dark",
-  "high-contrast",
-] as const;
+export const PERMUTATION_THEMES: readonly ThemeMode[] = ["light", "dark", "high-contrast"] as const;
 
 export type ViewportProfileName =
   | "ultra-wide"
@@ -151,7 +146,6 @@ export const THEME_PERMUTATION_GRID: readonly PermutationSurface[] = PERMUTATION
     }),
 );
 
-
 export interface RgbColor {
   readonly r: number;
   readonly g: number;
@@ -183,7 +177,6 @@ export interface ThematicGateReport {
   readonly generatedAt: string;
 }
 
-
 export interface ThemeFlashDetectionInput {
   readonly initialHtmlBg: string;
   readonly loadedThemeBg: string;
@@ -197,4 +190,3 @@ export interface ThemeFlashReport {
   readonly deltaLuminance: number;
   readonly recommendations: readonly string[];
 }
-

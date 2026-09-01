@@ -114,9 +114,7 @@ function createPopulatedTestEngine(): ThreeTierMemoryEngine {
 }
 
 describe("RetrievalSandbox Test Suite", () => {
-
-
-describe("Token Scoring & Multi-Dimensional Filtering", () => {
+  describe("Token Scoring & Multi-Dimensional Filtering", () => {
     it("ranks title and tag matches higher than general content matches", () => {
       const engine = new ThreeTierMemoryEngine();
 

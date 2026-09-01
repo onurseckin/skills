@@ -1,31 +1,32 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { quotaCheckCommand } from "../../../../../olt/scripts/src/cli/commands/quota-check.ts";
 import { quotaFreezeCommand } from "../../../../../olt/scripts/src/cli/commands/quota-freeze.ts";
 import { QuotaCircuitBreaker } from "../../../../../olt/scripts/src/telemetry/circuit-breaker.ts";
-import { HarnessError } from "../../../../../olt/scripts/src/core/errors/index.ts";
 import { findRepoRoot } from "../../../../../olt/scripts/src/core/shared/paths.ts";
-import { loadRun } from "../../../../../olt/scripts/src/engine/store/index.ts";
+import { initCapsuleRun, loadRun } from "../../../../../olt/scripts/src/engine/store/index.ts";
 import type { CollectorEnvironment } from "../../../../../olt/scripts/src/telemetry/collectors/index.ts";
 import {
-  cleanupRoots,
   cleanupVirtualCliFS,
+  getVirtualCliFS,
   setupVirtualCliFS,
 } from "../../fixtures/full-lifecycle-fixture.ts";
-import { setupCompiledRun } from "../../fixtures/task-ops-fixture.ts";
 
-const roots: string[] = [];
 beforeEach(() => {
   setupVirtualCliFS();
 });
-afterEach(async () => {
-  await cleanupRoots(roots);
+
+afterEach(() => {
   cleanupVirtualCliFS();
 });
 
-function initGitRepo(repo: string): void {
-  mkdirSync(join(repo, ".git"), { recursive: true });
+function setupQuotaRun(name: string): { repo: string; run: string } {
+  const repo = `/virtual/cli/quota-${name}`;
+  const vfs = getVirtualCliFS();
+  vfs.mkdirSync(join(repo, ".git"), { recursive: true });
+  vfs.writeFileSync(join(repo, "package.json"), "{}");
+  const { runRoot } = initCapsuleRun(`quota-${name}`, { repo });
+  return { repo, run: runRoot };
 }
 
 describe("quota-check CLI command", () => {
@@ -84,7 +85,7 @@ describe("quota-check CLI command", () => {
     const res = await quotaCheckCommand(
       {
         platform: "anthropic",
-        threshold: "NaN", // Exercises NaN fallback to 10.0
+        threshold: "NaN",
       },
       undefined,
       undefined,
@@ -101,12 +102,11 @@ describe("quota-check CLI command", () => {
 
 describe("quota-freeze CLI command", () => {
   test("throws HarnessError on invalid repo path mismatch", async () => {
-    const { run } = await setupCompiledRun("quota-freeze-path-safety", roots);
-
+    const { run } = setupQuotaRun("freeze-path-safety");
     const fakeRepo = `/virtual/cli/fake-repo-${Date.now()}`;
-    roots.push(fakeRepo);
-    mkdirSync(fakeRepo, { recursive: true });
-    writeFileSync(join(fakeRepo, "package.json"), "{}", "utf-8");
+    const vfs = getVirtualCliFS();
+    vfs.mkdirSync(fakeRepo, { recursive: true });
+    vfs.writeFileSync(join(fakeRepo, "package.json"), "{}");
 
     await expect(
       quotaFreezeCommand({
@@ -119,7 +119,7 @@ describe("quota-freeze CLI command", () => {
   });
 
   test("skips freeze when quota is healthy and force is false", async () => {
-    const { run } = await setupCompiledRun("quota-freeze-healthy", roots);
+    const { run } = setupQuotaRun("freeze-healthy");
     const loaded = loadRun(run, false);
     const verifiedRepo = findRepoRoot(loaded.runRoot);
 
@@ -150,8 +150,7 @@ describe("quota-freeze CLI command", () => {
   });
 
   test("forces freeze even when quota is healthy", async () => {
-    const { run, repo } = await setupCompiledRun("quota-freeze-force", roots);
-    initGitRepo(repo);
+    const { run, repo } = setupQuotaRun("freeze-force");
     const loaded = loadRun(run, false);
     const verifiedRepo = findRepoRoot(loaded.runRoot);
 
@@ -181,8 +180,7 @@ describe("quota-freeze CLI command", () => {
   });
 
   test("freezes DAG automatically when quota is triggered", async () => {
-    const { run, repo } = await setupCompiledRun("quota-freeze-triggered", roots);
-    initGitRepo(repo);
+    const { run, repo } = setupQuotaRun("freeze-triggered");
     const loaded = loadRun(run, false);
     const verifiedRepo = findRepoRoot(loaded.runRoot);
 
@@ -208,7 +206,7 @@ describe("quota-freeze CLI command", () => {
     const res = await quotaFreezeCommand({
       run,
       repo: verifiedRepo,
-      threshold: "NaN", // NaN fallback branch
+      threshold: "NaN",
       "active-agents": 1,
     });
 

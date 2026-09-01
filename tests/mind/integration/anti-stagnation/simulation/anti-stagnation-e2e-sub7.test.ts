@@ -82,7 +82,7 @@ import {
 } from "../../../../../olt/scripts/src/mind/telemetry/index.ts";
 
 describe("Anti-Stagnation End-to-End Multi-Hour Sovereign Simulation Suite", () => {
-let testRepoRoot: string;
+  let testRepoRoot: string;
 
   beforeEach(() => {
     testRepoRoot = join(
@@ -103,7 +103,7 @@ let testRepoRoot: string;
     }
   });
 
-describe("9. Multi-Hour Sovereign Simulation (1h -> 2h -> 4h -> 8h -> 12h Progression)", () => {
+  describe("9. Multi-Hour Sovereign Simulation (1h -> 2h -> 4h -> 8h -> 12h Progression)", () => {
     it("simulates continuous 12-hour sovereign operation across 48 fifteen-minute epochs with 0 cognitive decay", () => {
       const simulationBaseTime = 1_000_000;
       const totalHours = 12;
@@ -136,9 +136,15 @@ describe("9. Multi-Hour Sovereign Simulation (1h -> 2h -> 4h -> 8h -> 12h Progre
 
       const balanceReport = portfolioManager.auditPortfolioBalance(initialWorkstreams);
       expect(balanceReport.isBalanced).toBe(true);
-      expect(balanceReport.distributionPercentages[PORTFOLIO_TRACKS.CORE_STABILITY_AND_POLISH]).toBe(70);
-      expect(balanceReport.distributionPercentages[PORTFOLIO_TRACKS.ARCHITECTURAL_EVOLUTION]).toBe(20);
-      expect(balanceReport.distributionPercentages[PORTFOLIO_TRACKS.EXPLORATORY_HORIZON_BETS]).toBe(10);
+      expect(
+        balanceReport.distributionPercentages[PORTFOLIO_TRACKS.CORE_STABILITY_AND_POLISH],
+      ).toBe(70);
+      expect(balanceReport.distributionPercentages[PORTFOLIO_TRACKS.ARCHITECTURAL_EVOLUTION]).toBe(
+        20,
+      );
+      expect(balanceReport.distributionPercentages[PORTFOLIO_TRACKS.EXPLORATORY_HORIZON_BETS]).toBe(
+        10,
+      );
 
       // Multi-Hour Epoch Loop
       for (let epoch = 0; epoch < totalEpochs; epoch++) {
@@ -179,15 +185,23 @@ describe("9. Multi-Hour Sovereign Simulation (1h -> 2h -> 4h -> 8h -> 12h Progre
           });
 
           socraticEngine.evaluateCycle(cycleId, topic);
-          socraticEngine.submitResponse(cycleId, `Second-order blast radius contained for Hour ${simHour}`, {
-            isSatisfactory: true,
-          });
+          socraticEngine.submitResponse(
+            cycleId,
+            `Second-order blast radius contained for Hour ${simHour}`,
+            {
+              isSatisfactory: true,
+            },
+          );
 
           socraticEngine.evaluateCycle(cycleId, topic);
-          socraticEngine.submitResponse(cycleId, `Emergent architecture validated for Hour ${simHour}`, {
-            isSatisfactory: true,
-            consensusReached: true,
-          });
+          socraticEngine.submitResponse(
+            cycleId,
+            `Emergent architecture validated for Hour ${simHour}`,
+            {
+              isSatisfactory: true,
+              consensusReached: true,
+            },
+          );
 
           socraticEngine.recordConsensus(
             cycleId,
@@ -213,7 +227,9 @@ describe("9. Multi-Hour Sovereign Simulation (1h -> 2h -> 4h -> 8h -> 12h Progre
       expect(scoringEngine.isRoadmapExpansionLocked()).toBe(false);
       expect(dashboardEngine.getState().trajectory.autonomousUptimeSeconds).toBe(12 * 3600);
       expect(dashboardEngine.getState().trajectory.autonomousUptime).toBe("12h 0m 0s");
-      expect(dashboardEngine.getState().trajectory.systemicHealthScore).toBeGreaterThanOrEqual(0.85);
+      expect(dashboardEngine.getState().trajectory.systemicHealthScore).toBeGreaterThanOrEqual(
+        0.85,
+      );
     });
   });
 });

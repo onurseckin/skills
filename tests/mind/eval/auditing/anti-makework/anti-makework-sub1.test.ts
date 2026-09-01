@@ -16,9 +16,7 @@ import {
 } from "../../../../../olt/scripts/src/mind/auditing/anti-makework/index.ts";
 
 describe("Anti-Make-Work Safeguards & Synthetic Churn Detection", () => {
-
-
-describe("Pillars & Definitions", () => {
+  describe("Pillars & Definitions", () => {
     it("exports the Five Pillars of Genuine Value", () => {
       expect(GENUINE_VALUE_PILLARS.length).toBe(5);
       expect(GENUINE_VALUE_PILLARS).toContain("USER_FACING_DELIGHT_AND_POLISH");
@@ -46,7 +44,7 @@ describe("Pillars & Definitions", () => {
     });
   });
 
-describe("SyntheticChurnDetector", () => {
+  describe("SyntheticChurnDetector", () => {
     describe("detectCosmeticChurn", () => {
       it("detects rename-only cosmetic changes", () => {
         const diff: DiffAnalysisInput = {

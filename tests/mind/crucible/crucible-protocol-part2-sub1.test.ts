@@ -16,7 +16,7 @@ import {
 } from "../../../olt/scripts/src/mind/planning/pareto-arbitration.ts";
 
 describe("Empirical Crucible Protocol & Bedrock Invariant Commitment", () => {
-describe("SettledInvariantRepository", () => {
+  describe("SettledInvariantRepository", () => {
     it("commits winning resolution as a Tier 1 Bedrock Invariant with >= 10x reopen protection", () => {
       const repo = new SettledInvariantRepository();
 

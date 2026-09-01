@@ -82,7 +82,27 @@ import {
 } from "../../../../../olt/scripts/src/mind/telemetry/index.ts";
 
 describe("Anti-Stagnation End-to-End Multi-Hour Sovereign Simulation Suite", () => {
-describe("6. Autonomous Resource Governor & Suspended Animation Protocol", () => {
+  let testRepoRoot: string;
+
+  beforeEach(() => {
+    testRepoRoot = join(
+      tmpdir(),
+      `mind-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    );
+    mkdirSync(testRepoRoot, { recursive: true });
+    mkdirSync(join(testRepoRoot, ".olt"), { recursive: true });
+    mkdirSync(join(testRepoRoot, ".olt", "mailboxes"), { recursive: true });
+  });
+
+  afterEach(() => {
+    try {
+      rmSync(testRepoRoot, { recursive: true, force: true });
+    } catch {
+      // Best effort cleanup
+    }
+  });
+
+  describe("6. Autonomous Resource Governor & Suspended Animation Protocol", () => {
     it("freezes state and sub-second timers upon quota exhaustion, then performs lossless auto-wake resumption", async () => {
       const snapPath = join(testRepoRoot, ".olt", "suspended-state.json");
       const governor = createResourceGovernor({
@@ -178,7 +198,7 @@ describe("6. Autonomous Resource Governor & Suspended Animation Protocol", () =>
     });
   });
 
-describe("7. Live Executive Dashboard Observability", () => {
+  describe("7. Live Executive Dashboard Observability", () => {
     it("asynchronously updates .olt/executive-dashboard.md and .olt/dashboard.json with 70/20/10 portfolio balance and health metrics", async () => {
       const dashboardEngine = new ExecutiveDashboardEngine(undefined, testRepoRoot);
 

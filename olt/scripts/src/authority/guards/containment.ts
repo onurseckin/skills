@@ -68,9 +68,20 @@ export function resetDefaultContainmentEngine(): void {
 }
 
 const SUPERVISORY_ROLE_NAMES: ReadonlySet<string> = new Set([
-  "mind", "mind-supervisor", "tier-0", "mind-auditor", "skill-auditor",
-  "orchestrator", "domain-orchestrator", "orch", "tier-1",
-  "coordinator", "feature-coordinator", "domain-coordinator", "coord", "tier-2",
+  "mind",
+  "mind-supervisor",
+  "tier-0",
+  "mind-auditor",
+  "skill-auditor",
+  "orchestrator",
+  "domain-orchestrator",
+  "orch",
+  "tier-1",
+  "coordinator",
+  "feature-coordinator",
+  "domain-coordinator",
+  "coord",
+  "tier-2",
 ]);
 
 export function isSupervisoryRoleForContainment(role: string): boolean {
@@ -100,11 +111,18 @@ const DIRECT_MUTATION_PATTERNS: readonly RegExp[] = [
 ];
 
 const DELEGATION_BYPASS_COMMANDS: ReadonlySet<string> = new Set([
-  "task:claim", "task:lease", "task:submit", "claim_task", "lease_task",
+  "task:claim",
+  "task:lease",
+  "task:submit",
+  "claim_task",
+  "lease_task",
 ]);
 
 const CRITIC_COMMANDS: ReadonlySet<string> = new Set([
-  "critic:review", "critic:reject", "critic:remediate", "critic:start",
+  "critic:review",
+  "critic:reject",
+  "critic:remediate",
+  "critic:start",
 ]);
 
 export interface SupervisoryViolationDetection {
@@ -182,8 +200,16 @@ export function detectSupervisoryViolation(params: {
 
   if (params.targetFile && params.toolName) {
     const norm = params.toolName.toLowerCase().trim();
-    if (norm.includes("write") || norm.includes("edit") || norm.includes("replace") || norm.includes("patch")) {
-      return { violationType: "DIRECT_CODE_EDIT", attemptedAction: `${params.toolName} -> ${params.targetFile}` };
+    if (
+      norm.includes("write") ||
+      norm.includes("edit") ||
+      norm.includes("replace") ||
+      norm.includes("patch")
+    ) {
+      return {
+        violationType: "DIRECT_CODE_EDIT",
+        attemptedAction: `${params.toolName} -> ${params.targetFile}`,
+      };
     }
   }
 

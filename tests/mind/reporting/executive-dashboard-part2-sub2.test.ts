@@ -23,7 +23,21 @@ import {
 } from "../../../olt/scripts/src/mind/reporting/index.ts";
 
 describe("Live Executive Briefing Dashboard Suite", () => {
-describe("ExecutiveDashboardEngine Interactive Update Operations", () => {
+  let tempRepo: string;
+
+  beforeEach(() => {
+    tempRepo = mkdtempSync(join(tmpdir(), "mind-dashboard-test-"));
+  });
+
+  afterEach(() => {
+    try {
+      rmSync(tempRepo, { recursive: true, force: true });
+    } catch {
+      // Best effort cleanup
+    }
+  });
+
+  describe("ExecutiveDashboardEngine Interactive Update Operations", () => {
     it("updates trajectory, records pareto decisions, bedrock invariants, product craft audits, and deliverables", () => {
       const engine = new ExecutiveDashboardEngine();
       expect(engine.getState().schemaVersion).toBe("1.0.0");
@@ -49,7 +63,8 @@ describe("ExecutiveDashboardEngine Interactive Update Operations", () => {
         chosenPriorityLevel: 2,
         priorityName: "Priority 2: Cognitive Simplicity & Architectural Maintainability",
         empiricalDelta: "+55% Speedup with 0 dependencies",
-        rationale: "Unconditionally beats complex multi-layer abstractions with negligible cognitive footprint.",
+        rationale:
+          "Unconditionally beats complex multi-layer abstractions with negligible cognitive footprint.",
         arbitratedAt: new Date().toISOString(),
       };
 
@@ -61,7 +76,8 @@ describe("ExecutiveDashboardEngine Interactive Update Operations", () => {
       const newInvariant: BedrockInvariantRecord = {
         id: "AXIOM-006",
         name: "Non-Disruptive Observability Invariant",
-        statement: "Dashboard updates must never interrupt active agent threads or block sovereign execution loops.",
+        statement:
+          "Dashboard updates must never interrupt active agent threads or block sovereign execution loops.",
         domain: "Observability",
         lockedAt: new Date().toISOString(),
       };
@@ -127,7 +143,7 @@ describe("ExecutiveDashboardEngine Interactive Update Operations", () => {
     });
   });
 
-describe("Asynchronous & Synchronous File I/O Persistence", () => {
+  describe("Asynchronous & Synchronous File I/O Persistence", () => {
     it("writes and reads executive-dashboard.md and dashboard.json without disrupting execution", async () => {
       const engine = new ExecutiveDashboardEngine(undefined, tempRepo);
 

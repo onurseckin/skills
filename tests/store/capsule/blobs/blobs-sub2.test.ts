@@ -23,7 +23,11 @@ import {
   putBlobFile,
   type ViewLinker,
 } from "../../../../olt/scripts/src/engine/store/layout/blobs.ts";
-import { cleanupVirtualStoreFS, scratchRoot as makeScratchRoot, setupVirtualStoreFS } from "../../store-fixture.ts";
+import {
+  cleanupVirtualStoreFS,
+  scratchRoot as makeScratchRoot,
+  setupVirtualStoreFS,
+} from "../../store-fixture.ts";
 
 beforeEach(() => {
   setupVirtualStoreFS();
@@ -42,9 +46,7 @@ function sha256Of(content: string): string {
 }
 
 describe("blobRelativePath", () => {
-
-
-test("skips a shard entry that is not a directory and a dotfile shard", () => {
+  test("skips a shard entry that is not a directory and a dotfile shard", () => {
     const root = scratchRoot("skips-a-shard-entry-that-is-not-a-directory-and-a-");
     mkdirSync(join(root, "blobs"));
     writeFileSync(join(root, "blobs", "not-a-shard-dir"), "ignored");
@@ -52,7 +54,7 @@ test("skips a shard entry that is not a directory and a dotfile shard", () => {
     expect(listBlobs(root)).toEqual([]);
   });
 
-test("sorts multiple stored blobs by their digest", () => {
+  test("sorts multiple stored blobs by their digest", () => {
     const root = scratchRoot("sorts-multiple-stored-blobs-by-their-digest");
     const first = putBlobFile(
       root,
@@ -76,7 +78,7 @@ test("sorts multiple stored blobs by their digest", () => {
     );
   });
 
-test("skips a shard directory that cannot be listed", () => {
+  test("skips a shard directory that cannot be listed", () => {
     const root = scratchRoot("skips-a-shard-directory-that-cannot-be-listed");
     const shardDir = join(root, "blobs", "aa");
     mkdirSync(shardDir, { recursive: true });
@@ -88,7 +90,7 @@ test("skips a shard directory that cannot be listed", () => {
     }
   });
 
-test("skips a blob entry whose stat fails, such as a dangling symlink", () => {
+  test("skips a blob entry whose stat fails, such as a dangling symlink", () => {
     const root = scratchRoot("skips-a-blob-entry-whose-stat-fails-such-as-a-dang");
     const source = join(root, "source.txt");
     writeFileSync(source, "content");
@@ -102,8 +104,7 @@ test("skips a blob entry whose stat fails, such as a dangling symlink", () => {
 });
 
 describe("blobContentDigest", () => {
-
-test("returns the sha256 digest of a stored blob's actual bytes", () => {
+  test("returns the sha256 digest of a stored blob's actual bytes", () => {
     const root = scratchRoot("returns-the-sha256-digest-of-a-stored-blob-s-actua");
     const source = join(root, "source.txt");
     writeFileSync(source, "digest me");
@@ -111,12 +112,12 @@ test("returns the sha256 digest of a stored blob's actual bytes", () => {
     expect(blobContentDigest(root, put.sha256)).toBe(put.sha256);
   });
 
-test("returns undefined when the blob file does not exist", () => {
+  test("returns undefined when the blob file does not exist", () => {
     const root = scratchRoot("returns-undefined-when-the-blob-file-does-not-exis");
     expect(blobContentDigest(root, "d".repeat(64))).toBeUndefined();
   });
 
-test("returns undefined when the blob path is not a regular file", () => {
+  test("returns undefined when the blob path is not a regular file", () => {
     const root = scratchRoot("returns-undefined-when-the-blob-path-is-not-a-regu");
     const digest = "e".repeat(64);
     const shardDir = join(root, "blobs", digest.slice(0, 2));

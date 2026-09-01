@@ -285,14 +285,18 @@ export class ThreeTierMemoryEngine {
    * Adds an immutable Bedrock Invariant to Tier 1.
    * Throws if an invariant with the same ID already exists to guarantee immutability.
    */
-  public addBedrockInvariant(options: AddBedrockInvariantOptions | BedrockInvariant): BedrockInvariant {
+  public addBedrockInvariant(
+    options: AddBedrockInvariantOptions | BedrockInvariant,
+  ): BedrockInvariant {
     const id = options.id.trim();
     if (!id) {
       throw new Error("Bedrock Invariant ID cannot be empty.");
     }
 
     if (this.tier1Invariants.has(id)) {
-      throw new Error(`Bedrock Invariant is immutable: cannot overwrite or modify invariant with id '${id}'.`);
+      throw new Error(
+        `Bedrock Invariant is immutable: cannot overwrite or modify invariant with id '${id}'.`,
+      );
     }
 
     const invariant: BedrockInvariant = {
@@ -302,7 +306,9 @@ export class ThreeTierMemoryEngine {
       statement: options.statement.trim(),
       rationale: options.rationale.trim(),
       settledDate: options.settledDate ?? new Date().toISOString(),
-      supersedesHistoricalIds: options.supersedesHistoricalIds ? [...options.supersedesHistoricalIds] : undefined,
+      supersedesHistoricalIds: options.supersedesHistoricalIds
+        ? [...options.supersedesHistoricalIds]
+        : undefined,
       tags: options.tags ? [...options.tags] : undefined,
       metadata: options.metadata,
     };
@@ -372,7 +378,9 @@ export class ThreeTierMemoryEngine {
   /**
    * Adds an entry to Tier 2 Active Strategic Working Memory.
    */
-  public addWorkingEntry(options: AddWorkingMemoryEntryOptions | WorkingMemoryEntry): WorkingMemoryEntry {
+  public addWorkingEntry(
+    options: AddWorkingMemoryEntryOptions | WorkingMemoryEntry,
+  ): WorkingMemoryEntry {
     const id = options.id.trim();
     if (!id) {
       throw new Error("Working memory entry ID cannot be empty.");
@@ -420,7 +428,10 @@ export class ThreeTierMemoryEngine {
   /**
    * Updates an existing Tier 2 working memory entry.
    */
-  public updateWorkingEntry(id: string, updates: UpdateWorkingMemoryEntryOptions): WorkingMemoryEntry {
+  public updateWorkingEntry(
+    id: string,
+    updates: UpdateWorkingMemoryEntryOptions,
+  ): WorkingMemoryEntry {
     const trimmedId = id.trim();
     const existing = this.tier2Working.get(trimmedId);
     if (!existing) {
@@ -432,17 +443,28 @@ export class ThreeTierMemoryEngine {
       id: existing.id,
       title: updates.title !== undefined ? updates.title.trim() : existing.title,
       category: updates.category ?? existing.category,
-      description: updates.description !== undefined ? updates.description.trim() : existing.description,
+      description:
+        updates.description !== undefined ? updates.description.trim() : existing.description,
       status: updates.status ?? existing.status,
       createdAt: existing.createdAt,
       updatedAt: updates.updatedAt ?? nowIso,
       horizonDays: updates.horizonDays !== undefined ? updates.horizonDays : existing.horizonDays,
       expiresAt: updates.expiresAt !== undefined ? updates.expiresAt : existing.expiresAt,
-      milestonesCompleted: updates.milestonesCompleted !== undefined ? updates.milestonesCompleted : existing.milestonesCompleted,
-      totalMilestones: updates.totalMilestones !== undefined ? updates.totalMilestones : existing.totalMilestones,
+      milestonesCompleted:
+        updates.milestonesCompleted !== undefined
+          ? updates.milestonesCompleted
+          : existing.milestonesCompleted,
+      totalMilestones:
+        updates.totalMilestones !== undefined ? updates.totalMilestones : existing.totalMilestones,
       priority: updates.priority ?? existing.priority,
-      openDependencies: updates.openDependencies !== undefined ? [...updates.openDependencies] : existing.openDependencies,
-      resolutionSummary: updates.resolutionSummary !== undefined ? updates.resolutionSummary : existing.resolutionSummary,
+      openDependencies:
+        updates.openDependencies !== undefined
+          ? [...updates.openDependencies]
+          : existing.openDependencies,
+      resolutionSummary:
+        updates.resolutionSummary !== undefined
+          ? updates.resolutionSummary
+          : existing.resolutionSummary,
       tags: updates.tags !== undefined ? [...updates.tags] : existing.tags,
       metadata: updates.metadata !== undefined ? updates.metadata : existing.metadata,
     };
@@ -476,7 +498,9 @@ export class ThreeTierMemoryEngine {
     }
 
     if (filter.category) {
-      const allowedCategories = Array.isArray(filter.category) ? filter.category : [filter.category];
+      const allowedCategories = Array.isArray(filter.category)
+        ? filter.category
+        : [filter.category];
       entries = entries.filter((e) => allowedCategories.includes(e.category));
     }
 
@@ -584,7 +608,9 @@ export class ThreeTierMemoryEngine {
     }
 
     if (filter.category) {
-      const allowedCategories = Array.isArray(filter.category) ? filter.category : [filter.category];
+      const allowedCategories = Array.isArray(filter.category)
+        ? filter.category
+        : [filter.category];
       entries = entries.filter((e) => allowedCategories.includes(e.category));
     }
 
@@ -594,7 +620,9 @@ export class ThreeTierMemoryEngine {
     }
 
     if (filter.epistemicStatus) {
-      const allowedStatuses = Array.isArray(filter.epistemicStatus) ? filter.epistemicStatus : [filter.epistemicStatus];
+      const allowedStatuses = Array.isArray(filter.epistemicStatus)
+        ? filter.epistemicStatus
+        : [filter.epistemicStatus];
       entries = entries.filter((e) => allowedStatuses.includes(e.epistemicStatus));
     }
 
@@ -631,7 +659,8 @@ export class ThreeTierMemoryEngine {
       working?.description.trim() ||
       `Archived epic summary for ${title}`;
 
-    const decisions = options.keyDecisions ?? (working?.resolutionSummary ? [working.resolutionSummary] : []);
+    const decisions =
+      options.keyDecisions ?? (working?.resolutionSummary ? [working.resolutionSummary] : []);
     const outcome = options.outcome ?? (working?.status === "RESOLVED" ? "SUCCESS" : "COMPLETED");
 
     const archivedId = `archive-${workingId}`;
@@ -705,7 +734,9 @@ export class ThreeTierMemoryEngine {
       options.rationale?.trim() ||
       `Promoted from resolved working epic ${workingId} (${working?.title ?? ""})`;
 
-    const historicalIds = options.supersedesHistoricalIds ? [...options.supersedesHistoricalIds] : [];
+    const historicalIds = options.supersedesHistoricalIds
+      ? [...options.supersedesHistoricalIds]
+      : [];
     if (workingId && !historicalIds.includes(workingId)) {
       historicalIds.push(workingId);
     }
@@ -781,7 +812,12 @@ export class ThreeTierMemoryEngine {
       let shouldArchive = false;
 
       // Check explicit status
-      if (entry.status === "COMPLETED" || entry.status === "RESOLVED" || entry.status === "ARCHIVED" || entry.status === "PROMOTED") {
+      if (
+        entry.status === "COMPLETED" ||
+        entry.status === "RESOLVED" ||
+        entry.status === "ARCHIVED" ||
+        entry.status === "PROMOTED"
+      ) {
         shouldPrune = true;
         shouldArchive = autoArchive;
       }

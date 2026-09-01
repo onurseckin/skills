@@ -29,7 +29,7 @@ import {
 } from "../../../../../olt/scripts/src/mind/memory/index.ts";
 
 describe("ThreeTierMemoryEngine Test Suite", () => {
-describe("Settled Pareto Resolution Promotion (Tier 2 -> Tier 1 Bedrock Invariant)", () => {
+  describe("Settled Pareto Resolution Promotion (Tier 2 -> Tier 1 Bedrock Invariant)", () => {
     it("promotes a settled dialectical resolution from Tier 2 directly to a Tier 1 Bedrock Invariant", () => {
       const engine = new ThreeTierMemoryEngine();
 

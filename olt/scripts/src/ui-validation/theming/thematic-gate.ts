@@ -1,7 +1,4 @@
-import type {
-  PermutationInspectionState,
-  ThematicGateReport,
-} from "./types.ts";
+import type { PermutationInspectionState, ThematicGateReport } from "./types.ts";
 import { PermutationGridManager } from "./permutation-grid.ts";
 export class ThematicGateVerifier {
   private readonly gridManager = new PermutationGridManager();
@@ -26,10 +23,14 @@ export class ThematicGateVerifier {
 
     for (const insp of inspections) {
       if (!insp.surfaceSeparationPassed) {
-        blockingIssues.push(`[${insp.permutationId}] Surface separation failed (insufficient card/background delta).`);
+        blockingIssues.push(
+          `[${insp.permutationId}] Surface separation failed (insufficient card/background delta).`,
+        );
       }
       if (!insp.borderSubtletyPassed) {
-        blockingIssues.push(`[${insp.permutationId}] Border subtlety check failed (harsh or invisible dividers).`);
+        blockingIssues.push(
+          `[${insp.permutationId}] Border subtlety check failed (harsh or invisible dividers).`,
+        );
       }
       if (!insp.iconClarityPassed) {
         blockingIssues.push(`[${insp.permutationId}] Icon clarity check failed.`);
@@ -39,13 +40,15 @@ export class ThematicGateVerifier {
       }
     }
 
-    const failedCount = inspections.filter(
-      (i) =>
-        !i.surfaceSeparationPassed ||
-        !i.borderSubtletyPassed ||
-        !i.iconClarityPassed ||
-        !i.readabilityPassed,
-    ).length + (coverage.totalExpected - inspections.length);
+    const failedCount =
+      inspections.filter(
+        (i) =>
+          !i.surfaceSeparationPassed ||
+          !i.borderSubtletyPassed ||
+          !i.iconClarityPassed ||
+          !i.readabilityPassed,
+      ).length +
+      (coverage.totalExpected - inspections.length);
 
     const passedCount = inspections.filter(
       (i) =>
@@ -75,4 +78,3 @@ export class ThematicGateVerifier {
  * 4. Chromatic Balancing & Real-Time Token Harmony
  * ============================================================================
  */
-

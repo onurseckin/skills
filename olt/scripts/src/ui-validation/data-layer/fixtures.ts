@@ -9,7 +9,9 @@ import type {
 
 export function computePayloadSha256(payload: unknown): string {
   const serialized = JSON.stringify(payload, Object.keys(payload ?? {}).sort());
-  return createHash("sha256").update(serialized ?? "").digest("hex");
+  return createHash("sha256")
+    .update(serialized ?? "")
+    .digest("hex");
 }
 
 /**
@@ -22,7 +24,8 @@ export function createDashboardTelemetryFixtures(): Record<
   return {
     FULLY_POPULATED: {
       type: "FULLY_POPULATED",
-      description: "Standard full telemetry dataset with active services, rich graphs, and metrics.",
+      description:
+        "Standard full telemetry dataset with active services, rich graphs, and metrics.",
       expectedStatusCode: 200,
       payload: {
         summary: {
@@ -35,7 +38,13 @@ export function createDashboardTelemetryFixtures(): Record<
           { id: "srv-01", name: "Auth Gateway", status: "healthy", latencyMs: 12, errorRate: 0.01 },
           { id: "srv-02", name: "API Engine", status: "healthy", latencyMs: 18, errorRate: 0.02 },
           { id: "srv-03", name: "Worker Queue", status: "degraded", latencyMs: 85, errorRate: 1.4 },
-          { id: "srv-04", name: "Database Primary", status: "healthy", latencyMs: 4, errorRate: 0.0 },
+          {
+            id: "srv-04",
+            name: "Database Primary",
+            status: "healthy",
+            latencyMs: 4,
+            errorRate: 0.0,
+          },
         ],
         alerts: [
           { id: "alt-01", severity: "warning", message: "Worker Queue queue depth > 500 msgs" },
@@ -44,7 +53,8 @@ export function createDashboardTelemetryFixtures(): Record<
     },
     PARTIAL_TRUNCATED: {
       type: "PARTIAL_TRUNCATED",
-      description: "Stress test with 300-char names, special characters, unicode, and missing non-required fields.",
+      description:
+        "Stress test with 300-char names, special characters, unicode, and missing non-required fields.",
       expectedStatusCode: 200,
       payload: {
         summary: {
@@ -74,7 +84,8 @@ export function createDashboardTelemetryFixtures(): Record<
     },
     ZERO_RECORD_EMPTY: {
       type: "ZERO_RECORD_EMPTY",
-      description: "Pristine empty state with zero services, zero alerts, and initial onboarding metrics.",
+      description:
+        "Pristine empty state with zero services, zero alerts, and initial onboarding metrics.",
       expectedStatusCode: 200,
       payload: {
         summary: {
@@ -89,7 +100,8 @@ export function createDashboardTelemetryFixtures(): Record<
     },
     CONTROLLED_SERVER_ERROR: {
       type: "CONTROLLED_SERVER_ERROR",
-      description: "Controlled HTTP 500 Internal Server Error verifying error boundary visual composure.",
+      description:
+        "Controlled HTTP 500 Internal Server Error verifying error boundary visual composure.",
       expectedStatusCode: 500,
       payload: {
         error: "InternalServerError",
@@ -113,10 +125,34 @@ export function createUserManagementFixtures(): Record<
       payload: {
         total: 4,
         users: [
-          { id: "usr-01", name: "Alice Smith", email: "alice@olt.local", role: "admin", active: true },
-          { id: "usr-02", name: "Bob Jones", email: "bob@olt.local", role: "standard_user", active: true },
-          { id: "usr-03", name: "Carol White", email: "carol@olt.local", role: "compliance_auditor", active: false },
-          { id: "usr-04", name: "David Miller", email: "david@olt.local", role: "billing_admin", active: true },
+          {
+            id: "usr-01",
+            name: "Alice Smith",
+            email: "alice@olt.local",
+            role: "admin",
+            active: true,
+          },
+          {
+            id: "usr-02",
+            name: "Bob Jones",
+            email: "bob@olt.local",
+            role: "standard_user",
+            active: true,
+          },
+          {
+            id: "usr-03",
+            name: "Carol White",
+            email: "carol@olt.local",
+            role: "compliance_auditor",
+            active: false,
+          },
+          {
+            id: "usr-04",
+            name: "David Miller",
+            email: "david@olt.local",
+            role: "billing_admin",
+            active: true,
+          },
         ],
       },
     },
@@ -130,7 +166,8 @@ export function createUserManagementFixtures(): Record<
           {
             id: "usr-edge-01",
             name: "Dr. Elizabeth Alexandra Mary Windsor-Smith-Smythe-Longbottom-The-Third",
-            email: "extremely.long.corporate.enterprise.departmental.subdivision.email.address.that.exceeds.standard.column.widths@very-long-domain-name-organization-enterprise.olt.local",
+            email:
+              "extremely.long.corporate.enterprise.departmental.subdivision.email.address.that.exceeds.standard.column.widths@very-long-domain-name-organization-enterprise.olt.local",
             role: "standard_user",
             active: true,
           },
@@ -139,7 +176,8 @@ export function createUserManagementFixtures(): Record<
     },
     ZERO_RECORD_EMPTY: {
       type: "ZERO_RECORD_EMPTY",
-      description: "Empty user directory showing zero records and inviting to add first team member.",
+      description:
+        "Empty user directory showing zero records and inviting to add first team member.",
       expectedStatusCode: 200,
       payload: {
         total: 0,
@@ -148,7 +186,8 @@ export function createUserManagementFixtures(): Record<
     },
     CONTROLLED_SERVER_ERROR: {
       type: "CONTROLLED_SERVER_ERROR",
-      description: "Controlled HTTP 503 Service Unavailable verifying graceful maintenance state banner.",
+      description:
+        "Controlled HTTP 503 Service Unavailable verifying graceful maintenance state banner.",
       expectedStatusCode: 503,
       payload: {
         error: "ServiceUnavailable",
@@ -203,21 +242,29 @@ export function validatePayloadSchema(
           if (rule.itemType === "object" && (typeof item !== "object" || item === null)) {
             violations.push(`Array item at '${rule.field}[${i}]' expected object.`);
           } else if (rule.itemType !== "object" && typeof item !== rule.itemType) {
-            violations.push(`Array item at '${rule.field}[${i}]' expected ${rule.itemType}, received ${typeof item}.`);
+            violations.push(
+              `Array item at '${rule.field}[${i}]' expected ${rule.itemType}, received ${typeof item}.`,
+            );
           }
         }
       }
     } else if (typeof val !== rule.type) {
-      violations.push(`Field '${rule.field}' expected type '${rule.type}', received '${typeof val}'.`);
+      violations.push(
+        `Field '${rule.field}' expected type '${rule.type}', received '${typeof val}'.`,
+      );
     }
 
     // String bounds
     if (typeof val === "string") {
       if (rule.minLength !== undefined && val.length < rule.minLength) {
-        violations.push(`Field '${rule.field}' length (${val.length}) is less than minLength (${rule.minLength}).`);
+        violations.push(
+          `Field '${rule.field}' length (${val.length}) is less than minLength (${rule.minLength}).`,
+        );
       }
       if (rule.maxLength !== undefined && val.length > rule.maxLength) {
-        violations.push(`Field '${rule.field}' length (${val.length}) exceeds maxLength (${rule.maxLength}).`);
+        violations.push(
+          `Field '${rule.field}' length (${val.length}) exceeds maxLength (${rule.maxLength}).`,
+        );
       }
       if (rule.pattern) {
         const regex = typeof rule.pattern === "string" ? new RegExp(rule.pattern) : rule.pattern;

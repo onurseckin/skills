@@ -52,11 +52,12 @@ export const DEFICIT_CRITICALITY_WEIGHTS: Readonly<Record<DeficitCriticalityClas
   CLASS_3_QUALITY_DEFICIT: 0.2,
 };
 
-export const DEFICIT_CRITICALITY_BASE_SEVERITY: Readonly<Record<DeficitCriticalityClass, number>> = {
-  CLASS_1_BLOCKER: 8.5,
-  CLASS_2_REGRESSION: 5.5,
-  CLASS_3_QUALITY_DEFICIT: 2.0,
-};
+export const DEFICIT_CRITICALITY_BASE_SEVERITY: Readonly<Record<DeficitCriticalityClass, number>> =
+  {
+    CLASS_1_BLOCKER: 8.5,
+    CLASS_2_REGRESSION: 5.5,
+    CLASS_3_QUALITY_DEFICIT: 2.0,
+  };
 
 export const DIAGNOSTIC_ERROR_KINDS = {
   TYPESCRIPT_COMPILATION: "typescript_compilation",
@@ -229,11 +230,13 @@ export interface ClusteringOptions {
   readonly maxClusters?: number | undefined;
   readonly defaultSubsystem?: string | undefined;
   readonly knownSubsystems?: readonly string[] | undefined;
-  readonly baseRoadmapAllocation?: {
-    readonly coreStability?: number | undefined;
-    readonly architecturalEvolution?: number | undefined;
-    readonly exploratory?: number | undefined;
-  } | undefined;
+  readonly baseRoadmapAllocation?:
+    | {
+        readonly coreStability?: number | undefined;
+        readonly architecturalEvolution?: number | undefined;
+        readonly exploratory?: number | undefined;
+      }
+    | undefined;
   readonly metadata?: Readonly<Record<string, unknown>> | undefined;
 }
 
@@ -374,10 +377,7 @@ export function extractStackFrames(stackOrText: string): readonly string[] {
 /**
  * Computes a robust stack trace signature hash.
  */
-export function computeStackSignature(
-  frames: readonly string[],
-  fallbackMessage: string,
-): string {
+export function computeStackSignature(frames: readonly string[], fallbackMessage: string): string {
   if (frames.length > 0) {
     const topFrames = frames.slice(0, 3).join(" | ");
     return `SIG-STK-${createFnv1aHash(topFrames)}`;
@@ -487,7 +487,9 @@ export function parseRawDiagnostics(
       // ----------------------------------------------------------------------
       // A. TypeScript Diagnostic Pattern 1: path/file.ts(line,col): error TS2304: message
       // ----------------------------------------------------------------------
-      const tsParenMatch = trimmed.match(/^(.+?)\((\d+),(\d+)\):\s+(error|warning)\s+(TS\d+):\s+(.+)$/i);
+      const tsParenMatch = trimmed.match(
+        /^(.+?)\((\d+),(\d+)\):\s+(error|warning)\s+(TS\d+):\s+(.+)$/i,
+      );
       if (tsParenMatch) {
         const filePath = tsParenMatch[1]?.trim();
         const lineNum = parseInt(tsParenMatch[2] ?? "0", 10);
@@ -498,7 +500,11 @@ export function parseRawDiagnostics(
 
         // Capture multi-line context snippet if present
         const snippetLines: string[] = [trimmed];
-        while (i + 1 < lines.length && lines[i + 1] && (lines[i + 1]!.startsWith(" ") || lines[i + 1]!.startsWith("\t"))) {
+        while (
+          i + 1 < lines.length &&
+          lines[i + 1] &&
+          (lines[i + 1]!.startsWith(" ") || lines[i + 1]!.startsWith("\t"))
+        ) {
           i += 1;
           snippetLines.push(lines[i]!);
           if (lines[i]!.trim().length > 0 && !lines[i]!.includes("~")) {
@@ -553,7 +559,11 @@ export function parseRawDiagnostics(
         let message = tsDashMatch[6]?.trim() ?? "";
 
         const snippetLines: string[] = [trimmed];
-        while (i + 1 < lines.length && lines[i + 1] && (lines[i + 1]!.startsWith(" ") || lines[i + 1]!.startsWith("\t"))) {
+        while (
+          i + 1 < lines.length &&
+          lines[i + 1] &&
+          (lines[i + 1]!.startsWith(" ") || lines[i + 1]!.startsWith("\t"))
+        ) {
           i += 1;
           snippetLines.push(lines[i]!);
           if (lines[i]!.trim().length > 0 && !lines[i]!.includes("~")) {
@@ -607,12 +617,17 @@ export function parseRawDiagnostics(
         let ruleName = lintMatch[6]?.trim();
 
         let isErr = severityStr === "error";
-        if (ruleName && (ruleName.toLowerCase() === "error" || ruleName.toLowerCase() === "warning")) {
+        if (
+          ruleName &&
+          (ruleName.toLowerCase() === "error" || ruleName.toLowerCase() === "warning")
+        ) {
           isErr = ruleName.toLowerCase() === "error";
           ruleName = undefined;
         }
 
-        const kind = isErr ? DIAGNOSTIC_ERROR_KINDS.LINT_ERROR : DIAGNOSTIC_ERROR_KINDS.LINT_WARNING;
+        const kind = isErr
+          ? DIAGNOSTIC_ERROR_KINDS.LINT_ERROR
+          : DIAGNOSTIC_ERROR_KINDS.LINT_WARNING;
         const classification = DEFICIT_CRITICALITY_CLASSES.CLASS_3_QUALITY_DEFICIT;
         const normMsg = normalizeObservationSignature(message);
         const errId = `ERR-LINT-${createFnv1aHash(`${filePath}:${lineNum}:${ruleName ?? ""}:${normMsg}`)}`;
@@ -638,7 +653,6 @@ export function parseRawDiagnostics(
         i += 1;
         continue;
       }
-
 
       // ----------------------------------------------------------------------
       // D. Test Runner Assertion / Failure: FAIL / ✗ / expect().toBe / AssertionError
@@ -689,7 +703,9 @@ export function parseRawDiagnostics(
             fullMessage += `\n${nextTrimmed}`;
 
             if (!testPath) {
-              const fileInStack = nextTrimmed.match(/(?:at\s+.*?\()?([a-zA-Z0-9_\-./]+\.(?:ts|js|tsx|jsx)):(\d+):(\d+)/);
+              const fileInStack = nextTrimmed.match(
+                /(?:at\s+.*?\()?([a-zA-Z0-9_\-./]+\.(?:ts|js|tsx|jsx)):(\d+):(\d+)/,
+              );
               if (fileInStack) {
                 testPath = fileInStack[1];
                 lineNum = parseInt(fileInStack[2] ?? "0", 10);
@@ -700,7 +716,6 @@ export function parseRawDiagnostics(
             break;
           }
         }
-
 
         const frames = extractStackFrames(stackLines.join("\n"));
         const stackSig = computeStackSignature(frames, fullMessage);
@@ -764,7 +779,9 @@ export function parseRawDiagnostics(
             i += 1;
             stackLines.push(nextTrimmed);
             if (!filePath) {
-              const fileInStack = nextTrimmed.match(/(?:at\s+.*?\()?([a-zA-Z0-9_\-./]+\.(?:ts|js|tsx|jsx)):(\d+):(\d+)/);
+              const fileInStack = nextTrimmed.match(
+                /(?:at\s+.*?\()?([a-zA-Z0-9_\-./]+\.(?:ts|js|tsx|jsx)):(\d+):(\d+)/,
+              );
               if (fileInStack) {
                 filePath = fileInStack[1];
                 lineNum = parseInt(fileInStack[2] ?? "0", 10);
@@ -782,7 +799,11 @@ export function parseRawDiagnostics(
         let kind: DiagnosticErrorKind = DIAGNOSTIC_ERROR_KINDS.RUNTIME_CRASH;
         let classification: DeficitCriticalityClass = DEFICIT_CRITICALITY_CLASSES.CLASS_1_BLOCKER;
 
-        if (errorTypeName === "InvariantViolation" || errorTypeName === "ContractRegression" || errorTypeName === "BoundaryViolation") {
+        if (
+          errorTypeName === "InvariantViolation" ||
+          errorTypeName === "ContractRegression" ||
+          errorTypeName === "BoundaryViolation"
+        ) {
           kind = DIAGNOSTIC_ERROR_KINDS.INVARIANT_VIOLATION;
           classification = DEFICIT_CRITICALITY_CLASSES.CLASS_2_REGRESSION;
         } else if (errorTypeName === "SyntaxError") {
@@ -889,7 +910,11 @@ function classifyErrorKind(message: string, code?: string, filePath?: string): D
   if (lower.includes("coverage") || lower.includes("uncovered lines")) {
     return DIAGNOSTIC_ERROR_KINDS.MISSING_COVERAGE;
   }
-  if (lower.includes("slowdown") || lower.includes("latency spike") || lower.includes("timed out")) {
+  if (
+    lower.includes("slowdown") ||
+    lower.includes("latency spike") ||
+    lower.includes("timed out")
+  ) {
     return DIAGNOSTIC_ERROR_KINDS.PERFORMANCE_SLOWDOWN;
   }
 
@@ -954,7 +979,8 @@ export function clusterDiagnosticErrors(
   options: ClusteringOptions = {},
 ): DeficitTopologyMatrix {
   const matrixId =
-    options.matrixId ?? `TOPO-MAT-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+    options.matrixId ??
+    `TOPO-MAT-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
   const nowIso = new Date().toISOString();
   const similarityThreshold = options.similarityThreshold ?? 0.65;
   const knownSubsystems = options.knownSubsystems ?? DEFAULT_KNOWN_SUBSYSTEMS;
@@ -1019,9 +1045,7 @@ export function clusterDiagnosticErrors(
 
       // 2. Exact match on (Code + Target File) or (Stack Signature)
       const sameFile =
-        Boolean(bucket.primaryFile) &&
-        Boolean(err.filePath) &&
-        bucket.primaryFile === err.filePath;
+        Boolean(bucket.primaryFile) && Boolean(err.filePath) && bucket.primaryFile === err.filePath;
 
       const sameCode =
         Boolean(bucket.primaryCode) &&
@@ -1042,10 +1066,7 @@ export function clusterDiagnosticErrors(
       if (sameFile || bucket.primaryKind === err.kind) {
         const repErr = bucket.items[0];
         if (repErr) {
-          const sim = calculateDefectSimilarity(
-            err.normalizedMessage,
-            repErr.normalizedMessage,
-          );
+          const sim = calculateDefectSimilarity(err.normalizedMessage, repErr.normalizedMessage);
           if (sim >= similarityThreshold) {
             matchedBucket = bucket;
             break;
@@ -1111,7 +1132,10 @@ export function clusterDiagnosticErrors(
     const baseSev = DEFICIT_CRITICALITY_BASE_SEVERITY[classification];
     const occurrenceBoost = Math.min(1.5, Math.max(0, (items.length - 1) * 0.15));
     const blastRadiusBoost = Math.min(1.5, Math.max(0, (affectedFiles.length - 1) * 0.3));
-    const calculatedSeverity = Math.min(10.0, Math.round((baseSev + occurrenceBoost + blastRadiusBoost) * 10) / 10);
+    const calculatedSeverity = Math.min(
+      10.0,
+      Math.round((baseSev + occurrenceBoost + blastRadiusBoost) * 10) / 10,
+    );
 
     // Formulate Root Cause Title
     const title = synthesizeRootCauseTitle(rep, bucket, affectedFiles);
@@ -1162,7 +1186,8 @@ export function clusterDiagnosticErrors(
     const orderDiff = classOrder[a.classification] - classOrder[b.classification];
     if (orderDiff !== 0) return orderDiff;
     if (b.severityScore !== a.severityScore) return b.severityScore - a.severityScore;
-    if (b.rawOccurrenceCount !== a.rawOccurrenceCount) return b.rawOccurrenceCount - a.rawOccurrenceCount;
+    if (b.rawOccurrenceCount !== a.rawOccurrenceCount)
+      return b.rawOccurrenceCount - a.rawOccurrenceCount;
     return b.affectedFiles.length - a.affectedFiles.length;
   });
 
@@ -1182,8 +1207,13 @@ export function clusterDiagnosticErrors(
     for (const other of rankedClusters) {
       if (other.clusterId === cluster.clusterId) continue;
       const fileOverlap = cluster.affectedFiles.some((f) => other.affectedFiles.includes(f));
-      const subOverlap = cluster.affectedSubsystems.some((s) => other.affectedSubsystems.includes(s));
-      if (fileOverlap || (subOverlap && other.classification !== DEFICIT_CRITICALITY_CLASSES.CLASS_1_BLOCKER)) {
+      const subOverlap = cluster.affectedSubsystems.some((s) =>
+        other.affectedSubsystems.includes(s),
+      );
+      if (
+        fileOverlap ||
+        (subOverlap && other.classification !== DEFICIT_CRITICALITY_CLASSES.CLASS_1_BLOCKER)
+      ) {
         downstreamIds.push(other.clusterId);
       }
     }
@@ -1296,7 +1326,10 @@ function computeRecommendedRoadmapAllocation(
     readonly exploratory?: number | undefined;
   },
 ): RecommendedRoadmapAllocation {
-  if (baseOverride?.coreStability !== undefined && baseOverride?.architecturalEvolution !== undefined) {
+  if (
+    baseOverride?.coreStability !== undefined &&
+    baseOverride?.architecturalEvolution !== undefined
+  ) {
     const core = baseOverride.coreStability;
     const arch = baseOverride.architecturalEvolution;
     const exp = baseOverride.exploratory ?? Math.max(0, 100 - core - arch);
@@ -1351,7 +1384,8 @@ function computeRecommendedRoadmapAllocation(
     coreStability: 65,
     architecturalEvolution: 20,
     exploratory: 15,
-    rationale: "PRISTINE SYSTEM HEALTH: Zero active diagnostic deficits detected. Exploratory horizon capacity expanded from 10% to 15%.",
+    rationale:
+      "PRISTINE SYSTEM HEALTH: Zero active diagnostic deficits detected. Exploratory horizon capacity expanded from 10% to 15%.",
   };
 }
 
@@ -1361,7 +1395,12 @@ function computeRecommendedRoadmapAllocation(
 
 function synthesizeRootCauseTitle(
   rep: ParsedDiagnosticError,
-  bucket: { primaryClassification: DeficitCriticalityClass; primaryKind: DiagnosticErrorKind; primaryCode?: string | undefined; primaryFile?: string | undefined },
+  bucket: {
+    primaryClassification: DeficitCriticalityClass;
+    primaryKind: DiagnosticErrorKind;
+    primaryCode?: string | undefined;
+    primaryFile?: string | undefined;
+  },
   _affectedFiles: readonly string[],
 ): string {
   const fileLabel = bucket.primaryFile ? basename(bucket.primaryFile) : "System";
@@ -1383,7 +1422,10 @@ function synthesizeRootCauseTitle(
     return `${codeLabel}Assertion failure in ${fileLabel}`;
   }
 
-  if (bucket.primaryKind === DIAGNOSTIC_ERROR_KINDS.RUNTIME_CRASH || bucket.primaryKind === DIAGNOSTIC_ERROR_KINDS.UNCAUGHT_EXCEPTION) {
+  if (
+    bucket.primaryKind === DIAGNOSTIC_ERROR_KINDS.RUNTIME_CRASH ||
+    bucket.primaryKind === DIAGNOSTIC_ERROR_KINDS.UNCAUGHT_EXCEPTION
+  ) {
     return `${codeLabel}Runtime exception (${rep.errorCode ?? "Crash"}) in ${fileLabel}`;
   }
 
@@ -1391,7 +1433,10 @@ function synthesizeRootCauseTitle(
     return `Module resolution failure for '${rep.message.slice(0, 45)}'`;
   }
 
-  if (bucket.primaryKind === DIAGNOSTIC_ERROR_KINDS.LINT_WARNING || bucket.primaryKind === DIAGNOSTIC_ERROR_KINDS.LINT_ERROR) {
+  if (
+    bucket.primaryKind === DIAGNOSTIC_ERROR_KINDS.LINT_WARNING ||
+    bucket.primaryKind === DIAGNOSTIC_ERROR_KINDS.LINT_ERROR
+  ) {
     return `${codeLabel}Lint rule deviation in ${fileLabel}`;
   }
 
@@ -1401,11 +1446,18 @@ function synthesizeRootCauseTitle(
 
 function synthesizeRootCauseHypothesis(
   rep: ParsedDiagnosticError,
-  bucket: { primaryClassification: DeficitCriticalityClass; primaryKind: DiagnosticErrorKind; primaryCode?: string | undefined },
+  bucket: {
+    primaryClassification: DeficitCriticalityClass;
+    primaryKind: DiagnosticErrorKind;
+    primaryCode?: string | undefined;
+  },
   affectedFiles: readonly string[],
   occurrenceCount: number,
 ): string {
-  const countText = occurrenceCount > 1 ? ` (observed ${occurrenceCount} occurrences across ${affectedFiles.length} file(s))` : "";
+  const countText =
+    occurrenceCount > 1
+      ? ` (observed ${occurrenceCount} occurrences across ${affectedFiles.length} file(s))`
+      : "";
 
   switch (bucket.primaryKind) {
     case DIAGNOSTIC_ERROR_KINDS.TYPESCRIPT_COMPILATION:
@@ -1438,7 +1490,12 @@ function synthesizeRootCauseHypothesis(
 
 function synthesizeRemediationAction(
   _rep: ParsedDiagnosticError,
-  bucket: { primaryClassification: DeficitCriticalityClass; primaryKind: DiagnosticErrorKind; primaryCode?: string | undefined; primaryFile?: string | undefined },
+  bucket: {
+    primaryClassification: DeficitCriticalityClass;
+    primaryKind: DiagnosticErrorKind;
+    primaryCode?: string | undefined;
+    primaryFile?: string | undefined;
+  },
   affectedFiles: readonly string[],
 ): string {
   const targetFile = bucket.primaryFile ?? affectedFiles[0] ?? "target module";
@@ -1539,7 +1596,7 @@ export async function runEmpiricalBaselineProbes(
         output = {
           exitCode: 1,
           stdout: "",
-          stderr: String(err instanceof Error ? err.stack ?? err.message : err),
+          stderr: String(err instanceof Error ? (err.stack ?? err.message) : err),
           durationMs: Date.now() - probeStart,
           error: String(err),
         };
@@ -1599,7 +1656,7 @@ export async function runEmpiricalBaselineProbes(
           output = {
             exitCode: 1,
             stdout: "",
-            stderr: String(err instanceof Error ? err.stack ?? err.message : err),
+            stderr: String(err instanceof Error ? (err.stack ?? err.message) : err),
             durationMs: Date.now() - probeStart,
             error: String(err),
           };
@@ -1720,22 +1777,32 @@ export function formatDeficitTopologyMatrixMarkdown(matrix: DeficitTopologyMatri
   lines.push(`- **Overall System Status**: ${statusBadge}`);
   lines.push(`- **Total Raw Deficit Occurrences**: \`${matrix.totalRawErrors}\``);
   lines.push(`- **Unified Deficit Clusters**: \`${matrix.totalClusters}\``);
-  lines.push(`- **Composite Systemic Friction Score**: \`${matrix.summary.compositeFrictionScore.toFixed(2)}\` / 1.00`);
+  lines.push(
+    `- **Composite Systemic Friction Score**: \`${matrix.summary.compositeFrictionScore.toFixed(2)}\` / 1.00`,
+  );
   lines.push("");
 
   // Executive Summary Alert
   if (matrix.summary.blockers > 0) {
     lines.push("> [!CAUTION]");
-    lines.push(`> **${matrix.summary.blockers} CLASS 1 BLOCKER CLUSTER(S) DETECTED**: Compilation failures or critical runtime halts are active. Core stability capacity surged to **${matrix.recommendedRoadmapAllocation.coreStability}%**.`);
+    lines.push(
+      `> **${matrix.summary.blockers} CLASS 1 BLOCKER CLUSTER(S) DETECTED**: Compilation failures or critical runtime halts are active. Core stability capacity surged to **${matrix.recommendedRoadmapAllocation.coreStability}%**.`,
+    );
   } else if (matrix.summary.regressions > 0) {
     lines.push("> [!WARNING]");
-    lines.push(`> **${matrix.summary.regressions} CLASS 2 REGRESSION CLUSTER(S) DETECTED**: Invariant violations or test regressions detected. Core stability capacity elevated to **${matrix.recommendedRoadmapAllocation.coreStability}%**.`);
+    lines.push(
+      `> **${matrix.summary.regressions} CLASS 2 REGRESSION CLUSTER(S) DETECTED**: Invariant violations or test regressions detected. Core stability capacity elevated to **${matrix.recommendedRoadmapAllocation.coreStability}%**.`,
+    );
   } else if (matrix.summary.qualityDeficits > 0) {
     lines.push("> [!NOTE]");
-    lines.push(`> **${matrix.summary.qualityDeficits} CLASS 3 QUALITY DEFICIT(S)**: Code style, linting, or documentation items active. Nominal 70/20/10 allocation maintained.`);
+    lines.push(
+      `> **${matrix.summary.qualityDeficits} CLASS 3 QUALITY DEFICIT(S)**: Code style, linting, or documentation items active. Nominal 70/20/10 allocation maintained.`,
+    );
   } else {
     lines.push("> [!TIP]");
-    lines.push("> **PRISTINE BASELINE**: Zero diagnostic deficits detected. System operating at full empirical fidelity.");
+    lines.push(
+      "> **PRISTINE BASELINE**: Zero diagnostic deficits detected. System operating at full empirical fidelity.",
+    );
   }
   lines.push("");
 
@@ -1744,9 +1811,15 @@ export function formatDeficitTopologyMatrixMarkdown(matrix: DeficitTopologyMatri
   lines.push("");
   lines.push("| Metric | Count | Criticality Weight | Status |");
   lines.push("| :--- | :--- | :--- | :--- |");
-  lines.push(`| **Class 1 Blockers** | \`${matrix.summary.blockers}\` | \`1.00\` | ${matrix.summary.blockers === 0 ? "🟢 None" : "🔴 Action Required"} |`);
-  lines.push(`| **Class 2 Regressions** | \`${matrix.summary.regressions}\` | \`0.60\` | ${matrix.summary.regressions === 0 ? "🟢 None" : "🟡 In Review"} |`);
-  lines.push(`| **Class 3 Quality Deficits** | \`${matrix.summary.qualityDeficits}\` | \`0.20\` | ${matrix.summary.qualityDeficits === 0 ? "🟢 None" : "⚪ Tracked"} |`);
+  lines.push(
+    `| **Class 1 Blockers** | \`${matrix.summary.blockers}\` | \`1.00\` | ${matrix.summary.blockers === 0 ? "🟢 None" : "🔴 Action Required"} |`,
+  );
+  lines.push(
+    `| **Class 2 Regressions** | \`${matrix.summary.regressions}\` | \`0.60\` | ${matrix.summary.regressions === 0 ? "🟢 None" : "🟡 In Review"} |`,
+  );
+  lines.push(
+    `| **Class 3 Quality Deficits** | \`${matrix.summary.qualityDeficits}\` | \`0.20\` | ${matrix.summary.qualityDeficits === 0 ? "🟢 None" : "⚪ Tracked"} |`,
+  );
   lines.push(`| **Total Deduped Clusters** | \`${matrix.totalClusters}\` | — | — |`);
   lines.push(`| **Total Raw Log Errors** | \`${matrix.totalRawErrors}\` | — | — |`);
   lines.push("");
@@ -1754,13 +1827,21 @@ export function formatDeficitTopologyMatrixMarkdown(matrix: DeficitTopologyMatri
   // 70/20/10 Innovation Portfolio Roadmap Allocation
   lines.push("## 🎯 Recommended 70/20/10 Innovation Portfolio Roadmap Allocation");
   lines.push("");
-  lines.push(`> **Dynamic Allocation Rationale**: ${matrix.recommendedRoadmapAllocation.rationale}`);
+  lines.push(
+    `> **Dynamic Allocation Rationale**: ${matrix.recommendedRoadmapAllocation.rationale}`,
+  );
   lines.push("");
   lines.push("| Track | Target Capacity | Focus & Remediation Scope |");
   lines.push("| :--- | :--- | :--- |");
-  lines.push(`| **Track A: Core Stability & Polish** | **${matrix.recommendedRoadmapAllocation.coreStability}%** | Defect triage, compiler fixups, invariant enforcement, regression elimination |`);
-  lines.push(`| **Track B: Architectural Evolution** | **${matrix.recommendedRoadmapAllocation.architecturalEvolution}%** | Subsystem decoupling, modular interface refactoring, telemetry hooks |`);
-  lines.push(`| **Track C: Exploratory Horizon Bets** | **${matrix.recommendedRoadmapAllocation.exploratory}%** | Breakthrough capabilities, stage-gated hypothesis experimentation |`);
+  lines.push(
+    `| **Track A: Core Stability & Polish** | **${matrix.recommendedRoadmapAllocation.coreStability}%** | Defect triage, compiler fixups, invariant enforcement, regression elimination |`,
+  );
+  lines.push(
+    `| **Track B: Architectural Evolution** | **${matrix.recommendedRoadmapAllocation.architecturalEvolution}%** | Subsystem decoupling, modular interface refactoring, telemetry hooks |`,
+  );
+  lines.push(
+    `| **Track C: Exploratory Horizon Bets** | **${matrix.recommendedRoadmapAllocation.exploratory}%** | Breakthrough capabilities, stage-gated hypothesis experimentation |`,
+  );
   lines.push("");
 
   // Subsystem Health Scorecard Table
@@ -1771,12 +1852,7 @@ export function formatDeficitTopologyMatrixMarkdown(matrix: DeficitTopologyMatri
 
   const sortedSubsystems = Object.entries(matrix.subsystemHealthScores).sort((a, b) => a[1] - b[1]);
   for (const [subsystem, score] of sortedSubsystems) {
-    const healthBadge =
-      score >= 0.85
-        ? "🟢 HEALTHY"
-        : score >= 0.6
-          ? "🟡 DEGRADED"
-          : "🔴 CRITICAL";
+    const healthBadge = score >= 0.85 ? "🟢 HEALTHY" : score >= 0.6 ? "🟡 DEGRADED" : "🔴 CRITICAL";
     lines.push(`| \`${subsystem}\` | \`${(score * 100).toFixed(1)}%\` | ${healthBadge} |`);
   }
   lines.push("");
@@ -1789,7 +1865,9 @@ export function formatDeficitTopologyMatrixMarkdown(matrix: DeficitTopologyMatri
     lines.push("_No active deficit clusters recorded._");
     lines.push("");
   } else {
-    lines.push("| Rank | Cluster ID | Classification | Severity | Subsystem | Raw Count | Root Cause Title |");
+    lines.push(
+      "| Rank | Cluster ID | Classification | Severity | Subsystem | Raw Count | Root Cause Title |",
+    );
     lines.push("| :--- | :--- | :--- | :--- | :--- | :--- | :--- |");
 
     for (const c of matrix.clusters) {
@@ -1811,15 +1889,23 @@ export function formatDeficitTopologyMatrixMarkdown(matrix: DeficitTopologyMatri
 
     for (const c of matrix.clusters) {
       lines.push(`#### [${c.clusterId}] ${c.rootCauseTitle}`);
-      lines.push(`- **Classification**: \`${c.classification}\` | **Severity Score**: \`${c.severityScore.toFixed(1)} / 10.0\``);
-      lines.push(`- **Primary Subsystem**: \`${c.primarySubsystem}\` | **Occurrences**: \`${c.rawOccurrenceCount}\``);
-      lines.push(`- **Affected Files** (${c.affectedFiles.length}): ${c.affectedFiles.map((f) => `\`${f}\``).join(", ") || "None"}`);
+      lines.push(
+        `- **Classification**: \`${c.classification}\` | **Severity Score**: \`${c.severityScore.toFixed(1)} / 10.0\``,
+      );
+      lines.push(
+        `- **Primary Subsystem**: \`${c.primarySubsystem}\` | **Occurrences**: \`${c.rawOccurrenceCount}\``,
+      );
+      lines.push(
+        `- **Affected Files** (${c.affectedFiles.length}): ${c.affectedFiles.map((f) => `\`${f}\``).join(", ") || "None"}`,
+      );
       lines.push(`- **Stack Trace Signature**: \`${c.stackTraceSignature}\``);
       lines.push(`- **Root Cause Hypothesis**: ${c.rootCauseHypothesis}`);
       lines.push(`- **Suggested Remediation Action**: \`${c.suggestedRemediationAction}\``);
 
       if (c.cascadingDownstreamClusters && c.cascadingDownstreamClusters.length > 0) {
-        lines.push(`- **Cascading Downstream Clusters**: ${c.cascadingDownstreamClusters.map((id) => `\`${id}\``).join(", ")}`);
+        lines.push(
+          `- **Cascading Downstream Clusters**: ${c.cascadingDownstreamClusters.map((id) => `\`${id}\``).join(", ")}`,
+        );
       }
 
       if (c.sampleErrorSnippets.length > 0) {

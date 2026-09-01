@@ -82,7 +82,7 @@ import {
 } from "../../../../../olt/scripts/src/mind/telemetry/index.ts";
 
 describe("Anti-Stagnation End-to-End Multi-Hour Sovereign Simulation Suite", () => {
-let testRepoRoot: string;
+  let testRepoRoot: string;
 
   beforeEach(() => {
     testRepoRoot = join(
@@ -103,7 +103,7 @@ let testRepoRoot: string;
     }
   });
 
-describe("7. Live Executive Dashboard Observability", () => {
+  describe("7. Live Executive Dashboard Observability", () => {
     it("asynchronously updates .olt/executive-dashboard.md and .olt/dashboard.json with 70/20/10 portfolio balance and health metrics", async () => {
       const dashboardEngine = new ExecutiveDashboardEngine(undefined, testRepoRoot);
 
@@ -160,7 +160,7 @@ describe("7. Live Executive Dashboard Observability", () => {
     });
   });
 
-describe("8. Zero Main Thread Pollution Invariant (100% Background Mailbox IPC)", () => {
+  describe("8. Zero Main Thread Pollution Invariant (100% Background Mailbox IPC)", () => {
     it("guarantees all supervisory and audit communications flow exclusively through background mailboxes", () => {
       const mindPaths = ensureMailboxDir("mind-supervisor", testRepoRoot);
       const auditorPaths = ensureMailboxDir("mind-auditor", testRepoRoot);
@@ -181,18 +181,24 @@ describe("8. Zero Main Thread Pollution Invariant (100% Background Mailbox IPC)"
       expect(dispatch1.id).toBeDefined();
 
       // Mind reads unread messages from its inbox
-      const unread = readUnreadMessages(mindPaths.inboxPath, loadMailboxCursor(mindPaths.cursorPath));
+      const unread = readUnreadMessages(
+        mindPaths.inboxPath,
+        loadMailboxCursor(mindPaths.cursorPath),
+      );
       expect(unread.messages.length).toBe(1);
       expect(unread.messages[0]?.sender_id).toBe("mind-auditor");
-      expect(
-        (unread.messages[0]?.payload as { inquiry: string }).inquiry,
-      ).toContain("What specific product hypothesis");
+      expect((unread.messages[0]?.payload as { inquiry: string }).inquiry).toContain(
+        "What specific product hypothesis",
+      );
 
       // Advance cursor batch
       advanceMailboxCursorBatch(mindPaths.cursorPath, unread.messages);
 
       // Verify no more unread messages
-      const unreadAfter = readUnreadMessages(mindPaths.inboxPath, loadMailboxCursor(mindPaths.cursorPath));
+      const unreadAfter = readUnreadMessages(
+        mindPaths.inboxPath,
+        loadMailboxCursor(mindPaths.cursorPath),
+      );
       expect(unreadAfter.messages.length).toBe(0);
 
       // Dispatch Response Turn 2 via Mailbox

@@ -42,9 +42,7 @@ import {
 } from "../../../../../olt/scripts/src/mind/crucible/types.ts";
 
 describe("Pre-Declared Pareto Decision Hierarchy & Arbitration Suite", () => {
-
-
-describe("3. Priority 2 vs Priority 3 & Marginal Gains (<15%) Rejection", () => {
+  describe("3. Priority 2 vs Priority 3 & Marginal Gains (<15%) Rejection", () => {
     it("unconditionally rejects marginal performance gains (< 15%) in favor of cognitive simplicity", () => {
       const candidateSimple: ParetoApproachCandidate = {
         name: "Simple In-Memory Store",
@@ -151,7 +149,7 @@ describe("3. Priority 2 vs Priority 3 & Marginal Gains (<15%) Rejection", () => 
     });
   });
 
-describe("4. Priority 4: Speculative Abstraction Rejection", () => {
+  describe("4. Priority 4: Speculative Abstraction Rejection", () => {
     it("unconditionally rejects speculative abstraction against any valid baseline", () => {
       const speculative: ParetoApproachCandidate = {
         name: "Universal Polymorphic Meta-Schema",

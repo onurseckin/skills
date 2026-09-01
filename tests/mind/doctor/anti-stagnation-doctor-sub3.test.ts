@@ -29,7 +29,7 @@ import { runDoctor } from "../../../olt/scripts/src/reporting/doctor.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 
 describe("Anti-Stagnation Doctor & Mind Charter Invariant Engine", () => {
-let tempDir: string;
+  let tempDir: string;
 
   beforeEach(() => {
     tempDir = fs.mkdtempSync(join(process.cwd(), "tmp-doctor-test-"));
@@ -41,7 +41,7 @@ let tempDir: string;
     }
   });
 
-describe("9. Invariant 8: Ergonomic Walkthrough & Product Craft", () => {
+  describe("9. Invariant 8: Ergonomic Walkthrough & Product Craft", () => {
     it("flags blocking aesthetic deficits as ERGONOMIC_WALKTHROUGH_AUDITING violation", () => {
       const options: AntiStagnationDoctorOptions = {
         state: {
@@ -66,12 +66,30 @@ describe("9. Invariant 8: Ergonomic Walkthrough & Product Craft", () => {
     });
   });
 
-describe("10. Invariant 10: Epistemic Supersession Indexing Acyclicity", () => {
+  describe("10. Invariant 10: Epistemic Supersession Indexing Acyclicity", () => {
     it("detects cyclic lineage in supersession index graph", () => {
       const cyclicIndex = new SupersessionIndex([
-        { id: "A", title: "Node A", status: "SUPERSEDED", supersededBy: "B", timestamp: new Date().toISOString() },
-        { id: "B", title: "Node B", status: "SUPERSEDED", supersededBy: "C", timestamp: new Date().toISOString() },
-        { id: "C", title: "Node C", status: "SUPERSEDED", supersededBy: "A", timestamp: new Date().toISOString() }, // Cycle A -> B -> C -> A
+        {
+          id: "A",
+          title: "Node A",
+          status: "SUPERSEDED",
+          supersededBy: "B",
+          timestamp: new Date().toISOString(),
+        },
+        {
+          id: "B",
+          title: "Node B",
+          status: "SUPERSEDED",
+          supersededBy: "C",
+          timestamp: new Date().toISOString(),
+        },
+        {
+          id: "C",
+          title: "Node C",
+          status: "SUPERSEDED",
+          supersededBy: "A",
+          timestamp: new Date().toISOString(),
+        }, // Cycle A -> B -> C -> A
       ]);
 
       const options: AntiStagnationDoctorOptions = {
@@ -89,8 +107,20 @@ describe("10. Invariant 10: Epistemic Supersession Indexing Acyclicity", () => {
 
     it("passes cleanly when supersession index is strictly acyclic", () => {
       const acyclicIndex = new SupersessionIndex([
-        { id: "A", title: "Node A", status: "SUPERSEDED", supersededBy: "B", timestamp: new Date().toISOString() },
-        { id: "B", title: "Node B", status: "SUPERSEDED", supersededBy: "C", timestamp: new Date().toISOString() },
+        {
+          id: "A",
+          title: "Node A",
+          status: "SUPERSEDED",
+          supersededBy: "B",
+          timestamp: new Date().toISOString(),
+        },
+        {
+          id: "B",
+          title: "Node B",
+          status: "SUPERSEDED",
+          supersededBy: "C",
+          timestamp: new Date().toISOString(),
+        },
         { id: "C", title: "Node C", status: "ACTIVE", timestamp: new Date().toISOString() },
       ]);
 
@@ -100,12 +130,14 @@ describe("10. Invariant 10: Epistemic Supersession Indexing Acyclicity", () => {
       };
 
       const result = checkAntiStagnationDoctor(options);
-      const supersessionViolations = result.findings.filter((f) => f.code === "EPISTEMIC_SUPERSESSION_INDEXING");
+      const supersessionViolations = result.findings.filter(
+        (f) => f.code === "EPISTEMIC_SUPERSESSION_INDEXING",
+      );
       expect(supersessionViolations).toHaveLength(0);
     });
   });
 
-describe("11. Invariant 11: Suspended Animation Protocol", () => {
+  describe("11. Invariant 11: Suspended Animation Protocol", () => {
     it("detects corrupted snapshot checksum as SUSPENDED_ANIMATION_PROTOCOL violation", () => {
       const nowMs = Date.now();
       const corruptedSnapshot: SuspendedAnimationSnapshot = {
@@ -191,12 +223,14 @@ describe("11. Invariant 11: Suspended Animation Protocol", () => {
       };
 
       const result = checkAntiStagnationDoctor(options);
-      const suspendedViolations = result.findings.filter((f) => f.code === "SUSPENDED_ANIMATION_PROTOCOL");
+      const suspendedViolations = result.findings.filter(
+        (f) => f.code === "SUSPENDED_ANIMATION_PROTOCOL",
+      );
       expect(suspendedViolations).toHaveLength(0);
     });
   });
 
-describe("12. Invariant 14: Live Executive Dashboard Freshness", () => {
+  describe("12. Invariant 14: Live Executive Dashboard Freshness", () => {
     it("flags missing executive dashboard in active Mind capsule", () => {
       const options: AntiStagnationDoctorOptions = {
         state: {

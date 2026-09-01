@@ -90,9 +90,7 @@ export function canonicalJsonStringify(val: unknown): string {
 
   const obj = val as Record<string, unknown>;
   const keys = Object.keys(obj).sort();
-  const pairs = keys.map(
-    (k) => `${JSON.stringify(k)}:${canonicalJsonStringify(obj[k])}`,
-  );
+  const pairs = keys.map((k) => `${JSON.stringify(k)}:${canonicalJsonStringify(obj[k])}`);
   return `{${pairs.join(",")}}`;
 }
 
@@ -109,9 +107,10 @@ export function verifySnapshotIntegrity(snapshot: SuspendedAnimationSnapshot): b
   return computed === checksum;
 }
 
-export function validateTaskDagAcyclicity(
-  tasks: readonly SuspendedTaskNode[],
-): { valid: boolean; cycle?: string[] | undefined } {
+export function validateTaskDagAcyclicity(tasks: readonly SuspendedTaskNode[]): {
+  valid: boolean;
+  cycle?: string[] | undefined;
+} {
   const adj = new Map<string, string[]>();
   for (const t of tasks) {
     adj.set(t.taskId, [...t.dependents]);
@@ -233,9 +232,7 @@ export function resolveSuspendedStatePath(repoOrWorkspaceRoot: string): string {
   return path.join(repoOrWorkspaceRoot, ".olt", "suspended-state.json");
 }
 
-export function readSnapshotFromDisk(
-  pathOrDir: string,
-): SuspendedAnimationSnapshot | null {
+export function readSnapshotFromDisk(pathOrDir: string): SuspendedAnimationSnapshot | null {
   const fullPath = resolveSuspendedStatePath(pathOrDir);
   if (!fs.existsSync(fullPath)) return null;
 
@@ -251,10 +248,7 @@ export function readSnapshotFromDisk(
   }
 }
 
-export function writeSnapshotToDisk(
-  pathOrDir: string,
-  snapshot: SuspendedAnimationSnapshot,
-): void {
+export function writeSnapshotToDisk(pathOrDir: string, snapshot: SuspendedAnimationSnapshot): void {
   const fullPath = resolveSuspendedStatePath(pathOrDir);
   const dir = path.dirname(fullPath);
   if (!fs.existsSync(dir)) {
@@ -402,7 +396,8 @@ export class SuspendedAnimationEngine {
       checksum,
     };
 
-    const targetPath = params.customSnapshotPath ?? params.repoRoot ?? params.workspaceRoot ?? process.cwd();
+    const targetPath =
+      params.customSnapshotPath ?? params.repoRoot ?? params.workspaceRoot ?? process.cwd();
     writeSnapshotToDisk(targetPath, fullSnapshot);
     this.isSuspended = true;
 

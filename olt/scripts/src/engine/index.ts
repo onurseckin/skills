@@ -19,6 +19,8 @@ export {
   type PolicyReloadResult,
 } from "./policy-engine.ts";
 
+export { assertZeroDestructiveGit } from "./worktree/index.ts";
+
 import * as runner from "./runner/index.ts";
 import * as scheduler from "./scheduler/index.ts";
 import * as store from "./store/index.ts";

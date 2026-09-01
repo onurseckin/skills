@@ -22,9 +22,7 @@ import {
 } from "../../../../olt/scripts/src/mind/planning/index.ts";
 
 describe("70/20/10 Innovation Portfolio Governance & Capacity Balancer", () => {
-
-
-test("searches AntiPatternLedger by topic, tags, and general query", () => {
+  test("searches AntiPatternLedger by topic, tags, and general query", () => {
     const ledger = new AntiPatternLedger();
     ledger.recordAntiPattern({
       betId: "b1",
@@ -61,7 +59,7 @@ test("searches AntiPatternLedger by topic, tags, and general query", () => {
     expect(queryResults[0]!.betTitle).toBe("Distributed Lock-Free Queue");
   });
 
-test("serializes and deserializes AntiPatternLedger state", () => {
+  test("serializes and deserializes AntiPatternLedger state", () => {
     const ledger = new AntiPatternLedger();
     ledger.recordAntiPattern({
       betId: "b1",
@@ -84,8 +82,7 @@ test("serializes and deserializes AntiPatternLedger state", () => {
 });
 
 describe("Pre-Declared Pareto Arbitration Integration", () => {
-
-test("enforces UX Delight & Correctness as Priority 1 and penalizes candidates with errors", () => {
+  test("enforces UX Delight & Correctness as Priority 1 and penalizes candidates with errors", () => {
     const candidateA: ParetoCandidate = {
       name: "Fast But Buggy Parser",
       satisfiesPriority: PARETO_PRIORITY_LEVELS.SCALABILITY_GEQ_15_PERCENT,
@@ -106,7 +103,7 @@ test("enforces UX Delight & Correctness as Priority 1 and penalizes candidates w
     expect(result.rationale).toContain("runtime or structural errors");
   });
 
-test("enforces Simplicity & Maintainability over marginal performance gains (< 15%)", () => {
+  test("enforces Simplicity & Maintainability over marginal performance gains (< 15%)", () => {
     const simpleCandidate: ParetoCandidate = {
       name: "Simple Direct Implementation",
       satisfiesPriority: PARETO_PRIORITY_LEVELS.SIMPLICITY_AND_MAINTAINABILITY,
@@ -126,7 +123,7 @@ test("enforces Simplicity & Maintainability over marginal performance gains (< 1
     expect(result.rationale).toContain("Priority 2");
   });
 
-test("allows Scalability (Priority 3) to win when performance gain >= 15%", () => {
+  test("allows Scalability (Priority 3) to win when performance gain >= 15%", () => {
     const simpleCandidate: ParetoCandidate = {
       name: "Standard Loop",
       satisfiesPriority: PARETO_PRIORITY_LEVELS.SIMPLICITY_AND_MAINTAINABILITY,
@@ -143,7 +140,7 @@ test("allows Scalability (Priority 3) to win when performance gain >= 15%", () =
     expect(result.winner).toBe("SIMD Batch Kernel"); // Priority 3 with >= 15% gain takes precedence over Priority 2
   });
 
-test("arbitrates multi-candidate set and enforces Pareto frontier when debate cycles > 2", () => {
+  test("arbitrates multi-candidate set and enforces Pareto frontier when debate cycles > 2", () => {
     const candidates: ParetoCandidate[] = [
       {
         name: "Speculative Framework Metaprogramming",
@@ -173,7 +170,7 @@ test("arbitrates multi-candidate set and enforces Pareto frontier when debate cy
     expect(result.rationale).toBeDefined();
   });
 
-test("filters candidates onto the Pareto frontier accurately", () => {
+  test("filters candidates onto the Pareto frontier accurately", () => {
     const candidates: ParetoCandidate[] = [
       {
         name: "Low Value High Complexity",

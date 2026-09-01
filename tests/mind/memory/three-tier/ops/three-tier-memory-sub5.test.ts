@@ -29,9 +29,7 @@ import {
 } from "../../../../../olt/scripts/src/mind/memory/index.ts";
 
 describe("ThreeTierMemoryEngine Test Suite", () => {
-
-
-describe("Pruning & Compaction Engine (Rolling Horizon & Compaction to Tier 3)", () => {
+  describe("Pruning & Compaction Engine (Rolling Horizon & Compaction to Tier 3)", () => {
     it("prunes completed and resolved working memory entries and archives them to Tier 3", () => {
       const engine = new ThreeTierMemoryEngine();
 

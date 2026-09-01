@@ -93,13 +93,7 @@ export interface FormFieldEvaluationInput {
   readonly validationBanner?: ValidationBannerInfo;
 }
 
-export type OverlayType =
-  | "modal"
-  | "drawer"
-  | "menu"
-  | "popover"
-  | "tooltip"
-  | "toast";
+export type OverlayType = "modal" | "drawer" | "menu" | "popover" | "tooltip" | "toast";
 
 export interface OverlayDescriptor {
   readonly id: string;

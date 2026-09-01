@@ -82,7 +82,7 @@ import {
 } from "../../../../../olt/scripts/src/mind/telemetry/index.ts";
 
 describe("Anti-Stagnation End-to-End Multi-Hour Sovereign Simulation Suite", () => {
-describe("4. 15-Minute Windowed Friction Telemetry & Composite Health Scoring", () => {
+  describe("4. 15-Minute Windowed Friction Telemetry & Composite Health Scoring", () => {
     it("aggregates operational telemetry across 15-minute epochs and computes composite health score", () => {
       const baseTime = 10_000_000;
       const aggregator = new FrictionTelemetryAggregator(
@@ -92,8 +92,14 @@ describe("4. 15-Minute Windowed Friction Telemetry & Composite Health Scoring", 
       const scoringEngine = new HealthScoringEngine();
 
       // Record nominal operations in Epoch 0
-      aggregator.recordEvent({ type: "TASK_DISPATCH", metadata: { coordinatorId: "c1", workerId: "w1" } });
-      aggregator.recordEvent({ type: "TASK_COMPLETE", metadata: { coordinatorId: "c1", workerId: "w1" } });
+      aggregator.recordEvent({
+        type: "TASK_DISPATCH",
+        metadata: { coordinatorId: "c1", workerId: "w1" },
+      });
+      aggregator.recordEvent({
+        type: "TASK_COMPLETE",
+        metadata: { coordinatorId: "c1", workerId: "w1" },
+      });
       aggregator.recordEvent({
         type: "LATENCY_MEASUREMENT",
         metadata: { durationMs: 5_000, latencyCategory: "execution" },

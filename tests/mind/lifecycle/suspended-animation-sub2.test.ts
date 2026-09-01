@@ -50,9 +50,7 @@ import {
 } from "../../../olt/scripts/src/mind/lifecycle/index.ts";
 
 describe("Autonomous Resource Governor & Suspended Animation Suite", () => {
-
-
-describe("Suspended Animation: Deterministic Serialization & Checksum Integrity", () => {
+  describe("Suspended Animation: Deterministic Serialization & Checksum Integrity", () => {
     it("produces deterministic sorted JSON string via canonicalJsonStringify", () => {
       const obj1 = { b: 2, a: 1, c: { z: 26, y: 25 } };
       const obj2 = { c: { y: 25, z: 26 }, a: 1, b: 2 };
@@ -99,7 +97,7 @@ describe("Suspended Animation: Deterministic Serialization & Checksum Integrity"
     });
   });
 
-describe("Suspended Animation: DAG Acyclicity & Circular Dependency Validation", () => {
+  describe("Suspended Animation: DAG Acyclicity & Circular Dependency Validation", () => {
     it("verifies that a valid task DAG is acyclic", () => {
       const tasks: SuspendedTaskNode[] = [
         {
@@ -176,7 +174,7 @@ describe("Suspended Animation: DAG Acyclicity & Circular Dependency Validation",
     });
   });
 
-describe("Auto-Wake Resumption Engine: Exponential Backoff & Health Probing", () => {
+  describe("Auto-Wake Resumption Engine: Exponential Backoff & Health Probing", () => {
     it("computes exponential backoff delays with bounded jitter", () => {
       const config: AutoWakeProbeConfig = {
         baseIntervalMs: 1000,

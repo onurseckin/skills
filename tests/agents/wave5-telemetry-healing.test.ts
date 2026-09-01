@@ -50,7 +50,6 @@ import {
   validateAgentToolCall,
 } from "../../olt/scripts/src/agents/index.ts";
 
-
 const TEST_ROOT = path.join(process.cwd(), ".olt-test-scratch-wave5");
 
 function cleanTestRoot(): void {

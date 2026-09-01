@@ -11,9 +11,7 @@ import {
 } from "../../../../../olt/scripts/src/mind/auditing/socratic/index.ts";
 
 describe("HistoricalDebateMemory", () => {
-
-
-it("records resolutions and indexes commitments correctly", () => {
+  it("records resolutions and indexes commitments correctly", () => {
     const memory = new HistoricalDebateMemory();
     const commitment1: StrategicCommitment = {
       id: "comm-1",
@@ -48,7 +46,7 @@ it("records resolutions and indexes commitments correctly", () => {
     );
   });
 
-it("updates commitment status and handles justifications", () => {
+  it("updates commitment status and handles justifications", () => {
     const memory = new HistoricalDebateMemory();
     const commitment: StrategicCommitment = {
       id: "comm-2",
@@ -77,14 +75,14 @@ it("updates commitment status and handles justifications", () => {
     expect(memory.getUnfulfilledCommitments().length).toBe(0);
   });
 
-it("throws error when updating non-existent commitment", () => {
+  it("throws error when updating non-existent commitment", () => {
     const memory = new HistoricalDebateMemory();
     expect(() => {
       memory.updateCommitmentStatus("non-existent", "fulfilled");
     }).toThrow('Commitment with id "non-existent" not found');
   });
 
-it("retrieves the latest resolution for a topic case-insensitively", () => {
+  it("retrieves the latest resolution for a topic case-insensitively", () => {
     const memory = new HistoricalDebateMemory();
     memory.recordResolution({
       id: "res-old",
@@ -115,7 +113,7 @@ it("retrieves the latest resolution for a topic case-insensitively", () => {
     expect(latest?.winningApproach).toBe("Embedded LMDB");
   });
 
-it("serializes and deserializes accurately", () => {
+  it("serializes and deserializes accurately", () => {
     const memory = new HistoricalDebateMemory();
     const commitment: StrategicCommitment = {
       id: "comm-ser",
@@ -147,7 +145,7 @@ it("serializes and deserializes accurately", () => {
     expect(restored.getCommitmentById("comm-ser")?.agreedResolution).toBe("Strict JSON format");
   });
 
-it("handles malformed JSON or invalid structures safely during deserialization", () => {
+  it("handles malformed JSON or invalid structures safely during deserialization", () => {
     expect(() => HistoricalDebateMemory.deserialize("invalid json")).toThrow();
     expect(() => HistoricalDebateMemory.deserialize("null")).toThrow();
     const empty = HistoricalDebateMemory.deserialize("{}");
@@ -157,8 +155,7 @@ it("handles malformed JSON or invalid structures safely during deserialization",
 });
 
 describe("SocraticLadderingEngine", () => {
-
-it("enforces L1 commitment accountability gate when unfulfilled commitments lack justification", () => {
+  it("enforces L1 commitment accountability gate when unfulfilled commitments lack justification", () => {
     const memory = new HistoricalDebateMemory();
     memory.recordCommitment({
       id: "comm-unfulfilled",

@@ -88,15 +88,12 @@ export class VisualDeltaComparator {
       );
     }
 
-    const totalPixels =
-      input.totalPixels || input.baselineWidth * input.baselineHeight || 1;
+    const totalPixels = input.totalPixels || input.baselineWidth * input.baselineHeight || 1;
     const differingPixelsCount = input.differingPixels || 0;
     const pixelDeltaRatio = differingPixelsCount / totalPixels;
     const severity = this.classifySeverity(pixelDeltaRatio);
 
-    const boundingBoxes = this.clusterDifferingPixels(
-      input.differingPixelCoordinates || [],
-    );
+    const boundingBoxes = this.clusterDifferingPixels(input.differingPixelCoordinates || []);
 
     const shiftDetected =
       input.baselineWidth !== input.candidateWidth ||
@@ -126,4 +123,3 @@ export class VisualDeltaComparator {
 // ============================================================================
 // 5. Unified Evidence Lifecycle Engine & Singletons
 // ============================================================================
-

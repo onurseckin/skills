@@ -1,21 +1,10 @@
-
-import type {
-  DoctorDiagnosticFinding,
-  DoctorSeverity,
-} from "../index.ts";
+import type { DoctorDiagnosticFinding, DoctorSeverity } from "../index.ts";
 import {
   type SerializedDebateMemory,
   type HistoricalDebateMemory,
 } from "../../../mind/auditing/socratic/index.ts";
-import {
-  SupersessionIndex,
-  type SupersessionIndexState,
-} from "../../../mind/memory/index.ts";
-import {
-  type SuspendedAnimationSnapshot,
-} from "../../../mind/lifecycle/index.ts";
-
-
+import { SupersessionIndex, type SupersessionIndexState } from "../../../mind/memory/index.ts";
+import { type SuspendedAnimationSnapshot } from "../../../mind/lifecycle/index.ts";
 
 // 2. Constants & Helpers
 // ============================================================================
@@ -141,7 +130,11 @@ export function resolveAgentRoleMap(ctx: InvariantContext): Map<string, string> 
   return agentRoleMap;
 }
 
-export function inferAgentRole(agentId?: string, explicitRole?: string, roleMap?: Map<string, string>): string {
+export function inferAgentRole(
+  agentId?: string,
+  explicitRole?: string,
+  roleMap?: Map<string, string>,
+): string {
   if (explicitRole) return explicitRole;
   if (!agentId) return "";
   if (roleMap?.has(agentId)) return roleMap.get(agentId)!;

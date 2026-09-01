@@ -120,7 +120,9 @@ describe("Wave 4: Single-Touch Autonomous Mind Initialization & Flow", () => {
       expect(result.markdown).toContain("SOVEREIGN AUTONOMOUS MIND INITIALIZED");
       expect(result.markdown).toContain("Stage 1: In-Flight Worktree & User Intent Extraction");
       expect(result.markdown).toContain("Stage 2: Empirical Baseline Probes & Deficit Topology");
-      expect(result.markdown).toContain("Stage 3: Strategic Goal Configuration & Mobilized Hierarchy");
+      expect(result.markdown).toContain(
+        "Stage 3: Strategic Goal Configuration & Mobilized Hierarchy",
+      );
     });
 
     test("AutonomousMindInitializer class operates modularly across all stages", async () => {

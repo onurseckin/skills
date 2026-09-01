@@ -29,7 +29,7 @@ import {
 } from "../../../../../olt/scripts/src/mind/memory/index.ts";
 
 describe("ThreeTierMemoryEngine Test Suite", () => {
-describe("Tier 3: Archived Episodic Epics (Compaction Abstracts & Lineage)", () => {
+  describe("Tier 3: Archived Episodic Epics (Compaction Abstracts & Lineage)", () => {
     it("adds archived epics directly and retrieves them", () => {
       const engine = new ThreeTierMemoryEngine();
 

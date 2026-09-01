@@ -40,5 +40,3 @@ import {
   type SettledInvariant,
   type SettledInvariantStore,
 } from "../../../../../olt/scripts/src/mind/crucible/types.ts";
-
-

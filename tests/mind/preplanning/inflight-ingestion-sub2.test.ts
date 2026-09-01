@@ -27,7 +27,7 @@ import {
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("In-Flight Work Ingestion & Intent Extraction Engine Suite", () => {
-let testDir: string;
+  let testDir: string;
   let snapshotsDir: string;
 
   beforeEach(() => {
@@ -47,7 +47,7 @@ let testDir: string;
     }
   });
 
-describe("InFlightIngestionEngine Snapshot Lifecycle", () => {
+  describe("InFlightIngestionEngine Snapshot Lifecycle", () => {
     it("creates, saves to .olt/snapshots/, loads, and lists snapshots non-destructively", async () => {
       const mockRunner: GitRunner = (_cwd, argv) => {
         const cmd = argv[0];
@@ -138,9 +138,15 @@ describe("InFlightIngestionEngine Snapshot Lifecycle", () => {
       const mockRunner: GitRunner = (_cwd, argv) => {
         const cmd = argv[0];
         if (cmd === "symbolic-ref") return { status: 0, stdout: "main\n", stderr: "" };
-        if (cmd === "rev-parse") return { status: 0, stdout: "1111222233334444555566667777888899990000\n", stderr: "" };
+        if (cmd === "rev-parse")
+          return { status: 0, stdout: "1111222233334444555566667777888899990000\n", stderr: "" };
         if (cmd === "status") return { status: 0, stdout: " M README.md\n", stderr: "" };
-        if (cmd === "diff") return { status: 0, stdout: "diff --git a/README.md b/README.md\n+# Docs update\n", stderr: "" };
+        if (cmd === "diff")
+          return {
+            status: 0,
+            stdout: "diff --git a/README.md b/README.md\n+# Docs update\n",
+            stderr: "",
+          };
         if (cmd === "stash") return { status: 0, stdout: "", stderr: "" };
         return { status: 0, stdout: "", stderr: "" };
       };

@@ -5,11 +5,7 @@ export type ResourceGovernorState =
   | "HIBERNATING"
   | "RECOVERING";
 
-export type ResourceType =
-  | "API_RPM"
-  | "API_TPM"
-  | "DAILY_COMPUTE"
-  | "CONCURRENCY";
+export type ResourceType = "API_RPM" | "API_TPM" | "DAILY_COMPUTE" | "CONCURRENCY";
 
 export interface ResourceHeadroom {
   readonly resourceType: ResourceType;
@@ -111,7 +107,10 @@ export class ResourceGovernor {
   private lastThrottleEvent?: ExternalThrottleEvent;
   private throttleUntilMs = 0;
 
-  private stateChangeListeners: ((from: ResourceGovernorState, to: ResourceGovernorState) => void)[] = [];
+  private stateChangeListeners: ((
+    from: ResourceGovernorState,
+    to: ResourceGovernorState,
+  ) => void)[] = [];
   private quotaWarningListeners: ((warning: ResourceHeadroom) => void)[] = [];
   private hibernationListeners: ((resource: ResourceType) => void)[] = [];
 
@@ -137,11 +136,15 @@ export class ResourceGovernor {
   public setQuotaLimits(newLimits: Partial<ResourceGovernorLimits>): void {
     if (newLimits.maxRpm !== undefined) this.limits.maxRpm = newLimits.maxRpm;
     if (newLimits.maxTpm !== undefined) this.limits.maxTpm = newLimits.maxTpm;
-    if (newLimits.maxDailyCompute !== undefined) this.limits.maxDailyCompute = newLimits.maxDailyCompute;
-    if (newLimits.maxConcurrency !== undefined) this.limits.maxConcurrency = newLimits.maxConcurrency;
+    if (newLimits.maxDailyCompute !== undefined)
+      this.limits.maxDailyCompute = newLimits.maxDailyCompute;
+    if (newLimits.maxConcurrency !== undefined)
+      this.limits.maxConcurrency = newLimits.maxConcurrency;
   }
 
-  public onStateChange(listener: (from: ResourceGovernorState, to: ResourceGovernorState) => void): void {
+  public onStateChange(
+    listener: (from: ResourceGovernorState, to: ResourceGovernorState) => void,
+  ): void {
     this.stateChangeListeners.push(listener);
   }
 
@@ -177,8 +180,14 @@ export class ResourceGovernor {
 
     const rpmRatio = calculateUtilizationRatio(this.getRpmUsage(now), this.limits.maxRpm);
     const tpmRatio = calculateUtilizationRatio(this.getTpmUsage(now), this.limits.maxTpm);
-    const concurrencyRatio = calculateUtilizationRatio(this.activeConcurrency, this.limits.maxConcurrency);
-    const computeRatio = calculateUtilizationRatio(this.dailyComputeUsed, this.limits.maxDailyCompute);
+    const concurrencyRatio = calculateUtilizationRatio(
+      this.activeConcurrency,
+      this.limits.maxConcurrency,
+    );
+    const computeRatio = calculateUtilizationRatio(
+      this.dailyComputeUsed,
+      this.limits.maxDailyCompute,
+    );
 
     const maxRatio = Math.max(rpmRatio, tpmRatio, concurrencyRatio, computeRatio);
 
@@ -233,15 +242,27 @@ export class ResourceGovernor {
         resourceType: "DAILY_COMPUTE",
         currentUsage: this.dailyComputeUsed,
         maxLimit: this.limits.maxDailyCompute,
-        remainingHeadroom: calculateRemainingHeadroom(this.dailyComputeUsed, this.limits.maxDailyCompute),
-        utilizationRatio: calculateUtilizationRatio(this.dailyComputeUsed, this.limits.maxDailyCompute),
+        remainingHeadroom: calculateRemainingHeadroom(
+          this.dailyComputeUsed,
+          this.limits.maxDailyCompute,
+        ),
+        utilizationRatio: calculateUtilizationRatio(
+          this.dailyComputeUsed,
+          this.limits.maxDailyCompute,
+        ),
       },
       CONCURRENCY: {
         resourceType: "CONCURRENCY",
         currentUsage: this.activeConcurrency,
         maxLimit: this.limits.maxConcurrency,
-        remainingHeadroom: calculateRemainingHeadroom(this.activeConcurrency, this.limits.maxConcurrency),
-        utilizationRatio: calculateUtilizationRatio(this.activeConcurrency, this.limits.maxConcurrency),
+        remainingHeadroom: calculateRemainingHeadroom(
+          this.activeConcurrency,
+          this.limits.maxConcurrency,
+        ),
+        utilizationRatio: calculateUtilizationRatio(
+          this.activeConcurrency,
+          this.limits.maxConcurrency,
+        ),
       },
     };
 
@@ -293,7 +314,10 @@ export class ResourceGovernor {
     return status;
   }
 
-  public recordExternalThrottle(event: ExternalThrottleEvent, now: number = Date.now()): GovernorStatus {
+  public recordExternalThrottle(
+    event: ExternalThrottleEvent,
+    now: number = Date.now(),
+  ): GovernorStatus {
     this.throttleCount++;
     this.lastThrottleEvent = event;
     this.throttleUntilMs = Math.max(this.throttleUntilMs, now + event.retryAfterMs);

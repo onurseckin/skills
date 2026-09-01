@@ -1,4 +1,3 @@
-
 import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
 import { findRepoRoot } from "../../../core/index.ts";
@@ -28,11 +27,7 @@ import {
   type ExecutiveDashboardState,
   resolveDashboardPaths,
 } from "../../../mind/reporting/index.ts";
-import type {
-  DoctorCheckEngineResult,
-  DoctorDiagnosticFinding,
-  DoctorSeverity,
-} from "../index.ts";
+import type { DoctorCheckEngineResult, DoctorDiagnosticFinding, DoctorSeverity } from "../index.ts";
 import {
   MIND_CHARTER_INVARIANTS,
   DEFAULT_MAX_DASHBOARD_STALENESS_MS,
@@ -40,7 +35,7 @@ import {
   type AntiStagnationDoctorOptions,
   type InvariantAuditResult,
   type AntiStagnationAuditReport,
-  } from "./types.ts";
+} from "./types.ts";
 import {
   normalizeRole,
   isSupervisorRole,
@@ -48,10 +43,8 @@ import {
   resolveAgentRoleMap,
   inferAgentRole,
   type InvariantContext,
-  
-  
   CODE_EDIT_TOOLS,
-  TEST_RUNNER_KEYWORDS
+  TEST_RUNNER_KEYWORDS,
 } from "./helpers.ts";
 
 export function auditLiveExecutiveDashboard(ctx: InvariantContext): InvariantAuditResult[] {
@@ -80,7 +73,8 @@ export function auditLiveExecutiveDashboard(ctx: InvariantContext): InvariantAud
         invariant: "LIVE_EXECUTIVE_DASHBOARD",
         compliant: false,
         severity: "ERROR",
-        message: "Live Executive Dashboard violation: Mandatory executive dashboard (.olt/executive-dashboard.md & .olt/dashboard.json) is missing in active Mind capsule.",
+        message:
+          "Live Executive Dashboard violation: Mandatory executive dashboard (.olt/executive-dashboard.md & .olt/dashboard.json) is missing in active Mind capsule.",
         details: { repoRoot: ctx.repoRoot },
       },
     ];
@@ -100,7 +94,8 @@ export function auditLiveExecutiveDashboard(ctx: InvariantContext): InvariantAud
           invariant: "LIVE_EXECUTIVE_DASHBOARD",
           compliant: false,
           severity: "ERROR",
-          message: "Live Executive Dashboard violation: One or more of the 5 mandatory dashboard sections are missing.",
+          message:
+            "Live Executive Dashboard violation: One or more of the 5 mandatory dashboard sections are missing.",
           details: { hasSec1, hasSec2, hasSec3, hasSec4, hasSec5 },
         },
       ];
@@ -118,7 +113,12 @@ export function auditLiveExecutiveDashboard(ctx: InvariantContext): InvariantAud
             compliant: false,
             severity: "WARN",
             message: `Live Executive Dashboard notice: Dashboard state is stale (${(latencyMs / 1000).toFixed(0)}s old > ${(ctx.maxDashboardStalenessMs / 1000).toFixed(0)}s threshold). Auto-synchronization recommended.`,
-            details: { latencyMs, maxStalenessMs: ctx.maxDashboardStalenessMs, lastUpdated: updatedTimeStr, dashboardPath },
+            details: {
+              latencyMs,
+              maxStalenessMs: ctx.maxDashboardStalenessMs,
+              lastUpdated: updatedTimeStr,
+              dashboardPath,
+            },
           },
         ];
       }
@@ -138,7 +138,9 @@ export function auditLiveExecutiveDashboard(ctx: InvariantContext): InvariantAud
 /**
  * 15. MANDATORY_3_ROUND_SOCRATIC_LADDERING
  */
-export function auditMandatory3RoundSocraticLaddering(ctx: InvariantContext): InvariantAuditResult[] {
+export function auditMandatory3RoundSocraticLaddering(
+  ctx: InvariantContext,
+): InvariantAuditResult[] {
   let memory: HistoricalDebateMemory | null = null;
 
   if (ctx.socraticMemory instanceof HistoricalDebateMemory) {
@@ -155,7 +157,9 @@ export function auditMandatory3RoundSocraticLaddering(ctx: InvariantContext): In
 
   const socraticState = ctx.state?.socratic as Record<string, unknown> | undefined;
   if (socraticState && socraticState.consensusReached === true) {
-    const history = Array.isArray(socraticState.history) ? (socraticState.history as Array<Record<string, unknown>>) : [];
+    const history = Array.isArray(socraticState.history)
+      ? (socraticState.history as Array<Record<string, unknown>>)
+      : [];
     const levelsTraversed = new Set(history.map((h) => h.level));
 
     const traversedL1 = levelsTraversed.has("L1_TRADE_OFF_VERIFICATION");
@@ -168,7 +172,8 @@ export function auditMandatory3RoundSocraticLaddering(ctx: InvariantContext): In
           invariant: "MANDATORY_3_ROUND_SOCRATIC_LADDERING",
           compliant: false,
           severity: "ERROR",
-          message: "Mandatory 3-Round Socratic Laddering violation: Consensus recorded without traversing all 3 mandatory dialectical rounds (L1: Trade-off, L2: Second-Order, L3: Emergent Paradigms).",
+          message:
+            "Mandatory 3-Round Socratic Laddering violation: Consensus recorded without traversing all 3 mandatory dialectical rounds (L1: Trade-off, L2: Second-Order, L3: Emergent Paradigms).",
           details: { traversedL1, traversedL2, traversedL3, roundsCount: history.length },
         },
       ];
@@ -180,7 +185,8 @@ export function auditMandatory3RoundSocraticLaddering(ctx: InvariantContext): In
       invariant: "MANDATORY_3_ROUND_SOCRATIC_LADDERING",
       compliant: true,
       severity: "INFO",
-      message: "Mandatory 3-Round Socratic Laddering invariant satisfied: dialectical laddering integrity verified.",
+      message:
+        "Mandatory 3-Round Socratic Laddering invariant satisfied: dialectical laddering integrity verified.",
     },
   ];
 }
@@ -188,7 +194,10 @@ export function auditMandatory3RoundSocraticLaddering(ctx: InvariantContext): In
 /**
  * 16. DIRECT_1_ON_1_CONVERSATIONAL_AUDITS
  */
-export function auditDirect1on1ConversationalAudits(ctx: InvariantContext, roleMap: Map<string, string>): InvariantAuditResult[] {
+export function auditDirect1on1ConversationalAudits(
+  ctx: InvariantContext,
+  roleMap: Map<string, string>,
+): InvariantAuditResult[] {
   const violations: Array<{ source: string; target: string; issue: string }> = [];
 
   // Check grants hierarchy
@@ -232,7 +241,8 @@ export function auditDirect1on1ConversationalAudits(ctx: InvariantContext, roleM
       invariant: "DIRECT_1_ON_1_CONVERSATIONAL_AUDITS",
       compliant: true,
       severity: "INFO",
-      message: "Direct 1-on-1 Conversational Audits invariant satisfied: strict parent-child hierarchical delegation intact.",
+      message:
+        "Direct 1-on-1 Conversational Audits invariant satisfied: strict parent-child hierarchical delegation intact.",
     },
   ];
 }

@@ -9,9 +9,7 @@ export type {
   QuarantineAuditRecord,
 } from "./types.ts";
 
-export {
-  OPTICAL_QUARANTINE_INVARIANTS,
-} from "./types.ts";
+export { OPTICAL_QUARANTINE_INVARIANTS } from "./types.ts";
 
 export {
   PERMITTED_IMAGE_EXTENSIONS,
@@ -28,11 +26,7 @@ export {
   LOCAL_URL_BYPASS_PATTERNS,
 } from "./patterns.ts";
 
-export {
-  isOpticalValidatorRole,
-  verifyCapability,
-  detectBackdoorBypass,
-} from "./inspectors.ts";
+export { isOpticalValidatorRole, verifyCapability, detectBackdoorBypass } from "./inspectors.ts";
 
 export {
   ToolQuarantineEngine,

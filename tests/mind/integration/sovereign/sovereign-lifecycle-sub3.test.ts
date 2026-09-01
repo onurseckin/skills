@@ -52,9 +52,7 @@ import {
   resolveOrGenerateCharter,
   type MindInitFlowResult,
 } from "../../../../olt/scripts/src/mind/lifecycle/mind-init-flow.ts";
-import {
-  ThreeTierMemoryEngine,
-} from "../../../../olt/scripts/src/mind/memory/index.ts";
+import { ThreeTierMemoryEngine } from "../../../../olt/scripts/src/mind/memory/index.ts";
 import {
   InnovationPortfolioManager,
   PORTFOLIO_TARGET_PERCENTAGES,
@@ -78,7 +76,7 @@ import {
 } from "../../../../olt/scripts/src/mind/reporting/index.ts";
 
 describe("Sovereign Lifecycle & Autonomous Single-Touch Bootstrap Suite", () => {
-let testRepoRoot: string;
+  let testRepoRoot: string;
 
   beforeEach(() => {
     testRepoRoot = join(
@@ -99,7 +97,7 @@ let testRepoRoot: string;
     }
   });
 
-describe("5. Zero-Parameter Autonomous Bootstrap Execution", () => {
+  describe("5. Zero-Parameter Autonomous Bootstrap Execution", () => {
     it("executes single-touch initialization from scratch without requiring human prompts", async () => {
       const initResult: MindInitFlowResult = await executeAutonomousMindInit({
         repo: testRepoRoot,

@@ -42,9 +42,7 @@ export class PermutationGridManager {
     coveragePercent: number;
   } {
     const testedSet = new Set(testedPermutationIds);
-    const missing = this.grid
-      .map((p) => p.permutationId)
-      .filter((id) => !testedSet.has(id));
+    const missing = this.grid.map((p) => p.permutationId).filter((id) => !testedSet.has(id));
 
     const totalExpected = this.grid.length;
     const testedCount = totalExpected - missing.length;
@@ -65,4 +63,3 @@ export class PermutationGridManager {
  * 2. Automated Mathematical Contrast Calculation (WCAG 2.1 & APCA)
  * ============================================================================
  */
-

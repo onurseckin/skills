@@ -40,7 +40,9 @@ export function getAgentContract(roleOrAlias: string): AgentOperationalContract 
 export function requireAgentContract(roleOrAlias: string): AgentOperationalContract {
   const contract = getAgentContract(roleOrAlias);
   if (!contract) {
-    throw new Error(`Unknown agent archetype or role: '${roleOrAlias}'. Available archetypes: ${ALL_31_AGENT_ARCHETYPES.join(", ")}`);
+    throw new Error(
+      `Unknown agent archetype or role: '${roleOrAlias}'. Available archetypes: ${ALL_31_AGENT_ARCHETYPES.join(", ")}`,
+    );
   }
   return contract;
 }
@@ -49,7 +51,9 @@ export function listAgentsByTier(tier: AgentTier): readonly AgentOperationalCont
   return CONTRACTS_LIST.filter((c) => c.tier === tier);
 }
 
-export function listAgentsByCategory(category: AgentTierCategory): readonly AgentOperationalContract[] {
+export function listAgentsByCategory(
+  category: AgentTierCategory,
+): readonly AgentOperationalContract[] {
   return CONTRACTS_LIST.filter((c) => c.category === category);
 }
 

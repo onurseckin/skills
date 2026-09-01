@@ -130,8 +130,6 @@ export const TRIVIAL_DEFENSE_PATTERNS: readonly RegExp[] = [
  * ============================================================================
  */
 
-
-
 export type {
   CognitiveChallengeSeverity,
   CognitiveChallengeStatus,

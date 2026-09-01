@@ -16,9 +16,7 @@ import {
 } from "../../../../../olt/scripts/src/mind/auditing/anti-makework/index.ts";
 
 describe("Anti-Make-Work Safeguards & Synthetic Churn Detection", () => {
-
-
-describe("GenuineValueEvaluator", () => {
+  describe("GenuineValueEvaluator", () => {
     it("approves genuine value tasks matching valid pillars and free of churn", () => {
       const task: TaskEvaluationInput = {
         id: "TASK-101",

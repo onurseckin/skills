@@ -1,15 +1,22 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import {
+  collectSourceFilesRecursively,
   computeTaskCheckVerdict,
+  findNearestTsconfig,
+  performAstLintCheck,
+  performIncrementalTypecheck,
+  readRunTasks,
   resolveTargetFiles,
   taskCheckCommand,
 } from "../../../../../olt/scripts/src/cli/commands/task-check.ts";
+import * as coreModule from "../../../../../olt/scripts/src/core/index.ts";
 import { HarnessError } from "../../../../../olt/scripts/src/core/errors/index.ts";
 import { setAutoReceiptDependenciesForTesting } from "../../../../../olt/scripts/src/engine/runner/receipt/auto-receipt.ts";
 import { initRun, transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
+import * as astLinterModule from "../../../../../olt/scripts/src/linter/ast/index.ts";
 import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "../../fixtures/task-ops-fixture.ts";
 
@@ -32,29 +39,18 @@ describe("task:check - Command Execution & Verifications", () => {
     roots.length = 0;
   });
 
-  test("resolveTargetFiles handles file flags, task scopes, and whole run", async () => {
-    const root = await createVirtualDir("task-check-resolve");
-
-    const f1 = join(root, "f1.ts");
-    const f2 = join(root, "f2.ts");
+  test("resolveTargetFiles, readRunTasks, and collectSourceFilesRecursively handle scopes and fallbacks", async () => {
+    const { repo, run } = await setupCompiledRun("task-check-resolve-run", roots);
+    const f1 = join(repo, "f1.ts");
+    const f2 = join(repo, "f2.ts");
     await writeFile(f1, "export const f1 = 1;");
     await writeFile(f2, "export const f2 = 2;");
 
-    const explicit = resolveTargetFiles({ fileFlags: [`${f1}, ${f2}`] });
-    expect(explicit.length).toBe(2);
-
-    const dirExplicit = resolveTargetFiles({ fileFlags: [root] });
-    expect(dirExplicit.length).toBe(2);
-
+    expect(
+      resolveTargetFiles({ fileFlags: [`${f1}, ${f2}`, join(repo, "missing.ts")] }).length,
+    ).toBe(3);
+    expect(resolveTargetFiles({ fileFlags: [repo] }).length).toBeGreaterThan(0);
     expect(() => resolveTargetFiles({ taskId: "task-01" })).toThrow("--run is required");
-
-    const nonExistentFile = resolveTargetFiles({ fileFlags: [join(root, "not-here.ts")] });
-    expect(nonExistentFile.length).toBe(1);
-  });
-
-  test("resolveTargetFiles resolves tasks, fallback store, and whole run from compiled run", async () => {
-    const { repo, run } = await setupCompiledRun("task-check-resolve-run", roots);
-
     expect(() => resolveTargetFiles({ runRoot: run, taskId: "non-existent-task" })).toThrow(
       "unknown task",
     );
@@ -62,88 +58,55 @@ describe("task:check - Command Execution & Verifications", () => {
     await mkdir(join(repo, "tests/core"), { recursive: true });
     await writeFile(join(repo, "tests/core/file.ts"), "export const f = 1;\n");
     transact(run, "coordinator", "set-target-files", {}, (draft) => {
-      const t = draft.tasks["task-core"]!;
-      t.target_files = [join(repo, "custom-target.ts")];
-      t.write_scope = [join(repo, "tests/core")];
+      const tasks = draft.tasks as Record<
+        string,
+        { target_files?: string[]; write_scope?: string[] } | undefined
+      >;
+      const t = tasks["task-core"];
+      if (t) {
+        t.target_files = [join(repo, "custom-target.ts")];
+        t.write_scope = [join(repo, "tests/core")];
+      }
     });
 
-    const taskFiles = resolveTargetFiles({ runRoot: run, taskId: "task-core" });
-    expect(taskFiles.length).toBeGreaterThan(0);
-
+    expect(resolveTargetFiles({ runRoot: run, taskId: "task-core" }).length).toBeGreaterThan(0);
     transact(run, "coordinator", "corrupt-graph", {}, (draft) => {
       draft.graph = { revision: 0 };
     });
-    const fallbackTaskFiles = resolveTargetFiles({ runRoot: run, taskId: "task-core" });
-    expect(fallbackTaskFiles.length).toBeGreaterThan(0);
+    expect(resolveTargetFiles({ runRoot: run, taskId: "task-core" }).length).toBeGreaterThan(0);
+    expect(resolveTargetFiles({ runRoot: run }).length).toBeGreaterThan(0);
+    expect(resolveTargetFiles({ runRoot: "   " })).toEqual([]);
 
-    const wholeRunFiles = resolveTargetFiles({ runRoot: run });
-    expect(wholeRunFiles.length).toBeGreaterThan(0);
-
-    const emptyRunFiles = resolveTargetFiles({ runRoot: "  " });
-    expect(emptyRunFiles).toEqual([]);
+    expect(Object.keys(readRunTasks(run)).length).toBeGreaterThan(0);
+    expect(readRunTasks("/non-existent-run")).toEqual({});
+    expect(collectSourceFilesRecursively("/non-existent-path")).toEqual([]);
   });
 
-  test("taskCheckCommand runs full verification end to end with task and evidence", async () => {
+  test("taskCheckCommand executes end-to-end with evidence, exit codes, and flag modes", async () => {
     const { repo, run } = await setupCompiledRun("task-check-e2e-full", roots);
-
-    await writeFile(
-      join(repo, "tsconfig.json"),
-      JSON.stringify({
-        compilerOptions: {
-          target: "ESNext",
-          module: "ESNext",
-          moduleResolution: "bundler",
-          strict: true,
-          noEmit: true,
-        },
-      }),
-    );
-
     const cleanPath = join(repo, "clean.ts");
     await writeFile(cleanPath, "export const cleanVal = 10;\n");
 
-    const res = await taskCheckCommand({
-      file: cleanPath,
-    });
+    const origArgv1 = Bun.argv[1];
+    (Bun.argv as string[])[1] = "/virtual/bin/harness.ts";
+
+    const res = await taskCheckCommand({ run, file: cleanPath, typecheck: true, format: "json" });
     expect(res.passed).toBe(true);
-    expect(typeof res.markdown).toBe("string");
+    expect(res.evidence_path).toBeDefined();
+    expect(process.exitCode).toBe(0);
 
-    const tcOnly = await taskCheckCommand({
-      file: cleanPath,
-      typecheck: true,
-    });
-    expect(tcOnly.typecheck).toBeDefined();
-    expect(tcOnly.lint).toBeDefined();
-
-    const lintOnly = await taskCheckCommand({
-      file: cleanPath,
-      lint: true,
-    });
+    const lintOnly = await taskCheckCommand({ file: cleanPath, lint: true });
     expect(lintOnly.typecheck).toBeUndefined();
     expect(lintOnly.lint).toBeDefined();
 
-    await mkdir(join(run, "evidence"), { recursive: true });
-
-    const taskRes = await taskCheckCommand({
-      run,
-      file: cleanPath,
-      lint: true,
-      format: "json",
-      actor: "test-actor",
-    });
-    expect(taskRes.passed).toBe(true);
-    expect(taskRes.format).toBe("json");
-    expect(taskRes.evidence_path).toBeDefined();
+    (Bun.argv as string[])[1] = origArgv1;
 
     const nonSourceDir = join(repo, "non-source-dir");
     await mkdir(nonSourceDir, { recursive: true });
     await writeFile(join(nonSourceDir, "image.png"), "fake image data");
-    await expect(
-      taskCheckCommand({
-        file: nonSourceDir,
-      }),
-    ).rejects.toThrow(/No valid source files found/);
-
+    await expect(taskCheckCommand({ file: nonSourceDir })).rejects.toThrow(
+      /No valid source files found/,
+    );
     await expect(taskCheckCommand({})).rejects.toThrow(
       "Must specify --file, --task (with --run), or --run",
     );
@@ -183,8 +146,54 @@ describe("task:check - Command Execution & Verifications", () => {
     } finally {
       restoreDependencies();
     }
-
     expect(await readFile(eventsPath, "utf-8")).toBe(eventsBefore);
+  });
+
+  test("incremental typecheck and ast lint handle empty inputs, config groups, fallback mode, and errors", async () => {
+    const root = await createVirtualDir("task-check-branches");
+    const validTs = join(root, "valid.ts");
+    const tsconfigPath = join(root, "tsconfig.json");
+    await writeFile(validTs, "export const num: number = 42;\n");
+    await writeFile(
+      tsconfigPath,
+      JSON.stringify({ compilerOptions: { target: "ESNext", module: "ESNext" } }),
+    );
+
+    expect(performIncrementalTypecheck([]).passed).toBe(true);
+    expect(performAstLintCheck([]).passed).toBe(true);
+    expect(findNearestTsconfig(root)).toBe(tsconfigPath);
+    expect(findNearestTsconfig(join(root, "non-existent.ts"))).toBe(tsconfigPath);
+
+    const envSpy = spyOn(coreModule, "isTestEnvironment").mockReturnValue(false);
+    try {
+      const v2 = join(root, "valid2.ts");
+      await writeFile(v2, "export const num2: number = 100;\n");
+      const badGroupTs = join(root, "type-err.ts");
+      await writeFile(badGroupTs, "export const badNum: number = 'string-err';\n");
+
+      const liveRes = performIncrementalTypecheck([validTs, v2, badGroupTs]);
+      expect(liveRes.passed).toBe(false);
+      expect(liveRes.totalErrors).toBeGreaterThan(0);
+
+      const isolatedDir = await createVirtualDir("isolated-no-tsconfig");
+      const badFallbackTs = join(isolatedDir, "fallback-err.ts");
+      await writeFile(badFallbackTs, "export const fbErr: number = 'fallback-string';\n");
+      const fbRes = performIncrementalTypecheck([badFallbackTs]);
+      expect(fbRes.passed).toBe(false);
+    } finally {
+      envSpy.mockRestore();
+    }
+
+    const lintSpy = spyOn(astLinterModule, "lintFile").mockImplementation(() => {
+      throw new Error("Linter crash");
+    });
+    try {
+      const lintRes = performAstLintCheck([validTs]);
+      expect(lintRes.passed).toBe(false);
+      expect(lintRes.violations.some((v) => v.message.includes("Linter crash"))).toBe(true);
+    } finally {
+      lintSpy.mockRestore();
+    }
   });
 
   test("computeTaskCheckVerdict evaluates combinations accurately", () => {

@@ -16,11 +16,7 @@ export type {
   HighContrastBoundaryReport,
 } from "./types.ts";
 
-export {
-  PERMUTATION_THEMES,
-  VIEWPORT_DIMENSIONS,
-  THEME_PERMUTATION_GRID,
-} from "./types.ts";
+export { PERMUTATION_THEMES, VIEWPORT_DIMENSIONS, THEME_PERMUTATION_GRID } from "./types.ts";
 
 export { PermutationGridManager } from "./permutation-grid.ts";
 export {

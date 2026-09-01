@@ -52,9 +52,7 @@ import {
   resolveOrGenerateCharter,
   type MindInitFlowResult,
 } from "../../../../olt/scripts/src/mind/lifecycle/mind-init-flow.ts";
-import {
-  ThreeTierMemoryEngine,
-} from "../../../../olt/scripts/src/mind/memory/index.ts";
+import { ThreeTierMemoryEngine } from "../../../../olt/scripts/src/mind/memory/index.ts";
 import {
   InnovationPortfolioManager,
   PORTFOLIO_TARGET_PERCENTAGES,
@@ -76,5 +74,3 @@ import {
   readDashboardState,
   type RoadmapDeliverableTask,
 } from "../../../../olt/scripts/src/mind/reporting/index.ts";
-
-

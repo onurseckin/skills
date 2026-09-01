@@ -36,9 +36,7 @@ import type {
 } from "../../../olt/scripts/src/mind/telemetry/types.ts";
 
 describe("15-Minute Friction Telemetry & Systemic Execution Health Suite", () => {
-
-
-describe("4. Anomaly Dampening Filter", () => {
+  describe("4. Anomaly Dampening Filter", () => {
     it("dampens isolated single-event blips when sample volume is below significance threshold", () => {
       const aggregator = new FrictionTelemetryAggregator({
         minEventsForSignificance: 4,
@@ -129,7 +127,7 @@ describe("4. Anomaly Dampening Filter", () => {
     });
   });
 
-describe("5. 15-Minute Epoch Lifecycle & History Tracking", () => {
+  describe("5. 15-Minute Epoch Lifecycle & History Tracking", () => {
     it("progresses across multiple 15-minute epochs and retains history", () => {
       const startTime = 1_000_000;
       const aggregator = new FrictionTelemetryAggregator(
@@ -187,7 +185,7 @@ describe("5. 15-Minute Epoch Lifecycle & History Tracking", () => {
     });
   });
 
-describe("6. Composite Health Scoring & Status Thresholds", () => {
+  describe("6. Composite Health Scoring & Status Thresholds", () => {
     it("calculates nominal health score (>= 0.85) when friction is minimal", () => {
       const engine = new HealthScoringEngine();
       const indices: FrictionIndices = {

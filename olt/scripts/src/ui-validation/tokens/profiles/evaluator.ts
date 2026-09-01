@@ -5,11 +5,7 @@ import {
   isApcaCompliant,
   isWcagAaCompliant,
 } from "../../theming/index.ts";
-import {
-  SPACING_TOKENS,
-  TYPOGRAPHY_TOKENS,
-  VALID_SPACING_VALUES,
-} from "../authority/index.ts";
+import { SPACING_TOKENS, TYPOGRAPHY_TOKENS, VALID_SPACING_VALUES } from "../authority/index.ts";
 import {
   OPTICAL_DIMENSIONS,
   OPTICAL_DIMENSION_METADATA,
@@ -72,7 +68,12 @@ export class AestheticProfileEvaluator {
 
     // 1. Touch Ergonomics Audit
     for (const elem of ui.elements) {
-      if (elem.isInteractive || elem.role === "button" || elem.tagName.toLowerCase() === "button" || elem.tagName.toLowerCase() === "a") {
+      if (
+        elem.isInteractive ||
+        elem.role === "button" ||
+        elem.tagName.toLowerCase() === "button" ||
+        elem.tagName.toLowerCase() === "a"
+      ) {
         const { width, height } = elem.boundingBox;
         const minTarget = profile.minTouchTargetPx;
         if (width < minTarget || height < minTarget) {
@@ -93,9 +94,10 @@ export class AestheticProfileEvaluator {
     for (const elem of ui.elements) {
       const text = elem.textContent ?? "";
       if (descenderRegex.test(text)) {
-        const lh = typeof elem.computedStyles.lineHeight === "string"
-          ? parseFloat(elem.computedStyles.lineHeight)
-          : elem.computedStyles.lineHeight ?? 1.5;
+        const lh =
+          typeof elem.computedStyles.lineHeight === "string"
+            ? parseFloat(elem.computedStyles.lineHeight)
+            : (elem.computedStyles.lineHeight ?? 1.5);
         const overflow = elem.computedStyles.overflow ?? "visible";
 
         // Check if line-height is dangerously tight or height is clipped with overflow hidden
@@ -106,13 +108,18 @@ export class AestheticProfileEvaluator {
             severity: "critical",
             elementId: elem.elementId,
             message: `Text with lowercase descenders ('${text.substring(0, 20)}...') has tight line-height (${lh}) and overflow '${overflow}', risking glyph descender truncation.`,
-            recommendedFix: "Increase line-height to at least 1.25 or provide vertical padding clearance to prevent cropping descender loops.",
+            recommendedFix:
+              "Increase line-height to at least 1.25 or provide vertical padding clearance to prevent cropping descender loops.",
           });
         }
       }
 
       // Explicit container bounding overflow
-      if (elem.computedStyles.overflow === "hidden" && elem.boundingBox.height < 18 && (elem.textContent?.length ?? 0) > 0) {
+      if (
+        elem.computedStyles.overflow === "hidden" &&
+        elem.boundingBox.height < 18 &&
+        (elem.textContent?.length ?? 0) > 0
+      ) {
         dimensionDeductions["clipping-overflow"] += 20;
         violations.push({
           dimension: "clipping-overflow",
@@ -166,7 +173,8 @@ export class AestheticProfileEvaluator {
             severity: "low",
             elementId: elem.elementId,
             message: `Padding '${pad}' does not match design system modular spacing scale.`,
-            recommendedFix: "Align padding with canonical SPACING_TOKENS (e.g. 8, 12, 16, 24, 32px).",
+            recommendedFix:
+              "Align padding with canonical SPACING_TOKENS (e.g. 8, 12, 16, 24, 32px).",
           });
         }
       }
@@ -183,8 +191,10 @@ export class AestheticProfileEvaluator {
               dimension: "typography-rendering",
               severity: "medium",
               elementId: elem.elementId,
-              message: "Enterprise Accounting profile requires monospace or tabular-nums font for financial report figures.",
-              recommendedFix: "Set font-family to TYPOGRAPHY_TOKENS.fontFamilies.mono or font-variant-numeric: tabular-nums.",
+              message:
+                "Enterprise Accounting profile requires monospace or tabular-nums font for financial report figures.",
+              recommendedFix:
+                "Set font-family to TYPOGRAPHY_TOKENS.fontFamilies.mono or font-variant-numeric: tabular-nums.",
             });
           }
         }
@@ -206,8 +216,10 @@ export class AestheticProfileEvaluator {
           dimension: "theme-harmony",
           severity: "medium",
           elementId: "view-root",
-          message: "Fleet Telematics cockpit profile requires clear situational status color encoding (normal, warning, critical).",
-          recommendedFix: "Implement semantic status badge indicators for critical telemetry values.",
+          message:
+            "Fleet Telematics cockpit profile requires clear situational status color encoding (normal, warning, critical).",
+          recommendedFix:
+            "Implement semantic status badge indicators for critical telemetry values.",
         });
       }
     }
@@ -270,9 +282,7 @@ export function getDefaultAestheticProfileEvaluator(): AestheticProfileEvaluator
   return defaultAestheticProfileEvaluator;
 }
 
-export function setDefaultAestheticProfileEvaluator(
-  evaluator: AestheticProfileEvaluator,
-): void {
+export function setDefaultAestheticProfileEvaluator(evaluator: AestheticProfileEvaluator): void {
   defaultAestheticProfileEvaluator = evaluator;
 }
 

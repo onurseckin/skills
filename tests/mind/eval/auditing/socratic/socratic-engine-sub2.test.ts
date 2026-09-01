@@ -11,9 +11,7 @@ import {
 } from "../../../../../olt/scripts/src/mind/auditing/socratic/index.ts";
 
 describe("HistoricalDebateMemory", () => {
-
-
-it("advances through L1 -> L2 -> L3 -> Consensus cleanly", () => {
+  it("advances through L1 -> L2 -> L3 -> Consensus cleanly", () => {
     const engine = new SocraticLadderingEngine();
 
     // Level 1: Trade-off verification
@@ -59,7 +57,7 @@ it("advances through L1 -> L2 -> L3 -> Consensus cleanly", () => {
     expect(engine.getState().currentLevel).toBe("L1_TRADE_OFF_VERIFICATION");
   });
 
-it("tracks consecutive impasse cycles and triggers Empirical Crucible escalation when > 2 cycles", () => {
+  it("tracks consecutive impasse cycles and triggers Empirical Crucible escalation when > 2 cycles", () => {
     const engine = new SocraticLadderingEngine();
 
     // Cycle 1 impasse
@@ -104,7 +102,7 @@ it("tracks consecutive impasse cycles and triggers Empirical Crucible escalation
     expect(directEscalation.requiresCrucible).toBe(true);
   });
 
-describe("Pre-Declared Pareto Arbitration", () => {
+  describe("Pre-Declared Pareto Arbitration", () => {
     const engine = new SocraticLadderingEngine();
 
     it("Priority 1 (UX Delight & Correctness) always beats lower priorities", () => {

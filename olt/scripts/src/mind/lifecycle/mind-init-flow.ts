@@ -1,10 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import type { RepoGovernanceStatus } from "../governance/index.ts";
-import {
-  createInitialDashboardState,
-  writeDashboardFilesSync,
-} from "../reporting/index.ts";
+import { createInitialDashboardState, writeDashboardFilesSync } from "../reporting/index.ts";
 
 export const CANONICAL_BEDROCK_INVARIANTS_LIST = [
   "SUPERVISOR_ZERO_CODE_EDITS",

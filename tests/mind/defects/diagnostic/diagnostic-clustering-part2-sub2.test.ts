@@ -16,7 +16,7 @@ import {
 } from "../../../../olt/scripts/src/mind/defects/index.ts";
 
 describe("Active Baseline Probing & Diagnostic Clustering Engine Suite", () => {
-describe("Diagnostic Clustering Algorithm & 100+ Raw Errors Deduplication", () => {
+  describe("Diagnostic Clustering Algorithm & 100+ Raw Errors Deduplication", () => {
     it("groups 100+ raw error occurrences into Class 1, Class 2, and Class 3 clusters", () => {
       const hundredErrors: ParsedDiagnosticError[] = [];
       const now = new Date().toISOString();
@@ -119,7 +119,7 @@ describe("Diagnostic Clustering Algorithm & 100+ Raw Errors Deduplication", () =
     });
   });
 
-describe("Baseline Probing Runner (Simulated & Live)", () => {
+  describe("Baseline Probing Runner (Simulated & Live)", () => {
     it("runs empirical baseline probes with simulated outputs and builds topology matrix", async () => {
       const simulatedResult = await runEmpiricalBaselineProbes({
         simulate: true,
@@ -153,7 +153,7 @@ describe("Baseline Probing Runner (Simulated & Live)", () => {
     });
   });
 
-describe("Markdown Output Formatting & DiagnosticClusteringEngine Class", () => {
+  describe("Markdown Output Formatting & DiagnosticClusteringEngine Class", () => {
     it("formats high-fidelity GitHub-Flavored Markdown report", () => {
       const error: ParsedDiagnosticError = {
         id: "ERR-MD-01",

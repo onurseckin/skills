@@ -1,10 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type {
-  ReclamationReport,
-  SymlinkCacheResult,
-  WorktreeLease,
-} from "./types.ts";
+import type { ReclamationReport, SymlinkCacheResult, WorktreeLease } from "./types.ts";
 import { DEFAULT_CACHE_DIRECTORIES, DEFAULT_LEASE_DURATION_MS } from "./types.ts";
 
 function getWorktreeDir(repoRoot: string): string {
@@ -85,7 +81,8 @@ export async function createWorktreeLease(
 
   const now = Date.now();
   const duration = params.customDurationMs ?? DEFAULT_LEASE_DURATION_MS;
-  const worktreeId = params.worktreeId ?? `wt-${params.taskId.replace(/[^a-zA-Z0-9_-]/g, "-")}-${now}`;
+  const worktreeId =
+    params.worktreeId ?? `wt-${params.taskId.replace(/[^a-zA-Z0-9_-]/g, "-")}-${now}`;
   const worktreePath = path.join(worktreeDir, worktreeId);
   ensureDirExists(worktreePath);
 
@@ -125,9 +122,7 @@ export async function getWorktreeLease(
   }
 }
 
-export async function listWorktreeLeases(
-  repoRoot: string,
-): Promise<readonly WorktreeLease[]> {
+export async function listWorktreeLeases(repoRoot: string): Promise<readonly WorktreeLease[]> {
   const leasesDir = getLeasesDir(repoRoot);
   if (!fs.existsSync(leasesDir)) return [];
 
@@ -173,10 +168,7 @@ export async function renewWorktreeHeartbeat(
   return { success: true, newExpiry, lease: updatedLease };
 }
 
-export async function releaseWorktreeLease(
-  repoRoot: string,
-  worktreeId: string,
-): Promise<boolean> {
+export async function releaseWorktreeLease(repoRoot: string, worktreeId: string): Promise<boolean> {
   const lease = await getWorktreeLease(repoRoot, worktreeId);
   if (!lease) return false;
 

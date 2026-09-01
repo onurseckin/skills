@@ -26,9 +26,6 @@ export {
 
 export { SettledInvariantRepository } from "./bedrock-commitment.ts";
 
-export type {
-  FinalizeSpikeOptions,
-  SpikeFilterOptions,
-} from "./crucible-protocol.ts";
+export type { FinalizeSpikeOptions, SpikeFilterOptions } from "./crucible-protocol.ts";
 
 export { EmpiricalCrucibleEngine } from "./crucible-protocol.ts";

@@ -11,9 +11,7 @@ import {
 } from "../../../olt/scripts/src/mind/auditing/socratic/index.ts";
 
 describe("SocraticLadderingEngine", () => {
-
-
-describe("State Transitions & Dialectical Laddering", () => {
+  describe("State Transitions & Dialectical Laddering", () => {
     it("initializes with nominal L1 state when no arguments are provided", () => {
       const engine = new SocraticLadderingEngine();
       const state = engine.getState();
@@ -100,7 +98,7 @@ describe("State Transitions & Dialectical Laddering", () => {
     });
   });
 
-describe("Accountability Lock Gate", () => {
+  describe("Accountability Lock Gate", () => {
     it("locks dialectic at L1 when unfulfilled commitments lack justification", () => {
       const memory = new HistoricalDebateMemory();
       const commitment: StrategicCommitment = {
@@ -154,7 +152,7 @@ describe("Accountability Lock Gate", () => {
     });
   });
 
-describe("Impasse Tracking & Empirical Crucible Escalation", () => {
+  describe("Impasse Tracking & Empirical Crucible Escalation", () => {
     it("escalates to Empirical Crucible when consecutive impasses exceed 2 cycles", () => {
       const engine = new SocraticLadderingEngine();
 

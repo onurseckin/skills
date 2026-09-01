@@ -29,7 +29,7 @@ import { runDoctor } from "../../../olt/scripts/src/reporting/doctor.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 
 describe("Anti-Stagnation Doctor & Mind Charter Invariant Engine", () => {
-let tempDir: string;
+  let tempDir: string;
 
   beforeEach(() => {
     tempDir = fs.mkdtempSync(join(process.cwd(), "tmp-doctor-test-"));
@@ -41,7 +41,7 @@ let tempDir: string;
     }
   });
 
-describe("13. Invariant 15: Mandatory 3-Round Socratic Laddering", () => {
+  describe("13. Invariant 15: Mandatory 3-Round Socratic Laddering", () => {
     it("flags consensus recorded at L1 without traversing L2 and L3 rounds", () => {
       const options: AntiStagnationDoctorOptions = {
         state: {
@@ -57,14 +57,18 @@ describe("13. Invariant 15: Mandatory 3-Round Socratic Laddering", () => {
 
       const result = checkAntiStagnationDoctor(options);
       expect(result.passed).toBe(false);
-      const finding = result.findings.find((f) => f.code === "MANDATORY_3_ROUND_SOCRATIC_LADDERING");
+      const finding = result.findings.find(
+        (f) => f.code === "MANDATORY_3_ROUND_SOCRATIC_LADDERING",
+      );
       expect(finding).toBeDefined();
       expect(finding?.severity).toBe("ERROR");
-      expect(finding?.message).toContain("Consensus recorded without traversing all 3 mandatory dialectical rounds");
+      expect(finding?.message).toContain(
+        "Consensus recorded without traversing all 3 mandatory dialectical rounds",
+      );
     });
   });
 
-describe("14. Invariant 16: Direct 1-on-1 Conversational Audits", () => {
+  describe("14. Invariant 16: Direct 1-on-1 Conversational Audits", () => {
     it("flags Tier 0 Mind directly granting Tier 3 Implementer as cross-tier bypass", () => {
       const options: AntiStagnationDoctorOptions = {
         state: {
@@ -85,7 +89,7 @@ describe("14. Invariant 16: Direct 1-on-1 Conversational Audits", () => {
     });
   });
 
-describe("15. auditAntiStagnationHealth Sub-Report Aggregations", () => {
+  describe("15. auditAntiStagnationHealth Sub-Report Aggregations", () => {
     it("compiles structured AntiStagnationAuditReport with all sub-reports", () => {
       const runRoot = initRun(
         tempDir,
@@ -97,7 +101,12 @@ describe("15. auditAntiStagnationHealth Sub-Report Aggregations", () => {
 
       const memory = new HistoricalDebateMemory([], []);
       const index = new SupersessionIndex([
-        { id: "inv-1", title: "Invariant 1", status: "ACTIVE", timestamp: new Date().toISOString() },
+        {
+          id: "inv-1",
+          title: "Invariant 1",
+          status: "ACTIVE",
+          timestamp: new Date().toISOString(),
+        },
       ]);
 
       const report: AntiStagnationAuditReport = auditAntiStagnationHealth(runRoot, {
@@ -120,7 +129,7 @@ describe("15. auditAntiStagnationHealth Sub-Report Aggregations", () => {
     });
   });
 
-describe("16. Full Integration with runDoctor", () => {
+  describe("16. Full Integration with runDoctor", () => {
     it("invokes checkAntiStagnationDoctor as part of runDoctor engine collection", async () => {
       const runRoot = initRun(
         tempDir,
@@ -138,7 +147,10 @@ describe("16. Full Integration with runDoctor", () => {
 
       const report = await runDoctor(runRoot, { repoRoot: tempDir });
       expect(report.engine_results).toBeDefined();
-      const engineResults = report.engine_results as Record<string, { engine: string; passed: boolean }>;
+      const engineResults = report.engine_results as Record<
+        string,
+        { engine: string; passed: boolean }
+      >;
       expect(engineResults.checkAntiStagnationDoctor).toBeDefined();
       expect(engineResults.checkAntiStagnationDoctor?.engine).toBe("checkAntiStagnationDoctor");
     });

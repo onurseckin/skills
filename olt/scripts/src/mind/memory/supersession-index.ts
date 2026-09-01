@@ -86,10 +86,7 @@ export class SupersessionIndex {
     const timestamp = options.timestamp ?? existing?.timestamp ?? new Date().toISOString();
 
     const supersedesList = Array.from(
-      new Set([
-        ...(existing?.supersedes ?? []),
-        ...(options.supersedes ?? []),
-      ]),
+      new Set([...(existing?.supersedes ?? []), ...(options.supersedes ?? [])]),
     );
 
     const mergedNode: SupersessionNode = {

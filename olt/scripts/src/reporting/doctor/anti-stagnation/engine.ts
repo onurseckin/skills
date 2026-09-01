@@ -1,4 +1,3 @@
-
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { findRepoRoot } from "../../../core/index.ts";
@@ -16,11 +15,7 @@ import {
   resolveDashboardPaths,
   type ExecutiveDashboardState,
 } from "../../../mind/reporting/index.ts";
-import type {
-  DoctorCheckEngineResult,
-  DoctorDiagnosticFinding,
-  DoctorSeverity,
-} from "../index.ts";
+import type { DoctorCheckEngineResult, DoctorDiagnosticFinding, DoctorSeverity } from "../index.ts";
 import {
   MIND_CHARTER_INVARIANTS,
   DEFAULT_MAX_DASHBOARD_STALENESS_MS,
@@ -28,11 +23,7 @@ import {
   type InvariantAuditResult,
   type AntiStagnationAuditReport,
 } from "./types.ts";
-import {
-  buildFinding,
-  resolveAgentRoleMap,
-  type InvariantContext,
-} from "./helpers.ts";
+import { buildFinding, resolveAgentRoleMap, type InvariantContext } from "./helpers.ts";
 import {
   auditSupervisorZeroCodeEdits,
   auditSupervisorZeroTestRuns,
@@ -58,8 +49,6 @@ import {
   auditDirect1on1ConversationalAudits,
 } from "./rules-executive.ts";
 
-
-
 // 4. Main Engine & Audit Implementation
 // ============================================================================
 
@@ -67,7 +56,8 @@ export function checkAntiStagnationDoctor(
   options: AntiStagnationDoctorOptions = {},
 ): DoctorCheckEngineResult {
   const nowMs = options.nowMs ?? Date.now();
-  const maxDashboardStalenessMs = options.maxDashboardStalenessMs ?? DEFAULT_MAX_DASHBOARD_STALENESS_MS;
+  const maxDashboardStalenessMs =
+    options.maxDashboardStalenessMs ?? DEFAULT_MAX_DASHBOARD_STALENESS_MS;
 
   const ctx: InvariantContext = {
     state: options.state,
@@ -158,7 +148,8 @@ export function auditAntiStagnationHealth(
   }
 
   const nowMs = options.nowMs ?? Date.now();
-  const maxDashboardStalenessMs = options.maxDashboardStalenessMs ?? DEFAULT_MAX_DASHBOARD_STALENESS_MS;
+  const maxDashboardStalenessMs =
+    options.maxDashboardStalenessMs ?? DEFAULT_MAX_DASHBOARD_STALENESS_MS;
 
   const ctx: InvariantContext = {
     state,
@@ -214,7 +205,9 @@ export function auditAntiStagnationHealth(
     if (existsSync(dashPaths.jsonPath)) {
       dashboardPresent = true;
       try {
-        const parsed = JSON.parse(readFileSync(dashPaths.jsonPath, "utf-8")) as ExecutiveDashboardState;
+        const parsed = JSON.parse(
+          readFileSync(dashPaths.jsonPath, "utf-8"),
+        ) as ExecutiveDashboardState;
         dashboardBalanceStatus = parsed.portfolio?.balanceStatus;
         dashboardBalanced = parsed.portfolio?.isBalanced ?? true;
         const updated = parsed.trajectory?.lastUpdated ?? parsed.generatedAt;
@@ -228,8 +221,12 @@ export function auditAntiStagnationHealth(
   }
 
   // Supervisory Purity Sub-Report
-  const codeEditViolations = results.filter((r) => r.invariant === "SUPERVISOR_ZERO_CODE_EDITS" && !r.compliant).length;
-  const testRunViolations = results.filter((r) => r.invariant === "SUPERVISOR_ZERO_TEST_RUNS" && !r.compliant).length;
+  const codeEditViolations = results.filter(
+    (r) => r.invariant === "SUPERVISOR_ZERO_CODE_EDITS" && !r.compliant,
+  ).length;
+  const testRunViolations = results.filter(
+    (r) => r.invariant === "SUPERVISOR_ZERO_TEST_RUNS" && !r.compliant,
+  ).length;
 
   // Socratic Memory Health Sub-Report
   let socraticIntact = true;
@@ -240,7 +237,9 @@ export function auditAntiStagnationHealth(
   if (ctx.socraticMemory instanceof HistoricalDebateMemory) {
     const unfulfilled = ctx.socraticMemory.getUnfulfilledCommitments();
     unfulfilledCount = unfulfilled.length;
-    unjustifiedCount = unfulfilled.filter((c: StrategicCommitment) => !c.justification || c.justification.trim().length === 0).length;
+    unjustifiedCount = unfulfilled.filter(
+      (c: StrategicCommitment) => !c.justification || c.justification.trim().length === 0,
+    ).length;
     socraticIntact = unjustifiedCount === 0;
   }
 

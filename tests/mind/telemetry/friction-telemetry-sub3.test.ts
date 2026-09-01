@@ -36,9 +36,7 @@ import type {
 } from "../../../olt/scripts/src/mind/telemetry/types.ts";
 
 describe("15-Minute Friction Telemetry & Systemic Execution Health Suite", () => {
-
-
-describe("7. Strategic Friction Intervention & Roadmap Expansion Locking", () => {
+  describe("7. Strategic Friction Intervention & Roadmap Expansion Locking", () => {
     function makeSnapshot(
       epochIndex: number,
       dampenedIndices: FrictionIndices,

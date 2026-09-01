@@ -82,7 +82,7 @@ import {
 } from "../../../../../olt/scripts/src/mind/telemetry/index.ts";
 
 describe("Anti-Stagnation End-to-End Multi-Hour Sovereign Simulation Suite", () => {
-let testRepoRoot: string;
+  let testRepoRoot: string;
 
   beforeEach(() => {
     testRepoRoot = join(
@@ -103,7 +103,7 @@ let testRepoRoot: string;
     }
   });
 
-describe("3. Pre-Declared Pareto Dispute Resolution & Empirical Crucible", () => {
+  describe("3. Pre-Declared Pareto Dispute Resolution & Empirical Crucible", () => {
     it("resolves disputes via lexicographical Pareto hierarchy within 1 empirical spike cycle", () => {
       const engine = new SocraticLadderingEngine();
 
@@ -143,7 +143,9 @@ describe("3. Pre-Declared Pareto Dispute Resolution & Empirical Crucible", () =>
       };
       const arb3 = engine.arbitratePareto(p2Simple, marginalPerf);
       expect(arb3.winner).toBe("Minimalist Scripting Approach");
-      expect(arb3.rationale).toContain(`below the ${SCALABILITY_THRESHOLD_PERCENT}% scalability threshold`);
+      expect(arb3.rationale).toContain(
+        `below the ${SCALABILITY_THRESHOLD_PERCENT}% scalability threshold`,
+      );
 
       // Rule 4: Scalability (>=15%) defeats Priority 4 (Speculative Abstraction)
       const significantScale: ParetoApproachInput = {
@@ -167,13 +169,22 @@ describe("3. Pre-Declared Pareto Dispute Resolution & Empirical Crucible", () =>
       const engine = new SocraticLadderingEngine();
 
       engine.evaluateCycle("imp-1", "Database Index Strategy");
-      engine.submitResponse("imp-1", "Weak claim", { isSatisfactory: false, reason: "No benchmarks" });
+      engine.submitResponse("imp-1", "Weak claim", {
+        isSatisfactory: false,
+        reason: "No benchmarks",
+      });
 
       engine.evaluateCycle("imp-2", "Database Index Strategy");
-      engine.submitResponse("imp-2", "Still theoretical", { isSatisfactory: false, reason: "Unproven" });
+      engine.submitResponse("imp-2", "Still theoretical", {
+        isSatisfactory: false,
+        reason: "Unproven",
+      });
 
       engine.evaluateCycle("imp-3", "Database Index Strategy");
-      const state3 = engine.submitResponse("imp-3", "Third impasse", { isSatisfactory: false, reason: "Deadlock" });
+      const state3 = engine.submitResponse("imp-3", "Third impasse", {
+        isSatisfactory: false,
+        reason: "Deadlock",
+      });
 
       expect(state3.consecutiveImpasseCycles).toBe(3);
       expect(state3.consecutiveImpasseCycles).toBeGreaterThan(IMPASSE_CRUCIBLE_THRESHOLD);

@@ -109,7 +109,11 @@ export function isSupportedSourceFile(fileName: string): boolean {
 /**
  * Collects all source files in a directory recursively.
  */
-export function collectSourceFilesRecursively(dir: string, maxDepth = 10, currentDepth = 0): string[] {
+export function collectSourceFilesRecursively(
+  dir: string,
+  maxDepth = 10,
+  currentDepth = 0,
+): string[] {
   if (currentDepth > maxDepth || !existsSync(dir)) {
     return [];
   }
@@ -324,7 +328,12 @@ function createFastProgram(files: readonly string[], options: ts.CompilerOptions
     if (fileName.includes("lib.") && fileName.endsWith(".d.ts")) {
       const cached = defaultLibCache.get(fileName);
       if (cached) return cached;
-      const file = originalGetSourceFile(fileName, languageVersion, onError, shouldCreateNewSourceFile);
+      const file = originalGetSourceFile(
+        fileName,
+        languageVersion,
+        onError,
+        shouldCreateNewSourceFile,
+      );
       if (file) defaultLibCache.set(fileName, file);
       return file;
     }

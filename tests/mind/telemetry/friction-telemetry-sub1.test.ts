@@ -36,9 +36,7 @@ import type {
 } from "../../../olt/scripts/src/mind/telemetry/types.ts";
 
 describe("15-Minute Friction Telemetry & Systemic Execution Health Suite", () => {
-
-
-describe("1. Constants, Helpers & Baseline Defaults", () => {
+  describe("1. Constants, Helpers & Baseline Defaults", () => {
     it("exports standard telemetry defaults", () => {
       expect(DEFAULT_EPOCH_DURATION_MS).toBe(900_000); // 15 minutes
       expect(DEFAULT_BASELINE_LATENCY_MS).toBe(5_000); // 5 seconds
@@ -77,7 +75,7 @@ describe("1. Constants, Helpers & Baseline Defaults", () => {
     });
   });
 
-describe("2. Operational Execution Event Ingestion & Counting", () => {
+  describe("2. Operational Execution Event Ingestion & Counting", () => {
     it("records individual and batch events with auto-generated IDs and timestamps", () => {
       const aggregator = createFrictionTelemetryAggregator(undefined, 1_000_000);
 
@@ -164,7 +162,7 @@ describe("2. Operational Execution Event Ingestion & Counting", () => {
     });
   });
 
-describe("3. Calculation of 4 Operational Friction Indices", () => {
+  describe("3. Calculation of 4 Operational Friction Indices", () => {
     it("computes Task Ambiguity Index: (task redispatches / total dispatches)", () => {
       const aggregator = new FrictionTelemetryAggregator();
       const events: OperationalExecutionEvent[] = [

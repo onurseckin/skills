@@ -42,7 +42,7 @@ import {
 } from "../../../../../olt/scripts/src/mind/crucible/types.ts";
 
 describe("Pre-Declared Pareto Decision Hierarchy & Arbitration Suite", () => {
-describe("5. Multi-Candidate Arbitration & Frontier Filtering", () => {
+  describe("5. Multi-Candidate Arbitration & Frontier Filtering", () => {
     it("arbitrates across multiple candidate options and ranks them lexicographically", () => {
       const candidates: ParetoApproachCandidate[] = [
         {

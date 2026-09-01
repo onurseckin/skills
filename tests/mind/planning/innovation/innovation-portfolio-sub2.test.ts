@@ -22,9 +22,7 @@ import {
 } from "../../../../olt/scripts/src/mind/planning/index.ts";
 
 describe("70/20/10 Innovation Portfolio Governance & Capacity Balancer", () => {
-
-
-test("executes complete 3-milestone sequence to graduation with certificate", () => {
+  test("executes complete 3-milestone sequence to graduation with certificate", () => {
     const manager = new InnovationPortfolioManager();
     const bet = manager.registerBet({
       title: "Zero-Copy Graph Traversal",
@@ -95,7 +93,7 @@ test("executes complete 3-milestone sequence to graduation with certificate", ()
     expect(ws.title).toContain("[Graduated]");
   });
 
-test("rejects out-of-order milestone evaluation", () => {
+  test("rejects out-of-order milestone evaluation", () => {
     const manager = new InnovationPortfolioManager();
     const bet = manager.registerBet({
       title: "Premature Jump Bet",
@@ -111,7 +109,7 @@ test("rejects out-of-order milestone evaluation", () => {
     }).toThrow("is currently on milestone 1");
   });
 
-test("rejects evaluation of unknown or completed bets", () => {
+  test("rejects evaluation of unknown or completed bets", () => {
     const manager = new InnovationPortfolioManager();
     expect(() => {
       manager.evaluateMilestone("non-existent-id", 1, {
@@ -123,8 +121,7 @@ test("rejects evaluation of unknown or completed bets", () => {
 });
 
 describe("Failure Handling & Anti-Pattern Ledger", () => {
-
-test("immediately terminates bet upon milestone failure and logs to AntiPatternLedger", () => {
+  test("immediately terminates bet upon milestone failure and logs to AntiPatternLedger", () => {
     const manager = new InnovationPortfolioManager();
     const bet = manager.registerBet({
       title: "Decentralized DHT Mesh Sync",
@@ -179,7 +176,7 @@ test("immediately terminates bet upon milestone failure and logs to AntiPatternL
     );
   });
 
-test("prevents repeating failed exploratory bets through hypothesis conflict checks", () => {
+  test("prevents repeating failed exploratory bets through hypothesis conflict checks", () => {
     const ledger = new AntiPatternLedger();
     ledger.recordAntiPattern({
       betId: "bet-old-1",

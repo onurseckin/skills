@@ -1,8 +1,5 @@
 import { HarnessError } from "../../../core/errors/index.ts";
-import {
-  CANONICAL_STRESS_INPUTS,
-  type CanonicalStressInputKey,
-} from "./types.ts";
+import { CANONICAL_STRESS_INPUTS, type CanonicalStressInputKey } from "./types.ts";
 import type {
   FormFieldType,
   FormFieldDescriptor,
@@ -21,26 +18,33 @@ export class FormStressExplorer {
     field: FormFieldDescriptor,
   ): readonly { key: CanonicalStressInputKey; value: string }[] {
     if (!field || !field.fieldId || !field.type) {
-      throw new HarnessError(
-        "INVALID_ARGUMENT",
-        "Field descriptor must specify fieldId and type",
-      );
+      throw new HarnessError("INVALID_ARGUMENT", "Field descriptor must specify fieldId and type");
     }
 
     if (field.type === "number") {
       return [
-        { key: "EXTREME_NUMBERS_MAX_SAFE", value: CANONICAL_STRESS_INPUTS.EXTREME_NUMBERS_MAX_SAFE },
-        { key: "EXTREME_NUMBERS_MIN_SAFE", value: CANONICAL_STRESS_INPUTS.EXTREME_NUMBERS_MIN_SAFE },
-        { key: "EXTREME_NUMBERS_EXPONENTIAL", value: CANONICAL_STRESS_INPUTS.EXTREME_NUMBERS_EXPONENTIAL },
-        { key: "EXTREME_NUMBERS_SUBTLE_FLOAT", value: CANONICAL_STRESS_INPUTS.EXTREME_NUMBERS_SUBTLE_FLOAT },
+        {
+          key: "EXTREME_NUMBERS_MAX_SAFE",
+          value: CANONICAL_STRESS_INPUTS.EXTREME_NUMBERS_MAX_SAFE,
+        },
+        {
+          key: "EXTREME_NUMBERS_MIN_SAFE",
+          value: CANONICAL_STRESS_INPUTS.EXTREME_NUMBERS_MIN_SAFE,
+        },
+        {
+          key: "EXTREME_NUMBERS_EXPONENTIAL",
+          value: CANONICAL_STRESS_INPUTS.EXTREME_NUMBERS_EXPONENTIAL,
+        },
+        {
+          key: "EXTREME_NUMBERS_SUBTLE_FLOAT",
+          value: CANONICAL_STRESS_INPUTS.EXTREME_NUMBERS_SUBTLE_FLOAT,
+        },
         { key: "EMPTY", value: CANONICAL_STRESS_INPUTS.EMPTY },
       ];
     }
 
     if (field.type === "checkbox" || field.type === "radio") {
-      return [
-        { key: "EMPTY", value: "" },
-      ];
+      return [{ key: "EMPTY", value: "" }];
     }
 
     // Default text/textarea/email/password inputs
@@ -86,9 +90,10 @@ export class FormStressExplorer {
   /**
    * Validates banner theme and ARIA attributes for accessibility
    */
-  public validateBannerAccessibility(
-    banner: ValidationBannerInfo,
-  ): { valid: boolean; violations: readonly string[] } {
+  public validateBannerAccessibility(banner: ValidationBannerInfo): {
+    valid: boolean;
+    violations: readonly string[];
+  } {
     const violations: string[] = [];
 
     if (banner.present) {
@@ -103,14 +108,10 @@ export class FormStressExplorer {
         );
       }
       if (banner.ariaDescribedByMatch === false) {
-        violations.push(
-          "Input field aria-describedby does not match validation banner ID",
-        );
+        violations.push("Input field aria-describedby does not match validation banner ID");
       }
       if (banner.contrastRatioValid === false) {
-        violations.push(
-          "Validation banner contrast ratio fails WCAG 2.1 AA minimum requirement",
-        );
+        violations.push("Validation banner contrast ratio fails WCAG 2.1 AA minimum requirement");
       }
     }
 
@@ -127,10 +128,7 @@ export class FormStressExplorer {
     evaluations: readonly FormFieldEvaluationInput[],
   ): FormStressTestResult {
     if (!evaluations || evaluations.length === 0) {
-      throw new HarnessError(
-        "INVALID_ARGUMENT",
-        "Evaluations list must not be empty",
-      );
+      throw new HarnessError("INVALID_ARGUMENT", "Evaluations list must not be empty");
     }
 
     const fieldResults: FormStressFieldResult[] = [];

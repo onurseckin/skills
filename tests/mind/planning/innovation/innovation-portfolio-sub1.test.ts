@@ -22,15 +22,13 @@ import {
 } from "../../../../olt/scripts/src/mind/planning/index.ts";
 
 describe("70/20/10 Innovation Portfolio Governance & Capacity Balancer", () => {
-
-
-test("defines 70/20/10 target capacity distributions across the 3 tracks", () => {
+  test("defines 70/20/10 target capacity distributions across the 3 tracks", () => {
     expect(PORTFOLIO_TARGET_PERCENTAGES[PORTFOLIO_TRACKS.CORE_STABILITY_AND_POLISH]).toBe(70);
     expect(PORTFOLIO_TARGET_PERCENTAGES[PORTFOLIO_TRACKS.ARCHITECTURAL_EVOLUTION]).toBe(20);
     expect(PORTFOLIO_TARGET_PERCENTAGES[PORTFOLIO_TRACKS.EXPLORATORY_HORIZON_BETS]).toBe(10);
   });
 
-test("handles empty workstream list gracefully as BALANCED with zero allocations", () => {
+  test("handles empty workstream list gracefully as BALANCED with zero allocations", () => {
     const manager = new InnovationPortfolioManager();
     const report = manager.auditPortfolioBalance([]);
 
@@ -41,7 +39,7 @@ test("handles empty workstream list gracefully as BALANCED with zero allocations
     expect(report.rebalanceActions.length).toBe(0);
   });
 
-test("validates a well-balanced 70/20/10 workstream distribution", () => {
+  test("validates a well-balanced 70/20/10 workstream distribution", () => {
     const manager = new InnovationPortfolioManager();
     const workstreams: PortfolioWorkstream[] = [
       // 7 Core Stability (70%)
@@ -74,7 +72,7 @@ test("validates a well-balanced 70/20/10 workstream distribution", () => {
     expect(report.rebalanceActions.length).toBe(0);
   });
 
-test("detects Timidity Trap when exploratory bets are 0% across >= 3 active workstreams", () => {
+  test("detects Timidity Trap when exploratory bets are 0% across >= 3 active workstreams", () => {
     const manager = new InnovationPortfolioManager();
     const workstreams: PortfolioWorkstream[] = [
       { id: "c1", title: "Defect fix 1", track: PORTFOLIO_TRACKS.CORE_STABILITY_AND_POLISH },
@@ -98,7 +96,7 @@ test("detects Timidity Trap when exploratory bets are 0% across >= 3 active work
     expect(action.rationale).toContain("Timidity Trap detected");
   });
 
-test("detects Speculative Over-allocation when exploratory bets exceed 15%", () => {
+  test("detects Speculative Over-allocation when exploratory bets exceed 15%", () => {
     const manager = new InnovationPortfolioManager();
     const workstreams: PortfolioWorkstream[] = [
       { id: "c1", title: "Core 1", track: PORTFOLIO_TRACKS.CORE_STABILITY_AND_POLISH },
@@ -124,7 +122,7 @@ test("detects Speculative Over-allocation when exploratory bets exceed 15%", () 
     expect(action.recommendedShiftPercent).toBe(40); // 50% - 10% target = 40%
   });
 
-test("detects Core Deficit when Core Stability allocation falls below 55%", () => {
+  test("detects Core Deficit when Core Stability allocation falls below 55%", () => {
     const manager = new InnovationPortfolioManager();
     const workstreams: PortfolioWorkstream[] = [
       // 3 Core (30%)
@@ -153,7 +151,7 @@ test("detects Core Deficit when Core Stability allocation falls below 55%", () =
     expect(action.recommendedShiftPercent).toBe(40); // 70% - 30% = 40%
   });
 
-test("weights workstreams dynamically using allocationWeight", () => {
+  test("weights workstreams dynamically using allocationWeight", () => {
     const manager = new InnovationPortfolioManager();
     const workstreams: PortfolioWorkstream[] = [
       {
@@ -187,8 +185,7 @@ test("weights workstreams dynamically using allocationWeight", () => {
 });
 
 describe("3-Milestone Hypothesis Gates & Graduation Protocol", () => {
-
-test("registers an exploratory bet with all 3 hypothesis gates initialized", () => {
+  test("registers an exploratory bet with all 3 hypothesis gates initialized", () => {
     const manager = new InnovationPortfolioManager();
     const bet = manager.registerBet({
       title: "Streaming Event Sourcing Kernel",

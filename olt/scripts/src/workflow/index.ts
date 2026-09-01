@@ -4,6 +4,8 @@ export { assertPublishedTaskPacket } from "./packet-authority.ts";
 
 export { recoverStale } from "./lease/index.ts";
 
+export { runGit, type GitRunner } from "./worktree/git.ts";
+
 export {
   computeLcaDirectory,
   partitionFindingsIntoScopes,

@@ -26,10 +26,7 @@ export class LifecycleManager {
    */
   public registerArtifact(artifact: ArtifactMetadata): void {
     if (!artifact || !artifact.keyString) {
-      throw new HarnessError(
-        "INVALID_ARGUMENT",
-        "Artifact must have a valid keyString",
-      );
+      throw new HarnessError("INVALID_ARGUMENT", "Artifact must have a valid keyString");
     }
     this.artifacts.set(artifact.keyString, { ...artifact });
   }
@@ -154,4 +151,3 @@ export class LifecycleManager {
 // ============================================================================
 // 4. Perceptual Difference Heatmaps & Lightweight Visual Delta Reporting
 // ============================================================================
-

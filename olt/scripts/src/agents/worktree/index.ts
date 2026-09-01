@@ -7,10 +7,7 @@ export type {
   WorktreeLease,
 } from "./types.ts";
 
-export {
-  DEFAULT_CACHE_DIRECTORIES,
-  DEFAULT_LEASE_DURATION_MS,
-} from "./types.ts";
+export { DEFAULT_CACHE_DIRECTORIES, DEFAULT_LEASE_DURATION_MS } from "./types.ts";
 
 export {
   createWorktreeLease,

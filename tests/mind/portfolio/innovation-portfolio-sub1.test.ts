@@ -27,9 +27,7 @@ import {
 } from "../../../olt/scripts/src/mind/planning/innovation-portfolio.ts";
 
 describe("70/20/10 Innovation Portfolio Governance & 3-Milestone Gates Suite", () => {
-
-
-describe("1. Portfolio Tracks, Targets & Baseline Constants", () => {
+  describe("1. Portfolio Tracks, Targets & Baseline Constants", () => {
     it("defines the 3 standard tracks and 70/20/10 target percentages", () => {
       expect(PORTFOLIO_TRACKS.CORE_STABILITY_AND_POLISH).toBe("CORE_STABILITY_AND_POLISH");
       expect(PORTFOLIO_TRACKS.ARCHITECTURAL_EVOLUTION).toBe("ARCHITECTURAL_EVOLUTION");
@@ -67,7 +65,7 @@ describe("1. Portfolio Tracks, Targets & Baseline Constants", () => {
     });
   });
 
-describe("2. Portfolio Balance Auditing & Trap Detections", () => {
+  describe("2. Portfolio Balance Auditing & Trap Detections", () => {
     it("handles empty workstream list gracefully as BALANCED", () => {
       const manager = new InnovationPortfolioManager();
       const report = manager.auditPortfolioBalance([]);

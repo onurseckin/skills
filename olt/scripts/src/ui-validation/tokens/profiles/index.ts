@@ -10,10 +10,7 @@ export type {
   AestheticEvaluationReport,
 } from "./types.ts";
 
-export {
-  OPTICAL_DIMENSIONS,
-  OPTICAL_DIMENSION_METADATA,
-} from "./types.ts";
+export { OPTICAL_DIMENSIONS, OPTICAL_DIMENSION_METADATA } from "./types.ts";
 
 export {
   ENTERPRISE_ACCOUNTING_PROFILE,

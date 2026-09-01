@@ -29,9 +29,7 @@ import {
 } from "../../../../../olt/scripts/src/mind/memory/index.ts";
 
 describe("ThreeTierMemoryEngine Test Suite", () => {
-
-
-describe("Tier 1: Core Bedrock Invariants (Permanent System Axioms & Immutability)", () => {
+  describe("Tier 1: Core Bedrock Invariants (Permanent System Axioms & Immutability)", () => {
     it("successfully registers Bedrock Invariants across all supported categories", () => {
       const engine = new ThreeTierMemoryEngine();
 
@@ -195,7 +193,9 @@ describe("Tier 1: Core Bedrock Invariants (Permanent System Axioms & Immutabilit
       expect(engine.getBedrockInvariantCount()).toBe(2);
       expect(engine.hasBedrockInvariant("init-inv-1")).toBe(true);
       expect(engine.hasBedrockInvariant("init-inv-2")).toBe(true);
-      expect(engine.getBedrockInvariant("init-inv-1")?.settledDate).toBe("2026-08-01T00:00:00.000Z");
+      expect(engine.getBedrockInvariant("init-inv-1")?.settledDate).toBe(
+        "2026-08-01T00:00:00.000Z",
+      );
     });
   });
 });

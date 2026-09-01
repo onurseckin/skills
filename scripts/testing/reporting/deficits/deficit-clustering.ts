@@ -10,11 +10,7 @@ import {
   getCategoryBadge,
   type DeficitCategoryClassification,
 } from "./deficit-categorizer.ts";
-import type {
-  DeficitClusteringOptions,
-  DeficitCluster,
-  DeficitRoadmap,
-} from "./types.ts";
+import type { DeficitClusteringOptions, DeficitCluster, DeficitRoadmap } from "./types.ts";
 import type { FileCoverageMetric } from "../metrics/index.ts";
 
 export type { DeficitCategoryClassification };

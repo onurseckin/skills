@@ -182,4 +182,3 @@ describe("Failure Handling & Anti-Pattern Ledger", () => {
     expect(newLedger.getEntryByBetId("b1")?.betTitle).toBe("Shared State Worker Mesh");
   });
 });
-

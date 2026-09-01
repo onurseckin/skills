@@ -13,10 +13,7 @@ export type {
   UniversalHealthReport,
 } from "./types.ts";
 
-export {
-  ALPHA_DEFAULT_CADENCE_MS,
-  BETA_DEFAULT_CADENCE_MS,
-} from "./types.ts";
+export { ALPHA_DEFAULT_CADENCE_MS, BETA_DEFAULT_CADENCE_MS } from "./types.ts";
 
 export {
   advanceEpoch,

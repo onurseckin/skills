@@ -29,7 +29,19 @@ import { runDoctor } from "../../../olt/scripts/src/reporting/doctor.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 
 describe("Anti-Stagnation Doctor & Mind Charter Invariant Engine", () => {
-describe("16. Full Integration with runDoctor", () => {
+  let tempDir: string;
+
+  beforeEach(() => {
+    tempDir = fs.mkdtempSync(join(process.cwd(), "tmp-doctor-test-"));
+  });
+
+  afterEach(() => {
+    if (fs.existsSync(tempDir)) {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  describe("16. Full Integration with runDoctor", () => {
     it("invokes checkAntiStagnationDoctor as part of runDoctor engine collection", async () => {
       const runRoot = initRun(
         tempDir,
@@ -47,7 +59,10 @@ describe("16. Full Integration with runDoctor", () => {
 
       const report = await runDoctor(runRoot, { repoRoot: tempDir });
       expect(report.engine_results).toBeDefined();
-      const engineResults = report.engine_results as Record<string, { engine: string; passed: boolean }>;
+      const engineResults = report.engine_results as Record<
+        string,
+        { engine: string; passed: boolean }
+      >;
       expect(engineResults.checkAntiStagnationDoctor).toBeDefined();
       expect(engineResults.checkAntiStagnationDoctor?.engine).toBe("checkAntiStagnationDoctor");
     });

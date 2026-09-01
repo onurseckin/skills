@@ -6,10 +6,7 @@
  * optional successor guidance injection, and synthesis of clean insight bundles with telemetry.
  */
 
-import {
-  type EpistemicStatus,
-  type SupersessionNode,
-} from "./supersession-index.ts";
+import { type EpistemicStatus, type SupersessionNode } from "./supersession-index.ts";
 import {
   type BedrockInvariant,
   type WorkingMemoryEntry,
@@ -28,10 +25,12 @@ export interface SandboxQueryOptions {
   readonly includeSuccessorGuidance?: boolean | undefined;
   readonly maxResults?: number | undefined;
   readonly minScore?: number | undefined;
-  readonly timeRange?: {
-    readonly start?: string | undefined;
-    readonly end?: string | undefined;
-  } | undefined;
+  readonly timeRange?:
+    | {
+        readonly start?: string | undefined;
+        readonly end?: string | undefined;
+      }
+    | undefined;
 }
 
 export interface SuccessorGuidance {
@@ -74,9 +73,44 @@ export interface CleanInsightBundle {
 }
 
 const DEFAULT_STOP_WORDS = new Set<string>([
-  "a", "an", "the", "and", "or", "but", "in", "on", "at", "to", "for", "with", "by", "of", "from",
-  "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "do", "does", "did",
-  "as", "if", "that", "this", "it", "not", "so", "can", "will", "all",
+  "a",
+  "an",
+  "the",
+  "and",
+  "or",
+  "but",
+  "in",
+  "on",
+  "at",
+  "to",
+  "for",
+  "with",
+  "by",
+  "of",
+  "from",
+  "is",
+  "are",
+  "was",
+  "were",
+  "be",
+  "been",
+  "being",
+  "have",
+  "has",
+  "had",
+  "do",
+  "does",
+  "did",
+  "as",
+  "if",
+  "that",
+  "this",
+  "it",
+  "not",
+  "so",
+  "can",
+  "will",
+  "all",
 ]);
 
 function tokenizeText(text: string): string[] {
@@ -141,11 +175,11 @@ export class RetrievalSandbox {
       ? new Set(options.categories.map((c) => c.toLowerCase()))
       : null;
 
-    const requestedTags = options?.tags
-      ? new Set(options.tags.map((t) => t.toLowerCase()))
-      : null;
+    const requestedTags = options?.tags ? new Set(options.tags.map((t) => t.toLowerCase())) : null;
 
-    const timeStart = options?.timeRange?.start ? new Date(options.timeRange.start).getTime() : null;
+    const timeStart = options?.timeRange?.start
+      ? new Date(options.timeRange.start).getTime()
+      : null;
     const timeEnd = options?.timeRange?.end ? new Date(options.timeRange.end).getTime() : null;
 
     const supersessionIndex = engine.getSupersessionIndex();

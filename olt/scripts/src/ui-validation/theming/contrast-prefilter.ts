@@ -1,8 +1,4 @@
-import type {
-  ContrastAuditTarget,
-  ContrastAuditResult,
-  SurfaceContrastReport,
-} from "./types.ts";
+import type { ContrastAuditTarget, ContrastAuditResult, SurfaceContrastReport } from "./types.ts";
 import {
   calculateWcagContrastRatio,
   calculateApcaContrast,
@@ -73,4 +69,3 @@ export class MathematicalContrastPreFilter {
  * 3. Dedicated Round 4 Thematic Gating
  * ============================================================================
  */
-

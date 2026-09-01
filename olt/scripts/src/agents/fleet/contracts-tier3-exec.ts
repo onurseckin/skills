@@ -19,14 +19,22 @@ export const CONTRACTS_TIER_3_EXEC: readonly AgentOperationalContract[] = [
     },
     permissions: {
       may: ["Execute focused leaf code edits within leased file boundaries", "Run leaf unit tests"],
-      mustNot: ["Spawn further subagents", "Run whole-suite tests", "Modify files outside assigned sub-lease"],
+      mustNot: [
+        "Spawn further subagents",
+        "Run whole-suite tests",
+        "Modify files outside assigned sub-lease",
+      ],
       allowedCommands: ["bun harness.ts *", "bun test *"],
       forbiddenCommands: ["authority:decide", "mind:admit"],
       allowedSpawns: [],
     },
     invariants: ["LEAF_WORKER_CONFINEMENT", "STRICT_LEASE_CONFINEMENT", "ZERO_ANY_INVARIANT"],
     certifiedDeliverables: [
-      { type: "leaf_implementation_diff", description: "Leaf Component Implementation Diff", evidenceRequired: true },
+      {
+        type: "leaf_implementation_diff",
+        description: "Leaf Component Implementation Diff",
+        evidenceRequired: true,
+      },
     ],
   }),
 
@@ -46,7 +54,9 @@ export const CONTRACTS_TIER_3_EXEC: readonly AgentOperationalContract[] = [
       forbiddenTools: [...FORBIDDEN_WRITE_TOOLS, ...FORBIDDEN_EXEC_TOOLS],
     },
     permissions: {
-      may: ["Perform read-only forensic inspection, codebase searches, and defect root-cause analysis"],
+      may: [
+        "Perform read-only forensic inspection, codebase searches, and defect root-cause analysis",
+      ],
       mustNot: ["Edit files", "Execute commands", "Claim write leases"],
       allowedCommands: ["task:brief", "finding:get", "msg:send", "msg:recv", "msg:poll"],
       forbiddenCommands: [...FORBIDDEN_WRITE_TOOLS, ...FORBIDDEN_EXEC_TOOLS],
@@ -54,7 +64,11 @@ export const CONTRACTS_TIER_3_EXEC: readonly AgentOperationalContract[] = [
     },
     invariants: ["READ_ONLY_CONFINEMENT", "ZERO_MUTATION_FORENSICS"],
     certifiedDeliverables: [
-      { type: "forensic_investigation_report", description: "Forensic Investigation & Root Cause Report", evidenceRequired: true },
+      {
+        type: "forensic_investigation_report",
+        description: "Forensic Investigation & Root Cause Report",
+        evidenceRequired: true,
+      },
     ],
   }),
 
@@ -74,7 +88,10 @@ export const CONTRACTS_TIER_3_EXEC: readonly AgentOperationalContract[] = [
       forbiddenTools: ["authority:decide", "mind:admit"],
     },
     permissions: {
-      may: ["Claim remediation leases on defective tasks", "Apply surgical bug fixes and test patches"],
+      may: [
+        "Claim remediation leases on defective tasks",
+        "Apply surgical bug fixes and test patches",
+      ],
       mustNot: ["Spawn subagents", "Re-open broad architectural scope beyond defect boundary"],
       allowedCommands: ["bun harness.ts *", "bun test *"],
       forbiddenCommands: ["authority:decide", "mind:admit"],
@@ -82,8 +99,16 @@ export const CONTRACTS_TIER_3_EXEC: readonly AgentOperationalContract[] = [
     },
     invariants: ["REPAIR_LEASE_CONFINEMENT", "ZERO_ANY_INVARIANT", "SURGICAL_DEFECT_REMEDIATION"],
     certifiedDeliverables: [
-      { type: "defect_remediation_diff", description: "Surgical Defect Remediation Diff", evidenceRequired: true },
-      { type: "regression_test_receipt", description: "Regression Test Verification Receipt", evidenceRequired: true },
+      {
+        type: "defect_remediation_diff",
+        description: "Surgical Defect Remediation Diff",
+        evidenceRequired: true,
+      },
+      {
+        type: "regression_test_receipt",
+        description: "Regression Test Verification Receipt",
+        evidenceRequired: true,
+      },
     ],
   }),
 
@@ -111,7 +136,11 @@ export const CONTRACTS_TIER_3_EXEC: readonly AgentOperationalContract[] = [
     },
     invariants: ["STRICT_LEASE_CONFINEMENT"],
     certifiedDeliverables: [
-      { type: "worker_task_deliverable", description: "General Worker Task Deliverable", evidenceRequired: true },
+      {
+        type: "worker_task_deliverable",
+        description: "General Worker Task Deliverable",
+        evidenceRequired: true,
+      },
     ],
   }),
 
@@ -128,7 +157,18 @@ export const CONTRACTS_TIER_3_EXEC: readonly AgentOperationalContract[] = [
       canExecuteCommands: false,
       canSpawnSubagents: true,
       canClaimLeases: false,
-      allowedTools: ["view_file", "evidence:screenshots", "task:brief", "task:validate-start", "task:probe", "task:reject", "task:review", "msg:send", "msg:recv", "msg:poll"],
+      allowedTools: [
+        "view_file",
+        "evidence:screenshots",
+        "task:brief",
+        "task:validate-start",
+        "task:probe",
+        "task:reject",
+        "task:review",
+        "msg:send",
+        "msg:recv",
+        "msg:poll",
+      ],
       forbiddenTools: [...FORBIDDEN_WRITE_TOOLS, ...FORBIDDEN_EXEC_TOOLS],
     },
     permissions: {
@@ -144,7 +184,24 @@ export const CONTRACTS_TIER_3_EXEC: readonly AgentOperationalContract[] = [
         "Validate its own work",
         "Approve UI tasks without visually inspecting actual screenshot image artifacts",
       ],
-      allowedCommands: ["task:brief", "task:validate-start", "task:probe", "task:reject", "task:review", "finding:get", "report:get", "evidence:get", "evidence:screenshots", "agent:register", "agent:report", "agent:release", "whoami", "msg:send", "msg:recv", "msg:poll"],
+      allowedCommands: [
+        "task:brief",
+        "task:validate-start",
+        "task:probe",
+        "task:reject",
+        "task:review",
+        "finding:get",
+        "report:get",
+        "evidence:get",
+        "evidence:screenshots",
+        "agent:register",
+        "agent:report",
+        "agent:release",
+        "whoami",
+        "msg:send",
+        "msg:recv",
+        "msg:poll",
+      ],
       forbiddenCommands: [...FORBIDDEN_WRITE_TOOLS, ...FORBIDDEN_EXEC_TOOLS],
       allowedSpawns: ["sub-validator"],
     },
@@ -161,9 +218,16 @@ export const CONTRACTS_TIER_3_EXEC: readonly AgentOperationalContract[] = [
     isSourceCodeBlind: true,
     manifestPath: "olt/agents/ui-optical-validator.yaml",
     certifiedDeliverables: [
-      { type: "cognitive_optical_review", description: "8-Dimension Optical Quality Review", evidenceRequired: true },
-      { type: "viewport_inspection_receipt", description: "4-Viewport Visual Verification Receipt", evidenceRequired: true },
+      {
+        type: "cognitive_optical_review",
+        description: "8-Dimension Optical Quality Review",
+        evidenceRequired: true,
+      },
+      {
+        type: "viewport_inspection_receipt",
+        description: "4-Viewport Visual Verification Receipt",
+        evidenceRequired: true,
+      },
     ],
   }),
-
 ];

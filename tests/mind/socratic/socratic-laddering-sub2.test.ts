@@ -11,9 +11,7 @@ import {
 } from "../../../olt/scripts/src/mind/auditing/socratic/index.ts";
 
 describe("SocraticLadderingEngine", () => {
-
-
-describe("Pre-Declared Pareto Arbitration", () => {
+  describe("Pre-Declared Pareto Arbitration", () => {
     const engine = new SocraticLadderingEngine();
 
     it("Priority 1 (UX Delight & Correctness) always beats lower priorities", () => {

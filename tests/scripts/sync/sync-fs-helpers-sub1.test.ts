@@ -41,7 +41,7 @@ function setupAssistantRoots(testName: string) {
 }
 
 describe("logDestructiveOp", () => {
-test("writes audit event JSON to stderr", () => {
+  test("writes audit event JSON to stderr", () => {
     let captured = "";
     const originalWrite = process.stderr.write;
     process.stderr.write = ((chunk: string | Uint8Array) => {
@@ -65,8 +65,7 @@ test("writes audit event JSON to stderr", () => {
 });
 
 describe("smartEnsureSymlink refuses to destroy a real directory", () => {
-
-test("a real git-repo directory at the link path throws and survives untouched", () => {
+  test("a real git-repo directory at the link path throws and survives untouched", () => {
     const { assistantDir, targetOlt, linkPath } = setupAssistantRoots("symlink-vs-git-repo");
     writeFileSync(join(targetOlt, "SKILL.md"), "canonical\n", "utf-8");
     initRealGitRepoAt(linkPath);
@@ -80,7 +79,7 @@ test("a real git-repo directory at the link path throws and survives untouched",
     expect(readFileSync(join(linkPath, "precious.txt"), "utf-8")).toBe("do-not-delete-me\n");
   });
 
-test("a real plain directory (no .git) at the link path also throws and survives untouched", () => {
+  test("a real plain directory (no .git) at the link path also throws and survives untouched", () => {
     const { assistantDir, targetOlt, linkPath } = setupAssistantRoots("symlink-vs-plain-dir");
     mkdirSync(linkPath, { recursive: true });
     writeFileSync(join(linkPath, "keepme.txt"), "still-here\n", "utf-8");
@@ -100,7 +99,7 @@ test("a real plain directory (no .git) at the link path also throws and survives
     expect(readFileSync(join(linkPath, "keepme.txt"), "utf-8")).toBe("still-here\n");
   });
 
-test("a real file at the link path throws and survives untouched", () => {
+  test("a real file at the link path throws and survives untouched", () => {
     const { assistantDir, targetOlt, linkPath } = setupAssistantRoots("symlink-vs-plain-file");
     writeFileSync(linkPath, "not-a-symlink\n", "utf-8");
 
@@ -110,7 +109,7 @@ test("a real file at the link path throws and survives untouched", () => {
     expect(readFileSync(linkPath, "utf-8")).toBe("not-a-symlink\n");
   });
 
-test("throws when readExistingEntry encounters non-ENOENT error", () => {
+  test("throws when readExistingEntry encounters non-ENOENT error", () => {
     const root = scratchRoot(import.meta.path, "symlink-non-enoent");
     const linkPath = join(root, "test-entry");
     const customDriver = {
@@ -128,7 +127,7 @@ test("throws when readExistingEntry encounters non-ENOENT error", () => {
     ).toThrow("Permission denied");
   });
 
-test("describeKind covers non-symlink non-file non-directory branch", () => {
+  test("describeKind covers non-symlink non-file non-directory branch", () => {
     const root = scratchRoot(import.meta.path, "symlink-other-kind");
     const mockStats = {
       isDirectory: () => false,
@@ -145,8 +144,7 @@ test("describeKind covers non-symlink non-file non-directory branch", () => {
 });
 
 describe("smartEnsureSymlink normal operation", () => {
-
-test("creates a symlink atomically where nothing existed before", () => {
+  test("creates a symlink atomically where nothing existed before", () => {
     const { assistantDir, targetOlt, linkPath } = setupAssistantRoots("symlink-create");
     const status = smartEnsureSymlink(targetOlt, linkPath, { allowedRoots: [assistantDir] });
     expect(status).toBe("created");
@@ -154,7 +152,7 @@ test("creates a symlink atomically where nothing existed before", () => {
     expect(readlinkSync(linkPath)).toBe(targetOlt);
   });
 
-test("is idempotent when the symlink already points at target", () => {
+  test("is idempotent when the symlink already points at target", () => {
     const { assistantDir, targetOlt, linkPath } = setupAssistantRoots("symlink-idempotent");
     symlinkSync(targetOlt, linkPath);
     const status = smartEnsureSymlink(targetOlt, linkPath, { allowedRoots: [assistantDir] });
@@ -162,7 +160,7 @@ test("is idempotent when the symlink already points at target", () => {
     expect(readlinkSync(linkPath)).toBe(targetOlt);
   });
 
-test("re-points a stale symlink that targets something else atomically", () => {
+  test("re-points a stale symlink that targets something else atomically", () => {
     const { root, assistantDir, linkPath } = setupAssistantRoots("symlink-repoint");
     const oldTarget = join(root, "old-olt-deployment");
     const newTarget = join(root, "new-olt-deployment");
@@ -175,7 +173,7 @@ test("re-points a stale symlink that targets something else atomically", () => {
     expect(readlinkSync(linkPath)).toBe(newTarget);
   });
 
-test("re-points a broken symlink where readlinkSync throws", () => {
+  test("re-points a broken symlink where readlinkSync throws", () => {
     const { root, assistantDir, linkPath } = setupAssistantRoots("symlink-broken-readlink");
     const newTarget = join(root, "new-olt-deployment");
     mkdirSync(newTarget, { recursive: true });
@@ -193,7 +191,7 @@ test("re-points a broken symlink where readlinkSync throws", () => {
     expect(status).toBe("created");
   });
 
-test("falls back to safeCpSync if symlinkSync throws", () => {
+  test("falls back to safeCpSync if symlinkSync throws", () => {
     const { root, assistantDir } = setupAssistantRoots("symlink-fallback-cp");
     const targetFile = join(root, "target.txt");
     writeFileSync(targetFile, "content-to-copy", "utf-8");
@@ -212,7 +210,7 @@ test("falls back to safeCpSync if symlinkSync throws", () => {
     expect(readFileSync(linkPath, "utf-8")).toBe("content-to-copy");
   });
 
-test("tags directory fallback copy with marker and permits subsequent sync runs", () => {
+  test("tags directory fallback copy with marker and permits subsequent sync runs", () => {
     const { root, assistantDir } = setupAssistantRoots("symlink-fallback-dir");
     const targetDir = join(root, "canonical-skill-dir");
     mkdirSync(targetDir, { recursive: true });

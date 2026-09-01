@@ -10,7 +10,10 @@ import type {
 export interface RawValueViolation {
   readonly property: string;
   readonly rawValue: string | number;
-  readonly violationType: "unauthorized_pixel_value" | "unauthorized_color" | "arbitrary_inline_style";
+  readonly violationType:
+    | "unauthorized_pixel_value"
+    | "unauthorized_color"
+    | "arbitrary_inline_style";
   readonly message: string;
   readonly recommendedToken: string;
   readonly line?: number;
@@ -49,10 +52,18 @@ export interface TokenImmunityDefense {
   readonly defenseReasoning: string;
 }
 
-
 export interface TokenCompositionDescriptor {
   readonly componentName: string;
-  readonly hierarchyLevel: "h1" | "h2" | "h3" | "h4" | "body" | "caption" | "card" | "modal" | "button";
+  readonly hierarchyLevel:
+    | "h1"
+    | "h2"
+    | "h3"
+    | "h4"
+    | "body"
+    | "caption"
+    | "card"
+    | "modal"
+    | "button";
   readonly fontSize?: FontSizeToken;
   readonly lineHeight?: LineHeightToken;
   readonly fontWeight?: FontWeightToken;
@@ -77,8 +88,12 @@ export interface CompositionEvaluationResult {
   readonly elevationScore: number; // 0 to 100
 }
 
-
-export type TokenProposalStatus = "PROPOSED" | "UNDER_REVIEW" | "APPROVED" | "REJECTED" | "PROPAGATED";
+export type TokenProposalStatus =
+  | "PROPOSED"
+  | "UNDER_REVIEW"
+  | "APPROVED"
+  | "REJECTED"
+  | "PROPAGATED";
 
 export interface TokenEvolutionProposal {
   readonly id: string;
@@ -101,7 +116,6 @@ export interface TokenRegistrySnapshot {
   readonly customTokens: readonly TokenEvolutionProposal[];
   readonly totalTokensCount: number;
 }
-
 
 export type { ThemeMode } from "./constants.ts";
 export {

@@ -28,17 +28,13 @@ import {
 import { evaluateSubstantiveDefense } from "./defense-evaluator.ts";
 import { InterRoundRegressionAuditor } from "./regression-auditor.ts";
 import { ParetoArbitrationEngine } from "./pareto-arbitration.ts";
+import { raiseChallenge, submitDefense, escalateToParetoArbitration } from "./dialectic-cycle.ts";
+import { evaluateRoundReadiness, auditInterRoundState, advanceRound } from "./round-flow.ts";
 import {
-  raiseChallenge,
-  submitDefense,
-  escalateToParetoArbitration,
-} from "./dialectic-cycle.ts";
-import {
-  evaluateRoundReadiness,
-  auditInterRoundState,
-  advanceRound,
-} from "./round-flow.ts";
-import { MilestoneLockEngine, getDefaultMilestoneLockEngine, computeSha256 } from "../locks/index.ts";
+  MilestoneLockEngine,
+  getDefaultMilestoneLockEngine,
+  computeSha256,
+} from "../locks/index.ts";
 
 export class SocraticDialecticEngine {
   private sessionId: string = "socratic-session-001";
@@ -201,7 +197,6 @@ export class SocraticDialecticEngine {
  * 10. Engine Singletons and Factory Functions
  * ============================================================================
  */
-
 
 let defaultSocraticDialecticEngine: SocraticDialecticEngine | null = null;
 

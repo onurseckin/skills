@@ -15,7 +15,7 @@ import {
 } from "../../../../olt/scripts/src/mind/planning/pareto-arbitration.ts";
 
 describe("Pareto Decision Hierarchy & Arbitration Engine", () => {
-describe("arbitrateMultipleApproaches", () => {
+  describe("arbitrateMultipleApproaches", () => {
     it("arbitrates across multiple candidate options and ranks them lexicographically", () => {
       const candidates: ParetoApproachCandidate[] = [
         {
@@ -80,7 +80,7 @@ describe("arbitrateMultipleApproaches", () => {
     });
   });
 
-describe("Utility & Frontier Functions", () => {
+  describe("Utility & Frontier Functions", () => {
     it("extracts performance gain from various candidate fields", () => {
       expect(extractPerformanceGain({ name: "A", perfGainPercent: 20 })).toBe(20);
       expect(extractPerformanceGain({ name: "B", throughputGainPercent: 30 })).toBe(30);

@@ -9,10 +9,7 @@ import type {
   VisualFoundationHandoffToken,
   HandoffVerificationResult,
 } from "./types.ts";
-import {
-  computePayloadSha256,
-  validatePayloadSchema,
-} from "./fixtures.ts";
+import { computePayloadSha256, validatePayloadSchema } from "./fixtures.ts";
 
 const HANDOFF_SECRET = "olt-visual-foundation-handoff-secret-key-32-chars";
 
@@ -92,7 +89,10 @@ export class DefectRouter {
   /**
    * Route a data-layer failure directly to AUTONOMOUS_REPAIRER
    */
-  public routeDefect(certification: PreFlightCertificationResult, actualPayload?: unknown): RoutedDefectReceipt {
+  public routeDefect(
+    certification: PreFlightCertificationResult,
+    actualPayload?: unknown,
+  ): RoutedDefectReceipt {
     const defectId = `defect-data-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const severity =
       certification.statusCode >= 500
@@ -170,7 +170,9 @@ export class VisualFoundationHandoffGate {
     const expiresAt = now + ttl;
 
     const signature = createHmac("sha256", HANDOFF_SECRET)
-      .update(`${tokenId}:${certification.certificateId}:${options.componentOrRoute}:${certification.fixtureType}:${payloadSha256}:${expiresAt}`)
+      .update(
+        `${tokenId}:${certification.certificateId}:${options.componentOrRoute}:${certification.fixtureType}:${payloadSha256}:${expiresAt}`,
+      )
       .digest("hex");
 
     return {
@@ -208,7 +210,9 @@ export class VisualFoundationHandoffGate {
 
     // 2. Check cryptographic signature
     const expectedSignature = createHmac("sha256", HANDOFF_SECRET)
-      .update(`${token.tokenId}:${token.certificateId}:${token.componentOrRoute}:${token.fixtureType}:${token.payloadSha256}:${token.expiresAt}`)
+      .update(
+        `${token.tokenId}:${token.certificateId}:${token.componentOrRoute}:${token.fixtureType}:${token.payloadSha256}:${token.expiresAt}`,
+      )
       .digest("hex");
 
     if (token.signature !== expectedSignature) {

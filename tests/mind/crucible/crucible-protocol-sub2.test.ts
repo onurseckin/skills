@@ -16,9 +16,7 @@ import {
 } from "../../../olt/scripts/src/mind/planning/pareto-arbitration.ts";
 
 describe("Empirical Crucible Protocol & Bedrock Invariant Commitment", () => {
-
-
-describe("EmpiricalCrucibleEngine", () => {
+  describe("EmpiricalCrucibleEngine", () => {
     it("coordinates full lifecycle: createSpike -> recordData -> evaluateSpike -> finalizeSpike", () => {
       const engine = new EmpiricalCrucibleEngine();
 

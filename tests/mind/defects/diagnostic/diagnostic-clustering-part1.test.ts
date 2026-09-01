@@ -14,5 +14,3 @@ import {
   type DeficitTopologyMatrix,
   type ParsedDiagnosticError,
 } from "../../../../olt/scripts/src/mind/defects/index.ts";
-
-

@@ -50,7 +50,7 @@ import {
 } from "../../../olt/scripts/src/mind/lifecycle/index.ts";
 
 describe("Autonomous Resource Governor & Suspended Animation Suite", () => {
-describe("Suspended Animation Engine: Full Suspension & Zero-Amnesia Resumption Cycle", () => {
+  describe("Suspended Animation Engine: Full Suspension & Zero-Amnesia Resumption Cycle", () => {
     it("executes atomic freeze, sub-second timer freezing, disk persistence, and lossless restoration", async () => {
       const testTempDir = join(
         tmpdir(),

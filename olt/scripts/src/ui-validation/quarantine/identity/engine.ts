@@ -11,18 +11,9 @@ import type {
   ReauthExecutionPlan,
   PermissionBoundaryAuditResult,
 } from "./types.ts";
-import {
-  base64UrlEncode,
-  base64UrlDecode,
-  MOCK_JWT_SECRET,
-} from "./tokens.ts";
-import {
-  detectSessionDegradation,
-  executeAutonomousReauthentication,
-} from "./session.ts";
-import {
-  simulatePermissionBoundary,
-} from "./permissions.ts";
+import { base64UrlEncode, base64UrlDecode, MOCK_JWT_SECRET } from "./tokens.ts";
+import { detectSessionDegradation, executeAutonomousReauthentication } from "./session.ts";
+import { simulatePermissionBoundary } from "./permissions.ts";
 
 export class IdentityGovernanceEngine {
   public generateMockToken(
@@ -199,10 +190,7 @@ export class IdentityGovernanceEngine {
   /**
    * Generate standard HTTP Authorization headers
    */
-  public generateAuthHeaders(
-    persona: PersonaDefinition,
-    token?: string,
-  ): Record<string, string> {
+  public generateAuthHeaders(persona: PersonaDefinition, token?: string): Record<string, string> {
     const authToken = token ?? this.generateMockToken(persona);
     return {
       Authorization: `Bearer ${authToken}`,

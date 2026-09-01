@@ -15,10 +15,7 @@ export class MicrocraftInspector {
    */
   public inspectFocusRing(metrics: FocusRingMetrics): FocusRingInspectionResult {
     if (!metrics || !metrics.selector) {
-      throw new HarnessError(
-        "INVALID_ARGUMENT",
-        "Focus ring metrics must include selector",
-      );
+      throw new HarnessError("INVALID_ARGUMENT", "Focus ring metrics must include selector");
     }
 
     const violations: string[] = [];
@@ -63,10 +60,7 @@ export class MicrocraftInspector {
    */
   public inspectHoverLift(metrics: HoverLiftMetrics): HoverLiftInspectionResult {
     if (!metrics || !metrics.selector) {
-      throw new HarnessError(
-        "INVALID_ARGUMENT",
-        "Hover lift metrics must include selector",
-      );
+      throw new HarnessError("INVALID_ARGUMENT", "Hover lift metrics must include selector");
     }
 
     const violations: string[] = [];
@@ -80,9 +74,7 @@ export class MicrocraftInspector {
       );
     }
     if (!shadowValid) {
-      violations.push(
-        "Hover state does not deepen box shadow depth in conjunction with elevation",
-      );
+      violations.push("Hover state does not deepen box shadow depth in conjunction with elevation");
     }
 
     return {
@@ -132,9 +124,7 @@ export class MicrocraftInspector {
   /**
    * Inspects spring physics trajectory against preset expectations
    */
-  public inspectSpringPhysics(
-    input: SpringPhysicsInspectionInput,
-  ): SpringPhysicsInspectionResult {
+  public inspectSpringPhysics(input: SpringPhysicsInspectionInput): SpringPhysicsInspectionResult {
     if (!input || !input.trajectorySamples || input.trajectorySamples.length === 0) {
       throw new HarnessError(
         "INVALID_ARGUMENT",
@@ -195,9 +185,7 @@ export class MicrocraftInspector {
       );
     }
 
-    const preset = input.presetName
-      ? SPRING_PRESETS[input.presetName.toUpperCase()]
-      : undefined;
+    const preset = input.presetName ? SPRING_PRESETS[input.presetName.toUpperCase()] : undefined;
 
     if (preset) {
       if (settlingTimeMs > preset.maxDurationMs) {
@@ -226,4 +214,3 @@ export class MicrocraftInspector {
 // ============================================================================
 // 4. Unified Motion Verification Engine & Singletons
 // ============================================================================
-

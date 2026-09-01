@@ -52,7 +52,6 @@ import {
   validateAgentToolCall,
 } from "../../olt/scripts/src/agents/index.ts";
 
-
 const TEST_ROOT = path.join(process.cwd(), ".olt-test-scratch-wave5");
 
 function cleanTestRoot(): void {
@@ -79,7 +78,10 @@ describe("Wave 5: High-Density Ephemeral Worktree Governance", () => {
       fs.mkdirSync(path.join(fakeRepoRoot, "node_modules"), { recursive: true });
       fs.writeFileSync(path.join(fakeRepoRoot, "bun.lock"), "lock-data", "utf-8");
 
-      const result = await symlinkDependencyCache(fakeRepoRoot, fakeWorktree, ["node_modules", "bun.lock"]);
+      const result = await symlinkDependencyCache(fakeRepoRoot, fakeWorktree, [
+        "node_modules",
+        "bun.lock",
+      ]);
       expect(result.symlinked).toContain("node_modules");
       expect(result.symlinked).toContain("bun.lock");
       expect(result.savedBytesEstimate).toBeGreaterThan(0);

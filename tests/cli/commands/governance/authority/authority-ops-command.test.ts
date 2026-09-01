@@ -1,16 +1,77 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
-import { loadRun, transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
+import {
+  initCapsuleRun,
+  loadRun,
+  transact,
+} from "../../../../../olt/scripts/src/engine/store/index.ts";
 import type { JsonObject } from "../../../../../olt/scripts/src/core/contracts/index.ts";
 import { HarnessError } from "../../../../../olt/scripts/src/core/errors/index.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
-import { setupCompiledRun } from "../../fixtures/task-ops-fixture.ts";
+import { registerAgentGrant } from "../../../../../olt/scripts/src/workflow/agents/grants.ts";
+import { stageSessionGrant } from "../../../../../olt/scripts/src/authority/session/index.ts";
+import {
+  cleanupVirtualCliFS,
+  getVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 
-const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+beforeEach(() => {
+  setupVirtualCliFS();
+});
 
-/** plan:compile derives every requirement actionable, so a needs_authority requirement is seeded
- *  directly rather than produced through the compiler. */
+afterEach(() => {
+  cleanupVirtualCliFS();
+});
+
+function registerAgentDirect(run: string, agent: string, role: string, parentAgent?: string): void {
+  stageSessionGrant({ runRoot: run, agentId: agent, role, host: "antigravity" });
+  registerAgentGrant({
+    runRoot: run,
+    agentId: agent,
+    role,
+    parentAgentId: parentAgent ?? null,
+    parentTaskId: null,
+    host: "antigravity",
+    authority: parentAgent
+      ? { kind: "verified_parent", actorId: parentAgent }
+      : { kind: "conditional_genesis" },
+    maxAgents: 20,
+    telemetry: {},
+  });
+}
+
+function setupAuthorityRun(name: string): { repo: string; run: string } {
+  const repo = `/virtual/cli/authority-${name}`;
+  getVirtualCliFS().mkdirSync(repo, { recursive: true });
+  const { runRoot } = initCapsuleRun(`authority-${name}`, { repo });
+  const roster = [
+    ["fixture-mind-root", "mind", undefined],
+    ["fixture-orch-root", "orchestrator", "fixture-mind-root"],
+    ["coordinator", "coordinator", "fixture-orch-root"],
+    ["worker-1", "implementer", "coordinator"],
+    ["worker-2", "implementer", "coordinator"],
+    ["orch-pulse-master", "implementer", "coordinator"],
+    ["coord-domain-backend", "implementer", "coordinator"],
+  ] as const;
+  for (const [agent, role, parent] of roster) {
+    registerAgentDirect(runRoot, agent, role, parent);
+  }
+  transact(runRoot, "test-setup", "init-requirements", {}, (draft) => {
+    draft.requirements = {
+      requirements: [{ id: "req-core", label: "Core Requirement", disposition: "needs_authority" }],
+    };
+    draft.tasks = {
+      "req-core": {
+        id: "req-core",
+        label: "Core Task",
+        status: "ready",
+        write_scope: ["tests/core"],
+      },
+    };
+  });
+  return { repo, run: runRoot };
+}
+
 function gateRequirement(run: string, requirementId: string): void {
   transact(run, "test-setup", "requirement-gated-for-test", {}, (draft) => {
     const document = (draft.requirements ?? {}) as JsonObject;
@@ -23,7 +84,7 @@ function gateRequirement(run: string, requirementId: string): void {
 
 describe("authority:decide", () => {
   test("grants a needs_authority requirement and records the decision", async () => {
-    const { run } = await setupCompiledRun("authority-cmd-grant", roots);
+    const { run } = await setupAuthorityRun("authority-cmd-grant");
     gateRequirement(run, "req-core");
 
     const decided = await execute([
@@ -53,7 +114,7 @@ describe("authority:decide", () => {
   });
 
   test("declines a needs_authority requirement and records the rationale", async () => {
-    const { run } = await setupCompiledRun("authority-cmd-decline", roots);
+    const { run } = await setupAuthorityRun("authority-cmd-decline");
     gateRequirement(run, "req-core");
 
     const decided = await execute([
@@ -76,7 +137,7 @@ describe("authority:decide", () => {
   });
 
   test("throws HarnessError if requirement is not found in non-mind state", async () => {
-    const { run } = await setupCompiledRun("authority-cmd-notfound", roots);
+    const { run } = await setupAuthorityRun("authority-cmd-notfound");
 
     await expect(
       execute([
@@ -96,7 +157,7 @@ describe("authority:decide", () => {
   });
 
   test("decides proposal in mind / candidates state", async () => {
-    const { run } = await setupCompiledRun("authority-cmd-mind", roots);
+    const { run } = await setupAuthorityRun("authority-cmd-mind");
 
     transact(run, "test-setup", "seed-candidate", {}, (draft) => {
       draft.candidates = [
@@ -130,7 +191,7 @@ describe("authority:decide", () => {
   });
 
   test("rejects a decision value that is neither grant nor decline", async () => {
-    const { run } = await setupCompiledRun("authority-cmd-invalid", roots);
+    const { run } = await setupAuthorityRun("authority-cmd-invalid");
     gateRequirement(run, "req-core");
 
     await expect(
@@ -152,105 +213,46 @@ describe("authority:decide", () => {
 });
 
 describe("Mechanical Role Confinement in task:claim", () => {
-  test("strictly blocks Orchestrator role from claiming code tasks", async () => {
-    const { run } = await setupCompiledRun("role-confinement-orch-role", roots);
+  const confinementCases: readonly [string, string, string, string | undefined][] = [
+    [
+      "role-confinement-orch-role",
+      "worker-1",
+      "orchestrator",
+      "Dispatch Tier 3 Implementers via invoke_subagent.",
+    ],
+    ["role-confinement-orch-agent", "orch-pulse-master", "implementer", undefined],
+    [
+      "role-confinement-coord-role",
+      "worker-2",
+      "coordinator",
+      "Dispatch Tier 3 Implementers via invoke_subagent.",
+    ],
+    ["role-confinement-coord-agent", "coord-domain-backend", "implementer", undefined],
+  ];
 
-    try {
-      await execute([
-        "task:claim",
-        "--run",
-        run,
-        "--task",
-        "req-core",
-        "--agent",
-        "worker-1",
-        "--role",
-        "orchestrator",
-      ]);
-      expect(true).toBeFalse();
-    } catch (err: unknown) {
-      const error = err as { code?: string; message: string; fix?: string };
-      expect(error.code).toBe("ROLE_CONFINEMENT_VIOLATION");
-      expect(error.message).toContain(
-        "Orchestrators are mechanically confined from claiming code execution tasks. Dispatch Tier 3 Implementers via invoke_subagent.",
-      );
-      expect(error.fix).toBe("Dispatch Tier 3 Implementers via invoke_subagent.");
-    }
-  });
-
-  test("strictly blocks orch-* agent id from claiming code tasks", async () => {
-    const { run } = await setupCompiledRun("role-confinement-orch-agent", roots);
-
-    try {
-      await execute([
-        "task:claim",
-        "--run",
-        run,
-        "--task",
-        "req-core",
-        "--agent",
-        "orch-pulse-master",
-        "--role",
-        "implementer",
-      ]);
-      expect(true).toBeFalse();
-    } catch (err: unknown) {
-      const error = err as { code?: string; message: string; fix?: string };
-      expect(error.code).toBe("ROLE_CONFINEMENT_VIOLATION");
-      expect(error.message).toContain(
-        "Orchestrators are mechanically confined from claiming code execution tasks. Dispatch Tier 3 Implementers via invoke_subagent.",
-      );
-    }
-  });
-
-  test("strictly blocks Coordinator role from claiming code tasks", async () => {
-    const { run } = await setupCompiledRun("role-confinement-coord-role", roots);
-
-    try {
-      await execute([
-        "task:claim",
-        "--run",
-        run,
-        "--task",
-        "req-core",
-        "--agent",
-        "worker-2",
-        "--role",
-        "coordinator",
-      ]);
-      expect(true).toBeFalse();
-    } catch (err: unknown) {
-      const error = err as { code?: string; message: string; fix?: string };
-      expect(error.code).toBe("ROLE_CONFINEMENT_VIOLATION");
-      expect(error.message).toContain(
-        "Coordinators are mechanically confined from claiming code execution tasks. Dispatch Tier 3 Implementers via invoke_subagent.",
-      );
-      expect(error.fix).toBe("Dispatch Tier 3 Implementers via invoke_subagent.");
-    }
-  });
-
-  test("strictly blocks coord-* agent id from claiming code tasks", async () => {
-    const { run } = await setupCompiledRun("role-confinement-coord-agent", roots);
-
-    try {
-      await execute([
-        "task:claim",
-        "--run",
-        run,
-        "--task",
-        "req-core",
-        "--agent",
-        "coord-domain-backend",
-        "--role",
-        "implementer",
-      ]);
-      expect(true).toBeFalse();
-    } catch (err: unknown) {
-      const error = err as { code?: string; message: string; fix?: string };
-      expect(error.code).toBe("ROLE_CONFINEMENT_VIOLATION");
-      expect(error.message).toContain(
-        "Coordinators are mechanically confined from claiming code execution tasks. Dispatch Tier 3 Implementers via invoke_subagent.",
-      );
-    }
-  });
+  test.each(confinementCases)(
+    "strictly blocks %s (%s, %s)",
+    async (fixtureName, agent, role, expectedFix) => {
+      const { run } = await setupAuthorityRun(fixtureName);
+      try {
+        await execute([
+          "task:claim",
+          "--run",
+          run,
+          "--task",
+          "req-core",
+          "--agent",
+          agent,
+          "--role",
+          role,
+        ]);
+        expect(true).toBeFalse();
+      } catch (err: unknown) {
+        const error = err as { code?: string; message: string; fix?: string };
+        expect(error.code).toBe("ROLE_CONFINEMENT_VIOLATION");
+        expect(error.message).toContain("mechanically confined from claiming code execution tasks");
+        if (expectedFix) expect(error.fix).toBe(expectedFix);
+      }
+    },
+  );
 });

@@ -19,7 +19,7 @@ import {
 } from "../../../../../olt/scripts/src/mind/auditing/product-craft.ts";
 
 describe("Product Craft & Ergonomic Walkthrough Auditing", () => {
-describe("The Five Pillars of Product Craft", () => {
+  describe("The Five Pillars of Product Craft", () => {
     it("exports all 5 standard product craft pillars", () => {
       expect(PRODUCT_CRAFT_PILLAR_LIST.length).toBe(5);
       expect(PRODUCT_CRAFT_PILLAR_LIST).toContain("VISUAL_HIERARCHY");
@@ -64,7 +64,7 @@ describe("The Five Pillars of Product Craft", () => {
     });
   });
 
-describe("calculateCompositeCraftScore", () => {
+  describe("calculateCompositeCraftScore", () => {
     it("computes equal-weighted average accurately", () => {
       const score = calculateCompositeCraftScore({
         VISUAL_HIERARCHY: 90,
@@ -116,7 +116,7 @@ describe("calculateCompositeCraftScore", () => {
     });
   });
 
-describe("generateAestheticDeficitNotice", () => {
+  describe("generateAestheticDeficitNotice", () => {
     it("creates a properly structured deficit notice", () => {
       const notice = generateAestheticDeficitNotice({
         milestoneId: "m1-onboarding",

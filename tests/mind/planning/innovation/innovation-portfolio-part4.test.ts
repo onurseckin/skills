@@ -131,4 +131,3 @@ describe("Pre-Declared Pareto Arbitration Integration", () => {
     expect(frontier[0]!.name).toBe("High Value Low Complexity");
   });
 });
-

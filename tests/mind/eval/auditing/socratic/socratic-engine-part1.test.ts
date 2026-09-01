@@ -10,8 +10,6 @@ import {
   type StrategicResolution,
 } from "../../../../../olt/scripts/src/mind/auditing/socratic/index.ts";
 
-
-
 describe("HistoricalDebateMemory", () => {
   it("records resolutions and indexes commitments correctly", () => {
     const memory = new HistoricalDebateMemory();
@@ -155,4 +153,3 @@ describe("HistoricalDebateMemory", () => {
     expect(empty.getCommitments().length).toBe(0);
   });
 });
-

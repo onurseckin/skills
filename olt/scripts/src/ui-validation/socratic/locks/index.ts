@@ -16,11 +16,7 @@ export {
   MIN_ROOT_CAUSE_ANALYSIS_LENGTH,
 } from "./types.ts";
 
-export {
-  canonicalJsonStringify,
-  computeSha256,
-  computeManifestSignature,
-} from "./hashing.ts";
+export { canonicalJsonStringify, computeSha256, computeManifestSignature } from "./hashing.ts";
 
 export {
   requestOpticalRegressionUnlock,
@@ -28,11 +24,7 @@ export {
   resealMilestone,
 } from "./exception-protocol.ts";
 
-export {
-  verifyManifestIntegrity,
-  verifyAllMilestoneLocks,
-  assertIntegrity,
-} from "./verifier.ts";
+export { verifyManifestIntegrity, verifyAllMilestoneLocks, assertIntegrity } from "./verifier.ts";
 
 export {
   MilestoneLockEngine,

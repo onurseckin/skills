@@ -42,9 +42,7 @@ import {
 } from "../../../../../olt/scripts/src/mind/crucible/types.ts";
 
 describe("Pre-Declared Pareto Decision Hierarchy & Arbitration Suite", () => {
-
-
-describe("7. Settled Bedrock Invariants & Reopening Protection (>= 10x Threshold)", () => {
+  describe("7. Settled Bedrock Invariants & Reopening Protection (>= 10x Threshold)", () => {
     it("commits invariants and rejects challenge when empirical delta is below 10x", () => {
       const repository = new SettledInvariantRepository();
 

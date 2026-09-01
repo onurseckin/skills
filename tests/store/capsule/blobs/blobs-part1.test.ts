@@ -23,7 +23,11 @@ import {
   putBlobFile,
   type ViewLinker,
 } from "../../../../olt/scripts/src/engine/store/layout/blobs.ts";
-import { cleanupVirtualStoreFS, scratchRoot as makeScratchRoot, setupVirtualStoreFS } from "../../store-fixture.ts";
+import {
+  cleanupVirtualStoreFS,
+  scratchRoot as makeScratchRoot,
+  setupVirtualStoreFS,
+} from "../../store-fixture.ts";
 
 beforeEach(() => {
   setupVirtualStoreFS();
@@ -41,8 +45,6 @@ function sha256Of(content: string): string {
   return createHash("sha256").update(content).digest("hex");
 }
 
-
-
 describe("blobRelativePath", () => {
   test("shards by the first two hex characters of the digest", () => {
     const digest = "ab".padEnd(64, "0");
@@ -54,7 +56,6 @@ describe("blobRelativePath", () => {
     expect(() => blobRelativePath("A".repeat(64))).toThrow(HarnessError);
   });
 });
-
 
 describe("putBlobFile", () => {
   test("stores new content under its content address and reports created=true", () => {
@@ -127,7 +128,6 @@ describe("putBlobFile", () => {
     }
   });
 });
-
 
 describe("linkBlobIntoView", () => {
   function storeBlob(root: string, content: string) {
@@ -208,4 +208,3 @@ describe("linkBlobIntoView", () => {
     expect(["hardlink", "copy"]).toContain(view.storage);
   });
 });
-

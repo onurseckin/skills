@@ -29,7 +29,7 @@ import { runDoctor } from "../../../olt/scripts/src/reporting/doctor.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 
 describe("Anti-Stagnation Doctor & Mind Charter Invariant Engine", () => {
-let tempDir: string;
+  let tempDir: string;
 
   beforeEach(() => {
     tempDir = fs.mkdtempSync(join(process.cwd(), "tmp-doctor-test-"));
@@ -41,7 +41,7 @@ let tempDir: string;
     }
   });
 
-describe("4. Invariant 3: Three-Strike Mechanical Containment", () => {
+  describe("4. Invariant 3: Three-Strike Mechanical Containment", () => {
     it("flags agent with 3 strikes that remains active as THREE_STRIKE_MECHANICAL_CONTAINMENT violation", () => {
       const options: AntiStagnationDoctorOptions = {
         state: {
@@ -64,7 +64,7 @@ describe("4. Invariant 3: Three-Strike Mechanical Containment", () => {
     });
   });
 
-describe("5. Invariant 4: Anti-Make-Work & Genuine Value", () => {
+  describe("5. Invariant 4: Anti-Make-Work & Genuine Value", () => {
     it("flags synthetic churn detected state as ANTI_MAKEWORK_GENUINE_VALUE violation", () => {
       const options: AntiStagnationDoctorOptions = {
         state: {
@@ -103,20 +103,23 @@ describe("5. Invariant 4: Anti-Make-Work & Genuine Value", () => {
     });
   });
 
-describe("6. Invariant 5: Cumulative Socratic Progression & Debate Memory Integrity", () => {
+  describe("6. Invariant 5: Cumulative Socratic Progression & Debate Memory Integrity", () => {
     it("flags unfulfilled commitments without justification as CUMULATIVE_SOCRATIC_PROGRESSION violation", () => {
-      const memory = new HistoricalDebateMemory([], [
-        {
-          id: "comm-unjustified-1",
-          topic: "Benchmark Invariant",
-          agreedResolution: "Achieve 20% gain",
-          targetMilestone: "M2",
-          status: "breached",
-          justification: "", // Missing justification
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ]);
+      const memory = new HistoricalDebateMemory(
+        [],
+        [
+          {
+            id: "comm-unjustified-1",
+            topic: "Benchmark Invariant",
+            agreedResolution: "Achieve 20% gain",
+            targetMilestone: "M2",
+            status: "breached",
+            justification: "", // Missing justification
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        ],
+      );
 
       const options: AntiStagnationDoctorOptions = {
         state: { mind: { generation: 1 } },
@@ -128,22 +131,28 @@ describe("6. Invariant 5: Cumulative Socratic Progression & Debate Memory Integr
       const finding = result.findings.find((f) => f.code === "CUMULATIVE_SOCRATIC_PROGRESSION");
       expect(finding).toBeDefined();
       expect(finding?.severity).toBe("ERROR");
-      expect(finding?.message).toContain("unfulfilled strategic commitment(s) lack recorded justifications");
+      expect(finding?.message).toContain(
+        "unfulfilled strategic commitment(s) lack recorded justifications",
+      );
     });
 
     it("passes when unfulfilled commitments have valid recorded justifications", () => {
-      const memory = new HistoricalDebateMemory([], [
-        {
-          id: "comm-justified-1",
-          topic: "Benchmark Invariant",
-          agreedResolution: "Achieve 20% gain",
-          targetMilestone: "M2",
-          status: "breached",
-          justification: "Superseded by architectural simplification under Priority 2 Pareto ruling.",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ]);
+      const memory = new HistoricalDebateMemory(
+        [],
+        [
+          {
+            id: "comm-justified-1",
+            topic: "Benchmark Invariant",
+            agreedResolution: "Achieve 20% gain",
+            targetMilestone: "M2",
+            status: "breached",
+            justification:
+              "Superseded by architectural simplification under Priority 2 Pareto ruling.",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        ],
+      );
 
       const options: AntiStagnationDoctorOptions = {
         state: { mind: { generation: 1 } },
@@ -151,12 +160,14 @@ describe("6. Invariant 5: Cumulative Socratic Progression & Debate Memory Integr
       };
 
       const result = checkAntiStagnationDoctor(options);
-      const socraticViolations = result.findings.filter((f) => f.code === "CUMULATIVE_SOCRATIC_PROGRESSION");
+      const socraticViolations = result.findings.filter(
+        (f) => f.code === "CUMULATIVE_SOCRATIC_PROGRESSION",
+      );
       expect(socraticViolations).toHaveLength(0);
     });
   });
 
-describe("7. Invariant 6: Pre-Declared Pareto Arbitration", () => {
+  describe("7. Invariant 6: Pre-Declared Pareto Arbitration", () => {
     it("flags Priority 4 Speculative Abstraction winning approach as PRE_DECLARED_PARETO_ARBITRATION violation", () => {
       const options: AntiStagnationDoctorOptions = {
         state: {
@@ -202,7 +213,7 @@ describe("7. Invariant 6: Pre-Declared Pareto Arbitration", () => {
     });
   });
 
-describe("8. Invariant 7: Innovation Portfolio 70/20/10 Balance", () => {
+  describe("8. Invariant 7: Innovation Portfolio 70/20/10 Balance", () => {
     it("flags CORE_DEFICIT balance status as INNOVATION_PORTFOLIO_70_20_10 violation", () => {
       const options: AntiStagnationDoctorOptions = {
         state: {

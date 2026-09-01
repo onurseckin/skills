@@ -1,7 +1,4 @@
-import type {
-  IndustryProfileId,
-  AestheticProfile,
-} from "./types.ts";
+import type { IndustryProfileId, AestheticProfile } from "./types.ts";
 export const ENTERPRISE_ACCOUNTING_PROFILE: AestheticProfile = {
   profileId: "enterprise_accounting",
   name: "Enterprise Tax & Accounting",
@@ -76,4 +73,3 @@ export const STANDARD_AESTHETIC_PROFILES: Record<IndustryProfileId, AestheticPro
  * 3. UI Descriptors for Evaluation
  * ============================================================================
  */
-

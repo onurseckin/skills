@@ -209,4 +209,3 @@ export interface SurfaceContrastReport {
   readonly allPassed: boolean;
   readonly results: readonly ContrastAuditResult[];
 }
-

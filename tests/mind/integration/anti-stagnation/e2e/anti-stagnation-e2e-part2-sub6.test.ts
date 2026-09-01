@@ -82,7 +82,27 @@ import {
 } from "../../../../../olt/scripts/src/mind/telemetry/index.ts";
 
 describe("Anti-Stagnation End-to-End Multi-Hour Sovereign Simulation Suite", () => {
-describe("8. Zero Main Thread Pollution Invariant (100% Background Mailbox IPC)", () => {
+  let testRepoRoot: string;
+
+  beforeEach(() => {
+    testRepoRoot = join(
+      tmpdir(),
+      `mind-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    );
+    mkdirSync(testRepoRoot, { recursive: true });
+    mkdirSync(join(testRepoRoot, ".olt"), { recursive: true });
+    mkdirSync(join(testRepoRoot, ".olt", "mailboxes"), { recursive: true });
+  });
+
+  afterEach(() => {
+    try {
+      rmSync(testRepoRoot, { recursive: true, force: true });
+    } catch {
+      // Best effort cleanup
+    }
+  });
+
+  describe("8. Zero Main Thread Pollution Invariant (100% Background Mailbox IPC)", () => {
     it("guarantees all supervisory and audit communications flow exclusively through background mailboxes", () => {
       const mindPaths = ensureMailboxDir("mind-supervisor", testRepoRoot);
       const auditorPaths = ensureMailboxDir("mind-auditor", testRepoRoot);
@@ -103,18 +123,24 @@ describe("8. Zero Main Thread Pollution Invariant (100% Background Mailbox IPC)"
       expect(dispatch1.id).toBeDefined();
 
       // Mind reads unread messages from its inbox
-      const unread = readUnreadMessages(mindPaths.inboxPath, loadMailboxCursor(mindPaths.cursorPath));
+      const unread = readUnreadMessages(
+        mindPaths.inboxPath,
+        loadMailboxCursor(mindPaths.cursorPath),
+      );
       expect(unread.messages.length).toBe(1);
       expect(unread.messages[0]?.sender_id).toBe("mind-auditor");
-      expect(
-        (unread.messages[0]?.payload as { inquiry: string }).inquiry,
-      ).toContain("What specific product hypothesis");
+      expect((unread.messages[0]?.payload as { inquiry: string }).inquiry).toContain(
+        "What specific product hypothesis",
+      );
 
       // Advance cursor batch
       advanceMailboxCursorBatch(mindPaths.cursorPath, unread.messages);
 
       // Verify no more unread messages
-      const unreadAfter = readUnreadMessages(mindPaths.inboxPath, loadMailboxCursor(mindPaths.cursorPath));
+      const unreadAfter = readUnreadMessages(
+        mindPaths.inboxPath,
+        loadMailboxCursor(mindPaths.cursorPath),
+      );
       expect(unreadAfter.messages.length).toBe(0);
 
       // Dispatch Response Turn 2 via Mailbox
@@ -141,7 +167,7 @@ describe("8. Zero Main Thread Pollution Invariant (100% Background Mailbox IPC)"
     });
   });
 
-describe("9. Multi-Hour Sovereign Simulation (1h -> 2h -> 4h -> 8h -> 12h Progression)", () => {
+  describe("9. Multi-Hour Sovereign Simulation (1h -> 2h -> 4h -> 8h -> 12h Progression)", () => {
     it("simulates continuous 12-hour sovereign operation across 48 fifteen-minute epochs with 0 cognitive decay", () => {
       const simulationBaseTime = 1_000_000;
       const totalHours = 12;
@@ -174,9 +200,15 @@ describe("9. Multi-Hour Sovereign Simulation (1h -> 2h -> 4h -> 8h -> 12h Progre
 
       const balanceReport = portfolioManager.auditPortfolioBalance(initialWorkstreams);
       expect(balanceReport.isBalanced).toBe(true);
-      expect(balanceReport.distributionPercentages[PORTFOLIO_TRACKS.CORE_STABILITY_AND_POLISH]).toBe(70);
-      expect(balanceReport.distributionPercentages[PORTFOLIO_TRACKS.ARCHITECTURAL_EVOLUTION]).toBe(20);
-      expect(balanceReport.distributionPercentages[PORTFOLIO_TRACKS.EXPLORATORY_HORIZON_BETS]).toBe(10);
+      expect(
+        balanceReport.distributionPercentages[PORTFOLIO_TRACKS.CORE_STABILITY_AND_POLISH],
+      ).toBe(70);
+      expect(balanceReport.distributionPercentages[PORTFOLIO_TRACKS.ARCHITECTURAL_EVOLUTION]).toBe(
+        20,
+      );
+      expect(balanceReport.distributionPercentages[PORTFOLIO_TRACKS.EXPLORATORY_HORIZON_BETS]).toBe(
+        10,
+      );
 
       // Multi-Hour Epoch Loop
       for (let epoch = 0; epoch < totalEpochs; epoch++) {
@@ -217,15 +249,23 @@ describe("9. Multi-Hour Sovereign Simulation (1h -> 2h -> 4h -> 8h -> 12h Progre
           });
 
           socraticEngine.evaluateCycle(cycleId, topic);
-          socraticEngine.submitResponse(cycleId, `Second-order blast radius contained for Hour ${simHour}`, {
-            isSatisfactory: true,
-          });
+          socraticEngine.submitResponse(
+            cycleId,
+            `Second-order blast radius contained for Hour ${simHour}`,
+            {
+              isSatisfactory: true,
+            },
+          );
 
           socraticEngine.evaluateCycle(cycleId, topic);
-          socraticEngine.submitResponse(cycleId, `Emergent architecture validated for Hour ${simHour}`, {
-            isSatisfactory: true,
-            consensusReached: true,
-          });
+          socraticEngine.submitResponse(
+            cycleId,
+            `Emergent architecture validated for Hour ${simHour}`,
+            {
+              isSatisfactory: true,
+              consensusReached: true,
+            },
+          );
 
           socraticEngine.recordConsensus(
             cycleId,
@@ -251,7 +291,9 @@ describe("9. Multi-Hour Sovereign Simulation (1h -> 2h -> 4h -> 8h -> 12h Progre
       expect(scoringEngine.isRoadmapExpansionLocked()).toBe(false);
       expect(dashboardEngine.getState().trajectory.autonomousUptimeSeconds).toBe(12 * 3600);
       expect(dashboardEngine.getState().trajectory.autonomousUptime).toBe("12h 0m 0s");
-      expect(dashboardEngine.getState().trajectory.systemicHealthScore).toBeGreaterThanOrEqual(0.85);
+      expect(dashboardEngine.getState().trajectory.systemicHealthScore).toBeGreaterThanOrEqual(
+        0.85,
+      );
     });
   });
 });

@@ -114,7 +114,7 @@ function createPopulatedTestEngine(): ThreeTierMemoryEngine {
 }
 
 describe("RetrievalSandbox Test Suite", () => {
-describe("Token Scoring & Multi-Dimensional Filtering", () => {
+  describe("Token Scoring & Multi-Dimensional Filtering", () => {
     it("ranks title and tag matches higher than general content matches", () => {
       const engine = new ThreeTierMemoryEngine();
 
@@ -235,7 +235,7 @@ describe("Token Scoring & Multi-Dimensional Filtering", () => {
     });
   });
 
-describe("Telemetry & Candidate Metrics", () => {
+  describe("Telemetry & Candidate Metrics", () => {
     it("computes accurate telemetry metrics and suppression rates", () => {
       const engine = createPopulatedTestEngine();
 

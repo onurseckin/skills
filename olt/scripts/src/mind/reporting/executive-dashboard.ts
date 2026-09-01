@@ -261,35 +261,40 @@ export const CANONICAL_BEDROCK_INVARIANTS: readonly BedrockInvariantRecord[] = O
   {
     id: "AXIOM-001",
     name: "Subagent Notification Invariant",
-    statement: "Subagents must explicitly call send_message tool to communicate findings back to parent coordinator.",
+    statement:
+      "Subagents must explicitly call send_message tool to communicate findings back to parent coordinator.",
     domain: "Axiomatic Protocol",
     lockedAt: "2026-09-01T00:00:00.000Z",
   },
   {
     id: "AXIOM-002",
     name: "Strict TypeScript Invariant (0 any)",
-    statement: "100% clean TypeScript strict typing with zero 'any' and zero @ts-ignore / linter suppressions across all modules.",
+    statement:
+      "100% clean TypeScript strict typing with zero 'any' and zero @ts-ignore / linter suppressions across all modules.",
     domain: "Type System & Integrity",
     lockedAt: "2026-09-01T00:00:00.000Z",
   },
   {
     id: "AXIOM-003",
     name: "70/20/10 Innovation Portfolio Governance",
-    statement: "Allocation capacity strictly distributed: 70% Core Stability & Polish, 20% Architectural Evolution, 10% Exploratory Bets.",
+    statement:
+      "Allocation capacity strictly distributed: 70% Core Stability & Polish, 20% Architectural Evolution, 10% Exploratory Bets.",
     domain: "Portfolio Governance",
     lockedAt: "2026-09-01T00:00:00.000Z",
   },
   {
     id: "AXIOM-004",
     name: "Pre-Declared Pareto Decision Hierarchy",
-    statement: "Priority 1 (UX Delight & Correctness) > Priority 2 (Cognitive Simplicity) > Priority 3 (Measurable Scalability >= 15%) > Priority 4 (Speculative Abstraction - Rejected).",
+    statement:
+      "Priority 1 (UX Delight & Correctness) > Priority 2 (Cognitive Simplicity) > Priority 3 (Measurable Scalability >= 15%) > Priority 4 (Speculative Abstraction - Rejected).",
     domain: "Pareto Arbitration",
     lockedAt: "2026-09-01T00:00:00.000Z",
   },
   {
     id: "AXIOM-005",
     name: "Sub-16ms Micro-Interaction & Zero-Deficit Craft",
-    statement: "Perceptual micro-interaction latency < 16ms frame budget; zero unresolved blocking or major aesthetic deficits before milestone sign-off.",
+    statement:
+      "Perceptual micro-interaction latency < 16ms frame budget; zero unresolved blocking or major aesthetic deficits before milestone sign-off.",
     domain: "Product Craft",
     lockedAt: "2026-09-01T00:00:00.000Z",
   },
@@ -387,13 +392,11 @@ export function computeTrackCompletion(deliverables: readonly RoadmapDeliverable
 /**
  * Computes overall completion percentage across all tracks.
  */
-export function computeOverallRoadmapProgress(
-  tracks: {
-    readonly trackA: TrackDeliverableSummary;
-    readonly trackB: TrackDeliverableSummary;
-    readonly trackC: TrackDeliverableSummary;
-  },
-): {
+export function computeOverallRoadmapProgress(tracks: {
+  readonly trackA: TrackDeliverableSummary;
+  readonly trackB: TrackDeliverableSummary;
+  readonly trackC: TrackDeliverableSummary;
+}): {
   overallCompletionPercentage: number;
   totalDeliverablesCount: number;
   activeDeliverablesCount: number;
@@ -424,7 +427,8 @@ export function computeOverallRoadmapProgress(
   ).length;
 
   const totalProgress = allTasks.reduce((sum, t) => sum + t.completionPercentage, 0);
-  const overallCompletionPercentage = Math.round((totalProgress / totalDeliverablesCount) * 10) / 10;
+  const overallCompletionPercentage =
+    Math.round((totalProgress / totalDeliverablesCount) * 10) / 10;
 
   return {
     overallCompletionPercentage,
@@ -523,7 +527,8 @@ export function createInitialDashboardState(
       owner: "mind-researcher",
       currentMilestone: "Milestone 2: Stress Validation",
       targetGate: "Milestone 3: System Integration",
-      notes: "Falsifiable hypothesis: multi-perspective dialetics reduce hallucination rate by >= 25%",
+      notes:
+        "Falsifiable hypothesis: multi-perspective dialetics reduce hallucination rate by >= 25%",
     },
     {
       id: "BET-02",
@@ -617,22 +622,27 @@ export function createInitialDashboardState(
           id: "PARETO-001",
           topic: "In-Memory LRU Memory Cache vs Dynamic Full Retrieval Sandbox",
           winningApproach: "2-Tier Bounded LRU Cache (Priority 2: Cognitive Simplicity)",
-          losingApproach: "Over-abstracted Reactive Graph Engine (Priority 4: Speculative Abstraction)",
+          losingApproach:
+            "Over-abstracted Reactive Graph Engine (Priority 4: Speculative Abstraction)",
           chosenPriorityLevel: 2,
           priorityName: "Priority 2: Cognitive Simplicity & Architectural Maintainability",
           empiricalDelta: "+40% Latency Reduction with 1/4 Code Complexity",
-          rationale: "Unconditionally defeated speculative abstraction; satisfied sub-16ms lookup invariant with trivial blast radius.",
+          rationale:
+            "Unconditionally defeated speculative abstraction; satisfied sub-16ms lookup invariant with trivial blast radius.",
           arbitratedAt: now,
         },
         {
           id: "PARETO-002",
           topic: "Micro-Interaction Latency Frame Budget Optimization",
-          winningApproach: "Zero-Copy State Projection (Priority 1: UX Delight & Functional Correctness)",
-          losingApproach: "Heavy Deep-Clone Serialization (Priority 4: Unnecessary Defensive Copying)",
+          winningApproach:
+            "Zero-Copy State Projection (Priority 1: UX Delight & Functional Correctness)",
+          losingApproach:
+            "Heavy Deep-Clone Serialization (Priority 4: Unnecessary Defensive Copying)",
           chosenPriorityLevel: 1,
           priorityName: "Priority 1: UX Delight & Functional Correctness",
           empiricalDelta: "-28ms Frame Render Delay (11.4ms vs 39.4ms)",
-          rationale: "Achieved sub-16ms 60fps perceptual budget for live CLI and dashboard updates without tearing.",
+          rationale:
+            "Achieved sub-16ms 60fps perceptual budget for live CLI and dashboard updates without tearing.",
           arbitratedAt: now,
         },
       ],
@@ -843,7 +853,10 @@ export function renderDashboardMarkdown(state: ExecutiveDashboardState): string 
   );
 
   // Render Track A
-  lines.push(`### 🔹 ${state.roadmap.tracks.trackA.name} (\`${state.roadmap.tracks.trackA.completionPercentage.toFixed(1)}%\`)`, "");
+  lines.push(
+    `### 🔹 ${state.roadmap.tracks.trackA.name} (\`${state.roadmap.tracks.trackA.completionPercentage.toFixed(1)}%\`)`,
+    "",
+  );
   lines.push("| Task ID | Title | Status | Progress | Assignee / Gate | Notes |");
   lines.push("| :--- | :--- | :---: | :---: | :--- | :--- |");
   for (const d of state.roadmap.tracks.trackA.deliverables) {
@@ -862,7 +875,10 @@ export function renderDashboardMarkdown(state: ExecutiveDashboardState): string 
   lines.push("");
 
   // Render Track B
-  lines.push(`### 🔹 ${state.roadmap.tracks.trackB.name} (\`${state.roadmap.tracks.trackB.completionPercentage.toFixed(1)}%\`)`, "");
+  lines.push(
+    `### 🔹 ${state.roadmap.tracks.trackB.name} (\`${state.roadmap.tracks.trackB.completionPercentage.toFixed(1)}%\`)`,
+    "",
+  );
   lines.push("| Task ID | Title | Status | Progress | Assignee / Gate | Notes |");
   lines.push("| :--- | :--- | :---: | :---: | :--- | :--- |");
   for (const d of state.roadmap.tracks.trackB.deliverables) {
@@ -881,8 +897,13 @@ export function renderDashboardMarkdown(state: ExecutiveDashboardState): string 
   lines.push("");
 
   // Render Track C
-  lines.push(`### 🔹 ${state.roadmap.tracks.trackC.name} (\`${state.roadmap.tracks.trackC.completionPercentage.toFixed(1)}%\`)`, "");
-  lines.push("| Bet ID | Title | Status | Progress | Current Gate / Target | Falsifiable Hypothesis & Notes |");
+  lines.push(
+    `### 🔹 ${state.roadmap.tracks.trackC.name} (\`${state.roadmap.tracks.trackC.completionPercentage.toFixed(1)}%\`)`,
+    "",
+  );
+  lines.push(
+    "| Bet ID | Title | Status | Progress | Current Gate / Target | Falsifiable Hypothesis & Notes |",
+  );
   lines.push("| :--- | :--- | :---: | :---: | :--- | :--- |");
   for (const d of state.roadmap.tracks.trackC.deliverables) {
     const stBadge =
@@ -1070,7 +1091,10 @@ export class ExecutiveDashboardEngine {
       lastUpdated: now,
     };
 
-    if (trajectoryUpdates.autonomousUptimeSeconds !== undefined && !trajectoryUpdates.autonomousUptime) {
+    if (
+      trajectoryUpdates.autonomousUptimeSeconds !== undefined &&
+      !trajectoryUpdates.autonomousUptime
+    ) {
       const formatted = calculateUptimeString(trajectoryUpdates.autonomousUptimeSeconds);
       this.state = {
         ...this.state,
@@ -1150,9 +1174,7 @@ export class ExecutiveDashboardEngine {
     return this.state;
   }
 
-  public recordParetoDecision(
-    decision: ParetoArbitrationDecisionRecord,
-  ): ExecutiveDashboardState {
+  public recordParetoDecision(decision: ParetoArbitrationDecisionRecord): ExecutiveDashboardState {
     const recent = [decision, ...this.state.pareto.recentArbitrations].slice(0, 10);
     return this.updatePareto({
       recentArbitrations: recent,
@@ -1160,9 +1182,7 @@ export class ExecutiveDashboardEngine {
     });
   }
 
-  public recordBedrockInvariant(
-    invariant: BedrockInvariantRecord,
-  ): ExecutiveDashboardState {
+  public recordBedrockInvariant(invariant: BedrockInvariantRecord): ExecutiveDashboardState {
     const existing = this.state.pareto.lockedBedrockInvariants.filter((i) => i.id !== invariant.id);
     const updated = [...existing, invariant];
     return this.updatePareto({
@@ -1174,12 +1194,15 @@ export class ExecutiveDashboardEngine {
   public recordProductCraftAudit(params: {
     readonly compositeScore: number;
     readonly passThreshold?: number | undefined;
-    readonly pillarScores?: Partial<Record<ProductCraftPillarKey, ProductCraftPillarScoreRecord>> | undefined;
+    readonly pillarScores?:
+      | Partial<Record<ProductCraftPillarKey, ProductCraftPillarScoreRecord>>
+      | undefined;
     readonly openDeficits?: AestheticDeficitsBreakdown | undefined;
     readonly microInteractionLatencyMs?: number | undefined;
   }): ExecutiveDashboardState {
     const threshold = params.passThreshold ?? this.state.productCraft.passThreshold;
-    const passed = params.compositeScore >= threshold && (params.openDeficits?.blockingCount ?? 0) === 0;
+    const passed =
+      params.compositeScore >= threshold && (params.openDeficits?.blockingCount ?? 0) === 0;
     const status: ErgonomicWalkthroughStatus = passed
       ? "PASSED"
       : (params.openDeficits?.blockingCount ?? 0) > 0 || (params.openDeficits?.majorCount ?? 0) > 0
@@ -1309,9 +1332,7 @@ export class ExecutiveDashboardEngine {
     return writeDashboardFiles(this.state, targetRoot);
   }
 
-  public saveToDiskSync(
-    repoRoot?: string | undefined,
-  ): { mdPath: string; jsonPath: string } {
+  public saveToDiskSync(repoRoot?: string | undefined): { mdPath: string; jsonPath: string } {
     const targetRoot = repoRoot ?? this.repoRoot;
     return writeDashboardFilesSync(this.state, targetRoot);
   }

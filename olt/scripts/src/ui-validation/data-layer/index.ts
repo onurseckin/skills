@@ -10,9 +10,7 @@ export type {
   DisambiguationEvaluationResult,
 } from "./types.ts";
 
-export {
-  SYNTHETIC_FIXTURE_TYPES,
-} from "./types.ts";
+export { SYNTHETIC_FIXTURE_TYPES } from "./types.ts";
 
 export {
   computePayloadSha256,

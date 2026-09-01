@@ -28,7 +28,6 @@ export interface ArtifactMetadata {
   readonly isMilestoneAnchor?: boolean;
 }
 
-
 export interface OpticalStabilityInput {
   readonly inFlightRequests: number;
   readonly networkQuiescenceDurationMs: number;
@@ -49,7 +48,6 @@ export interface OpticalStabilityResult {
   readonly failureReasons: readonly string[];
 }
 
-
 export interface EvidenceStorageStats {
   readonly tier1Count: number;
   readonly tier1SizeBytes: number;
@@ -60,7 +58,6 @@ export interface EvidenceStorageStats {
   readonly totalActiveCount: number;
   readonly totalActiveSizeBytes: number;
 }
-
 
 export type PixelDeltaSeverity = "NONE" | "MINOR" | "SIGNIFICANT" | "CRITICAL";
 
@@ -101,4 +98,3 @@ export interface VisualDeltaReport {
   readonly passed: boolean;
   readonly summary: string;
 }
-

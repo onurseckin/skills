@@ -27,7 +27,7 @@ import {
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("In-Flight Work Ingestion & Intent Extraction Engine Suite", () => {
-let testDir: string;
+  let testDir: string;
   let snapshotsDir: string;
 
   beforeEach(() => {
@@ -47,7 +47,7 @@ let testDir: string;
     }
   });
 
-describe("Git Status, Diff & Stash Parsers (Non-Destructive)", () => {
+  describe("Git Status, Diff & Stash Parsers (Non-Destructive)", () => {
     it("parses porcelain v1 status with various file change statuses", () => {
       const dummyFile = join(testDir, "test-file.ts");
       writeFileSync(dummyFile, "export const HELLO = 'world';\n", "utf-8");

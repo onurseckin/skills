@@ -45,6 +45,7 @@ When dozens of autonomous background agents collaborate, their default inclinati
 ### 2.4 Validator Cognitive Dilution & Test Runner Monopolization
 
 When validators are permitted to run command-line test suites, they inevitably expend their compute cycles and context windows re-running unit tests already validated by implementers. This causes two grave harms:
+
 - Cognitive Displacement: Validators stop reading code, stop auditing abstract syntax tree structures, and stop verifying visual elegance, relying instead on superficial passing test outputs.
 - Test Contention: Concurrently running repository-wide test suites creates severe lock contention, port collisions, and execution latency across worktrees.
 
@@ -239,20 +240,20 @@ To permanently eliminate the headless shortcut anti-pattern and guarantee uncomp
 
 To guarantee that neither agent can deviate from its designated cognitive role, the runtime environment enforces hard capability partitioning:
 
-| Capability / Tool Privilege            | UI Headless Debugger                 | UI Visual Reviewer                        |
-| :------------------------------------- | :----------------------------------- | :---------------------------------------- |
-| **Headless Browser Diagnostic Engine** | **Authorized** (Diagnostic Pre-Flight)| **Physically Revoked** (Quarantined)      |
-| **Unit Test Runner Execution**         | **Strictly Revoked** (Zero Invariant)| **Strictly Revoked** (Zero Invariant)     |
-| **Terminal & General Commands**        | **Strictly Revoked**                 | **Physically Revoked** (Quarantined)      |
-| **Repository Source & File Reading**   | **Authorized** (Inspection Only)     | **Physically Revoked** (Quarantined)      |
-| **DOM Tree & Accessibility Extractors**| **Authorized** (Technical Audit)     | **Physically Revoked** (Quarantined)      |
-| **Console & Network Trace Monitors**   | **Authorized** (Diagnostic Log)      | **Physically Revoked** (Quarantined)      |
-| **Real Headful Chrome Tools**          | Unauthorized (Headless Only)         | **Authorized** (Primary Engine)           |
-| **Live Browser Navigation & Click**    | Automated / Scripted Only            | **Authorized** (Interactive Live Journey) |
-| **Dedicated 1:1 Screenshot Capture**   | Diagnostic Micro-Snaps Only          | **Authorized** (Full-Fidelity Viewports)  |
-| **Socratic Aesthetic Dialectic**       | **Strictly Prohibited**              | **Mandatory Core Responsibility**         |
-| **Visual Craft Sign-Off Authority**    | **Strictly Revoked** (Zero Authority)| **Authorized Sovereign Gatekeeper**       |
-| **Background Mailbox Communication**   | **Mandatory** (100% Thread Silent)   | **Mandatory** (100% Thread Silent)        |
+| Capability / Tool Privilege             | UI Headless Debugger                   | UI Visual Reviewer                        |
+| :-------------------------------------- | :------------------------------------- | :---------------------------------------- |
+| **Headless Browser Diagnostic Engine**  | **Authorized** (Diagnostic Pre-Flight) | **Physically Revoked** (Quarantined)      |
+| **Unit Test Runner Execution**          | **Strictly Revoked** (Zero Invariant)  | **Strictly Revoked** (Zero Invariant)     |
+| **Terminal & General Commands**         | **Strictly Revoked**                   | **Physically Revoked** (Quarantined)      |
+| **Repository Source & File Reading**    | **Authorized** (Inspection Only)       | **Physically Revoked** (Quarantined)      |
+| **DOM Tree & Accessibility Extractors** | **Authorized** (Technical Audit)       | **Physically Revoked** (Quarantined)      |
+| **Console & Network Trace Monitors**    | **Authorized** (Diagnostic Log)        | **Physically Revoked** (Quarantined)      |
+| **Real Headful Chrome Tools**           | Unauthorized (Headless Only)           | **Authorized** (Primary Engine)           |
+| **Live Browser Navigation & Click**     | Automated / Scripted Only              | **Authorized** (Interactive Live Journey) |
+| **Dedicated 1:1 Screenshot Capture**    | Diagnostic Micro-Snaps Only            | **Authorized** (Full-Fidelity Viewports)  |
+| **Socratic Aesthetic Dialectic**        | **Strictly Prohibited**                | **Mandatory Core Responsibility**         |
+| **Visual Craft Sign-Off Authority**     | **Strictly Revoked** (Zero Authority)  | **Authorized Sovereign Gatekeeper**       |
+| **Background Mailbox Communication**    | **Mandatory** (100% Thread Silent)     | **Mandatory** (100% Thread Silent)        |
 
 ### 5.4 Formal Pre-Flight to Visual Review Handoff Contract
 
@@ -690,39 +691,39 @@ The organization systematically registers, activates, and orchestrates the compl
 
 ### The Complete 31-Agent Operational Contract Grid
 
-| Agent Role Identifier           | Functional Tier        | Primary Lifecycle Trigger Event        | Core Responsibilities & Invariants                                                     | Tool & Permission Boundaries                      | Certified Handoff Deliverable             |
-| :------------------------------ | :--------------------- | :------------------------------------- | :------------------------------------------------------------------------------------- | :------------------------------------------------ | :---------------------------------------- |
-| **Sovereign Mind**              | Governance (Tier 0)    | Swarm startup / Epic initiation        | Sets multi-horizon strategy, supervises parallel tracks, maintains executive dashboard | 0 direct execution, high-level orchestration only | Master Strategic Roadmap & Briefing       |
-| **Mind Auditor**                | Governance (Tier 0)    | Strategic heartbeat / Milestone review | Anti-complacency sparring, quality bar guardian, Pareto arbitration                    | Read-only governance inspection, 0 code edits     | Socratic Evaluation & Arbitration Rulings |
-| **Skill Auditor**               | Governance (Tier 0)    | Turn boundary / Quota pressure         | Execution firewall, boundary enforcement, suspended animation control                  | Telemetry monitoring, hard capability revocation  | Execution Health Score & Quota Directives |
-| **Policy Discovery**            | Governance (Tier 0)    | Uninitialized workspace detection      | Toolchain inspection, policy scaffolding, zero main thread pollution                   | Policy read/write only, 0 code modification       | Initialized Policy Specification          |
-| **Repository Owner**            | Governance (Tier 0)    | Milestone release gate                 | High-level stakeholder intent verification, release sign-off                           | Business requirement evaluation, 0 code edits     | Milestone Release Approval                |
-| **Independent Planner**         | Governance (Tier 1)    | Major epic decomposition               | Formulates multi-phase architectural and execution blueprints                          | Planning store write, 0 code edits                | Multi-Phase Strategic Plan                |
-| **Independent Planner Auditor** | Governance (Tier 1)    | Plan submission event                  | Critiques plan structural completeness, dependency validation                          | Plan inspection, 0 plan/code modification         | Plan Audit Verdict & Revision Notice      |
-| **Plan Validator**              | Governance (Tier 1)    | Plan approval transition               | Validates plan line items against original user intent                                 | Spec inspection, 0 plan/code modification         | Validated Implementation Graph            |
-| **Domain Orchestrator**         | Orchestration (Tier 2) | Epic activation event                  | Subsystem decomposition, workstream management, track leadership                       | Task queue management, 0 code edits               | Tactical Epic Workstreams                 |
-| **Feature Coordinator**         | Orchestration (Tier 2) | Workstream activation event            | Task dispatching, lease allocation, validator scheduling                               | Dispatch matrix management, 0 code edits          | Synthesized Feature Release               |
-| **Host Platform Specialist**    | Adaptor (Tier 2)       | Native platform execution tasks        | High-performance execution optimized for host native capabilities                      | Host native specialized tools                     | Optimized Execution Output                |
-| **Reasoning Specialist**        | Adaptor (Tier 2)       | Deep architectural reasoning           | Nuanced refactoring, documentation authoring, Socratic analysis                        | Deep reasoning specialized tools                  | High-Reasoning Technical Synthesis        |
-| **Synthesis Specialist**        | Adaptor (Tier 2)       | High-velocity algorithmic tasks        | Rapid text processing, algorithmic code synthesis                                      | High-throughput synthesis tools                   | Synthesized Algorithmic Modules           |
-| **Code Specialist**             | Adaptor (Tier 2)       | Targeted code generation               | Rapid function implementation, syntax modernization                                    | Code generation tools                             | Modernized Code Modules                   |
-| **Refactoring Specialist**      | Adaptor (Tier 2)       | Multi-file contextual refactoring      | Cross-file symbol navigation, localized multi-file editing                             | Repository symbol mapping tools                   | Multi-File Refactored Diffs               |
-| **Generic Autonomous Agent**    | Adaptor (Tier 2)       | Flexible general tasks                 | General-purpose operational tasks lacking model specialization                         | Flexible fallback execution tools                 | General Task Output                       |
-| **Primary Implementer**         | Execution (Tier 3)     | Feature implementation lease           | Core feature development, isolated file-scoped unit test execution                     | Write lease in worktree, file-scoped test runner   | Implemented Code & Unit Proofs            |
-| **Sub-Implementer**             | Execution (Tier 3)     | Narrow sub-task delegation             | Isolated leaf-node implementation under primary implementer                            | Narrow write lease, file-scoped test runner       | Isolated Leaf Component Diffs             |
-| **Sub-Investigator**            | Execution (Tier 3)     | Defect triage / Flaky test probe       | Zero-mutation forensic analysis, log capture, trace analysis                           | Read-only forensic shard, 0 write tools           | Forensic Root-Cause Findings              |
-| **Autonomous Repairer**         | Execution (Tier 3)     | Structured defect finding              | Isolated defect remediation and file-scoped regression verification                    | Repair write lease, file-scoped test runner       | Remediated Code & Fast-Forward Merge      |
-| **General Task Worker**         | Execution (Tier 3)     | Routine maintenance task               | Repetitive hygiene tasks, asset optimization, dependency updates                       | File maintenance tools                            | Maintenance Execution Report              |
-| **UI Cognitive Validator**      | Quality (Tier 3)       | Unified UI feature validation          | Orchestrates dual-channel UI validation, scheduling debugger and visual reviewer       | Validation lifecycle management, 0 edits, 0 tests | Complete UI Validation Certificate        |
+| Agent Role Identifier           | Functional Tier        | Primary Lifecycle Trigger Event        | Core Responsibilities & Invariants                                                        | Tool & Permission Boundaries                      | Certified Handoff Deliverable             |
+| :------------------------------ | :--------------------- | :------------------------------------- | :---------------------------------------------------------------------------------------- | :------------------------------------------------ | :---------------------------------------- |
+| **Sovereign Mind**              | Governance (Tier 0)    | Swarm startup / Epic initiation        | Sets multi-horizon strategy, supervises parallel tracks, maintains executive dashboard    | 0 direct execution, high-level orchestration only | Master Strategic Roadmap & Briefing       |
+| **Mind Auditor**                | Governance (Tier 0)    | Strategic heartbeat / Milestone review | Anti-complacency sparring, quality bar guardian, Pareto arbitration                       | Read-only governance inspection, 0 code edits     | Socratic Evaluation & Arbitration Rulings |
+| **Skill Auditor**               | Governance (Tier 0)    | Turn boundary / Quota pressure         | Execution firewall, boundary enforcement, suspended animation control                     | Telemetry monitoring, hard capability revocation  | Execution Health Score & Quota Directives |
+| **Policy Discovery**            | Governance (Tier 0)    | Uninitialized workspace detection      | Toolchain inspection, policy scaffolding, zero main thread pollution                      | Policy read/write only, 0 code modification       | Initialized Policy Specification          |
+| **Repository Owner**            | Governance (Tier 0)    | Milestone release gate                 | High-level stakeholder intent verification, release sign-off                              | Business requirement evaluation, 0 code edits     | Milestone Release Approval                |
+| **Independent Planner**         | Governance (Tier 1)    | Major epic decomposition               | Formulates multi-phase architectural and execution blueprints                             | Planning store write, 0 code edits                | Multi-Phase Strategic Plan                |
+| **Independent Planner Auditor** | Governance (Tier 1)    | Plan submission event                  | Critiques plan structural completeness, dependency validation                             | Plan inspection, 0 plan/code modification         | Plan Audit Verdict & Revision Notice      |
+| **Plan Validator**              | Governance (Tier 1)    | Plan approval transition               | Validates plan line items against original user intent                                    | Spec inspection, 0 plan/code modification         | Validated Implementation Graph            |
+| **Domain Orchestrator**         | Orchestration (Tier 2) | Epic activation event                  | Subsystem decomposition, workstream management, track leadership                          | Task queue management, 0 code edits               | Tactical Epic Workstreams                 |
+| **Feature Coordinator**         | Orchestration (Tier 2) | Workstream activation event            | Task dispatching, lease allocation, validator scheduling                                  | Dispatch matrix management, 0 code edits          | Synthesized Feature Release               |
+| **Host Platform Specialist**    | Adaptor (Tier 2)       | Native platform execution tasks        | High-performance execution optimized for host native capabilities                         | Host native specialized tools                     | Optimized Execution Output                |
+| **Reasoning Specialist**        | Adaptor (Tier 2)       | Deep architectural reasoning           | Nuanced refactoring, documentation authoring, Socratic analysis                           | Deep reasoning specialized tools                  | High-Reasoning Technical Synthesis        |
+| **Synthesis Specialist**        | Adaptor (Tier 2)       | High-velocity algorithmic tasks        | Rapid text processing, algorithmic code synthesis                                         | High-throughput synthesis tools                   | Synthesized Algorithmic Modules           |
+| **Code Specialist**             | Adaptor (Tier 2)       | Targeted code generation               | Rapid function implementation, syntax modernization                                       | Code generation tools                             | Modernized Code Modules                   |
+| **Refactoring Specialist**      | Adaptor (Tier 2)       | Multi-file contextual refactoring      | Cross-file symbol navigation, localized multi-file editing                                | Repository symbol mapping tools                   | Multi-File Refactored Diffs               |
+| **Generic Autonomous Agent**    | Adaptor (Tier 2)       | Flexible general tasks                 | General-purpose operational tasks lacking model specialization                            | Flexible fallback execution tools                 | General Task Output                       |
+| **Primary Implementer**         | Execution (Tier 3)     | Feature implementation lease           | Core feature development, isolated file-scoped unit test execution                        | Write lease in worktree, file-scoped test runner  | Implemented Code & Unit Proofs            |
+| **Sub-Implementer**             | Execution (Tier 3)     | Narrow sub-task delegation             | Isolated leaf-node implementation under primary implementer                               | Narrow write lease, file-scoped test runner       | Isolated Leaf Component Diffs             |
+| **Sub-Investigator**            | Execution (Tier 3)     | Defect triage / Flaky test probe       | Zero-mutation forensic analysis, log capture, trace analysis                              | Read-only forensic shard, 0 write tools           | Forensic Root-Cause Findings              |
+| **Autonomous Repairer**         | Execution (Tier 3)     | Structured defect finding              | Isolated defect remediation and file-scoped regression verification                       | Repair write lease, file-scoped test runner       | Remediated Code & Fast-Forward Merge      |
+| **General Task Worker**         | Execution (Tier 3)     | Routine maintenance task               | Repetitive hygiene tasks, asset optimization, dependency updates                          | File maintenance tools                            | Maintenance Execution Report              |
+| **UI Cognitive Validator**      | Quality (Tier 3)       | Unified UI feature validation          | Orchestrates dual-channel UI validation, scheduling debugger and visual reviewer          | Validation lifecycle management, 0 edits, 0 tests | Complete UI Validation Certificate        |
 | **UI Visual Reviewer**          | Quality (Tier 3)       | Headful visual review trigger          | Real headful Chrome aesthetic review, 5-round pushback loop, APCA contrast, 1:1 viewports | Quarantined: 0 code, 0 commands, Headful Chrome   | Socratic Visual Critique & Sign-Off       |
-| **UI Headless Debugger**        | Quality (Tier 3)       | Technical DOM & pre-flight sweep       | Headless execution, DOM tree extraction, console error monitoring, network tracing     | Headless engine, DOM/network monitors, 0 tests    | Pre-Flight Verification Manifest          |
-| **UI Mechanic Validator**       | Quality (Tier 3)       | Interactive UI mechanics check         | Client state transition testing, cache invalidation verification                       | DOM event inspection, 0 code edits, 0 tests       | UI Mechanics Health Report                |
-| **General Validator**           | Quality (Tier 3)       | Backend service validation             | Functional specification inspection, backend API contract validation                   | Spec inspection, API monitors, 0 tests, 0 edits   | Backend Service Verification Report       |
-| **Sub-Validator**               | Quality (Tier 3)       | Sub-task verification lease            | Targeted cognitive verification of narrow sub-implementer diffs                        | File inspection, AST checks, 0 tests, 0 edits     | Sub-Task Verification Proof               |
-| **Mechanic Validator**          | Quality (Tier 3)       | Performance & runtime benchmark        | Memory consumption profiling, execution timing audits                                  | Profiling & benchmark inspection, 0 unit tests    | Runtime Benchmark Certificate             |
-| **Completeness Critic**         | Quality (Tier 3)       | Whole-run completion review            | Whole-diff audit against prompt, exclusive whole-repository test validation at wave end| Whole-repository diff inspection & test runner    | Completeness & Residual Risk Cert         |
-| **System Critic**               | Quality (Tier 3)       | Subsystem architecture review          | Modular architectural audit, technical debt prevention                                 | Architecture inspection, 0 tests, 0 edits         | Architectural Health Sign-Off             |
-| **Task Critic**                 | Quality (Tier 3)       | Intermediate task handoff              | Immediate in-line critique of task submissions via background mailbox                  | Task artifact inspection, 0 tests, 0 edits        | In-Line Task Quality Feedback             |
+| **UI Headless Debugger**        | Quality (Tier 3)       | Technical DOM & pre-flight sweep       | Headless execution, DOM tree extraction, console error monitoring, network tracing        | Headless engine, DOM/network monitors, 0 tests    | Pre-Flight Verification Manifest          |
+| **UI Mechanic Validator**       | Quality (Tier 3)       | Interactive UI mechanics check         | Client state transition testing, cache invalidation verification                          | DOM event inspection, 0 code edits, 0 tests       | UI Mechanics Health Report                |
+| **General Validator**           | Quality (Tier 3)       | Backend service validation             | Functional specification inspection, backend API contract validation                      | Spec inspection, API monitors, 0 tests, 0 edits   | Backend Service Verification Report       |
+| **Sub-Validator**               | Quality (Tier 3)       | Sub-task verification lease            | Targeted cognitive verification of narrow sub-implementer diffs                           | File inspection, AST checks, 0 tests, 0 edits     | Sub-Task Verification Proof               |
+| **Mechanic Validator**          | Quality (Tier 3)       | Performance & runtime benchmark        | Memory consumption profiling, execution timing audits                                     | Profiling & benchmark inspection, 0 unit tests    | Runtime Benchmark Certificate             |
+| **Completeness Critic**         | Quality (Tier 3)       | Whole-run completion review            | Whole-diff audit against prompt, exclusive whole-repository test validation at wave end   | Whole-repository diff inspection & test runner    | Completeness & Residual Risk Cert         |
+| **System Critic**               | Quality (Tier 3)       | Subsystem architecture review          | Modular architectural audit, technical debt prevention                                    | Architecture inspection, 0 tests, 0 edits         | Architectural Health Sign-Off             |
+| **Task Critic**                 | Quality (Tier 3)       | Intermediate task handoff              | Immediate in-line critique of task submissions via background mailbox                     | Task artifact inspection, 0 tests, 0 edits        | In-Line Task Quality Feedback             |
 
 ---
 
@@ -897,27 +898,27 @@ The transformation of User Interface Validation and Agent Ecosystem orchestratio
 
 The success of the User Interface Validation and Agent Ecosystem Overhaul is governed by strict quantitative and qualitative criteria:
 
-| Dimension                | Primary Metric                           | Target Standard                                                                   | Verification Method                     |
-| :----------------------- | :--------------------------------------- | :-------------------------------------------------------------------------------- | :-------------------------------------- |
-| **Main Thread Quiescence**| Zero Main Thread Pollution Rate          | 100% compliance; 0 unsolicited messages to the interactive main console           | Interactive Console Telemetry Audit     |
-| **Validator Invariant**  | Validator Zero Test Execution Rate       | 100% compliance; 0 unit test commands executed by validators                      | Tool Execution & Capability Logs        |
-| **Implementer Isolation**| File-Scoped Unit Test Compliance         | 100% compliance; implementers execute only isolated file-scoped tests              | Test Execution Scope Audit              |
-| **Wave Certification**   | Completeness Critic Full-Suite Pass      | 100% repository-wide test pass at wave end prior to release sign-off               | Whole-Repository Test Suite Trace       |
-| **Authentic Review**     | Headful Chrome Visual Inspection Rate    | 100% of UI milestones reviewed in real headful Chrome; 0% headless visual bypass   | Headful Chrome Session Audit            |
-| **Visual Quality**       | Optical Spacing & Layout Alignment       | Zero clipped glyphs, zero descender crops, 100% adherence to 8 optical dimensions | Dual-Channel Optical Socratic Review    |
-| **Aesthetic Contrast**   | APCA Perceptual Contrast Compliance      | Full compliance across normal and fine text in light and dark modes               | Automated Metric & Optical Verification |
-| **Motion Smoothness**    | 60 FPS & 3-Stage Keyframe Settle         | 60 fps rendering, 0 layout shifts, pristine temporal keyframe transitions         | Headless Motion Trace & Keyframe Audit  |
-| **Ergonomic Sizing**     | Touch Target Hitbox Dimensions           | Minimum 44x44 points for standard UI, 48 points for cockpits                      | Headless Geometry DOM Inspection        |
-| **Data Disambiguation**  | Mock vs UI Fault Decoupling              | 100% data pre-flight certification across 4 canonical state fixtures              | Data Layer Pre-Flight Gateway Audit     |
-| **Thematic Staging**     | Multi-Theme Permutation Coverage         | 100% evaluation of 12 permutations without combinatorial review choke             | Permutation Staging Matrix Log          |
-| **Gate Immutability**    | Monotonic Review Convergence             | 0 unprovoked upstream reopenings, 100% cryptographic gate locks                   | Milestone Gate Manifest Audit           |
-| **Worktree Efficiency**  | High-Density Storage Optimization        | >90% disk space savings via shared dependency cache, 0 merge collisions           | Worktree Ledger & Concurrency Audit     |
-| **Evidence Lifecycle**   | Tiered Storage & Lineage Management      | 100% composite-key captures, 0% intermediate bloat, active heatmap diffs          | Visual Evidence Repository Audit        |
-| **Design Integrity**     | Token Compliance & Zero-Raw-Value Policy | 100% adherence to design token constants, 0 ad-hoc inline styling hacks           | Static AST & Token Governance Audit     |
-| **Equilibrium Triage**   | Appropriate Hierarchy Scaling            | 0 over-decomposition on Level 1-2 tasks, 100% specialist coverage on L3-4         | Skill Auditor Dispatch Log Audit        |
-| **Ecosystem Activation** | Specialized Role Utilization             | 100% registration and active dispatch of all 31 agent manifests                   | Swarm Telemetry & Task Dispatch Matrix  |
-| **System Reliability**   | Pre-Completion Health Diagnostics        | 100% clean health verification before turn completion                             | Universal Health Diagnostic Telemetry   |
-| **Cognitive Vitality**   | Stagnation & Role Drift Freedom          | Zero repetitive reporting loops over 4+ hour continuous runs                      | Mind Auditor Socratic Evaluation        |
+| Dimension                  | Primary Metric                           | Target Standard                                                                   | Verification Method                     |
+| :------------------------- | :--------------------------------------- | :-------------------------------------------------------------------------------- | :-------------------------------------- |
+| **Main Thread Quiescence** | Zero Main Thread Pollution Rate          | 100% compliance; 0 unsolicited messages to the interactive main console           | Interactive Console Telemetry Audit     |
+| **Validator Invariant**    | Validator Zero Test Execution Rate       | 100% compliance; 0 unit test commands executed by validators                      | Tool Execution & Capability Logs        |
+| **Implementer Isolation**  | File-Scoped Unit Test Compliance         | 100% compliance; implementers execute only isolated file-scoped tests             | Test Execution Scope Audit              |
+| **Wave Certification**     | Completeness Critic Full-Suite Pass      | 100% repository-wide test pass at wave end prior to release sign-off              | Whole-Repository Test Suite Trace       |
+| **Authentic Review**       | Headful Chrome Visual Inspection Rate    | 100% of UI milestones reviewed in real headful Chrome; 0% headless visual bypass  | Headful Chrome Session Audit            |
+| **Visual Quality**         | Optical Spacing & Layout Alignment       | Zero clipped glyphs, zero descender crops, 100% adherence to 8 optical dimensions | Dual-Channel Optical Socratic Review    |
+| **Aesthetic Contrast**     | APCA Perceptual Contrast Compliance      | Full compliance across normal and fine text in light and dark modes               | Automated Metric & Optical Verification |
+| **Motion Smoothness**      | 60 FPS & 3-Stage Keyframe Settle         | 60 fps rendering, 0 layout shifts, pristine temporal keyframe transitions         | Headless Motion Trace & Keyframe Audit  |
+| **Ergonomic Sizing**       | Touch Target Hitbox Dimensions           | Minimum 44x44 points for standard UI, 48 points for cockpits                      | Headless Geometry DOM Inspection        |
+| **Data Disambiguation**    | Mock vs UI Fault Decoupling              | 100% data pre-flight certification across 4 canonical state fixtures              | Data Layer Pre-Flight Gateway Audit     |
+| **Thematic Staging**       | Multi-Theme Permutation Coverage         | 100% evaluation of 12 permutations without combinatorial review choke             | Permutation Staging Matrix Log          |
+| **Gate Immutability**      | Monotonic Review Convergence             | 0 unprovoked upstream reopenings, 100% cryptographic gate locks                   | Milestone Gate Manifest Audit           |
+| **Worktree Efficiency**    | High-Density Storage Optimization        | >90% disk space savings via shared dependency cache, 0 merge collisions           | Worktree Ledger & Concurrency Audit     |
+| **Evidence Lifecycle**     | Tiered Storage & Lineage Management      | 100% composite-key captures, 0% intermediate bloat, active heatmap diffs          | Visual Evidence Repository Audit        |
+| **Design Integrity**       | Token Compliance & Zero-Raw-Value Policy | 100% adherence to design token constants, 0 ad-hoc inline styling hacks           | Static AST & Token Governance Audit     |
+| **Equilibrium Triage**     | Appropriate Hierarchy Scaling            | 0 over-decomposition on Level 1-2 tasks, 100% specialist coverage on L3-4         | Skill Auditor Dispatch Log Audit        |
+| **Ecosystem Activation**   | Specialized Role Utilization             | 100% registration and active dispatch of all 31 agent manifests                   | Swarm Telemetry & Task Dispatch Matrix  |
+| **System Reliability**     | Pre-Completion Health Diagnostics        | 100% clean health verification before turn completion                             | Universal Health Diagnostic Telemetry   |
+| **Cognitive Vitality**     | Stagnation & Role Drift Freedom          | Zero repetitive reporting loops over 4+ hour continuous runs                      | Mind Auditor Socratic Evaluation        |
 
 ---
 

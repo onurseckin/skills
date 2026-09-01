@@ -42,7 +42,7 @@ import {
 } from "../../../../../olt/scripts/src/mind/crucible/types.ts";
 
 describe("Pre-Declared Pareto Decision Hierarchy & Arbitration Suite", () => {
-describe("6. Empirical Crucible Protocol & Time-Boxed Spikes", () => {
+  describe("6. Empirical Crucible Protocol & Time-Boxed Spikes", () => {
     it("creates, populates, evaluates, and finalizes a prototype spike", () => {
       const engine = new EmpiricalCrucibleEngine();
 

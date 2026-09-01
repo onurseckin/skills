@@ -22,10 +22,7 @@ export class OverlayOrchestrator {
     overlays: readonly OverlayDescriptor[],
   ): readonly ZIndexHierarchyViolation[] {
     if (!overlays) {
-      throw new HarnessError(
-        "INVALID_ARGUMENT",
-        "Overlays list must not be undefined or null",
-      );
+      throw new HarnessError("INVALID_ARGUMENT", "Overlays list must not be undefined or null");
     }
 
     const violations: ZIndexHierarchyViolation[] = [];
@@ -94,10 +91,7 @@ export class OverlayOrchestrator {
     backgroundElements: readonly ElementLayoutNode[],
   ): BackdropOcclusionResult {
     if (!overlay) {
-      throw new HarnessError(
-        "INVALID_ARGUMENT",
-        "Overlay must not be undefined or null",
-      );
+      throw new HarnessError("INVALID_ARGUMENT", "Overlay must not be undefined or null");
     }
 
     if (!overlay.hasBackdrop) {
@@ -108,7 +102,7 @@ export class OverlayOrchestrator {
       };
     }
 
-    const backdropZ = overlay.backdropZIndex ?? (overlay.zIndex - 1);
+    const backdropZ = overlay.backdropZIndex ?? overlay.zIndex - 1;
     const violations: string[] = [];
     const occludingElements: string[] = [];
 
@@ -143,18 +137,18 @@ export class OverlayOrchestrator {
     },
   ): OverlayDismissalErgonomicsResult {
     if (!overlay) {
-      throw new HarnessError(
-        "INVALID_ARGUMENT",
-        "Overlay must not be undefined or null",
-      );
+      throw new HarnessError("INVALID_ARGUMENT", "Overlay must not be undefined or null");
     }
 
     const violations: string[] = [];
     const escapeDismissalValid = mockInteraction?.escapeDismisses ?? overlay.dismissOnEscape;
     const backdropDismissalValid =
-      !overlay.hasBackdrop || (mockInteraction?.backdropClickDismisses ?? overlay.dismissOnBackdropClick);
+      !overlay.hasBackdrop ||
+      (mockInteraction?.backdropClickDismisses ?? overlay.dismissOnBackdropClick);
     const focusTrapValid =
-      overlay.type === "tooltip" || overlay.type === "toast" || (mockInteraction?.focusTrapped ?? overlay.focusTrapActive ?? true);
+      overlay.type === "tooltip" ||
+      overlay.type === "toast" ||
+      (mockInteraction?.focusTrapped ?? overlay.focusTrapActive ?? true);
 
     if (overlay.dismissOnEscape && !escapeDismissalValid) {
       violations.push(`Overlay '${overlay.id}' failed to dismiss on Escape key press`);

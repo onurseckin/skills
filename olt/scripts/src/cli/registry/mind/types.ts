@@ -1,4 +1,3 @@
-
 import {
   DEFAULT_EXIT_CODES,
   optionalFlag,

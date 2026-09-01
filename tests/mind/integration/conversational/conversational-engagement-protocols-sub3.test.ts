@@ -53,7 +53,7 @@ import {
 } from "../../../../olt/scripts/src/mind/containment/index.ts";
 
 describe("Conversational Engagement Protocols & Active Swarm Audit Suite", () => {
-let testRepoRoot: string;
+  let testRepoRoot: string;
 
   beforeEach(() => {
     testRepoRoot = join(
@@ -73,7 +73,7 @@ let testRepoRoot: string;
     }
   });
 
-describe("3. Three-Strike Mechanical Containment & Capability Revocation", () => {
+  describe("3. Three-Strike Mechanical Containment & Capability Revocation", () => {
     it("escalates across Strike 1 (Halt & Delegate), Strike 2 (Tool Revocation), and Strike 3 (Persona Respawn)", () => {
       const containmentEngine = new MechanicalContainmentEngine();
       const supervisorId = "supervisor-rogue-01";
@@ -92,7 +92,9 @@ describe("3. Three-Strike Mechanical Containment & Capability Revocation", () =>
       expect(strike1.action).toBe("HALT_AND_DELEGATE");
       expect(strike1.blocked).toBe(true);
       expect(strike1.message).toContain("HALT_AND_DELEGATE");
-      expect(strike1.message).toContain("Decompose the task into discrete work units and dispatch a Tier 3 Implementer");
+      expect(strike1.message).toContain(
+        "Decompose the task into discrete work units and dispatch a Tier 3 Implementer",
+      );
 
       // Verify Agent State after Strike 1
       const state1 = containmentEngine.getAgentState(supervisorId);
@@ -173,7 +175,7 @@ describe("3. Three-Strike Mechanical Containment & Capability Revocation", () =>
     });
   });
 
-describe("4. Zero Main Thread Pollution Guarantee for Conversational Audits", () => {
+  describe("4. Zero Main Thread Pollution Guarantee for Conversational Audits", () => {
     it("guarantees that 100% of conversational engagement messages are strictly routed through mailbox files", () => {
       const auditorPaths = ensureMailboxDir("auditor-clean", testRepoRoot);
       const workerPaths = ensureMailboxDir("worker-clean", testRepoRoot);

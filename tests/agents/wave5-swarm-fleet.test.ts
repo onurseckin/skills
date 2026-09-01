@@ -1,4 +1,7 @@
-import { parseUnifiedAgentManifest, validateUnifiedAgentManifest } from "../../olt/scripts/src/authority/index.ts";
+import {
+  parseUnifiedAgentManifest,
+  validateUnifiedAgentManifest,
+} from "../../olt/scripts/src/authority/index.ts";
 const AGENTS_DIR = path.join(process.cwd(), "olt", "agents");
 import { afterEach, beforeEach, describe, expect, it, test } from "bun:test";
 import * as fs from "node:fs";

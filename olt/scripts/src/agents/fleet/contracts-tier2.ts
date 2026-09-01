@@ -18,15 +18,32 @@ export const CONTRACTS_TIER_2: readonly AgentOperationalContract[] = [
       forbiddenTools: [...FORBIDDEN_WRITE_TOOLS, "run:exec"],
     },
     permissions: {
-      may: ["Decompose domain roadmap into feature tracks", "Spawn Feature Coordinators", "Track multi-wave progress"],
+      may: [
+        "Decompose domain roadmap into feature tracks",
+        "Spawn Feature Coordinators",
+        "Track multi-wave progress",
+      ],
       mustNot: ["Perform direct source code edits", "Claim task leases directly"],
       allowedCommands: ["bun harness.ts *"],
       forbiddenCommands: [...FORBIDDEN_WRITE_TOOLS, "run:exec"],
-      allowedSpawns: ["feature-coordinator", "coordinator", "reasoning-specialist", "synthesis-specialist"],
+      allowedSpawns: [
+        "feature-coordinator",
+        "coordinator",
+        "reasoning-specialist",
+        "synthesis-specialist",
+      ],
     },
-    invariants: ["SUPERVISOR_ZERO_CODE_EDITS", "UNIDIRECTIONAL_DELEGATION", "MULTI_TRACK_ORCHESTRATION"],
+    invariants: [
+      "SUPERVISOR_ZERO_CODE_EDITS",
+      "UNIDIRECTIONAL_DELEGATION",
+      "MULTI_TRACK_ORCHESTRATION",
+    ],
     certifiedDeliverables: [
-      { type: "domain_roadmap_plan", description: "Domain Roadmap & Track Allocation", evidenceRequired: true },
+      {
+        type: "domain_roadmap_plan",
+        description: "Domain Roadmap & Track Allocation",
+        evidenceRequired: true,
+      },
     ],
   }),
 
@@ -46,7 +63,11 @@ export const CONTRACTS_TIER_2: readonly AgentOperationalContract[] = [
       forbiddenTools: [...FORBIDDEN_WRITE_TOOLS, "run:exec"],
     },
     permissions: {
-      may: ["Coordinate tactical feature swarms", "Spawn Implementers and Quality Validators", "Manage task queues"],
+      may: [
+        "Coordinate tactical feature swarms",
+        "Spawn Implementers and Quality Validators",
+        "Manage task queues",
+      ],
       mustNot: ["Write application source code directly", "Re-run implementer unit tests"],
       allowedCommands: ["bun harness.ts *"],
       forbiddenCommands: [...FORBIDDEN_WRITE_TOOLS, "run:exec"],
@@ -68,9 +89,17 @@ export const CONTRACTS_TIER_2: readonly AgentOperationalContract[] = [
         "task-critic",
       ],
     },
-    invariants: ["SUPERVISOR_ZERO_CODE_EDITS", "ACTIVE_EXECUTION_NO_IDLE", "SOVEREIGN_EQUILIBRIUM_ENFORCEMENT"],
+    invariants: [
+      "SUPERVISOR_ZERO_CODE_EDITS",
+      "ACTIVE_EXECUTION_NO_IDLE",
+      "SOVEREIGN_EQUILIBRIUM_ENFORCEMENT",
+    ],
     certifiedDeliverables: [
-      { type: "feature_coordination_manifest", description: "Feature Swarm Dispatch Manifest", evidenceRequired: true },
+      {
+        type: "feature_coordination_manifest",
+        description: "Feature Swarm Dispatch Manifest",
+        evidenceRequired: true,
+      },
     ],
   }),
 
@@ -90,7 +119,9 @@ export const CONTRACTS_TIER_2: readonly AgentOperationalContract[] = [
       forbiddenTools: [...FORBIDDEN_WRITE_TOOLS],
     },
     permissions: {
-      may: ["Adapt execution policies to host operating system (mac/linux/win) and CLI tool bindings"],
+      may: [
+        "Adapt execution policies to host operating system (mac/linux/win) and CLI tool bindings",
+      ],
       mustNot: ["Modify source files directly"],
       allowedCommands: ["bun harness.ts *"],
       forbiddenCommands: [...FORBIDDEN_WRITE_TOOLS],
@@ -98,7 +129,11 @@ export const CONTRACTS_TIER_2: readonly AgentOperationalContract[] = [
     },
     invariants: ["HOST_PLATFORM_ISOLATION", "SUPERVISOR_ZERO_CODE_EDITS"],
     certifiedDeliverables: [
-      { type: "platform_binding_report", description: "Host Platform Binding Analysis", evidenceRequired: true },
+      {
+        type: "platform_binding_report",
+        description: "Host Platform Binding Analysis",
+        evidenceRequired: true,
+      },
     ],
   }),
 
@@ -126,7 +161,11 @@ export const CONTRACTS_TIER_2: readonly AgentOperationalContract[] = [
     },
     invariants: ["MANDATORY_BRAINSTORM_BEFORE_COMPILE", "SUPERVISOR_ZERO_CODE_EDITS"],
     certifiedDeliverables: [
-      { type: "reasoning_decomposition", description: "Algorithmic Reasoning Decomposition", evidenceRequired: true },
+      {
+        type: "reasoning_decomposition",
+        description: "Algorithmic Reasoning Decomposition",
+        evidenceRequired: true,
+      },
     ],
   }),
 
@@ -154,7 +193,11 @@ export const CONTRACTS_TIER_2: readonly AgentOperationalContract[] = [
     },
     invariants: ["SYNTHESIS_FIDELITY", "SUPERVISOR_ZERO_CODE_EDITS"],
     certifiedDeliverables: [
-      { type: "executive_synthesis_summary", description: "Multi-Track Executive Synthesis Summary", evidenceRequired: true },
+      {
+        type: "executive_synthesis_summary",
+        description: "Multi-Track Executive Synthesis Summary",
+        evidenceRequired: true,
+      },
     ],
   }),
 
@@ -174,7 +217,9 @@ export const CONTRACTS_TIER_2: readonly AgentOperationalContract[] = [
       forbiddenTools: [...FORBIDDEN_WRITE_TOOLS],
     },
     permissions: {
-      may: ["Analyze static type topologies, AST contracts, and dependency graphs without direct mutation"],
+      may: [
+        "Analyze static type topologies, AST contracts, and dependency graphs without direct mutation",
+      ],
       mustNot: ["Direct file modifications without tactical implementer dispatch"],
       allowedCommands: ["bun harness.ts *"],
       forbiddenCommands: [...FORBIDDEN_WRITE_TOOLS],
@@ -182,7 +227,11 @@ export const CONTRACTS_TIER_2: readonly AgentOperationalContract[] = [
     },
     invariants: ["STATIC_AST_AUTHORITY", "SUPERVISOR_ZERO_CODE_EDITS"],
     certifiedDeliverables: [
-      { type: "ast_topology_analysis", description: "AST Topology & Contract Analysis", evidenceRequired: true },
+      {
+        type: "ast_topology_analysis",
+        description: "AST Topology & Contract Analysis",
+        evidenceRequired: true,
+      },
     ],
   }),
 
@@ -202,7 +251,9 @@ export const CONTRACTS_TIER_2: readonly AgentOperationalContract[] = [
       forbiddenTools: [...FORBIDDEN_WRITE_TOOLS],
     },
     permissions: {
-      may: ["Formulate AST-safe migration blueprints and non-breaking interface refactoring strategies"],
+      may: [
+        "Formulate AST-safe migration blueprints and non-breaking interface refactoring strategies",
+      ],
       mustNot: ["Direct source code modification"],
       allowedCommands: ["bun harness.ts *"],
       forbiddenCommands: [...FORBIDDEN_WRITE_TOOLS],
@@ -210,7 +261,11 @@ export const CONTRACTS_TIER_2: readonly AgentOperationalContract[] = [
     },
     invariants: ["NON_BREAKING_REFACTORING_GUARANTEE", "SUPERVISOR_ZERO_CODE_EDITS"],
     certifiedDeliverables: [
-      { type: "refactoring_migration_blueprint", description: "Refactoring & Migration Blueprint", evidenceRequired: true },
+      {
+        type: "refactoring_migration_blueprint",
+        description: "Refactoring & Migration Blueprint",
+        evidenceRequired: true,
+      },
     ],
   }),
 
@@ -238,7 +293,11 @@ export const CONTRACTS_TIER_2: readonly AgentOperationalContract[] = [
     },
     invariants: ["GENERIC_ADAPTOR_CONFINEMENT"],
     certifiedDeliverables: [
-      { type: "generic_execution_receipt", description: "Generic Autonomous Execution Receipt", evidenceRequired: true },
+      {
+        type: "generic_execution_receipt",
+        description: "Generic Autonomous Execution Receipt",
+        evidenceRequired: true,
+      },
     ],
   }),
 
@@ -255,7 +314,14 @@ export const CONTRACTS_TIER_2: readonly AgentOperationalContract[] = [
       canExecuteCommands: true,
       canSpawnSubagents: true,
       canClaimLeases: true,
-      allowedTools: ["write_to_file", "replace_file_content", "bun test *", "bun harness.ts *", "git diff", "git status"],
+      allowedTools: [
+        "write_to_file",
+        "replace_file_content",
+        "bun test *",
+        "bun harness.ts *",
+        "git diff",
+        "git status",
+      ],
       forbiddenTools: ["authority:decide", "mind:admit", "mind:rotate"],
     },
     permissions: {
@@ -282,9 +348,16 @@ export const CONTRACTS_TIER_2: readonly AgentOperationalContract[] = [
       "WHOLE_SUITE_TEST_BAN",
     ],
     certifiedDeliverables: [
-      { type: "code_implementation_diff", description: "Clean AST Implementation Diff", evidenceRequired: true },
-      { type: "unit_test_receipt", description: "Passing Unit Test Execution Receipt", evidenceRequired: true },
+      {
+        type: "code_implementation_diff",
+        description: "Clean AST Implementation Diff",
+        evidenceRequired: true,
+      },
+      {
+        type: "unit_test_receipt",
+        description: "Passing Unit Test Execution Receipt",
+        evidenceRequired: true,
+      },
     ],
   }),
-
 ];

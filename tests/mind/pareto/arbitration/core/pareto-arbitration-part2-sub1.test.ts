@@ -42,7 +42,7 @@ import {
 } from "../../../../../olt/scripts/src/mind/crucible/types.ts";
 
 describe("Pre-Declared Pareto Decision Hierarchy & Arbitration Suite", () => {
-describe("1. Pre-Declared Hierarchy Levels & Constants", () => {
+  describe("1. Pre-Declared Hierarchy Levels & Constants", () => {
     it("exports all 4 standard priority levels and aliases correctly", () => {
       expect(PARETO_PRIORITY_LEVELS.UX_DELIGHT_AND_FUNCTIONAL_CORRECTNESS).toBe(1);
       expect(PARETO_PRIORITY_LEVELS.UX_DELIGHT_AND_CORRECTNESS).toBe(1);
@@ -81,7 +81,7 @@ describe("1. Pre-Declared Hierarchy Levels & Constants", () => {
     });
   });
 
-describe("2. Priority 1: User Experience Delight & Functional Correctness (Baseline)", () => {
+  describe("2. Priority 1: User Experience Delight & Functional Correctness (Baseline)", () => {
     it("disqualifies candidate with runtime or structural errors immediately", () => {
       const brokenCandidate: ParetoApproachCandidate = {
         name: "Broken Fast Parser",

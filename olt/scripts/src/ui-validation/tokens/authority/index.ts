@@ -43,10 +43,7 @@ export {
   VALID_TRANSITION_DURATIONS,
 } from "./constants.ts";
 
-export {
-  RawValuePolicyValidator,
-  validateZeroRawValues,
-} from "./raw-value-validator.ts";
+export { RawValuePolicyValidator, validateZeroRawValues } from "./raw-value-validator.ts";
 export { TokenComplianceImmunity } from "./immunity-defense.ts";
 export { CompositionalDialecticEngine } from "./compositional-dialectic.ts";
 export { TokenEvolutionManager } from "./evolution-manager.ts";

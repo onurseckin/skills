@@ -114,9 +114,7 @@ function createPopulatedTestEngine(): ThreeTierMemoryEngine {
 }
 
 describe("RetrievalSandbox Test Suite", () => {
-
-
-describe("Telemetry & Candidate Metrics", () => {
+  describe("Telemetry & Candidate Metrics", () => {
     it("computes accurate telemetry metrics and suppression rates", () => {
       const engine = createPopulatedTestEngine();
 
@@ -137,7 +135,7 @@ describe("Telemetry & Candidate Metrics", () => {
     });
   });
 
-describe("Clean Insight Bundle Markdown Generation", () => {
+  describe("Clean Insight Bundle Markdown Generation", () => {
     it("formats a clean markdown document with header, telemetry, and table", () => {
       const engine = createPopulatedTestEngine();
 

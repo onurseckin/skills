@@ -19,22 +19,13 @@ export class CompositeKeyParser {
   /**
    * Serializes a CompositeArtifactKey to canonical string format: [epic]_[round]_[route]_[state]_[viewport]
    */
-  public static serialize(
-    key: CompositeArtifactKey,
-    extension: string = "png",
-  ): string {
+  public static serialize(key: CompositeArtifactKey, extension: string = "png"): string {
     if (!key) {
-      throw new HarnessError(
-        "INVALID_ARGUMENT",
-        "Key object must not be undefined or null",
-      );
+      throw new HarnessError("INVALID_ARGUMENT", "Key object must not be undefined or null");
     }
 
     if (key.round === undefined || key.round < 0 || isNaN(key.round)) {
-      throw new HarnessError(
-        "INVALID_ARGUMENT",
-        `Invalid round number: ${key.round}`,
-      );
+      throw new HarnessError("INVALID_ARGUMENT", `Invalid round number: ${key.round}`);
     }
 
     const epic = this.sanitizeSegment(key.epic);
@@ -53,10 +44,7 @@ export class CompositeKeyParser {
    */
   public static parse(serializedKey: string): CompositeArtifactKey {
     if (!serializedKey || typeof serializedKey !== "string") {
-      throw new HarnessError(
-        "INVALID_ARGUMENT",
-        "Serialized key must be a non-empty string",
-      );
+      throw new HarnessError("INVALID_ARGUMENT", "Serialized key must be a non-empty string");
     }
 
     // Strip extension and folder path if present
@@ -137,18 +125,12 @@ export class CompositeKeyParser {
       isMilestoneAnchor?: boolean;
     },
   ): ArtifactMetadata {
-    const key =
-      typeof keyInput === "string" ? this.parse(keyInput) : keyInput;
-    const filename = this.serialize(
-      key,
-      options?.mimeType === "application/json" ? "json" : "png",
-    );
+    const key = typeof keyInput === "string" ? this.parse(keyInput) : keyInput;
+    const filename = this.serialize(key, options?.mimeType === "application/json" ? "json" : "png");
     const keyString = this.serialize(key, "");
 
     const sizeBytes = options?.sizeBytes ?? 0;
-    const sha256 =
-      options?.sha256 ??
-      createHash("sha256").update(filename).digest("hex");
+    const sha256 = options?.sha256 ?? createHash("sha256").update(filename).digest("hex");
 
     return {
       key,
@@ -159,9 +141,7 @@ export class CompositeKeyParser {
       sizeBytes,
       mimeType: options?.mimeType ?? "image/png",
       sha256,
-      ...(options?.readinessToken !== undefined
-        ? { readinessToken: options.readinessToken }
-        : {}),
+      ...(options?.readinessToken !== undefined ? { readinessToken: options.readinessToken } : {}),
       isMilestoneAnchor: options?.isMilestoneAnchor ?? false,
     };
   }
@@ -170,4 +150,3 @@ export class CompositeKeyParser {
 // ============================================================================
 // 2. Optical Stability Barrier
 // ============================================================================
-

@@ -19,10 +19,8 @@ import {
 } from "../../../../../olt/scripts/src/mind/auditing/product-craft.ts";
 
 describe("Product Craft & Ergonomic Walkthrough Auditing", () => {
-
-
-describe("ErgonomicWalkthroughAuditor", () => {
-it("blocks sign-off if explicit BLOCKING deficits exist even if composite >= 85", () => {
+  describe("ErgonomicWalkthroughAuditor", () => {
+    it("blocks sign-off if explicit BLOCKING deficits exist even if composite >= 85", () => {
       const auditor = createErgonomicWalkthroughAuditor();
 
       const explicitDeficits: DeficitInput[] = [
@@ -58,10 +56,10 @@ it("blocks sign-off if explicit BLOCKING deficits exist even if composite >= 85"
       expect(signOff.canSignOff).toBe(false);
       expect(signOff.blockingReasons.some((r) => r.includes("BLOCKING"))).toBe(true);
     });
-});
+  });
 
-describe("ErgonomicWalkthroughAuditor", () => {
-it("resolves deficit notices and unblocks milestone sign-off", () => {
+  describe("ErgonomicWalkthroughAuditor", () => {
+    it("resolves deficit notices and unblocks milestone sign-off", () => {
       const auditor = createErgonomicWalkthroughAuditor();
 
       const explicitDeficits: DeficitInput[] = [
@@ -114,10 +112,10 @@ it("resolves deficit notices and unblocks milestone sign-off", () => {
       const finalSignOff = auditor.signOffMilestone("m6-nav", "QA-Lead");
       expect(finalSignOff.signedOff).toBe(true);
     });
-});
+  });
 
-describe("ErgonomicWalkthroughAuditor", () => {
-it("handles full UserJourney audit walkthroughs", () => {
+  describe("ErgonomicWalkthroughAuditor", () => {
+    it("handles full UserJourney audit walkthroughs", () => {
       const auditor = createErgonomicWalkthroughAuditor();
 
       const journey: UserJourney = {
@@ -152,10 +150,10 @@ it("handles full UserJourney audit walkthroughs", () => {
       expect(result.compositeScore).toBe(92.4);
       expect(result.passed).toBe(true);
     });
-});
+  });
 
-describe("ErgonomicWalkthroughAuditor", () => {
-it("formats markdown reports and ascii tables cleanly", () => {
+  describe("ErgonomicWalkthroughAuditor", () => {
+    it("formats markdown reports and ascii tables cleanly", () => {
       const auditor = createErgonomicWalkthroughAuditor();
 
       const result = auditor.auditMilestoneErgonomics("m8-report", {
@@ -178,10 +176,10 @@ it("formats markdown reports and ascii tables cleanly", () => {
       );
       expect(ascii).toContain("COMPOSITE SCORE:");
     });
-});
+  });
 
-describe("ErgonomicWalkthroughAuditor", () => {
-it("resets auditor state properly", () => {
+  describe("ErgonomicWalkthroughAuditor", () => {
+    it("resets auditor state properly", () => {
       const auditor = createErgonomicWalkthroughAuditor();
 
       auditor.auditMilestoneErgonomics("m9-reset", {
@@ -199,5 +197,5 @@ it("resets auditor state properly", () => {
       expect(auditor.getDeficitNotices().length).toBe(0);
       expect(auditor.getAuditHistory().length).toBe(0);
     });
-});
+  });
 });

@@ -14,7 +14,11 @@ import {
 } from "../../../olt/scripts/src/requirements/enhanced-plan.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
-import { cleanupVirtualRequirementsFS, scratchRoot, setupVirtualRequirementsFS } from "../requirements-fixture.ts";
+import {
+  cleanupVirtualRequirementsFS,
+  scratchRoot,
+  setupVirtualRequirementsFS,
+} from "../requirements-fixture.ts";
 
 beforeEach(() => {
   setupVirtualRequirementsFS();

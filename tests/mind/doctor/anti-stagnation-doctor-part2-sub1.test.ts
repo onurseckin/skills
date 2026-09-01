@@ -29,7 +29,7 @@ import { runDoctor } from "../../../olt/scripts/src/reporting/doctor.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 
 describe("Anti-Stagnation Doctor & Mind Charter Invariant Engine", () => {
-let tempDir: string;
+  let tempDir: string;
 
   beforeEach(() => {
     tempDir = fs.mkdtempSync(join(process.cwd(), "tmp-doctor-test-"));
@@ -41,7 +41,7 @@ let tempDir: string;
     }
   });
 
-describe("1. Canonical Charter Invariants Registry", () => {
+  describe("1. Canonical Charter Invariants Registry", () => {
     it("exports all 16 canonical Mind Charter Invariants", () => {
       expect(MIND_CHARTER_INVARIANTS).toHaveLength(16);
       expect(MIND_CHARTER_INVARIANTS).toContain("SUPERVISOR_ZERO_CODE_EDITS");
@@ -63,7 +63,7 @@ describe("1. Canonical Charter Invariants Registry", () => {
     });
   });
 
-describe("2. Clean Baseline & Nominal State Audit", () => {
+  describe("2. Clean Baseline & Nominal State Audit", () => {
     it("returns clean health pass on valid nominal Mind state", () => {
       const nowMs = Date.now();
       const socraticMemory = new HistoricalDebateMemory(
@@ -94,8 +94,19 @@ describe("2. Clean Baseline & Nominal State Audit", () => {
       );
 
       const supersessionIndex = new SupersessionIndex([
-        { id: "node-1", title: "Node 1", status: "SUPERSEDED", supersededBy: "node-2", timestamp: new Date(nowMs).toISOString() },
-        { id: "node-2", title: "Node 2", status: "ACTIVE", timestamp: new Date(nowMs).toISOString() },
+        {
+          id: "node-1",
+          title: "Node 1",
+          status: "SUPERSEDED",
+          supersededBy: "node-2",
+          timestamp: new Date(nowMs).toISOString(),
+        },
+        {
+          id: "node-2",
+          title: "Node 2",
+          status: "ACTIVE",
+          timestamp: new Date(nowMs).toISOString(),
+        },
       ]);
 
       const dashState = createInitialDashboardState({
@@ -114,7 +125,13 @@ describe("2. Clean Baseline & Nominal State Audit", () => {
             { id: "mind-1", role: "mind", status: "active", parent_agent_id: null },
             { id: "orch-1", role: "orchestrator", status: "active", parent_agent_id: "mind-1" },
             { id: "coord-1", role: "coordinator", status: "active", parent_agent_id: "orch-1" },
-            { id: "impl-1", role: "implementer", status: "active", parent_agent_id: "coord-1", tools_used: ["write_to_file"] },
+            {
+              id: "impl-1",
+              role: "implementer",
+              status: "active",
+              parent_agent_id: "coord-1",
+              tools_used: ["write_to_file"],
+            },
             { id: "val-1", role: "validator", status: "active", parent_agent_id: "coord-1" },
           ],
         },
@@ -135,7 +152,7 @@ describe("2. Clean Baseline & Nominal State Audit", () => {
     });
   });
 
-describe("3. Supervisory Purity: Invariant 1 (Zero Code Edits) & Invariant 2 (Zero Test Runs)", () => {
+  describe("3. Supervisory Purity: Invariant 1 (Zero Code Edits) & Invariant 2 (Zero Test Runs)", () => {
     it("flags supervisor executing write_to_file tool as SUPERVISOR_ZERO_CODE_EDITS violation", () => {
       const options: AntiStagnationDoctorOptions = {
         state: {
@@ -207,7 +224,11 @@ describe("3. Supervisory Purity: Invariant 1 (Zero Code Edits) & Invariant 2 (Ze
         state: {
           mind: { generation: 1 },
           grants: [
-            { id: "impl-1", role: "implementer", tools_used: ["write_to_file", "replace_file_content"] },
+            {
+              id: "impl-1",
+              role: "implementer",
+              tools_used: ["write_to_file", "replace_file_content"],
+            },
           ],
           commands: {
             "cmd-1": {
@@ -227,7 +248,7 @@ describe("3. Supervisory Purity: Invariant 1 (Zero Code Edits) & Invariant 2 (Ze
     });
   });
 
-describe("4. Invariant 3: Three-Strike Mechanical Containment", () => {
+  describe("4. Invariant 3: Three-Strike Mechanical Containment", () => {
     it("flags agent with 3 strikes that remains active as THREE_STRIKE_MECHANICAL_CONTAINMENT violation", () => {
       const options: AntiStagnationDoctorOptions = {
         state: {

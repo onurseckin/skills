@@ -7,11 +7,7 @@ import { HarnessError, type JsonValue } from "../../../core/index.ts";
  * ============================================================================
  */
 
-export type MilestoneLockStatus =
-  | "SEALED"
-  | "TEMPORARILY_UNLOCKED"
-  | "RESEALED"
-  | "SUPERSEDED";
+export type MilestoneLockStatus = "SEALED" | "TEMPORARILY_UNLOCKED" | "RESEALED" | "SUPERSEDED";
 
 /**
  * Canonical Scope Mapping across the 5 Socratic Validation Rounds

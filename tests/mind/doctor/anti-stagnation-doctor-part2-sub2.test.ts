@@ -29,7 +29,7 @@ import { runDoctor } from "../../../olt/scripts/src/reporting/doctor.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 
 describe("Anti-Stagnation Doctor & Mind Charter Invariant Engine", () => {
-describe("5. Invariant 4: Anti-Make-Work & Genuine Value", () => {
+  describe("5. Invariant 4: Anti-Make-Work & Genuine Value", () => {
     it("flags synthetic churn detected state as ANTI_MAKEWORK_GENUINE_VALUE violation", () => {
       const options: AntiStagnationDoctorOptions = {
         state: {
@@ -68,20 +68,23 @@ describe("5. Invariant 4: Anti-Make-Work & Genuine Value", () => {
     });
   });
 
-describe("6. Invariant 5: Cumulative Socratic Progression & Debate Memory Integrity", () => {
+  describe("6. Invariant 5: Cumulative Socratic Progression & Debate Memory Integrity", () => {
     it("flags unfulfilled commitments without justification as CUMULATIVE_SOCRATIC_PROGRESSION violation", () => {
-      const memory = new HistoricalDebateMemory([], [
-        {
-          id: "comm-unjustified-1",
-          topic: "Benchmark Invariant",
-          agreedResolution: "Achieve 20% gain",
-          targetMilestone: "M2",
-          status: "breached",
-          justification: "", // Missing justification
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ]);
+      const memory = new HistoricalDebateMemory(
+        [],
+        [
+          {
+            id: "comm-unjustified-1",
+            topic: "Benchmark Invariant",
+            agreedResolution: "Achieve 20% gain",
+            targetMilestone: "M2",
+            status: "breached",
+            justification: "", // Missing justification
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        ],
+      );
 
       const options: AntiStagnationDoctorOptions = {
         state: { mind: { generation: 1 } },
@@ -93,22 +96,28 @@ describe("6. Invariant 5: Cumulative Socratic Progression & Debate Memory Integr
       const finding = result.findings.find((f) => f.code === "CUMULATIVE_SOCRATIC_PROGRESSION");
       expect(finding).toBeDefined();
       expect(finding?.severity).toBe("ERROR");
-      expect(finding?.message).toContain("unfulfilled strategic commitment(s) lack recorded justifications");
+      expect(finding?.message).toContain(
+        "unfulfilled strategic commitment(s) lack recorded justifications",
+      );
     });
 
     it("passes when unfulfilled commitments have valid recorded justifications", () => {
-      const memory = new HistoricalDebateMemory([], [
-        {
-          id: "comm-justified-1",
-          topic: "Benchmark Invariant",
-          agreedResolution: "Achieve 20% gain",
-          targetMilestone: "M2",
-          status: "breached",
-          justification: "Superseded by architectural simplification under Priority 2 Pareto ruling.",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ]);
+      const memory = new HistoricalDebateMemory(
+        [],
+        [
+          {
+            id: "comm-justified-1",
+            topic: "Benchmark Invariant",
+            agreedResolution: "Achieve 20% gain",
+            targetMilestone: "M2",
+            status: "breached",
+            justification:
+              "Superseded by architectural simplification under Priority 2 Pareto ruling.",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        ],
+      );
 
       const options: AntiStagnationDoctorOptions = {
         state: { mind: { generation: 1 } },
@@ -116,12 +125,14 @@ describe("6. Invariant 5: Cumulative Socratic Progression & Debate Memory Integr
       };
 
       const result = checkAntiStagnationDoctor(options);
-      const socraticViolations = result.findings.filter((f) => f.code === "CUMULATIVE_SOCRATIC_PROGRESSION");
+      const socraticViolations = result.findings.filter(
+        (f) => f.code === "CUMULATIVE_SOCRATIC_PROGRESSION",
+      );
       expect(socraticViolations).toHaveLength(0);
     });
   });
 
-describe("7. Invariant 6: Pre-Declared Pareto Arbitration", () => {
+  describe("7. Invariant 6: Pre-Declared Pareto Arbitration", () => {
     it("flags Priority 4 Speculative Abstraction winning approach as PRE_DECLARED_PARETO_ARBITRATION violation", () => {
       const options: AntiStagnationDoctorOptions = {
         state: {
@@ -167,7 +178,7 @@ describe("7. Invariant 6: Pre-Declared Pareto Arbitration", () => {
     });
   });
 
-describe("8. Invariant 7: Innovation Portfolio 70/20/10 Balance", () => {
+  describe("8. Invariant 7: Innovation Portfolio 70/20/10 Balance", () => {
     it("flags CORE_DEFICIT balance status as INNOVATION_PORTFOLIO_70_20_10 violation", () => {
       const options: AntiStagnationDoctorOptions = {
         state: {
@@ -188,7 +199,7 @@ describe("8. Invariant 7: Innovation Portfolio 70/20/10 Balance", () => {
     });
   });
 
-describe("9. Invariant 8: Ergonomic Walkthrough & Product Craft", () => {
+  describe("9. Invariant 8: Ergonomic Walkthrough & Product Craft", () => {
     it("flags blocking aesthetic deficits as ERGONOMIC_WALKTHROUGH_AUDITING violation", () => {
       const options: AntiStagnationDoctorOptions = {
         state: {
@@ -213,12 +224,30 @@ describe("9. Invariant 8: Ergonomic Walkthrough & Product Craft", () => {
     });
   });
 
-describe("10. Invariant 10: Epistemic Supersession Indexing Acyclicity", () => {
+  describe("10. Invariant 10: Epistemic Supersession Indexing Acyclicity", () => {
     it("detects cyclic lineage in supersession index graph", () => {
       const cyclicIndex = new SupersessionIndex([
-        { id: "A", title: "Node A", status: "SUPERSEDED", supersededBy: "B", timestamp: new Date().toISOString() },
-        { id: "B", title: "Node B", status: "SUPERSEDED", supersededBy: "C", timestamp: new Date().toISOString() },
-        { id: "C", title: "Node C", status: "SUPERSEDED", supersededBy: "A", timestamp: new Date().toISOString() }, // Cycle A -> B -> C -> A
+        {
+          id: "A",
+          title: "Node A",
+          status: "SUPERSEDED",
+          supersededBy: "B",
+          timestamp: new Date().toISOString(),
+        },
+        {
+          id: "B",
+          title: "Node B",
+          status: "SUPERSEDED",
+          supersededBy: "C",
+          timestamp: new Date().toISOString(),
+        },
+        {
+          id: "C",
+          title: "Node C",
+          status: "SUPERSEDED",
+          supersededBy: "A",
+          timestamp: new Date().toISOString(),
+        }, // Cycle A -> B -> C -> A
       ]);
 
       const options: AntiStagnationDoctorOptions = {
@@ -236,8 +265,20 @@ describe("10. Invariant 10: Epistemic Supersession Indexing Acyclicity", () => {
 
     it("passes cleanly when supersession index is strictly acyclic", () => {
       const acyclicIndex = new SupersessionIndex([
-        { id: "A", title: "Node A", status: "SUPERSEDED", supersededBy: "B", timestamp: new Date().toISOString() },
-        { id: "B", title: "Node B", status: "SUPERSEDED", supersededBy: "C", timestamp: new Date().toISOString() },
+        {
+          id: "A",
+          title: "Node A",
+          status: "SUPERSEDED",
+          supersededBy: "B",
+          timestamp: new Date().toISOString(),
+        },
+        {
+          id: "B",
+          title: "Node B",
+          status: "SUPERSEDED",
+          supersededBy: "C",
+          timestamp: new Date().toISOString(),
+        },
         { id: "C", title: "Node C", status: "ACTIVE", timestamp: new Date().toISOString() },
       ]);
 
@@ -247,7 +288,9 @@ describe("10. Invariant 10: Epistemic Supersession Indexing Acyclicity", () => {
       };
 
       const result = checkAntiStagnationDoctor(options);
-      const supersessionViolations = result.findings.filter((f) => f.code === "EPISTEMIC_SUPERSESSION_INDEXING");
+      const supersessionViolations = result.findings.filter(
+        (f) => f.code === "EPISTEMIC_SUPERSESSION_INDEXING",
+      );
       expect(supersessionViolations).toHaveLength(0);
     });
   });

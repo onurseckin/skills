@@ -52,9 +52,7 @@ import {
   resolveOrGenerateCharter,
   type MindInitFlowResult,
 } from "../../../../olt/scripts/src/mind/lifecycle/mind-init-flow.ts";
-import {
-  ThreeTierMemoryEngine,
-} from "../../../../olt/scripts/src/mind/memory/index.ts";
+import { ThreeTierMemoryEngine } from "../../../../olt/scripts/src/mind/memory/index.ts";
 import {
   InnovationPortfolioManager,
   PORTFOLIO_TARGET_PERCENTAGES,
@@ -78,7 +76,27 @@ import {
 } from "../../../../olt/scripts/src/mind/reporting/index.ts";
 
 describe("Sovereign Lifecycle & Autonomous Single-Touch Bootstrap Suite", () => {
-describe("4. Perpetual Cadence Execution & State Machine Transitions", () => {
+  let testRepoRoot: string;
+
+  beforeEach(() => {
+    testRepoRoot = join(
+      tmpdir(),
+      `mind-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    );
+    mkdirSync(testRepoRoot, { recursive: true });
+    mkdirSync(join(testRepoRoot, ".olt"), { recursive: true });
+    mkdirSync(join(testRepoRoot, ".olt", "mailboxes"), { recursive: true });
+  });
+
+  afterEach(() => {
+    try {
+      rmSync(testRepoRoot, { recursive: true, force: true });
+    } catch {
+      // Best effort cleanup
+    }
+  });
+
+  describe("4. Perpetual Cadence Execution & State Machine Transitions", () => {
     it("advances pulse counters, executes cadence transitions, compacts memory, and logs supervisor-auditor sparring", async () => {
       // 1. Initialize Cadence Engine
       const cadenceEngine = new MindCadenceEngine({
@@ -111,10 +129,16 @@ describe("4. Perpetual Cadence Execution & State Machine Transitions", () => {
       const socraticEngine = new SocraticLadderingEngine(debateMemory);
 
       socraticEngine.evaluateCycle("pulse-1-cycle", "Wave 5 Horizon Objectives");
-      socraticEngine.submitResponse("pulse-1-cycle", "Prioritized P1 deliverable and zero-error gates", {
-        isSatisfactory: true,
-      });
-      expect(socraticEngine.getState().currentLevel).toBe(DIALECTICAL_LEVELS.L2_SECOND_ORDER_IMPLICATIONS);
+      socraticEngine.submitResponse(
+        "pulse-1-cycle",
+        "Prioritized P1 deliverable and zero-error gates",
+        {
+          isSatisfactory: true,
+        },
+      );
+      expect(socraticEngine.getState().currentLevel).toBe(
+        DIALECTICAL_LEVELS.L2_SECOND_ORDER_IMPLICATIONS,
+      );
 
       // 4. Memory Compaction during Cadence
       const memoryEngine = new ThreeTierMemoryEngine();
@@ -176,7 +200,7 @@ describe("4. Perpetual Cadence Execution & State Machine Transitions", () => {
     });
   });
 
-describe("5. Zero-Parameter Autonomous Bootstrap Execution", () => {
+  describe("5. Zero-Parameter Autonomous Bootstrap Execution", () => {
     it("executes single-touch initialization from scratch without requiring human prompts", async () => {
       const initResult: MindInitFlowResult = await executeAutonomousMindInit({
         repo: testRepoRoot,

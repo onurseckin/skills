@@ -82,7 +82,7 @@ import {
 } from "../../../../../olt/scripts/src/mind/telemetry/index.ts";
 
 describe("Anti-Stagnation End-to-End Multi-Hour Sovereign Simulation Suite", () => {
-describe("5. 3-Tier Semantic Memory & Epistemic Supersession Indexing", () => {
+  describe("5. 3-Tier Semantic Memory & Epistemic Supersession Indexing", () => {
     it("maintains Tier 1 immutability, Tier 2 operational horizon, and Tier 3 supersession lineage", () => {
       const memoryEngine = new ThreeTierMemoryEngine();
 

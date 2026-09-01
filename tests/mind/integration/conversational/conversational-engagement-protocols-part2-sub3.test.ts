@@ -53,7 +53,27 @@ import {
 } from "../../../../olt/scripts/src/mind/containment/index.ts";
 
 describe("Conversational Engagement Protocols & Active Swarm Audit Suite", () => {
-describe("4. Zero Main Thread Pollution Guarantee for Conversational Audits", () => {
+  let testRepoRoot: string;
+
+  beforeEach(() => {
+    testRepoRoot = join(
+      tmpdir(),
+      `mind-conversational-audit-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    );
+    mkdirSync(testRepoRoot, { recursive: true });
+    mkdirSync(join(testRepoRoot, ".olt"), { recursive: true });
+    mkdirSync(join(testRepoRoot, ".olt", "mailboxes"), { recursive: true });
+  });
+
+  afterEach(() => {
+    try {
+      rmSync(testRepoRoot, { recursive: true, force: true });
+    } catch {
+      // Best effort cleanup
+    }
+  });
+
+  describe("4. Zero Main Thread Pollution Guarantee for Conversational Audits", () => {
     it("guarantees that 100% of conversational engagement messages are strictly routed through mailbox files", () => {
       const auditorPaths = ensureMailboxDir("auditor-clean", testRepoRoot);
       const workerPaths = ensureMailboxDir("worker-clean", testRepoRoot);

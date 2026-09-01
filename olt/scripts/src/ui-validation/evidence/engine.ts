@@ -13,11 +13,9 @@ export class EvidenceLifecycleEngine {
     manager?: LifecycleManager;
     deltaComparator?: VisualDeltaComparator;
   }) {
-    this.stabilityBarrier =
-      options?.stabilityBarrier ?? new OpticalStabilityBarrier();
+    this.stabilityBarrier = options?.stabilityBarrier ?? new OpticalStabilityBarrier();
     this.manager = options?.manager ?? new LifecycleManager();
-    this.deltaComparator =
-      options?.deltaComparator ?? new VisualDeltaComparator();
+    this.deltaComparator = options?.deltaComparator ?? new VisualDeltaComparator();
   }
 }
 
@@ -30,9 +28,7 @@ export function getDefaultEvidenceLifecycleEngine(): EvidenceLifecycleEngine {
   return defaultEvidenceLifecycleEngine;
 }
 
-export function setDefaultEvidenceLifecycleEngine(
-  engine: EvidenceLifecycleEngine,
-): void {
+export function setDefaultEvidenceLifecycleEngine(engine: EvidenceLifecycleEngine): void {
   defaultEvidenceLifecycleEngine = engine;
 }
 

@@ -114,7 +114,7 @@ function createPopulatedTestEngine(): ThreeTierMemoryEngine {
 }
 
 describe("RetrievalSandbox Test Suite", () => {
-describe("Clean Insight Bundle Markdown Generation", () => {
+  describe("Clean Insight Bundle Markdown Generation", () => {
     it("formats a clean markdown document with header, telemetry, and table", () => {
       const engine = createPopulatedTestEngine();
 

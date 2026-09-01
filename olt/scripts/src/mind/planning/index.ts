@@ -7,7 +7,7 @@ export type {
   ParetoComparisonMetrics,
   ParetoComparisonResult,
   RankedParetoCandidate,
-  ParetoArbitrationResult
+  ParetoArbitrationResult,
 } from "./pareto-arbitration.ts";
 
 export {
@@ -28,7 +28,7 @@ export {
   filterParetoFrontier,
   arbitrateMultipleApproaches,
   arbitrateParetoCandidates,
-  enforcePreDeclaredParetoArbitration
+  enforcePreDeclaredParetoArbitration,
 } from "./pareto-arbitration.ts";
 
 export type {
@@ -52,7 +52,7 @@ export type {
   AntiPatternEntry,
   CreateAntiPatternInput,
   HypothesisConflictCheck,
-  InnovationPortfolioOptions
+  InnovationPortfolioOptions,
 } from "./innovation-portfolio.ts";
 
 export {
@@ -65,7 +65,7 @@ export {
   MILESTONE_NAMES,
   MILESTONE_DEFINITIONS,
   AntiPatternLedger,
-  InnovationPortfolioManager
+  InnovationPortfolioManager,
 } from "./innovation-portfolio.ts";
 
 export type {
@@ -74,7 +74,4 @@ export type {
   PlanEvaluationResult,
 } from "./engine/index.ts";
 
-export {
-  detectScopeOverlapWarnings,
-  evaluatePlanEpistemicReadiness,
-} from "./engine/index.ts";
+export { detectScopeOverlapWarnings, evaluatePlanEpistemicReadiness } from "./engine/index.ts";

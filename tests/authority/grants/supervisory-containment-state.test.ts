@@ -139,8 +139,18 @@ describe("MechanicalContainmentEngine Core State Machine", () => {
     const agentId = "coord-tools-1";
     const role = "coordinator";
 
-    engine.interceptAction({ agentId, role, actionType: "DIRECT_CODE_EDIT", attemptedAction: "write" });
-    engine.interceptAction({ agentId, role, actionType: "DIRECT_TEST_RUN", attemptedAction: "test" });
+    engine.interceptAction({
+      agentId,
+      role,
+      actionType: "DIRECT_CODE_EDIT",
+      attemptedAction: "write",
+    });
+    engine.interceptAction({
+      agentId,
+      role,
+      actionType: "DIRECT_TEST_RUN",
+      attemptedAction: "test",
+    });
 
     for (const tool of ALLOWED_SUPERVISORY_TOOLS) {
       expect(engine.isToolPermitted(agentId, role, tool)).toBe(true);

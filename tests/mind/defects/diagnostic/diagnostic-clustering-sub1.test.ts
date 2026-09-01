@@ -16,9 +16,7 @@ import {
 } from "../../../../olt/scripts/src/mind/defects/index.ts";
 
 describe("Active Baseline Probing & Diagnostic Clustering Engine Suite", () => {
-
-
-describe("Subsystem Inference & Stack Trace Utilities", () => {
+  describe("Subsystem Inference & Stack Trace Utilities", () => {
     it("infers canonical subsystem paths from source file paths and error messages", () => {
       expect(inferSubsystemFromPath("src/mind/defects/diagnostic-clustering.ts")).toBe(
         "mind/defects",
@@ -57,7 +55,7 @@ describe("Subsystem Inference & Stack Trace Utilities", () => {
     });
   });
 
-describe("Multi-Dialect Diagnostic Error Parsing", () => {
+  describe("Multi-Dialect Diagnostic Error Parsing", () => {
     it("parses TypeScript compilation errors (tsc paren and dash formats) as Class 1 Blockers", () => {
       const tsLog = [
         "src/mind/defects/foo.ts(12,34): error TS2304: Cannot find name 'UndefinedSymbol'.",
@@ -148,7 +146,8 @@ describe("Multi-Dialect Diagnostic Error Parsing", () => {
     });
 
     it("parses module resolution errors as Class 1 Blockers", () => {
-      const modLog = "Cannot find module './missing-module' or its corresponding type declarations.";
+      const modLog =
+        "Cannot find module './missing-module' or its corresponding type declarations.";
       const parsedMod = parseRawDiagnostics(modLog, "typecheck");
       expect(parsedMod.length).toBe(1);
       const modErr = parsedMod[0];

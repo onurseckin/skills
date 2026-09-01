@@ -41,8 +41,7 @@ export interface SwarmDispatchPlan {
 }
 
 export function classifyTaskComplexity(input: TaskComplexityInput): ComplexityClassificationResult {
-  const fileCount =
-    input.changedFilesCount ?? (input.targetFiles ? input.targetFiles.length : 0);
+  const fileCount = input.changedFilesCount ?? (input.targetFiles ? input.targetFiles.length : 0);
   const dependenciesCount = input.dependenciesCount ?? 0;
   const riskScore = input.riskScore ?? 0;
   const scopeEstimate = input.scopeEstimate;
@@ -198,7 +197,9 @@ export class AntiOverheadWatchdog {
   ): void {
     const evalResult = this.evaluateDecomposition(taskLevel, proposedAgents, isUiTask);
     if (evalResult.vetoed) {
-      throw new Error(evalResult.reason ?? "Sovereign Equilibrium Violation: Over-decomposition vetoed.");
+      throw new Error(
+        evalResult.reason ?? "Sovereign Equilibrium Violation: Over-decomposition vetoed.",
+      );
     }
   }
 }

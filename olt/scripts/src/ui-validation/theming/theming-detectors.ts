@@ -87,11 +87,15 @@ export function validateHighContrastBoundaries(
   const contrastRatio = calculateWcagContrastRatio(input.borderColor, input.backgroundColor);
 
   if (input.borderWidthPx < 1) {
-    issues.push(`Border width ${input.borderWidthPx}px is below 1px minimum in high-contrast mode.`);
+    issues.push(
+      `Border width ${input.borderWidthPx}px is below 1px minimum in high-contrast mode.`,
+    );
   }
 
   if (input.borderStyle === "none" || input.borderStyle === "hidden") {
-    issues.push(`Border style '${input.borderStyle}' does not render a visible boundary in high-contrast mode.`);
+    issues.push(
+      `Border style '${input.borderStyle}' does not render a visible boundary in high-contrast mode.`,
+    );
   }
 
   // High contrast mode requires minimum 7.0:1 AAA contrast on boundaries
@@ -113,4 +117,3 @@ export function validateHighContrastBoundaries(
  * 5. Unified Permutation Staging Engine & Singletons
  * ============================================================================
  */
-

@@ -25,8 +25,7 @@ export class MotionVerificationEngine {
     microcraft?: MicrocraftInspector;
   }) {
     this.preFlight = options?.preFlight ?? new HeadlessMotionPreFlightAuditor();
-    this.temporalSampler =
-      options?.temporalSampler ?? new TemporalKeyframeStepSampler();
+    this.temporalSampler = options?.temporalSampler ?? new TemporalKeyframeStepSampler();
     this.microcraft = options?.microcraft ?? new MicrocraftInspector();
   }
 }
@@ -40,9 +39,7 @@ export function getDefaultMotionVerificationEngine(): MotionVerificationEngine {
   return defaultMotionVerificationEngine;
 }
 
-export function setDefaultMotionVerificationEngine(
-  engine: MotionVerificationEngine,
-): void {
+export function setDefaultMotionVerificationEngine(engine: MotionVerificationEngine): void {
   defaultMotionVerificationEngine = engine;
 }
 

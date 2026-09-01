@@ -21,5 +21,3 @@ import {
   type BedrockInvariantRecord,
   type RoadmapDeliverableTask,
 } from "../../../olt/scripts/src/mind/reporting/index.ts";
-
-

@@ -15,14 +15,9 @@ export class HeadlessMotionPreFlightAuditor {
   /**
    * Audits property list for GPU acceleration compliance
    */
-  public auditProperties(
-    properties: readonly string[],
-  ): readonly AnimatedPropertyAudit[] {
+  public auditProperties(properties: readonly string[]): readonly AnimatedPropertyAudit[] {
     if (!properties) {
-      throw new HarnessError(
-        "INVALID_ARGUMENT",
-        "Properties array must not be undefined or null",
-      );
+      throw new HarnessError("INVALID_ARGUMENT", "Properties array must not be undefined or null");
     }
 
     return properties.map((prop) => {
@@ -111,9 +106,7 @@ export class HeadlessMotionPreFlightAuditor {
   /**
    * Performs complete Phase 1 Pre-flight audit
    */
-  public auditAnimation(
-    input: MotionHeadlessPreFlightInput,
-  ): MotionHeadlessPreFlightResult {
+  public auditAnimation(input: MotionHeadlessPreFlightInput): MotionHeadlessPreFlightResult {
     if (!input || !input.animationName || !input.targetSelector) {
       throw new HarnessError(
         "INVALID_ARGUMENT",
@@ -169,4 +162,3 @@ export class HeadlessMotionPreFlightAuditor {
 // ============================================================================
 // 2. Phase 2: Temporal Keyframe Step-Sampling
 // ============================================================================
-

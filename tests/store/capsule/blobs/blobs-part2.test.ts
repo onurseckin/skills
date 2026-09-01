@@ -23,7 +23,11 @@ import {
   putBlobFile,
   type ViewLinker,
 } from "../../../../olt/scripts/src/engine/store/layout/blobs.ts";
-import { cleanupVirtualStoreFS, scratchRoot as makeScratchRoot, setupVirtualStoreFS } from "../../store-fixture.ts";
+import {
+  cleanupVirtualStoreFS,
+  scratchRoot as makeScratchRoot,
+  setupVirtualStoreFS,
+} from "../../store-fixture.ts";
 
 beforeEach(() => {
   setupVirtualStoreFS();
@@ -117,7 +121,6 @@ describe("listBlobs", () => {
   });
 });
 
-
 describe("blobContentDigest", () => {
   test("returns the sha256 digest of a stored blob's actual bytes", () => {
     const root = scratchRoot("returns-the-sha256-digest-of-a-stored-blob-s-actua");
@@ -140,4 +143,3 @@ describe("blobContentDigest", () => {
     expect(blobContentDigest(root, digest)).toBeUndefined();
   });
 });
-

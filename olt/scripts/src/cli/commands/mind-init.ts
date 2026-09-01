@@ -54,7 +54,10 @@ export async function mindInitCommand(
   const generationFlag = integerFlag(flags, "generation", { minimum: 1 });
   const mindIdFlag = textFlag(flags, "mind-id", false);
   const actor = textFlag(flags, "actor", false) ?? "owner";
-  const simulate = boolFlag(flags, "simulate-probes") || boolFlag(flags, "simulate") || !existsSync(join(repoRoot, ".git"));
+  const simulate =
+    boolFlag(flags, "simulate-probes") ||
+    boolFlag(flags, "simulate") ||
+    !existsSync(join(repoRoot, ".git"));
 
   let generation: number | undefined = generationFlag;
   let mindId: string | undefined = mindIdFlag;

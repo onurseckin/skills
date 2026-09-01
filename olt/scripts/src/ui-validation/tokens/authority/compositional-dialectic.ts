@@ -21,7 +21,8 @@ export class CompositionalDialecticEngine {
           severity: "warning",
           currentComposition: `fontSize: ${composition.fontSize}`,
           suggestedComposition: "fontSize: 4xl or 5xl",
-          rationale: "H1 heading hierarchy requires commanding visual dominance (4xl=36px or 5xl=48px).",
+          rationale:
+            "H1 heading hierarchy requires commanding visual dominance (4xl=36px or 5xl=48px).",
         });
       }
       if (composition.lineHeight && ["relaxed", "loose"].includes(composition.lineHeight)) {
@@ -31,7 +32,8 @@ export class CompositionalDialecticEngine {
           severity: "warning",
           currentComposition: `lineHeight: ${composition.lineHeight}`,
           suggestedComposition: "lineHeight: tight or snug",
-          rationale: "Large display headings (H1) should use tight (1.25) or snug (1.375) line heights to avoid visual fragmentation.",
+          rationale:
+            "Large display headings (H1) should use tight (1.25) or snug (1.375) line heights to avoid visual fragmentation.",
         });
       }
     }
@@ -44,7 +46,8 @@ export class CompositionalDialecticEngine {
           severity: "info",
           currentComposition: `fontSize: ${composition.fontSize}`,
           suggestedComposition: "fontSize: 2xl or 3xl",
-          rationale: "H2 section headings achieve optimal scanning rhythm at 2xl (24px) or 3xl (30px).",
+          rationale:
+            "H2 section headings achieve optimal scanning rhythm at 2xl (24px) or 3xl (30px).",
         });
       }
     }
@@ -58,7 +61,8 @@ export class CompositionalDialecticEngine {
           severity: "error",
           currentComposition: `spacingInner: ${composition.spacingInner}`,
           suggestedComposition: "spacingInner: md (16px) or lg (24px)",
-          rationale: "Cards require internal breathing room (md or lg) to prevent content collisions with card borders.",
+          rationale:
+            "Cards require internal breathing room (md or lg) to prevent content collisions with card borders.",
         });
       }
       if (composition.shadowElevation === "none" && composition.borderRadius === "none") {
@@ -68,7 +72,8 @@ export class CompositionalDialecticEngine {
           severity: "info",
           currentComposition: "shadowElevation: none, borderRadius: none",
           suggestedComposition: "shadowElevation: sm, borderRadius: md",
-          rationale: "Elevating card containers with subtle shadow (sm) and soft radius (md) reinforces spatial depth.",
+          rationale:
+            "Elevating card containers with subtle shadow (sm) and soft radius (md) reinforces spatial depth.",
         });
       }
     }
@@ -82,7 +87,8 @@ export class CompositionalDialecticEngine {
           severity: "warning",
           currentComposition: `shadowElevation: ${composition.shadowElevation}`,
           suggestedComposition: "shadowElevation: xl or 2xl",
-          rationale: "Modal dialogs represent the top structural z-layer and must cast commanding depth shadows (xl or 2xl).",
+          rationale:
+            "Modal dialogs represent the top structural z-layer and must cast commanding depth shadows (xl or 2xl).",
         });
       }
     }

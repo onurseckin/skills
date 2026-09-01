@@ -29,7 +29,19 @@ import { runDoctor } from "../../../olt/scripts/src/reporting/doctor.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 
 describe("Anti-Stagnation Doctor & Mind Charter Invariant Engine", () => {
-describe("11. Invariant 11: Suspended Animation Protocol", () => {
+  let tempDir: string;
+
+  beforeEach(() => {
+    tempDir = fs.mkdtempSync(join(process.cwd(), "tmp-doctor-test-"));
+  });
+
+  afterEach(() => {
+    if (fs.existsSync(tempDir)) {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  describe("11. Invariant 11: Suspended Animation Protocol", () => {
     it("detects corrupted snapshot checksum as SUSPENDED_ANIMATION_PROTOCOL violation", () => {
       const nowMs = Date.now();
       const corruptedSnapshot: SuspendedAnimationSnapshot = {
@@ -115,12 +127,14 @@ describe("11. Invariant 11: Suspended Animation Protocol", () => {
       };
 
       const result = checkAntiStagnationDoctor(options);
-      const suspendedViolations = result.findings.filter((f) => f.code === "SUSPENDED_ANIMATION_PROTOCOL");
+      const suspendedViolations = result.findings.filter(
+        (f) => f.code === "SUSPENDED_ANIMATION_PROTOCOL",
+      );
       expect(suspendedViolations).toHaveLength(0);
     });
   });
 
-describe("12. Invariant 14: Live Executive Dashboard Freshness", () => {
+  describe("12. Invariant 14: Live Executive Dashboard Freshness", () => {
     it("flags missing executive dashboard in active Mind capsule", () => {
       const options: AntiStagnationDoctorOptions = {
         state: {
@@ -165,7 +179,7 @@ describe("12. Invariant 14: Live Executive Dashboard Freshness", () => {
     });
   });
 
-describe("13. Invariant 15: Mandatory 3-Round Socratic Laddering", () => {
+  describe("13. Invariant 15: Mandatory 3-Round Socratic Laddering", () => {
     it("flags consensus recorded at L1 without traversing L2 and L3 rounds", () => {
       const options: AntiStagnationDoctorOptions = {
         state: {
@@ -181,14 +195,18 @@ describe("13. Invariant 15: Mandatory 3-Round Socratic Laddering", () => {
 
       const result = checkAntiStagnationDoctor(options);
       expect(result.passed).toBe(false);
-      const finding = result.findings.find((f) => f.code === "MANDATORY_3_ROUND_SOCRATIC_LADDERING");
+      const finding = result.findings.find(
+        (f) => f.code === "MANDATORY_3_ROUND_SOCRATIC_LADDERING",
+      );
       expect(finding).toBeDefined();
       expect(finding?.severity).toBe("ERROR");
-      expect(finding?.message).toContain("Consensus recorded without traversing all 3 mandatory dialectical rounds");
+      expect(finding?.message).toContain(
+        "Consensus recorded without traversing all 3 mandatory dialectical rounds",
+      );
     });
   });
 
-describe("14. Invariant 16: Direct 1-on-1 Conversational Audits", () => {
+  describe("14. Invariant 16: Direct 1-on-1 Conversational Audits", () => {
     it("flags Tier 0 Mind directly granting Tier 3 Implementer as cross-tier bypass", () => {
       const options: AntiStagnationDoctorOptions = {
         state: {
@@ -209,7 +227,7 @@ describe("14. Invariant 16: Direct 1-on-1 Conversational Audits", () => {
     });
   });
 
-describe("15. auditAntiStagnationHealth Sub-Report Aggregations", () => {
+  describe("15. auditAntiStagnationHealth Sub-Report Aggregations", () => {
     it("compiles structured AntiStagnationAuditReport with all sub-reports", () => {
       const runRoot = initRun(
         tempDir,
@@ -221,7 +239,12 @@ describe("15. auditAntiStagnationHealth Sub-Report Aggregations", () => {
 
       const memory = new HistoricalDebateMemory([], []);
       const index = new SupersessionIndex([
-        { id: "inv-1", title: "Invariant 1", status: "ACTIVE", timestamp: new Date().toISOString() },
+        {
+          id: "inv-1",
+          title: "Invariant 1",
+          status: "ACTIVE",
+          timestamp: new Date().toISOString(),
+        },
       ]);
 
       const report: AntiStagnationAuditReport = auditAntiStagnationHealth(runRoot, {

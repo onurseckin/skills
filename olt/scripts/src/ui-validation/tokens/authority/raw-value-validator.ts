@@ -79,9 +79,10 @@ export class RawValuePolicyValidator {
       }
 
       // Spacing properties (margin, padding, gap, top, left, etc.)
-      const isSpacingProp = /^(margin|padding|gap|row-gap|column-gap|top|bottom|left|right|inset)(-(top|bottom|left|right|inline|block))?$/.test(
-        propLower,
-      );
+      const isSpacingProp =
+        /^(margin|padding|gap|row-gap|column-gap|top|bottom|left|right|inset)(-(top|bottom|left|right|inline|block))?$/.test(
+          propLower,
+        );
 
       if (isSpacingProp) {
         const numMatch = valStr.match(/^(-?\d+(\.\d+)?)px$/);
@@ -106,7 +107,11 @@ export class RawValuePolicyValidator {
         if (numMatch && numMatch[1] !== undefined) {
           const num = parseFloat(numMatch[1]);
           if (!VALID_FONT_SIZES.includes(num)) {
-            const closest = findClosestNumericToken(num, VALID_FONT_SIZES, TYPOGRAPHY_TOKENS.fontSizes);
+            const closest = findClosestNumericToken(
+              num,
+              VALID_FONT_SIZES,
+              TYPOGRAPHY_TOKENS.fontSizes,
+            );
             violations.push({
               property,
               rawValue,
@@ -119,7 +124,10 @@ export class RawValuePolicyValidator {
       }
 
       // Border radius
-      if (propLower === "border-radius" || (propLower.startsWith("border-") && propLower.endsWith("-radius"))) {
+      if (
+        propLower === "border-radius" ||
+        (propLower.startsWith("border-") && propLower.endsWith("-radius"))
+      ) {
         const numMatch = valStr.match(/^(\d+(\.\d+)?)px$/);
         if (numMatch && numMatch[1] !== undefined) {
           const num = parseFloat(numMatch[1]);
@@ -137,7 +145,10 @@ export class RawValuePolicyValidator {
       }
 
       // Color properties
-      const isColorProp = /^(color|background-color|background|border-color|border|outline-color|stroke|fill)$/.test(propLower);
+      const isColorProp =
+        /^(color|background-color|background|border-color|border|outline-color|stroke|fill)$/.test(
+          propLower,
+        );
       if (isColorProp) {
         const hexMatches = valStr.match(/#[0-9a-fA-F]{3,8}/g);
         if (hexMatches) {
@@ -185,7 +196,11 @@ export class RawValuePolicyValidator {
 
         if (/margin|padding|gap|top|bottom|left|right|inset/.test(prop)) {
           if (!VALID_SPACING_VALUES.includes(Math.abs(num))) {
-            const closest = findClosestNumericToken(Math.abs(num), VALID_SPACING_VALUES, SPACING_TOKENS);
+            const closest = findClosestNumericToken(
+              Math.abs(num),
+              VALID_SPACING_VALUES,
+              SPACING_TOKENS,
+            );
             violations.push({
               property: prop,
               rawValue: fullVal,
@@ -197,7 +212,11 @@ export class RawValuePolicyValidator {
           }
         } else if (prop === "font-size") {
           if (!VALID_FONT_SIZES.includes(num)) {
-            const closest = findClosestNumericToken(num, VALID_FONT_SIZES, TYPOGRAPHY_TOKENS.fontSizes);
+            const closest = findClosestNumericToken(
+              num,
+              VALID_FONT_SIZES,
+              TYPOGRAPHY_TOKENS.fontSizes,
+            );
             violations.push({
               property: prop,
               rawValue: fullVal,
@@ -264,4 +283,3 @@ export function validateZeroRawValues(
  * 3. Implementer Token-Compliance Immunity Engine
  * ============================================================================
  */
-

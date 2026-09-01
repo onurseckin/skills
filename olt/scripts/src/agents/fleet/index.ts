@@ -10,11 +10,7 @@ export type {
 
 export type { AgentArchetypeId } from "./archetypes.ts";
 
-export {
-  MANDATORY_VIEWPORTS_4,
-  OPTICAL_DIMENSIONS_8,
-  SYNTHETIC_STATES_4,
-} from "./types.ts";
+export { MANDATORY_VIEWPORTS_4, OPTICAL_DIMENSIONS_8, SYNTHETIC_STATES_4 } from "./types.ts";
 
 export {
   ALL_31_AGENT_ARCHETYPES,

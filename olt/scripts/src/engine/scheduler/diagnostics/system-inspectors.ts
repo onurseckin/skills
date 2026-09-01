@@ -58,7 +58,12 @@ export async function runInspectorDoctor(
           summary,
           receiptHash,
           badge: "[RECEIPT: doctor FAIL]",
-          details: { healthy: false, issuesCount: 1, behavioralFindingsCount: 0, bunVersion: process.version },
+          details: {
+            healthy: false,
+            issuesCount: 1,
+            behavioralFindingsCount: 0,
+            bunVersion: process.version,
+          },
           error: errMsg,
         };
       }

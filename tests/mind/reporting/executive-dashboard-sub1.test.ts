@@ -23,7 +23,7 @@ import {
 } from "../../../olt/scripts/src/mind/reporting/index.ts";
 
 describe("Live Executive Briefing Dashboard Suite", () => {
-let tempRepo: string;
+  let tempRepo: string;
 
   beforeEach(() => {
     tempRepo = mkdtempSync(join(tmpdir(), "mind-dashboard-test-"));
@@ -37,7 +37,7 @@ let tempRepo: string;
     }
   });
 
-describe("Initial Dashboard State Factory & Data Integrity", () => {
+  describe("Initial Dashboard State Factory & Data Integrity", () => {
     it("creates initial dashboard state conforming to schema with all 5 mandatory sections", () => {
       const state = createInitialDashboardState({
         runId: "test-run-42",
@@ -128,7 +128,7 @@ describe("Initial Dashboard State Factory & Data Integrity", () => {
     });
   });
 
-describe("Markdown Dashboard Rendering for 5 Mandatory Sections", () => {
+  describe("Markdown Dashboard Rendering for 5 Mandatory Sections", () => {
     it("renders all 5 mandatory sections in high-fidelity markdown format", () => {
       const state = createInitialDashboardState({
         runId: "test-run-render",

@@ -22,12 +22,21 @@ export function validateAgentToolCall(
 ): { allowed: boolean; violation?: string } {
   const contract = getAgentContract(roleOrAlias);
   if (!contract) {
-    return { allowed: false, violation: `Agent role '${roleOrAlias}' not registered in fleet matrix.` };
+    return {
+      allowed: false,
+      violation: `Agent role '${roleOrAlias}' not registered in fleet matrix.`,
+    };
   }
 
   const { toolBoundaries, permissions } = contract;
 
-  const isCodeWriteTool = ["write_to_file", "replace_file_content", "edit_file", "create_file", "delete_file"].includes(toolName);
+  const isCodeWriteTool = [
+    "write_to_file",
+    "replace_file_content",
+    "edit_file",
+    "create_file",
+    "delete_file",
+  ].includes(toolName);
   if (isCodeWriteTool && !toolBoundaries.canWriteCode) {
     return {
       allowed: false,
@@ -35,7 +44,9 @@ export function validateAgentToolCall(
     };
   }
 
-  const isCommandExecTool = ["run_command", "shell", "run:exec", "execute_command"].includes(toolName);
+  const isCommandExecTool = ["run_command", "shell", "run:exec", "execute_command"].includes(
+    toolName,
+  );
   if (isCommandExecTool && !toolBoundaries.canExecuteCommands) {
     return {
       allowed: false,

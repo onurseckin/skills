@@ -114,9 +114,7 @@ function createPopulatedTestEngine(): ThreeTierMemoryEngine {
 }
 
 describe("RetrievalSandbox Test Suite", () => {
-
-
-describe("Ephemeral Execution & Isolation Guarantee", () => {
+  describe("Ephemeral Execution & Isolation Guarantee", () => {
     it("guarantees query execution does not mutate underlying memory engine state", () => {
       const engine = createPopulatedTestEngine();
 
@@ -149,7 +147,7 @@ describe("Ephemeral Execution & Isolation Guarantee", () => {
     });
   });
 
-describe("100% Suppression of Superseded & Deprecated Entries", () => {
+  describe("100% Suppression of Superseded & Deprecated Entries", () => {
     it("100% suppresses superseded and deprecated entries under default suppressObsolete: true", () => {
       const engine = createPopulatedTestEngine();
 
@@ -210,7 +208,7 @@ describe("100% Suppression of Superseded & Deprecated Entries", () => {
     });
   });
 
-describe("Successor Guidance Inclusion", () => {
+  describe("Successor Guidance Inclusion", () => {
     it("attaches successor guidance citing terminal invariant when includeSuccessorGuidance: true", () => {
       const engine = createPopulatedTestEngine();
 

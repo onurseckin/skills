@@ -30,9 +30,7 @@ export function getDefaultBrowserChoreographyEngine(): BrowserChoreographyEngine
   return defaultBrowserChoreographyEngine;
 }
 
-export function setDefaultBrowserChoreographyEngine(
-  engine: BrowserChoreographyEngine,
-): void {
+export function setDefaultBrowserChoreographyEngine(engine: BrowserChoreographyEngine): void {
   defaultBrowserChoreographyEngine = engine;
 }
 

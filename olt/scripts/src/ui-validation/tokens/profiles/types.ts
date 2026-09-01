@@ -5,12 +5,7 @@ import {
   isApcaCompliant,
   isWcagAaCompliant,
 } from "../../theming/index.ts";
-import {
-  SPACING_TOKENS,
-  TYPOGRAPHY_TOKENS,
-  VALID_SPACING_VALUES,
-} from "../authority/index.ts";
-
+import { SPACING_TOKENS, TYPOGRAPHY_TOKENS, VALID_SPACING_VALUES } from "../authority/index.ts";
 
 /**
  * ============================================================================
@@ -41,22 +36,26 @@ export const OPTICAL_DIMENSION_METADATA: Record<OpticalDimension, OpticalDimensi
   "visual-hierarchy": {
     id: "visual-hierarchy",
     name: "Visual Hierarchy & Eye Flow",
-    description: "Natural optical paths directing attention to primary actions through scaling, weight, and positioning.",
+    description:
+      "Natural optical paths directing attention to primary actions through scaling, weight, and positioning.",
   },
   "spatial-rhythm": {
     id: "spatial-rhythm",
     name: "Spatial Rhythm & Optical Spacing",
-    description: "Consistent grid units, balanced container margins/padding, and breathing room without crowding.",
+    description:
+      "Consistent grid units, balanced container margins/padding, and breathing room without crowding.",
   },
   "typography-rendering": {
     id: "typography-rendering",
     name: "Typography & Font Rendering",
-    description: "Disciplined font sizes, line heights, font weights, letter spacing, and baseline alignment.",
+    description:
+      "Disciplined font sizes, line heights, font weights, letter spacing, and baseline alignment.",
   },
   "clipping-overflow": {
     id: "clipping-overflow",
     name: "Clipping, Overflow & Descender Protection",
-    description: "Zero cropped characters or badges; protection for lowercase descenders (g, j, p, q, y).",
+    description:
+      "Zero cropped characters or badges; protection for lowercase descenders (g, j, p, q, y).",
   },
   "perceptual-contrast": {
     id: "perceptual-contrast",
@@ -66,17 +65,20 @@ export const OPTICAL_DIMENSION_METADATA: Record<OpticalDimension, OpticalDimensi
   "theme-harmony": {
     id: "theme-harmony",
     name: "Theme Harmony & Color Balance",
-    description: "Consistent chromatic balance, depth calibration, and calibrated saturation across modes.",
+    description:
+      "Consistent chromatic balance, depth calibration, and calibrated saturation across modes.",
   },
   "structural-z-index": {
     id: "structural-z-index",
     name: "Structural Z-Index & Layer Overlays",
-    description: "Correct elevation layering, modal backdrops, dropdown popovers, and natural shadow casting.",
+    description:
+      "Correct elevation layering, modal backdrops, dropdown popovers, and natural shadow casting.",
   },
   "touch-ergonomics": {
     id: "touch-ergonomics",
     name: "Interactive Hitboxes & Touch Ergonomics",
-    description: "Generous physical touch targets (minimum 44x44px standard, 48x48px high-frequency cockpits).",
+    description:
+      "Generous physical touch targets (minimum 44x44px standard, 48x48px high-frequency cockpits).",
   },
 };
 
@@ -86,10 +88,7 @@ export const OPTICAL_DIMENSION_METADATA: Record<OpticalDimension, OpticalDimensi
  * ============================================================================
  */
 
-export type IndustryProfileId =
-  | "enterprise_accounting"
-  | "luxury_hospitality"
-  | "fleet_telematics";
+export type IndustryProfileId = "enterprise_accounting" | "luxury_hospitality" | "fleet_telematics";
 
 export type AestheticProfileId = IndustryProfileId | string;
 
@@ -105,7 +104,6 @@ export interface AestheticProfile {
   readonly requireGenerousWhitespace?: boolean;
   readonly requireStatusColorEncoding?: boolean;
 }
-
 
 export interface UiElementDescriptor {
   readonly elementId: string;
@@ -176,4 +174,3 @@ export interface AestheticEvaluationReport {
  * 4. Aesthetic Profile Evaluator Engine
  * ============================================================================
  */
-

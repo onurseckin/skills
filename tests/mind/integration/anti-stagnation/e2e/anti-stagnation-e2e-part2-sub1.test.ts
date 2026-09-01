@@ -82,7 +82,7 @@ import {
 } from "../../../../../olt/scripts/src/mind/telemetry/index.ts";
 
 describe("Anti-Stagnation End-to-End Multi-Hour Sovereign Simulation Suite", () => {
-let testRepoRoot: string;
+  let testRepoRoot: string;
 
   beforeEach(() => {
     testRepoRoot = join(
@@ -103,7 +103,7 @@ let testRepoRoot: string;
     }
   });
 
-describe("1. In-Flight Work Ingestion & Priority 1 User Intent Binding", () => {
+  describe("1. In-Flight Work Ingestion & Priority 1 User Intent Binding", () => {
     it("ingests uncommitted user work, extracts intent, and establishes Priority 1 deliverable anchor", async () => {
       // Simulate user editing files before sovereign initialization
       const srcDir = join(testRepoRoot, "src");
@@ -111,9 +111,17 @@ describe("1. In-Flight Work Ingestion & Priority 1 User Intent Binding", () => {
       const mockRunner = (_cwd: string, argv: readonly string[]) => {
         const cmd = argv[0];
         if (cmd === "symbolic-ref") return { status: 0, stdout: "main\n", stderr: "" };
-        if (cmd === "rev-parse") return { status: 0, stdout: "1111222233334444555566667777888899990000\n", stderr: "" };
-        if (cmd === "status") return { status: 0, stdout: " M src/auth-middleware.ts\n", stderr: "" };
-        if (cmd === "diff") return { status: 0, stdout: "diff --git a/src/auth-middleware.ts b/src/auth-middleware.ts\n+export function authenticateToken\n", stderr: "" };
+        if (cmd === "rev-parse")
+          return { status: 0, stdout: "1111222233334444555566667777888899990000\n", stderr: "" };
+        if (cmd === "status")
+          return { status: 0, stdout: " M src/auth-middleware.ts\n", stderr: "" };
+        if (cmd === "diff")
+          return {
+            status: 0,
+            stdout:
+              "diff --git a/src/auth-middleware.ts b/src/auth-middleware.ts\n+export function authenticateToken\n",
+            stderr: "",
+          };
         if (cmd === "stash") return { status: 0, stdout: "", stderr: "" };
         return { status: 0, stdout: "", stderr: "" };
       };
@@ -142,7 +150,7 @@ describe("1. In-Flight Work Ingestion & Priority 1 User Intent Binding", () => {
     });
   });
 
-describe("2. Cumulative Dialectical Socratic Progression (L1 -> L2 -> L3)", () => {
+  describe("2. Cumulative Dialectical Socratic Progression (L1 -> L2 -> L3)", () => {
     it("progresses systematically across dialectical levels and locks consensus into strategic memory", () => {
       const memory = new HistoricalDebateMemory();
       const engine = new SocraticLadderingEngine(memory);

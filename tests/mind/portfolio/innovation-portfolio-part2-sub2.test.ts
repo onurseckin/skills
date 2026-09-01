@@ -27,7 +27,7 @@ import {
 } from "../../../olt/scripts/src/mind/planning/innovation-portfolio.ts";
 
 describe("70/20/10 Innovation Portfolio Governance & 3-Milestone Gates Suite", () => {
-describe("3. 3-Milestone Hypothesis Gates & Stage-Gated Lifecycle", () => {
+  describe("3. 3-Milestone Hypothesis Gates & Stage-Gated Lifecycle", () => {
     it("registers an exploratory bet with 3 sequential hypothesis gates and stage-gated budget", () => {
       const manager = new InnovationPortfolioManager();
       const bet = manager.registerBet({
@@ -124,7 +124,7 @@ describe("3. 3-Milestone Hypothesis Gates & Stage-Gated Lifecycle", () => {
     });
   });
 
-describe("4. Failure Handling & Anti-Pattern Ledger Logging", () => {
+  describe("4. Failure Handling & Anti-Pattern Ledger Logging", () => {
     it("terminates bet immediately upon milestone failure, logs to AntiPatternLedger, and releases capacity", () => {
       const manager = new InnovationPortfolioManager();
       const bet = manager.registerBet({

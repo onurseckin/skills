@@ -29,7 +29,7 @@ import {
 } from "../../../olt/scripts/src/mind/auditing/product-craft.ts";
 
 describe("Product Craft, Visual Aesthetics & Ergonomic Walkthrough Auditing Suite", () => {
-describe("4. Ergonomic Walkthrough Audit Execution & Sign-Off Gating", () => {
+  describe("4. Ergonomic Walkthrough Audit Execution & Sign-Off Gating", () => {
     it("passes a milestone meeting all pillar criteria with score >= 85 and zero blocking deficits", () => {
       const auditor = createErgonomicWalkthroughAuditor();
 
@@ -175,7 +175,7 @@ describe("4. Ergonomic Walkthrough Audit Execution & Sign-Off Gating", () => {
     });
   });
 
-describe("5. UserJourney Audits, Markdown & ASCII Reports", () => {
+  describe("5. UserJourney Audits, Markdown & ASCII Reports", () => {
     it("conducts multi-step UserJourney ergonomic walkthrough audit", () => {
       const auditor = createErgonomicWalkthroughAuditor();
 

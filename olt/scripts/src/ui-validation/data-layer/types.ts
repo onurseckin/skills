@@ -112,5 +112,3 @@ export interface DisambiguationEvaluationResult {
   readonly handoffToken?: VisualFoundationHandoffToken | undefined;
   readonly defectReceipt?: RoutedDefectReceipt | undefined;
 }
-
-

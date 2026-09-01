@@ -32,10 +32,7 @@ export class TemporalKeyframeStepSampler {
         (s.timestampMs >= input.durationMs * 0.45 && s.timestampMs <= input.durationMs * 0.55),
     );
     const finalSample = samples.find(
-      (s) =>
-        s.point === "100%" ||
-        s.point === 1 ||
-        s.timestampMs >= input.durationMs * 0.95,
+      (s) => s.point === "100%" || s.point === 1 || s.timestampMs >= input.durationMs * 0.95,
     );
 
     const sampledInception0 = inceptionSample !== undefined;
@@ -64,7 +61,7 @@ export class TemporalKeyframeStepSampler {
     }
 
     // Overshoot detection
-    const targetValue = input.targetRestingValue ?? (finalSample?.value ?? 1.0);
+    const targetValue = input.targetRestingValue ?? finalSample?.value ?? 1.0;
     const initialValue = inceptionSample?.value ?? 0.0;
     const range = Math.abs(targetValue - initialValue) || 1.0;
 
@@ -84,7 +81,12 @@ export class TemporalKeyframeStepSampler {
     }
 
     const bounceOvershootDetected = maxOvershoot > 0.01;
-    if (bounceOvershootDetected && !input.allowOvershoot && input.easingType !== "spring" && input.easingType !== "bouncy") {
+    if (
+      bounceOvershootDetected &&
+      !input.allowOvershoot &&
+      input.easingType !== "spring" &&
+      input.easingType !== "bouncy"
+    ) {
       violations.push(
         `Unexpected bounce overshoot detected (${(maxOvershoot * 100).toFixed(1)}%) for non-spring easing '${input.easingType || "unknown"}'`,
       );
@@ -96,8 +98,10 @@ export class TemporalKeyframeStepSampler {
       // For standard monotonic transitions, midpoint value should be between start and end
       if (!input.allowOvershoot && input.easingType !== "spring" && input.easingType !== "bouncy") {
         const isProgressive =
-          (inceptionSample.value <= midpointSample.value && midpointSample.value <= finalSample.value) ||
-          (inceptionSample.value >= midpointSample.value && midpointSample.value >= finalSample.value);
+          (inceptionSample.value <= midpointSample.value &&
+            midpointSample.value <= finalSample.value) ||
+          (inceptionSample.value >= midpointSample.value &&
+            midpointSample.value >= finalSample.value);
 
         if (!isProgressive) {
           easingCurveValid = false;
@@ -126,4 +130,3 @@ export class TemporalKeyframeStepSampler {
 // ============================================================================
 // 3. Microcraft & Tactile Feedback Inspection
 // ============================================================================
-

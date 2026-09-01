@@ -90,7 +90,7 @@ export type ViewportPresetName =
  */
 export const TOUCH_HITBOX_MINIMUMS = {
   STANDARD: { width: 44, height: 44 }, // >= 44x44pt
-  COCKPIT: { width: 48, height: 48 },  // >= 48x48pt for cockpit/critical controls
+  COCKPIT: { width: 48, height: 48 }, // >= 48x48pt for cockpit/critical controls
 } as const;
 
 /**
@@ -116,13 +116,7 @@ export type CanonicalStressInputKey = keyof typeof CANONICAL_STRESS_INPUTS;
 // 1. Active Journey Flows Types & Engine
 // ============================================================================
 
-export type JourneyActionType =
-  | "navigate"
-  | "click"
-  | "input"
-  | "wait"
-  | "assert"
-  | "custom";
+export type JourneyActionType = "navigate" | "click" | "input" | "wait" | "assert" | "custom";
 
 export interface JourneyStep {
   readonly id: string;
@@ -180,9 +174,7 @@ export interface JourneyStepHandlerContext {
   readonly stepIndex: number;
 }
 
-export type JourneyStepHandler = (
-  context: JourneyStepHandlerContext,
-) => Promise<{
+export type JourneyStepHandler = (context: JourneyStepHandlerContext) => Promise<{
   breadcrumbsObserved?: readonly string[];
   actualRoute?: string;
   error?: string;

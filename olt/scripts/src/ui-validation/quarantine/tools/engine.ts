@@ -8,11 +8,7 @@ import type {
   QuarantineAuditRecord,
   OpticalQuarantineInvariant,
 } from "./types.ts";
-import {
-  isOpticalValidatorRole,
-  verifyCapability,
-  detectBackdoorBypass,
-} from "./inspectors.ts";
+import { isOpticalValidatorRole, verifyCapability, detectBackdoorBypass } from "./inspectors.ts";
 
 export class ToolQuarantineEngine {
   private readonly auditLog: QuarantineAuditRecord[] = [];
@@ -35,10 +31,7 @@ export class ToolQuarantineEngine {
   /**
    * Verify capability of a specific tool for a given role
    */
-  public verifyCapability(
-    toolName: string,
-    role = "ui-optical-validator",
-  ): QuarantineCheckResult {
+  public verifyCapability(toolName: string, role = "ui-optical-validator"): QuarantineCheckResult {
     return verifyCapability(toolName, role);
   }
 
@@ -177,7 +170,6 @@ export class ToolQuarantineEngine {
 /**
  * Singleton instance of ToolQuarantineEngine
  */
-
 
 let defaultQuarantineEngine: ToolQuarantineEngine | null = null;
 

@@ -15,9 +15,7 @@ import {
 } from "../../../../olt/scripts/src/mind/planning/pareto-arbitration.ts";
 
 describe("Pareto Decision Hierarchy & Arbitration Engine", () => {
-
-
-describe("Priority 1: User Experience Delight & Functional Correctness", () => {
+  describe("Priority 1: User Experience Delight & Functional Correctness", () => {
     it("disqualifies candidate with runtime or structural errors immediately", () => {
       const candidateBroken: ParetoApproachCandidate = {
         name: "Broken Super Fast Approach",
@@ -103,7 +101,7 @@ describe("Priority 1: User Experience Delight & Functional Correctness", () => {
     });
   });
 
-describe("Priority 2: Cognitive Simplicity & Architectural Maintainability", () => {
+  describe("Priority 2: Cognitive Simplicity & Architectural Maintainability", () => {
     it("unconditionally defeats marginal performance gains (< 15% delta)", () => {
       const candidateSimple: ParetoApproachCandidate = {
         name: "Simple In-Memory Cache",
@@ -152,7 +150,7 @@ describe("Priority 2: Cognitive Simplicity & Architectural Maintainability", () 
     });
   });
 
-describe("Priority 3: Measurable Performance Scalability & Resource Efficiency (>= 15%)", () => {
+  describe("Priority 3: Measurable Performance Scalability & Resource Efficiency (>= 15%)", () => {
     it("takes precedence over simplicity when empirical gain is >= 15%", () => {
       const candidateSimple: ParetoApproachCandidate = {
         name: "Simple Serial Parser",
@@ -197,7 +195,7 @@ describe("Priority 3: Measurable Performance Scalability & Resource Efficiency (
     });
   });
 
-describe("Priority 4: Speculative Abstraction & Generality", () => {
+  describe("Priority 4: Speculative Abstraction & Generality", () => {
     it("unconditionally rejects speculative abstraction against valid baseline", () => {
       const candidateSpeculative: ParetoApproachCandidate = {
         name: "Generic Polymorphic Meta-Framework",

@@ -34,17 +34,9 @@ export { evaluateSubstantiveDefense } from "./defense-evaluator.ts";
 export { InterRoundRegressionAuditor } from "./regression-auditor.ts";
 export { ParetoArbitrationEngine } from "./pareto-arbitration.ts";
 
-export {
-  raiseChallenge,
-  submitDefense,
-  escalateToParetoArbitration,
-} from "./dialectic-cycle.ts";
+export { raiseChallenge, submitDefense, escalateToParetoArbitration } from "./dialectic-cycle.ts";
 
-export {
-  evaluateRoundReadiness,
-  auditInterRoundState,
-  advanceRound,
-} from "./round-flow.ts";
+export { evaluateRoundReadiness, auditInterRoundState, advanceRound } from "./round-flow.ts";
 
 export {
   SocraticDialecticEngine,

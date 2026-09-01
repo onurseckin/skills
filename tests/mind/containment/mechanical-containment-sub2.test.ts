@@ -15,7 +15,7 @@ import {
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("MechanicalContainmentEngine", () => {
-beforeEach(() => {
+  beforeEach(() => {
     resetDefaultContainmentEngine();
   });
 
@@ -23,7 +23,7 @@ beforeEach(() => {
     resetDefaultContainmentEngine();
   });
 
-describe("Strike Reset, Decay, and TTL Expiration", () => {
+  describe("Strike Reset, Decay, and TTL Expiration", () => {
     it("resets strikes cleanly via resetStrikes", () => {
       const engine = new MechanicalContainmentEngine();
       const agentId = "coord-reset";
@@ -101,7 +101,7 @@ describe("Strike Reset, Decay, and TTL Expiration", () => {
     });
   });
 
-describe("Serialization and Deserialization", () => {
+  describe("Serialization and Deserialization", () => {
     it("serializes and restores containment engine state losslessly", () => {
       const engine = new MechanicalContainmentEngine({ strikeDecayMs: 60000 });
       engine.registerAgent("agent-ser-1", "coordinator");
@@ -124,7 +124,7 @@ describe("Serialization and Deserialization", () => {
     });
   });
 
-describe("Authority Guard Integration (assertSupervisoryContainment)", () => {
+  describe("Authority Guard Integration (assertSupervisoryContainment)", () => {
     it("permits actions unconditionally for non-supervisory worker roles", () => {
       const workerResult = checkSupervisoryContainment({
         agentId: "worker-impl-1",

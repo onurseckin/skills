@@ -22,7 +22,7 @@ import {
 } from "../../../../olt/scripts/src/mind/memory/index.ts";
 
 describe("SupersessionIndex Dedicated Suite", () => {
-describe("Epistemic Status & Type Guards", () => {
+  describe("Epistemic Status & Type Guards", () => {
     it("exports canonical EPISTEMIC_STATUSES containing ACTIVE, SUPERSEDED, DEPRECATED", () => {
       expect(EPISTEMIC_STATUSES).toEqual(["ACTIVE", "SUPERSEDED", "DEPRECATED"]);
       expect(EPISTEMIC_STATUSES.length).toBe(3);
@@ -80,7 +80,7 @@ describe("Epistemic Status & Type Guards", () => {
     });
   });
 
-describe("Directed Lineage Graph Traversal & Successor Resolution", () => {
+  describe("Directed Lineage Graph Traversal & Successor Resolution", () => {
     it("traverses single-hop supersession relationships", () => {
       const index = new SupersessionIndex();
       index.registerEntry({ id: "spec-v1", title: "Specification v1" });
@@ -108,11 +108,20 @@ describe("Directed Lineage Graph Traversal & Successor Resolution", () => {
       index.registerEntry({ id: "v1-legacy", title: "V1 Prototype", status: "ACTIVE" });
       index.registerEntry({ id: "v2-interim", title: "V2 Draft", status: "ACTIVE" });
       index.registerEntry({ id: "v3-release", title: "V3 Production", status: "ACTIVE" });
-      index.registerEntry({ id: "inv-bedrock-rule", title: "Bedrock Invariant Final", status: "ACTIVE" });
+      index.registerEntry({
+        id: "inv-bedrock-rule",
+        title: "Bedrock Invariant Final",
+        status: "ACTIVE",
+      });
 
       index.markSuperseded("v1-legacy", "v2-interim", "Superseded by V2");
       index.markSuperseded("v2-interim", "v3-release", "Superseded by V3");
-      index.markSuperseded("v3-release", "inv-bedrock-rule", "Settled into permanent Bedrock Invariant", "inv-bedrock-rule");
+      index.markSuperseded(
+        "v3-release",
+        "inv-bedrock-rule",
+        "Settled into permanent Bedrock Invariant",
+        "inv-bedrock-rule",
+      );
 
       expect(index.getEpistemicStatus("v1-legacy")).toBe("SUPERSEDED");
       expect(index.getEpistemicStatus("v2-interim")).toBe("SUPERSEDED");
@@ -130,8 +139,18 @@ describe("Directed Lineage Graph Traversal & Successor Resolution", () => {
 
     it("resolves terminal successor when querying an intermediate superseded node", () => {
       const index = new SupersessionIndex();
-      index.registerEntry({ id: "step-1", title: "Step 1", status: "SUPERSEDED", supersededBy: "step-2" });
-      index.registerEntry({ id: "step-2", title: "Step 2", status: "SUPERSEDED", supersededBy: "step-3" });
+      index.registerEntry({
+        id: "step-1",
+        title: "Step 1",
+        status: "SUPERSEDED",
+        supersededBy: "step-2",
+      });
+      index.registerEntry({
+        id: "step-2",
+        title: "Step 2",
+        status: "SUPERSEDED",
+        supersededBy: "step-3",
+      });
       index.registerEntry({ id: "step-3", title: "Step 3", status: "ACTIVE" });
 
       const intermediateTerminal = index.getTerminalSuccessor("step-2");
@@ -172,7 +191,10 @@ describe("Directed Lineage Graph Traversal & Successor Resolution", () => {
       const index = new SupersessionIndex();
       index.registerEntry({ id: "old-abandoned-pattern", title: "Abandoned Pattern" });
 
-      const marked = index.markDeprecated("old-abandoned-pattern", "Pattern proven counter-productive");
+      const marked = index.markDeprecated(
+        "old-abandoned-pattern",
+        "Pattern proven counter-productive",
+      );
       expect(marked).toBe(true);
 
       expect(index.getEpistemicStatus("old-abandoned-pattern")).toBe("DEPRECATED");

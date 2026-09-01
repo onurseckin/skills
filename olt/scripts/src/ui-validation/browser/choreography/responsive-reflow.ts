@@ -17,14 +17,9 @@ export class ResponsiveReflowProber {
   /**
    * Validates touch hitbox dimensions against accessibility minimums
    */
-  public validateTouchHitboxes(
-    hitboxes: readonly TouchHitbox[],
-  ): readonly TouchHitboxResult[] {
+  public validateTouchHitboxes(hitboxes: readonly TouchHitbox[]): readonly TouchHitboxResult[] {
     if (!hitboxes) {
-      throw new HarnessError(
-        "INVALID_ARGUMENT",
-        "Hitboxes array must not be undefined or null",
-      );
+      throw new HarnessError("INVALID_ARGUMENT", "Hitboxes array must not be undefined or null");
     }
 
     return hitboxes.map((box) => {
@@ -134,10 +129,7 @@ export class ResponsiveReflowProber {
     metricsByPreset: Record<ViewportPresetName, BreakpointLayoutMetrics>,
   ): Record<ViewportPresetName, BreakpointReflowResult> {
     if (!metricsByPreset) {
-      throw new HarnessError(
-        "INVALID_ARGUMENT",
-        "metricsByPreset must not be undefined or null",
-      );
+      throw new HarnessError("INVALID_ARGUMENT", "metricsByPreset must not be undefined or null");
     }
 
     return {

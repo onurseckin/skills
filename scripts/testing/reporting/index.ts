@@ -1,6 +1,12 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { writeInteractiveHtml, buildHtmlDocument, extractCoverageFileData, getClientScript, getHtmlStyles } from "./html/index.ts";
+import {
+  writeInteractiveHtml,
+  buildHtmlDocument,
+  extractCoverageFileData,
+  getClientScript,
+  getHtmlStyles,
+} from "./html/index.ts";
 import { parseLcov } from "./lcov-parser.ts";
 import { writeMarkdownReport, formatRuntimeMarkdown } from "./markdown-reporter.ts";
 import { parseTestRuntimeOutput } from "./runtime-telemetry.ts";
@@ -63,7 +69,11 @@ export {
 
 export { parseLcov } from "./lcov-parser.ts";
 export { buildCoverageSummary, writeSummaryJson } from "./summary-reporter.ts";
-export { formatRuntimeMarkdown, writeMarkdownReport, buildMarkdownReport } from "./markdown-reporter.ts";
+export {
+  formatRuntimeMarkdown,
+  writeMarkdownReport,
+  buildMarkdownReport,
+} from "./markdown-reporter.ts";
 
 export {
   calculateParetoThreshold,

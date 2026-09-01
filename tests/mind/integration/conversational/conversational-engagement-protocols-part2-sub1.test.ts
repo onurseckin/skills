@@ -53,7 +53,7 @@ import {
 } from "../../../../olt/scripts/src/mind/containment/index.ts";
 
 describe("Conversational Engagement Protocols & Active Swarm Audit Suite", () => {
-let testRepoRoot: string;
+  let testRepoRoot: string;
 
   beforeEach(() => {
     testRepoRoot = join(
@@ -73,7 +73,7 @@ let testRepoRoot: string;
     }
   });
 
-describe("1. Mandatory 3-Round (6-Turn) Socratic Conversational Laddering Protocol", () => {
+  describe("1. Mandatory 3-Round (6-Turn) Socratic Conversational Laddering Protocol", () => {
     it("executes the complete 6-turn Socratic audit through mailbox IPC and enforces minimum 6 turns before conclusion", () => {
       const auditorPaths = ensureMailboxDir("skill-auditor", testRepoRoot);
       const supervisorPaths = ensureMailboxDir("mind-supervisor", testRepoRoot);
@@ -192,7 +192,9 @@ describe("1. Mandatory 3-Round (6-Turn) Socratic Conversational Laddering Protoc
       );
 
       expect(consensus.consensusReached).toBe(true);
-      expect(consensus.winningApproach).toBe("Lockless Single-Writer Ring Buffer with 70/20/10 Allocation");
+      expect(consensus.winningApproach).toBe(
+        "Lockless Single-Writer Ring Buffer with 70/20/10 Allocation",
+      );
       expect(debateMemory.getResolutions()).toHaveLength(1);
     });
 
@@ -207,7 +209,9 @@ describe("1. Mandatory 3-Round (6-Turn) Socratic Conversational Laddering Protoc
       });
 
       // Still at L2, not L3 consensus
-      expect(socraticEngine.getState().currentLevel).toBe(DIALECTICAL_LEVELS.L2_SECOND_ORDER_IMPLICATIONS);
+      expect(socraticEngine.getState().currentLevel).toBe(
+        DIALECTICAL_LEVELS.L2_SECOND_ORDER_IMPLICATIONS,
+      );
       expect(socraticEngine.getState().consensusReached).toBe(false);
     });
   });

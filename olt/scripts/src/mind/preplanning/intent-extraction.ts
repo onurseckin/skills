@@ -164,10 +164,10 @@ function classifyDomainFromFiles(
     "UI/UX": 0,
     "Backend/API": 0,
     "Core Engine": 0,
-    "Testing": 0,
-    "Tooling": 0,
-    "Docs": 0,
-    "Architecture": 0,
+    Testing: 0,
+    Tooling: 0,
+    Docs: 0,
+    Architecture: 0,
   };
 
   for (const file of files) {
@@ -273,10 +273,16 @@ function classifyDomainFromFiles(
 
   // Inspect diff content for domain indicators
   const diffLower = diffText.toLowerCase();
-  if (/\b(?:react|usestate|useeffect|render|html|css|component|modal|dialog|button)\b/.test(diffLower)) {
+  if (
+    /\b(?:react|usestate|useeffect|render|html|css|component|modal|dialog|button)\b/.test(diffLower)
+  ) {
     scores["UI/UX"] += 4;
   }
-  if (/\b(?:request|response|router|endpoint|statuscode|headers|bearer|json\(|fetch\()\b/.test(diffLower)) {
+  if (
+    /\b(?:request|response|router|endpoint|statuscode|headers|bearer|json\(|fetch\()\b/.test(
+      diffLower,
+    )
+  ) {
     scores["Backend/API"] += 4;
   }
   if (/\b(?:describe|expect\(|it\(|assert|testsuite|mock|fixture)\b/.test(diffLower)) {
@@ -339,10 +345,18 @@ function classifyCategoryFromSnapshot(
   }
 
   // Diff content analysis
-  if (/\b(?:fix(?:es|ed)?|bug|error|throw new HarnessError|catch\s*\(|fallback|null check|undefined check)\b/.test(diffLower)) {
+  if (
+    /\b(?:fix(?:es|ed)?|bug|error|throw new HarnessError|catch\s*\(|fallback|null check|undefined check)\b/.test(
+      diffLower,
+    )
+  ) {
     scores.BUG_FIX += 4;
   }
-  if (/\b(?:export\s+function|export\s+class|export\s+interface|export\s+type|new\s+[A-Z])\b/.test(snapshot.rawDiff)) {
+  if (
+    /\b(?:export\s+function|export\s+class|export\s+interface|export\s+type|new\s+[A-Z])\b/.test(
+      snapshot.rawDiff,
+    )
+  ) {
     scores.FEATURE += 5;
   }
   if (/\b(?:expect\(|test\(|it\(|describe\()\b/.test(diffLower)) {
@@ -351,7 +365,11 @@ function classifyCategoryFromSnapshot(
   if (primaryDomain === "Testing") {
     scores.TESTING += 8;
   }
-  if (primaryDomain === "UI/UX" && snapshot.diffSummary.insertions < 40 && snapshot.diffSummary.deletions < 20) {
+  if (
+    primaryDomain === "UI/UX" &&
+    snapshot.diffSummary.insertions < 40 &&
+    snapshot.diffSummary.deletions < 20
+  ) {
     scores.UX_POLISH += 4;
   }
 
@@ -363,19 +381,24 @@ function classifyCategoryFromSnapshot(
     scores.FEATURE += 6;
   }
 
-  const infraFileCount = snapshot.uncommittedFiles.filter((f) =>
-    f.path.includes("package.json") ||
-    f.path.includes("tsconfig") ||
-    f.path.includes("docker") ||
-    f.path.includes(".github/") ||
-    f.path.includes("biome.json"),
+  const infraFileCount = snapshot.uncommittedFiles.filter(
+    (f) =>
+      f.path.includes("package.json") ||
+      f.path.includes("tsconfig") ||
+      f.path.includes("docker") ||
+      f.path.includes(".github/") ||
+      f.path.includes("biome.json"),
   ).length;
 
   if (infraFileCount > 0 && infraFileCount === snapshot.uncommittedFiles.length) {
     scores.INFRASTRUCTURE += 10;
   }
 
-  if (snapshot.diffSummary.insertions > 0 && snapshot.diffSummary.deletions > 0 && !hasAddedOrUntracked) {
+  if (
+    snapshot.diffSummary.insertions > 0 &&
+    snapshot.diffSummary.deletions > 0 &&
+    !hasAddedOrUntracked
+  ) {
     scores.REFACTOR += 3;
   }
 
@@ -391,7 +414,8 @@ function classifyCategoryFromSnapshot(
     }
   }
 
-  const confidence = totalScore > 0 ? Math.min(1, Math.max(0.6, Number((maxScore / totalScore).toFixed(2)))) : 0.75;
+  const confidence =
+    totalScore > 0 ? Math.min(1, Math.max(0.6, Number((maxScore / totalScore).toFixed(2)))) : 0.75;
   return { category: bestCategory, confidence };
 }
 
@@ -507,9 +531,7 @@ function synthesizeIntentRationale(
   }
 
   if (primarySymbols.length > 0) {
-    lines.push(
-      `Key symbols and definitions detected: ${primarySymbols.slice(0, 6).join(", ")}.`,
-    );
+    lines.push(`Key symbols and definitions detected: ${primarySymbols.slice(0, 6).join(", ")}.`);
   }
 
   if (snapshot.stashes.length > 0) {
@@ -551,9 +573,7 @@ function generateAcceptanceCriteria(
       `Comprehensive automated test coverage in [${testScope.slice(0, 2).join(", ")}] validating all primary paths and error states.`,
     );
   } else {
-    criteria.push(
-      "Automated unit and regression test suite verifying expected behavior.",
-    );
+    criteria.push("Automated unit and regression test suite verifying expected behavior.");
   }
 
   criteria.push(
@@ -579,13 +599,19 @@ export class UserIntentExtractionEngine {
     const primarySymbolsAffected = [...new Set([...symbolsFromDiff, ...symbolsFromUntracked])];
 
     // Classify domain and category
-    const domainClassification = classifyDomainFromFiles(snapshot.uncommittedFiles, snapshot.rawDiff);
-    const domain = options?.explicitDomain !== undefined ? options.explicitDomain : domainClassification.domain;
+    const domainClassification = classifyDomainFromFiles(
+      snapshot.uncommittedFiles,
+      snapshot.rawDiff,
+    );
+    const domain =
+      options?.explicitDomain !== undefined ? options.explicitDomain : domainClassification.domain;
     const canonicalDomain = toCanonicalDomainCategory(domain);
 
     const categoryClassification = classifyCategoryFromSnapshot(snapshot, domain);
     const category =
-      options?.explicitCategory !== undefined ? options.explicitCategory : categoryClassification.category;
+      options?.explicitCategory !== undefined
+        ? options.explicitCategory
+        : categoryClassification.category;
 
     const sourceFiles = snapshot.uncommittedFiles.map((f) => f.path);
     const writeScope = sourceFiles.filter((p) => !p.includes(".test.") && !p.includes(".spec."));
@@ -723,7 +749,10 @@ export class UserIntentExtractionEngine {
     const integratedAt = new Date().toISOString();
     const notes: string[] = [];
 
-    const domainSlug = intent.domain.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    const domainSlug = intent.domain
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
     const shortId = intent.intentId.slice(-8);
     const planFilename = `plan-p1-${domainSlug}-${shortId}.md`;
     const targetPlanPath = join("plans", planFilename);
@@ -735,16 +764,24 @@ export class UserIntentExtractionEngine {
       const roadmapObj = roadmap as Record<string, unknown>;
       if (Array.isArray(roadmapObj.clusters) && roadmapObj.clusters.length > 0) {
         const matchingCluster = roadmapObj.clusters.find(
-          (c) => typeof c === "object" && c !== null && "domain" in c && c.domain === intent.canonicalDomain,
+          (c) =>
+            typeof c === "object" &&
+            c !== null &&
+            "domain" in c &&
+            c.domain === intent.canonicalDomain,
         ) as { cluster_id?: string; plan_path?: string } | undefined;
 
         if (matchingCluster?.cluster_id) {
           clusterId = matchingCluster.cluster_id;
           roadmapAction = "UPDATE_CLUSTER";
-          notes.push(`Matched existing domain cluster '${clusterId}' for domain '${intent.domain}'.`);
+          notes.push(
+            `Matched existing domain cluster '${clusterId}' for domain '${intent.domain}'.`,
+          );
         } else {
           roadmapAction = "APPEND_DELIVERABLE";
-          notes.push(`Appended Priority 1 deliverable to backlog under canonical domain '${intent.canonicalDomain}'.`);
+          notes.push(
+            `Appended Priority 1 deliverable to backlog under canonical domain '${intent.canonicalDomain}'.`,
+          );
         }
       }
     }

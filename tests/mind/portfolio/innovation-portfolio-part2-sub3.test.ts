@@ -27,7 +27,7 @@ import {
 } from "../../../olt/scripts/src/mind/planning/innovation-portfolio.ts";
 
 describe("70/20/10 Innovation Portfolio Governance & 3-Milestone Gates Suite", () => {
-describe("5. Graduation Protocol into Core / Architectural Tracks", () => {
+  describe("5. Graduation Protocol into Core / Architectural Tracks", () => {
     it("graduates bet upon completing Milestone 3, issues GraduationCertificate, and transitions workstream", () => {
       const manager = new InnovationPortfolioManager();
       const bet = manager.registerBet({

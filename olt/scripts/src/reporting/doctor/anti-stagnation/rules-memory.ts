@@ -1,4 +1,3 @@
-
 import { existsSync } from "node:fs";
 import {
   type LineageValidationResult,
@@ -30,7 +29,8 @@ export function auditThreeTierSemanticMemory(ctx: InvariantContext): InvariantAu
           invariant: "THREE_TIER_SEMANTIC_MEMORY",
           compliant: false,
           severity: "ERROR",
-          message: "Three-Tier Semantic Memory violation: Mandatory memory tiers (Tier 1 Invariants, Tier 2 Working Memory, Tier 3 Archived Epics) are missing or corrupted.",
+          message:
+            "Three-Tier Semantic Memory violation: Mandatory memory tiers (Tier 1 Invariants, Tier 2 Working Memory, Tier 3 Archived Epics) are missing or corrupted.",
           details: { hasTier1, hasTier2, hasTier3 },
         },
       ];
@@ -90,7 +90,8 @@ export function auditEpistemicSupersessionIndexing(ctx: InvariantContext): Invar
       invariant: "EPISTEMIC_SUPERSESSION_INDEXING",
       compliant: true,
       severity: "INFO",
-      message: "Epistemic Supersession Indexing invariant satisfied: lineage graph is strictly acyclic.",
+      message:
+        "Epistemic Supersession Indexing invariant satisfied: lineage graph is strictly acyclic.",
     },
   ];
 }
@@ -175,7 +176,8 @@ export function auditSuspendedAnimationProtocol(ctx: InvariantContext): Invarian
       invariant: "SUSPENDED_ANIMATION_PROTOCOL",
       compliant: true,
       severity: "INFO",
-      message: "Suspended Animation Protocol invariant satisfied: snapshot checksums and task DAGs are intact.",
+      message:
+        "Suspended Animation Protocol invariant satisfied: snapshot checksums and task DAGs are intact.",
     },
   ];
 }
@@ -192,7 +194,8 @@ export function auditInflightWorkIngestion(ctx: InvariantContext): InvariantAudi
         invariant: "INFLIGHT_WORK_INGESTION",
         compliant: false,
         severity: "WARN",
-        message: "In-Flight Work Ingestion notice: Snapshot ID recorded but snapshot summary metadata is incomplete.",
+        message:
+          "In-Flight Work Ingestion notice: Snapshot ID recorded but snapshot summary metadata is incomplete.",
         details: { snapshotId: ctx.state.snapshot_id },
       },
     ];
@@ -203,7 +206,8 @@ export function auditInflightWorkIngestion(ctx: InvariantContext): InvariantAudi
       invariant: "INFLIGHT_WORK_INGESTION",
       compliant: true,
       severity: "INFO",
-      message: "In-Flight Work Ingestion invariant satisfied: non-destructive uncommitted state capture intact.",
+      message:
+        "In-Flight Work Ingestion invariant satisfied: non-destructive uncommitted state capture intact.",
     },
   ];
 }
@@ -216,7 +220,8 @@ export function auditDiagnosticClustering(ctx: InvariantContext): InvariantAudit
   if (deficitTopology && typeof deficitTopology.summary === "object") {
     const summary = deficitTopology.summary as Record<string, unknown>;
     const blockers = typeof summary.blockers === "number" ? summary.blockers : 0;
-    const healthStatus = typeof summary.healthStatus === "string" ? summary.healthStatus : "NOMINAL";
+    const healthStatus =
+      typeof summary.healthStatus === "string" ? summary.healthStatus : "NOMINAL";
 
     if (healthStatus === "CRITICAL" && blockers > 10) {
       return [

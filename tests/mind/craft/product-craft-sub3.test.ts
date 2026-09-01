@@ -29,9 +29,7 @@ import {
 } from "../../../olt/scripts/src/mind/auditing/product-craft.ts";
 
 describe("Product Craft, Visual Aesthetics & Ergonomic Walkthrough Auditing Suite", () => {
-
-
-describe("5. UserJourney Audits, Markdown & ASCII Reports", () => {
+  describe("5. UserJourney Audits, Markdown & ASCII Reports", () => {
     it("conducts multi-step UserJourney ergonomic walkthrough audit", () => {
       const auditor = createErgonomicWalkthroughAuditor();
 

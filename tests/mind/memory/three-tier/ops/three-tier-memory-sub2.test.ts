@@ -29,9 +29,7 @@ import {
 } from "../../../../../olt/scripts/src/mind/memory/index.ts";
 
 describe("ThreeTierMemoryEngine Test Suite", () => {
-
-
-describe("Tier 2: Active Strategic Working Memory (Operational Horizon & Rolling Milestones)", () => {
+  describe("Tier 2: Active Strategic Working Memory (Operational Horizon & Rolling Milestones)", () => {
     it("creates working memory entries across various categories and priorities", () => {
       const engine = new ThreeTierMemoryEngine();
 
@@ -119,7 +117,9 @@ describe("Tier 2: Active Strategic Working Memory (Operational Horizon & Rolling
       expect(updated.totalMilestones).toBe(4); // preserved
       expect(updated.priority).toBe("HIGH");
       expect(updated.openDependencies).toEqual(["dep-lexer"]); // preserved
-      expect(updated.resolutionSummary).toBe("Lexer dependency resolved; visitor memoization active.");
+      expect(updated.resolutionSummary).toBe(
+        "Lexer dependency resolved; visitor memoization active.",
+      );
       expect(updated.tags).toEqual(["compiler", "ast"]); // preserved
     });
 

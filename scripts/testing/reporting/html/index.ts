@@ -4,7 +4,13 @@ import { join, resolve } from "node:path";
 import { generateDeficitRoadmap } from "../deficits/index.ts";
 import type { CoverageSummary, FileCoverageMetric, TestRuntimeSummary } from "../types.ts";
 import { buildUnifiedHierarchy, extractCoverageFileData } from "./data-extractor.ts";
-import { getHtmlStyles, getUnifiedStyles, getDeficitStyles, getCodeViewerStyles, getRuntimeStyles } from "./styles/index.ts";
+import {
+  getHtmlStyles,
+  getUnifiedStyles,
+  getDeficitStyles,
+  getCodeViewerStyles,
+  getRuntimeStyles,
+} from "./styles/index.ts";
 import {
   getClientScript,
   getClientScriptUnified,
@@ -114,4 +120,3 @@ export function writeInteractiveHtmlReport(
 }
 
 export const writeInteractiveHtml = writeInteractiveHtmlReport;
-

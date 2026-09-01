@@ -53,7 +53,7 @@ import {
 } from "../../../../olt/scripts/src/mind/containment/index.ts";
 
 describe("Conversational Engagement Protocols & Active Swarm Audit Suite", () => {
-let testRepoRoot: string;
+  let testRepoRoot: string;
 
   beforeEach(() => {
     testRepoRoot = join(
@@ -73,7 +73,7 @@ let testRepoRoot: string;
     }
   });
 
-describe("2. Active Swarm Tailored 1-on-1 Conversational Audits (Skill Auditor)", () => {
+  describe("2. Active Swarm Tailored 1-on-1 Conversational Audits (Skill Auditor)", () => {
     it("discovers active agents and interrogates across Four Core Inquiries", () => {
       // Setup active agent mailboxes
       const orchestratorPaths = ensureMailboxDir("orchestrator-alpha", testRepoRoot);
@@ -147,9 +147,9 @@ describe("2. Active Swarm Tailored 1-on-1 Conversational Audits (Skill Auditor)"
         loadMailboxCursor(skillAuditorPaths.cursorPath),
       );
       expect(unreadAuditor.messages.length).toBe(1);
-      expect(
-        (unreadAuditor.messages[0]?.payload as { status: string }).status,
-      ).toBe("FORWARD_MOMENTUM_VERIFIED");
+      expect((unreadAuditor.messages[0]?.payload as { status: string }).status).toBe(
+        "FORWARD_MOMENTUM_VERIFIED",
+      );
     });
   });
 });

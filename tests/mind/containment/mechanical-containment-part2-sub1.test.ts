@@ -15,7 +15,7 @@ import {
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("MechanicalContainmentEngine", () => {
-beforeEach(() => {
+  beforeEach(() => {
     resetDefaultContainmentEngine();
   });
 
@@ -23,7 +23,7 @@ beforeEach(() => {
     resetDefaultContainmentEngine();
   });
 
-describe("Three-Strike Mechanical Containment State Machine", () => {
+  describe("Three-Strike Mechanical Containment State Machine", () => {
     it("starts in Nominal state (Strike 0)", () => {
       const engine = new MechanicalContainmentEngine();
       const state = engine.getAgentState("supervisor-1");
@@ -160,7 +160,7 @@ describe("Three-Strike Mechanical Containment State Machine", () => {
     });
   });
 
-describe("Tool Permissions across Containment Levels", () => {
+  describe("Tool Permissions across Containment Levels", () => {
     it("allows all tools at Strike 0, restricts write/exec tools at Strike 2, and denies all tools at Strike 3", () => {
       const engine = new MechanicalContainmentEngine();
       const agentId = "coord-perm-test";

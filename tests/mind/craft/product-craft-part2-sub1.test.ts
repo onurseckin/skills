@@ -29,7 +29,7 @@ import {
 } from "../../../olt/scripts/src/mind/auditing/product-craft.ts";
 
 describe("Product Craft, Visual Aesthetics & Ergonomic Walkthrough Auditing Suite", () => {
-describe("1. The Five Pillars of Product Craft & Specifications", () => {
+  describe("1. The Five Pillars of Product Craft & Specifications", () => {
     it("exports all 5 standard product craft pillars", () => {
       expect(PRODUCT_CRAFT_PILLAR_LIST).toHaveLength(5);
       expect(PRODUCT_CRAFT_PILLAR_LIST).toContain("VISUAL_HIERARCHY");
@@ -91,7 +91,7 @@ describe("1. The Five Pillars of Product Craft & Specifications", () => {
     });
   });
 
-describe("2. Composite Craft Score Calculation", () => {
+  describe("2. Composite Craft Score Calculation", () => {
     it("computes equal-weighted average across 5 pillars", () => {
       const score = calculateCompositeCraftScore({
         VISUAL_HIERARCHY: 90,
@@ -142,7 +142,7 @@ describe("2. Composite Craft Score Calculation", () => {
     });
   });
 
-describe("3. Aesthetic Deficit Notice Generation & Classification", () => {
+  describe("3. Aesthetic Deficit Notice Generation & Classification", () => {
     it("creates structured Aesthetic Deficit Notice with validated fields", () => {
       const notice: AestheticDeficitNotice = generateAestheticDeficitNotice({
         milestoneId: "m-checkout-flow",

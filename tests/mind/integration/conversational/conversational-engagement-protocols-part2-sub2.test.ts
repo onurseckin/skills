@@ -53,7 +53,27 @@ import {
 } from "../../../../olt/scripts/src/mind/containment/index.ts";
 
 describe("Conversational Engagement Protocols & Active Swarm Audit Suite", () => {
-describe("2. Active Swarm Tailored 1-on-1 Conversational Audits (Skill Auditor)", () => {
+  let testRepoRoot: string;
+
+  beforeEach(() => {
+    testRepoRoot = join(
+      tmpdir(),
+      `mind-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    );
+    mkdirSync(testRepoRoot, { recursive: true });
+    mkdirSync(join(testRepoRoot, ".olt"), { recursive: true });
+    mkdirSync(join(testRepoRoot, ".olt", "mailboxes"), { recursive: true });
+  });
+
+  afterEach(() => {
+    try {
+      rmSync(testRepoRoot, { recursive: true, force: true });
+    } catch {
+      // Best effort cleanup
+    }
+  });
+
+  describe("2. Active Swarm Tailored 1-on-1 Conversational Audits (Skill Auditor)", () => {
     it("discovers active agents and interrogates across Four Core Inquiries", () => {
       // Setup active agent mailboxes
       const orchestratorPaths = ensureMailboxDir("orchestrator-alpha", testRepoRoot);
@@ -127,13 +147,13 @@ describe("2. Active Swarm Tailored 1-on-1 Conversational Audits (Skill Auditor)"
         loadMailboxCursor(skillAuditorPaths.cursorPath),
       );
       expect(unreadAuditor.messages.length).toBe(1);
-      expect(
-        (unreadAuditor.messages[0]?.payload as { status: string }).status,
-      ).toBe("FORWARD_MOMENTUM_VERIFIED");
+      expect((unreadAuditor.messages[0]?.payload as { status: string }).status).toBe(
+        "FORWARD_MOMENTUM_VERIFIED",
+      );
     });
   });
 
-describe("3. Three-Strike Mechanical Containment & Capability Revocation", () => {
+  describe("3. Three-Strike Mechanical Containment & Capability Revocation", () => {
     it("escalates across Strike 1 (Halt & Delegate), Strike 2 (Tool Revocation), and Strike 3 (Persona Respawn)", () => {
       const containmentEngine = new MechanicalContainmentEngine();
       const supervisorId = "supervisor-rogue-01";
@@ -152,7 +172,9 @@ describe("3. Three-Strike Mechanical Containment & Capability Revocation", () =>
       expect(strike1.action).toBe("HALT_AND_DELEGATE");
       expect(strike1.blocked).toBe(true);
       expect(strike1.message).toContain("HALT_AND_DELEGATE");
-      expect(strike1.message).toContain("Decompose the task into discrete work units and dispatch a Tier 3 Implementer");
+      expect(strike1.message).toContain(
+        "Decompose the task into discrete work units and dispatch a Tier 3 Implementer",
+      );
 
       // Verify Agent State after Strike 1
       const state1 = containmentEngine.getAgentState(supervisorId);

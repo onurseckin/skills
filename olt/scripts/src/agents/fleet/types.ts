@@ -1,10 +1,6 @@
 export type AgentTier = 0 | 1 | 2 | 3 | "independent";
 
-export type AgentTierCategory =
-  | "governance"
-  | "orchestration"
-  | "execution"
-  | "quality";
+export type AgentTierCategory = "governance" | "orchestration" | "execution" | "quality";
 
 export interface ToolBoundaryDefinition {
   readonly canWriteCode: boolean;
@@ -64,11 +60,6 @@ export const MANDATORY_VIEWPORTS_4 = [
   { name: "mobile", width: 390, height: 844, label: "Mobile (390x844)" },
 ] as const;
 
-export const SYNTHETIC_STATES_4 = [
-  "empty",
-  "error",
-  "loading",
-  "extreme_overflow",
-] as const;
+export const SYNTHETIC_STATES_4 = ["empty", "error", "loading", "extreme_overflow"] as const;
 
 export type SyntheticState = (typeof SYNTHETIC_STATES_4)[number];

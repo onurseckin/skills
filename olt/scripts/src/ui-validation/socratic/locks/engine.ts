@@ -11,21 +11,13 @@ import {
   type LockSystemIntegrityReport,
   type ScopeMutationRequest,
 } from "./types.ts";
-import {
-  canonicalJsonStringify,
-  computeSha256,
-  computeManifestSignature,
-} from "./hashing.ts";
+import { canonicalJsonStringify, computeSha256, computeManifestSignature } from "./hashing.ts";
 import {
   requestOpticalRegressionUnlock,
   verifyRegressionProof,
   resealMilestone,
 } from "./exception-protocol.ts";
-import {
-  verifyManifestIntegrity,
-  verifyAllMilestoneLocks,
-  assertIntegrity,
-} from "./verifier.ts";
+import { verifyManifestIntegrity, verifyAllMilestoneLocks, assertIntegrity } from "./verifier.ts";
 
 export class MilestoneLockEngine {
   private readonly manifests: Map<number, ImmutabilityManifest> = new Map();
@@ -60,7 +52,8 @@ export class MilestoneLockEngine {
    * Enforces Monotonic Convergence Law (cannot seal out of order).
    */
   public sealMilestone(input: SealMilestoneInput): ImmutabilityManifest {
-    const { sessionId, roundNumber, roundName, statePayload, challengeSummary, customScopes } = input;
+    const { sessionId, roundNumber, roundName, statePayload, challengeSummary, customScopes } =
+      input;
 
     if (roundNumber < 1 || roundNumber > 5) {
       throw new HarnessError(
@@ -78,7 +71,8 @@ export class MilestoneLockEngine {
       );
     }
 
-    const sealedScope = customScopes ?? ROUND_SCOPES[roundNumber as keyof typeof ROUND_SCOPES] ?? [];
+    const sealedScope =
+      customScopes ?? ROUND_SCOPES[roundNumber as keyof typeof ROUND_SCOPES] ?? [];
     const statePayloadHash = computeSha256(statePayload);
     const sealedAt = new Date().toISOString();
 
@@ -143,7 +137,10 @@ export class MilestoneLockEngine {
       // Upstream sealed round check
       if (sealedRoundNum < currentRound && manifest.lockStatus !== "SUPERSEDED") {
         const isScopeSealedInRound = manifest.sealedScope.some(
-          (sealedPrefix) => scope === sealedPrefix || scope.startsWith(`${sealedPrefix}.`) || sealedPrefix.startsWith(`${scope}.`),
+          (sealedPrefix) =>
+            scope === sealedPrefix ||
+            scope.startsWith(`${sealedPrefix}.`) ||
+            sealedPrefix.startsWith(`${scope}.`),
         );
 
         if (isScopeSealedInRound) {
@@ -203,7 +200,10 @@ export class MilestoneLockEngine {
 
     if (targetScope) {
       const isScopeCovered = storedToken.approvedScope.some(
-        (approved) => targetScope === approved || targetScope.startsWith(`${approved}.`) || approved.startsWith(`${targetScope}.`),
+        (approved) =>
+          targetScope === approved ||
+          targetScope.startsWith(`${approved}.`) ||
+          approved.startsWith(`${targetScope}.`),
       );
       if (!isScopeCovered) {
         throw new HarnessError(

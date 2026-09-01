@@ -27,7 +27,7 @@ import {
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("In-Flight Work Ingestion & Intent Extraction Engine Suite", () => {
-let testDir: string;
+  let testDir: string;
   let snapshotsDir: string;
 
   beforeEach(() => {
@@ -47,7 +47,7 @@ let testDir: string;
     }
   });
 
-describe("UserIntentExtractionEngine & Priority 1 Binding", () => {
+  describe("UserIntentExtractionEngine & Priority 1 Binding", () => {
     it("extracts structured user intent, classifies category/domain, and extracts symbols", () => {
       const mockSnapshot: InFlightSnapshot = {
         snapshotId: "snap_20260901_test1",
@@ -105,9 +105,9 @@ describe("UserIntentExtractionEngine & Priority 1 Binding", () => {
       expect(intent.statement.length).toBeGreaterThan(20);
       expect(intent.rationale.length).toBeGreaterThan(20);
       expect(intent.suggestedAcceptanceCriteria.length).toBeGreaterThanOrEqual(3);
-      expect(
-        intent.suggestedTestScope.some((s) => s.includes("intent-extraction.test.ts")),
-      ).toBe(true);
+      expect(intent.suggestedTestScope.some((s) => s.includes("intent-extraction.test.ts"))).toBe(
+        true,
+      );
 
       // Verify Priority 1 deliverable structuring
       const deliverable = engine.structureAsBacklogDeliverable(intent);

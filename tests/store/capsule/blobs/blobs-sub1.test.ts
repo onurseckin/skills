@@ -23,7 +23,11 @@ import {
   putBlobFile,
   type ViewLinker,
 } from "../../../../olt/scripts/src/engine/store/layout/blobs.ts";
-import { cleanupVirtualStoreFS, scratchRoot as makeScratchRoot, setupVirtualStoreFS } from "../../store-fixture.ts";
+import {
+  cleanupVirtualStoreFS,
+  scratchRoot as makeScratchRoot,
+  setupVirtualStoreFS,
+} from "../../store-fixture.ts";
 
 beforeEach(() => {
   setupVirtualStoreFS();
@@ -42,22 +46,19 @@ function sha256Of(content: string): string {
 }
 
 describe("blobRelativePath", () => {
-
-
-test("shards by the first two hex characters of the digest", () => {
+  test("shards by the first two hex characters of the digest", () => {
     const digest = "ab".padEnd(64, "0");
     expect(blobRelativePath(digest)).toBe(`blobs/ab/${digest}`);
   });
 
-test("rejects a digest that is not a lowercase sha256", () => {
+  test("rejects a digest that is not a lowercase sha256", () => {
     expect(() => blobRelativePath("not-a-digest")).toThrow(HarnessError);
     expect(() => blobRelativePath("A".repeat(64))).toThrow(HarnessError);
   });
 });
 
 describe("putBlobFile", () => {
-
-test("stores new content under its content address and reports created=true", () => {
+  test("stores new content under its content address and reports created=true", () => {
     const root = scratchRoot("stores-new-content-under-its-content-address-and-r");
     const source = join(root, "source.txt");
     writeFileSync(source, "hello world");
@@ -70,7 +71,7 @@ test("stores new content under its content address and reports created=true", ()
     expect((statSync(join(root, result.path)).mode & 0o222) === 0).toBe(true);
   });
 
-test("reports created=false and keeps the existing blob when content is already stored", () => {
+  test("reports created=false and keeps the existing blob when content is already stored", () => {
     const root = scratchRoot("reports-created-false-and-keeps-the-existing-blob-");
     const source = join(root, "source.txt");
     writeFileSync(source, "same content");
@@ -81,7 +82,7 @@ test("reports created=false and keeps the existing blob when content is already 
     expect(second.sha256).toBe(first.sha256);
   });
 
-test("throws and leaves no staging file behind when the source is not a regular file", () => {
+  test("throws and leaves no staging file behind when the source is not a regular file", () => {
     const root = scratchRoot("throws-and-leaves-no-staging-file-behind-when-the-");
     const directoryAsSource = join(root, "a-directory");
     mkdirSync(directoryAsSource);
@@ -90,7 +91,7 @@ test("throws and leaves no staging file behind when the source is not a regular 
     expect(readdirSync(staging).filter((name) => name.startsWith(".ingest-"))).toEqual([]);
   });
 
-test("throws when the source's reported size exceeds the blob byte limit, without reading it", () => {
+  test("throws when the source's reported size exceeds the blob byte limit, without reading it", () => {
     const root = scratchRoot("throws-when-the-source-s-reported-size-exceeds-the");
     const source = join(root, "huge.bin");
     writeFileSync(source, "x");
@@ -100,7 +101,7 @@ test("throws when the source's reported size exceeds the blob byte limit, withou
     );
   });
 
-test("throws when bytes read exceed the blob byte limit during stream reading", () => {
+  test("throws when bytes read exceed the blob byte limit during stream reading", () => {
     const root = scratchRoot("throws-when-bytes-read-exceed-limit-in-loop");
     const source = join(root, "dynamic.bin");
     writeFileSync(source, "initial");
@@ -136,7 +137,7 @@ describe("linkBlobIntoView", () => {
     return { sha256: put.sha256, bytes: put.bytes, path: put.path };
   }
 
-test("rejects an unsafe view name", () => {
+  test("rejects an unsafe view name", () => {
     const root = scratchRoot("rejects-an-unsafe-view-name");
     const blob = storeBlob(root, "content");
     expect(() => linkBlobIntoView(root, blob, "evidence", "")).toThrow(/unsafe view name/);
@@ -145,7 +146,7 @@ test("rejects an unsafe view name", () => {
     expect(() => linkBlobIntoView(root, blob, "evidence", "..")).toThrow(/unsafe view name/);
   });
 
-test("throws when the referenced blob is not actually stored in the capsule", () => {
+  test("throws when the referenced blob is not actually stored in the capsule", () => {
     const root = scratchRoot("throws-when-the-referenced-blob-is-not-actually-st");
     const phantom = { sha256: "c".repeat(64), bytes: 1, path: blobRelativePath("c".repeat(64)) };
     expect(() => linkBlobIntoView(root, phantom, "evidence", "name.png")).toThrow(
@@ -153,7 +154,7 @@ test("throws when the referenced blob is not actually stored in the capsule", ()
     );
   });
 
-test("hardlinks by default, producing a file that shares the same inode as the blob", () => {
+  test("hardlinks by default, producing a file that shares the same inode as the blob", () => {
     const root = scratchRoot("hardlinks-by-default-producing-a-file-that-shares-");
     const blob = storeBlob(root, "shared bytes");
     const view = linkBlobIntoView(root, blob, "evidence", "name.png");
@@ -163,7 +164,7 @@ test("hardlinks by default, producing a file that shares the same inode as the b
     expect(lstatSync(source).ino).toBe(lstatSync(target).ino);
   });
 
-test("returns the existing hardlink view unchanged when it already points at the same blob", () => {
+  test("returns the existing hardlink view unchanged when it already points at the same blob", () => {
     const root = scratchRoot("returns-the-existing-hardlink-view-unchanged-when-");
     const blob = storeBlob(root, "idempotent bytes");
     const first = linkBlobIntoView(root, blob, "evidence", "name.png");
@@ -171,7 +172,7 @@ test("returns the existing hardlink view unchanged when it already points at the
     expect(second).toEqual(first);
   });
 
-test("replaces a stale view file that points at different content before relinking", () => {
+  test("replaces a stale view file that points at different content before relinking", () => {
     const root = scratchRoot("replaces-a-stale-view-file-that-points-at-differen");
     const blobA = storeBlob(root, "content-a");
     const blobB = storeBlob(root, "content-b");
@@ -182,7 +183,7 @@ test("replaces a stale view file that points at different content before relinki
     expect(readFileSync(target, "utf-8")).toBe("content-b");
   });
 
-test("falls back to a read-only copy when the injected linker fails to hardlink", () => {
+  test("falls back to a read-only copy when the injected linker fails to hardlink", () => {
     const root = scratchRoot("falls-back-to-a-read-only-copy-when-the-injected-l");
     const blob = storeBlob(root, "cross-device bytes");
     const failingLinker: ViewLinker = {
@@ -197,7 +198,7 @@ test("falls back to a read-only copy when the injected linker fails to hardlink"
     expect((statSync(target).mode & 0o222) === 0).toBe(true);
   });
 
-test("handles existing target when stat fails during inode check", () => {
+  test("handles existing target when stat fails during inode check", () => {
     const root = scratchRoot("stat-fails-during-inode-check");
     const blob = storeBlob(root, "stat fail bytes");
     const target = join(root, "evidence", "dangling.png");
@@ -209,13 +210,12 @@ test("handles existing target when stat fails during inode check", () => {
 });
 
 describe("listBlobs", () => {
-
-test("returns an empty list when the blobs/ directory does not exist", () => {
+  test("returns an empty list when the blobs/ directory does not exist", () => {
     const root = scratchRoot("returns-an-empty-list-when-the-blobs-directory-doe");
     expect(listBlobs(root)).toEqual([]);
   });
 
-test("lists stored blobs sorted by digest, skipping dotfiles and malformed entries", () => {
+  test("lists stored blobs sorted by digest, skipping dotfiles and malformed entries", () => {
     const root = scratchRoot("lists-stored-blobs-sorted-by-digest-skipping-dotfi");
     const source = join(root, "source.txt");
     writeFileSync(source, "list me");

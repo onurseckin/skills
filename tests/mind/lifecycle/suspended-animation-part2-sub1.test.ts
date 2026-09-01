@@ -50,7 +50,7 @@ import {
 } from "../../../olt/scripts/src/mind/lifecycle/index.ts";
 
 describe("Autonomous Resource Governor & Suspended Animation Suite", () => {
-describe("ResourceGovernor: Pure Functions & Mathematical Bounds", () => {
+  describe("ResourceGovernor: Pure Functions & Mathematical Bounds", () => {
     it("calculates utilization ratio clamping within [0.0, 1.0]", () => {
       expect(calculateUtilizationRatio(50, 100)).toBe(0.5);
       expect(calculateUtilizationRatio(0, 100)).toBe(0.0);
@@ -81,7 +81,7 @@ describe("ResourceGovernor: Pure Functions & Mathematical Bounds", () => {
     });
   });
 
-describe("ResourceGovernor: State Machine Transitions & Headroom Monitoring", () => {
+  describe("ResourceGovernor: State Machine Transitions & Headroom Monitoring", () => {
     it("transitions through NOMINAL -> WARNING -> HIBERNATING -> RECOVERING -> NOMINAL", () => {
       const gov = createResourceGovernor({
         limits: {
@@ -162,7 +162,7 @@ describe("ResourceGovernor: State Machine Transitions & Headroom Monitoring", ()
     });
   });
 
-describe("ResourceGovernor: HTTP 429 Rate Limit Throttle Handling", () => {
+  describe("ResourceGovernor: HTTP 429 Rate Limit Throttle Handling", () => {
     it("handles external rate limit (429) throttle event and enters HIBERNATING", () => {
       const gov = createResourceGovernor({
         autoTransitionToHibernating: true,
@@ -191,7 +191,7 @@ describe("ResourceGovernor: HTTP 429 Rate Limit Throttle Handling", () => {
     });
   });
 
-describe("ResourceGovernor: Concurrency Management & canDispatch", () => {
+  describe("ResourceGovernor: Concurrency Management & canDispatch", () => {
     it("tracks active concurrency seats and rejects when capacity is exceeded", () => {
       const gov = createResourceGovernor({
         limits: { maxConcurrency: 5 },

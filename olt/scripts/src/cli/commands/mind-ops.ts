@@ -49,4 +49,3 @@ export { mindRoundOpenCommand, mindRoundCloseCommand } from "./mind-round.ts";
 export { mindAuditStartCommand, mindAuditReportCommand } from "./mind-audit.ts";
 export { mindAuditLiveCommand } from "./mind-audit-live.ts";
 export { mindInitCommand } from "./mind-init.ts";
-

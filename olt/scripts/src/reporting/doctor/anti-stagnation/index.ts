@@ -6,7 +6,4 @@ export {
   type InvariantAuditResult,
   type AntiStagnationAuditReport,
 } from "./types.ts";
-export {
-  checkAntiStagnationDoctor,
-  auditAntiStagnationHealth,
-} from "./engine.ts";
+export { checkAntiStagnationDoctor, auditAntiStagnationHealth } from "./engine.ts";

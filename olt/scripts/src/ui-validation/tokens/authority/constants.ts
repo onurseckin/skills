@@ -240,4 +240,3 @@ export const VALID_TRANSITION_DURATIONS: readonly number[] = Object.values(
  * 2. Zero Raw Value Policy & AST / Style Inspector
  * ============================================================================
  */
-

@@ -52,9 +52,7 @@ import {
   resolveOrGenerateCharter,
   type MindInitFlowResult,
 } from "../../../../olt/scripts/src/mind/lifecycle/mind-init-flow.ts";
-import {
-  ThreeTierMemoryEngine,
-} from "../../../../olt/scripts/src/mind/memory/index.ts";
+import { ThreeTierMemoryEngine } from "../../../../olt/scripts/src/mind/memory/index.ts";
 import {
   InnovationPortfolioManager,
   PORTFOLIO_TARGET_PERCENTAGES,
@@ -78,7 +76,7 @@ import {
 } from "../../../../olt/scripts/src/mind/reporting/index.ts";
 
 describe("Sovereign Lifecycle & Autonomous Single-Touch Bootstrap Suite", () => {
-let testRepoRoot: string;
+  let testRepoRoot: string;
 
   beforeEach(() => {
     testRepoRoot = join(
@@ -99,7 +97,7 @@ let testRepoRoot: string;
     }
   });
 
-describe("1. Stage 1: Non-Destructive In-Flight Snapshot & User Intent Extraction", () => {
+  describe("1. Stage 1: Non-Destructive In-Flight Snapshot & User Intent Extraction", () => {
     it("captures uncommitted workspace modifications without destructive changes and binds intent to P1 deliverable", async () => {
       const srcDir = join(testRepoRoot, "src", "compiler");
       mkdirSync(srcDir, { recursive: true });
@@ -112,10 +110,19 @@ describe("1. Stage 1: Non-Destructive In-Flight Snapshot & User Intent Extractio
 
       const mockRunner = (_cwd: string, argv: readonly string[]) => {
         const cmd = argv[0];
-        if (cmd === "symbolic-ref") return { status: 0, stdout: "feature/compiler-ast\n", stderr: "" };
-        if (cmd === "rev-parse") return { status: 0, stdout: "abcdef1234567890abcdef1234567890abcdef12\n", stderr: "" };
-        if (cmd === "status") return { status: 0, stdout: " M src/compiler/parser.ts\n", stderr: "" };
-        if (cmd === "diff") return { status: 0, stdout: "diff --git a/src/compiler/parser.ts b/src/compiler/parser.ts\n+export function parseExpression\n", stderr: "" };
+        if (cmd === "symbolic-ref")
+          return { status: 0, stdout: "feature/compiler-ast\n", stderr: "" };
+        if (cmd === "rev-parse")
+          return { status: 0, stdout: "abcdef1234567890abcdef1234567890abcdef12\n", stderr: "" };
+        if (cmd === "status")
+          return { status: 0, stdout: " M src/compiler/parser.ts\n", stderr: "" };
+        if (cmd === "diff")
+          return {
+            status: 0,
+            stdout:
+              "diff --git a/src/compiler/parser.ts b/src/compiler/parser.ts\n+export function parseExpression\n",
+            stderr: "",
+          };
         if (cmd === "stash") return { status: 0, stdout: "", stderr: "" };
         return { status: 0, stdout: "", stderr: "" };
       };
@@ -149,7 +156,7 @@ describe("1. Stage 1: Non-Destructive In-Flight Snapshot & User Intent Extractio
     });
   });
 
-describe("2. Stage 2: Active Empirical Baseline Probing & Diagnostic Clustering", () => {
+  describe("2. Stage 2: Active Empirical Baseline Probing & Diagnostic Clustering", () => {
     it("runs diagnostic probes and clusters findings into Class 1 Blockers, Class 2 Regressions, Class 3 Quality Deficits", async () => {
       const probeResult: BaselineProbeResult = await runEmpiricalBaselineProbes({
         repoRoot: testRepoRoot,
@@ -188,12 +195,14 @@ describe("2. Stage 2: Active Empirical Baseline Probing & Diagnostic Clustering"
 
       // Recommended Roadmap Allocation based on Deficit Matrix
       expect(topology.recommendedRoadmapAllocation.coreStability).toBeGreaterThanOrEqual(50);
-      expect(topology.recommendedRoadmapAllocation.architecturalEvolution).toBeGreaterThanOrEqual(1);
+      expect(topology.recommendedRoadmapAllocation.architecturalEvolution).toBeGreaterThanOrEqual(
+        1,
+      );
       expect(topology.recommendedRoadmapAllocation.exploratory).toBeGreaterThanOrEqual(1);
     });
   });
 
-describe("3. Stage 3: Strategic Goal Configuration, Portfolio Balancing & Invariant Lockdown", () => {
+  describe("3. Stage 3: Strategic Goal Configuration, Portfolio Balancing & Invariant Lockdown", () => {
     it("locks canonical bedrock invariants and mobilizes mandatory companion auditors", async () => {
       // 1. Bedrock Invariants Lockdown
       const memoryEngine = new ThreeTierMemoryEngine();
@@ -206,30 +215,70 @@ describe("3. Stage 3: Strategic Goal Configuration, Portfolio Balancing & Invari
           rationale: "Ensures sovereign stability and zero regression.",
         });
       }
-      expect(memoryEngine.getBedrockInvariantCount()).toBe(CANONICAL_BEDROCK_INVARIANTS_LIST.length);
+      expect(memoryEngine.getBedrockInvariantCount()).toBe(
+        CANONICAL_BEDROCK_INVARIANTS_LIST.length,
+      );
 
       // Verify core invariants are present
       expect(memoryEngine.hasBedrockInvariant("bedrock-supervisor-zero-code-edits")).toBe(true);
       expect(memoryEngine.hasBedrockInvariant("bedrock-supervisor-zero-test-runs")).toBe(true);
-      expect(memoryEngine.hasBedrockInvariant("bedrock-three-strike-mechanical-containment")).toBe(true);
+      expect(memoryEngine.hasBedrockInvariant("bedrock-three-strike-mechanical-containment")).toBe(
+        true,
+      );
       expect(memoryEngine.hasBedrockInvariant("bedrock-innovation-portfolio-70-20-10")).toBe(true);
 
       // 2. 70/20/10 Innovation Portfolio Governance
       const portfolio = new InnovationPortfolioManager();
       const workstreams: PortfolioWorkstream[] = [
         // 7 Core Stability (70%)
-        { id: "ws-c1", title: "Remediate Blocker 1", track: PORTFOLIO_TRACKS.CORE_STABILITY_AND_POLISH },
-        { id: "ws-c2", title: "Remediate Blocker 2", track: PORTFOLIO_TRACKS.CORE_STABILITY_AND_POLISH },
-        { id: "ws-c3", title: "Remediate Regression 1", track: PORTFOLIO_TRACKS.CORE_STABILITY_AND_POLISH },
-        { id: "ws-c4", title: "Remediate Quality Deficit 1", track: PORTFOLIO_TRACKS.CORE_STABILITY_AND_POLISH },
+        {
+          id: "ws-c1",
+          title: "Remediate Blocker 1",
+          track: PORTFOLIO_TRACKS.CORE_STABILITY_AND_POLISH,
+        },
+        {
+          id: "ws-c2",
+          title: "Remediate Blocker 2",
+          track: PORTFOLIO_TRACKS.CORE_STABILITY_AND_POLISH,
+        },
+        {
+          id: "ws-c3",
+          title: "Remediate Regression 1",
+          track: PORTFOLIO_TRACKS.CORE_STABILITY_AND_POLISH,
+        },
+        {
+          id: "ws-c4",
+          title: "Remediate Quality Deficit 1",
+          track: PORTFOLIO_TRACKS.CORE_STABILITY_AND_POLISH,
+        },
         { id: "ws-c5", title: "UX Polish Pass", track: PORTFOLIO_TRACKS.CORE_STABILITY_AND_POLISH },
-        { id: "ws-c6", title: "File-Scoped Test Tightening", track: PORTFOLIO_TRACKS.CORE_STABILITY_AND_POLISH },
-        { id: "ws-c7", title: "P1 User Intent Completion", track: PORTFOLIO_TRACKS.CORE_STABILITY_AND_POLISH },
+        {
+          id: "ws-c6",
+          title: "File-Scoped Test Tightening",
+          track: PORTFOLIO_TRACKS.CORE_STABILITY_AND_POLISH,
+        },
+        {
+          id: "ws-c7",
+          title: "P1 User Intent Completion",
+          track: PORTFOLIO_TRACKS.CORE_STABILITY_AND_POLISH,
+        },
         // 2 Architectural Evolution (20%)
-        { id: "ws-a1", title: "Ring Buffer Pipeline Decoupling", track: PORTFOLIO_TRACKS.ARCHITECTURAL_EVOLUTION },
-        { id: "ws-a2", title: "Memory Compactor Optimization", track: PORTFOLIO_TRACKS.ARCHITECTURAL_EVOLUTION },
+        {
+          id: "ws-a1",
+          title: "Ring Buffer Pipeline Decoupling",
+          track: PORTFOLIO_TRACKS.ARCHITECTURAL_EVOLUTION,
+        },
+        {
+          id: "ws-a2",
+          title: "Memory Compactor Optimization",
+          track: PORTFOLIO_TRACKS.ARCHITECTURAL_EVOLUTION,
+        },
         // 1 Exploratory Bet (10%)
-        { id: "ws-e1", title: "Lockless IPC Streaming Prototype", track: PORTFOLIO_TRACKS.EXPLORATORY_HORIZON_BETS },
+        {
+          id: "ws-e1",
+          title: "Lockless IPC Streaming Prototype",
+          track: PORTFOLIO_TRACKS.EXPLORATORY_HORIZON_BETS,
+        },
       ];
 
       const balance = portfolio.auditPortfolioBalance(workstreams);

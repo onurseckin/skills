@@ -7,10 +7,7 @@ import type {
   DisambiguationEvaluationResult,
   PayloadSchema,
 } from "./types.ts";
-import {
-  createDashboardTelemetryFixtures,
-  createUserManagementFixtures,
-} from "./fixtures.ts";
+import { createDashboardTelemetryFixtures, createUserManagementFixtures } from "./fixtures.ts";
 import {
   DataLayerPreFlightCertifier,
   DefectRouter,
@@ -65,23 +62,16 @@ export class DisambiguationGatewayEngine {
     });
 
     if (!certification.certified) {
-      const defectReceipt = this.defectRouter.routeDefect(
-        certification,
-        params.actualPayload,
-      );
+      const defectReceipt = this.defectRouter.routeDefect(certification, params.actualPayload);
       return {
         certification,
         defectReceipt,
       };
     }
 
-    const handoffToken = this.handoffGate.issueHandoffToken(
-      certification,
-      params.actualPayload,
-      {
-        componentOrRoute: params.componentOrRoute,
-      },
-    );
+    const handoffToken = this.handoffGate.issueHandoffToken(certification, params.actualPayload, {
+      componentOrRoute: params.componentOrRoute,
+    });
 
     return {
       certification,
@@ -102,13 +92,10 @@ export function getDefaultDisambiguationGatewayEngine(): DisambiguationGatewayEn
   return defaultDisambiguationEngine;
 }
 
-export function setDefaultDisambiguationGatewayEngine(
-  engine: DisambiguationGatewayEngine,
-): void {
+export function setDefaultDisambiguationGatewayEngine(engine: DisambiguationGatewayEngine): void {
   defaultDisambiguationEngine = engine;
 }
 
 export function resetDefaultDisambiguationGatewayEngine(): void {
   defaultDisambiguationEngine = null;
 }
-

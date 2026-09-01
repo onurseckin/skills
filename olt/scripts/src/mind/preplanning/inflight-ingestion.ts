@@ -298,7 +298,8 @@ export function parseGitStashes(stashOutput: string): GitStashEntry[] {
       const message = parts[2] ?? "";
       const date = parts[3] ?? "";
       const indexMatch = /stash@\{(\d+)\}/.exec(selector);
-      const index = indexMatch && indexMatch[1] ? Number.parseInt(indexMatch[1], 10) : entries.length;
+      const index =
+        indexMatch && indexMatch[1] ? Number.parseInt(indexMatch[1], 10) : entries.length;
 
       entries.push({
         index,
@@ -413,9 +414,7 @@ export class InFlightIngestionEngine {
 
   public async createSnapshot(options?: InFlightSnapshotOptions): Promise<InFlightSnapshot> {
     const createdAt =
-      options?.customTimestamp !== undefined
-        ? options.customTimestamp
-        : new Date().toISOString();
+      options?.customTimestamp !== undefined ? options.customTimestamp : new Date().toISOString();
 
     const branchRes = this.runSafeGit(["symbolic-ref", "--short", "-q", "HEAD"]);
     let branch = branchRes.status === 0 ? branchRes.stdout.trim() : "";
@@ -563,7 +562,11 @@ export class InFlightIngestionEngine {
     const content = readFileSync(targetPath, "utf-8");
     try {
       const parsed = JSON.parse(content) as InFlightSnapshot;
-      if (!parsed || typeof parsed.snapshotId !== "string" || !Array.isArray(parsed.uncommittedFiles)) {
+      if (
+        !parsed ||
+        typeof parsed.snapshotId !== "string" ||
+        !Array.isArray(parsed.uncommittedFiles)
+      ) {
         throw new HarnessError(
           "INVALID_ARGUMENT",
           `Snapshot at '${targetPath}' does not conform to InFlightSnapshot structure`,
@@ -599,7 +602,11 @@ export class InFlightIngestionEngine {
         const content = readFileSync(fullPath, "utf-8");
         const parsed = JSON.parse(content) as InFlightSnapshot;
 
-        if (parsed && typeof parsed.snapshotId === "string" && typeof parsed.createdAt === "string") {
+        if (
+          parsed &&
+          typeof parsed.snapshotId === "string" &&
+          typeof parsed.createdAt === "string"
+        ) {
           summaries.push({
             snapshotId: parsed.snapshotId,
             createdAt: parsed.createdAt,
@@ -610,7 +617,8 @@ export class InFlightIngestionEngine {
             filesChanged: parsed.diffSummary?.filesChanged ?? parsed.uncommittedFiles?.length ?? 0,
             insertions: parsed.diffSummary?.insertions ?? 0,
             deletions: parsed.diffSummary?.deletions ?? 0,
-            untrackedFilesCount: parsed.uncommittedFiles?.filter((f) => f.status === "untracked").length ?? 0,
+            untrackedFilesCount:
+              parsed.uncommittedFiles?.filter((f) => f.status === "untracked").length ?? 0,
             sizeBytes: stats.size,
           });
         }

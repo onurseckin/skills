@@ -3,7 +3,11 @@
  * Categorizes uncovered line segments into error-handling, branching,
  * initialization, or unexercised-logic based on patterns and heuristics.
  */
-export type CoverageDeficitCategory = "error-handling" | "branching" | "initialization" | "unexercised-logic";
+export type CoverageDeficitCategory =
+  | "error-handling"
+  | "branching"
+  | "initialization"
+  | "unexercised-logic";
 export type DeficitCategory = CoverageDeficitCategory;
 
 export interface DeficitCategoryClassification {

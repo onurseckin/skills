@@ -1,6 +1,12 @@
 // @ts-nocheck
 
-import { mindCmd, charterGoalFlag, candidateWriteScopeFlag, quiesceSourceFlag, auditAnswerFlag } from "./types.ts";
+import {
+  mindCmd,
+  charterGoalFlag,
+  candidateWriteScopeFlag,
+  quiesceSourceFlag,
+  auditAnswerFlag,
+} from "./types.ts";
 import { type CommandSpec, type FlagSpec, optionalFlag, requiredFlag } from "../index.ts";
 import {
   memoryQueryCommand,

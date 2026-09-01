@@ -54,7 +54,9 @@ export function getRunnerVfs(): VirtualMemoryFS {
           if (spawnSnapshot) {
             return origProcessSnapshot(spawnSnapshot);
           }
-          const snap = new Map([[process.pid, { pid: process.pid, parent: 1, group: process.pid }]]);
+          const snap = new Map([
+            [process.pid, { pid: process.pid, parent: 1, group: process.pid }],
+          ]);
           if (activePids.has(999999)) {
             snap.set(999999, { pid: 999999, parent: process.pid, group: 999999 });
           }
@@ -88,7 +90,12 @@ export function getRunnerVfs(): VirtualMemoryFS {
             try {
               return origDarwinProcessIdentity(pid);
             } catch {
-              return { pid: process.pid, parent: 1, group: process.pid, birth: "virtual-self-birth" };
+              return {
+                pid: process.pid,
+                parent: 1,
+                group: process.pid,
+                birth: "virtual-self-birth",
+              };
             }
           }
           return undefined;
@@ -104,13 +111,23 @@ export function getRunnerVfs(): VirtualMemoryFS {
           return activePids.has(expected.pid) ? "live" : "absent";
         }),
       );
-      runnerSpies.push(spyOn(darwinPipes, "darwinTokenOwnerIdentities").mockImplementation(() => []));
+      runnerSpies.push(
+        spyOn(darwinPipes, "darwinTokenOwnerIdentities").mockImplementation(() => []),
+      );
       runnerSpies.push(spyOn(darwinPipes, "darwinPipeOwners").mockImplementation(() => new Set()));
       runnerSpies.push(spyOn(darwinPipes, "darwinPipeHandles").mockImplementation(() => new Set()));
-      runnerSpies.push(spyOn(pipeOwnership, "ownershipTokenIdentities").mockImplementation(() => []));
-      runnerSpies.push(spyOn(pipeOwnership, "ownedProcessPids").mockImplementation(() => new Set()));
-      runnerSpies.push(spyOn(pipeOwnership, "runnerPipeHandles").mockImplementation(() => new Set()));
-      runnerSpies.push(spyOn(pipeOwnership, "addedPipeHandles").mockImplementation(() => new Set()));
+      runnerSpies.push(
+        spyOn(pipeOwnership, "ownershipTokenIdentities").mockImplementation(() => []),
+      );
+      runnerSpies.push(
+        spyOn(pipeOwnership, "ownedProcessPids").mockImplementation(() => new Set()),
+      );
+      runnerSpies.push(
+        spyOn(pipeOwnership, "runnerPipeHandles").mockImplementation(() => new Set()),
+      );
+      runnerSpies.push(
+        spyOn(pipeOwnership, "addedPipeHandles").mockImplementation(() => new Set()),
+      );
     } catch {
       // ignore if on non-darwin
     }

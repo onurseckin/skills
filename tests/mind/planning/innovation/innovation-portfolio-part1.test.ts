@@ -21,8 +21,6 @@ import {
   type ParetoCandidate,
 } from "../../../../olt/scripts/src/mind/planning/index.ts";
 
-
-
 describe("70/20/10 Innovation Portfolio Governance & Capacity Balancer", () => {
   test("defines 70/20/10 target capacity distributions across the 3 tracks", () => {
     expect(PORTFOLIO_TARGET_PERCENTAGES[PORTFOLIO_TRACKS.CORE_STABILITY_AND_POLISH]).toBe(70);
@@ -185,4 +183,3 @@ describe("70/20/10 Innovation Portfolio Governance & Capacity Balancer", () => {
     expect(report.status).toBe("BALANCED");
   });
 });
-

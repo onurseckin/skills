@@ -22,11 +22,21 @@ import {
 } from "../../../../olt/scripts/src/mind/memory/index.ts";
 
 describe("SupersessionIndex Dedicated Suite", () => {
-describe("Cycle Detection & Acyclicity Validation", () => {
+  describe("Cycle Detection & Acyclicity Validation", () => {
     it("validates that a linear directed chain is acyclic", () => {
       const index = new SupersessionIndex();
-      index.registerEntry({ id: "node-1", title: "Node 1", status: "SUPERSEDED", supersededBy: "node-2" });
-      index.registerEntry({ id: "node-2", title: "Node 2", status: "SUPERSEDED", supersededBy: "node-3" });
+      index.registerEntry({
+        id: "node-1",
+        title: "Node 1",
+        status: "SUPERSEDED",
+        supersededBy: "node-2",
+      });
+      index.registerEntry({
+        id: "node-2",
+        title: "Node 2",
+        status: "SUPERSEDED",
+        supersededBy: "node-3",
+      });
       index.registerEntry({ id: "node-3", title: "Node 3", status: "ACTIVE" });
 
       const check = index.validateLineageAcyclicity();
@@ -36,8 +46,18 @@ describe("Cycle Detection & Acyclicity Validation", () => {
 
     it("detects a direct 2-node cycle (A -> B -> A) and returns cycle path", () => {
       const index = new SupersessionIndex();
-      index.registerEntry({ id: "cyc-A", title: "Cycle A", status: "SUPERSEDED", supersededBy: "cyc-B" });
-      index.registerEntry({ id: "cyc-B", title: "Cycle B", status: "SUPERSEDED", supersededBy: "cyc-A" });
+      index.registerEntry({
+        id: "cyc-A",
+        title: "Cycle A",
+        status: "SUPERSEDED",
+        supersededBy: "cyc-B",
+      });
+      index.registerEntry({
+        id: "cyc-B",
+        title: "Cycle B",
+        status: "SUPERSEDED",
+        supersededBy: "cyc-A",
+      });
 
       const check = index.validateLineageAcyclicity();
       expect(check.valid).toBe(false);
@@ -60,7 +80,12 @@ describe("Cycle Detection & Acyclicity Validation", () => {
 
     it("handles self-referencing loops (A -> A) gracefully in lineage traversal without infinite loop", () => {
       const index = new SupersessionIndex();
-      index.registerEntry({ id: "self-loop", title: "Self Loop", status: "SUPERSEDED", supersededBy: "self-loop" });
+      index.registerEntry({
+        id: "self-loop",
+        title: "Self Loop",
+        status: "SUPERSEDED",
+        supersededBy: "self-loop",
+      });
 
       // getSuccessorLineage must break immediately
       const lineage = index.getSuccessorLineage("self-loop");
@@ -75,12 +100,27 @@ describe("Cycle Detection & Acyclicity Validation", () => {
       const index = new SupersessionIndex();
 
       // Healthy component
-      index.registerEntry({ id: "healthy-1", title: "H1", status: "SUPERSEDED", supersededBy: "healthy-2" });
+      index.registerEntry({
+        id: "healthy-1",
+        title: "H1",
+        status: "SUPERSEDED",
+        supersededBy: "healthy-2",
+      });
       index.registerEntry({ id: "healthy-2", title: "H2", status: "ACTIVE" });
 
       // Cyclic component
-      index.registerEntry({ id: "bad-x", title: "BX", status: "SUPERSEDED", supersededBy: "bad-y" });
-      index.registerEntry({ id: "bad-y", title: "BY", status: "SUPERSEDED", supersededBy: "bad-x" });
+      index.registerEntry({
+        id: "bad-x",
+        title: "BX",
+        status: "SUPERSEDED",
+        supersededBy: "bad-y",
+      });
+      index.registerEntry({
+        id: "bad-y",
+        title: "BY",
+        status: "SUPERSEDED",
+        supersededBy: "bad-x",
+      });
 
       const check = index.validateLineageAcyclicity();
       expect(check.valid).toBe(false);
@@ -88,7 +128,7 @@ describe("Cycle Detection & Acyclicity Validation", () => {
     });
   });
 
-describe("State Export, Import & JSON Roundtrips", () => {
+  describe("State Export, Import & JSON Roundtrips", () => {
     it("exports state and imports state into a new index instance", () => {
       const index = new SupersessionIndex();
       index.registerEntry({
@@ -122,7 +162,12 @@ describe("State Export, Import & JSON Roundtrips", () => {
     it("serializes to JSON and deserializes via fromJSON static factory", () => {
       const index = new SupersessionIndex();
       index.registerEntry({ id: "json-node-a", title: "JSON Node A", status: "ACTIVE" });
-      index.registerEntry({ id: "json-node-b", title: "JSON Node B", status: "SUPERSEDED", supersededBy: "json-node-a" });
+      index.registerEntry({
+        id: "json-node-b",
+        title: "JSON Node B",
+        status: "SUPERSEDED",
+        supersededBy: "json-node-a",
+      });
 
       const jsonStr = index.toJSON();
       expect(typeof jsonStr).toBe("string");
@@ -141,8 +186,18 @@ describe("State Export, Import & JSON Roundtrips", () => {
         version: 1,
         exportedAt: "2026-09-01T00:00:00.000Z",
         nodes: [
-          { id: "s-node-1", title: "State Node 1", status: "ACTIVE", timestamp: "2026-09-01T00:00:00.000Z" },
-          { id: "s-node-2", title: "State Node 2", status: "DEPRECATED", timestamp: "2026-09-01T00:00:00.000Z" },
+          {
+            id: "s-node-1",
+            title: "State Node 1",
+            status: "ACTIVE",
+            timestamp: "2026-09-01T00:00:00.000Z",
+          },
+          {
+            id: "s-node-2",
+            title: "State Node 2",
+            status: "DEPRECATED",
+            timestamp: "2026-09-01T00:00:00.000Z",
+          },
         ],
       };
 
@@ -167,7 +222,13 @@ describe("State Export, Import & JSON Roundtrips", () => {
     it("initializes index with initialNodes in constructor", () => {
       const initial: SupersessionNode[] = [
         { id: "init-1", title: "Init 1", status: "ACTIVE", timestamp: "2026-08-01T00:00:00.000Z" },
-        { id: "init-2", title: "Init 2", status: "SUPERSEDED", supersededBy: "init-1", timestamp: "2026-08-01T00:00:00.000Z" },
+        {
+          id: "init-2",
+          title: "Init 2",
+          status: "SUPERSEDED",
+          supersededBy: "init-1",
+          timestamp: "2026-08-01T00:00:00.000Z",
+        },
       ];
 
       const index = new SupersessionIndex(initial);

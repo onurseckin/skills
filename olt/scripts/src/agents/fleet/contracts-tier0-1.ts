@@ -41,8 +41,16 @@ export const CONTRACTS_TIER_0_1: readonly AgentOperationalContract[] = [
     },
     invariants: ["SUPERVISOR_ZERO_CODE_EDITS", "NO_RAW_JSONL_READS", "SOVEREIGN_EQUILIBRIUM_GUARD"],
     certifiedDeliverables: [
-      { type: "strategic_epoch_intent", description: "Strategic Epoch Intent Record", evidenceRequired: true },
-      { type: "mind_audit_charter", description: "Auditor Charter Authorization", evidenceRequired: true },
+      {
+        type: "strategic_epoch_intent",
+        description: "Strategic Epoch Intent Record",
+        evidenceRequired: true,
+      },
+      {
+        type: "mind_audit_charter",
+        description: "Auditor Charter Authorization",
+        evidenceRequired: true,
+      },
     ],
   }),
 
@@ -62,15 +70,26 @@ export const CONTRACTS_TIER_0_1: readonly AgentOperationalContract[] = [
       forbiddenTools: [...FORBIDDEN_WRITE_TOOLS, "run:exec"],
     },
     permissions: {
-      may: ["Audit Mind cognitive pulses and detect stagnation loops", "Emit governance audit receipts"],
-      mustNot: ["Write application source code", "Claim task write leases", "Spawn tactical implementers"],
+      may: [
+        "Audit Mind cognitive pulses and detect stagnation loops",
+        "Emit governance audit receipts",
+      ],
+      mustNot: [
+        "Write application source code",
+        "Claim task write leases",
+        "Spawn tactical implementers",
+      ],
       allowedCommands: ["bun harness.ts *"],
       forbiddenCommands: [...FORBIDDEN_WRITE_TOOLS, "run:exec"],
       allowedSpawns: [],
     },
     invariants: ["AUDITOR_INDEPENDENCE_MANDATE", "SUPERVISOR_ZERO_CODE_EDITS"],
     certifiedDeliverables: [
-      { type: "mind_audit_receipt", description: "Mind Stagnation & Coherence Receipt", evidenceRequired: true },
+      {
+        type: "mind_audit_receipt",
+        description: "Mind Stagnation & Coherence Receipt",
+        evidenceRequired: true,
+      },
     ],
   }),
 
@@ -90,7 +109,10 @@ export const CONTRACTS_TIER_0_1: readonly AgentOperationalContract[] = [
       forbiddenTools: [...FORBIDDEN_WRITE_TOOLS, "run:exec"],
     },
     permissions: {
-      may: ["Verify skill manifest contracts and tool schema adherence", "Audit agent capabilities"],
+      may: [
+        "Verify skill manifest contracts and tool schema adherence",
+        "Audit agent capabilities",
+      ],
       mustNot: ["Mutate repository source files", "Claim task leases"],
       allowedCommands: ["bun harness.ts *"],
       forbiddenCommands: [...FORBIDDEN_WRITE_TOOLS],
@@ -98,7 +120,11 @@ export const CONTRACTS_TIER_0_1: readonly AgentOperationalContract[] = [
     },
     invariants: ["SKILL_SCHEMA_INTEGRITY", "SUPERVISOR_ZERO_CODE_EDITS"],
     certifiedDeliverables: [
-      { type: "skill_audit_receipt", description: "Skill Contract Audit Receipt", evidenceRequired: true },
+      {
+        type: "skill_audit_receipt",
+        description: "Skill Contract Audit Receipt",
+        evidenceRequired: true,
+      },
     ],
   }),
 
@@ -118,7 +144,10 @@ export const CONTRACTS_TIER_0_1: readonly AgentOperationalContract[] = [
       forbiddenTools: [...FORBIDDEN_WRITE_TOOLS, "run:exec"],
     },
     permissions: {
-      may: ["Discover security policies, RBAC matrices, and workspace boundaries", "Report boundary drift"],
+      may: [
+        "Discover security policies, RBAC matrices, and workspace boundaries",
+        "Report boundary drift",
+      ],
       mustNot: ["Modify source files", "Bypass RBAC boundaries"],
       allowedCommands: ["bun harness.ts *"],
       forbiddenCommands: [...FORBIDDEN_WRITE_TOOLS],
@@ -126,7 +155,11 @@ export const CONTRACTS_TIER_0_1: readonly AgentOperationalContract[] = [
     },
     invariants: ["POLICY_DISCOVERY_IMMUTABILITY", "SUPERVISOR_ZERO_CODE_EDITS"],
     certifiedDeliverables: [
-      { type: "policy_discovery_report", description: "Policy Boundary Discovery Report", evidenceRequired: true },
+      {
+        type: "policy_discovery_report",
+        description: "Policy Boundary Discovery Report",
+        evidenceRequired: true,
+      },
     ],
   }),
 
@@ -146,15 +179,29 @@ export const CONTRACTS_TIER_0_1: readonly AgentOperationalContract[] = [
       forbiddenTools: [],
     },
     permissions: {
-      may: ["Confer genesis authority and override system RBAC rules", "Spawn root governance nodes"],
+      may: [
+        "Confer genesis authority and override system RBAC rules",
+        "Spawn root governance nodes",
+      ],
       mustNot: ["Bypass fail-closed safety invariants without explicit owner override token"],
       allowedCommands: ["*"],
       forbiddenCommands: [],
-      allowedSpawns: ["sovereign-mind", "mind", "domain-orchestrator", "orchestrator", "feature-coordinator", "coordinator"],
+      allowedSpawns: [
+        "sovereign-mind",
+        "mind",
+        "domain-orchestrator",
+        "orchestrator",
+        "feature-coordinator",
+        "coordinator",
+      ],
     },
     invariants: ["GENESIS_AUTHORITY_CONFERRAL", "FAIL_CLOSED_RBAC"],
     certifiedDeliverables: [
-      { type: "genesis_authority_receipt", description: "Genesis Authority Conferral Token", evidenceRequired: true },
+      {
+        type: "genesis_authority_receipt",
+        description: "Genesis Authority Conferral Token",
+        evidenceRequired: true,
+      },
     ],
   }),
 
@@ -174,16 +221,26 @@ export const CONTRACTS_TIER_0_1: readonly AgentOperationalContract[] = [
       forbiddenTools: [...FORBIDDEN_WRITE_TOOLS, ...FORBIDDEN_EXEC_TOOLS],
     },
     permissions: {
-      may: ["Author purely conceptual, natural English architectural plans without harness syntax contamination"],
+      may: [
+        "Author purely conceptual, natural English architectural plans without harness syntax contamination",
+      ],
       mustNot: ["Execute shell commands", "Claim task write leases", "Edit source files"],
       allowedCommands: ["msg:send", "msg:recv", "msg:poll"],
       forbiddenCommands: [...FORBIDDEN_WRITE_TOOLS, ...FORBIDDEN_EXEC_TOOLS],
       allowedSpawns: [],
     },
-    invariants: ["COMPLETE_HARNESS_DECOUPLING", "PURE_ENGLISH_CONCEPTUAL_STANDARD", "SOURCE_CODE_BLINDNESS_QUARANTINE"],
+    invariants: [
+      "COMPLETE_HARNESS_DECOUPLING",
+      "PURE_ENGLISH_CONCEPTUAL_STANDARD",
+      "SOURCE_CODE_BLINDNESS_QUARANTINE",
+    ],
     isSourceCodeBlind: true,
     certifiedDeliverables: [
-      { type: "pure_english_plan", description: "Pure English Conceptual Architecture Plan", evidenceRequired: true },
+      {
+        type: "pure_english_plan",
+        description: "Pure English Conceptual Architecture Plan",
+        evidenceRequired: true,
+      },
     ],
   }),
 
@@ -203,7 +260,9 @@ export const CONTRACTS_TIER_0_1: readonly AgentOperationalContract[] = [
       forbiddenTools: [...FORBIDDEN_WRITE_TOOLS, ...FORBIDDEN_EXEC_TOOLS],
     },
     permissions: {
-      may: ["Audit independent planner output for harness syntax contamination and conceptual purity"],
+      may: [
+        "Audit independent planner output for harness syntax contamination and conceptual purity",
+      ],
       mustNot: ["Execute shell commands", "Modify repository source files"],
       allowedCommands: ["msg:send", "msg:recv", "msg:poll"],
       forbiddenCommands: [...FORBIDDEN_WRITE_TOOLS, ...FORBIDDEN_EXEC_TOOLS],
@@ -212,7 +271,11 @@ export const CONTRACTS_TIER_0_1: readonly AgentOperationalContract[] = [
     invariants: ["SYNTAX_CONTAMINATION_CHECK", "COGNITIVE_HARD_LOCK"],
     isSourceCodeBlind: true,
     certifiedDeliverables: [
-      { type: "plan_purity_audit", description: "Plan Purity Audit Receipt", evidenceRequired: true },
+      {
+        type: "plan_purity_audit",
+        description: "Plan Purity Audit Receipt",
+        evidenceRequired: true,
+      },
     ],
   }),
 
@@ -228,19 +291,43 @@ export const CONTRACTS_TIER_0_1: readonly AgentOperationalContract[] = [
       canExecuteCommands: false,
       canSpawnSubagents: false,
       canClaimLeases: false,
-      allowedTools: ["msg:send", "msg:recv", "msg:poll", "task:brief", "task:probe", "task:reject", "task:review"],
+      allowedTools: [
+        "msg:send",
+        "msg:recv",
+        "msg:poll",
+        "task:brief",
+        "task:probe",
+        "task:reject",
+        "task:review",
+      ],
       forbiddenTools: [...FORBIDDEN_WRITE_TOOLS, ...FORBIDDEN_EXEC_TOOLS],
     },
     permissions: {
       may: ["Validate task plans against umbrella compression and boundary leakage"],
       mustNot: ["Execute shell commands", "Claim task write leases"],
-      allowedCommands: ["task:brief", "task:probe", "task:reject", "task:review", "msg:send", "msg:recv", "msg:poll"],
+      allowedCommands: [
+        "task:brief",
+        "task:probe",
+        "task:reject",
+        "task:review",
+        "msg:send",
+        "msg:recv",
+        "msg:poll",
+      ],
       forbiddenCommands: [...FORBIDDEN_WRITE_TOOLS, ...FORBIDDEN_EXEC_TOOLS],
       allowedSpawns: [],
     },
-    invariants: ["REJECT_SHALLOW_UMBRELLA_COMPRESSION", "ANTI_BOUNDARY_LEAK", "COGNITIVE_HARD_LOCK"],
+    invariants: [
+      "REJECT_SHALLOW_UMBRELLA_COMPRESSION",
+      "ANTI_BOUNDARY_LEAK",
+      "COGNITIVE_HARD_LOCK",
+    ],
     certifiedDeliverables: [
-      { type: "plan_validation_receipt", description: "Plan Validation & Decomposition Receipt", evidenceRequired: true },
+      {
+        type: "plan_validation_receipt",
+        description: "Plan Validation & Decomposition Receipt",
+        evidenceRequired: true,
+      },
     ],
   }),
 

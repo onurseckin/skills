@@ -8,11 +8,7 @@ import {
   VALID_BORDER_RADII_VALUES,
   COLOR_PALETTES,
 } from "./constants.ts";
-import type {
-  StyleAdjustmentRequest,
-  TokenImmunityDefense,
-  ThemeMode,
-} from "./types.ts";
+import type { StyleAdjustmentRequest, TokenImmunityDefense, ThemeMode } from "./types.ts";
 import {
   RawValuePolicyValidator,
   findClosestNumericToken,
@@ -72,11 +68,17 @@ export class TokenComplianceImmunity {
         }
       } else if (propLower === "font-size") {
         if (!VALID_FONT_SIZES.includes(num)) {
-          const closest = findClosestNumericToken(num, VALID_FONT_SIZES, TYPOGRAPHY_TOKENS.fontSizes);
+          const closest = findClosestNumericToken(
+            num,
+            VALID_FONT_SIZES,
+            TYPOGRAPHY_TOKENS.fontSizes,
+          );
           return {
             compliant: false,
             reasoning: `Requested font-size '${request.requestedValue}' violates Sovereign Token Standard. Nearest valid token is '${closest.tokenName}' (${closest.tokenValue}px).`,
-            suggestedTokens: [`TYPOGRAPHY_TOKENS.fontSizes['${closest.tokenName}'] (${closest.tokenValue}px)`],
+            suggestedTokens: [
+              `TYPOGRAPHY_TOKENS.fontSizes['${closest.tokenName}'] (${closest.tokenValue}px)`,
+            ],
           };
         }
       }
@@ -89,7 +91,11 @@ export class TokenComplianceImmunity {
         return {
           compliant: false,
           reasoning: `Requested color '${request.requestedValue}' is an uncalibrated raw hex value. Styles must use canonical COLOR_PALETTES role tokens.`,
-          suggestedTokens: ["COLOR_PALETTES.light.primary", "COLOR_PALETTES.dark.primary", "COLOR_PALETTES.light.surfaceElevated"],
+          suggestedTokens: [
+            "COLOR_PALETTES.light.primary",
+            "COLOR_PALETTES.dark.primary",
+            "COLOR_PALETTES.light.surfaceElevated",
+          ],
         };
       }
     }
@@ -179,4 +185,3 @@ export class TokenComplianceImmunity {
  * 4. Constructive Compositional Dialectic Engine
  * ============================================================================
  */
-

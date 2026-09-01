@@ -1,4 +1,3 @@
-
 import { existsSync, readFileSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
 import { findRepoRoot } from "../../../core/index.ts";
@@ -28,12 +27,7 @@ import {
   type ExecutiveDashboardState,
   resolveDashboardPaths,
 } from "../../../mind/reporting/index.ts";
-import type {
-  DoctorCheckEngineResult,
-  DoctorDiagnosticFinding,
-  DoctorSeverity,
-} from "../index.ts";
-
+import type { DoctorCheckEngineResult, DoctorDiagnosticFinding, DoctorSeverity } from "../index.ts";
 
 // ============================================================================
 // 1. Invariant Definitions & Types

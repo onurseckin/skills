@@ -19,9 +19,7 @@ import {
 } from "../../../../../olt/scripts/src/mind/auditing/product-craft.ts";
 
 describe("Product Craft & Ergonomic Walkthrough Auditing", () => {
-
-
-describe("The Five Pillars of Product Craft", () => {
+  describe("The Five Pillars of Product Craft", () => {
     it("exports all 5 standard product craft pillars", () => {
       expect(PRODUCT_CRAFT_PILLAR_LIST.length).toBe(5);
       expect(PRODUCT_CRAFT_PILLAR_LIST).toContain("VISUAL_HIERARCHY");
@@ -66,7 +64,7 @@ describe("The Five Pillars of Product Craft", () => {
     });
   });
 
-describe("calculateCompositeCraftScore", () => {
+  describe("calculateCompositeCraftScore", () => {
     it("computes equal-weighted average accurately", () => {
       const score = calculateCompositeCraftScore({
         VISUAL_HIERARCHY: 90,
@@ -118,7 +116,7 @@ describe("calculateCompositeCraftScore", () => {
     });
   });
 
-describe("generateAestheticDeficitNotice", () => {
+  describe("generateAestheticDeficitNotice", () => {
     it("creates a properly structured deficit notice", () => {
       const notice = generateAestheticDeficitNotice({
         milestoneId: "m1-onboarding",
@@ -142,8 +140,8 @@ describe("generateAestheticDeficitNotice", () => {
     });
   });
 
-describe("ErgonomicWalkthroughAuditor", () => {
-it("passes a milestone meeting all pillar criteria with score >= 85", () => {
+  describe("ErgonomicWalkthroughAuditor", () => {
+    it("passes a milestone meeting all pillar criteria with score >= 85", () => {
       const auditor = createErgonomicWalkthroughAuditor();
 
       const result = auditor.auditMilestoneErgonomics("m2-dashboard", {
@@ -169,10 +167,10 @@ it("passes a milestone meeting all pillar criteria with score >= 85", () => {
       expect(signed.signedOff).toBe(true);
       expect(signed.signer).toBe("Auditor-Tier3");
     });
-});
+  });
 
-describe("ErgonomicWalkthroughAuditor", () => {
-it("blocks milestone sign-off when composite score is below 85", () => {
+  describe("ErgonomicWalkthroughAuditor", () => {
+    it("blocks milestone sign-off when composite score is below 85", () => {
       const auditor = createErgonomicWalkthroughAuditor();
 
       const result = auditor.auditMilestoneErgonomics("m3-settings", {
@@ -193,10 +191,10 @@ it("blocks milestone sign-off when composite score is below 85", () => {
       expect(signOffStatus.blockingReasons.length).toBeGreaterThan(0);
       expect(signOffStatus.blockingReasons[0]).toContain("below the required pass threshold");
     });
-});
+  });
 
-describe("ErgonomicWalkthroughAuditor", () => {
-it("auto-generates BLOCKING notice when a pillar score is critically low (<50)", () => {
+  describe("ErgonomicWalkthroughAuditor", () => {
+    it("auto-generates BLOCKING notice when a pillar score is critically low (<50)", () => {
       const auditor = createErgonomicWalkthroughAuditor();
 
       const result = auditor.auditMilestoneErgonomics("m4-editor", {
@@ -217,5 +215,5 @@ it("auto-generates BLOCKING notice when a pillar score is critically low (<50)",
       expect(blocking[0]?.pillar).toBe("TACTILE_MICRO_INTERACTIONS");
       expect(blocking[0]?.severity).toBe("BLOCKING");
     });
-});
+  });
 });

@@ -41,7 +41,7 @@ function setupAssistantRoots(testName: string) {
 }
 
 describe("logDestructiveOp", () => {
-test("refuses when the link path falls outside the declared allowed roots", () => {
+  test("refuses when the link path falls outside the declared allowed roots", () => {
     const { root, assistantDir, targetOlt } = setupAssistantRoots("symlink-outside-root");
     const otherDir = join(root, "unrelated-dir");
     mkdirSync(otherDir, { recursive: true });
@@ -55,8 +55,7 @@ test("refuses when the link path falls outside the declared allowed roots", () =
 });
 
 describe("guardedRemoveSync", () => {
-
-test("removes a plain file inside the allowed root", () => {
+  test("removes a plain file inside the allowed root", () => {
     const root = scratchRoot(import.meta.path, "guarded-remove-file");
     const victim = join(root, "nested", "victim.txt");
     mkdirSync(join(root, "nested"), { recursive: true });
@@ -68,14 +67,14 @@ test("removes a plain file inside the allowed root", () => {
     expect(audits.length).toBeGreaterThan(0);
   });
 
-test("is a no-op by default when the target is already missing", () => {
+  test("is a no-op by default when the target is already missing", () => {
     const root = scratchRoot(import.meta.path, "guarded-remove-missing");
     expect(() =>
       guardedRemoveSync(join(root, "never-existed"), { allowedRoots: [root] }),
     ).not.toThrow();
   });
 
-test("refuses to delete a directory containing a .git entry without an explicit override", () => {
+  test("refuses to delete a directory containing a .git entry without an explicit override", () => {
     const root = scratchRoot(import.meta.path, "guarded-remove-git-repo");
     const repoDir = join(root, "some-repo");
     initRealGitRepoAt(repoDir);
@@ -84,7 +83,7 @@ test("refuses to delete a directory containing a .git entry without an explicit 
     expect(existsSync(join(repoDir, ".git"))).toBe(true);
   });
 
-test("allows deleting git repo when allowGitRepositoryDeletion is true", () => {
+  test("allows deleting git repo when allowGitRepositoryDeletion is true", () => {
     const root = scratchRoot(import.meta.path, "guarded-remove-git-repo-override");
     const repoDir = join(root, "removable-repo");
     initRealGitRepoAt(repoDir);
@@ -92,7 +91,7 @@ test("allows deleting git repo when allowGitRepositoryDeletion is true", () => {
     expect(existsSync(repoDir)).toBe(false);
   });
 
-test("refuses to delete outside the declared allowed roots even when the caller asks", () => {
+  test("refuses to delete outside the declared allowed roots even when the caller asks", () => {
     const root = scratchRoot(import.meta.path, "guarded-remove-outside-root");
     const allowedRoot = join(root, "allowed");
     const sibling = join(root, "sibling");

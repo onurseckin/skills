@@ -19,7 +19,7 @@ import {
 } from "../../../../../olt/scripts/src/mind/auditing/product-craft.ts";
 
 describe("Product Craft & Ergonomic Walkthrough Auditing", () => {
-describe("ErgonomicWalkthroughAuditor", () => {
+  describe("ErgonomicWalkthroughAuditor", () => {
     it("passes a milestone meeting all pillar criteria with score >= 85", () => {
       const auditor = createErgonomicWalkthroughAuditor();
 
