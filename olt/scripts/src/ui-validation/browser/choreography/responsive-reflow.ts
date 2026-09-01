@@ -10,7 +10,7 @@ import {
   type MobileMenuTransitionResult,
   type BreakpointLayoutMetrics,
   type BreakpointReflowResult,
-} from "./types.ts";
+} from "./overlay-types.ts";
 export class ResponsiveReflowProber {
   /**
    * Validates touch hitbox dimensions against accessibility minimums
