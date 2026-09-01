@@ -13,3 +13,18 @@ export interface FileCoverageMetric {
   readonly uncoveredLines: readonly number[];
   readonly lineHits: ReadonlyMap<number, number>;
 }
+
+export function calculatePct(covered: number, total: number): number {
+  if (total <= 0) return 100;
+  const pct = (covered / total) * 100;
+  return Math.round(pct * 100) / 100;
+}
+
+export function createMetricItem(covered: number, total: number): MetricItem {
+  return {
+    total,
+    covered,
+    skipped: 0,
+    pct: calculatePct(covered, total),
+  };
+}
