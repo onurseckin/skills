@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -7,8 +7,16 @@ import {
   orDefault,
   readJsonStringField,
 } from "../../../scripts/sync/skill-deployer.ts";
-import { scratchRoot } from "../sync-fixture.ts";
+import { cleanupVirtualSyncFS, scratchRoot, setupVirtualSyncFS } from "../sync-fixture.ts";
 import { initFakeSkillsRepo, initFakeTargetOlt } from "./skill-deployer-fixtures.ts";
+
+beforeEach(() => {
+  setupVirtualSyncFS();
+});
+
+afterEach(() => {
+  cleanupVirtualSyncFS();
+});
 
 describe("getAssistantSkillDirs", () => {
   test("returns all 9 expected assistant skill paths", () => {

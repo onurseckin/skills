@@ -1,8 +1,16 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { chmodSync, existsSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { buildOltBinaryContent, ensureGlobalOltBinary } from "../../../scripts/sync/olt-bin.ts";
-import { scratchRoot } from "../sync-fixture.ts";
+import { cleanupVirtualSyncFS, scratchRoot, setupVirtualSyncFS } from "../sync-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualSyncFS();
+});
+
+afterEach(() => {
+  cleanupVirtualSyncFS();
+});
 
 describe("buildOltBinaryContent", () => {
   test("generates expected bash wrapper script with multi-path Bun discovery", () => {

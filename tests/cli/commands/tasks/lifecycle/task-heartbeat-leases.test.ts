@@ -1,6 +1,5 @@
 import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { spawnSync } from "node:child_process";
 import { afterEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { HarnessError } from "../../../../../olt/scripts/src/core/errors/index.ts";
@@ -138,11 +137,6 @@ describe("task:heartbeat and task:claim Leases", () => {
       commit_per_subphase: true,
     });
 
-    spawnSync("git", ["init", "--quiet", "--initial-branch", "main"], { cwd: repo });
-    spawnSync("git", ["config", "user.email", "test@test.test"], { cwd: repo });
-    spawnSync("git", ["config", "user.name", "Test"], { cwd: repo });
-    spawnSync("git", ["commit", "--allow-empty", "-m", "init"], { cwd: repo });
-
     mkdirSync(join(repo, ".olt"), { recursive: true });
     writeFileSync(
       join(repo, "harness.config.json"),
@@ -209,11 +203,7 @@ describe("task:heartbeat and task:claim Leases", () => {
       bytes: Buffer.from(""),
       command: "git rev-parse",
     });
-    const { repo: repo3, run: run3 } = await setupRun("claim-git-fail", roots);
-    spawnSync("git", ["init", "--quiet", "--initial-branch", "main"], { cwd: repo3 });
-    spawnSync("git", ["config", "user.email", "test@test.test"], { cwd: repo3 });
-    spawnSync("git", ["config", "user.name", "Test"], { cwd: repo3 });
-    spawnSync("git", ["commit", "--allow-empty", "-m", "init"], { cwd: repo3 });
+    const { run: run3 } = await setupRun("claim-git-fail", roots);
     const claim3 = await taskClaimCommand(
       {
         run: run3,
@@ -228,11 +218,7 @@ describe("task:heartbeat and task:claim Leases", () => {
     const mockGitThrow = () => {
       throw new Error("git error");
     };
-    const { repo: repo4, run: run4 } = await setupRun("claim-git-throw", roots);
-    spawnSync("git", ["init", "--quiet", "--initial-branch", "main"], { cwd: repo4 });
-    spawnSync("git", ["config", "user.email", "test@test.test"], { cwd: repo4 });
-    spawnSync("git", ["config", "user.name", "Test"], { cwd: repo4 });
-    spawnSync("git", ["commit", "--allow-empty", "-m", "init"], { cwd: repo4 });
+    const { run: run4 } = await setupRun("claim-git-throw", roots);
     const claim4 = await taskClaimCommand(
       {
         run: run4,

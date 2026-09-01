@@ -21,3 +21,10 @@ export {
   computeScenarioDigest,
   type ScenarioSpec,
 } from "./scenario-loader.test.ts";
+
+export {
+  setupVirtualScenariosFS,
+  cleanupVirtualScenariosFS,
+  scratchRoot,
+  getVirtualScenariosFS,
+} from "./fixture.ts";

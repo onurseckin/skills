@@ -135,10 +135,10 @@ describe("monitorProcess", () => {
 describe("Invariants & Cleanliness Audit - Runner Watchdog", () => {
   test("zero TypeScript any and zero suppressions across runner watchdog files", () => {
     const { readFileSync } = require("node:fs");
-    const { join } = require("node:path");
+    const { resolve } = require("node:path");
     const sourceFiles = [
-      join(process.cwd(), "olt/scripts/src/engine/runner/telemetry/watchdog.ts"),
-      __filename,
+      resolve(import.meta.dir, "../../../olt/scripts/src/engine/runner/telemetry/watchdog.ts"),
+      import.meta.path,
     ];
 
     const anyAnnotation = new RegExp(":\\s*any\\b");

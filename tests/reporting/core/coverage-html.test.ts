@@ -19,21 +19,17 @@ import type {
   CoverageSummary,
   FileCoverageMetric,
 } from "../../../scripts/testing/reporting/types.ts";
-import {
-  cleanupVirtualBrowserFS,
-  setupVirtualBrowserFS,
-  tempDir,
-} from "../browser/browser-virtual-fs.ts";
+import { cleanupVirtualReportingFS, setupVirtualReportingFS, tempDir } from "../fixture.ts";
 
 export const coverageHtmlSuiteName = "Coverage HTML Interactive Report Generation & Templating";
 
 describe(coverageHtmlSuiteName, () => {
   beforeEach(() => {
-    setupVirtualBrowserFS();
+    setupVirtualReportingFS();
   });
 
   afterEach(() => {
-    cleanupVirtualBrowserFS();
+    cleanupVirtualReportingFS();
   });
 
   describe("html styles, code viewer, and templates", () => {

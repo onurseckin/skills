@@ -14,11 +14,7 @@ import {
   orchestratorTickCommand,
 } from "../../../olt/scripts/src/cli/commands/orchestrator-ops.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import {
-  cleanupVirtualBrowserFS,
-  setupVirtualBrowserFS,
-  tempDir,
-} from "../browser/browser-run-fixture.ts";
+import { cleanupVirtualReportingFS, setupVirtualReportingFS, tempDir } from "../fixture.ts";
 
 const TASK_ID = "task-core";
 const CHANGED_FILE = "tests/core/probe-target.ts";
@@ -86,11 +82,11 @@ export const handoffRefreshSuiteName = "refreshHandoff";
 
 describe(handoffRefreshSuiteName, () => {
   beforeEach(() => {
-    setupVirtualBrowserFS();
+    setupVirtualReportingFS();
   });
 
   afterEach(() => {
-    cleanupVirtualBrowserFS();
+    cleanupVirtualReportingFS();
   });
 
   test("a run that cannot be rendered yields undefined instead of throwing", () => {
@@ -100,11 +96,11 @@ describe(handoffRefreshSuiteName, () => {
 
 describe("refreshHandoffOnEscalation", () => {
   beforeEach(() => {
-    setupVirtualBrowserFS();
+    setupVirtualReportingFS();
   });
 
   afterEach(() => {
-    cleanupVirtualBrowserFS();
+    cleanupVirtualReportingFS();
   });
 
   test("only escalation triggers a refresh attempt", () => {
@@ -120,11 +116,11 @@ describe("refreshHandoffOnEscalation", () => {
 
 describe("handoff refresh at lifecycle boundaries", () => {
   beforeEach(() => {
-    setupVirtualBrowserFS();
+    setupVirtualReportingFS();
   });
 
   afterEach(() => {
-    cleanupVirtualBrowserFS();
+    cleanupVirtualReportingFS();
   });
 
   test("task:submit refreshes handoff.md and returns handoff_path", async () => {

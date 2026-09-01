@@ -1,6 +1,5 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { taskReviewCommand } from "../../../../../olt/scripts/src/cli/commands/task-review.ts";
@@ -145,9 +144,7 @@ describe("task:review - Preconditions, Status & Checklists", () => {
     const probed = await recordProbe(run, validation.token as string, "Prove with checklist");
 
     const checklist = loadChecklist("code-quality");
-    const scratchDir = await mkdtemp(join(tmpdir(), "harness-checklist-report-"));
-    roots.push(scratchDir);
-    const reportPath = join(scratchDir, "coverage.json");
+    const reportPath = join(repo, "coverage.json");
     await writeFile(
       reportPath,
       JSON.stringify({

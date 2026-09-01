@@ -1,4 +1,4 @@
-import { describe, expect, spyOn, test } from "bun:test";
+import { afterEach, describe, expect, spyOn, test } from "bun:test";
 import { join } from "node:path";
 import {
   cleanupAfterAttemptFailure,
@@ -7,6 +7,7 @@ import {
 } from "../../../olt/scripts/src/engine/runner/execution/attempt-failure-cleanup.ts";
 import type { NormalizedCommandOptions } from "../../../olt/scripts/src/engine/runner/types/types.ts";
 import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
+import { cleanupTempRoots, tempRoot } from "../command/fixture.ts";
 
 const mockOptions: NormalizedCommandOptions = {
   commandId: "cmd-1",
@@ -30,6 +31,8 @@ const mockIdentity: ProcessIdentity = {
   birth: "2026-08-14T00:00:00.000Z",
 };
 
+afterEach(cleanupTempRoots);
+
 describe("attempt-failure-settle", () => {
   test("cleanupAfterAttemptFailure handles durable and non-durable", async () => {
     const err = new Error("durable failure");
@@ -40,7 +43,7 @@ describe("attempt-failure-settle", () => {
   });
 
   test("startAttemptPumpsAndMonitoring starts custom pumps", async () => {
-    const tempDir = process.cwd();
+    const tempDir = tempRoot("failure-settle");
     const child = {
       stdout: new ReadableStream(),
       stderr: new ReadableStream(),

@@ -1,95 +1,24 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { enrichFileRefsWithDiffs } from "../../../olt/scripts/src/summary/formatters/index.ts";
 import type { RepositoryGitCommand } from "../../../olt/scripts/src/packets/repository-git-command.ts";
 import type { FileRef } from "../../../olt/scripts/src/summary/graph/index.ts";
+import { setupVirtualSummaryFS } from "../fixture.ts";
 
-const vfs = new Map<string, string>();
 let rootCounter = 0;
-const spies: Array<{ mockRestore: () => void }> = [];
-
-const origExists = fs.existsSync.bind(fs);
-const origRead = fs.readFileSync.bind(fs);
-const origWrite = fs.writeFileSync.bind(fs);
-const origMkdir = fs.mkdirSync.bind(fs);
-const origRm = fs.rmSync.bind(fs);
 
 beforeEach(() => {
-  spies.push(
-    spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike): boolean => {
-      const s = String(p);
-      if (s.startsWith("/virtual/")) {
-        if (vfs.has(s)) return true;
-        for (const k of vfs.keys()) {
-          if (k.startsWith(`${s}/`)) return true;
-        }
-        return false;
-      }
-      return origExists(p);
-    }),
-    spyOn(fs, "readFileSync").mockImplementation(
-      (p: fs.PathLike, opt?: unknown): string | Buffer => {
-        const s = String(p);
-        if (s.startsWith("/virtual/")) {
-          const content = vfs.get(s);
-          if (content === undefined) {
-            throw new Error(`ENOENT: no such file or directory, open '${s}'`);
-          }
-          if (opt === "utf-8" || opt === "utf8" || (typeof opt === "object" && opt !== null)) {
-            return content;
-          }
-          return Buffer.from(content, "utf-8");
-        }
-        return origRead(p, opt as Parameters<typeof origRead>[1]) as string | Buffer;
-      },
-    ),
-    spyOn(fs, "writeFileSync").mockImplementation(
-      (p: fs.PathLike, data: string | NodeJS.ArrayBufferView): void => {
-        const s = String(p);
-        if (s.startsWith("/virtual/")) {
-          vfs.set(
-            s,
-            typeof data === "string"
-              ? data
-              : Buffer.from(data.buffer, data.byteOffset, data.byteLength).toString("utf-8"),
-          );
-          return;
-        }
-        origWrite(p, data);
-      },
-    ),
-    spyOn(fs, "mkdirSync").mockImplementation((p: fs.PathLike): string | undefined => {
-      const s = String(p);
-      if (s.startsWith("/virtual/")) {
-        return undefined;
-      }
-      return origMkdir(p) as string | undefined;
-    }),
-    spyOn(fs, "rmSync").mockImplementation((p: fs.PathLike): void => {
-      const s = String(p);
-      if (s.startsWith("/virtual/")) {
-        vfs.delete(s);
-        for (const k of Array.from(vfs.keys())) {
-          if (k.startsWith(`${s}/`)) vfs.delete(k);
-        }
-        return;
-      }
-      origRm(p, { recursive: true, force: true });
-    }),
-  );
-});
-
-afterEach(() => {
-  for (const s of spies.splice(0)) s.mockRestore();
-  vfs.clear();
+  setupVirtualSummaryFS();
 });
 
 function createSandboxRoot(testName: string): string {
   rootCounter += 1;
   const slug = testName.replace(/[^a-z0-9]+/giu, "-").toLowerCase();
-  return `/virtual/harness-file-diff-reader-tests/${slug}-${rootCounter}`;
+  const dir = `/virtual/harness-file-diff-reader-tests/${slug}-${rootCounter}`;
+  mkdirSync(dir, { recursive: true });
+  return dir;
 }
 
 /**

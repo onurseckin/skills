@@ -8,22 +8,18 @@ import {
 } from "../../../olt/scripts/src/reporting/doctor.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/events/transaction.ts";
-import {
-  cleanupVirtualBrowserFS,
-  setupVirtualBrowserFS,
-  tempDir,
-} from "../browser/browser-run-fixture.ts";
+import { cleanupVirtualReportingFS, setupVirtualReportingFS, tempDir } from "../fixture.ts";
 
 export const doctorUnifiedSuiteName =
   "Wave 4 - Task 4.1: Unified Master Doctor Engine Integration & Severity Tiering";
 
 describe(doctorUnifiedSuiteName, () => {
   beforeEach(() => {
-    setupVirtualBrowserFS();
+    setupVirtualReportingFS();
   });
 
   afterEach(() => {
-    cleanupVirtualBrowserFS();
+    cleanupVirtualReportingFS();
   });
 
   test("runDoctor integrates all diagnostic engines and returns structured report", async () => {

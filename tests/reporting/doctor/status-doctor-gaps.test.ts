@@ -4,11 +4,7 @@ import { join } from "node:path";
 import { initRun, loadIndex, indexFreshness } from "../../../olt/scripts/src/engine/store/index.ts";
 import { ingestScreenshots } from "../../../olt/scripts/src/reporting/screenshot-ingestion.ts";
 import { runDoctor, versionAtLeast } from "../../../olt/scripts/src/reporting/doctor.ts";
-import {
-  cleanupVirtualBrowserFS,
-  setupVirtualBrowserFS,
-  tempDir,
-} from "../browser/browser-run-fixture.ts";
+import { cleanupVirtualReportingFS, setupVirtualReportingFS, tempDir } from "../fixture.ts";
 
 function capsuleCatalogue(runRoot: string) {
   let index;
@@ -38,11 +34,11 @@ export const statusDoctorGapsSuiteName = "versionAtLeast & status doctor gaps";
 
 describe(statusDoctorGapsSuiteName, () => {
   beforeEach(() => {
-    setupVirtualBrowserFS();
+    setupVirtualReportingFS();
   });
 
   afterEach(() => {
-    cleanupVirtualBrowserFS();
+    cleanupVirtualReportingFS();
   });
 
   test("an exact version match is at least the minimum, falling through every component check", () => {
@@ -66,11 +62,11 @@ describe(statusDoctorGapsSuiteName, () => {
 
 describe("capsule catalogue byte accounting", () => {
   beforeEach(() => {
-    setupVirtualBrowserFS();
+    setupVirtualReportingFS();
   });
 
   afterEach(() => {
-    cleanupVirtualBrowserFS();
+    cleanupVirtualReportingFS();
   });
 
   test("stored_bytes sums the actual size of every stored blob", () => {
@@ -99,11 +95,11 @@ describe("capsule catalogue byte accounting", () => {
 
 describe("doctor integrity reporting", () => {
   beforeEach(() => {
-    setupVirtualBrowserFS();
+    setupVirtualReportingFS();
   });
 
   afterEach(() => {
-    cleanupVirtualBrowserFS();
+    cleanupVirtualReportingFS();
   });
 
   test("a corrupt state.json is surfaced as a code-labelled integrity issue", async () => {

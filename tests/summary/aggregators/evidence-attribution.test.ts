@@ -1,55 +1,23 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import { join } from "node:path";
 import { generateGraphDataset } from "../../../olt/scripts/src/summary/graph/index.ts";
 import type { ScreenshotRecord } from "../../../olt/scripts/src/reporting/screenshot-types.ts";
 import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
 import { makeCommand, makeState, makeTask } from "../reporters/dag/graph-fixtures.ts";
+import { setupVirtualSummaryFS } from "../fixture.ts";
 
-const vfs = new Map<string, string>();
 let rootCounter = 0;
-const spies: Array<{ mockRestore: () => void }> = [];
-
-const origExists = fs.existsSync.bind(fs);
-const origRead = fs.readFileSync.bind(fs);
 
 beforeEach(() => {
-  spies.push(
-    spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike): boolean => {
-      const s = String(p);
-      if (s.startsWith("/virtual/")) {
-        return vfs.has(s);
-      }
-      return origExists(p);
-    }),
-    spyOn(fs, "readFileSync").mockImplementation(
-      (p: fs.PathLike, opt?: unknown): string | Buffer => {
-        const s = String(p);
-        if (s.startsWith("/virtual/")) {
-          const content = vfs.get(s);
-          if (content === undefined) {
-            throw new Error(`ENOENT: no such file or directory, open '${s}'`);
-          }
-          if (opt === "utf-8" || opt === "utf8" || (typeof opt === "object" && opt !== null)) {
-            return content;
-          }
-          return Buffer.from(content, "utf-8");
-        }
-        return origRead(p, opt as Parameters<typeof origRead>[1]) as string | Buffer;
-      },
-    ),
-  );
-});
-
-afterEach(() => {
-  for (const s of spies.splice(0)) s.mockRestore();
-  vfs.clear();
+  setupVirtualSummaryFS();
 });
 
 function runRootWithScreenshots(records: ScreenshotRecord[]): string {
   rootCounter += 1;
   const root = `/virtual/screenshot-attribution-${rootCounter}`;
-  vfs.set(
+  fs.mkdirSync(root, { recursive: true });
+  fs.writeFileSync(
     join(root, "captures.json"),
     JSON.stringify({ schema: "harness.captures", version: 1, captures: records }),
   );

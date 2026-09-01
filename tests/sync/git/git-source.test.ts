@@ -14,13 +14,14 @@ import {
   refuseSyncSourceMessage,
   resolveOltSyncSource,
 } from "../../../scripts/sync/git-source.ts";
-import { scratchRoot } from "../sync-fixture.ts";
+import { cleanupVirtualSyncFS, scratchRoot, setupVirtualSyncFS } from "../sync-fixture.ts";
 import { defaultMockSpawnSync, initSkillsRepoAt } from "./git-fixture.ts";
 
 let spawnSpy: { mockRestore: () => void } | undefined;
 let tmpdirSpy: { mockRestore: () => void } | undefined;
 
 beforeEach(() => {
+  setupVirtualSyncFS();
   spawnSpy = spyOn(childProcess, "spawnSync").mockImplementation(
     defaultMockSpawnSync as typeof childProcess.spawnSync,
   );
@@ -30,6 +31,7 @@ beforeEach(() => {
 afterEach(() => {
   spawnSpy?.mockRestore();
   tmpdirSpy?.mockRestore();
+  cleanupVirtualSyncFS();
 });
 
 describe("decideSyncSource", () => {

@@ -1,10 +1,11 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import { join } from "node:path";
 import type { BranchRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import type { RepositoryGitCommand } from "../../../../olt/scripts/src/packets/repository-git-command.ts";
 import { generateGraphDataset } from "../../../../olt/scripts/src/summary/graph/index.ts";
 import { makeState, makeTask } from "./graph-fixtures.ts";
+import { setupVirtualSummaryFS } from "../../fixture.ts";
 
 const REASON = "The migration turned out to need a schema rewrite and a data backfill";
 
@@ -35,51 +36,13 @@ function branch(overrides: Partial<BranchRecord> = {}): BranchRecord {
   };
 }
 
-const vfs = new Map<string, string>();
 let rootCounter = 0;
-const spies: Array<{ mockRestore: () => void }> = [];
-
-const origExists = fs.existsSync.bind(fs);
-const origRead = fs.readFileSync.bind(fs);
 
 beforeEach(() => {
-  spies.push(
-    spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike): boolean => {
-      const s = String(p);
-      if (s.startsWith("/virtual/")) {
-        if (vfs.has(s)) return true;
-        for (const k of vfs.keys()) {
-          if (k.startsWith(`${s}/`)) return true;
-        }
-        return false;
-      }
-      return origExists(p);
-    }),
-    spyOn(fs, "readFileSync").mockImplementation(
-      (p: fs.PathLike, opt?: unknown): string | Buffer => {
-        const s = String(p);
-        if (s.startsWith("/virtual/")) {
-          const content = vfs.get(s);
-          if (content === undefined) {
-            throw new Error(`ENOENT: no such file or directory, open '${s}'`);
-          }
-          if (opt === "utf-8" || opt === "utf8" || (typeof opt === "object" && opt !== null)) {
-            return content;
-          }
-          return Buffer.from(content, "utf-8");
-        }
-        return origRead(p, opt as Parameters<typeof origRead>[1]) as string | Buffer;
-      },
-    ),
-  );
+  setupVirtualSummaryFS();
 });
 
 describe("branch region files carry a diff (B3/B15.2)", () => {
-  afterEach(() => {
-    for (const s of spies.splice(0)) s.mockRestore();
-    vfs.clear();
-  });
-
   const HEAD_COMMIT = "f".repeat(40);
   const FLUSH_DIFF = [
     "diff --git a/src/flush.ts b/src/flush.ts",
@@ -105,7 +68,8 @@ describe("branch region files carry a diff (B3/B15.2)", () => {
     const root = `/virtual/branch-diff-${rootCounter}`;
     const runRoot = join(root, ".olt", "capsules", "run-1");
     const digest = "d".repeat(64);
-    vfs.set(
+    fs.mkdirSync(runRoot, { recursive: true });
+    fs.writeFileSync(
       join(runRoot, "state.json"),
       JSON.stringify({
         baseline_repository_inspection_sha256: digest,

@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   chmodSync,
   existsSync,
@@ -12,8 +13,16 @@ import {
   rollbackAssistantLinks,
   type AssistantLinkTransaction,
 } from "../../../scripts/sync/skill-deployer.ts";
-import { scratchRoot } from "../sync-fixture.ts";
+import { cleanupVirtualSyncFS, scratchRoot, setupVirtualSyncFS } from "../sync-fixture.ts";
 import { git, initFakeSkillsRepo } from "./skill-deployer-fixtures.ts";
+
+beforeEach(() => {
+  setupVirtualSyncFS();
+});
+
+afterEach(() => {
+  cleanupVirtualSyncFS();
+});
 
 describe("deployCanonicalSkill", () => {
   test("throws if sourceRepoRoot is not a valid skills repo checkout", async () => {

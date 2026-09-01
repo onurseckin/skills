@@ -39,3 +39,10 @@ export {
   doctorCertifyCommandSuiteName,
   doctorDiagnosticsWiringSuiteName,
 } from "./diagnostics/index.ts";
+
+export {
+  setupVirtualDoctorFS,
+  cleanupVirtualDoctorFS,
+  scratchRoot,
+  getVirtualDoctorFS,
+} from "./fixture.ts";

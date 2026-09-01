@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -7,7 +7,15 @@ import {
   generateExportLine,
   isPathDeclaredInContent,
 } from "../../../scripts/sync/shell-rc.ts";
-import { scratchRoot } from "../sync-fixture.ts";
+import { cleanupVirtualSyncFS, scratchRoot, setupVirtualSyncFS } from "../sync-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualSyncFS();
+});
+
+afterEach(() => {
+  cleanupVirtualSyncFS();
+});
 
 describe("detectShellRcPath", () => {
   test("detects fish shell configuration path", () => {

@@ -1,146 +1,29 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { ingestBrowserRun } from "../../../olt/scripts/src/reporting/browser-run-ingestion.ts";
 import { readBrowserRunReport } from "../../../olt/scripts/src/reporting/browser-run-report.ts";
 import { buildNodeBrowserTests } from "../../../olt/scripts/src/summary/formatters/index.ts";
 import { buildNodeScripts } from "../../../olt/scripts/src/summary/markdown/index.ts";
 import { makeCommand } from "../reporters/dag/graph-fixtures.ts";
+import { setupVirtualSummaryFS } from "../fixture.ts";
 
-const vfs = new Map<string, string>();
-const vdirs = new Set<string>();
 let rootCounter = 0;
-const spies: Array<{ mockRestore: () => void }> = [];
-const norm = (p: fs.PathLike) => resolve(String(p)).replace(/\/+$/, "");
 
 beforeEach(() => {
-  const oe = fs.existsSync.bind(fs),
-    or = fs.readFileSync.bind(fs),
-    ow = fs.writeFileSync.bind(fs);
-  const om = fs.mkdirSync.bind(fs),
-    orm = fs.rmSync.bind(fs),
-    oreaddir = fs.readdirSync.bind(fs),
-    ostat = fs.statSync.bind(fs);
-
-  spies.push(
-    spyOn(fs, "existsSync").mockImplementation((p) => {
-      const s = norm(p);
-      return s.startsWith("/virtual/")
-        ? vfs.has(s) || vdirs.has(s) || Array.from(vfs.keys()).some((k) => k.startsWith(`${s}/`))
-        : oe(p);
-    }),
-    spyOn(fs, "statSync").mockImplementation((p: fs.PathLike): fs.Stats => {
-      const s = norm(p);
-      if (s.startsWith("/virtual/")) {
-        const isFile = vfs.has(s);
-        const isDir = vdirs.has(s) || Array.from(vfs.keys()).some((k) => k.startsWith(`${s}/`));
-        if (!isFile && !isDir) throw new Error(`ENOENT: ${s}`);
-        return {
-          mtimeMs: Date.now(),
-          size: isFile ? (vfs.get(s)?.length ?? 0) : 0,
-          isFile: () => isFile,
-          isDirectory: () => isDir,
-          isSymbolicLink: () => false,
-        } as unknown as fs.Stats;
-      }
-      return ostat(p);
-    }),
-    spyOn(fs, "readFileSync").mockImplementation((p, opt) => {
-      const s = norm(p);
-      if (s.startsWith("/virtual/")) {
-        const c = vfs.get(s);
-        if (!c) throw new Error(`ENOENT: ${s}`);
-        return opt === "utf-8" || opt === "utf8" || (typeof opt === "object" && opt)
-          ? c
-          : Buffer.from(c, "utf-8");
-      }
-      return or(p, opt as Parameters<typeof or>[1]);
-    }),
-    spyOn(fs, "writeFileSync").mockImplementation((p, d) => {
-      const s = norm(p);
-      if (s.startsWith("/virtual/")) {
-        vfs.set(
-          s,
-          typeof d === "string"
-            ? d
-            : Buffer.from(d.buffer, d.byteOffset, d.byteLength).toString("utf-8"),
-        );
-        return;
-      }
-      ow(p, d);
-    }),
-    spyOn(fs, "mkdirSync").mockImplementation((p) => {
-      const s = norm(p);
-      if (s.startsWith("/virtual/")) {
-        vdirs.add(s);
-        return undefined;
-      }
-      return om(p) as string | undefined;
-    }),
-    spyOn(fs, "rmSync").mockImplementation((p) => {
-      const s = norm(p);
-      if (s.startsWith("/virtual/")) {
-        vfs.delete(s);
-        vdirs.delete(s);
-        for (const k of Array.from(vfs.keys())) if (k.startsWith(`${s}/`)) vfs.delete(k);
-        return;
-      }
-      orm(p, { recursive: true, force: true });
-    }),
-    spyOn(fs, "readdirSync").mockImplementation((p: fs.PathLike, opt?: unknown): unknown => {
-      const s = norm(p);
-      if (s.startsWith("/virtual/")) {
-        const prefix = `${s}/`;
-        const entries = new Map<string, boolean>();
-        for (const k of vfs.keys()) {
-          if (k.startsWith(prefix) && k.length > prefix.length) {
-            const rel = k.slice(prefix.length);
-            const firstSeg = rel.split("/")[0]!;
-            entries.set(firstSeg, rel.includes("/"));
-          }
-        }
-        for (const d of vdirs) {
-          if (d.startsWith(prefix) && d.length > prefix.length) {
-            const rel = d.slice(prefix.length);
-            entries.set(rel.split("/")[0]!, true);
-          }
-        }
-        const withTypes =
-          typeof opt === "object" &&
-          opt !== null &&
-          "withFileTypes" in opt &&
-          Boolean((opt as { withFileTypes?: boolean }).withFileTypes);
-        if (withTypes) {
-          return Array.from(entries.entries()).map(([name, isDir]) => ({
-            name,
-            isDirectory: () => isDir,
-            isFile: () => !isDir,
-            isSymbolicLink: () => false,
-          })) as unknown as fs.Dirent[];
-        }
-        return Array.from(entries.keys());
-      }
-      return oreaddir(p, opt as Parameters<typeof oreaddir>[1]);
-    }),
-  );
-});
-
-afterEach(() => {
-  for (const s of spies.splice(0)) s.mockRestore();
-  vfs.clear();
-  vdirs.clear();
+  setupVirtualSummaryFS();
 });
 
 function tempRoot(name: string): string {
   rootCounter += 1;
   const root = `/virtual/${name}-${rootCounter}`;
-  vdirs.add(root);
+  fs.mkdirSync(root, { recursive: true });
   return root;
 }
 
 function writeReport(dir: string, body: unknown): string {
   const path = join(dir, "report.json");
-  vfs.set(path, JSON.stringify(body));
+  fs.writeFileSync(path, JSON.stringify(body));
   return path;
 }
 

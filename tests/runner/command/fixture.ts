@@ -45,22 +45,43 @@ export function getRunnerVfs(): VirtualMemoryFS {
         }
         return origKill.call(process, pid, signal as never);
       }) as never);
-      spyOn(processTree, "processSnapshot").mockImplementation(async () => {
+      const origProcessSnapshot = processTree.processSnapshot;
+      spyOn(processTree, "processSnapshot").mockImplementation(async (spawnSnapshot) => {
+        if (spawnSnapshot) {
+          return origProcessSnapshot(spawnSnapshot);
+        }
         const snap = new Map([[process.pid, { pid: process.pid, parent: 1, group: process.pid }]]);
         if (activePids.has(999999)) {
           snap.set(999999, { pid: 999999, parent: process.pid, group: 999999 });
         }
         return snap;
       });
-      spyOn(processIdentity, "readProcessIdentity").mockImplementation((pid: number) => {
-        if (pid === 999999 && activePids.has(999999)) {
-          return { pid: 999999, parent: process.pid, group: 999999, birth: "virtual-birth" };
-        }
-        return undefined;
-      });
+      const origReadProcessIdentity = processIdentity.readProcessIdentity;
+      spyOn(processIdentity, "readProcessIdentity").mockImplementation(
+        (pid: number, platform?: string) => {
+          if (platform && platform !== process.platform) {
+            return origReadProcessIdentity(pid, platform);
+          }
+          if (pid === 999999 && activePids.has(999999)) {
+            return { pid: 999999, parent: process.pid, group: 999999, birth: "virtual-birth" };
+          }
+          if (pid === process.pid) {
+            return origReadProcessIdentity(pid, platform);
+          }
+          return undefined;
+        },
+      );
+      const origDarwinProcessIdentity = darwinPipes.darwinProcessIdentity;
       spyOn(darwinPipes, "darwinProcessIdentity").mockImplementation((pid: number) => {
         if (pid === 999999 && activePids.has(999999)) {
           return { pid: 999999, parent: process.pid, group: 999999, birth: "virtual-birth" };
+        }
+        if (pid === process.pid) {
+          try {
+            return origDarwinProcessIdentity(pid);
+          } catch {
+            return { pid: process.pid, parent: 1, group: process.pid, birth: "virtual-self-birth" };
+          }
         }
         return undefined;
       });
@@ -83,6 +104,9 @@ export function getRunnerVfs(): VirtualMemoryFS {
   }
   return activeSession.vfs;
 }
+
+export const setupVirtualRunnerFS = getRunnerVfs;
+export const cleanupVirtualRunnerFS = cleanupTempRoots;
 
 /**
  * Creates a unique clean virtual temp root for runner unit testing.

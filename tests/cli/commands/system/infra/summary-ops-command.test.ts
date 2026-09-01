@@ -1,7 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import {
@@ -39,8 +37,7 @@ describe("summary:export", () => {
 
   test("also exports a GVUI registry entry under --out, named for the run id", async () => {
     const { run } = await setupRun("summary-export-out", roots);
-    const out = await mkdtemp(join(tmpdir(), "harness-summary-out-"));
-    roots.push(out);
+    const out = join(run, "gvui-out");
 
     const result = summaryExportCommand({ run, out });
 

@@ -4,4 +4,11 @@
  * Provides in-memory virtual filesystem helpers and deterministic cleanup for runner suites.
  */
 
-export { getRunnerVfs, tempRoot, writeTree, cleanupTempRoots } from "./command/fixture.ts";
+export {
+  getRunnerVfs,
+  setupVirtualRunnerFS,
+  tempRoot,
+  writeTree,
+  cleanupTempRoots,
+  cleanupVirtualRunnerFS,
+} from "./command/fixture.ts";

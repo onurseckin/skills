@@ -27,10 +27,18 @@ export function mockOpen(state: VirtualFSSpyState, p: fs.PathLike, flags: string
       code: "EISDIR",
     });
   }
-  if (!isWrite && !state.vfs.existsSync(target) && !state.symlinks.has(target)) {
-    try {
-      return origOpenSync(p, flags);
-    } catch {}
+  if (!isWrite) {
+    const targetMode = state.customModes.get(target);
+    if (targetMode !== undefined && (targetMode & 0o444) === 0) {
+      throw Object.assign(new Error(`EACCES: permission denied, open '${target}'`), {
+        code: "EACCES",
+      });
+    }
+    if (!state.vfs.existsSync(target) && !state.symlinks.has(target)) {
+      try {
+        return origOpenSync(p, flags);
+      } catch {}
+    }
   }
   if (isWrite && !(numFlags & (fs.constants.O_DIRECTORY ?? 0))) {
     const parent = path.dirname(target);

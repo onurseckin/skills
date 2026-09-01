@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { writeManifest, getShardKey } from "../../../olt/scripts/generate-cli-manifest.ts";
+import { getShardKey } from "../../../olt/scripts/generate-cli-manifest.ts";
 import {
   capabilityManifest,
   commandSlice,
@@ -78,8 +78,6 @@ describe("CLI capability manifest", () => {
   });
 
   test("no stale generated files survive on disk beyond what the registry renders", () => {
-    writeManifest();
-
     const expected = new Set<string>(["manifest.json", "index.jsonl"]);
 
     const largeDomains = ["mind", "reporting", "plan", "task", "diagnostics"];

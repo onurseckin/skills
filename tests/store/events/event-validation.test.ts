@@ -5,6 +5,9 @@ import {
   validateProjectionField,
   validateProjectionPatch,
 } from "../../../olt/scripts/src/engine/store/events/event-validation.ts";
+import { setupVirtualStoreFS } from "../store-fixture.ts";
+
+setupVirtualStoreFS();
 
 describe("exactInteger", () => {
   test("accepts a safe integer equal to the expected value", () => {

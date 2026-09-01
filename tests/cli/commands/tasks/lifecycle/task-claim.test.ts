@@ -1,5 +1,4 @@
-import { tmpdir } from "node:os";
-import { existsSync, mkdtempSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
@@ -14,7 +13,7 @@ describe("task:claim - Confinement, Validation & Role Rules", () => {
   test("refuses an unrecognised --role", async () => {
     await expect(
       taskClaimCommand({
-        run: mkdtempSync(join(tmpdir(), "olt-test-")),
+        run: "/virtual/cli/task-claim-unclaimed",
         task: TASK_ID,
         agent: "worker-1",
         role: "reviewer",
@@ -25,7 +24,7 @@ describe("task:claim - Confinement, Validation & Role Rules", () => {
   test("refuses task claim by validator or completeness-critic (anti-boundary-leak rule)", async () => {
     await expect(
       taskClaimCommand({
-        run: mkdtempSync(join(tmpdir(), "olt-test-")),
+        run: "/virtual/cli/task-claim-unclaimed",
         task: TASK_ID,
         agent: "val-agent-1",
         role: "validator",
@@ -36,7 +35,7 @@ describe("task:claim - Confinement, Validation & Role Rules", () => {
 
     await expect(
       taskClaimCommand({
-        run: mkdtempSync(join(tmpdir(), "olt-test-")),
+        run: "/virtual/cli/task-claim-unclaimed",
         task: TASK_ID,
         agent: "critic-agent-1",
         role: "completeness-critic",
@@ -47,7 +46,7 @@ describe("task:claim - Confinement, Validation & Role Rules", () => {
 
     await expect(
       taskClaimCommand({
-        run: mkdtempSync(join(tmpdir(), "olt-test-")),
+        run: "/virtual/cli/task-claim-unclaimed",
         task: TASK_ID,
         agent: "subval-1",
         role: "sub-validator",
@@ -56,7 +55,7 @@ describe("task:claim - Confinement, Validation & Role Rules", () => {
 
     await expect(
       taskClaimCommand({
-        run: mkdtempSync(join(tmpdir(), "olt-test-")),
+        run: "/virtual/cli/task-claim-unclaimed",
         task: TASK_ID,
         agent: "planval-1",
         role: "plan-validator",

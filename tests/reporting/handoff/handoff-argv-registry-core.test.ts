@@ -4,11 +4,7 @@ import { join } from "node:path";
 import type { RunState } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import {
-  cleanupVirtualBrowserFS,
-  setupVirtualBrowserFS,
-  tempDir,
-} from "../browser/browser-virtual-fs.ts";
+import { cleanupVirtualReportingFS, setupVirtualReportingFS, tempDir } from "../fixture.ts";
 
 export const handoffArgvRegistryCoreSuiteName =
   "every command the restart document can name resolves in registry";
@@ -101,7 +97,7 @@ export const sharedRoots: string[] = [];
 
 afterAll(() => {
   sharedRoots.length = 0;
-  cleanupVirtualBrowserFS();
+  cleanupVirtualReportingFS();
 });
 
 const ahead = () => new Date(Date.now() + 3_600_000).toISOString();
@@ -148,7 +144,7 @@ export async function capsule(
   mutate: (state: RunState) => void = () => {},
   sink: string[] = roots,
 ): Promise<string> {
-  setupVirtualBrowserFS();
+  setupVirtualReportingFS();
   const repo = tempDir(`argv-${name}`);
   sink.push(repo);
   const run = initRun(repo, `argv-${name}`, new TextEncoder().encode("Ship it"), "file", true);

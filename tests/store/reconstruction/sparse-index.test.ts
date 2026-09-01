@@ -12,7 +12,7 @@ import {
 import { scratchRoot } from "../store-fixture.ts";
 
 function createEventLine(seq: number): string {
-  const obj = {
+  return `${JSON.stringify({
     schema: "harness.event",
     version: 1,
     run_id: "run-test",
@@ -25,8 +25,7 @@ function createEventLine(seq: number): string {
     payload: { seq, note: `payload for step ${seq}` },
     previous_hash: null,
     hash: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-  };
-  return JSON.stringify(obj) + "\n";
+  })}\n`;
 }
 
 describe("Sparse Index Engine", () => {

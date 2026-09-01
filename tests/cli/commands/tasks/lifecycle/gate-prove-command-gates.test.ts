@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   registerSessionGrant,
@@ -52,7 +51,7 @@ async function compiledSingleTaskRun(
   name: string,
   gate: string,
 ): Promise<{ repo: string; run: string }> {
-  const repo = realpathSync(mkdtempSync(join(tmpdir(), `gate-prove-cmd-${name}-`)));
+  const repo = realpathSync(mkdtempSync(join("/tmp", `gate-prove-cmd-${name}-`)));
   gitRoots.push(repo);
   git(repo, ["init", "--quiet", "--initial-branch", "main"]);
   git(repo, ["config", "user.email", "harness@example.test"]);
@@ -200,8 +199,8 @@ describe("gate:prove - Gate Bindings, Policies and Options", () => {
   });
 
   test("refuses to spawn compiled gate that fails gate-command-policy re-check at execution time", async () => {
-    const marker = join(tmpdir(), `gate-prove-policy-escape-${Date.now()}.txt`);
     const { repo, run } = await compiledSingleTaskRun("policy-escape", "test -f feature.ts");
+    const marker = join(repo, "policy-escape-marker.txt");
     writeFileSync(join(repo, "feature.ts"), "export const x = 1;\n");
 
     transact(run, "coordinator", "test-corrupt-compiled-gate", {}, (draft) => {

@@ -3,21 +3,17 @@ import * as fs from "node:fs";
 import { join } from "node:path";
 import * as reporting from "../../../scripts/testing/reporting/index.ts";
 import { main, processCoverageArtifacts } from "../../../scripts/testing/reporting/index.ts";
-import {
-  cleanupVirtualBrowserFS,
-  setupVirtualBrowserFS,
-  tempDir,
-} from "../browser/browser-virtual-fs.ts";
+import { cleanupVirtualReportingFS, setupVirtualReportingFS, tempDir } from "../fixture.ts";
 
 export const coverageOrchestrationSuiteName = "Coverage Pipeline Orchestration & CLI Entrypoints";
 
 describe(coverageOrchestrationSuiteName, () => {
   beforeEach(() => {
-    setupVirtualBrowserFS();
+    setupVirtualReportingFS();
   });
 
   afterEach(() => {
-    cleanupVirtualBrowserFS();
+    cleanupVirtualReportingFS();
   });
 
   describe("unified entrypoint processCoverageArtifacts, main, and computeIsMain", () => {

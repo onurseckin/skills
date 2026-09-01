@@ -8,11 +8,7 @@ import {
   formatDoctorReport,
 } from "../../../olt/scripts/src/reporting/doctor.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import {
-  cleanupVirtualBrowserFS,
-  setupVirtualBrowserFS,
-  tempDir,
-} from "../browser/browser-run-fixture.ts";
+import { cleanupVirtualReportingFS, setupVirtualReportingFS, tempDir } from "../fixture.ts";
 
 const exitCode =
   (status: number, stdout = "") =>
@@ -28,11 +24,11 @@ export const doctorSuiteName = "doctor diagnostics and gitignore policy";
 
 describe(doctorSuiteName, () => {
   beforeEach(() => {
-    setupVirtualBrowserFS();
+    setupVirtualReportingFS();
   });
 
   afterEach(() => {
-    cleanupVirtualBrowserFS();
+    cleanupVirtualReportingFS();
   });
 
   test("versionAtLeast checks semver ordering", () => {

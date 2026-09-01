@@ -11,16 +11,14 @@ import {
   type ReplayContext,
   type DynamicTaskState,
 } from "../../../olt/scripts/src/reporting/index.ts";
-import {
-  cleanupVirtualBrowserFS,
-  setupVirtualBrowserFS,
-  tempDir,
-} from "../browser/browser-virtual-fs.ts";
+import { cleanupVirtualReportingFS, setupVirtualReportingFS, tempDir } from "../fixture.ts";
 
 export const unifiedReportSuiteName = "Unified Master Reporting Dashboard";
 
 async function createTestRun(name: string): Promise<{ repo: string; run: string }> {
   const repo = tempDir(`unified-report-test-${name}`);
+  await mkdir(join(repo, ".git"), { recursive: true });
+  await mkdir(join(repo, ".olt"), { recursive: true });
   const promptPath = join(repo, "prompt.txt");
   await writeFile(
     promptPath,
@@ -41,11 +39,11 @@ async function createTestRun(name: string): Promise<{ repo: string; run: string 
 
 describe(unifiedReportSuiteName, () => {
   beforeEach(() => {
-    setupVirtualBrowserFS();
+    setupVirtualReportingFS();
   });
 
   afterEach(() => {
-    cleanupVirtualBrowserFS();
+    cleanupVirtualReportingFS();
   });
 
   test("buildUnifiedReport and generateUnifiedReport assemble dashboard view", async () => {

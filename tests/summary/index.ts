@@ -28,3 +28,10 @@ export {
   reportersSuite,
 } from "./reporters/index.ts";
 export { telemetrySuite } from "./telemetry/index.ts";
+export {
+  cleanupVirtualSummaryFS,
+  createSummarySandbox,
+  getVirtualSummaryFS,
+  scratchRoot as summaryScratchRoot,
+  setupVirtualSummaryFS,
+} from "./fixture.ts";

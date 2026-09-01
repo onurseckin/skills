@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import { executePreparedCommand } from "../../../olt/scripts/src/engine/runner/models/execution/run-command.ts";
 import type { InternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 import type {
@@ -6,6 +6,7 @@ import type {
   PreparedCommand,
 } from "../../../olt/scripts/src/engine/runner/types/types.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { cleanupTempRoots, tempRoot } from "./fixture.ts";
 
 function broadPrepared(repo: string, argv: readonly string[] = ["bun", "test"]): PreparedCommand {
   return {
@@ -25,9 +26,11 @@ function broadRunner(onExecute: () => Promise<CommandResult>): InternalCommandRu
   };
 }
 
+afterEach(cleanupTempRoots);
+
 describe("run-command broad scope mutex contenders and signals", () => {
   test("does not install process signal listeners during repeated broad runs", async () => {
-    const repo = process.cwd();
+    const repo = tempRoot("mutex-signals");
     const signals = ["exit", "SIGINT", "SIGTERM"] as const;
     const before = signals.map((signal) => process.listenerCount(signal));
     for (let iteration = 0; iteration < 2; iteration += 1) {
@@ -42,7 +45,7 @@ describe("run-command broad scope mutex contenders and signals", () => {
   });
 
   test("allows only one contender to enter a held broad run and rejects concurrent contender with LOCK_TIMEOUT", async () => {
-    const repo = process.cwd();
+    const repo = tempRoot("mutex-contenders");
     const events: string[] = [];
     let releaseHold: () => void = () => {};
     const holdPromise = new Promise<void>((resolve) => {
@@ -92,7 +95,7 @@ describe("run-command broad scope mutex contenders and signals", () => {
   });
 
   test("releases mutex lock after failure or error for a later broad run", async () => {
-    const repo = process.cwd();
+    const repo = tempRoot("mutex-release");
     let crashed = false;
 
     try {

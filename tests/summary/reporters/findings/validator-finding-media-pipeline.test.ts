@@ -1,112 +1,22 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import { join } from "node:path";
 import { mapMediaAssets } from "../../../../olt/scripts/src/summary/assets/index.ts";
 import { makeCommand, makeTask } from "../dag/graph-fixtures.ts";
+import { setupVirtualSummaryFS } from "../../fixture.ts";
 
-const vfs = new Map<string, Buffer>();
-const openFds = new Map<number, { path: string; content: Buffer }>();
-let nextFd = 100;
 let rootCounter = 0;
-const spies: Array<{ mockRestore: () => void }> = [];
-
-const origExists = fs.existsSync.bind(fs);
-const origRead = fs.readFileSync.bind(fs);
-const origOpen = fs.openSync.bind(fs);
-const origFstat = fs.fstatSync.bind(fs);
-const origReadSync = fs.readSync.bind(fs);
-const origClose = fs.closeSync.bind(fs);
 
 beforeEach(() => {
-  spies.push(
-    spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike): boolean => {
-      const s = String(p).replace(/\/+$/, "");
-      if (s.startsWith("/virtual/")) {
-        return vfs.has(s);
-      }
-      return origExists(p);
-    }),
-    spyOn(fs, "readFileSync").mockImplementation(
-      (p: fs.PathLike, opt?: unknown): string | Buffer => {
-        const s = String(p).replace(/\/+$/, "");
-        if (s.startsWith("/virtual/")) {
-          const content = vfs.get(s);
-          if (content === undefined) {
-            throw new Error(`ENOENT: no such file or directory, open '${s}'`);
-          }
-          if (opt === "utf-8" || opt === "utf8" || (typeof opt === "object" && opt !== null)) {
-            return content.toString("utf-8");
-          }
-          return content;
-        }
-        return origRead(p, opt as Parameters<typeof origRead>[1]) as string | Buffer;
-      },
-    ),
-    spyOn(fs, "openSync").mockImplementation((p: fs.PathLike, flags: fs.OpenMode): number => {
-      const s = String(p).replace(/\/+$/, "");
-      if (s.startsWith("/virtual/")) {
-        const content = vfs.get(s);
-        if (content === undefined) {
-          throw new Error(`ENOENT: no such file or directory, open '${s}'`);
-        }
-        const fd = ++nextFd;
-        openFds.set(fd, { path: s, content });
-        return fd;
-      }
-      return origOpen(p, flags);
-    }),
-    spyOn(fs, "fstatSync").mockImplementation((fd: number): fs.Stats => {
-      const openFile = openFds.get(fd);
-      if (openFile) {
-        return {
-          size: openFile.content.length,
-          isFile: () => true,
-          isDirectory: () => false,
-          isSymbolicLink: () => false,
-        } as unknown as fs.Stats;
-      }
-      return origFstat(fd);
-    }),
-    spyOn(fs, "readSync").mockImplementation(
-      (
-        fd: number,
-        buffer: NodeJS.ArrayBufferView,
-        offset = 0,
-        length = buffer.byteLength,
-        position: fs.ReadPosition | null = 0,
-      ): number => {
-        const openFile = openFds.get(fd);
-        if (openFile) {
-          const content = openFile.content;
-          const pos = typeof position === "number" ? position : 0;
-          const slice = content.subarray(pos, pos + length);
-          const targetBuf = Buffer.from(buffer.buffer, buffer.byteOffset, buffer.byteLength);
-          slice.copy(targetBuf, offset);
-          return slice.length;
-        }
-        return origReadSync(fd, buffer, offset, length, position);
-      },
-    ),
-    spyOn(fs, "closeSync").mockImplementation((fd: number): void => {
-      if (openFds.has(fd)) {
-        openFds.delete(fd);
-        return;
-      }
-      origClose(fd);
-    }),
-  );
-});
-
-afterEach(() => {
-  for (const s of spies.splice(0)) s.mockRestore();
-  vfs.clear();
-  openFds.clear();
+  setupVirtualSummaryFS();
 });
 
 function runRootWithLog(contents: string): string {
   rootCounter += 1;
   const root = `/virtual/asset-mapper-${rootCounter}`;
-  vfs.set(join(root, "commands", "CMD-GATE", "stdout.log"), Buffer.from(contents, "utf-8"));
+  const logDir = join(root, "commands", "CMD-GATE");
+  fs.mkdirSync(logDir, { recursive: true });
+  fs.writeFileSync(join(logDir, "stdout.log"), contents);
   return root;
 }
 

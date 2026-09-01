@@ -1,4 +1,4 @@
-import { describe, expect, spyOn, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -31,7 +31,15 @@ import {
   runSync,
   smartEnsureSymlink,
 } from "../../../scripts/sync/index.ts";
-import { scratchRoot } from "../sync-fixture.ts";
+import { cleanupVirtualSyncFS, scratchRoot, setupVirtualSyncFS } from "../sync-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualSyncFS();
+});
+
+afterEach(() => {
+  cleanupVirtualSyncFS();
+});
 
 function initFakeSkillsRepo(repoRoot: string): void {
   mkdirSync(join(repoRoot, "olt", "scripts", "src"), { recursive: true });

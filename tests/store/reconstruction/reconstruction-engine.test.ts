@@ -24,24 +24,22 @@ function createEventLine(seq: number, patchOps?: ProjectionPatchOp[]): string {
           { op: "set", path: ["count"], value: seq },
           { op: "set", path: ["items", String(seq - 1)], value: `item-${seq}` },
         ]);
-  return (
-    JSON.stringify({
-      schema: "harness.event",
-      version: 1,
-      run_id: "run-01",
-      capsule_id: "0123456789abcdef0123456789abcdef",
-      sequence: seq,
-      revision: seq,
-      timestamp: "2026-08-29T00:00:00.000Z",
-      actor: "system",
-      kind: "step",
-      payload: { seq },
-      previous_hash: null,
-      projection: null,
-      projection_patch: ops,
-      hash: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-    }) + "\n"
-  );
+  return `${JSON.stringify({
+    schema: "harness.event",
+    version: 1,
+    run_id: "run-01",
+    capsule_id: "0123456789abcdef0123456789abcdef",
+    sequence: seq,
+    revision: seq,
+    timestamp: "2026-08-29T00:00:00.000Z",
+    actor: "system",
+    kind: "step",
+    payload: { seq },
+    previous_hash: null,
+    projection: null,
+    projection_patch: ops,
+    hash: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  })}\n`;
 }
 
 function makeCapsulePaths(rootDir: string): CapsulePaths {

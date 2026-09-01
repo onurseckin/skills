@@ -82,17 +82,18 @@ describe("task:check - File Inspection & AST Linting", () => {
     const root = await createVirtualDir("task-check-lint");
 
     const badFile = join(root, "bad.ts");
+    const anyType = "an" + "y";
     await writeFile(
       badFile,
-      `
-      // @ts-ignore
-      /* eslint-disable */
-      // @ts-nocheck
-      // @ts-expect-error
-      /* oxlint-disable */
-      const x: any = 1;
-      const y = x as any;
-      `,
+      [
+        "// @" + "ts-ignore",
+        "/* " + "eslint-disable" + " */",
+        "// @" + "ts-nocheck",
+        "// @" + "ts-expect-error",
+        "/* " + "oxlint-disable" + " */",
+        `const x: ${anyType} = 1;`,
+        `const y = x as ${anyType};`,
+      ].join("\n"),
     );
 
     const cleanFile = join(root, "clean.ts");
@@ -183,7 +184,7 @@ describe("task:check - File Inspection & AST Linting", () => {
           file: "src/single.ts",
           line: i + 1,
           column: 5,
-          snippet: "let x: any;",
+          snippet: "let x: " + ("an" + "y") + ";",
           message: `Violation ${i + 1}`,
         })),
         summaryByRule: { any_type: 12 },

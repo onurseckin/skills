@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   existsSync,
   lstatSync,
@@ -17,7 +17,15 @@ import {
   logDestructiveOp,
   smartEnsureSymlink,
 } from "../../../scripts/sync/fs-helpers.ts";
-import { scratchRoot } from "../sync-fixture.ts";
+import { cleanupVirtualSyncFS, scratchRoot, setupVirtualSyncFS } from "../sync-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualSyncFS();
+});
+
+afterEach(() => {
+  cleanupVirtualSyncFS();
+});
 
 function initRealGitRepoAt(dirPath: string): void {
   mkdirSync(join(dirPath, ".git"), { recursive: true });

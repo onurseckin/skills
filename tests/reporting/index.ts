@@ -72,3 +72,11 @@ export {
   themeContrastMatrixSuiteName,
   visualReportSuiteName,
 } from "./visuals/index.ts";
+
+export {
+  cleanupVirtualReportingFS,
+  createReportingSandbox,
+  getVirtualReportingFS,
+  scratchRoot as reportingScratchRoot,
+  setupVirtualReportingFS,
+} from "./fixture.ts";
