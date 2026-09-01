@@ -1,6 +1,15 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { BootGateEnforcer } from "../../../olt/scripts/src/watchdog/boot-gate-enforcer/index.ts";
 import { renderAsciiBootGateTable } from "../../../olt/scripts/src/watchdog/boot-gate-enforcer/formatter.ts";
+import { cleanupVirtualWatchdogFS, setupVirtualWatchdogFS } from "../watchdog-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualWatchdogFS();
+});
+
+afterEach(() => {
+  cleanupVirtualWatchdogFS();
+});
 
 describe("BootGateEnforcer ASCII Table Formatter", () => {
   it("renders notice message when records list is empty", () => {

@@ -1,9 +1,22 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import { assertPublishedTaskPacket } from "../../../../olt/scripts/src/workflow/packet-authority.ts";
 import { workflowState } from "../../shared/test-port.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 describe("workflow/packet-authority", () => {
+  let vfsCleanup: (() => void) | undefined;
+
+  beforeEach(() => {
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+  });
+
+  afterEach(() => {
+    vfsCleanup?.();
+    vfsCleanup = undefined;
+  });
+
   test("assertPublishedTaskPacket succeeds when matching published packet exists", () => {
     const state = workflowState();
     state.packets = {

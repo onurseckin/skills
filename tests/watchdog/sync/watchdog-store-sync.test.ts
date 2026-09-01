@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { join } from "node:path";
 import {
   loadWatchdogStore,
@@ -9,7 +9,19 @@ import type {
   WatchdogRecord,
   WatchdogStore,
 } from "../../../olt/scripts/src/authority/watchdog/index.ts";
-import { scratchRoot } from "../watchdog-fixture.ts";
+import {
+  cleanupVirtualWatchdogFS,
+  scratchRoot,
+  setupVirtualWatchdogFS,
+} from "../watchdog-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualWatchdogFS();
+});
+
+afterEach(() => {
+  cleanupVirtualWatchdogFS();
+});
 
 describe("watchdog-store-sync File-Backed Synchronization", () => {
   it("synchronizes in-memory changes with disk state preserving latest timestamps and statuses", () => {

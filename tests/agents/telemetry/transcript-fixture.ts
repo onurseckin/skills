@@ -1,6 +1,8 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { cleanupVirtualAgentsFS, scratchRoot } from "../fixture.ts";
+import { cleanupVirtualAgentsFS, scratchRoot, setupVirtualAgentsFS } from "../fixture.ts";
+
+export { cleanupVirtualAgentsFS, scratchRoot, setupVirtualAgentsFS };
 
 /** One assistant turn carrying real usage and, optionally, a tool call. */
 export function assistantLine(opts: {

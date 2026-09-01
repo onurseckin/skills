@@ -8,7 +8,10 @@ import {
   createSandboxDir,
   InMemoryRunHarness,
   scratchRoot,
+  setupVirtualStoreFS,
 } from "../index.ts";
+
+setupVirtualStoreFS();
 
 describe("store barrel exports", () => {
   test("re-exports the public store API surface", () => {

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { applicableValidatorDomains } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import { claimTask } from "../../../../olt/scripts/src/workflow/lease/claim.ts";
 import { finishTask } from "../../../../olt/scripts/src/workflow/gates/finish-task.ts";
@@ -19,6 +19,7 @@ import {
   TestPort,
   workflowState,
 } from "../../shared/test-port.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 const clock = at("2026-08-20T12:00:00.000Z");
 
@@ -72,6 +73,18 @@ function openValidation(port: TestPort, validatorId: string, domain?: string): s
 }
 
 describe("Harness Dual-Validation Hardening & Mandatory Validator Pairing", () => {
+  let vfsCleanup: (() => void) | undefined;
+
+  beforeEach(() => {
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+  });
+
+  afterEach(() => {
+    vfsCleanup?.();
+    vfsCleanup = undefined;
+  });
+
   describe("1. everyApplicableDomainPassed predicate", () => {
     test("single-domain task passes once code-quality is verified", () => {
       const state = workflowState();

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
   DEFAULT_DIAGNOSTIC_TAIL_BYTES,
   DEFAULT_GRACE_PERIOD_MS,
@@ -19,6 +19,15 @@ import {
   createProcessTimeoutWatchdog,
   ProcessTimeoutWatchdog,
 } from "../../../olt/scripts/src/watchdog/process-timeout/index.ts";
+import { cleanupVirtualWatchdogFS, setupVirtualWatchdogFS } from "../watchdog-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualWatchdogFS();
+});
+
+afterEach(() => {
+  cleanupVirtualWatchdogFS();
+});
 
 describe("ProcessTimeoutWatchdog Constants & Lifecycle Runner", () => {
   it("exports standard constants with expected values", () => {

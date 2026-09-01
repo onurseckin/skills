@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
@@ -15,13 +15,25 @@ import {
   reclaimExpiredLeases,
   startTaskValidation,
 } from "../../../olt/scripts/src/task/queue/index.ts";
-import { scratchRoot } from "../task-fixture.ts";
+import { cleanupVirtualTaskFS, scratchRoot, setupVirtualTaskFS } from "../task-fixture.ts";
 
 describe("Task Queue Comprehensive Coverage", () => {
-  const testDirQueue = scratchRoot(import.meta.path, "queue");
-  const testDirArchive = scratchRoot(import.meta.path, "archive");
-  const queuePath = join(testDirQueue, "queue", "TASK_QUEUE.jsonl");
-  const completedPath = join(testDirArchive, "archived", "COMPLETED_TASKS.jsonl");
+  let testDirQueue = "";
+  let testDirArchive = "";
+  let queuePath = "";
+  let completedPath = "";
+
+  beforeEach(() => {
+    setupVirtualTaskFS();
+    testDirQueue = scratchRoot(import.meta.path, "queue");
+    testDirArchive = scratchRoot(import.meta.path, "archive");
+    queuePath = join(testDirQueue, "queue", "TASK_QUEUE.jsonl");
+    completedPath = join(testDirArchive, "archived", "COMPLETED_TASKS.jsonl");
+  });
+
+  afterEach(() => {
+    cleanupVirtualTaskFS();
+  });
 
   function setup() {
     if (existsSync(testDirQueue)) rmSync(testDirQueue, { recursive: true, force: true });

@@ -1,14 +1,25 @@
-import { describe, expect, test, spyOn, beforeEach, afterEach } from "bun:test";
+/**
+ * @file test-changed.test.ts
+ * Unit tests for test-changed script with 100% in-memory virtual filesystem mocking.
+ */
+
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import * as childProcess from "node:child_process";
 import {
+  createVirtualFSSession,
+  type VirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import {
+  main,
   parseDiffOutput,
   parseGitStatusPorcelain,
   parseUnifiedDiffHeaders,
   run,
-  main,
 } from "../../../scripts/testing/test-changed.ts";
 
 describe("test-changed script (in-memory virtual)", () => {
+  let vfsSession: VirtualFSSession;
   let exitSpy: ReturnType<typeof spyOn>;
   let logSpy: ReturnType<typeof spyOn>;
   let errorSpy: ReturnType<typeof spyOn>;
@@ -17,6 +28,7 @@ describe("test-changed script (in-memory virtual)", () => {
   let spawnSyncSpy: ReturnType<typeof spyOn>;
 
   beforeEach(() => {
+    vfsSession = createVirtualFSSession(new VirtualMemoryFS());
     exitSpy = spyOn(process, "exit").mockImplementation(() => undefined as never);
     logSpy = spyOn(console, "log").mockImplementation(() => {});
     errorSpy = spyOn(console, "error").mockImplementation(() => {});
@@ -33,6 +45,7 @@ describe("test-changed script (in-memory virtual)", () => {
     if (spawnSyncSpy) {
       spawnSyncSpy.mockRestore();
     }
+    vfsSession.cleanup();
   });
 
   test("diff parsing functions handle various git diff headers and porcelain outputs", () => {

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { TaskRecord } from "../../../../../olt/scripts/src/workflow/types.ts";
 import {
   buildProbeDemand,
@@ -13,6 +13,14 @@ import {
   resolveCheckIds,
 } from "../../../../../olt/scripts/src/cli/commands/task-review-support.ts";
 import type { DualChannelAuditResult } from "../../../../../olt/scripts/src/validation/channels/index.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(() => {
+  cleanupVirtualCliFS();
+});
 
 function taskWith(requirementIds: string[]): TaskRecord {
   return { id: "task-1", requirement_ids: requirementIds } as unknown as TaskRecord;

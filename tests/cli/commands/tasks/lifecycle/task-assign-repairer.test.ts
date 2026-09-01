@@ -1,12 +1,24 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { taskAssignRepairerCommand } from "../../../../../olt/scripts/src/cli/commands/task-assign-repairer.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 import {
   claimSubmitValidateAndReject,
   setupCompiledRun,
 } from "../../fixtures/file-persistence-fixture.ts";
 
 const roots: string[] = [];
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(async () => {
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+});
 
 describe("task:assign-repairer - Core Reassignment & Rules", () => {
   test("reassigns with --reason unavailable right after a first reject", async () => {

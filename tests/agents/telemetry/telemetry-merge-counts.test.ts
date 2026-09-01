@@ -1,11 +1,24 @@
-import { describe, expect, test } from "bun:test";
-import { evidenced, estimated } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import {
+  evidenced,
+  estimated,
+  type TelemetryFieldConflict,
+} from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { AgentToolUse } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   mergeObservedCount,
   mergeObservedExtras,
   mergeObservedTools,
 } from "../../../olt/scripts/src/workflow/agents/telemetry-merge.ts";
+import { cleanupVirtualAgentsFS, setupVirtualAgentsFS } from "../fixture.ts";
+
+beforeEach(() => {
+  setupVirtualAgentsFS();
+});
+
+afterEach(() => {
+  cleanupVirtualAgentsFS();
+});
 
 describe("mergeObservedCount", () => {
   test("passes an undefined observation through unchanged", () => {
@@ -139,7 +152,3 @@ describe("mergeObservedTools", () => {
     expect(merged?.map((t) => t.evidence_class)).toEqual(["agent_reported", "harness_observed"]);
   });
 });
-
-function transcript(overrides: Partial<AgentTranscriptTelemetry> = {}): AgentTranscriptTelemetry {
-  return { sourcePath: "/path/to/transcript.jsonl", tools: [], ...overrides };
-}

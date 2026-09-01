@@ -1,8 +1,17 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
   buildProcessDiagnostics,
   trimChunks,
 } from "../../../olt/scripts/src/watchdog/process-timeout/diagnostics.ts";
+import { cleanupVirtualWatchdogFS, setupVirtualWatchdogFS } from "../watchdog-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualWatchdogFS();
+});
+
+afterEach(() => {
+  cleanupVirtualWatchdogFS();
+});
 
 describe("ProcessDiagnostics & Buffer Tail Trimming", () => {
   it("trimChunks preserves the most recent chunks within maxTailBytes limit", () => {

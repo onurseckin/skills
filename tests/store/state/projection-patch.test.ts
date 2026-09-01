@@ -9,6 +9,9 @@ import {
   diffProjection,
   reduceEventStream,
 } from "../../../olt/scripts/src/engine/store/projections/projection-patch.ts";
+import { setupVirtualStoreFS } from "../store-fixture.ts";
+
+setupVirtualStoreFS();
 
 function expectIntegrity(operation: () => void): void {
   try {

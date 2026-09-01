@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { HarnessError } from "../../../../../olt/scripts/src/core/errors/index.ts";
 import type { JsonObject } from "../../../../../olt/scripts/src/core/contracts/index.ts";
 import { finalizePassingTask } from "../../../../../olt/scripts/src/cli/commands/task-review-support.ts";
@@ -6,12 +6,20 @@ import type {
   TransactionPort,
   WorkflowState,
 } from "../../../../../olt/scripts/src/workflow/types.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 import {
   at,
   commandRecord,
   TestPort,
   workflowState,
 } from "../../../../workflow/shared/test-port.ts";
+
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(() => {
+  cleanupVirtualCliFS();
+});
 
 const clock = at("2026-08-13T12:00:00.000Z");
 

@@ -1,18 +1,25 @@
-import { describe, it, expect } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import {
   parseUnifiedAgentManifest,
   validateUnifiedAgentManifest,
 } from "../../../olt/scripts/src/authority/manifest-schema.ts";
+import { cleanupVirtualAgentsFS, setupVirtualAgentsFS } from "../fixture.ts";
 
-import { resolve } from "node:path";
 const REPO_ROOT = resolve(import.meta.dir, "../../..");
 const AGENTS_DIR = join(REPO_ROOT, "olt/agents");
 const AGENTS_MD_PATH = join(REPO_ROOT, "AGENTS.md");
 const SKILL_MD_PATH = join(REPO_ROOT, "olt/SKILL.md");
 
 describe("Cognitive Auditor Manifests (mind-auditor.yaml & skill-auditor.yaml)", () => {
+  beforeEach(() => {
+    setupVirtualAgentsFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualAgentsFS();
+  });
   describe("mind-auditor.yaml", () => {
     const filePath = join(AGENTS_DIR, "mind-auditor.yaml");
     const rawYaml = readFileSync(filePath, "utf-8");

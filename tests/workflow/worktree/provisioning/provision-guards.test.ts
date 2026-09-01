@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import * as storeModule from "../../../../olt/scripts/src/engine/store/index.ts";
 import {
@@ -10,6 +9,7 @@ import type { AssignableTask } from "../../../../olt/scripts/src/workflow/worktr
 import type { TopologyRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import type { GitResult, GitRunner } from "../../../../olt/scripts/src/workflow/worktree/git.ts";
 import { FakeRunStore, baseLedger, seedLedger } from "../fixtures/fake-transact.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 function trackedDir(prefix: string): string {
   return `/virtual/harness-${prefix}`;
@@ -58,14 +58,16 @@ function config(
 }
 
 describe("provisionWorktrees guards and errors (in-memory virtualization)", () => {
-  let mkdirSpy: ReturnType<typeof spyOn>;
+  let vfsCleanup: (() => void) | undefined;
 
   beforeEach(() => {
-    mkdirSpy = spyOn(fs, "mkdirSync").mockImplementation(() => undefined as unknown as string);
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
   });
 
   afterEach(() => {
-    mkdirSpy.mockRestore();
+    vfsCleanup?.();
+    vfsCleanup = undefined;
   });
 
   test("extends an existing ledger with only the additional worktrees a wider wave needs", () => {

@@ -1,8 +1,17 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
   normalizeReactiveTrigger,
   resolveTimestampMs,
 } from "../../../olt/scripts/src/watchdog/autonomic-watchdog/reactive-dispatcher.ts";
+import { cleanupVirtualWatchdogFS, setupVirtualWatchdogFS } from "../watchdog-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualWatchdogFS();
+});
+
+afterEach(() => {
+  cleanupVirtualWatchdogFS();
+});
 
 describe("ReactiveDispatcher & Trigger Normalization", () => {
   describe("resolveTimestampMs", () => {

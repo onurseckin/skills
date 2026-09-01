@@ -7,6 +7,9 @@ import {
   isCheckpointSequence,
   limits,
 } from "../../../olt/scripts/src/engine/store/layout/constants.ts";
+import { setupVirtualStoreFS } from "../store-fixture.ts";
+
+setupVirtualStoreFS();
 
 describe("limits", () => {
   test("fills in every default when no overrides are given", () => {

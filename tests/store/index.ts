@@ -11,6 +11,9 @@ export {
   createInMemoryEvent,
   createInMemoryRunHarness,
   InMemoryRunHarness,
+  setupVirtualStoreFS,
+  cleanupVirtualStoreFS,
+  getVirtualStoreFS,
 } from "./store-fixture.ts";
 
 export { STORE_CAPSULE_SUITES } from "./capsule/index.ts";

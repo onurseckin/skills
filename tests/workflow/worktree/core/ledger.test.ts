@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   findAssignedWorktree,
   readWorktreeLedger,
@@ -7,12 +7,13 @@ import {
 } from "../../../../olt/scripts/src/workflow/worktree/ledger.ts";
 import type { WorktreeLedgerState } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import type { JsonObject } from "../../../../olt/scripts/src/core/contracts/index.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 function ledger(overrides: Partial<WorktreeLedgerState> = {}): WorktreeLedgerState {
   return {
     harness_branch: "harness/run-1",
     base_sha: "abc123",
-    root: "/tmp/worktrees",
+    root: "/virtual/tmp/worktrees",
     worktrees: [],
     assignments: [],
     commits: [],
@@ -21,6 +22,18 @@ function ledger(overrides: Partial<WorktreeLedgerState> = {}): WorktreeLedgerSta
 }
 
 describe("readWorktreeLedger", () => {
+  let vfsCleanup: (() => void) | undefined;
+
+  beforeEach(() => {
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+  });
+
+  afterEach(() => {
+    vfsCleanup?.();
+    vfsCleanup = undefined;
+  });
+
   test("returns null when the key is absent", () => {
     expect(readWorktreeLedger({})).toBeNull();
   });

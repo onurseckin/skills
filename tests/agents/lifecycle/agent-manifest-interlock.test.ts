@@ -1,9 +1,17 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { parseAgentManifest } from "../../../olt/scripts/src/authority/manifest/index.ts";
+import { cleanupVirtualAgentsFS, setupVirtualAgentsFS } from "../fixture.ts";
 
 describe("Agent Manifest Supervisory Interlock & Confinement", () => {
+  beforeEach(() => {
+    setupVirtualAgentsFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualAgentsFS();
+  });
   it("mind manifest declares enable_write_tools: true and enable_subagent_tools: true", () => {
     const mindYamlPath = join(process.cwd(), "olt/agents/mind.yaml");
     expect(existsSync(mindYamlPath)).toBe(true);

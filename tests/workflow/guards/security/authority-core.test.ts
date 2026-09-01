@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   authorityAuditIssues,
   authorizedRequirementIds,
@@ -10,6 +10,7 @@ import {
 import { decisionHistory } from "../../../../olt/scripts/src/workflow/authority/decision-record.ts";
 import { claimTask } from "../../../../olt/scripts/src/workflow/lease/claim.ts";
 import { at, TestPort, workflowState } from "../../shared/test-port.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 const clock = at("2026-08-13T12:00:00.000Z");
 
@@ -21,6 +22,18 @@ function pendingPort(): TestPort {
 }
 
 describe("requirement authority decisions", () => {
+  let vfsCleanup: (() => void) | undefined;
+
+  beforeEach(() => {
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+  });
+
+  afterEach(() => {
+    vfsCleanup?.();
+    vfsCleanup = undefined;
+  });
+
   test("does not treat a direct out-of-scope plan declaration as disposal", () => {
     expect(requirementExecutionState({ id: "R-1", disposition: "out_of_scope" })).toBe("paused");
   });

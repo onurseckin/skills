@@ -1,6 +1,7 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { assignWorktrees } from "../../../../olt/scripts/src/workflow/worktree/assign.ts";
 import type { TopologyRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 function topology(waves: readonly (readonly string[])[]): TopologyRecord {
   return {
@@ -12,6 +13,18 @@ function topology(waves: readonly (readonly string[])[]): TopologyRecord {
 }
 
 describe("assignWorktrees", () => {
+  let vfsCleanup: (() => void) | undefined;
+
+  beforeEach(() => {
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+  });
+
+  afterEach(() => {
+    vfsCleanup?.();
+    vfsCleanup = undefined;
+  });
+
   test("gives every task in the widest wave its own slot", () => {
     const tasks = new Map([
       ["t1", { write_scope: ["src/a"] }],

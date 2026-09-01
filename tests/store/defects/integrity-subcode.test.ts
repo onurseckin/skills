@@ -8,7 +8,9 @@ import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.t
 import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/integrity/integrity.ts";
 import { issue } from "../../../olt/scripts/src/engine/store/integrity/issues.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/events/transaction.ts";
-import { scratchRoot } from "../store-fixture.ts";
+import { scratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
+
+setupVirtualStoreFS();
 
 function freshRun(label: string): string {
   const repo = scratchRoot(import.meta.path, label);

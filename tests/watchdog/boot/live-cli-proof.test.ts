@@ -1,7 +1,16 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { BootGateEnforcer } from "../../../olt/scripts/src/watchdog/boot-gate-enforcer/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import type { LiveCliProof } from "../../../olt/scripts/src/watchdog/boot-gate-enforcer/types.ts";
+import { cleanupVirtualWatchdogFS, setupVirtualWatchdogFS } from "../watchdog-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualWatchdogFS();
+});
+
+afterEach(() => {
+  cleanupVirtualWatchdogFS();
+});
 
 describe("BootGateEnforcer Live CLI Proof Processing", () => {
   it("captures, verifies, and accepts valid whoami and doctor CLI proofs", () => {

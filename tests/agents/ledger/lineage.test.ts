@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { agentListCommand } from "../../../olt/scripts/src/cli/commands/agent-ops.ts";
 import type { AgentRole } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
@@ -11,7 +11,16 @@ import {
   childrenOf,
   taskLineage,
 } from "../../../olt/scripts/src/workflow/agents/lineage.ts";
+import { cleanupVirtualAgentsFS, setupVirtualAgentsFS } from "../fixture.ts";
 import { ledgerOf, registerCoordinator, seededRun } from "../grants/agent-grant-fixtures.ts";
+
+beforeEach(() => {
+  setupVirtualAgentsFS();
+});
+
+afterEach(() => {
+  cleanupVirtualAgentsFS();
+});
 
 function register(
   run: string,

@@ -1,9 +1,18 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
   AdaptiveTimerController,
   type IntervalAdjustmentResult,
 } from "../../../olt/scripts/src/watchdog/autonomic-watchdog/adaptive-timer.ts";
 import { AutonomicWatchdog } from "../../../olt/scripts/src/watchdog/index.ts";
+import { cleanupVirtualWatchdogFS, setupVirtualWatchdogFS } from "../watchdog-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualWatchdogFS();
+});
+
+afterEach(() => {
+  cleanupVirtualWatchdogFS();
+});
 
 describe("AdaptiveTimerController & Dynamic Scheduling", () => {
   it("initializes with default boundaries and calculates interval state", () => {

@@ -6,6 +6,9 @@ import {
   diffArrayElements,
   isMonotonicArrayAppend,
 } from "../../../olt/scripts/src/engine/store/projections/array-patch.ts";
+import { setupVirtualStoreFS } from "../store-fixture.ts";
+
+setupVirtualStoreFS();
 
 function expectIntegrity(fn: () => void): void {
   try {

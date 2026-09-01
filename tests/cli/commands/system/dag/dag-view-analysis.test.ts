@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   analyzeDependencyForensics,
   analyzeMultiCoordinatorOpportunities,
@@ -6,8 +6,15 @@ import {
   analyzeSerialization,
   type DagNodeSummary,
 } from "../../../../../olt/scripts/src/cli/commands/dag-view.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
 describe("Algorithmic Parallelization & Serialization Analysis", () => {
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
+  afterEach(() => {
+    cleanupVirtualCliFS();
+  });
   const emptyDepMap = new Map<string, ReadonlySet<string>>();
 
   test("analyzeSerialization categorizes independent root tasks as parallel-eligible", () => {

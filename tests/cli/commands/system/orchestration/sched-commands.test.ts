@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import {
   executeSchedBackoff,
@@ -7,8 +7,15 @@ import {
   schedEvalCommand,
   schedJitterCommand,
 } from "../../../../../olt/scripts/src/cli/commands/sched-ops.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
 describe("Scheduling CLI commands", () => {
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
+  afterEach(() => {
+    cleanupVirtualCliFS();
+  });
   test("sched:eval computes immediate rollover when pending work is present", () => {
     const res = schedEvalCommand({
       "pending-work": true,

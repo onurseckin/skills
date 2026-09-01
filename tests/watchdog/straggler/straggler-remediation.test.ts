@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -7,7 +7,19 @@ import {
   evaluateActiveTasks,
   type MonitoredTask,
 } from "../../../olt/scripts/src/watchdog/straggler-watchdog.ts";
-import { scratchRoot } from "../watchdog-fixture.ts";
+import {
+  cleanupVirtualWatchdogFS,
+  scratchRoot,
+  setupVirtualWatchdogFS,
+} from "../watchdog-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualWatchdogFS();
+});
+
+afterEach(() => {
+  cleanupVirtualWatchdogFS();
+});
 
 describe("StragglerWatchdog Remediation & Defect Emission", () => {
   it("recommends RECLAIM_LEASE for dead or abandoned straggler tasks", () => {

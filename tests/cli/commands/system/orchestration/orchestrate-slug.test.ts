@@ -1,13 +1,23 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import {
   deriveRunId,
   firstAvailableRunId,
 } from "../../../../../olt/scripts/src/cli/commands/orchestrate-slug.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(async () => {
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+});
 
 function stdinFor(text: string): Uint8Array {
   return new TextEncoder().encode(text);

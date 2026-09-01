@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import {
   executeAutoSyncAndCommit,
@@ -14,8 +14,21 @@ import {
   formatConventionalCommitMessage,
   validatePhaseCommitMessage,
 } from "../../../../olt/scripts/src/engine/worktree/phase-commits.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 describe("executeAutoSyncAndCommit Workflow Execution", () => {
+  let vfsCleanup: (() => void) | undefined;
+
+  beforeEach(() => {
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+  });
+
+  afterEach(() => {
+    vfsCleanup?.();
+    vfsCleanup = undefined;
+  });
+
   test("runs full staging, commit, push, and sync cycle successfully with injected runners", async () => {
     const gitCalls: { args: readonly string[]; options?: { cwd?: string } }[] = [];
     const syncCalls: { scriptPath: string; options?: { cwd?: string } }[] = [];

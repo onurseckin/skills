@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, spyOn, test } from "bun:test";
-import * as fs from "node:fs";
+import { join } from "node:path";
 import * as childProcess from "node:child_process";
+import { setupVirtualDoctorFS, scratchRoot } from "../fixture.ts";
 import {
   checkGitIndexIntegrity,
   autoHealGitState,
@@ -17,10 +18,10 @@ afterEach(() => {
 
 describe(gitIndexEngineSuiteName, () => {
   test("returns healthy when .git directory does not exist", () => {
-    const existsSpy = spyOn(fs, "existsSync").mockReturnValue(false);
-    spies.push(existsSpy);
+    setupVirtualDoctorFS();
+    const root = scratchRoot("git-index-engine", "no-git");
 
-    const report = checkGitIndexIntegrity({ repoRoot: "/virtual/repo" });
+    const report = checkGitIndexIntegrity({ repoRoot: root });
     expect(report.healthy).toBe(true);
     expect(report.staleIndexLockPresent).toBe(false);
     expect(report.uncommittedArtifacts).toEqual([]);
@@ -29,26 +30,13 @@ describe(gitIndexEngineSuiteName, () => {
   });
 
   test("detects and heals dead .git/index.lock with dead process PID", () => {
-    const unlinked: string[] = [];
-    const existsSpy = spyOn(fs, "existsSync").mockImplementation((p) => {
-      const pathStr = String(p);
-      if (pathStr === "/virtual/repo/.git") return true;
-      if (pathStr === "/virtual/repo/.git/index.lock") {
-        return !unlinked.includes(pathStr);
-      }
-      return false;
-    });
-    const statSpy = spyOn(fs, "statSync").mockImplementation(
-      () =>
-        ({
-          mtimeMs: Date.now() - 10000,
-          isFile: () => true,
-        }) as fs.Stats,
-    );
-    const readSpy = spyOn(fs, "readFileSync").mockImplementation(() => "9999999\n");
-    const unlinkSpy = spyOn(fs, "unlinkSync").mockImplementation((p) => {
-      unlinked.push(String(p));
-    });
+    const vfs = setupVirtualDoctorFS();
+    const root = scratchRoot("git-index-engine", "dead-lock");
+    const gitDir = join(root, ".git");
+    const lockFile = join(gitDir, "index.lock");
+    vfs.mkdirSync(gitDir, { recursive: true });
+    vfs.writeFileSync(lockFile, "9999999\n");
+
     const spawnSpy = spyOn(childProcess, "spawnSync").mockImplementation(
       () =>
         ({
@@ -57,9 +45,9 @@ describe(gitIndexEngineSuiteName, () => {
           stderr: "",
         }) as unknown as childProcess.SpawnSyncReturns<string>,
     );
-    spies.push(existsSpy, statSpy, readSpy, unlinkSpy, spawnSpy);
+    spies.push(spawnSpy);
 
-    const report = checkGitIndexIntegrity({ repoRoot: "/virtual/repo" });
+    const report = checkGitIndexIntegrity({ repoRoot: root });
     expect(report.healthy).toBe(false);
     expect(report.staleIndexLockPresent).toBe(true);
     expect(report.findings.length).toBeGreaterThan(0);
@@ -67,30 +55,27 @@ describe(gitIndexEngineSuiteName, () => {
 
     // Auto heal
     const healResult = autoHealGitState({
-      repoRoot: "/virtual/repo",
+      repoRoot: root,
       cleanIndexLock: true,
       stageModified: false,
     });
     expect(healResult.indexLockCleaned).toBe(true);
-    expect(unlinked).toContain("/virtual/repo/.git/index.lock");
+    expect(vfs.existsSync(lockFile)).toBe(false);
 
-    const reportAfter = checkGitIndexIntegrity({ repoRoot: "/virtual/repo" });
+    const reportAfter = checkGitIndexIntegrity({ repoRoot: root });
     expect(reportAfter.healthy).toBe(true);
   });
 
   test("detects stale index.lock by timestamp age when no valid PID is written", () => {
-    const existsSpy = spyOn(fs, "existsSync").mockImplementation((p) => {
-      const pathStr = String(p);
-      return pathStr === "/virtual/repo/.git" || pathStr === "/virtual/repo/.git/index.lock";
-    });
-    const statSpy = spyOn(fs, "statSync").mockImplementation(
-      () =>
-        ({
-          mtimeMs: Date.now() - 200_000,
-          isFile: () => true,
-        }) as fs.Stats,
-    );
-    const readSpy = spyOn(fs, "readFileSync").mockImplementation(() => "invalid-pid");
+    const vfs = setupVirtualDoctorFS();
+    const root = scratchRoot("git-index-engine", "stale-age");
+    const gitDir = join(root, ".git");
+    const lockFile = join(gitDir, "index.lock");
+    vfs.mkdirSync(gitDir, { recursive: true });
+    vfs.writeFileSync(lockFile, "invalid-pid");
+
+    const now = Date.now();
+    const nowSpy = spyOn(Date, "now").mockReturnValue(now + 200_000);
     const spawnSpy = spyOn(childProcess, "spawnSync").mockImplementation(
       () =>
         ({
@@ -99,20 +84,21 @@ describe(gitIndexEngineSuiteName, () => {
           stderr: "",
         }) as unknown as childProcess.SpawnSyncReturns<string>,
     );
-    spies.push(existsSpy, statSpy, readSpy, spawnSpy);
+    spies.push(nowSpy, spawnSpy);
 
-    const report = checkGitIndexIntegrity({ repoRoot: "/virtual/repo" });
+    const report = checkGitIndexIntegrity({ repoRoot: root });
     expect(report.healthy).toBe(false);
     expect(report.staleIndexLockPresent).toBe(true);
     expect(report.findings[0]?.code).toBe("GIT_STALE_INDEX_LOCK_DETECTED");
   });
 
   test("detects uncommitted artifacts and corrupted git stash", () => {
-    const existsSpy = spyOn(fs, "existsSync").mockImplementation((p) => {
-      const pathStr = String(p);
-      return pathStr === "/virtual/repo/.git";
-    });
-    const spawnSpy = spyOn(childProcess, "spawnSync").mockImplementation((cmd, args) => {
+    const vfs = setupVirtualDoctorFS();
+    const root = scratchRoot("git-index-engine", "uncommitted-stash");
+    const gitDir = join(root, ".git");
+    vfs.mkdirSync(gitDir, { recursive: true });
+
+    const spawnSpy = spyOn(childProcess, "spawnSync").mockImplementation((_cmd, args) => {
       const argList = Array.isArray(args) ? args : [];
       if (argList.includes("status")) {
         return {
@@ -134,9 +120,9 @@ describe(gitIndexEngineSuiteName, () => {
         stderr: "",
       } as unknown as childProcess.SpawnSyncReturns<string>;
     });
-    spies.push(existsSpy, spawnSpy);
+    spies.push(spawnSpy);
 
-    const report = checkGitIndexIntegrity({ repoRoot: "/virtual/repo" });
+    const report = checkGitIndexIntegrity({ repoRoot: root });
     expect(report.healthy).toBe(false);
     expect(report.uncommittedArtifacts).toEqual(["src/index.ts", "uncommitted.txt"]);
     expect(report.stashCorrupted).toBe(true);
@@ -144,10 +130,12 @@ describe(gitIndexEngineSuiteName, () => {
   });
 
   test("autoHealGitState stages modified files when stageModified is true", () => {
-    const existsSpy = spyOn(fs, "existsSync").mockImplementation((p) => {
-      return String(p) === "/virtual/repo/.git";
-    });
-    const spawnSpy = spyOn(childProcess, "spawnSync").mockImplementation((cmd, args) => {
+    const vfs = setupVirtualDoctorFS();
+    const root = scratchRoot("git-index-engine", "stage-modified");
+    const gitDir = join(root, ".git");
+    vfs.mkdirSync(gitDir, { recursive: true });
+
+    const spawnSpy = spyOn(childProcess, "spawnSync").mockImplementation((_cmd, args) => {
       const argList = Array.isArray(args) ? args : [];
       if (argList.includes("add")) {
         return {
@@ -169,10 +157,10 @@ describe(gitIndexEngineSuiteName, () => {
         stderr: "",
       } as unknown as childProcess.SpawnSyncReturns<string>;
     });
-    spies.push(existsSpy, spawnSpy);
+    spies.push(spawnSpy);
 
     const healResult = autoHealGitState({
-      repoRoot: "/virtual/repo",
+      repoRoot: root,
       cleanIndexLock: false,
       stageModified: true,
     });
@@ -180,10 +168,10 @@ describe(gitIndexEngineSuiteName, () => {
   });
 
   test("autoHealGitState returns empty when .git does not exist", () => {
-    const existsSpy = spyOn(fs, "existsSync").mockReturnValue(false);
-    spies.push(existsSpy);
+    setupVirtualDoctorFS();
+    const root = scratchRoot("git-index-engine", "auto-heal-no-git");
 
-    const healResult = autoHealGitState({ repoRoot: "/virtual/repo" });
+    const healResult = autoHealGitState({ repoRoot: root });
     expect(healResult.indexLockCleaned).toBe(false);
     expect(healResult.stagedFiles).toEqual([]);
   });

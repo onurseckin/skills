@@ -1,10 +1,18 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { Finding } from "../../../../../olt/scripts/src/core/contracts/index.ts";
 import {
   assertNoResolutions,
   assertOpenFindingsAnswered,
   resolutionProofs,
 } from "../../../../../olt/scripts/src/cli/commands/review-resolutions.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(() => {
+  cleanupVirtualCliFS();
+});
 
 function finding(overrides: Partial<Finding> & { id: string; class?: string }): Finding {
   return {

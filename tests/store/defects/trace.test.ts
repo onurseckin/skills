@@ -6,7 +6,9 @@ import {
   appendTraceStep,
   writeTrace,
 } from "../../../olt/scripts/src/engine/store/recovery/trace.ts";
-import { scratchRoot as makeScratchRoot } from "../store-fixture.ts";
+import { scratchRoot as makeScratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
+
+setupVirtualStoreFS();
 
 function scratchRoot(label: string): string {
   return makeScratchRoot(import.meta.path, label);

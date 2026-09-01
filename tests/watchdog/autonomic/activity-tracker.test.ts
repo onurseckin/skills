@@ -1,7 +1,16 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { BootGateEnforcer } from "../../../olt/scripts/src/watchdog/boot-gate-enforcer/index.ts";
 import { ActivityTracker } from "../../../olt/scripts/src/watchdog/autonomic-watchdog/activity-tracker.ts";
 import type { LiveCliProof } from "../../../olt/scripts/src/watchdog/autonomic-watchdog/types.ts";
+import { cleanupVirtualWatchdogFS, setupVirtualWatchdogFS } from "../watchdog-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualWatchdogFS();
+});
+
+afterEach(() => {
+  cleanupVirtualWatchdogFS();
+});
 
 describe("ActivityTracker Subagent State & Heartbeat Tracking", () => {
   it("registers subagents and records initial activity state across timestamp formats", () => {

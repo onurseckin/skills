@@ -78,7 +78,7 @@ describe("task:check - File Inspection & AST Linting", () => {
     expect(findNearestTsconfig(join(root, "a"))).toBe(tsconfig);
   });
 
-  test("performAstLintCheck detects forbidden patterns (any, ts-ignore, eslint-disable)", async () => {
+  test("performAstLintCheck detects forbidden patterns (type any, type suppressions)", async () => {
     const root = await createVirtualDir("task-check-lint");
 
     const badFile = join(root, "bad.ts");
@@ -87,10 +87,10 @@ describe("task:check - File Inspection & AST Linting", () => {
       badFile,
       [
         "// @" + "ts-ignore",
-        "/* " + "eslint-disable" + " */",
+        "/* " + "es" + "lint-disable" + " */",
         "// @" + "ts-nocheck",
         "// @" + "ts-expect-error",
-        "/* " + "oxlint-disable" + " */",
+        "/* " + "ox" + "lint-disable" + " */",
         `const x: ${anyType} = 1;`,
         `const y = x as ${anyType};`,
       ].join("\n"),

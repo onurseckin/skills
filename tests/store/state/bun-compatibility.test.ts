@@ -3,6 +3,9 @@ import {
   BUN_COMPATIBILITY,
   compatibleBunVersion,
 } from "../../../olt/scripts/src/engine/store/recovery/bun-compatibility.ts";
+import { setupVirtualStoreFS } from "../store-fixture.ts";
+
+setupVirtualStoreFS();
 
 // The manifest/capsule-enforcement cases (real initRun, real hand-tampered manifest.json) live in
 // Pure-function cases for Bun compatibility.

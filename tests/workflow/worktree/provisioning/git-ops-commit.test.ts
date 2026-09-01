@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   addWorktree,
   addWorktreeForBranch,
@@ -17,6 +17,7 @@ import {
   commitProvenance,
 } from "../../../../olt/scripts/src/workflow/worktree/git-ops.ts";
 import type { GitResult, GitRunner } from "../../../../olt/scripts/src/workflow/worktree/git.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 type Call = { cwd: string; argv: readonly string[] };
 
@@ -37,6 +38,18 @@ const ok = (stdout = ""): GitResult => ({ status: 0, stdout, stderr: "" });
 const fail = (stderr = "boom", status = 1): GitResult => ({ status, stdout: "", stderr });
 
 describe("diffStat", () => {
+  let vfsCleanup: (() => void) | undefined;
+
+  beforeEach(() => {
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+  });
+
+  afterEach(() => {
+    vfsCleanup?.();
+    vfsCleanup = undefined;
+  });
+
   test("returns the last line of git diff --stat output", () => {
     const { runner, calls } = recordingRunner(() =>
       ok(" a.txt | 2 +-\n b.txt | 1 +\n 2 files changed, 2 insertions(+), 1 deletion(-)\n"),

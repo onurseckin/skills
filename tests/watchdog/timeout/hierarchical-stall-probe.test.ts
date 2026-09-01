@@ -1,8 +1,17 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
   createHierarchicalStallProbe,
   HierarchicalStallProbe,
 } from "../../../olt/scripts/src/watchdog/process-timeout/index.ts";
+import { cleanupVirtualWatchdogFS, setupVirtualWatchdogFS } from "../watchdog-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualWatchdogFS();
+});
+
+afterEach(() => {
+  cleanupVirtualWatchdogFS();
+});
 
 describe("HierarchicalStallProbe Supervisory Probing", () => {
   it("registers, retrieves, unregisters, and lists child nodes", () => {

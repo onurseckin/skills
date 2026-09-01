@@ -2,7 +2,9 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { quarantineAndTruncateTail } from "../../../olt/scripts/src/engine/store/recovery/forensic-tail.ts";
-import { scratchRoot as makeScratchRoot } from "../store-fixture.ts";
+import { scratchRoot as makeScratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
+
+setupVirtualStoreFS();
 
 function scratchRoot(label: string): string {
   return makeScratchRoot(import.meta.path, label);

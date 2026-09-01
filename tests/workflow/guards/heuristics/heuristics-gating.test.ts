@@ -1,8 +1,20 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
+  let vfsCleanup: (() => void) | undefined;
+
+  beforeEach(() => {
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+  });
+
+  afterEach(() => {
+    vfsCleanup?.();
+    vfsCleanup = undefined;
+  });
   it("verifies heuristics-workflow.test.ts contains zero any types and zero suppressions", async () => {
     const thisFilePath = join(import.meta.dir, "heuristics-gating.test.ts");
     const content = await readFile(thisFilePath, "utf8");

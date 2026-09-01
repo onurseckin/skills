@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -9,11 +9,21 @@ import {
   failTask,
   readTaskQueue,
 } from "../../../olt/scripts/src/task/queue/index.ts";
-import { scratchRoot } from "../task-fixture.ts";
+import { cleanupVirtualTaskFS, scratchRoot, setupVirtualTaskFS } from "../task-fixture.ts";
 
 describe("Task Queue Transitions Engine", () => {
-  const testDir = scratchRoot(import.meta.path, "transitions");
-  const queuePath = join(testDir, "TASK_QUEUE.jsonl");
+  let testDir = "";
+  let queuePath = "";
+
+  beforeEach(() => {
+    setupVirtualTaskFS();
+    testDir = scratchRoot(import.meta.path, "transitions");
+    queuePath = join(testDir, "TASK_QUEUE.jsonl");
+  });
+
+  afterEach(() => {
+    cleanupVirtualTaskFS();
+  });
 
   test("completeTask completes an active task with valid lease and receipts", () => {
     enqueueTask(

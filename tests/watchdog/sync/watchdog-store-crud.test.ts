@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { loadWatchdogStore, saveWatchdogStore } from "../../../olt/scripts/src/watchdog/index.ts";
@@ -6,7 +6,19 @@ import type {
   WatchdogRecord,
   WatchdogStore,
 } from "../../../olt/scripts/src/authority/watchdog/index.ts";
-import { scratchRoot } from "../watchdog-fixture.ts";
+import {
+  cleanupVirtualWatchdogFS,
+  scratchRoot,
+  setupVirtualWatchdogFS,
+} from "../watchdog-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualWatchdogFS();
+});
+
+afterEach(() => {
+  cleanupVirtualWatchdogFS();
+});
 
 describe("WatchdogStore CRUD & Schema Validation", () => {
   it("loads default empty store when target file does not exist", () => {

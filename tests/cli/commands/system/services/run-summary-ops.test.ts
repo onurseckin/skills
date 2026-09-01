@@ -1,8 +1,12 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "../../fixtures/task-ops-fixture.ts";
 import { requirementIds } from "../../fixtures/critic-run-fixture.ts";
 import { registerInspectionCommand, setupReadyRun } from "../../fixtures/critic-ready-fixture.ts";
@@ -19,7 +23,13 @@ import {
 import { setupRun as setupSingleTaskRun } from "../../fixtures/probe-fixture.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(async () => {
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+});
 
 describe("run:status", () => {
   test("reports Executing phase and occupancy once plan compiled", async () => {

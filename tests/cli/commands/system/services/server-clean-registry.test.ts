@@ -1,12 +1,42 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import * as childProcess from "node:child_process";
+import { EventEmitter } from "node:events";
 import {
   formatServerCleanMarkdown,
   serverCleanCommand,
 } from "../../../../../olt/scripts/src/cli/commands/server-ops.ts";
 import { SERVER_COMMANDS } from "../../../../../olt/scripts/src/cli/registry/server.ts";
 import type { ReclaimResult } from "../../../../../olt/scripts/src/server/index.ts";
+import {
+  cleanupVirtualNetwork,
+  cleanupVirtualServerFS,
+  setupVirtualNetwork,
+  setupVirtualServerFS,
+} from "../../../../server/fixture.ts";
 
 describe("CLI server-ops subsystem - clean & registry", () => {
+  let spawnSpy: ReturnType<typeof spyOn> | null = null;
+  beforeEach(() => {
+    setupVirtualServerFS();
+    setupVirtualNetwork();
+    spawnSpy = spyOn(childProcess, "spawn").mockImplementation((() => {
+      const emitter = new EventEmitter();
+      (emitter as unknown as Record<string, unknown>).stdout = new EventEmitter();
+      (emitter as unknown as Record<string, unknown>).stderr = new EventEmitter();
+      queueMicrotask(() => {
+        emitter.emit("close", 0);
+      });
+      return emitter as unknown as childProcess.ChildProcess;
+    }) as never);
+  });
+  afterEach(() => {
+    if (spawnSpy) {
+      spawnSpy.mockRestore();
+      spawnSpy = null;
+    }
+    cleanupVirtualNetwork();
+    cleanupVirtualServerFS();
+  });
   describe("server:clean command", () => {
     it("runs server:clean in --dry-run mode for a specific port", async () => {
       const result = await serverCleanCommand({

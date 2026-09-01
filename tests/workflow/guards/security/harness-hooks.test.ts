@@ -1,4 +1,4 @@
-import { describe, expect, spyOn, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import * as doctorModule from "../../../../olt/scripts/src/reporting/doctor.ts";
 import {
@@ -6,8 +6,21 @@ import {
   executePreFlightDoctorAudit,
 } from "../../../../olt/scripts/src/workflow/lifecycle/harness-hooks.ts";
 import * as quotaModule from "../../../../olt/scripts/src/workflow/lifecycle/quota-lifecycle.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 describe("Pre/Post Run Automated Diagnostic Hooks (In-Memory Virtualization)", () => {
+  let vfsCleanup: (() => void) | undefined;
+
+  beforeEach(() => {
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+  });
+
+  afterEach(() => {
+    vfsCleanup?.();
+    vfsCleanup = undefined;
+  });
+
   test("executePreFlightDoctorAudit auto-heals corrupted state and stale locks", async () => {
     const autoHealSpy = spyOn(doctorModule, "autoHealCapsule").mockReturnValue({
       healthy: true,

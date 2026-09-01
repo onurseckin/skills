@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   existsSync,
   linkSync,
@@ -18,7 +18,7 @@ import {
   withTaskQueueLock,
   type TaskQueueItem,
 } from "../../../olt/scripts/src/task/queue/index.ts";
-import { scratchRoot } from "../task-fixture.ts";
+import { cleanupVirtualTaskFS, scratchRoot, setupVirtualTaskFS } from "../task-fixture.ts";
 
 function createMockTask(id: string, title = "Test Task"): TaskQueueItem {
   return {
@@ -43,6 +43,13 @@ function createMockTask(id: string, title = "Test Task"): TaskQueueItem {
 }
 
 describe("Task Queue Storage and Locking (task-storage.test.ts)", () => {
+  beforeEach(() => {
+    setupVirtualTaskFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualTaskFS();
+  });
   test("loadTaskQueue returns empty array when file does not exist", () => {
     const sandbox = scratchRoot(import.meta.path, "storage");
     const nonExistentPath = join(sandbox, "missing.jsonl");

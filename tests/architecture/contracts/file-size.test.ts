@@ -1,7 +1,19 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { readdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  cleanupVirtualArchitectureFS,
+  setupVirtualArchitectureFS,
+} from "../fixtures/architecture-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualArchitectureFS();
+});
+
+afterEach(() => {
+  cleanupVirtualArchitectureFS();
+});
 
 const repoRoot = fileURLToPath(new URL("../../..", import.meta.url));
 const scriptsRoot = join(repoRoot, "olt/scripts");

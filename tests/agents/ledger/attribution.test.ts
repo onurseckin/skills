@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
@@ -8,6 +8,15 @@ import {
   resolveAttributionInLedger,
 } from "../../../olt/scripts/src/workflow/agents/attribution.ts";
 import { assertAttribution } from "../../../olt/scripts/src/workflow/agents/index.ts";
+import { cleanupVirtualAgentsFS, setupVirtualAgentsFS } from "../fixture.ts";
+
+beforeEach(() => {
+  setupVirtualAgentsFS();
+});
+
+afterEach(() => {
+  cleanupVirtualAgentsFS();
+});
 
 function grant(overrides: Partial<AgentGrantRecord> = {}): AgentGrantRecord {
   return {

@@ -1,7 +1,20 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import * as WorktreeIndex from "../../../../olt/scripts/src/workflow/worktree/index.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 describe("workflow/worktree index exports", () => {
+  let vfsCleanup: (() => void) | undefined;
+
+  beforeEach(() => {
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+  });
+
+  afterEach(() => {
+    vfsCleanup?.();
+    vfsCleanup = undefined;
+  });
+
   test("re-exports all worktree functions and utilities", () => {
     expect(WorktreeIndex.assignWorktrees).toBeFunction();
     expect(WorktreeIndex.commitSubphase).toBeFunction();

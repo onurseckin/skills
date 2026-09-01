@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -6,8 +6,15 @@ import {
   renderVisualDag,
   type DagNodeSummary,
 } from "../../../../../olt/scripts/src/cli/commands/dag-view.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
 describe("renderAsciiDag formatting & Visual Export", () => {
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
+  afterEach(() => {
+    cleanupVirtualCliFS();
+  });
   test("renders clean ASCII box borders with wave headers and status badges", () => {
     const waves = [
       {

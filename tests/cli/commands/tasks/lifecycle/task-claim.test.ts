@@ -1,13 +1,23 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { taskClaimCommand } from "../../../../../olt/scripts/src/cli/commands/task-claim.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 import { TASK_ID, setupRun } from "../../fixtures/probe-fixture.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(async () => {
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+});
 
 describe("task:claim - Confinement, Validation & Role Rules", () => {
   test("refuses an unrecognised --role", async () => {

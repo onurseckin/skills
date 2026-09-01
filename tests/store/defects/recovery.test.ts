@@ -16,7 +16,9 @@ import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.t
 import { transact } from "../../../olt/scripts/src/engine/store/events/transaction.ts";
 import { recoverProjection } from "../../../olt/scripts/src/engine/store/recovery/recovery.ts";
 import { TRANSACTION_MARKER_FILE } from "../../../olt/scripts/src/engine/store/events/event-append.ts";
-import { scratchRoot } from "../store-fixture.ts";
+import { scratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
+
+setupVirtualStoreFS();
 
 function makeTempDir(label: string): string {
   return scratchRoot(import.meta.path, label);

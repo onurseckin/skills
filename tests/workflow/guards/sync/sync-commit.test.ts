@@ -1,12 +1,25 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import {
   CONVENTIONAL_COMMIT_TYPES,
   formatConventionalCommitMessage,
   validatePhaseCommitMessage,
 } from "../../../../olt/scripts/src/engine/worktree/phase-commits.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 describe("Conventional Commit Message Formatting & Exports", () => {
+  let vfsCleanup: (() => void) | undefined;
+
+  beforeEach(() => {
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+  });
+
+  afterEach(() => {
+    vfsCleanup?.();
+    vfsCleanup = undefined;
+  });
+
   test("exports CONVENTIONAL_COMMIT_TYPES set with standard types", () => {
     expect(CONVENTIONAL_COMMIT_TYPES.has("feat")).toBeTrue();
     expect(CONVENTIONAL_COMMIT_TYPES.has("fix")).toBeTrue();

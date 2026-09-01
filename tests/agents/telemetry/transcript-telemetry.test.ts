@@ -1,8 +1,9 @@
-import { describe, expect, test, afterAll, spyOn } from "bun:test";
+import { afterAll, afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { mkdir, writeFile } from "node:fs/promises";
 import * as os from "node:os";
 import { join } from "node:path";
 import { readAgentTranscriptTelemetry } from "../../../olt/scripts/src/workflow/agents/transcript-telemetry.ts";
+import { cleanupVirtualAgentsFS, setupVirtualAgentsFS } from "../fixture.ts";
 import {
   assistantLine as aLine,
   cleanupTranscriptRoots,
@@ -10,6 +11,14 @@ import {
   toolResultLine as tLine,
   writeDirectTranscript as wDirect,
 } from "./transcript-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualAgentsFS();
+});
+
+afterEach(() => {
+  cleanupVirtualAgentsFS();
+});
 
 afterAll(async () => {
   await cleanupTranscriptRoots();

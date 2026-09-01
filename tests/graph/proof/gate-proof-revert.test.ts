@@ -1,16 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import {
-  existsSync,
-  lstatSync,
-  mkdirSync,
-  mkdtempSync,
-  readdirSync,
-  readFileSync,
-  realpathSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   nodeSpawnGate,

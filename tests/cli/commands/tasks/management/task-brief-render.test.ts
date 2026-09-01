@@ -1,13 +1,23 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { taskBriefCommand } from "../../../../../olt/scripts/src/cli/commands/task-brief.ts";
 import { transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 import { TASK_ID, setupRun } from "../../fixtures/probe-fixture.ts";
 import { FIXTURE_ORCH_ROOT } from "../../../../shared/chains/agent-supervisor-chain.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(async () => {
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+});
 
 describe("task:brief - Extended Rendering & Agent Briefings", () => {
   test("taskBriefCommand covers cargo/pytest gates and acceptance criteria replacement", async () => {

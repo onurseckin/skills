@@ -1,19 +1,33 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   createGitRunner,
   git,
   runGit,
+  setGitRunnerForTesting,
   worktreeGitEnvironment,
   type GitResult,
   type GitRunner,
   type GitSpawn,
 } from "../../../../olt/scripts/src/workflow/worktree/git.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 function fakeRunner(result: Partial<GitResult>): GitRunner {
   return () => ({ status: 0, stdout: "", stderr: "", ...result });
 }
 
 describe("git", () => {
+  let vfsCleanup: (() => void) | undefined;
+
+  beforeEach(() => {
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+  });
+
+  afterEach(() => {
+    vfsCleanup?.();
+    vfsCleanup = undefined;
+  });
+
   test("returns stdout when the runner exits zero", () => {
     const runner = fakeRunner({ status: 0, stdout: "deadbeef\n" });
     expect(git("/repo", ["rev-parse", "HEAD"], runner)).toBe("deadbeef\n");
@@ -108,9 +122,19 @@ describe("createGitRunner", () => {
     expect(() => runner("/repo", [])).toThrow(/git  failed to start: spawn git ENOENT/);
   });
 
-  test("runGit default runner executes real git commands", () => {
-    const result = runGit(process.cwd(), ["status", "--short"]);
-    expect(result.status).toBe(0);
-    expect(git(process.cwd(), ["status", "--short"])).toBeString();
+  test("runGit delegates to activeGitRunner when configured for testing", () => {
+    const restore = setGitRunnerForTesting((cwd, argv) => ({
+      status: 0,
+      stdout: `mocked-status: ${cwd} ${argv.join(" ")}\n`,
+      stderr: "",
+    }));
+    try {
+      const result = runGit("/virtual/repo", ["status", "--short"]);
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain("mocked-status: /virtual/repo status --short");
+      expect(git("/virtual/repo", ["status", "--short"])).toContain("mocked-status");
+    } finally {
+      restore();
+    }
   });
 });

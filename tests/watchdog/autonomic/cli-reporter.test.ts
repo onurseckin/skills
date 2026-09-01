@@ -1,6 +1,15 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { formatCliStatusReport } from "../../../olt/scripts/src/watchdog/autonomic-watchdog/cli-reporter.ts";
 import type { WatchdogHealthAuditReport } from "../../../olt/scripts/src/watchdog/autonomic-watchdog/types.ts";
+import { cleanupVirtualWatchdogFS, setupVirtualWatchdogFS } from "../watchdog-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualWatchdogFS();
+});
+
+afterEach(() => {
+  cleanupVirtualWatchdogFS();
+});
 
 describe("formatCliStatusReport Markdown Generation", () => {
   it("formats a healthy status report cleanly without findings section", () => {

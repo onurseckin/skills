@@ -12,7 +12,9 @@ import {
 } from "../../../olt/scripts/src/engine/store/events/event-append.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/capsule/load.ts";
 import { cloneObject, initialState } from "../../../olt/scripts/src/engine/store/capsule/state.ts";
-import { scratchRoot } from "../store-fixture.ts";
+import { scratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
+
+setupVirtualStoreFS();
 import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
 import { recoverProjection } from "../../../olt/scripts/src/engine/store/recovery/recovery.ts";
 import { brainstormingProjection } from "../../../olt/scripts/src/engine/store/projections/materialized-projections.ts";

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
   calculateApcaLightness,
   formatManifestFilename,
@@ -37,6 +37,7 @@ import {
 import { assertRoleArtifactPresent } from "../../../../olt/scripts/src/workflow/review/role-evidence.ts";
 import type { TaskRecord, WorkflowState } from "../../../../olt/scripts/src/workflow/types.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 function createFindingCollector(): {
   readonly findings: StructuredFinding[];
@@ -72,6 +73,18 @@ function createFindingCollector(): {
 }
 
 describe("Adversarial Edge Cases: Subpixel Border Alignment & Fractional Scale Factors", () => {
+  let vfsCleanup: (() => void) | undefined;
+
+  beforeEach(() => {
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+  });
+
+  afterEach(() => {
+    vfsCleanup?.();
+    vfsCleanup = undefined;
+  });
+
   it("flags elements with fractional subpixel coordinates causing subpixel rendering blur", () => {
     const fractionalEl: ElementPhysicsSnapshot = {
       selector: "div.card-subpixel",

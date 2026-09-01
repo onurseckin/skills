@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
   assertPushbackSafety,
   contestValidatorVerdict,
@@ -26,6 +26,7 @@ import type {
   ValidatorDomain,
 } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { TransactionPort, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
+import { cleanupVirtualTaskFS, setupVirtualTaskFS } from "../task-fixture.ts";
 
 function createMockPort(initial: WorkflowState): TransactionPort {
   let state = structuredClone(initial);
@@ -79,6 +80,13 @@ function createValidatedState(
 }
 
 describe("task pushback path unit tests", () => {
+  beforeEach(() => {
+    setupVirtualTaskFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualTaskFS();
+  });
   it("evaluates pushback safety and unfulfilled demand reports", () => {
     const dummyState = { workflow: { state: "nominal" } };
     const report = evaluatePushbackReport(dummyState);

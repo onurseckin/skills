@@ -25,8 +25,6 @@ import {
   OLT_FILES,
 } from "../../../olt/scripts/src/core/shared/paths.ts";
 
-const origExists = fs.existsSync;
-
 describe("core/shared/paths.ts comprehensive", () => {
   const mockDirs = new Set<string>();
   const spies: { mockRestore: () => void }[] = [];
@@ -36,7 +34,7 @@ describe("core/shared/paths.ts comprehensive", () => {
     spies.push(
       spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => {
         const s = String(p);
-        return mockDirs.has(s) || origExists(p);
+        return mockDirs.has(s);
       }),
     );
   });
@@ -134,6 +132,8 @@ describe("core/shared/paths.ts comprehensive", () => {
   });
 
   it("loadSkillGlobalConfig and resolveSkillHomeRepo resolve global configuration", () => {
+    mockDirs.add(process.cwd());
+    mockDirs.add(join(process.cwd(), ".git"));
     const configPath = resolveSkillGlobalConfigPath();
     expect(typeof configPath).toBe("string");
 

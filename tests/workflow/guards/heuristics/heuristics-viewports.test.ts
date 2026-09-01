@@ -1,43 +1,19 @@
-import { describe, expect, it, spyOn } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import * as crossProof from "../../../../olt/scripts/src/validation/dual-channel-analyzer/cross-proof.ts";
 import {
-  calculateApcaLightness,
   formatManifestFilename,
   isCertifiedManifest,
-  loadCompanionManifest,
-  saveCompanionManifest,
   synthesizeCompanionManifest,
-  validateApcaElement,
-  validateConcentricRadius,
-  validateCustom,
-  validateFloatingUiCollision,
-  validateMaterialStateLayers,
-  validateMechanical,
-  validateSubpixelSnapping,
-  validateWaiAriaFocusTrap,
 } from "../../../../olt/scripts/src/capture/validator/index.ts";
-import type {
-  CompanionManifestV2,
-  ElementPhysicsSnapshot,
-  ValidationContext,
-} from "../../../../olt/scripts/src/capture/validator/types.ts";
-import {
-  computeLayoutMetrics,
-  createEmptyDomPhysicsSnapshot,
-} from "../../../../olt/scripts/src/capture/runners/dom-physics-extractor.ts";
-import { createSyntheticPngBuffer } from "../../../../olt/scripts/src/capture/runners/live-capture-runner/index.ts";
+import type { ValidationContext } from "../../../../olt/scripts/src/capture/validator/types.ts";
 import {
   analyzeDualChannel,
-  validateCompanionManifestCriteria,
-  type CompanionManifestData,
   type DualChannelInput,
-  type ScreenshotMetadata,
   type StructuredFinding,
-  type VisualMetricsReport,
 } from "../../../../olt/scripts/src/validation/dual-channel-analyzer/index.ts";
 import { assertRoleArtifactPresent } from "../../../../olt/scripts/src/workflow/review/role-evidence.ts";
-import type { TaskRecord, WorkflowState } from "../../../../olt/scripts/src/workflow/types.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 function createFindingCollector(): {
   readonly findings: StructuredFinding[];
@@ -71,7 +47,19 @@ function createFindingCollector(): {
   };
   return { findings, addFinding };
 }
+
 describe("Adversarial Edge Cases: Multi-Viewport Companion Manifest Verification", () => {
+  let vfsCleanup: (() => void) | undefined;
+
+  beforeEach(() => {
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+  });
+
+  afterEach(() => {
+    vfsCleanup?.();
+    vfsCleanup = undefined;
+  });
   it("rejects dual-channel UI task when required viewports are missing", () => {
     const input: DualChannelInput = {
       writeScope: ["src/views/Settings.tsx"],

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { writeFile } from "node:fs/promises";
 import { execute } from "../../../../../../olt/scripts/src/cli/execute.ts";
 import {
@@ -6,6 +6,11 @@ import {
   putBlobFile,
 } from "../../../../../../olt/scripts/src/engine/store/layout/blobs.ts";
 import { recordCaptures } from "../../../../../../olt/scripts/src/engine/store/capsule/captures.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../../fixtures/full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "../../../fixtures/file-persistence-fixture.ts";
 import {
   establishSupervisorChain,
@@ -13,6 +18,13 @@ import {
 } from "../../../../../shared/chains/agent-supervisor-chain.ts";
 
 const roots: string[] = [];
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(async () => {
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+});
 
 describe("task:reject - Aliases, Captures and Screenshots", () => {
   test("--finding is accepted as an alias for --remediation", async () => {

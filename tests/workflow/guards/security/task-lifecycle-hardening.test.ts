@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { evidenced } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import { claimTask } from "../../../../olt/scripts/src/workflow/lease/claim.ts";
 import { recoverStale } from "../../../../olt/scripts/src/workflow/lease/recover-stale.ts";
@@ -19,6 +19,7 @@ import {
   TEST_GATE_ARGV,
   workflowState,
 } from "../../shared/test-port.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 const validReport = (summary: string) => ({
   summary,
@@ -29,6 +30,18 @@ const validReport = (summary: string) => ({
 });
 
 describe("Domain 13 Hardening: Task Lifecycle & State Machines", () => {
+  let vfsCleanup: (() => void) | undefined;
+
+  beforeEach(() => {
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+  });
+
+  afterEach(() => {
+    vfsCleanup?.();
+    vfsCleanup = undefined;
+  });
+
   test("Challenge 1: Micro-cycle role packet authority continuity", () => {
     const state = workflowState();
     const port = new TestPort(state);

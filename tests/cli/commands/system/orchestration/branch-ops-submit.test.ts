@@ -7,10 +7,12 @@ import {
   taskOf,
   type BranchFixture,
 } from "../../../../branch/index.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import { cleanupRoots as cleanupBranchRoots } from "../../../../branch/index.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+afterEach(async () => {
+  await cleanupBranchRoots(roots);
+});
 
 async function withFixture(name: string): Promise<BranchFixture> {
   return branchCapsule(roots, name);

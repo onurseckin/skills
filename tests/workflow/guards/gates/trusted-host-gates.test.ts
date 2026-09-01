@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { CommandRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import { captureGateEnvironment } from "../../../../olt/scripts/src/engine/runner/index.ts";
 import { embeddedCommandIssues } from "../../../../olt/scripts/src/engine/runner/models/command/command-shape.ts";
@@ -11,6 +11,7 @@ import {
   TestPort,
   workflowState,
 } from "../../shared/test-port.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 const clock = at("2026-08-13T12:00:00.000Z");
 const argv = ["bun", "test", "tests/runner/signing/gate-path-binding.test.ts"];
@@ -36,6 +37,18 @@ function trustedCommand(overrides: Partial<CommandRecord> = {}): CommandRecord {
 }
 
 describe("trusted-host workflow gates", () => {
+  let vfsCleanup: (() => void) | undefined;
+
+  beforeEach(() => {
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+  });
+
+  afterEach(() => {
+    vfsCleanup?.();
+    vfsCleanup = undefined;
+  });
+
   test("command fixtures persist the exact sanitized environment outside gates", () => {
     const command = commandRecord("C-NON-GATE", {
       task_id: null,
@@ -43,7 +56,10 @@ describe("trusted-host workflow gates", () => {
       actor: "coordinator",
     });
     expect(command.environment).toEqual(
-      captureGateEnvironment(process.env, "00000000-0000-4000-8000-000000000000"),
+      captureGateEnvironment(
+        { ...process.env, PATH: "/usr/local/bin:/usr/bin:/bin" },
+        "00000000-0000-4000-8000-000000000000",
+      ),
     );
     expect(command.path_bindings).toBeUndefined();
     expect(embeddedCommandIssues(command)).toEqual([]);

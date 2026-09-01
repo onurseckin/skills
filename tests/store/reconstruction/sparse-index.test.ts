@@ -2,14 +2,16 @@ import { describe, expect, it } from "bun:test";
 import { closeSync, existsSync, openSync, readSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import type { EventSparseIndex } from "../../../olt/scripts/src/engine/store/hierarchy/sparse-index.ts";
 import {
   loadSparseIndex,
   rebuildSparseIndex,
   seekEventByteOffset,
   updateSparseIndex,
-  type EventSparseIndex,
 } from "../../../olt/scripts/src/engine/store/hierarchy/sparse-index.ts";
-import { scratchRoot } from "../store-fixture.ts";
+import { scratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
+
+setupVirtualStoreFS();
 
 function createEventLine(seq: number): string {
   return `${JSON.stringify({

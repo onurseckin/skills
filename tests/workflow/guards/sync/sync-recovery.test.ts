@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import {
   executeAutoSyncAndCommit,
@@ -14,8 +14,21 @@ import {
   formatConventionalCommitMessage,
   validatePhaseCommitMessage,
 } from "../../../../olt/scripts/src/engine/worktree/phase-commits.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 describe("Flag Handling: skipPush & skipSync", () => {
+  let vfsCleanup: (() => void) | undefined;
+
+  beforeEach(() => {
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+  });
+
+  afterEach(() => {
+    vfsCleanup?.();
+    vfsCleanup = undefined;
+  });
+
   test("skips push when skipPush = true", async () => {
     const gitCommands: string[] = [];
     let syncCalled = false;

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { gateTally } from "../../../../olt/scripts/src/workflow/completion/completion-state.ts";
 import type {
   GateRuntime,
@@ -6,6 +6,7 @@ import type {
   TaskRecord,
   WorkflowState,
 } from "../../../../olt/scripts/src/workflow/types.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 function requirement(id: string): RequirementRuntime {
   return {
@@ -59,6 +60,18 @@ function state(): WorkflowState {
 }
 
 describe("gateTally counts gates and only gates", () => {
+  let vfsCleanup: (() => void) | undefined;
+
+  beforeEach(() => {
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+  });
+
+  afterEach(() => {
+    vfsCleanup?.();
+    vfsCleanup = undefined;
+  });
+
   test("the total is the mandatory gate set, not the requirement count", () => {
     // Three requirements, three gates: the old brief printed the requirement total as the gate
     // denominator, which happened to look plausible and measured nothing.

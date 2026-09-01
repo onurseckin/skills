@@ -1,12 +1,25 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { completionIssues } from "../../../../olt/scripts/src/workflow/completion/completion-state.ts";
 import { dispositionOrphanEvidence } from "../../../../olt/scripts/src/workflow/orphan-evidence/disposition.ts";
 import { orphanEvidenceSha256 } from "../../../../olt/scripts/src/workflow/orphan-evidence/digest.ts";
 import { at, TestPort, workflowState } from "../../shared/test-port.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 const clock = at("2026-08-13T12:00:00.000Z");
 
 describe("orphan evidence disposition", () => {
+  let vfsCleanup: (() => void) | undefined;
+
+  beforeEach(() => {
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+  });
+
+  afterEach(() => {
+    vfsCleanup?.();
+    vfsCleanup = undefined;
+  });
+
   test("preserves immutable evidence and records one auditable terminal disposition", () => {
     const state = workflowState();
     const orphan = { task_id: "T-1", report_sha256: "late", reason: "expired_lease" };

@@ -10,7 +10,9 @@ import {
   fastForwardProjection,
   reconstructStateAtSequence,
 } from "../../../olt/scripts/src/engine/store/hierarchy/reconstruction-engine.ts";
-import { scratchRoot } from "../store-fixture.ts";
+import { scratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
+
+setupVirtualStoreFS();
 
 function createEventLine(seq: number, patchOps?: ProjectionPatchOp[]): string {
   const ops: ProjectionPatchOp[] =

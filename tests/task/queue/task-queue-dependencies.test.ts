@@ -1,15 +1,25 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { join } from "node:path";
 import {
   claimTaskLease,
   enqueueTask,
   enqueueTasksBatch,
 } from "../../../olt/scripts/src/task/queue/index.ts";
-import { scratchRoot } from "../task-fixture.ts";
+import { cleanupVirtualTaskFS, scratchRoot, setupVirtualTaskFS } from "../task-fixture.ts";
 
 describe("Stateful Task Queue Engine", () => {
-  const testDir = scratchRoot(import.meta.path, "dependencies");
-  const queuePath = join(testDir, "TASK_QUEUE.jsonl");
+  let testDir = "";
+  let queuePath = "";
+
+  beforeEach(() => {
+    setupVirtualTaskFS();
+    testDir = scratchRoot(import.meta.path, "dependencies");
+    queuePath = join(testDir, "TASK_QUEUE.jsonl");
+  });
+
+  afterEach(() => {
+    cleanupVirtualTaskFS();
+  });
 
   it("refuses duplicate task IDs", () => {
     enqueueTask(

@@ -1,13 +1,12 @@
-import { describe, it, expect } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import {
   parseUnifiedAgentManifest,
   validateUnifiedAgentManifest,
 } from "../../../olt/scripts/src/authority/manifest-schema.ts";
+import { cleanupVirtualAgentsFS, setupVirtualAgentsFS } from "../fixture.ts";
 
-// Updated: 2024-05-22 - Verified Tier 3 Governance Dual UI Validator Suite
-import { resolve } from "node:path";
 const REPO_ROOT = resolve(import.meta.dir, "../../..");
 const AGENTS_DIR = join(REPO_ROOT, "olt/agents");
 const AGENTS_MD_PATH = join(REPO_ROOT, "AGENTS.md");
@@ -15,6 +14,13 @@ const SKILL_MD_PATH = join(REPO_ROOT, "olt/SKILL.md");
 const BOOK_DIR = join(REPO_ROOT, "docs/book");
 
 describe("Dual UI Validators & Governance Manifests", () => {
+  beforeEach(() => {
+    setupVirtualAgentsFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualAgentsFS();
+  });
   describe("ui-headless-validator.yaml & ui-mechanic-validator.yaml", () => {
     it("validates ui-headless-validator manifest structure and invariants", () => {
       const filePath = join(AGENTS_DIR, "ui-headless-validator.yaml");

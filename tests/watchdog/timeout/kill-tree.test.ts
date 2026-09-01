@@ -1,8 +1,17 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
   defaultKillProcessTree,
   executeSignalEscalation,
 } from "../../../olt/scripts/src/watchdog/process-timeout/kill-tree.ts";
+import { cleanupVirtualWatchdogFS, setupVirtualWatchdogFS } from "../watchdog-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualWatchdogFS();
+});
+
+afterEach(() => {
+  cleanupVirtualWatchdogFS();
+});
 
 describe("Signal Escalation & Process Tree Termination", () => {
   it("defaultKillProcessTree safely attempts process.kill and catches invalid PIDs", () => {

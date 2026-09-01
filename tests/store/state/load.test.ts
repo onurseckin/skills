@@ -5,7 +5,9 @@ import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { resolveCapsulesDir } from "../../../olt/scripts/src/core/shared/paths.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
 import { loadRun, loadRunProjection } from "../../../olt/scripts/src/engine/store/capsule/load.ts";
-import { scratchRoot } from "../store-fixture.ts";
+import { scratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
+
+setupVirtualStoreFS();
 
 function freshRun(label: string): string {
   const repo = scratchRoot(import.meta.path, label);

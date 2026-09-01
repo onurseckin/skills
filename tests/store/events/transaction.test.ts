@@ -3,7 +3,9 @@ import type { RunState, StateMutator } from "../../../olt/scripts/src/core/contr
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/events/transaction.ts";
-import { scratchRoot } from "../store-fixture.ts";
+import { scratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
+
+setupVirtualStoreFS();
 
 function freshRun(label: string): string {
   const repo = scratchRoot(import.meta.path, label);

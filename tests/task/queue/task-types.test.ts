@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   DEFAULT_LEASE_DURATION_MS,
@@ -22,8 +22,16 @@ import {
   createSampleActiveQueueItem,
   TASK_QUEUE_SUITES,
 } from "./index.ts";
+import { cleanupVirtualTaskFS, setupVirtualTaskFS } from "../task-fixture.ts";
 
 describe("Task Queue Types & Schema Validation", () => {
+  beforeEach(() => {
+    setupVirtualTaskFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualTaskFS();
+  });
   it("defines standard task statuses and priorities", () => {
     expect(TASK_QUEUE_STATUSES).toEqual([
       "PENDING",

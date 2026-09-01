@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
@@ -6,11 +6,21 @@ import {
   summaryExportCommand,
   summaryViewCommand,
 } from "../../../../../olt/scripts/src/cli/commands/summary-ops.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 import { TASK_ID, setupRun } from "../../fixtures/probe-fixture.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(async () => {
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+});
 
 describe("summary:export", () => {
   test("writes the suite to <run>/summary and reports the artifact paths in its brief", async () => {

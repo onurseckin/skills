@@ -1,11 +1,23 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { taskRejectCommand } from "../../../../../../olt/scripts/src/cli/commands/task-reject.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../../fixtures/full-lifecycle-fixture.ts";
 import {
   claimSubmitValidateAndReject,
   setupCompiledRun,
 } from "../../../fixtures/file-persistence-fixture.ts";
 
 const roots: string[] = [];
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(async () => {
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+});
 
 describe("task:reject - Core Validation and Remediation Invariants", () => {
   test("rejects a submitted task with a structured finding and returns it for repair", async () => {

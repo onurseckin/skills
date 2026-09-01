@@ -1,12 +1,22 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import type { OrchestratorCommandContext } from "../../../../../olt/scripts/src/cli/commands/orchestrator-ops.ts";
 import type { TaskDispatcher } from "../../../../../olt/scripts/src/orchestrator/supervisor.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "../../fixtures/task-ops-fixture.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(async () => {
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+});
 
 describe("orchestrator:supervise", () => {
   test("without injected dispatcher, performs one tick and reports single_tick", async () => {

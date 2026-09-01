@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   commitSubphase,
   recordWorktreeCommit,
@@ -7,6 +7,7 @@ import { readWorktreeLedger } from "../../../../olt/scripts/src/workflow/worktre
 import type { GitResult, GitRunner } from "../../../../olt/scripts/src/workflow/worktree/git.ts";
 import type { WorktreeCommitRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import { FakeRunStore, baseLedger, seedLedger, seedTask } from "../fixtures/fake-transact.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 type Call = { cwd: string; argv: readonly string[] };
 
@@ -27,6 +28,18 @@ const ok = (stdout = ""): GitResult => ({ status: 0, stdout, stderr: "" });
 const fail = (stderr = "", status = 1): GitResult => ({ status, stdout: "", stderr });
 
 describe("commitSubphase", () => {
+  let vfsCleanup: (() => void) | undefined;
+
+  beforeEach(() => {
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+  });
+
+  afterEach(() => {
+    vfsCleanup?.();
+    vfsCleanup = undefined;
+  });
+
   test("rejects a commit type that is not a recognised conventional-commit tag", () => {
     const { runner } = scripted(() => ok());
     expect(() =>

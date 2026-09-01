@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
   runDualChannelAudit,
   dualChannelRefusalMessage,
@@ -6,8 +6,18 @@ import {
 import type { TaskRecord } from "../../../../../../olt/scripts/src/workflow/types.ts";
 import type { ScreenshotRecord } from "../../../../../../olt/scripts/src/reporting/screenshot-types.ts";
 import type { CompanionManifestData } from "../../../../../../olt/scripts/src/validation/channels/index.ts";
+import {
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../../fixtures/full-lifecycle-fixture.ts";
 
 describe("Task Review Dual-Channel Audit - Invariants & Pillar Checks", () => {
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
+  afterEach(() => {
+    cleanupVirtualCliFS();
+  });
   const dummyTask: TaskRecord = {
     id: "task-01",
     label: "Implement UI button component",

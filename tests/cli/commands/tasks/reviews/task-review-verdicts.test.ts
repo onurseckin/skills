@@ -1,10 +1,14 @@
-import { afterAll, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { taskReviewCommand } from "../../../../../olt/scripts/src/cli/commands/task-review.ts";
 import { loadChecklist } from "../../../../../olt/scripts/src/packets/role-contract.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 import {
   TASK_ID,
   VALIDATOR,
@@ -18,7 +22,13 @@ import {
 } from "../../fixtures/probe-fixture.ts";
 
 const roots: string[] = [];
-afterAll(async () => cleanupRoots(roots));
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(async () => {
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+});
 
 describe("task:review - Preconditions, Status & Checklists", () => {
   test("pass refused while probe round short and with unresolved finding", async () => {

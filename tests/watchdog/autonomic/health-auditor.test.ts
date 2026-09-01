@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { BootGateEnforcer } from "../../../olt/scripts/src/watchdog/boot-gate-enforcer/index.ts";
 import {
   defaultProcessLivenessChecker,
@@ -8,6 +8,15 @@ import type {
   AgentActivityState,
   WatchdogFinding,
 } from "../../../olt/scripts/src/watchdog/autonomic-watchdog/types.ts";
+import { cleanupVirtualWatchdogFS, setupVirtualWatchdogFS } from "../watchdog-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualWatchdogFS();
+});
+
+afterEach(() => {
+  cleanupVirtualWatchdogFS();
+});
 
 describe("HealthAuditor & Process Liveness Auditing", () => {
   it("defaultProcessLivenessChecker returns false for invalid PIDs and catches kill signals", () => {

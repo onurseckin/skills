@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { taskBriefCommand } from "../../../../../olt/scripts/src/cli/commands/task-brief.ts";
 import {
   formatTaskBrief,
@@ -8,11 +8,21 @@ import {
 import { formatAgentBrief } from "../../../../../olt/scripts/src/cli/formatters/agent-formatter.ts";
 import { HarnessError } from "../../../../../olt/scripts/src/core/errors/index.ts";
 import { transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 import { TASK_ID, setupRun } from "../../fixtures/probe-fixture.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(async () => {
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+});
 
 describe("formatTaskBrief", () => {
   test("renders full zero-exploration task briefing with all fields", () => {

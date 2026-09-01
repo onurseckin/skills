@@ -7,6 +7,9 @@ import {
   isTerminalState,
   sameJson,
 } from "../../../olt/scripts/src/engine/store/capsule/state.ts";
+import { setupVirtualStoreFS } from "../store-fixture.ts";
+
+setupVirtualStoreFS();
 
 describe("initialState", () => {
   test("returns a freshly minted zero-revision state", () => {

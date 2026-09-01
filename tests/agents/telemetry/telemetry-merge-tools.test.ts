@@ -16,6 +16,14 @@ import {
 import type { AgentTranscriptTelemetry } from "../../../olt/scripts/src/workflow/agents/transcript-telemetry.ts";
 import { cleanupVirtualAgentsFS, scratchRoot, setupVirtualAgentsFS } from "../fixture.ts";
 
+beforeEach(() => {
+  setupVirtualAgentsFS();
+});
+
+afterEach(() => {
+  cleanupVirtualAgentsFS();
+});
+
 function transcript(overrides: Partial<AgentTranscriptTelemetry> = {}): AgentTranscriptTelemetry {
   return { sourcePath: "/path/to/transcript.jsonl", tools: [], ...overrides };
 }

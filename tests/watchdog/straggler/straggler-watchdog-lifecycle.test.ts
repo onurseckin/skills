@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
   assessTaskStraggler,
   assessTaskStragglerStatus,
@@ -8,6 +8,15 @@ import {
   TASK_STRAGGLER_OVERBURDEN_DEFECT,
   type MonitoredTask,
 } from "../../../olt/scripts/src/watchdog/straggler-watchdog.ts";
+import { cleanupVirtualWatchdogFS, setupVirtualWatchdogFS } from "../watchdog-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualWatchdogFS();
+});
+
+afterEach(() => {
+  cleanupVirtualWatchdogFS();
+});
 
 describe("StragglerWatchdog Task Assessment & Heartbeat Grace", () => {
   it("exports standard straggler constants", () => {

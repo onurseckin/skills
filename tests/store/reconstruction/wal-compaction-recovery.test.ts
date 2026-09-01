@@ -10,7 +10,9 @@ import {
   shouldTriggerCheckpoint,
   writeAtomicSnapshot,
 } from "../../../olt/scripts/src/engine/store/index.ts";
-import { scratchRoot } from "../store-fixture.ts";
+import { scratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
+
+setupVirtualStoreFS();
 
 function getTestRoot(label = "wal-compaction"): string {
   return scratchRoot(import.meta.path, label);

@@ -1,5 +1,14 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { buildRemediationGuidance } from "../../../olt/scripts/src/watchdog/process-timeout/remediation.ts";
+import { cleanupVirtualWatchdogFS, setupVirtualWatchdogFS } from "../watchdog-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualWatchdogFS();
+});
+
+afterEach(() => {
+  cleanupVirtualWatchdogFS();
+});
 
 describe("buildRemediationGuidance Role-Specific Routing", () => {
   it("builds remediation guidance for completeness critic with single-file scoped test directive", () => {

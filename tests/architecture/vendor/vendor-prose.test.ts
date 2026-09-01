@@ -1,15 +1,27 @@
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { describe, expect, test } from "bun:test";
 import { fileURLToPath } from "node:url";
-import {
-  scanProseForUnqualifiedDispatch,
-  scanTreeForUnqualifiedDispatch,
-} from "../../../olt/scripts/src/health/vendor-prose.ts";
 import { staleExemptions } from "../../../olt/scripts/src/health/vendor-identifiers.ts";
 import {
   HOST_DISPATCH_TERMS,
   HOST_NAME_ALIASES,
 } from "../../../olt/scripts/src/health/vendor-names.ts";
+import {
+  scanProseForUnqualifiedDispatch,
+  scanTreeForUnqualifiedDispatch,
+} from "../../../olt/scripts/src/health/vendor-prose.ts";
+import {
+  cleanupVirtualArchitectureFS,
+  setupVirtualArchitectureFS,
+} from "../fixtures/architecture-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualArchitectureFS();
+});
+
+afterEach(() => {
+  cleanupVirtualArchitectureFS();
+});
 
 const repoRoot = fileURLToPath(new URL("../../..", import.meta.url));
 const skillRoot = join(repoRoot, "olt");

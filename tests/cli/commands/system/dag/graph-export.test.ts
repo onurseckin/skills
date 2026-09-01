@@ -1,12 +1,22 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { exportGraphJsonCommand } from "../../../../../olt/scripts/src/cli/commands/graph-export.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "../../fixtures/task-ops-fixture.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(async () => {
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+});
 
 describe("graph-export CLI command", () => {
   test("exports graph as json without out path", async () => {

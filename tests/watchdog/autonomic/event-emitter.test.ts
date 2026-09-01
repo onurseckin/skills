@@ -1,9 +1,18 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { WatchdogEventEmitter } from "../../../olt/scripts/src/watchdog/autonomic-watchdog/event-emitter.ts";
 import type {
   ReactiveEvent,
   WatchdogEvent,
 } from "../../../olt/scripts/src/watchdog/autonomic-watchdog/types.ts";
+import { cleanupVirtualWatchdogFS, setupVirtualWatchdogFS } from "../watchdog-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualWatchdogFS();
+});
+
+afterEach(() => {
+  cleanupVirtualWatchdogFS();
+});
 
 describe("WatchdogEventEmitter Subscription & Safe Dispatching", () => {
   it("subscribes and unsubscribes via on/off and returned unsubscribe functions", () => {

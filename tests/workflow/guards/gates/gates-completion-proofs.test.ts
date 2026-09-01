@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { attachGateResult } from "../../../../olt/scripts/src/workflow/gates/attach-result.ts";
 import { completionIssues } from "../../../../olt/scripts/src/workflow/completion/completion-state.ts";
 import { finishTask } from "../../../../olt/scripts/src/workflow/gates/finish-task.ts";
@@ -7,6 +7,7 @@ import { applicableGates } from "../../../../olt/scripts/src/workflow/gates/gate
 import { validateGraph } from "../../../../olt/scripts/src/graph/validate-graph.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import { workflowState, TestPort, at, commandRecord } from "../../shared/test-port.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 const clock = at("2026-08-13T12:00:00.000Z");
 function validatedPort(): TestPort {
@@ -37,6 +38,18 @@ function validatedPort(): TestPort {
 }
 
 describe("mandatory task gates at completion proofs", () => {
+  let vfsCleanup: (() => void) | undefined;
+
+  beforeEach(() => {
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+  });
+
+  afterEach(() => {
+    vfsCleanup?.();
+    vfsCleanup = undefined;
+  });
+
   test("run-gate requirement metadata never strands task satisfaction", () => {
     const port = validatedPort();
     const state = port.read();

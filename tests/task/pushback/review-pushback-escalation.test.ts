@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
   appendPushbackRound,
   auditTaskVerificationEvidence,
@@ -21,6 +21,7 @@ import {
 import { isCoordinatorPushbackCause } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import type { TransactionPort, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
+import { cleanupVirtualTaskFS, setupVirtualTaskFS } from "../task-fixture.ts";
 
 function createMockTransactionPort(initialState: WorkflowState): TransactionPort {
   let state = structuredClone(initialState);
@@ -42,15 +43,16 @@ function createMockTransactionPort(initialState: WorkflowState): TransactionPort
 
 function createValidatedState(
   taskId: string = "task-alpha",
-  validatorId: string = "validator-prime",
+  validatorId: string = "val-1",
+  domain: "code-quality" | "tests" = "code-quality",
 ): WorkflowState {
   return {
     tasks: {
       [taskId]: {
         id: taskId,
         status: "validated",
-        requirement_ids: ["REQ-101", "REQ-102"],
-        write_scope: ["src/core/feature.ts"],
+        requirement_ids: ["req-1"],
+        write_scope: ["src/test.ts"],
         dependencies: [],
         attempts: [],
         history: [],
@@ -59,8 +61,8 @@ function createValidatedState(
         validations: [
           {
             validator_id: validatorId,
-            domain: "code-quality",
-            token_digest: "digest-123",
+            domain,
+            token_digest: "digest-1",
             attempt: 1,
             started_at: "2026-08-22T10:00:00.000Z",
             deadline_at: "2026-08-22T11:00:00.000Z",
@@ -73,6 +75,13 @@ function createValidatedState(
 }
 
 describe("Review Pushback Authority Validation and Criteria", () => {
+  beforeEach(() => {
+    setupVirtualTaskFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualTaskFS();
+  });
   it("validates well-formed pushback input structure", () => {
     const valid = validateReviewPushbackInput({
       validator_id: "val-99",
@@ -163,6 +172,14 @@ describe("Review Pushback Authority Validation and Criteria", () => {
 });
 
 describe("Coordinator Pushback Workflow & Scepticism Integration", () => {
+  beforeEach(() => {
+    setupVirtualTaskFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualTaskFS();
+  });
+
   it("executes procedural pushback reopening validation without advancing repair round", () => {
     const initialState = createValidatedState("task-p1", "val-1");
     const port = createMockTransactionPort(initialState);

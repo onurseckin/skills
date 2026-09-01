@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
@@ -11,6 +11,15 @@ import {
   requireGrant,
   writeAgentLedger,
 } from "../../../olt/scripts/src/workflow/agents/ledger.ts";
+import { cleanupVirtualAgentsFS, setupVirtualAgentsFS } from "../fixture.ts";
+
+beforeEach(() => {
+  setupVirtualAgentsFS();
+});
+
+afterEach(() => {
+  cleanupVirtualAgentsFS();
+});
 
 function grant(overrides: Partial<AgentGrantRecord> = {}): AgentGrantRecord {
   return {

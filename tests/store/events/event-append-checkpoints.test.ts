@@ -12,7 +12,9 @@ import { appendProjectionEvent } from "../../../olt/scripts/src/engine/store/eve
 import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/integrity/integrity.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/capsule/load.ts";
 import { cloneObject, initialState } from "../../../olt/scripts/src/engine/store/capsule/state.ts";
-import { scratchRoot } from "../store-fixture.ts";
+import { scratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
+
+setupVirtualStoreFS();
 
 function freshRun(label: string): { runRoot: string; manifest: Manifest } {
   const repo = scratchRoot(import.meta.path, label);

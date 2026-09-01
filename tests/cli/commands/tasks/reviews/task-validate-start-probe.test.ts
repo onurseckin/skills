@@ -1,8 +1,12 @@
-import { afterAll, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { writeFile } from "node:fs/promises";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { taskValidateStartCommand } from "../../../../../olt/scripts/src/cli/commands/task-validation-start.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 import {
   CHANGED_FILE,
   TASK_ID,
@@ -14,7 +18,13 @@ import {
 } from "../../fixtures/probe-fixture.ts";
 
 const roots: string[] = [];
-afterAll(async () => cleanupRoots(roots));
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(async () => {
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+});
 
 describe("task:validate-start", () => {
   test("refuses an unrecognised --validator-domain", async () => {

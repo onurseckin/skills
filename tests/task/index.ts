@@ -4,6 +4,10 @@ import { TASK_PUSHBACK_SUITES } from "./pushback/index.ts";
 import { TASK_COVERAGE_SUITES } from "./coverage/index.ts";
 
 export {
+  setupVirtualTaskFS,
+  cleanupVirtualTaskFS,
+  getVirtualTaskFS,
+  resetVirtualTaskStore,
   scratchRoot,
   createSandboxDir,
   createInMemoryTaskItem,
@@ -12,6 +16,8 @@ export {
   createInMemoryTaskQueue,
   InMemoryTaskQueue,
 } from "./task-fixture.ts";
+
+export { createTaskFsSpies, type VirtualTaskState } from "./session/index.ts";
 
 export {
   createSampleQueueItemInput,

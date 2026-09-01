@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { collectBoundedDirectoryEntries } from "../../../olt/scripts/src/core/bounded-directory.ts";
 
@@ -79,7 +78,7 @@ describe("bounded streaming directory enumeration", () => {
       "engine/runner/signing/gate-path-tree.ts",
     ]) {
       const targetPath = join(sourceRoot, relative);
-      const source = virtualFiles.get(targetPath) ?? readFileSync(targetPath, "utf8");
+      const source = virtualFiles.get(targetPath)!;
       expect(source).toContain("opendirSync");
       expect(source).toContain("collectBoundedDirectoryEntries");
       expect(source).not.toContain("readdirSync");

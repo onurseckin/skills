@@ -1,9 +1,18 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
   monitorSubprocessLoop,
   ProcessTimeoutWatchdog,
   type BunSubprocess,
 } from "../../../olt/scripts/src/watchdog/process-timeout/index.ts";
+import { cleanupVirtualWatchdogFS, setupVirtualWatchdogFS } from "../watchdog-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualWatchdogFS();
+});
+
+afterEach(() => {
+  cleanupVirtualWatchdogFS();
+});
 
 function createMockSubprocess(
   opts: { pid?: number; exited?: Promise<number> } = {},

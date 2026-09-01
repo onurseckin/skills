@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
   AutonomicWatchdog,
   DEFAULT_ADAPTIVE_ACTIVITY_BOOST,
@@ -13,6 +13,15 @@ import {
   type WatchdogHealthAuditReport,
   type WatchdogTickReport,
 } from "../../../olt/scripts/src/watchdog/index.ts";
+import { cleanupVirtualWatchdogFS, setupVirtualWatchdogFS } from "../watchdog-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualWatchdogFS();
+});
+
+afterEach(() => {
+  cleanupVirtualWatchdogFS();
+});
 
 describe("AutonomicWatchdog Core Lifecycle & Configuration", () => {
   it("initializes with complete default configuration values", () => {

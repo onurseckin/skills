@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   appendGateProof,
   type GateProofRecord,
@@ -15,6 +15,7 @@ import {
   TestPort,
   workflowState,
 } from "../../shared/test-port.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 function seedFalsifiableProof(port: TestPort): void {
   const record: GateProofRecord = {
@@ -87,6 +88,18 @@ function validationToken(port: TestPort, validatorId: string): string {
 }
 
 describe("independent validation and repair", () => {
+  let vfsCleanup: (() => void) | undefined;
+
+  beforeEach(() => {
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+  });
+
+  afterEach(() => {
+    vfsCleanup?.();
+    vfsCleanup = undefined;
+  });
+
   test("honors an explicit validation window and rejects an out-of-bounds one", () => {
     const port = submitted();
     const state = beginValidation(port, "T-1", "validator", clock, 300);

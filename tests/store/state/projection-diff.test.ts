@@ -3,6 +3,9 @@ import {
   applyProjectionPatch,
   diffProjection,
 } from "../../../olt/scripts/src/engine/store/projections/projection-patch.ts";
+import { setupVirtualStoreFS } from "../store-fixture.ts";
+
+setupVirtualStoreFS();
 
 describe("diffProjection", () => {
   test("returns no ops for two identical objects", () => {

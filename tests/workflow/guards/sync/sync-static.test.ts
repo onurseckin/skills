@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
@@ -16,8 +16,21 @@ import {
   formatConventionalCommitMessage,
   validatePhaseCommitMessage,
 } from "../../../../olt/scripts/src/engine/worktree/phase-commits.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
+  let vfsCleanup: (() => void) | undefined;
+
+  beforeEach(() => {
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+  });
+
+  afterEach(() => {
+    vfsCleanup?.();
+    vfsCleanup = undefined;
+  });
+
   test("verifies auto-sync and phase-commits modules and tests contain zero any and zero suppressions", () => {
     const filesToAudit = [
       join(process.cwd(), "olt/scripts/src/workflow/completion/auto-sync-and-commit.ts"),

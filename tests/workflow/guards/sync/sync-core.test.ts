@@ -1,11 +1,24 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   executeAutoSyncAndCommit,
   type AutoSyncOptions,
   type GitRunner,
 } from "../../../../olt/scripts/src/workflow/completion/auto-sync-and-commit.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 describe("Error Handling & Failure Recovery", () => {
+  let vfsCleanup: (() => void) | undefined;
+
+  beforeEach(() => {
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+  });
+
+  afterEach(() => {
+    vfsCleanup?.();
+    vfsCleanup = undefined;
+  });
+
   test("handles git commit failure gracefully and skips push while continuing sync", async () => {
     const gitCommands: string[] = [];
     let syncAttempted = false;

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import type { JsonObject } from "../../../../../olt/scripts/src/core/contracts/index.ts";
 import {
@@ -6,11 +6,14 @@ import {
   cleanupRoots as cleanupBranchRoots,
   openBranchVia,
 } from "../../../../branch/index.ts";
-import { cleanupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "../../fixtures/task-ops-fixture.ts";
 import { transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
 
 const roots: string[] = [];
+beforeEach(() => {
+  setupVirtualCliFS();
+});
 afterEach(async () => {
   cleanupVirtualCliFS();
   await cleanupBranchRoots(roots);

@@ -1,12 +1,25 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
   formatValidateUiBrief,
   validateUiCommand,
 } from "../../../../olt/scripts/src/cli/commands/validate-ui.ts";
 import { assertDualUiGateApproval } from "../../../../olt/scripts/src/cli/commands/task-review-helpers.ts";
 import type { DualUiAuditResult } from "../../../../olt/scripts/src/validation/ui/index.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 describe("Dual UI Review Gates & CLI Command Workflow", () => {
+  let vfsCleanup: (() => void) | undefined;
+
+  beforeEach(() => {
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+  });
+
+  afterEach(() => {
+    vfsCleanup?.();
+    vfsCleanup = undefined;
+  });
+
   describe("1. assertDualUiGateApproval Helper Enforcement", () => {
     it("returns non-UI bypassed result when isUiTask is false", () => {
       const result = assertDualUiGateApproval("task-1", false, {}, { canExecuteShell: false });

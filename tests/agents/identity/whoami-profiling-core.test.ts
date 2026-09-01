@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
   identifyExecutionContext,
   detectHostApp,
@@ -20,9 +20,18 @@ import {
   claimSubmitValidate,
   setupRun,
 } from "../../cli/commands/fixtures/probe-fixture.ts";
+import { cleanupVirtualAgentsFS, setupVirtualAgentsFS } from "../fixture.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+
+beforeEach(() => {
+  setupVirtualAgentsFS();
+});
+
+afterEach(async () => {
+  cleanupVirtualAgentsFS();
+  await cleanupRoots(roots);
+});
 
 describe("Agent Whoami Profiling - Core & Capabilities", () => {
   describe("detectHostApp", () => {

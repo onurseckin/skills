@@ -1,4 +1,4 @@
-import { describe, expect, test, afterAll } from "bun:test";
+import { afterAll, afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   isAgentGrantRecord,
   isTelemetryFieldConflict,
@@ -9,12 +9,21 @@ import {
   registerAgentGrant,
 } from "../../../olt/scripts/src/workflow/agents/grants.ts";
 import { appendTelemetryConflicts } from "../../../olt/scripts/src/workflow/agents/telemetry-merge.ts";
+import { cleanupVirtualAgentsFS, setupVirtualAgentsFS } from "../fixture.ts";
 import {
   cleanupGrantRoots,
   ledgerOf,
   registerCoordinator,
   seededRun,
 } from "../grants/agent-grant-fixtures.ts";
+
+beforeEach(() => {
+  setupVirtualAgentsFS();
+});
+
+afterEach(() => {
+  cleanupVirtualAgentsFS();
+});
 
 afterAll(() => {
   cleanupGrantRoots();

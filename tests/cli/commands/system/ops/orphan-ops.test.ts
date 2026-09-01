@@ -1,12 +1,22 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { transact, loadRun } from "../../../../../olt/scripts/src/engine/store/index.ts";
 import { orphanEvidenceSha256 } from "../../../../../olt/scripts/src/workflow/orphan-evidence/digest.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "../../fixtures/task-ops-fixture.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(async () => {
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+});
 
 // orphan-ops.ts's own command only reads and disposes recorded orphan_evidence; how that evidence
 // got there (a stale/expired lease recovered mid-submit) is task-claim.ts's concern and is covered

@@ -1,4 +1,6 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import * as childProcess from "node:child_process";
+import { EventEmitter } from "node:events";
 import {
   DEFAULT_DEV_PORTS,
   formatServerRestartMarkdown,
@@ -12,8 +14,36 @@ import type {
   RestartResult,
   ServerStateSnapshot,
 } from "../../../../../olt/scripts/src/server/index.ts";
+import {
+  cleanupVirtualNetwork,
+  cleanupVirtualServerFS,
+  setupVirtualNetwork,
+  setupVirtualServerFS,
+} from "../../../../server/fixture.ts";
 
 describe("CLI server-ops subsystem - status & restart", () => {
+  let spawnSpy: ReturnType<typeof spyOn> | null = null;
+  beforeEach(() => {
+    setupVirtualServerFS();
+    setupVirtualNetwork();
+    spawnSpy = spyOn(childProcess, "spawn").mockImplementation((() => {
+      const emitter = new EventEmitter();
+      (emitter as unknown as Record<string, unknown>).stdout = new EventEmitter();
+      (emitter as unknown as Record<string, unknown>).stderr = new EventEmitter();
+      queueMicrotask(() => {
+        emitter.emit("close", 0);
+      });
+      return emitter as unknown as childProcess.ChildProcess;
+    }) as never);
+  });
+  afterEach(() => {
+    if (spawnSpy) {
+      spawnSpy.mockRestore();
+      spawnSpy = null;
+    }
+    cleanupVirtualNetwork();
+    cleanupVirtualServerFS();
+  });
   describe("server:status command", () => {
     it("runs server:status with default ports and produces structured results", async () => {
       const result = await serverStatusCommand({});

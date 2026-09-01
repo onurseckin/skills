@@ -11,7 +11,9 @@ import {
   writeAtomicSnapshot,
   type SnapshotRecord,
 } from "../../../olt/scripts/src/engine/store/hierarchy/snapshot-manager.ts";
-import { scratchRoot } from "../store-fixture.ts";
+import { scratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
+
+setupVirtualStoreFS();
 
 describe("Snapshot Manager Engine", () => {
   describe("shouldCreateSnapshot", () => {

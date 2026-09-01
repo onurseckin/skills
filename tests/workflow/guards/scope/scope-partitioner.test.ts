@@ -1,12 +1,25 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   computeLcaDirectory,
   partitionFindingsIntoScopes,
   type FindingDetail,
 } from "../../../../olt/scripts/src/workflow/scope-partitioner.ts";
 import { analyzeScopeIndependence } from "../../../../olt/scripts/src/graph/scope-analyzer.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 describe("Scope Partitioner Algorithm", () => {
+  let vfsCleanup: (() => void) | undefined;
+
+  beforeEach(() => {
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+  });
+
+  afterEach(() => {
+    vfsCleanup?.();
+    vfsCleanup = undefined;
+  });
+
   describe("computeLcaDirectory", () => {
     test("returns '.' for empty paths", () => {
       expect(computeLcaDirectory([])).toBe(".");

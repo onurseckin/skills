@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -13,11 +13,21 @@ import {
   validateCompletionReceipts,
   type TaskQueueItem,
 } from "../../../olt/scripts/src/task/queue/index.ts";
-import { scratchRoot } from "../task-fixture.ts";
+import { cleanupVirtualTaskFS, scratchRoot, setupVirtualTaskFS } from "../task-fixture.ts";
 
 describe("Task Queue Transitions Engine", () => {
-  const testDir = scratchRoot(import.meta.path, "transitions-val");
-  const queuePath = join(testDir, "TASK_QUEUE.jsonl");
+  let testDir = "";
+  let queuePath = "";
+
+  beforeEach(() => {
+    setupVirtualTaskFS();
+    testDir = scratchRoot(import.meta.path, "transitions-val");
+    queuePath = join(testDir, "TASK_QUEUE.jsonl");
+  });
+
+  afterEach(() => {
+    cleanupVirtualTaskFS();
+  });
 
   test("failTask supports escalateOnMaxRetries", () => {
     enqueueTask(

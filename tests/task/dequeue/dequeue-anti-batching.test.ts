@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -20,11 +20,21 @@ import {
   createSampleCompletionReceipts,
   TASK_DEQUEUE_SUITES,
 } from "./index.ts";
-import { scratchRoot } from "../task-fixture.ts";
+import { cleanupVirtualTaskFS, scratchRoot, setupVirtualTaskFS } from "../task-fixture.ts";
 
 describe("Task Queue Dequeue Engine & Anti-Batching Guard", () => {
-  const testDir = scratchRoot(import.meta.path, "dequeue");
-  const queuePath = join(testDir, "TASK_QUEUE.jsonl");
+  let testDir = "";
+  let queuePath = "";
+
+  beforeEach(() => {
+    setupVirtualTaskFS();
+    testDir = scratchRoot(import.meta.path, "dequeue");
+    queuePath = join(testDir, "TASK_QUEUE.jsonl");
+  });
+
+  afterEach(() => {
+    cleanupVirtualTaskFS();
+  });
 
   it("assertSingleActiveLease passes when agent holds no active leases", () => {
     expect(() => assertSingleActiveLease([], "agent-1")).not.toThrow();

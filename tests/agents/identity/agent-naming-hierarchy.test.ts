@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -10,6 +10,7 @@ import {
   recommendStandardAgentId,
   roleToTier,
   validateAgentNamingConvention,
+  type ExecutionTier,
   type StandardAgentRole,
 } from "../../../olt/scripts/src/authority/thread/index.ts";
 import { identifyExecutionContext } from "../../../olt/scripts/src/authority/thread/index.ts";
@@ -19,6 +20,15 @@ import {
   loadRoleContract,
 } from "../../../olt/scripts/src/authority/manifest/index.ts";
 import { whoamiCommand } from "../../../olt/scripts/src/cli/commands/whoami.ts";
+import { cleanupVirtualAgentsFS, setupVirtualAgentsFS } from "../fixture.ts";
+
+beforeEach(() => {
+  setupVirtualAgentsFS();
+});
+
+afterEach(() => {
+  cleanupVirtualAgentsFS();
+});
 
 describe("Agent Naming - Hierarchy & Manifests", () => {
   describe("End-to-End Skill Manifests & Role Contracts Standardization Audit", () => {

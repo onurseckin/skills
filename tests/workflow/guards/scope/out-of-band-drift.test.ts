@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import type { RepositoryGitCommand } from "../../../../olt/scripts/src/packets/repository-git-command.ts";
 import {
@@ -7,6 +7,7 @@ import {
 } from "../../../../olt/scripts/src/workflow/submission/out-of-band-drift.ts";
 import { inspection } from "../../../packets/payloads/slicing/inspection-fixture.ts";
 import { workflowState } from "../../shared/test-port.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 const now = new Date("2026-08-13T12:31:00.000Z");
 
@@ -23,6 +24,18 @@ function stateWithBaseline(overrides: Partial<WorkflowState> = {}): WorkflowStat
 }
 
 describe("declaredWriteScopeUnion", () => {
+  let vfsCleanup: (() => void) | undefined;
+
+  beforeEach(() => {
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+  });
+
+  afterEach(() => {
+    vfsCleanup?.();
+    vfsCleanup = undefined;
+  });
+
   test("unions and dedupes every task's write_scope", () => {
     const state = workflowState();
     state.tasks["T-2"] = {

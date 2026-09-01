@@ -1,8 +1,9 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { evidenced } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import { claimTask } from "../../../../olt/scripts/src/workflow/lease/claim.ts";
 import { submitTask } from "../../../../olt/scripts/src/workflow/submission/submit.ts";
 import { at, registerTaskPacket, TestPort, workflowState } from "../../shared/test-port.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 const start = at("2026-08-13T12:00:00.000Z");
 const report = {
@@ -17,6 +18,18 @@ const report = {
 // exercised here against fabricated ones — the pure comparison never touches disk, so a test does
 // not need to.
 describe("C4: effort evidence at claim and submit", () => {
+  let vfsCleanup: (() => void) | undefined;
+
+  beforeEach(() => {
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+  });
+
+  afterEach(() => {
+    vfsCleanup?.();
+    vfsCleanup = undefined;
+  });
+
   test("claimTask stores the given digest on the lease untouched", () => {
     const port = new TestPort(workflowState());
     const { state } = claimTask(port, "T-1", "agent", "implementer", {

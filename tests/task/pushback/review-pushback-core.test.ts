@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
   appendPushbackRound,
   auditTaskVerificationEvidence,
@@ -21,6 +21,7 @@ import {
 import { isCoordinatorPushbackCause } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import type { TransactionPort, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
+import { cleanupVirtualTaskFS, setupVirtualTaskFS } from "../task-fixture.ts";
 
 function createMockTransactionPort(initialState: WorkflowState): TransactionPort {
   let state = structuredClone(initialState);
@@ -73,6 +74,14 @@ function createValidatedState(
 }
 
 describe("Strict 1:1 Individual Task Verification Scepticism", () => {
+  beforeEach(() => {
+    setupVirtualTaskFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualTaskFS();
+  });
+
   describe("Strict 1:1 Individual Task Verification Scepticism", () => {
     describe("Superficial Claim Rejection", () => {
       it("rejects generic rubber-stamping phrases without substantive evidence", () => {

@@ -1,10 +1,19 @@
-import { describe, expect, test, afterAll } from "bun:test";
+import { afterAll, afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   registerAgentGrant,
   recordAgentReport,
   releaseAgentGrant,
 } from "../../../olt/scripts/src/workflow/agents/grants.ts";
+import { cleanupVirtualAgentsFS, setupVirtualAgentsFS } from "../fixture.ts";
 import { cleanupGrantRoots, seededRun } from "./agent-grant-fixtures.ts";
+
+beforeEach(() => {
+  setupVirtualAgentsFS();
+});
+
+afterEach(() => {
+  cleanupVirtualAgentsFS();
+});
 
 afterAll(() => {
   cleanupGrantRoots();
