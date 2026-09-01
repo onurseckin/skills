@@ -2,84 +2,14 @@ import { describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { scratchRoot } from "../task-fixture.ts";
 import {
-  admitTask,
-  admitTaskUnlocked,
   claimTaskLease,
-  claimTaskLeaseUnlocked,
-  clearTaskQueue,
-  clearTaskQueueUnlocked,
-  compactTaskQueue,
   completeTask,
-  completeTaskUnlocked,
-  dequeueEligibleTaskUnlocked,
-  dequeueTask,
   enqueueTask,
-  enqueueTasksBatch,
-  enqueueTaskUnlocked,
-  escalateTask,
-  escalateTaskUnlocked,
-  failTask,
-  failTaskUnlocked,
-  getQueueStats,
-  getQueueStatsUnlocked,
-  getTaskQueueStats,
-  listTaskQueue,
-  popNextEligibleTask,
-  popNextEligibleTaskWithCleanup,
-  pruneCompletedTasks,
-  pruneCompletedTasksUnlocked,
-  pruneTaskQueue,
   readTaskQueue,
-  readTaskQueueFile,
-  reclaimExpiredLeases,
-  reclaimExpiredLeasesUnlocked,
-  releaseTaskLease,
-  releaseTaskLeaseUnlocked,
-  renewTaskLease,
-  renewTaskLeaseUnlocked,
-  startTaskValidation,
-  startTaskValidationUnlocked,
   validateCompletionReceipts,
-  validateTaskQueueDag,
-  writeTaskQueue,
-  writeTaskQueueUnlocked,
-  type CompletionReceipts,
-  type TaskQueueItem,
 } from "../../../olt/scripts/src/task/queue/index.ts";
-import {
-  TASK_QUEUE_STATUSES,
-  TASK_PRIORITIES,
-  PRIORITY_WEIGHTS,
-  DEFAULT_TASK_QUEUE_FILE,
-  DEFAULT_LEASE_DURATION_MS,
-  DEFAULT_LEASE_DURATION_SECONDS,
-  DEFAULT_MAX_RETRIES,
-  resolveTaskQueuePath,
-  resolveCanonicalTaskQueuePath,
-  __setTaskQueuePersistenceTestHook,
-  invokeTaskQueuePersistenceHook,
-  validateSourceType,
-  deserializeTaskQueueItem,
-} from "../../../olt/scripts/src/task/queue/types.ts";
-import {
-  serializeTaskQueue,
-  parseTaskQueue,
-  isOwnCode,
-  isOwnEnoent,
-} from "../../../olt/scripts/src/task/queue/storage.ts";
-import {
-  assertValidActiveLease,
-  assertWriteScopeASTPurity,
-  stageWorktreeProgress,
-  translateSuspendedLeases,
-} from "../../../olt/scripts/src/task/queue/lease.ts";
-import {
-  resolveTaskQueueLockPath,
-  withTaskQueueLock,
-  withTaskQueueTransaction,
-} from "../../../olt/scripts/src/task/queue/locks.ts";
+import { scratchRoot } from "../task-fixture.ts";
 
 describe("Task Queue Comprehensive Coverage", () => {
   const testDirQueue = scratchRoot(import.meta.path, "queue");

@@ -14,13 +14,8 @@ import {
   validateSourceType,
   type CompletionReceipts,
   type NewTaskQueueInput,
-  type TaskLease,
-  type TaskPriority,
-  type TaskQueueItem,
-  type TaskQueueStatus,
   type TaskQueueFilterOptions,
   type TaskQueueStats,
-  type TaskSourceType,
 } from "../../../olt/scripts/src/task/queue/types.ts";
 import {
   createSampleQueueItemInput,

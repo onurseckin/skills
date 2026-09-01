@@ -1,38 +1,10 @@
 import { describe, expect, it } from "bun:test";
+import { existsSync, mkdirSync, rmSync } from "node:fs";
+import { join } from "node:path";
 import {
-  existsSync,
-  linkSync,
-  mkdirSync,
-  readFileSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
-import { join, resolve } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import {
-  __setTaskQueuePersistenceTestHook,
-  admitTask,
   claimTaskLease,
-  clearTaskQueue,
-  completeTask,
   enqueueTask,
   enqueueTasksBatch,
-  escalateTask,
-  failTask,
-  getQueueStats,
-  listTaskQueue,
-  popNextEligibleTask,
-  popNextEligibleTaskWithCleanup,
-  pruneCompletedTasks,
-  readTaskQueue,
-  reclaimExpiredLeases,
-  releaseTaskLease,
-  renewTaskLease,
-  startTaskValidation,
-  validateTaskQueueDag,
-  writeTaskQueue,
-  type TaskQueueItem,
 } from "../../../olt/scripts/src/task/queue/index.ts";
 import { scratchRoot } from "../task-fixture.ts";
 
@@ -47,17 +19,6 @@ describe("Stateful Task Queue Engine", () => {
 
   function teardown() {
     if (existsSync(testDir)) rmSync(testDir, { recursive: true, force: true });
-  }
-
-  function spawnQueueChild(
-    program: string,
-    env: Record<string, string>,
-  ): Bun.Subprocess<"pipe", "pipe", "inherit"> {
-    return Bun.spawn(["bun", "-e", program], {
-      env: { ...process.env, ...env },
-      stdout: "pipe",
-      stderr: "pipe",
-    });
   }
 
   it("refuses duplicate task IDs", () => {

@@ -4,7 +4,6 @@ import {
   linkSync,
   mkdirSync,
   readFileSync,
-  rmSync,
   symlinkSync,
   utimesSync,
   writeFileSync,
@@ -15,11 +14,8 @@ import {
   cleanStaleTempFiles,
   clearTaskQueue,
   loadTaskQueue,
-  readTaskQueue,
   saveTaskQueue,
-  writeTaskQueue,
   withTaskQueueLock,
-  withTaskQueueTransaction,
   type TaskQueueItem,
 } from "../../../olt/scripts/src/task/queue/index.ts";
 import { scratchRoot } from "../task-fixture.ts";

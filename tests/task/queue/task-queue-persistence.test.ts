@@ -12,27 +12,12 @@ import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   __setTaskQueuePersistenceTestHook,
-  admitTask,
   claimTaskLease,
-  clearTaskQueue,
   completeTask,
   enqueueTask,
-  enqueueTasksBatch,
-  escalateTask,
-  failTask,
-  getQueueStats,
-  listTaskQueue,
   popNextEligibleTask,
   popNextEligibleTaskWithCleanup,
-  pruneCompletedTasks,
   readTaskQueue,
-  reclaimExpiredLeases,
-  releaseTaskLease,
-  renewTaskLease,
-  startTaskValidation,
-  validateTaskQueueDag,
-  writeTaskQueue,
-  type TaskQueueItem,
 } from "../../../olt/scripts/src/task/queue/index.ts";
 import { scratchRoot } from "../task-fixture.ts";
 

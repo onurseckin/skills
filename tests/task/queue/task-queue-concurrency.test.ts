@@ -1,11 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   admitTask,
   claimTaskLease,
-  clearTaskQueue,
   completeTask,
   enqueueTask,
   enqueueTasksBatch,
@@ -14,11 +12,9 @@ import {
   getQueueStats,
   listTaskQueue,
   popNextEligibleTask,
-  popNextEligibleTaskWithCleanup,
   pruneCompletedTasks,
   readTaskQueue,
   startTaskValidation,
-  type TaskQueueItem,
 } from "../../../olt/scripts/src/task/queue/index.ts";
 import { scratchRoot } from "../task-fixture.ts";
 

@@ -4,48 +4,16 @@ import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { scratchRoot } from "../task-fixture.ts";
 import {
-  admitTask,
-  admitTaskUnlocked,
-  claimTaskLease,
-  claimTaskLeaseUnlocked,
   clearTaskQueue,
-  clearTaskQueueUnlocked,
   compactTaskQueue,
   completeTask,
-  completeTaskUnlocked,
-  dequeueEligibleTaskUnlocked,
-  dequeueTask,
   enqueueTask,
-  enqueueTasksBatch,
-  enqueueTaskUnlocked,
-  escalateTask,
-  escalateTaskUnlocked,
-  failTask,
-  failTaskUnlocked,
   getQueueStats,
-  getQueueStatsUnlocked,
   getTaskQueueStats,
   listTaskQueue,
-  popNextEligibleTask,
-  popNextEligibleTaskWithCleanup,
-  pruneCompletedTasks,
-  pruneCompletedTasksUnlocked,
   pruneTaskQueue,
   readTaskQueue,
-  readTaskQueueFile,
-  reclaimExpiredLeases,
-  reclaimExpiredLeasesUnlocked,
-  releaseTaskLease,
-  releaseTaskLeaseUnlocked,
-  renewTaskLease,
-  renewTaskLeaseUnlocked,
-  startTaskValidation,
-  startTaskValidationUnlocked,
-  validateCompletionReceipts,
   validateTaskQueueDag,
-  writeTaskQueue,
-  writeTaskQueueUnlocked,
-  type CompletionReceipts,
   type TaskQueueItem,
 } from "../../../olt/scripts/src/task/queue/index.ts";
 import { createSampleTaskQueueStats, TASK_COVERAGE_SUITES } from "./index.ts";
@@ -80,15 +48,8 @@ import {
   isOwnEnoent,
 } from "../../../olt/scripts/src/task/queue/storage.ts";
 import {
-  assertValidActiveLease,
-  assertWriteScopeASTPurity,
-  stageWorktreeProgress,
-  translateSuspendedLeases,
-} from "../../../olt/scripts/src/task/queue/lease.ts";
-import {
   resolveTaskQueueLockPath,
   withTaskQueueLock,
-  withTaskQueueTransaction,
 } from "../../../olt/scripts/src/task/queue/locks.ts";
 
 describe("Task Queue Comprehensive Coverage", () => {

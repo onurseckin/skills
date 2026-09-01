@@ -7,11 +7,9 @@ import {
   completeTask,
   enqueueTask,
   enqueueTasksBatch,
-  reclaimExpiredLeases,
   releaseTaskLease,
   renewTaskLease,
   startTaskValidation,
-  type TaskQueueItem,
 } from "../../../olt/scripts/src/task/queue/index.ts";
 import {
   assertValidActiveLease,

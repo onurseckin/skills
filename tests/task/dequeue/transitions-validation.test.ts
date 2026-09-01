@@ -6,12 +6,8 @@ import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   assertValidActiveLease,
   assertWriteScopeASTPurity,
-  claimTaskLease,
-  completeTask,
   enqueueTask,
-  enqueueTasksBatch,
   failTask,
-  readTaskQueue,
   stageWorktreeProgress,
   translateSuspendedLeases,
   validateCompletionReceipts,
