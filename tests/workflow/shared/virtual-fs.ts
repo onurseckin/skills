@@ -10,6 +10,8 @@ export interface WorkflowVirtualFsSession {
 
 export function setupWorkflowVirtualFs(customVfs?: VirtualMemoryFS): WorkflowVirtualFsSession {
   const vfs = customVfs ?? new VirtualMemoryFS();
+  const repoRoot = process.cwd();
+  vfs.mkdirSync(repoRoot, { recursive: true });
   vfs.mkdirSync("/bin", { recursive: true });
   vfs.mkdirSync("/usr/bin", { recursive: true });
   vfs.mkdirSync("/usr/local/bin", { recursive: true });

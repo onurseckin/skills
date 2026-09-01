@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
@@ -7,7 +7,9 @@ import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.t
 import { loadRun, loadRunProjection } from "../../../olt/scripts/src/engine/store/capsule/load.ts";
 import { scratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
 
-setupVirtualStoreFS();
+beforeEach(() => {
+  setupVirtualStoreFS();
+});
 
 function freshRun(label: string): string {
   const repo = scratchRoot(import.meta.path, label);
