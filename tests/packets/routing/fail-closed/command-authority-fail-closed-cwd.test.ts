@@ -16,15 +16,15 @@ import { emptyGrantRun } from "../../validation/grants/grant-run-fixture.ts";
 import { execute } from "../../../../olt/scripts/src/cli/execute.ts";
 import { registerSessionGrant } from "../../../../olt/scripts/src/authority/session/index.ts";
 
+beforeAll(() => {
+  setupVirtualAuthorityFS();
+});
+
+afterAll(() => {
+  cleanupVirtualAuthorityFS();
+});
+
 describe("assertGrantedCommand hole 1: no --run resolves", () => {
-  beforeAll(() => {
-    setupVirtualAuthorityFS();
-  });
-
-  afterAll(() => {
-    cleanupVirtualAuthorityFS();
-  });
-
   test("denies a non-allowlisted command with no --run", () => {
     expect(() => assertGrantedCommand(spec("task:heartbeat"), {})).toThrow(
       "not on the grant bootstrap allowlist",

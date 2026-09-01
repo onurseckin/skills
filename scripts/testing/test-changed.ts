@@ -188,7 +188,9 @@ export async function run(argvArgs: string[] = process.argv.slice(2)): Promise<n
     return 0;
   }
 
-  const testArgs = ["test", "--timeout", "30000", "--parallel", "--no-isolate", "--coverage"];
+  const isCoverage = argvArgs.includes("--coverage");
+  const testArgs = ["test", "--timeout", "30000", "--parallel"];
+  if (isCoverage) testArgs.push("--coverage");
   const defaultDir = "tests";
   const targetFiles = testFiles.length > 0 ? testFiles : findAllTestFiles(defaultDir);
 

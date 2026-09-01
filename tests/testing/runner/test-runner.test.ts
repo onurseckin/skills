@@ -63,7 +63,6 @@ describe("test-runner script", () => {
         "--timeout",
         "30000",
         "--parallel",
-        "--no-isolate",
         "tests/testing/runner/test-runner.test.ts",
       ]);
       const opts = callArgs[2] as { env?: Record<string, string>; maxBuffer?: number };

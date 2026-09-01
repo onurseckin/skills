@@ -1,4 +1,5 @@
 import { afterAll } from "bun:test";
+import * as fs from "node:fs";
 import { join } from "node:path";
 import type { CommandRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import type { RepositoryBinding } from "../../../../olt/scripts/src/core/contracts/index.ts";
@@ -57,6 +58,15 @@ export async function emptyGrantRun(prefix: string): Promise<GrantRun> {
   memFs.mkdirSync(join(repo, ".olt"), { recursive: true });
   memFs.mkdirSync(join(root, ".git"), { recursive: true });
   memFs.mkdirSync(join(root, ".olt"), { recursive: true });
+  try {
+    fs.mkdirSync(repo, { recursive: true });
+    fs.mkdirSync(join(repo, ".git"), { recursive: true });
+    fs.mkdirSync(join(repo, ".olt"), { recursive: true });
+    fs.mkdirSync(join(root, ".git"), { recursive: true });
+    fs.mkdirSync(join(root, ".olt"), { recursive: true });
+  } catch {
+    // Already in virtual memory
+  }
   const run = initRun(repo, "grant-run", new TextEncoder().encode("Build the thing"), "file", true);
   return { repo, run, port: workflowPort(run) };
 }
