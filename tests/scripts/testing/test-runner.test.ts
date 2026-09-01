@@ -36,7 +36,8 @@ describe("test-runner script", () => {
     });
 
     try {
-      await import("../../../scripts/testing/test-runner.ts");
+      const { main: runMain } = await import("../../../scripts/testing/test-runner.ts");
+      runMain();
     } finally {
       process.argv = origArgv;
       spawnSyncSpy.mockRestore();

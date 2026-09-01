@@ -32,14 +32,18 @@ export function getRunnerVfs(): VirtualMemoryFS {
     activeSession = createVirtualFSSession(new VirtualMemoryFS());
     spyOn(os, "tmpdir").mockReturnValue("/virtual/tmp");
     const activePids = new Set<number>([999999]);
+    const origKill = process.kill;
     try {
-      spyOn(process, "kill").mockImplementation(((pid: number) => {
+      spyOn(process, "kill").mockImplementation(((pid: number, signal?: string | number) => {
         const absPid = Math.abs(pid);
-        activePids.delete(absPid);
-        const handlers = (globalThis as unknown as Record<string, unknown>)
-          .__virtualFsKillHandlers as Map<number, () => void> | undefined;
-        handlers?.get(absPid)?.();
-        return true;
+        if (activePids.has(absPid)) {
+          activePids.delete(absPid);
+          const handlers = (globalThis as unknown as Record<string, unknown>)
+            .__virtualFsKillHandlers as Map<number, () => void> | undefined;
+          handlers?.get(absPid)?.();
+          return true;
+        }
+        return origKill.call(process, pid, signal as never);
       }) as never);
       spyOn(processTree, "processSnapshot").mockImplementation(async () => {
         const snap = new Map([[process.pid, { pid: process.pid, parent: 1, group: process.pid }]]);

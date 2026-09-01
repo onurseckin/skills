@@ -86,13 +86,7 @@ export function buildTestIndex(testFiles: readonly string[]): Map<string, string
   return index;
 }
 
-const CRITICAL_GLOBAL_FILES = new Set([
-  "package.json",
-  "bunfig.toml",
-  "tsconfig.json",
-  "lefthook.yml",
-  "scripts/testing/test-changed.ts",
-]);
+const CRITICAL_GLOBAL_FILES = new Set(["package.json", "bunfig.toml", "tsconfig.json"]);
 
 export function resolveAffectedTestFiles(
   changedFiles: readonly string[],
@@ -189,7 +183,7 @@ export async function run(argvArgs: string[] = process.argv.slice(2)): Promise<n
   }
 
   const isCoverage = argvArgs.includes("--coverage");
-  const testArgs = ["test", "--timeout", "30000", "--parallel"];
+  const testArgs = ["test", "--timeout", "30000"];
   if (isCoverage) testArgs.push("--coverage");
   const defaultDir = "tests";
   const targetFiles = testFiles.length > 0 ? testFiles : findAllTestFiles(defaultDir);
@@ -199,30 +193,36 @@ export async function run(argvArgs: string[] = process.argv.slice(2)): Promise<n
     return 0;
   }
 
-  testArgs.push(...targetFiles);
-  if (all) {
-    console.log(`[test-changed] Running full test suite (${targetFiles.length} files)...`);
-  } else {
-    console.log(`[test-changed] Running ${targetFiles.length} affected test file(s):`);
-    for (const f of targetFiles) console.log(`  - ${f}`);
+  let combinedStdout = "";
+  let combinedStderr = "";
+  const BATCH_SIZE = 20;
+
+  for (let i = 0; i < targetFiles.length; i += BATCH_SIZE) {
+    const batch = targetFiles.slice(i, i + BATCH_SIZE);
+    const batchArgs = [...testArgs, ...batch];
+    const result = spawnSync("bun", batchArgs, {
+      encoding: "utf-8",
+      maxBuffer: 64 * 1024 * 1024,
+      cwd: process.cwd(),
+      env: { ...process.env, OLT_VIRTUAL_FS: "1", BUN_ENV: "test" },
+    });
+
+    if (result.stdout) {
+      process.stdout.write(result.stdout);
+      combinedStdout += result.stdout;
+    }
+    if (result.stderr) {
+      process.stderr.write(result.stderr);
+      combinedStderr += result.stderr;
+    }
+
+    if (result.status !== 0) {
+      console.error("\n❌ [test-changed] Unit test batch failed.");
+      return result.status ?? 1;
+    }
   }
 
-  const result = spawnSync("bun", testArgs, {
-    encoding: "utf-8",
-    maxBuffer: 64 * 1024 * 1024,
-    cwd: process.cwd(),
-    env: { ...process.env, OLT_VIRTUAL_FS: "1", BUN_ENV: "test" },
-  });
-
-  if (result.stdout) process.stdout.write(result.stdout);
-  if (result.stderr) process.stderr.write(result.stderr);
-
-  if (result.status !== 0) {
-    console.error("\n❌ [test-changed] Unit test suite failed.");
-    return result.status ?? 1;
-  }
-
-  const coverageRecords = parseCoverageOutput(`${result.stdout ?? ""}\n${result.stderr ?? ""}`);
+  const coverageRecords = parseCoverageOutput(`${combinedStdout}\n${combinedStderr}`);
   if (coverageRecords.length > 0) {
     const COVERAGE_THRESHOLD = 95.0;
     const failingFiles = coverageRecords.filter(

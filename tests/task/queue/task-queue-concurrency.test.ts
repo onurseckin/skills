@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
@@ -16,11 +16,21 @@ import {
   readTaskQueue,
   startTaskValidation,
 } from "../../../olt/scripts/src/task/queue/index.ts";
-import { scratchRoot } from "../task-fixture.ts";
+import { cleanupVirtualTaskFS, scratchRoot, setupVirtualTaskFS } from "../task-fixture.ts";
 
 describe("Stateful Task Queue Engine", () => {
-  const testDir = scratchRoot(import.meta.path, "concurrency");
-  const queuePath = join(testDir, "TASK_QUEUE.jsonl");
+  let testDir = "";
+  let queuePath = "";
+
+  beforeEach(() => {
+    setupVirtualTaskFS();
+    testDir = scratchRoot(import.meta.path, "concurrency");
+    queuePath = join(testDir, "TASK_QUEUE.jsonl");
+  });
+
+  afterEach(() => {
+    cleanupVirtualTaskFS();
+  });
 
   it("computes stats, lists tasks with filters, and prunes completed tasks", () => {
     enqueueTasksBatch(

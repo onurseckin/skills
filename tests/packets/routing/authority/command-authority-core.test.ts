@@ -22,15 +22,15 @@ import {
   assertGrantedCommand,
 } from "./command-authority-fixture.ts";
 
+beforeAll(() => {
+  setupVirtualAuthorityFS();
+});
+
+afterAll(() => {
+  cleanupVirtualAuthorityFS();
+});
+
 describe("command predicates and classification", () => {
-  beforeAll(() => {
-    setupVirtualAuthorityFS();
-  });
-
-  afterAll(() => {
-    cleanupVirtualAuthorityFS();
-  });
-
   test("isExecutionCommand identifies execution commands and aliases", () => {
     expect(isExecutionCommand(spec("run:exec"))).toBe(true);
     expect(isExecutionCommand(spec("task:submit"))).toBe(false);

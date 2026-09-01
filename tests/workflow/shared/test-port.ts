@@ -1,3 +1,4 @@
+import { dirname } from "node:path";
 import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { commandFingerprint } from "../../../olt/scripts/src/workflow/gates/gate-policy.ts";
@@ -126,12 +127,8 @@ export function commandRecord(id: string, overrides: Partial<CommandRecord> = {}
     actor.startsWith("validator")
       ? "G-1"
       : (overrides.gate_id ?? null);
-  const safePath = (process.env.PATH ?? "")
-    .split(":")
-    .filter((p) => !p.includes(repositoryRoot) && !p.includes("node_modules"))
-    .join(":");
   const environment = captureGateEnvironment(
-    { ...process.env, PATH: safePath || "/usr/local/bin:/usr/bin:/bin" },
+    { ...process.env, PATH: "/usr/local/bin:/usr/bin:/bin" },
     "00000000-0000-4000-8000-000000000000",
   );
   const emptySha = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";

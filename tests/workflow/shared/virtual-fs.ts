@@ -1,5 +1,5 @@
 import { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
-import { type OpenDescriptor, norm, isVirtualPath } from "./virtual-fs-state.ts";
+import { type OpenDescriptor, norm, isVirtualPath, setCustomMode } from "./virtual-fs-state.ts";
 import { createWorkflowFsSpies } from "./virtual-fs-spies.ts";
 
 export interface WorkflowVirtualFsSession {
@@ -10,6 +10,15 @@ export interface WorkflowVirtualFsSession {
 
 export function setupWorkflowVirtualFs(customVfs?: VirtualMemoryFS): WorkflowVirtualFsSession {
   const vfs = customVfs ?? new VirtualMemoryFS();
+  vfs.mkdirSync("/bin", { recursive: true });
+  vfs.mkdirSync("/usr/bin", { recursive: true });
+  vfs.mkdirSync("/usr/local/bin", { recursive: true });
+  vfs.writeFileSync("/usr/local/bin/bun", "#!/bin/sh\nexit 0\n");
+  vfs.writeFileSync("/usr/bin/bun", "#!/bin/sh\nexit 0\n");
+  vfs.writeFileSync("/bin/bun", "#!/bin/sh\nexit 0\n");
+  setCustomMode("/usr/local/bin/bun", 0o755);
+  setCustomMode("/usr/bin/bun", 0o755);
+  setCustomMode("/bin/bun", 0o755);
   const openDescriptors = new Map<number, OpenDescriptor>();
   const { cleanup } = createWorkflowFsSpies(vfs, openDescriptors);
 

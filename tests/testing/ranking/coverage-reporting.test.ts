@@ -250,6 +250,7 @@ describe("Coverage Reporting Modules", () => {
     test("executes CLI script and main() logs status appropriately", () => {
       const logs: string[] = [];
       const origLog = console.log;
+      const origCwd = process.cwd();
       console.log = (...args: unknown[]) => logs.push(args.map(String).join(" "));
 
       try {
@@ -268,6 +269,7 @@ describe("Coverage Reporting Modules", () => {
         main();
         expect(logs.some((l) => l.includes("Generated coverage/lcov.info"))).toBe(true);
       } finally {
+        process.chdir(origCwd);
         console.log = origLog;
       }
     });
