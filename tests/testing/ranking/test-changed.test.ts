@@ -40,6 +40,8 @@ describe("test-changed script", () => {
   beforeEach(() => {
     vfs = new VirtualMemoryFS();
     vfs.mkdirSync(TEST_SCRATCH_DIR, { recursive: true });
+    vfs.mkdirSync("tests", { recursive: true });
+    vfs.writeFileSync("tests/sample.test.ts", "describe('sample', () => {});");
     session = createVirtualFSSession(vfs);
     logSpy = spyOn(console, "log").mockImplementation(() => {});
     errorSpy = spyOn(console, "error").mockImplementation(() => {});
@@ -204,12 +206,7 @@ describe("test-changed script", () => {
 
     test("returns 0 when no tests affected", async () => {
       const spawnSpy = spyOn(childProcess, "spawnSync").mockReturnValue({
-        status: 0,
-        pid: 1,
-        output: [],
-        stdout: "",
-        stderr: "",
-        signal: null,
+        status: 0, pid: 1, output: [], stdout: "", stderr: "", signal: null,
       });
       try {
         expect(await run(["--changed-none"])).toBe(0);
@@ -223,24 +220,11 @@ describe("test-changed script", () => {
         const argList = Array.isArray(args) ? args.map(String) : [];
         if (cmd === "git") {
           return {
-            stdout: argList.includes("diff")
-              ? "tests/testing/locks/concurrency-lock-core.test.ts\n"
-              : "",
-            stderr: "",
-            status: 0,
-            pid: 1,
-            output: [],
-            signal: null,
+            stdout: argList.includes("diff") ? "tests/testing/locks/concurrency-lock-core.test.ts\n" : "",
+            stderr: "", status: 0, pid: 1, output: [], signal: null,
           };
         }
-        return {
-          stdout: "scripts/test-mutex.ts | 100.00 | 100.00 | \n",
-          stderr: "",
-          status: 0,
-          pid: 1,
-          output: [],
-          signal: null,
-        };
+        return { stdout: "scripts/test-mutex.ts | 100.00 | 100.00 | \n", stderr: "", status: 0, pid: 1, output: [], signal: null };
       });
       try {
         expect(await run([])).toBe(0);
@@ -251,16 +235,8 @@ describe("test-changed script", () => {
 
     test("handles coverage failure when --all flag is passed", async () => {
       const spawnSpy = spyOn(childProcess, "spawnSync").mockImplementation((cmd) => {
-        if (cmd === "git")
-          return { stdout: "", stderr: "", status: 0, pid: 1, output: [], signal: null };
-        return {
-          stdout: "scripts/fail.ts | 80.00 | 80.00 | 1-10\n",
-          stderr: "",
-          status: 0,
-          pid: 1,
-          output: [],
-          signal: null,
-        };
+        if (cmd === "git") return { stdout: "", stderr: "", status: 0, pid: 1, output: [], signal: null };
+        return { stdout: "scripts/fail.ts | 80.00 | 80.00 | 1-10\n", stderr: "", status: 0, pid: 1, output: [], signal: null };
       });
       try {
         expect(await run(["--all"])).toBe(1);
@@ -271,8 +247,7 @@ describe("test-changed script", () => {
 
     test("handles test runner failure status code and exceptions in main", async () => {
       const spawnSpy = spyOn(childProcess, "spawnSync").mockImplementation((cmd) => {
-        if (cmd === "git")
-          return { stdout: "", stderr: "", status: 0, pid: 1, output: [], signal: null };
+        if (cmd === "git") return { stdout: "", stderr: "", status: 0, pid: 1, output: [], signal: null };
         return { stdout: "", stderr: "Err", status: 2, pid: 1, output: [], signal: null };
       });
       try {

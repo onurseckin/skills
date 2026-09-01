@@ -6,6 +6,8 @@ export {
 
 export {
   groupContiguousLines,
+  calculateImpactPct,
+  buildDeficitClusters,
   generateDeficitRoadmap,
   formatDeficitRoadmapMarkdown,
   type ContiguousLineSegment,

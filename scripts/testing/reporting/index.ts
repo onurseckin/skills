@@ -55,13 +55,15 @@ export {
   classifyDeficitCategory,
   getCategoryBadge,
   groupContiguousLines,
+  calculateImpactPct,
+  buildDeficitClusters,
   generateDeficitRoadmap,
   formatDeficitRoadmapMarkdown,
 } from "./deficits/index.ts";
 
 export { parseLcov } from "./lcov-parser.ts";
 export { buildCoverageSummary, writeSummaryJson } from "./summary-reporter.ts";
-export { formatRuntimeMarkdown, writeMarkdownReport } from "./markdown-reporter.ts";
+export { formatRuntimeMarkdown, writeMarkdownReport, buildMarkdownReport } from "./markdown-reporter.ts";
 
 export {
   calculateParetoThreshold,
@@ -79,6 +81,20 @@ export {
   generateInteractiveHtml,
   writeInteractiveHtmlReport,
   writeInteractiveHtml,
+  formatHash,
+  parseHash,
+  getClientScriptDeeplink,
+  getUnifiedStyles,
+  getDeficitStyles,
+  getCodeViewerStyles,
+  getRuntimeStyles,
+  getClientScriptUnified,
+  getClientScriptDeficits,
+  getClientScriptRuntime,
+  getClientScriptHelpers,
+  buildUnifiedHierarchy,
+  findMatchingSourceFile,
+  findMatchingTestFile,
 } from "./html/index.ts";
 
 export function processCoverageArtifacts(

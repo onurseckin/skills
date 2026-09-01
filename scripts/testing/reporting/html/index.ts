@@ -74,18 +74,43 @@ export function generateInteractiveHtml(
 export function writeInteractiveHtmlReport(
   fileMap: Map<string, FileCoverageMetric>,
   summary: CoverageSummary,
-  outPath: string,
-  repoRoot: string = process.cwd(),
+  targetPathOrRepoRoot: string = process.cwd(),
+  coverageDirNameOrRepoRoot?: string | TestRuntimeSummary,
   runtime?: TestRuntimeSummary,
 ): string {
-  const html = generateInteractiveHtml(fileMap, summary, repoRoot, runtime);
-  const resolved = resolve(outPath);
-  const dir = join(resolved, "..");
+  let resolvedFile: string;
+  let repoRoot = process.cwd();
+  let activeRuntime = runtime;
+
+  if (typeof coverageDirNameOrRepoRoot === "string") {
+    if (coverageDirNameOrRepoRoot.endsWith(".html")) {
+      resolvedFile = join(resolve(targetPathOrRepoRoot), coverageDirNameOrRepoRoot);
+      repoRoot = resolve(targetPathOrRepoRoot);
+    } else {
+      resolvedFile = join(resolve(targetPathOrRepoRoot), coverageDirNameOrRepoRoot, "index.html");
+      repoRoot = resolve(targetPathOrRepoRoot);
+    }
+  } else {
+    if (typeof coverageDirNameOrRepoRoot === "object") {
+      activeRuntime = coverageDirNameOrRepoRoot;
+    }
+    const resolved = resolve(targetPathOrRepoRoot);
+    if (resolved.endsWith(".html")) {
+      resolvedFile = resolved;
+      repoRoot = join(resolved, "..");
+    } else {
+      resolvedFile = join(resolved, "index.html");
+      repoRoot = resolved;
+    }
+  }
+
+  const html = generateInteractiveHtml(fileMap, summary, repoRoot, activeRuntime);
+  const dir = join(resolvedFile, "..");
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
-  writeFileSync(resolved, html, "utf-8");
-  return resolved;
+  writeFileSync(resolvedFile, html, "utf-8");
+  return resolvedFile;
 }
 
 export const writeInteractiveHtml = writeInteractiveHtmlReport;
