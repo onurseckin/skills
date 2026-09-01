@@ -26,6 +26,7 @@ export function executeTestRunner(rawArgs: string[] = process.argv.slice(2)): nu
     const result = spawnSync("bun", finalArgs, {
       stdio: "pipe",
       encoding: "utf-8",
+      maxBuffer: 100 * 1024 * 1024,
       env: {
         ...process.env,
         OLT_VIRTUAL_FS: "1",

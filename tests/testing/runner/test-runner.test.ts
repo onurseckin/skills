@@ -66,7 +66,8 @@ describe("test-runner script", () => {
         "--no-isolate",
         "tests/testing/runner/test-runner.test.ts",
       ]);
-      const opts = callArgs[2] as { env?: Record<string, string> };
+      const opts = callArgs[2] as { env?: Record<string, string>; maxBuffer?: number };
+      expect(opts.maxBuffer).toBe(100 * 1024 * 1024);
       expect(opts.env?.OLT_VIRTUAL_FS).toBe("1");
       expect(opts.env?.BUN_ENV).toBe("test");
     } finally {
