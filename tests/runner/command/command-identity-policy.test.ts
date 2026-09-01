@@ -1,8 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 import {
   reconcileStrandedCommands,
@@ -13,17 +12,13 @@ import {
   MAX_COMMAND_ARGUMENTS,
   MAX_COMMAND_ARGV_BYTES,
 } from "../../../olt/scripts/src/engine/runner/core/policy.ts";
+import { tempRoot, cleanupTempRoots } from "./fixture.ts";
 
-const roots: string[] = [];
-
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
+afterEach(cleanupTempRoots);
 
 describe("command identity policy", () => {
   test("rejects blank actors, task IDs, and gate IDs before artifact mutation", async () => {
-    const repositoryRoot = await mkdtemp(join(tmpdir(), "command-identity-policy-"));
-    roots.push(repositoryRoot);
+    const repositoryRoot = tempRoot("command-identity-policy");
     let observed = false;
     const runner = createInternalCommandRunner({
       inspectRepository: () => {
@@ -62,8 +57,7 @@ describe("command identity policy", () => {
   });
 
   test("rejects hostile identities before reconciliation or preparation", async () => {
-    const repositoryRoot = await mkdtemp(join(tmpdir(), "command-entry-identity-"));
-    roots.push(repositoryRoot);
+    const repositoryRoot = tempRoot("command-entry-identity");
     let reconcileCalls = 0;
     let prepareCalls = 0;
     const hostile = [
@@ -105,14 +99,13 @@ describe("command identity policy", () => {
   });
 
   test("validates recovery actor before reading the run store", () => {
-    const absentRun = join(tmpdir(), `absent-command-recovery-${Date.now()}`);
+    const absentRun = "/virtual/absent-command-recovery-" + Date.now();
     expect(() => reconcileStrandedCommands(absentRun, " \n ")).toThrow(/actor/i);
     expect(existsSync(absentRun)).toBeFalse();
   });
 
   test("rejects blank durable task and gate identities", async () => {
-    const repositoryRoot = await mkdtemp(join(tmpdir(), "command-record-identity-"));
-    roots.push(repositoryRoot);
+    const repositoryRoot = tempRoot("command-record-identity");
     const runRoot = join(repositoryRoot, ".olt", "capsules");
     await mkdir(runRoot, { recursive: true });
     const runner = createInternalCommandRunner({
@@ -142,8 +135,7 @@ describe("command identity policy", () => {
   });
 
   test("bounds argv count and aggregate UTF-8 bytes before creating command artifacts", async () => {
-    const repositoryRoot = await mkdtemp(join(tmpdir(), "command-argv-policy-"));
-    roots.push(repositoryRoot);
+    const repositoryRoot = tempRoot("command-argv-policy");
     const runRoot = join(repositoryRoot, ".olt", "capsules");
     await mkdir(runRoot, { recursive: true });
     const runner = createInternalCommandRunner({

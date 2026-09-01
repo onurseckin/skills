@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { CaptureConfig } from "../../../olt/scripts/src/capture/config/types.ts";
@@ -8,9 +8,16 @@ import {
   resolveViewportsForScreen,
   runLiveCapture,
 } from "../../../olt/scripts/src/capture/runners/index.ts";
-import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
+import { cleanupVirtualCaptureFS, scratchRoot, setupVirtualCaptureFS } from "../fixture.ts";
 
 describe("Companion Manifest Resolution & Error Protection", () => {
+  beforeEach(() => {
+    setupVirtualCaptureFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualCaptureFS();
+  });
   test("resolves output directory and screen viewport routing correctly", () => {
     const testConfig: CaptureConfig = {
       version: "1.0",

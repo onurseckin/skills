@@ -1,24 +1,36 @@
-import { describe, expect, it } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 import {
   extractProseMilestoneClaims,
   inspectEventLogEvidence,
 } from "../../../olt/scripts/src/validation/index.ts";
+import {
+  cleanupVirtualValidationFS,
+  scratchRoot,
+  setupVirtualValidationFS,
+} from "../validation-fixture.ts";
 
-const TEST_DIR = "/tmp/test-prose-assertion-evidence-part1";
+let TEST_DIR: string;
 
 function setupTestEnv(): void {
-  rmSync(TEST_DIR, { recursive: true, force: true });
+  TEST_DIR = scratchRoot("prose-assertion-extraction", "extract");
   mkdirSync(TEST_DIR, { recursive: true });
 }
 
 function cleanupTestEnv(): void {
-  rmSync(TEST_DIR, { recursive: true, force: true });
+  // Handled in afterEach
 }
 
 describe("Defect Remediation: Prose Milestone Extraction & Event Inspection", () => {
+  beforeEach(() => {
+    setupVirtualValidationFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualValidationFS();
+  });
   describe("1. Prose Milestone Extraction", () => {
     it("extracts ignition, invariant, execution, test_pass, and completion claims from markdown", () => {
       const markdown = `

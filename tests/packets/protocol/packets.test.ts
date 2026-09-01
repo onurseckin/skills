@@ -1,14 +1,25 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { buildPacket } from "../../../olt/scripts/src/packets/render-packet.ts";
 import { createPacketBundle } from "../../../olt/scripts/src/packets/packet-bundle.ts";
 import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";
 import { claimTask } from "../../../olt/scripts/src/workflow/lease/claim.ts";
 import { at, TestPort, workflowState } from "../../workflow/index.ts";
 import { inspectionContext } from "../payloads/slicing/inspection-fixture.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+
+const vfs = new VirtualMemoryFS();
+const session = createVirtualFSSession(vfs);
+
+afterAll(() => {
+  session.cleanup();
+  vfs.reset();
+});
 
 const commonBytes = new TextEncoder().encode("Preserve unrelated changes. Run focused tests.");
 const clock = at("2026-08-13T12:00:00.000Z");
@@ -103,7 +114,8 @@ describe("role packets", () => {
   });
 
   test("persists packets immutably", async () => {
-    const root = await mkdtemp(join(tmpdir(), "harness-packets-"));
+    const root = `/virtual/harness-packets-${Math.random().toString(36).slice(2)}`;
+    vfs.mkdirSync(root, { recursive: true });
     const packet = buildPacket({
       ...base(),
       role: "planner",

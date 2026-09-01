@@ -1,12 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { buildSubmissionReport } from "../../../../olt/scripts/src/workflow/submission/build-report.ts";
 import { observeChangedFiles } from "../../../../olt/scripts/src/workflow/submission/observe-changes.ts";
 import type { RepositoryGitCommand } from "../../../../olt/scripts/src/packets/repository-git-command.ts";
 import type { TaskRecord } from "../../../../olt/scripts/src/workflow/types.ts";
 import { commandRecord, workflowState } from "../../shared/test-port.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 const SOURCE_ROOT = join(import.meta.dir, "../../../../olt/scripts/src");
 
@@ -204,11 +204,13 @@ describe("working-tree change observation", () => {
   });
 
   test("a directory with no Git metadata yields no observation at all", () => {
-    const outside = mkdtempSync(join(tmpdir(), "harness-no-git-"));
+    const { vfs, cleanup } = setupWorkflowVirtualFs();
+    const outside = "/virtual/tmp/harness-no-git";
+    vfs.mkdirSync(outside, { recursive: true });
     try {
       expect(observeChangedFiles(outside, gitStub(["M  src/a.ts"]))).toBeNull();
     } finally {
-      rmSync(outside, { recursive: true, force: true });
+      cleanup();
     }
   });
 

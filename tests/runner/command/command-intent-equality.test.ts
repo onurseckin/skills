@@ -1,7 +1,6 @@
 import { afterEach, expect, test } from "bun:test";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { atomicWriteJson } from "../../../olt/scripts/src/core/durable-write.ts";
 import {
@@ -12,8 +11,9 @@ import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/run
 import { embeddedCommandIssues } from "../../../olt/scripts/src/engine/runner/models/command/command-shape.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/execution/attempt-disposition-capability.ts";
+import { tempRoot, cleanupTempRoots } from "./fixture.ts";
 
-const roots: string[] = [];
+afterEach(cleanupTempRoots);
 
 function binding(marker: string): RepositoryBinding {
   return {
@@ -27,13 +27,8 @@ function binding(marker: string): RepositoryBinding {
   };
 }
 
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
-
 async function preparedIntent() {
-  const repo = await mkdtemp(join(tmpdir(), "command-intent-equality-"));
-  roots.push(repo);
+  const repo = tempRoot("command-intent-equality");
   await mkdir(join(repo, "bin"));
   await writeFile(join(repo, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
   const runRoot = initRun(

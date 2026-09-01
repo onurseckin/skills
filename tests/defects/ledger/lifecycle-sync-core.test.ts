@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import * as fs from "node:fs";
 import { dirname, join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
@@ -13,122 +13,21 @@ import type {
   DefectEntry,
   EmpiricalFailureProof,
 } from "../../../olt/scripts/src/mind/contracts/defect-contracts.ts";
+import { scratchRoot } from "../defects-fixture.ts";
 
 export const lifecycleSyncCoreSuiteName = "Defect Lifecycle Sync & Key Generation Core Engine";
 
-const vfs = new Map<string, { isDir: boolean; content?: string }>();
-const spies: Array<{ mockRestore: () => void }> = [];
-
-function setupVirtualFs(): void {
-  vfs.clear();
-  const getStats = (p: fs.PathLike): fs.Stats => {
-    const s = String(p).replace(/\/+$/, "");
-    const n = vfs.get(s);
-    const isDir = n ? n.isDir : Array.from(vfs.keys()).some((k) => k.startsWith(`${s}/`));
-    if (!n && !isDir) {
-      const err = new Error(`ENOENT: ${s}`) as Error & { code: string };
-      err.code = "ENOENT";
-      throw err;
-    }
-    return {
-      dev: 1,
-      ino: 1,
-      nlink: 1,
-      isFile: () => !isDir,
-      isDirectory: () => isDir,
-      isSymbolicLink: () => false,
-      mode: isDir ? 0o755 : 0o644,
-      size: n?.content ? Buffer.byteLength(n.content) : 0,
-      mtimeMs: Date.now(),
-    } as fs.Stats;
-  };
-  const spiesList = [
-    spyOn(fs, "existsSync").mockImplementation((p) => {
-      const s = String(p).replace(/\/+$/, "");
-      return vfs.has(s) || Array.from(vfs.keys()).some((k) => k.startsWith(`${s}/`));
-    }),
-    spyOn(fs, "lstatSync").mockImplementation(getStats),
-    spyOn(fs, "statSync").mockImplementation(getStats),
-    spyOn(fs, "fstatSync").mockImplementation(
-      () =>
-        ({
-          dev: 1,
-          ino: 1,
-          nlink: 1,
-          isFile: () => false,
-          isDirectory: () => true,
-          isSymbolicLink: () => false,
-          mode: 0o755,
-          size: 0,
-          mtimeMs: Date.now(),
-        }) as fs.Stats,
-    ),
-    spyOn(fs, "openSync").mockImplementation(() => 101),
-    spyOn(fs, "closeSync").mockImplementation(() => {}),
-    spyOn(fs, "mkdirSync").mockImplementation((p) => {
-      vfs.set(String(p), { isDir: true });
-      return undefined;
-    }),
-    spyOn(fs, "readFileSync").mockImplementation((p, options) => {
-      const s = String(p);
-      const n = vfs.get(s);
-      if (!n || n.content === undefined) {
-        const err = new Error(`ENOENT: ${s}`) as Error & { code: string };
-        err.code = "ENOENT";
-        throw err;
-      }
-      const enc =
-        typeof options === "string"
-          ? options
-          : (options as { encoding?: string } | undefined)?.encoding;
-      return enc === "utf-8" || enc === "utf8"
-        ? n.content
-        : (Buffer.from(n.content) as unknown as string);
-    }),
-    spyOn(fs, "writeFileSync").mockImplementation((p, data) => {
-      vfs.set(String(p), {
-        content: typeof data === "string" ? data : new TextDecoder().decode(data as Uint8Array),
-        isDir: false,
-      });
-    }),
-    spyOn(fs, "renameSync").mockImplementation((from, to) => {
-      const n = vfs.get(String(from));
-      if (n) {
-        vfs.set(String(to), { content: n.content, isDir: n.isDir });
-        vfs.delete(String(from));
-      }
-    }),
-    spyOn(fs, "unlinkSync").mockImplementation((p) => {
-      vfs.delete(String(p));
-    }),
-    spyOn(fs, "rmSync").mockImplementation((p) => {
-      vfs.delete(String(p));
-    }),
-    spyOn(fs, "chmodSync").mockImplementation(() => {}),
-    spyOn(fs, "fsyncSync").mockImplementation(() => {}),
-  ];
-  spies.push(...spiesList);
-}
-
 describe(lifecycleSyncCoreSuiteName, () => {
-  let tempDir: string;
-  let defectsPath: string;
-
-  beforeEach(() => {
-    setupVirtualFs();
-    tempDir = "/virtual/defect-lifecycle-sync-core";
-    defectsPath = join(tempDir, ".olt", "defects.jsonl");
-    vfs.set(tempDir, { isDir: true });
-    vfs.set(dirname(defectsPath), { isDir: true });
-  });
-
-  afterEach(() => {
-    for (const s of spies.splice(0)) s.mockRestore();
-    vfs.clear();
-  });
+  function createTestPaths() {
+    const tempDir = scratchRoot(import.meta.path, "lifecycle-core");
+    const defectsPath = join(tempDir, ".olt", "defects.jsonl");
+    fs.mkdirSync(dirname(defectsPath), { recursive: true });
+    return { tempDir, defectsPath };
+  }
 
   describe("Deterministic Key Generation & In-Place Deduplication", () => {
     it("generates deterministic SHA-256 defect IDs with zero Date.now() fallbacks", () => {
+      const { defectsPath } = createTestPaths();
       const finding: DoctorFindingInput = {
         code: "UNGUARDED_MUTATION",
         message: "File written without mutation lock",
@@ -155,6 +54,7 @@ describe(lifecycleSyncCoreSuiteName, () => {
     });
 
     it("skips repaired doctor findings without creating defect rows", () => {
+      const { defectsPath } = createTestPaths();
       const findings: readonly DoctorFindingInput[] = [
         { code: "TORN_EVENT_TAIL", message: "Repaired torn tail", repaired: true },
         { code: "STALE_PROJECTION", message: "Projection recomputed", repaired: true },
@@ -173,6 +73,7 @@ describe(lifecycleSyncCoreSuiteName, () => {
 
   describe("Autonomous Recurrence & Regression Re-opening with Empirical Proofs", () => {
     it("automatically re-opens previously completed defects with empirical failure proof", () => {
+      const { defectsPath } = createTestPaths();
       const finding: DoctorFindingInput = {
         code: "REGEX_FALSE_POSITIVE",
         message: "AST regex matched comment text incorrectly",
@@ -219,6 +120,7 @@ describe(lifecycleSyncCoreSuiteName, () => {
     });
 
     it("throws HarnessError on defect re-opening when strict proof is enabled and proof is missing", () => {
+      const { defectsPath } = createTestPaths();
       const defect: DefectEntry = {
         id: "doctor-completed-defect",
         type: "INVARIANT_BREACH",
@@ -244,15 +146,16 @@ describe(lifecycleSyncCoreSuiteName, () => {
 
   describe("Vestigial Loose Defect Cleanup", () => {
     it("migrates and removes loose olt/defects.jsonl", () => {
+      const { tempDir, defectsPath } = createTestPaths();
       const vestigialPath = join(tempDir, "olt", "defects.jsonl");
-      vfs.set(dirname(vestigialPath), { isDir: true });
+      fs.mkdirSync(dirname(vestigialPath), { recursive: true });
       const sampleDefect: DefectEntry = {
         id: "legacy-defect-1",
         type: "LEGACY_BUG",
         status: "open",
         timestamp: "2026-08-29T00:00:00.000Z",
       };
-      vfs.set(vestigialPath, { content: serializeDefectsJsonl([sampleDefect]), isDir: false });
+      fs.writeFileSync(vestigialPath, serializeDefectsJsonl([sampleDefect]), "utf-8");
 
       cleanupVestigialDefectsFile(defectsPath);
       expect(fs.existsSync(vestigialPath)).toBeFalse();

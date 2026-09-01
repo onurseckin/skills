@@ -3,29 +3,21 @@ import {
   constants,
   lstatSync,
   mkdirSync,
-  mkdtempSync,
   openSync,
   realpathSync,
-  rmSync,
   unlinkSync,
   writeFileSync,
 } from "node:fs";
 import type { Stats } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { captureGatePathBindings } from "../../../olt/scripts/src/engine/runner/signing/gate-path-bindings.ts";
 import type { GatePathHooks } from "../../../olt/scripts/src/engine/runner/signing/gate-path-tree.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
-const roots: string[] = [];
-
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { force: true, recursive: true });
-});
+afterEach(cleanupTempRoots);
 
 function repository(): string {
-  const root = mkdtempSync(join(tmpdir(), "gate-path-special-"));
-  roots.push(root);
-  return root;
+  return tempRoot("gate-path-special");
 }
 
 function special(path: string): Stats {

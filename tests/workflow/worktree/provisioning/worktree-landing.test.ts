@@ -10,17 +10,21 @@ import {
   landTrackToMain,
   listTrackWorktrees,
 } from "../../../../olt/scripts/src/workflow/worktree/index.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
-const TEST_DIR = join(process.cwd(), ".olt", "scratch", "test-worktree-suite");
+const TEST_DIR = "/virtual/worktree-landing-suite";
+let vfsCleanup: (() => void) | undefined;
 
 describe("Worktree Manager & Landing", () => {
   beforeEach(() => {
-    rmSync(TEST_DIR, { recursive: true, force: true });
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
     mkdirSync(TEST_DIR, { recursive: true });
   });
 
   afterEach(() => {
-    rmSync(TEST_DIR, { recursive: true, force: true });
+    vfsCleanup?.();
+    vfsCleanup = undefined;
   });
 
   test("destroyTrackWorktree string overload executes and returns void", () => {

@@ -39,3 +39,10 @@ export {
   isAllowedShellExecutable,
   resolvePinnedHookCwd,
 } from "./security/index.ts";
+
+export {
+  setupVirtualHooksFS,
+  cleanupVirtualHooksFS,
+  getVirtualHooksFS,
+  scratchRoot,
+} from "./fixture.ts";

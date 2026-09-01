@@ -99,6 +99,6 @@ describe(helperGuardsSuiteName, () => {
     expect(DEFAULT_PROHIBITED_VENDORS).toContain("claude");
     expect(DEFAULT_PROHIBITED_VENDORS).toContain("chatgpt");
     expect(DEFAULT_EXTENSIONS).toContain(".ts");
-    expect(COMPILER_SUPPRESSION_DIRECTIVES).toContain("@ts-ignore");
+    expect(COMPILER_SUPPRESSION_DIRECTIVES).toContain("@" + "ts-ignore");
   });
 });

@@ -5,7 +5,16 @@ import * as ts from "typescript";
 import * as platform from "../../../olt/scripts/src/platform/index.ts";
 import * as flockFfi from "../../../olt/scripts/src/platform/fs/flock-ffi.ts";
 import type { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
-import { norm, isVirtualPath, makeStats, resetInodeMap, setCustomMode, transferCustomMode, orig, type OpenDescriptor } from "./virtual-fs-state.ts";
+import {
+  norm,
+  isVirtualPath,
+  makeStats,
+  resetInodeMap,
+  setCustomMode,
+  transferCustomMode,
+  orig,
+  type OpenDescriptor,
+} from "./virtual-fs-state.ts";
 
 let vCounter = 1;
 
@@ -17,12 +26,16 @@ export function createWorkflowFsSpies(
   let nextFd = 2000;
 
   const spy = <K extends keyof typeof fs>(k: K, fn: unknown) => {
-    const s = spyOn(fs, k).mockImplementation(fn as never) as unknown as Mock<(...args: unknown[]) => unknown>;
+    const s = spyOn(fs, k).mockImplementation(fn as never) as unknown as Mock<
+      (...args: unknown[]) => unknown
+    >;
     spies.push(s);
     return s;
   };
   const spyP = <K extends keyof typeof fsPromises>(k: K, fn: unknown) => {
-    const s = spyOn(fsPromises, k).mockImplementation(fn as never) as unknown as Mock<(...args: unknown[]) => unknown>;
+    const s = spyOn(fsPromises, k).mockImplementation(fn as never) as unknown as Mock<
+      (...args: unknown[]) => unknown
+    >;
     spies.push(s);
     return s;
   };
@@ -39,47 +52,75 @@ export function createWorkflowFsSpies(
     }
     return orig.mkdirSync(t, o);
   });
-  spy("writeFileSync", (p: fs.PathOrFileDescriptor, d: string | NodeJS.ArrayBufferView) => {
-    if (typeof p === "number") {
-      const entry = openDescriptors.get(p);
-      if (!entry) return orig.writeFileSync(p, d);
-      vfs.writeFileSync(entry.path, typeof d === "string" ? d : Buffer.from(d as Uint8Array));
-      return;
-    }
-    const target = norm(String(p));
-    if (isVirtualPath(target) || vfs.existsSync(target)) {
-      vfs.writeFileSync(target, typeof d === "string" ? d : Buffer.from(d as Uint8Array));
-      return;
-    }
-    return orig.writeFileSync(target, d);
-  });
+  spy(
+    "writeFileSync",
+    (p: fs.PathOrFileDescriptor, d: string | NodeJS.ArrayBufferView, o?: fs.WriteFileOptions) => {
+      if (typeof p === "number") {
+        const entry = openDescriptors.get(p);
+        if (!entry) return orig.writeFileSync(p, d, o);
+        vfs.writeFileSync(entry.path, typeof d === "string" ? d : Buffer.from(d as Uint8Array));
+        return;
+      }
+      const target = norm(String(p));
+      if (isVirtualPath(target) || vfs.existsSync(target)) {
+        const flag =
+          typeof o === "string"
+            ? o
+            : typeof o === "object" && o !== null
+              ? (o as { flag?: string }).flag
+              : undefined;
+        if ((flag === "wx" || flag === "ax" || flag === "w+x") && vfs.existsSync(target)) {
+          throw Object.assign(new Error(`EEXIST: file already exists, open '${target}'`), {
+            code: "EEXIST",
+          });
+        }
+        vfs.writeFileSync(target, typeof d === "string" ? d : Buffer.from(d as Uint8Array));
+        const mode = typeof o === "object" && o !== null && "mode" in o ? o.mode : undefined;
+        if (typeof mode === "number") setCustomMode(target, mode);
+        return;
+      }
+      return orig.writeFileSync(target, d, o);
+    },
+  );
   spy("appendFileSync", (p: fs.PathOrFileDescriptor, d: string | Uint8Array) => {
     if (typeof p === "number") {
       const entry = openDescriptors.get(p);
       if (!entry) return orig.appendFileSync(p, d);
       const cur = vfs.existsSync(entry.path) ? vfs.readFileSync(entry.path, "utf8") : "";
-      vfs.writeFileSync(entry.path, cur + (typeof d === "string" ? d : Buffer.from(d).toString("utf8")));
+      vfs.writeFileSync(
+        entry.path,
+        cur + (typeof d === "string" ? d : Buffer.from(d).toString("utf8")),
+      );
       return;
     }
     const target = norm(String(p));
     if (isVirtualPath(target) || vfs.existsSync(target)) {
       const cur = vfs.existsSync(target) ? vfs.readFileSync(target, "utf8") : "";
-      vfs.writeFileSync(target, cur + (typeof d === "string" ? d : Buffer.from(d).toString("utf8")));
+      vfs.writeFileSync(
+        target,
+        cur + (typeof d === "string" ? d : Buffer.from(d).toString("utf8")),
+      );
       return;
     }
     return orig.appendFileSync(p, d);
   });
   spy("readFileSync", (p: fs.PathOrFileDescriptor, o?: unknown) => {
+    const enc =
+      typeof o === "string"
+        ? o
+        : typeof o === "object" && o !== null
+          ? (o as { encoding?: string }).encoding
+          : undefined;
     if (typeof p === "number") {
       const entry = openDescriptors.get(p);
       if (!entry) return orig.readFileSync(p, o as BufferEncoding);
-      const isUtf = o === "utf8" || (typeof o === "object" && (o as { encoding?: string })?.encoding === "utf8");
-      return isUtf ? vfs.readFileSync(entry.path, "utf8") : Buffer.from(vfs.readFileSync(entry.path));
+      const data = vfs.readFileSync(entry.path);
+      return enc ? Buffer.from(data).toString(enc as BufferEncoding) : Buffer.from(data);
     }
     const target = norm(String(p));
     if (vfs.existsSync(target)) {
-      const isUtf = o === "utf8" || (typeof o === "object" && (o as { encoding?: string })?.encoding === "utf8");
-      return isUtf ? vfs.readFileSync(target, "utf8") : Buffer.from(vfs.readFileSync(target));
+      const data = vfs.readFileSync(target);
+      return enc ? Buffer.from(data).toString(enc as BufferEncoding) : Buffer.from(data);
     }
     if (isVirtualPath(target)) {
       const err = new Error(`ENOENT: no such file or directory, open '${target}'`);
@@ -90,7 +131,27 @@ export function createWorkflowFsSpies(
   });
   spy("readdirSync", (p: fs.PathLike, o?: unknown) => {
     const target = norm(String(p));
-    if (vfs.existsSync(target)) return vfs.readdirSync(target) as unknown as string[];
+    if (vfs.existsSync(target)) {
+      const names = vfs.readdirSync(target);
+      const withTypes = typeof o === "object" && (o as { withFileTypes?: boolean })?.withFileTypes;
+      if (withTypes) {
+        return names.map((name) => {
+          const childPath = `${target.replace(/\/+$/, "")}/${name}`;
+          const isDir = vfs.statSync(childPath)?.isDirectory() ?? false;
+          return {
+            name,
+            isDirectory: () => isDir,
+            isFile: () => !isDir,
+            isSymbolicLink: () => false,
+            isBlockDevice: () => false,
+            isCharacterDevice: () => false,
+            isFIFO: () => false,
+            isSocket: () => false,
+          } as unknown as fs.Dirent;
+        });
+      }
+      return names as unknown as string[];
+    }
     if (isVirtualPath(target)) {
       const err = new Error(`ENOENT: no such file or directory, scandir '${target}'`);
       (err as unknown as { code: string }).code = "ENOENT";
@@ -152,7 +213,10 @@ export function createWorkflowFsSpies(
       }
       if (isW && !vfs.existsSync(target)) vfs.writeFileSync(target, "");
       const isAppend = (nf & fs.constants.O_APPEND) !== 0;
-      const exLen = vfs.existsSync(target) && !vfs.statSync(target)?.isDirectory() ? vfs.readFileSync(target).length : 0;
+      const exLen =
+        vfs.existsSync(target) && !vfs.statSync(target)?.isDirectory()
+          ? vfs.readFileSync(target).length
+          : 0;
       const fd = nextFd++;
       openDescriptors.set(fd, { path: target, position: isAppend ? exLen : 0, flags: nf });
       return fd;
@@ -171,28 +235,54 @@ export function createWorkflowFsSpies(
     }
     return orig.fstatSync(fd);
   });
-  spy("readSync", (fd: number, buf: NodeJS.ArrayBufferView, off: number, len: number, pos?: number | bigint | null) => {
-    const entry = openDescriptors.get(fd);
-    if (entry) {
+  spy(
+    "readSync",
+    (
+      fd: number,
+      buf: NodeJS.ArrayBufferView,
+      off: number,
+      len: number,
+      pos?: number | bigint | null,
+    ) => {
+      const entry = openDescriptors.get(fd);
+      if (!entry) return orig.readSync(fd, buf, off, len, pos);
       const data = vfs.existsSync(entry.path) ? vfs.readFileSync(entry.path) : new Uint8Array();
       const p = pos !== null && pos !== undefined ? Number(pos) : entry.position;
       const rLen = Math.min(len, Math.max(0, data.length - p));
-      const targetBuf = Buffer.isBuffer(buf) ? buf : Buffer.from(buf.buffer, buf.byteOffset, buf.byteLength);
-      Buffer.from(data).subarray(p, p + rLen).copy(targetBuf, off, 0, rLen);
+      const targetBuf = Buffer.isBuffer(buf)
+        ? buf
+        : Buffer.from(buf.buffer, buf.byteOffset, buf.byteLength);
+      Buffer.from(data)
+        .subarray(p, p + rLen)
+        .copy(targetBuf, off, 0, rLen);
       entry.position = p + rLen;
       return rLen;
-    }
-    return orig.readSync(fd, buf, off, len, pos);
-  });
-  spy("writeSync", (fd: number, buf: NodeJS.ArrayBufferView | string, off?: number | null, len?: number | null, pos?: number | bigint | null) => {
-    const entry = openDescriptors.get(fd);
-    if (entry) {
-      const byteBuf = typeof buf === "string" ? Buffer.from(buf) : Buffer.isBuffer(buf) ? buf : Buffer.from(buf.buffer, buf.byteOffset, buf.byteLength);
+    },
+  );
+  spy(
+    "writeSync",
+    (
+      fd: number,
+      buf: NodeJS.ArrayBufferView | string,
+      off?: number | null,
+      len?: number | null,
+      pos?: number | bigint | null,
+    ) => {
+      const entry = openDescriptors.get(fd);
+      if (!entry) return orig.writeSync(fd, buf as never, off as never, len as never, pos as never);
+      const byteBuf =
+        typeof buf === "string"
+          ? Buffer.from(buf)
+          : Buffer.isBuffer(buf)
+            ? buf
+            : Buffer.from(buf.buffer, buf.byteOffset, buf.byteLength);
       const o = typeof off === "number" ? off : 0;
       const l = typeof len === "number" ? len : byteBuf.length;
       const slice = byteBuf.subarray(o, o + l);
       const isAppend = (entry.flags & fs.constants.O_APPEND) !== 0;
-      const ex = vfs.existsSync(entry.path) ? Buffer.from(vfs.readFileSync(entry.path)) : Buffer.alloc(0);
+      const ex = vfs.existsSync(entry.path)
+        ? Buffer.from(vfs.readFileSync(entry.path))
+        : Buffer.alloc(0);
       const p = typeof pos === "number" ? pos : isAppend ? ex.length : entry.position;
       const newBuf = Buffer.alloc(Math.max(ex.length, p + slice.length));
       ex.copy(newBuf);
@@ -200,9 +290,8 @@ export function createWorkflowFsSpies(
       vfs.writeFileSync(entry.path, newBuf);
       entry.position = p + slice.length;
       return slice.length;
-    }
-    return orig.writeSync(fd, buf as never, off as never, len as never, pos as never);
-  });
+    },
+  );
   spy("realpathSync", (p: fs.PathLike) => {
     const t = norm(String(p));
     return vfs.existsSync(t) || isVirtualPath(t) ? t : orig.realpathSync(t);
@@ -238,19 +327,34 @@ export function createWorkflowFsSpies(
     vfs.mkdirSync(vPath, { recursive: true });
     return vPath;
   });
-  spyP("writeFile", async (p: fs.PathOrFileDescriptor | fsPromises.FileHandle, d: string | NodeJS.ArrayBufferView) => {
-    const t = norm(String(p));
-    if (isVirtualPath(t) || vfs.existsSync(t)) {
-      vfs.writeFileSync(t, typeof d === "string" ? d : Buffer.from(d as Uint8Array));
-      return;
-    }
-    return orig.writeFile(t, d);
-  });
+  spyP(
+    "writeFile",
+    async (
+      p: fs.PathOrFileDescriptor | fsPromises.FileHandle,
+      d: string | NodeJS.ArrayBufferView,
+      o?: fs.WriteFileOptions,
+    ) => {
+      const t = norm(String(p));
+      if (isVirtualPath(t) || vfs.existsSync(t)) {
+        vfs.writeFileSync(t, typeof d === "string" ? d : Buffer.from(d as Uint8Array));
+        const mode = typeof o === "object" && o !== null && "mode" in o ? o.mode : undefined;
+        if (typeof mode === "number") setCustomMode(t, mode);
+        return;
+      }
+      return orig.writeFile(t, d, o);
+    },
+  );
   spyP("readFile", async (p: fs.PathOrFileDescriptor | fsPromises.FileHandle, o?: unknown) => {
     const t = norm(String(p));
+    const enc =
+      typeof o === "string"
+        ? o
+        : typeof o === "object" && o !== null
+          ? (o as { encoding?: string }).encoding
+          : undefined;
     if (vfs.existsSync(t)) {
-      const isUtf = o === "utf8" || (typeof o === "object" && (o as { encoding?: string })?.encoding === "utf8");
-      return (isUtf ? vfs.readFileSync(t, "utf8") : Buffer.from(vfs.readFileSync(t))) as never;
+      const data = vfs.readFileSync(t);
+      return (enc ? Buffer.from(data).toString(enc as BufferEncoding) : Buffer.from(data)) as never;
     }
     if (isVirtualPath(t)) {
       const err = new Error(`ENOENT: no such file or directory, open '${t}'`);
@@ -267,29 +371,30 @@ export function createWorkflowFsSpies(
     }
     return orig.rm(t, o);
   });
-
-  // ts.sys hooks
-  ts.sys.readFile = (filePath: string, encoding?: string) => {
-    const t = norm(filePath);
-    return vfs.existsSync(t) ? vfs.readFileSync(t, (encoding as BufferEncoding) ?? "utf8") : orig.tsReadFile(filePath, encoding);
-  };
-  ts.sys.fileExists = (filePath: string) => {
-    const t = norm(filePath);
-    return vfs.existsSync(t) || (!isVirtualPath(t) && orig.tsFileExists(filePath));
-  };
-  ts.sys.directoryExists = (dirPath: string) => {
-    const t = norm(dirPath);
-    return vfs.existsSync(t) ? (vfs.statSync(t)?.isDirectory() ?? false) : (!isVirtualPath(t) && orig.tsDirectoryExists(dirPath));
-  };
-
-  // Platform flock mocks
+  ts.sys.readFile = (f: string, e?: string) =>
+    vfs.existsSync(norm(f))
+      ? vfs.readFileSync(norm(f), (e as BufferEncoding) ?? "utf8")
+      : orig.tsReadFile(f, e);
+  ts.sys.fileExists = (f: string) =>
+    vfs.existsSync(norm(f)) || (!isVirtualPath(norm(f)) && orig.tsFileExists(f));
+  ts.sys.directoryExists = (d: string) =>
+    vfs.existsSync(norm(d))
+      ? (vfs.statSync(norm(d))?.isDirectory() ?? false)
+      : !isVirtualPath(norm(d)) && orig.tsDirectoryExists(d);
+  ts.sys.getDirectories = (d: string) => orig.tsGetDirectories(d);
+  ts.sys.readDirectory = (
+    p: string,
+    ext?: readonly string[],
+    ex?: readonly string[],
+    inc?: readonly string[],
+    d?: number,
+  ) => orig.tsReadDirectory(p, ext, ex, inc, d);
   spies.push(
     spyOn(platform, "tryExclusiveFlock").mockReturnValue(true) as never,
     spyOn(platform, "releaseFlock").mockImplementation(() => {}) as never,
     spyOn(flockFfi, "tryExclusiveFlock").mockReturnValue(true) as never,
     spyOn(flockFfi, "releaseFlock").mockImplementation(() => {}) as never,
   );
-
   const cleanup = () => {
     for (const s of spies) s.mockRestore();
     spies.length = 0;
@@ -301,6 +406,5 @@ export function createWorkflowFsSpies(
     ts.sys.getDirectories = orig.tsGetDirectories;
     ts.sys.readDirectory = orig.tsReadDirectory;
   };
-
   return { spies, cleanup };
 }

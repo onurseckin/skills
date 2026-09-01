@@ -1,16 +1,12 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { embeddedCommandIssues } from "../../../olt/scripts/src/engine/runner/models/command/command-shape.ts";
 import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
-const roots: string[] = [];
-
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
+afterEach(cleanupTempRoots);
 
 function binding(): RepositoryBinding {
   return {
@@ -26,8 +22,7 @@ function binding(): RepositoryBinding {
 
 describe("embeddedCommandIssues schema-error fallback", () => {
   test("turns an unexpected exception during shape checking into a single schema-invalid issue", async () => {
-    const repositoryRoot = await mkdtemp(join(tmpdir(), "command-shape-schema-error-"));
-    roots.push(repositoryRoot);
+    const repositoryRoot = tempRoot("command-shape-schema-error");
     await mkdir(join(repositoryRoot, "bin"));
     await writeFile(join(repositoryRoot, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
     const runRoot = join(repositoryRoot, ".olt", "capsules");
@@ -56,8 +51,7 @@ describe("embeddedCommandIssues schema-error fallback", () => {
   });
 
   test("validates non-empty attempt evidence_issues containing valid and invalid elements", async () => {
-    const repositoryRoot = await mkdtemp(join(tmpdir(), "command-shape-evidence-issues-"));
-    roots.push(repositoryRoot);
+    const repositoryRoot = tempRoot("command-shape-evidence-issues");
     await mkdir(join(repositoryRoot, "bin"));
     await writeFile(join(repositoryRoot, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
     const runRoot = join(repositoryRoot, ".olt", "capsules");

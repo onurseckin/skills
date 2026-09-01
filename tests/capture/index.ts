@@ -9,3 +9,9 @@ export { CAPTURE_SNAPSHOT_SUITES } from "./snapshot/index.ts";
 export { CAPTURE_CLS_SUITES } from "./cls/index.ts";
 export { CAPTURE_VALIDATOR_SUITES } from "./validator/index.ts";
 export { CAPTURE_OPTICAL_SUITES } from "./optical/index.ts";
+export {
+  setupVirtualCaptureFS,
+  cleanupVirtualCaptureFS,
+  getVirtualCaptureFS,
+  scratchRoot,
+} from "./fixture.ts";

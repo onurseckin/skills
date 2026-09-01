@@ -1,6 +1,7 @@
-import { afterAll, describe, expect, test } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { describe, expect, test, beforeEach, afterEach } from "bun:test";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { cleanupVirtualPolicyFS, setupVirtualPolicyFS } from "../fixture.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   CURRENT_POLICY_SCHEMA_VERSION,
@@ -16,10 +17,14 @@ import {
 } from "../../../olt/scripts/src/policy/index.ts";
 
 describe("Central Policy & Lifecycle Hooks Engine", () => {
-  const scratchBase = join(process.cwd(), "coverage", "scratch", "central-policy-engine-test");
+  const scratchBase = "/virtual/policy/engine/central-policy-engine";
 
-  afterAll(() => {
-    rmSync(scratchBase, { recursive: true, force: true });
+  beforeEach(() => {
+    setupVirtualPolicyFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualPolicyFS();
   });
 
   function createMockSpawn(log: Array<{ command: string; detached: boolean }>): HookSpawnRunner {

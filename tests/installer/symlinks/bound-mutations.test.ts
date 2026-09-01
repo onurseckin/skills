@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
@@ -9,6 +9,10 @@ import {
 } from "../../../olt/scripts/src/installer/bound-mutations.ts";
 import { pathIdentity } from "../../../olt/scripts/src/installer/path-safety.ts";
 import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
+import { cleanupVirtualInstallerFS, setupVirtualInstallerFS } from "../helpers.ts";
+
+beforeEach(setupVirtualInstallerFS);
+afterEach(cleanupVirtualInstallerFS);
 
 describe("moveBoundPath", () => {
   test("moves the path and calls beforeRename first", async () => {

@@ -1,40 +1,7 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
-import { whoamiCommand } from "../../../../olt/scripts/src/cli/commands/whoami.ts";
-import { dagViewCommand } from "../../../../olt/scripts/src/cli/commands/dag-view.ts";
-import {
-  findingGetCommand,
-  reportGetCommand,
-  evidenceGetCommand,
-  evidenceScreenshotsCommand,
-} from "../../../../olt/scripts/src/cli/commands/inspection-ops.ts";
+import { describe, expect, test } from "bun:test";
 import { findCommand } from "../../../../olt/scripts/src/cli/registry/index.ts";
 import { assertRoleMayInvoke } from "../../../../olt/scripts/src/packets/command-authority.ts";
 import { loadRoleContract } from "../../../../olt/scripts/src/packets/role-contract.ts";
-import { initRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
-
-const roots: string[] = [];
-afterEach(async () => {
-  for (const root of roots) await rm(root, { recursive: true, force: true });
-  roots.length = 0;
-});
-
-async function fixtureCapsuleRun() {
-  const root = await mkdtemp(join(tmpdir(), "cli-query-test-"));
-  roots.push(root);
-  const repo = join(root, "repo");
-  await mkdir(repo);
-  const run = initRun(
-    repo,
-    "query-run",
-    new TextEncoder().encode("Implement multi-viewport responsive UI"),
-    "file",
-    true,
-  );
-  return { root, repo, run };
-}
 
 describe("CLI Query Integration - Role Grants & Authority", () => {
   describe("Role Contract Query Command Grants & Authority", () => {

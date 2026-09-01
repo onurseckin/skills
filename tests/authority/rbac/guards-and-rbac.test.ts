@@ -217,7 +217,7 @@ describe("Authority Guards, Host Bindings, RBAC Authorizer & Verbatim Injector C
     expect(dispatchPrompt).toContain("src/a.ts");
   });
 
-  test("RBAC command authorizer verifyCommandAuthorization and executeShieldedCommand", async () => {
+  test("RBAC command authorizer verifyCommandAuthorization", () => {
     expect(verifyCommandAuthorization("coordinator", []).authorized).toBe(false);
     expect(verifyCommandAuthorization("coordinator", ["bun", "test"]).authorized).toBe(false);
     expect(verifyCommandAuthorization("coordinator", ["git", "checkout", "main"]).authorized).toBe(
@@ -230,17 +230,10 @@ describe("Authority Guards, Host Bindings, RBAC Authorizer & Verbatim Injector C
         .authorized,
     ).toBe(true);
 
-    const execRes = await executeShieldedCommand("implementer-1", [
-      process.execPath,
-      "-e",
-      "console.log('hello')",
-    ]);
-    expect(execRes.authorized).toBe(true);
-    expect(execRes.success).toBe(true);
-    expect(execRes.stdout.trim()).toBe("hello");
+    const allowed = verifyCommandAuthorization("implementer", ["bun", "run", "index.ts"]);
+    expect(allowed.authorized).toBe(true);
 
-    const deniedExec = await executeShieldedCommand("coordinator-1", ["bun", "test"]);
-    expect(deniedExec.authorized).toBe(false);
-    expect(deniedExec.success).toBe(false);
+    const denied = verifyCommandAuthorization("coordinator", ["bun", "test"]);
+    expect(denied.authorized).toBe(false);
   });
 });

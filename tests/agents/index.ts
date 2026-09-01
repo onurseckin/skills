@@ -78,3 +78,10 @@ export {
   validateUnifiedAgentManifest,
   type UnifiedAgentManifest,
 } from "./governance/index.ts";
+
+export {
+  setupVirtualAgentsFS,
+  cleanupVirtualAgentsFS,
+  getVirtualAgentsFS,
+  scratchRoot,
+} from "./fixture.ts";

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -21,14 +21,26 @@ import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import { ALL_AST_LINT_RULES } from "../../../../olt/scripts/src/linter/ast/index.ts";
 import { initRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
 import type { TaskRecord } from "../../../../olt/scripts/src/workflow/types.ts";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
+
+let vfsCleanup: (() => void) | undefined;
+let scratchCount = 0;
+
+beforeEach(() => {
+  const setup = setupWorkflowVirtualFs();
+  vfsCleanup = setup.cleanup;
+});
+
+afterEach(() => {
+  vfsCleanup?.();
+  vfsCleanup = undefined;
+});
 
 function createScratchContext(label: string): {
   readonly rootDir: string;
   readonly repoDir: string;
 } {
-  const rootDir = mkdtempSync(join(tmpdir(), `task-check-${label}-`));
+  const rootDir = `/virtual/tmp/task-check-ast-${label}-${++scratchCount}`;
   const repoDir = join(rootDir, "repo");
   mkdirSync(repoDir, { recursive: true });
   return { rootDir, repoDir };

@@ -1,7 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { completionIssues } from "../../../../olt/scripts/src/workflow/completion/completion-state.ts";
 import { attachGateResult } from "../../../../olt/scripts/src/workflow/gates/attach-result.ts";
 import { claimTask } from "../../../../olt/scripts/src/workflow/lease/claim.ts";
@@ -15,6 +14,7 @@ import {
 } from "../../shared/test-port.ts";
 import { captureGatePathBindings } from "../../../../olt/scripts/src/engine/runner/index.ts";
 import { commandFingerprint } from "../../../../olt/scripts/src/workflow/gates/gate-policy.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 const clock = at("2026-08-13T12:00:00.000Z");
 describe("submission, gate, and completion evidence", () => {
@@ -74,7 +74,9 @@ describe("submission, gate, and completion evidence", () => {
   });
 
   test("gate attachment rechecks control-input overlap against current task scopes", async () => {
-    const repositoryRoot = await mkdtemp(join(tmpdir(), "gate-attachment-scope-"));
+    const { vfs, cleanup } = setupWorkflowVirtualFs();
+    const repositoryRoot = "/virtual/tmp/gate-attachment-scope";
+    vfs.mkdirSync(repositoryRoot, { recursive: true });
     try {
       await mkdir(join(repositoryRoot, "tools"));
       await writeFile(join(repositoryRoot, "tools", "verify"), "#!/bin/sh\nexit 0\n", {
@@ -112,7 +114,7 @@ describe("submission, gate, and completion evidence", () => {
         attachGateResult(new TestPort(state), "T-1", "G-1", "C-1", "coordinator", clock),
       ).toThrow(/prove the gate contract/i);
     } finally {
-      await rm(repositoryRoot, { force: true, recursive: true });
+      cleanup();
     }
   });
 

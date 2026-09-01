@@ -1,7 +1,6 @@
 import { afterEach, expect, test } from "bun:test";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import type {
   CommandAttemptRecord,
   CommandRecord,
@@ -22,16 +21,12 @@ import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/run
 import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/execution/attempt-disposition-capability.ts";
 import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/core/pipe-ownership.ts";
 import { initRun, loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
-const roots: string[] = [];
-
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
+afterEach(cleanupTempRoots);
 
 test("reconciles a crash after durable retry-pending evidence without replay", async () => {
-  const repo = await mkdtemp(join(tmpdir(), "pending-retry-reconcile-"));
-  roots.push(repo);
+  const repo = tempRoot("pending-retry-reconcile");
   const runRoot = initRun(repo, "pending-retry", new TextEncoder().encode("prompt"), "file", true);
   const signer = createCommandSigningCapability();
   const runner = createInternalCommandRunner({

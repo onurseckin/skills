@@ -1,28 +1,27 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { afterAll, describe, expect, test } from "bun:test";
 import {
   inspectRepositoryContent,
   type RepositoryContentPathSource,
 } from "../../../../olt/scripts/src/packets/repository-content.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
-// reporting handoff-triggers tests's "sealing the run rewrites it against the
-// completed state" threw "repository content listing changed during scan" under real
-// concurrent-agent load with no write anywhere between the two reads (the scan is read-only) —
-// the same fork+exec scheduling hazard repository-git-command.ts already retries per-command,
-// surfacing here as the whole listing disagreeing with itself. These prove the settle-retry added
-// to inspectRepositoryContent absorbs a transient flap without masking a persistent difference.
+const vfs = new VirtualMemoryFS();
+const session = createVirtualFSSession(vfs);
 
-const roots: string[] = [];
-
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
+afterAll(() => {
+  session.cleanup();
+  vfs.reset();
 });
 
 function fixture(): string {
-  const root = mkdtempSync(join(tmpdir(), "repository-content-settle-"));
-  roots.push(root);
+  const root = `/virtual/repository-content-settle-${Math.random().toString(36).slice(2)}`;
+  vfs.mkdirSync(root, { recursive: true });
+  vfs.writeFileSync(`${root}/a.txt`, "a");
+  vfs.writeFileSync(`${root}/b.txt`, "b");
+  vfs.writeFileSync(`${root}/phantom.txt`, "phantom");
   return root;
 }
 

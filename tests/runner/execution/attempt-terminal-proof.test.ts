@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { cleanupFailedAttempt } from "../../../olt/scripts/src/engine/runner/execution/attempt-cleanup.ts";
 import {
   settledAttemptTerminalProof,
@@ -10,13 +9,11 @@ import {
 import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/execution/attempt-disposition-capability.ts";
 import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
 import { cleanupAfterAttemptFailure } from "../../../olt/scripts/src/engine/runner/models/attempt/run-attempt.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
-const roots: string[] = [];
 const rootIdentity: ProcessIdentity = { pid: 40, parent: 30, group: 40, birth: "root" };
 
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
+afterEach(cleanupTempRoots);
 
 function cleanup(overrides: Record<string, unknown> = {}) {
   return cleanupFailedAttempt({
@@ -41,8 +38,7 @@ function cleanup(overrides: Record<string, unknown> = {}) {
 
 describe("failed attempt terminal proof", () => {
   test("post-terminal evidence failure preserves proof and skips duplicate cleanup", async () => {
-    const attemptDir = await mkdtemp(join(tmpdir(), "attempt-post-terminal-failure-"));
-    roots.push(attemptDir);
+    const attemptDir = tempRoot("attempt-post-terminal-failure");
     const controller = startAttemptIntent(
       attemptDir,
       "C-post-terminal-failure",

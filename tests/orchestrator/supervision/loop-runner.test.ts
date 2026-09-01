@@ -1,12 +1,12 @@
-import { describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync } from "node:fs";
+import { describe, expect, it, beforeEach, afterEach, spyOn } from "bun:test";
+import * as fs from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   AutonomousLoopRunner,
   executeOrchestratorTrack,
 } from "../../../olt/scripts/src/orchestrator/loop-runner.ts";
+import * as worktreeModule from "../../../olt/scripts/src/workflow/worktree/manager.ts";
 import type {
   CapsuleChainManifest,
   DefectSynthesis,
@@ -17,57 +17,123 @@ import type {
   WatchdogEvent,
 } from "../../../olt/scripts/src/orchestrator/types.ts";
 
-function testDir(name: string): string {
-  const dir = join(tmpdir(), `loop-runner-${Date.now()}-${name}`);
-  mkdirSync(dir, { recursive: true });
-  return dir;
-}
-
-const finding = (
-  id: string,
-  status: "open" | "resolved" = "open",
-  severity: "critical" | "important" = "critical",
-): FindingDetail => ({
-  id,
-  requirement_id: "req-01",
-  severity,
-  observation: "Memory leak",
-  evidence: [],
-  remediation: "Add cleanup",
-  revalidation: "bun test",
-  status,
-});
-
-const makeResult = (
-  runId: string,
-  round: number,
-  status: "completed" | "rejected" | "failed",
-  critic: "approve" | "request_changes" | "rejected",
-  findings: FindingDetail[] = [],
-  gatePassed = true,
-  summary = "",
-): RoundExecutionResult => ({
-  runId,
-  round,
-  status,
-  criticDecision: critic,
-  tasks: [
-    {
-      id: "t1",
-      status: status === "rejected" ? "changes_requested" : "done",
-      writeScope: ["src/"],
-    },
-  ],
-  findings,
-  gateResults: [{ gate_id: "g1", command_id: "c1", status: gatePassed ? "passed" : "failed" }],
-  summary,
-});
-
-const exec = (fn: (inp: RoundExecutionInput) => RoundExecutionResult): RoundExecutor => ({
-  executeRound: async (inp) => fn(inp),
-});
-
 describe("AutonomousLoopRunner Unit Tests", () => {
+  const mockFiles = new Map<string, string>();
+  const mockDirs = new Set<string>();
+  const spies: { mockRestore: () => void }[] = [];
+  let rootCounter = 0;
+
+  function testDir(name: string): string {
+    const dir = `/tmp/virtual-autonomous-loop-${++rootCounter}-${name}`;
+    mockDirs.add(dir);
+    return dir;
+  }
+
+  const origExists = fs.existsSync.bind(fs);
+  const origRead = fs.readFileSync.bind(fs);
+  const isVirt = (s: string) => s.startsWith("/tmp/virtual-") || s.startsWith("/virtual/");
+
+  beforeEach(() => {
+    mockFiles.clear();
+    mockDirs.clear();
+    spies.push(
+      spyOn(worktreeModule, "createTrackWorktree").mockImplementation(((opts?: unknown) => {
+        const trackId =
+          typeof opts === "string"
+            ? opts
+            : ((opts as { trackId?: string })?.trackId ?? "track-test");
+        return {
+          trackId,
+          branch: `track/${trackId}`,
+          worktreePath: `/tmp/virtual-worktree-${trackId}`,
+          createdAt: new Date().toISOString(),
+        };
+      }) as unknown as typeof worktreeModule.createTrackWorktree),
+      spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => {
+        const s = String(p);
+        if (isVirt(s)) return mockFiles.has(s) || mockDirs.has(s);
+        return origExists(p);
+      }),
+      spyOn(fs, "mkdirSync").mockImplementation(((
+        p: fs.PathLike,
+        opts?: fs.MakeDirectoryOptions | boolean,
+      ) => {
+        const s = String(p);
+        mockDirs.add(s);
+        return undefined as unknown as string;
+      }) as unknown as typeof fs.mkdirSync),
+      spyOn(fs, "readFileSync").mockImplementation(((p: fs.PathOrFileDescriptor) => {
+        const s = String(p);
+        if (isVirt(s)) {
+          const val = mockFiles.get(s);
+          if (val !== undefined) return val;
+          throw new Error(`ENOENT: no such file, open '${s}'`);
+        }
+        return origRead(p as never);
+      }) as unknown as typeof fs.readFileSync),
+      spyOn(fs, "writeFileSync").mockImplementation(((
+        p: fs.PathOrFileDescriptor,
+        data: string | NodeJS.ArrayBufferView,
+      ) => {
+        const s = String(p);
+        mockFiles.set(
+          s,
+          typeof data === "string"
+            ? data
+            : Buffer.from(data.buffer, data.byteOffset, data.byteLength).toString("utf8"),
+        );
+      }) as unknown as typeof fs.writeFileSync),
+    );
+  });
+
+  afterEach(() => {
+    while (spies.length > 0) spies.pop()?.mockRestore();
+  });
+
+  const finding = (
+    id: string,
+    status: "open" | "resolved" = "open",
+    severity: "critical" | "important" = "critical",
+  ): FindingDetail => ({
+    id,
+    requirement_id: "req-01",
+    severity,
+    observation: "Memory leak",
+    evidence: [],
+    remediation: "Add cleanup",
+    revalidation: "bun test",
+    status,
+  });
+
+  const makeResult = (
+    runId: string,
+    round: number,
+    status: "completed" | "rejected" | "failed",
+    critic: "approve" | "request_changes" | "rejected",
+    findings: FindingDetail[] = [],
+    gatePassed = true,
+    summary = "",
+  ): RoundExecutionResult => ({
+    runId,
+    round,
+    status,
+    criticDecision: critic,
+    tasks: [
+      {
+        id: "t1",
+        status: status === "rejected" ? "changes_requested" : "done",
+        writeScope: ["src/"],
+      },
+    ],
+    findings,
+    gateResults: [{ gate_id: "g1", command_id: "c1", status: gatePassed ? "passed" : "failed" }],
+    summary,
+  });
+
+  const exec = (fn: (inp: RoundExecutionInput) => RoundExecutionResult): RoundExecutor => ({
+    executeRound: async (inp) => fn(inp),
+  });
+
   it("converges in Round 1 when implementation is clean, gates pass, and Critic approves", async () => {
     const dir = testDir("r1-converge");
     const rounds: number[] = [];
@@ -86,7 +152,9 @@ describe("AutonomousLoopRunner Unit Tests", () => {
     expect(summary.gateStatus).toBe("passed");
     expect(summary.finalCriticDecision).toBe("approve");
     expect(rounds).toEqual([1]);
-    expect(existsSync(join(dir, ".olt", "capsules", "run-test-r1-loop-summary.json"))).toBe(true);
+    expect(fs.existsSync(join(dir, ".olt", "capsules", "run-test-r1-loop-summary.json"))).toBe(
+      true,
+    );
   });
 
   it("does NOT converge if validation gates failed even if Critic approved", async () => {
@@ -191,11 +259,6 @@ describe("AutonomousLoopRunner Unit Tests", () => {
 
   it("executes orchestrator track, validates options, and forwards watchdog stall events", async () => {
     const dir = testDir("track-opts-stall");
-    Bun.spawnSync(["git", "init", "-b", "main"], { cwd: dir });
-    Bun.spawnSync(["git", "config", "user.email", "test@test.com"], { cwd: dir });
-    Bun.spawnSync(["git", "config", "user.name", "test"], { cwd: dir });
-    Bun.spawnSync(["git", "commit", "--allow-empty", "-m", "init"], { cwd: dir });
-
     const trackSummary = await executeOrchestratorTrack({
       trackId: "track-test",
       repoPath: dir,

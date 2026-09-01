@@ -47,12 +47,24 @@ describe("Smart Tasks Execute Atomic Dispatch Test Suite", () => {
     };
 
     spies.push(
-      spyOn(taskQueueLocks, "acquireTaskQueueFlock").mockImplementation(() => true) as unknown as { mockRestore: () => void },
-      spyOn(taskQueueLocks, "releaseTaskQueueFlock").mockImplementation(() => undefined) as unknown as { mockRestore: () => void },
-      spyOn(platform, "tryExclusiveFlock").mockImplementation(() => true) as unknown as { mockRestore: () => void },
-      spyOn(platform, "releaseFlock").mockImplementation(() => undefined) as unknown as { mockRestore: () => void },
-      spyOn(flockFfi, "tryExclusiveFlock").mockImplementation(() => true) as unknown as { mockRestore: () => void },
-      spyOn(flockFfi, "releaseFlock").mockImplementation(() => undefined) as unknown as { mockRestore: () => void },
+      spyOn(taskQueueLocks, "acquireTaskQueueFlock").mockImplementation(() => true) as unknown as {
+        mockRestore: () => void;
+      },
+      spyOn(taskQueueLocks, "releaseTaskQueueFlock").mockImplementation(
+        () => undefined,
+      ) as unknown as { mockRestore: () => void },
+      spyOn(platform, "tryExclusiveFlock").mockImplementation(() => true) as unknown as {
+        mockRestore: () => void;
+      },
+      spyOn(platform, "releaseFlock").mockImplementation(() => undefined) as unknown as {
+        mockRestore: () => void;
+      },
+      spyOn(flockFfi, "tryExclusiveFlock").mockImplementation(() => true) as unknown as {
+        mockRestore: () => void;
+      },
+      spyOn(flockFfi, "releaseFlock").mockImplementation(() => undefined) as unknown as {
+        mockRestore: () => void;
+      },
       spyOn(fs, "existsSync").mockImplementation(((p: fs.PathLike) => {
         const s = String(p);
         return mockFiles.has(s) || mockDirs.has(s) || origExists(p);
@@ -69,27 +81,64 @@ describe("Smart Tasks Execute Atomic Dispatch Test Suite", () => {
       spyOn(fs, "lstatSync").mockImplementation(((p: fs.PathLike) => {
         const s = String(p);
         const ino = getIno(s);
-        if (mockFiles.has(s)) return { isFile: () => true, isDirectory: () => false, nlink: 1, dev: 1, ino } as unknown as fs.Stats;
+        if (mockFiles.has(s))
+          return {
+            isFile: () => true,
+            isDirectory: () => false,
+            nlink: 1,
+            dev: 1,
+            ino,
+          } as unknown as fs.Stats;
         if (s.endsWith(".jsonl") || s.endsWith(".tmp") || s.includes(".tmp")) {
-          const err = new Error(`ENOENT: no such file or directory, lstat '${s}'`) as Error & { code: string };
+          const err = new Error(`ENOENT: no such file or directory, lstat '${s}'`) as Error & {
+            code: string;
+          };
           err.code = "ENOENT";
           throw err;
         }
-        return { isFile: () => false, isDirectory: () => true, nlink: 1, dev: 1, ino } as unknown as fs.Stats;
+        return {
+          isFile: () => false,
+          isDirectory: () => true,
+          nlink: 1,
+          dev: 1,
+          ino,
+        } as unknown as fs.Stats;
       }) as unknown as typeof fs.lstatSync) as unknown as { mockRestore: () => void },
       spyOn(fs, "fstatSync").mockImplementation(((fd: number) => {
         const s = fdMap.get(fd) ?? "";
         const ino = getIno(s);
-        if (mockFiles.has(s)) return { isFile: () => true, isDirectory: () => false, nlink: 1, dev: 1, ino } as unknown as fs.Stats;
-        return { isFile: () => false, isDirectory: () => true, nlink: 1, dev: 1, ino } as unknown as fs.Stats;
+        if (mockFiles.has(s))
+          return {
+            isFile: () => true,
+            isDirectory: () => false,
+            nlink: 1,
+            dev: 1,
+            ino,
+          } as unknown as fs.Stats;
+        return {
+          isFile: () => false,
+          isDirectory: () => true,
+          nlink: 1,
+          dev: 1,
+          ino,
+        } as unknown as fs.Stats;
       }) as unknown as typeof fs.fstatSync) as unknown as { mockRestore: () => void },
-      spyOn(fs, "writeSync").mockImplementation(((fd: number, buffer: NodeJS.ArrayBufferView, _o?: number, length?: number) => {
+      spyOn(fs, "writeSync").mockImplementation(((
+        fd: number,
+        buffer: NodeJS.ArrayBufferView,
+        _o?: number,
+        length?: number,
+      ) => {
         const s = fdMap.get(fd) ?? "";
-        const text = Buffer.from(buffer.buffer, buffer.byteOffset, buffer.byteLength).toString("utf8");
+        const text = Buffer.from(buffer.buffer, buffer.byteOffset, buffer.byteLength).toString(
+          "utf8",
+        );
         mockFiles.set(s, (mockFiles.get(s) ?? "") + text);
         return length ?? buffer.byteLength;
       }) as unknown as typeof fs.writeSync) as unknown as { mockRestore: () => void },
-      spyOn(fs, "fsyncSync").mockImplementation((() => undefined) as unknown as typeof fs.fsyncSync) as unknown as { mockRestore: () => void },
+      spyOn(fs, "fsyncSync").mockImplementation(
+        (() => undefined) as unknown as typeof fs.fsyncSync,
+      ) as unknown as { mockRestore: () => void },
       spyOn(fs, "renameSync").mockImplementation(((oldP: fs.PathLike, newP: fs.PathLike) => {
         mockFiles.set(String(newP), mockFiles.get(String(oldP)) ?? "");
         mockFiles.delete(String(oldP));
@@ -104,22 +153,35 @@ describe("Smart Tasks Execute Atomic Dispatch Test Suite", () => {
         try {
           return origRead(p as string, "utf8");
         } catch {
-          const err = new Error(`ENOENT: no such file or directory, open '${s}'`) as Error & { code: string };
+          const err = new Error(`ENOENT: no such file or directory, open '${s}'`) as Error & {
+            code: string;
+          };
           err.code = "ENOENT";
           throw err;
         }
       }) as unknown as typeof fs.readFileSync) as unknown as { mockRestore: () => void },
-      spyOn(fs, "writeFileSync").mockImplementation(((p: fs.PathOrFileDescriptor, data: string | NodeJS.ArrayBufferView) => {
+      spyOn(fs, "writeFileSync").mockImplementation(((
+        p: fs.PathOrFileDescriptor,
+        data: string | NodeJS.ArrayBufferView,
+      ) => {
         const s = typeof p === "number" ? (fdMap.get(p) ?? "") : String(p);
-        mockFiles.set(s, typeof data === "string" ? data : Buffer.from(data as Uint8Array).toString("utf-8"));
+        mockFiles.set(
+          s,
+          typeof data === "string" ? data : Buffer.from(data as Uint8Array).toString("utf-8"),
+        );
       }) as unknown as typeof fs.writeFileSync) as unknown as { mockRestore: () => void },
       spyOn(fs, "mkdirSync").mockImplementation(((p: fs.PathLike) => {
         mockDirs.add(String(p));
         return undefined as unknown as string;
       }) as unknown as typeof fs.mkdirSync) as unknown as { mockRestore: () => void },
-      spyOn(durableWriteModule, "atomicWriteBytes").mockImplementation(((targetPath: string, bytes: Uint8Array) => {
+      spyOn(durableWriteModule, "atomicWriteBytes").mockImplementation(((
+        targetPath: string,
+        bytes: Uint8Array,
+      ) => {
         mockFiles.set(targetPath, new TextDecoder().decode(bytes));
-      }) as unknown as typeof durableWriteModule.atomicWriteBytes) as unknown as { mockRestore: () => void },
+      }) as unknown as typeof durableWriteModule.atomicWriteBytes) as unknown as {
+        mockRestore: () => void;
+      },
     );
   });
 
@@ -148,10 +210,30 @@ describe("Smart Tasks Execute Atomic Dispatch Test Suite", () => {
   });
 
   it("atomically admits and dispatches pending feedback items into task queue", () => {
-    ingestFeedbackItem({ title: "Remediate missing export", content: "Export executeAtomicDispatch cleanly", priority: "CRITICAL_USER_FEEDBACK", category: "CORE_ENGINE" }, feedbackFile);
-    ingestFeedbackItem({ title: "Harden validation rules", content: "Enforce anti-batching 1:1 isolation", priority: "HIGH_ARCHITECTURAL_FEATURE", category: "SCALING" }, feedbackFile);
+    ingestFeedbackItem(
+      {
+        title: "Remediate missing export",
+        content: "Export executeAtomicDispatch cleanly",
+        priority: "CRITICAL_USER_FEEDBACK",
+        category: "CORE_ENGINE",
+      },
+      feedbackFile,
+    );
+    ingestFeedbackItem(
+      {
+        title: "Harden validation rules",
+        content: "Enforce anti-batching 1:1 isolation",
+        priority: "HIGH_ARCHITECTURAL_FEATURE",
+        category: "SCALING",
+      },
+      feedbackFile,
+    );
 
-    const result = executeAtomicDispatch({ capsulesDir: feedbackFile, queuePath: taskQueueFile, charterGoals: ["G1", "G2"] });
+    const result = executeAtomicDispatch({
+      capsulesDir: feedbackFile,
+      queuePath: taskQueueFile,
+      charterGoals: ["G1", "G2"],
+    });
     expect(result.synthesized_tasks).toHaveLength(2);
     expect(result.enqueued_tasks).toHaveLength(2);
     expect(result.admitted_feedbacks).toHaveLength(2);
@@ -171,10 +253,23 @@ describe("Smart Tasks Execute Atomic Dispatch Test Suite", () => {
 
   it("honors maxTasks and stages tasks when orchestratorIds are provided", () => {
     for (let i = 1; i <= 5; i++) {
-      ingestFeedbackItem({ title: `Task item ${i}`, content: `Description for task ${i}`, priority: "NORMAL", category: "CORE_ENGINE" }, feedbackFile);
+      ingestFeedbackItem(
+        {
+          title: `Task item ${i}`,
+          content: `Description for task ${i}`,
+          priority: "NORMAL",
+          category: "CORE_ENGINE",
+        },
+        feedbackFile,
+      );
     }
 
-    const result = executeAtomicDispatch({ capsulesDir: feedbackFile, queuePath: taskQueueFile, maxTasks: 3, orchestratorIds: ["orch-alpha", "orch-beta"] });
+    const result = executeAtomicDispatch({
+      capsulesDir: feedbackFile,
+      queuePath: taskQueueFile,
+      maxTasks: 3,
+      orchestratorIds: ["orch-alpha", "orch-beta"],
+    });
     expect(result.synthesized_tasks).toHaveLength(3);
     expect(result.enqueued_tasks).toHaveLength(3);
     expect(result.admitted_feedbacks).toHaveLength(3);
@@ -187,8 +282,23 @@ describe("Smart Tasks Execute Atomic Dispatch Test Suite", () => {
   });
 
   it("accepts explicitly passed feedbackItems in options without reading file", () => {
-    const customFeedbacks = [{ id: "direct-fb-1", title: "Direct Feedback 1", content: "Content 1", priority: "CRITICAL_USER_FEEDBACK" as const, status: "PENDING" as const, category: "CORE_ENGINE" as const, timestamp: new Date().toISOString(), candidate_id: null }];
-    const result = executeAtomicDispatch({ capsulesDir: feedbackFile, queuePath: taskQueueFile, feedbackItems: customFeedbacks });
+    const customFeedbacks = [
+      {
+        id: "direct-fb-1",
+        title: "Direct Feedback 1",
+        content: "Content 1",
+        priority: "CRITICAL_USER_FEEDBACK" as const,
+        status: "PENDING" as const,
+        category: "CORE_ENGINE" as const,
+        timestamp: new Date().toISOString(),
+        candidate_id: null,
+      },
+    ];
+    const result = executeAtomicDispatch({
+      capsulesDir: feedbackFile,
+      queuePath: taskQueueFile,
+      feedbackItems: customFeedbacks,
+    });
     expect(result.synthesized_tasks).toHaveLength(1);
     expect(result.enqueued_tasks).toHaveLength(1);
     expect(result.enqueued_tasks[0]?.id).toBe(result.synthesized_tasks[0]?.id);
@@ -198,11 +308,34 @@ describe("Smart Tasks Execute Atomic Dispatch Test Suite", () => {
     const queue1 = join(testRoot, ".olt", "capsules", "TQ1.jsonl");
     const queue2 = join(testRoot, ".olt", "capsules", "TQ2.jsonl");
     const queue3 = join(testRoot, ".olt", "capsules", "TQ3.jsonl");
-    const directItem = [{ id: "fb-equiv-1", title: "Equivalence Task", content: "Equivalence check", priority: "NORMAL" as const, status: "PENDING" as const, category: "GENERAL" as const, timestamp: new Date().toISOString(), candidate_id: null }];
+    const directItem = [
+      {
+        id: "fb-equiv-1",
+        title: "Equivalence Task",
+        content: "Equivalence check",
+        priority: "NORMAL" as const,
+        status: "PENDING" as const,
+        category: "GENERAL" as const,
+        timestamp: new Date().toISOString(),
+        candidate_id: null,
+      },
+    ];
 
-    const res1 = executeAtomicDispatch({ capsulesDir: feedbackFile, queuePath: queue1, feedbackItems: directItem });
-    const res2 = executeAtomicAdmissionToDispatch({ capsulesDir: feedbackFile, queuePath: queue2, feedbackItems: directItem });
-    const res3 = executeProductOwnerAdmissionAndDispatch({ capsulesDir: feedbackFile, queuePath: queue3, feedbackItems: directItem });
+    const res1 = executeAtomicDispatch({
+      capsulesDir: feedbackFile,
+      queuePath: queue1,
+      feedbackItems: directItem,
+    });
+    const res2 = executeAtomicAdmissionToDispatch({
+      capsulesDir: feedbackFile,
+      queuePath: queue2,
+      feedbackItems: directItem,
+    });
+    const res3 = executeProductOwnerAdmissionAndDispatch({
+      capsulesDir: feedbackFile,
+      queuePath: queue3,
+      feedbackItems: directItem,
+    });
 
     expect(res1.synthesized_tasks.length).toBe(res2.synthesized_tasks.length);
     expect(res1.synthesized_tasks.length).toBe(res3.synthesized_tasks.length);

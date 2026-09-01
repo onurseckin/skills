@@ -1,5 +1,5 @@
-import { describe, expect, test } from "bun:test";
-import { existsSync, rmSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { verifyHtmlReporterTemplatePurity } from "../../../olt/scripts/src/validation/index.ts";
 import {
@@ -12,8 +12,20 @@ import {
   type CoverageSummary,
   type FileCoverageMetric,
 } from "../../../scripts/testing/reporting/index.ts";
+import {
+  cleanupVirtualValidationFS,
+  scratchRoot,
+  setupVirtualValidationFS,
+} from "../validation-fixture.ts";
 
 describe("Defect Remediation: Unterminated template literal TS1160 in scripts/testing/reporting/html/", () => {
+  beforeEach(() => {
+    setupVirtualValidationFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualValidationFS();
+  });
   test("runs automated verification audit function and confirms complete remediation", () => {
     const result = verifyHtmlReporterTemplatePurity();
     expect(result.defectRemediated).toBe(true);
@@ -115,10 +127,8 @@ describe("Defect Remediation: Unterminated template literal TS1160 in scripts/te
     expect(outHtml).toContain("<!DOCTYPE html>");
     expect(outHtml).toContain("test-file.ts");
 
-    const tmpCoverageDir = ".tmp-test-coverage-out";
-    const writtenPath = writeInteractiveHtml(fileMap, summary, process.cwd(), tmpCoverageDir);
+    const tmpCoverageDir = scratchRoot("defect-html-reporter", "coverage");
+    const writtenPath = writeInteractiveHtml(fileMap, summary, tmpCoverageDir, "out");
     expect(existsSync(writtenPath)).toBe(true);
-
-    rmSync(join(process.cwd(), tmpCoverageDir), { recursive: true, force: true });
   });
 });

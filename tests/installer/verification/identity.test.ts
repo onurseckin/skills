@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { canonicalJsonBytes } from "../../../olt/scripts/src/core/json.ts";
@@ -14,8 +14,9 @@ import {
   INSTALL_VERSION,
   SKILL_NAME,
 } from "../../../olt/scripts/src/installer/constants.ts";
-import { cleanInstallerFixtures, installerFixture } from "../helpers.ts";
+import { cleanInstallerFixtures, installerFixture, setupVirtualInstallerFS } from "../helpers.ts";
 
+beforeEach(setupVirtualInstallerFS);
 afterEach(cleanInstallerFixtures);
 
 const validDigest = "b".repeat(64);

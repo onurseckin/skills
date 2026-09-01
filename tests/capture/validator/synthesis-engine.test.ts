@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
@@ -14,9 +14,16 @@ import type {
   ElementPhysicsSnapshot,
   ValidationContext,
 } from "../../../olt/scripts/src/capture/validator/types.ts";
-import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
+import { cleanupVirtualCaptureFS, scratchRoot, setupVirtualCaptureFS } from "../fixture.ts";
 
 describe("Synthesis Engine & Manifest Certification", () => {
+  beforeEach(() => {
+    setupVirtualCaptureFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualCaptureFS();
+  });
   describe("Remediation Generator", () => {
     const knownCategories = [
       "apca-contrast",

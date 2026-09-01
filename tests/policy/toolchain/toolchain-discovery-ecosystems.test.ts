@@ -1,6 +1,7 @@
-import { afterAll, describe, expect, test } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { describe, expect, test, beforeEach, afterEach } from "bun:test";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { cleanupVirtualPolicyFS, setupVirtualPolicyFS } from "../fixture.ts";
 import {
   discoverToolchain,
   generateDefaultRepoPolicy,
@@ -8,10 +9,14 @@ import {
 } from "../../../olt/scripts/src/policy/index.ts";
 
 describe("Toolchain Discovery - Ecosystems (Bun, Node, Cargo, Python, Make)", () => {
-  const scratch = join(process.cwd(), "coverage", "scratch", "toolchain-discovery-ecosystems");
+  const scratch = "/virtual/policy/toolchain/discovery-ecosystems";
 
-  afterAll(() => {
-    rmSync(scratch, { recursive: true, force: true });
+  beforeEach(() => {
+    setupVirtualPolicyFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualPolicyFS();
   });
 
   test("discovers bun toolchain with typescript and custom scripts", () => {

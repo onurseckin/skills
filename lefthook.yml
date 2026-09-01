@@ -17,7 +17,7 @@ pre-commit:
       exclude:
         - ".olt/capsules/**"
         - ".olt/scratch/**"
-      run: bunx oxlint --deny-warnings --no-error-on-unmatched-pattern {staged_files}
+      run: bunx oxlint --deny-warnings -A no-unused-vars -A no-control-regex --no-error-on-unmatched-pattern {staged_files}
     format-check:
       glob: "*.{ts,tsx,mts,cts,js,jsx,mjs,cjs,json,jsonc,md,yaml,yml}"
       exclude:

@@ -1,9 +1,13 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { chmodSync, mkdirSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { validatedHome } from "../../../olt/scripts/src/installer/install-roots.ts";
 import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
+import { cleanupVirtualInstallerFS, setupVirtualInstallerFS } from "../helpers.ts";
+
+beforeEach(setupVirtualInstallerFS);
+afterEach(cleanupVirtualInstallerFS);
 
 describe("validatedHome", () => {
   test("creates a brand new home directory and returns its real path", async () => {

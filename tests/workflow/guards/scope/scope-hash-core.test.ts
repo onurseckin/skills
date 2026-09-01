@@ -1,68 +1,48 @@
-import { describe, expect, test } from "bun:test";
-import { openSync, type Stats } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import {
   hashWriteScope,
   type HashWriteScopeDependencies,
 } from "../../../../olt/scripts/src/workflow/lease/write-scope-hash.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
-const ROOT = process.cwd();
+let vfsCleanup: (() => void) | undefined;
+let vfsInstance: ReturnType<typeof setupWorkflowVirtualFs>["vfs"] | undefined;
+let scopeCounter = 0;
+
+beforeEach(() => {
+  const setup = setupWorkflowVirtualFs();
+  vfsCleanup = setup.cleanup;
+  vfsInstance = setup.vfs;
+});
+
+afterEach(() => {
+  vfsCleanup?.();
+  vfsCleanup = undefined;
+  vfsInstance = undefined;
+});
 
 function createVirtualScope(initialFiles: Record<string, string> = {}) {
-  const fileMap = new Map<string, Buffer>();
-  const descriptors = new Map<number, { buffer: Buffer; position: number }>();
+  const root = `/virtual/scope-core-${++scopeCounter}`;
+  vfsInstance!.mkdirSync(root, { recursive: true });
 
   for (const [relPath, content] of Object.entries(initialFiles)) {
-    fileMap.set(join(ROOT, relPath), Buffer.from(content, "utf8"));
+    const fullPath = join(root, relPath);
+    vfsInstance!.mkdirSync(join(fullPath, ".."), { recursive: true });
+    vfsInstance!.writeFileSync(fullPath, content);
   }
 
-  const dependencies: HashWriteScopeDependencies = {
-    lstat(path: string): Stats {
-      const buf = fileMap.get(path);
-      if (!buf) {
-        throw Object.assign(new Error(`ENOENT: no such file or directory, lstat '${path}'`), {
-          code: "ENOENT",
-        });
-      }
-      return {
-        isFile: () => true,
-        isDirectory: () => false,
-        isSymbolicLink: () => false,
-        size: buf.length,
-      } as unknown as Stats;
-    },
-    open(path: string): number {
-      const buf = fileMap.get(path);
-      if (!buf) {
-        throw Object.assign(new Error(`ENOENT: no such file or directory, open '${path}'`), {
-          code: "ENOENT",
-        });
-      }
-      const fd = openSync(import.meta.filename, "r");
-      descriptors.set(fd, { buffer: buf, position: 0 });
-      return fd;
-    },
-    read(descriptor: number, buffer: Buffer, offset: number, length: number): number {
-      const handle = descriptors.get(descriptor);
-      if (!handle) throw Object.assign(new Error("EBADF: bad descriptor"), { code: "EBADF" });
-      const available = handle.buffer.length - handle.position;
-      if (available <= 0) return 0;
-      const count = Math.min(length, available);
-      handle.buffer.copy(buffer, offset, handle.position, handle.position + count);
-      handle.position += count;
-      return count;
-    },
-  };
-
   return {
-    root: ROOT,
-    dependencies,
+    root,
+    dependencies: {},
     setFile(relPath: string, content: string) {
-      fileMap.set(join(ROOT, relPath), Buffer.from(content, "utf8"));
+      const fullPath = join(root, relPath);
+      vfsInstance!.mkdirSync(join(fullPath, ".."), { recursive: true });
+      vfsInstance!.writeFileSync(fullPath, content);
     },
     deleteFile(relPath: string) {
-      fileMap.delete(join(ROOT, relPath));
+      vfsInstance!.rmSync(join(root, relPath), { force: true });
     },
   };
 }

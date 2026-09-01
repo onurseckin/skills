@@ -1,12 +1,22 @@
-import { describe, expect, it } from "bun:test";
-import { mkdirSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { assertLeaseTokenForFileMutation } from "../../../olt/scripts/src/validation/anti-leak/index.ts";
 import { registerSessionGrant } from "../../../olt/scripts/src/authority/session/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import {
+  cleanupVirtualValidationFS,
+  scratchRoot,
+  setupVirtualValidationFS,
+} from "../validation-fixture.ts";
 
 describe("Mutation Interlock Enforcement", () => {
+  beforeEach(() => {
+    setupVirtualValidationFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualValidationFS();
+  });
+
   it("throws INVALID_ARGUMENT when target file path is empty or whitespace", () => {
     expect(() => assertLeaseTokenForFileMutation("", "tok_live_1234567890")).toThrow(HarnessError);
     expect(() => assertLeaseTokenForFileMutation("   ", "tok_live_1234567890")).toThrow(
@@ -37,11 +47,7 @@ describe("Mutation Interlock Enforcement", () => {
   });
 
   it("permits mutation when a valid token is provided with an authorized active session", () => {
-    const sandboxDir = join(
-      tmpdir(),
-      "mutation-interlock-valid-token-allow-" + Math.random().toString(36).slice(2),
-    );
-    mkdirSync(join(sandboxDir, ".olt", ".sessions"), { recursive: true });
+    const sandboxDir = scratchRoot("mutation-interlock-valid-token-allow", "allow");
 
     const session = registerSessionGrant({
       runRoot: sandboxDir,
@@ -57,8 +63,6 @@ describe("Mutation Interlock Enforcement", () => {
         runRoot: sandboxDir,
       }),
     ).not.toThrow();
-
-    rmSync(sandboxDir, { recursive: true, force: true });
   });
 
   it("rejects mutation when a token has no active registered session (fail-closed)", () => {
@@ -81,11 +85,7 @@ describe("Mutation Interlock Enforcement", () => {
   });
 
   it("rejects file mutation when the authenticated session role cannot edit files", () => {
-    const sandboxDir = join(
-      tmpdir(),
-      "mutation-interlock-val-mutation-block-" + Math.random().toString(36).slice(2),
-    );
-    mkdirSync(join(sandboxDir, ".olt", ".sessions"), { recursive: true });
+    const sandboxDir = scratchRoot("mutation-interlock-val-block", "block");
 
     const session = registerSessionGrant({
       runRoot: sandboxDir,
@@ -108,17 +108,11 @@ describe("Mutation Interlock Enforcement", () => {
     } catch (error: unknown) {
       expect(error).toBeInstanceOf(HarnessError);
       expect((error as HarnessError).code).toBe("PERMISSION_DENIED");
-    } finally {
-      rmSync(sandboxDir, { recursive: true, force: true });
     }
   });
 
   it("rejects file mutation when target file is outside the leased write scope", () => {
-    const sandboxDir = join(
-      tmpdir(),
-      "mutation-interlock-scope-mutation-block-" + Math.random().toString(36).slice(2),
-    );
-    mkdirSync(join(sandboxDir, ".olt", ".sessions"), { recursive: true });
+    const sandboxDir = scratchRoot("mutation-interlock-scope-block", "scope-block");
 
     const session = registerSessionGrant({
       runRoot: sandboxDir,
@@ -140,17 +134,11 @@ describe("Mutation Interlock Enforcement", () => {
     } catch (error: unknown) {
       expect(error).toBeInstanceOf(HarnessError);
       expect((error as HarnessError).code).toBe("PERMISSION_DENIED");
-    } finally {
-      rmSync(sandboxDir, { recursive: true, force: true });
     }
   });
 
   it("permits file mutation when target file is inside the leased write scope", () => {
-    const sandboxDir = join(
-      tmpdir(),
-      "mutation-interlock-scope-mutation-allow-" + Math.random().toString(36).slice(2),
-    );
-    mkdirSync(join(sandboxDir, ".olt", ".sessions"), { recursive: true });
+    const sandboxDir = scratchRoot("mutation-interlock-scope-allow", "scope-allow");
 
     const session = registerSessionGrant({
       runRoot: sandboxDir,
@@ -173,7 +161,5 @@ describe("Mutation Interlock Enforcement", () => {
         runRoot: sandboxDir,
       }),
     ).not.toThrow();
-
-    rmSync(sandboxDir, { recursive: true, force: true });
   });
 });

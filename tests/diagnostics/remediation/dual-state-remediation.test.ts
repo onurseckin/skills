@@ -1,6 +1,5 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -13,30 +12,20 @@ import {
   type DefectEntry,
   type DefectResolutionProof,
 } from "../../../olt/scripts/src/mind/defects/index.ts";
-
-const tempRoots: string[] = [];
-
-afterEach(() => {
-  for (let i = 0; i < tempRoots.length; i += 1) {
-    const r = tempRoots[i];
-    if (r !== undefined) {
-      try {
-        rmSync(r, { recursive: true, force: true });
-      } catch {
-        // Cleanup errors ignored
-      }
-    }
-  }
-  tempRoots.length = 0;
-});
-
-function createTempDir(prefix: string): string {
-  const dir = mkdtempSync(join(tmpdir(), prefix));
-  tempRoots.push(dir);
-  return dir;
-}
+import {
+  cleanupVirtualBrowserFS,
+  setupVirtualBrowserFS,
+  tempDir,
+} from "../../reporting/browser/browser-virtual-fs.ts";
 
 describe("Diagnostics Dual-State Remediation Engine", () => {
+  beforeEach(() => {
+    setupVirtualBrowserFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualBrowserFS();
+  });
   describe("Scenario 1: Main Thread Boundary Violation (Direct Execution)", () => {
     const unhandledDefect: DefectEntry = {
       id: "defect-dual-main-thread-01",
@@ -195,7 +184,7 @@ describe("Diagnostics Dual-State Remediation Engine", () => {
 
   describe("Scenario 4: Multi-Capsule Audit Transition from Defect to Remediated State", () => {
     test("tracks audit aggregation transition across capsule lifecycle", () => {
-      const testDir = createTempDir("dual-state-capsule-");
+      const testDir = tempDir("dual-state-capsule");
       const capsuleDir = join(testDir, "capsule-run-1");
       mkdirSync(capsuleDir, { recursive: true });
 

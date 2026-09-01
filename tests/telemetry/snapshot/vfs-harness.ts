@@ -1,6 +1,7 @@
 import { spyOn } from "bun:test";
 import * as fs from "node:fs";
 import { join, resolve } from "node:path";
+import * as flockFfi from "../../../olt/scripts/src/platform/fs/flock-ffi.ts";
 
 export interface VirtualNode {
   isDir: boolean;
@@ -59,6 +60,9 @@ export class SnapshotVirtualFs {
 
     const m = <T extends object, K extends keyof T>(t: T, k: K, fn: T[K]) =>
       this.spies.push(spyOn(t, k as never).mockImplementation(fn as never));
+
+    m(flockFfi, "tryExclusiveFlock", () => true);
+    m(flockFfi, "releaseFlock", () => {});
 
     m(fs, "existsSync", (p: fs.PathLike) => {
       const s = String(p).replace(/\/+$/, "");

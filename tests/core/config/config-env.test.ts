@@ -1,6 +1,5 @@
-import { describe, expect, it, beforeEach } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { describe, expect, it, beforeEach, afterEach, spyOn } from "bun:test";
+import * as fs from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
@@ -29,13 +28,31 @@ import {
 } from "../../../olt/scripts/src/core/config/cadence.ts";
 import * as CoreConfigIndex from "../../../olt/scripts/src/core/config/index.ts";
 
-function makeTmpDir(prefix: string): string {
-  return mkdtempSync(join(tmpdir(), prefix));
-}
-
 describe("core/config/env.ts", () => {
+  const mockFiles = new Map<string, string>();
+  const mockDirs = new Set<string>();
+  const spies: { mockRestore: () => void }[] = [];
+
   beforeEach(() => {
     resetHarnessConfigCache();
+    mockFiles.clear();
+    mockDirs.clear();
+    spies.push(
+      spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => {
+        const s = String(p);
+        return mockFiles.has(s) || mockDirs.has(s);
+      }),
+      spyOn(fs, "readFileSync").mockImplementation((p: fs.PathOrFileDescriptor) => {
+        const s = String(p);
+        const val = mockFiles.get(s);
+        if (val !== undefined) return val;
+        throw new Error(`ENOENT: no such file, open '${s}'`);
+      }),
+    );
+  });
+
+  afterEach(() => {
+    while (spies.length > 0) spies.pop()?.mockRestore();
   });
 
   it("quotaProvenanceSource resolves source correctly", () => {
@@ -95,28 +112,24 @@ describe("core/config/env.ts", () => {
   });
 
   it("resolveHarnessConfig and getHarnessConfig caching", () => {
-    const tmp = makeTmpDir("resolve-harness-tests-");
-    try {
-      const repoCfg = join(tmp, "harness.config.json");
-      writeFileSync(repoCfg, JSON.stringify({ max_agents: 7, gate_max_parallel: 3 }));
-      const capDir = join(tmp, "capsule");
-      mkdirSync(capDir, { recursive: true });
-      const capCfg = join(capDir, "config.json");
-      writeFileSync(capCfg, JSON.stringify({ default_lease_seconds: 300 }));
+    const vRoot = "/virtual-resolve-harness-tests";
+    const repoCfg = join(vRoot, "harness.config.json");
+    mockFiles.set(repoCfg, JSON.stringify({ max_agents: 7, gate_max_parallel: 3 }));
+    const capDir = join(vRoot, "capsule");
+    mockDirs.add(capDir);
+    const capCfg = join(capDir, "config.json");
+    mockFiles.set(capCfg, JSON.stringify({ default_lease_seconds: 300 }));
 
-      const resolved = resolveHarnessConfig(tmp, capDir, { cpuCount: 8 });
-      expect(resolved.max_agents).toBe(7);
-      expect(resolved.max_active_grants_per_run).toBe(7);
-      expect(resolved.default_lease_seconds).toBe(300);
-      expect(resolved.gate_max_parallel).toBe(3);
+    const resolved = resolveHarnessConfig(vRoot, capDir, { cpuCount: 8 });
+    expect(resolved.max_agents).toBe(7);
+    expect(resolved.max_active_grants_per_run).toBe(7);
+    expect(resolved.default_lease_seconds).toBe(300);
+    expect(resolved.gate_max_parallel).toBe(3);
 
-      const key = cacheKey(tmp, capDir);
-      expect(key).toContain(tmp);
-      const cached = getHarnessConfig(tmp, capDir);
-      expect(cached).toBe(getHarnessConfig(tmp, capDir));
-    } finally {
-      rmSync(tmp, { recursive: true, force: true });
-    }
+    const key = cacheKey(vRoot, capDir);
+    expect(key).toContain(vRoot);
+    const cached = getHarnessConfig(vRoot, capDir);
+    expect(cached).toBe(getHarnessConfig(vRoot, capDir));
   });
 });
 

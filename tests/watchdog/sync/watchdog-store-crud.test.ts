@@ -6,7 +6,7 @@ import type {
   WatchdogRecord,
   WatchdogStore,
 } from "../../../olt/scripts/src/authority/watchdog/index.ts";
-import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
+import { scratchRoot } from "../watchdog-fixture.ts";
 
 describe("WatchdogStore CRUD & Schema Validation", () => {
   it("loads default empty store when target file does not exist", () => {

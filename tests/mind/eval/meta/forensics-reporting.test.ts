@@ -105,7 +105,9 @@ describe("Meta Auditor - Forensics Report & Table Formatters", () => {
       expect(cleanReport).toContain("# Skill Meta-Auditor Deep Behavioral Forensics Report");
       expect(cleanReport).toContain("run-clean-01");
       expect(cleanReport).toContain("CLEAN / OPTIMIZED");
-      expect(cleanReport).toContain("No behavioral deviations, token burning, or concurrency bottlenecks");
+      expect(cleanReport).toContain(
+        "No behavioral deviations, token burning, or concurrency bottlenecks",
+      );
       expect(cleanReport).toContain("No remediation proposals required.");
 
       const deviationResult: ForensicsAnalysisResult = {

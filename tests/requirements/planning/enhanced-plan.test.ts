@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test, spyOn } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import { join } from "node:path";
 import { renderEnhancedPlanMarkdown } from "../../../olt/scripts/src/requirements/enhanced-plan-markdown.ts";
@@ -14,7 +14,7 @@ import {
 } from "../../../olt/scripts/src/requirements/enhanced-plan.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
-import * as durableWriteModule from "../../../olt/scripts/src/core/durable-write.ts";
+import { scratchRoot } from "../requirements-fixture.ts";
 
 function input(overrides: Partial<EnhancedPlanInput> = {}): EnhancedPlanInput {
   return {
@@ -49,31 +49,35 @@ describe("buildEnhancedPlan", () => {
   });
 
   test("omits the summary key entirely rather than writing it as null or undefined", () => {
-    const document = buildEnhancedPlan(input({ observations: ["Found a stray file"] }));
+    const document = buildEnhancedPlan(input({ observations: ["Saw a thing"] }));
+    expect(document.summary).toBeUndefined();
     expect("summary" in document).toBe(false);
   });
 
   test("wraps observations, risks, open questions and sources in agent_reported evidence", () => {
     const document = buildEnhancedPlan(
       input({
-        observations: ["Observed A"],
-        risks: ["Risk A"],
-        openQuestions: ["Question A"],
-        sources: ["src/a.ts"],
+        observations: ["Saw A", "Saw B"],
+        risks: ["Risk 1"],
+        openQuestions: ["Q 1"],
+        sources: ["docs/x.md"],
       }),
     );
     expect(document.observations).toEqual([
-      { value: "Observed A", evidence_class: "agent_reported" },
+      { value: "Saw A", evidence_class: "agent_reported" },
+      { value: "Saw B", evidence_class: "agent_reported" },
     ]);
-    expect(document.risks).toEqual([{ value: "Risk A", evidence_class: "agent_reported" }]);
-    expect(document.open_questions).toEqual([
-      { value: "Question A", evidence_class: "agent_reported" },
-    ]);
-    expect(document.sources).toEqual([{ value: "src/a.ts", evidence_class: "agent_reported" }]);
+    expect(document.risks).toEqual([{ value: "Risk 1", evidence_class: "agent_reported" }]);
+    expect(document.open_questions).toEqual([{ value: "Q 1", evidence_class: "agent_reported" }]);
+    expect(document.sources).toEqual([{ value: "docs/x.md", evidence_class: "agent_reported" }]);
   });
 
   test("todos are numbered sequentially starting at 1, in input order", () => {
-    const document = buildEnhancedPlan(input({ todos: ["First", "Second", "Third"] }));
+    const document = buildEnhancedPlan(
+      input({
+        todos: ["First", "Second", "Third"],
+      }),
+    );
     expect(document.todos).toEqual([
       { id: "todo-1", text: "First", evidence_class: "agent_reported" },
       { id: "todo-2", text: "Second", evidence_class: "agent_reported" },
@@ -83,51 +87,8 @@ describe("buildEnhancedPlan", () => {
 });
 
 describe("writeEnhancedPlan (in-memory virtual)", () => {
-  const mockFiles = new Map<string, Uint8Array>();
-  const mockStats = new Map<string, { mode: number }>();
-  const spies: { mockRestore: () => void }[] = [];
-
-  beforeEach(() => {
-    mockFiles.clear();
-    mockStats.clear();
-
-    spies.push(spyOn(fs, "mkdirSync").mockImplementation(() => undefined as unknown as string));
-    spies.push(
-      spyOn(fs, "readFileSync").mockImplementation((p: fs.PathOrFileDescriptor) => {
-        const val = mockFiles.get(String(p));
-        if (val !== undefined) return Buffer.from(val) as unknown as string & Buffer;
-        throw new Error(`ENOENT: no such file, open '${String(p)}'`);
-      }),
-    );
-    spies.push(
-      spyOn(fs, "statSync").mockImplementation((p: fs.PathLike) => {
-        const val = mockStats.get(String(p));
-        if (val !== undefined) return val as unknown as fs.Stats;
-        return { mode: 0o644 } as unknown as fs.Stats;
-      }),
-    );
-    spies.push(
-      spyOn(durableWriteModule, "atomicWriteBytes").mockImplementation(
-        (targetPath, bytes, options) => {
-          mockFiles.set(targetPath, bytes);
-          const mode =
-            typeof options === "object" &&
-            options !== null &&
-            typeof (options as { mode?: number }).mode === "number"
-              ? (options as { mode?: number }).mode!
-              : 0o644;
-          mockStats.set(targetPath, { mode });
-        },
-      ),
-    );
-  });
-
-  afterEach(() => {
-    while (spies.length > 0) spies.pop()?.mockRestore();
-  });
-
   test("writes both files under planning/, and reports hashes that match what landed on disk", () => {
-    const runRoot = `${process.cwd()}/.olt/virtual-enhanced-plan-run`;
+    const runRoot = scratchRoot(import.meta.path, "write-enhanced-plan");
     const document = buildEnhancedPlan(input({ summary: "Ship it", todos: ["Do the thing"] }));
     const artifacts = writeEnhancedPlan(runRoot, document);
 

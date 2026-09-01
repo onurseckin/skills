@@ -1,8 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { chmod, mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readdir, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import type {
   CommandAttemptRecord,
   CommandRecord,
@@ -12,8 +11,9 @@ import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { embeddedCommandIssues } from "../../../olt/scripts/src/engine/runner/models/command/command-shape.ts";
 import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 import type { AttemptResult } from "../../../olt/scripts/src/engine/runner/types/types.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
-const roots: string[] = [];
+afterEach(cleanupTempRoots);
 const digest = (value: string): string => value.repeat(64).slice(0, 64);
 
 function binding(marker = "a"): RepositoryBinding {
@@ -56,8 +56,7 @@ function success(id: string): AttemptResult {
 }
 
 async function fixture() {
-  const root = await mkdtemp(join(tmpdir(), "trusted-host-observation-"));
-  roots.push(root);
+  const root = tempRoot("trusted-host-observation");
   await mkdir(join(root, "bin"));
   await mkdir(join(root, ".olt", "capsules", "commands"), { recursive: true });
   await writeFile(join(root, "bin", "verify"), "#!/bin/sh\nexit 0\n");
@@ -74,10 +73,6 @@ async function fixture() {
     },
   };
 }
-
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
 
 describe("trusted-host command observations", () => {
   test("rejects gate artifacts outside the fixed top-level harness exclusion", async () => {

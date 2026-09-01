@@ -12,86 +12,67 @@ const vfs = new Map<string, string>();
 const vdirs = new Set<string>();
 let rootCounter = 0;
 const spies: Array<{ mockRestore: () => void }> = [];
-
-const origExists = fs.existsSync.bind(fs);
-const origRead = fs.readFileSync.bind(fs);
-const origWrite = fs.writeFileSync.bind(fs);
-const origMkdir = fs.mkdirSync.bind(fs);
-const origRm = fs.rmSync.bind(fs);
-const origReaddir = fs.readdirSync.bind(fs);
+const norm = (p: fs.PathLike) => String(p).replace(/\/+$/, "");
 
 beforeEach(() => {
+  const oe = fs.existsSync.bind(fs),
+    or = fs.readFileSync.bind(fs),
+    ow = fs.writeFileSync.bind(fs);
+  const om = fs.mkdirSync.bind(fs),
+    orm = fs.rmSync.bind(fs),
+    oreaddir = fs.readdirSync.bind(fs);
+
   spies.push(
-    spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike): boolean => {
-      const s = String(p).replace(/\/+$/, "");
-      if (s.startsWith("/virtual/")) {
-        if (vfs.has(s) || vdirs.has(s)) return true;
-        for (const k of vfs.keys()) {
-          if (k.startsWith(`${s}/`)) return true;
-        }
-        for (const d of vdirs) {
-          if (d.startsWith(`${s}/`)) return true;
-        }
-        return false;
-      }
-      return origExists(p);
+    spyOn(fs, "existsSync").mockImplementation((p) => {
+      const s = norm(p);
+      return s.startsWith("/virtual/")
+        ? vfs.has(s) || vdirs.has(s) || Array.from(vfs.keys()).some((k) => k.startsWith(`${s}/`))
+        : oe(p);
     }),
-    spyOn(fs, "readFileSync").mockImplementation(
-      (p: fs.PathLike, opt?: unknown): string | Buffer => {
-        const s = String(p).replace(/\/+$/, "");
-        if (s.startsWith("/virtual/")) {
-          const content = vfs.get(s);
-          if (content === undefined) {
-            throw new Error(`ENOENT: no such file or directory, open '${s}'`);
-          }
-          if (opt === "utf-8" || opt === "utf8" || (typeof opt === "object" && opt !== null)) {
-            return content;
-          }
-          return Buffer.from(content, "utf-8");
-        }
-        return origRead(p, opt as Parameters<typeof origRead>[1]) as string | Buffer;
-      },
-    ),
-    spyOn(fs, "writeFileSync").mockImplementation(
-      (p: fs.PathLike, data: string | NodeJS.ArrayBufferView): void => {
-        const s = String(p).replace(/\/+$/, "");
-        if (s.startsWith("/virtual/")) {
-          vfs.set(
-            s,
-            typeof data === "string"
-              ? data
-              : Buffer.from(data.buffer, data.byteOffset, data.byteLength).toString("utf-8"),
-          );
-          return;
-        }
-        origWrite(p, data);
-      },
-    ),
-    spyOn(fs, "mkdirSync").mockImplementation((p: fs.PathLike): string | undefined => {
-      const s = String(p).replace(/\/+$/, "");
+    spyOn(fs, "readFileSync").mockImplementation((p, opt) => {
+      const s = norm(p);
+      if (s.startsWith("/virtual/")) {
+        const c = vfs.get(s);
+        if (!c) throw new Error(`ENOENT: ${s}`);
+        return opt === "utf-8" || opt === "utf8" || (typeof opt === "object" && opt)
+          ? c
+          : Buffer.from(c, "utf-8");
+      }
+      return or(p, opt as Parameters<typeof or>[1]);
+    }),
+    spyOn(fs, "writeFileSync").mockImplementation((p, d) => {
+      const s = norm(p);
+      if (s.startsWith("/virtual/")) {
+        vfs.set(
+          s,
+          typeof d === "string"
+            ? d
+            : Buffer.from(d.buffer, d.byteOffset, d.byteLength).toString("utf-8"),
+        );
+        return;
+      }
+      ow(p, d);
+    }),
+    spyOn(fs, "mkdirSync").mockImplementation((p) => {
+      const s = norm(p);
       if (s.startsWith("/virtual/")) {
         vdirs.add(s);
         return undefined;
       }
-      return origMkdir(p) as string | undefined;
+      return om(p) as string | undefined;
     }),
-    spyOn(fs, "rmSync").mockImplementation((p: fs.PathLike): void => {
-      const s = String(p).replace(/\/+$/, "");
+    spyOn(fs, "rmSync").mockImplementation((p) => {
+      const s = norm(p);
       if (s.startsWith("/virtual/")) {
         vfs.delete(s);
         vdirs.delete(s);
-        for (const k of Array.from(vfs.keys())) {
-          if (k.startsWith(`${s}/`)) vfs.delete(k);
-        }
-        for (const d of Array.from(vdirs)) {
-          if (d.startsWith(`${s}/`)) vdirs.delete(d);
-        }
+        for (const k of Array.from(vfs.keys())) if (k.startsWith(`${s}/`)) vfs.delete(k);
         return;
       }
-      origRm(p, { recursive: true, force: true });
+      orm(p, { recursive: true, force: true });
     }),
     spyOn(fs, "readdirSync").mockImplementation((p: fs.PathLike, opt?: unknown): unknown => {
-      const s = String(p).replace(/\/+$/, "");
+      const s = norm(p);
       if (s.startsWith("/virtual/")) {
         const prefix = `${s}/`;
         const entries = new Map<string, boolean>();
@@ -99,15 +80,13 @@ beforeEach(() => {
           if (k.startsWith(prefix) && k.length > prefix.length) {
             const rel = k.slice(prefix.length);
             const firstSeg = rel.split("/")[0]!;
-            const isDir = rel.includes("/");
-            if (!entries.has(firstSeg)) entries.set(firstSeg, isDir);
+            entries.set(firstSeg, rel.includes("/"));
           }
         }
         for (const d of vdirs) {
           if (d.startsWith(prefix) && d.length > prefix.length) {
             const rel = d.slice(prefix.length);
-            const firstSeg = rel.split("/")[0]!;
-            entries.set(firstSeg, true);
+            entries.set(rel.split("/")[0]!, true);
           }
         }
         const withTypes =
@@ -125,7 +104,7 @@ beforeEach(() => {
         }
         return Array.from(entries.keys());
       }
-      return origReaddir(p, opt as Parameters<typeof origReaddir>[1]);
+      return oreaddir(p, opt as Parameters<typeof oreaddir>[1]);
     }),
   );
 });

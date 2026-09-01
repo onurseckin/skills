@@ -8,11 +8,13 @@ import {
   resolveMailboxPaths,
 } from "../../../olt/scripts/src/communication/mailbox/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { cleanupVirtualCommunicationFS, setupVirtualCommunicationFS } from "../helpers.ts";
 
 describe("Mailbox Receipt Collection & Cursor Integration", () => {
   let testRoot: string;
 
   beforeEach(() => {
+    setupVirtualCommunicationFS();
     testRoot = join(
       process.cwd(),
       "coverage",
@@ -43,7 +45,7 @@ describe("Mailbox Receipt Collection & Cursor Integration", () => {
       senderId: "w-1",
       senderRole: "w",
       recipientRoleOrId: "coord-main",
-      messageType: "HANDOFF_RECEIPT",
+      messageType: "DISPATCH_TASK",
       payload: { step: 2 },
       correlationId: "corr-B",
       baseDir: testRoot,
@@ -51,6 +53,7 @@ describe("Mailbox Receipt Collection & Cursor Integration", () => {
   });
 
   afterEach(() => {
+    cleanupVirtualCommunicationFS();
     if (existsSync(testRoot)) rmSync(testRoot, { recursive: true, force: true });
   });
 

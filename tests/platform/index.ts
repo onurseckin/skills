@@ -41,3 +41,10 @@ export {
   verifyAgentRegistration,
   withRunLock,
 } from "./process/index.ts";
+
+export {
+  setupVirtualPlatformFS,
+  cleanupVirtualPlatformFS,
+  getVirtualPlatformFS,
+  scratchRoot,
+} from "./fixture.ts";

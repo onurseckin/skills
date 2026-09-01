@@ -1,14 +1,25 @@
-import { describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterAll, describe, expect, test } from "bun:test";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { inspectRepositoryGitIdentity } from "../../../../olt/scripts/src/packets/repository-git-identity.ts";
 import type { RepositoryGitCommand } from "../../../../olt/scripts/src/packets/repository-git-command.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
+
+const vfs = new VirtualMemoryFS();
+const session = createVirtualFSSession(vfs);
+
+afterAll(() => {
+  session.cleanup();
+  vfs.reset();
+});
 
 function fixtureRepo(prefix: string): { repo: string; gitDir: string } {
-  const repo = realpathSync(mkdtempSync(join(tmpdir(), prefix)));
+  const repo = `/virtual/${prefix}${Math.random().toString(36).slice(2)}`;
   const gitDir = join(repo, ".git");
-  mkdirSync(gitDir);
+  vfs.mkdirSync(gitDir, { recursive: true });
   return { repo, gitDir };
 }
 
@@ -44,7 +55,8 @@ function fullCommand(
 
 describe("inspectRepositoryGitIdentity", () => {
   test("reports unavailable for a directory with no Git metadata at all", () => {
-    const repo = realpathSync(mkdtempSync(join(tmpdir(), "git-identity-no-git-")));
+    const repo = `/virtual/git-identity-no-git-${Math.random().toString(36).slice(2)}`;
+    vfs.mkdirSync(repo, { recursive: true });
     expect(inspectRepositoryGitIdentity(repo)).toEqual({ available: false });
   });
 

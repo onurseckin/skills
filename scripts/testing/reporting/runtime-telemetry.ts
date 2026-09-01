@@ -23,8 +23,7 @@ export function parseDurationToMs(durationStr: string): number {
 }
 
 export function stripAnsi(str: string): string {
-  // eslint-disable-next-line no-control-regex
-  return str.replace(/\x1B\[\d+;?\d*m/g, "");
+  return str.replace(/\u001b\[\d+;?\d*m/gu, "");
 }
 
 export function calculateParetoThreshold(

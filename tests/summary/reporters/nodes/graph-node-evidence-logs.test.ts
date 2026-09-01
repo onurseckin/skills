@@ -1,7 +1,6 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import * as fs from "node:fs";
+import { join, resolve } from "node:path";
 import { generateGraphDataset } from "../../../../olt/scripts/src/summary/graph/index.ts";
 import {
   readLog,
@@ -10,17 +9,85 @@ import {
 } from "../../../../olt/scripts/src/summary/markdown/index.ts";
 import { makeCommand, makeGrant, makeState, makeTask } from "../dag/graph-fixtures.ts";
 
-const roots: string[] = [];
+const vfs = new Map<string, Buffer>();
+const openFds = new Map<number, { path: string; content: Buffer }>();
+let nextFd = 100,
+  rootCounter = 0;
+const spies: Array<{ mockRestore: () => void }> = [];
+const norm = (p: fs.PathLike) => resolve(String(p)).replace(/\/+$/, "");
+
+beforeEach(() => {
+  const oe = fs.existsSync.bind(fs),
+    or = fs.readFileSync.bind(fs),
+    oo = fs.openSync.bind(fs);
+  const ofstat = fs.fstatSync.bind(fs),
+    orsync = fs.readSync.bind(fs),
+    oc = fs.closeSync.bind(fs);
+
+  spies.push(
+    spyOn(fs, "existsSync").mockImplementation((p) => {
+      const s = norm(p);
+      return s.startsWith("/virtual/") ? vfs.has(s) : oe(p);
+    }),
+    spyOn(fs, "readFileSync").mockImplementation((p, opt) => {
+      const s = norm(p);
+      if (s.startsWith("/virtual/")) {
+        const c = vfs.get(s);
+        if (!c) throw new Error(`ENOENT: ${s}`);
+        return opt === "utf-8" || opt === "utf8" || (typeof opt === "object" && opt)
+          ? c.toString("utf-8")
+          : c;
+      }
+      return or(p, opt as Parameters<typeof or>[1]);
+    }),
+    spyOn(fs, "openSync").mockImplementation((p, f) => {
+      const s = norm(p);
+      if (s.startsWith("/virtual/")) {
+        const c = vfs.get(s);
+        if (!c) throw new Error(`ENOENT: ${s}`);
+        const fd = ++nextFd;
+        openFds.set(fd, { path: s, content: c });
+        return fd;
+      }
+      return oo(p, f);
+    }),
+    spyOn(fs, "fstatSync").mockImplementation((fd) => {
+      const f = openFds.get(fd);
+      if (f)
+        return {
+          size: f.content.length,
+          isFile: () => true,
+          isDirectory: () => false,
+          isSymbolicLink: () => false,
+        } as unknown as fs.Stats;
+      return ofstat(fd);
+    }),
+    spyOn(fs, "readSync").mockImplementation((fd, buf, off = 0, len = buf.byteLength, pos = 0) => {
+      const f = openFds.get(fd);
+      if (f) {
+        const p = typeof pos === "number" ? pos : 0;
+        const slice = f.content.subarray(p, p + len);
+        slice.copy(Buffer.from(buf.buffer, buf.byteOffset, buf.byteLength), off);
+        return slice.length;
+      }
+      return orsync(fd, buf, off, len, pos);
+    }),
+    spyOn(fs, "closeSync").mockImplementation((fd) =>
+      openFds.has(fd) ? (openFds.delete(fd), undefined) : oc(fd),
+    ),
+  );
+});
+
 afterEach(() => {
-  for (const root of roots) rmSync(root, { recursive: true, force: true });
-  roots.length = 0;
+  for (const s of spies.splice(0)) s.mockRestore();
+  vfs.clear();
+  openFds.clear();
 });
 
 function runRootWithStdout(contents: string): string {
-  const root = mkdtempSync(join(tmpdir(), "node-evidence-"));
-  roots.push(root);
-  mkdirSync(join(root, "commands", "C-1"), { recursive: true });
-  writeFileSync(join(root, "commands", "C-1", "stdout.log"), contents);
+  rootCounter += 1;
+  const root = `/virtual/node-evidence-${rootCounter}`;
+  vfs.set(join(root, "commands", "C-1", "stdout.log"), Buffer.from(contents, "utf-8"));
   return root;
 }
 

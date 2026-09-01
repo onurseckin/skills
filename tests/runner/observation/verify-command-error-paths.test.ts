@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, readFile, rm, unlink, writeFile } from "node:fs/promises";
+import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { relative, join, sep } from "node:path";
-import { tmpdir } from "node:os";
 import type {
   CommandAttemptRecord,
   CommandRecord,
@@ -23,12 +22,9 @@ import {
   verifyCommandAttempt,
   verifyCommandRecord,
 } from "../../../olt/scripts/src/engine/runner/signing/verify-command.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
-const roots: string[] = [];
-
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
+afterEach(cleanupTempRoots);
 
 function portable(root: string, path: string): string {
   return relative(root, path).split(sep).join("/");
@@ -52,8 +48,7 @@ function binding(): RepositoryBinding {
 }
 
 async function succeededFixture(name: string): Promise<{ runRoot: string; stored: CommandRecord }> {
-  const repositoryRoot = await mkdtemp(join(tmpdir(), name));
-  roots.push(repositoryRoot);
+  const repositoryRoot = tempRoot(name);
   await mkdir(join(repositoryRoot, "bin"));
   await writeFile(join(repositoryRoot, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
   const runRoot = join(repositoryRoot, ".olt", "capsules", "run");

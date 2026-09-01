@@ -1,15 +1,17 @@
 import { describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { readAgentTranscriptTelemetry } from "../../../../olt/scripts/src/workflow/agents/transcript-telemetry.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 function withTempDir<T>(fn: (dir: string) => T): T {
-  const dir = mkdtempSync(join(tmpdir(), "transcript-test-"));
+  const { vfs, cleanup } = setupWorkflowVirtualFs();
   try {
+    const dir = "/virtual/tmp/transcript-test-replay";
+    vfs.mkdirSync(dir, { recursive: true });
     return fn(dir);
   } finally {
-    rmSync(dir, { recursive: true, force: true });
+    cleanup();
   }
 }
 

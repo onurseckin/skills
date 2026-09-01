@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import {
   captureSnapshot,
@@ -13,28 +12,23 @@ import {
   createServerLifecycleManager,
 } from "../../../olt/scripts/src/server/lifecycle/coordinator.ts";
 import type { PortConfiguration } from "../../../olt/scripts/src/server/lifecycle/types.ts";
-import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
+import { cleanupVirtualServerFS, scratchRoot, setupVirtualServerFS } from "../fixture.ts";
 
 describe("Dev Server Lifecycle Subsystem - Health & Shutdown Coordinator", () => {
-  const roots: string[] = [];
   let testDir: string;
   let testLockPath: string;
   let testSnapshotPath: string;
 
   beforeEach(() => {
-    testDir = scratchRoot(import.meta.path, "server-lifecycle-health");
-    roots.push(testDir);
+    setupVirtualServerFS();
+    testDir = scratchRoot("server-lifecycle-health", "health");
     testLockPath = join(testDir, "test-server-restart.lock");
     testSnapshotPath = join(testDir, "test-server-state.json");
   });
 
   afterEach(async () => {
     await forceReleaseLock(testLockPath);
-    for (const root of roots.splice(0)) {
-      if (existsSync(root)) {
-        rmSync(root, { recursive: true, force: true });
-      }
-    }
+    cleanupVirtualServerFS();
   });
 
   describe("Graceful Shutdown Coordinator", () => {

@@ -11,7 +11,7 @@
     {
       "rule": "line_limit",
       "path": "olt/scripts/src/authority/manifest/loader.ts",
-      "observed": 336,
+      "observed": 335,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
@@ -130,7 +130,7 @@
     {
       "rule": "line_limit",
       "path": "olt/scripts/src/cli/commands/smart-task-ops.ts",
-      "observed": 437,
+      "observed": 435,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
@@ -270,7 +270,7 @@
     {
       "rule": "line_limit",
       "path": "olt/scripts/src/logging/defects/dedup.ts",
-      "observed": 370,
+      "observed": 368,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
@@ -522,21 +522,35 @@
     {
       "rule": "line_limit",
       "path": "olt/scripts/src/testing/concurrency-lock.ts",
-      "observed": 579,
+      "observed": 431,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
     {
       "rule": "line_limit",
       "path": "olt/scripts/src/testing/isolation.ts",
-      "observed": 444,
+      "observed": 370,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
     {
       "rule": "line_limit",
       "path": "olt/scripts/src/testing/scoped-execution.ts",
-      "observed": 550,
+      "observed": 405,
+      "limit": 300,
+      "detail": "File exceeds the 300 physical-line limit."
+    },
+    {
+      "rule": "line_limit",
+      "path": "olt/scripts/src/testing/virtual-fs/handlers.ts",
+      "observed": 452,
+      "limit": 300,
+      "detail": "File exceeds the 300 physical-line limit."
+    },
+    {
+      "rule": "line_limit",
+      "path": "olt/scripts/src/testing/virtual-fs/spies.ts",
+      "observed": 586,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
@@ -578,7 +592,7 @@
     {
       "rule": "line_limit",
       "path": "olt/scripts/src/workflow/agents/transcript-telemetry.ts",
-      "observed": 331,
+      "observed": 332,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
@@ -598,1849 +612,106 @@
     },
     {
       "rule": "line_limit",
-      "path": "tests/e2e/mind/orchestrator-lifecycle-reconciliation.test.ts",
-      "observed": 339,
+      "path": "tests/config/loader/harness-config-precedence.test.ts",
+      "observed": 337,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
     {
       "rule": "line_limit",
-      "path": "tests/e2e/orchestrator/straggler-concurrency.test.ts",
-      "observed": 327,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/e2e/server-guard.test.ts",
-      "observed": 311,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/e2e/store/storage-delta-journaling.test.ts",
-      "observed": 310,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/integration/cognitive-auditors-e2e.test.ts",
-      "observed": 496,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/integration/server-conflict.test.ts",
-      "observed": 493,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/agents/agent-naming-integration.test.ts",
-      "observed": 407,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/agents/agent-reset.test.ts",
-      "observed": 363,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/agents/telemetry-merge.test.ts",
-      "observed": 315,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/agents/whoami-profiling.test.ts",
-      "observed": 376,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/authority/manifest-comprehensive.test.ts",
-      "observed": 365,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/authority/manifest-parser.test.ts",
-      "observed": 1773,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/authority/persona-grounding.test.ts",
-      "observed": 809,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/authority/rbac/command-authorizer.test.ts",
-      "observed": 354,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/authority/review-pushback.test.ts",
-      "observed": 710,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/authority/session-comprehensive.test.ts",
-      "observed": 578,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/authority/session-registry.test.ts",
-      "observed": 1245,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/authority/singleton-auditor-guard.test.ts",
-      "observed": 386,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/authority/supervisory.test.ts",
-      "observed": 369,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/authority/thread-identifier.test.ts",
-      "observed": 863,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/authority/verbatim-role-injector.test.ts",
-      "observed": 491,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/authority/watchdog-manager.test.ts",
-      "observed": 1764,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/capture/browser-pool.test.ts",
-      "observed": 576,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/capture/focus-ring-optical.test.ts",
-      "observed": 912,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/capture/layout-shift-tracker.test.ts",
-      "observed": 939,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/capture/persona-registry.test.ts",
-      "observed": 450,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/capture/runner-manifest.test.ts",
-      "observed": 384,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/capture/runners/dom-event-simulator.test.ts",
-      "observed": 795,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/capture/runners/dom-physics-extractor.test.ts",
-      "observed": 522,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/capture/runners/layout-shift-tracker.test.ts",
-      "observed": 820,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/capture/runners/live-capture-runner.test.ts",
-      "observed": 451,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/capture/runners/session-auth-resolver.test.ts",
-      "observed": 368,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/capture/validator/cognitive.test.ts",
-      "observed": 675,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/capture/validator/custom.test.ts",
-      "observed": 647,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/capture/validator/focus-ring-optical.test.ts",
-      "observed": 502,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/capture/validator/mechanical.test.ts",
-      "observed": 700,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/capture/validator/synthesis.test.ts",
-      "observed": 306,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/agent-ops-command.test.ts",
-      "observed": 669,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/branch-ops-command.test.ts",
-      "observed": 423,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/briefing.test.ts",
-      "observed": 364,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/critic-ready-fixture.ts",
-      "observed": 316,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/critic-remediate.test.ts",
-      "observed": 312,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/critic-start-review.test.ts",
-      "observed": 481,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/dag-view.test.ts",
-      "observed": 1092,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/defect-audit-all.test.ts",
-      "observed": 607,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/diagnostics-ops-command.test.ts",
-      "observed": 362,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/gate-prove-command.test.ts",
-      "observed": 339,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/inspection-ops-command.test.ts",
-      "observed": 304,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/meta-audit.test.ts",
-      "observed": 494,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/mind-admit-candidate.test.ts",
-      "observed": 568,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/mind-pulse-ops.test.ts",
-      "observed": 397,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/msg-commands.test.ts",
-      "observed": 375,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/msg-ops.test.ts",
-      "observed": 313,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/next-actions.test.ts",
-      "observed": 667,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/orchestrate-command.test.ts",
-      "observed": 372,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/orchestrator-ops.test.ts",
-      "observed": 308,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/plan-add-single-task.test.ts",
-      "observed": 315,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/plan-brainstorm-command.test.ts",
-      "observed": 438,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/plan-compile-replan.test.ts",
-      "observed": 403,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/plan-formatter.test.ts",
-      "observed": 374,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/plan-replan-helpers.test.ts",
-      "observed": 459,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/plan-validate.test.ts",
-      "observed": 446,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/queue-run-summary.test.ts",
-      "observed": 383,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/run-ops.test.ts",
-      "observed": 523,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/server-ops.test.ts",
-      "observed": 366,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/shell-interlock.test.ts",
-      "observed": 616,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/surface-split.test.ts",
-      "observed": 318,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/task-brief.test.ts",
-      "observed": 523,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/task-check.test.ts",
-      "observed": 460,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/task-claim-submit.test.ts",
-      "observed": 754,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/task-commands.test.ts",
-      "observed": 310,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/task-reject-repair.test.ts",
-      "observed": 676,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/task-review-dual-channel.test.ts",
-      "observed": 895,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/task-review-support.test.ts",
-      "observed": 433,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/task-validate-probe-review.test.ts",
-      "observed": 548,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/todo-ops.test.ts",
-      "observed": 840,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/unified-reporting.test.ts",
-      "observed": 511,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/watchdog-ops.test.ts",
-      "observed": 460,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/cli/whoami.test.ts",
-      "observed": 387,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/communication/cursor-tracker.test.ts",
-      "observed": 318,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/communication/safe-lock.test.ts",
-      "observed": 409,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/config/harness-config.test.ts",
-      "observed": 430,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/contracts/branch.test.ts",
-      "observed": 302,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/contracts/formatters.test.ts",
-      "observed": 383,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/contracts/shared-paths.test.ts",
-      "observed": 397,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/core/config.test.ts",
-      "observed": 690,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/core/contracts.test.ts",
-      "observed": 507,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/core/dual-time.test.ts",
-      "observed": 1030,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/core/durable-runtime.test.ts",
-      "observed": 435,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/core/epistemic/query-optimizer.test.ts",
-      "observed": 339,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/core/epistemic/state-replay.test.ts",
-      "observed": 366,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/core/safe-fs.test.ts",
-      "observed": 356,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/core/scheduling/cognitive-schedulers.test.ts",
-      "observed": 473,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/defects/defect-pipeline.test.ts",
-      "observed": 1029,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/defects/lifecycle-sync.test.ts",
-      "observed": 315,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/doctor/adversarial-doctor.test.ts",
-      "observed": 424,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/doctor/tier-confinement.test.ts",
-      "observed": 427,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/doctor/unified-master-doctor-engines.test.ts",
-      "observed": 436,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/engine/domain-sync-ledger.test.ts",
-      "observed": 365,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/engine/runner/run-command-execution.test.ts",
-      "observed": 687,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/engine/scheduler/reporting/scheduler-live-push.test.ts",
-      "observed": 813,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/engine/scheduler/scheduler-core-state.test.ts",
-      "observed": 407,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/graph/dag-expansion.test.ts",
-      "observed": 577,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/graph/dag-forensics.test.ts",
-      "observed": 567,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/graph/dynamic-expansion.test.ts",
-      "observed": 312,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/graph/gate-proof.test.ts",
-      "observed": 694,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/graph/parallel-decoupler.test.ts",
-      "observed": 524,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/graph/sugiyama.test.ts",
-      "observed": 333,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/health/intent.test.ts",
-      "observed": 340,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/heuristics/heuristics-edge-cases.test.ts",
-      "observed": 1486,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/hooks/lifecycle-hooks.test.ts",
-      "observed": 1210,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/installer/release-actions.test.ts",
-      "observed": 440,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/installer/release-recovery.test.ts",
-      "observed": 418,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/installer/release-transaction.test.ts",
-      "observed": 344,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/linter/ast-enforcer.test.ts",
-      "observed": 781,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/logging/defect-logger.test.ts",
-      "observed": 546,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/admission-gates.test.ts",
-      "observed": 897,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/admission-negative.test.ts",
-      "observed": 1950,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/anti-batching-pipeline.test.ts",
-      "observed": 677,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/audit-planted.test.ts",
-      "observed": 1410,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/audit.test.ts",
-      "observed": 802,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/auditing-exhaustive.test.ts",
-      "observed": 741,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/auditing-hardening-invariants.test.ts",
-      "observed": 336,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/auditor-liveness-and-scope.test.ts",
-      "observed": 397,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/briefing-builder.test.ts",
-      "observed": 723,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/budget.test.ts",
-      "observed": 901,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/cadence-rollover.test.ts",
-      "observed": 845,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/cli-mind-commands-exhaustive.test.ts",
-      "observed": 979,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/completed-tasks.test.ts",
-      "observed": 952,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/counterfactual.test.ts",
-      "observed": 579,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/damage.test.ts",
-      "observed": 975,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/defects-sync-loop-exhaustive.test.ts",
-      "observed": 468,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/defects.test.ts",
-      "observed": 880,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/digest.test.ts",
-      "observed": 505,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/dynamic-roles.test.ts",
-      "observed": 634,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/feedback-queue.test.ts",
-      "observed": 694,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/generational-archival.test.ts",
-      "observed": 1355,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/governance/policy-discovery.test.ts",
-      "observed": 688,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/hierarchy-deploy.test.ts",
-      "observed": 463,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/hierarchy-regression.test.ts",
-      "observed": 644,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/hyper-cognition.test.ts",
-      "observed": 597,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/lane-repair.test.ts",
-      "observed": 525,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/lane-rescue.test.ts",
-      "observed": 759,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/lane-selector.test.ts",
-      "observed": 559,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/lifecycle-governance-exhaustive.test.ts",
-      "observed": 361,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/lifecycle/orchestrator-ledger.test.ts",
+      "path": "tests/core/contracts/type-safety.test.ts",
       "observed": 323,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
     {
       "rule": "line_limit",
-      "path": "tests/mind/memory.test.ts",
-      "observed": 703,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/meta-auditor.test.ts",
-      "observed": 1572,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/mind-init.test.ts",
-      "observed": 451,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/mind-product-manager.test.ts",
-      "observed": 468,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/mind-pulse-open.test.ts",
-      "observed": 683,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/mind-rotate.test.ts",
-      "observed": 541,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/mind-stagnation-auditor.test.ts",
-      "observed": 343,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/mind-wake.test.ts",
-      "observed": 468,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/plan-91-dynamic-hierarchy.test.ts",
-      "observed": 366,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/plan-revision.test.ts",
-      "observed": 794,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/product-owner-dispatch.test.ts",
-      "observed": 765,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/proposals.test.ts",
-      "observed": 607,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/pulse-lifecycle-and-rotate-grant.test.ts",
-      "observed": 327,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/pulse-reclaim.test.ts",
-      "observed": 537,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/pulse-sh.test.ts",
-      "observed": 331,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/quiesce.test.ts",
-      "observed": 626,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/recycler.test.ts",
-      "observed": 872,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/remote-safety.test.ts",
-      "observed": 317,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/role-auditing.test.ts",
-      "observed": 470,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/role-boundary-watchdog.test.ts",
-      "observed": 453,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/rounds.test.ts",
-      "observed": 794,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/smart-task-manager.test.ts",
-      "observed": 1089,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/soak-injections.test.ts",
-      "observed": 1140,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/sources.test.ts",
-      "observed": 716,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/strategic-purpose.test.ts",
-      "observed": 366,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/task-discovery.test.ts",
-      "observed": 584,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/todo-storage.test.ts",
-      "observed": 400,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/value.test.ts",
-      "observed": 481,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/mind/witness.test.ts",
-      "observed": 737,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/orchestrator/background-finalization.test.ts",
-      "observed": 557,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/orchestrator/completion-audio.test.ts",
-      "observed": 416,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/orchestrator/loop-runner.test.ts",
-      "observed": 362,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/orchestrator/multi-capsule.test.ts",
-      "observed": 500,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/orchestrator/topology-synthesis.test.ts",
-      "observed": 546,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/packets/capsule-memory.test.ts",
-      "observed": 491,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/packets/cli-query-integration.test.ts",
-      "observed": 350,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/packets/command-authority-edges.test.ts",
-      "observed": 440,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/packets/command-authority-fail-closed.test.ts",
-      "observed": 936,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/packets/command-authority.test.ts",
-      "observed": 578,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/packets/decoupled-memory.test.ts",
-      "observed": 505,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/packets/dynamic-steps.test.ts",
-      "observed": 344,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/packets/rich-instructions.test.ts",
-      "observed": 339,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/packets/role-frontmatter.test.ts",
-      "observed": 359,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/packets/ultra-lean-packet.test.ts",
-      "observed": 707,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/packets/validation-round-context.test.ts",
-      "observed": 535,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/plan/pre-enhancer.test.ts",
-      "observed": 652,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/platform/host-adapters.test.ts",
-      "observed": 329,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/policy/hooks/lifecycle-hooks-engine.test.ts",
-      "observed": 351,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/policy/repo-policy-detect.test.ts",
-      "observed": 334,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/policy/repo-policy-io.test.ts",
-      "observed": 339,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/policy/toolchain-auto-discovery.test.ts",
-      "observed": 302,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/reporting/core/unified/unified-setup.test.ts",
-      "observed": 339,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/reporting/coverage-reporting.test.ts",
-      "observed": 638,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/reporting/handoff/handoff-argv-registry.test.ts",
-      "observed": 418,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/reporting/sugiyama-dag.test.ts",
-      "observed": 359,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/reporting/visuals/dag/sugiyama-dag-subagent-expansion-core.test.ts",
-      "observed": 423,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/runtime/agent-metadata.test.ts",
-      "observed": 422,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/scripts/coverage-reporting.test.ts",
-      "observed": 443,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/server/docker-inspector.test.ts",
-      "observed": 457,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/server/process-reclaimer.test.ts",
-      "observed": 563,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/server/server-lifecycle.test.ts",
-      "observed": 513,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/server/tcp-probe.test.ts",
-      "observed": 309,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/store/state/projection-patch.test.ts",
-      "observed": 304,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/summary/graph-branch-subgraph.test.ts",
-      "observed": 304,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/summary/graph-node-evidence.test.ts",
-      "observed": 357,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/summary/graph-validator-nodes.test.ts",
-      "observed": 332,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/summary/host-telemetry.test.ts",
-      "observed": 317,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/summary/markdown-fixtures.ts",
-      "observed": 393,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/summary/markdown-formatter-topology.test.ts",
-      "observed": 375,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/summary/timeline-collector.test.ts",
-      "observed": 457,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/task/pushback-path.test.ts",
-      "observed": 308,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/task/queue/task-queue-comprehensive.test.ts",
-      "observed": 774,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/task/queue/task-queue.test.ts",
-      "observed": 909,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/task/queue/transitions.test.ts",
-      "observed": 310,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/tasks/review-pushback.test.ts",
-      "observed": 639,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/telemetry/circuit-breaker.test.ts",
-      "observed": 619,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/telemetry/collectors.test.ts",
-      "observed": 1110,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/telemetry/dag-snapshot.test.ts",
-      "observed": 424,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/telemetry/engine.test.ts",
-      "observed": 541,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/telemetry/quota-lifecycle.test.ts",
-      "observed": 452,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/test-isolation.test.ts",
-      "observed": 329,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/testing/concurrency-lock.test.ts",
-      "observed": 389,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/testing/coverage-reporting.test.ts",
-      "observed": 482,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/testing/scoped-execution.test.ts",
-      "observed": 364,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/testing/test-changed.test.ts",
-      "observed": 346,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/tooling/schema-security.test.ts",
-      "observed": 343,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/tooling/tool-registry.test.ts",
-      "observed": 391,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/validation/anti-batching.test.ts",
-      "observed": 757,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/validation/anti-leak.test.ts",
-      "observed": 613,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/validation/anti-mock-engine.test.ts",
-      "observed": 718,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/validation/dual-channel-analyzer.test.ts",
-      "observed": 1114,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/validation/dual-channel-negative-bounds.test.ts",
-      "observed": 313,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/validation/dual-ui-validators.test.ts",
-      "observed": 542,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/validation/validator-hardlock.test.ts",
-      "observed": 639,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/validation/validator-specialization.test.ts",
-      "observed": 636,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/watchdog/process-timeout.test.ts",
-      "observed": 721,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/watchdog/reactive-wakeups.test.ts",
-      "observed": 540,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/watchdog/watchdog-timer.test.ts",
-      "observed": 752,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/workflow/agents/grants.test.ts",
-      "observed": 672,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/workflow/agents/telemetry-merge.test.ts",
-      "observed": 459,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/workflow/agents/transcript-telemetry.test.ts",
-      "observed": 328,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/workflow/authority-decisions.test.ts",
-      "observed": 308,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/workflow/branch/repository-observation.test.ts",
-      "observed": 302,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/workflow/branch/sub-tasks.test.ts",
+      "path": "tests/core/fs/durable-runtime-core.test.ts",
       "observed": 342,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
     {
       "rule": "line_limit",
-      "path": "tests/workflow/completion/auto-sync-and-commit.test.ts",
-      "observed": 313,
+      "path": "tests/core/fs/durable-runtime-flock.test.ts",
+      "observed": 511,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
     {
       "rule": "line_limit",
-      "path": "tests/workflow/gates-completion.test.ts",
-      "observed": 310,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/workflow/heuristics-workflow.test.ts",
-      "observed": 828,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/workflow/micro-cycle.test.ts",
-      "observed": 513,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/workflow/mutation-interlock.test.ts",
-      "observed": 332,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/workflow/plan-review.test.ts",
-      "observed": 449,
-      "limit": 300,
-      "detail": "File exceeds the 300 physical-line limit."
-    },
-    {
-      "rule": "line_limit",
-      "path": "tests/workflow/review/probe.test.ts",
+      "path": "tests/core/fs/safe-fs-atomic.test.ts",
       "observed": 339,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
     {
       "rule": "line_limit",
-      "path": "tests/workflow/sync-workflow.test.ts",
-      "observed": 710,
+      "path": "tests/core/paths/json-paths.test.ts",
+      "observed": 313,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
     {
       "rule": "line_limit",
-      "path": "tests/workflow/task-check.test.ts",
-      "observed": 1097,
+      "path": "tests/graph/audit/plan-audit-a7-a8.test.ts",
+      "observed": 362,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
     {
       "rule": "line_limit",
-      "path": "tests/workflow/worktree.test.ts",
-      "observed": 380,
+      "path": "tests/graph/validation/fixtures.ts",
+      "observed": 325,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
     {
       "rule": "line_limit",
-      "path": "tests/workflow/worktree/consolidate.test.ts",
-      "observed": 311,
+      "path": "tests/mind/synthesis/smart-tasks/execute-atomic-dispatch.test.ts",
+      "observed": 394,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
     {
       "rule": "line_limit",
-      "path": "tests/workflow/worktree/git-ops.test.ts",
-      "observed": 322,
+      "path": "tests/orchestrator/stragglers/companion-auditor.test.ts",
+      "observed": 327,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
     {
       "rule": "line_limit",
-      "path": "tests/workflow/worktree/provision.test.ts",
-      "observed": 341,
+      "path": "tests/summary/reporters/dag/graph-browser-tests.test.ts",
+      "observed": 323,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
     {
       "rule": "line_limit",
-      "path": "tests/workflow/write-scope-hash.test.ts",
-      "observed": 375,
+      "path": "tests/summary/reporters/dag/graph-run-facts.test.ts",
+      "observed": 307,
+      "limit": 300,
+      "detail": "File exceeds the 300 physical-line limit."
+    },
+    {
+      "rule": "line_limit",
+      "path": "tests/summary/reporters/nodes/graph-asset-completeness.test.ts",
+      "observed": 384,
+      "limit": 300,
+      "detail": "File exceeds the 300 physical-line limit."
+    },
+    {
+      "rule": "line_limit",
+      "path": "tests/telemetry/quota/vfs-harness.ts",
+      "observed": 318,
+      "limit": 300,
+      "detail": "File exceeds the 300 physical-line limit."
+    },
+    {
+      "rule": "line_limit",
+      "path": "tests/workflow/shared/virtual-fs-spies.ts",
+      "observed": 410,
       "limit": 300,
       "detail": "File exceeds the 300 physical-line limit."
     },
@@ -2630,160 +901,6 @@
       "rule": "directory_fanout",
       "path": "olt/scripts/src/workflow/review",
       "observed": 15,
-      "limit": 10,
-      "detail": "Directory exceeds the 10 direct-file limit."
-    },
-    {
-      "rule": "directory_fanout",
-      "path": "tests/agents",
-      "observed": 16,
-      "limit": 10,
-      "detail": "Directory exceeds the 10 direct-file limit."
-    },
-    {
-      "rule": "directory_fanout",
-      "path": "tests/authority",
-      "observed": 25,
-      "limit": 10,
-      "detail": "Directory exceeds the 10 direct-file limit."
-    },
-    {
-      "rule": "directory_fanout",
-      "path": "tests/capture",
-      "observed": 17,
-      "limit": 10,
-      "detail": "Directory exceeds the 10 direct-file limit."
-    },
-    {
-      "rule": "directory_fanout",
-      "path": "tests/cli",
-      "observed": 119,
-      "limit": 10,
-      "detail": "Directory exceeds the 10 direct-file limit."
-    },
-    {
-      "rule": "directory_fanout",
-      "path": "tests/contracts",
-      "observed": 21,
-      "limit": 10,
-      "detail": "Directory exceeds the 10 direct-file limit."
-    },
-    {
-      "rule": "directory_fanout",
-      "path": "tests/core",
-      "observed": 14,
-      "limit": 10,
-      "detail": "Directory exceeds the 10 direct-file limit."
-    },
-    {
-      "rule": "directory_fanout",
-      "path": "tests/doctor",
-      "observed": 27,
-      "limit": 10,
-      "detail": "Directory exceeds the 10 direct-file limit."
-    },
-    {
-      "rule": "directory_fanout",
-      "path": "tests/engine",
-      "observed": 13,
-      "limit": 10,
-      "detail": "Directory exceeds the 10 direct-file limit."
-    },
-    {
-      "rule": "directory_fanout",
-      "path": "tests/graph",
-      "observed": 48,
-      "limit": 10,
-      "detail": "Directory exceeds the 10 direct-file limit."
-    },
-    {
-      "rule": "directory_fanout",
-      "path": "tests/health",
-      "observed": 16,
-      "limit": 10,
-      "detail": "Directory exceeds the 10 direct-file limit."
-    },
-    {
-      "rule": "directory_fanout",
-      "path": "tests/installer",
-      "observed": 26,
-      "limit": 10,
-      "detail": "Directory exceeds the 10 direct-file limit."
-    },
-    {
-      "rule": "directory_fanout",
-      "path": "tests/mind",
-      "observed": 123,
-      "limit": 10,
-      "detail": "Directory exceeds the 10 direct-file limit."
-    },
-    {
-      "rule": "directory_fanout",
-      "path": "tests/orchestrator",
-      "observed": 33,
-      "limit": 10,
-      "detail": "Directory exceeds the 10 direct-file limit."
-    },
-    {
-      "rule": "directory_fanout",
-      "path": "tests/packets",
-      "observed": 64,
-      "limit": 10,
-      "detail": "Directory exceeds the 10 direct-file limit."
-    },
-    {
-      "rule": "directory_fanout",
-      "path": "tests/policy",
-      "observed": 17,
-      "limit": 10,
-      "detail": "Directory exceeds the 10 direct-file limit."
-    },
-    {
-      "rule": "directory_fanout",
-      "path": "tests/summary",
-      "observed": 46,
-      "limit": 10,
-      "detail": "Directory exceeds the 10 direct-file limit."
-    },
-    {
-      "rule": "directory_fanout",
-      "path": "tests/telemetry",
-      "observed": 17,
-      "limit": 10,
-      "detail": "Directory exceeds the 10 direct-file limit."
-    },
-    {
-      "rule": "directory_fanout",
-      "path": "tests/validation",
-      "observed": 18,
-      "limit": 10,
-      "detail": "Directory exceeds the 10 direct-file limit."
-    },
-    {
-      "rule": "directory_fanout",
-      "path": "tests/workflow",
-      "observed": 62,
-      "limit": 10,
-      "detail": "Directory exceeds the 10 direct-file limit."
-    },
-    {
-      "rule": "directory_fanout",
-      "path": "tests/workflow/branch",
-      "observed": 13,
-      "limit": 10,
-      "detail": "Directory exceeds the 10 direct-file limit."
-    },
-    {
-      "rule": "directory_fanout",
-      "path": "tests/workflow/completion",
-      "observed": 13,
-      "limit": 10,
-      "detail": "Directory exceeds the 10 direct-file limit."
-    },
-    {
-      "rule": "directory_fanout",
-      "path": "tests/workflow/review",
-      "observed": 13,
       "limit": 10,
       "detail": "Directory exceeds the 10 direct-file limit."
     },
@@ -11033,6 +9150,30 @@
     },
     {
       "rule": "facade_bypass",
+      "path": "olt/scripts/src/linter/rules/compiler_suppression.ts",
+      "observed": "olt/scripts/src/linter/ast/types.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/linter/rules/compiler_suppression.ts",
+      "observed": "olt/scripts/src/linter/ast/utils.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/linter/rules/vendor_leak.ts",
+      "observed": "olt/scripts/src/linter/ast/types.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
+      "path": "olt/scripts/src/linter/rules/vendor_leak.ts",
+      "observed": "olt/scripts/src/linter/ast/utils.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
       "path": "olt/scripts/src/logging/defect-logger.ts",
       "observed": "olt/scripts/src/core/shared/paths.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
@@ -14867,6 +13008,12 @@
     },
     {
       "rule": "facade_bypass",
+      "path": "olt/scripts/src/testing/virtual-fs/spies.ts",
+      "observed": "olt/scripts/src/installer/native-rename.ts",
+      "detail": "Cross-directory import must target the destination index.ts facade."
+    },
+    {
+      "rule": "facade_bypass",
       "path": "olt/scripts/src/tooling/sandbox/sandbox-executor.ts",
       "observed": "olt/scripts/src/tooling/types.ts",
       "detail": "Cross-directory import must target the destination index.ts facade."
@@ -16302,7 +14449,7 @@
     {
       "rule": "dependency_cycle",
       "path": "olt/scripts/src/linter/ast/autofix.ts",
-      "observed": "olt/scripts/src/linter/ast/autofix.ts,olt/scripts/src/linter/ast/index.ts,olt/scripts/src/linter/ast/runner.ts,olt/scripts/src/linter/ast/scanner.ts,olt/scripts/src/linter/rules/any_type.ts,olt/scripts/src/linter/rules/compiler_suppression.ts,olt/scripts/src/linter/rules/index.ts,olt/scripts/src/linter/rules/logical_or_fallback.ts,olt/scripts/src/linter/rules/non_null_assertion.ts,olt/scripts/src/linter/rules/nullish_coalescing.ts,olt/scripts/src/linter/rules/testing/empty_test_body.ts,olt/scripts/src/linter/rules/testing/index.ts,olt/scripts/src/linter/rules/testing/mock_tautology.ts,olt/scripts/src/linter/rules/testing/trivial_assertion.ts,olt/scripts/src/linter/rules/testing/trivial_early_return.ts,olt/scripts/src/linter/rules/vendor_leak.ts",
+      "observed": "olt/scripts/src/linter/ast/autofix.ts,olt/scripts/src/linter/ast/index.ts,olt/scripts/src/linter/ast/runner.ts,olt/scripts/src/linter/ast/scanner.ts,olt/scripts/src/linter/rules/any_type.ts,olt/scripts/src/linter/rules/index.ts,olt/scripts/src/linter/rules/logical_or_fallback.ts,olt/scripts/src/linter/rules/non_null_assertion.ts,olt/scripts/src/linter/rules/nullish_coalescing.ts,olt/scripts/src/linter/rules/testing/empty_test_body.ts,olt/scripts/src/linter/rules/testing/index.ts,olt/scripts/src/linter/rules/testing/mock_tautology.ts,olt/scripts/src/linter/rules/testing/trivial_assertion.ts,olt/scripts/src/linter/rules/testing/trivial_early_return.ts",
       "detail": "Import graph contains a strongly connected component."
     },
     {

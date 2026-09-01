@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -11,9 +11,16 @@ import {
   DEFAULT_PRESETS,
   DEFAULT_SIDEBAR_LAYOUT,
 } from "../../../olt/scripts/src/capture/config/index.ts";
-import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
+import { cleanupVirtualCaptureFS, scratchRoot, setupVirtualCaptureFS } from "../fixture.ts";
 
 describe("capture config loader & schema", () => {
+  beforeEach(() => {
+    setupVirtualCaptureFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualCaptureFS();
+  });
   test("provides canonical viewports and presets", () => {
     expect(CANONICAL_VIEWPORTS.desktop.width).toBe(1440);
     expect(CANONICAL_VIEWPORTS.desktop.height).toBe(900);

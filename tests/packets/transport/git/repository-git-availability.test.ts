@@ -1,17 +1,6 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import {
-  constants,
-  lstatSync,
-  mkdirSync,
-  mkdtempSync,
-  openSync,
-  realpathSync,
-  rmSync,
-  unlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { afterAll, describe, expect, test } from "bun:test";
+import { constants, lstatSync, mkdirSync, openSync, unlinkSync, writeFileSync } from "node:fs";
 import type { Stats } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import { createRepositoryGitCommand } from "../../../../olt/scripts/src/packets/repository-git-command.ts";
@@ -20,19 +9,25 @@ import {
   readRepositoryGitControlFile,
   type RepositoryGitFileHooks,
 } from "../../../../olt/scripts/src/packets/repository-git-safe-file.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
-const roots: string[] = [];
-const environment = { PATH: "/usr/bin:/bin" };
+const vfs = new VirtualMemoryFS();
+const session = createVirtualFSSession(vfs);
 
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { force: true, recursive: true });
+afterAll(() => {
+  session.cleanup();
+  vfs.reset();
 });
 
+const environment = { PATH: "/usr/bin:/bin" };
+
 function repository(): string {
-  const root = mkdtempSync(join(tmpdir(), "repository-git-availability-"));
-  roots.push(root);
-  mkdirSync(join(root, ".git"));
-  return realpathSync(root);
+  const root = `/virtual/repository-git-availability-${Math.random().toString(36).slice(2)}`;
+  vfs.mkdirSync(join(root, ".git"), { recursive: true });
+  return root;
 }
 
 function special(path: string): Stats {
@@ -115,18 +110,17 @@ describe("repository Git availability controls", () => {
   });
 
   test("preflights linked-worktree pointers and controls with bounded safe reads", () => {
-    const root = mkdtempSync(join(tmpdir(), "repository-linked-preflight-"));
-    roots.push(root);
-    mkdirSync(join(root, "worktree"), { recursive: true });
-    mkdirSync(join(root, "metadata", "worktrees", "linked"), { recursive: true });
-    mkdirSync(join(root, "metadata", "info"), { recursive: true });
-    const repo = realpathSync(join(root, "worktree"));
-    const gitDir = realpathSync(join(root, "metadata", "worktrees", "linked"));
-    const commonDir = realpathSync(join(root, "metadata"));
-    writeFileSync(join(repo, ".git"), `gitdir: ${gitDir}\n`);
-    writeFileSync(join(gitDir, "commondir"), "../..\n");
-    writeFileSync(join(gitDir, "gitdir"), `${join(repo, ".git")}\n`);
-    writeFileSync(join(commonDir, "config"), "[core]\n");
+    const root = `/virtual/repository-linked-preflight-${Math.random().toString(36).slice(2)}`;
+    vfs.mkdirSync(join(root, "worktree"), { recursive: true });
+    vfs.mkdirSync(join(root, "metadata", "worktrees", "linked"), { recursive: true });
+    vfs.mkdirSync(join(root, "metadata", "info"), { recursive: true });
+    const repo = join(root, "worktree");
+    const gitDir = join(root, "metadata", "worktrees", "linked");
+    const commonDir = join(root, "metadata");
+    vfs.writeFileSync(join(repo, ".git"), `gitdir: ${gitDir}\n`);
+    vfs.writeFileSync(join(gitDir, "commondir"), "../..\n");
+    vfs.writeFileSync(join(gitDir, "gitdir"), `${join(repo, ".git")}\n`);
+    vfs.writeFileSync(join(commonDir, "config"), "[core]\n");
     const opens: Array<{ path: string; flags: number }> = [];
     expect(
       preflightRepositoryGitMetadata(repo, {
@@ -143,14 +137,13 @@ describe("repository Git availability controls", () => {
   });
 
   test("rejects a special linked-worktree pointer before opening it", () => {
-    const root = mkdtempSync(join(tmpdir(), "repository-linked-special-"));
-    roots.push(root);
-    mkdirSync(join(root, "worktree"));
-    mkdirSync(join(root, "metadata"));
-    const repo = realpathSync(join(root, "worktree"));
-    const gitDir = realpathSync(join(root, "metadata"));
+    const root = `/virtual/repository-linked-special-${Math.random().toString(36).slice(2)}`;
+    vfs.mkdirSync(join(root, "worktree"), { recursive: true });
+    vfs.mkdirSync(join(root, "metadata"), { recursive: true });
+    const repo = join(root, "worktree");
+    const gitDir = join(root, "metadata");
     const pointer = join(repo, ".git");
-    writeFileSync(pointer, `gitdir: ${gitDir}\n`);
+    vfs.writeFileSync(pointer, `gitdir: ${gitDir}\n`);
     let opened = false;
     expect(() =>
       preflightRepositoryGitMetadata(repo, {
@@ -165,14 +158,13 @@ describe("repository Git availability controls", () => {
   });
 
   test("rejects a linked-worktree pointer file whose bytes are not valid UTF-8", () => {
-    const root = mkdtempSync(join(tmpdir(), "repository-linked-badutf8-"));
-    roots.push(root);
-    mkdirSync(join(root, "worktree"));
-    mkdirSync(join(root, "metadata"));
-    const repo = realpathSync(join(root, "worktree"));
-    const gitDir = realpathSync(join(root, "metadata"));
+    const root = `/virtual/repository-linked-badutf8-${Math.random().toString(36).slice(2)}`;
+    vfs.mkdirSync(join(root, "worktree"), { recursive: true });
+    vfs.mkdirSync(join(root, "metadata"), { recursive: true });
+    const repo = join(root, "worktree");
+    const gitDir = join(root, "metadata");
     const pointer = join(repo, ".git");
-    writeFileSync(
+    vfs.writeFileSync(
       pointer,
       Buffer.concat([
         Buffer.from(`gitdir: ${gitDir}`),
@@ -231,7 +223,9 @@ describe("repository Git availability controls", () => {
 
   test("returns false when repository has no git metadata all the way to root", () => {
     const enoent = Object.assign(new Error("ENOENT"), { code: "ENOENT" });
-    const hasGit = preflightRepositoryGitMetadata("/tmp", {
+    const repo = `/virtual/no-git-${Math.random().toString(36).slice(2)}`;
+    vfs.mkdirSync(repo, { recursive: true });
+    const hasGit = preflightRepositoryGitMetadata(repo, {
       lstatPath: () => {
         throw enoent;
       },

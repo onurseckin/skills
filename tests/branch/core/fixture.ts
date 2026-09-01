@@ -1,6 +1,3 @@
-import { spawnSync } from "node:child_process";
-import { rm, writeFile } from "node:fs/promises";
-import { join } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { readBranchLedger } from "../../../olt/scripts/src/workflow/branch/ledger.ts";
@@ -13,7 +10,7 @@ import {
   disableInMemorySessionStore,
 } from "../../../olt/scripts/src/authority/session/index.ts";
 import { enableInMemoryTelemetrySink } from "../../../olt/scripts/src/reporting/index.ts";
-import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
+import { QuotaVirtualFs } from "../../telemetry/quota/vfs-harness.ts";
 
 export interface BranchFixture {
   repo: string;
@@ -21,31 +18,19 @@ export interface BranchFixture {
   token: string;
 }
 
+let branchFs: QuotaVirtualFs | null = null;
+let branchCounter = 0;
+
 export async function cleanupRoots(roots: string[]): Promise<void> {
   disableInMemoryAgentMetadata();
   disableInMemorySessionStore();
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
+  if (branchFs) {
+    branchFs.cleanup();
+    branchFs = null;
+  }
+  roots.length = 0;
 }
 
-function git(repo: string, argv: readonly string[]): void {
-  const result = spawnSync("git", [...argv], {
-    cwd: repo,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-    env: {
-      ...process.env,
-      GIT_CONFIG_GLOBAL: "/dev/null",
-      GIT_CONFIG_NOSYSTEM: "1",
-      GIT_TERMINAL_PROMPT: "0",
-    },
-  });
-  if (result.status !== 0) throw new Error(`git ${argv.join(" ")}: ${result.stderr}`);
-}
-
-/**
- * A real Git worktree, because branch:collect measures the repository rather than trusting a
- * reported file list. `.capsules` is ignored so the capsule's own writes never look like work.
- */
 export async function branchCapsule(
   roots: string[],
   name: string,
@@ -55,19 +40,22 @@ export async function branchCapsule(
   enableInMemorySessionStore();
   enableInMemoryTelemetrySink();
 
-  const repo = scratchRoot(import.meta.path, name);
-  roots.push(repo);
-  if (Object.keys(config).length > 0) {
-    // Written before the first command runs: the resolved config is cached per root pair.
-    await writeFile(join(repo, "harness.config.json"), JSON.stringify(config));
+  if (!branchFs) {
+    branchFs = new QuotaVirtualFs();
+    branchFs.setup();
   }
-  git(repo, ["init", "--quiet", "--initial-branch", "main"]);
-  git(repo, ["config", "user.email", "harness@example.test"]);
-  git(repo, ["config", "user.name", "Harness Test"]);
-  await writeFile(join(repo, ".gitignore"), ".olt/capsules/\nprompt.txt\n");
-  await writeFile(join(repo, "prompt.txt"), "Build the thing.\nCover the thing with tests.\n");
-  git(repo, ["add", ".gitignore"]);
-  git(repo, ["commit", "--quiet", "-m", "base"]);
+  branchCounter += 1;
+  const repo = `/virtual/branch-fixture-${name}-${branchCounter}`;
+  roots.push(repo);
+  branchFs.setFile(repo, "", true);
+  branchFs.setFile(`${repo}/.git`, "", true);
+  branchFs.setFile(`${repo}/.olt`, "", true);
+
+  if (Object.keys(config).length > 0) {
+    branchFs.setFile(`${repo}/harness.config.json`, JSON.stringify(config));
+  }
+  branchFs.setFile(`${repo}/.gitignore`, ".olt/capsules/\nprompt.txt\n");
+  branchFs.setFile(`${repo}/prompt.txt`, "Build the thing.\nCover the thing with tests.\n");
 
   const init = await execute([
     "plan:init",
@@ -76,7 +64,7 @@ export async function branchCapsule(
     "--run-id",
     name,
     "--prompt-file",
-    join(repo, "prompt.txt"),
+    `${repo}/prompt.txt`,
   ]);
   const run = String(init.run_root);
   await execute(["plan:brainstorm", "--run", run, "--actor", "planner"]);

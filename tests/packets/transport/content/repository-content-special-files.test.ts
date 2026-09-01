@@ -1,26 +1,23 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import {
-  constants,
-  mkdirSync,
-  mkdtempSync,
-  openSync,
-  rmSync,
-  unlinkSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { afterAll, describe, expect, test } from "bun:test";
+import { constants, mkdirSync, openSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { inspectRepositoryNode } from "../../../../olt/scripts/src/packets/repository-content-node.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
-const roots: string[] = [];
+const vfs = new VirtualMemoryFS();
+const session = createVirtualFSSession(vfs);
 
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
+afterAll(() => {
+  session.cleanup();
+  vfs.reset();
 });
 
 function repository(): string {
-  const root = mkdtempSync(join(tmpdir(), "repository-special-node-"));
-  roots.push(root);
+  const root = `/virtual/repository-special-node-${Math.random().toString(36).slice(2)}`;
+  vfs.mkdirSync(root, { recursive: true });
   return root;
 }
 

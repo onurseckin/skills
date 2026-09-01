@@ -21,11 +21,10 @@ import {
   createSampleCompletionReceipts,
   TASK_DEQUEUE_SUITES,
 } from "./index.ts";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { scratchRoot } from "../task-fixture.ts";
 
 describe("Task Queue Dequeue Engine & Anti-Batching Guard", () => {
-  const testDir = mkdtempSync(join(tmpdir(), "dequeue-"));
+  const testDir = scratchRoot(import.meta.path, "dequeue");
   const queuePath = join(testDir, "TASK_QUEUE.jsonl");
 
   beforeEach(() => {

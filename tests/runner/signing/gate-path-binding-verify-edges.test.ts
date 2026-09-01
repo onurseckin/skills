@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, writeFile } from "node:fs/promises";
 import { realpathSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
 import {
   gatePathBindingIssues,
@@ -9,17 +8,12 @@ import {
   portableRelative,
   resolvePathExecutable,
 } from "../../../olt/scripts/src/engine/runner/signing/gate-path-binding-verify.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
-const roots: string[] = [];
-
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
+afterEach(cleanupTempRoots);
 
 async function repoRoot(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "gate-path-binding-verify-"));
-  roots.push(root);
-  return root;
+  return tempRoot("gate-path-binding-verify");
 }
 
 describe("inside", () => {

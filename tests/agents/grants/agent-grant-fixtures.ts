@@ -1,19 +1,16 @@
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { initRun, loadRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { registerAgentGrant } from "../../../olt/scripts/src/workflow/agents/grants.ts";
 import { readAgentLedger } from "../../../olt/scripts/src/workflow/agents/ledger.ts";
-
-const activeGrantRoots: string[] = [];
+import { cleanupVirtualAgentsFS, scratchRoot } from "../fixture.ts";
 
 /**
  * A run with task-1 and task-2 seeded directly into state — the minimum a grant can bind to.
  */
 export function seededRun(callerPath: string, label: string): string {
-  const root = mkdtempSync(join(tmpdir(), "agent-grant-run-"));
-  activeGrantRoots.push(root);
+  const root = scratchRoot(callerPath, label);
   const repo = join(root, "repo");
   mkdirSync(repo, { recursive: true });
   const run = initRun(repo, label, new TextEncoder().encode("Build the thing.\n"), "file", true);
@@ -24,12 +21,7 @@ export function seededRun(callerPath: string, label: string): string {
 }
 
 export function cleanupGrantRoots(): void {
-  const roots = activeGrantRoots.splice(0);
-  for (const root of roots) {
-    try {
-      rmSync(root, { recursive: true, force: true });
-    } catch {}
-  }
+  cleanupVirtualAgentsFS();
 }
 
 export function ledgerOf(run: string) {

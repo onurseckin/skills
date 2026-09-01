@@ -198,7 +198,6 @@ describe("scripts/sync/index.ts", () => {
       if (origHome !== undefined) {
         process.env.HOME = origHome;
       }
-      rmSync(root, { recursive: true, force: true });
     }
   });
 
@@ -225,7 +224,6 @@ describe("scripts/sync/index.ts", () => {
       if (origHome !== undefined) {
         process.env.HOME = origHome;
       }
-      rmSync(root, { recursive: true, force: true });
     }
   });
 });

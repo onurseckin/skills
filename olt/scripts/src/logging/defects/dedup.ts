@@ -271,9 +271,7 @@ export function aggregateDefectEntries(
   };
   const occurrences = [...(target.occurrences ?? []), newOccurrence].slice(-maxOccurrences);
   const mergedContext =
-    target.context || incoming.context
-      ? { ...target.context, ...incoming.context }
-      : undefined;
+    target.context || incoming.context ? { ...target.context, ...incoming.context } : undefined;
   return {
     ...target,
     severity,

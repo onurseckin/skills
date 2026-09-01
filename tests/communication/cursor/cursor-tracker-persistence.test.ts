@@ -19,6 +19,7 @@ import type {
   MailboxCursor,
   MailboxEnvelope,
 } from "../../../olt/scripts/src/communication/types.ts";
+import { cleanupVirtualCommunicationFS, setupVirtualCommunicationFS } from "../helpers.ts";
 
 function makeEnvelope(sequence: number, id?: string): MailboxEnvelope<{ test: string }> {
   const envelope = createSignedEnvelope({
@@ -38,15 +39,14 @@ describe("Cursor Tracker Persistence & Advancement", () => {
   let lockPath: string;
 
   beforeEach(() => {
+    setupVirtualCommunicationFS();
     tempDir = mkdtempSync(join(tmpdir(), "cursor-persistence-test-"));
     cursorPath = join(tempDir, "cursor.json");
     lockPath = join(tempDir, "cursor.lock");
   });
 
   afterEach(() => {
-    try {
-      rmSync(tempDir, { recursive: true, force: true });
-    } catch {}
+    cleanupVirtualCommunicationFS();
   });
 
   describe("loadMailboxCursor and saveMailboxCursor", () => {

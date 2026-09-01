@@ -1,6 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, mkdirSync, realpathSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterAll, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { inspectRepositoryContent } from "../../../../olt/scripts/src/packets/repository-content.ts";
 import { repositoryContentPaths } from "../../../../olt/scripts/src/packets/repository-content-paths.ts";
@@ -12,11 +10,17 @@ import {
 } from "../../../../olt/scripts/src/packets/repository-content-policy.ts";
 import { gitRepositoryPaths } from "../../../../olt/scripts/src/packets/repository-git-paths.ts";
 import type { RepositoryGitCommand } from "../../../../olt/scripts/src/packets/repository-git-command.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
-const roots: string[] = [];
+const vfs = new VirtualMemoryFS();
+const session = createVirtualFSSession(vfs);
 
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
+afterAll(() => {
+  session.cleanup();
+  vfs.reset();
 });
 
 function listingCommand(staged: Buffer, untracked: Buffer): RepositoryGitCommand {
@@ -94,9 +98,8 @@ describe("versioned repository content path policy", () => {
   });
 
   test("checks a directory path before descending into it", () => {
-    const repo = realpathSync(mkdtempSync(join(tmpdir(), "directory-path-policy-")));
-    roots.push(repo);
-    mkdirSync(join(repo, "first", "second"), { recursive: true });
+    const repo = `/virtual/directory-path-policy-${Math.random().toString(36).slice(2)}`;
+    vfs.mkdirSync(join(repo, "first", "second"), { recursive: true });
     const policy = resolveRepositoryContentPolicy({ maxPathDepth: 1 });
     expect(() => repositoryContentPaths(repo, 4096, policy)).toThrow("path depth limit");
   });
@@ -106,8 +109,8 @@ describe("versioned repository content path policy", () => {
   });
 
   test("validates injected path sources before filesystem node traversal", () => {
-    const repo = realpathSync(mkdtempSync(join(tmpdir(), "injected-path-policy-")));
-    roots.push(repo);
+    const repo = `/virtual/injected-path-policy-${Math.random().toString(36).slice(2)}`;
+    vfs.mkdirSync(repo, { recursive: true });
     expect(() => inspectRepositoryContent(repo, { maxPathBytes: 4 }, () => ["12345"])).toThrow(
       "path byte limit",
     );

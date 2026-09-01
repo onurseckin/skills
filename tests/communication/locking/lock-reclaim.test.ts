@@ -15,12 +15,14 @@ import {
   setInMemoryLocking,
 } from "../../../olt/scripts/src/communication/locking/safe-lock.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { cleanupVirtualCommunicationFS, setupVirtualCommunicationFS } from "../helpers.ts";
 
 describe("Lock Reclaim Engine (Disk and In-Memory)", () => {
   let tempDir: string;
   let locksDir: string;
 
   beforeEach(() => {
+    setupVirtualCommunicationFS();
     setInMemoryLocking(false);
     resetInMemoryLocks();
     tempDir = mkdtempSync(join(tmpdir(), "reclaim-test-"));
@@ -29,11 +31,7 @@ describe("Lock Reclaim Engine (Disk and In-Memory)", () => {
   });
 
   afterEach(() => {
-    setInMemoryLocking(false);
-    resetInMemoryLocks();
-    try {
-      rmSync(tempDir, { recursive: true, force: true });
-    } catch {}
+    cleanupVirtualCommunicationFS();
   });
 
   describe("argument validation and error handling", () => {

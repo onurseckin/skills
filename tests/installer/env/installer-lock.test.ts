@@ -1,9 +1,13 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { acquireInstallerLock } from "../../../olt/scripts/src/installer/installer-lock.ts";
 import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
+import { cleanupVirtualInstallerFS, setupVirtualInstallerFS } from "../helpers.ts";
+
+beforeEach(setupVirtualInstallerFS);
+afterEach(cleanupVirtualInstallerFS);
 
 describe("acquireInstallerLock", () => {
   test("acquires and releases a lock on a real directory", () => {

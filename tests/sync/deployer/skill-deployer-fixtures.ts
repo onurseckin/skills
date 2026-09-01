@@ -32,6 +32,7 @@ export function initFakeSkillsRepo(repoRoot: string): void {
     "utf-8",
   );
 
+  mkdirSync(join(repoRoot, ".git"), { recursive: true });
   git(["init", "--quiet", "--initial-branch", "main"], repoRoot);
   git(["config", "user.email", "test@example.com"], repoRoot);
   git(["config", "user.name", "Test"], repoRoot);

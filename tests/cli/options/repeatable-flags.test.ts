@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -15,6 +15,10 @@ import {
   repeatableFlag,
   requiredFlag,
 } from "../../../olt/scripts/src/cli/registry/index.ts";
+import {
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../commands/fixtures/full-lifecycle-fixture.ts";
 
 const ENHANCE_FLAGS = [
   requiredFlag("run", "string", "Capsule run root."),
@@ -27,6 +31,12 @@ const ENHANCE_FLAGS = [
 const SHAPES: FlagShapes = flagShapes(ENHANCE_FLAGS);
 
 describe("repeatable flags", () => {
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
+  afterEach(() => {
+    cleanupVirtualCliFS();
+  });
   test("collects every occurrence in order and reads back as a list", () => {
     const parsed = parseArguments(
       [

@@ -11,11 +11,13 @@ import {
   verifyEnvelopeHmac,
 } from "../../../olt/scripts/src/communication/mailbox/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { cleanupVirtualCommunicationFS, setupVirtualCommunicationFS } from "../helpers.ts";
 
 describe("Chatter Guard & Mid-Flight Progress Narration Interlock", () => {
   let testRoot: string;
 
   beforeEach(() => {
+    setupVirtualCommunicationFS();
     testRoot = join(
       process.cwd(),
       "coverage",
@@ -26,7 +28,7 @@ describe("Chatter Guard & Mid-Flight Progress Narration Interlock", () => {
   });
 
   afterEach(() => {
-    if (existsSync(testRoot)) rmSync(testRoot, { recursive: true, force: true });
+    cleanupVirtualCommunicationFS();
   });
 
   describe("isMidFlightNarration", () => {

@@ -1,5 +1,5 @@
-import { describe, expect, it } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 import {
@@ -10,20 +10,31 @@ import {
   type EvidenceAuditOptions,
 } from "../../../olt/scripts/src/validation/index.ts";
 import { validateZeroCommentsInCode } from "../../../olt/scripts/src/validation/index.ts";
-import { readFileSync } from "node:fs";
+import {
+  cleanupVirtualValidationFS,
+  scratchRoot,
+  setupVirtualValidationFS,
+} from "../validation-fixture.ts";
 
-const TEST_DIR = "/tmp/test-prose-assertion-evidence-part2";
+let TEST_DIR: string;
 
 function setupTestEnv(): void {
-  rmSync(TEST_DIR, { recursive: true, force: true });
+  TEST_DIR = scratchRoot("prose-assertion-audit", "audit");
   mkdirSync(TEST_DIR, { recursive: true });
 }
 
 function cleanupTestEnv(): void {
-  rmSync(TEST_DIR, { recursive: true, force: true });
+  // Handled in afterEach
 }
 
 describe("Defect Remediation: PROSE_ASSERTION_OVER_EVIDENCE_BIAS Audit", () => {
+  beforeEach(() => {
+    setupVirtualValidationFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualValidationFS();
+  });
   describe("3. Remediation of Prose Assertion Over Evidence Bias", () => {
     it("rejects unproven prose report claiming ignition when events.jsonl has 0 command executions", () => {
       setupTestEnv();

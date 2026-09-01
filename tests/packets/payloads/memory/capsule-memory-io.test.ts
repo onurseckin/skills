@@ -1,59 +1,36 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  CAPSULE_DIRECTORIES,
-  CAPSULE_FILES,
-  createCapsuleMemoryPointer,
-  detectContextBloat,
-  formatCapsuleMemoryGuidance,
-  getCapsuleCliCommands,
-  partitionDecoupledMemory,
   readDecoupledBlob,
   readDecoupledEvents,
   readDecoupledEvidence,
   readDecoupledState,
-  resolveCapsuleDirectory,
-  resolveCapsuleFile,
-  validateRichInstructionPacket,
-  verifyCapsuleLayout,
-  verifyCapsuleLayoutSync,
   writeDecoupledBlob,
 } from "../../../../olt/scripts/src/packets/capsule-memory.ts";
-import { evidenceSchema } from "../../../../olt/scripts/src/packets/evidence-schema.ts";
-import { buildPacket } from "../../../../olt/scripts/src/packets/render-packet.ts";
-import { claimTask } from "../../../../olt/scripts/src/workflow/lease/claim.ts";
-import { at, TestPort, workflowState } from "../../../workflow/index.ts";
-import { inspectionContext } from "../slicing/inspection-fixture.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
-const roots: string[] = [];
-afterEach(async () => {
-  for (const root of roots) {
-    await rm(root, { recursive: true, force: true });
-  }
-  roots.length = 0;
+const vfs = new VirtualMemoryFS();
+const session = createVirtualFSSession(vfs);
+
+afterAll(() => {
+  session.cleanup();
+  vfs.reset();
 });
 
-const clock = at("2026-08-22T12:00:00.000Z");
-const commonBytes = new TextEncoder().encode("Canonical common instructions for tests.\n");
-const commonSha256 = createHash("sha256").update(commonBytes).digest("hex");
-
-function baseImplementerState() {
-  const port = new TestPort(workflowState());
-  const claim = claimTask(port, "T-1", "worker-1", "implementer", { clock });
-  return {
-    state: claim.state,
-    token: claim.token,
-  };
+function createTempRoot(prefix: string): string {
+  const root = `/virtual/${prefix}${Math.random().toString(36).slice(2)}`;
+  vfs.mkdirSync(root, { recursive: true });
+  return root;
 }
 
 describe("Decoupled Capsule Memory - Disk I/O & Blobs", () => {
   describe("Disk-Backed Decoupled Memory Readers & Writers", () => {
     test("readDecoupledEvents filters events by limit, type, and taskId", async () => {
-      const tempRoot = await mkdtemp(join(tmpdir(), "decoupled-events-test-"));
-      roots.push(tempRoot);
+      const tempRoot = createTempRoot("decoupled-events-test-");
 
       const eventRecords = [
         JSON.stringify({ event_id: "e-1", type: "task:claim", data: { task_id: "T-1" } }),
@@ -62,7 +39,7 @@ describe("Decoupled Capsule Memory - Disk I/O & Blobs", () => {
         JSON.stringify({ event_id: "e-4", type: "gate:pass", data: { task_id: "T-1" } }),
       ].join("\n");
 
-      await writeFile(join(tempRoot, "events.jsonl"), eventRecords);
+      vfs.writeFileSync(join(tempRoot, "events.jsonl"), eventRecords);
 
       const allEvents = await readDecoupledEvents(tempRoot);
       expect(allEvents).toHaveLength(4);
@@ -79,14 +56,13 @@ describe("Decoupled Capsule Memory - Disk I/O & Blobs", () => {
     });
 
     test("readDecoupledEvidence retrieves binary or text evidence files", async () => {
-      const tempRoot = await mkdtemp(join(tmpdir(), "decoupled-evidence-test-"));
-      roots.push(tempRoot);
+      const tempRoot = createTempRoot("decoupled-evidence-test-");
 
       const evidenceDir = join(tempRoot, "evidence");
-      await mkdir(evidenceDir, { recursive: true });
+      vfs.mkdirSync(evidenceDir, { recursive: true });
 
       const evidencePayload = JSON.stringify({ stdout: "All tests passed", exit_code: 0 });
-      await writeFile(join(evidenceDir, "cmd-proof-1.json"), evidencePayload);
+      vfs.writeFileSync(join(evidenceDir, "cmd-proof-1.json"), evidencePayload);
 
       const retrieved = await readDecoupledEvidence(tempRoot, "cmd-proof-1");
       expect(retrieved).not.toBeNull();
@@ -100,11 +76,10 @@ describe("Decoupled Capsule Memory - Disk I/O & Blobs", () => {
     });
 
     test("readDecoupledState reads parsed workflow state", async () => {
-      const tempRoot = await mkdtemp(join(tmpdir(), "decoupled-state-test-"));
-      roots.push(tempRoot);
+      const tempRoot = createTempRoot("decoupled-state-test-");
 
       const mockState = { run_id: "run-state-1", tasks: { "T-1": { status: "completed" } } };
-      await writeFile(join(tempRoot, "state.json"), JSON.stringify(mockState));
+      vfs.writeFileSync(join(tempRoot, "state.json"), JSON.stringify(mockState));
 
       const readState = await readDecoupledState(tempRoot);
       expect(readState).toEqual(mockState);
@@ -114,8 +89,7 @@ describe("Decoupled Capsule Memory - Disk I/O & Blobs", () => {
     });
 
     test("writes and reads decoupled binary blobs by sha256 hash", async () => {
-      const tempRoot = await mkdtemp(join(tmpdir(), "decoupled-blobs-test-"));
-      roots.push(tempRoot);
+      const tempRoot = createTempRoot("decoupled-blobs-test-");
 
       const data = Buffer.from("Large test artifact buffer content for decoupled memory");
       const writeResult = await writeDecoupledBlob(tempRoot, data, "screenshot");

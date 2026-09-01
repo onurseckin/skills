@@ -1,14 +1,5 @@
-import { describe, expect, test } from "bun:test";
-import {
-  chmodSync,
-  mkdirSync,
-  mkdtempSync,
-  readdirSync,
-  readFileSync,
-  realpathSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { afterAll, describe, expect, test } from "bun:test";
+import { chmodSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { safeRmSync } from "../../../olt/scripts/src/core/shared/safe-fs/index.ts";
@@ -17,9 +8,23 @@ import {
   verifyPacketBundle,
 } from "../../../olt/scripts/src/packets/packet-bundle.ts";
 import type { BuiltPacket } from "../../../olt/scripts/src/packets/types.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+
+const vfs = new VirtualMemoryFS();
+const session = createVirtualFSSession(vfs);
+
+afterAll(() => {
+  session.cleanup();
+  vfs.reset();
+});
 
 function root(prefix: string): string {
-  return realpathSync(mkdtempSync(join(tmpdir(), prefix)));
+  const r = `/virtual/scope/${prefix}${Math.random().toString(36).slice(2)}`;
+  vfs.mkdirSync(r, { recursive: true });
+  return r;
 }
 
 function packet(overrides: Partial<BuiltPacket> = {}): BuiltPacket {

@@ -1,6 +1,5 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import {
   consolidateWorktrees,
@@ -10,15 +9,24 @@ import { readWorktreeLedger } from "../../../../olt/scripts/src/workflow/worktre
 import type { GitResult, GitRunner } from "../../../../olt/scripts/src/workflow/worktree/git.ts";
 import type { WorktreeLedgerState } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import { FakeRunStore, baseLedger, seedLedger } from "../fixtures/fake-transact.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
-const roots: string[] = [];
+let vfsCleanup: (() => void) | undefined;
+let dirCounter = 0;
+
+beforeEach(() => {
+  const setup = setupWorkflowVirtualFs();
+  vfsCleanup = setup.cleanup;
+});
+
 afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { force: true, recursive: true });
+  vfsCleanup?.();
+  vfsCleanup = undefined;
 });
 
 function trackedDir(prefix: string): string {
-  const dir = mkdtempSync(join(tmpdir(), `harness-${prefix}-`));
-  roots.push(dir);
+  const dir = `/virtual/tmp/harness-${prefix}-${++dirCounter}`;
+  mkdirSync(dir, { recursive: true });
   return dir;
 }
 

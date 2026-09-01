@@ -1,6 +1,5 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { type MicroCycleRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import {
@@ -19,6 +18,7 @@ import type {
   WorkflowState,
 } from "../../../../olt/scripts/src/workflow/types.ts";
 import { registerTaskPacket, TestPort, workflowState } from "../../shared/test-port.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 class FakeClock implements Clock {
   public constructor(private ms = new Date("2026-08-22T12:00:00.000Z").getTime()) {}
@@ -34,16 +34,22 @@ class FakeClock implements Clock {
   }
 }
 
-const roots: string[] = [];
+let vfsCleanup: (() => void) | undefined;
+let runCount = 0;
+
+beforeEach(() => {
+  const setup = setupWorkflowVirtualFs();
+  vfsCleanup = setup.cleanup;
+});
+
 afterEach(() => {
-  for (const root of roots.splice(0)) {
-    rmSync(root, { recursive: true, force: true });
-  }
+  vfsCleanup?.();
+  vfsCleanup = undefined;
 });
 
 function setupLeasedRun(name: string): { repo: string; run: string } {
-  const repo = mkdtempSync(join(tmpdir(), `mc-exec-${name}-`));
-  roots.push(repo);
+  const repo = `/virtual/tmp/mc-exec-${name}-${++runCount}`;
+  mkdirSync(repo, { recursive: true });
   const run = initRun(repo, name, new TextEncoder().encode("prompt"), "file", true);
 
   transact(run, "coord", "task-planned", {}, (state) => {

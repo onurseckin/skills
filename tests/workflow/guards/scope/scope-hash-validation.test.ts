@@ -1,63 +1,43 @@
-import { describe, expect, test } from "bun:test";
-import { openSync, type Stats } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { lstatSync, type Stats } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import {
   hashWriteScope,
   type HashWriteScopeDependencies,
 } from "../../../../olt/scripts/src/workflow/lease/write-scope-hash.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
-const ROOT = process.cwd();
+const ROOT = "/virtual/root";
+let vfsCleanup: (() => void) | undefined;
+let vfsInstance: ReturnType<typeof setupWorkflowVirtualFs>["vfs"] | undefined;
+let scopeCounter = 0;
+
+beforeEach(() => {
+  const setup = setupWorkflowVirtualFs();
+  vfsCleanup = setup.cleanup;
+  vfsInstance = setup.vfs;
+});
+
+afterEach(() => {
+  vfsCleanup?.();
+  vfsCleanup = undefined;
+  vfsInstance = undefined;
+});
 
 function createVirtualScope(initialFiles: Record<string, string> = {}) {
-  const fileMap = new Map<string, Buffer>();
-  const descriptors = new Map<number, { buffer: Buffer; position: number }>();
+  const root = `/virtual/scope-val-${++scopeCounter}`;
+  vfsInstance!.mkdirSync(root, { recursive: true });
 
   for (const [relPath, content] of Object.entries(initialFiles)) {
-    fileMap.set(join(ROOT, relPath), Buffer.from(content, "utf8"));
+    const fullPath = join(root, relPath);
+    vfsInstance!.mkdirSync(join(fullPath, ".."), { recursive: true });
+    vfsInstance!.writeFileSync(fullPath, content);
   }
 
-  const dependencies: HashWriteScopeDependencies = {
-    lstat(path: string): Stats {
-      const buf = fileMap.get(path);
-      if (!buf) {
-        throw Object.assign(new Error(`ENOENT: no such file or directory, lstat '${path}'`), {
-          code: "ENOENT",
-        });
-      }
-      return {
-        isFile: () => true,
-        isDirectory: () => false,
-        isSymbolicLink: () => false,
-        size: buf.length,
-      } as unknown as Stats;
-    },
-    open(path: string): number {
-      const buf = fileMap.get(path);
-      if (!buf) {
-        throw Object.assign(new Error(`ENOENT: no such file or directory, open '${path}'`), {
-          code: "ENOENT",
-        });
-      }
-      const fd = openSync(import.meta.filename, "r");
-      descriptors.set(fd, { buffer: buf, position: 0 });
-      return fd;
-    },
-    read(descriptor: number, buffer: Buffer, offset: number, length: number): number {
-      const handle = descriptors.get(descriptor);
-      if (!handle) throw Object.assign(new Error("EBADF: bad descriptor"), { code: "EBADF" });
-      const available = handle.buffer.length - handle.position;
-      if (available <= 0) return 0;
-      const count = Math.min(length, available);
-      handle.buffer.copy(buffer, offset, handle.position, handle.position + count);
-      handle.position += count;
-      return count;
-    },
-  };
-
   return {
-    root: ROOT,
-    dependencies,
+    root,
+    dependencies: {},
   };
 }
 
@@ -77,21 +57,22 @@ function expectIntegrity(operation: () => void, path: string, cause: string): vo
 
 describe("assertWriteScopeUnmodified and validation in-memory virtualization", () => {
   test("refuses an EIO lstat failure in a scoped child", () => {
-    const vfs = createVirtualScope({ "src/blocked.ts": "export const blocked = true;\n" });
-    const blockedPath = join(vfs.root, "src", "blocked.ts");
-
+    const vfs = createVirtualScope({
+      "src/child.ts": "export const child = true;\n",
+    });
+    const childPath = join(vfs.root, "src", "child.ts");
     expectIntegrity(
       () =>
-        hashWriteScope(vfs.root, ["src/blocked.ts"], {
+        hashWriteScope(vfs.root, ["src"], {
           ...vfs.dependencies,
           lstat(path) {
-            if (path === blockedPath) {
+            if (path === childPath) {
               throw Object.assign(new Error("simulated child eio"), { code: "EIO" });
             }
-            return vfs.dependencies.lstat!(path);
+            return (vfs.dependencies.lstat ?? lstatSync)(path);
           },
         }),
-      blockedPath,
+      childPath,
       "simulated child eio",
     );
   });
@@ -104,8 +85,9 @@ describe("assertWriteScopeUnmodified and validation in-memory virtualization", (
     const actual = hashWriteScope(vfs.root, ["src/planned.ts"], {
       ...vfs.dependencies,
       lstat(path) {
-        if (path === scopedPath) return vfs.dependencies.lstat!(join(vfs.root, "src/fixture.ts"));
-        return vfs.dependencies.lstat!(path);
+        if (path === scopedPath)
+          return (vfs.dependencies.lstat ?? lstatSync)(join(vfs.root, "src/fixture.ts"));
+        return (vfs.dependencies.lstat ?? lstatSync)(path);
       },
       open() {
         throw Object.assign(new Error("simulated open race"), { code: "ENOENT" });

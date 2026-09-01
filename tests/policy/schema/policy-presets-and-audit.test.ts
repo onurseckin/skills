@@ -1,6 +1,7 @@
-import { describe, expect, test } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { describe, expect, test, beforeEach, afterEach } from "bun:test";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { cleanupVirtualPolicyFS, setupVirtualPolicyFS } from "../fixture.ts";
 import {
   AuditTrailWriter,
   PolicyEngineTelemetryCollector,
@@ -28,7 +29,15 @@ import {
 } from "../../../olt/scripts/src/policy/rbac/test-runners.ts";
 
 describe("Policy Presets, Manifest Readers, Audit, Telemetry & RBAC Runners Comprehensive", () => {
-  const scratchBase = join(process.cwd(), "coverage", "scratch", "presets-audit-test");
+  const scratchBase = "/virtual/policy/schema/presets-audit";
+
+  beforeEach(() => {
+    setupVirtualPolicyFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualPolicyFS();
+  });
 
   test("toolchain presets returns ecosystem analysis structures", () => {
     const cargo = getCargoPresets();
@@ -99,8 +108,6 @@ describe("Policy Presets, Manifest Readers, Audit, Telemetry & RBAC Runners Comp
     expect(makefile.exists).toBe(true);
     expect(makefile.hasTarget("build")).toBe(true);
     expect(makefile.hasTarget("test")).toBe(true);
-
-    rmSync(scratch, { recursive: true, force: true });
   });
 
   test("AuditTrailWriter, SecurityAuditLogger, TelemetryCollector, ViolationAlertDispatcher lifecycle", async () => {
@@ -139,8 +146,6 @@ describe("Policy Presets, Manifest Readers, Audit, Telemetry & RBAC Runners Comp
 
     logger.clearAuditTrail();
     expect(logger.queryAuditTrail().length).toBe(0);
-
-    rmSync(scratch, { recursive: true, force: true });
   });
 
   test("test runners detection across tools and patterns", () => {

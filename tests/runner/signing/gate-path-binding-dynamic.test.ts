@@ -1,8 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, rm, truncate, writeFile } from "node:fs/promises";
+import { mkdir, truncate, writeFile } from "node:fs/promises";
 import { openSync, readSync, realpathSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   captureGatePathBindings,
@@ -10,8 +9,8 @@ import {
 } from "../../../olt/scripts/src/engine/runner/signing/gate-path-bindings.ts";
 import { gateControlBindingsOverlapWriteScopes } from "../../../olt/scripts/src/engine/runner/signing/gate-path-overlap.ts";
 import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
-const roots: string[] = [];
 const stableRepository = {
   schema: "harness.repository-binding",
   version: 1,
@@ -23,16 +22,13 @@ const stableRepository = {
 } satisfies RepositoryBinding;
 const observer = { inspectRepository: () => stableRepository };
 
+afterEach(cleanupTempRoots);
+
 async function repository(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "gate-path-binding-dyn-"));
-  roots.push(root);
+  const root = tempRoot("gate-path-binding-dyn");
   await mkdir(join(root, "tools"));
   return root;
 }
-
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { force: true, recursive: true })));
-});
 
 describe("dynamic gate path bindings", () => {
   test("rejects repeated canonical directories before any recursive open or read", async () => {
@@ -123,8 +119,7 @@ describe("dynamic gate path bindings", () => {
 
   test("classifies shifted programs and accepted tool config flags as control inputs", async () => {
     const root = await repository();
-    const bin = await mkdtemp(join(tmpdir(), "gate-role-bin-"));
-    roots.push(bin);
+    const bin = tempRoot("gate-role-bin");
     for (const executable of ["deno", "biome", "prettier", "tsc"])
       await writeFile(join(bin, executable), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
     await writeFile(join(root, "tools", "verify.ts"), "console.log('ok');\n");

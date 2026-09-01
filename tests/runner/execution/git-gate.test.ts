@@ -1,16 +1,12 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { gitExecutionArgvIssues } from "../../../olt/scripts/src/engine/runner/core/git-execution-shape.ts";
 import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
-const roots: string[] = [];
-
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
+afterEach(cleanupTempRoots);
 
 function createCommandRecord(overrides: Partial<CommandRecord> = {}): CommandRecord {
   return {
@@ -117,8 +113,7 @@ describe("git-execution-shape", () => {
 
 describe("internal command runner git-gate policy", () => {
   test("rejects an unrestricted git invocation as a gate command before observing the repository", async () => {
-    const repositoryRoot = await mkdtemp(join(tmpdir(), "internal-runner-git-gate-"));
-    roots.push(repositoryRoot);
+    const repositoryRoot = tempRoot("internal-runner-git-gate");
     const runRoot = join(repositoryRoot, ".olt", "capsules");
     await mkdir(runRoot, { recursive: true });
     const commandDir = join(runRoot, "commands");
@@ -148,8 +143,7 @@ describe("internal command runner git-gate policy", () => {
   });
 
   test("still accepts the same argv as a non-gate command", async () => {
-    const repositoryRoot = await mkdtemp(join(tmpdir(), "internal-runner-git-non-gate-"));
-    roots.push(repositoryRoot);
+    const repositoryRoot = tempRoot("internal-runner-git-non-gate");
     const runRoot = join(repositoryRoot, ".olt", "capsules");
     await mkdir(runRoot, { recursive: true });
     const commandDir = join(runRoot, "commands");

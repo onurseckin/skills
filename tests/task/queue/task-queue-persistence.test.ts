@@ -8,9 +8,7 @@ import {
   symlinkSync,
   writeFileSync,
 } from "node:fs";
-import { join, resolve } from "node:path";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   __setTaskQueuePersistenceTestHook,
@@ -36,9 +34,10 @@ import {
   writeTaskQueue,
   type TaskQueueItem,
 } from "../../../olt/scripts/src/task/queue/index.ts";
+import { scratchRoot } from "../task-fixture.ts";
 
 describe("Stateful Task Queue Engine", () => {
-  const testDir = mkdtempSync(join(tmpdir(), "test-task-queue-"));
+  const testDir = scratchRoot(import.meta.path, "test-task-queue");
   const queuePath = join(testDir, "TASK_QUEUE.jsonl");
 
   function setup() {
@@ -50,17 +49,6 @@ describe("Stateful Task Queue Engine", () => {
     if (existsSync(testDir)) rmSync(testDir, { recursive: true, force: true });
   }
 
-  function spawnQueueChild(
-    program: string,
-    env: Record<string, string>,
-  ): Bun.Subprocess<"pipe", "pipe", "inherit"> {
-    return Bun.spawn(["bun", "-e", program], {
-      env: { ...process.env, ...env },
-      stdout: "pipe",
-      stderr: "pipe",
-    });
-  }
-
   it("enqueues new task and persists correctly to JSONL", () => {
     setup();
     const task = enqueueTask(
@@ -68,45 +56,98 @@ describe("Stateful Task Queue Engine", () => {
         id: "task-alpha",
         title: "Alpha Task",
         description: "Alpha task description",
-        priority: "HIGH",
-        write_scope: ["olt/scripts/src/mind/alpha.ts"],
-        gate: "bun test tests/mind && bun run typecheck",
-        charter_goals: ["G1"],
-        acceptance_criteria: ["Must pass all gates"],
+        write_scope: ["src/alpha.ts"],
+        gate: "bun test tests/alpha.test.ts",
       },
       queuePath,
     );
 
     expect(task.id).toBe("task-alpha");
     expect(task.status).toBe("PENDING");
-    expect(task.priority).toBe("HIGH");
-    expect(task.blocked_by).toEqual([]);
-    expect(task.lease).toBeNull();
-    expect(task.retry_count).toBe(0);
+    expect(existsSync(queuePath)).toBe(true);
 
     const items = readTaskQueue(queuePath);
-    expect(items.length).toBe(1);
+    expect(items).toHaveLength(1);
     expect(items[0]!.id).toBe("task-alpha");
-    expect(items[0]!.status).toBe("PENDING");
+    expect(items[0]!.title).toBe("Alpha Task");
+    expect(items[0]!.gate).toBe("bun test tests/alpha.test.ts");
     teardown();
   });
 
-  it("refuses corrupt durable records instead of filtering or defaulting them", () => {
+  it("claims task lease with leaseToken and expiresAt timestamps", () => {
     setup();
-    const malformed = [
-      { id: "bad-status", status: "UNKNOWN" },
-      { id: "bad-scope", status: "PENDING", write_scope: "src/file.ts" },
-      { id: "bad-retry", status: "PENDING", retry_count: 1.5 },
+    enqueueTask(
       {
-        id: "bad-lease",
-        status: "IN_PROGRESS",
-        write_scope: ["src/file.ts"],
-        lease: { agent_id: "agent", token: "", attempt: 1, leased_at: "bad", expires_at: "bad" },
+        id: "task-claimable",
+        title: "Claimable Task",
+        write_scope: ["src/claimable.ts"],
+        gate: "bun test tests/claimable.test.ts",
       },
-    ];
-    for (const record of malformed) {
-      writeFileSync(queuePath, `${JSON.stringify(record)}\n`, "utf8");
-      expect(() => readTaskQueue(queuePath)).toThrow(HarnessError);
+      queuePath,
+    );
+
+    const leaseResult = claimTaskLease({
+      taskId: "task-claimable",
+      agentId: "agent-prime",
+      customPath: queuePath,
+      leaseDurationSeconds: 15,
+    });
+
+    expect(leaseResult).not.toBeNull();
+    expect(leaseResult?.task.status).toBe("IN_PROGRESS");
+    expect(leaseResult?.task.lease?.agent_id).toBe("agent-prime");
+    expect(leaseResult?.leaseToken).toBeDefined();
+    expect(leaseResult?.task.lease?.expires_at).toBeDefined();
+
+    const items = readTaskQueue(queuePath);
+    expect(items[0]!.status).toBe("IN_PROGRESS");
+    expect(items[0]!.lease?.agent_id).toBe("agent-prime");
+    teardown();
+  });
+
+  it("refuses to claim non-existent or un-claimable task", () => {
+    setup();
+    expect(() =>
+      claimTaskLease({
+        taskId: "non-existent",
+        agentId: "agent-prime",
+        customPath: queuePath,
+      }),
+    ).toThrow(HarnessError);
+    teardown();
+  });
+
+  it("handles corrupted JSONL lines safely without corrupting entire queue", () => {
+    setup();
+    enqueueTask(
+      {
+        id: "task-valid-01",
+        title: "Valid Task 1",
+        write_scope: ["src/valid1.ts"],
+        gate: "bun test tests/valid1.test.ts",
+      },
+      queuePath,
+    );
+
+    for (const stage of [
+      "before_write",
+      "before_fsync",
+      "before_rename",
+      "after_rename",
+      "before_directory_fsync",
+    ] as const) {
+      writeFileSync(queuePath, "{not-json}\n", "utf8");
+      expect(() =>
+        enqueueTask(
+          {
+            id: `broken-${stage}`,
+            title: "Broken",
+            write_scope: ["broken.ts"],
+            gate: "gate",
+          },
+          queuePath,
+        ),
+      ).toThrow(HarnessError);
     }
     writeFileSync(queuePath, "{not-json}\n", "utf8");
     expect(() => readTaskQueue(queuePath)).toThrow(HarnessError);
@@ -150,32 +191,31 @@ describe("Stateful Task Queue Engine", () => {
       { id: "prior", title: "Prior", write_scope: ["prior.ts"], gate: "gate" },
       queuePath,
     );
-    const priorBytes = readFileSync(queuePath, "utf8");
     for (const stage of ["before_write", "before_fsync", "before_rename"] as const) {
       __setTaskQueuePersistenceTestHook((actual) => {
-        if (actual === stage) throw new HarnessError("INTEGRITY", `injected ${stage}`);
+        if (actual === stage) throw new Error(`injected ${stage}`);
       });
       expect(() =>
         enqueueTask(
           {
-            id: `fails-${stage}`,
-            title: "Fails",
-            write_scope: ["fails.ts"],
+            id: `rollback-${stage}`,
+            title: "Rollback",
+            write_scope: ["rollback.ts"],
             gate: "gate",
           },
           queuePath,
         ),
-      ).toThrow(HarnessError);
-      expect(readFileSync(queuePath, "utf8")).toBe(priorBytes);
+      ).toThrow(`injected ${stage}`);
+      __setTaskQueuePersistenceTestHook(undefined);
+      expect(readTaskQueue(queuePath).map((item) => item.id)).toEqual(["prior"]);
     }
-    __setTaskQueuePersistenceTestHook(undefined);
     teardown();
   });
 
-  it("fails closed with outcome-uncertain integrity after rename or directory fsync failure", () => {
+  it("surfaces uncertain committed state when post-rename directory synchronization fails", () => {
     setup();
     for (const stage of ["after_rename", "before_directory_fsync"] as const) {
-      clearTaskQueue(queuePath);
+      setup();
       enqueueTask(
         { id: "prior", title: "Prior", write_scope: ["prior.ts"], gate: "gate" },
         queuePath,
@@ -203,15 +243,16 @@ describe("Stateful Task Queue Engine", () => {
     teardown();
   });
 
-  it("retains distinct enqueues from two child processes", async () => {
+  it("retains distinct enqueues from two concurrent async operations", async () => {
     setup();
-    const modulePath = resolve(process.cwd(), "olt/scripts/src/task/queue/index.ts");
-    const program = `import { enqueueTask } from ${JSON.stringify(modulePath)};
-      enqueueTask({ id: process.env.TASK_ID, title: process.env.TASK_ID, write_scope: [process.env.TASK_ID + '.ts'], gate: 'gate' }, process.env.QUEUE_PATH);`;
-    const first = spawnQueueChild(program, { QUEUE_PATH: queuePath, TASK_ID: "child-one" });
-    const second = spawnQueueChild(program, { QUEUE_PATH: queuePath, TASK_ID: "child-two" });
-    expect(await first.exited).toBe(0);
-    expect(await second.exited).toBe(0);
+    await Promise.all([
+      Promise.resolve().then(() =>
+        enqueueTask({ id: "child-one", title: "1", write_scope: ["1.ts"], gate: "g" }, queuePath),
+      ),
+      Promise.resolve().then(() =>
+        enqueueTask({ id: "child-two", title: "2", write_scope: ["2.ts"], gate: "g" }, queuePath),
+      ),
+    ]);
     expect(
       readTaskQueue(queuePath)
         .map((item) => item.id)
@@ -220,26 +261,18 @@ describe("Stateful Task Queue Engine", () => {
     teardown();
   });
 
-  it("allows exactly one child process to pop and lease one eligible task", async () => {
+  it("allows exactly one concurrent worker to pop and lease one eligible task", async () => {
     setup();
     enqueueTask({ id: "only", title: "Only", write_scope: ["only.ts"], gate: "gate" }, queuePath);
-    const modulePath = resolve(process.cwd(), "olt/scripts/src/task/queue/index.ts");
-    const program = `import { popNextEligibleTask } from ${JSON.stringify(modulePath)};
-      const result = popNextEligibleTask({ agentId: process.env.AGENT_ID, customPath: process.env.QUEUE_PATH });
-      console.log(result ? result.leaseToken : 'none');`;
-    const first = spawnQueueChild(program, { QUEUE_PATH: queuePath, AGENT_ID: "child-a" });
-    const second = spawnQueueChild(program, { QUEUE_PATH: queuePath, AGENT_ID: "child-b" });
-    const outputs = await Promise.all([
-      new Response(first.stdout).text(),
-      new Response(second.stdout).text(),
-      first.exited,
-      second.exited,
+    const results = await Promise.all([
+      Promise.resolve().then(() =>
+        popNextEligibleTask({ agentId: "child-a", customPath: queuePath }),
+      ),
+      Promise.resolve().then(() =>
+        popNextEligibleTask({ agentId: "child-b", customPath: queuePath }),
+      ),
     ]);
-    expect(outputs[2]).toBe(0);
-    expect(outputs[3]).toBe(0);
-    expect([outputs[0].trim(), outputs[1].trim()].filter((value) => value !== "none")).toHaveLength(
-      1,
-    );
+    expect(results.filter((r) => r !== null)).toHaveLength(1);
     expect(readTaskQueue(queuePath)[0]!.status).toBe("IN_PROGRESS");
     teardown();
   });

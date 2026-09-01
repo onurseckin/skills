@@ -1,18 +1,24 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { afterAll, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { preplanPacketPort } from "../../../../olt/scripts/src/packets/preplan-port.ts";
 import { initRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
-const roots: string[] = [];
-afterEach(async () => Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true }))));
+const vfs = new VirtualMemoryFS();
+const session = createVirtualFSSession(vfs);
+
+afterAll(() => {
+  session.cleanup();
+  vfs.reset();
+});
 
 async function fixtureRun(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "preplan-port-"));
-  roots.push(root);
+  const root = `/virtual/preplan-port-${Math.random().toString(36).slice(2)}`;
   const repo = join(root, "repo");
-  await mkdir(repo);
+  vfs.mkdirSync(repo, { recursive: true });
   return initRun(repo, "preplan-port-run", new TextEncoder().encode("prompt"), "file", true);
 }
 

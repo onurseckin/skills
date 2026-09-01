@@ -1,7 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { afterAll, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import {
   CAPSULE_DIRECTORIES,
@@ -11,42 +8,29 @@ import {
   formatCapsuleMemoryGuidance,
   getCapsuleCliCommands,
   partitionDecoupledMemory,
-  readDecoupledBlob,
-  readDecoupledEvents,
-  readDecoupledEvidence,
-  readDecoupledState,
   resolveCapsuleDirectory,
   resolveCapsuleFile,
-  validateRichInstructionPacket,
   verifyCapsuleLayout,
   verifyCapsuleLayoutSync,
-  writeDecoupledBlob,
 } from "../../../../olt/scripts/src/packets/capsule-memory.ts";
-import { evidenceSchema } from "../../../../olt/scripts/src/packets/evidence-schema.ts";
-import { buildPacket } from "../../../../olt/scripts/src/packets/render-packet.ts";
-import { claimTask } from "../../../../olt/scripts/src/workflow/lease/claim.ts";
-import { at, TestPort, workflowState } from "../../../workflow/index.ts";
 import { inspectionContext } from "../slicing/inspection-fixture.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
-const roots: string[] = [];
-afterEach(async () => {
-  for (const root of roots) {
-    await rm(root, { recursive: true, force: true });
-  }
-  roots.length = 0;
+const vfs = new VirtualMemoryFS();
+const session = createVirtualFSSession(vfs);
+
+afterAll(() => {
+  session.cleanup();
+  vfs.reset();
 });
 
-const clock = at("2026-08-22T12:00:00.000Z");
-const commonBytes = new TextEncoder().encode("Canonical common instructions for tests.\n");
-const commonSha256 = createHash("sha256").update(commonBytes).digest("hex");
-
-function baseImplementerState() {
-  const port = new TestPort(workflowState());
-  const claim = claimTask(port, "T-1", "worker-1", "implementer", { clock });
-  return {
-    state: claim.state,
-    token: claim.token,
-  };
+function createTempRoot(prefix: string): string {
+  const root = `/virtual/${prefix}${Math.random().toString(36).slice(2)}`;
+  vfs.mkdirSync(root, { recursive: true });
+  return root;
 }
 
 describe("Decoupled Capsule Memory - Store & Structure", () => {
@@ -77,8 +61,7 @@ describe("Decoupled Capsule Memory - Store & Structure", () => {
     });
 
     test("verifies full capsule layout for valid and incomplete directories", async () => {
-      const tempRoot = await mkdtemp(join(tmpdir(), "capsule-layout-test-"));
-      roots.push(tempRoot);
+      const tempRoot = createTempRoot("capsule-layout-test-");
 
       // Initially empty -> invalid layout with missing items
       const initialSync = verifyCapsuleLayoutSync(tempRoot);
@@ -88,10 +71,10 @@ describe("Decoupled Capsule Memory - Store & Structure", () => {
 
       // Create all required directories and files
       for (const dir of CAPSULE_DIRECTORIES) {
-        await mkdir(join(tempRoot, dir), { recursive: true });
+        vfs.mkdirSync(join(tempRoot, dir), { recursive: true });
       }
       for (const file of CAPSULE_FILES) {
-        await writeFile(join(tempRoot, file), file.endsWith(".json") ? "{}" : "# test\n");
+        vfs.writeFileSync(join(tempRoot, file), file.endsWith(".json") ? "{}" : "# test\n");
       }
       const verifiedSync = verifyCapsuleLayoutSync(tempRoot);
       expect(verifiedSync.valid).toBe(true);
@@ -109,14 +92,13 @@ describe("Decoupled Capsule Memory - Store & Structure", () => {
     });
 
     test("verifyCapsuleLayoutSync handles filesystem errors gracefully", async () => {
-      const tempRoot = await mkdtemp(join(tmpdir(), "capsule-layout-err-"));
-      roots.push(tempRoot);
+      const tempRoot = createTempRoot("capsule-layout-err-");
 
       for (const dir of CAPSULE_DIRECTORIES) {
-        await mkdir(join(tempRoot, dir), { recursive: true });
+        vfs.mkdirSync(join(tempRoot, dir), { recursive: true });
       }
       for (const file of CAPSULE_FILES) {
-        await writeFile(join(tempRoot, file), "{}");
+        vfs.writeFileSync(join(tempRoot, file), "{}");
       }
 
       const fs = await import("node:fs");

@@ -42,12 +42,19 @@ function spec(invocation: string): CommandSpec {
 describe("Validator Hard-Lock - Confinement & Static Invariants", () => {
   describe("2. Cognitive Validator Hard-Lock Interlock", () => {
     const cognitiveValidatorRoles = [
-      "validator", "ui-validator", "validator-code-quality",
-      "validator-ui-design", "validator-security", "validator-product", "validator-system-design",
+      "validator",
+      "ui-validator",
+      "validator-code-quality",
+      "validator-ui-design",
+      "validator-security",
+      "validator-product",
+      "validator-system-design",
     ] as const;
 
     const mechanicValidatorRoles = [
-      "mechanic-validator", "ui-mechanic-validator", "mechanic_validator",
+      "mechanic-validator",
+      "ui-mechanic-validator",
+      "mechanic_validator",
     ] as const;
 
     it("correctly differentiates cognitive validators from mechanic validators", () => {
@@ -101,19 +108,34 @@ describe("Validator Hard-Lock - Confinement & Static Invariants", () => {
       transact(run, "test-setup", "grant-validator", {}, (draft) => {
         draft.agents = [
           {
-            id: "val-cog-1", role: "validator", parent_agent_id: null,
-            parent_task_id: null, host: "claude-code",
-            granted_at: new Date().toISOString(), status: "active",
+            id: "val-cog-1",
+            role: "validator",
+            parent_agent_id: null,
+            parent_task_id: null,
+            host: "claude-code",
+            granted_at: new Date().toISOString(),
+            status: "active",
           },
           {
-            id: "mech-val-1", role: "mechanic-validator", parent_agent_id: null,
-            parent_task_id: null, host: "claude-code",
-            granted_at: new Date().toISOString(), status: "active",
+            id: "mech-val-1",
+            role: "mechanic-validator",
+            parent_agent_id: null,
+            parent_task_id: null,
+            host: "claude-code",
+            granted_at: new Date().toISOString(),
+            status: "active",
           },
         ];
       });
 
-      const prohibitedCategories = ["shell", "test-runner", "build", "package-manager", "bash", "terminal"];
+      const prohibitedCategories = [
+        "shell",
+        "test-runner",
+        "build",
+        "package-manager",
+        "bash",
+        "terminal",
+      ];
       for (const cat of prohibitedCategories) {
         expect(isExecutionToolCategory(cat)).toBe(true);
         const flags: Flags = { run, validator: "val-cog-1", "tool-category": cat };
@@ -140,8 +162,19 @@ describe("Validator Hard-Lock - Confinement & Static Invariants", () => {
     it("enforces Cognitive Validator Hard-Lock in validation/anti-leak", () => {
       const cogChecks: BoundaryLeakCheck[] = [
         { agent_id: "validator-1", role: "validator", action: "run:exec", task_id: "task-1" },
-        { agent_id: "ui-validator-1", role: "ui-validator", action: "bun test tests/validation/auth.test.ts", task_id: "task-2" },
-        { agent_id: "val-security", role: "validator-security", action: "task:probe", metadata: { tool_category: "shell" }, task_id: "task-3" },
+        {
+          agent_id: "ui-validator-1",
+          role: "ui-validator",
+          action: "bun test tests/validation/auth.test.ts",
+          task_id: "task-2",
+        },
+        {
+          agent_id: "val-security",
+          role: "validator-security",
+          action: "task:probe",
+          metadata: { tool_category: "shell" },
+          task_id: "task-3",
+        },
       ];
 
       for (const check of cogChecks) {
@@ -156,8 +189,10 @@ describe("Validator Hard-Lock - Confinement & Static Invariants", () => {
       }
 
       const mechCheck: BoundaryLeakCheck = {
-        agent_id: "mechanic-val-1", role: "mechanic-validator",
-        action: "bun test tests/validation/auth.test.ts", task_id: "task-1",
+        agent_id: "mechanic-val-1",
+        role: "mechanic-validator",
+        action: "bun test tests/validation/auth.test.ts",
+        task_id: "task-1",
       };
       expect(isBoundaryLeakViolation(mechCheck)).toBe(false);
       expect(validateBoundaryIntegrity(mechCheck).valid).toBe(true);
@@ -168,7 +203,9 @@ describe("Validator Hard-Lock - Confinement & Static Invariants", () => {
       const watchdog = createRoleBoundaryWatchdog();
 
       const cogAction: RoleBoundaryAction = {
-        agentId: "val-cog-1", role: "validator", actionType: "test_run",
+        agentId: "val-cog-1",
+        role: "validator",
+        actionType: "test_run",
         argv: ["bun", "test", "tests/validation/example.test.ts"],
       };
 
@@ -180,7 +217,9 @@ describe("Validator Hard-Lock - Confinement & Static Invariants", () => {
       expect(violation?.observation).toContain("Cognitive Validator Hard-Lock Violation");
 
       const mechAction: RoleBoundaryAction = {
-        agentId: "mech-val-1", role: "mechanic-validator", actionType: "command_exec",
+        agentId: "mech-val-1",
+        role: "mechanic-validator",
+        actionType: "command_exec",
         argv: ["bun", "test", "tests/validation/example.test.ts"],
       };
       expect(watchdog.auditAction(mechAction)).toBeNull();

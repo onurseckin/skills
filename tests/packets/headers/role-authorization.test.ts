@@ -1,19 +1,30 @@
-import { describe, expect, test } from "bun:test";
-import { mkdtempSync, realpathSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { afterAll, describe, expect, test } from "bun:test";
 import type { AgentRole } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { publishPacket } from "../../../olt/scripts/src/packets/persist-packet.ts";
 import type { BuiltPacket } from "../../../olt/scripts/src/packets/types.ts";
 import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";
 import type { WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import { TestPort, workflowState } from "../../workflow/index.ts";
+
+const vfs = new VirtualMemoryFS();
+const session = createVirtualFSSession(vfs);
+
+afterAll(() => {
+  session.cleanup();
+  vfs.reset();
+});
 
 const clock = { now: () => new Date("2026-08-13T12:30:00.000Z") };
 const TOKEN = "branch-child-token";
 
 function root(): string {
-  return realpathSync(mkdtempSync(join(tmpdir(), "role-auth-")));
+  const r = `/virtual/role-auth-${Math.random().toString(36).slice(2)}`;
+  vfs.mkdirSync(r, { recursive: true });
+  return r;
 }
 
 function packet(role: string, taskId: string | null): BuiltPacket {

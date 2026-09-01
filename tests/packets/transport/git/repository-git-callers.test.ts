@@ -1,12 +1,22 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterAll, describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { ensureHarnessIgnored } from "../../../../olt/scripts/src/cli/git-ignore.ts";
 import { ignoredByGit } from "../../../../olt/scripts/src/reporting/doctor.ts";
 import { createRepositoryGitCommand } from "../../../../olt/scripts/src/packets/repository-git-command.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
-const roots: string[] = [];
+const vfs = new VirtualMemoryFS();
+const session = createVirtualFSSession(vfs);
+
+afterAll(() => {
+  session.cleanup();
+  vfs.reset();
+});
+
 const prefix = [
   "-c",
   "core.hooksPath=/dev/null",
@@ -30,17 +40,12 @@ const environment = {
   PATH: "/usr/bin:/bin",
 };
 
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
-});
-
 describe("restricted repository Git callers", () => {
   test("routes init and doctor checks through exact restricted argv and environment", () => {
-    const repo = mkdtempSync(join(tmpdir(), "restricted-git-callers-"));
-    roots.push(repo);
-    mkdirSync(join(repo, ".git"));
+    const repo = `/virtual/restricted-git-callers-${Math.random().toString(36).slice(2)}`;
+    vfs.mkdirSync(join(repo, ".git"), { recursive: true });
     const runRoot = join(repo, ".olt", "capsules", "run");
-    mkdirSync(runRoot, { recursive: true });
+    vfs.mkdirSync(runRoot, { recursive: true });
     const calls: Array<{ argv: string[]; options: unknown }> = [];
     const command = createRepositoryGitCommand(
       {
@@ -81,9 +86,8 @@ describe("restricted repository Git callers", () => {
   });
 
   test("ensureHarnessIgnored throws when .capsules is not gitignored", () => {
-    const repo = mkdtempSync(join(tmpdir(), "restricted-git-callers-not-ignored-"));
-    roots.push(repo);
-    mkdirSync(join(repo, ".git"));
+    const repo = `/virtual/restricted-git-callers-not-ignored-${Math.random().toString(36).slice(2)}`;
+    vfs.mkdirSync(join(repo, ".git"), { recursive: true });
     const command = createRepositoryGitCommand(environment, (_executable, argv) => ({
       status: argv.includes("check-ignore") ? 1 : 0,
       stdout: Buffer.from(argv.includes("--is-inside-work-tree") ? "true\n" : ""),

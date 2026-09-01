@@ -1,28 +1,31 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import type {
   AgentGrantRecord,
   TelemetryFieldConflict,
 } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import { evidenced } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import { initRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
+import { enableInMemoryAgentMetadata } from "../../../../olt/scripts/src/runtime/session.ts";
 import { writeAgentLedger } from "../../../../olt/scripts/src/workflow/agents/ledger.ts";
 import {
   appendTelemetryConflicts,
   applyDerivedTelemetry,
   checkParentAgentConflict,
+  refreshAgentDerivedTelemetry,
   type DerivedTelemetryInput,
 } from "../../../../olt/scripts/src/workflow/agents/telemetry-merge.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 function withRun<T>(body: (runRoot: string) => T): T {
-  const repo = mkdtempSync(join(tmpdir(), "telemetry-run-"));
+  const { vfs, cleanup } = setupWorkflowVirtualFs();
+  enableInMemoryAgentMetadata();
   try {
+    const repo = "/virtual/tmp/telemetry-run-diff";
+    vfs.mkdirSync(repo, { recursive: true });
     const runRoot = initRun(repo, "test-run", new TextEncoder().encode("task"), "file", true);
     return body(runRoot);
   } finally {
-    rmSync(repo, { recursive: true, force: true });
+    cleanup();
   }
 }
 

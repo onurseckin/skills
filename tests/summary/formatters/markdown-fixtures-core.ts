@@ -35,26 +35,27 @@ spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike): boolean => {
   return origExists(p);
 });
 
-spyOn(fs, "readFileSync").mockImplementation(
-  (p: fs.PathLike, opt?: unknown): string | Buffer => {
-    const s = String(p);
-    if (s.startsWith("/virtual/")) {
-      const content = vfs.get(s);
-      if (content === undefined) {
-        throw new Error(`ENOENT: no such file or directory, open '${s}'`);
-      }
-      if (
-        opt === "utf-8" ||
-        opt === "utf8" ||
-        (typeof opt === "object" && opt !== null && "encoding" in opt && (opt as { encoding?: string }).encoding)
-      ) {
-        return content;
-      }
-      return Buffer.from(content, "utf-8");
+spyOn(fs, "readFileSync").mockImplementation((p: fs.PathLike, opt?: unknown): string | Buffer => {
+  const s = String(p);
+  if (s.startsWith("/virtual/")) {
+    const content = vfs.get(s);
+    if (content === undefined) {
+      throw new Error(`ENOENT: no such file or directory, open '${s}'`);
     }
-    return origRead(p, opt as Parameters<typeof origRead>[1]) as string | Buffer;
-  },
-);
+    if (
+      opt === "utf-8" ||
+      opt === "utf8" ||
+      (typeof opt === "object" &&
+        opt !== null &&
+        "encoding" in opt &&
+        (opt as { encoding?: string }).encoding)
+    ) {
+      return content;
+    }
+    return Buffer.from(content, "utf-8");
+  }
+  return origRead(p, opt as Parameters<typeof origRead>[1]) as string | Buffer;
+});
 
 spyOn(fs, "writeFileSync").mockImplementation(
   (p: fs.PathLike, data: string | NodeJS.ArrayBufferView): void => {

@@ -10,173 +10,161 @@ import {
 import { makeState, makeTask } from "../dag/graph-fixtures.ts";
 
 const vfs = new Map<string, Buffer>();
-const vdirs = new Set<string>();
 const openFds = new Map<number, { path: string; content: Buffer }>();
-let nextFd = 100;
-let rootCounter = 0;
+let nextFd = 100,
+  rootCounter = 0;
 const spies: Array<{ mockRestore: () => void }> = [];
-
-const origExists = fs.existsSync.bind(fs);
-const origRead = fs.readFileSync.bind(fs);
-const origWrite = fs.writeFileSync.bind(fs);
-const origMkdir = fs.mkdirSync.bind(fs);
-const origRm = fs.rmSync.bind(fs);
-const origRealpath = fs.realpathSync.bind(fs);
-const origLstat = fs.lstatSync.bind(fs);
-const origOpen = fs.openSync.bind(fs);
-const origReadSync = fs.readSync.bind(fs);
-const origClose = fs.closeSync.bind(fs);
+const norm = (p: fs.PathLike) => resolve(String(p)).replace(/\/+$/, "");
 
 beforeEach(() => {
+  const oe = fs.existsSync.bind(fs),
+    or = fs.readFileSync.bind(fs),
+    ow = fs.writeFileSync.bind(fs),
+    om = fs.mkdirSync.bind(fs);
+  const orm = fs.rmSync.bind(fs),
+    orp = fs.realpathSync.bind(fs),
+    ol = fs.lstatSync.bind(fs),
+    oo = fs.openSync.bind(fs);
+  const orsync = fs.readSync.bind(fs),
+    oc = fs.closeSync.bind(fs),
+    owsync = fs.writeSync.bind(fs),
+    ofs = fs.fsyncSync.bind(fs);
+  const orn = fs.renameSync.bind(fs),
+    och = fs.chmodSync.bind(fs);
+
   spies.push(
-    spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike): boolean => {
-      const s = resolve(String(p)).replace(/\/+$/, "");
-      if (s.startsWith("/virtual/")) {
-        if (vfs.has(s) || vdirs.has(s)) return true;
-        for (const k of vfs.keys()) {
-          if (k.startsWith(`${s}/`)) return true;
-        }
-        for (const d of vdirs) {
-          if (d.startsWith(`${s}/`)) return true;
-        }
-        return false;
-      }
-      return origExists(p);
-    }),
-    spyOn(fs, "readFileSync").mockImplementation(
-      (p: fs.PathLike, opt?: unknown): string | Buffer => {
-        const s = resolve(String(p)).replace(/\/+$/, "");
-        if (s.startsWith("/virtual/")) {
-          const content = vfs.get(s);
-          if (content === undefined) {
-            throw new Error(`ENOENT: no such file or directory, open '${s}'`);
-          }
-          if (opt === "utf-8" || opt === "utf8" || (typeof opt === "object" && opt !== null)) {
-            return content.toString("utf-8");
-          }
-          return content;
-        }
-        return origRead(p, opt as Parameters<typeof origRead>[1]) as string | Buffer;
-      },
+    spyOn(fs, "existsSync").mockImplementation((p) =>
+      norm(p).startsWith("/virtual/")
+        ? vfs.has(norm(p)) || Array.from(vfs.keys()).some((k) => k.startsWith(`${norm(p)}/`))
+        : oe(p),
     ),
-    spyOn(fs, "writeFileSync").mockImplementation(
-      (p: fs.PathLike, data: string | NodeJS.ArrayBufferView): void => {
-        const s = resolve(String(p)).replace(/\/+$/, "");
-        if (s.startsWith("/virtual/")) {
-          const buf = Buffer.isBuffer(data)
-            ? data
-            : typeof data === "string"
-              ? Buffer.from(data, "utf-8")
-              : Buffer.from(data.buffer, data.byteOffset, data.byteLength);
-          vfs.set(s, buf);
-          return;
-        }
-        origWrite(p, data);
-      },
-    ),
-    spyOn(fs, "mkdirSync").mockImplementation((p: fs.PathLike): string | undefined => {
-      const s = resolve(String(p)).replace(/\/+$/, "");
+    spyOn(fs, "readFileSync").mockImplementation((p, opt) => {
+      const s = norm(p);
       if (s.startsWith("/virtual/")) {
-        vdirs.add(s);
-        return undefined;
+        const c = vfs.get(s);
+        if (!c) throw new Error(`ENOENT: ${s}`);
+        return opt === "utf-8" || opt === "utf8" || (typeof opt === "object" && opt)
+          ? c.toString("utf-8")
+          : c;
       }
-      return origMkdir(p) as string | undefined;
+      return or(p, opt as Parameters<typeof or>[1]);
     }),
-    spyOn(fs, "rmSync").mockImplementation((p: fs.PathLike): void => {
-      const s = resolve(String(p)).replace(/\/+$/, "");
+    spyOn(fs, "writeFileSync").mockImplementation((p, d) => {
+      const s = norm(p);
+      if (s.startsWith("/virtual/")) {
+        vfs.set(
+          s,
+          Buffer.isBuffer(d)
+            ? d
+            : typeof d === "string"
+              ? Buffer.from(d, "utf-8")
+              : Buffer.from(d.buffer, d.byteOffset, d.byteLength),
+        );
+        return;
+      }
+      ow(p, d);
+    }),
+    spyOn(fs, "mkdirSync").mockImplementation((p) =>
+      norm(p).startsWith("/virtual/") ? undefined : (om(p) as string | undefined),
+    ),
+    spyOn(fs, "rmSync").mockImplementation((p) => {
+      const s = norm(p);
       if (s.startsWith("/virtual/")) {
         vfs.delete(s);
-        vdirs.delete(s);
-        for (const k of Array.from(vfs.keys())) {
-          if (k.startsWith(`${s}/`)) vfs.delete(k);
-        }
-        for (const d of Array.from(vdirs)) {
-          if (d.startsWith(`${s}/`)) vdirs.delete(d);
-        }
+        for (const k of Array.from(vfs.keys())) if (k.startsWith(`${s}/`)) vfs.delete(k);
         return;
       }
-      origRm(p, { recursive: true, force: true });
+      orm(p, { recursive: true, force: true });
     }),
-    spyOn(fs, "realpathSync").mockImplementation((p: fs.PathLike): string => {
-      const s = resolve(String(p)).replace(/\/+$/, "");
+    spyOn(fs, "realpathSync").mockImplementation((p) =>
+      norm(p).startsWith("/virtual/") ? norm(p) : orp(p),
+    ),
+    spyOn(fs, "lstatSync").mockImplementation((p) => {
+      const s = norm(p);
       if (s.startsWith("/virtual/")) {
-        return s;
-      }
-      return origRealpath(p);
-    }),
-    spyOn(fs, "lstatSync").mockImplementation((p: fs.PathLike): fs.Stats => {
-      const s = resolve(String(p)).replace(/\/+$/, "");
-      if (s.startsWith("/virtual/")) {
-        const isFile = vfs.has(s);
-        const isDir = vdirs.has(s) || (!isFile && Array.from(vfs.keys()).some((k) => k.startsWith(`${s}/`)));
-        if (!isFile && !isDir) {
-          throw new Error(`ENOENT: no such file or directory, lstat '${s}'`);
-        }
-        const size = isFile ? vfs.get(s)!.length : 0;
+        const isF = vfs.has(s),
+          isD = !isF && Array.from(vfs.keys()).some((k) => k.startsWith(`${s}/`));
+        if (!isF && !isD) throw new Error(`ENOENT: ${s}`);
         return {
-          isFile: () => isFile,
-          isDirectory: () => isDir,
+          isFile: () => isF,
+          isDirectory: () => isD,
           isSymbolicLink: () => false,
-          size,
+          size: isF ? vfs.get(s)!.length : 0,
         } as unknown as fs.Stats;
       }
-      return origLstat(p);
+      return ol(p);
     }),
-    spyOn(fs, "openSync").mockImplementation((p: fs.PathLike, flags: fs.OpenMode): number => {
-      const s = resolve(String(p)).replace(/\/+$/, "");
+    spyOn(fs, "openSync").mockImplementation((p, f) => {
+      const s = norm(p);
       if (s.startsWith("/virtual/")) {
-        const content = vfs.get(s);
-        if (!content) {
-          throw new Error(`ENOENT: no such file or directory, open '${s}'`);
+        let c = vfs.get(s);
+        if (!c) {
+          c = Buffer.alloc(0);
+          vfs.set(s, c);
         }
         const fd = ++nextFd;
-        openFds.set(fd, { path: s, content });
+        openFds.set(fd, { path: s, content: c });
         return fd;
       }
-      return origOpen(p, flags);
+      return oo(p, f);
     }),
-    spyOn(fs, "readSync").mockImplementation(
-      (
-        fd: number,
-        buffer: NodeJS.ArrayBufferView,
-        offset = 0,
-        length = buffer.byteLength,
-        position: fs.ReadPosition | null = 0,
-      ): number => {
-        const openFile = openFds.get(fd);
-        if (openFile) {
-          const content = openFile.content;
-          const pos = typeof position === "number" ? position : 0;
-          const slice = content.subarray(pos, pos + length);
-          const targetBuf = Buffer.from(buffer.buffer, buffer.byteOffset, buffer.byteLength);
-          slice.copy(targetBuf, offset);
-          return slice.length;
+    spyOn(fs, "readSync").mockImplementation((fd, buf, off = 0, len = buf.byteLength, pos = 0) => {
+      const f = openFds.get(fd);
+      if (f) {
+        const p = typeof pos === "number" ? pos : 0;
+        const slice = f.content.subarray(p, p + len);
+        slice.copy(Buffer.from(buf.buffer, buf.byteOffset, buf.byteLength), off);
+        return slice.length;
+      }
+      return orsync(fd, buf, off, len, pos);
+    }),
+    spyOn(fs, "writeSync").mockImplementation((fd, buf, off, len, pos) => {
+      const f = openFds.get(fd);
+      if (f) {
+        const b =
+          typeof buf === "string"
+            ? Buffer.from(buf, "utf-8")
+            : Buffer.from(buf.buffer, buf.byteOffset, buf.byteLength);
+        const chunk = b.subarray(off ?? 0, (off ?? 0) + (len ?? b.length));
+        f.content = Buffer.concat([f.content, chunk]);
+        vfs.set(f.path, f.content);
+        return chunk.length;
+      }
+      return owsync(fd, buf as NodeJS.ArrayBufferView, off, len, pos);
+    }),
+    spyOn(fs, "fsyncSync").mockImplementation((fd) => (openFds.has(fd) ? undefined : ofs(fd))),
+    spyOn(fs, "renameSync").mockImplementation((o, np) => {
+      const so = norm(o),
+        sn = norm(np);
+      if (so.startsWith("/virtual/") || sn.startsWith("/virtual/")) {
+        const c = vfs.get(so);
+        if (c) {
+          vfs.delete(so);
+          vfs.set(sn, c);
         }
-        return origReadSync(fd, buffer, offset, length, position);
-      },
-    ),
-    spyOn(fs, "closeSync").mockImplementation((fd: number): void => {
-      if (openFds.has(fd)) {
-        openFds.delete(fd);
         return;
       }
-      origClose(fd);
+      orn(o, np);
     }),
+    spyOn(fs, "chmodSync").mockImplementation((p, m) =>
+      norm(p).startsWith("/virtual/") ? undefined : och(p, m),
+    ),
+    spyOn(fs, "closeSync").mockImplementation((fd) =>
+      openFds.has(fd) ? (openFds.delete(fd), undefined) : oc(fd),
+    ),
   );
 });
 
 afterEach(() => {
   for (const s of spies.splice(0)) s.mockRestore();
   vfs.clear();
-  vdirs.clear();
   openFds.clear();
 });
 
 function runRoot(): string {
   rootCounter += 1;
   const root = `/virtual/graph-asset-completeness-${rootCounter}`;
-  vdirs.add(root);
-  vdirs.add(join(root, "evidence"));
+  vfs.set(`${root}/evidence`, Buffer.alloc(0));
   return root;
 }
 
@@ -213,10 +201,9 @@ function capture(overrides: Partial<CaptureRecord> = {}): CaptureRecord {
 
 describe("captured asset dimensions and byte size reach graph.json", () => {
   test("a reported screenshot's byte size and pixel dimensions are measured from the real file on the implementer node", () => {
-    const root = runRoot();
-    const path = "evidence/impl-shot.png";
-    const bytes = writePng(root, path, 1440, 900);
-
+    const root = runRoot(),
+      path = "evidence/impl-shot.png",
+      bytes = writePng(root, path, 1440, 900);
     const task = makeTask("T-1", {
       status: "done",
       report: { summary: "Implemented A", files_changed: ["src/a.ts"], screenshots: [path] },
@@ -227,10 +214,9 @@ describe("captured asset dimensions and byte size reach graph.json", () => {
       promptText: "prompt",
       runRoot: root,
     });
-
     const asset = dataset.nodes
-      .find((node) => node.id === "node-task-T-1")
-      ?.assets?.find((candidate) => candidate.url === path);
+      .find((n) => n.id === "node-task-T-1")
+      ?.assets?.find((c) => c.url === path);
     expect(asset?.sizeBytes).toBe(bytes);
     expect(asset?.dimensions).toEqual({ width: 1440, height: 900 });
   });
@@ -239,7 +225,6 @@ describe("captured asset dimensions and byte size reach graph.json", () => {
     const root = runRoot();
     const path = "evidence/val-shot.png";
     const bytes = writePng(root, path, 1024, 768);
-
     const task = makeTask("T-1", {
       status: "changes_requested",
       validations: [
@@ -261,10 +246,9 @@ describe("captured asset dimensions and byte size reach graph.json", () => {
       promptText: "prompt",
       runRoot: root,
     });
-
     const asset = dataset.nodes
-      .find((node) => node.id === "node-validator-T-1")
-      ?.assets?.find((candidate) => candidate.url === path);
+      .find((n) => n.id === "node-validator-T-1")
+      ?.assets?.find((c) => c.url === path);
     expect(asset?.sizeBytes).toBe(bytes);
     expect(asset?.dimensions).toEqual({ width: 1024, height: 768 });
   });
@@ -273,7 +257,6 @@ describe("captured asset dimensions and byte size reach graph.json", () => {
     const root = runRoot();
     const path = "evidence/finding-shot.png";
     const bytes = writePng(root, path, 640, 480);
-
     const task = makeTask("T-1", {
       status: "changes_requested",
       repair_round: 1,
@@ -307,13 +290,11 @@ describe("captured asset dimensions and byte size reach graph.json", () => {
       promptText: "prompt",
       runRoot: root,
     });
-
-    const validator = dataset.nodes.find((node) => node.id === "node-validator-T-1");
-    const asset = validator?.assets?.find((candidate) => candidate.url === path);
+    const validator = dataset.nodes.find((n) => n.id === "node-validator-T-1");
+    const asset = validator?.assets?.find((c) => c.url === path);
     expect(asset?.sizeBytes).toBe(bytes);
     expect(asset?.dimensions).toEqual({ width: 640, height: 480 });
-
-    const finding = validator?.metadata?.findings?.find((entry) => entry.id === "F-1");
+    const finding = validator?.metadata?.findings?.find((e) => e.id === "F-1");
     expect(finding?.screenshotAssetIds).toEqual([asset?.id]);
   });
 
@@ -334,7 +315,6 @@ describe("captured asset dimensions and byte size reach graph.json", () => {
         timestamp: "2026-08-15T19:20:00.000Z",
       }),
     ]);
-
     const task = makeTask("T-1", {
       status: "changes_requested",
       validations: [
@@ -355,45 +335,35 @@ describe("captured asset dimensions and byte size reach graph.json", () => {
       promptText: "prompt",
       runRoot: root,
     });
-
     const asset = dataset.nodes
-      .find((node) => node.id === "node-validator-T-1")
-      ?.assets?.find((candidate) => candidate.url === path);
+      .find((n) => n.id === "node-validator-T-1")
+      ?.assets?.find((c) => c.url === path);
     expect(asset?.sizeBytes).toBe(recordedBytes);
     expect(asset?.dimensions).toEqual({ width: 1280, height: 720 });
   });
 
   test("an unattributed screenshot capture still reaches the terminal node with its measured facts", () => {
-    const root = runRoot();
-    const path = "evidence/orphan-capture.png";
-    const bytes = writePng(root, path, 320, 240);
+    const root = runRoot(),
+      path = "evidence/orphan-capture.png",
+      bytes = writePng(root, path, 320, 240);
     recordCaptures(root, [
-      capture({
-        name: "orphan-capture.png",
-        blob_path: path,
-        path,
-        original_path: path,
-        bytes,
-      }),
+      capture({ name: "orphan-capture.png", blob_path: path, path, original_path: path, bytes }),
     ]);
-
     const dataset = generateGraphDataset({
       runId: "run-orphan-capture",
       state: makeState([makeTask("T-1")]),
       promptText: "prompt",
       runRoot: root,
     });
-
-    const terminal = dataset.nodes.find((node) => node.id === "node-terminal-complete");
-    const asset = terminal?.assets?.find((candidate) => candidate.url === path);
+    const terminal = dataset.nodes.find((n) => n.id === "node-terminal-complete");
+    const asset = terminal?.assets?.find((c) => c.url === path);
     expect(asset?.sizeBytes).toBe(bytes);
     expect(asset?.dimensions).toEqual({ width: 320, height: 240 });
   });
 
   test("a screenshot path that resolves to no real file keeps size and dimensions absent rather than fabricated", () => {
-    const root = runRoot();
-    const path = "evidence/never-written.png";
-
+    const root = runRoot(),
+      path = "evidence/never-written.png";
     const task = makeTask("T-1", {
       status: "done",
       report: { summary: "Implemented A", files_changed: ["src/a.ts"], screenshots: [path] },
@@ -404,10 +374,9 @@ describe("captured asset dimensions and byte size reach graph.json", () => {
       promptText: "prompt",
       runRoot: root,
     });
-
     const asset = dataset.nodes
-      .find((node) => node.id === "node-task-T-1")
-      ?.assets?.find((candidate) => candidate.url === path);
+      .find((n) => n.id === "node-task-T-1")
+      ?.assets?.find((c) => c.url === path);
     expect(asset).toBeDefined();
     expect(asset?.sizeBytes).toBeUndefined();
     expect(asset?.dimensions).toBeUndefined();

@@ -1,7 +1,6 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import {
   assertCleanRootHygiene,
   DEFAULT_ALLOWED_SCRIPTS_DIRS,
@@ -10,21 +9,19 @@ import {
   scanRootHygiene,
 } from "../../../olt/scripts/src/health/hygiene/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { cleanupVirtualHealthFS, setupVirtualHealthFS } from "../fixture.ts";
 
-const cleanupPaths: string[] = [];
+beforeEach(() => {
+  setupVirtualHealthFS();
+});
 
 afterEach(() => {
-  for (const p of cleanupPaths.splice(0)) {
-    if (existsSync(p)) {
-      rmSync(p, { recursive: true, force: true });
-    }
-  }
+  cleanupVirtualHealthFS();
 });
 
 function createTempWorkspace(): string {
-  const dir = join(tmpdir(), `test-hygiene-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  const dir = `/virtual/test-hygiene-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   mkdirSync(dir, { recursive: true });
-  cleanupPaths.push(dir);
   writeFileSync(join(dir, "package.json"), "{}");
   writeFileSync(join(dir, "README.md"), "# Test");
   writeFileSync(join(dir, "tsconfig.json"), "{}");

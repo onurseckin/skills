@@ -1,7 +1,4 @@
 import { describe, expect, it, beforeEach } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
   quotaProvenanceSource,
@@ -80,10 +77,6 @@ import {
   CADENCE_WAKE_REFERENCE_FRAMES,
 } from "../../../olt/scripts/src/core/config/cadence.ts";
 import * as CoreConfigIndex from "../../../olt/scripts/src/core/config/index.ts";
-
-function makeTmpDir(prefix: string): string {
-  return mkdtempSync(join(tmpdir(), prefix));
-}
 
 describe("core/config/host-canon.ts", () => {
   it("canonicalizeHostId resolves exact providers, aliases, known unresolvable, and unrecognized", () => {

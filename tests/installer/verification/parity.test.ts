@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, realpathSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -8,8 +9,12 @@ import {
   migrateOwnedLegacyDeployment,
 } from "../../../scripts/sync/skill-deployer.ts";
 import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
+import { cleanupVirtualInstallerFS, setupVirtualInstallerFS } from "../helpers.ts";
 
 const REPOSITORY_ROOT = join(import.meta.dir, "../../..");
+
+beforeEach(setupVirtualInstallerFS);
+afterEach(cleanupVirtualInstallerFS);
 
 function createLegacySkillTree(destination: string): void {
   mkdirSync(join(destination, "scripts", "src", "config"), { recursive: true });

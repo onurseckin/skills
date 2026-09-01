@@ -1,7 +1,5 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { afterAll, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { whoamiCommand } from "../../../../olt/scripts/src/cli/commands/whoami.ts";
 import { dagViewCommand } from "../../../../olt/scripts/src/cli/commands/dag-view.ts";
 import {
@@ -14,18 +12,23 @@ import { findCommand } from "../../../../olt/scripts/src/cli/registry/index.ts";
 import { assertRoleMayInvoke } from "../../../../olt/scripts/src/packets/command-authority.ts";
 import { loadRoleContract } from "../../../../olt/scripts/src/packets/role-contract.ts";
 import { initRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
-const roots: string[] = [];
-afterEach(async () => {
-  for (const root of roots) await rm(root, { recursive: true, force: true });
-  roots.length = 0;
+const vfs = new VirtualMemoryFS();
+const session = createVirtualFSSession(vfs);
+
+afterAll(() => {
+  session.cleanup();
+  vfs.reset();
 });
 
 async function fixtureCapsuleRun() {
-  const root = await mkdtemp(join(tmpdir(), "cli-query-test-"));
-  roots.push(root);
+  const root = `/virtual/cli-query-${Math.random().toString(36).slice(2)}`;
   const repo = join(root, "repo");
-  await mkdir(repo);
+  vfs.mkdirSync(repo, { recursive: true });
   const run = initRun(
     repo,
     "query-run",
@@ -210,7 +213,7 @@ describe("CLI Query Integration - Query Execution", () => {
     test("report:get queries task submission and review reports from disk", async () => {
       const { run } = await fixtureCapsuleRun();
       const reportsDir = join(run, "reports");
-      await mkdir(reportsDir, { recursive: true });
+      vfs.mkdirSync(reportsDir, { recursive: true });
 
       const submissionReport = {
         summary: "Implemented responsive 4-tier viewport grid",
@@ -228,8 +231,8 @@ describe("CLI Query Integration - Query Execution", () => {
         resolved_findings: [],
       };
 
-      await writeFile(join(reportsDir, "T-1-submission.json"), JSON.stringify(submissionReport));
-      await writeFile(join(reportsDir, "T-1-review.json"), JSON.stringify(reviewReport));
+      vfs.writeFileSync(join(reportsDir, "T-1-submission.json"), JSON.stringify(submissionReport));
+      vfs.writeFileSync(join(reportsDir, "T-1-review.json"), JSON.stringify(reviewReport));
 
       // Query review report
       const reviewResult = reportGetCommand({ run, task: "T-1", review: true });

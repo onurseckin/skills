@@ -1,10 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { execSync } from "node:child_process";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { scratchRoot } from "../task-fixture.ts";
 import {
   admitTask,
   admitTaskUnlocked,
@@ -84,8 +82,8 @@ import {
 } from "../../../olt/scripts/src/task/queue/locks.ts";
 
 describe("Task Queue Comprehensive Coverage", () => {
-  const testDirQueue = mkdtempSync(join(tmpdir(), "test-task-queue-comp-q-"));
-  const testDirArchive = mkdtempSync(join(tmpdir(), "test-task-queue-comp-a-"));
+  const testDirQueue = scratchRoot(import.meta.path, "queue");
+  const testDirArchive = scratchRoot(import.meta.path, "archive");
   const queuePath = join(testDirQueue, "queue", "TASK_QUEUE.jsonl");
   const completedPath = join(testDirArchive, "archived", "COMPLETED_TASKS.jsonl");
 
@@ -94,7 +92,6 @@ describe("Task Queue Comprehensive Coverage", () => {
     if (existsSync(testDirArchive)) rmSync(testDirArchive, { recursive: true, force: true });
     mkdirSync(join(testDirQueue, "queue"), { recursive: true });
     mkdirSync(join(testDirArchive, "archived"), { recursive: true });
-    execSync("git init", { cwd: testDirQueue, stdio: "ignore" });
     writeFileSync(completedPath, "");
   }
 

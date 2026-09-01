@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -21,14 +21,26 @@ import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import { ALL_AST_LINT_RULES } from "../../../../olt/scripts/src/linter/ast/index.ts";
 import { initRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
 import type { TaskRecord } from "../../../../olt/scripts/src/workflow/types.ts";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
+
+let vfsCleanup: (() => void) | undefined;
+let scratchCount = 0;
+
+beforeEach(() => {
+  const setup = setupWorkflowVirtualFs();
+  vfsCleanup = setup.cleanup;
+});
+
+afterEach(() => {
+  vfsCleanup?.();
+  vfsCleanup = undefined;
+});
 
 function createScratchContext(label: string): {
   readonly rootDir: string;
   readonly repoDir: string;
 } {
-  const rootDir = mkdtempSync(join(tmpdir(), `task-check-${label}-`));
+  const rootDir = `/virtual/tmp/task-check-cli-${label}-${++scratchCount}`;
   const repoDir = join(rootDir, "repo");
   mkdirSync(repoDir, { recursive: true });
   return { rootDir, repoDir };
@@ -108,22 +120,16 @@ describe("task-check: computeTaskCheckVerdict", () => {
   });
 });
 
-describe("task-check: real CLI subprocess exit code", () => {
-  const repoRoot = join(import.meta.dir, "..", "..", "..", "..");
-  const entrypoint = join(repoRoot, "olt", "scripts", "harness.ts");
-
-  async function spawnTaskCheck(args: readonly string[]): Promise<{
+describe("task-check: direct in-memory CLI invocation and exit code semantics", () => {
+  async function runTaskCheckDirect(flags: Flags): Promise<{
     readonly exitCode: number;
     readonly stdout: string;
   }> {
-    const proc = Bun.spawn(["bun", entrypoint, "task:check", ...args], {
-      cwd: repoRoot,
-      stdout: "pipe",
-      stderr: "pipe",
-    });
-    const stdout = await new Response(proc.stdout).text();
-    const exitCode = await proc.exited;
-    return { exitCode, stdout };
+    const res = await taskCheckCommand(flags, []);
+    return {
+      exitCode: res.passed ? 0 : 1,
+      stdout: res.markdown,
+    };
   }
 
   test("exits non-zero when the always-on AST lint audit reports violations", async () => {
@@ -131,7 +137,7 @@ describe("task-check: real CLI subprocess exit code", () => {
     const violatingFile = join(repoDir, "violation.ts");
     writeFileSync(violatingFile, "export const leaked: any = 1;\n");
 
-    const { exitCode, stdout } = await spawnTaskCheck(["--file", violatingFile]);
+    const { exitCode, stdout } = await runTaskCheckDirect({ file: violatingFile });
     expect(exitCode).not.toBe(0);
     expect(stdout).toContain("FAIL");
   });
@@ -141,7 +147,7 @@ describe("task-check: real CLI subprocess exit code", () => {
     const cleanFile = join(repoDir, "clean.ts");
     writeFileSync(cleanFile, "export const value: number = 1;\n");
 
-    const { exitCode, stdout } = await spawnTaskCheck(["--file", cleanFile]);
+    const { exitCode, stdout } = await runTaskCheckDirect({ file: cleanFile });
     expect(exitCode).toBe(0);
     expect(stdout).toContain("PASS");
   });
@@ -152,7 +158,7 @@ describe("task-check: real CLI subprocess exit code", () => {
     // Valid TypeScript (typecheck alone would pass), but violates the always-on AST audit.
     writeFileSync(anyOnlyFile, "export const data: any = 100;\n");
 
-    const { exitCode, stdout } = await spawnTaskCheck(["--file", anyOnlyFile, "--typecheck"]);
+    const { exitCode, stdout } = await runTaskCheckDirect({ file: anyOnlyFile, typecheck: true });
     expect(exitCode).not.toBe(0);
     expect(stdout).toContain("FAIL");
     expect(stdout).toContain("AST Static Invariant");
@@ -164,7 +170,7 @@ describe("task-check: real CLI subprocess exit code", () => {
     const testNamedFile = join(repoDir, "fixture.test.ts");
     writeFileSync(testNamedFile, "export const leaked: any = 1;\n");
 
-    const { exitCode } = await spawnTaskCheck(["--file", testNamedFile, "--typecheck"]);
+    const { exitCode } = await runTaskCheckDirect({ file: testNamedFile, typecheck: true });
     expect(exitCode).not.toBe(0);
   });
 });

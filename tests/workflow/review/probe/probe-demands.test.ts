@@ -5,9 +5,7 @@ import {
 } from "../../../../olt/scripts/src/graph/gate-proof.ts";
 import { beginValidation } from "../../../../olt/scripts/src/workflow/review/begin-validation.ts";
 import { isProbeDemand } from "../../../../olt/scripts/src/workflow/review/finding-class.ts";
-import {
-  failingGateRuns,
-} from "../../../../olt/scripts/src/workflow/review/pass-preconditions.ts";
+import { failingGateRuns } from "../../../../olt/scripts/src/workflow/review/pass-preconditions.ts";
 import { recordProbe } from "../../../../olt/scripts/src/workflow/review/record-probe.ts";
 import { recordReview } from "../../../../olt/scripts/src/workflow/review/record-review.ts";
 import { claimTask } from "../../../../olt/scripts/src/workflow/lease/claim.ts";
@@ -60,8 +58,6 @@ const demand = {
   remediation: "Answer the demand with evidence.",
   revalidation: "Cite a command id that proves this for T-1",
 };
-
-
 
 function submitted(commands: Record<string, ReturnType<typeof commandRecord>> = {}): TestPort {
   const state = workflowState();

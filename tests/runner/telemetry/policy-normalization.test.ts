@@ -1,6 +1,4 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, mkdir, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   MAX_COMMAND_RETRIES,
@@ -9,17 +7,12 @@ import {
   policyRecordIssues,
 } from "../../../olt/scripts/src/engine/runner/core/policy.ts";
 import type { CommandOptions } from "../../../olt/scripts/src/engine/runner/types/types.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
-const roots: string[] = [];
-
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
+afterEach(cleanupTempRoots);
 
 async function repoRoot(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "policy-normalization-"));
-  roots.push(root);
-  return root;
+  return tempRoot("policy-normalization");
 }
 
 function baseOptions(cwd: string, runRoot: string): CommandOptions {
@@ -70,8 +63,7 @@ describe("normalizeCommandOptions bounded fields", () => {
 
   test("rejects a cwd that is outside the given repositoryRoot", async () => {
     const repositoryRoot = await repoRoot();
-    const outsideCwd = await mkdtemp(join(tmpdir(), "policy-outside-cwd-"));
-    roots.push(outsideCwd);
+    const outsideCwd = tempRoot("policy-outside-cwd");
     await expect(
       normalizeCommandOptions({
         ...baseOptions(outsideCwd, repositoryRoot),
@@ -83,8 +75,7 @@ describe("normalizeCommandOptions bounded fields", () => {
   test("rejects a commandDir that is not a child of the given runRoot", async () => {
     const cwd = await repoRoot();
     const runRoot = await repoRoot();
-    const siblingCommandDir = await mkdtemp(join(tmpdir(), "policy-sibling-command-dir-"));
-    roots.push(siblingCommandDir);
+    const siblingCommandDir = tempRoot("policy-sibling-command-dir");
     await expect(
       normalizeCommandOptions({ ...baseOptions(cwd, runRoot), commandDir: siblingCommandDir }),
     ).rejects.toThrow("commandDir must be a child of runRoot");

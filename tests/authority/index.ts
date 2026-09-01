@@ -244,3 +244,10 @@ export {
   type WatchdogPhase,
   type WatchdogStatus,
 } from "./watchdog/index.ts";
+
+// 9. Virtual Fixture
+export {
+  setupVirtualAuthorityFS,
+  cleanupVirtualAuthorityFS,
+  getVirtualAuthorityFS,
+} from "./fixture.ts";

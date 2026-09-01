@@ -1,20 +1,31 @@
-import { describe, expect, test } from "bun:test";
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { applyPlan } from "../../../olt/scripts/src/graph/apply-plan.ts";
-import { MemoryPlanningStore, validPlanningDocuments } from "../validation/fixtures.ts";
+import {
+  clearPlanFs,
+  installPlanFsSpies,
+  MemoryPlanningStore,
+  validPlanningDocuments,
+  vPlanDirs,
+  vPlanFs,
+} from "../validation/fixtures.ts";
 
-async function makePlanFiles(requirements: unknown, graph: unknown) {
-  const dir = await mkdtemp(join(tmpdir(), "harness-apply-test-"));
+let fileCounter = 0;
+
+function makePlanFiles(requirements: unknown, graph: unknown) {
+  fileCounter += 1;
+  const dir = `/virtual/plan-dir-apply-${fileCounter}`;
+  vPlanDirs.add(dir);
   const reqPath = join(dir, "reqs.json");
   const graphPath = join(dir, "graph.json");
-  await writeFile(reqPath, JSON.stringify(requirements));
-  await writeFile(graphPath, JSON.stringify(graph));
+  vPlanFs.set(reqPath, Buffer.from(JSON.stringify(requirements), "utf-8"));
+  vPlanFs.set(graphPath, Buffer.from(JSON.stringify(graph), "utf-8"));
   return { dir, reqPath, graphPath };
 }
 
 describe("graph apply plan", () => {
+  beforeEach(() => installPlanFsSpies());
+  afterEach(() => clearPlanFs());
   test("validates expectedRevision bounds and revision mismatches", async () => {
     const { prompt, requirements, graph } = validPlanningDocuments();
     const store = new MemoryPlanningStore(prompt);

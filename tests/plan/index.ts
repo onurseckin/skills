@@ -3,6 +3,10 @@ import { REPLAN_SUITES } from "./replan/index.ts";
 import { ANALYSIS_SUITES } from "./analysis/index.ts";
 
 export {
+  SCRATCH_BASE,
+  setupVirtualPlanFS,
+  cleanupVirtualPlanFS,
+  getVirtualPlanFS,
   scratchRoot,
   createSandboxDir,
   createInMemoryPreEnhancedTask,

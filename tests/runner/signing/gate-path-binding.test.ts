@@ -1,9 +1,8 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { chmod, mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { chmod, mkdir, rm, symlink, writeFile } from "node:fs/promises";
 import { realpathSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import {
   assertGatePathBindings,
   captureGatePathBindings,
@@ -11,19 +10,15 @@ import {
   gatePathBindingIssues,
 } from "../../../olt/scripts/src/engine/runner/signing/gate-path-bindings.ts";
 import { gateControlBindingsOverlapWriteScopes } from "../../../olt/scripts/src/engine/runner/signing/gate-path-overlap.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
-const roots: string[] = [];
+afterEach(cleanupTempRoots);
 
 async function repository(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "gate-path-binding-"));
-  roots.push(root);
+  const root = tempRoot("gate-path-binding");
   await mkdir(join(root, "tools"));
   return root;
 }
-
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { force: true, recursive: true })));
-});
 
 describe("gate path identity binding", () => {
   test("captures a canonical regular executable and rechecks its digest", async () => {
@@ -83,8 +78,7 @@ describe("gate path identity binding", () => {
 
   test("binds a bare PATH executable to its canonical system identity", async () => {
     const root = await repository();
-    const bin = await mkdtemp(join(tmpdir(), "gate-path-bin-"));
-    roots.push(bin);
+    const bin = tempRoot("gate-path-bin");
     const executable = join(bin, "gate-tool");
     await writeFile(executable, "#!/bin/sh\nexit 0\n");
     await chmod(executable, 0o700);
@@ -104,8 +98,7 @@ describe("gate path identity binding", () => {
 
   test("recursively binds and rewrites env and command wrapper executables", async () => {
     const root = await repository();
-    const bin = await mkdtemp(join(tmpdir(), "gate-wrapper-bin-"));
-    roots.push(bin);
+    const bin = tempRoot("gate-wrapper-bin");
     const tool = join(bin, "gate-tool");
     await writeFile(tool, "#!/bin/sh\nexit 0\n", { mode: 0o700 });
     const pathValue = `/usr/bin:${bin}`;

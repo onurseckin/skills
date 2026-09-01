@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { mindInitCommand } from "../../../olt/scripts/src/cli/commands/index.ts";
 import { mindObserveCommand } from "../../../olt/scripts/src/cli/commands/index.ts";
@@ -76,7 +76,7 @@ charter:
       JSON.stringify({ command_id: "cmd-1", command: "health", exit_code: 0 }),
     );
 
-    rmSync(join(dir, ".olt", "policy.json"), { force: true });
+    unlinkSync(join(dir, ".olt", "policy.json"));
     expect(existsSync(join(dir, ".olt", "policy.json"))).toBe(false);
 
     mindObserveCommand({

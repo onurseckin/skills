@@ -1,25 +1,64 @@
-import { describe, expect, it } from "bun:test";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { describe, expect, it, beforeEach, afterEach, spyOn } from "bun:test";
+import * as fs from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { chainCapsules } from "../../../olt/scripts/src/orchestrator/capsule-chainer.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import type { CapsuleChainManifest } from "../../../olt/scripts/src/orchestrator/types.ts";
 
-function getTestDir(name: string): string {
-  const dir = join(tmpdir(), `orchestrator-capsule-chainer-${Date.now()}-${name}`);
-  mkdirSync(dir, { recursive: true });
-  return dir;
-}
-
 describe("Capsule Chainer Unit Tests", () => {
+  const mockFiles = new Map<string, string>();
+  const mockDirs = new Set<string>();
+  const spies: { mockRestore: () => void }[] = [];
+  let rootCounter = 0;
+
+  function getTestDir(name: string): string {
+    const dir = `/tmp/virtual-chain-${++rootCounter}-${name}`;
+    mockDirs.add(dir);
+    return dir;
+  }
+
+  beforeEach(() => {
+    mockFiles.clear();
+    mockDirs.clear();
+    spies.push(
+      spyOn(fs, "existsSync").mockImplementation(
+        (p: fs.PathLike) => mockFiles.has(String(p)) || mockDirs.has(String(p)),
+      ),
+      spyOn(fs, "mkdirSync").mockImplementation(((p: fs.PathLike) => {
+        mockDirs.add(String(p));
+        return undefined as unknown as string;
+      }) as unknown as typeof fs.mkdirSync),
+      spyOn(fs, "readFileSync").mockImplementation(((p: fs.PathOrFileDescriptor) => {
+        const s = String(p);
+        const val = mockFiles.get(s);
+        if (val !== undefined) return val;
+        throw new Error(`ENOENT: no such file, open '${s}'`);
+      }) as unknown as typeof fs.readFileSync),
+      spyOn(fs, "writeFileSync").mockImplementation(((
+        p: fs.PathOrFileDescriptor,
+        data: string | NodeJS.ArrayBufferView,
+      ) => {
+        mockFiles.set(
+          String(p),
+          typeof data === "string"
+            ? data
+            : Buffer.from(data.buffer, data.byteOffset, data.byteLength).toString("utf8"),
+        );
+      }) as unknown as typeof fs.writeFileSync),
+    );
+  });
+
+  afterEach(() => {
+    while (spies.length > 0) spies.pop()?.mockRestore();
+  });
+
   it("chains capsule state, carryover requirements, and unresolved findings", () => {
     const testDir = getTestDir("chain-forward");
     const sourceCapsule = join(testDir, "run-1");
     const targetCapsule = join(testDir, "run-2");
-    mkdirSync(sourceCapsule, { recursive: true });
+    fs.mkdirSync(sourceCapsule, { recursive: true });
 
-    writeFileSync(
+    fs.writeFileSync(
       join(sourceCapsule, "manifest.json"),
       JSON.stringify({
         schema: "harness.manifest",
@@ -36,7 +75,7 @@ describe("Capsule Chainer Unit Tests", () => {
       }),
     );
 
-    writeFileSync(
+    fs.writeFileSync(
       join(sourceCapsule, "state.json"),
       JSON.stringify({
         schema: "harness.state",
@@ -80,7 +119,7 @@ describe("Capsule Chainer Unit Tests", () => {
 
     const targetManifestFile = join(targetCapsule, "chain_manifest.json");
     const readContent = JSON.parse(
-      readFileSync(targetManifestFile, "utf-8"),
+      fs.readFileSync(targetManifestFile, "utf-8"),
     ) as CapsuleChainManifest;
     expect(readContent.targetRunId).toBe("run-2");
     expect(readContent.carryoverRequirements).toEqual(["req-02"]);
@@ -103,8 +142,8 @@ describe("Capsule Chainer Unit Tests", () => {
   it("throws HarnessError INTEGRITY when source manifest is corrupt", () => {
     const testDir = getTestDir("corrupt-manifest");
     const sourceCapsule = join(testDir, "run-corrupt");
-    mkdirSync(sourceCapsule, { recursive: true });
-    writeFileSync(join(sourceCapsule, "manifest.json"), "{ invalid json");
+    fs.mkdirSync(sourceCapsule, { recursive: true });
+    fs.writeFileSync(join(sourceCapsule, "manifest.json"), "{ invalid json");
 
     expect(() => {
       chainCapsules({
@@ -121,9 +160,9 @@ describe("Capsule Chainer Unit Tests", () => {
     const testDir = getTestDir("defect-synthesis-carryover");
     const sourceCapsule = join(testDir, "run-1");
     const targetCapsule = join(testDir, "run-2");
-    mkdirSync(sourceCapsule, { recursive: true });
+    fs.mkdirSync(sourceCapsule, { recursive: true });
 
-    writeFileSync(
+    fs.writeFileSync(
       join(sourceCapsule, "state.json"),
       JSON.stringify({
         schema: "harness.state",
@@ -183,8 +222,8 @@ describe("Capsule Chainer Unit Tests", () => {
   it("refuses an unreadable source state instead of chaining an empty carryover", () => {
     const testDir = getTestDir("bad-state");
     const sourceCapsule = join(testDir, "run-bad-state");
-    mkdirSync(sourceCapsule, { recursive: true });
-    writeFileSync(join(sourceCapsule, "state.json"), "{ not json at all");
+    fs.mkdirSync(sourceCapsule, { recursive: true });
+    fs.writeFileSync(join(sourceCapsule, "state.json"), "{ not json at all");
 
     expect(() => {
       chainCapsules({

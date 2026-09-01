@@ -17,29 +17,23 @@ interface VirtualNode {
 
 const vfs = new Map<string, VirtualNode>();
 const openFds = new Map<number, { path: string; node: VirtualNode }>();
-let nextFd = 100;
-let rootCounter = 0;
+let nextFd = 100,
+  rootCounter = 0;
 const spies: Array<{ mockRestore: () => void }> = [];
 
-function norm(p: string): string {
-  return resolve(p).replace(/\/+$/, "") || "/";
-}
+const norm = (p: string): string => resolve(p).replace(/\/+$/, "") || "/";
 
 function resolvePath(p: string, seen = new Set<string>()): string {
   const normalized = norm(p);
   if (seen.has(normalized)) return normalized;
   seen.add(normalized);
-
   const parts = normalized.split("/").filter(Boolean);
   let current = "";
   for (let i = 0; i < parts.length; i++) {
     const next = `${current}/${parts[i]}`;
     const pnode = vfs.get(next);
-    if (pnode?.symlinkTarget) {
-      const rest = parts.slice(i + 1).join("/");
-      const target = resolve(pnode.symlinkTarget, rest);
-      return resolvePath(target, seen);
-    }
+    if (pnode?.symlinkTarget)
+      return resolvePath(resolve(pnode.symlinkTarget, parts.slice(i + 1).join("/")), seen);
     current = next;
   }
   return normalized;
@@ -58,88 +52,66 @@ function getVirtualNode(p: string): { path: string; node: VirtualNode } | undefi
 beforeEach(() => {
   spies.push(
     spyOn(fs, "realpathSync").mockImplementation((p: fs.PathLike): string => {
-      const s = String(p);
-      const target = resolvePath(s);
-      if (!getVirtualNode(target) && !s.startsWith("/virtual/")) {
-        throw new Error(`ENOENT: no such file or directory, realpath '${s}'`);
-      }
+      const s = String(p),
+        target = resolvePath(s);
+      if (!getVirtualNode(target) && !s.startsWith("/virtual/"))
+        throw new Error(`ENOENT: realpath '${s}'`);
       return target;
     }),
     spyOn(fs, "lstatSync").mockImplementation((p: fs.PathLike): fs.Stats => {
-      const s = String(p);
-      const entry = getVirtualNode(resolve(s));
-      if (!entry) {
-        throw new Error(`ENOENT: no such file or directory, lstat '${s}'`);
-      }
-      const node = entry.node;
-      const isSymlink = Boolean(node.symlinkTarget);
-      const size = node.content ? node.content.length : 0;
+      const entry = getVirtualNode(resolve(String(p)));
+      if (!entry) throw new Error(`ENOENT: lstat '${p}'`);
+      const node = entry.node,
+        isSymlink = Boolean(node.symlinkTarget);
       return {
         isFile: () => !node.isDir && !isSymlink,
         isDirectory: () => node.isDir,
         isSymbolicLink: () => isSymlink,
-        size,
+        size: node.content ? node.content.length : 0,
         mode: node.mode ?? (node.isDir ? 0o755 : 0o644),
       } as unknown as fs.Stats;
     }),
     spyOn(fs, "openSync").mockImplementation((p: fs.PathLike): number => {
-      const s = String(p);
-      const target = resolvePath(s);
-      const entry = getVirtualNode(target);
-      if (!entry || entry.node.isDir) {
-        throw new Error(`ENOENT: no such file or directory, open '${s}'`);
-      }
-      if (entry.node.mode === 0o000) {
-        throw new Error(`EACCES: permission denied, open '${s}'`);
-      }
+      const s = String(p),
+        entry = getVirtualNode(resolvePath(s));
+      if (!entry || entry.node.isDir) throw new Error(`ENOENT: open '${s}'`);
+      if (entry.node.mode === 0o000) throw new Error(`EACCES: open '${s}'`);
       const fd = ++nextFd;
       openFds.set(fd, entry);
       return fd;
     }),
     spyOn(fs, "readSync").mockImplementation(
-      (
-        fd: number,
-        buffer: NodeJS.ArrayBufferView,
-        offset = 0,
-        length = buffer.byteLength,
-        position: fs.ReadPosition | null = 0,
-      ): number => {
+      (fd, buffer, offset = 0, length = buffer.byteLength, position = 0): number => {
         const openFile = openFds.get(fd);
-        if (!openFile) throw new Error("EBADF: bad file descriptor, read");
+        if (!openFile) throw new Error("EBADF: bad file descriptor");
         const content = openFile.node.content ?? Buffer.alloc(0);
         const pos = typeof position === "number" ? position : 0;
         const slice = content.subarray(pos, pos + length);
-        const targetBuf = Buffer.from(buffer.buffer, buffer.byteOffset, buffer.byteLength);
-        slice.copy(targetBuf, offset);
+        slice.copy(Buffer.from(buffer.buffer, buffer.byteOffset, buffer.byteLength), offset);
         return slice.length;
       },
     ),
-    spyOn(fs, "closeSync").mockImplementation((fd: number): void => {
+    spyOn(fs, "closeSync").mockImplementation((fd: number) => {
       openFds.delete(fd);
     }),
-    spyOn(fs, "writeFileSync").mockImplementation(
-      (p: fs.PathLike, data: string | NodeJS.ArrayBufferView): void => {
-        const s = norm(String(p));
-        const buf = Buffer.isBuffer(data)
-          ? data
-          : typeof data === "string"
-            ? Buffer.from(data, "utf-8")
-            : Buffer.from(data.buffer, data.byteOffset, data.byteLength);
-        vfs.set(s, { content: buf, isDir: false });
-      },
-    ),
-    spyOn(fs, "mkdirSync").mockImplementation((p: fs.PathLike): string | undefined => {
+    spyOn(fs, "writeFileSync").mockImplementation((p, data) => {
       const s = norm(String(p));
-      vfs.set(s, { isDir: true });
+      const buf = Buffer.isBuffer(data)
+        ? data
+        : typeof data === "string"
+          ? Buffer.from(data, "utf-8")
+          : Buffer.from(data.buffer, data.byteOffset, data.byteLength);
+      vfs.set(s, { content: buf, isDir: false });
+    }),
+    spyOn(fs, "mkdirSync").mockImplementation((p) => {
+      vfs.set(norm(String(p)), { isDir: true });
       return undefined;
     }),
-    spyOn(fs, "symlinkSync").mockImplementation((target: fs.PathLike, p: fs.PathLike): void => {
-      const s = norm(String(p));
-      vfs.set(s, { isDir: false, symlinkTarget: norm(String(target)) });
+    spyOn(fs, "symlinkSync").mockImplementation((target, p) => {
+      vfs.set(norm(String(p)), { isDir: false, symlinkTarget: norm(String(target)) });
     }),
-    spyOn(fs, "chmodSync").mockImplementation((p: fs.PathLike, mode: fs.Mode): void => {
-      const s = norm(String(p));
-      const node = vfs.get(s);
+    spyOn(fs, "chmodSync").mockImplementation((p, mode) => {
+      const node = vfs.get(norm(String(p)));
       if (node) node.mode = typeof mode === "number" ? mode : Number.parseInt(String(mode), 8);
     }),
   );

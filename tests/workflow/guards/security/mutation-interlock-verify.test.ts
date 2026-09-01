@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -7,17 +7,25 @@ import {
 } from "../../../../olt/scripts/src/workflow/lease/index.ts";
 import { tokenDigest } from "../../../../olt/scripts/src/workflow/lease/token.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 describe("Workflow Mutation Interlock Gate", () => {
   let sandboxDir: string;
   let capsuleDir: string;
+  let vfsCleanup: (() => void) | undefined;
+  let sc = 0;
 
   beforeEach(() => {
-    sandboxDir = mkdtempSync(join(tmpdir(), "mutation-interlock-"));
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+    sandboxDir = `/virtual/tmp/mutation-interlock-verify-${++sc}`;
     capsuleDir = join(sandboxDir, ".olt", "capsules", "run-interlock-test-1");
     mkdirSync(capsuleDir, { recursive: true });
+  });
+
+  afterEach(() => {
+    vfsCleanup?.();
+    vfsCleanup = undefined;
   });
 
   describe("verifyMutationInterlock", () => {

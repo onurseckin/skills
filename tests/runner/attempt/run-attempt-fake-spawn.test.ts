@@ -160,6 +160,7 @@ describe("runAttempt via an injected spawnApi (no real subprocess)", () => {
     const { root, commandRoot } = attemptRoot("run-attempt-timeout-signal-");
     const options = baseOptions(root, {
       argv: ["sleep", "10"],
+      cwd: process.cwd(),
       wallTimeoutMs: 50,
       idleTimeoutMs: 50,
       graceMs: 50,

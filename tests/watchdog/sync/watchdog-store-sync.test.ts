@@ -9,7 +9,7 @@ import type {
   WatchdogRecord,
   WatchdogStore,
 } from "../../../olt/scripts/src/authority/watchdog/index.ts";
-import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
+import { scratchRoot } from "../watchdog-fixture.ts";
 
 describe("watchdog-store-sync File-Backed Synchronization", () => {
   it("synchronizes in-memory changes with disk state preserving latest timestamps and statuses", () => {

@@ -1,7 +1,6 @@
-import { describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { describe, expect, test, beforeEach, afterEach, spyOn } from "bun:test";
+import * as fs from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   formatBehavioralForensicsBrief,
@@ -18,7 +17,65 @@ import type { AgentGrantRecord } from "../../../olt/scripts/src/core/contracts/i
 import type { BehavioralForensicsReport } from "../../../olt/scripts/src/orchestrator/types.ts";
 
 describe("OrchestratorCompanionAuditor Unit Tests", () => {
-  const testRoot = join(tmpdir(), `skills-companion-auditor-unit-${Date.now()}`);
+  const mockFiles = new Map<string, string>();
+  const mockDirs = new Set<string>();
+  const spies: { mockRestore: () => void }[] = [];
+  const testRoot = "/virtual/skills-companion-auditor-unit";
+
+  const origExists = fs.existsSync.bind(fs);
+  const origRead = fs.readFileSync.bind(fs);
+  const isVirt = (s: string) => s.startsWith("/tmp/virtual-") || s.startsWith("/virtual/");
+
+  beforeEach(() => {
+    mockFiles.clear();
+    mockDirs.clear();
+    mockDirs.add(testRoot);
+    spies.push(
+      spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => {
+        const s = String(p);
+        if (isVirt(s)) return mockFiles.has(s) || mockDirs.has(s);
+        return origExists(p);
+      }),
+      spyOn(fs, "mkdirSync").mockImplementation(((p: fs.PathLike) => {
+        const s = String(p);
+        mockDirs.add(s);
+        return undefined as unknown as string;
+      }) as unknown as typeof fs.mkdirSync),
+      spyOn(fs, "readFileSync").mockImplementation(((p: fs.PathOrFileDescriptor) => {
+        const s = String(p);
+        if (isVirt(s)) {
+          const val = mockFiles.get(s);
+          if (val !== undefined) return val;
+          throw new Error(`ENOENT: no such file, open '${s}'`);
+        }
+        return origRead(p as never);
+      }) as unknown as typeof fs.readFileSync),
+      spyOn(fs, "writeFileSync").mockImplementation(((
+        p: fs.PathOrFileDescriptor,
+        data: string | NodeJS.ArrayBufferView,
+      ) => {
+        const s = String(p);
+        mockFiles.set(
+          s,
+          typeof data === "string"
+            ? data
+            : Buffer.from(data.buffer, data.byteOffset, data.byteLength).toString("utf8"),
+        );
+      }) as unknown as typeof fs.writeFileSync),
+      spyOn(fs, "rmSync").mockImplementation(((p: fs.PathLike) => {
+        const s = String(p);
+        mockFiles.delete(s);
+        mockDirs.delete(s);
+        for (const f of Array.from(mockFiles.keys()))
+          if (f.startsWith(s + "/")) mockFiles.delete(f);
+        for (const d of Array.from(mockDirs)) if (d.startsWith(s + "/")) mockDirs.delete(d);
+      }) as unknown as typeof fs.rmSync),
+    );
+  });
+
+  afterEach(() => {
+    while (spies.length > 0) spies.pop()?.mockRestore();
+  });
 
   test("pairCompanion — automatically provisions companion auditor when not present", () => {
     const res = pairCompanionAuditor(testRoot);
@@ -46,8 +103,8 @@ describe("OrchestratorCompanionAuditor Unit Tests", () => {
 
   test("executeForensics — returns clean compliant report on empty run", () => {
     const runRoot = join(testRoot, "run-clean");
-    mkdirSync(runRoot, { recursive: true });
-    writeFileSync(join(runRoot, "events.jsonl"), "", "utf-8");
+    fs.mkdirSync(runRoot, { recursive: true });
+    fs.writeFileSync(join(runRoot, "events.jsonl"), "", "utf-8");
 
     const report: BehavioralForensicsReport = executeBehavioralForensics(testRoot, {
       capsuleRunRoot: runRoot,
@@ -64,7 +121,7 @@ describe("OrchestratorCompanionAuditor Unit Tests", () => {
 
   test("executeForensics — detects TOKEN_BURNING, FALSE_SERIALIZATION, and ROLE_BOUNDARY_DEVIATION events", () => {
     const runRoot = join(testRoot, "run-forensics-events");
-    mkdirSync(runRoot, { recursive: true });
+    fs.mkdirSync(runRoot, { recursive: true });
 
     const nowMs = Date.parse("2026-08-24T12:00:00.000Z");
     const readEvents = Array.from({ length: 6 }, (_, i) => ({
@@ -82,7 +139,7 @@ describe("OrchestratorCompanionAuditor Unit Tests", () => {
       payload: { tool: "write_file", arguments: { TargetFile: "src/forbidden.ts" } },
     };
     const eventLines = [...readEvents, coordinatorWriteEvent].map((event) => JSON.stringify(event));
-    writeFileSync(join(runRoot, "events.jsonl"), eventLines.join("\n") + "\n", "utf-8");
+    fs.writeFileSync(join(runRoot, "events.jsonl"), eventLines.join("\n") + "\n", "utf-8");
 
     const state = {
       tasks: {
@@ -106,13 +163,12 @@ describe("OrchestratorCompanionAuditor Unit Tests", () => {
         },
       },
     };
-    writeFileSync(join(runRoot, "state.json"), JSON.stringify(state), "utf-8");
+    fs.writeFileSync(join(runRoot, "state.json"), JSON.stringify(state), "utf-8");
 
     const report: BehavioralForensicsReport = executeBehavioralForensics(testRoot, {
       capsuleRunRoot: runRoot,
       logDefects: false,
     });
-
     expect(report.compliant).toBe(false);
     expect(report.incidents.length).toBe(3);
     expect(report.roleBoundaryDeviationsCount).toBe(1);
@@ -188,7 +244,6 @@ describe("OrchestratorCompanionAuditor Unit Tests", () => {
       timestamp: new Date().toISOString(),
       markdown: "",
     };
-
     expect(() => assertBehavioralCompliance(report)).toThrow(HarnessError);
   });
 
@@ -221,7 +276,6 @@ describe("OrchestratorCompanionAuditor Unit Tests", () => {
       timestamp: new Date().toISOString(),
       markdown: "",
     };
-
     expect(() => assertBehavioralCompliance(report)).toThrow(
       /\[BEHAVIORAL_FORENSICS_VIOLATION\] Detected 1 behavioral deviation\(s\)/,
     );
@@ -265,9 +319,9 @@ describe("OrchestratorCompanionAuditor Unit Tests", () => {
   });
 
   test("clean up test directory", () => {
-    if (existsSync(testRoot)) {
-      rmSync(testRoot, { recursive: true, force: true });
+    if (fs.existsSync(testRoot)) {
+      fs.rmSync(testRoot, { recursive: true, force: true });
     }
-    expect(existsSync(testRoot)).toBe(false);
+    expect(fs.existsSync(testRoot)).toBe(false);
   });
 });

@@ -1,5 +1,5 @@
-import { describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, rmSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { existsSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -12,8 +12,17 @@ import {
   verifyEventChain,
 } from "../../../olt/scripts/src/capture/ledger/index.ts";
 import type { CaptureEventRecord } from "../../../olt/scripts/src/capture/ledger/types.ts";
+import { cleanupVirtualCaptureFS, scratchRoot, setupVirtualCaptureFS } from "../fixture.ts";
 
 describe("Capture Event Ledger & Cryptographic Hash Chaining", () => {
+  beforeEach(() => {
+    setupVirtualCaptureFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualCaptureFS();
+  });
+
   it("appends sequential events with monotonic sequence numbers and hash chaining", () => {
     const ledger = createEventLedger();
 
@@ -39,44 +48,45 @@ describe("Capture Event Ledger & Cryptographic Hash Chaining", () => {
 
     expect(e2.sequenceNumber).toBe(2);
     expect(e2.prevHash).toBe(e1.hash);
+    expect(e2.hash).toMatch(/^[a-f0-9]{64}$/);
 
     expect(e3.sequenceNumber).toBe(3);
     expect(e3.prevHash).toBe(e2.hash);
+    expect(e3.hash).toMatch(/^[a-f0-9]{64}$/);
 
-    const verification = ledger.verify();
+    const history = ledger.getEvents();
+    expect(history.length).toBe(3);
+
+    const verification = verifyEventChain(history);
     expect(verification.valid).toBe(true);
     expect(verification.totalEvents).toBe(3);
-    expect(verification.latestHash).toBe(e3.hash);
   });
 
-  it("detects tampered payloads in event history", () => {
-    const ledger = new CaptureEventLedger();
-    ledger.appendEvent("CAPTURE_INITIALIZED", { runId: "run-001" });
-    ledger.appendEvent("VIEWPORT_RENDERED", { viewport: "mobile" });
+  it("detects tampering or corruption in the middle of the chain", () => {
+    const ledger = createEventLedger();
+    ledger.appendEvent("CAPTURE_INITIALIZED", { runId: "r1" });
+    ledger.appendEvent("DOM_MUTATED", { mutationCount: 5 });
     ledger.appendEvent("CAPTURE_FINALIZED", { status: "success" });
 
-    const events = [...ledger.getEvents()];
-    expect(verifyEventChain(events).valid).toBe(true);
-
-    const tamperedEvents: CaptureEventRecord[] = [
+    const events = ledger.getEvents();
+    const tampered: CaptureEventRecord[] = [
       events[0]!,
       {
         ...events[1]!,
-        payload: { viewport: "mobile", unauthorized_injected_field: true },
+        payload: { mutationCount: 999 }, // Modified payload
       },
       events[2]!,
     ];
 
-    const result = verifyEventChain(tamperedEvents);
-    expect(result.valid).toBe(false);
-    expect(result.corruptedSequenceNumber).toBe(2);
-    expect(result.error).toContain("Tampered payload hash at sequence 2");
+    const verification = verifyEventChain(tampered);
+    expect(verification.valid).toBe(false);
+    expect(verification.error).toContain("Tampered payload hash at sequence 2");
   });
 
-  it("detects broken hash chains when an event is deleted or reordered", () => {
-    const ledger = new CaptureEventLedger();
-    ledger.appendEvent("CAPTURE_INITIALIZED", { runId: "run-002" });
-    ledger.appendEvent("INTERACTION_DISPATCHED", { action: "click", selector: "#btn" });
+  it("detects broken sequential ordering", () => {
+    const ledger = createEventLedger();
+    ledger.appendEvent("CAPTURE_INITIALIZED", { runId: "r1" });
+    ledger.appendEvent("DOM_MUTATED", { mutationCount: 5 });
     ledger.appendEvent("CAPTURE_FINALIZED", { status: "success" });
 
     const events = ledger.getEvents();
@@ -88,30 +98,26 @@ describe("Capture Event Ledger & Cryptographic Hash Chaining", () => {
   });
 
   it("streams events to safe disk location and recovers them cleanly", () => {
-    const testDir = join(process.cwd(), ".olt/scratch", `t-ledger-${Date.now()}`);
+    const testDir = scratchRoot("event-ledger", "stream");
     mkdirSync(testDir, { recursive: true });
     const ledgerFile = join(testDir, "capture-events.jsonl");
 
-    try {
-      const ledger = new CaptureEventLedger({ ledgerPath: ledgerFile, autoFlush: true });
-      ledger.appendEvent("CAPTURE_INITIALIZED", { runId: "stream-run" });
-      ledger.appendEvent("PHYSICS_EXTRACTED", { elementCount: 42 });
-      ledger.appendEvent("CAPTURE_FINALIZED", { totalScreens: 1 });
-      ledger.close();
+    const ledger = new CaptureEventLedger({ ledgerPath: ledgerFile, autoFlush: true });
+    ledger.appendEvent("CAPTURE_INITIALIZED", { runId: "stream-run" });
+    ledger.appendEvent("PHYSICS_EXTRACTED", { elementCount: 42 });
+    ledger.appendEvent("CAPTURE_FINALIZED", { totalScreens: 1 });
+    ledger.close();
 
-      expect(existsSync(ledgerFile)).toBe(true);
+    expect(existsSync(ledgerFile)).toBe(true);
 
-      const recovered = readEventLedger(ledgerFile);
-      expect(recovered.length).toBe(3);
-      expect(recovered[0]?.eventType).toBe("CAPTURE_INITIALIZED");
-      expect(recovered[1]?.eventType).toBe("PHYSICS_EXTRACTED");
-      expect(recovered[2]?.eventType).toBe("CAPTURE_FINALIZED");
+    const recovered = readEventLedger(ledgerFile);
+    expect(recovered.length).toBe(3);
+    expect(recovered[0]?.eventType).toBe("CAPTURE_INITIALIZED");
+    expect(recovered[1]?.eventType).toBe("PHYSICS_EXTRACTED");
+    expect(recovered[2]?.eventType).toBe("CAPTURE_FINALIZED");
 
-      const verifyRes = verifyEventChain(recovered);
-      expect(verifyRes.valid).toBe(true);
-    } finally {
-      rmSync(testDir, { recursive: true, force: true });
-    }
+    const verifyRes = verifyEventChain(recovered);
+    expect(verifyRes.valid).toBe(true);
   });
 
   it("enforces path safety: allows .tmp and .olt/capsules, rejects root leaks", () => {

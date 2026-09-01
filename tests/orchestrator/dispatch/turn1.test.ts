@@ -1,17 +1,56 @@
-import { describe, expect, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { describe, expect, test, beforeEach, afterEach, spyOn } from "bun:test";
+import * as fs from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { enforceTurn1OrchestratorInit } from "../../../olt/scripts/src/orchestrator/lifecycle/index.ts";
 
-function getTurn1Sandbox(name: string): string {
-  const dir = join(tmpdir(), `orchestrator-turn1-${Date.now()}-${name}`);
-  mkdirSync(dir, { recursive: true });
-  return dir;
-}
-
 describe("Orchestrator Turn 1 Init", () => {
+  const mockFiles = new Map<string, string>();
+  const mockDirs = new Set<string>();
+  const spies: { mockRestore: () => void }[] = [];
+  let rootCounter = 0;
+
+  function getTurn1Sandbox(name: string): string {
+    const dir = `/tmp/virtual-turn1-${++rootCounter}-${name}`;
+    mockDirs.add(dir);
+    return dir;
+  }
+
+  beforeEach(() => {
+    mockFiles.clear();
+    mockDirs.clear();
+    spies.push(
+      spyOn(fs, "existsSync").mockImplementation(
+        (p: fs.PathLike) => mockFiles.has(String(p)) || mockDirs.has(String(p)),
+      ),
+      spyOn(fs, "mkdirSync").mockImplementation(((p: fs.PathLike) => {
+        mockDirs.add(String(p));
+        return undefined as unknown as string;
+      }) as unknown as typeof fs.mkdirSync),
+      spyOn(fs, "readFileSync").mockImplementation(((p: fs.PathOrFileDescriptor) => {
+        const s = String(p);
+        const val = mockFiles.get(s);
+        if (val !== undefined) return val;
+        throw new Error(`ENOENT: no such file, open '${s}'`);
+      }) as unknown as typeof fs.readFileSync),
+      spyOn(fs, "writeFileSync").mockImplementation(((
+        p: fs.PathOrFileDescriptor,
+        data: string | NodeJS.ArrayBufferView,
+      ) => {
+        mockFiles.set(
+          String(p),
+          typeof data === "string"
+            ? data
+            : Buffer.from(data.buffer, data.byteOffset, data.byteLength).toString("utf8"),
+        );
+      }) as unknown as typeof fs.writeFileSync),
+    );
+  });
+
+  afterEach(() => {
+    while (spies.length > 0) spies.pop()?.mockRestore();
+  });
+
   test("throws INVALID_ARGUMENT when runRoot is empty or whitespace", () => {
     expect(() => enforceTurn1OrchestratorInit("", "orchestrator")).toThrow(HarnessError);
     try {
@@ -80,7 +119,7 @@ describe("Orchestrator Turn 1 Init", () => {
 
   test("throws INTEGRITY when state.json is malformed or invalid JSON", () => {
     const sandbox = getTurn1Sandbox("corrupted-state-json");
-    writeFileSync(join(sandbox, "state.json"), "{ invalid: json content", "utf8");
+    fs.writeFileSync(join(sandbox, "state.json"), "{ invalid: json content", "utf8");
     expect(() => enforceTurn1OrchestratorInit(sandbox, "orchestrator")).toThrow(HarnessError);
     try {
       enforceTurn1OrchestratorInit(sandbox, "orchestrator");
@@ -92,7 +131,7 @@ describe("Orchestrator Turn 1 Init", () => {
 
   test("throws INTEGRITY when state.json root is not an object", () => {
     const sandbox = getTurn1Sandbox("array-state-json");
-    writeFileSync(join(sandbox, "state.json"), JSON.stringify(["item1", "item2"]), "utf8");
+    fs.writeFileSync(join(sandbox, "state.json"), JSON.stringify(["item1", "item2"]), "utf8");
     expect(() => enforceTurn1OrchestratorInit(sandbox, "orchestrator")).toThrow(HarnessError);
     try {
       enforceTurn1OrchestratorInit(sandbox, "orchestrator");
@@ -110,8 +149,8 @@ describe("Orchestrator Turn 1 Init", () => {
       tasks: {},
       graph: { nodes: [] },
     };
-    writeFileSync(join(sandbox, "state.json"), JSON.stringify(validState, null, 2), "utf8");
-    mkdirSync(join(sandbox, "evidence"), { recursive: true });
+    fs.writeFileSync(join(sandbox, "state.json"), JSON.stringify(validState, null, 2), "utf8");
+    fs.mkdirSync(join(sandbox, "evidence"), { recursive: true });
 
     expect(() => enforceTurn1OrchestratorInit(sandbox, "orchestrator")).not.toThrow();
     expect(() => enforceTurn1OrchestratorInit(sandbox, "orchestrator_wave-1")).not.toThrow();
@@ -130,7 +169,7 @@ describe("Orchestrator Turn 1 Init", () => {
     expect(() => spawnCoordinator(sandbox, "orchestrator")).toThrow(HarnessError);
     expect(coordinatorSpawned).toBe(false);
 
-    writeFileSync(
+    fs.writeFileSync(
       join(sandbox, "state.json"),
       JSON.stringify({ run_id: "run-1", tasks: {} }),
       "utf8",

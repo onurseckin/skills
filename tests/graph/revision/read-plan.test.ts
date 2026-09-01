@@ -1,13 +1,17 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { BigIntStats } from "node:fs";
+import * as fsp from "node:fs/promises";
 import { lstat, mkdtemp, symlink, writeFile, type FileHandle } from "node:fs/promises";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { readPlanObject } from "../../../olt/scripts/src/graph/read-plan.ts";
+import { clearPlanFs, installPlanFsSpies } from "../validation/fixtures.ts";
 
 describe("graph read plan object", () => {
+  beforeEach(() => installPlanFsSpies());
+  afterEach(() => clearPlanFs());
+
   test("enforces size bounds, regular non-symlink files, and object json contents", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "harness-read-plan-"));
+    const dir = await mkdtemp("harness-read-plan-");
     const validFile = join(dir, "valid.json");
     await writeFile(validFile, JSON.stringify({ key: "value" }));
 
@@ -52,7 +56,7 @@ describe("graph read plan object", () => {
   });
 
   test("throws when the opened handle's identity disagrees with the pre-open lstat", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "harness-read-plan-race-"));
+    const dir = await mkdtemp("harness-read-plan-race-");
     const filePath = join(dir, "race.json");
     await writeFile(filePath, JSON.stringify({ key: "value" }));
 
@@ -75,7 +79,7 @@ describe("graph read plan object", () => {
   });
 
   test("throws when the path's post-read lstat disagrees with the handle's own post-read stat", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "harness-read-plan-race-2-"));
+    const dir = await mkdtemp("harness-read-plan-race-2-");
     const filePath = join(dir, "race.json");
     await writeFile(filePath, JSON.stringify({ key: "value" }));
 

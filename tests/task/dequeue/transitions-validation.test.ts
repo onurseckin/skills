@@ -1,9 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { execSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   assertValidActiveLease,
@@ -19,15 +17,15 @@ import {
   validateCompletionReceipts,
   type TaskQueueItem,
 } from "../../../olt/scripts/src/task/queue/index.ts";
+import { scratchRoot } from "../task-fixture.ts";
 
 describe("Task Queue Transitions Engine", () => {
-  const testDir = mkdtempSync(join(tmpdir(), "test-transitions-"));
+  const testDir = scratchRoot(import.meta.path, "transitions-val");
   const queuePath = join(testDir, "TASK_QUEUE.jsonl");
 
   beforeEach(() => {
     if (existsSync(testDir)) rmSync(testDir, { recursive: true, force: true });
     mkdirSync(testDir, { recursive: true });
-    execSync("git init", { cwd: testDir, stdio: "ignore" });
   });
 
   afterEach(() => {
@@ -120,7 +118,6 @@ describe("Task Queue Transitions Engine", () => {
   test("stageWorktreeProgress executes git add -A", () => {
     const gitDir = join(testDir, "git-test");
     mkdirSync(gitDir, { recursive: true });
-    const { spawnSync } = require("node:child_process");
     spawnSync("git", ["init", "--quiet"], { cwd: gitDir });
     writeFileSync(join(gitDir, "file.txt"), "hello");
 

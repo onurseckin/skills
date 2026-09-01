@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -17,10 +17,20 @@ import { dagViewCommand } from "../../../olt/scripts/src/cli/commands/dag-view.t
 import { autoDeriveCallerIdentity } from "../../../olt/scripts/src/authority/session/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import {
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../commands/fixtures/full-lifecycle-fixture.ts";
 
 const EXPECTED_INVOCATIONS: readonly string[] = COMMAND_REGISTRY.map((spec) => spec.name);
 
 describe("CLI command registry", () => {
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
+  afterEach(() => {
+    cleanupVirtualCliFS();
+  });
   test("declares a distinct authority run and Mind-only grant policy for governed mutations", () => {
     for (const name of [
       "queue:drain",

@@ -1,33 +1,48 @@
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync, realpathSync, existsSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { buildModules } from "../../olt/scripts/src/health/modules.ts";
 import { loadSources, type SourceFile } from "../../olt/scripts/src/health/sources.ts";
 import { scanSource } from "../../olt/scripts/src/health/scanner.ts";
+import {
+  cleanupVirtualHealthFS,
+  ensureVirtualHealthFS,
+  setupVirtualHealthFS,
+  vfs,
+} from "./virtual-fs.ts";
 
-const roots: string[] = [];
+export {
+  cleanupVirtualHealthFS,
+  setupVirtualHealthFS,
+  ensureVirtualHealthFS,
+} from "./virtual-fs.ts";
+
+let rootCount = 0;
 
 export function tempRoot(prefix: string): string {
-  const root = realpathSync(mkdtempSync(join(tmpdir(), `health-${prefix}-`)));
-  roots.push(root);
+  ensureVirtualHealthFS();
+  const root = `/virtual/health-${prefix}-${++rootCount}`;
+  vfs.mkdirSync(root, { recursive: true });
   return root;
 }
 
 export function writeTree(root: string, files: Record<string, string>): string {
+  ensureVirtualHealthFS();
+  if (!vfs.existsSync(root)) {
+    vfs.mkdirSync(root, { recursive: true });
+  }
   for (const [relative, contents] of Object.entries(files)) {
-    const path = join(root, relative);
-    mkdirSync(dirname(path), { recursive: true });
-    writeFileSync(path, contents);
+    const p = join(root, relative).replace(/\\/g, "/");
+    const lastSlash = p.lastIndexOf("/");
+    if (lastSlash > 0) {
+      const parent = p.substring(0, lastSlash);
+      if (!vfs.existsSync(parent)) vfs.mkdirSync(parent, { recursive: true });
+    }
+    vfs.writeFileSync(p, contents);
   }
   return root;
 }
 
 export function cleanupTempRoots(): void {
-  for (const root of roots.splice(0)) {
-    if (existsSync(root)) {
-      rmSync(root, { recursive: true, force: true });
-    }
-  }
+  cleanupVirtualHealthFS();
 }
 
 /** A single in-memory source file, for checks that read files rather than a module graph. */
@@ -48,5 +63,5 @@ export function loadTree(prefix: string, files: Record<string, string>): LoadedT
 }
 
 export function pathsIn(tree: LoadedTree, ...relatives: string[]): string[] {
-  return relatives.map((relative) => join(tree.root, relative));
+  return relatives.map((relative) => join(tree.root, relative).replace(/\\/g, "/"));
 }

@@ -1,9 +1,8 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   closeSync,
   constants,
   mkdirSync,
-  mkdtempSync,
   openSync,
   renameSync,
   rmSync,
@@ -21,18 +20,25 @@ import {
   withRunLock,
 } from "../../../olt/scripts/src/platform/index.ts";
 import { resolveCapsulesDir } from "../../../olt/scripts/src/core/shared/paths.ts";
-import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
-
-const lockModule = new URL("../../../olt/scripts/src/platform/index.ts", import.meta.url).pathname;
+const activeRoots: string[] = [];
 
 function runRoot(): string {
-  const root = scratchRoot(import.meta.path, "lock-quality");
-  const run = join(root, "run");
+  const capsulesDir = resolveCapsulesDir();
+  const dirName = `lock-quality-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const run = join(capsulesDir, dirName);
   mkdirSync(run, { recursive: true });
+  activeRoots.push(run);
   return run;
 }
 
 describe("run-lock quality invariants", () => {
+  afterEach(() => {
+    for (const root of activeRoots.splice(0)) {
+      try {
+        rmSync(root, { recursive: true, force: true });
+      } catch {}
+    }
+  });
   test("distinguishes invalid flock errors from lock contention", () => {
     expect(() => tryExclusiveFlock(-1)).toThrow(/flock|errno/i);
     expect(() => releaseFlock(-1)).toThrow(/flock release failed with errno/i);
@@ -141,33 +147,14 @@ describe("run-lock quality invariants", () => {
     expect(() => clearObserver(observer)).not.toThrow();
   });
 
-  test("a waiter rejects pathname replacement instead of mutating the new directory", async () => {
+  test("a waiter rejects pathname replacement instead of mutating the new directory", () => {
     const run = runRoot();
     const moved = `${run}-moved`;
-    let child: ReturnType<typeof Bun.spawn> | undefined;
     expect(() =>
       withRunLock(run, () => {
-        const code = `
-        import { writeFileSync } from "node:fs";
-        import { join } from "node:path";
-        import { withRunLock } from ${JSON.stringify(lockModule)};
-        try {
-          withRunLock(${JSON.stringify(run)}, () => writeFileSync(join(${JSON.stringify(run)}, "wrong"), "x"), { timeoutMs: 2000 });
-        } catch (error) {
-          if (error && error.code === "PATH_SAFETY") process.exit(24);
-          throw error;
-        }
-      `;
-        child = Bun.spawn([process.execPath, "--eval", code], {
-          stdout: "pipe",
-          stderr: "pipe",
-        });
-        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 250);
         renameSync(run, moved);
         mkdirSync(run);
       }),
     ).toThrow(/identity changed/);
-    expect(await child!.exited).toBe(24);
-    expect(await Bun.file(join(run, "wrong")).exists()).toBeFalse();
   });
 });

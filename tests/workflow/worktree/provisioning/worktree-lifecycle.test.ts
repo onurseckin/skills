@@ -10,17 +10,21 @@ import {
   landTrackToMain,
   listTrackWorktrees,
 } from "../../../../olt/scripts/src/workflow/worktree/index.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
-const TEST_DIR = join(process.cwd(), ".olt", "scratch", "test-worktree-suite");
+const TEST_DIR = "/virtual/worktree-lifecycle-suite";
+let vfsCleanup: (() => void) | undefined;
 
 describe("Worktree Manager & Landing", () => {
   beforeEach(() => {
-    rmSync(TEST_DIR, { recursive: true, force: true });
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
     mkdirSync(TEST_DIR, { recursive: true });
   });
 
   afterEach(() => {
-    rmSync(TEST_DIR, { recursive: true, force: true });
+    vfsCleanup?.();
+    vfsCleanup = undefined;
   });
 
   test("provisions hermetic worktree and acquires track lock", () => {
@@ -153,6 +157,7 @@ describe("Worktree Manager & Landing", () => {
         trackId: "track-locked",
         repoRoot: TEST_DIR,
         lockTimeoutMs: 50,
+        runner: () => ({ status: 0, stdout: "", stderr: "" }),
       }),
     ).toThrow(/could not be acquired within 50ms/);
   });

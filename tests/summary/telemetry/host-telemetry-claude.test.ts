@@ -1,24 +1,82 @@
-import { describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import * as fs from "node:fs";
+import { writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { detectHostTelemetry } from "../../../olt/scripts/src/summary/metrics/index.ts";
 
 const HOST_MODEL_VARIABLE = "CLAUDE_CODE_MODEL";
 
+const vfs = new Map<string, string>();
+let rootCounter = 0;
+const spies: Array<{ mockRestore: () => void }> = [];
+const norm = (p: fs.PathLike) => resolve(String(p)).replace(/\/+$/, "");
+
+beforeEach(() => {
+  const oe = fs.existsSync.bind(fs),
+    or = fs.readFileSync.bind(fs),
+    ow = fs.writeFileSync.bind(fs);
+  const om = fs.mkdirSync.bind(fs),
+    orm = fs.rmSync.bind(fs);
+
+  spies.push(
+    spyOn(fs, "existsSync").mockImplementation((p) => {
+      const s = norm(p);
+      return s.startsWith("/virtual/")
+        ? vfs.has(s) || Array.from(vfs.keys()).some((k) => k.startsWith(`${s}/`))
+        : oe(p);
+    }),
+    spyOn(fs, "readFileSync").mockImplementation((p, opt) => {
+      const s = norm(p);
+      if (s.startsWith("/virtual/")) {
+        const c = vfs.get(s);
+        if (!c) throw new Error(`ENOENT: ${s}`);
+        return opt === "utf-8" || opt === "utf8" || (typeof opt === "object" && opt)
+          ? c
+          : Buffer.from(c, "utf-8");
+      }
+      return or(p, opt as Parameters<typeof or>[1]);
+    }),
+    spyOn(fs, "writeFileSync").mockImplementation((p, d) => {
+      const s = norm(p);
+      if (s.startsWith("/virtual/")) {
+        vfs.set(
+          s,
+          typeof d === "string"
+            ? d
+            : Buffer.from(d.buffer, d.byteOffset, d.byteLength).toString("utf-8"),
+        );
+        return;
+      }
+      ow(p, d);
+    }),
+    spyOn(fs, "mkdirSync").mockImplementation((p) =>
+      norm(p).startsWith("/virtual/") ? undefined : (om(p) as string | undefined),
+    ),
+    spyOn(fs, "rmSync").mockImplementation((p) => {
+      const s = norm(p);
+      if (s.startsWith("/virtual/")) {
+        vfs.delete(s);
+        for (const k of Array.from(vfs.keys())) if (k.startsWith(`${s}/`)) vfs.delete(k);
+        return;
+      }
+      orm(p, { recursive: true, force: true });
+    }),
+  );
+});
+
+afterEach(() => {
+  for (const s of spies.splice(0)) s.mockRestore();
+  vfs.clear();
+});
+
 function withTempHome(fn: (home: string) => void): void {
-  const tempHome = mkdtempSync(join(tmpdir(), "telemetry-claude-test-"));
-  try {
-    fn(tempHome);
-  } finally {
-    rmSync(tempHome, { recursive: true, force: true });
-  }
+  rootCounter += 1;
+  const tempHome = `/virtual/telemetry-claude-test-${rootCounter}`;
+  fn(tempHome);
 }
 
 function writeHostSettings(home: string, settings: unknown): void {
-  const dir = join(home, ".gemini", "antigravity-cli");
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, "settings.json"), JSON.stringify(settings));
+  vfs.set(join(home, ".gemini", "antigravity-cli", "settings.json"), JSON.stringify(settings));
 }
 
 describe("host telemetry probing: claude-code, antigravity, cursor", () => {

@@ -1,13 +1,12 @@
 /**
  * @file task-fixture.ts
- * In-memory test sandbox fixture and pure RAM task queue harness for tests/task domain
+ * In-memory test sandbox fixture and pure RAM task queue harness for tests/task domain.
+ * Provides 100% in-memory virtual filesystem mocking with zero disk writes.
  */
 
-import { afterEach } from "bun:test";
+import { afterEach, beforeEach } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdirSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import * as path from "node:path";
 import type {
   CompletionReceipts,
   NewTaskQueueInput,
@@ -15,17 +14,60 @@ import type {
   TaskQueueItem,
   TaskQueueStats,
 } from "../../olt/scripts/src/task/queue/index.ts";
+import { VirtualMemoryFS } from "../../olt/scripts/src/testing/virtual-fs/index.ts";
+import { createTaskFsSpies, type VirtualTaskState } from "./session/index.ts";
 
-const SCRATCH_BASE = join(tmpdir(), "task-scratch");
-const rootsToClean: string[] = [];
+const VIRTUAL_SCRATCH_BASE = "/virtual/task-scratch";
+
+const vfs = new VirtualMemoryFS();
+const state: VirtualTaskState = {
+  vfs,
+  openDescriptors: new Map(),
+  customModes: new Map(),
+  customMtimes: new Map(),
+  inodeMap: new Map(),
+  symlinks: new Map(),
+  hardlinks: new Map(),
+  nextFd: 1000,
+  nextInode: 50000,
+};
+
+export function resetVirtualTaskStore(): void {
+  state.openDescriptors.clear();
+  state.customModes.clear();
+  state.customMtimes.clear();
+  state.inodeMap.clear();
+  state.symlinks.clear();
+  state.hardlinks.clear();
+  state.nextFd = 1000;
+  state.nextInode = 50000;
+  vfs.reset();
+  vfs.mkdirSync(VIRTUAL_SCRATCH_BASE, { recursive: true });
+}
+
+export function setupVirtualTaskFS(): VirtualMemoryFS {
+  createTaskFsSpies(state);
+  resetVirtualTaskStore();
+  return vfs;
+}
+
+export function cleanupVirtualTaskFS(): void {
+  resetVirtualTaskStore();
+}
+
+export function getVirtualTaskFS(): VirtualMemoryFS {
+  return vfs;
+}
+
+// Automatically ensure virtual filesystem session is active for all task tests
+setupVirtualTaskFS();
+
+beforeEach(() => {
+  setupVirtualTaskFS();
+});
 
 afterEach(() => {
-  for (const root of rootsToClean) {
-    try {
-      rmSync(root, { recursive: true, force: true });
-    } catch {}
-  }
-  rootsToClean.length = 0;
+  cleanupVirtualTaskFS();
 });
 
 function slug(value: string): string {
@@ -44,8 +86,8 @@ function shortDigest(value: string): string {
 let counter = 0;
 
 /**
- * Creates an isolated scratch sandbox directory for testing task queues.
- * Automatically registered for cleanup in afterEach hooks.
+ * Creates an isolated in-memory scratch sandbox directory for testing task queues.
+ * 100% RAM resident with zero disk writes.
  */
 export function scratchRoot(callerPath = "task-test", label = "test"): string {
   counter += 1;
@@ -56,14 +98,9 @@ export function scratchRoot(callerPath = "task-test", label = "test"): string {
     .replace(/--+/g, "-")
     .replace(/^-+|-+$/g, "");
   const dirName = raw.slice(0, 50).replace(/-+$/, "");
-  const root = join(SCRATCH_BASE, dirName);
+  const root = path.join(VIRTUAL_SCRATCH_BASE, dirName);
 
-  try {
-    rmSync(root, { recursive: true, force: true });
-  } catch {}
-
-  mkdirSync(root, { recursive: true });
-  rootsToClean.push(root);
+  vfs.mkdirSync(root, { recursive: true });
   return root;
 }
 

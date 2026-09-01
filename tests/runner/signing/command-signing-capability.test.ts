@@ -1,6 +1,4 @@
-import { describe, expect, test } from "bun:test";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import type { CommandAttemptStartedRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
@@ -8,6 +6,9 @@ import {
   createCommandSigningCapability,
 } from "../../../olt/scripts/src/engine/runner/models/command/command-signing-capability.ts";
 import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+
+afterEach(cleanupTempRoots);
 
 const mockIdentity: ProcessIdentity = {
   pid: 1234,
@@ -35,7 +36,7 @@ function createBaseRecord(): CommandAttemptStartedRecord {
 
 describe("command-signing-capability", () => {
   test("creates capability and manages full disposition lifecycle", () => {
-    const tempDir = mkdtempSync(join(tmpdir(), "disposition-"));
+    const tempDir = tempRoot("disposition");
     const recordPath = join(tempDir, "record.json");
     const capability = createCommandSigningCapability();
     expect(capability.verificationPublicKey).toBeDefined();
@@ -104,7 +105,7 @@ describe("command-signing-capability", () => {
   });
 
   test("validates signal ordering and invalid transitions", () => {
-    const tempDir = mkdtempSync(join(tmpdir(), "disposition-"));
+    const tempDir = tempRoot("disposition");
     const recordPath = join(tempDir, "record.json");
     const capability = createCommandSigningCapability();
     const cap = capability[CREATE_ATTEMPT_DISPOSITION](recordPath);

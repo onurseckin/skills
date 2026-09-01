@@ -14,11 +14,13 @@ import {
   resolveSystemLockPath,
   withLock,
 } from "../../../olt/scripts/src/policy/io-safety.ts";
+import { cleanupVirtualCommunicationFS, setupVirtualCommunicationFS } from "../helpers.ts";
 
 describe("Mailbox and System Lock Path Consolidation", () => {
   let testRoot: string;
 
   beforeEach(() => {
+    setupVirtualCommunicationFS();
     testRoot = join(
       process.cwd(),
       "coverage",
@@ -29,9 +31,7 @@ describe("Mailbox and System Lock Path Consolidation", () => {
   });
 
   afterEach(() => {
-    if (existsSync(testRoot)) {
-      rmSync(testRoot, { recursive: true, force: true });
-    }
+    cleanupVirtualCommunicationFS();
   });
 
   describe("resolveMailboxLockPath (task-msg-2.1)", () => {

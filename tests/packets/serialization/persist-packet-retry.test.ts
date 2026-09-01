@@ -1,11 +1,20 @@
-import { describe, expect, test } from "bun:test";
-import { mkdtempSync, realpathSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { afterAll, describe, expect, test } from "bun:test";
 import { publishPacket } from "../../../olt/scripts/src/packets/persist-packet.ts";
 import type { BuiltPacket } from "../../../olt/scripts/src/packets/types.ts";
 import { TestPort, at, workflowState } from "../../workflow/index.ts";
 import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+
+const vfs = new VirtualMemoryFS();
+const session = createVirtualFSSession(vfs);
+
+afterAll(() => {
+  session.cleanup();
+  vfs.reset();
+});
 
 /**
  * publishPacket's retry path: a caller that re-runs the same CLI command after a crash (or a
@@ -53,7 +62,9 @@ function validatingPort(): TestPort {
 }
 
 function tmpRoot(): string {
-  return realpathSync(mkdtempSync(join(tmpdir(), "persist-pkt-retry-")));
+  const r = `/virtual/persist-pkt-retry-${Math.random().toString(36).slice(2)}`;
+  vfs.mkdirSync(r, { recursive: true });
+  return r;
 }
 
 describe("publishPacket retry semantics", () => {

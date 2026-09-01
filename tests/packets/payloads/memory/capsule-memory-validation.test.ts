@@ -1,40 +1,36 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  CAPSULE_DIRECTORIES,
-  CAPSULE_FILES,
-  createCapsuleMemoryPointer,
   detectContextBloat,
-  formatCapsuleMemoryGuidance,
-  getCapsuleCliCommands,
-  partitionDecoupledMemory,
   readDecoupledBlob,
   readDecoupledEvents,
-  readDecoupledEvidence,
   readDecoupledState,
-  resolveCapsuleDirectory,
-  resolveCapsuleFile,
   validateRichInstructionPacket,
-  verifyCapsuleLayout,
-  verifyCapsuleLayoutSync,
-  writeDecoupledBlob,
 } from "../../../../olt/scripts/src/packets/capsule-memory.ts";
 import { evidenceSchema } from "../../../../olt/scripts/src/packets/evidence-schema.ts";
 import { buildPacket } from "../../../../olt/scripts/src/packets/render-packet.ts";
 import { claimTask } from "../../../../olt/scripts/src/workflow/lease/claim.ts";
 import { at, TestPort, workflowState } from "../../../workflow/index.ts";
 import { inspectionContext } from "../slicing/inspection-fixture.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
-const roots: string[] = [];
-afterEach(async () => {
-  for (const root of roots) {
-    await rm(root, { recursive: true, force: true });
-  }
-  roots.length = 0;
+const vfs = new VirtualMemoryFS();
+const session = createVirtualFSSession(vfs);
+
+afterAll(() => {
+  session.cleanup();
+  vfs.reset();
 });
+
+function createTempRoot(prefix: string): string {
+  const root = `/virtual/${prefix}${Math.random().toString(36).slice(2)}`;
+  vfs.mkdirSync(root, { recursive: true });
+  return root;
+}
 
 const clock = at("2026-08-22T12:00:00.000Z");
 const commonBytes = new TextEncoder().encode("Canonical common instructions for tests.\n");
@@ -168,8 +164,7 @@ describe("Decoupled Capsule Memory - Validation & Edge Cases", () => {
     });
 
     test("readDecoupledEvents reads direct task_id on events and handles unparseable state", async () => {
-      const tempRoot = await mkdtemp(join(tmpdir(), "decoupled-events-edge-"));
-      roots.push(tempRoot);
+      const tempRoot = createTempRoot("decoupled-events-edge-");
 
       const eventsContent = [
         JSON.stringify({ event_id: "E-1", task_id: "T-DIRECT", type: "custom" }),
@@ -177,7 +172,7 @@ describe("Decoupled Capsule Memory - Validation & Edge Cases", () => {
         JSON.stringify({ event_id: "E-2", data: { task_id: "T-NESTED" }, type: "custom" }),
       ].join("\n");
 
-      await writeFile(join(tempRoot, "events.jsonl"), eventsContent);
+      vfs.writeFileSync(join(tempRoot, "events.jsonl"), eventsContent);
 
       const direct = await readDecoupledEvents(tempRoot, { taskId: "T-DIRECT" });
       expect(direct.length).toBe(1);
@@ -188,25 +183,24 @@ describe("Decoupled Capsule Memory - Validation & Edge Cases", () => {
       expect(nested[0]!.event_id).toBe("E-2");
 
       // Corrupted state.json returns null
-      await writeFile(join(tempRoot, "state.json"), "invalid state json");
+      vfs.writeFileSync(join(tempRoot, "state.json"), "invalid state json");
       expect(await readDecoupledState(tempRoot)).toBeNull();
 
       // State.json as a JSON primitive returns null
-      await writeFile(join(tempRoot, "state.json"), JSON.stringify("just a string"));
+      vfs.writeFileSync(join(tempRoot, "state.json"), JSON.stringify("just a string"));
       expect(await readDecoupledState(tempRoot)).toBeNull();
     });
 
     test("readDecoupledBlob handles prefix match with full hash mismatch", async () => {
-      const tempRoot = await mkdtemp(join(tmpdir(), "decoupled-blob-edge-"));
-      roots.push(tempRoot);
+      const tempRoot = createTempRoot("decoupled-blob-edge-");
 
       const blobsDir = join(tempRoot, "blobs");
-      await mkdir(blobsDir, { recursive: true });
+      vfs.mkdirSync(blobsDir, { recursive: true });
 
       // Create a blob file whose name has a 16-char prefix
       const prefix = "1234567890abcdef";
       const blobFileName = `blob-${prefix}-file.bin`;
-      await writeFile(join(blobsDir, blobFileName), "actual content");
+      vfs.writeFileSync(join(blobsDir, blobFileName), "actual content");
 
       // Request a sha that matches prefix but not content
       const result = await readDecoupledBlob(tempRoot, `${prefix}different-rest-of-hash`);

@@ -16,18 +16,18 @@ import {
 } from "../../../olt/scripts/src/communication/mailbox/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import type { MailboxPaths } from "../../../olt/scripts/src/communication/types.ts";
+import { cleanupVirtualCommunicationFS, setupVirtualCommunicationFS } from "../helpers.ts";
 
 describe("Mailbox Paths & Directory Provisioning Engine", () => {
   let tempDir: string;
 
   beforeEach(() => {
+    setupVirtualCommunicationFS();
     tempDir = mkdtempSync(join(tmpdir(), "mailbox-paths-test-"));
   });
 
   afterEach(() => {
-    try {
-      rmSync(tempDir, { recursive: true, force: true });
-    } catch {}
+    cleanupVirtualCommunicationFS();
   });
 
   describe("isValidAgentId", () => {

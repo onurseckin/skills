@@ -1,6 +1,5 @@
-import { describe, expect, test, afterAll } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { TelemetryFieldConflict } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
@@ -15,16 +14,7 @@ import {
   transcriptAuditContext,
 } from "../../../olt/scripts/src/workflow/agents/telemetry-merge.ts";
 import type { AgentTranscriptTelemetry } from "../../../olt/scripts/src/workflow/agents/transcript-telemetry.ts";
-
-const activeRoots: string[] = [];
-
-afterAll(() => {
-  for (const root of activeRoots) {
-    try {
-      rmSync(root, { recursive: true, force: true });
-    } catch {}
-  }
-});
+import { cleanupVirtualAgentsFS, scratchRoot, setupVirtualAgentsFS } from "../fixture.ts";
 
 function transcript(overrides: Partial<AgentTranscriptTelemetry> = {}): AgentTranscriptTelemetry {
   return { sourcePath: "/path/to/transcript.jsonl", tools: [], ...overrides };
@@ -114,11 +104,10 @@ describe("appendTelemetryConflicts", () => {
   });
 });
 
-function freshRun(_label: string): string {
-  const root = mkdtempSync(join(tmpdir(), "agent-telemetry-run-"));
-  activeRoots.push(root);
+function freshRun(label: string): string {
+  const root = scratchRoot("agent-telemetry-run", label);
   const repo = join(root, "repo");
-  mkdirSync(repo);
+  mkdirSync(repo, { recursive: true });
   return initRun(repo, "telemetry-merge-run", new TextEncoder().encode("prompt"), "file", true);
 }
 

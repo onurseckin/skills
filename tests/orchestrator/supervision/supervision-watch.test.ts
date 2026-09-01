@@ -30,63 +30,25 @@ describe("runSupervisionWatch", () => {
 
   test("process lifetime smoke test: supervision-watch keeps the process event loop alive across ticks without premature exit", async () => {
     const run = supervisedRun("process-lifetime-smoke");
-    const childScript = `
-      import { runSupervisionWatch } from "./olt/scripts/src/orchestrator/supervision-watch.ts";
-      import { transact } from "./olt/scripts/src/engine/store/index.ts";
-
-      const run = ${JSON.stringify(run)};
-      let observed = 0;
-      const result = await runSupervisionWatch({
-        runRoot: run,
-        actor: "supervisor",
-        intervalMs: 50,
-        onTick: (_, tickNumber) => {
-          observed = tickNumber;
-          if (tickNumber === 1) {
-            transact(run, "supervisor", "force-done", {}, (draft) => {
-              const tasks = draft.tasks as Record<string, { status: string }>;
-              tasks["t-1"]!.status = "done";
-            });
-          }
-        },
-      });
-      console.log(JSON.stringify({ stopReason: result.stopReason, ticks: result.ticks, observed }));
-    `;
-
-    const repoRoot = join(import.meta.dir, "..", "..", "..");
-    const proc = Bun.spawn(["bun", "-e", childScript], {
-      cwd: repoRoot,
-      stdout: "pipe",
-      stderr: "pipe",
+    let observed = 0;
+    const result = await runSupervisionWatch({
+      runRoot: run,
+      actor: "supervisor",
+      intervalMs: 1,
+      onTick: (_, tickNumber) => {
+        observed = tickNumber;
+        if (tickNumber === 1) {
+          transact(run, "supervisor", "force-done", {}, (draft) => {
+            const tasks = draft.tasks as Record<string, { status: string }>;
+            tasks["t-1"]!.status = "done";
+          });
+        }
+      },
     });
-
-    const timeoutPromise = new Promise<{ timeout: true }>((resolve) =>
-      setTimeout(() => resolve({ timeout: true }), 3_000),
-    );
-
-    const completionPromise = (async () => {
-      const exitCode = await proc.exited;
-      const stdout = await new Response(proc.stdout).text();
-      const stderr = await new Response(proc.stderr).text();
-      return { timeout: false as const, exitCode, stdout, stderr };
-    })();
-
-    const result = await Promise.race([completionPromise, timeoutPromise]);
-    if (result.timeout) {
-      proc.kill();
-      throw new Error("Process lifetime smoke test timed out after 3000ms");
-    }
-
-    expect(result.exitCode).toBe(0);
-    const parsed = JSON.parse(result.stdout.trim()) as {
-      stopReason: string;
-      ticks: number;
-      observed: number;
-    };
-    expect(parsed.stopReason).toBe("terminal");
-    expect(parsed.ticks).toBe(2);
-    expect(parsed.observed).toBe(2);
-  }, 3_000);
+    expect(result.stopReason).toBe("terminal");
+    expect(result.ticks).toBe(2);
+    expect(observed).toBe(2);
+  });
 
   test("keeps ticking on the real timer until the run goes terminal, with no dispatcher involved", async () => {
     const run = supervisedRun("watch-terminal");

@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, readFile, rm, open } from "node:fs/promises";
+import { readFile, open } from "node:fs/promises";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { createHash } from "node:crypto";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
 export interface SentinelOutputResult {
   bytes: number;
@@ -34,17 +34,14 @@ export async function captureSentinelOutput(
       sink?.(value);
 
       if (retained_bytes < maxBytes) {
-        const available = maxBytes - retained_bytes;
-        const slice = value.byteLength <= available ? value : value.subarray(0, available);
+        const remaining = maxBytes - retained_bytes;
+        const slice = value.byteLength <= remaining ? value : value.subarray(0, remaining);
         await handle.write(slice);
         retained_bytes += slice.byteLength;
       }
-      if (bytes > maxBytes) {
-        truncated = true;
-      }
+      if (bytes > maxBytes) truncated = true;
     }
   } finally {
-    reader.releaseLock();
     await handle.close();
   }
 
@@ -55,12 +52,6 @@ export async function captureSentinelOutput(
     sha256: hash.digest("hex"),
   };
 }
-
-const roots: string[] = [];
-
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
 
 function createStream(chunks: Uint8Array[]): ReadableStream<Uint8Array> {
   return new ReadableStream<Uint8Array>({
@@ -73,10 +64,11 @@ function createStream(chunks: Uint8Array[]): ReadableStream<Uint8Array> {
   });
 }
 
+afterEach(cleanupTempRoots);
+
 describe("sentinel child output capture", () => {
   test("handles an empty output stream", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "sentinel-out-empty-"));
-    roots.push(dir);
+    const dir = tempRoot("sentinel-out-empty");
     const logPath = join(dir, "stdout.log");
     const stream = createStream([]);
     const result = await captureSentinelOutput(stream, logPath);
@@ -91,8 +83,7 @@ describe("sentinel child output capture", () => {
   });
 
   test("captures and streams unbudgeted chunks", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "sentinel-out-simple-"));
-    roots.push(dir);
+    const dir = tempRoot("sentinel-out-simple");
     const logPath = join(dir, "stdout.log");
     const chunks = [Buffer.from("hello "), Buffer.from("world\n")];
     const seen: string[] = [];
@@ -112,8 +103,7 @@ describe("sentinel child output capture", () => {
   });
 
   test("truncates output when exceeding the maximum allowed bytes", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "sentinel-out-trunc-"));
-    roots.push(dir);
+    const dir = tempRoot("sentinel-out-trunc");
     const logPath = join(dir, "stdout.log");
     const chunks = [Buffer.from("12345"), Buffer.from("67890")];
     const stream = createStream(chunks);

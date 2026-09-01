@@ -1,21 +1,126 @@
-import { afterAll, describe, expect, test } from "bun:test";
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import * as fs from "node:fs";
+import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import {
   expandScopeEntry,
   expandWriteScope,
 } from "../../../olt/scripts/src/graph/scope-expansion.ts";
 
-const roots: string[] = [];
+const vfs = new Set<string>();
+const vdirs = new Set<string>();
+const lockedDirs = new Set<string>();
+let rootCounter = 0;
+const spies: Array<{ mockRestore: () => void }> = [];
+const norm = (p: fs.PathLike) => resolve(String(p)).replace(/\/+$/, "");
+
+beforeEach(() => {
+  const oe = fs.existsSync.bind(fs),
+    ostat = fs.statSync.bind(fs),
+    oreaddir = fs.readdirSync.bind(fs);
+  const om = fs.mkdirSync.bind(fs),
+    ow = fs.writeFileSync.bind(fs),
+    ochmod = fs.chmodSync.bind(fs);
+
+  spies.push(
+    spyOn(fs, "existsSync").mockImplementation((p) => {
+      const s = norm(p);
+      return s.startsWith("/virtual/")
+        ? vfs.has(s) || vdirs.has(s) || Array.from(vfs).some((k) => k.startsWith(`${s}/`))
+        : oe(p);
+    }),
+    spyOn(fs, "statSync").mockImplementation((p: fs.PathLike): fs.Stats => {
+      const s = norm(p);
+      if (s.startsWith("/virtual/")) {
+        const isFile = vfs.has(s);
+        const isDir = vdirs.has(s) || Array.from(vfs).some((k) => k.startsWith(`${s}/`));
+        if (!isFile && !isDir) throw new Error(`ENOENT: ${s}`);
+        return {
+          isFile: () => isFile,
+          isDirectory: () => isDir,
+          isSymbolicLink: () => false,
+          size: 0,
+        } as unknown as fs.Stats;
+      }
+      return ostat(p);
+    }),
+    spyOn(fs, "readdirSync").mockImplementation((p: fs.PathLike, opt?: unknown): unknown => {
+      const s = norm(p);
+      if (s.startsWith("/virtual/")) {
+        if (lockedDirs.has(s)) throw new Error(`EACCES: permission denied, scandir '${s}'`);
+        const prefix = `${s}/`;
+        const entries = new Map<string, boolean>();
+        for (const k of vfs) {
+          if (k.startsWith(prefix) && k.length > prefix.length) {
+            const rel = k.slice(prefix.length);
+            const firstSeg = rel.split("/")[0]!;
+            entries.set(firstSeg, rel.includes("/"));
+          }
+        }
+        for (const d of vdirs) {
+          if (d.startsWith(prefix) && d.length > prefix.length) {
+            const rel = d.slice(prefix.length);
+            entries.set(rel.split("/")[0]!, true);
+          }
+        }
+        const withTypes =
+          typeof opt === "object" &&
+          opt !== null &&
+          "withFileTypes" in opt &&
+          Boolean((opt as { withFileTypes?: boolean }).withFileTypes);
+        if (withTypes) {
+          return Array.from(entries.entries()).map(([name, isDir]) => ({
+            name,
+            isDirectory: () => isDir,
+            isFile: () => !isDir,
+            isSymbolicLink: () => false,
+          })) as unknown as fs.Dirent[];
+        }
+        return Array.from(entries.keys());
+      }
+      return oreaddir(p, opt as Parameters<typeof oreaddir>[1]);
+    }),
+    spyOn(fs, "mkdirSync").mockImplementation((p) => {
+      const s = norm(p);
+      if (s.startsWith("/virtual/")) {
+        vdirs.add(s);
+        return undefined;
+      }
+      return om(p) as string | undefined;
+    }),
+    spyOn(fs, "writeFileSync").mockImplementation((p) => {
+      const s = norm(p);
+      if (s.startsWith("/virtual/")) {
+        vfs.add(s);
+        return;
+      }
+      ow(p, "");
+    }),
+    spyOn(fs, "chmodSync").mockImplementation((p, mode) => {
+      const s = norm(p);
+      if (s.startsWith("/virtual/")) {
+        if (mode === 0o000 || mode === 0) lockedDirs.add(s);
+        else lockedDirs.delete(s);
+        return;
+      }
+      ochmod(p, mode);
+    }),
+  );
+});
+
+afterEach(() => {
+  for (const s of spies.splice(0)) s.mockRestore();
+  vfs.clear();
+  vdirs.clear();
+  lockedDirs.clear();
+});
+
 function fixtureRepo(): string {
-  const root = mkdtempSync(join(tmpdir(), "scope-expansion-fixture-"));
-  roots.push(root);
+  rootCounter += 1;
+  const root = `/virtual/scope-expansion-fixture-${rootCounter}`;
+  vdirs.add(root);
   return root;
 }
-afterAll(() => {
-  for (const root of roots) rmSync(root, { recursive: true, force: true });
-});
 
 describe("expandScopeEntry", () => {
   test("a directory expands to every file beneath it", () => {

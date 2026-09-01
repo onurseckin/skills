@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import type { CommandAttemptStartedRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { atomicWriteJson } from "../../../olt/scripts/src/core/durable-write.ts";
@@ -18,8 +17,8 @@ import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/
 import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/core/pipe-ownership.ts";
 import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
 import { verifyCommandRecord } from "../../../olt/scripts/src/engine/runner/signing/verify-command.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
-const roots: string[] = [];
 const identity: ProcessIdentity = { pid: 4242, parent: 100, group: 4242, birth: "birth-1" };
 const repository: RepositoryBinding = {
   schema: "harness.repository-binding",
@@ -31,9 +30,10 @@ const repository: RepositoryBinding = {
   total_bytes: 1,
 };
 
+afterEach(cleanupTempRoots);
+
 async function fixture(rootIdentity: ProcessIdentity | null = identity, terminalProof = false) {
-  const root = await mkdtemp(join(tmpdir(), "attempt-reconcile-"));
-  roots.push(root);
+  const root = tempRoot("attempt-reconcile");
   const runRoot = join(root, ".olt", "capsules");
   await mkdir(join(runRoot, "commands"), { recursive: true });
   const signer = createCommandSigningCapability();
@@ -107,10 +107,6 @@ async function fixture(rootIdentity: ProcessIdentity | null = identity, terminal
   }
   return { runRoot, prepared, attemptRoot, marker };
 }
-
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
 
 describe("incomplete command attempt reconciliation", () => {
   test("leaves a raw initial marker stranded even when its root later appears absent", async () => {

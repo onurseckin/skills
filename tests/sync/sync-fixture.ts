@@ -1,24 +1,44 @@
 /**
  * @file sync-fixture.ts
- * In-memory / fast test sandbox fixture for tests/sync domain
+ * In-memory virtual test sandbox fixture for tests/sync domain.
+ * Zero physical disk writes, backed by VirtualMemoryFS and createVirtualFSSession.
  */
 
 import { afterEach } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdirSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../olt/scripts/src/testing/virtual-fs/index.ts";
 
-const SCRATCH_BASE = join(tmpdir(), "sync-scratch");
-const rootsToClean: string[] = [];
+let vfs = new VirtualMemoryFS();
+let session: VirtualFSSession | null = null;
+let counter = 0;
+
+export const SCRATCH_BASE = "/virtual/sync";
+
+export function setupVirtualSyncFS(): VirtualMemoryFS {
+  cleanupVirtualSyncFS();
+  vfs = new VirtualMemoryFS();
+  session = createVirtualFSSession(vfs);
+  return vfs;
+}
+
+export function cleanupVirtualSyncFS(): void {
+  if (session) {
+    session.cleanup();
+    session = null;
+  }
+}
+
+export function getVirtualSyncFS(): VirtualMemoryFS {
+  return vfs;
+}
 
 afterEach(() => {
-  for (const root of rootsToClean) {
-    try {
-      rmSync(root, { recursive: true, force: true });
-    } catch {}
-  }
-  rootsToClean.length = 0;
+  cleanupVirtualSyncFS();
 });
 
 function slug(value: string): string {
@@ -34,13 +54,14 @@ function shortDigest(value: string): string {
   return createHash("sha256").update(value).digest("hex").slice(0, 8);
 }
 
-let counter = 0;
-
 /**
- * Creates an isolated scratch sandbox directory for sync testing.
- * Automatically registered for cleanup in afterEach hooks.
+ * Creates an isolated in-memory scratch sandbox directory for sync testing.
+ * Automatically provisions virtual directory inside VirtualMemoryFS.
  */
 export function scratchRoot(callerPath = "sync-test", label = "test"): string {
+  if (!session) {
+    setupVirtualSyncFS();
+  }
   counter += 1;
   const fileTag = slug(callerPath);
   const labelTag = slug(label);
@@ -51,12 +72,7 @@ export function scratchRoot(callerPath = "sync-test", label = "test"): string {
   const dirName = raw.slice(0, 50).replace(/-+$/, "");
   const root = join(SCRATCH_BASE, dirName);
 
-  try {
-    rmSync(root, { recursive: true, force: true });
-  } catch {}
-
-  mkdirSync(root, { recursive: true });
-  rootsToClean.push(root);
+  vfs.mkdirSync(root, { recursive: true });
   return root;
 }
 

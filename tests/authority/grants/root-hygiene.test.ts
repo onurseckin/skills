@@ -1,9 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { RootDirectoryHygieneGuard } from "../../../olt/scripts/src/authority/guards/root-hygiene.ts";
-import {
-  checkRepositoryHygiene,
-} from "../../../olt/scripts/src/reporting/doctor/hygiene-engine.ts";
+import { checkRepositoryHygiene } from "../../../olt/scripts/src/reporting/doctor/hygiene-engine.ts";
 import {
   cleanupVirtualAuthorityFS,
   getVirtualAuthorityFS,

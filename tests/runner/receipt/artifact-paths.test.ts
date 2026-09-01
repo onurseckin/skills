@@ -1,23 +1,17 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, realpathSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { realpathSync } from "node:fs";
 import { join } from "node:path";
 import {
   portableArtifactPath,
   resolveArtifactPath,
 } from "../../../olt/scripts/src/engine/runner/core/artifact-paths.ts";
-
-const roots: string[] = [];
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
 function createTestRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), "artifact-paths-"));
-  roots.push(root);
-  return root;
+  return tempRoot("artifact-paths");
 }
 
-afterEach(() => {
-  while (roots.length > 0) rmSync(roots.pop()!, { recursive: true, force: true });
-});
+afterEach(cleanupTempRoots);
 
 describe("portableArtifactPath", () => {
   test("returns a forward-slash relative path for an artifact inside the run root", () => {

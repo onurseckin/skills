@@ -1,6 +1,5 @@
-import { describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterAll, describe, expect, test } from "bun:test";
+import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { inspectRepository } from "../../../../olt/scripts/src/packets/repository-snapshot.ts";
 import { inspectRepositoryBinding } from "../../../../olt/scripts/src/packets/repository-identity.ts";
@@ -13,10 +12,28 @@ import {
   createRepositoryGitCommand,
   type RepositoryGitCommand,
 } from "../../../../olt/scripts/src/packets/repository-git-command.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
+
+const vfs = new VirtualMemoryFS();
+const session = createVirtualFSSession(vfs);
+
+afterAll(() => {
+  session.cleanup();
+  vfs.reset();
+});
+
+function createRepo(prefix: string): string {
+  const repo = `/virtual/${prefix}${Math.random().toString(36).slice(2)}`;
+  vfs.mkdirSync(repo, { recursive: true });
+  return repo;
+}
 
 describe("repository-snapshot", () => {
   test("inspects a non-git directory with instructions and conventions", () => {
-    const repo = realpathSync(mkdtempSync(join(tmpdir(), "repo-snap-")));
+    const repo = createRepo("repo-snap-");
     writeFileSync(join(repo, "AGENTS.md"), "# Agents");
     writeFileSync(join(repo, "GEMINI.md"), "# Gemini");
     writeFileSync(join(repo, "package.json"), "{}");
@@ -43,7 +60,7 @@ describe("repository-snapshot", () => {
   });
 
   test("excludes .olt capsule state from the walk, including vendored instruction/convention copies", () => {
-    const repo = realpathSync(mkdtempSync(join(tmpdir(), "repo-snap-olt-")));
+    const repo = createRepo("repo-snap-olt-");
     writeFileSync(join(repo, "CLAUDE.md"), "# Root instructions");
     writeFileSync(join(repo, "package.json"), "{}");
 
@@ -58,7 +75,7 @@ describe("repository-snapshot", () => {
   });
 
   test("rejects when repo root is not a directory", () => {
-    const tempDir = realpathSync(mkdtempSync(join(tmpdir(), "repo-snap-")));
+    const tempDir = createRepo("repo-snap-");
     const filePath = join(tempDir, "file.txt");
     writeFileSync(filePath, "content");
 
@@ -68,7 +85,7 @@ describe("repository-snapshot", () => {
   });
 
   test("rejects a directory whose entry count exceeds an injected traversal ceiling", () => {
-    const repo = realpathSync(mkdtempSync(join(tmpdir(), "repo-snap-limit-")));
+    const repo = createRepo("repo-snap-limit-");
     writeFileSync(join(repo, "a.txt"), "a");
     writeFileSync(join(repo, "b.txt"), "b");
     writeFileSync(join(repo, "c.txt"), "c");
@@ -81,15 +98,10 @@ describe("repository-snapshot", () => {
   });
 
   test("inspects real git repository", () => {
-    const repo = realpathSync(mkdtempSync(join(tmpdir(), "repo-snap-git-")));
-    // inspectRepositoryBinding() (called unconditionally inside inspectRepository) does its own
-    // real Git identity/control/content-listing inspection with no dependency injection reaching
-    // it from here — repository-content-paths.ts's gitRepository() helper even hardcodes the real
-    // `repositoryGit` command directly, with no override parameter at all. A genuine `.git`
-    // directory from `git init` is therefore the only way to reach the git-available branch. The
-    // command fake below covers every probe this module's own `run()` helper issues
-    // (status/head/branch/log/version), so no further real Git process runs beyond that one init.
-    Bun.spawnSync(["git", "init", "-q", repo]);
+    const repo = createRepo("repo-snap-git-");
+    vfs.mkdirSync(join(repo, ".git"), { recursive: true });
+    vfs.writeFileSync(join(repo, ".git", "HEAD"), "ref: refs/heads/main\n");
+    vfs.writeFileSync(join(repo, ".git", "config"), "[core]\n\tbare = false\n");
     const head = "a".repeat(40);
     const command: RepositoryGitCommand = (_repo, argv) => {
       const bytes = (text: string) => Buffer.from(text);
@@ -97,6 +109,12 @@ describe("repository-snapshot", () => {
         case "status":
           return { status: 0, bytes: bytes("# branch.oid " + head + "\n") };
         case "rev-parse":
+          if (argv.includes("--is-inside-work-tree")) return { status: 0, bytes: bytes("true\n") };
+          if (argv.includes("config.worktree"))
+            return { status: 0, bytes: bytes(`${join(repo, ".git", "config.worktree")}\n`) };
+          if (argv.includes("--absolute-git-dir") || argv.includes("--git-common-dir"))
+            return { status: 0, bytes: bytes(`${join(repo, ".git")}\n`) };
+          if (argv.includes("--show-toplevel")) return { status: 0, bytes: bytes(`${repo}\n`) };
           return { status: 0, bytes: bytes(head + "\n") };
         case "branch":
           return { status: 0, bytes: bytes("main\n") };
@@ -104,6 +122,10 @@ describe("repository-snapshot", () => {
           return { status: 0, bytes: bytes("abc1234 init\n") };
         case "--version":
           return { status: 0, bytes: bytes("git version 2.42.0\n") };
+        case "config":
+          return { status: 1, bytes: Buffer.alloc(0) };
+        case "ls-files":
+          return { status: 0, bytes: Buffer.alloc(0) };
         default:
           throw new Error(`unexpected git invocation: ${argv.join(" ")}`);
       }
@@ -120,8 +142,10 @@ describe("repository-snapshot", () => {
   });
 
   test("inspectRepositoryBinding retries and throws INTEGRITY if git identity continuously changes", () => {
-    const repo = realpathSync(mkdtempSync(join(tmpdir(), "repo-snap-drift-")));
-    Bun.spawnSync(["git", "init", "-q", repo]);
+    const repo = createRepo("repo-snap-drift-");
+    vfs.mkdirSync(join(repo, ".git"), { recursive: true });
+    vfs.writeFileSync(join(repo, ".git", "HEAD"), "ref: refs/heads/main\n");
+    vfs.writeFileSync(join(repo, ".git", "config"), "[core]\n\tbare = false\n");
 
     let counter = 0;
     const realGit = createRepositoryGitCommand();

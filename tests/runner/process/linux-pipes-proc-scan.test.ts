@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, spyOn, test } from "bun:test";
-import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { writeFileSync } from "node:fs";
+import { mkdir, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import {
   OWNERSHIP_ENV,
   linuxPipeHandles,
@@ -10,6 +10,7 @@ import {
   linuxTokenOwnerIdentities,
   parseLinuxProcessIdentity,
 } from "../../../olt/scripts/src/engine/runner/process/linux-pipes.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
 /**
  * There is no real /proc on this platform (or in CI generally), and the production code only
@@ -17,12 +18,8 @@ import {
  * (default "/proc", unused by any production call site) so these tests can point the scan at a
  * fixture directory shaped like a procfs, without changing behaviour for the real Linux path.
  */
-const roots: string[] = [];
-
-async function fakeProc(label: string): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), `${label}-`));
-  roots.push(root);
-  return root;
+function fakeProc(label: string): string {
+  return tempRoot(label);
 }
 
 function statLine(
@@ -50,9 +47,7 @@ async function makeProcess(
   if (options.environ !== undefined) await writeFile(join(dir, "environ"), options.environ);
 }
 
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
+afterEach(cleanupTempRoots);
 
 describe("linuxProcessIdentity against a fixture procfs", () => {
   test("parses a live process's stat file", async () => {
@@ -78,25 +73,27 @@ describe("parseLinuxProcessIdentity edge cases", () => {
   });
 
   test("rejects a stat line whose birth field is not numeric", () => {
-    const fields = ["S", "1", "1", ...Array(16).fill("0"), "not-a-number"];
-    expect(parseLinuxProcessIdentity(`40 (name) ${fields.join(" ")}`, 40)).toBeUndefined();
+    expect(
+      parseLinuxProcessIdentity("40 (name) S 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 not-a-number", 40),
+    ).toBeUndefined();
   });
 });
 
 describe("linuxPipeHandles against a fixture procfs", () => {
   test("collects pipe inode numbers and ignores non-pipe descriptors", async () => {
-    const root = await fakeProc("pipe-handles");
-    const fdDir = join(root, "4003", "fd");
-    await mkdir(fdDir, { recursive: true });
-    await symlink("pipe:[9001]", join(fdDir, "0"));
-    await symlink("pipe:[9002]", join(fdDir, "1"));
-    await symlink("socket:[7]", join(fdDir, "2"));
-    await writeFile(join(fdDir, "3"), "not a symlink");
-    expect(linuxPipeHandles(4003, root)).toEqual(new Set([9001n, 9002n]));
+    const root = await fakeProc("pipes-valid");
+    const dir = join(root, "4003", "fd");
+    await mkdir(dir, { recursive: true });
+    await symlink("pipe:[12345]", join(dir, "0"));
+    await symlink("pipe:[67890]", join(dir, "1"));
+    await symlink("socket:[99999]", join(dir, "2"));
+    await symlink("/dev/null", join(dir, "3"));
+
+    expect(linuxPipeHandles(4003, root)).toEqual(new Set([12345n, 67890n]));
   });
 
   test("returns an empty set when the process has no fd directory", async () => {
-    const root = await fakeProc("pipe-handles-missing");
+    const root = await fakeProc("pipes-missing");
     expect(linuxPipeHandles(4004, root)).toEqual(new Set());
   });
 });
@@ -104,74 +101,84 @@ describe("linuxPipeHandles against a fixture procfs", () => {
 describe("linuxPipeOwners against a fixture procfs", () => {
   test("returns only pids whose fds touch one of the anchor inodes", async () => {
     const root = await fakeProc("pipe-owners");
-    await makeProcess(root, 4005);
-    await mkdir(join(root, "4005", "fd"), { recursive: true });
-    await symlink("pipe:[8001]", join(root, "4005", "fd", "0"));
-    await makeProcess(root, 4006);
-    await mkdir(join(root, "4006", "fd"), { recursive: true });
-    await symlink("pipe:[8002]", join(root, "4006", "fd", "0"));
-    expect(linuxPipeOwners(new Set([8001n]), root)).toEqual(new Set([4005]));
+    const pid1Fd = join(root, "4005", "fd");
+    const pid2Fd = join(root, "4006", "fd");
+    const pid3Fd = join(root, "4007", "fd");
+    await mkdir(pid1Fd, { recursive: true });
+    await mkdir(pid2Fd, { recursive: true });
+    await mkdir(pid3Fd, { recursive: true });
+    await symlink("pipe:[100]", join(pid1Fd, "0"));
+    await symlink("pipe:[200]", join(pid2Fd, "0"));
+    await symlink("pipe:[300]", join(pid3Fd, "0"));
+
+    const anchors = new Set([100n, 300n]);
+    expect(linuxPipeOwners(anchors, root)).toEqual(new Set([4005, 4007]));
   });
 
   test("never reports the scanning process itself even if its name collides", async () => {
     const root = await fakeProc("pipe-owners-self");
-    const own = String(process.pid);
-    await mkdir(join(root, own, "fd"), { recursive: true });
-    await symlink("pipe:[8003]", join(root, own, "fd", "0"));
-    expect(linuxPipeOwners(new Set([8003n]), root)).toEqual(new Set());
+    const selfFd = join(root, String(process.pid), "fd");
+    await mkdir(selfFd, { recursive: true });
+    await symlink("pipe:[100]", join(selfFd, "0"));
+
+    expect(linuxPipeOwners(new Set([100n]), root)).toEqual(new Set());
   });
 });
 
 describe("linuxTokenOwnerIdentities against a fixture procfs", () => {
-  test("returns immediately for an empty token without scanning", () => {
-    expect(linuxTokenOwnerIdentities("", "/does/not/exist")).toEqual([]);
+  test("returns immediately for an empty token without scanning", async () => {
+    const root = await fakeProc("token-empty");
+    expect(linuxTokenOwnerIdentities("", root)).toEqual([]);
   });
 
   test("matches a live process whose environment carries the ownership token", async () => {
     const root = await fakeProc("token-match");
-    const marker = `${OWNERSHIP_ENV}=secret-token\0`;
-    await makeProcess(root, 4007, { group: 4007, birth: "77777", environ: `PATH=/bin\0${marker}` });
-    const owners = linuxTokenOwnerIdentities("secret-token", root);
-    expect(owners).toEqual([{ pid: 4007, parent: 1, group: 4007, birth: "77777" }]);
+    const marker = `FOO=bar\0${OWNERSHIP_ENV}=secret-token\0BAZ=qux\0`;
+    await makeProcess(root, 4008, { parent: 1, group: 4008, birth: "1000", environ: marker });
+
+    expect(linuxTokenOwnerIdentities("secret-token", root)).toEqual([
+      { pid: 4008, parent: 1, group: 4008, birth: "1000" },
+    ]);
   });
 
   test("excludes a live process whose environment lacks the ownership token", async () => {
-    const root = await fakeProc("token-no-match");
-    await makeProcess(root, 4008, { environ: "PATH=/bin\0OTHER=1\0" });
+    const root = await fakeProc("token-nomatch");
+    await makeProcess(root, 4009, { parent: 1, group: 4009, birth: "1000", environ: "FOO=bar\0" });
+
     expect(linuxTokenOwnerIdentities("secret-token", root)).toEqual([]);
   });
 
   test("skips a pid that owns no stat file, even though it passes the ownership check", async () => {
-    const root = await fakeProc("token-skip-no-stat");
-    // "4009" enumerates as a pid and statSync succeeds on it (a plain file we own), so ownership
-    // passes; but `${root}/4009/stat` has a non-directory path component, so linuxProcessIdentity
-    // throws internally and returns undefined, which must skip the pid rather than crash the scan.
-    await writeFile(join(root, "4009"), "a file, not a process directory");
+    const root = await fakeProc("token-nostat");
+    const dir = join(root, "4010");
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, "environ"), `${OWNERSHIP_ENV}=secret-token\0`);
+
     expect(linuxTokenOwnerIdentities("secret-token", root)).toEqual([]);
   });
 
   test("skips a pid that vanished before its ownership could be confirmed", async () => {
-    const root = await fakeProc("token-skip-vanished");
-    // A dangling symlink named "4013" is a real directory entry (so processIds enumerates it),
-    // but statSync follows the link to a target that no longer exists, so sameUser reports
-    // `undefined` rather than `true`/`false` and the scan must skip it, not throw.
-    await symlink("/does/not/exist/4013", join(root, "4013"));
+    const root = await fakeProc("token-vanished");
+    await mkdir(join(root, "4012"), { recursive: true });
+    const { rmSync } = await import("node:fs");
+    rmSync(join(root, "4012"), { recursive: true });
+
     expect(linuxTokenOwnerIdentities("secret-token", root)).toEqual([]);
   });
 
   test("never reports the scanning process itself even if it carries the token", async () => {
     const root = await fakeProc("token-self");
-    const own = String(process.pid);
-    await makeProcess(root, Number(own), {
-      environ: `${OWNERSHIP_ENV}=secret-token\0`,
-    });
+    const marker = `${OWNERSHIP_ENV}=secret-token\0`;
+    await makeProcess(root, process.pid, { group: process.pid, birth: "1000", environ: marker });
+
     expect(linuxTokenOwnerIdentities("secret-token", root)).toEqual([]);
   });
 
   test("rethrows the same error when the environment scan exceeds the per-process budget", async () => {
-    const root = await fakeProc("token-budget");
-    const oversized = Buffer.alloc(4 * 1024 * 1024 + 1024, 0);
-    await makeProcess(root, 4010, { group: 4010, birth: "99999", environ: oversized });
+    const root = await fakeProc("token-environ-too-large");
+    const giant = Buffer.alloc(5 * 1024 * 1024);
+    await makeProcess(root, 4013, { group: 4013, birth: "1000", environ: giant });
+
     expect(() => linuxTokenOwnerIdentities("secret-token", root)).toThrow(
       /environment scan is too large/,
     );
@@ -217,7 +224,6 @@ describe("linuxTokenOwnerIdentities against a fixture procfs", () => {
     Buffer.allocUnsafe = function (size: number) {
       if (!hooked) {
         hooked = true;
-        const { writeFileSync } = require("node:fs");
         writeFileSync(join(root, "4020", "stat"), statLine(4020, 1, 4020, "2000"));
       }
       return origAlloc.call(Buffer, size);
@@ -242,7 +248,6 @@ describe("linuxTokenOwnerIdentities against a fixture procfs", () => {
     Buffer.allocUnsafe = function (_size: number) {
       if (!hooked) {
         hooked = true;
-        const { writeFileSync } = require("node:fs");
         writeFileSync(join(root, "4021", "stat"), statLine(4021, 1, 4021, "2000"));
         throw new Error("read error");
       }

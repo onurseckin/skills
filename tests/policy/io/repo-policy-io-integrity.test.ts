@@ -1,6 +1,7 @@
-import { describe, expect, test, afterAll } from "bun:test";
-import { existsSync, fstatSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { describe, expect, test, beforeEach, afterEach } from "bun:test";
+import { existsSync, fstatSync, mkdirSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { cleanupVirtualPolicyFS, setupVirtualPolicyFS } from "../fixture.ts";
 import {
   CURRENT_POLICY_SCHEMA_VERSION,
   generateCanonicalDefaultPolicy,
@@ -19,10 +20,14 @@ import {
 } from "../../../olt/scripts/src/policy/io-safety.ts";
 
 describe("Repo Policy I/O, Integrity & TOCTOU Verification", () => {
-  const scratchBase = join(process.cwd(), "coverage", "scratch", "repo-policy-io-integrity");
+  const scratchBase = "/virtual/policy/io/integrity";
 
-  afterAll(() => {
-    rmSync(scratchBase, { recursive: true, force: true });
+  beforeEach(() => {
+    setupVirtualPolicyFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualPolicyFS();
   });
 
   test("generates canonical default policy with complete agent archetypes and docker profiles", () => {
@@ -99,8 +104,6 @@ describe("Repo Policy I/O, Integrity & TOCTOU Verification", () => {
     expect(primaryInspection.status).toBe("valid_custom");
     expect(primaryInspection.filePath).toBe(primaryPath);
     expect(loadRepoPolicy(dir).read_scope_neighborhood_depth).toBe(7);
-
-    rmSync(dir, { recursive: true, force: true });
   });
 
   test("atomic save writes strictly to .olt/policy.json and does not mirror to olt/policy.json", () => {
@@ -113,8 +116,6 @@ describe("Repo Policy I/O, Integrity & TOCTOU Verification", () => {
     expect(savedPath).toBe(join(dir, ".olt", "policy.json"));
     expect(existsSync(join(dir, ".olt", "policy.json"))).toBe(true);
     expect(existsSync(join(dir, "olt", "policy.json"))).toBe(false);
-
-    rmSync(dir, { recursive: true, force: true });
   });
 
   test("initRepoPolicy creates .olt/policy.json and returns valid policy", () => {
@@ -125,8 +126,6 @@ describe("Repo Policy I/O, Integrity & TOCTOU Verification", () => {
     expect(policy.schema_version).toBe(CURRENT_POLICY_SCHEMA_VERSION);
     expect(existsSync(join(dir, ".olt", "policy.json"))).toBe(true);
     expect(loadRepoPolicy(dir).schema_version).toBe(CURRENT_POLICY_SCHEMA_VERSION);
-
-    rmSync(dir, { recursive: true, force: true });
   });
 
   test("rejects symlinked files escaping repo root with PATH_SAFETY error", () => {
@@ -139,76 +138,64 @@ describe("Repo Policy I/O, Integrity & TOCTOU Verification", () => {
     symlinkSync(outside, symlinkTarget);
 
     expect(() => loadRepoPolicy(dir, symlinkTarget)).toThrow(/PATH_SAFETY|regular file/i);
-
-    rmSync(dir, { recursive: true, force: true });
-    rmSync(outside, { force: true });
   });
 
   test("validates checkExistingDir, ensureDir, and resolvePolicyLocation path escaping", () => {
     const root = join(scratchBase, "path-escape-dir");
     mkdirSync(root, { recursive: true });
-    try {
-      expect(() => checkExistingDir(root, "/outside/path")).toThrow(/escapes repository root/);
-      expect(() => ensureDir(root, "/outside/path")).toThrow(/escapes repository root/);
+    expect(() => checkExistingDir(root, "/outside/path")).toThrow(/escapes repository root/);
+    expect(() => ensureDir(root, "/outside/path")).toThrow(/escapes repository root/);
 
-      const nonExistentRoot = join(scratchBase, "nonexistent-root-123");
-      expect(() =>
-        resolvePolicyLocation(nonExistentRoot, "/outside/escape/path.json", false),
-      ).toThrow(/must remain under repository root/);
+    const nonExistentRoot = join(scratchBase, "nonexistent-root-123");
+    expect(() =>
+      resolvePolicyLocation(nonExistentRoot, "/outside/escape/path.json", false),
+    ).toThrow(/must remain under repository root/);
 
-      const loc = resolvePolicyLocation(nonExistentRoot, undefined, true);
-      expect(loc.root).toBe(nonExistentRoot);
-      expect(existsSync(nonExistentRoot)).toBe(true);
-      rmSync(nonExistentRoot, { recursive: true, force: true });
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
+    const loc = resolvePolicyLocation(nonExistentRoot, undefined, true);
+    expect(loc.root).toBe(nonExistentRoot);
+    expect(existsSync(nonExistentRoot)).toBe(true);
   });
 
   test("readVerifiedFile performs inode verification and defends against TOCTOU replacements", () => {
     const dir = join(scratchBase, "read-verified-test");
     mkdirSync(dir, { recursive: true });
-    try {
-      const loc = resolvePolicyLocation(dir, undefined, true);
-      expect(readVerifiedFile(loc)).toBeUndefined();
+    const loc = resolvePolicyLocation(dir, undefined, true);
+    expect(readVerifiedFile(loc)).toBeUndefined();
 
-      initRepoPolicy(dir);
-      const content = readVerifiedFile(loc);
-      expect(content).toBeDefined();
+    initRepoPolicy(dir);
+    const content = readVerifiedFile(loc);
+    expect(content).toBeDefined();
 
-      // Test readVerifiedFile when file is replaced after open
-      expect(() =>
-        readVerifiedFile(loc, {
-          afterOpenBeforeRead: () => {
-            rmSync(loc.filePath);
-            writeFileSync(loc.filePath, JSON.stringify({ modified: true }));
-          },
-        }),
-      ).toThrow(/Repository policy changed while opening/);
+    // Test readVerifiedFile when file is replaced after open
+    expect(() =>
+      readVerifiedFile(loc, {
+        afterOpenBeforeRead: () => {
+          unlinkSync(loc.filePath);
+          writeFileSync(loc.filePath, JSON.stringify({ modified: true }));
+        },
+      }),
+    ).toThrow(/Repository policy changed while opening/);
 
-      // Test reqNoFollow unsupported flag
-      expect(() => reqNoFollow(0)).toThrow(/final-component O_NOFOLLOW/);
-      expect(() => reqNoFollow(Number.NaN)).toThrow(/final-component O_NOFOLLOW/);
+    // Test reqNoFollow unsupported flag
+    expect(() => reqNoFollow(0)).toThrow(/final-component O_NOFOLLOW/);
+    expect(() => reqNoFollow(Number.NaN)).toThrow(/final-component O_NOFOLLOW/);
 
-      // Test readVerifiedFile retry loop when attempt < maxAttempts
-      let fstatCalls = 0;
-      const retriedContent = readVerifiedFile(loc, {
-        maxAttempts: 2,
-        fstat: ((fd: number) => {
-          const real = fstatSync(fd);
-          fstatCalls++;
-          if (fstatCalls === 1) {
-            const copy = Object.create(Object.getPrototypeOf(real));
-            Object.assign(copy, real, { ino: real.ino + 999 });
-            return copy;
-          }
-          return real;
-        }) as typeof fstatSync,
-      });
-      expect(retriedContent).toBeDefined();
-      expect(fstatCalls).toBeGreaterThanOrEqual(2);
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
+    // Test readVerifiedFile retry loop when attempt < maxAttempts
+    let fstatCalls = 0;
+    const retriedContent = readVerifiedFile(loc, {
+      maxAttempts: 2,
+      fstat: ((fd: number) => {
+        const real = fstatSync(fd);
+        fstatCalls++;
+        if (fstatCalls === 1) {
+          const copy = Object.create(Object.getPrototypeOf(real));
+          Object.assign(copy, real, { ino: real.ino + 999 });
+          return copy;
+        }
+        return real;
+      }) as typeof fstatSync,
+    });
+    expect(retriedContent).toBeDefined();
+    expect(fstatCalls).toBeGreaterThanOrEqual(2);
   });
 });

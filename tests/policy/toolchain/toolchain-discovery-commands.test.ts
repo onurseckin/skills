@@ -1,6 +1,7 @@
-import { afterAll, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { describe, expect, test, beforeEach, afterEach } from "bun:test";
+import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { cleanupVirtualPolicyFS, setupVirtualPolicyFS } from "../fixture.ts";
 import { mindInitCommand } from "../../../olt/scripts/src/cli/commands/index.ts";
 import { mindObserveCommand } from "../../../olt/scripts/src/cli/commands/index.ts";
 import {
@@ -10,10 +11,14 @@ import {
 } from "../../../olt/scripts/src/policy/index.ts";
 
 describe("Toolchain Discovery - Auto-Calibration & Commands", () => {
-  const scratch = join(process.cwd(), "coverage", "scratch", "toolchain-discovery-commands");
+  const scratch = "/virtual/policy/toolchain/discovery-commands";
 
-  afterAll(() => {
-    rmSync(scratch, { recursive: true, force: true });
+  beforeEach(() => {
+    setupVirtualPolicyFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualPolicyFS();
   });
 
   test("calibrates .olt/policy.json automatically on mind:init and mind:observe", () => {
@@ -71,7 +76,7 @@ charter:
       JSON.stringify({ command_id: "cmd-1", command: "health", exit_code: 0 }),
     );
 
-    rmSync(join(dir, ".olt", "policy.json"), { force: true });
+    unlinkSync(join(dir, ".olt", "policy.json"));
     expect(existsSync(join(dir, ".olt", "policy.json"))).toBe(false);
 
     mindObserveCommand({

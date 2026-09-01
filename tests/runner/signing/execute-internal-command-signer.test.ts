@@ -1,14 +1,13 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/execution/attempt-disposition-capability.ts";
 import type { CommandRuntimeCapability } from "../../../olt/scripts/src/engine/runner/models/execution/command-execution-snapshot.ts";
 import { executeInternalPreparedCommand } from "../../../olt/scripts/src/engine/runner/core/execute-internal-command.ts";
 import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
-const roots: string[] = [];
 const digest = (marker: string): string => marker.repeat(64);
 
 function binding(): RepositoryBinding {
@@ -23,9 +22,10 @@ function binding(): RepositoryBinding {
   };
 }
 
+afterEach(cleanupTempRoots);
+
 async function fixture(label: string) {
-  const root = await mkdtemp(join(tmpdir(), `${label}-`));
-  roots.push(root);
+  const root = tempRoot(label);
   await mkdir(join(root, "bin"));
   await mkdir(join(root, ".olt", "capsules", "commands"), { recursive: true });
   await writeFile(join(root, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
@@ -41,10 +41,6 @@ async function fixture(label: string) {
     },
   };
 }
-
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
 
 describe("executeInternalPreparedCommand direct integrity-failure reporting", () => {
   test("throws the record's integrity failure directly when the attempt itself did not throw", async () => {

@@ -23,7 +23,7 @@ import {
   putBlobFile,
   type ViewLinker,
 } from "../../../olt/scripts/src/engine/store/layout/blobs.ts";
-import { scratchRoot as makeScratchRoot } from "../store-fixture.ts";
+import { scratchRoot as makeScratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
 
 function scratchRoot(label: string): string {
   return makeScratchRoot(import.meta.path, label);
@@ -102,7 +102,7 @@ describe("putBlobFile", () => {
         _length: number,
         _position: fs.ReadPosition | null,
       ) => {
-        spy.mockRestore();
+        setupVirtualStoreFS();
         return MAX_BLOB_BYTES + 1;
       },
     );
@@ -112,7 +112,7 @@ describe("putBlobFile", () => {
         new RegExp(`capture exceeds the ${MAX_BLOB_BYTES} byte blob limit`),
       );
     } finally {
-      spy.mockRestore();
+      setupVirtualStoreFS();
     }
   });
 });

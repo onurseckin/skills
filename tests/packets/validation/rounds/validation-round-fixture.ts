@@ -1,15 +1,29 @@
 import { afterAll } from "bun:test";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { RunState, JsonObject } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import type { RepositoryGitCommand } from "../../../../olt/scripts/src/packets/repository-git-command.ts";
 import type { TaskRecord, WorkflowState } from "../../../../olt/scripts/src/workflow/types.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import { inspection } from "../../payloads/slicing/inspection-fixture.ts";
 
-export const roots: string[] = [];
-afterAll(async () => {
-  for (const root of roots) await rm(root, { recursive: true, force: true });
+let vfs = new VirtualMemoryFS();
+let session: VirtualFSSession | undefined;
+
+function ensureSession(): VirtualMemoryFS {
+  if (!session) session = createVirtualFSSession(vfs);
+  return vfs;
+}
+
+afterAll(() => {
+  if (session) {
+    session.cleanup();
+    session = undefined;
+  }
+  vfs.reset();
 });
 
 export const DIFF = "diff --git a/src/owned/a.ts b/src/owned/a.ts\n+const fixed = true;\n";
@@ -96,9 +110,9 @@ export function contextWith(root: string): JsonObject {
 }
 
 export async function capsuleWithLog(name: string, text: string): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), `harness-round-${name}-`));
-  roots.push(root);
-  await mkdir(join(root, "commands/C-gate/attempts/1"), { recursive: true });
-  await writeFile(join(root, "commands/C-gate/attempts/1/stdout.log"), text);
+  const memFs = ensureSession();
+  const root = `/virtual/harness-round-${name}-${Math.random().toString(36).slice(2)}`;
+  memFs.mkdirSync(join(root, "commands/C-gate/attempts/1"), { recursive: true });
+  memFs.writeFileSync(join(root, "commands/C-gate/attempts/1/stdout.log"), text);
   return root;
 }

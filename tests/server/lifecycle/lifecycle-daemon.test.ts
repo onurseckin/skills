@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { existsSync, mkdirSync, rmSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   captureSnapshot,
@@ -21,28 +21,23 @@ import type {
   ServerEndpoint,
   PortConfiguration,
 } from "../../../olt/scripts/src/server/lifecycle/types.ts";
-import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
+import { cleanupVirtualServerFS, scratchRoot, setupVirtualServerFS } from "../fixture.ts";
 
 describe("Dev Server Lifecycle Subsystem - State & Lock Daemon", () => {
-  const roots: string[] = [];
   let testDir: string;
   let testLockPath: string;
   let testSnapshotPath: string;
 
   beforeEach(() => {
-    testDir = scratchRoot(import.meta.path, "server-lifecycle-daemon");
-    roots.push(testDir);
+    setupVirtualServerFS();
+    testDir = scratchRoot("server-lifecycle-daemon", "daemon");
     testLockPath = join(testDir, "test-server-restart.lock");
     testSnapshotPath = join(testDir, "test-server-state.json");
   });
 
   afterEach(async () => {
     await forceReleaseLock(testLockPath);
-    for (const root of roots.splice(0)) {
-      if (existsSync(root)) {
-        rmSync(root, { recursive: true, force: true });
-      }
-    }
+    cleanupVirtualServerFS();
   });
 
   describe("Server State Snapshot & Preserver", () => {
@@ -227,7 +222,7 @@ describe("Dev Server Lifecycle Subsystem - State & Lock Daemon", () => {
         pid: 9999999,
         acquiredAt: new Date(Date.now() - 100000).toISOString(),
       });
-      await Bun.write(testLockPath, stalePayload);
+      writeFileSync(testLockPath, stalePayload);
 
       const newHandle = await acquireLock({
         lockPath: testLockPath,
@@ -241,7 +236,7 @@ describe("Dev Server Lifecycle Subsystem - State & Lock Daemon", () => {
 
     it("does not treat a recently created empty lock file as stale immediately", async () => {
       await forceReleaseLock(testLockPath);
-      await Bun.write(testLockPath, "");
+      writeFileSync(testLockPath, "");
 
       const locked = await isLocked(testLockPath);
       expect(locked).toBe(true);

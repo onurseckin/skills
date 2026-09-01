@@ -7,7 +7,7 @@ import {
   evaluateActiveTasks,
   type MonitoredTask,
 } from "../../../olt/scripts/src/watchdog/straggler-watchdog.ts";
-import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
+import { scratchRoot } from "../watchdog-fixture.ts";
 
 describe("StragglerWatchdog Remediation & Defect Emission", () => {
   it("recommends RECLAIM_LEASE for dead or abandoned straggler tasks", () => {

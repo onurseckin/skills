@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { realpathSync } from "node:fs";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -11,18 +11,25 @@ import {
   extractLeaseAttempt,
 } from "../../../../../olt/scripts/src/reporting/lease-agent-extractor.ts";
 import type { UnifiedReport } from "../../../../../olt/scripts/src/reporting/index.ts";
+import {
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../../commands/fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
-afterEach(async () => {
-  for (const root of roots) {
-    await rm(root, { recursive: true, force: true }).catch(() => {});
-  }
+beforeEach(() => {
+  setupVirtualCliFS();
+});
+afterEach(() => {
   roots.length = 0;
+  cleanupVirtualCliFS();
 });
 
 async function createBaseRun(name: string): Promise<{ repo: string; run: string }> {
   const repo = realpathSync(await mkdtemp(join(tmpdir(), `harness-unified-leases-${name}-`)));
   roots.push(repo);
+  await mkdir(join(repo, ".git"), { recursive: true });
+  await mkdir(join(repo, ".olt"), { recursive: true });
   const promptPath = join(repo, "prompt.txt");
   await writeFile(
     promptPath,

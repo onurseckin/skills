@@ -1,14 +1,5 @@
-import { describe, expect, test } from "bun:test";
-import {
-  closeSync,
-  mkdirSync,
-  mkdtempSync,
-  openSync,
-  realpathSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, describe, expect, test } from "bun:test";
+import { closeSync, mkdirSync, openSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   captureOpenedPath,
@@ -16,10 +7,13 @@ import {
   openGatePath,
   MAX_GATE_PATH_BINDINGS,
 } from "../../../olt/scripts/src/engine/runner/signing/gate-path-tree.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+
+afterEach(cleanupTempRoots);
 
 describe("gate-path-tree", () => {
   test("captures file and directory bindings with tree digest", () => {
-    const repoRoot = realpathSync(mkdtempSync(join(tmpdir(), "tree-bind-")));
+    const repoRoot = tempRoot("tree-bind");
     const subDir = join(repoRoot, "dir");
     mkdirSync(subDir);
     writeFileSync(join(subDir, "file1.txt"), "hello");
@@ -57,7 +51,7 @@ describe("gate-path-tree", () => {
   });
 
   test("rejects system scope on directory", () => {
-    const repoRoot = realpathSync(mkdtempSync(join(tmpdir(), "tree-bind-")));
+    const repoRoot = tempRoot("tree-bind");
     const dirFd = openGatePath(repoRoot);
     try {
       expect(() =>
@@ -77,7 +71,7 @@ describe("gate-path-tree", () => {
   });
 
   test("rejects when binding budget limit is exceeded", () => {
-    const repoRoot = realpathSync(mkdtempSync(join(tmpdir(), "tree-bind-")));
+    const repoRoot = tempRoot("tree-bind");
     const filePath = join(repoRoot, "a.txt");
     writeFileSync(filePath, "a");
     const fd = openGatePath(filePath);
@@ -107,7 +101,7 @@ describe("gate-path-tree", () => {
   });
 
   test("rejects directory containing symlinks or unsafe entries", () => {
-    const repoRoot = realpathSync(mkdtempSync(join(tmpdir(), "tree-bind-")));
+    const repoRoot = tempRoot("tree-bind");
     const subDir = join(repoRoot, "sub");
     mkdirSync(subDir);
     writeFileSync(join(repoRoot, "target.txt"), "target");
@@ -132,7 +126,7 @@ describe("gate-path-tree", () => {
   });
 
   test("rejects unsafe entries or non-regular files in directory tree", () => {
-    const repoRoot = realpathSync(mkdtempSync(join(tmpdir(), "tree-bind-")));
+    const repoRoot = tempRoot("tree-bind");
     const subDir = join(repoRoot, "sub");
     mkdirSync(subDir);
     writeFileSync(join(subDir, "file.txt"), "content");
@@ -191,7 +185,7 @@ describe("gate-path-tree", () => {
   });
 
   test("rejects directory entries exceeding limit or custom directory reader", () => {
-    const repoRoot = realpathSync(mkdtempSync(join(tmpdir(), "tree-bind-")));
+    const repoRoot = tempRoot("tree-bind");
     const subDir = join(repoRoot, "sub");
     mkdirSync(subDir);
     const dirFd = openGatePath(subDir);

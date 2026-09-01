@@ -5,17 +5,16 @@
 
 import { afterEach } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdirSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
-const SCRATCH_BASE = join(tmpdir(), "shared-scratch");
+export const sharedVirtualFs = new VirtualMemoryFS();
+const SCRATCH_BASE = "/virtual/shared-scratch";
 const rootsToClean: string[] = [];
 
 afterEach(() => {
   for (const root of rootsToClean) {
     try {
-      rmSync(root, { recursive: true, force: true });
+      sharedVirtualFs.rmSync(root, { recursive: true, force: true });
     } catch {}
   }
   rootsToClean.length = 0;
@@ -45,13 +44,13 @@ export function scratchRoot(callerPath = "shared-test", label = "test"): string 
     .replace(/--+/g, "-")
     .replace(/^-+|-+$/g, "");
   const dirName = raw.slice(0, 50).replace(/-+$/, "");
-  const root = join(SCRATCH_BASE, dirName);
+  const root = `${SCRATCH_BASE}/${dirName}`;
 
   try {
-    rmSync(root, { recursive: true, force: true });
+    sharedVirtualFs.rmSync(root, { recursive: true, force: true });
   } catch {}
 
-  mkdirSync(root, { recursive: true });
+  sharedVirtualFs.mkdirSync(root, { recursive: true });
   rootsToClean.push(root);
   return root;
 }

@@ -1,14 +1,5 @@
-import { describe, expect, test } from "bun:test";
-import {
-  chmodSync,
-  mkdirSync,
-  mkdtempSync,
-  readdirSync,
-  realpathSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { afterAll, describe, expect, test } from "bun:test";
+import { chmodSync, mkdirSync, readdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { canonicalCommandFingerprint } from "../../../../olt/scripts/src/engine/runner/index.ts";
 import { captureGateEnvironment } from "../../../../olt/scripts/src/engine/runner/index.ts";
@@ -19,6 +10,18 @@ import {
   createRepositoryGitCommand,
   repositoryGitEnvironment,
 } from "../../../../olt/scripts/src/packets/repository-git-command.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
+
+const vfs = new VirtualMemoryFS();
+const session = createVirtualFSSession(vfs);
+
+afterAll(() => {
+  session.cleanup();
+  vfs.reset();
+});
 
 const restrictedEnvironment = {
   GIT_CONFIG_GLOBAL: "/dev/null",
@@ -152,11 +155,11 @@ describe("restricted Git policy", () => {
   });
 
   test("persists bounded Git execution argv and rejects record drift", async () => {
-    const root = mkdtempSync(join(tmpdir(), "restricted-git-record-"));
+    const root = `/virtual/restricted-git-record-${Math.random().toString(36).slice(2)}`;
     const repo = join(root, "repo"),
       tools = join(root, "tools");
-    mkdirSync(repo);
-    mkdirSync(tools);
+    vfs.mkdirSync(repo, { recursive: true });
+    vfs.mkdirSync(tools, { recursive: true });
     mkdirSync(join(repo, ".olt", "capsules", "commands"), { recursive: true });
     const git = join(tools, "git");
     writeFileSync(git, "not executed\n");
@@ -216,7 +219,7 @@ describe("restricted Git policy", () => {
   });
 
   test("rejects non-grammar Git gates before publishing or attempting them", async () => {
-    const root = mkdtempSync(join(tmpdir(), "restricted-git-classifier-"));
+    const root = `/virtual/restricted-git-classifier-${Math.random().toString(36).slice(2)}`;
     const runRoot = join(root, ".olt", "capsules");
     mkdirSync(join(runRoot, "commands"), { recursive: true });
     try {

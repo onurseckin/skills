@@ -1,17 +1,12 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   assertRunnerPlatform,
   reserveCommandRoot,
 } from "../../../olt/scripts/src/engine/runner/core/platform-policy.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
-const roots: string[] = [];
-
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
+afterEach(cleanupTempRoots);
 
 describe("assertRunnerPlatform", () => {
   test("accepts darwin and linux", () => {
@@ -32,15 +27,13 @@ describe("assertRunnerPlatform", () => {
 
 describe("reserveCommandRoot", () => {
   test("reserves a fresh directory using the provided id generator", async () => {
-    const parent = await mkdtemp(join(tmpdir(), "reserve-command-root-"));
-    roots.push(parent);
+    const parent = tempRoot("reserve-command-root");
     const reserved = await reserveCommandRoot(parent, () => "fixed-id");
     expect(reserved).toEqual({ id: "fixed-id", path: join(parent, "fixed-id") });
   });
 
   test("retries past an id collision until a free id is found", async () => {
-    const parent = await mkdtemp(join(tmpdir(), "reserve-command-root-collision-"));
-    roots.push(parent);
+    const parent = tempRoot("reserve-command-root-collision");
     // Pre-create the first id's directory so the first attempt collides (EEXIST) and the
     // function must retry with the generator's next value.
     await reserveCommandRoot(parent, () => "taken");
@@ -50,8 +43,7 @@ describe("reserveCommandRoot", () => {
   });
 
   test("throws after exhausting the maximum number of collision retries", async () => {
-    const parent = await mkdtemp(join(tmpdir(), "reserve-command-root-exhausted-"));
-    roots.push(parent);
+    const parent = tempRoot("reserve-command-root-exhausted");
     await reserveCommandRoot(parent, () => "always-taken");
     await expect(reserveCommandRoot(parent, () => "always-taken", 3)).rejects.toThrow(
       "could not reserve a collision-free command ID",
@@ -59,7 +51,7 @@ describe("reserveCommandRoot", () => {
   });
 
   test("propagates a non-collision filesystem error immediately", async () => {
-    const missingParent = join(tmpdir(), `reserve-command-root-missing-${Date.now()}`);
+    const missingParent = "/virtual/reserve-command-root-missing-" + Date.now();
     await expect(reserveCommandRoot(missingParent, () => "id")).rejects.toThrow();
   });
 });

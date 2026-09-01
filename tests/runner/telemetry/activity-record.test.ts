@@ -1,24 +1,18 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { ActivityRecord } from "../../../olt/scripts/src/engine/runner/reconciliation/activity-record.ts";
-
-const roots: string[] = [];
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
 function scratchDir(): string {
-  const root = mkdtempSync(join(tmpdir(), "activity-record-"));
-  roots.push(root);
-  return root;
+  return tempRoot("activity-record");
 }
 
 function readRecord(path: string): Record<string, unknown> {
   return JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
 }
 
-afterEach(() => {
-  while (roots.length > 0) rmSync(roots.pop()!, { recursive: true, force: true });
-});
+afterEach(cleanupTempRoots);
 
 describe("ActivityRecord", () => {
   test("persists an initial running record on construction", () => {

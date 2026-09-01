@@ -1,5 +1,5 @@
-import { describe, expect, it } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
+import { describe, expect, it, beforeEach, afterEach } from "bun:test";
+import * as fs from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -11,8 +11,27 @@ import {
   type CapsuleStateChangeEvent,
   type MultiCapsuleSummary,
 } from "../../../olt/scripts/src/orchestrator/multi-capsule.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("True Multi-Capsule Parallel Execution Engine & Isolation", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession | undefined;
+
+  beforeEach(() => {
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+  });
+
+  afterEach(() => {
+    if (session) {
+      session.cleanup();
+      session = undefined;
+    }
+  });
   it("executes independent capsules in true parallel concurrency", async () => {
     const testDir = "/tmp/orchestrator-mc-parallel";
     const activeExecutions: string[] = [];
@@ -76,10 +95,10 @@ describe("True Multi-Capsule Parallel Execution Engine & Isolation", () => {
 
     const summaryJson = join(testDir, "output", "multi-capsule-summary.json");
     const summaryMd = join(testDir, "output", "multi-capsule-summary.md");
-    expect(existsSync(summaryJson)).toBe(true);
-    expect(existsSync(summaryMd)).toBe(true);
+    expect(fs.existsSync(summaryJson)).toBe(true);
+    expect(fs.existsSync(summaryMd)).toBe(true);
 
-    const loadedSummary = JSON.parse(readFileSync(summaryJson, "utf-8")) as MultiCapsuleSummary;
+    const loadedSummary = JSON.parse(fs.readFileSync(summaryJson, "utf-8")) as MultiCapsuleSummary;
     expect(loadedSummary.totalCapsules).toBe(3);
     expect(loadedSummary.convergedCount).toBe(3);
   });
@@ -213,8 +232,8 @@ describe("True Multi-Capsule Parallel Execution Engine & Isolation", () => {
     );
 
     for (const filePath of pathsToCheck) {
-      expect(existsSync(filePath)).toBe(true);
-      const content = readFileSync(filePath, "utf-8");
+      expect(fs.existsSync(filePath)).toBe(true);
+      const content = fs.readFileSync(filePath, "utf-8");
       const lines = content.split("\n");
 
       for (let i = 0; i < lines.length; i++) {

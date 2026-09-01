@@ -1,6 +1,5 @@
-import { describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { describe, expect, it, beforeEach, afterEach, spyOn } from "bun:test";
+import * as fs from "node:fs";
 import { join } from "node:path";
 import {
   isInsideCapsule,
@@ -26,11 +25,26 @@ import {
   OLT_FILES,
 } from "../../../olt/scripts/src/core/shared/paths.ts";
 
-function makeTmpDir(prefix: string): string {
-  return mkdtempSync(join(tmpdir(), prefix));
-}
+const origExists = fs.existsSync;
 
 describe("core/shared/paths.ts comprehensive", () => {
+  const mockDirs = new Set<string>();
+  const spies: { mockRestore: () => void }[] = [];
+
+  beforeEach(() => {
+    mockDirs.clear();
+    spies.push(
+      spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => {
+        const s = String(p);
+        return mockDirs.has(s) || origExists(p);
+      }),
+    );
+  });
+
+  afterEach(() => {
+    while (spies.length > 0) spies.pop()?.mockRestore();
+  });
+
   it("isInsideCapsule identifies capsule paths", () => {
     expect(isInsideCapsule("/repo/.olt/capsules/run-1")).toBe(true);
     expect(isInsideCapsule("/repo/.olt/capsules")).toBe(true);
@@ -56,75 +70,67 @@ describe("core/shared/paths.ts comprehensive", () => {
   });
 
   it("resolveOltDir and resolveCapsulesDir handle various root configurations", () => {
-    const tmp = makeTmpDir("paths-olt-test-");
-    try {
-      mkdirSync(join(tmp, ".olt"), { recursive: true });
-      const oltDir = resolveOltDir(tmp);
-      expect(oltDir).toBe(join(tmp, ".olt"));
+    const vRoot = "/virtual-paths-olt-test";
+    mockDirs.add(vRoot);
+    mockDirs.add(join(vRoot, ".olt"));
 
-      // If root already ends with .olt
-      expect(resolveOltDir(join(tmp, ".olt"))).toBe(join(tmp, ".olt"));
+    const oltDir = resolveOltDir(vRoot);
+    expect(oltDir).toBe(join(vRoot, ".olt"));
 
-      const capDir = resolveCapsulesDir(tmp);
-      expect(capDir).toBe(join(tmp, ".olt", "capsules"));
+    expect(resolveOltDir(join(vRoot, ".olt"))).toBe(join(vRoot, ".olt"));
 
-      // If root already ends with .olt/capsules
-      expect(resolveCapsulesDir(join(tmp, ".olt", "capsules"))).toBe(join(tmp, ".olt", "capsules"));
+    const capDir = resolveCapsulesDir(vRoot);
+    expect(capDir).toBe(join(vRoot, ".olt", "capsules"));
 
-      // If root ends with .olt
-      expect(resolveCapsulesDir(join(tmp, ".olt"))).toBe(join(tmp, ".olt", "capsules"));
-    } finally {
-      rmSync(tmp, { recursive: true, force: true });
-    }
+    expect(resolveCapsulesDir(join(vRoot, ".olt", "capsules"))).toBe(
+      join(vRoot, ".olt", "capsules"),
+    );
+    expect(resolveCapsulesDir(join(vRoot, ".olt"))).toBe(join(vRoot, ".olt", "capsules"));
   });
 
   it("resolves all standard OLT file paths with default and custom paths", () => {
-    const tmp = makeTmpDir("paths-files-test-");
-    try {
-      mkdirSync(join(tmp, ".olt"), { recursive: true });
-      const custom = join(tmp, "custom-policy.json");
-      expect(resolvePolicyPath(tmp, custom)).toBe(custom);
-      expect(resolvePolicyPath(tmp)).toBe(join(tmp, ".olt", OLT_FILES.POLICY));
+    const vRoot = "/virtual-paths-files-test";
+    mockDirs.add(vRoot);
+    mockDirs.add(join(vRoot, ".olt"));
 
-      expect(resolveBacklogPath(tmp, custom)).toBe(custom);
-      expect(resolveBacklogPath(tmp)).toContain(OLT_FILES.BACKLOG);
+    const custom = join(vRoot, "custom-policy.json");
+    expect(resolvePolicyPath(vRoot, custom)).toBe(custom);
+    expect(resolvePolicyPath(vRoot)).toBe(join(vRoot, ".olt", OLT_FILES.POLICY));
 
-      expect(resolveCompletedTasksPath(tmp, custom)).toBe(custom);
-      expect(resolveCompletedTasksPath(tmp)).toContain(OLT_FILES.COMPLETED_TASKS);
+    expect(resolveBacklogPath(vRoot, custom)).toBe(custom);
+    expect(resolveBacklogPath(vRoot)).toContain(OLT_FILES.BACKLOG);
 
-      expect(resolveDefectsPath(tmp, custom)).toBe(custom);
-      expect(resolveDefectsPath(tmp)).toContain(OLT_FILES.DEFECTS);
+    expect(resolveCompletedTasksPath(vRoot, custom)).toBe(custom);
+    expect(resolveCompletedTasksPath(vRoot)).toContain(OLT_FILES.COMPLETED_TASKS);
 
-      expect(resolveCompletedDefectsPath(tmp, custom)).toBe(custom);
-      expect(resolveCompletedDefectsPath(tmp)).toContain(OLT_FILES.COMPLETED_DEFECTS);
+    expect(resolveDefectsPath(vRoot, custom)).toBe(custom);
+    expect(resolveDefectsPath(vRoot)).toContain(OLT_FILES.DEFECTS);
 
-      expect(resolveTelemetryPath(tmp, custom)).toBe(custom);
-      expect(resolveTelemetryPath(tmp)).toContain(OLT_FILES.TELEMETRY);
+    expect(resolveCompletedDefectsPath(vRoot, custom)).toBe(custom);
+    expect(resolveCompletedDefectsPath(vRoot)).toContain(OLT_FILES.COMPLETED_DEFECTS);
 
-      expect(resolveMemoryPath(tmp, custom)).toBe(custom);
-      expect(resolveMemoryPath(tmp)).toContain(OLT_FILES.MEMORY);
+    expect(resolveTelemetryPath(vRoot, custom)).toBe(custom);
+    expect(resolveTelemetryPath(vRoot)).toContain(OLT_FILES.TELEMETRY);
 
-      expect(resolveWatchdogsPath(tmp, custom)).toBe(custom);
-      expect(resolveWatchdogsPath(tmp)).toContain(OLT_FILES.WATCHDOGS);
+    expect(resolveMemoryPath(vRoot, custom)).toBe(custom);
+    expect(resolveMemoryPath(vRoot)).toContain(OLT_FILES.MEMORY);
 
-      expect(resolveQuotaDagSnapshotPath(tmp, custom)).toBe(custom);
-      expect(resolveQuotaDagSnapshotPath(tmp)).toContain(OLT_FILES.QUOTA_DAG_SNAPSHOT);
-    } finally {
-      rmSync(tmp, { recursive: true, force: true });
-    }
+    expect(resolveWatchdogsPath(vRoot, custom)).toBe(custom);
+    expect(resolveWatchdogsPath(vRoot)).toContain(OLT_FILES.WATCHDOGS);
+
+    expect(resolveQuotaDagSnapshotPath(vRoot, custom)).toBe(custom);
+    expect(resolveQuotaDagSnapshotPath(vRoot)).toContain(OLT_FILES.QUOTA_DAG_SNAPSHOT);
   });
 
   it("resolveEvidenceDir resolves run evidence or scratch evidence", () => {
-    const tmp = makeTmpDir("paths-evidence-test-");
-    try {
-      const runEvidence = resolveEvidenceDir(undefined, tmp);
-      expect(runEvidence).toBe(join(tmp, "evidence"));
+    const vRoot = "/virtual-paths-evidence-test";
+    mockDirs.add(vRoot);
 
-      const scratchEvidence = resolveEvidenceDir(undefined, "/nonexistent/path");
-      expect(scratchEvidence).toContain("evidence");
-    } finally {
-      rmSync(tmp, { recursive: true, force: true });
-    }
+    const runEvidence = resolveEvidenceDir(undefined, vRoot);
+    expect(runEvidence).toBe(join(vRoot, "evidence"));
+
+    const scratchEvidence = resolveEvidenceDir(undefined, "/nonexistent/path");
+    expect(scratchEvidence).toContain("evidence");
   });
 
   it("loadSkillGlobalConfig and resolveSkillHomeRepo resolve global configuration", () => {

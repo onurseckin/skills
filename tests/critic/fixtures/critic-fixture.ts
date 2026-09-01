@@ -5,17 +5,16 @@
 
 import { afterEach } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdirSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { virtualFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
-const SCRATCH_BASE = join(tmpdir(), "critic-scratch");
+const SCRATCH_BASE = "/virtual/critic-scratch";
 const rootsToClean: string[] = [];
 
 afterEach(() => {
   for (const root of rootsToClean) {
     try {
-      rmSync(root, { recursive: true, force: true });
+      virtualFS.rmSync(root, { recursive: true, force: true });
     } catch {}
   }
   rootsToClean.length = 0;
@@ -48,10 +47,10 @@ export function scratchRoot(callerPath = "critic-test", label = "test"): string 
   const root = join(SCRATCH_BASE, dirName);
 
   try {
-    rmSync(root, { recursive: true, force: true });
+    virtualFS.rmSync(root, { recursive: true, force: true });
   } catch {}
 
-  mkdirSync(root, { recursive: true });
+  virtualFS.mkdirSync(root, { recursive: true });
   rootsToClean.push(root);
   return root;
 }

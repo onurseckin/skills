@@ -1,8 +1,5 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdtempSync, realpathSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import type { BranchRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { AgentRole } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { criticIntegrityDigest } from "../../../olt/scripts/src/packets/critic-integrity-digest.ts";
@@ -13,6 +10,18 @@ import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";
 import type { WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 import { at, TestPort, workflowState } from "../../workflow/index.ts";
 import { inspectionContext } from "../payloads/slicing/inspection-fixture.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+
+const vfs = new VirtualMemoryFS();
+const session = createVirtualFSSession(vfs);
+
+afterAll(() => {
+  session.cleanup();
+  vfs.reset();
+});
 
 const clock = at("2026-08-13T12:30:00.000Z");
 const TOKEN = "sub-task-token";
@@ -23,7 +32,9 @@ const commonInstructions = {
 };
 
 function root(): string {
-  return realpathSync(mkdtempSync(join(tmpdir(), "branch-packet-")));
+  const r = `/virtual/branch-packet-${Math.random().toString(36).slice(2)}`;
+  vfs.mkdirSync(r, { recursive: true });
+  return r;
 }
 
 function branch(overrides: Partial<BranchRecord> = {}): BranchRecord {

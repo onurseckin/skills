@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, spyOn, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import { join } from "node:path";
 import {
@@ -6,89 +6,14 @@ import {
   readDefectLogFile,
   recordKeyedDefect,
 } from "../../../olt/scripts/src/logging/defect-logger.ts";
-import { setDefectLogDependenciesForTesting } from "../../../olt/scripts/src/logging/lock.ts";
+import { scratchRoot } from "../defects-fixture.ts";
 
 export const defectLoggerSuiteName = "Keyed Defect Logger & Compaction File Engine";
 
-interface VirtualNode {
-  isDir: boolean;
-  content?: string;
-}
-
-const vfs = new Map<string, VirtualNode>();
-const spies: Array<{ mockRestore: () => void }> = [];
-let restoreDeps: (() => void) | null = null;
-
-function setupVirtualFs(): void {
-  vfs.clear();
-  const existsSpy = spyOn(fs, "existsSync").mockImplementation((p) => {
-    const s = String(p).replace(/\/+$/, "");
-    if (vfs.has(s)) return true;
-    const prefix = `${s}/`;
-    for (const k of vfs.keys()) {
-      if (k.startsWith(prefix)) return true;
-    }
-    return false;
-  });
-  const getStats = (p: fs.PathLike): fs.Stats => {
-    const s = String(p).replace(/\/+$/, "");
-    const n = vfs.get(s);
-    const isDir = n ? n.isDir : true;
-    return {
-      dev: 1,
-      ino: 1,
-      nlink: 1,
-      isFile: () => !isDir,
-      isDirectory: () => isDir,
-      isSymbolicLink: () => false,
-      mode: isDir ? 0o755 : 0o644,
-      size: n?.content ? Buffer.byteLength(n.content) : 0,
-      mtimeMs: Date.now(),
-    } as fs.Stats;
-  };
-  const lstatSpy = spyOn(fs, "lstatSync").mockImplementation(getStats);
-  const statSpy = spyOn(fs, "statSync").mockImplementation(getStats);
-  const fstatSpy = spyOn(fs, "fstatSync").mockImplementation(getStats);
-  const openSpy = spyOn(fs, "openSync").mockImplementation(() => 101);
-  const closeSpy = spyOn(fs, "closeSync").mockImplementation(() => {});
-  const mkdirSpy = spyOn(fs, "mkdirSync").mockImplementation((p) => {
-    vfs.set(String(p), { isDir: true });
-    return undefined;
-  });
-
-  spies.push(existsSpy, lstatSpy, statSpy, fstatSpy, openSpy, closeSpy, mkdirSpy);
-
-  restoreDeps = setDefectLogDependenciesForTesting({
-    atomicWrite: (p: string, bytes: Uint8Array) => {
-      vfs.set(p, { content: new TextDecoder().decode(bytes), isDir: false });
-    },
-    readFile: (p: string) => {
-      const n = vfs.get(String(p));
-      if (!n || n.content === undefined) {
-        const err = new Error(`ENOENT: ${p}`) as Error & { code: string };
-        err.code = "ENOENT";
-        throw err;
-      }
-      return n.content;
-    },
-  });
-}
-
-afterEach(() => {
-  for (const s of spies.splice(0)) s.mockRestore();
-  if (restoreDeps) {
-    restoreDeps();
-    restoreDeps = null;
-  }
-  vfs.clear();
-});
-
 describe(defectLoggerSuiteName, () => {
   test("records and aggregates defects live on disk", () => {
-    setupVirtualFs();
-    const dir = "/virtual/defect-logger-test";
+    const dir = scratchRoot(import.meta.path, "logger-live");
     const filePath = join(dir, "defects.jsonl");
-    vfs.set(dir, { isDir: true });
 
     const r1 = recordKeyedDefect(
       {
@@ -124,10 +49,8 @@ describe(defectLoggerSuiteName, () => {
   });
 
   test("compacts existing noisy defect files into aggregated format", () => {
-    setupVirtualFs();
-    const dir = "/virtual/defect-logger-test";
+    const dir = scratchRoot(import.meta.path, "logger-compact");
     const filePath = join(dir, "defects.jsonl");
-    vfs.set(dir, { isDir: true });
 
     const lines: string[] = [];
     for (let i = 0; i < 20; i += 1) {
@@ -151,7 +74,7 @@ describe(defectLoggerSuiteName, () => {
       }),
     );
 
-    vfs.set(filePath, { content: `${lines.join("\n")}\n`, isDir: false });
+    fs.writeFileSync(filePath, `${lines.join("\n")}\n`, "utf8");
 
     const result = compactDefectLogFile(filePath);
     expect(result.totalBefore).toBe(21);
@@ -168,8 +91,7 @@ describe(defectLoggerSuiteName, () => {
   });
 
   test("handles nonexistent file reading gracefully", () => {
-    setupVirtualFs();
-    const entries = readDefectLogFile("/path/does/not/exist/defects.jsonl");
+    const entries = readDefectLogFile("/virtual/defects-scratch/nonexistent/defects.jsonl");
     expect(entries).toEqual([]);
   });
 });

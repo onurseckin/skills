@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 import { embeddedCommandIssues } from "../../../olt/scripts/src/engine/runner/models/command/command-shape.ts";
 import type { AttemptResult } from "../../../olt/scripts/src/engine/runner/types/types.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
-const roots: string[] = [];
+afterEach(cleanupTempRoots);
 const digest = (marker: string): string => marker.repeat(64);
 
 function binding(marker: string): RepositoryBinding {
@@ -51,18 +51,13 @@ function succeeded(id: string, attempt: number, commandRoot: string): AttemptRes
 }
 
 async function setup(name: string) {
-  const root = await mkdtemp(join(tmpdir(), name));
-  roots.push(root);
+  const root = tempRoot(name);
   const runRoot = join(root, ".olt", "capsules");
   await mkdir(join(runRoot, "commands"), { recursive: true });
   await mkdir(join(root, "bin"));
   await writeFile(join(root, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
   return { root, runRoot };
 }
-
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
 
 describe("gate attempt observation integrity", () => {
   test("terminalizes preflight drift without inventing an attempt", async () => {

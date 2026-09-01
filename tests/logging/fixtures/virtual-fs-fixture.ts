@@ -7,7 +7,7 @@ import {
 import { createFsSpies } from "./virtual-fs-spies.ts";
 import { setDefectLogDependenciesForTesting } from "../../../olt/scripts/src/logging/lock.ts";
 
-let vfs = new VirtualMemoryFS();
+const vfs = new VirtualMemoryFS();
 const openDescriptors = new Map<number, { path: string; position: number; flags: number }>();
 let nextFd = 1000;
 const customModes = new Map<string, number>();
@@ -17,6 +17,7 @@ let nextInode = 50000;
 const symlinks = new Map<string, string>();
 const hardlinks = new Map<string, string>();
 let spies: Mock<(...args: unknown[]) => unknown>[] = [];
+let restoreDefectDeps: (() => void) | undefined;
 
 function norm(p: string): string {
   return p.replace(/\\/g, "/");
@@ -31,7 +32,8 @@ export function isVirtualLoggingPath(path: string): boolean {
     s.includes("defects.jsonl") ||
     s.includes(".defect-log") ||
     s.includes("test-promotion") ||
-    s.startsWith("/virtual/")
+    s.startsWith("/virtual/") ||
+    s.startsWith("/virtual")
   );
 }
 
@@ -74,18 +76,20 @@ function makeFsStats(vStats: VirtualStats, targetPath: string, isSymlink = false
   } as unknown as fs.Stats;
 }
 
-let restoreDefectDeps: (() => void) | undefined;
-
-export function setupVirtualLoggingFS(): VirtualMemoryFS {
-  cleanupVirtualLoggingFS();
-  vfs = new VirtualMemoryFS();
+export function resetVirtualLoggingStore(): void {
   openDescriptors.clear();
   customModes.clear();
   customMtimes.clear();
   inodeMap.clear();
   symlinks.clear();
   hardlinks.clear();
+  nextFd = 1000;
+  nextInode = 50000;
+  vfs.reset();
+  vfs.mkdirSync("/virtual", { recursive: true });
+}
 
+export function setupVirtualLoggingFS(): VirtualMemoryFS {
   spies = createFsSpies({
     vfs,
     openDescriptors,
@@ -100,6 +104,8 @@ export function setupVirtualLoggingFS(): VirtualMemoryFS {
     getInode,
   });
 
+  resetVirtualLoggingStore();
+
   restoreDefectDeps = setDefectLogDependenciesForTesting({
     readFile: (p, opts) => fs.readFileSync(p, opts),
   });
@@ -108,24 +114,13 @@ export function setupVirtualLoggingFS(): VirtualMemoryFS {
 }
 
 export function cleanupVirtualLoggingFS(): void {
+  resetVirtualLoggingStore();
   if (restoreDefectDeps) {
     try {
       restoreDefectDeps();
     } catch {}
     restoreDefectDeps = undefined;
   }
-  for (const spy of spies) {
-    try {
-      spy.mockRestore();
-    } catch {}
-  }
-  spies = [];
-  openDescriptors.clear();
-  customModes.clear();
-  customMtimes.clear();
-  inodeMap.clear();
-  symlinks.clear();
-  hardlinks.clear();
 }
 
 export function getVirtualLoggingFS(): VirtualMemoryFS {

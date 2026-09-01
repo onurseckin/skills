@@ -16,11 +16,13 @@ import {
   writeInMemoryQuarantine,
 } from "../../../olt/scripts/src/communication/mailbox/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { cleanupVirtualCommunicationFS, setupVirtualCommunicationFS } from "../helpers.ts";
 
 describe("Mailbox Quarantine Engine", () => {
   let testRoot: string;
 
   beforeEach(() => {
+    setupVirtualCommunicationFS();
     testRoot = join(
       process.cwd(),
       "coverage",
@@ -31,7 +33,7 @@ describe("Mailbox Quarantine Engine", () => {
   });
 
   afterEach(() => {
-    if (existsSync(testRoot)) rmSync(testRoot, { recursive: true, force: true });
+    cleanupVirtualCommunicationFS();
   });
 
   describe("ingestToQuarantine", () => {

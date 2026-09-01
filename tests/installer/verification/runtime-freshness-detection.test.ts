@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, spyOn, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import * as os from "node:os";
 import { cp, mkdir, realpath, symlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -7,8 +7,9 @@ import { SKILL_NAME } from "../../../olt/scripts/src/installer/constants.ts";
 import { installedRuntimeFreshness } from "../../../olt/scripts/src/installer/runtime-freshness.ts";
 import { validateSkillSource } from "../../../olt/scripts/src/installer/source-validation.ts";
 import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
-import { cleanInstallerFixtures, installerFixture } from "../helpers.ts";
+import { cleanInstallerFixtures, installerFixture, setupVirtualInstallerFS } from "../helpers.ts";
 
+beforeEach(setupVirtualInstallerFS);
 afterEach(cleanInstallerFixtures);
 
 function primaryPath(home: string): string {

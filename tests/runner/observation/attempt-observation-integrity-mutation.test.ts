@@ -1,13 +1,12 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 import { embeddedCommandIssues } from "../../../olt/scripts/src/engine/runner/models/command/command-shape.ts";
 import type { AttemptResult } from "../../../olt/scripts/src/engine/runner/types/types.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
-const roots: string[] = [];
 const digest = (marker: string): string => marker.repeat(64);
 
 function binding(marker: string): RepositoryBinding {
@@ -50,14 +49,11 @@ function succeeded(id: string, attempt: number, commandRoot: string): AttemptRes
   };
 }
 
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
+afterEach(cleanupTempRoots);
 
 describe("gate observation aggregate mutations", () => {
   test("rejects an aggregate post-binding different from its final attempt", async () => {
-    const root = await mkdtemp(join(tmpdir(), "attempt-binding-mismatch-"));
-    roots.push(root);
+    const root = tempRoot("attempt-binding-mismatch");
     const runRoot = join(root, ".olt", "capsules");
     await mkdir(join(runRoot, "commands"), { recursive: true });
     await mkdir(join(root, "bin"));

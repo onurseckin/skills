@@ -1,21 +1,25 @@
-import { describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterAll, describe, expect, test } from "bun:test";
+import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { inspectRepositoryGitControls } from "../../../../olt/scripts/src/packets/repository-git-controls.ts";
 import type { RepositoryGitCommand } from "../../../../olt/scripts/src/packets/repository-git-command.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
-/**
- * inspectRepositoryGitControls never spawns git itself — every path it inspects comes back from
- * the injected `command`. These tests build a real (but never-executed-by-git) .git-shaped
- * directory and drive the function purely through that seam, the same way the module is used in
- * production with the real repositoryGit command swapped in.
- */
+const vfs = new VirtualMemoryFS();
+const session = createVirtualFSSession(vfs);
+
+afterAll(() => {
+  session.cleanup();
+  vfs.reset();
+});
 
 function fixtureRepo(prefix: string): { repo: string; gitDir: string } {
-  const repo = realpathSync(mkdtempSync(join(tmpdir(), prefix)));
+  const repo = `/virtual/${prefix}${Math.random().toString(36).slice(2)}`;
   const gitDir = join(repo, ".git");
-  mkdirSync(gitDir);
+  vfs.mkdirSync(gitDir, { recursive: true });
   return { repo, gitDir };
 }
 

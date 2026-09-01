@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   resolveBacklogPath,
@@ -12,20 +11,22 @@ import {
   resolvePolicyPath,
   resolveTelemetryPath,
 } from "../../../../olt/scripts/src/core/shared/paths.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 describe("Canonical olt/ Storage & Paths System", () => {
   let tmpRoot: string;
+  let vfsCleanup: (() => void) | undefined;
+  let sc = 0;
 
   beforeEach(() => {
-    tmpRoot = mkdtempSync(join(tmpdir(), "test-olt-paths-"));
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+    tmpRoot = `/virtual/tmp/test-olt-paths-${++sc}`;
   });
 
   afterEach(() => {
-    try {
-      rmSync(tmpRoot, { recursive: true, force: true });
-    } catch {
-      // Ignored
-    }
+    vfsCleanup?.();
+    vfsCleanup = undefined;
   });
 
   test("resolves canonical .olt/ directory and persistent files", () => {

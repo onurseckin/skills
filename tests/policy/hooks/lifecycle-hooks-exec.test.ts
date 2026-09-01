@@ -1,7 +1,8 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import { type ChildProcess, type spawn } from "node:child_process";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { cleanupVirtualPolicyFS, setupVirtualPolicyFS } from "../fixture.ts";
 import {
   executeLifecycleHooks,
   executePolicyLifecycleHooks,
@@ -96,7 +97,15 @@ describe("Policy Hooks Validation", () => {
 });
 
 describe("Lifecycle Hooks Engine Execution", () => {
-  const scratchDir = join(process.cwd(), "coverage", "scratch", "lifecycle-hooks-engine-test");
+  const scratchDir = "/virtual/policy/hooks/exec";
+
+  beforeEach(() => {
+    setupVirtualPolicyFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualPolicyFS();
+  });
 
   test("executes hooks across all 5 lifecycle events", () => {
     const events: PolicyLifecycleEvent[] = [
@@ -211,18 +220,14 @@ describe("Lifecycle Hooks Engine Execution", () => {
     };
     writeFileSync(join(scratchDir, ".olt", "policy.json"), JSON.stringify(customPolicy));
     const { runner, calls } = createMockRunner();
-    try {
-      const result = executeLifecycleHooks({
-        event: "on_release_push",
-        context: {},
-        repoRoot: scratchDir,
-        customSpawn: runner,
-      });
-      expect(result.skipped).toBe(false);
-      expect(result.commandCount).toBe(1);
-      expect(calls[0]?.command).toBe("echo release-dispatched");
-    } finally {
-      rmSync(scratchDir, { recursive: true, force: true });
-    }
+    const result = executeLifecycleHooks({
+      event: "on_release_push",
+      context: {},
+      repoRoot: scratchDir,
+      customSpawn: runner,
+    });
+    expect(result.skipped).toBe(false);
+    expect(result.commandCount).toBe(1);
+    expect(calls[0]?.command).toBe("echo release-dispatched");
   });
 });

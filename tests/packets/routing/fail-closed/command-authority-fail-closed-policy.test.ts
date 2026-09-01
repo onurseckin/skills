@@ -177,9 +177,6 @@ describe("quota lifecycle execute authority", () => {
 
   test("permits only active mind and orchestrator grants to freeze and resume the bound run", async () => {
     const { repo, run } = await emptyGrantRun("quota-allowed-");
-    const initialized = spawnSync("git", ["init", "--quiet", repo]);
-    if (initialized.status !== 0)
-      throw new Error("could not initialize quota authority test repository");
     installMetaAuditGrant(run, "mind", "mind");
     registerSessionGrant({ runRoot: run, agentId: "mind", role: "mind" });
     const frozen = await execute(["quota:freeze", "--run", run, "--actor", "mind", "--force"]);

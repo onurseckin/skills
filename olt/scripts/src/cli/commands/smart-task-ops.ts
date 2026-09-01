@@ -374,7 +374,7 @@ export function smartTaskQueueReclaimCommand(
 ): SmartTaskQueueReclaimResult {
   const queuePath = textFlag(flags, "queue-file", false);
 
-  const result = reclaimExpiredLeases((queuePath ? { customPath: queuePath } : {}));
+  const result = reclaimExpiredLeases(queuePath ? { customPath: queuePath } : {});
 
   const lines: string[] = [
     "### Expired Lease Reclaim Engine",

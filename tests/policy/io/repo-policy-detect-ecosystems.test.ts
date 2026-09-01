@@ -1,6 +1,7 @@
-import { describe, expect, test, afterAll } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { describe, expect, test, beforeEach, afterEach } from "bun:test";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { cleanupVirtualPolicyFS, setupVirtualPolicyFS } from "../fixture.ts";
 import {
   CURRENT_POLICY_SCHEMA_VERSION,
   detectRepoEcosystem,
@@ -8,10 +9,14 @@ import {
 } from "../../../olt/scripts/src/policy/index.ts";
 
 describe("Repo Policy Ecosystem Auto-Detection (Bun, Cargo, Python, Node, Unknown)", () => {
-  const scratchBase = join(process.cwd(), "coverage", "scratch", "repo-policy-detect-ecosystems");
+  const scratchBase = "/virtual/policy/io/detect-ecosystems";
 
-  afterAll(() => {
-    rmSync(scratchBase, { recursive: true, force: true });
+  beforeEach(() => {
+    setupVirtualPolicyFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualPolicyFS();
   });
 
   test("detects Bun ecosystem when bun.lock or bun.lockb exists", () => {
@@ -26,8 +31,6 @@ describe("Repo Policy Ecosystem Auto-Detection (Bun, Cargo, Python, Node, Unknow
     expect(defaultPolicy.test_runner.default_command).toBe("bun test");
     expect(defaultPolicy.test_runner.targeted_pattern).toBe("bun test <path>");
     expect(defaultPolicy.test_runner.full_suite_command).toBe("bun test");
-
-    rmSync(dir, { recursive: true, force: true });
   });
 
   test("detects Bun ecosystem when bun.lockb exists", () => {
@@ -36,7 +39,6 @@ describe("Repo Policy Ecosystem Auto-Detection (Bun, Cargo, Python, Node, Unknow
     writeFileSync(join(dir, "bun.lockb"), "", "utf-8");
 
     expect(detectRepoEcosystem(dir)).toBe("bun");
-    rmSync(dir, { recursive: true, force: true });
   });
 
   test("detects Cargo ecosystem when Cargo.toml or Cargo.lock exists", () => {
@@ -51,13 +53,10 @@ describe("Repo Policy Ecosystem Auto-Detection (Bun, Cargo, Python, Node, Unknow
     expect(defaultPolicy.test_runner.default_command).toBe("cargo test");
     expect(defaultPolicy.test_runner.targeted_pattern).toBe("cargo test -- <path>");
 
-    rmSync(dir, { recursive: true, force: true });
-
     const dir2 = join(scratchBase, "cargo-lock-test");
     mkdirSync(dir2, { recursive: true });
     writeFileSync(join(dir2, "Cargo.lock"), "", "utf-8");
     expect(detectRepoEcosystem(dir2)).toBe("cargo");
-    rmSync(dir2, { recursive: true, force: true });
   });
 
   test("detects Python ecosystem across poetry, pipenv, requirements.txt and setup.py", () => {
@@ -69,7 +68,6 @@ describe("Repo Policy Ecosystem Auto-Detection (Bun, Cargo, Python, Node, Unknow
     const poetryPolicy = generateDefaultRepoPolicy(dirPoetry);
     expect(poetryPolicy.package_manager).toBe("poetry");
     expect(poetryPolicy.test_runner.default_command).toBe("pytest");
-    rmSync(dirPoetry, { recursive: true, force: true });
 
     const dirPipenv = join(scratchBase, "py-pipenv");
     mkdirSync(dirPipenv, { recursive: true });
@@ -77,7 +75,6 @@ describe("Repo Policy Ecosystem Auto-Detection (Bun, Cargo, Python, Node, Unknow
     expect(detectRepoEcosystem(dirPipenv)).toBe("python");
     const pipenvPolicy = generateDefaultRepoPolicy(dirPipenv);
     expect(pipenvPolicy.package_manager).toBe("pipenv");
-    rmSync(dirPipenv, { recursive: true, force: true });
 
     const dirReq = join(scratchBase, "py-req");
     mkdirSync(dirReq, { recursive: true });
@@ -85,13 +82,11 @@ describe("Repo Policy Ecosystem Auto-Detection (Bun, Cargo, Python, Node, Unknow
     expect(detectRepoEcosystem(dirReq)).toBe("python");
     const reqPolicy = generateDefaultRepoPolicy(dirReq);
     expect(reqPolicy.package_manager).toBe("pip");
-    rmSync(dirReq, { recursive: true, force: true });
 
     const dirSetup = join(scratchBase, "py-setup");
     mkdirSync(dirSetup, { recursive: true });
     writeFileSync(join(dirSetup, "setup.py"), "# setup\n", "utf-8");
     expect(detectRepoEcosystem(dirSetup)).toBe("python");
-    rmSync(dirSetup, { recursive: true, force: true });
   });
 
   test("detects Node ecosystem across pnpm, yarn, npm, and lockfiles", () => {
@@ -103,7 +98,6 @@ describe("Repo Policy Ecosystem Auto-Detection (Bun, Cargo, Python, Node, Unknow
     const pnpmPolicy = generateDefaultRepoPolicy(dirPnpm);
     expect(pnpmPolicy.package_manager).toBe("pnpm");
     expect(pnpmPolicy.test_runner.targeted_pattern).toBe("pnpm test <path>");
-    rmSync(dirPnpm, { recursive: true, force: true });
 
     const dirYarn = join(scratchBase, "node-yarn");
     mkdirSync(dirYarn, { recursive: true });
@@ -112,7 +106,6 @@ describe("Repo Policy Ecosystem Auto-Detection (Bun, Cargo, Python, Node, Unknow
     const yarnPolicy = generateDefaultRepoPolicy(dirYarn);
     expect(yarnPolicy.package_manager).toBe("yarn");
     expect(yarnPolicy.test_runner.targeted_pattern).toBe("yarn test <path>");
-    rmSync(dirYarn, { recursive: true, force: true });
 
     const dirNpm = join(scratchBase, "node-npm");
     mkdirSync(dirNpm, { recursive: true });
@@ -121,7 +114,6 @@ describe("Repo Policy Ecosystem Auto-Detection (Bun, Cargo, Python, Node, Unknow
     const npmPolicy = generateDefaultRepoPolicy(dirNpm);
     expect(npmPolicy.package_manager).toBe("npm");
     expect(npmPolicy.test_runner.targeted_pattern).toBe("npm test -- <path>");
-    rmSync(dirNpm, { recursive: true, force: true });
   });
 
   test("detects unknown ecosystem when no marker files exist", () => {
@@ -132,7 +124,6 @@ describe("Repo Policy Ecosystem Auto-Detection (Bun, Cargo, Python, Node, Unknow
     expect(unknownPolicy.ecosystem).toBe("unknown");
     expect(unknownPolicy.test_runner.default_command).toBe("test");
     expect(unknownPolicy.test_runner.targeted_pattern).toBe("test <path>");
-    rmSync(dirUnknown, { recursive: true, force: true });
   });
 
   test("detectRepoEcosystem and generateDefaultRepoPolicy resolve current repo when repoRoot is omitted", () => {

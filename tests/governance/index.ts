@@ -3,7 +3,14 @@
  * Root Facade for Governance domain
  */
 
-export { GOVERNANCE_FIXTURES_SUITES, scratchRoot, createSandboxDir } from "./fixtures/index.ts";
+export {
+  GOVERNANCE_FIXTURES_SUITES,
+  scratchRoot,
+  createSandboxDir,
+  setupVirtualGovernanceFS,
+  cleanupVirtualGovernanceFS,
+  getVirtualGovernanceFS,
+} from "./fixtures/index.ts";
 export { GOVERNANCE_POLICY_SUITES } from "./policy/index.ts";
 export { GOVERNANCE_ENFORCEMENT_SUITES } from "./enforcement/index.ts";
 export { GOVERNANCE_AUDIT_SUITES } from "./audit/index.ts";

@@ -1,26 +1,70 @@
-import { describe, expect, test, afterEach } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { describe, expect, test, beforeEach, afterEach, spyOn } from "bun:test";
+import * as fs from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { resolveHarnessConfig } from "../../../olt/scripts/src/core/config/index.ts";
+import {
+  resetHarnessConfigCache,
+  resolveHarnessConfig,
+} from "../../../olt/scripts/src/core/config/index.ts";
+
+const writeFileSync = (p: fs.PathOrFileDescriptor, d: string | NodeJS.ArrayBufferView) =>
+  fs.writeFileSync(p, d);
+const mkdirSync = (p: fs.PathLike, opts?: fs.MakeDirectoryOptions | boolean) =>
+  fs.mkdirSync(p, opts);
 
 describe("harness-config-precedence", () => {
-  const roots: string[] = [];
+  const mockFiles = new Map<string, string>();
+  const mockDirs = new Set<string>();
+  const spies: { mockRestore: () => void }[] = [];
   const NO_HOST_CEILING = { hostConcurrency: null } as const;
+  let dirCounter = 0;
 
   function makeTempDir(label: string): string {
-    const dir = realpathSync(mkdtempSync(join(tmpdir(), `cfg-prec-${label}-`)));
-    roots.push(dir);
+    const dir = `/virtual/cfg-prec-${++dirCounter}-${label}`;
+    mockDirs.add(dir);
     return dir;
   }
 
+  const origExists = fs.existsSync.bind(fs);
+  const origRead = fs.readFileSync.bind(fs);
+  const isVirt = (s: string) => s.startsWith("/virtual/") || s.startsWith("/tmp/");
+
+  beforeEach(() => {
+    resetHarnessConfigCache();
+    mockFiles.clear();
+    mockDirs.clear();
+    spies.push(
+      spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) =>
+        isVirt(String(p)) ? mockFiles.has(String(p)) || mockDirs.has(String(p)) : origExists(p),
+      ),
+      spyOn(fs, "mkdirSync").mockImplementation(((p: fs.PathLike) => {
+        mockDirs.add(String(p));
+        return undefined as unknown as string;
+      }) as unknown as typeof fs.mkdirSync),
+      spyOn(fs, "readFileSync").mockImplementation(((p: fs.PathOrFileDescriptor) => {
+        if (isVirt(String(p))) {
+          const val = mockFiles.get(String(p));
+          if (val !== undefined) return val;
+          throw new Error(`ENOENT: ${String(p)}`);
+        }
+        return origRead(p as never);
+      }) as unknown as typeof fs.readFileSync),
+      spyOn(fs, "writeFileSync").mockImplementation(((
+        p: fs.PathOrFileDescriptor,
+        d: string | NodeJS.ArrayBufferView,
+      ) => {
+        mockFiles.set(
+          String(p),
+          typeof d === "string"
+            ? d
+            : Buffer.from(d.buffer, d.byteOffset, d.byteLength).toString("utf8"),
+        );
+      }) as unknown as typeof fs.writeFileSync),
+    );
+  });
+
   afterEach(() => {
-    for (const root of roots.splice(0)) {
-      if (existsSync(root)) {
-        rmSync(root, { recursive: true, force: true });
-      }
-    }
+    while (spies.length > 0) spies.pop()?.mockRestore();
   });
 
   describe("B27.2 — concurrency ceiling discovery and precedence", () => {
@@ -127,9 +171,7 @@ describe("harness-config-precedence", () => {
       const dir = makeTempDir("worktree-wrong-types");
       writeFileSync(
         join(dir, "harness.config.json"),
-        JSON.stringify({
-          worktree_isolation: "yes",
-        }),
+        JSON.stringify({ worktree_isolation: "yes" }),
       );
       expect(() => resolveHarnessConfig(dir)).toThrow(HarnessError);
       expect(() => resolveHarnessConfig(dir)).toThrow(/worktree_isolation/i);
@@ -241,10 +283,7 @@ describe("harness-config-precedence", () => {
       writeFileSync(join(dir, ".olt", "policy.json"), "{ malformed");
       expect(
         resolveHarnessConfig(dir, undefined, NO_HOST_CEILING).quota_freeze_threshold_pct,
-      ).toEqual({
-        value: null,
-        source: "unreadable",
-      });
+      ).toEqual({ value: null, source: "unreadable" });
     });
 
     test("host_profiles configured through resolveHarnessConfig refuses an unknown host id end to end", () => {

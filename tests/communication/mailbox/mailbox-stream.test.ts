@@ -25,6 +25,7 @@ import type {
   MailboxEnvelope,
 } from "../../../olt/scripts/src/communication/types.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { cleanupVirtualCommunicationFS, setupVirtualCommunicationFS } from "../helpers.ts";
 
 describe("Mailbox Stream IO & Paths Engine (In-Memory)", () => {
   const virtualRoot = "virtual://stream-suite";
@@ -39,15 +40,14 @@ describe("Mailbox Stream IO & Paths Engine (In-Memory)", () => {
     });
 
   beforeEach(() => {
+    setupVirtualCommunicationFS();
     clearInMemoryMailboxStore();
     clearInMemoryMailboxDirs();
     setInMemoryStreamMode(true);
   });
 
   afterEach(() => {
-    clearInMemoryMailboxStore();
-    clearInMemoryMailboxDirs();
-    setInMemoryStreamMode(false);
+    cleanupVirtualCommunicationFS();
   });
 
   describe("resolveMailboxPaths & ensureMailboxDirectories", () => {

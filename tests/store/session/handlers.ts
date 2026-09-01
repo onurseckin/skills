@@ -158,7 +158,11 @@ export function handleRw(
     const rLen = Math.min(len as number, Math.max(0, d.length - p));
     const target = Buffer.isBuffer(buf)
       ? buf
-      : Buffer.from((buf as { buffer: ArrayBuffer }).buffer);
+      : Buffer.from(
+          (buf as { buffer: ArrayBuffer }).buffer,
+          (buf as { byteOffset?: number }).byteOffset ?? 0,
+          (buf as { byteLength?: number }).byteLength ?? 0,
+        );
     d.subarray(p, p + rLen).copy(target, off as number, 0, rLen);
     if (pos === null || pos === undefined) e.position = p + rLen;
     return rLen;
@@ -168,7 +172,11 @@ export function handleRw(
       ? Buffer.from(buf)
       : Buffer.isBuffer(buf)
         ? buf
-        : Buffer.from((buf as { buffer: ArrayBuffer }).buffer);
+        : Buffer.from(
+            (buf as { buffer: ArrayBuffer }).buffer,
+            (buf as { byteOffset?: number }).byteOffset ?? 0,
+            (buf as { byteLength?: number }).byteLength ?? 0,
+          );
   const o = typeof off === "number" ? off : 0;
   const l = typeof len === "number" ? len : b.length;
   const slice = b.subarray(o, o + l);

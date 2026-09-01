@@ -1,30 +1,34 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { buildPacket } from "../../../../olt/scripts/src/packets/render-packet.ts";
 import {
   createPacketBundle,
   verifyPacketBundle,
 } from "../../../../olt/scripts/src/packets/packet-bundle.ts";
-import {
-  isolateValidatorContext,
-  excludeValidatorContamination,
-  VALIDATOR_EXCLUSIONS,
-} from "../../../../olt/scripts/src/packets/validator-context.ts";
 import { evidenceSchema } from "../../../../olt/scripts/src/packets/evidence-schema.ts";
-import { loadRoleContract } from "../../../../olt/scripts/src/packets/role-contract.ts";
 import { claimTask } from "../../../../olt/scripts/src/workflow/lease/claim.ts";
 import { at, TestPort, workflowState } from "../../../workflow/index.ts";
-import { getCapsuleCliCommands } from "../../../../olt/scripts/src/packets/capsule-memory.ts";
 import { inspectionContext } from "../slicing/inspection-fixture.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
-const roots: string[] = [];
-afterEach(async () => {
-  for (const root of roots) await rm(root, { recursive: true, force: true });
-  roots.length = 0;
+const vfs = new VirtualMemoryFS();
+const session = createVirtualFSSession(vfs);
+
+afterAll(() => {
+  session.cleanup();
+  vfs.reset();
 });
+
+function createTempRoot(prefix: string): string {
+  const root = `/virtual/${prefix}${Math.random().toString(36).slice(2)}`;
+  vfs.mkdirSync(root, { recursive: true });
+  return root;
+}
 
 const clock = at("2026-08-13T12:00:00.000Z");
 const commonBytes = new TextEncoder().encode("Canonical common instructions for tests.\n");
@@ -42,8 +46,7 @@ function baseTaskState() {
 describe("Decoupled Capsule Memory - Bundle Storage", () => {
   describe("Packet Bundle Storage & Metadata Decoupling", () => {
     test("createPacketBundle writes packet.md and metadata.json as decoupled files", async () => {
-      const root = await mkdtemp(join(tmpdir(), "packet-bundle-test-"));
-      roots.push(root);
+      const root = createTempRoot("packet-bundle-test-");
 
       const { state, token } = baseTaskState();
       const built = buildPacket({
@@ -78,8 +81,7 @@ describe("Decoupled Capsule Memory - Bundle Storage", () => {
     });
 
     test("createPacketBundle enforces immutability and rejects mutation attempts", async () => {
-      const root = await mkdtemp(join(tmpdir(), "packet-immutability-"));
-      roots.push(root);
+      const root = createTempRoot("packet-immutability-");
 
       const { state, token } = baseTaskState();
       const built1 = buildPacket({

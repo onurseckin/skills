@@ -2,6 +2,7 @@ import { spyOn } from "bun:test";
 import * as cp from "node:child_process";
 import * as fs from "node:fs";
 import * as fsp from "node:fs/promises";
+import * as flockFfi from "../../../olt/scripts/src/platform/fs/flock-ffi.ts";
 
 export interface VirtualNode {
   isDir: boolean;
@@ -60,6 +61,8 @@ function mockSyncHandlers(self: QuotaVirtualFs): void {
   const m = <T extends object, K extends keyof T>(t: T, k: K, fn: T[K]) =>
     self.spies.push(spyOn(t, k as never).mockImplementation(fn as never));
 
+  m(flockFfi, "tryExclusiveFlock", () => true);
+  m(flockFfi, "releaseFlock", () => {});
   m(
     fs,
     "existsSync",
@@ -100,14 +103,36 @@ function mockSyncHandlers(self: QuotaVirtualFs): void {
     for (const k of Array.from(self.vfs.keys()))
       if (k === s || k.startsWith(`${s}/`)) self.vfs.delete(k);
   });
-  m(cp, "spawnSync", () => ({
-    status: 0,
-    stdout: "" as unknown as Buffer,
-    stderr: "" as unknown as Buffer,
-    pid: 1234,
-    output: [null, "" as unknown as Buffer, "" as unknown as Buffer],
-    signal: null,
-  }));
+  m(cp, "spawnSync", (_cmd: unknown, args: unknown, opts: unknown) => {
+    const list = Array.isArray(args) ? args.map(String) : [];
+    const cIdx = list.indexOf("-C");
+    const cwd =
+      cIdx !== -1 && list[cIdx + 1]
+        ? list[cIdx + 1]
+        : typeof opts === "object" && opts !== null && "cwd" in opts
+          ? String((opts as { cwd?: string }).cwd)
+          : "/virtual/repo";
+    let status = 0,
+      out = "";
+    if (list.includes("--get-regexp") || list.includes("--null")) {
+      status = 1;
+      out = "";
+    } else if (list.includes("--is-inside-work-tree")) out = "true\n";
+    else if (list.includes("config.worktree")) out = `${cwd}/.git/config.worktree\n`;
+    else if (list.includes("--absolute-git-dir") || list.includes("--git-common-dir"))
+      out = `${cwd}/.git\n`;
+    else if (list.includes("HEAD") && list.includes("rev-parse"))
+      out = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n";
+    else if (list.includes("symbolic-ref")) out = "refs/heads/main\n";
+    return {
+      status,
+      stdout: Buffer.from(out),
+      stderr: Buffer.alloc(0),
+      pid: 1234,
+      output: [null, Buffer.from(out), Buffer.alloc(0)],
+      signal: null,
+    };
+  });
   m(fs, "renameSync", (o: fs.PathLike, n: fs.PathLike) => {
     const op = String(o),
       np = String(n),

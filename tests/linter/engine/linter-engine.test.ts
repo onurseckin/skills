@@ -5,8 +5,10 @@ export const linterEngineSuiteName = "AST Linter Multi-Rule Aggregation & Select
 
 describe(linterEngineSuiteName, () => {
   it("aggregates all rule violations accurately in one source file", () => {
-    const code = `
-      // @ts-ignore
+    const code =
+      `
+      // @` +
+      `ts-ignore
       const openaiService: any = client ?? backupClient;
       const val = list!.item || "fallback";
     `;

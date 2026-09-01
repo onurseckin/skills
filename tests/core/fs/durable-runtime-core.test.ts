@@ -1,46 +1,177 @@
-import { describe, expect, test } from "bun:test";
-import {
-  chmodSync,
-  closeSync,
-  existsSync,
-  fsyncSync,
-  mkdirSync,
-  mkdtempSync,
-  openSync,
-  readFileSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { describe, expect, test, beforeEach, afterEach, spyOn } from "bun:test";
+import * as fs from "node:fs";
+import { dirname, join } from "node:path";
 import {
   atomicWriteBytes,
   durableAppendBytes,
 } from "../../../olt/scripts/src/core/durable-write.ts";
-
-function fixture(): { root: string; source: string; destination: string } {
-  const root = mkdtempSync(join(tmpdir(), "harness-runtime-"));
-  const source = join(root, "source");
-  mkdirSync(join(source, "src", "nested"), { recursive: true });
-  writeFileSync(join(source, "src", "nested", "tool.ts"), "export {}\n");
-  chmodSync(join(source, "src", "nested", "tool.ts"), 0o750);
-  writeFileSync(join(source, "src", "nested", "legacy.py"), "bad\n");
-  mkdirSync(join(source, "src", "nested", "__pycache__"));
-  writeFileSync(join(source, "src", "nested", "__pycache__", "legacy.pyc"), "bad\n");
-  writeFileSync(join(source, "harness.ts"), "export {}\n");
-  writeFileSync(join(source, "package.json"), "{}\n");
-  writeFileSync(join(source, "tsconfig.json"), "{}\n");
-  mkdirSync(join(source, "assets"));
-  writeFileSync(join(source, "assets", "common.md"), "instructions\n");
-  mkdirSync(join(source, "tests"));
-  writeFileSync(join(source, "tests", "excluded.ts"), "bad\n");
-  writeFileSync(join(source, "legacy.py"), "bad\n");
-  mkdirSync(join(source, "__pycache__"));
-  writeFileSync(join(source, "__pycache__", "legacy.pyc"), "bad\n");
-  return { root, source, destination: join(root, "runtime") };
-}
+import * as platform from "../../../olt/scripts/src/platform/index.ts";
 
 describe("durable runtime files", () => {
+  const mockFiles = new Map<string, Buffer>();
+  const mockDirs = new Set<string>();
+  const mockModes = new Map<string, number>();
+  const fdMap = new Map<number, { path: string; append: boolean }>();
+  const spies: { mockRestore: () => void }[] = [];
+  let rootCounter = 0;
+
+  function fixture(): { root: string; source: string; destination: string } {
+    const root = `/virtual-harness-runtime-${++rootCounter}`;
+    mockDirs.add(root);
+    const source = join(root, "source");
+    mockDirs.add(source);
+    mockDirs.add(join(source, "src", "nested"));
+    mockFiles.set(join(source, "src", "nested", "tool.ts"), Buffer.from("export {}\n"));
+    mockModes.set(join(source, "src", "nested", "tool.ts"), 0o750);
+    mockFiles.set(join(source, "src", "nested", "legacy.py"), Buffer.from("bad\n"));
+    mockDirs.add(join(source, "src", "nested", "__pycache__"));
+    mockFiles.set(join(source, "src", "nested", "__pycache__", "legacy.pyc"), Buffer.from("bad\n"));
+    mockFiles.set(join(source, "harness.ts"), Buffer.from("export {}\n"));
+    mockFiles.set(join(source, "package.json"), Buffer.from("{}\n"));
+    mockFiles.set(join(source, "tsconfig.json"), Buffer.from("{}\n"));
+    mockDirs.add(join(source, "assets"));
+    mockFiles.set(join(source, "assets", "common.md"), Buffer.from("instructions\n"));
+    mockDirs.add(join(source, "tests"));
+    mockFiles.set(join(source, "tests", "excluded.ts"), Buffer.from("bad\n"));
+    mockFiles.set(join(source, "legacy.py"), Buffer.from("bad\n"));
+    mockDirs.add(join(source, "__pycache__"));
+    mockFiles.set(join(source, "__pycache__", "legacy.pyc"), Buffer.from("bad\n"));
+    return { root, source, destination: join(root, "runtime") };
+  }
+
+  beforeEach(() => {
+    mockFiles.clear();
+    mockDirs.clear();
+    mockModes.clear();
+    fdMap.clear();
+    let fdCounter = 400;
+
+    spies.push(
+      spyOn(platform, "tryExclusiveFlock").mockImplementation(() => true),
+      spyOn(platform, "releaseFlock").mockImplementation(() => undefined),
+      spyOn(fs, "existsSync").mockImplementation(
+        (p: fs.PathLike) => mockFiles.has(String(p)) || mockDirs.has(String(p)),
+      ),
+      spyOn(fs, "mkdirSync").mockImplementation(((p: fs.PathLike) => {
+        let s = String(p);
+        while (s && s !== "/" && s !== ".") {
+          mockDirs.add(s);
+          s = dirname(s);
+        }
+        return undefined as unknown as string;
+      }) as unknown as typeof fs.mkdirSync),
+      spyOn(fs, "chmodSync").mockImplementation(((p: fs.PathLike, mode: fs.Mode) => {
+        mockModes.set(String(p), typeof mode === "number" ? mode : 0o755);
+      }) as unknown as typeof fs.chmodSync),
+      spyOn(fs, "statSync").mockImplementation(((p: fs.PathLike) => {
+        const s = String(p);
+        const isF = mockFiles.has(s);
+        const isD = mockDirs.has(s);
+        const mode = mockModes.get(s) ?? (isD ? 0o755 : 0o644);
+        return {
+          isFile: () => isF,
+          isDirectory: () => isD,
+          isSymbolicLink: () => false,
+          size: isF ? mockFiles.get(s)!.length : 0,
+          mode,
+          dev: 1,
+          ino: 1,
+        } as unknown as fs.Stats;
+      }) as unknown as typeof fs.statSync),
+      spyOn(fs, "fstatSync").mockImplementation(((fd: number) => {
+        const info = fdMap.get(fd);
+        const s = info?.path ?? "";
+        const isF = mockFiles.has(s);
+        const isD = mockDirs.has(s);
+        const mode = mockModes.get(s) ?? (isD ? 0o755 : 0o644);
+        return {
+          isFile: () => isF,
+          isDirectory: () => isD,
+          isSymbolicLink: () => false,
+          size: isF ? (mockFiles.get(s)?.length ?? 0) : 0,
+          mode,
+          dev: 1,
+          ino: 1,
+        } as unknown as fs.Stats;
+      }) as unknown as typeof fs.fstatSync),
+      spyOn(fs, "openSync").mockImplementation(((
+        p: fs.PathLike,
+        flags?: fs.OpenMode,
+        mode?: fs.Mode,
+      ) => {
+        const s = String(p);
+        const flagNum = typeof flags === "number" ? flags : 0;
+        const fd = ++fdCounter;
+        fdMap.set(fd, { path: s, append: Boolean(flagNum & fs.constants.O_APPEND) });
+        if (!mockFiles.has(s)) mockFiles.set(s, Buffer.alloc(0));
+        if (typeof mode === "number") mockModes.set(s, mode);
+        return fd;
+      }) as unknown as typeof fs.openSync),
+      spyOn(fs, "writeSync").mockImplementation(((
+        fd: number,
+        buffer: NodeJS.ArrayBufferView,
+        offset?: number,
+        length?: number,
+      ) => {
+        const info = fdMap.get(fd);
+        if (!info) return 0;
+        const s = info.path;
+        const prev = mockFiles.get(s) ?? Buffer.alloc(0);
+        const off = offset ?? 0;
+        const len = length ?? buffer.byteLength;
+        const slice = Buffer.from(buffer.buffer, buffer.byteOffset + off, len);
+        const next = info.append ? Buffer.concat([prev, slice]) : slice;
+        mockFiles.set(s, next);
+        return len;
+      }) as unknown as typeof fs.writeSync),
+      spyOn(fs, "fsyncSync").mockImplementation(
+        (() => undefined) as unknown as typeof fs.fsyncSync,
+      ),
+      spyOn(fs, "closeSync").mockImplementation(((fd: number) => {
+        fdMap.delete(fd);
+      }) as unknown as typeof fs.closeSync),
+      spyOn(fs, "renameSync").mockImplementation(((oldP: fs.PathLike, newP: fs.PathLike) => {
+        const oldStr = String(oldP);
+        const newStr = String(newP);
+        const val = mockFiles.get(oldStr);
+        if (val !== undefined) {
+          mockFiles.set(newStr, val);
+          mockFiles.delete(oldStr);
+        }
+        const mode = mockModes.get(oldStr);
+        if (mode !== undefined) {
+          mockModes.set(newStr, mode);
+          mockModes.delete(oldStr);
+        }
+      }) as unknown as typeof fs.renameSync),
+      spyOn(fs, "readFileSync").mockImplementation(((p: fs.PathOrFileDescriptor) => {
+        const s = typeof p === "number" ? (fdMap.get(p)?.path ?? "") : String(p);
+        const val = mockFiles.get(s);
+        if (val !== undefined) return val.toString("utf8");
+        throw new Error(`ENOENT: no such file, open '${s}'`);
+      }) as unknown as typeof fs.readFileSync),
+      spyOn(fs, "writeFileSync").mockImplementation(((
+        p: fs.PathOrFileDescriptor,
+        data: string | NodeJS.ArrayBufferView,
+        options?: fs.WriteFileOptions,
+      ) => {
+        const s = String(p);
+        const buf =
+          typeof data === "string"
+            ? Buffer.from(data, "utf8")
+            : Buffer.from(data.buffer, data.byteOffset, data.byteLength);
+        mockFiles.set(s, buf);
+        if (options && typeof options === "object" && typeof options.mode === "number") {
+          mockModes.set(s, options.mode);
+        }
+      }) as unknown as typeof fs.writeFileSync),
+    );
+  });
+
+  afterEach(() => {
+    while (spies.length > 0) spies.pop()?.mockRestore();
+  });
+
   test("test_atomic_write_sets_mode_before_syncing_content", () => {
     const { root } = fixture();
     const steps: string[] = [];
@@ -50,11 +181,12 @@ describe("durable runtime files", () => {
       observe: (step) => steps.push(step),
     });
     expect(steps.indexOf("chmod")).toBeLessThan(steps.indexOf("file-fsync"));
-    expect(statSync(target).mode & 0o777).toBe(0o440);
+    expect(fs.statSync(target).mode & 0o777).toBe(0o440);
   });
 
   test("durableAppendBytes appends ordered records and syncs the file before its directory", () => {
-    const root = mkdtempSync(join(tmpdir(), "core-dur-"));
+    const root = `/virtual-core-dur-${++rootCounter}`;
+    mockDirs.add(root);
     const target = join(root, "events.jsonl");
     const steps: string[] = [];
 
@@ -65,19 +197,20 @@ describe("durable runtime files", () => {
       observe: (step) => steps.push(step),
     });
 
-    expect(readFileSync(target, "utf8")).toBe("first\nsecond\n");
+    expect(fs.readFileSync(target, "utf8")).toBe("first\nsecond\n");
     expect(steps).toEqual(["file-fsync", "directory-fsync", "file-fsync", "directory-fsync"]);
   });
 
   test("durableAppendBytes holds its record lock through directory durability and rejects re-entry", () => {
-    const root = mkdtempSync(join(tmpdir(), "core-dur-"));
+    const root = `/virtual-core-dur-${++rootCounter}`;
+    mockDirs.add(root);
     const target = join(root, "events.jsonl");
     const order: string[] = [];
     let locked = false;
     let nestedRejected = false;
     const bytes = new TextEncoder().encode("outer\n");
     const dependencies = {
-      open: openSync,
+      open: fs.openSync,
       write(descriptor: number, value: Uint8Array, offset: number, length: number): number {
         expect(locked).toBeTrue();
         try {
@@ -89,15 +222,15 @@ describe("durable runtime files", () => {
           nestedRejected = /already active/i.test(String(error));
         }
         order.push("write");
-        return writeSync(descriptor, value, offset, length);
+        return fs.writeSync(descriptor, value, offset, length);
       },
       fsync(descriptor: number): void {
         order.push("file-fsync");
-        fsyncSync(descriptor);
+        fs.fsyncSync(descriptor);
       },
       close(descriptor: number): void {
         order.push("close");
-        closeSync(descriptor);
+        fs.closeSync(descriptor);
       },
       tryExclusiveFlock(): boolean {
         order.push("lock");
@@ -116,12 +249,13 @@ describe("durable runtime files", () => {
     durableAppendBytes(target, bytes, { dependencies });
 
     expect(nestedRejected).toBeTrue();
-    expect(readFileSync(target, "utf8")).toBe("outer\n");
+    expect(fs.readFileSync(target, "utf8")).toBe("outer\n");
     expect(order).toEqual(["lock", "write", "file-fsync", "directory-fsync", "unlock", "close"]);
   });
 
   test("durableAppendBytes times out rather than interleaving with a held exclusive flock", () => {
-    const root = mkdtempSync(join(tmpdir(), "core-dur-"));
+    const root = `/virtual-core-dur-${++rootCounter}`;
+    mockDirs.add(root);
     const target = join(root, "events.jsonl");
     let attempts = 0;
     expect(() =>
@@ -137,11 +271,12 @@ describe("durable runtime files", () => {
       }),
     ).toThrow(/timed out/i);
     expect(attempts).toBeGreaterThan(1);
-    expect(existsSync(target)).toBeTrue();
+    expect(fs.existsSync(target)).toBeTrue();
   });
 
   test("durableAppendBytes keeps every tiny-write JSON record whole across partial writes", () => {
-    const root = mkdtempSync(join(tmpdir(), "core-dur-"));
+    const root = `/virtual-core-dur-${++rootCounter}`;
+    mockDirs.add(root);
     const target = join(root, "events.jsonl");
     for (const worker of ["a", "b"]) {
       for (let index = 0; index < 8; index += 1) {
@@ -153,7 +288,7 @@ describe("durable runtime files", () => {
             retryMs: 1,
             dependencies: {
               write(descriptor, data, offset, length) {
-                return writeSync(descriptor, data, offset, Math.min(length, 1));
+                return fs.writeSync(descriptor, data, offset, Math.min(length, 1));
               },
             },
           },
@@ -161,7 +296,8 @@ describe("durable runtime files", () => {
       }
     }
 
-    const records = readFileSync(target, "utf8")
+    const records = fs
+      .readFileSync(target, "utf8")
       .trim()
       .split("\n")
       .map((line) => JSON.parse(line) as { worker: string; index: number });
@@ -170,7 +306,8 @@ describe("durable runtime files", () => {
   });
 
   test("durableAppendBytes retries partial writes and rejects zero-progress or empty records", () => {
-    const root = mkdtempSync(join(tmpdir(), "core-dur-"));
+    const root = `/virtual-core-dur-${++rootCounter}`;
+    mockDirs.add(root);
     const target = join(root, "events.jsonl");
     const bytes = new TextEncoder().encode("partial\n");
     let writes = 0;
@@ -178,12 +315,12 @@ describe("durable runtime files", () => {
       dependencies: {
         write(descriptor, value, offset, length): number {
           writes += 1;
-          return writeSync(descriptor, value, offset, Math.min(length, 2));
+          return fs.writeSync(descriptor, value, offset, Math.min(length, 2));
         },
       },
     });
     expect(writes).toBeGreaterThan(1);
-    expect(readFileSync(target, "utf8")).toBe("partial\n");
+    expect(fs.readFileSync(target, "utf8")).toBe("partial\n");
 
     const zeroTarget = join(root, "zero.jsonl");
     let closes = 0;
@@ -193,13 +330,13 @@ describe("durable runtime files", () => {
           write: () => 0,
           close(descriptor): void {
             closes += 1;
-            closeSync(descriptor);
+            fs.closeSync(descriptor);
           },
         },
       }),
     ).toThrow(/no progress/i);
     expect(closes).toBe(1);
     expect(() => durableAppendBytes(join(root, "empty.jsonl"), new Uint8Array())).toThrow(/empty/i);
-    expect(existsSync(join(root, "empty.jsonl"))).toBeFalse();
+    expect(fs.existsSync(join(root, "empty.jsonl"))).toBeFalse();
   });
 });

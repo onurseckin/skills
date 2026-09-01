@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import * as childProcess from "node:child_process";
 import { delimiter, isAbsolute } from "node:path";
 import { RESTRICTED_GIT_ENVIRONMENT, restrictedRepositoryGitArgv } from "../core/restricted-git.ts";
 import { HarnessError } from "../core/errors/index.ts";
@@ -46,7 +46,7 @@ export interface RepositoryGitCommandDependencies {
 }
 
 const nodeSpawn: RepositoryGitSpawn = (executable, argv, options) =>
-  spawnSync(executable, argv, options) as RepositoryGitSpawnResult;
+  childProcess.spawnSync(executable, argv, options) as RepositoryGitSpawnResult;
 
 const GIT_SPAWN_TRANSIENT_RETRIES = 3;
 const GIT_SPAWN_TRANSIENT_RETRY_DELAY_MS = 20;

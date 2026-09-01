@@ -1,9 +1,13 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { stripOutputFormat } from "../../../olt/scripts/src/cli/output-format.ts";
 import { main } from "../../../olt/scripts/harness.ts";
+import {
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../commands/fixtures/full-lifecycle-fixture.ts";
 
 const MIN_MIND_MANIFEST_YAML = `role: mind
 tier: 0
@@ -35,6 +39,12 @@ async function runHarnessInProcess(
 }
 
 describe("harness output format scan", () => {
+  beforeEach(() => {
+    setupVirtualCliFS();
+  });
+  afterEach(() => {
+    cleanupVirtualCliFS();
+  });
   test("removes the harness --format flag in both spellings", () => {
     expect(stripOutputFormat(["run:status", "--run", "/tmp/run", "--format=json"])).toEqual({
       json: true,

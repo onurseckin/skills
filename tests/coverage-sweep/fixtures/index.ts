@@ -4,4 +4,5 @@ export {
   createMockGitSpawn,
   createSampleCoverageTableRow,
   createSampleProvisionInput,
+  coverageVirtualFs,
 } from "./coverage-fixtures.ts";

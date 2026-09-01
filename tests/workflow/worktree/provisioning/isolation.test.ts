@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -19,7 +19,10 @@ import {
   type DomainWorktreeConfig,
   type GitRunner,
 } from "../../../../olt/scripts/src/engine/worktree/index.ts";
-import { tmpdir } from "node:os";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
+
+let vfsCleanup: (() => void) | undefined;
+let sc = 0;
 
 describe("Worktree Isolation - Disjoint Write Scopes", () => {
   it("validates mutually disjoint domain write scopes as isolated", () => {
@@ -129,14 +132,15 @@ describe("Worktree Isolation - Domain Worktree Lifecycle & Commits", () => {
   let testRoot: string;
 
   beforeEach(() => {
-    testRoot = join(tmpdir(), "worktree-isolation-test");
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+    testRoot = `/virtual/tmp/worktree-isolation-test-${++sc}`;
     mkdirSync(testRoot, { recursive: true });
   });
 
   afterEach(() => {
-    if (existsSync(testRoot)) {
-      rmSync(testRoot, { recursive: true, force: true });
-    }
+    vfsCleanup?.();
+    vfsCleanup = undefined;
   });
 
   it("provisions domain worktree in dedicated isolation path", () => {

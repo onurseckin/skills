@@ -1,8 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { realpathSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import type { CommandAttemptRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
@@ -23,8 +22,9 @@ import type {
   NormalizedCommandOptions,
   PreparedCommand,
 } from "../../../olt/scripts/src/engine/runner/types/types.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
-const roots: string[] = [];
+afterEach(cleanupTempRoots);
 const digest = (marker: string): string => marker.repeat(64);
 
 function binding(marker = "a"): RepositoryBinding {
@@ -68,8 +68,7 @@ function attemptResult(id: string, attempt: number, transient = false): AttemptR
 }
 
 async function fixture(label: string) {
-  const root = await mkdtemp(join(tmpdir(), `${label}-`));
-  roots.push(root);
+  const root = tempRoot(label);
   await mkdir(join(root, "bin"));
   await mkdir(join(root, ".olt", "capsules", "commands"), { recursive: true });
   await writeFile(join(root, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
@@ -94,10 +93,6 @@ async function fixture(label: string) {
     },
   };
 }
-
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
 
 describe("command runtime boundary", () => {
   test("retries from one immutable durable execution snapshot", async () => {

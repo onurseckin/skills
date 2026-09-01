@@ -1,12 +1,11 @@
-import { describe, expect, test } from "bun:test";
-import { appendFileSync, mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { appendFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import { parseRawFindings } from "../../../../olt/scripts/src/workflow/completion/parse-raw-findings.ts";
 import { observeCapsuleIntegrity } from "../../../../olt/scripts/src/workflow/completion/integrity-evidence.ts";
 import { initRun, loadRun } from "../../../../olt/scripts/src/engine/store/index.ts";
 import { integrityGateIssues } from "../../shared/integrity-review-fixture.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 const complete = {
   id: "F-1",
@@ -23,12 +22,15 @@ function withoutField(field: string): string {
   return JSON.stringify([record]);
 }
 
+let runCounter = 0;
 function withRun<T>(name: string, body: (runRoot: string) => T): T {
-  const repo = mkdtempSync(join(tmpdir(), `${name}-`));
+  const { cleanup } = setupWorkflowVirtualFs();
+  const repo = `/virtual/tmp/${name}-${++runCounter}`;
+  mkdirSync(repo, { recursive: true });
   try {
     return body(initRun(repo, name, new TextEncoder().encode("do the work"), "file", true));
   } finally {
-    rmSync(repo, { recursive: true, force: true });
+    cleanup();
   }
 }
 

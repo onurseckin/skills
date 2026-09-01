@@ -69,6 +69,7 @@ export function scratchRoot(callerPath = "validation-test", label = "test"): str
     .replace(/-+$/, "");
   const root = `/virtual/validation-scratch/${dirName}`;
   vfs.mkdirSync(root, { recursive: true });
+  vfs.mkdirSync(`${root}/.olt/.sessions`, { recursive: true });
   return root;
 }
 

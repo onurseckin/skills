@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { cp, mkdir, realpath, symlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
@@ -10,8 +10,9 @@ import {
   type RuntimeFreshnessReport,
 } from "../../../olt/scripts/src/installer/runtime-freshness.ts";
 import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
-import { cleanInstallerFixtures, installerFixture } from "../helpers.ts";
+import { cleanInstallerFixtures, installerFixture, setupVirtualInstallerFS } from "../helpers.ts";
 
+beforeEach(setupVirtualInstallerFS);
 afterEach(cleanInstallerFixtures);
 
 function primaryPath(home: string): string {

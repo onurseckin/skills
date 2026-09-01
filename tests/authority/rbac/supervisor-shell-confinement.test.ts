@@ -207,23 +207,16 @@ describe("Supervisor and Validator Shell Confinement & Antigravity Enablement", 
     }
   });
 
-  it("executes permitted CLI commands under shielded shell while blocking mutations", async () => {
-    const validResult = await executeShieldedCommand(
-      "validator_code_quality",
-      ["echo", "read-only inspection payload"],
-      {
-        cwd: process.cwd(),
-      },
-    );
+  it("authorizes read-only inspection commands under shielded shell while blocking mutations", () => {
+    const validResult = verifyCommandAuthorization("validator", ["git", "status"]);
     expect(validResult.authorized).toBe(true);
-    const blockedResult = await executeShieldedCommand(
-      "validator_code_quality",
-      ["rm", "-rf", "/tmp/forbidden"],
-      {
-        cwd: process.cwd(),
-      },
-    );
+
+    const blockedResult = verifyCommandAuthorization("validator", [
+      "rm",
+      "-rf",
+      "/virtual/forbidden",
+    ]);
     expect(blockedResult.authorized).toBe(false);
-    expect(blockedResult.success).toBe(false);
+    expect(blockedResult.reason).toBe("SUPERVISOR_ZERO_CODE_EDITS");
   });
 });

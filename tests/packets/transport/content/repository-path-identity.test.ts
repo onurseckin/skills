@@ -1,22 +1,32 @@
-import { describe, expect, test } from "bun:test";
-import {
-  chmodSync,
-  mkdirSync,
-  mkdtempSync,
-  realpathSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { afterAll, describe, expect, test } from "bun:test";
+import { chmodSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   captureRepositoryLeaf,
   verifyRepositoryAncestors,
 } from "../../../../olt/scripts/src/packets/repository-path-identity.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
+
+const vfs = new VirtualMemoryFS();
+const session = createVirtualFSSession(vfs);
+
+afterAll(() => {
+  session.cleanup();
+  vfs.reset();
+});
+
+function createRepo(prefix: string): string {
+  const repo = `/virtual/${prefix}${Math.random().toString(36).slice(2)}`;
+  vfs.mkdirSync(repo, { recursive: true });
+  return repo;
+}
 
 describe("repository-path-identity", () => {
   test("captures and verifies valid nested ancestors", () => {
-    const repo = realpathSync(mkdtempSync(join(tmpdir(), "path-id-")));
+    const repo = createRepo("path-id-");
     const sub = join(repo, "src", "nested");
     mkdirSync(sub, { recursive: true });
     writeFileSync(join(sub, "file.txt"), "content");
@@ -29,7 +39,7 @@ describe("repository-path-identity", () => {
   });
 
   test("rejects unsafe and escaping paths", () => {
-    const repo = realpathSync(mkdtempSync(join(tmpdir(), "path-id-")));
+    const repo = createRepo("path-id-");
 
     expect(() => captureRepositoryLeaf(repo, "")).toThrow("unsafe path");
     expect(() => captureRepositoryLeaf(repo, "/absolute/path")).toThrow("unsafe path");
@@ -37,8 +47,8 @@ describe("repository-path-identity", () => {
   });
 
   test("rejects symbolic and non-directory ancestors", () => {
-    const repo = realpathSync(mkdtempSync(join(tmpdir(), "path-id-")));
-    const targetDir = realpathSync(mkdtempSync(join(tmpdir(), "target-dir-")));
+    const repo = createRepo("path-id-");
+    const targetDir = createRepo("target-dir-");
     symlinkSync(targetDir, join(repo, "symdir"));
 
     expect(() => captureRepositoryLeaf(repo, "symdir/file.txt")).toThrow(
@@ -52,7 +62,7 @@ describe("repository-path-identity", () => {
   });
 
   test("handles missing ancestors and verifies ancestor stability", () => {
-    const repo = realpathSync(mkdtempSync(join(tmpdir(), "path-id-")));
+    const repo = createRepo("path-id-");
     const leaf = captureRepositoryLeaf(repo, "missing-dir/sub/file.txt");
     expect(leaf.ancestors.every((a) => "missing" in a)).toBe(true);
 
@@ -67,7 +77,7 @@ describe("repository-path-identity", () => {
   });
 
   test("detects ancestor mode or inode change during verification", () => {
-    const repo = realpathSync(mkdtempSync(join(tmpdir(), "path-id-")));
+    const repo = createRepo("path-id-");
     const sub = join(repo, "watched");
     mkdirSync(sub);
     const leaf = captureRepositoryLeaf(repo, "watched/file.txt");

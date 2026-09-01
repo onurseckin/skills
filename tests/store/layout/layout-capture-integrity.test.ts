@@ -9,7 +9,7 @@ import {
   verifyCapsuleDeep,
   verifyCapsuleLayout,
 } from "../../../olt/scripts/src/engine/store/integrity/layout-integrity.ts";
-import { scratchRoot as makeScratchRoot } from "../store-fixture.ts";
+import { scratchRoot as makeScratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
 
 function scratchRoot(label: string): string {
   return makeScratchRoot(import.meta.path, label);
@@ -109,7 +109,7 @@ describe("capture references (via verifyCapsuleLayout)", () => {
       const found = verifyCapsuleLayout(root);
       expect(found.some((i) => i.code === "CAPTURE_VIEW_DIVERGED")).toBe(true);
     } finally {
-      spy.mockRestore();
+      setupVirtualStoreFS();
     }
   });
 

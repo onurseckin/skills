@@ -7,3 +7,9 @@ export { serverDockerSuite } from "./docker/index.ts";
 export { serverLifecycleSuite } from "./lifecycle/index.ts";
 export { serverProbeSuite } from "./probe/index.ts";
 export { serverProcessSuite } from "./process/index.ts";
+export {
+  setupVirtualServerFS,
+  cleanupVirtualServerFS,
+  getVirtualServerFS,
+  scratchRoot,
+} from "./fixture.ts";

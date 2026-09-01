@@ -1,14 +1,5 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import {
-  chmodSync,
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   detectShellRcPath,
@@ -16,23 +7,16 @@ import {
   generateExportLine,
   isPathDeclaredInContent,
 } from "../../../scripts/sync/shell-rc.ts";
+import { cleanupVirtualInstallerFS, setupVirtualInstallerFS } from "../helpers.ts";
 
-const tempRoots: string[] = [];
+let tempDirCount = 0;
 
-afterEach(() => {
-  for (const root of tempRoots) {
-    try {
-      rmSync(root, { recursive: true, force: true });
-    } catch {
-      // Best-effort cleanup
-    }
-  }
-  tempRoots.length = 0;
-});
+beforeEach(setupVirtualInstallerFS);
+afterEach(cleanupVirtualInstallerFS);
 
 function createTempDir(prefix: string): string {
-  const dir = mkdtempSync(join(tmpdir(), prefix));
-  tempRoots.push(dir);
+  const dir = `/virtual/shell-rc-${prefix}-${++tempDirCount}`;
+  mkdirSync(dir, { recursive: true });
   return dir;
 }
 

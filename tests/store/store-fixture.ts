@@ -17,20 +17,14 @@ import type {
 import { canonicalJsonBytes, sha256Bytes } from "../../olt/scripts/src/core/json.ts";
 import { initialState } from "../../olt/scripts/src/engine/store/capsule/state.ts";
 import { setDefectLogDependenciesForTesting } from "../../olt/scripts/src/logging/lock.ts";
-import {
-  VirtualMemoryFS,
-} from "../../olt/scripts/src/testing/virtual-fs/index.ts";
-import {
-  createStoreFsSpies,
-  type VirtualStoreState,
-} from "./virtual-fs-session.ts";
+import { VirtualMemoryFS } from "../../olt/scripts/src/testing/virtual-fs/index.ts";
+import { createStoreFsSpies, type VirtualStoreState } from "./session/index.ts";
 
 const VIRTUAL_SCRATCH_BASE = "/virtual/store-scratch";
 
-let vfs = new VirtualMemoryFS();
-let spies: Array<{ mockRestore: () => void }> = [];
+const vfs = new VirtualMemoryFS();
 let restoreDefectDeps: (() => void) | undefined;
-let state: VirtualStoreState = {
+const state: VirtualStoreState = {
   vfs,
   openDescriptors: new Map(),
   customModes: new Map(),
@@ -42,22 +36,22 @@ let state: VirtualStoreState = {
   nextInode: 50000,
 };
 
-export function setupVirtualStoreFS(): VirtualMemoryFS {
-  cleanupVirtualStoreFS();
-  vfs = new VirtualMemoryFS();
-  state = {
-    vfs,
-    openDescriptors: new Map(),
-    customModes: new Map(),
-    customMtimes: new Map(),
-    inodeMap: new Map(),
-    symlinks: new Map(),
-    hardlinks: new Map(),
-    nextFd: 1000,
-    nextInode: 50000,
-  };
+export function resetVirtualStore(): void {
+  state.openDescriptors.clear();
+  state.customModes.clear();
+  state.customMtimes.clear();
+  state.inodeMap.clear();
+  state.symlinks.clear();
+  state.hardlinks.clear();
+  state.nextFd = 1000;
+  state.nextInode = 50000;
+  vfs.reset();
   vfs.mkdirSync(VIRTUAL_SCRATCH_BASE, { recursive: true });
-  spies = createStoreFsSpies(state);
+}
+
+export function setupVirtualStoreFS(): VirtualMemoryFS {
+  createStoreFsSpies(state);
+  resetVirtualStore();
   restoreDefectDeps = setDefectLogDependenciesForTesting({
     readFile: (p, opt) => fs.readFileSync(p, opt),
   });
@@ -65,25 +59,13 @@ export function setupVirtualStoreFS(): VirtualMemoryFS {
 }
 
 export function cleanupVirtualStoreFS(): void {
+  resetVirtualStore();
   if (restoreDefectDeps) {
     try {
       restoreDefectDeps();
     } catch {}
     restoreDefectDeps = undefined;
   }
-  for (const s of spies) {
-    try {
-      s.mockRestore();
-    } catch {}
-  }
-  spies = [];
-  state.openDescriptors.clear();
-  state.customModes.clear();
-  state.customMtimes.clear();
-  state.inodeMap.clear();
-  state.symlinks.clear();
-  state.hardlinks.clear();
-  vfs.reset();
 }
 
 export function getVirtualStoreFS(): VirtualMemoryFS {
@@ -91,6 +73,8 @@ export function getVirtualStoreFS(): VirtualMemoryFS {
 }
 
 // Automatically ensure virtual filesystem session is active for all store tests
+setupVirtualStoreFS();
+
 beforeEach(() => {
   setupVirtualStoreFS();
 });

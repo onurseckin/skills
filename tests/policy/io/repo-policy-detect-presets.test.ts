@@ -1,6 +1,7 @@
-import { describe, expect, test, afterAll } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { describe, expect, test, beforeEach, afterEach } from "bun:test";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { cleanupVirtualPolicyFS, setupVirtualPolicyFS } from "../fixture.ts";
 import {
   CURRENT_POLICY_SCHEMA_VERSION,
   DEFAULT_PLANNING_POLICY,
@@ -13,10 +14,14 @@ import {
 } from "../../../olt/scripts/src/policy/index.ts";
 
 describe("Repo Policy Presets, Normalization & Schema Validation", () => {
-  const scratchBase = join(process.cwd(), "coverage", "scratch", "repo-policy-detect-presets");
+  const scratchBase = "/virtual/policy/io/detect-presets";
 
-  afterAll(() => {
-    rmSync(scratchBase, { recursive: true, force: true });
+  beforeEach(() => {
+    setupVirtualPolicyFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualPolicyFS();
   });
 
   test("validates and normalizes malformed policy objects and throws on invalid inputs", () => {
@@ -109,7 +114,6 @@ describe("Repo Policy Presets, Normalization & Schema Validation", () => {
       expect((error as Error).message).toContain(policyPath);
       expect((error as Error).message).toMatch(/unknown.*timeout_ms/i);
     }
-    rmSync(dir, { recursive: true, force: true });
   });
 
   test("authority parser rejects every present malformed field with an INTEGRITY field path and defaults omitted optionals", () => {
@@ -164,41 +168,33 @@ describe("Repo Policy Presets, Normalization & Schema Validation", () => {
   test("discoverToolchainPolicy detects toolchain commands across repositories", () => {
     const dir = join(scratchBase, "discover-toolchain-test");
     mkdirSync(dir, { recursive: true });
-    try {
-      writeFileSync(join(dir, "bun.lock"), "");
-      writeFileSync(
-        join(dir, "package.json"),
-        JSON.stringify({
-          scripts: {
-            test: "bun test",
-            typecheck: "tsc --noEmit",
-            lint: "oxlint",
-            build: "bun build",
-          },
-        }),
-      );
+    writeFileSync(join(dir, "bun.lock"), "");
+    writeFileSync(
+      join(dir, "package.json"),
+      JSON.stringify({
+        scripts: {
+          test: "bun test",
+          typecheck: "tsc --noEmit",
+          lint: "oxlint",
+          build: "bun build",
+        },
+      }),
+    );
 
-      const res = discoverToolchainPolicy(dir);
-      expect(res.toolchain).toBe("bun");
-      expect(res.commands.test).toBe("bun test");
-      expect(res.commands.typecheck).toBe("bun typecheck");
-      expect(res.commands.lint).toBe("bun lint");
-      expect(res.commands.build).toBe("bun run build");
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
+    const res = discoverToolchainPolicy(dir);
+    expect(res.toolchain).toBe("bun");
+    expect(res.commands.test).toBe("bun test");
+    expect(res.commands.typecheck).toBe("bun typecheck");
+    expect(res.commands.lint).toBe("bun lint");
+    expect(res.commands.build).toBe("bun run build");
   });
 
   test("inspectRepoPolicy falls back to auto_detected when policy file does not exist", () => {
     const dir = join(scratchBase, "nonexistent-policy-inspect-test");
     mkdirSync(dir, { recursive: true });
-    try {
-      const res = inspectRepoPolicy(dir);
-      expect(res.status).toBe("auto_detected");
-      expect(res.provenance).toBe("auto_detected");
-      expect(res.policy.schema_version).toBe(CURRENT_POLICY_SCHEMA_VERSION);
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
+    const res = inspectRepoPolicy(dir);
+    expect(res.status).toBe("auto_detected");
+    expect(res.provenance).toBe("auto_detected");
+    expect(res.policy.schema_version).toBe(CURRENT_POLICY_SCHEMA_VERSION);
   });
 });

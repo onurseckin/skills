@@ -1,12 +1,22 @@
-import { describe, expect, test } from "bun:test";
-import { mkdtempSync, realpathSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterAll, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { publishPacket } from "../../../olt/scripts/src/packets/persist-packet.ts";
 import { createPacketBundle } from "../../../olt/scripts/src/packets/packet-bundle.ts";
 import type { BuiltPacket } from "../../../olt/scripts/src/packets/types.ts";
 import { TestPort, workflowState, repositoryBinding } from "../../workflow/index.ts";
 import { tokenDigest } from "../../../olt/scripts/src/workflow/lease/token.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+
+const vfs = new VirtualMemoryFS();
+const session = createVirtualFSSession(vfs);
+
+afterAll(() => {
+  session.cleanup();
+  vfs.reset();
+});
 
 function createPacket(
   role: string,
@@ -32,15 +42,21 @@ function createPacket(
 }
 
 describe("persist-packet", () => {
+  function createRoot(): string {
+    const root = `/virtual/persist-pkt-${Math.random().toString(36).slice(2)}`;
+    vfs.mkdirSync(root, { recursive: true });
+    return root;
+  }
+
   test("createPacketBundle writes bundle and returns markdown path", () => {
-    const root = realpathSync(mkdtempSync(join(tmpdir(), "persist-pkt-")));
+    const root = createRoot();
     const packet = createPacket("implementer");
     const path = createPacketBundle(root, "bundle-1", packet, false).markdownPath;
     expect(path).toBe(join(root, "bundle-1", "packet.md"));
   });
 
   test("rejects publishPacket if run is already completed", async () => {
-    const root = realpathSync(mkdtempSync(join(tmpdir(), "persist-pkt-")));
+    const root = createRoot();
     const state = workflowState();
     state.completion_result = {
       status: "complete",
@@ -56,7 +72,7 @@ describe("persist-packet", () => {
   });
 
   test("publishes and validates validator packet", async () => {
-    const root = realpathSync(mkdtempSync(join(tmpdir(), "persist-pkt-")));
+    const root = createRoot();
     const state = workflowState();
     const token = "validator-token-123";
     state.tasks["T-1"]!.status = "validating";
@@ -98,7 +114,7 @@ describe("persist-packet", () => {
   });
 
   test("rejects critic packet if current repository binding changed", async () => {
-    const root = realpathSync(mkdtempSync(join(tmpdir(), "persist-pkt-")));
+    const root = createRoot();
     const state = workflowState();
     const token = "critic-token-123";
     const binding = structuredClone(repositoryBinding);

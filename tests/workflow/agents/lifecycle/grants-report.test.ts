@@ -1,26 +1,28 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { estimated, evidenced } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import { initRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
+import { enableInMemoryAgentMetadata } from "../../../../olt/scripts/src/runtime/session.ts";
 import {
   recordAgentReport,
   registerAgentGrant,
   releaseAgentGrant,
 } from "../../../../olt/scripts/src/workflow/agents/grants.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 function withRun<T>(body: (runRoot: string) => T): T {
-  const repo = mkdtempSync(join(tmpdir(), "grants-report-"));
+  const { vfs, cleanup } = setupWorkflowVirtualFs();
+  enableInMemoryAgentMetadata();
   try {
+    const repo = "/virtual/tmp/grants-report";
+    vfs.mkdirSync(repo, { recursive: true });
     const runRoot = initRun(repo, "test-run", new TextEncoder().encode("task"), "file", true);
     transact(runRoot, "setup", "add-task", {}, (draft) => {
       draft.tasks = { "T-1": { id: "T-1" } };
     });
     return body(runRoot);
   } finally {
-    rmSync(repo, { recursive: true, force: true });
+    cleanup();
   }
 }
 

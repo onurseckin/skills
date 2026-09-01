@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { cp, mkdir, symlink, writeFile } from "node:fs/promises";
 import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -10,8 +10,9 @@ import { sealInstallationManifest } from "../../../olt/scripts/src/installer/man
 import { treeDigest } from "../../../olt/scripts/src/installer/tree-digest.ts";
 import { validateSkillSource } from "../../../olt/scripts/src/installer/source-validation.ts";
 import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
-import { cleanInstallerFixtures, installerFixture } from "../helpers.ts";
+import { cleanInstallerFixtures, installerFixture, setupVirtualInstallerFS } from "../helpers.ts";
 
+beforeEach(setupVirtualInstallerFS);
 afterEach(cleanInstallerFixtures);
 
 async function installRealRelease(

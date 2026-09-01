@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { atomicWriteJson } from "../../../olt/scripts/src/core/durable-write.ts";
 import { readBoundedBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
@@ -15,8 +14,8 @@ import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/
 import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/core/pipe-ownership.ts";
 import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
 import type { PreparedCommand } from "../../../olt/scripts/src/engine/runner/types/types.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
-const roots: string[] = [];
 const identity: ProcessIdentity = { pid: 4242, parent: 100, group: 4242, birth: "birth-1" };
 const repository: RepositoryBinding = {
   schema: "harness.repository-binding",
@@ -28,14 +27,15 @@ const repository: RepositoryBinding = {
   total_bytes: 1,
 };
 
+afterEach(cleanupTempRoots);
+
 async function fixture(
   rootIdentity: ProcessIdentity | null = identity,
   gate = false,
   terminalProof = false,
   terminalSignals: NodeJS.Signals[] = ["SIGTERM"],
 ) {
-  const root = await mkdtemp(join(tmpdir(), "attempt-reconcile-interrupted-"));
-  roots.push(root);
+  const root = tempRoot("attempt-reconcile-interrupted");
   const runRoot = join(root, ".olt", "capsules");
   await mkdir(join(runRoot, "commands"), { recursive: true });
   if (gate) {
@@ -149,10 +149,6 @@ async function writeGateAttempt(
     0o600,
   );
 }
-
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
 
 describe("interrupted command attempt reconciliation", () => {
   test("leaves live, missing, and reused identities stranded", async () => {

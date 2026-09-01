@@ -1,10 +1,11 @@
 import { afterEach } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdirSync, rmSync } from "node:fs";
 import { join, relative, sep } from "node:path";
+import { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
+export const scratchVirtualFs = new VirtualMemoryFS();
 const REPO_ROOT = join(import.meta.dir, "..", "..");
-const SCRATCH_BASE = join(REPO_ROOT, "coverage", "scratch");
+const SCRATCH_BASE = "/virtual/coverage/scratch";
 const MAX_SLOT_ATTEMPTS = 1000;
 
 export interface ScratchClaim {
@@ -40,18 +41,18 @@ export function scratchRoot(callerPath: string, label: string): string {
     callsPerKey.set(key, call);
 
     const dirName = `${fileTag}--${slug(label)}--${call}--${digest}`;
-    const root = join(SCRATCH_BASE, dirName);
+    const root = `${SCRATCH_BASE}/${dirName}`;
 
     if (activeClaims.has(root)) {
       continue;
     }
 
     try {
-      rmSync(root, { recursive: true, force: true });
+      scratchVirtualFs.rmSync(root, { recursive: true, force: true });
     } catch {
       // Ignore if absent
     }
-    mkdirSync(root, { recursive: true });
+    scratchVirtualFs.mkdirSync(root, { recursive: true });
 
     const claim: ScratchClaim = {
       root,
@@ -66,7 +67,7 @@ export function scratchRoot(callerPath: string, label: string): string {
       afterEach(() => {
         activeClaims.delete(root);
         try {
-          rmSync(root, { recursive: true, force: true });
+          scratchVirtualFs.rmSync(root, { recursive: true, force: true });
         } catch {
           // ignore cleanup errors
         }

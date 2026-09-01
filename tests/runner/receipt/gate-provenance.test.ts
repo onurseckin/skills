@@ -1,8 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import { realpathSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import type { CommandAttemptRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/core/pipe-ownership.ts";
@@ -16,8 +15,8 @@ import type {
   AttemptResult,
   NormalizedCommandOptions,
 } from "../../../olt/scripts/src/engine/runner/types/types.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
-const roots: string[] = [];
 const repositoryBinding: RepositoryBinding = {
   schema: "harness.repository-binding",
   version: 1,
@@ -29,21 +28,23 @@ const repositoryBinding: RepositoryBinding = {
 };
 const observer = { inspectRepository: () => repositoryBinding };
 
+afterEach(cleanupTempRoots);
+
 async function repository(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), "gate-provenance-"));
-  roots.push(root);
+  const root = tempRoot("gate-provenance");
   await mkdir(join(root, "bin"));
   await mkdir(join(root, ".olt", "capsules", "commands"), { recursive: true });
   return root;
 }
 
-async function tools(root: string, names: readonly string[]): Promise<string> {
+async function tools(names: readonly string[]): Promise<string> {
+  const root = tempRoot("tools-bin");
   for (const name of names) {
-    const path = join(root, "bin", name);
+    const path = join(root, name);
     await writeFile(path, "#!/bin/sh\nexit 0\n");
     await chmod(path, 0o700);
   }
-  return join(root, "bin");
+  return root;
 }
 
 function success(id: string, attempt = 1): AttemptResult {
@@ -73,14 +74,10 @@ function success(id: string, attempt = 1): AttemptResult {
   };
 }
 
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
-
 describe("gate trusted-host provenance", () => {
   test("binds only literal executable, script, config, and target operands", async () => {
     const root = await repository();
-    const bin = await tools(root, ["bun"]);
+    const bin = await tools(["bun"]);
     await mkdir(join(root, "src"));
     await writeFile(join(root, "src", "check.ts"), "export {};\n");
     await writeFile(join(root, "bunfig.toml"), "[test]\n");

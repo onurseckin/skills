@@ -1,7 +1,6 @@
-import { describe, expect, it } from "bun:test";
-import { mkdirSync } from "node:fs";
+import { describe, expect, it, beforeEach, afterEach, spyOn } from "bun:test";
+import * as fs from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { AutonomousLoopRunner } from "../../../olt/scripts/src/orchestrator/loop-runner.ts";
 import {
   loopGateStatus,
@@ -13,6 +12,15 @@ import type {
   RoundExecutor,
   RoundTelemetry,
 } from "../../../olt/scripts/src/orchestrator/types.ts";
+
+const mockFiles = new Map<string, string>();
+const mockDirs = new Set<string>();
+const spies: { mockRestore: () => void }[] = [];
+let rootCounter = 0;
+
+const origExists = fs.existsSync.bind(fs);
+const origRead = fs.readFileSync.bind(fs);
+const isVirt = (s: string) => s.startsWith("/tmp/virtual-") || s.startsWith("/virtual/");
 
 function telemetry(round: number, gateStatus: RoundTelemetry["gateStatus"]): RoundTelemetry {
   return {
@@ -51,12 +59,56 @@ function executorReturning(
 }
 
 function withTempRepo<T>(name: string, body: (dir: string) => Promise<T>): Promise<T> {
-  const dir = join(tmpdir(), `orchestrator-gate-honesty-${Date.now()}-${name}`);
-  mkdirSync(dir, { recursive: true });
+  const dir = `/tmp/virtual-gate-honesty-${++rootCounter}-${name}`;
+  mockDirs.add(dir);
   return body(dir);
 }
 
 describe("loop gate status honesty", () => {
+  beforeEach(() => {
+    mockFiles.clear();
+    mockDirs.clear();
+    spies.push(
+      spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => {
+        const s = String(p);
+        if (isVirt(s)) return mockFiles.has(s) || mockDirs.has(s);
+        return origExists(p);
+      }),
+      spyOn(fs, "mkdirSync").mockImplementation(((
+        p: fs.PathLike,
+        opts?: fs.MakeDirectoryOptions | boolean,
+      ) => {
+        const s = String(p);
+        mockDirs.add(s);
+        return undefined as unknown as string;
+      }) as unknown as typeof fs.mkdirSync),
+      spyOn(fs, "readFileSync").mockImplementation(((p: fs.PathOrFileDescriptor) => {
+        const s = String(p);
+        if (isVirt(s)) {
+          const val = mockFiles.get(s);
+          if (val !== undefined) return val;
+          throw new Error(`ENOENT: no such file, open '${s}'`);
+        }
+        return origRead(p as never);
+      }) as unknown as typeof fs.readFileSync),
+      spyOn(fs, "writeFileSync").mockImplementation(((
+        p: fs.PathOrFileDescriptor,
+        data: string | NodeJS.ArrayBufferView,
+      ) => {
+        const s = String(p);
+        mockFiles.set(
+          s,
+          typeof data === "string"
+            ? data
+            : Buffer.from(data.buffer, data.byteOffset, data.byteLength).toString("utf8"),
+        );
+      }) as unknown as typeof fs.writeFileSync),
+    );
+  });
+
+  afterEach(() => {
+    while (spies.length > 0) spies.pop()?.mockRestore();
+  });
   it("classifies an empty gate result set as not_run, never as passed", () => {
     expect(roundGateStatus([])).toBe("not_run");
     expect(roundGateStatus([{ gate_id: "g", command_id: "c", status: "passed" }])).toBe("passed");

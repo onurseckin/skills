@@ -97,7 +97,7 @@ export function hasOpaquePathOption(argv: readonly string[]): boolean {
   return argv.slice(1).some((value) => {
     if (!value.startsWith("-")) return false;
     return (
-      value.includes("/") || value.includes("\\") || value.includes("=") || value.endsWith('..')
+      value.includes("/") || value.includes("\\") || value.includes("=") || value.endsWith("..")
     );
   });
 }

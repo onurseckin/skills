@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdir, readlink, symlink } from "node:fs/promises";
 import { mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -11,8 +11,9 @@ import {
 } from "../../../olt/scripts/src/installer/client-links.ts";
 import { pathIdentity } from "../../../olt/scripts/src/installer/path-safety.ts";
 import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
-import { cleanInstallerFixtures } from "../helpers.ts";
+import { cleanInstallerFixtures, setupVirtualInstallerFS } from "../helpers.ts";
 
+beforeEach(setupVirtualInstallerFS);
 afterEach(cleanInstallerFixtures);
 
 describe("clientLinkPaths", () => {

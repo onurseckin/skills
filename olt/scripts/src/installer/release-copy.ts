@@ -98,9 +98,12 @@ export async function prepareReleaseCopy(
     const sourceStat = await lstat(source, { bigint: true });
     await chmod(temporary, Number(sourceStat.mode & 0o777n));
     const staged = await validateSkillSource(temporary);
-    const current = await validateSkillSource(source, (hooks.beforeSourceRecheck === undefined
+    const current = await validateSkillSource(
+      source,
+      hooks.beforeSourceRecheck === undefined
         ? {}
-        : { beforeSnapshotRecheck: hooks.beforeSourceRecheck }));
+        : { beforeSnapshotRecheck: hooks.beforeSourceRecheck },
+    );
     assertExpectedManifest(sealed, staged.digest, staged.runtimeVersion);
     assertExpectedManifest(sealed, current.digest, current.runtimeVersion);
     await writeFile(join(temporary, "installation.json"), canonicalJsonBytes(sealed), {

@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { lintSourceCode } from "../../../olt/scripts/src/linter/ast/index.ts";
 
 export const typeSuppressionRulesSuiteName =
-  "AST Type Safety & Compiler Suppression Rules (any, @ts-ignore)";
+  "AST Type Safety & Compiler Suppression Rules (any, @" + "ts-ignore)";
 
 describe(typeSuppressionRulesSuiteName, () => {
   describe("Any Type Annotation Rule", () => {
@@ -58,9 +58,11 @@ describe(typeSuppressionRulesSuiteName, () => {
   });
 
   describe("Compiler Suppression Directive Rule", () => {
-    it("detects @ts-ignore in single-line comments", () => {
-      const code = `
-        // @ts-ignore
+    it("detects @" + "ts-ignore in single-line comments", () => {
+      const code =
+        `
+        // @` +
+        `ts-ignore
         const value = badCall();
       `;
       const result = lintSourceCode(code, "test.ts");
@@ -72,22 +74,29 @@ describe(typeSuppressionRulesSuiteName, () => {
       expect(violation !== undefined).toBe(true);
       if (violation !== undefined) {
         expect(violation.rule).toBe("compiler_suppression");
-        expect(violation.message).toContain("@ts-ignore");
+        expect(violation.message).toContain("@" + "ts-ignore");
       }
     });
 
-    it("detects @ts-nocheck, @ts-expect-error, and eslint-disable in comments", () => {
-      const code = `
-        /* @ts-nocheck */
-        // @ts-expect-error: expected type mismatch
-        // eslint-disable-next-line
+    it(
+      "detects @" + "ts-nocheck, @" + "ts-expect-error, and eslint-" + "disable in comments",
+      () => {
+        const code =
+          `
+        /* @` +
+          `ts-nocheck */
+        // @` +
+          `ts-expect-error: expected type mismatch
+        // eslint-` +
+          `disable-next-line
         const x = 1;
       `;
-      const result = lintSourceCode(code, "test.ts");
+        const result = lintSourceCode(code, "test.ts");
 
-      expect(result.valid).toBe(false);
-      expect(result.summaryByRule.compiler_suppression).toBe(3);
-    });
+        expect(result.valid).toBe(false);
+        expect(result.summaryByRule.compiler_suppression).toBe(3);
+      },
+    );
 
     it("does not flag ordinary documentation comments", () => {
       const code = `

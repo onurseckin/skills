@@ -1,20 +1,29 @@
-import { describe, expect, test } from "bun:test";
-import {
-  chmodSync,
-  mkdirSync,
-  mkdtempSync,
-  realpathSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { afterAll, describe, expect, test } from "bun:test";
+import { chmodSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { inspectRepositoryNode } from "../../../../olt/scripts/src/packets/repository-content-node.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
+
+const vfs = new VirtualMemoryFS();
+const session = createVirtualFSSession(vfs);
+
+afterAll(() => {
+  session.cleanup();
+  vfs.reset();
+});
+
+function createRepo(prefix = "repo-node-"): string {
+  const repo = `/virtual/${prefix}${Math.random().toString(36).slice(2)}`;
+  vfs.mkdirSync(repo, { recursive: true });
+  return repo;
+}
 
 describe("repository-content-node", () => {
   test("inspects a missing repository entry (ENOENT)", () => {
-    const repoRoot = realpathSync(mkdtempSync(join(tmpdir(), "repo-node-")));
+    const repoRoot = createRepo();
     const node = inspectRepositoryNode(
       repoRoot,
       { path: "nonexistent.txt", index: [] },
@@ -26,7 +35,7 @@ describe("repository-content-node", () => {
   });
 
   test("inspects a symlink node and enforces byte limit and stability", () => {
-    const repoRoot = realpathSync(mkdtempSync(join(tmpdir(), "repo-node-")));
+    const repoRoot = createRepo();
     writeFileSync(join(repoRoot, "target.txt"), "hello world");
     symlinkSync("target.txt", join(repoRoot, "link.txt"));
 
@@ -41,7 +50,7 @@ describe("repository-content-node", () => {
   });
 
   test("rejects gitlink / submodule nodes and unsupported node types (directory as leaf)", () => {
-    const repoRoot = realpathSync(mkdtempSync(join(tmpdir(), "repo-node-")));
+    const repoRoot = createRepo();
     expect(() =>
       inspectRepositoryNode(
         repoRoot,
@@ -57,7 +66,7 @@ describe("repository-content-node", () => {
   });
 
   test("inspects regular file and enforces byte bounds and stability", () => {
-    const repoRoot = realpathSync(mkdtempSync(join(tmpdir(), "repo-node-")));
+    const repoRoot = createRepo();
     const filePath = join(repoRoot, "large.txt");
     writeFileSync(filePath, "1234567890");
 
@@ -71,7 +80,7 @@ describe("repository-content-node", () => {
   });
 
   test("rejects unstable file scan when modified during descriptor open", () => {
-    const repoRoot = realpathSync(mkdtempSync(join(tmpdir(), "repo-node-")));
+    const repoRoot = createRepo();
     const filePath = join(repoRoot, "unstable.txt");
     writeFileSync(filePath, "original");
 
@@ -89,7 +98,7 @@ describe("repository-content-node", () => {
     // so revoking search permission on the repo root between ancestor capture and the leaf's
     // own lstat isn't caught by verifyRepositoryAncestors — it surfaces as an EACCES from
     // lstatSync(identity.path) itself, the one non-ENOENT path through that catch block.
-    const repoRoot = realpathSync(mkdtempSync(join(tmpdir(), "repo-node-")));
+    const repoRoot = createRepo();
     writeFileSync(join(repoRoot, "file.txt"), "hello");
     try {
       expect(() =>
@@ -103,7 +112,7 @@ describe("repository-content-node", () => {
   });
 
   test("treats a file removed after ancestor capture as missing rather than an error", () => {
-    const repoRoot = realpathSync(mkdtempSync(join(tmpdir(), "repo-node-")));
+    const repoRoot = createRepo();
     const filePath = join(repoRoot, "vanishing.txt");
     writeFileSync(filePath, "will be removed before its own stat");
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
@@ -10,9 +10,16 @@ import {
 } from "../../../olt/scripts/src/cli/commands/capture-run.ts";
 import { captureEvalCommand } from "../../../olt/scripts/src/cli/commands/capture-eval.ts";
 import { capabilityManifest, commandSlice } from "../../../olt/scripts/src/cli/manifest.ts";
-import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
+import { cleanupVirtualCaptureFS, scratchRoot, setupVirtualCaptureFS } from "../fixture.ts";
 
 describe("T-CAP-CLI-TESTS: Harness CLI Capture Commands Integration", () => {
+  beforeEach(() => {
+    setupVirtualCaptureFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualCaptureFS();
+  });
   describe("capture:init", () => {
     it("initializes standard YAML capture config with presets", async () => {
       const root = scratchRoot(import.meta.path, "cli-init-yaml");

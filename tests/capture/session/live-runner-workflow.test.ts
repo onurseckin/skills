@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { CaptureConfig } from "../../../olt/scripts/src/capture/config/types.ts";
@@ -13,9 +13,16 @@ import type {
   CapturePageDriver,
   DomPhysicsSnapshot,
 } from "../../../olt/scripts/src/capture/runners/types.ts";
-import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
+import { cleanupVirtualCaptureFS, scratchRoot, setupVirtualCaptureFS } from "../fixture.ts";
 
 describe("live-capture-runner: workflow & provider execution", () => {
+  beforeEach(() => {
+    setupVirtualCaptureFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualCaptureFS();
+  });
   describe("fallback-provider", () => {
     it("DefaultFallbackBrowserProvider launches driver that sets headers, cookies, screenshots, and evaluates", async () => {
       const root = scratchRoot(import.meta.path, "fallback-provider-test");

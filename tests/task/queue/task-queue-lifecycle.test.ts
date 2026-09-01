@@ -1,7 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync, mkdtempSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   claimTaskLease,
@@ -16,9 +15,10 @@ import {
   renewTaskLease,
   type TaskQueueItem,
 } from "../../../olt/scripts/src/task/queue/index.ts";
+import { scratchRoot } from "../task-fixture.ts";
 
 describe("Stateful Task Queue Engine", () => {
-  const testDir = mkdtempSync(join(tmpdir(), "test-task-queue-"));
+  const testDir = scratchRoot(import.meta.path, "lifecycle");
   const queuePath = join(testDir, "TASK_QUEUE.jsonl");
 
   function setup() {

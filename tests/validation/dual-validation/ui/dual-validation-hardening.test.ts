@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -11,9 +11,20 @@ import {
 } from "../../../../olt/scripts/src/validation/index.ts";
 import type { TaskRecord } from "../../../../olt/scripts/src/workflow/types.ts";
 import { createSyntheticPngBuffer } from "../../../../olt/scripts/src/capture/runners/live-capture-runner/index.ts";
-import { tmpdir } from "node:os";
+import {
+  cleanupVirtualValidationFS,
+  scratchRoot,
+  setupVirtualValidationFS,
+} from "../../validation-fixture.ts";
 
 describe("Validation Layer Hardening & Dual-Validation Requirements", () => {
+  beforeEach(() => {
+    setupVirtualValidationFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualValidationFS();
+  });
   describe("1. Validation Index Re-exports", () => {
     it("exports anti-leak and anti-batching functions from validation index", () => {
       expect(typeof validateBoundaryIntegrity).toBe("function");
@@ -58,10 +69,7 @@ describe("Validation Layer Hardening & Dual-Validation Requirements", () => {
     });
 
     it("accepts UI task with valid multi-viewport screenshots (>= 1024 bytes)", () => {
-      const dir = join(
-        tmpdir(),
-        "dual-val-hardening-valid-shots-" + Math.random().toString(36).slice(2),
-      );
+      const dir = scratchRoot("dual-val-hardening-valid-shots", "valid");
       mkdirSync(dir, { recursive: true });
       const mobilePath = join(dir, "header-mobile.png");
       const tabletPath = join(dir, "header-tablet.png");
@@ -107,11 +115,7 @@ describe("Validation Layer Hardening & Dual-Validation Requirements", () => {
     });
 
     it("resolves capsule-relative screenshot paths (as produced by the real ingestion/linkBlobIntoView pipeline) against a supplied runRoot", () => {
-      const runRoot = join(
-        tmpdir(),
-        "dual-val-hardening-resolves-capsule-relative-screenshot-paths-" +
-          Math.random().toString(36).slice(2),
-      );
+      const runRoot = scratchRoot("dual-val-hardening-relative", "capsule");
       const evidenceDir = join(runRoot, "evidence", "screenshots");
       mkdirSync(evidenceDir, { recursive: true });
       writeFileSync(
@@ -138,11 +142,7 @@ describe("Validation Layer Hardening & Dual-Validation Requirements", () => {
     });
 
     it("does not let a capsule-relative path escape runRoot via '..' traversal", () => {
-      const runRoot = join(
-        tmpdir(),
-        "dual-val-hardening-rejects-runroot-escaping-screenshot-paths-" +
-          Math.random().toString(36).slice(2),
-      );
+      const runRoot = scratchRoot("dual-val-hardening-escape", "escape");
 
       const input: DualChannelInput = {
         taskFiles: ["src/components/Header.tsx"],

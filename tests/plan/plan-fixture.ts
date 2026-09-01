@@ -5,21 +5,44 @@
 
 import { afterEach } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdirSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../olt/scripts/src/testing/virtual-fs/index.ts";
 import type { PreEnhancementTaskInput } from "../../olt/scripts/src/plan/pre-enhancer.ts";
 
-const SCRATCH_BASE = join(tmpdir(), "plan-scratch");
-const rootsToClean: string[] = [];
+export const SCRATCH_BASE = "/virtual/plan";
+
+let activeSession: VirtualFSSession | undefined;
+
+export function getVirtualPlanFS(): VirtualMemoryFS {
+  if (!activeSession) {
+    const vfs = new VirtualMemoryFS();
+    activeSession = createVirtualFSSession(vfs);
+  }
+  return activeSession.vfs;
+}
+
+export function setupVirtualPlanFS(): VirtualFSSession {
+  if (activeSession) {
+    activeSession.cleanup();
+  }
+  const vfs = new VirtualMemoryFS();
+  activeSession = createVirtualFSSession(vfs);
+  return activeSession;
+}
+
+export function cleanupVirtualPlanFS(): void {
+  if (activeSession) {
+    activeSession.cleanup();
+    activeSession = undefined;
+  }
+}
 
 afterEach(() => {
-  for (const root of rootsToClean) {
-    try {
-      rmSync(root, { recursive: true, force: true });
-    } catch {}
-  }
-  rootsToClean.length = 0;
+  cleanupVirtualPlanFS();
 });
 
 function slug(value: string): string {
@@ -38,7 +61,7 @@ function shortDigest(value: string): string {
 let counter = 0;
 
 /**
- * Creates an isolated scratch sandbox directory for testing plan operations.
+ * Creates an isolated scratch sandbox directory in virtual memory for testing plan operations.
  * Automatically registered for cleanup in afterEach hooks.
  */
 export function scratchRoot(callerPath = "plan-test", label = "test"): string {
@@ -52,12 +75,8 @@ export function scratchRoot(callerPath = "plan-test", label = "test"): string {
   const dirName = raw.slice(0, 50).replace(/-+$/, "");
   const root = join(SCRATCH_BASE, dirName);
 
-  try {
-    rmSync(root, { recursive: true, force: true });
-  } catch {}
-
-  mkdirSync(root, { recursive: true });
-  rootsToClean.push(root);
+  const vfs = getVirtualPlanFS();
+  vfs.mkdirSync(root, { recursive: true });
   return root;
 }
 

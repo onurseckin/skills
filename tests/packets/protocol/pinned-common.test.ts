@@ -1,7 +1,5 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { afterAll, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import {
   loadCommonInstructions,
   verifyCommonInstructions,
@@ -9,15 +7,23 @@ import {
 import { buildPacketFromPinnedRuntime } from "../../../olt/scripts/src/packets/render-packet.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { workflowState } from "../../workflow/index.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
-const roots: string[] = [];
-afterEach(async () => Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true }))));
+const vfs = new VirtualMemoryFS();
+const session = createVirtualFSSession(vfs);
+
+afterAll(() => {
+  session.cleanup();
+  vfs.reset();
+});
 
 async function fixtureRun() {
-  const root = await mkdtemp(join(tmpdir(), "packet-common-"));
-  roots.push(root);
+  const root = `/virtual/packet-common-${Math.random().toString(36).slice(2)}`;
   const repo = join(root, "repo");
-  await mkdir(repo);
+  vfs.mkdirSync(repo, { recursive: true });
   return {
     run: initRun(repo, "packet-run", new TextEncoder().encode("prompt"), "file", true),
   };

@@ -1,7 +1,6 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   observedFilesChanged,
@@ -12,15 +11,24 @@ import type {
   RepositoryGitResult,
 } from "../../../../olt/scripts/src/packets/repository-git-command.ts";
 import type { BranchRepositoryObservation } from "../../../../olt/scripts/src/core/contracts/index.ts";
+import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
-const roots: string[] = [];
+let vfsCleanup: (() => void) | undefined;
+let repoCounter = 0;
+
+beforeEach(() => {
+  const setup = setupWorkflowVirtualFs();
+  vfsCleanup = setup.cleanup;
+});
+
 afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { force: true, recursive: true });
+  vfsCleanup?.();
+  vfsCleanup = undefined;
 });
 
 function trackedRepo(prefix: string): string {
-  const dir = mkdtempSync(join(tmpdir(), `harness-${prefix}-`));
-  roots.push(dir);
+  const dir = `/virtual/tmp/harness-obs-${prefix}-${++repoCounter}`;
+  mkdirSync(dir, { recursive: true });
   return dir;
 }
 

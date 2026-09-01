@@ -110,9 +110,7 @@ describe("Dual-Channel Visual Analyzer - Viewport Normalization", () => {
       expect(result.passed).toBe(false);
       expect(result.mode).toBe("rejected");
       const mismatch = result.findings.filter((f) => f.category === "invalid_screenshot_size");
-      expect(mismatch.some((f) => f.message.includes("no self-reported width/height"))).toBe(
-        true,
-      );
+      expect(mismatch.some((f) => f.message.includes("no self-reported width/height"))).toBe(true);
     });
 
     test("detects missing custom required viewport", () => {

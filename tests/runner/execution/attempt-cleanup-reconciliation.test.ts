@@ -1,8 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { generateKeyPairSync, sign } from "node:crypto";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import {
   attemptStartedBaseDigest,
   cleanupDispositionEntryDigest,
@@ -16,17 +15,13 @@ import {
   settledAttemptTerminalProof,
   startAttemptIntent,
 } from "../../../olt/scripts/src/engine/runner/execution/attempt-intent.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
-const roots: string[] = [];
-
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
+afterEach(cleanupTempRoots);
 
 describe("cleanup uncertainty reconciliation", () => {
   test("rejects an internally valid marker signed by a substituted command key", async () => {
-    const attemptDir = await mkdtemp(join(tmpdir(), "cleanup-substituted-key-"));
-    roots.push(attemptDir);
+    const attemptDir = tempRoot("cleanup-substituted-key");
     const expected = createCommandSigningCapability();
     const substituted = createCommandSigningCapability();
     const token = "12345678-1234-4234-8234-123456789abc";
@@ -124,8 +119,7 @@ describe("cleanup uncertainty reconciliation", () => {
   });
 
   test("hash-binds cleanup disposition state and its delivered signals", async () => {
-    const attemptDir = await mkdtemp(join(tmpdir(), "cleanup-disposition-chain-"));
-    roots.push(attemptDir);
+    const attemptDir = tempRoot("cleanup-disposition-chain");
     const token = "12345678-1234-4234-8234-123456789abc";
     const signer = createCommandSigningCapability();
     const controller = startAttemptIntent(
@@ -183,8 +177,7 @@ describe("cleanup uncertainty reconciliation", () => {
   });
 
   test("rejects unsupported signals and terminal proof before record-pending", async () => {
-    const attemptDir = await mkdtemp(join(tmpdir(), "cleanup-disposition-transitions-"));
-    roots.push(attemptDir);
+    const attemptDir = tempRoot("cleanup-disposition-transitions");
     const controller = startAttemptIntent(
       attemptDir,
       "C-transitions",
@@ -212,8 +205,7 @@ describe("cleanup uncertainty reconciliation", () => {
   });
 
   test("treats terminal proof as final in the disposition controller", async () => {
-    const attemptDir = await mkdtemp(join(tmpdir(), "cleanup-terminal-finality-"));
-    roots.push(attemptDir);
+    const attemptDir = tempRoot("cleanup-terminal-finality");
     const signer = createCommandSigningCapability();
     const controller = startAttemptIntent(
       attemptDir,

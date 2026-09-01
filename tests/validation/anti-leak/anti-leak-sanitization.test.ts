@@ -158,17 +158,14 @@ describe("Anti-Boundary-Leak Rule & Automated Repair Delegation", () => {
 
   describe("8. Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
     it("verifies zero TypeScript any and zero suppressions across anti-leak source and test files", () => {
-        const filesToAudit = [
-          join(process.cwd(), "olt/scripts/src/validation/anti-leak/types.ts"),
-          join(process.cwd(), "olt/scripts/src/validation/anti-leak/checks.ts"),
-          join(process.cwd(), "olt/scripts/src/validation/anti-leak/validator.ts"),
-          join(process.cwd(), "olt/scripts/src/validation/anti-leak/delegator.ts"),
-          join(process.cwd(), "olt/scripts/src/validation/anti-leak/index.ts"),
-          join(
-            process.cwd(),
-            "tests/validation/anti-leak/anti-leak-detection.test.ts",
-          ),
-        ];
+      const filesToAudit = [
+        join(process.cwd(), "olt/scripts/src/validation/anti-leak/types.ts"),
+        join(process.cwd(), "olt/scripts/src/validation/anti-leak/checks.ts"),
+        join(process.cwd(), "olt/scripts/src/validation/anti-leak/validator.ts"),
+        join(process.cwd(), "olt/scripts/src/validation/anti-leak/delegator.ts"),
+        join(process.cwd(), "olt/scripts/src/validation/anti-leak/index.ts"),
+        join(process.cwd(), "tests/validation/anti-leak/anti-leak-detection.test.ts"),
+      ];
 
       const anyPattern = new RegExp(":\\s*any\\b|as\\s+any\\b|<any>");
       const suppressionPattern = new RegExp(

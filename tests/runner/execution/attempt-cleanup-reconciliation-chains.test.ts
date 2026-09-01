@@ -1,8 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, mkdir, readFile, rm } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import { generateKeyPairSync, sign } from "node:crypto";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   reconcileStrandedCommands,
@@ -24,12 +23,9 @@ import {
 import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/core/pipe-ownership.ts";
 import { initRun, loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
-const roots: string[] = [];
-
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
+afterEach(cleanupTempRoots);
 
 describe("cleanup disposition history and chains", () => {
   test("rejects a validly signed disposition appended after terminal proof", () => {
@@ -92,8 +88,7 @@ describe("cleanup disposition history and chains", () => {
   });
 
   test("keeps a full signed disposition history within the marker read bound", async () => {
-    const attemptDir = await mkdtemp(join(tmpdir(), "cleanup-disposition-bound-"));
-    roots.push(attemptDir);
+    const attemptDir = tempRoot("cleanup-disposition-bound");
     const token = "12345678-1234-4234-8234-123456789abc";
     const signer = createCommandSigningCapability();
     const controller = startAttemptIntent(
@@ -120,8 +115,7 @@ describe("cleanup disposition history and chains", () => {
   });
 
   test("immediate reconciliation leaves a cleanup-uncertain attempt stranded", async () => {
-    const repositoryRoot = await mkdtemp(join(tmpdir(), "cleanup-uncertain-reconcile-"));
-    roots.push(repositoryRoot);
+    const repositoryRoot = tempRoot("cleanup-uncertain-reconcile");
     const runRoot = initRun(
       repositoryRoot,
       "cleanup-uncertain",

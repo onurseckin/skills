@@ -231,7 +231,8 @@ function parseTranscript(jsonlPath: string): ParsedTranscript {
         const name = pendingToolNames.get(item.tool_use_id);
         if (name === undefined) continue;
         const flaggedError = item.is_error === true;
-        const looksLikeError = hasText(entry.toolUseResult) && entry.toolUseResult.startsWith('Error');
+        const looksLikeError =
+          hasText(entry.toolUseResult) && entry.toolUseResult.startsWith("Error");
         if (flaggedError || looksLikeError) {
           const current = tools.get(name) ?? { calls: 0, failures: 0 };
           current.failures += 1;

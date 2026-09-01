@@ -1,19 +1,24 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterAll, describe, expect, test } from "bun:test";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { inspectRepository } from "../../../../olt/scripts/src/packets/repository-snapshot.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
-const roots: string[] = [];
+const vfs = new VirtualMemoryFS();
+const session = createVirtualFSSession(vfs);
 
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
+afterAll(() => {
+  session.cleanup();
+  vfs.reset();
 });
 
 describe("repository directory streaming", () => {
   test("scans a non-Git repository without invoking the Git command dependency", () => {
-    const repo = mkdtempSync(join(tmpdir(), "repository-directory-streaming-"));
-    roots.push(repo);
+    const repo = `/virtual/repository-directory-streaming-${Math.random().toString(36).slice(2)}`;
+    vfs.mkdirSync(repo, { recursive: true });
     mkdirSync(join(repo, "nested"));
     writeFileSync(join(repo, "AGENTS.md"), "# Instructions\n");
     writeFileSync(join(repo, "nested", "tsconfig.json"), "{}\n");

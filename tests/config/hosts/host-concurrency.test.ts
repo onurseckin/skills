@@ -1,7 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync, realpathSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import {
   deriveGateConcurrencyCeiling,
   discoverHostConcurrencyCeiling,
@@ -10,13 +7,10 @@ import {
 const CONCURRENCY_VAR = "CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS";
 const SESSION_VAR = "CLAUDE_CODE_SESSION_ID";
 
+let homeCounter = 0;
 function withTempHome(fn: (home: string) => void): void {
-  const tempHome = realpathSync(mkdtempSync(join(tmpdir(), "host-concurrency-test-")));
-  try {
-    fn(tempHome);
-  } finally {
-    rmSync(tempHome, { recursive: true, force: true });
-  }
+  const tempHome = `/virtual/host-concurrency-test-${++homeCounter}`;
+  fn(tempHome);
 }
 
 describe("discoverHostConcurrencyCeiling (B27.2 — discover, do not assume)", () => {

@@ -23,8 +23,10 @@ import {
   cleanupProofRepos,
   fakeGit,
   fsCheckSpawn,
+  installGateProofSpies,
   noopSpawn,
   repoWithoutRealGit,
+  vdirs,
 } from "./gate-proof-fixture.ts";
 
 describe("proveGateFalsifiable: revert errors, mode handling and nodeSpawnGate", () => {
@@ -33,19 +35,17 @@ describe("proveGateFalsifiable: revert errors, mode handling and nodeSpawnGate",
   });
 
   test("throws when the repository root carries no Git metadata", () => {
-    const plain = mkdtempSync(join(tmpdir(), "gate-proof-no-git-"));
-    try {
-      writeFileSync(join(plain, "a.ts"), "export const a = 1;\n");
-      expect(() =>
-        proveGateFalsifiable({
-          repoRoot: plain,
-          writeScope: ["a.ts"],
-          gateArgv: ["test", "-f", "README.md"],
-        }),
-      ).toThrow(HarnessError);
-    } finally {
-      rmSync(plain, { recursive: true, force: true });
-    }
+    installGateProofSpies();
+    const plain = "/virtual/repo/gate-proof-no-git-fixture";
+    vdirs.add(plain);
+    writeFileSync(join(plain, "a.ts"), "export const a = 1;\n");
+    expect(() =>
+      proveGateFalsifiable({
+        repoRoot: plain,
+        writeScope: ["a.ts"],
+        gateArgv: ["test", "-f", "README.md"],
+      }),
+    ).toThrow(HarnessError);
   });
 
   test("throws on an empty write scope rather than reverting nothing silently", () => {
@@ -93,8 +93,8 @@ describe("proveGateFalsifiable: revert errors, mode handling and nodeSpawnGate",
     const repo = repoWithoutRealGit("weak-gate-command");
     let gitCalled = false;
     let spawnCalled = false;
-    const scratchRootsBefore = readdirSync(tmpdir())
-      .filter((entry) => entry.startsWith("gate-prove-"))
+    const scratchRootsBefore = Array.from(vdirs)
+      .filter((entry) => entry.includes("gate-prove-"))
       .sort();
     expect(() =>
       proveGateFalsifiable(
@@ -114,8 +114,8 @@ describe("proveGateFalsifiable: revert errors, mode handling and nodeSpawnGate",
     expect(gitCalled).toBe(false);
     expect(spawnCalled).toBe(false);
     expect(
-      readdirSync(tmpdir())
-        .filter((entry) => entry.startsWith("gate-prove-"))
+      Array.from(vdirs)
+        .filter((entry) => entry.includes("gate-prove-"))
         .sort(),
     ).toEqual(scratchRootsBefore);
   });
@@ -154,29 +154,25 @@ describe("proveGateFalsifiable: revert errors, mode handling and nodeSpawnGate",
   test("refuses to let a write-scope traversal escape the scratch root during revert-side deletion", () => {
     const repo = repoWithoutRealGit("scratch-traversal-escape");
     const victimName = `gate-prove-victim-${process.pid}-${Date.now()}`;
-    const victimDir = join(realpathSync(tmpdir()), victimName);
+    const victimDir = `/virtual/scratch/${victimName}`;
     mkdirSync(victimDir, { recursive: true });
     const canaryPath = join(victimDir, "canary.txt");
     writeFileSync(canaryPath, "do not delete me\n");
-    try {
-      const git = fakeGit({
-        "ls-files": { status: 0, bytes: Buffer.from("") },
-        "ls-tree": { status: 0, bytes: Buffer.from("") },
-      });
-      expect(() =>
-        proveGateFalsifiable(
-          {
-            repoRoot: repo,
-            writeScope: [`../${victimName}`],
-            gateArgv: ["test", "-f", "README.md"],
-          },
-          { git, spawn: noopSpawn },
-        ),
-      ).toThrow(HarnessError);
-      expect(existsSync(canaryPath)).toBe(true);
-    } finally {
-      rmSync(victimDir, { recursive: true, force: true });
-    }
+    const git = fakeGit({
+      "ls-files": { status: 0, bytes: Buffer.from("") },
+      "ls-tree": { status: 0, bytes: Buffer.from("") },
+    });
+    expect(() =>
+      proveGateFalsifiable(
+        {
+          repoRoot: repo,
+          writeScope: [`../${victimName}`],
+          gateArgv: ["test", "-f", "README.md"],
+        },
+        { git, spawn: noopSpawn },
+      ),
+    ).toThrow(HarnessError);
+    expect(existsSync(canaryPath)).toBe(true);
   });
 
   test("refuses a tree over --max-files instead of proving an unexpectedly expensive copy", () => {
@@ -213,7 +209,7 @@ describe("proveGateFalsifiable: revert errors, mode handling and nodeSpawnGate",
   });
 
   test("nodeSpawnGate executes valid commands and rejects compound operators", () => {
-    const cwd = repoWithoutRealGit("node-spawn-tests");
+    const cwd = process.cwd();
     expect(() => nodeSpawnGate(["definitely-not-a-real-binary-8f3c2b"], cwd, 5_000)).toThrow(
       HarnessError,
     );

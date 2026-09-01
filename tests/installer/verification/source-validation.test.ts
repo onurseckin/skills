@@ -1,12 +1,13 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { symlinkSync, writeFileSync } from "node:fs";
 import { rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { validateSkillSource } from "../../../olt/scripts/src/installer/source-validation.ts";
 import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
-import { cleanInstallerFixtures, installerFixture } from "../helpers.ts";
+import { cleanInstallerFixtures, installerFixture, setupVirtualInstallerFS } from "../helpers.ts";
 
+beforeEach(setupVirtualInstallerFS);
 afterEach(cleanInstallerFixtures);
 
 async function expectHarnessFailure(promise: Promise<unknown>, fragment: string): Promise<void> {

@@ -1,20 +1,17 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { atomicWriteJson } from "../../../olt/scripts/src/core/durable-write.ts";
 import { cleanupFailedAttempt } from "../../../olt/scripts/src/engine/runner/execution/attempt-cleanup.ts";
 import { writeAttemptFailureEvidence } from "../../../olt/scripts/src/engine/runner/execution/attempt-failure-evidence.ts";
 import type { AttemptProcessProof } from "../../../olt/scripts/src/engine/runner/execution/attempt-intent.ts";
 import { DescendantTracker } from "../../../olt/scripts/src/engine/runner/reconciliation/descendant-tracker.ts";
 import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
+import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
-const roots: string[] = [];
 const rootIdentity: ProcessIdentity = { pid: 40, parent: 30, group: 40, birth: "root" };
 
-afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
-});
+afterEach(cleanupTempRoots);
 
 function cleanup(overrides: Record<string, unknown> = {}) {
   return cleanupFailedAttempt({
@@ -152,8 +149,7 @@ describe("failed attempt descendant tracking and races", () => {
       probeProcess: () => "absent",
       terminateGroup: async () => ["SIGTERM" as NodeJS.Signals],
     });
-    const runRoot = await mkdtemp(join(tmpdir(), "attempt-terminal-signals-"));
-    roots.push(runRoot);
+    const runRoot = tempRoot("attempt-terminal-signals");
     const attemptDir = join(runRoot, "commands", "C-signals", "attempt-1");
     await mkdir(attemptDir, { recursive: true });
     const stdoutPath = join(attemptDir, "stdout.log"),
