@@ -10,37 +10,39 @@ import {
 
 describe("Strict Coverage Quality Gate", () => {
   describe("evaluateCoverageGate", () => {
-    test("passes when overall line coverage meets default 90% threshold", () => {
+    test("passes when overall line coverage meets default 90% threshold and functions 95%", () => {
       const summary: CoverageSummary = {
         total: {
           lines: { total: 100, covered: 90, skipped: 0, pct: 90 },
           statements: { total: 100, covered: 90, skipped: 0, pct: 90 },
-          functions: { total: 10, covered: 9, skipped: 0, pct: 90 },
+          functions: { total: 20, covered: 19, skipped: 0, pct: 95 },
         },
         "src/a.ts": {
           lines: { total: 50, covered: 45, skipped: 0, pct: 90 },
           statements: { total: 50, covered: 45, skipped: 0, pct: 90 },
-          functions: { total: 5, covered: 5, skipped: 0, pct: 100 },
+          functions: { total: 10, covered: 10, skipped: 0, pct: 100 },
         },
         "src/b.ts": {
           lines: { total: 50, covered: 45, skipped: 0, pct: 90 },
           statements: { total: 50, covered: 45, skipped: 0, pct: 90 },
-          functions: { total: 5, covered: 4, skipped: 0, pct: 80 },
+          functions: { total: 10, covered: 9, skipped: 0, pct: 90 },
         },
       };
 
       const result = evaluateCoverageGate(summary);
       expect(result.passed).toBe(true);
       expect(result.totalPct).toBe(90);
+      expect(result.funcsPct).toBe(95);
       expect(result.thresholdPct).toBe(DEFAULT_COVERAGE_THRESHOLD);
       expect(result.deficitPct).toBe(0);
+      expect(result.funcsDeficitPct).toBe(0);
       expect(result.filesCount).toBe(2);
       expect(result.failingFiles).toEqual([]);
       expect(result.totalLinesCovered).toBe(90);
       expect(result.totalLinesTotal).toBe(100);
     });
 
-    test("passes when overall line coverage exceeds 90% threshold (e.g. 96.5%)", () => {
+    test("passes when overall line and function coverage exceed thresholds (e.g. 96.5% and 100%)", () => {
       const summary: CoverageSummary = {
         total: {
           lines: { total: 200, covered: 193, skipped: 0, pct: 96.5 },
@@ -52,6 +54,7 @@ describe("Strict Coverage Quality Gate", () => {
       const result = evaluateCoverageGate(summary);
       expect(result.passed).toBe(true);
       expect(result.totalPct).toBe(96.5);
+      expect(result.funcsPct).toBe(100);
       expect(result.deficitPct).toBe(0);
     });
 
