@@ -11,11 +11,18 @@ import {
   setupCompiledRun,
 } from "../../fixtures/file-persistence-fixture.ts";
 
+import {
+  disableInMemoryAgentMetadata,
+  enableInMemoryAgentMetadata,
+} from "../../../../../olt/scripts/src/runtime/session.ts";
+
 const roots: string[] = [];
 beforeEach(() => {
   setupVirtualCliFS();
+  enableInMemoryAgentMetadata();
 });
 afterEach(async () => {
+  disableInMemoryAgentMetadata();
   await cleanupRoots(roots);
   cleanupVirtualCliFS();
   roots.length = 0;

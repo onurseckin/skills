@@ -10,13 +10,21 @@ import {
 } from "../../fixtures/full-lifecycle-fixture.ts";
 import { TASK_ID, setupRun } from "../../fixtures/probe-fixture.ts";
 
+import {
+  disableInMemoryAgentMetadata,
+  enableInMemoryAgentMetadata,
+} from "../../../../../olt/scripts/src/runtime/session.ts";
+
 const roots: string[] = [];
 beforeEach(() => {
   setupVirtualCliFS();
+  enableInMemoryAgentMetadata();
 });
 afterEach(async () => {
+  disableInMemoryAgentMetadata();
   await cleanupRoots(roots);
   cleanupVirtualCliFS();
+  roots.length = 0;
 });
 
 describe("task:claim - Confinement, Validation & Role Rules", () => {
