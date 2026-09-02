@@ -1,6 +1,7 @@
 import { homedir } from "node:os";
 import { resolve } from "node:path";
-import { describe, expect, it } from "bun:test";
+import * as childProcess from "node:child_process";
+import { describe, expect, it, spyOn } from "bun:test";
 import {
   DefaultCollectorEnvironment,
   MAX_FUTURE_CLOCK_SKEW_MS,
@@ -145,6 +146,23 @@ describe("DefaultCollectorEnvironment - Execution & Filesystem Operations", () =
     delete process.env.BUN_ENV;
     delete process.env.OLT_VIRTUAL_FS;
 
+    const execSpy = spyOn(childProcess, "execFile").mockImplementation(((
+      cmd: string,
+      args: unknown,
+      _opts: unknown,
+      callback?: (err: Error | null, stdout: string, stderr: string) => void,
+    ) => {
+      const cb = typeof args === "function" ? args : typeof _opts === "function" ? _opts : callback;
+      if (cb) {
+        if (cmd.includes("nonexistent")) {
+          cb(new Error("ENOENT"), "", "");
+        } else {
+          cb(null, "telemetry_exec_probe\n", "");
+        }
+      }
+      return {} as unknown as childProcess.ChildProcess;
+    }) as unknown as typeof childProcess.execFile);
+
     try {
       const env = new DefaultCollectorEnvironment();
       const result = await env.exec("echo", ["telemetry_exec_probe"]);
@@ -155,6 +173,7 @@ describe("DefaultCollectorEnvironment - Execution & Filesystem Operations", () =
       const failResult = await env.exec("nonexistent_binary_xyz_12345", []);
       expect(failResult).toBeNull();
     } finally {
+      execSpy.mockRestore();
       if (savedNodeEnv !== undefined) process.env.NODE_ENV = savedNodeEnv;
       if (savedBunEnv !== undefined) process.env.BUN_ENV = savedBunEnv;
       if (savedOltFs !== undefined) process.env.OLT_VIRTUAL_FS = savedOltFs;
