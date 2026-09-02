@@ -60,17 +60,25 @@ export function parseLcov(lcovContent: string, repoRoot?: string): Map<string, F
       }
     } else if (trimmed === "end_of_record" && currentFile !== null) {
       const relPath = relative(root, resolve(root, currentFile));
-      const lineMetric = createMetricItem(lineHit, lineFound);
-      const fnMetric = createMetricItem(fnHit, fnFound);
+      const isTestFile =
+        relPath.startsWith("tests/") ||
+        relPath.includes("/tests/") ||
+        relPath.endsWith(".test.ts") ||
+        relPath.endsWith(".spec.ts");
 
-      fileMap.set(relPath, {
-        file: relPath,
-        lines: lineMetric,
-        statements: lineMetric,
-        functions: fnMetric,
-        uncoveredLines: [...uncoveredLines],
-        lineHits: new Map(lineHitsMap),
-      });
+      if (!isTestFile) {
+        const lineMetric = createMetricItem(lineHit, lineFound);
+        const fnMetric = createMetricItem(fnHit, fnFound);
+
+        fileMap.set(relPath, {
+          file: relPath,
+          lines: lineMetric,
+          statements: lineMetric,
+          functions: fnMetric,
+          uncoveredLines: [...uncoveredLines],
+          lineHits: new Map(lineHitsMap),
+        });
+      }
       currentFile = null;
     }
   }

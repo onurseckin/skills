@@ -1,47 +1,64 @@
+import { getClientScriptUnified } from "./client-script-unified.ts";
+
 export function getClientScriptHelpers(): string {
   return `
-    function getFolderLinesPct(folder) {
-      let t = 0, c = 0;
-      folder.files.forEach(f => { t += f.linesTotal; c += f.linesCovered; });
-      return t > 0 ? (c / t) * 100 : 100;
-    }
-    function getFolderFuncsPct(folder) {
-      let t = 0, c = 0;
-      folder.files.forEach(f => { t += f.funcsTotal; c += f.funcsCovered; });
-      return t > 0 ? (c / t) * 100 : 100;
+    function escapeHtml(str) {
+      if (typeof str !== "string") return "";
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
-    function setSort(col) {
-      if (sortColumn === col) {
-        sortAsc = !sortAsc;
-      } else {
-        sortColumn = col;
-        sortAsc = true;
+    function openFile(path, lineNo) {
+      const f = DATA.files.find(item => item.path === path);
+      if (!f) return;
+      activeFile = f;
+
+      const masterView = document.getElementById("master-view");
+      const codeViewer = document.getElementById("code-viewer-container");
+      if (masterView) masterView.style.display = "none";
+      if (codeViewer) {
+        codeViewer.style.display = "block";
+        renderCodeViewer(f, lineNo);
       }
-      render();
+
+      const hash = '#file/' + path + (lineNo ? ':L' + lineNo : '');
+      if (window.location.hash !== hash) {
+        history.pushState(null, "", hash);
+      }
     }
 
-    function renderFileView() {
-      if (!currentFile) return;
-      const f = currentFile;
+    function closeFile() {
+      activeFile = null;
+      const masterView = document.getElementById("master-view");
+      const codeViewer = document.getElementById("code-viewer-container");
+      if (codeViewer) {
+        codeViewer.style.display = "none";
+        codeViewer.innerHTML = "";
+      }
+      if (masterView) masterView.style.display = "block";
+      updateUrlHash();
+    }
+
+    function renderCodeViewer(f, targetLineNo) {
+      const codeViewer = document.getElementById("code-viewer-container");
+      if (!codeViewer) return;
+
       let html = '<div class="file-viewer-header">';
       html += '<div style="display: flex; gap: 0.75rem; align-items: center;">';
-      html += '<button class="btn" onclick="goBack()">&larr; Back to Tree</button>';
-      html += '<div style="font-family: \\'JetBrains Mono\\', monospace; font-weight: 600;">' + escapeHtml(f.path) + '</div>';
+      html += '<button class="tree-action-btn" onclick="closeFile()">&larr; Back to Master Table</button>';
+      html += '<div style="font-family: monospace; font-weight: 700; font-size: 0.95rem; color: var(--text-main);">' + escapeHtml(f.path) + '</div>';
       html += '</div>';
       html += '<div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">';
       html += '<span class="badge ' + badgeClass(f.linesPct) + '">Lines: ' + f.linesPct + '%</span>';
-      html += '<span class="badge ' + badgeClass(f.statementsPct) + '">Statements: ' + f.statementsPct + '%</span>';
       html += '<span class="badge ' + badgeClass(f.funcsPct) + '">Funcs: ' + f.funcsPct + '%</span>';
       if (f.testFile) {
-        const durText = f.testDurationMs !== undefined ? f.testDurationMs + 'ms' : 'Telemetry';
-        html += '<a href="#runtime?file=' + encodeURIComponent(f.testFile) + '" class="badge badge-neutral" style="text-decoration: none; cursor: pointer;" title="View test runtime ranking">Test: ' + durText + '</a>';
+        const durText = f.testDurationMs !== undefined ? (Math.round(f.testDurationMs * 100) / 100) + 'ms' : 'Telemetry';
+        html += '<span class="badge badge-neutral">Test: ' + durText + '</span>';
       }
-      html += '<button class="btn" data-path="' + escapeHtml(f.path) + '" onclick="copyPath(this.dataset.path)">Copy</button>';
+      html += '<button class="tree-action-btn" data-path="' + escapeHtml(f.path) + '" onclick="copyPath(this.dataset.path)">Copy Path</button>';
       html += '</div>';
       html += '</div>';
 
-      if (f.uncoveredLines.length > 0) {
+      if (f.uncoveredLines && f.uncoveredLines.length > 0) {
         html += '<div class="missed-chips-bar">';
         html += '<span style="font-size: 0.8rem; font-weight: 700; color: #f87171;">' + f.uncoveredLines.length + ' UNCOVERED LINES:</span>';
         f.uncoveredLines.forEach(lineNo => {
@@ -50,8 +67,8 @@ export function getClientScriptHelpers(): string {
         html += '</div>';
       }
 
-      if (!f.sourceLines) {
-        html += '<div class="metric-card">Source code content is not available on disk.</div>';
+      if (!f.sourceLines || f.sourceLines.length === 0) {
+        html += '<div class="metric-card" style="padding: 2rem; color: var(--text-dim);">Source code content is not available on disk.</div>';
       } else {
         html += '<div class="code-container">';
         f.sourceLines.forEach(line => {
@@ -63,7 +80,7 @@ export function getClientScriptHelpers(): string {
           const hitsColor = isMiss ? "var(--status-fail)" : "var(--status-pass)";
 
           html += '<div class="code-line ' + cls + '" id="line-' + line.no + '">';
-          html += '<div class="line-num" data-path="' + escapeHtml(f.path) + '" data-line="' + line.no + '" onclick="selectLine(this.dataset.path, parseInt(this.dataset.line, 10))" style="cursor: pointer;" title="Click to copy link to Line ' + line.no + '">' + line.no + '</div>';
+          html += '<div class="line-num" data-path="' + escapeHtml(f.path) + '" data-line="' + line.no + '" onclick="selectLine(this.dataset.path, parseInt(this.dataset.line, 10))" style="cursor: pointer;" title="Click to jump/copy link to Line ' + line.no + '">' + line.no + '</div>';
           html += '<div class="line-hits" style="color:' + hitsColor + '">' + hitsText + '</div>';
           html += '<div class="line-content">' + escapeHtml(line.code) + '</div>';
           html += '</div>';
@@ -71,54 +88,25 @@ export function getClientScriptHelpers(): string {
         html += '</div>';
       }
 
-      const cView = document.getElementById("content-view");
-      if (cView) cView.innerHTML = html;
-    }
+      codeViewer.innerHTML = html;
 
-    function escapeHtml(str) {
-      if (typeof str !== "string") return "";
-      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    }
-
-    function openFolder(folder) {
-      currentPath = folder;
-      currentFile = null;
-      updateHash(folder ? '#coverage/' + folder : '#coverage');
-      render();
-    }
-
-    function openFile(path, lineNo) {
-      const f = DATA.files.find(item => item.path === path);
-      if (f) {
-        currentFile = f;
-        const hash = '#coverage/' + path + (lineNo ? ':L' + lineNo : '');
-        updateHash(hash);
-        if (activeTab !== "coverage") {
-          switchTab("coverage");
-        } else {
-          render();
-        }
-        if (lineNo) {
-          setTimeout(() => jumpToLine(lineNo), 50);
-        }
+      if (targetLineNo) {
+        setTimeout(() => jumpToLine(targetLineNo), 60);
       }
     }
 
-    function goBack() {
-      currentFile = null;
-      updateHash(currentPath ? '#coverage/' + currentPath : '#coverage');
-      render();
-    }
-
     function jumpToLine(lineNo) {
-      if (currentFile) {
-        updateHash('#coverage/' + currentFile.path + ':L' + lineNo);
+      if (activeFile) {
+        const hash = '#file/' + activeFile.path + ':L' + lineNo;
+        if (window.location.hash !== hash) {
+          history.replaceState(null, "", hash);
+        }
       }
       const el = document.getElementById("line-" + lineNo);
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "center" });
         el.style.outline = "2px solid var(--status-fail)";
-        el.style.backgroundColor = "rgba(239, 68, 68, 0.15)";
+        el.style.backgroundColor = "rgba(239, 68, 68, 0.18)";
         setTimeout(() => {
           el.style.outline = "none";
           el.style.backgroundColor = "";
@@ -127,11 +115,9 @@ export function getClientScriptHelpers(): string {
     }
 
     function selectLine(path, lineNo) {
-      const hash = '#coverage/' + path + ':L' + lineNo;
-      updateHash(hash);
       jumpToLine(lineNo);
       if (navigator && navigator.clipboard) {
-        const fullUrl = window.location.origin + window.location.pathname + hash;
+        const fullUrl = window.location.origin + window.location.pathname + '#file/' + path + ':L' + lineNo;
         navigator.clipboard.writeText(fullUrl);
       }
     }
@@ -142,55 +128,63 @@ export function getClientScriptHelpers(): string {
       }
     }
 
-    function render() {
-      renderBreadcrumbs();
-      if (currentFile) {
-        renderFileView();
-      } else {
-        renderFolderView();
+    function updateUrlHash() {
+      if (activeFile) return;
+      let hash = '#' + viewMode;
+      const params = [];
+      if (masterFilter !== "all") params.push("filter=" + encodeURIComponent(masterFilter));
+      if (masterSearch) params.push("search=" + encodeURIComponent(masterSearch));
+      if (params.length > 0) hash += '?' + params.join("&");
+      if (window.location.hash !== hash) {
+        history.replaceState(null, "", hash);
       }
     }
 
-    const searchEl = document.getElementById("search-box");
-    if (searchEl) {
-      searchEl.addEventListener("input", (e) => {
-        searchQuery = e.target.value.trim();
-        currentFile = null;
-        updateHash(searchQuery ? "#coverage?search=" + encodeURIComponent(searchQuery) : "#coverage");
-        render();
-      });
+    function initDeepLinks() {
+      function handleRoute() {
+        const h = window.location.hash || "#tree";
+        if (h.startsWith("#file/")) {
+          const rest = h.slice(6);
+          const parts = rest.split(":L");
+          const filePath = decodeURIComponent(parts[0]);
+          const lineNo = parts[1] ? parseInt(parts[1], 10) : undefined;
+          openFile(filePath, lineNo);
+        } else {
+          if (activeFile) {
+            closeFile();
+          }
+          const modePart = h.includes("?") ? h.slice(1, h.indexOf("?")) : h.slice(1);
+          if (modePart === "tree" || modePart === "flat") {
+            viewMode = modePart;
+            document.querySelectorAll(".view-mode-btn").forEach(b => b.classList.remove("active"));
+            const btn = document.getElementById("btn-view-" + viewMode);
+            if (btn) btn.classList.add("active");
+          }
+          if (h.includes("?")) {
+            const queryStr = h.slice(h.indexOf("?") + 1);
+            const params = new URLSearchParams(queryStr);
+            const f = params.get("filter");
+            if (f) {
+              masterFilter = f;
+              document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+              const btn = document.getElementById("filter-" + f);
+              if (btn) btn.classList.add("active");
+            }
+            const s = params.get("search");
+            if (s) {
+              masterSearch = s;
+              const input = document.getElementById("master-search-box");
+              if (input) input.value = s;
+            }
+          }
+          renderMasterTable();
+        }
+      }
+
+      window.addEventListener("hashchange", handleRoute);
+      handleRoute();
     }
 
-    const rtSearchEl = document.getElementById("runtime-search-box");
-    if (rtSearchEl) {
-      rtSearchEl.addEventListener("input", (e) => {
-        runtimeSearch = e.target.value.trim();
-        runtimePage = 1;
-        updateHash(runtimeSearch ? "#runtime?search=" + encodeURIComponent(runtimeSearch) : "#runtime");
-        renderRuntimeView();
-      });
-    }
-
-    const uniSearchEl = document.getElementById("unified-search-box");
-    if (uniSearchEl) {
-      uniSearchEl.addEventListener("input", (e) => {
-        unifiedSearch = e.target.value.trim();
-        updateHash(unifiedSearch ? "#unified?search=" + encodeURIComponent(unifiedSearch) : "#unified");
-        renderUnifiedView();
-      });
-    }
-
-    const defSearchEl = document.getElementById("deficit-search-box");
-    if (defSearchEl) {
-      defSearchEl.addEventListener("input", (e) => {
-        deficitSearch = e.target.value.trim();
-        deficitPage = 1;
-        const qs = [];
-        if (deficitCategoryFilter !== "all") qs.push("category=" + encodeURIComponent(deficitCategoryFilter));
-        if (deficitSearch) qs.push("search=" + encodeURIComponent(deficitSearch));
-        updateHash(qs.length > 0 ? "#deficits?" + qs.join("&") : "#deficits");
-        renderDeficitView();
-      });
-    }
+    ${getClientScriptUnified()}
   `;
 }

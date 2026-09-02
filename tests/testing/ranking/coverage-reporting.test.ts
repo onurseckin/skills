@@ -144,10 +144,10 @@ describe("Coverage Reporting Modules", () => {
       const summary = buildCoverageSummary(fileMap);
       const md = buildMarkdownReport(fileMap, summary);
       expect(md).toContain("# Repository Unit Test Coverage Report");
-      expect(md).toContain("🟡 80%");
+      expect(md).toContain("80% (8/10)");
 
       const emptySummary: CoverageSummary = {};
-      expect(buildMarkdownReport(new Map(), emptySummary)).toContain("🟢 PASS");
+      expect(buildMarkdownReport(new Map(), emptySummary)).toContain("PASS");
 
       const reportPath = writeMarkdownReport(fileMap, summary, TEST_SCRATCH_DIR, "cov-md");
       expect(existsSync(reportPath)).toBe(true);
