@@ -89,41 +89,80 @@ export function getClientScriptDeficits(): string {
       openFile(file, startLine);
     }
 
+    function getUncoveredRanges(n) {
+      if (n.deficitClusters && n.deficitClusters.length > 0) {
+        return n.deficitClusters.map(c => ({
+          startLine: c.startLine,
+          label: c.startLine === c.endLine ? 'L' + c.startLine : 'L' + c.startLine + '-' + c.endLine
+        }));
+      }
+      if (n.uncoveredLines && n.uncoveredLines.length > 0) {
+        const sorted = [...n.uncoveredLines].filter(l => typeof l === "number" && l > 0).sort((a, b) => a - b);
+        const ranges = [];
+        let s = sorted[0], e = sorted[0];
+        for (let i = 1; i < sorted.length; i++) {
+          if (sorted[i] === e + 1) {
+            e = sorted[i];
+          } else {
+            ranges.push({ startLine: s, label: s === e ? 'L' + s : 'L' + s + '-' + e });
+            s = sorted[i];
+            e = sorted[i];
+          }
+        }
+        if (s !== undefined) {
+          ranges.push({ startLine: s, label: s === e ? 'L' + s : 'L' + s + '-' + e });
+        }
+        return ranges;
+      }
+      return [];
+    }
+
     function renderDeficitCell(n) {
       const isDir = n.type === "dir";
-      const missCount = n.lines.total - n.lines.covered;
+      const lTot = n.lines ? n.lines.total : (n.linesTotal !== undefined ? n.linesTotal : 0);
+      const lCov = n.lines ? n.lines.covered : (n.linesCovered !== undefined ? n.linesCovered : 0);
+      const missCount = lTot - lCov;
       if (missCount <= 0) {
-        return '<span style="color: var(--status-pass); font-weight: 600; font-size: 0.8rem;">100% Perfect</span>';
+        return '<span class="deficit-pill-perfect">100% Perfect</span>';
       }
 
-      const clusterCount = n.deficitCount || (n.deficitClusters ? n.deficitClusters.length : 1);
-      const repoGain = n.maxRepoGainPct || (DATA.deficits && DATA.deficits.totalRepoLines ? Math.round((missCount / DATA.deficits.totalRepoLines) * 10000) / 100 : 0);
-      const fileGain = n.maxFileGainPct || (n.lines.total > 0 ? Math.round((missCount / n.lines.total) * 10000) / 100 : 0);
+      const clusterCount = n.deficitCount || (n.deficitClusters ? n.deficitClusters.length : (isDir ? 0 : 1));
+      const repoGain = n.maxRepoGainPct || (DATA.deficits && DATA.deficits.totalRepoLines && missCount > 0 ? Math.round((missCount / DATA.deficits.totalRepoLines) * 10000) / 100 : 0);
+      const fileGain = n.maxFileGainPct || (lTot > 0 ? Math.round((missCount / lTot) * 10000) / 100 : 0);
 
-      let html = '<div style="display: flex; flex-direction: column; gap: 0.35rem; max-width: 440px;">';
-      html += '<div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">';
-      html += '<span class="deficit-rank" style="color: var(--status-fail);">' + clusterCount + ' cluster' + (clusterCount === 1 ? '' : 's') + ' (' + missCount + 'L)</span>';
-      if (repoGain > 0) html += '<span class="gain-badge-repo" title="Repository Potential Gain">+' + repoGain + '% repo</span>';
-      if (fileGain > 0 && !isDir) html += '<span class="gain-badge-file" title="File Potential Gain">+' + fileGain + '% file</span>';
-      html += '</div>';
+      const clusterStr = clusterCount === 1 ? '1 cluster' : clusterCount.toLocaleString() + ' clusters';
+      const missStr = missCount.toLocaleString() + 'L';
 
-      if (n.deficitCategories && n.deficitCategories.length > 0) {
-        html += '<div style="display: flex; gap: 0.3rem; flex-wrap: wrap;">';
-        n.deficitCategories.forEach(cat => {
-          html += '<span class="badge badge-cat-' + cat + '" style="font-size: 0.72rem; padding: 0.15rem 0.4rem;">' + escapeHtml(cat) + '</span>';
-        });
+      if (isDir) {
+        const gainStr = repoGain > 0 ? ' · +' + repoGain + '% repo' : '';
+        let html = '<div class="deficit-cell-dir">';
+        html += '<span class="deficit-pill deficit-pill-dir" title="' + clusterStr + ' (' + missStr + ')' + gainStr + '">' + clusterStr + ' (' + missStr + ')' + gainStr + '</span>';
+        if (n.deficitCategories && n.deficitCategories.length > 0) {
+          html += '<div class="deficit-subtle-cats">';
+          n.deficitCategories.forEach(cat => {
+            html += '<span class="deficit-cat-badge cat-' + escapeHtml(cat) + '" title="' + escapeHtml(cat) + '">' + escapeHtml(cat) + '</span>';
+          });
+          html += '</div>';
+        }
         html += '</div>';
+        return html;
       }
 
-      if (!isDir && n.deficitClusters && n.deficitClusters.length > 0) {
-        const topCluster = n.deficitClusters[0];
-        const lineLabel = topCluster.startLine === topCluster.endLine ? 'L' + topCluster.startLine : 'L' + topCluster.startLine + '-' + topCluster.endLine;
-        html += '<div style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.75rem;">';
-        html += '<a class="deficit-target-link" data-path="' + escapeHtml(n.path) + '" data-line="' + topCluster.startLine + '" onclick="event.stopPropagation(); openFile(this.dataset.path, parseInt(this.dataset.line, 10))" title="Jump to ' + lineLabel + ' in source code"><strong>' + lineLabel + '</strong></a>';
-        if (topCluster.sampleCodeSnippet) {
-          html += '<code class="deficit-snippet" style="max-width: 220px;" title="' + escapeHtml(topCluster.sampleCodeSnippet) + '">' + escapeHtml(topCluster.sampleCodeSnippet) + '</code>';
-        } else if (topCluster.categoryReason) {
-          html += '<span class="deficit-reason" style="font-size: 0.75rem;">' + escapeHtml(topCluster.categoryReason) + '</span>';
+      const gainStr = repoGain > 0 ? ' · +' + repoGain + '%' : (fileGain > 0 ? ' · +' + fileGain + '%' : '');
+      const ranges = getUncoveredRanges(n);
+
+      let html = '<div class="deficit-cell-file">';
+      html += '<span class="deficit-pill deficit-pill-file" title="' + clusterStr + ' (' + missStr + ')' + gainStr + '">' + clusterStr + ' (' + missStr + ')' + gainStr + '</span>';
+
+      if (ranges.length > 0) {
+        html += '<div class="deficit-ranges-group">';
+        const maxDisplay = 4;
+        const displayRanges = ranges.slice(0, maxDisplay);
+        displayRanges.forEach(r => {
+          html += '<button class="miss-range-chip" data-path="' + escapeHtml(n.path) + '" data-line="' + r.startLine + '" onclick="event.stopPropagation(); openFile(this.dataset.path, parseInt(this.dataset.line, 10))" title="Jump to ' + r.label + ' in code viewer">' + r.label + '</button>';
+        });
+        if (ranges.length > maxDisplay) {
+          html += '<button class="miss-range-chip miss-range-more" data-path="' + escapeHtml(n.path) + '" onclick="event.stopPropagation(); openFile(this.dataset.path)" title="View all ' + ranges.length + ' ranges in code viewer">+' + (ranges.length - maxDisplay) + ' more</button>';
         }
         html += '</div>';
       }

@@ -7,6 +7,23 @@ export function getClientScriptHelpers(): string {
       return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
+    function escapeJs(str) {
+      if (typeof str !== "string") return "";
+      return str.replace(/\\\\/g, "\\\\\\\\").replace(/'/g, "\\\\'");
+    }
+
+    function openCodeViewer(path, lineNoOrEvt) {
+      const lineNo = typeof lineNoOrEvt === "number" ? lineNoOrEvt : undefined;
+      openFile(path, lineNo);
+    }
+
+    function toggleFolderRow(path, evt) {
+      if (evt && evt.stopPropagation && evt.target && evt.target.closest && evt.target.closest(".tree-expander")) {
+        // already handled
+      }
+      toggleFolder(path);
+    }
+
     function openFile(path, lineNo) {
       const f = DATA.files.find(item => item.path === path);
       if (!f) return;
@@ -54,7 +71,7 @@ export function getClientScriptHelpers(): string {
         const durText = f.testDurationMs !== undefined ? (Math.round(f.testDurationMs * 100) / 100) + 'ms' : 'Telemetry';
         html += '<span class="badge badge-neutral">Test: ' + durText + '</span>';
       }
-      html += '<button class="tree-action-btn" data-path="' + escapeHtml(f.path) + '" onclick="copyPath(this.dataset.path)">Copy Path</button>';
+      html += '<button class="tree-action-btn" data-path="' + escapeHtml(f.path) + '" onclick="event.stopPropagation(); copyPath(this.dataset.path)">Copy Path</button>';
       html += '</div>';
       html += '</div>';
 

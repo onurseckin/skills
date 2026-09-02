@@ -46,13 +46,13 @@ export function getRuntimeStyles(): string {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 1rem;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1rem;
     }
     .runtime-kpi-card {
       background: var(--bg-surface);
       border: 1px solid var(--border-subtle);
       border-radius: 0.85rem;
-      padding: 1.15rem;
+      padding: 0.85rem 1rem;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
       display: flex;
       flex-direction: column;

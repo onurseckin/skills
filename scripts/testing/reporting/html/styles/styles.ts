@@ -57,18 +57,18 @@ export function getHtmlStyles(): string {
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     .loader-text { font-size: 0.85rem; color: var(--text-muted); font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace; }
-    .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
     .metric-card {
-      background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 0.85rem; padding: 1.25rem;
+      background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 0.85rem; padding: 0.85rem 1rem;
       display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
     }
     .metric-card:hover { border-color: var(--border-strong); }
     .metric-info { flex: 1; }
     .metric-title { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; margin-bottom: 0.35rem; }
-    .metric-value { font-size: 2.25rem; font-weight: 800; letter-spacing: -0.03em; }
+    .metric-value { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.03em; }
     .metric-sub { font-size: 0.85rem; color: var(--text-dim); margin-top: 0.25rem; font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace; }
-    .radial-gauge { width: 68px; height: 68px; position: relative; }
-    .radial-gauge svg { transform: rotate(-90deg); width: 68px; height: 68px; }
+    .radial-gauge { width: 54px; height: 54px; position: relative; }
+    .radial-gauge svg { transform: rotate(-90deg); width: 54px; height: 54px; }
     .radial-gauge circle { fill: none; stroke-width: 6; stroke-linecap: round; }
     .gauge-bg { stroke: var(--bg-card); }
     .gauge-fill { stroke: var(--brand-accent); transition: stroke-dashoffset 0.8s ease; }

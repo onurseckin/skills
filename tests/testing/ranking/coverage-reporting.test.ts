@@ -220,5 +220,55 @@ describe("Coverage Reporting Modules", () => {
       expect(script).toContain("renderRankedTreeNodes()");
       expect(script).toContain("sortUnifiedItems(");
     });
+
+    test("client scripts and styles support full-row click interactions and hover states", () => {
+      const script = getClientScript("{}");
+      expect(script).toContain("function escapeJs(str)");
+      expect(script).toContain("function openCodeViewer(path, lineNoOrEvt)");
+      expect(script).toContain("function toggleFolderRow(path, evt)");
+      expect(script).toContain("openCodeViewer(");
+      expect(script).toContain("toggleFolderRow(");
+      expect(script).toContain("event.stopPropagation()");
+
+      const styles = getHtmlStyles();
+      expect(styles).toContain("rgba(255, 255, 255, 0.03)");
+      expect(styles).toContain("cursor: pointer;");
+    });
+
+    test("client scripts and styles render structured deficit pills and clickable missed line ranges", () => {
+      const script = getClientScript("{}");
+      expect(script).toContain("function renderDeficitCell(n)");
+      expect(script).toContain("function getUncoveredRanges(n)");
+      expect(script).toContain("deficit-pill-dir");
+      expect(script).toContain("deficit-pill-file");
+      expect(script).toContain("deficit-subtle-cats");
+      expect(script).toContain("miss-range-chip");
+
+      const styles = getHtmlStyles();
+      expect(styles).toContain(".deficit-pill");
+      expect(styles).toContain(".deficit-pill-dir");
+      expect(styles).toContain(".deficit-pill-file");
+      expect(styles).toContain(".deficit-subtle-cats");
+      expect(styles).toContain(".miss-range-chip");
+    });
+
+    test("flat file list mode correctly formats totals, sorting, and telemetry metrics", () => {
+      const script = getClientScript("{}");
+      expect(script).toContain("function renderFlatFiles()");
+      expect(script).toContain("function sortUnifiedItems(");
+      expect(script).toContain("function getNodeMetricVal(");
+      expect(script).toContain('col === "lines"');
+      expect(script).toContain('col === "funcs"');
+      expect(script).toContain('col === "duration"');
+      expect(script).toContain('col === "deficits"');
+      expect(script).toContain('col === "path"');
+      expect(script).toContain("Displaying ");
+      expect(script).toContain(" of ");
+      expect(script).toContain(" files (");
+      expect(script).toContain(" unit tests)");
+      expect(script).toContain("badge-p50");
+      expect(script).toContain("badge-p90");
+      expect(script).toContain("badge-pnormal");
+    });
   });
 });

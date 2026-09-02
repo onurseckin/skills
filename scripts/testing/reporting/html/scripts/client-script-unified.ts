@@ -3,16 +3,22 @@ import { getClientScriptDeficits } from "./client-script-deficits.ts";
 export function getClientScriptUnified(): string {
   return `
     function nodeMatchesFilter(n) {
-      if (masterFilter === "miss") return (n.lines ? n.lines.pct < 100 : (n.linesPct !== undefined ? n.linesPct < 100 : true));
+      const lPct = n.lines ? n.lines.pct : (n.linesPct !== undefined ? n.linesPct : 0);
+      const lTot = n.lines ? n.lines.total : (n.linesTotal !== undefined ? n.linesTotal : 0);
+      const lCov = n.lines ? n.lines.covered : (n.linesCovered !== undefined ? n.linesCovered : 0);
+      const miss = lTot - lCov;
+      const dCount = n.deficitCount !== undefined ? n.deficitCount : (n.deficitClusters ? n.deficitClusters.length : 0);
+      const pClass = n.paretoClass;
+
+      if (masterFilter === "miss") return lPct < 100;
       if (masterFilter === "deficits") {
-        const miss = n.lines ? (n.lines.total - n.lines.covered) : (n.linesTotal ? (n.linesTotal - n.linesCovered) : 0);
-        return (n.uncoveredLines && n.uncoveredLines.length > 0) || miss > 0 || (n.deficitCount && n.deficitCount > 0);
+        return (n.uncoveredLines && n.uncoveredLines.length > 0) || miss > 0 || dCount > 0;
       }
       if (masterFilter === "error-handling" || masterFilter === "branching" || masterFilter === "initialization" || masterFilter === "unexercised-logic") {
-        return (n.deficitCategories && n.deficitCategories.includes(masterFilter));
+        return Boolean(n.deficitCategories && n.deficitCategories.includes(masterFilter));
       }
-      if (masterFilter === "slow") return n.paretoClass === "p50" || n.paretoClass === "p90";
-      if (masterFilter === "perfect") return (n.lines ? n.lines.pct >= 100 : (n.linesPct !== undefined ? n.linesPct >= 100 : true));
+      if (masterFilter === "slow") return pClass === "p50" || pClass === "p90";
+      if (masterFilter === "perfect") return lPct >= 100;
       return true;
     }
 
@@ -40,14 +46,15 @@ export function getClientScriptUnified(): string {
     function getNodeMetricVal(n, col) {
       if (col === "lines") return n.lines ? n.lines.pct : (n.linesPct !== undefined ? n.linesPct : 0);
       if (col === "funcs") return n.functions ? n.functions.pct : (n.funcsPct !== undefined ? n.funcsPct : 0);
-      if (col === "duration") return n.testDurationMs || 0;
+      if (col === "duration") return typeof n.testDurationMs === "number" ? n.testDurationMs : -1;
       if (col === "deficits") {
+        const dCount = n.deficitCount !== undefined ? n.deficitCount : (n.deficitClusters ? n.deficitClusters.length : 0);
+        if (dCount > 0) return dCount;
         if (n.maxRepoGainPct !== undefined && n.maxRepoGainPct > 0) return n.maxRepoGainPct;
-        if (n.deficitCount !== undefined && n.deficitCount > 0) return n.deficitCount;
         if (n.uncoveredLines && n.uncoveredLines.length > 0) return n.uncoveredLines.length;
-        if (n.lines) return n.lines.total - n.lines.covered;
-        if (n.linesTotal !== undefined && n.linesCovered !== undefined) return n.linesTotal - n.linesCovered;
-        return 0;
+        const lTot = n.lines ? n.lines.total : (n.linesTotal !== undefined ? n.linesTotal : 0);
+        const lCov = n.lines ? n.lines.covered : (n.linesCovered !== undefined ? n.linesCovered : 0);
+        return Math.max(0, lTot - lCov);
       }
       return n.path || n.name || "";
     }
@@ -60,7 +67,9 @@ export function getClientScriptUnified(): string {
           if (vA !== vB) return sortAsc ? vA - vB : vB - vA;
           return (a.path || a.name || "").localeCompare(b.path || b.name || "");
         }
-        return sortAsc ? String(vA).localeCompare(String(vB)) : String(vB).localeCompare(String(vA));
+        const strA = String(vA || "");
+        const strB = String(vB || "");
+        return sortAsc ? strA.localeCompare(strB) : strB.localeCompare(strA);
       });
     }
 
@@ -79,50 +88,55 @@ export function getClientScriptUnified(): string {
       '</div>';
     }
 
-    function renderTableRow(item, isDir, indent) {
-      let html = '<tr class="tree-row ' + (isDir ? 'tree-row-dir' : 'tree-row-file') + '">';
+    function renderTableRow(node, isDir, indent) {
+      const rowClick = isDir
+        ? 'toggleFolderRow(\\'' + escapeJs(node.path) + '\\', event)'
+        : 'openCodeViewer(\\'' + escapeJs(node.path) + '\\', event)';
+      let html = '<tr class="tree-row ' + (isDir ? 'tree-row-dir' : 'tree-row-file') + '" onclick="' + rowClick + '" style="cursor: pointer;">';
       html += '<td><div class="tree-cell-name">';
       for (let i = 0; i < (indent || 0); i++) html += '<span class="tree-indent-space"></span>';
       if (isDir) {
         if (indent !== undefined) {
-          const isExp = expandedFolders.has(item.path);
-          html += '<span class="tree-expander" data-path="' + escapeHtml(item.path) + '" onclick="event.stopPropagation(); toggleFolder(this.dataset.path)">' + (isExp ? '&#9660;' : '&#9654;') + '</span>';
+          const isExp = expandedFolders.has(node.path);
+          html += '<span class="tree-expander" data-path="' + escapeHtml(node.path) + '" onclick="event.stopPropagation(); toggleFolderRow(\\'' + escapeJs(node.path) + '\\', event)">' + (isExp ? '&#9660;' : '&#9654;') + '</span>';
         } else {
           html += '<span style="color: var(--text-dim); margin-right: 4px;">📁</span>';
         }
-        const clickFn = indent !== undefined ? 'toggleFolder(this.dataset.path)' : 'void(0)';
-        html += '<span data-path="' + escapeHtml(item.path) + '" onclick="' + clickFn + '" style="cursor:pointer; font-weight: 600; color: var(--text-main); font-family: monospace;">' + escapeHtml(indent !== undefined ? item.name : item.path) + '</span>';
-        if (item.children) html += ' <span class="badge badge-neutral" style="font-size: 0.7rem; margin-left: 4px;">' + item.children.length + ' items</span>';
+        const clickFn = indent !== undefined ? 'event.stopPropagation(); toggleFolderRow(\\'' + escapeJs(node.path) + '\\', event)' : 'void(0)';
+        html += '<span data-path="' + escapeHtml(node.path) + '" onclick="' + clickFn + '" style="cursor:pointer; font-weight: 600; color: var(--text-main); font-family: monospace;">' + escapeHtml(indent !== undefined ? node.name : node.path) + '</span>';
+        if (node.children) html += ' <span class="badge badge-neutral" style="font-size: 0.7rem; margin-left: 4px;">' + node.children.length + ' items</span>';
       } else {
         if (indent !== undefined) html += '<span class="tree-expander-leaf"></span>';
         else html += '<span style="color: var(--text-dim); margin-right: 4px;">📄</span>';
-        const displayName = indent !== undefined ? item.name : item.path;
-        html += '<span data-path="' + escapeHtml(item.path) + '" onclick="openFile(this.dataset.path)" style="cursor:pointer; color: var(--text-main); font-family: monospace; font-weight: 500;" onmouseover="this.style.textDecoration=\\'underline\\'" onmouseout="this.style.textDecoration=\\'none\\'">' + escapeHtml(displayName) + '</span>';
+        const displayName = indent !== undefined ? node.name : node.path;
+        html += '<span data-path="' + escapeHtml(node.path) + '" onclick="event.stopPropagation(); openCodeViewer(\\'' + escapeJs(node.path) + '\\', event)" style="cursor:pointer; color: var(--text-main); font-family: monospace; font-weight: 500;" onmouseover="this.style.textDecoration=\\'underline\\'" onmouseout="this.style.textDecoration=\\'none\\'">' + escapeHtml(displayName) + '</span>';
       }
       html += '</div></td>';
 
-      const lPct = item.lines ? item.lines.pct : (item.linesPct !== undefined ? item.linesPct : 0);
-      const lCov = item.lines ? item.lines.covered : (item.linesCovered || 0);
-      const lTot = item.lines ? item.lines.total : (item.linesTotal || 0);
-      const fPct = item.functions ? item.functions.pct : (item.funcsPct !== undefined ? item.funcsPct : 0);
-      const fCov = item.functions ? item.functions.covered : (item.funcsCovered || 0);
-      const fTot = item.functions ? item.functions.total : (item.funcsTotal || 0);
+      const lPct = node.lines ? node.lines.pct : (node.linesPct !== undefined ? node.linesPct : 0);
+      const lCov = node.lines ? node.lines.covered : (node.linesCovered || 0);
+      const lTot = node.lines ? node.lines.total : (node.linesTotal || 0);
+      const fPct = node.functions ? node.functions.pct : (node.funcsPct !== undefined ? node.funcsPct : 0);
+      const fCov = node.functions ? node.functions.covered : (node.funcsCovered || 0);
+      const fTot = node.functions ? node.functions.total : (node.funcsTotal || 0);
       html += '<td>' + renderCoverageBar(lPct, lCov, lTot, 'lines') + '</td>';
       html += '<td>' + renderCoverageBar(fPct, fCov, fTot, 'funcs') + '</td>';
 
       html += '<td><div class="test-telemetry-cell">';
-      if (item.testDurationMs !== undefined) {
-        html += '<span style="font-family: monospace; font-weight: 700; color: var(--text-main);">' + (Math.round(item.testDurationMs * 100) / 100) + 'ms</span>';
-        if (item.paretoClass === "p50") html += '<span class="badge badge-p50" title="Top 50% Latency Hotspot">P50</span>';
-        else if (item.paretoClass === "p90") html += '<span class="badge badge-p90" title="Top 90% Latency Hotspot">P90</span>';
-        else if (item.paretoClass === "normal") html += '<span class="badge badge-pnormal">Fast</span>';
+      if (node.testDurationMs !== undefined) {
+        html += '<span style="font-family: monospace; font-weight: 700; color: var(--text-main);">' + (Math.round(node.testDurationMs * 100) / 100) + 'ms</span>';
+        if (node.paretoClass === "p50") html += '<span class="badge badge-p50" title="Top 50% Latency Hotspot">P50</span>';
+        else if (node.paretoClass === "p90") html += '<span class="badge badge-p90" title="Top 90% Latency Hotspot">P90</span>';
+        else if (node.paretoClass === "normal") html += '<span class="badge badge-pnormal">Fast</span>';
+        if (node.testPassed === false) html += '<span class="badge badge-fail" style="font-size:0.7rem; padding: 0.1rem 0.35rem;">FAIL</span>';
+        else if (node.testPassed === true) html += '<span class="badge badge-pass" style="font-size:0.7rem; padding: 0.1rem 0.35rem;">PASS</span>';
       } else {
         html += '<span style="color: var(--text-dim);">-</span>';
       }
       html += '</div></td>';
 
-      html += '<td>' + renderDeficitCell(item) + '</td>';
-      html += '<td>' + (!isDir ? '<button class="tree-action-btn" data-path="' + escapeHtml(item.path) + '" onclick="openFile(this.dataset.path)" style="cursor: pointer;">Inspect</button>' : '<span style="color: var(--text-dim); font-size: 0.75rem;">Folder</span>') + '</td>';
+      html += '<td>' + renderDeficitCell(node) + '</td>';
+      html += '<td>' + (!isDir ? '<button class="tree-action-btn" data-path="' + escapeHtml(node.path) + '" onclick="event.stopPropagation(); openCodeViewer(\\'' + escapeJs(node.path) + '\\', event)" style="cursor: pointer;">Inspect</button>' : '<span style="color: var(--text-dim); font-size: 0.75rem;">Folder</span>') + '</td>';
       html += '</tr>';
       return html;
     }
@@ -162,15 +176,7 @@ export function getClientScriptUnified(): string {
     }
 
     function renderFlatFiles() {
-      const filtered = DATA.files.filter(f => {
-        if (masterSearch && !f.path.toLowerCase().includes(masterSearch) && !(f.testFile && f.testFile.toLowerCase().includes(masterSearch))) return false;
-        if (masterFilter === "miss" && f.linesPct >= 100) return false;
-        if (masterFilter === "deficits" && (!f.uncoveredLines || f.uncoveredLines.length === 0) && (f.linesTotal - f.linesCovered <= 0)) return false;
-        if ((masterFilter === "error-handling" || masterFilter === "branching" || masterFilter === "initialization" || masterFilter === "unexercised-logic") && (!f.deficitCategories || !f.deficitCategories.includes(masterFilter))) return false;
-        if (masterFilter === "slow" && f.paretoClass !== "p50" && f.paretoClass !== "p90") return false;
-        if (masterFilter === "perfect" && f.linesPct < 100) return false;
-        return true;
-      });
+      const filtered = (DATA.files || []).filter(f => nodeMatchesFilter(f) && nodeMatchesSearch(f));
       const sorted = sortUnifiedItems(filtered);
       if (sorted.length === 0) {
         return '<tr><td colspan="6" style="text-align: center; color: var(--text-dim); padding: 2.5rem;">No production files matched the selected criteria.</td></tr>';
@@ -182,22 +188,27 @@ export function getClientScriptUnified(): string {
       const container = document.getElementById("master-table-container");
       if (!container) return;
 
+      const summaryText = document.getElementById("table-summary-text");
+      const treeBar = document.getElementById("tree-actions-bar");
+      const isFilterActive = (masterFilter !== "all" || masterSearch !== "");
+
       if (viewMode === "deficits") {
-        const treeBar = document.getElementById("tree-actions-bar");
         if (treeBar) treeBar.style.display = "none";
         container.innerHTML = renderDeficitView();
-        const summaryText = document.getElementById("table-summary-text");
         if (summaryText) {
           const cCount = (DATA.deficits && DATA.deficits.clusters) ? DATA.deficits.clusters.length : 0;
-          summaryText.textContent = "Displaying " + cCount + " prioritized deficit clusters";
+          summaryText.textContent = "Displaying " + cCount.toLocaleString() + " prioritized deficit clusters";
         }
         return;
       }
 
-      const isFilterActive = (masterFilter !== "all" || masterSearch !== "");
-      const treeBar = document.getElementById("tree-actions-bar");
       if (treeBar) {
-        treeBar.style.display = (viewMode === "tree" && !isFilterActive) ? "flex" : "none";
+        treeBar.style.display = "flex";
+        const btnExp = document.getElementById("btn-expand-all");
+        const btnCol = document.getElementById("btn-collapse-all");
+        const showTreeButtons = (viewMode === "tree" && !isFilterActive);
+        if (btnExp) btnExp.style.display = showTreeButtons ? "" : "none";
+        if (btnCol) btnCol.style.display = showTreeButtons ? "" : "none";
       }
 
       let html = '<table class="unified-tree-table"><thead><tr>';
@@ -210,9 +221,18 @@ export function getClientScriptUnified(): string {
       html += '<th style="width: 100px;">Action</th>';
       html += '</tr></thead><tbody>';
 
+      const totalFiles = DATA.files ? DATA.files.length : 0;
+      const totalTests = (DATA.runtime && typeof DATA.runtime.totalFiles === "number") ? DATA.runtime.totalFiles : (DATA.files ? (new Set(DATA.files.map(f => f.testFile).filter(Boolean)).size) : 0);
+
       if (viewMode === "tree") {
         if (isFilterActive) {
           html += renderRankedTreeNodes();
+          if (summaryText) {
+            const matching = [];
+            if (DATA.tree) collectMatchingNodes(DATA.tree, matching);
+            const mTests = new Set(matching.map(n => n.testFile).filter(Boolean)).size;
+            summaryText.textContent = "Displaying " + matching.length.toLocaleString() + " of " + totalFiles.toLocaleString() + " items (" + mTests.toLocaleString() + " unit tests)";
+          }
         } else {
           if (DATA.tree && DATA.tree.children && DATA.tree.children.length > 0) {
             const sortedRoots = sortUnifiedItems(DATA.tree.children);
@@ -222,18 +242,25 @@ export function getClientScriptUnified(): string {
           } else {
             html += '<tr><td colspan="6" style="text-align: center; color: var(--text-dim); padding: 2rem;">No hierarchy tree available.</td></tr>';
           }
+          if (summaryText) {
+            summaryText.textContent = "Displaying " + totalFiles.toLocaleString() + " files (" + totalTests.toLocaleString() + " unit tests)";
+          }
         }
       } else {
         html += renderFlatFiles();
+        if (summaryText) {
+          const filtered = (DATA.files || []).filter(f => nodeMatchesFilter(f) && nodeMatchesSearch(f));
+          const fTests = new Set(filtered.map(f => f.testFile).filter(Boolean)).size;
+          if (isFilterActive || filtered.length < totalFiles) {
+            summaryText.textContent = "Displaying " + filtered.length.toLocaleString() + " of " + totalFiles.toLocaleString() + " files (" + fTests.toLocaleString() + " unit tests)";
+          } else {
+            summaryText.textContent = "Displaying " + totalFiles.toLocaleString() + " files (" + totalTests.toLocaleString() + " unit tests)";
+          }
+        }
       }
 
       html += '</tbody></table>';
       container.innerHTML = html;
-
-      const summaryText = document.getElementById("table-summary-text");
-      if (summaryText) {
-        summaryText.textContent = "Displaying " + DATA.files.length + " production files (" + (DATA.runtime ? DATA.runtime.totalFiles : 1864) + " unit tests)";
-      }
     }
 
     ${getClientScriptDeficits()}

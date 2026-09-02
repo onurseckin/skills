@@ -48,7 +48,7 @@ export function getClientScript(payloadJson: string): string {
       const subLines = document.getElementById("sub-lines");
       const gaugeLines = document.getElementById("gauge-lines");
       if (valLines) valLines.textContent = t.lines.pct + "%";
-      if (subLines) subLines.textContent = t.lines.covered + " / " + t.lines.total + " lines";
+      if (subLines) subLines.textContent = (t.lines.covered || 0).toLocaleString() + " / " + (t.lines.total || 0).toLocaleString() + " lines";
       if (gaugeLines) gaugeLines.innerHTML = createGaugeSvg(t.lines.pct, colorForPct(t.lines.pct));
 
       // Card 2: Functions Coverage
@@ -56,21 +56,25 @@ export function getClientScript(payloadJson: string): string {
       const subFuncs = document.getElementById("sub-funcs");
       const gaugeFuncs = document.getElementById("gauge-funcs");
       if (valFuncs) valFuncs.textContent = t.functions.pct + "%";
-      if (subFuncs) subFuncs.textContent = t.functions.covered + " / " + t.functions.total + " funcs";
+      if (subFuncs) subFuncs.textContent = (t.functions.covered || 0).toLocaleString() + " / " + (t.functions.total || 0).toLocaleString() + " funcs";
       if (gaugeFuncs) gaugeFuncs.innerHTML = createGaugeSvg(t.functions.pct, colorForPct(t.functions.pct));
 
       // Card 3: Production Files Tested
       const valFiles = document.getElementById("val-files");
       const gaugeFiles = document.getElementById("gauge-files");
-      if (valFiles) valFiles.textContent = DATA.files.length;
+      const totalFilesCount = (DATA.files && DATA.files.length) ? DATA.files.length : 0;
+      if (valFiles) valFiles.textContent = totalFilesCount.toLocaleString();
       if (gaugeFiles) gaugeFiles.innerHTML = createGaugeSvg(100, "var(--status-pass)");
 
       // Card 4: Unit Test Files Run
       const valTests = document.getElementById("val-tests");
       const subTests = document.getElementById("sub-tests");
       const gaugeTests = document.getElementById("gauge-tests");
-      if (valTests) valTests.textContent = r ? r.totalFiles : "1864";
-      if (subTests) subTests.textContent = r ? r.totalDurationMs + "ms (" + (r.pareto50 ? r.pareto50.fileCount : 9) + " in P50)" : "Across test suite";
+      const totalTestsCount = (r && typeof r.totalFiles === "number") ? r.totalFiles : (DATA.files ? (new Set(DATA.files.map(f => f.testFile).filter(Boolean)).size) : 0);
+      const totalDur = (r && typeof r.totalDurationMs === "number") ? r.totalDurationMs : 0;
+      const p50Count = (r && r.pareto50 && typeof r.pareto50.fileCount === "number") ? r.pareto50.fileCount : 0;
+      if (valTests) valTests.textContent = totalTestsCount.toLocaleString();
+      if (subTests) subTests.textContent = totalDur > 0 ? (totalDur.toLocaleString() + "ms (" + p50Count.toLocaleString() + " in P50)") : "Across test suite";
       if (gaugeTests) gaugeTests.innerHTML = createGaugeSvg(100, "var(--text-muted)");
 
       // Card 5: Deficit Clusters
@@ -79,8 +83,8 @@ export function getClientScript(payloadJson: string): string {
       const gaugeDeficits = document.getElementById("gauge-deficits");
       const clusterCount = def && def.clusters ? def.clusters.length : 0;
       const missedLines = t.lines.total - t.lines.covered;
-      if (valDeficits) valDeficits.textContent = clusterCount;
-      if (subDeficits) subDeficits.textContent = missedLines + " uncovered lines";
+      if (valDeficits) valDeficits.textContent = clusterCount.toLocaleString();
+      if (subDeficits) subDeficits.textContent = (missedLines > 0 ? missedLines : 0).toLocaleString() + " uncovered lines";
       if (gaugeDeficits) gaugeDeficits.innerHTML = createGaugeSvg(Math.max(0, 100 - (missedLines / (t.lines.total || 1)) * 100), "var(--status-fail)");
 
       if (typeof initDeficitMetrics === "function") {
@@ -105,8 +109,6 @@ export function getClientScript(payloadJson: string): string {
       document.querySelectorAll(".view-mode-btn").forEach(b => b.classList.remove("active"));
       const btn = document.getElementById("btn-view-" + mode);
       if (btn) btn.classList.add("active");
-      const treeBar = document.getElementById("tree-actions-bar");
-      if (treeBar) treeBar.style.display = mode === "tree" ? "flex" : "none";
       updateUrlHash();
       renderMasterTable();
     }
@@ -204,6 +206,14 @@ export function getClientScript(payloadJson: string): string {
       }
       renderMasterTable();
     }
+
+    function renderFolderView() { renderMasterTable(); }
+    function renderFileView() { renderMasterTable(); }
+    function setFilter(f) { setMasterFilter(f); }
+    function setSort(s) { setMasterSort(s); }
+    function renderBreadcrumbs() {}
+    function getFolderLinesPct() { return (DATA.total && DATA.total.lines) ? DATA.total.lines.pct : 100; }
+    function getFolderFuncsPct() { return (DATA.total && DATA.total.functions) ? DATA.total.functions.pct : 100; }
 
     ${getClientScriptHelpers()}
 
