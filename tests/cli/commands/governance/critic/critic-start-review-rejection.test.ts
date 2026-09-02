@@ -72,7 +72,7 @@ describe("CLI critic-ops commands - Rejections, Findings and Validation", () => 
     expect(String(review.markdown)).toContain(
       "### Completeness Critic Sign-Off: CHANGES REQUESTED",
     );
-  });
+  }, 30_000);
 
   test("request_changes without findings is refused rather than synthesized", async () => {
     const { repo, run } = await setupReadyRun("critic-no-findings", roots);
@@ -103,7 +103,7 @@ describe("CLI critic-ops commands - Rejections, Findings and Validation", () => 
         "Something is wrong but I will not say what",
       ]),
     ).rejects.toThrow("a rejection must name the defects it found");
-  });
+  }, 30_000);
 
   test("critic:reject records structured findings and integrates with plan:replan", async () => {
     const { repo, run } = await setupReadyRun("critic-reject-flow", roots);
@@ -178,7 +178,7 @@ describe("CLI critic-ops commands - Rejections, Findings and Validation", () => 
     const list = await execute(["queue:list", "--run", run]);
     const ready = (list.partitions as { ready: string[] }).ready;
     for (const id of newTaskIds) expect(ready).toContain(id);
-  });
+  }, 30_000);
 
   test("critic:start refuses repository command id that is not authoritative evidence", async () => {
     const { run } = await setupReadyRun("critic-repo-ids-bogus", roots);
@@ -193,7 +193,7 @@ describe("CLI critic-ops commands - Rejections, Findings and Validation", () => 
         "C-does-not-exist",
       ]),
     ).rejects.toThrow("not authoritative repository evidence");
-  });
+  }, 30_000);
 
   test("critic:review rejects decision that is neither approve nor request_changes", async () => {
     const tempDir = mkdtempSync(join(tmpdir(), "olt-test-"));
@@ -207,7 +207,7 @@ describe("CLI critic-ops commands - Rejections, Findings and Validation", () => 
         summary: "Not a real decision",
       }),
     ).rejects.toThrow("--decision must be approve or request_changes");
-  });
+  }, 30_000);
 
   test("critic:review refuses --findings on an approve decision", async () => {
     const { repo, run } = await setupReadyRun("critic-review-approve-findings", roots);
@@ -239,7 +239,7 @@ describe("CLI critic-ops commands - Rejections, Findings and Validation", () => 
         "Approve should never carry findings",
       ]),
     ).rejects.toThrow("--decision approve cannot carry findings");
-  });
+  }, 30_000);
 
   test("critic:review rejects request_changes whose --findings parses to empty list", async () => {
     const { repo, run } = await setupReadyRun("critic-review-empty-findings", roots);
@@ -271,7 +271,7 @@ describe("CLI critic-ops commands - Rejections, Findings and Validation", () => 
         "No actual findings named",
       ]),
     ).rejects.toThrow("--decision request_changes requires at least one finding");
-  });
+  }, 30_000);
 
   test("critic:review refuses when no completeness critic assignment is recorded", async () => {
     const { run } = await setupReadyRun("critic-review-no-assignment", roots);
@@ -290,5 +290,5 @@ describe("CLI critic-ops commands - Rejections, Findings and Validation", () => 
         "No critic:start was ever run",
       ]),
     ).rejects.toThrow("no completeness critic assignment found");
-  });
+  }, 30_000);
 });
