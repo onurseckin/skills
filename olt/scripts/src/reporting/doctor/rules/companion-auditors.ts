@@ -37,13 +37,22 @@ export function auditCompanionAuditors(
       const rawLedger = readAgentLedger(state);
       activeGrants = rawLedger.filter((g) => g.status === "active");
     } catch {
+      activeGrants = [];
+    }
+    if (activeGrants.length === 0) {
       if (Array.isArray(state.agents)) {
         activeGrants = (state.agents as AgentGrantRecord[]).filter(
-          (g) => typeof g === "object" && g !== null && g.status === "active",
+          (g) =>
+            typeof g === "object" &&
+            g !== null &&
+            (g as Record<string, unknown>).status === "active",
         );
       } else if (Array.isArray(state.grants)) {
         activeGrants = (state.grants as AgentGrantRecord[]).filter(
-          (g) => typeof g === "object" && g !== null && g.status === "active",
+          (g) =>
+            typeof g === "object" &&
+            g !== null &&
+            (g as Record<string, unknown>).status === "active",
         );
       }
     }
