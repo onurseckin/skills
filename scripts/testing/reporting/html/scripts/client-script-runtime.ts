@@ -168,9 +168,9 @@ export function getClientScriptRuntime(): string {
 
       let html = '<table><thead><tr>';
       html += '<th style="width: 60px;"># Rank</th>';
-      html += '<th onclick="setRuntimeSort(\\'file\\')">Test File ' + (runtimeSortCol === 'file' ? (runtimeSortAsc ? '▲' : '▼') : '') + '</th>';
-      html += '<th onclick="setRuntimeSort(\\'duration\\')" style="width: 140px;">Duration ' + (runtimeSortCol === 'duration' ? (runtimeSortAsc ? '▲' : '▼') : '') + '</th>';
-      html += '<th onclick="setRuntimeSort(\\'pct\\')" style="width: 120px;">Time Share ' + (runtimeSortCol === 'pct' ? (runtimeSortAsc ? '▲' : '▼') : '') + '</th>';
+      html += '<th data-sort="file" onclick="setRuntimeSort(this.dataset.sort)">Test File ' + (runtimeSortCol === 'file' ? (runtimeSortAsc ? '▲' : '▼') : '') + '</th>';
+      html += '<th data-sort="duration" onclick="setRuntimeSort(this.dataset.sort)" style="width: 140px;">Duration ' + (runtimeSortCol === 'duration' ? (runtimeSortAsc ? '▲' : '▼') : '') + '</th>';
+      html += '<th data-sort="pct" onclick="setRuntimeSort(this.dataset.sort)" style="width: 120px;">Time Share ' + (runtimeSortCol === 'pct' ? (runtimeSortAsc ? '▲' : '▼') : '') + '</th>';
       html += '<th style="width: 160px;">Concentration</th>';
       html += '<th style="width: 90px;">Status</th>';
       html += '</tr></thead><tbody>';
@@ -180,17 +180,17 @@ export function getClientScriptRuntime(): string {
         const durBarPct = maxDur > 0 ? Math.min(100, Math.round((f.durationMs / maxDur) * 100)) : 0;
         const statusBadge = f.passed === false ? '<span class="badge badge-fail">FAIL</span>' : '<span class="badge badge-pass">PASS</span>';
         const matchedSource = findSourceForTest(f.file);
-        const matrixLink = matchedSource 
-          ? '<a href="#coverage/' + escapeHtml(matchedSource) + '" class="badge badge-neutral" style="text-decoration: none; margin-left: 0.5rem; font-size: 0.72rem; cursor: pointer;" title="Inspect ' + escapeHtml(matchedSource) + ' in Coverage Matrix">Matrix</a>'
-          : '';
+        const testNameHtml = matchedSource
+          ? '<a href="#coverage/' + escapeHtml(matchedSource) + '" class="test-title-link" title="Inspect ' + escapeHtml(matchedSource) + ' in Coverage Matrix">' + escapeHtml(f.file) + '</a>'
+          : '<strong style="color: var(--text-main);">' + escapeHtml(f.file) + '</strong>';
         const rowId = "rt-row-" + encodeURIComponent(f.file);
 
         html += '<tr id="' + rowId + '" data-test-file="' + escapeHtml(f.file) + '">';
-        html += '<td style="font-family: \\'JetBrains Mono\\', monospace; color: var(--text-dim);">' + globalRank + '</td>';
-        html += '<td><div class="item-name"><strong style="color: var(--text-main);">' + escapeHtml(f.file) + '</strong>' + matrixLink + '</div></td>';
-        html += '<td><span style="font-family: \\'JetBrains Mono\\', monospace; font-weight: 700; color: var(--text-main);">' + f.durationMs + 'ms</span></td>';
+        html += '<td style="font-family: monospace; color: var(--text-dim);">' + globalRank + '</td>';
+        html += '<td><div class="item-name">' + testNameHtml + '</div></td>';
+        html += '<td><span style="font-family: monospace; font-weight: 700; color: var(--text-main);">' + f.durationMs + 'ms</span></td>';
         html += '<td><span class="badge badge-neutral">' + f.percentage + '%</span></td>';
-        html += '<td><div class="runtime-bar-cell"><div class="runtime-bar-track"><div class="runtime-bar-fill" style="width:' + durBarPct + '%"></div></div><span style="font-size: 0.75rem; color: var(--text-dim); font-family: \\'JetBrains Mono\\', monospace;">' + durBarPct + '%</span></div></td>';
+        html += '<td><div class="runtime-bar-cell"><div class="runtime-bar-track"><div class="runtime-bar-fill" style="width:' + durBarPct + '%"></div></div><span style="font-size: 0.75rem; color: var(--text-dim); font-family: monospace;">' + durBarPct + '%</span></div></td>';
         html += '<td>' + statusBadge + '</td>';
         html += '</tr>';
       });

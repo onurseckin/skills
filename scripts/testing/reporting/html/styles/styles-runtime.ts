@@ -31,6 +31,16 @@ export function getRuntimeStyles(): string {
       border-bottom: 2px solid var(--brand-accent);
       background: rgba(99, 102, 241, 0.08);
     }
+    .test-title-link {
+      color: var(--text-main);
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.15s ease;
+    }
+    .test-title-link:hover {
+      color: var(--brand-accent);
+      text-decoration: underline;
+    }
     
     .runtime-kpi-grid {
       display: grid;

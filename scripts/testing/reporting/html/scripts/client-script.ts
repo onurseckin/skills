@@ -150,10 +150,10 @@ export function getClientScript(payloadJson: string): string {
       });
 
       let html = '<table><thead><tr>';
-      html += '<th onclick="setSort(\\'name\\')">Name ' + (sortColumn === 'name' ? (sortAsc ? '▲' : '▼') : '') + '</th>';
-      html += '<th onclick="setSort(\\'lines\\')">Lines ' + (sortColumn === 'lines' ? (sortAsc ? '▲' : '▼') : '') + '</th>';
-      html += '<th onclick="setSort(\\'statements\\')">Statements ' + (sortColumn === 'statements' ? (sortAsc ? '▲' : '▼') : '') + '</th>';
-      html += '<th onclick="setSort(\\'funcs\\')">Functions ' + (sortColumn === 'funcs' ? (sortAsc ? '▲' : '▼') : '') + '</th>';
+      html += '<th data-sort="name" onclick="setSort(this.dataset.sort)">Name ' + (sortColumn === 'name' ? (sortAsc ? '▲' : '▼') : '') + '</th>';
+      html += '<th data-sort="lines" onclick="setSort(this.dataset.sort)">Lines ' + (sortColumn === 'lines' ? (sortAsc ? '▲' : '▼') : '') + '</th>';
+      html += '<th data-sort="statements" onclick="setSort(this.dataset.sort)">Statements ' + (sortColumn === 'statements' ? (sortAsc ? '▲' : '▼') : '') + '</th>';
+      html += '<th data-sort="funcs" onclick="setSort(this.dataset.sort)">Functions ' + (sortColumn === 'funcs' ? (sortAsc ? '▲' : '▼') : '') + '</th>';
       html += '<th>Uncovered Lines</th>';
       html += '</tr></thead><tbody>';
 

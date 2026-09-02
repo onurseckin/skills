@@ -229,11 +229,11 @@ export function getClientScriptUnified(): string {
       initUnifiedMetrics();
 
       let html = '<div class="tree-table-wrapper"><table class="unified-tree-table"><thead><tr>';
-      html += '<th onclick="setUnifiedSort(\\'path\\')">Hierarchy Path ' + (unifiedSortCol === 'path' ? (unifiedSortAsc ? '▲' : '▼') : '') + '</th>';
-      html += '<th onclick="setUnifiedSort(\\'lines\\')">Lines ' + (unifiedSortCol === 'lines' ? (unifiedSortAsc ? '▲' : '▼') : '') + '</th>';
-      html += '<th onclick="setUnifiedSort(\\'statements\\')">Statements ' + (unifiedSortCol === 'statements' ? (unifiedSortAsc ? '▲' : '▼') : '') + '</th>';
-      html += '<th onclick="setUnifiedSort(\\'funcs\\')">Functions ' + (unifiedSortCol === 'funcs' ? (unifiedSortAsc ? '▲' : '▼') : '') + '</th>';
-      html += '<th onclick="setUnifiedSort(\\'duration\\')">Duration & Hotspot ' + (unifiedSortCol === 'duration' ? (unifiedSortAsc ? '▲' : '▼') : '') + '</th>';
+      html += '<th data-sort="path" onclick="setUnifiedSort(this.dataset.sort)">Hierarchy Path ' + (unifiedSortCol === 'path' ? (unifiedSortAsc ? '▲' : '▼') : '') + '</th>';
+      html += '<th data-sort="lines" onclick="setUnifiedSort(this.dataset.sort)">Lines ' + (unifiedSortCol === 'lines' ? (unifiedSortAsc ? '▲' : '▼') : '') + '</th>';
+      html += '<th data-sort="statements" onclick="setUnifiedSort(this.dataset.sort)">Statements ' + (unifiedSortCol === 'statements' ? (unifiedSortAsc ? '▲' : '▼') : '') + '</th>';
+      html += '<th data-sort="funcs" onclick="setUnifiedSort(this.dataset.sort)">Functions ' + (unifiedSortCol === 'funcs' ? (unifiedSortAsc ? '▲' : '▼') : '') + '</th>';
+      html += '<th data-sort="duration" onclick="setUnifiedSort(this.dataset.sort)">Duration & Hotspot ' + (unifiedSortCol === 'duration' ? (unifiedSortAsc ? '▲' : '▼') : '') + '</th>';
       html += '<th>Status</th>';
       html += '<th>Uncovered Lines</th>';
       html += '</tr></thead><tbody>';

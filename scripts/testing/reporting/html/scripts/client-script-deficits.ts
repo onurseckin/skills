@@ -121,11 +121,11 @@ export function getClientScriptDeficits(): string {
 
       let html = '<div class="deficit-table-wrapper"><table class="deficit-table"><thead><tr>';
       html += '<th style="width: 60px;"># Rank</th>';
-      html += '<th onclick="setDeficitSort(\\'file\\')">Target File & Range ' + (deficitSortCol === 'file' ? (deficitSortAsc ? '▲' : '▼') : '') + '</th>';
-      html += '<th onclick="setDeficitSort(\\'lines\\')" style="width: 130px;">Uncovered Lines ' + (deficitSortCol === 'lines' ? (deficitSortAsc ? '▲' : '▼') : '') + '</th>';
-      html += '<th onclick="setDeficitSort(\\'repoGain\\')" style="width: 120px;">Repo Gain ' + (deficitSortCol === 'repoGain' ? (deficitSortAsc ? '▲' : '▼') : '') + '</th>';
-      html += '<th onclick="setDeficitSort(\\'fileGain\\')" style="width: 120px;">File Gain ' + (deficitSortCol === 'fileGain' ? (deficitSortAsc ? '▲' : '▼') : '') + '</th>';
-      html += '<th onclick="setDeficitSort(\\'category\\')" style="width: 170px;">Risk Category ' + (deficitSortCol === 'category' ? (deficitSortAsc ? '▲' : '▼') : '') + '</th>';
+      html += '<th data-sort="file" onclick="setDeficitSort(this.dataset.sort)">Target File & Range ' + (deficitSortCol === 'file' ? (deficitSortAsc ? '▲' : '▼') : '') + '</th>';
+      html += '<th data-sort="lines" onclick="setDeficitSort(this.dataset.sort)" style="width: 130px;">Uncovered Lines ' + (deficitSortCol === 'lines' ? (deficitSortAsc ? '▲' : '▼') : '') + '</th>';
+      html += '<th data-sort="repoGain" onclick="setDeficitSort(this.dataset.sort)" style="width: 120px;">Repo Gain ' + (deficitSortCol === 'repoGain' ? (deficitSortAsc ? '▲' : '▼') : '') + '</th>';
+      html += '<th data-sort="fileGain" onclick="setDeficitSort(this.dataset.sort)" style="width: 120px;">File Gain ' + (deficitSortCol === 'fileGain' ? (deficitSortAsc ? '▲' : '▼') : '') + '</th>';
+      html += '<th data-sort="category" onclick="setDeficitSort(this.dataset.sort)" style="width: 170px;">Risk Category ' + (deficitSortCol === 'category' ? (deficitSortAsc ? '▲' : '▼') : '') + '</th>';
       html += '<th>Heuristic Detail / Snippet</th>';
       html += '</tr></thead><tbody>';
 
