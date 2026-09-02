@@ -103,7 +103,7 @@ export function getUnifiedStyles(): string {
       display: flex;
       align-items: center;
       gap: 0.35rem;
-      font-family: 'JetBrains Mono', monospace;
+      font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
       font-size: 0.85rem;
     }
     .tree-expander {

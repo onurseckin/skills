@@ -5,9 +5,6 @@ export function buildHtmlDocument(styles: string, clientScript: string): string 
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Test Coverage & Runtime Dashboard - @onurseckin/skills</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
 ${styles}
   </style>
@@ -23,10 +20,15 @@ ${styles}
       <div class="brand-text">Skills Test Suite & Performance</div>
       <span id="header-badge" class="badge"></span>
     </div>
-    <div style="font-size: 0.8rem; color: var(--text-dim); font-family: 'JetBrains Mono', monospace;" id="header-timestamp"></div>
+    <div style="font-size: 0.8rem; color: var(--text-dim); font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;" id="header-timestamp"></div>
   </header>
 
   <div class="container">
+    <!-- Static Offline Loading Indicator (Hidden immediately once JS initializes) -->
+    <div id="dashboard-loader" class="dashboard-loader">
+      <div class="loader-spinner"></div>
+      <div class="loader-text">Loading Test Coverage & Telemetry...</div>
+    </div>
     <!-- 5 Master KPI Summary Cards -->
     <div class="metrics-grid">
       <div class="metric-card">

@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { generateDeficitRoadmap } from "./deficits/index.ts";
 import {
   writeInteractiveHtml,
   buildHtmlDocument,
@@ -8,6 +9,7 @@ import {
   getHtmlStyles,
 } from "./html/index.ts";
 import { parseLcov } from "./lcov-parser.ts";
+import { buildLlmsGuide, writeLlmsGuide, writeDeficitsJson } from "./llms-guide.ts";
 import { writeMarkdownReport, formatRuntimeMarkdown } from "./markdown-reporter.ts";
 import { parseTestRuntimeOutput } from "./runtime-telemetry.ts";
 import { buildCoverageSummary, writeSummaryJson } from "./summary-reporter.ts";
@@ -16,6 +18,8 @@ import type {
   ProcessCoverageOptions,
   TestRuntimeSummary,
 } from "./types.ts";
+
+export { buildLlmsGuide, writeLlmsGuide, writeDeficitsJson };
 
 export {
   calculatePct,
@@ -154,6 +158,8 @@ export function processCoverageArtifacts(
   let summaryPath: string | undefined;
   let reportPath: string | undefined;
   let htmlPath: string | undefined;
+  let llmsGuidePath: string | undefined;
+  let deficitsPath: string | undefined;
 
   if (shouldWriteToDisk) {
     // 1. Write standard Istanbul/NYC coverage-summary.json
@@ -168,6 +174,13 @@ export function processCoverageArtifacts(
 
     // 3. Write modern interactive HTML dashboard index.html
     htmlPath = writeInteractiveHtml(fileMap, summary, root, coverageDirName, runtime);
+
+    // 4. Generate & write deficits.json roadmap
+    const deficits = generateDeficitRoadmap(fileMap, { rootDir: root });
+    deficitsPath = writeDeficitsJson(deficits, root, coverageDirName);
+
+    // 5. Generate & write LLMS.txt query guide for language models
+    llmsGuidePath = writeLlmsGuide(summary, root, coverageDirName, fileMap.size, runtime, deficits);
   }
 
   const totalPct =
@@ -185,6 +198,8 @@ export function processCoverageArtifacts(
     summaryPath,
     reportPath,
     htmlPath,
+    llmsGuidePath,
+    deficitsPath,
     summary,
     runtime,
   };

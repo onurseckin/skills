@@ -89,7 +89,7 @@ export function getRuntimeStyles(): string {
       font-size: 0.8rem;
       color: var(--text-dim);
       margin-top: 0.35rem;
-      font-family: 'JetBrains Mono', monospace;
+      font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
     }
 
     .pagination-bar {
@@ -132,7 +132,7 @@ export function getRuntimeStyles(): string {
     .page-indicator {
       font-size: 0.85rem;
       color: var(--text-muted);
-      font-family: 'JetBrains Mono', monospace;
+      font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
       margin: 0 0.5rem;
     }
 

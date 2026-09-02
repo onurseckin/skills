@@ -29,7 +29,7 @@ export function getCodeViewerStyles(): string {
       color: #f87171;
       padding: 0.2rem 0.5rem;
       border-radius: 0.375rem;
-      font-family: 'JetBrains Mono', monospace;
+      font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
       font-size: 0.75rem;
       font-weight: 600;
       cursor: pointer;
@@ -40,11 +40,11 @@ export function getCodeViewerStyles(): string {
       transform: translateY(-1px);
     }
     .code-container {
-      background: #090d16;
+      background: #080808;
       border: 1px solid var(--border-subtle);
       border-radius: 0.75rem;
       overflow-x: auto;
-      font-family: 'JetBrains Mono', monospace;
+      font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
       font-size: 0.85rem;
     }
     .code-line {

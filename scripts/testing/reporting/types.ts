@@ -99,6 +99,8 @@ export interface CoverageArtifactResult {
   readonly summaryPath?: string | undefined;
   readonly reportPath?: string | undefined;
   readonly htmlPath?: string | undefined;
+  readonly llmsGuidePath?: string | undefined;
+  readonly deficitsPath?: string | undefined;
   readonly summary?: CoverageSummary | undefined;
   readonly runtime?: TestRuntimeSummary | undefined;
 }

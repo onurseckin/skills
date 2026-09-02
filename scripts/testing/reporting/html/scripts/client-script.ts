@@ -149,9 +149,16 @@ export function getClientScript(payloadJson: string): string {
     ${getClientScriptHelpers()}
 
     function initApp() {
-      initMetrics();
-      initDeepLinks();
-      renderMasterTable();
+      const loader = document.getElementById("dashboard-loader");
+      try {
+        initMetrics();
+        initDeepLinks();
+        renderMasterTable();
+      } finally {
+        if (loader) {
+          loader.style.display = "none";
+        }
+      }
     }
 
     window.addEventListener("DOMContentLoaded", initApp);

@@ -70,7 +70,7 @@ export function getDeficitStyles(): string {
 
     /* Rank Badge */
     .deficit-rank {
-      font-family: 'JetBrains Mono', monospace;
+      font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
       font-size: 0.8rem;
       font-weight: 700;
       color: var(--text-dim);
@@ -84,7 +84,7 @@ export function getDeficitStyles(): string {
 
     /* Target link chip */
     .deficit-target-link {
-      font-family: 'JetBrains Mono', monospace;
+      font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
       font-size: 0.85rem;
       font-weight: 600;
       color: #818cf8;
@@ -106,7 +106,7 @@ export function getDeficitStyles(): string {
       color: #a5b4fc;
       border: 1px solid rgba(99, 102, 241, 0.35);
       box-shadow: 0 0 8px rgba(99, 102, 241, 0.15);
-      font-family: 'JetBrains Mono', monospace;
+      font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
       font-size: 0.78rem;
       font-weight: 700;
       padding: 0.2rem 0.5rem;
@@ -119,7 +119,7 @@ export function getDeficitStyles(): string {
       color: #6ee7b7;
       border: 1px solid rgba(16, 185, 129, 0.35);
       box-shadow: 0 0 8px rgba(16, 185, 129, 0.15);
-      font-family: 'JetBrains Mono', monospace;
+      font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
       font-size: 0.78rem;
       font-weight: 700;
       padding: 0.2rem 0.5rem;
@@ -166,7 +166,7 @@ export function getDeficitStyles(): string {
       color: var(--text-muted);
     }
     .deficit-snippet {
-      font-family: 'JetBrains Mono', monospace;
+      font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
       font-size: 0.75rem;
       background: #090d16;
       border: 1px solid rgba(255, 255, 255, 0.08);
