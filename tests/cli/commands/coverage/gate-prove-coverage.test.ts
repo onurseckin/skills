@@ -1,14 +1,14 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import { gateProveCommand } from "../../../olt/scripts/src/cli/commands/gate-prove.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import * as gateProofModule from "../../../olt/scripts/src/graph/gate-proof.ts";
+import { gateProveCommand } from "../../../../olt/scripts/src/cli/commands/gate-prove.ts";
+import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import { transact } from "../../../../olt/scripts/src/engine/store/index.ts";
+import * as gateProofModule from "../../../../olt/scripts/src/graph/gate-proof.ts";
 import {
   cleanupRoots,
   cleanupVirtualCliFS,
   setupVirtualCliFS,
-} from "./fixtures/full-lifecycle-fixture.ts";
-import { setupCompiledRun } from "./fixtures/task-ops-fixture.ts";
+} from "../fixtures/full-lifecycle-fixture.ts";
+import { setupCompiledRun } from "../fixtures/task-ops-fixture.ts";
 
 const roots: string[] = [];
 const spies: Array<{ mockRestore: () => void }> = [];

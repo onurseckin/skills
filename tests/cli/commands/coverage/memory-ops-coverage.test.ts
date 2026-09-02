@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { memoryQueryCommand } from "../../../olt/scripts/src/cli/commands/memory-ops.ts";
+import { memoryQueryCommand } from "../../../../olt/scripts/src/cli/commands/memory-ops.ts";
 import {
   cleanupRoots,
   cleanupVirtualCliFS,
   setupVirtualCliFS,
-} from "./fixtures/full-lifecycle-fixture.ts";
-import { setupCompiledRun } from "./fixtures/task-ops-fixture.ts";
+} from "../fixtures/full-lifecycle-fixture.ts";
+import { setupCompiledRun } from "../fixtures/task-ops-fixture.ts";
 
 const roots: string[] = [];
 

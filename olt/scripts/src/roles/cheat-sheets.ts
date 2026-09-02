@@ -108,13 +108,19 @@ function extractProseDetails(
       }
       continue;
     }
-    if (trimmed.startsWith("## Cognitive Pillars")) {
+    if (trimmed.startsWith("## Cognitive Pillars") || trimmed.startsWith("cognitive_pillars:")) {
       inPillars = true;
       continue;
     }
-    if (inPillars && trimmed.startsWith("## ")) inPillars = false;
+    if (
+      inPillars &&
+      (trimmed.startsWith("## ") || (trimmed.endsWith(":") && !trimmed.startsWith("-")))
+    ) {
+      inPillars = false;
+    }
     if (inPillars && trimmed.startsWith("- ")) {
-      cognitivePillars.push(trimmed.slice(2).trim());
+      const p = trimmed.slice(2).trim();
+      cognitivePillars.push(p.replace(/^["']|["']$/g, ""));
       continue;
     }
     if (trimmed.startsWith("- **")) {

@@ -11,9 +11,9 @@ import {
   type TaskCheckSummary,
   type TypeCheckDiagnostic,
   type TypeCheckResult,
-} from "../../../olt/scripts/src/cli/commands/task-check.ts";
-import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import { cleanupVirtualCliFS, setupVirtualCliFS } from "./fixtures/full-lifecycle-fixture.ts";
+} from "../../../../olt/scripts/src/cli/commands/task-check.ts";
+import { initRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
 async function createVirtualDir(prefix: string): Promise<string> {

@@ -47,4 +47,4 @@ import {
   validateTaskDagAcyclicity,
   verifySnapshotIntegrity,
   writeSnapshotToDisk,
-} from "../../../olt/scripts/src/mind/lifecycle/index.ts";
+} from "../../../../olt/scripts/src/mind/lifecycle/index.ts";

@@ -47,7 +47,7 @@ import {
   validateTaskDagAcyclicity,
   verifySnapshotIntegrity,
   writeSnapshotToDisk,
-} from "../../../olt/scripts/src/mind/lifecycle/index.ts";
+} from "../../../../olt/scripts/src/mind/lifecycle/index.ts";
 
 describe("Autonomous Resource Governor & Suspended Animation Suite", () => {
   describe("Suspended Animation: Deterministic Serialization & Checksum Integrity", () => {
