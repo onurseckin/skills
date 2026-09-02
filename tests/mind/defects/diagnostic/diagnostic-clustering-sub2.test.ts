@@ -25,7 +25,7 @@ describe("Active Baseline Probing & Diagnostic Clustering Engine Suite", () => {
       for (let i = 0; i < 50; i++) {
         hundredErrors.push({
           id: `ERR-C1-${i}`,
-          kind: DIAGNOSTIC_ERROR_KINDS.TYPESCRIPT_COMPILATION,
+          kind: DIAGNOSTIC_ERROR_KINDS.TYPECHECK_COMPILATION,
           classification: DEFICIT_CRITICALITY_CLASSES.CLASS_1_BLOCKER,
           errorCode: "TS2304",
           message: "Cannot find name 'MissingType'",
@@ -157,7 +157,7 @@ describe("Active Baseline Probing & Diagnostic Clustering Engine Suite", () => {
     it("formats high-fidelity GitHub-Flavored Markdown report", () => {
       const error: ParsedDiagnosticError = {
         id: "ERR-MD-01",
-        kind: DIAGNOSTIC_ERROR_KINDS.TYPESCRIPT_COMPILATION,
+        kind: DIAGNOSTIC_ERROR_KINDS.TYPECHECK_COMPILATION,
         classification: DEFICIT_CRITICALITY_CLASSES.CLASS_1_BLOCKER,
         errorCode: "TS2304",
         message: "Cannot find name 'TestSymbol'",

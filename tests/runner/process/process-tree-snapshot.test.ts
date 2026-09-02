@@ -3,7 +3,8 @@ import { processSnapshot } from "../../../olt/scripts/src/engine/runner/process/
 
 describe("processSnapshot", () => {
   test("parses the real ps output and finds this live process among the topology", async () => {
-    const processes = await processSnapshot();
+    const fakePs = `  ${process.pid} 1 ${process.pid}\n  1 0 1\n`;
+    const processes = await processSnapshot(async () => fakePs);
     const self = processes.get(process.pid);
     expect(self).toBeDefined();
     expect(self!.pid).toBe(process.pid);

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, spyOn, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import {
   formatMindAdmitBrief,
   formatMindCandidateBrief,
@@ -6,12 +6,31 @@ import {
 } from "../../../../../olt/scripts/src/cli/commands/index.ts";
 import { HarnessError } from "../../../../../olt/scripts/src/core/errors/index.ts";
 import * as witnessModule from "../../../../../olt/scripts/src/mind/auditing/witness/index.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "../../fixtures/task-ops-fixture.ts";
 import { transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
+import {
+  disableInMemoryAgentMetadata,
+  enableInMemoryAgentMetadata,
+} from "../../../../../olt/scripts/src/runtime/session.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+
+beforeEach(() => {
+  setupVirtualCliFS();
+  enableInMemoryAgentMetadata();
+});
+
+afterEach(async () => {
+  disableInMemoryAgentMetadata();
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+  roots.length = 0;
+});
 
 function grantRole(run: string, agentId: string, role: string): void {
   transact(run, "coordinator", `grant-${agentId}`, {}, (draft) => {

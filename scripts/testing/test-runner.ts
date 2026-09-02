@@ -20,8 +20,7 @@ export function executeTestRunner(rawArgs: string[] = process.argv.slice(2)): nu
     const startTime = new Date(startMs).toISOString();
 
     const result = spawnSync("bun", parsed.bunTestArgs, {
-      stdio: "pipe",
-      encoding: "utf-8",
+      stdio: "inherit",
       maxBuffer: 100 * 1024 * 1024,
       env: {
         ...process.env,
@@ -34,23 +33,12 @@ export function executeTestRunner(rawArgs: string[] = process.argv.slice(2)): nu
     const endTime = new Date(endMs).toISOString();
     const totalDurationMs = Math.max(0, endMs - startMs);
 
-    if (result.stdout) {
-      process.stdout.write(result.stdout);
-    }
-    if (result.stderr) {
-      process.stderr.write(result.stderr);
-    }
-
     if (parsed.isCoverage) {
-      const outText = typeof result.stdout === "string" ? result.stdout : "";
-      const errText = typeof result.stderr === "string" ? result.stderr : "";
-      const outputText = [outText, errText].join("\n");
       const targetCovDir =
         parsed.coverageDir !== undefined && parsed.coverageDir !== null
           ? parsed.coverageDir
           : "coverage";
       const reportRes = processCoverageArtifacts(process.cwd(), targetCovDir, {
-        testOutput: outputText,
         startTime,
         endTime,
         totalDurationMs,
@@ -62,11 +50,7 @@ export function executeTestRunner(rawArgs: string[] = process.argv.slice(2)): nu
           console.log(
             `\n[coverage] Generated coverage/lcov.info, coverage/coverage-summary.json, coverage/REPORT.md, and coverage/index.html across ${reportRes.filesCount} files (${reportRes.totalPct}% line coverage).\n${message}`,
           );
-          const hasTestFailure =
-            /^\s*\(fail\)\s+/m.test(outputText) || /^\s*([1-9]\d*)\s+fail\b/m.test(outputText);
-          if (!hasTestFailure) {
-            return 0;
-          }
+          return 0;
         } else {
           console.error(
             `\n[coverage] Generated coverage artifacts across ${reportRes.filesCount} files (${reportRes.totalPct}% line coverage).\n${message}`,

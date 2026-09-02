@@ -1,15 +1,34 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { MAIN_THREAD_ADVISORY } from "../../../../../olt/scripts/src/authority/thread/index.ts";
 import { whoamiCommand } from "../../../../../olt/scripts/src/cli/commands/whoami.ts";
 import {
   commandInvocations,
   findCommand,
 } from "../../../../../olt/scripts/src/cli/registry/index.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "../../fixtures/task-ops-fixture.ts";
+import {
+  disableInMemoryAgentMetadata,
+  enableInMemoryAgentMetadata,
+} from "../../../../../olt/scripts/src/runtime/session.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+
+beforeEach(() => {
+  setupVirtualCliFS();
+  enableInMemoryAgentMetadata();
+});
+
+afterEach(async () => {
+  disableInMemoryAgentMetadata();
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+  roots.length = 0;
+});
 
 describe("whoami CLI command", () => {
   test("returns structured thread authority information", () => {

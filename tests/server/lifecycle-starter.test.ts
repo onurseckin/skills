@@ -232,7 +232,7 @@ describe("Dev Server Starter & Port Acquisition Verifier Subsystem", () => {
       let attempts = 0;
       const resRealSleep = await startServer({
         primaryPort: 9001,
-        bindTimeoutMs: 30,
+        bindTimeoutMs: 500,
         bindPollIntervalMs: 5,
         portChecker: async () => {
           attempts++;

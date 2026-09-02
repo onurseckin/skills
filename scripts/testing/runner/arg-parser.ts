@@ -221,18 +221,20 @@ export function parseRunnerArgs(rawArgs: readonly string[] = []): ParsedRunnerAr
  * Reconstructs the exact `bun test` argument vector from parsed runner arguments.
  */
 export function buildBunTestArgs(parsed: ParsedRunnerArgs): string[] {
-  const args: string[] = ["test", `--timeout=${parsed.timeoutMs}`];
+  const args: string[] = ["test", "--timeout", String(parsed.timeoutMs)];
 
   if (parsed.parallel) {
-    args.push(
-      parsed.parallelWorkers !== undefined ? `--parallel=${parsed.parallelWorkers}` : "--parallel",
-    );
+    if (parsed.parallelWorkers !== undefined) {
+      args.push(`--parallel=${parsed.parallelWorkers}`);
+    } else {
+      args.push("--parallel");
+    }
   } else {
-    args.push("--isolate");
+    args.push("--no-parallel");
   }
 
   if (parsed.maxConcurrency !== undefined) {
-    args.push(`--max-concurrency=${parsed.maxConcurrency}`);
+    args.push("--max-concurrency", String(parsed.maxConcurrency));
   }
 
   if (parsed.isCoverage) {

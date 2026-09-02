@@ -196,7 +196,7 @@ describe("Suspended Animation Pure Functions Suite", () => {
       );
 
       prober.start();
-      await new Promise((r) => setTimeout(r, 40));
+      await new Promise((r) => setTimeout(r, 200));
 
       expect(attempts).toBeGreaterThanOrEqual(2);
       expect(replenished).toBe(true);

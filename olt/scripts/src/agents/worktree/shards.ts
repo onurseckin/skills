@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import type { EpistemicShardResult, FastForwardSyncResult, ShardMode } from "./types.ts";
 import { createWorktreeLease, getWorktreeLease, symlinkDependencyCache } from "./leases.ts";
+import { safeRmSync } from "../../core/shared/safe-fs/index.ts";
 
 export async function syncAndFastForwardWorktree(
   repoRoot: string,
@@ -72,7 +73,7 @@ export async function createEpistemicShard(
 export async function cleanupEpistemicShard(_repoRoot: string, shardPath: string): Promise<void> {
   if (fs.existsSync(shardPath)) {
     try {
-      fs.rmSync(shardPath, { recursive: true, force: true });
+      safeRmSync(shardPath, { allowedRoots: [_repoRoot] });
     } catch {
       // Ignore cleanup error
     }

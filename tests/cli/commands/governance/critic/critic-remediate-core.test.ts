@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { criticRemediateCommand } from "../../../../../olt/scripts/src/cli/commands/critic-ops.ts";
 import { transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
 import { completionReviewDigest } from "../../../../../olt/scripts/src/workflow/completion/completion-review-digest.ts";
@@ -8,11 +8,30 @@ import type {
   CompletionReview,
 } from "../../../../../olt/scripts/src/workflow/types.ts";
 import { commandRecord } from "../../../../workflow/shared/test-port.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "../../fixtures/task-ops-fixture.ts";
+import {
+  disableInMemoryAgentMetadata,
+  enableInMemoryAgentMetadata,
+} from "../../../../../olt/scripts/src/runtime/session.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+
+beforeEach(() => {
+  setupVirtualCliFS();
+  enableInMemoryAgentMetadata();
+});
+
+afterEach(async () => {
+  disableInMemoryAgentMetadata();
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+  roots.length = 0;
+});
 
 export async function reviewedFindingsRun(
   label: string,

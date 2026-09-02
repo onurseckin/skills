@@ -311,7 +311,7 @@ The complete implementation of Chapter 03's architecture is verified across the 
 | Subsystem / Architectural Component   | Authoritative Source File Link                                                     | Key Exported Symbols                                                              |
 | :------------------------------------ | :--------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------- |
 | **Mind Pulse Entrypoint & Lock**      | [pulse.sh](../../../../olt/scripts/pulse.sh)                                       | `flock -n 9`, `mind:wake`                                                         |
-| **Mind CLI Dispatch & Supervisor**    | [mind.ts](../../../../olt/scripts/src/cli/registry/mind.ts)                        | `mind:init`, `mind:wake`, `mind:observe`, `mind:admit`, `mind:pulse`              |
+| **Mind CLI Dispatch & Supervisor**    | [mind-ops.ts](../../../../olt/scripts/src/cli/commands/mind-ops.ts)                | `mind:init`, `mind:wake`, `mind:observe`, `mind:admit`, `mind:pulse`              |
 | **Admission Gates Predicates**        | [predicates.ts](../../../../olt/scripts/src/mind/proposals/gates/predicates.ts)    | `evaluateGate1Witnessed()`, `executeFalsifier()`, `isPathInRepoRoots()`           |
 | **Admission Gates Evaluator**         | [evaluator.ts](../../../../olt/scripts/src/mind/proposals/gates/evaluator.ts)      | `evaluateGate2InCharter()`, `evaluateGate3Falsifiable()`, `evaluateGate4Scoped()` |
 | **Admission Gates Table & Budget**    | [table.ts](../../../../olt/scripts/src/mind/proposals/gates/table.ts)              | `evaluateGate5Affordable()`, `evaluateGate6NotADuplicate()`                       |

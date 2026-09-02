@@ -1,9 +1,17 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { realpathSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { runFilePath } from "../../../olt/scripts/src/engine/store/capsule/paths.ts";
-import { scratchRoot } from "../store-fixture.ts";
+import { cleanupVirtualStoreFS, scratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualStoreFS();
+});
+
+afterEach(() => {
+  cleanupVirtualStoreFS();
+});
 
 describe("runFilePath", () => {
   test("resolves a plain file name inside the run root", () => {

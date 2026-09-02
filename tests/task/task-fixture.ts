@@ -234,3 +234,10 @@ export class InMemoryTaskQueue {
 export function createInMemoryTaskQueue(): InMemoryTaskQueue {
   return new InMemoryTaskQueue();
 }
+
+export const TASK_DOMAIN_SUITES = {
+  leases: "queue-coverage-leases",
+  ops: "queue-coverage-ops",
+  receipts: "queue-coverage-receipts",
+  transitions: "queue-coverage-transitions",
+} as const;

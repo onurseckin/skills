@@ -553,6 +553,7 @@ function generateAcceptanceCriteria(
   writeScope: readonly string[],
 ): string[] {
   const criteria: string[] = [
+    `Domain '${domain}' conformance and verified '${category}' implementation contracts.`,
     "100% clean TypeScript build with 0 `any` and 0 linter/compiler suppressions.",
   ];
 

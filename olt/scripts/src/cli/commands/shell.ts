@@ -302,9 +302,13 @@ export async function shellCommand(
   });
 
   const durationMs = Date.now() - startTime;
-  const exitCode = child.status;
-  const stdout = child.stdout ?? "";
-  const stderr = child.stderr ?? "";
+  const exitCode = typeof child.status === "number" ? child.status : 1;
+  const stdout = child.stdout ? String(child.stdout) : "";
+  const stderr = child.stderr
+    ? String(child.stderr)
+    : child.error
+      ? String(child.error.message || child.error)
+      : "";
   const finishedAt = new Date().toISOString();
   const startedAt = new Date(startTime).toISOString();
 

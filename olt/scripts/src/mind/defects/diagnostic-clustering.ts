@@ -60,7 +60,7 @@ export const DEFICIT_CRITICALITY_BASE_SEVERITY: Readonly<Record<DeficitCriticali
   };
 
 export const DIAGNOSTIC_ERROR_KINDS = {
-  TYPESCRIPT_COMPILATION: "typescript_compilation",
+  TYPECHECK_COMPILATION: "typecheck_compilation",
   SYNTAX_ERROR: "syntax_error",
   RUNTIME_CRASH: "runtime_crash",
   UNCAUGHT_EXCEPTION: "uncaught_exception",
@@ -513,7 +513,7 @@ export function parseRawDiagnostics(
         }
 
         const kind = isError
-          ? DIAGNOSTIC_ERROR_KINDS.TYPESCRIPT_COMPILATION
+          ? DIAGNOSTIC_ERROR_KINDS.TYPECHECK_COMPILATION
           : DIAGNOSTIC_ERROR_KINDS.TYPE_CHECK_WARNING;
         const classification = isError
           ? DEFICIT_CRITICALITY_CLASSES.CLASS_1_BLOCKER
@@ -572,7 +572,7 @@ export function parseRawDiagnostics(
         }
 
         const kind = isError
-          ? DIAGNOSTIC_ERROR_KINDS.TYPESCRIPT_COMPILATION
+          ? DIAGNOSTIC_ERROR_KINDS.TYPECHECK_COMPILATION
           : DIAGNOSTIC_ERROR_KINDS.TYPE_CHECK_WARNING;
         const classification = isError
           ? DEFICIT_CRITICALITY_CLASSES.CLASS_1_BLOCKER
@@ -882,7 +882,7 @@ function classifyErrorKind(message: string, code?: string, filePath?: string): D
   const c = (code ?? "").toUpperCase();
 
   if (c.startsWith("TS") || lower.includes("typescript error")) {
-    return DIAGNOSTIC_ERROR_KINDS.TYPESCRIPT_COMPILATION;
+    return DIAGNOSTIC_ERROR_KINDS.TYPECHECK_COMPILATION;
   }
   if (lower.includes("syntax error") || c === "SYNTAXERROR") {
     return DIAGNOSTIC_ERROR_KINDS.SYNTAX_ERROR;
@@ -930,7 +930,7 @@ function classifyCriticality(
   message?: string,
 ): DeficitCriticalityClass {
   switch (kind) {
-    case DIAGNOSTIC_ERROR_KINDS.TYPESCRIPT_COMPILATION:
+    case DIAGNOSTIC_ERROR_KINDS.TYPECHECK_COMPILATION:
     case DIAGNOSTIC_ERROR_KINDS.SYNTAX_ERROR:
     case DIAGNOSTIC_ERROR_KINDS.RUNTIME_CRASH:
     case DIAGNOSTIC_ERROR_KINDS.UNCAUGHT_EXCEPTION:
@@ -1406,7 +1406,7 @@ function synthesizeRootCauseTitle(
   const fileLabel = bucket.primaryFile ? basename(bucket.primaryFile) : "System";
   const codeLabel = bucket.primaryCode ? `[${bucket.primaryCode}] ` : "";
 
-  if (bucket.primaryKind === DIAGNOSTIC_ERROR_KINDS.TYPESCRIPT_COMPILATION) {
+  if (bucket.primaryKind === DIAGNOSTIC_ERROR_KINDS.TYPECHECK_COMPILATION) {
     const matchType = rep.message.match(/Cannot find name '([^']+)'/i);
     if (matchType && matchType[1]) {
       return `${codeLabel}Missing identifier '${matchType[1]}' in ${fileLabel}`;
@@ -1460,7 +1460,7 @@ function synthesizeRootCauseHypothesis(
       : "";
 
   switch (bucket.primaryKind) {
-    case DIAGNOSTIC_ERROR_KINDS.TYPESCRIPT_COMPILATION:
+    case DIAGNOSTIC_ERROR_KINDS.TYPECHECK_COMPILATION:
       return `TypeScript typecheck constraint violated by AST definition in ${affectedFiles[0] ?? "source file"}${countText}. Compiler rejected symbols or type signatures.`;
 
     case DIAGNOSTIC_ERROR_KINDS.MODULE_RESOLUTION:
@@ -1501,7 +1501,7 @@ function synthesizeRemediationAction(
   const targetFile = bucket.primaryFile ?? affectedFiles[0] ?? "target module";
 
   switch (bucket.primaryKind) {
-    case DIAGNOSTIC_ERROR_KINDS.TYPESCRIPT_COMPILATION:
+    case DIAGNOSTIC_ERROR_KINDS.TYPECHECK_COMPILATION:
       return `Update type declarations or symbol imports in ${targetFile} and re-run typecheck probe.`;
 
     case DIAGNOSTIC_ERROR_KINDS.MODULE_RESOLUTION:
@@ -1630,7 +1630,7 @@ export async function runEmpiricalBaselineProbes(
             ? probeDef.command.split(" ").filter((s: string) => s.length > 0)
             : ["echo"];
         const exe = cmdArray[0] ?? "echo";
-        const args = [...cmdArray.slice(1)];
+        const args = cmdArray.slice(1);
         const timeout = probeDef.timeoutMs ?? options.timeoutMs ?? 15000;
 
         try {

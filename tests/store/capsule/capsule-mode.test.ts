@@ -1,9 +1,21 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { join } from "node:path";
 import { readFileSync } from "node:fs";
 import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
 import { assertMindModeAllowed } from "../../../olt/scripts/src/mind/tasks/smart/index.ts";
-import { scratchRoot as makeScratchRoot } from "../store-fixture.ts";
+import {
+  cleanupVirtualStoreFS,
+  scratchRoot as makeScratchRoot,
+  setupVirtualStoreFS,
+} from "../store-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualStoreFS();
+});
+
+afterEach(() => {
+  cleanupVirtualStoreFS();
+});
 
 function scratchRoot(label: string): string {
   return makeScratchRoot(import.meta.path, label);

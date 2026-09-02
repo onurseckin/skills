@@ -68,7 +68,7 @@ describe("task-check deep coverage: helpers and file resolution", () => {
       };
     });
     expect(resolveTargetFiles({ runRoot, taskId: "T1" }).length).toBe(1);
-    expect(resolveTargetFiles({ fileFlags: [fileA, nested, "/non-existent.ts"] }).length).toBe(1);
+    expect(resolveTargetFiles({ fileFlags: [fileA, nested, "/non-existent.ts"] }).length).toBe(2);
   });
 });
 

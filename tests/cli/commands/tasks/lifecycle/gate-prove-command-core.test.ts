@@ -5,6 +5,10 @@ import { revokeSessionGrant } from "../../../../../olt/scripts/src/authority/ses
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { spawnSync } from "node:child_process";
 import {
+  disableInMemoryAgentMetadata,
+  enableInMemoryAgentMetadata,
+} from "../../../../../olt/scripts/src/runtime/session.ts";
+import {
   cleanupRoots,
   cleanupVirtualCliFS,
   setupVirtualCliFS,
@@ -18,18 +22,25 @@ function git(repo: string, argv: readonly string[]): void {
 }
 
 function clearCallerSession(run?: string, agentId = "worker-1"): void {
-  revokeSessionGrant({ runRoot: run, agentId, pid: process.pid, ppid: process.ppid });
+  try {
+    revokeSessionGrant({ runRoot: run, agentId, pid: process.pid, ppid: process.ppid });
+  } catch {
+    // Ignore when running under VFS
+  }
 }
 
 beforeEach(() => {
   setupVirtualCliFS();
+  enableInMemoryAgentMetadata();
   clearCallerSession();
 });
 
 afterEach(async () => {
+  disableInMemoryAgentMetadata();
   clearCallerSession();
   await cleanupRoots(roots);
   cleanupVirtualCliFS();
+  roots.length = 0;
 });
 
 async function compiledSingleTaskRun(

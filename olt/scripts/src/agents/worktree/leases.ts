@@ -2,6 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import type { ReclamationReport, SymlinkCacheResult, WorktreeLease } from "./types.ts";
 import { DEFAULT_CACHE_DIRECTORIES, DEFAULT_LEASE_DURATION_MS } from "./types.ts";
+import { safeRmSync } from "../../core/shared/safe-fs/index.ts";
 
 function getWorktreeDir(repoRoot: string): string {
   return path.join(repoRoot, ".olt", "worktrees");
@@ -238,7 +239,7 @@ export async function reclaimOrphanedWorktrees(
         }
 
         try {
-          fs.rmSync(worktreePath, { recursive: true, force: true });
+          safeRmSync(worktreePath, { allowedRoots: [repoRoot] });
           reclaimedCount++;
           reclaimedWorktreeIds.push(lease.worktreeId);
         } catch {

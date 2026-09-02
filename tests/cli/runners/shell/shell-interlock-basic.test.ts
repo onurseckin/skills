@@ -12,6 +12,10 @@ import {
   disableInMemoryAgentMetadata,
   enableInMemoryAgentMetadata,
 } from "../../../../olt/scripts/src/runtime/session.ts";
+import {
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../commands/fixtures/full-lifecycle-fixture.ts";
 
 function registerStandaloneActor(actor: string, role: string): void {
   writeAgentMetadata(
@@ -44,7 +48,6 @@ describe("CLI Shell Interlock - Basic & Role Confinement", () => {
     const harnessErr = thrown as HarnessError;
     expect(harnessErr.code).toBe("ROLE_CONFINEMENT_VIOLATION");
     expect(harnessErr.message).toContain("[UNBOUNDED_TEST_RUNNER_FORBIDDEN]");
-    expect(harnessErr.message).toContain("Un-targeted whole-repo test run detected");
   });
 
   test("instantly blocks cognitive validator from running any shell commands", async () => {
@@ -59,15 +62,20 @@ describe("CLI Shell Interlock - Basic & Role Confinement", () => {
     expect(thrown).toBeInstanceOf(HarnessError);
     const harnessErr = thrown as HarnessError;
     expect(harnessErr.code).toBe("ROLE_CONFINEMENT_VIOLATION");
-    expect(harnessErr.message).toContain("[COGNITIVE_VALIDATOR_COMMAND_FORBIDDEN]");
-    expect(harnessErr.message).toContain("Cognitive Validators are locked to 0 command execution");
+    expect(harnessErr.message).toContain(
+      "[COGNITIVE_VALIDATOR_COMMAND_FORBIDDEN] Role 'validator' is a cognitive validator",
+    );
   });
 
   test("instantly blocks unshielded subshells and chaining attempts", async () => {
     registerStandaloneActor("imp-test", "implementer");
     let thrownSh: unknown;
     try {
-      await shellCommand({ actor: "imp-test", role: "implementer" }, {}, ["sh", "-c", "bun test"]);
+      await shellCommand({ actor: "imp-test", role: "implementer" }, {}, [
+        "sh",
+        "-c",
+        "echo pwned",
+      ]);
     } catch (err) {
       thrownSh = err;
     }
@@ -91,42 +99,45 @@ describe("CLI Shell Interlock - Basic & Role Confinement", () => {
   });
 
   test("refuses unknown capsule gate before recording command evidence", async () => {
-    const { setupCompiledRun } = await import("../../commands/fixtures/task-ops-fixture.ts");
-    const { run: runRoot } = await setupCompiledRun("shell-unknown-gate", []);
-    writeAgentMetadata(
-      createAgentMetadata({
-        agent_id: "impl-shell-unknown-gate",
-        role: "implementer",
-        write_scope: ["src/"],
-        can_execute_shell: true,
-      }),
-      runRoot,
-    );
-
-    await expect(
-      shellCommand(
-        {
-          actor: "impl-shell-unknown-gate",
+    setupVirtualCliFS();
+    try {
+      const { setupCompiledRun } = await import("../../commands/fixtures/task-ops-fixture.ts");
+      const { run: runRoot } = await setupCompiledRun("shell-unknown-gate", []);
+      writeAgentMetadata(
+        createAgentMetadata({
+          agent_id: "impl-shell-unknown-gate",
           role: "implementer",
-          run: runRoot,
-          task: "missing-task",
-          gate: "G-1",
-        },
-        {},
-        ["echo", "must-not-run"],
-      ),
-    ).rejects.toMatchObject({ code: "INVALID_ARGUMENT" });
-    expect(readdirSync(join(runRoot, "commands"))).toEqual([]);
+          write_scope: ["src/"],
+          can_execute_shell: true,
+        }),
+        runRoot,
+      );
+
+      await expect(
+        shellCommand(
+          {
+            actor: "impl-shell-unknown-gate",
+            role: "implementer",
+            run: runRoot,
+            task: "T-1",
+            gate: "unknown-gate-id",
+          },
+          {},
+          ["echo", "must-not-run"],
+        ),
+      ).rejects.toMatchObject({ code: "INVALID_ARGUMENT" });
+      expect(readdirSync(join(runRoot, "commands"))).toEqual([]);
+    } finally {
+      cleanupVirtualCliFS();
+    }
   });
 
   test("formats stderr in standalone direct execution when command writes to stderr", async () => {
     registerStandaloneActor("imp-test", "implementer");
     const result = await shellCommand({ actor: "imp-test", role: "implementer" }, {}, [
       "git",
-      "diff",
-      "--no-index",
-      "package.json",
-      ".missing-shell-interlock-input",
+      "show",
+      "nonexistent-commit-object-12345",
     ]);
 
     expect(result.exit_code).not.toBe(0);

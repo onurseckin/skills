@@ -1,4 +1,4 @@
-import { describe, expect, spyOn, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import * as fs from "node:fs";
 import { chmodSync, linkSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -9,7 +9,19 @@ import {
   verifyCapsuleDeep,
   verifyCapsuleLayout,
 } from "../../../olt/scripts/src/engine/store/integrity/layout-integrity.ts";
-import { scratchRoot as makeScratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
+import {
+  cleanupVirtualStoreFS,
+  scratchRoot as makeScratchRoot,
+  setupVirtualStoreFS,
+} from "../store-fixture.ts";
+
+beforeEach(() => {
+  setupVirtualStoreFS();
+});
+
+afterEach(() => {
+  cleanupVirtualStoreFS();
+});
 
 function scratchRoot(label: string): string {
   return makeScratchRoot(import.meta.path, label);

@@ -129,6 +129,6 @@ describe("declaresRunIdentityFlag: the structural hole 1 predicate", () => {
     const commandsWithNoRunFlag = COMMAND_REGISTRY.filter(
       (candidate) => !declaresRunIdentityFlag(candidate),
     );
-    expect(commandsWithNoRunFlag.length).toBe(54);
+    expect(commandsWithNoRunFlag.length).toBe(55);
   });
 });

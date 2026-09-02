@@ -21,7 +21,7 @@ describe("Toolchain Discovery - Auto-Calibration & Commands", () => {
     cleanupVirtualPolicyFS();
   });
 
-  test("calibrates .olt/policy.json automatically on mind:init and mind:observe", () => {
+  test("calibrates .olt/policy.json automatically on mind:init and mind:observe", async () => {
     const dir = join(scratch, "mind-init-calibration");
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, "bun.lock"), "");
@@ -29,7 +29,7 @@ describe("Toolchain Discovery - Auto-Calibration & Commands", () => {
     writeFileSync(
       join(dir, "package.json"),
       JSON.stringify({
-        scripts: { typecheck: "tsc --noEmit" },
+        scripts: { typecheck: "tsc --noEmit", lint: "oxlint" },
         devDependencies: { oxlint: "^0.2.0" },
       }),
     );
@@ -54,7 +54,7 @@ charter:
 `,
     );
 
-    const initRes = mindInitCommand({
+    const initRes = await mindInitCommand({
       repo: dir,
       charter: charterPath,
       "mind-id": "mind-test-calib",
@@ -63,9 +63,9 @@ charter:
 
     const policy = loadRepoPolicy(dir);
     expect(policy.ecosystem).toBe("bun");
-    expect(policy.typecheck_command).toBe("bun run typecheck");
-    expect(policy.lint_command).toBe("oxlint");
-    expect(policy.allowed_commands).toContain("oxlint");
+    expect(policy.typecheck_command).toBe("bun typecheck");
+    expect(policy.lint_command).toBe("bun lint");
+    expect(policy.allowed_commands).toContain("bun lint");
     expect(validateRepoPolicy(policy).schema_version).toBe(1);
 
     const runRoot = typeof initRes.run_root === "string" ? initRes.run_root : "";
@@ -90,7 +90,7 @@ charter:
     expect(existsSync(join(dir, ".olt", "policy.json"))).toBe(true);
     const reloaded = loadRepoPolicy(dir);
     expect(reloaded.ecosystem).toBe("bun");
-    expect(reloaded.lint_command).toBe("oxlint");
+    expect(reloaded.lint_command).toBe("bun run lint");
   });
 
   test("discovers pnpm and yarn with TypeScript without custom typecheck script", () => {

@@ -7,8 +7,6 @@ import type {
 import { computeSha256, computeManifestSignature } from "./hashing.ts";
 
 export function verifyManifestIntegrity(
-  this: any,
-
   manifest: ImmutabilityManifest,
   currentStatePayload?: Record<string, unknown>,
 ): ManifestIntegrityResult {

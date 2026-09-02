@@ -28,6 +28,7 @@ describe("Documentation Separation & Boundary Invariant Unit Tests", () => {
       "archive",
       "book",
       "references",
+      "architecture",
     ]);
     const entries = readdirSync(rootDocsDir);
     expect(entries.length).toBeGreaterThan(0);

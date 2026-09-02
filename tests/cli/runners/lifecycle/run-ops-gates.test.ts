@@ -12,17 +12,24 @@ import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import type { Flags } from "../../../../olt/scripts/src/cli/options.ts";
 import { workflowPort } from "../../../../olt/scripts/src/integration/store-ports.ts";
-import { cleanupRoots } from "../../commands/fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../commands/fixtures/full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "../../commands/fixtures/task-ops-fixture.ts";
 
 const roots: string[] = [];
 beforeEach(() => {
+  setupVirtualCliFS();
   enableInMemoryAgentMetadata();
 });
 
 afterEach(async () => {
   disableInMemoryAgentMetadata();
   await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+  roots.length = 0;
 });
 
 function runFlags(runRoot: string, actor: string): Flags {

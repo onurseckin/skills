@@ -13,11 +13,16 @@ import {
   disableInMemoryAgentMetadata,
   enableInMemoryAgentMetadata,
 } from "../../../../../olt/scripts/src/runtime/session.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "../../fixtures/task-ops-fixture.ts";
 
 const roots: string[] = [];
 beforeEach(() => {
+  setupVirtualCliFS();
   enableInMemoryAgentMetadata();
 });
 
@@ -25,6 +30,8 @@ afterEach(async () => {
   disableInMemoryAgentMetadata();
   clearCallerSession();
   await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+  roots.length = 0;
 });
 
 function installCallerSession(run: string, agentId: string, role: string): void {

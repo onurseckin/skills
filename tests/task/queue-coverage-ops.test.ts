@@ -2,7 +2,18 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
-import { cleanupVirtualTaskFS, scratchRoot, setupVirtualTaskFS } from "./task-fixture.ts";
+import {
+  cleanupVirtualTaskFS,
+  createInMemoryCompletionReceipts,
+  createInMemoryTaskItem,
+  createInMemoryTaskLease,
+  createInMemoryTaskQueue,
+  createSandboxDir,
+  InMemoryTaskQueue,
+  scratchRoot,
+  setupVirtualTaskFS,
+  TASK_DOMAIN_SUITES,
+} from "./task-fixture.ts";
 import {
   clearTaskQueue,
   compactTaskQueue,
@@ -17,15 +28,6 @@ import {
   type TaskQueueItem,
 } from "../../olt/scripts/src/task/queue/index.ts";
 import { createSampleTaskQueueStats, TASK_COVERAGE_SUITES } from "./index.ts";
-import {
-  createInMemoryCompletionReceipts,
-  createInMemoryTaskItem,
-  createInMemoryTaskLease,
-  createInMemoryTaskQueue,
-  createSandboxDir,
-  InMemoryTaskQueue,
-  TASK_DOMAIN_SUITES,
-} from "./index.ts";
 import {
   TASK_QUEUE_STATUSES,
   TASK_PRIORITIES,

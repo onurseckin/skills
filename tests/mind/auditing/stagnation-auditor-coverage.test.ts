@@ -221,14 +221,10 @@ describe("Mind Stagnation Auditor Suite", () => {
     });
 
     it("supports zero delta suppression on healthy reports", () => {
-      const baseline: StagnationAuditResult = {
-        is_stagnant: false,
-        pending_backlog_count: 0,
-        open_defects_count: 0,
-        last_preplan_timestamp: null,
-        idle_duration_seconds: 0,
-        findings: ["healthy"],
-      };
+      const baseline = auditMindPreplanningStagnation({
+        explicitBacklog: [],
+        explicitDefects: [],
+      });
       const sup = auditMindPreplanningStagnation({
         explicitBacklog: [],
         explicitDefects: [],

@@ -142,8 +142,8 @@ describe("HTML Coverage Templates & Styles Coverage", () => {
 
       // Root CSS Variables
       expect(styles).toContain("--bg-base: #09090b");
-      expect(styles).toContain("--bg-surface: #000000");
-      expect(styles).toContain("--bg-card: #0c0c0e");
+      expect(styles).toContain("--bg-surface: #0f1117");
+      expect(styles).toContain("--bg-card: #18181b");
       expect(styles).toContain("--status-pass: #10b981");
       expect(styles).toContain("--status-fail: #ef4444");
       expect(styles).toContain("--status-warn: #f59e0b");

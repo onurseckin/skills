@@ -139,6 +139,12 @@ function setupVirtualFs(): void {
     spyOn(fs, "readdirSync").mockImplementation(listDir),
     spyOn(fs, "readFileSync").mockImplementation(readNode),
     spyOn(fs, "readSync").mockImplementation(readBytes),
+    spyOn(fs, "rmSync").mockImplementation((p) => {
+      vfs.delete(String(p));
+    }),
+    spyOn(fs, "unlinkSync").mockImplementation((p) => {
+      vfs.delete(String(p));
+    }),
     spyOn(cp, "spawnSync").mockImplementation(
       () =>
         ({

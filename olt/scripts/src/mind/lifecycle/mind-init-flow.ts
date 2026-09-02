@@ -1,7 +1,10 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { RepoGovernanceStatus } from "../governance/index.ts";
+import { calibrateRepoGovernance, type RepoGovernanceStatus } from "../governance/index.ts";
 import { createInitialDashboardState, writeDashboardFilesSync } from "../reporting/index.ts";
+import { canonicalJsonBytes } from "../../core/json.ts";
+import { initCapsuleRun } from "../../engine/store/capsule/init.ts";
+import { transact } from "../../engine/store/index.ts";
 
 export const CANONICAL_BEDROCK_INVARIANTS_LIST = [
   "SUPERVISOR_ZERO_CODE_EDITS",
@@ -197,26 +200,49 @@ export class AutonomousMindInitializer {
       fs.mkdirSync(oltDir, { recursive: true });
     }
 
-    const runRoot = path.join(oltDir, "runs", mindId);
-    if (!fs.existsSync(runRoot)) {
-      fs.mkdirSync(runRoot, { recursive: true });
-    }
+    calibrateRepoGovernance(repoRoot);
+
+    const { runRoot } = initCapsuleRun(mindId, {
+      repo: repoRoot,
+      allowExisting: true,
+      prompt: charterRes.text || `# Run ${mindId}\n`,
+    });
+
+    transact(runRoot, "system", `grant-mind-${mindId}`, {}, (draft) => {
+      const agents = Array.isArray(draft.agents) ? [...draft.agents] : [];
+      const hasMind = agents.some(
+        (a) =>
+          a !== null &&
+          typeof a === "object" &&
+          !Array.isArray(a) &&
+          (a as Record<string, unknown>).id === mindId,
+      );
+      if (!hasMind) {
+        agents.push({
+          id: mindId,
+          role: "mind",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "local",
+          granted_at: new Date().toISOString(),
+          status: "active",
+        });
+      }
+      draft.agents = agents;
+    });
 
     const lastPulsePath = path.join(runRoot, "last_pulse.json");
-    fs.writeFileSync(
-      lastPulsePath,
-      JSON.stringify(
-        {
+    if (!fs.existsSync(lastPulsePath)) {
+      fs.writeFileSync(
+        lastPulsePath,
+        canonicalJsonBytes({
           at: new Date().toISOString(),
-          pulse_id: null,
-          outcome: null,
           next_wake_at: null,
-        },
-        null,
-        2,
-      ),
-      "utf-8",
-    );
+          outcome: null,
+          pulse_id: null,
+        }),
+      );
+    }
 
     const initialDashboard = createInitialDashboardState({
       runId: mindId,

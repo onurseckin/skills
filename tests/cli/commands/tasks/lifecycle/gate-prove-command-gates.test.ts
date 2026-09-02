@@ -10,6 +10,10 @@ import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { isJsonObject } from "../../../../../olt/scripts/src/core/contracts/index.ts";
 import { transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
 import {
+  disableInMemoryAgentMetadata,
+  enableInMemoryAgentMetadata,
+} from "../../../../../olt/scripts/src/runtime/session.ts";
+import {
   cleanupRoots,
   cleanupVirtualCliFS,
   setupVirtualCliFS,
@@ -18,18 +22,25 @@ import {
 const roots: string[] = [];
 
 function clearCallerSession(run?: string, agentId = "worker-1"): void {
-  revokeSessionGrant({ runRoot: run, agentId, pid: process.pid, ppid: process.ppid });
+  try {
+    revokeSessionGrant({ runRoot: run, agentId, pid: process.pid, ppid: process.ppid });
+  } catch {
+    // Ignore when running under VFS
+  }
 }
 
 beforeEach(() => {
   setupVirtualCliFS();
+  enableInMemoryAgentMetadata();
   clearCallerSession();
 });
 
 afterEach(async () => {
+  disableInMemoryAgentMetadata();
   clearCallerSession();
   await cleanupRoots(roots);
   cleanupVirtualCliFS();
+  roots.length = 0;
 });
 
 function git(repo: string, argv: readonly string[]): void {

@@ -63,7 +63,7 @@ describe("Diagnostic Clustering & Parsing Coverage Suite", () => {
       });
 
       expect(parsed).toHaveLength(12);
-      expect(parsed[0]?.kind).toBe(DIAGNOSTIC_ERROR_KINDS.TYPESCRIPT_COMPILATION);
+      expect(parsed[0]?.kind).toBe(DIAGNOSTIC_ERROR_KINDS.TYPECHECK_COMPILATION);
       expect(parsed[1]?.kind).toBe(DIAGNOSTIC_ERROR_KINDS.SYNTAX_ERROR);
       expect(parsed[2]?.kind).toBe(DIAGNOSTIC_ERROR_KINDS.BOOT_DEADLOCK);
       expect(parsed[3]?.kind).toBe(DIAGNOSTIC_ERROR_KINDS.MODULE_RESOLUTION);
@@ -129,7 +129,7 @@ describe("Diagnostic Clustering & Parsing Coverage Suite", () => {
       const rawErrors: ParsedDiagnosticError[] = [
         {
           id: "E1",
-          kind: DIAGNOSTIC_ERROR_KINDS.TYPESCRIPT_COMPILATION,
+          kind: DIAGNOSTIC_ERROR_KINDS.TYPECHECK_COMPILATION,
           classification: DEFICIT_CRITICALITY_CLASSES.CLASS_1_BLOCKER,
           errorCode: "TS2322",
           message: "Type 'string' is not assignable to type 'number'",
@@ -140,7 +140,7 @@ describe("Diagnostic Clustering & Parsing Coverage Suite", () => {
         },
         {
           id: "E2",
-          kind: DIAGNOSTIC_ERROR_KINDS.TYPESCRIPT_COMPILATION,
+          kind: DIAGNOSTIC_ERROR_KINDS.TYPECHECK_COMPILATION,
           classification: DEFICIT_CRITICALITY_CLASSES.CLASS_1_BLOCKER,
           errorCode: "TS2304",
           message: "Cannot find name 'MissingType'",
@@ -191,7 +191,7 @@ describe("Diagnostic Clustering & Parsing Coverage Suite", () => {
       const now = new Date().toISOString();
       const blocker: ParsedDiagnosticError = {
         id: "BLK-1",
-        kind: DIAGNOSTIC_ERROR_KINDS.TYPESCRIPT_COMPILATION,
+        kind: DIAGNOSTIC_ERROR_KINDS.TYPECHECK_COMPILATION,
         classification: DEFICIT_CRITICALITY_CLASSES.CLASS_1_BLOCKER,
         errorCode: "TS2304",
         message: "Cannot find name 'Foo'",

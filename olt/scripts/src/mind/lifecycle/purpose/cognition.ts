@@ -164,7 +164,9 @@ export function verifyMindRoleStrategicInvariants(input: string | Record<string,
   const zeroEditsCompliant =
     lower.includes("zero source code edits") ||
     lower.includes("zero source edits") ||
+    lower.includes("zero edits") ||
     lower.includes("never write, edit") ||
+    lower.includes("write/edit prohibited") ||
     lower.includes("write, edit, stage, revert, format or delete any repository file");
   if (!zeroEditsCompliant) {
     violations.push("Missing Zero Source Code Edits prohibition");
