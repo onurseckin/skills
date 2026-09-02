@@ -37,6 +37,7 @@ describe("task:check - Command Execution & Verifications", () => {
   afterEach(() => {
     cleanupVirtualCliFS();
     roots.length = 0;
+    process.exitCode = 0;
   });
 
   test("resolveTargetFiles, readRunTasks, and collectSourceFilesRecursively handle scopes and fallbacks", async () => {
@@ -88,18 +89,21 @@ describe("task:check - Command Execution & Verifications", () => {
     await writeFile(cleanPath, "export const cleanVal = 10;\n");
 
     const origArgv1 = Bun.argv[1];
-    (Bun.argv as string[])[1] = "/virtual/bin/harness.ts";
+    try {
+      (Bun.argv as string[])[1] = "/virtual/bin/harness.ts";
 
-    const res = await taskCheckCommand({ run, file: cleanPath, typecheck: true, format: "json" });
-    expect(res.passed).toBe(true);
-    expect(res.evidence_path).toBeDefined();
-    expect(process.exitCode).toBe(0);
+      const res = await taskCheckCommand({ run, file: cleanPath, typecheck: true, format: "json" });
+      expect(res.passed).toBe(true);
+      expect(res.evidence_path).toBeDefined();
+      expect(process.exitCode).toBe(0);
 
-    const lintOnly = await taskCheckCommand({ file: cleanPath, lint: true });
-    expect(lintOnly.typecheck).toBeUndefined();
-    expect(lintOnly.lint).toBeDefined();
-
-    (Bun.argv as string[])[1] = origArgv1;
+      const lintOnly = await taskCheckCommand({ file: cleanPath, lint: true });
+      expect(lintOnly.typecheck).toBeUndefined();
+      expect(lintOnly.lint).toBeDefined();
+    } finally {
+      (Bun.argv as string[])[1] = origArgv1;
+      process.exitCode = 0;
+    }
 
     const nonSourceDir = join(repo, "non-source-dir");
     await mkdir(nonSourceDir, { recursive: true });

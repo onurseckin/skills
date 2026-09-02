@@ -288,19 +288,16 @@ export function findNearestTsconfig(filePath: string): string | undefined {
     startDir = dirname(filePath);
   }
 
+  const isVirtual = filePath.startsWith("/virtual") || startDir.startsWith("/virtual");
   const found = ts.findConfigFile(startDir, ts.sys.fileExists, "tsconfig.json");
   if (found !== undefined) {
-    if (
-      isTestEnvironment() &&
-      !found.startsWith("/virtual") &&
-      (filePath.startsWith("/virtual") || startDir.startsWith("/virtual"))
-    ) {
+    if (isVirtual && !found.startsWith("/virtual")) {
       return undefined;
     }
     return found;
   }
 
-  if (!isTestEnvironment()) {
+  if (!isTestEnvironment() && !isVirtual) {
     const cwdConfig = ts.findConfigFile(process.cwd(), ts.sys.fileExists, "tsconfig.json");
     if (cwdConfig !== undefined) {
       return cwdConfig;
