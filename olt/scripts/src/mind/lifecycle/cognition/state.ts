@@ -95,7 +95,7 @@ export const DEFAULT_DIMENSIONAL_WEIGHTS: DimensionalWeights = {
   dag_concurrency: 0.15,
 };
 
-function clampScore(score: number): number {
+export function clampScore(score: number): number {
   if (score < MIN_COGNITIVE_SCORE) {
     return MIN_COGNITIVE_SCORE;
   }
@@ -105,7 +105,7 @@ function clampScore(score: number): number {
   return Math.round(score * 100) / 100;
 }
 
-function extractTasksFromState(state: unknown): Array<{
+export function extractTasksFromState(state: unknown): Array<{
   id: string;
   status: string;
   dependencies: string[];
@@ -153,7 +153,7 @@ function extractTasksFromState(state: unknown): Array<{
   return results;
 }
 
-function extractSystemMetricsFromState(
+export function extractSystemMetricsFromState(
   state: unknown,
   customFiles?: readonly string[] | undefined,
 ): SystemStateMetrics {
