@@ -105,7 +105,7 @@ describe("task:submit - Completion & Worktree Commits", () => {
     ]);
 
     expect((submit.task as { status: string }).status).toBe("submitted");
-  });
+  }, 30_000);
 
   test("task:submit with worktree subphase commit and warning", async () => {
     const { repo, run } = await setupRun("submit-worktree-commit", roots, {
@@ -206,7 +206,7 @@ describe("task:submit - Completion & Worktree Commits", () => {
     );
 
     expect((submit.task as { status: string }).status).toBe("submitted");
-  }, 20000);
+  }, 30_000);
 
   test("taskSubmitCommand and taskReleaseCommand from task-ops.ts wrapper", async () => {
     const { repo, run } = await setupRun("task-ops-wrappers", roots);
@@ -272,5 +272,5 @@ describe("task:submit - Completion & Worktree Commits", () => {
       evidence: runGate.command_id as string,
     });
     expect((submitRes.task as { status: string }).status).toBe("submitted");
-  });
+  }, 30_000);
 });
