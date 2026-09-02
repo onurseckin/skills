@@ -196,9 +196,11 @@ describe("CLI critic-ops commands - Rejections, Findings and Validation", () => 
   });
 
   test("critic:review rejects decision that is neither approve nor request_changes", async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "olt-test-"));
+    roots.push(tempDir);
     await expect(
       criticReviewCommand({
-        run: mkdtempSync(join(tmpdir(), "olt-test-")),
+        run: tempDir,
         critic: "critic-iota",
         token: "unused-token",
         decision: "abstain",

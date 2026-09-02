@@ -27,12 +27,13 @@ export async function setupReadyRun(name: string, roots: string[]) {
   );
   await writeFile(join(repo, ".gitignore"), ".olt/capsules/\n");
 
+  const uniqueRunName = `${name}-${Math.random().toString(36).slice(2)}`;
   const init = await execute([
     "plan:init",
     "--repo",
     repo,
     "--run",
-    name,
+    uniqueRunName,
     "--prompt-file",
     promptPath,
   ]);
