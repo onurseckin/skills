@@ -24,9 +24,9 @@ export function getCodeViewerStyles(): string {
       flex-wrap: wrap;
     }
     .miss-chip {
-      background: rgba(239, 68, 68, 0.2);
-      border: 1px solid rgba(239, 68, 68, 0.4);
-      color: #f87171;
+      background: #450a0a;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #fecaca;
       padding: 0.2rem 0.5rem;
       border-radius: 4px;
       font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
@@ -36,11 +36,11 @@ export function getCodeViewerStyles(): string {
       transition: all 0.15s ease;
     }
     .miss-chip:hover {
-      background: rgba(239, 68, 68, 0.4);
+      background: #7f1d1d;
       transform: translateY(-1px);
     }
     .code-container {
-      background: #080808;
+      background: #000000;
       border: 1px solid var(--border-subtle);
       border-radius: 0.75rem;
       overflow-x: auto;

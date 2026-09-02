@@ -10,6 +10,8 @@ export function getClientScript(payloadJson: string): string {
     let sortAsc = true;
     let expandedFolders = new Set(["", "root", "scripts", "olt", "olt/scripts", "olt/scripts/src"]);
     let activeFile = null;
+    let flatCurrentPage = 1;
+    let flatPageSize = 100;
 
     function colorForPct(pct) {
       if (pct >= 100) return "var(--status-pass)";
@@ -21,13 +23,6 @@ export function getClientScript(payloadJson: string): string {
       if (pct >= 100) return "badge-pass";
       if (pct >= 80) return "badge-warn";
       return "badge-fail";
-    }
-
-    function createGaugeSvg(pct, color) {
-      const radius = 28;
-      const circumference = 2 * Math.PI * radius;
-      const offset = circumference - (Math.min(100, Math.max(0, pct)) / 100) * circumference;
-      return '<svg width="68" height="68"><circle class="gauge-bg" cx="34" cy="34" r="' + radius + '"></circle><circle class="gauge-fill" cx="34" cy="34" r="' + radius + '" style="stroke:' + color + '; stroke-dasharray:' + circumference + '; stroke-dashoffset:' + offset + '"></circle></svg>';
     }
 
     function initMetrics() {
@@ -44,68 +39,57 @@ export function getClientScript(payloadJson: string): string {
       }
 
       // Card 1: Lines Coverage
-      const valLines = document.getElementById("val-lines");
       const subLines = document.getElementById("sub-lines");
-      const gaugeLines = document.getElementById("gauge-lines");
-      if (valLines) valLines.textContent = t.lines.pct + "%";
+      const kpiFillLines = document.getElementById("kpi-fill-lines");
+      const kpiValLines = document.getElementById("kpi-val-lines");
       if (subLines) subLines.textContent = (t.lines.covered || 0).toLocaleString() + " / " + (t.lines.total || 0).toLocaleString() + " lines";
-      if (gaugeLines) gaugeLines.innerHTML = createGaugeSvg(t.lines.pct, colorForPct(t.lines.pct));
+      if (kpiFillLines) {
+        kpiFillLines.style.width = Math.min(100, Math.max(0, t.lines.pct)) + "%";
+        kpiFillLines.style.background = colorForPct(t.lines.pct);
+      }
+      if (kpiValLines) kpiValLines.textContent = t.lines.pct + "%";
 
       // Card 2: Functions Coverage
-      const valFuncs = document.getElementById("val-funcs");
       const subFuncs = document.getElementById("sub-funcs");
-      const gaugeFuncs = document.getElementById("gauge-funcs");
-      if (valFuncs) valFuncs.textContent = t.functions.pct + "%";
+      const kpiFillFuncs = document.getElementById("kpi-fill-funcs");
+      const kpiValFuncs = document.getElementById("kpi-val-funcs");
       if (subFuncs) subFuncs.textContent = (t.functions.covered || 0).toLocaleString() + " / " + (t.functions.total || 0).toLocaleString() + " funcs";
-      if (gaugeFuncs) gaugeFuncs.innerHTML = createGaugeSvg(t.functions.pct, colorForPct(t.functions.pct));
+      if (kpiFillFuncs) {
+        kpiFillFuncs.style.width = Math.min(100, Math.max(0, t.functions.pct)) + "%";
+        kpiFillFuncs.style.background = colorForPct(t.functions.pct);
+      }
+      if (kpiValFuncs) kpiValFuncs.textContent = t.functions.pct + "%";
 
       // Card 3: Production Files Tested
       const valFiles = document.getElementById("val-files");
-      const gaugeFiles = document.getElementById("gauge-files");
       const totalFilesCount = (DATA.files && DATA.files.length) ? DATA.files.length : 0;
       if (valFiles) valFiles.textContent = totalFilesCount.toLocaleString();
-      if (gaugeFiles) gaugeFiles.innerHTML = createGaugeSvg(100, "var(--status-pass)");
 
       // Card 4: Unit Test Files Run
       const valTests = document.getElementById("val-tests");
       const subTests = document.getElementById("sub-tests");
-      const gaugeTests = document.getElementById("gauge-tests");
       const totalTestsCount = (r && typeof r.totalFiles === "number") ? r.totalFiles : (DATA.files ? (new Set(DATA.files.map(f => f.testFile).filter(Boolean)).size) : 0);
       const totalDur = (r && typeof r.totalDurationMs === "number") ? r.totalDurationMs : 0;
       const p50Count = (r && r.pareto50 && typeof r.pareto50.fileCount === "number") ? r.pareto50.fileCount : 0;
       if (valTests) valTests.textContent = totalTestsCount.toLocaleString();
       if (subTests) subTests.textContent = totalDur > 0 ? (totalDur.toLocaleString() + "ms (" + p50Count.toLocaleString() + " in P50)") : "Across test suite";
-      if (gaugeTests) gaugeTests.innerHTML = createGaugeSvg(100, "var(--text-muted)");
 
       // Card 5: Deficit Clusters
       const valDeficits = document.getElementById("val-deficits");
       const subDeficits = document.getElementById("sub-deficits");
-      const gaugeDeficits = document.getElementById("gauge-deficits");
       const clusterCount = def && def.clusters ? def.clusters.length : 0;
       const missedLines = t.lines.total - t.lines.covered;
       if (valDeficits) valDeficits.textContent = clusterCount.toLocaleString();
       if (subDeficits) subDeficits.textContent = (missedLines > 0 ? missedLines : 0).toLocaleString() + " uncovered lines";
-      if (gaugeDeficits) gaugeDeficits.innerHTML = createGaugeSvg(Math.max(0, 100 - (missedLines / (t.lines.total || 1)) * 100), "var(--status-fail)");
 
       if (typeof initDeficitMetrics === "function") {
         initDeficitMetrics();
       }
     }
 
-    function setDensity(mode) {
-      if (mode === "compact") {
-        document.body.classList.add("density-compact");
-        document.getElementById("btn-density-compact")?.classList.add("active");
-        document.getElementById("btn-density-comfortable")?.classList.remove("active");
-      } else {
-        document.body.classList.remove("density-compact");
-        document.getElementById("btn-density-comfortable")?.classList.add("active");
-        document.getElementById("btn-density-compact")?.classList.remove("active");
-      }
-    }
-
     function setViewMode(mode) {
       viewMode = mode;
+      flatCurrentPage = 1;
       document.querySelectorAll(".view-mode-btn").forEach(b => b.classList.remove("active"));
       const btn = document.getElementById("btn-view-" + mode);
       if (btn) btn.classList.add("active");
@@ -115,6 +99,7 @@ export function getClientScript(payloadJson: string): string {
 
     function setMasterFilter(f) {
       masterFilter = f;
+      flatCurrentPage = 1;
       if (f === "perfect") {
         sortCol = "lines";
         sortAsc = false;
@@ -144,6 +129,7 @@ export function getClientScript(payloadJson: string): string {
       viewMode = "tree";
       sortCol = "path";
       sortAsc = true;
+      flatCurrentPage = 1;
       expandedFolders = new Set(["", "root", "scripts", "olt", "olt/scripts", "olt/scripts/src"]);
 
       const searchInput = document.getElementById("master-search-box");
@@ -166,6 +152,7 @@ export function getClientScript(payloadJson: string): string {
 
     function onMasterSearch(val) {
       masterSearch = (val || "").trim().toLowerCase();
+      flatCurrentPage = 1;
       updateUrlHash();
       renderMasterTable();
     }
@@ -204,6 +191,12 @@ export function getClientScript(payloadJson: string): string {
         sortCol = col;
         sortAsc = col === "path";
       }
+      flatCurrentPage = 1;
+      renderMasterTable();
+    }
+
+    function changeFlatPage(page) {
+      flatCurrentPage = page;
       renderMasterTable();
     }
 

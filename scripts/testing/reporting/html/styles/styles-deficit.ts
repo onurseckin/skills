@@ -46,7 +46,7 @@ export function getDeficitStyles(): string {
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      color: var(--text-muted);
+      color: #ffffff !important;
       border-bottom: 1px solid var(--border-subtle);
       cursor: pointer;
       user-select: none;
@@ -88,7 +88,7 @@ export function getDeficitStyles(): string {
       font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
       font-size: 0.85rem;
       font-weight: 600;
-      color: #818cf8;
+      color: #e9d5ff;
       text-decoration: none;
       cursor: pointer;
       display: inline-flex;
@@ -97,16 +97,16 @@ export function getDeficitStyles(): string {
       transition: all 0.15s ease;
     }
     .deficit-target-link:hover {
-      color: #a5b4fc;
+      color: #ffffff;
       text-decoration: underline;
     }
 
     /* Gain badges */
     .gain-badge-repo {
-      background: rgba(99, 102, 241, 0.15);
-      color: #a5b4fc;
-      border: 1px solid rgba(99, 102, 241, 0.35);
-      box-shadow: 0 0 8px rgba(99, 102, 241, 0.15);
+      background: #3b0764;
+      color: #e9d5ff;
+      border: 1px solid rgba(168, 85, 247, 0.35);
+      box-shadow: 0 0 8px rgba(168, 85, 247, 0.2);
       font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
       font-size: 0.78rem;
       font-weight: 700;
@@ -116,10 +116,10 @@ export function getDeficitStyles(): string {
       white-space: nowrap;
     }
     .gain-badge-file {
-      background: rgba(16, 185, 129, 0.15);
-      color: #10b981;
+      background: #042f2e;
+      color: #6ee7b7;
       border: 1px solid rgba(16, 185, 129, 0.35);
-      box-shadow: 0 0 8px rgba(16, 185, 129, 0.15);
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.2);
       font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
       font-size: 0.78rem;
       font-weight: 700;
@@ -131,30 +131,30 @@ export function getDeficitStyles(): string {
 
     /* Category Badges */
     .badge-cat-error-handling {
-      background: rgba(239, 68, 68, 0.18);
-      color: #f87171;
-      border: 1px solid rgba(239, 68, 68, 0.4);
+      background: #450a0a;
+      color: #fecaca;
+      border: 1px solid rgba(239, 68, 68, 0.35);
       box-shadow: 0 0 8px rgba(239, 68, 68, 0.2);
       border-radius: 4px;
     }
     .badge-cat-branching {
-      background: rgba(245, 158, 11, 0.18);
-      color: #fbbf24;
-      border: 1px solid rgba(245, 158, 11, 0.4);
+      background: #451a03;
+      color: #fef08a;
+      border: 1px solid rgba(245, 158, 11, 0.35);
       box-shadow: 0 0 8px rgba(245, 158, 11, 0.2);
       border-radius: 4px;
     }
     .badge-cat-initialization {
-      background: rgba(6, 182, 212, 0.18);
-      color: #22d3ee;
-      border: 1px solid rgba(6, 182, 212, 0.4);
+      background: #083344;
+      color: #a5f3fc;
+      border: 1px solid rgba(6, 182, 212, 0.35);
       box-shadow: 0 0 8px rgba(6, 182, 212, 0.2);
       border-radius: 4px;
     }
     .badge-cat-unexercised-logic {
-      background: rgba(168, 85, 247, 0.18);
-      color: #c084fc;
-      border: 1px solid rgba(168, 85, 247, 0.4);
+      background: #3b0764;
+      color: #e9d5ff;
+      border: 1px solid rgba(168, 85, 247, 0.35);
       box-shadow: 0 0 8px rgba(168, 85, 247, 0.2);
       border-radius: 4px;
     }
@@ -173,7 +173,7 @@ export function getDeficitStyles(): string {
     .deficit-snippet {
       font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
       font-size: 0.75rem;
-      background: #090d16;
+      background: #09090b;
       border: 1px solid rgba(255, 255, 255, 0.08);
       padding: 0.2rem 0.5rem;
       border-radius: 0.35rem;

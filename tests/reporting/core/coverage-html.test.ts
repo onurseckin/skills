@@ -59,9 +59,9 @@ describe(coverageHtmlSuiteName, () => {
       );
       expect(doc).toContain("/* custom-styles */");
       expect(doc).toContain("/* custom-script */");
-      expect(doc).toContain('id="val-lines"');
-      expect(doc).toContain('id="breadcrumbs"');
-      expect(doc).toContain('id="content-view"');
+      expect(doc).toContain('id="kpi-val-lines"');
+      expect(doc).toContain('id="master-view"');
+      expect(doc).toContain('id="master-table-container"');
     });
 
     it("getClientScript generates client JS including payload JSON", () => {
@@ -71,15 +71,13 @@ describe(coverageHtmlSuiteName, () => {
       expect(script).toContain("function setFilter(");
       expect(script).toContain("function renderBreadcrumbs()");
       expect(script).toContain("function renderFolderView()");
-      expect(script).toContain("function createGaugeSvg(");
+      expect(script).toContain("function getFolderLinesPct(");
     });
 
     it("getClientScriptHelpers returns helper functions string", () => {
       const helpers = getClientScriptHelpers();
-      expect(helpers).toContain("function getFolderLinesPct(");
-      expect(helpers).toContain("function getFolderFuncsPct(");
-      expect(helpers).toContain("function setSort(");
-      expect(helpers).toContain("function renderFileView()");
+      expect(helpers).toContain("function openCodeViewer(");
+      expect(helpers).toContain("function renderCodeViewer(");
       expect(helpers).toContain("function escapeHtml(");
       expect(helpers).toContain("function jumpToLine(");
       expect(helpers).toContain("function copyPath(");

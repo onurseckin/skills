@@ -9,11 +9,8 @@ export function getClientScriptUnified(): string {
       const miss = lTot - lCov;
       const dCount = n.deficitCount !== undefined ? n.deficitCount : (n.deficitClusters ? n.deficitClusters.length : 0);
       const pClass = n.paretoClass;
-
       if (masterFilter === "miss") return lPct < 100;
-      if (masterFilter === "deficits") {
-        return (n.uncoveredLines && n.uncoveredLines.length > 0) || miss > 0 || dCount > 0;
-      }
+      if (masterFilter === "deficits") return (n.uncoveredLines && n.uncoveredLines.length > 0) || miss > 0 || dCount > 0;
       if (masterFilter === "error-handling" || masterFilter === "branching" || masterFilter === "initialization" || masterFilter === "unexercised-logic") {
         return Boolean(n.deficitCategories && n.deficitCategories.includes(masterFilter));
       }
@@ -75,23 +72,16 @@ export function getClientScriptUnified(): string {
 
     function renderCoverageBar(pct, covered, total, unit) {
       const safePct = typeof pct === "number" ? pct : 0;
-      const covFormatted = (covered || 0).toLocaleString();
-      const totFormatted = (total || 0).toLocaleString();
       const fillCls = safePct >= 100 ? "cov-bar-fill-pass" : safePct >= 80 ? "cov-bar-fill-warn" : "cov-bar-fill-fail";
       const clamped = Math.min(100, Math.max(0, safePct));
       return '<div class="cov-bar-cell">' +
-        '<div class="cov-bar-counts">' + covFormatted + ' / ' + totFormatted + ' ' + unit + '</div>' +
-        '<div class="cov-bar-track">' +
-          '<div class="cov-bar-fill ' + fillCls + '" style="width:' + clamped + '%;"></div>' +
-          '<span class="cov-bar-text">' + safePct + '%</span>' +
-        '</div>' +
+        '<div class="cov-bar-counts">' + (covered || 0).toLocaleString() + ' / ' + (total || 0).toLocaleString() + ' ' + unit + '</div>' +
+        '<div class="cov-bar-track"><div class="cov-bar-fill ' + fillCls + '" style="width:' + clamped + '%;"></div><span class="cov-bar-text">' + safePct + '%</span></div>' +
       '</div>';
     }
 
     function renderTableRow(node, isDir, indent) {
-      const rowClick = isDir
-        ? 'toggleFolderRow(\\'' + escapeJs(node.path) + '\\', event)'
-        : 'openCodeViewer(\\'' + escapeJs(node.path) + '\\', event)';
+      const rowClick = isDir ? 'toggleFolderRow(\\'' + escapeJs(node.path) + '\\', event)' : 'openCodeViewer(\\'' + escapeJs(node.path) + '\\', event)';
       let html = '<tr class="tree-row ' + (isDir ? 'tree-row-dir' : 'tree-row-file') + '" onclick="' + rowClick + '" style="cursor: pointer;">';
       html += '<td><div class="tree-cell-name">';
       for (let i = 0; i < (indent || 0); i++) html += '<span class="tree-indent-space"></span>';
@@ -155,13 +145,9 @@ export function getClientScriptUnified(): string {
 
     function collectMatchingNodes(node, outList) {
       if (!node) return;
-      if (node.path && nodeMatchesFilter(node) && nodeMatchesSearch(node)) {
-        outList.push(node);
-      }
+      if (node.path && nodeMatchesFilter(node) && nodeMatchesSearch(node)) outList.push(node);
       if (node.children) {
-        for (let i = 0; i < node.children.length; i++) {
-          collectMatchingNodes(node.children[i], outList);
-        }
+        for (let i = 0; i < node.children.length; i++) collectMatchingNodes(node.children[i], outList);
       }
     }
 
@@ -175,13 +161,49 @@ export function getClientScriptUnified(): string {
       return sorted.map(n => renderTableRow(n, n.type === "dir", undefined)).join("");
     }
 
+    function renderFlatPagination(totalItems) {
+      const totalPages = Math.max(1, Math.ceil(totalItems / flatPageSize));
+      if (totalItems === 0) return "";
+      let html = '<div class="flat-pagination-bar">';
+      const startCount = (flatCurrentPage - 1) * flatPageSize + 1;
+      const endCount = Math.min(flatCurrentPage * flatPageSize, totalItems);
+      html += '<div class="flat-pagination-info">Showing <strong>' + startCount.toLocaleString() + ' - ' + endCount.toLocaleString() + '</strong> of <strong>' + totalItems.toLocaleString() + '</strong> files</div>';
+      html += '<div class="flat-pagination-controls">';
+      html += '<button class="flat-page-btn flat-page-prev" ' + (flatCurrentPage <= 1 ? 'disabled' : '') + ' onclick="changeFlatPage(' + (flatCurrentPage - 1) + ')">&larr; Prev</button>';
+
+      const maxButtons = 5;
+      let startPage = Math.max(1, flatCurrentPage - 2);
+      let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+      if (endPage - startPage < maxButtons - 1) startPage = Math.max(1, endPage - maxButtons + 1);
+
+      if (startPage > 1) {
+        html += '<button class="flat-page-btn" onclick="changeFlatPage(1)">1</button>';
+        if (startPage > 2) html += '<span class="flat-page-ellipsis">...</span>';
+      }
+      for (let p = startPage; p <= endPage; p++) {
+        html += '<button class="flat-page-btn ' + (p === flatCurrentPage ? 'active' : '') + '" onclick="changeFlatPage(' + p + ')">' + p + '</button>';
+      }
+      if (endPage < totalPages) {
+        if (endPage < totalPages - 1) html += '<span class="flat-page-ellipsis">...</span>';
+        html += '<button class="flat-page-btn" onclick="changeFlatPage(' + totalPages + ')">' + totalPages + '</button>';
+      }
+
+      html += '<span class="flat-page-pill">Page ' + flatCurrentPage + ' of ' + totalPages + ' (' + totalItems.toLocaleString() + ' total files)</span>' +
+        '<button class="flat-page-btn flat-page-next" ' + (flatCurrentPage >= totalPages ? 'disabled' : '') + ' onclick="changeFlatPage(' + (flatCurrentPage + 1) + ')">Next &rarr;</button></div></div>';
+      return html;
+    }
+
     function renderFlatFiles() {
       const filtered = (DATA.files || []).filter(f => nodeMatchesFilter(f) && nodeMatchesSearch(f));
       const sorted = sortUnifiedItems(filtered);
       if (sorted.length === 0) {
         return '<tr><td colspan="6" style="text-align: center; color: var(--text-dim); padding: 2.5rem;">No production files matched the selected criteria.</td></tr>';
       }
-      return sorted.map(f => renderTableRow(f, false, undefined)).join("");
+      const totalPages = Math.max(1, Math.ceil(sorted.length / flatPageSize));
+      if (flatCurrentPage > totalPages) flatCurrentPage = totalPages;
+      if (flatCurrentPage < 1) flatCurrentPage = 1;
+      const pageItems = sorted.slice((flatCurrentPage - 1) * flatPageSize, flatCurrentPage * flatPageSize);
+      return pageItems.map(f => renderTableRow(f, false, undefined)).join("");
     }
 
     function renderMasterTable() {
@@ -204,22 +226,21 @@ export function getClientScriptUnified(): string {
 
       if (treeBar) {
         treeBar.style.display = "flex";
+        const showTree = (viewMode === "tree" && !isFilterActive) ? "" : "none";
         const btnExp = document.getElementById("btn-expand-all");
         const btnCol = document.getElementById("btn-collapse-all");
-        const showTreeButtons = (viewMode === "tree" && !isFilterActive);
-        if (btnExp) btnExp.style.display = showTreeButtons ? "" : "none";
-        if (btnCol) btnCol.style.display = showTreeButtons ? "" : "none";
+        if (btnExp) btnExp.style.display = showTree;
+        if (btnCol) btnCol.style.display = showTree;
       }
 
       let html = '<table class="unified-tree-table"><thead><tr>';
       const pathColTitle = (viewMode === "tree" && !isFilterActive) ? "Hierarchy Path" : (viewMode === "tree" ? "Ranked Item Path" : "Production File Path");
-      html += '<th data-sort="path" onclick="setMasterSort(this.dataset.sort)">' + pathColTitle + ' ' + (sortCol === 'path' ? (sortAsc ? '▲' : '▼') : '') + '</th>';
-      html += '<th data-sort="lines" onclick="setMasterSort(this.dataset.sort)">Lines Coverage ' + (sortCol === 'lines' ? (sortAsc ? '▲' : '▼') : '') + '</th>';
-      html += '<th data-sort="funcs" onclick="setMasterSort(this.dataset.sort)">Functions Coverage ' + (sortCol === 'funcs' ? (sortAsc ? '▲' : '▼') : '') + '</th>';
-      html += '<th data-sort="duration" onclick="setMasterSort(this.dataset.sort)">Runtime Duration ' + (sortCol === 'duration' ? (sortAsc ? '▲' : '▼') : '') + '</th>';
-      html += '<th data-sort="deficits" onclick="setMasterSort(this.dataset.sort)">Deficits & Misses ' + (sortCol === 'deficits' ? (sortAsc ? '▲' : '▼') : '') + '</th>';
-      html += '<th style="width: 100px;">Action</th>';
-      html += '</tr></thead><tbody>';
+      html += '<th data-sort="path" onclick="setMasterSort(this.dataset.sort)">' + pathColTitle + ' ' + (sortCol === 'path' ? (sortAsc ? '▲' : '▼') : '') + '</th>' +
+        '<th data-sort="lines" onclick="setMasterSort(this.dataset.sort)">Lines Coverage ' + (sortCol === 'lines' ? (sortAsc ? '▲' : '▼') : '') + '</th>' +
+        '<th data-sort="funcs" onclick="setMasterSort(this.dataset.sort)">Functions Coverage ' + (sortCol === 'funcs' ? (sortAsc ? '▲' : '▼') : '') + '</th>' +
+        '<th data-sort="duration" onclick="setMasterSort(this.dataset.sort)">Runtime Duration ' + (sortCol === 'duration' ? (sortAsc ? '▲' : '▼') : '') + '</th>' +
+        '<th data-sort="deficits" onclick="setMasterSort(this.dataset.sort)">Deficits & Misses ' + (sortCol === 'deficits' ? (sortAsc ? '▲' : '▼') : '') + '</th>' +
+        '<th style="width: 100px;">Action</th></tr></thead><tbody>';
 
       const totalFiles = DATA.files ? DATA.files.length : 0;
       const totalTests = (DATA.runtime && typeof DATA.runtime.totalFiles === "number") ? DATA.runtime.totalFiles : (DATA.files ? (new Set(DATA.files.map(f => f.testFile).filter(Boolean)).size) : 0);
@@ -247,9 +268,9 @@ export function getClientScriptUnified(): string {
           }
         }
       } else {
+        const filtered = (DATA.files || []).filter(f => nodeMatchesFilter(f) && nodeMatchesSearch(f));
         html += renderFlatFiles();
         if (summaryText) {
-          const filtered = (DATA.files || []).filter(f => nodeMatchesFilter(f) && nodeMatchesSearch(f));
           const fTests = new Set(filtered.map(f => f.testFile).filter(Boolean)).size;
           if (isFilterActive || filtered.length < totalFiles) {
             summaryText.textContent = "Displaying " + filtered.length.toLocaleString() + " of " + totalFiles.toLocaleString() + " files (" + fTests.toLocaleString() + " unit tests)";
@@ -260,6 +281,10 @@ export function getClientScriptUnified(): string {
       }
 
       html += '</tbody></table>';
+      if (viewMode === "flat") {
+        const filtered = (DATA.files || []).filter(f => nodeMatchesFilter(f) && nodeMatchesSearch(f));
+        html += renderFlatPagination(filtered.length);
+      }
       container.innerHTML = html;
     }
 

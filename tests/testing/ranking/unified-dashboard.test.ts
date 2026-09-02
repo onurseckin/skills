@@ -214,8 +214,7 @@ describe("Wave 4 & 5 Unified Hierarchy & Dashboard", () => {
       expect(html).toContain('id="tab-unified"');
       expect(html).toContain('id="tab-deficits"');
       expect(html).toContain('id="deficits-section"');
-      expect(html).toContain('id="btn-density-compact"');
-      expect(html).toContain('id="btn-density-comfortable"');
+      expect(html).toContain("metric-progress-track");
       expect(html).toContain("unified-tree-table");
       expect(html).toContain("deficit-kpi-card");
     });
@@ -223,7 +222,7 @@ describe("Wave 4 & 5 Unified Hierarchy & Dashboard", () => {
     test("styles include Obsidian Dark-Mode glows, scrollbars, and deficit CSS", () => {
       const htmlStyles = getHtmlStyles();
       const defStyles = getDeficitStyles();
-      expect(htmlStyles).toContain("--bg-base: #080b11");
+      expect(htmlStyles).toContain("--bg-base: #09090b");
       expect(htmlStyles).toContain("::-webkit-scrollbar");
       expect(htmlStyles).toContain(".badge-pass");
       expect(htmlStyles).toContain(".badge-fail");

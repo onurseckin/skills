@@ -21,10 +21,6 @@ ${styles}
       <span id="header-badge" class="badge"></span>
     </div>
     <div style="display: flex; align-items: center; gap: 1rem;">
-      <div class="density-toggles" style="display: flex; gap: 0.25rem;">
-        <button id="btn-density-compact" class="tree-action-btn" onclick="setDensity('compact')">Compact</button>
-        <button id="btn-density-comfortable" class="tree-action-btn active" onclick="setDensity('comfortable')">Comfortable</button>
-      </div>
       <div style="font-size: 0.8rem; color: var(--text-dim); font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;" id="header-timestamp"></div>
     </div>
   </header>
@@ -40,19 +36,17 @@ ${styles}
       <div class="metric-card">
         <div class="metric-info">
           <div class="metric-title">Lines Coverage</div>
-          <div class="metric-value" id="val-lines">0%</div>
           <div class="metric-sub" id="sub-lines">0 / 0 lines</div>
         </div>
-        <div class="radial-gauge" id="gauge-lines"></div>
+        <div class="metric-progress-track"><div id="kpi-fill-lines" class="metric-progress-fill"><span id="kpi-val-lines" class="metric-progress-text">0%</span></div></div>
       </div>
 
       <div class="metric-card">
         <div class="metric-info">
           <div class="metric-title">Functions Coverage</div>
-          <div class="metric-value" id="val-funcs">0%</div>
           <div class="metric-sub" id="sub-funcs">0 / 0 funcs</div>
         </div>
-        <div class="radial-gauge" id="gauge-funcs"></div>
+        <div class="metric-progress-track"><div id="kpi-fill-funcs" class="metric-progress-fill"><span id="kpi-val-funcs" class="metric-progress-text">0%</span></div></div>
       </div>
 
       <div class="metric-card">
@@ -61,7 +55,6 @@ ${styles}
           <div class="metric-value" id="val-files">0</div>
           <div class="metric-sub">Across Source Code</div>
         </div>
-        <div class="radial-gauge" id="gauge-files"></div>
       </div>
 
       <div class="metric-card">
@@ -70,7 +63,6 @@ ${styles}
           <div class="metric-value" id="val-tests">0</div>
           <div class="metric-sub" id="sub-tests">0ms total duration</div>
         </div>
-        <div class="radial-gauge" id="gauge-tests"></div>
       </div>
 
       <div class="metric-card">
@@ -85,7 +77,6 @@ ${styles}
           <span style="display:none;" id="val-rt-total">0</span>
           <span style="display:none;" id="val-rt-p50">0</span>
         </div>
-        <div class="radial-gauge" id="gauge-deficits"></div>
       </div>
     </div>
 

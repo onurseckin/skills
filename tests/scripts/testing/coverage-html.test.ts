@@ -46,7 +46,7 @@ describe("Coverage HTML Dashboard and Artifact Pipeline (in-memory virtual)", ()
       const styles = getHtmlStyles();
       expect(styles).toContain(":root");
       expect(styles).toContain("--bg-base");
-      expect(styles).toContain(".radial-gauge");
+      expect(styles).toContain(".metric-progress-track");
       expect(styles).toContain(".code-line.miss");
     });
 

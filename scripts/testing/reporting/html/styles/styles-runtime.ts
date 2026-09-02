@@ -29,7 +29,7 @@ export function getRuntimeStyles(): string {
     .tab-btn.active {
       color: var(--brand-accent);
       border-bottom: 2px solid var(--brand-accent);
-      background: rgba(99, 102, 241, 0.08);
+      background: rgba(255, 255, 255, 0.08);
     }
     .test-title-link {
       color: var(--text-main);
@@ -143,7 +143,7 @@ export function getRuntimeStyles(): string {
     }
     .runtime-bar-track {
       flex: 1;
-      background: var(--bg-base);
+      background: #27272a;
       height: 6px;
       border-radius: 999px;
       overflow: hidden;
@@ -151,7 +151,7 @@ export function getRuntimeStyles(): string {
     }
     .runtime-bar-fill {
       height: 100%;
-      background: linear-gradient(90deg, #6366f1, #ef4444);
+      background: linear-gradient(90deg, #a855f7, #ef4444);
       border-radius: 999px;
     }
   `;

@@ -270,5 +270,21 @@ describe("Coverage Reporting Modules", () => {
       expect(script).toContain("badge-p90");
       expect(script).toContain("badge-pnormal");
     });
+
+    test("flat file list mode implements 100-item in-memory pagination and obsidian controls", () => {
+      const script = getClientScript("{}");
+      expect(script).toContain("let flatCurrentPage = 1;");
+      expect(script).toContain("let flatPageSize = 100;");
+      expect(script).toContain("function changeFlatPage(page)");
+      expect(script).toContain("function renderFlatPagination(totalItems)");
+      expect(script).toContain("flatCurrentPage * flatPageSize");
+      expect(script).toContain("changeFlatPage(");
+      expect(script).toContain("flat-pagination-bar");
+
+      const styles = getHtmlStyles();
+      expect(styles).toContain(".flat-pagination-bar");
+      expect(styles).toContain(".flat-page-btn");
+      expect(styles).toContain(".flat-page-pill");
+    });
   });
 });
