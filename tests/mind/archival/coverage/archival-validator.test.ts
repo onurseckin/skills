@@ -10,14 +10,14 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import * as safeFs from "../../../olt/scripts/src/core/shared/safe-fs/index.ts";
+import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import * as safeFs from "../../../../olt/scripts/src/core/shared/safe-fs/index.ts";
 import {
   archiveCapsule,
   assertCapsuleCopyComplete,
   isEffectivelyEmptyDirectory,
   pruneCapsuleBoilerplate,
-} from "../../../olt/scripts/src/mind/archival/validator.ts";
+} from "../../../../olt/scripts/src/mind/archival/validator.ts";
 
 describe("Archival Validator Module", () => {
   let tempDir: string;

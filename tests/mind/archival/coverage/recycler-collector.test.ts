@@ -7,13 +7,13 @@ import {
   transitionCompletenessCriticSignOff,
   transitionPulseCloseToWake,
   transitionPulseToWake,
-} from "../../../olt/scripts/src/mind/archival/recycler/collector.ts";
-import { initRun, loadRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../../../olt/scripts/src/mind/archival/recycler/collector.ts";
+import { initRun, loadRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
 import {
   cleanupRoots,
   cleanupVirtualCliFS,
   setupVirtualCliFS,
-} from "../../cli/commands/fixtures/full-lifecycle-fixture.ts";
+} from "../../../cli/commands/fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
 

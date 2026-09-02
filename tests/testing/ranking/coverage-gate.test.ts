@@ -142,17 +142,24 @@ describe("Strict Coverage Quality Gate", () => {
         totalPct: 94.5,
         thresholdPct: 90.0,
         deficitPct: 0,
+        funcsPct: 98.0,
+        funcsThresholdPct: 95.0,
+        funcsDeficitPct: 0,
         filesCount: 15,
         failingFiles: [],
         totalLinesCovered: 945,
         totalLinesTotal: 1000,
+        totalFuncsCovered: 49,
+        totalFuncsTotal: 50,
       };
 
       const msg = formatCoverageGateMessage(passResult);
       expect(msg).toContain("✓ [coverage-gate] Quality Gate PASSED");
-      expect(msg).toContain("94.5%");
+      expect(msg).toContain("Lines 94.5%");
       expect(msg).toContain(">= 90%");
-      expect(msg).toContain("945/1000 lines across 15 files");
+      expect(msg).toContain("945/1000");
+      expect(msg).toContain("Functions 98%");
+      expect(msg).toContain("across 15 files");
     });
 
     test("formats failing message with deficit and list of failing files", () => {
@@ -161,10 +168,15 @@ describe("Strict Coverage Quality Gate", () => {
         totalPct: 82.0,
         thresholdPct: 90.0,
         deficitPct: 8.0,
+        funcsPct: 80.0,
+        funcsThresholdPct: 95.0,
+        funcsDeficitPct: 15.0,
         filesCount: 3,
         failingFiles: [{ file: "src/bad.ts", linesPct: 60.0, linesCovered: 60, linesTotal: 100 }],
         totalLinesCovered: 246,
         totalLinesTotal: 300,
+        totalFuncsCovered: 8,
+        totalFuncsTotal: 10,
       };
 
       const msg = formatCoverageGateMessage(failResult);

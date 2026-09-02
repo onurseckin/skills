@@ -7,13 +7,13 @@ import {
   DEFAULT_BASE_INTERVAL_MS,
   DEFAULT_MAX_INTERVAL_MS,
   QUIESCENCE_INTERVAL_MULTIPLIER,
-} from "../../../olt/scripts/src/mind/archival/quiesce/types.ts";
-import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../../../olt/scripts/src/mind/archival/quiesce/types.ts";
+import { initRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
 import {
   cleanupVirtualStoreFS,
   scratchRoot,
   setupVirtualStoreFS,
-} from "../../store/store-fixture.ts";
+} from "../../../store/store-fixture.ts";
 
 describe("Mind Archival Quiesce Types & Scanner Suite", () => {
   beforeEach(() => {

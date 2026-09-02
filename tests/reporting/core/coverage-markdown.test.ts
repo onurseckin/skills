@@ -55,22 +55,22 @@ describe(coverageMarkdownSuiteName, () => {
       const markdown = buildMarkdownReport(fileMap, summary);
 
       expect(markdown).toContain("# Repository Unit Test Coverage Report");
-      expect(markdown).toContain("## 📊 Executive Summary");
-      expect(markdown).toContain("## 📁 Detailed File Breakdown");
+      expect(markdown).toContain("## Executive Summary");
+      expect(markdown).toContain("## Detailed File Breakdown");
       expect(markdown).toContain("`src/perfect.ts`");
       expect(markdown).toContain("_None (100%)_");
       expect(markdown).toContain("`src/warning.ts`");
       expect(markdown).toContain("4, 8");
       expect(markdown).toContain("`src/critical.ts`");
       expect(markdown).toContain("(+2 more)");
-      expect(markdown).toContain("⚠️ NEEDS WORK");
+      expect(markdown).toContain("NEEDS WORK");
     });
 
     it("buildMarkdownReport handles empty summary.total fallback", () => {
       const fileMap = new Map<string, FileCoverageMetric>();
       const emptySummary: CoverageSummary = {};
       const markdown = buildMarkdownReport(fileMap, emptySummary);
-      expect(markdown).toContain("🟢 PASS");
+      expect(markdown).toContain("PASS");
       expect(markdown).toContain("**100%**");
     });
 

@@ -30,24 +30,23 @@ function normPath(p: string): string {
 
 export function setupVirtualReportingFS(): VirtualMemoryFS {
   enableInMemorySessionStore();
-  if (!session) {
-    vfs = new VirtualMemoryFS();
-    const repoRoot = normPath(process.cwd());
-    vfs.mkdirSync(repoRoot, { recursive: true });
-    vfs.mkdirSync(join(repoRoot, ".git"), { recursive: true });
-    vfs.mkdirSync(join(repoRoot, ".olt"), { recursive: true });
-    vfs.mkdirSync(join(repoRoot, ".olt", "capsules"), { recursive: true });
-    vfs.mkdirSync(join(repoRoot, ".olt", "scratch"), { recursive: true });
-    vfs.mkdirSync(join(repoRoot, ".olt", "runs"), { recursive: true });
-    vfs.mkdirSync(join(repoRoot, ".tmp"), { recursive: true });
-    vfs.writeFileSync(
-      join(repoRoot, "package.json"),
-      JSON.stringify({ name: "@onurseckin/skills" }),
-    );
-    vfs.mkdirSync(SCRATCH_BASE, { recursive: true });
-    vfs.chdir(repoRoot);
-    session = createVirtualFSSession(vfs);
+  if (session) {
+    session.cleanup();
+    session = null;
   }
+  vfs = new VirtualMemoryFS();
+  const repoRoot = normPath(process.cwd());
+  vfs.mkdirSync(repoRoot, { recursive: true });
+  vfs.mkdirSync(join(repoRoot, ".git"), { recursive: true });
+  vfs.mkdirSync(join(repoRoot, ".olt"), { recursive: true });
+  vfs.mkdirSync(join(repoRoot, ".olt", "capsules"), { recursive: true });
+  vfs.mkdirSync(join(repoRoot, ".olt", "scratch"), { recursive: true });
+  vfs.mkdirSync(join(repoRoot, ".olt", "runs"), { recursive: true });
+  vfs.mkdirSync(join(repoRoot, ".tmp"), { recursive: true });
+  vfs.writeFileSync(join(repoRoot, "package.json"), JSON.stringify({ name: "@onurseckin/skills" }));
+  vfs.mkdirSync(SCRATCH_BASE, { recursive: true });
+  vfs.chdir(repoRoot);
+  session = createVirtualFSSession(vfs);
   return vfs;
 }
 

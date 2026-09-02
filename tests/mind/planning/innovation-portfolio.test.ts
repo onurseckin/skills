@@ -295,7 +295,6 @@ describe("Innovation Portfolio Governance & 3-Milestone Hypothesis Gates Suite",
         passed: false,
         evidence: "Proof failed",
       });
-
       expect(resFail.passed).toBe(false);
       expect(resFail.newStatus).toBe("TERMINATED");
       expect(resFail.antiPatternEntry).toBeDefined();

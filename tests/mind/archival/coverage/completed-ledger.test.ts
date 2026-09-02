@@ -13,13 +13,13 @@ import {
   updateFeedbackQueueItems,
   writeCompletedTasksLedger,
   writeCompletedTasksLedgerUnlocked,
-} from "../../../olt/scripts/src/mind/archival/completed/ledger.ts";
-import type { CompletedTaskRecord } from "../../../olt/scripts/src/mind/archival/completed/types.ts";
+} from "../../../../olt/scripts/src/mind/archival/completed/ledger.ts";
+import type { CompletedTaskRecord } from "../../../../olt/scripts/src/mind/archival/completed/types.ts";
 import {
   readFeedbackQueueStrict,
   writeFeedbackQueue,
-} from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
-import type { FeedbackItem } from "../../../olt/scripts/src/mind/feedback/queue/types.ts";
+} from "../../../../olt/scripts/src/mind/feedback/queue/index.ts";
+import type { FeedbackItem } from "../../../../olt/scripts/src/mind/feedback/queue/types.ts";
 
 const sampleTask1: CompletedTaskRecord = {
   id: "task-001",
