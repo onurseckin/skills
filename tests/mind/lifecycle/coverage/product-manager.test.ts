@@ -6,8 +6,8 @@ import {
   evaluateMindMode,
   runMindProductManagerLoop,
   discoverGroundedFeatures,
-} from "../../../olt/scripts/src/mind/lifecycle/orchestration/product-manager.ts";
-import { writeTaskQueue } from "../../../olt/scripts/src/task/queue/index.ts";
+} from "../../../../olt/scripts/src/mind/lifecycle/orchestration/product-manager.ts";
+import { writeTaskQueue } from "../../../../olt/scripts/src/task/queue/index.ts";
 
 describe("Mind Product Manager Autonomous Expansion Suite (product-manager.ts)", () => {
   let testDir: string;

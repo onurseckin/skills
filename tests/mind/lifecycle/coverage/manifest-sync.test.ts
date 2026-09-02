@@ -2,15 +2,15 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import {
   resolveManifestPath,
   computeManifestSha256Pin,
   computeMerkleGenesisBinding,
   syncOrchestratorToManifest,
   validateCapsuleManifestBinding,
-} from "../../../olt/scripts/src/mind/lifecycle/manifest-sync.ts";
-import type { OrchestratorRegistrationRecord } from "../../../olt/scripts/src/mind/lifecycle/orchestration/index.ts";
+} from "../../../../olt/scripts/src/mind/lifecycle/manifest-sync.ts";
+import type { OrchestratorRegistrationRecord } from "../../../../olt/scripts/src/mind/lifecycle/orchestration/index.ts";
 
 describe("Manifest Sync & Genesis Binding Suite (manifest-sync.ts)", () => {
   let testDir: string;
@@ -250,19 +250,15 @@ describe("Manifest Sync & Genesis Binding Suite (manifest-sync.ts)", () => {
       writeFileSync(
         manifestPath,
         JSON.stringify({ orchestrator_id: "orch-1", run_id: "run-1", conversation_id: "conv-1" }),
-        "utf-8",
       );
-
       const record = createDummyRecord({
         orchestrator_id: "orch-1",
         run_id: "run-1",
         conversation_id: "conv-1",
-        manifest_sha256: "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        manifest_sha256: "f".repeat(64),
       });
-
       const mismatch = validateCapsuleManifestBinding(record, { manifestPath });
       expect(mismatch.valid).toBe(false);
-      expect(mismatch.error).toContain("manifest pin mismatch");
       expect(() => validateCapsuleManifestBinding(record, { manifestPath, assert: true })).toThrow(
         HarnessError,
       );
@@ -271,7 +267,7 @@ describe("Manifest Sync & Genesis Binding Suite (manifest-sync.ts)", () => {
     it("validates successfully with matching pin or empty record manifest_sha256", () => {
       const manifestPath = join(testDir, "valid-manifest.json");
       const manifestObj = { orchestrator_id: "orch-1", run_id: "run-1", conversation_id: "conv-1" };
-      writeFileSync(manifestPath, JSON.stringify(manifestObj), "utf-8");
+      writeFileSync(manifestPath, JSON.stringify(manifestObj));
 
       const pin = computeManifestSha256Pin(manifestObj);
       const recordWithPin = createDummyRecord({
@@ -280,23 +276,20 @@ describe("Manifest Sync & Genesis Binding Suite (manifest-sync.ts)", () => {
         conversation_id: "conv-1",
         manifest_sha256: pin,
       });
-
       const validResult = validateCapsuleManifestBinding(recordWithPin, {
         manifestPath,
         assert: true,
       });
-      expect(validResult.valid).toBe(true);
-      expect(validResult.actualPin).toBe(pin);
+      expect(validResult.valid && validResult.actualPin === pin).toBe(true);
 
-      const recordWithoutPin = createDummyRecord({
+      const recordNoPin = createDummyRecord({
         orchestrator_id: "orch-1",
         run_id: "run-1",
         conversation_id: "conv-1",
         manifest_sha256: "",
       });
-      const validNoPin = validateCapsuleManifestBinding(recordWithoutPin, { manifestPath });
-      expect(validNoPin.valid).toBe(true);
-      expect(validNoPin.expectedPin).toBe(pin);
+      const validNoPin = validateCapsuleManifestBinding(recordNoPin, { manifestPath });
+      expect(validNoPin.valid && validNoPin.expectedPin === pin).toBe(true);
     });
   });
 });

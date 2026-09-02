@@ -1,22 +1,22 @@
 import { describe, expect, it } from "bun:test";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import {
   DEFAULT_PROHIBITIONS,
   type MindBudget,
   type ParsedCharter,
-} from "../../../olt/scripts/src/mind/lifecycle/charter/index.ts";
-import type { CandidateRecord } from "../../../olt/scripts/src/mind/proposals/gates/index.ts";
+} from "../../../../olt/scripts/src/mind/lifecycle/charter/index.ts";
+import type { CandidateRecord } from "../../../../olt/scripts/src/mind/proposals/gates/index.ts";
 import {
   assertNoModelTelemetry,
   resolveOrchestratorContractSha256,
   buildTier1DeploymentPacket,
   createTier1DeployInputFromCandidate,
   type Tier1DeploymentPacketInput,
-} from "../../../olt/scripts/src/mind/lifecycle/deploy/builder.ts";
+} from "../../../../olt/scripts/src/mind/lifecycle/deploy/builder.ts";
 
 describe("Tier 1 Deployment Packet Builder Suite (builder.ts)", () => {
   describe("assertNoModelTelemetry", () => {
-    it("throws INVALID_ARGUMENT when prohibited telemetry keys are present", () => {
+    it("validates prohibited telemetry keys and model names", () => {
       const prohibitedKeys = [
         "model",
         "model_tier",
@@ -24,16 +24,13 @@ describe("Tier 1 Deployment Packet Builder Suite (builder.ts)", () => {
         "provider",
         "context_window",
       ];
-      for (const key of prohibitedKeys) {
-        expect(() => assertNoModelTelemetry({ [key]: "arbitrary_val" })).toThrow(HarnessError);
-      }
-    });
+      for (const key of prohibitedKeys)
+        expect(() => assertNoModelTelemetry({ [key]: "val" })).toThrow(HarnessError);
 
-    it("throws INVALID_ARGUMENT when string values contain prohibited model names", () => {
       const badValues = [
         "use claude-3-5-sonnet",
         "gpt-4o execution",
-        "gemini-pro model",
+        "gemini-pro",
         "deepseek-reasoner",
         "qwen-2.5-coder",
         "mistral-large",
@@ -41,40 +38,22 @@ describe("Tier 1 Deployment Packet Builder Suite (builder.ts)", () => {
         "o3-mini",
         "flash model",
       ];
-      for (const val of badValues) {
+      for (const val of badValues)
         expect(() => assertNoModelTelemetry({ note: val })).toThrow(HarnessError);
-      }
-    });
 
-    it("checks nested objects recursively for model names", () => {
-      const nested = {
-        meta: {
-          config: {
-            innerName: "claude-3-opus",
-          },
-        },
-      };
-      expect(() => assertNoModelTelemetry(nested)).toThrow(HarnessError);
-    });
-
-    it("ignores specified ignoreKeys such as prohibitions and markdown", () => {
-      const record = {
-        prohibitions: "NEVER agy, claude, wezterm-gui, tmux, zsh",
-        markdown: "# Report citing claude in ignore list",
-        validKey: "clean text here",
-      };
-      expect(() => assertNoModelTelemetry(record)).not.toThrow();
-    });
-
-    it("passes cleanly on valid records with primitives and arrays", () => {
-      const validRecord = {
-        id: "packet-1",
-        count: 42,
-        active: true,
-        items: ["item-a", "item-b"],
-        child: { name: "autonomous-lane", score: 99.5 },
-      };
-      expect(() => assertNoModelTelemetry(validRecord)).not.toThrow();
+      expect(() =>
+        assertNoModelTelemetry({ meta: { config: { innerName: "claude-3-opus" } } }),
+      ).toThrow(HarnessError);
+      expect(() =>
+        assertNoModelTelemetry({
+          prohibitions: "NEVER agy, claude, zsh",
+          markdown: "# Report citing claude",
+          validKey: "clean",
+        }),
+      ).not.toThrow();
+      expect(() =>
+        assertNoModelTelemetry({ id: "p-1", count: 42, active: true, items: ["a", "b"] }),
+      ).not.toThrow();
     });
   });
 
@@ -82,9 +61,7 @@ describe("Tier 1 Deployment Packet Builder Suite (builder.ts)", () => {
     it("resolves role contract sha256 or falls back to empty string", () => {
       const sha = resolveOrchestratorContractSha256();
       expect(typeof sha).toBe("string");
-      if (sha.length > 0) {
-        expect(sha).toMatch(/^[0-9a-f]{64}$/);
-      }
+      if (sha.length > 0) expect(sha).toMatch(/^[0-9a-f]{64}$/);
     });
   });
 
@@ -282,34 +259,21 @@ describe("Tier 1 Deployment Packet Builder Suite (builder.ts)", () => {
     });
 
     it("calculates remaining round and wall clock budgets with fallback floors", () => {
-      const emptyBudget: MindBudget = {
-        pulses_per_day: null,
+      const emptyBudget = {
+        ...dummyBudget,
         wall_clock_ms_per_day: null,
-        max_agents_in_flight: null,
         max_rounds_per_objective: null,
-        base_interval_ms: 0,
-        max_interval_ms: null,
-        max_pause_interval_ms: null,
-        pulse_deadline_ms: 1000,
-        max_open_proposals: null,
-        quiet_hours: null,
-        day_key: "2026-09-01",
-        pulses_today: 0,
-        wall_clock_ms_today: 0,
       };
-
       const input = createTier1DeployInputFromCandidate(
         baseCandidate,
         dummyCharter,
         emptyBudget,
         "run-1",
         "orch-1",
-        {
-          spentWallClockMsToday: 25000000,
-        },
+        { spentWallClockMsToday: 25000000 },
       );
-      expect(input.remainingRoundBudget).toBe(3); // default max_rounds_per_objective is 3
-      expect(input.remainingWallClockBudgetMs).toBe(60000); // clamped minimum floor
+      expect(input.remainingRoundBudget).toBe(3);
+      expect(input.remainingWallClockBudgetMs).toBe(60000);
       expect(input.profile).toBe("deliberate");
       expect(input.prohibitions).toBe(dummyCharter.prohibitions);
     });

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import {
   initializeMindLifecycle,
   MANDATORY_MIND_COMPANION_AUDITORS,
@@ -11,8 +11,8 @@ import {
   deployMandatoryMindCompanions,
   verifyMindCompanionBootstrapping,
   assertMindCompanionBootstrapping,
-} from "../../../olt/scripts/src/mind/lifecycle/mind-init.ts";
-import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
+} from "../../../../olt/scripts/src/mind/lifecycle/mind-init.ts";
+import { loadRun } from "../../../../olt/scripts/src/engine/store/index.ts";
 
 const SAMPLE_CHARTER = `identity: "mind-gen-1"
 goals:

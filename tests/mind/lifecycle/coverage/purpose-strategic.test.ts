@@ -2,11 +2,11 @@ import { describe, expect, it } from "bun:test";
 import {
   diagnoseMacroDag,
   groomBacklog,
-} from "../../../olt/scripts/src/mind/lifecycle/purpose/strategic.ts";
+} from "../../../../olt/scripts/src/mind/lifecycle/purpose/strategic.ts";
 import type {
   MacroDagTaskNode,
   BacklogGroomingItem,
-} from "../../../olt/scripts/src/mind/lifecycle/purpose/types.ts";
+} from "../../../../olt/scripts/src/mind/lifecycle/purpose/types.ts";
 
 describe("Mind Strategic Diagnostics & Backlog Grooming Suite (strategic.ts)", () => {
   describe("diagnoseMacroDag", () => {
