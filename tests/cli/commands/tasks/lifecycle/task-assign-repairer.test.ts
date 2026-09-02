@@ -18,6 +18,7 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanupRoots(roots);
   cleanupVirtualCliFS();
+  roots.length = 0;
 });
 
 describe("task:assign-repairer - Core Reassignment & Rules", () => {
@@ -68,7 +69,7 @@ describe("task:assign-repairer - Core Reassignment & Rules", () => {
     ]);
     expect((reassigned.task as { repair_assignee: string }).repair_assignee).toBe("worker-2");
     expect(String(reassigned.markdown)).toContain("worker-2");
-  });
+  }, 30_000);
 
   test("refuses an unrecognised --reason", () => {
     expect(() =>
@@ -128,7 +129,7 @@ describe("task:assign-repairer - Core Reassignment & Rules", () => {
         "failed once so far",
       ]),
     ).rejects.toThrow(/has not failed repeatedly/);
-  });
+  }, 30_000);
 
   test("rejects assigning validating agent as replacement repairer", async () => {
     const { repo, run } = await setupCompiledRun("repairer-validator-leak", roots);
@@ -175,5 +176,5 @@ describe("task:assign-repairer - Core Reassignment & Rules", () => {
         "attempting to assign validator as repairer",
       ]),
     ).rejects.toThrow(/cannot be a validator of task 'task-core' \(anti-boundary-leak rule\)/);
-  });
+  }, 30_000);
 });

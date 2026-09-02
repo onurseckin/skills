@@ -28,12 +28,13 @@ export async function setupCompiledRun(
     "import { test } from 'bun:test'; test('all', () => {});\n",
   );
 
+  const uniqueRunName = `${name}-${randomUUID()}`;
   const init = await execute([
     "plan:init",
     "--repo",
     repo,
     "--run",
-    name,
+    uniqueRunName,
     "--prompt-file",
     promptPath,
   ]);
