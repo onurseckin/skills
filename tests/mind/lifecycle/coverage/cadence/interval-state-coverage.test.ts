@@ -5,7 +5,7 @@ import {
   formatRawValueSeries,
   generateTrailingValueSeries,
   type TrailingValuePoint,
-} from "../../../../olt/scripts/src/mind/lifecycle/interval/state.ts";
+} from "../../../../../olt/scripts/src/mind/lifecycle/interval/state.ts";
 
 describe("Mind Lifecycle Interval State Suite (state.ts)", () => {
   describe("generateTrailingValueSeries", () => {

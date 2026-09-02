@@ -13,8 +13,8 @@ import {
   validateNewOrchestratorInput,
   withOrchestratorLedgerLock,
   type NewOrchestratorRecordInput,
-} from "../../../../olt/scripts/src/mind/lifecycle/orchestration/orchestrator-ledger.ts";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+} from "../../../../../olt/scripts/src/mind/lifecycle/orchestration/orchestrator-ledger.ts";
+import { HarnessError } from "../../../../../olt/scripts/src/core/errors/index.ts";
 
 function createValidInput(
   partial: Partial<NewOrchestratorRecordInput> = {},
