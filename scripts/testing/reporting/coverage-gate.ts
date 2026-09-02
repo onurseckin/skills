@@ -56,29 +56,53 @@ export function evaluateCoverageGate(
   summary: CoverageSummary,
   options?: CoverageGateOptions,
 ): CoverageGateResult {
-  const thresholdPct = options?.threshold ?? DEFAULT_COVERAGE_THRESHOLD;
-  const funcsThresholdPct = options?.functionsThreshold ?? DEFAULT_FUNCTIONS_THRESHOLD;
-  const fileThreshold = options?.fileThreshold;
+  let thresholdPct = DEFAULT_COVERAGE_THRESHOLD;
+  if (options !== undefined && typeof options.threshold === "number") {
+    thresholdPct = options.threshold;
+  }
 
-  const totalLinesItem = summary.total?.lines;
-  const totalLinesCovered = totalLinesItem?.covered ?? 0;
-  const totalLinesTotal = totalLinesItem?.total ?? 0;
-  const totalPct =
-    typeof totalLinesItem?.pct === "number"
-      ? totalLinesItem.pct
-      : totalLinesTotal > 0
-        ? Math.round((totalLinesCovered / totalLinesTotal) * 10000) / 100
-        : 0;
+  let funcsThresholdPct = DEFAULT_FUNCTIONS_THRESHOLD;
+  if (options !== undefined && typeof options.functionsThreshold === "number") {
+    funcsThresholdPct = options.functionsThreshold;
+  }
 
-  const totalFuncsItem = summary.total?.functions;
-  const totalFuncsCovered = totalFuncsItem?.covered ?? 0;
-  const totalFuncsTotal = totalFuncsItem?.total ?? 0;
-  const funcsPct =
-    typeof totalFuncsItem?.pct === "number"
-      ? totalFuncsItem.pct
-      : totalFuncsTotal > 0
-        ? Math.round((totalFuncsCovered / totalFuncsTotal) * 10000) / 100
-        : 0;
+  const fileThreshold = options !== undefined ? options.fileThreshold : undefined;
+
+  const totalLinesItem = summary.total !== undefined ? summary.total.lines : undefined;
+  let totalLinesCovered = 0;
+  if (totalLinesItem !== undefined && typeof totalLinesItem.covered === "number") {
+    totalLinesCovered = totalLinesItem.covered;
+  }
+
+  let totalLinesTotal = 0;
+  if (totalLinesItem !== undefined && typeof totalLinesItem.total === "number") {
+    totalLinesTotal = totalLinesItem.total;
+  }
+
+  let totalPct = 0;
+  if (totalLinesItem !== undefined && typeof totalLinesItem.pct === "number") {
+    totalPct = totalLinesItem.pct;
+  } else if (totalLinesTotal > 0) {
+    totalPct = Math.round((totalLinesCovered / totalLinesTotal) * 10000) / 100;
+  }
+
+  const totalFuncsItem = summary.total !== undefined ? summary.total.functions : undefined;
+  let totalFuncsCovered = 0;
+  if (totalFuncsItem !== undefined && typeof totalFuncsItem.covered === "number") {
+    totalFuncsCovered = totalFuncsItem.covered;
+  }
+
+  let totalFuncsTotal = 0;
+  if (totalFuncsItem !== undefined && typeof totalFuncsItem.total === "number") {
+    totalFuncsTotal = totalFuncsItem.total;
+  }
+
+  let funcsPct = 0;
+  if (totalFuncsItem !== undefined && typeof totalFuncsItem.pct === "number") {
+    funcsPct = totalFuncsItem.pct;
+  } else if (totalFuncsTotal > 0) {
+    funcsPct = Math.round((totalFuncsCovered / totalFuncsTotal) * 10000) / 100;
+  }
 
   const deficitPct =
     totalPct < thresholdPct ? Math.round((thresholdPct - totalPct) * 100) / 100 : 0;
@@ -89,9 +113,13 @@ export function evaluateCoverageGate(
   let filesCount = 0;
 
   for (const [key, val] of Object.entries(summary)) {
-    if (key === "total" || key === "runtime") continue;
+    if (key === "total") continue;
+    if (key === "runtime") continue;
     const fileCoverage = val as CoverageSummaryItem | undefined;
-    if (!fileCoverage || !fileCoverage.lines) continue;
+    if (fileCoverage === undefined) continue;
+    if (fileCoverage === null) continue;
+    if (fileCoverage.lines === undefined) continue;
+    if (fileCoverage.lines === null) continue;
     filesCount++;
     if (fileThreshold !== undefined && fileCoverage.lines.pct < fileThreshold) {
       failingFiles.push({
@@ -134,7 +162,15 @@ export function formatCoverageGateMessage(result: CoverageGateResult): string {
   }
 
   const lines: string[] = [];
-  if (result.totalPct < result.thresholdPct || result.funcsPct < result.funcsThresholdPct) {
+  const linesUnderThreshold = result.totalPct < result.thresholdPct;
+  const funcsUnderThreshold = result.funcsPct < result.funcsThresholdPct;
+  if (linesUnderThreshold) {
+    lines.push(
+      `❌ [coverage-gate] Quality Gate FAILED:\n` +
+        `   • Lines:     ${result.totalPct}% (Required: >= ${result.thresholdPct}%, Deficit: -${result.deficitPct}%, ${result.totalLinesCovered}/${result.totalLinesTotal})\n` +
+        `   • Functions: ${result.funcsPct}% (Required: >= ${result.funcsThresholdPct}%, Deficit: -${result.funcsDeficitPct}%, ${result.totalFuncsCovered}/${result.totalFuncsTotal})`,
+    );
+  } else if (funcsUnderThreshold) {
     lines.push(
       `❌ [coverage-gate] Quality Gate FAILED:\n` +
         `   • Lines:     ${result.totalPct}% (Required: >= ${result.thresholdPct}%, Deficit: -${result.deficitPct}%, ${result.totalLinesCovered}/${result.totalLinesTotal})\n` +

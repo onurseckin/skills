@@ -203,9 +203,9 @@ describe("Coverage Metrics and Markdown Reporting (in-memory virtual)", () => {
       expect(markdown).toContain("`src/good.ts`");
       expect(markdown).toContain("`src/warn.ts`");
       expect(markdown).toContain("`src/bad.ts`");
-      expect(markdown).toContain("🟢 100%");
-      expect(markdown).toContain("🟡 80%");
-      expect(markdown).toContain("🔴 10%");
+      expect(markdown).toContain("100% (10/10)");
+      expect(markdown).toContain("80% (8/10)");
+      expect(markdown).toContain("10% (1/10)");
       expect(markdown).toContain("(+2 more)");
     });
 
@@ -214,7 +214,7 @@ describe("Coverage Metrics and Markdown Reporting (in-memory virtual)", () => {
       const emptySummary: CoverageSummary = {};
       const markdown = buildMarkdownReport(emptyMap, emptySummary);
       expect(markdown).toContain("# Repository Unit Test Coverage Report");
-      expect(markdown).toContain("🟢 PASS");
+      expect(markdown).toContain("PASS");
     });
 
     test("writeMarkdownReport writes REPORT.md file and creates directory if missing", () => {

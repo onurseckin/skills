@@ -71,13 +71,13 @@ export function getDeficitStyles(): string {
     /* Rank Badge */
     .deficit-rank {
       font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       font-weight: 700;
-      color: var(--text-dim);
+      color: #f4f4f5;
       padding: 0.2rem 0.45rem;
-      background: rgba(255, 255, 255, 0.04);
+      background: rgba(255, 255, 255, 0.08);
       border-radius: 4px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.16);
       display: inline-block;
       min-width: 32px;
       text-align: center;
@@ -88,7 +88,7 @@ export function getDeficitStyles(): string {
       font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
       font-size: 0.85rem;
       font-weight: 600;
-      color: #e9d5ff;
+      color: #38bdf8;
       text-decoration: none;
       cursor: pointer;
       display: inline-flex;
@@ -104,11 +104,11 @@ export function getDeficitStyles(): string {
     /* Gain badges */
     .gain-badge-repo {
       background: #3b0764;
-      color: #e9d5ff;
-      border: 1px solid rgba(168, 85, 247, 0.35);
-      box-shadow: 0 0 8px rgba(168, 85, 247, 0.2);
+      color: #f0abfc;
+      border: 1px solid rgba(192, 132, 252, 0.4);
+      box-shadow: 0 0 8px rgba(192, 132, 252, 0.2);
       font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
-      font-size: 0.78rem;
+      font-size: 0.75rem;
       font-weight: 700;
       padding: 0.2rem 0.5rem;
       border-radius: 4px;
@@ -116,12 +116,12 @@ export function getDeficitStyles(): string {
       white-space: nowrap;
     }
     .gain-badge-file {
-      background: #042f2e;
-      color: #6ee7b7;
-      border: 1px solid rgba(16, 185, 129, 0.35);
-      box-shadow: 0 0 8px rgba(16, 185, 129, 0.2);
+      background: #052e16;
+      color: #4ade80;
+      border: 1px solid rgba(74, 222, 128, 0.4);
+      box-shadow: 0 0 8px rgba(74, 222, 128, 0.2);
       font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
-      font-size: 0.78rem;
+      font-size: 0.75rem;
       font-weight: 700;
       padding: 0.2rem 0.5rem;
       border-radius: 4px;
@@ -132,31 +132,39 @@ export function getDeficitStyles(): string {
     /* Category Badges */
     .badge-cat-error-handling {
       background: #450a0a;
-      color: #fecaca;
-      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #fca5a5;
+      border: 1px solid rgba(248, 113, 113, 0.45);
       box-shadow: 0 0 8px rgba(239, 68, 68, 0.2);
       border-radius: 4px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
     }
     .badge-cat-branching {
       background: #451a03;
-      color: #fef08a;
-      border: 1px solid rgba(245, 158, 11, 0.35);
+      color: #fde047;
+      border: 1px solid rgba(250, 204, 21, 0.45);
       box-shadow: 0 0 8px rgba(245, 158, 11, 0.2);
       border-radius: 4px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
     }
     .badge-cat-initialization {
       background: #083344;
-      color: #a5f3fc;
-      border: 1px solid rgba(6, 182, 212, 0.35);
+      color: #67e8f9;
+      border: 1px solid rgba(6, 182, 212, 0.45);
       box-shadow: 0 0 8px rgba(6, 182, 212, 0.2);
       border-radius: 4px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
     }
     .badge-cat-unexercised-logic {
       background: #3b0764;
-      color: #e9d5ff;
-      border: 1px solid rgba(168, 85, 247, 0.35);
+      color: #f0abfc;
+      border: 1px solid rgba(192, 132, 252, 0.45);
       box-shadow: 0 0 8px rgba(168, 85, 247, 0.2);
       border-radius: 4px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
     }
 
     /* Detail / snippet display */

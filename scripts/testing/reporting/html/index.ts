@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { generateDeficitRoadmap } from "../deficits/index.ts";
@@ -58,7 +57,7 @@ export function generateInteractiveHtml(
           functions: { total: 0, covered: 0, skipped: 0, pct: 100 },
         };
 
-  const activeRuntime = runtime ?? summary.runtime;
+  const activeRuntime = typeof runtime !== "undefined" ? runtime : summary.runtime;
   const filesArray = extractCoverageFileData(fileMap, root, activeRuntime);
   const tree = buildUnifiedHierarchy(filesArray, activeRuntime);
   const deficits = generateDeficitRoadmap(fileMap, { rootDir: root });

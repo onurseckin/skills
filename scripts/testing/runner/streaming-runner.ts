@@ -18,7 +18,12 @@ export async function executeStreamingRunner(
 ): Promise<RunnerResult> {
   const parsed = parseRunnerArgs(rawArgs);
   const isCoverage = options.coverage !== undefined ? options.coverage : parsed.isCoverage;
-  const timeoutMs = options.timeout ?? options.timeoutMs ?? parsed.timeoutMs;
+  let timeoutMs = parsed.timeoutMs;
+  if (options.timeout !== undefined && options.timeout !== null) {
+    timeoutMs = options.timeout;
+  } else if (options.timeoutMs !== undefined && options.timeoutMs !== null) {
+    timeoutMs = options.timeoutMs;
+  }
   const parallel = options.parallel !== undefined ? options.parallel : parsed.parallel;
 
   const effectiveParsed = {
@@ -26,22 +31,38 @@ export async function executeStreamingRunner(
     isCoverage,
     timeoutMs,
     parallel,
-    coverageDir: options.coverageDir ?? parsed.coverageDir,
-    coverageReporters: options.coverageReporters ?? parsed.coverageReporters,
-    maxConcurrency: options.maxConcurrency ?? parsed.maxConcurrency,
+    coverageDir:
+      options.coverageDir !== undefined && options.coverageDir !== null
+        ? options.coverageDir
+        : parsed.coverageDir,
+    coverageReporters:
+      options.coverageReporters !== undefined && options.coverageReporters !== null
+        ? options.coverageReporters
+        : parsed.coverageReporters,
+    maxConcurrency:
+      options.maxConcurrency !== undefined && options.maxConcurrency !== null
+        ? options.maxConcurrency
+        : parsed.maxConcurrency,
   };
 
   const finalArgs = buildBunTestArgs(effectiveParsed);
-  const releaseLock = acquireTestLock(effectiveParsed.isBroadScope || isCoverage, rawArgs);
+  const isLockRequired = effectiveParsed.isBroadScope ? true : isCoverage;
+  const releaseLock = acquireTestLock(isLockRequired, rawArgs);
 
   const startMs = Date.now();
   const startTime = new Date(startMs).toISOString();
 
   const parser = new StreamParser();
+  const tickerCadence =
+    options.updateCadenceMs !== undefined && options.updateCadenceMs !== null
+      ? options.updateCadenceMs
+      : 50;
+  const tickerOut =
+    options.stdout !== undefined && options.stdout !== null ? options.stdout : process.stdout;
   const ticker = new TerminalTicker({
     interactive: options.interactive,
-    updateCadenceMs: options.updateCadenceMs ?? 50,
-    stdout: options.stdout ?? process.stdout,
+    updateCadenceMs: tickerCadence,
+    stdout: tickerOut,
   });
 
   let rawStdout = "";
@@ -54,8 +75,10 @@ export async function executeStreamingRunner(
 
     ticker.start();
 
+    const targetCwd =
+      options.cwd !== undefined && options.cwd !== null ? options.cwd : process.cwd();
     const child = spawn("bun", finalArgs, {
-      cwd: options.cwd ?? process.cwd(),
+      cwd: targetCwd,
       stdio: ["inherit", "pipe", "pipe"],
       env: {
         ...process.env,
@@ -86,7 +109,8 @@ export async function executeStreamingRunner(
         reject(err);
       });
       child.on("close", (code) => {
-        resolve(code ?? 0);
+        const resolvedCode = code !== null && code !== undefined ? code : 0;
+        resolve(resolvedCode);
       });
     });
 
@@ -100,16 +124,16 @@ export async function executeStreamingRunner(
     let coverageResult: CoverageArtifactResult | undefined;
     if (isCoverage) {
       const outputText = [rawStdout, rawStderr].join("\n");
-      coverageResult = processCoverageArtifacts(
-        options.cwd ?? process.cwd(),
-        effectiveParsed.coverageDir ?? "coverage",
-        {
-          testOutput: outputText,
-          startTime,
-          endTime,
-          totalDurationMs,
-        },
-      );
+      const targetCovDir =
+        effectiveParsed.coverageDir !== undefined && effectiveParsed.coverageDir !== null
+          ? effectiveParsed.coverageDir
+          : "coverage";
+      coverageResult = processCoverageArtifacts(targetCwd, targetCovDir, {
+        testOutput: outputText,
+        startTime,
+        endTime,
+        totalDurationMs,
+      });
       if (coverageResult.lcovExists && coverageResult.summary) {
         const gateResult = evaluateCoverageGate(coverageResult.summary);
         const message = formatCoverageGateMessage(gateResult);
@@ -140,7 +164,8 @@ export async function executeStreamingRunner(
       useColor: isInteractiveTerminal({ interactive: options.interactive }),
     });
 
-    const outStream = options.stdout ?? process.stdout;
+    const outStream =
+      options.stdout !== undefined && options.stdout !== null ? options.stdout : process.stdout;
     outStream.write(summary + "\n");
 
     return {

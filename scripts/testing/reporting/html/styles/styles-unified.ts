@@ -25,15 +25,15 @@ export function getUnifiedStyles(): string {
     body.density-compact .mini-progress { height: 4px; width: 70px; }
 
     /* Coverage Progress Bars */
-    .cov-bar-cell { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 0.25rem; min-width: 140px; }
-    .cov-bar-counts { font-size: 0.75rem; color: #d4d4d8; font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace; font-weight: 600; line-height: 1.2; }
-    .cov-bar-track { position: relative; width: 140px; height: 20px; background: #27272a; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 4px; overflow: hidden; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4); }
+    .cov-bar-cell { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem; min-width: 140px; width: 100%; }
+    .cov-bar-counts { font-size: 0.75rem; color: #d4d4d8; font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace; font-weight: 600; line-height: 1.2; text-align: center; }
+    .cov-bar-track { position: relative; width: 140px; height: 20px; background: #1c1c1f; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 4px; overflow: hidden; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5); }
     .cov-bar-fill { position: absolute; top: 0; left: 0; bottom: 0; height: 100%; border-radius: 3px; transition: width 0.3s ease; }
-    .cov-bar-fill-pass { background: linear-gradient(90deg, #065f46, #047857); }
-    .cov-bar-fill-warn { background: linear-gradient(90deg, #92400e, #b45309); }
-    .cov-bar-fill-fail { background: linear-gradient(90deg, #991b1b, #b91c1c); }
-    .cov-bar-text { position: relative; z-index: 2; font-size: 0.75rem; font-weight: 700; font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace; color: #ffffff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85); pointer-events: none; letter-spacing: 0.02em; }
-    body.density-compact .cov-bar-cell { min-width: 110px; gap: 0.15rem; }
+    .cov-bar-fill-pass { background: linear-gradient(90deg, #059669, #10b981); }
+    .cov-bar-fill-warn { background: linear-gradient(90deg, #d97706, #f59e0b); }
+    .cov-bar-fill-fail { background: linear-gradient(90deg, #dc2626, #ef4444); }
+    .cov-bar-text { position: relative; z-index: 2; font-size: 0.75rem; font-weight: 700; font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace; color: #ffffff; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95); pointer-events: none; letter-spacing: 0.02em; }
+    body.density-compact .cov-bar-cell { min-width: 110px; gap: 0.15rem; align-items: center; }
     body.density-compact .cov-bar-counts { font-size: 0.7rem; }
     body.density-compact .cov-bar-track { width: 110px; height: 16px; }
     body.density-compact .cov-bar-text { font-size: 0.68rem; }
@@ -46,17 +46,17 @@ export function getUnifiedStyles(): string {
     .tree-indent-space { display: inline-block; width: 16px; flex-shrink: 0; }
 
     /* Pareto & Status Badges */
-    .badge-p50 { background: #451a03; color: #fef08a; border: 1px solid rgba(245, 158, 11, 0.35); box-shadow: 0 0 8px rgba(245, 158, 11, 0.25); font-weight: 700; border-radius: 4px; }
-    .badge-p90 { background: #3b0764; color: #e9d5ff; border: 1px solid rgba(168, 85, 247, 0.35); box-shadow: 0 0 8px rgba(168, 85, 247, 0.25); font-weight: 700; border-radius: 4px; }
-    .badge-pnormal { background: #042f2e; color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 4px; }
+    .badge-p50 { background: #451a03; color: #fde047; border: 1px solid rgba(234, 179, 8, 0.5); box-shadow: 0 0 8px rgba(234, 179, 8, 0.25); font-weight: 700; border-radius: 4px; }
+    .badge-p90 { background: #3b0764; color: #f0abfc; border: 1px solid rgba(192, 132, 252, 0.5); box-shadow: 0 0 8px rgba(192, 132, 252, 0.25); font-weight: 700; border-radius: 4px; }
+    .badge-pnormal { background: #052e16; color: #86efac; border: 1px solid rgba(74, 222, 128, 0.4); border-radius: 4px; }
     .test-telemetry-cell { display: flex; align-items: center; gap: 0.5rem; white-space: nowrap; }
 
     /* Deficits & Misses Column Styles */
     .deficit-cell-dir, .deficit-cell-file { display: inline-flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; max-width: 480px; }
-    .deficit-pill { display: inline-flex; align-items: center; font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace; font-size: 0.78rem; font-weight: 600; padding: 0.2rem 0.55rem; border-radius: 6px; white-space: nowrap; letter-spacing: -0.01em; }
-    .deficit-pill-dir { background: #450a0a; color: #fecaca; border: 1px solid rgba(239, 68, 68, 0.35); box-shadow: 0 0 6px rgba(239, 68, 68, 0.2); }
-    .deficit-pill-file { background: #451a03; color: #fef08a; border: 1px solid rgba(245, 158, 11, 0.35); box-shadow: 0 0 6px rgba(245, 158, 11, 0.2); }
-    .deficit-pill-perfect { display: inline-flex; align-items: center; font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace; font-size: 0.78rem; font-weight: 600; padding: 0.2rem 0.55rem; border-radius: 6px; background: #042f2e; color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.35); white-space: nowrap; }
+    .deficit-pill { display: inline-flex; align-items: center; font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace; font-size: 0.78rem; font-weight: 600; padding: 0.2rem 0.55rem; border-radius: 4px; white-space: nowrap; letter-spacing: -0.01em; }
+    .deficit-pill-dir { background: #450a0a; color: #fca5a5; border: 1px solid rgba(248, 113, 113, 0.4); box-shadow: 0 0 6px rgba(239, 68, 68, 0.2); }
+    .deficit-pill-file { background: #451a03; color: #fde047; border: 1px solid rgba(250, 204, 21, 0.4); box-shadow: 0 0 6px rgba(245, 158, 11, 0.2); }
+    .deficit-pill-perfect { display: inline-flex; align-items: center; font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace; font-size: 0.78rem; font-weight: 600; padding: 0.2rem 0.55rem; border-radius: 4px; background: #052e16; color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.4); white-space: nowrap; }
     .deficit-subtle-cats { display: inline-flex; align-items: center; gap: 0.25rem; flex-wrap: wrap; }
     .deficit-cat-badge { font-size: 0.68rem; font-weight: 600; padding: 0.12rem 0.38rem; border-radius: 4px; text-transform: lowercase; letter-spacing: 0.02em; opacity: 0.85; }
     .deficit-cat-badge.cat-error-handling { background: #450a0a; color: #fecaca; border: 1px solid rgba(239, 68, 68, 0.35); }

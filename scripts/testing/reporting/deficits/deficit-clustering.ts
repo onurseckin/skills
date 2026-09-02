@@ -26,7 +26,9 @@ export interface ContiguousLineSegment {
  * Groups an arbitrary list of uncovered line numbers into sorted contiguous segments.
  */
 export function groupContiguousLines(uncoveredLines: readonly number[]): ContiguousLineSegment[] {
-  if (!uncoveredLines || uncoveredLines.length === 0) return [];
+  if (uncoveredLines === undefined) return [];
+  if (uncoveredLines === null) return [];
+  if (uncoveredLines.length === 0) return [];
 
   const validLines = Array.from(
     new Set(
@@ -38,12 +40,16 @@ export function groupContiguousLines(uncoveredLines: readonly number[]): Contigu
 
   if (validLines.length === 0) return [];
 
+  const firstLine = validLines[0];
+  if (firstLine === undefined) return [];
+
   const segments: ContiguousLineSegment[] = [];
-  let currentStart = validLines[0]!;
-  let currentEnd = validLines[0]!;
+  let currentStart = firstLine;
+  let currentEnd = firstLine;
 
   for (let i = 1; i < validLines.length; i++) {
-    const line = validLines[i]!;
+    const line = validLines[i];
+    if (line === undefined) continue;
     if (line === currentEnd + 1) {
       currentEnd = line;
     } else {
@@ -70,7 +76,8 @@ export function groupContiguousLines(uncoveredLines: readonly number[]): Contigu
  * Computes potential percentage gain for a given line count against total lines.
  */
 export function calculateImpactPct(lineCount: number, totalLines: number): number {
-  if (totalLines <= 0 || lineCount <= 0) return 0;
+  if (totalLines <= 0) return 0;
+  if (lineCount <= 0) return 0;
   const pct = (lineCount / totalLines) * 100;
   return Math.round(pct * 100) / 100;
 }
@@ -106,7 +113,9 @@ export function buildDeficitClusters(
       categoryReason: cl.reason,
       repoImpactPct,
       fileImpactPct,
-      ...(cl.sampleCodeSnippet ? { sampleCodeSnippet: cl.sampleCodeSnippet } : {}),
+      ...(typeof cl.sampleCodeSnippet === "string"
+        ? { sampleCodeSnippet: cl.sampleCodeSnippet }
+        : {}),
     };
   });
 }
@@ -115,10 +124,10 @@ function resolveSourceCode(
   file: string,
   options?: DeficitClusteringOptions,
 ): string | readonly string[] | undefined {
-  if (options?.sourceResolver) {
+  if (options !== undefined && options.sourceResolver !== undefined) {
     return options.sourceResolver(file);
   }
-  if (options?.rootDir) {
+  if (options !== undefined && typeof options.rootDir === "string") {
     try {
       const fullPath = resolve(options.rootDir, file);
       if (existsSync(fullPath)) return readFileSync(fullPath, "utf-8");
@@ -144,7 +153,9 @@ export function generateDeficitRoadmap(
   const allClusters: DeficitCluster[] = [];
 
   for (const [file, metric] of fileMap.entries()) {
-    if (!metric.uncoveredLines || metric.uncoveredLines.length === 0) continue;
+    if (metric.uncoveredLines === undefined) continue;
+    if (metric.uncoveredLines === null) continue;
+    if (metric.uncoveredLines.length === 0) continue;
 
     const sourceCode = resolveSourceCode(file, options);
     const clusters = buildDeficitClusters(
@@ -154,7 +165,9 @@ export function generateDeficitRoadmap(
       totalRepoLines,
       sourceCode,
     );
-    allClusters.push(...clusters);
+    for (const cluster of clusters) {
+      allClusters.push(cluster);
+    }
   }
 
   // Prioritize descending: repoImpactPct -> lineCount -> fileImpactPct -> file -> startLine
@@ -177,7 +190,9 @@ export function generateDeficitRoadmap(
 
   for (const cluster of allClusters) {
     totalUncoveredLines += cluster.lineCount;
-    breakdown[cluster.category] = (breakdown[cluster.category] ?? 0) + 1;
+    const currentCount = breakdown[cluster.category];
+    const updatedCount = typeof currentCount === "number" ? currentCount + 1 : 1;
+    breakdown[cluster.category] = updatedCount;
   }
 
   return {
@@ -220,9 +235,10 @@ export function formatDeficitRoadmapMarkdown(roadmap: DeficitRoadmap, topN: numb
 
   displayedClusters.forEach((c, idx) => {
     const badge = getCategoryBadge(c.category);
-    const detail = c.sampleCodeSnippet
-      ? `\`${c.sampleCodeSnippet}\` (${c.categoryReason})`
-      : c.categoryReason;
+    let detail = c.categoryReason;
+    if (typeof c.sampleCodeSnippet === "string" && c.sampleCodeSnippet.length > 0) {
+      detail = `\`${c.sampleCodeSnippet}\` (${c.categoryReason})`;
+    }
     lines.push(
       `| ${idx + 1} | \`${c.id}\` | ${c.lineCount} lines | **+${c.repoImpactPct}%** | **+${c.fileImpactPct}%** | ${badge} | ${detail} |`,
     );

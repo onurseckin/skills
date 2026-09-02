@@ -16,27 +16,34 @@ export interface HashRoute {
 
 export function parseHash(hash: string): HashRoute {
   if (!hash) return { tab: "coverage" };
-  let cleaned = hash.startsWith("#") ? hash.slice(1).trim() : hash.trim();
-  if (!cleaned) return { tab: "coverage" };
+  const trimmed = hash.startsWith("#") ? hash.slice(1).trim() : hash.trim();
+  if (!trimmed) return { tab: "coverage" };
 
-  let rawPath = cleaned;
+  let rawPath = trimmed;
   let queryString = "";
-  const qIdx = cleaned.indexOf("?");
+  const qIdx = trimmed.indexOf("?");
   if (qIdx !== -1) {
-    rawPath = cleaned.slice(0, qIdx);
-    queryString = cleaned.slice(qIdx + 1);
+    rawPath = trimmed.slice(0, qIdx);
+    queryString = trimmed.slice(qIdx + 1);
   }
 
   const queryParams = new URLSearchParams(queryString);
   const qTab = queryParams.get("tab");
-  const qSearch = queryParams.get("search") ?? queryParams.get("q");
+  const pSearch = queryParams.get("search");
+  const qSearch = pSearch !== null ? pSearch : queryParams.get("q");
   const qFile = queryParams.get("file");
   const qPath = queryParams.get("path");
   const qFilter = queryParams.get("filter");
-  const qCategory = queryParams.get("category") ?? queryParams.get("cat");
-  const qLineStr = queryParams.get("line") ?? queryParams.get("l") ?? queryParams.get("L");
-  let line = qLineStr ? parseInt(qLineStr, 10) : undefined;
-  if (line !== undefined && (isNaN(line) || line <= 0)) line = undefined;
+  const pCat = queryParams.get("category");
+  const qCategory = pCat !== null ? pCat : queryParams.get("cat");
+  let qLineStr = queryParams.get("line");
+  if (qLineStr === null) qLineStr = queryParams.get("l");
+  if (qLineStr === null) qLineStr = queryParams.get("L");
+  let line: number | undefined;
+  if (qLineStr !== null && qLineStr !== undefined) {
+    const parsed = parseInt(qLineStr, 10);
+    if (!isNaN(parsed) && parsed > 0) line = parsed;
+  }
 
   const lineMatch = /[:#]L?(\d+)$/i.exec(rawPath);
   if (lineMatch && lineMatch[1]) {
@@ -46,42 +53,47 @@ export function parseHash(hash: string): HashRoute {
   }
 
   let tab: "coverage" | "runtime" | "unified" | "deficits" = "coverage";
-  let path: string | undefined = qPath ?? undefined;
-  let file: string | undefined = qFile ?? undefined;
-  const category: string | undefined = qCategory ?? undefined;
+  let path: string | undefined = qPath !== null ? qPath : undefined;
+  let file: string | undefined = qFile !== null ? qFile : undefined;
+  const category: string | undefined = qCategory !== null ? qCategory : undefined;
 
-  if (rawPath === "deficits" || rawPath.startsWith("deficits/")) {
+  if (rawPath === "deficits") {
     tab = "deficits";
-    if (rawPath.startsWith("deficits/"))
-      file = file ?? decodeURIComponent(rawPath.slice("deficits/".length));
-  } else if (rawPath === "runtime" || rawPath.startsWith("runtime/")) {
+  } else if (rawPath.startsWith("deficits/")) {
+    tab = "deficits";
+    if (!file) file = decodeURIComponent(rawPath.slice(9));
+  } else if (rawPath === "runtime") {
     tab = "runtime";
-    if (rawPath.startsWith("runtime/"))
-      file = file ?? decodeURIComponent(rawPath.slice("runtime/".length));
-  } else if (rawPath === "unified" || rawPath.startsWith("unified/")) {
+  } else if (rawPath.startsWith("runtime/")) {
+    tab = "runtime";
+    if (!file) file = decodeURIComponent(rawPath.slice(8));
+  } else if (rawPath === "unified") {
     tab = "unified";
-    if (rawPath.startsWith("unified/"))
-      path = path ?? decodeURIComponent(rawPath.slice("unified/".length));
-  } else if (rawPath === "coverage" || rawPath.startsWith("coverage/")) {
+  } else if (rawPath.startsWith("unified/")) {
+    tab = "unified";
+    if (!path) path = decodeURIComponent(rawPath.slice(8));
+  } else if (rawPath === "coverage") {
     tab = "coverage";
-    if (rawPath.startsWith("coverage/"))
-      path = path ?? decodeURIComponent(rawPath.slice("coverage/".length));
+  } else if (rawPath.startsWith("coverage/")) {
+    tab = "coverage";
+    if (!path) path = decodeURIComponent(rawPath.slice(9));
   } else if (rawPath.length > 0) {
     tab = "coverage";
-    path = path ?? decodeURIComponent(rawPath);
+    if (!path) path = decodeURIComponent(rawPath);
   }
 
-  if (qTab === "runtime" || qTab === "unified" || qTab === "coverage" || qTab === "deficits") {
-    tab = qTab;
-  }
+  if (qTab === "runtime") tab = "runtime";
+  else if (qTab === "unified") tab = "unified";
+  else if (qTab === "coverage") tab = "coverage";
+  else if (qTab === "deficits") tab = "deficits";
 
   return {
     tab,
-    path: path || undefined,
+    path: typeof path === "string" && path.length > 0 ? path : undefined,
     line,
-    search: qSearch || undefined,
-    file: file || undefined,
-    filter: qFilter || undefined,
+    search: typeof qSearch === "string" && qSearch.length > 0 ? qSearch : undefined,
+    file: typeof file === "string" && file.length > 0 ? file : undefined,
+    filter: typeof qFilter === "string" && qFilter.length > 0 ? qFilter : undefined,
     category,
   };
 }
@@ -119,21 +131,13 @@ export function getClientScriptDeeplink(): string {
       if (!hash) return { tab: "coverage" };
       let cleaned = hash.startsWith("#") ? hash.slice(1).trim() : hash.trim();
       if (!cleaned) return { tab: "coverage" };
-
-      let rawPath = cleaned;
-      let queryString = "";
+      let rawPath = cleaned, queryString = "";
       const qIdx = cleaned.indexOf("?");
-      if (qIdx !== -1) {
-        rawPath = cleaned.slice(0, qIdx);
-        queryString = cleaned.slice(qIdx + 1);
-      }
-
+      if (qIdx !== -1) { rawPath = cleaned.slice(0, qIdx); queryString = cleaned.slice(qIdx + 1); }
       const queryParams = new URLSearchParams(queryString);
       const qTab = queryParams.get("tab");
       const qSearch = queryParams.get("search") || queryParams.get("q");
-      const qFile = queryParams.get("file");
-      const qPath = queryParams.get("path");
-      const qFilter = queryParams.get("filter");
+      const qFile = queryParams.get("file"), qPath = queryParams.get("path"), qFilter = queryParams.get("filter");
       const qCategory = queryParams.get("category") || queryParams.get("cat");
       const qLineStr = queryParams.get("line") || queryParams.get("l") || queryParams.get("L");
       let line = qLineStr ? parseInt(qLineStr, 10) : undefined;
@@ -146,23 +150,19 @@ export function getClientScriptDeeplink(): string {
         rawPath = rawPath.slice(0, lineMatch.index);
       }
 
-      let tab = "coverage";
-      let path = qPath || undefined;
-      let file = qFile || undefined;
-      let category = qCategory || undefined;
-
+      let tab = "coverage", path = qPath || undefined, file = qFile || undefined, category = qCategory || undefined;
       if (rawPath === "deficits" || rawPath.startsWith("deficits/")) {
         tab = "deficits";
-        if (rawPath.startsWith("deficits/")) file = file || decodeURIComponent(rawPath.slice("deficits/".length));
+        if (rawPath.startsWith("deficits/")) file = file || decodeURIComponent(rawPath.slice(9));
       } else if (rawPath === "runtime" || rawPath.startsWith("runtime/")) {
         tab = "runtime";
-        if (rawPath.startsWith("runtime/")) file = file || decodeURIComponent(rawPath.slice("runtime/".length));
+        if (rawPath.startsWith("runtime/")) file = file || decodeURIComponent(rawPath.slice(8));
       } else if (rawPath === "unified" || rawPath.startsWith("unified/")) {
         tab = "unified";
-        if (rawPath.startsWith("unified/")) path = path || decodeURIComponent(rawPath.slice("unified/".length));
+        if (rawPath.startsWith("unified/")) path = path || decodeURIComponent(rawPath.slice(8));
       } else if (rawPath === "coverage" || rawPath.startsWith("coverage/")) {
         tab = "coverage";
-        if (rawPath.startsWith("coverage/")) path = path || decodeURIComponent(rawPath.slice("coverage/".length));
+        if (rawPath.startsWith("coverage/")) path = path || decodeURIComponent(rawPath.slice(9));
       } else if (rawPath.length > 0) {
         tab = "coverage";
         path = path || decodeURIComponent(rawPath);
@@ -174,11 +174,8 @@ export function getClientScriptDeeplink(): string {
 
     function updateHash(newHash) {
       if (window.location.hash === newHash) return;
-      if (window.history && window.history.replaceState) {
-        window.history.replaceState(null, "", newHash);
-      } else {
-        window.location.hash = newHash;
-      }
+      if (window.history && window.history.replaceState) window.history.replaceState(null, "", newHash);
+      else window.location.hash = newHash;
     }
 
     function applyHashRoute() {

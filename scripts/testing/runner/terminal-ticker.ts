@@ -25,7 +25,13 @@ export function isInteractiveTerminal(options?: {
   if (options?.interactive !== undefined) {
     return options.interactive;
   }
-  if (process.env.CI === "1" || process.env.CI === "true" || process.env.TERM === "dumb") {
+  if (process.env.CI === "1") {
+    return false;
+  }
+  if (process.env.CI === "true") {
+    return false;
+  }
+  if (process.env.TERM === "dumb") {
     return false;
   }
   return Boolean(process.stdout && process.stdout.isTTY);
@@ -51,8 +57,12 @@ export class TerminalTicker {
 
   constructor(options: TerminalTickerOptions = {}) {
     this.isInteractive = isInteractiveTerminal(options);
-    this.updateCadenceMs = options.updateCadenceMs ?? 50;
-    this.out = options.stdout ?? process.stdout;
+    this.updateCadenceMs =
+      options.updateCadenceMs !== undefined && options.updateCadenceMs !== null
+        ? options.updateCadenceMs
+        : 50;
+    this.out =
+      options.stdout !== undefined && options.stdout !== null ? options.stdout : process.stdout;
   }
 
   public getIsInteractive(): boolean {
@@ -108,7 +118,10 @@ export class TerminalTicker {
   }
 
   public render(): void {
-    if (this.stopped || !this.isInteractive) {
+    if (this.stopped) {
+      return;
+    }
+    if (!this.isInteractive) {
       return;
     }
 

@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { basename, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { calculateImpactPct, generateDeficitRoadmap } from "../deficits/index.ts";
 import {
   createMetricItem,
@@ -12,74 +12,9 @@ import {
   type TestRuntimeSummary,
   type UnifiedHierarchyNode,
 } from "../types.ts";
+import { findMatchingSourceFile, findMatchingTestFile, normalize } from "./path-matcher.ts";
 
-const SOURCE_PREFIXES = ["scripts/", "src/", "lib/"] as const;
-const TEST_PREFIXES = ["tests/", "test/", "__tests__/"] as const;
-const EXT_REGEX = /(\.(test|spec))?\.(ts|tsx|js|jsx|mjs|cjs)$/i;
-
-function normalize(p: string): string {
-  return p.replace(/\\/g, "/").trim();
-}
-
-function getStem(p: string): string {
-  return basename(p).replace(EXT_REGEX, "").toLowerCase();
-}
-
-function stripPrefix(p: string, prefixes: readonly string[]): string {
-  const norm = normalize(p);
-  for (const prefix of prefixes) {
-    if (norm.startsWith(prefix)) return norm.slice(prefix.length);
-  }
-  return norm;
-}
-
-function matchPaths(
-  target: string,
-  candidates: readonly string[] | string[],
-  targetPfx: readonly string[],
-  candPfx: readonly string[],
-): string | undefined {
-  if (!target || !candidates || candidates.length === 0) return undefined;
-  const normTarget = normalize(target);
-  const targetStem = getStem(normTarget);
-  const strippedTarget = stripPrefix(normTarget, targetPfx).replace(EXT_REGEX, "");
-
-  let bestMatch: string | undefined;
-  let bestScore = 0;
-
-  for (const rawCand of candidates) {
-    const normCand = normalize(rawCand);
-    const candStem = getStem(normCand);
-    const strippedCand = stripPrefix(normCand, candPfx).replace(EXT_REGEX, "");
-    if (strippedTarget === strippedCand && strippedTarget.length > 0) return rawCand;
-
-    let score = 0;
-    if (targetStem === candStem && targetStem.length > 0) score = 3;
-    else if (candStem.includes(targetStem) && targetStem.length > 2) score = 2;
-    else if (targetStem.includes(candStem) && candStem.length > 2) score = 1;
-
-    if (score > bestScore) {
-      bestScore = score;
-      bestMatch = rawCand;
-    }
-  }
-
-  return bestScore >= 2 ? bestMatch : undefined;
-}
-
-export function findMatchingTestFile(
-  sourcePath: string,
-  testFiles: readonly string[] | string[],
-): string | undefined {
-  return matchPaths(sourcePath, testFiles, SOURCE_PREFIXES, TEST_PREFIXES);
-}
-
-export function findMatchingSourceFile(
-  testPath: string,
-  sourceFiles: readonly string[] | string[],
-): string | undefined {
-  return matchPaths(testPath, sourceFiles, TEST_PREFIXES, SOURCE_PREFIXES);
-}
+export { findMatchingSourceFile, findMatchingTestFile };
 
 function readSourceLines(
   fullPath: string,
@@ -106,10 +41,19 @@ export function extractCoverageFileData(
 ): FileDetailData[] {
   const root = resolve(repoRoot);
   const filesArray: FileDetailData[] = [];
-  const testFiles = runtime?.files?.map((f) => f.file) ?? [];
-  const p50Set = new Set(runtime?.pareto50?.files?.map((f) => f.file) ?? []);
-  const p90Set = new Set(runtime?.pareto90?.files?.map((f) => f.file) ?? []);
-  const defRoadmap = deficits ?? generateDeficitRoadmap(fileMap, { rootDir: root });
+  const testFiles = runtime && runtime.files ? runtime.files.map((f) => f.file) : [];
+  const p50Set = new Set(
+    runtime && runtime.pareto50 && runtime.pareto50.files
+      ? runtime.pareto50.files.map((f) => f.file)
+      : [],
+  );
+  const p90Set = new Set(
+    runtime && runtime.pareto90 && runtime.pareto90.files
+      ? runtime.pareto90.files.map((f) => f.file)
+      : [],
+  );
+  const defRoadmap =
+    typeof deficits !== "undefined" ? deficits : generateDeficitRoadmap(fileMap, { rootDir: root });
 
   for (const [relPath, metric] of fileMap.entries()) {
     const fullPath = join(root, relPath);
@@ -195,7 +139,8 @@ export function buildUnifiedHierarchy(
 
     let current = root;
     for (let i = 0; i < segments.length - 1; i++) {
-      const seg = segments[i]!;
+      const seg = segments[i];
+      if (!seg) continue;
       const curPath = current.path ? `${current.path}/${seg}` : seg;
       let next = current.dirs.get(seg);
       if (!next) {
@@ -204,14 +149,16 @@ export function buildUnifiedHierarchy(
       }
       current = next;
     }
-    current.files.set(segments[segments.length - 1]!, f);
+    const lastSeg = segments[segments.length - 1];
+    if (lastSeg) {
+      current.files.set(lastSeg, f);
+    }
   }
 
   function resolveNode(node: MutableDir): UnifiedHierarchyNode {
     const childDirs = Array.from(node.dirs.values())
       .sort((a, b) => a.name.localeCompare(b.name))
       .map(resolveNode);
-
     const childFiles = Array.from(node.files.entries())
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([name, f]): UnifiedHierarchyNode => ({
@@ -227,7 +174,12 @@ export function buildUnifiedHierarchy(
         testCount: f.testCount,
         testFile: f.testFile,
         paretoClass: f.paretoClass,
-        deficitCount: f.deficitCount ?? f.deficitClusters?.length ?? 0,
+        deficitCount:
+          typeof f.deficitCount === "number"
+            ? f.deficitCount
+            : f.deficitClusters
+              ? f.deficitClusters.length
+              : 0,
         deficitClusters: f.deficitClusters,
         deficitCategories: f.deficitCategories,
         maxRepoGainPct: f.maxRepoGainPct,
@@ -254,8 +206,9 @@ export function buildUnifiedHierarchy(
       sTot += c.statements.total;
       fCov += c.functions.covered;
       fTot += c.functions.total;
-      if (c.testDurationMs !== undefined) dur = (dur ?? 0) + c.testDurationMs;
-      if (c.testCount !== undefined) count = (count ?? 0) + c.testCount;
+      if (c.testDurationMs !== undefined)
+        dur = (typeof dur === "number" ? dur : 0) + c.testDurationMs;
+      if (c.testCount !== undefined) count = (typeof count === "number" ? count : 0) + c.testCount;
       if (c.testPassed === false) passed = false;
       else if (c.testPassed === true && passed !== false) passed = true;
       if (c.paretoClass === "p50") pClass = "p50";
@@ -269,7 +222,6 @@ export function buildUnifiedHierarchy(
     }
 
     const maxFileGain = calculateImpactPct(lTot - lCov, lTot);
-
     return {
       name: node.name,
       path: node.path,

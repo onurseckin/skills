@@ -124,7 +124,6 @@ export function getClientScriptUnified(): string {
         html += '<span style="color: var(--text-dim);">-</span>';
       }
       html += '</div></td>';
-
       html += '<td>' + renderDeficitCell(node) + '</td>';
       html += '<td>' + (!isDir ? '<button class="tree-action-btn" data-path="' + escapeHtml(node.path) + '" onclick="event.stopPropagation(); openCodeViewer(\\'' + escapeJs(node.path) + '\\', event)" style="cursor: pointer;">Inspect</button>' : '<span style="color: var(--text-dim); font-size: 0.75rem;">Folder</span>') + '</td>';
       html += '</tr>';
@@ -256,10 +255,7 @@ export function getClientScriptUnified(): string {
           }
         } else {
           if (DATA.tree && DATA.tree.children && DATA.tree.children.length > 0) {
-            const sortedRoots = sortUnifiedItems(DATA.tree.children);
-            sortedRoots.forEach(c => {
-              html += renderTreeNodeRow(c, 0);
-            });
+            sortUnifiedItems(DATA.tree.children).forEach(c => { html += renderTreeNodeRow(c, 0); });
           } else {
             html += '<tr><td colspan="6" style="text-align: center; color: var(--text-dim); padding: 2rem;">No hierarchy tree available.</td></tr>';
           }
@@ -272,11 +268,7 @@ export function getClientScriptUnified(): string {
         html += renderFlatFiles();
         if (summaryText) {
           const fTests = new Set(filtered.map(f => f.testFile).filter(Boolean)).size;
-          if (isFilterActive || filtered.length < totalFiles) {
-            summaryText.textContent = "Displaying " + filtered.length.toLocaleString() + " of " + totalFiles.toLocaleString() + " files (" + fTests.toLocaleString() + " unit tests)";
-          } else {
-            summaryText.textContent = "Displaying " + totalFiles.toLocaleString() + " files (" + totalTests.toLocaleString() + " unit tests)";
-          }
+          summaryText.textContent = "Displaying " + filtered.length.toLocaleString() + " of " + totalFiles.toLocaleString() + " files (" + fTests.toLocaleString() + " unit tests)";
         }
       }
 

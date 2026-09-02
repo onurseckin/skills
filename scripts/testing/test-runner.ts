@@ -12,7 +12,8 @@ export { executeStreamingRunner };
 
 export function executeTestRunner(rawArgs: string[] = process.argv.slice(2)): number {
   const parsed = parseRunnerArgs(rawArgs);
-  const releaseLock = acquireTestLock(parsed.isBroadScope || parsed.isCoverage, rawArgs);
+  const isLockRequired = parsed.isBroadScope ? true : parsed.isCoverage;
+  const releaseLock = acquireTestLock(isLockRequired, rawArgs);
 
   try {
     const startMs = Date.now();
@@ -41,8 +42,14 @@ export function executeTestRunner(rawArgs: string[] = process.argv.slice(2)): nu
     }
 
     if (parsed.isCoverage) {
-      const outputText = [result.stdout ?? "", result.stderr ?? ""].join("\n");
-      const reportRes = processCoverageArtifacts(process.cwd(), parsed.coverageDir ?? "coverage", {
+      const outText = typeof result.stdout === "string" ? result.stdout : "";
+      const errText = typeof result.stderr === "string" ? result.stderr : "";
+      const outputText = [outText, errText].join("\n");
+      const targetCovDir =
+        parsed.coverageDir !== undefined && parsed.coverageDir !== null
+          ? parsed.coverageDir
+          : "coverage";
+      const reportRes = processCoverageArtifacts(process.cwd(), targetCovDir, {
         testOutput: outputText,
         startTime,
         endTime,
@@ -59,14 +66,16 @@ export function executeTestRunner(rawArgs: string[] = process.argv.slice(2)): nu
           console.error(
             `\n[coverage] Generated coverage artifacts across ${reportRes.filesCount} files (${reportRes.totalPct}% line coverage).\n${message}`,
           );
-          if ((result.status ?? 0) === 0) {
+          const exitCode =
+            result.status !== undefined && result.status !== null ? result.status : 0;
+          if (exitCode === 0) {
             return 1;
           }
         }
       }
     }
 
-    return result.status ?? 0;
+    return result.status !== undefined && result.status !== null ? result.status : 0;
   } finally {
     releaseLock();
   }
@@ -78,10 +87,13 @@ export function computeIsMain(
 ): boolean {
   if (mainVal) return true;
   if (!entryArg) return false;
-  return (
-    entryArg.endsWith("scripts/testing/test-runner.ts") ||
-    entryArg.endsWith("scripts/testing/test-runner")
-  );
+  if (entryArg.endsWith("scripts/testing/test-runner.ts")) {
+    return true;
+  }
+  if (entryArg.endsWith("scripts/testing/test-runner")) {
+    return true;
+  }
+  return false;
 }
 
 export function main(): void {

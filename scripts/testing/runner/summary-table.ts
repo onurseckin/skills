@@ -27,14 +27,15 @@ export function getExecutionBadge(
   stats: RunnerStats,
   useColor: boolean = true,
 ): { label: string; text: string } {
-  if (stats.testsFailed > 0 || stats.suitesFailed > 0) {
+  if (stats.testsFailed > 0 ? true : stats.suitesFailed > 0) {
     const text = "[FAIL]";
     return {
       label: "FAIL",
       text: useColor ? `\x1b[1;31m${text}\x1b[0m` : text,
     };
   }
-  if (stats.testsTotal === 0 || (stats.testsSkipped > 0 && stats.testsPassed === 0)) {
+  const isWarn = stats.testsTotal === 0 ? true : stats.testsSkipped > 0 && stats.testsPassed === 0;
+  if (isWarn) {
     const text = "[WARN]";
     return {
       label: "WARN",
@@ -69,7 +70,7 @@ export function formatSummaryTable(options: SummaryTableOptions): string {
 
   // Test Suites
   const suiteParts: string[] = [];
-  if (stats.suitesPassed > 0 || stats.suitesTotal === 0) {
+  if (stats.suitesPassed > 0 ? true : stats.suitesTotal === 0) {
     suiteParts.push(`${stats.suitesPassed} passed`);
   }
   if (stats.suitesFailed > 0) {
@@ -80,7 +81,7 @@ export function formatSummaryTable(options: SummaryTableOptions): string {
 
   // Tests
   const testParts: string[] = [];
-  if (stats.testsPassed > 0 || stats.testsTotal === 0) {
+  if (stats.testsPassed > 0 ? true : stats.testsTotal === 0) {
     testParts.push(`${stats.testsPassed} passed`);
   }
   if (stats.testsFailed > 0) {
@@ -102,12 +103,15 @@ export function formatSummaryTable(options: SummaryTableOptions): string {
   if (coverageResult) {
     const covPct =
       typeof coverageResult.totalPct === "number" ? coverageResult.totalPct.toFixed(2) : "0.00";
-    const covFiles = coverageResult.filesCount ?? 0;
+    const covFiles =
+      coverageResult.filesCount !== undefined && coverageResult.filesCount !== null
+        ? coverageResult.filesCount
+        : 0;
     lines.push(`  Coverage:        ${covPct}% line coverage (${covFiles} files)`);
   }
 
   // Failures section
-  if (stats.failedTests.length > 0 || stats.failedSuites.length > 0) {
+  if (stats.failedTests.length > 0 ? true : stats.failedSuites.length > 0) {
     lines.push(subDivider);
     lines.push("  Failures:");
     const maxItems = 10;

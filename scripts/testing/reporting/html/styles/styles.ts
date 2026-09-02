@@ -6,45 +6,46 @@ import { getUnifiedStyles } from "./styles-unified.ts";
 export function getHtmlStyles(): string {
   return `
     :root {
-      --bg-base: #09090b; --bg-surface: #000000; --bg-card: #0c0c0e; --bg-hover: #17171a;
+      --bg-base: #09090b; --bg-surface: #0f1117; --bg-card: #18181b; --bg-hover: #222227;
       --border-subtle: rgba(255, 255, 255, 0.08); --border-strong: rgba(255, 255, 255, 0.18);
-      --text-main: #ffffff; --text-muted: #a1a1aa; --text-dim: #71717a; --brand-accent: #e4e4e7;
-      --status-pass: #10b981; --status-info: #a1a1aa; --status-warn: #f59e0b; --status-fail: #ef4444;
+      --text-main: #f4f4f5; --text-muted: #a1a1aa; --text-dim: #71717a; --brand-accent: #38bdf8;
+      --status-pass: #10b981; --status-info: #38bdf8; --status-warn: #f59e0b; --status-fail: #ef4444;
       --line-hit-bg: rgba(16, 185, 129, 0.12); --line-hit-border: #10b981;
       --line-miss-bg: rgba(239, 68, 68, 0.16); --line-miss-border: #ef4444;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-track { background: var(--bg-base); }
-    ::-webkit-scrollbar-thumb { background: #262626; border-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
-    ::-webkit-scrollbar-thumb:hover { background: #404040; }
+    ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; border: 1px solid rgba(255,255,255,0.05); }
+    ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
       background-color: var(--bg-base); color: var(--text-main); line-height: 1.5; min-height: 100vh; display: flex; flex-direction: column;
     }
     header {
-      background: rgba(0, 0, 0, 0.95); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border-subtle);
+      background: rgba(9, 9, 11, 0.92); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border-subtle);
       padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50;
     }
     .brand { display: flex; align-items: center; gap: 0.75rem; }
     .brand-icon {
       width: 32px; height: 32px; background: linear-gradient(135deg, #27272a, #09090b);
-      border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px;
-      display: flex; align-items: center; justify-content: center; font-weight: 800; color: white;
+      border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 6px;
+      display: flex; align-items: center; justify-content: center; font-weight: 800; color: #38bdf8;
     }
-    .brand-text { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.02em; }
+    .brand-text { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.02em; color: var(--text-main); }
     .badge {
-      font-size: 0.75rem; padding: 0.2rem 0.55rem; border-radius: 4px; font-weight: 600;
-      letter-spacing: 0.02em; display: inline-flex; align-items: center; gap: 0.35rem;
+      font-size: 0.72rem; padding: 0.2rem 0.55rem; border-radius: 4px; font-weight: 700;
+      letter-spacing: 0.04em; text-transform: uppercase; display: inline-flex; align-items: center; gap: 0.35rem; font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
     }
-    .badge-pass { background: #042f2e; color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 4px; }
-    .badge-info, .badge-sapphire { background: #083344; color: #a5f3fc; border: 1px solid rgba(6, 182, 212, 0.35); border-radius: 4px; }
-    .badge-warn, .badge-amber { background: #451a03; color: #fef08a; border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 4px; }
-    .badge-fail, .badge-ruby { background: #450a0a; color: #fecaca; border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 4px; }
-    .badge-neutral { background: rgba(255, 255, 255, 0.08); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 4px; }
-    .badge-p50 { background: #451a03; color: #fef08a; border: 1px solid rgba(245, 158, 11, 0.35); font-weight: 700; border-radius: 4px; box-shadow: 0 0 8px rgba(245, 158, 11, 0.25); }
-    .badge-p90 { background: #3b0764; color: #e9d5ff; border: 1px solid rgba(168, 85, 247, 0.35); font-weight: 700; border-radius: 4px; box-shadow: 0 0 8px rgba(168, 85, 247, 0.25); }
-    .badge-pnormal { background: #042f2e; color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 4px; }
+    .badge-pass { background: #052e16; color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.4); }
+    .badge-info, .badge-sapphire { background: #083344; color: #67e8f9; border: 1px solid rgba(6, 182, 212, 0.4); }
+    .badge-warn, .badge-amber { background: #451a03; color: #fde047; border: 1px solid rgba(250, 204, 21, 0.4); }
+    .badge-fail, .badge-ruby { background: #450a0a; color: #fca5a5; border: 1px solid rgba(248, 113, 113, 0.4); }
+    .badge-neutral { background: rgba(255, 255, 255, 0.08); color: #f4f4f5; border: 1px solid rgba(255, 255, 255, 0.16); }
+    .badge-p50 { background: #451a03; color: #fde047; border: 1px solid rgba(234, 179, 8, 0.5); font-weight: 700; box-shadow: 0 0 8px rgba(234, 179, 8, 0.25); }
+    .badge-p90 { background: #3b0764; color: #f0abfc; border: 1px solid rgba(192, 132, 252, 0.5); font-weight: 700; box-shadow: 0 0 8px rgba(192, 132, 252, 0.25); }
+    .badge-pnormal { background: #052e16; color: #86efac; border: 1px solid rgba(74, 222, 128, 0.4); }
     
     .container { max-width: 100%; margin: 0 auto; padding: 1.5rem 2rem; width: 100%; flex: 1; position: relative; }
     .dashboard-loader {
@@ -52,7 +53,7 @@ export function getHtmlStyles(): string {
       padding: 3rem 1rem; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 0.85rem; margin-bottom: 1.5rem;
     }
     .loader-spinner {
-      width: 32px; height: 32px; border: 3px solid rgba(255, 255, 255, 0.1); border-top-color: var(--text-main);
+      width: 32px; height: 32px; border: 3px solid rgba(255, 255, 255, 0.1); border-top-color: var(--brand-accent);
       border-radius: 50%; animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -64,20 +65,22 @@ export function getHtmlStyles(): string {
     }
     .metric-card:hover { border-color: var(--border-strong); }
     .metric-info { flex: 1; }
-    .metric-title { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; margin-bottom: 0.35rem; }
-    .metric-value { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.03em; }
-    .metric-sub { font-size: 0.85rem; color: var(--text-dim); margin-top: 0.25rem; font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace; }
+    .metric-title { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; margin-bottom: 0.35rem; }
+    .metric-value { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.03em; color: var(--text-main); }
+    .metric-sub { font-size: 0.82rem; color: var(--text-dim); margin-top: 0.25rem; font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace; }
     .metric-progress-track {
-      width: 100%; height: 18px; border-radius: 4px; background: #27272a;
+      width: 100%; height: 20px; border-radius: 4px; background: #1c1c1f;
       border: 1px solid rgba(255, 255, 255, 0.12); overflow: hidden; position: relative;
+      display: flex; align-items: center; justify-content: center; box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
     }
     .metric-progress-fill {
-      height: 100%; display: flex; align-items: center; justify-content: center;
+      position: absolute; top: 0; left: 0; bottom: 0; height: 100%;
       transition: width 0.6s ease;
     }
     .metric-progress-text {
-      font-size: 0.75rem; font-weight: 700; color: #ffffff;
-      font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
+      position: relative; z-index: 2; font-size: 0.75rem; font-weight: 700; color: #ffffff;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95); font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
+      pointer-events: none;
     }
 
     .controls-bar {

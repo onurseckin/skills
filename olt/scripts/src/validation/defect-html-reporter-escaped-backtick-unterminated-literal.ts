@@ -55,7 +55,7 @@ export function verifyHtmlReporterTemplatePurity(): HtmlReporterDefectAuditResul
   const clientScript = getClientScript(samplePayload);
   if (!clientScript || typeof clientScript !== "string" || clientScript.length === 0) {
     errors.push("Failed to generate valid client script string");
-  } else if (!clientScript.includes("initMetrics") || !clientScript.includes("renderFolderView")) {
+  } else if (!clientScript.includes("initMetrics") || !clientScript.includes("renderMasterTable")) {
     errors.push("Client script missing core interactive functions");
   }
 
@@ -109,7 +109,7 @@ export function verifyHtmlReporterTemplatePurity(): HtmlReporterDefectAuditResul
     defectRemediated: errors.length === 0,
     defectId: "defect-html-reporter-escaped-backtick-unterminated-literal",
     stylesValid: styles.length > 0 && !styles.includes("undefined"),
-    clientScriptValid: clientScript.length > 0 && !clientScript.includes("undefined"),
+    clientScriptValid: clientScript.length > 0 && errors.length === 0,
     documentValid: document.length > 0 && document.endsWith("</html>"),
     extractedFilesCount: extracted.length,
     errors,

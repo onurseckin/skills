@@ -38,7 +38,7 @@ ${styles}
           <div class="metric-title">Lines Coverage</div>
           <div class="metric-sub" id="sub-lines">0 / 0 lines</div>
         </div>
-        <div class="metric-progress-track"><div id="kpi-fill-lines" class="metric-progress-fill"><span id="kpi-val-lines" class="metric-progress-text">0%</span></div></div>
+        <div class="metric-progress-track"><div id="kpi-fill-lines" class="metric-progress-fill"></div><span id="kpi-val-lines" class="metric-progress-text">0%</span></div>
       </div>
 
       <div class="metric-card">
@@ -46,7 +46,7 @@ ${styles}
           <div class="metric-title">Functions Coverage</div>
           <div class="metric-sub" id="sub-funcs">0 / 0 funcs</div>
         </div>
-        <div class="metric-progress-track"><div id="kpi-fill-funcs" class="metric-progress-fill"><span id="kpi-val-funcs" class="metric-progress-text">0%</span></div></div>
+        <div class="metric-progress-track"><div id="kpi-fill-funcs" class="metric-progress-fill"></div><span id="kpi-val-funcs" class="metric-progress-text">0%</span></div>
       </div>
 
       <div class="metric-card">

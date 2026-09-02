@@ -91,7 +91,8 @@ export class StreamParser {
   private processBuffer(stream: "stdout" | "stderr"): void {
     const buf = stream === "stdout" ? this.stdoutBuffer : this.stderrBuffer;
     const lines = buf.split(/\r?\n/);
-    const remaining = lines.pop() ?? "";
+    const lastElem = lines.pop();
+    const remaining = lastElem !== undefined && lastElem !== null ? lastElem : "";
     if (stream === "stdout") {
       this.stdoutBuffer = remaining;
     } else {
@@ -148,9 +149,13 @@ export class StreamParser {
         passMatch[2] && passMatch[3] ? parseDurationMs(passMatch[2], passMatch[3]) : undefined;
       this.stats.testsPassed++;
       this.stats.testsTotal++;
+      const currentSuite =
+        this.stats.activeSuite !== null && this.stats.activeSuite !== undefined
+          ? this.stats.activeSuite
+          : "unknown";
       this.emit({
         type: "test_pass",
-        suite: this.stats.activeSuite ?? "unknown",
+        suite: currentSuite,
         name,
         durationMs: dur,
       });
@@ -162,7 +167,10 @@ export class StreamParser {
       const name = failMatch[1].trim();
       const dur =
         failMatch[2] && failMatch[3] ? parseDurationMs(failMatch[2], failMatch[3]) : undefined;
-      const suite = this.stats.activeSuite ?? "unknown";
+      const suite =
+        this.stats.activeSuite !== null && this.stats.activeSuite !== undefined
+          ? this.stats.activeSuite
+          : "unknown";
       this.stats.testsFailed++;
       this.stats.testsTotal++;
       this.stats.failedTests.push({ suite, test: name, durationMs: dur });
@@ -184,9 +192,13 @@ export class StreamParser {
       const name = skipMatch[1].trim();
       this.stats.testsSkipped++;
       this.stats.testsTotal++;
+      const currentSuite =
+        this.stats.activeSuite !== null && this.stats.activeSuite !== undefined
+          ? this.stats.activeSuite
+          : "unknown";
       this.emit({
         type: "test_skip",
-        suite: this.stats.activeSuite ?? "unknown",
+        suite: currentSuite,
         name,
       });
       return;

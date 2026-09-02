@@ -25,22 +25,24 @@ export function getCodeViewerStyles(): string {
     }
     .miss-chip {
       background: #450a0a;
-      border: 1px solid rgba(239, 68, 68, 0.35);
-      color: #fecaca;
+      border: 1px solid rgba(248, 113, 113, 0.45);
+      color: #fca5a5;
       padding: 0.2rem 0.5rem;
       border-radius: 4px;
       font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
       font-size: 0.75rem;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
       transition: all 0.15s ease;
     }
     .miss-chip:hover {
       background: #7f1d1d;
+      border-color: #ef4444;
+      color: #ffffff;
       transform: translateY(-1px);
     }
     .code-container {
-      background: #000000;
+      background: #09090b;
       border: 1px solid var(--border-subtle);
       border-radius: 0.75rem;
       overflow-x: auto;

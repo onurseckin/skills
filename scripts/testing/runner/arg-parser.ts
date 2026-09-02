@@ -31,7 +31,10 @@ export function isBroadScopeTargets(targets: readonly string[]): boolean {
   if (targets.length === 0) return true;
   return targets.some((t) => {
     const norm = t.replace(/\\/g, "/").replace(/^\.\//, "").replace(/\/+$/, "");
-    return norm === "" || norm === "tests" || norm === ".";
+    if (norm === "") return true;
+    if (norm === "tests") return true;
+    if (norm === ".") return true;
+    return false;
   });
 }
 
@@ -56,6 +59,7 @@ export function parseRunnerArgs(rawArgs: readonly string[] = []): ParsedRunnerAr
   let filterPattern: string | undefined;
   let timeoutMs = DEFAULT_TIMEOUT_MS;
   let parallel = DEFAULT_PARALLEL;
+  let isParallelExplicit = false;
   let parallelWorkers: number | undefined;
   let maxConcurrency: number | undefined;
 
@@ -98,9 +102,9 @@ export function parseRunnerArgs(rawArgs: readonly string[] = []): ParsedRunnerAr
     } else if (token.startsWith("--coverage-reporter=")) {
       coverageReporters.push(token.slice(20));
       if (!isCovSet) isCoverage = true;
-    } else if (token === "-u" || token === "--update-snapshots") {
+    } else if (token === "-u" ? true : token === "--update-snapshots") {
       isUpdateSnapshots = true;
-    } else if (token === "-b" || token === "--bail") {
+    } else if (token === "-b" ? true : token === "--bail") {
       isBail = true;
       if (nextToken !== undefined && /^\d+$/.test(nextToken)) {
         i++;
@@ -114,7 +118,7 @@ export function parseRunnerArgs(rawArgs: readonly string[] = []): ParsedRunnerAr
       isBail = false;
       bailCount = undefined;
     } else if (
-      (token === "-t" || token === "--test-name-pattern" || token === "--filter") &&
+      (token === "-t" ? true : token === "--test-name-pattern" ? true : token === "--filter") &&
       nextToken !== undefined
     ) {
       i++;
@@ -127,16 +131,19 @@ export function parseRunnerArgs(rawArgs: readonly string[] = []): ParsedRunnerAr
       filterPattern = token.slice(9);
     } else if (token === "--parallel") {
       parallel = true;
+      isParallelExplicit = true;
       if (nextToken !== undefined && /^\d+$/.test(nextToken)) {
         i++;
         parallelWorkers = parseInt(nextToken, 10);
       }
     } else if (token.startsWith("--parallel=")) {
       parallel = true;
+      isParallelExplicit = true;
       const count = parseInt(token.slice(11), 10);
       if (!Number.isNaN(count) && count > 0) parallelWorkers = count;
     } else if (token === "--no-parallel") {
       parallel = false;
+      isParallelExplicit = true;
       parallelWorkers = undefined;
     } else if (token === "--max-concurrency" && nextToken !== undefined) {
       i++;
@@ -145,7 +152,7 @@ export function parseRunnerArgs(rawArgs: readonly string[] = []): ParsedRunnerAr
     } else if (token.startsWith("--max-concurrency=")) {
       const val = parseInt(token.slice(18), 10);
       if (!Number.isNaN(val) && val > 0) maxConcurrency = val;
-    } else if (token === "--quiet" || token === "-q") {
+    } else if (token === "--quiet" ? true : token === "-q") {
       quiet = true;
     } else if (token === "--no-ticker") {
       ticker = false;
@@ -153,7 +160,7 @@ export function parseRunnerArgs(rawArgs: readonly string[] = []): ParsedRunnerAr
       ticker = true;
     } else if (token === "--ci") {
       ci = true;
-    } else if (token === "--verbose" || token === "-v") {
+    } else if (token === "--verbose" ? true : token === "-v") {
       verbose = true;
     } else if (token === "--summary") {
       summary = true;
@@ -183,6 +190,9 @@ export function parseRunnerArgs(rawArgs: readonly string[] = []): ParsedRunnerAr
   const isBroadScope = isBroadScopeTargets(targets);
   if (!isCovSet && isBroadScope) {
     isCoverage = true;
+  }
+  if (isBroadScope && !isParallelExplicit) {
+    parallel = false;
   }
 
   const parsedPartial: Omit<ParsedRunnerArgs, "bunTestArgs"> = {
@@ -235,7 +245,11 @@ export function buildBunTestArgs(parsed: ParsedRunnerArgs): string[] {
       ? parsed.coverageReporters
       : DEFAULT_COVERAGE_REPORTERS;
     for (const r of reporters) args.push(`--coverage-reporter=${r}`);
-    args.push(`--coverage-dir=${parsed.coverageDir ?? DEFAULT_COVERAGE_DIR}`);
+    const targetCovDir =
+      parsed.coverageDir !== undefined && parsed.coverageDir !== null
+        ? parsed.coverageDir
+        : DEFAULT_COVERAGE_DIR;
+    args.push(`--coverage-dir=${targetCovDir}`);
   }
 
   if (parsed.isUpdateSnapshots) args.push("--update-snapshots");
