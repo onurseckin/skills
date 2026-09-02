@@ -156,7 +156,6 @@ function buildCommandRecord(
 
 // Sets up a ready run for completeness critic testing
 export async function setupReadyRun(name: string, roots: string[]): Promise<ReadyRun> {
-  setupVirtualCliFS();
   const repo = `/virtual/cli/critic-ready-${name}-${Math.random().toString(36).slice(2)}`;
   roots.push(repo);
   await mkdir(join(repo, ".git"), { recursive: true });

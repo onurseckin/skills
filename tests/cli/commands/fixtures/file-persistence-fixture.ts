@@ -14,7 +14,6 @@ export async function setupCompiledRun(
   name: string,
   roots: string[],
 ): Promise<{ repo: string; run: string }> {
-  setupVirtualCliFS();
   const repo = `/virtual/cli/file-persist-${name}-${randomUUID()}`;
   roots.push(repo);
   await mkdir(join(repo, ".git"), { recursive: true });

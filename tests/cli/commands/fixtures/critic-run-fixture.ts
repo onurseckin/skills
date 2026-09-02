@@ -7,7 +7,6 @@ import { setupVirtualCliFS } from "./full-lifecycle-fixture.ts";
 
 /** Drives a single-task run all the way to "ready for the completeness critic". */
 export async function setupReadyRun(name: string, roots: string[]) {
-  setupVirtualCliFS();
   const repo = `/virtual/cli/critic-run-${name}-${Math.random().toString(36).slice(2)}`;
   roots.push(repo);
   await mkdir(join(repo, ".git"), { recursive: true });

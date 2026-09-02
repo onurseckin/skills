@@ -14,7 +14,6 @@ export async function setupCompiledRun(
   roots: string[],
   config?: Record<string, boolean | number | string>,
 ) {
-  setupVirtualCliFS();
   const repo = `/virtual/cli/task-ops-${name}-${Math.random().toString(36).slice(2)}`;
   roots.push(repo);
   await mkdir(join(repo, ".git"), { recursive: true });

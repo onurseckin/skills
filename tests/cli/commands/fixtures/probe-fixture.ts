@@ -23,7 +23,6 @@ export async function setupRun(
   roots: string[],
   config?: Record<string, boolean | number | string>,
 ): Promise<{ repo: string; run: string }> {
-  setupVirtualCliFS();
   const repo = `/virtual/cli/probe-${name}-${Math.random().toString(36).slice(2)}`;
   roots.push(repo);
   await mkdir(join(repo, ".git"), { recursive: true });
