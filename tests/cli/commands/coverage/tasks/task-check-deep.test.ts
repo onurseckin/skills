@@ -17,11 +17,11 @@ import {
   type TaskCheckSummary,
   type TypeCheckDiagnostic,
   type TypeCheckResult,
-} from "../../../../olt/scripts/src/cli/commands/task-check.ts";
-import * as astLinter from "../../../../olt/scripts/src/linter/ast/index.ts";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
-import { initRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
-import { cleanupVirtualCliFS, setupVirtualCliFS } from "../fixtures/full-lifecycle-fixture.ts";
+} from "../../../../../olt/scripts/src/cli/commands/task-check.ts";
+import * as astLinter from "../../../../../olt/scripts/src/linter/ast/index.ts";
+import { HarnessError } from "../../../../../olt/scripts/src/core/errors/index.ts";
+import { initRun, transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
 async function createVirtualDir(prefix: string): Promise<string> {

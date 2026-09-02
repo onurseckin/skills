@@ -5,14 +5,14 @@ import {
   formatMindObserveBrief,
   mindObserveCommand,
   type MindObserveResult,
-} from "../../../../olt/scripts/src/cli/commands/mind-observe.ts";
-import { loadRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
+} from "../../../../../olt/scripts/src/cli/commands/mind-observe.ts";
+import { loadRun, transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
 import {
   cleanupRoots,
   cleanupVirtualCliFS,
   setupVirtualCliFS,
-} from "../fixtures/full-lifecycle-fixture.ts";
-import { setupCompiledRun } from "../fixtures/task-ops-fixture.ts";
+} from "../../fixtures/full-lifecycle-fixture.ts";
+import { setupCompiledRun } from "../../fixtures/task-ops-fixture.ts";
 
 const roots: string[] = [];
 
