@@ -14,7 +14,7 @@ let rootCount = 0;
 
 export function tempRoot(prefix: string): string {
   ensureVirtualHealthFS();
-  const root = `/virtual/health-${prefix}-${++rootCount}`;
+  const root = `/virtual/health-${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}-${++rootCount}`;
   vfs.mkdirSync(root, { recursive: true });
   return root;
 }
@@ -42,7 +42,12 @@ export function cleanupTempRoots(): void {
 
 /** A single in-memory source file, for checks that read files rather than a module graph. */
 export function sourceOf(relative: string, text: string): SourceFile {
-  return { path: `/virtual/${relative}`, relative, text, scan: scanSource(text) };
+  return {
+    path: `/virtual/${Math.random().toString(36).slice(2)}-${relative}`,
+    relative,
+    text,
+    scan: scanSource(text),
+  };
 }
 
 export interface LoadedTree {

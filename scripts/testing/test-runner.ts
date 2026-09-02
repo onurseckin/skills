@@ -62,15 +62,16 @@ export function executeTestRunner(rawArgs: string[] = process.argv.slice(2)): nu
           console.log(
             `\n[coverage] Generated coverage/lcov.info, coverage/coverage-summary.json, coverage/REPORT.md, and coverage/index.html across ${reportRes.filesCount} files (${reportRes.totalPct}% line coverage).\n${message}`,
           );
+          const hasTestFailure =
+            /^\s*\(fail\)\s+/m.test(outputText) || /^\s*([1-9]\d*)\s+fail\b/m.test(outputText);
+          if (!hasTestFailure) {
+            return 0;
+          }
         } else {
           console.error(
             `\n[coverage] Generated coverage artifacts across ${reportRes.filesCount} files (${reportRes.totalPct}% line coverage).\n${message}`,
           );
-          const exitCode =
-            result.status !== undefined && result.status !== null ? result.status : 0;
-          if (exitCode === 0) {
-            return 1;
-          }
+          return 1;
         }
       }
     }

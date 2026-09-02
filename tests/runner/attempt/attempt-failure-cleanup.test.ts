@@ -1,4 +1,4 @@
-import { describe, expect, spyOn, test } from "bun:test";
+import { afterAll, afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
@@ -7,7 +7,6 @@ import { createAttemptExecutionError } from "../../../olt/scripts/src/engine/run
 import type { NormalizedCommandOptions } from "../../../olt/scripts/src/engine/runner/types/types.ts";
 import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
 import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
-import { afterAll, afterEach } from "bun:test";
 
 afterEach(cleanupTempRoots);
 afterAll(cleanupTempRoots);
@@ -35,36 +34,41 @@ const mockIdentity: ProcessIdentity = {
 };
 
 describe("attempt-failure-cleanup: handleAttemptFailure", () => {
-  const tempDir = tempRoot("handle-failure");
-  const attemptDir = join(tempDir, "attempts/1");
-  mkdirSync(attemptDir, { recursive: true });
-  writeFileSync(join(attemptDir, "stdout.log"), "sample stdout");
-  writeFileSync(join(attemptDir, "stderr.log"), "sample stderr");
+  let attemptDir: string;
+  let baseCtx: Parameters<typeof handleAttemptFailure>[0];
 
-  const baseCtx = {
-    error: new Error("initial crash"),
-    terminalProofDurable: false,
-    cleanupPrewriteFailed: false,
-    attemptIntent: undefined,
-    child: undefined,
-    descendants: undefined,
-    rootIdentity: undefined,
-    trackerReady: undefined,
-    activityRecord: undefined,
-    pumps: [],
-    pumpAbort: new AbortController(),
-    options: mockOptions,
-    deliveredSignals: [],
-    durableSignals: [],
-    processGroupSignals: [],
-    persistSignal: () => undefined,
-    startedAt: undefined,
-    commandId: "cmd-1",
-    attempt: 1,
-    attemptDir,
-    observedExitCode: 1,
-    outputTail: "",
-  };
+  beforeEach(() => {
+    const tempDir = tempRoot("handle-failure");
+    attemptDir = join(tempDir, "attempts/1");
+    mkdirSync(attemptDir, { recursive: true });
+    writeFileSync(join(attemptDir, "stdout.log"), "sample stdout");
+    writeFileSync(join(attemptDir, "stderr.log"), "sample stderr");
+
+    baseCtx = {
+      error: new Error("initial crash"),
+      terminalProofDurable: false,
+      cleanupPrewriteFailed: false,
+      attemptIntent: undefined,
+      child: undefined,
+      descendants: undefined,
+      rootIdentity: undefined,
+      trackerReady: undefined,
+      activityRecord: undefined,
+      pumps: [],
+      pumpAbort: new AbortController(),
+      options: mockOptions,
+      deliveredSignals: [],
+      durableSignals: [],
+      processGroupSignals: [],
+      persistSignal: () => undefined,
+      startedAt: undefined,
+      commandId: "cmd-1",
+      attempt: 1,
+      attemptDir,
+      observedExitCode: 1,
+      outputTail: "",
+    };
+  });
 
   test("re-throws error directly when startedAt or activityRecord is missing", async () => {
     await expect(handleAttemptFailure(baseCtx)).rejects.toThrow("initial crash");
