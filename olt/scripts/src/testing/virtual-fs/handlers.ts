@@ -35,24 +35,18 @@ export function normPath(p: string | number): string {
   return resolved.replace(/^\/private\/(var|tmp)(\/|$)/, "/$1$2");
 }
 
-const VIRTUAL_SEGMENTS = [
-  "/virtual",
-  "/scratch",
-  "/coverage",
-  "/tmp",
-  "/runner",
-  "\\runner",
-  "skills-runner",
-  ".olt/worktrees",
-  ".olt/runs",
-  ".olt/locks",
-  ".olt/capsules",
-  "/fixture",
-];
+const VIRTUAL_PREFIXES = ["/virtual", "/fixture", "/virtual-fs", "\\virtual"];
 
 export function isVirtualPath(s: string): boolean {
+  if (typeof s !== "string") return false;
   const norm = normPath(s);
-  return VIRTUAL_SEGMENTS.some((p) => s.includes(p) || norm.includes(p));
+  return VIRTUAL_PREFIXES.some(
+    (p) =>
+      s.startsWith(p) ||
+      norm.startsWith(p) ||
+      s.includes("/virtual/") ||
+      norm.includes("/virtual/"),
+  );
 }
 
 export function getInode(state: VirtualFSSpyState, targetPath: string): number {

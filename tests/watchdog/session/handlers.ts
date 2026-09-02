@@ -17,16 +17,7 @@ export function norm(p: string | number): string {
 
 export function isVirtualPath(p: string): boolean {
   const s = norm(p);
-  return (
-    s.startsWith("/virtual") ||
-    s.includes("watchdog-scratch") ||
-    s.includes("watchdogs.json") ||
-    s.includes("defects.jsonl") ||
-    s.includes(".olt") ||
-    s.includes("coverage/scratch") ||
-    s.includes("scratch") ||
-    s.includes("tmp")
-  );
+  return s.startsWith("/virtual") || s.includes("/virtual/") || s.includes("watchdog-scratch");
 }
 
 export function getInode(s: VirtualWatchdogState, targetPath: string): number {

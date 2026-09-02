@@ -18,12 +18,7 @@ export function isVirtualPath(p: string): boolean {
   const s = norm(p);
   return (
     s.startsWith("/virtual") ||
-    s.includes("scratch") ||
-    s.includes("tmp") ||
-    s.includes("coverage") ||
-    s.includes(".olt/worktrees") ||
-    s.includes(".olt/runs") ||
-    s.includes(".olt/locks") ||
+    s.includes("/virtual/") ||
     s.includes("task-check-") ||
     s.includes("grants-run-") ||
     s.includes("harness-") ||

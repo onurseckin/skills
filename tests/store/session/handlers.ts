@@ -17,14 +17,7 @@ export function norm(p: string | number): string {
 
 export function isVirtualPath(p: string): boolean {
   const s = norm(p);
-  return (
-    s.startsWith("/virtual") ||
-    s.includes("store-scratch") ||
-    s.includes("capsule") ||
-    s.includes("scratch") ||
-    s.includes("coverage") ||
-    s.includes("tmp")
-  );
+  return s.startsWith("/virtual") || s.includes("/virtual/") || s.includes("store-scratch");
 }
 
 export function getInode(s: VirtualStoreState, targetPath: string): number {

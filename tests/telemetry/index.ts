@@ -1,11 +1,11 @@
 /**
  * @file index.ts
- * Root Facade for Telemetry test suites.
+ * Facade for Telemetry Coverage test suite.
  */
 
-export { collectorsSuite } from "./collectors/index.ts";
-export { circuitBreakerSuite } from "./circuit-breaker/index.ts";
-export { engineSuite } from "./engine/index.ts";
-export { quotaSuite } from "./quota/index.ts";
-export { snapshotSuite } from "./snapshot/index.ts";
-export { coverageSuite } from "./coverage/index.ts";
+export const coverageSuite = [
+  "collectors-common-coverage",
+  "collectors-common-fetchers-coverage",
+  "engine-formatting-helpers-coverage",
+  "engine-formatting-report-coverage",
+] as const;
