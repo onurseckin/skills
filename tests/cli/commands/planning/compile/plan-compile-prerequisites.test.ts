@@ -22,12 +22,13 @@ async function createTestRun(
   await mkdir(join(repo, ".git"), { recursive: true });
   const promptPath = join(repo, "prompt.txt");
   await writeFile(promptPath, promptText, "utf-8");
+  const uniqueRun = `${prefix}-${Math.random().toString(36).slice(2)}`;
   const init = await execute([
     "plan:init",
     "--repo",
     repo,
     "--run-id",
-    "test-run",
+    uniqueRun,
     "--prompt-file",
     promptPath,
   ]);

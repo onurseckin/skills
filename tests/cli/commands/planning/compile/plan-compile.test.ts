@@ -28,7 +28,7 @@ describe("plan:compile", () => {
       "--repo",
       repo,
       "--run-id",
-      "compile-empty",
+      `compile-empty-${Math.random().toString(36).slice(2)}`,
       "--prompt-file",
       promptPath,
     ]);
@@ -57,7 +57,7 @@ describe("plan:compile", () => {
       "--repo",
       repo,
       "--run-id",
-      "compile-collision",
+      `compile-collision-${Math.random().toString(36).slice(2)}`,
       "--prompt-file",
       promptPath,
     ]);

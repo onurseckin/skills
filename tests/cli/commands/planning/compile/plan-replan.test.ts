@@ -1,15 +1,32 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
-import { cleanupRoots } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  cleanupRoots,
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../fixtures/full-lifecycle-fixture.ts";
 import {
   setupCompiledRun,
   setupCompiledRunUncompiled,
   markCoreImplemented,
 } from "../../fixtures/task-ops-fixture.ts";
+import {
+  disableInMemoryAgentMetadata,
+  enableInMemoryAgentMetadata,
+} from "../../../../../olt/scripts/src/runtime/session.ts";
 
 const roots: string[] = [];
-afterEach(async () => cleanupRoots(roots));
+beforeEach(() => {
+  setupVirtualCliFS();
+  enableInMemoryAgentMetadata();
+});
+afterEach(async () => {
+  disableInMemoryAgentMetadata();
+  await cleanupRoots(roots);
+  cleanupVirtualCliFS();
+  roots.length = 0;
+});
 
 describe("plan:replan", () => {
   test("raises the graph revision, generates a repair task inheriting its parent's gate, and stamps repair_round", async () => {
