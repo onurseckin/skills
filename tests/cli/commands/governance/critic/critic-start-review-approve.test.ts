@@ -25,6 +25,7 @@ afterEach(async () => {
   disableInMemoryAgentMetadata();
   await cleanupRoots(roots);
   cleanupVirtualCliFS();
+  roots.length = 0;
 });
 
 describe("CLI critic-ops commands - Approve and Review Flows", () => {
