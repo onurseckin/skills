@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { execute } from "../../../../../../olt/scripts/src/cli/execute.ts";
 import {
@@ -30,7 +30,7 @@ describe("Mailbox IPC CLI Commands - Registry, Send and Receive", () => {
     setupVirtualCliFS();
     testRoot = join(
       process.cwd(),
-      "coverage",
+      "scratch",
       "test-isolation",
       `msg-cmd-disp-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     );
@@ -38,6 +38,11 @@ describe("Mailbox IPC CLI Commands - Registry, Send and Receive", () => {
   });
 
   afterEach(() => {
+    if (existsSync(testRoot)) {
+      try {
+        rmSync(testRoot, { recursive: true, force: true });
+      } catch {}
+    }
     cleanupVirtualCliFS();
   });
 

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import {
   msgRecvCommand,
@@ -26,7 +26,7 @@ describe("Mailbox CLI Operations - Core Send/Recv Workflows", () => {
     setupVirtualCliFS();
     testRoot = join(
       process.cwd(),
-      "coverage",
+      "scratch",
       "test-isolation",
       `msg-ops-c-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     );
@@ -34,6 +34,11 @@ describe("Mailbox CLI Operations - Core Send/Recv Workflows", () => {
   });
 
   afterEach(() => {
+    if (existsSync(testRoot)) {
+      try {
+        rmSync(testRoot, { recursive: true, force: true });
+      } catch {}
+    }
     cleanupVirtualCliFS();
   });
 
