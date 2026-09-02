@@ -62,7 +62,6 @@ describe("formatMindAdmitBrief & formatMindCandidateBrief", () => {
         { gateId: "G2", gateNumber: 2, name: "Falsifiability", passed: true },
       ],
     });
-
     expect(md).toContain("Candidate Admitted: `cand-1`");
     expect(md).toContain("Gate 1 (Charter Alignment): PASSED");
     expect(md).toContain("- **Falsifier Exit**: 1");
@@ -106,7 +105,6 @@ describe("formatMindAdmitBrief & formatMindCandidateBrief", () => {
 describe("mindCandidateCommand", () => {
   test("throws HarnessError on unregistered agent", async () => {
     const { run } = await setupCompiledRun("mind-cand-unreg", roots);
-
     expect(() =>
       mindCandidateCommand({
         run,
@@ -122,7 +120,6 @@ describe("mindCandidateCommand", () => {
   test("throws HarnessError on invalid candidate kind", async () => {
     const { run } = await setupCompiledRun("mind-cand-invalid-kind", roots);
     grantRole(run, "mind-actor", "mind");
-
     expect(() =>
       mindCandidateCommand({
         run,
@@ -138,15 +135,9 @@ describe("mindCandidateCommand", () => {
   test("throws HarnessError on unpinned charter goal", async () => {
     const { run } = await setupCompiledRun("mind-cand-unpinned-goal", roots);
     grantRole(run, "mind-actor", "mind");
-
     transact(run, "mind-actor", "setup-charter", {}, (draft) => {
-      draft.mind = {
-        charter: {
-          goals: ["G1", "G2"],
-        },
-      };
+      draft.mind = { charter: { goals: ["G1", "G2"] } };
     });
-
     expect(() =>
       mindCandidateCommand({
         run,
@@ -254,14 +245,8 @@ describe("mindCandidateCommand", () => {
     grantRole(run, "mind-actor", "mind");
 
     transact(run, "mind-actor", "setup-charter", {}, (draft) => {
-      draft.mind = {
-        charter: {
-          goals: ["G1"],
-        },
-      };
-      draft.budget = {
-        max_open_proposals: 2,
-      };
+      draft.mind = { charter: { goals: ["G1"] } };
+      draft.budget = { max_open_proposals: 2 };
     });
 
     expect(() =>
@@ -284,8 +269,6 @@ describe("mindCandidateCommand", () => {
       "charter-goal": ["G1"],
       "write-scope": ["src/"],
     });
-    expect(p1.candidate_id).toBe("cand-1");
-
     const p2 = mindCandidateCommand({
       run,
       actor: "mind-actor",
@@ -294,6 +277,7 @@ describe("mindCandidateCommand", () => {
       "charter-goal": ["G1"],
       "write-scope": ["src/"],
     });
+    expect(p1.candidate_id).toBe("cand-1");
     expect(p2.candidate_id).toBe("cand-2");
 
     expect(() =>

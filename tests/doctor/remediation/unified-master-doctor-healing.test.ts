@@ -137,6 +137,9 @@ function setupVirtualFs(): void {
     spyOn(fs, "unlinkSync").mockImplementation((p) => {
       vfs.delete(String(p));
     }),
+    spyOn(fs, "rmSync").mockImplementation((p) => {
+      vfs.delete(String(p));
+    }),
     spyOn(fs, "writeFileSync").mockImplementation((p, d) => setF(p, d, false)),
     spyOn(fs, "appendFileSync").mockImplementation((p, d) => setF(p, d, true)),
     spyOn(fs, "openSync").mockImplementation((p) => {
