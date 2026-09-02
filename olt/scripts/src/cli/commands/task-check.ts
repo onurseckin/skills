@@ -552,6 +552,8 @@ export function performIncrementalTypecheck(filePaths: readonly string[]): TypeC
     const fallbackProgram = ts.createProgram(fallbackFiles, {
       noEmit: true,
       strict: true,
+      skipLibCheck: true,
+      skipDefaultLibCheck: true,
       target: ts.ScriptTarget.ES2024,
       moduleResolution: ts.ModuleResolutionKind.Bundler,
     });
