@@ -89,7 +89,9 @@ export function canonicalJsonStringify(val: unknown): string {
   }
 
   const obj = val as Record<string, unknown>;
-  const keys = Object.keys(obj).sort();
+  const keys = Object.keys(obj)
+    .filter((k) => obj[k] !== undefined)
+    .sort();
   const pairs = keys.map((k) => `${JSON.stringify(k)}:${canonicalJsonStringify(obj[k])}`);
   return `{${pairs.join(",")}}`;
 }
@@ -460,11 +462,7 @@ export class SuspendedAnimationEngine {
       restoredTaskCount: restoredTasks,
       restoredTimerCount: snapshot.frozenTimers.length,
       socraticMemoryRestored: Boolean(snapshot.socraticMemory),
-      verification: {
-        checksumValid,
-        dagAcyclic,
-        zeroContextLoss: true,
-      },
+      verification: { checksumValid, dagAcyclic, zeroContextLoss: true },
       contextState: snapshot.contextState,
       message: `State restored cleanly for snapshot '${snapshot.snapshotId}' with zero context loss.`,
     };
@@ -478,6 +476,5 @@ export class SuspendedAnimationEngine {
   }
 }
 
-export function createSuspendedAnimationEngine(): SuspendedAnimationEngine {
-  return new SuspendedAnimationEngine();
-}
+export const createSuspendedAnimationEngine = (): SuspendedAnimationEngine =>
+  new SuspendedAnimationEngine();

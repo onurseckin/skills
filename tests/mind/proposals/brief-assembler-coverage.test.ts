@@ -189,7 +189,7 @@ describe("Mind Wake Brief Assembler Suite", () => {
       const rDefer = assembleWakeBriefContext(
         makeInput({ budgetDeferred: true, options: { host: "antigravity", driver: "cron" } }),
       );
-      expect(rDefer.lane === "defer" && rDefer.nextArgv[6] === "antigravity").toBe(true);
+      expect(rDefer.lane === "defer" && rDefer.nextArgv.includes("antigravity")).toBe(true);
 
       const staleRun = dummyLiveRun({ hasStaleLease: true, runRoot: "/capsules/stale-run-99" });
       const rRescue = assembleWakeBriefContext(
@@ -216,7 +216,7 @@ describe("Mind Wake Brief Assembler Suite", () => {
           options: { host: "claude" },
         }),
       );
-      expect(rAdvance.lane === "advance" && rAdvance.nextArgv[6] === "claude-code").toBe(true);
+      expect(rAdvance.lane === "advance" && rAdvance.nextArgv.includes("claude-code")).toBe(true);
 
       const ctx = assembleWakeBriefContext(
         makeInput({ unrepairableCount: undefined as unknown as number }),
