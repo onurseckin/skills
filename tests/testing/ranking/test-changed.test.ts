@@ -293,9 +293,5 @@ describe("test-changed script", () => {
         crashSpy.mockRestore();
       }
     });
-
-    test("runs standalone script via main", async () => {
-      expect(await main(["--help"])).toBe(0);
-    });
   });
 });

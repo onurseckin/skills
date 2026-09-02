@@ -82,6 +82,22 @@ export function getClientScript(payloadJson: string): string {
       if (valDeficits) valDeficits.textContent = clusterCount;
       if (subDeficits) subDeficits.textContent = missedLines + " uncovered lines";
       if (gaugeDeficits) gaugeDeficits.innerHTML = createGaugeSvg(Math.max(0, 100 - (missedLines / (t.lines.total || 1)) * 100), "var(--status-fail)");
+
+      if (typeof initDeficitMetrics === "function") {
+        initDeficitMetrics();
+      }
+    }
+
+    function setDensity(mode) {
+      if (mode === "compact") {
+        document.body.classList.add("density-compact");
+        document.getElementById("btn-density-compact")?.classList.add("active");
+        document.getElementById("btn-density-comfortable")?.classList.remove("active");
+      } else {
+        document.body.classList.remove("density-compact");
+        document.getElementById("btn-density-comfortable")?.classList.add("active");
+        document.getElementById("btn-density-compact")?.classList.remove("active");
+      }
     }
 
     function setViewMode(mode) {
@@ -97,6 +113,22 @@ export function getClientScript(payloadJson: string): string {
 
     function setMasterFilter(f) {
       masterFilter = f;
+      if (f === "perfect") {
+        sortCol = "lines";
+        sortAsc = false;
+      } else if (f === "miss") {
+        sortCol = "lines";
+        sortAsc = true;
+      } else if (f === "deficits") {
+        sortCol = "deficits";
+        sortAsc = false;
+      } else if (f === "slow") {
+        sortCol = "duration";
+        sortAsc = false;
+      } else if (f === "all") {
+        sortCol = "path";
+        sortAsc = true;
+      }
       document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
       const btn = document.getElementById("filter-" + f);
       if (btn) btn.classList.add("active");
@@ -104,8 +136,35 @@ export function getClientScript(payloadJson: string): string {
       renderMasterTable();
     }
 
+    function resetMasterFilters() {
+      masterFilter = "all";
+      masterSearch = "";
+      viewMode = "tree";
+      sortCol = "path";
+      sortAsc = true;
+      expandedFolders = new Set(["", "root", "scripts", "olt", "olt/scripts", "olt/scripts/src"]);
+
+      const searchInput = document.getElementById("master-search-box");
+      if (searchInput) searchInput.value = "";
+
+      document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+      const filterAllBtn = document.getElementById("filter-all");
+      if (filterAllBtn) filterAllBtn.classList.add("active");
+
+      document.querySelectorAll(".view-mode-btn").forEach(b => b.classList.remove("active"));
+      const treeBtn = document.getElementById("btn-view-tree");
+      if (treeBtn) treeBtn.classList.add("active");
+
+      const treeBar = document.getElementById("tree-actions-bar");
+      if (treeBar) treeBar.style.display = "flex";
+
+      updateUrlHash();
+      renderMasterTable();
+    }
+
     function onMasterSearch(val) {
       masterSearch = (val || "").trim().toLowerCase();
+      updateUrlHash();
       renderMasterTable();
     }
 

@@ -10,6 +10,7 @@ export {
 } from "./metrics/index.ts";
 
 import type { MetricItem, FileCoverageMetric } from "./metrics/index.ts";
+import type { DeficitCategory, DeficitCluster } from "./deficits/index.ts";
 
 export interface CoverageSummaryItem {
   readonly lines: MetricItem;
@@ -74,6 +75,11 @@ export interface FileDetailData {
   readonly testPassed?: boolean | undefined;
   readonly testCount?: number | undefined;
   readonly paretoClass?: "p50" | "p90" | "normal" | undefined;
+  readonly deficitClusters?: readonly DeficitCluster[] | undefined;
+  readonly deficitCategories?: readonly DeficitCategory[] | undefined;
+  readonly maxFileGainPct?: number | undefined;
+  readonly maxRepoGainPct?: number | undefined;
+  readonly deficitCount?: number | undefined;
 }
 
 export interface UnifiedHierarchyNode {
@@ -89,6 +95,11 @@ export interface UnifiedHierarchyNode {
   readonly testCount?: number | undefined;
   readonly testFile?: string | undefined;
   readonly paretoClass?: "p50" | "p90" | "normal" | undefined;
+  readonly deficitCount?: number | undefined;
+  readonly deficitClusters?: readonly DeficitCluster[] | undefined;
+  readonly deficitCategories?: readonly DeficitCategory[] | undefined;
+  readonly maxFileGainPct?: number | undefined;
+  readonly maxRepoGainPct?: number | undefined;
   readonly children?: readonly UnifiedHierarchyNode[] | undefined;
 }
 

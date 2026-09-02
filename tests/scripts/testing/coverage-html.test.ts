@@ -53,7 +53,7 @@ describe("Coverage HTML Dashboard and Artifact Pipeline (in-memory virtual)", ()
     test("getClientScript generates functional client JS", () => {
       const script = getClientScript('{"total":{"lines":{"pct":100}},"files":[]}');
       expect(script).toContain("const DATA = ");
-      expect(script).toContain("function renderBreadcrumbs()");
+      expect(script).toContain("function renderCodeViewer(");
       expect(script).toContain("function jumpToLine(");
     });
 

@@ -76,7 +76,8 @@ export function getDeficitStyles(): string {
       color: var(--text-dim);
       padding: 0.2rem 0.45rem;
       background: rgba(255, 255, 255, 0.04);
-      border-radius: 0.375rem;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
       display: inline-block;
       min-width: 32px;
       text-align: center;
@@ -110,20 +111,20 @@ export function getDeficitStyles(): string {
       font-size: 0.78rem;
       font-weight: 700;
       padding: 0.2rem 0.5rem;
-      border-radius: 0.375rem;
+      border-radius: 4px;
       display: inline-block;
       white-space: nowrap;
     }
     .gain-badge-file {
       background: rgba(16, 185, 129, 0.15);
-      color: #6ee7b7;
+      color: #10b981;
       border: 1px solid rgba(16, 185, 129, 0.35);
       box-shadow: 0 0 8px rgba(16, 185, 129, 0.15);
       font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
       font-size: 0.78rem;
       font-weight: 700;
       padding: 0.2rem 0.5rem;
-      border-radius: 0.375rem;
+      border-radius: 4px;
       display: inline-block;
       white-space: nowrap;
     }
@@ -131,27 +132,31 @@ export function getDeficitStyles(): string {
     /* Category Badges */
     .badge-cat-error-handling {
       background: rgba(239, 68, 68, 0.18);
-      color: #fca5a5;
+      color: #f87171;
       border: 1px solid rgba(239, 68, 68, 0.4);
       box-shadow: 0 0 8px rgba(239, 68, 68, 0.2);
+      border-radius: 4px;
     }
     .badge-cat-branching {
       background: rgba(245, 158, 11, 0.18);
-      color: #fde047;
+      color: #fbbf24;
       border: 1px solid rgba(245, 158, 11, 0.4);
       box-shadow: 0 0 8px rgba(245, 158, 11, 0.2);
+      border-radius: 4px;
     }
     .badge-cat-initialization {
       background: rgba(6, 182, 212, 0.18);
-      color: #67e8f9;
+      color: #22d3ee;
       border: 1px solid rgba(6, 182, 212, 0.4);
       box-shadow: 0 0 8px rgba(6, 182, 212, 0.2);
+      border-radius: 4px;
     }
     .badge-cat-unexercised-logic {
       background: rgba(168, 85, 247, 0.18);
-      color: #d8b4fe;
+      color: #c084fc;
       border: 1px solid rgba(168, 85, 247, 0.4);
       box-shadow: 0 0 8px rgba(168, 85, 247, 0.2);
+      border-radius: 4px;
     }
 
     /* Detail / snippet display */

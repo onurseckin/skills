@@ -1,13 +1,17 @@
 import { existsSync, readFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
-import type {
-  FileCoverageMetric,
-  FileDetailData,
-  SourceLineDetail,
-  TestRuntimeSummary,
-  UnifiedHierarchyNode,
+import { calculateImpactPct, generateDeficitRoadmap } from "../deficits/index.ts";
+import {
+  createMetricItem,
+  type DeficitCategory,
+  type DeficitCluster,
+  type DeficitRoadmap,
+  type FileCoverageMetric,
+  type FileDetailData,
+  type SourceLineDetail,
+  type TestRuntimeSummary,
+  type UnifiedHierarchyNode,
 } from "../types.ts";
-import { createMetricItem } from "../types.ts";
 
 const SOURCE_PREFIXES = ["scripts/", "src/", "lib/"] as const;
 const TEST_PREFIXES = ["tests/", "test/", "__tests__/"] as const;
@@ -47,19 +51,12 @@ function matchPaths(
     const normCand = normalize(rawCand);
     const candStem = getStem(normCand);
     const strippedCand = stripPrefix(normCand, candPfx).replace(EXT_REGEX, "");
-
-    if (strippedTarget === strippedCand && strippedTarget.length > 0) {
-      return rawCand;
-    }
+    if (strippedTarget === strippedCand && strippedTarget.length > 0) return rawCand;
 
     let score = 0;
-    if (targetStem === candStem && targetStem.length > 0) {
-      score = 3;
-    } else if (candStem.includes(targetStem) && targetStem.length > 2) {
-      score = 2;
-    } else if (targetStem.includes(candStem) && candStem.length > 2) {
-      score = 1;
-    }
+    if (targetStem === candStem && targetStem.length > 0) score = 3;
+    else if (candStem.includes(targetStem) && targetStem.length > 2) score = 2;
+    else if (targetStem.includes(candStem) && candStem.length > 2) score = 1;
 
     if (score > bestScore) {
       bestScore = score;
@@ -105,12 +102,14 @@ export function extractCoverageFileData(
   fileMap: Map<string, FileCoverageMetric>,
   repoRoot: string,
   runtime?: TestRuntimeSummary,
+  deficits?: DeficitRoadmap,
 ): FileDetailData[] {
   const root = resolve(repoRoot);
   const filesArray: FileDetailData[] = [];
   const testFiles = runtime?.files?.map((f) => f.file) ?? [];
   const p50Set = new Set(runtime?.pareto50?.files?.map((f) => f.file) ?? []);
   const p90Set = new Set(runtime?.pareto90?.files?.map((f) => f.file) ?? []);
+  const defRoadmap = deficits ?? generateDeficitRoadmap(fileMap, { rootDir: root });
 
   for (const [relPath, metric] of fileMap.entries()) {
     const fullPath = join(root, relPath);
@@ -136,6 +135,14 @@ export function extractCoverageFileData(
       }
     }
 
+    const fileClusters = defRoadmap.clusters.filter((c) => c.file === relPath);
+    const deficitCategories = Array.from(new Set(fileClusters.map((c) => c.category)));
+    const maxRepoGainPct = calculateImpactPct(
+      metric.uncoveredLines.length,
+      defRoadmap.totalRepoLines,
+    );
+    const maxFileGainPct = calculateImpactPct(metric.uncoveredLines.length, metric.lines.total);
+
     filesArray.push({
       path: relPath,
       linesPct: metric.lines.pct,
@@ -154,6 +161,11 @@ export function extractCoverageFileData(
       testPassed,
       testCount,
       paretoClass,
+      deficitClusters: fileClusters,
+      deficitCategories,
+      maxRepoGainPct,
+      maxFileGainPct,
+      deficitCount: fileClusters.length,
     });
   }
 
@@ -215,6 +227,11 @@ export function buildUnifiedHierarchy(
         testCount: f.testCount,
         testFile: f.testFile,
         paretoClass: f.paretoClass,
+        deficitCount: f.deficitCount ?? f.deficitClusters?.length ?? 0,
+        deficitClusters: f.deficitClusters,
+        deficitCategories: f.deficitCategories,
+        maxRepoGainPct: f.maxRepoGainPct,
+        maxFileGainPct: f.maxFileGainPct,
       }));
 
     const children: UnifiedHierarchyNode[] = [...childDirs, ...childFiles];
@@ -226,6 +243,9 @@ export function buildUnifiedHierarchy(
       fTot = 0;
     let dur: number | undefined, count: number | undefined, passed: boolean | undefined;
     let pClass: "p50" | "p90" | "normal" | undefined;
+    let defCount = 0,
+      maxRepoGain = 0;
+    const catSet = new Set<DeficitCategory>();
 
     for (const c of children) {
       lCov += c.lines.covered;
@@ -241,7 +261,14 @@ export function buildUnifiedHierarchy(
       if (c.paretoClass === "p50") pClass = "p50";
       else if (c.paretoClass === "p90" && pClass !== "p50") pClass = "p90";
       else if (c.paretoClass === "normal" && !pClass) pClass = "normal";
+      if (c.deficitCount) defCount += c.deficitCount;
+      if (c.maxRepoGainPct) maxRepoGain += c.maxRepoGainPct;
+      if (c.deficitCategories) {
+        for (const cat of c.deficitCategories) catSet.add(cat);
+      }
     }
+
+    const maxFileGain = calculateImpactPct(lTot - lCov, lTot);
 
     return {
       name: node.name,
@@ -255,6 +282,10 @@ export function buildUnifiedHierarchy(
       testPassed: passed,
       testCount: count,
       paretoClass: pClass,
+      deficitCount: defCount,
+      deficitCategories: Array.from(catSet),
+      maxRepoGainPct: Math.round(maxRepoGain * 100) / 100,
+      maxFileGainPct: maxFileGain,
       children,
     };
   }

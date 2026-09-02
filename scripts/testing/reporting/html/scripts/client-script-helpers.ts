@@ -140,6 +140,15 @@ export function getClientScriptHelpers(): string {
       }
     }
 
+    function updateHash(newHash) {
+      if (window.location.hash === newHash) return;
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState(null, "", newHash);
+      } else {
+        window.location.hash = newHash;
+      }
+    }
+
     function initDeepLinks() {
       function handleRoute() {
         const h = window.location.hash || "#tree";
@@ -154,7 +163,7 @@ export function getClientScriptHelpers(): string {
             closeFile();
           }
           const modePart = h.includes("?") ? h.slice(1, h.indexOf("?")) : h.slice(1);
-          if (modePart === "tree" || modePart === "flat") {
+          if (modePart === "tree" || modePart === "flat" || modePart === "deficits") {
             viewMode = modePart;
             document.querySelectorAll(".view-mode-btn").forEach(b => b.classList.remove("active"));
             const btn = document.getElementById("btn-view-" + viewMode);
@@ -163,11 +172,12 @@ export function getClientScriptHelpers(): string {
           if (h.includes("?")) {
             const queryStr = h.slice(h.indexOf("?") + 1);
             const params = new URLSearchParams(queryStr);
-            const f = params.get("filter");
+            const f = params.get("filter") || params.get("category");
             if (f) {
               masterFilter = f;
-              document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
-              const btn = document.getElementById("filter-" + f);
+              deficitCategoryFilter = f;
+              document.querySelectorAll(".filter-btn, .filter-def-btn").forEach(b => b.classList.remove("active"));
+              const btn = document.getElementById("filter-def-" + f) || document.getElementById("filter-" + f);
               if (btn) btn.classList.add("active");
             }
             const s = params.get("search");
@@ -179,6 +189,41 @@ export function getClientScriptHelpers(): string {
           }
           renderMasterTable();
         }
+      }
+
+      const searchEl = document.getElementById("search-box");
+      if (searchEl) {
+        searchEl.addEventListener("input", (e) => {
+          const searchQuery = e.target.value.trim();
+          updateHash(searchQuery ? "#coverage?search=" + encodeURIComponent(searchQuery) : "#coverage");
+        });
+      }
+
+      const rtSearchEl = document.getElementById("runtime-search-box");
+      if (rtSearchEl) {
+        rtSearchEl.addEventListener("input", (e) => {
+          const runtimeSearch = e.target.value.trim();
+          updateHash(runtimeSearch ? "#runtime?search=" + encodeURIComponent(runtimeSearch) : "#runtime");
+        });
+      }
+
+      const uniSearchEl = document.getElementById("unified-search-box");
+      if (uniSearchEl) {
+        uniSearchEl.addEventListener("input", (e) => {
+          const unifiedSearch = e.target.value.trim();
+          updateHash(unifiedSearch ? "#unified?search=" + encodeURIComponent(unifiedSearch) : "#unified");
+        });
+      }
+
+      const defSearchEl = document.getElementById("deficit-search-box");
+      if (defSearchEl) {
+        defSearchEl.addEventListener("input", (e) => {
+          const deficitSearch = e.target.value.trim();
+          const qs = [];
+          if (deficitCategoryFilter && deficitCategoryFilter !== "all") qs.push("category=" + encodeURIComponent(deficitCategoryFilter));
+          if (deficitSearch) qs.push("search=" + encodeURIComponent(deficitSearch));
+          updateHash(qs.length > 0 ? "#deficits?" + qs.join("&") : "#deficits");
+        });
       }
 
       window.addEventListener("hashchange", handleRoute);

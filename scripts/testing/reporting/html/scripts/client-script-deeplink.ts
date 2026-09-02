@@ -15,15 +15,9 @@ export interface HashRoute {
 }
 
 export function parseHash(hash: string): HashRoute {
-  if (!hash) {
-    return { tab: "coverage" };
-  }
-
-  let cleaned = hash.startsWith("#") ? hash.slice(1) : hash;
-  cleaned = cleaned.trim();
-  if (!cleaned) {
-    return { tab: "coverage" };
-  }
+  if (!hash) return { tab: "coverage" };
+  let cleaned = hash.startsWith("#") ? hash.slice(1).trim() : hash.trim();
+  if (!cleaned) return { tab: "coverage" };
 
   let rawPath = cleaned;
   let queryString = "";
@@ -42,44 +36,36 @@ export function parseHash(hash: string): HashRoute {
   const qCategory = queryParams.get("category") ?? queryParams.get("cat");
   const qLineStr = queryParams.get("line") ?? queryParams.get("l") ?? queryParams.get("L");
   let line = qLineStr ? parseInt(qLineStr, 10) : undefined;
-  if (line !== undefined && (isNaN(line) || line <= 0)) {
-    line = undefined;
-  }
+  if (line !== undefined && (isNaN(line) || line <= 0)) line = undefined;
 
   const lineMatch = /[:#]L?(\d+)$/i.exec(rawPath);
   if (lineMatch && lineMatch[1]) {
     const matchedLine = parseInt(lineMatch[1], 10);
-    if (!isNaN(matchedLine) && matchedLine > 0) {
-      line = matchedLine;
-    }
+    if (!isNaN(matchedLine) && matchedLine > 0) line = matchedLine;
     rawPath = rawPath.slice(0, lineMatch.index);
   }
 
   let tab: "coverage" | "runtime" | "unified" | "deficits" = "coverage";
   let path: string | undefined = qPath ?? undefined;
   let file: string | undefined = qFile ?? undefined;
-  let category: string | undefined = qCategory ?? undefined;
+  const category: string | undefined = qCategory ?? undefined;
 
   if (rawPath === "deficits" || rawPath.startsWith("deficits/")) {
     tab = "deficits";
-    if (rawPath.startsWith("deficits/")) {
+    if (rawPath.startsWith("deficits/"))
       file = file ?? decodeURIComponent(rawPath.slice("deficits/".length));
-    }
   } else if (rawPath === "runtime" || rawPath.startsWith("runtime/")) {
     tab = "runtime";
-    if (rawPath.startsWith("runtime/")) {
+    if (rawPath.startsWith("runtime/"))
       file = file ?? decodeURIComponent(rawPath.slice("runtime/".length));
-    }
   } else if (rawPath === "unified" || rawPath.startsWith("unified/")) {
     tab = "unified";
-    if (rawPath.startsWith("unified/")) {
+    if (rawPath.startsWith("unified/"))
       path = path ?? decodeURIComponent(rawPath.slice("unified/".length));
-    }
   } else if (rawPath === "coverage" || rawPath.startsWith("coverage/")) {
     tab = "coverage";
-    if (rawPath.startsWith("coverage/")) {
+    if (rawPath.startsWith("coverage/"))
       path = path ?? decodeURIComponent(rawPath.slice("coverage/".length));
-    }
   } else if (rawPath.length > 0) {
     tab = "coverage";
     path = path ?? decodeURIComponent(rawPath);
@@ -96,7 +82,7 @@ export function parseHash(hash: string): HashRoute {
     search: qSearch || undefined,
     file: file || undefined,
     filter: qFilter || undefined,
-    category: category || undefined,
+    category,
   };
 }
 
@@ -111,20 +97,16 @@ export function formatHash(route: HashRoute): string {
     const qs = params.toString() ? `?${params.toString()}` : "";
     return `#deficits${qs}`;
   }
-
   if (route.tab === "runtime") {
     if (route.file) params.set("file", route.file);
     const qs = params.toString() ? `?${params.toString()}` : "";
     return `#runtime${qs}`;
   }
-
   if (route.tab === "unified") {
     const pathPart = route.path ? `/${route.path}` : "";
     const qs = params.toString() ? `?${params.toString()}` : "";
     return `#unified${pathPart}${qs}`;
   }
-
-  // coverage
   const pathPart = route.path ? `/${route.path}` : "";
   const linePart = route.line ? `:L${route.line}` : "";
   const qs = params.toString() ? `?${params.toString()}` : "";
@@ -135,8 +117,7 @@ export function getClientScriptDeeplink(): string {
   return `
     function parseHash(hash) {
       if (!hash) return { tab: "coverage" };
-      let cleaned = hash.startsWith("#") ? hash.slice(1) : hash;
-      cleaned = cleaned.trim();
+      let cleaned = hash.startsWith("#") ? hash.slice(1).trim() : hash.trim();
       if (!cleaned) return { tab: "coverage" };
 
       let rawPath = cleaned;
@@ -188,7 +169,6 @@ export function getClientScriptDeeplink(): string {
       }
 
       if (qTab === "runtime" || qTab === "unified" || qTab === "coverage" || qTab === "deficits") tab = qTab;
-
       return { tab, path, line, search: qSearch || undefined, file, filter: qFilter || undefined, category };
     }
 
@@ -211,11 +191,8 @@ export function getClientScriptDeeplink(): string {
           const defInput = document.getElementById("deficit-search-box");
           if (defInput) defInput.value = route.search;
         }
-        if (route.file && route.line) {
-          openDeficitCluster(route.file, route.line);
-        } else {
-          renderDeficitView();
-        }
+        if (route.file && route.line) openDeficitCluster(route.file, route.line);
+        else renderDeficitView();
       } else if (route.tab === "runtime") {
         if (activeTab !== "runtime") switchTab("runtime");
         if (route.search !== undefined) {
@@ -223,11 +200,8 @@ export function getClientScriptDeeplink(): string {
           const rtInput = document.getElementById("runtime-search-box");
           if (rtInput) rtInput.value = route.search;
         }
-        if (route.file) {
-          focusRuntimeFile(route.file);
-        } else {
-          renderRuntimeView();
-        }
+        if (route.file) focusRuntimeFile(route.file);
+        else renderRuntimeView();
       } else if (route.tab === "unified") {
         if (activeTab !== "unified") switchTab("unified");
         if (route.filter) setUnifiedFilter(route.filter);
@@ -239,10 +213,7 @@ export function getClientScriptDeeplink(): string {
         if (route.path) {
           const segs = route.path.split("/").filter(Boolean);
           let acc = "";
-          segs.forEach(s => {
-            acc += (acc ? "/" : "") + s;
-            expandedFolders.add(acc);
-          });
+          segs.forEach(s => { acc += (acc ? "/" : "") + s; expandedFolders.add(acc); });
         }
         renderUnifiedView();
       } else {
@@ -263,18 +234,11 @@ export function getClientScriptDeeplink(): string {
           if (f) {
             currentFile = f;
             render();
-            if (route.line) {
-              setTimeout(() => jumpToLine(route.line), 50);
-            }
+            if (route.line) setTimeout(() => jumpToLine(route.line), 50);
           } else {
             const isFolder = DATA.files.some(item => item.path.startsWith(route.path + "/"));
-            if (isFolder) {
-              currentPath = route.path;
-              currentFile = null;
-              render();
-            } else {
-              render();
-            }
+            if (isFolder) { currentPath = route.path; currentFile = null; }
+            render();
           }
         } else {
           currentFile = null;

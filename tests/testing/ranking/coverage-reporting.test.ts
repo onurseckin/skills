@@ -156,8 +156,21 @@ describe("Coverage Reporting Modules", () => {
 
   describe("html-reporter", () => {
     test("generates styles, scripts, html document, and interactive dashboard", () => {
-      expect(getHtmlStyles()).toContain(":root");
+      const styles = getHtmlStyles();
+      expect(styles).toContain(":root");
+      expect(styles).toContain(".cov-bar-track");
+      expect(styles).toContain(".badge {");
+      expect(styles).toContain("border-radius: 4px;");
+      expect(styles).toContain(".badge-pass");
+      expect(styles).toContain(".badge-warn");
+      expect(styles).toContain(".badge-fail");
+      expect(styles).toContain(".badge-p50");
+      expect(styles).toContain(".badge-p90");
+      expect(styles).toContain(".badge-pnormal");
+      expect(styles).toContain(".badge-cat-error-handling");
+      expect(styles).toContain(".miss-chip");
       expect(getClientScript("{}")).toContain("const DATA = {}");
+      expect(getClientScript("{}")).toContain("renderCoverageBar");
       expect(buildHtmlDocument("/* css */", "/* js */")).toContain("<!DOCTYPE html>");
 
       const dummyFile = join(TEST_SCRATCH_DIR, "src/sample.ts");
@@ -175,9 +188,37 @@ describe("Coverage Reporting Modules", () => {
       const summary = buildCoverageSummary(fileMap);
       const html = generateInteractiveHtml(fileMap, summary, TEST_SCRATCH_DIR);
       expect(html).toContain("<!DOCTYPE html>");
+      expect(html).toContain("btn-reset-filters");
+      expect(html).toContain("resetMasterFilters()");
+      expect(html).toContain("filter-perfect");
+      expect(html).toContain("filter-miss");
+      expect(html).toContain("filter-deficits");
+      expect(html).toContain("filter-slow");
+      expect(html).toContain("renderRankedTreeNodes");
+      expect(html).toContain("collectMatchingNodes");
 
       const htmlPath = writeInteractiveHtml(fileMap, summary, TEST_SCRATCH_DIR, "cov-html");
       expect(existsSync(htmlPath)).toBe(true);
+    });
+
+    test("filter bar navbar styling contains overflow and styles reset button", () => {
+      const styles = getHtmlStyles();
+      expect(styles).toContain(".controls-bar");
+      expect(styles).toContain("flex-wrap: wrap;");
+      expect(styles).toContain("overflow: hidden;");
+      expect(styles).toContain(".reset-btn");
+      expect(styles).toContain(".filters-group");
+    });
+
+    test("client scripts support filter metric ranking and single-click reset", () => {
+      const script = getClientScript("{}");
+      expect(script).toContain("function setMasterFilter(f)");
+      expect(script).toContain("function resetMasterFilters()");
+      expect(script).toContain('masterFilter = "all"');
+      expect(script).toContain('masterSearch = ""');
+      expect(script).toContain('viewMode = "tree"');
+      expect(script).toContain("renderRankedTreeNodes()");
+      expect(script).toContain("sortUnifiedItems(");
     });
   });
 });

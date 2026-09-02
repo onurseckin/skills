@@ -92,11 +92,68 @@ export function getUnifiedStyles(): string {
     body.density-compact .badge {
       font-size: 0.7rem;
       padding: 0.15rem 0.45rem;
+      border-radius: 4px;
     }
     body.density-compact .mini-progress {
       height: 4px;
       width: 70px;
     }
+
+    /* Coverage Progress Bars */
+    .cov-bar-cell {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.25rem;
+      min-width: 140px;
+    }
+    .cov-bar-counts {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
+      font-weight: 500;
+      line-height: 1.2;
+    }
+    .cov-bar-track {
+      position: relative;
+      width: 140px;
+      height: 20px;
+      background: #141414;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+    }
+    .cov-bar-fill {
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+    .cov-bar-fill-pass { background: linear-gradient(90deg, #059669, #10b981); }
+    .cov-bar-fill-warn { background: linear-gradient(90deg, #d97706, #f59e0b); }
+    .cov-bar-fill-fail { background: linear-gradient(90deg, #dc2626, #ef4444); }
+    .cov-bar-text {
+      position: relative;
+      z-index: 2;
+      font-size: 0.75rem;
+      font-weight: 700;
+      font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
+      color: #ffffff;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+      pointer-events: none;
+      letter-spacing: 0.02em;
+    }
+    body.density-compact .cov-bar-cell { min-width: 110px; gap: 0.15rem; }
+    body.density-compact .cov-bar-counts { font-size: 0.7rem; }
+    body.density-compact .cov-bar-track { width: 110px; height: 16px; }
+    body.density-compact .cov-bar-text { font-size: 0.68rem; }
 
     /* Tree Node Elements */
     .tree-cell-name {
@@ -142,6 +199,7 @@ export function getUnifiedStyles(): string {
       border: 1px solid rgba(245, 158, 11, 0.4);
       box-shadow: 0 0 8px rgba(245, 158, 11, 0.25);
       font-weight: 700;
+      border-radius: 4px;
     }
     .badge-p90 {
       background: rgba(99, 102, 241, 0.18);
@@ -149,11 +207,13 @@ export function getUnifiedStyles(): string {
       border: 1px solid rgba(99, 102, 241, 0.4);
       box-shadow: 0 0 8px rgba(99, 102, 241, 0.25);
       font-weight: 700;
+      border-radius: 4px;
     }
     .badge-pnormal {
-      background: rgba(100, 116, 139, 0.15);
-      color: #94a3b8;
-      border: 1px solid rgba(100, 116, 139, 0.25);
+      background: rgba(16, 185, 129, 0.15);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      border-radius: 4px;
     }
 
     .test-telemetry-cell {

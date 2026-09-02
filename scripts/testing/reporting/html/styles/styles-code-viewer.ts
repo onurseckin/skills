@@ -28,7 +28,7 @@ export function getCodeViewerStyles(): string {
       border: 1px solid rgba(239, 68, 68, 0.4);
       color: #f87171;
       padding: 0.2rem 0.5rem;
-      border-radius: 0.375rem;
+      border-radius: 4px;
       font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
       font-size: 0.75rem;
       font-weight: 600;

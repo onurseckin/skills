@@ -10,7 +10,7 @@ import type { CoverageSummary, FileCoverageMetric, TestRuntimeSummary } from "./
 
 export function formatRuntimeMarkdown(runtime: TestRuntimeSummary): string[] {
   const lines: string[] = [
-    "## Test Runtime Performance & Telemetry",
+    "## ⚡ Test Runtime Performance & Telemetry",
     "",
     "| Runtime Metric | Value | Detail |",
     "| :--- | :--- | :--- |",
@@ -29,10 +29,10 @@ export function formatRuntimeMarkdown(runtime: TestRuntimeSummary): string[] {
       : 0;
 
   lines.push(
-    `| **Top 50% Concentration** | **${runtime.pareto50.fileCount} files** (${p50Pct}%) | Account for 50% of total run time |`,
+    `| **🎯 Top 50% Concentration** | **${runtime.pareto50.fileCount} files** (${p50Pct}%) | Account for 50% of total run time |`,
   );
   lines.push(
-    `| **Top 90% Concentration** | **${runtime.pareto90.fileCount} files** (${p90Pct}%) | Account for 90% of total run time |`,
+    `| **📈 Top 90% Concentration** | **${runtime.pareto90.fileCount} files** (${p90Pct}%) | Account for 90% of total run time |`,
   );
 
   if (runtime.slowestFile) {
@@ -42,14 +42,14 @@ export function formatRuntimeMarkdown(runtime: TestRuntimeSummary): string[] {
   }
 
   lines.push("");
-  lines.push("### Top 10 Slowest Test Files");
+  lines.push("### 🐢 Top 10 Slowest Test Files");
   lines.push("");
   lines.push("| Rank | Test File | Duration (ms) | Time Share | Result |");
   lines.push("| :--- | :--- | :--- | :--- | :--- |");
 
   const top10 = runtime.files.slice(0, 10);
   top10.forEach((f, idx) => {
-    const statusBadge = f.passed === false ? "FAIL" : "PASS";
+    const statusBadge = f.passed === false ? "🔴 FAIL" : "🟢 PASS";
     lines.push(
       `| ${idx + 1} | \`${f.file}\` | **${f.durationMs}ms** | ${f.percentage}% | ${statusBadge} |`,
     );

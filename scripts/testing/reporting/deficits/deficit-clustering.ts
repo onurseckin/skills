@@ -193,7 +193,7 @@ export function generateDeficitRoadmap(
  * Formats a DeficitRoadmap into a clean, human-readable Markdown section.
  */
 export function formatDeficitRoadmapMarkdown(roadmap: DeficitRoadmap, topN: number = 10): string {
-  const lines: string[] = ["## Coverage Deficit & Remediation Roadmap", ""];
+  const lines: string[] = ["## 🎯 Coverage Deficit & Remediation Roadmap", ""];
 
   if (roadmap.clusters.length === 0) {
     lines.push("_No coverage deficits detected. Repository is 100% covered!_", "");
