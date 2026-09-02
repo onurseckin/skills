@@ -33,6 +33,6 @@ pre-push:
     typecheck:
       run: bun run typecheck
     modularity:
-      run: bun run modularity:check
+      run: bun run modularity:staged
     test:
       run: bun run test:coverage
