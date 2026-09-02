@@ -171,12 +171,13 @@ export async function setupReadyRun(name: string, roots: string[]): Promise<Read
   // Task-1 implemented content for readiness checks
   await writeFile(join(repo, "tests/t1/impl.ts"), "export const implemented = true;\n");
 
+  const uniqueRunName = `${name}-${Math.random().toString(36).slice(2)}`;
   const init = await execute([
     "plan:init",
     "--repo",
     repo,
     "--run",
-    name,
+    uniqueRunName,
     "--prompt-file",
     promptPath,
   ]);

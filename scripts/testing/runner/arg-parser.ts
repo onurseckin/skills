@@ -191,10 +191,6 @@ export function parseRunnerArgs(rawArgs: readonly string[] = []): ParsedRunnerAr
   if (!isCovSet && isBroadScope) {
     isCoverage = true;
   }
-  if (isBroadScope && !isParallelExplicit) {
-    parallel = false;
-  }
-
   const parsedPartial: Omit<ParsedRunnerArgs, "bunTestArgs"> = {
     rawArgs,
     targets,
@@ -232,7 +228,7 @@ export function buildBunTestArgs(parsed: ParsedRunnerArgs): string[] {
       parsed.parallelWorkers !== undefined ? `--parallel=${parsed.parallelWorkers}` : "--parallel",
     );
   } else {
-    args.push("--no-parallel");
+    args.push("--isolate");
   }
 
   if (parsed.maxConcurrency !== undefined) {
