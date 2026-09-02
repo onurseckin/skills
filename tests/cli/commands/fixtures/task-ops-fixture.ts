@@ -28,12 +28,13 @@ export async function setupCompiledRun(
     await writeFile(join(repo, "harness.config.json"), JSON.stringify(config));
   }
 
+  const uniqueRunName = `${name}-${Math.random().toString(36).slice(2)}`;
   const init = await execute([
     "plan:init",
     "--repo",
     repo,
     "--run",
-    name,
+    uniqueRunName,
     "--prompt-file",
     promptPath,
   ]);

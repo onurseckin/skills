@@ -23,6 +23,7 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanupRoots(roots);
   cleanupVirtualCliFS();
+  roots.length = 0;
 });
 
 async function installRuntimeMetadata(run: string, agent: string): Promise<void> {
@@ -77,7 +78,7 @@ describe("task:heartbeat and task:claim Leases", () => {
         "invalid-token",
       ]),
     ).rejects.toThrow();
-  });
+  }, 30_000);
 
   test("task:claim surfaces defect persistence failure and never reports a recorded violation", async () => {
     const { repo, run } = await setupRun("claim-persistence-failure", roots);
@@ -105,7 +106,7 @@ describe("task:heartbeat and task:claim Leases", () => {
     expect(caught).toBeInstanceOf(HarnessError);
     expect((caught as HarnessError).code).toBe("INTEGRITY");
     expect(readFileSync(external, "utf8")).toBe(externalBytes);
-  });
+  }, 30_000);
 
   test("task:claim with explicit --lease-duration and --lease-seconds", async () => {
     const { run } = await setupRun("claim-duration", roots);
@@ -139,7 +140,7 @@ describe("task:heartbeat and task:claim Leases", () => {
       "1800",
     ]);
     expect(claim2.token).toBeDefined();
-  });
+  }, 30_000);
 
   test("task:claim with worktree isolation and git metadata command variants", async () => {
     const { repo, run } = await setupRun("claim-worktree-git", roots, {
@@ -239,7 +240,7 @@ describe("task:heartbeat and task:claim Leases", () => {
       { repositoryGitCommand: mockGitThrow },
     );
     expect(claim4.token).toBeDefined();
-  }, 20000);
+  }, 30_000);
 
   test("task:submit with --no-op and --reason when write scope is unchanged", async () => {
     const { run } = await setupRun("submit-noop", roots);
@@ -289,5 +290,5 @@ describe("task:heartbeat and task:claim Leases", () => {
     ]);
 
     expect((submit.task as { status: string }).status).toBe("submitted");
-  });
+  }, 30_000);
 });

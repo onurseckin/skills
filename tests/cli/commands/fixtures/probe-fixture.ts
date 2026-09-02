@@ -67,12 +67,13 @@ export async function setupRun(
   await writeFile(join(repo, "olt", "policy.json"), policyContent);
   await writeFile(join(repo, ".olt", "policy.json"), policyContent);
 
+  const uniqueRunName = `${name}-${Math.random().toString(36).slice(2)}`;
   const init = await execute([
     "plan:init",
     "--repo",
     repo,
     "--run",
-    name,
+    uniqueRunName,
     "--prompt-file",
     promptPath,
   ]);
