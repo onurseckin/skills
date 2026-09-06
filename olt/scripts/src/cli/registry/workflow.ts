@@ -19,7 +19,14 @@ export const WORKFLOW_COMMANDS: readonly CommandSpec[] = [
     description:
       "Allocates a hermetic track worktree in .olt/worktrees/<track_id>, creates branch track/<track_id>, and acquires a POSIX lock.",
     flags: [
-      requiredFlag("track", "string", "Track identifier."),
+      optionalFlag("track", "string", "Track identifier."),
+      optionalFlag(
+        "tier",
+        "string",
+        "Worktree tier: track or orchestrator (default: track).",
+        "track",
+      ),
+      optionalFlag("orchestrator", "string", "Orchestrator domain."),
       optionalFlag("base-branch", "string", "Base branch to fork from (default: main).", "main"),
       optionalFlag("repo-root", "string", "Repository root path."),
     ],
@@ -84,7 +91,10 @@ export const WORKFLOW_COMMANDS: readonly CommandSpec[] = [
       "Removes specified worktree directory, deletes track branch, runs git worktree prune, and cleans lock file.",
     flags: [
       optionalFlag("track", "string", "Track identifier to clean."),
+      optionalFlag("tier", "string", "Worktree tier: track or orchestrator."),
+      optionalFlag("orchestrator", "string", "Orchestrator domain to clean."),
       optionalFlag("all", "bool", "Clean all active track worktrees."),
+      optionalFlag("force", "bool", "Force removal even if lock is active."),
       optionalFlag("no-force", "bool", "Do not force removal."),
       optionalFlag("repo-root", "string", "Repository root path."),
     ],

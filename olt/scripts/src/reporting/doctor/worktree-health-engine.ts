@@ -3,7 +3,11 @@ import { join, resolve } from "node:path";
 import { isProcessAlive } from "./lock-cleaner.ts";
 import type { DoctorDiagnosticFinding } from "./types.ts";
 import { safeRmSync } from "../../core/shared/safe-fs/index.ts";
-import { cleanupTrackWorktree, listTrackWorktrees } from "../../workflow/worktree/manager.ts";
+import {
+  cleanupTrackWorktree,
+  destroyOrchestratorWorktree,
+  listTrackWorktrees,
+} from "../../workflow/worktree/manager.ts";
 import { runGit, type GitRunner } from "../../workflow/worktree/git-ops.ts";
 import {
   findPrunableWorktrees,
@@ -94,10 +98,12 @@ export function checkWorktreeHealth(
         lockPid = lockData.pid;
         if (!isProcessAlive(lockPid)) {
           isDead = true;
+          const isOrch = wt.tier === "orchestrator" || wt.trackId.startsWith("orch-");
+          const entityLabel = isOrch ? "orchestrator" : "track";
           addFinding(
             "WORKTREE_DEAD_PID_LOCK",
             "ERROR",
-            `Dead agent PID ${lockPid} holding track worktree '${wt.trackId}'`,
+            `Dead agent PID ${lockPid} holding ${entityLabel} worktree '${wt.trackId}'`,
             { trackId: wt.trackId, lockPid, lockPath },
           );
         }
@@ -123,12 +129,21 @@ export function checkWorktreeHealth(
 
     if (autoHeal && (isDead || merged)) {
       try {
-        cleanupTrackWorktree({
-          trackId: wt.trackId,
-          repoRoot,
-          force: true,
-          runner,
-        });
+        if (wt.tier === "orchestrator" || wt.trackId.startsWith("orch-")) {
+          destroyOrchestratorWorktree({
+            domain: wt.domain ?? wt.trackId.replace(/^orch-/, ""),
+            repoRoot,
+            force: true,
+            runner,
+          });
+        } else {
+          cleanupTrackWorktree({
+            trackId: wt.trackId,
+            repoRoot,
+            force: true,
+            runner,
+          });
+        }
         repaired.push(`Cleaned up worktree '${wt.trackId}'`);
       } catch (err) {
         findings.push({
@@ -142,8 +157,13 @@ export function checkWorktreeHealth(
     }
   }
 
-  // Reconcile worktrees against task definitions & track reservations
-  reconcileUntrackedWorktrees(activeTrackWorktrees, rawTrackWorktrees, options, addFinding);
+  const trackOnlyActive = activeTrackWorktrees.filter(
+    (wt) => wt.tier !== "orchestrator" && !wt.trackId.startsWith("orch-"),
+  );
+  const trackOnlyRaw = rawTrackWorktrees.filter(
+    (wt) => wt.tier !== "orchestrator" && !wt.trackId.startsWith("orch-"),
+  );
+  reconcileUntrackedWorktrees(trackOnlyActive, trackOnlyRaw, options, addFinding);
 
   if (existsSync(locksDir)) {
     try {

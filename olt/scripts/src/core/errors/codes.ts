@@ -13,6 +13,7 @@ export const ERROR_CODES = [
   "ROLE_CONFINEMENT_VIOLATION",
   "UNSUPPORTED_HOST",
   "UNSUPPORTED_PLATFORM",
+  "WORKTREE_ACTIVE",
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];

@@ -1,23 +1,58 @@
-import { getHarnessConfig } from "../../core/config/index.ts";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { HarnessError } from "../../core/errors/index.ts";
-import { findRepoRoot } from "../../core/shared/paths.ts";
-import { loadRun } from "../../engine/store/index.ts";
 import {
   cleanupTrackWorktree,
+  createOrchestratorWorktree,
   createTrackWorktree,
+  destroyOrchestratorWorktree,
+  isProcessAlive,
   landTrackToMain,
   listTrackWorktrees,
-  readWorktreeLedger,
-  reclaimOrphanedWorktrees,
-  recordReclaim,
-} from "../../engine/worktree/index.ts";
+  resolveRepo,
+} from "../../workflow/worktree/index.ts";
 import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { boolFlag, textFlag, type Flags } from "../options.ts";
 
 export function worktreeCreateCommand(flags: Flags): Record<string, unknown> {
-  const trackId = textFlag(flags, "track", true)!;
+  const tier = textFlag(flags, "tier", false);
+  const orchestratorDomain = textFlag(flags, "orchestrator", false);
+  const trackId = textFlag(flags, "track", false);
   const baseBranch = textFlag(flags, "base-branch", false);
   const repoRoot = textFlag(flags, "repo-root", false);
+
+  if (tier === "orchestrator" || orchestratorDomain !== undefined) {
+    const domain = orchestratorDomain ?? trackId;
+    if (!domain) {
+      throw new HarnessError(
+        "INVALID_ARGUMENT",
+        "Missing required domain for orchestrator worktree (--orchestrator <domain> or --track <domain>)",
+      );
+    }
+    const record = createOrchestratorWorktree({ domain, baseBranch, repoRoot });
+    const lines = [
+      `### Orchestrator Worktree Created: \`${record.domain}\``,
+      `- **Worktree Path**: \`${record.worktreePath}\``,
+      `- **Branch**: \`${record.branch}\``,
+      `- **Base Branch**: \`${record.baseBranch}\``,
+      `- **Lock File**: \`${record.lockPath}\``,
+      `- **Created At**: ${record.createdAt}`,
+    ];
+    return {
+      markdown: enforceLineLimit(lines.join("\n")),
+      tier: "orchestrator",
+      domain: record.domain,
+      track_id: record.trackId,
+      worktree_path: record.worktreePath,
+      branch: record.branch,
+      base_branch: record.baseBranch,
+      lock_path: record.lockPath,
+    };
+  }
+
+  if (!trackId) {
+    throw new HarnessError("INVALID_ARGUMENT", "Missing required flag: --track");
+  }
 
   const record = createTrackWorktree({ trackId, baseBranch, repoRoot });
 
@@ -95,31 +130,102 @@ export function worktreeListCommand(flags: Flags): Record<string, unknown> {
 export function worktreeCleanCommand(flags: Flags): Record<string, unknown> {
   const all = boolFlag(flags, "all");
   const repoRoot = textFlag(flags, "repo-root", false);
-  const force = !boolFlag(flags, "no-force");
+  const force = boolFlag(flags, "force");
+  const orchestratorDomain = textFlag(flags, "orchestrator", false);
+  const tier = textFlag(flags, "tier", false);
 
   const cleanedRecords: { cleaned: boolean; trackId: string }[] = [];
+  const skippedRecords: { skipped: boolean; trackId: string; reason: string }[] = [];
+
+  const repo = resolveRepo(repoRoot);
+  const locksDir = join(repo, ".olt", "worktrees", "locks");
+
+  const getActiveHoldingPid = (trackId: string): number | null => {
+    const lockPath = join(locksDir, `${trackId}.lock`);
+    if (!existsSync(lockPath)) return null;
+    try {
+      const raw = readFileSync(lockPath, "utf-8");
+      const payload = JSON.parse(raw);
+      const pid = payload?.pid;
+      if (typeof pid === "number" && pid > 0 && isProcessAlive(pid) && pid !== process.pid) {
+        return pid;
+      }
+    } catch {}
+    return null;
+  };
 
   if (all) {
     const list = listTrackWorktrees({ repoRoot });
     for (const wt of list) {
-      const res = cleanupTrackWorktree({ trackId: wt.trackId, repoRoot, force });
-      cleanedRecords.push(res);
+      if (!force) {
+        const activePid = getActiveHoldingPid(wt.trackId);
+        if (activePid !== null) {
+          skippedRecords.push({
+            skipped: true,
+            trackId: wt.trackId,
+            reason: `Active process PID ${activePid} holds worktree lock`,
+          });
+          continue;
+        }
+      }
+      if (wt.tier === "orchestrator" || wt.trackId.startsWith("orch-")) {
+        const res = destroyOrchestratorWorktree({
+          domain: wt.domain ?? wt.trackId.replace(/^orch-/, ""),
+          repoRoot,
+          force,
+        });
+        cleanedRecords.push({ cleaned: res.cleaned, trackId: res.trackId });
+      } else {
+        const res = cleanupTrackWorktree({ trackId: wt.trackId, repoRoot, force });
+        cleanedRecords.push(res);
+      }
     }
+  } else if (tier === "orchestrator" || orchestratorDomain !== undefined) {
+    const rawDomain = orchestratorDomain ?? textFlag(flags, "track", true)!;
+    const domain = rawDomain.startsWith("orch-") ? rawDomain.slice(5) : rawDomain;
+    const trackId = `orch-${domain}`;
+    if (!force) {
+      const activePid = getActiveHoldingPid(trackId);
+      if (activePid !== null) {
+        throw new HarnessError(
+          "WORKTREE_ACTIVE",
+          `Cannot teardown worktree ${trackId}: held by active process PID ${activePid}`,
+        );
+      }
+    }
+    const res = destroyOrchestratorWorktree({ domain, repoRoot, force });
+    cleanedRecords.push({ cleaned: res.cleaned, trackId: res.trackId });
   } else {
     const trackId = textFlag(flags, "track", true)!;
+    if (!force) {
+      const activePid = getActiveHoldingPid(trackId);
+      if (activePid !== null) {
+        throw new HarnessError(
+          "WORKTREE_ACTIVE",
+          `Cannot teardown worktree ${trackId}: held by active process PID ${activePid}`,
+        );
+      }
+    }
     const res = cleanupTrackWorktree({ trackId, repoRoot, force });
     cleanedRecords.push(res);
   }
 
   const lines = [
-    `### Track Worktrees Cleaned (${cleanedRecords.length})`,
-    ...cleanedRecords.map((c) => `- Cleaned track \`${c.trackId}\``),
+    `### Worktrees Cleaned (${cleanedRecords.length})`,
+    ...cleanedRecords.map((c) => `- Cleaned \`${c.trackId}\``),
+    ...(skippedRecords.length > 0
+      ? [
+          `### Worktrees Skipped (${skippedRecords.length})`,
+          ...skippedRecords.map((s) => `- Skipped active \`${s.trackId}\` (${s.reason})`),
+        ]
+      : []),
   ];
 
   return {
     markdown: enforceLineLimit(lines.join("\n")),
     count: cleanedRecords.length,
     cleaned: cleanedRecords,
+    skipped: skippedRecords,
   };
 }
 
@@ -153,53 +259,4 @@ export function worktreeStatusCommand(flags: Flags): Record<string, unknown> {
   };
 }
 
-export function worktreeReclaimCommand(flags: Flags): Record<string, unknown> {
-  const run = textFlag(flags, "run")!;
-  const actor = textFlag(flags, "actor")!;
-  const repoRoot = findRepoRoot(run);
-  const config = getHarnessConfig(repoRoot, run);
-  const ledger = readWorktreeLedger(loadRun(run).state);
-  if (!ledger) {
-    throw new HarnessError(
-      "INVALID_STATE",
-      `${run} has no worktree ledger — worktree isolation was never provisioned for this run`,
-    );
-  }
-  if (!config.worktree_isolation) {
-    throw new HarnessError(
-      "INVALID_STATE",
-      "worktree_isolation is off in this run's current config; reclaim would remove worktrees a live run may still need — turn isolation back on, or remove them by hand",
-    );
-  }
-
-  const outcome = reclaimOrphanedWorktrees({ repoRoot, ledger });
-  const completionResult = loadRun(run).state.completion_result;
-  const sealed =
-    typeof completionResult === "object" &&
-    completionResult !== null &&
-    !Array.isArray(completionResult) &&
-    completionResult.status === "complete";
-  const recorded = outcome.reclaimed_worktree_ids.length > 0 && !sealed;
-  if (recorded) recordReclaim(run, actor, outcome);
-
-  const lines = [
-    `### Worktrees Reclaimed: \`${run}\``,
-    `- **Actor**: ${actor}`,
-    `- **Branch**: \`${ledger.harness_branch}\` — left intact; only the worktree directories were removed`,
-    `- **Zero-Destructive Git Invariant**: Active — uncommitted working tree diffs and user manual edits preserved`,
-    `- **Reclaimed**: ${outcome.reclaimed_worktree_ids.length}`,
-    ...outcome.reclaimed_worktree_ids.map((id) => `  - \`${id}\``),
-    ...(outcome.reclaimed_worktree_ids.length > 0 && sealed
-      ? [
-          `- **Note**: this run is already sealed — the directories are gone, but the worktree ledger inside the capsule cannot be updated to say so.`,
-        ]
-      : []),
-  ];
-  return {
-    markdown: enforceLineLimit(lines.join("\n")),
-    run_root: run,
-    reclaimed_worktree_ids: outcome.reclaimed_worktree_ids,
-    harness_branch: ledger.harness_branch,
-    ledger_updated: recorded,
-  };
-}
+export { worktreeReclaimCommand } from "./worktree-reclaim-ops.ts";
