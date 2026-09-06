@@ -35,3 +35,11 @@ export {
   generateDecisionsReport,
 } from "./leases-decisions.ts";
 export { buildUnifiedReport, generateUnifiedReport } from "./report-builder.ts";
+export {
+  type CapsuleFleetSummary,
+  type GlobalFleetStats,
+  type FleetReportData,
+  discoverActiveCapsules,
+  generateFleetReport,
+} from "./fleet-builder.ts";
+export { formatFleetDashboard } from "./fleet-renderer.ts";

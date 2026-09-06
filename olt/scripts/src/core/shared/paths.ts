@@ -151,7 +151,19 @@ export function resolveCapsulesDir(repoRoot?: string): string {
   if (root.endsWith(`${sep}${OLT_DIR_NAME}`)) {
     return join(root, CAPSULES_DIR_NAME);
   }
-  return join(root, OLT_DIR_NAME, CAPSULES_DIR_NAME);
+  const direct = join(root, OLT_DIR_NAME, CAPSULES_DIR_NAME);
+  if (existsSync(direct)) {
+    return direct;
+  }
+  const worktreeIdx = root.indexOf(`${sep}.olt${sep}worktrees`);
+  if (worktreeIdx !== -1) {
+    const parentRepo = root.slice(0, worktreeIdx);
+    const parentCapsules = join(parentRepo, OLT_DIR_NAME, CAPSULES_DIR_NAME);
+    if (existsSync(parentCapsules)) {
+      return parentCapsules;
+    }
+  }
+  return direct;
 }
 
 export function resolvePolicyPath(repoRoot?: string, customPath?: string): string {

@@ -172,10 +172,14 @@ export function findLatestCapsuleIn(repoRoot: string): string | null {
     const candidates: { path: string; mtime: number }[] = [];
     for (const entry of entries) {
       if (entry.startsWith(".")) continue;
+      if (entry === "archive" || entry === ".locks") continue;
       const fullPath = resolve(capsulesDir, entry);
       try {
         const st = statSync(fullPath);
         if (st.isDirectory()) {
+          const hasState = existsSync(resolve(fullPath, "state.json"));
+          const hasManifest = existsSync(resolve(fullPath, "manifest.json"));
+          if (!hasState && !hasManifest) continue;
           candidates.push({ path: fullPath, mtime: st.mtimeMs });
         }
       } catch {

@@ -1,8 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import { reportDagCommand } from "../../../olt/scripts/src/cli/commands/reporting/index.ts";
+import { findLatestCapsuleIn } from "../../../olt/scripts/src/cli/commands/dag-view.ts";
 
 describe("Reporting Commands - report:dag Handler", () => {
-  const capsule = ".olt/capsules/dag-engine-and-reporting-separation";
+  const capsule =
+    findLatestCapsuleIn(process.cwd()) ??
+    ".olt/capsules/archive/dag-engine-and-reporting-separation";
 
   it("executes reportDagCommand without crash on default repo", () => {
     const res = reportDagCommand({ run: capsule });

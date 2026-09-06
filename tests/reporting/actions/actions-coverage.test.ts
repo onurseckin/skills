@@ -40,12 +40,12 @@ describe(actionsCoverageSuiteName, () => {
     expect(dispatchFailure(["bun", ENTRYPOINT, "report:leases"])).toBe(
       "report:leases is missing --run",
     );
-    expect(dispatchFailure(["bun", ENTRYPOINT, "run:status", "--run", RUN, "--nope"])).toContain(
+    expect(dispatchFailure(["bun", ENTRYPOINT, "branch:status", "--run", RUN, "--nope"])).toContain(
       "unknown option",
     );
-    expect(dispatchFailure(["bun", ENTRYPOINT, "run:status", "--run", RUN, "--", "bun"])).toContain(
-      "does not accept -- arguments",
-    );
+    expect(
+      dispatchFailure(["bun", ENTRYPOINT, "branch:status", "--run", RUN, "--", "bun"]),
+    ).toContain("does not accept -- arguments");
   });
 
   test("refuses to name a command the registry does not have", () => {
@@ -59,7 +59,7 @@ describe(actionsCoverageSuiteName, () => {
 
   test("refuses a flag the command's own spec does not declare", () => {
     expect(
-      registryArgv(ENTRYPOINT, "run:status", [
+      registryArgv(ENTRYPOINT, "branch:status", [
         ["run", RUN],
         ["max-parallel", "3"],
       ]),
@@ -67,7 +67,9 @@ describe(actionsCoverageSuiteName, () => {
   });
 
   test("refuses a -- tail on a command that takes none", () => {
-    expect(registryArgv(ENTRYPOINT, "run:status", [["run", RUN]], ["bun", "test"])).toBeUndefined();
+    expect(
+      registryArgv(ENTRYPOINT, "branch:status", [["run", RUN]], ["bun", "test"]),
+    ).toBeUndefined();
     expect(
       registryArgv(ENTRYPOINT, "run:exec", [["run", RUN]], ["bun", "test"])?.slice(-3),
     ).toEqual(["--", "bun", "test"]);

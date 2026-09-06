@@ -1,4 +1,5 @@
 import type { ExecutionTier } from "../../authority/thread/index.ts";
+import type { TaskRecord } from "../../workflow/types.ts";
 import type { LeaseRecordView } from "../lease-agent-extractor.ts";
 import type { SugiyamaDagReport, SugiyamaWaveMetrics } from "../sugiyama-dag/index.ts";
 
@@ -47,6 +48,7 @@ export interface UnifiedAgentRow {
   attempt: number | null;
   issuedAt?: string | undefined;
   expiresAt?: string | undefined;
+  fleetId?: string | undefined;
 }
 
 export interface ImplementerValidatorTrackingRow {
@@ -159,3 +161,49 @@ export interface UnifiedReport {
 }
 
 export type UnifiedReportView = UnifiedReport;
+
+export interface CapsuleFleetSummary {
+  readonly runId: string;
+  readonly runRoot: string;
+  readonly scope: string;
+  readonly phase: string;
+  readonly totalTasks: number;
+  readonly coding: number;
+  readonly validating: number;
+  readonly ready: number;
+  readonly blocked: number;
+  readonly done: number;
+  readonly doctorHealth: string;
+  readonly waves: number;
+  readonly tasks: readonly TaskRecord[];
+  readonly agents: readonly UnifiedAgentRow[];
+  readonly sugiyamaReport?: SugiyamaDagReport | undefined;
+}
+
+export interface GlobalFleetStats {
+  readonly activeFleets: number;
+  readonly totalSubagents: number;
+  readonly globalTasks: number;
+  readonly totalWaves: number;
+  readonly occupancy: {
+    readonly coding: number;
+    readonly validating: number;
+    readonly standby: number;
+    readonly satisfied: number;
+    readonly blocked: number;
+  };
+  readonly supervisoryHealth: {
+    readonly mind: string;
+    readonly mindAuditor: string;
+    readonly skillAuditor: string;
+    readonly healthy: boolean;
+  };
+}
+
+export interface FleetReportData {
+  readonly repoRoot: string;
+  readonly stats: GlobalFleetStats;
+  readonly capsules: readonly CapsuleFleetSummary[];
+  readonly agentRoster: readonly UnifiedAgentRow[];
+  readonly markdown: string;
+}

@@ -4,6 +4,7 @@ import {
   generateLeasesReport,
   generateDecisionsReport,
   generateUnifiedReport,
+  generateFleetReport,
 } from "../../reporting/unified/index.ts";
 import { summaryExportCommand } from "./summary-ops.ts";
 
@@ -13,6 +14,18 @@ export function reportUnifiedCommand(flags: Flags): Record<string, unknown> {
   const runIdFlag = textFlag(flags, "run-id", false);
   const detailed = boolFlag(flags, "detailed");
   const asJson = boolFlag(flags, "json");
+
+  if (!runFlag && !runIdFlag) {
+    const fleet = generateFleetReport(repo);
+    return {
+      markdown: fleet.markdown,
+      repo_root: fleet.repoRoot,
+      stats: fleet.stats,
+      capsules: fleet.capsules,
+      agent_roster: fleet.agentRoster,
+      ...(asJson ? { json: true } : {}),
+    };
+  }
 
   const run = resolveCapsuleRun(repo, runFlag, runIdFlag);
   const report = generateUnifiedReport(run, { detailed });
