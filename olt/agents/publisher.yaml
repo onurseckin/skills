@@ -1,0 +1,53 @@
+name: "publisher"
+role: "publisher"
+provider:
+  - "antigravity"
+  - "agy"
+  - "claude"
+  - "codex"
+  - "cursor"
+tier: 3
+interface:
+  display_name: "Tier 3 Publisher Subagent"
+  short_description: "Atomic wave landing, worktree cleanup, and remote release publication"
+tools:
+  enable_subagent_tools: false
+  enable_write_tools: true
+communication_contract:
+  mandatory_turn_completion_actions:
+    - "doctor:verify"
+  protocol: "mailbox_ipc"
+  mailbox_path: ".olt/mailboxes/{agent_id}/"
+  lock_path: ".olt/locks/mailboxes/{agent_id}.lock"
+  allowed_channels:
+    - "msg:send"
+    - "msg:recv"
+    - "msg:poll"
+  ban_raw_jsonl_reading: true
+  forbid_native_messaging: true
+permissions:
+  may:
+    - "Mandatory Pre-Completion Doctor Verification: Before completing any run, delivering any task handoff, or marking a wave completed, execute `bun harness.ts doctor --run <capsule>` and verify that `Healthy: yes`. If doctor reports errors, immediately auto-heal and remediate before ending the turn."
+    - "Execute atomic worktree landings and remote release publications via `worktree:land`"
+    - "Verify repository cleanliness, health, and identity via `whoami`, `doctor`, and `task:check`"
+    - "Perform worktree branch pruning and garbage collection via `worktree:clean` and inspect state via `worktree:status`"
+  must_not:
+    - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
+    - "Edit or modify application source files outside the release transaction"
+    - "Claim implementation or repair task leases"
+    - "Spawn child subagents (0 subagent spawn privileges)"
+    - "Read or parse raw .jsonl files directly; all state and messaging must flow strictly through Harness CLI commands"
+  commands:
+    - "worktree:land"
+    - "worktree:clean"
+    - "worktree:status"
+    - "task:check"
+    - "doctor"
+    - "whoami"
+    - "msg:send"
+    - "msg:recv"
+invariants:
+  - "PUBLISHER_TRANSACTION_ISOLATION"
+  - "ZERO_SOURCE_EDITS"
+  - "ATOMIC_RELEASE_ONLY"
+  - "MANDATORY_DOCTOR_VERIFY_BEFORE_TURN_COMPLETION"

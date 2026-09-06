@@ -117,6 +117,12 @@ export function auditPermissionHealth(
     "task:finding-input",
     "task:review-support",
     "whoami",
+    "worktree:create",
+    "worktree:land",
+    "worktree:clean",
+    "worktree:status",
+    "worktree:list",
+    "worktree:reclaim",
   ]);
 
   if (manifest.permissions.commands && validRegistry.size > 0) {
@@ -130,7 +136,9 @@ export function auditPermissionHealth(
   }
 
   const isCognitiveCodeValidator =
-    (manifest.role === "validator" || manifest.role === "ui-validator") &&
+    (manifest.role === "validator" ||
+      manifest.role === "ui-validator" ||
+      manifest.role === "ui-optical-validator") &&
     !manifest.role.includes("mechanic");
 
   if (isCognitiveCodeValidator) {

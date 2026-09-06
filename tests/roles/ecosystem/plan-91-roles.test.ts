@@ -95,22 +95,14 @@ describe("Plan 91 Pillar 2: Streamlined Persona Ecosystem & Role Invariants", ()
   });
 
   describe("3. Retirement Notices for Mechanic-Validator and Repairer", () => {
-    it("verifies mechanic-validator.yaml contains Generation 8 retirement notice", () => {
+    it("verifies mechanic-validator.yaml is permanently purged per §36", () => {
       const mechPath = resolve(rolesDir, "mechanic-validator.yaml");
-      const content = readFileSync(mechPath, "utf-8");
-
-      expect(content).toContain("Generation 8 Retirement Notice");
-      expect(content).toContain("permanently retired as an LLM subagent role in Generation 8");
-      expect(content).toContain("task:check");
+      expect(existsSync(mechPath)).toBe(false);
     });
 
-    it("verifies repairer.yaml contains Generation 8 retirement notice", () => {
+    it("verifies repairer.yaml is permanently purged per §36", () => {
       const repPath = resolve(rolesDir, "repairer.yaml");
-      const content = readFileSync(repPath, "utf-8");
-
-      expect(content).toContain("Generation 8 Retirement Notice");
-      expect(content).toContain("permanently retired as a separate subagent role in Generation 8");
-      expect(content).toContain("1-hop micro-cycles");
+      expect(existsSync(repPath)).toBe(false);
     });
   });
 

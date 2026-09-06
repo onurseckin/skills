@@ -64,7 +64,7 @@ function responsibilityChecklist(role: AgentRole): string {
       "- [ ] 7. Disk-backed evidence submission: Save all proof artifacts and screenshots strictly under `.capsules/<run>/evidence/` and record structured review verdict.",
     ].join("\n");
   }
-  if (role === "mechanic-validator") {
+  if (role === "ui-headless-validator") {
     return [
       "- [ ] 1. Pre-flight verification & independence: Execute `whoami` and `doctor` to verify harness health; confirm independence from task author.",
       "- [ ] 2. 100% Mechanical Execution Ownership: Execute task-specific unit tests, compilation checks, and gate commands via `run:exec`.",
@@ -86,7 +86,7 @@ function responsibilityChecklist(role: AgentRole): string {
       "- [ ] 7. Disk-backed completion verdict: Record approval or structured rejection findings strictly under `.capsules/<run>/evidence/`.",
     ].join("\n");
   }
-  if (role === "implementer" || role === "repairer" || role === "sub-implementer") {
+  if (role === "implementer" || role === "publisher" || role === "sub-implementer") {
     return [
       "- [ ] 1. Pre-flight verification: Execute `whoami` and `doctor` to verify harness health and active run lease.",
       "- [ ] 2. Exclusive write scope: Verify and respect assigned write scope lease; never edit or stage files outside assigned paths.",
@@ -133,7 +133,7 @@ function allowedScope(input: PacketInput): JsonObject {
       ? { write_scope: [], resource_scope: scope }
       : { write_scope: scope, resource_scope: [] };
   }
-  if (input.role === "implementer" || input.role === "repairer")
+  if (input.role === "implementer" || input.role === "publisher")
     return {
       write_scope: input.task?.write_scope ?? [],
       resource_scope: input.task?.resource_scope ?? [],

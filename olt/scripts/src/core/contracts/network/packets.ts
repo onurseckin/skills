@@ -4,44 +4,36 @@ export type AgentRole =
   | "completeness-critic"
   | "coordinator"
   | "implementer"
-  | "mechanic-validator"
   | "mind"
   | "mind-auditor"
   | "orchestrator"
   | "plan-validator"
   | "planner"
-  | "policy-discovery"
-  | "repairer"
+  | "publisher"
   | "skill-auditor"
   | "sub-implementer"
   | "sub-investigator"
   | "sub-validator"
   | "ui-headless-validator"
-  | "ui-mechanic-validator"
   | "ui-optical-validator"
-  | "ui-validator"
   | "validator";
 
 export const AGENT_ROLES: readonly AgentRole[] = [
   "completeness-critic",
   "coordinator",
   "implementer",
-  "mechanic-validator",
   "mind",
   "mind-auditor",
   "orchestrator",
   "plan-validator",
   "planner",
-  "policy-discovery",
-  "repairer",
+  "publisher",
   "skill-auditor",
   "sub-implementer",
   "sub-investigator",
   "sub-validator",
   "ui-headless-validator",
-  "ui-mechanic-validator",
   "ui-optical-validator",
-  "ui-validator",
   "validator",
 ];
 
