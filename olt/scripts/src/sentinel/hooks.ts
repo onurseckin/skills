@@ -102,6 +102,8 @@ export function executeTurnEndHook(input: TurnEndInput): TurnEndResult {
     modified_files: input.modified_files,
     executed_commands: input.executed_commands,
     reviewed_screenshots: input.reviewed_screenshots,
+    probe_count: input.probe_count,
+    action: input.action,
   };
 
   const roleViolations = profile.evaluate(evalContext);

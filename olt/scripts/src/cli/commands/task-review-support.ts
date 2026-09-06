@@ -8,6 +8,7 @@ import {
   resolveReviewProtocolConfig,
   type ReviewProtocolConfig,
 } from "../../policy/review-protocol.ts";
+import { MIN_ADVERSARIAL_PROBES } from "../../reporting/doctor/pushback-quotas-engine.ts";
 import { ingestScreenshots, ingestVisualReport } from "../../reporting/screenshot-ingestion.ts";
 import { getVisualReport, queryScreenshots } from "../../reporting/screenshot-store.ts";
 import type { ScreenshotRecord } from "../../reporting/screenshot-types.ts";
@@ -43,7 +44,7 @@ export function reviewPolicyFor(runRoot: string, validatorId?: string): ReviewPo
   const reviewProtocol = resolveReviewProtocolConfig(repoRoot, agentMetadata);
 
   return {
-    minProbes: config.min_adversarial_probes !== undefined ? config.min_adversarial_probes : 1,
+    minProbes: config.min_adversarial_probes ?? MIN_ADVERSARIAL_PROBES,
     maxRepairRounds: reviewProtocol.max_adversarial_pushes,
     reviewProtocol,
   };
@@ -236,10 +237,7 @@ export function gateProofCommand(
 ): string | undefined {
   const exact = checkIds.find((id) => commands[id]?.gate_id === gateId);
   if (exact !== undefined) return exact;
-  const zeroExit = checkIds.find((id) => {
-    const code = commands[id]?.exit_code;
-    return (code !== undefined && code !== null ? code : 0) === 0;
-  });
+  const zeroExit = checkIds.find((id) => (commands[id]?.exit_code ?? 0) === 0);
   return zeroExit !== undefined ? zeroExit : checkIds[0];
 }
 

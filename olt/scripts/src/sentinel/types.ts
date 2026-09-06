@@ -112,6 +112,8 @@ export interface TurnEndInput {
   readonly modified_files?: readonly string[] | undefined;
   readonly executed_commands?: readonly string[] | undefined;
   readonly reviewed_screenshots?: readonly string[] | undefined;
+  readonly probe_count?: number | undefined;
+  readonly action?: string | undefined;
 }
 
 export interface TurnEndResult {
@@ -141,6 +143,8 @@ export interface EvaluationContext {
   readonly has_uncommitted_changes?: boolean | undefined;
   readonly had_file_scoped_test_run?: boolean | undefined;
   readonly pending_defects_count?: number | undefined;
+  readonly probe_count?: number | undefined;
+  readonly action?: string | undefined;
 }
 
 export interface RoleDiagnosticProfile {

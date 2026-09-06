@@ -23,6 +23,9 @@ export interface DoctorAgentOptions {
   readonly format?: ("json" | "markdown") | undefined;
   readonly modifiedFiles?: readonly string[] | undefined;
   readonly executedCommands?: readonly string[] | undefined;
+  readonly probeCount?: number | undefined;
+  readonly probe_count?: number | undefined;
+  readonly action?: string | undefined;
 }
 
 export function runDoctorAgent(options: DoctorAgentOptions): DoctorAgentReport {
@@ -35,6 +38,8 @@ export function runDoctorAgent(options: DoctorAgentOptions): DoctorAgentReport {
     repo_root: options.repoRoot,
     modified_files: options.modifiedFiles,
     executed_commands: options.executedCommands,
+    probe_count: options.probeCount !== undefined ? options.probeCount : options.probe_count,
+    action: options.action,
   };
 
   const violations = profile.evaluate(evalContext);

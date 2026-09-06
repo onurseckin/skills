@@ -30,6 +30,21 @@ export const validatorProfile: RoleDiagnosticProfile = {
       });
     }
 
+    if (
+      context.probe_count !== undefined &&
+      context.probe_count < 5 &&
+      (context.action === "task:review" || !context.action)
+    ) {
+      violations.push({
+        code: "VALIDATOR_INSUFFICIENT_PUSHBACK_ROUNDS",
+        severity: "CRITICAL",
+        message:
+          "Cognitive Validator must complete at least 5 cognitive probe rounds before task finalization.",
+        remediation_cmd: "bun harness.ts task:probe --task <task_id>",
+        documentation_ref: "docs/blueprints/agent-scoped-live-sentinel-profiles.md#section-61",
+      });
+    }
+
     return violations;
   },
 };

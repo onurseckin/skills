@@ -7,6 +7,63 @@ import { assertAttemptsClosed } from "../lease/attempt-state.ts";
 import { everyApplicableDomainPassed } from "../review/validation-state.ts";
 import { taskClassificationTexts } from "../review/role-evidence.ts";
 
+import {
+  MIN_ADVERSARIAL_PROBES,
+  MANDATORY_COGNITIVE_PUSHBACKS,
+} from "../../reporting/doctor/pushback-quotas-engine.ts";
+
+export { MIN_ADVERSARIAL_PROBES, MANDATORY_COGNITIVE_PUSHBACKS };
+
+export function countTaskProbes(task: Record<string, unknown>): number {
+  let count = 0;
+  if (Array.isArray(task["adversarial_probes"])) count += task["adversarial_probes"].length;
+  else if (typeof task["adversarial_probes"] === "number") count += task["adversarial_probes"];
+  else if (Array.isArray(task["probes"])) count += task["probes"].length;
+  else if (typeof task["probes"] === "number") count += task["probes"];
+
+  if (typeof task["probe_round"] === "number" && task["probe_round"] > count) {
+    count = task["probe_round"];
+  }
+
+  const reviewHistory = task["review_history"];
+  if (Array.isArray(reviewHistory)) {
+    const historyAdv = reviewHistory.filter(
+      (entry) =>
+        typeof entry === "object" &&
+        entry !== null &&
+        ((entry as Record<string, unknown>)["channel"] === "adversarial" ||
+          (entry as Record<string, unknown>)["verdict"] === "probe"),
+    ).length;
+    if (historyAdv > count) count = historyAdv;
+  }
+
+  if (Array.isArray(task["cognitive_pushbacks"])) {
+    const cog = task["cognitive_pushbacks"].length;
+    if (cog > count) count = cog;
+  } else if (
+    typeof task["cognitive_pushbacks"] === "number" &&
+    task["cognitive_pushbacks"] > count
+  ) {
+    count = task["cognitive_pushbacks"];
+  }
+
+  if (Array.isArray(task["pushbacks"])) {
+    const push = task["pushbacks"].length;
+    if (push > count) count = push;
+  } else if (typeof task["pushbacks"] === "number" && task["pushbacks"] > count) {
+    count = task["pushbacks"];
+  }
+
+  if (
+    typeof task["cognitive_rounds_completed"] === "number" &&
+    task["cognitive_rounds_completed"] > count
+  ) {
+    count = task["cognitive_rounds_completed"];
+  }
+
+  return count;
+}
+
 export function finishTask(
   port: TransactionPort,
   taskId: string,
@@ -30,6 +87,32 @@ export function finishTask(
     if (applicableGates(draft, task).some((gate) => !taskHasPassedGate(task, gate.id))) {
       throw new HarnessError("INVALID_STATE", "mandatory task gates have not passed");
     }
+
+    const rawTask = task as Record<string, unknown>;
+    const hasBypass =
+      rawTask["bypass_quotas"] === true ||
+      rawTask["skip_quotas"] === true ||
+      rawTask["skip_pushback_quotas"] === true ||
+      rawTask["bypass_cognitive_pushback"] === true ||
+      rawTask["no_op"] !== undefined ||
+      (draft as Record<string, unknown>)["bypass_quotas"] === true ||
+      ((draft as Record<string, unknown>)["policy"] as Record<string, unknown> | undefined)?.[
+        "bypass_quotas"
+      ] === true ||
+      ((draft as Record<string, unknown>)["policy"] as Record<string, unknown> | undefined)?.[
+        "skip_pushback_quotas"
+      ] === true;
+
+    if (!hasBypass) {
+      const probeCount = countTaskProbes(rawTask);
+      if (probeCount < MIN_ADVERSARIAL_PROBES) {
+        throw new HarnessError(
+          "INVALID_STATE",
+          "Cognitive deepening protocol not satisfied: task has insufficient probes/pushbacks (requires >= 5)",
+        );
+      }
+    }
+
     transition(task, "done", actor, now, "review and mandatory gates passed");
     for (const candidate of Object.values(draft.tasks)) {
       if (
