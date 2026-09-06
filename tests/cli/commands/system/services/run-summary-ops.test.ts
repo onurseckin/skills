@@ -58,6 +58,32 @@ function registerAgentDirect(run: string, agent: string, role: string, parentAge
   );
 }
 
+function pairTask(id: string, label: string, scope: string, gateCmd: string, reqId: string) {
+  return {
+    req: { id: reqId, statement: label, disposition: "actionable" as const },
+    gate: {
+      id: `gate-${id.slice(5)}`,
+      scope: "task" as const,
+      command: gateCmd,
+      mandatory: true,
+      requirement_ids: [reqId],
+      cwd: ".",
+    },
+    node: { id, label, write_scope: [scope], gate_argv: gateCmd.split(" "), dependencies: [] },
+    plan: { id, label, scope, gate: gateCmd, status: "ready" as const, dependencies: [] },
+    task: {
+      id,
+      label,
+      status: "ready" as const,
+      write_scope: [scope],
+      requirement_ids: [reqId],
+      dependencies: [],
+      history: [],
+      attempts: [],
+    },
+  };
+}
+
 function setupSummaryRun(name: string): { repo: string; run: string } {
   const repo = `/virtual/cli/summary-${name}`;
   const vfs = getVirtualCliFS();
@@ -74,92 +100,24 @@ function setupSummaryRun(name: string): { repo: string; run: string } {
   for (const [agent, role, parent] of roster) registerAgentDirect(runRoot, agent, role, parent);
 
   transact(runRoot, "test-setup", "init-summary-state", {}, (draft) => {
-    draft.requirements = {
-      requirements: [
-        { id: "req-core", statement: "Core Unit Tests", disposition: "actionable" },
-        { id: "req-sec", statement: "Secondary Tests", disposition: "actionable" },
-      ],
-    };
-    draft.graph = {
-      revision: 1,
-      gates: [
-        {
-          id: "gate-core",
-          scope: "task",
-          command: "bun gate-core.ts",
-          mandatory: true,
-          requirement_ids: ["req-core"],
-          cwd: ".",
-        },
-        {
-          id: "gate-sec",
-          scope: "task",
-          command: "bun gate-sec.ts",
-          mandatory: true,
-          requirement_ids: ["req-sec"],
-          cwd: ".",
-        },
-      ],
-      nodes: [
-        {
-          id: "task-core",
-          label: "Core Unit Tests",
-          write_scope: ["tests/core"],
-          gate_argv: ["bun", "gate-core.ts"],
-          dependencies: [],
-        },
-        {
-          id: "task-sec",
-          label: "Secondary Tests",
-          write_scope: ["tests/cli/sec"],
-          gate_argv: ["bun", "gate-sec.ts"],
-          dependencies: [],
-        },
-      ],
-      edges: [],
-    };
-    draft.plan = {
-      tasks: [
-        {
-          id: "task-core",
-          label: "Core Unit Tests",
-          scope: "tests/core",
-          gate: "bun gate-core.ts",
-          status: "ready",
-          dependencies: [],
-        },
-        {
-          id: "task-sec",
-          label: "Secondary Tests",
-          scope: "tests/cli/sec",
-          gate: "bun gate-sec.ts",
-          status: "ready",
-          dependencies: [],
-        },
-      ],
-    };
-    draft.tasks = {
-      "task-core": {
-        id: "task-core",
-        label: "Core Unit Tests",
-        status: "ready",
-        write_scope: ["tests/core"],
-        requirement_ids: ["req-core"],
-        dependencies: [],
-        history: [],
-        attempts: [],
-      },
-      "task-sec": {
-        id: "task-sec",
-        label: "Secondary Tests",
-        status: "ready",
-        write_scope: ["tests/cli/sec"],
-        requirement_ids: ["req-sec"],
-        dependencies: [],
-        history: [],
-        attempts: [],
-      },
-    };
+    const t1 = pairTask(
+      "task-core",
+      "Core Unit Tests",
+      "tests/core",
+      "bun gate-core.ts",
+      "req-core",
+    );
+    const t2 = pairTask(
+      "task-sec",
+      "Secondary Tests",
+      "tests/cli/sec",
+      "bun gate-sec.ts",
+      "req-sec",
+    );
+    draft.requirements = { requirements: [t1.req, t2.req] };
+    draft.graph = { revision: 1, gates: [t1.gate, t2.gate], nodes: [t1.node, t2.node], edges: [] };
+    draft.plan = { tasks: [t1.plan, t2.plan] };
+    draft.tasks = { "task-core": t1.task, "task-sec": t2.task };
   });
   return { repo, run: runRoot };
 }
