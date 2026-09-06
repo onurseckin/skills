@@ -37,6 +37,7 @@ export const ALLOWED_ROOT_FILES: ReadonlySet<string> = new Set([
   "notes.md",
   ".easignore",
   ".DS_Store",
+  ".session.json",
 ]);
 
 export const ALLOWED_ROOT_DIRS: ReadonlySet<string> = new Set([
