@@ -17,6 +17,7 @@ export type NodeRole =
   | "meta-auditor"
   | "orchestrator"
   | "planner"
+  | "publisher"
   | "implementer"
   | "validator"
   | "mechanic-validator"

@@ -281,7 +281,8 @@ export function partitionDecoupledMemory(
   const isValidationRole =
     role === "validator" ||
     role === "sub-validator" ||
-    role === "mechanic-validator" ||
+    role === "ui-headless-validator" ||
+    role === "ui-optical-validator" ||
     role === "plan-validator";
 
   const sanitized = isValidationRole

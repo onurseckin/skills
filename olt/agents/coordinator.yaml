@@ -10,7 +10,7 @@ provider:
 tier: 2
 tools:
   enable_subagent_tools: true
-  enable_write_tools: true
+  enable_write_tools: false
 interface:
   display_name: "Coordinator"
   short_description: "Tier 2 Dynamic Wave Coordinator"
@@ -95,16 +95,14 @@ permissions:
     - "msg:recv"
     - "msg:poll"
     - "worktree:create"
-    - "worktree:land"
     - "worktree:list"
-    - "worktree:clean"
     - "worktree:status"
-    - "worktree:reclaim"
   spawns:
     - "planner"
     - "plan-validator"
     - "implementer"
     - "validator"
+    - "publisher"
     - "completeness-critic"
 invariants:
   - "SUPERVISOR_ZERO_CODE_EDITS"

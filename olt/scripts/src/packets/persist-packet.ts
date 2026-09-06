@@ -27,7 +27,6 @@ export interface PublishedPacket {
 }
 const TASK_LEASE_ROLES: ReadonlySet<AgentRole> = new Set([
   "implementer",
-  "repairer",
   "sub-implementer",
   "sub-investigator",
 ]);

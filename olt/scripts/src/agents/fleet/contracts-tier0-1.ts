@@ -31,13 +31,7 @@ export const CONTRACTS_TIER_0_1: readonly AgentOperationalContract[] = [
       ],
       allowedCommands: ["bun harness.ts *", "git status", "git diff", "git log"],
       forbiddenCommands: ["run:exec", ...FORBIDDEN_WRITE_TOOLS],
-      allowedSpawns: [
-        "domain-orchestrator",
-        "orchestrator",
-        "mind-auditor",
-        "skill-auditor",
-        "policy-discovery",
-      ],
+      allowedSpawns: ["domain-orchestrator", "orchestrator", "mind-auditor", "skill-auditor"],
     },
     invariants: ["SUPERVISOR_ZERO_CODE_EDITS", "NO_RAW_JSONL_READS", "SOVEREIGN_EQUILIBRIUM_GUARD"],
     certifiedDeliverables: [
@@ -123,41 +117,6 @@ export const CONTRACTS_TIER_0_1: readonly AgentOperationalContract[] = [
       {
         type: "skill_audit_receipt",
         description: "Skill Contract Audit Receipt",
-        evidenceRequired: true,
-      },
-    ],
-  }),
-
-  defineContract({
-    id: "policy-discovery",
-    name: "Policy Discovery Agent",
-    role: "policy-discovery",
-    tier: 0,
-    category: "governance",
-    aliases: ["policy_discovery", "policy-auditor"],
-    toolBoundaries: {
-      canWriteCode: false,
-      canExecuteCommands: true,
-      canSpawnSubagents: false,
-      canClaimLeases: false,
-      allowedTools: ["bun harness.ts *"],
-      forbiddenTools: [...FORBIDDEN_WRITE_TOOLS, "run:exec"],
-    },
-    permissions: {
-      may: [
-        "Discover security policies, RBAC matrices, and workspace boundaries",
-        "Report boundary drift",
-      ],
-      mustNot: ["Modify source files", "Bypass RBAC boundaries"],
-      allowedCommands: ["bun harness.ts *"],
-      forbiddenCommands: [...FORBIDDEN_WRITE_TOOLS],
-      allowedSpawns: [],
-    },
-    invariants: ["POLICY_DISCOVERY_IMMUTABILITY", "SUPERVISOR_ZERO_CODE_EDITS"],
-    certifiedDeliverables: [
-      {
-        type: "policy_discovery_report",
-        description: "Policy Boundary Discovery Report",
         evidenceRequired: true,
       },
     ],
@@ -330,6 +289,4 @@ export const CONTRACTS_TIER_0_1: readonly AgentOperationalContract[] = [
       },
     ],
   }),
-
-  // --- Tier 2 Orchestration & Adaptor (8) ---
 ];

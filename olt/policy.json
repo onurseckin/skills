@@ -149,20 +149,14 @@
       "rbac": {
         "can_execute_shell": true,
         "can_edit_code": false,
-        "allowed_commands": [
-          "bun harness.ts *",
-          "git status",
-          "git diff",
-          "git commit",
-          "git push",
-          "git log"
-        ],
+        "allowed_commands": ["bun harness.ts *", "git status", "git diff", "git log"],
         "forbidden_patterns": ["^bun\\s+test\\b", "^npm\\s+test\\b"],
         "allowed_spawns": [
           "implementer",
           "validator_code_quality",
           "validator_ui_design",
-          "completeness_critic"
+          "completeness_critic",
+          "publisher"
         ]
       },
       "hosts": {
@@ -566,6 +560,50 @@
           "model": "cursor-latest",
           "model_tier": "high",
           "thinking_effort": "high",
+          "max_tokens": 8192
+        }
+      }
+    },
+    "publisher": {
+      "tier": 3,
+      "rbac": {
+        "can_execute_shell": true,
+        "can_edit_code": true,
+        "allowed_commands": [
+          "worktree:land",
+          "worktree:clean",
+          "worktree:status",
+          "task:check",
+          "doctor",
+          "whoami",
+          "msg:send",
+          "msg:recv"
+        ],
+        "allowed_spawns": []
+      },
+      "hosts": {
+        "antigravity": {
+          "model": "gemini-3.7-flash",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
+          "max_tokens": 8192
+        },
+        "claude_code": {
+          "model": "claude-5-sonnet",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
+          "max_tokens": 8192
+        },
+        "codex": {
+          "model": "gpt-5.6-terra",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
+          "max_tokens": 8192
+        },
+        "cursor": {
+          "model": "cursor-latest",
+          "model_tier": "medium",
+          "thinking_effort": "medium",
           "max_tokens": 8192
         }
       }

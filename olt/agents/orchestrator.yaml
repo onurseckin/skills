@@ -10,7 +10,7 @@ provider:
   - generic
 tools:
   enable_subagent_tools: true
-  enable_write_tools: true
+  enable_write_tools: false
 interface:
   display_name: "Tier 1 Meta-Orchestrator & Loop Runner"
   short_description: "The one agent the main thread ever dispatches"
@@ -123,7 +123,6 @@ permissions:
     - "msg:recv"
     - "msg:poll"
     - "worktree:create"
-    - "worktree:land"
     - "worktree:list"
     - "worktree:clean"
     - "worktree:status"

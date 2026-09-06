@@ -3,12 +3,19 @@ import { defineContract, FORBIDDEN_WRITE_TOOLS, FORBIDDEN_EXEC_TOOLS } from "./a
 
 export const CONTRACTS_TIER_3_QUALITY_UI: readonly AgentOperationalContract[] = [
   defineContract({
-    id: "ui-visual-reviewer",
-    name: "UI Visual Reviewer",
-    role: "ui-visual-reviewer",
+    id: "ui-optical-validator",
+    name: "UI Optical Cognitive Validator",
+    role: "ui-optical-validator",
     tier: 3,
     category: "quality",
-    aliases: ["visual-reviewer", "headful-chrome-critic", "ui_visual_reviewer"],
+    aliases: [
+      "ui-visual-reviewer",
+      "ui_optical_validator",
+      "ui-cognitive-validator",
+      "optical-validator",
+      "visual-reviewer",
+      "headful-chrome-critic",
+    ],
     toolBoundaries: {
       canWriteCode: false,
       canExecuteCommands: false,
@@ -72,7 +79,7 @@ export const CONTRACTS_TIER_3_QUALITY_UI: readonly AgentOperationalContract[] = 
     ],
     isHeadfulReviewer: true,
     isSourceCodeBlind: true,
-    manifestPath: "olt/agents/ui-visual-reviewer.yaml",
+    manifestPath: "olt/agents/ui-optical-validator.yaml",
     certifiedDeliverables: [
       {
         type: "headful_visual_critique",
@@ -88,101 +95,19 @@ export const CONTRACTS_TIER_3_QUALITY_UI: readonly AgentOperationalContract[] = 
   }),
 
   defineContract({
-    id: "ui-headless-debugger",
-    name: "UI Headless Debugger",
-    role: "ui-headless-debugger",
+    id: "ui-headless-validator",
+    name: "UI Headless Mechanic Validator",
+    role: "ui-headless-validator",
     tier: 3,
     category: "quality",
-    aliases: ["ui-debugger", "ui_headless_debugger", "headless-debugger"],
-    toolBoundaries: {
-      canWriteCode: false,
-      canExecuteCommands: true,
-      canSpawnSubagents: false,
-      canClaimLeases: false,
-      allowedTools: [
-        "run:exec",
-        "task:brief",
-        "task:validate-start",
-        "task:check",
-        "task:probe",
-        "task:reject",
-        "task:review",
-        "task:submit",
-        "msg:send",
-        "msg:recv",
-        "msg:poll",
-      ],
-      forbiddenTools: [...FORBIDDEN_WRITE_TOOLS],
-    },
-    permissions: {
-      may: [
-        "Execute headless browser automation and technical DOM extraction via `run:exec`",
-        "Monitor console error logs and trace mock network payload responses",
-        "Execute 4 mandatory synthetic state pre-flights: empty state, error state, loading state, extreme overflow state",
-        "Audit DOM node hierarchy, computed CSS styles, and bounding hitboxes",
-      ],
-      mustNot: [
-        "Re-run implementer unit tests (Implementers own unit testing 100%)",
-        "Write or edit repository source files (0 source edits)",
-        "Issue aesthetic, visual, or optical sign-offs (aesthetic critique strictly belongs to ui-visual-reviewer)",
-        "Claim task write leases",
-      ],
-      allowedCommands: [
-        "task:brief",
-        "task:validate-start",
-        "task:check",
-        "run:exec",
-        "task:probe",
-        "task:reject",
-        "task:review",
-        "task:submit",
-        "finding:get",
-        "report:get",
-        "evidence:get",
-        "evidence:screenshots",
-        "agent:register",
-        "agent:report",
-        "agent:release",
-        "doctor",
-        "whoami",
-        "msg:send",
-        "msg:recv",
-        "msg:poll",
-      ],
-      forbiddenCommands: [...FORBIDDEN_WRITE_TOOLS],
-      allowedSpawns: [],
-    },
-    invariants: [
-      "ZERO_SOURCE_EDITS",
-      "NO_TEST_RE_RUNS",
-      "TECHNICAL_DIAGNOSTICS_ONLY",
-      "PROHIBIT_AESTHETIC_SIGN_OFF",
-      "SYNTHETIC_STATE_PREFLIGHT_4_STATES",
-      "DOM_INSPECTION_HARDLOCK",
+    aliases: [
+      "ui-mechanic-validator",
+      "ui-debugger",
+      "ui_headless_validator",
+      "ui_mechanic_validator",
+      "ui-headless-debugger",
+      "headless-debugger",
     ],
-    isHeadlessDebugger: true,
-    manifestPath: "olt/agents/ui-debugger.yaml",
-    certifiedDeliverables: [
-      {
-        type: "dom_technical_diagnostic",
-        description: "Headless DOM Diagnostics & Console Log",
-        evidenceRequired: true,
-      },
-      {
-        type: "synthetic_state_preflight_receipt",
-        description: "4 Synthetic State Pre-flight Receipt",
-        evidenceRequired: true,
-      },
-    ],
-  }),
-
-  defineContract({
-    id: "ui-mechanic-validator",
-    name: "UI Mechanic Validator",
-    role: "ui-mechanic-validator",
-    tier: 3,
-    category: "quality",
-    aliases: ["ui-headless-validator", "ui_mechanic_validator", "mechanic-ui-validator"],
     toolBoundaries: {
       canWriteCode: false,
       canExecuteCommands: true,
@@ -212,7 +137,7 @@ export const CONTRACTS_TIER_3_QUALITY_UI: readonly AgentOperationalContract[] = 
       mustNot: [
         "Write application source code (0 source edits)",
         "Re-run implementer unit tests",
-        "Approve UI tasks based solely on automated test passes (automated tests are only half the job)",
+        "Approve UI tasks based solely on automated test passes",
       ],
       allowedCommands: [
         "task:brief",
@@ -248,7 +173,7 @@ export const CONTRACTS_TIER_3_QUALITY_UI: readonly AgentOperationalContract[] = 
       "SUPERFICIAL_UI_APPROVAL_BAN",
     ],
     isHeadlessDebugger: true,
-    manifestPath: "olt/agents/ui-mechanic-validator.yaml",
+    manifestPath: "olt/agents/ui-headless-validator.yaml",
     certifiedDeliverables: [
       {
         type: "hitbox_geometry_audit",

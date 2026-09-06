@@ -58,9 +58,7 @@ describe("agent personas", () => {
     expect(validator).toContain("Strict Command-Running Ban");
     expect(validator).not.toContain("- run:exec");
 
-    const mechanic = existsSync(join(agentsRoot, "mechanic-validator.yaml"))
-      ? persona("mechanic-validator.yaml")
-      : persona("mechanic_validator.yaml");
+    const mechanic = persona("ui-headless-validator.yaml");
     expect(mechanic).toContain("run:exec");
   });
 });
