@@ -27,7 +27,7 @@ describe("Defect Remediation: defect-cli-1788679652606-l1wd4o", () => {
       gateCommand: "bun test tests/mind/defect-cli-1788679652606-l1wd4o.test.ts",
     };
     expect(validateDefectPreconditions(validCtx)).toBe(true);
-    const result = verifyDefectRemediation(validCtx);
+    const result: DefectRemediationResult = verifyDefectRemediation(validCtx);
     expect(result.remediated).toBe(true);
     expect(result.allowed).toBe(true);
     expect(result.errors.length).toBe(0);
@@ -42,7 +42,7 @@ describe("Defect Remediation: defect-cli-1788679652606-l1wd4o", () => {
       validatorType: "generic-backend-validator",
     };
     expect(validateDefectPreconditions(invalidCtx)).toBe(false);
-    const result = verifyDefectRemediation(invalidCtx);
+    const result: DefectRemediationResult = verifyDefectRemediation(invalidCtx);
     expect(result.remediated).toBe(true);
     expect(result.allowed).toBe(false);
     expect(result.errors.length).toBeGreaterThan(0);
