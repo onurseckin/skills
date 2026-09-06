@@ -25,8 +25,10 @@ import {
   type EnsureShellRcResult,
 } from "./shell-rc.ts";
 import {
+  areSignalHooksRegistered,
   decideSyncSource,
   firstNonEmpty,
+  getActiveCleanupsCount,
   getDirtyOltPaths,
   materializeOltFromHead,
   parsePorcelainStatus,
@@ -74,8 +76,10 @@ export {
 };
 
 export {
+  areSignalHooksRegistered,
   decideSyncSource,
   firstNonEmpty,
+  getActiveCleanupsCount,
   getDirtyOltPaths,
   materializeOltFromHead,
   parsePorcelainStatus,
@@ -173,8 +177,8 @@ export async function main(
   argv: string[] = process.argv.slice(2),
   options?: Partial<SyncOptions>,
 ): Promise<void> {
-  const allowDirty = argv.includes("--allow-dirty");
-  await runSync({ allowDirty, ...options });
+  const allowDirty = argv.includes("--allow-dirty") || (options?.allowDirty ?? false);
+  await runSync({ ...options, allowDirty });
 }
 
 if (computeIsMain()) {
