@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Markdown Coverage and Runtime Report Builder and Writer
  * Generates human-readable REPORT.md files focusing on Lines, Statements, Functions, and Test Runtimes.
