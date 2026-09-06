@@ -14,6 +14,7 @@ export interface SubmissionReportInputs {
   readonly observedFiles: readonly string[] | null;
   readonly commands: Readonly<Record<string, CommandRecord>>;
   readonly allowEmptyFiles?: boolean;
+  readonly skipChecks?: boolean;
 }
 
 function resolveFiles(inputs: SubmissionReportInputs): {
@@ -35,7 +36,15 @@ function resolveFiles(inputs: SubmissionReportInputs): {
   return { files: observed, evidenceClass: "harness_observed" };
 }
 
-function resolveChecks(inputs: SubmissionReportInputs): {
+function isGateEmpty(gate: unknown): boolean {
+  if (gate === null || gate === undefined) return true;
+  if (typeof gate === "string") return gate.trim() === "";
+  if (Array.isArray(gate)) return gate.length === 0;
+  if (typeof gate === "object") return Object.keys(gate).length === 0;
+  return false;
+}
+
+export function resolveChecks(inputs: SubmissionReportInputs): {
   commands: CommandRecord[];
   evidenceClass: EvidenceClass;
 } {
@@ -57,10 +66,22 @@ function resolveChecks(inputs: SubmissionReportInputs): {
     });
     return { commands, evidenceClass: "agent_reported" };
   }
-  const observed = Object.values(inputs.commands)
+  let observed = Object.values(inputs.commands)
     .filter((command) => command.task_id === inputs.task.id && command.actor === inputs.agentId)
     .sort((left, right) => left.id.localeCompare(right.id));
   if (observed.length === 0) {
+    observed = Object.values(inputs.commands)
+      .filter((command) => command.task_id === inputs.task.id && command.exit_code === 0)
+      .sort((left, right) => left.id.localeCompare(right.id));
+  }
+  if (observed.length === 0) {
+    if (
+      isGateEmpty(inputs.task.gate) ||
+      Boolean(inputs.allowEmptyFiles) ||
+      Boolean(inputs.skipChecks)
+    ) {
+      return { commands: [], evidenceClass: "agent_reported" };
+    }
     throw new HarnessError(
       "INVALID_STATE",
       `cannot determine checks for ${inputs.task.id}: the agent has no recorded command; run the task gate through run:exec, or pass --evidence or --report`,

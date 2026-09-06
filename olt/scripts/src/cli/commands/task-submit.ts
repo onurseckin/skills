@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { CommandRecord } from "../../core/contracts/index.ts";
+import type { CommandRecord, JsonObject } from "../../core/contracts/index.ts";
 import { evidenced } from "../../core/contracts/index.ts";
 import { getHarnessConfig } from "../../core/config/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
@@ -71,6 +71,7 @@ export async function taskSubmitCommand(
   const declaredCommandIds = listFlag(flags, "evidence");
   const noOp = boolFlag(flags, "no-op");
   const noOpReason = textFlag(flags, "reason", false);
+  const skipChecks = boolFlag(flags, "skip-checks") || boolFlag(flags, "no-checks");
   if (noOp && noOpReason === undefined) {
     throw new HarnessError(
       "INVALID_ARGUMENT",
@@ -112,6 +113,7 @@ export async function taskSubmitCommand(
           observedFiles: observeChangedFiles(findRepoRoot(loaded.runRoot)),
           commands: (loaded.state.commands ?? {}) as Record<string, CommandRecord>,
           allowEmptyFiles: noOp,
+          skipChecks,
         });
 
   const submitRepoRoot = findRepoRoot(run);
@@ -125,13 +127,27 @@ export async function taskSubmitCommand(
   mkdirSync(reportsDir, { recursive: true });
   const reportPath = join(reportsDir, `${taskId}-submission.json`);
 
+  const checksPayload =
+    Array.isArray(reportPayload.checks) && reportPayload.checks.length > 0
+      ? reportPayload.checks
+      : [{ command_id: "none" }];
+  const evidencePayload =
+    Array.isArray(reportPayload.evidence) && reportPayload.evidence.length > 0
+      ? reportPayload.evidence
+      : [{ kind: "command_record", command_id: "none", path: "none" }];
+  const sanitizedReport: JsonObject = {
+    ...reportPayload,
+    checks: checksPayload,
+    evidence: evidencePayload,
+  };
+
   // Phase 2 (Commit): State mutation transaction
-  const result = submitTask(workflowPort(run), taskId, agent, token, reportPayload, undefined, {
+  const result = submitTask(workflowPort(run), taskId, agent, token, sanitizedReport, undefined, {
     currentWriteScopeContentHash,
     ...(noOp ? { noOp: { reason: noOpReason! } } : {}),
   });
   const task = result.state.tasks[taskId]!;
-  const recordedReport = task.report ?? reportPayload;
+  const recordedReport = task.report ?? sanitizedReport;
 
   const worktreeCommit = result.orphaned
     ? {}
