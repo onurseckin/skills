@@ -21,7 +21,7 @@ describe("Dual UI Validators & Governance Manifests", () => {
   afterEach(() => {
     cleanupVirtualAgentsFS();
   });
-  describe("ui-headless-validator.yaml & ui-mechanic-validator.yaml", () => {
+  describe("ui-headless-validator.yaml", () => {
     it("validates ui-headless-validator manifest structure and invariants", () => {
       const filePath = join(AGENTS_DIR, "ui-headless-validator.yaml");
       const rawYaml = readFileSync(filePath, "utf-8");
@@ -47,24 +47,9 @@ describe("Dual UI Validators & Governance Manifests", () => {
       expect(validation.valid).toBe(true);
       expect(validation.errors).toEqual([]);
     });
-
-    it("validates ui-mechanic-validator manifest has hitbox metrics and invariants", () => {
-      const filePath = join(AGENTS_DIR, "ui-mechanic-validator.yaml");
-      const rawYaml = readFileSync(filePath, "utf-8");
-      const manifest = parseUnifiedAgentManifest(rawYaml, filePath);
-
-      expect(manifest.name).toBe("ui-mechanic-validator");
-      expect(manifest.invariants).toContain("AUTOMATED_TESTS_ARE_HALF_THE_JOB");
-      expect(manifest.invariants).toContain("MANDATORY_SCREENSHOT_CAPTURE_ALL_4_VIEWPORTS");
-      expect(manifest.invariants).toContain("HITBOX_METRIC_VERIFICATION_44PT");
-      expect(manifest.invariants).toContain("SUPERFICIAL_UI_APPROVAL_BAN");
-
-      const validation = validateUnifiedAgentManifest(manifest);
-      expect(validation.valid).toBe(true);
-    });
   });
 
-  describe("ui-optical-validator.yaml & ui-validator.yaml", () => {
+  describe("ui-optical-validator.yaml", () => {
     it("validates ui-optical-validator manifest zero commands and Socratic focus", () => {
       const filePath = join(AGENTS_DIR, "ui-optical-validator.yaml");
       const rawYaml = readFileSync(filePath, "utf-8");
@@ -88,21 +73,6 @@ describe("Dual UI Validators & Governance Manifests", () => {
       const validation = validateUnifiedAgentManifest(manifest);
       expect(validation.valid).toBe(true);
       expect(validation.errors).toEqual([]);
-    });
-
-    it("validates ui-validator manifest zero commands and human-grade cognitive critique", () => {
-      const filePath = join(AGENTS_DIR, "ui-validator.yaml");
-      const rawYaml = readFileSync(filePath, "utf-8");
-      const manifest = parseUnifiedAgentManifest(rawYaml, filePath);
-
-      expect(manifest.name).toBe("ui-validator");
-      expect(manifest.invariants).toContain("COGNITIVE_VALIDATOR_ZERO_COMMANDS_HARDLOCK");
-      expect(manifest.invariants).toContain("HEADFUL_VISUAL_SCREENSHOT_REVIEW_MANDATE");
-      expect(manifest.invariants).toContain("SUPERFICIAL_UI_APPROVAL_BAN");
-      expect(manifest.invariants).toContain("HUMAN_GRADE_COGNITIVE_CRITIQUE");
-
-      const validation = validateUnifiedAgentManifest(manifest);
-      expect(validation.valid).toBe(true);
     });
   });
 

@@ -1,13 +1,7 @@
 import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { ROLE_ALIASES } from "./constants.ts";
-
 export function normalizeRoleName(roleInput: string): string {
-  const trimmed = roleInput.trim().toLowerCase();
-  if (ROLE_ALIASES[trimmed]) {
-    return ROLE_ALIASES[trimmed];
-  }
-  return trimmed;
+  return roleInput.trim().toLowerCase();
 }
 
 export function findSkillRoot(

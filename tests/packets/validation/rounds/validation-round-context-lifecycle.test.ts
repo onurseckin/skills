@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 import type { JsonObject } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -25,7 +25,12 @@ import {
   finding,
   gitReturning,
   rejectedTask,
+  resetValidationRoundFixture,
 } from "./validation-round-fixture.ts";
+
+afterAll(() => {
+  resetValidationRoundFixture();
+});
 
 describe("a prior round enters the packet as a demand and never as a conclusion", () => {
   test("the demand keeps the check and drops the diagnosis", () => {

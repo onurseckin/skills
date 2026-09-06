@@ -12,7 +12,28 @@
       "default": null
     },
     {
+      "name": "tier",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "orchestrator",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
       "name": "all",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "force",
       "type": "bool",
       "required": false,
       "repeatable": false,

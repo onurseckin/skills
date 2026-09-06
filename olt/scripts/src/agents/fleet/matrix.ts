@@ -19,29 +19,26 @@ export const FLEET_CONTRACT_REGISTRY: Readonly<Record<string, AgentOperationalCo
   for (const contract of CONTRACTS_LIST) {
     map[contract.id] = contract;
     map[contract.role] = contract;
-    for (const alias of contract.aliases) {
-      map[alias] = contract;
-    }
   }
   return Object.freeze(map);
 })();
 
-export function normalizeAgentRole(roleOrAlias: string): string {
-  const contract = FLEET_CONTRACT_REGISTRY[roleOrAlias.toLowerCase().trim()];
+export function normalizeAgentRole(role: string): string {
+  const contract = FLEET_CONTRACT_REGISTRY[role.toLowerCase().trim()];
   if (contract) return contract.id;
-  return roleOrAlias.toLowerCase().trim();
+  return role.toLowerCase().trim();
 }
 
-export function getAgentContract(roleOrAlias: string): AgentOperationalContract | undefined {
-  if (!roleOrAlias) return undefined;
-  return FLEET_CONTRACT_REGISTRY[roleOrAlias.toLowerCase().trim()];
+export function getAgentContract(role: string): AgentOperationalContract | undefined {
+  if (!role) return undefined;
+  return FLEET_CONTRACT_REGISTRY[role.toLowerCase().trim()];
 }
 
-export function requireAgentContract(roleOrAlias: string): AgentOperationalContract {
-  const contract = getAgentContract(roleOrAlias);
+export function requireAgentContract(role: string): AgentOperationalContract {
+  const contract = getAgentContract(role);
   if (!contract) {
     throw new Error(
-      `Unknown agent archetype or role: '${roleOrAlias}'. Available archetypes: ${ALL_31_AGENT_ARCHETYPES.join(", ")}`,
+      `Unknown agent archetype or role: '${role}'. Available archetypes: ${ALL_31_AGENT_ARCHETYPES.join(", ")}`,
     );
   }
   return contract;

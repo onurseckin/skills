@@ -228,7 +228,7 @@ export function generateSwarmDispatchPlan(
 
   switch (complexity.level) {
     case 1: // Trivial
-      primaryLead = "primary-implementer";
+      primaryLead = "implementer";
       workers = [];
       validators = [];
       maxConcurrency = 1;
@@ -236,29 +236,29 @@ export function generateSwarmDispatchPlan(
       break;
 
     case 2: // Component
-      primaryLead = "primary-implementer";
+      primaryLead = "implementer";
       workers = [];
-      validators = isUi ? ["ui-visual-reviewer"] : ["general-validator"];
+      validators = isUi ? ["ui-optical-validator"] : ["validator"];
       maxConcurrency = 2;
       worktreeStrategy = "in-tree";
       break;
 
     case 3: // Subsystem
       primaryLead = "feature-coordinator";
-      workers = ["primary-implementer", "sub-implementer"];
+      workers = ["implementer", "sub-implementer"];
       validators = isUi
-        ? ["ui-headless-debugger", "ui-visual-reviewer"]
-        : ["mechanic-validator", "completeness-critic"];
+        ? ["ui-headless-validator", "ui-optical-validator"]
+        : ["validator", "completeness-critic"];
       maxConcurrency = 4;
       worktreeStrategy = "ephemeral-worktree";
       break;
 
     case 4: // Architectural
       primaryLead = "domain-orchestrator";
-      workers = ["primary-implementer", "sub-implementer", "autonomous-repairer"];
+      workers = ["implementer", "sub-implementer", "sub-investigator"];
       validators = isUi
-        ? ["ui-headless-debugger", "ui-visual-reviewer", "completeness-critic", "system-critic"]
-        : ["general-validator", "mechanic-validator", "completeness-critic", "system-critic"];
+        ? ["ui-headless-validator", "ui-optical-validator", "completeness-critic", "system-critic"]
+        : ["validator", "completeness-critic", "system-critic"];
       maxConcurrency = 8;
       worktreeStrategy = "shard-pool";
       break;

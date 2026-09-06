@@ -87,22 +87,22 @@ describe("Wave 5: Sovereign Equilibrium & Complexity Triage", () => {
       // Level 1 task: Attempting to spawn 4 agents with a coordinator should be VETOED
       const evalLevel1 = watchdog.evaluateDecomposition(1, [
         "feature-coordinator",
-        "primary-implementer",
+        "implementer",
         "sub-implementer",
-        "general-validator",
+        "validator",
       ]);
       expect(evalLevel1.vetoed).toBe(true);
       expect(evalLevel1.allowed).toBe(false);
       expect(evalLevel1.reason).toContain("AntiOverheadWatchdog VETO: Level 1");
-      expect(evalLevel1.flattenedPlan?.primaryLead).toBe("primary-implementer");
+      expect(evalLevel1.flattenedPlan?.primaryLead).toBe("implementer");
       expect(evalLevel1.flattenedPlan?.workers.length).toBe(0);
 
       // Level 2 task: Attempting to spawn 4 agents with sub-implementers should be VETOED
       const evalLevel2 = watchdog.evaluateDecomposition(2, [
         "feature-coordinator",
-        "primary-implementer",
+        "implementer",
         "sub-implementer",
-        "general-validator",
+        "validator",
       ]);
       expect(evalLevel2.vetoed).toBe(true);
       expect(evalLevel2.flattenedPlan?.maxConcurrency).toBe(2);
@@ -110,7 +110,7 @@ describe("Wave 5: Sovereign Equilibrium & Complexity Triage", () => {
       // Level 3 task: Allowed to spawn multi-agent coordinator swarm
       const evalLevel3 = watchdog.evaluateDecomposition(3, [
         "feature-coordinator",
-        "primary-implementer",
+        "implementer",
         "sub-implementer",
         "completeness-critic",
       ]);
@@ -127,29 +127,29 @@ describe("Wave 5: Sovereign Equilibrium & Complexity Triage", () => {
       // Non-UI Level 2 plan
       const nonUiPlan = generateSwarmDispatchPlan({ changedFilesCount: 3, isUiTask: false });
       expect(nonUiPlan.complexity.level).toBe(2);
-      expect(nonUiPlan.primaryLead).toBe("primary-implementer");
-      expect(nonUiPlan.validators).toContain("general-validator");
+      expect(nonUiPlan.primaryLead).toBe("implementer");
+      expect(nonUiPlan.validators).toContain("validator");
       expect(nonUiPlan.worktreeStrategy).toBe("in-tree");
 
       // UI Level 2 plan
       const uiPlan = generateSwarmDispatchPlan({ changedFilesCount: 3, isUiTask: true });
       expect(uiPlan.complexity.level).toBe(2);
-      expect(uiPlan.validators).toContain("ui-visual-reviewer");
+      expect(uiPlan.validators).toContain("ui-optical-validator");
 
       // UI Level 3 Subsystem plan
       const uiSubsystemPlan = generateSwarmDispatchPlan({ changedFilesCount: 8, isUiTask: true });
       expect(uiSubsystemPlan.complexity.level).toBe(3);
       expect(uiSubsystemPlan.primaryLead).toBe("feature-coordinator");
-      expect(uiSubsystemPlan.workers).toContain("primary-implementer");
-      expect(uiSubsystemPlan.validators).toContain("ui-headless-debugger");
-      expect(uiSubsystemPlan.validators).toContain("ui-visual-reviewer");
+      expect(uiSubsystemPlan.workers).toContain("implementer");
+      expect(uiSubsystemPlan.validators).toContain("ui-headless-validator");
+      expect(uiSubsystemPlan.validators).toContain("ui-optical-validator");
       expect(uiSubsystemPlan.worktreeStrategy).toBe("ephemeral-worktree");
 
       // Level 4 Architectural plan
       const archPlan = generateSwarmDispatchPlan({ changedFilesCount: 20, isUiTask: true });
       expect(archPlan.complexity.level).toBe(4);
       expect(archPlan.primaryLead).toBe("domain-orchestrator");
-      expect(archPlan.workers).toContain("autonomous-repairer");
+      expect(archPlan.workers).toContain("sub-investigator");
       expect(archPlan.validators).toContain("completeness-critic");
       expect(archPlan.worktreeStrategy).toBe("shard-pool");
     });

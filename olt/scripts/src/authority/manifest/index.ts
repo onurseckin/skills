@@ -12,9 +12,6 @@ export type {
   ManifestLoaderOptions,
   ParsedLine,
 } from "./types.ts";
-
-export { ROLE_ALIASES } from "./constants.ts";
-
 export { findSkillRoot, normalizeRoleName } from "./discovery.ts";
 
 export {

@@ -32,7 +32,7 @@ describe("Authority Session Comprehensive - Operations & Lifecycle", () => {
         tasks: {},
         agents: [
           {
-            agent_id: "impl_t1",
+            agent_id: "implementer_t1",
             role: "implementer",
             status: "active",
             grant: { task_id: "t1", write_scope: ["src/a.ts"], token: "tok-123" },
@@ -44,16 +44,16 @@ describe("Authority Session Comprehensive - Operations & Lifecycle", () => {
     const envS = resolveActiveSession({
       cwd: sandbox,
       runRoot: cDir,
-      env: { HARNESS_TOKEN: "tok_e1", AGENT_ID: "coord_w1", ROLE: "coordinator" },
+      env: { HARNESS_TOKEN: "tok_e1", AGENT_ID: "coordinator_w1", ROLE: "coordinator" },
     });
-    expect(envS?.agent_id).toBe("coord_w1");
+    expect(envS?.agent_id).toBe("coordinator_w1");
     expect(envS?.role).toBe("coordinator");
     expect(envS?.token).toBe("tok_e1");
 
     setInMemorySessionData(
       `${sandbox}/.session.json`,
       JSON.stringify({
-        agent_id: "orch_p1",
+        agent_id: "orchestrator_p1",
         role: "orchestrator",
         token: "tok_w1",
         can_execute_shell: true,
@@ -67,7 +67,7 @@ describe("Authority Session Comprehensive - Operations & Lifecycle", () => {
     setInMemorySessionData(
       `${sandbox}/.olt/.sessions/98765.json`,
       JSON.stringify({
-        agent_id: "impl_t1",
+        agent_id: "implementer_t1",
         role: "implementer",
         token: "tok-123",
         task_id: "t1",
@@ -87,7 +87,7 @@ describe("Authority Session Comprehensive - Operations & Lifecycle", () => {
     );
 
     const staged = stageSessionGrant({
-      agentId: "impl_w2",
+      agentId: "implementer_w2",
       role: "implementer",
       runRoot: cDir,
       pid: 44444,
@@ -97,10 +97,10 @@ describe("Authority Session Comprehensive - Operations & Lifecycle", () => {
       customToken: "tok_g1",
       bindProcessAncestry: true,
     });
-    expect(staged.session.agent_id).toBe("impl_w2");
+    expect(staged.session.agent_id).toBe("implementer_w2");
 
     const reg = registerSessionGrant({
-      agentId: "val_sub",
+      agentId: "validator_sub",
       role: "validator",
       runRoot: cDir,
       pid: 55555,
@@ -108,7 +108,7 @@ describe("Authority Session Comprehensive - Operations & Lifecycle", () => {
       customToken: "tok_vg1",
       bindProcessAncestry: true,
     });
-    expect(reg.agent_id).toBe("val_sub");
+    expect(reg.agent_id).toBe("validator_sub");
     expect(reg.role).toBe("validator");
 
     expect(() =>
@@ -116,11 +116,14 @@ describe("Authority Session Comprehensive - Operations & Lifecycle", () => {
     ).not.toThrow();
     expect(() => pruneStaleSessions(0)).not.toThrow();
 
-    const derived = autoDeriveCallerIdentity({ explicitActor: "impl_t1", explicitToken: "tok-1" });
-    expect(derived.actor).toBe("impl_t1");
+    const derived = autoDeriveCallerIdentity({
+      explicitActor: "implementer_t1",
+      explicitToken: "tok-1",
+    });
+    expect(derived.actor).toBe("implementer_t1");
     expect(derived.role).toBe("implementer");
     expect(derived.verified).toBe(false);
-    expect(typeof isSessionLedgerBacked(cDir, "impl_t1", "implementer")).toBe("boolean");
+    expect(typeof isSessionLedgerBacked(cDir, "implementer_t1", "implementer")).toBe("boolean");
   });
 
   test("requireTurn1Registration edge cases and failures", () => {
@@ -187,9 +190,9 @@ describe("Authority Session Comprehensive - Operations & Lifecycle", () => {
     ).not.toThrow();
 
     setInMemorySessionData(
-      `${candDir}/runtime/sessions/impl_w1.json`,
+      `${candDir}/runtime/sessions/implementer_w1.json`,
       JSON.stringify({
-        agent_id: "impl_w1",
+        agent_id: "implementer_w1",
         role: "implementer",
         token: "tok-rt",
         can_execute_shell: true,
@@ -202,10 +205,10 @@ describe("Authority Session Comprehensive - Operations & Lifecycle", () => {
     const session = resolveActiveSession({
       cwd: sandbox,
       runRoot: candDir,
-      explicitActor: "impl_w1",
+      explicitActor: "implementer_w1",
       env: {},
     });
-    expect(session?.agent_id).toBe("impl_w1");
+    expect(session?.agent_id).toBe("implementer_w1");
     expect(session?.mechanisms_detected).toContain("capsule_runtime_session");
     expect(session?.task_id).toBe("t_rt");
   });

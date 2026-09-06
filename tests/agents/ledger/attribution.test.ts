@@ -124,21 +124,21 @@ describe("resolveAttribution", () => {
     expect(resolveAttribution(stateWith(released()), "agent-1")).toHaveProperty("releasedGrant");
   });
 
-  test("a role name is not an agent id, so mechanic-validator matches no grant in a real ledger", () => {
+  test("a role name is not an agent id, so validator matches no grant in a real ledger", () => {
     const state = stateWith(
       grant({ id: "implementer_cand-5-attr" }),
-      grant({ id: "validator-1", role: "mechanic-validator" }),
+      grant({ id: "validator-1", role: "validator" }),
     );
-    const result = resolveAttribution(state, "mechanic-validator");
+    const result = resolveAttribution(state, "validator");
     expect(result.kind).toBe("unattributed");
     if (result.kind !== "unattributed") throw new Error("expected an unattributed attribution");
     expect(result.reason).toBe("no-such-grant");
-    expect(result.actor).toBe("mechanic-validator");
+    expect(result.actor).toBe("validator");
   });
 
   test("both outcomes are returnable values, so historical ungranted artifacts stay replayable", () => {
     const state = stateWith(grant({ id: "agent-1" }));
-    const kinds = ["agent-1", "mechanic-validator", "agent-9"].map(
+    const kinds = ["agent-1", "validator", "agent-9"].map(
       (actor) => resolveAttribution(state, actor).kind,
     );
     expect(kinds).toEqual(["granted", "unattributed", "unattributed"]);
@@ -184,9 +184,9 @@ describe("describeAttribution", () => {
     expect(describeAttribution(resolveAttribution(stateWith(released()), "agent-1"))).toMatch(
       /grant was released/,
     );
-    expect(
-      describeAttribution(resolveAttribution(stateWith(released()), "mechanic-validator")),
-    ).toMatch(/no grant was ever issued/);
+    expect(describeAttribution(resolveAttribution(stateWith(released()), "validator"))).toMatch(
+      /no grant was ever issued/,
+    );
     expect(describeAttribution(resolveAttribution({}, "agent-1"))).toMatch(
       /granted no agents at all/,
     );
@@ -214,13 +214,13 @@ describe("assertAttribution (imported from the agents barrel)", () => {
 
   test("refuses an actor that never held a grant, and says so in a parseable payload", () => {
     const error = caughtHarnessError(() =>
-      assertAttribution(stateWith(grant({ id: "agent-1" })), "mechanic-validator"),
+      assertAttribution(stateWith(grant({ id: "agent-1" })), "validator"),
     );
     expect(error.code).toBe("INVALID_STATE");
     expect(error.message).toMatch(
-      /actor mechanic-validator is unattributed: no grant was ever issued for this id/,
+      /actor validator is unattributed: no grant was ever issued for this id/,
     );
-    expect(error.issues).toEqual([{ actor: "mechanic-validator", reason: "no-such-grant" }]);
+    expect(error.issues).toEqual([{ actor: "validator", reason: "no-such-grant" }]);
     expect(error.fix).toMatch(/agent id that holds the grant/);
   });
 

@@ -98,35 +98,35 @@ describe("Thread Identifier - Execution Context Resolution & Tier Spawning", () 
   test("identifyExecutionContext correctly detects Tier 1, Tier 2, and Tier 3", () => {
     const orchCtx = identifyExecutionContext({
       role: "orchestrator",
-      agentId: "orch-lead-1",
+      agentId: "orchestrator-lead-1",
       env: {
         HARNESS_EXECUTION_TIER: "1",
         HARNESS_AGENT_ROLE: "orchestrator",
-        HARNESS_AGENT_ID: "orch-lead-1",
+        HARNESS_AGENT_ID: "orchestrator-lead-1",
       },
     });
     expect(orchCtx.tier).toBe(1);
     expect(orchCtx.role).toBe("orchestrator");
-    expect(orchCtx.agent_id).toBe("orch-lead-1");
+    expect(orchCtx.agent_id).toBe("orchestrator-lead-1");
     expect(orchCtx.is_main_thread).toBe(false);
     expect(orchCtx.compliance_state).toBe("compliant");
 
     const coordCtx = identifyExecutionContext({
       role: "coordinator",
-      agentId: "coord-test",
+      agentId: "coordinator-test",
       env: {
         HARNESS_AGENT_ROLE: "coordinator",
-        HARNESS_AGENT_ID: "coord-test",
+        HARNESS_AGENT_ID: "coordinator-test",
       },
     });
     expect(coordCtx.tier).toBe(2);
     expect(coordCtx.role).toBe("coordinator");
-    expect(coordCtx.agent_id).toBe("coord-test");
+    expect(coordCtx.agent_id).toBe("coordinator-test");
 
     const implCtx = identifyExecutionContext({
-      agentId: "impl-wave-1",
+      agentId: "implementer-wave-1",
       env: {
-        HARNESS_AGENT_ID: "impl-wave-1",
+        HARNESS_AGENT_ID: "implementer-wave-1",
       },
     });
     expect(implCtx.tier).toBe(3);
@@ -168,7 +168,7 @@ describe("Thread Identifier - Execution Context Resolution & Tier Spawning", () 
   test("formatThreadIdentificationBrief formats markdown summary accurately", () => {
     const context = identifyExecutionContext({
       role: "coordinator",
-      agentId: "coord-test",
+      agentId: "coordinator-test",
       env: {
         GRANTED_TOOLS: "task_claim, task_submit",
       },
@@ -177,7 +177,7 @@ describe("Thread Identifier - Execution Context Resolution & Tier Spawning", () 
     const brief = formatThreadIdentificationBrief(context);
     expect(brief).toContain("### Thread Authority Identification (`whoami`)");
     expect(brief).toContain("Tier 2");
-    expect(brief).toContain("coord-test");
+    expect(brief).toContain("coordinator-test");
     expect(brief).toContain("COMPLIANT");
     expect(brief).toContain("task_claim, task_submit");
   });

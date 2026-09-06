@@ -111,6 +111,7 @@ describe("Harness Dual-Validation Hardening & Mandatory Validator Pairing", () =
     test("dual-domain task (UI scope) rejects single sign-off and requires both domains", () => {
       const state = workflowState();
       state.tasks["T-1"]!.write_scope = UI_WRITE_SCOPE;
+      Object.assign(state.tasks["T-1"]!, { skip_pushback_quotas: true });
       const task = state.tasks["T-1"]!;
 
       expect(applicableValidatorDomains(task.write_scope)).toEqual(["code-quality", "ui-design"]);
@@ -208,6 +209,7 @@ describe("Harness Dual-Validation Hardening & Mandatory Validator Pairing", () =
     test("refuses to finish a UI task when only code-quality validator has signed off", () => {
       const state = workflowState();
       state.tasks["T-1"]!.write_scope = UI_WRITE_SCOPE;
+      Object.assign(state.tasks["T-1"]!, { skip_pushback_quotas: true });
       const port = new TestPort(state);
       const { token } = claimTask(port, "T-1", "implementer-1", "implementer", { clock });
       registerTaskPacket(port, "implementer", "implementer-1", 1);
@@ -237,6 +239,7 @@ describe("Harness Dual-Validation Hardening & Mandatory Validator Pairing", () =
     test("successfully finishes once both mechanic and cognitive UI validators sign off", () => {
       const state = workflowState();
       state.tasks["T-1"]!.write_scope = UI_WRITE_SCOPE;
+      Object.assign(state.tasks["T-1"]!, { skip_pushback_quotas: true });
       const port = new TestPort(state);
       const { token } = claimTask(port, "T-1", "implementer-1", "implementer", { clock });
       registerTaskPacket(port, "implementer", "implementer-1", 1);

@@ -8,7 +8,6 @@ export const CONTRACTS_TIER_3_EXEC: readonly AgentOperationalContract[] = [
     role: "sub-implementer",
     tier: 3,
     category: "execution",
-    aliases: ["sub_implementer", "leaf-implementer"],
     toolBoundaries: {
       canWriteCode: true,
       canExecuteCommands: true,
@@ -44,7 +43,6 @@ export const CONTRACTS_TIER_3_EXEC: readonly AgentOperationalContract[] = [
     role: "sub-investigator",
     tier: 3,
     category: "execution",
-    aliases: ["sub_investigator", "leaf-investigator", "investigator"],
     toolBoundaries: {
       canWriteCode: false,
       canExecuteCommands: false,
@@ -78,7 +76,6 @@ export const CONTRACTS_TIER_3_EXEC: readonly AgentOperationalContract[] = [
     role: "publisher",
     tier: 3,
     category: "execution",
-    aliases: ["publisher", "release-publisher", "wave-publisher"],
     toolBoundaries: {
       canWriteCode: true,
       canExecuteCommands: true,

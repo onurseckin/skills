@@ -21,40 +21,12 @@ describe("Thread Identifier - Parsing, Tiers, and Naming Standards", () => {
 
   test("parseTierValue parses strings into correct execution tiers", () => {
     expect(parseTierValue("0")).toBe(0);
-    expect(parseTierValue("tier-0")).toBe(0);
-    expect(parseTierValue("tier_0")).toBe(0);
-    expect(parseTierValue("tier 0")).toBe(0);
-    expect(parseTierValue("mind")).toBe(0);
-    expect(parseTierValue("human")).toBe(0);
-    expect(parseTierValue("Tier 0: Mind Lead")).toBe(0);
 
     expect(parseTierValue("1")).toBe(1);
-    expect(parseTierValue("tier-1")).toBe(1);
-    expect(parseTierValue("tier_1")).toBe(1);
-    expect(parseTierValue("tier 1")).toBe(1);
-    expect(parseTierValue("orchestrator")).toBe(1);
-    expect(parseTierValue("orch")).toBe(1);
-    expect(parseTierValue("mind-auditor")).toBe(1);
-    expect(parseTierValue("auditor")).toBe(1);
 
     expect(parseTierValue("2")).toBe(2);
-    expect(parseTierValue("tier-2")).toBe(2);
-    expect(parseTierValue("tier_2")).toBe(2);
-    expect(parseTierValue("tier 2")).toBe(2);
-    expect(parseTierValue("coordinator")).toBe(2);
-    expect(parseTierValue("coord")).toBe(2);
 
     expect(parseTierValue("3")).toBe(3);
-    expect(parseTierValue("tier-3")).toBe(3);
-    expect(parseTierValue("tier_3")).toBe(3);
-    expect(parseTierValue("tier 3")).toBe(3);
-    expect(parseTierValue("implementer")).toBe(3);
-    expect(parseTierValue("validator")).toBe(3);
-    expect(parseTierValue("critic")).toBe(3);
-    expect(parseTierValue("completeness-critic")).toBe(3);
-    expect(parseTierValue("repairer")).toBe(3);
-    expect(parseTierValue("planner")).toBe(3);
-    expect(parseTierValue("plan-validator")).toBe(3);
 
     expect(parseTierValue(undefined)).toBeNull();
     expect(parseTierValue("")).toBeNull();
@@ -64,14 +36,9 @@ describe("Thread Identifier - Parsing, Tiers, and Naming Standards", () => {
 
   test("roleToTier maps standard roles to tiers", () => {
     expect(roleToTier("mind")).toBe(0);
-    expect(roleToTier("human")).toBe(0);
-    expect(roleToTier("user")).toBe(0);
     expect(roleToTier("orchestrator")).toBe(1);
-    expect(roleToTier("orch-lead")).toBe(1);
     expect(roleToTier("mind-auditor")).toBe(1);
-    expect(roleToTier("auditor")).toBe(1);
     expect(roleToTier("coordinator")).toBe(2);
-    expect(roleToTier("coord-1")).toBe(2);
     expect(roleToTier("implementer")).toBe(3);
     expect(roleToTier("validator")).toBe(3);
     expect(roleToTier("repairer")).toBe(3);
@@ -82,32 +49,32 @@ describe("Thread Identifier - Parsing, Tiers, and Naming Standards", () => {
     expect(agentIdToTier("mind-0")).toBe(0);
     expect(agentIdToRole("mind-0")).toBe("mind");
 
-    expect(agentIdToTier("mind-audit-1")).toBe(1);
-    expect(agentIdToRole("mind-audit-1")).toBe("mind-auditor");
+    expect(agentIdToTier("mind-auditor-1")).toBe(1);
+    expect(agentIdToRole("mind-auditor-1")).toBe("mind-auditor");
 
-    expect(agentIdToTier("orch-lead")).toBe(1);
-    expect(agentIdToRole("orch-lead")).toBe("orchestrator");
+    expect(agentIdToTier("orchestrator-lead")).toBe(1);
+    expect(agentIdToRole("orchestrator-lead")).toBe("orchestrator");
 
-    expect(agentIdToTier("coord-alpha")).toBe(2);
-    expect(agentIdToRole("coord-alpha")).toBe("coordinator");
+    expect(agentIdToTier("coordinator-alpha")).toBe(2);
+    expect(agentIdToRole("coordinator-alpha")).toBe("coordinator");
 
-    expect(agentIdToTier("impl-task-1")).toBe(3);
-    expect(agentIdToRole("impl-task-1")).toBe("implementer");
+    expect(agentIdToTier("implementer-task-1")).toBe(3);
+    expect(agentIdToRole("implementer-task-1")).toBe("implementer");
 
-    expect(agentIdToTier("val-task-1")).toBe(3);
-    expect(agentIdToRole("val-task-1")).toBe("validator");
+    expect(agentIdToTier("validator-task-1")).toBe(3);
+    expect(agentIdToRole("validator-task-1")).toBe("validator");
 
-    expect(agentIdToTier("critic-task-1")).toBe(3);
-    expect(agentIdToRole("critic-task-1")).toBe("completeness-critic");
+    expect(agentIdToTier("completeness-critic-task-1")).toBe(3);
+    expect(agentIdToRole("completeness-critic-task-1")).toBe("completeness-critic");
 
-    expect(agentIdToTier("repair-task-1")).toBe(3);
-    expect(agentIdToRole("repair-task-1")).toBe("repairer");
+    expect(agentIdToTier("repairer-task-1")).toBe(3);
+    expect(agentIdToRole("repairer-task-1")).toBe("repairer");
 
-    expect(agentIdToTier("plan-val-1")).toBe(3);
-    expect(agentIdToRole("plan-val-1")).toBe("plan-validator");
+    expect(agentIdToTier("plan-validator-1")).toBe(3);
+    expect(agentIdToRole("plan-validator-1")).toBe("plan-validator");
 
-    expect(agentIdToTier("plan-1")).toBe(3);
-    expect(agentIdToRole("plan-1")).toBe("planner");
+    expect(agentIdToTier("planner-1")).toBe(3);
+    expect(agentIdToRole("planner-1")).toBe("planner");
 
     expect(agentIdToTier("unknown-agent")).toBeNull();
     expect(agentIdToRole("unknown-agent")).toBeNull();
@@ -248,7 +215,7 @@ describe("Thread Identifier - Parsing, Tiers, and Naming Standards", () => {
     expect(taskIdMismatch.reason).toContain("Task ID mismatch");
     expect(taskIdMismatch.recommendedAgentId).toBe("implementer_task-p48-watchdog");
 
-    const inferredRoleValidation = validateAgentNamingConvention("coord-custom-suffix");
+    const inferredRoleValidation = validateAgentNamingConvention("coordinator-custom-suffix");
     expect(inferredRoleValidation.valid).toBe(false);
     expect(inferredRoleValidation.recommendedAgentId).toBe("coordinator_task-id");
   });

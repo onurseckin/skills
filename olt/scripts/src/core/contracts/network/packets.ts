@@ -40,7 +40,7 @@ export const AGENT_ROLES: readonly AgentRole[] = [
 const ROLE_SET = new Set<string>(AGENT_ROLES);
 
 export function isAgentRole(value: unknown): value is AgentRole {
-  return typeof value === "string" && ROLE_SET.has(value);
+  return typeof value === "string" && (ROLE_SET.has(value) || isMechanicValidatorRole(value));
 }
 
 export function isCognitiveValidatorRole(role: string): boolean {

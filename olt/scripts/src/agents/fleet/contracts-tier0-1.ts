@@ -9,7 +9,6 @@ export const CONTRACTS_TIER_0_1: readonly AgentOperationalContract[] = [
     role: "sovereign-mind",
     tier: 0,
     category: "governance",
-    aliases: ["mind", "tier-0", "genesis-mind"],
     toolBoundaries: {
       canWriteCode: false,
       canExecuteCommands: true,
@@ -54,7 +53,6 @@ export const CONTRACTS_TIER_0_1: readonly AgentOperationalContract[] = [
     role: "mind-auditor",
     tier: 0,
     category: "governance",
-    aliases: ["mind_auditor", "auditor-mind"],
     toolBoundaries: {
       canWriteCode: false,
       canExecuteCommands: true,
@@ -93,7 +91,6 @@ export const CONTRACTS_TIER_0_1: readonly AgentOperationalContract[] = [
     role: "skill-auditor",
     tier: 0,
     category: "governance",
-    aliases: ["skill_auditor", "auditor-skill"],
     toolBoundaries: {
       canWriteCode: false,
       canExecuteCommands: true,
@@ -128,7 +125,6 @@ export const CONTRACTS_TIER_0_1: readonly AgentOperationalContract[] = [
     role: "owner",
     tier: "independent",
     category: "governance",
-    aliases: ["tier-owner", "genesis-owner"],
     toolBoundaries: {
       canWriteCode: true,
       canExecuteCommands: true,
@@ -170,7 +166,6 @@ export const CONTRACTS_TIER_0_1: readonly AgentOperationalContract[] = [
     role: "independent-planner",
     tier: "independent",
     category: "governance",
-    aliases: ["independent_planner", "planner-independent"],
     toolBoundaries: {
       canWriteCode: false,
       canExecuteCommands: false,
@@ -209,7 +204,6 @@ export const CONTRACTS_TIER_0_1: readonly AgentOperationalContract[] = [
     role: "independent-planner-auditor",
     tier: "independent",
     category: "governance",
-    aliases: ["independent-planner-audit", "planner-auditor"],
     toolBoundaries: {
       canWriteCode: false,
       canExecuteCommands: false,
@@ -244,7 +238,6 @@ export const CONTRACTS_TIER_0_1: readonly AgentOperationalContract[] = [
     role: "plan-validator",
     tier: 3,
     category: "governance",
-    aliases: ["plan_validator", "validator-plan"],
     toolBoundaries: {
       canWriteCode: false,
       canExecuteCommands: false,

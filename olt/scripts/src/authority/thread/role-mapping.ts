@@ -30,62 +30,11 @@ export function safeDefectId(defect: DefectRecord): string {
 
 export function parseTierValue(value: string | undefined): ExecutionTier | null {
   if (!value) return null;
-  const normalized = value.trim().toLowerCase();
-  if (
-    normalized === "0" ||
-    normalized === "tier-0" ||
-    normalized === "tier_0" ||
-    normalized === "tier 0" ||
-    normalized === "human" ||
-    normalized === "mind" ||
-    normalized.startsWith("tier 0") ||
-    normalized.startsWith("tier 0:")
-  ) {
-    return 0;
-  }
-  if (
-    normalized === "1" ||
-    normalized === "tier-1" ||
-    normalized === "tier_1" ||
-    normalized === "tier 1" ||
-    normalized === "orchestrator" ||
-    normalized === "orch" ||
-    normalized === "mind-auditor" ||
-    normalized === "auditor" ||
-    normalized.startsWith("tier 1") ||
-    normalized.startsWith("tier 1:")
-  ) {
-    return 1;
-  }
-  if (
-    normalized === "2" ||
-    normalized === "tier-2" ||
-    normalized === "tier_2" ||
-    normalized === "tier 2" ||
-    normalized === "coordinator" ||
-    normalized === "coord" ||
-    normalized.startsWith("tier 2") ||
-    normalized.startsWith("tier 2:")
-  ) {
-    return 2;
-  }
-  if (
-    normalized === "3" ||
-    normalized === "tier-3" ||
-    normalized === "tier_3" ||
-    normalized === "tier 3" ||
-    normalized === "implementer" ||
-    normalized === "validator" ||
-    normalized === "critic" ||
-    normalized === "completeness-critic" ||
-    normalized === "repairer" ||
-    normalized === "planner" ||
-    normalized === "plan-validator" ||
-    normalized.startsWith("tier 3") ||
-    normalized.startsWith("tier 3:")
-  ) {
-    return 3;
-  }
+  const normalized = value.trim();
+  if (normalized === "0") return 0;
+  if (normalized === "1") return 1;
+  if (normalized === "2") return 2;
+  if (normalized === "3") return 3;
   return null;
 }
 
@@ -94,36 +43,9 @@ export function roleToTier(role: string): ExecutionTier {
     return 3;
   }
   const normalized = role.toLowerCase().trim();
-  if (
-    normalized === "mind" ||
-    normalized === "human" ||
-    normalized === "user" ||
-    normalized === "lead"
-  ) {
-    return 0;
-  }
-  if (
-    normalized === "orchestrator" ||
-    normalized.startsWith("orch-") ||
-    normalized.startsWith("orch_") ||
-    normalized.startsWith("orchestrator-") ||
-    normalized.startsWith("orchestrator_") ||
-    normalized === "orch" ||
-    normalized === "mind-auditor" ||
-    normalized === "auditor"
-  ) {
-    return 1;
-  }
-  if (
-    normalized === "coordinator" ||
-    normalized.startsWith("coord-") ||
-    normalized.startsWith("coord_") ||
-    normalized.startsWith("coordinator-") ||
-    normalized.startsWith("coordinator_") ||
-    normalized === "coord"
-  ) {
-    return 2;
-  }
+  if (normalized === "mind") return 0;
+  if (normalized === "orchestrator" || normalized === "mind-auditor") return 1;
+  if (normalized === "coordinator") return 2;
   return 3;
 }
 
@@ -133,12 +55,27 @@ export function agentIdToTier(agentId: string): ExecutionTier | null {
     .toLowerCase()
     .trim()
     .replace(/^(?:parent|agent)[-_]/i, "");
-  if (/^mind[-_]audit|^audit/i.test(normalized)) return 1;
-  if (/^mind|^human/i.test(normalized)) return 0;
-  if (/^orch/i.test(normalized)) return 1;
-  if (/^coord/i.test(normalized)) return 2;
+  if (normalized.startsWith("mind-auditor")) return 1;
+  if (normalized.startsWith("mind")) return 0;
+  if (normalized.startsWith("orchestrator")) return 1;
+  if (normalized.startsWith("coordinator")) return 2;
   if (
-    /^(impl|val|critic|completeness[-_]critic|repair|worker|sub|plan|mechanic|ui)/i.test(normalized)
+    normalized.startsWith("implementer") ||
+    normalized.startsWith("validator") ||
+    normalized.startsWith("completeness-critic") ||
+    normalized.startsWith("repairer") ||
+    normalized.startsWith("planner") ||
+    normalized.startsWith("plan-validator") ||
+    normalized.startsWith("sub-implementer") ||
+    normalized.startsWith("sub-validator") ||
+    normalized.startsWith("sub-investigator") ||
+    normalized.startsWith("validator-code-quality") ||
+    normalized.startsWith("validator-ui-design") ||
+    normalized.startsWith("validator-security") ||
+    normalized.startsWith("validator-product") ||
+    normalized.startsWith("validator-system-design") ||
+    normalized.startsWith("ui-headless-validator") ||
+    normalized.startsWith("ui-optical-validator")
   ) {
     return 3;
   }
@@ -151,28 +88,26 @@ export function agentIdToRole(agentId: string): string | null {
     .toLowerCase()
     .trim()
     .replace(/^(?:parent|agent)[-_]/i, "");
-  if (/^mind[-_]audit|^audit/i.test(normalized)) return "mind-auditor";
-  if (/^mind/i.test(normalized)) return "mind";
-  if (/^human/i.test(normalized)) return "human";
-  if (/^orch/i.test(normalized)) return "orchestrator";
-  if (/^coord/i.test(normalized)) return "coordinator";
-  if (/^ui[-_]mechanic[-_]validator/i.test(normalized)) return "ui-mechanic-validator";
-  if (/^ui[-_]validator/i.test(normalized)) return "ui-validator";
-  if (/^mechanic[-_]validator/i.test(normalized)) return "mechanic-validator";
-  if (/^validator[-_]code[-_]quality/i.test(normalized)) return "validator-code-quality";
-  if (/^validator[-_]ui[-_]design/i.test(normalized)) return "validator-ui-design";
-  if (/^validator[-_]security/i.test(normalized)) return "validator-security";
-  if (/^validator[-_]product/i.test(normalized)) return "validator-product";
-  if (/^validator[-_]system[-_]design/i.test(normalized)) return "validator-system-design";
-  if (/^sub[-_]implementer/i.test(normalized)) return "sub-implementer";
-  if (/^sub[-_]validator/i.test(normalized)) return "sub-validator";
-  if (/^sub[-_]investigator/i.test(normalized)) return "sub-investigator";
-  if (/^impl/i.test(normalized)) return "implementer";
-  if (/^val/i.test(normalized)) return "validator";
-  if (/^(completeness[-_]critic|critic)/i.test(normalized)) return "completeness-critic";
-  if (/^repair/i.test(normalized)) return "repairer";
-  if (/^plan[-_]val/i.test(normalized)) return "plan-validator";
-  if (/^plan/i.test(normalized)) return "planner";
+  if (normalized.startsWith("mind-auditor")) return "mind-auditor";
+  if (normalized.startsWith("mind")) return "mind";
+  if (normalized.startsWith("orchestrator")) return "orchestrator";
+  if (normalized.startsWith("coordinator")) return "coordinator";
+  if (normalized.startsWith("ui-headless-validator")) return "ui-headless-validator";
+  if (normalized.startsWith("ui-optical-validator")) return "ui-optical-validator";
+  if (normalized.startsWith("validator-code-quality")) return "validator-code-quality";
+  if (normalized.startsWith("validator-ui-design")) return "validator-ui-design";
+  if (normalized.startsWith("validator-security")) return "validator-security";
+  if (normalized.startsWith("validator-product")) return "validator-product";
+  if (normalized.startsWith("validator-system-design")) return "validator-system-design";
+  if (normalized.startsWith("sub-implementer")) return "sub-implementer";
+  if (normalized.startsWith("sub-validator")) return "sub-validator";
+  if (normalized.startsWith("sub-investigator")) return "sub-investigator";
+  if (normalized.startsWith("implementer")) return "implementer";
+  if (normalized.startsWith("validator")) return "validator";
+  if (normalized.startsWith("completeness-critic")) return "completeness-critic";
+  if (normalized.startsWith("repairer")) return "repairer";
+  if (normalized.startsWith("plan-validator")) return "plan-validator";
+  if (normalized.startsWith("planner")) return "planner";
   return null;
 }
 

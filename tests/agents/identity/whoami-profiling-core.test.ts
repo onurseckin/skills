@@ -97,25 +97,9 @@ describe("Agent Whoami Profiling - Core & Capabilities", () => {
   describe("Tier and Role Parsing", () => {
     it("should parse tier values accurately", () => {
       expect(parseTierValue("0")).toBe(0);
-      expect(parseTierValue("tier-0")).toBe(0);
-      expect(parseTierValue("human")).toBe(0);
-      expect(parseTierValue("mind")).toBe(0);
-
       expect(parseTierValue("1")).toBe(1);
-      expect(parseTierValue("tier-1")).toBe(1);
-      expect(parseTierValue("orchestrator")).toBe(1);
-      expect(parseTierValue("mind-auditor")).toBe(1);
-
       expect(parseTierValue("2")).toBe(2);
-      expect(parseTierValue("tier-2")).toBe(2);
-      expect(parseTierValue("coordinator")).toBe(2);
-
       expect(parseTierValue("3")).toBe(3);
-      expect(parseTierValue("tier-3")).toBe(3);
-      expect(parseTierValue("implementer")).toBe(3);
-      expect(parseTierValue("validator")).toBe(3);
-      expect(parseTierValue("critic")).toBe(3);
-      expect(parseTierValue("repairer")).toBe(3);
 
       expect(parseTierValue("unknown-tier")).toBeNull();
       expect(parseTierValue(undefined)).toBeNull();
@@ -124,10 +108,8 @@ describe("Agent Whoami Profiling - Core & Capabilities", () => {
     it("should map roles to execution tiers", () => {
       expect(roleToTier("mind")).toBe(0);
       expect(roleToTier("orchestrator")).toBe(1);
-      expect(roleToTier("orch-pulse")).toBe(1);
       expect(roleToTier("mind-auditor")).toBe(1);
       expect(roleToTier("coordinator")).toBe(2);
-      expect(roleToTier("coord-domain-backend")).toBe(2);
       expect(roleToTier("implementer")).toBe(3);
       expect(roleToTier("validator")).toBe(3);
       expect(roleToTier("completeness-critic")).toBe(3);
@@ -138,23 +120,23 @@ describe("Agent Whoami Profiling - Core & Capabilities", () => {
       expect(agentIdToTier("mind-supervisor")).toBe(0);
       expect(agentIdToRole("mind-supervisor")).toBe("mind");
 
-      expect(agentIdToTier("orch-master")).toBe(1);
-      expect(agentIdToRole("orch-master")).toBe("orchestrator");
+      expect(agentIdToTier("orchestrator-master")).toBe(1);
+      expect(agentIdToRole("orchestrator-master")).toBe("orchestrator");
 
-      expect(agentIdToTier("audit-verifier")).toBe(1);
-      expect(agentIdToRole("audit-verifier")).toBe("mind-auditor");
+      expect(agentIdToTier("mind-auditor-verifier")).toBe(1);
+      expect(agentIdToRole("mind-auditor-verifier")).toBe("mind-auditor");
 
-      expect(agentIdToTier("coord-lead")).toBe(2);
-      expect(agentIdToRole("coord-lead")).toBe("coordinator");
+      expect(agentIdToTier("coordinator-lead")).toBe(2);
+      expect(agentIdToRole("coordinator-lead")).toBe("coordinator");
 
-      expect(agentIdToTier("impl-unit-test")).toBe(3);
-      expect(agentIdToRole("impl-unit-test")).toBe("implementer");
+      expect(agentIdToTier("implementer-unit-test")).toBe(3);
+      expect(agentIdToRole("implementer-unit-test")).toBe("implementer");
 
-      expect(agentIdToTier("val-security")).toBe(3);
-      expect(agentIdToRole("val-security")).toBe("validator");
+      expect(agentIdToTier("validator-security")).toBe(3);
+      expect(agentIdToRole("validator-security")).toBe("validator-security");
 
-      expect(agentIdToTier("critic-gate")).toBe(3);
-      expect(agentIdToRole("critic-gate")).toBe("completeness-critic");
+      expect(agentIdToTier("completeness-critic-gate")).toBe(3);
+      expect(agentIdToRole("completeness-critic-gate")).toBe("completeness-critic");
 
       expect(agentIdToTier("repairer-patch")).toBe(3);
       expect(agentIdToRole("repairer-patch")).toBe("repairer");

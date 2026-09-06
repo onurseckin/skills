@@ -14,22 +14,13 @@ describe("host-bindings", () => {
   const defaultPolicy = generateDefaultRepoPolicy();
 
   describe("normalizeRoleKey", () => {
-    test("normalizes role aliases to canonical policy agent keys", () => {
-      expect(normalizeRoleKey("mind")).toBe("mind_supervisor");
-      expect(normalizeRoleKey("mind-supervisor")).toBe("mind_supervisor");
-      expect(normalizeRoleKey("tier-0")).toBe("mind_supervisor");
-      expect(normalizeRoleKey("critic")).toBe("completeness_critic");
-      expect(normalizeRoleKey("completeness-critic")).toBe("completeness_critic");
-      expect(normalizeRoleKey("validator")).toBe("validator_code_quality");
+    test("normalizes role keys to canonical policy agent keys", () => {
+      expect(normalizeRoleKey("mind")).toBe("mind");
+      expect(normalizeRoleKey("skill-auditor")).toBe("skill_auditor");
+      expect(normalizeRoleKey("orchestrator")).toBe("orchestrator");
+      expect(normalizeRoleKey("coordinator")).toBe("coordinator");
+      expect(normalizeRoleKey("implementer")).toBe("implementer");
       expect(normalizeRoleKey("validator-code-quality")).toBe("validator_code_quality");
-      expect(normalizeRoleKey("worker")).toBe("implementer");
-      expect(normalizeRoleKey("repairer")).toBe("implementer");
-      expect(normalizeRoleKey("tier-1")).toBe("orchestrator");
-      expect(normalizeRoleKey("tier-2")).toBe("coordinator");
-      expect(normalizeRoleKey("tier-3")).toBe("implementer");
-      expect(normalizeRoleKey("ui-validator")).toBe("validator_ui_design");
-      expect(normalizeRoleKey("independent-planner-audit")).toBe("skill_auditor");
-      expect(normalizeRoleKey("owner")).toBe("owner");
       expect(normalizeRoleKey("")).toBe("");
       expect(normalizeRoleKey(null as unknown as string)).toBe("");
       expect(normalizeRoleKey(123 as unknown as string)).toBe("");
@@ -47,7 +38,7 @@ describe("host-bindings", () => {
     });
 
     test("resolves claude_code host bindings for mind supervisor", () => {
-      const config = resolveAgentHostConfiguration("mind_supervisor", "claude_code", defaultPolicy);
+      const config = resolveAgentHostConfiguration("mind", "claude_code", defaultPolicy);
       expect(config.model).toBe("claude-5-opus");
       expect(config.model_tier).toBe("xhigh");
       expect(config.thinking_effort).toBe("high");
@@ -88,18 +79,22 @@ describe("host-bindings", () => {
       );
     });
 
-    test("resolves implementer and worker alias bindings across hosts with medium thinking effort", () => {
+    test("resolves bindings across hosts with medium thinking effort", () => {
       const agConfig = resolveAgentHostConfiguration("implementer", "antigravity", defaultPolicy);
       expect(agConfig.model).toBe("gemini-3.7-flash");
       expect(agConfig.model_tier).toBe("medium");
       expect(agConfig.thinking_effort).toBe("medium");
 
-      const claudeConfig = resolveAgentHostConfiguration("worker", "claude_code", defaultPolicy);
+      const claudeConfig = resolveAgentHostConfiguration(
+        "implementer",
+        "claude_code",
+        defaultPolicy,
+      );
       expect(claudeConfig.model).toBe("claude-5-sonnet");
       expect(claudeConfig.model_tier).toBe("medium");
       expect(claudeConfig.thinking_effort).toBe("medium");
 
-      const codexConfig = resolveAgentHostConfiguration("repairer", "codex", defaultPolicy);
+      const codexConfig = resolveAgentHostConfiguration("implementer", "codex", defaultPolicy);
       expect(codexConfig.model).toBe("gpt-5.6-terra");
       expect(codexConfig.model_tier).toBe("medium");
       expect(codexConfig.thinking_effort).toBe("medium");

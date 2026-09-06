@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import type { JsonObject } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
@@ -20,7 +20,12 @@ import {
   contextWith,
   gitReturning,
   rejectedTask,
+  resetValidationRoundFixture,
 } from "./validation-round-fixture.ts";
+
+afterAll(() => {
+  resetValidationRoundFixture();
+});
 
 describe("the round-N record carries facts and demands", () => {
   test("round 1 is handed nothing extra", () => {

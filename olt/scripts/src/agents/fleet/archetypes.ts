@@ -22,7 +22,7 @@ export const TIER_2_ORCHESTRATION_AGENTS = [
 ] as const;
 
 export const TIER_3_EXECUTION_AGENTS = [
-  "primary-implementer",
+  "implementer",
   "sub-implementer",
   "sub-investigator",
   "publisher",

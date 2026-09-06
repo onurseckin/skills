@@ -23,13 +23,17 @@ function ensureSession(): VirtualMemoryFS {
   return vfs;
 }
 
-afterAll(() => {
+export function resetValidationRoundFixture(): void {
   disableInMemorySessionStore();
   if (session) {
     session.cleanup();
     session = undefined;
   }
   vfs.reset();
+}
+
+afterAll(() => {
+  resetValidationRoundFixture();
 });
 
 export const DIFF = "diff --git a/src/owned/a.ts b/src/owned/a.ts\n+const fixed = true;\n";

@@ -15,7 +15,9 @@ Allocates a hermetic track worktree in .olt/worktrees/<track_id>, creates branch
 
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `--track` | string | yes | no | - | Track identifier. |
+| `--track` | string | no | no | - | Track identifier. |
+| `--tier` | string | no | no | `track` | Worktree tier: track or orchestrator (default: track). |
+| `--orchestrator` | string | no | no | - | Orchestrator domain. |
 | `--base-branch` | string | no | no | `main` | Base branch to fork from (default: main). |
 | `--repo-root` | string | no | no | - | Repository root path. |
 
@@ -78,7 +80,10 @@ Removes specified worktree directory, deletes track branch, runs git worktree pr
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--track` | string | no | no | - | Track identifier to clean. |
+| `--tier` | string | no | no | - | Worktree tier: track or orchestrator. |
+| `--orchestrator` | string | no | no | - | Orchestrator domain to clean. |
 | `--all` | bool | no | no | - | Clean all active track worktrees. |
+| `--force` | bool | no | no | - | Force removal even if lock is active. |
 | `--no-force` | bool | no | no | - | Do not force removal. |
 | `--repo-root` | string | no | no | - | Repository root path. |
 

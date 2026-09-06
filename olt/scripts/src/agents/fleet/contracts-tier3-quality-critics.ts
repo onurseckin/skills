@@ -8,7 +8,6 @@ export const CONTRACTS_TIER_3_QUALITY_CRITICS: readonly AgentOperationalContract
     role: "general-validator",
     tier: 3,
     category: "quality",
-    aliases: ["validator", "general_validator", "test-validator"],
     toolBoundaries: {
       canWriteCode: false,
       canExecuteCommands: false,
@@ -66,7 +65,6 @@ export const CONTRACTS_TIER_3_QUALITY_CRITICS: readonly AgentOperationalContract
     role: "sub-validator",
     tier: 3,
     category: "quality",
-    aliases: ["sub_validator", "leaf-validator"],
     toolBoundaries: {
       canWriteCode: false,
       canExecuteCommands: false,
@@ -114,7 +112,6 @@ export const CONTRACTS_TIER_3_QUALITY_CRITICS: readonly AgentOperationalContract
     role: "completeness-critic",
     tier: 3,
     category: "quality",
-    aliases: ["completeness_critic", "critic-completeness"],
     toolBoundaries: {
       canWriteCode: false,
       canExecuteCommands: false,
@@ -166,7 +163,6 @@ export const CONTRACTS_TIER_3_QUALITY_CRITICS: readonly AgentOperationalContract
     role: "system-critic",
     tier: 3,
     category: "quality",
-    aliases: ["critic", "system_critic", "validator-system-design"],
     toolBoundaries: {
       canWriteCode: false,
       canExecuteCommands: false,
@@ -216,7 +212,6 @@ export const CONTRACTS_TIER_3_QUALITY_CRITICS: readonly AgentOperationalContract
     role: "task-critic",
     tier: 3,
     category: "quality",
-    aliases: ["validator-code-quality", "validator-product", "task_critic", "critic-task"],
     toolBoundaries: {
       canWriteCode: false,
       canExecuteCommands: false,

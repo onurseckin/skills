@@ -58,11 +58,11 @@ describe("Authority Session Registry - Lifecycle & Pruning", () => {
       pid: 0,
       ppid: 0,
       env: {},
-      explicitActor: "orch-lead",
+      explicitActor: "orchestrator-lead",
       explicitToken: "tok_explicit_test",
     });
 
-    expect(callerWithExplicit.actor).toBe("orch-lead");
+    expect(callerWithExplicit.actor).toBe("orchestrator-lead");
     expect(callerWithExplicit.role).toBe("orchestrator");
     expect(callerWithExplicit.tier).toBe(1);
     expect(callerWithExplicit.token).toBe("tok_explicit_test");
@@ -89,11 +89,11 @@ describe("Authority Session Registry - Lifecycle & Pruning", () => {
     const resolvedAgentOnly = resolveActiveSession({
       cwd: sandboxDir,
       env: {
-        AGENT_ID: "orch-phase-1",
+        AGENT_ID: "orchestrator-phase-1",
       },
     });
     expect(resolvedAgentOnly).not.toBeNull();
-    expect(resolvedAgentOnly?.agent_id).toBe("orch-phase-1");
+    expect(resolvedAgentOnly?.agent_id).toBe("orchestrator-phase-1");
     expect(resolvedAgentOnly?.role).toBe("orchestrator");
     expect(resolvedAgentOnly?.tier).toBe(1);
   });

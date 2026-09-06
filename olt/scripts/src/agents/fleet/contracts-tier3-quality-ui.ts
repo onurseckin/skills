@@ -8,14 +8,6 @@ export const CONTRACTS_TIER_3_QUALITY_UI: readonly AgentOperationalContract[] = 
     role: "ui-optical-validator",
     tier: 3,
     category: "quality",
-    aliases: [
-      "ui-visual-reviewer",
-      "ui_optical_validator",
-      "ui-cognitive-validator",
-      "optical-validator",
-      "visual-reviewer",
-      "headful-chrome-critic",
-    ],
     toolBoundaries: {
       canWriteCode: false,
       canExecuteCommands: false,
@@ -100,14 +92,6 @@ export const CONTRACTS_TIER_3_QUALITY_UI: readonly AgentOperationalContract[] = 
     role: "ui-headless-validator",
     tier: 3,
     category: "quality",
-    aliases: [
-      "ui-mechanic-validator",
-      "ui-debugger",
-      "ui_headless_validator",
-      "ui_mechanic_validator",
-      "ui-headless-debugger",
-      "headless-debugger",
-    ],
     toolBoundaries: {
       canWriteCode: false,
       canExecuteCommands: true,

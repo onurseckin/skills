@@ -45,7 +45,7 @@ describe("Supervisor and Validator Shell Confinement & Antigravity Enablement", 
   it("configures can_execute_shell: true and can_edit_code: false in default agents generator", () => {
     const agents = buildDefaultAgents();
     const supervisoryKeys = [
-      "mind_supervisor",
+      "mind",
       "mind_auditor",
       "skill_auditor",
       "autonomic_watchdog",
@@ -73,7 +73,7 @@ describe("Supervisor and Validator Shell Confinement & Antigravity Enablement", 
   it("ensures default policy configures can_execute_shell: true and can_edit_code: false for supervisors and validators", () => {
     const agents = buildDefaultAgents();
     const supervisoryKeys = [
-      "mind_supervisor",
+      "mind",
       "orchestrator",
       "coordinator",
       "completeness_critic",
@@ -95,7 +95,7 @@ describe("Supervisor and Validator Shell Confinement & Antigravity Enablement", 
   it("infers can_execute_shell: true and can_edit_files: false for all supervisory and validator roles in session IO", () => {
     const nonMutatingRoles = [
       "mind",
-      "mind_supervisor",
+      "mind",
       "mind-supervisor",
       "mind_auditor",
       "mind-auditor",

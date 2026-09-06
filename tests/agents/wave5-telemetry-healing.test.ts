@@ -191,7 +191,7 @@ describe("Wave 5: Multi-Track Telemetry & Universal Self-Healing", () => {
 
       const ignition = await igniteSwarmEcosystem(fakeWorkspace);
       expect(ignition.ready).toBe(true);
-      expect(ignition.registeredAgentsCount).toBe(31);
+      expect(ignition.registeredAgentsCount).toBe(26);
       expect(ignition.healthReport.healthy).toBe(true);
       expect(ignition.epochMesh.isSynchronized).toBe(true);
 

@@ -1,30 +1,30 @@
 import { getAgentContract } from "./matrix.ts";
 
-export function isHeadfulReviewer(roleOrAlias: string): boolean {
-  const contract = getAgentContract(roleOrAlias);
+export function isHeadfulReviewer(role: string): boolean {
+  const contract = getAgentContract(role);
   return Boolean(contract?.isHeadfulReviewer);
 }
 
-export function isHeadlessDebugger(roleOrAlias: string): boolean {
-  const contract = getAgentContract(roleOrAlias);
+export function isHeadlessDebugger(role: string): boolean {
+  const contract = getAgentContract(role);
   return Boolean(contract?.isHeadlessDebugger);
 }
 
-export function isSourceCodeBlind(roleOrAlias: string): boolean {
-  const contract = getAgentContract(roleOrAlias);
+export function isSourceCodeBlind(role: string): boolean {
+  const contract = getAgentContract(role);
   return Boolean(contract?.isSourceCodeBlind);
 }
 
 export function validateAgentToolCall(
-  roleOrAlias: string,
+  role: string,
   toolName: string,
   commandName?: string,
 ): { allowed: boolean; violation?: string } {
-  const contract = getAgentContract(roleOrAlias);
+  const contract = getAgentContract(role);
   if (!contract) {
     return {
       allowed: false,
-      violation: `Agent role '${roleOrAlias}' not registered in fleet matrix.`,
+      violation: `Agent role '${role}' not registered in fleet matrix.`,
     };
   }
 
@@ -95,8 +95,7 @@ export function validateAgentSpawn(
   if (parentContract.permissions.allowedSpawns.length > 0) {
     const isExplicitlyAllowed =
       parentContract.permissions.allowedSpawns.includes(childContract.id) ||
-      parentContract.permissions.allowedSpawns.includes(childContract.role) ||
-      parentContract.permissions.allowedSpawns.some((s) => childContract.aliases.includes(s));
+      parentContract.permissions.allowedSpawns.includes(childContract.role);
 
     if (!isExplicitlyAllowed) {
       return {

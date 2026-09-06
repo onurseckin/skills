@@ -1,5 +1,4 @@
 export type AgentTier = 0 | 1 | 2 | 3 | "independent";
-
 export type AgentTierCategory = "governance" | "orchestration" | "execution" | "quality";
 
 export interface ToolBoundaryDefinition {
@@ -39,26 +38,15 @@ export interface AgentOperationalContract {
   readonly manifestPath?: string;
 }
 
-export const OPTICAL_DIMENSIONS_8 = [
-  "visual_hierarchy",
-  "optical_spacing_rhythm",
-  "typography_font_rendering",
-  "clipping_overflow",
-  "apca_contrast",
-  "theme_harmony",
-  "z_index_overlays",
-  "touch_target_bounds_44px",
-] as const;
+export const FORBIDDEN_WRITE_TOOLS = [
+  "write_to_file",
+  "replace_file_content",
+  "edit_file",
+  "create_file",
+  "delete_file",
+  "task:claim",
+];
 
-export type OpticalDimension = (typeof OPTICAL_DIMENSIONS_8)[number];
-
-export const MANDATORY_VIEWPORTS_4 = [
-  { name: "desktop_wide", width: 1920, height: 1080, label: "Desktop-Wide (1920x1080)" },
-  { name: "desktop", width: 1440, height: 900, label: "Desktop (1440x900)" },
-  { name: "tablet", width: 768, height: 1024, label: "Tablet (768x1024)" },
-  { name: "mobile", width: 390, height: 844, label: "Mobile (390x844)" },
-] as const;
-
-export const SYNTHETIC_STATES_4 = ["empty", "error", "loading", "extreme_overflow"] as const;
-
-export type SyntheticState = (typeof SYNTHETIC_STATES_4)[number];
+export function defineContract(contract: AgentOperationalContract): AgentOperationalContract {
+  return Object.freeze(contract);
+}

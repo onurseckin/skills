@@ -29,10 +29,10 @@ describe("Authority Manifest Comprehensive - Core & Loader", () => {
     cleanupVirtualAuthorityFS();
   });
 
-  test("normalizeRoleName applies alias mappings and normalizes string", () => {
-    expect(normalizeRoleName("coord")).toBe("coordinator");
-    expect(normalizeRoleName("orch")).toBe("orchestrator");
-    expect(normalizeRoleName("tier_0")).toBe("mind");
+  test("normalizeRoleName normalizes string", () => {
+    expect(normalizeRoleName("coord ")).toBe("coord");
+    expect(normalizeRoleName("Orch")).toBe("orch");
+    expect(normalizeRoleName("tier_0")).toBe("tier_0");
     expect(normalizeRoleName("UNKNOWN_CUSTOM_ROLE ")).toBe("unknown_custom_role");
   });
 

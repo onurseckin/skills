@@ -1,8 +1,4 @@
-export {
-  ROLE_KEY_ALIASES,
-  normalizeRoleKey,
-  resolveAgentHostConfiguration,
-} from "./host-bindings.ts";
+export { normalizeRoleKey, resolveAgentHostConfiguration } from "./host-bindings.ts";
 
 export {
   parseUnifiedAgentManifest,

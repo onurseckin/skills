@@ -7,7 +7,21 @@
     {
       "name": "track",
       "type": "string",
-      "required": true,
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "tier",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": "track"
+    },
+    {
+      "name": "orchestrator",
+      "type": "string",
+      "required": false,
       "repeatable": false,
       "default": null
     },

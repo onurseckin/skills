@@ -44,7 +44,7 @@ export function buildDefaultAgents(): Record<string, AgentPolicy> {
   const valRbac = { can_execute_shell: true, can_edit_code: false };
 
   return {
-    mind_supervisor: {
+    mind: {
       tier: 0,
       silent_daemon: true,
       rbac: {
