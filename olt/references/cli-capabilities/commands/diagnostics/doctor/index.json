@@ -25,6 +25,10 @@
     {
       "id": "recover",
       "path": "recover.json"
+    },
+    {
+      "id": "doctor:agent",
+      "path": "doctor-agent.json"
     }
   ]
 }

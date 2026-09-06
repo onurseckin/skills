@@ -5,6 +5,22 @@
     {
       "id": "explain",
       "path": "explain.json"
+    },
+    {
+      "id": "sentinel:pre-action",
+      "path": "sentinel-pre-action.json"
+    },
+    {
+      "id": "sentinel:post-action",
+      "path": "sentinel-post-action.json"
+    },
+    {
+      "id": "sentinel:turn-end",
+      "path": "sentinel-turn-end.json"
+    },
+    {
+      "id": "sentinel:watch",
+      "path": "sentinel-watch.json"
     }
   ]
 }

@@ -44,7 +44,7 @@ own status in `exit_code`.
 | orphan | 1 | [cli-capabilities/domains/orphan.md](cli-capabilities/domains/orphan.md) |
 | authority | 7 | [cli-capabilities/domains/authority.md](cli-capabilities/domains/authority.md) |
 | install | 2 | [cli-capabilities/domains/install.md](cli-capabilities/domains/install.md) |
-| diagnostics | 11 | [cli-capabilities/domains/diagnostics.md](cli-capabilities/domains/diagnostics.md) |
+| diagnostics | 16 | [cli-capabilities/domains/diagnostics.md](cli-capabilities/domains/diagnostics.md) |
 | gate | 1 | [cli-capabilities/domains/gate.md](cli-capabilities/domains/gate.md) |
 | capture | 3 | [cli-capabilities/domains/capture.md](cli-capabilities/domains/capture.md) |
 | mind | 23 | [cli-capabilities/domains/mind.md](cli-capabilities/domains/mind.md) |
@@ -222,3 +222,8 @@ own status in `exit_code`.
 | `defect:record` | defect | Ingest and deduplicate defect records. |
 | `defect:resolve` | defect | Resolve a defect record with empirical proof. |
 | `defect:list` | defect | List and parse structured defect log entries. |
+| `doctor:agent` | diagnostics | Evaluate agent-scoped contracts and 20-role invariant profiles. |
+| `sentinel:pre-action` | diagnostics | Intercept outgoing tool calls and enforce role boundaries before OS execution. |
+| `sentinel:post-action` | diagnostics | Scan modified files for AST purity, line budgets and directory fanout. |
+| `sentinel:turn-end` | diagnostics | Holistic turn-end evaluation with 3-strike escalation and scoped mailbox delivery. |
+| `sentinel:watch` | diagnostics | Live watchdog loop monitoring active turn execution against role contracts. |
