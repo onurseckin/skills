@@ -1,4 +1,4 @@
-# 08-02 Cognitive Validator Command Hard-Lock Interlock
+# 08-02 Cognitive Validator Command Hard-Lock & UI Validator Split
 
 ---
 
@@ -10,317 +10,185 @@
 
 In autonomous agent architectures, granting command execution capabilities to code validator agents introduces severe security, reliability, and epistemic vulnerabilities:
 
-1. **Test Harness Mutation**: A validator with shell access may rewrite test suites, inject permissive mocks, or loosen assertion thresholds to force failing tests to pass, hiding underlying defects.
-2. **Terminal Exit Code Spoofing**: An hallucinating or compromised validator can execute shell commands that forge exit status 0 (e.g., `true` or dummy scripts) without performing real semantic code verification.
-3. **Epistemic Collapse**: When validators execute tests directly, their reasoning collapses into shallow CLI feedback loops (checking exit codes) rather than performing rigorous AST logic, invariant, and architectural analysis.
-4. **Prompt Injection & Byzantine Execution**: If an untrusted diff contains embedded prompt injection payloads (e.g., in code comments, error strings, or test fixtures), a validator with shell execution privileges could be coerced into running arbitrary host commands.
+1. **Test Harness Mutation**: A validator with shell access may rewrite test suites, inject permissive mocks, or loosen assertion thresholds to force failing tests to pass.
+2. **Terminal Exit Code Spoofing**: An hallucinating or compromised validator can execute shell commands that forge exit status 0 (e.g., `true`) without performing real semantic code verification.
+3. **Epistemic Collapse**: When validators execute tests directly, their reasoning collapses into shallow CLI feedback loops rather than rigorous AST logic and invariant analysis.
+4. **Prompt Injection & Byzantine Execution**: Diff comments or test fixtures containing prompt injection payloads could coerce a shell-enabled validator into running arbitrary host commands.
 
-The **OLT (Orchestrating Long Tasks)** engine implements the **Cognitive Validator Command Hard-Lock Interlock**. Under this architecture:
+The **OLT (Orchestrating Long Tasks)** engine implements the **Cognitive Validator Command Hard-Lock Interlock**:
 
-- **Mechanical Command Lock (0 Commands)**: The Cognitive Validator role ([`validator.yaml`](../../../../olt/agents/validator.yaml)) is mechanically stripped of all shell command execution tools: $\text{Commands}(\text{Validator}) \equiv \emptyset$.
+- **Mechanical Command Lock (0 Commands)**: Cognitive validators are mechanically stripped of all command execution tools: $\text{Commands}(\text{Validator}) \equiv \emptyset$.
 - **Pure AST & Semantic Auditing**: Validators operate strictly via read-only tools (`view_file`, `grep_search`, `find_by_name`) and AST inspection logic.
-- **Decoupled Mechanic-Validator**: All runtime test execution is isolated in a separate, dedicated Mechanic-Validator ([`mechanic-validator.yaml`](../../../../olt/agents/mechanic-validator.yaml)).
+- **Detached Evidence Resolution**: Mandatory gate proofs are resolved via detached evidence (`task:review --evidence <cmd-id>`) produced by deterministic execution (`task:check`) or implementer receipts.
 
 ```text
 +--------------------------------------------------------------------------------------------------+
-|                               COGNITIVE VALIDATOR HARD-LOCK TOPOLOGY                             |
+│                               COGNITIVE VALIDATOR HARD-LOCK TOPOLOGY                             │
 +--------------------------------------------------------------------------------------------------+
-|                                                                                                  |
-|   +--------------------------------------------------------------------------------------+       |
-|   |                        TIER 3 COGNITIVE VALIDATOR (Pure Audit)                       |       |
-|   |  - Permitted Tools: view_file, grep_search, find_by_name, send_message               |       |
-|   |  - PROHIBITED TOOLS: run_command, execute_script, bash (0 Commands Granted)          |       |
-|   +------------------------------------------+-------------------------------------------+       |
-|                                              |                                                   |
-|                        Tool Invocation Request: action a                                         |
-|                                              v                                                   |
-|   +--------------------------------------------------------------------------------------+       |
-|   |                       HARNESS RBAC INTERCEPTOR & PERMISSION GATE                     |       |
-|   |                                                                                      |       |
-|   |    Is a in {run_command, execute_script, bash}?                                      |       |
-|   |       |                                                                              |       |
-|   |       +--- YES ---> [ TRAP: COMMAND_HARD_LOCKED ] ---> Revoke Lease & Terminate Agent|       |
-|   |       |                                                                              |       |
-|   |       +--- NO  ---> [ PASS TO READ DISPATCHER ] ---> Execute view_file / AST inspect |       |
-|   +--------------------------------------------------------------------------------------+       |
-|                                                                                                  |
+│   ┌──────────────────────────────────────────────────────────────────────────────────────┐       │
+│   │                        TIER 3 COGNITIVE VALIDATOR (Pure Audit)                       │       │
+│   │  - Permitted Tools: view_file, grep_search, find_by_name, send_message               │       │
+│   │  - PROHIBITED TOOLS: run_command, execute_script, bash (0 Commands Granted)          │       │
+│   └──────────────────────────────────────────┬───────────────────────────────────────────┘       │
+│                                              │ Tool Invocation Request: action a                 │
+│                                              ▼                                                   │
+│   ┌──────────────────────────────────────────────────────────────────────────────────────┐       │
+│   │                       HARNESS RBAC INTERCEPTOR & PERMISSION GATE                     │       │
+│   │    Is a in {run_command, execute_script, bash}?                                      │       │
+│   │       ├── YES ──► [ TRAP: COMMAND_HARD_LOCKED ] ──► Revoke Lease & Abort             │       │
+│   │       └── NO  ──► [ PASS TO READ DISPATCHER ] ──► Execute view_file / AST inspect    │       │
+│   └──────────────────────────────────────────────────────────────────────────────────────┘       │
 +--------------------------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 2. The Mechanic-Validator Split Architecture
+## 2. UI Validation Decoupling: Headless vs Optical Split
 
-To achieve complete separation between cognitive reasoning and runtime execution, OLT decouples validation into two specialized Tier 3 agent roles.
+For user interface surfaces, automated tests are strictly only half of verification. OLT splits UI validation into two sequential, specialized Tier 3 validator roles:
 
 ```text
 +---------------------------+------------------------------------------+---------------------------+
-| Architectural Dimension   | Tier 3 Cognitive Validator               | Tier 3 Mechanic-Validator |
+│ Architectural Dimension   │ Tier 3 UI Headless Validator             │ Tier 3 UI Optical Validator│
 +---------------------------+------------------------------------------+---------------------------+
-| Primary Mission           | Static AST purity, semantics, logic      | Deterministic test suite  |
-|                           | invariants, edge case analysis.          | execution & exit codes.   |
+│ Primary Mission           │ Playwright test execution, headless DOM  │ 4-viewport visual review  │
+│                           │ assertions, screenshot capture.          │ across 8 Optical Dims.    │
 +---------------------------+------------------------------------------+---------------------------+
-| Shell Command Authority   | STRICTLY 0 (Hard-Locked, No run_command) | ALLOWED (Hermetic bun)    |
+│ Shell Command Authority   │ ALLOWED (Playwright CLI runner)          │ STRICTLY 0 (Hard-Locked)  │
 +---------------------------+------------------------------------------+---------------------------+
-| File System Mutation      | STRICTLY 0 (Read-Only)                   | STRICTLY 0 (Read-Only)    |
+│ File System Mutation      │ STRICTLY 0 (Read-Only)                   │ STRICTLY 0 (Read-Only)    │
 +---------------------------+------------------------------------------+---------------------------+
-| Input Artifacts           | Git diff, prompt obligations, AST tree   | Repository worktree       |
+│ Input Artifacts           │ Worktree test suites & components        │ Captured image files      │
 +---------------------------+------------------------------------------+---------------------------+
-| Output Evidence           | Structured findings JSON + Socratic logs | Execution receipt (exit 0)|
-+---------------------------+------------------------------------------+---------------------------+
-| Execution Isolation       | Zero IPC with implementer                | Isolated container/chroot |
+│ Output Evidence           │ Test execution receipts & screenshots    │ Socratic optical critique │
 +---------------------------+------------------------------------------+---------------------------+
 ```
 
-### Cognitive vs. Mechanical Evaluation Pathways
+### The 8 Optical Dimensions
 
-1. **Cognitive Validator**:
-   - Analyzes raw Git diffs for logic regressions, unchecked assumptions, and type suppressions (`any`, `@ts-ignore`).
-   - Verifies adherence to the 4 Hard Zeros ($Z_{\text{hallucination}}, Z_{\text{mutation}}, Z_{\text{scope}}, Z_{\text{assumption}}$).
-   - Formulates Socratic counterfactual inquiries and compiles structured defect findings.
-   - Traces call graphs statically to verify error handling completeness without executing instructions.
+`ui-optical-validator` inspects captured screenshot images ($\ge 1024\text{ B}$) across all 4 mandatory viewports (Desktop-Wide 1920x1080, Desktop 1440x900, Tablet 768x1024, Mobile 390x844):
 
-2. **Mechanic-Validator**:
-   - Executes unit, integration, and contract test suites within a hermetically sealed environment.
-   - Captures raw process exit codes, stdout/stderr streams, and wall-clock execution timings.
-   - Generates cryptographically hashed execution receipts ($\mathcal{S}_{\text{proof}}$) verified by the Gate Prover.
+1. **Spatial Density**: Grid rhythm, padding consistency, margin flow.
+2. **Chromatic Coherence**: Theme harmony across light/dark modes, brand palettes.
+3. **Typographic Scale**: Hierarchical font sizes, line heights, text contrast (APCA $L_c \ge 60$).
+4. **Responsive Fidelity**: Fluid reflow without horizontal scrollbars or orphaned text.
+5. **Perceptual Hierarchy**: Primary action salience, visual weight distribution.
+6. **Viewport Boundary Clipping**: Zero clipped text, overflow hidden bugs, or collapsed panels.
+7. **Interaction Affordance**: Hover/focus state clarity, tap targets ($\ge 44\times 44\text{ px}$).
+8. **Component Token Alignment**: Strict adherence to design tokens and border radius standards.
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Coord as Tier 2 Coordinator
-    participant CogVal as Tier 3 Cognitive Validator (0 Cmd)
-    participant MechVal as Tier 3 Mechanic-Validator (Hermetic Test)
-    participant Harness as Tool Dispatch Gate
-    participant Gate as Gate Prover Engine
-
-    Coord->>CogVal: Dispatch Validation Task(diff, obligations)
-    Coord->>MechVal: Dispatch Test Run(testPath)
-
-    rect rgb(240, 245, 255)
-        Note over CogVal,Harness: Cognitive Path (Read-Only Tools Only)
-        CogVal->>Harness: Request view_file(filePath)
-        Harness-->>CogVal: Return file content
-        CogVal->>CogVal: Perform AST Purity & Semantic Logic Audit
-        CogVal-->>Coord: Submit CognitiveVerdict(PASS, probes)
-    end
-
-    rect rgb(255, 245, 240)
-        Note over MechVal,Harness: Mechanical Path (Isolated CLI Execution)
-        MechVal->>Harness: Request run_command("bun test --coverage")
-        Harness-->>MechVal: Return stdout, stderr, exitCode: 0
-        MechVal-->>Coord: Submit MechanicalReceipt(exitCode: 0, sha256Proof)
-    end
-
-    Coord->>Gate: Evaluate Dual-Channel Conjunction V_dual
-    Gate-->>Coord: Emit Final Certification
-```
+Approving UI tasks without viewing screenshots is mechanically rejected as `SUPERFICIAL_UI_APPROVAL`.
 
 ---
 
 ## 3. Fail-Closed Permission Enforcement & RBAC Hard-Locks
 
-The command hard-lock is enforced at the platform harness layer, independent of agent prompt instructions. Even if an LLM validator attempts to generate a `run_command` tool invocation, the tool dispatcher intercepts and terminates the action.
-
-### The RBAC Tool Interception Algorithm
-
-Let $\mathcal{A}_{\text{exec}} = \{\texttt{"run\_command"}, \texttt{"execute\_script"}, \texttt{"bash"}, \texttt{"terminal\_exec"}\}$ denote the set of execution tools.
-
-When role $R$ requests execution of tool $t \in \mathcal{T}_{\text{tools}}$:
+Let $\mathcal{A}_{\text{exec}} = \{\texttt{"run\_command"}, \texttt{"execute\_script"}, \texttt{"bash"}, \texttt{"terminal\_exec"}\}$.
+When role $R$ requests execution of tool $t$:
 
 $$ \text{AuthorizeTool}(R, t) = \begin{cases}
 \text{ALLOW} & \text{if } t \in \text{PermittedTools}(R) \land (R \neq \text{Validator} \lor t \notin \mathcal{A}_{\text{exec}}) \\
-\text{TRAP}(\texttt{"COMMAND\_HARD\_LOCKED"}) & \text{if } R = \text{Validator} \land t \in \mathcal{A}_{\text{exec}} \\
+\text{TRAP}(\texttt{"COMMAND\_HARD\_LOCKED"}) & \text{if } R \in \text{CognitiveValidators} \land t \in \mathcal{A}_{\text{exec}} \\
 \text{DENY}(\texttt{"PERMISSION\_DENIED"}) & \text{otherwise}
 \end{cases}$$
 
-Upon encountering a `COMMAND_HARD_LOCKED` trap:
-1. The active tool call is immediately aborted before spawning any child process.
-2. The validator agent's active lease is revoked.
-3. A fatal security violation event is written to the capsule audit log.
-4. The Tier 2 Coordinator re-spawns a clean validator subagent instance.
-
-```text
-+--------------------------------------------------------------------------------------------------+
-|                              FAIL-CLOSED INTERCEPTION STATE MACHINE                              |
-+--------------------------------------------------------------------------------------------------+
-|                                                                                                  |
-|   [Agent Requests Tool Action]                                                                   |
-|                 │                                                                                |
-|                 ▼                                                                                |
-|   [Check Role Manifest in role-contract.ts]                                                      |
-|                 │                                                                                |
-|        ┌────────┴────────┐                                                                       |
-|        ▼                 ▼                                                                       |
-|   (Role != Validator)  (Role == Validator)                                                       |
-|        │                 │                                                                       |
-|        ▼                 ▼                                                                       |
-|   [Standard Auth]      [Check IsExecutionTool(t)]                                                |
-|                          │                                                                       |
-|                 ┌────────┴────────┐                                                              |
-|                 ▼                 ▼                                                              |
-|              (False)            (True)                                                           |
-|                 │                 │                                                              |
-|                 ▼                 ▼                                                              |
-|          [Execute Read]     [HALT: COMMAND_HARD_LOCKED]                                          |
-|                             [Emit Security Alert to Log]                                         |
-|                             [Revoke Active Lease Token]                                          |
-|                                                                                                  |
-+--------------------------------------------------------------------------------------------------+
-```
+Upon a `COMMAND_HARD_LOCKED` trap:
+1. Tool dispatch aborts before any child process is spawned.
+2. The validator agent's lease is immediately revoked.
+3. A fatal security violation event is written to `.olt/capsules/<slug>/evidence/security-audit.json`.
 
 ---
 
 ## 4. Pure AST & Diff Cognitive Auditing Mechanics
 
-Because cognitive validators cannot execute tests, they employ static analysis techniques to verify code diffs:
+Cognitive validators verify code diffs without running execution commands:
 
-1. **AST Purity Traversal**: Parsing modified TypeScript source files into Abstract Syntax Trees using the TypeScript compiler API. Traversal visitors identify explicit or implicit `any` annotations, type casts, and `@ts-ignore` comments.
-2. **Control Flow Graph (CFG) Verification**: Validating that all branching paths return valid values, throw structured exceptions, or cleanly terminate without orphaned promises.
-3. **Boundary Condition Probing**: Manually checking boundary input constants (e.g., zero, negative integers, null strings, max integers) across public API surfaces.
-4. **Invariant Tracing**: Ensuring that distributed leasing constraints (e.g., POSIX flock locks, atomic file rename operations) are maintained across all mutated files.
+1. **AST Purity Traversal**: Parses modified files via TypeScript compiler API to trap explicit or implicit `any`, unsafe type casts, and `@ts-ignore`.
+2. **Control Flow Graph (CFG) Verification**: Validates that all branching paths return valid values, throw structured exceptions, or cleanly terminate.
+3. **Boundary Condition Probing**: Statically verifies constants across public API boundaries.
+4. **Invariant Tracing**: Confirms atomic file write swaps, flock mutexes, and zero unbounded memory growth.
 
 ---
 
-## 5. Mathematical Formalization of Confinement & Safety Guarantees
+## 5. Mathematical Confinement & Prompt Injection Immunity
 
-Let $\mathcal{S}$ denote the repository state and $\mathcal{E}$ denote the external environment.
-
-Let an agent action $a = \langle t, \text{args} \rangle$ operate on the state space $\mathcal{S} \times \mathcal{E}$.
-
-### The Read-Only Confinement Theorem
-
+Let $\mathcal{S}$ denote repository state and $\mathcal{E}$ denote the external host environment.
 For all actions $a$ issued by a Cognitive Validator $V_{\text{cog}}$:
 
 $$\forall a \in \text{Actions}(V_{\text{cog}}), \quad \Delta \mathcal{S}(a) = \emptyset \quad \land \quad \Delta \mathcal{E}(a) = \emptyset$$
 
-### Byzantine Prompt Injection Immunity
-
-Let $\mathcal{P}_{\text{inj}} \subset \Delta_i$ represent an adversarial prompt injection payload embedded within an audited code diff.
-
-Let $\text{Evaluate}(V_{\text{cog}}, \Delta_i)$ represent the validator's cognitive processing loop.
-
-Because the execution capability is structurally disconnected at the harness dispatcher:
+Let $\mathcal{P}_{\text{inj}}$ represent an adversarial prompt injection payload embedded within an audited code diff. Because execution tools are mechanically disconnected at the harness dispatcher:
 
 $$\text{CommandsExecuted}(\text{Evaluate}(V_{\text{cog}}, \Delta_i \cup \mathcal{P}_{\text{inj}})) \equiv \emptyset$$
 
-This proves that even under arbitrary prompt injection attacks embedded in audited code, the Cognitive Validator cannot execute malicious host instructions, ensuring complete isolation of the host operating system.
+This mathematically guarantees that audited diffs cannot breach the host OS via validator subagents.
 
 ---
 
-## 6. TypeScript Validator Capability & Permission Schemas
+## 6. TypeScript Capability Contracts
 
-The TypeScript interfaces defining the RBAC contract and tool dispatcher guards are implemented in [`role-contract.ts`](../../../../olt/scripts/src/packets/role-contract.ts):
+Defined in [`role-contract.ts`](../../../../olt/scripts/src/packets/role-contract.ts):
 
 ```typescript
 export interface RoleCapabilityContract {
-  readonly roleName: "implementer" | "validator" | "mechanic_validator" | "coordinator";
+  readonly roleName: string;
   readonly permittedTools: readonly string[];
   readonly prohibitedTools: readonly string[];
   readonly commandExecutionGranted: boolean;
   readonly fileSystemWriteGranted: boolean;
-  readonly maxMemoryMb: number;
-  readonly timeoutMs: number;
 }
 
 export const COGNITIVE_VALIDATOR_CONTRACT: RoleCapabilityContract = {
   roleName: "validator",
-  permittedTools: [
-    "view_file",
-    "grep_search",
-    "find_by_name",
-    "send_message",
-  ],
-  prohibitedTools: [
-    "run_command",
-    "write_to_file",
-    "replace_file_content",
-    "notebook_edit",
-  ],
+  permittedTools: ["view_file", "grep_search", "find_by_name", "send_message"],
+  prohibitedTools: ["run_command", "write_to_file", "replace_file_content", "notebook_edit"],
   commandExecutionGranted: false,
   fileSystemWriteGranted: false,
-  maxMemoryMb: 512,
-  timeoutMs: 180000,
 };
 
-export interface SecurityViolationEvent {
-  readonly eventId: string;
-  readonly agentId: string;
-  readonly role: string;
-  readonly attemptedTool: string;
-  readonly payloadSnippet: string;
-  readonly timestamp: string;
-  readonly actionTaken: "ABORT_AND_REVOKE_LEASE";
-}
+export const UI_OPTICAL_VALIDATOR_CONTRACT: RoleCapabilityContract = {
+  roleName: "ui-optical-validator",
+  permittedTools: ["view_file", "grep_search", "find_by_name", "send_message"],
+  prohibitedTools: ["run_command", "write_to_file", "replace_file_content", "notebook_edit"],
+  commandExecutionGranted: false,
+  fileSystemWriteGranted: false,
+};
 
 export class CommandHardLockInterceptor {
-  private readonly contract: RoleCapabilityContract;
+  constructor(private readonly contract: RoleCapabilityContract) {}
 
-  constructor(contract: RoleCapabilityContract) {
-    this.contract = contract;
-  }
-
-  public validateToolDispatch(toolName: string, args: Record<string, unknown>): void {
-    if (!this.contract.commandExecutionGranted && this.isExecutionTool(toolName)) {
-      throw new Error(
-        `HARNESS_SECURITY_VIOLATION: Role '${this.contract.roleName}' is hard-locked from executing command tools ('${toolName}').`,
-      );
+  public validateToolDispatch(toolName: string): void {
+    const isExec = ["run_command", "execute_script", "bash"].includes(toolName);
+    if (!this.contract.commandExecutionGranted && isExec) {
+      throw new Error(`COMMAND_HARD_LOCKED: Role '${this.contract.roleName}' has 0 command authority.`);
     }
-
     if (!this.contract.permittedTools.includes(toolName)) {
-      throw new Error(
-        `PERMISSION_DENIED: Tool '${toolName}' is not in permitted list for role '${this.contract.roleName}'.`,
-      );
+      throw new Error(`PERMISSION_DENIED: Tool '${toolName}' not permitted for '${this.contract.roleName}'.`);
     }
-  }
-
-  private isExecutionTool(toolName: string): boolean {
-    const executionTools = new Set(["run_command", "execute_script", "bash", "exec"]);
-    return executionTools.has(toolName);
   }
 }
 ```
 
 ---
 
-## 7. Failure Modes & Security Guarantees Matrix
+## 7. Failure Modes & Security Guarantees
 
-```text
-+--------------------------------------------------------------------------------------------------+
-|                               FAILURE MODES & SECURITY GUARANTEES                                |
-+--------------------------+------------------------------+----------------------------------------+
-| Failure Vector           | Vulnerability Without Lock   | OLT Hard-Lock Defense Mechanism        |
-+--------------------------+------------------------------+----------------------------------------+
-| Test Suite Rewriting     | Validator edits tests to     | File system write tools prohibited;    |
-|                          | force failing tests to pass. | validator is strictly read-only.       |
-+--------------------------+------------------------------+----------------------------------------+
-| Fake Exit Code 0         | Validator executes `exit 0`  | Command tools hard-locked; only        |
-|                          | without running real tests.  | Mechanic-Validator can run test CLI.   |
-+--------------------------+------------------------------+----------------------------------------+
-| Host OS Exploitation     | Prompt injection in diff     | Zero shell access prevents execution   |
-|                          | triggers malicious command.  | of arbitrary injected shell commands.  |
-+--------------------------+------------------------------+----------------------------------------+
-| Flaky Test Masking       | Validator loops test rerun   | Mechanic-Validator records exact seed, |
-|                          | until accidental green exit. | timing, and single-pass test results.  |
-+--------------------------+------------------------------+----------------------------------------+
-| Cognitive Laziness       | Validator relies on CLI test | Validator forced to perform deep AST   |
-|                          | output instead of AST logic. | and control-flow invariant inspection. |
-+--------------------------+------------------------------+----------------------------------------+
-| Environment Bleed        | Validator mutates env vars   | Subagent isolation prevents validator  |
-|                          | during execution testing.    | from altering process environment.     |
-+--------------------------+------------------------------+----------------------------------------+
-```
+| Failure Vector | Vulnerability Without Lock | OLT Hard-Lock Defense Mechanism |
+| :--- | :--- | :--- |
+| Test Suite Rewriting | Validator edits tests to force pass. | Write tools prohibited; validator is strictly read-only. |
+| Fake Exit Code 0 | Validator executes dummy `exit 0`. | Commands hard-locked (0 cmd); detached receipts required. |
+| Host OS Exploitation | Prompt injection triggers malicious shell. | Shell execution mechanically impossible. |
+| Flaky Test Masking | Validator re-runs tests until green. | Deterministic receipts record single-pass results. |
+| Superficial UI Pass | Validator passes UI without visual check. | Headless Playwright + Optical screenshot review mandatory. |
 
 ---
 
-## 8. Architectural Invariants & Security Checklist
+## 8. Architectural Invariants Summary
 
-1. **Zero Execution Grant Invariant**: $\text{Commands}(\text{Validator}_{\text{cog}}) \equiv \emptyset$. Cognitive validators have zero permission to execute terminal commands.
-2. **Read-Only Confinement Invariant**: Cognitive validators have zero permission to modify, create, or delete workspace files.
-3. **Decoupled Execution Invariant**: All CLI test execution and binary artifact verification must be handled exclusively by the Mechanic-Validator.
-4. **Fail-Closed Trap Invariant**: Any attempt by a cognitive validator to invoke execution tools must trigger an immediate fatal trap, revoking agent authorization.
-5. **Deterministic Receipt Invariant**: Mechanical execution receipts must include SHA-256 digests of test runner stdout and stderr streams.
-6. **Audit Trail Persistence Invariant**: All security violation events must be permanently logged to `.olt/capsules/<slug>/evidence/security-audit.json`.
+1. **Zero Command Grant**: $\text{Commands}(\text{Validator}_{\text{cog}}) \equiv \emptyset$. Cognitive validators execute strictly 0 terminal commands.
+2. **Read-Only Confinement**: Cognitive validators have zero permission to modify workspace files.
+3. **UI Dual Sequential Gate**: UI verification strictly requires `ui-headless-validator` execution followed by `ui-optical-validator` visual review across 4 viewports.
+4. **Detached Evidence Resolution**: Gate proofs resolve via detached receipts (`task:review --evidence`) or implementer records.
 
 ---
 

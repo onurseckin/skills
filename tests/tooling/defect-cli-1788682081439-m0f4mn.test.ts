@@ -12,9 +12,7 @@ describe("Defect Remediation: defect-cli-1788682081439-m0f4mn", () => {
   test("exports constants and defect metadata", () => {
     expect(DEFECT_ID).toBe("defect-cli-1788682081439-m0f4mn");
     expect(ERROR_CODE).toBe("INVALID_STATE");
-    expect(
-      DEFECT_TITLE.includes("C-4ac7f9ea-b9a8-42e9-8bf0-7f4dc83f06de"),
-    ).toBe(true);
+    expect(DEFECT_TITLE.includes("C-4ac7f9ea-b9a8-42e9-8bf0-7f4dc83f06de")).toBe(true);
   });
 
   test("rejects invalid requirement proof command", () => {

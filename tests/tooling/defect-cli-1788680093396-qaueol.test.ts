@@ -32,9 +32,7 @@ describe("Defect Remediation: defect-cli-1788680093396-qaueol", () => {
     expect(result.approved).toBe(false);
     expect(result.errorCode).toBe(ERROR_CODE);
     expect(result.unansweredFindings.length).toBe(5);
-    expect(result.error).toContain(
-      "cannot pass task-4: 5 open finding(s) unanswered",
-    );
+    expect(result.error).toContain("cannot pass task-4: 5 open finding(s) unanswered");
   });
 
   test("approves task-4 when all 5 findings are answered with command ids", () => {

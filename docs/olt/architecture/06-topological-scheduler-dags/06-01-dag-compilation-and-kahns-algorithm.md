@@ -8,49 +8,36 @@
 
 ## 1. Executive Summary & Graph-Theoretic Compilation Architecture
 
-In autonomous multi-agent software engineering systems, uncoordinated task execution leads to severe failure modes: missing type definitions, unbuilt dependencies, merge collisions in shared source trees, and race conditions during artifact consumption. Arbitrary task scheduling guarantees non-deterministic execution failure when subagents run concurrently.
+In autonomous multi-agent software engineering systems, uncoordinated task execution leads to missing type definitions, unbuilt dependencies, merge collisions in shared source trees, and race conditions during artifact consumption. Arbitrary task scheduling guarantees non-deterministic execution failure when subagents run concurrently.
 
 The OLT (Orchestrating Long Tasks) engine resolves this by compiling task requirements into a Directed Acyclic Graph (DAG) using **Kahn's Topological Sorting Algorithm**. The compiler transforms raw obligation lists derived from the sealed prompt into an ordered, multi-tier dependency structure.
 
 Under this scheduler:
 
-1. **Linear Time Compilation ($\mathcal{O}(|V| + |E|)$)**: Tasks are strictly sequenced such that every prerequisite task finishes and seals its artifacts before dependent tasks are unlocked.
+1. **Linear Time Compilation ($\mathcal{O}(|V| + |E|)$)**: Tasks are strictly sequenced such that prerequisite tasks finish and seal artifacts before dependent tasks unlock.
 2. **Topological Wave Synthesis**: Tasks possessing an in-degree of zero are partitioned into parallel execution waves ($W_1, W_2, \dots, W_K$), establishing clear concurrency boundaries.
 3. **Deterministic Queue Progression**: Ready tasks are placed into active worker queues using deterministic tie-breaking rules, eliminating runtime race conditions across heterogeneous hosts.
-4. **Immediate Cycle Rejection**: If the number of topologically emitted nodes is strictly less than $|V|$, graph compilation halts immediately, triggering Tarjan's cycle diagnosis subsystem.
+4. **Immediate Cycle Rejection**: If the number of topologically emitted nodes is strictly less than $|V|$, graph compilation halts immediately, triggering Tarjan's cycle diagnosis subsystem (`dag:heal`).
 
 ```text
 +--------------------------------------------------------------------------------------------------+
 │                             KAHN TOPOLOGICAL COMPILATION PIPELINE                                │
 +--------------------------------------------------------------------------------------------------+
-│                                                                                                  │
 │   Task Manifest V = {T_1, ..., T_N} ──► Build Adjacency List & In-Degree Array InDeg(v)          │
 │   Dependency Set E = {(u, v), ...}             │                                                 │
 │                                                ▼                                                 │
-│                               Scan for Zero In-Degree Nodes:                                     │
-│                               Q_0 = { v in V | InDeg(v) == 0 }                                   │
+│   Scan for Zero In-Degree Nodes: Q_0 = { v in V | InDeg(v) == 0 }                                │
 │                                                │                                                 │
-│                                                ▼                                                 │
-│                    ┌────────────────────────────────────────────────────────┐                    │
-│                    │ WHILE Q_k is Non-Empty:                                │                    │
-│                    │  1. Partition Q_k into Wave W_k                        │                    │
-│                    │  2. Apply Deterministic Tie-Breaker: Sort(W_k)         │                    │
-│                    │  3. For each node u in W_k:                            │                    │
-│                    │       For each successor v in Adj(u):                  │                    │
-│                    │         InDeg(v) = InDeg(v) - 1                        │                    │
-│                    │         If InDeg(v) == 0: Enqueue v -> Q_{k+1}         │                    │
-│                    │  4. Increment Wave Counter: k = k + 1                  │                    │
-│                    └───────────────────────────┬────────────────────────────┘                    │
+│   ┌────────────────────────────────────────────┴───────────────────────────────────────────┐     │
+│   │ WHILE Q_k is Non-Empty:                                                                │     │
+│   │  1. Partition Q_k into Wave W_k; Sort by Deterministic Tie-Breaker tau(v)              │     │
+│   │  2. For each u in W_k: for each v in Adj(u): InDeg(v)--; if InDeg(v)==0: Q_{k+1}.push(v)│   │
+│   │  3. Increment Wave Counter: k = k + 1                                                  │     │
+│   └────────────────────────────────────────────┬───────────────────────────────────────────┘     │
 │                                                │                                                 │
-│                                                ▼                                                 │
-│                             Graph Completeness Verification:                                     │
-│                                  |Emitted Nodes| == |V| ?                                        │
-│                                    /                \                                            │
-│                           [YES]   /                  \  [NO]                                     │
-│                                  ▼                    ▼                                          │
-│                 Compile Certified Wave Schedule     TRAP: CYCLIC_DEPENDENCY_DETECTED             │
-│                 Emit Waves: W_1, ..., W_K           Dispatch to Tarjan SCC Resolver              │
-│                                                                                                  │
+│   Verify Completeness: |Emitted Nodes| == |V| ?                                                  │
+│         ├── [YES] ──► Compile Certified Wave Schedule (Waves W_1, ..., W_K)                      │
+│         └── [NO]  ──► TRAP: CYCLIC_DEPENDENCY_DETECTED ──► Dispatch to Tarjan SCC Resolver       │
 +--------------------------------------------------------------------------------------------------+
 ```
 
@@ -58,117 +45,54 @@ Under this scheduler:
 
 ## 2. Mathematical Formalization & Sorting Correctness Theorems
 
-Let $G = (V, E)$ be a directed task graph where:
+Let $G = (V, E)$ be a directed task graph where $V = \{T_1, T_2, \dots, T_N\}$ is the vertex set ($|V| = N$) and $E \subseteq V \times V$ is the directed dependency edge set. $(u, v) \in E$ denotes that task $u$ is an immediate prerequisite of task $v$ ($u \prec v$).
+$\text{Adj}(u) = \{ v \in V \mid (u, v) \in E \}$ and $\text{Pred}(v) = \{ u \in V \mid (u, v) \in E \}$.
 
-- $V = \{T_1, T_2, \dots, T_N\}$ is the finite set of task vertices, with $|V| = N$.
-- $E \subseteq V \times V$ is the set of directed dependency edges, where $(u, v) \in E$ denotes that task $u$ is an immediate prerequisite of task $v$ ($u \prec v$).
-- $\text{Adj}(u) = \{ v \in V \mid (u, v) \in E \}$ is the set of immediate successors of $u$.
-- $\text{Pred}(v) = \{ u \in V \mid (u, v) \in E \}$ is the set of immediate predecessors of $v$.
-
-### In-Degree Formulation
-
-The in-degree $\text{deg}^-(v)$ and out-degree $\text{deg}^+(u)$ of vertices in $G$ are defined as:
+### In-Degree & Wave Recurrence
 
 $$\text{deg}^-(v) = |\text{Pred}(v)| = \big| \{ u \in V \mid (u, v) \in E \} \big|$$
 
-$$\text{deg}^+(u) = |\text{Adj}(u)| = \big| \{ v \in V \mid (u, v) \in E \} \big|$$
+Let $Q_k$ denote the ready queue at wave iteration $k \ge 1$, where $Q_1 = \{ v \in V \mid \text{deg}^-(v) = 0 \}$. For remaining vertices $v \in V \setminus \bigcup_{j=1}^k W_j$:
 
-### Kahn Queue Evolution Recurrence
+$$\text{deg}^-_k(v) = \text{deg}^-(v) - \left| \text{Pred}(v) \cap \left( \bigcup_{j=1}^k W_j \right) \right|, \quad Q_{k+1} = \left\{ v \in V \setminus \bigcup_{j=1}^k W_j \;\middle|\; \text{deg}^-_k(v) = 0 \right\}$$
 
-Let $Q_k$ denote the ready queue at wave iteration $k \ge 1$:
-
-$$Q_1 = \{ v \in V \mid \text{deg}^-(v) = 0 \}$$
-
-At each step $k$, the active wave $W_k$ is formed directly from $Q_k$. The remaining in-degree for any node $v \in V \setminus \bigcup_{j=1}^k W_j$ after the removal of all predecessors in wave $W_k$ is:
-
-$$\text{deg}^-_k(v) = \text{deg}^-(v) - \left| \text{Pred}(v) \cap \left( \bigcup_{j=1}^k W_j \right) \right|$$
-
-The next wave queue $Q_{k+1}$ is populated according to:
-
-$$Q_{k+1} = \left\{ v \in V \setminus \bigcup_{j=1}^k W_j \;\middle|\; \text{deg}^-_k(v) = 0 \right\}$$
-
-The algorithm terminates at step $K$ when $Q_{K+1} = \emptyset$.
-
-### Wave Partitioning Properties
-
-The computed waves $W_1, W_2, \dots, W_K$ satisfy the partition conditions:
-
-$$\bigcup_{k=1}^K W_k = V \iff G \text{ is a Directed Acyclic Graph (DAG)}$$
-
-$$\forall i, j \in \{1, \dots, K\}, \quad i \neq j \implies W_i \cap W_j = \emptyset$$
-
-$$\forall (u, v) \in E, \quad u \in W_i \land v \in W_j \implies i < j$$
+The computed waves $W_1, \dots, W_K$ partition $V$ such that $\bigcup_{k=1}^K W_k = V \iff G \text{ is a DAG}$, and $\forall (u, v) \in E$, $u \in W_i \land v \in W_j \implies i < j$.
 
 ### Deterministic Tie-Breaking Function
 
-To ensure identical execution schedules across replicated orchestrator instances, nodes within each wave $W_k$ are totally ordered by a deterministic tie-breaking key $\tau(v)$:
+Nodes within each wave $W_k$ are totally ordered by a deterministic tie-breaking key $\tau(v)$:
 
 $$\tau(v) = \Big\langle \pi(v), \quad \text{span}(v), \quad \text{lex}(v) \Big\rangle$$
 
-where:
-
-- $\pi(v) \in \mathbb{N}$: Static user-assigned priority weight (higher values evaluated first).
-- $\text{span}(v) \in \mathbb{N}$: Downstream critical path length $\max_{p \in \text{Paths}(v \to \text{Sink})} |p|$.
-- $\text{lex}(v) \in \Sigma^*$: Lexicographical UTF-8 byte representation of the task identifier string.
-
-For any pair $u, v \in W_k$, $u$ precedes $v$ in queue dispatch if and only if $\tau(u) \succ \tau(v)$ in lexicographic tuple comparison.
-
-### Correctness & Complexity Theorems
+where $\pi(v) \in \mathbb{N}$ is user priority, $\text{span}(v)$ is downstream critical path length, and $\text{lex}(v)$ is UTF-8 task ID. For $u, v \in W_k$, $u \succ v \iff \tau(u) \succ \tau(v)$ in lexicographic order.
 
 ```text
 +--------------------------------------------------------------------------------------------------+
-│ THEOREM 1 (Linear Time Bound):                                                                   │
-│ Kahn's algorithm computes the topological wave partition in exactly O(|V| + |E|) time.           │
-│                                                                                                  │
-│ PROOF: Initializing in-degree array requires O(|V| + |E|) steps. Each vertex v enters and leaves │
-│ the ready queue exactly once: O(|V|). Each directed edge (u, v) is traversed exactly once when   │
-│ node u is popped, decrementing InDeg(v): O(|E|). Total operations: O(|V| + |E|).                 │
+│ THEOREM 1 (Linear Time Bound): Kahn's algorithm computes wave partitions in exact O(|V| + |E|).  │
+│ Proof: In-degree init takes O(|V| + |E|). Each vertex is enqueued/dequeued once: O(|V|). Each    │
+│ edge is traversed once: O(|E|). Total runtime is strictly O(|V| + |E|).                          │
 +--------------------------------------------------------------------------------------------------+
-│ THEOREM 2 (Topological Completeness & Cycle Trap):                                               │
-│ |Union_{k=1}^K W_k| = |V| if and only if G contains no directed cycles.                         │
-│                                                                                                  │
-│ PROOF: If G contains a directed cycle C = <v_1, v_2, ..., v_m, v_1>, then for every vertex      │
-│ v_i in C, deg^-(v_i) >= 1 at all iterations, because each v_i has at least one predecessor in C. │
-│ Thus, no vertex in C can ever enter Q_k. Consequently, |Union W_k| <= |V| - |C| < |V|.           │
+│ THEOREM 2 (Topological Completeness & Cycle Trap): |Union W_k| = |V| <=> G is acyclic.            │
+│ Proof: Any cycle C has deg^-(v) >= 1 for all v in C at all iterations. No cyclic node enters Q.  │
+│ Hence |Union W_k| <= |V| - |C| < |V|, triggering immediate cycle fault.                          │
 +--------------------------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 3. High-Density ASCII Kahn Queue Execution Trace
-
-The following diagram traces the step-by-step state transitions of the in-degree array, the ready queue $Q$, and the compiled waves for a 6-task dependency graph:
+## 3. Kahn Queue Execution Trace & Wave Lattice
 
 ```text
-Dependency Edges:
-  T1 -> T3, T1 -> T4
-  T2 -> T4, T2 -> T5
-  T3 -> T6
-  T4 -> T6
-  T5 -> T6
-
-+--------------------------------------------------------------------------------------------------+
-│                                  KAHN QUEUE EXECUTION TRACE TABLE                                │
-+------+-------------+-----------------------------------+--------------------+--------------------+
-│ Step │ Action      │ In-Degree State Table             │ Ready Queue (Q)    │ Emitted Wave       │
-│      │             │ T1  T2  T3  T4  T5  T6            │                    │                    │
-+------+-------------+-----------------------------------+--------------------+--------------------+
-│  0   │ Initialize  │  0   0   1   2   1   3            │ [ T1, T2 ]         │ -                  │
-│      │             │                                   │                    │                    │
-│  1   │ Emit Wave 1 │  0   0   1   2   1   3            │ Pop T1, Pop T2     │ W_1 = { T1, T2 }   │
-│      │ Process T1  │  -   -   0   1   1   3  (T3->0)   │ [ T3 ]             │                    │
-│      │ Process T2  │  -   -   0   0   0   3  (T4,T5->0)│ [ T3, T4, T5 ]     │                    │
-│      │             │                                   │                    │                    │
-│  2   │ Emit Wave 2 │  -   -   0   0   0   3            │ Pop T3, T4, T5     │ W_2 = { T3, T4, T5}│
-│      │ Process T3  │  -   -   -   -   -   2  (T6-1=2)  │ []                 │                    │
-│      │ Process T4  │  -   -   -   -   -   1  (T6-1=1)  │ []                 │                    │
-│      │ Process T5  │  -   -   -   -   -   0  (T6-1=0)  │ [ T6 ]             │                    │
-│      │             │                                   │                    │                    │
-│  3   │ Emit Wave 3 │  -   -   -   -   -   0            │ Pop T6             │ W_3 = { T6 }       │
-│      │ Process T6  │  -   -   -   -   -   -            │ []                 │                    │
-│      │             │                                   │                    │                    │
-│  4   │ Terminate   │ Total Emitted: 6 / 6 (|V| == 6)   │ Empty Queue        │ Schedule Certified │
-+------+-------------+-----------------------------------+--------------------+--------------------+
+Edges: T1->T3, T1->T4, T2->T4, T2->T5, T3->T6, T4->T6, T5->T6
++------+-------------+-----------------------+--------------------+--------------------+
+│ Step │ Action      │ In-Degrees (T1..T6)   │ Ready Queue (Q)    │ Emitted Wave       │
++------+-------------+-----------------------+--------------------+--------------------+
+│  0   │ Initialize  │ 0, 0, 1, 2, 1, 3      │ [ T1, T2 ]         │ -                  │
+│  1   │ Emit Wave 1 │ -, -, 0, 0, 0, 3      │ Pop T1, T2 -> Q2   │ W_1 = { T1, T2 }   │
+│  2   │ Emit Wave 2 │ -, -, -, -, -, 0      │ Pop T3, T4, T5-> Q3│ W_2 = { T3, T4, T5}│
+│  3   │ Emit Wave 3 │ -, -, -, -, -, -      │ Pop T6             │ W_3 = { T6 }       │
+│  4   │ Terminate   │ Total: 6/6 (|V| == 6) │ Empty Queue        │ Certified Acyclic  │
++------+-------------+-----------------------+--------------------+--------------------+
 
 Compiled Wave Lattice:
   Wave 1: [ TASK-01 (InDeg=0) ]  [ TASK-02 (InDeg=0) ]
@@ -182,49 +106,33 @@ Compiled Wave Lattice:
 
 ---
 
-## 4. Mermaid Step-by-Step DAG Compilation Flowchart
+## 4. Compilation Flowchart
 
 ```mermaid
 flowchart TD
-    StartIngest["Ingest Task Manifest V and Edges E"] --> InitTables["Allocate InDeg Map and Adj Adjacency Map"]
-    InitTables --> PopulateEdges["Iterate (u, v) in E:<br/>Adj[u].push(v)<br/>InDeg[v] += 1"]
-    PopulateEdges --> FindZeroNodes["Identify Root Nodes:<br/>Q_1 = { v in V | InDeg[v] == 0 }"]
-
-    FindZeroNodes --> CheckEmptyInit{"Is Q_1 Empty?"}
-    CheckEmptyInit -->|"Yes (No roots exist)"| CycleDetected["TRAP: CYCLIC_DEPENDENCY_DETECTED<br/>All nodes have InDeg >= 1"]
-    CheckEmptyInit -->|"No (Roots present)"| EnterLoop["Set Wave Index k = 1<br/>Set EmittedCount = 0"]
-
-    EnterLoop --> ProcessWave["Extract Current Wave W_k = Q_k"]
-    ProcessWave --> TieBreak["Sort W_k by Tie-Breaker tau(v):<br/>Priority > CriticalSpan > Lexicographical"]
-    TieBreak --> NodeIteration["For Each Node u in W_k:<br/>EmittedCount += 1"]
-
-    NodeIteration --> SuccIteration["For Each Successor v in Adj[u]:<br/>InDeg[v] = InDeg[v] - 1"]
-    SuccIteration --> CheckNewZero{"InDeg[v] == 0?"}
-    CheckNewZero -->|"Yes"| AddToNextQ["Enqueue v into Q_{k+1}"]
-    CheckNewZero -->|"No"| ContinueSucc["Continue to Next Successor"]
-
-    AddToNextQ --> ContinueSucc
-    ContinueSucc --> AllSuccDone{"All Successors of u Processed?"}
-    AllSuccDone -->|"No"| SuccIteration
-    AllSuccDone -->|"Yes"| AllNodesDone{"All Nodes in W_k Processed?"}
-    AllNodesDone -->|"No"| NodeIteration
-
-    AllNodesDone -->|"Yes"| CheckNextQ{"Is Q_{k+1} Non-Empty?"}
-    CheckNextQ -->|"Yes"| AdvanceWave["k = k + 1<br/>Q_k = Q_{k+1}"]
-    AdvanceWave --> ProcessWave
-
-    CheckNextQ -->|"No"| VerifyCompleteness{"EmittedCount == |V|?"}
-    VerifyCompleteness -->|"Yes (DAG Certified)"| EmitSchedule(["Emit Compiled Wave Schedule<br/>Waves W_1 ... W_K"])
-    VerifyCompleteness -->|"No (Cycle Exists)"| CycleDetected
-
-    CycleDetected --> InvokeTarjan(["Invoke Tarjan SCC Cycle Diagnoser<br/>(Chapter 06-02)"])
+    Start["Ingest Task Manifest V and Edges E"] --> Init["Allocate InDeg & Adj Maps"]
+    Init --> Roots["Identify Root Nodes: Q_1 = { v in V | InDeg[v] == 0 }"]
+    Roots --> HasRoots{"Q_1 Empty?"}
+    HasRoots -->|"Yes"| Cycle["TRAP: CYCLIC_DEPENDENCY_DETECTED"]
+    HasRoots -->|"No"| Loop["Extract Wave W_k = Q_k; Sort by tau(v)"]
+    Loop --> Decrement["For each u in W_k, v in Adj[u]: InDeg[v]--"]
+    Decrement --> CheckNext{"InDeg[v] == 0?"}
+    CheckNext -->|"Yes"| Enqueue["Enqueue v into Q_{k+1}"]
+    CheckNext -->|"No"| Advance["More nodes in wave?"]
+    Enqueue --> Advance
+    Advance --> NextWave{"Q_{k+1} Non-Empty?"}
+    NextWave -->|"Yes"| Loop
+    NextWave -->|"No"| Complete{"Emitted == |V|?"}
+    Complete -->|"Yes"| Emit(["Emit Waves W_1 ... W_K"])
+    Complete -->|"No"| Cycle
+    Cycle --> Tarjan(["Invoke Tarjan SCC (dag:heal)"])
 ```
 
 ---
 
 ## 5. Concrete TypeScript Contracts & Reference Implementation
 
-The topological compiler is implemented in [`topological-scheduler.ts`](../../../../olt/scripts/src/graph/compiler.ts). The implementation enforces strict type bounds, zero `any` usage, and linear algorithmic performance.
+The topological compiler is implemented in [`topological-scheduler.ts`](../../../../olt/scripts/src/graph/compiler.ts):
 
 ```typescript
 export interface TaskDependencyNode {
@@ -254,19 +162,9 @@ export interface DeterministicTieBreaker {
   (a: TaskDependencyNode, b: TaskDependencyNode): number;
 }
 
-/**
- * Default deterministic comparator:
- * 1. Priority descending (higher priority first)
- * 2. Estimated span descending (longest span first)
- * 3. Task ID ascending (lexicographical tie-breaker)
- */
 export const defaultTieBreaker: DeterministicTieBreaker = (a, b) => {
-  if (a.priority !== b.priority) {
-    return b.priority - a.priority;
-  }
-  if (a.estimatedSpanMs !== b.estimatedSpanMs) {
-    return b.estimatedSpanMs - a.estimatedSpanMs;
-  }
+  if (a.priority !== b.priority) return b.priority - a.priority;
+  if (a.estimatedSpanMs !== b.estimatedSpanMs) return b.estimatedSpanMs - a.estimatedSpanMs;
   return a.id.localeCompare(b.id);
 };
 
@@ -295,8 +193,6 @@ export function compileTopologicalWaves(
 
   const waves: string[][] = [];
   let scheduledCount = 0;
-
-  // Initialize Wave 1 with all zero-in-degree nodes
   let currentWaveNodes = nodes
     .filter((n) => inDegree.get(n.id) === 0)
     .sort(tieBreaker)
@@ -305,22 +201,16 @@ export function compileTopologicalWaves(
   while (currentWaveNodes.length > 0) {
     waves.push(currentWaveNodes);
     scheduledCount += currentWaveNodes.length;
-
     const nextWaveNodeIds: string[] = [];
 
     for (const uId of currentWaveNodes) {
-      const successors = adjacency.get(uId) ?? [];
-      for (const vId of successors) {
-        const remainingInDegree = (inDegree.get(vId) ?? 0) - 1;
-        inDegree.set(vId, remainingInDegree);
-
-        if (remainingInDegree === 0) {
-          nextWaveNodeIds.push(vId);
-        }
+      for (const vId of adjacency.get(uId) ?? []) {
+        const rem = (inDegree.get(vId) ?? 0) - 1;
+        inDegree.set(vId, rem);
+        if (rem === 0) nextWaveNodeIds.push(vId);
       }
     }
 
-    // Sort next wave deterministically before next iteration
     currentWaveNodes = nextWaveNodeIds
       .map((id) => nodeMap.get(id)!)
       .sort(tieBreaker)
@@ -346,13 +236,11 @@ export function compileTopologicalWaves(
 
 ## 6. Anti-Blunder Matrix & Failure Diagnostics
 
-The table below catalogs critical implementation blunders encountered in topological DAG compilation, their root causes, and corresponding OLT mitigations.
-
 | Blunder Identifier            | Pathology / Symptom                                      | Root Cause                                                     | Architectural Mitigation                                                                                        |
 | :---------------------------- | :------------------------------------------------------- | :------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------- |
-| `ERR_NONDETERMINISTIC_QUEUE`  | Flaky wave assignments across agent restarts.            | Iterating over unordered `Set` or `Map` keys without sorting.  | Enforce strict `DeterministicTieBreaker` tuple sort on each wave queue.                                         |
-| `ERR_UNINDEXED_EDGE_MUTATION` | Runtime exceptions or corrupted in-degree counters.      | Edge mutations occurring concurrently during wave iteration.   | Freeze dependency graph into immutable read-only records before sorting.                                        |
-| `ERR_CYCLIC_DEADLOCK_BYPASS`  | Scheduler hangs waiting for unattainable wave.           | Silently dropping unscheduled nodes when `isAcyclic` is false. | Immediate trap to `PROMPT_CORRUPTION_DETECTED` and dispatch to Tarjan resolver.                                 |
+| `ERR_NONDETERMINISTIC_QUEUE`  | Flaky wave assignments across agent restarts.            | Iterating over unordered `Set`/`Map` keys without sorting.     | Enforce strict `DeterministicTieBreaker` tuple sort on each wave.                                               |
+| `ERR_UNINDEXED_EDGE_MUTATION` | Corrupted in-degree counters.                            | Edge mutations occurring concurrently during wave iteration.   | Freeze dependency graph into immutable records before sorting.                                                  |
+| `ERR_CYCLIC_DEADLOCK_BYPASS`  | Scheduler hangs waiting for unattainable wave.           | Silently dropping unscheduled nodes when `isAcyclic` is false. | Immediate trap to Tarjan resolver via `dag:heal`.                                                               |
 | `ERR_DANGLING_EDGE_REFERENCE` | Null pointer dereference during adjacency traversal.     | Task edges referencing task IDs omitted from node manifest.    | Preflight schema validator cross-checks $\forall (u, v) \in E \implies u, v \in V$.                             |
 | `ERR_BULK_BARRIER_DRAG`       | Stragglers in Wave $k$ block independent tasks in $k+1$. | Rigid wave boundary enforcement without dynamic decoupling.    | Hand off compiled DAG to Dynamic Wave Decoupler ([Chapter 06-03](06-03-dynamic-wave-decoupling-and-scopes.md)). |
 
@@ -361,9 +249,9 @@ The table below catalogs critical implementation blunders encountered in topolog
 ## 7. Architectural Invariants Summary
 
 1. **Linear Time Complexity**: Graph compilation and topological wave sorting operate strictly in $\mathcal{O}(|V| + |E|)$ with zero backtracking.
-2. **Zero-Tolerance Cycle Trapping**: Any cycle prevents execution dispatch and immediately routes the graph to Tarjan's SCC diagnosis engine.
+2. **Zero-Tolerance Cycle Trapping**: Any cycle prevents execution dispatch and immediately routes the graph to Tarjan's SCC diagnosis engine (`dag:heal`).
 3. **Deterministic Queue Progression**: Identical input manifests produce byte-for-byte identical wave schedules across all operating environments.
-4. **Precedence Isolation**: For any directed edge $(u, v) \in E$, task $u$ is guaranteed to reside in wave $W_i$ and task $v$ in wave $W_j$ where $i < j$.
+4. **Precedence Isolation**: For any directed edge $(u, v) \in E$, task $u$ resides in wave $W_i$ and task $v$ in wave $W_j$ where $i < j$.
 
 ---
 

@@ -15,9 +15,7 @@ export interface MsgReadResolutionResult {
   readonly error?: string;
 }
 
-export function resolveMsgReadCommand(
-  context: MsgReadResolutionContext,
-): MsgReadResolutionResult {
+export function resolveMsgReadCommand(context: MsgReadResolutionContext): MsgReadResolutionResult {
   const { requestedCommand } = context;
 
   if (requestedCommand === "msg:read") {

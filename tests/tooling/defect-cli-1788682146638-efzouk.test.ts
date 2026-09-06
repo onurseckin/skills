@@ -19,8 +19,7 @@ describe("Defect Remediation: defect-cli-1788682146638-efzouk", () => {
     const ctx: ReportUnifiedCommandDispatchContext = {
       command: "report:unified",
     };
-    const result: ReportUnifiedCommandDispatchResult =
-      handleReportUnifiedCommand(ctx);
+    const result: ReportUnifiedCommandDispatchResult = handleReportUnifiedCommand(ctx);
     expect(result.remediated).toBe(true);
     expect(result.defectId).toBe(DEFECT_ID);
     expect(result.errorCode).toBe(ERROR_CODE);
@@ -32,8 +31,7 @@ describe("Defect Remediation: defect-cli-1788682146638-efzouk", () => {
     const ctx: ReportUnifiedCommandDispatchContext = {
       command: "report:delta",
     };
-    const result: ReportUnifiedCommandDispatchResult =
-      handleReportUnifiedCommand(ctx);
+    const result: ReportUnifiedCommandDispatchResult = handleReportUnifiedCommand(ctx);
     expect(result.remediated).toBe(true);
     expect(result.resolved).toBe(false);
     expect(result.error).toContain("did you mean 'report:usage'?");

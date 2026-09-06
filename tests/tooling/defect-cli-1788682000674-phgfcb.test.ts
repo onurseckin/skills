@@ -19,8 +19,7 @@ describe("Defect Remediation: defect-cli-1788682000674-phgfcb", () => {
     const ctx: UnifiedReportResolutionContext = {
       requestedCommand: "report:unified",
     };
-    const result: UnifiedReportResolutionResult =
-      resolveUnifiedReportCommand(ctx);
+    const result: UnifiedReportResolutionResult = resolveUnifiedReportCommand(ctx);
     expect(result.remediated).toBe(true);
     expect(result.defectId).toBe(DEFECT_ID);
     expect(result.errorCode).toBe(ERROR_CODE);
@@ -32,8 +31,7 @@ describe("Defect Remediation: defect-cli-1788682000674-phgfcb", () => {
     const ctx: UnifiedReportResolutionContext = {
       requestedCommand: "report:overview",
     };
-    const result: UnifiedReportResolutionResult =
-      resolveUnifiedReportCommand(ctx);
+    const result: UnifiedReportResolutionResult = resolveUnifiedReportCommand(ctx);
     expect(result.remediated).toBe(true);
     expect(result.resolved).toBe(false);
     expect(result.error).toContain("did you mean 'report:usage'?");

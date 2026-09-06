@@ -1,6 +1,7 @@
 export const DEFECT_ID = "defect-cli-1788677155039-wwbq9t";
 export const ERROR_CODE = "INTEGRITY";
-export const DEFECT_TITLE = "Defect Remediation: post-attempt gate integrity failed: repository changed after gate attempt";
+export const DEFECT_TITLE =
+  "Defect Remediation: post-attempt gate integrity failed: repository changed after gate attempt";
 
 export interface DefectRemediationContext {
   readonly actor?: string;

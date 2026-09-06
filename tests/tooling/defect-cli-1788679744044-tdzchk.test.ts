@@ -31,9 +31,7 @@ describe("Defect Remediation: defect-cli-1788679744044-tdzchk", () => {
     expect(result.remediated).toBe(true);
     expect(result.passed).toBe(false);
     expect(result.errorCode).toBe(ERROR_CODE);
-    expect(result.error).toContain(
-      "cannot pass task-3: 5 open finding(s) unanswered",
-    );
+    expect(result.error).toContain("cannot pass task-3: 5 open finding(s) unanswered");
   });
 
   test("allows passing task-3 when all findings are resolved", () => {

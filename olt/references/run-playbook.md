@@ -203,7 +203,12 @@ bun $PINNED critic:reject --run $RUN --critic <critic-id> --token <token> \
   --summary "<what is missing>" --findings-file <findings.json>
 
 bun $PINNED run:complete --run $RUN --actor coordinator --auth-token <token-from-critic:review>
-bun $PINNED run:status --run $RUN --detailed
+bun $PINNED report --run $RUN --detailed
+
+# Tier 3 Publisher: atomic wave landing and worktree cleanup
+bun $PINNED worktree:land --run $RUN --actor publisher
+bun $PINNED worktree:clean --run $RUN --actor publisher
+bun $PINNED doctor --run $RUN
 ```
 
 ---
@@ -228,7 +233,10 @@ bun $PINNED summary:view --run $RUN
 
 ```bash
 # Render topological Sugiyama DAG with Work/Span metrics and decoupled artificial edges
-bun $PINNED dag --run $RUN --detailed
+bun $PINNED report:dag --run $RUN --detailed
+
+# Alternatively inspect DAG directly via decoupled DAG engine
+bun $PINNED dag:view --run $RUN --detailed
 
 # Real-time supervisory telemetry with Work/Span metrics and active [W<wave>:L<lane>] badges
 bun $PINNED mind:pulse --run $RUN
@@ -241,3 +249,6 @@ bun $PINNED defect:audit --run $RUN --auto-admit --actor coordinator
 bun $PINNED watchdog:verify --generation 1 --all
 bun $PINNED watchdog:probe --run $RUN
 ```
+
+> [!NOTE]
+> **Zero Backwards-Compatibility Purity Invariant**: Legacy root `dag` and `run:status` commands are permanently retired. Any invocation triggers `[RETIRED_COMMAND]` mechanical guards directing operators to `report:dag` and `report`.

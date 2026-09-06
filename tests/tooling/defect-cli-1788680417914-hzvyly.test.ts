@@ -12,9 +12,7 @@ describe("Defect Remediation: defect-cli-1788680417914-hzvyly", () => {
   test("exports constants and defect metadata", () => {
     expect(DEFECT_ID).toBe("defect-cli-1788680417914-hzvyly");
     expect(ERROR_CODE).toBe("INVALID_STATE");
-    expect(
-      DEFECT_TITLE.includes("C-4d96270c-8122-4e98-a4cf-94434c945f85"),
-    ).toBe(true);
+    expect(DEFECT_TITLE.includes("C-4d96270c-8122-4e98-a4cf-94434c945f85")).toBe(true);
   });
 
   test("rejects invalid requirement proof command without successful execution", () => {
@@ -23,8 +21,7 @@ describe("Defect Remediation: defect-cli-1788680417914-hzvyly", () => {
       proofCommandId: "C-4d96270c-8122-4e98-a4cf-94434c945f85",
       recordedCommands: [],
     };
-    const result: RequirementProofValidationResult =
-      validateRequirementProofCommand(ctx);
+    const result: RequirementProofValidationResult = validateRequirementProofCommand(ctx);
     expect(result.remediated).toBe(true);
     expect(result.valid).toBe(false);
     expect(result.errorCode).toBe(ERROR_CODE);
@@ -46,8 +43,7 @@ describe("Defect Remediation: defect-cli-1788680417914-hzvyly", () => {
         },
       ],
     };
-    const result: RequirementProofValidationResult =
-      validateRequirementProofCommand(ctx);
+    const result: RequirementProofValidationResult = validateRequirementProofCommand(ctx);
     expect(result.remediated).toBe(true);
     expect(result.valid).toBe(true);
     expect(result.error).toBeUndefined();

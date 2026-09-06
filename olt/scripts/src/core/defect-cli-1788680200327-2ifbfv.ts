@@ -1,6 +1,7 @@
 export const DEFECT_ID = "defect-cli-1788680200327-2ifbfv";
 export const ERROR_CODE = "INVALID_STATE";
-export const DEFECT_TITLE = "Defect Remediation: task:review could not load capsule state at --run /Users/onurseckinsenoglu/repos/skills/.olt/capsules/supervisory-cadence-and-mechanical-interlocks and is not on the grant bootstrap allowlist for missing capsules; an unreadable capsule cannot be treated as one with no grants";
+export const DEFECT_TITLE =
+  "Defect Remediation: task:review could not load capsule state at --run /Users/onurseckinsenoglu/repos/skills/.olt/capsules/supervisory-cadence-and-mechanical-interlocks and is not on the grant bootstrap allowlist for missing capsules; an unreadable capsule cannot be treated as one with no grants";
 
 export interface DefectRemediationContext {
   readonly actor?: string;

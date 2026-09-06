@@ -1,6 +1,7 @@
 export const DEFECT_ID = "defect-cli-1788679438508-ywptam";
 export const ERROR_CODE = "INVALID_STATE";
-export const DEFECT_TITLE = "Defect Remediation: packet registration differs: implementer-8c34dadf5f666990";
+export const DEFECT_TITLE =
+  "Defect Remediation: packet registration differs: implementer-8c34dadf5f666990";
 
 export interface DefectRemediationContext {
   readonly actor?: string;

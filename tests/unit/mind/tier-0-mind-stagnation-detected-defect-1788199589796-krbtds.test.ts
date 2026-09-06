@@ -33,7 +33,9 @@ describe("Defect Remediation: defect-1788199589796-krbtds", () => {
       taskId: "task-1_3",
       state: "validating",
       sessionToken: "tok_live_defect_1788199589796_krbtds",
-      scope: ["olt/scripts/src/mind/tier-0-mind-stagnation-detected-defect-1788199589796-krbtds.ts"],
+      scope: [
+        "olt/scripts/src/mind/tier-0-mind-stagnation-detected-defect-1788199589796-krbtds.ts",
+      ],
       gateCommand:
         "bun test tests/unit/mind/tier-0-mind-stagnation-detected-defect-1788199589796-krbtds.test.ts",
       idleDurationSeconds: RECORDED_IDLE_SECONDS,

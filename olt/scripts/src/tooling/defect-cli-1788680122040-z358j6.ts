@@ -1,7 +1,6 @@
 export const DEFECT_ID = "defect-cli-1788680122040-z358j6";
 export const ERROR_CODE = "INVALID_STATE";
-export const DEFECT_TITLE =
-  "Defect Remediation: command event actor does not match command actor";
+export const DEFECT_TITLE = "Defect Remediation: command event actor does not match command actor";
 
 export interface CommandActorValidationContext {
   readonly commandId: string;

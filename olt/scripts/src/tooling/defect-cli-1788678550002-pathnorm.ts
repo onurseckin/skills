@@ -21,10 +21,7 @@ export interface PathNormalizationResult {
 export function normalizeCapsuleRunPath(
   context: PathNormalizationContext,
 ): PathNormalizationResult {
-  const {
-    rawRunIdentifier,
-    baseDirectory = ".olt/capsules",
-  } = context;
+  const { rawRunIdentifier, baseDirectory = ".olt/capsules" } = context;
 
   const trimmed = rawRunIdentifier.trim();
 
@@ -39,9 +36,7 @@ export function normalizeCapsuleRunPath(
     };
   }
 
-  const cleanBase = baseDirectory.endsWith("/")
-    ? baseDirectory.slice(0, -1)
-    : baseDirectory;
+  const cleanBase = baseDirectory.endsWith("/") ? baseDirectory.slice(0, -1) : baseDirectory;
   const normalized = `${cleanBase}/${trimmed}`;
 
   return {

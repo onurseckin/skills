@@ -15,9 +15,7 @@ export interface CommandValidatorResult35 {
   readonly error?: string;
 }
 
-export function validateCommand35(
-  context: CommandValidatorContext35,
-): CommandValidatorResult35 {
+export function validateCommand35(context: CommandValidatorContext35): CommandValidatorResult35 {
   const { command, allowedCommands = [] } = context;
 
   if (allowedCommands.includes(command)) {

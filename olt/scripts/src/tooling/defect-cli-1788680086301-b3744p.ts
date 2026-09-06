@@ -18,14 +18,10 @@ export interface Task1ProbeCheckResult {
   readonly error?: string;
 }
 
-export function checkTask1ProbeResolutions(
-  context: Task1ProbeCheckContext,
-): Task1ProbeCheckResult {
+export function checkTask1ProbeResolutions(context: Task1ProbeCheckContext): Task1ProbeCheckResult {
   const { taskId, findings, resolutions = {} } = context;
 
-  const unanswered = findings.filter(
-    (f) => !resolutions[f] || resolutions[f]?.trim().length === 0,
-  );
+  const unanswered = findings.filter((f) => !resolutions[f] || resolutions[f]?.trim().length === 0);
 
   if (unanswered.length === 0) {
     return {

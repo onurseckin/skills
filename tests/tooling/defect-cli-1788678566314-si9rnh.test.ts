@@ -19,8 +19,7 @@ describe("Defect Remediation: defect-cli-1788678566314-si9rnh", () => {
     const ctx: ReportCommandResolutionContext = {
       requestedCommand: "report:unified",
     };
-    const result: ReportCommandResolutionResult =
-      resolveReportUnifiedCommand(ctx);
+    const result: ReportCommandResolutionResult = resolveReportUnifiedCommand(ctx);
     expect(result.remediated).toBe(true);
     expect(result.defectId).toBe(DEFECT_ID);
     expect(result.errorCode).toBe(ERROR_CODE);
@@ -33,8 +32,7 @@ describe("Defect Remediation: defect-cli-1788678566314-si9rnh", () => {
     const ctx: ReportCommandResolutionContext = {
       requestedCommand: "report:usage",
     };
-    const result: ReportCommandResolutionResult =
-      resolveReportUnifiedCommand(ctx);
+    const result: ReportCommandResolutionResult = resolveReportUnifiedCommand(ctx);
     expect(result.remediated).toBe(true);
     expect(result.resolved).toBe(true);
     expect(result.canonicalCommand).toBe("report:usage");
@@ -44,8 +42,7 @@ describe("Defect Remediation: defect-cli-1788678566314-si9rnh", () => {
     const ctx: ReportCommandResolutionContext = {
       requestedCommand: "unknown_cmd",
     };
-    const result: ReportCommandResolutionResult =
-      resolveReportUnifiedCommand(ctx);
+    const result: ReportCommandResolutionResult = resolveReportUnifiedCommand(ctx);
     expect(result.remediated).toBe(true);
     expect(result.resolved).toBe(false);
     expect(result.error).toBe("unknown command: unknown_cmd");

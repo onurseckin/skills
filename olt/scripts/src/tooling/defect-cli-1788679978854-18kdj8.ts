@@ -23,9 +23,7 @@ export function reevaluateTask2GateFindings(
 ): Task2FindingsReevaluationResult {
   const { taskId, findings, resolutions = {} } = context;
 
-  const pending = findings.filter(
-    (f) => !resolutions[f] || resolutions[f]?.trim().length === 0,
-  );
+  const pending = findings.filter((f) => !resolutions[f] || resolutions[f]?.trim().length === 0);
 
   if (pending.length === 0) {
     return {

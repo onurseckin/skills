@@ -15,9 +15,7 @@ export interface CommandLookupResult {
   readonly error?: string;
 }
 
-export function evaluateCommandLookup(
-  context: CommandLookupContext,
-): CommandLookupResult {
+export function evaluateCommandLookup(context: CommandLookupContext): CommandLookupResult {
   const { command, validSubcommands = [] } = context;
 
   if (validSubcommands.includes(command)) {

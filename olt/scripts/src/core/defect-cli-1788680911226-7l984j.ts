@@ -1,6 +1,7 @@
 export const DEFECT_ID = "defect-cli-1788680911226-7l984j";
 export const ERROR_CODE = "INVALID_ARGUMENT";
-export const DEFECT_TITLE = "Defect Remediation: unknown option: --run-root; did you mean --repo-root?";
+export const DEFECT_TITLE =
+  "Defect Remediation: unknown option: --run-root; did you mean --repo-root?";
 
 export interface DefectRemediationContext {
   readonly actor?: string;

@@ -1,6 +1,7 @@
 export const DEFECT_ID = "DEFECT-COORDINATOR-CODE-EDIT";
 export const ERROR_CODE = "COORDINATOR_DIRECT_CODE_EDIT";
-export const DEFECT_TITLE = "Defect Remediation: Coordinator & Supervisor Role Boundary Breach: Direct Code Editing";
+export const DEFECT_TITLE =
+  "Defect Remediation: Coordinator & Supervisor Role Boundary Breach: Direct Code Editing";
 
 export interface DefectRemediationContext {
   readonly actor?: string;
@@ -45,8 +46,11 @@ export function verifyDefectRemediation(
     taskId: "task-20",
     state: "validating",
     sessionToken: "tok_live_core_DEFECT-COORDINATOR-CODE-EDIT",
-    scope: ["olt/scripts/src/core/coordinator-supervisor-role-boundary-breach-direct-code-editing-defect-coordinator-code-edit.ts"],
-    gateCommand: "bun test tests/core/coordinator-supervisor-role-boundary-breach-direct-code-editing-defect-coordinator-code-edit.test.ts",
+    scope: [
+      "olt/scripts/src/core/coordinator-supervisor-role-boundary-breach-direct-code-editing-defect-coordinator-code-edit.ts",
+    ],
+    gateCommand:
+      "bun test tests/core/coordinator-supervisor-role-boundary-breach-direct-code-editing-defect-coordinator-code-edit.test.ts",
     options: ["--compliant"],
   };
 

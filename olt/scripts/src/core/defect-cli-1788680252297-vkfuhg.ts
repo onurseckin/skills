@@ -1,6 +1,7 @@
 export const DEFECT_ID = "defect-cli-1788680252297-vkfuhg";
 export const ERROR_CODE = "INVALID_ARGUMENT";
-export const DEFECT_TITLE = "Defect Remediation: --resolution-method must be given as <finding-id>=<value>";
+export const DEFECT_TITLE =
+  "Defect Remediation: --resolution-method must be given as <finding-id>=<value>";
 
 export interface DefectRemediationContext {
   readonly actor?: string;

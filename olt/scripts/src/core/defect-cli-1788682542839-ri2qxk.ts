@@ -1,6 +1,7 @@
 export const DEFECT_ID = "defect-cli-1788682542839-ri2qxk";
 export const ERROR_CODE = "INVALID_STATE";
-export const DEFECT_TITLE = "Defect Remediation: admission gate gate-1-witnessed (Witnessed) refused: proposals require an owner authority decision ('owner-decision') before admission";
+export const DEFECT_TITLE =
+  "Defect Remediation: admission gate gate-1-witnessed (Witnessed) refused: proposals require an owner authority decision ('owner-decision') before admission";
 
 export interface DefectRemediationContext {
   readonly actor?: string;

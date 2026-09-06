@@ -1,6 +1,5 @@
 export const DEFECT_ID = "defect-no-concurrency-assertion";
-export const ERROR_CODE =
-  "NO_ASSERTION_THAT_READY_LANES_GET_DISTINCT_IMPLEMENTERS";
+export const ERROR_CODE = "NO_ASSERTION_THAT_READY_LANES_GET_DISTINCT_IMPLEMENTERS";
 export const DEFECT_TITLE =
   "Defect Remediation: Nothing detects a coordinator running many independent lanes through a single implementer";
 
@@ -37,9 +36,7 @@ export function assertIndependentLanesConcurrency(
   const violations: string[] = [];
   const map: Record<string, string[]> = {};
 
-  const independentLanes = lanes.filter(
-    (l) => !l.dependencies || l.dependencies.length === 0,
-  );
+  const independentLanes = lanes.filter((l) => !l.dependencies || l.dependencies.length === 0);
 
   for (const lane of independentLanes) {
     const actor = lane.implementerActor;

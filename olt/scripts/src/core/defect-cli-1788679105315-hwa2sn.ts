@@ -1,6 +1,7 @@
 export const DEFECT_ID = "defect-cli-1788679105315-hwa2sn";
 export const ERROR_CODE = "INVALID_STATE";
-export const DEFECT_TITLE = "Defect Remediation: agent implementer_validation already holds a grant in this run";
+export const DEFECT_TITLE =
+  "Defect Remediation: agent implementer_validation already holds a grant in this run";
 
 export interface DefectRemediationContext {
   readonly actor?: string;

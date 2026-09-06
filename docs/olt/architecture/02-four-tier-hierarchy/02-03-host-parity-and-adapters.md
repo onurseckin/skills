@@ -8,192 +8,112 @@
 
 ## 1. Executive Summary & The Host Portability Challenge
 
-Autonomous software engineering agents must operate reliably across a rapidly fragmenting ecosystem of AI development environments and CLI host platforms. Leading host environments—such as Antigravity, Claude Code, Codex CLI, Cursor, Goose, Windsurf, and headless CI/CD terminals—each introduce proprietary tool invocation signatures, divergent subagent spawning semantics, distinct IPC messaging paradigms, and inconsistent shell execution sandboxes:
+Autonomous software engineering agents operate across multiple AI development platforms. Leading host environments—Antigravity, Claude Code, Codex, and Cursor—introduce distinct tool invocation signatures, subagent spawning mechanisms, IPC messaging paradigms, and shell sandboxes:
 
-- **Antigravity**: Native subagent tool `invoke_subagent`, MCP server tool integration, message bus IPC, background task manager.
+- **Antigravity**: Native subagent tool `invoke_subagent`, MCP tools, message bus IPC, background task manager.
 - **Claude Code**: Tool primitives `Agent`, `Bash`, `FileEdit`, `Glob`, `Grep`, slash-command interfaces.
-- **Goose / Windsurf / Cursor**: MCP tool wrappers, extension hooks, headless process multiplexers.
-- **Generic Headless CLI**: Standard Unix POSIX pipes, `fork`/`exec` subprocesses, and FIFO mailboxes.
+- **Codex**: OpenAI multi-agent harness primitives, `spawn_agent`, direct IPC mailboxes.
+- **Cursor**: Extension hooks, `Task` tool, headless terminal multiplexers.
 
 If the core OLT scheduling and execution engine were tightly coupled to any single platform's API conventions, portability would collapse, and multi-agent workflows would require brittle rewrites for each environment.
 
-The OLT (Orchestrating Long Tasks) engine resolves this via the **Universal Host Adapter Architecture (`IHostAdapter`)**. Under this model:
+The OLT engine resolves this via the **Universal Host Adapter Architecture (`IHostAdapter`)**:
 
 1. **Host-Agnostic Core Engine**: All topological scheduling, lease coordination, Merkle event logging, and AST linting algorithms are decoupled from host-specific APIs.
-2. **Deterministic Parity Invariant**: Every lifecycle operation, subagent invocation, and tool call produces mathematically identical behavioral proofs across all supported hosts.
-3. **Dynamic Detection Cascade**: At boot time, the engine probes ambient environment signatures, tool schemas, and diagnostic APIs to dynamically instantiate the correct adapter with zero manual configuration.
-4. **Resilient Fallback & Tool Proxying**: When advanced host capabilities (e.g., native background subagent spawning) are missing, the adapter transparently proxies operations through POSIX subprocesses or FIFO mailboxes.
+2. **Deterministic Parity Invariant**: Every lifecycle operation, subagent invocation, and tool call produces mathematically identical behavioral proofs across all 4 canonical hosts.
+3. **Four Canonical Hosts Standardization**: Standardizes exclusively on 4 platforms (`antigravity`, `claude_code`, `codex`, `cursor`). Generic fallback models and speculative aliases are strictly banned.
+4. **CLI and IDE Parity**: CLI environments and IDE extensions share 100% identical configuration.
 
 ```text
-+--------------------------------------------------------------------------------------------------+
-│                             UNIVERSAL HOST ADAPTER BUS ARCHITECTURE                              │
-+--------------------------------------------------------------------------------------------------+
-│                                                                                                  │
-│   ┌────────────────────────────────────────────────────────────────────────────────────────┐     │
-│   │                                    OLT CORE ENGINE                                     │     │
-│   │   [Topological Scheduler]  [Merkle Ledger]  [Monotonic Lease Engine]  [AST Linter]     │     │
-│   └───────────────────────────────────────────┬────────────────────────────────────────────┘     │
-│                                               │                                                  │
-│                                               ▼                                                  │
-│   ┌────────────────────────────────────────────────────────────────────────────────────────┐     │
-│   │                         UNIVERSAL HOST ADAPTER INTERFACE (IHostAdapter)                 │     │
-│   │   • spawnSubagent(opts)       • sendMessage(recipient, msg)   • executeCommand(cmd)   │     │
-│   │   • readFile(path)            • writeFile(path, content)       • probeCapabilities()   │     │
-│   └───────────────────────────────────────────┬────────────────────────────────────────────┘     │
-│                                               │                                                  │
-│         ┌──────────────────────┬──────────────┴───────┬──────────────────────┐                   │
-│         ▼                      ▼                      ▼                      ▼                   │
-│   ┌──────────────┐       ┌──────────────┐       ┌──────────────┐       ┌──────────────┐          │
-│   │ Antigravity  │       │ Claude Code  │       │ Goose /      │       │ Headless     │          │
-│   │ Adapter      │       │ Adapter      │       │ Cursor / IDE │       │ Generic CLI  │          │
-│   │ (invoke_sub) │       │ (Agent/Bash) │       │ (MCP Proxy)  │       │ (POSIX Pipe) │          │
-│   └──────────────┘       └──────────────┘       └──────────────┘       └──────────────┘          │
-│                                                                                                  │
-+--------------------------------------------------------------------------------------------------+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    UNIVERSAL HOST ADAPTER BUS ARCHITECTURE                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                               OLT CORE ENGINE                               │
+│       [Topological Scheduler] [Monotonic Lease] [Merkle Event Ledger]       │
+│                                      │                                      │
+│                                      ▼                                      │
+│               UNIVERSAL HOST ADAPTER INTERFACE (IHostAdapter)               │
+│       • spawnSubagent(opts)       • sendMessage(recipient, msg)             │
+│       • executeCommand(cmd)       • probeCapabilities()                     │
+│                                      │                                      │
+│         ┌──────────────────┬─────────┴────────┬──────────────────┐          │
+│         ▼                  ▼                  ▼                  ▼          │
+│   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐  │
+│   │ Antigravity │    │ Claude Code │    │    Codex    │    │   Cursor    │  │
+│   │   Adapter   │    │   Adapter   │    │   Adapter   │    │   Adapter   │  │
+│   │(invoke_sub) │    │(Agent/Bash) │    │(spawn_agent)│    │ (Task/term) │  │
+│   └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 2. Mathematical Parity Invariant & Capability Normalization
+## 2. Canonical Hosts, Models, Thinking Levels & Schedulers
 
-Let $\mathcal{H} = \{H_{\text{antigravity}}, H_{\text{claude\_code}}, H_{\text{goose}}, H_{\text{cursor}}, H_{\text{cli}}\}$ denote the set of supported host environments, and let $\mathcal{M}$ denote an arbitrary long-task mission composed of DAG tasks $\mathcal{T}$.
+Every agent deployment must explicitly bind to one of the 4 canonical host platforms:
 
-We define the **Deterministic Host Parity Invariant**:
+| Host Platform     | Supervisory Tier (Tiers 0, 1, 2) | Execution Tier (Tier 3 Implementer, Validator, Critic) | Thinking Level          | Scheduler Cadence    | Consistency Contract       |
+| :---------------- | :------------------------------- | :----------------------------------------------------- | :---------------------- | :------------------- | :------------------------- |
+| **`antigravity`** | `gemini-3.7-flash`               | `gemini-3.7-flash`                                     | High (Sup) / Med (Exec) | 5m (`*/5 * * * *`)   | CLI & IDE identical config |
+| **`claude_code`** | `claude-5-opus`                  | `claude-5-sonnet`                                      | High (Sup) / Med (Exec) | 15m (`*/15 * * * *`) | CLI & IDE identical config |
+| **`codex`**       | `gpt-5.6-sol`                    | `gpt-5.6-terra`                                        | High (Sup) / Med (Exec) | 15m (`*/15 * * * *`) | CLI & IDE identical config |
+| **`cursor`**      | Cursor latest stable             | Cursor latest stable                                   | High (Sup) / Med (Exec) | 5m (`*/5 * * * *`)   | CLI & IDE identical config |
 
-$$\forall H_a, H_b \in \mathcal{H}, \quad \text{Exec}(\mathcal{M}, H_a) \equiv_{\text{Merkle}} \text{Exec}(\mathcal{M}, H_b)$$
+### Host Directives:
 
-Where $\equiv_{\text{Merkle}}$ denotes equivalence of the resulting cryptographic SHA-256 Merkle event chain and file mutations on disk.
-
-### 2.1 Capability Profile Lattice
-
-Each host platform exposes a capability profile $\mathcal{P}(H) = \langle c_{\text{spawn}}, c_{\text{ipc}}, c_{\text{mcp}}, c_{\text{bg}}, c_{\text{stream}} \rangle$:
-
-$$\mathcal{P}_{\text{core}} = \langle \text{SubprocessExec}, \; \text{FilesystemIO}, \; \text{AtomicLocks} \rangle$$
-
-If a host lacks a native capability $c_k \notin \mathcal{P}(H)$, the adapter must provide a lossless synthetic emulation:
-
-$$ \text{Synthesize}(c_k) = \begin{cases}
-\text{FIFO Mailbox Queue} & \text{if } c_{\text{ipc}} = \text{None} \\
-\text{Fork/Exec Daemon Pool} & \text{if } c_{\text{spawn}} = \text{None} \\
-\text{File-Polling Watchdog} & \text{if } c_{\text{stream}} = \text{None}
-\end{cases}$$
-
-```mermaid
-classDiagram
-    class IHostAdapter {
-        <<interface>>
-        +hostType HostType
-        +probeCapabilities() HostCapabilityProfile
-        +spawnSubagent(options) Promise~SubagentHandle~
-        +sendMessage(recipientId, message) Promise~void~
-        +executeCommand(command, options) Promise~CommandResult~
-        +readFile(path) Promise~string~
-        +writeFile(path, content) Promise~void~
-    }
-
-    class AntigravityAdapter {
-        +invokeNativeSubagent()
-        +callMcpTool()
-        +manageBackgroundTask()
-    }
-    class ClaudeCodeAdapter {
-        +invokeAgentPrimitive()
-        +executeBashTool()
-    }
-    class CursorAdapter {
-        +invokeMcpExtension()
-        +proxyTerminalBuffer()
-    }
-    class GenericCliAdapter {
-        +forkChildProcess()
-        +writeFifoPipe()
-        +tailLogStream()
-    }
-
-    IHostAdapter <|.. AntigravityAdapter
-    IHostAdapter <|.. ClaudeCodeAdapter
-    IHostAdapter <|.. CursorAdapter
-    IHostAdapter <|.. GenericCliAdapter
-```
+1. **Zero Generic Fallback Invariant**: Falling back to generic, unversioned, or heuristic default models is strictly prohibited.
+2. **CLI / IDE Configuration Parity**: CLI environments and IDE extensions maintain identical model strings, thinking budgets, and scheduler intervals without drift.
+3. **Thinking Governance**: Supervisory tiers operate with High Thinking for deep strategic reasoning; execution tiers operate with Medium Thinking for fast, cost-efficient code and validation cycles.
 
 ---
 
-## 3. Platform Adapter Matrix & Tool Normalization
+## 3. Mathematical Parity Invariant & Capability Normalization
+
+Let $\mathcal{H} = \{H_{\text{antigravity}}, H_{\text{claude\_code}}, H_{\text{codex}}, H_{\text{cursor}}\}$ denote the set of 4 canonical host environments, and let $\mathcal{M}$ denote an arbitrary long-task mission composed of DAG tasks $\mathcal{T}$.
+
+We define the **Host Parity Invariant**:
+
+$$\forall H_a, H_b \in \mathcal{H}, \quad \text{Exec}(\mathcal{M}, H_a) \cong \text{Exec}(\mathcal{M}, H_b)$$
 
 ```text
-+-----------------------+----------------------+----------------------+----------------------+----------------------+
-| Capability Dimension  | Antigravity Runtime  | Claude Code Runtime  | Cursor / Windsurf    | Generic Headless CLI |
-+-----------------------+----------------------+----------------------+----------------------+----------------------+
-| Subagent Spawning     | invoke_subagent tool | Agent tool primitive | MCP Agent Bridge     | fork / exec daemon   |
-| IPC Messaging         | send_message API     | Mailbox JSON queue   | Mailbox JSON queue   | Unix FIFO / Pipe     |
-| Command Execution     | run_command tool     | Bash tool            | Terminal MCP Proxy   | child_process.spawn  |
-| Background Tasks      | manage_task tool     | Nohup background PID | Background Process   | POSIX Process Group  |
-| File I/O Primitive    | write_to_file / edit | FileEdit / Replace   | FS Workspace API     | node:fs / bun:fs     |
-| Ambient Detection Sig | ANTIGRAVITY_APP_DIR  | CLAUDE_CODE_ENTRY    | CURSOR_WORKSPACE_DIR | Fallback Default     |
-+-----------------------+----------------------+----------------------+----------------------+----------------------+
-```
-
-### 3.1 Cross-Platform Lifecycle Negotiation Flow
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Engine as OLT Core Scheduler
-    participant Mgr as HostAdapterManager
-    participant Detect as Detection Cascade
-    participant Adapter as Bound HostAdapter
-    participant HostPlatform as Active AI Host Runtime
-
-    Engine->>Mgr: initializeHostAdapter()
-    Mgr->>Detect: probeAmbientEnvironment()
-    Detect->>Detect: Check Env Vars (ANTIGRAVITY_APP_DIR, CLAUDE_*, etc.)
-    Detect-->>Mgr: Detected Host: "antigravity" (Capability: FULL_NATIVE)
-    Mgr->>Adapter: Instantiate AntigravityAdapter()
-    Adapter-->>Engine: Host Ready (Parity Validated)
-
-    Engine->>Adapter: spawnSubagent("implementer_core_task-04")
-    Adapter->>HostPlatform: invoke_subagent(name, prompt, role)
-    HostPlatform-->>Adapter: conversationId: "conv-89421"
-    Adapter-->>Engine: SubagentHandle { id: "implementer_core_task-04", handle: "conv-89421" }
+┌───────────────────────────┬───────────────────────────┬───────────────────────────┐
+│ Normalized Capability     │ Platform Implementation   │ Parity Guarantee          │
+├───────────────────────────┼───────────────────────────┼───────────────────────────┤
+│ Subagent Spawning         │ Native host subagent tool │ Bounded concurrency P     │
+│ Inter-Agent Messaging     │ Flock-locked mailbox IPC  │ Exact delivery order      │
+│ Command Sandboxing        │ Direct argv execution     │ Byte-identical logs       │
+│ Monotonic Leases          │ File-locked token records │ Mutual write exclusion    │
+└───────────────────────────┴───────────────────────────┴───────────────────────────┘
 ```
 
 ---
 
-## 4. Universal Host Adapter TypeScript Contracts
+## 4. Universal Host Adapter Interface Contract
 
-The `IHostAdapter` interface and concrete normalization types are defined in TypeScript under [`host-bindings.ts`](../../../../olt/scripts/src/authority/host-bindings.ts):
+The adapter interface is defined in TypeScript under [`host/types.ts`](../../../../olt/scripts/src/authority/host/types.ts):
 
 ```typescript
-export type HostType =
-  | "antigravity"
-  | "claude_code"
-  | "goose"
-  | "windsurf"
-  | "cursor"
-  | "generic_cli";
-
-export interface HostCapabilityProfile {
-  readonly hostType: HostType;
-  readonly supportsNativeSubagents: boolean;
-  readonly supportsDirectMcp: boolean;
-  readonly supportsBackgroundProcesses: boolean;
-  readonly supportsStreamCancellation: boolean;
-  readonly maxConcurrentWorkers: number;
-}
-
-export interface SpawnSubagentOptions {
+export interface SubagentSpawnOptions {
   readonly role: string;
-  readonly name: string;
-  readonly prompt: string;
-  readonly modelPreference?: "fast" | "reasoning" | "default";
-  readonly initialContextScope?: readonly string[];
+  readonly domainScope: string;
+  readonly taskId: string;
+  readonly writeScope: readonly string[];
+  readonly briefPayload: string;
+  readonly modelOverride?: string;
 }
 
-export interface SubagentHandle {
+export interface SubagentSpawnResult {
   readonly agentId: string;
-  readonly conversationId: string;
-  readonly hostType: HostType;
-  readonly spawnedAt: number;
+  readonly status: "SPAWNED" | "FAILED";
+  readonly conversationId?: string;
+  readonly mailboxPath: string;
+}
+
+export interface CommandExecutionOptions {
+  readonly command: string;
+  readonly args: readonly string[];
+  readonly cwd?: string;
+  readonly timeoutMs?: number;
 }
 
 export interface CommandExecutionResult {
@@ -201,159 +121,56 @@ export interface CommandExecutionResult {
   readonly stdout: string;
   readonly stderr: string;
   readonly durationMs: number;
-  readonly timedOut: boolean;
 }
 
 export interface IHostAdapter {
-  readonly hostType: HostType;
-
-  probeCapabilities(): Promise<HostCapabilityProfile>;
-
-  spawnSubagent(options: SpawnSubagentOptions): Promise<SubagentHandle>;
-
-  sendMessage(recipientId: string, messagePayload: string): Promise<void>;
-
-  executeCommand(
-    command: string,
-    options?: {
-      readonly cwd?: string;
-      readonly timeoutMs?: number;
-      readonly env?: Record<string, string>;
-    }
-  ): Promise<CommandExecutionResult>;
-
-  readFile(filePath: string): Promise<string>;
-
-  writeFile(filePath: string, content: string): Promise<void>;
-
-  terminateSubagent(handle: SubagentHandle): Promise<void>;
-}
-```
-
-### 4.1 Dynamic Detection Cascade Engine
-
-```typescript
-export class HostDetectionEngine {
-  public static async detectAndBind(): Promise<IHostAdapter> {
-    // 1. Check for Antigravity Host Signature
-    if (
-      process.env["ANTIGRAVITY_APP_DIR"] ||
-      process.env["GEMINI_CLI_CONVERSATION_ID"]
-    ) {
-      return new AntigravityAdapter();
-    }
-
-    // 2. Check for Claude Code Host Signature
-    if (
-      process.env["CLAUDE_CODE_ENTRY"] ||
-      process.env["CLAUDE_AGENT_SESSION"]
-    ) {
-      return new ClaudeCodeAdapter();
-    }
-
-    // 3. Check for Cursor / Windsurf IDE Hooks
-    if (process.env["CURSOR_WORKSPACE_DIR"] || process.env["WINDSURF_PORT"]) {
-      return new CursorAdapter();
-    }
-
-    // 4. Default Fallback to Headless POSIX Generic CLI
-    return new GenericCliAdapter();
-  }
+  readonly hostId: "antigravity" | "claude_code" | "codex" | "cursor";
+  detectEnvironment(): Promise<boolean>;
+  spawnSubagent(options: SubagentSpawnOptions): Promise<SubagentSpawnResult>;
+  sendMessage(recipientId: string, message: string): Promise<boolean>;
+  executeCommand(options: CommandExecutionOptions): Promise<CommandExecutionResult>;
 }
 ```
 
 ---
 
-## 5. Resilient Tool Proxying & Stream Sandboxing
+## 5. Dynamic Detection Cascade & Bootstrapping
 
-When running on host environments that do not natively support subagent conversational primitives or asynchronous background execution, the Universal Adapter Bus activates the **Tool Proxying Subsystem**:
+At engine startup, the runtime resolves the ambient host via a deterministic probe cascade:
 
-1. **Subprocess Emulation**: Subagents are executed as isolated child Node/Bun processes communicating via JSON-RPC lines over stdin/stdout pipes.
-2. **Mailbox File-System Emulation**: Inter-agent messages are written as atomic JSON receipts in the capsule mailbox directory, watched via filesystem `fs.watch` and monotonic polling.
-3. **Execution Stream Isolation**: Shell executions are wrapped in timeout-guarded execution envelopes to prevent runaway processes from hanging the scheduler:
-
-```typescript
-export class SandboxedProcessRunner {
-  public static async runGuarded(
-    cmd: string,
-    cwd: string,
-    timeoutMs = 300_000
-  ): Promise<CommandExecutionResult> {
-    const start = performance.now();
-    const proc = Bun.spawn(["/bin/zsh", "-c", cmd], {
-      cwd,
-      stdout: "pipe",
-      stderr: "pipe",
-    });
-
-    const timeoutPromise = new Promise<{ timedOut: true }>((resolve) =>
-      setTimeout(() => resolve({ timedOut: true }), timeoutMs)
-    );
-
-    const executionPromise = (async () => {
-      const stdout = await new Response(proc.stdout).text();
-      const stderr = await new Response(proc.stderr).text();
-      const exitCode = await proc.exited;
-      return { timedOut: false, stdout, stderr, exitCode };
-    })();
-
-    const result = await Promise.race([executionPromise, timeoutPromise]);
-
-    if (result.timedOut) {
-      proc.kill(9);
-      return {
-        exitCode: 124,
-        stdout: "",
-        stderr: "EXECUTION_TIMEOUT: Command exceeded SLA limit.",
-        durationMs: performance.now() - start,
-        timedOut: true,
-      };
-    }
-
-    return {
-      exitCode: result.exitCode,
-      stdout: result.stdout,
-      stderr: result.stderr,
-      durationMs: performance.now() - start,
-      timedOut: false,
-    };
-  }
-}
+```mermaid
+flowchart TD
+    Start([Engine Cold Start]) --> CheckAGY{ANTIGRAVITY_AGENT_DIR<br/>or invoke_subagent?}
+    CheckAGY -->|Yes| BindAGY[Bind AntigravityAdapter]
+    CheckAGY -->|No| CheckClaude{CLAUDE_CODE_ENTRY<br/>or Agent tool?}
+    CheckClaude -->|Yes| BindClaude[Bind ClaudeCodeAdapter]
+    CheckClaude -->|No| CheckCodex{CODEX_SANDBOX<br/>or spawn_agent?}
+    CheckCodex -->|Yes| BindCodex[Bind CodexAdapter]
+    CheckCodex -->|No| CheckCursor{CURSOR_EXTENSION_DIR<br/>or Task tool?}
+    CheckCursor -->|Yes| BindCursor[Bind CursorAdapter]
+    CheckCursor -->|No| TrapUnknown[TRAP: UNSUPPORTED_HOST_PLATFORM]
 ```
 
 ---
 
 ## 6. Failure Taxonomy & Anti-Blunder Matrix
 
-```text
-+---------------------------------+------------------------------------------+-------------------------------------------------------------+
-| Failure Code                    | Trigger Condition                        | Mechanical Mitigation & System Response                     |
-+---------------------------------+------------------------------------------+-------------------------------------------------------------+
-| UNSUPPORTED_HOST_TOOL_TRAP      | Host lacks native tool primitive         | Adapter activates synthetic proxy emulation fallback.       |
-| SUBAGENT_SPAWN_REJECTED         | Host subagent capacity limit reached     | Adapter queues spawn request in local FIFO backpressure pool|
-| STREAM_DESYNCHRONIZATION        | stdout/stderr stream truncated           | Adapter buffers chunks with SHA-256 integrity checksums.    |
-| HOST_DETECTION_AMBIGUITY        | Multiple conflicting host env vars set   | Detection cascade applies strict precedence order: AG > CC. |
-| TIMEOUT_ESCAPE_TRAP             | Subprocess fails to terminate after kill | Force SIGKILL (signal 9) and purge associated process group |
-| WORKSPACE_HOOK_DISCONNECT       | IDE extension closes active connection   | Reconnects socket; writes unsent messages to disk spool.   |
-+---------------------------------+------------------------------------------+-------------------------------------------------------------+
-```
-
-### Anti-Blunder Rules for Host Adapters
-
-1. **Never Hardcode Vendor-Specific Logic in Core Engine**: Keep all platform-specific checks strictly encapsulated inside concrete `IHostAdapter` implementations.
-2. **Never Rely on Host-Specific Memory Caches**: Always persist state transitions and message queues to disk (`.olt/`) to survive host crashes or restarts.
-3. **Always Validate Subprocess Exit Codes**: Never interpret empty output as success; require explicit exit code `0` and non-empty execution telemetry.
+| Failure Code                 | Trigger Condition                                       | Mechanical Mitigation                                               |
+| :--------------------------- | :------------------------------------------------------ | :------------------------------------------------------------------ |
+| `UNSUPPORTED_HOST_PLATFORM`  | Host does not match any of the 4 canonical environments | Fail-closed bootstrap abortion; requires supported host.            |
+| `GENERIC_FALLBACK_VIOLATION` | Attempt to use generic, unversioned, or alias model     | Intercepted by RBAC engine; enforce canonical model table.          |
+| `SPAWN_CAPABILITY_FAULT`     | Host subagent spawning tool fails                       | Quarantine task lease; report failure via mailbox IPC.              |
+| `MAILBOX_DELIVERY_TIMEOUT`   | Agent unresponsive to mailbox message for >300s         | Straggler SLA triggers worker revocation and rescheduling.          |
+| `HOST_PARITY_DRIFT_FAULT`    | Command execution results diverge across environments   | Direct argv arrays normalize execution without shell interpolation. |
 
 ---
 
 ## 7. Architectural Invariants Summary
 
-- **Invariant $\mathcal{C}_8$ (Zero Main-Thread Spill)**: Implementer and validator workloads are strictly sandboxed inside adapter-managed execution contexts.
-- **Invariant $\mathcal{C}_{15}$ (Merkle Chain Durability)**: Cross-platform parity guarantees that the resulting Merkle event hash stream is identical regardless of host platform.
+- **Invariant $\mathcal{C}_6$ (Canonical Four-Host Standardization)**: Runtime strictly binds to `antigravity`, `claude_code`, `codex`, or `cursor`.
+- **Invariant $\mathcal{C}_7$ (CLI / IDE Configuration Parity)**: Model strings, thinking effort levels, and scheduler intervals remain 100% identical between CLI and IDE environments.
+- **Invariant $\mathcal{C}_{10}$ (Worktree Isolation)**: Host adapters map subagent workspaces into isolated git worktrees.
 
 ---
 
 [Previous: 02-02 Subagent Naming Grammar](02-02-subagent-naming-grammar.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 02-04 Modular File & Directory Budgets](02-04-modular-file-and-directory-budgets.md)
-
----
-$$

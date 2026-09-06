@@ -8,168 +8,90 @@
 
 ## 1. Executive Summary & Epistemic Hierarchy
 
-In complex autonomous software engineering pipelines, flat agent swarms—where all agents share equal responsibilities, unstructured communication channels, and unconstrained write permissions—inevitably suffer from context dilution, uncoordinated task collisions, and chaotic code merges. When an agent simultaneously attempts high-level architectural planning, file editing, test execution, and self-review within a single context window, cognitive saturation rapidly degrades performance.
+Flat agent swarms—where all agents share equal responsibilities, unstructured communication channels, and unconstrained write permissions—inevitably suffer from context dilution, task collisions, and catastrophic code churn. When an agent attempts high-level planning, file editing, test execution, and self-review within a single context window, cognitive saturation rapidly degrades performance.
 
-The OLT (Orchestrating Long Tasks) engine enforces a strict **Four-Tier Workforce Hierarchy**. Under this architecture:
+The OLT (Orchestrating Long Tasks) engine enforces a strict **Four-Tier Workforce Hierarchy**:
 
-1. **Separation of Strategic Planning and Execution**: High-level supervisory tiers (Tiers 0, 1, and 2) never touch implementation code directly, preserving their context windows for architectural oversight, dependency decomposition, and invariant verification.
-2. **Dedicated Execution Lanes**: All code mutations, local micro-tests, and file operations are performed exclusively by specialized Tier 3 Implementers operating within isolated out-of-repo worktrees.
-3. **Orthogonal Dual-Channel Validation**: No agent ever validates its own work. An independent Tier 3 Cognitive Validator and an automated Mechanic-Validator are paired orthogonally with each implementer to guarantee unbiased epistemic verification.
-4. **Supervisor Zero-File-Edit Rule ($Z_{\text{mutation}} = 0$)**: Tiers 0, 1, and 2 are mechanically prohibited from emitting direct filesystem write operations, enforcing fail-closed role-based access control.
+1. **Strategic & Operational Planning Decoupled from Code**: Supervisory tiers (Tiers 0, 1, 2) never edit code, preserving context windows for strategic roadmapping, dependency graphs, and invariant verification.
+2. **Dedicated Execution & Release Lanes**: All file mutations and micro-tests are performed exclusively by leased Tier 3 Implementers in isolated worktrees, while releases are finalized by a dedicated Tier 3 Publisher.
+3. **Cognitive Validator Command Hard-Lock**: Cognitive Validators operate with zero command execution privileges ($C(\text{Val}) = 0$), performing Socratic AST inspection.
+4. **Supervisor Zero-File-Write Hardening ($Z_{\text{mutation}} = 0$)**: Tiers 0, 1, and 2 are mechanically barred from filesystem writes, enforcing fail-closed role-based access control.
 
 ```text
-+--------------------------------------------------------------------------------------------------+
-│                             THE FOUR-TIER WORKFORCE HIERARCHY TOPOLOGY                           │
-+--------------------------------------------------------------------------------------------------+
-│                                                                                                  │
-│   TIER 0: MIND (PRODUCT OWNER)                                                                   │
-│   • Perpetual autonomous discovery across 10 distinct issue & code sources                       │
-│   • Evaluates 6 admission gates & manages generational rotation cycles                           │
-│   • Authority: Strategic roadmapping, admission decisions | Write Scope: None (0 Code Edits)     │
-│                                │                                                                 │
-│                                ▼                                                                 │
-│   TIER 1: ORCHESTRATOR                                                                           │
-│   • Byte-exact prompt ingestion & SHA-256 requirement sealing                                    │
-│   • Kahn topological DAG compilation, wave sequencing, & Merkle event log management            │
-│   • Authority: Global DAG generation, wave dispatch | Write Scope: None (0 Code Edits)           │
-│                                │                                                                 │
-│                                ▼                                                                 │
-│   TIER 2: DOMAIN COORDINATOR                                                                     │
-│   • Domain-specific wave execution, sub-DAG management, & worker dispatching                     │
-│   • Enforces 5-minute straggler SLA rules, heartbeat tracking, & dynamic load throttling         │
-│   • Authority: Sub-DAG leasing, worker monitoring | Write Scope: None (0 Code Edits)              │
-│                                │                                                                 │
-│                                ▼                                                                 │
-│   TIER 3: SPECIALIZED WORKFORCE (IMPLEMENTERS & VALIDATORS)                                      │
-│   ┌────────────────────────────────────────┬────────────────────────────────────────┐            │
-│   │  TIER 3 IMPLEMENTER                    │  TIER 3 COGNITIVE & MECHANIC VALIDATOR │            │
-│   │  • Claims atomic task lease            │  • Cognitive: Pure AST audit, zero cmd │            │
-│   │  • Operates in isolated worktree       │  • Mechanic: Bun test runner, receipts │            │
-│   │  • Applies AST-compliant micro-patches │  • Orthogonal dual-channel verdict     │            │
-│   └────────────────────────────────────────┴────────────────────────────────────────┘            │
-│                                                                                                  │
-+--------------------------------------------------------------------------------------------------+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    THE FOUR-TIER WORKFORCE TOPOLOGY                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  [ Tier 0: Strategic Autonomous Governance ]                                │
+│    • mind (Autonomous PO/PM, 3-Step Self-Evolution, Zero-Delta Silence)    │
+│    • mind-auditor (Liveness Companion) | skill-auditor (Fleet Forensics)    │
+│    • Write Scope: Strictly None (0 Code Edits, 0 Terminal Tests)            │
+│                          │                                                  │
+│                          ▼                                                  │
+│  [ Tier 1: Tactical Meta-Orchestration ]                                    │
+│    • orchestrator (Multi-Round Loop Runner, Convergence Governance)         │
+│    • Write Scope: Strictly None (Dispatches Only Tier 2 Coordinators)       │
+│                          │                                                  │
+│                          ▼                                                  │
+│  [ Tier 2: Operational Wave Coordination & Planning ]                       │
+│    • coordinator (Wave Dispatch, 1-Shot Briefings, Hard Reset Discipline)   │
+│    • planner (Task Decomposition & Scope Allocation)                        │
+│    • Write Scope: Strictly None (0 Code Edits, 0 Git Plumbing)              │
+│                          │                                                  │
+│                          ▼                                                  │
+│  [ Tier 3: Execution, Verification & Release Workforce ]                   │
+│    • implementer (Leased Code Author, 1-Hop Micro-Cycles, File Tests)       │
+│    • validator & domain validators (Cognitive Reviewers, 0 Commands)        │
+│    • ui-headless-validator (Playwright, Hitboxes, 4-Viewport Captures)     │
+│    • ui-optical-validator (Headful Visual Inspection, 8 Optical Dimensions) │
+│    • completeness-critic (Whole-Run Prompt Fidelity)                        │
+│    • plan-validator (DAG Topology Auditor)                                  │
+│    • publisher (Atomic Worktree Landings, Pre-Push Gates, Remote Push)      │
+│    • sub-implementer, sub-validator, sub-investigator (Branch Children)     │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 2. Formal Role Specifications & Authority Matrix
+## 2. The 20-Role Canonical Taxonomy Matrix
 
-Every autonomous agent in the OLT runtime belongs to exactly one tier and carries an explicit authority token that defines its operational envelope. The table below codifies the role taxonomy, tool permissions, and mechanical restrictions:
+OLT enforces a canonical, non-overlapping 20-role taxonomy across all 4 tiers, completely purging retired roles under the Zero Backwards-Compatibility Purity invariant:
 
-```text
-+------+----------------------+------------------------------+--------------------+---------------------+-------------------------+
-| Tier | Role Title           | Core Architectural Focus     | Tool Authority     | File Mutation Scope | Trap on Violation       |
-+------+----------------------+------------------------------+--------------------+---------------------+-------------------------+
-| 0    | Mind (Product Owner) | Discovery, admission, triage | Mailbox, Doctor    | STRICTLY NONE       | SUPERVISOR_WRITE_FAULT  |
-| 1    | Orchestrator         | DAG planning, wave schedule  | Mailbox, Subagents | STRICTLY NONE       | SUPERVISOR_WRITE_FAULT  |
-| 2    | Domain Coordinator   | Wave dispatch, SLA watchdog  | Mailbox, Subagents | STRICTLY NONE       | SUPERVISOR_WRITE_FAULT  |
-| 3    | Implementer          | Code authoring, micro-tests  | FS Edit, AST Lint  | Leased Scope Only   | SCOPE_ESCAPE_FAULT      |
-| 3    | Cognitive Validator  | AST audit, Socratic pushback | Read-Only, Mailbox | STRICTLY NONE       | VALIDATOR_COMMAND_FAULT |
-| 3    | Mechanic-Validator   | Bun test runner, gate proofs | Shell Execution    | Read-Only Proofs    | MUTATION_GATE_FAULT     |
-+------+----------------------+------------------------------+--------------------+---------------------+-------------------------+
-```
+| Tier  | Role Name                 | Architectural Focus                        | Write Scope       | Command Privileges                         |
+| :---- | :------------------------ | :----------------------------------------- | :---------------- | :----------------------------------------- |
+| **0** | `mind`                    | Strategic roadmap, PO/PM, 3-step evolution | **Strictly None** | Harness commands, git query (0 tests)      |
+| **0** | `mind-auditor`            | Companion liveness, anti-stagnation        | **Strictly None** | Mailbox IPC, query tools (0 tests)         |
+| **0** | `skill-auditor`           | Fleet forensics, 7 heuristics, meta-audit  | **Strictly None** | Audit tools, queue injection (0 tests)     |
+| **1** | `orchestrator`            | Multi-round loop runner, DAG sequencing    | **Strictly None** | Harness lifecycle, wave dispatch (0 tests) |
+| **2** | `coordinator`             | Dynamic wave dispatch, 1-shot briefs       | **Strictly None** | Harness dispatch, task:brief (0 tests)     |
+| **2** | `planner`                 | Task decomposition, write scope bounds     | **Strictly None** | plan:_, msg:_ (0 code edits)               |
+| **3** | `implementer`             | Code authoring, file-scoped testing        | Leased Scope      | bun test <file>, AST linter                |
+| **3** | `validator`               | Cognitive Socratic review, AST audit       | **Strictly None** | **0 Commands** (Hard-Lock)                 |
+| **3** | `completeness-critic`     | Prompt fidelity vs original bytes          | **Strictly None** | **0 Commands** (Hard-Lock)                 |
+| **3** | `publisher`               | Atomic wave landing, pre-push, push        | Git Index/Land    | worktree:land, task:check, doctor          |
+| **3** | `ui-headless-validator`   | Playwright tests, DOM hitboxes             | Evidence Only     | bun test:playwright (screenshot capture)   |
+| **3** | `ui-optical-validator`    | Headful visual review (4 viewports)        | **Strictly None** | **0 Commands** (view_file only)            |
+| **3** | `plan-validator`          | DAG topology audit, acyclicity             | **Strictly None** | **0 Commands** (Hard-Lock)                 |
+| **3** | `validator-code-quality`  | Code quality, zero any/suppressions        | **Strictly None** | **0 Commands** (Hard-Lock)                 |
+| **3** | `validator-product`       | Feature completeness & requirements        | **Strictly None** | **0 Commands** (Hard-Lock)                 |
+| **3** | `validator-security`      | OWASP, injection, sanitization             | **Strictly None** | **0 Commands** (Hard-Lock)                 |
+| **3** | `validator-system-design` | System boundaries, modularity limits       | **Strictly None** | **0 Commands** (Hard-Lock)                 |
+| **3** | `validator-ui-design`     | Design systems, optical harmony            | **Strictly None** | **0 Commands** (Hard-Lock)                 |
+| **3** | `sub-implementer`         | Focused branch leaf execution              | Child Leased      | Parent-scoped test tools                   |
+| **3** | `sub-validator`           | Command evidence collection                | Evidence Only     | Read/probe execution (no verdicts)         |
+| **3** | `sub-investigator`        | Read-only root-cause diagnosis             | **Strictly None** | view_file, grep_search (0 writes)          |
 
-### 2.1 Tier 0: Mind (Product Owner)
-
-Tier 0 operates as the strategic brain and autonomous product manager of the capsule. It maintains an infinite cadence, scanning 10 discovery sources (git commit logs, issue trackers, TODO comments, test regression reports, telemetry feeds, AST lint warnings, security advisories, runtime performance profiles, schema drift detections, and dependency audits).
-
-Tier 0 passes candidate issues through 6 strict admission gates:
-
-1. Epistemic clarity gate
-2. Reproducibility gate
-3. Architectural alignment gate
-4. Dependency feasibility gate
-5. Token budget gate
-6. Safety and security invariant gate
-
-Tier 0 never interacts with shell commands or source file modifications. Its sole output is an admitted, sealed roadmap item dispatched to Tier 1.
-
-### 2.2 Tier 1: Orchestrator
-
-Tier 1 ingests the admitted requirements from Tier 0, computes a byte-exact SHA-256 hash of the prompt and requirements specification, and compiles the project roadmap into a Directed Acyclic Graph (DAG) using Kahn's topological sorting algorithm. Tier 1 decomposes the global DAG into discrete execution waves, establishes domain boundaries, and spawns Tier 2 Domain Coordinators for each independent wave branch.
-
-### 2.3 Tier 2: Domain Coordinator
-
-Tier 2 coordinates domain-specific waves (e.g., core engine, user interface, telemetry, compiler pipeline). It is responsible for:
-
-- Enforcing the **5-Minute Straggler SLA Rule**: Any worker inactive for $>300$ seconds is immediately reclaimed and quarantined.
-- Managing concurrent task leases using monotonic lease tokens.
-- Dispatching Tier 3 Implementers and independently assigning orthogonal Tier 3 Validators.
-- Aggregating dual-channel verification receipts before certifying wave completion to Tier 1.
-
-### 2.4 Tier 3: Specialized Workforce
-
-Tier 3 consists of focused execution agents operating under strict physical and logical confinement:
-
-- **Implementer**: Leases a single task $T_i$, mounts an isolated git worktree at `.olt/worktrees/T_i/`, authors atomic code changes within its granted file scope $S_i$, and generates local test verifications.
-- **Cognitive Validator**: Independently spawned to review the implementer's patch. Operates in a strict read-only sandbox with zero command execution privileges ($C(\text{Val}) = 0$), performing Socratic and AST-level inspections.
-- **Mechanic-Validator**: Executes the automated test suite using Bun within a clean test worktree, capturing stdout/stderr receipts, exit codes, and timing logs.
-
-```mermaid
-classDiagram
-    class Tier0Mind {
-        +pulseDiscoverySources()
-        +evaluateAdmissionGates()
-        +triageBacklog()
-        +rotateGeneration()
-    }
-    class Tier1Orchestrator {
-        +ingestPromptSHA256()
-        +compileTopologicalDAG()
-        +sequenceExecutionWaves()
-        +sealTerminalRun()
-    }
-    class Tier2Coordinator {
-        +leaseSubDAGTasks()
-        +monitorStragglerSLA()
-        +dispatchImplementer()
-        +assignOrthogonalValidator()
-        +reclaimZombieLease()
-    }
-    class Tier3Implementer {
-        +mountWorktree()
-        +applyMicroPatch()
-        +runLocalMicroTests()
-        +submitEvidenceReceipt()
-    }
-    class Tier3CognitiveValidator {
-        +auditASTPurity()
-        +verifySemanticAlignment()
-        +emitStructuredFinding()
-    }
-    class Tier3MechanicValidator {
-        +executeBunTestSuite()
-        +captureRawExitCode()
-        +emitExecutionReceipt()
-    }
-
-    Tier0Mind --> Tier1Orchestrator : Dispatches Admitted Mission
-    Tier1Orchestrator --> Tier2Coordinator : Dispatches Wave Branch
-    Tier2Coordinator --> Tier3Implementer : Issues Monotonic Lease
-    Tier2Coordinator --> Tier3CognitiveValidator : Assigns Read-Only Audit
-    Tier2Coordinator --> Tier3MechanicValidator : Assigns Test Verification
-```
+_Independent Genesis Roles_: `owner` (genesis authority conferral), `independent-planner`, and `independent-planner-audit`.  
+_Permanently Purged_: `worker`, `critic`, `repairer` (handled in-lease), `mechanic-validator` (anchored in `task:check`), and duplicate UI roles.
 
 ---
 
-## 3. Separation of Authority & Mathematical Permission Model
-
-Let $\mathcal{A}$ denote the universe of autonomous agents, $\mathcal{R}$ denote the set of role tiers, and $\mathcal{F}_{\text{repo}}$ denote the set of all files within the repository.
-
-We define the tier assignment function $\tau: \mathcal{A} \rightarrow \{0, 1, 2, 3\}$ and the permission lattice:
-
-$$\mathcal{L} = \langle \mathcal{P}, \sqsubseteq, \top, \bot \rangle$$
-
-Where $\mathcal{P} = \{\text{Plan}, \text{Ingest}, \text{CompileDAG}, \text{LeaseTask}, \text{WriteCode}, \text{ExecuteShell}, \text{AuditAST}\}$.
-
-### 3.1 The Supervisor Zero-File-Edit Invariant ($Z_{\text{mutation}} = 0$)
+## 3. Supervisor Zero-File-Write Hardening ($Z_{\text{mutation}} = 0$)
 
 The supervisory tiers ($\tau(a) < 3$) are mathematically barred from the write authority set $\mathcal{W}(\mathcal{F}_{\text{repo}})$:
 
 $$\forall a \in \mathcal{A}, \quad \tau(a) < 3 \implies \mathcal{W}_a(\mathcal{F}_{\text{repo}}) \equiv \emptyset$$
 
-Any attempt by a supervisor to issue a write, replace, or delete command targeting $\mathcal{F}_{\text{repo}}$ causes an immediate fail-closed exception:
+All supervisory manifests (`mind.yaml`, `orchestrator.yaml`, `coordinator.yaml`) hold `enable_write_tools: false` and `can_edit: false`. Supervisory agents must never directly modify files, author code, or execute test suites. Any write attempt immediately triggers a fail-closed trap:
 
 $$ \text{AssertZeroMutation}(a, f) = \begin{cases}
 \text{OK} & \text{if } \tau(a) = 3 \land f \in \mathcal{S}_{\text{granted}}(a) \\
@@ -177,200 +99,115 @@ $$ \text{AssertZeroMutation}(a, f) = \begin{cases}
 \text{TRAP}(\text{SCOPE\_ESCAPE\_FAULT}) & \text{if } \tau(a) = 3 \land f \notin \mathcal{S}_{\text{granted}}(a)
 \end{cases}$$
 
-### 3.2 1:1 Worktree Filesystem Isolation
-
-To prevent concurrent file mutation collisions and race conditions, each Tier 3 Implementer is isolated within an independent git worktree:
-
-$$\forall i, j \in \mathcal{T}_{\text{active}}, \quad i \neq j \implies \text{WorktreePath}(i) \cap \text{WorktreePath}(j) \equiv \emptyset$$
-
-Where $\text{WorktreePath}(T_i) = \text{repo\_root}/.olt/\text{worktrees}/T_i$.
-
-### 3.3 Cognitive Context Load Bounds
-
-In standard multi-agent systems, supervisory agents accumulate massive token payloads from raw code diffs, leading to attention degradation. In OLT, supervisory tiers process only Cowan-sanitized task metadata tokens:
-
-$$\text{Context}_{\text{supervisor}}(T_i) \le 500 \text{ Cowan Tokens}$$
-
-$$\text{Context}_{\text{total}}(\text{Wave}_k) = \sum_{T_i \in \text{Wave}_k} \text{MetaTokens}(T_i) + \mathcal{O}(|V_k| + |E_k|)$$
-
-This guarantees that supervisory context consumption scales with DAG topology size rather than repository source code volume.
-
 ---
 
-## 4. Orthogonal Validator Pairing Invariant
+## 4. Tier 3 Dedicated Publisher (`publisher.yaml`)
 
-To eliminate self-review bias and hallucinated test passes, OLT establishes the **Orthogonal Validator Pairing Invariant**:
-
-$$\forall T_i \in \mathcal{T}, \quad \text{Implementer}(T_i) \neq \text{Validator}_{\text{cog}}(T_i) \land \text{Implementer}(T_i) \neq \text{Validator}_{\text{mech}}(T_i)$$
-
-Furthermore, the Cognitive Validator operates under absolute command isolation:
-
-$$\text{Commands}(\text{Validator}_{\text{cog}}) \equiv \emptyset \land \text{WritePermissions}(\mathcal{F}_{\text{repo}}) \equiv \emptyset$$
+To eliminate supervisory overloading—where Coordinators and Orchestrators leaked context and burned tokens on git plumbing, diff diagnosis, pre-push hook failures, and merge conflict resolution—OLT formalizes a dedicated release subagent: **`publisher`** ([`publisher.yaml`](../../../../olt/agents/publisher.yaml)).
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant Coord as Tier 2 Coordinator
-    participant Imp as Tier 3 Implementer (Agent Alpha)
-    participant CogVal as Tier 3 Cognitive Validator (Agent Beta)
-    participant MechVal as Tier 3 Mechanic Validator (Agent Gamma)
-    participant Gate as Dual-Channel Gate Prover
+    participant Workers as Tier 3 Implementers & Validators
+    participant Pub as Tier 3 Publisher (publisher.yaml)
+    participant Remote as Upstream Remote (origin/main)
 
-    Coord->>Imp: Lease TASK-04 (Scope: src/engine/, LeaseToken: LT-8821)
-    Note over Imp: Operates in .olt/worktrees/TASK-04/
-    Imp->>Imp: Author Patch & Run Local Micro-Tests
-    Imp->>Coord: task:submit (TASK-04, diff, local_receipt)
-
-    par Dual-Channel Verification
-        Coord->>CogVal: Spawn Independent Audit (diff, spec)
-        Note over CogVal: Zero Commands Allowed (Read-Only)
-        CogVal->>CogVal: AST Inspection, Socratic Check, Budget Audit
-        CogVal-->>Coord: Channel A Verdict: PASS (Proof: AST_PURE)
-    and
-        Coord->>MechVal: Spawn Test Runner (TASK-04 Worktree)
-        Note over MechVal: Clean Subprocess Test Suite
-        MechVal->>MechVal: Bun test run (stdout, exitCode: 0)
-        MechVal-->>Coord: Channel B Verdict: PASS (Proof: EXIT_0)
-    end
-
-    Coord->>Gate: Evaluate Dual-Channel Predicate (Proof A && Proof B)
-    Gate-->>Coord: Certification Verified (Merkle Hash Appended)
-    Coord->>Imp: Release Lease & Tear Down Worktree
+    Coord->>Workers: Dispatch Wave Tasks (Disjoint Write Scopes)
+    Workers-->>Coord: Two-Key Approval (Cognitive + Mechanic Gate Pass)
+    Coord->>Pub: Dispatch Release (Role: publisher, Track: track-1)
+    Note over Pub: Operates under PUBLISHER_TRANSACTION_ISOLATION
+    Pub->>Pub: Reflog Safety Staging (git add -A)
+    Pub->>Pub: Pre-Push Gates (modularity:staged, task:check)
+    Pub->>Pub: Atomic Worktree Landing (worktree:land --track track-1)
+    Pub->>Pub: Structured Conventional Commit (git commit)
+    Pub->>Remote: Push Landed Commits (git push origin main)
+    Pub->>Pub: Global Skill Sync (bun scripts/sync-global.ts)
+    Pub-->>Coord: ReleaseCertificate (msg:send with commit SHA)
+    Coord->>Pub: Hard Reset (manage_subagents kill)
 ```
+
+### Publisher Authority & Invariants:
+- **Manifest**: [`olt/agents/publisher.yaml`](../../../../olt/agents/publisher.yaml), Tier 3, `enable_write_tools: true` (for git index/commit transactions only), `enable_subagent_tools: false`.
+- **Authorized Commands**: `worktree:land`, `worktree:clean`, `worktree:status`, `task:check`, `doctor`, `whoami`, `msg:send`, `msg:recv`.
+- **Prohibitions**: Strictly forbidden from editing application source files outside release transactions, claiming implementation tasks, or rendering validation verdicts.
+- **Invariants**: `PUBLISHER_TRANSACTION_ISOLATION`, `ZERO_SOURCE_EDITS`, `ATOMIC_RELEASE_ONLY`, `MANDATORY_DOCTOR_VERIFY_BEFORE_TURN_COMPLETION`.
 
 ---
 
-## 5. TypeScript Role Contracts and RBAC Interlocks
+## 5. Dual-Channel Verification & Cognitive Validator Hard-Lock
 
-The role contracts and authority matrices are implemented in TypeScript under [`session/types.ts`](../../../../olt/scripts/src/authority/session/types.ts):
+To eliminate self-review bias and hallucinated test passes, every implementation undergoes dual-channel verification:
+
+$$\forall T_i \in \mathcal{T}, \quad \text{Implementer}(T_i) \neq \text{Validator}_{\text{cog}}(T_i)$$
+
+```text
+┌──────────────────────────────────────┬──────────────────────────────────────┐
+│ CHANNEL A: COGNITIVE VALIDATION      │ CHANNEL B: MECHANICAL GATE PROOF     │
+├──────────────────────────────────────┼──────────────────────────────────────┤
+│ • Role: Tier 3 Cognitive Validator   │ • Role: Deterministic CLI / Runner   │
+│ • Commands: 0 Commands (Hard-Lock)   │ • Tool: task:check (tsc, AST audits) │
+│ • Analysis: AST purity, zero any,    │ • Unit Tests: Implementer file-run   │
+│   zero suppressions, Socratic audit  │ • UI Surfaces: ui-headless-validator │
+│ • Proof: Structured Finding Record   │ • Proof: Cryptographic Exit Receipt  │
+└──────────────────────────────────────┴──────────────────────────────────────┘
+```
+
+Cognitive Validators operate under absolute command isolation:
+$$\text{Commands}(\text{Validator}_{\text{cog}}) \equiv \emptyset \land \mathcal{W}(\mathcal{F}_{\text{repo}}) \equiv \emptyset$$
+
+Mandatory gate evidence is resolved via detached evidence (`task:review --evidence <cmd-id>`) or automatic fallback to passing implementer command receipts, preventing validator command execution lockouts.
+
+---
+
+## 6. TypeScript Contracts and Failure Recovery
+
+Role contracts are implemented under [`session/types.ts`](../../../../olt/scripts/src/authority/session/types.ts) and [`capability-matrix.ts`](../../../../olt/scripts/src/roles/capability-matrix.ts):
 
 ```typescript
-/**
- * Four-Tier Workforce Role Archetypes in OLT
- */
 export type TierLevel = 0 | 1 | 2 | 3;
+export type RoleArchetype = "mind" | "orchestrator" | "coordinator" | "implementer" | "validator" | "publisher";
 
-export type RoleArchetype =
-  | "mind"
-  | "orchestrator"
-  | "coordinator"
-  | "implementer"
-  | "cognitive_validator"
-  | "mechanic_validator";
-
-export interface AgentAuthorityToken {
-  readonly agentId: string;
-  readonly tier: TierLevel;
-  readonly role: RoleArchetype;
-  readonly grantedScope: readonly string[];
-  readonly writeAllowed: boolean;
-  readonly commandExecutionAllowed: boolean;
-  readonly leaseToken?: string;
-  readonly issuedAt: number;
-  readonly expiresAt: number;
-}
-
-export interface WorktreeLeasePacket {
-  readonly taskId: string;
-  readonly agentId: string;
-  readonly leaseToken: string;
-  readonly worktreePath: string;
-  readonly grantedFiles: readonly string[];
-  readonly monotonicSequence: number;
-  readonly stragglerTimeoutMs: number;
-}
-
-export interface DualChannelVerificationResult {
-  readonly taskId: string;
-  readonly implementerId: string;
-  readonly cognitiveValidatorId: string;
-  readonly mechanicValidatorId: string;
-  readonly channelACognitiveProof: {
-    readonly astPure: boolean;
-    readonly sizingBudgetCompliant: boolean;
-    readonly socraticPass: boolean;
-    readonly findingCount: number;
-  };
-  readonly channelBMechanicProof: {
-    readonly exitCode: number;
-    readonly executionDurationMs: number;
-    readonly totalTestsPassed: number;
-    readonly rawOutputSha256: string;
-  };
-  readonly certified: boolean;
-}
-
-/**
- * Enforces Fail-Closed Role-Based Access Control
- */
 export class RoleEnforcementGuard {
-  public static validateWritePermission(
-    token: AgentAuthorityToken,
-    targetFilePath: string
-  ): void {
+  public static validateWritePermission(token: AgentAuthorityToken, targetFilePath: string): void {
     if (token.tier < 3 || !token.writeAllowed) {
-      throw new Error(
-        `SUPERVISOR_WRITE_FAULT: Agent ${token.agentId} (Tier ${token.tier}) is prohibited from modifying ${targetFilePath}`
-      );
+      throw new Error(`SUPERVISOR_WRITE_FAULT: Agent ${token.agentId} (Tier ${token.tier}) cannot modify files`);
     }
-
-    const isWithinScope = token.grantedScope.some((allowedPrefix) =>
-      targetFilePath.startsWith(allowedPrefix)
-    );
-
-    if (!isWithinScope) {
-      throw new Error(
-        `SCOPE_ESCAPE_FAULT: Agent ${token.agentId} attempted write outside granted scope: ${targetFilePath}`
-      );
+    if (!token.grantedScope.some((p) => targetFilePath.startsWith(p))) {
+      throw new Error(`SCOPE_ESCAPE_FAULT: Agent ${token.agentId} attempted write outside scope: ${targetFilePath}`);
     }
   }
 
   public static validateValidatorPrivilege(token: AgentAuthorityToken): void {
-    if (token.role === "cognitive_validator" && token.commandExecutionAllowed) {
-      throw new Error(
-        `VALIDATOR_COMMAND_FAULT: Cognitive Validator ${token.agentId} cannot execute shell commands.`
-      );
+    if (token.role.includes("validator") && token.commandExecutionAllowed) {
+      throw new Error(`VALIDATOR_COMMAND_FAULT: Cognitive Validator ${token.agentId} cannot execute shell commands`);
     }
   }
 }
 ```
 
----
+### Anti-Blunder Failure Matrix:
 
-## 6. Failure Modes & Anti-Blunder Matrix
-
-```text
-+--------------------------------+------------------------------------------+-------------------------------------------------------------+
-| Failure Mode                   | Root Cause                               | Mechanical Defense & Recovery                               |
-+--------------------------------+------------------------------------------+-------------------------------------------------------------+
-| SUPERVISOR_WRITE_FAULT         | Tier 0, 1, or 2 agent attempts file edit | Fail-closed write interception; immediate command rejection.|
-| SCOPE_ESCAPE_FAULT             | Implementer modifies ungranted file path | Git worktree path boundary filter; transaction rollback.    |
-| SELF_REVIEW_VIOLATION_TRAP     | Worker assigned as its own validator     | Registry constraint check rejects identical agent IDs.      |
-| VALIDATOR_COMMAND_FAULT        | Cognitive validator attempts shell exec  | Tool proxy sandbox strips execution primitives at spawn.    |
-| CONTEXT_POISONING_SPILL        | Raw diff dumped into supervisor context  | Cowan token sanitization filter reduces diff to metadata.   |
-| WORKTREE_DIRTY_LEAK            | Uncommitted files left after task lease  | Atomic git clean -fdx & worktree removal upon termination.  |
-| STRAGGLER_TIMEOUT_TRAP         | Worker inactive for > 300 seconds        | Tier 2 coordinator revokes lease token; re-leases to pool.  |
-+--------------------------------+------------------------------------------+-------------------------------------------------------------+
-```
-
-### Anti-Blunder Architecture Principles
-
-1. **Never Allow Supervisors to "Quick-Fix" Code**: Even a 1-line typo fix by an Orchestrator poisons its context window and destroys the audit chain. All edits must go through Tier 3.
-2. **Never Pool Validator and Implementer Mailboxes**: Keep communication decoupled through structured task submission packets and structured findings.
-3. **Never Share Worktrees Across Concurrent Tasks**: Every concurrent task must receive its own isolated worktree path to prevent uncommitted file collisions.
+| Failure Code | Root Cause | Defense & Recovery |
+| :--- | :--- | :--- |
+| `SUPERVISOR_WRITE_FAULT` | Tier 0/1/2 agent attempts file edit | Fail-closed write interception; immediate rejection. |
+| `SCOPE_ESCAPE_FAULT` | Implementer modifies unleased file | Worktree boundary filter; rollback transaction. |
+| `VALIDATOR_COMMAND_FAULT`| Validator attempts terminal command | Command Hard-Lock traps call; enforces Socratic read. |
+| `SUPERVISOR_PLUMBING_LEAK`| Supervisor runs git commit/push | Hard-routed to dedicated Tier 3 `publisher`. |
+| `STRAGGLER_TIMEOUT_TRAP` | Worker inactive for >300 seconds | Coordinator revokes monotonic lease; re-leases to pool. |
 
 ---
 
 ## 7. Architectural Invariants Summary
 
+- **Invariant $\mathcal{C}_1$ (Four-Tier Stratification)**: Unidirectional top-down delegation; cross-tier bypassing is mechanically barred.
 - **Invariant $\mathcal{C}_2$ (Monotonic Writer Lease)**: Exactly one implementer holds an active write lease per task at any instant.
-- **Invariant $\mathcal{C}_4$ (Dual-Channel Verification)**: No task is marked completed without independent mechanical exit code `0` and cognitive AST purity proofs.
-- **Invariant $\mathcal{C}_7$ (Cognitive Validator Hard-Lock)**: Validators are permanently barred from issuing shell commands or modifying files.
-- **Invariant $\mathcal{C}_{10}$ (Out-of-Repo Worktree Isolation)**: Implementers execute inside discrete worktrees, protecting the main working tree from uncommitted artifacts.
+- **Invariant $\mathcal{C}_4$ (Dual-Channel Verification)**: Independent cognitive AST purity proofs and mechanical test receipts required for task certification.
+- **Invariant $\mathcal{C}_7$ (Cognitive Validator Hard-Lock)**: Validators are barred from issuing commands or modifying repository files.
+- **Invariant $\mathcal{C}_8$ (Supervisor Zero-File-Write)**: Tiers 0, 1, and 2 hold zero filesystem mutation authority ($Z_{\text{mutation}} = 0$).
+- **Invariant $\mathcal{C}_{12}$ (Publisher Isolation)**: Upstream merges, landings, and releases are owned by Tier 3 Publisher.
 
 ---
 
 [Previous: Chapter 02: Four-Tier Hierarchy](index.md) | [Chapter Index](index.md) | [All Chapters Index](../index.md) | [Next: 02-02 Subagent Naming Grammar](02-02-subagent-naming-grammar.md)
-
----
 $$

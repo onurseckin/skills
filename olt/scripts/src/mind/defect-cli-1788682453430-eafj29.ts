@@ -1,6 +1,7 @@
 export const DEFECT_ID = "defect-cli-1788682453430-eafj29";
 export const ERROR_CODE = "INVALID_ARGUMENT";
-export const DEFECT_TITLE = "Defect Remediation: charter goal 'G5' does not exist in pinned charter goals: []; cite a goal defined in the pinned charter";
+export const DEFECT_TITLE =
+  "Defect Remediation: charter goal 'G5' does not exist in pinned charter goals: []; cite a goal defined in the pinned charter";
 
 export interface DefectRemediationContext {
   readonly actor?: string;

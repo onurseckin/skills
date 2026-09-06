@@ -1,6 +1,7 @@
 export const DEFECT_ID = "defect-cli-1788678041651-7wtpfg";
 export const ERROR_CODE = "INVALID_STATE";
-export const DEFECT_TITLE = "Defect Remediation: run is incomplete: completion critic history reuses an identity";
+export const DEFECT_TITLE =
+  "Defect Remediation: run is incomplete: completion critic history reuses an identity";
 
 export interface DefectRemediationContext {
   readonly actor?: string;

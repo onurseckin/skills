@@ -33,7 +33,9 @@ describe("Defect Remediation: defect-1788198297389-0jpptb", () => {
       taskId: "task-1_2",
       state: "validating",
       sessionToken: "tok_live_defect_1788198297389_0jpptb",
-      scope: ["olt/scripts/src/mind/tier-0-mind-stagnation-detected-defect-1788198297389-0jpptb.ts"],
+      scope: [
+        "olt/scripts/src/mind/tier-0-mind-stagnation-detected-defect-1788198297389-0jpptb.ts",
+      ],
       gateCommand:
         "bun test tests/unit/mind/tier-0-mind-stagnation-detected-defect-1788198297389-0jpptb.test.ts",
       idleDurationSeconds: RECORDED_IDLE_SECONDS,
