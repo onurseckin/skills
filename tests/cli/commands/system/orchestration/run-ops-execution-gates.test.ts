@@ -317,13 +317,12 @@ describe("CLI Registry Execution & JSON Serialization", () => {
       "--prompt",
       "CLI prompt",
     ]);
-
     expect(res.run_id).toBe("cli-run-1");
     expect(res.existed).toBe(false);
     expect(JSON.stringify(res)).toContain("cli-run-1");
   });
 
-  test("executes run:status via execute and preserves markdown output", async () => {
+  test("asserts run:status rejects with unknown command error via execute", async () => {
     const { repo } = createTestRepo("cli-run-status");
     const initRes = await execute([
       "run:init",
@@ -335,9 +334,8 @@ describe("CLI Registry Execution & JSON Serialization", () => {
       "CLI status prompt",
     ]);
     const runRoot = initRes.run_root as string;
-
-    const statusRes = await execute(["run:status", "--run", runRoot, "--repo", repo]);
-    expect(statusRes.run_root).toBe(runRoot);
-    expect(String(statusRes.markdown)).toContain("cli-run-2");
+    await expect(execute(["run:status", "--run", runRoot, "--repo", repo])).rejects.toThrow(
+      "unknown command: run:status",
+    );
   });
 });

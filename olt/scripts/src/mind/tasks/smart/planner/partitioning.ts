@@ -135,7 +135,7 @@ export function validateAntiBatchingRule(
 }
 
 /**
- * Alias for validateAntiBatchingRule for backward compatibility.
+ * Validate anti-batching isolation across smart task plans.
  */
 export function validateAntiBatchingIsolation(
   plans: readonly SmartTaskPlan[],

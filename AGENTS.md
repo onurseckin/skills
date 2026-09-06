@@ -206,7 +206,7 @@ Every agent executing within this repository must adhere to the following non-ne
 50. **Unified Report Entrypoint & Sugiyama Visualizer (`UNIFIED_REPORT_AND_SUGIYAMA_DAG`):**
     - All status, progress, telemetry, and graph reporting are unified under `bun harness.ts report` and `bun harness.ts report:dag`.
     - **Sugiyama Hierarchical DAG Visualizer**: `report:dag` implements the Sugiyama layered layout algorithm (`src/reporting/sugiyama-dag`, `src/graph/sugiyama.ts`), rendering true topological levels, cross-layer edge routing, active status badges (`[● ACTIVE]`, `[✓ DONE]`, `[○ READY]`, `[🚨 ESCALATED]`), and dependency hierarchies in ASCII/Unicode boxed formatting.
-    - **Mechanical `[RETIRED_COMMAND]` Guards**: The legacy root `dag` and `run:status` commands are permanently retired. Any invocation is intercepted by `[RETIRED_COMMAND]` guards throwing `HarnessError("INVALID_ARGUMENT", ...)` directing operators to `report:dag` and `dag:check`.
+    - **Command Purge**: The legacy root `dag` and `run:status` commands are permanently purged. Old commands fail cleanly with the standard unknown command error without deprecation or redirection shims.
 51. **Hierarchical Escalation Dispatch Protocol (`HIERARCHICAL_ESCALATION_DISPATCH`):**
     - Task blockers, finding exhaustion, and boundary anomalies must strictly escalate through the 4-tier supervisory chain:
       - **Tier 3 Worker In-Lease Micro-Cycles**: Fast in-lease review cycles (up to 3 rounds) between Implementer and paired Validator without lease teardown (`task:reject --in-lease`). If unresolvable within budget, the task is escalated to Tier 2 Coordinator (`task:reject`, `changes_requested`).
@@ -523,7 +523,7 @@ To protect repository state and prevent common LLM blunder modes:
    - **Never** read, parse, or inject a whole reference tree at once (e.g. every file under `references/cli-capabilities/`).
    - Always discover commands via targeted CLI help: `bun harness.ts help <command>`, a single grep of `references/cli-capabilities/index.jsonl`, or error diagnostics via `bun harness.ts explain <ERROR_CODE>`.
 7. **Monolithic Default Output & Step Guidance:**
-   - Rely on unified status views (`summary:view` / `report` / `report:dag`, superseding retired `run:status` and root `dag` via `[RETIRED_COMMAND]` guards) which automatically integrate the Sugiyama DAG, live doctor checks, task metrics, and subagent allocations.
+   - Rely on unified status views (`summary:view` / `report` / `report:dag`, superseding legacy `run:status` and root `dag` which are permanently purged) which automatically integrate the Sugiyama DAG, live doctor checks, task metrics, and subagent allocations.
    - Always follow the structured `nextRecommendedCommand` guidance emitted in CLI briefs.
 8. **Bearer Token Confidentiality & Hygiene:**
    - Bearer tokens (`--token <token>`) are authorization credentials that must **only** appear as CLI arguments in direct harness invocations.

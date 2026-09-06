@@ -1,6 +1,7 @@
 export const DEFECT_ID = "defect-cli-1788681621847-dcgyrf";
 export const ERROR_CODE = "AUTHENTICATION_FAILURE";
-export const DEFECT_TITLE = "Defect Remediation: Actor spoofing blocked: caller verified as 'mind-gen-3' (mind) cannot execute as 'implementer_task-2'. Session tokens authenticate their holder and cannot delegate another agent's durable grant.";
+export const DEFECT_TITLE =
+  "Defect Remediation: Actor spoofing blocked: caller verified as 'mind-gen-3' (mind) cannot execute as 'implementer_task-2'. Session tokens authenticate their holder and cannot delegate another agent's durable grant.";
 
 export interface DefectRemediationContext {
   readonly actor?: string;

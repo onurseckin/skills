@@ -1,6 +1,7 @@
 export const DEFECT_ID = "defect-cli-1788678881303-dkr2au";
 export const ERROR_CODE = "PATH_SAFETY";
-export const DEFECT_TITLE = "Defect Remediation: run '.olt/capsules/supervisory-cadence-and-mechanical-interlocks' must be a bare capsule ID or an absolute capsule path";
+export const DEFECT_TITLE =
+  "Defect Remediation: run '.olt/capsules/supervisory-cadence-and-mechanical-interlocks' must be a bare capsule ID or an absolute capsule path";
 
 export interface DefectRemediationContext {
   readonly actor?: string;

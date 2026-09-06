@@ -1,6 +1,7 @@
 export const DEFECT_ID = "defect-cli-1788677860001-3wblgg";
 export const ERROR_CODE = "INVALID_STATE";
-export const DEFECT_TITLE = "Defect Remediation: repository bytes changed after critic authorization";
+export const DEFECT_TITLE =
+  "Defect Remediation: repository bytes changed after critic authorization";
 
 export interface DefectRemediationContext {
   readonly actor?: string;

@@ -1,6 +1,7 @@
 export const DEFECT_ID = "defect-cli-1788677666804-732uyj";
 export const ERROR_CODE = "AUTHENTICATION_FAILURE";
-export const DEFECT_TITLE = "Defect Remediation: Actor spoofing blocked: caller verified as 'completeness_critic' (completeness-critic) cannot execute as 'mind-auditor'. Session tokens authenticate their holder and cannot delegate another agent's durable grant.";
+export const DEFECT_TITLE =
+  "Defect Remediation: Actor spoofing blocked: caller verified as 'completeness_critic' (completeness-critic) cannot execute as 'mind-auditor'. Session tokens authenticate their holder and cannot delegate another agent's durable grant.";
 
 export interface DefectRemediationContext {
   readonly actor?: string;

@@ -1,6 +1,7 @@
 export const DEFECT_ID = "defect-cli-1788677615617-gd0ojb";
 export const ERROR_CODE = "INVALID_STATE";
-export const DEFECT_TITLE = "Defect Remediation: admission gate gate-4-scoped (Scoped) refused: write scope conflicts with active candidate 'cand-1' (olt/scripts/src/engine/scheduler, olt/scripts/src/mind)";
+export const DEFECT_TITLE =
+  "Defect Remediation: admission gate gate-4-scoped (Scoped) refused: write scope conflicts with active candidate 'cand-1' (olt/scripts/src/engine/scheduler, olt/scripts/src/mind)";
 
 export interface DefectRemediationContext {
   readonly actor?: string;

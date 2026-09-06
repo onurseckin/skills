@@ -1,6 +1,7 @@
 export const DEFECT_ID = "DEFECT-CADENCE-SLEEP";
 export const ERROR_CODE = "CADENCE_SLEEP_VIOLATION";
-export const DEFECT_TITLE = "Defect Remediation: Mind & Skill Auditor Premature Idling and Broken Perpetual Resumption";
+export const DEFECT_TITLE =
+  "Defect Remediation: Mind & Skill Auditor Premature Idling and Broken Perpetual Resumption";
 
 export interface DefectRemediationContext {
   readonly actor?: string;
@@ -57,7 +58,8 @@ export function verifyDefectRemediation(
     state: "validating",
     sessionToken: "tok_live_DEFECT_CADENCE_SLEEP",
     scope: ["olt/scripts/src/mind"],
-    gateCommand: "bun test tests/mind/mind-skill-auditor-premature-idling-and-broken-perpetual-resumption-defect-cadence-sleep.test.ts",
+    gateCommand:
+      "bun test tests/mind/mind-skill-auditor-premature-idling-and-broken-perpetual-resumption-defect-cadence-sleep.test.ts",
     isUiTask: false,
     validatorType: "validator",
   };

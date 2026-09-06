@@ -35,9 +35,7 @@ export function validateGateProofForReview(
 ): GateReviewValidationResult {
   const { taskName, gateName, gateCommand, proofs } = context;
 
-  const matchingProof = proofs.find(
-    (p) => p.gateId === gateName && p.isFalsifiable,
-  );
+  const matchingProof = proofs.find((p) => p.gateId === gateName && p.isFalsifiable);
 
   if (matchingProof) {
     return {

@@ -37,8 +37,6 @@ describe("Defect Remediation: defect-cli-1788680122040-z358j6", () => {
     expect(result.remediated).toBe(true);
     expect(result.valid).toBe(false);
     expect(result.errorCode).toBe(ERROR_CODE);
-    expect(result.error).toBe(
-      "command event actor does not match command actor",
-    );
+    expect(result.error).toBe("command event actor does not match command actor");
   });
 });

@@ -12,9 +12,7 @@ describe("Defect Remediation: defect-cli-1788680042835-s8k7b4", () => {
   test("exports constants and defect metadata", () => {
     expect(DEFECT_ID).toBe("defect-cli-1788680042835-s8k7b4");
     expect(ERROR_CODE).toBe("INVALID_STATE");
-    expect(DEFECT_TITLE.includes("lane-4-optical-reports-and-records")).toBe(
-      true,
-    );
+    expect(DEFECT_TITLE.includes("lane-4-optical-reports-and-records")).toBe(true);
   });
 
   test("rejects passing lane-4 when no falsifiable gate:prove proof is recorded", () => {

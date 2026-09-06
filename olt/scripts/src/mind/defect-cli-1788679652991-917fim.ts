@@ -1,6 +1,7 @@
 export const DEFECT_ID = "defect-cli-1788679652991-917fim";
 export const ERROR_CODE = "INVALID_STATE";
-export const DEFECT_TITLE = "Defect Remediation: role validator may not invoke run:exec: cognitive validators are strictly banned from executing bash/shell commands or running test suites (run:exec); agent validator_task4 holds a validator grant, and the contract at /Users/onurseckinsenoglu/repos/skills/olt/agents/validator.yaml grants only task:brief, task:validate-start, task:probe, task:reject, task:review, finding:get, report:get, evidence:get, evidence:screenshots, agent:register, agent:report, agent:release, whoami, msg:send, msg:recv, msg:poll. [Remediation: Cognitive validators must not execute shell commands or tests directly. Delegate test execution to a mechanic-validator subagent or inspect files using read-only tools.]";
+export const DEFECT_TITLE =
+  "Defect Remediation: role validator may not invoke run:exec: cognitive validators are strictly banned from executing bash/shell commands or running test suites (run:exec); agent validator_task4 holds a validator grant, and the contract at /Users/onurseckinsenoglu/repos/skills/olt/agents/validator.yaml grants only task:brief, task:validate-start, task:probe, task:reject, task:review, finding:get, report:get, evidence:get, evidence:screenshots, agent:register, agent:report, agent:release, whoami, msg:send, msg:recv, msg:poll. [Remediation: Cognitive validators must not execute shell commands or tests directly. Delegate test execution to a mechanic-validator subagent or inspect files using read-only tools.]";
 
 export interface DefectRemediationContext {
   readonly actor?: string;

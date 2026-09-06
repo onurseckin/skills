@@ -1,6 +1,7 @@
 export const DEFECT_ID = "defect-cli-1788677006990-uixom0";
 export const ERROR_CODE = "INVALID_STATE";
-export const DEFECT_TITLE = "Defect Remediation: run:exec could not load capsule state at --run /Users/onurseckinsenoglu/repos/skills/.olt/capsules/olt-forensics-and-hardening and is not on the grant bootstrap allowlist for missing capsules; an unreadable capsule cannot be treated as one with no grants";
+export const DEFECT_TITLE =
+  "Defect Remediation: run:exec could not load capsule state at --run /Users/onurseckinsenoglu/repos/skills/.olt/capsules/olt-forensics-and-hardening and is not on the grant bootstrap allowlist for missing capsules; an unreadable capsule cannot be treated as one with no grants";
 
 export interface DefectRemediationContext {
   readonly actor?: string;

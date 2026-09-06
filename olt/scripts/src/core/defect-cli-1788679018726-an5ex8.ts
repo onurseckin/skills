@@ -1,6 +1,7 @@
 export const DEFECT_ID = "defect-cli-1788679018726-an5ex8";
 export const ERROR_CODE = "AUTHENTICATION_FAILURE";
-export const DEFECT_TITLE = "Defect Remediation: explicit acting identity 'coordinator' does not match authenticated caller 'coordinator_wave1'";
+export const DEFECT_TITLE =
+  "Defect Remediation: explicit acting identity 'coordinator' does not match authenticated caller 'coordinator_wave1'";
 
 export interface DefectRemediationContext {
   readonly actor?: string;

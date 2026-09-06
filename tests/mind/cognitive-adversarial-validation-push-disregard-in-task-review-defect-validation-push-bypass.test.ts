@@ -23,8 +23,11 @@ describe("Defect Remediation: DEFECT-VALIDATION-PUSH-BYPASS", () => {
       taskId: "task-1_13",
       state: "validating",
       sessionToken: "tok_live_DEFECT_VALIDATION_PUSH_BYPASS",
-      scope: ["olt/scripts/src/mind/cognitive-adversarial-validation-push-disregard-in-task-review-defect-validation-push-bypass.ts"],
-      gateCommand: "bun test tests/mind/cognitive-adversarial-validation-push-disregard-in-task-review-defect-validation-push-bypass.test.ts",
+      scope: [
+        "olt/scripts/src/mind/cognitive-adversarial-validation-push-disregard-in-task-review-defect-validation-push-bypass.ts",
+      ],
+      gateCommand:
+        "bun test tests/mind/cognitive-adversarial-validation-push-disregard-in-task-review-defect-validation-push-bypass.test.ts",
     };
     expect(validateDefectPreconditions(validCtx)).toBe(true);
     const result: DefectRemediationResult = verifyDefectRemediation(validCtx);

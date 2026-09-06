@@ -23,8 +23,11 @@ describe("Defect Remediation: DEFECT-COORDINATOR-CODE-EDIT", () => {
       taskId: "task-20",
       state: "validating",
       sessionToken: "tok_live_core_DEFECT-COORDINATOR-CODE-EDIT",
-      scope: ["olt/scripts/src/core/coordinator-supervisor-role-boundary-breach-direct-code-editing-defect-coordinator-code-edit.ts"],
-      gateCommand: "bun test tests/core/coordinator-supervisor-role-boundary-breach-direct-code-editing-defect-coordinator-code-edit.test.ts",
+      scope: [
+        "olt/scripts/src/core/coordinator-supervisor-role-boundary-breach-direct-code-editing-defect-coordinator-code-edit.ts",
+      ],
+      gateCommand:
+        "bun test tests/core/coordinator-supervisor-role-boundary-breach-direct-code-editing-defect-coordinator-code-edit.test.ts",
       options: ["--compliant"],
     };
     expect(validateDefectPreconditions(validCtx)).toBe(true);

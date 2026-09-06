@@ -1,6 +1,7 @@
 export const DEFECT_ID = "defect-cli-1788680839731-iwnl77";
 export const ERROR_CODE = "AUTHENTICATION_FAILURE";
-export const DEFECT_TITLE = "Defect Remediation: mind:pulse requires a verified caller session backed by an active run grant; explicit identity flags cannot establish authority";
+export const DEFECT_TITLE =
+  "Defect Remediation: mind:pulse requires a verified caller session backed by an active run grant; explicit identity flags cannot establish authority";
 
 export interface DefectRemediationContext {
   readonly actor?: string;

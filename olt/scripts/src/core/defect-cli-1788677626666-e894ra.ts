@@ -1,6 +1,7 @@
 export const DEFECT_ID = "defect-cli-1788677626666-e894ra";
 export const ERROR_CODE = "INVALID_STATE";
-export const DEFECT_TITLE = "Defect Remediation: admission gate gate-6-not-a-duplicate (Not a duplicate) refused: candidate is a duplicate of permanently declined candidate 'cand-5' (declined reason: 'Overlapping write scope with cand-1; resubmitting with disjoint scope')";
+export const DEFECT_TITLE =
+  "Defect Remediation: admission gate gate-6-not-a-duplicate (Not a duplicate) refused: candidate is a duplicate of permanently declined candidate 'cand-5' (declined reason: 'Overlapping write scope with cand-1; resubmitting with disjoint scope')";
 
 export interface DefectRemediationContext {
   readonly actor?: string;

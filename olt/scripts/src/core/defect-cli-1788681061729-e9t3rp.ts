@@ -1,6 +1,7 @@
 export const DEFECT_ID = "defect-cli-1788681061729-e9t3rp";
 export const ERROR_CODE = "PATH_SAFETY";
-export const DEFECT_TITLE = "Defect Remediation: run '.olt/capsules/cross-system-communication-system' must be a bare capsule ID or an absolute capsule path";
+export const DEFECT_TITLE =
+  "Defect Remediation: run '.olt/capsules/cross-system-communication-system' must be a bare capsule ID or an absolute capsule path";
 
 export interface DefectRemediationContext {
   readonly actor?: string;

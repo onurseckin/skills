@@ -1,6 +1,7 @@
 export const DEFECT_ID = "defect-cli-1788681068345-191292";
 export const ERROR_CODE = "INTEGRITY";
-export const DEFECT_TITLE = "Defect Remediation: tasks task-2, task-3, task-4 have no prompt line to bind to and cannot be folded into another requirement; pass --requirement-lines to bind each one to the lines it actually implements";
+export const DEFECT_TITLE =
+  "Defect Remediation: tasks task-2, task-3, task-4 have no prompt line to bind to and cannot be folded into another requirement; pass --requirement-lines to bind each one to the lines it actually implements";
 
 export interface DefectRemediationContext {
   readonly actor?: string;

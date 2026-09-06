@@ -23,8 +23,11 @@ describe("Defect Remediation: defect-commit-cannot-record-own-hash", () => {
       taskId: "task-16",
       state: "validating",
       sessionToken: "tok_live_core_defect-commit-cannot-record-own-hash",
-      scope: ["olt/scripts/src/core/recording-a-landing-commit-hash-inside-the-commit-being-described-orphans-the-reference-defect-commit-cannot-record-own-hash.ts"],
-      gateCommand: "bun test tests/core/recording-a-landing-commit-hash-inside-the-commit-being-described-orphans-the-reference-defect-commit-cannot-record-own-hash.test.ts",
+      scope: [
+        "olt/scripts/src/core/recording-a-landing-commit-hash-inside-the-commit-being-described-orphans-the-reference-defect-commit-cannot-record-own-hash.ts",
+      ],
+      gateCommand:
+        "bun test tests/core/recording-a-landing-commit-hash-inside-the-commit-being-described-orphans-the-reference-defect-commit-cannot-record-own-hash.test.ts",
       options: ["--compliant"],
     };
     expect(validateDefectPreconditions(validCtx)).toBe(true);

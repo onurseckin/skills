@@ -27,14 +27,11 @@ describe("Defect Remediation: defect-cli-1788679978854-18kdj8", () => {
       ],
       resolutions: {},
     };
-    const result: Task2FindingsReevaluationResult =
-      reevaluateTask2GateFindings(ctx);
+    const result: Task2FindingsReevaluationResult = reevaluateTask2GateFindings(ctx);
     expect(result.remediated).toBe(true);
     expect(result.passed).toBe(false);
     expect(result.errorCode).toBe(ERROR_CODE);
-    expect(result.error).toContain(
-      "cannot pass task-2: 5 open finding(s) unanswered",
-    );
+    expect(result.error).toContain("cannot pass task-2: 5 open finding(s) unanswered");
   });
 
   test("approves when all 5 findings have resolutions", () => {
@@ -55,8 +52,7 @@ describe("Defect Remediation: defect-cli-1788679978854-18kdj8", () => {
         "probe-task-2-01-5": "cmd-5",
       },
     };
-    const result: Task2FindingsReevaluationResult =
-      reevaluateTask2GateFindings(ctx);
+    const result: Task2FindingsReevaluationResult = reevaluateTask2GateFindings(ctx);
     expect(result.remediated).toBe(true);
     expect(result.passed).toBe(true);
     expect(result.pendingFindings.length).toBe(0);

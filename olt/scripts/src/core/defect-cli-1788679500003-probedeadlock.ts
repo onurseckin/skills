@@ -1,6 +1,7 @@
 export const DEFECT_ID = "defect-cli-1788679500003-probedeadlock";
 export const ERROR_CODE = "PROBE_RESOLUTION_DEADLOCK";
-export const DEFECT_TITLE = "Defect Remediation: task:probe creates unbatched finding requirements where every probe demands a separate --resolve finding_id=command_id flag. When agents are trapped in this loop, it triggers lease timeouts, cascading recover requirements, and severe execution latency.";
+export const DEFECT_TITLE =
+  "Defect Remediation: task:probe creates unbatched finding requirements where every probe demands a separate --resolve finding_id=command_id flag. When agents are trapped in this loop, it triggers lease timeouts, cascading recover requirements, and severe execution latency.";
 
 export interface DefectRemediationContext {
   readonly actor?: string;

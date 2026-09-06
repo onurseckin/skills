@@ -1,6 +1,7 @@
 export const DEFECT_ID = "defect-cli-1788682333451-hf2nr0";
 export const ERROR_CODE = "INVALID_STATE";
-export const DEFECT_TITLE = "Defect Remediation: pulse pulse-1 is open and past its deadline (2026-09-06T08:09:06.042Z); reclaim it first with mind:wake --run .olt/capsules/mind-gen-3";
+export const DEFECT_TITLE =
+  "Defect Remediation: pulse pulse-1 is open and past its deadline (2026-09-06T08:09:06.042Z); reclaim it first with mind:wake --run .olt/capsules/mind-gen-3";
 
 export interface DefectRemediationContext {
   readonly actor?: string;

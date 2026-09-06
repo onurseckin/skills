@@ -1,6 +1,7 @@
 export const DEFECT_ID = "defect-cli-1788679763017-j0362s";
 export const ERROR_CODE = "INVALID_STATE";
-export const DEFECT_TITLE = "Defect Remediation: Cannot finalize review for task 'task-4': Cognitive deepening protocol not satisfied. Completed 1/5 required cognitive rounds. Run `task:probe --task task-4 --kind cognitive` to satisfy cognitive deepening.";
+export const DEFECT_TITLE =
+  "Defect Remediation: Cannot finalize review for task 'task-4': Cognitive deepening protocol not satisfied. Completed 1/5 required cognitive rounds. Run `task:probe --task task-4 --kind cognitive` to satisfy cognitive deepening.";
 
 export interface DefectRemediationContext {
   readonly actor?: string;

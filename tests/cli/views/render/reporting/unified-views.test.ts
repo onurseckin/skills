@@ -116,7 +116,7 @@ describe("Unified Reporting CLI Surface - Views & Status", () => {
     expect(report.markdown).not.toContain("undefined");
   });
 
-  test("run:status delineates active implementers, validators, and standby tasks", async () => {
+  test("report delineates active implementers, validators, and standby tasks", async () => {
     const { repo, run } = await createBaseRun("run-status-delineation");
 
     await mkdir(join(repo, "src/auth"), { recursive: true });

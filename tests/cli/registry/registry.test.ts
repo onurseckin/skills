@@ -10,7 +10,10 @@ import {
 } from "../../../olt/scripts/src/cli/registry/index.ts";
 import { shouldReadPromptStdin } from "../../../olt/scripts/src/cli/prompt-input.ts";
 import { taskCheckCommand } from "../../../olt/scripts/src/cli/commands/task-check.ts";
-import { reportUnifiedCommand } from "../../../olt/scripts/src/cli/commands/unified-reporting.ts";
+import {
+  reportDagCommand,
+  reportUnifiedCommand,
+} from "../../../olt/scripts/src/cli/commands/unified-reporting.ts";
 import { summaryViewCommand } from "../../../olt/scripts/src/cli/commands/summary-ops.ts";
 import { dagViewCommand } from "../../../olt/scripts/src/cli/commands/dag-view.ts";
 import { autoDeriveCallerIdentity } from "../../../olt/scripts/src/authority/session/index.ts";
@@ -165,7 +168,7 @@ describe("CLI command registry", () => {
     }[] = [
       { name: "report", handler: reportUnifiedCommand },
       { name: "report:summary", handler: summaryViewCommand },
-      { name: "dag", handler: dagViewCommand },
+      { name: "report:dag", handler: reportDagCommand },
     ];
 
     for (const { name, handler } of liveJsonCommands) {

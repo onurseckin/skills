@@ -1,8 +1,8 @@
 {
-  "name": "run:status",
+  "name": "report",
   "aliases": [],
-  "domain": "run",
-  "summary": "Show phase, per-task status and progress for the run.",
+  "domain": "reporting",
+  "summary": "Deliver unified topology, lifecycle tier breakdown, agent roles, IDs, and timestamps.",
   "flags": [
     {
       "name": "run",
@@ -27,6 +27,13 @@
     },
     {
       "name": "detailed",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "json",
       "type": "bool",
       "required": false,
       "repeatable": false,

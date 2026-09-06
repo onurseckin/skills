@@ -1,6 +1,7 @@
 export const DEFECT_ID = "defect-cli-1788678839434-1w1z76";
 export const ERROR_CODE = "INVALID_STATE";
-export const DEFECT_TITLE = "Defect Remediation: [MANDATORY_PLAN_STEP_SKIPPED] Cannot compile plan: plan:brainstorm must be executed first.";
+export const DEFECT_TITLE =
+  "Defect Remediation: [MANDATORY_PLAN_STEP_SKIPPED] Cannot compile plan: plan:brainstorm must be executed first.";
 
 export interface DefectRemediationContext {
   readonly actor?: string;

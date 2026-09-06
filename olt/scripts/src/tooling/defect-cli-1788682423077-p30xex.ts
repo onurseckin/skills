@@ -15,9 +15,7 @@ export interface CommandDispatcherResult37 {
   readonly error?: string;
 }
 
-export function dispatchCommand37(
-  context: CommandDispatcherContext37,
-): CommandDispatcherResult37 {
+export function dispatchCommand37(context: CommandDispatcherContext37): CommandDispatcherResult37 {
   const { rawCommand, supportedCommands = [] } = context;
 
   if (supportedCommands.includes(rawCommand)) {

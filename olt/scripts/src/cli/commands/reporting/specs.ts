@@ -2,8 +2,8 @@ import type { CommandSpec } from "../../registry/types.ts";
 import { DEFAULT_EXIT_CODES, optionalFlag, requiredFlag } from "../../registry/types.ts";
 
 export const REPORT_UNIFIED_SPEC: CommandSpec = {
-  name: "report:unified",
-  aliases: ["report"],
+  name: "report",
+  aliases: [],
   domain: "reporting",
   summary: "Deliver unified topology, lifecycle tier breakdown, agent roles, IDs, and timestamps.",
   description:

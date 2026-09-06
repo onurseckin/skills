@@ -23,8 +23,11 @@ describe("Defect Remediation: DEFECT-CADENCE-SLEEP", () => {
       taskId: "task-1_12",
       state: "validating",
       sessionToken: "tok_live_DEFECT_CADENCE_SLEEP",
-      scope: ["olt/scripts/src/mind/mind-skill-auditor-premature-idling-and-broken-perpetual-resumption-defect-cadence-sleep.ts"],
-      gateCommand: "bun test tests/mind/mind-skill-auditor-premature-idling-and-broken-perpetual-resumption-defect-cadence-sleep.test.ts",
+      scope: [
+        "olt/scripts/src/mind/mind-skill-auditor-premature-idling-and-broken-perpetual-resumption-defect-cadence-sleep.ts",
+      ],
+      gateCommand:
+        "bun test tests/mind/mind-skill-auditor-premature-idling-and-broken-perpetual-resumption-defect-cadence-sleep.test.ts",
     };
     expect(validateDefectPreconditions(validCtx)).toBe(true);
     const result: DefectRemediationResult = verifyDefectRemediation(validCtx);

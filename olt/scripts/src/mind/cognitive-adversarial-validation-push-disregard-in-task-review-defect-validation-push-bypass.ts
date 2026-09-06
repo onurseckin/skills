@@ -1,6 +1,7 @@
 export const DEFECT_ID = "DEFECT-VALIDATION-PUSH-BYPASS";
 export const ERROR_CODE = "VALIDATION_PUSH_DISREGARD";
-export const DEFECT_TITLE = "Defect Remediation: Cognitive & Adversarial Validation Push Disregard in Task Review";
+export const DEFECT_TITLE =
+  "Defect Remediation: Cognitive & Adversarial Validation Push Disregard in Task Review";
 
 export interface DefectRemediationContext {
   readonly actor?: string;
@@ -57,7 +58,8 @@ export function verifyDefectRemediation(
     state: "validating",
     sessionToken: "tok_live_DEFECT_VALIDATION_PUSH_BYPASS",
     scope: ["olt/scripts/src/mind"],
-    gateCommand: "bun test tests/mind/cognitive-adversarial-validation-push-disregard-in-task-review-defect-validation-push-bypass.test.ts",
+    gateCommand:
+      "bun test tests/mind/cognitive-adversarial-validation-push-disregard-in-task-review-defect-validation-push-bypass.test.ts",
     isUiTask: false,
     validatorType: "validator",
   };

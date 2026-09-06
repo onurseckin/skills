@@ -1,6 +1,7 @@
 export const DEFECT_ID = "defect-commit-cannot-record-own-hash";
 export const ERROR_CODE = "STATUS_PROTOCOL_ALLOWS_SELF_REFERENTIAL_COMMIT_HASH";
-export const DEFECT_TITLE = "Defect Remediation: Recording a landing commit hash inside the commit being described orphans the reference";
+export const DEFECT_TITLE =
+  "Defect Remediation: Recording a landing commit hash inside the commit being described orphans the reference";
 
 export interface DefectRemediationContext {
   readonly actor?: string;
@@ -45,8 +46,11 @@ export function verifyDefectRemediation(
     taskId: "task-16",
     state: "validating",
     sessionToken: "tok_live_core_defect-commit-cannot-record-own-hash",
-    scope: ["olt/scripts/src/core/recording-a-landing-commit-hash-inside-the-commit-being-described-orphans-the-reference-defect-commit-cannot-record-own-hash.ts"],
-    gateCommand: "bun test tests/core/recording-a-landing-commit-hash-inside-the-commit-being-described-orphans-the-reference-defect-commit-cannot-record-own-hash.test.ts",
+    scope: [
+      "olt/scripts/src/core/recording-a-landing-commit-hash-inside-the-commit-being-described-orphans-the-reference-defect-commit-cannot-record-own-hash.ts",
+    ],
+    gateCommand:
+      "bun test tests/core/recording-a-landing-commit-hash-inside-the-commit-being-described-orphans-the-reference-defect-commit-cannot-record-own-hash.test.ts",
     options: ["--compliant"],
   };
 

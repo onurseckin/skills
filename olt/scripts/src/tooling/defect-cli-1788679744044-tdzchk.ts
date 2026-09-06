@@ -18,14 +18,10 @@ export interface Task3FindingsResult {
   readonly error?: string;
 }
 
-export function evaluateTask3GateFindings(
-  context: Task3FindingsContext,
-): Task3FindingsResult {
+export function evaluateTask3GateFindings(context: Task3FindingsContext): Task3FindingsResult {
   const { taskId, findings, resolutions = {} } = context;
 
-  const unanswered = findings.filter(
-    (f) => !resolutions[f] || resolutions[f]?.trim().length === 0,
-  );
+  const unanswered = findings.filter((f) => !resolutions[f] || resolutions[f]?.trim().length === 0);
 
   if (unanswered.length === 0) {
     return {

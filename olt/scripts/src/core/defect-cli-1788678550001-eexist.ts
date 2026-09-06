@@ -1,6 +1,7 @@
 export const DEFECT_ID = "defect-cli-1788678550001-eexist";
 export const ERROR_CODE = "EEXIST_FATAL_ERROR";
-export const DEFECT_TITLE = "Defect Remediation: plan:init throws an uncaught Fatal Internal Error: EEXIST: file already exists, mkdir '.olt/capsules/wave-47' instead of supporting --allow-existing or graceful error handling";
+export const DEFECT_TITLE =
+  "Defect Remediation: plan:init throws an uncaught Fatal Internal Error: EEXIST: file already exists, mkdir '.olt/capsules/wave-47' instead of supporting --allow-existing or graceful error handling";
 
 export interface DefectRemediationContext {
   readonly actor?: string;

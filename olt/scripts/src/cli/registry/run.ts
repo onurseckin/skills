@@ -1,4 +1,4 @@
-import { runCompleteCommand, runExecCommand, runStatusCommand } from "../commands/run-ops.ts";
+import { runCompleteCommand, runExecCommand } from "../commands/run-ops.ts";
 import { runInitCommand } from "../commands/run-init.ts";
 import { CATEGORY_FLAG_HELP } from "../taxonomy-flags.ts";
 import {
@@ -76,28 +76,6 @@ export const RUN_COMMANDS: readonly CommandSpec[] = [
       "bun harness.ts run:exec --run .olt/capsules/<run-id> --task task-1 --gate gate-1 --actor val-1 --tool-category test-runner --tool bun-test -- bun test tests/unit/auth.test.ts",
     ],
     handler: runExecCommand,
-  },
-  {
-    name: "run:status",
-    aliases: [],
-    domain: "run",
-    summary: "Show phase, per-task status and progress for the run.",
-    description: "Reads the capsule without mutating it and renders the execution table.",
-    flags: [
-      optionalFlag(
-        "run",
-        "string",
-        "Capsule run root. Defaults to current repository .olt/capsules/ when omitted.",
-      ),
-      optionalFlag("run-id", "string", "Alias of --run."),
-      optionalFlag("repo", "string", "Repository root to search for .olt/capsules/.", "."),
-      optionalFlag("detailed", "bool", "Include the raw state in the JSON result."),
-    ],
-    readsStdin: false,
-    takesRemainder: false,
-    exitCodes: DEFAULT_EXIT_CODES,
-    examples: ["bun harness.ts run:status --run .olt/capsules/<run-id>"],
-    handler: runStatusCommand,
   },
   {
     name: "run:complete",

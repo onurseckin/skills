@@ -3,13 +3,13 @@
 Generated from `olt/scripts/src/cli/registry` by `olt/scripts/generate-cli-manifest.ts`. Do not edit by
 hand. Index: [`../../cli-capabilities.md`](../../cli-capabilities.md).
 
-### `report:unified`
+### `report`
 
 Deliver unified topology, lifecycle tier breakdown, agent roles, IDs, and timestamps.
 
 Generates comprehensive unified run report across tasks, topology, agent lifecycle tiers, occupancy, wave status, gate progress, and diagnostic receipts.
 
-- **Aliases**: `report`
+- **Aliases**: none
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 

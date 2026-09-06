@@ -1,6 +1,7 @@
 export const DEFECT_ID = "defect-cli-1788680946534-9sf7id";
 export const ERROR_CODE = "INVALID_STATE";
-export const DEFECT_TITLE = "Defect Remediation: mind:wake could not load capsule state at --run .olt/capsules/mind-gen-3 and is not on the grant bootstrap allowlist for missing capsules; an unreadable capsule cannot be treated as one with no grants";
+export const DEFECT_TITLE =
+  "Defect Remediation: mind:wake could not load capsule state at --run .olt/capsules/mind-gen-3 and is not on the grant bootstrap allowlist for missing capsules; an unreadable capsule cannot be treated as one with no grants";
 
 export interface DefectRemediationContext {
   readonly actor?: string;

@@ -11,9 +11,7 @@ import {
 describe("Defect Remediation: defect-no-concurrency-assertion", () => {
   test("exports constants and defect metadata", () => {
     expect(DEFECT_ID).toBe("defect-no-concurrency-assertion");
-    expect(ERROR_CODE).toBe(
-      "NO_ASSERTION_THAT_READY_LANES_GET_DISTINCT_IMPLEMENTERS",
-    );
+    expect(ERROR_CODE).toBe("NO_ASSERTION_THAT_READY_LANES_GET_DISTINCT_IMPLEMENTERS");
     expect(DEFECT_TITLE.length).toBeGreaterThan(0);
   });
 
@@ -26,8 +24,7 @@ describe("Defect Remediation: defect-no-concurrency-assertion", () => {
         { laneId: "lane-3", implementerActor: "implementer-03" },
       ],
     };
-    const result: ConcurrencyAssertionResult =
-      assertIndependentLanesConcurrency(ctx);
+    const result: ConcurrencyAssertionResult = assertIndependentLanesConcurrency(ctx);
     expect(result.remediated).toBe(true);
     expect(result.valid).toBe(true);
     expect(result.distinctImplementerCount).toBe(3);
@@ -43,8 +40,7 @@ describe("Defect Remediation: defect-no-concurrency-assertion", () => {
         { laneId: "lane-3", implementerActor: "implementer-01" },
       ],
     };
-    const result: ConcurrencyAssertionResult =
-      assertIndependentLanesConcurrency(ctx);
+    const result: ConcurrencyAssertionResult = assertIndependentLanesConcurrency(ctx);
     expect(result.remediated).toBe(true);
     expect(result.valid).toBe(false);
     expect(result.distinctImplementerCount).toBe(1);
@@ -61,8 +57,7 @@ describe("Defect Remediation: defect-no-concurrency-assertion", () => {
       ],
       allowSequentialFallback: true,
     };
-    const result: ConcurrencyAssertionResult =
-      assertIndependentLanesConcurrency(ctx);
+    const result: ConcurrencyAssertionResult = assertIndependentLanesConcurrency(ctx);
     expect(result.valid).toBe(true);
     expect(result.violations.length).toBe(0);
   });

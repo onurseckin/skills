@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
+import { runStatusCommand } from "../../../../../olt/scripts/src/cli/commands/run-ops.ts";
 import { initCapsuleRun, transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
 import { registerAgentGrant } from "../../../../../olt/scripts/src/workflow/agents/grants.ts";
 import { stageSessionGrant } from "../../../../../olt/scripts/src/authority/session/index.ts";
@@ -166,7 +167,7 @@ function setupSummaryRun(name: string): { repo: string; run: string } {
 describe("run:status", () => {
   test("reports Executing phase and occupancy once plan compiled", async () => {
     const { run } = setupSummaryRun("run-status-executing");
-    const status = await execute(["run:status", "--run", run]);
+    const status = await runStatusCommand({ run });
     expect(String(status.markdown)).toContain("Executing");
     const catalogue = status.catalogue as { available: boolean };
     expect(catalogue.available).toBe(true);
@@ -176,7 +177,7 @@ describe("run:status", () => {
 
   test("--detailed is echoed through to the result", async () => {
     const { run } = setupSummaryRun("run-status-detailed");
-    const status = await execute(["run:status", "--run", run, "--detailed"]);
+    const status = await runStatusCommand({ run, detailed: true });
     expect(status.detailed).toBe(true);
   });
 
@@ -191,7 +192,7 @@ describe("run:status", () => {
         leased_at: new Date().toISOString(),
       };
     });
-    const status = await execute(["run:status", "--run", run]);
+    const status = await runStatusCommand({ run });
     expect(String(status.markdown)).toContain("worker-1");
   });
 
@@ -209,7 +210,7 @@ describe("run:status", () => {
         },
       ];
     });
-    const status = await execute(["run:status", "--run", run]);
+    const status = await runStatusCommand({ run });
     expect(String(status.markdown)).toContain(VALIDATOR);
   });
 
@@ -228,8 +229,15 @@ describe("run:status", () => {
         },
       ];
     });
-    const status = await execute(["run:status", "--run", run]);
+    const status = await runStatusCommand({ run });
     expect(String(status.markdown)).toContain("Satisfied");
+  });
+
+  test("execute rejects retired run:status with unknown command error", async () => {
+    const { run } = setupSummaryRun("run-status-unknown");
+    await expect(execute(["run:status", "--run", run])).rejects.toThrow(
+      "unknown command: run:status",
+    );
   });
 });
 

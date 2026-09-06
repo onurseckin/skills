@@ -1,6 +1,7 @@
 export const DEFECT_ID = "defect-cli-1788679938751-n82wgj";
 export const ERROR_CODE = "ROLE_CONFINEMENT_VIOLATION";
-export const DEFECT_TITLE = "Defect Remediation: role validator may not invoke execution tool category 'test-runner': agent validator_guard is a cognitive validator, and shell/execution tools belong exclusively to mechanic validators. [Remediation: Cognitive validators must not execute shell commands or tests directly. Delegate test execution to a mechanic-validator subagent or inspect files using read-only tools.]";
+export const DEFECT_TITLE =
+  "Defect Remediation: role validator may not invoke execution tool category 'test-runner': agent validator_guard is a cognitive validator, and shell/execution tools belong exclusively to mechanic validators. [Remediation: Cognitive validators must not execute shell commands or tests directly. Delegate test execution to a mechanic-validator subagent or inspect files using read-only tools.]";
 
 export interface DefectRemediationContext {
   readonly actor?: string;
