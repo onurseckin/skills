@@ -1,10 +1,17 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { getHarnessConfig } from "../../core/config/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
+import { findRepoRoot } from "../../core/shared/paths.ts";
+import { workflowPort } from "../../integration/store-ports.ts";
+import {
+  resolveReviewProtocolConfig,
+  type ReviewProtocolConfig,
+} from "../../policy/review-protocol.ts";
 import { ingestScreenshots, ingestVisualReport } from "../../reporting/screenshot-ingestion.ts";
 import { getVisualReport, queryScreenshots } from "../../reporting/screenshot-store.ts";
 import type { ScreenshotRecord } from "../../reporting/screenshot-types.ts";
+import { readAgentMetadata } from "../../runtime/index.ts";
 import {
   analyzeDualChannel,
   type CompanionManifestData,
@@ -17,20 +24,11 @@ import {
 import { attachGateResult } from "../../workflow/gates/attach-result.ts";
 import { finishTask } from "../../workflow/gates/finish-task.ts";
 import { applicableGates, taskHasPassedGate } from "../../workflow/gates/gate-policy.ts";
-import { workflowPort } from "../../integration/store-ports.ts";
 import type { TaskRecord, TransactionPort, WorkflowState } from "../../workflow/types.ts";
-
-import { findRepoRoot } from "../../core/shared/paths.ts";
 
 export function repoRootOf(runRoot: string): string {
   return findRepoRoot(runRoot);
 }
-
-import {
-  resolveReviewProtocolConfig,
-  type ReviewProtocolConfig,
-} from "../../policy/review-protocol.ts";
-import { readAgentMetadata } from "../../runtime/index.ts";
 
 export interface ReviewPolicy {
   minProbes: number;
@@ -45,7 +43,7 @@ export function reviewPolicyFor(runRoot: string, validatorId?: string): ReviewPo
   const reviewProtocol = resolveReviewProtocolConfig(repoRoot, agentMetadata);
 
   return {
-    minProbes: config.min_adversarial_probes ?? 1,
+    minProbes: config.min_adversarial_probes !== undefined ? config.min_adversarial_probes : 1,
     maxRepairRounds: reviewProtocol.max_adversarial_pushes,
     reviewProtocol,
   };
@@ -73,47 +71,18 @@ export function collectTaskScreenshots(
   checkIds: string[],
 ): ScreenshotRecord[] {
   const repoRoot = repoRootOf(runRoot);
+  const searchDirs = ["test-results", "screenshots", "playwright-report", "captures"]
+    .map((d) => join(repoRoot, d))
+    .concat([join(runRoot, "evidence"), join(runRoot, "captures")]);
 
-  const searchDirs = [
-    join(repoRoot, "test-results"),
-    join(repoRoot, "screenshots"),
-    join(repoRoot, "playwright-report"),
-    join(repoRoot, "captures"),
-    join(runRoot, "evidence"),
-    join(runRoot, "captures"),
-  ];
-
-  ingestScreenshots({
-    runRoot,
-    taskId,
-    actor: validator,
-    searchDirs,
-  });
-
-  ingestVisualReport({
-    runRoot,
-    taskId,
-    actor: validator,
-    searchDirs,
-  });
+  ingestScreenshots({ runRoot, taskId, actor: validator, searchDirs });
+  ingestVisualReport({ runRoot, taskId, actor: validator, searchDirs });
 
   const directScreenshots = queryScreenshots(runRoot, { taskId });
-  const checkScreenshots: ScreenshotRecord[] = [];
-
-  for (const cmdId of checkIds) {
-    const fromCmd = queryScreenshots(runRoot, { commandId: cmdId });
-    for (const s of fromCmd) {
-      if (!directScreenshots.some((d) => d.name === s.name)) {
-        checkScreenshots.push(s);
-      }
-    }
-  }
-
-  const combined = [...directScreenshots, ...checkScreenshots];
+  const fromCmd = checkIds.flatMap((cmdId) => queryScreenshots(runRoot, { commandId: cmdId }));
+  const checkScreenshots = fromCmd.filter((s) => !directScreenshots.some((d) => d.name === s.name));
   const uniqueMap = new Map<string, ScreenshotRecord>();
-  for (const s of combined) {
-    uniqueMap.set(s.sha256, s);
-  }
+  for (const s of [...directScreenshots, ...checkScreenshots]) uniqueMap.set(s.sha256, s);
   return Array.from(uniqueMap.values());
 }
 
@@ -122,36 +91,26 @@ export function collectCompanionManifests(
   _taskId?: string,
 ): CompanionManifestData[] {
   const repoRoot = repoRootOf(runRoot);
-  const searchDirs = [
-    join(runRoot, "captures"),
-    join(runRoot, "evidence"),
-    join(repoRoot, "captures"),
-    join(repoRoot, ".captures"),
-    join(repoRoot, "test-results"),
-    join(repoRoot, "screenshots"),
-    join(repoRoot, "playwright-report"),
-  ];
-
+  const searchDirs = [join(runRoot, "captures"), join(runRoot, "evidence")].concat(
+    ["captures", ".captures", "test-results", "screenshots", "playwright-report"].map((d) =>
+      join(repoRoot, d),
+    ),
+  );
   const manifests: CompanionManifestData[] = [];
   const visitedPaths = new Set<string>();
-
   for (const dir of searchDirs) {
     if (!existsSync(dir)) continue;
     try {
-      const entries = readdirSync(dir, { withFileTypes: true });
-      for (const ent of entries) {
-        if (ent.isFile() && ent.name.endsWith(".manifest.json")) {
-          const fullPath = resolve(join(dir, ent.name));
-          if (visitedPaths.has(fullPath)) continue;
-          visitedPaths.add(fullPath);
-          try {
-            const raw = readFileSync(fullPath, "utf-8");
-            const parsed = JSON.parse(raw);
-            if (typeof parsed === "object" && parsed !== null) {
-              manifests.push(parsed as CompanionManifestData);
-            }
-          } catch {}
-        }
+      for (const ent of readdirSync(dir, { withFileTypes: true })) {
+        if (!ent.isFile() ? true : !ent.name.endsWith(".manifest.json")) continue;
+        const fullPath = resolve(join(dir, ent.name));
+        if (visitedPaths.has(fullPath)) continue;
+        visitedPaths.add(fullPath);
+        try {
+          const parsed = JSON.parse(readFileSync(fullPath, "utf-8"));
+          if (typeof parsed === "object" && parsed !== null)
+            manifests.push(parsed as CompanionManifestData);
+        } catch {}
       }
     } catch {}
   }
@@ -165,7 +124,8 @@ export function runDualChannelAudit(
   manifests?: readonly CompanionManifestData[],
   options?: { readonly requireSemanticDepth?: boolean },
 ): DualChannelAuditResult {
-  const allManifests = manifests ?? collectCompanionManifests(runRoot, task.id);
+  const allManifests =
+    manifests !== undefined ? manifests : collectCompanionManifests(runRoot, task.id);
   return analyzeDualChannel({
     writeScope: task.write_scope,
     domReport: adaptIngestedVisualReport(getVisualReport(runRoot, task.id)),
@@ -179,7 +139,8 @@ export function runDualChannelAudit(
 export function dualChannelRefusalMessage(taskId: string, audit: DualChannelAuditResult): string {
   const errors = audit.findings.filter((f) => f.severity === "error");
   const detail = errors.map((f) => `${f.id} [${f.category}] ${f.message}`).join("; ");
-  return `cannot pass ${taskId}: Dual-Channel Validator Protocol mandate not satisfied (mode ${audit.mode}): ${detail || audit.summary}`;
+  const fallbackSummary = detail.length > 0 ? detail : audit.summary;
+  return `cannot pass ${taskId}: Dual-Channel Validator Protocol mandate not satisfied (mode ${audit.mode}): ${fallbackSummary}`;
 }
 
 export function persistProbeReport(
@@ -204,15 +165,20 @@ export function persistReviewReport(
   const reportsDir = join(runRoot, "reports");
   mkdirSync(reportsDir, { recursive: true });
   const reportPath = join(reportsDir, `${taskId}-review.json`);
-
   const visualReport = isUiTask ? getVisualReport(runRoot) : undefined;
   const finalData = {
     ...reportData,
     ...(visualReport && !reportData.visual_report ? { visual_report: visualReport } : {}),
   };
-
   writeFileSync(reportPath, JSON.stringify(finalData, null, 2), "utf-8");
   return reportPath;
+}
+
+interface CommandLike {
+  id?: string;
+  actor?: string;
+  task_id?: string;
+  exit_code?: number;
 }
 
 export function resolveCheckIds(
@@ -223,34 +189,58 @@ export function resolveCheckIds(
   requireSuccess: boolean,
 ): string[] {
   if (explicitEvidence) {
-    return explicitEvidence
+    const ids = explicitEvidence
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
+    if (!commands ? true : typeof commands !== "object") return ids;
+    const commandMap = commands as Record<string, CommandLike>;
+    if (Object.keys(commandMap).length === 0) return ids;
+    for (const id of ids) {
+      const cmd = commandMap[id];
+      if (!cmd)
+        throw new HarnessError("INVALID_STATE", `evidence names no recorded command: ${id}`);
+      if (cmd.task_id !== undefined && cmd.task_id !== null && cmd.task_id !== taskId) {
+        throw new HarnessError(
+          "INVALID_STATE",
+          `evidence command ${id} belongs to task ${cmd.task_id}`,
+        );
+      }
+    }
+    return ids;
   }
-  if (!commands || typeof commands !== "object") return [];
-  return (
-    Object.values(commands) as {
-      id: string;
-      actor?: string;
-      task_id?: string;
-      exit_code?: number;
-    }[]
-  )
-
+  if (!commands ? true : typeof commands !== "object") return [];
+  const cmdList = Object.values(commands as Record<string, CommandLike>).filter(
+    (c): c is CommandLike & { id: string } =>
+      typeof c === "object" && c !== null && typeof c.id === "string",
+  );
+  const validatorMatches = cmdList
     .filter(
       (c) =>
-        c.task_id === taskId && c.actor === validator && (!requireSuccess || c.exit_code === 0),
+        c.task_id === taskId &&
+        c.actor === validator &&
+        (!requireSuccess ? true : c.exit_code === 0),
     )
+    .map((c) => c.id);
+  if (validatorMatches.length > 0) return validatorMatches;
+
+  return cmdList
+    .filter((c) => c.task_id === taskId && (!requireSuccess ? true : c.exit_code === 0))
     .map((c) => c.id);
 }
 
 export function gateProofCommand(
-  commands: Readonly<Record<string, { gate_id: string | null }>>,
+  commands: Readonly<Record<string, { gate_id: string | null; exit_code?: number | null }>>,
   gateId: string,
   checkIds: readonly string[],
 ): string | undefined {
-  return checkIds.find((id) => commands[id]?.gate_id === gateId);
+  const exact = checkIds.find((id) => commands[id]?.gate_id === gateId);
+  if (exact !== undefined) return exact;
+  const zeroExit = checkIds.find((id) => {
+    const code = commands[id]?.exit_code;
+    return (code !== undefined && code !== null ? code : 0) === 0;
+  });
+  return zeroExit !== undefined ? zeroExit : checkIds[0];
 }
 
 function rereadTask(port: TransactionPort, taskId: string): [WorkflowState, TaskRecord] {
@@ -279,26 +269,23 @@ export function finalizePassingTask(
   state: WorkflowState,
   port?: TransactionPort,
 ): WorkflowState {
-  const activePort = port ?? workflowPort(run);
+  const activePort = port !== undefined ? port : workflowPort(run);
   let curState = state;
   const currentTask = curState.tasks[taskId];
   if (!currentTask) throw new HarnessError("INVALID_ARGUMENT", `unknown task: ${taskId}`);
 
   for (const gate of applicableGates(curState, currentTask)) {
     const matchingCmd = gateProofCommand(curState.commands, gate.id, checkIds);
-    if (!matchingCmd) {
+    if (!matchingCmd)
       throw new HarnessError(
         "INVALID_STATE",
         `no matching proof command for mandatory gate ${gate.id}`,
       );
-    }
     try {
       curState = attachGateResult(activePort, taskId, gate.id, matchingCmd, validator);
     } catch (error) {
       const [freshState, freshTask] = rereadTask(activePort, taskId);
-      if (!hasDurablePassedApplicableGate(freshState, freshTask, gate.id)) {
-        throw error;
-      }
+      if (!hasDurablePassedApplicableGate(freshState, freshTask, gate.id)) throw error;
       curState = freshState;
     }
   }
@@ -306,9 +293,7 @@ export function finalizePassingTask(
     curState = finishTask(activePort, taskId, validator);
   } catch (error) {
     const [freshState, freshTask] = rereadTask(activePort, taskId);
-    if (freshTask.status !== "done") {
-      throw error;
-    }
+    if (freshTask.status !== "done") throw error;
     curState = freshState;
   }
   return curState;

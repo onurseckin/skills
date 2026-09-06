@@ -1,7 +1,9 @@
+import type { CommandRecord } from "../../core/contracts/index.ts";
 import { readRegularFileNoFollow } from "../../core/no-follow.ts";
 import { HarnessError } from "../../core/errors/index.ts";
 import { isValidatorDomain } from "../../packets/role-contract.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
+import { applicableGates, commandMatchesGate } from "../../workflow/gates/index.ts";
 import { gateRunEvidence, probeRoundsRecorded } from "../../workflow/review/pass-preconditions.ts";
 import {
   DEFAULT_MAX_MICRO_CYCLES,
@@ -271,4 +273,22 @@ export function formatReviewBrief(params: {
     issue: params.failure.observation,
     status: params.state.tasks[params.taskId]!.status,
   });
+}
+
+export function refineCheckIdsForGates(
+  state: WorkflowState,
+  task: TaskRecord,
+  checkIds: string[],
+): string[] {
+  const gates = applicableGates(state, task);
+  if (gates.length === 0) return checkIds;
+  const cmds = (state.commands ?? {}) as Record<string, CommandRecord>;
+  const match = (c: CommandRecord) =>
+    c.gate_id !== null || gates.some((g) => commandMatchesGate(c, g));
+  const gIds = checkIds.filter((id) => cmds[id] && match(cmds[id]!));
+  if (gIds.length > 0) return gIds;
+  const impl = Object.values(cmds).filter(
+    (c) => c.task_id === task.id && c.status === "succeeded" && c.exit_code === 0 && match(c),
+  );
+  return impl.length > 0 ? impl.map((c) => c.id) : checkIds;
 }

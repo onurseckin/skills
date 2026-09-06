@@ -38,6 +38,7 @@ import {
   assertValidSummary,
   formatReviewBrief,
   handleMicroCycleReview,
+  refineCheckIdsForGates,
   resolveChecklistCoverage,
 } from "./task-review-helpers.ts";
 import {
@@ -80,19 +81,20 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
   assertValidReviewer(validator, taskBefore);
 
   const explicitEvidence = textFlag(flags, "evidence", false) ?? textFlag(flags, "checks", false);
-  const checkIds = resolveCheckIds(
-    explicitEvidence,
-    loaded.state.commands,
-    taskId,
-    validator,
-    true,
-  );
+  let checkIds = resolveCheckIds(explicitEvidence, loaded.state.commands, taskId, validator, true);
 
   const isPass = status === "pass";
   if (isPass) assertValidSummary(summary);
   const openFindings = (taskBefore.findings ?? []).filter((f) => f.status === "open");
   const resolutions = isPass ? resolutionProofs(flags, taskId, openFindings) : [];
-  if (isPass) assertOpenFindingsAnswered(taskId, openFindings, resolutions);
+  if (isPass) {
+    assertOpenFindingsAnswered(taskId, openFindings, resolutions);
+    checkIds = refineCheckIdsForGates(
+      loaded.state as unknown as WorkflowState,
+      taskBefore,
+      checkIds,
+    );
+  }
 
   const isUiCandidate = classifiesAsUiTask(
     loaded.state as unknown as WorkflowState,
@@ -125,11 +127,12 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
     taskBefore,
     dualChannel.isUiTask,
   );
+  const hasArt =
+    taskScreenshots.some((s) => s.bytes >= 1024) ||
+    dualChannel.proofs.length > 0 ||
+    companionManifests.length > 0;
   assertRoleArtifactPresent(taskId, isUiTask, {
-    hasArtifact:
-      taskScreenshots.some((s) => s.bytes >= 1024) ||
-      dualChannel.proofs.length > 0 ||
-      companionManifests.length > 0,
+    hasArtifact: hasArt,
     screenshots: taskScreenshots,
     manifests: companionManifests,
   });
@@ -154,6 +157,7 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
     );
   }
 
+  const reqId = resolveFindingRequirement(taskBefore, textFlag(flags, "requirement", false));
   const findingObj =
     failure === undefined
       ? null
@@ -161,15 +165,12 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
           taskId,
           findingId: customFindingId,
           round: nextFindingRound(taskBefore),
-          requirementId: resolveFindingRequirement(
-            taskBefore,
-            textFlag(flags, "requirement", false),
-          ),
+          requirementId: reqId,
           severity: failure.severity,
           checkIds,
           summary: failure.observation,
           remediation: failure.remediation,
-          ...(failure.revalidation === undefined ? {} : { revalidation: failure.revalidation }),
+          ...(failure.revalidation ? { revalidation: failure.revalidation } : {}),
         });
 
   const reviewPayload: Record<string, unknown> = {
@@ -199,11 +200,11 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
     policy.minProbes,
   );
 
-  const kindFlag = textFlag(flags, "kind", false);
+  const kind = textFlag(flags, "kind", false);
   const channelKind: ReviewChannelKind =
-    kindFlag === "cognitive"
+    kind === "cognitive"
       ? "cognitive"
-      : kindFlag === "adversarial"
+      : kind === "adversarial"
         ? "adversarial"
         : isPass
           ? "cognitive"
@@ -212,14 +213,16 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
   const engine = new ReviewProtocolEngine(policy.reviewProtocol);
   const updatedTask = state.tasks[taskId];
   if (updatedTask) {
+    const round = isPass ? (updatedTask.probe_round ?? 0) + 1 : (updatedTask.repair_round ?? 1);
+    const sum =
+      summary ?? (isPass ? "Validation passed" : (failure?.observation ?? "Changes requested"));
     engine.recordEntry(updatedTask, {
-      round: isPass ? (updatedTask.probe_round ?? 0) + 1 : (updatedTask.repair_round ?? 1),
+      round,
       channel: channelKind,
       actor_id: validator,
       verdict: isPass ? "pass" : "reject",
       findings_count: findingObj !== null ? 1 : 0,
-      summary:
-        summary ?? (isPass ? "Validation passed" : (failure?.observation ?? "Changes requested")),
+      summary: sum,
     });
   }
 
@@ -265,17 +268,14 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
   const reportPath = persistReviewReport(loaded.runRoot, taskId, reportData, isUiTask);
 
   const handoffPath = refreshHandoffOnEscalation(run, state.tasks[taskId]!.status);
-  const findingId = findingObj === null ? null : String(findingObj.id);
   const finalTask = state.tasks[taskId]!;
   const passedDomains = new Set(
-    (finalTask.validations ?? [])
-      .filter((entry) => entry.verdict === "pass")
-      .map((entry) => entry.domain),
+    (finalTask.validations ?? []).filter((e) => e.verdict === "pass").map((e) => e.domain),
   );
   const outstandingDomains = applicableValidatorDomains(
     finalTask.write_scope,
     taskClassificationTexts(state, finalTask),
-  ).filter((domain) => !passedDomains.has(domain));
+  ).filter((d) => !passedDomains.has(d));
 
   const markdown = formatReviewBrief({
     run,
@@ -304,7 +304,7 @@ export async function taskReviewCommand(flags: Flags): Promise<Record<string, un
     min_adversarial_probes: policy.minProbes,
     resolved_findings: resolutions,
     checklist_coverage: checklistCoverage,
-    ...(handoffPath === undefined ? {} : { handoff_path: handoffPath }),
-    ...(findingObj === null ? {} : { finding_id: findingId, finding: findingObj }),
+    ...(handoffPath ? { handoff_path: handoffPath } : {}),
+    ...(findingObj ? { finding_id: String(findingObj.id), finding: findingObj } : {}),
   };
 }
