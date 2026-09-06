@@ -1,5 +1,5 @@
 {
-  "name": "dag",
+  "name": "report:dag",
   "aliases": [],
   "domain": "reporting",
   "summary": "Render Sugiyama hierarchical DAG layout with rounded Unicode boxes and cycle diagnostics.",

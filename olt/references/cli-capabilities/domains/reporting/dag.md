@@ -3,11 +3,11 @@
 Generated from `olt/scripts/src/cli/registry` by `olt/scripts/generate-cli-manifest.ts`. Do not edit by
 hand. Index: [`../../cli-capabilities.md`](../../cli-capabilities.md).
 
-### `dag`
+### `report:dag`
 
 Render Sugiyama hierarchical DAG layout with rounded Unicode boxes and cycle diagnostics.
 
-Computes Sugiyama layered layout, crossing minimization via barycenter heuristics, Tarjan cycle alerts, illegal bypass warnings, and orthogonal connectors.
+Computes Sugiyama layered layout, crossing minimization via barycenter heuristics, Tarjan cycle alerts, illegal bypass warnings, orthogonal connectors, and APCA contrast.
 
 - **Aliases**: none
 - **Stdin**: not read
@@ -25,5 +25,7 @@ Computes Sugiyama layered layout, crossing minimization via barycenter heuristic
 | `--json` | bool | no | no | - | Output structured JSON report. |
 
 ```bash
+bun harness.ts report:dag
 bun harness.ts report:dag --run .olt/capsules/<run-id>
+bun harness.ts report:dag --detailed
 ```

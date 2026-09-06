@@ -100,14 +100,14 @@ own status in `exit_code`.
 | `task:complete` | task | Mark a task as completed in the queue. |
 | `task:fail` | task | Mark a task as failed in the queue. |
 | `task:prune` | task | Prune completed tasks from the queue. |
-| `report` | reporting | Deliver unified topology, lifecycle tier breakdown, agent roles, IDs, and timestamps. |
+| `report:unified` | reporting | Deliver unified topology, lifecycle tier breakdown, agent roles, IDs, and timestamps. |
+| `report:dag` | reporting | Render Sugiyama hierarchical DAG layout with rounded Unicode boxes and cycle diagnostics. |
 | `report:summary` | reporting | Render executive summary brief of capsule run. |
 | `report:task` | reporting | Read and render a task submission, review or critic report. |
 | `report:health` | reporting | Canonical reporting for health/doctor status. |
 | `report:leases` | reporting | Active lease and agent matrix. |
 | `report:decisions` | reporting | Inspection of authority decisions and governance audit. |
 | `report:usage` | reporting | Discover and report cross-platform quota, rate limit, and token usage telemetry. |
-| `dag` | reporting | Render Sugiyama hierarchical DAG layout with rounded Unicode boxes and cycle diagnostics. |
 | `report:graph-json` | reporting | Export DAG telemetry and metrics to JSON. |
 | `events:stream` | reporting | Stream, query, and tail structured capsule events. |
 | `events:trace` | reporting | Real-time step tracer and dynamic living DAG expansion timeline. |

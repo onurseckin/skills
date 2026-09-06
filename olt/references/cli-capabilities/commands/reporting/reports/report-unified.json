@@ -1,6 +1,8 @@
 {
-  "name": "report",
-  "aliases": [],
+  "name": "report:unified",
+  "aliases": [
+    "report"
+  ],
   "domain": "reporting",
   "summary": "Deliver unified topology, lifecycle tier breakdown, agent roles, IDs, and timestamps.",
   "flags": [

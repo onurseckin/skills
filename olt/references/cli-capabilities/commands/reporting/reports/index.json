@@ -3,8 +3,8 @@
   "domain": "reporting",
   "entries": [
     {
-      "id": "report",
-      "path": "report.json"
+      "id": "report:unified",
+      "path": "report-unified.json"
     },
     {
       "id": "report:summary",

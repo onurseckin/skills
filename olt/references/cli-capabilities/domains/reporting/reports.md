@@ -3,13 +3,13 @@
 Generated from `olt/scripts/src/cli/registry` by `olt/scripts/generate-cli-manifest.ts`. Do not edit by
 hand. Index: [`../../cli-capabilities.md`](../../cli-capabilities.md).
 
-### `report`
+### `report:unified`
 
 Deliver unified topology, lifecycle tier breakdown, agent roles, IDs, and timestamps.
 
-Generates comprehensive unified run report across tasks, topology, agent lifecycle tiers, and audit trail.
+Generates comprehensive unified run report across tasks, topology, agent lifecycle tiers, occupancy, wave status, gate progress, and diagnostic receipts.
 
-- **Aliases**: none
+- **Aliases**: `report`
 - **Stdin**: not read
 - **Arguments after `--`**: rejected
 
@@ -22,6 +22,8 @@ Generates comprehensive unified run report across tasks, topology, agent lifecyc
 | `--json` | bool | no | no | - | Output structured JSON report. |
 
 ```bash
+bun harness.ts report
+bun harness.ts report:unified
 bun harness.ts report --run .olt/capsules/<run-id>
 ```
 
