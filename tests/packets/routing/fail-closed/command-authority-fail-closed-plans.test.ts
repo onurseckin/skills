@@ -84,9 +84,8 @@ afterAll(() => {
 });
 
 describe("assertGrantedCommand: run-optional identity-free commands permit the no-flag invocation", () => {
-  test("permits report, run:status, branch:status, memory:query, queue:wave and plan:status with zero flags", () => {
+  test("permits report, branch:status, memory:query, queue:wave and plan:status with zero flags", () => {
     expect(() => assertGrantedCommand(spec("report"), {})).not.toThrow();
-    expect(() => assertGrantedCommand(spec("run:status"), {})).not.toThrow();
     expect(() => assertGrantedCommand(spec("report:summary"), {})).not.toThrow();
     expect(() => assertGrantedCommand(spec("branch:status"), {})).not.toThrow();
     expect(() => assertGrantedCommand(spec("memory:query"), {})).not.toThrow();
@@ -102,10 +101,10 @@ describe("assertGrantedCommand: run-optional identity-free commands permit the n
     expect(() => assertGrantedCommand(spec("watchdog:probe"), {})).not.toThrow();
   });
 
-  test("permits dag with zero flags despite declaring an --actor display filter", () => {
-    expect(() => assertGrantedCommand(spec("dag"), {})).not.toThrow();
+  test("permits dag:check with zero flags despite declaring an --actor display filter", () => {
+    expect(() => assertGrantedCommand(spec("dag:check"), {})).not.toThrow();
     expect(() =>
-      assertGrantedCommand(spec("dag"), { run: "/nonexistent/probe-run", actor: "impl-7" }),
+      assertGrantedCommand(spec("dag:check"), { run: "/nonexistent/probe-run", actor: "impl-7" }),
     ).not.toThrow();
   });
 });

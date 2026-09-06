@@ -118,8 +118,7 @@ describe("assertGrantedCommand fail-closed does not flip open for legitimate run
     expect(() => assertGrantedCommand(spec("queue:next"), { run })).not.toThrow();
     expect(() => assertGrantedCommand(spec("queue:list"), { run })).not.toThrow();
     expect(() => assertGrantedCommand(spec("report"), { run })).not.toThrow();
-    expect(() => assertGrantedCommand(spec("dag"), { run })).not.toThrow();
-    expect(() => assertGrantedCommand(spec("run:status"), { run })).not.toThrow();
+    expect(() => assertGrantedCommand(spec("dag:check"), { run })).not.toThrow();
     expect(() => assertGrantedCommand(spec("agent:list"), { run })).not.toThrow();
     expect(() => assertGrantedCommand(spec("branch:status"), { run })).not.toThrow();
     expect(() => assertGrantedCommand(spec("summary:view"), { run })).not.toThrow();

@@ -115,9 +115,3 @@ export {
   type QuotaMetricCategory,
   type QuotaReconciliationResult,
 } from "./reconciliation/index.ts";
-
-export {
-  DEFECT_ID as DEFECT_CLI_1788705566952_J272AM_ID,
-  validateDefectPreconditions as validateDefectPreconditions1788705566952,
-  verifyDefectRemediation as verifyDefectRemediation1788705566952,
-} from "./defect-cli-1788705566952-j272am.ts";

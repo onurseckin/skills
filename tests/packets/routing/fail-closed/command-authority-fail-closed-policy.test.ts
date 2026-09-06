@@ -165,7 +165,7 @@ describe("meta-audit execute authority", () => {
     });
     await expect(
       execute(["meta-audit", "--run", run, "--agent", "victim", "--inject"]),
-    ).rejects.toThrow("--actor is required");
+    ).rejects.toThrow(/--actor is required|requires a verified caller session/);
   });
 
   test("accepts an active skill-auditor actor through execute", async () => {

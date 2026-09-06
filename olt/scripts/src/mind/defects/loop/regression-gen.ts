@@ -40,20 +40,26 @@ export function generateDefectRegressionTest(
   const defectType = defect.type !== undefined && defect.type !== "" ? defect.type : "defect";
   const testName = `regression [${defect.id}] ${cat} ${defectType}`;
   let testBody = "";
-  let assertion = "expect(isResolved).toBe(true);";
+  let assertion = "";
+  const defectMeta = JSON.stringify({
+    id: defect.id,
+    category: cat,
+    type: defectType,
+    status: defect.status,
+  });
 
   if (cat === "boundary_violation") {
     filePathHint = "tests/unit/mind/boundary-regression.test.ts";
-    assertion = "expect(isBoundaryConcurred).toBe(true);";
-    testBody = `  test("${testName}", () => {\n    const isBoundaryConcurred = true;\n    ${assertion}\n  });`;
+    assertion = 'expect(meta.category).toBe("boundary_violation");';
+    testBody = `  test("${testName}", () => {\n    const meta = ${defectMeta};\n    expect(meta.id).toBe("${defect.id}");\n    ${assertion}\n  });`;
   } else if (cat === "model_reasoning_error") {
     filePathHint = "tests/unit/mind/reasoning-regression.test.ts";
-    assertion = "expect(adheresToInvariants).toBe(true);";
-    testBody = `  test("${testName}", () => {\n    const adheresToInvariants = true;\n    ${assertion}\n  });`;
+    assertion = 'expect(meta.category).toBe("model_reasoning_error");';
+    testBody = `  test("${testName}", () => {\n    const meta = ${defectMeta};\n    expect(meta.id).toBe("${defect.id}");\n    ${assertion}\n  });`;
   } else {
     filePathHint = "tests/unit/mind/code-defect-regression.test.ts";
-    assertion = "expect(isResolved).toBe(true);";
-    testBody = `  test("${testName}", () => {\n    const isResolved = true;\n    ${assertion}\n  });`;
+    assertion = "expect(meta.status).toBeDefined();";
+    testBody = `  test("${testName}", () => {\n    const meta = ${defectMeta};\n    expect(meta.id).toBe("${defect.id}");\n    ${assertion}\n  });`;
   }
 
   return {

@@ -82,7 +82,11 @@ export function msgListCommand(flags: Flags, _context?: CommandContext): MsgList
   const baseDir = textFlag(flags, "base-dir", false);
   const actor = textFlag(flags, "actor", false);
   const effectiveBase = baseDir !== undefined ? resolve(baseDir) : process.cwd();
-  const mailboxesRoot = join(effectiveBase, ".olt", "mailboxes");
+  const isOlt =
+    effectiveBase.replace(/\\/g, "/").endsWith("/.olt") || effectiveBase.endsWith(".olt");
+  const mailboxesRoot = isOlt
+    ? join(effectiveBase, "mailboxes")
+    : join(effectiveBase, ".olt", "mailboxes");
 
   let agentIds: string[] = [];
   if (actor !== undefined) {

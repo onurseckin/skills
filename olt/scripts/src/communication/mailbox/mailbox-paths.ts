@@ -81,6 +81,11 @@ export function defaultLockPathFor(filePath: string): string {
     : `${filePath}.lock`;
 }
 
+function isOltDir(dir: string): boolean {
+  const norm = dir.replace(/\\/g, "/").replace(/\/+$/, "");
+  return norm.endsWith("/.olt") || norm === ".olt";
+}
+
 export function resolveMailboxPaths(agentId: string, baseDir?: string): MailboxPaths {
   if (typeof agentId !== "string" || agentId.trim().length === 0) {
     throw new HarnessError("INVALID_ARGUMENT", "agentId must be a non-empty string");
@@ -92,7 +97,7 @@ export function resolveMailboxPaths(agentId: string, baseDir?: string): MailboxP
   const root = baseDir
     ? isVirtualMailboxPath(baseDir)
       ? `${trimTrailingSlashes(baseDir)}/.olt`
-      : baseDir.includes(".olt")
+      : isOltDir(baseDir)
         ? resolve(baseDir)
         : join(resolve(baseDir), ".olt")
     : join(resolve(process.cwd()), ".olt");

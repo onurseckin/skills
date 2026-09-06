@@ -284,7 +284,7 @@ export const INVALID_STATE_AND_ARGUMENT_ENTRIES: readonly ExplainEntry[] = [
         [
           example(
             "authority/guards/coordinator-tool-guard.ts",
-            "Coordinator Anti-Direct-Execution Guard: ${agentDisplay} holds a coordinator grant and is strictly prohibited from executing file modification tool '${toolOrCategory}' (ROLE_BOUNDARY_DEVIATION). Coordinators must compile the task plan and dispatch Tier 3 Implementers via invoke_subagent.",
+            "Supervisor Pre-Tool Guard [CONTAINMENT STRIKE 1 - HALT_AND_DELEGATE]: ${agentDisplay} holds a supervisory grant ('${role}') and is strictly prohibited from executing file modification tool '${toolOrCategory}' (ROLE_BOUNDARY_DEVIATION). Direct execution and file modifications are strictly forbidden for supervisory tiers. Action blocked. Decompose the task into discrete work units and dispatch a Tier 3 Implementer via invoke_subagent.",
           ),
         ],
       ),

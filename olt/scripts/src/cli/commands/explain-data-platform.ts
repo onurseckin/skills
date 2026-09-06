@@ -134,4 +134,23 @@ export const PLATFORM_AND_LOCK_ENTRIES: readonly ExplainEntry[] = [
       ),
     ],
   },
+  {
+    code: "WORKTREE_ACTIVE",
+    summary: "Cannot teardown an active worktree that is currently held by a living process.",
+    rule: "A worktree cannot be torn down while an active process holds its lock unless forced.",
+    causes: [
+      cause(
+        "worktree-held-by-active-process",
+        "Worktree is held by an active process",
+        "An attempt was made to teardown or cleanup a worktree while a living process holds its lock.",
+        "Wait for the holding process to complete, or pass --force if the process is known to be dead or safe to interrupt.",
+        [
+          example(
+            "workflow/worktree/teardown.ts",
+            "Cannot teardown active worktree '${target}': held by living process PID ${payload.pid}",
+          ),
+        ],
+      ),
+    ],
+  },
 ];
