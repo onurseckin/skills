@@ -19,6 +19,8 @@ import type { TaskRecord } from "../../olt/scripts/src/workflow/types.ts";
 import type { FeedbackItem } from "../../olt/scripts/src/mind/feedback/queue/index.ts";
 import type { DualChannelFinding } from "./dual-channel/index.ts";
 
+const realRepoRoot = (process.env.PWD || process.cwd()).replace(/\\/g, "/");
+
 let currentSession: VirtualFSSession | null = null;
 let currentVfs: VirtualMemoryFS = new VirtualMemoryFS();
 let counter = 0;
@@ -27,6 +29,8 @@ export function setupVirtualValidationFS(): VirtualMemoryFS {
   enableInMemorySessionStore();
   if (!currentSession) {
     currentVfs = new VirtualMemoryFS();
+    currentVfs.mkdirSync(realRepoRoot, { recursive: true });
+    currentVfs.chdir(realRepoRoot);
     currentSession = createVirtualFSSession(currentVfs);
   }
   return currentVfs;
