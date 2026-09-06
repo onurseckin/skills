@@ -29,6 +29,36 @@ export const orchestratorProfile: RoleDiagnosticProfile = {
       }
     }
 
+    const candidateRoles: string[] = [];
+    if (context.child_agent_roles) {
+      candidateRoles.push(...context.child_agent_roles);
+    }
+    if (context.spawned_agent_roles) {
+      candidateRoles.push(...context.spawned_agent_roles);
+    }
+    if (context.spawned_roles) {
+      candidateRoles.push(...context.spawned_roles);
+    }
+    if (context.role_target) {
+      candidateRoles.push(context.role_target);
+    }
+
+    const uniqueRoles = Array.from(new Set(candidateRoles));
+    const allowedOrchestratorSpawns = new Set(["coordinator"]);
+
+    for (const childRole of uniqueRoles) {
+      if (!allowedOrchestratorSpawns.has(childRole)) {
+        violations.push({
+          code: "CROSS_TIER_SPAWNING_VIOLATION",
+          severity: "CRITICAL",
+          message:
+            "Tier 1 Orchestrator must only dispatch Tier 2 Coordinator; direct Tier 3 worker dispatch is prohibited.",
+          remediation_cmd: "bun harness.ts task:brief --role coordinator",
+          documentation_ref: "docs/blueprints/agent-scoped-live-sentinel-profiles.md#section-31",
+        });
+      }
+    }
+
     return violations;
   },
 };

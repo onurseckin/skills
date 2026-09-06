@@ -53,6 +53,36 @@ export const mindProfile: RoleDiagnosticProfile = {
       });
     }
 
+    const candidateRoles: string[] = [];
+    if (context.child_agent_roles) {
+      candidateRoles.push(...context.child_agent_roles);
+    }
+    if (context.spawned_agent_roles) {
+      candidateRoles.push(...context.spawned_agent_roles);
+    }
+    if (context.spawned_roles) {
+      candidateRoles.push(...context.spawned_roles);
+    }
+    if (context.role_target) {
+      candidateRoles.push(context.role_target);
+    }
+
+    const uniqueRoles = Array.from(new Set(candidateRoles));
+    const allowedMindSpawns = new Set(["orchestrator", "mind-auditor", "skill-auditor"]);
+
+    for (const childRole of uniqueRoles) {
+      if (!allowedMindSpawns.has(childRole)) {
+        violations.push({
+          code: "CROSS_TIER_SPAWNING_VIOLATION",
+          severity: "CRITICAL",
+          message:
+            "Tier 0 Mind must only dispatch Tier 1 Orchestrator; direct Tier 3 worker or Tier 2 coordinator dispatch collapses the 4-tier hierarchy.",
+          remediation_cmd: "bun harness.ts task:brief --role orchestrator",
+          documentation_ref: "docs/blueprints/agent-scoped-live-sentinel-profiles.md#section-21",
+        });
+      }
+    }
+
     return violations;
   },
 };

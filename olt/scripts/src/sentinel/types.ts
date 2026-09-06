@@ -114,6 +114,10 @@ export interface TurnEndInput {
   readonly reviewed_screenshots?: readonly string[] | undefined;
   readonly probe_count?: number | undefined;
   readonly action?: string | undefined;
+  readonly child_agent_roles?: readonly string[] | undefined;
+  readonly spawned_agent_roles?: readonly string[] | undefined;
+  readonly spawned_roles?: readonly string[] | undefined;
+  readonly role_target?: string | undefined;
 }
 
 export interface TurnEndResult {
@@ -145,6 +149,10 @@ export interface EvaluationContext {
   readonly pending_defects_count?: number | undefined;
   readonly probe_count?: number | undefined;
   readonly action?: string | undefined;
+  readonly child_agent_roles?: readonly string[] | undefined;
+  readonly spawned_agent_roles?: readonly string[] | undefined;
+  readonly spawned_roles?: readonly string[] | undefined;
+  readonly role_target?: string | undefined;
 }
 
 export interface RoleDiagnosticProfile {

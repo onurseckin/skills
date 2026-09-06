@@ -38,6 +38,11 @@ export const SHELL_COMMANDS: readonly CommandSpec[] = [
         "string",
         "Explicit role override if actor metadata is not initialized on disk.",
       ),
+      optionalFlag(
+        "write-scope",
+        "string",
+        "Leased write scope paths for file mutation validation.",
+      ),
     ],
     readsStdin: false,
     takesRemainder: true,

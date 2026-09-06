@@ -13,6 +13,15 @@ import { commandInvocations, findCommand, flagShapes, type CommandSpec } from ".
 import { autoDeriveCallerIdentity } from "../authority/session/index.ts";
 import { findRepoRoot } from "../core/shared/paths.ts";
 import { CumulativePhaseInvariantEngine, DeductiveStateMachine } from "./phase-invariants.ts";
+import {
+  executePostActionHook,
+  executePreActionHook,
+  getProfileForRole,
+  isCanonicalRole,
+  type AgentRole,
+} from "../sentinel/index.ts";
+import { isFileMutationCommand } from "../authority/rbac/command-predicates.ts";
+import { agentIdToRole } from "../authority/thread/role-mapping.ts";
 
 export { DeductiveStateMachine, CumulativePhaseInvariantEngine };
 
@@ -272,12 +281,207 @@ export async function execute(
     }
   }
 
+  const isDiagnosticCommand =
+    spec.name.startsWith("sentinel:") || spec.name.startsWith("doctor:") || spec.name === "doctor";
+
+  const effectiveRole = (
+    spec.name !== "agent:register" &&
+    typeof parsed.flags["role"] === "string" &&
+    parsed.flags["role"].trim() !== ""
+      ? parsed.flags["role"]
+      : identity.role
+  ) as AgentRole | undefined;
+
+  const effectiveActor =
+    (typeof parsed.flags["actor"] === "string" && parsed.flags["actor"].trim() !== ""
+      ? parsed.flags["actor"]
+      : identity.actor) ?? "unknown";
+
+  const checkRole: AgentRole | undefined =
+    effectiveRole && isCanonicalRole(effectiveRole)
+      ? effectiveRole
+      : identity.role && isCanonicalRole(identity.role)
+        ? (identity.role as AgentRole)
+        : undefined;
+
+  if (!isDiagnosticCommand) {
+    const isShellCategory =
+      spec.name === "run:exec" ||
+      spec.name === "shell" ||
+      spec.name.startsWith("shell:") ||
+      parsed.flags["tool-category"] === "shell" ||
+      parsed.flags["tool-category"] === "test-runner";
+
+    const isFileMutation =
+      isFileMutationCommand(parsed.remainder) ||
+      parsed.flags["action"] === "file_write" ||
+      parsed.flags["action-type"] === "file_write";
+
+    if (checkRole && isShellCategory) {
+      const shellTarget =
+        parsed.remainder.length > 0
+          ? parsed.remainder.join(" ")
+          : typeof parsed.flags["command"] === "string"
+            ? (parsed.flags["command"] as string)
+            : spec.name;
+
+      const preAction = executePreActionHook({
+        agent_id: effectiveActor,
+        role: checkRole,
+        action_type: "shell_command",
+        target: shellTarget,
+        task_id: typeof parsed.flags["task"] === "string" ? parsed.flags["task"] : undefined,
+      });
+
+      if (!preAction.allowed) {
+        throw new HarnessError(
+          "ROLE_CONFINEMENT_VIOLATION",
+          preAction.reason ?? "Prohibited action",
+          [],
+          3,
+          preAction.remediation,
+        );
+      }
+    }
+
+    if (checkRole && isFileMutation) {
+      const targetFile =
+        (parsed.remainder.length > 1
+          ? parsed.remainder[parsed.remainder.length - 1]
+          : typeof parsed.flags["target"] === "string"
+            ? (parsed.flags["target"] as string)
+            : typeof parsed.flags["file"] === "string"
+              ? (parsed.flags["file"] as string)
+              : undefined) ?? "unknown";
+
+      const rawScope = parsed.flags["write-scope"] ?? parsed.flags["scope"];
+      const writeScope =
+        typeof rawScope === "string"
+          ? rawScope
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : Array.isArray(rawScope)
+            ? rawScope.map(String)
+            : undefined;
+
+      const filePreAction = executePreActionHook({
+        agent_id: effectiveActor,
+        role: checkRole,
+        action_type: "file_write",
+        target: targetFile,
+        write_scope: writeScope,
+        task_id: typeof parsed.flags["task"] === "string" ? parsed.flags["task"] : undefined,
+      });
+
+      if (!filePreAction.allowed) {
+        throw new HarnessError(
+          "ROLE_CONFINEMENT_VIOLATION",
+          filePreAction.reason ?? "Prohibited action",
+          [],
+          3,
+          filePreAction.remediation,
+        );
+      }
+    }
+
+    if (spec.name === "agent:register") {
+      const childRole = typeof parsed.flags["role"] === "string" ? parsed.flags["role"] : undefined;
+      const parentAgentId =
+        typeof parsed.flags["parent-agent"] === "string" ? parsed.flags["parent-agent"] : undefined;
+
+      let parentRole: string | undefined = undefined;
+
+      if (parentAgentId !== undefined) {
+        if (typeof parsed.flags["run"] === "string" && parsed.flags["run"].trim() !== "") {
+          try {
+            const { loadRun } = await import("../engine/store/index.ts");
+            const { readAgentLedger } = await import("../workflow/agents/ledger.ts");
+            const runData = loadRun(parsed.flags["run"] as string, false);
+            if (runData?.state) {
+              const ledger = readAgentLedger(runData.state as unknown as JsonObject);
+              const parentGrant = ledger.find((e) => e.id === parentAgentId);
+              if (parentGrant?.role) {
+                parentRole = parentGrant.role;
+              }
+            }
+          } catch {
+            // ignore
+          }
+        }
+        if (!parentRole) {
+          if (isCanonicalRole(parentAgentId)) {
+            parentRole = parentAgentId;
+          } else {
+            const inferred = agentIdToRole(parentAgentId);
+            if (inferred && isCanonicalRole(inferred)) {
+              parentRole = inferred;
+            }
+          }
+        }
+      }
+
+      if (!parentRole) {
+        parentRole = identity.role;
+      }
+
+      if (parentRole && isCanonicalRole(parentRole) && childRole) {
+        const parentProfile = getProfileForRole(parentRole as AgentRole);
+        const spawnViolations = parentProfile.evaluate({
+          agent_id: parentAgentId ?? effectiveActor,
+          role: parentRole as AgentRole,
+          child_agent_roles: [childRole],
+          spawned_agent_roles: [childRole],
+          role_target: childRole,
+        });
+        const crossTier = spawnViolations.find((v) => v.code === "CROSS_TIER_SPAWNING_VIOLATION");
+        if (crossTier) {
+          throw new HarnessError(
+            "ROLE_CONFINEMENT_VIOLATION",
+            crossTier.message,
+            [],
+            3,
+            crossTier.remediation_cmd,
+          );
+        }
+      }
+    }
+  }
+
   assertGrantedCommand(spec, parsed.flags, identity);
   assertAuthorityBoundTargets(spec, parsed.flags);
 
-  return (await spec.handler(
+  const result = (await spec.handler(
     parsed.flags,
     { ...context, authenticatedCaller: identity },
     parsed.remainder,
   )) as JsonObject;
+
+  if (!isDiagnosticCommand && result && typeof result === "object" && checkRole) {
+    const modifiedFiles = Array.isArray(result["modified_files"])
+      ? (result["modified_files"] as string[])
+      : Array.isArray(result["files"])
+        ? (result["files"] as string[])
+        : undefined;
+
+    if (modifiedFiles && modifiedFiles.length > 0) {
+      const postAction = executePostActionHook({
+        agent_id: effectiveActor,
+        role: checkRole,
+        modified_files: modifiedFiles,
+      });
+      if (!postAction.allowed) {
+        const firstViolation = postAction.violations[0];
+        throw new HarnessError(
+          "ROLE_CONFINEMENT_VIOLATION",
+          firstViolation?.message ?? "AST purity violation detected in modified files",
+          firstViolation ? [firstViolation.message] : [],
+          3,
+          firstViolation?.remediation_cmd,
+        );
+      }
+    }
+  }
+
+  return result;
 }
