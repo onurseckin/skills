@@ -3,6 +3,11 @@
   "ecosystem": "bun",
   "package_manager": "bun",
   "skill_home_repo_root": "/Users/onurseckinsenoglu/repos/skills",
+  "defect_routing": {
+    "skill_home_repo_root": "/Users/onurseckinsenoglu/repos/skills",
+    "global_skill_dir": "~/.agents/skills/olt",
+    "dual_write_enabled": true
+  },
   "test_runner": {
     "default_command": "bun test",
     "targeted_pattern": "bun test <path>",

@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join, resolve, sep } from "node:path";
-import { HarnessError } from "../errors/harness-error.ts";
+import { HarnessError } from "../errors/index.ts";
 
 export const OLT_DIR_NAME = ".olt";
 export const CAPSULES_DIR_NAME = "capsules";
@@ -28,30 +28,20 @@ function unsafe(message: string): never {
  * Matches `/.olt/capsules/`, `/.capsules/`, or paths ending with capsule directory identifiers.
  */
 export function isInsideCapsule(targetPath: string): boolean {
-  const normalized = resolve(targetPath).split(sep).join("/");
+  const n = resolve(targetPath).split(sep).join("/");
   return (
-    normalized.includes("/.olt/capsules/") ||
-    normalized.endsWith("/.olt/capsules") ||
-    normalized.includes("/.capsules/") ||
-    normalized.endsWith("/.capsules")
+    n.includes("/.olt/capsules/") ||
+    n.endsWith("/.olt/capsules") ||
+    n.includes("/.capsules/") ||
+    n.endsWith("/.capsules")
   );
 }
 
-/**
- * Extracts the enclosing sovereign repository root prefix if the path is inside a capsule.
- * Returns undefined if the path is not inside a capsule.
- */
 export function stripCapsulePath(targetPath: string): string | undefined {
-  const normalized = resolve(targetPath);
-  const oltCapsulesPattern = `${sep}.olt${sep}capsules`;
-  const oltCapsulesIdx = normalized.indexOf(oltCapsulesPattern);
-  if (oltCapsulesIdx !== -1) {
-    return normalized.slice(0, oltCapsulesIdx) || sep;
-  }
-  const dotCapsulesPattern = `${sep}.capsules`;
-  const dotCapsulesIdx = normalized.indexOf(dotCapsulesPattern);
-  if (dotCapsulesIdx !== -1) {
-    return normalized.slice(0, dotCapsulesIdx) || sep;
+  const norm = resolve(targetPath);
+  for (const pat of [`${sep}.olt${sep}capsules`, `${sep}.capsules`]) {
+    const idx = norm.indexOf(pat);
+    if (idx !== -1) return norm.slice(0, idx) || sep;
   }
   return undefined;
 }
@@ -170,53 +160,27 @@ export function resolvePolicyPath(repoRoot?: string, customPath?: string): strin
   return join(root, OLT_DIR_NAME, OLT_FILES.POLICY);
 }
 
-export function resolveBacklogPath(repoRoot?: string, customPath?: string): string {
-  if (customPath && customPath.trim()) return resolve(customPath.trim());
-  const root = resolveSafeRoot(repoRoot);
-  return join(root, OLT_DIR_NAME, OLT_FILES.BACKLOG);
+function resolveOltFilePath(file: string, repoRoot?: string, custom?: string): string {
+  if (custom && custom.trim()) return resolve(custom.trim());
+  return join(resolveSafeRoot(repoRoot), OLT_DIR_NAME, file);
 }
 
-export function resolveCompletedTasksPath(repoRoot?: string, customPath?: string): string {
-  if (customPath && customPath.trim()) return resolve(customPath.trim());
-  const root = resolveSafeRoot(repoRoot);
-  return join(root, OLT_DIR_NAME, OLT_FILES.COMPLETED_TASKS);
-}
-
-export function resolveDefectsPath(repoRoot?: string, customPath?: string): string {
-  if (customPath && customPath.trim()) return resolve(customPath.trim());
-  const root = resolveSafeRoot(repoRoot);
-  return join(root, OLT_DIR_NAME, OLT_FILES.DEFECTS);
-}
-
-export function resolveCompletedDefectsPath(repoRoot?: string, customPath?: string): string {
-  if (customPath && customPath.trim()) return resolve(customPath.trim());
-  const root = resolveSafeRoot(repoRoot);
-  return join(root, OLT_DIR_NAME, OLT_FILES.COMPLETED_DEFECTS);
-}
-
-export function resolveTelemetryPath(repoRoot?: string, customPath?: string): string {
-  if (customPath && customPath.trim()) return resolve(customPath.trim());
-  const root = resolveSafeRoot(repoRoot);
-  return join(root, OLT_DIR_NAME, OLT_FILES.TELEMETRY);
-}
-
-export function resolveMemoryPath(repoRoot?: string, customPath?: string): string {
-  if (customPath && customPath.trim()) return resolve(customPath.trim());
-  const root = resolveSafeRoot(repoRoot);
-  return join(root, OLT_DIR_NAME, OLT_FILES.MEMORY);
-}
-
-export function resolveWatchdogsPath(repoRoot?: string, customPath?: string): string {
-  if (customPath && customPath.trim()) return resolve(customPath.trim());
-  const root = resolveSafeRoot(repoRoot);
-  return join(root, OLT_DIR_NAME, OLT_FILES.WATCHDOGS);
-}
-
-export function resolveQuotaDagSnapshotPath(repoRoot?: string, customPath?: string): string {
-  if (customPath && customPath.trim()) return resolve(customPath.trim());
-  const root = resolveSafeRoot(repoRoot);
-  return join(root, OLT_DIR_NAME, OLT_FILES.QUOTA_DAG_SNAPSHOT);
-}
+export const resolveBacklogPath = (r?: string, c?: string): string =>
+  resolveOltFilePath(OLT_FILES.BACKLOG, r, c);
+export const resolveCompletedTasksPath = (r?: string, c?: string): string =>
+  resolveOltFilePath(OLT_FILES.COMPLETED_TASKS, r, c);
+export const resolveDefectsPath = (r?: string, c?: string): string =>
+  resolveOltFilePath(OLT_FILES.DEFECTS, r, c);
+export const resolveCompletedDefectsPath = (r?: string, c?: string): string =>
+  resolveOltFilePath(OLT_FILES.COMPLETED_DEFECTS, r, c);
+export const resolveTelemetryPath = (r?: string, c?: string): string =>
+  resolveOltFilePath(OLT_FILES.TELEMETRY, r, c);
+export const resolveMemoryPath = (r?: string, c?: string): string =>
+  resolveOltFilePath(OLT_FILES.MEMORY, r, c);
+export const resolveWatchdogsPath = (r?: string, c?: string): string =>
+  resolveOltFilePath(OLT_FILES.WATCHDOGS, r, c);
+export const resolveQuotaDagSnapshotPath = (r?: string, c?: string): string =>
+  resolveOltFilePath(OLT_FILES.QUOTA_DAG_SNAPSHOT, r, c);
 
 export function resolveEvidenceDir(repoRoot?: string, runRoot?: string): string {
   if (runRoot && existsSync(runRoot)) {
@@ -239,8 +203,7 @@ export function loadSkillGlobalConfig(): SkillGlobalConfig | null {
   try {
     const p = resolveSkillGlobalConfigPath();
     if (existsSync(p)) {
-      const raw = readFileSync(p, "utf-8");
-      const parsed = JSON.parse(raw) as unknown;
+      const parsed = JSON.parse(readFileSync(p, "utf-8")) as unknown;
       if (
         parsed &&
         typeof parsed === "object" &&
@@ -250,26 +213,78 @@ export function loadSkillGlobalConfig(): SkillGlobalConfig | null {
         return parsed as SkillGlobalConfig;
       }
     }
-  } catch {
-    // Ignore error and fall through
-  }
+  } catch {}
   return null;
 }
 
+function expandHome(p: string): string {
+  if (p === "~") return homedir();
+  return p.startsWith(`~${sep}`) || p.startsWith("~/") ? join(homedir(), p.slice(2)) : p;
+}
+
+function readPolicyDefectConfig(repoRoot?: string): {
+  skill_home?: string | undefined;
+  global_skill_dir?: string | undefined;
+} {
+  const roots: string[] = [];
+  if (repoRoot?.trim()) roots.push(resolve(repoRoot.trim()));
+  try {
+    const sovereign = findRepoRoot();
+    if (!roots.includes(sovereign)) roots.push(sovereign);
+  } catch {}
+
+  let skill_home: string | undefined;
+  let global_skill_dir: string | undefined;
+
+  for (const root of roots) {
+    for (const sub of [
+      join(OLT_DIR_NAME, OLT_FILES.POLICY),
+      join("olt", OLT_FILES.POLICY),
+      OLT_FILES.POLICY,
+    ]) {
+      try {
+        const filePath = join(root, sub);
+        if (!existsSync(filePath)) continue;
+        const parsed = JSON.parse(readFileSync(filePath, "utf-8")) as unknown;
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) continue;
+        const rec = parsed as Record<string, unknown>;
+        const dr = rec["defect_routing"] as Record<string, unknown> | undefined;
+        if (dr && typeof dr === "object" && !Array.isArray(dr)) {
+          if (!skill_home && typeof dr["skill_home_repo_root"] === "string") {
+            skill_home = dr["skill_home_repo_root"].trim();
+          }
+          if (!global_skill_dir && typeof dr["global_skill_dir"] === "string") {
+            global_skill_dir = dr["global_skill_dir"].trim();
+          }
+        }
+        if (!skill_home && typeof rec["skill_home_repo_root"] === "string") {
+          skill_home = rec["skill_home_repo_root"].trim();
+        }
+        if (skill_home && global_skill_dir) return { skill_home, global_skill_dir };
+      } catch {}
+    }
+  }
+  return { skill_home, global_skill_dir };
+}
+
+export function resolveGlobalSkillDir(currentRepoRoot?: string): string {
+  const { global_skill_dir } = readPolicyDefectConfig(currentRepoRoot);
+  return global_skill_dir
+    ? resolve(expandHome(global_skill_dir))
+    : join(homedir(), ".agents", "skills", "olt");
+}
+
 export function resolveSkillHomeRepo(currentRepoRoot?: string): string {
-  if (currentRepoRoot) {
-    return resolve(currentRepoRoot);
+  const envVal = process.env["OLT_SKILL_HOME_REPO"]?.trim();
+  if (envVal) {
+    const exp = expandHome(envVal);
+    if (existsSync(exp)) return resolve(exp);
   }
-  if (process.env["OLT_SKILL_HOME_REPO"] && existsSync(process.env["OLT_SKILL_HOME_REPO"])) {
-    return resolve(process.env["OLT_SKILL_HOME_REPO"]);
-  }
+  const { skill_home } = readPolicyDefectConfig(currentRepoRoot);
+  if (skill_home) return resolve(expandHome(skill_home));
   const cfg = loadSkillGlobalConfig();
-  if (cfg && existsSync(cfg.home_repo_root)) {
-    return resolve(cfg.home_repo_root);
-  }
+  if (cfg && existsSync(cfg.home_repo_root)) return resolve(cfg.home_repo_root);
   const defaultSkillsRepo = "/Users/onurseckinsenoglu/repos/skills";
-  if (existsSync(defaultSkillsRepo)) {
-    return resolve(defaultSkillsRepo);
-  }
+  if (existsSync(defaultSkillsRepo)) return resolve(defaultSkillsRepo);
   return findRepoRoot();
 }

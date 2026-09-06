@@ -32,9 +32,18 @@ export {
 export {
   COORDINATOR_FILE_EDIT_CATEGORIES,
   COORDINATOR_FILE_EDIT_TOOLS,
+  SUPERVISOR_FILE_EDIT_CATEGORIES,
+  SUPERVISOR_FILE_EDIT_TOOLS,
   assertCoordinatorPreToolGuard,
+  assertSupervisorPreToolGuard,
   isCoordinatorFileEditForbidden,
   isCoordinatorRole,
+  isMindRole,
+  isOrchestratorRole,
+  isSupervisorFileEditForbidden,
+  isSupervisorRole,
+  isSupervisoryRole,
+  type SupervisorPreToolGuardOptions,
 } from "./coordinator-tool-guard.ts";
 export {
   assertSupervisoryContainment,

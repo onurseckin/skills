@@ -1,7 +1,8 @@
 #!/usr/bin/env bun
 
-import { appendFileSync, existsSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { HarnessError } from "./src/core/errors/harness-error.ts";
 import { execute } from "./src/cli/execute.ts";
@@ -14,7 +15,7 @@ import {
 } from "./src/cli/prompt-input.ts";
 import { formatCliError, propagateCliExitCode, setupSignalTraps } from "./src/cli/signals/index.ts";
 import { PolicyDiscoveryEngine } from "./src/engine/policy-discovery.ts";
-import { findRepoRoot } from "./src/core/shared/paths.ts";
+import { findRepoRoot, resolveSkillHomeRepo } from "./src/core/shared/paths.ts";
 
 const loggedErrors = new WeakSet<object>();
 
@@ -79,36 +80,121 @@ export function extractErrorMessage(error: unknown): string {
   return String(error);
 }
 
+export interface DefectRoutingResolution {
+  readonly skillHomeRepo: string;
+  readonly globalSkillDir: string;
+  readonly dualWriteEnabled: boolean;
+}
+
+function expandTilde(filepath: string): string {
+  if (filepath === "~" || filepath.startsWith("~/")) return join(homedir(), filepath.slice(1));
+  return filepath;
+}
+
+function readJsonObj(path: string): Record<string, unknown> | undefined {
+  if (!existsSync(path)) return undefined;
+  try {
+    const p = JSON.parse(readFileSync(path, "utf-8")) as unknown;
+    return typeof p === "object" && p !== null ? (p as Record<string, unknown>) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function resolveDefectRouting(repoRoot: string): DefectRoutingResolution {
+  const policyCandidates = [
+    join(repoRoot, ".olt", "policy.json"),
+    join(repoRoot, "olt", "policy.json"),
+  ];
+  const polObj = policyCandidates
+    .map(readJsonObj)
+    .find((p) => p && typeof p.defect_routing === "object");
+  const pol = polObj?.defect_routing as Record<string, unknown> | undefined;
+  const cfg = readJsonObj(join(homedir(), ".agents", "skills", "olt", "skill-config.json"));
+  const cfgR =
+    cfg && typeof cfg.defect_routing === "object"
+      ? (cfg.defect_routing as Record<string, unknown>)
+      : undefined;
+
+  const homeVal =
+    process.env["OLT_SKILL_HOME_REPO"]?.trim() ||
+    (typeof pol?.skill_home_repo_root === "string" ? pol.skill_home_repo_root.trim() : undefined) ||
+    (typeof cfgR?.skill_home_repo_root === "string" ? cfgR.skill_home_repo_root.trim() : undefined);
+  let skillHomeRepo: string;
+  if (homeVal) {
+    skillHomeRepo = resolve(expandTilde(homeVal));
+  } else {
+    try {
+      skillHomeRepo = resolveSkillHomeRepo();
+    } catch {
+      skillHomeRepo = "/Users/onurseckinsenoglu/repos/skills";
+    }
+  }
+
+  const globalVal =
+    process.env["OLT_GLOBAL_SKILL_DIR"]?.trim() ||
+    (typeof pol?.global_skill_dir === "string" ? pol.global_skill_dir.trim() : undefined) ||
+    (typeof cfgR?.global_skill_dir === "string" ? cfgR.global_skill_dir.trim() : undefined);
+  const globalSkillDir = resolve(
+    expandTilde(globalVal || join(homedir(), ".agents", "skills", "olt")),
+  );
+
+  const envDual = process.env["OLT_DUAL_WRITE"]?.trim().toLowerCase();
+  const dualWriteEnabled =
+    envDual === "false" || envDual === "0"
+      ? false
+      : typeof pol?.dual_write_enabled === "boolean"
+        ? pol.dual_write_enabled
+        : typeof cfgR?.dual_write_enabled === "boolean"
+          ? cfgR.dual_write_enabled
+          : true;
+
+  return { skillHomeRepo, globalSkillDir, dualWriteEnabled };
+}
+
 export function logCliDefect(error: unknown, argv: readonly string[]): void {
   try {
     if (typeof error === "object" && error !== null) {
-      if (loggedErrors.has(error)) {
-        return;
-      }
+      if (loggedErrors.has(error)) return;
       loggedErrors.add(error);
     }
     const repoRoot = findRepoRoot();
-    const oltDir = join(repoRoot, ".olt");
-    if (!existsSync(oltDir)) {
-      mkdirSync(oltDir, { recursive: true });
-    }
-    const defectsPath = join(oltDir, "defects.jsonl");
     const errorCode = extractErrorCode(error);
-    const errorMessage = extractErrorMessage(error);
     const record = {
       id: `defect-cli-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       timestamp: new Date().toISOString(),
       category: mapCategoryFromErrorCode(errorCode),
       command: argv.join(" "),
       error_code: errorCode,
-      message: errorMessage,
+      message: extractErrorMessage(error),
       severity: mapSeverityFromErrorCode(errorCode),
       status: "open",
+      source_repo: repoRoot,
     };
-    appendFileSync(defectsPath, `${JSON.stringify(record)}\n`, "utf-8");
-  } catch {
-    // Non-blocking: defect logging failures must never interfere with CLI behavior
-  }
+    const line = `${JSON.stringify(record)}\n`;
+    const localDefectsPath = join(repoRoot, ".olt", "defects.jsonl");
+
+    const writeSafe = (target: string): void => {
+      try {
+        const d = dirname(target);
+        if (!existsSync(d)) mkdirSync(d, { recursive: true });
+        appendFileSync(target, line, "utf-8");
+      } catch {}
+    };
+
+    writeSafe(localDefectsPath);
+
+    const { skillHomeRepo, globalSkillDir, dualWriteEnabled } = resolveDefectRouting(repoRoot);
+    if (dualWriteEnabled) {
+      const localResolved = resolve(localDefectsPath);
+      const targets = new Set<string>();
+      const homeTarget = resolve(join(skillHomeRepo, ".olt", "defects.jsonl"));
+      const globalTarget = resolve(join(globalSkillDir, ".olt", "defects.jsonl"));
+      if (homeTarget !== localResolved) targets.add(homeTarget);
+      if (globalTarget !== localResolved) targets.add(globalTarget);
+      for (const t of targets) writeSafe(t);
+    }
+  } catch {}
 }
 
 async function stdinBytes(maximum = 64 * 1024 * 1024): Promise<Uint8Array> {

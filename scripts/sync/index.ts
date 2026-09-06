@@ -1,3 +1,4 @@
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import {
@@ -119,6 +120,32 @@ export function orDefault<T>(value: T | undefined, fallback: T): T {
   return fallback;
 }
 
+export function ensureDefectRoutingDeployment(targetOlt: string, sourceRepoRoot: string): void {
+  try {
+    const targetDotOlt = join(targetOlt, ".olt");
+    if (!existsSync(targetDotOlt)) {
+      mkdirSync(targetDotOlt, { recursive: true });
+    }
+    const configPath = join(targetOlt, "skill-config.json");
+    let currentConfig: Record<string, unknown> = {};
+    if (existsSync(configPath)) {
+      try {
+        currentConfig = JSON.parse(readFileSync(configPath, "utf-8")) as Record<string, unknown>;
+      } catch {}
+    }
+    const updatedConfig = {
+      ...currentConfig,
+      home_repo_root: sourceRepoRoot,
+      defect_routing: {
+        skill_home_repo_root: sourceRepoRoot,
+        global_skill_dir: targetOlt,
+        dual_write_enabled: true,
+      },
+    };
+    writeFileSync(configPath, JSON.stringify(updatedConfig, null, 2) + "\n", "utf-8");
+  } catch {}
+}
+
 export async function runSync(options?: SyncOptions): Promise<SyncSummary> {
   const sourceRepoRoot = orDefault(options?.sourceRepoRoot, process.cwd());
   const home = orDefault(options?.homeDir, process.env.HOME || homedir());
@@ -132,6 +159,7 @@ export async function runSync(options?: SyncOptions): Promise<SyncSummary> {
   let skillResult: DeploySkillResult | undefined;
   try {
     skillResult = await deployCanonicalSkill({ ...options, homeDir: home });
+    ensureDefectRoutingDeployment(targetOlt, sourceRepoRoot);
     const binaryResult = ensureGlobalOltBinary({ ...options, homeDir: home });
     const shellResult = ensurePathInShellRc({ ...options, homeDir: home });
 
