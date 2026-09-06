@@ -39,6 +39,37 @@ function grantAgent(runRoot: string, actor: string): void {
   );
 }
 
+const mkT = (id: string, status: "ready" | "validated" | "done", reqs: string[] = []) => ({
+  id,
+  status,
+  requirement_ids: reqs,
+  write_scope: ["src/"],
+  dependencies: [],
+  attempts: [],
+  history: [],
+  repair_round: 0,
+});
+const mkG = (
+  id: string,
+  cmd: string[],
+  scope: "task" | "run" = "task",
+  reqs: string[] = ["req-1"],
+) => ({
+  id,
+  command: cmd,
+  cwd: ".",
+  scope,
+  requirement_ids: reqs,
+  mandatory: true,
+});
+const mkR = (id: string) => ({
+  id,
+  status: "planned" as const,
+  disposition: "actionable" as const,
+  evidence: [],
+  dependencies: [],
+});
+
 describe("runExecCommand gate preflight & authorization", () => {
   test("rejects command when actor lacks durable metadata or violates policy", async () => {
     const { repo } = createTestRepo("exec-auth");
@@ -79,45 +110,10 @@ describe("runExecCommand gate preflight & authorization", () => {
     const port = workflowPort(runRoot);
     port.transact(actor, "setup-task-states", {}, (workflow) => {
       workflow.graph_revision = 1;
-      workflow.tasks["task-missing-gate"] = {
-        id: "task-missing-gate",
-        status: "validated",
-        requirement_ids: [],
-        write_scope: ["src/"],
-        dependencies: [],
-        attempts: [],
-        history: [],
-        repair_round: 0,
-      };
-      workflow.tasks["task-ready"] = {
-        id: "task-ready",
-        status: "ready",
-        requirement_ids: ["req-1"],
-        write_scope: ["src/"],
-        dependencies: [],
-        attempts: [],
-        history: [],
-        repair_round: 0,
-      };
-      workflow.requirements = [
-        {
-          id: "req-1",
-          status: "planned",
-          disposition: "actionable",
-          evidence: [],
-          dependencies: [],
-        },
-      ];
-      workflow.gates = [
-        {
-          id: "gate-1",
-          command: ["echo", "1"],
-          cwd: ".",
-          scope: "task",
-          requirement_ids: ["req-1"],
-          mandatory: true,
-        },
-      ];
+      workflow.tasks["task-missing-gate"] = mkT("task-missing-gate", "validated");
+      workflow.tasks["task-ready"] = mkT("task-ready", "ready", ["req-1"]);
+      workflow.requirements = [mkR("req-1")];
+      workflow.gates = [mkG("gate-1", ["echo", "1"])];
     });
 
     await expect(
@@ -159,50 +155,14 @@ describe("runExecCommand gate preflight & authorization", () => {
     port.transact(actor, "setup-run-gates", {}, (workflow) => {
       workflow.graph_revision = 1;
       workflow.tasks["task-done"] = {
-        id: "task-done",
-        status: "done",
-        requirement_ids: ["req-1"],
-        write_scope: ["src/"],
-        dependencies: [],
-        attempts: [],
-        history: [],
-        repair_round: 0,
+        ...mkT("task-done", "done", ["req-1"]),
         gate_results: [{ gate_id: "gate-task-1", status: "passed", command_id: "c-1" }],
       };
-      workflow.requirements = [
-        {
-          id: "req-1",
-          status: "planned",
-          disposition: "actionable",
-          evidence: [],
-          dependencies: [],
-        },
-      ];
+      workflow.requirements = [mkR("req-1")];
       workflow.gates = [
-        {
-          id: "gate-task-1",
-          command: ["echo", "t1"],
-          cwd: ".",
-          scope: "task",
-          requirement_ids: ["req-1"],
-          mandatory: true,
-        },
-        {
-          id: "gate-task-2",
-          command: ["echo", "t2"],
-          cwd: ".",
-          scope: "task",
-          requirement_ids: ["req-1"],
-          mandatory: true,
-        },
-        {
-          id: "gate-run",
-          command: ["echo", "run"],
-          cwd: ".",
-          scope: "run",
-          requirement_ids: [],
-          mandatory: true,
-        },
+        mkG("gate-task-1", ["echo", "t1"]),
+        mkG("gate-task-2", ["echo", "t2"]),
+        mkG("gate-run", ["echo", "run"], "run", []),
       ];
     });
 
@@ -247,14 +207,7 @@ describe("runExecCommand gate preflight & authorization", () => {
     port.transact(actor, "setup-task-validating", {}, (workflow) => {
       workflow.graph_revision = 1;
       workflow.tasks["task-1"] = {
-        id: "task-1",
-        status: "validated",
-        requirement_ids: ["req-1"],
-        write_scope: ["src/"],
-        dependencies: [],
-        attempts: [],
-        history: [],
-        repair_round: 0,
+        ...mkT("task-1", "validated", ["req-1"]),
         report: { summary: "passed review report" },
         validations: [
           {
@@ -270,25 +223,8 @@ describe("runExecCommand gate preflight & authorization", () => {
           },
         ],
       };
-      workflow.requirements = [
-        {
-          id: "req-1",
-          status: "planned",
-          disposition: "actionable",
-          evidence: [],
-          dependencies: [],
-        },
-      ];
-      workflow.gates = [
-        {
-          id: "gate-1",
-          command: ["echo", "pass"],
-          cwd: ".",
-          scope: "task",
-          requirement_ids: ["req-1"],
-          mandatory: true,
-        },
-      ];
+      workflow.requirements = [mkR("req-1")];
+      workflow.gates = [mkG("gate-1", ["echo", "pass"])];
     });
 
     const result = await runExecCommand(
@@ -317,13 +253,12 @@ describe("CLI Registry Execution & JSON Serialization", () => {
       "--prompt",
       "CLI prompt",
     ]);
-
     expect(res.run_id).toBe("cli-run-1");
     expect(res.existed).toBe(false);
     expect(JSON.stringify(res)).toContain("cli-run-1");
   });
 
-  test("executes run:status via execute and preserves markdown output", async () => {
+  test("asserts run:status rejects with unknown command error via execute", async () => {
     const { repo } = createTestRepo("cli-run-status");
     const initRes = await execute([
       "run:init",
@@ -335,9 +270,8 @@ describe("CLI Registry Execution & JSON Serialization", () => {
       "CLI status prompt",
     ]);
     const runRoot = initRes.run_root as string;
-
-    const statusRes = await execute(["run:status", "--run", runRoot, "--repo", repo]);
-    expect(statusRes.run_root).toBe(runRoot);
-    expect(String(statusRes.markdown)).toContain("cli-run-2");
+    await expect(execute(["run:status", "--run", runRoot, "--repo", repo])).rejects.toThrow(
+      "unknown command: run:status",
+    );
   });
 });

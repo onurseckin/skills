@@ -77,7 +77,10 @@ describe("execute universal middleware", () => {
     const report = await execute(["report", "--run", runRoot]);
     expect(report).toBeDefined();
 
-    expect(execute(["run:status", "--run", runRoot])).rejects.toThrow("[RETIRED_COMMAND]");
+    expect(execute(["run:status", "--run", runRoot])).rejects.toThrow(
+      "unknown command: run:status",
+    );
+    expect(execute(["dag", "--run", runRoot])).rejects.toThrow("unknown command: dag");
   });
 
   it("refuses to auto-fill --agent/--role for an unauthenticated caller instead of defaulting to mind", async () => {

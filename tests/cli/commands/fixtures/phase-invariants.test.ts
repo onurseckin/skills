@@ -83,7 +83,7 @@ describe("CumulativePhaseInvariantEngine & DeductiveStateMachine", () => {
     });
 
     it("allows read-only inspector commands without prerequisites", () => {
-      const spec = makeSpec("run:status", "run");
+      const spec = makeSpec("report", "reporting");
       expect(() => CumulativePhaseInvariantEngine.verify(spec, {})).not.toThrow();
     });
 

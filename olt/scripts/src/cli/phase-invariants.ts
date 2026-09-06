@@ -59,11 +59,7 @@ const PHASE_REMEDIAL_COMMAND: Readonly<Record<string, string>> = {
   critic: "critic:start",
 };
 
-const READ_ONLY_INSPECTOR_COMMANDS: ReadonlySet<string> = new Set([
-  "report",
-  "report:dag",
-  "run:status",
-]);
+const READ_ONLY_INSPECTOR_COMMANDS: ReadonlySet<string> = new Set(["report", "report:dag"]);
 
 export class CumulativePhaseInvariantEngine {
   public static verify(spec: CommandSpec, state: Record<string, unknown>): void {

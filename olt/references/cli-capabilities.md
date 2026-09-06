@@ -34,7 +34,7 @@ own status in `exit_code`.
 | queue | 9 | [cli-capabilities/domains/queue.md](cli-capabilities/domains/queue.md) |
 | task | 19 | [cli-capabilities/domains/task.md](cli-capabilities/domains/task.md) |
 | reporting | 17 | [cli-capabilities/domains/reporting.md](cli-capabilities/domains/reporting.md) |
-| run | 5 | [cli-capabilities/domains/run.md](cli-capabilities/domains/run.md) |
+| run | 4 | [cli-capabilities/domains/run.md](cli-capabilities/domains/run.md) |
 | critic | 4 | [cli-capabilities/domains/critic.md](cli-capabilities/domains/critic.md) |
 | summary | 3 | [cli-capabilities/domains/summary.md](cli-capabilities/domains/summary.md) |
 | inspection | 4 | [cli-capabilities/domains/inspection.md](cli-capabilities/domains/inspection.md) |
@@ -100,7 +100,7 @@ own status in `exit_code`.
 | `task:complete` | task | Mark a task as completed in the queue. |
 | `task:fail` | task | Mark a task as failed in the queue. |
 | `task:prune` | task | Prune completed tasks from the queue. |
-| `report:unified` | reporting | Deliver unified topology, lifecycle tier breakdown, agent roles, IDs, and timestamps. |
+| `report` | reporting | Deliver unified topology, lifecycle tier breakdown, agent roles, IDs, and timestamps. |
 | `report:dag` | reporting | Render Sugiyama hierarchical DAG layout with rounded Unicode boxes and cycle diagnostics. |
 | `report:summary` | reporting | Render executive summary brief of capsule run. |
 | `report:task` | reporting | Read and render a task submission, review or critic report. |
@@ -119,7 +119,6 @@ own status in `exit_code`.
 | `notify:test` | reporting | Send a test native OS notification and Glass chime to verify desktop integration. |
 | `run:init` | run | Initialize a capsule run root and write its initial manifest. |
 | `run:exec` | run | Run a gate command under process isolation and record the evidence. |
-| `run:status` | run | Show phase, per-task status and progress for the run. |
 | `run:complete` | run | Seal the capsule after verifying every completion artifact. |
 | `shell` | run | Execute direct non-interactive CLI commands under mechanical RBAC policy with signed evidence. |
 | `scope:expand` | agent | Dynamically expand the declared read scope neighborhood for an active actor. |

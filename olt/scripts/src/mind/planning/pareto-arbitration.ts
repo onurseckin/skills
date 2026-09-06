@@ -816,7 +816,7 @@ export function arbitrateParetoApproaches(
 }
 
 /**
- * Alias for arbitrateParetoApproaches for backwards-compatible pair evaluation.
+ * Arbitrate between two Pareto approach candidates.
  */
 export function arbitrateParetoPair(
   approachA: ParetoApproachCandidate,

@@ -45,7 +45,7 @@ describe("dag:view CLI command execution - Render & Wave Layout", () => {
   test("renders empty buffer message when no tasks are declared", async () => {
     const { run } = await createBaseRun("empty-buffer");
 
-    const result = (await execute(["dag", "--run", run])) as unknown as DagViewResult;
+    const result = (await execute(["report:dag", "--run", run])) as unknown as DagViewResult;
 
     expect(result.total_tasks).toBe(0);
     expect(result.is_compiled).toBe(false);
@@ -94,7 +94,7 @@ describe("dag:view CLI command execution - Render & Wave Layout", () => {
       "planner",
     ]);
 
-    const result = (await execute(["dag", "--run", run])) as unknown as DagViewResult;
+    const result = (await execute(["report:dag", "--run", run])) as unknown as DagViewResult;
 
     expect(result.total_tasks).toBe(2);
     expect(result.is_compiled).toBe(false);
@@ -216,7 +216,12 @@ describe("dag:view CLI command execution - Render & Wave Layout", () => {
       "A4-false-barrier:test fixture creates topological waves on purpose",
     ]);
 
-    const result = (await execute(["dag", "--run", run, "--detailed"])) as unknown as DagViewResult;
+    const result = (await execute([
+      "report:dag",
+      "--run",
+      run,
+      "--detailed",
+    ])) as unknown as DagViewResult;
 
     expect(result.total_tasks).toBe(4);
     expect(result.is_compiled).toBe(true);
@@ -237,5 +242,10 @@ describe("dag:view CLI command execution - Render & Wave Layout", () => {
     expect(result.ascii_dag).toContain("Scope:  src/a");
     expect(result.ascii_dag).toContain("Deps:   task-1");
     expect(result.ascii_dag).toContain("Deps:   task-3");
+  });
+
+  test("asserts dag rejects with unknown command error via execute", async () => {
+    const { run } = await createBaseRun("dag-unknown");
+    await expect(execute(["dag", "--run", run])).rejects.toThrow("unknown command: dag");
   });
 });

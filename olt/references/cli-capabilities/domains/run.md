@@ -56,27 +56,6 @@ Captures argv, cwd, timestamps, exit code and log bytes into the capsule, then i
 bun harness.ts run:exec --run .olt/capsules/<run-id> --task task-1 --gate gate-1 --actor val-1 --tool-category test-runner --tool bun-test -- bun test tests/unit/auth.test.ts
 ```
 
-### `run:status`
-
-Show phase, per-task status and progress for the run.
-
-Reads the capsule without mutating it and renders the execution table.
-
-- **Aliases**: none
-- **Stdin**: not read
-- **Arguments after `--`**: rejected
-
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | no | no | - | Capsule run root. Defaults to current repository .olt/capsules/ when omitted. |
-| `--run-id` | string | no | no | - | Alias of --run. |
-| `--repo` | string | no | no | `.` | Repository root to search for .olt/capsules/. |
-| `--detailed` | bool | no | no | - | Include the raw state in the JSON result. |
-
-```bash
-bun harness.ts run:status --run .olt/capsules/<run-id>
-```
-
 ### `run:complete`
 
 Seal the capsule after verifying every completion artifact.

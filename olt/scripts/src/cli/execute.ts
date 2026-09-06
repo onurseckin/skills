@@ -108,17 +108,6 @@ function assertAuthorityBoundTargets(spec: CommandSpec, flags: Record<string, un
   }
 }
 
-const RETIRED_COMMANDS: ReadonlyMap<string, string> = new Map([
-  [
-    "run:status",
-    "[RETIRED_COMMAND] 'run:status' has been retired. Use 'bun harness.ts report' or 'bun harness.ts report:dag' instead.",
-  ],
-  [
-    "dag",
-    "[RETIRED_COMMAND] 'dag' has been retired. Use 'bun harness.ts report:dag' or 'bun harness.ts dag:check' instead.",
-  ],
-]);
-
 export async function execute(
   argv: readonly string[],
   context: CommandContext = {},
@@ -133,15 +122,12 @@ export async function execute(
     effectiveArgv[1] !== "--"
   ) {
     const subCandidate = `${effectiveArgv[0]}:${effectiveArgv[1]}`;
-    if (findCommand(subCandidate) !== undefined || RETIRED_COMMANDS.has(subCandidate)) {
+    if (findCommand(subCandidate) !== undefined) {
       effectiveArgv = [subCandidate, ...effectiveArgv.slice(2)];
     }
   }
 
   const cmdName = effectiveArgv[0] ?? "";
-  const retiredMsg = RETIRED_COMMANDS.get(cmdName);
-  if (retiredMsg) throw new HarnessError("INVALID_ARGUMENT", retiredMsg);
-
   const spec = findCommand(cmdName);
   const parsed = parseArguments(
     effectiveArgv,
