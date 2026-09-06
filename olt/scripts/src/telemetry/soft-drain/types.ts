@@ -14,6 +14,17 @@ export interface SoftExitExecutionParams {
   readonly runRoot: string;
   readonly repoRoot: string;
   readonly lowestQuota: number;
+  readonly refreshHandoffFn?: ((runRoot: string) => string | undefined) | undefined;
+  readonly gitRunner?:
+    | ((
+        cwd: string,
+        argv: readonly string[],
+      ) => {
+        status: number;
+        stdout: string;
+        stderr: string;
+      })
+    | undefined;
 }
 
 export interface SoftExitExecutionResult {

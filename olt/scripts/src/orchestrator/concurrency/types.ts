@@ -10,6 +10,7 @@ export interface BrentDecompositionOptions {
   readonly scopeFiles?: readonly string[] | undefined;
   readonly parentTaskId?: string | undefined;
   readonly targetDurationSeconds?: number | undefined;
+  readonly quotaPercentage?: number | undefined;
 }
 
 export interface RebalanceStragglerOptions {

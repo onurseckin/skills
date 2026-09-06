@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { throttleConcurrency } from "../../telemetry/soft-drain/index.ts";
 import { partitionScopeDisjoint } from "./scope-partition.ts";
 import type { BrentConcurrencyPlan, BrentDecompositionOptions, BrentPartition } from "./types.ts";
 
@@ -8,13 +9,14 @@ export const DEFAULT_TARGET_DURATION_SECONDS = 180; // 3 minutes (within 120s - 
 
 /**
  * Computes optimal Brent dynamic concurrency: P = ceil(W / S)
- * bounded by [minParallelism, maxParallelism].
+ * bounded by [minParallelism, maxParallelism], throttled to 1 if quota constrained.
  */
 export function calculateBrentConcurrency(
   workUnits: number,
   spanLength = 1,
   minParallelism = DEFAULT_MIN_PARALLELISM,
   maxParallelism = DEFAULT_MAX_PARALLELISM,
+  quotaPercentage?: number,
 ): number {
   const w = Math.max(0, workUnits);
   const s = Math.max(1, spanLength);
@@ -23,11 +25,16 @@ export function calculateBrentConcurrency(
 
   const theoreticalP = Math.ceil(w / s);
 
-  if (w < minParallelism) {
-    return Math.max(1, Math.min(w, theoreticalP));
+  let p =
+    w < minParallelism
+      ? Math.max(1, Math.min(w, theoreticalP))
+      : Math.min(maxParallelism, Math.max(minParallelism, theoreticalP));
+
+  if (quotaPercentage !== undefined) {
+    p = throttleConcurrency(p, quotaPercentage);
   }
 
-  return Math.min(maxParallelism, Math.max(minParallelism, theoreticalP));
+  return p;
 }
 
 /**
@@ -39,6 +46,7 @@ export function calculateDynamicWaveCapacity(
   options?: {
     readonly minParallelism?: number | undefined;
     readonly maxParallelism?: number | undefined;
+    readonly quotaPercentage?: number | undefined;
   },
 ): number {
   const totalEffort = tasks.reduce((sum, t) => {
@@ -50,7 +58,7 @@ export function calculateDynamicWaveCapacity(
   const minP = options?.minParallelism ?? DEFAULT_MIN_PARALLELISM;
   const maxP = options?.maxParallelism ?? DEFAULT_MAX_PARALLELISM;
 
-  return calculateBrentConcurrency(totalEffort, span, minP, maxP);
+  return calculateBrentConcurrency(totalEffort, span, minP, maxP, options?.quotaPercentage);
 }
 
 /**
@@ -65,7 +73,13 @@ export function calculateBrentDecomposition(
   const maxP = options.maxParallelism ?? DEFAULT_MAX_PARALLELISM;
   const targetDuration = options.targetDurationSeconds ?? DEFAULT_TARGET_DURATION_SECONDS;
 
-  const optimalParallelism = calculateBrentConcurrency(workUnits, spanLength, minP, maxP);
+  const optimalParallelism = calculateBrentConcurrency(
+    workUnits,
+    spanLength,
+    minP,
+    maxP,
+    options.quotaPercentage,
+  );
 
   const scopeFiles = options.scopeFiles ?? [];
   const parentId = options.parentTaskId ?? "task";

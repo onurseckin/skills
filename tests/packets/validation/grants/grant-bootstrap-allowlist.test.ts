@@ -32,13 +32,16 @@ describe("grant bootstrap allowlist data", () => {
     expect([...CONTEXT_FREE_DIAGNOSTIC_COMMANDS].sort()).toEqual(
       [
         "agent:brief",
-        "dag",
         "doctor",
+        "doctor:agent",
         "explain",
         "health",
-
         "mind:audit:live",
         "role:cheat-sheet",
+        "sentinel:post-action",
+        "sentinel:pre-action",
+        "sentinel:turn-end",
+        "sentinel:watch",
         "skill:audit:live",
         "task:check",
         "whoami",
@@ -129,6 +132,6 @@ describe("declaresRunIdentityFlag: the structural hole 1 predicate", () => {
     const commandsWithNoRunFlag = COMMAND_REGISTRY.filter(
       (candidate) => !declaresRunIdentityFlag(candidate),
     );
-    expect(commandsWithNoRunFlag.length).toBe(55);
+    expect(commandsWithNoRunFlag.length).toBe(57);
   });
 });

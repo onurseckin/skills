@@ -1,23 +1,21 @@
-import { existsSync, readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import type { JsonObject, JsonValue } from "../../core/contracts/index.ts";
+import type { JsonObject } from "../../core/contracts/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
-import { parseCharter } from "../../mind/lifecycle/charter/index.ts";
 import {
   evaluateAdmissionGates,
+  resolveCharterContext,
   type AdmissionGateVerdict,
   type CandidateRecord,
 } from "../../mind/proposals/gates/index.ts";
-import { loadRun } from "../../engine/store/index.ts";
-import { transact } from "../../engine/store/index.ts";
 import {
   VALID_PROPOSAL_TRANSITIONS,
   type ProposalStatus,
 } from "../../mind/proposals/proposal/index.ts";
+import { loadRun, transact } from "../../engine/store/index.ts";
 import { findGrant, readAgentLedger } from "../../workflow/agents/ledger.ts";
-import { enforceLineLimit } from "../formatters/line-limiter.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";
+import { enforceLineLimit } from "../formatters/index.ts";
 import { textFlag, type CommandContext, type Flags } from "../options.ts";
+import { canAdmitTask } from "../../telemetry/soft-drain/index.ts";
 
 export interface MindAdmitResult {
   markdown: string;
@@ -46,65 +44,18 @@ export function formatMindAdmitBrief(params: {
     `- **Admitted At**: \`${params.admittedAt}\``,
     `- **Falsifier Exit**: ${params.falsifierExitObserved ?? "n/a"}`,
     `- **Gates Evaluated**: 6/6 passed`,
+    ...params.verdicts.map((v) => `  - Gate ${v.gateNumber} (${v.name}): PASSED`),
   ];
-  for (const v of params.verdicts) {
-    lines.push(`  - Gate ${v.gateNumber} (${v.name}): PASSED`);
-  }
   return enforceLineLimit(lines.join("\n"), 30);
 }
 
-function resolveCharterContext(
-  state: Record<string, unknown>,
-  repoRoot: string,
-): {
-  goals: ReadonlySet<string>;
-  nonGoals: readonly string[];
-  repoRoots: readonly string[];
-} {
-  const mindState = (state.mind ?? {}) as Record<string, unknown>;
-  const charterRecord = (mindState.charter ?? {}) as Record<string, unknown>;
-
-  // 1. Try reading from charter file on disk
-  const charterRel =
-    typeof charterRecord.source_path === "string"
-      ? charterRecord.source_path
-      : "olt/agents/mind.yaml";
-  const charterFullPath = resolve(repoRoot, charterRel);
-
-  if (existsSync(charterFullPath)) {
-    try {
-      const charterText = readFileSync(charterFullPath, "utf-8");
-      const parsed = parseCharter(charterText);
-      return {
-        goals: new Set(parsed.goalIds),
-        nonGoals: parsed.nonGoals,
-        repoRoots: parsed.repoRoots,
-      };
-    } catch {
-      // ignore parse error and fallback to state
-    }
-  }
-
-  // 2. Fallback to state.mind.charter
-  const goalsFromState = Array.isArray(charterRecord.goals)
-    ? (charterRecord.goals as readonly (string | { id?: string })[]).map((g) =>
-        typeof g === "string" ? g : typeof g?.id === "string" ? g.id : "G1",
-      )
-    : ["G1"];
-
-  const nonGoalsFromState = Array.isArray(charterRecord.non_goals)
-    ? (charterRecord.non_goals as readonly string[])
-    : [];
-
-  const repoRootsFromState = Array.isArray(charterRecord.repo_roots)
-    ? (charterRecord.repo_roots as readonly string[])
-    : ["."];
-
-  return {
-    goals: new Set(goalsFromState),
-    nonGoals: nonGoalsFromState,
-    repoRoots: repoRootsFromState,
-  };
+function canDeclineFromStatus(status: string | undefined): boolean {
+  if (status === undefined) return true;
+  const key = status === "open" ? "opened" : status;
+  return (
+    !Object.hasOwn(VALID_PROPOSAL_TRANSITIONS, key) ||
+    VALID_PROPOSAL_TRANSITIONS[key as ProposalStatus].includes("declined")
+  );
 }
 
 export function mindAdmitCommand(flags: Flags, _context?: CommandContext): Record<string, unknown> {
@@ -142,6 +93,25 @@ export function mindAdmitCommand(flags: Flags, _context?: CommandContext): Recor
       "INVALID_STATE",
       `mind is halted (${haltReason}); cannot admit candidate. Outcome: halted.`,
     );
+  }
+
+  // Quota check: halt admission if quota <= 15%
+  const quotaFlag = textFlag(flags, "quota", false) ?? textFlag(flags, "quota-percentage", false);
+  const admissionQuota =
+    quotaFlag !== undefined
+      ? Number(quotaFlag)
+      : typeof (state.telemetry as Record<string, unknown> | undefined)?.lowest_quota === "number"
+        ? ((state.telemetry as Record<string, unknown>).lowest_quota as number)
+        : null;
+
+  if (admissionQuota !== null && Number.isFinite(admissionQuota)) {
+    const decision = canAdmitTask(admissionQuota);
+    if (!decision.allowed) {
+      throw new HarnessError(
+        "INVALID_STATE",
+        `admission halted due to quota constraints: ${decision.reason}`,
+      );
+    }
   }
 
   // 3. Pulse open check
@@ -258,29 +228,6 @@ export function mindAdmitCommand(flags: Flags, _context?: CommandContext): Recor
   };
 }
 
-// mind-candidate.ts writes the initial status as "open" while the declared state
-// machine's initial key is "opened" (mind/proposal.ts); normalise at this boundary
-// rather than editing the writer, which is out of scope here.
-function toProposalStatusKey(status: string): string {
-  return status === "open" ? "opened" : status;
-}
-
-function isKnownProposalStatus(status: string): status is ProposalStatus {
-  return Object.hasOwn(VALID_PROPOSAL_TRANSITIONS, status);
-}
-
-// A candidate can be declined iff its current status is unknown to the declared
-// state machine (fail open: refusing by default is what wedged the queue at
-// "open" forever) or the status is known and its declared successor set names
-// "declined" as reachable. Only "completed" and "declined" have an empty
-// successor set, so those are the only two statuses this refuses.
-function canDeclineFromStatus(status: string | undefined): boolean {
-  if (status === undefined) return true;
-  const key = toProposalStatusKey(status);
-  if (!isKnownProposalStatus(key)) return true;
-  return VALID_PROPOSAL_TRANSITIONS[key].includes("declined");
-}
-
 export async function mindDeclineCommand(
   flags: Flags,
   _context?: CommandContext,
@@ -341,12 +288,5 @@ export async function mindDeclineCommand(
   );
 
   const markdown = `### Candidate Declined: \`${candidateId}\`\n- **Actor**: \`${actor}\`\n- **Reason**: ${reason}\n`;
-
-  return {
-    markdown,
-    run_root: loaded.runRoot,
-    candidate_id: candidateId,
-    actor,
-    reason,
-  };
+  return { markdown, run_root: loaded.runRoot, candidate_id: candidateId, actor, reason };
 }

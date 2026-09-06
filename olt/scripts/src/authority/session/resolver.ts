@@ -78,17 +78,40 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
       isAbsolute(trimmed) || isInsideCapsule(trimmed)
         ? resolve(trimmed)
         : join(resolveCapsulesDir(repoRoot), trimmed);
-    const runtimeSessionPath = join(
-      resolvedRunRoot,
-      "runtime",
-      "sessions",
-      `${options.explicitActor.trim()}.json`,
-    );
-    const parsed = readPersistedSession(
+    const actorTrimmed = options.explicitActor.trim();
+    let runtimeSessionPath = join(resolvedRunRoot, "runtime", "sessions", `${actorTrimmed}.json`);
+    let parsed = readPersistedSession(
       runtimeSessionPath,
       "capsule_runtime_session",
       readSessionFile,
     );
+    if (!parsed && existsSync(join(resolvedRunRoot, "state.json"))) {
+      try {
+        const ledger = readAgentLedger(loadRun(resolvedRunRoot, false).state);
+        const activeEntry = ledger.find(
+          (entry) =>
+            entry.status === "active" &&
+            (entry.id === actorTrimmed ||
+              entry.role === actorTrimmed ||
+              agentIdToRole(entry.id) === actorTrimmed),
+        );
+        if (activeEntry) {
+          runtimeSessionPath = join(
+            resolvedRunRoot,
+            "runtime",
+            "sessions",
+            `${activeEntry.id}.json`,
+          );
+          parsed = readPersistedSession(
+            runtimeSessionPath,
+            "capsule_runtime_session",
+            readSessionFile,
+          );
+        }
+      } catch {
+        // ignore errors
+      }
+    }
     if (parsed) {
       mechanisms.push("capsule_runtime_session");
       applyParsed(parsed);

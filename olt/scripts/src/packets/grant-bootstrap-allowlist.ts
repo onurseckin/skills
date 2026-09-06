@@ -19,7 +19,6 @@ export const CONTEXT_FREE_DIAGNOSTIC_COMMANDS: ReadonlySet<string> = new Set([
   "task:check",
   "skill:audit:live",
   "mind:audit:live",
-  "dag",
   "doctor:agent",
   "sentinel:pre-action",
   "sentinel:post-action",
@@ -34,12 +33,22 @@ export const PRE_COMPILE_PLAN_CONSTRUCTION_COMMANDS: ReadonlySet<string> = new S
   "plan:compile",
 ]);
 
+export const QUOTA_FREEZE_COMMANDS: ReadonlySet<string> = new Set([
+  "freeze",
+  "quota:freeze",
+  "orchestrator:freeze",
+]);
+
 export const GRANT_BOOTSTRAP_ALLOWLIST: ReadonlySet<string> = new Set([
   ...CAPSULE_GENESIS_COMMANDS,
   ...GRANT_GENESIS_COMMANDS,
   ...CONTEXT_FREE_DIAGNOSTIC_COMMANDS,
   ...PRE_COMPILE_PLAN_CONSTRUCTION_COMMANDS,
 ]);
+
+export function isQuotaFreezeExempt(spec: CommandSpec): boolean {
+  return [spec.name, ...spec.aliases].some((invocation) => QUOTA_FREEZE_COMMANDS.has(invocation));
+}
 
 export function isGrantBootstrapExempt(spec: CommandSpec): boolean {
   return [spec.name, ...spec.aliases].some((invocation) =>

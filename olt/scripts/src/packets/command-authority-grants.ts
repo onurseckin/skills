@@ -159,7 +159,12 @@ export function assertGrantedCommand(
     );
   }
   const claim = explicitActingClaim(spec, flags);
-  if (caller !== undefined && claim !== undefined && claim !== caller.actor) {
+  if (
+    caller !== undefined &&
+    claim !== undefined &&
+    claim !== caller.actor &&
+    claim !== caller.role
+  ) {
     throw new HarnessError(
       "AUTHENTICATION_FAILURE",
       `explicit acting identity '${claim}' does not match authenticated caller '${caller.actor}'`,

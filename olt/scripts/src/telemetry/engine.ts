@@ -22,6 +22,7 @@ import {
   renderProgressBar,
 } from "./engine-formatting.ts";
 import { TokenReservoir, type ReservoirStatus } from "./token-reservoir.ts";
+import { reconcileNormalizedMetrics } from "./reconciliation/index.ts";
 
 export {
   formatAsciiReport,
@@ -197,6 +198,9 @@ export class TelemetryNormalizationEngine {
       }
     }
 
+    const allMetrics = results.flatMap((r) => r.metrics);
+    const reconciliation = reconcileNormalizedMetrics(allMetrics);
+
     const reservoirStatus = this.reservoir.getStatus();
     const effectiveQuota = this.reservoir.calculateEffectiveQuota(
       lowestRemainingQuota,
@@ -209,6 +213,9 @@ export class TelemetryNormalizationEngine {
       lowestRemainingQuota,
       effectiveRemainingQuota: effectiveQuota,
       tokenReservoir: reservoirStatus,
+      reconciliation,
+      bindingConstraint: reconciliation.bindingConstraint,
+      reconciledQuota: reconciliation.effectiveQuota,
       activeHost,
       activePlatformId: hostDetection.primaryPlatformId,
       activeHostSignal: hostDetection.signal,

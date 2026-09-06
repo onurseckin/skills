@@ -1,6 +1,6 @@
+import { spawnSync } from "node:child_process";
+import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { refreshHandoff } from "../../reporting/index.ts";
-import { runGit } from "../../workflow/index.ts";
 import {
   DEFAULT_SOFT_DRAIN_THRESHOLD,
   type SoftExitExecutionParams,
@@ -53,28 +53,58 @@ export function throttleConcurrency(
   return currentP;
 }
 
+function runGitLocal(
+  cwd: string,
+  argv: readonly string[],
+): { status: number; stdout: string; stderr: string } {
+  try {
+    const res = spawnSync("git", argv as string[], { cwd, encoding: "utf-8" });
+    return {
+      status: res.status ?? -1,
+      stdout: res.stdout ?? "",
+      stderr: res.stderr ?? "",
+    };
+  } catch (err) {
+    return {
+      status: -1,
+      stdout: "",
+      stderr: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
 export async function executeGracefulSoftExit(
   params: SoftExitExecutionParams,
 ): Promise<SoftExitExecutionResult> {
-  const { runRoot, repoRoot, lowestQuota } = params;
-  let handoffPath = "";
+  const { runRoot, repoRoot, lowestQuota, refreshHandoffFn, gitRunner } = params;
+  const runner = gitRunner ?? runGitLocal;
+  const handoffPath = join(runRoot, "handoff.md");
+
   try {
-    handoffPath = refreshHandoff(runRoot) ?? join(runRoot, "handoff.md");
+    if (typeof refreshHandoffFn === "function") {
+      refreshHandoffFn(runRoot);
+    } else if (!existsSync(handoffPath)) {
+      writeFileSync(
+        handoffPath,
+        `# Harness handoff\n\nFrozen due to low quota (${lowestQuota}% remaining).\n`,
+        "utf-8",
+      );
+    }
   } catch {
-    handoffPath = join(runRoot, "handoff.md");
+    // best-effort handoff refresh
   }
 
   try {
     const commitMsg = `chore(freeze): graceful soft exit at ${lowestQuota}% quota [skip ci]`;
-    const addRes = runGit(repoRoot, ["add", "-A"]);
+    const addRes = runner(repoRoot, ["add", "-A"]);
     if (addRes.status !== 0) {
       return {
         handoffPath,
         error: `git add failed: ${addRes.stderr}`,
       };
     }
-    const commitRes = runGit(repoRoot, ["commit", "-m", commitMsg]);
-    const revParse = runGit(repoRoot, ["rev-parse", "HEAD"]);
+    const commitRes = runner(repoRoot, ["commit", "-m", commitMsg]);
+    const revParse = runner(repoRoot, ["rev-parse", "HEAD"]);
     const stagedCommitSha = revParse.status === 0 ? revParse.stdout.trim() : undefined;
     return {
       handoffPath,

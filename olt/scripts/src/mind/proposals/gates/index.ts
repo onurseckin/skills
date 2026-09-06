@@ -24,3 +24,5 @@ export {
 export { evaluateGate5Affordable, evaluateGate6NotADuplicate } from "./table.ts";
 
 export { evaluateAdmissionGates } from "./formatter.ts";
+
+export { resolveCharterContext, type CharterContext } from "./context.ts";

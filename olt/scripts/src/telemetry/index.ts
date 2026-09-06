@@ -83,3 +83,41 @@ export {
 
 export { injectTraceEnvironment, resolveTraceContext, type TraceContext } from "./trace-context.ts";
 export { type ReservoirLease, type ReserveLeaseOptions } from "./token-reservoir.ts";
+
+export {
+  assertRemainingQuotaSemantics,
+  isRemainingQuotaSemanticsValid,
+  normalizeRemainingQuota,
+  usageToRemainingHeadroom,
+} from "./semantics.ts";
+
+export {
+  DEFAULT_SOFT_DRAIN_THRESHOLD,
+  canAdmitTask,
+  canSpawnSubagent,
+  executeGracefulSoftExit,
+  isSoftDrainActive,
+  throttleConcurrency,
+  type SoftDrainStatus,
+  type SoftExitExecutionParams,
+  type SoftExitExecutionResult,
+  type SubagentSpawnDecision,
+  type TaskAdmissionDecision,
+} from "./soft-drain/index.ts";
+
+export {
+  classifyMetricCategory,
+  classifyMetricSources,
+  reconcileNormalizedMetrics,
+  reconcileQuotaSources,
+  type MetricSourceClassification,
+  type QuotaBindingConstraint,
+  type QuotaMetricCategory,
+  type QuotaReconciliationResult,
+} from "./reconciliation/index.ts";
+
+export {
+  DEFECT_ID as DEFECT_CLI_1788705566952_J272AM_ID,
+  validateDefectPreconditions as validateDefectPreconditions1788705566952,
+  verifyDefectRemediation as verifyDefectRemediation1788705566952,
+} from "./defect-cli-1788705566952-j272am.ts";

@@ -61,6 +61,9 @@ export const GRANT_REQUIRED_ROLE_CONTRACT_EXEMPT_COMMANDS: ReadonlySet<string> =
   "authority:decide",
   "run:complete",
   "gate:prove",
+  "freeze",
+  "quota:freeze",
+  "orchestrator:freeze",
 ]);
 
 export function actsOnOwnGrant(spec: CommandSpec, flags: Flags, caller: string): boolean {
