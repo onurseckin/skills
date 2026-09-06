@@ -17,12 +17,16 @@ const SUPERVISOR_ROLES = new Set([
 ]);
 const IMPLEMENTER_ROLES = new Set(["implementer", "developer", "coder", "repairer"]);
 
-const CODE_EDIT_TOOLS = new Set([
+export const CODE_EDIT_TOOLS = new Set([
   "write_to_file",
   "replace_file_content",
   "edit_file",
   "apply_diff",
   "patch_file",
+  "run_command",
+  "execute_command",
+  "shell",
+  "exec",
 ]);
 
 const PLANNING_MUTATION_EVENTS = new Set([
@@ -103,6 +107,7 @@ export function checkRoleBoundaryInterlock(
     if (!agentId) return "";
     if (agentRoleMap.has(agentId)) return agentRoleMap.get(agentId)!;
     const lower = agentId.toLowerCase();
+    if (lower.startsWith("user") || lower.startsWith("human")) return "user";
     if (lower.startsWith("orch") || lower.startsWith("orchestrator")) return "orchestrator";
     if (lower.startsWith("coord") || lower.startsWith("coordinator")) return "coordinator";
     if (lower.startsWith("impl") || lower.startsWith("implementer")) return "implementer";

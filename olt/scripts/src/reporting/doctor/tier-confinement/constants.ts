@@ -201,6 +201,7 @@ export function inferRole(
     }
   }
 
+  if (/^(user|human)/i.test(actorId)) return "user";
   if (/^coord/i.test(actorId)) return "coordinator";
   if (/^orch/i.test(actorId)) return "orchestrator";
   if (/^(impl|repair|worker)/i.test(actorId)) return "implementer";

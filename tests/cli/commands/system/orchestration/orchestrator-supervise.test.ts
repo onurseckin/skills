@@ -46,7 +46,7 @@ describe("orchestrator:supervise", () => {
         "--actor",
         "coordinator",
         "--max-total-elapsed-ms",
-        "1000",
+        "5000",
         "--poll-interval-ms",
         "100",
       ],

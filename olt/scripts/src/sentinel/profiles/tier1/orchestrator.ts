@@ -5,7 +5,7 @@ export const orchestratorProfile: RoleDiagnosticProfile = {
   role: "orchestrator",
   tier: 1,
   can_edit: false,
-  can_execute_shell: true,
+  can_execute_shell: false,
   evaluate: (context: EvaluationContext): readonly SentinelViolation[] => {
     const violations: SentinelViolation[] = [];
 
@@ -28,6 +28,17 @@ export const orchestratorProfile: RoleDiagnosticProfile = {
           documentation_ref: "docs/blueprints/agent-scoped-live-sentinel-profiles.md#section-31",
         });
       }
+    }
+
+    if (context.executed_commands && context.executed_commands.length > 0) {
+      violations.push({
+        code: "ORCHESTRATOR_SHELL_EXECUTION_VIOLATION",
+        severity: "CRITICAL",
+        message:
+          "Tier 1 Orchestrator must not execute shell commands; dispatch via Tier 2 Coordinator.",
+        remediation_cmd: "bun harness.ts task:brief --role coordinator",
+        documentation_ref: "docs/blueprints/agent-scoped-live-sentinel-profiles.md#section-31",
+      });
     }
 
     const candidateRoles: string[] = [];
