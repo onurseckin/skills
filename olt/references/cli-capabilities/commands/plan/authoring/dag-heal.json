@@ -1,16 +1,9 @@
 {
-  "name": "shell",
+  "name": "dag:heal",
   "aliases": [],
-  "domain": "run",
-  "summary": "Execute direct non-interactive CLI commands under mechanical RBAC policy with signed evidence.",
+  "domain": "plan",
+  "summary": "Dynamic wave decoupling, dependency healing, automated feedback arc set cycle recovery under flock protection.",
   "flags": [
-    {
-      "name": "actor",
-      "type": "string",
-      "required": true,
-      "repeatable": false,
-      "default": null
-    },
     {
       "name": "run",
       "type": "string",
@@ -26,41 +19,34 @@
       "default": null
     },
     {
-      "name": "task",
+      "name": "repo",
       "type": "string",
       "required": false,
       "repeatable": false,
-      "default": null
+      "default": "."
     },
     {
-      "name": "gate",
+      "name": "mode",
       "type": "string",
       "required": false,
       "repeatable": false,
-      "default": null
+      "default": "prune"
     },
     {
-      "name": "cwd",
-      "type": "string",
+      "name": "dry-run",
+      "type": "bool",
       "required": false,
       "repeatable": false,
-      "default": null
+      "default": false
     },
     {
-      "name": "role",
-      "type": "string",
-      "required": false,
-      "repeatable": false,
-      "default": null
-    },
-    {
-      "name": "write-scope",
-      "type": "string",
+      "name": "json",
+      "type": "bool",
       "required": false,
       "repeatable": false,
       "default": null
     }
   ],
   "reads_stdin": false,
-  "takes_remainder": true
+  "takes_remainder": false
 }

@@ -49,7 +49,9 @@ function safeRunEngine(name: string, fn: () => DoctorCheckEngineResult): DoctorC
           severity: "ERROR",
           engine: name,
           message: `Engine fault in ${name}: ${err instanceof Error ? err.message : String(err)}`,
-          details: { error: err instanceof Error ? (err.stack ?? err.message) : String(err) },
+          details: {
+            error: err instanceof Error ? (err.stack ?? err.message) : String(err),
+          },
         },
       ],
     };
@@ -158,8 +160,13 @@ export function collectDiagnosticEngines(
     };
   });
 
+  const activeAgentIds = Array.isArray(state?.agents)
+    ? (state.agents as readonly unknown[])
+        .map((a: any) => (typeof a === "string" ? a : (a?.id ?? a?.agentId)))
+        .filter(Boolean)
+    : undefined;
   const engine12 = safeRunEngine("checkMailboxHealth", () =>
-    checkMailboxHealth({ repoRoot: repository }),
+    checkMailboxHealth({ repoRoot: repository, activeAgentIds, state }),
   );
 
   const engine13 = safeRunEngine("checkWorktreeHealth", () => {

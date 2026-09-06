@@ -95,6 +95,7 @@ Validates actor role capabilities against repository policy (blocking un-targete
 | `--gate` | string | no | no | - | Gate id proven by this command. |
 | `--cwd` | string | no | no | - | Working directory for the execution. |
 | `--role` | string | no | no | - | Explicit role override if actor metadata is not initialized on disk. |
+| `--write-scope` | string | no | no | - | Leased write scope paths for file mutation validation. |
 
 ```bash
 bun harness.ts shell --actor imp-1 -- bun test tests/unit/auth.test.ts

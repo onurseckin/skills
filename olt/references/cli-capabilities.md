@@ -30,7 +30,7 @@ own status in `exit_code`.
 
 | Domain | Commands | Detail |
 | :--- | :--- | :--- |
-| plan | 13 | [cli-capabilities/domains/plan.md](cli-capabilities/domains/plan.md) |
+| plan | 15 | [cli-capabilities/domains/plan.md](cli-capabilities/domains/plan.md) |
 | queue | 9 | [cli-capabilities/domains/queue.md](cli-capabilities/domains/queue.md) |
 | task | 19 | [cli-capabilities/domains/task.md](cli-capabilities/domains/task.md) |
 | reporting | 17 | [cli-capabilities/domains/reporting.md](cli-capabilities/domains/reporting.md) |
@@ -73,6 +73,8 @@ own status in `exit_code`.
 | `plan:claim` | plan | Issue a planner's role packet: the sole way a planner agent gets its contract. |
 | `plan:apply` | plan | Validate and commit the requirements and graph the planner wrote to planning/. |
 | `plan:status` | plan | Show the planning buffer or the compiled plan summary. |
+| `dag:check` | plan | Tarjan SCC cycle detection, scope overlap audits, Brent work/span analysis, and serialization edge audits. |
+| `dag:heal` | plan | Dynamic wave decoupling, dependency healing, automated feedback arc set cycle recovery under flock protection. |
 | `queue:next` | queue | Show the highest-priority ready task without claiming it. |
 | `queue:list` | queue | Partition every task by queue status. |
 | `queue:wave` | queue | Show every task claimable right now, ranked by critical depth — for display only. |

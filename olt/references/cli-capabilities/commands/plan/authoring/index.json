@@ -29,6 +29,14 @@
     {
       "id": "plan:status",
       "path": "plan-status.json"
+    },
+    {
+      "id": "dag:check",
+      "path": "dag-check.json"
+    },
+    {
+      "id": "dag:heal",
+      "path": "dag-heal.json"
     }
   ]
 }

@@ -4,6 +4,7 @@ import { BRANCH_COMMANDS } from "./branch.ts";
 import { CAPTURE_COMMANDS } from "./capture.ts";
 import { COORDINATOR_COMMANDS } from "./coordinator.ts";
 import { CRITIC_COMMANDS } from "./critic.ts";
+import { DAG_COMMANDS } from "./dag.ts";
 import { DEFECT_COMMANDS } from "./defect.ts";
 import { DIAGNOSTICS_COMMANDS } from "./diagnostics.ts";
 import { EXPLAIN_COMMANDS } from "./explain.ts";
@@ -85,6 +86,7 @@ export { BRANCH_COMMANDS } from "./branch.ts";
 export { CAPTURE_COMMANDS } from "./capture.ts";
 export { COORDINATOR_COMMANDS } from "./coordinator.ts";
 export { CRITIC_COMMANDS } from "./critic.ts";
+export { DAG_COMMANDS } from "./dag.ts";
 export { DEFECT_COMMANDS } from "./defect.ts";
 export { DIAGNOSTICS_COMMANDS } from "./diagnostics.ts";
 export { EXPLAIN_COMMANDS } from "./explain.ts";
@@ -112,6 +114,7 @@ export { WORKFLOW_COMMANDS, WORKTREE_COMMANDS } from "./workflow.ts";
 
 export const COMMAND_REGISTRY: readonly CommandSpec[] = [
   ...PLAN_COMMANDS,
+  ...DAG_COMMANDS,
   ...QUEUE_COMMANDS,
   ...TASK_COMMANDS,
   ...REPORTING_COMMANDS,

@@ -182,3 +182,52 @@ Reports every buffered task with its scope, gate and dependencies.
 ```bash
 bun harness.ts plan:status --run .olt/capsules/<run-id>
 ```
+
+### `dag:check`
+
+Tarjan SCC cycle detection, scope overlap audits, Brent work/span analysis, and serialization edge audits.
+
+Audits the DAG structure using Tarjan SCC for cycle detection, evaluates scope overlap conflicts across concurrent tasks, computes Brent work/span metrics (P = ceil(W/S)), and flags artificial serialization edges.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | no | no | - | Capsule run root. Defaults to current repository .olt/capsules/ when omitted. |
+| `--run-id` | string | no | no | - | Alias of --run. |
+| `--repo` | string | no | no | `.` | Repository root to search for .olt/capsules/. |
+| `--detailed` | bool | no | no | - | Detailed audit outputs including cycle paths and scope conflict details. |
+| `--json` | bool | no | no | - | Output structured JSON report. |
+
+```bash
+bun harness.ts dag:check
+bun harness.ts dag:check --run .olt/capsules/<run-id>
+bun harness.ts dag:check --detailed
+```
+
+### `dag:heal`
+
+Dynamic wave decoupling, dependency healing, automated feedback arc set cycle recovery under flock protection.
+
+Recovers corrupted or cyclic DAGs under exclusive flock protection: prunes or inverts feedback back-edges, removes dangling or self-referential dependencies, and computes safe decoupled topological execution waves.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | no | no | - | Capsule run root. Defaults to current repository .olt/capsules/ when omitted. |
+| `--run-id` | string | no | no | - | Alias of --run. |
+| `--repo` | string | no | no | `.` | Repository root to search for .olt/capsules/. |
+| `--mode` | string | no | no | `prune` | Healing mode: prune or invert (default: prune). |
+| `--dry-run` | bool | no | no | `false` | Simulate DAG healing without modifying state. |
+| `--json` | bool | no | no | - | Output structured JSON report. |
+
+```bash
+bun harness.ts dag:heal
+bun harness.ts dag:heal --run .olt/capsules/<run-id>
+bun harness.ts dag:heal --mode invert
+```
