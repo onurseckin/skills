@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { REPORTING_COMMANDS } from "../../../olt/scripts/src/cli/registry/reporting.ts";
+import { REPORTING_COMMANDS } from "../../../olt/scripts/src/cli/registry/index.ts";
 
 describe("Reporting Registry - Standardized Commands & Invariants", () => {
   it("registers report:dag as canonical Sugiyama visualizer and retires root dag", () => {
