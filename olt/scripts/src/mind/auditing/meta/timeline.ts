@@ -2,7 +2,9 @@ import { isJsonObject, safeParseJson } from "./types.ts";
 import { isReadTool, isWriteTool, isPollTool } from "./types.ts";
 import type { ForensicsIncident, ForensicsMetrics, ExtractedToolCall } from "./types.ts";
 import type { RunState, Manifest, HarnessEvent } from "../../../core/contracts/index.ts";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { homedir } from "node:os";
+import { join, resolve } from "node:path";
 export function parseStateFile(filePath: string): RunState | null {
   if (!existsSync(filePath)) return null;
   try {
@@ -244,4 +246,22 @@ export function calculateEfficiencyScore(
   }
 
   return Math.max(0, Math.min(100, Math.round(score * 10) / 10));
+}
+
+export function discoverActiveTranscripts(repoRoot?: string): string[] {
+  const results = new Set<string>();
+  const brainDir = join(homedir() || process.env.HOME || "", ".gemini", "antigravity-cli", "brain");
+  if (existsSync(brainDir)) {
+    try {
+      for (const e of readdirSync(brainDir, { withFileTypes: true })) {
+        const p = join(brainDir, e.name, ".system_generated", "logs", "transcript.jsonl");
+        if (e.isDirectory() && existsSync(p)) results.add(resolve(p));
+      }
+    } catch {}
+  }
+  if (repoRoot) {
+    const local = join(resolve(repoRoot), ".system_generated", "logs", "transcript.jsonl");
+    if (existsSync(local)) results.add(resolve(local));
+  }
+  return [...results];
 }

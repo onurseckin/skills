@@ -1,19 +1,14 @@
-const SKILL_AUDIT_FORENSICS_CATEGORIES: ReadonlySet<RootCauseCategory> = new Set([
-  "TOKEN_BURNING",
-  "FALSE_SERIALIZATION",
-  "ROLE_BOUNDARY_DEVIATION",
-]);
-
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { dispatchPeerMessage } from "../../../communication/mailbox/index.ts";
+import { resolveCapsulesDir } from "../../../core/shared/paths.ts";
+import { SplitChannelDefectRouter } from "../../../reporting/split-channel-defect-router.ts";
 import {
   analyzeRunForensics,
+  discoverActiveTranscripts,
   type ForensicsIncident,
   type RootCauseCategory,
 } from "../meta/index.ts";
-import { resolveCapsulesDir } from "../../../core/shared/paths.ts";
-import { dispatchPeerMessage } from "../../../communication/mailbox/index.ts";
-import { SplitChannelDefectRouter } from "../../../reporting/split-channel-defect-router.ts";
 import { AuditorCursorStore } from "./cursor.ts";
 import type {
   AuditorCursor,
@@ -21,6 +16,16 @@ import type {
   SkillAuditOptions,
   SkillZeroDeltaResult,
 } from "./types.ts";
+export { discoverActiveTranscripts } from "../meta/index.ts";
+
+const SKILL_AUDIT_FORENSICS_CATEGORIES: ReadonlySet<RootCauseCategory> = new Set([
+  "TOKEN_BURNING",
+  "FALSE_SERIALIZATION",
+  "ROLE_BOUNDARY_DEVIATION",
+]);
+const INTERJECT_DIRECTIVE = "HALT_DIRECT_EDITS_AND_DISPATCH_SUBAGENTS";
+const INTERJECT_INSTRUCTIONS =
+  "Halt direct file modifications and serial execution immediately. Coordinators are pure dispatchers (SUPERVISOR_ZERO_CODE_EDITS). You must compile the task plan and dispatch ready tasks to Tier 3 Implementers and Validators in parallel via invoke_subagent.";
 
 export class SkillAuditorEngine {
   public static readonly DEFAULT_CADENCE_INTERVAL_SECONDS = 60;
@@ -28,18 +33,16 @@ export class SkillAuditorEngine {
 
   private static discoverCapsuleRoots(repoRoot: string): string[] {
     const roots = new Set<string>();
-    const addIfCapsule = (p: string): void => {
-      if (existsSync(join(p, "events.jsonl"))) roots.add(resolve(p));
-    };
-    addIfCapsule(repoRoot);
+    if (existsSync(join(repoRoot, "events.jsonl"))) roots.add(resolve(repoRoot));
     for (const d of [resolveCapsulesDir(repoRoot), join(repoRoot, ".capsules")]) {
-      if (existsSync(d)) {
-        try {
-          for (const e of readdirSync(d, { withFileTypes: true })) {
-            if (e.isDirectory()) addIfCapsule(join(d, e.name));
+      if (!existsSync(d)) continue;
+      try {
+        for (const e of readdirSync(d, { withFileTypes: true })) {
+          if (e.isDirectory() && existsSync(join(d, e.name, "events.jsonl"))) {
+            roots.add(resolve(join(d, e.name)));
           }
-        } catch {}
-      }
+        }
+      } catch {}
     }
     return [...roots];
   }
@@ -48,12 +51,12 @@ export class SkillAuditorEngine {
     capsuleRoot: string,
     cursor: AuditorCursor,
     nowIso: string,
+    activeTranscripts?: readonly string[],
   ): { incidents: ForensicsIncident[]; eventsAnalyzed: number; updatedCursor: AuditorCursor } {
     const eventsPath = join(capsuleRoot, "events.jsonl");
     let eventsAnalyzed = 0;
     let maxEventSeq = cursor.lastInspectedEventIndex;
     const hasEvents = existsSync(eventsPath);
-
     if (hasEvents) {
       try {
         const lines = readFileSync(eventsPath, "utf-8")
@@ -67,38 +70,42 @@ export class SkillAuditorEngine {
         }
       } catch {}
     }
-
     const incidents = hasEvents
-      ? analyzeRunForensics({ runRoot: capsuleRoot, inject: false }).incidents.filter((inc) =>
-          SKILL_AUDIT_FORENSICS_CATEGORIES.has(inc.category),
-        )
+      ? analyzeRunForensics({
+          runRoot: capsuleRoot,
+          inject: false,
+          transcripts: activeTranscripts,
+        }).incidents.filter((inc) => SKILL_AUDIT_FORENSICS_CATEGORIES.has(inc.category))
       : [];
-
-    const updatedCursor: AuditorCursor = {
-      lastInspectedTimestamp: nowIso,
-      lastInspectedEventIndex: maxEventSeq,
-      lastAuditTimestamp: nowIso,
+    return {
+      incidents,
+      eventsAnalyzed,
+      updatedCursor: {
+        lastInspectedTimestamp: nowIso,
+        lastInspectedEventIndex: maxEventSeq,
+        lastAuditTimestamp: nowIso,
+      },
     };
-    return { incidents, eventsAnalyzed, updatedCursor };
   }
 
   private static findActiveCoordinatorId(capsuleRoots: string[]): string | undefined {
     for (const root of capsuleRoots) {
       const statePath = join(root, "state.json");
-      if (existsSync(statePath)) {
-        try {
-          const raw = JSON.parse(readFileSync(statePath, "utf-8")) as Record<string, unknown>;
-          if (raw && Array.isArray(raw.agents)) {
-            const coord = raw.agents.find(
-              (a: { id?: string; role?: string; status?: string }) =>
-                a.status === "active" &&
-                typeof a.role === "string" &&
-                a.role.toLowerCase().includes("coordinator"),
-            );
-            if (coord && typeof coord.id === "string") return coord.id;
+      if (!existsSync(statePath)) continue;
+      try {
+        const raw = JSON.parse(readFileSync(statePath, "utf-8")) as {
+          agents?: Array<{ id?: string; role?: string; status?: string }>;
+        };
+        for (const a of raw.agents ?? []) {
+          if (
+            a.status === "active" &&
+            typeof a.id === "string" &&
+            a.role?.toLowerCase().includes("coordinator")
+          ) {
+            return a.id;
           }
-        } catch {}
-      }
+        }
+      } catch {}
     }
     return undefined;
   }
@@ -108,21 +115,11 @@ export class SkillAuditorEngine {
     inc: ForensicsIncident,
     capsuleRoots: string[],
   ): boolean {
-    let rawAgent: string | undefined = inc.agentId ?? inc.agent_id;
-    let target = "coordinator";
-    if (rawAgent && rawAgent.toLowerCase().includes("coord")) {
-      target = rawAgent;
-    } else {
-      const activeCoord = SkillAuditorEngine.findActiveCoordinatorId(capsuleRoots);
-      if (activeCoord) target = activeCoord;
-    }
-
-    const observation = inc.observation ?? inc.description ?? "Direct execution detected";
-    const remediation =
-      inc.remediation ??
-      inc.recommendation ??
-      "Halt direct execution and dispatch subagents via invoke_subagent.";
-
+    const rawAgent = inc.agentId ?? inc.agent_id;
+    const target =
+      rawAgent && rawAgent.toLowerCase().includes("coord")
+        ? rawAgent
+        : (SkillAuditorEngine.findActiveCoordinatorId(capsuleRoots) ?? "coordinator");
     try {
       dispatchPeerMessage({
         senderId: "skill-auditor",
@@ -135,11 +132,13 @@ export class SkillAuditorEngine {
           category: inc.category,
           severity: inc.severity,
           title: inc.title,
-          directive: "HALT_DIRECT_EDITS_AND_DISPATCH_SUBAGENTS",
-          instructions:
-            "Halt direct file modifications and serial execution immediately. Coordinators are pure dispatchers (SUPERVISOR_ZERO_CODE_EDITS). You must compile the task plan and dispatch ready tasks to Tier 3 Implementers and Validators in parallel via invoke_subagent.",
-          observation,
-          remediation,
+          directive: INTERJECT_DIRECTIVE,
+          instructions: INTERJECT_INSTRUCTIONS,
+          observation: inc.observation ?? inc.description ?? "Direct execution detected",
+          remediation:
+            inc.remediation ??
+            inc.recommendation ??
+            "Halt direct execution and dispatch subagents via invoke_subagent.",
         },
         correlationId: inc.id,
         baseDir: repoRoot,
@@ -154,38 +153,32 @@ export class SkillAuditorEngine {
     current: SkillAuditLiveResult,
     previous?: SkillAuditLiveResult | null,
   ): SkillZeroDeltaResult {
+    const eventsDelta = current.eventsAnalyzed;
     if (!previous) {
-      return {
-        isZeroDelta: false,
-        eventsDelta: current.eventsAnalyzed,
+      const counts = {
         incidentsDelta: current.incidents.length,
         defectsDelta: current.defectsLogged,
+      };
+      return {
+        isZeroDelta: false,
+        eventsDelta,
+        ...counts,
         suppressed: false,
         summary: "Initial baseline skill compliance report established.",
       };
     }
-
-    const eventsDelta = current.eventsAnalyzed;
     const incidentsDelta = current.incidents.length - previous.incidents.length;
     const defectsDelta = current.defectsLogged - previous.defectsLogged;
     const isZeroDelta =
-      current.eventsAnalyzed === 0 &&
+      eventsDelta === 0 &&
       current.incidents.length === 0 &&
       previous.incidents.length === 0 &&
       current.compliant === previous.compliant;
-
     const summary = isZeroDelta
       ? "Zero-delta state detected: fleet converged at rest with 0 new events and 0 incidents."
       : `Delta detected: events=${eventsDelta}, incidents=${incidentsDelta > 0 ? `+${incidentsDelta}` : incidentsDelta}, defects=${defectsDelta > 0 ? `+${defectsDelta}` : defectsDelta}.`;
-
-    return {
-      isZeroDelta,
-      eventsDelta,
-      incidentsDelta,
-      defectsDelta,
-      suppressed: isZeroDelta,
-      summary,
-    };
+    const base = { isZeroDelta, eventsDelta, incidentsDelta, defectsDelta };
+    return { ...base, suppressed: isZeroDelta, summary };
   }
 
   public static isZeroDeltaReport(
@@ -200,14 +193,15 @@ export class SkillAuditorEngine {
     previous?: SkillAuditLiveResult | null,
   ): SkillAuditLiveResult {
     const delta = SkillAuditorEngine.compareSkillReportDelta(current, previous);
-    return {
-      ...current,
+    const summary = delta.isZeroDelta
+      ? "Suppressed duplicate zero-delta skill compliance report."
+      : delta.summary;
+    const flags = {
       zero_delta: delta.isZeroDelta,
       suppressed: delta.isZeroDelta,
-      delta_summary: delta.isZeroDelta
-        ? "Suppressed duplicate zero-delta skill compliance report."
-        : delta.summary,
+      delta_summary: summary,
     };
+    return { ...current, ...flags };
   }
 
   public static auditSkillCompliance(
@@ -216,38 +210,35 @@ export class SkillAuditorEngine {
   ): SkillAuditLiveResult {
     const nowIso = options?.now ?? new Date().toISOString();
     const explicitRunRoot = options?.capsuleRunRoot;
-
     const capsuleRoots = explicitRunRoot
       ? [resolve(explicitRunRoot)]
       : SkillAuditorEngine.discoverCapsuleRoots(repoRoot);
-
+    const activeTranscripts = options?.transcripts ?? discoverActiveTranscripts(repoRoot);
     const incidents: ForensicsIncident[] = [];
     let eventsAnalyzed = 0;
     let rollupMaxSeq = -1;
-
     for (const capsuleRoot of capsuleRoots) {
       const scopedCursor =
         options?.cursor !== undefined && explicitRunRoot !== undefined
           ? options.cursor
           : AuditorCursorStore.loadCursor(repoRoot, "skill", capsuleRoot);
-
-      const scan = SkillAuditorEngine.scanCapsuleForIncidents(capsuleRoot, scopedCursor, nowIso);
+      const scan = SkillAuditorEngine.scanCapsuleForIncidents(
+        capsuleRoot,
+        scopedCursor,
+        nowIso,
+        activeTranscripts,
+      );
       incidents.push(...scan.incidents);
       eventsAnalyzed += scan.eventsAnalyzed;
       AuditorCursorStore.saveCursor(repoRoot, "skill", scan.updatedCursor, capsuleRoot);
-      if (scan.updatedCursor.lastInspectedEventIndex > rollupMaxSeq) {
-        rollupMaxSeq = scan.updatedCursor.lastInspectedEventIndex;
-      }
+      rollupMaxSeq = Math.max(rollupMaxSeq, scan.updatedCursor.lastInspectedEventIndex);
     }
-
-    const previousReport = options?.previousReport;
     const rollupCursor: AuditorCursor = {
       lastInspectedTimestamp: nowIso,
       lastInspectedEventIndex: rollupMaxSeq,
       lastAuditTimestamp: nowIso,
     };
     AuditorCursorStore.saveCursor(repoRoot, "skill", rollupCursor);
-
     const candidateResult: SkillAuditLiveResult = {
       compliant: incidents.length === 0,
       incidents,
@@ -257,11 +248,13 @@ export class SkillAuditorEngine {
       eventsAnalyzed,
       timestamp: nowIso,
     };
-
-    const delta = SkillAuditorEngine.compareSkillReportDelta(candidateResult, previousReport);
+    const delta = SkillAuditorEngine.compareSkillReportDelta(
+      candidateResult,
+      options?.previousReport,
+    );
     const shouldSuppress =
-      (options?.suppressZeroDelta === true || previousReport !== undefined) && delta.isZeroDelta;
-
+      (options?.suppressZeroDelta === true || options?.previousReport !== undefined) &&
+      delta.isZeroDelta;
     let defectsLogged = 0;
     if (options?.logDefects !== false && !shouldSuppress) {
       for (const inc of incidents) {
@@ -283,17 +276,17 @@ export class SkillAuditorEngine {
         if (routeResult.routed) defectsLogged++;
       }
     }
-
     let interjectionsSent = 0;
     if (options?.interject !== false && !shouldSuppress) {
       for (const inc of incidents) {
-        if (inc.category === "FALSE_SERIALIZATION" || inc.category === "ROLE_BOUNDARY_DEVIATION") {
-          if (SkillAuditorEngine.dispatchInterjection(repoRoot, inc, capsuleRoots))
-            interjectionsSent++;
+        if (
+          (inc.category === "FALSE_SERIALIZATION" || inc.category === "ROLE_BOUNDARY_DEVIATION") &&
+          SkillAuditorEngine.dispatchInterjection(repoRoot, inc, capsuleRoots)
+        ) {
+          interjectionsSent++;
         }
       }
     }
-
     return {
       ...candidateResult,
       defectsLogged,

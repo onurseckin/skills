@@ -9,7 +9,7 @@ export { AuditorCursorStore } from "./cursor.ts";
 
 export { MindAuditorEngine } from "./engine.ts";
 
-export { SkillAuditorEngine } from "./skill-auditor.ts";
+export { SkillAuditorEngine, discoverActiveTranscripts } from "./skill-auditor.ts";
 
 export {
   CognitiveChallengePromptGenerator,

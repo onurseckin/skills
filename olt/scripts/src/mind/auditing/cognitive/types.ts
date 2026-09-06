@@ -47,6 +47,7 @@ export interface SkillAuditOptions {
   readonly now?: string | undefined;
   readonly previousReport?: SkillAuditLiveResult | null | undefined;
   readonly suppressZeroDelta?: boolean | undefined;
+  readonly transcripts?: readonly string[] | undefined;
 }
 
 export interface SkillZeroDeltaResult {

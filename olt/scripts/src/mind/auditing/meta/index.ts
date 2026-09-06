@@ -39,6 +39,7 @@ export {
   extractToolCallsFromTranscripts,
   extractToolCallsFromEvents,
   calculateEfficiencyScore,
+  discoverActiveTranscripts,
 } from "./timeline.ts";
 
 export {
