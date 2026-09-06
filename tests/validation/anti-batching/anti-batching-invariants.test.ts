@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import {
   validateCriticAntiBatching,
   validateReviewAntiBatching,
@@ -114,9 +114,12 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
 
     describe("8. Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
       it("verifies zero TypeScript any and zero suppressions across all anti-batching pipeline source and test files", () => {
+        const rootDir = existsSync(join(process.cwd(), "package.json"))
+          ? process.cwd()
+          : resolve(import.meta.dir, "../../../");
         const filesToAudit = [
-          join(process.cwd(), "olt/scripts/src/validation/anti-batching.ts"),
-          join(process.cwd(), "tests/validation/anti-batching/anti-batching-pipeline.test.ts"),
+          join(rootDir, "olt/scripts/src/validation/anti-batching.ts"),
+          join(rootDir, "tests/validation/anti-batching/anti-batching-pipeline.test.ts"),
         ];
 
         const anyPattern = new RegExp(":\\s*any\\b|as\\s+any\\b|<any>");

@@ -1,5 +1,6 @@
 import { describe, expect, it, test } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import {
   isCognitiveValidatorRole,
   isMechanicValidatorRole,
@@ -222,8 +223,12 @@ describe("Validator Specialization - Workflow & Invariants", () => {
         ].join("|"),
       );
 
+      const rootDir = existsSync(join(process.cwd(), "package.json"))
+        ? process.cwd()
+        : resolve(import.meta.dir, "../../../../");
+
       for (const relativePath of filesToAudit) {
-        const fullPath = `${process.cwd()}/${relativePath}`;
+        const fullPath = join(rootDir, relativePath);
         expect(existsSync(fullPath)).toBe(true);
         const content = readFileSync(fullPath, "utf-8");
         const lines = content.split("\n");
