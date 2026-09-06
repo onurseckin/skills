@@ -3,76 +3,58 @@ import {
   AntigravityCollector,
   type CollectorEnvironment,
 } from "../../../olt/scripts/src/telemetry/collectors/index.ts";
+import { evaluateCircuitBreaker } from "../../../olt/scripts/src/telemetry/circuit-breaker-evaluator.ts";
 import type { PlatformProbeResult } from "../../../olt/scripts/src/telemetry/types.ts";
 
 describe("AntigravityCollector", () => {
-  it("probes Tier 1 Connect-RPC Language Server successfully with multiple models and user tier", async () => {
-    const env: CollectorEnvironment = {
-      exec: async (cmd, args) => {
-        if (cmd === "lsof" && args.includes("-iTCP")) {
-          return {
+  const mkEnv = (status: Record<string, unknown>): CollectorEnvironment => ({
+    exec: async (cmd, args) =>
+      cmd === "lsof" && args.includes("-iTCP")
+        ? {
             stdout:
               "agy 17163 user 11u IPv4 0x166ae5799056f5b7 0t0 TCP 127.0.0.1:56963 (LISTEN)\n" +
               "agy 17163 user 12u IPv4 0xa123841d0d0af048 0t0 TCP 127.0.0.1:56964 (LISTEN)\n",
             stderr: "",
             exitCode: 0,
-          };
-        }
-        return null;
-      },
-      fetchUserStatus: async (port) => {
-        if (port === "56963") {
-          return {
-            userStatus: {
-              email: "developer@example.com",
-              userTier: {
-                id: "g1-ultra-tier",
-                name: "Google AI Ultra",
-                description: "Google AI Ultra",
-                availableCredits: [
-                  {
-                    creditType: "GOOGLE_ONE_AI",
-                    creditAmount: "2980",
-                    minimumCreditAmountForUsage: "50",
-                  },
-                ],
-              },
-              planStatus: {
-                planInfo: {
-                  planName: "Pro",
-                },
-              },
-              quotaInfo: {
-                remainingFraction: 0.85,
-              },
-              cascadeModelConfigData: {
-                clientModelConfigs: [
-                  {
-                    label: "Gemini 3.7 Flash (High)",
-                    quotaInfo: { remainingFraction: 0.15164408, resetTime: "2026-08-24T14:18:42Z" },
-                    modelId: "gemini-3.7-flash-high",
-                    allowedTiers: ["TEAMS_TIER_PRO"],
-                  },
-                  {
-                    label: "Claude Sonnet 4.6 (Thinking)",
-                    quotaInfo: { remainingFraction: 0.9, resetTime: "2026-08-24T17:49:16Z" },
-                    modelId: "claude-sonnet-4.6",
-                    allowedTiers: ["TEAMS_TIER_PRO"],
-                  },
-                  {
-                    label: "GPT-OSS 120B (Medium)",
-                    quotaInfo: { remainingFraction: 1.0, resetTime: "2026-08-24T17:49:16Z" },
-                    modelId: "gpt-oss-120b",
-                    allowedTiers: ["TEAMS_TIER_PRO"],
-                  },
-                ],
-              },
+          }
+        : null,
+    fetchUserStatus: async (port) => (port === "56963" ? status : null),
+  });
+
+  const mkModel = (label: string, remainingFraction: number, modelId: string) => ({
+    label,
+    quotaInfo: { remainingFraction, resetTime: "2026-08-24T17:49:16Z" },
+    modelId,
+    allowedTiers: ["TEAMS_TIER_PRO"],
+  });
+
+  it("probes Tier 1 Connect-RPC Language Server successfully with multiple models and user tier", async () => {
+    const env = mkEnv({
+      userStatus: {
+        email: "developer@example.com",
+        userTier: {
+          id: "g1-ultra-tier",
+          name: "Google AI Ultra",
+          description: "Google AI Ultra",
+          availableCredits: [
+            {
+              creditType: "GOOGLE_ONE_AI",
+              creditAmount: "2980",
+              minimumCreditAmountForUsage: "50",
             },
-          };
-        }
-        return null;
+          ],
+        },
+        planStatus: { planInfo: { planName: "Pro" } },
+        quotaInfo: { remainingFraction: 0.85 },
+        cascadeModelConfigData: {
+          clientModelConfigs: [
+            mkModel("Gemini 3.7 Flash (High)", 0.15164408, "gemini-3.7-flash-high"),
+            mkModel("Claude Sonnet 4.6 (Thinking)", 0.9, "claude-sonnet-4.6"),
+            mkModel("GPT-OSS 120B (Medium)", 1.0, "gpt-oss-120b"),
+          ],
+        },
       },
-    };
+    });
 
     const collector = new AntigravityCollector(env);
     const result = await collector.probe();
@@ -255,6 +237,34 @@ describe("AntigravityCollector", () => {
     expect(result.primaryTierUsed).toBeNull();
     expect(result.metrics).toHaveLength(0);
     expect(result.reason).toBe("Daemon Offline · No Quota in Storage");
+  });
+
+  it("treats omitted remainingFraction in quotaInfo: {} as proto3 0.0% verified_exact and trips QUOTA_EXHAUSTED_CIRCUIT_BROKEN", async () => {
+    const env = mkEnv({
+      userStatus: {
+        quotaInfo: {},
+        cascadeModelConfigData: {
+          clientModelConfigs: [{ label: "Claude Sonnet 4.6 (Thinking)", quotaInfo: {} }],
+        },
+      },
+    });
+    const result = await new AntigravityCollector(env).probe();
+    expect(result.isDetected).toBe(true);
+    expect(
+      result.metrics.find((m) => m.rawMetricName === "overall_5_hour_quota")?.remainingPercentage,
+    ).toBe(0.0);
+    expect(result.metrics.find((m) => m.rawMetricName === "overall_5_hour_quota")?.confidence).toBe(
+      "verified_exact",
+    );
+    const evalRes = evaluateCircuitBreaker(
+      {
+        timestamp: new Date().toISOString(),
+        results: [result],
+        summary: { activeHost: "antigravity" },
+      },
+      { activeHost: "antigravity" },
+    );
+    expect(evalRes.status).toBe("QUOTA_EXHAUSTED_CIRCUIT_BROKEN");
   });
 
   it("preserves unmapped empirical observations without data loss", () => {

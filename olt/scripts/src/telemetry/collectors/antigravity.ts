@@ -50,15 +50,14 @@ export class AntigravityCollector extends BaseTieredCollector {
         typeof userStatus.quotaInfo === "object" && userStatus.quotaInfo !== null
           ? (userStatus.quotaInfo as Record<string, unknown>)
           : undefined;
-      if (typeof quotaInfo?.remainingFraction === "number") {
+      if (quotaInfo) {
+        const fraction =
+          typeof quotaInfo.remainingFraction === "number" ? quotaInfo.remainingFraction : 0.0;
         metrics.push({
           rawMetricName: "overall_5_hour_quota",
           canonicalProvider: "google",
           windowType: "5_hour",
-          remainingPercentage: Math.max(
-            0,
-            Math.min(100, Math.round((quotaInfo.remainingFraction as number) * 10000) / 100),
-          ),
+          remainingPercentage: Math.max(0, Math.min(100, Math.round(fraction * 10000) / 100)),
           sourceTier: "tier1_cli_command",
           confidence: "verified_exact",
           rawPayload: quotaInfo,
@@ -67,16 +66,13 @@ export class AntigravityCollector extends BaseTieredCollector {
 
       for (const model of models) {
         const label =
-          typeof model.label === "string"
-            ? model.label
-            : typeof model.name === "string"
-              ? model.name
-              : typeof model.modelId === "string"
-                ? model.modelId
-                : "unknown_model";
-        const canonicalProvider = label.toLowerCase().includes("claude")
+          [model.label, model.name, model.modelId].find(
+            (v): v is string => typeof v === "string",
+          ) ?? "unknown_model";
+        const lower = label.toLowerCase();
+        const canonicalProvider = lower.includes("claude")
           ? "anthropic"
-          : label.toLowerCase().includes("gpt")
+          : lower.includes("gpt")
             ? "openai"
             : "google";
         const mQuota =
@@ -84,12 +80,15 @@ export class AntigravityCollector extends BaseTieredCollector {
             ? (model.quotaInfo as Record<string, unknown>)
             : undefined;
         const hasFraction = typeof mQuota?.remainingFraction === "number";
+        const isProto3Zero = mQuota !== undefined && !hasFraction;
         const remainingPercentage = hasFraction
           ? Math.max(
               0,
               Math.min(100, Math.round((mQuota!.remainingFraction as number) * 10000) / 100),
             )
-          : null;
+          : isProto3Zero
+            ? 0.0
+            : null;
 
         metrics.push({
           rawMetricName: label,
@@ -97,7 +96,7 @@ export class AntigravityCollector extends BaseTieredCollector {
           windowType: "5_hour",
           remainingPercentage,
           sourceTier: "tier1_cli_command",
-          confidence: hasFraction ? "verified_exact" : "unknown",
+          confidence: hasFraction || isProto3Zero ? "verified_exact" : "unknown",
           rawPayload: model,
         });
       }
@@ -107,22 +106,18 @@ export class AntigravityCollector extends BaseTieredCollector {
           typeof userStatus.userTier === "object" && userStatus.userTier !== null
             ? (userStatus.userTier as Record<string, unknown>)
             : undefined;
-        const planStatus =
+        const ps =
           typeof userStatus.planStatus === "object" && userStatus.planStatus !== null
             ? (userStatus.planStatus as Record<string, unknown>)
             : undefined;
-        const planInfo =
-          typeof planStatus?.planInfo === "object" && planStatus.planInfo !== null
-            ? (planStatus.planInfo as Record<string, unknown>)
+        const pi =
+          typeof ps?.planInfo === "object" && ps.planInfo !== null
+            ? (ps.planInfo as Record<string, unknown>)
             : undefined;
         const plan =
-          typeof planInfo?.planName === "string"
-            ? planInfo.planName
-            : typeof planStatus?.planName === "string"
-              ? planStatus.planName
-              : typeof userStatus.plan === "string"
-                ? userStatus.plan
-                : undefined;
+          (typeof pi?.planName === "string" ? pi.planName : undefined) ??
+          (typeof ps?.planName === "string" ? ps.planName : undefined) ??
+          (typeof userStatus.plan === "string" ? userStatus.plan : undefined);
         const activeModel = this.env.activeModel;
 
         const rawObservations: Record<string, unknown> = {
@@ -138,12 +133,11 @@ export class AntigravityCollector extends BaseTieredCollector {
 
         const enrichedMetrics = activeModel
           ? metrics.map((m) => {
+              const p = m.rawPayload as { modelId?: string } | undefined;
               const matches =
                 m.rawMetricName.toLowerCase().includes(activeModel.toLowerCase()) ||
-                (typeof (m.rawPayload as { modelId?: string }).modelId === "string" &&
-                  (m.rawPayload as { modelId: string }).modelId
-                    .toLowerCase()
-                    .includes(activeModel.toLowerCase()));
+                (typeof p?.modelId === "string" &&
+                  p.modelId.toLowerCase().includes(activeModel.toLowerCase()));
               return matches ? { ...m, rawPayload: { ...m.rawPayload, name: activeModel } } : m;
             })
           : metrics;
@@ -156,12 +150,8 @@ export class AntigravityCollector extends BaseTieredCollector {
     if (quotaResult?.stdout?.trim()) {
       try {
         const parsed = JSON.parse(quotaResult.stdout) as Record<string, unknown>;
-        const remaining =
-          typeof parsed.remaining_percentage === "number"
-            ? parsed.remaining_percentage
-            : typeof parsed.remainingPercentage === "number"
-              ? parsed.remainingPercentage
-              : null;
+        const remVal = parsed.remaining_percentage ?? parsed.remainingPercentage;
+        const remaining = typeof remVal === "number" ? remVal : null;
         return {
           sourceTier: "tier1_cli_command",
           metrics: [
@@ -221,13 +211,13 @@ export class AntigravityCollector extends BaseTieredCollector {
   protected async probeTier2Storage(): Promise<TierResult | null> {
     const home = this.env.homedir;
     const candidates = [
-      join(home, ".gemini", "antigravity-cli", "state.json"),
-      join(home, ".gemini", "antigravity-cli", "quota.json"),
-      join(home, ".gemini", "state.json"),
-      join(home, ".gemini", "quota.json"),
-      join(home, ".config", "antigravity", "state.json"),
-      join(home, ".config", "antigravity", "quota.json"),
-    ];
+      ".gemini/antigravity-cli/state.json",
+      ".gemini/antigravity-cli/quota.json",
+      ".gemini/state.json",
+      ".gemini/quota.json",
+      ".config/antigravity/state.json",
+      ".config/antigravity/quota.json",
+    ].map((p) => join(home, p));
 
     const isExternalCache = !this.env.isHostActive("antigravity");
     for (const filePath of candidates) {
@@ -235,16 +225,20 @@ export class AntigravityCollector extends BaseTieredCollector {
       if (content) {
         try {
           const parsed = JSON.parse(content) as Record<string, unknown>;
+          const lq =
+            typeof parsed.quotaInfo === "object" && parsed.quotaInfo !== null
+              ? (parsed.quotaInfo as Record<string, unknown>)
+              : undefined;
           const remaining =
             typeof parsed.remainingPercentage === "number"
               ? parsed.remainingPercentage
               : typeof parsed.quotaRemaining === "number"
                 ? parsed.quotaRemaining
-                : typeof (parsed.quotaInfo as Record<string, unknown> | undefined)
-                      ?.remainingFraction === "number"
-                  ? ((parsed.quotaInfo as Record<string, unknown>).remainingFraction as number) *
-                    100
-                  : undefined;
+                : typeof lq?.remainingFraction === "number"
+                  ? (lq.remainingFraction as number) * 100
+                  : lq !== undefined
+                    ? 0.0
+                    : undefined;
 
           if (remaining !== undefined) {
             return {
@@ -278,11 +272,13 @@ export class AntigravityCollector extends BaseTieredCollector {
 
   protected async probeTier3Runtime(): Promise<TierResult | null> {
     const env = this.env.env;
-    const detected: string[] = [];
-    if (env.GEMINI_API_KEY) detected.push("GEMINI_API_KEY");
-    if (env.GOOGLE_API_KEY) detected.push("GOOGLE_API_KEY");
-    if (env.ANTIGRAVITY_APP_DIR) detected.push("ANTIGRAVITY_APP_DIR");
-    if (env.ANTIGRAVITY_CLI_VERSION) detected.push("ANTIGRAVITY_CLI_VERSION");
+    const keys = [
+      "GEMINI_API_KEY",
+      "GOOGLE_API_KEY",
+      "ANTIGRAVITY_APP_DIR",
+      "ANTIGRAVITY_CLI_VERSION",
+    ];
+    const detected = keys.filter((k) => Boolean(env[k]));
 
     if (detected.length > 0) {
       return {

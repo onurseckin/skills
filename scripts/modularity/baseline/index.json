@@ -1347,6 +1347,13 @@
     },
     {
       "rule": "directory_fanout",
+      "path": "tests/telemetry/collectors",
+      "observed": 11,
+      "limit": 10,
+      "detail": "Directory exceeds the 10 direct-file limit."
+    },
+    {
+      "rule": "directory_fanout",
       "path": "tests/tooling",
       "observed": 38,
       "limit": 10,
