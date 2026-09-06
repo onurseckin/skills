@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
 import * as yaml from "js-yaml";
 import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "./types.ts";
@@ -36,11 +37,17 @@ export const CORE_CANONICAL_ROLES = [
 
 export function resolveAgentsDirectory(repoRoot?: string): string {
   if (repoRoot) {
-    const candidate = join(repoRoot, "olt", "agents");
-    if (existsSync(candidate)) return candidate;
+    const dotOlt = join(repoRoot, ".olt", "agents");
+    if (existsSync(dotOlt)) return dotOlt;
+    const oltAgents = join(repoRoot, "olt", "agents");
+    if (existsSync(oltAgents)) return oltAgents;
   }
+  const globalSkills = join(homedir(), ".agents", "skills", "olt", "agents");
+  if (existsSync(globalSkills)) return globalSkills;
+  const dotFallback = join(process.cwd(), ".olt", "agents");
+  if (existsSync(dotFallback)) return dotFallback;
   const fallback = join(process.cwd(), "olt", "agents");
-  return existsSync(fallback) ? fallback : repoRoot ? join(repoRoot, "olt", "agents") : fallback;
+  return existsSync(fallback) ? fallback : dotFallback;
 }
 
 export function loadCanonicalContract(

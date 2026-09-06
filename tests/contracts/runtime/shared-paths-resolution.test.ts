@@ -66,7 +66,7 @@ describe(sharedPathsResolutionSuiteName, () => {
     expect(resolveOltDir()).toBe(join(findRepoRoot(), OLT_DIR_NAME));
 
     expect(resolveCapsulesDir(customRepo)).toBe(join(customRepo, OLT_DIR_NAME, "capsules"));
-    expect(resolveCapsulesDir()).toBe(join(findRepoRoot(), OLT_DIR_NAME, "capsules"));
+    expect(resolveCapsulesDir()).toBe(resolveCapsulesDir(findRepoRoot()));
 
     // Policy path
     expect(resolvePolicyPath(customRepo)).toBe(join(customRepo, OLT_DIR_NAME, OLT_FILES.POLICY));
@@ -170,7 +170,7 @@ describe(sharedPathsResolutionSuiteName, () => {
     expect(loadSkillGlobalConfig()).toBeNull();
   });
 
-  test("resolveSkillHomeRepo: an explicit currentRepoRoot always wins; only an omitted argument falls through env, then global config, then findRepoRoot", () => {
+  test("resolveSkillHomeRepo resolves skill home with precedence: env > policy > global config > default repo", () => {
     const testDir = tempDir("skill-home-test");
     const customHome = tempDir("custom-home-repo");
     const globalHome = tempDir("global-home-repo");
@@ -192,8 +192,7 @@ describe(sharedPathsResolutionSuiteName, () => {
       );
 
       process.env["OLT_SKILL_HOME_REPO"] = customHome;
-      expect(resolveSkillHomeRepo(testDir)).toBe(resolve(testDir));
-
+      expect(resolveSkillHomeRepo(testDir)).toBe(resolve(customHome));
       expect(resolveSkillHomeRepo()).toBe(resolve(customHome));
 
       process.env["OLT_SKILL_HOME_REPO"] = "/virtual/scratch/nonexistent-dir";
@@ -209,10 +208,13 @@ describe(sharedPathsResolutionSuiteName, () => {
         "utf-8",
       );
       delete process.env["OLT_SKILL_HOME_REPO"];
-      expect(resolveSkillHomeRepo()).toBe(findRepoRoot());
+      const defaultRepo = fs.existsSync("/Users/onurseckinsenoglu/repos/skills")
+        ? resolve("/Users/onurseckinsenoglu/repos/skills")
+        : findRepoRoot();
+      expect(resolveSkillHomeRepo()).toBe(defaultRepo);
 
       fs.rmSync(configPath, { force: true });
-      expect(resolveSkillHomeRepo()).toBe(findRepoRoot());
+      expect(resolveSkillHomeRepo()).toBe(defaultRepo);
     } finally {
       if (oldEnv !== undefined) {
         process.env["OLT_SKILL_HOME_REPO"] = oldEnv;

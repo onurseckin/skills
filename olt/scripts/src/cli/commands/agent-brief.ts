@@ -39,13 +39,16 @@ function findAgentManifestPath(role: string, repoRoot?: string): string {
       role.replace(/^completeness_critic$/, "critic"),
       role.replace(/^completeness_critic$/, "completeness-critic"),
       role.replace(/^completeness-critic$/, "critic"),
+      role.replace(/^critic$/, "completeness-critic"),
       role.replace(/^validator_code_quality$/, "validator"),
       role.replace(/^validator-code-quality$/, "validator"),
       role.replace(/^implementer$/, "worker"),
+      role.replace(/^worker$/, "implementer"),
     ]),
   );
 
   const searchDirs = [
+    join(root, ".olt", "agents"),
     join(root, "olt", "agents"),
     join(root, "agents"),
     join(import.meta.dir, "..", "..", "..", "..", "agents"),

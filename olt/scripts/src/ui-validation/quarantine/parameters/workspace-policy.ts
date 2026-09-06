@@ -2,14 +2,18 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { DeductiveParameters, RepoPolicy } from "./types.ts";
 
+export interface ParameterExtractorLike {
+  extractFromPolicy(policy: RepoPolicy | Record<string, unknown>): DeductiveParameters;
+  getDefaultParameters(): DeductiveParameters;
+}
+
 export function extractFromWorkspace(
-  this: any,
+  this: ParameterExtractorLike,
   repoRoot = process.cwd(),
   customPolicyPath?: string,
 ): DeductiveParameters {
   const candidatePaths = [
     customPolicyPath,
-    join(repoRoot, "olt", "policy.json"),
     join(repoRoot, ".olt", "policy.json"),
     join(repoRoot, "policy.json"),
   ].filter((p): p is string => typeof p === "string" && p.length > 0);

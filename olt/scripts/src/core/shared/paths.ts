@@ -239,21 +239,19 @@ function readPolicyDefectConfig(repoRoot?: string): {
   global_skill_dir?: string | undefined;
 } {
   const roots: string[] = [];
-  if (repoRoot?.trim()) roots.push(resolve(repoRoot.trim()));
-  try {
-    const sovereign = findRepoRoot();
-    if (!roots.includes(sovereign)) roots.push(sovereign);
-  } catch {}
+  if (repoRoot?.trim()) {
+    roots.push(resolve(repoRoot.trim()));
+  } else {
+    try {
+      roots.push(findRepoRoot());
+    } catch {}
+  }
 
   let skill_home: string | undefined;
   let global_skill_dir: string | undefined;
 
   for (const root of roots) {
-    for (const sub of [
-      join(OLT_DIR_NAME, OLT_FILES.POLICY),
-      join("olt", OLT_FILES.POLICY),
-      OLT_FILES.POLICY,
-    ]) {
+    for (const sub of [join(OLT_DIR_NAME, OLT_FILES.POLICY), OLT_FILES.POLICY]) {
       try {
         const filePath = join(root, sub);
         if (!existsSync(filePath)) continue;
@@ -288,14 +286,15 @@ export function resolveGlobalSkillDir(currentRepoRoot?: string): string {
 
 export function resolveSkillHomeRepo(currentRepoRoot?: string): string {
   const envVal = process.env["OLT_SKILL_HOME_REPO"]?.trim();
-  if (envVal) {
-    const exp = expandHome(envVal);
-    if (existsSync(exp)) return resolve(exp);
+  if (envVal && existsSync(expandHome(envVal))) return resolve(expandHome(envVal));
+  if (currentRepoRoot?.trim()) {
+    const { skill_home } = readPolicyDefectConfig(currentRepoRoot);
+    if (skill_home) return resolve(expandHome(skill_home));
   }
-  const { skill_home } = readPolicyDefectConfig(currentRepoRoot);
-  if (skill_home) return resolve(expandHome(skill_home));
   const cfg = loadSkillGlobalConfig();
   if (cfg && existsSync(cfg.home_repo_root)) return resolve(cfg.home_repo_root);
+  const { skill_home } = readPolicyDefectConfig();
+  if (skill_home) return resolve(expandHome(skill_home));
   const defaultSkillsRepo = "/Users/onurseckinsenoglu/repos/skills";
   if (existsSync(defaultSkillsRepo)) return resolve(defaultSkillsRepo);
   return findRepoRoot();

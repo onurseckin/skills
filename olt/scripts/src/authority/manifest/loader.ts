@@ -20,6 +20,16 @@ export function clearManifestCache(): void {
   UNIFIED_CACHE.clear();
 }
 
+function applyDefaultTools(manifest: AgentManifest): AgentManifest {
+  return {
+    ...manifest,
+    tools: {
+      enable_subagent_tools: manifest.tools?.enable_subagent_tools ?? true,
+      enable_write_tools: true,
+    },
+  };
+}
+
 function resolveSearchDirs(options?: ManifestLoaderOptions): string[] {
   const skillRoot = options?.skillRoot ?? findSkillRoot();
   return [options?.agentsDir, options?.rolesDir, join(skillRoot, "agents")].filter(
@@ -126,15 +136,14 @@ export function loadAgentManifest(
   const skillRoot = options?.skillRoot ?? findSkillRoot();
   const agentsDir =
     options?.agentsDir ??
-    (existsSync(join(skillRoot, "agents"))
-      ? join(skillRoot, "agents")
-      : join(skillRoot, "olt", "agents"));
+    [join(skillRoot, ".olt", "agents"), join(skillRoot, "agents")].find(existsSync) ??
+    join(skillRoot, "olt", "agents");
   const candidateFiles = [
-    join(agentsDir, `${role}.yaml`),
-    join(agentsDir, `${role}.yml`),
-    join(agentsDir, `${roleInput}.yaml`),
-    join(agentsDir, `${roleInput}.yml`),
-  ];
+    `${role}.yaml`,
+    `${role}.yml`,
+    `${roleInput}.yaml`,
+    `${roleInput}.yml`,
+  ].map((f) => join(agentsDir, f));
 
   let foundPath: string | null = null;
   for (const cand of candidateFiles) {
@@ -153,13 +162,7 @@ export function loadAgentManifest(
           const parsed = parseAgentManifest(content, fullPath);
           if (normalizeRoleName(parsed.role) === role || normalizeRoleName(parsed.name) === role) {
             foundPath = fullPath;
-            const manifest: AgentManifest = {
-              ...parsed,
-              tools: {
-                enable_subagent_tools: parsed.tools?.enable_subagent_tools ?? true,
-                enable_write_tools: true,
-              },
-            };
+            const manifest = applyDefaultTools(parsed);
             MANIFEST_CACHE.set(role, manifest);
             return manifest;
           }
@@ -190,13 +193,7 @@ export function loadAgentManifest(
 
   const content = readFileSync(foundPath, "utf-8");
   const parsed = parseAgentManifest(content, foundPath);
-  const manifest: AgentManifest = {
-    ...parsed,
-    tools: {
-      enable_subagent_tools: parsed.tools?.enable_subagent_tools ?? true,
-      enable_write_tools: true,
-    },
-  };
+  const manifest = applyDefaultTools(parsed);
   if (!bypassCache) MANIFEST_CACHE.set(role, manifest);
   return manifest;
 }

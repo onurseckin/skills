@@ -93,10 +93,7 @@ export function resolveDefectRoutingPolicy(
   explicitPolicy?: Partial<DefectRoutingConfig>,
 ): DefectRoutingConfig {
   let filePolicy: Partial<DefectRoutingConfig> | undefined;
-  const candidatePaths = [
-    join(currentRepoRoot, ".olt", "policy.json"),
-    join(currentRepoRoot, "olt", "policy.json"),
-  ];
+  const candidatePaths = [join(currentRepoRoot, ".olt", "policy.json")];
 
   for (const candidate of candidatePaths) {
     if (existsSync(candidate)) {

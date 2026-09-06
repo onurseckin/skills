@@ -55,7 +55,9 @@ export function indexCharterDocuments(repoRoot: string): MemoryDocument[] {
   }
 
   // Scan references directory for additional knowledge artifacts
-  const refDir = join(repoRoot, "olt", "references");
+  const dotRefDir = join(repoRoot, ".olt", "references");
+  const fallbackRefDir = join(repoRoot, "olt", "references");
+  const refDir = existsSync(dotRefDir) ? dotRefDir : fallbackRefDir;
   if (existsSync(refDir)) {
     try {
       const entries = readdirSync(refDir, { withFileTypes: true });

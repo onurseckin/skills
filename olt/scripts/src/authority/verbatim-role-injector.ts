@@ -50,6 +50,8 @@ export class VerbatimRoleInjector {
 
   public static resolveManifestPath(repoRoot: string, role: string): string {
     const candidates = [
+      join(repoRoot, ".olt", "agents", `${role}.yaml`),
+      join(repoRoot, ".olt", "agents", `${role}.yml`),
       join(repoRoot, "olt", "agents", `${role}.yaml`),
       join(repoRoot, "olt", "agents", `${role}.yml`),
       join(repoRoot, "agents", `${role}.yaml`),
