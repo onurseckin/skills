@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  isErrorPreviewLine,
   parseDurationMs,
   StreamParser,
   stripAnsi,
@@ -128,5 +129,80 @@ describe("StreamParser", () => {
     expect(parser.getStats().testsPassed).toBe(0);
     expect(parser.getStats().suitesTotal).toBe(0);
     expect(parser.getActiveSuite()).toBeNull();
+  });
+
+  test("isErrorPreviewLine matches errors, assertion diffs, and exception lines", () => {
+    expect(isErrorPreviewLine("error: expect(received).toBe(expected)")).toBe(true);
+    expect(isErrorPreviewLine("Error: failure occurred")).toBe(true);
+    expect(isErrorPreviewLine("TypeError: null is not an object")).toBe(true);
+    expect(isErrorPreviewLine("AssertionError: values do not match")).toBe(true);
+    expect(isErrorPreviewLine("Expected: 42")).toBe(true);
+    expect(isErrorPreviewLine("Received: 24")).toBe(true);
+    expect(isErrorPreviewLine("+ Expected")).toBe(true);
+    expect(isErrorPreviewLine("- Received")).toBe(true);
+    expect(isErrorPreviewLine("at /path/to/test.ts:15:3")).toBe(true);
+    expect(isErrorPreviewLine("14 |   expect(a).toBe(b)")).toBe(true);
+    expect(isErrorPreviewLine("   |             ^")).toBe(true);
+    expect(isErrorPreviewLine("expect(received).toEqual(expected)")).toBe(true);
+
+    expect(isErrorPreviewLine("")).toBe(false);
+    expect(isErrorPreviewLine("   ")).toBe(false);
+    expect(isErrorPreviewLine("tests/unit.test.ts:")).toBe(false);
+    expect(isErrorPreviewLine("(pass) suite > test [1.00ms]")).toBe(false);
+    expect(isErrorPreviewLine("(fail) suite > test [1.00ms]")).toBe(false);
+    expect(isErrorPreviewLine("Ran 4 tests across 1 files.")).toBe(false);
+    expect(isErrorPreviewLine("1 pass")).toBe(false);
+    expect(isErrorPreviewLine("arbitrary log output")).toBe(false);
+  });
+
+  test("captures error preview lines following a test failure", () => {
+    const parser = new StreamParser();
+    const events: StreamEvent[] = [];
+    parser.on((e) => events.push(e));
+
+    parser.feed("tests/suite.test.ts:\n");
+    parser.feed("(fail) suite > failing test [2.00ms]\n");
+    parser.feed("error: expect(received).toBe(expected)\n");
+    parser.feed("Expected: 100\n");
+    parser.feed("Received: 200\n");
+    parser.feed("(pass) suite > passing test [1.00ms]\n");
+    parser.flush();
+
+    const stats = parser.getStats();
+    expect(stats.failedTests.length).toBe(1);
+    const failure = stats.failedTests[0];
+    expect(failure.test).toBe("suite > failing test");
+    expect(failure.error).toBe(
+      "error: expect(received).toBe(expected)\nExpected: 100\nReceived: 200",
+    );
+
+    const failEvent = events.find((e) => e.type === "test_fail");
+    expect(failEvent).toBeDefined();
+    if (failEvent && failEvent.type === "test_fail") {
+      expect(failEvent.error).toBe(
+        "error: expect(received).toBe(expected)\nExpected: 100\nReceived: 200",
+      );
+    }
+  });
+
+  test("preserves undefined error when failure has no following error lines", () => {
+    const parser = new StreamParser();
+    const events: StreamEvent[] = [];
+    parser.on((e) => events.push(e));
+
+    parser.feed("tests/bare.test.ts:\n");
+    parser.feed("(fail) bare > test without error [1.00ms]\n");
+    parser.feed("Ran 1 tests across 1 files. [10.00ms]\n");
+    parser.flush();
+
+    const stats = parser.getStats();
+    expect(stats.failedTests.length).toBe(1);
+    expect(stats.failedTests[0].error).toBeUndefined();
+
+    const failEvent = events.find((e) => e.type === "test_fail");
+    expect(failEvent).toBeDefined();
+    if (failEvent && failEvent.type === "test_fail") {
+      expect(failEvent.error).toBeUndefined();
+    }
   });
 });

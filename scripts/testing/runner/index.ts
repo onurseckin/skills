@@ -29,7 +29,7 @@ export {
   parseRunnerArgs,
 } from "./arg-parser.ts";
 
-export { parseDurationMs, StreamParser, stripAnsi } from "./stream-parser.ts";
+export { isErrorPreviewLine, parseDurationMs, StreamParser, stripAnsi } from "./stream-parser.ts";
 
 export {
   formatElapsedSeconds,

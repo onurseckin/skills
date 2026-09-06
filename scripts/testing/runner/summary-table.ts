@@ -115,13 +115,17 @@ export function formatSummaryTable(options: SummaryTableOptions): string {
     lines.push(subDivider);
     lines.push("  Failures:");
     const maxItems = 10;
-    const items =
-      stats.failedTests.length > 0
-        ? stats.failedTests.slice(0, maxItems).map((f) => `    - ${f.suite} > ${f.test}`)
-        : stats.failedSuites.slice(0, maxItems).map((s) => `    - ${s}`);
-
-    for (const item of items) {
-      lines.push(item);
+    if (stats.failedTests.length > 0) {
+      for (const f of stats.failedTests.slice(0, maxItems)) {
+        lines.push(`    - ${f.suite} > ${f.test}`);
+        if (f.error) {
+          lines.push(`      ${f.error}`);
+        }
+      }
+    } else {
+      for (const s of stats.failedSuites.slice(0, maxItems)) {
+        lines.push(`    - ${s}`);
+      }
     }
     if (stats.failedTests.length > maxItems) {
       lines.push(`    ... and ${stats.failedTests.length - maxItems} more failure(s)`);

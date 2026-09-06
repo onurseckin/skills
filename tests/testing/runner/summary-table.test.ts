@@ -91,4 +91,30 @@ describe("summary-table", () => {
     expect(output).toContain("Failures:");
     expect(output).toContain("- tests/failing.test.ts > fails expected invariant");
   });
+
+  test("formatSummaryTable renders failed test entries with indented error preview when present", () => {
+    const stats = createDefaultRunnerStats();
+    stats.suitesTotal = 1;
+    stats.suitesFailed = 1;
+    stats.testsTotal = 2;
+    stats.testsPassed = 1;
+    stats.testsFailed = 1;
+    stats.failedSuites = ["tests/failing.test.ts"];
+    stats.failedTests = [
+      {
+        suite: "tests/failing.test.ts",
+        test: "fails expected invariant",
+        error: "error: expect(received).toBe(expected)\nExpected: 42\nReceived: 0",
+      },
+    ];
+
+    const output = formatSummaryTable({
+      stats,
+      durationMs: 1500,
+      useColor: false,
+    });
+
+    expect(output).toContain("    - tests/failing.test.ts > fails expected invariant");
+    expect(output).toContain("      error: expect(received).toBe(expected)");
+  });
 });

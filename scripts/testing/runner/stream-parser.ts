@@ -14,12 +14,8 @@ export function stripAnsi(text: string): string {
       i++;
       if (i < text.length && text[i] === "[") {
         i++;
-        while (i < text.length && text.charCodeAt(i) >= 32 && text.charCodeAt(i) <= 63) {
-          i++;
-        }
-        if (i < text.length && text.charCodeAt(i) >= 64 && text.charCodeAt(i) <= 126) {
-          i++;
-        }
+        while (i < text.length && text.charCodeAt(i) >= 32 && text.charCodeAt(i) <= 63) i++;
+        if (i < text.length && text.charCodeAt(i) >= 64 && text.charCodeAt(i) <= 126) i++;
       } else if (i < text.length && text[i] === "(") {
         i += 2;
       }
@@ -39,12 +35,40 @@ export function parseDurationMs(value: string, unit: string): number {
   return num;
 }
 
+export function isErrorPreviewLine(line: string): boolean {
+  const clean = stripAnsi(line).trim();
+  if (!clean) return false;
+  return (
+    /^(?:error\b|[a-z0-9_.]*(?:error|exception|rejection)\b)/i.test(clean) ||
+    /^(?:expected|received):?/i.test(clean) ||
+    /^(?:diff|difference):?/i.test(clean) ||
+    /^(?:[-+]{1,3}\s|[>]\s)/.test(clean) ||
+    /^at\s+/i.test(clean) ||
+    /^\d+\s*\|/.test(clean) ||
+    /^\|\s*\^/.test(clean) ||
+    /^\^+$/.test(clean) ||
+    /^expect\(.*\)/i.test(clean)
+  );
+}
+
 export class StreamParser {
   private stdoutBuffer = "";
   private stderrBuffer = "";
   private stats: RunnerStats = createDefaultRunnerStats();
   private listeners: StreamEventListener[] = [];
   private knownSuites = new Set<string>();
+  private pendingFailure: {
+    suite: string;
+    name: string;
+    durationMs?: number | undefined;
+    info: {
+      suite: string;
+      test: string;
+      durationMs?: number | undefined;
+      error?: string | undefined;
+    };
+    errorLines: string[];
+  } | null = null;
 
   public on(listener: StreamEventListener): () => void {
     this.listeners.push(listener);
@@ -75,6 +99,24 @@ export class StreamParser {
     this.stderrBuffer = "";
     this.stats = createDefaultRunnerStats();
     this.knownSuites.clear();
+    this.pendingFailure = null;
+  }
+
+  private flushPendingFailure(): void {
+    if (!this.pendingFailure) return;
+    const { suite, name, durationMs, info, errorLines } = this.pendingFailure;
+    this.pendingFailure = null;
+    const snippet = errorLines.length > 0 ? errorLines.join("\n") : undefined;
+    if (snippet !== undefined) {
+      info.error = snippet;
+    }
+    this.emit({
+      type: "test_fail",
+      suite,
+      name,
+      durationMs,
+      error: snippet,
+    });
   }
 
   public feed(chunk: string | Uint8Array, stream: "stdout" | "stderr" = "stdout"): void {
@@ -113,6 +155,7 @@ export class StreamParser {
       this.parseLine(this.stderrBuffer, "stderr");
       this.stderrBuffer = "";
     }
+    this.flushPendingFailure();
 
     if (
       this.stats.suitesTotal > 0 &&
@@ -129,6 +172,16 @@ export class StreamParser {
     this.emit({ type: "raw_line", text: line, stream });
     const clean = stripAnsi(line).trim();
     if (!clean) return;
+
+    if (this.pendingFailure !== null) {
+      if (isErrorPreviewLine(clean)) {
+        if (this.pendingFailure.errorLines.length < 10) {
+          this.pendingFailure.errorLines.push(clean);
+        }
+        return;
+      }
+      this.flushPendingFailure();
+    }
 
     const suiteMatch = clean.match(/^([^\s:]+\.(?:test|spec)\.[a-zA-Z0-9]+):$/);
     if (suiteMatch && suiteMatch[1]) {
@@ -149,16 +202,8 @@ export class StreamParser {
         passMatch[2] && passMatch[3] ? parseDurationMs(passMatch[2], passMatch[3]) : undefined;
       this.stats.testsPassed++;
       this.stats.testsTotal++;
-      const currentSuite =
-        this.stats.activeSuite !== null && this.stats.activeSuite !== undefined
-          ? this.stats.activeSuite
-          : "unknown";
-      this.emit({
-        type: "test_pass",
-        suite: currentSuite,
-        name,
-        durationMs: dur,
-      });
+      const currentSuite = this.stats.activeSuite ?? "unknown";
+      this.emit({ type: "test_pass", suite: currentSuite, name, durationMs: dur });
       return;
     }
 
@@ -167,23 +212,21 @@ export class StreamParser {
       const name = failMatch[1].trim();
       const dur =
         failMatch[2] && failMatch[3] ? parseDurationMs(failMatch[2], failMatch[3]) : undefined;
-      const suite =
-        this.stats.activeSuite !== null && this.stats.activeSuite !== undefined
-          ? this.stats.activeSuite
-          : "unknown";
+      const suite = this.stats.activeSuite ?? "unknown";
       this.stats.testsFailed++;
       this.stats.testsTotal++;
-      this.stats.failedTests.push({ suite, test: name, durationMs: dur });
+      const failureInfo: {
+        suite: string;
+        test: string;
+        durationMs?: number | undefined;
+        error?: string | undefined;
+      } = { suite, test: name, durationMs: dur };
+      this.stats.failedTests.push(failureInfo);
       if (this.stats.activeSuite && !this.stats.failedSuites.includes(this.stats.activeSuite)) {
         this.stats.failedSuites.push(this.stats.activeSuite);
         this.stats.suitesFailed++;
       }
-      this.emit({
-        type: "test_fail",
-        suite,
-        name,
-        durationMs: dur,
-      });
+      this.pendingFailure = { suite, name, durationMs: dur, info: failureInfo, errorLines: [] };
       return;
     }
 
@@ -192,32 +235,25 @@ export class StreamParser {
       const name = skipMatch[1].trim();
       this.stats.testsSkipped++;
       this.stats.testsTotal++;
-      const currentSuite =
-        this.stats.activeSuite !== null && this.stats.activeSuite !== undefined
-          ? this.stats.activeSuite
-          : "unknown";
-      this.emit({
-        type: "test_skip",
-        suite: currentSuite,
-        name,
-      });
+      const currentSuite = this.stats.activeSuite ?? "unknown";
+      this.emit({ type: "test_skip", suite: currentSuite, name });
       return;
     }
 
     const sumPassMatch = clean.match(/^(\d+)\s+pass$/);
-    if (sumPassMatch && sumPassMatch[1]) {
+    if (sumPassMatch?.[1]) {
       this.stats.testsPassed = parseInt(sumPassMatch[1], 10);
       return;
     }
 
     const sumFailMatch = clean.match(/^(\d+)\s+fail$/);
-    if (sumFailMatch && sumFailMatch[1]) {
+    if (sumFailMatch?.[1]) {
       this.stats.testsFailed = parseInt(sumFailMatch[1], 10);
       return;
     }
 
     const expectMatch = clean.match(/^(\d+)\s+expect\(\)\s+calls$/);
-    if (expectMatch && expectMatch[1]) {
+    if (expectMatch?.[1]) {
       this.stats.expectCalls = parseInt(expectMatch[1], 10);
       return;
     }
