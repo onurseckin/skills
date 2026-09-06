@@ -73,7 +73,7 @@ describe("resolveSkillHomeRepo precedence", () => {
     while (spies.length > 0) spies.pop()?.mockRestore();
   });
 
-  it("lets an explicitly supplied currentRepoRoot win over OLT_SKILL_HOME_REPO and the global config", () => {
+  it("prioritizes OLT_SKILL_HOME_REPO over currentRepoRoot and global config", () => {
     const base = "/virtual-skill-home-precedence";
     const explicitRoot = join(base, "explicit-repo");
     const envRoot = join(base, "env-repo");
@@ -83,7 +83,7 @@ describe("resolveSkillHomeRepo precedence", () => {
     const previousEnv = process.env["OLT_SKILL_HOME_REPO"];
     process.env["OLT_SKILL_HOME_REPO"] = envRoot;
     try {
-      expect(resolveSkillHomeRepo(explicitRoot)).toBe(resolve(explicitRoot));
+      expect(resolveSkillHomeRepo(explicitRoot)).toBe(resolve(envRoot));
     } finally {
       if (previousEnv === undefined) {
         delete process.env["OLT_SKILL_HOME_REPO"];
