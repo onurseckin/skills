@@ -1,14 +1,31 @@
+import { listTrackWorktrees } from "../../workflow/worktree/manager.ts";
+import {
+  collectAllEdges,
+  extractDependencyId,
+  extractDependencyList,
+  findCycles,
+  populateNodesMap,
+  resolveTier,
+} from "./planning-dag-helpers.ts";
 import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "./types.ts";
+
+export { extractDependencyId, extractDependencyList };
 
 export type PlanningDagDependencyItem =
   | string
-  | { readonly id?: string | undefined; readonly optional?: boolean | undefined };
+  | {
+      readonly id?: string | undefined;
+      readonly optional?: boolean | undefined;
+    };
 
 export interface PlanningDagNodeInput {
   readonly id: string;
   readonly dependencies?: readonly PlanningDagDependencyItem[] | undefined;
   readonly deps?: readonly PlanningDagDependencyItem[] | undefined;
   readonly status?: string | undefined;
+  readonly tier?: number | string | undefined;
+  readonly role?: string | undefined;
+  readonly agentId?: string | undefined;
 }
 
 export interface PlanningDagEdgeInput {
@@ -24,168 +41,87 @@ export interface PlanningDagGraphInput {
 export interface PlanningDagCheckOptions {
   readonly tasks?: Readonly<Record<string, unknown>> | null | undefined;
   readonly graph?: PlanningDagGraphInput | null | undefined;
+  readonly repoRoot?: string | undefined;
+  readonly state?: Readonly<Record<string, unknown>> | null | undefined;
+  readonly activeWorktreeCount?: number | undefined;
 }
 
 export interface TaskNodeInfo {
   readonly id: string;
   readonly dependencies: readonly string[];
   readonly status?: string | undefined;
-}
-
-export function extractDependencyId(item: unknown): string | undefined {
-  if (typeof item === "string") {
-    const trimmed = item.trim();
-    return trimmed.length > 0 ? trimmed : undefined;
-  }
-  if (typeof item === "object" && item !== null && "id" in item) {
-    const raw = (item as { readonly id?: unknown }).id;
-    if (typeof raw === "string") {
-      const trimmed = raw.trim();
-      return trimmed.length > 0 ? trimmed : undefined;
-    }
-  }
-  return undefined;
-}
-
-export function extractDependencyList(rawDeps: unknown): readonly string[] {
-  if (!Array.isArray(rawDeps)) {
-    return [];
-  }
-  const result: string[] = [];
-  for (const item of rawDeps) {
-    const depId = extractDependencyId(item);
-    if (depId !== undefined) {
-      result.push(depId);
-    }
-  }
-  return result;
-}
-
-function findCycles(
-  nodeIds: readonly string[],
-  adjacency: ReadonlyMap<string, readonly string[]>,
-): string[][] {
-  let indexCounter = 0;
-  const indices = new Map<string, number>();
-  const lowlinks = new Map<string, number>();
-  const onStack = new Set<string>();
-  const stack: string[] = [];
-  const sccs: string[][] = [];
-
-  function strongConnect(v: string) {
-    indices.set(v, indexCounter);
-    lowlinks.set(v, indexCounter);
-    indexCounter += 1;
-    stack.push(v);
-    onStack.add(v);
-
-    const neighbors = adjacency.get(v) ?? [];
-    for (const w of neighbors) {
-      if (!indices.has(w)) {
-        strongConnect(w);
-        const vLow = lowlinks.get(v)!;
-        const wLow = lowlinks.get(w)!;
-        lowlinks.set(v, Math.min(vLow, wLow));
-      } else if (onStack.has(w)) {
-        const vLow = lowlinks.get(v)!;
-        const wIndex = indices.get(w)!;
-        lowlinks.set(v, Math.min(vLow, wIndex));
-      }
-    }
-
-    if (lowlinks.get(v) === indices.get(v)) {
-      const scc: string[] = [];
-      let w = "";
-      do {
-        w = stack.pop()!;
-        onStack.delete(w);
-        scc.push(w);
-      } while (w !== v);
-
-      if (scc.length > 1) {
-        sccs.push(scc);
-      } else if (scc.length === 1 && (adjacency.get(scc[0]!) ?? []).includes(scc[0]!)) {
-        sccs.push(scc);
-      }
-    }
-  }
-
-  for (const nodeId of nodeIds) {
-    if (!indices.has(nodeId)) {
-      strongConnect(nodeId);
-    }
-  }
-
-  return sccs;
+  readonly tier?: number | undefined;
+  readonly role?: string | undefined;
+  readonly agentId?: string | undefined;
 }
 
 export function checkPlanningDag(options: PlanningDagCheckOptions = {}): DoctorCheckEngineResult {
   const findings: DoctorDiagnosticFinding[] = [];
-  const nodesMap = new Map<string, TaskNodeInfo>();
+  const nodesMap = populateNodesMap(options);
 
-  if (options.tasks && typeof options.tasks === "object") {
-    for (const [key, value] of Object.entries(options.tasks)) {
-      if (value && typeof value === "object") {
-        const rec = value as Record<string, unknown>;
-        const id = typeof rec.id === "string" ? rec.id : key;
-        const deps = extractDependencyList(rec.dependencies ?? rec.deps);
-        const status = typeof rec.status === "string" ? rec.status : undefined;
-        nodesMap.set(id, { id, dependencies: deps, status });
-      }
+  if (nodesMap.size === 0) {
+    let activeWorktrees = options.activeWorktreeCount ?? 0;
+    if (options.activeWorktreeCount === undefined && options.repoRoot) {
+      try {
+        activeWorktrees = listTrackWorktrees({
+          repoRoot: options.repoRoot,
+        }).filter((w) => w.status === "active").length;
+      } catch {}
+    }
+    const st = options.state;
+    const pulses = Array.isArray(st?.active_pulses)
+      ? st.active_pulses.length
+      : typeof st?.active_pulses === "number"
+        ? st.active_pulses
+        : 0;
+    const phase =
+      typeof st?.phase === "string"
+        ? st.phase
+        : typeof st?.execution_phase === "string"
+          ? st.execution_phase
+          : undefined;
+    const hasActive =
+      activeWorktrees > 0 ||
+      pulses > 0 ||
+      (phase !== undefined && !["idle", "completed", "init"].includes(phase));
+
+    if (hasActive) {
+      findings.push({
+        code: "EMPTY_GRAPH_DURING_ACTIVE_EXECUTION",
+        severity: "ERROR",
+        engine: "checkPlanningDag",
+        message: "Planning DAG is empty (0 tasks) during active worktree/pulse execution",
+        details: {
+          activeWorktrees: options.activeWorktreeCount ?? activeWorktrees,
+        },
+      });
+      return { engine: "checkPlanningDag", passed: false, findings };
     }
   }
 
-  if (options.graph && typeof options.graph === "object") {
-    if (Array.isArray(options.graph.nodes)) {
-      for (const node of options.graph.nodes) {
-        if (
-          node &&
-          typeof node === "object" &&
-          "id" in node &&
-          typeof (node as { readonly id?: unknown }).id === "string"
-        ) {
-          const rawNode = node as {
-            readonly id: string;
-            readonly dependencies?: unknown;
-            readonly deps?: unknown;
-            readonly status?: unknown;
-          };
-          const existing = nodesMap.get(rawNode.id);
-          const rawDependencies = rawNode.dependencies ?? rawNode.deps;
-          const deps =
-            rawDependencies !== undefined
-              ? extractDependencyList(rawDependencies)
-              : (existing?.dependencies ?? []);
-          const status = typeof rawNode.status === "string" ? rawNode.status : existing?.status;
-          nodesMap.set(rawNode.id, {
-            id: rawNode.id,
-            dependencies: deps,
-            status,
-          });
-        }
-      }
-    }
-    if (Array.isArray(options.graph.edges)) {
-      for (const edge of options.graph.edges) {
-        if (
-          edge &&
-          typeof edge === "object" &&
-          "from" in edge &&
-          "to" in edge &&
-          typeof (edge as { readonly from?: unknown }).from === "string" &&
-          typeof (edge as { readonly to?: unknown }).to === "string"
-        ) {
-          const typedEdge = edge as { readonly from: string; readonly to: string };
-          const target = nodesMap.get(typedEdge.to);
-          if (target) {
-            if (!target.dependencies.includes(typedEdge.from)) {
-              nodesMap.set(typedEdge.to, {
-                ...target,
-                dependencies: [...target.dependencies, typedEdge.from],
-              });
-            }
-          }
-        }
+  const allEdges = collectAllEdges(options.graph, nodesMap);
+  const seenEdges = new Set<string>();
+
+  for (const edge of allEdges) {
+    const key = `${edge.from}->${edge.to}`;
+    if (seenEdges.has(key)) continue;
+    seenEdges.add(key);
+
+    const fromNode = nodesMap.get(edge.from);
+    const toNode = nodesMap.get(edge.to);
+    const fromTier = fromNode?.tier ?? resolveTier(undefined, undefined, undefined, edge.from);
+    const toTier = toNode?.tier ?? resolveTier(undefined, undefined, undefined, edge.to);
+
+    if (fromTier !== undefined && toTier !== undefined) {
+      const delta = Math.abs(toTier - fromTier);
+      if (delta > 1) {
+        findings.push({
+          code: "PLANNING_DAG_TIER_SKIP_VIOLATION",
+          severity: "ERROR",
+          engine: "checkPlanningDag",
+          message: `Tier-skip violation detected in planning DAG edge: "${edge.from}" (Tier ${fromTier}) -> "${edge.to}" (Tier ${toTier}) exceeds delta_tier <= 1`,
+          details: { from: edge.from, to: edge.to, fromTier, toTier, delta },
+        });
       }
     }
   }
@@ -205,37 +141,26 @@ export function checkPlanningDag(options: PlanningDagCheckOptions = {}): DoctorC
           message: `Task "${id}" references missing dependency "${depId}"`,
           details: { taskId: id, missingDependencyId: depId },
         });
-      } else {
-        validDeps.push(depId);
-      }
+      } else validDeps.push(depId);
     }
     adjacency.set(id, validDeps);
   }
 
-  const cycles = findCycles(allNodeIds, adjacency);
-  for (const cycle of cycles) {
-    const cycleStr = cycle.join(" -> ") + ` -> ${cycle[0]}`;
+  for (const cycle of findCycles(allNodeIds, adjacency)) {
     findings.push({
       code: "PLANNING_DAG_CYCLE_DETECTED",
       severity: "ERROR",
       engine: "checkPlanningDag",
-      message: `Cycle detected in planning DAG: ${cycleStr}`,
+      message: `Cycle detected in planning DAG: ${cycle.join(" -> ")} -> ${cycle[0]}`,
       details: { cycleNodes: cycle },
     });
   }
 
   if (allNodeIds.length > 1) {
     const isTargetSet = new Set<string>();
-    for (const deps of adjacency.values()) {
-      for (const d of deps) {
-        isTargetSet.add(d);
-      }
-    }
+    for (const deps of adjacency.values()) for (const d of deps) isTargetSet.add(d);
     for (const id of allNodeIds) {
-      const deps = adjacency.get(id) ?? [];
-      const hasOutgoing = deps.length > 0;
-      const hasIncoming = isTargetSet.has(id);
-      if (!hasOutgoing && !hasIncoming) {
+      if ((adjacency.get(id) ?? []).length === 0 && !isTargetSet.has(id)) {
         findings.push({
           code: "PLANNING_DAG_ORPHAN_TASK",
           severity: "WARN",

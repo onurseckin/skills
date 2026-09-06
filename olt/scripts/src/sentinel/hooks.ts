@@ -1,4 +1,12 @@
+import { HarnessError } from "../core/errors/index.ts";
+import type { PlanningDagGraphInput } from "../reporting/doctor/planning-dag-engine.ts";
+import type { DoctorDiagnosticFinding } from "../reporting/doctor/types.ts";
 import { inspectSourceFile } from "./ast-inspector.ts";
+import {
+  dispatchSentinelIntercept,
+  isCriticalDoctorFinding,
+  runFastDoctorChecks,
+} from "./interceptor.ts";
 import { dispatchSentinelInterjection } from "./mailbox-router.ts";
 import { getProfileForRole } from "./profiles/index.ts";
 import {
@@ -17,7 +25,70 @@ import type {
   TurnEndResult,
 } from "./types.ts";
 
-export function executePreActionHook(input: PreActionInput): PreActionResult {
+export interface ExtendedPreActionInput extends PreActionInput {
+  readonly state?: Readonly<Record<string, unknown>> | undefined;
+  readonly tasks?: Readonly<Record<string, unknown>> | undefined;
+  readonly graph?: PlanningDagGraphInput | undefined;
+  readonly findings?: readonly DoctorDiagnosticFinding[] | undefined;
+  readonly parent_supervisor?: string | undefined;
+  readonly activeWorktreeCount?: number | undefined;
+  readonly throw_on_block?: boolean | undefined;
+}
+
+export function executePreActionHook(input: ExtendedPreActionInput): PreActionResult {
+  const doctorFindings = runFastDoctorChecks({
+    ...(input.repo_root !== undefined ? { repoRoot: input.repo_root } : {}),
+    ...(input.state !== undefined ? { state: input.state } : {}),
+    ...(input.tasks !== undefined ? { tasks: input.tasks } : {}),
+    ...(input.graph !== undefined ? { graph: input.graph } : {}),
+    ...(input.findings !== undefined ? { findings: input.findings } : {}),
+    role: input.role,
+    agentId: input.agent_id,
+    actionType: input.action_type,
+    target: input.target,
+    ...(input.activeWorktreeCount !== undefined
+      ? { activeWorktreeCount: input.activeWorktreeCount }
+      : {}),
+  });
+
+  const criticalFindings = doctorFindings.filter(isCriticalDoctorFinding);
+  if (criticalFindings.length > 0) {
+    const critical = criticalFindings[0]!;
+    const blockerCode = critical.code;
+    const blockerReason = critical.message;
+    const remediation = "Resolve critical doctor diagnostic finding before proceeding.";
+
+    dispatchSentinelIntercept({
+      agentId: input.agent_id,
+      role: input.role,
+      actionType: input.action_type,
+      target: input.target,
+      ...(input.parent_supervisor !== undefined ? { supervisorId: input.parent_supervisor } : {}),
+      blockerCode,
+      blockerReason,
+      remediation,
+      findings: criticalFindings,
+      ...(input.repo_root !== undefined ? { repoRoot: input.repo_root } : {}),
+    });
+
+    if (input.throw_on_block) {
+      throw new HarnessError(
+        "ROLE_CONFINEMENT_VIOLATION",
+        `[SENTINEL_BLOCK] ${blockerReason}`,
+        [],
+        3,
+        remediation,
+      );
+    }
+
+    return {
+      allowed: false,
+      code: "ROLE_CONFINEMENT_VIOLATION",
+      reason: blockerReason,
+      remediation,
+    };
+  }
+
   const profile = getProfileForRole(input.role);
 
   if (input.action_type === "file_write") {
