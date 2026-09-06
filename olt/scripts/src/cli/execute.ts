@@ -1,4 +1,4 @@
-import { lstatSync, realpathSync } from "node:fs";
+import { existsSync, lstatSync, realpathSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import type { JsonObject } from "../core/contracts/index.ts";
 import { HarnessError } from "../core/errors/index.ts";
@@ -16,11 +16,8 @@ import { CumulativePhaseInvariantEngine, DeductiveStateMachine } from "./phase-i
 
 export { DeductiveStateMachine, CumulativePhaseInvariantEngine };
 
-function isEnoent(error: unknown): boolean {
-  return (
-    error instanceof Error && Object.getOwnPropertyDescriptor(error, "code")?.value === "ENOENT"
-  );
-}
+const isEnoent = (error: unknown): boolean =>
+  error instanceof Error && (error as { code?: string }).code === "ENOENT";
 
 function canonicalizePhysicalPath(path: string, description: string): string {
   let existingPath = resolve(path);
@@ -55,38 +52,45 @@ function canonicalizePhysicalPath(path: string, description: string): string {
 }
 
 function isOutside(root: string, target: string): boolean {
-  const relation = relative(root, target);
-  return (
-    relation === ".." ||
-    relation.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`) ||
-    isAbsolute(relation)
-  );
+  const rel = relative(root, target);
+  if (rel === "..") return true;
+  if (isAbsolute(rel)) return true;
+  return rel.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`);
 }
 
 function assertAuthorityBoundTargets(spec: CommandSpec, flags: Record<string, unknown>): void {
   const authority = spec.authority;
   if (authority?.constrainedPathFlags === undefined) return;
   const authorityRun = flags[authority.authorityRunFlag];
-  if (typeof authorityRun !== "string" || authorityRun.trim() === "") return;
+  if (typeof authorityRun !== "string") return;
+  if (authorityRun.trim() === "") return;
   const repositoryRoot = resolve(findRepoRoot(authorityRun));
   const physicalRepositoryRoot = canonicalizePhysicalPath(
     repositoryRoot,
     "authority-run repository",
   );
   const constrained = new Set(authority.constrainedPathFlags);
+  const qfDefault = join(repositoryRoot, ".olt", "backlog.jsonl");
   if (
     constrained.has("queue-file") &&
     typeof flags["queue-file"] !== "string" &&
     typeof flags["queue-path"] !== "string"
   ) {
-    flags["queue-file"] = join(repositoryRoot, ".olt", "backlog.jsonl");
+    flags["queue-file"] = qfDefault;
+  }
+  if (constrained.has("queue-path") && typeof flags["queue-path"] !== "string") {
+    flags["queue-path"] = typeof flags["queue-file"] === "string" ? flags["queue-file"] : qfDefault;
+  }
+  if (constrained.has("queue-file") && typeof flags["queue-file"] !== "string") {
+    flags["queue-file"] = flags["queue-path"];
   }
   if (constrained.has("archive-file") && typeof flags["archive-file"] !== "string") {
     flags["archive-file"] = join(repositoryRoot, ".olt", "completed-tasks.jsonl");
   }
   for (const name of authority.constrainedPathFlags) {
     const target = flags[name];
-    if (typeof target !== "string" || target.trim() === "") continue;
+    if (typeof target !== "string") continue;
+    if (target.trim() === "") continue;
     const resolvedTarget = resolve(target);
     if (isOutside(repositoryRoot, resolvedTarget)) {
       throw new HarnessError(
@@ -114,8 +118,8 @@ export async function execute(
   let effectiveArgv = [...argv];
   if (
     effectiveArgv.length >= 2 &&
-    effectiveArgv[0] !== undefined &&
-    effectiveArgv[1] !== undefined &&
+    effectiveArgv[0] &&
+    effectiveArgv[1] &&
     !effectiveArgv[0].startsWith("-") &&
     !effectiveArgv[1].startsWith("-") &&
     effectiveArgv[1] !== "--"
@@ -126,7 +130,8 @@ export async function execute(
     }
   }
 
-  const spec = findCommand(effectiveArgv[0] ?? "");
+  const cmdName = effectiveArgv[0] !== undefined ? effectiveArgv[0] : "";
+  const spec = findCommand(cmdName);
   const parsed = parseArguments(
     effectiveArgv,
     spec === undefined ? undefined : flagShapes(spec.flags),
@@ -144,10 +149,83 @@ export async function execute(
     );
   }
 
-  if (parsed.flags["run-id"] !== undefined && parsed.flags["run"] === undefined) {
-    parsed.flags["run"] = parsed.flags["run-id"];
-  } else if (parsed.flags["run"] !== undefined && parsed.flags["run-id"] === undefined) {
-    parsed.flags["run-id"] = parsed.flags["run"];
+  const runCandidate =
+    parsed.flags["run"] !== undefined
+      ? parsed.flags["run"]
+      : parsed.flags["run-id"] !== undefined
+        ? parsed.flags["run-id"]
+        : parsed.flags["capsule"];
+  if (runCandidate !== undefined) {
+    if (parsed.flags["run"] === undefined) parsed.flags["run"] = runCandidate;
+    const acceptsRunId = spec.flags.some((f) => f.name === "run-id");
+    const acceptsRun = spec.flags.some((f) => f.name === "run");
+    const acceptsCapsule = spec.flags.some((f) => f.name === "capsule");
+
+    if (acceptsRunId ? true : parsed.flags["run-id"] !== undefined)
+      parsed.flags["run-id"] = parsed.flags["run"];
+    if (acceptsCapsule) parsed.flags["capsule"] = parsed.flags["run"];
+    else delete parsed.flags["capsule"];
+    if (!acceptsRunId && !acceptsRun) delete parsed.flags["run-id"];
+  }
+
+  const actorCandidate =
+    parsed.flags["actor"] !== undefined
+      ? parsed.flags["actor"]
+      : parsed.flags["agent"] !== undefined
+        ? parsed.flags["agent"]
+        : parsed.flags["agent-id"];
+  if (actorCandidate !== undefined) {
+    const hasActor = spec.flags.some((f) => f.name === "actor");
+    const hasAgent = spec.flags.some((f) => f.name === "agent");
+    const hasAgentId = spec.flags.some((f) => f.name === "agent-id");
+
+    if (hasActor ? true : hasAgent ? true : hasAgentId) {
+      if (hasActor && parsed.flags["actor"] === undefined) parsed.flags["actor"] = actorCandidate;
+      if (hasAgent && parsed.flags["agent"] === undefined) parsed.flags["agent"] = actorCandidate;
+      if (hasAgentId && parsed.flags["agent-id"] === undefined)
+        parsed.flags["agent-id"] = actorCandidate;
+      if (!hasActor) delete parsed.flags["actor"];
+      if (!hasAgent) delete parsed.flags["agent"];
+      if (!hasAgentId) delete parsed.flags["agent-id"];
+    }
+  }
+
+  const activeRun = typeof parsed.flags["run"] === "string" ? parsed.flags["run"] : undefined;
+  if (activeRun !== undefined && activeRun.trim() !== "") {
+    const hasConstrained = spec.authority?.constrainedPathFlags !== undefined;
+    const expectsQueuePath = spec.flags.some((f) => f.name === "queue-path");
+    if (hasConstrained ? true : expectsQueuePath) {
+      if (expectsQueuePath && parsed.flags["queue-path"] === undefined) {
+        let repoRoot: string;
+        try {
+          repoRoot = resolve(findRepoRoot(activeRun));
+        } catch {
+          repoRoot = process.cwd();
+        }
+        const hasQueueFile =
+          hasConstrained && spec.authority?.constrainedPathFlags?.includes("queue-file");
+        if (hasQueueFile) {
+          const qf = parsed.flags["queue-file"];
+          parsed.flags["queue-path"] =
+            typeof qf === "string" ? qf : join(repoRoot, ".olt", "backlog.jsonl");
+        } else {
+          const cCapsuleQueue = join(resolve(activeRun), "tasks.jsonl");
+          const cDotOltQueue = join(resolve(activeRun), ".olt", "tasks.jsonl");
+          parsed.flags["queue-path"] = existsSync(cCapsuleQueue)
+            ? cCapsuleQueue
+            : existsSync(cDotOltQueue)
+              ? cDotOltQueue
+              : join(repoRoot, ".olt", "tasks.jsonl");
+        }
+      }
+      if (
+        !spec.flags.some((f) => f.name === "run") &&
+        !spec.flags.some((f) => f.name === "run-id")
+      ) {
+        delete parsed.flags["run"];
+        delete parsed.flags["run-id"];
+      }
+    }
   }
 
   const authorityRun =
@@ -158,20 +236,16 @@ export async function execute(
     runRoot: typeof authorityRun === "string" ? authorityRun : undefined,
     explicitActor: explicitActingClaim(spec, parsed.flags),
   });
+
+  const identityFlags = new Set(["agent", "actor", "validator", "critic", "role"]);
   for (const flag of spec.flags) {
-    if (
-      flag.required &&
-      !Object.hasOwn(parsed.flags, flag.name) &&
-      (flag.name === "agent" ||
-        flag.name === "actor" ||
-        flag.name === "validator" ||
-        flag.name === "critic" ||
-        flag.name === "role")
-    ) {
+    if (flag.required && !Object.hasOwn(parsed.flags, flag.name) && identityFlags.has(flag.name)) {
       if (!identity.verified) {
+        const mechStr = identity.mechanisms.join(", ");
+        const mech = mechStr.length > 0 ? mechStr : "none";
         throw new HarnessError(
           "AUTHENTICATION_FAILURE",
-          `--${flag.name} is required to run '${spec.name}' but no verified caller identity is available; refusing to auto-fill it from an unauthenticated source (mechanisms: ${identity.mechanisms.join(", ") || "none"}).`,
+          `--${flag.name} is required to run '${spec.name}' but no verified caller identity is available; refusing to auto-fill it from an unauthenticated source (mechanisms: ${mech}).`,
           [],
           3,
           `Pass --${flag.name} explicitly, or run this command from a registered session (see agent:register) so the caller's identity can be verified.`,
@@ -184,7 +258,7 @@ export async function execute(
   if (
     identity.verified &&
     requiresActingIdentity(spec) &&
-    spec.flags.some((flag) => flag.name === "actor") &&
+    spec.flags.some((f) => f.name === "actor") &&
     parsed.flags["actor"] === undefined
   ) {
     parsed.flags["actor"] = identity.actor;
