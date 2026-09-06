@@ -58,7 +58,12 @@ function runGitLocal(
   argv: readonly string[],
 ): { status: number; stdout: string; stderr: string } {
   try {
-    const res = spawnSync("git", argv as string[], { cwd, encoding: "utf-8" });
+    const env = { ...process.env };
+    delete env.GIT_DIR;
+    delete env.GIT_WORK_TREE;
+    delete env.GIT_INDEX_FILE;
+    delete env.GIT_PREFIX;
+    const res = spawnSync("git", argv as string[], { cwd, env, encoding: "utf-8" });
     return {
       status: res.status ?? -1,
       stdout: res.stdout ?? "",
