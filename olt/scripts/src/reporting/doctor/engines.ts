@@ -98,6 +98,10 @@ import {
   type MindCharterInvariant,
   MIND_CHARTER_INVARIANTS,
 } from "./anti-stagnation/index.ts";
+import {
+  checkPlanQualityAndAgentUtilization,
+  type PlanQualityCheckOptions,
+} from "./plan-quality-engine.ts";
 
 export {
   checkPlanningDag,
@@ -134,6 +138,7 @@ export {
   checkTier0CompanionsHealth,
   checkAntiStagnationDoctor,
   auditAntiStagnationHealth,
+  checkPlanQualityAndAgentUtilization,
   checkPreCompletionDiagnostics,
   generateRemedialGuidance,
   remedialActionsForIntegrityIssues,
@@ -144,6 +149,7 @@ export {
 
 export type {
   PlanningDagCheckOptions,
+  PlanQualityCheckOptions,
   AstPurityCheckOptions,
   AntiMockMutationCheckOptions,
   CounterfactualCheckRecord,

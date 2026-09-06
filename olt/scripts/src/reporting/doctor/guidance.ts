@@ -27,6 +27,54 @@ export interface DoctorGuidanceResult {
 const STATE_PROJECTION_ISSUE_CODE = "STATE_PROJECTION";
 const TORN_EVENT_TAIL_CODE = "TORN_EVENT_TAIL";
 
+interface PlanRemedialDef {
+  readonly command: (run: string) => string;
+  readonly description: string;
+  readonly rationale: string;
+}
+
+const PLAN_REMEDIAL_ACTIONS: Readonly<Record<string, PlanRemedialDef>> = {
+  SHALLOW_PLAN_CONTEXT_FLAW: {
+    command: (run) => `bun harness.ts plan:enhance --run ${run} --deepen-context`,
+    description:
+      "Deepen plan context with prompt lines, task descriptions (>= 100 chars), and coordinate mappings.",
+    rationale:
+      "Canonical 8-level plan architecture requires deep context grounding before implementation.",
+  },
+  UNUTILIZED_PLANNING_AGENTS_FLAW: {
+    command: (run) => `bun harness.ts plan:enhance --run ${run} --actor planner`,
+    description: "Engage Tier 3 Planner to author and compile structured task definitions.",
+    rationale:
+      "Anti-supervisory planning invariant forbids supervisors from compiling plans directly.",
+  },
+  MISSING_EIGHT_VECTOR_EXPANSION_FLAW: {
+    command: (run) => `bun harness.ts plan:brainstorm --run ${run} --actor planner`,
+    description: "Execute mandatory 8-vector Socratic expansion across all failure modes.",
+    rationale:
+      "Level 3 planning invariant requires formal analysis across all 8 vectors before compilation.",
+  },
+  MISSING_PLAN_VALIDATOR_AUDIT: {
+    command: (run) => `bun harness.ts plan:validate-start --run ${run} --validator val-1`,
+    description:
+      "Initiate adversarial plan audit and obtain approved plan:review token from independent validator.",
+    rationale:
+      "2-key plan sealing protocol requires independent validator review before task claiming.",
+  },
+  EPISTEMIC_CONFIDENCE_DEFICIT: {
+    command: (run) => `bun harness.ts plan:enhance --run ${run} --deepen-context`,
+    description:
+      "Increase empirical evidence and falsifiable gates to raise epistemic confidence above 0.85.",
+    rationale: "Quantitative epistemic confidence must meet or exceed 0.85 threshold to proceed.",
+  },
+  PLAN_GRANULARITY_VIOLATION: {
+    command: (run) => `bun harness.ts plan:replan --run ${run} --actor coordinator`,
+    description:
+      "Decompose monolithic plan to satisfy granularity limits (<= 2 subsystems, <= 6 tasks, <= 3 files per task).",
+    rationale:
+      "Plan granularity invariants prevent monolithic execution stragglers and scope bleed.",
+  },
+};
+
 export function remedialActionsForIntegrityIssues(
   runRoot: string,
   integrityIssues: readonly IntegrityIssue[],
@@ -69,7 +117,18 @@ export function generateRemedialGuidance(options: GuidanceGenerationOptions): Do
   for (const f of findings) {
     if (seenCodes.has(f.code)) continue;
 
-    if (
+    const planAction = PLAN_REMEDIAL_ACTIONS[f.code];
+    if (planAction) {
+      seenCodes.add(f.code);
+      const act: DoctorRemedialAction = {
+        issueCode: f.code,
+        command: planAction.command(options.runRoot),
+        description: planAction.description,
+        rationale: planAction.rationale,
+      };
+      actions.push(act);
+      guidance.push(`[${f.code}] ${act.description} -> Run: \`${act.command}\``);
+    } else if (
       f.code === "UNAPPROVED_ROOT_FILE" ||
       f.code === "STATIC_PACKAGE_RUNTIME_POLLUTION" ||
       f.code === "UNCONFINED_SCRATCH_SCRIPT"

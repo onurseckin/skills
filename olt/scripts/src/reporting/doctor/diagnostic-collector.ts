@@ -15,6 +15,7 @@ import {
   checkCliRegistryTaxonomy,
   checkTier0CompanionsHealth,
   checkAntiStagnationDoctor,
+  checkPlanQualityAndAgentUtilization,
   type DoctorCheckEngineResult,
   type DoctorDiagnosticFinding,
 } from "./engines.ts";
@@ -189,6 +190,14 @@ export function collectDiagnosticEngines(
     }),
   );
 
+  const engine17 = safeRunEngine("checkPlanQualityAndAgentUtilization", () =>
+    checkPlanQualityAndAgentUtilization({
+      state: (state as Record<string, unknown> | undefined) ?? null,
+      events: events ?? null,
+      repoRoot: repository,
+    }),
+  );
+
   const allEngineFindings: DoctorDiagnosticFinding[] = [
     ...engine1.findings,
     ...engine2.findings,
@@ -206,6 +215,7 @@ export function collectDiagnosticEngines(
     ...engine14.findings,
     ...engine15.findings,
     ...engine16.findings,
+    ...engine17.findings,
   ];
 
   const engineErrorIssues = allEngineFindings
@@ -238,6 +248,7 @@ export function collectDiagnosticEngines(
       checkCliRegistryTaxonomy: engine14,
       checkTier0CompanionsHealth: engine15,
       checkAntiStagnationDoctor: engine16,
+      checkPlanQualityAndAgentUtilization: engine17,
     },
     allEngineFindings,
     engineErrorIssues,
