@@ -55,7 +55,12 @@ export function recordCompletionReview(
   const summary = requireText(input.summary, "summary");
   const packetId =
     typeof input.packet_id === "string" && input.packet_id.trim() ? input.packet_id : "direct";
-  const criticToken = requireText(input.critic_token, "critic_token");
+  const rawToken =
+    typeof input.critic_token === "string" && input.critic_token.trim()
+      ? input.critic_token
+      : typeof input.token === "string" && input.token.trim()
+        ? input.token
+        : undefined;
   const packetSha = input.packet_sha256;
   if (
     packetSha !== undefined &&
@@ -85,6 +90,14 @@ export function recordCompletionReview(
     { packet_id: packetId, summary, status: input.status },
     (draft) => {
       const assignment = draft.completion_critic;
+      const criticToken =
+        rawToken ??
+        (typeof (assignment as Record<string, unknown> | undefined)?.token === "string"
+          ? ((assignment as Record<string, unknown>).token as string)
+          : undefined);
+      if (!criticToken) {
+        throw new HarnessError("INVALID_ARGUMENT", "critic_token is required");
+      }
       assertCriticIndependent(draft, criticId);
       if (
         !assignment ||

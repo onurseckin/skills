@@ -40,7 +40,12 @@ export {
   type TaskRepairSummary,
 } from "./critic-feedback-loop.ts";
 
-export { assertCriticIndependent } from "./critic-identity.ts";
+export {
+  assertCriticIndependent,
+  loadCriticRolePacket,
+  resolveCriticToken,
+  saveCriticPacket,
+} from "./critic-identity.ts";
 
 export { observeCapsuleIntegrity, type CapsuleIntegrityEvidence } from "./integrity-evidence.ts";
 
