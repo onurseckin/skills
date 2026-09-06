@@ -88,6 +88,8 @@ export function resolveAcceptanceCriteria(
       "Strict adherence to project architecture.",
       "Code passes all lint and typecheck rules.",
       "Strict type safety: 0 'any' types, 0 compiler suppressions (@ts-ignore, @ts-expect-error, eslint-disable).",
+      "Strict modularity invariants: File length <= 300 LOC, directory fanout <= 10 files, named facade exports in index.ts (0 export *), 0 facade bypasses.",
+      "Zero quality gate bypasses: Absolute ban on --no-verify, --force, or LEFTHOOK=0.",
     );
   }
   return criteria;
@@ -109,6 +111,7 @@ export function deriveNextSteps(
     steps.push(`bun harness.ts task:claim --run ${run} --task ${taskId}${agentArg}${roleArg}`);
   } else if (status === "leased") {
     steps.push(
+      `bun harness.ts task:check --task ${taskId}`,
       `bun harness.ts task:submit --run ${run} --task ${taskId}${agentArg} --token <TOKEN> --summary "<SUMMARY>"`,
     );
   } else if (status === "submitted") {

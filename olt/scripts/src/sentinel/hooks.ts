@@ -129,6 +129,21 @@ export function executePreActionHook(input: ExtendedPreActionInput): PreActionRe
 
     const command = input.target.trim();
     if (
+      command.includes("LEFTHOOK=0") ||
+      command.includes("LEFTHOOK=false") ||
+      /\b--no-verify\b/.test(command) ||
+      /\b--force\b/.test(command)
+    ) {
+      return {
+        allowed: false,
+        code: "QUALITY_GATE_BYPASS_ATTEMPT",
+        reason:
+          "Bypassing git hooks or quality gates via LEFTHOOK=0, --no-verify, or --force is strictly prohibited.",
+        remediation:
+          "Resolve underlying gate failures at the source rather than bypassing verification.",
+      };
+    }
+    if (
       command.startsWith("nohup ") ||
       command.includes(" disown") ||
       command.endsWith(" &") ||
