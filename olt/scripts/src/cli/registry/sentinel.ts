@@ -1,0 +1,140 @@
+import { doctorAgentCommand } from "../commands/doctor-agent.ts";
+import {
+  sentinelPostActionCommand,
+  sentinelPreActionCommand,
+  sentinelTurnEndCommand,
+  sentinelWatchCommand,
+} from "../commands/sentinel-ops.ts";
+import { DEFAULT_EXIT_CODES, optionalFlag, requiredFlag, type CommandSpec } from "./types.ts";
+
+export const SENTINEL_COMMANDS: readonly CommandSpec[] = [
+  {
+    name: "doctor:agent",
+    aliases: [],
+    domain: "diagnostics",
+    tier: "primary",
+    internal: false,
+    summary: "Evaluate agent-scoped contracts and 20-role invariant profiles.",
+    description:
+      "Performs fine-grained, deterministic, role-tailored diagnostic checks against an agent's leased tasks and events without global broadcasting.",
+    flags: [
+      requiredFlag("role", "string", "Canonical role to evaluate (e.g. implementer, coordinator)."),
+      requiredFlag("agent", "string", "Target agent identifier."),
+      optionalFlag("task", "string", "Task ID under active lease."),
+      optionalFlag("run", "string", "Run capsule root directory."),
+      optionalFlag("format", "string", "Output format: json or markdown."),
+      optionalFlag("files", "string", "Comma-separated modified files for AST evaluation."),
+      optionalFlag("commands", "string", "Comma-separated executed commands."),
+      optionalFlag("repo-root", "string", "Repository root path."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts doctor:agent --role implementer --agent implementer_core_01",
+      "bun harness.ts doctor:agent --role coordinator --agent coordinator_01 --format json",
+    ],
+    handler: doctorAgentCommand,
+  },
+  {
+    name: "sentinel:pre-action",
+    aliases: [],
+    domain: "diagnostics",
+    tier: "primary",
+    internal: false,
+    summary: "Intercept outgoing tool calls and enforce role boundaries before OS execution.",
+    description:
+      "Evaluates proposed file mutations and commands against leased write scopes and role execution permissions.",
+    flags: [
+      requiredFlag("role", "string", "Canonical role."),
+      requiredFlag("agent", "string", "Target agent identifier."),
+      requiredFlag("target", "string", "Target file path or shell command string."),
+      optionalFlag("action", "string", "Action type: file_write, shell_command, task_submit."),
+      optionalFlag("write-scope", "string", "Comma-separated leased write scope paths."),
+      optionalFlag("task", "string", "Task ID under active lease."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts sentinel:pre-action --role implementer --agent impl_01 --target src/app.ts --write-scope src/app.ts",
+    ],
+    handler: sentinelPreActionCommand,
+  },
+  {
+    name: "sentinel:post-action",
+    aliases: [],
+    domain: "diagnostics",
+    tier: "primary",
+    internal: false,
+    summary: "Scan modified files for AST purity, line budgets and directory fanout.",
+    description:
+      "Audits physical lines (<= 300 LOC), AST type purity (0 any, 0 suppressions), directory fanout (<= 10), and wildcard exports.",
+    flags: [
+      requiredFlag("role", "string", "Canonical role."),
+      requiredFlag("agent", "string", "Target agent identifier."),
+      requiredFlag("files", "string", "Comma-separated list of modified files."),
+      optionalFlag("repo-root", "string", "Repository root directory."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts sentinel:post-action --role implementer --agent impl_01 --files src/foo.ts,src/bar.ts",
+    ],
+    handler: sentinelPostActionCommand,
+  },
+  {
+    name: "sentinel:turn-end",
+    aliases: [],
+    domain: "diagnostics",
+    tier: "primary",
+    internal: false,
+    summary: "Holistic turn-end evaluation with 3-strike escalation and scoped mailbox delivery.",
+    description:
+      "Evaluates role profile, advances strike ladder, and dispatches scoped interjections via POSIX flock to agent inbox.",
+    flags: [
+      requiredFlag("role", "string", "Canonical role."),
+      requiredFlag("agent", "string", "Target agent identifier."),
+      optionalFlag("task", "string", "Task ID under active lease."),
+      optionalFlag("run", "string", "Run capsule root directory."),
+      optionalFlag(
+        "parent-supervisor",
+        "string",
+        "Parent supervisor agent ID for Strike 3 escalation.",
+      ),
+      optionalFlag("dry-run", "bool", "Dry run evaluation without mailbox delivery."),
+      optionalFlag("files", "string", "Comma-separated list of modified files."),
+      optionalFlag("commands", "string", "Comma-separated list of executed commands."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts sentinel:turn-end --role implementer --agent impl_01 --task task-100",
+    ],
+    handler: sentinelTurnEndCommand,
+  },
+  {
+    name: "sentinel:watch",
+    aliases: [],
+    domain: "diagnostics",
+    tier: "primary",
+    internal: false,
+    summary: "Live watchdog loop monitoring active turn execution against role contracts.",
+    description:
+      "Runs continuous or stepped evaluation of agent contracts, dispatching immediate corrective interjections upon violation.",
+    flags: [
+      requiredFlag("role", "string", "Canonical role."),
+      requiredFlag("agent", "string", "Target agent identifier."),
+      optionalFlag("task", "string", "Task ID."),
+      optionalFlag("interval", "int", "Watch interval in ms."),
+      optionalFlag("max-iterations", "int", "Maximum check iterations."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: ["bun harness.ts sentinel:watch --role implementer --agent impl_01"],
+    handler: sentinelWatchCommand,
+  },
+];

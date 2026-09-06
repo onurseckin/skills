@@ -20,6 +20,11 @@ export const CONTEXT_FREE_DIAGNOSTIC_COMMANDS: ReadonlySet<string> = new Set([
   "skill:audit:live",
   "mind:audit:live",
   "dag",
+  "doctor:agent",
+  "sentinel:pre-action",
+  "sentinel:post-action",
+  "sentinel:turn-end",
+  "sentinel:watch",
 ]);
 
 export const PRE_COMPILE_PLAN_CONSTRUCTION_COMMANDS: ReadonlySet<string> = new Set([
