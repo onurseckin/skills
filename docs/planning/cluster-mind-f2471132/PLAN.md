@@ -83,11 +83,25 @@ It addresses 0 backlog requirement(s) and 4 defect remediation(s) under the zero
 
 ---
 
-## 4. Sequential Execution Order & Critical Path
+## 4. Concurrent Execution Topology & Brent Work/Span Analysis
 
 ```text
-Execution Flow: [Task 1.1: Mind Stagnation & Static Auditor Receipts: Mind Transitions to Unauthorized Idle on Empty Queue Instead of Continuous UX/Code Evolution] ──► [Task 1.2: Tier 0 Mind Stagnation Detected] ──► [Task 1.3: Tier 0 Mind Stagnation Detected] ──► [Task 1.4: Tier 0 Mind Stagnation Detected] ──► [Verification: bun test tests/unit/mind/] ──► [Git Staging: git add -A] ──► [Landing]
+Concurrent Wave 1 (P = 4):
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                   PARALLEL WAVE 1 (P = 4)                                   │
+├──────────────────────────────┬──────────────────────────────┬───────────────────────────────┤
+│ Lane 1: Task 1.1             │ Lane 2: Task 1.2             │ Lane 3: Task 1.3              │
+│ (MIND_UNAUTHORIZED_IDLE)     │ (LIVE_STAGNATION_0jpptb)     │ (LIVE_STAGNATION_krbtds)      │
+├──────────────────────────────┴──────────────────────────────┴───────────────────────────────┤
+│ Lane 4: Task 1.4 (LIVE_STAGNATION_cgwrsa)                                                   │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
+  │
+  ▼
+[Convergence Gate: bun test tests/unit/mind/] ──► [Git Staging: git add -A] ──► [Landing]
 ```
+
+- **Brent Concurrency Metrics**: Work $W = 4$, Span $S = 1$, Parallelism $P = \lceil W / S \rceil = 4$.
+- **Topology**: Fully disjoint write scopes executed concurrently in parallel lanes.
 
 ---
 

@@ -5,6 +5,20 @@
   "summary": "List tasks in the task queue.",
   "flags": [
     {
+      "name": "run",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "capsule",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
       "name": "status",
       "type": "string",
       "required": false,

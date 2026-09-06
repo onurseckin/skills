@@ -36,3 +36,14 @@ record or file you need.
   child's own status in `exit_code`, which is why `task:review --status pass` reads the recorded
   exit code rather than the CLI's.
 - Failures print `{"ok":false,"error":{...}}` on stderr.
+
+## Universal flag aliasing and ergonomics
+
+To eliminate agent friction and cognitive overhead across different command families, `execute.ts` enforces universal normalization before argument parsing:
+
+- **Capsule and Run Root Aliasing**: Any command declaring `--run`, `--run-id`, or `--capsule` accepts any of the three interchangeably. For instance, `--capsule .olt/capsules/<id>` is mapped to `--run` cleanly.
+- **Actor and Identity Aliasing**: Any command expecting `--actor`, `--agent`, or `--agent-id` accepts any of the three (e.g. `task:check --agent worker-1` is normalized to `--actor worker-1`).
+- **Capsule Task Queries (`task:list --run`)**: `task:list` accepts `--run <capsule-path>` (or `--capsule`) to query and inspect capsule-level tasks directly with status, priority, and substring search filters (`--status`, `--search`), rendering both structured JSON and rich terminal markdown tables.
+- **Automatic Queue Path Derivation**: When `--run` is supplied to queue commands (such as `task:prune --run <capsule>`), the CLI derives `queue-path` from the capsule's `tasks.jsonl` or falls back to repository `.olt/tasks.jsonl` without requiring explicit path flags.
+- **Completeness Critic Auto-Hydration**: `critic:review` and `critic:reject` resolve the authoritative critic assignment and published role packet from capsule state, automatically binding repository evidence commands and verifying cryptographic token digests.
+- **Non-Blocking Defect Logging**: Fatal harness contract exceptions and boundary lockouts are logged under flock file lock to `.olt/defects.jsonl` without blocking command completion or parent loop recovery.

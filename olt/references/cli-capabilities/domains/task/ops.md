@@ -151,6 +151,8 @@ Queries and lists queue items with filtering and queue statistics.
 
 | Flag | Type | Required | Repeatable | Default | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
+| `--run` | string | no | no | - | Capsule run root or ID. |
+| `--capsule` | string | no | no | - | Alias for run. |
 | `--status` | string | no | no | - | Filter tasks by status. |
 | `--priority` | string | no | no | - | Filter tasks by priority. |
 | `--agent-id` | string | no | no | - | Filter tasks by assigned agent ID. |
