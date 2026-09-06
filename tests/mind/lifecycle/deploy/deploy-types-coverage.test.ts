@@ -20,15 +20,20 @@ describe("Mind Deploy Types & Tier Hierarchy Suite", () => {
     it("defines tiers 0 to 3 for all canonical agent roles", () => {
       expect(ROLE_TIER_MAP.mind).toBe(0);
       expect(ROLE_TIER_MAP["skill-auditor"]).toBe(0);
-      expect(ROLE_TIER_MAP["policy-discovery"]).toBe(0);
       expect(ROLE_TIER_MAP.orchestrator).toBe(1);
       expect(ROLE_TIER_MAP["mind-auditor"]).toBe(1);
       expect(ROLE_TIER_MAP.coordinator).toBe(2);
       expect(ROLE_TIER_MAP.planner).toBe(2);
-      expect(ROLE_TIER_MAP.repairer).toBe(2);
+      expect(ROLE_TIER_MAP["plan-validator"]).toBe(2);
+      expect(ROLE_TIER_MAP["completeness-critic"]).toBe(2);
       expect(ROLE_TIER_MAP.implementer).toBe(3);
       expect(ROLE_TIER_MAP.validator).toBe(3);
+      expect(ROLE_TIER_MAP.publisher).toBe(3);
+      expect(ROLE_TIER_MAP["ui-headless-validator"]).toBe(3);
+      expect(ROLE_TIER_MAP["ui-optical-validator"]).toBe(3);
       expect(ROLE_TIER_MAP["sub-implementer"]).toBe(3);
+      expect(ROLE_TIER_MAP["sub-validator"]).toBe(3);
+      expect(ROLE_TIER_MAP["sub-investigator"]).toBe(3);
     });
 
     it("exports abstract profiles and prohibited telemetry keys", () => {
@@ -47,20 +52,17 @@ describe("Mind Deploy Types & Tier Hierarchy Suite", () => {
         ["orchestrator", "coordinator"],
         ["coordinator", "implementer"],
         ["coordinator", "validator"],
+        ["coordinator", "publisher"],
         ["coordinator", "planner"],
         ["coordinator", "plan-validator"],
-        ["coordinator", "repairer"],
         ["coordinator", "completeness-critic"],
-        ["coordinator", "mechanic-validator"],
         ["coordinator", "ui-headless-validator"],
-        ["coordinator", "ui-mechanic-validator"],
         ["coordinator", "ui-optical-validator"],
-        ["coordinator", "ui-validator"],
         ["implementer", "sub-implementer"],
         ["implementer", "sub-investigator"],
         ["validator", "sub-validator"],
-        ["mechanic-validator", "sub-validator"],
-        ["ui-validator", "sub-validator"],
+        ["ui-headless-validator", "sub-validator"],
+        ["ui-optical-validator", "sub-validator"],
       ];
 
       for (const [parent, child] of validSpawns) {
@@ -98,17 +100,14 @@ describe("Mind Deploy Types & Tier Hierarchy Suite", () => {
     });
 
     it("rejects invalid tier jumps with specialized reasons", () => {
-      // Mind spawning non-orchestrator
       const mindToCoord = validateTierSpawn("mind", "coordinator");
       expect(mindToCoord.ok).toBe(false);
       expect(mindToCoord.reason).toContain("tier 0 mind may only deploy tier 1 orchestrator");
 
-      // Orchestrator spawning non-coordinator
       const orchToImpl = validateTierSpawn("orchestrator", "implementer");
       expect(orchToImpl.ok).toBe(false);
       expect(orchToImpl.reason).toContain("tier 1 orchestrator may only deploy tier 2 coordinator");
 
-      // Coordinator spawning higher tier
       const coordToMind = validateTierSpawn("coordinator", "mind");
       expect(coordToMind.ok).toBe(false);
       expect(coordToMind.reason).toContain(
@@ -121,7 +120,6 @@ describe("Mind Deploy Types & Tier Hierarchy Suite", () => {
         "tier 2 coordinator cannot deploy higher-tier role orchestrator",
       );
 
-      // Generic violation
       const implToCoord = validateTierSpawn("implementer", "coordinator");
       expect(implToCoord.ok).toBe(false);
       expect(implToCoord.reason).toContain("violates strict tier hierarchy");
