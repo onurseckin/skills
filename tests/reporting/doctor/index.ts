@@ -6,3 +6,4 @@ export { doctorSuiteName } from "./doctor.test.ts";
 export { doctorUnifiedSuiteName } from "./doctor-unified.test.ts";
 export { socraticValidatorSuiteName } from "./socratic-validator.test.ts";
 export { statusDoctorGapsSuiteName } from "./status-doctor-gaps.test.ts";
+export { planQualityEngineSuiteName } from "./plan-quality-engine.test.ts";

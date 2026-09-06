@@ -195,7 +195,7 @@ describe(unifiedMasterDoctorHealingSuiteName, () => {
         true,
       );
       transact(runRoot, "coord-1", "plan-brainstormed", { plan_id: "p1" }, (state) => {
-        state.tasks = { t1: { id: "t1", status: "open" } };
+        state.data = { t1: { id: "t1", status: "open" } };
       });
 
       setF(
