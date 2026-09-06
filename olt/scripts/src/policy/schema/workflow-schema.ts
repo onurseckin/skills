@@ -15,6 +15,7 @@ import {
 } from "./primitives.ts";
 
 const TEST_RUNNER_KEYS: ReadonlySet<string> = new Set([
+  "enabled",
   "default_command",
   "targeted_pattern",
   "full_suite_command",
@@ -48,20 +49,40 @@ const HOOKS_KEYS: ReadonlySet<string> = new Set([
   "on_error",
 ]);
 
-export function parseTestRunner(raw: unknown, p: string): TestRunnerPolicy {
-  if (raw === undefined) {
-    return {
-      default_command: "bun test",
-      targeted_pattern: "bun test <path>",
-      full_suite_command: "bun test",
-    };
+export function parseTestRunner(raw: unknown, p: string): TestRunnerPolicy | null {
+  if (raw === null || raw === false) {
+    return { enabled: false };
   }
-  if (!isRecord(raw)) integrity(p, "must be an object");
+  if (raw === undefined) {
+    return { enabled: false };
+  }
+  if (!isRecord(raw)) integrity(p, "must be an object, boolean, or null");
   assertAllowedKeys(raw, TEST_RUNNER_KEYS, p);
+
+  const enabled = raw["enabled"] !== undefined ? reqBool(raw["enabled"], `${p}.enabled`) : true;
+  if (!enabled) {
+    return { enabled: false };
+  }
+
+  if (
+    raw["default_command"] !== undefined &&
+    typeof raw["default_command"] === "string" &&
+    raw["default_command"].trim().length === 0
+  ) {
+    return { enabled: false, default_command: "" };
+  }
+
   return {
-    default_command: reqString(raw["default_command"], `${p}.default_command`),
-    targeted_pattern: reqString(raw["targeted_pattern"], `${p}.targeted_pattern`),
-    full_suite_command: reqString(raw["full_suite_command"], `${p}.full_suite_command`),
+    enabled: true,
+    default_command: reqString(raw["default_command"] ?? "bun test", `${p}.default_command`),
+    targeted_pattern: reqString(
+      raw["targeted_pattern"] ?? "bun test <path>",
+      `${p}.targeted_pattern`,
+    ),
+    full_suite_command: reqString(
+      raw["full_suite_command"] ?? "bun test",
+      `${p}.full_suite_command`,
+    ),
     ...(raw["timeout_ms"] !== undefined
       ? { timeout_ms: reqInt(raw["timeout_ms"], `${p}.timeout_ms`, 1) }
       : {}),

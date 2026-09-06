@@ -67,6 +67,13 @@ export function scanRepositoryToolchain(repoRoot?: string): ToolchainAnalysis {
       eco = "node";
     }
 
+    const hasTestScript = Boolean(scripts.test || scripts["test:unit"] || scripts["test:all"]);
+    const hasTestDir =
+      existsSync(join(root, "test")) ||
+      existsSync(join(root, "tests")) ||
+      existsSync(join(root, "__tests__"));
+    const hasTesting = hasTestScript || (pm === "bun" && hasTestDir);
+
     const testCmd = scripts.test
       ? `${pm} test`
       : scripts["test:unit"]
@@ -97,7 +104,7 @@ export function scanRepositoryToolchain(repoRoot?: string): ToolchainAnalysis {
     const buildCmd = scripts.build ? `${pm} run build` : undefined;
 
     const allowed = [
-      pm === "bun" ? "bun test" : `${pm} test`,
+      ...(hasTesting ? [pm === "bun" ? "bun test" : `${pm} test`] : []),
       `${pm} run`,
       "git status",
       "git diff",
@@ -123,12 +130,17 @@ export function scanRepositoryToolchain(repoRoot?: string): ToolchainAnalysis {
     return {
       ecosystem: eco,
       packageManager: pm,
-      testRunner: {
-        default_command: testCmd,
-        targeted_pattern: targetedPattern,
-        full_suite_command: fullSuiteCmd,
-        timeout_ms: 30000,
-      },
+      testRunner: hasTesting
+        ? {
+            enabled: true,
+            default_command: testCmd,
+            targeted_pattern: targetedPattern,
+            full_suite_command: fullSuiteCmd,
+            timeout_ms: 30000,
+          }
+        : {
+            enabled: false,
+          },
       typecheckCommand: typecheckCmd,
       lintCommand: lintCmd,
       buildCommand: buildCmd,

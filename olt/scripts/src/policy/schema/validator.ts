@@ -49,24 +49,41 @@ export function validateRepoPolicy(raw: unknown): RepoPolicy {
     ? (rawEco as RepoEcosystem)
     : "unknown";
 
-  const tr =
-    typeof rec["test_runner"] === "object" && rec["test_runner"] !== null
-      ? (rec["test_runner"] as Record<string, unknown>)
-      : {};
-  const testRunner: TestRunnerPolicy = {
-    default_command:
-      typeof tr["default_command"] === "string" && tr["default_command"].trim()
-        ? tr["default_command"].trim()
-        : defaultPolicy.test_runner.default_command,
-    targeted_pattern:
-      typeof tr["targeted_pattern"] === "string" && tr["targeted_pattern"].trim()
-        ? tr["targeted_pattern"].trim()
-        : defaultPolicy.test_runner.targeted_pattern,
-    full_suite_command:
-      typeof tr["full_suite_command"] === "string" && tr["full_suite_command"].trim()
-        ? tr["full_suite_command"].trim()
-        : defaultPolicy.test_runner.full_suite_command,
-  };
+  let testRunner: TestRunnerPolicy | null | undefined;
+  if (rec["test_runner"] === null || rec["test_runner"] === false) {
+    testRunner = { enabled: false };
+  } else if (rec["test_runner"] === undefined) {
+    testRunner = { enabled: false };
+  } else if (typeof rec["test_runner"] === "object") {
+    const tr = rec["test_runner"] as Record<string, unknown>;
+    if (tr["enabled"] === false) {
+      testRunner = { enabled: false };
+    } else if (
+      typeof tr["default_command"] === "string" &&
+      tr["default_command"].trim().length === 0
+    ) {
+      testRunner = { enabled: false, default_command: "" };
+    } else {
+      testRunner = {
+        enabled: true,
+        default_command:
+          typeof tr["default_command"] === "string" && tr["default_command"].trim()
+            ? tr["default_command"].trim()
+            : (defaultPolicy.test_runner?.default_command ?? "bun test"),
+        targeted_pattern:
+          typeof tr["targeted_pattern"] === "string" && tr["targeted_pattern"].trim()
+            ? tr["targeted_pattern"].trim()
+            : (defaultPolicy.test_runner?.targeted_pattern ?? "bun test <path>"),
+        full_suite_command:
+          typeof tr["full_suite_command"] === "string" && tr["full_suite_command"].trim()
+            ? tr["full_suite_command"].trim()
+            : (defaultPolicy.test_runner?.full_suite_command ?? "bun test"),
+        ...(typeof tr["timeout_ms"] === "number" ? { timeout_ms: tr["timeout_ms"] } : {}),
+      };
+    }
+  } else {
+    throw new HarnessError("INVALID_ARGUMENT", "test_runner must be an object, boolean, or null");
+  }
 
   const pl =
     typeof rec["planning"] === "object" && rec["planning"] !== null

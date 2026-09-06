@@ -1,3 +1,5 @@
+import type { RepoPolicy } from "./types/index.ts";
+
 export {
   CURRENT_POLICY_SCHEMA_VERSION,
   type AgentHostPolicy,
@@ -166,3 +168,11 @@ export {
 } from "./audit/index.ts";
 
 export { discoverToolchainPolicy, type DiscoveredToolchainPolicy } from "./repo-policy.ts";
+
+export function isTestingEnabled(policy?: RepoPolicy | undefined): boolean {
+  if (!policy || !policy.test_runner) return false;
+  if (policy.test_runner.enabled === false) return false;
+  return Boolean(
+    policy.test_runner.default_command && policy.test_runner.default_command.trim().length > 0,
+  );
+}

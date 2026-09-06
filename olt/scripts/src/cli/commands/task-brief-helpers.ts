@@ -15,7 +15,9 @@ export function deriveTargetFiles(
 export function deriveRecommendedCommands(
   gateCommands: readonly string[],
   targetFiles: readonly string[],
+  testingEnabled = true,
 ): readonly string[] {
+  if (!testingEnabled) return [];
   const commands: string[] = [];
 
   for (const gate of gateCommands) {

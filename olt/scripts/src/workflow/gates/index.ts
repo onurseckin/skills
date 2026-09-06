@@ -7,6 +7,7 @@ export {
   commandArgv,
   commandFingerprint,
   commandMatchesGate,
+  isTestGate,
   taskHasPassedGate,
   workflowGates,
 } from "./gate-policy.ts";

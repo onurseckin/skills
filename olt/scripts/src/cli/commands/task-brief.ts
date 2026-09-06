@@ -1,8 +1,9 @@
 import { existsSync } from "node:fs";
 import type { AgentGrantRecord, AgentToolRef } from "../../core/contracts/index.ts";
-import { HarnessError } from "../../core/errors/index.ts";
+import { findRepoRoot, HarnessError } from "../../core/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { workflowPort } from "../../integration/store-ports.ts";
+import { inspectRepoPolicy, isTestingEnabled } from "../../policy/index.ts";
 import {
   buildExactAnchorBriefing,
   type ExactAnchorBriefing,
@@ -84,9 +85,17 @@ export async function taskBriefCommand(flags: Flags): Promise<Record<string, unk
       : undefined;
     const targetFiles = deriveTargetFiles(writeScope, explicitTargets);
 
+    const repoRoot = findRepoRoot(run);
+    const policyInspection = inspectRepoPolicy(repoRoot);
+    const testingEnabled = isTestingEnabled(policyInspection.policy);
+
     const gates = applicableGates(wf, task);
     const gateCommands = gates.map((gate) => commandArgv(gate.command).join(" "));
-    recommendedCommands = deriveRecommendedCommands(gateCommands, targetFiles) as string[];
+    recommendedCommands = deriveRecommendedCommands(
+      gateCommands,
+      targetFiles,
+      testingEnabled,
+    ) as string[];
 
     const explicitCriteria = Array.isArray(task.acceptance_criteria)
       ? (task.acceptance_criteria.filter(

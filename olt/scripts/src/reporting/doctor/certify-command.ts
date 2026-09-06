@@ -2,6 +2,7 @@ import { findRepoRoot } from "../../core/shared/paths.ts";
 import { HarnessError } from "../../core/errors/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { boolFlag, listFlag, textFlag, type Flags } from "../../cli/options.ts";
+import { inspectRepoPolicy, isTestingEnabled } from "../../policy/index.ts";
 import {
   certifyHarnessDoctor,
   type DoctorCertificationReport,
@@ -39,7 +40,13 @@ function assertCertifiableWriteScope(writeScope: readonly string[]): void {
 export async function doctorCertifyCommand(flags: Flags): Promise<Record<string, unknown>> {
   const run = textFlag(flags, "run")!;
   const writeScope = listFlag(flags, "write-scope") ?? [];
-  assertCertifiableWriteScope(writeScope);
+  const repoRoot = findRepoRoot(run);
+  const inspection = inspectRepoPolicy(repoRoot);
+  const testingEnabled = isTestingEnabled(inspection.policy);
+
+  if (testingEnabled) {
+    assertCertifiableWriteScope(writeScope);
+  }
 
   const mutationKindRaw = textFlag(flags, "mutation-kind", false);
   if (mutationKindRaw !== undefined && !VALID_MUTATION_KINDS.has(mutationKindRaw)) {
@@ -50,7 +57,6 @@ export async function doctorCertifyCommand(flags: Flags): Promise<Record<string,
   }
   const mutationKind = mutationKindRaw as MutationKind | undefined;
 
-  const repoRoot = findRepoRoot(run);
   const state = loadStateOrNull(run);
   const strict = boolFlag(flags, "strict");
 
@@ -59,7 +65,7 @@ export async function doctorCertifyCommand(flags: Flags): Promise<Record<string,
     repoRoot,
     state,
     writeScope,
-    runAdversarialChecks: writeScope.length > 0,
+    runAdversarialChecks: testingEnabled && writeScope.length > 0,
     ...(mutationKind !== undefined ? { mutationKind } : {}),
   });
 

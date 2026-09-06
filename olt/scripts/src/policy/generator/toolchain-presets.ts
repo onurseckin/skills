@@ -63,10 +63,7 @@ export function getUnknownPresets(): ToolchainAnalysis {
     ecosystem: "unknown",
     packageManager: undefined,
     testRunner: {
-      default_command: "npm test",
-      targeted_pattern: "npm test -- <path>",
-      full_suite_command: "npm test",
-      timeout_ms: 30000,
+      enabled: false,
     },
     typecheckCommand: undefined,
     lintCommand: undefined,

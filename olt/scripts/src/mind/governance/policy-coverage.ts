@@ -98,8 +98,10 @@ export function auditRepoGovernanceCoverage(
       const policy = loadRepoPolicy(root);
       ecosystem = policy.ecosystem;
       hasTestRunner =
-        typeof policy.test_runner.default_command === "string" &&
-        policy.test_runner.default_command.trim().length > 0;
+        policy.test_runner?.enabled === false ||
+        policy.test_runner === null ||
+        (typeof policy.test_runner?.default_command === "string" &&
+          policy.test_runner.default_command.trim().length > 0);
       hasTypecheck =
         typeof policy.typecheck_command === "string" && policy.typecheck_command.trim().length > 0;
       hasLinter = typeof policy.lint_command === "string" && policy.lint_command.trim().length > 0;
@@ -175,10 +177,12 @@ export function isRepoPolicyCalibrated(repoRoot: string): boolean {
   const inspection = inspectRepoPolicy(root);
   if (inspection.status !== "valid_custom") return false;
   const policy = inspection.policy;
-  if (typeof policy.test_runner !== "object") return false;
-  if (policy.test_runner === null) return false;
-  if (typeof policy.test_runner.default_command !== "string") return false;
-  if (policy.test_runner.default_command.trim().length === 0) return false;
+  const testRunnerConfigured =
+    policy.test_runner === null ||
+    policy.test_runner?.enabled === false ||
+    (typeof policy.test_runner?.default_command === "string" &&
+      policy.test_runner.default_command.trim().length > 0);
+  if (!testRunnerConfigured) return false;
   if (!Array.isArray(policy.allowed_commands)) return false;
   if (policy.allowed_commands.length === 0) return false;
   return true;

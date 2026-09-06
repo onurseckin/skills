@@ -7,6 +7,7 @@ import { existsSync, readdirSync } from "node:fs";
 import { basename, extname, join } from "node:path";
 
 import { DEFAULT_COVERAGE_THRESHOLD } from "./reporting/index.ts";
+import { inspectRepoPolicy, isTestingEnabled } from "../../olt/scripts/src/policy/index.ts";
 
 export function gitOutput(args: string[]): string {
   try {
@@ -22,18 +23,18 @@ export function parseDiffOutput(diffText: string): string[] {
     .split("\n")
     .map((l) => l.trim())
     .filter(Boolean);
-  return Array.from(new Set(lines));
+  return [...new Set(lines)];
 }
 
 export function parseGitStatusPorcelain(statusText: string): string[] {
   const files = new Set<string>();
-  for (const rawLine of statusText.split("\n")) {
-    const line = rawLine.trim();
-    if (!line) continue;
-    const match = line.match(/^[MADRCU?!]{1,2}\s+(.+)$/);
+  for (const raw of statusText
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean)) {
+    const match = raw.match(/^[MADRCU?!]{1,2}\s+(.+)$/);
     if (match?.[1]) {
-      const raw = match[1];
-      const target = (raw.includes(" -> ") ? raw.split(" -> ")[1] : raw)?.trim();
+      const target = (match[1].includes(" -> ") ? match[1].split(" -> ")[1] : match[1])?.trim();
       if (target) files.add(target);
     }
   }
@@ -58,10 +59,10 @@ export function getChangedFiles(customGitOutput?: (args: string[]) => string): s
   const gitFn = customGitOutput ?? gitOutput;
   const uncommitted = gitFn(["diff", "--name-only"]);
   const staged = gitFn(["diff", "--cached", "--name-only"]);
-  const mergeBase = gitFn(["merge-base", "origin/main", "HEAD"]);
-  const diffBase = mergeBase ? `${mergeBase}...HEAD` : "HEAD~1";
-  const branchDiff = gitFn(["diff", "--name-only", diffBase]);
-  return parseDiffOutput(`${uncommitted}\n${staged}\n${branchDiff}`);
+  const base = gitFn(["merge-base", "origin/main", "HEAD"]);
+  return parseDiffOutput(
+    `${uncommitted}\n${staged}\n${gitFn(["diff", "--name-only", base ? `${base}...HEAD` : "HEAD~1"])}`,
+  );
 }
 
 export function findAllTestFiles(dir: string): string[] {
@@ -96,7 +97,10 @@ export function buildTestIndex(testFiles: readonly string[]): Map<string, string
   return index;
 }
 
-const CRITICAL_GLOBAL_FILES = new Set(["package.json", "bunfig.toml", "tsconfig.json"]);
+const CRITICAL_GLOBAL_FILES = new Set("package.json,bunfig.toml,tsconfig.json".split(","));
+const GENERIC_STEMS = new Set(
+  "validator,index,types,schema,config,runner,manager,client,common,utils".split(","),
+);
 
 export function resolveAffectedTestFiles(
   changedFiles: readonly string[],
@@ -132,14 +136,17 @@ export function resolveAffectedTestFiles(
 
     if (/\.(ts|tsx|js|jsx)$/.test(file)) {
       const stem = basename(file, extname(file)).toLowerCase();
-      const directMatches = testIndex.get(stem);
-      if (directMatches) {
-        for (const m of directMatches) affected.add(m);
+      const isGen = GENERIC_STEMS.has(stem);
+      const matchSeg = (p: string) =>
+        file
+          .split("/")
+          .some((s) => s.length > 2 && s !== "src" && s !== "scripts" && p.includes(s));
+
+      for (const m of testIndex.get(stem) ?? []) {
+        if (!isGen || matchSeg(m)) affected.add(m);
       }
-      for (const testFile of allTests) {
-        if (basename(testFile).toLowerCase().includes(stem)) {
-          affected.add(testFile);
-        }
+      for (const t of allTests) {
+        if (basename(t).toLowerCase().includes(stem) && (!isGen || matchSeg(t))) affected.add(t);
       }
     }
   }
@@ -176,12 +183,19 @@ export async function run(argvArgs: string[] = process.argv.slice(2)): Promise<n
 
   if (showHelp) {
     console.log(
-      "Usage: bun scripts/testing/test-changed.ts [--all] [--help]\n" +
-        "  --all       run every test file under tests, not just affected ones\n" +
-        "  --help, -h  print this usage and exit",
+      "Usage: bun scripts/testing/test-changed.ts [--all] [--help]\n  --all       run every test\n  --help, -h  print usage",
     );
     return 0;
   }
+  try {
+    const inspection = inspectRepoPolicy();
+    if (!isTestingEnabled(inspection.policy)) {
+      console.log(
+        "[test] Unit testing is disabled in repository policy (.olt/policy.json); skipping test suite.",
+      );
+      return 0;
+    }
+  } catch {}
   const changed = getChangedFiles();
   const { all, testFiles } = resolveAffectedTestFiles(changed, runAll);
 
@@ -193,10 +207,10 @@ export async function run(argvArgs: string[] = process.argv.slice(2)): Promise<n
   }
 
   const isCoverage = argvArgs.includes("--coverage");
-  const testArgs = ["test", "--timeout", "30000"];
-  if (isCoverage) testArgs.push("--coverage");
-  const defaultDir = "tests";
-  const targetFiles = testFiles.length > 0 ? testFiles : findAllTestFiles(defaultDir);
+  const testArgs = isCoverage
+    ? ["test", "--timeout", "30000", "--coverage"]
+    : ["test", "--timeout", "30000"];
+  const targetFiles = testFiles.length > 0 ? testFiles : findAllTestFiles("tests");
 
   if (targetFiles.length === 0) {
     console.log("[test-changed] No test files found. Skipping test execution.");
@@ -247,9 +261,7 @@ export async function run(argvArgs: string[] = process.argv.slice(2)): Promise<n
         `\n❌ [coverage-gate] Mandatory +${COVERAGE_THRESHOLD}% Coverage Check Failed for file(s):`,
       );
       for (const f of failingFiles) {
-        console.error(
-          `  - ${f.file}: Lines ${f.linesPct}%, Stmts ${f.stmtsPct}% (Uncovered: ${f.uncovered})`,
-        );
+        console.error(`  - ${f.file}: Lines ${f.linesPct}%, Stmts ${f.stmtsPct}% (${f.uncovered})`);
       }
       return 1;
     }
@@ -266,10 +278,10 @@ export function computeIsMain(
   entryArg: string | undefined = process.argv[1],
 ): boolean {
   if (mainVal) return true;
-  if (!entryArg) return false;
-  return (
-    entryArg.endsWith("scripts/testing/test-changed.ts") ||
-    entryArg.endsWith("scripts/testing/test-changed")
+  return Boolean(
+    entryArg &&
+    (entryArg.endsWith("scripts/testing/test-changed.ts") ||
+      entryArg.endsWith("scripts/testing/test-changed")),
   );
 }
 

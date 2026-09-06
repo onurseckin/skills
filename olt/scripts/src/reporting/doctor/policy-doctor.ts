@@ -3,6 +3,7 @@ import {
   computePolicyChecksum,
   detectPolicyDrift,
   inspectRepoPolicy,
+  isTestingEnabled,
   type RepoPolicy,
 } from "../../policy/index.ts";
 import { checkCognitiveValidatorCommandLock } from "./command-lock-engine.ts";
@@ -130,6 +131,15 @@ export function checkPolicyDoctor(options: PolicyDoctorCheckOptions = {}): Docto
           observedVersion: activePolicy.schema_version,
           expectedVersion: CURRENT_POLICY_SCHEMA_VERSION,
         },
+      });
+    }
+    if (!isTestingEnabled(activePolicy)) {
+      findings.push({
+        code: "TESTING_DISABLED",
+        severity: "INFO",
+        engine: "checkPolicyDoctor",
+        message: "Unit testing is disabled in repository policy (.olt/policy.json)",
+        details: { testRunner: activePolicy.test_runner },
       });
     }
   }

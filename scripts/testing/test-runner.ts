@@ -7,10 +7,20 @@ import {
 } from "./reporting/index.ts";
 import { acquireTestLock } from "./mutex/index.ts";
 import { executeStreamingRunner, parseRunnerArgs } from "./runner/index.ts";
+import { inspectRepoPolicy, isTestingEnabled } from "../../olt/scripts/src/policy/index.ts";
 
 export { executeStreamingRunner };
 
 export function executeTestRunner(rawArgs: string[] = process.argv.slice(2)): number {
+  try {
+    const inspection = inspectRepoPolicy();
+    if (!isTestingEnabled(inspection.policy)) {
+      console.log(
+        "[test] Unit testing is disabled in repository policy (.olt/policy.json); skipping test suite.",
+      );
+      return 0;
+    }
+  } catch {}
   const parsed = parseRunnerArgs(rawArgs);
   const isLockRequired = parsed.isBroadScope ? true : parsed.isCoverage;
   const releaseLock = acquireTestLock(isLockRequired, rawArgs);

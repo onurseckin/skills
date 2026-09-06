@@ -76,9 +76,10 @@ export interface AgentPolicy {
 }
 
 export interface TestRunnerPolicy {
-  readonly default_command: string;
-  readonly targeted_pattern: string;
-  readonly full_suite_command: string;
+  readonly enabled?: boolean;
+  readonly default_command?: string | undefined;
+  readonly targeted_pattern?: string | undefined;
+  readonly full_suite_command?: string | undefined;
   readonly timeout_ms?: number | undefined;
 }
 
@@ -166,7 +167,7 @@ export interface RepoPolicy {
   readonly ecosystem: RepoEcosystem;
   readonly package_manager?: PackageManager | undefined;
   readonly skill_home_repo_root?: string | undefined;
-  readonly test_runner: TestRunnerPolicy;
+  readonly test_runner?: TestRunnerPolicy | null | undefined;
   readonly typecheck_command?: string | undefined;
   readonly lint_command?: string | undefined;
   readonly allowed_commands?: readonly string[] | undefined;
