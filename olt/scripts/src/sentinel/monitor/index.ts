@@ -8,11 +8,13 @@ export {
 
 export {
   appendDefectIncident,
+  evaluateTranscriptLine,
   executeInstantInterjection,
   isPathInScope,
   isSupervisoryRole,
   quarantineAgentInState,
   type InterjectionContext,
+  type TranscriptEvaluationContext,
 } from "./interjection.ts";
 
 export { LiveStrategyMonitorImpl, SentinelMonitorRegistry } from "./registry.ts";

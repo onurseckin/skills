@@ -11,17 +11,18 @@ import {
 } from "node:fs";
 import { join, resolve } from "node:path";
 import type { AgentRole, SentinelViolation } from "../index.ts";
-import { executeInstantInterjection, isPathInScope, isSupervisoryRole } from "./interjection.ts";
 import {
-  PROHIBITED_SUPERVISORY_TOOLS,
-  type CreateMonitorOptions,
-  type LiveStrategyMonitor,
-  type SentinelMonitorDescriptor,
+  evaluateTranscriptLine,
+  executeInstantInterjection,
+  isPathInScope,
+} from "./interjection.ts";
+import type {
+  CreateMonitorOptions,
+  LiveStrategyMonitor,
+  SentinelMonitorDescriptor,
 } from "./types.ts";
 
 export type { CreateMonitorOptions, LiveStrategyMonitor, SentinelMonitorDescriptor };
-
-const PROHIBITED_TOOL_SET = new Set<string>(PROHIBITED_SUPERVISORY_TOOLS);
 
 export class LiveStrategyMonitorImpl implements LiveStrategyMonitor {
   readonly agentId: string;
@@ -34,6 +35,7 @@ export class LiveStrategyMonitorImpl implements LiveStrategyMonitor {
   readonly taskId?: string | undefined;
 
   private active: boolean = false;
+  private isStopped: boolean = false;
   private timer?: ReturnType<typeof setInterval> | undefined;
   private watcher?: FSWatcher | undefined;
   private byteOffset: number = 0;
@@ -61,6 +63,7 @@ export class LiveStrategyMonitorImpl implements LiveStrategyMonitor {
 
   start(): void {
     if (this.active) return;
+    this.isStopped = false;
     this.active = true;
     this.pollNow();
     this.timer = setInterval(() => this.pollNow(), this.pollIntervalMs);
@@ -68,7 +71,14 @@ export class LiveStrategyMonitorImpl implements LiveStrategyMonitor {
   }
 
   private attachWatcher(): void {
-    if (this.watcher || !this.targetWorktree || !existsSync(this.targetWorktree)) return;
+    if (
+      this.isStopped ||
+      !this.active ||
+      this.watcher ||
+      !this.targetWorktree ||
+      !existsSync(this.targetWorktree)
+    )
+      return;
     try {
       this.watcher = watch(this.targetWorktree, { recursive: true }, (_e, file) => {
         if (!file || !this.writeScope || this.writeScope.length === 0) return;
@@ -89,6 +99,7 @@ export class LiveStrategyMonitorImpl implements LiveStrategyMonitor {
   }
 
   stop(): void {
+    this.isStopped = true;
     if (!this.active) return;
     this.active = false;
     if (this.timer) {
@@ -106,8 +117,8 @@ export class LiveStrategyMonitorImpl implements LiveStrategyMonitor {
   }
 
   pollNow(): void {
-    if (!existsSync(this.transcriptPath)) return;
-    this.attachWatcher();
+    if (this.isStopped || !existsSync(this.transcriptPath)) return;
+    if (this.active) this.attachWatcher();
     try {
       const size = statSync(this.transcriptPath).size;
       if (size < this.byteOffset) this.byteOffset = 0;
@@ -128,42 +139,15 @@ export class LiveStrategyMonitorImpl implements LiveStrategyMonitor {
     this.lineBuffer = lines.pop() ?? "";
 
     for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed) continue;
-      const tools: string[] = [];
-      try {
-        const parsed = JSON.parse(trimmed) as Record<string, unknown>;
-        if (Array.isArray(parsed?.tool_calls)) {
-          for (const tc of parsed.tool_calls as readonly Record<string, unknown>[]) {
-            if (typeof tc?.name === "string") tools.push(tc.name);
-          }
-        }
-        for (const k of ["tool", "tool_name", "name"]) {
-          if (typeof parsed?.[k] === "string") tools.push(parsed[k] as string);
-        }
-      } catch {}
-
-      if (tools.length === 0) {
-        const re = /(?:call:\s*(?:default_api:)?|Tool Use:\s*|"name"\s*:\s*")([a-zA-Z0-9_-]+)/g;
-        let m: RegExpExecArray | null;
-        while ((m = re.exec(trimmed)) !== null) {
-          if (m[1]) tools.push(m[1]);
-        }
-      }
-
-      for (const t of tools) {
-        if (PROHIBITED_TOOL_SET.has(t) && isSupervisoryRole(this.role)) {
-          const violation: SentinelViolation = {
-            code: "SUPERVISOR_PROHIBITED_TOOL_EXECUTION",
-            severity: "CRITICAL",
-            message: `Supervisory role '${this.role}' (${this.agentId}) invoked prohibited tool '${t}'. Supervisory roles are confined to coordination via invoke_subagent.`,
-            remediation_cmd: "Dispatch Tier 3 Implementers via invoke_subagent.",
-            documentation_ref:
-              "docs/olt/architecture/15-state-schemas-and-event-ledger/15-04-state-json-and-mailbox-schemas.md",
-          };
-          this.triggerInterjection(violation);
-          break;
-        }
+      if (!line.trim()) continue;
+      const violation = evaluateTranscriptLine(line, {
+        agentId: this.agentId,
+        role: this.role,
+        targetWorktree: this.targetWorktree,
+        writeScope: this.writeScope,
+      });
+      if (violation) {
+        this.triggerInterjection(violation);
       }
     }
   }

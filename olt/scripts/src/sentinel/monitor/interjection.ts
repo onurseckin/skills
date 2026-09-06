@@ -6,7 +6,7 @@ import {
   readFileSync,
   writeFileSync,
 } from "node:fs";
-import { join, resolve } from "node:path";
+import { isAbsolute, join, normalize, resolve } from "node:path";
 import { dispatchPeerMessage } from "../../communication/mailbox/index.ts";
 import {
   getProfileForRole,
@@ -15,6 +15,9 @@ import {
   type SentinelViolation,
   type StrikeRecord,
 } from "../index.ts";
+import { PROHIBITED_SUPERVISORY_TOOLS } from "./types.ts";
+
+const PROHIBITED_TOOL_SET = new Set<string>(PROHIBITED_SUPERVISORY_TOOLS);
 
 export function isSupervisoryRole(role: AgentRole): boolean {
   if (
@@ -173,4 +176,107 @@ export function executeInstantInterjection(
   } catch {}
 
   return strikeRecord;
+}
+
+export interface TranscriptEvaluationContext {
+  readonly agentId: string;
+  readonly role: AgentRole;
+  readonly targetWorktree?: string | undefined;
+  readonly writeScope?: readonly string[] | undefined;
+}
+
+export function evaluateTranscriptLine(
+  line: string,
+  context: TranscriptEvaluationContext,
+): SentinelViolation | null {
+  const trimmed = line.trim();
+  if (!trimmed) return null;
+
+  const invocations: Array<{ name: string; args?: Record<string, unknown> | undefined }> = [];
+  try {
+    const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+    if (Array.isArray(parsed?.tool_calls)) {
+      for (const tc of parsed.tool_calls as readonly Record<string, unknown>[]) {
+        if (tc && typeof tc === "object") {
+          const fn = tc.function as Record<string, unknown> | undefined;
+          const name =
+            typeof tc.name === "string" ? tc.name : typeof fn?.name === "string" ? fn.name : "";
+          let args: Record<string, unknown> | undefined;
+          if (tc.args && typeof tc.args === "object") {
+            args = tc.args as Record<string, unknown>;
+          } else if (tc.arguments && typeof tc.arguments === "object") {
+            args = tc.arguments as Record<string, unknown>;
+          } else if (typeof fn?.arguments === "string") {
+            try {
+              args = JSON.parse(fn.arguments) as Record<string, unknown>;
+            } catch {}
+          }
+          if (name) invocations.push({ name, args });
+        }
+      }
+    }
+    for (const k of ["tool", "tool_name", "name"]) {
+      if (typeof parsed?.[k] === "string") {
+        const name = parsed[k] as string;
+        const args = (parsed.args ?? parsed.arguments ?? parsed.parameters) as
+          | Record<string, unknown>
+          | undefined;
+        invocations.push({ name, args: typeof args === "object" ? args : undefined });
+      }
+    }
+  } catch {}
+
+  if (invocations.length === 0) {
+    const re = /(?:call:\s*(?:default_api:)?|Tool Use:\s*|"name"\s*:\s*")([a-zA-Z0-9_-]+)/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(trimmed)) !== null) {
+      if (m[1]) invocations.push({ name: m[1] });
+    }
+  }
+
+  for (const inv of invocations) {
+    if (PROHIBITED_TOOL_SET.has(inv.name) && isSupervisoryRole(context.role)) {
+      return {
+        code: "SUPERVISOR_PROHIBITED_TOOL_EXECUTION",
+        severity: "CRITICAL",
+        message: `Supervisory role '${context.role}' (${context.agentId}) invoked prohibited tool '${inv.name}'. Supervisory roles are confined to coordination via invoke_subagent.`,
+        remediation_cmd: "Dispatch Tier 3 Implementers via invoke_subagent.",
+        documentation_ref:
+          "docs/olt/architecture/15-state-schemas-and-event-ledger/15-04-state-json-and-mailbox-schemas.md",
+      };
+    }
+
+    if (inv.args) {
+      const rawPath =
+        inv.args.targetPath ??
+        inv.args.TargetFile ??
+        inv.args.path ??
+        inv.args.filePath ??
+        inv.args.target_file ??
+        inv.args.file;
+      if (typeof rawPath === "string" && rawPath.trim()) {
+        const p = rawPath.trim();
+        const norm = normalize(p).replace(/\\/g, "/");
+        let isTraversal = norm.startsWith("../") || norm === ".." || norm.includes("/../");
+        if (!isTraversal && context.targetWorktree) {
+          const resolved = isAbsolute(p) ? resolve(p) : resolve(context.targetWorktree, p);
+          const normWorktree = resolve(context.targetWorktree);
+          if (resolved !== normWorktree && !resolved.startsWith(`${normWorktree}/`)) {
+            isTraversal = true;
+          }
+        }
+        if (isTraversal) {
+          return {
+            code: "PATH_TRAVERSAL_ATTACK",
+            severity: "CRITICAL",
+            message: `Path traversal or outside-worktree attack detected in tool '${inv.name}': '${p}'`,
+            target_file: p,
+            remediation_cmd: "Confine target paths strictly inside assigned worktree.",
+          };
+        }
+      }
+    }
+  }
+
+  return null;
 }
