@@ -23,7 +23,7 @@ Transitions the task to leased and returns the bearer token the agent must echo 
 | `--lease-seconds` | int | no | no | `1200` | Alias of --lease-duration. |
 
 ```bash
-bun harness.ts task:claim --run .olt/capsules/<run-id> --task task-1 --agent worker-1 --role implementer
+bun harness.ts task:claim --run <run> --task t1 --agent w1 --role imp
 ```
 
 ### `task:heartbeat`
@@ -44,7 +44,7 @@ Requires the lease token; a stale or foreign token is refused.
 | `--token` | string | yes | no | - | Lease bearer token. |
 
 ```bash
-bun harness.ts task:heartbeat --run .olt/capsules/<run-id> --task task-1 --agent worker-1 --token <token>
+bun harness.ts task:heartbeat --run <run> --task t1 --token <tok>
 ```
 
 ### `task:submit`
@@ -71,7 +71,7 @@ Records the submission report, audits write-scope compliance, and moves the task
 | `--reason` | string | no | no | - | Why --no-op is true. |
 
 ```bash
-bun harness.ts task:submit --run .olt/capsules/<run-id> --task task-1 --agent worker-1 --token <token> --summary "Implemented feature"
+bun harness.ts task:submit --run <run> --task t1 --summary "Done"
 ```
 
 ### `task:assign-repairer`
@@ -94,7 +94,7 @@ Assigns repair lease to replacement agent with recorded justification.
 | `--evidence` | string | yes | no | - | Why the replacement is warranted. |
 
 ```bash
-bun harness.ts task:assign-repairer --run .olt/capsules/<run-id> --task task-1 --actor coordinator --repairer worker-2 --reason unavailable --evidence "worker-1 released"
+bun harness.ts task:assign-repairer --run <run> --task t1 --repairer w2
 ```
 
 ### `task:release`
@@ -115,7 +115,7 @@ The voluntary counterpart to `recover`. Requires the live lease token; the task 
 | `--token` | string | yes | no | - | Lease bearer token. |
 
 ```bash
-bun harness.ts task:release --run .olt/capsules/<run-id> --task task-1 --agent worker-1 --token <token>
+bun harness.ts task:release --run <run> --task t1 --agent w1
 ```
 
 ### `task:lease`

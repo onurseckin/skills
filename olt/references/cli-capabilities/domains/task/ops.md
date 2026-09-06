@@ -46,7 +46,7 @@ Each --demand becomes a probe_demand finding on the task.
 | `--evidence` | string | no | no | - | Comma-separated command ids the demands cite. |
 
 ```bash
-bun harness.ts task:probe --run .olt/capsules/<run-id> --task task-1 --validator val-1 --token <token> --demand "Prove parser rejects empty payload"
+bun harness.ts task:probe --run <run> --task t1 --demand "test"
 ```
 
 ### `task:reject`
@@ -79,7 +79,7 @@ Records the validator's finding and returns the task to the implementer.
 | `--max-rounds` | int | no | no | - | Maximum micro-cycle rounds allowed. |
 
 ```bash
-bun harness.ts task:reject --run .olt/capsules/<run-id> --task task-1 --validator val-1 --token <token> --reason "Missing validation" --severity critical
+bun harness.ts task:reject --run <run> --task t1 --reason "fail"
 ```
 
 ### `task:check`

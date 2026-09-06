@@ -21,7 +21,7 @@ Forced counterpart to task:release for unsticking abandoned tasks.
 | `--reason` | string | yes | no | - | Why the attempt is being abandoned. |
 
 ```bash
-bun harness.ts task:abandon --run .olt/capsules/<run-id> --task task-1 --actor coordinator --reason "agent crashed"
+bun harness.ts task:abandon --run <run> --task t1 --reason "crash"
 ```
 
 ### `task:complete`

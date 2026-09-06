@@ -22,7 +22,7 @@ Assigns the validator and mints the validation token required by task:review.
 | `--validator-domain` | string | no | no | - | B12.2 standing checklist domain. |
 
 ```bash
-bun harness.ts task:validate-start --run .olt/capsules/<run-id> --task task-1 --validator val-1
+bun harness.ts task:validate-start --run <run> --task t1 --validator v1
 ```
 
 ### `task:review`
@@ -62,5 +62,5 @@ Records pass or fail verdict along with evidence findings.
 | `--max-rounds` | int | no | no | - | Maximum micro-cycle rounds allowed. |
 
 ```bash
-bun harness.ts task:review --run .olt/capsules/<run-id> --task task-1 --validator val-1 --token <token> --status pass --summary "All pass"
+bun harness.ts task:review --run <run> --task t1 --status pass
 ```
