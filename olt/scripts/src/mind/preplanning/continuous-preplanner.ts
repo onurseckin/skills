@@ -1,9 +1,7 @@
 import { join } from "node:path";
-import {
-  clusterBacklogAndDefects,
-  loadBacklogItems,
-  loadDefectItems,
-} from "./backlog-clusterer.ts";
+import { loadBacklogItems, loadDefectItems } from "./backlog-clusterer.ts";
+import { partitionDisjointClusters } from "./cluster-partitioner.ts";
+import { dispatchMultiOrchestratorClusters } from "./multi-orchestrator-dispatch.ts";
 import { resolveLedgerPath, updateBridgeStateBatch } from "./bridge-state.ts";
 import { generateAndWritePlan } from "./plan-factory.ts";
 import type {
@@ -40,7 +38,7 @@ export function isPreplanningNeeded(options?: PreplannerOptions): boolean {
       ? options.explicitDefects
       : loadDefectItems(defectsPath);
 
-  const clusters = clusterBacklogAndDefects(backlogItems, defectItems, options);
+  const clusters = partitionDisjointClusters(backlogItems, defectItems, options);
   return clusters.length > 0;
 }
 
@@ -65,7 +63,7 @@ export function runPreplanningTick(options?: PreplannerOptions): PreplanningRunR
       ? options.explicitDefects
       : loadDefectItems(defectsPath);
 
-  const clusters = clusterBacklogAndDefects(backlogItems, defectItems, options);
+  const clusters = partitionDisjointClusters(backlogItems, defectItems, options);
 
   if (clusters.length === 0) {
     const completedAt = new Date().toISOString();
@@ -109,6 +107,11 @@ export function runPreplanningTick(options?: PreplannerOptions): PreplanningRunR
     totalDefectsPlanned = bridgeResult.defectsUpdated;
   }
 
+  const dispatchPlan = dispatchMultiOrchestratorClusters(clusters, {
+    rootDir: root,
+    worktreeBaseDir: options?.orchestratorWorktreeBaseDir,
+  });
+
   const completedAt = new Date().toISOString();
 
   return {
@@ -119,6 +122,8 @@ export function runPreplanningTick(options?: PreplannerOptions): PreplanningRunR
     started_at: startedAt,
     completed_at: completedAt,
     duration_ms: Date.now() - startMs,
+    multi_orchestrator_dispatch: dispatchPlan,
+    orchestrator_worktrees: dispatchPlan.allocations,
   };
 }
 

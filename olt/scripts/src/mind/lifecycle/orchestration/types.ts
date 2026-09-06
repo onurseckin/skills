@@ -1,12 +1,9 @@
-/**
- * Type definitions for Mind Product Manager orchestration lifecycle,
- * Mode A (Autonomous Creative Product Manager) vs Mode B (External Intake),
- * candidate generation, and anti-stagnation metrics.
- */
-
 import type { SmartTaskPlan } from "../../tasks/smart/planner/models.ts";
 import type { TaskQueueItem } from "../../../task/queue/index.ts";
-import type { FeedbackItem } from "../../feedback/queue/index.ts";
+import type {
+  MultiOrchestratorDispatchPlan,
+  OrchestratorWorktreeAllocation,
+} from "../../preplanning/types.ts";
 
 export type MindExecutionMode =
   | "MODE_A_CREATIVE_PRODUCT_MANAGER"
@@ -72,6 +69,8 @@ export interface ProductManagerExpansionResult {
         readonly idealConcurrency: number;
       }
     | undefined;
+  readonly multiOrchestratorDispatch?: MultiOrchestratorDispatchPlan | undefined;
+  readonly orchestratorWorktrees?: readonly OrchestratorWorktreeAllocation[] | undefined;
 }
 
 export interface MindProductManagerOptions {
@@ -86,5 +85,6 @@ export interface MindProductManagerOptions {
   readonly autoEnqueue?: boolean | undefined;
   readonly orchestratorIds?: readonly string[] | undefined;
   readonly orchestratorCount?: number | undefined;
+  readonly singleOrchestratorCapacity?: number | undefined;
   readonly now?: string | number | Date | undefined;
 }

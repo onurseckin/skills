@@ -1,10 +1,3 @@
-/**
- * Mind Product Manager Autonomous Expansion & Anti-Stagnation Loop.
- * Governs Mode A (Creative Product Manager) autonomous expansion when queues are clear,
- * synthesizing grounded feature proposals, enforcing anti-stagnation invariants,
- * and maintaining non-zero progress.
- */
-
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -13,34 +6,30 @@ import {
   type NewTaskQueueInput,
   type TaskQueueItem,
 } from "../../../task/queue/index.ts";
-import {
-  readFeedbackQueue,
-  resolveCanonicalFeedbackQueuePath,
-} from "../../feedback/queue/index.ts";
+import { readFeedbackQueue } from "../../feedback/queue/index.ts";
 import { auditDefectLog } from "../../defects/index.ts";
 import {
-  findRepoRoot,
   isTestEnvironment,
   resolveScratchDir,
   resolveCapsulesDir,
 } from "../../../core/shared/paths.ts";
-import {
-  detectRepositoryStructure,
-  type DetectedRepositoryStructure,
-} from "../../tasks/smart/executor/evolution/self-evolution.ts";
+import { detectRepositoryStructure } from "../../tasks/smart/executor/evolution/self-evolution.ts";
 import { enrichTaskPlanWithExactAnchors } from "../../tasks/smart/planner/anti-batching.ts";
 import { assertAntiBatchingRule } from "../../tasks/smart/planner/partitioning.ts";
 import { computeMacroMetrics } from "../../tasks/smart/planner/index.ts";
 import type { SmartTaskPlan } from "../../tasks/smart/planner/models.ts";
 import { stageTasksForMultiOrchestratorExecution } from "../../tasks/smart/executor/invariants.ts";
 import { evaluateAntiStagnation, recordNonZeroProgress } from "./anti-stagnation.ts";
+import { discoverGroundedFeatures } from "./feature-discovery.ts";
+import { buildProductManagerMultiOrchDispatch } from "./product-manager-multi-orch.ts";
 import type {
-  GroundedFeatureProposal,
   MindExecutionMode,
   MindProductManagerOptions,
   ProductManagerEvaluationResult,
   ProductManagerExpansionResult,
 } from "./types.ts";
+
+export { discoverGroundedFeatures };
 
 function resolveFeedbackFile(options: MindProductManagerOptions): string | undefined {
   if (options.feedbackQueuePath && existsSync(options.feedbackQueuePath)) {
@@ -125,10 +114,6 @@ export function evaluateMindMode(
   };
 }
 
-import { discoverGroundedFeatures } from "./feature-discovery.ts";
-
-export { discoverGroundedFeatures };
-
 export function runMindProductManagerLoop(
   options: MindProductManagerOptions = {},
 ): ProductManagerExpansionResult {
@@ -136,7 +121,21 @@ export function runMindProductManagerLoop(
   const maxProposals = options.maxProposals ?? 5;
   const proposals = discoverGroundedFeatures(structure, options.charterGoals, maxProposals);
 
+  const multiOrchDispatch = buildProductManagerMultiOrchDispatch(proposals, options);
+
+  const isMultiOrch = Boolean(
+    (options.orchestratorCount && options.orchestratorCount > 1) ||
+    (options.orchestratorIds && options.orchestratorIds.length > 0) ||
+    multiOrchDispatch.orchestrator_count > 1,
+  );
+
   const synthesizedTasks: SmartTaskPlan[] = proposals.map((prop, idx) => {
+    const dependencies = isMultiOrch
+      ? []
+      : idx > 0
+        ? [`task-${idx}-${proposals[idx - 1]!.id.replace(/^prop-/, "")}`]
+        : [];
+
     const taskPlan: SmartTaskPlan = {
       id: `task-${idx + 1}-${prop.id.replace(/^prop-/, "")}`,
       label: `${prop.title} (${prop.step})`,
@@ -144,7 +143,7 @@ export function runMindProductManagerLoop(
       gate: prop.gate,
       charter_goals: [...prop.charterGoals],
       acceptance_criteria: [...prop.acceptanceCriteria],
-      dependencies: idx > 0 ? [`task-${idx}-${proposals[idx - 1]!.id.replace(/^prop-/, "")}`] : [],
+      dependencies,
       source_type: "self_evolution",
       priority: prop.priority,
       rationale: prop.rationale,
@@ -240,5 +239,7 @@ export function runMindProductManagerLoop(
       span: macroMetrics.span,
       idealConcurrency: macroMetrics.parallelism,
     },
+    multiOrchestratorDispatch: multiOrchDispatch,
+    orchestratorWorktrees: multiOrchDispatch.allocations,
   };
 }

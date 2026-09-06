@@ -12,6 +12,9 @@ export type {
   HostSchedulerConfig,
   HostSchedulerId,
   MindAuditorStagnationReport,
+  MultiOrchestratorDispatchPlan,
+  OrchestratorAllocationMetadata,
+  OrchestratorWorktreeAllocation,
   PlanGenerationOptions,
   PreplanningRunResult,
   RawBacklogItem,
@@ -33,6 +36,18 @@ export {
   loadBacklogItems,
   loadDefectItems,
 } from "./backlog-clusterer.ts";
+export {
+  DEFAULT_SINGLE_ORCHESTRATOR_CAPACITY,
+  assertDisjointClusters,
+  partitionDisjointClusters,
+  shardClusterByCapacity,
+} from "./cluster-partitioner.ts";
+export {
+  type ProvisioningOptions,
+  dispatchMultiOrchestratorClusters,
+  mapClustersToOrchestrators,
+  triggerOrchestratorWorktreeProvisioning,
+} from "./multi-orchestrator-dispatch.ts";
 export {
   assertValidBlueprintStructure,
   deriveDisjointTaskScope,

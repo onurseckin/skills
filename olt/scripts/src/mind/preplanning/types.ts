@@ -52,6 +52,39 @@ export interface ClusterOptions {
   readonly timestamp?: string | undefined;
   readonly minItemsPerCluster?: number | undefined;
   readonly maxItemsPerCluster?: number | undefined;
+  readonly singleOrchestratorCapacity?: number | undefined;
+  readonly orchestratorWorktreeBaseDir?: string | undefined;
+}
+
+export interface OrchestratorWorktreeAllocation {
+  readonly orchestrator_id: string;
+  readonly cluster_id: string;
+  readonly domain: DomainCategory;
+  readonly track_id: string;
+  readonly worktree_path: string;
+  readonly status: "PENDING_PROVISION" | "PROVISIONED" | "ACTIVE" | "RELEASED";
+  readonly assigned_cluster_ids: readonly string[];
+  readonly capacity: number;
+  readonly allocated_at: string;
+}
+
+export interface OrchestratorAllocationMetadata {
+  readonly orchestrator_id: string;
+  readonly role: string;
+  readonly cluster_count: number;
+  readonly domain: DomainCategory;
+  readonly clusters: readonly string[];
+  readonly worktree_required: boolean;
+  readonly worktree_allocation?: OrchestratorWorktreeAllocation | undefined;
+}
+
+export interface MultiOrchestratorDispatchPlan {
+  readonly cluster_count: number;
+  readonly orchestrator_count: number;
+  readonly worktrees_provisioned: boolean;
+  readonly allocations: readonly OrchestratorWorktreeAllocation[];
+  readonly dispatch_mappings: readonly OrchestratorAllocationMetadata[];
+  readonly disjoint: boolean;
 }
 
 export type HostSchedulerId = "antigravity" | "claude_code" | "codex" | "cursor";
@@ -131,6 +164,8 @@ export interface PreplanningRunResult {
   readonly started_at: string;
   readonly completed_at: string;
   readonly duration_ms: number;
+  readonly multi_orchestrator_dispatch?: MultiOrchestratorDispatchPlan | undefined;
+  readonly orchestrator_worktrees?: readonly OrchestratorWorktreeAllocation[] | undefined;
 }
 
 export interface StagnationAuditResult {
