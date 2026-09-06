@@ -26,6 +26,7 @@ import { SCHED_COMMANDS } from "./sched.ts";
 import { SHELL_COMMANDS } from "./shell.ts";
 import { SUMMARY_COMMANDS } from "./summary.ts";
 import { TASK_COMMANDS } from "./task.ts";
+import { SENTINEL_COMMANDS } from "./sentinel.ts";
 import { WORKFLOW_COMMANDS, WORKTREE_COMMANDS } from "./workflow.ts";
 import {
   DEFAULT_EXIT_CODES,
@@ -106,6 +107,7 @@ export { SCHED_COMMANDS } from "./sched.ts";
 export { SHELL_COMMANDS } from "./shell.ts";
 export { SUMMARY_COMMANDS } from "./summary.ts";
 export { TASK_COMMANDS } from "./task.ts";
+export { SENTINEL_COMMANDS } from "./sentinel.ts";
 export { WORKFLOW_COMMANDS, WORKTREE_COMMANDS } from "./workflow.ts";
 
 export const COMMAND_REGISTRY: readonly CommandSpec[] = [
@@ -138,6 +140,7 @@ export const COMMAND_REGISTRY: readonly CommandSpec[] = [
   ...ROLE_COMMANDS,
   ...HYGIENE_COMMANDS,
   ...DEFECT_COMMANDS,
+  ...SENTINEL_COMMANDS,
 ];
 
 export { COMMAND_DOMAINS } from "./types.ts";

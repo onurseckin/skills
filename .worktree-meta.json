@@ -1,9 +1,0 @@
-{
-  "trackId": "cluster-core",
-  "worktreePath": "/Users/onurseckinsenoglu/repos/skills/.olt/worktrees/cluster-core",
-  "branch": "track/cluster-core",
-  "baseBranch": "main",
-  "lockPath": "/Users/onurseckinsenoglu/repos/skills/.olt/worktrees/locks/cluster-core.lock",
-  "createdAt": "2026-09-06T10:38:17.174Z",
-  "status": "active"
-}
