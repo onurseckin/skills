@@ -1,10 +1,17 @@
-import { existsSync, readdirSync, readFileSync, statSync, unlinkSync } from "node:fs";
+import { existsSync, readdirSync, statSync, unlinkSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { isProcessAlive } from "./lock-cleaner.ts";
 import type { DoctorDiagnosticFinding } from "./types.ts";
 import { safeRmSync } from "../../core/shared/safe-fs/index.ts";
 import { cleanupTrackWorktree, listTrackWorktrees } from "../../workflow/worktree/manager.ts";
 import { runGit, type GitRunner } from "../../workflow/worktree/git-ops.ts";
+import {
+  findPrunableWorktrees,
+  getGitWorktreePaths,
+  isBranchMerged,
+  parseTrackLock,
+  reconcileUntrackedWorktrees,
+} from "./worktree-health-helpers.ts";
 
 export interface DoctorWorktreeHealthReport {
   readonly name: string;
@@ -24,88 +31,8 @@ export interface WorktreeHealthOptions {
   readonly autoHeal?: boolean | undefined;
   readonly runner?: GitRunner | undefined;
   readonly baseBranch?: string | undefined;
-}
-
-interface ParsedLockFile {
-  readonly pid?: number;
-  readonly trackId?: string;
-  readonly created_at?: string;
-  readonly createdAt?: string;
-}
-
-function parseTrackLock(lockPath: string): {
-  readonly data: ParsedLockFile | null;
-  readonly isCorrupt: boolean;
-} {
-  try {
-    if (!existsSync(lockPath)) return { data: null, isCorrupt: false };
-    const content = readFileSync(lockPath, "utf8").trim();
-    if (!content) return { data: null, isCorrupt: true };
-    const data = JSON.parse(content) as ParsedLockFile;
-    if (typeof data !== "object" || data === null) return { data: null, isCorrupt: true };
-    return { data, isCorrupt: false };
-  } catch {
-    return { data: null, isCorrupt: true };
-  }
-}
-
-function isBranchMerged(
-  repoRoot: string,
-  branch: string,
-  baseBranch = "main",
-  runner = runGit,
-): boolean {
-  try {
-    const result = runner(repoRoot, ["branch", "--merged", baseBranch]);
-    if (result.status !== 0) return false;
-    return result.stdout
-      .split("\n")
-      .map((b) => b.trim().replace(/^[*+]\s+/, ""))
-      .includes(branch);
-  } catch {
-    return false;
-  }
-}
-
-function getGitWorktreePaths(repoRoot: string, runner = runGit): readonly string[] {
-  try {
-    const res = runner(repoRoot, ["worktree", "list", "--porcelain"]);
-    if (res.status !== 0) return [];
-    return res.stdout
-      .split("\n")
-      .filter((l) => l.startsWith("worktree "))
-      .map((l) => resolve(l.slice(9).trim()));
-  } catch {
-    return [];
-  }
-}
-
-function findPrunableWorktrees(repoRoot: string, runner = runGit): readonly string[] {
-  const prunable: string[] = [];
-  try {
-    const result = runner(repoRoot, ["worktree", "list", "--porcelain"]);
-    if (result.status !== 0) return prunable;
-    let currentPath = "";
-    let isPrunable = false;
-    for (const line of result.stdout.split("\n")) {
-      if (line.startsWith("worktree ")) {
-        currentPath = line.slice(9).trim();
-        isPrunable = false;
-      } else if (line.startsWith("prunable")) {
-        isPrunable = true;
-      } else if (line === "" && currentPath) {
-        if (isPrunable || (!existsSync(currentPath) && currentPath.includes(".olt"))) {
-          prunable.push(currentPath);
-        }
-        currentPath = "";
-        isPrunable = false;
-      }
-    }
-    if (currentPath && (isPrunable || (!existsSync(currentPath) && currentPath.includes(".olt")))) {
-      prunable.push(currentPath);
-    }
-  } catch {}
-  return prunable;
+  readonly tasks?: Readonly<Record<string, unknown>> | null | undefined;
+  readonly state?: Readonly<Record<string, unknown>> | null | undefined;
 }
 
 export function checkWorktreeHealth(
@@ -119,7 +46,6 @@ export function checkWorktreeHealth(
   const runner = options.runner ?? runGit;
   const autoHeal = options.autoHeal ?? false;
   const baseBranch = options.baseBranch ?? "main";
-
   const issues: string[] = [];
   const repaired: string[] = [];
   const findings: DoctorDiagnosticFinding[] = [];
@@ -133,7 +59,13 @@ export function checkWorktreeHealth(
     details?: Record<string, unknown>,
   ) => {
     issues.push(issue);
-    findings.push({ code, severity, engine: "checkWorktreeHealth", message: issue, details });
+    findings.push({
+      code,
+      severity,
+      engine: "checkWorktreeHealth",
+      message: issue,
+      details,
+    });
   };
 
   const gitPaths = new Set(getGitWorktreePaths(repoRoot, runner));
@@ -191,7 +123,12 @@ export function checkWorktreeHealth(
 
     if (autoHeal && (isDead || merged)) {
       try {
-        cleanupTrackWorktree({ trackId: wt.trackId, repoRoot, force: true, runner });
+        cleanupTrackWorktree({
+          trackId: wt.trackId,
+          repoRoot,
+          force: true,
+          runner,
+        });
         repaired.push(`Cleaned up worktree '${wt.trackId}'`);
       } catch (err) {
         findings.push({
@@ -204,6 +141,9 @@ export function checkWorktreeHealth(
       }
     }
   }
+
+  // Reconcile worktrees against task definitions & track reservations
+  reconcileUntrackedWorktrees(activeTrackWorktrees, rawTrackWorktrees, options, addFinding);
 
   if (existsSync(locksDir)) {
     try {
