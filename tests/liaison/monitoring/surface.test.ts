@@ -16,7 +16,9 @@ import type {
   SystemRunStateInfo,
 } from "../../../olt/scripts/src/liaison/monitoring/types.ts";
 
-describe("Monitoring Surface & Health Evaluator", () => {
+export const surfaceSuiteName = "Monitoring Surface & Health Evaluator";
+
+describe(surfaceSuiteName, () => {
   const healthyLiveness: SystemLivenessInfo = Object.freeze({
     systemId: "antigravity",
     lastHeartbeatTimestamp: new Date().toISOString(),

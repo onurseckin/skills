@@ -8,7 +8,9 @@ import {
 } from "../../../olt/scripts/src/liaison/monitoring/obligations.ts";
 import type { ObligationDirective } from "../../../olt/scripts/src/liaison/monitoring/types.ts";
 
-describe("Obligation Tracking & Proof Verification", () => {
+export const obligationsSuiteName = "Obligation Tracking & Proof Verification";
+
+describe(obligationsSuiteName, () => {
   const baseDirective: ObligationDirective = Object.freeze({
     directiveId: "dir_001",
     correlationId: "corr_wave42",

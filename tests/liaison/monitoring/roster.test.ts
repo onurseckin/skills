@@ -7,7 +7,9 @@ import {
 } from "../../../olt/scripts/src/liaison/monitoring/roster.ts";
 import type { AgentIdentityInfo } from "../../../olt/scripts/src/liaison/monitoring/types.ts";
 
-describe("Roster Metrics & Concurrency Analyzer", () => {
+export const rosterSuiteName = "Roster Metrics & Concurrency Analyzer";
+
+describe(rosterSuiteName, () => {
   const sampleAgents: readonly AgentIdentityInfo[] = Object.freeze([
     {
       agentId: "liaison_claude",

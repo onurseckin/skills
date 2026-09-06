@@ -1,5 +1,5 @@
 // Test suite facade for monitoring subpackage
-export * from "./roster.test.ts";
-export * from "./obligations.test.ts";
-export * from "./surface.test.ts";
-export * from "./renderers.test.ts";
+export { rosterSuiteName } from "./roster.test.ts";
+export { obligationsSuiteName } from "./obligations.test.ts";
+export { surfaceSuiteName } from "./surface.test.ts";
+export { renderersSuiteName } from "./renderers.test.ts";

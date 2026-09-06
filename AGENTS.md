@@ -78,7 +78,7 @@ Every agent executing within this repository must adhere to the following non-ne
     - Mechanic Validators (`mechanic-validator`) retain test execution and shell authority (`run:exec`, `tsc --noEmit`, AST static audits, AGPs).
     - Implementers own 100% of unit test execution.
 21. **Script-Backed Scheduler Diagnostics Engine:**
-    - Scheduler pulses and coordination loops execute deterministic script-backed diagnostics (`doctor`, `health`, `dag`, `report`) before generating telemetry.
+    - Scheduler pulses and coordination loops execute deterministic script-backed diagnostics (`doctor`, `health`, `report`, `report:dag`, `dag:check`) before generating telemetry.
     - Embeds live CLI receipts with SHA-256 cryptographic hashes and ASCII DAG badges into pulse briefs and coordination reports.
 22. **Zero-Exploration Exact-Anchor Briefings & Fast Incremental Verification (`task:check`):**
     - Coordinators must dispatch workers with exact file paths, line ranges (`StartLine`, `EndLine`), symbols, and drop-in replacements (`task:brief`), driving immediate Turn 1 edits with 0 exploratory discovery reads.
@@ -195,9 +195,25 @@ Every agent executing within this repository must adhere to the following non-ne
     - Deploying Tier 0 Mind automatically bootstraps `mind-auditor` and `skill-auditor` companions.
     - Tier 0 companions are permanently active and immune to automatic teardown or timeout expiration when child campaigns finish.
     - If Mind reports back-to-back zero-delta pulses ($\ge 2$ consecutive cycles in `idle` or `waiting_for_dependents`), Mind Auditor immediately delivers an authoritative Socratic cognitive shock via Mailbox IPC (`.olt/mailboxes/mind.jsonl`), forcing Mind out of stagnation.
-48. **Mailbox IPC & Main-Thread Noise Elimination (`MAILBOX_IPC_MAIN_THREAD_SILENCE`):**
-    - All routine inter-agent status updates, supervisory heartbeats, and audit receipts flow exclusively through Mailbox IPC (`.olt/mailboxes/`).
-    - Agents must NEVER spam the main interactive thread with repetitive "Supervisory Watchdog Heartbeat ... Standing down" messages. The main interactive thread is strictly reserved for fatal unrecoverable errors and user-requested milestones.
+48. **Mailbox IPC Capabilities & Main-Thread Silence (`MAILBOX_IPC_CAPABILITIES`):**
+    - Inter-agent communication, supervisory heartbeats, and audit receipts flow exclusively through flock-protected mailboxes under `<repo-root>/.olt/mailboxes/` using `msg:send`, `msg:recv`, and `msg:poll`.
+    - **Structured Asynchronous Messaging**: Messages include structured payload types (`DISPATCH_TASK`, `HANDOFF_RECEIPT`, `DIRECTIVE`, `STATUS_UPDATE`), correlation tracking (`--correlation-id`), sender/recipient attribution, and strict payload isolation.
+    - **Main-Thread Noise Elimination**: Agents must NEVER spam the main interactive thread with routine watchdog ticks, pulse summaries, or inter-agent gossip. The main thread is reserved strictly for fatal unrecoverable errors and user-requested milestones.
+49. **Decoupled DAG Engine & Algorithmic Cycle Detection (`DECOUPLED_DAG_ENGINE`):**
+    - The execution graph analysis, topological sorting, and graph health engine is fully decoupled from command execution into `olt/scripts/src/engine/dag/`.
+    - **`dag:check` (Acyclicity & Scope Collision Audit)**: Verifies topological integrity, checks for disjoint write scope conflicts, and detects dependency cycles using Tarjan's Strongly Connected Components (SCC) algorithm alongside Brent's cycle detection algorithm.
+    - **`dag:heal` (Autonomous Graph & Lock Healing)**: Autonomously heals broken dependency edges, repairs corrupted node states, and reclaims stale file-locks under `<repo-root>/.olt/locks/` under concurrent executions or orphaned agent crashes without requiring full run teardown.
+50. **Unified Report Entrypoint & Sugiyama Visualizer (`UNIFIED_REPORT_AND_SUGIYAMA_DAG`):**
+    - All status, progress, telemetry, and graph reporting are unified under `bun harness.ts report` and `bun harness.ts report:dag`.
+    - **Sugiyama Hierarchical DAG Visualizer**: `report:dag` implements the Sugiyama layered layout algorithm (`src/reporting/sugiyama-dag`, `src/graph/sugiyama.ts`), rendering true topological levels, cross-layer edge routing, active status badges (`[● ACTIVE]`, `[✓ DONE]`, `[○ READY]`, `[🚨 ESCALATED]`), and dependency hierarchies in ASCII/Unicode boxed formatting.
+    - **Mechanical `[RETIRED_COMMAND]` Guards**: The legacy root `dag` and `run:status` commands are permanently retired. Any invocation is intercepted by `[RETIRED_COMMAND]` guards throwing `HarnessError("INVALID_ARGUMENT", ...)` directing operators to `report:dag` and `dag:check`.
+51. **Hierarchical Escalation Dispatch Protocol (`HIERARCHICAL_ESCALATION_DISPATCH`):**
+    - Task blockers, finding exhaustion, and boundary anomalies must strictly escalate through the 4-tier supervisory chain:
+      - **Tier 3 Worker In-Lease Micro-Cycles**: Fast in-lease review cycles (up to 3 rounds) between Implementer and paired Validator without lease teardown (`task:reject --in-lease`). If unresolvable within budget, the task is escalated to Tier 2 Coordinator (`task:reject`, `changes_requested`).
+      - **Tier 2 Coordinator Repair & Wave Arbitration**: Manages wave-level repair allocation (`max_repair_rounds`) and branch bounds (`max_branch_depth`). Upon exhaustion of repair rounds or repeated deterministic failures, marks task `escalated` and escalates to Tier 1 Orchestrator.
+      - **Tier 1 Orchestrator Recovery & Supervision**: Automated dead-agent lease reclamation, dead-end task classification, and supervisor recovery (`orchestrator:supervise`). If run-level deadlocks or unresolvable gate conflicts occur, escalates to Tier 0 Mind (`mind:escalate`, recording in `escalation.md`).
+      - **Tier 0 Mind Pareto Arbitration**: Evaluates macro strategic trade-offs, initiates strategic replanning or self-evolution adaptation. If external human authority is required, escalates cleanly to the user with full evidence chains and handoff receipts.
+      - **Strict Parent-Child Invariant**: Bypassing tiers (e.g. Tier 3 reaching Tier 0, or Tier 0 directly intervening in Tier 3) is mechanically barred; all escalations must flow hierarchically through the immediate parent supervisor.
 
 ---
 
@@ -507,7 +523,7 @@ To protect repository state and prevent common LLM blunder modes:
    - **Never** read, parse, or inject a whole reference tree at once (e.g. every file under `references/cli-capabilities/`).
    - Always discover commands via targeted CLI help: `bun harness.ts help <command>`, a single grep of `references/cli-capabilities/index.jsonl`, or error diagnostics via `bun harness.ts explain <ERROR_CODE>`.
 7. **Monolithic Default Output & Step Guidance:**
-   - Rely on unified status views (`summary:view` / `report` / `run:status`) which automatically integrate the Sugiyama DAG, live doctor checks, task metrics, and subagent allocations.
+   - Rely on unified status views (`summary:view` / `report` / `report:dag`, superseding retired `run:status` and root `dag` via `[RETIRED_COMMAND]` guards) which automatically integrate the Sugiyama DAG, live doctor checks, task metrics, and subagent allocations.
    - Always follow the structured `nextRecommendedCommand` guidance emitted in CLI briefs.
 8. **Bearer Token Confidentiality & Hygiene:**
    - Bearer tokens (`--token <token>`) are authorization credentials that must **only** appear as CLI arguments in direct harness invocations.

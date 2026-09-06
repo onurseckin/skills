@@ -16,7 +16,9 @@ import type {
   SystemRunStateInfo,
 } from "../../../olt/scripts/src/liaison/monitoring/types.ts";
 
-describe("Monitoring Surface Renderers (CLI, Markdown, JSON)", () => {
+export const renderersSuiteName = "Monitoring Surface Renderers (CLI, Markdown, JSON)";
+
+describe(renderersSuiteName, () => {
   const sampleLiveness: SystemLivenessInfo = Object.freeze({
     systemId: "antigravity",
     lastHeartbeatTimestamp: "2026-09-06T00:00:00.000Z",
