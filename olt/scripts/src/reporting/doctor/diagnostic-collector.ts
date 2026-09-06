@@ -19,6 +19,7 @@ import {
   type DoctorCheckEngineResult,
   type DoctorDiagnosticFinding,
 } from "./engines.ts";
+import { checkAgentCanonicalAlignment } from "./agent-canonical-engine.ts";
 
 export interface DiagnosticCollectionOptions {
   readonly repoRoot?: string | undefined;
@@ -137,11 +138,11 @@ export function collectDiagnosticEngines(
   );
 
   const engine10 = safeRunEngine("checkRepositoryHygiene", () => {
-    const hygieneResult = checkRepositoryHygiene({ repoRoot: repository });
+    const h = checkRepositoryHygiene({ repoRoot: repository });
     return {
       engine: "checkRepositoryHygiene",
-      passed: hygieneResult.passed,
-      findings: hygieneResult.violations.map((v) => ({
+      passed: h.passed,
+      findings: h.violations.map((v) => ({
         code: v.violationType,
         severity: v.severity,
         engine: "checkRepositoryHygiene",
@@ -152,11 +153,11 @@ export function collectDiagnosticEngines(
   });
 
   const engine11 = safeRunEngine("checkGitIndexIntegrity", () => {
-    const gitIndexResult = checkGitIndexIntegrity({ repoRoot: repository });
+    const r = checkGitIndexIntegrity({ repoRoot: repository });
     return {
       engine: "checkGitIndexIntegrity",
-      passed: gitIndexResult.healthy,
-      findings: gitIndexResult.findings,
+      passed: r.healthy,
+      findings: r.findings,
     };
   });
 
@@ -170,11 +171,11 @@ export function collectDiagnosticEngines(
   );
 
   const engine13 = safeRunEngine("checkWorktreeHealth", () => {
-    const worktreeResult = checkWorktreeHealth({ repoRoot: repository });
+    const r = checkWorktreeHealth({ repoRoot: repository });
     return {
       engine: "checkWorktreeHealth",
-      passed: worktreeResult.healthy,
-      findings: worktreeResult.findings,
+      passed: r.healthy,
+      findings: r.findings,
     };
   });
 
@@ -205,58 +206,57 @@ export function collectDiagnosticEngines(
     }),
   );
 
-  const allEngineFindings: DoctorDiagnosticFinding[] = [
-    ...engine1.findings,
-    ...engine2.findings,
-    ...engine3.findings,
-    ...engine4.findings,
-    ...engine5.findings,
-    ...engine6.findings,
-    ...engine7.findings,
-    ...engine8.findings,
-    ...engine9.findings,
-    ...engine10.findings,
-    ...engine11.findings,
-    ...engine12.findings,
-    ...engine13.findings,
-    ...engine14.findings,
-    ...engine15.findings,
-    ...engine16.findings,
-    ...engine17.findings,
-  ];
+  const rawAgents = state?.agents;
+  const activeAgents = Array.isArray(rawAgents)
+    ? rawAgents
+    : rawAgents && typeof rawAgents === "object"
+      ? Object.entries(rawAgents).map(([id, val]) =>
+          val && typeof val === "object"
+            ? { id, ...(val as Record<string, unknown>) }
+            : { id, role: String(val) },
+        )
+      : undefined;
 
+  const engine18 = safeRunEngine("checkAgentCanonicalAlignment", () =>
+    checkAgentCanonicalAlignment({ repoRoot: repository, activeAgents }),
+  );
+
+  const engineResults: Record<string, DoctorCheckEngineResult> = {
+    checkPlanningDag: engine1,
+    checkAstPurity: engine2,
+    checkAntiMockMutation: engine3,
+    checkAntiBatchingIsolation: engine4,
+    checkDualChannelUi: engine5,
+    checkCognitiveValidatorCommandLock: engine6,
+    checkRoleBoundaryInterlock: engine7,
+    checkPushbackQuotas: engine8,
+    checkPolicyDoctor: engine9,
+    checkRepositoryHygiene: engine10,
+    checkGitIndexIntegrity: engine11,
+    checkMailboxHealth: engine12,
+    checkWorktreeHealth: engine13,
+    checkCliRegistryTaxonomy: engine14,
+    checkTier0CompanionsHealth: engine15,
+    checkAntiStagnationDoctor: engine16,
+    checkPlanQualityAndAgentUtilization: engine17,
+    checkAgentCanonicalAlignment: engine18,
+  };
+
+  const allEngineFindings: readonly DoctorDiagnosticFinding[] = Object.values(
+    engineResults,
+  ).flatMap((e) => e.findings);
   const engineErrorIssues = allEngineFindings
     .filter((f) => f.severity === "ERROR")
     .map((f) => `${f.engine}: ${f.message}`);
-
   const engineWarnIssues = allEngineFindings
     .filter((f) => f.severity === "WARN")
     .map((f) => `[WARN] ${f.engine}: ${f.message}`);
-
   const engineInfoIssues = allEngineFindings
     .filter((f) => f.severity === "INFO")
     .map((f) => `[INFO] ${f.engine}: ${f.message}`);
 
   return {
-    engineResults: {
-      checkPlanningDag: engine1,
-      checkAstPurity: engine2,
-      checkAntiMockMutation: engine3,
-      checkAntiBatchingIsolation: engine4,
-      checkDualChannelUi: engine5,
-      checkCognitiveValidatorCommandLock: engine6,
-      checkRoleBoundaryInterlock: engine7,
-      checkPushbackQuotas: engine8,
-      checkPolicyDoctor: engine9,
-      checkRepositoryHygiene: engine10,
-      checkGitIndexIntegrity: engine11,
-      checkMailboxHealth: engine12,
-      checkWorktreeHealth: engine13,
-      checkCliRegistryTaxonomy: engine14,
-      checkTier0CompanionsHealth: engine15,
-      checkAntiStagnationDoctor: engine16,
-      checkPlanQualityAndAgentUtilization: engine17,
-    },
+    engineResults,
     allEngineFindings,
     engineErrorIssues,
     engineWarnIssues,
