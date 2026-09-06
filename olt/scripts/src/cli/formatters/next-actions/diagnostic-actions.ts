@@ -108,7 +108,7 @@ export function whoamiNextActions(
         description: "Dispatch next wave of eligible tasks",
       },
       {
-        command: `bun harness.ts run:status --run ${runRoot}`,
+        command: `bun harness.ts report --run ${runRoot}`,
         role: "Orchestrator",
         description: "Inspect execution progress and active leases",
       },
@@ -136,7 +136,7 @@ export function whoamiNextActions(
         description: "Initialize completeness critic review session",
       },
       {
-        command: `bun harness.ts run:status --run ${runRoot}`,
+        command: `bun harness.ts report --run ${runRoot}`,
         role: "Orchestrator",
         description: "Check run execution status",
       },
@@ -145,7 +145,7 @@ export function whoamiNextActions(
 
   return [
     {
-      command: `bun harness.ts run:status --run ${runRoot}`,
+      command: `bun harness.ts report --run ${runRoot}`,
       role: "Orchestrator",
       description: "Inspect execution progress and active leases",
     },
@@ -203,7 +203,7 @@ export function doctorNextActions(
 
   actions.push(
     {
-      command: `bun harness.ts run:status${runArg}`,
+      command: `bun harness.ts report${runArg}`,
       role: "Orchestrator",
       description: "Check run execution status",
     },
@@ -224,7 +224,7 @@ export function recoverNextActions(run: string): NextActionItem[] {
       description: "Re-dispatch recovered tasks",
     },
     {
-      command: `bun harness.ts run:status --run ${run}`,
+      command: `bun harness.ts report --run ${run}`,
       role: "Orchestrator",
       description: "Verify active lease counts",
     },
@@ -257,7 +257,7 @@ export function reportGetNextActions(run?: string): NextActionItem[] {
       description: "List all generated reports",
     },
     {
-      command: `bun harness.ts run:status${runArg}`,
+      command: `bun harness.ts report${runArg}`,
       role: "Orchestrator",
       description: "Check execution status",
     },
@@ -273,7 +273,7 @@ export function evidenceGetNextActions(run?: string): NextActionItem[] {
       description: "List recorded command evidence",
     },
     {
-      command: `bun harness.ts run:status${runArg}`,
+      command: `bun harness.ts report${runArg}`,
       role: "Orchestrator",
       description: "Check execution progress",
     },

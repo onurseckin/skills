@@ -80,7 +80,7 @@ export function branchStatusNextActions(run: string): NextActionItem[] {
       description: "Open branch to subdivide complex task",
     },
     {
-      command: `bun harness.ts run:status --run ${run}`,
+      command: `bun harness.ts report --run ${run}`,
       role: "Orchestrator",
       description: "Check execution status",
     },

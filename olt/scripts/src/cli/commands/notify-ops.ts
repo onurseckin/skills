@@ -5,7 +5,7 @@ import {
   sendSystemNotification,
   type NotificationResult,
 } from "../../reporting/notifications/index.ts";
-import { boolFlag, integerFlag, textFlag, type Flags } from "../index.ts";
+import { boolFlag, integerFlag, textFlag, type Flags } from "../options.ts";
 
 export function notifyPhaseCommand(flags: Flags): Record<string, unknown> {
   const phaseName = textFlag(flags, "phase", false);

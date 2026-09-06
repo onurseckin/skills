@@ -76,3 +76,14 @@ export {
   type TranscriptRunContext,
   type TranscriptToolCall,
 } from "./transcript-telemetry.ts";
+
+export {
+  reconcileDualChannelTelemetry,
+  type DualChannelReconciliationResult,
+  type GhostAgent,
+  type IntegrityViolation,
+  type ProcessEntry,
+  type ReconciliationStatus,
+  type TelemetryReconcilerOptions,
+  type UntrackedAgent,
+} from "./telemetry-reconciler.ts";

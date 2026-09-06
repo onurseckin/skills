@@ -201,7 +201,7 @@ describe("formatBranchStatusBrief", () => {
       "`bun harness.ts branch:open --run run-1 --parent-task <TASK_ID> --parent-agent <AGENT> --token <TOKEN>` [Parent] — Open branch to subdivide complex task",
     );
     expect(brief).toContain(
-      "`bun harness.ts run:status --run run-1` [Orchestrator] — Check execution status",
+      "`bun harness.ts report --run run-1` [Orchestrator] — Check execution status",
     );
   });
 
@@ -223,7 +223,7 @@ describe("formatBranchStatusBrief", () => {
       "`bun harness.ts branch:open --run run-1 --parent-task <TASK_ID> --parent-agent <AGENT> --token <TOKEN>` [Parent] — Open branch to subdivide complex task",
     );
     expect(brief).toContain(
-      "`bun harness.ts run:status --run run-1` [Orchestrator] — Check execution status",
+      "`bun harness.ts report --run run-1` [Orchestrator] — Check execution status",
     );
   });
 });

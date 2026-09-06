@@ -1,4 +1,7 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import type { AgentGrantRecord, JsonObject } from "../../core/contracts/index.ts";
+import { findRepoRoot } from "../../core/shared/paths.ts";
 import { readAgentLedger } from "../../workflow/agents/ledger.ts";
 import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "./types.ts";
 
@@ -91,6 +94,17 @@ export function checkTier0CompanionsHealth(
     });
   }
 
+  const skillAuditors = activeGrants.filter((g) => (g.role as string) === "skill-auditor");
+  if (skillAuditors.length > 1) {
+    findings.push({
+      code: "MULTIPLE_SKILL_AUDITORS_DETECTED",
+      severity: "ERROR",
+      engine: "checkTier0CompanionsHealth",
+      message: `Tier 0 Mind capsule has ${skillAuditors.length} active 'skill-auditor' companions. Skill Auditor must be a singleton.`,
+      details: { count: skillAuditors.length },
+    });
+  }
+
   const pulseState = (state.pulse ?? {}) as Record<string, unknown>;
   const consecutiveZeroDelta =
     typeof pulseState.consecutive_zero_delta === "number" ? pulseState.consecutive_zero_delta : 0;
@@ -102,6 +116,50 @@ export function checkTier0CompanionsHealth(
       engine: "checkTier0CompanionsHealth",
       message: `Mind has registered ${consecutiveZeroDelta} consecutive idle / zero-delta pulses. Mind must execute Mode A Autonomous Self-Evolution via 'bun harness.ts mind:self-evolve'.`,
       details: { consecutiveZeroDelta },
+    });
+  }
+
+  const rawInterval = pulseState.interval ?? pulseState.cron;
+  if (rawInterval !== undefined && rawInterval !== null) {
+    const interval = String(rawInterval);
+    if (interval !== "5m" && interval !== "15m") {
+      findings.push({
+        code: "INVALID_MIND_CADENCE_INTERVAL",
+        severity: "WARN",
+        engine: "checkTier0CompanionsHealth",
+        message: `Mind scheduled interval '${interval}' does not match expected 5m or 15m cadence.`,
+        details: { interval },
+      });
+    }
+  }
+
+  let repoRoot = options.repoRoot;
+  if (!repoRoot) {
+    try {
+      repoRoot = findRepoRoot();
+    } catch {
+      repoRoot = process.cwd();
+    }
+  }
+
+  const mindCharter = join(repoRoot, "olt/agents/mind.yaml");
+  const mindAuditorCharter = join(repoRoot, "olt/agents/mind-auditor.yaml");
+  const missingCharters: string[] = [];
+
+  if (!existsSync(mindCharter)) {
+    missingCharters.push("olt/agents/mind.yaml");
+  }
+  if (!existsSync(mindAuditorCharter)) {
+    missingCharters.push("olt/agents/mind-auditor.yaml");
+  }
+
+  if (missingCharters.length > 0) {
+    findings.push({
+      code: "MISSING_MIND_POLICY_CHARTER",
+      severity: "ERROR",
+      engine: "checkTier0CompanionsHealth",
+      message: `Required Mind policy charter(s) missing: ${missingCharters.join(", ")}.`,
+      details: { missingCharters },
     });
   }
 

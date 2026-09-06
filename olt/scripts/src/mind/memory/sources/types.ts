@@ -1,8 +1,17 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+import { createRequire } from "node:module";
 import type { CommandSpec } from "../../../cli/registry/types.ts";
-import { findCommand } from "../../../cli/registry/index.ts";
 import type { EvidenceClass } from "../../../core/contracts/index.ts";
+
+const req = createRequire(import.meta.url);
+
+function getFindCommand(): (invocation: string) => CommandSpec | undefined {
+  const mod = req("../../../cli/registry/index.ts") as {
+    findCommand: (invocation: string) => CommandSpec | undefined;
+  };
+  return mod.findCommand;
+}
 import { HarnessError } from "../../../core/errors/index.ts";
 import { findRepoRoot, resolveCapsulesDir } from "../../../core/shared/paths.ts";
 
@@ -211,7 +220,7 @@ export function isMindSourceId(value: string): value is MindSourceId {
 
 export function resolveSourceToRegistryCommand(sourceIdOrAlias: string): CommandSpec {
   const source = getSourceDefinition(sourceIdOrAlias);
-  const command = findCommand(source.registryCommand);
+  const command = getFindCommand()(source.registryCommand);
   if (!command) {
     throw new HarnessError(
       "INVALID_STATE",

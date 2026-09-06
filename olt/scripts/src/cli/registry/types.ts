@@ -81,6 +81,34 @@ export type CommandDomain =
   | "hygiene"
   | "defect";
 
+export const COMMAND_DOMAINS: readonly CommandDomain[] = [
+  "plan",
+  "queue",
+  "task",
+  "reporting",
+  "run",
+  "critic",
+  "summary",
+  "inspection",
+  "orchestrator",
+  "branch",
+  "agent",
+  "orphan",
+  "authority",
+  "install",
+  "diagnostics",
+  "gate",
+  "capture",
+  "mind",
+  "policy",
+  "msg",
+  "worktree",
+  "sched",
+  "role",
+  "hygiene",
+  "defect",
+];
+
 export type CommandHandler = (
   flags: Flags,
   context: CommandContext,

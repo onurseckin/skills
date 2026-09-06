@@ -14,7 +14,7 @@ import {
   formatReportBrief,
   formatReportsListBrief,
   formatScreenshotsListBrief,
-} from "../formatters/index.ts";
+} from "../formatters/inspection-formatter.ts";
 import { boolFlag, textFlag, type Flags } from "../options.ts";
 import { resolveCapsuleRun } from "./dag-view.ts";
 

@@ -140,33 +140,7 @@ export const COMMAND_REGISTRY: readonly CommandSpec[] = [
   ...DEFECT_COMMANDS,
 ];
 
-export const COMMAND_DOMAINS: readonly CommandDomain[] = [
-  "plan",
-  "queue",
-  "task",
-  "reporting",
-  "run",
-  "critic",
-  "summary",
-  "inspection",
-  "orchestrator",
-  "branch",
-  "agent",
-  "orphan",
-  "authority",
-  "install",
-  "diagnostics",
-  "gate",
-  "capture",
-  "mind",
-  "policy",
-  "msg",
-  "worktree",
-  "sched",
-  "role",
-  "hygiene",
-  "defect",
-];
+export { COMMAND_DOMAINS } from "./types.ts";
 
 const BY_INVOCATION: ReadonlyMap<string, CommandSpec> = (() => {
   const index = new Map<string, CommandSpec>();

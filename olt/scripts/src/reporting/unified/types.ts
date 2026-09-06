@@ -130,6 +130,9 @@ export interface UnifiedReport {
   };
   lifecycle: UnifiedLifecycleBreakdown;
   occupancy: {
+    implementers?: number;
+    validators?: number;
+    standby?: number;
     active_slots: number;
     max_parallel: number;
     gate_max_parallel: number;

@@ -1,12 +1,5 @@
 import type { CommandSpec } from "../../registry/types.ts";
 import { DEFAULT_EXIT_CODES, optionalFlag, requiredFlag } from "../../registry/types.ts";
-import { dagTraceCommand } from "../dag.ts";
-import { notifyPhaseCommand, notifyTestCommand } from "../notify-ops.ts";
-import { quotaCheckCommand } from "../quota-check.ts";
-import { quotaFreezeCommand } from "../quota-freeze.ts";
-import { quotaResumeCommand } from "../quota-resume.ts";
-import { skillAuditLiveCommand } from "../skill-audit-live.ts";
-import { streamEventsCommand } from "../stream-events.ts";
 
 export const EVENTS_STREAM_SPEC: CommandSpec = {
   name: "events:stream",
@@ -36,7 +29,8 @@ export const EVENTS_STREAM_SPEC: CommandSpec = {
   takesRemainder: false,
   exitCodes: DEFAULT_EXIT_CODES,
   examples: ["bun harness.ts events:stream --run .olt/capsules/<run-id>"],
-  handler: streamEventsCommand,
+  handler: async (flags, ctx, remainder) =>
+    (await import("../stream-events.ts")).streamEventsCommand(flags, ctx),
 };
 
 export const EVENTS_TRACE_SPEC: CommandSpec = {
@@ -63,7 +57,7 @@ export const EVENTS_TRACE_SPEC: CommandSpec = {
   takesRemainder: false,
   exitCodes: DEFAULT_EXIT_CODES,
   examples: ["bun harness.ts events:trace --run .olt/capsules/<run-id>"],
-  handler: dagTraceCommand,
+  handler: async (flags, ctx, remainder) => (await import("../dag.ts")).dagTraceCommand(flags, ctx),
 };
 
 export const QUOTA_CHECK_SPEC: CommandSpec = {
@@ -99,7 +93,8 @@ export const QUOTA_CHECK_SPEC: CommandSpec = {
   takesRemainder: false,
   exitCodes: DEFAULT_EXIT_CODES,
   examples: ["bun harness.ts quota:check"],
-  handler: quotaCheckCommand,
+  handler: async (flags, ctx, remainder) =>
+    (await import("../quota-check.ts")).quotaCheckCommand(flags, ctx, remainder),
 };
 
 export const QUOTA_FREEZE_SPEC: CommandSpec = {
@@ -128,7 +123,8 @@ export const QUOTA_FREEZE_SPEC: CommandSpec = {
   takesRemainder: false,
   exitCodes: DEFAULT_EXIT_CODES,
   examples: ["bun harness.ts quota:freeze --run .olt/capsules/<run-id> --actor mind_1"],
-  handler: quotaFreezeCommand,
+  handler: async (flags, ctx, remainder) =>
+    (await import("../quota-freeze.ts")).quotaFreezeCommand(flags, ctx, remainder),
 };
 
 export const QUOTA_RESUME_SPEC: CommandSpec = {
@@ -156,7 +152,8 @@ export const QUOTA_RESUME_SPEC: CommandSpec = {
   takesRemainder: false,
   exitCodes: DEFAULT_EXIT_CODES,
   examples: ["bun harness.ts quota:resume --run .olt/capsules/<run-id> --actor mind_1"],
-  handler: quotaResumeCommand,
+  handler: async (flags, ctx, remainder) =>
+    (await import("../quota-resume.ts")).quotaResumeCommand(flags, ctx, remainder),
 };
 
 export const SKILL_AUDIT_LIVE_SPEC: CommandSpec = {
@@ -176,7 +173,8 @@ export const SKILL_AUDIT_LIVE_SPEC: CommandSpec = {
   takesRemainder: false,
   exitCodes: DEFAULT_EXIT_CODES,
   examples: ["bun harness.ts skill:audit:live"],
-  handler: skillAuditLiveCommand,
+  handler: async (flags, ctx, remainder) =>
+    (await import("../skill-audit-live.ts")).skillAuditLiveCommand(flags, ctx),
 };
 
 export const NOTIFY_PHASE_SPEC: CommandSpec = {
@@ -205,7 +203,8 @@ export const NOTIFY_PHASE_SPEC: CommandSpec = {
   examples: [
     "bun harness.ts notify:phase --phase 'Core Architecture' --tasks 12 --duration-ms 272000",
   ],
-  handler: notifyPhaseCommand,
+  handler: async (flags, ctx, remainder) =>
+    (await import("../notify-ops.ts")).notifyPhaseCommand(flags),
 };
 
 export const NOTIFY_TEST_SPEC: CommandSpec = {
@@ -223,7 +222,8 @@ export const NOTIFY_TEST_SPEC: CommandSpec = {
   takesRemainder: false,
   exitCodes: DEFAULT_EXIT_CODES,
   examples: ["bun harness.ts notify:test"],
-  handler: notifyTestCommand,
+  handler: async (flags, ctx, remainder) =>
+    (await import("../notify-ops.ts")).notifyTestCommand(flags),
 };
 
 export const SERVICE_REPORT_SPECS: readonly CommandSpec[] = [

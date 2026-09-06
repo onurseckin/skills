@@ -2,7 +2,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { defaultLayout, runHealthCheck, type HealthCheckId } from "../../../health/index.ts";
-import { runDoctor, type DoctorOptions } from "../../../reporting/index.ts";
+import { runDoctor, type DoctorOptions } from "../../../reporting/doctor/runner.ts";
 import { systemClock, type Clock } from "../../../workflow/index.ts";
 import { isTestEnvironment } from "../../../core/index.ts";
 import {

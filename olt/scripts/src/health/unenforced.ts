@@ -1,6 +1,19 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { COMMAND_REGISTRY, commandInvocations } from "../cli/registry/index.ts";
+import { createRequire } from "node:module";
+import type { CommandSpec } from "../cli/registry/types.ts";
+
+const req = createRequire(import.meta.url);
+
+function getRegistry(): {
+  readonly COMMAND_REGISTRY: readonly CommandSpec[];
+  commandInvocations: () => readonly string[];
+} {
+  return req("../cli/registry/index.ts") as {
+    readonly COMMAND_REGISTRY: readonly CommandSpec[];
+    commandInvocations: () => readonly string[];
+  };
+}
 import { AGENT_ROLES } from "../core/contracts/index.ts";
 import { parseRoleContract } from "../packets/role-contract.ts";
 import { parseUnifiedAgentManifest } from "../authority/manifest-schema.ts";
@@ -28,7 +41,7 @@ function moduleDeclaring(
 
 function unreadFlags(production: ReadonlyMap<string, ModuleRecord>): HealthFinding[] {
   const findings: HealthFinding[] = [];
-  for (const spec of COMMAND_REGISTRY) {
+  for (const spec of getRegistry().COMMAND_REGISTRY) {
     const handlerModule = moduleDeclaring(production, spec.handler.name);
     if (handlerModule === undefined) {
       findings.push(
@@ -90,7 +103,7 @@ function unreadConfigFields(production: ReadonlyMap<string, ModuleRecord>): Heal
 const FRONTMATTER_COMMANDS = /\ncommands:\n((?:\s*-\s*[^\n]+\n)+)/u;
 
 function roleContracts(skillRoot: string): HealthFinding[] {
-  const invocations = new Set(commandInvocations());
+  const invocations = new Set(getRegistry().commandInvocations());
   const roles = new Set<string>(AGENT_ROLES);
   const findings: HealthFinding[] = [];
   const agentsDir = join(skillRoot, "agents");
@@ -167,7 +180,7 @@ function roleContracts(skillRoot: string): HealthFinding[] {
 const DOC_INVOCATION = /harness\.ts\s+([a-z][a-z0-9-]*(?::[a-z][a-z0-9-]*)?)/gu;
 
 function documentedCommands(skillRoot: string): HealthFinding[] {
-  const invocations = new Set(commandInvocations());
+  const invocations = new Set(getRegistry().commandInvocations());
   const findings: HealthFinding[] = [];
   const seen = new Set<string>();
   for (const path of listFiles(skillRoot, [".md"])) {
@@ -205,7 +218,7 @@ export function checkDeclarations(input: DeclarationInput): HealthCheckResult {
         : []),
       ...unreadConfigFields(input.production),
     ],
-    scanned: input.registryApplies ? COMMAND_REGISTRY.length : input.production.size,
+    scanned: input.registryApplies ? getRegistry().COMMAND_REGISTRY.length : input.production.size,
     limitations: input.registryApplies
       ? [
           "A flag counts as read when its name appears as a string in the handler's module or one it imports; appearing is not the same as being acted on.",

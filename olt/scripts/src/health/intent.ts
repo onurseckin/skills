@@ -1,5 +1,12 @@
 import { readFileSync } from "node:fs";
-import { commandInvocations } from "../cli/registry/index.ts";
+import { createRequire } from "node:module";
+
+const req = createRequire(import.meta.url);
+
+function getCommandInvocations(): readonly string[] {
+  const mod = req("../cli/registry/index.ts") as { commandInvocations: () => readonly string[] };
+  return mod.commandInvocations();
+}
 import { EXTERNAL_IDENTIFIERS } from "./external-identifiers.ts";
 import type { SourceFile } from "./sources.ts";
 import { finding, type HealthCheckResult, type HealthFinding } from "./types.ts";
@@ -93,7 +100,7 @@ function classify(
 }
 
 export function checkIntentDrift(input: IntentInput): HealthCheckResult {
-  const invocations = new Set(commandInvocations());
+  const invocations = new Set(getCommandInvocations());
   const findings: HealthFinding[] = [];
   let checkable = 0;
   let unclassified = 0;

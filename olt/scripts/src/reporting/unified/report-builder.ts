@@ -4,7 +4,7 @@ import { findRepoRoot } from "../../core/shared/paths.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { isRecord } from "../../requirements/predicates.ts";
 import type { TaskRecord, WorkflowState } from "../../workflow/types.ts";
-import { computeCapsuleDoctorFacts } from "../doctor.ts";
+import { computeCapsuleDoctorFacts } from "../doctor/facts.ts";
 import { extractLeaseAgentId } from "../lease-agent-extractor.ts";
 import {
   buildSugiyamaDagReport,
@@ -241,6 +241,9 @@ export function generateUnifiedReport(
     },
     lifecycle,
     occupancy: {
+      implementers: seg.implementersActive.length,
+      validators: seg.validatorsActive.length,
+      standby: seg.standbyTaskIds.length,
       active_slots: activeSlots,
       max_parallel: maxParallel,
       gate_max_parallel: gateMaxParallel,

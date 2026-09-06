@@ -134,7 +134,7 @@ describe("formatAgentReleaseBrief", () => {
       "`bun harness.ts agent:register --run run-1 --agent <AGENT_ID> --role <ROLE> --host <HOST>` [Coordinator] — Register new agent grant",
     );
     expect(brief).toContain(
-      "`bun harness.ts run:status --run run-1` [Orchestrator] — Inspect active lanes and lease status",
+      "`bun harness.ts report --run run-1` [Orchestrator] — Inspect active lanes and lease status",
     );
   });
 
@@ -194,7 +194,7 @@ describe("formatAgentListBrief", () => {
       "`bun harness.ts agent:register --run run-1 --agent <AGENT_ID> --role <ROLE> --host <HOST>` [Coordinator] — Register new agent grant",
     );
     expect(brief).toContain(
-      "`bun harness.ts run:status --run run-1` [Orchestrator] — Inspect active lanes and lease status",
+      "`bun harness.ts report --run run-1` [Orchestrator] — Inspect active lanes and lease status",
     );
   });
 });

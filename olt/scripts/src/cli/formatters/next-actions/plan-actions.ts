@@ -104,7 +104,7 @@ export function planStatusNextActions(run: string, isCompiled: boolean): NextAct
         description: "Claim next available task in queue",
       },
       {
-        command: `bun harness.ts run:status --run ${run}`,
+        command: `bun harness.ts report --run ${run}`,
         role: "Orchestrator",
         description: "Monitor active execution lanes",
       },

@@ -109,7 +109,7 @@ export function taskReviewPassNextActions(
       description: "Claim newly unblocked downstream task",
     },
     {
-      command: `bun harness.ts run:status${runArg}`,
+      command: `bun harness.ts report${runArg}`,
       role: "Orchestrator",
       description: "Inspect overall run progress",
     },

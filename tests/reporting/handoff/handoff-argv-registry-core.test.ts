@@ -47,7 +47,7 @@ const REQUIRED = [
   "recover",
   "run:complete",
   "run:exec",
-  "run:status",
+  "report",
   "task:claim",
   "task:probe",
   "task:review",

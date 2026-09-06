@@ -42,7 +42,7 @@ describe(nextActionsSuiteName, () => {
 
   test("orients a fresh reader before it changes anything", () => {
     const opened = actions(view("ready"), [grant]);
-    expect(opened.text).toContain(" run:status ");
+    expect(opened.text).toContain(" report:unified ");
     expect(opened.text).toContain(" doctor ");
     expect(opened.text).toContain(" agent:list ");
     // No grant ledger and no branches: the reads that would report on them are not offered.

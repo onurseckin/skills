@@ -1,16 +1,5 @@
 import type { CommandSpec } from "../../registry/types.ts";
 import { DEFAULT_EXIT_CODES, optionalFlag, requiredFlag } from "../../registry/types.ts";
-import { exportGraphJsonCommand } from "../graph-export.ts";
-import { reportGetCommand } from "../inspection-ops.ts";
-import { summaryViewCommand } from "../summary-ops.ts";
-import {
-  reportDecisionsCommand,
-  reportHealthCommand,
-  reportLeasesCommand,
-} from "../unified-reporting.ts";
-import { usageReportCommand } from "../usage-report.ts";
-import { reportDagCommand } from "./report-dag.ts";
-import { reportUnifiedCommand } from "./report-unified.ts";
 
 export const REPORT_UNIFIED_SPEC: CommandSpec = {
   name: "report:unified",
@@ -38,7 +27,8 @@ export const REPORT_UNIFIED_SPEC: CommandSpec = {
     "bun harness.ts report:unified",
     "bun harness.ts report --run .olt/capsules/<run-id>",
   ],
-  handler: reportUnifiedCommand,
+  handler: async (flags, ctx, remainder) =>
+    (await import("./report-unified.ts")).reportUnifiedCommand(flags, ctx),
 };
 
 export const REPORT_DAG_SPEC: CommandSpec = {
@@ -75,7 +65,8 @@ export const REPORT_DAG_SPEC: CommandSpec = {
     "bun harness.ts report:dag --run .olt/capsules/<run-id>",
     "bun harness.ts report:dag --detailed",
   ],
-  handler: reportDagCommand,
+  handler: async (flags, ctx, remainder) =>
+    (await import("./report-dag.ts")).reportDagCommand(flags, ctx),
 };
 
 export const REPORT_SUMMARY_SPEC: CommandSpec = {
@@ -93,7 +84,7 @@ export const REPORT_SUMMARY_SPEC: CommandSpec = {
   takesRemainder: false,
   exitCodes: DEFAULT_EXIT_CODES,
   examples: ["bun harness.ts report:summary --run .olt/capsules/<run-id>"],
-  handler: summaryViewCommand,
+  handler: async (flags) => (await import("../summary-ops.ts")).summaryViewCommand(flags),
 };
 
 export const REPORT_TASK_SPEC: CommandSpec = {
@@ -122,7 +113,7 @@ export const REPORT_TASK_SPEC: CommandSpec = {
     "bun harness.ts report:task --run .olt/capsules/<run-id> --task task-1",
     "bun harness.ts report:task --run .olt/capsules/<run-id> --task task-1 --type review",
   ],
-  handler: reportGetCommand,
+  handler: async (flags) => (await import("../inspection-ops.ts")).reportGetCommand(flags),
 };
 
 export const REPORT_HEALTH_SPEC: CommandSpec = {
@@ -141,7 +132,8 @@ export const REPORT_HEALTH_SPEC: CommandSpec = {
   takesRemainder: false,
   exitCodes: DEFAULT_EXIT_CODES,
   examples: ["bun harness.ts report:health --run .olt/capsules/<run-id>"],
-  handler: reportHealthCommand,
+  handler: async (flags, ctx, remainder) =>
+    (await import("../unified-reporting.ts")).reportHealthCommand(flags),
 };
 
 export const REPORT_LEASES_SPEC: CommandSpec = {
@@ -155,7 +147,8 @@ export const REPORT_LEASES_SPEC: CommandSpec = {
   takesRemainder: false,
   exitCodes: DEFAULT_EXIT_CODES,
   examples: ["bun harness.ts report:leases --run .olt/capsules/<run-id>"],
-  handler: reportLeasesCommand,
+  handler: async (flags, ctx, remainder) =>
+    (await import("../unified-reporting.ts")).reportLeasesCommand(flags),
 };
 
 export const REPORT_DECISIONS_SPEC: CommandSpec = {
@@ -169,7 +162,8 @@ export const REPORT_DECISIONS_SPEC: CommandSpec = {
   takesRemainder: false,
   exitCodes: DEFAULT_EXIT_CODES,
   examples: ["bun harness.ts report:decisions --run .olt/capsules/<run-id>"],
-  handler: reportDecisionsCommand,
+  handler: async (flags, ctx, remainder) =>
+    (await import("../unified-reporting.ts")).reportDecisionsCommand(flags),
 };
 
 export const REPORT_USAGE_SPEC: CommandSpec = {
@@ -196,7 +190,8 @@ export const REPORT_USAGE_SPEC: CommandSpec = {
     "bun harness.ts report:usage --platform antigravity",
     "bun harness.ts report:usage --detailed",
   ],
-  handler: usageReportCommand,
+  handler: async (flags, ctx, remainder) =>
+    (await import("../usage-report.ts")).usageReportCommand(flags, ctx, remainder),
 };
 
 export const REPORT_GRAPH_JSON_SPEC: CommandSpec = {
@@ -215,7 +210,8 @@ export const REPORT_GRAPH_JSON_SPEC: CommandSpec = {
   takesRemainder: false,
   exitCodes: DEFAULT_EXIT_CODES,
   examples: ["bun harness.ts report:graph-json --run .olt/capsules/<run-id> --out graph.json"],
-  handler: exportGraphJsonCommand,
+  handler: async (flags, ctx, remainder) =>
+    (await import("../graph-export.ts")).exportGraphJsonCommand(flags),
 };
 
 export const CORE_REPORT_SPECS: readonly CommandSpec[] = [

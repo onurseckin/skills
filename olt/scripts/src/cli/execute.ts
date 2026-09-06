@@ -71,18 +71,15 @@ function assertAuthorityBoundTargets(spec: CommandSpec, flags: Record<string, un
   );
   const constrained = new Set(authority.constrainedPathFlags);
   const qfDefault = join(repositoryRoot, ".olt", "backlog.jsonl");
-  if (
-    constrained.has("queue-file") &&
-    typeof flags["queue-file"] !== "string" &&
-    typeof flags["queue-path"] !== "string"
-  ) {
-    flags["queue-file"] = qfDefault;
-  }
-  if (constrained.has("queue-path") && typeof flags["queue-path"] !== "string") {
-    flags["queue-path"] = typeof flags["queue-file"] === "string" ? flags["queue-file"] : qfDefault;
-  }
-  if (constrained.has("queue-file") && typeof flags["queue-file"] !== "string") {
-    flags["queue-file"] = flags["queue-path"];
+  if (constrained.has("queue-file") || constrained.has("queue-path")) {
+    const chosen =
+      (typeof flags["queue-file"] === "string" ? flags["queue-file"] : undefined) ??
+      (typeof flags["queue-path"] === "string" ? flags["queue-path"] : undefined) ??
+      qfDefault;
+    if (constrained.has("queue-file") && typeof flags["queue-file"] !== "string")
+      flags["queue-file"] = chosen;
+    if (constrained.has("queue-path") && typeof flags["queue-path"] !== "string")
+      flags["queue-path"] = chosen;
   }
   if (constrained.has("archive-file") && typeof flags["archive-file"] !== "string") {
     flags["archive-file"] = join(repositoryRoot, ".olt", "completed-tasks.jsonl");
@@ -111,6 +108,17 @@ function assertAuthorityBoundTargets(spec: CommandSpec, flags: Record<string, un
   }
 }
 
+const RETIRED_COMMANDS: ReadonlyMap<string, string> = new Map([
+  [
+    "run:status",
+    "[RETIRED_COMMAND] 'run:status' has been retired. Use 'bun harness.ts report' or 'bun harness.ts report:dag' instead.",
+  ],
+  [
+    "dag",
+    "[RETIRED_COMMAND] 'dag' has been retired. Use 'bun harness.ts report:dag' or 'bun harness.ts dag:check' instead.",
+  ],
+]);
+
 export async function execute(
   argv: readonly string[],
   context: CommandContext = {},
@@ -125,12 +133,15 @@ export async function execute(
     effectiveArgv[1] !== "--"
   ) {
     const subCandidate = `${effectiveArgv[0]}:${effectiveArgv[1]}`;
-    if (findCommand(subCandidate) !== undefined) {
+    if (findCommand(subCandidate) !== undefined || RETIRED_COMMANDS.has(subCandidate)) {
       effectiveArgv = [subCandidate, ...effectiveArgv.slice(2)];
     }
   }
 
-  const cmdName = effectiveArgv[0] !== undefined ? effectiveArgv[0] : "";
+  const cmdName = effectiveArgv[0] ?? "";
+  const retiredMsg = RETIRED_COMMANDS.get(cmdName);
+  if (retiredMsg) throw new HarnessError("INVALID_ARGUMENT", retiredMsg);
+
   const spec = findCommand(cmdName);
   const parsed = parseArguments(
     effectiveArgv,
@@ -149,37 +160,27 @@ export async function execute(
     );
   }
 
-  const runCandidate =
-    parsed.flags["run"] !== undefined
-      ? parsed.flags["run"]
-      : parsed.flags["run-id"] !== undefined
-        ? parsed.flags["run-id"]
-        : parsed.flags["capsule"];
+  const runCandidate = parsed.flags["run"] ?? parsed.flags["run-id"] ?? parsed.flags["capsule"];
   if (runCandidate !== undefined) {
     if (parsed.flags["run"] === undefined) parsed.flags["run"] = runCandidate;
     const acceptsRunId = spec.flags.some((f) => f.name === "run-id");
     const acceptsRun = spec.flags.some((f) => f.name === "run");
     const acceptsCapsule = spec.flags.some((f) => f.name === "capsule");
 
-    if (acceptsRunId ? true : parsed.flags["run-id"] !== undefined)
+    if (acceptsRunId || parsed.flags["run-id"] !== undefined)
       parsed.flags["run-id"] = parsed.flags["run"];
     if (acceptsCapsule) parsed.flags["capsule"] = parsed.flags["run"];
     else delete parsed.flags["capsule"];
     if (!acceptsRunId && !acceptsRun) delete parsed.flags["run-id"];
   }
 
-  const actorCandidate =
-    parsed.flags["actor"] !== undefined
-      ? parsed.flags["actor"]
-      : parsed.flags["agent"] !== undefined
-        ? parsed.flags["agent"]
-        : parsed.flags["agent-id"];
+  const actorCandidate = parsed.flags["actor"] ?? parsed.flags["agent"] ?? parsed.flags["agent-id"];
   if (actorCandidate !== undefined) {
     const hasActor = spec.flags.some((f) => f.name === "actor");
     const hasAgent = spec.flags.some((f) => f.name === "agent");
     const hasAgentId = spec.flags.some((f) => f.name === "agent-id");
 
-    if (hasActor ? true : hasAgent ? true : hasAgentId) {
+    if (hasActor || hasAgent || hasAgentId) {
       if (hasActor && parsed.flags["actor"] === undefined) parsed.flags["actor"] = actorCandidate;
       if (hasAgent && parsed.flags["agent"] === undefined) parsed.flags["agent"] = actorCandidate;
       if (hasAgentId && parsed.flags["agent-id"] === undefined)
@@ -194,7 +195,7 @@ export async function execute(
   if (activeRun !== undefined && activeRun.trim() !== "") {
     const hasConstrained = spec.authority?.constrainedPathFlags !== undefined;
     const expectsQueuePath = spec.flags.some((f) => f.name === "queue-path");
-    if (hasConstrained ? true : expectsQueuePath) {
+    if (hasConstrained || expectsQueuePath) {
       if (expectsQueuePath && parsed.flags["queue-path"] === undefined) {
         let repoRoot: string;
         try {
@@ -275,10 +276,9 @@ export async function execute(
 
   if (typeof parsed.flags["run"] === "string" && parsed.flags["run"].trim() !== "") {
     try {
-      const runRoot = parsed.flags["run"] as string;
       const { loadRun } = await import("../engine/store/index.ts");
-      const runData = loadRun(runRoot, false);
-      if (runData && runData.state) {
+      const runData = loadRun(parsed.flags["run"] as string, false);
+      if (runData?.state) {
         CumulativePhaseInvariantEngine.verify(spec, runData.state as Record<string, unknown>);
       }
     } catch (e: unknown) {

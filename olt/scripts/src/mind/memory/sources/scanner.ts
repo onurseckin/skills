@@ -1,7 +1,5 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import type { CommandSpec } from "../../../cli/registry/types.ts";
-import { findCommand } from "../../../cli/registry/index.ts";
 import type { EvidenceClass } from "../../../core/contracts/index.ts";
 import { HarnessError } from "../../../core/errors/index.ts";
 import { findRepoRoot, resolveCapsulesDir } from "../../../core/shared/paths.ts";

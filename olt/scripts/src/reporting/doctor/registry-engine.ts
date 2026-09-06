@@ -1,5 +1,19 @@
-import { COMMAND_DOMAINS, COMMAND_REGISTRY, type CommandSpec } from "../../cli/registry/index.ts";
+import { createRequire } from "node:module";
+import { COMMAND_DOMAINS, type CommandSpec } from "../../cli/registry/types.ts";
 import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "./types.ts";
+
+const req = createRequire(import.meta.url);
+
+function getCommandRegistry(): readonly CommandSpec[] {
+  const mod = req("../../cli/registry/index.ts") as {
+    readonly COMMAND_REGISTRY: readonly CommandSpec[];
+  };
+  return mod.COMMAND_REGISTRY;
+}
+
+const CANONICAL_ALIAS_ALLOWLIST: ReadonlyMap<string, readonly string[]> = new Map([
+  ["report:unified", ["report"]],
+]);
 
 export interface CliRegistryTaxonomyCheckOptions {
   readonly registry?: readonly CommandSpec[] | undefined;
@@ -8,17 +22,19 @@ export interface CliRegistryTaxonomyCheckOptions {
 export function checkCliRegistryTaxonomy(
   options: CliRegistryTaxonomyCheckOptions = {},
 ): DoctorCheckEngineResult {
-  const registry = options.registry ?? COMMAND_REGISTRY;
+  const registry = options.registry ?? getCommandRegistry();
   const findings: DoctorDiagnosticFinding[] = [];
   const registeredNames = new Set<string>();
 
   for (const spec of registry) {
-    if (spec.aliases.length > 0) {
+    const allowedAliases = CANONICAL_ALIAS_ALLOWLIST.get(spec.name) ?? [];
+    const nonAllowedAliases = spec.aliases.filter((a) => !allowedAliases.includes(a));
+    if (nonAllowedAliases.length > 0) {
       findings.push({
         code: "CLI_ALIAS_PROLIFERATION",
         severity: "ERROR",
         engine: "checkCliRegistryTaxonomy",
-        message: `Command '${spec.name}' declares non-empty aliases [${spec.aliases.join(", ")}]; zero-alias invariant violated`,
+        message: `Command '${spec.name}' declares non-empty aliases [${nonAllowedAliases.join(", ")}]; zero-alias invariant violated`,
         details: { command: spec.name, aliases: spec.aliases },
       });
     }

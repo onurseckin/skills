@@ -19,7 +19,7 @@ export function queueNextNextActions(run: string, taskId: string): NextActionIte
 export function queueEmptyNextActions(run: string): NextActionItem[] {
   return [
     {
-      command: `bun harness.ts run:status --run ${run}`,
+      command: `bun harness.ts report --run ${run}`,
       role: "Orchestrator",
       description: "Inspect active leases and validating lanes",
     },
@@ -40,7 +40,7 @@ export function queueWaveNextActions(run: string, firstTaskId?: string): NextAct
       description: "Claim first task in ready wave",
     },
     {
-      command: `bun harness.ts run:status --run ${run}`,
+      command: `bun harness.ts report --run ${run}`,
       role: "Orchestrator",
       description: "Monitor active concurrency and lease occupancy",
     },
@@ -56,7 +56,7 @@ export function queueListNextActions(run?: string): NextActionItem[] {
       description: "Dispatch ready conflict-free wave",
     },
     {
-      command: `bun harness.ts run:status${runArg}`,
+      command: `bun harness.ts report${runArg}`,
       role: "Orchestrator",
       description: "Inspect overall run occupancy and progress",
     },
@@ -201,7 +201,7 @@ export function runExecNextActions(run?: string, commandId?: string): NextAction
       description: "Inspect durable command evidence record",
     },
     {
-      command: `bun harness.ts run:status${runArg}`,
+      command: `bun harness.ts report${runArg}`,
       role: "Orchestrator",
       description: "Check execution status and active tasks",
     },
@@ -231,7 +231,7 @@ export function agentListNextActions(run: string): NextActionItem[] {
       description: "Register new agent grant",
     },
     {
-      command: `bun harness.ts run:status --run ${run}`,
+      command: `bun harness.ts report --run ${run}`,
       role: "Orchestrator",
       description: "Inspect active lanes and lease status",
     },

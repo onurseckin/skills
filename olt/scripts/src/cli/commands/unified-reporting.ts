@@ -5,8 +5,6 @@ import {
   generateDecisionsReport,
   generateUnifiedReport,
 } from "../../reporting/unified/index.ts";
-import { runDoctor } from "../../reporting/doctor.ts";
-import { formatDoctorBrief } from "./diagnostics-ops.ts";
 import { summaryExportCommand } from "./summary-ops.ts";
 
 export function reportUnifiedCommand(flags: Flags): Record<string, unknown> {
@@ -67,6 +65,8 @@ export async function reportHealthCommand(flags: Flags): Promise<Record<string, 
         }
       : {};
 
+  const { runDoctor } = await import("../../reporting/doctor.ts");
+  const { formatDoctorBrief } = await import("./diagnostics-ops.ts");
   const report = await runDoctor(run, installation);
   return { ...report, markdown: formatDoctorBrief(run, report), run_root: run };
 }

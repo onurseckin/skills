@@ -24,7 +24,7 @@ function orientation(
   branches: readonly BranchView[],
 ): string[][] {
   const argv: string[][] = [];
-  pushArgv(argv, registryArgv(entrypoint, "run:status", [["run", runRoot]]));
+  pushArgv(argv, registryArgv(entrypoint, "report", [["run", runRoot]]));
   pushArgv(argv, registryArgv(entrypoint, "doctor", [["run", runRoot]]));
   if (agents.length > 0) {
     pushArgv(argv, registryArgv(entrypoint, "agent:list", [["run", runRoot]]));

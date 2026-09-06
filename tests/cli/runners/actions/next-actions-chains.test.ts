@@ -77,7 +77,7 @@ describe("Next Actions Formatter - Action Chains & Roles", () => {
     expect(qNext[0]!.command).toContain("task:claim --run run-1 --task task-1");
 
     const qEmpty = queueEmptyNextActions("run-1");
-    expect(qEmpty[0]!.command).toContain("run:status");
+    expect(qEmpty[0]!.command).toContain("report");
 
     const qWave = queueWaveNextActions("run-1", "task-1");
     expect(qWave[0]!.command).toContain("task:claim");
@@ -141,10 +141,10 @@ describe("Next Actions Formatter - Action Chains & Roles", () => {
     expect(whoamiMain[0]!.command).toContain("orchestrate");
 
     const whoamiRun = whoamiNextActions("run-1", false);
-    expect(whoamiRun[0]!.command).toContain("run:status --run run-1");
+    expect(whoamiRun[0]!.command).toContain("report --run run-1");
 
     const doc = doctorNextActions("run-1");
-    expect(doc[0]!.command).toContain("run:status");
+    expect(doc[0]!.command).toContain("report");
 
     const rec = recoverNextActions("run-1");
     expect(rec[0]!.command).toContain("queue:wave");
@@ -172,10 +172,10 @@ describe("Next Actions Formatter - Action Chains & Roles", () => {
   });
 
   describe("doctorNextActions is derived from the report doctor just produced", () => {
-    test("recommends plan:enhance instead of run:status/queue:wave when the run is unplanned", () => {
+    test("recommends plan:enhance instead of report/queue:wave when the run is unplanned", () => {
       const actions = doctorNextActions("run-1", { healthy: false, planVerified: false });
       expect(actions[0]!.command).toContain("plan:enhance --run run-1");
-      expect(actions.some((a) => a.command.includes("run:status"))).toBeFalse();
+      expect(actions.some((a) => a.command.includes("report"))).toBeFalse();
       expect(actions.some((a) => a.command.includes("queue:wave"))).toBeFalse();
     });
 
@@ -200,12 +200,12 @@ describe("Next Actions Formatter - Action Chains & Roles", () => {
       expect(actions[0]!.description).toBe(
         "Coordinators must not claim or lease implementation tasks. Implementation leases are exclusively for Tier 3 Implementers.",
       );
-      expect(actions.some((a) => a.command.includes("run:status"))).toBeTrue();
+      expect(actions.some((a) => a.command.includes("report"))).toBeTrue();
     });
 
-    test("falls back to run:status/queue:wave when healthy and no findings are present", () => {
+    test("falls back to report/queue:wave when healthy and no findings are present", () => {
       const actions = doctorNextActions("run-1", { healthy: true, planVerified: true });
-      expect(actions[0]!.command).toContain("run:status --run run-1");
+      expect(actions[0]!.command).toContain("report --run run-1");
       expect(actions[1]!.command).toContain("queue:wave --run run-1");
     });
 
@@ -236,7 +236,7 @@ describe("Next Actions Formatter - Action Chains & Roles", () => {
       );
     });
 
-    test("formatDoctorBrief recommends plan:enhance, not run:status, when plan_verified is false", () => {
+    test("formatDoctorBrief recommends plan:enhance, not report, when plan_verified is false", () => {
       const brief = formatDoctorBrief("run-1", {
         healthy: true,
         bun_version: "1.3.0",
@@ -245,7 +245,7 @@ describe("Next Actions Formatter - Action Chains & Roles", () => {
         plan_verified: false,
         issues: [],
       });
-      expect(brief).not.toContain("run:status --run run-1");
+      expect(brief).not.toContain("report --run run-1");
       expect(brief).not.toContain("queue:wave --run run-1");
       expect(brief).toContain("plan:enhance --run run-1");
     });

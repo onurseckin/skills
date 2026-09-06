@@ -58,7 +58,7 @@ describe("execute universal middleware", () => {
     }
   });
 
-  it("lets run:status inspect a run before the plan phase is verified instead of refusing", async () => {
+  it("lets report inspect a run before the plan phase is verified and rejects retired run:status", async () => {
     const repo = `/virtual/run-status-pre-plan-${Date.now()}`;
     await mkdir(repo, { recursive: true });
     const promptPath = join(repo, "prompt.txt");
@@ -74,8 +74,10 @@ describe("execute universal middleware", () => {
     ]);
     const runRoot = init.run_root as string;
 
-    const status = await execute(["run:status", "--run", runRoot]);
-    expect(status).toBeDefined();
+    const report = await execute(["report", "--run", runRoot]);
+    expect(report).toBeDefined();
+
+    expect(execute(["run:status", "--run", runRoot])).rejects.toThrow("[RETIRED_COMMAND]");
   });
 
   it("refuses to auto-fill --agent/--role for an unauthenticated caller instead of defaulting to mind", async () => {

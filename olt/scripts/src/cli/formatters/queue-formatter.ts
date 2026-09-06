@@ -43,7 +43,7 @@ export function formatQueueEmptyBrief(runId: string): string {
     `### Queue Status: ${runId}`,
     `- **Ready Tasks**: 0 tasks available for immediate lease.`,
     `- **Status**: All remaining tasks are currently leased, validating, blocked on dependencies, or satisfied.`,
-    `- **Action**: Run \`bun harness.ts queue:list --run ${runId}\` or \`bun harness.ts run:status --run ${runId}\` to inspect active lanes.`,
+    `- **Action**: Run \`bun harness.ts queue:list --run ${runId}\` or \`bun harness.ts report --run ${runId}\` to inspect active lanes.`,
     ...nextActionsBlock(queueEmptyNextActions(runId)),
   ].join("\n");
   return enforceLineLimit(md, 30);

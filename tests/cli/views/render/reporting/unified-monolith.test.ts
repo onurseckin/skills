@@ -123,7 +123,7 @@ describe("Unified Reporting - Monolithic Report View and Direct Commands", () =>
     expect(summaryResult.metrics).toBeDefined();
     expect(summaryResult.occupancy).toBeDefined();
 
-    const statusResult = (await execute(["run:status", "--run", run])) as Record<string, unknown>;
+    const statusResult = (await execute(["report", "--run", run])) as Record<string, unknown>;
     expect(statusResult.dag).toBeDefined();
     expect(statusResult.doctor).toBeDefined();
     expect(statusResult.metrics).toBeDefined();

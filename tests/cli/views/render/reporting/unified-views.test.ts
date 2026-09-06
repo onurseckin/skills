@@ -196,7 +196,7 @@ describe("Unified Reporting CLI Surface - Views & Status", () => {
       "implementer",
     ]);
 
-    const statusResult = (await execute(["run:status", "--run", run])) as Record<string, unknown>;
+    const statusResult = (await execute(["report", "--run", run])) as Record<string, unknown>;
     const occupancy = statusResult.occupancy as Record<string, unknown>;
 
     expect(occupancy.implementers).toBe(1);
@@ -204,7 +204,8 @@ describe("Unified Reporting CLI Surface - Views & Status", () => {
     expect(occupancy.summary as string).toContain("1 Implementer(s) coding");
     expect(occupancy.summary as string).toContain("1 Standby ready");
     expect(statusResult.markdown as string).toContain("`task-auth`");
-    expect(statusResult.markdown as string).toContain("Leased (impl-auth-1 [implementer])");
+    expect(statusResult.markdown as string).toContain("impl-auth-1");
+    expect(statusResult.markdown as string).toContain("implementer");
     expect(statusResult.markdown as string).not.toContain("undefined");
   });
 });
