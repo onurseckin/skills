@@ -36,9 +36,11 @@ export function auditImplementerConfinement(
         hist.from === "ready" ||
         hist.from === "retry_ready" ||
         hist.to === "submitted" ||
-        hist.to === "leased"
+        (hist.to === "leased" && hist.reason === "implementation claimed")
       ) {
-        if (hist.actor) implementerIds.add(hist.actor);
+        if (hist.actor && (roleMap.get(hist.actor) ?? "") !== "validator") {
+          implementerIds.add(hist.actor);
+        }
       }
     }
 
