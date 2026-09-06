@@ -20,6 +20,7 @@ export {
   defaultIsPidAlive,
   normalizeAuditorRole,
   readAuditorLeaseLock,
+  roleToTier,
 };
 
 export const DEFAULT_SINGLETON_AUDITOR_ROLE = "skill_auditor";
@@ -95,7 +96,6 @@ export function validateSubagentSpawnRequest(
   const role = request.role;
   const normalizedRole = normalizeAuditorRole(role);
 
-  // If tier context is provided, validate tier spawning hierarchy
   if (request.parent_tier !== undefined || request.requested_by !== undefined) {
     const parentTier =
       request.parent_tier ??

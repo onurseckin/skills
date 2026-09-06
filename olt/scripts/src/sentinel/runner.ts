@@ -26,6 +26,8 @@ export interface DoctorAgentOptions {
   readonly probeCount?: number | undefined;
   readonly probe_count?: number | undefined;
   readonly action?: string | undefined;
+  readonly cluster_count?: number | undefined;
+  readonly active_orchestrator_count?: number | undefined;
 }
 
 export function runDoctorAgent(options: DoctorAgentOptions): DoctorAgentReport {
@@ -40,6 +42,8 @@ export function runDoctorAgent(options: DoctorAgentOptions): DoctorAgentReport {
     executed_commands: options.executedCommands,
     probe_count: options.probeCount !== undefined ? options.probeCount : options.probe_count,
     action: options.action,
+    cluster_count: options.cluster_count,
+    active_orchestrator_count: options.active_orchestrator_count,
   };
 
   const violations = profile.evaluate(evalContext);

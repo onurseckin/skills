@@ -1,3 +1,4 @@
+import { roleToTier } from "../../../authority/guards/spawn-validator.ts";
 import type { EvaluationContext, RoleDiagnosticProfile, SentinelViolation } from "../../types.ts";
 
 export const mindProfile: RoleDiagnosticProfile = {
@@ -43,6 +44,21 @@ export const mindProfile: RoleDiagnosticProfile = {
       });
     }
 
+    if (
+      context.cluster_count !== undefined &&
+      context.cluster_count >= 2 &&
+      (context.active_orchestrator_count === undefined || context.active_orchestrator_count < 2)
+    ) {
+      violations.push({
+        code: "SINGLE_ORCHESTRATOR_BOTTLENECK_VIOLATION",
+        severity: "CRITICAL",
+        message:
+          "Mind multi-cluster preplanning requires >= 2 active orchestrators to prevent bottleneck.",
+        remediation_cmd: "bun harness.ts orchestrate --tier orchestrator",
+        documentation_ref: "docs/blueprints/agent-scoped-live-sentinel-profiles.md#section-21",
+      });
+    }
+
     if (context.pending_defects_count !== undefined && context.pending_defects_count > 0) {
       violations.push({
         code: "DEFECT_FIRST_PRIORITIZATION_BREACH",
@@ -68,10 +84,9 @@ export const mindProfile: RoleDiagnosticProfile = {
     }
 
     const uniqueRoles = Array.from(new Set(candidateRoles));
-    const allowedMindSpawns = new Set(["orchestrator", "mind-auditor", "skill-auditor"]);
 
     for (const childRole of uniqueRoles) {
-      if (!allowedMindSpawns.has(childRole)) {
+      if (roleToTier(childRole) !== 1 && childRole !== "skill-auditor") {
         violations.push({
           code: "CROSS_TIER_SPAWNING_VIOLATION",
           severity: "CRITICAL",

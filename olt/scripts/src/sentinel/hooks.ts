@@ -194,6 +194,8 @@ export function executeTurnEndHook(input: TurnEndInput): TurnEndResult {
     spawned_agent_roles: input.spawned_agent_roles ?? input.spawned_roles,
     spawned_roles: input.spawned_roles,
     role_target: input.role_target,
+    cluster_count: input.cluster_count,
+    active_orchestrator_count: input.active_orchestrator_count,
   };
 
   const roleViolations = profile.evaluate(evalContext);

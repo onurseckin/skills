@@ -105,7 +105,9 @@ export function roleToTier(role: string): ExecutionTier {
   if (
     normalized === "orchestrator" ||
     normalized.startsWith("orch-") ||
+    normalized.startsWith("orch_") ||
     normalized.startsWith("orchestrator-") ||
+    normalized.startsWith("orchestrator_") ||
     normalized === "orch" ||
     normalized === "mind-auditor" ||
     normalized === "auditor"
@@ -115,7 +117,9 @@ export function roleToTier(role: string): ExecutionTier {
   if (
     normalized === "coordinator" ||
     normalized.startsWith("coord-") ||
+    normalized.startsWith("coord_") ||
     normalized.startsWith("coordinator-") ||
+    normalized.startsWith("coordinator_") ||
     normalized === "coord"
   ) {
     return 2;

@@ -118,6 +118,8 @@ export interface TurnEndInput {
   readonly spawned_agent_roles?: readonly string[] | undefined;
   readonly spawned_roles?: readonly string[] | undefined;
   readonly role_target?: string | undefined;
+  readonly cluster_count?: number | undefined;
+  readonly active_orchestrator_count?: number | undefined;
 }
 
 export interface TurnEndResult {
@@ -153,6 +155,8 @@ export interface EvaluationContext {
   readonly spawned_agent_roles?: readonly string[] | undefined;
   readonly spawned_roles?: readonly string[] | undefined;
   readonly role_target?: string | undefined;
+  readonly cluster_count?: number | undefined;
+  readonly active_orchestrator_count?: number | undefined;
 }
 
 export interface RoleDiagnosticProfile {
