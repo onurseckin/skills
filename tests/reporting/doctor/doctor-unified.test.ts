@@ -4,6 +4,7 @@ import {
   runDoctor,
   formatDoctorReport,
   tierDoctorIssues,
+  type DoctorCheckEngineResult,
 } from "../../../olt/scripts/src/reporting/doctor.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/events/transaction.ts";
@@ -13,6 +14,20 @@ import {
   setupVirtualReportingFS,
   tempDir,
 } from "../fixture.ts";
+
+const UNIFIED_DOCTOR_ENGINES: readonly string[] = [
+  "checkPlanningDag",
+  "checkAstPurity",
+  "checkAntiMockMutation",
+  "checkAntiBatchingIsolation",
+  "checkDualChannelUi",
+  "checkCognitiveValidatorCommandLock",
+  "checkRoleBoundaryInterlock",
+  "checkPushbackQuotas",
+  "checkPolicyDoctor",
+  "checkRepositoryHygiene",
+  "checkGitIndexIntegrity",
+];
 
 export const doctorUnifiedSuiteName =
   "Wave 4 - Task 4.1: Unified Master Doctor Engine Integration & Severity Tiering";
@@ -57,18 +72,25 @@ describe(doctorUnifiedSuiteName, () => {
     }));
     expect(report.engine_results).toBeDefined();
 
-    const engines = report.engine_results as Record<string, unknown>;
-    expect(engines.checkPlanningDag).toBeDefined();
-    expect(engines.checkAstPurity).toBeDefined();
-    expect(engines.checkAntiMockMutation).toBeDefined();
-    expect(engines.checkAntiBatchingIsolation).toBeDefined();
-    expect(engines.checkDualChannelUi).toBeDefined();
-    expect(engines.checkCognitiveValidatorCommandLock).toBeDefined();
-    expect(engines.checkRoleBoundaryInterlock).toBeDefined();
-    expect(engines.checkPushbackQuotas).toBeDefined();
-    expect(engines.checkPolicyDoctor).toBeDefined();
-    expect(engines.checkRepositoryHygiene).toBeDefined();
-    expect(engines.checkGitIndexIntegrity).toBeDefined();
+    const engines = report.engine_results as Record<string, DoctorCheckEngineResult | undefined>;
+
+    const absent = UNIFIED_DOCTOR_ENGINES.filter((name) => engines[name] === undefined);
+    expect(absent).toEqual([]);
+
+    const misidentified = UNIFIED_DOCTOR_ENGINES.filter((name) => engines[name]?.engine !== name);
+    expect(misidentified).toEqual([]);
+
+    const unstructured = UNIFIED_DOCTOR_ENGINES.filter(
+      (name) =>
+        typeof engines[name]?.passed !== "boolean" || !Array.isArray(engines[name]?.findings),
+    );
+    expect(unstructured).toEqual([]);
+
+    const reported = new Set(Object.keys(engines));
+    const misattributed = UNIFIED_DOCTOR_ENGINES.filter((name) =>
+      (engines[name]?.findings ?? []).some((finding) => !reported.has(finding.engine)),
+    );
+    expect(misattributed).toEqual([]);
   });
 
   test("tierDoctorIssues correctly tiers critical vs cosmetic issues", () => {
