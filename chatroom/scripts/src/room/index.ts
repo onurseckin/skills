@@ -15,6 +15,7 @@ export {
   writeRepoBinding,
   type CreateRoomOptions,
   type CreateRoomResult,
+  type RotateRoomKeyPorts,
 } from "./lifecycle.ts";
 
 export {

@@ -136,20 +136,38 @@ export function readRoomKey(roomId: string): string {
   return readFileSync(keyPath, "utf8").trim();
 }
 
-export function rotateRoomKey(roomId: string): string {
-  const manifest = readRoomManifest(roomId);
+export interface RotateRoomKeyPorts {
+  readonly readManifest?: (roomId: string) => RoomManifest;
+  readonly writeManifest?: (manifest: RoomManifest) => void;
+  readonly writeAtomic?: (
+    path: string,
+    content: string,
+    options?: { readonly mode?: number },
+  ) => void;
+  readonly mkdirSync?: (path: string, options?: { readonly recursive?: boolean }) => void;
+}
+
+export function rotateRoomKey(roomId: string, ports?: RotateRoomKeyPorts): string {
+  const readManifest = ports?.readManifest ?? readRoomManifest;
+  const manifest = readManifest(roomId);
   if (manifest.visibility === "public") {
-    return CHATROOM_PUBLIC_KEY;
+    throw new ChatError(
+      "INVALID_ARGUMENT",
+      `cannot rotate room key for public room '${roomId}': public rooms have no secret key`,
+    );
   }
   const key = randomBytes(32).toString("hex");
   const keyFingerprint = computeFingerprint(key);
-  mkdirSync(keysDir(), { recursive: true });
-  writeAtomic(roomKeyPath(roomId), key, { mode: 0o600 });
+  const mkdirFn = ports?.mkdirSync ?? mkdirSync;
+  mkdirFn(keysDir(), { recursive: true });
+  const writeAtomicFn = ports?.writeAtomic ?? writeAtomic;
+  writeAtomicFn(roomKeyPath(roomId), key, { mode: 0o600 });
   const updatedManifest: RoomManifest = {
     ...manifest,
     key_fingerprint: keyFingerprint,
   };
-  writeRoomManifest(updatedManifest);
+  const writeManifestFn = ports?.writeManifest ?? writeRoomManifest;
+  writeManifestFn(updatedManifest);
   return key;
 }
 

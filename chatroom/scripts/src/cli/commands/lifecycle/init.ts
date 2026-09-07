@@ -138,10 +138,10 @@ export const initCommand: CommandHandler = async (
         createdBy: identity.id,
       });
     } else if (rotateKeyFlag) {
+      rotateRoomKey(targetRoom);
       process.stderr.write(
         `Warning: rotating room key for '${targetRoom}' invalidates outstanding invites.\n`,
       );
-      rotateRoomKey(targetRoom);
     } else {
       readRoomKey(targetRoom);
     }
@@ -163,6 +163,9 @@ export const initCommand: CommandHandler = async (
       tokenConsumed = true;
     }
   } catch (error: unknown) {
+    if (error instanceof ChatError) {
+      throw error;
+    }
     const errorMsg = error instanceof Error ? error.message : String(error);
     const statusStr = tokenConsumed ? "consumed" : "preserved (unconsumed)";
     const inviteInfo = inviteCode !== undefined ? ` with invite '${inviteCode}'` : "";
