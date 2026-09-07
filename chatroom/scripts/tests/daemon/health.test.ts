@@ -56,7 +56,6 @@ describe("daemon health record tells the truth about its owning process", () => 
       room_head_seq: 145,
       watch_active: true,
     });
-
     const claimed = claimHealthRecord(
       HEALTH_PATH,
       {
@@ -64,15 +63,13 @@ describe("daemon health record tells the truth about its owning process", () => 
         reader: READER,
         pid: livePid,
         startTime: "2026-09-07T17:05:00.000Z",
-        isProcessAlive: (pid: number) => vfs.isProcessAlive(pid),
+        isProcessAlive: (p: number) => vfs.isProcessAlive(p),
       },
       ports,
     );
-
     expect(claimed.pid).toBe(livePid);
     expect(claimed.state).toBe("LIVE");
     expect(claimed.last_delivered_seq).toBe(145);
-
     const persisted = readHealthRecord(HEALTH_PATH, ports);
     expect(persisted?.pid).toBe(livePid);
     expect(persisted?.state).toBe("LIVE");
@@ -93,9 +90,7 @@ describe("daemon health record tells the truth about its owning process", () => 
     });
     const nowMs = Date.parse("2026-09-07T17:05:01.000Z");
     const aliveCheck = (pid: number): boolean => vfs.isProcessAlive(pid);
-
     expect(computeDaemonState(stale, nowMs, { isProcessAlive: aliveCheck })).toBe("STOPPED");
-
     const claimed = claimHealthRecord(
       HEALTH_PATH,
       {
@@ -107,7 +102,6 @@ describe("daemon health record tells the truth about its owning process", () => 
       },
       ports,
     );
-
     expect(computeDaemonState(claimed, nowMs, { isProcessAlive: aliveCheck })).toBe("IDLE");
   });
 
@@ -166,7 +160,6 @@ describe("daemon health record tells the truth about its owning process", () => 
       state: "LIVE",
       last_wake_at: "2026-09-07T17:05:00.500Z",
     });
-
     const observed = claimHealthRecord(
       HEALTH_PATH,
       {
@@ -174,11 +167,10 @@ describe("daemon health record tells the truth about its owning process", () => 
         reader: READER,
         pid: tickPid,
         startTime: "2026-09-07T17:05:01.000Z",
-        isProcessAlive: (pid: number) => vfs.isProcessAlive(pid),
+        isProcessAlive: (p: number) => vfs.isProcessAlive(p),
       },
       ports,
     );
-
     expect(observed.pid).toBe(ownerPid);
     expect(readHealthRecord(HEALTH_PATH, ports)?.pid).toBe(ownerPid);
   });
@@ -195,7 +187,6 @@ describe("daemon health record tells the truth about its owning process", () => 
       last_wake_at: "2026-09-07T08:54:30.000Z",
     });
     const aliveCheck = (pid: number): boolean => vfs.isProcessAlive(pid);
-
     const claimed = claimHealthRecord(
       HEALTH_PATH,
       {
@@ -207,7 +198,6 @@ describe("daemon health record tells the truth about its owning process", () => 
       },
       ports,
     );
-
     expect(claimed.last_wake_at).toBe("2026-09-07T17:05:00.000Z");
     expect(claimed.last_wake_source).toBe("claim");
     expect(
@@ -221,7 +211,6 @@ describe("daemon health record tells the truth about its owning process", () => 
     const vfs = new ChatVirtualFS();
     const ports = createHealthPorts(vfs);
     const livePid = vfs.spawnProcess({ cmd: "chatroom-daemon" });
-
     const created = claimHealthRecord(
       HEALTH_PATH,
       {
@@ -229,11 +218,10 @@ describe("daemon health record tells the truth about its owning process", () => 
         reader: READER,
         pid: livePid,
         startTime: "2026-09-07T17:05:00.000Z",
-        isProcessAlive: (pid: number) => vfs.isProcessAlive(pid),
+        isProcessAlive: (p: number) => vfs.isProcessAlive(p),
       },
       ports,
     );
-
     expect(created.pid).toBe(livePid);
     expect(created.state).toBe("LIVE");
     expect(readHealthRecord(HEALTH_PATH, ports)?.pid).toBe(livePid);
@@ -279,7 +267,6 @@ describe("daemon health record tells the truth about its owning process", () => 
       pid: deadPid,
       wakes_by_source: { watch: 4, poll: 12, tick: 2, token: 1 },
     });
-
     const claimed = claimHealthRecord(
       HEALTH_PATH,
       {
@@ -287,7 +274,7 @@ describe("daemon health record tells the truth about its owning process", () => 
         reader: READER,
         pid: livePid,
         startTime: "2026-09-07T17:10:00.000Z",
-        isProcessAlive: (pid: number) => vfs.isProcessAlive(pid),
+        isProcessAlive: (p: number) => vfs.isProcessAlive(p),
       },
       ports,
     );

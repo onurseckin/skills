@@ -2,61 +2,36 @@ import { existsSync, readFileSync } from "node:fs";
 import {
   ChatError,
   daemonHealthPath,
+  daemonRespawnPath,
   isProcessAlive,
   resolveActiveConsumerCursorPath,
   writeAtomic,
 } from "../core/index.ts";
+import type {
+  CursorAckProvenance,
+  DaemonHealthRecord,
+  DaemonInspectionResult,
+  DaemonLivenessState,
+  DaemonWakesBySource,
+  HealthClaimOptions,
+  HealthComputeOptions,
+  HealthMetrics,
+  HealthPorts,
+  HealthSyncInput,
+} from "./health-types.ts";
 
-export type DaemonLivenessState = "LIVE" | "IDLE" | "BACKPRESSURED" | "WEDGED" | "STOPPED";
-
-export type DaemonWakesBySource = {
-  readonly watch: number;
-  readonly poll: number;
-  readonly tick: number;
-  readonly token: number;
-};
-
-export interface DaemonHealthRecord {
-  readonly v: 1;
-  readonly room: string;
-  readonly reader: string;
-  readonly pid: number;
-  readonly start_time: string;
-  readonly boot_id: string;
-  readonly state: DaemonLivenessState;
-  readonly last_wake_at: string;
-  readonly last_wake_source: string;
-  readonly last_delivered_seq: number;
-  readonly room_head_seq: number;
-  readonly lag_seqs: number;
-  readonly watch_active: boolean;
-  readonly watch_failures: number;
-  readonly poll_interval_ms: number;
-  readonly wakes_by_source?: DaemonWakesBySource;
-  readonly spool_bytes: number;
-  readonly spool_lines: number;
-  readonly consumer_last_ack_at: string | null;
-  readonly consumer_last_delivered_seq?: number | null;
-  readonly consumer_lag_ms: number;
-  readonly respawns_this_hour: number;
-  readonly errors_recent: readonly string[];
-  readonly updated_at?: string;
-}
-
-export type CursorAckProvenance = {
-  readonly last_ack_at: string | null;
-  readonly last_ack_kind: "spooled" | "explicit" | null;
-};
-
-export interface HealthComputeOptions {
-  readonly wedgeAfterMs?: number;
-  readonly heartbeatIntervalMs?: number;
-  readonly isProcessAlive?: (pid: number) => boolean;
-  readonly lagStuckSinceMs?: number | null;
-  readonly isExplicitlyStopped?: boolean;
-  readonly isBackpressured?: boolean;
-  readonly cursor?: CursorAckProvenance | null;
-}
+export type {
+  CursorAckProvenance,
+  DaemonHealthRecord,
+  DaemonInspectionResult,
+  DaemonLivenessState,
+  DaemonWakesBySource,
+  HealthClaimOptions,
+  HealthComputeOptions,
+  HealthMetrics,
+  HealthPorts,
+  HealthSyncInput,
+} from "./health-types.ts";
 
 export function deriveConsumerLastAckAt(
   cursor?: CursorAckProvenance | null,
@@ -73,16 +48,17 @@ export function isDaemonHealthRecord(value: unknown): value is DaemonHealthRecor
   if (c.v !== 1 || !STATES.has(String(c.state)) || !Number.isInteger(c.pid)) return false;
   if (typeof c.watch_active !== "boolean" || !Array.isArray(c.errors_recent)) return false;
   if (c.consumer_last_ack_at !== null && typeof c.consumer_last_ack_at !== "string") return false;
+  if (c.consumer_lag_ms !== null && typeof c.consumer_lag_ms !== "number") return false;
   const seq = c.consumer_last_delivered_seq;
   if (seq !== undefined && seq !== null && typeof seq !== "number") return false;
   for (const k of "room,reader,start_time,boot_id,last_wake_at,last_wake_source".split(",")) {
     if (typeof c[k] !== "string" || !c[k]) return false;
   }
-  for (const k of "pid,last_delivered_seq,room_head_seq,lag_seqs,watch_failures,poll_interval_ms,spool_bytes,spool_lines,consumer_lag_ms,respawns_this_hour".split(
-    ",",
-  )) {
-    if (typeof c[k] !== "number") return false;
-  }
+  const numKeys =
+    "pid,last_delivered_seq,room_head_seq,lag_seqs,watch_failures,poll_interval_ms,spool_bytes,spool_lines,respawns_this_hour".split(
+      ",",
+    );
+  if (numKeys.some((k) => typeof c[k] !== "number")) return false;
   const w = c.wakes_by_source as Record<string, unknown> | undefined;
   if (
     w &&
@@ -92,15 +68,6 @@ export function isDaemonHealthRecord(value: unknown): value is DaemonHealthRecor
   )
     return false;
   return true;
-}
-
-export interface HealthPorts {
-  readonly existsSync?: (path: string) => boolean;
-  readonly readFileSync?: (path: string, encoding: string) => string;
-  readonly writeAtomic?: (path: string, content: string) => void;
-  readonly writeFileSync?: (path: string, content: string) => void;
-  readonly fs?: { readonly existsSync?: (path: string) => boolean };
-  readonly isProcessAlive?: (pid: number) => boolean;
 }
 
 export function readHealthRecord(
@@ -157,8 +124,32 @@ export function computeDaemonState(
 const ZERO_WAKES: DaemonWakesBySource = { watch: 0, poll: 0, tick: 0, token: 0 };
 const getInitialMetrics = () =>
   JSON.parse(
-    '{"last_delivered_seq":0,"room_head_seq":0,"lag_seqs":0,"watch_active":false,"watch_failures":0,"spool_bytes":0,"spool_lines":0,"consumer_last_ack_at":null,"consumer_last_delivered_seq":null,"consumer_lag_ms":0,"respawns_this_hour":0,"errors_recent":[]}',
+    '{"last_delivered_seq":0,"room_head_seq":0,"lag_seqs":0,"watch_active":false,"watch_failures":0,"spool_bytes":0,"spool_lines":0,"consumer_last_ack_at":null,"consumer_last_delivered_seq":null,"consumer_lag_ms":null,"respawns_this_hour":0,"errors_recent":[]}',
   );
+
+export function countRecentRespawns(
+  room: string,
+  reader: string,
+  nowMs: number,
+  ports?: HealthPorts,
+): number {
+  const respawnPath = ports?.daemonRespawnPath?.(room, reader) ?? daemonRespawnPath(room, reader);
+  const existsFn = ports?.existsSync ?? existsSync;
+  if (!existsFn(respawnPath)) return 0;
+  try {
+    const readFn = ports?.readFileSync ?? readFileSync;
+    const raw = readFn(respawnPath, "utf8");
+    const parsed = JSON.parse(raw) as { timestamps?: unknown };
+    if (!Array.isArray(parsed?.timestamps)) return 0;
+    const windowStart = nowMs - 3600000;
+    return parsed.timestamps.filter(
+      (ts): ts is string =>
+        typeof ts === "string" && Date.parse(ts) >= windowStart && Date.parse(ts) <= nowMs,
+    ).length;
+  } catch {
+    return 0;
+  }
+}
 
 export function writeDerivedHealthRecord(
   healthPath: string,
@@ -175,11 +166,16 @@ export function writeDerivedHealthRecord(
     options.cursor !== undefined
       ? deriveConsumerLastAckAt(options.cursor, record.consumer_last_ack_at)
       : record.consumer_last_ack_at;
+  const ackMs = ack ? Date.parse(ack) : NaN;
+  const consumer_lag_ms = !Number.isNaN(ackMs) ? Math.max(0, nowMs - ackMs) : null;
+  const respawns_this_hour = countRecentRespawns(record.room, record.reader, nowMs, p);
   const derived: DaemonHealthRecord = {
     ...record,
     state: computeDaemonState(record, nowMs, options),
     wakes_by_source: record.wakes_by_source ?? { ...ZERO_WAKES },
     consumer_last_ack_at: ack,
+    consumer_lag_ms,
+    respawns_this_hour,
   };
   writeHealthRecord(healthPath, derived, p);
   return derived;
@@ -211,16 +207,6 @@ export function createInitialHealthRecord(
   };
 }
 
-export interface HealthClaimOptions {
-  readonly room: string;
-  readonly reader: string;
-  readonly pid: number;
-  readonly startTime: string;
-  readonly bootId?: string;
-  readonly pollIntervalMs?: number;
-  readonly isProcessAlive?: (pid: number) => boolean;
-}
-
 export const isHealthRecordOwnerStale = (
   record: DaemonHealthRecord,
   pid: number,
@@ -235,14 +221,20 @@ export function claimHealthRecord(
   const existing = readHealthRecord(healthPath, ports);
   const bootId = options.bootId ?? existing?.boot_id ?? "boot";
   const pollMs = options.pollIntervalMs ?? existing?.poll_interval_ms ?? 750;
+  const parsedStart = Date.parse(options.startTime);
+  const nowMs = Number.isNaN(parsedStart) ? Date.now() : parsedStart;
   if (existing === null) {
     const { room, reader, pid, startTime } = options;
-    const cr = createInitialHealthRecord(room, reader, pid, startTime, bootId, pollMs);
+    const cr: DaemonHealthRecord = {
+      ...createInitialHealthRecord(room, reader, pid, startTime, bootId, pollMs),
+      respawns_this_hour: countRecentRespawns(room, reader, nowMs, ports),
+    };
     writeHealthRecord(healthPath, cr, ports);
     return cr;
   }
   const checkAlive = options.isProcessAlive ?? ports?.isProcessAlive ?? isProcessAlive;
   if (existing.pid !== options.pid && !checkAlive(existing.pid)) {
+    const ackMs = existing.consumer_last_ack_at ? Date.parse(existing.consumer_last_ack_at) : NaN;
     const claimed: DaemonHealthRecord = {
       ...existing,
       pid: options.pid,
@@ -255,6 +247,8 @@ export function claimHealthRecord(
       watch_failures: 0,
       poll_interval_ms: pollMs,
       wakes_by_source: existing.wakes_by_source ?? { ...ZERO_WAKES },
+      consumer_lag_ms: !Number.isNaN(ackMs) ? Math.max(0, nowMs - ackMs) : null,
+      respawns_this_hour: countRecentRespawns(options.room, options.reader, nowMs, ports),
       updated_at: options.startTime,
     };
     writeHealthRecord(healthPath, claimed, { ...ports, isProcessAlive: checkAlive });
@@ -275,24 +269,6 @@ function parseCursorProvenance(raw: string): CursorAckProvenance | null {
   } catch {
     return null;
   }
-}
-
-export type HealthMetrics = Pick<
-  DaemonHealthRecord,
-  "watch_active" | "watch_failures" | "poll_interval_ms"
-> & {
-  readonly wakes_by_source?: DaemonWakesBySource;
-};
-
-export interface HealthSyncInput {
-  readonly healthPath: string;
-  readonly nowIso: string;
-  readonly metrics: HealthMetrics;
-  readonly source?: string;
-  readonly claim: HealthClaimOptions;
-  readonly compute?: HealthComputeOptions;
-  readonly ports?: HealthPorts;
-  readonly cursor?: CursorAckProvenance | null;
 }
 
 export function syncDaemonHealth(input: HealthSyncInput): DaemonHealthRecord | null {
@@ -352,14 +328,6 @@ export function stampStoppedIfOwned(
     ports,
   );
   return true;
-}
-
-export interface DaemonInspectionResult {
-  readonly room: string;
-  readonly reader: string;
-  readonly state: DaemonLivenessState;
-  readonly health: DaemonHealthRecord | null;
-  readonly watch_active: boolean;
 }
 
 export function inspectDaemon(

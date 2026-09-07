@@ -181,7 +181,7 @@ function inspectReaders(
       const lagStuck =
         health.state === "WEDGED"
           ? 0
-          : health.consumer_lag_ms > 0
+          : health.consumer_lag_ms !== null && health.consumer_lag_ms > 0
             ? nowMs - health.consumer_lag_ms
             : null;
       daemonState = computeDaemonState(

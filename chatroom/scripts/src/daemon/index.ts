@@ -1,9 +1,9 @@
+import { computeDaemonState as baseComputeDaemonState } from "./health.ts";
 import {
-  computeDaemonState as baseComputeDaemonState,
   type DaemonHealthRecord,
   type DaemonLivenessState,
   type HealthComputeOptions,
-} from "./health.ts";
+} from "./health-types.ts";
 
 export function computeDaemonState(
   record: DaemonHealthRecord,
@@ -68,6 +68,7 @@ export {
 
 export {
   claimHealthRecord,
+  countRecentRespawns,
   createInitialHealthRecord,
   deriveConsumerLastAckAt,
   inspectDaemon,
@@ -78,14 +79,20 @@ export {
   syncDaemonHealth,
   writeDerivedHealthRecord,
   writeHealthRecord,
+} from "./health.ts";
+
+export {
+  type CursorAckProvenance,
   type DaemonHealthRecord,
-  type HealthSyncInput,
   type DaemonInspectionResult,
   type DaemonLivenessState,
+  type DaemonWakesBySource,
   type HealthClaimOptions,
   type HealthComputeOptions,
+  type HealthMetrics,
   type HealthPorts,
-} from "./health.ts";
+  type HealthSyncInput,
+} from "./health-types.ts";
 
 export { ensureDaemon, type EnsureDaemonOptions, type EnsureDaemonResult } from "./ensure.ts";
 
