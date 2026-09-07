@@ -6,10 +6,10 @@ import {
   readFileSync,
   statSync,
   unlinkSync,
-  writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
+import { writeAtomic } from "../core/index.ts";
 import { inspectRoom, type RoomHealthReport } from "./inspect.ts";
 
 export interface StaleLockRepair {
@@ -52,6 +52,7 @@ export interface DoctorRepairOptions {
   readonly now?: () => number;
   readonly isProcessAlive?: (pid: number) => boolean;
   readonly ensureDaemon?: (room: string, reader: string) => Promise<unknown> | unknown;
+  readonly writeAtomic?: (path: string, content: string) => void;
 }
 
 export interface DoctorRepairResult {
@@ -153,7 +154,11 @@ function reclaimStaleLocks(
   return results;
 }
 
-function repairSpoolFile(spoolPath: string, reader: string): TornSpoolRepair {
+export function repairSpoolFile(
+  spoolPath: string,
+  reader: string,
+  writeFn: (path: string, content: string) => void = writeAtomic,
+): TornSpoolRepair {
   if (!existsSync(spoolPath)) {
     return {
       reader,
@@ -195,7 +200,7 @@ function repairSpoolFile(spoolPath: string, reader: string): TornSpoolRepair {
     };
   }
   const repairedContent = validLines.length > 0 ? validLines.join("\n") + "\n" : "";
-  writeFileSync(spoolPath, repairedContent, "utf-8");
+  writeFn(spoolPath, repairedContent);
   const repairedBytes = Buffer.byteLength(repairedContent, "utf-8");
   return {
     reader,
@@ -208,7 +213,11 @@ function repairSpoolFile(spoolPath: string, reader: string): TornSpoolRepair {
   };
 }
 
-function repairTornSpools(roomDir: string, readers: readonly string[]): readonly TornSpoolRepair[] {
+export function repairTornSpools(
+  roomDir: string,
+  readers: readonly string[],
+  writeFn?: (path: string, content: string) => void,
+): readonly TornSpoolRepair[] {
   const daemonDir = join(roomDir, "daemon");
   if (!existsSync(daemonDir)) return [];
   const results: TornSpoolRepair[] = [];
@@ -217,7 +226,7 @@ function repairTornSpools(roomDir: string, readers: readonly string[]): readonly
     const reader = item.slice(0, -".out.jsonl".length);
     if (targetReaders.size > 0 && !targetReaders.has(reader)) continue;
     const spoolPath = join(daemonDir, item);
-    const repair = repairSpoolFile(spoolPath, reader);
+    const repair = repairSpoolFile(spoolPath, reader, writeFn);
     if (repair.repaired) results.push(repair);
   }
   return results;
@@ -289,7 +298,7 @@ export async function repairRoom(
   const aliveCheck = options.isProcessAlive ?? checkProcessAlive;
   const reclaimedLocks = reclaimStaleLocks(roomDir, nowMs, aliveCheck);
   const readerNames = inspection.readers.map((r) => r.reader);
-  const repairedSpools = repairTornSpools(roomDir, readerNames);
+  const repairedSpools = repairTornSpools(roomDir, readerNames, options.writeAtomic);
   const stoppedReaders = inspection.readers
     .filter((r) => r.daemon_state === "STOPPED")
     .map((r) => r.reader);

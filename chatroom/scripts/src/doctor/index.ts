@@ -1,6 +1,6 @@
 export { formatProvisioningDrift, inspectAllRooms, inspectRoom } from "./inspect.ts";
 export { inspectProvisioning, type InspectorPorts } from "./inspectors.ts";
-export { repairAllRooms, repairRoom } from "./repair.ts";
+export { repairAllRooms, repairRoom, repairSpoolFile, repairTornSpools } from "./repair.ts";
 
 export type {
   DaemonLivenessState,
