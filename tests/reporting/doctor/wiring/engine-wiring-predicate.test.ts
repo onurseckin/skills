@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   analyzeInertness,
   auditEngineWiring,
+  collectOptionReadSet,
   defectKey,
   loadEngineWiringDocuments,
   type SourceDocument,
@@ -75,6 +76,45 @@ const FALLBACK_ENGINE: SourceDocument = {
     '    findings.push({ code: "EMPTY", severity: "ERROR", engine: "checkFallback", message: "no samples" });',
     "  }",
     '  return { engine: "checkFallback", passed: findings.length === 0, findings };',
+    "}",
+  ].join("\n"),
+};
+
+const IGNORING_ENGINE: SourceDocument = {
+  path: "olt/scripts/src/reporting/doctor/ignoring-engine.ts",
+  text: [
+    'import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "./types.ts";',
+    "export interface IgnoringOptions {",
+    "  readonly samples?: readonly string[] | undefined;",
+    "  readonly repoRoot?: string | undefined;",
+    "}",
+    "export function checkIgnoring(options: IgnoringOptions = {}): DoctorCheckEngineResult {",
+    "  const findings: DoctorDiagnosticFinding[] = [];",
+    "  if (options.samples && options.samples.length === 0) {",
+    '    findings.push({ code: "EMPTY", severity: "ERROR", engine: "checkIgnoring", message: "no samples" });',
+    "  }",
+    '  return { engine: "checkIgnoring", passed: findings.length === 0, findings };',
+    "}",
+  ].join("\n"),
+};
+
+const FORWARDING_ENGINE: SourceDocument = {
+  path: "olt/scripts/src/reporting/doctor/forwarding-engine.ts",
+  text: [
+    'import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "./types.ts";',
+    "export interface ForwardingOptions {",
+    "  readonly samples?: readonly string[] | undefined;",
+    "  readonly repoRoot?: string | undefined;",
+    "}",
+    "function summarize(input: ForwardingOptions): number {",
+    "  return (input.repoRoot ?? '').length;",
+    "}",
+    "export function checkForwarding(options: ForwardingOptions = {}): DoctorCheckEngineResult {",
+    "  const findings: DoctorDiagnosticFinding[] = [];",
+    "  if (summarize(options) === 0) {",
+    '    findings.push({ code: "EMPTY", severity: "ERROR", engine: "checkForwarding", message: "no root" });',
+    "  }",
+    '  return { engine: "checkForwarding", passed: findings.length === 0, findings };',
     "}",
   ].join("\n"),
 };
@@ -172,6 +212,80 @@ describe(engineWiringPredicateSuiteName, () => {
     const report = audit([repaired, collector(["  checkHollow();"])]);
     expect(report.defects).toEqual([]);
     expect(report.passed).toBe(true);
+  });
+
+  test("an empty literal argument does not clear the inert verdict", () => {
+    const report = audit([HOLLOW_ENGINE, collector(["  checkHollow({ samples: [] });"])]);
+    expect(report.defects.map(defectKey)).toEqual(["checkHollow|invoked-but-cannot-fail"]);
+    expect(report.defects[0]?.evidence).toContain("empty literal argument 'samples: []'");
+    expect(report.passed).toBe(false);
+  });
+
+  test("replacing that empty literal with a runtime value clears the defect", () => {
+    const report = audit([HOLLOW_ENGINE, collector(["  checkHollow({ samples: gathered });"])]);
+    expect(report.defects).toEqual([]);
+    expect(report.passed).toBe(true);
+  });
+
+  test("an empty object literal and an explicit undefined are both inert arguments", () => {
+    const braces = audit([HOLLOW_ENGINE, collector(["  checkHollow({});"])]);
+    expect(braces.defects.map(defectKey)).toEqual(["checkHollow|invoked-but-cannot-fail"]);
+    expect(braces.defects[0]?.evidence).toContain("empty object literal argument");
+    const nothing = audit([HOLLOW_ENGINE, collector(["  checkHollow(undefined);"])]);
+    expect(nothing.defects.map(defectKey)).toEqual(["checkHollow|invoked-but-cannot-fail"]);
+    expect(nothing.defects[0]?.evidence).toContain("explicitly undefined argument");
+  });
+
+  test("null, empty string and zero are observable values, not empty literals", () => {
+    for (const literal of ["null", '""', "0", "false"]) {
+      const report = audit([HOLLOW_ENGINE, collector([`  checkHollow({ samples: ${literal} });`])]);
+      expect(report.defects).toEqual([]);
+    }
+  });
+
+  test("an argument the engine body never reads does not clear the inert verdict", () => {
+    const report = audit([IGNORING_ENGINE, collector(["  checkIgnoring({ repoRoot: root });"])]);
+    expect(report.defects.map(defectKey)).toEqual(["checkIgnoring|invoked-but-cannot-fail"]);
+    expect(report.defects[0]?.evidence).toContain(
+      "argument 'repoRoot' passed but never read in the engine body",
+    );
+    expect(report.passed).toBe(false);
+  });
+
+  test("passing an argument the engine body does read clears the defect", () => {
+    const read = audit([IGNORING_ENGINE, collector(["  checkIgnoring({ samples: values });"])]);
+    expect(read.defects).toEqual([]);
+    const mixed = audit([
+      IGNORING_ENGINE,
+      collector(["  checkIgnoring({ repoRoot: root, samples: values });"]),
+    ]);
+    expect(mixed.defects).toEqual([]);
+  });
+
+  test("an engine that forwards its whole options object has an undecidable read set", () => {
+    const readSet = collectOptionReadSet(FORWARDING_ENGINE, "checkForwarding");
+    expect(readSet.decidable).toBe(false);
+    expect(readSet.reason).toContain("summarize(options)");
+    const report = audit([
+      FORWARDING_ENGINE,
+      collector(["  checkForwarding({ repoRoot: root });"]),
+    ]);
+    expect(report.defects).toEqual([]);
+    expect(report.passed).toBe(true);
+  });
+
+  test("a decidable read set names exactly the properties the body reads", () => {
+    const readSet = collectOptionReadSet(IGNORING_ENGINE, "checkIgnoring");
+    expect(readSet.decidable).toBe(true);
+    expect([...readSet.names].sort()).toEqual(["samples"]);
+  });
+
+  test("a spread argument is opaque, so a spread call site is never reported", () => {
+    const report = audit([
+      HOLLOW_ENGINE,
+      collector(["  checkHollow({ ...(ready ? { samples } : {}) });"]),
+    ]);
+    expect(report.defects).toEqual([]);
   });
 
   test("a re-exporting barrel is not mistaken for a call site", () => {

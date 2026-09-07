@@ -1,8 +1,10 @@
 import ts from "typescript";
 import {
   ENGINE_RESULT_TYPE,
+  type ArgumentShape,
   type EngineDeclaration,
   type EngineInvocation,
+  type ObjectArgumentProperty,
   type SourceDocument,
 } from "./engine-wiring-contracts.ts";
 
@@ -87,6 +89,47 @@ export function collectEngineDeclarations(
   return declarations.sort((left, right) => left.name.localeCompare(right.name));
 }
 
+export function isEmptyLiteral(expression: ts.Expression): boolean {
+  if (ts.isArrayLiteralExpression(expression)) return expression.elements.length === 0;
+  if (ts.isObjectLiteralExpression(expression)) return expression.properties.length === 0;
+  return ts.isIdentifier(expression) && expression.text === "undefined";
+}
+
+function propertyName(name: ts.PropertyName): string | undefined {
+  if (ts.isIdentifier(name)) return name.text;
+  if (ts.isStringLiteralLike(name)) return name.text;
+  return undefined;
+}
+
+export function describeArgument(
+  expression: ts.Expression,
+  sourceFile: ts.SourceFile,
+): ArgumentShape {
+  const text = expression.getText(sourceFile).replace(/\s+/gu, " ");
+  if (ts.isIdentifier(expression) && expression.text === "undefined") return { kind: "undefined" };
+  if (!ts.isObjectLiteralExpression(expression)) return { kind: "opaque", text };
+  const properties: ObjectArgumentProperty[] = [];
+  for (const property of expression.properties) {
+    if (ts.isShorthandPropertyAssignment(property)) {
+      properties.push({
+        name: property.name.text,
+        emptyLiteral: false,
+        valueText: property.name.text,
+      });
+      continue;
+    }
+    if (!ts.isPropertyAssignment(property)) return { kind: "opaque", text };
+    const name = propertyName(property.name);
+    if (name === undefined) return { kind: "opaque", text };
+    properties.push({
+      name,
+      emptyLiteral: isEmptyLiteral(property.initializer),
+      valueText: property.initializer.getText(sourceFile).replace(/\s+/gu, " "),
+    });
+  }
+  return { kind: "object", properties };
+}
+
 function enclosingFunctionName(node: ts.Node): string | undefined {
   let current: ts.Node | undefined = node.parent;
   while (current !== undefined) {
@@ -116,6 +159,9 @@ export function collectEngineInvocations(
             path: document.path,
             line: lineOf(sourceFile, node),
             argumentCount: node.arguments.length,
+            argumentShapes: node.arguments.map((argument) =>
+              describeArgument(argument, sourceFile),
+            ),
           });
         }
       }

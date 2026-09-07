@@ -8,7 +8,11 @@ import {
 } from "./engine-wiring-contracts.ts";
 import { collectEngineDeclarations, collectEngineInvocations } from "./engine-wiring-inventory.ts";
 import { analyzeInertness } from "./engine-wiring-inertness.ts";
-import { ACCEPTED_ENGINE_WIRING_DEFECTS } from "./engine-wiring-baseline.ts";
+import { classifyInvocationVoidness, collectOptionReadSet } from "./engine-wiring-arguments.ts";
+import {
+  ACCEPTED_ENGINE_WIRING_DEFECTS,
+  ENGINE_WIRING_KNOWN_LIMITS,
+} from "./engine-wiring-baseline.ts";
 
 function siteLabel(invocation: EngineInvocation): string {
   return `${invocation.path}:${invocation.line}`;
@@ -33,17 +37,22 @@ export function classifyCannotFail(
   document: SourceDocument | undefined,
 ): WiringDefect | undefined {
   if (sites.length === 0) return undefined;
-  if (!sites.every((site) => site.argumentCount === 0)) return undefined;
   if (declaration.parameterCount !== 1) return undefined;
   if (!declaration.emptyObjectDefault) return undefined;
   if (document === undefined) return undefined;
+  const readSet = collectOptionReadSet(document, declaration.name);
+  const voidness = sites.map((site) => classifyInvocationVoidness(site, readSet));
+  if (!voidness.every((entry) => entry.voided)) return undefined;
   const verdict = analyzeInertness(document, declaration.name);
   if (!verdict.inert) return undefined;
+  const witnesses = sites
+    .map((site, index) => `${siteLabel(site)} ${voidness[index]?.reason ?? "passes no input"}`)
+    .join("; ");
   return {
     engine: declaration.name,
     condition: "invoked-but-cannot-fail",
     declaredAt: `${declaration.path}:${declaration.line}`,
-    evidence: `every call site passes zero arguments (${sites.map(siteLabel).join(", ")}) and the engine is a ${verdict.reason}`,
+    evidence: `every call site supplies no observable input (${witnesses}) and the engine is a ${verdict.reason}`,
   };
 }
 
@@ -103,5 +112,8 @@ export function formatEngineWiringReport(report: EngineWiringReport): string {
     lines.push("Resolved baseline entries (safe to delete):");
     for (const key of report.resolved) lines.push(`  - ${key}`);
   }
+  lines.push("");
+  lines.push("Known limits of this guard:");
+  for (const limit of ENGINE_WIRING_KNOWN_LIMITS) lines.push(`  - ${limit}`);
   return `${lines.join("\n")}\n`;
 }

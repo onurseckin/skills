@@ -115,7 +115,7 @@ function collectExternals(sourceFile: ts.SourceFile): ReadonlySet<string> {
   return externals;
 }
 
-function collectLocalFunctions(
+export function collectLocalFunctions(
   sourceFile: ts.SourceFile,
 ): ReadonlyMap<string, ts.FunctionLikeDeclaration> {
   const locals = new Map<string, ts.FunctionLikeDeclaration>();
