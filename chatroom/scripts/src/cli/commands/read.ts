@@ -13,8 +13,7 @@ import {
   ChatError,
   daemonOutSpoolPath,
   delay,
-  readerCursorPath,
-  readerSpoolCursorPath,
+  resolveActiveConsumerCursorPath,
   roomLogDir,
   type Envelope,
 } from "../../core/index.ts";
@@ -63,11 +62,9 @@ export const readCommand: CommandHandler = async (
 
   const waitMs = waitFlag !== undefined ? waitFlag : 0;
 
+  const cursorPath = resolveActiveConsumerCursorPath(roomFlag, readerId, fs.existsSync);
   const spoolFile = daemonOutSpoolPath(roomFlag, readerId);
   const hasSpool = fs.existsSync(spoolFile);
-  const cursorPath = hasSpool
-    ? readerSpoolCursorPath(roomFlag, readerId)
-    : readerCursorPath(roomFlag, readerId);
   const logTarget = hasSpool ? spoolFile : roomLogDir(roomFlag);
 
   const startTime = Date.now();

@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { ChatError } from "./errors.ts";
@@ -98,6 +99,18 @@ export function daemonOutSpoolPath(roomId: string, readerId: string, segment?: n
   const fileName =
     segment !== undefined ? `${readerId}.out.${segment}.jsonl` : `${readerId}.out.jsonl`;
   return join(roomDaemonDir(roomId), fileName);
+}
+
+export function resolveActiveConsumerCursorPath(
+  roomId: string,
+  readerId: string,
+  fsExists?: (path: string) => boolean,
+): string {
+  const existsFn = fsExists ?? existsSync;
+  const spoolPath = daemonOutSpoolPath(roomId, readerId);
+  return existsFn(spoolPath)
+    ? readerSpoolCursorPath(roomId, readerId)
+    : readerCursorPath(roomId, readerId);
 }
 
 export function daemonHealthPath(roomId: string, readerId: string): string {

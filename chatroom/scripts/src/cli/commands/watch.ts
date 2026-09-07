@@ -12,8 +12,7 @@ import {
   assertValidRoomId,
   ChatError,
   delay,
-  readerCursorPath,
-  readerSpoolCursorPath,
+  resolveActiveConsumerCursorPath,
   roomLogDir,
 } from "../../core/index.ts";
 import { assertMember } from "../../room/index.ts";
@@ -55,9 +54,7 @@ export const watchCommand: CommandHandler = async (
     ensureDaemon(roomFlag, readerId);
   } catch {}
 
-  const spoolCursorPath = readerSpoolCursorPath(roomFlag, readerId);
-  const roomCursorPath = readerCursorPath(roomFlag, readerId);
-  const cursorPath = fs.existsSync(spoolCursorPath) ? spoolCursorPath : roomCursorPath;
+  const cursorPath = resolveActiveConsumerCursorPath(roomFlag, readerId, fs.existsSync);
   const logTarget = roomLogDir(roomFlag);
 
   const timeoutMs = timeoutFlag !== undefined ? timeoutFlag : 0;

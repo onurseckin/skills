@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { resolveActiveConsumerCursorPath } from "../core/index.ts";
 import { computeDaemonState, readHealthRecord, type DaemonLivenessState } from "../daemon/index.ts";
 import {
   checkProcessAlive,
@@ -49,6 +50,7 @@ const MAX_SPOOL_BYTES = 33554432;
 const MAX_SPOOL_LINES = 20000;
 
 function inspectReaders(
+  room: string,
   roomDir: string,
   members: readonly string[],
   headSeq: number,
@@ -63,8 +65,12 @@ function inspectReaders(
   const dir = join(roomDir, "readers");
   if (existsSync(dir)) {
     for (const n of readdirSync(dir)) {
-      if (n.endsWith(".cursor.json") && !n.endsWith(".spool.cursor.json")) {
-        readerNames.add(n.slice(0, -".cursor.json".length));
+      if (n.endsWith(".cursor.json")) {
+        if (n.endsWith(".spool.cursor.json")) {
+          readerNames.add(n.slice(0, -".spool.cursor.json".length));
+        } else {
+          readerNames.add(n.slice(0, -".cursor.json".length));
+        }
       }
     }
   }
@@ -88,8 +94,13 @@ function inspectReaders(
   const reports: ReaderHealthReport[] = [];
   for (const reader of readerNames) {
     if (filter !== undefined && filter.length > 0 && reader !== filter) continue;
-    const curPath = join(dir, `${reader}.cursor.json`);
-    const cur = existsSync(curPath) ? readJsonSafely(curPath) : null;
+    const curPath = resolveActiveConsumerCursorPath(room, reader, existsSync);
+    const resolvedPath = existsSync(curPath)
+      ? curPath
+      : existsSync(join(dir, `${reader}.spool.cursor.json`))
+        ? join(dir, `${reader}.spool.cursor.json`)
+        : join(dir, `${reader}.cursor.json`);
+    const cur = existsSync(resolvedPath) ? readJsonSafely(resolvedPath) : null;
     const contiguousSeq =
       cur !== null && typeof cur["contiguous_seq"] === "number" ? cur["contiguous_seq"] : 0;
     const lag = Math.max(0, headSeq - contiguousSeq);
@@ -242,7 +253,15 @@ export function inspectRoom(room: string, options: DoctorInspectOptions = {}): R
   if (hasCorruptLayout) issues.push("CORRUPT_LAYOUT: cursor.json exists at room root");
   const headSeq = resolveHeadSeq(roomDir);
   const members = inspectMembers(roomDir);
-  const readers = inspectReaders(roomDir, members, headSeq, nowMs, aliveCheck, options.reader);
+  const readers = inspectReaders(
+    room,
+    roomDir,
+    members,
+    headSeq,
+    nowMs,
+    aliveCheck,
+    options.reader,
+  );
   const locks = inspectLocks(roomDir, nowMs, aliveCheck);
   for (const l of locks) {
     if (l.is_stale) issues.push(`Stale lock: ${l.path} (${l.reason ?? "unknown"})`);

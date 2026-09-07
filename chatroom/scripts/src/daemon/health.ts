@@ -1,10 +1,9 @@
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
 import {
   ChatError,
   daemonHealthPath,
   isProcessAlive,
-  readerCursorPath,
+  resolveActiveConsumerCursorPath,
   writeAtomic,
 } from "../core/index.ts";
 
@@ -133,9 +132,6 @@ export function writeHealthRecord(
   const s = JSON.stringify(record, null, 2) + "\n";
   const w = ports?.writeAtomic ?? ports?.writeFileSync ?? writeAtomic;
   w(healthPath, s);
-  try {
-    w(join(dirname(healthPath), "heartbeat.json"), s);
-  } catch {}
 }
 
 export function computeDaemonState(
@@ -313,7 +309,11 @@ export function syncDaemonHealth(input: HealthSyncInput): DaemonHealthRecord | n
   if (existing === null || (existing.pid !== input.claim.pid && isAlive(existing.pid))) return null;
   let cur = input.cursor ?? input.compute?.cursor;
   if (cur === undefined) {
-    const cp = readerCursorPath(input.claim.room, input.claim.reader);
+    const cp = resolveActiveConsumerCursorPath(
+      input.claim.room,
+      input.claim.reader,
+      input.ports?.existsSync,
+    );
     if ((p.existsSync ?? existsSync)(cp)) {
       cur = parseCursorProvenance((p.readFileSync ?? readFileSync)(cp, "utf8"));
     }

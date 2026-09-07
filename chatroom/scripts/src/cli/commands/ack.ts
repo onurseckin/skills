@@ -8,12 +8,7 @@ import {
   type CommandHandler,
   type Flags,
 } from "./shared/index.ts";
-import {
-  assertValidRoomId,
-  ChatError,
-  readerCursorPath,
-  readerSpoolCursorPath,
-} from "../../core/index.ts";
+import { assertValidRoomId, ChatError, resolveActiveConsumerCursorPath } from "../../core/index.ts";
 import { assertMember } from "../../room/index.ts";
 import { resolveIdentity } from "../../identity/index.ts";
 import {
@@ -56,9 +51,7 @@ export const ackCommand: CommandHandler = async (
     ensureDaemon(roomFlag, readerId);
   } catch {}
 
-  const spoolCursorPath = readerSpoolCursorPath(roomFlag, readerId);
-  const roomCursorPath = readerCursorPath(roomFlag, readerId);
-  const cursorPath = fs.existsSync(spoolCursorPath) ? spoolCursorPath : roomCursorPath;
+  const cursorPath = resolveActiveConsumerCursorPath(roomFlag, readerId, fs.existsSync);
 
   const ackResult = withReaderLock(roomFlag, readerId, () => {
     const { cursor, checksum } = loadCursor(cursorPath, {

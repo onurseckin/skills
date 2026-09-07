@@ -81,7 +81,8 @@ export function stepDaemonLoop(
   const nowIso = options.now ?? new Date().toISOString();
   const nowMs = options.now ? Date.parse(options.now) : Date.now();
 
-  repairSpool(room, reader);
+  const repairResult = repairSpool(room, reader);
+  const highestSpooledSeq = repairResult.highestSeq;
 
   const existingHealth = claimHealthRecord(
     healthPath,
@@ -195,6 +196,9 @@ export function stepDaemonLoop(
     let lastContiguousVerifiedSeq: number | null = null;
     const validEnvelopes: Envelope[] = [];
     for (const msg of leaseRes.messages) {
+      if (msg.seq <= highestSpooledSeq) {
+        continue;
+      }
       const envelopeCandidate = msg as unknown as Envelope;
       const verifyRes = verifyEnvelope(envelopeCandidate, key);
       if (verifyRes.valid) {
@@ -203,6 +207,8 @@ export function stepDaemonLoop(
       } else {
         const qPath = roomQuarantinePath(room, msg.ts, msg.seq);
         writeAtomic(qPath, JSON.stringify(msg, null, 2) + "\n");
+        recentErrors.push(`envelope_verification_failed for seq ${msg.seq} at ${nowIso}`);
+        if (recentErrors.length > 20) recentErrors.splice(0, recentErrors.length - 20);
         break;
       }
     }
@@ -225,9 +231,16 @@ export function stepDaemonLoop(
       fsynced: true,
     };
 
+    const lastMsgSeq = leaseRes.messages[leaseRes.messages.length - 1]?.seq ?? null;
+    const ackSeq =
+      lastContiguousVerifiedSeq ??
+      (validEnvelopes.length === 0 && lastMsgSeq !== null && lastMsgSeq <= highestSpooledSeq
+        ? lastMsgSeq
+        : null);
+
     const ackedCursor: ReaderCursor =
-      validEnvelopes.length > 0 && lastContiguousVerifiedSeq !== null
-        ? ackLease(leaseRes.cursor, leaseRes.leaseId, lastContiguousVerifiedSeq, confirmation, {
+      ackSeq !== null
+        ? ackLease(leaseRes.cursor, leaseRes.leaseId, ackSeq, confirmation, {
             now: nowIso,
           })
         : leaseRes.cursor;

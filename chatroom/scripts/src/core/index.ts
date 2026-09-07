@@ -82,6 +82,7 @@ export {
   repoBindingPath,
   repoChatroomDir,
   repoPolicyPath,
+  resolveActiveConsumerCursorPath,
   roomAppendLockPath,
   roomConsumedInvitePath,
   roomConsumedInvitesDir,

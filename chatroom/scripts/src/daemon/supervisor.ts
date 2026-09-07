@@ -30,6 +30,10 @@ export interface SupervisorPorts {
   readonly isProcessAlive?: (pid: number) => boolean;
   readonly getStartTime?: (pid: number) => string | undefined;
   readonly getBootId?: () => string;
+  readonly existsSync?: (path: string) => boolean;
+  readonly readFileSync?: (path: string, encoding: string) => string;
+  readonly writeFileSync?: (path: string, content: string) => void;
+  readonly writeAtomic?: (path: string, content: string) => void;
   readonly spawnDetached?: (
     cmd: string,
     args: readonly string[],
@@ -84,10 +88,16 @@ export function parseDaemonLockPayload(raw: string): LockPayload | null {
   }
 }
 
-function getRecentRespawnTimestamps(respawnPath: string, windowStart: number): string[] {
-  if (!existsSync(respawnPath)) return [];
+function getRecentRespawnTimestamps(
+  respawnPath: string,
+  windowStart: number,
+  ports?: SupervisorPorts,
+): string[] {
+  const existsFn = ports?.existsSync ?? existsSync;
+  if (!existsFn(respawnPath)) return [];
   try {
-    const parsed = JSON.parse(readFileSync(respawnPath, "utf8")) as { timestamps?: unknown };
+    const raw = (ports?.readFileSync ?? readFileSync)(respawnPath, "utf8");
+    const parsed = JSON.parse(raw) as { timestamps?: unknown };
     return Array.isArray(parsed?.timestamps)
       ? parsed.timestamps.filter(
           (ts): ts is string => typeof ts === "string" && Date.parse(ts) >= windowStart,
@@ -106,16 +116,17 @@ export function checkRespawnBudget(
 ): { readonly allowed: boolean; readonly count: number } {
   const respawnPath = daemonRespawnPath(roomId, readerId);
   const now = ports.now?.() ?? Date.now();
-  const recent = getRecentRespawnTimestamps(respawnPath, now - 3600000);
+  const recent = getRecentRespawnTimestamps(respawnPath, now - 3600000, ports);
   return { allowed: recent.length < maxPerHour, count: recent.length };
 }
 
 export function recordRespawn(roomId: string, readerId: string, ports: SupervisorPorts = {}): void {
   const respawnPath = daemonRespawnPath(roomId, readerId);
   const now = ports.now?.() ?? Date.now();
-  const recent = getRecentRespawnTimestamps(respawnPath, now - 3600000);
+  const recent = getRecentRespawnTimestamps(respawnPath, now - 3600000, ports);
   recent.push(new Date(now).toISOString());
-  writeAtomic(respawnPath, JSON.stringify({ timestamps: recent }, null, 2) + "\n");
+  const writeFn = ports.writeAtomic ?? ports.writeFileSync ?? writeAtomic;
+  writeFn(respawnPath, JSON.stringify({ timestamps: recent }, null, 2) + "\n");
 }
 
 export function reclaimStaleLock(
@@ -126,8 +137,9 @@ export function reclaimStaleLock(
   evidence: string,
   ports: SupervisorPorts = {},
 ): void {
+  const reclaimed_at = new Date(ports.now?.() ?? Date.now()).toISOString();
   const entry = {
-    reclaimed_at: new Date(ports.now?.() ?? Date.now()).toISOString(),
+    reclaimed_at,
     prior_pid: priorPayload.pid,
     prior_start_time: priorPayload.start_time,
     prior_boot_id: priorPayload.boot_id,
@@ -269,7 +281,7 @@ export function startDaemon(options: SupervisorOptions): SupervisorResult {
   const checkAlive = ports.isProcessAlive ?? isProcessAlive;
 
   const healthPath = daemonHealthPath(room, reader);
-  const existingHealth = readHealthRecord(healthPath);
+  const existingHealth = readHealthRecord(healthPath, ports);
   if (existingHealth !== null && checkAlive(existingHealth.pid)) {
     return { status: "already_running", pid: existingHealth.pid, already_running: true };
   }
@@ -288,11 +300,12 @@ export function startDaemon(options: SupervisorOptions): SupervisorResult {
   const budget = checkRespawnBudget(room, reader, resolved.respawn_budget_per_hour, ports);
   if (!budget.allowed) {
     if (existingHealth) {
-      writeHealthRecord(healthPath, {
-        ...existingHealth,
-        state: "STOPPED",
-        errors_recent: [...existingHealth.errors_recent, "respawn_budget_exhausted"],
-      });
+      const nowIso = new Date().toISOString();
+      const errors_recent = [
+        ...existingHealth.errors_recent,
+        `respawn_budget_exhausted at ${nowIso}`,
+      ].slice(-20);
+      writeHealthRecord(healthPath, { ...existingHealth, state: "STOPPED", errors_recent }, ports);
     }
     return { status: "exhausted", reason: "respawn_budget_exhausted" };
   }
@@ -358,13 +371,10 @@ export function stopDaemon(options: SupervisorOptions): SupervisorResult {
     } catch {}
   }
 
-  const existingHealth = readHealthRecord(daemonHealthPath(room, reader));
+  const hPath = daemonHealthPath(room, reader);
+  const existingHealth = readHealthRecord(hPath, ports);
   if (existingHealth) {
-    writeHealthRecord(daemonHealthPath(room, reader), {
-      ...existingHealth,
-      state: "STOPPED",
-      watch_active: false,
-    });
+    writeHealthRecord(hPath, { ...existingHealth, state: "STOPPED", watch_active: false }, ports);
   }
 
   if (pid !== null && checkAlive(pid)) {
