@@ -34,18 +34,7 @@ export const readCommand: CommandHandler = async (
   _context: CommandContext,
   _remainder: readonly string[],
 ): Promise<Record<string, unknown>> => {
-  assertFlags(flags, [
-    "room",
-    "as",
-    "reader",
-    "limit",
-    "source",
-    "wait",
-    "peek",
-    "type",
-    "since",
-    "json",
-  ]);
+  assertFlags(flags, ["room", "as", "limit", "wait", "peek", "type", "since", "json"]);
 
   const roomFlag = textFlag(flags, "room", true);
   if (roomFlag === undefined) {
@@ -54,9 +43,7 @@ export const readCommand: CommandHandler = async (
   assertValidRoomId(roomFlag);
 
   const asFlag = textFlag(flags, "as", false);
-  const readerFlag = textFlag(flags, "reader", false);
   const limitFlag = intFlag(flags, "limit", { minimum: 1, maximum: 500 });
-  const sourceFlag = textFlag(flags, "source", false);
   const waitFlag = intFlag(flags, "wait", { minimum: 0 });
   const peekFlag = boolFlag(flags, "peek");
   const typeFlag = textFlag(flags, "type", false);
@@ -68,7 +55,7 @@ export const readCommand: CommandHandler = async (
   }
 
   const identity = resolveIdentity({ as: asFlag, cwd: process.cwd() });
-  const readerId = readerFlag !== undefined ? readerFlag : identity.id;
+  const readerId = identity.id;
 
   assertMember(roomFlag, identity);
 
@@ -106,25 +93,20 @@ export const readCommand: CommandHandler = async (
     return result;
   }
 
-  const source = sourceFlag !== undefined ? sourceFlag : "spool";
   const waitMs = waitFlag !== undefined ? waitFlag : 0;
 
-  let cursorPath: string;
-  let logTarget: string;
-  if (source === "spool") {
-    cursorPath = readerSpoolCursorPath(roomFlag, readerId);
-    const spoolFile = daemonOutSpoolPath(roomFlag, readerId);
-    logTarget = fs.existsSync(spoolFile) ? spoolFile : roomLogDir(roomFlag);
-  } else {
-    cursorPath = readerCursorPath(roomFlag, readerId);
-    logTarget = roomLogDir(roomFlag);
-  }
+  const spoolFile = daemonOutSpoolPath(roomFlag, readerId);
+  const hasSpool = fs.existsSync(spoolFile);
+  const cursorPath = hasSpool
+    ? readerSpoolCursorPath(roomFlag, readerId)
+    : readerCursorPath(roomFlag, readerId);
+  const logTarget = hasSpool ? spoolFile : roomLogDir(roomFlag);
 
   const startTime = Date.now();
   let leaseResult: LeaseResult;
 
   while (true) {
-    leaseResult = withReaderLock(readerId, () => {
+    leaseResult = withReaderLock(roomFlag, readerId, () => {
       const { cursor, checksum } = loadCursor(cursorPath, {
         room: roomFlag,
         reader: readerId,

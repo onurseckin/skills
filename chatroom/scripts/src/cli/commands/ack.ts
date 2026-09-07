@@ -30,7 +30,7 @@ export const ackCommand: CommandHandler = async (
   _context: CommandContext,
   _remainder: readonly string[],
 ): Promise<Record<string, unknown>> => {
-  assertFlags(flags, ["room", "as", "reader", "lease", "through", "json"]);
+  assertFlags(flags, ["room", "as", "lease", "through", "json"]);
 
   const roomFlag = textFlag(flags, "room", true);
   if (roomFlag === undefined) {
@@ -39,7 +39,6 @@ export const ackCommand: CommandHandler = async (
   assertValidRoomId(roomFlag);
 
   const asFlag = textFlag(flags, "as", false);
-  const readerFlag = textFlag(flags, "reader", false);
   const leaseFlag = textFlag(flags, "lease", false);
   const throughFlag = intFlag(flags, "through", { minimum: 0 });
   const jsonFlag = boolFlag(flags, "json");
@@ -49,7 +48,7 @@ export const ackCommand: CommandHandler = async (
   }
 
   const identity = resolveIdentity({ as: asFlag, cwd: process.cwd() });
-  const readerId = readerFlag !== undefined ? readerFlag : identity.id;
+  const readerId = identity.id;
 
   assertMember(roomFlag, identity);
 
@@ -61,7 +60,7 @@ export const ackCommand: CommandHandler = async (
   const roomCursorPath = readerCursorPath(roomFlag, readerId);
   const cursorPath = fs.existsSync(spoolCursorPath) ? spoolCursorPath : roomCursorPath;
 
-  const ackResult = withReaderLock(readerId, () => {
+  const ackResult = withReaderLock(roomFlag, readerId, () => {
     const { cursor, checksum } = loadCursor(cursorPath, {
       room: roomFlag,
       reader: readerId,

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+  ChatError,
   createInitialCursor,
   leaseNext,
   scanFromDirectory,
@@ -187,23 +188,35 @@ describe("leaseNext spool reading and segment awareness", () => {
     expect(result.messages.map((m) => m.seq)).toEqual([1, 2]);
   });
 
-  it("returns empty array in scanFromDirectory when target is a regular file", () => {
+  it("throws ChatError INVALID_STATE in scanFromDirectory when target is a regular file", () => {
     const vfs = new ChatVirtualFS();
     const filePath = "/rooms/test/file.jsonl";
     vfs.mkdirSync("/rooms/test", { recursive: true });
     vfs.writeFileSync(filePath, "dummy");
 
-    const result = scanFromDirectory(filePath, 1, 10, vfs);
-    expect(result).toEqual([]);
+    let thrown: unknown;
+    try {
+      scanFromDirectory(filePath, 1, 10, vfs);
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown instanceof ChatError).toBe(true);
+    expect((thrown as ChatError).code).toBe("INVALID_STATE");
   });
 
-  it("returns empty array in scanFromFile when target is a directory", () => {
+  it("throws ChatError INVALID_STATE in scanFromFile when target is a directory", () => {
     const vfs = new ChatVirtualFS();
     const dirPath = "/rooms/test/dir";
     vfs.mkdirSync(dirPath, { recursive: true });
 
-    const result = scanFromFile(dirPath, 1, 10, vfs);
-    expect(result).toEqual([]);
+    let thrown: unknown;
+    try {
+      scanFromFile(dirPath, 1, 10, vfs);
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown instanceof ChatError).toBe(true);
+    expect((thrown as ChatError).code).toBe("INVALID_STATE");
   });
 
   it("handles non-existent paths gracefully without throwing", () => {

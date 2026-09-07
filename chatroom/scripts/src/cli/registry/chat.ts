@@ -135,9 +135,7 @@ export const readSpec: CommandSpec = {
   flags: [
     requiredFlag("room", "string", "room id"),
     optionalFlag("as", "string", "member identity"),
-    optionalFlag("reader", "string", "consumer-group id (default: the member id)"),
     optionalFlag("limit", "int", "max envelopes in the batch (default 50, max 500)"),
-    optionalFlag("source", "string", "spool (default) or room"),
     optionalFlag("wait", "int", "ms to block for arrival; 0 (default) returns immediately"),
     optionalFlag("peek", "bool", "read-only: no lease, no cursor mutation, no ack possible"),
     optionalFlag("type", "string", "--peek only; display filter"),
@@ -163,7 +161,6 @@ export const ackSpec: CommandSpec = {
   flags: [
     requiredFlag("room", "string", "room id"),
     optionalFlag("as", "string", "member identity"),
-    optionalFlag("reader", "string", "consumer-group id"),
     optionalFlag("lease", "string", "lease id returned by chat:read"),
     optionalFlag("through", "int", "ack every seq in the named lease up to this seq (partial ack)"),
     optionalFlag("json", "bool", "machine output"),

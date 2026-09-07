@@ -70,9 +70,12 @@ export function withReaderLock<T>(
     const action = fnOrOptions as () => T | Promise<T>;
     return withLock(lockPath, action, options);
   }
-  let lockPath = roomOrPath;
+  const lockPath = roomOrPath;
   if (!lockPath.endsWith(".lock") && !lockPath.includes("/") && !lockPath.includes("\\")) {
-    lockPath = readerLockPath("default", roomOrPath);
+    throw new ChatError(
+      "INVALID_ARGUMENT",
+      "withReaderLock requires room and readerId or an absolute lockPath",
+    );
   }
   const action = readerOrFn;
   const lockOptions = fnOrOptions as LockOptions | undefined;

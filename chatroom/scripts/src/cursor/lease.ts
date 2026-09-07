@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import * as fs from "node:fs";
 import { basename, dirname, join } from "node:path";
+import { ChatError } from "../core/index.ts";
 import {
   assertCursorInvariants,
   computeCursorChecksum,
@@ -147,9 +148,12 @@ export function scanFromDirectory(
   limit: number,
   fsPorts?: LeaseFsPorts,
 ): LogEnvelope[] {
-  const stat = fsStat(logDir, fsPorts);
-  if (!fsExists(logDir, fsPorts) || !stat || !stat.isDirectory()) {
+  if (!fsExists(logDir, fsPorts)) {
     return [];
+  }
+  const stat = fsStat(logDir, fsPorts);
+  if (!stat || !stat.isDirectory()) {
+    throw new ChatError("INVALID_STATE", `Expected directory at path '${logDir}'`);
   }
   const files = fsReaddir(logDir, fsPorts)
     .filter((name) => name.endsWith(".jsonl"))
@@ -170,7 +174,7 @@ export function scanFromFile(
   }
   const stat = fsStat(filePath, fsPorts);
   if (!stat || !stat.isFile()) {
-    return [];
+    throw new ChatError("INVALID_STATE", `Expected file at path '${filePath}'`);
   }
 
   const fileName = basename(filePath);
@@ -228,16 +232,13 @@ function scanFromInput(
       return [];
     }
     const stat = fsStat(log, fsPorts);
-    if (!stat) {
-      return [];
-    }
-    if (stat.isDirectory()) {
+    if (stat?.isDirectory()) {
       return scanFromDirectory(log, fromSeq, limit, fsPorts);
     }
-    if (stat.isFile()) {
+    if (stat?.isFile()) {
       return scanFromFile(log, fromSeq, limit, fsPorts);
     }
-    return [];
+    throw new ChatError("INVALID_STATE", `Expected file or directory at '${log}'`);
   }
 
   if ("scan" in log && typeof log.scan === "function") {

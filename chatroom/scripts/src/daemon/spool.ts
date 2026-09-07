@@ -14,6 +14,7 @@ import {
 } from "node:fs";
 import { dirname } from "node:path";
 import {
+  ChatError,
   daemonOutSpoolPath,
   isEnvelope,
   spoolLockPath,
@@ -52,12 +53,11 @@ const DEFAULT_MAX_SPOOL_LINES = 20000;
 function findNextSegmentNumber(roomId: string, readerId: string): number {
   const basePath = daemonOutSpoolPath(roomId, readerId);
   const dir = dirname(basePath);
-  try {
-    if (!existsSync(dir) || !statSync(dir).isDirectory()) {
-      return 1;
-    }
-  } catch {
+  if (!existsSync(dir)) {
     return 1;
+  }
+  if (!statSync(dir).isDirectory()) {
+    throw new ChatError("INVALID_STATE", `Expected directory at path '${dir}'`);
   }
   const prefix = `${readerId}.out.`;
   const suffix = ".jsonl";
