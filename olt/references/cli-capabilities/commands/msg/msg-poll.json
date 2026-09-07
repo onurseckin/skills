@@ -33,6 +33,13 @@
       "default": null
     },
     {
+      "name": "continuous",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
       "name": "advance-cursor",
       "type": "bool",
       "required": false,

@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import {
@@ -9,8 +8,10 @@ import {
 } from "../../fixtures/full-lifecycle-fixture.ts";
 import { graphDocument } from "../../../../graph/validation/fixtures.ts";
 import { requirementsDocument } from "../../../../requirements/validation/fixtures.ts";
+import type { VirtualMemoryFS } from "../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 const roots: string[] = [];
+let vfs: VirtualMemoryFS;
 
 async function registerPlanner(run: string, agent = "planner"): Promise<void> {
   await execute([
@@ -28,7 +29,7 @@ async function registerPlanner(run: string, agent = "planner"): Promise<void> {
 
 describe("plan:claim / plan:apply", () => {
   beforeEach(() => {
-    setupVirtualCliFS();
+    vfs = setupVirtualCliFS();
   });
 
   afterEach(() => {

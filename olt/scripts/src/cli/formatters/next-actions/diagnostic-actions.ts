@@ -1,3 +1,4 @@
+import { isCoordinatorRole, isOrchestratorRole } from "../../../authority/thread/index.ts";
 import { planInitNextActions } from "./plan-actions.ts";
 import type { NextActionItem } from "./types.ts";
 
@@ -100,7 +101,7 @@ export function whoamiNextActions(
   }
 
   const role = context.role ?? "";
-  if (role === "orchestrator" || role.startsWith("orch")) {
+  if (isOrchestratorRole(role)) {
     return [
       {
         command: `bun harness.ts queue:wave --run ${runRoot}`,
@@ -114,7 +115,7 @@ export function whoamiNextActions(
       },
     ];
   }
-  if (role === "coordinator" || role.startsWith("coord")) {
+  if (isCoordinatorRole(role)) {
     return [
       {
         command: `bun harness.ts queue:wave --run ${runRoot}`,

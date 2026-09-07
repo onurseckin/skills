@@ -21,7 +21,7 @@
 ## Global Constraints
 
 - Strict adherence to The Three Hard Zeros on supervisory threads: 0 direct code edits, 0 unit test runs, 0 PR/critic reviews.
-- All code files must remain strictly <= 300 physical lines.
+- All code files must remain strictly <= 400 physical lines.
 - Directory fanout must remain strictly <= 10 files.
 - Named exports only; 0 `export *` wildcard exports; 0 facade bypasses.
 - All tests must strictly reside in the top-level `tests/` directory; zero test files under `skills/olt/` or `olt/`.
@@ -104,7 +104,7 @@
       Expected: PASS.
 
 - [ ] **Step 5: Verify LOC & Modularity**
-      Ensure all touched files <= 300 physical lines.
+      Ensure all touched files <= 400 physical lines.
 
 ---
 

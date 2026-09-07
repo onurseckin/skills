@@ -7,4 +7,5 @@ export const CLI_TASK_REVIEWS_SUITES = [
   "task-review-preconditions",
   "task-validate-start-probe",
   "task-review-verdicts",
+  "task-review-checklists",
 ] as const;

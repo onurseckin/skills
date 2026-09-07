@@ -15,7 +15,7 @@ import * as witness from "./witness.ts";
 
 import * as chatterGuard from "./chatter-guard.ts";
 import * as chatterPatterns from "./chatter-patterns.ts";
-import * as concurrencyCap from "./concurrency-cap.ts";
+import * as concurrencyCap from "./concurrency/index.ts";
 import * as contracts from "./contracts/index.ts";
 import * as core from "./core/index.ts";
 

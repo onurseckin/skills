@@ -1,6 +1,6 @@
-import { completionArtifactRequirements } from "../../../../olt/scripts/src/workflow/completion/artifact-verification.ts";
-import { recordCompletionReview } from "../../../../olt/scripts/src/workflow/completion/record-completion-review.ts";
-import { completionReadinessSnapshot } from "../../../../olt/scripts/src/workflow/completion/readiness-snapshot.ts";
+import { completionArtifactRequirements } from "../../../../olt/scripts/src/workflow/completion/index.ts";
+import { recordCompletionReview } from "../../../../olt/scripts/src/workflow/completion/index.ts";
+import { completionReadinessSnapshot } from "../../../../olt/scripts/src/workflow/completion/index.ts";
 import { tokenDigest } from "../../../../olt/scripts/src/workflow/lease/token.ts";
 import type { TransactionPort } from "../../../../olt/scripts/src/workflow/types.ts";
 import {
@@ -24,7 +24,9 @@ export function completionPort(): TestPort {
   const state = workflowState();
   Object.assign(state.tasks["T-1"]!, {
     status: "done",
+    original_implementer: "implementer",
     report: { summary: "done" },
+    attempts: [{ agent_id: "implementer", submitted_at: clock.now().toISOString() }],
     validations: [
       {
         validator_id: "validator",

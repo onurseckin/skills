@@ -112,13 +112,13 @@ An implementer introduces quick fixes that degrade monorepo architectural standa
 
 - Introducing TypeScript compiler suppressions (`@ts-ignore`, `@ts-expect-error`).
 - Utilizing untyped escape hatches (`: any`, `as any`).
-- Bloating a file beyond the physical line budget ($> 300$ LOC).
+- Bloating a file beyond the physical line budget ($> 400$ LOC).
 - Exceeding the directory fanout threshold ($> 10$ files per folder).
 
 ### 7.2 Sentinel Countermeasures & Invariants
 
 1. **Post-Action AST Verification (`task:check`):** At `sentinel:post-action`, modified files are scanned via an AST parser and line counter in $< 50\text{ms}$.
-2. **Instant Line Budget Alarm:** If a file exceeds 300 physical lines, the sentinel triggers Strike 1 immediately with the exact line count and splitting advice.
+2. **Instant Line Budget Alarm:** If a file exceeds 400 physical lines, the sentinel triggers Strike 1 immediately with the exact line count and splitting advice.
 3. **Zero-Suppression Gate:** Presence of `@ts-ignore` or `: any` triggers an immediate mechanical block on `task:submit`.
 
 ---

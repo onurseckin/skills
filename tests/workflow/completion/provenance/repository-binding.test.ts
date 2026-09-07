@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   repositoryBindingIsValid,
   sameRepositoryBinding,
-} from "../../../../olt/scripts/src/workflow/completion/repository-binding.ts";
+} from "../../../../olt/scripts/src/workflow/completion/index.ts";
 import { repositoryBinding } from "../../shared/test-port.ts";
 
 describe("repositoryBindingIsValid", () => {

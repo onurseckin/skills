@@ -1,58 +1,47 @@
-export { DynamicToolRegistry, getGlobalToolRegistry, resetGlobalToolRegistry } from "./registry.ts";
-
 export {
+  DynamicToolRegistry,
+  buildJsonSchemaFromTool,
   discoverToolsFromDirectory,
   discoverToolsFromManifest,
-  parseToolSpec,
-  scanAndRegisterTools,
-  validateToolSpec,
-} from "./discovery.ts";
-
-export {
   generateToolCatalogTypeScript,
+  getGlobalToolRegistry,
   jsonSchemaPropertyToToolParameter,
   jsonSchemaToToolDefinition,
+  parseParameterConstraint,
+  parseParameterSchema,
+  parseToolSchema,
+  parseToolSpec,
+  resetGlobalToolRegistry,
+  scanAndRegisterTools,
   toCamelCase,
+  toPascalCase,
   toolDefinitionToJsonSchema,
   toolDefinitionToTypeScript,
   toolParameterToJsonSchemaProperty,
   toolParametersToTypeScriptFields,
-  toPascalCase,
-} from "./schema-codegen.ts";
+  validateToolSpec,
+  type ParameterSchemaParseResult,
+  type ToolSchemaParseResult,
+} from "./schema/index.ts";
 
 export {
   coerceValue,
-  sanitizeAndValidatePayload,
-  validateParameter,
-  validateTypeOnly,
-} from "./payload-sanitizer.ts";
-
-export {
-  buildJsonSchemaFromTool,
-  parseParameterConstraint,
-  parseParameterSchema,
-  parseToolSchema,
-  type ParameterSchemaParseResult,
-  type ToolSchemaParseResult,
-} from "./schema-parser.ts";
-
-export {
-  validateConstraints,
-  validateParameterType,
-  validateParameterValue,
-  validateToolArguments,
-} from "./input-validator.ts";
-
-export {
   detectCommandInjection,
   detectPrototypePollution,
   isSafeExecutionPayload,
+  sanitizeAndValidatePayload,
   sanitizeHtmlContent,
   sanitizePathTraversal,
   sanitizeShellArgument,
   sanitizeToolInput,
   sanitizeValueByPolicy,
-} from "./security-sanitizer.ts";
+  validateConstraints,
+  validateParameter,
+  validateParameterType,
+  validateParameterValue,
+  validateToolArguments,
+  validateTypeOnly,
+} from "./validation/index.ts";
 
 export {
   DEFAULT_DARWIN_NOTIFICATION_SOUND,
@@ -157,4 +146,4 @@ export type {
   ToolSecurityPolicy,
   ToolValidationError,
   ValidationOptions,
-} from "./types.ts";
+} from "./types/index.ts";

@@ -1,5 +1,5 @@
 import type { JsonObject } from "../../core/contracts/index.ts";
-import { jsonDigest } from "../completion/completion-review-digest.ts";
+import { jsonDigest } from "../completion/index.ts";
 import type { WorkflowState } from "../types.ts";
 
 export function orphanEvidenceSha256(evidence: JsonObject): string {

@@ -1,20 +1,19 @@
-import { agentIdToTier, parseTierValue, roleToTier } from "../../authority/thread/index.ts";
+import {
+  agentIdToTier,
+  isCoordinatorRole,
+  isOrchestratorRole,
+  parseTierValue,
+  roleToTier,
+} from "../../authority/thread/index.ts";
 import type {
   PlanningDagCheckOptions,
   PlanningDagGraphInput,
   TaskNodeInfo,
 } from "./planning-dag-engine.ts";
 
-const ABBREVIATED_AGENT_ID_TIER_PREFIXES: ReadonlyArray<readonly [string, number]> = [
-  ["orch", 1],
-  ["coord", 2],
-];
-
 function resolveAbbreviatedAgentIdTier(agentId: string): number | undefined {
-  const normalized = agentId.toLowerCase().trim();
-  for (const [prefix, tier] of ABBREVIATED_AGENT_ID_TIER_PREFIXES) {
-    if (normalized.startsWith(prefix)) return tier;
-  }
+  if (isOrchestratorRole(agentId)) return roleToTier("orchestrator");
+  if (isCoordinatorRole(agentId)) return roleToTier("coordinator");
   return undefined;
 }
 
@@ -138,9 +137,10 @@ export function collectAllEdges(
   if (Array.isArray(graph?.edges)) {
     for (const edge of graph!.edges) {
       if (edge && typeof edge === "object" && "from" in edge && "to" in edge) {
+        const edgeObj = edge as { readonly from: unknown; readonly to: unknown };
         allEdges.push({
-          from: String((edge as any).from),
-          to: String((edge as any).to),
+          from: String(edgeObj.from),
+          to: String(edgeObj.to),
         });
       }
     }

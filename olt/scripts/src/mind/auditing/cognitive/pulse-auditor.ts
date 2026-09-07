@@ -9,16 +9,12 @@ import {
   resolveSkillHomeRepo,
   resolveDefectsPath,
   resolveBacklogPath,
-} from "../../../core/shared/paths.ts";
-import { SplitChannelDefectRouter } from "../../../reporting/split-channel-defect-router.ts";
-import {
-  VerbatimRoleInjector,
-  type StagnationTelemetry,
-} from "../../../authority/verbatim-role-injector.ts";
-import { executeStagnationShockRecovery } from "../stagnation-recovery-interlock.ts";
+} from "../../../core/shared/index.ts";
+import { SplitChannelDefectRouter } from "../../../reporting/index.ts";
+import { VerbatimRoleInjector, type StagnationTelemetry } from "../../../authority/index.ts";
 import { AuditorCursorStore } from "./types.ts";
 import { CognitiveChallengePromptGenerator } from "./challenge-generator.ts";
-import { auditAntiStagnationPassivity } from "../anti-stagnation-engine.ts";
+import { auditAntiStagnationPassivity, executeStagnationShockRecovery } from "../index.ts";
 import type { AuditorCursor, MindAuditLiveResult } from "./types.ts";
 
 export function auditMindPulseHelper(

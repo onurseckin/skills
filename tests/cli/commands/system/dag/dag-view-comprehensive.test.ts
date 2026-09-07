@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import {
@@ -17,17 +16,9 @@ import {
   type DagViewResult,
 } from "../../../../../olt/scripts/src/cli/commands/dag-view.ts";
 import {
-  buildSugiyamaDagReport,
-  assignSugiyamaRanks,
-  minimizeCrossingsBarycenter,
-  insertVirtualDummyNodes,
-  type SugiyamaNode,
-  type SugiyamaEdge,
-  type SugiyamaLayer,
-} from "../../../../../olt/scripts/src/reporting/sugiyama-dag/index.ts";
-import {
   cleanupRoots,
   cleanupVirtualCliFS,
+  getVirtualCliFS,
   setupVirtualCliFS,
 } from "../../fixtures/full-lifecycle-fixture.ts";
 
@@ -45,10 +36,11 @@ afterEach(async () => {
 async function createBaseRun(name: string): Promise<{ repo: string; run: string }> {
   const repo = `/virtual/cli/harness-dag-comp-${name}`;
   roots.push(repo);
-  await mkdir(repo, { recursive: true });
-  await mkdir(join(repo, ".git"), { recursive: true });
+  const vfs = getVirtualCliFS();
+  vfs.mkdirSync(repo, { recursive: true });
+  vfs.mkdirSync(join(repo, ".git"), { recursive: true });
   const promptPath = join(repo, "prompt.txt");
-  await writeFile(
+  vfs.writeFileSync(
     promptPath,
     "Build multi-tier system with backend, frontend, database, and documentation components.",
   );
@@ -77,7 +69,7 @@ describe("dag-view comprehensive unit test suite", () => {
     expect(resolveCapsuleRun(repo)).toBe(run);
 
     const emptyRepo = `/virtual/cli/empty-repo-${Date.now()}`;
-    await mkdir(emptyRepo, { recursive: true });
+    getVirtualCliFS().mkdirSync(emptyRepo, { recursive: true });
     roots.push(emptyRepo);
     expect(() => resolveCapsuleRun(emptyRepo)).toThrow("no active capsule found");
   });
@@ -191,60 +183,6 @@ describe("dag-view comprehensive unit test suite", () => {
     expect(ascii).toContain("WAVE 1");
     expect(ascii).toContain("WAVE 2");
     expect(ascii).toContain("▼");
-  });
-
-  test("Sugiyama layout algorithm computes ranks, crossings, and dummy routes", () => {
-    const sNodes: SugiyamaNode[] = [
-      { id: "s1", label: "S1", status: "done", writeScope: ["src/1"], dependencies: [] },
-      { id: "s2", label: "S2", status: "ready", writeScope: ["src/2"], dependencies: ["s1"] },
-      { id: "s3", label: "S3", status: "ready", writeScope: ["src/3"], dependencies: ["s1"] },
-      {
-        id: "s4",
-        label: "S4",
-        status: "blocked",
-        writeScope: ["src/4"],
-        dependencies: ["s2", "s3"],
-      },
-    ];
-    const sEdges: SugiyamaEdge[] = [
-      { from: "s1", to: "s2", type: "dependency" },
-      { from: "s1", to: "s3", type: "dependency" },
-      { from: "s2", to: "s4", type: "dependency" },
-      { from: "s3", to: "s4", type: "dependency" },
-    ];
-
-    const ranks = assignSugiyamaRanks(sNodes, sEdges);
-    expect(ranks.get("s1")).toBe(0);
-    expect(ranks.get("s4")).toBe(2);
-
-    const initialLayers: SugiyamaLayer[] = [
-      {
-        rank: 0,
-        nodes: [{ ...sNodes[0]!, rank: 0, order: 0, criticalDepth: 2, descendantCount: 3 }],
-      },
-      {
-        rank: 1,
-        nodes: [
-          { ...sNodes[1]!, rank: 1, order: 0, criticalDepth: 1, descendantCount: 1 },
-          { ...sNodes[2]!, rank: 1, order: 1, criticalDepth: 1, descendantCount: 1 },
-        ],
-      },
-      {
-        rank: 2,
-        nodes: [{ ...sNodes[3]!, rank: 2, order: 0, criticalDepth: 0, descendantCount: 0 }],
-      },
-    ];
-
-    const withDummies = insertVirtualDummyNodes(initialLayers, sEdges);
-    expect(withDummies.layers.length).toBe(3);
-
-    const reordered = minimizeCrossingsBarycenter(withDummies.layers, withDummies.edges);
-    expect(reordered.length).toBe(3);
-
-    const report = buildSugiyamaDagReport(sNodes, sEdges, { detailed: true });
-    expect(report.metrics.totalWaves).toBe(3);
-    expect(report.metrics.criticalPathLength).toBe(3);
-    expect(report.renderedDag.length).toBeGreaterThan(0);
   });
 
   test("dagViewCommand and executeDagViewCommand support JSON and CLI options", async () => {

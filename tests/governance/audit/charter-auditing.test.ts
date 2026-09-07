@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { auditCharterGoals } from "../../../olt/scripts/src/mind/auditing/charter-auditing.ts";
+import { auditCharterGoals } from "../../../olt/scripts/src/mind/auditing/index.ts";
 import { parseCharter } from "../../../olt/scripts/src/mind/governance/index.ts";
 
 const sampleYaml = `identity: mind

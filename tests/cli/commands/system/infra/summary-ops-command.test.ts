@@ -1,11 +1,15 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import {
   summaryExportCommand,
   summaryViewCommand,
 } from "../../../../../olt/scripts/src/cli/commands/summary-ops.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   cleanupRoots,
   cleanupVirtualCliFS,
@@ -14,9 +18,12 @@ import {
 import { TASK_ID, setupRun } from "../../fixtures/probe-fixture.ts";
 
 const roots: string[] = [];
+let vfs: VirtualMemoryFS;
+
 beforeEach(() => {
-  setupVirtualCliFS();
+  vfs = setupVirtualCliFS();
 });
+
 afterEach(async () => {
   await cleanupRoots(roots);
   cleanupVirtualCliFS();
@@ -31,10 +38,10 @@ describe("summary:export", () => {
     expect(result.run_root).toBe(run);
     expect(result.summary_dir).toBe(join(run, "summary"));
     expect(result.out_dir).toBeUndefined();
-    expect(existsSync(join(run, "summary", "graph.json"))).toBe(true);
-    expect(existsSync(join(run, "summary", "timeline.json"))).toBe(true);
-    expect(existsSync(join(run, "summary", "metrics.json"))).toBe(true);
-    expect(existsSync(join(run, "summary", "summary.md"))).toBe(true);
+    expect(vfs.existsSync(join(run, "summary", "graph.json"))).toBe(true);
+    expect(vfs.existsSync(join(run, "summary", "timeline.json"))).toBe(true);
+    expect(vfs.existsSync(join(run, "summary", "metrics.json"))).toBe(true);
+    expect(vfs.existsSync(join(run, "summary", "summary.md"))).toBe(true);
 
     const markdown = String(result.markdown);
     expect(markdown).toContain(`Summary Suite Exported: \`${run.split("/").pop()}\``);
@@ -53,7 +60,7 @@ describe("summary:export", () => {
 
     const runId = run.split("/").pop()!;
     expect(result.out_dir).toBe(out);
-    expect(existsSync(join(out, `${runId}.json`))).toBe(true);
+    expect(vfs.existsSync(join(out, `${runId}.json`))).toBe(true);
     expect(String(result.markdown)).toContain(`GVUI Registry Export`);
     expect(String(result.markdown)).toContain(`\`${join(out, `${runId}.json`)}\``);
   });
@@ -66,7 +73,7 @@ describe("summary:view", () => {
     const result = summaryViewCommand({ run });
 
     expect(result.run_root).toBe(run);
-    expect(existsSync(join(run, "summary"))).toBe(false);
+    expect(vfs.existsSync(join(run, "summary"))).toBe(false);
     expect(String(result.markdown).length).toBeGreaterThan(0);
     const metrics = result.metrics as { total_tasks: number };
     expect(metrics.total_tasks).toBeGreaterThanOrEqual(1);

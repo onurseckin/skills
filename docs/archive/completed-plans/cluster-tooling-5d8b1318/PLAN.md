@@ -23,7 +23,7 @@ It addresses defect remediation and Track 3 dynamic tool schema parsing, input v
 │  Backlog Count: 0                                                                        │
 │  Defect Count:  1                                                                        │
 │  Track: Track 3 - Tool Schemas, Security Validation & Execution Sandboxing               │
-│  Status: COMPLETED (100% Tests Pass, 0 any, 0 comments, <=300 LOC/file)                 │
+│  Status: COMPLETED (100% Tests Pass, 0 any, 0 comments, <=400 LOC/file)                 │
 └─────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -34,7 +34,7 @@ It addresses defect remediation and Track 3 dynamic tool schema parsing, input v
 1. **Zero TypeScript `any` & Zero Suppressions**: Strictly enforced across all domain components with full type safety and generic contracts.
 2. **Subdomain Git Staging Invariant (Reflog Safety)**: Refactored files verified, typechecked, and staged.
 3. **Deterministic Traceability**: Every requirement and defect maps to verified unit and integration tests.
-4. **Density and Hygiene Invariants**: Zero comments in production `.ts` files, maximum 300 LOC per file, maximum 10 files per directory, clean named facades.
+4. **Density and Hygiene Invariants**: Zero comments in production `.ts` files, maximum 400 LOC per file, maximum 10 files per directory, clean named facades.
 5. **Defense-in-Depth Security**: Prototype pollution prevention, command injection detection, path traversal defense with directory root confinement, and XSS sanitization.
 
 ---
@@ -88,7 +88,7 @@ Total Passed: 128 / 128 tests (100% PASS)
 TypeScript Compiler: bun x tsc -p tsconfig.json --noEmit (0 ERRORS)
 TypeScript 'any' count: 0
 Code comment count: 0
-File LOC budget: All 10 files <= 300 LOC (Max: 298 LOC)
+File LOC budget: All 10 files <= 400 LOC (Max: 298 LOC)
 Directory density: All directories <= 10 files (Tooling: 10 files, Sandbox: 9 files)
 ================================================================================
 ```

@@ -57,9 +57,11 @@ describe("command predicates and classification", () => {
     expect(roleToTier("mind")).toBe(0);
     expect(roleToTier("mind-lead")).toBe(0);
     expect(roleToTier("orchestrator")).toBe(1);
-    expect(roleToTier("orch-main")).toBe(1);
+    expect(roleToTier("orchestrator-main")).toBe(1);
     expect(roleToTier("coordinator")).toBe(2);
-    expect(roleToTier("coord-1")).toBe(2);
+    expect(roleToTier("coordinator-1")).toBe(2);
+    expect(roleToTier("orch-main")).toBe(3);
+    expect(roleToTier("coord-1")).toBe(3);
     expect(roleToTier("implementer")).toBe(3);
     expect(roleToTier("validator")).toBe(3);
     expect(roleToTier("ui-headless-validator")).toBe(3);

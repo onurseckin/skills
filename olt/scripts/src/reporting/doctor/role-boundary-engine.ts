@@ -1,3 +1,4 @@
+import { inferRoleFromAgentId } from "../../authority/thread/index.ts";
 import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "./types.ts";
 
 export interface RoleBoundaryInterlockOptions {
@@ -108,9 +109,8 @@ export function checkRoleBoundaryInterlock(
     if (agentRoleMap.has(agentId)) return agentRoleMap.get(agentId)!;
     const lower = agentId.toLowerCase();
     if (lower.startsWith("user") || lower.startsWith("human")) return "user";
-    if (lower.startsWith("orch") || lower.startsWith("orchestrator")) return "orchestrator";
-    if (lower.startsWith("coord") || lower.startsWith("coordinator")) return "coordinator";
-    if (lower.startsWith("impl") || lower.startsWith("implementer")) return "implementer";
+    const inferred = inferRoleFromAgentId(agentId);
+    if (inferred) return inferred;
     return "";
   }
 

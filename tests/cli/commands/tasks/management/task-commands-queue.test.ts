@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import {
   executeTaskComplete,
@@ -9,25 +8,29 @@ import {
   taskLeaseCommand,
   taskListCommand,
 } from "../../../../../olt/scripts/src/cli/commands/task-queue-ops.ts";
-import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  createVirtualFSSession,
+  type VirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
-const roots: string[] = [];
+let vfs: VirtualMemoryFS;
+let session: VirtualFSSession;
 
-async function createVirtualDir(prefix: string): Promise<string> {
+function createVirtualDir(prefix: string): string {
   const dir = `/virtual/cli/${prefix}-${Math.random().toString(36).slice(2)}`;
-  roots.push(dir);
-  await mkdir(dir, { recursive: true });
+  vfs.mkdirSync(dir, { recursive: true });
   return dir;
 }
 
 describe("Task CLI Queue Listing & Querying", () => {
   beforeEach(() => {
-    setupVirtualCliFS();
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
-    cleanupVirtualCliFS();
-    roots.length = 0;
+    session.cleanup();
   });
 
   test("executeTaskList queries tasks with Cowan pagination and returns exit code 0", async () => {
@@ -99,12 +102,12 @@ describe("Task CLI Queue Listing & Querying", () => {
 
 describe("Task CLI Lease and Complete Operations (task-cli-05)", () => {
   beforeEach(() => {
-    setupVirtualCliFS();
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
-    cleanupVirtualCliFS();
-    roots.length = 0;
+    session.cleanup();
   });
 
   test("executeTaskLease acquires lease token and executeTaskComplete finalizes task", async () => {

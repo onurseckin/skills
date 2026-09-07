@@ -1,6 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   assertDisjointClusters,
@@ -19,29 +17,32 @@ import {
   createTestDefectItem,
   createTestThematicCluster,
 } from "./multi-orchestrator-dispatch-fixtures.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Multi-Orchestrator Worktree Topology & Dispatch Suite", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
   let testDir: string;
   let queuePath: string;
   let memoryPath: string;
 
   beforeEach(() => {
-    testDir = join(
-      tmpdir(),
-      `orch-dispatch-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    );
-    mkdirSync(testDir, { recursive: true });
-    mkdirSync(join(testDir, ".olt"), { recursive: true });
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    testDir = `/virtual/orch-dispatch-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    vfs.mkdirSync(testDir, { recursive: true });
+    vfs.mkdirSync(join(testDir, ".olt"), { recursive: true });
+    vfs.chdir(testDir);
     queuePath = join(testDir, ".olt", "tasks.jsonl");
     memoryPath = join(testDir, ".olt", "memory.json");
   });
 
   afterEach(() => {
-    try {
-      rmSync(testDir, { recursive: true, force: true });
-    } catch {
-      void 0;
-    }
+    session.cleanup();
   });
 
   describe("Disjoint Cluster Partitioning & Sharding", () => {

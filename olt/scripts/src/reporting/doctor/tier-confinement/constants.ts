@@ -1,10 +1,15 @@
 import { isAgentRole, isJsonObject, type JsonObject } from "../../../core/contracts/index.ts";
+import {
+  inferRoleFromAgentId,
+  isCoordinatorRole,
+  isOrchestratorRole,
+} from "../../../authority/thread/index.ts";
 import { CODE_EDIT_TOOLS } from "../../../platform/index.ts";
 import type { TierConfinementFinding } from "./types.ts";
 
 export const DOCTOR_SUPERVISOR_CODE_CONTAMINATION = "DOCTOR_SUPERVISOR_CODE_CONTAMINATION";
 
-export { CODE_EDIT_TOOLS };
+export { CODE_EDIT_TOOLS, isCoordinatorRole, isOrchestratorRole };
 
 export const GRAPH_MUTATION_COMMANDS: ReadonlySet<string> = new Set([
   "plan:init",
@@ -41,16 +46,8 @@ export function isMindRole(role: string): boolean {
   return role === "mind" || role.startsWith("mind-");
 }
 
-export function isCoordinatorRole(role: string): boolean {
-  return role === "coordinator" || role.startsWith("coordinator-") || role.startsWith("coord-");
-}
-
-export function isOrchestratorRole(role: string): boolean {
-  return role === "orchestrator" || role.startsWith("orch-") || role.startsWith("orchestrator-");
-}
-
 export function isImplementerRole(role: string): boolean {
-  return role === "implementer" || role === "sub-implementer" || role === "worker";
+  return role === "implementer" || role === "sub-implementer";
 }
 
 export function isValidatorRole(role: string): boolean {
@@ -200,12 +197,8 @@ export function inferRole(
   }
 
   if (/^(user|human)/i.test(actorId)) return "user";
-  if (/^coord/i.test(actorId)) return "coordinator";
-  if (/^orch/i.test(actorId)) return "orchestrator";
-  if (/^(impl|repair|worker)/i.test(actorId)) return "implementer";
-  if (/^(val|critic|audit)/i.test(actorId)) return "validator";
-  if (/^plan/i.test(actorId)) return "planner";
-  if (/^mind/i.test(actorId)) return "mind";
+  const inferred = inferRoleFromAgentId(actorId);
+  if (inferred) return inferred;
 
   return "unknown";
 }

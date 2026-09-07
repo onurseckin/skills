@@ -4,7 +4,12 @@ import { existsSync, readFileSync, lstatSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
 import { createHash } from "node:crypto";
-import { isSandboxRepoRoot, isTestEnvironment, resolveSkillHomeRepo } from "../../../core/index.ts";
+import {
+  isSandboxRepoRoot,
+  isSkillHomeRepoRoot,
+  isTestEnvironment,
+  resolveSkillHomeRepo,
+} from "../../../core/index.ts";
 import type { ParsedCharter } from "./types.ts";
 import { parseCharterFromYaml } from "./parser.ts";
 export function parseCharter(content: string): ParsedCharter {
@@ -45,16 +50,22 @@ export function resolveCharterPath(
   charterRepoRoots?: readonly string[],
 ): string {
   const isDefault = !charterSourceRel || charterSourceRel === DEFAULT_CHARTER_RELATIVE_PATH;
+  const isSkillHome = isSkillHomeRepoRoot(repoRoot);
   const candidates: string[] = [];
 
   if (charterSourceRel && !isDefault) {
     const filename = charterSourceRel.split("/").pop() || charterSourceRel;
     candidates.push(resolve(repoRoot, charterSourceRel));
-    candidates.push(resolve(repoRoot, "olt", "agents", filename));
+    if (isSkillHome) {
+      candidates.push(resolve(repoRoot, "olt", "agents", filename));
+    }
     candidates.push(resolve(repoRoot, "agents", filename));
     if (charterRepoRoots && charterRepoRoots.length > 0) {
       for (const r of charterRepoRoots) {
         candidates.push(resolve(repoRoot, r, charterSourceRel));
+        if (isSkillHomeRepoRoot(resolve(repoRoot, r))) {
+          candidates.push(resolve(repoRoot, r, "olt", "agents", filename));
+        }
         candidates.push(resolve(repoRoot, r, filename));
       }
     }
@@ -65,12 +76,15 @@ export function resolveCharterPath(
       candidates.push(join(resolveSkillHomeRepo(repoRoot), "olt", "agents", filename));
     }
   } else {
-    // Canonical YAML manifest SSoT lookup hierarchy: olt/agents/mind.yaml -> agents/mind.yaml
-    candidates.push(resolve(repoRoot, "olt", "agents", "mind.yaml"));
+    if (isSkillHome) {
+      candidates.push(resolve(repoRoot, "olt", "agents", "mind.yaml"));
+    }
     candidates.push(resolve(repoRoot, "agents", "mind.yaml"));
     if (charterRepoRoots && charterRepoRoots.length > 0) {
       for (const r of charterRepoRoots) {
-        candidates.push(resolve(repoRoot, r, "olt", "agents", "mind.yaml"));
+        if (isSkillHomeRepoRoot(resolve(repoRoot, r))) {
+          candidates.push(resolve(repoRoot, r, "olt", "agents", "mind.yaml"));
+        }
         candidates.push(resolve(repoRoot, r, "agents", "mind.yaml"));
       }
     }
@@ -84,6 +98,9 @@ export function resolveCharterPath(
     if (existsSync(candidate) && lstatSync(candidate).isFile()) {
       return candidate;
     }
+  }
+  if (isDefault && !isSkillHome) {
+    return resolve(repoRoot, ".olt", "mind.yaml");
   }
   return resolve(repoRoot, charterSourceRel || DEFAULT_CHARTER_RELATIVE_PATH);
 }

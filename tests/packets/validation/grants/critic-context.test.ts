@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { criticContext } from "../../../../olt/scripts/src/packets/critic-context.ts";
 import type { PacketInput } from "../../../../olt/scripts/src/packets/types.ts";
 import { repositoryBindingFromInspection } from "../../../../olt/scripts/src/packets/repository-inspection.ts";
-import { completionReadinessSnapshot } from "../../../../olt/scripts/src/workflow/completion/readiness-snapshot.ts";
+import { completionReadinessSnapshot } from "../../../../olt/scripts/src/workflow/completion/index.ts";
 import { commandRecord, workflowState } from "../../../workflow/index.ts";
 import { inspection } from "../../payloads/slicing/inspection-fixture.ts";
 

@@ -1,3 +1,5 @@
+import { isCoordinatorRole } from "../thread/index.ts";
+
 export const KNOWN_SHELLS = new Set(["sh", "bash", "zsh", "dash", "ksh", "csh", "tcsh"]);
 export const KNOWN_INTERPRETERS = new Set([
   "node",
@@ -222,15 +224,7 @@ export function inferActorRole(actorId: string): string {
   return "implementer";
 }
 
-export function isCoordinatorRole(role: string): boolean {
-  const norm = role.trim().toLowerCase().replace(/_/gu, "-");
-  return (
-    norm === "coordinator" ||
-    norm.startsWith("coordinator-") ||
-    norm.endsWith("-coordinator") ||
-    norm.includes("coordinator")
-  );
-}
+export { isCoordinatorRole };
 
 export function inspectShellEval(
   actorRole: string,

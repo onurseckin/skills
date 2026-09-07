@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { completionIssues } from "../../../../olt/scripts/src/workflow/completion/completion-state.ts";
+import { completionIssues } from "../../../../olt/scripts/src/workflow/completion/index.ts";
 import { dispositionOrphanEvidence } from "../../../../olt/scripts/src/workflow/orphan-evidence/disposition.ts";
 import { orphanEvidenceSha256 } from "../../../../olt/scripts/src/workflow/orphan-evidence/digest.ts";
 import { at, TestPort, workflowState } from "../../shared/test-port.ts";

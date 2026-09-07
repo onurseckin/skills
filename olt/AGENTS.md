@@ -463,7 +463,7 @@ All contributions to the `@onurseckin/skills` monorepo must strictly satisfy all
 2. **Zero Compiler & Linter Suppressions:**
    - Exactly **0 compiler/linter suppressions** (`@ts-ignore`, `@ts-expect-error`, `eslint-disable`) are permitted anywhere in the repository.
 3. **Context-Friendly File Size Budgets:**
-   - Production source files must remain compact and modular: $\le 200$ lines for production sources, $\le 250$ lines for unit test suites.
+   - Production source files must remain compact and modular: $\le 400$ physical lines per file.
 4. **100% Host-Agnostic & Zero Runtime Dependencies:**
    - Harness and scripts must run using native runtime APIs (`bun` / `node` built-ins). No external runtime `node_modules` or runtime `npm install` requirements.
 5. **File-Scoped Falsifiable Test Coverage:**

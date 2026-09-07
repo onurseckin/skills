@@ -1,8 +1,7 @@
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import ts from "typescript";
 import { HarnessError } from "../../core/errors/index.ts";
 import { ALL_RULES } from "../rules/index.ts";
-import { formatAstLintReport } from "./formatters.ts";
 import {
   ALL_AST_LINT_RULES,
   createEmptyRuleSummary,
@@ -14,8 +13,7 @@ import {
   type AstLintRule,
   type AstLintViolation,
   type RuleContext,
-} from "./index.ts";
-import { lintDirectory } from "./scanner.ts";
+} from "../core/index.ts";
 
 export function lintSourceCode(
   sourceCode: string,
@@ -117,39 +115,4 @@ export function lintFile(filePath: string, options?: AstLintOptions): AstLintRes
   }
   const content = readFileSync(filePath, "utf-8");
   return lintSourceCode(content, filePath, options);
-}
-
-export function assertZeroFallbackCompliance(
-  filePathOrSource: string,
-  options?: AstLintOptions,
-): void {
-  let result: AstLintResult;
-
-  if (typeof filePathOrSource === "string" && existsSync(filePathOrSource)) {
-    const stat = statSync(filePathOrSource);
-    if (stat.isDirectory()) {
-      const dirResult = lintDirectory(filePathOrSource, options);
-      if (!dirResult.valid) {
-        const report = formatAstLintReport(dirResult);
-        throw new HarnessError(
-          "INTEGRITY",
-          `Zero-fallback compliance check failed for directory '${filePathOrSource}' with ${dirResult.totalViolations} violations:\n${report}`,
-          [{ directory: filePathOrSource, totalViolations: dirResult.totalViolations }],
-        );
-      }
-      return;
-    }
-    result = lintFile(filePathOrSource, options);
-  } else {
-    result = lintSourceCode(filePathOrSource, "anonymous.ts", options);
-  }
-
-  if (!result.valid) {
-    const report = formatAstLintReport(result);
-    throw new HarnessError(
-      "INTEGRITY",
-      `Zero-fallback compliance check failed for '${result.filePath}' with ${result.totalViolations} violations:\n${report}`,
-      [{ file: result.filePath, totalViolations: result.totalViolations }],
-    );
-  }
 }

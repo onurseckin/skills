@@ -1,13 +1,18 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   mindSelfEvolveCommand,
   mindStrategicCognitionCommand,
 } from "../../../olt/scripts/src/mind/core/evolution-command.ts";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("evolution-command Core Module Coverage Suite", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
   let tempDir: string;
   let charterPath: string;
   let taskQueuePath: string;
@@ -16,13 +21,15 @@ describe("evolution-command Core Module Coverage Suite", () => {
   let capsulesDir: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "evolution-cmd-test-"));
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    tempDir = "/virtual/evolution-cmd-test";
     charterPath = join(tempDir, "CHARTER.yaml");
     taskQueuePath = join(tempDir, "tasks.jsonl");
     feedbackQueuePath = join(tempDir, "feedback.jsonl");
     historyPath = join(tempDir, "history.jsonl");
     capsulesDir = join(tempDir, "capsules");
-    mkdirSync(capsulesDir, { recursive: true });
+    vfs.mkdirSync(capsulesDir, { recursive: true });
 
     const charterYaml = `
 identity: "Test Mind Core"
@@ -32,19 +39,16 @@ goals:
 non_goals:
   - "Make-work"
 `;
-    writeFileSync(charterPath, charterYaml, "utf8");
-    writeFileSync(taskQueuePath, "", "utf8");
-    writeFileSync(feedbackQueuePath, "", "utf8");
+    vfs.writeFileSync(charterPath, charterYaml, "utf8");
+    vfs.writeFileSync(taskQueuePath, "", "utf8");
+    vfs.writeFileSync(feedbackQueuePath, "", "utf8");
   });
 
   afterEach(() => {
-    if (existsSync(tempDir)) {
-      rmSync(tempDir, { recursive: true, force: true });
-    }
+    session.cleanup();
   });
 
   test("mindSelfEvolveCommand executes Mode A discovery with default and custom flags", () => {
-    // 1. Mode A execution with custom parameters
     const result1 = mindSelfEvolveCommand({
       charter: charterPath,
       "task-queue": taskQueuePath,
@@ -79,7 +83,7 @@ non_goals:
       status: "PENDING",
       category: "CLI_TOOLING",
     };
-    writeFileSync(feedbackQueuePath, JSON.stringify(feedbackItem) + "\n", "utf8");
+    vfs.writeFileSync(feedbackQueuePath, JSON.stringify(feedbackItem) + "\n", "utf8");
 
     const result = mindSelfEvolveCommand({
       charter: charterPath,
@@ -95,7 +99,6 @@ non_goals:
   });
 
   test("mindStrategicCognitionCommand executes proactive cognition with default and custom windows", () => {
-    // 1. Default window-hours (2h)
     const result1 = mindStrategicCognitionCommand({});
 
     expect(result1.altitude).toBe("30,000 feet");
@@ -107,7 +110,6 @@ non_goals:
     expect(result1.candidate_admission).toBeDefined();
     expect(result1.proactive_roadmap).toBeDefined();
 
-    // 2. Custom window-hours and fleet-id
     const result2 = mindStrategicCognitionCommand({
       "window-hours": 5,
       "fleet-id": "fleet-test-omega",

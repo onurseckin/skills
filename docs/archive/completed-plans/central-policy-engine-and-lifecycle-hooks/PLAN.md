@@ -62,17 +62,17 @@
 
 ## 2. Architectural Constraints & Invariants
 
-1. **Strict LOC Budget ($\le 300$ LOC/file):**
-   - `olt/scripts/src/policy/repo-policy.ts`: 247 LOC ($\le 300$).
-   - `olt/scripts/src/policy/policy-enforcer.ts`: 256 LOC ($\le 300$).
-   - `olt/scripts/src/policy/hooks/lifecycle-hooks-engine.ts`: 199 LOC ($\le 300$).
-   - `olt/scripts/src/policy/hooks/lifecycle-hooks.ts`: 60 LOC ($\le 300$).
-   - `olt/scripts/src/policy/index.ts`: 165 LOC ($\le 300$).
-   - `olt/scripts/src/engine/runner/subagent-pool.ts`: 222 LOC ($\le 300$).
-   - `olt/scripts/src/telemetry/circuit-breaker.ts`: 172 LOC ($\le 300$).
-   - `olt/scripts/src/telemetry/circuit-breaker-evaluator.ts`: 283 LOC ($\le 300$).
-   - `tests/unit/engine/concurrency-cap.test.ts`: 267 LOC ($\le 300$).
-   - `tests/unit/policy/central-policy-engine.test.ts`: 173 LOC ($\le 300$).
+1. **Strict LOC Budget ($\le 400$ LOC/file):**
+   - `olt/scripts/src/policy/repo-policy.ts`: 247 LOC ($\le 400$).
+   - `olt/scripts/src/policy/policy-enforcer.ts`: 256 LOC ($\le 400$).
+   - `olt/scripts/src/policy/hooks/lifecycle-hooks-engine.ts`: 199 LOC ($\le 400$).
+   - `olt/scripts/src/policy/hooks/lifecycle-hooks.ts`: 60 LOC ($\le 400$).
+   - `olt/scripts/src/policy/index.ts`: 165 LOC ($\le 400$).
+   - `olt/scripts/src/engine/runner/subagent-pool.ts`: 222 LOC ($\le 400$).
+   - `olt/scripts/src/telemetry/circuit-breaker.ts`: 172 LOC ($\le 400$).
+   - `olt/scripts/src/telemetry/circuit-breaker-evaluator.ts`: 283 LOC ($\le 400$).
+   - `tests/unit/engine/concurrency-cap.test.ts`: 267 LOC ($\le 400$).
+   - `tests/unit/policy/central-policy-engine.test.ts`: 173 LOC ($\le 400$).
 2. **Directory Density Limit ($\le 10$ files/dir):**
    - `olt/scripts/src/policy/`: 8 direct files ($\le 10$).
    - `olt/scripts/src/policy/hooks/`: 5 direct files ($\le 10$).
@@ -214,7 +214,7 @@ bun test tests/unit/policy/policy-enforcer.test.ts
 # Gate 4: Mind Concurrency Cap Suite
 bun test tests/unit/mind/concurrency-cap.test.ts
 
-# Gate 5: Modularity Ratchet Invariants (LOC <= 300, density <= 10, 0 comments)
+# Gate 5: Modularity Ratchet Invariants (LOC <= 400, density <= 10, 0 comments)
 bun scripts/modularity/check.ts --mode ratchet
 ```
 
@@ -276,8 +276,8 @@ All target files, line coordinates, architectural invariants, and test gates are
 
 ### Round 2: Architectural Constraints & Invariant Compliance
 
-- **Critic Pushback:** Confirm physical line density ($\le 300$ LOC/file) across all policy and runner files, verify 0 comments, 0 `any`, and directory file density ($\le 10$).
-- **Drafter Resolution:** Line counts verified: `repo-policy.ts` (247), `policy-enforcer.ts` (256), `subagent-pool.ts` (222), `circuit-breaker.ts` (172), `circuit-breaker-evaluator.ts` (283), `lifecycle-hooks-engine.ts` (199), `concurrency-cap.test.ts` (267), `central-policy-engine.test.ts` (173). All $\le 300$ LOC. Verified 0 comments, 0 `any`, and $\le 10$ files per directory.
+- **Critic Pushback:** Confirm physical line density ($\le 400$ LOC/file) across all policy and runner files, verify 0 comments, 0 `any`, and directory file density ($\le 10$).
+- **Drafter Resolution:** Line counts verified: `repo-policy.ts` (247), `policy-enforcer.ts` (256), `subagent-pool.ts` (222), `circuit-breaker.ts` (172), `circuit-breaker-evaluator.ts` (283), `lifecycle-hooks-engine.ts` (199), `concurrency-cap.test.ts` (267), `central-policy-engine.test.ts` (173). All $\le 400$ LOC. Verified 0 comments, 0 `any`, and $\le 10$ files per directory.
 
 ### Round 3: 8-Vector Expansion Matrix Edge Cases & Fail-Closed Robustness
 

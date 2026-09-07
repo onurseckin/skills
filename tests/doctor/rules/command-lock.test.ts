@@ -1,78 +1,33 @@
-import { afterEach, describe, expect, spyOn, test } from "bun:test";
-import * as fs from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import * as cle from "../../../olt/scripts/src/reporting/doctor/command-lock-engine.ts";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 export const commandLockSuiteName =
   "checkCognitiveValidatorCommandLock & checkCommandLockIntegrity";
 
-type VirtualNode = { isDir: boolean; content?: string };
-const vfs = new Map<string, VirtualNode>();
-const spies: Array<{ mockRestore: () => void }> = [];
-
-const getStats = (p: fs.PathLike): fs.Stats => {
-  const s = String(p).replace(/\/+$/, ""),
-    n = vfs.get(s);
-  if (n)
-    return {
-      isFile: () => !n.isDir,
-      isDirectory: () => n.isDir,
-      isSymbolicLink: () => false,
-      mode: n.isDir ? 0o755 : 0o644,
-      size: n.content ? Buffer.byteLength(n.content) : 0,
-      mtimeMs: Date.now(),
-    } as fs.Stats;
-  if (Array.from(vfs.keys()).some((k) => k.startsWith(`${s}/`)))
-    return {
-      isFile: () => false,
-      isDirectory: () => true,
-      isSymbolicLink: () => false,
-      mode: 0o755,
-      size: 0,
-      mtimeMs: Date.now(),
-    } as fs.Stats;
-  throw new Error(`ENOENT: ${s}`);
-};
-
-const listDir = (p: fs.PathLike, opt?: unknown) => {
-  const pref = `${String(p).replace(/\/+$/, "")}/`,
-    ent = new Map<string, boolean>();
-  for (const [k, v] of vfs.entries())
-    if (k.startsWith(pref) && k.length > pref.length) {
-      const seg = k.slice(pref.length).split("/")[0];
-      if (seg && !ent.has(seg)) ent.set(seg, k.slice(pref.length).includes("/") || v.isDir);
-    }
-  const wt = typeof opt === "object" && opt !== null && "withFileTypes" in opt;
-  return (wt
-    ? Array.from(ent.entries()).map(([n, d]) => ({
-        name: n,
-        isDirectory: () => d,
-        isFile: () => !d,
-        isSymbolicLink: () => false,
-      }))
-    : Array.from(ent.keys())) as unknown as fs.Dirent[];
-};
+let vfs = new VirtualMemoryFS();
+let session: VirtualFSSession | null = null;
 
 function setupVirtualFs(): void {
-  vfs.clear();
-  spies.push(
-    spyOn(fs, "existsSync").mockImplementation((p) => {
-      const s = String(p).replace(/\/+$/, "");
-      return vfs.has(s) || Array.from(vfs.keys()).some((k) => k.startsWith(`${s}/`));
-    }),
-    spyOn(fs, "statSync").mockImplementation(getStats),
-    spyOn(fs, "readdirSync").mockImplementation(listDir),
-    spyOn(fs, "readFileSync").mockImplementation((p) => {
-      const n = vfs.get(String(p));
-      if (!n || n.content === undefined) throw new Error(`ENOENT: ${String(p)}`);
-      return n.content;
-    }),
-  );
+  if (session) session.cleanup();
+  vfs = new VirtualMemoryFS();
+  session = createVirtualFSSession(vfs);
 }
 
+beforeEach(() => {
+  setupVirtualFs();
+});
+
 afterEach(() => {
-  for (const s of spies.splice(0)) s.mockRestore();
-  vfs.clear();
+  if (session) {
+    session.cleanup();
+    session = null;
+  }
 });
 
 const checkSt = (
@@ -225,28 +180,28 @@ describe(commandLockSuiteName, () => {
 
   test("detects corrupted state.json, validator violations, and implementer whole-suite violations", () => {
     setupVirtualFs();
-    const scratch = "/virtual/cmd-lock-test",
-      capDir = join(scratch, ".olt", "capsules");
-    vfs.set(scratch, { isDir: true });
-    vfs.set(capDir, { isDir: true });
-    vfs.set(join(capDir, "cap-corrupt"), { isDir: true });
-    vfs.set(join(capDir, "cap-val-violation"), { isDir: true });
-    vfs.set(join(capDir, "cap-impl-violation"), { isDir: true });
-    vfs.set(join(capDir, "cap-corrupt", "state.json"), { content: "{ invalid json", isDir: false });
-    vfs.set(join(capDir, "cap-val-violation", "state.json"), {
-      content: JSON.stringify({
+    const scratch = "/virtual/cmd-lock-test";
+    const capDir = join(scratch, ".olt", "capsules");
+    vfs.mkdirSync(scratch, { recursive: true });
+    vfs.mkdirSync(capDir, { recursive: true });
+    vfs.mkdirSync(join(capDir, "cap-corrupt"), { recursive: true });
+    vfs.mkdirSync(join(capDir, "cap-val-violation"), { recursive: true });
+    vfs.mkdirSync(join(capDir, "cap-impl-violation"), { recursive: true });
+    vfs.writeFileSync(join(capDir, "cap-corrupt", "state.json"), "{ invalid json");
+    vfs.writeFileSync(
+      join(capDir, "cap-val-violation", "state.json"),
+      JSON.stringify({
         agents: { "v-1": { role: "validator" } },
         commands: [{ agent_id: "v-1", command: "echo test" }],
       }),
-      isDir: false,
-    });
-    vfs.set(join(capDir, "cap-impl-violation", "state.json"), {
-      content: JSON.stringify({
+    );
+    vfs.writeFileSync(
+      join(capDir, "cap-impl-violation", "state.json"),
+      JSON.stringify({
         agents: { "impl-1": { role: "implementer" } },
         commands: [{ agent_id: "impl-1", command: "bun test" }],
       }),
-      isDir: false,
-    });
+    );
 
     const res = cle.checkCommandLockIntegrity(scratch);
     const codes = [
@@ -264,7 +219,7 @@ describe(commandLockSuiteName, () => {
   test("audits direct capsule directory path correctly", () => {
     setupVirtualFs();
     const scratch = "/virtual/cmd-lock-direct";
-    vfs.set(scratch, { isDir: true });
+    vfs.mkdirSync(scratch, { recursive: true });
     const state = {
       agents: { "worker-1": { role: "implementer" } },
       commands: [
@@ -274,7 +229,7 @@ describe(commandLockSuiteName, () => {
         },
       ],
     };
-    vfs.set(join(scratch, "state.json"), { content: JSON.stringify(state), isDir: false });
+    vfs.writeFileSync(join(scratch, "state.json"), JSON.stringify(state));
 
     const res = cle.checkCommandLockIntegrity(scratch);
     expect(

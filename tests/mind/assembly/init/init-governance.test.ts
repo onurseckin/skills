@@ -54,6 +54,8 @@ repo_roots:
     vfs = new VirtualMemoryFS();
     session = createVirtualFSSession(vfs);
     vfs.mkdirSync(`${repoRoot}/.git`, { recursive: true });
+    vfs.mkdirSync(`${repoRoot}/olt/scripts`, { recursive: true });
+    vfs.writeFileSync(`${repoRoot}/olt/scripts/harness.ts`, "");
     vfs.mkdirSync(`${repoRoot}/olt/agents`, { recursive: true });
     vfs.writeFileSync(`${repoRoot}/olt/agents/mind.yaml`, validYaml);
   });

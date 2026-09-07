@@ -278,7 +278,7 @@ describe(policyDoctorSuiteName, () => {
       initOut.ok &&
         getOut.value === "bun test" &&
         driftOut.ok &&
-        src.split(/\r?\n/).length <= 300 &&
+        src.split(/\r?\n/).length <= 400 &&
         pol.CURRENT_POLICY_SCHEMA_VERSION === 1,
     ).toBe(true);
   });

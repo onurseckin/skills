@@ -204,7 +204,7 @@ describe("mind:quiesce CLI Command Coverage Suite", () => {
     expect(res.previous_streak).toBe(0);
     expect(res.digest_triggered).toBe(false);
     expect(res.digest).toBeUndefined();
-    expect(res.base_interval_ms).toBe(res.base_interval_ms);
+    expect(res.base_interval_ms).toBe(900_000);
     expect(res.armed_interval_ms).toBeGreaterThan(0);
     expect(res.sources.length).toBe(10);
     expect(res.observed_at).toBe("2026-09-01T15:00:00.000Z");

@@ -1,5 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
-import { auditAntiStagnationPassivity } from "../../olt/scripts/src/mind/auditing/anti-stagnation-engine.ts";
+import { auditAntiStagnationPassivity } from "../../olt/scripts/src/mind/auditing/index.ts";
 import * as manager from "../../olt/scripts/src/workflow/worktree/manager.ts";
 import * as clusterer from "../../olt/scripts/src/mind/preplanning/backlog-clusterer.ts";
 

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { beginCompletenessCritic } from "../../../../olt/scripts/src/workflow/completion/begin-completeness-critic.ts";
-import { recordCompletionReview } from "../../../../olt/scripts/src/workflow/completion/record-completion-review.ts";
+import { beginCompletenessCritic } from "../../../../olt/scripts/src/workflow/completion/index.ts";
+import { recordCompletionReview } from "../../../../olt/scripts/src/workflow/completion/index.ts";
 import {
   at,
   commandRecord,

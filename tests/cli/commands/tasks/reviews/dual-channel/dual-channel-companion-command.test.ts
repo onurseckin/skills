@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { taskReviewCommand } from "../../../../../../olt/scripts/src/cli/commands/task-review.ts";
 import { initRun, transact } from "../../../../../../olt/scripts/src/engine/store/index.ts";
@@ -14,16 +13,18 @@ import {
   writeAgentMetadata,
 } from "../../../../../../olt/scripts/src/runtime/index.ts";
 import { createSyntheticPngBuffer } from "../../../../../../olt/scripts/src/capture/runners/live-capture-runner/index.ts";
+import { VirtualMemoryFS } from "../../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   cleanupVirtualCliFS,
   setupVirtualCliFS,
 } from "../../../fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
+let vfs: VirtualMemoryFS;
 
 describe("Task Review Dual-Channel - Companion Manifest Command Depth Check", () => {
   beforeEach(() => {
-    setupVirtualCliFS();
+    vfs = setupVirtualCliFS();
   });
 
   afterEach(() => {
@@ -34,10 +35,10 @@ describe("Task Review Dual-Channel - Companion Manifest Command Depth Check", ()
   it("taskReviewCommand throws HarnessError and refuses pass when companion manifest is shallow under --require-semantic-depth", async () => {
     const testDir = `/virtual/cli/test-dual-chan-capsule-${Math.random().toString(36).slice(2)}`;
     roots.push(testDir);
-    mkdirSync(testDir, { recursive: true });
-    mkdirSync(join(testDir, ".git"), { recursive: true });
-    writeFileSync(join(testDir, ".gitignore"), ".capsules/\n.olt/\nscreenshots/\n");
-    writeFileSync(join(testDir, "README.md"), "# Test\n");
+    vfs.mkdirSync(testDir, { recursive: true });
+    vfs.mkdirSync(join(testDir, ".git"), { recursive: true });
+    vfs.writeFileSync(join(testDir, ".gitignore"), ".capsules/\n.olt/\nscreenshots/\n");
+    vfs.writeFileSync(join(testDir, "README.md"), "# Test\n");
 
     const promptBytes = new TextEncoder().encode("Test prompt for dual-channel validation");
     const runRoot = initRun(testDir, "test-run", promptBytes, "file", true);
@@ -184,13 +185,13 @@ describe("Task Review Dual-Channel - Companion Manifest Command Depth Check", ()
     const checkId = cmdResult.record.id;
 
     const screenshotsDir = join(testDir, "screenshots");
-    mkdirSync(screenshotsDir, { recursive: true });
+    vfs.mkdirSync(screenshotsDir, { recursive: true });
     const p1 = join(screenshotsDir, "card-desktop.png");
     const p2 = join(screenshotsDir, "card-tablet.png");
     const p3 = join(screenshotsDir, "card-mobile.png");
-    writeFileSync(p1, createSyntheticPngBuffer(1440, 900, 2048));
-    writeFileSync(p2, createSyntheticPngBuffer(768, 1024, 1536));
-    writeFileSync(p3, createSyntheticPngBuffer(390, 844, 1200));
+    vfs.writeFileSync(p1, createSyntheticPngBuffer(1440, 900, 2048));
+    vfs.writeFileSync(p2, createSyntheticPngBuffer(768, 1024, 1536));
+    vfs.writeFileSync(p3, createSyntheticPngBuffer(390, 844, 1200));
 
     ingestScreenshots({
       runRoot,
@@ -201,7 +202,7 @@ describe("Task Review Dual-Channel - Companion Manifest Command Depth Check", ()
     });
 
     const capturesDir = join(runRoot, "captures");
-    mkdirSync(capturesDir, { recursive: true });
+    vfs.mkdirSync(capturesDir, { recursive: true });
 
     const shallowManifest = {
       schema: "companion.manifest.v1",
@@ -232,7 +233,7 @@ describe("Task Review Dual-Channel - Companion Manifest Command Depth Check", ()
         { id: "CRIT-UX-FOCUS", pillar: "ux", passed: true, details: "ok", evidence: "pass" },
       ],
     };
-    writeFileSync(
+    vfs.writeFileSync(
       join(capturesDir, "card-desktop.manifest.json"),
       JSON.stringify(shallowManifest, null, 2),
     );

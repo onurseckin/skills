@@ -1,4 +1,4 @@
-import type { SidebarLayoutConfig } from "../config/types.ts";
+import type { SidebarLayoutConfig } from "../config/index.ts";
 
 export type ValidationVerdict = "CERTIFIED" | "DEFECTS_FOUND" | "NOT_CERTIFIED";
 

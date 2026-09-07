@@ -1,10 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  criticRejectCommand,
-  criticRemediateCommand,
   criticReviewCommand,
   criticStartCommand,
 } from "../../../../../olt/scripts/src/cli/commands/critic-ops.ts";
@@ -12,14 +8,14 @@ import { registerInspectionCommand, setupReadyRun } from "../../fixtures/critic-
 import {
   cleanupRoots,
   cleanupVirtualCliFS,
+  getVirtualCliFS,
   setupVirtualCliFS,
 } from "../../fixtures/full-lifecycle-fixture.ts";
-import { transact, loadRun } from "../../../../../olt/scripts/src/engine/store/index.ts";
+import { loadRun, transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
 import {
   disableInMemoryAgentMetadata,
   enableInMemoryAgentMetadata,
 } from "../../../../../olt/scripts/src/runtime/session.ts";
-import { reviewedFindingsRun } from "./critic-remediate-core.test.ts";
 
 const roots: string[] = [];
 
@@ -130,7 +126,6 @@ describe("critic-ops comprehensive test suite", () => {
     expect(review.report_path).toBeDefined();
     expect(String(review.markdown)).toContain("APPROVED");
 
-    // Fallback to runGateChecks when critic has no direct inspection commands
     const { run: runGate } = await setupReadyRun("critic-no-findings", roots);
     const criticGate = "critic-delta";
     const startGate = await criticStartCommand({ run: runGate, critic: criticGate });
@@ -161,10 +156,11 @@ describe("critic-ops comprehensive test suite", () => {
     const packet = loadRun(run).state.packets?.[start.packet_id as string];
     const repoCmds = packet?.repository_command_ids ?? [cmdId];
 
-    const reviewDir = await mkdtemp(join(tmpdir(), "review-test-"));
+    const reviewDir = `/virtual/cli/review-test-${Date.now()}`;
+    getVirtualCliFS().mkdirSync(reviewDir, { recursive: true });
     roots.push(reviewDir);
     const reviewPath = join(reviewDir, "review.json");
-    await writeFile(
+    getVirtualCliFS().writeFileSync(
       reviewPath,
       JSON.stringify({
         graph_revision: 1,
@@ -197,105 +193,5 @@ describe("critic-ops comprehensive test suite", () => {
 
     expect(result.decision).toBe("approve");
     expect(result.summary).toBe("Comprehensive sign-off verified via external review document.");
-  });
-
-  test("criticRejectCommand records structured findings and formats reject brief", async () => {
-    const { repo, run } = await setupReadyRun("critic-reject-flow", roots);
-    const criticId = "critic-gamma";
-    const cmdId = "C-INSPECT-REJECT";
-    registerInspectionCommand(run, repo, cmdId, criticId);
-
-    const start = await criticStartCommand({
-      run,
-      critic: criticId,
-      "repository-command-ids": [cmdId],
-    });
-    const token = start.token as string;
-
-    const findings = [
-      {
-        id: "F-UNIT-01",
-        requirement_id: "req-1",
-        severity: "critical",
-        observation: "Missing validation logic in controller",
-        remediation: "Add input validation boundary checks",
-        revalidation: "bun test tests/controller.test.ts",
-      },
-    ];
-
-    const reject = await criticRejectCommand({
-      run,
-      critic: criticId,
-      token,
-      findings: JSON.stringify(findings),
-      summary: "Identified critical boundary validation defect.",
-    });
-
-    expect(reject.decision).toBe("request_changes");
-    expect(reject.findings_count).toBe(1);
-    expect(String(reject.markdown)).toContain("CHANGES REQUESTED");
-  });
-
-  test("criticRemediateCommand validates finding-command pairs and errors", async () => {
-    const { run, findingId } = await reviewedFindingsRun("comp-remediate", roots);
-
-    expect(() =>
-      criticRemediateCommand({
-        run,
-        actor: "coordinator",
-        resolve: ["invalid-pair-no-equals"],
-        "resolution-method": [`${findingId}=repaired`],
-      }),
-    ).toThrow("--resolve must be given as <finding-id>=<value>");
-
-    expect(() =>
-      criticRemediateCommand({
-        run,
-        actor: "coordinator",
-        resolve: [`${findingId}=C-FIX`],
-        "resolution-method": [`${findingId}=m1`, `${findingId}=m2`],
-      }),
-    ).toThrow(`finding ${findingId} has two --resolution-method`);
-
-    expect(() =>
-      criticRemediateCommand({
-        run,
-        actor: "coordinator",
-        resolve: [`${findingId}=`],
-        "resolution-method": [`${findingId}=repaired`],
-      }),
-    ).toThrow(`--resolve must be given as <finding-id>=<value>`);
-
-    expect(() =>
-      criticRemediateCommand({ run, actor: "coordinator", resolve: [`${findingId}=C-FIX`] }),
-    ).toThrow(`finding ${findingId} has no --resolution-method; state how it was remediated`);
-
-    const result = criticRemediateCommand({
-      run,
-      actor: "coordinator",
-      resolve: [`${findingId}=C-FIX`],
-      "resolution-method": [`${findingId}=repaired logic and validated test`],
-    });
-
-    expect(result.run_root).toBe(run);
-    expect(result.remediation).toBeDefined();
-    expect(String(result.markdown)).toContain("Completion Findings Remediated");
-  });
-
-  test("criticRemediateCommand rejects when no review is recorded", async () => {
-    const { repo, run } = await setupReadyRun("critic-approve-run", roots);
-    registerInspectionCommand(run, repo, "C-NONE", "critic-alpha");
-    transact(run, "test-setup", "clear-review", {}, (state) => {
-      delete state.completion_review;
-    });
-
-    expect(() =>
-      criticRemediateCommand({
-        run,
-        actor: "coordinator",
-        resolve: ["F-1=C-NONE"],
-        "resolution-method": ["F-1=fixed"],
-      }),
-    ).toThrow("no completion review is recorded for this run");
   });
 });

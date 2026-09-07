@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, describe, expect, test, spyOn } from "bun:test";
-import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { findCommand } from "../../../../olt/scripts/src/cli/registry/index.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
@@ -27,7 +26,11 @@ import {
 } from "../../../../olt/scripts/src/packets/command-authority-state.ts";
 import { requiresActingIdentity } from "../../../../olt/scripts/src/packets/grant-bootstrap-allowlist.ts";
 import { emptyGrantRun } from "../../validation/grants/grant-run-fixture.ts";
-import { cleanupVirtualAuthorityFS, setupVirtualAuthorityFS } from "./command-authority-fixture.ts";
+import {
+  cleanupVirtualAuthorityFS,
+  getVirtualAuthorityFS,
+  setupVirtualAuthorityFS,
+} from "./command-authority-fixture.ts";
 import {
   registerAgentGrant,
   releaseAgentGrant,
@@ -67,7 +70,8 @@ describe("Command Authority Edges - Invocations & Grants", () => {
   describe("command-authority-state", () => {
     test("capsuleState returns undefined when loadRun throws", async () => {
       const { run } = await emptyGrantRun("corrupt-capsule-");
-      await writeFile(join(run, "state.json"), "{ corrupted json syntax");
+      const vfs = getVirtualAuthorityFS();
+      vfs.writeFileSync(join(run, "state.json"), "{ corrupted json syntax");
       expect(capsuleState(run)).toBeUndefined();
     });
 
@@ -183,7 +187,6 @@ describe("Command Authority Edges - Invocations & Grants", () => {
         },
       ];
 
-      // parentAgentId active and agentId undefined -> throws AUTHENTICATION_FAILURE
       expect(() =>
         assertAgentRegisterHierarchy(
           { "parent-agent": "orch-1", role: "coordinator", agent: "coord-1" },
@@ -192,7 +195,6 @@ describe("Command Authority Edges - Invocations & Grants", () => {
         ),
       ).toThrow(HarnessError);
 
-      // parentAgentId active and agentId !== parentAgentId -> throws AUTHENTICATION_FAILURE
       expect(() =>
         assertAgentRegisterHierarchy(
           { "parent-agent": "orch-1", role: "coordinator", agent: "coord-1" },
@@ -201,7 +203,6 @@ describe("Command Authority Edges - Invocations & Grants", () => {
         ),
       ).toThrow("does not match --parent-agent");
 
-      // Non-empty ledger, unparented Tier 2 -> throws ROLE_CONFINEMENT_VIOLATION
       expect(() =>
         assertAgentRegisterHierarchy(
           { role: "coordinator", agent: "coord-1" },
@@ -210,7 +211,6 @@ describe("Command Authority Edges - Invocations & Grants", () => {
         ),
       ).toThrow(HarnessError);
 
-      // Non-empty ledger, unparented Tier 1, agentId undefined -> throws INVALID_STATE
       expect(() =>
         assertAgentRegisterHierarchy(
           { role: "orchestrator", agent: "orch-2" },
@@ -219,7 +219,6 @@ describe("Command Authority Edges - Invocations & Grants", () => {
         ),
       ).toThrow(HarnessError);
 
-      // Non-empty ledger, unparented Tier 1, agentId holds no active grant -> throws INVALID_STATE
       expect(() =>
         assertAgentRegisterHierarchy(
           { role: "orchestrator", agent: "orch-2" },

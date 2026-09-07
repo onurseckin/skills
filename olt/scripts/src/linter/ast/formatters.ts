@@ -5,7 +5,7 @@ import {
   type AstLintRule,
   type AstLintViolation,
   type DirectoryLintResult,
-} from "./types.ts";
+} from "../core/index.ts";
 
 export function formatAstLintReport(result: DirectoryLintResult | AstLintResult): string {
   const lines: string[] = [];

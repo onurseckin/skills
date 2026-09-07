@@ -27,7 +27,7 @@ During multi-agent continuous execution, forensic analysis and archive audits id
    Multiple facade modules (`mind/preplanning/index.ts`, `graph/index.ts`, `telemetry/index.ts`, `telemetry/collectors/index.ts`) violate the repository's explicit named exports invariant by using wildcard `export *` re-exports, degrading IDE symbol resolution and tree-shaking guarantees.
 
 4. **Source Density Budget Violations**:
-   Oversized monolithic files (>300 physical lines) and directories containing >10 files exist across `cli/commands/`, `reporting/doctor/`, and `packets/`, violating density budgets.
+   Oversized monolithic files (>400 physical lines) and directories containing >10 files exist across `cli/commands/`, `reporting/doctor/`, and `packets/`, violating density budgets.
 
 5. **Code Comments Invariant Violations**:
    Source files in `olt/scripts/src/` contain non-documentation comments, violating the ZERO_CODE_COMMENTS invariant across all executable `.ts` files.
@@ -56,7 +56,7 @@ During multi-agent continuous execution, forensic analysis and archive audits id
 ┌─────────────────────────────────────────────────────────────────────────────────────────────┐
 │                              DENSITY & QUALITY RATTER GATES                                 │
 │ ─────────────────────────────────────────────────────────────────────────────────────────── │
-│ • Density Budget: ≤ 300 Physical Lines / File, ≤ 10 Files / Subsystem Directory             │
+│ • Density Budget: ≤ 400 Physical Lines / File, ≤ 10 Files / Subsystem Directory             │
 │ • Code Hygiene: Zero Code Comments in all TypeScript files (Exempt: *.md, *.yaml, *.jsonl)  │
 │ • Zero TypeScript 'any' and Zero Compiler Suppressions                                      │
 └─────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -77,7 +77,7 @@ During multi-agent continuous execution, forensic analysis and archive audits id
 
 ## Level 4: Atomic Implementation Tasks Matrix
 
-| Task ID        | Target File Path                                | Exact TypeScript Symbols / Signatures                                  | Deliverable & Contract ($\le 300$ lines, 0 comments)                                                                                                                                         |
+| Task ID        | Target File Path                                | Exact TypeScript Symbols / Signatures                                  | Deliverable & Contract ($\le 400$ lines, 0 comments)                                                                                                                                         |
 | :------------- | :---------------------------------------------- | :--------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `task-rem-1.1` | `olt/scripts/src/cli/registry/plan.ts`          | `PLAN_COMMANDS: readonly CommandSpec[]`                                | Disambiguate `plan:init` alias from `"init"` to `["plan-init", "init-plan"]`. Ensure zero overlap with `run:init`.                                                                           |
 | `task-rem-1.2` | `olt/scripts/src/cli/registry/run.ts`           | `RUN_COMMANDS: readonly CommandSpec[]`                                 | Disambiguate `run:init` alias to `["run-init", "capsule-init"]` or canonical empty alias list.                                                                                               |
@@ -112,7 +112,7 @@ bun ~/.agents/skills/olt/scripts/harness.ts task:check --repo .
 ## Level 6: Strict Invariant Enforcement
 
 1. **Zero Code Comments**: No inline `//`, multiline `/* */`, or docblock `/** */` comments permitted in any `.ts` file.
-2. **Density Budget**: Every modified file must remain $\le 300$ physical lines. Subdirectories must contain $\le 10$ files.
+2. **Density Budget**: Every modified file must remain $\le 400$ physical lines. Subdirectories must contain $\le 10$ files.
 3. **Ban Defect-Prefix Source Files**: No `defect-*.ts` or `fb-*.ts` files permitted in source or test directories.
 4. **Explicit Named Exports**: No `export *` wildcard re-exports. Every symbol must be explicitly named in `index.ts`.
 5. **Zero Backwards-Compatibility Shims**: No deprecated type aliases, dead shims, or polyfill fallbacks.

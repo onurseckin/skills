@@ -1,8 +1,4 @@
-/**
- * @file role-boundaries.ts
- * Behavioral heuristics for detecting role boundary deviations and supervisory isolation breaches.
- */
-
+import { isCoordinatorRole, isOrchestratorRole } from "../../authority/thread/index.ts";
 import { createIncident } from "./incident-generator.ts";
 import type { BehavioralForensicsContext } from "./types.ts";
 
@@ -32,8 +28,8 @@ export interface RoleBoundaryAnalysisResult {
 export function isSupervisorRole(role: string): boolean {
   const norm = role.toLowerCase().replace(/[^a-z0-9_-]/g, "");
   return (
-    norm.includes("coord") ||
-    norm.includes("orchestrat") ||
+    isCoordinatorRole(role) ||
+    isOrchestratorRole(role) ||
     norm.includes("superv") ||
     norm.includes("planner") ||
     norm.includes("lead")

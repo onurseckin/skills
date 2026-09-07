@@ -1,6 +1,4 @@
 import { describe, expect, it } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import * as yaml from "js-yaml";
 import {
   ANTI_MAKEWORK_PILLARS,
@@ -65,15 +63,11 @@ interface AgentYamlStructure {
 }
 
 describe("Cognitive Charters & Supervisory Authority Invariants", () => {
-  const rootDir = process.cwd();
-  const mindPath = join(rootDir, "olt/agents/mind.yaml");
-  const mindAuditorPath = join(rootDir, "olt/agents/mind-auditor.yaml");
-  const skillAuditorPath = join(rootDir, "olt/agents/skill-auditor.yaml");
-
   describe("Manifest File Presence and YAML Parsing", () => {
     it("loads and parses olt/agents/mind.yaml cleanly", () => {
-      expect(existsSync(mindPath)).toBe(true);
-      const raw = readFileSync(mindPath, "utf-8");
+      const manifest = loadAgentManifest("mind");
+      expect(manifest.filePath).toBeDefined();
+      const raw = manifest.raw ?? "";
       const parsed = yaml.load(raw) as AgentYamlStructure;
 
       expect(parsed.name).toBe("mind");
@@ -84,8 +78,9 @@ describe("Cognitive Charters & Supervisory Authority Invariants", () => {
     });
 
     it("loads and parses olt/agents/mind-auditor.yaml cleanly", () => {
-      expect(existsSync(mindAuditorPath)).toBe(true);
-      const raw = readFileSync(mindAuditorPath, "utf-8");
+      const manifest = loadAgentManifest("mind-auditor");
+      expect(manifest.filePath).toBeDefined();
+      const raw = manifest.raw ?? "";
       const parsed = yaml.load(raw) as AgentYamlStructure;
 
       expect(parsed.name).toBe("mind-auditor");
@@ -96,8 +91,9 @@ describe("Cognitive Charters & Supervisory Authority Invariants", () => {
     });
 
     it("loads and parses olt/agents/skill-auditor.yaml cleanly", () => {
-      expect(existsSync(skillAuditorPath)).toBe(true);
-      const raw = readFileSync(skillAuditorPath, "utf-8");
+      const manifest = loadAgentManifest("skill-auditor");
+      expect(manifest.filePath).toBeDefined();
+      const raw = manifest.raw ?? "";
       const parsed = yaml.load(raw) as AgentYamlStructure;
 
       expect(parsed.name).toBe("skill-auditor");
@@ -124,17 +120,16 @@ describe("Cognitive Charters & Supervisory Authority Invariants", () => {
 
   describe("Cognitive Charter Structure & Mandatory Sections", () => {
     it("validates mind.yaml cognitive charter sections: goals, cognitive pillars, non-goals, prohibitions", () => {
-      const raw = readFileSync(mindPath, "utf-8");
+      const manifest = loadAgentManifest("mind");
+      const raw = manifest.raw ?? "";
       const parsed = yaml.load(raw) as AgentYamlStructure;
       const charter = parsed.charter;
 
       expect(charter).toBeDefined();
       if (!charter) return;
 
-      // Identity
       expect(charter.identity.length).toBeGreaterThan(20);
 
-      // Goals G1 - G5
       expect(charter.goals.length).toBeGreaterThanOrEqual(5);
       const goalIds = charter.goals.map((g) => g.id);
       expect(goalIds).toContain("G1");
@@ -143,7 +138,6 @@ describe("Cognitive Charters & Supervisory Authority Invariants", () => {
       expect(goalIds).toContain("G4");
       expect(goalIds).toContain("G5");
 
-      // Cognitive Pillars (23 Pillars)
       expect(charter.cognitive_pillars).toBeDefined();
       expect(charter.cognitive_pillars?.length).toBeGreaterThanOrEqual(20);
       const pillarsText = charter.cognitive_pillars?.join("\n") ?? "";
@@ -153,25 +147,26 @@ describe("Cognitive Charters & Supervisory Authority Invariants", () => {
       expect(pillarsText).toContain("Anti-Make-Work 5 Pillars of Genuine Value");
       expect(pillarsText).toContain("70/20/10 Innovation Portfolio");
 
-      // Non-goals
       expect(charter.non_goals.length).toBeGreaterThanOrEqual(3);
       const nonGoalsText = charter.non_goals.join("\n");
       expect(nonGoalsText).toContain("Cosmetic churn");
       expect(nonGoalsText).toContain("Abstraction bloat");
       expect(nonGoalsText).toContain("Speculative refactoring");
 
-      // Prohibitions
       expect(charter.prohibitions).toContain("Never use TypeScript `any`");
       expect(charter.prohibitions).toContain("Supervisor Zero Code Edits & Zero Test Runs");
       expect(charter.prohibitions).toContain("Never commit cosmetic churn");
     });
 
     it("validates mandatory cognitive invariants across mind, mind-auditor, and skill-auditor", () => {
-      const mind = yaml.load(readFileSync(mindPath, "utf-8")) as AgentYamlStructure;
-      const mindAuditor = yaml.load(readFileSync(mindAuditorPath, "utf-8")) as AgentYamlStructure;
-      const skillAuditor = yaml.load(readFileSync(skillAuditorPath, "utf-8")) as AgentYamlStructure;
+      const mind = yaml.load(loadAgentManifest("mind").raw ?? "") as AgentYamlStructure;
+      const mindAuditor = yaml.load(
+        loadAgentManifest("mind-auditor").raw ?? "",
+      ) as AgentYamlStructure;
+      const skillAuditor = yaml.load(
+        loadAgentManifest("skill-auditor").raw ?? "",
+      ) as AgentYamlStructure;
 
-      // Core invariants in Mind
       const mindInvariants = mind.invariants ?? [];
       expect(mindInvariants).toContain("SUPERVISOR_ZERO_CODE_EDITS");
       expect(mindInvariants).toContain("SUPERVISOR_ZERO_TEST_RUNS");
@@ -187,7 +182,6 @@ describe("Cognitive Charters & Supervisory Authority Invariants", () => {
       expect(mindInvariants).toContain("QUOTA_FREEZE_ZERO_KILL_RESUME");
       expect(mindInvariants).toContain("ALWAYS_ALIVE_NON_TERMINATING_AUDITOR");
 
-      // Core invariants in Mind Auditor
       const maInvariants = mindAuditor.invariants ?? [];
       expect(maInvariants).toContain("SUPERVISOR_ZERO_CODE_EDITS");
       expect(maInvariants).toContain("SUPERVISOR_ZERO_TEST_RUNS");
@@ -201,7 +195,6 @@ describe("Cognitive Charters & Supervisory Authority Invariants", () => {
       expect(maInvariants).toContain("ANTI_MAKEWORK_GENUINE_VALUE");
       expect(maInvariants).toContain("PRE_DECLARED_PARETO_ARBITRATION");
 
-      // Core invariants in Skill Auditor
       const saInvariants = skillAuditor.invariants ?? [];
       expect(saInvariants).toContain("SUPERVISOR_ZERO_CODE_EDITS");
       expect(saInvariants).toContain("SUPERVISOR_ZERO_TEST_RUNS");
@@ -250,9 +243,18 @@ describe("Cognitive Charters & Supervisory Authority Invariants", () => {
       expect(isSupervisoryRole("implementer")).toBe(false);
       expect(isSupervisoryRole("validator")).toBe(false);
 
-      expect(normalizeSupervisoryRole("tier-0")).toBe("mind");
-      expect(normalizeSupervisoryRole("orch")).toBe("orchestrator");
-      expect(normalizeSupervisoryRole("coord")).toBe("coordinator");
+      expect(normalizeSupervisoryRole("tier-0")).toBeNull();
+      expect(normalizeSupervisoryRole("tier0")).toBeNull();
+      expect(normalizeSupervisoryRole("0")).toBeNull();
+      expect(normalizeSupervisoryRole("tier-1")).toBeNull();
+      expect(normalizeSupervisoryRole("tier1")).toBeNull();
+      expect(normalizeSupervisoryRole("1")).toBeNull();
+      expect(normalizeSupervisoryRole("tier-2")).toBeNull();
+      expect(normalizeSupervisoryRole("tier2")).toBeNull();
+      expect(normalizeSupervisoryRole("2")).toBeNull();
+      expect(normalizeSupervisoryRole("mind")).toBe("mind");
+      expect(normalizeSupervisoryRole("orchestrator")).toBe("orchestrator");
+      expect(normalizeSupervisoryRole("coordinator")).toBe("coordinator");
       expect(normalizeSupervisoryRole("implementer")).toBeNull();
 
       const allProfiles = getAllRoleBoundaryProfiles();

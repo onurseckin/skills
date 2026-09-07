@@ -2,7 +2,12 @@ import { integerFlag, textFlag, type Flags } from "../options.ts";
 import { enforceLineLimit, nextActionsBlock, whoamiNextActions } from "../formatters/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { readAgentLedger } from "../../workflow/agents/ledger.ts";
-import { identifyExecutionContext, parseTierValue } from "../../authority/thread/index.ts";
+import {
+  identifyExecutionContext,
+  inferRoleFromAgentId,
+  normalizeRoleName,
+  parseTierValue,
+} from "../../authority/thread/index.ts";
 import { isJsonObject } from "../../core/contracts/index.ts";
 import type { AgentGrantRecord } from "../../core/contracts/index.ts";
 import {
@@ -107,9 +112,7 @@ export function whoamiCommand(flags: Flags): Record<string, unknown> {
           }
         }
       }
-    } catch {
-      // If run fails to load or does not exist, proceed with thread info alone
-    }
+    } catch {}
   }
 
   const filteredGrants = activeAgentId
@@ -180,15 +183,19 @@ export function whoamiCommand(flags: Flags): Record<string, unknown> {
     mdLines.push(`- **Advisory**: ⚠️ ${thread.advisory}`);
   }
 
+  const resolvedRole = thread.role
+    ? (normalizeRoleName(thread.role) ?? inferRoleFromAgentId(thread.role))
+    : null;
+
   if (
     thread.tier === 0 ||
     thread.tier === 1 ||
     thread.tier === 2 ||
     thread.is_main_thread ||
-    (thread.role &&
-      (thread.role.startsWith("orch") ||
-        thread.role.startsWith("coord") ||
-        thread.role.startsWith("mind")))
+    resolvedRole === "orchestrator" ||
+    resolvedRole === "coordinator" ||
+    resolvedRole === "mind" ||
+    resolvedRole === "mind-auditor"
   ) {
     mdLines.push(
       `- **ROLE INVARIANT**: 🚫 SUPERVISOR ROLE DETECTED (Tier ${thread.tier}). You are strictly forbidden from calling code-editing tools (\`write_to_file\`, \`replace_file_content\`). All code implementation and test execution MUST be delegated to Tier 3 subagents via \`invoke_subagent\`.`,

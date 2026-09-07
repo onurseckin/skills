@@ -25,7 +25,7 @@ Every deployed agent is monitored exclusively against the invariants belonging t
 │                      │ • Mailbox starvation surveillance      │ • Unpolled inbox > 300s          │
 │                      │ • 3 Hard Zeros (0 edits, 0 tests)      │ • Attempted shell or source edit │
 ├──────────────────────┼────────────────────────────────────────┼──────────────────────────────────┤
-│ skill-auditor        │ • Monorepo LOC density (<= 300 LOC)    │ • Staged file > 300 LOC          │
+│ skill-auditor        │ • Monorepo LOC density (<= 400 LOC)    │ • Staged file > 400 LOC          │
 │                      │ • Directory fanout (<= 10 files)       │ • Directory exceeds 10 files     │
 │                      │ • Named facade exports (0 export *)    │ • Wildcard export * detected     │
 │                      │ • Strict zero-any, zero-suppressions   │ • @ts-ignore or 'any' detected   │
@@ -64,7 +64,7 @@ Every deployed agent is monitored exclusively against the invariants belonging t
 │ implementer          │ • Leased write scope confinement       │ • Modified file outside scope    │
 │                      │ • Strict zero-any, zero-suppressions   │ • Introduced any or @ts-ignore   │
 │                      │ • Fast file-scoped test verification   │ • task:submit without test run   │
-│                      │ • Physical line budget (<= 300 LOC)    │ • File physical lines > 300      │
+│                      │ • Physical line budget (<= 400 LOC)    │ • File physical lines > 400      │
 │                      │ • Turn 1 exact edits (0 probed reads)  │ • Spent > 2 turns exploratory    │
 ├──────────────────────┼────────────────────────────────────────┼──────────────────────────────────┤
 │ sub-implementer      │ • Parent write scope strict sub-scope  │ • Modified parent's outer files  │

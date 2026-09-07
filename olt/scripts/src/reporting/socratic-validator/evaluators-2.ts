@@ -1,10 +1,9 @@
 import { isJsonObject, type JsonObject } from "../../core/contracts/index.ts";
 import { type SocraticQuestionEvaluation } from "./types.ts";
-import {
-  isImplementerRole,
-  isCoordinatorRole,
-  isOrchestratorRole,
-} from "../behavioral-auditor/index.ts";
+import { isImplementerRole } from "../behavioral-auditor/index.ts";
+import { isCoordinatorRole, isOrchestratorRole } from "../../authority/thread/index.ts";
+import { taskTwoKeyValidatorPairingIssues } from "../../workflow/completion/index.ts";
+import type { TaskRecord } from "../../workflow/index.ts";
 
 function matchesImplementer(actorOrRole: string): boolean {
   return (
@@ -17,25 +16,16 @@ function matchesImplementer(actorOrRole: string): boolean {
 }
 
 function matchesCoordinator(actorOrRole: string): boolean {
-  return (
-    isCoordinatorRole(actorOrRole) ||
-    actorOrRole.startsWith("coordinator") ||
-    actorOrRole.startsWith("coord")
-  );
+  return isCoordinatorRole(actorOrRole) || actorOrRole.startsWith("coordinator");
 }
 
 function matchesOrchestrator(actorOrRole: string): boolean {
-  return (
-    isOrchestratorRole(actorOrRole) ||
-    actorOrRole.startsWith("orchestrator") ||
-    actorOrRole.startsWith("orch")
-  );
+  return isOrchestratorRole(actorOrRole) || actorOrRole.startsWith("orchestrator");
 }
 
 export function evaluateHierarchyAndInvariants(state: JsonObject): SocraticQuestionEvaluation[] {
   const evaluations: SocraticQuestionEvaluation[] = [];
 
-  // Q1: 4-tier structural hierarchy & role segregation
   const commandsObj = isJsonObject(state.commands) ? state.commands : {};
   const commands = Object.values(commandsObj).filter(isJsonObject);
   let hierarchyViolations = 0;
@@ -45,7 +35,6 @@ export function evaluateHierarchyAndInvariants(state: JsonObject): SocraticQuest
     const argv = Array.isArray(cmd.argv) ? (cmd.argv as unknown[]).map(String) : [];
     const joined = argv.join(" ");
 
-    // Check for coordinator code writing or orchestrator direct implementation in command args
     if (
       matchesCoordinator(actor) &&
       (joined.includes("task:claim") || joined.includes("plan:claim"))
@@ -85,7 +74,6 @@ export function evaluateHierarchyAndInvariants(state: JsonObject): SocraticQuest
       : {}),
   });
 
-  // Q2: Strict quantitative code invariants (0 any, 0 suppressions)
   evaluations.push({
     id: "SOC-HIER-02-STATIC-TYPE-INVARIANTS",
     dimension: "hierarchy_invariant_preservation",
@@ -109,7 +97,6 @@ export function evaluateQuantitativeEmpiricalProof(
   const commandsObj = isJsonObject(state.commands) ? state.commands : {};
   const commands = Object.values(commandsObj).filter(isJsonObject);
 
-  // Q1: Measured execution metrics and exit codes
   let failedCommands = 0;
   let timedCommands = 0;
 
@@ -144,7 +131,6 @@ export function evaluateQuantitativeEmpiricalProof(
       : {}),
   });
 
-  // Q2: Quantitative perceptual & accessibility metrics
   evaluations.push({
     id: "SOC-EMP-02-PERCEPTUAL-METRIC-FLOORS",
     dimension: "quantitative_empirical_proof",
@@ -162,50 +148,37 @@ export function evaluateQuantitativeEmpiricalProof(
 }
 
 export function evaluateTwoKeyValidatorPairing(state: JsonObject): SocraticQuestionEvaluation[] {
-  if (state.two_key_pairing === undefined) {
+  const tasksObj = isJsonObject(state.tasks) ? state.tasks : {};
+  const doneTasks = Object.values(tasksObj)
+    .filter(isJsonObject)
+    .filter((task) => task.status === "done") as unknown as TaskRecord[];
+  if (doneTasks.length === 0) {
     return [];
   }
-  const evaluations: SocraticQuestionEvaluation[] = [];
-  const pairingObj = isJsonObject(state.two_key_pairing) ? state.two_key_pairing : {};
-  const imp = isJsonObject(pairingObj.implementer_receipt) ? pairingObj.implementer_receipt : null;
-  const cog = isJsonObject(pairingObj.cognitive_validator_receipt)
-    ? pairingObj.cognitive_validator_receipt
-    : null;
 
-  let valid = true;
-  let reason = "";
+  const issues = doneTasks.flatMap((task) => taskTwoKeyValidatorPairingIssues(task));
+  const valid = issues.length === 0;
 
-  if (!imp || imp.role !== "implementer" || typeof imp.receipt_sha256 !== "string") {
-    valid = false;
-    reason = "Missing or invalid Implementer test receipt.";
-  } else if (!cog || cog.role !== "cognitive_validator" || typeof cog.receipt_sha256 !== "string") {
-    valid = false;
-    reason = "Missing or invalid Cognitive Validator audit receipt.";
-  } else if (imp.actor === cog.actor) {
-    valid = false;
-    reason = "Implementer and Cognitive Validator must be independent actors.";
-  }
-
-  evaluations.push({
-    id: "SOC-2KEY-01-INDEPENDENT-RECEIPTS",
-    dimension: "two_key_validator_pairing",
-    title: "Independent 2-Key Validator Pairing",
-    question:
-      "Is the task guarded by independent Implementer test receipt and Cognitive Validator audit receipt with SHA-256 hashes?",
-    answered: true,
-    passed: valid,
-    verdict: valid ? "OPTIMAL" : "DEFECT_FLAGGED",
-    observation: valid
-      ? "2-Key Validator Pairing verified (Independent Implementer & Cognitive Validator)."
-      : `2-Key Validator Pairing failed: ${reason}`,
-    evidence: `implementer_sha256=${imp?.receipt_sha256 ? "present" : "missing"}, validator_sha256=${cog?.receipt_sha256 ? "present" : "missing"}`,
-    ...(!valid
-      ? {
-          remediation:
-            "Provide both independent Implementer test receipt and Cognitive Validator audit receipt with valid SHA-256 hashes.",
-        }
-      : {}),
-  });
-
-  return evaluations;
+  return [
+    {
+      id: "SOC-2KEY-01-INDEPENDENT-RECEIPTS",
+      dimension: "two_key_validator_pairing",
+      title: "Independent 2-Key Validator Pairing",
+      question:
+        "Is every completed task guarded by an independent Implementer test receipt and Cognitive Validator audit receipt with SHA-256 hashes?",
+      answered: true,
+      passed: valid,
+      verdict: valid ? "OPTIMAL" : "DEFECT_FLAGGED",
+      observation: valid
+        ? `2-Key Validator Pairing verified for ${doneTasks.length} completed task(s) (Independent Implementer & Cognitive Validator).`
+        : `2-Key Validator Pairing failed: ${issues.join("; ")}`,
+      evidence: `tasks_checked=${doneTasks.length}, violations=${issues.length}`,
+      ...(valid
+        ? {}
+        : {
+            remediation:
+              "Provide both independent Implementer test receipt and Cognitive Validator audit receipt with valid SHA-256 hashes for every completed task.",
+          }),
+    },
+  ];
 }

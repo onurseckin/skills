@@ -24,13 +24,13 @@ describe("Persona Grounding - Role Boundaries & Subordinates", () => {
     expect(isSupervisoryRole("unknown-role")).toBe(false);
   });
 
-  test("normalizeSupervisoryRole handles string normalization and aliases", () => {
+  test("normalizeSupervisoryRole handles string normalization and rejects aliases", () => {
     expect(normalizeSupervisoryRole("mind")).toBe("mind");
-    expect(normalizeSupervisoryRole("tier-0")).toBe("mind");
+    expect(normalizeSupervisoryRole("tier-0")).toBeNull();
     expect(normalizeSupervisoryRole("orchestrator")).toBe("orchestrator");
-    expect(normalizeSupervisoryRole("orch")).toBe("orchestrator");
+    expect(normalizeSupervisoryRole("orch")).toBeNull();
     expect(normalizeSupervisoryRole("coordinator")).toBe("coordinator");
-    expect(normalizeSupervisoryRole("coord")).toBe("coordinator");
+    expect(normalizeSupervisoryRole("coord")).toBeNull();
     expect(normalizeSupervisoryRole("invalid")).toBeNull();
   });
 

@@ -8,7 +8,7 @@ import {
   MAX_FLEET_CONCURRENCY_CAP,
   FleetConcurrencyController,
   type FleetSeat,
-} from "../../../../olt/scripts/src/mind/concurrency-cap.ts";
+} from "../../../../olt/scripts/src/mind/concurrency/index.ts";
 
 describe("Fleet Concurrency Controller (Max 50 Subagents Cap)", () => {
   describe("hard ceiling of max 50 subagents", () => {
@@ -189,19 +189,19 @@ describe("Fleet Concurrency Controller (Max 50 Subagents Cap)", () => {
       expect(stats.rateLimitRisk).toBe(true);
     });
 
-    it("computes accurate seatsByTier and queueByPriority statistics", () => {
+    it("computes accurate seatsByTier and queueByPriority statistics for worker seats", () => {
       const controller = createFleetConcurrencyController({ maxCap: 3 });
-      controller.tryAcquireSeat({ agentId: "c1", tier: "COORDINATOR", priority: "CRITICAL" });
-      controller.tryAcquireSeat({ agentId: "s1", tier: "SUPERVISOR", priority: "HIGH" });
-      controller.tryAcquireSeat({ agentId: "i1", tier: "IMPLEMENTER", priority: "MEDIUM" });
+      controller.tryAcquireSeat({ agentId: "w1", tier: "TIER_1", priority: "CRITICAL" });
+      controller.tryAcquireSeat({ agentId: "w2", tier: "TIER_2", priority: "HIGH" });
+      controller.tryAcquireSeat({ agentId: "w3", tier: "TIER_3", priority: "MEDIUM" });
 
-      void controller.acquireSeat({ agentId: "q1", tier: "VALIDATOR", priority: "LOW" });
-      void controller.acquireSeat({ agentId: "q2", tier: "VALIDATOR", priority: "BACKGROUND" });
+      void controller.acquireSeat({ agentId: "q1", tier: "TIER_4", priority: "LOW" });
+      void controller.acquireSeat({ agentId: "q2", tier: "TIER_4", priority: "BACKGROUND" });
 
       const stats = controller.getStats();
-      expect(stats.seatsByTier["COORDINATOR"]).toBe(1);
-      expect(stats.seatsByTier["SUPERVISOR"]).toBe(1);
-      expect(stats.seatsByTier["IMPLEMENTER"]).toBe(1);
+      expect(stats.seatsByTier["TIER_1"]).toBe(1);
+      expect(stats.seatsByTier["TIER_2"]).toBe(1);
+      expect(stats.seatsByTier["TIER_3"]).toBe(1);
       expect(stats.queueByPriority["LOW"]).toBe(1);
       expect(stats.queueByPriority["BACKGROUND"]).toBe(1);
       expect(stats.availableSeats).toBe(0);

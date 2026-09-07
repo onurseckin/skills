@@ -42,7 +42,7 @@ describe(behavioralHealthSetupSuiteName, () => {
     expect(isOrchestratorRole("worker")).toBe(false);
 
     expect(isImplementerRole("implementer")).toBe(true);
-    expect(isImplementerRole("worker")).toBe(true);
+    expect(isImplementerRole("worker")).toBe(false);
     expect(isImplementerRole("repairer")).toBe(false);
     expect(isImplementerRole("validator")).toBe(false);
 

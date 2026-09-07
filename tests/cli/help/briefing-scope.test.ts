@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   type AnchorSymbol,
@@ -10,14 +9,16 @@ import {
   expandWriteScope,
   isTargetFilePath,
 } from "../../../olt/scripts/src/cli/briefing/index.ts";
+import { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   cleanupVirtualCliFS,
   setupVirtualCliFS,
 } from "../commands/fixtures/full-lifecycle-fixture.ts";
 
 describe("Domain 17: Zero-Exploration Exact-Anchor Briefing Engine - Scope & Assembly", () => {
+  let vfs: VirtualMemoryFS;
   beforeEach(() => {
-    setupVirtualCliFS();
+    vfs = setupVirtualCliFS();
   });
   afterEach(() => {
     cleanupVirtualCliFS();
@@ -25,17 +26,17 @@ describe("Domain 17: Zero-Exploration Exact-Anchor Briefing Engine - Scope & Ass
   describe("Challenge 4: Write-Scope Directory Expansion & Planned Path Disambiguation", () => {
     it("expands directory write-scopes into candidate files and filters out gitignored/scratch paths", () => {
       const root = "/virtual/briefing-scope";
-      mkdirSync(join(root, "src"), { recursive: true });
-      mkdirSync(join(root, "scratch"), { recursive: true });
-      mkdirSync(join(root, ".git"), { recursive: true });
-      mkdirSync(join(root, "node_modules", "pkg"), { recursive: true });
+      vfs.mkdirSync(join(root, "src"), { recursive: true });
+      vfs.mkdirSync(join(root, "scratch"), { recursive: true });
+      vfs.mkdirSync(join(root, ".git"), { recursive: true });
+      vfs.mkdirSync(join(root, "node_modules", "pkg"), { recursive: true });
 
-      writeFileSync(join(root, "src", "index.ts"), "export const a = 1;");
-      writeFileSync(join(root, "src", "util.ts"), "export const b = 2;");
-      writeFileSync(join(root, "src", "asset.png"), "binary data");
-      writeFileSync(join(root, "scratch", "temp.ts"), "scratch data");
-      writeFileSync(join(root, ".git", "config"), "git config");
-      writeFileSync(join(root, "node_modules", "pkg", "index.js"), "module data");
+      vfs.writeFileSync(join(root, "src", "index.ts"), "export const a = 1;");
+      vfs.writeFileSync(join(root, "src", "util.ts"), "export const b = 2;");
+      vfs.writeFileSync(join(root, "src", "asset.png"), "binary data");
+      vfs.writeFileSync(join(root, "scratch", "temp.ts"), "scratch data");
+      vfs.writeFileSync(join(root, ".git", "config"), "git config");
+      vfs.writeFileSync(join(root, "node_modules", "pkg", "index.js"), "module data");
 
       const expanded = expandWriteScope(["src", "scratch"], root);
       expect(expanded).toContain("src/index.ts");
@@ -57,7 +58,7 @@ describe("Domain 17: Zero-Exploration Exact-Anchor Briefing Engine - Scope & Ass
       expect(isTargetFilePath("bun.lockb")).toBe(false);
 
       const root = "/virtual/briefing-disambig";
-      mkdirSync(root, { recursive: true });
+      vfs.mkdirSync(root, { recursive: true });
       const expanded = expandWriteScope(
         ["src/modules/auth/service.ts", "src/modules/auth", "src/auth/"],
         root,
@@ -83,7 +84,7 @@ describe("Domain 17: Zero-Exploration Exact-Anchor Briefing Engine - Scope & Ass
         symbolName: i === 0 ? "criticalTarget" : `symbol_${i}`,
         startLine: 1,
         endLine: 100,
-        contextSnippet: Array.from({ length: 100 }, (_, j) => `// line ${j} of symbol ${i}`).join(
+        contextSnippet: Array.from({ length: 100 }, (_, j) => `line ${j} of symbol ${i}`).join(
           "\n",
         ),
       }));
@@ -116,9 +117,9 @@ describe("Domain 17: Zero-Exploration Exact-Anchor Briefing Engine - Scope & Ass
 
     it("generates full exact-anchor briefing through buildExactAnchorBriefing pipeline", () => {
       const root = "/virtual/briefing-pipeline";
-      mkdirSync(join(root, "src"), { recursive: true });
+      vfs.mkdirSync(join(root, "src"), { recursive: true });
       const filePath = join(root, "src", "service.ts");
-      writeFileSync(
+      vfs.writeFileSync(
         filePath,
         `export function runPipeline(): boolean { return true; }\nexport function internalHelper(): void {}`,
         "utf-8",

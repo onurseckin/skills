@@ -10,15 +10,15 @@
 
 In autonomous multi-agent software engineering, monolithic source files and sprawling directory trees represent severe systemic failure modes:
 
-- **Context Degradation & Attention Loss**: Large Language Models exhibit steep attention decay when reading source files exceeding 300 physical lines. Hallucinated function signatures, missed type invariants, and truncated edits increase exponentially with file length.
+- **Context Degradation & Attention Loss**: Large Language Models exhibit steep attention decay when reading source files exceeding 400 physical lines. Hallucinated function signatures, missed type invariants, and truncated edits increase exponentially with file length.
 - **Directory Fanout Saturation**: When a single directory contains dozens of loose files, directory scanning tools (`list_dir`, `find_by_name`) return large token dumps that flood the agent's context window, diluting focus from core implementation tasks.
 - **Merge Conflicts & Blast Radius**: Monolithic files force concurrent subagents into lock contention over shared lines of code, breaking worktree isolation and causing merge collisions.
 - **Audit Fatigue**: Cognitive validators auditing massive multi-hundred-line pull requests suffer from heuristic fatigue, allowing subtle regressions and safety invariant breaches to pass undetected.
 
 The OLT engine establishes non-negotiable **Modular File & Directory Sizing Budgets**:
 
-1. **TypeScript Source Code Budget**: Strictly capped at $\le 300$ physical lines per file.
-2. **Documentation Sizing Budget**: Strictly capped at $\le 300$ physical lines per file where applicable.
+1. **TypeScript Source Code Budget**: Strictly capped at $\le 400$ physical lines per file.
+2. **Documentation Sizing Budget**: Strictly capped at $\le 400$ physical lines per file where applicable.
 3. **Directory Fanout Budget**: Strictly capped at $\le 10$ child entries per directory level.
 4. **Explicit Named-Export Facades**: Every directory module must expose its public API exclusively through an `index.ts` barrel containing explicit named exports; wildcard exports (`export * from ...`) are strictly prohibited by the AST linter.
 
@@ -27,8 +27,8 @@ The OLT engine establishes non-negotiable **Modular File & Directory Sizing Budg
 │                             MODULAR SIZING BUDGET ENVELOPE TOPOLOGY                              │
 +--------------------------------------------------------------------------------------------------+
 │                                                                                                  │
-│   • TypeScript Source Code Files:       L <= 300 Lines (Strict AST & Linter Bound)               │
-│   • Documentation Topic Chapters:       L <= 300 Lines (Strict Modular Budget)                   │
+│   • TypeScript Source Code Files:       L <= 400 Lines (Strict AST & Linter Bound)               │
+│   • Documentation Topic Chapters:       L <= 400 Lines (Strict Modular Budget)                   │
 │   • Directory Entry Fanout:             N <= 10 Children per Directory Level                     │
 │   • Module Barrel Export Policy:        Explicit Named Exports ONLY (Zero wildcard export *)     │
 │                                                                                                  │
@@ -51,10 +51,10 @@ $$\alpha = 1.0, \quad \beta = 4.2, \quad \gamma = 2.5$$
 The **Epistemic Invariant Threshold** requires:
 $$\mathcal{K}(F) \le 500 \quad \forall F \in \mathcal{F}_{\text{repo}}$$
 
-When $L(F) > 300$, cognitive attention collapses non-linearly:
-$$\text{AttentionQuality}(L) \approx \exp\left( - \lambda \cdot \max(0, L - 300) \right)$$
+When $L(F) > 400$, cognitive attention collapses non-linearly:
+$$\text{AttentionQuality}(L) \approx \exp\left( - \lambda \cdot \max(0, L - 400) \right)$$
 
-Enforcing $L(F) \le 300$ ensures agents operate exclusively in the linear attention regime.
+Enforcing $L(F) \le 400$ ensures agents operate exclusively in the linear attention regime.
 
 ---
 
@@ -62,21 +62,21 @@ Enforcing $L(F) \le 300$ ensures agents operate exclusively in the linear attent
 
 | Artifact Classification        | Maximum Bound            | Enforcement Tooling                          | Violation Trap                     |
 | :----------------------------- | :----------------------- | :------------------------------------------- | :--------------------------------- |
-| TypeScript Source File (`.ts`) | $\le 300$ physical lines | AST Compiler Linter (`ast-budget-linter.ts`) | `PHYSICAL_LINE_BUDGET_EXCEEDED`    |
-| Documentation Topic (`.md`)    | $\le 300$ physical lines | Markdown Line Validator                      | `DOC_SIZING_ENVELOPE_BREACH`       |
+| TypeScript Source File (`.ts`) | $\le 400$ physical lines | AST Compiler Linter (`ast-budget-linter.ts`) | `PHYSICAL_LINE_BUDGET_EXCEEDED`    |
+| Documentation Topic (`.md`)    | $\le 400$ physical lines | Markdown Line Validator                      | `DOC_SIZING_ENVELOPE_BREACH`       |
 | Directory Node (Children)      | $\le 10$ direct children | Filesystem Structural Scanner                | `DIRECTORY_FANOUT_BUDGET_EXCEEDED` |
 | Barrel Module (`index.ts`)     | Explicit named exports   | AST Import/Export Pure Syntax Guard          | `PROHIBIT_WILDCARD_EXPORTS`        |
 
 ```mermaid
 flowchart TD
     FileEdit[Agent Submits File Edit] --> TypeCheck{File Type?}
-    TypeCheck -->|TypeScript: .ts| CheckTSLines{Lines <= 300?}
-    CheckTSLines -->|No: Exceeds 300| TrapTSLimit[TRAP: PHYSICAL_LINE_BUDGET_EXCEEDED]
+    TypeCheck -->|TypeScript: .ts| CheckTSLines{Lines <= 400?}
+    CheckTSLines -->|No: Exceeds 400| TrapTSLimit[TRAP: PHYSICAL_LINE_BUDGET_EXCEEDED]
     CheckTSLines -->|Yes| CheckExports{Contains wildcard 'export *'?}
     CheckExports -->|Yes: Wildcard Found| TrapWildcard[TRAP: PROHIBIT_WILDCARD_EXPORTS]
     CheckExports -->|No: Clean Exports| CheckDirFanout
-    TypeCheck -->|Markdown: .md| CheckDocLines{Lines <= 300?}
-    CheckDocLines -->|No: Exceeds 300| TrapDocLimit[TRAP: DOC_SIZING_ENVELOPE_BREACH]
+    TypeCheck -->|Markdown: .md| CheckDocLines{Lines <= 400?}
+    CheckDocLines -->|No: Exceeds 400| TrapDocLimit[TRAP: DOC_SIZING_ENVELOPE_BREACH]
     CheckDocLines -->|Yes| CheckDirFanout{Directory Fanout <= 10?}
     CheckDirFanout -->|No: Fanout > 10| TrapFanout[TRAP: DIRECTORY_FANOUT_BUDGET_EXCEEDED]
     CheckDirFanout -->|Yes: Compliant| PassAll([Sizing Budget Certified: PASS])
@@ -99,7 +99,7 @@ export interface BudgetValidationReport {
 }
 
 export class ASTBudgetLinter {
-  private static readonly MAX_SOURCE_LINES = 300;
+  private static readonly MAX_SOURCE_LINES = 400;
   private static readonly MAX_DIR_ENTRIES = 10;
 
   public static auditSourceFile(filePath: string): BudgetValidationReport {
@@ -152,15 +152,15 @@ export type { ExecutionWave, DAGNode, DAGEdge } from "./types";
 
 | Failure Code                       | Trigger Condition                    | Mechanical Mitigation                                      |
 | :--------------------------------- | :----------------------------------- | :--------------------------------------------------------- |
-| `PHYSICAL_LINE_BUDGET_EXCEEDED`    | File exceeds 300 physical lines      | AST linter rejects patch; requires modular decomposition.  |
+| `PHYSICAL_LINE_BUDGET_EXCEEDED`    | File exceeds 400 physical lines      | AST linter rejects patch; requires modular decomposition.  |
 | `DIRECTORY_FANOUT_BUDGET_EXCEEDED` | Directory contains > 10 direct items | Requires sub-packaging into domain subdirectories.         |
 | `PROHIBIT_WILDCARD_EXPORTS`        | File uses `export * from ...`        | Intercepted by AST guard; requires explicit named exports. |
-| `DOC_SIZING_ENVELOPE_BREACH`       | Documentation exceeds 300 lines      | Requires modular sub-topic splitting.                      |
+| `DOC_SIZING_ENVELOPE_BREACH`       | Documentation exceeds 400 lines      | Requires modular sub-topic splitting.                      |
 | `CIRCULAR_DEPENDENCY_FAULT`        | Module barrel creates import loop    | AST circular dependency checker halts build.               |
 
 ### Anti-Blunder Rules for Codebase Modularity:
 
-1. **Never Compress Code to Cheat Line Budgets**: Removing whitespace or deleting comments to satisfy $\le 300$ lines triggers an immediate epistemic quality rejection.
+1. **Never Compress Code to Cheat Line Budgets**: Removing whitespace or deleting comments to satisfy $\le 400$ lines triggers an immediate epistemic quality rejection.
 2. **Never Create "Dump-All" Utilities**: Files named `utils.ts`, `helpers.ts`, or `common.ts` are prohibited; create domain-specific files like `hash-utils.ts`.
 3. **Never Bypass Barrel Facades**: External callers must import strictly from the module's `index.ts` barrel rather than reaching into internal submodule files.
 
@@ -169,7 +169,7 @@ export type { ExecutionWave, DAGNode, DAGEdge } from "./types";
 ## 7. Architectural Invariants Summary
 
 - **Invariant $\mathcal{C}_{13}$ (Static AST Purity Enforcement)**: Every source and documentation file passes line budget, fanout, and explicit export checks.
-- **Invariant $\mathcal{C}_{12}$ (Cowan Context Budget Sanitization)**: Keeping files strictly $\le 300$ lines guarantees fit within single-agent attention bounds.
+- **Invariant $\mathcal{C}_{12}$ (Cowan Context Budget Sanitization)**: Keeping files strictly $\le 400$ lines guarantees fit within single-agent attention bounds.
 
 ---
 

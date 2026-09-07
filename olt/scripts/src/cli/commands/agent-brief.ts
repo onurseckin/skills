@@ -1,14 +1,16 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { normalizeRoleKey, resolveAgentHostConfiguration } from "../../authority/host-bindings.ts";
-import { parseUnifiedAgentManifest } from "../../authority/manifest-schema.ts";
+import {
+  normalizeRoleKey,
+  parseUnifiedAgentManifest,
+  resolveAgentHostConfiguration,
+} from "../../authority/index.ts";
 import { HarnessError } from "../../core/errors/index.ts";
 import { findRepoRoot, resolveSkillHomeRepo } from "../../core/index.ts";
-import { detectActiveHost, isHostType, type HostType } from "../../platform/host-autodetect.ts";
-import { loadRepoPolicy } from "../../policy/repo-policy.ts";
-import type { AgentHostPolicy } from "../../policy/types/index.ts";
-import type { Flags } from "../options.ts";
+import { detectActiveHost, isHostType, type HostType } from "../../platform/index.ts";
+import { loadRepoPolicy, type AgentHostPolicy } from "../../policy/index.ts";
+import type { Flags } from "../index.ts";
 import {
   verifyMilestoneEvidence,
   type MilestoneEvidenceVerification,

@@ -1,22 +1,25 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { mindEscalateCommand } from "../../../../olt/scripts/src/cli/commands/mind-escalate.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import { initRun, loadRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../fixtures/full-lifecycle-fixture.ts";
 
 describe("mind-escalate CLI command coverage suite", () => {
+  let vfs: VirtualMemoryFS;
   let tempDir: string;
   let runRoot: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "mind-escalate-test-"));
+    vfs = setupVirtualCliFS();
+    tempDir = `/virtual/mind-escalate/test-${Date.now()}`;
+    vfs.mkdirSync(tempDir, { recursive: true });
     runRoot = initRun(tempDir, "escalate-run", new TextEncoder().encode("prompt"), "file", true);
   });
 
   afterEach(() => {
-    rmSync(tempDir, { recursive: true, force: true });
+    cleanupVirtualCliFS();
   });
 
   test("throws HarnessError on missing required flags", () => {
@@ -46,7 +49,6 @@ describe("mind-escalate CLI command coverage suite", () => {
     expect(typeof res.markdown).toBe("string");
     expect((res.markdown as string).includes("Mind Escalation Recorded")).toBe(true);
 
-    // Verify state store
     const loaded = loadRun(runRoot);
     const escalations = loaded.state.escalations;
     expect(Array.isArray(escalations)).toBe(true);
@@ -56,10 +58,9 @@ describe("mind-escalate CLI command coverage suite", () => {
     expect(first.reason).toBe("Blocked waiting on external API token");
     expect(first.resolved_at).toBeNull();
 
-    // Verify escalation.md file on disk
     const logPath = join(runRoot, "escalation.md");
-    expect(existsSync(logPath)).toBe(true);
-    const content = readFileSync(logPath, "utf-8");
+    expect(vfs.existsSync(logPath)).toBe(true);
+    const content = vfs.readFileSync(logPath, "utf-8");
     expect(content).toContain("# Mind Escalation Log");
     expect(content).toContain(`## ${res.escalation_id}`);
     expect(content).toContain("- **Actor**: `subagent-1`");
@@ -83,7 +84,7 @@ describe("mind-escalate CLI command coverage suite", () => {
     expect(first.severity).toBe("critical");
 
     const logPath = join(runRoot, "escalation.md");
-    const content = readFileSync(logPath, "utf-8");
+    const content = vfs.readFileSync(logPath, "utf-8");
     expect(content).toContain("- **Severity**: `critical`");
   });
 
@@ -112,7 +113,7 @@ describe("mind-escalate CLI command coverage suite", () => {
     expect(second.id).toBe(res2.escalation_id);
 
     const logPath = join(runRoot, "escalation.md");
-    const content = readFileSync(logPath, "utf-8");
+    const content = vfs.readFileSync(logPath, "utf-8");
     expect(content).toContain(`## ${res1.escalation_id}`);
     expect(content).toContain(`## ${res2.escalation_id}`);
     expect(content).toContain("- **Actor**: `agent-alpha`");

@@ -1,7 +1,7 @@
 import type { BranchRecord } from "../core/contracts/index.ts";
 import type { JsonObject } from "../core/contracts/index.ts";
 import { workflowPort } from "../integration/store-ports.ts";
-import { completionIssues } from "../workflow/completion/completion-state.ts";
+import { completionIssues } from "../workflow/completion/index.ts";
 import { orphanEvidenceSha256 } from "../workflow/orphan-evidence/digest.ts";
 import { isLeaseSuspended } from "../workflow/lease/suspension.ts";
 import type { TaskRecord, WorkflowState } from "../workflow/types.ts";

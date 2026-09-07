@@ -134,7 +134,7 @@ The sentinel architecture integrates three core subsystems: the execution wrappe
                 ┌───────────────────────────────────────┐
                 │       sentinel:post-action hook       │
                 │  - AST purity (0 any, 0 suppressions) │
-                │  - Line budget check (<= 300 LOC)     │
+                │  - Line budget check (<= 400 LOC)     │
                 │  - Directory fanout check (<= 10)     │
                 └───────────────────┬───────────────────┘
                                     │
@@ -172,7 +172,7 @@ To ensure production durability and prevent architectural bloat, the sentinel ad
 
 1. **Zero External Services:** Operates without redis, rabbitmq, sqlite, or persistent daemons. State is entirely managed via file descriptors, atomic file locks, and JSONL streams.
 2. **Single Deterministic Entry Point:** All diagnostic checks converge on a single CLI verb: `bun harness.ts doctor:agent`.
-3. **Strict Line and File Budgets:** Every component file adheres strictly to the $\le 300$ physical line budget, with explicit module facades and zero circular dependencies.
+3. **Strict Line and File Budgets:** Every component file adheres strictly to the $\le 400$ physical line budget, with explicit module facades and zero circular dependencies.
 
 ### 5.2 Companion Architectural Specifications
 

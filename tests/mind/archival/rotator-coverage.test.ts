@@ -1,11 +1,13 @@
-import { describe, expect, it, beforeEach, afterEach, spyOn } from "bun:test";
-import * as fs from "node:fs";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { initRun, loadRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { rotateMindGeneration } from "../../../olt/scripts/src/mind/archival/rotate/rotator.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 const validCharterYaml = `
 name: "mind"
@@ -25,22 +27,29 @@ charter:
 `;
 
 describe("rotateMindGeneration", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
   let tempDir: string;
   let repoRoot: string;
   let capsulesParent: string;
   let charterFilePath: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "rotator-test-"));
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    tempDir = `/virtual/rotator-test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    vfs.mkdirSync(tempDir, { recursive: true });
     repoRoot = tempDir;
     capsulesParent = join(repoRoot, ".olt", "capsules");
-    mkdirSync(join(repoRoot, "olt", "agents"), { recursive: true });
+    vfs.mkdirSync(join(repoRoot, "olt", "scripts"), { recursive: true });
+    vfs.writeFileSync(join(repoRoot, "olt", "scripts", "harness.ts"), "");
+    vfs.mkdirSync(join(repoRoot, "olt", "agents"), { recursive: true });
     charterFilePath = join(repoRoot, "olt", "agents", "mind.yaml");
-    writeFileSync(charterFilePath, validCharterYaml);
+    vfs.writeFileSync(charterFilePath, validCharterYaml);
   });
 
   afterEach(() => {
-    rmSync(tempDir, { recursive: true, force: true });
+    session.cleanup();
   });
 
   function setupMindCapsule(runId: string, mindState?: Record<string, unknown>): string {
@@ -52,7 +61,7 @@ describe("rotateMindGeneration", () => {
         status: "active",
         charter: {
           source_path: "olt/agents/mind.yaml",
-          repo_roots: [".", 123], // non-string entry filtered
+          repo_roots: [".", 123],
         },
       }) as unknown as typeof state.mind;
       state.pulse = {
@@ -74,24 +83,18 @@ describe("rotateMindGeneration", () => {
       expect(() => rotateMindGeneration({ sourceRunRoot: nonExistent })).toThrow(HarnessError);
 
       const filePath = join(tempDir, "file.txt");
-      writeFileSync(filePath, "hello");
+      vfs.writeFileSync(filePath, "hello");
       expect(() => rotateMindGeneration({ sourceRunRoot: filePath })).toThrow(HarnessError);
     });
 
-    it("throws INVALID_ARGUMENT when sourceRunRoot is a symlink", () => {
+    it("throws INVALID_ARGUMENT when sourceRunRoot is a symlink to a valid directory", () => {
       const realDir = join(tempDir, "real-dir");
-      mkdirSync(realDir, { recursive: true });
-      const spy = spyOn(fs, "lstatSync").mockReturnValue({
-        isDirectory: () => true,
-        isSymbolicLink: () => true,
-      } as unknown as fs.Stats);
-      try {
-        expect(() => rotateMindGeneration({ sourceRunRoot: realDir })).toThrow(
-          /cannot be a symlink/,
-        );
-      } finally {
-        spy.mockRestore();
-      }
+      vfs.mkdirSync(realDir, { recursive: true });
+      const symlinkPath = join(tempDir, "symlink-dir");
+      session.symlinkSync(realDir, symlinkPath);
+      expect(() => rotateMindGeneration({ sourceRunRoot: symlinkPath })).toThrow(
+        /cannot be a symlink/,
+      );
     });
 
     it("throws INVALID_STATE when state.mind is missing", () => {
@@ -122,7 +125,7 @@ describe("rotateMindGeneration", () => {
   describe("charter resolution and integrity checks", () => {
     it("throws INTEGRITY when live charter file cannot be read", () => {
       const runRoot = setupMindCapsule("missing-charter-run");
-      rmSync(charterFilePath, { force: true });
+      vfs.rmSync(charterFilePath, { force: true });
       expect(() => rotateMindGeneration({ sourceRunRoot: runRoot })).toThrow(
         /cannot read live charter/,
       );
@@ -130,7 +133,7 @@ describe("rotateMindGeneration", () => {
 
     it("throws INTEGRITY when live charter file is empty", () => {
       const runRoot = setupMindCapsule("empty-charter-run");
-      writeFileSync(charterFilePath, "");
+      vfs.writeFileSync(charterFilePath, "");
       expect(() => rotateMindGeneration({ sourceRunRoot: runRoot })).toThrow(
         /live charter at .* is empty/,
       );
@@ -138,7 +141,7 @@ describe("rotateMindGeneration", () => {
 
     it("throws INTEGRITY when live charter is not parseable", () => {
       const runRoot = setupMindCapsule("unparseable-charter-run");
-      writeFileSync(charterFilePath, "invalid: [yaml: broken: 123");
+      vfs.writeFileSync(charterFilePath, "invalid: [yaml: broken: 123");
       expect(() => rotateMindGeneration({ sourceRunRoot: runRoot })).toThrow(
         /not a parseable mind manifest/,
       );
@@ -149,7 +152,7 @@ describe("rotateMindGeneration", () => {
     it("throws INVALID_STATE if computed targetRunRoot already exists", () => {
       const runRoot = setupMindCapsule("existing-target-run");
       const targetPath = join(capsulesParent, "mind-gen-2");
-      mkdirSync(targetPath, { recursive: true });
+      vfs.mkdirSync(targetPath, { recursive: true });
       expect(() => rotateMindGeneration({ sourceRunRoot: runRoot })).toThrow(
         /capsule already exists/,
       );
@@ -178,7 +181,7 @@ describe("rotateMindGeneration", () => {
       const res = rotateMindGeneration({
         sourceRunRoot: runRoot,
         nextRunId: targetWithSlash,
-        now: 1788264000000, // number timestamp
+        now: 1788264000000,
       });
 
       expect(res.targetRunId).toBe("slash-target");
@@ -201,7 +204,6 @@ describe("rotateMindGeneration", () => {
       expect(res.targetGeneration).toBe(2);
       expect(res.rotatedAt).toBe("2026-09-01T16:00:00.000Z");
 
-      // Verify source capsule sealed with status 'rotated' and last_pulse.json written
       const sealedSource = loadRun(runRoot, false);
       const sealedMind = (sealedSource.state as Record<string, unknown>).mind as Record<
         string,

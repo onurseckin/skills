@@ -19,17 +19,29 @@ import {
 import {
   disableInMemorySessionStore,
   enableInMemorySessionStore,
+  isInMemorySessionStoreEnabled,
 } from "../../../../olt/scripts/src/authority/session/paths.ts";
 
 const vfs = new VirtualMemoryFS();
 let session: VirtualFSSession | undefined;
 
 function ensureSession(): VirtualMemoryFS {
-  enableInMemorySessionStore();
+  if (!isInMemorySessionStoreEnabled()) {
+    enableInMemorySessionStore();
+  }
   if (!session) {
     session = createVirtualFSSession(vfs);
   }
   return vfs;
+}
+
+export function getGrantRunFS(): VirtualMemoryFS {
+  return ensureSession();
+}
+
+export function getGrantRunSession(): VirtualFSSession {
+  ensureSession();
+  return session!;
 }
 
 afterAll(() => {
@@ -47,7 +59,6 @@ export interface GrantRun {
   port: TransactionPort;
 }
 
-/** Creates an empty capsule (no graph/tasks yet) under an in-memory virtual directory. */
 export async function emptyGrantRun(prefix: string): Promise<GrantRun> {
   const memFs = ensureSession();
   const root = `/virtual/${prefix}-${Math.random().toString(36).slice(2)}`;
@@ -67,11 +78,6 @@ export interface SeedTaskOptions {
   gateId?: string;
 }
 
-/**
- * Writes a minimal one-task graph (graph/tasks/requirements) directly onto the capsule state,
- * bypassing plan:init/plan:add/plan:compile — those are structural CLI calls with no subprocess
- * of their own, but writing the shape by hand keeps these fixtures single-purpose and fast.
- */
 export function seedSingleTaskGraph(
   run: string,
   { taskId = "T-1", requirementId = "R-1", gateId = "G-1" }: SeedTaskOptions = {},
@@ -116,7 +122,6 @@ export function seedSingleTaskGraph(
   });
 }
 
-/** Records baseline (and, unless current=false, current) repository inspections for the run. */
 export async function seedRepositoryInspection(
   run: string,
   actor: string,
@@ -130,12 +135,6 @@ const EMPTY_SHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b78
 const FIXTURE_OWNERSHIP_TOKEN = "00000000-0000-4000-8000-000000000000";
 const FIXTURE_SIGNING_PUBLIC_KEY = "MCowBQYDK2VwAyEAebJY5kfIxE+SBdW0wwTb+c0PuvZ21w9gpaa9L86ygKc=";
 
-/**
- * Builds a CommandRecord that structurally satisfies commandMatchesGate/embeddedCommandIssues
- * for a run-scoped gate, the same way critic-ready fixture does: computed
- * with the runner's own fingerprint/environment/path-binding/repository-binding functions
- * against a real (but never executed) repo, rather than by actually spawning the gate command.
- */
 function runGateCommandRecord(
   repo: string,
   binding: RepositoryBinding,
@@ -214,12 +213,6 @@ function runGateCommandRecord(
   };
 }
 
-/**
- * Registers one authoritative run-gate command directly on the capsule state: the shape that
- * critic-grant.ts's repositoryEvidenceCommandIds requires before a completeness-critic packet
- * can be published (at least one succeeded, structurally-matching command run against a
- * run-scoped gate). Writes the gate's target file so the real path-binding capture can open it.
- */
 export async function seedRunGateCommand(
   repo: string,
   run: string,
@@ -234,7 +227,8 @@ export async function seedRunGateCommand(
   const record = runGateCommandRecord(repo, binding, commandId, argv, gateId, actor);
   transact(run, "test-setup", "seed-run-gate", {}, (draft) => {
     const graph = draft.graph as { gates?: unknown[] };
-    const existingGates = graph.gates !== undefined && Array.isArray(graph.gates) ? graph.gates : [];
+    const existingGates =
+      graph.gates !== undefined && Array.isArray(graph.gates) ? graph.gates : [];
     graph.gates = [
       ...existingGates,
       { id: gateId, command: argv, cwd: ".", scope: "run", requirement_ids: [], mandatory: true },

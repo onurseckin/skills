@@ -1,12 +1,12 @@
 import ts from "typescript";
-import type { AstLintRuleModule } from "../../ast/index.ts";
 import {
   detectMockDeclarations,
   getRootExpectArg,
   identifyTestCall,
   isAssertionCall,
   matchesMockTarget,
-} from "../../ast/index.ts";
+  type AstLintRuleModule,
+} from "../../core/index.ts";
 
 export const mockTautologyRule: AstLintRuleModule = {
   rule: "mock_tautology",

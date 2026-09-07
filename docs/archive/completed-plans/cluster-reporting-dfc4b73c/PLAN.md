@@ -51,7 +51,7 @@ Forensic analysis revealed three critical deficiencies:
 │ ─────────────────────────────────────────────────────────────────────────────────────────── │
 │ • ANSI/ASCII Terminal UI Engine (`bun harness.ts report`)                                   │
 │ • Zero Code Comments & Full Type Safety (0 TypeScript `any`, 0 suppressions)                │
-│ • Strict Density Budget: ≤ 300 Physical Lines / File, ≤ 10 Files / Subsystem Directory      │
+│ • Strict Density Budget: ≤ 400 Physical Lines / File, ≤ 10 Files / Subsystem Directory      │
 └─────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -70,7 +70,7 @@ Forensic analysis revealed three critical deficiencies:
 
 ## Level 4: Atomic Implementation Tasks Matrix
 
-| Task ID        | Target File Path                                               | Exact TypeScript Symbols / Signatures                                                        | Deliverable & Contract ($\le 300$ lines, 0 comments)                                                                   | Status    |
+| Task ID        | Target File Path                                               | Exact TypeScript Symbols / Signatures                                                        | Deliverable & Contract ($\le 400$ lines, 0 comments)                                                                   | Status    |
 | :------------- | :------------------------------------------------------------- | :------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------- | :-------- |
 | `task-rep-1.1` | `olt/scripts/src/reporting/sugiyama-dag/render.ts`             | `renderSugiyamaDag(graph: DirectedGraph, opts?: SugiyamaRenderOptions): string`              | Integrate canonical Sugiyama layout engine with ASCII box rendering, cycle feedback arcs, and wave barrier delimiters. | Completed |
 | `task-rep-1.2` | `olt/scripts/src/reporting/sugiyama-dag/subagent-expansion.ts` | `expandSubagentSubgraphs(dag: SugiyamaDag, subagents: readonly SubagentNode[]): SugiyamaDag` | Expand hierarchical child subagent clusters inside visual box containers with clean routing channels.                  | Completed |

@@ -62,7 +62,7 @@ The Static AST Lint Purity Engine enforces ten deterministic rules across all co
 +------+---------------------------+--------------------------------------------------------------------+
 | R2   | ZERO_SUPPRESSIONS         | Prohibits `@ts-ignore`, `@ts-nocheck`, `@ts-expect-error` pragmas. |
 +------+---------------------------+--------------------------------------------------------------------+
-| R3   | PHYSICAL_LINE_BUDGET      | Code files <= 300 lines; Doc topics 250-800 lines.                 |
+| R3   | PHYSICAL_LINE_BUDGET      | Code files <= 400 lines; Doc topics 250-800 lines.                 |
 +------+---------------------------+--------------------------------------------------------------------+
 | R4   | DIRECTORY_FANOUT_BUDGET   | Maximum 10 child entries per directory module.                     |
 +------+---------------------------+--------------------------------------------------------------------+
@@ -163,7 +163,7 @@ We define individual rule predicates $R_i(F) \in \{0, 1\}$ for $i \in \{1, \dots
    $$R_2(F) = \begin{cases} 1 & \text{if } \forall c \in \mathcal{C}(F), \; c \not\approx \text{Regex}_{\text{suppress}} \\ 0 & \text{otherwise} \end{cases}$$
 
 3. **Physical Line Budget ($R_3$)**:
-   $$R_3(F) = \begin{cases} 1 & \text{if } \text{LineCount}(F) \le 300 \\ 0 & \text{otherwise} \end{cases}$$
+   $$R_3(F) = \begin{cases} 1 & \text{if } \text{LineCount}(F) \le 400 \\ 0 & \text{otherwise} \end{cases}$$
 
 4. **Prohibit Wildcard Exports ($R_6$)**:
    $$R_6(F) = \begin{cases} 1 & \text{if } \forall v \in \mathcal{V}_{\text{export}}, \; \text{HasNamedClause}(v) = 1 \\ 0 & \text{otherwise} \end{cases}$$
@@ -324,7 +324,7 @@ export function auditSourceFile(
 | :------------------------------ | :------------------------------------------------------------- | :------- | :----------------------------------------------- | :-------------------------------------------------------------------------- |
 | **`AST_RULE_EXPLICIT_ANY`**     | Source code contains `let x: any` or function returning `any`. | ERROR    | Pre-commit check fails; task submission blocked. | Replace `any` with precise interface or `unknown` with runtime type guard.  |
 | **`AST_SUPPRESSION_PRAGMA`**    | Source code includes `@ts-ignore` or `@ts-expect-error`.       | ERROR    | Pre-commit check fails; task rejected at gate.   | Remove pragma; declare missing interface property or cast safely.           |
-| **`AST_LINE_BUDGET_EXCEEDED`**  | Source file exceeds 300 physical lines.                        | ERROR    | Static quality gate fails.                       | Split file into modular sub-modules, helper functions, or distinct classes. |
+| **`AST_LINE_BUDGET_EXCEEDED`**  | Source file exceeds 400 physical lines.                        | ERROR    | Static quality gate fails.                       | Split file into modular sub-modules, helper functions, or distinct classes. |
 | **`AST_WILDCARD_EXPORT_FOUND`** | Barrel file exports symbols using `export * from './module'`.  | ERROR    | Build and hygiene check fails.                   | Enumerate exported symbols explicitly in named export object.               |
 | **`AST_EMPTY_TEST_BODY`**       | Unit test `it('test', () => {})` contains zero assertions.     | ERROR    | Verification gate rejects test file.             | Add falsifiable `expect()` assertions validating concrete outputs.          |
 | **`AST_FUNCTION_OVERSIZED`**    | Single function declaration exceeds 50 physical lines.         | WARN     | Flagged in hygiene audit report.                 | Decompose complex function into smaller private helper utilities.           |

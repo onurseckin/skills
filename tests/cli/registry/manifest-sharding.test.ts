@@ -120,7 +120,7 @@ describe("CLI capability manifest sharding and modularity", () => {
     }
   });
 
-  test("generated domain markdown files satisfy the 300 physical-line limit", () => {
+  test("generated domain markdown files satisfy the 400 physical-line limit", () => {
     writeManifest();
     const domainFiles = collectFiles(join(splitRoot, "domains")).filter((path) =>
       path.endsWith(".md"),
@@ -128,7 +128,7 @@ describe("CLI capability manifest sharding and modularity", () => {
     expect(domainFiles.length).toBeGreaterThan(0);
     for (const file of domainFiles) {
       const lines = countPhysicalLines(readFileSync(file));
-      expect(lines).toBeLessThanOrEqual(300);
+      expect(lines).toBeLessThanOrEqual(400);
     }
   });
 

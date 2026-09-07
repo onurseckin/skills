@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { completionIssues } from "../../../../olt/scripts/src/workflow/completion/completion-state.ts";
+import { completionIssues } from "../../../../olt/scripts/src/workflow/completion/index.ts";
 import { attachGateResult } from "../../../../olt/scripts/src/workflow/gates/attach-result.ts";
 import { claimTask } from "../../../../olt/scripts/src/workflow/lease/claim.ts";
 import { submitTask } from "../../../../olt/scripts/src/workflow/submission/submit.ts";
@@ -89,11 +88,10 @@ describe("submission, gate, and completion evidence", () => {
     ).toThrow();
   });
 
-  test("gate attachment rechecks control-input overlap against current task scopes", async () => {
+  test("gate attachment rechecks control-input overlap against current task scopes", () => {
     const repositoryRoot = `/virtual/tmp/gate-attachment-scope-${++sc}`;
-    vfsInstance!.mkdirSync(repositoryRoot, { recursive: true });
-    await mkdir(join(repositoryRoot, "tools"), { recursive: true });
-    await writeFile(join(repositoryRoot, "tools", "verify"), "#!/bin/sh\nexit 0\n", {
+    vfsInstance!.mkdirSync(join(repositoryRoot, "tools"), { recursive: true });
+    vfsInstance!.writeFileSync(join(repositoryRoot, "tools", "verify"), "#!/bin/sh\nexit 0\n", {
       mode: 0o700,
     });
     const argv = ["./tools/verify"];
@@ -132,7 +130,11 @@ describe("submission, gate, and completion evidence", () => {
   test("completion derives authoritative run gates and blocks missing critic provenance", () => {
     const state = workflowState();
     state.tasks["T-1"]!.status = "done";
+    state.tasks["T-1"]!.original_implementer = "implementer";
     state.tasks["T-1"]!.report = { summary: "done" };
+    state.tasks["T-1"]!.attempts = [
+      { agent_id: "implementer", submitted_at: clock.now().toISOString() },
+    ];
     state.tasks["T-1"]!.validations = [
       {
         validator_id: "validator",

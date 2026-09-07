@@ -1,10 +1,5 @@
-/**
- * Virtual In-Memory Filesystem Module.
- * Provides zero-disk sandboxed POSIX filesystem emulation for testing and simulation.
- */
-
-export { VirtualMemoryFS, normalizePosixPath, virtualFS } from "./memory-fs.ts";
-export { createVirtualFSSession, mockSubprocess, type VirtualFSSession } from "./spies.ts";
+export { VirtualMemoryFS, normalizePosixPath, virtualFS } from "./memory/index.ts";
+export { createVirtualFSSession, mockSubprocess, type VirtualFSSession } from "./spies/index.ts";
 
 export {
   VirtualDirent,
@@ -17,10 +12,10 @@ export {
   type RmOptions,
   type StatOptions,
   type VirtualDirNode,
-  type VirtualFSSnapshot,
   type VirtualFSNode,
+  type VirtualFSSnapshot,
   type VirtualFileNode,
   type VirtualNodeType,
   type VirtualStatsInit,
   type WriteFileOptions,
-} from "./types.ts";
+} from "./core/index.ts";

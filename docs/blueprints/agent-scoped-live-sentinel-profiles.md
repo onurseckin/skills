@@ -42,7 +42,7 @@ The sentinel enforces strict role-specialized auditing: when instantiated, it lo
 
 ### 2.2 `skill-auditor` (Tier 0 — Monorepo Architecture Auditor)
 
-- **Monitored Invariants:** Monorepo file density ($\le 300$ physical LOC); directory fanout ($\le 10$ files); explicit named facade exports (0 wildcard `export *`); AST type purity (0 `any`, 0 `@ts-ignore`).
+- **Monitored Invariants:** Monorepo file density ($\le 400$ physical LOC); directory fanout ($\le 10$ files); explicit named facade exports (0 wildcard `export *`); AST type purity (0 `any`, 0 `@ts-ignore`).
 - **Trigger Conditions:** Missing scheduled audit sweeps; rubber-stamping non-conforming file additions; attempting code implementation.
 - **Remediation Action:** Execute `bun harness.ts audit:modularity`; log non-compliant files to `.olt/defects.jsonl`.
 
@@ -102,8 +102,8 @@ The sentinel enforces strict role-specialized auditing: when instantiated, it lo
 
 ### 5.1 `implementer` (Tier 3 — Primary Code Author)
 
-- **Monitored Invariants:** Disjoint leased `write_scope` confinement; physical line limit ($\le 300$ LOC); zero `any`, zero `@ts-ignore`; mandatory file-scoped test execution before `task:submit`.
-- **Trigger Conditions:** Writing outside leased files; introducing AST suppressions; exceeding 300 LOC; invoking `task:submit` without running unit tests.
+- **Monitored Invariants:** Disjoint leased `write_scope` confinement; physical line limit ($\le 400$ LOC); zero `any`, zero `@ts-ignore`; mandatory file-scoped test execution before `task:submit`.
+- **Trigger Conditions:** Writing outside leased files; introducing AST suppressions; exceeding 400 LOC; invoking `task:submit` without running unit tests.
 - **Remediation Action:** Strike 1: Deliver exact remediation (`bun test <path.test.ts>`); Strike 2: Mechanically block submission until test receipt is registered.
 
 ### 5.2 `sub-implementer` (Tier 3 — Nested Worker)

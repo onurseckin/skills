@@ -1,9 +1,12 @@
-import { afterEach, beforeEach, describe, expect, test, spyOn } from "bun:test";
-import * as childProcess from "node:child_process";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { SpawnSyncReturns } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import type { writeSync } from "node:fs";
 import { join } from "node:path";
+import {
+  createVirtualFSSession,
+  mockSubprocess,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   persistStandaloneReceipt,
   setShellCommandDependenciesForTesting,
@@ -19,6 +22,11 @@ import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { cleanupVirtualCliFS, setupVirtualCliFS } from "./fixtures/full-lifecycle-fixture.ts";
 
 let spawnSyncSpy: { mockRestore: () => void } | undefined;
+let vfs: VirtualMemoryFS;
+
+type WriteSyncFn = NonNullable<
+  Parameters<typeof setShellCommandDependenciesForTesting>[0]["writeSync"]
+>;
 
 function registerStandaloneActor(actor: string, role: string): void {
   writeAgentMetadata(
@@ -32,7 +40,7 @@ function registerStandaloneActor(actor: string, role: string): void {
 
 describe("shell command coverage: persistStandaloneReceipt and dependencies", () => {
   beforeEach(() => {
-    setupVirtualCliFS();
+    vfs = setupVirtualCliFS();
     enableInMemoryAgentMetadata();
   });
   afterEach(() => {
@@ -46,19 +54,19 @@ describe("shell command coverage: persistStandaloneReceipt and dependencies", ()
 
   test("persistStandaloneReceipt handles happy path and fsync failure recovery", () => {
     const evidenceDir = "/virtual/shell-receipt/evidence";
-    mkdirSync(evidenceDir, { recursive: true });
+    vfs.mkdirSync(evidenceDir, { recursive: true });
     const receiptPath = join(evidenceDir, "cmd-test.json");
     const body = JSON.stringify({ ok: true });
     persistStandaloneReceipt(evidenceDir, receiptPath, body);
-    expect(readFileSync(receiptPath, "utf8")).toBe(body);
+    expect(vfs.readFileSync(receiptPath, "utf8")).toBe(body);
   });
 
   test("persistStandaloneReceipt error paths: zero write progress, post-rename failure, unlink error", () => {
     const evidenceDir = "/virtual/shell-errs/evidence";
-    mkdirSync(evidenceDir, { recursive: true });
+    vfs.mkdirSync(evidenceDir, { recursive: true });
     const receiptPath = join(evidenceDir, "cmd-err.json");
 
-    const mockZeroWrite: typeof writeSync = () => 0;
+    const mockZeroWrite: WriteSyncFn = () => 0;
     let restore = setShellCommandDependenciesForTesting({ writeSync: mockZeroWrite });
     try {
       expect(() => persistStandaloneReceipt(evidenceDir, receiptPath, "data")).toThrow(
@@ -68,7 +76,7 @@ describe("shell command coverage: persistStandaloneReceipt and dependencies", ()
       restore();
     }
 
-    const mockThrowWrite: typeof writeSync = () => {
+    const mockThrowWrite: WriteSyncFn = () => {
       throw new Error("disk error");
     };
     restore = setShellCommandDependenciesForTesting({
@@ -85,12 +93,10 @@ describe("shell command coverage: persistStandaloneReceipt and dependencies", ()
       restore();
     }
 
-    const mockRawStringThrow: typeof writeSync = () => {
+    const mockRawStringThrow: WriteSyncFn = () => {
       throw "raw string write failure";
     };
-    restore = setShellCommandDependenciesForTesting({
-      writeSync: mockRawStringThrow,
-    });
+    restore = setShellCommandDependenciesForTesting({ writeSync: mockRawStringThrow });
     try {
       expect(() => persistStandaloneReceipt(evidenceDir, receiptPath, "data")).toThrow(
         /raw string write failure/,
@@ -99,7 +105,7 @@ describe("shell command coverage: persistStandaloneReceipt and dependencies", ()
       restore();
     }
 
-    const mockBufferWrite: typeof writeSync = (_fd, buf) =>
+    const mockBufferWrite: WriteSyncFn = (_fd, buf) =>
       typeof buf === "string" ? Buffer.byteLength(buf) : buf.byteLength;
 
     restore = setShellCommandDependenciesForTesting({
@@ -139,7 +145,7 @@ describe("shell command coverage: persistStandaloneReceipt and dependencies", ()
 
 describe("shell command coverage: argument validation and capsule execution", () => {
   beforeEach(() => {
-    setupVirtualCliFS();
+    vfs = setupVirtualCliFS();
     enableInMemoryAgentMetadata();
   });
   afterEach(() => {
@@ -168,7 +174,7 @@ describe("shell command coverage: argument validation and capsule execution", ()
 
   test("capsule mode handles missing metadata, role mismatch, log defects, and duration calculation", async () => {
     const root = "/virtual/capsule-shell-root";
-    mkdirSync(root, { recursive: true });
+    vfs.mkdirSync(root, { recursive: true });
     const runRoot = initRun(root, "run-shell", new TextEncoder().encode("prompt"), "file", true);
     writeAgentMetadata(
       createAgentMetadata({
@@ -183,7 +189,7 @@ describe("shell command coverage: argument validation and capsule execution", ()
     ).rejects.toThrow(/ROLE_ASSERTION_MISMATCH/);
 
     const dummyEvidence = join(runRoot, "evidence.json");
-    writeFileSync(dummyEvidence, JSON.stringify({ ok: true }));
+    vfs.writeFileSync(dummyEvidence, JSON.stringify({ ok: true }));
 
     const mockExecSuccess: typeof runExecCommand = async () => ({
       markdown: "### executed",
@@ -256,11 +262,8 @@ describe("shell command coverage: argument validation and capsule execution", ()
       shellCommand({ actor: "imp-worker", role: "implementer" }, {}, ["sh", "-c", "echo 1"]),
     ).rejects.toThrow(/UNSHIELDED_COMMAND_DEFECT/);
 
-    spawnSyncSpy = spyOn(childProcess, "spawnSync").mockImplementation(((
-      cmd: string,
-      args?: string[],
-    ) => {
-      if (cmd === "git" && args?.[0] === "status") {
+    spawnSyncSpy = mockSubprocess((cmd: string, args: readonly string[]) => {
+      if (cmd === "git" && args[0] === "status") {
         return {
           pid: 10001,
           output: ["", "On branch main\nnothing to commit, working tree clean\n", ""],
@@ -280,7 +283,7 @@ describe("shell command coverage: argument validation and capsule execution", ()
         signal: null,
         error: undefined,
       } as SpawnSyncReturns<string>;
-    }) as never);
+    });
 
     const result = await shellCommand(
       { actor: "imp-worker", role: "implementer", wave: 1, task: "T1" },

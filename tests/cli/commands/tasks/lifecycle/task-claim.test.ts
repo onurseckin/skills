@@ -1,4 +1,3 @@
-import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
@@ -6,6 +5,7 @@ import { taskClaimCommand } from "../../../../../olt/scripts/src/cli/commands/ta
 import {
   cleanupRoots,
   cleanupVirtualCliFS,
+  getVirtualCliFS,
   setupVirtualCliFS,
 } from "../../fixtures/full-lifecycle-fixture.ts";
 import { TASK_ID, setupRun } from "../../fixtures/probe-fixture.ts";
@@ -150,10 +150,11 @@ describe("task:claim - Confinement, Validation & Role Rules", () => {
       );
     }
 
+    const vfs = getVirtualCliFS();
     const defectsFile = `${run}/defects.jsonl`;
-    const defectsExist = existsSync(defectsFile);
+    const defectsExist = vfs.existsSync(defectsFile);
     expect(defectsExist).toBeTrue();
-    const contents = readFileSync(defectsFile, "utf8");
+    const contents = vfs.readFileSync(defectsFile, "utf8");
     expect(contents).toContain("role_confinement_violation");
     expect(contents).toContain("orch-lead");
   });
@@ -181,10 +182,11 @@ describe("task:claim - Confinement, Validation & Role Rules", () => {
       );
     }
 
+    const vfs = getVirtualCliFS();
     const defectsFile = `${run}/defects.jsonl`;
-    const defectsExist = existsSync(defectsFile);
+    const defectsExist = vfs.existsSync(defectsFile);
     expect(defectsExist).toBeTrue();
-    const contents = readFileSync(defectsFile, "utf8");
+    const contents = vfs.readFileSync(defectsFile, "utf8");
     expect(contents).toContain("role_confinement_violation");
     expect(contents).toContain("coord-dispatcher");
   });

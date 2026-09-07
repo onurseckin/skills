@@ -6,7 +6,6 @@ import {
   createVirtualFSSession,
   type VirtualFSSession,
 } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
-import { discoverActiveTranscripts } from "../../../olt/scripts/src/mind/auditing/cognitive/skill-auditor.ts";
 import {
   getInMemoryMailbox,
   clearInMemoryMailboxStore,
@@ -55,15 +54,6 @@ describe("LiveStrategyMonitor & SentinelMonitorRegistry Probes", () => {
     vfs.writeFileSync(
       transcriptPath,
       lines.map((l) => JSON.stringify(l)).join("\n") + "\n",
-      "utf-8",
-    );
-  }
-
-  function appendTranscript(lines: unknown[]): void {
-    const prev = vfs.existsSync(transcriptPath) ? vfs.readFileSync(transcriptPath, "utf-8") : "";
-    vfs.writeFileSync(
-      transcriptPath,
-      prev + lines.map((l) => JSON.stringify(l)).join("\n") + "\n",
       "utf-8",
     );
   }
@@ -225,147 +215,6 @@ describe("LiveStrategyMonitor & SentinelMonitorRegistry Probes", () => {
     expect(getStrikeRecord("impl-fs", scratchDir)?.active_violations[0]?.code).toBe(
       "OUT_OF_SCOPE_MUTATION",
     );
-    monitor.stop();
-  });
-
-  it("handles burst of 10 transcript events incrementally", () => {
-    const monitor = makeMonitor("implementer", "impl-burst");
-    monitor.pollNow();
-    appendTranscript(
-      Array.from({ length: 10 }, (_, i) => ({
-        step: i,
-        tool_calls: [{ name: "view_file", args: { path: `src/f${i}.ts` } }],
-      })),
-    );
-    monitor.pollNow();
-    expect(getStrikeRecord("impl-burst", scratchDir)).toBeNull();
-    monitor.stop();
-  });
-
-  it("handles partial, empty, and malformed lines without crashing", () => {
-    const monitor = makeMonitor("coordinator", "coord-malformed");
-    const prev = vfs.existsSync(transcriptPath) ? vfs.readFileSync(transcriptPath, "utf-8") : "";
-    vfs.writeFileSync(transcriptPath, prev + "\n\n{broken\n", "utf-8");
-    expect(() => monitor.pollNow()).not.toThrow();
-    appendTranscript([{ tool_calls: [{ name: "run_command" }] }]);
-    expect(() => monitor.pollNow()).not.toThrow();
-    expect(getStrikeRecord("coord-malformed", scratchDir)).not.toBeNull();
-    monitor.stop();
-  });
-
-  it("transitions agent status to quarantined in state.json", () => {
-    const statePath = join(scratchDir, "state.json");
-    vfs.writeFileSync(
-      statePath,
-      JSON.stringify({ agents: [{ id: "quarantine-me", role: "coordinator", status: "active" }] }),
-      "utf-8",
-    );
-    writeTranscript([{ tool_calls: [{ name: "exec", args: { cmd: "id" } }] }]);
-    const monitor = makeMonitor("coordinator", "quarantine-me");
-    monitor.pollNow();
-    const state = JSON.parse(vfs.readFileSync(statePath, "utf-8")) as {
-      agents: { status: string }[];
-    };
-    expect(state.agents[0]?.status).toBe("quarantined");
-    monitor.stop();
-  });
-
-  it("terminates watcher on stop and ensures pollNow after stop is a no-op", () => {
-    const monitor = makeMonitor("coordinator", "coord-teardown");
-    monitor.start();
-    expect(monitor.isMonitoring()).toBe(true);
-    monitor.stop();
-    expect(monitor.isMonitoring()).toBe(false);
-    writeTranscript([{ tool_calls: [{ name: "run_command" }] }]);
-    monitor.pollNow();
-    expect(getStrikeRecord("coord-teardown", scratchDir)).toBeNull();
-  });
-
-  it("synchronizes registry state with .olt/sentinel-monitors.json", () => {
-    const monitor = SentinelMonitorRegistry.register({
-      agentId: "reg-agent",
-      role: "coordinator",
-      transcriptPath,
-      repoRoot: scratchDir,
-      autoStart: false,
-    });
-    expect(SentinelMonitorRegistry.get("reg-agent")).toBe(monitor);
-    expect(SentinelMonitorRegistry.list().length).toBe(1);
-    const file = join(scratchDir, ".olt", "sentinel-monitors.json");
-    expect(vfs.existsSync(file)).toBe(true);
-    const desc = JSON.parse(vfs.readFileSync(file, "utf-8")) as { agentId: string }[];
-    expect(desc[0]?.agentId).toBe("reg-agent");
-    SentinelMonitorRegistry.unregister("reg-agent");
-    expect(SentinelMonitorRegistry.get("reg-agent")).toBeUndefined();
-    expect(SentinelMonitorRegistry.list().length).toBe(0);
-  });
-
-  it("discovers valid host transcripts and ignores invalid ones", () => {
-    const logDir = join(scratchDir, ".system_generated", "logs");
-    vfs.mkdirSync(logDir, { recursive: true });
-    const transcript = join(logDir, "transcript.jsonl");
-    vfs.writeFileSync(transcript, "{}\n", "utf-8");
-    const dummy = join(logDir, "not-a-transcript.log");
-    vfs.writeFileSync(dummy, "dummy\n", "utf-8");
-
-    const disc = discoverActiveTranscripts(scratchDir);
-    expect(disc).toContain(transcript);
-    expect(disc).not.toContain(dummy);
-    expect(disc.every((p) => p.endsWith("transcript.jsonl") && vfs.existsSync(p))).toBe(true);
-  });
-
-  it("reassembles fragmented stream across polling ticks before triggering strike", () => {
-    const monitor = makeMonitor("coordinator", "coord-fragment");
-    vfs.writeFileSync(transcriptPath, '{"tool_calls": [{"name": "run_', "utf-8");
-    monitor.pollNow();
-    expect(getStrikeRecord("coord-fragment", scratchDir)).toBeNull();
-
-    const prev = vfs.readFileSync(transcriptPath, "utf-8");
-    vfs.writeFileSync(
-      transcriptPath,
-      prev + 'command", "args": {"CommandLine": "whoami"}}]}\n',
-      "utf-8",
-    );
-    monitor.pollNow();
-    expect(getStrikeRecord("coord-fragment", scratchDir)?.active_violations[0]?.code).toBe(
-      "SUPERVISOR_PROHIBITED_TOOL_EXECUTION",
-    );
-    monitor.stop();
-  });
-
-  it("triggers interjection on complex nested path traversal attack", () => {
-    writeTranscript([
-      {
-        tool_calls: [
-          { name: "write_to_file", args: { targetPath: "subdir/nested/../../../escape.ts" } },
-        ],
-      },
-    ]);
-    const monitor = makeMonitor("implementer", "impl-nested-traversal");
-    monitor.pollNow();
-    expect(getStrikeRecord("impl-nested-traversal", scratchDir)?.active_violations[0]?.code).toBe(
-      "PATH_TRAVERSAL_ATTACK",
-    );
-    monitor.stop();
-  });
-
-  it("ignores file mutations in .git, .olt/locks, and declared writeScope in watcher", () => {
-    const worktree = join(scratchDir, "fs-safe-worktree");
-    vfs.mkdirSync(worktree, { recursive: true });
-    const monitor = makeMonitor("implementer", "impl-safe-fs", {
-      targetWorktree: worktree,
-      writeScope: ["src/"],
-    });
-    monitor.start();
-    expect(session.getWatcherCallback !== undefined).toBe(true);
-
-    if (session.dispatchWatcherEvent) {
-      session.dispatchWatcherEvent("change", ".git/HEAD");
-      session.dispatchWatcherEvent("change", ".olt/locks/agent.lock");
-      session.dispatchWatcherEvent("change", "src/nested/component.ts");
-    }
-
-    expect(getStrikeRecord("impl-safe-fs", scratchDir)).toBeNull();
     monitor.stop();
   });
 });

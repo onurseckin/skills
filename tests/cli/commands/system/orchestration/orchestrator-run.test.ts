@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import type { OrchestratorCommandContext } from "../../../../../olt/scripts/src/cli/commands/orchestrator-ops.ts";
@@ -7,6 +6,7 @@ import type { RoundExecutionResult } from "../../../../../olt/scripts/src/orches
 import {
   cleanupRoots,
   cleanupVirtualCliFS,
+  getVirtualCliFS,
   setupVirtualCliFS,
 } from "../../fixtures/full-lifecycle-fixture.ts";
 
@@ -40,10 +40,11 @@ async function repoWithPrompt(
 ): Promise<{ repo: string; promptPath: string }> {
   const repo = `/virtual/cli/harness-orchestrator-ops-${name}-${Date.now()}`;
   roots.push(repo);
-  await mkdir(repo, { recursive: true });
-  await mkdir(join(repo, ".git"), { recursive: true });
+  const vfs = getVirtualCliFS();
+  vfs.mkdirSync(repo, { recursive: true });
+  vfs.mkdirSync(join(repo, ".git"), { recursive: true });
   const promptPath = join(repo, "prompt.txt");
-  await writeFile(promptPath, prompt);
+  vfs.writeFileSync(promptPath, prompt);
   return { repo, promptPath };
 }
 

@@ -77,11 +77,21 @@ describe("containment-guard-coverage", () => {
 
   it("evaluates supervisory role classification patterns", () => {
     const roles =
-      "mind mind-supervisor tier-0 mind-auditor skill-auditor orchestrator domain-orchestrator orch tier-1 coordinator feature-coordinator domain-coordinator coord tier-2 orchestrator-alpha beta-orchestrator domain_orchestrator_sub coordinator-1 feature-coordinator-2 lead_supervisor".split(
+      "mind mind-supervisor mind-auditor skill-auditor orchestrator domain-orchestrator coordinator feature-coordinator domain-coordinator orchestrator-alpha beta-orchestrator domain_orchestrator_sub coordinator-1 feature-coordinator-2 lead_supervisor".split(
         " ",
       );
     for (const r of roles) expect(isSupervisoryRoleForContainment(r)).toBe(true);
-    for (const r of ["implementer", "worker", "validator", "tester"]) {
+    for (const r of [
+      "implementer",
+      "worker",
+      "validator",
+      "tester",
+      "orch",
+      "coord",
+      "tier-0",
+      "tier-1",
+      "tier-2",
+    ]) {
       expect(isSupervisoryRoleForContainment(r)).toBe(false);
     }
   });

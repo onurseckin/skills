@@ -12,7 +12,8 @@ import {
   AGENTS_ROOT,
   CHECKLISTS_ROOT,
 } from "./role-contract-types.ts";
-import { parseRoleContract, parseChecklist } from "./role-contract-rules.ts";
+import { parseRoleContract } from "./role-contract-rules.ts";
+import { parseChecklist } from "./role-contract-checklist.ts";
 
 export function resolveRoleContractPath(role: AgentRole): string {
   const yamlPath = join(AGENTS_ROOT, `${role}.yaml`);
@@ -22,14 +23,8 @@ export function resolveRoleContractPath(role: AgentRole): string {
   return yamlPath;
 }
 
-export function normalizeRoleName(role: string): string {
-  const lower = role.toLowerCase().trim();
-  if (lower === "critic") return "completeness-critic";
-  if (lower === "worker") return "implementer";
-  if (lower === "orch") return "orchestrator";
-  if (lower === "coord") return "coordinator";
-  return lower;
-}
+import { normalizeRoleName } from "../../authority/thread/index.ts";
+export { normalizeRoleName };
 
 export function loadRoleContract(
   role: AgentRole,

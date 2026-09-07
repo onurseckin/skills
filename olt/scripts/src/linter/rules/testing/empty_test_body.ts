@@ -1,6 +1,5 @@
 import ts from "typescript";
-import type { AstLintRuleModule } from "../../ast/index.ts";
-import { identifyTestCall } from "../../ast/index.ts";
+import { identifyTestCall, type AstLintRuleModule } from "../../core/index.ts";
 
 export const emptyTestBodyRule: AstLintRuleModule = {
   rule: "empty_test_body",

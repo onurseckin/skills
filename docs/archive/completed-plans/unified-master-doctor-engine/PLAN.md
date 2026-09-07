@@ -709,7 +709,7 @@ Execution Flow:
 ## 6. Strict Compliance Invariants & Acceptance Checklist
 
 1. **0 TypeScript `any` & 0 Suppressions**: AST purity scanner verifies zero `@ts-ignore`, `@ts-expect-error`, or `any` types across all new and modified files.
-2. **Modular File Line Limits**: Every source file $\le 300$ physical lines; every directory $\le 10$ files.
+2. **Modular File Line Limits**: Every source file $\le 400$ physical lines; every directory $\le 10$ files.
 3. **Sub-Domain Completion Git Staging Invariant (Reflog Safety)**: Immediately upon completing any sub-domain or discrete sub-task, stage all modified and added files with `git add -A` so Git writes disk objects to `.git/objects/`, guaranteeing crash resilience and reflog recoverability.
 4. **Unified Host Architecture**: No separate CLI vs IDE host branches; both share identical files, policy models, and mailbox logic across `antigravity`, `claude_code`, `codex`, and `cursor`.
 5. **Host Model Tier Confinement**:

@@ -22,7 +22,7 @@ import {
   partitionDefectsToIsolatedTasks,
 } from "../../../olt/scripts/src/orchestrator/anti-batching.ts";
 import { validateReview } from "../../../olt/scripts/src/workflow/review/validate-review.ts";
-import { parseCompletionAssessment } from "../../../olt/scripts/src/workflow/completion/review-input.ts";
+import { parseCompletionAssessment } from "../../../olt/scripts/src/workflow/completion/index.ts";
 import type { TaskRecord, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 import {
   cleanupVirtualValidationFS,

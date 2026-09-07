@@ -1,4 +1,5 @@
 import { roleToTier } from "../../../authority/guards/spawn-validator.ts";
+import { inferRoleFromAgentId, normalizeRoleName } from "../../../authority/thread/index.ts";
 import type { EvaluationContext, RoleDiagnosticProfile, SentinelViolation } from "../../types.ts";
 
 export const orchestratorProfile: RoleDiagnosticProfile = {
@@ -58,7 +59,8 @@ export const orchestratorProfile: RoleDiagnosticProfile = {
     const uniqueRoles = Array.from(new Set(candidateRoles));
 
     for (const childRole of uniqueRoles) {
-      if (roleToTier(childRole) !== 2) {
+      const resolved = normalizeRoleName(childRole) ?? inferRoleFromAgentId(childRole);
+      if (roleToTier(resolved ?? childRole) !== 2) {
         violations.push({
           code: "CROSS_TIER_SPAWNING_VIOLATION",
           severity: "CRITICAL",

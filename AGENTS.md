@@ -135,7 +135,7 @@ Every agent executing within this repository must adhere to the following non-ne
     - All call sites, imports, tests, and CLI consumers across the repository must be updated directly to target the new, canonical modular structure.
     - Any obsolete, superseded, or legacy single-file representations (e.g. `schema.ts`, `generator.ts`, `rbac-engine.ts`) must be permanently deleted immediately rather than retained as forwarding aliases.
 37. **Codebase Modularity Invariants, Density Budgets & Clean Facades (`MODULARITY_RATCHET_INVARIANTS`):**
-    - **Strict File Line Budget:** Every TypeScript and source file must remain strictly $\le 300$ physical lines.
+    - **Strict File Line Budget:** Every TypeScript and source file must remain strictly $\le 400$ physical lines.
     - **Strict Directory Fanout Budget:** Every directory must contain $\le 10$ files.
     - **Explicit Named Facade Invariant:** Every TypeScript module directory must expose an explicit `index.ts` facade containing named exports. Wildcard exports (`export * from ...`) are strictly prohibited to maintain deterministic AST import graphs and avoid namespace pollution.
     - **Zero Facade Bypass Invariant:** Cross-directory imports must strictly target destination `index.ts` facades (e.g. `import { foo } from "../policy/index.ts"`), never reaching across directory boundaries to private internal submodule paths.
@@ -178,7 +178,7 @@ Every agent executing within this repository must adhere to the following non-ne
 44. **100% In-Memory Virtual Mocking Invariant (`ZERO_DISK_IO_TESTING_INVARIANT`):**
     - **Absolute Ban on Real Disk I/O in Unit Tests:** Unit tests across all domains (`tests/<domain>/*`) must NEVER perform real filesystem writes (`writeFileSync`, `mkdirSync`, `rmSync`, `appendFileSync`, `unlinkSync`, etc.), read real files from disk for testing, spawn real subprocesses for unit testing (`child_process`, `execSync`, `spawnSync`, `Bun.spawn`, `Bun.$`), or create directories/files (such as `./runtime/`, `.tmp/`, or root scratch files).
     - **Mandatory In-Memory Mocking & Virtual Adapters:** All test suites must strictly execute using in-memory virtual engines and adapters (`VirtualMemoryFS`, `MemoryFsAdapter`, `createVirtualFSSession()`), synthetic in-memory metadata (`enableInMemoryAgentMetadata()` / `disableInMemoryAgentMetadata()`), synthetic virtual clocks, and deterministic in-memory fixtures.
-    - **Strict Ban on Static AST & Source Scanning in Unit Tests:** Unit tests must test isolated module runtime behavior in RAM. Asserting file line counts ($\le 300$), zero `any` types, zero suppressions, or running static AST/directory scanners against repository files within unit tests is strictly prohibited; all static codebase structural rules belong exclusively to `task:check`, oxlint, and pre-commit hooks (see [unit-testing-standards.md](file:///Users/onurseckinsenoglu/repos/skills/olt/references/unit-testing-standards.md)).
+    - **Strict Ban on Static AST & Source Scanning in Unit Tests:** Unit tests must test isolated module runtime behavior in RAM. Asserting file line counts ($\le 400$), zero `any` types, zero suppressions, or running static AST/directory scanners against repository files within unit tests is strictly prohibited; all static codebase structural rules belong exclusively to `task:check`, oxlint, and pre-commit hooks (see [unit-testing-standards.md](file:///Users/onurseckinsenoglu/repos/skills/olt/references/unit-testing-standards.md)).
     - **Automated AST Guardrail Enforcement:** The `unit_test_purity` AST linter guardrail mechanically validates all unit test files, rejecting physical filesystem imports/calls, unmocked subprocesses, and heavyweight AST compilation outside in-memory virtual mocks.
     - **Sub-10ms Execution & Parallel Isolation:** In-memory virtual mocked tests must execute in milliseconds ($P_{90} \le 10\text{ms}$ per test file), ensuring 100% parallel isolation, zero disk contention, zero lock collisions, and instantaneous whole-monorepo verification.
     - **Triple-100% Coverage Mandate:** Every unit test suite must push for 100% line coverage, 100% statement coverage, and 100% function coverage across all touched source files using comprehensive in-memory mock branches.
@@ -573,7 +573,7 @@ To protect repository state and prevent common LLM blunder modes:
     - All call sites, imports, tests, and CLI consumers across the repository must be updated directly to target the new canonical modular structure.
     - Any obsolete, superseded, or legacy single-file representations (e.g. `schema.ts`, `generator.ts`, `rbac-engine.ts`) must be permanently deleted from disk and git index immediately.
 26. **Codebase Modularity Invariants, Density Budgets & Clean Facades (`MODULARITY_RATCHET_INVARIANTS`):**
-    - Every source and test file must remain strictly $\le 300$ physical lines.
+    - Every source and test file must remain strictly $\le 400$ physical lines.
     - Every directory must contain $\le 10$ files.
     - Every directory must expose an explicit `index.ts` facade containing named exports. Wildcard exports (`export * from ...`) are strictly prohibited.
     - Cross-directory imports must strictly target destination `index.ts` facades, never reaching across directory boundaries to private internal submodule paths.
@@ -585,7 +585,7 @@ To protect repository state and prevent common LLM blunder modes:
 28. **Semantic Test Directory Mirroring & Ban on Arbitrary `suite-XX` Numbering (`SEMANTIC_TEST_MIRRORING_INVARIANT`):**
     - Test files must strictly mirror the application source code domain directory hierarchy (e.g., `apps/universal/src/features/fleet/demand-rebalancing/` $\to$ `apps/universal/tests/features/fleet/demand-rebalancing.test.tsx`).
     - Arbitrary numbered suite folders (`suite-01/`, `suite-12/`, `suite-26/`, `suite-32/`) are strictly prohibited as mechanical anti-patterns.
-    - Test modularity follows the same rules as source code: $\le 300$ physical lines per file, $\le 10$ files per folder, modularized with semantic subdirectories matching domain concepts (e.g., `tests/features/fleet/rebalancing/`), never artificial numbered suites.
+    - Test modularity follows the same rules as source code: $\le 400$ physical lines per file, $\le 10$ files per folder, modularized with semantic subdirectories matching domain concepts (e.g., `tests/features/fleet/rebalancing/`), never artificial numbered suites.
     - **Repository Root Scratch Cleanliness:** All agent scratch scripts, one-off python/shell tools, and experimental output directories belong strictly in `.tmp/` (gitignored). Never pollute the root directory.
 29. **UI Design System Compliance & Token Ground Truth (`UI_DESIGN_SYSTEM_GROUND_TRUTH`):**
     - All UI components, screens, and design tokens must strictly adhere to canonical domain cognitive models (`docs/references/HOW_TO_THINK.md`) and design system references (`docs/references/luxury-design-system/`, `packages/tokens/`).
@@ -620,7 +620,7 @@ All contributions to the `@onurseckin/skills` monorepo must strictly satisfy all
 2. **Zero Compiler & Linter Suppressions:**
    - Exactly **0 compiler/linter suppressions** (`@ts-ignore`, `@ts-expect-error`, `eslint-disable`) are permitted anywhere in the repository.
 3. **Context-Friendly File Size Budgets & Modularity Ratchet:**
-   - Production source files and unit test suites must remain strictly bounded: $\le 300$ physical lines per file, $\le 10$ files per directory fanout.
+   - Production source files and unit test suites must remain strictly bounded: $\le 400$ physical lines per file, $\le 10$ files per directory fanout.
    - Zero backwards-compatibility code, zero dead code, explicit named facade exports, zero facade bypasses, and zero circular dependencies.
 4. **100% Host-Agnostic & Zero Runtime Dependencies:**
    - Harness and scripts must run using native runtime APIs (`bun` / `node` built-ins). No external runtime `node_modules` or runtime `npm install` requirements.

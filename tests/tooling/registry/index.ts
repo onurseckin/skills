@@ -1,14 +1,13 @@
-/**
- * Dynamic Tool & Role Registry Facade.
- */
 export {
   DynamicToolRegistry,
   getGlobalToolRegistry,
   resetGlobalToolRegistry,
-} from "../../../olt/scripts/src/tooling/registry.ts";
+} from "../../../olt/scripts/src/tooling/index.ts";
+
 export type {
+  ToolContext,
+  ToolContext as ToolExecutionContext,
   ToolDefinition,
-  ToolHandler,
-  ToolExecutionContext,
   ToolExecutionResult,
-} from "../../../olt/scripts/src/tooling/types.ts";
+  ToolHandler,
+} from "../../../olt/scripts/src/tooling/index.ts";

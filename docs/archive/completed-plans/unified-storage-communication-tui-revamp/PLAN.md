@@ -641,7 +641,7 @@ export interface GitIndexIntegrityReport {
 
 ## 4. Execution Waves & Modular Implementation Roadmap
 
-Implementation is divided into **4 distinct, sequential, highly-focused waves**. Every file strictly adheres to the $\le 300$ physical lines limit and every directory contains $\le 10$ files.
+Implementation is divided into **4 distinct, sequential, highly-focused waves**. Every file strictly adheres to the $\le 400$ physical lines limit and every directory contains $\le 10$ files.
 
 ```mermaid
 graph LR
@@ -847,7 +847,7 @@ graph LR
 ## 6. Strict Compliance Invariants & Acceptance Checklist
 
 1. **0 TypeScript `any` & 0 Suppressions**: AST purity scanner verifies zero `@ts-ignore`, `@ts-expect-error`, or `any` types across all new and modified files.
-2. **Modular File Line Limits**: Every source file $\le 300$ physical lines; every directory $\le 10$ files.
+2. **Modular File Line Limits**: Every source file $\le 400$ physical lines; every directory $\le 10$ files.
 3. **Pure Mathematical State Projections**: All state mutations derived strictly via immutable reducers with zero side effects during projection calculation.
 4. **Fail-Closed Locking**: All mailbox and snapshot file operations acquire exclusive POSIX locks; failure to acquire locks within timeout safely fails closed.
 5. **Discriminative Testing Contract**: Every test suite includes negative control probes ensuring an empty or trivial stub fails execution.

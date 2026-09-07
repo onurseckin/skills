@@ -3,7 +3,7 @@ import { HarnessError } from "../core/errors/index.ts";
 import { utc } from "../workflow/task-state.ts";
 import type { PacketRecord } from "../workflow/types.ts";
 import type { BuiltPacket } from "./types.ts";
-import { validateRepositoryBinding } from "../workflow/completion/repository-binding.ts";
+import { validateRepositoryBinding } from "../workflow/completion/index.ts";
 
 export function metadataText(metadata: JsonObject, field: string): string {
   const value = metadata[field];

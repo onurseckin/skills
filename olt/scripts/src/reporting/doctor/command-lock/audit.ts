@@ -1,4 +1,4 @@
-import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "../types.ts";
+import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "../index.ts";
 import { isBadGit, isWholeSuite, parseArgv } from "./classifiers.ts";
 import { isImplementerRole, isValidatorRole } from "./roles.ts";
 import type { CognitiveValidatorCommandLockOptions } from "./types.ts";

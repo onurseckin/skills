@@ -13,6 +13,7 @@ export type { ConcurrencyAuditResult };
 export interface ConcurrencySaturationReport {
   readonly totalSlots: number;
   readonly activeSlots: number;
+  readonly activeSupervisorCount: number;
   readonly saturationRatio: number;
   readonly underParallelizedTasks: readonly string[];
   readonly isSaturated: boolean;
@@ -32,6 +33,7 @@ export interface ConcurrencyAuditOptions {
   readonly underParallelizedTasks?: readonly string[] | undefined;
   readonly totalSlots?: number | undefined;
   readonly activeSlots?: number | undefined;
+  readonly activeSupervisorCount?: number | undefined;
 }
 
 export function auditConcurrencySaturation(
@@ -142,6 +144,7 @@ export function auditConcurrencySaturation(
   return {
     totalSlots,
     activeSlots,
+    activeSupervisorCount: Math.max(0, options?.activeSupervisorCount ?? 0),
     saturationRatio,
     underParallelizedTasks: Object.freeze(underParallelizedTasks),
     isSaturated,
@@ -160,6 +163,7 @@ export function auditSkillConcurrencySaturation(
   return {
     is_saturated: report.isSaturated,
     active_workers: report.activeSlots,
+    active_supervisors: report.activeSupervisorCount,
     optimal_concurrency: report.totalSlots,
     saturation_ratio: report.saturationRatio,
     unstaged_stations: report.unstagedStations,

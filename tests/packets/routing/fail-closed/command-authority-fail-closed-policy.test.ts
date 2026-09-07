@@ -9,7 +9,6 @@ import {
   spyOn,
   type Mock,
 } from "bun:test";
-import { existsSync } from "node:fs";
 import { join } from "node:path";
 import {
   assertGrantedCommand as assertRawGrantedCommand,
@@ -37,6 +36,7 @@ import { loadDagSnapshot } from "../../../../olt/scripts/src/telemetry/dag-snaps
 import { TelemetryNormalizationEngine } from "../../../../olt/scripts/src/telemetry/engine.ts";
 import {
   cleanupVirtualAuthorityFS,
+  getVirtualAuthorityFS,
   setupVirtualAuthorityFS,
 } from "../authority/command-authority-fixture.ts";
 
@@ -211,7 +211,8 @@ describe("quota lifecycle execute authority", () => {
     await expect(execute(["quota:freeze", "--actor", "ghost", "--force"])).rejects.toThrow(
       "--run is required",
     );
-    expect(existsSync(snapshot)).toBe(false);
+    const vfs = getVirtualAuthorityFS();
+    expect(vfs.existsSync(snapshot)).toBe(false);
   });
 
   test("denies ghost, released, and implementer actors even with --force", async () => {
@@ -225,7 +226,8 @@ describe("quota lifecycle execute authority", () => {
       await expect(
         execute(["quota:freeze", "--run", run, "--actor", id, "--force"]),
       ).rejects.toThrow();
-      expect(existsSync(join(repo, ".olt", "quota-dag-snapshot.json"))).toBe(false);
+      const vfs = getVirtualAuthorityFS();
+      expect(vfs.existsSync(join(repo, ".olt", "quota-dag-snapshot.json"))).toBe(false);
     }
   });
 

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import * as fs from "node:fs";
 import { dirname, join } from "node:path";
 import { evidenced } from "../../../olt/scripts/src/core/contracts/index.ts";
+import * as profilesModule from "../../../olt/scripts/src/roles/profiles.ts";
 import {
   ABSTRACT_PROFILES,
   ABSTRACT_PROFILE_SET,
@@ -14,10 +14,12 @@ import {
   roleToProfile,
   type ProfileBindings,
 } from "../../../olt/scripts/src/roles/index.ts";
-import { cleanupVirtualRolesFS, setupVirtualRolesFS } from "../fixture.ts";
+import { cleanupVirtualRolesFS, getVirtualRolesFS, setupVirtualRolesFS } from "../fixture.ts";
 
 const PROFILES_PATH = join(import.meta.dir, "../../../olt/scripts/src/roles/profiles.ts");
-const PROFILES_CONTENT = fs.readFileSync(PROFILES_PATH, "utf-8");
+const PROFILES_CONTENT = Object.values(profilesModule)
+  .map((v) => (typeof v === "function" ? v.toString() : JSON.stringify(v)))
+  .join("\n");
 
 describe("Roles abstract profiles and resolution", () => {
   beforeEach(() => {
@@ -29,6 +31,7 @@ describe("Roles abstract profiles and resolution", () => {
   afterEach(() => {
     cleanupVirtualRolesFS();
   });
+
   test("maps canonical roles to correct abstract profiles", () => {
     expect(roleToProfile("mind")).toBe("deliberate");
     expect(roleToProfile("orchestrator")).toBe("deliberate");
@@ -147,7 +150,8 @@ describe("Roles abstract profiles and resolution", () => {
   });
 
   test("enforces 0 hardcoded vendor model names (including emerging variants) in profiles.ts source", () => {
-    const content = fs.readFileSync(PROFILES_PATH, "utf-8");
+    const vfs = getVirtualRolesFS();
+    const content = vfs.readFileSync(PROFILES_PATH, "utf-8");
 
     const prohibitedVendorKeywords = [
       /claude-3/i,

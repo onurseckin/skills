@@ -63,7 +63,7 @@ bun harness.ts msg:recv --actor worker-1 --type DISPATCH_TASK --no-advance-curso
 
 Poll mailbox for messages at regular intervals until received or timeout.
 
-Repeatedly checks the inbox at specified intervals until unread messages arrive or limits are reached.
+Repeatedly checks the inbox at specified intervals until unread messages arrive or limits are reached. A timeout of 0 indicates infinite timeout.
 
 - **Aliases**: none
 - **Stdin**: not read
@@ -73,8 +73,9 @@ Repeatedly checks the inbox at specified intervals until unread messages arrive 
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--actor` | string | no | no | - | Recipient agent ID (auto-derived if omitted). |
 | `--interval` | int | no | no | - | Polling interval in milliseconds (default: 500). |
-| `--timeout` | int | no | no | - | Polling timeout in milliseconds (default: 30000). |
+| `--timeout` | int | no | no | - | Polling timeout in milliseconds (default: 30000). A timeout of 0 indicates infinite timeout. |
 | `--max-rounds` | int | no | no | - | Maximum polling rounds. |
+| `--continuous` | bool | no | no | - | Run continuously without exiting on first message batch. |
 | `--advance-cursor` | bool | no | no | - | Advance cursor after reading messages (default: true). |
 | `--no-advance-cursor` | bool | no | no | - | Do not advance cursor after reading messages. |
 | `--type` | string | no | no | - | Filter by message type. |
@@ -86,6 +87,28 @@ Repeatedly checks the inbox at specified intervals until unread messages arrive 
 bun harness.ts msg:poll --actor worker-1 --interval 200 --timeout 5000
 bun harness.ts msg:poll --actor worker-1 --max-rounds 10
 bun harness.ts msg:poll --actor worker-1 --type DISPATCH_TASK
+```
+
+### `msg:listen`
+
+Continuously listen for and drain incoming mailbox messages.
+
+Starts continuous draining on the agent mailbox, streaming incoming messages until interrupted.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--actor` | string | no | no | - | Recipient agent ID (auto-derived if omitted). |
+| `--interval` | int | no | no | - | Polling interval / idle wait in milliseconds (default: 50). |
+| `--batch-size` | int | no | no | - | Maximum messages to process per drain pass. |
+| `--base-dir` | string | no | no | - | Base directory for mailbox root. |
+
+```bash
+bun harness.ts msg:listen --actor worker-1
+bun harness.ts msg:listen --actor worker-1 --interval 50 --batch-size 10
 ```
 
 ### `msg:list`

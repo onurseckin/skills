@@ -1,9 +1,10 @@
-/**
- * @file index.ts
- * Facade for tests/scheduler/topology/ test suite
- */
+export { SCHEDULER_TOPOLOGY_CORE_SUITES } from "./core/index.ts";
+export { SCHEDULER_TOPOLOGY_DYNAMIC_SUITES } from "./dynamic/index.ts";
+export { SCHEDULER_TOPOLOGY_UNLIMITED_SUITES } from "./unlimited/index.ts";
 
 export const SCHEDULER_TOPOLOGY_SUITES = [
+  "dynamic-topology-allocations.test.ts",
+  "dynamic-topology-metrics-edge.test.ts",
   "dynamic-topology-metrics.test.ts",
   "dynamic-topology-partitions.test.ts",
   "dynamic-topology.test.ts",

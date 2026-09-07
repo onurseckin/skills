@@ -1,3 +1,6 @@
+import type { ProvisionedCluster, TaskCluster } from "../planning/index.ts";
+
+export type { ProvisionedCluster, TaskCluster };
 export type BacklogItemStatus = "PENDING" | "PLANNED" | "DISPATCHED" | "PROCESSED" | "BLOCKED";
 export type DefectStatus = "OPEN" | "PLANNED" | "IN_PROGRESS" | "RESOLVED" | "REOPENED";
 
@@ -25,6 +28,9 @@ export interface RawBacklogItem {
   readonly plan_path?: string | null | undefined;
   readonly created_at?: string | undefined;
   readonly timestamp?: string | undefined;
+  readonly write_scope?: readonly string[] | undefined;
+  readonly scope?: readonly string[] | undefined;
+  readonly dependencies?: readonly string[] | undefined;
   readonly [key: string]: unknown;
 }
 
@@ -43,6 +49,9 @@ export interface RawDefectItem {
   readonly timestamp?: string | undefined;
   readonly first_seen?: string | undefined;
   readonly last_seen?: string | undefined;
+  readonly write_scope?: readonly string[] | undefined;
+  readonly scope?: readonly string[] | undefined;
+  readonly dependencies?: readonly string[] | undefined;
   readonly [key: string]: unknown;
 }
 
@@ -166,6 +175,8 @@ export interface PreplanningRunResult {
   readonly duration_ms: number;
   readonly multi_orchestrator_dispatch?: MultiOrchestratorDispatchPlan | undefined;
   readonly orchestrator_worktrees?: readonly OrchestratorWorktreeAllocation[] | undefined;
+  readonly task_clusters?: readonly TaskCluster[] | undefined;
+  readonly provisioned_clusters?: readonly ProvisionedCluster[] | undefined;
 }
 
 export interface StagnationAuditResult {
@@ -186,6 +197,7 @@ export interface StagnationAuditResult {
 export interface ConcurrencyAuditResult {
   readonly is_saturated: boolean;
   readonly active_workers: number;
+  readonly active_supervisors: number;
   readonly optimal_concurrency: number;
   readonly saturation_ratio: number;
   readonly unstaged_stations: readonly string[];

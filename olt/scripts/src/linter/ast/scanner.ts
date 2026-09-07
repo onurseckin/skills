@@ -9,7 +9,7 @@ import {
   type AstLintOptions,
   type AstLintResult,
   type DirectoryLintResult,
-} from "./index.ts";
+} from "../core/index.ts";
 import { lintFile } from "./runner.ts";
 
 export function collectSourceFiles(

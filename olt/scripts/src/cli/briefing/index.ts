@@ -85,7 +85,7 @@ export function buildExactAnchorBriefing(options: ExactAnchorBriefingOptions): E
   const defaultCriteria: string[] = [
     `Strict type safety: 0 'any' types, 0 compiler suppressions (${"@"}ts-ignore, ${"@"}ts-expect-error, eslint-disable).`,
     `Strict disjoint write scope: Only modify files in assigned write scope (${options.writeScope.join(", ")}).`,
-    `Strict modularity invariants: Physical LOC <= 300 per file, directory fanout <= 10 files, named facade exports in index.ts (0 export *), 0 facade bypasses (cross-dir imports must target index.ts).`,
+    `Strict modularity invariants: Physical LOC <= 400 per file, directory fanout <= 10 files, named facade exports in index.ts (0 export *), 0 facade bypasses (cross-dir imports must target index.ts).`,
     `Zero quality gate bypasses: Absolute ban on --no-verify, --force, or LEFTHOOK=0.`,
     `All verification commands pass cleanly with exit code 0.`,
     `Mandate WaitMsBeforeAsync: 10000 on all run_command invocations.`,

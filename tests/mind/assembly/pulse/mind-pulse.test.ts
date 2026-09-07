@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
-import * as fs from "node:fs";
 import * as path from "node:path";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import * as storeModule from "../../../../olt/scripts/src/engine/store/index.ts";
@@ -18,6 +17,7 @@ import {
   scratchRoot,
   setupVirtualMindFS,
 } from "../../fixtures/mind-fixture.ts";
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 function createBriefParams(partial: Partial<MindPulseBriefParams> = {}): MindPulseBriefParams {
   return {
@@ -38,13 +38,14 @@ function createBriefParams(partial: Partial<MindPulseBriefParams> = {}): MindPul
 
 describe("Mind Assembly Pulse Command and Telemetry Suite", () => {
   let testDir: string;
+  let vfs: VirtualMemoryFS;
   const spies: Array<{ mockRestore: () => void }> = [];
 
   beforeEach(() => {
-    setupVirtualMindFS();
+    vfs = setupVirtualMindFS();
     testDir = scratchRoot("mind-pulse");
-    fs.mkdirSync(path.join(testDir, ".olt"), { recursive: true });
-    fs.mkdirSync(path.join(testDir, ".git"), { recursive: true });
+    vfs.mkdirSync(path.join(testDir, ".olt"), { recursive: true });
+    vfs.mkdirSync(path.join(testDir, ".git"), { recursive: true });
   });
 
   afterEach(() => {

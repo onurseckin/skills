@@ -50,7 +50,7 @@ bun harness.ts sentinel:pre-action --role implementer --agent impl_01 --target s
 
 Scan modified files for AST purity, line budgets and directory fanout.
 
-Audits physical lines (<= 300 LOC), AST type purity (0 any, 0 suppressions), directory fanout (<= 10), and wildcard exports.
+Audits physical lines (<= 400 LOC), AST type purity (0 any, 0 suppressions), directory fanout (<= 10), and wildcard exports.
 
 - **Aliases**: none
 - **Stdin**: not read

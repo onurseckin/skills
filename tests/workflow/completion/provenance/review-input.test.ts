@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { parseCompletionAssessment } from "../../../../olt/scripts/src/workflow/completion/review-input.ts";
+import { parseCompletionAssessment } from "../../../../olt/scripts/src/workflow/completion/index.ts";
 import { workflowState } from "../../shared/test-port.ts";
 
 function baseInput(overrides: Record<string, unknown> = {}) {

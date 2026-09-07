@@ -17,13 +17,16 @@ export type {
   OrchestratorWorktreeAllocation,
   PlanGenerationOptions,
   PreplanningRunResult,
+  ProvisionedCluster,
   RawBacklogItem,
   RawDefectItem,
   StagnationAuditResult,
   StragglerAssessment,
+  TaskCluster,
   ThematicCluster,
   ThinkingLevel,
 } from "./types.ts";
+
 export {
   CANONICAL_DOMAINS,
   classifyDomain,
@@ -36,26 +39,24 @@ export {
   loadBacklogItems,
   loadDefectItems,
 } from "./backlog-clusterer.ts";
+
 export {
   DEFAULT_SINGLE_ORCHESTRATOR_CAPACITY,
   assertDisjointClusters,
   partitionDisjointClusters,
   shardClusterByCapacity,
-} from "./cluster-partitioner.ts";
-export {
   type ProvisioningOptions,
   dispatchMultiOrchestratorClusters,
   mapClustersToOrchestrators,
   triggerOrchestratorWorktreeProvisioning,
-} from "./multi-orchestrator-dispatch.ts";
-export {
   assertValidBlueprintStructure,
   deriveDisjointTaskScope,
   generateAndWritePlan,
   generatePlanBlueprint,
   generatePlanMarkdown,
   writePlanFile,
-} from "./plan-factory.ts";
+} from "./orchestration/index.ts";
+
 export {
   resolveLedgerPath,
   transitionBacklogItemsToPlanned,
@@ -63,14 +64,21 @@ export {
   updateBridgeState,
   updateBridgeStateBatch,
 } from "./bridge-state.ts";
+
 export {
   type DaemonOptions,
   type PreplannerOptions,
+  clusterBacklogTasks,
+  extractPlanTasksFromBacklog,
   isPreplanningNeeded,
+  provisionBacklogTracks,
   runContinuousPreplanningTick,
   runPreplanningTick,
   startPreplanningDaemon,
 } from "./continuous-preplanner.ts";
+
+export type { ClusterAndProvisionOptions } from "../planning/index.ts";
+export { clusterTasks, provisionTaskClusters } from "../planning/index.ts";
 
 export type {
   DiffSummary,
@@ -84,7 +92,15 @@ export type {
   LoadSnapshotOptions,
   SaveSnapshotOptions,
   UncommittedFileEntry,
-} from "./inflight-ingestion.ts";
+  BacklogOptions,
+  IntentCategory,
+  IntentDomain,
+  IntentExtractionOptions,
+  PriorityOneDeliverable,
+  RoadmapAction,
+  UserIntentRecord,
+  UserIntentRoadmapIntegration,
+} from "./inflight/index.ts";
 
 export {
   InFlightIngestionEngine,
@@ -96,23 +112,9 @@ export {
   parseGitStashes,
   parseGitStatusOutput,
   saveInFlightSnapshot,
-} from "./inflight-ingestion.ts";
-
-export type {
-  BacklogOptions,
-  IntentCategory,
-  IntentDomain,
-  IntentExtractionOptions,
-  PriorityOneDeliverable,
-  RoadmapAction,
-  UserIntentRecord,
-  UserIntentRoadmapIntegration,
-} from "./intent-extraction.ts";
-
-export {
   UserIntentExtractionEngine,
   extractUserIntent,
   integrateUserIntentIntoRoadmap,
   structureUserIntentAsBacklogDeliverable,
   toCanonicalDomainCategory,
-} from "./intent-extraction.ts";
+} from "./inflight/index.ts";

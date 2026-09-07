@@ -20,6 +20,7 @@ import { findAssignedWorktree, readWorktreeLedger } from "../../workflow/worktre
 import { formatTaskClaimBrief, formatTaskHeartbeatBrief } from "../formatters/index.ts";
 import { probeLiveQuotaTelemetry } from "../../workflow/lifecycle/quota-lifecycle.ts";
 import { detectHostApp } from "../../authority/thread/context.ts";
+import { inferRoleFromAgentId } from "../../authority/thread/index.ts";
 import { probeAgentTelemetry, withHostTelemetryConflicts } from "../host-telemetry-probe.ts";
 import { integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 import { heartbeat } from "../../workflow/lease/heartbeat.ts";
@@ -115,13 +116,14 @@ export async function taskClaimCommand(
     throw new HarnessError("INVALID_ARGUMENT", `--role must be one of ${AGENT_ROLES.join(", ")}`);
   }
 
+  const inferred = inferRoleFromAgentId(agent);
   const isOrchestrator =
     role === "orchestrator" ||
     role === "mind" ||
     role === "mind-auditor" ||
-    /^orch/i.test(agent) ||
-    /^mind/i.test(agent);
-  const isCoordinator = role === "coordinator" || /^coord/i.test(agent);
+    inferred === "orchestrator" ||
+    inferred === "mind";
+  const isCoordinator = role === "coordinator" || inferred === "coordinator";
 
   if (isOrchestrator || isCoordinator) {
     const roleTitle = isOrchestrator ? "Orchestrators" : "Coordinators";

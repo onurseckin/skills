@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { taskReviewCommand } from "../../../../../olt/scripts/src/cli/commands/task-review.ts";
-import { loadChecklist } from "../../../../../olt/scripts/src/packets/role-contract.ts";
 import { initCapsuleRun, transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
 import { tokenDigest } from "../../../../../olt/scripts/src/workflow/lease/token.ts";
 import { registerAgentGrant } from "../../../../../olt/scripts/src/workflow/agents/grants.ts";
@@ -33,7 +32,12 @@ afterEach(() => {
   cleanupVirtualCliFS();
 });
 
-function registerAgentDirect(run: string, agent: string, role: string, parentAgent?: string): void {
+export function registerAgentDirect(
+  run: string,
+  agent: string,
+  role: string,
+  parentAgent?: string,
+): void {
   stageSessionGrant({ runRoot: run, agentId: agent, role, host: "antigravity" });
   registerAgentGrant({
     runRoot: run,
@@ -69,7 +73,7 @@ function registerAgentDirect(run: string, agent: string, role: string, parentAge
   );
 }
 
-async function setupReviewRun(
+export async function setupReviewRun(
   name: string,
 ): Promise<{ repo: string; run: string; token: string; gateCmd: string }> {
   const repo = `/virtual/cli/probe-${name}`;
@@ -204,7 +208,7 @@ async function setupReviewRun(
   return { repo, run: runRoot, token, gateCmd: gateExec.command_id as string };
 }
 
-describe("task:review - Preconditions, Status & Checklists", () => {
+describe("task:review - Preconditions & Status", () => {
   test("pass refused while probe round short and with unresolved finding", async () => {
     const { run, token, gateCmd } = await setupReviewRun("review-preconditions");
     seedGateProof(run, TASK_ID);
@@ -288,60 +292,5 @@ describe("task:review - Preconditions, Status & Checklists", () => {
         status: "maybe",
       }),
     ).rejects.toThrow(/--status must be pass or fail/);
-  });
-
-  test("verifies --checklist-domain and --checklist-report requirements", async () => {
-    await expect(
-      taskReviewCommand({
-        run: "unused",
-        task: TASK_ID,
-        validator: VALIDATOR,
-        token: "unused-token",
-        status: "pass",
-        "checklist-domain": "code-quality",
-      }),
-    ).rejects.toThrow(/must be given together/);
-
-    await expect(
-      taskReviewCommand({
-        run: "unused",
-        task: TASK_ID,
-        validator: VALIDATOR,
-        token: "unused-token",
-        status: "pass",
-        "checklist-domain": "not-a-real-domain",
-        "checklist-report": "/does-not-matter/coverage.json",
-      }),
-    ).rejects.toThrow(/not a recognized validator domain/);
-  });
-
-  test("records checklist coverage into validation record", async () => {
-    const { repo, run, token, gateCmd } = await setupReviewRun("review-checklist-coverage");
-    seedGateProof(run, TASK_ID);
-    const first = await recordProbe(run, token, "Prove with checklist");
-    const laterRounds = await recordProbeRounds(run, token, "Prove with checklist", 2, 5);
-    const allFindingIds = findingIdsFrom([first, ...laterRounds]);
-
-    const checklist = loadChecklist("code-quality");
-    const reportPath = join(repo, "coverage.json");
-    getVirtualCliFS().writeFileSync(
-      reportPath,
-      JSON.stringify({
-        items: checklist.items.map((item) => ({
-          id: item.id,
-          disposition: "not_applicable",
-          reason: "exercised by the fixture task, not this checklist item",
-        })),
-      }),
-    );
-
-    const passed = await execute([
-      ...reviewPass(run, token, gateCmd, answeredBy(allFindingIds, gateCmd)),
-      "--checklist-domain",
-      "code-quality",
-      "--checklist-report",
-      reportPath,
-    ]);
-    expect((passed.checklist_coverage as { applicable: boolean }).applicable).toBe(true);
   });
 });

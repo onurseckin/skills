@@ -1,8 +1,3 @@
-/**
- * @file index.ts
- * Facade for tests/scheduler/core/ test suite
- */
-
 export const SCHEDULER_CORE_SUITES = [
   "batch.test.ts",
   "core-engine-probes.test.ts",

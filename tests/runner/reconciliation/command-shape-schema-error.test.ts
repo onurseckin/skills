@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { embeddedCommandIssues } from "../../../olt/scripts/src/engine/runner/models/command/command-shape.ts";
 import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
-import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import type { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import { cleanupTempRoots, getRunnerVfs, tempRoot } from "../command/fixture.ts";
 
 afterEach(cleanupTempRoots);
 
@@ -23,10 +23,13 @@ function binding(): RepositoryBinding {
 describe("embeddedCommandIssues schema-error fallback", () => {
   test("turns an unexpected exception during shape checking into a single schema-invalid issue", async () => {
     const repositoryRoot = tempRoot("command-shape-schema-error");
-    await mkdir(join(repositoryRoot, "bin"));
-    await writeFile(join(repositoryRoot, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
+    const vfs: VirtualMemoryFS = getRunnerVfs();
+    vfs.mkdirSync(join(repositoryRoot, "bin"), { recursive: true });
+    vfs.writeFileSync(join(repositoryRoot, "bin", "verify"), "#!/bin/sh\nexit 0\n", {
+      mode: 0o700,
+    });
     const runRoot = join(repositoryRoot, ".olt", "capsules");
-    await mkdir(runRoot, { recursive: true });
+    vfs.mkdirSync(runRoot, { recursive: true });
     const runner = createInternalCommandRunner({
       inspectRepository: () => binding(),
       attempt: async () => {
@@ -41,9 +44,6 @@ describe("embeddedCommandIssues schema-error fallback", () => {
       actor: "validator",
     });
 
-    // repository_root is read with realpathSync deep inside commandShapeIssues; pointing it at a
-    // path that no longer exists makes that call throw instead of returning a shape issue, which
-    // is exactly the path embeddedCommandIssues' try/catch fallback exists to convert cleanly.
     const record = { ...prepared.record, repository_root: join(repositoryRoot, "no-such-dir") };
     const issues = embeddedCommandIssues(record);
     expect(issues).toHaveLength(1);
@@ -52,10 +52,13 @@ describe("embeddedCommandIssues schema-error fallback", () => {
 
   test("validates non-empty attempt evidence_issues containing valid and invalid elements", async () => {
     const repositoryRoot = tempRoot("command-shape-evidence-issues");
-    await mkdir(join(repositoryRoot, "bin"));
-    await writeFile(join(repositoryRoot, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
+    const vfs: VirtualMemoryFS = getRunnerVfs();
+    vfs.mkdirSync(join(repositoryRoot, "bin"), { recursive: true });
+    vfs.writeFileSync(join(repositoryRoot, "bin", "verify"), "#!/bin/sh\nexit 0\n", {
+      mode: 0o700,
+    });
     const runRoot = join(repositoryRoot, ".olt", "capsules");
-    await mkdir(runRoot, { recursive: true });
+    vfs.mkdirSync(runRoot, { recursive: true });
     const runner = createInternalCommandRunner({
       inspectRepository: () => binding(),
       attempt: async () => {

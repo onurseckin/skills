@@ -1,6 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   PolicyDiscoveryEngine,
@@ -17,27 +15,37 @@ import {
   testRepoToolchainEmpirically,
   testToolchainEmpirically,
 } from "../../../olt/scripts/src/mind/governance/policy-discovery.ts";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("PolicyDiscoveryEngine & Governance Policy Discovery Suite", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
   let tempDir: string;
   let runDir: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "policy-discovery-test-"));
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    tempDir = "/virtual/policy-discovery-test";
     runDir = join(tempDir, ".runs", "run-1");
-    mkdirSync(join(tempDir, ".git"), { recursive: true });
-    mkdirSync(runDir, { recursive: true });
-    writeFileSync(
+    vfs.mkdirSync(join(tempDir, ".git"), { recursive: true });
+    vfs.mkdirSync(runDir, { recursive: true });
+    vfs.writeFileSync(
       join(tempDir, "package.json"),
       JSON.stringify({
         name: "test-package",
         scripts: { test: "bun test", lint: "biome check", check: "tsc --noEmit" },
       }),
     );
+    vfs.chdir(tempDir);
   });
 
   afterEach(() => {
-    rmSync(tempDir, { recursive: true, force: true });
+    session.cleanup();
   });
 
   it("instantiates PolicyDiscoveryEngine and inspects toolchain details", () => {
@@ -73,7 +81,7 @@ describe("PolicyDiscoveryEngine & Governance Policy Discovery Suite", () => {
     expect(typeof reportWithoutCapsule.readyForMindAuditor).toBe("boolean");
 
     const capsuleDir = join(tempDir, ".olt", "capsules", "run-1");
-    mkdirSync(capsuleDir, { recursive: true });
+    vfs.mkdirSync(capsuleDir, { recursive: true });
     const reportWithCapsule = auditRepoGovernanceCoverage(tempDir, capsuleDir);
     expect(reportWithCapsule.repoRoot).toBe(tempDir);
   });

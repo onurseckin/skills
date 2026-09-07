@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   assertGrantedCommand,
   cleanupVirtualAuthorityFS,
+  getVirtualAuthorityFS,
   setupVirtualAuthorityFS,
   spec,
 } from "../authority/command-authority-fixture.ts";
@@ -51,8 +51,9 @@ describe("assertGrantedCommand hole 3: capsule state cannot load", () => {
   test("denies a non-allowlisted command against an unreadable capsule", async () => {
     const { repo } = await emptyGrantRun("fail-closed-hole3-deny-");
     const brokenRoot = join(repo, "not-a-capsule");
-    await mkdir(brokenRoot);
-    await writeFile(join(brokenRoot, "state.json"), "{}");
+    const vfs = getVirtualAuthorityFS();
+    vfs.mkdirSync(brokenRoot, { recursive: true });
+    vfs.writeFileSync(join(brokenRoot, "state.json"), "{}");
     const flags: Flags = { run: brokenRoot, agent: "agent-1" };
     expect(() => assertGrantedCommand(spec("task:heartbeat"), flags)).toThrow(
       "not on the grant bootstrap allowlist",
@@ -62,8 +63,9 @@ describe("assertGrantedCommand hole 3: capsule state cannot load", () => {
   test("denies agent:register against an unreadable capsule because genesis requires a readable empty ledger", async () => {
     const { repo } = await emptyGrantRun("fail-closed-hole3-permit-");
     const brokenRoot = join(repo, "not-a-capsule");
-    await mkdir(brokenRoot);
-    await writeFile(join(brokenRoot, "state.json"), "{}");
+    const vfs = getVirtualAuthorityFS();
+    vfs.mkdirSync(brokenRoot, { recursive: true });
+    vfs.writeFileSync(join(brokenRoot, "state.json"), "{}");
     const flags: Flags = { run: brokenRoot, actor: "first-orchestrator" };
     expect(() => assertRawGrantedCommand(spec("agent:register"), flags)).toThrow(
       "first-grant genesis requires a readable empty agent ledger",
@@ -80,8 +82,9 @@ describe("assertGrantedCommand hole 3: capsule state cannot load", () => {
   test("denies plan:brainstorm against an unreadable capsule even though it is grant-bootstrap exempt", async () => {
     const { repo } = await emptyGrantRun("fail-closed-brainstorm-unreadable-");
     const brokenRoot = join(repo, "not-a-capsule");
-    await mkdir(brokenRoot);
-    await writeFile(join(brokenRoot, "state.json"), "{}");
+    const vfs = getVirtualAuthorityFS();
+    vfs.mkdirSync(brokenRoot, { recursive: true });
+    vfs.writeFileSync(join(brokenRoot, "state.json"), "{}");
     expect(() =>
       assertGrantedCommand(spec("plan:brainstorm"), { run: brokenRoot, actor: "planner-no-grant" }),
     ).toThrow("not on the grant bootstrap allowlist for missing capsules");

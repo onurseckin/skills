@@ -27,10 +27,10 @@ import { capsuleCatalogue, runStatus, type CapsuleCatalogue } from "../../report
 import { extractLeaseAgentId, generateUnifiedReport } from "../../reporting/unified/index.ts";
 import { readAgentMetadata } from "../../runtime/index.ts";
 import { generateSummarySuite } from "../../summary/formatters/index.ts";
-import type { CompletionArtifactRequirements } from "../../workflow/completion/artifact-verification.ts";
-import { executeAutoSyncAndCommit } from "../../workflow/completion/auto-sync-and-commit.ts";
-import { completeRun } from "../../workflow/completion/complete-run.ts";
-import { gateTally } from "../../workflow/completion/completion-state.ts";
+import type { CompletionArtifactRequirements } from "../../workflow/completion/index.ts";
+import { executeAutoSyncAndCommit } from "../../workflow/completion/index.ts";
+import { completeRun } from "../../workflow/completion/index.ts";
+import { gateTally } from "../../workflow/completion/index.ts";
 import { attachGateResult } from "../../workflow/gates/attach-result.ts";
 import { finishTask } from "../../workflow/gates/finish-task.ts";
 import {

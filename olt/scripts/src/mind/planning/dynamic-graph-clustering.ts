@@ -1,5 +1,9 @@
 import type { PlanTaskInput } from "./engine/index.ts";
-import { createWorktree, type TrackWorktreeInfo } from "../../workflow/worktree/manager.ts";
+import {
+  createWorktree,
+  type CreateWorktreeOptions,
+  type TrackWorktreeInfo,
+} from "../../workflow/worktree/index.ts";
 
 export interface TaskCluster {
   readonly trackId: string;
@@ -9,9 +13,10 @@ export interface TaskCluster {
 export interface ClusterAndProvisionOptions {
   readonly repoRoot: string;
   readonly tasks: readonly PlanTaskInput[];
-  readonly maxTracks?: number;
-  readonly baseBranch?: string;
-  readonly lockTimeoutMs?: number;
+  readonly maxTracks?: number | undefined;
+  readonly baseBranch?: string | undefined;
+  readonly lockTimeoutMs?: number | undefined;
+  readonly worktreeCreator?: ((options: CreateWorktreeOptions) => TrackWorktreeInfo) | undefined;
 }
 
 export interface ProvisionedCluster extends TaskCluster {
@@ -37,7 +42,6 @@ export function clusterTasks(
     adj.set(task.id, new Set<string>());
   }
 
-  // Build edges based on dependencies and write scope overlap
   for (let i = 0; i < tasks.length; i++) {
     for (let j = i + 1; j < tasks.length; j++) {
       const t1 = tasks[i]!;
@@ -79,8 +83,6 @@ export function clusterTasks(
     }
   }
 
-  // If we have more components than maxTracks, we need to merge some.
-  // We'll merge the smallest ones until we hit maxTracks.
   while (components.length > maxTracks) {
     components.sort((a, b) => a.length - b.length);
     const smallest = components.shift()!;
@@ -98,10 +100,11 @@ export function provisionTaskClusters(
   options: ClusterAndProvisionOptions,
 ): readonly ProvisionedCluster[] {
   const clusters = clusterTasks(options.tasks, options.maxTracks ?? 5);
+  const creator = options.worktreeCreator ?? createWorktree;
   const result: ProvisionedCluster[] = [];
 
   for (const cluster of clusters) {
-    const worktreeInfo = createWorktree({
+    const worktreeInfo = creator({
       trackId: cluster.trackId,
       repoRoot: options.repoRoot,
       baseBranch: options.baseBranch,

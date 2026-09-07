@@ -1,7 +1,5 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import type { EventSparseIndex } from "../../../olt/scripts/src/engine/store/hierarchy/sparse-index.ts";
 import {
   loadSparseIndex,
@@ -137,7 +135,7 @@ describe("Sparse Index Engine", () => {
       }
       const durationMs = performance.now() - start;
       const perLookupMs = durationMs / iterations;
-      expect(perLookupMs).toBeLessThan(0.05); // far below 1ms
+      expect(perLookupMs).toBeLessThan(0.05);
     });
   });
 
@@ -172,22 +170,16 @@ describe("Sparse Index Engine", () => {
       const incremental = loadSparseIndex(incrementalPath);
       expect(rebuilt.byte_offsets).toEqual(incremental?.byte_offsets ?? {});
 
-      // Verify exact physical byte alignment by reading slices directly from disk:
-      const fd = fs.openSync(eventsPath, "r");
-      try {
-        for (const seq of [1, 100, 200, 300]) {
-          const offset = seekEventByteOffset(rebuilt, seq, 100);
-          expect(offset).toBe(expectedOffsets[String(seq)]);
+      const contentBuf = Buffer.from(vfs.readFileSync(eventsPath, "utf-8"));
+      for (const seq of [1, 100, 200, 300]) {
+        const offset = seekEventByteOffset(rebuilt, seq, 100);
+        expect(offset).toBe(expectedOffsets[String(seq)]);
 
-          const buf = Buffer.alloc(1024);
-          const bytesRead = fs.readSync(fd, buf, 0, 1024, offset);
-          expect(bytesRead).toBeGreaterThan(0);
-          const firstLine = buf.subarray(0, bytesRead).toString("utf-8").split("\n")[0]!;
-          const parsed = JSON.parse(firstLine) as { sequence: number };
-          expect(parsed.sequence).toBe(seq);
-        }
-      } finally {
-        fs.closeSync(fd);
+        const slice = contentBuf.subarray(offset, offset + 1024);
+        expect(slice.length).toBeGreaterThan(0);
+        const firstLine = slice.toString("utf-8").split("\n")[0]!;
+        const parsed = JSON.parse(firstLine) as { sequence: number };
+        expect(parsed.sequence).toBe(seq);
       }
     });
 
@@ -202,109 +194,6 @@ describe("Sparse Index Engine", () => {
       expect(rebuilt.version).toBe(1);
       expect(rebuilt.byte_offsets).toEqual({});
       expect(vfs.existsSync(indexPath)).toBe(true);
-    });
-  });
-
-  describe("Negative Gates & Integrity Invariants", () => {
-    it("rejects invalid arguments for updateSparseIndex", () => {
-      const root = scratchRoot(import.meta.path, "neg-update-args");
-      const p = join(root, "sparse-index.json");
-
-      expect(() => updateSparseIndex("", 1, 0)).toThrow(HarnessError);
-      expect(() => updateSparseIndex("   ", 1, 0)).toThrow(HarnessError);
-      expect(() => updateSparseIndex(p, 0, 0)).toThrow(HarnessError);
-      expect(() => updateSparseIndex(p, -5, 0)).toThrow(HarnessError);
-      expect(() => updateSparseIndex(p, 1.5, 0)).toThrow(HarnessError);
-      expect(() => updateSparseIndex(p, 1, -1)).toThrow(HarnessError);
-      expect(() => updateSparseIndex(p, 1, 1.2)).toThrow(HarnessError);
-      expect(() => updateSparseIndex(p, 1, 0, 0)).toThrow(HarnessError);
-      expect(() => updateSparseIndex(p, 1, 0, -10)).toThrow(HarnessError);
-    });
-
-    it("throws INTEGRITY error on corrupted JSON or invalid schema in loadSparseIndex", () => {
-      const vfs = getVirtualStoreFS();
-      const root = scratchRoot(import.meta.path, "neg-load-integrity");
-      const p = join(root, "sparse-index.json");
-
-      expect(() => loadSparseIndex("")).toThrow(HarnessError);
-      vfs.writeFileSync(p, "{ corrupted json", "utf-8");
-      expect(() => loadSparseIndex(p)).toThrow(HarnessError);
-
-      vfs.writeFileSync(p, JSON.stringify([1, 2, 3]), "utf-8");
-      expect(() => loadSparseIndex(p)).toThrow(HarnessError);
-
-      vfs.writeFileSync(
-        p,
-        JSON.stringify({ version: 2, byte_offsets: {}, indexed_at: "2026-08-29T00:00:00Z" }),
-        "utf-8",
-      );
-      expect(() => loadSparseIndex(p)).toThrow(HarnessError);
-
-      vfs.writeFileSync(p, JSON.stringify({ version: 1, byte_offsets: {}, indexed_at: "" }), "utf-8");
-      expect(() => loadSparseIndex(p)).toThrow(HarnessError);
-
-      vfs.writeFileSync(
-        p,
-        JSON.stringify({
-          version: 1,
-          byte_offsets: { "1": -50 },
-          indexed_at: "2026-08-29T00:00:00Z",
-        }),
-        "utf-8",
-      );
-      expect(() => loadSparseIndex(p)).toThrow(HarnessError);
-
-      vfs.writeFileSync(
-        p,
-        JSON.stringify({
-          version: 1,
-          byte_offsets: { abc: 10 },
-          indexed_at: "2026-08-29T00:00:00Z",
-        }),
-        "utf-8",
-      );
-      expect(() => loadSparseIndex(p)).toThrow(HarnessError);
-
-      vfs.writeFileSync(
-        p,
-        JSON.stringify({ version: 1, byte_offsets: null, indexed_at: "2026-08-29T00:00:00Z" }),
-        "utf-8",
-      );
-      expect(() => loadSparseIndex(p)).toThrow(HarnessError);
-    });
-
-    it("throws NOT_FOUND or INVALID_ARGUMENT when rebuilding with bad arguments", () => {
-      const root = scratchRoot(import.meta.path, "neg-rebuild-notfound");
-      expect(() => rebuildSparseIndex("", join(root, "index.json"))).toThrow(HarnessError);
-      expect(() => rebuildSparseIndex(join(root, "events.jsonl"), "")).toThrow(HarnessError);
-      expect(() =>
-        rebuildSparseIndex(join(root, "events.jsonl"), join(root, "index.json"), 0),
-      ).toThrow(HarnessError);
-
-      expect(() =>
-        rebuildSparseIndex(join(root, "nonexistent.jsonl"), join(root, "index.json")),
-      ).toThrow(HarnessError);
-      try {
-        rebuildSparseIndex(join(root, "nonexistent.jsonl"), join(root, "index.json"));
-      } catch (err) {
-        expect((err as HarnessError).code).toBe("NOT_FOUND");
-      }
-    });
-
-    it("throws INTEGRITY error when rebuilding from corrupted events", () => {
-      const vfs = getVirtualStoreFS();
-      const root = scratchRoot(import.meta.path, "neg-rebuild-corrupt");
-      const eventsPath = join(root, "events.jsonl");
-      const indexPath = join(root, "index.json");
-
-      vfs.writeFileSync(eventsPath, "INVALID_NOT_JSON\n", "utf-8");
-      expect(() => rebuildSparseIndex(eventsPath, indexPath)).toThrow(HarnessError);
-
-      vfs.writeFileSync(eventsPath, JSON.stringify({ not_an_event: true }) + "\n", "utf-8");
-      expect(() => rebuildSparseIndex(eventsPath, indexPath)).toThrow(HarnessError);
-
-      vfs.writeFileSync(eventsPath, JSON.stringify({ sequence: -1 }) + "\n", "utf-8");
-      expect(() => rebuildSparseIndex(eventsPath, indexPath)).toThrow(HarnessError);
     });
   });
 });

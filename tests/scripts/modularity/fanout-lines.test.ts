@@ -62,17 +62,17 @@ describe("physical line counting and violations", () => {
       {
         path: "slice/pass.ts",
         oid: "a".repeat(40),
-        bytes: new TextEncoder().encode("x\n".repeat(300)),
+        bytes: new TextEncoder().encode("x\n".repeat(400)),
       },
       {
         path: "slice/fail.ts",
         oid: "b".repeat(40),
-        bytes: new TextEncoder().encode("x\n".repeat(300) + "x"),
+        bytes: new TextEncoder().encode("x\n".repeat(400) + "x"),
       },
       {
         path: "docs/ignored.md",
         oid: "c".repeat(40),
-        bytes: new TextEncoder().encode("x\n".repeat(301)),
+        bytes: new TextEncoder().encode("x\n".repeat(401)),
       },
     ];
 
@@ -80,9 +80,9 @@ describe("physical line counting and violations", () => {
       {
         rule: "line_limit",
         path: "slice/fail.ts",
-        observed: 301,
-        limit: 300,
-        detail: "File exceeds the 300 physical-line limit.",
+        observed: 401,
+        limit: 400,
+        detail: "File exceeds the 400 physical-line limit.",
       },
     ]);
   });

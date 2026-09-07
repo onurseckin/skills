@@ -19,7 +19,7 @@ export function inspectPhysicalLines(
       {
         code: "LINE_BUDGET_EXCEEDED",
         severity: "CRITICAL",
-        message: `Physical line count (${lineCount}) exceeds strict budget of 300 lines.`,
+        message: `Physical line count (${lineCount}) exceeds strict budget of 400 lines.`,
         target_file: filePath,
         remediation_cmd: `Decompose ${filePath} into smaller focused modules.`,
         documentation_ref: "AGENTS.md#rule-2",

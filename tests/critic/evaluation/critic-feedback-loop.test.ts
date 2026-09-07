@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { assertCriticIndependent } from "../../../olt/scripts/src/workflow/completion/critic-identity.ts";
-import { generateStructuredFindingsFromCritic } from "../../../olt/scripts/src/workflow/completion/critic-feedback-loop.ts";
+import { assertCriticIndependent } from "../../../olt/scripts/src/workflow/completion/index.ts";
+import { generateStructuredFindingsFromCritic } from "../../../olt/scripts/src/workflow/completion/index.ts";
 import type { WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 
 describe("Critic Feedback Loop & Independence", () => {

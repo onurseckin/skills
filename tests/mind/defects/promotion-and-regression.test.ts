@@ -1,8 +1,3 @@
-/**
- * @file promotion-and-regression.test.ts
- * Unit tests for Defect Regression Suite Generation, Validation, and Auto-Promotion
- */
-
 import { describe, expect, it } from "bun:test";
 import {
   generateDefectRegressionTest,
@@ -60,9 +55,31 @@ describe("Defect Promotion & Regression Suite", () => {
       expect(result.test_code).toContain('test("regression [def-reg-1]');
       expect(result.test_code).toContain("expect(");
       expect(result.defect_id).toBe("def-reg-1");
+      expect(result.file_path_hint).toBe("tests/regressions/code-defect-regression.test.ts");
+      expect(result.test_code).not.toContain("expect(true).toBe(true)");
+      expect(result.test_code).not.toContain("meta.id");
     });
 
-    it("bundles multiple defect regression tests into an aggregated test suite", () => {
+    it("routes category-specific file paths under tests/regressions/", () => {
+      const boundaryDefect = createMockDefectEntry({
+        id: "def-b1",
+        category: "boundary_violation",
+        observation: "Unauthorized write scope access detected outside allowed directory",
+      });
+      const reasoningDefect = createMockDefectEntry({
+        id: "def-r1",
+        category: "model_reasoning_error",
+        observation: "Model hallucinated incorrect argument structure",
+      });
+
+      const bResult = generateDefectRegressionTest(boundaryDefect);
+      const rResult = generateDefectRegressionTest(reasoningDefect);
+
+      expect(bResult.file_path_hint).toBe("tests/regressions/boundary-regression.test.ts");
+      expect(rResult.file_path_hint).toBe("tests/regressions/reasoning-regression.test.ts");
+    });
+
+    it("bundles multiple defect regression tests into an aggregated test suite without tautologies", () => {
       const defects: DefectEntry[] = [
         createMockDefectEntry({ id: "def-10", observation: "Bug 10" }),
         createMockDefectEntry({ id: "def-20", observation: "Bug 20" }),
@@ -72,6 +89,45 @@ describe("Defect Promotion & Regression Suite", () => {
       expect(suite).toContain('import { describe, expect, test } from "bun:test";');
       expect(suite).toContain("def-10");
       expect(suite).toContain("def-20");
+      expect(suite).not.toContain("expect(true).toBe(true)");
+      expect(suite).not.toContain("//");
+    });
+
+    it("generates nothing when defect list is empty or defects cannot yield meaningful assertions", () => {
+      expect(generateRegressionTestSuite([])).toBe("");
+
+      const emptyDefect = createMockDefectEntry({
+        id: "",
+        observation: "",
+      });
+      const emptyResult = generateDefectRegressionTest(emptyDefect);
+      expect(emptyResult.test_code).toBe("");
+      expect(emptyResult.skipped).toBe(true);
+
+      const tautologyDefect = createMockDefectEntry({
+        id: "def-taut",
+        observation: "",
+        resolution: {
+          task_id: "task-001",
+          test_assertion: "expect(true).toBe(true)",
+        },
+      });
+      const tautResult = generateDefectRegressionTest(tautologyDefect);
+      expect(tautResult.test_code).toBe("");
+      expect(tautResult.skipped).toBe(true);
+      expect(generateRegressionTestSuite([tautologyDefect])).toBe("");
+    });
+
+    it("includes empirical resolution proof verification when defect has resolution", () => {
+      const defect = createMockDefectEntry({
+        id: "def-proof-1",
+        status: "resolved",
+        observation: "Memory leak resolved",
+        resolution: createMockResolutionProof(),
+      });
+      const result = generateDefectRegressionTest(defect);
+      expect(result.test_code).toContain("verifyResolutionProofEmpirical(proof)");
+      expect(result.test_code).toContain("expect(verification.isValid).toBe(true)");
     });
   });
 
@@ -80,7 +136,7 @@ describe("Defect Promotion & Regression Suite", () => {
       const validCode = `
 describe("Regression Suite", () => {
   test("test 1", () => {
-    expect(true).toBe(true);
+    expect(1 + 1).toBe(2);
   });
 });
 `;

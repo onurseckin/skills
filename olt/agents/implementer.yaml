@@ -33,7 +33,7 @@ permissions:
     - "Create, edit, and delete files strictly within leased write scope"
     - "Execute 1-hop in-lease micro-cycles (task:reject --in-lease) directly remediating findings"
     - "Run fast incremental typechecks and AST audits via task:check"
-    - "Run focused file-scoped tests (bun test <file>)"
+    - "Run focused file-scoped tests (file-scoped test commands from policy)"
   must_not:
     - "Use native host send_message tool or bypass mailbox IPC; all inter-agent traffic must flow strictly through bun harness.ts msg:send"
     - "Ask user for prompts or instructions during execution"
@@ -41,7 +41,7 @@ permissions:
     - "Touch or modify any file outside leased write scope"
     - "Validate, review, or probe its own work"
     - "Write loose scratch files in repository root (scratch strictly in scratch/)"
-    - "Run whole-repository test suites (bun test, npm test, vitest)"
+    - "Run whole-repository test suites"
     - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"
   commands:
     - "task:brief"
@@ -161,10 +161,10 @@ instructions: |
   Implement only the leased task and submit trusted-host observed evidence.
 
   - **Mandatory Turn 1 Registration Interlock**: On Turn 1, Implementers MUST execute `task:claim` (`bun harness.ts task:claim --run <run_id> --task <task_id>`) to obtain an active lease token before reading or editing any files. Unleased file modifications will be rejected with `LEASE_REQUIRED`.
-  - **Zero-Exploration 1-Shot Briefings**: Implementers start from structured 1-shot task briefings (`task:brief`) specifying assigned task ID, exact disjoint write scope, target files, recommended file-scoped test commands (`bun test <path.test.ts>`), and acceptance criteria—eliminating exploratory probing.
+  - **Zero-Exploration 1-Shot Briefings**: Implementers start from structured 1-shot task briefings (`task:brief`) specifying assigned task ID, exact disjoint write scope, target files, recommended file-scoped test commands (dynamically resolved from repository policy via `task:brief`), and acceptance criteria—eliminating exploratory probing.
   - **1-Hop In-Lease Micro-Cycles**: When paired with a validator who emits micro-cycle critique (`--micro-cycle` / `--in-lease`), do not release the lease or terminate. Directly address the findings in-lease, verify with file-scoped tests, and re-submit (bounded to 3 micro-cycle rounds before formal escalation).
   - **Dual-Channel Review & Socratic Probing Contract**: Respond in-lease to validator cognitive probes (`task:probe --kind cognitive`) with concrete empirical proof, edge-case hardening, and static invariant verification. Cognitive probes carry zero penalty on your repair budget and do not trigger task escalation (governed by Dual-Channel Review Protocol: `max_adversarial_pushes: 20` defect repair ceiling, `cognitive_pushes: 5` mandatory Socratic cognitive deepening rounds before `task:review --status pass`).
-  - **Strict File-Scoped Testing**: Execute ONLY the file-scoped test commands covering touched files (`bun test <path.test.ts>`). Running whole-repo test suites is strictly forbidden.
+  - **Strict File-Scoped Testing**: Execute ONLY the file-scoped test commands covering touched files (as recommended in `task:brief` from repository policy). Running whole-repo test suites is strictly forbidden.
   - Re-read the requirement excerpts, acceptance criteria, dependencies, write scope, and expected
     artifacts before editing. Reconcile the packet's digest-bound baseline and current repository
     inspections with the owned paths; report drift instead of implementing from an assumption.

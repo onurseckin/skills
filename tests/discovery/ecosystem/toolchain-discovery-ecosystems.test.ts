@@ -1,5 +1,4 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   discoverToolchain,
@@ -11,10 +10,16 @@ import {
   getPythonPresets,
   getUnknownPresets,
 } from "../../../olt/scripts/src/policy/generator/toolchain-presets.ts";
-import { cleanupVirtualDiscoveryFS, setupVirtualDiscoveryFS } from "../fixtures/index.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Toolchain Discovery - Ecosystems (Bun, Node, Cargo, Python, Make)", () => {
   const scratch = "/virtual/toolchain-discovery-ecosystems";
+  let vfs: VirtualMemoryFS;
+  let vfsSession: VirtualFSSession;
 
   beforeAll(() => {
     try {
@@ -25,30 +30,26 @@ describe("Toolchain Discovery - Ecosystems (Bun, Node, Cargo, Python, Make)", ()
   });
 
   beforeEach(() => {
-    setupVirtualDiscoveryFS();
+    vfs = new VirtualMemoryFS();
+    vfsSession = createVirtualFSSession(vfs);
+    vfs.mkdirSync(scratch, { recursive: true });
+    vfs.chdir(scratch);
   });
 
   afterEach(() => {
-    cleanupVirtualDiscoveryFS();
+    vfsSession.cleanup();
   });
 
   test("discovers bun toolchain with typescript and custom scripts", () => {
     const dir = join(scratch, "bun-toolchain");
-    mkdirSync(dir, { recursive: true });
-    writeFileSync(join(dir, "bun.lock"), "");
-    writeFileSync(join(dir, "tsconfig.json"), "{}");
-    writeFileSync(
+    vfs.mkdirSync(dir, { recursive: true });
+    vfs.writeFileSync(join(dir, "bun.lock"), "");
+    vfs.writeFileSync(join(dir, "tsconfig.json"), "{}");
+    vfs.writeFileSync(
       join(dir, "package.json"),
       JSON.stringify({
-        scripts: {
-          typecheck: "tsc --noEmit",
-          lint: "eslint .",
-          test: "bun test",
-        },
-        devDependencies: {
-          typescript: "^5.0.0",
-          eslint: "^8.0.0",
-        },
+        scripts: { typecheck: "tsc --noEmit", lint: "eslint .", test: "bun test" },
+        devDependencies: { typescript: "^5.0.0", eslint: "^8.0.0" },
       }),
     );
 
@@ -73,20 +74,14 @@ describe("Toolchain Discovery - Ecosystems (Bun, Node, Cargo, Python, Make)", ()
 
   test("discovers turborepo monorepo pipeline", () => {
     const dir = join(scratch, "turbo-monorepo");
-    mkdirSync(dir, { recursive: true });
-    writeFileSync(
+    vfs.mkdirSync(dir, { recursive: true });
+    vfs.writeFileSync(
       join(dir, "package.json"),
       JSON.stringify({ devDependencies: { turbo: "^2.0.0" } }),
     );
-    writeFileSync(
+    vfs.writeFileSync(
       join(dir, "turbo.json"),
-      JSON.stringify({
-        pipeline: {
-          typecheck: {},
-          lint: {},
-          test: {},
-        },
-      }),
+      JSON.stringify({ pipeline: { typecheck: {}, lint: {}, test: {} } }),
     );
 
     const discovered = discoverToolchain(dir, "node");
@@ -100,16 +95,13 @@ describe("Toolchain Discovery - Ecosystems (Bun, Node, Cargo, Python, Make)", ()
 
   test("discovers pnpm with vitest and biome", () => {
     const dir = join(scratch, "pnpm-vitest-biome");
-    mkdirSync(dir, { recursive: true });
-    writeFileSync(join(dir, "pnpm-lock.yaml"), "");
-    writeFileSync(join(dir, "biome.json"), "{}");
-    writeFileSync(
+    vfs.mkdirSync(dir, { recursive: true });
+    vfs.writeFileSync(join(dir, "pnpm-lock.yaml"), "");
+    vfs.writeFileSync(join(dir, "biome.json"), "{}");
+    vfs.writeFileSync(
       join(dir, "package.json"),
       JSON.stringify({
-        devDependencies: {
-          vitest: "^1.0.0",
-          "@biomejs/biome": "^1.5.0",
-        },
+        devDependencies: { vitest: "^1.0.0", "@biomejs/biome": "^1.5.0" },
       }),
     );
 
@@ -127,17 +119,13 @@ describe("Toolchain Discovery - Ecosystems (Bun, Node, Cargo, Python, Make)", ()
 
   test("discovers node with npm, jest, eslint, and oxlint", () => {
     const dir = join(scratch, "npm-oxlint-jest");
-    mkdirSync(dir, { recursive: true });
-    writeFileSync(join(dir, "package-lock.json"), "{}");
-    writeFileSync(join(dir, "tsconfig.json"), "{}");
-    writeFileSync(
+    vfs.mkdirSync(dir, { recursive: true });
+    vfs.writeFileSync(join(dir, "package-lock.json"), "{}");
+    vfs.writeFileSync(join(dir, "tsconfig.json"), "{}");
+    vfs.writeFileSync(
       join(dir, "package.json"),
       JSON.stringify({
-        devDependencies: {
-          jest: "^29.0.0",
-          oxlint: "^0.2.0",
-          typescript: "^5.0.0",
-        },
+        devDependencies: { jest: "^29.0.0", oxlint: "^0.2.0", typescript: "^5.0.0" },
       }),
     );
 
@@ -154,9 +142,9 @@ describe("Toolchain Discovery - Ecosystems (Bun, Node, Cargo, Python, Make)", ()
 
   test("discovers cargo project with cargo check and clippy", () => {
     const dir = join(scratch, "cargo-project");
-    mkdirSync(dir, { recursive: true });
-    writeFileSync(join(dir, "Cargo.toml"), '[package]\nname = "rust-test"');
-    writeFileSync(join(dir, "Cargo.lock"), "");
+    vfs.mkdirSync(dir, { recursive: true });
+    vfs.writeFileSync(join(dir, "Cargo.toml"), '[package]\nname = "rust-test"');
+    vfs.writeFileSync(join(dir, "Cargo.lock"), "");
 
     const discovered = discoverToolchain(dir);
     expect(discovered.ecosystem).toBe("cargo");
@@ -172,12 +160,12 @@ describe("Toolchain Discovery - Ecosystems (Bun, Node, Cargo, Python, Make)", ()
 
   test("discovers python project with poetry, ruff, mypy, and pytest", () => {
     const dir = join(scratch, "python-poetry-ruff");
-    mkdirSync(dir, { recursive: true });
-    writeFileSync(
+    vfs.mkdirSync(dir, { recursive: true });
+    vfs.writeFileSync(
       join(dir, "pyproject.toml"),
       '[tool.poetry]\nname = "demo"\n[tool.ruff]\n[tool.mypy]\n[tool.pytest.ini_options]',
     );
-    writeFileSync(join(dir, "poetry.lock"), "");
+    vfs.writeFileSync(join(dir, "poetry.lock"), "");
 
     const discovered = discoverToolchain(dir);
     expect(discovered.ecosystem).toBe("python");
@@ -194,8 +182,8 @@ describe("Toolchain Discovery - Ecosystems (Bun, Node, Cargo, Python, Make)", ()
 
   test("discovers python flake8 when ruff is not present", () => {
     const dir = join(scratch, "python-pip-flake8");
-    mkdirSync(dir, { recursive: true });
-    writeFileSync(join(dir, "requirements.txt"), "flake8>=6.0.0\npytest>=7.0.0\nmypy>=1.0.0\n");
+    vfs.mkdirSync(dir, { recursive: true });
+    vfs.writeFileSync(join(dir, "requirements.txt"), "flake8>=6.0.0\npytest>=7.0.0\nmypy>=1.0.0\n");
 
     const discovered = discoverToolchain(dir);
     expect(discovered.ecosystem).toBe("python");
@@ -206,8 +194,8 @@ describe("Toolchain Discovery - Ecosystems (Bun, Node, Cargo, Python, Make)", ()
 
   test("discovers makefile targets when no manifest is present", () => {
     const dir = join(scratch, "make-project");
-    mkdirSync(dir, { recursive: true });
-    writeFileSync(
+    vfs.mkdirSync(dir, { recursive: true });
+    vfs.writeFileSync(
       join(dir, "Makefile"),
       "test:\n\t@echo test\nlint:\n\t@echo lint\ntypecheck:\n\t@echo typecheck\n",
     );
@@ -238,12 +226,12 @@ describe("Toolchain Discovery - Ecosystems (Bun, Node, Cargo, Python, Make)", ()
 
   test("discovers turborepo tasks format in turbo.json", () => {
     const dir = join(scratch, "turbo-tasks");
-    mkdirSync(dir, { recursive: true });
-    writeFileSync(
+    vfs.mkdirSync(dir, { recursive: true });
+    vfs.writeFileSync(
       join(dir, "package.json"),
       JSON.stringify({ devDependencies: { turbo: "^2.0.0" } }),
     );
-    writeFileSync(
+    vfs.writeFileSync(
       join(dir, "turbo.json"),
       JSON.stringify({ tasks: { typecheck: {}, lint: {}, test: {} } }),
     );
@@ -254,7 +242,7 @@ describe("Toolchain Discovery - Ecosystems (Bun, Node, Cargo, Python, Make)", ()
 
   test("gracefully falls back on an empty directory", () => {
     const dir = join(scratch, "empty-project");
-    mkdirSync(dir, { recursive: true });
+    vfs.mkdirSync(dir, { recursive: true });
 
     const discovered = discoverToolchain(dir);
     expect(discovered.ecosystem).toBe("unknown");
@@ -274,8 +262,8 @@ describe("Toolchain Discovery - Ecosystems (Bun, Node, Cargo, Python, Make)", ()
 
   test("gracefully falls back on malformed package.json and empty scripts", () => {
     const malformedDir = join(scratch, "malformed-json-project");
-    mkdirSync(malformedDir, { recursive: true });
-    writeFileSync(join(malformedDir, "package.json"), "{ NOT VALID JSON");
+    vfs.mkdirSync(malformedDir, { recursive: true });
+    vfs.writeFileSync(join(malformedDir, "package.json"), "{ NOT VALID JSON");
 
     const malformedDiscovered = discoverToolchain(malformedDir);
     expect(malformedDiscovered.ecosystem).toBe("node");
@@ -285,8 +273,8 @@ describe("Toolchain Discovery - Ecosystems (Bun, Node, Cargo, Python, Make)", ()
     expect(malformedDiscovered.testRunner.default_command).toBe("npm test");
 
     const emptyScriptsDir = join(scratch, "empty-scripts-project");
-    mkdirSync(emptyScriptsDir, { recursive: true });
-    writeFileSync(
+    vfs.mkdirSync(emptyScriptsDir, { recursive: true });
+    vfs.writeFileSync(
       join(emptyScriptsDir, "package.json"),
       JSON.stringify({ name: "empty-scripts", scripts: {} }),
     );

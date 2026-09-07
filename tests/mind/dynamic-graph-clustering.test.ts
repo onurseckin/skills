@@ -1,25 +1,29 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
-import { runGit } from "../../olt/scripts/src/workflow/worktree/git-ops.ts";
 import {
   clusterTasks,
   provisionTaskClusters,
 } from "../../olt/scripts/src/mind/planning/dynamic-graph-clustering.ts";
 import type { PlanTaskInput } from "../../olt/scripts/src/mind/planning/engine/index.ts";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Dynamic Graph Clustering", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
   let repoRoot: string;
 
   beforeEach(() => {
-    repoRoot = mkdtempSync(join(tmpdir(), "harness-test-"));
-    runGit(repoRoot, ["init", "--initial-branch=main"]);
-    runGit(repoRoot, ["commit", "--allow-empty", "-m", "Initial commit"]);
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    repoRoot = "/virtual/harness-test";
+    vfs.mkdirSync(`${repoRoot}/.git`, { recursive: true });
   });
 
   afterEach(() => {
-    rmSync(repoRoot, { recursive: true, force: true });
+    session.cleanup();
   });
 
   it("clusters independent tasks into separate tracks", () => {
@@ -63,7 +67,7 @@ describe("Dynamic Graph Clustering", () => {
       { id: "t4", title: "T4" },
       { id: "t5", title: "T5" },
       { id: "t6", title: "T6" },
-    ]; // 6 independent tasks
+    ];
     const clusters = clusterTasks(tasks, 3);
     expect(clusters.length).toBe(3);
   });

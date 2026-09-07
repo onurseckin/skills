@@ -5,8 +5,8 @@ import {
   type RouteCriticFindingsOptions,
   type RouteCriticFindingsResult,
   type TaskRepairSummary,
-} from "../workflow/completion/critic-feedback-loop.ts";
-import type { CompletionReview } from "../workflow/completion/types.ts";
+} from "../workflow/completion/index.ts";
+import type { CompletionReview } from "../workflow/completion/index.ts";
 import type { TransactionPort, WorkflowState } from "../workflow/types.ts";
 import { synthesizeNextRoundPrompt } from "./defect-synthesizer.ts";
 import type { DefectSynthesis, RoundGateResult } from "./types.ts";

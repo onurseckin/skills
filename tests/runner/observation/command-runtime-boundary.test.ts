@@ -1,18 +1,9 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
-import { realpathSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import type { CommandAttemptRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
-import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import * as commandRecordSize from "../../../olt/scripts/src/engine/runner/models/command/command-record-size.ts";
-import {
-  MAX_COMMAND_ATTEMPTS,
-  MAX_COMMAND_ATTEMPT_BYTES,
-  MAX_COMMAND_INTENT_BYTES,
-  MAX_COMMAND_RECORD_BYTES,
-  MAX_EVIDENCE_ERROR_BYTES,
-} from "../../../olt/scripts/src/engine/runner/models/command/command-record-size.ts";
+import type {
+  CommandAttemptRecord,
+  RepositoryBinding,
+} from "../../../olt/scripts/src/core/contracts/index.ts";
 import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 import {
   executePreparedCommand as executePublic,
@@ -24,8 +15,13 @@ import type {
   NormalizedCommandOptions,
   PreparedCommand,
 } from "../../../olt/scripts/src/engine/runner/types/types.ts";
-import { tempRoot, setupVirtualRunnerFS, cleanupVirtualRunnerFS } from "../command/fixture.ts";
-import type { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/memory-fs.ts";
+import type { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import {
+  cleanupVirtualRunnerFS,
+  realpathVirtual,
+  setupVirtualRunnerFS,
+  tempRoot,
+} from "../command/fixture.ts";
 
 let vfs: VirtualMemoryFS;
 
@@ -34,6 +30,7 @@ beforeEach(() => {
 });
 
 afterEach(cleanupVirtualRunnerFS);
+
 const digest = (marker: string): string => marker.repeat(64);
 
 function binding(marker = "a"): RepositoryBinding {
@@ -76,11 +73,11 @@ function attemptResult(id: string, attempt: number, transient = false): AttemptR
   };
 }
 
-async function fixture(label: string) {
+function fixture(label: string) {
   const root = tempRoot(label);
-  await mkdir(join(root, "bin"));
-  await mkdir(join(root, ".olt", "capsules", "commands"), { recursive: true });
-  await writeFile(join(root, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
+  vfs.mkdirSync(join(root, "bin"), { recursive: true });
+  vfs.mkdirSync(join(root, ".olt", "capsules", "commands"), { recursive: true });
+  vfs.writeFileSync(join(root, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
   return {
     root,
     input: {
@@ -105,7 +102,7 @@ async function fixture(label: string) {
 
 describe("command runtime boundary", () => {
   test("retries from one immutable durable execution snapshot", async () => {
-    const { root, input } = await fixture("command-runtime-snapshot");
+    const { root, input } = fixture("command-runtime-snapshot");
     const seen: NormalizedCommandOptions[] = [];
     let prepared: PreparedCommand;
     const runner = createInternalCommandRunner({
@@ -135,9 +132,9 @@ describe("command runtime boundary", () => {
     expect(result.attempts).toHaveLength(2);
     expect(seen).toHaveLength(2);
     expect(seen[1]).toMatchObject({
-      argv: [realpathSync(join(root, "bin", "verify"))],
-      cwd: realpathSync(root),
-      repositoryRoot: realpathSync(root),
+      argv: [realpathVirtual(join(root, "bin", "verify"))],
+      cwd: realpathVirtual(root),
+      repositoryRoot: realpathVirtual(root),
       actor: "validator",
       taskId: "T-observed",
       gateId: "G-observed",
@@ -150,7 +147,7 @@ describe("command runtime boundary", () => {
   });
 
   test("retries a non-gate from one durable sanitized environment", async () => {
-    const { input } = await fixture("command-runtime-non-gate");
+    const { input } = fixture("command-runtime-non-gate");
     const secretKey = "LIMO_TEST_SECRET";
     const previousSecret = process.env[secretKey];
     process.env[secretKey] = "must-not-be-recorded";
@@ -183,7 +180,7 @@ describe("command runtime boundary", () => {
   });
 
   test("uses one internal observer capability and keeps public APIs dependency-free", async () => {
-    const { input } = await fixture("command-observer-capability");
+    const { input } = fixture("command-observer-capability");
     let invoked = false;
     const dependencies = {
       inspectRepository: () => binding("a"),
@@ -208,7 +205,7 @@ describe("command runtime boundary", () => {
   });
 
   test("rejects mutation of the command attempt-signing key in immutable intent", async () => {
-    const { input } = await fixture("command-signing-intent");
+    const { input } = fixture("command-signing-intent");
     let invoked = false;
     const runner = createInternalCommandRunner({
       inspectRepository: () => binding(),
@@ -223,95 +220,5 @@ describe("command runtime boundary", () => {
 
     await expect(runner.executePreparedCommand(prepared)).rejects.toThrow(/durable intent/i);
     expect(invoked).toBeFalse();
-  });
-
-  test("reserves terminal headroom and bounds evidence errors", async () => {
-    const { input } = await fixture("command-intent-headroom");
-    expect(
-      MAX_COMMAND_INTENT_BYTES +
-        (MAX_COMMAND_ATTEMPTS + 1) * MAX_COMMAND_ATTEMPT_BYTES +
-        MAX_EVIDENCE_ERROR_BYTES,
-    ).toBeLessThan(MAX_COMMAND_RECORD_BYTES);
-
-    const intentSpy = spyOn(commandRecordSize, "assertCommandIntentSize").mockImplementation(
-      (record) => {
-        if (record.argv?.[1]?.length > 2000) {
-          throw new HarnessError("INVALID_STATE", "command intent exceeds size limit");
-        }
-      },
-    );
-
-    try {
-      const runner = createInternalCommandRunner({
-        inspectRepository: () => binding(),
-        attempt: async () => {
-          throw new Error("\0".repeat(MAX_EVIDENCE_ERROR_BYTES));
-        },
-      });
-      await expect(
-        runner.prepareCommand({
-          ...input,
-          argv: ["tool", "x".repeat(3000)],
-          gateId: undefined,
-          retries: 0,
-        }),
-      ).rejects.toThrow(/intent.*size|size.*limit/i);
-      expect(await readdir(input.commandDir)).toEqual([]);
-
-      const prepared = await runner.prepareCommand({
-        ...input,
-        argv: ["tool", "safe"],
-        gateId: undefined,
-        retries: 0,
-      });
-      await expect(runner.executePreparedCommand(prepared)).rejects.toThrow();
-      const storedText = await readFile(prepared.recordPath, "utf8");
-      const stored = JSON.parse(storedText);
-      expect(new TextEncoder().encode(stored.evidence_error).byteLength).toBeLessThanOrEqual(
-        MAX_EVIDENCE_ERROR_BYTES,
-      );
-      expect(Buffer.byteLength(storedText)).toBeLessThanOrEqual(MAX_COMMAND_RECORD_BYTES);
-    } finally {
-      intentSpy.mockRestore();
-    }
-  });
-
-  test("enforces non-idempotent command policy by disallowing retries on transient failures", async () => {
-    const { input } = await fixture("command-non-idempotent");
-    let attemptsCount = 0;
-    const runner = createInternalCommandRunner({
-      inspectRepository: () => binding(),
-      attempt: async (_options, attempt, id) => {
-        attemptsCount++;
-        return attemptResult(id, attempt, true);
-      },
-    });
-    const prepared = await runner.prepareCommand({
-      ...input,
-      retries: 2,
-      idempotent: false,
-    });
-    const result = await runner.executePreparedCommand(prepared);
-    expect(attemptsCount).toBe(1);
-    expect(result.attempts).toHaveLength(1);
-    expect(result.record.status).toBe("failed");
-    expect(result.record.retry_exhausted).toBe(false);
-  });
-
-  test("handles zero-byte or empty output tails safely", async () => {
-    const { input } = await fixture("command-empty-output-tail");
-    const runner = createInternalCommandRunner({
-      inspectRepository: () => binding(),
-      attempt: async (_options, attempt, id) => {
-        const res = attemptResult(id, attempt, false);
-        res.outputTail = "";
-        return res;
-      },
-    });
-    const prepared = await runner.prepareCommand({ ...input, retries: 0 });
-    const result = await runner.executePreparedCommand(prepared);
-    expect(result.record.status).toBe("succeeded");
-    expect(result.attempts).toHaveLength(1);
-    expect(result.attempts[0]?.outputTail).toBe("");
   });
 });

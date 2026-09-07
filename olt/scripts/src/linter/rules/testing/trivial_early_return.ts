@@ -1,6 +1,5 @@
 import ts from "typescript";
-import type { AstLintRuleModule } from "../../ast/index.ts";
-import { identifyTestCall, isAssertionCall } from "../../ast/index.ts";
+import { identifyTestCall, isAssertionCall, type AstLintRuleModule } from "../../core/index.ts";
 
 export const trivialEarlyReturnRule: AstLintRuleModule = {
   rule: "trivial_early_return",

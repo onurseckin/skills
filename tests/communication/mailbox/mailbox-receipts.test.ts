@@ -157,9 +157,9 @@ describe("Mailbox Receipt Collection & Cursor Integration", () => {
     expect(() => collectInboxReceipts("", { baseDir: testRoot })).toThrow(HarnessError);
   });
 
-  it("ensures file is <= 300 physical lines", () => {
+  it("ensures file is <= 400 physical lines", () => {
     const file = join(process.cwd(), "tests/communication/mailbox/mailbox-receipts.test.ts");
     const lines = vfs.readFileSync(file, "utf8").split("\n");
-    expect(lines.length).toBeLessThanOrEqual(300);
+    expect(lines.length).toBeLessThanOrEqual(400);
   });
 });

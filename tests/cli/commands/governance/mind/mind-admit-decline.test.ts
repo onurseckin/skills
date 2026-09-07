@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   mindAdmitCommand,
@@ -9,6 +8,7 @@ import * as gatesModule from "../../../../../olt/scripts/src/mind/proposals/gate
 import {
   cleanupRoots,
   cleanupVirtualCliFS,
+  getVirtualCliFS,
   setupVirtualCliFS,
 } from "../../fixtures/full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "../../fixtures/task-ops-fixture.ts";
@@ -194,8 +194,9 @@ describe("mindAdmitCommand & mindDeclineCommand", () => {
       falsifierExitObserved: 0,
     });
 
-    mkdirSync(join(repo, "olt", "agents"), { recursive: true });
-    writeFileSync(
+    const vfs = getVirtualCliFS();
+    vfs.mkdirSync(join(repo, "olt", "agents"), { recursive: true });
+    vfs.writeFileSync(
       join(repo, "olt", "agents", "mind.yaml"),
       `name: mind\ngoals:\n  - id: G1\n    description: Primary goal\nnon_goals:\n  - NG1\nrepo_roots:\n  - .\n`,
     );

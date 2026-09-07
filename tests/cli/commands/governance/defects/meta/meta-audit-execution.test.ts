@@ -1,7 +1,5 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import { join } from "node:path";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { writeFile } from "node:fs/promises";
 import { execute } from "../../../../../../olt/scripts/src/cli/execute.ts";
 import { metaAuditCommand } from "../../../../../../olt/scripts/src/cli/commands/meta-audit.ts";
 import { HarnessError } from "../../../../../../olt/scripts/src/core/errors/index.ts";
@@ -12,12 +10,15 @@ import {
   cleanupVirtualCliFS,
   setupVirtualCliFS,
 } from "../../../fixtures/full-lifecycle-fixture.ts";
+import type { VirtualMemoryFS } from "../../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 const PREEXISTING_BACKLOG_LINE =
   '{"id":"existing-remediation","timestamp":"2026-08-26T00:00:00.000Z","priority":"LOW","status":"PENDING","category":"CORE_ENGINE","title":"Existing remediation","content":"Keep this sentinel","candidate_id":null,"resolution_note":null,"processed_at":null}\n';
 
+let vfs: VirtualMemoryFS;
+
 beforeEach(() => {
-  setupVirtualCliFS();
+  vfs = setupVirtualCliFS();
 });
 
 afterEach(() => {
@@ -70,13 +71,13 @@ function setupInjectableMetaAuditRun(
     };
   });
   const backlogPath = join(run, ".olt", "backlog.jsonl");
-  mkdirSync(join(run, ".olt"), { recursive: true });
-  writeFileSync(backlogPath, PREEXISTING_BACKLOG_LINE, "utf8");
+  vfs.mkdirSync(join(run, ".olt"), { recursive: true });
+  vfs.writeFileSync(backlogPath, PREEXISTING_BACKLOG_LINE, "utf8");
   return { run, backlogPath };
 }
 
 function expectOneValidRemediationAppend(backlogPath: string, before: string): void {
-  const after = readFileSync(backlogPath, "utf8");
+  const after = vfs.readFileSync(backlogPath, "utf8");
   expect(after.startsWith(before)).toBe(true);
   const appendedLines = after.slice(before.length).trim().split("\n");
   expect(appendedLines).toHaveLength(1);
@@ -114,7 +115,7 @@ describe("CLI meta-audit command execution & authority", () => {
   test("executes on a real run capsule with markdown output", async () => {
     const scratch = scratchRoot(import.meta.path, "meta-audit-real-run");
     const promptPath = join(scratch, "prompt.txt");
-    await writeFile(promptPath, "Test prompt for meta-audit execution");
+    vfs.writeFileSync(promptPath, "Test prompt for meta-audit execution");
 
     const init = await execute([
       "plan:init",
@@ -138,7 +139,7 @@ describe("CLI meta-audit command execution & authority", () => {
   test("supports --json and --format json flags", async () => {
     const scratch = scratchRoot(import.meta.path, "meta-audit-json-run");
     const promptPath = join(scratch, "prompt.txt");
-    await writeFile(promptPath, "Test prompt for json format");
+    vfs.writeFileSync(promptPath, "Test prompt for json format");
 
     const init = await execute([
       "plan:init",
@@ -161,7 +162,7 @@ describe("CLI meta-audit command execution & authority", () => {
   test("supports --agent, --verbose, and --inject flags", async () => {
     const scratch = scratchRoot(import.meta.path, "meta-audit-inject-run");
     const promptPath = join(scratch, "prompt.txt");
-    await writeFile(promptPath, "Test prompt for agent and inject flags");
+    vfs.writeFileSync(promptPath, "Test prompt for agent and inject flags");
 
     const init = await execute([
       "plan:init",
@@ -189,7 +190,7 @@ describe("CLI meta-audit command execution & authority", () => {
   test("invokes via execute CLI harness with meta-audit command", async () => {
     const scratch = scratchRoot(import.meta.path, "meta-audit-execute-harness");
     const promptPath = join(scratch, "prompt.txt");
-    await writeFile(promptPath, "Test prompt for CLI harness execute");
+    vfs.writeFileSync(promptPath, "Test prompt for CLI harness execute");
 
     const init = await execute([
       "plan:init",
@@ -232,11 +233,11 @@ describe("CLI meta-audit command execution & authority", () => {
           grantId,
           grantRole,
         );
-        const before = readFileSync(backlogPath, "utf8");
+        const before = vfs.readFileSync(backlogPath, "utf8");
 
         await expect(execute(["meta-audit", "--run", run, ...argumentsAfterRun])).rejects.toThrow();
 
-        expect(readFileSync(backlogPath, "utf8")).toBe(before);
+        expect(vfs.readFileSync(backlogPath, "utf8")).toBe(before);
       },
     );
 
@@ -258,7 +259,7 @@ describe("CLI meta-audit command execution & authority", () => {
           pid: process.pid,
           ppid: process.ppid,
         });
-        const before = readFileSync(backlogPath, "utf8");
+        const before = vfs.readFileSync(backlogPath, "utf8");
 
         const result = await execute(["meta-audit", "--run", run, "--actor", actorId, "--inject"]);
 
@@ -280,7 +281,7 @@ describe("CLI meta-audit command execution & authority", () => {
         pid: process.pid,
         ppid: process.ppid,
       });
-      const before = readFileSync(backlogPath, "utf8");
+      const before = vfs.readFileSync(backlogPath, "utf8");
 
       const result = await execute(["meta-audit", "--run", run, "--inject"]);
 

@@ -37,27 +37,3 @@ export {
   type SubagentDispatchPromptOptions,
   type SubagentSystemPromptOptions,
 } from "./verbatim-role-injector.ts";
-
-import * as evidence from "./evidence/index.ts";
-import * as guards from "./guards/index.ts";
-import * as manifest from "./manifest/index.ts";
-import * as persona from "./persona/index.ts";
-import * as rbac from "./rbac/index.ts";
-import * as review from "./review/index.ts";
-import * as session from "./session/index.ts";
-import * as supervisory from "./supervisory/index.ts";
-import * as thread from "./thread/index.ts";
-import * as watchdog from "./watchdog/index.ts";
-
-export {
-  evidence,
-  guards,
-  manifest,
-  persona,
-  rbac,
-  review,
-  session,
-  supervisory,
-  thread,
-  watchdog,
-};

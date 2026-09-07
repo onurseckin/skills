@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve, sep } from "node:path";
-import { findRepoRoot, OLT_DIR_NAME, OLT_FILES } from "./paths.ts";
+import { findRepoRoot, OLT_DIR_NAME, OLT_FILES } from "./repo-root.ts";
 
 export interface SkillGlobalConfig {
   readonly home_repo_root: string;
@@ -111,7 +111,8 @@ function readOwnPolicySkillHomeRoot(root: string): string | undefined {
     const rec = parsed as Record<string, unknown>;
     const dr = rec["defect_routing"] as Record<string, unknown> | undefined;
     const fromDefectRouting = dr && typeof dr === "object" ? dr["skill_home_repo_root"] : undefined;
-    const raw = typeof fromDefectRouting === "string" ? fromDefectRouting : rec["skill_home_repo_root"];
+    const raw =
+      typeof fromDefectRouting === "string" ? fromDefectRouting : rec["skill_home_repo_root"];
     if (typeof raw === "string" && raw.trim()) return resolve(expandHome(raw.trim()));
   } catch {}
   return undefined;

@@ -1,27 +1,13 @@
 import { basename, dirname, join, resolve } from "node:path";
+import {
+  isCoordinatorRole,
+  isOrchestratorRole,
+  roleToTier,
+} from "../../../../authority/thread/index.ts";
 import { isMindRole } from "./hierarchy.ts";
 import type { RoleAuditSeverity } from "../types.ts";
 import type { DefectEntry } from "../../../defects/index.ts";
-export { isMindRole };
-export function isOrchestratorRole(role: string): boolean {
-  const r = role.toLowerCase().trim();
-  return (
-    r === "orchestrator" ||
-    r.startsWith("orchestrator-") ||
-    r.startsWith("orch-") ||
-    r.includes("orchestrator")
-  );
-}
-
-export function isCoordinatorRole(role: string): boolean {
-  const r = role.toLowerCase().trim();
-  return (
-    r === "coordinator" ||
-    r.startsWith("coordinator-") ||
-    r.startsWith("coord-") ||
-    r.includes("coordinator")
-  );
-}
+export { isCoordinatorRole, isMindRole, isOrchestratorRole };
 
 export function isImplementerRole(role: string): boolean {
   const r = role.toLowerCase().trim();
@@ -82,13 +68,7 @@ export const PROHIBITED_COGNITIVE_TOOLS: ReadonlySet<string> = new Set([
   "bun_test",
   "npm_test",
 ]);
-
-export function roleToTier(role: string): number {
-  if (isMindRole(role)) return 0;
-  if (isOrchestratorRole(role)) return 1;
-  if (isCoordinatorRole(role)) return 2;
-  return 3;
-}
+export { roleToTier };
 
 export function isFullTestSuiteCommand(argv: readonly string[]): boolean {
   if (!argv || argv.length === 0) return false;

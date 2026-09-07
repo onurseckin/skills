@@ -103,6 +103,47 @@ describe("Cursor Tracker Core Shapes & Idempotency", () => {
       expect(isMessageProcessed(makeEnvelope(6, "unseen-new"), cursor)).toBe(false);
       expect(isMessageProcessed(makeEnvelope(0, "zero-seq"), createEmptyCursor())).toBe(false);
     });
+
+    it("does not consider unsequenced messages processed when last_read_sequence >= 1 if id not in seen_ids", () => {
+      const cursorAtOne = {
+        last_read_sequence: 1,
+        last_read_id: "seen-1",
+        seen_ids: ["seen-1"],
+        updated_at: new Date().toISOString(),
+      };
+      const cursorAtTen = {
+        last_read_sequence: 10,
+        last_read_id: "seen-10",
+        seen_ids: ["seen-10"],
+        updated_at: new Date().toISOString(),
+      };
+      expect(isMessageProcessed(makeEnvelope(1, "distinct-msg-1"), cursorAtOne)).toBe(false);
+      expect(isMessageProcessed(makeEnvelope(1, "distinct-msg-2"), cursorAtOne)).toBe(false);
+      expect(isMessageProcessed(makeEnvelope(1, "distinct-msg-3"), cursorAtTen)).toBe(false);
+    });
+
+    it("considers unsequenced messages processed if id is in seen_ids", () => {
+      const cursor = {
+        last_read_sequence: 1,
+        last_read_id: "seen-msg-1",
+        seen_ids: ["seen-msg-1"],
+        updated_at: new Date().toISOString(),
+      };
+      expect(isMessageProcessed(makeEnvelope(1, "seen-msg-1"), cursor)).toBe(true);
+    });
+
+    it("considers sequenced messages processed when sequence is greater than 1 and sequence <= last_read_sequence", () => {
+      const cursor = {
+        last_read_sequence: 4,
+        last_read_id: "msg-4",
+        seen_ids: ["msg-4"],
+        updated_at: new Date().toISOString(),
+      };
+      expect(isMessageProcessed(makeEnvelope(2, "msg-2"), cursor)).toBe(true);
+      expect(isMessageProcessed(makeEnvelope(3, "msg-3"), cursor)).toBe(true);
+      expect(isMessageProcessed(makeEnvelope(4, "msg-4"), cursor)).toBe(true);
+      expect(isMessageProcessed(makeEnvelope(5, "msg-5"), cursor)).toBe(false);
+    });
   });
 
   describe("Fail-closed argument validation with HarnessError", () => {

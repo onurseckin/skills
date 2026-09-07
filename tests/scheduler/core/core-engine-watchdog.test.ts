@@ -2,7 +2,9 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   auditSupervisoryWatchdog,
   recoverStaleTasks,
+  SchedulerEngine,
 } from "../../../olt/scripts/src/engine/scheduler/index.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import type { TransactionPort, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
 import {
   cleanupVirtualSchedulerFS,
@@ -15,13 +17,20 @@ function createMockPort(initialState: Record<string, unknown>): TransactionPort 
   let state = structuredClone(initialState) as unknown as WorkflowState;
   return {
     read: () => structuredClone(state),
-    transact: (actor, kind, payload, mutate) => {
+    transact: (_actor, _kind, _payload, mutate) => {
       const draft = structuredClone(state);
       mutate(draft);
       state = draft;
       return state;
     },
   };
+}
+
+function tempDir(label = "test"): string {
+  const vfs = getVirtualSchedulerFS();
+  const dir = `/virtual/scratch/watchdog-${label}-${Date.now()}`;
+  vfs.mkdirSync(dir, { recursive: true });
+  return dir;
 }
 
 describe("Core Scheduler Engine — Supervisory Watchdog & Stale Recovery", () => {
@@ -31,6 +40,7 @@ describe("Core Scheduler Engine — Supervisory Watchdog & Stale Recovery", () =
   afterEach(() => {
     cleanupVirtualSchedulerFS();
   });
+
   test("auditSupervisoryWatchdog detects active watchdogs and overdue heartbeats", () => {
     const now = new Date("2026-08-22T10:30:00.000Z");
     const report = auditSupervisoryWatchdog(undefined, { now });
@@ -102,7 +112,6 @@ describe("Core Scheduler Engine — Supervisory Watchdog & Stale Recovery", () =
     const now = new Date("2026-08-22T12:00:00.000Z");
     const storePath = `${process.cwd()}/.olt/watchdogs.json`.replace(/\\/g, "/");
 
-    // 1. Seed active overdue watchdog
     vfs.writeFileSync(
       storePath,
       JSON.stringify({
@@ -138,8 +147,108 @@ describe("Core Scheduler Engine — Supervisory Watchdog & Stale Recovery", () =
     expect(report.hungAgentIds).toContain("agent-hung");
     expect(report.issues.length).toBeGreaterThan(0);
 
-    // 2. Corrupt store JSON
     vfs.writeFileSync(storePath, "{ invalid: json");
     expect(() => auditSupervisoryWatchdog(storePath, { now })).toThrow(/corrupted watchdog store/i);
+  });
+
+  describe("Complete SchedulerEngine Instance Methods", () => {
+    test("SchedulerEngine executes health, watchdog, and supervisory audits", () => {
+      const heartbeatRepo = tempDir("engine-watchdog-test");
+      const heartbeatRun = initRun(
+        heartbeatRepo,
+        "run-engine-watchdog",
+        Buffer.from("Test prompt for engine watchdog"),
+        "argv",
+        true,
+      );
+      const engine = new SchedulerEngine({
+        heartbeatCadenceMs: 5000,
+        timeoutMs: 10000,
+        maxRepairRounds: 3,
+        maxParallel: 4,
+        watchdogTarget: heartbeatRun,
+      });
+
+      const state = schedulerState();
+      expect(engine.auditHealth(state).healthy).toBe(true);
+      expect(engine.auditWatchdog()).toBeDefined();
+      expect(engine.auditSupervisory5Point(state).healthy).toBe(true);
+      expect(engine.registerSupervisoryHeartbeat("test-leader-1").agent_id).toBe("test-leader-1");
+    });
+
+    test("SchedulerEngine executes probe dispatch, wave evaluation, and recovery", () => {
+      const engine = new SchedulerEngine({
+        heartbeatCadenceMs: 5000,
+        timeoutMs: 10000,
+        maxRepairRounds: 3,
+        maxParallel: 4,
+      });
+
+      const state = schedulerState();
+      const port = createMockPort(state);
+
+      const leaderProbe = engine.dispatchTopLeaderProbe(state);
+      expect(leaderProbe.dispatched).toBe(true);
+      expect(leaderProbe.targetAgentId).toBeDefined();
+
+      expect(engine.evaluateReadyBatch(state, 3).entries.length).toBeGreaterThan(0);
+      const waveRes = engine.evaluateWave(state, 5);
+      expect(waveRes.readyTasks.length).toBeGreaterThan(0);
+      expect(waveRes.totalEligible).toBe(waveRes.readyTasks.length);
+
+      expect(engine.evaluateMultiDomainBatch(state, { maxParallel: 3 })).toBeDefined();
+      expect(engine.dispatchMultiDomainValidators(state, { maxParallel: 3 })).toBeDefined();
+      expect(engine.proposeMultiDomainWave(state, { maxParallel: 3 })).toBeDefined();
+      expect(engine.recoverStale(port)).toBeDefined();
+    });
+
+    test("SchedulerEngine executes auditDoctor", async () => {
+      const engine = new SchedulerEngine({
+        heartbeatCadenceMs: 5000,
+        timeoutMs: 10000,
+      });
+
+      const root = tempDir("engine-doctor-audit");
+      const runRoot = initRun(
+        root,
+        "run-engine-doc-audit",
+        Buffer.from("Test prompt for engine doctor audit"),
+        "argv",
+        true,
+      );
+      expect((await engine.auditDoctor(runRoot, { repoRoot: root })).healthy).toBe(true);
+    });
+
+    test("SchedulerEngine executes runDoctorGate", async () => {
+      const engine = new SchedulerEngine({
+        heartbeatCadenceMs: 5000,
+        timeoutMs: 10000,
+      });
+
+      const root = tempDir("engine-doctor-run");
+      const runRoot = initRun(
+        root,
+        "run-engine-doc-run",
+        Buffer.from("Test prompt for engine doctor run"),
+        "argv",
+        true,
+      );
+      expect((await engine.runDoctorGate(runRoot, { repoRoot: root })).healthy).toBe(true);
+    });
+
+    test("SchedulerEngine executes script-backed diagnostics", async () => {
+      const engine = new SchedulerEngine({
+        heartbeatCadenceMs: 5000,
+        timeoutMs: 10000,
+      });
+
+      const state = schedulerState();
+      expect(
+        (await engine.auditScriptBackedDiagnostics({ state })).receipts.length,
+      ).toBeGreaterThan(0);
+      expect((await engine.runScriptBackedDiagnostics({ state })).receipts.length).toBeGreaterThan(
+        0,
+      );
+    });
   });
 });

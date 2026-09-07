@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   DEFAULT_MAX_SEEN_IDS,
@@ -18,7 +17,7 @@ import type {
   MailboxCursor,
   MailboxEnvelope,
 } from "../../../olt/scripts/src/communication/types.ts";
-import { cleanupVirtualCommunicationFS, setupVirtualCommunicationFS } from "../helpers.ts";
+import { cleanupVirtualCommunicationFS, setupVirtualCommunicationFS, vfs } from "../helpers.ts";
 
 function makeEnvelope(sequence: number, id?: string): MailboxEnvelope<{ test: string }> {
   const envelope = createSignedEnvelope({
@@ -40,7 +39,7 @@ describe("Cursor Tracker Persistence & Advancement", () => {
   beforeEach(() => {
     setupVirtualCommunicationFS();
     tempDir = "/tmp/mock-communication/cursor-persistence";
-    mkdirSync(tempDir, { recursive: true });
+    vfs.mkdirSync(tempDir, { recursive: true });
     cursorPath = join(tempDir, "cursor.json");
     lockPath = join(tempDir, "cursor.lock");
   });
@@ -52,7 +51,7 @@ describe("Cursor Tracker Persistence & Advancement", () => {
   describe("loadMailboxCursor and saveMailboxCursor", () => {
     it("returns empty cursor if missing and saves/reloads atomically", () => {
       expect(loadMailboxCursor(cursorPath).last_read_sequence).toBe(0);
-      writeFileSync(cursorPath, "   \n  ", "utf8");
+      vfs.writeFileSync(cursorPath, "   \n  ");
       expect(loadMailboxCursor(cursorPath).last_read_sequence).toBe(0);
 
       const updated = {
@@ -62,7 +61,7 @@ describe("Cursor Tracker Persistence & Advancement", () => {
         updated_at: new Date().toISOString(),
       };
       saveMailboxCursor(cursorPath, updated);
-      expect(existsSync(cursorPath)).toBe(true);
+      expect(vfs.existsSync(cursorPath)).toBe(true);
       expect(loadMailboxCursor(cursorPath)).toEqual(updated);
 
       saveMailboxCursor(cursorPath, updated, lockPath);
@@ -70,31 +69,31 @@ describe("Cursor Tracker Persistence & Advancement", () => {
     });
 
     it("quarantines corrupt JSON, truncated files, or invalid schema and returns empty cursor", () => {
-      writeFileSync(cursorPath, "{ bad json syntax ...", "utf8");
+      vfs.writeFileSync(cursorPath, "{ bad json syntax ...");
       expect(loadMailboxCursor(cursorPath).last_read_sequence).toBe(0);
-      expect(readdirSync(tempDir).filter((f) => f.includes(".corrupt-")).length).toBe(1);
+      expect(vfs.readdirSync(tempDir).filter((f) => f.includes(".corrupt-")).length).toBe(1);
 
-      writeFileSync(cursorPath, '{"last_read_sequence": 10, "last_read_id": "tru', "utf8");
+      vfs.writeFileSync(cursorPath, '{"last_read_sequence": 10, "last_read_id": "tru');
       expect(loadMailboxCursor(cursorPath).last_read_sequence).toBe(0);
 
-      writeFileSync(cursorPath, JSON.stringify({ last_read_sequence: "invalid-type" }), "utf8");
+      vfs.writeFileSync(cursorPath, JSON.stringify({ last_read_sequence: "invalid-type" }));
       expect(loadMailboxCursor(cursorPath).last_read_sequence).toBe(0);
     });
 
     it("throws INTEGRITY error when cursor directory creation fails or rename fails", () => {
       const blockingFile = join(tempDir, "blocker");
-      writeFileSync(blockingFile, "file", "utf8");
+      vfs.writeFileSync(blockingFile, "file");
       const badPath = join(blockingFile, "child", "cursor.json");
       expect(() => saveMailboxCursor(badPath, createEmptyCursor())).toThrow(HarnessError);
 
       const dirAsCursorPath = join(tempDir, "dir-cursor-path");
-      mkdirSync(dirAsCursorPath);
+      vfs.mkdirSync(dirAsCursorPath);
       expect(() => saveMailboxCursor(dirAsCursorPath, createEmptyCursor())).toThrow(HarnessError);
     });
 
     it("throws INTEGRITY error when reading cursor from unreadable path or directory", () => {
       const dirAsCursor = join(tempDir, "dir-as-cursor");
-      mkdirSync(dirAsCursor);
+      vfs.mkdirSync(dirAsCursor);
       expect(() => loadMailboxCursor(dirAsCursor)).toThrow(HarnessError);
     });
   });
@@ -261,11 +260,11 @@ describe("Cursor Tracker Persistence & Advancement", () => {
     });
 
     it("quarantines corrupt cursor with Windows CRLF line endings", () => {
-      writeFileSync(cursorPath, "{\r\n  \"bad\": true,\r\n  \"truncated\": \r\n", "utf8");
+      vfs.writeFileSync(cursorPath, '{\r\n  "bad": true,\r\n  "truncated": \r\n');
       const cursor = loadMailboxCursor(cursorPath);
       expect(cursor.last_read_sequence).toBe(0);
       expect(cursor.seen_ids).toEqual([]);
-      expect(readdirSync(tempDir).some((f) => f.includes(".corrupt-"))).toBe(true);
+      expect(vfs.readdirSync(tempDir).some((f) => f.includes(".corrupt-"))).toBe(true);
     });
 
     it("supports sequential atomic saves with lock concurrency protection", () => {

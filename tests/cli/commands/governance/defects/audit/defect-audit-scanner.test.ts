@@ -1,14 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   discoverDefectFiles,
   parseDefectsFromFile,
 } from "../../../../../../olt/scripts/src/cli/commands/defect-audit-scanner.ts";
-import {
-  discoverDefectFiles as discoverDefectFiles2,
-  parseDefectsFromFile as parseDefectsFromFile2,
-} from "../../../../../../olt/scripts/src/cli/commands/defect-audit/discovery.ts";
+import type { VirtualMemoryFS } from "../../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   cleanupRoots,
   cleanupVirtualCliFS,
@@ -19,12 +15,13 @@ const roots: string[] = [];
 
 describe("Defect Scanner & Discovery", () => {
   let testDir: string;
+  let vfs: VirtualMemoryFS;
 
   beforeEach(() => {
-    setupVirtualCliFS();
+    vfs = setupVirtualCliFS();
     testDir = `/virtual/cli/defect-audit-scan-${Date.now()}`;
-    mkdirSync(testDir, { recursive: true });
-    writeFileSync(join(testDir, "package.json"), "{}", "utf-8");
+    vfs.mkdirSync(testDir, { recursive: true });
+    vfs.writeFileSync(join(testDir, "package.json"), "{}", "utf-8");
   });
 
   afterEach(async () => {
@@ -36,15 +33,15 @@ describe("Defect Scanner & Discovery", () => {
     const cap1 = join(testDir, "run-1");
     const cap2 = join(testDir, "run-2");
     const outsideDir = `/virtual/cli/outside-run-${Date.now()}`;
-    mkdirSync(cap1, { recursive: true });
-    mkdirSync(cap2, { recursive: true });
-    mkdirSync(outsideDir, { recursive: true });
-    writeFileSync(join(outsideDir, "package.json"), "{}", "utf-8");
+    vfs.mkdirSync(cap1, { recursive: true });
+    vfs.mkdirSync(cap2, { recursive: true });
+    vfs.mkdirSync(outsideDir, { recursive: true });
+    vfs.writeFileSync(join(outsideDir, "package.json"), "{}", "utf-8");
     roots.push(outsideDir);
 
-    writeFileSync(join(testDir, "defects.jsonl"), '{"id":"d0","type":"t"}\n');
-    writeFileSync(join(cap1, "defects.jsonl"), '{"id":"d1","type":"t"}\n');
-    writeFileSync(join(outsideDir, "defects.jsonl"), '{"id":"d-out","type":"t"}\n');
+    vfs.writeFileSync(join(testDir, "defects.jsonl"), '{"id":"d0","type":"t"}\n');
+    vfs.writeFileSync(join(cap1, "defects.jsonl"), '{"id":"d1","type":"t"}\n');
+    vfs.writeFileSync(join(outsideDir, "defects.jsonl"), '{"id":"d-out","type":"t"}\n');
 
     const discovered = discoverDefectFiles(testDir);
     expect(discovered.some((d) => d.capsuleName === "capsules-root")).toBe(true);
@@ -53,40 +50,27 @@ describe("Defect Scanner & Discovery", () => {
 
     const explicit = discoverDefectFiles(testDir, outsideDir);
     expect(explicit.length).toBeGreaterThanOrEqual(3);
-
-    const discovered2Only = discoverDefectFiles2(testDir);
-    expect(discovered2Only.some((d) => d.capsuleName === "run-1")).toBe(true);
-
-    const discovered2 = discoverDefectFiles2(testDir, outsideDir);
-    expect(discovered2.length).toBeGreaterThanOrEqual(3);
   });
 
   test("discoverDefectFiles finds canonical .olt defects and completed-defects", () => {
     const oltDir = join(testDir, ".olt");
-    mkdirSync(oltDir, { recursive: true });
-    writeFileSync(join(oltDir, "defects.jsonl"), '{"id":"d-can","type":"t"}\n');
-    writeFileSync(join(oltDir, "completed-defects.jsonl"), '{"id":"d-comp","type":"t"}\n');
+    vfs.mkdirSync(oltDir, { recursive: true });
+    vfs.writeFileSync(join(oltDir, "defects.jsonl"), '{"id":"d-can","type":"t"}\n');
+    vfs.writeFileSync(join(oltDir, "completed-defects.jsonl"), '{"id":"d-comp","type":"t"}\n');
 
     const discovered = discoverDefectFiles(testDir);
     expect(discovered.some((d) => d.capsuleName === ".olt")).toBe(true);
-
-    const discovered2 = discoverDefectFiles2(testDir);
-    expect(discovered2.some((d) => d.capsuleName === ".olt")).toBe(true);
   });
 
   test("parseDefectsFromFile handles missing files, invalid JSON, and state.json candidates", () => {
     expect(
       parseDefectsFromFile({ capsuleName: "c1", filePath: join(testDir, "none.jsonl") }, testDir),
     ).toEqual([]);
-    expect(
-      parseDefectsFromFile2({ capsuleName: "c1", filePath: join(testDir, "none.jsonl") }, testDir),
-    ).toEqual([]);
 
     expect(parseDefectsFromFile({ capsuleName: "c1", filePath: testDir }, testDir)).toEqual([]);
-    expect(parseDefectsFromFile2({ capsuleName: "c1", filePath: testDir }, testDir)).toEqual([]);
 
     const capsuleDir = join(testDir, "cap-test");
-    mkdirSync(capsuleDir, { recursive: true });
+    vfs.mkdirSync(capsuleDir, { recursive: true });
 
     const stateObj = {
       candidates: [
@@ -97,7 +81,7 @@ describe("Defect Scanner & Discovery", () => {
         null,
       ],
     };
-    writeFileSync(join(capsuleDir, "state.json"), JSON.stringify(stateObj), "utf-8");
+    vfs.writeFileSync(join(capsuleDir, "state.json"), JSON.stringify(stateObj), "utf-8");
 
     const defectsFile = join(capsuleDir, "defects.jsonl");
     const lines = [
@@ -134,7 +118,7 @@ describe("Defect Scanner & Discovery", () => {
         status: "ignored",
       }),
     ].join("\n");
-    writeFileSync(defectsFile, lines, "utf-8");
+    vfs.writeFileSync(defectsFile, lines, "utf-8");
 
     const parsed = parseDefectsFromFile(
       { capsuleName: "cap-test", filePath: defectsFile },
@@ -157,11 +141,5 @@ describe("Defect Scanner & Discovery", () => {
 
     const d4 = parsed.find((d) => d.id === "d-ignored")!;
     expect(d4.status).toBe("ignored");
-
-    const parsed2 = parseDefectsFromFile2(
-      { capsuleName: "cap-test", filePath: defectsFile },
-      testDir,
-    );
-    expect(parsed2).toHaveLength(4);
   });
 });

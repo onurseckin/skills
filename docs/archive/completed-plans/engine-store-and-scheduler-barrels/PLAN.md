@@ -36,11 +36,11 @@ Track 7 focuses on repairing, certifying, and sealing module resolution and expo
 
 ## Level 2: Architectural Constraints & Invariants
 
-1. **File Density Budget**: <= 300 physical lines of code per TypeScript file.
-   - `olt/scripts/src/engine/store/index.ts`: 163 lines (<= 300 LOC).
-   - `olt/scripts/src/engine/scheduler/core/index.ts`: 73 lines (<= 300 LOC).
-   - `olt/scripts/src/engine/store/layout/blobs.ts`: 237 lines (<= 300 LOC).
-   - `olt/scripts/src/workflow/completion/integrity-evidence.ts`: 25 lines (<= 300 LOC).
+1. **File Density Budget**: <= 400 physical lines of code per TypeScript file.
+   - `olt/scripts/src/engine/store/index.ts`: 163 lines (<= 400 LOC).
+   - `olt/scripts/src/engine/scheduler/core/index.ts`: 73 lines (<= 400 LOC).
+   - `olt/scripts/src/engine/store/layout/blobs.ts`: 237 lines (<= 400 LOC).
+   - `olt/scripts/src/workflow/completion/integrity-evidence.ts`: 25 lines (<= 400 LOC).
 2. **Directory Density Budget**: <= 10 files per directory.
    - `engine/store/`: 8 subdirectories + 1 file = 9 items (<= 10 limit).
    - `engine/store/capsule/`: 9 files (<= 10 limit).
@@ -263,7 +263,7 @@ Implementers executing Track 7 tasks require zero exploratory searching. All fil
 - **Execution Invariants**:
   1. 0 code comments in TypeScript files.
   2. 0 TypeScript `any` types and 0 compiler/linter suppressions.
-  3. Every file must remain <= 300 physical lines of code.
+  3. Every file must remain <= 400 physical lines of code.
   4. Use `export type { ... }` for all TypeScript interfaces and types.
 - **Mandatory Gate Commands**:
   - `bun test tests/unit/store/capsule/blobs.test.ts`

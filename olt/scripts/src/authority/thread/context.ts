@@ -8,6 +8,7 @@ import {
   recordDefect,
   roleToTier,
 } from "./role-mapping.ts";
+import { inferRoleFromAgentId } from "./role-inference.ts";
 import type {
   CapabilitiesProfile,
   DefectRecord,
@@ -28,21 +29,6 @@ function resolveHarnessTierEnv(rawValue: string | undefined): ExecutionTier | nu
   const tierWordMatch = normalized.match(/^tier[-_]?([0-3])$/);
   if (tierWordMatch) return Number(tierWordMatch[1]) as ExecutionTier;
   if (HARNESS_TIER_ENV_ROLE_PATTERN.test(normalized)) return roleToTier(normalized);
-  return null;
-}
-
-const ABBREVIATED_AGENT_ID_PREFIXES: ReadonlyArray<readonly [string, string]> = [
-  ["orch", "orchestrator"],
-  ["coord", "coordinator"],
-];
-
-function resolveAbbreviatedAgentId(
-  agentId: string,
-): { readonly role: string; readonly tier: ExecutionTier } | null {
-  const normalized = agentId.toLowerCase().trim();
-  for (const [prefix, role] of ABBREVIATED_AGENT_ID_PREFIXES) {
-    if (normalized.startsWith(prefix)) return { role, tier: roleToTier(role) };
-  }
   return null;
 }
 
@@ -165,10 +151,10 @@ export function identifyExecutionContext(
     tier = roleToTier(explicitRole);
   } else if (explicitAgentId !== null) {
     const strictTier = agentIdToTier(explicitAgentId);
-    const abbreviated = strictTier === null ? resolveAbbreviatedAgentId(explicitAgentId) : null;
-    tier = strictTier ?? abbreviated?.tier ?? 3;
+    const inferred = inferRoleFromAgentId(explicitAgentId);
+    tier = strictTier ?? (inferred !== null ? roleToTier(inferred) : 3);
     if (inferredRole === null) {
-      inferredRole = agentIdToRole(explicitAgentId) ?? abbreviated?.role ?? null;
+      inferredRole = agentIdToRole(explicitAgentId) ?? inferred;
     }
   } else if (hasInteractiveMainIndicator) {
     tier = 0;

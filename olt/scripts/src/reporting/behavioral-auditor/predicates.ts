@@ -1,5 +1,12 @@
 import { isAgentRole, isJsonObject, type JsonObject } from "../../core/contracts/index.ts";
+import {
+  inferRoleFromAgentId,
+  isCoordinatorRole,
+  isOrchestratorRole,
+} from "../../authority/thread/index.ts";
 import type { BehavioralFinding } from "./types.ts";
+
+export { isCoordinatorRole, isOrchestratorRole };
 
 export function boundedEvidenceCause(error: unknown): string {
   if (typeof error === "string") return error.slice(0, 240);
@@ -33,16 +40,8 @@ export function evidenceUnavailable(error: unknown): BehavioralFinding {
   };
 }
 
-export function isCoordinatorRole(role: string): boolean {
-  return role === "coordinator" || role.startsWith("coordinator-");
-}
-
-export function isOrchestratorRole(role: string): boolean {
-  return role === "orchestrator";
-}
-
 export function isImplementerRole(role: string): boolean {
-  return role === "implementer" || role === "sub-implementer" || role === "worker";
+  return role === "implementer" || role === "sub-implementer";
 }
 
 export function isValidatorRole(role: string): boolean {
@@ -57,9 +56,8 @@ export function isValidatorRole(role: string): boolean {
 
 export function isSubagentRole(role: string): boolean {
   return (
-    role === "coordinator" ||
-    role.startsWith("coordinator-") ||
-    role === "orchestrator" ||
+    isCoordinatorRole(role) ||
+    isOrchestratorRole(role) ||
     role === "implementer" ||
     role === "sub-implementer" ||
     role === "validator" ||
@@ -112,11 +110,8 @@ export function inferRole(
     }
   }
 
-  if (/^coord/i.test(actorId)) return "coordinator";
-  if (/^orch/i.test(actorId)) return "orchestrator";
-  if (/^(impl|repair|worker)/i.test(actorId)) return "implementer";
-  if (/^(val|critic|audit)/i.test(actorId)) return "validator";
-  if (/^plan/i.test(actorId)) return "planner";
+  const inferred = inferRoleFromAgentId(actorId);
+  if (inferred) return inferred;
 
   return "unknown";
 }

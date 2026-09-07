@@ -1,17 +1,27 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { ERROR_CODES } from "../../../../../olt/scripts/src/core/errors/index.ts";
 import { EXPLAIN_ENTRIES } from "../../../../../olt/scripts/src/cli/commands/explain-data.ts";
 import { resolveExampleLine } from "../../../../../olt/scripts/src/cli/commands/explain-ops.ts";
 import { COMMAND_REGISTRY } from "../../../../../olt/scripts/src/cli/registry/index.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
+let vfs: VirtualMemoryFS;
+let session: VirtualFSSession;
+
 beforeEach(() => {
-  setupVirtualCliFS();
+  vfs = setupVirtualCliFS();
+  session = createVirtualFSSession(vfs);
 });
+
 afterEach(() => {
+  session.cleanup();
   cleanupVirtualCliFS();
 });
 
@@ -30,11 +40,8 @@ const taskClaimPath = join(
   "task-claim.ts",
 );
 
-// Reads the live line number for a known substring directly from source at test time, rather than
-// hardcoding it, so the assertion tracks the file instead of going stale whenever an unrelated
-// edit shifts lines above the throw - the same drift that made the old hardcoded citations lie.
 function lineContaining(filePath: string, substring: string): number {
-  const lines = readFileSync(filePath, "utf8").split("\n");
+  const lines = String(session.readFileSync(filePath, "utf8")).split("\n");
   const index = lines.findIndex((line) => line.includes(substring));
   if (index === -1) throw new Error(`no line in ${filePath} contains ${JSON.stringify(substring)}`);
   return index + 1;
@@ -59,12 +66,6 @@ describe("explain: knowledge base is grounded in real throw sites", () => {
     }
   });
 
-  // Every citation must survive against the live source: file:message is not stored data, it is
-  // resolved on demand by scanning the real file for a throw of this exact code carrying this
-  // exact message text. This is the guard against the one failure mode this command exists to
-  // prevent in itself: a plausible-sounding cause nobody verified against the real throw site.
-  // Because there is no stored line number, a citation cannot merely go stale when code moves
-  // above it - it can only be wrong outright, which resolveExampleLine throws on.
   test("every file:line:message citation is real, not invented", () => {
     const wrong: string[] = [];
     for (const entry of EXPLAIN_ENTRIES) {

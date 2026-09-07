@@ -6,18 +6,11 @@ import {
   sRgbToLinearY,
 } from "../../../../../../olt/scripts/src/cli/commands/defect-audit-types.ts";
 import {
-  getApcaBadgeInfo as getApcaBadgeInfo2,
-  calculateApcaLightnessContrast as calculateApcaLightnessContrast2,
-  renderApcaContrastBadge as renderApcaContrastBadge2,
-  renderAsciiDefectTable as renderAsciiDefectTable2,
-} from "../../../../../../olt/scripts/src/cli/commands/defect-audit/apca.ts";
-import {
   formatDefectAuditReport,
   padRight,
   renderAsciiDefectTable,
   truncateString,
 } from "../../../../../../olt/scripts/src/cli/commands/defect-audit-formatter.ts";
-import { formatDefectAuditReport as formatDefectAuditReport2 } from "../../../../../../olt/scripts/src/cli/commands/defect-audit/formatter.ts";
 import { cleanupRoots } from "../../../fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
@@ -41,14 +34,6 @@ describe("Defect Audit APCA & Formatting", () => {
       { r: 100, g: 100, b: 100 },
     );
     expect(c3).toBe(0);
-
-    const c4 = calculateApcaLightnessContrast2({ r: 255, g: 255, b: 255 }, { r: 0, g: 0, b: 0 });
-    expect(c4).toBeGreaterThan(60);
-    const c5 = calculateApcaLightnessContrast2(
-      { r: 100, g: 100, b: 100 },
-      { r: 100, g: 100, b: 100 },
-    );
-    expect(c5).toBe(0);
   });
 
   test("getApcaBadgeInfo and renderApcaContrastBadge cover all palettes and fallback", () => {
@@ -67,10 +52,6 @@ describe("Defect Audit APCA & Formatting", () => {
       expect(info.label).toBe(st.toLowerCase());
       expect(info.badge_text).toContain(st.toUpperCase());
       expect(renderApcaContrastBadge(st)).toBe(info.badge_text);
-
-      const info2 = getApcaBadgeInfo2(st);
-      expect(info2.label).toBe(st.toLowerCase());
-      expect(renderApcaContrastBadge2(st)).toBe(info2.badge_text);
     }
   });
 
@@ -84,9 +65,6 @@ describe("Defect Audit APCA & Formatting", () => {
   test("renderAsciiDefectTable handles empty and populated tables", () => {
     const empty1 = renderAsciiDefectTable([]);
     expect(empty1).toContain("No recorded defects discovered matching filter criteria");
-
-    const empty2 = renderAsciiDefectTable2([]);
-    expect(empty2).toContain("No recorded defects discovered matching filter criteria");
 
     const populated = renderAsciiDefectTable([
       {
@@ -167,7 +145,7 @@ describe("Defect Audit APCA & Formatting", () => {
     expect(rep1).toContain("Promoted to COMPLETED_DEFECTS");
     expect(rep1).toContain("Regression Tests Generated");
 
-    const rep2 = formatDefectAuditReport2({
+    const rep2 = formatDefectAuditReport({
       capsulesDir: "/test/capsules",
       runRoot: "/test/run",
       defects,

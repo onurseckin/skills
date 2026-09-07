@@ -1,8 +1,8 @@
 import { appendFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
-import { parseRawFindings } from "../../../../olt/scripts/src/workflow/completion/parse-raw-findings.ts";
-import { observeCapsuleIntegrity } from "../../../../olt/scripts/src/workflow/completion/integrity-evidence.ts";
+import { parseRawFindings } from "../../../../olt/scripts/src/workflow/completion/index.ts";
+import { observeCapsuleIntegrity } from "../../../../olt/scripts/src/workflow/completion/index.ts";
 import { initRun, loadRun } from "../../../../olt/scripts/src/engine/store/index.ts";
 import { integrityGateIssues } from "../../shared/integrity-review-fixture.ts";
 import { setupWorkflowVirtualFs } from "../../shared/index.ts";

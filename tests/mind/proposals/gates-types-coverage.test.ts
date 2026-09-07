@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   findCommandRecord,
@@ -20,6 +19,13 @@ import {
 describe("Mind Proposals Gates Types & Helpers Module", () => {
   let session: VirtualFSSession;
   let vfs: VirtualMemoryFS;
+  let dirCounter = 0;
+
+  const makeDir = (prefix: string): string => {
+    const dir = join("/virtual/tmp", `${prefix}-${++dirCounter}`);
+    vfs.mkdirSync(dir, { recursive: true });
+    return dir;
+  };
 
   beforeEach(() => {
     vfs = new VirtualMemoryFS();
@@ -49,60 +55,51 @@ describe("Mind Proposals Gates Types & Helpers Module", () => {
       expect(findCommandRecord("/virtual/path", "cmd-state-1", state)).toBe(record);
 
       const stateNonObject = { commands: "not-an-object" as unknown as Record<string, unknown> };
-      expect(findCommandRecord("/virtual/nonexistent/path", "cmd-missing", stateNonObject)).toBeNull();
+      expect(
+        findCommandRecord("/virtual/nonexistent/path", "cmd-missing", stateNonObject),
+      ).toBeNull();
     });
 
     it("reads direct record.json from runRoot/commands/<commandId>", () => {
-      const tmp = mkdtempSync(join("/virtual/tmp", "cmd-direct-"));
-      try {
-        const cmdDir = join(tmp, "commands", "cmd-dir-1");
-        mkdirSync(cmdDir, { recursive: true });
-        const recordData: CommandRecordCandidate = {
-          id: "cmd-dir-1",
-          exit_code: 1,
-          output: "direct output",
-        };
-        writeFileSync(join(cmdDir, "record.json"), JSON.stringify(recordData));
+      const tmp = makeDir("cmd-direct");
+      const cmdDir = join(tmp, "commands", "cmd-dir-1");
+      vfs.mkdirSync(cmdDir, { recursive: true });
+      const recordData: CommandRecordCandidate = {
+        id: "cmd-dir-1",
+        exit_code: 1,
+        output: "direct output",
+      };
+      vfs.writeFileSync(join(cmdDir, "record.json"), JSON.stringify(recordData));
 
-        const found = findCommandRecord(tmp, "cmd-dir-1");
-        expect(found).toEqual(recordData);
+      const found = findCommandRecord(tmp, "cmd-dir-1");
+      expect(found).toEqual(recordData);
 
-        // Corrupted JSON in direct path should be ignored and proceed
-        const corruptDir = join(tmp, "commands", "cmd-corrupt");
-        mkdirSync(corruptDir, { recursive: true });
-        writeFileSync(join(corruptDir, "record.json"), "invalid json content {{{");
-        expect(findCommandRecord(tmp, "cmd-corrupt")).toBeNull();
-      } finally {
-        rmSync(tmp, { recursive: true, force: true });
-      }
+      const corruptDir = join(tmp, "commands", "cmd-corrupt");
+      vfs.mkdirSync(corruptDir, { recursive: true });
+      vfs.writeFileSync(join(corruptDir, "record.json"), "invalid json content {{{");
+      expect(findCommandRecord(tmp, "cmd-corrupt")).toBeNull();
     });
 
     it("finds command record in sibling runs under capsules directory", () => {
-      const capsulesDir = mkdtempSync(join("/virtual/tmp", "capsules-sibling-"));
-      try {
-        const run1 = join(capsulesDir, "run-current");
-        mkdirSync(run1, { recursive: true });
-        const run2 = join(capsulesDir, "run-sibling");
-        const siblingCmd = join(run2, "commands", "cmd-sibling-1");
-        mkdirSync(siblingCmd, { recursive: true });
-        const siblingRecord: CommandRecordCandidate = { id: "cmd-sibling-1", exit_code: 0 };
-        writeFileSync(join(siblingCmd, "record.json"), JSON.stringify(siblingRecord));
+      const capsulesDir = makeDir("capsules-sibling");
+      const run1 = join(capsulesDir, "run-current");
+      vfs.mkdirSync(run1, { recursive: true });
+      const run2 = join(capsulesDir, "run-sibling");
+      const siblingCmd = join(run2, "commands", "cmd-sibling-1");
+      vfs.mkdirSync(siblingCmd, { recursive: true });
+      const siblingRecord: CommandRecordCandidate = { id: "cmd-sibling-1", exit_code: 0 };
+      vfs.writeFileSync(join(siblingCmd, "record.json"), JSON.stringify(siblingRecord));
 
-        // Non-directory file in capsules directory
-        writeFileSync(join(capsulesDir, "stray-file.txt"), "hello");
+      vfs.writeFileSync(join(capsulesDir, "stray-file.txt"), "hello");
 
-        // Corrupted record in another sibling
-        const run3 = join(capsulesDir, "run-corrupt-sibling");
-        const corruptCmd = join(run3, "commands", "cmd-corrupt-sibling");
-        mkdirSync(corruptCmd, { recursive: true });
-        writeFileSync(join(corruptCmd, "record.json"), "corrupted { json");
+      const run3 = join(capsulesDir, "run-corrupt-sibling");
+      const corruptCmd = join(run3, "commands", "cmd-corrupt-sibling");
+      vfs.mkdirSync(corruptCmd, { recursive: true });
+      vfs.writeFileSync(join(corruptCmd, "record.json"), "corrupted { json");
 
-        expect(findCommandRecord(run1, "cmd-sibling-1")).toEqual(siblingRecord);
-        expect(findCommandRecord(run1, "cmd-corrupt-sibling")).toBeNull();
-        expect(findCommandRecord(run1, "cmd-completely-missing")).toBeNull();
-      } finally {
-        rmSync(capsulesDir, { recursive: true, force: true });
-      }
+      expect(findCommandRecord(run1, "cmd-sibling-1")).toEqual(siblingRecord);
+      expect(findCommandRecord(run1, "cmd-corrupt-sibling")).toBeNull();
+      expect(findCommandRecord(run1, "cmd-completely-missing")).toBeNull();
     });
 
     it("returns null when runRoot directory structure does not exist", () => {
@@ -110,25 +107,21 @@ describe("Mind Proposals Gates Types & Helpers Module", () => {
     });
 
     it("handles non-object JSON and empty output logs cleanly without runtime errors", () => {
-      const tmp = mkdtempSync(join("/virtual/tmp", "cmd-non-obj-"));
-      try {
-        const cmdDir = join(tmp, "commands", "cmd-array-json");
-        mkdirSync(cmdDir, { recursive: true });
-        writeFileSync(join(cmdDir, "record.json"), "[1, 2, 3]");
+      const tmp = makeDir("cmd-non-obj");
+      const cmdDir = join(tmp, "commands", "cmd-array-json");
+      vfs.mkdirSync(cmdDir, { recursive: true });
+      vfs.writeFileSync(join(cmdDir, "record.json"), "[1, 2, 3]");
 
-        const found = findCommandRecord(tmp, "cmd-array-json");
-        expect(Array.isArray(found)).toBe(true);
+      const found = findCommandRecord(tmp, "cmd-array-json");
+      expect(Array.isArray(found)).toBe(true);
 
-        const emptyLogPath = join(tmp, "empty.log");
-        writeFileSync(emptyLogPath, "");
-        const recordWithEmptyLog: CommandRecordCandidate = {
-          id: "cmd-empty-log",
-          logs: { stdout: { path: emptyLogPath } },
-        };
-        expect(readCandidateCommandOutput(recordWithEmptyLog, tmp)).toBe("");
-      } finally {
-        rmSync(tmp, { recursive: true, force: true });
-      }
+      const emptyLogPath = join(tmp, "empty.log");
+      vfs.writeFileSync(emptyLogPath, "");
+      const recordWithEmptyLog: CommandRecordCandidate = {
+        id: "cmd-empty-log",
+        logs: { stdout: { path: emptyLogPath } },
+      };
+      expect(readCandidateCommandOutput(recordWithEmptyLog, tmp)).toBe("");
     });
   });
 
@@ -139,63 +132,51 @@ describe("Mind Proposals Gates Types & Helpers Module", () => {
     });
 
     it("reads stdout and stderr from record.logs using relative and absolute paths", () => {
-      const tmp = mkdtempSync(join("/virtual/tmp", "cmd-output-logs-"));
-      try {
-        const stdoutRelPath = "stdout.log";
-        const stderrAbsPath = join(tmp, "stderr.log");
-        writeFileSync(join(tmp, stdoutRelPath), "Standard output line");
-        writeFileSync(stderrAbsPath, "Standard error line");
+      const tmp = makeDir("cmd-output-logs");
+      const stdoutRelPath = "stdout.log";
+      const stderrAbsPath = join(tmp, "stderr.log");
+      vfs.writeFileSync(join(tmp, stdoutRelPath), "Standard output line");
+      vfs.writeFileSync(stderrAbsPath, "Standard error line");
 
-        const record: CommandRecordCandidate = {
-          id: "cmd-logs",
-          logs: {
-            stdout: { path: stdoutRelPath, bytes: 20 },
-            stderr: { path: stderrAbsPath, bytes: 19 },
-          },
-        };
-        const output = readCandidateCommandOutput(record, tmp);
-        expect(output).toBe("Standard output line\nStandard error line");
-      } finally {
-        rmSync(tmp, { recursive: true, force: true });
-      }
+      const record: CommandRecordCandidate = {
+        id: "cmd-logs",
+        logs: {
+          stdout: { path: stdoutRelPath, bytes: 20 },
+          stderr: { path: stderrAbsPath, bytes: 19 },
+        },
+      };
+      const output = readCandidateCommandOutput(record, tmp);
+      expect(output).toBe("Standard output line\nStandard error line");
     });
 
     it("handles readFileSync errors when stdout or stderr path points to a directory", () => {
-      const tmp = mkdtempSync(join("/virtual/tmp", "cmd-output-dir-err-"));
-      try {
-        const subDir = join(tmp, "dir-not-file");
-        mkdirSync(subDir, { recursive: true });
-        const record: CommandRecordCandidate = {
-          id: "cmd-err",
-          logs: {
-            stdout: { path: subDir },
-            stderr: { path: subDir },
-          },
-        };
-        expect(readCandidateCommandOutput(record, tmp)).toBe("");
-      } finally {
-        rmSync(tmp, { recursive: true, force: true });
-      }
+      const tmp = makeDir("cmd-output-dir-err");
+      const subDir = join(tmp, "dir-not-file");
+      vfs.mkdirSync(subDir, { recursive: true });
+      const record: CommandRecordCandidate = {
+        id: "cmd-err",
+        logs: {
+          stdout: { path: subDir },
+          stderr: { path: subDir },
+        },
+      };
+      expect(readCandidateCommandOutput(record, tmp)).toBe("");
     });
 
     it("falls back to last attempt logs when record.logs is missing or empty", () => {
-      const tmp = mkdtempSync(join("/virtual/tmp", "cmd-output-attempts-"));
-      try {
-        const attemptStderr = join(tmp, "attempt2.err");
-        writeFileSync(attemptStderr, "Error in attempt 2");
+      const tmp = makeDir("cmd-output-attempts");
+      const attemptStderr = join(tmp, "attempt2.err");
+      vfs.writeFileSync(attemptStderr, "Error in attempt 2");
 
-        const record: CommandRecordCandidate = {
-          id: "cmd-attempts",
-          attempts: [
-            { exit_code: 1, logs: { stdout: { path: "missing.log" } } },
-            { exit_code: 2, logs: { stderr: { path: attemptStderr } } },
-          ],
-        };
-        const output = readCandidateCommandOutput(record, tmp);
-        expect(output).toBe("Error in attempt 2");
-      } finally {
-        rmSync(tmp, { recursive: true, force: true });
-      }
+      const record: CommandRecordCandidate = {
+        id: "cmd-attempts",
+        attempts: [
+          { exit_code: 1, logs: { stdout: { path: "missing.log" } } },
+          { exit_code: 2, logs: { stderr: { path: attemptStderr } } },
+        ],
+      };
+      const output = readCandidateCommandOutput(record, tmp);
+      expect(output).toBe("Error in attempt 2");
     });
 
     it("returns empty string when logs paths are missing, unreadable, or attempts array is empty", () => {

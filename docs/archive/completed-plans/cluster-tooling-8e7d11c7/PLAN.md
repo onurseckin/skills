@@ -51,7 +51,7 @@ Autonomous multi-agent execution at scale requires deterministic self-healing di
 │                              CLI INTERFACE & COMMAND ROUTING                                │
 │ ─────────────────────────────────────────────────────────────────────────────────────────── │
 │ • Commands: `doctor`, `doctor:repair`, `msg:send`, `msg:recv`, `msg:poll`, `msg:list`       │
-│ • Zero Code Comments & Strict Density Budget (≤ 300 lines/file, ≤ 10 files/dir)             │
+│ • Zero Code Comments & Strict Density Budget (≤ 400 lines/file, ≤ 10 files/dir)             │
 │ • 100% Deterministic Execution & Strict Invariant Compliance                                │
 └─────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -71,7 +71,7 @@ Autonomous multi-agent execution at scale requires deterministic self-healing di
 
 ## Level 4: Atomic Implementation Tasks Matrix
 
-| Task ID         | Target File Path                                              | Exact TypeScript Symbols / Signatures                                      | Deliverable & Contract ($\le 300$ lines, 0 comments)                                                                        |
+| Task ID         | Target File Path                                              | Exact TypeScript Symbols / Signatures                                      | Deliverable & Contract ($\le 400$ lines, 0 comments)                                                                        |
 | :-------------- | :------------------------------------------------------------ | :------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------- |
 | `task-tool-1.1` | `olt/scripts/src/reporting/doctor/auto-heal.ts`               | `executeAutoHeal(opts: AutoHealOptions): Promise<AutoHealSummary>`         | Implement default auto-healing for lock cleanup, projection regeneration, torn event tail quarantine, and index rebuilding. |
 | `task-tool-1.2` | `olt/scripts/src/reporting/doctor/index.ts`                   | `runDoctorCommand(opts: DoctorOptions): Promise<DoctorReport>`             | Integrate 8 diagnostic check engines with severity-tiered reporting and automatic `.olt/defects.jsonl` deduplicating sync.  |
@@ -104,7 +104,7 @@ bun test tests/unit/reporting/os-notifications.test.ts
 ## Level 6: Strict Invariant Enforcement
 
 1. **Zero Code Comments**: Absolute zero code comments in all `.ts` files.
-2. **Density Budget**: $\le 300$ physical lines per file. Partition `reporting/doctor/` sub-engines into modular directories with $\le 10$ files each.
+2. **Density Budget**: $\le 400$ physical lines per file. Partition `reporting/doctor/` sub-engines into modular directories with $\le 10$ files each.
 3. **Ban Defect-Prefix Source Files**: 0 `defect-*.ts` / `fb-*.ts` files. Canonical files modified in-place.
 4. **Explicit Named Exports**: All facades (`communication/index.ts`, `communication/mailbox/index.ts`, `reporting/doctor/index.ts`) use explicit named exports.
 5. **Zero Main-Thread Chatter**: Background ticking, routine mailbox heartbeats, and pulse checks must never leak to the main chat channel.
@@ -154,5 +154,5 @@ bun test tests/unit/reporting/os-notifications.test.ts
 - `tests/unit/capture/docker-health.test.ts`: PASS (20/20 passed)
 - **Zero code comments:** Verified 0 `//` or `/*` in `reporting/doctor/ast-purity-engine.ts`, `communication/mailbox/envelope.ts`, and `reporting/notifications/`.
 - **Zero `any` types:** Verified 0 `any` types across all modules.
-- **Density Budget:** All production files $\le 300$ physical lines, max 10 files per dir, named facades.
+- **Density Budget:** All production files $\le 400$ physical lines, max 10 files per dir, named facades.
 - **5-Round Adversarial Validation:** Full clearance granted by `validator_04`.

@@ -1,6 +1,6 @@
 import { HarnessError } from "../../core/errors/index.ts";
-import { authoritativeRepositoryCommand } from "../completion/repository-evidence.ts";
-import { jsonDigest } from "../completion/completion-review-digest.ts";
+import { authoritativeRepositoryCommand } from "../completion/index.ts";
+import { jsonDigest } from "../completion/index.ts";
 import { tokenMatches } from "../lease/token.ts";
 import { requireText, utc } from "../task-state.ts";
 import {

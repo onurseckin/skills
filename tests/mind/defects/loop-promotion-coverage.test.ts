@@ -1,10 +1,4 @@
-/**
- * @file loop-promotion-coverage.test.ts
- * Comprehensive unit tests for olt/scripts/src/mind/defects/loop/promotion.ts
- */
-
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -27,12 +21,17 @@ describe("Defect Promotion Coverage Suite", () => {
   let session: VirtualFSSession;
 
   const writeLedger = (file: string, entries: unknown[]) =>
-    fs.writeFileSync(file, entries.map((e) => JSON.stringify(e)).join("\n") + "\n");
+    vfs.writeFileSync(file, entries.map((e) => JSON.stringify(e)).join("\n") + "\n");
+
+  const createHardlink = (srcPath: string, dstPath: string): void => {
+    const fn = session.spies[10] as unknown as (s: string, d: string) => void;
+    fn(srcPath, dstPath);
+  };
 
   beforeEach(() => {
     vfs = new VirtualMemoryFS();
     session = createVirtualFSSession(vfs);
-    fs.mkdirSync(tempDir, { recursive: true });
+    vfs.mkdirSync(tempDir, { recursive: true });
   });
 
   afterEach(() => {
@@ -50,9 +49,9 @@ describe("Defect Promotion Coverage Suite", () => {
 
     it("throws when target path is an existing directory", () => {
       const src = join(tempDir, "active.jsonl");
-      fs.writeFileSync(src, "");
+      vfs.writeFileSync(src, "");
       const targetDir = join(tempDir, "target_dir");
-      fs.mkdirSync(targetDir);
+      vfs.mkdirSync(targetDir);
       expect(() => requireDistinctLedgerPaths(src, targetDir)).toThrow(
         /completed target path is a directory/,
       );
@@ -60,7 +59,7 @@ describe("Defect Promotion Coverage Suite", () => {
 
     it("throws when source and target point to same file via symlink", () => {
       const realFile = join(tempDir, "real.jsonl");
-      fs.writeFileSync(realFile, "{}");
+      vfs.writeFileSync(realFile, "{}");
       const symlinkFile = join(tempDir, "symlink.jsonl");
       session.symlinkSync(realFile, symlinkFile);
       expect(() => requireDistinctLedgerPaths(realFile, symlinkFile)).toThrow(
@@ -70,17 +69,17 @@ describe("Defect Promotion Coverage Suite", () => {
 
     it("throws when source and target point to same file via hardlink", () => {
       const src = join(tempDir, "orig.jsonl");
-      fs.writeFileSync(src, "{}");
+      vfs.writeFileSync(src, "{}");
       const hardlinkFile = join(tempDir, "hardlink.jsonl");
-      fs.linkSync(src, hardlinkFile);
+      createHardlink(src, hardlinkFile);
       expect(() => requireDistinctLedgerPaths(src, hardlinkFile)).toThrow(/same file via hardlink/);
     });
 
     it("succeeds when source and target are distinct paths", () => {
       const src = join(tempDir, "active.jsonl");
       const tgt = join(tempDir, "completed.jsonl");
-      fs.writeFileSync(src, "{}");
-      fs.writeFileSync(tgt, "{}");
+      vfs.writeFileSync(src, "{}");
+      vfs.writeFileSync(tgt, "{}");
       expect(() => requireDistinctLedgerPaths(src, tgt)).not.toThrow();
     });
   });
@@ -131,7 +130,7 @@ describe("Defect Promotion Coverage Suite", () => {
 
     it("resolves paths via capsuleRoot when provided", () => {
       const capsule = join(tempDir, "capsule");
-      fs.mkdirSync(join(capsule, "mind"), { recursive: true });
+      vfs.mkdirSync(join(capsule, "mind"), { recursive: true });
       const res = promoteResolvedDefects({ capsuleRoot: capsule, dryRun: true });
       expect(res.source_path).toContain("capsule");
       expect(res.target_path).toContain("capsule");
@@ -208,10 +207,10 @@ describe("Defect Promotion Coverage Suite", () => {
 
       expect(res.promoted_count).toBe(1);
       expect(res.unpromoted_count).toBe(1);
-      expect(fs.existsSync(tgt)).toBe(true);
-      expect(fs.readFileSync(tgt, "utf-8")).toContain("DEF-1");
-      expect(fs.readFileSync(src, "utf-8")).not.toContain("DEF-1");
-      expect(fs.readFileSync(src, "utf-8")).toContain("DEF-2");
+      expect(vfs.existsSync(tgt)).toBe(true);
+      expect(vfs.readFileSync(tgt, "utf-8")).toContain("DEF-1");
+      expect(vfs.readFileSync(src, "utf-8")).not.toContain("DEF-1");
+      expect(vfs.readFileSync(src, "utf-8")).toContain("DEF-2");
     });
   });
 
@@ -219,7 +218,7 @@ describe("Defect Promotion Coverage Suite", () => {
     it("throws HarnessError when target defect is absent in active log", () => {
       const src = join(tempDir, "active.jsonl");
       const tgt = join(tempDir, "completed.jsonl");
-      fs.writeFileSync(src, "");
+      vfs.writeFileSync(src, "");
       expect(() =>
         autoPromoteDefect({
           id: "NON-EXISTENT",
@@ -246,15 +245,15 @@ describe("Defect Promotion Coverage Suite", () => {
       expect(res.promoted).toBe(true);
       expect(res.defect.id).toBe("DEF-A");
       expect(res.defect.status).toBe("resolved");
-      expect(fs.readFileSync(tgt, "utf-8")).toContain("DEF-A");
-      expect(fs.readFileSync(src, "utf-8")).not.toContain("DEF-A");
-      expect(fs.readFileSync(src, "utf-8")).toContain("DEF-B");
+      expect(vfs.readFileSync(tgt, "utf-8")).toContain("DEF-A");
+      expect(vfs.readFileSync(src, "utf-8")).not.toContain("DEF-A");
+      expect(vfs.readFileSync(src, "utf-8")).toContain("DEF-B");
     });
 
     it("respects dryRun and capsuleRoot options in autoPromoteDefect", () => {
       const capsule = join(tempDir, "capsule");
       const oltDir = join(capsule, ".olt");
-      fs.mkdirSync(oltDir, { recursive: true });
+      vfs.mkdirSync(oltDir, { recursive: true });
       writeLedger(join(oltDir, "defects.jsonl"), [
         createMockDefectEntry({ id: "DEF-CAP", status: "open" }),
       ]);

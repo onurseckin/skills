@@ -1,5 +1,5 @@
 import { HarnessError } from "../../core/errors/index.ts";
-import { jsonDigest } from "../completion/completion-review-digest.ts";
+import { jsonDigest } from "../completion/index.ts";
 import type { WorkflowState } from "../types.ts";
 
 export function currentPlanDigest(state: WorkflowState): string {

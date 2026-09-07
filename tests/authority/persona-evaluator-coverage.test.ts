@@ -36,9 +36,9 @@ describe("Supervisory Persona Reflexive Self-Audit Evaluator", () => {
     expect(evalResult.markdownReport).toContain("Tier 0 (Tier 0: Mind Lead");
   });
 
-  it("evaluates Orchestrator and Coordinator with normalized aliases and Date timestamp", () => {
+  it("evaluates Orchestrator and Coordinator with canonical roles and Date timestamp", () => {
     const orchResult = evaluateReflexiveSelfAudit({
-      role: "orch",
+      role: "orchestrator",
       now: new Date("2026-09-01T12:30:00.000Z"),
     });
     expect(orchResult.role).toBe("orchestrator");
@@ -46,12 +46,19 @@ describe("Supervisory Persona Reflexive Self-Audit Evaluator", () => {
     expect(orchResult.passed).toBe(true);
 
     const coordResult = evaluateReflexiveSelfAudit({
-      role: "coord",
+      role: "coordinator",
       now: 1725192000000,
     });
     expect(coordResult.role).toBe("coordinator");
     expect(coordResult.tier).toBe(2);
     expect(coordResult.passed).toBe(true);
+
+    expect(() =>
+      evaluateReflexiveSelfAudit({
+        role: "orch",
+        now: 1725192000000,
+      }),
+    ).toThrow();
   });
 
   it("detects complacency / rubber-stamping drift (Drift 3.1)", () => {

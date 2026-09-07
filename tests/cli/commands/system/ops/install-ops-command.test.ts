@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   cleanupRoots,
   cleanupVirtualCliFS,
@@ -9,28 +13,36 @@ import {
 } from "../../fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
+let vfs: VirtualMemoryFS;
+let session: VirtualFSSession;
+
 beforeEach(() => {
-  setupVirtualCliFS();
+  vfs = setupVirtualCliFS();
+  session = createVirtualFSSession(vfs);
 });
+
 afterEach(async () => {
   await cleanupRoots(roots);
+  session.cleanup();
   cleanupVirtualCliFS();
 });
 
-async function fixture(): Promise<{ source: string; home: string }> {
+function fixture(): { source: string; home: string } {
   const root = `/virtual/cli/harness-install-cmd-${Date.now()}`;
   roots.push(root);
   const source = join(root, "source");
   const home = join(root, "home");
-  await mkdir(join(source, "scripts", "src", "config"), { recursive: true });
-  await mkdir(home, { recursive: true });
-  await writeFile(join(source, "SKILL.md"), "---\nname: olt\ndescription: test\n---\n");
-  await writeFile(join(source, "scripts", "harness.ts"), "console.log('ok')\n", { mode: 0o755 });
-  await writeFile(
+  session.mkdirSync(join(source, "scripts", "src", "config"), { recursive: true });
+  session.mkdirSync(home, { recursive: true });
+  session.writeFileSync(join(source, "SKILL.md"), "---\nname: olt\ndescription: test\n---\n");
+  session.writeFileSync(join(source, "scripts", "harness.ts"), "console.log('ok')\n", {
+    mode: 0o755,
+  });
+  session.writeFileSync(
     join(source, "scripts", "package.json"),
     '{"name":"@local/olt-runtime","private":true}\n',
   );
-  await writeFile(
+  session.writeFileSync(
     join(source, "scripts", "src", "config", "constants.ts"),
     'export const RUNTIME_VERSION = "0.1.0";\n',
   );
@@ -39,7 +51,7 @@ async function fixture(): Promise<{ source: string; home: string }> {
 
 describe("install", () => {
   test("installs the skill and links the requested clients", async () => {
-    const { source, home } = await fixture();
+    const { source, home } = fixture();
     const result = await execute([
       "install",
       "--source",
@@ -58,7 +70,7 @@ describe("install", () => {
   });
 
   test("a client with no on-disk link target still installs cleanly", async () => {
-    const { source, home } = await fixture();
+    const { source, home } = fixture();
     const result = await execute([
       "install",
       "--source",
@@ -73,7 +85,7 @@ describe("install", () => {
   });
 
   test("trims and drops blank entries from a comma-separated client list", async () => {
-    const { source, home } = await fixture();
+    const { source, home } = fixture();
     const result = await execute([
       "install",
       "--source",
@@ -89,7 +101,7 @@ describe("install", () => {
 
 describe("installation-status", () => {
   test("reports an installed, undrifted release with healthy client links", async () => {
-    const { source, home } = await fixture();
+    const { source, home } = fixture();
     await execute(["install", "--source", source, "--home", home, "--clients", "claude"]);
 
     const status = await execute(["installation-status", "--source", source, "--home", home]);
@@ -102,7 +114,7 @@ describe("installation-status", () => {
   });
 
   test("reports not installed with an explicit issue rather than a healthy-looking default", async () => {
-    const { source, home } = await fixture();
+    const { source, home } = fixture();
     const status = await execute(["installation-status", "--source", source, "--home", home]);
     expect(status.installed).toBe(false);
     expect(String(status.markdown)).toContain("- **Installed**: no");
@@ -110,7 +122,7 @@ describe("installation-status", () => {
   });
 
   test("honours an explicit --clients override distinct from the installed manifest", async () => {
-    const { source, home } = await fixture();
+    const { source, home } = fixture();
     await execute(["install", "--source", source, "--home", home, "--clients", "claude"]);
 
     const status = await execute([

@@ -1,3 +1,4 @@
+import { inferRoleFromAgentId } from "../../../authority/thread/index.ts";
 import type { DoctorDiagnosticFinding, DoctorSeverity } from "../index.ts";
 import {
   type SerializedDebateMemory,
@@ -139,14 +140,8 @@ export function inferAgentRole(
   if (!agentId) return "";
   if (roleMap?.has(agentId)) return roleMap.get(agentId)!;
 
-  const lower = agentId.toLowerCase();
-  if (lower.startsWith("mind-auditor") || lower.includes("mind-auditor")) return "mind-auditor";
-  if (lower.startsWith("skill-auditor") || lower.includes("skill-auditor")) return "skill-auditor";
-  if (lower.startsWith("mind")) return "mind";
-  if (lower.startsWith("orch") || lower.includes("orchestrator")) return "orchestrator";
-  if (lower.startsWith("coord") || lower.includes("coordinator")) return "coordinator";
-  if (lower.startsWith("impl") || lower.includes("implementer")) return "implementer";
-  if (lower.startsWith("val") || lower.includes("validator")) return "validator";
+  const inferred = inferRoleFromAgentId(agentId);
+  if (inferred) return inferred;
   return "";
 }
 

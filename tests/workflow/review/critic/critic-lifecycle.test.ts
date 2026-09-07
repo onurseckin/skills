@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { beginCompletenessCritic } from "../../../../olt/scripts/src/workflow/completion/begin-completeness-critic.ts";
-import { completionIssues } from "../../../../olt/scripts/src/workflow/completion/completion-state.ts";
-import { recordCompletionRemediation } from "../../../../olt/scripts/src/workflow/completion/record-completion-remediation.ts";
-import { recordCompletionReview } from "../../../../olt/scripts/src/workflow/completion/record-completion-review.ts";
+import { beginCompletenessCritic } from "../../../../olt/scripts/src/workflow/completion/index.ts";
+import { completionIssues } from "../../../../olt/scripts/src/workflow/completion/index.ts";
+import { recordCompletionRemediation } from "../../../../olt/scripts/src/workflow/completion/index.ts";
+import { recordCompletionReview } from "../../../../olt/scripts/src/workflow/completion/index.ts";
 import { tokenDigest } from "../../../../olt/scripts/src/workflow/lease/token.ts";
 import {
   at,

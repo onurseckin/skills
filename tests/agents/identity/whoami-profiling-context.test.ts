@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach, beforeAll } from "bun:test";
-import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import {
   identifyExecutionContext,
@@ -9,7 +8,12 @@ import {
 import { whoamiCommand } from "../../../olt/scripts/src/cli/commands/whoami.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { registerAgentGrant } from "../../../olt/scripts/src/workflow/agents/grants.ts";
-import { cleanupVirtualAgentsFS, scratchRoot, setupVirtualAgentsFS } from "../fixture.ts";
+import {
+  cleanupVirtualAgentsFS,
+  getVirtualAgentsFS,
+  scratchRoot,
+  setupVirtualAgentsFS,
+} from "../fixture.ts";
 
 beforeAll(() => {
   setupVirtualAgentsFS();
@@ -29,8 +33,23 @@ afterEach(() => {
 function createWhoamiRun(label: string): string {
   const root = scratchRoot("whoami-test", label);
   const repo = join(root, "repo");
-  mkdirSync(repo, { recursive: true });
+  getVirtualAgentsFS().mkdirSync(repo, { recursive: true });
   return initRun(repo, `run-${label}`, new TextEncoder().encode("whoami test"), "file", true);
+}
+
+function registerTestGrant(runRoot: string, agentId: string, role: string): void {
+  registerAgentGrant({
+    runRoot,
+    agentId,
+    role,
+    parentAgentId: null,
+    parentTaskId: null,
+    host: "test-host",
+    authority: { kind: "conditional_genesis" },
+    maxAgents: 10,
+    telemetry: {},
+    now: new Date(),
+  });
 }
 
 describe("Agent Whoami Profiling - Context & Actions", () => {
@@ -82,18 +101,7 @@ describe("Agent Whoami Profiling - Context & Actions", () => {
 
     it("surfaces run active grants and active leases when run capsule is provided", () => {
       const run = createWhoamiRun("grants-and-leases");
-      registerAgentGrant({
-        runRoot: run,
-        agentId: "planner",
-        role: "planner",
-        parentAgentId: null,
-        parentTaskId: null,
-        host: "test-host",
-        authority: { kind: "conditional_genesis" },
-        maxAgents: 10,
-        telemetry: {},
-        now: new Date(),
-      });
+      registerTestGrant(run, "planner", "planner");
       transact(run, "test", "seed-lease", {}, (draft) => {
         draft.tasks = {
           "task-core": {
@@ -150,18 +158,7 @@ describe("Agent Whoami Profiling - Context & Actions", () => {
   describe("whoami Next Actions are role and state aware", () => {
     it("tells an implementer holding a lease to heartbeat and submit that exact task", () => {
       const run = createWhoamiRun("lease-aware");
-      registerAgentGrant({
-        runRoot: run,
-        agentId: "worker-1",
-        role: "implementer",
-        parentAgentId: null,
-        parentTaskId: null,
-        host: "test-host",
-        authority: { kind: "conditional_genesis" },
-        maxAgents: 10,
-        telemetry: {},
-        now: new Date(),
-      });
+      registerTestGrant(run, "worker-1", "implementer");
       transact(run, "test", "seed-lease", {}, (draft) => {
         draft.tasks = {
           "task-core": {
@@ -202,18 +199,7 @@ describe("Agent Whoami Profiling - Context & Actions", () => {
       const run = createWhoamiRun("validator-aware");
       const validatorId = "val-inspector-1";
       const taskId = "task-validate-01";
-      registerAgentGrant({
-        runRoot: run,
-        agentId: validatorId,
-        role: "validator",
-        parentAgentId: null,
-        parentTaskId: null,
-        host: "test-host",
-        authority: { kind: "conditional_genesis" },
-        maxAgents: 10,
-        telemetry: {},
-        now: new Date(),
-      });
+      registerTestGrant(run, validatorId, "validator");
       transact(run, "test", "seed-validation", {}, (draft) => {
         draft.tasks = {
           [taskId]: {
@@ -258,18 +244,7 @@ describe("Agent Whoami Profiling - Context & Actions", () => {
 
     it("filters next-action suggestions to only recommend tasks leased to the active agent", () => {
       const run = createWhoamiRun("multi-agent-leases");
-      registerAgentGrant({
-        runRoot: run,
-        agentId: "worker-1",
-        role: "implementer",
-        parentAgentId: null,
-        parentTaskId: null,
-        host: "test-host",
-        authority: { kind: "conditional_genesis" },
-        maxAgents: 10,
-        telemetry: {},
-        now: new Date(),
-      });
+      registerTestGrant(run, "worker-1", "implementer");
       transact(run, "test", "seed-multi-leases", {}, (draft) => {
         draft.tasks = {
           "task-worker-1": {
@@ -295,7 +270,9 @@ describe("Agent Whoami Profiling - Context & Actions", () => {
 
       const result = whoamiCommand({ run, agent: "worker-1" });
       const md = String(result.markdown);
-      expect(md).toContain("task:heartbeat --run " + run + " --task task-worker-1 --agent worker-1");
+      expect(md).toContain(
+        "task:heartbeat --run " + run + " --task task-worker-1 --agent worker-1",
+      );
       expect(md).toContain("task:submit --run " + run + " --task task-worker-1 --agent worker-1");
       expect(md).not.toContain("task-worker-2");
     });

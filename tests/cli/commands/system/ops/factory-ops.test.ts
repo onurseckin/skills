@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   factoryPreplanCommand,
@@ -7,11 +6,14 @@ import {
   formatFactoryPreplanBrief,
   formatFactoryStatusBrief,
 } from "../../../../../olt/scripts/src/cli/commands/factory-ops.ts";
+import type { VirtualMemoryFS } from "../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
 describe("CLI Operations for Pre-Planning & Assembly Stations (Task 4.1)", () => {
+  let vfs: VirtualMemoryFS;
+
   beforeEach(() => {
-    setupVirtualCliFS();
+    vfs = setupVirtualCliFS();
   });
 
   afterEach(() => {
@@ -49,6 +51,8 @@ describe("CLI Operations for Pre-Planning & Assembly Stations (Task 4.1)", () =>
       open_defects: 1,
       is_stagnant: false,
       is_concurrency_saturated: true,
+      active_workers: 3,
+      active_supervisors: 2,
       preplanning_needed: true,
       findings: ["All systems operational"],
     });
@@ -57,16 +61,18 @@ describe("CLI Operations for Pre-Planning & Assembly Stations (Task 4.1)", () =>
     expect(statusBrief).toContain("Pending Backlog Items**: 2");
     expect(statusBrief).toContain("Pre-Planning Needed**: YES");
     expect(statusBrief).toContain("All systems operational");
+    expect(statusBrief).toContain("Tier 3 Workers: 3");
+    expect(statusBrief).toContain("Ambient Supervisors: 2");
   });
 
   it("executes factoryPreplanCommand and generates plans on workspace", () => {
     const tempDir = `/virtual/cli/factory-cli-test-${Date.now()}`;
     const oltDir = join(tempDir, ".olt");
-    mkdirSync(oltDir, { recursive: true });
+    vfs.mkdirSync(oltDir, { recursive: true });
     const backlogFile = join(oltDir, "backlog.jsonl");
     const defectsFile = join(oltDir, "defects.jsonl");
 
-    writeFileSync(
+    vfs.writeFileSync(
       backlogFile,
       JSON.stringify({
         id: "fb-cli-1",
@@ -75,7 +81,7 @@ describe("CLI Operations for Pre-Planning & Assembly Stations (Task 4.1)", () =>
         status: "PENDING",
       }) + "\n",
     );
-    writeFileSync(defectsFile, "");
+    vfs.writeFileSync(defectsFile, "");
 
     const res = factoryPreplanCommand({ root: tempDir });
     expect(res.result.clusters.length).toBe(1);
@@ -86,11 +92,11 @@ describe("CLI Operations for Pre-Planning & Assembly Stations (Task 4.1)", () =>
   it("executes factoryStatusCommand and reports accurate queue and audit metrics", () => {
     const tempDir = `/virtual/cli/factory-status-test-${Date.now()}`;
     const oltDir = join(tempDir, ".olt");
-    mkdirSync(oltDir, { recursive: true });
+    vfs.mkdirSync(oltDir, { recursive: true });
     const backlogFile = join(oltDir, "backlog.jsonl");
     const defectsFile = join(oltDir, "defects.jsonl");
 
-    writeFileSync(
+    vfs.writeFileSync(
       backlogFile,
       JSON.stringify({
         id: "fb-open-1",
@@ -99,7 +105,7 @@ describe("CLI Operations for Pre-Planning & Assembly Stations (Task 4.1)", () =>
         status: "PENDING",
       }) + "\n",
     );
-    writeFileSync(defectsFile, "");
+    vfs.writeFileSync(defectsFile, "");
 
     const res = factoryStatusCommand({ root: tempDir });
     expect(res.status.pending_backlog).toBe(1);

@@ -1,4 +1,5 @@
 export {
+  MAX_REPAIR_ROUNDS,
   QUOTA_FREEZE_THRESHOLD_FLOOR_PCT,
   type EffectiveQuotaThreshold,
   type HarnessConfig,

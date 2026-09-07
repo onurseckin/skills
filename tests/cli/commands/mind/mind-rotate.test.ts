@@ -35,6 +35,8 @@ describe("mind:rotate CLI Command Coverage Suite", () => {
     vfs = setupVirtualCliFS();
     vfs.mkdirSync(join(repoRoot, ".git"), { recursive: true });
     vfs.mkdirSync(capsulesParent, { recursive: true });
+    vfs.mkdirSync(join(repoRoot, "olt", "scripts"), { recursive: true });
+    vfs.writeFileSync(join(repoRoot, "olt", "scripts", "harness.ts"), "");
     vfs.mkdirSync(join(repoRoot, "olt", "agents"), { recursive: true });
     vfs.writeFileSync(join(repoRoot, "olt", "agents", "mind.yaml"), validCharterYaml);
   });

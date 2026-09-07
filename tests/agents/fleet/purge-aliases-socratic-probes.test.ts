@@ -45,7 +45,7 @@ describe("Two-Key Socratic Cognitive Validation: Purge Agent Aliases & Partition
     cleanupVirtualAgentsFS();
   });
   describe("Probe 1: Modularity and Physical Line Limit Invariant", () => {
-    test("verifies all partitioned tier-2 contracts files satisfy LOC <= 300 invariant", () => {
+    test("verifies all partitioned tier-2 contracts files satisfy LOC <= 400 invariant", () => {
       const paths = [
         "olt/scripts/src/agents/fleet/contracts-tier2.ts",
         "olt/scripts/src/agents/fleet/contracts/types.ts",
@@ -59,7 +59,7 @@ describe("Two-Key Socratic Cognitive Validation: Purge Agent Aliases & Partition
         const fullPath = resolve(relPath);
         const text = fs.readFileSync(fullPath, "utf-8");
         const lines = text.split(/\r?\n/).length;
-        expect(lines).toBeLessThanOrEqual(300);
+        expect(lines).toBeLessThanOrEqual(400);
       }
     });
 

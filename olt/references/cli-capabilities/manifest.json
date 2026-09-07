@@ -2,7 +2,7 @@
   "schema": "olt/cli-capabilities-split@1",
   "source": "olt/scripts/src/cli/registry",
   "index_file": "index.jsonl",
-  "command_count": 168,
+  "command_count": 169,
   "domains": [
     {
       "domain": "plan",
@@ -120,7 +120,7 @@
     },
     {
       "domain": "msg",
-      "command_count": 4,
+      "command_count": 5,
       "commands_dir": "commands/msg",
       "markdown_file": "domains/msg.md"
     },
@@ -155,5 +155,5 @@
       "markdown_file": "domains/defect.md"
     }
   ],
-  "digest": "395716523980f3eb2fe1514a51bf22e772406e3e6c9a722f70fa38a0cd8712d3"
+  "digest": "f5b054de75eea3dded4a8972d392801f29e745537dd953c977e3548a41d03f28"
 }

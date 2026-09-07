@@ -9,17 +9,16 @@ import {
 } from "../../../../olt/scripts/src/packets/command-authority.ts";
 import { transact } from "../../../../olt/scripts/src/engine/store/index.ts";
 import {
-  createVirtualFSSession,
-  VirtualMemoryFS,
   type VirtualFSSession,
+  type VirtualMemoryFS,
 } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   disableInMemorySessionStore,
   enableInMemorySessionStore,
+  isInMemorySessionStoreEnabled,
 } from "../../../../olt/scripts/src/authority/session/paths.ts";
+import { getGrantRunFS, getGrantRunSession } from "../../validation/grants/grant-run-fixture.ts";
 
-let currentSession: VirtualFSSession | null = null;
-let currentVfs: VirtualMemoryFS = new VirtualMemoryFS();
 let counter = 0;
 
 function normPath(p: string): string {
@@ -27,35 +26,33 @@ function normPath(p: string): string {
 }
 
 export function setupVirtualAuthorityFS(): VirtualMemoryFS {
-  enableInMemorySessionStore();
-  if (currentSession) {
-    currentSession.cleanup();
-    currentSession = null;
+  if (!isInMemorySessionStoreEnabled()) {
+    enableInMemorySessionStore();
   }
-  currentVfs = new VirtualMemoryFS();
+  const vfs = getGrantRunFS();
   const repoRoot = normPath(process.cwd());
 
-  currentVfs.mkdirSync(repoRoot, { recursive: true });
-  currentVfs.mkdirSync(path.join(repoRoot, ".git"), { recursive: true });
-  currentVfs.mkdirSync(path.join(repoRoot, ".olt"), { recursive: true });
-  currentVfs.mkdirSync(path.join(repoRoot, ".olt", "scratch"), { recursive: true });
+  vfs.mkdirSync(repoRoot, { recursive: true });
+  vfs.mkdirSync(path.join(repoRoot, ".git"), { recursive: true });
+  vfs.mkdirSync(path.join(repoRoot, ".olt"), { recursive: true });
+  vfs.mkdirSync(path.join(repoRoot, ".olt", "scratch"), { recursive: true });
 
-  currentVfs.chdir(repoRoot);
-  currentSession = createVirtualFSSession(currentVfs);
-  return currentVfs;
+  vfs.chdir(repoRoot);
+  return vfs;
 }
 
 export function cleanupVirtualAuthorityFS(): void {
   disableInMemorySessionStore();
-  if (currentSession) {
-    currentSession.cleanup();
-    currentSession = null;
-  }
-  currentVfs.reset();
+  const vfs = getGrantRunFS();
+  vfs.reset();
 }
 
 export function getVirtualAuthorityFS(): VirtualMemoryFS {
-  return currentVfs;
+  return getGrantRunFS();
+}
+
+export function getVirtualAuthoritySession(): VirtualFSSession {
+  return getGrantRunSession();
 }
 
 export function scratchRoot(callerPath = "authority-test", label = "test"): string {

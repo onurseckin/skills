@@ -1,0 +1,145 @@
+import { applicableValidatorDomains } from "../../../core/contracts/index.ts";
+import { openBranchIssues } from "../../branch/index.ts";
+import { applicableGates, commandMatchesGate, workflowGates } from "../../gates/index.ts";
+import { embeddedCommandIssues } from "../../../engine/runner/models/command/index.ts";
+import { requirementExecutionState } from "../../authority/index.ts";
+import { orphanEvidenceIssues } from "../../orphan-evidence/index.ts";
+import type { GateRuntime, RequirementRuntime, WorkflowState } from "../../index.ts";
+import { taskClassificationTexts, validationForDomain } from "../../review/index.ts";
+import { authoritativeRepositoryCommand } from "../provenance/index.ts";
+import { commandIsSuccessfulGate } from "../provenance/index.ts";
+import { currentRepositoryBinding } from "../provenance/index.ts";
+import { transitionSummaryIssues } from "./transition-summary-issues.ts";
+
+function extractRequirements(state: WorkflowState): readonly RequirementRuntime[] {
+  const raw = state.requirements as unknown;
+  if (Array.isArray(raw)) return raw;
+  if (
+    raw &&
+    typeof raw === "object" &&
+    "requirements" in raw &&
+    Array.isArray((raw as { requirements: unknown }).requirements)
+  ) {
+    return (raw as { requirements: RequirementRuntime[] }).requirements;
+  }
+  return Object.values((raw ?? {}) as Record<string, RequirementRuntime>);
+}
+
+function taskIssues(state: WorkflowState): string[] {
+  const reqs = extractRequirements(state);
+  return Object.values(state.tasks).flatMap((task) => {
+    const issues: string[] = [];
+    const disposed =
+      task.requirement_ids.length > 0 &&
+      task.requirement_ids.every((id) => {
+        const requirement = reqs.find((entry) => entry.id === id);
+        return requirement && requirementExecutionState(requirement) === "disposed";
+      });
+    if (disposed && task.status === "cancelled") return issues;
+    if (task.status !== "done") issues.push(`task ${task.id} is ${task.status}, not done`);
+    if (task.lease) issues.push(`task ${task.id} has a live lease`);
+    if (!task.report) issues.push(`task ${task.id} lacks a submission report`);
+    const gates = applicableGates(state, task);
+    const reqTexts = taskClassificationTexts(state, task);
+    for (const domain of applicableValidatorDomains(task.write_scope, reqTexts)) {
+      const validation = validationForDomain(task, domain);
+      if (validation?.verdict !== "pass")
+        issues.push(`task ${task.id} lacks independent ${domain} validator approval`);
+      if (!validation?.checks?.length)
+        issues.push(`task ${task.id} lacks ${domain} validator command evidence`);
+      const hasFreshPassingCommand = Object.values(state.commands).some(
+        (c) =>
+          c.status === "succeeded" &&
+          c.exit_code === 0 &&
+          c.task_id === task.id &&
+          (c.actor === validation?.validator_id || c.actor === task.original_implementer) &&
+          embeddedCommandIssues(c).length === 0 &&
+          gates.some((gate) => commandMatchesGate(c, gate)),
+      );
+      for (const proof of validation?.checks ?? []) {
+        const command = state.commands[proof.command_id];
+        const validDirect =
+          command &&
+          command.status === "succeeded" &&
+          command.exit_code === 0 &&
+          command.task_id === task.id &&
+          (command.actor === validation?.validator_id ||
+            command.actor === task.original_implementer) &&
+          embeddedCommandIssues(command).length === 0 &&
+          gates.some((gate) => commandMatchesGate(command, gate));
+        if (!validDirect && !hasFreshPassingCommand)
+          issues.push(`task ${task.id} has invalid validator command ${proof.command_id}`);
+      }
+    }
+    for (const finding of task.findings ?? [])
+      if (finding.status === "open") issues.push(`task ${task.id} has open finding ${finding.id}`);
+    for (const gate of applicableGates(state, task)) {
+      const hasFreshPassingGateCommand = Object.values(state.commands).some(
+        (c) =>
+          c.status === "succeeded" &&
+          c.exit_code === 0 &&
+          c.task_id === task.id &&
+          c.gate_id === gate.id &&
+          commandMatchesGate(c, gate),
+      );
+      const result = (task.gate_results ?? []).find((entry) => entry.gate_id === gate.id);
+      const hasResultGate = Boolean(
+        result && commandIsSuccessfulGate(state, result.command_id, gate.id, task.id),
+      );
+      if (!hasFreshPassingGateCommand && !hasResultGate)
+        issues.push(`task ${task.id} lacks authoritative gate ${gate.id}`);
+    }
+    return issues;
+  });
+}
+
+export function completionReadinessIssues(state: WorkflowState): string[] {
+  const issues = taskIssues(state);
+  const reqs = extractRequirements(state);
+  try {
+    currentRepositoryBinding(state);
+  } catch {
+    issues.push("current repository binding is missing or invalid");
+  }
+  const graphRevision = state.graph_revision ?? state.revision;
+  if (!Number.isSafeInteger(graphRevision) || Number(graphRevision) < 1)
+    issues.push("graph revision is invalid");
+  for (const command of Object.values(state.commands))
+    if (command.status === "running")
+      issues.push(`running command blocks completion: ${command.id}`);
+  for (const packet of Object.values(state.packets ?? {}))
+    if (packet.status !== "published") issues.push(`packet ${packet.id} is not durably published`);
+  for (const requirement of reqs) {
+    const execution = requirementExecutionState(requirement);
+    if (execution === "disposed") continue;
+    if (execution === "paused") {
+      issues.push(`requirement ${requirement.id} still needs authority`);
+      continue;
+    }
+    if (requirement.status !== "satisfied")
+      issues.push(`requirement ${requirement.id} is not satisfied`);
+    if (requirement.evidence.length === 0)
+      issues.push(`requirement ${requirement.id} has no evidence`);
+  }
+  const gates = workflowGates(state);
+  const runGates = gates.filter((gate) => gate.scope === "run" && gate.mandatory);
+  if (runGates.length === 0) issues.push("run has no mandatory run gate");
+  for (const gate of runGates) {
+    const command = Object.values(state.commands).find(
+      (entry) =>
+        entry.task_id === null &&
+        entry.gate_id === gate.id &&
+        commandIsSuccessfulGate(state, entry.id, gate.id, null),
+    );
+    if (!command) issues.push(`run gate ${gate.id} lacks an authoritative passing command`);
+  }
+  issues.push(...orphanEvidenceIssues(state));
+  issues.push(...openBranchIssues(state));
+  issues.push(...transitionSummaryIssues(state));
+  for (const id of Object.values(state.commands)
+    .filter((entry) => entry.task_id === null && entry.gate_id === null)
+    .map(({ id }) => id))
+    if (!authoritativeRepositoryCommand(state, id) && state.commands[id]?.status === "succeeded")
+      issues.push(`repository command is not authoritative: ${id}`);
+  return [...new Set(issues)].sort();
+}

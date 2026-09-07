@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { mindAuditLiveCommand } from "../../../../../olt/scripts/src/cli/commands/mind-audit-live.ts";
 import { skillAuditLiveCommand } from "../../../../../olt/scripts/src/cli/commands/skill-audit-live.ts";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { findCommand } from "../../../../../olt/scripts/src/cli/registry/index.ts";
 import { AuditorCursorStore } from "../../../../../olt/scripts/src/mind/auditing/cognitive/index.ts";
+import type { VirtualMemoryFS } from "../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
 const MIN_MANIFEST_YAML = `role: mind
@@ -19,17 +19,18 @@ must_not:
 `;
 
 describe("CLI Cognitive Auditor Commands (mind:audit:live & skill:audit:live)", () => {
+  let vfs: VirtualMemoryFS;
   let testDir: string;
   let runDir: string;
 
   beforeEach(() => {
-    setupVirtualCliFS();
+    vfs = setupVirtualCliFS();
     testDir = `/virtual/cli/test-cognitive-cli-${Date.now()}`;
     runDir = join(testDir, "capsules", "run-1");
-    mkdirSync(join(testDir, ".olt"), { recursive: true });
-    mkdirSync(join(testDir, "olt", "agents"), { recursive: true });
-    mkdirSync(runDir, { recursive: true });
-    writeFileSync(join(testDir, "olt", "agents", "mind.yaml"), MIN_MANIFEST_YAML, "utf-8");
+    vfs.mkdirSync(join(testDir, ".olt"), { recursive: true });
+    vfs.mkdirSync(join(testDir, "olt", "agents"), { recursive: true });
+    vfs.mkdirSync(runDir, { recursive: true });
+    vfs.writeFileSync(join(testDir, "olt", "agents", "mind.yaml"), MIN_MANIFEST_YAML, "utf-8");
   });
 
   afterEach(() => {
@@ -90,13 +91,13 @@ describe("CLI Cognitive Auditor Commands (mind:audit:live & skill:audit:live)", 
 
     test("detects stagnation and returns formatted brief with injection prompt", async () => {
       const capsuleDir = join(testDir, ".olt", "capsules", "mind-gen-cli-stagnant");
-      mkdirSync(capsuleDir, { recursive: true });
-      writeFileSync(
+      vfs.mkdirSync(capsuleDir, { recursive: true });
+      vfs.writeFileSync(
         join(capsuleDir, "state.json"),
         JSON.stringify({ agents: [{ id: "mind-1", role: "mind", status: "active" }] }),
         "utf-8",
       );
-      writeFileSync(
+      vfs.writeFileSync(
         join(capsuleDir, "last_pulse.json"),
         JSON.stringify({
           at: "2020-01-01T00:00:00.000Z",
@@ -151,7 +152,7 @@ describe("CLI Cognitive Auditor Commands (mind:audit:live & skill:audit:live)", 
     test("returns compliant when event log has zero boundary violations", async () => {
       const eventsPath = join(runDir, "events.jsonl");
       const e1 = JSON.stringify({ kind: "tool-called", tool: "view_file", actor: "implementer-1" });
-      writeFileSync(eventsPath, `${e1}\n`, "utf-8");
+      vfs.writeFileSync(eventsPath, `${e1}\n`, "utf-8");
 
       const result = await skillAuditLiveCommand(
         { repo: testDir, run: runDir },
@@ -179,7 +180,7 @@ describe("CLI Cognitive Auditor Commands (mind:audit:live & skill:audit:live)", 
         timestamp: "2026-08-24T00:00:00.000Z",
         payload: { tool: "write_to_file", arguments: { AbsolutePath: "/repo/src/file.ts" } },
       });
-      writeFileSync(eventsPath, `${e1}\n`, "utf-8");
+      vfs.writeFileSync(eventsPath, `${e1}\n`, "utf-8");
 
       const result = await skillAuditLiveCommand(
         { repo: testDir, run: runDir },
@@ -209,7 +210,7 @@ describe("CLI Cognitive Auditor Commands (mind:audit:live & skill:audit:live)", 
         timestamp: "2026-08-24T00:00:00.000Z",
         payload: { tool: "write_to_file", arguments: { AbsolutePath: "/repo/src/other.ts" } },
       });
-      writeFileSync(eventsPath, `${e1}\n`, "utf-8");
+      vfs.writeFileSync(eventsPath, `${e1}\n`, "utf-8");
 
       const result = await skillAuditLiveCommand(
         { repo: testDir, run: runDir, "log-defects": false },

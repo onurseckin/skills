@@ -1,4 +1,5 @@
 import { HarnessError } from "../../core/errors/index.ts";
+import { normalizeRoleName } from "../thread/index.ts";
 import { SUPERVISORY_ROLE_BOUNDARIES } from "./constants.ts";
 import type {
   ActiveLeaseInfo,
@@ -13,30 +14,10 @@ export function isSupervisoryRole(role: string): role is SupervisoryRole {
 }
 
 export function normalizeSupervisoryRole(role: string): SupervisoryRole | null {
-  const normalized = role.trim().toLowerCase();
-  if (
-    normalized === "mind" ||
-    normalized === "tier-0" ||
-    normalized === "tier 0" ||
-    normalized === "human"
-  ) {
-    return "mind";
-  }
-  if (
-    normalized === "orchestrator" ||
-    normalized === "orch" ||
-    normalized === "tier-1" ||
-    normalized === "tier 1"
-  ) {
-    return "orchestrator";
-  }
-  if (
-    normalized === "coordinator" ||
-    normalized === "coord" ||
-    normalized === "tier-2" ||
-    normalized === "tier 2"
-  ) {
-    return "coordinator";
+  const trimmed = role.trim().toLowerCase();
+  const normalized = normalizeRoleName(trimmed);
+  if (normalized === "mind" || normalized === "orchestrator" || normalized === "coordinator") {
+    return normalized;
   }
   return null;
 }

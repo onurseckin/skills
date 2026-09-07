@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { completionReadinessIssues } from "../../../../olt/scripts/src/workflow/completion/readiness-issues.ts";
+import { completionReadinessIssues } from "../../../../olt/scripts/src/workflow/completion/index.ts";
 import { BRANCH_LEDGER_KEY } from "../../../../olt/scripts/src/workflow/branch/ledger.ts";
 import { branchRecord } from "../../branch/fixtures/fixture.ts";
 import { commandRecord, workflowState } from "../../shared/test-port.ts";

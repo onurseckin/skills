@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { gateTally } from "../../../../olt/scripts/src/workflow/completion/completion-state.ts";
+import { gateTally } from "../../../../olt/scripts/src/workflow/completion/index.ts";
 import type {
   GateRuntime,
   RequirementRuntime,

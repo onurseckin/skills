@@ -1,7 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
-import { setupVirtualMindFS, cleanupVirtualMindFS, scratchRoot } from "../../fixtures/index.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import {
   isPreplanningNeeded,
@@ -22,6 +20,11 @@ import {
   detectCyclesTarjan,
   extractFeedbackArcSet,
 } from "../../../../olt/scripts/src/reporting/sugiyama-dag/tarjan.ts";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 function mkItem(id: string, category: string, status = "PENDING"): RawBacklogItem {
   return { id, title: id, category, status };
@@ -58,54 +61,58 @@ function mkCluster(id: string, domain: string, bId: string, dId: string): Themat
 }
 
 describe("Continuous Preplanner Engine & PO Toposort Verification (in-memory virtual)", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
   let testDir: string;
   let oltDir: string;
   let backlogPath: string;
   let defectsPath: string;
 
   beforeEach(() => {
-    setupVirtualMindFS();
-    testDir = scratchRoot("continuous-preplanner", "test");
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    testDir = "/virtual/continuous-preplanner";
     oltDir = join(testDir, ".olt");
     backlogPath = join(oltDir, "backlog.jsonl");
     defectsPath = join(oltDir, "defects.jsonl");
-    fs.mkdirSync(oltDir, { recursive: true });
+    vfs.mkdirSync(oltDir, { recursive: true });
+    vfs.chdir(testDir);
   });
 
   afterEach(() => {
-    cleanupVirtualMindFS();
+    session.cleanup();
   });
 
   test("isPreplanningNeeded evaluates backlog and defect eligibility", () => {
-    fs.writeFileSync(backlogPath, `${JSON.stringify(mkItem("b1", "core", "COMPLETED"))}\n`);
-    fs.writeFileSync(defectsPath, `${JSON.stringify(mkDefect("d1", "core", "RESOLVED"))}\n`);
+    vfs.writeFileSync(backlogPath, `${JSON.stringify(mkItem("b1", "core", "COMPLETED"))}\n`);
+    vfs.writeFileSync(defectsPath, `${JSON.stringify(mkDefect("d1", "core", "RESOLVED"))}\n`);
     expect(isPreplanningNeeded({ rootDir: testDir })).toBe(false);
 
-    fs.writeFileSync(backlogPath, `${JSON.stringify(mkItem("b1", "core", "PENDING"))}\n`);
+    vfs.writeFileSync(backlogPath, `${JSON.stringify(mkItem("b1", "core", "PENDING"))}\n`);
     expect(isPreplanningNeeded({ rootDir: testDir })).toBe(true);
   });
 
   test("runPreplanningTick generates plans and updates bridge state (including dryRun)", () => {
-    fs.writeFileSync(backlogPath, `${JSON.stringify(mkItem("b-core-1", "core"))}\n`);
-    fs.writeFileSync(defectsPath, `${JSON.stringify(mkDefect("d-core-1", "core"))}\n`);
+    vfs.writeFileSync(backlogPath, `${JSON.stringify(mkItem("b-core-1", "core"))}\n`);
+    vfs.writeFileSync(defectsPath, `${JSON.stringify(mkDefect("d-core-1", "core"))}\n`);
 
     const result = runPreplanningTick({ rootDir: testDir });
     expect(result.clusters.length).toBe(1);
     expect(result.items_planned).toBe(1);
     expect(result.defects_planned).toBe(1);
     expect(result.plan_files_written.length).toBe(1);
-    expect(fs.existsSync(result.plan_files_written[0]!)).toBe(true);
-    expect(fs.readFileSync(backlogPath, "utf-8")).toContain('"status":"PLANNED"');
-    expect(fs.readFileSync(defectsPath, "utf-8")).toContain('"status":"PLANNED"');
+    expect(vfs.existsSync(result.plan_files_written[0]!)).toBe(true);
+    expect(vfs.readFileSync(backlogPath, "utf-8")).toContain('"status":"PLANNED"');
+    expect(vfs.readFileSync(defectsPath, "utf-8")).toContain('"status":"PLANNED"');
 
-    fs.writeFileSync(backlogPath, `${JSON.stringify(mkItem("b-dry", "engine"))}\n`);
+    vfs.writeFileSync(backlogPath, `${JSON.stringify(mkItem("b-dry", "engine"))}\n`);
     const dryRes = runPreplanningTick({ rootDir: testDir, dryRun: true });
     expect(dryRes.items_planned).toBe(1);
-    expect(fs.readFileSync(backlogPath, "utf-8")).toContain('"status":"PENDING"');
+    expect(vfs.readFileSync(backlogPath, "utf-8")).toContain('"status":"PENDING"');
   });
 
   test("startPreplanningDaemon executes ticks and aggregates counts", async () => {
-    fs.writeFileSync(backlogPath, `${JSON.stringify(mkItem("b-daemon", "reporting"))}\n`);
+    vfs.writeFileSync(backlogPath, `${JSON.stringify(mkItem("b-daemon", "reporting"))}\n`);
     const res = await startPreplanningDaemon({ rootDir: testDir, maxTicks: 2, intervalMs: 0 });
     expect(res.totalTicks).toBe(2);
     expect(res.totalPlanned).toBe(1);
@@ -116,18 +123,18 @@ describe("Continuous Preplanner Engine & PO Toposort Verification (in-memory vir
     const item2 = mkItem("b2", "engine");
     const defect1 = mkDefect("d1", "core");
     const defect2 = mkDefect("d2", "engine");
-    fs.writeFileSync(backlogPath, `${JSON.stringify(item1)}\n${JSON.stringify(item2)}\n`);
-    fs.writeFileSync(defectsPath, `${JSON.stringify(defect1)}\n${JSON.stringify(defect2)}\n`);
+    vfs.writeFileSync(backlogPath, `${JSON.stringify(item1)}\n${JSON.stringify(item2)}\n`);
+    vfs.writeFileSync(defectsPath, `${JSON.stringify(defect1)}\n${JSON.stringify(defect2)}\n`);
 
     const c1 = mkCluster("c1", "core", "b1", "d1");
     const c2 = mkCluster("c2", "engine", "b2", "d2");
     const batchRes = updateBridgeStateBatch([c1, c2], { rootDir: testDir });
     expect(batchRes.itemsUpdated).toBe(2);
     expect(batchRes.defectsUpdated).toBe(2);
-    expect(fs.readFileSync(backlogPath, "utf-8")).toContain(
+    expect(vfs.readFileSync(backlogPath, "utf-8")).toContain(
       '"plan_path":"docs/planning/c1/PLAN.md"',
     );
-    expect(fs.readFileSync(defectsPath, "utf-8")).toContain(
+    expect(vfs.readFileSync(defectsPath, "utf-8")).toContain(
       '"plan_path":"docs/planning/c2/PLAN.md"',
     );
   });

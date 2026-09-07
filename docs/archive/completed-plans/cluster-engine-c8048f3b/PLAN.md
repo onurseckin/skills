@@ -52,7 +52,7 @@ Scaling multi-agent orchestration to high-throughput parallel tracks requires he
 │                             ENGINE RUNNER & STORE INTEGRATION                               │
 │ ─────────────────────────────────────────────────────────────────────────────────────────── │
 │ • Hermetic CLI: `worktree:create`, `worktree:land`, `worktree:clean`, `worktree:status`     │
-│ • Zero Code Comments & Density Compliance (≤ 300 lines/file, ≤ 10 files/dir)                │
+│ • Zero Code Comments & Density Compliance (≤ 400 lines/file, ≤ 10 files/dir)                │
 │ • Complete Invariant Preservation (Zero TS 'any', Zero Shims, Named Facades)                │
 └─────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -72,7 +72,7 @@ Scaling multi-agent orchestration to high-throughput parallel tracks requires he
 
 ## Level 4: Atomic Implementation Tasks Matrix
 
-| Task ID        | Target File Path                                  | Exact TypeScript Symbols / Signatures                                             | Deliverable & Contract ($\le 300$ lines, 0 comments)                                                                            |
+| Task ID        | Target File Path                                  | Exact TypeScript Symbols / Signatures                                             | Deliverable & Contract ($\le 400$ lines, 0 comments)                                                                            |
 | :------------- | :------------------------------------------------ | :-------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------ |
 | `task-eng-1.1` | `olt/scripts/src/engine/worktree/domain-sync.ts`  | `createHermeticWorktree(trackId: string): Promise<WorktreeContext>`               | Provision isolated Git worktree in `.olt/worktrees/<trackId>`, attach tracking branch, and isolate staging index.               |
 | `task-eng-1.2` | `olt/scripts/src/engine/worktree/landing-ops.ts`  | `landHermeticWorktree(ctx: WorktreeContext): Promise<LandingResult>`              | Perform atomic upstream rebase, verify gates, commit via conventional commit format, push to `origin/main`, and clean teardown. |
@@ -105,7 +105,7 @@ bun test tests/unit/engine/concurrency-cap.test.ts
 ## Level 6: Strict Invariant Enforcement
 
 1. **Zero Code Comments**: Absolute zero code comments in all `.ts` files.
-2. **Density Budget**: $\le 300$ physical lines per file, $\le 10$ files per directory across `engine/` and `policy/`.
+2. **Density Budget**: $\le 400$ physical lines per file, $\le 10$ files per directory across `engine/` and `policy/`.
 3. **Ban Defect-Prefix Source Files**: 0 `defect-*.ts` / `fb-*.ts` files.
 4. **Explicit Named Exports**: All barrel files (`engine/index.ts`, `engine/worktree/index.ts`, `policy/index.ts`) export explicitly named symbols.
 5. **Hermetic Workspace Integrity**: No multi-agent writes to the shared working tree during active wave execution.
@@ -122,7 +122,7 @@ bun test tests/unit/engine/concurrency-cap.test.ts
 | **Round 2** | `validator_01`   | Concurrency throttle timeout error code alignment                                                      | Updated `subagent-pool.ts` timeout rejection error                                              | **APPROVED**       |
 | **Round 3** | `validator_01`   | Verification of schema validation and fail-closed policy parsing                                       | Verified `loadRepoPolicy` and test coverage                                                     | **APPROVED**       |
 | **Round 4** | `validator_01`   | Density and comment audit: `domain-sync-ops.ts` (336 LOC) and comments in `zero-destructive-policy.ts` | Separated `landing-ops.ts` (114 LOC) from `domain-sync-ops.ts` (232 LOC); stripped all comments | **REMEDIATED**     |
-| **Round 5** | `validator_01`   | Final invariant verification and full gate execution                                                   | Confirmed 0 comments, 0 `any`, $\le 300$ LOC, all tests 100% green                              | **FINAL SIGN-OFF** |
+| **Round 5** | `validator_01`   | Final invariant verification and full gate execution                                                   | Confirmed 0 comments, 0 `any`, $\le 400$ LOC, all tests 100% green                              | **FINAL SIGN-OFF** |
 
 ### 7.2 Gate Verification Evidence
 

@@ -1,4 +1,4 @@
-import { existsSync, lstatSync, realpathSync } from "node:fs";
+import { existsSync, lstatSync, realpathSync, statSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import type { JsonObject } from "../../../core/contracts/index.ts";
 import { atomicWriteJson } from "../../../core/durable-write.ts";
@@ -20,17 +20,37 @@ export function rotateMindGeneration(options: RotateMindOptions): RotateMindResu
     throw new HarnessError("INVALID_ARGUMENT", "source run root is required for mind rotation");
   }
 
-  if (!existsSync(sourceRunRoot) || !lstatSync(sourceRunRoot).isDirectory()) {
+  let sourceLstat;
+  try {
+    sourceLstat = lstatSync(sourceRunRoot);
+  } catch {
     throw new HarnessError(
       "INVALID_ARGUMENT",
       `source run root must be an existing directory: ${sourceRunRoot}`,
     );
   }
 
-  if (lstatSync(sourceRunRoot).isSymbolicLink()) {
+  if (sourceLstat.isSymbolicLink()) {
     throw new HarnessError(
       "INVALID_ARGUMENT",
       `source run root cannot be a symlink: ${sourceRunRoot}`,
+    );
+  }
+
+  let sourceStat;
+  try {
+    sourceStat = statSync(sourceRunRoot);
+  } catch {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `source run root must be an existing directory: ${sourceRunRoot}`,
+    );
+  }
+
+  if (!sourceStat.isDirectory()) {
+    throw new HarnessError(
+      "INVALID_ARGUMENT",
+      `source run root must be an existing directory: ${sourceRunRoot}`,
     );
   }
 

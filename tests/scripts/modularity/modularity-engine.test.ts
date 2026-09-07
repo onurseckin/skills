@@ -76,7 +76,7 @@ describe("checkModularity orchestrator (in-memory virtual)", () => {
   test("runs checkModularity in strict mode on index with violations", async () => {
     memoryIndexBlobs = [
       blob("unapproved.txt", "hello"),
-      blob("src/index.ts", "export const x = 1;\n".repeat(305)),
+      blob("src/index.ts", "export const x = 1;\n".repeat(405)),
       blob("src/a.ts", 'import "./b.ts";\nexport const a = 1;\n'),
       blob("src/b.ts", 'import "./a.ts";\nexport const b = 2;\n'),
       blob("src/star.ts", 'export * from "./a.ts";\n'),

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { completionReviewIssues } from "../../../../olt/scripts/src/workflow/completion/review-issues.ts";
+import { completionReviewIssues } from "../../../../olt/scripts/src/workflow/completion/index.ts";
 import { repositoryBinding, workflowState } from "../../shared/test-port.ts";
-import type { CompletionReview } from "../../../../olt/scripts/src/workflow/completion/types.ts";
+import type { CompletionReview } from "../../../../olt/scripts/src/workflow/completion/index.ts";
 
 function baseReview(overrides: Partial<CompletionReview> = {}): CompletionReview {
   return {

@@ -271,3 +271,5 @@ export {
   playCompletionChime,
   sendSystemNotification,
 } from "./notifications/index.ts";
+
+export { SplitChannelDefectRouter } from "./split-channel-defect-router.ts";

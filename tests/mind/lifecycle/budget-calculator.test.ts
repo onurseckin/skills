@@ -26,9 +26,9 @@ describe("Budget Calculator Suite (calculator.ts)", () => {
           { role: "orchestrator", status: "active" },
           { role: "implementer", status: "active" },
           { role: "mind-auditor", status: "active" },
-          { role: "observer", status: "active" }, // unauthorized role
-          { role: "implementer", status: "idle" }, // inactive
-          { role: "validator", status: "terminated" }, // inactive
+          { role: "observer", status: "active" },
+          { role: "implementer", status: "idle" },
+          { role: "validator", status: "terminated" },
         ],
       };
       expect(countActiveAgentsInFlight(state)).toBe(5);
@@ -64,11 +64,7 @@ describe("Budget Calculator Suite (calculator.ts)", () => {
     });
 
     it("derives max concurrency from topological work and span parameters", () => {
-      const res = checkMaxAgentsInFlight(
-        {},
-        10,
-        { totalWork: 100, span: 10 }, // 100/10 = 10 max concurrency
-      );
+      const res = checkMaxAgentsInFlight({}, 10, { totalWork: 100, span: 10 });
       expect(res.ok).toBe(false);
       if (!res.ok) expect(res.limit).toBe(10);
     });

@@ -191,7 +191,7 @@ Executes a system shell command synchronously or transitions long-running operat
   - `WaitMsBeforeAsync` (_integer_, required): Milliseconds to wait before converting to a background task (max 10,000 ms).
 - **Core Invariants**:
   1. **The Zero-`cd` Mandate**: NEVER include `cd <dir> && ...` in `CommandLine`. Working directory MUST be specified exclusively via `Cwd`.
-  2. **Synchronous Execution (`WaitMsBeforeAsync: 10000`)**: Always set `WaitMsBeforeAsync: 10000` for deterministic CLI and test commands (`bun harness.ts ...`, `bun test ...`, `oxlint ...`).
+  2. **Synchronous Execution (`WaitMsBeforeAsync: 10000`)**: Always set `WaitMsBeforeAsync: 10000` for deterministic CLI and test commands (`bun harness.ts ...`, test runner commands, `oxlint ...`).
   3. **Background Conversion**: Commands running longer than `WaitMsBeforeAsync` automatically transition to background tasks and return a task ID (e.g., `<conversation_id>/task-<N>`).
 
 #### `manage_task`
@@ -285,9 +285,9 @@ Language models, particularly small and medium parameter models, frequently hall
 import { Agy } from 'agy';                      Native host tools (`invoke_subagent`, `send_message`)
 agy models list                                 Native tool parameter `Model: 'pro' | 'flash'`
 import { Task } from '@antigravity/sdk';        bun ~/.agents/skills/olt/scripts/harness.ts task:claim
-nohup bun test & disown                         `run_command` + `manage_task` or `schedule`
+nohup <test-runner> & disown                   `run_command` + `manage_task` or `schedule`
 sleep 300                                       `schedule` tool with `DurationSeconds: 300`
-cd /path/to/repo && bun test                    `run_command` with `Cwd: "/path/to/repo"`
+cd /path/to/repo && <test-runner>               `run_command` with `Cwd: "/path/to/repo"`
 ```
 
 ### 3.1 Prohibited Fictitious SDKs & Libraries
@@ -379,7 +379,7 @@ The canonical engineering principles and non-negotiable repository standards for
 - **0 `any` Annotations**: Absolute prohibition of TypeScript `any` types.
 - **0 Compiler / Linter Suppressions**: Absolute prohibition of `@ts-ignore`, `@ts-expect-error`, and `eslint-disable`.
 - **Atomic Disjoint Scopes**: Tasks must modify only their assigned `write_scope`.
-- **Falsifiable Verification**: All changes must be verified against deterministic test suites (`bun test tests/unit`, `bun run typecheck`, `oxlint`).
+- **Falsifiable Verification**: All changes must be verified against deterministic test suites (repository test runner, typecheck, linter).
 
 ---
 

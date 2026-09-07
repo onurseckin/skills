@@ -1,10 +1,10 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { existsSync } from "node:fs";
-import { mkdir, readFile, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   assertGrantedCommand,
   cleanupVirtualAuthorityFS,
+  getVirtualAuthorityFS,
+  getVirtualAuthoritySession,
   installMetaAuditGrant,
   setupVirtualAuthorityFS,
   spec,
@@ -141,7 +141,8 @@ describe("governed mutation authority", () => {
     await expect(
       execute(["queue:drain", "--authority-run", run, "--actor", "mind", "--queue-file", outside]),
     ).rejects.toMatchObject({ code: "PATH_SAFETY" });
-    expect(existsSync(outside)).toBe(false);
+    const vfs = getVirtualAuthorityFS();
+    expect(vfs.existsSync(outside)).toBe(false);
   });
 
   test("rejects the direct-handler completed-file alias before an authorized clean can mutate queue state", async () => {
@@ -157,18 +158,19 @@ describe("governed mutation authority", () => {
       '{"id":"feedback-1","timestamp":"2026-01-01T00:00:00.000Z","priority":"NORMAL","status":"COMPLETED","category":"GENERAL","title":"Completed feedback","content":"must remain queued"}\n';
     const archiveBytes = "canonical archive sentinel\n";
     const outsideBytes = "outside archive sentinel\n";
-    await mkdir(oltDirectory, { recursive: true });
-    await writeFile(queueFile, queueBytes);
-    await writeFile(archiveFile, archiveBytes);
-    await writeFile(outsideArchive, outsideBytes);
+    const vfs = getVirtualAuthorityFS();
+    vfs.mkdirSync(oltDirectory, { recursive: true });
+    vfs.writeFileSync(queueFile, queueBytes);
+    vfs.writeFileSync(archiveFile, archiveBytes);
+    vfs.writeFileSync(outsideArchive, outsideBytes);
 
     await expect(
       execute(["queue:clean", "--authority-run", run, "--completed-file", outsideArchive]),
     ).rejects.toMatchObject({ code: "INVALID_ARGUMENT" });
 
-    await expect(readFile(queueFile, "utf8")).resolves.toBe(queueBytes);
-    await expect(readFile(archiveFile, "utf8")).resolves.toBe(archiveBytes);
-    await expect(readFile(outsideArchive, "utf8")).resolves.toBe(outsideBytes);
+    expect(vfs.readFileSync(queueFile, "utf8")).toBe(queueBytes);
+    expect(vfs.readFileSync(archiveFile, "utf8")).toBe(archiveBytes);
+    expect(vfs.readFileSync(outsideArchive, "utf8")).toBe(outsideBytes);
   });
 
   test("rejects an archive path that traverses an in-repository symlink before clean can mutate outside state", async () => {
@@ -185,11 +187,13 @@ describe("governed mutation authority", () => {
     const queueBytes =
       '{"id":"feedback-1","timestamp":"2026-01-01T00:00:00.000Z","priority":"NORMAL","status":"COMPLETED","category":"GENERAL","title":"Completed feedback","content":"must remain queued"}\n';
     const outsideBytes = "outside archive sentinel\n";
-    await mkdir(oltDirectory, { recursive: true });
-    await mkdir(outsideDirectory, { recursive: true });
-    await writeFile(queueFile, queueBytes);
-    await writeFile(outsideArchive, outsideBytes);
-    await symlink(outsideDirectory, linkedDirectory);
+    const vfs = getVirtualAuthorityFS();
+    const session = getVirtualAuthoritySession();
+    vfs.mkdirSync(oltDirectory, { recursive: true });
+    vfs.mkdirSync(outsideDirectory, { recursive: true });
+    vfs.writeFileSync(queueFile, queueBytes);
+    vfs.writeFileSync(outsideArchive, outsideBytes);
+    session.symlinkSync(outsideDirectory, linkedDirectory);
 
     let thrown: unknown;
     try {
@@ -206,8 +210,8 @@ describe("governed mutation authority", () => {
       thrown = error;
     }
 
-    await expect(readFile(outsideArchive, "utf8")).resolves.toBe(outsideBytes);
-    await expect(readFile(queueFile, "utf8")).resolves.toBe(queueBytes);
+    expect(vfs.readFileSync(outsideArchive, "utf8")).toBe(outsideBytes);
+    expect(vfs.readFileSync(queueFile, "utf8")).toBe(queueBytes);
     expect(thrown).toMatchObject({ code: "PATH_SAFETY" });
   });
 

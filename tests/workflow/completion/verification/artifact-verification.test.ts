@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   completionArtifactRequirements,
   validateCompletionArtifactVerification,
-} from "../../../../olt/scripts/src/workflow/completion/artifact-verification.ts";
+} from "../../../../olt/scripts/src/workflow/completion/index.ts";
 import {
   commandRecord,
   repositoryBinding,
@@ -10,7 +10,7 @@ import {
   workflowState,
 } from "../../shared/test-port.ts";
 import type { WorkflowState } from "../../../../olt/scripts/src/workflow/types.ts";
-import type { CompletionRemediation } from "../../../../olt/scripts/src/workflow/completion/types.ts";
+import type { CompletionRemediation } from "../../../../olt/scripts/src/workflow/completion/index.ts";
 
 function baseState(): WorkflowState {
   const state = workflowState();

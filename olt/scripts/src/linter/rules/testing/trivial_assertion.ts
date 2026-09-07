@@ -1,11 +1,11 @@
 import ts from "typescript";
-import type { AstLintRuleModule } from "../../ast/index.ts";
 import {
   EQUALITY_MATCHERS,
   getRootExpectArg,
   isLiteralOrConstant,
   isTrivialLiteralMatch,
-} from "../../ast/index.ts";
+  type AstLintRuleModule,
+} from "../../core/index.ts";
 
 export const trivialAssertionRule: AstLintRuleModule = {
   rule: "trivial_assertion",

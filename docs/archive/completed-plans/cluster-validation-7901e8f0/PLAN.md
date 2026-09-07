@@ -44,7 +44,7 @@ It addresses 2 backlog requirement(s) and 1 defect remediation(s) under the zero
 - **Write Scope:** `olt/scripts/src/validation/fb-1788021000000-strict-modularity-and-zero-comment-enforcement.ts`
 - **Read-Only Scope:** `olt/scripts/src/validation/`
 - **Acceptance Criteria (Stub Must Fail):**
-  - Implement: OPERATOR DIRECTIVE: Implementers and coordinators must strictly adhere to repository coding conventions: (1) ZERO code comments in all TypeScript (.ts) files (docs/markdown/yaml exempt), (2) Strict density budgets (<=300 lines/file, <=10 files/dir), (3) Explicit named exports in index.ts facades with ZERO wildcard export * and zero facade bypass, (4) Zero backwards-compatibility forwarding shims, and (5) Strict capsule disk hygiene in .olt/capsules/. Validators must fail implementations that violate these invariants.
+  - Implement: OPERATOR DIRECTIVE: Implementers and coordinators must strictly adhere to repository coding conventions: (1) ZERO code comments in all TypeScript (.ts) files (docs/markdown/yaml exempt), (2) Strict density budgets (<=400 lines/file, <=10 files/dir), (3) Explicit named exports in index.ts facades with ZERO wildcard export * and zero facade bypass, (4) Zero backwards-compatibility forwarding shims, and (5) Strict capsule disk hygiene in .olt/capsules/. Validators must fail implementations that violate these invariants.
   - Zero TypeScript `any`, zero compiler suppressions.
   - Command: `bun test tests/unit/validation/fb-1788021000000-strict-modularity-and-zero-comment-enforcement.test.ts` (100% PASS).
 
@@ -66,7 +66,7 @@ It addresses 2 backlog requirement(s) and 1 defect remediation(s) under the zero
 - **Write Scope:** `olt/scripts/src/validation/defect-modularity-facade-and-zero-comments-violation.ts`
 - **Read-Only Scope:** `olt/scripts/src/validation/`
 - **Acceptance Criteria (Stub Must Fail):**
-  - Remediate: Implementers and coordinators failed to strictly adhere to repository conventions: (1) Retaining explanatory comments in TypeScript code files (.ts), (2) Bypassing explicit named facade exports with wildcard export * or private deep imports, (3) Exceeding density budgets (>300 lines/file, >10 files/dir), and (4) Capsule hygiene lapses with lingering scratch files. Fix required: Enforce strict ZERO_COMMENTS_INVARIANT, named index.ts facades with zero wildcard exports, zero facade bypass, and capsule disk hygiene across all validator gates and pre-commit checks.
+  - Remediate: Implementers and coordinators failed to strictly adhere to repository conventions: (1) Retaining explanatory comments in TypeScript code files (.ts), (2) Bypassing explicit named facade exports with wildcard export * or private deep imports, (3) Exceeding density budgets (>400 lines/file, >10 files/dir), and (4) Capsule hygiene lapses with lingering scratch files. Fix required: Enforce strict ZERO_COMMENTS_INVARIANT, named index.ts facades with zero wildcard exports, zero facade bypass, and capsule disk hygiene across all validator gates and pre-commit checks.
   - Zero TypeScript `any`, zero compiler suppressions.
   - Command: `bun test tests/unit/validation/defect-modularity-facade-and-zero-comments-violation.test.ts` (100% PASS).
 

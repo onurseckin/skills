@@ -1,5 +1,4 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import {
   executePreparedCommand,
@@ -18,31 +17,34 @@ import type {
   CommandResult,
   PreparedCommand,
 } from "../../../olt/scripts/src/engine/runner/types/types.ts";
-import { cleanupVirtualEngineFS, getVirtualEngineFS, setupVirtualEngineFS } from "../fixture.ts";
+import { generateCanonicalDefaultPolicy } from "../../../olt/scripts/src/policy/generator/index.ts";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("engine/runner/models/execution/run-command.ts - Execution Pipeline", () => {
   let tempDir: string;
   let runRoot: string;
   let restoreDeps: (() => void) | undefined;
-  let restoreLockDeps: (() => void) | undefined;
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession | null = null;
 
   beforeEach(() => {
-    setupVirtualEngineFS();
+    if (session) session.cleanup();
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
     enableInMemoryAgentMetadata();
-    restoreLockDeps = setExecutionLockDependenciesForTesting({
-      lstat: (p) => fs.lstatSync(p),
-      fstat: (fd) => fs.fstatSync(fd),
-      openRepositoryRoot: (p, flags) => fs.openSync(p, flags),
-      openLockFile: (p, flags, mode) => fs.openSync(p, flags, mode),
-      mkdirLockDirectory: (p, opts) => fs.mkdirSync(p, opts),
-      close: (fd) => fs.closeSync(fd),
-    });
     tempDir = "/virtual/run-cmd-exec";
     runRoot = join(tempDir, ".olt", "runs", "test-run");
-    const vfs = getVirtualEngineFS();
     vfs.mkdirSync(tempDir, { recursive: true });
     vfs.mkdirSync(join(runRoot, "runtime"), { recursive: true });
     vfs.mkdirSync(join(tempDir, ".olt", ".locks"), { recursive: true });
+    vfs.writeFileSync(
+      join(tempDir, ".olt", "policy.json"),
+      JSON.stringify(generateCanonicalDefaultPolicy(tempDir, "bun")),
+    );
   });
 
   afterEach(() => {
@@ -50,12 +52,11 @@ describe("engine/runner/models/execution/run-command.ts - Execution Pipeline", (
       restoreDeps();
       restoreDeps = undefined;
     }
-    if (restoreLockDeps) {
-      restoreLockDeps();
-      restoreLockDeps = undefined;
-    }
     disableInMemoryAgentMetadata();
-    cleanupVirtualEngineFS();
+    if (session) {
+      session.cleanup();
+      session = null;
+    }
   });
 
   describe("executePreparedCommand and runCommand", () => {
@@ -220,7 +221,7 @@ describe("engine/runner/models/execution/run-command.ts - Execution Pipeline", (
       });
       const metaPath = join(runRoot, "runtime", "agent-worker-e2e.json");
       setInMemoryAgentMetadata(metaPath, JSON.stringify(meta, null, 2));
-      getVirtualEngineFS().writeFileSync(metaPath, JSON.stringify(meta, null, 2));
+      vfs.writeFileSync(metaPath, JSON.stringify(meta, null, 2));
 
       const mockResult: CommandResult = {
         exitCode: 0,

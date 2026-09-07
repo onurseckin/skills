@@ -1,31 +1,55 @@
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import * as fs from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   awakenTier0Governance,
   createTier0AgentGrants,
   initializeGovernance,
 } from "../../../olt/scripts/src/mind/governance/tier0-awakening.ts";
+import {
+  enableInMemorySessionStore,
+  disableInMemorySessionStore,
+} from "../../../olt/scripts/src/authority/session/paths.ts";
+import {
+  enableInMemoryAgentMetadata,
+  disableInMemoryAgentMetadata,
+} from "../../../olt/scripts/src/runtime/session.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Tier 0 Awakening & Repo Governance Suite (tier0-awakening.ts)", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
   let testDir: string;
   let runDir: string;
 
+  const writePkg = (name = "app") => {
+    vfs.writeFileSync(
+      join(testDir, "package.json"),
+      JSON.stringify({ name, scripts: { test: "bun test" } }),
+    );
+  };
+
   beforeEach(() => {
+    enableInMemorySessionStore();
+    enableInMemoryAgentMetadata();
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
     const id = `tier0-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    testDir = join(tmpdir(), `${id}-repo`);
+    testDir = `/virtual/${id}-repo`;
     runDir = join(testDir, ".runs", "run-1");
-    mkdirSync(testDir, { recursive: true });
-    mkdirSync(join(testDir, ".git"), { recursive: true });
-    mkdirSync(runDir, { recursive: true });
+    vfs.mkdirSync(testDir, { recursive: true });
+    vfs.mkdirSync(join(testDir, ".git"), { recursive: true });
+    vfs.mkdirSync(runDir, { recursive: true });
+    vfs.chdir(testDir);
   });
 
   afterEach(() => {
-    try {
-      rmSync(testDir, { recursive: true, force: true });
-    } catch {}
+    disableInMemorySessionStore();
+    disableInMemoryAgentMetadata();
+    session.cleanup();
   });
 
   describe("createTier0AgentGrants", () => {
@@ -48,11 +72,8 @@ describe("Tier 0 Awakening & Repo Governance Suite (tier0-awakening.ts)", () => 
 
   describe("initializeGovernance", () => {
     it("bootstraps .olt, policy, backlogs, and session grant on fresh repo", () => {
-      writeFileSync(
-        join(testDir, "package.json"),
-        JSON.stringify({ name: "pkg", scripts: { test: "bun test" } }),
-      );
-      writeFileSync(join(testDir, "bun.lockb"), "");
+      writePkg("pkg");
+      vfs.writeFileSync(join(testDir, "bun.lockb"), "");
 
       const status = initializeGovernance({
         repoRoot: testDir,
@@ -61,28 +82,33 @@ describe("Tier 0 Awakening & Repo Governance Suite (tier0-awakening.ts)", () => 
       });
 
       expect(status.ready).toBe(true);
-      expect(existsSync(status.olt_dir)).toBe(true);
-      expect(existsSync(status.policy_path)).toBe(true);
-      expect(existsSync(status.backlog_path)).toBe(true);
-      expect(existsSync(status.defects_path)).toBe(true);
-      expect(existsSync(status.session_path)).toBe(true);
-      const session = JSON.parse(readFileSync(status.session_path, "utf8"));
-      expect(session.agent_id).toBe("mind-init-test");
+      expect(vfs.existsSync(status.olt_dir)).toBe(true);
+      expect(vfs.existsSync(status.policy_path)).toBe(true);
+      expect(vfs.existsSync(status.backlog_path)).toBe(true);
+      expect(vfs.existsSync(status.defects_path)).toBe(true);
+      expect(vfs.existsSync(status.session_path)).toBe(true);
+      const sessionData = JSON.parse(vfs.readFileSync(status.session_path, "utf8")) as {
+        agent_id: string;
+      };
+      expect(sessionData.agent_id).toBe("mind-init-test");
     });
 
     it("preserves existing session, policy, and backlogs when already initialized", () => {
       const oltDir = join(testDir, ".olt");
-      mkdirSync(oltDir, { recursive: true });
+      vfs.mkdirSync(oltDir, { recursive: true });
       const policy = {
         schema_version: 1,
         ecosystem: "node",
         test_runner: { default_command: "bun test" },
         allowed_commands: ["bun"],
       };
-      writeFileSync(join(oltDir, "policy.json"), JSON.stringify(policy));
-      writeFileSync(join(oltDir, "backlog.jsonl"), '{"id":"t1"}\n');
-      writeFileSync(join(oltDir, "defects.jsonl"), '{"id":"d1"}\n');
-      writeFileSync(join(testDir, ".session.json"), JSON.stringify({ agent_id: "pre-existing" }));
+      vfs.writeFileSync(join(oltDir, "policy.json"), JSON.stringify(policy));
+      vfs.writeFileSync(join(oltDir, "backlog.jsonl"), '{"id":"t1"}\n');
+      vfs.writeFileSync(join(oltDir, "defects.jsonl"), '{"id":"d1"}\n');
+      vfs.writeFileSync(
+        join(testDir, ".session.json"),
+        JSON.stringify({ agent_id: "pre-existing" }),
+      );
 
       const status = initializeGovernance({
         repoRoot: testDir,
@@ -91,19 +117,19 @@ describe("Tier 0 Awakening & Repo Governance Suite (tier0-awakening.ts)", () => 
       });
 
       expect(status.ready).toBe(true);
-      expect(readFileSync(status.backlog_path, "utf8")).toBe('{"id":"t1"}\n');
-      expect(readFileSync(status.defects_path, "utf8")).toBe('{"id":"d1"}\n');
-      expect(JSON.parse(readFileSync(status.session_path, "utf8")).agent_id).toBe("pre-existing");
+      expect(vfs.readFileSync(status.backlog_path, "utf8")).toBe('{"id":"t1"}\n');
+      expect(vfs.readFileSync(status.defects_path, "utf8")).toBe('{"id":"d1"}\n');
+      const sessionData = JSON.parse(vfs.readFileSync(status.session_path, "utf8")) as {
+        agent_id: string;
+      };
+      expect(sessionData.agent_id).toBe("pre-existing");
     });
   });
 
   describe("awakenTier0Governance", () => {
     it("awakens tier 0 with testCommands=false (fast path) and syncs agent ledger", () => {
-      writeFileSync(
-        join(testDir, "package.json"),
-        JSON.stringify({ name: "app", scripts: { test: "bun test" } }),
-      );
-      writeFileSync(join(testDir, "bun.lockb"), "");
+      writePkg();
+      vfs.writeFileSync(join(testDir, "bun.lockb"), "");
 
       const res = awakenTier0Governance({
         repoRoot: testDir,
@@ -118,10 +144,10 @@ describe("Tier 0 Awakening & Repo Governance Suite (tier0-awakening.ts)", () => 
       expect(res.empiricalReport.verifiedCommands).toEqual([]);
 
       const ledgerPath = join(runDir, "agents.jsonl");
-      expect(existsSync(ledgerPath)).toBe(true);
-      const lines = readFileSync(ledgerPath, "utf8").trim().split("\n");
+      expect(vfs.existsSync(ledgerPath)).toBe(true);
+      const lines = vfs.readFileSync(ledgerPath, "utf8").trim().split("\n");
       expect(lines).toHaveLength(3);
-      expect(lines.map((l) => JSON.parse(l).id)).toEqual([
+      expect(lines.map((l) => (JSON.parse(l) as { id: string }).id)).toEqual([
         "mind-fast",
         "mind-fast-mind-auditor",
         "mind-fast-skill-auditor",
@@ -129,7 +155,7 @@ describe("Tier 0 Awakening & Repo Governance Suite (tier0-awakening.ts)", () => 
     });
 
     it("supports overrideEcosystem option and empirical command testing", () => {
-      writeFileSync(join(testDir, "requirements.txt"), "pytest\n");
+      vfs.writeFileSync(join(testDir, "requirements.txt"), "pytest\n");
 
       const res = awakenTier0Governance({
         repoRoot: testDir,
@@ -145,10 +171,7 @@ describe("Tier 0 Awakening & Repo Governance Suite (tier0-awakening.ts)", () => 
     });
 
     it("skips syncAgentLedger when runRoot is empty string", () => {
-      writeFileSync(
-        join(testDir, "package.json"),
-        JSON.stringify({ name: "app", scripts: { test: "bun test" } }),
-      );
+      writePkg();
 
       const res = awakenTier0Governance({
         repoRoot: testDir,
@@ -162,13 +185,10 @@ describe("Tier 0 Awakening & Repo Governance Suite (tier0-awakening.ts)", () => 
     });
 
     it("recovers gracefully from existing populated or malformed agents.jsonl", () => {
-      writeFileSync(
-        join(testDir, "package.json"),
-        JSON.stringify({ name: "app", scripts: { test: "bun test" } }),
-      );
+      writePkg();
       const initialJsonl =
         '{"id":"existing-agent","role":"worker"}\n\n{invalid json}\n{"id":"mind-merge","role":"mind"}\n';
-      writeFileSync(join(runDir, "agents.jsonl"), initialJsonl);
+      vfs.writeFileSync(join(runDir, "agents.jsonl"), initialJsonl);
 
       const res = awakenTier0Governance({
         repoRoot: testDir,
@@ -178,8 +198,8 @@ describe("Tier 0 Awakening & Repo Governance Suite (tier0-awakening.ts)", () => 
       });
 
       expect(res.ready).toBe(true);
-      const lines = readFileSync(join(runDir, "agents.jsonl"), "utf8").trim().split("\n");
-      const ids = lines.map((l) => JSON.parse(l).id);
+      const lines = vfs.readFileSync(join(runDir, "agents.jsonl"), "utf8").trim().split("\n");
+      const ids = lines.map((l) => (JSON.parse(l) as { id: string }).id);
       expect(ids).toContain("existing-agent");
       expect(ids).toContain("mind-merge");
       expect(ids).toContain("mind-merge-mind-auditor");
@@ -189,12 +209,9 @@ describe("Tier 0 Awakening & Repo Governance Suite (tier0-awakening.ts)", () => 
 
   describe("Advisory locking & safe atomic writes edge cases", () => {
     it("cleans up stale lock file (>10s old) and acquires lock", () => {
-      writeFileSync(
-        join(testDir, "package.json"),
-        JSON.stringify({ name: "app", scripts: { test: "bun test" } }),
-      );
+      writePkg();
       const lockPath = join(runDir, ".agents.lock");
-      writeFileSync(lockPath, `99999:${Date.now() - 30000}`);
+      vfs.writeFileSync(lockPath, `99999:${Date.now() - 30000}`);
 
       const res = awakenTier0Governance({
         repoRoot: testDir,
@@ -204,16 +221,13 @@ describe("Tier 0 Awakening & Repo Governance Suite (tier0-awakening.ts)", () => 
       });
 
       expect(res.ready).toBe(true);
-      expect(existsSync(join(runDir, "agents.jsonl"))).toBe(true);
+      expect(vfs.existsSync(join(runDir, "agents.jsonl"))).toBe(true);
     });
 
     it("cleans up lock file owned by dead process PID and acquires lock", () => {
-      writeFileSync(
-        join(testDir, "package.json"),
-        JSON.stringify({ name: "app", scripts: { test: "bun test" } }),
-      );
+      writePkg();
       const lockPath = join(runDir, ".agents.lock");
-      writeFileSync(lockPath, `99999999:${Date.now()}`);
+      vfs.writeFileSync(lockPath, `99999999:${Date.now()}`);
 
       const res = awakenTier0Governance({
         repoRoot: testDir,
@@ -226,12 +240,9 @@ describe("Tier 0 Awakening & Repo Governance Suite (tier0-awakening.ts)", () => 
     });
 
     it("handles read error in advisory lock check and retries cleanly", () => {
-      writeFileSync(
-        join(testDir, "package.json"),
-        JSON.stringify({ name: "app", scripts: { test: "bun test" } }),
-      );
+      writePkg();
       const lockPath = join(runDir, ".agents.lock");
-      writeFileSync(lockPath, "not-a-valid-pid-ts");
+      vfs.writeFileSync(lockPath, "not-a-valid-pid-ts");
 
       const res = awakenTier0Governance({
         repoRoot: testDir,
@@ -243,17 +254,14 @@ describe("Tier 0 Awakening & Repo Governance Suite (tier0-awakening.ts)", () => 
     });
 
     it("falls back to direct writeFileSync when renameSync fails in safeAtomicWrite", () => {
-      writeFileSync(
-        join(testDir, "package.json"),
-        JSON.stringify({ name: "app", scripts: { test: "bun test" } }),
-      );
+      writePkg();
 
-      const originalRename = fs.renameSync;
-      const renameSpy = spyOn(fs, "renameSync").mockImplementation((oldPath, newPath) => {
-        if (String(oldPath).includes("agents.jsonl.tmp.")) {
+      const origStat = vfs.statSync.bind(vfs);
+      const statSpy = spyOn(vfs, "statSync").mockImplementation((p, opts) => {
+        if (String(p).includes("agents.jsonl.tmp.")) {
           throw new Error("Simulated rename failure");
         }
-        return originalRename(oldPath, newPath);
+        return origStat(p, opts);
       });
 
       try {
@@ -264,20 +272,17 @@ describe("Tier 0 Awakening & Repo Governance Suite (tier0-awakening.ts)", () => 
           testCommands: false,
         });
         expect(res.ready).toBe(true);
-        expect(existsSync(join(runDir, "agents.jsonl"))).toBe(true);
+        expect(vfs.existsSync(join(runDir, "agents.jsonl"))).toBe(true);
       } finally {
-        renameSpy.mockRestore();
+        statSpy.mockRestore();
       }
     });
 
     it("catches errors silently if syncAgentLedger throws inside awakenTier0Governance", () => {
-      writeFileSync(
-        join(testDir, "package.json"),
-        JSON.stringify({ name: "app", scripts: { test: "bun test" } }),
-      );
+      writePkg();
 
       const badRunDir = join(testDir, "bad-run-file");
-      writeFileSync(badRunDir, "not a directory");
+      vfs.writeFileSync(badRunDir, "not a directory");
 
       const res = awakenTier0Governance({
         repoRoot: testDir,

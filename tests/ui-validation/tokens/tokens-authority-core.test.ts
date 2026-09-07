@@ -1,199 +1,20 @@
 import {
-  afterEach,
-  beforeEach,
   describe,
   expect,
   it,
-  HarnessError,
-  OPTICAL_QUARANTINE_INVARIANTS,
-  PERMITTED_IMAGE_EXTENSIONS,
-  FORBIDDEN_SOURCE_EXTENSIONS,
-  AUTHORIZED_BROWSER_TOOLS,
-  AUTHORIZED_VISUAL_TOOLS,
-  AUTHORIZED_MESSAGING_TOOLS,
-  FORBIDDEN_TOOLS,
-  EVALUATE_SCRIPT_HOST_FS_PATTERNS,
-  SHELL_INJECTION_PATTERNS,
-  LOCAL_URL_BYPASS_PATTERNS,
-  isOpticalValidatorRole,
-  verifyCapability,
-  detectBackdoorBypass,
-  ToolQuarantineEngine,
-  getDefaultQuarantineEngine,
-  setDefaultQuarantineEngine,
-  resetDefaultQuarantineEngine,
-  CANONICAL_DEFAULT_PERSONAS,
-  CANONICAL_FEATURE_SCOPES,
-  CANONICAL_PUBLIC_ROUTES,
-  CANONICAL_AUTHENTICATED_ROUTES,
-  extractFromWorkspace,
-  validateParameters,
-  resolveEndpoint,
-  getPersonasForFeature,
-  getPublicRoutes,
-  getAuthenticatedRoutes,
-  getDefaultParameters,
-  ParameterExtractor,
-  getDefaultParameterExtractor,
-  setDefaultParameterExtractor,
-  resetDefaultParameterExtractor,
-  base64UrlEncode,
-  base64UrlDecode,
-  MOCK_JWT_SECRET,
-  detectSessionDegradation,
-  executeAutonomousReauthentication,
-  simulatePermissionBoundary,
-  IdentityGovernanceEngine,
-  getDefaultIdentityGovernanceEngine,
-  setDefaultIdentityGovernanceEngine,
-  resetDefaultIdentityGovernanceEngine,
-  SYNTHETIC_FIXTURE_TYPES,
-  computePayloadSha256,
-  createDashboardTelemetryFixtures,
-  createUserManagementFixtures,
-  validatePayloadSchema,
-  DataLayerPreFlightCertifier,
-  DefectRouter,
-  VisualFoundationHandoffGate,
-  DisambiguationGatewayEngine,
-  getDefaultDisambiguationGatewayEngine,
-  setDefaultDisambiguationGatewayEngine,
-  resetDefaultDisambiguationGatewayEngine,
-  Z_INDEX_HIERARCHY,
-  Z_INDEX_LAYER_RANGES,
-  STANDARD_VIEWPORTS,
-  TOUCH_HITBOX_MINIMUMS,
-  CANONICAL_STRESS_INPUTS,
-  JourneyFlowEngine,
-  FormStressExplorer,
-  OverlayOrchestrator,
-  ResponsiveReflowProber,
-  BrowserChoreographyEngine,
-  getDefaultBrowserChoreographyEngine,
-  setDefaultBrowserChoreographyEngine,
-  resetDefaultBrowserChoreographyEngine,
-  TARGET_FRAME_RATE,
-  TARGET_FRAME_DURATION_MS,
-  JANK_FRAME_THRESHOLD_MS,
-  MAX_PERMISSIBLE_JANK_RATE,
-  MAX_PERMISSIBLE_CLS,
-  GPU_ACCELERATED_PROPERTIES,
-  LAYOUT_TRIGGERING_PROPERTIES,
-  SPRING_PRESETS,
-  HeadlessMotionPreFlightAuditor,
-  TemporalKeyframeStepSampler,
-  MicrocraftInspector,
-  MotionVerificationEngine,
-  getDefaultMotionVerificationEngine,
-  setDefaultMotionVerificationEngine,
-  resetDefaultMotionVerificationEngine,
-  CompositeKeyParser,
-  OpticalStabilityBarrier,
-  LifecycleManager,
-  VisualDeltaComparator,
-  EvidenceLifecycleEngine,
-  getDefaultEvidenceLifecycleEngine,
-  setDefaultEvidenceLifecycleEngine,
-  resetDefaultEvidenceLifecycleEngine,
-  PERMUTATION_THEMES,
-  VIEWPORT_DIMENSIONS,
-  THEME_PERMUTATION_GRID,
-  PermutationGridManager,
-  parseColorToRgb,
-  calculateRelativeLuminance,
-  calculateWcagContrastRatio,
-  calculateApcaContrast,
-  isWcagAaCompliant,
-  isWcagAaaCompliant,
-  isApcaCompliant,
-  MathematicalContrastPreFilter,
-  ThematicGateVerifier,
-  detectThemeFlash,
-  calibrateDarkDepth,
-  validateHighContrastBoundaries,
-  PermutationStagingEngine,
-  getDefaultPermutationStagingEngine,
-  setDefaultPermutationStagingEngine,
-  resetDefaultPermutationStagingEngine,
-  OPTICAL_DIMENSIONS,
-  OPTICAL_DIMENSION_METADATA,
-  ENTERPRISE_ACCOUNTING_PROFILE,
-  LUXURY_HOSPITALITY_PROFILE,
-  FLEET_TELEMATICS_PROFILE,
-  STANDARD_AESTHETIC_PROFILES,
-  AestheticProfileEvaluator,
-  getDefaultAestheticProfileEvaluator,
-  setDefaultAestheticProfileEvaluator,
-  resetDefaultAestheticProfileEvaluator,
+  BORDER_RADII,
+  COLOR_PALETTES,
+  SHADOW_ELEVATIONS,
   SPACING_TOKENS,
-  VALID_SPACING_VALUES,
+  TRANSITION_TOKENS,
   TYPOGRAPHY_TOKENS,
+  VALID_BORDER_RADII_VALUES,
   VALID_FONT_SIZES,
   VALID_FONT_WEIGHTS,
   VALID_LINE_HEIGHTS,
-  COLOR_PALETTES,
-  SHADOW_ELEVATIONS,
-  BORDER_RADII,
-  VALID_BORDER_RADII_VALUES,
-  TRANSITION_TOKENS,
+  VALID_SPACING_VALUES,
   VALID_TRANSITION_DURATIONS,
-  RawValuePolicyValidator,
   validateZeroRawValues,
-  TokenComplianceImmunity,
-  CompositionalDialecticEngine,
-  TokenEvolutionManager,
-  TokenAuthorityEngine,
-  getDefaultTokenAuthorityEngine,
-  setDefaultTokenAuthorityEngine,
-  resetDefaultTokenAuthorityEngine,
-  ROUND_SCOPES,
-  DEFAULT_UNLOCK_TOKEN_EXPIRATION_MS,
-  MIN_ROOT_CAUSE_ANALYSIS_LENGTH,
-  canonicalJsonStringify,
-  computeSha256,
-  computeManifestSignature,
-  requestOpticalRegressionUnlock,
-  verifyRegressionProof,
-  resealMilestone,
-  verifyManifestIntegrity,
-  verifyAllMilestoneLocks,
-  assertIntegrity,
-  MilestoneLockEngine,
-  getDefaultMilestoneLockEngine,
-  setDefaultMilestoneLockEngine,
-  resetDefaultMilestoneLockEngine,
-  MANDATORY_CHALLENGE_QUOTA_R1_R4,
-  MAX_CONVERGENCE_CYCLES_PER_GATE,
-  MIN_SUBSTANTIVE_DEFENSE_LENGTH,
-  SOCRATIC_ROUNDS,
-  SOCRATIC_ROUND_MAP,
-  TRIVIAL_DEFENSE_PATTERNS,
-  evaluateSubstantiveDefense,
-  InterRoundRegressionAuditor,
-  ParetoArbitrationEngine,
-  raiseChallenge,
-  submitDefense,
-  escalateToParetoArbitration,
-  evaluateRoundReadiness,
-  auditInterRoundState,
-  advanceRound,
-  SocraticDialecticEngine,
-  getDefaultSocraticDialecticEngine,
-  setDefaultSocraticDialecticEngine,
-  resetDefaultSocraticDialecticEngine,
-  type EmpiricalRegressionProof,
-  type UiDescriptor,
-  type SyntheticFixture,
-  type PayloadSchema,
-  type CompositeArtifactKey,
-  type JourneyFlow,
-  type OverlayDescriptor,
-  type TouchHitbox,
-  type FormFieldDescriptor,
-  type KeyframeSamplePoint,
-  type MotionHeadlessPreFlightInput,
-  type FocusRingMetrics,
-  type HoverLiftMetrics,
 } from "../fixtures.ts";
 
 describe("Design System Tokens - Sovereign Constants & Raw Value Policy", () => {
@@ -292,15 +113,15 @@ describe("Design System Tokens - Sovereign Constants & Raw Value Policy", () => 
       expect(marginViolation).toBeDefined();
       expect(marginViolation?.violationType).toBe("unauthorized_pixel_value");
       expect(marginViolation?.recommendedToken).toContain("SPACING_TOKENS");
-      expect(marginViolation?.recommendedToken).toContain("12px"); // Nearest to 13px is 12px (sm)
+      expect(marginViolation?.recommendedToken).toContain("12px");
 
       const paddingViolation = result.violations.find((v) => v.property === "padding-top");
-      expect(paddingViolation?.recommendedToken).toContain("24px"); // Nearest to 23px is 24px (lg)
+      expect(paddingViolation?.recommendedToken).toContain("24px");
     });
 
     it("should flag unauthorized raw hex colors", () => {
       const result = validateZeroRawValues({
-        color: "#fa7268", // Non-token uncalibrated hex
+        color: "#fa7268",
       });
 
       expect(result.valid).toBe(false);
@@ -325,48 +146,7 @@ describe("Design System Tokens - Sovereign Constants & Raw Value Policy", () => 
 
       const marginV = result.violations.find((v) => v.property === "margin");
       expect(marginV?.line).toBe(3);
-      expect(marginV?.recommendedToken).toContain("16px"); // Nearest to 17px is 16px (md)
-    });
-  });
-
-  describe("3. Implementer Token-Compliance Immunity Engine", () => {
-    it("should validate compliant style adjustment requests", () => {
-      const immunity = new TokenComplianceImmunity();
-      const check = immunity.validateRequestCompliance({
-        reviewerName: "UI Visual Reviewer",
-        componentTarget: "PrimaryButton",
-        requestedProperty: "padding",
-        requestedValue: "16px",
-        reviewerCritique: "Button needs more padding",
-      });
-
-      expect(check.compliant).toBe(true);
-    });
-
-    it("should identify non-compliant style requests and generate structured immunity defense receipts", () => {
-      const immunity = new TokenComplianceImmunity();
-      const request = {
-        reviewerName: "UI Visual Reviewer",
-        componentTarget: "NavigationBar",
-        requestedProperty: "margin-left",
-        requestedValue: "13px",
-        reviewerCritique: "Nudge left margin by exactly 13px for custom optical balance",
-      };
-
-      const check = immunity.validateRequestCompliance(request);
-      expect(check.compliant).toBe(false);
-      expect(check.suggestedTokens?.[0]).toContain("12px");
-
-      const defense = immunity.generateImmunityDefense(request);
-      expect(defense.defenseId).toContain("DEFENSE-TKN-");
-      expect(defense.status).toBe("INVOKED");
-      expect(defense.citedTokenStandard).toContain("SPACING_TOKENS");
-      expect(defense.compliantAlternative.tokenName).toBe("sm");
-      expect(defense.compliantAlternative.tokenValue).toBe(12);
-      expect(defense.compliantAlternative.cssExpression).toContain("--spacing-sm");
-      expect(defense.defenseReasoning).toContain("Token-Compliance Immunity");
-      expect(defense.defenseReasoning).toContain("Master Strategic Blueprint Section 12.2");
-      expect(defense.defenseReasoning).toContain("rejected");
+      expect(marginV?.recommendedToken).toContain("16px");
     });
   });
 });

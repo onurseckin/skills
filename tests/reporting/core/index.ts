@@ -3,6 +3,7 @@ export { coverageLcovSuiteName } from "./coverage-lcov.test.ts";
 export { coverageMarkdownSuiteName } from "./coverage-markdown.test.ts";
 export { coverageOrchestrationSuiteName } from "./coverage-orchestration.test.ts";
 export { reportingSuiteName } from "./reporting.test.ts";
+export { reportingDoctorSuiteName } from "./reporting-doctor.test.ts";
 export { tuiSuiteName } from "./tui.test.ts";
 export { unifiedReportSuiteName } from "./unified-report.test.ts";
 export { dispatchFailures, handoffArgv } from "./dispatchable.ts";

@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import { setupVirtualMindFS, cleanupVirtualMindFS, scratchRoot } from "../../fixtures/index.ts";
 import {
@@ -17,6 +16,7 @@ import {
   registerOrchestratorSpawn,
   type NewOrchestratorRecordInput,
 } from "../../../../olt/scripts/src/mind/lifecycle/index.ts";
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 function createInput(
   overrides: Partial<NewOrchestratorRecordInput> = {},
@@ -37,8 +37,9 @@ describe("Orchestrator Liveness & Zombie Auditor (in-memory virtual)", () => {
   let ledgerPath: string;
   let lockPath: string;
   let capsulesDir: string;
+  let vfs: VirtualMemoryFS;
 
-  const spawn = (id: string, pid = 10001) => {
+  const spawnOrchestrator = (id: string, pid = 10001) => {
     registerOrchestratorSpawn(createInput({ orchestrator_id: id, pid }), ledgerPath, lockPath);
   };
   const audit = (opts: Partial<AuditLivenessOptions> = {}) => {
@@ -57,12 +58,12 @@ describe("Orchestrator Liveness & Zombie Auditor (in-memory virtual)", () => {
   const firstStatus = () => loadOrchestratorLedger(ledgerPath)[0]?.status;
 
   beforeEach(() => {
-    setupVirtualMindFS();
+    vfs = setupVirtualMindFS();
     tempDir = scratchRoot("liveness-auditor", "test");
     ledgerPath = join(tempDir, "orchestrators.jsonl");
     lockPath = join(tempDir, "orchestrators.lock");
     capsulesDir = join(tempDir, ".olt", "capsules");
-    fs.mkdirSync(capsulesDir, { recursive: true });
+    vfs.mkdirSync(capsulesDir, { recursive: true });
   });
 
   afterEach(() => {
@@ -85,7 +86,7 @@ describe("Orchestrator Liveness & Zombie Auditor (in-memory virtual)", () => {
 
   describe("reclaimZombieOrchestrator", () => {
     test("transitions existing orchestrator to ZOMBIE_RECLAIMED", () => {
-      spawn("orch-target");
+      spawnOrchestrator("orch-target");
       expect(reclaim("orch-target")).toBe(true);
       expect(firstStatus()).toBe("ZOMBIE_RECLAIMED");
     });
@@ -97,7 +98,7 @@ describe("Orchestrator Liveness & Zombie Auditor (in-memory virtual)", () => {
 
   describe("zombie detection and reclamation", () => {
     test("detects and reclaims orchestrator with dead PID", () => {
-      spawn("orch-dead", 99999);
+      spawnOrchestrator("orch-dead", 99999);
       const rep = audit({ isPidAliveFn: (pid) => pid !== 99999, now: "2026-08-29T12:00:00.000Z" });
       expect(rep.zombies_reclaimed).toEqual(["orch-dead"]);
       expect(rep.total_active_orchestrators).toBe(0);
@@ -106,7 +107,7 @@ describe("Orchestrator Liveness & Zombie Auditor (in-memory virtual)", () => {
     });
 
     test("detects and reclaims orchestrator with stale heartbeat (> 300s)", () => {
-      spawn("orch-stale", 10002);
+      spawnOrchestrator("orch-stale", 10002);
       const rep = audit({
         isPidAliveFn: () => true,
         heartbeatThresholdSeconds: 300,
@@ -118,7 +119,7 @@ describe("Orchestrator Liveness & Zombie Auditor (in-memory virtual)", () => {
     });
 
     test("retains healthy active orchestrator without mutation", () => {
-      spawn("orch-healthy", 10003);
+      spawnOrchestrator("orch-healthy", 10003);
       const rep = audit({
         isPidAliveFn: () => true,
         heartbeatThresholdSeconds: 300,
@@ -132,9 +133,9 @@ describe("Orchestrator Liveness & Zombie Auditor (in-memory virtual)", () => {
 
     test("reclaims dead PID and stale heartbeat while preserving healthy ones in mixed roster", () => {
       const killed: number[] = [];
-      spawn("orch-1-healthy", 101);
-      spawn("orch-2-deadpid", 102);
-      spawn("orch-3-stale", 103);
+      spawnOrchestrator("orch-1-healthy", 101);
+      spawnOrchestrator("orch-2-deadpid", 102);
+      spawnOrchestrator("orch-3-stale", 103);
       const rep = audit({
         isPidAliveFn: (pid) => pid !== 102,
         killFn: (pid) => {
@@ -152,8 +153,8 @@ describe("Orchestrator Liveness & Zombie Auditor (in-memory virtual)", () => {
   describe("multi-capsule discovery and ghost detection", () => {
     test("detects detached orchestrator in isolated capsule directory", () => {
       const cap1 = join(capsulesDir, "capsule-alpha");
-      fs.mkdirSync(cap1, { recursive: true });
-      fs.writeFileSync(
+      vfs.mkdirSync(cap1, { recursive: true });
+      vfs.writeFileSync(
         join(cap1, "manifest.json"),
         JSON.stringify({ pid: 8888, orchestrator_id: "orch-alpha-detached" }),
       );

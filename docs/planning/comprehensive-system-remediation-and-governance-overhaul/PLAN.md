@@ -22,7 +22,7 @@
 ## Global Constraints
 
 - Strict adherence to The Three Hard Zeros on supervisory threads: 0 direct code edits, 0 unit test runs, 0 PR/critic reviews.
-- All code files must remain strictly <= 300 physical lines.
+- All code files must remain strictly <= 400 physical lines.
 - Directory fanout must remain strictly <= 10 files.
 - Named exports only; 0 `export *` wildcard exports; 0 facade bypasses.
 - All tests must strictly reside in the top-level `tests/` directory; zero test files under `skills/olt/` or `olt/`.
@@ -154,8 +154,8 @@
 
 ### Epic 18: Modularity Ratchet Strict Line Budget & Directory Fanout Enforcement
 
-- **Problem**: Several core files exceeded the 300 physical-line budget and had baseline exceptions.
-- **Remedy**: Decompose all files to strictly $\le 300$ physical lines, enforce directory fanout $\le 10$ files, named exports only in `index.ts`, and 0 facade bypasses.
+- **Problem**: Several core files exceeded the 400 physical-line budget and had baseline exceptions.
+- **Remedy**: Decompose all files to strictly $\le 400$ physical lines, enforce directory fanout $\le 10$ files, named exports only in `index.ts`, and 0 facade bypasses.
 - **Target Files**: `scripts/modularity/`, `package.json`, touched codebase files.
 - **Verification**: `bun run modularity:check`.
 

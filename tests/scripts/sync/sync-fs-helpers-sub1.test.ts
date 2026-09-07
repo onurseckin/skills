@@ -1,42 +1,44 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import {
-  existsSync,
-  lstatSync,
-  mkdirSync,
-  readFileSync,
-  readlinkSync,
-  symlinkSync,
-  writeFileSync,
-  type Stats,
-} from "node:fs";
+import type { Stats } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   FALLBACK_MARKER,
-  guardedRemoveSync,
   logDestructiveOp,
   smartEnsureSymlink,
 } from "../../../scripts/sync/fs-helpers.ts";
-import { cleanupVirtualSyncFS, scratchRoot, setupVirtualSyncFS } from "../../sync/sync-fixture.ts";
+import {
+  cleanupVirtualSyncFS,
+  getVirtualSyncFS,
+  getVirtualSyncSession,
+  isSymbolicLink,
+  scratchRoot,
+  setupVirtualSyncFS,
+} from "../../sync/sync-fixture.ts";
+
+let vfs: ReturnType<typeof getVirtualSyncFS>;
+let session: ReturnType<typeof getVirtualSyncSession>;
 
 beforeEach(() => {
-  setupVirtualSyncFS();
+  vfs = setupVirtualSyncFS();
+  session = getVirtualSyncSession();
 });
+
 afterEach(() => {
   cleanupVirtualSyncFS();
 });
 
 function initRealGitRepoAt(dirPath: string): void {
-  mkdirSync(join(dirPath, ".git"), { recursive: true });
-  writeFileSync(join(dirPath, "precious.txt"), "do-not-delete-me\n", "utf-8");
+  vfs.mkdirSync(join(dirPath, ".git"), { recursive: true });
+  vfs.writeFileSync(join(dirPath, "precious.txt"), "do-not-delete-me\n");
 }
 
 function setupAssistantRoots(testName: string) {
   const root = scratchRoot(import.meta.path, testName);
   const assistantDir = join(root, "assistant-skills");
   const targetOlt = join(root, "olt-deployment");
-  mkdirSync(assistantDir, { recursive: true });
-  mkdirSync(targetOlt, { recursive: true });
+  vfs.mkdirSync(assistantDir, { recursive: true });
+  vfs.mkdirSync(targetOlt, { recursive: true });
   return { root, assistantDir, targetOlt, linkPath: join(assistantDir, "olt") };
 }
 
@@ -67,46 +69,39 @@ describe("logDestructiveOp", () => {
 describe("smartEnsureSymlink refuses to destroy a real directory", () => {
   test("a real git-repo directory at the link path throws and survives untouched", () => {
     const { assistantDir, targetOlt, linkPath } = setupAssistantRoots("symlink-vs-git-repo");
-    writeFileSync(join(targetOlt, "SKILL.md"), "canonical\n", "utf-8");
+    vfs.writeFileSync(join(targetOlt, "SKILL.md"), "canonical\n");
     initRealGitRepoAt(linkPath);
 
     expect(() => smartEnsureSymlink(targetOlt, linkPath, { allowedRoots: [assistantDir] })).toThrow(
       HarnessError,
     );
-    expect(existsSync(linkPath)).toBe(true);
-    expect(lstatSync(linkPath).isSymbolicLink()).toBe(false);
-    expect(existsSync(join(linkPath, ".git"))).toBe(true);
-    expect(readFileSync(join(linkPath, "precious.txt"), "utf-8")).toBe("do-not-delete-me\n");
+    expect(vfs.existsSync(linkPath)).toBe(true);
+    expect(isSymbolicLink(linkPath)).toBe(false);
+    expect(vfs.existsSync(join(linkPath, ".git"))).toBe(true);
+    expect(vfs.readFileSync(join(linkPath, "precious.txt"), "utf-8")).toBe("do-not-delete-me\n");
   });
 
   test("a real plain directory (no .git) at the link path also throws and survives untouched", () => {
     const { assistantDir, targetOlt, linkPath } = setupAssistantRoots("symlink-vs-plain-dir");
-    mkdirSync(linkPath, { recursive: true });
-    writeFileSync(join(linkPath, "keepme.txt"), "still-here\n", "utf-8");
-
-    let caught: unknown;
-    try {
-      smartEnsureSymlink(targetOlt, linkPath, { allowedRoots: [assistantDir] });
-    } catch (error) {
-      caught = error;
-    }
-
-    expect(caught).toBeInstanceOf(HarnessError);
-    expect((caught as HarnessError).code).toBe("PATH_SAFETY");
-    expect((caught as HarnessError).message).toContain(linkPath);
-    expect(existsSync(linkPath)).toBe(true);
-    expect(lstatSync(linkPath).isDirectory()).toBe(true);
-    expect(readFileSync(join(linkPath, "keepme.txt"), "utf-8")).toBe("still-here\n");
-  });
-
-  test("a real file at the link path throws and survives untouched", () => {
-    const { assistantDir, targetOlt, linkPath } = setupAssistantRoots("symlink-vs-plain-file");
-    writeFileSync(linkPath, "not-a-symlink\n", "utf-8");
+    vfs.mkdirSync(linkPath, { recursive: true });
+    vfs.writeFileSync(join(linkPath, "keepme.txt"), "still-here\n");
 
     expect(() => smartEnsureSymlink(targetOlt, linkPath, { allowedRoots: [assistantDir] })).toThrow(
       HarnessError,
     );
-    expect(readFileSync(linkPath, "utf-8")).toBe("not-a-symlink\n");
+    expect(vfs.existsSync(linkPath)).toBe(true);
+    expect(vfs.statSync(linkPath).isDirectory()).toBe(true);
+    expect(vfs.readFileSync(join(linkPath, "keepme.txt"), "utf-8")).toBe("still-here\n");
+  });
+
+  test("a real file at the link path throws and survives untouched", () => {
+    const { assistantDir, targetOlt, linkPath } = setupAssistantRoots("symlink-vs-plain-file");
+    vfs.writeFileSync(linkPath, "not-a-symlink\n");
+
+    expect(() => smartEnsureSymlink(targetOlt, linkPath, { allowedRoots: [assistantDir] })).toThrow(
+      HarnessError,
+    );
+    expect(vfs.readFileSync(linkPath, "utf-8")).toBe("not-a-symlink\n");
   });
 
   test("throws when readExistingEntry encounters non-ENOENT error", () => {
@@ -148,37 +143,37 @@ describe("smartEnsureSymlink normal operation", () => {
     const { assistantDir, targetOlt, linkPath } = setupAssistantRoots("symlink-create");
     const status = smartEnsureSymlink(targetOlt, linkPath, { allowedRoots: [assistantDir] });
     expect(status).toBe("created");
-    expect(lstatSync(linkPath).isSymbolicLink()).toBe(true);
-    expect(readlinkSync(linkPath)).toBe(targetOlt);
+    expect(isSymbolicLink(linkPath)).toBe(true);
+    expect(session.symlinks.get(linkPath)).toBe(targetOlt);
   });
 
   test("is idempotent when the symlink already points at target", () => {
     const { assistantDir, targetOlt, linkPath } = setupAssistantRoots("symlink-idempotent");
-    symlinkSync(targetOlt, linkPath);
+    session.symlinkSync(targetOlt, linkPath);
     const status = smartEnsureSymlink(targetOlt, linkPath, { allowedRoots: [assistantDir] });
     expect(status).toBe("skipped");
-    expect(readlinkSync(linkPath)).toBe(targetOlt);
+    expect(session.symlinks.get(linkPath)).toBe(targetOlt);
   });
 
   test("re-points a stale symlink that targets something else atomically", () => {
     const { root, assistantDir, linkPath } = setupAssistantRoots("symlink-repoint");
     const oldTarget = join(root, "old-olt-deployment");
     const newTarget = join(root, "new-olt-deployment");
-    mkdirSync(oldTarget, { recursive: true });
-    mkdirSync(newTarget, { recursive: true });
+    vfs.mkdirSync(oldTarget, { recursive: true });
+    vfs.mkdirSync(newTarget, { recursive: true });
 
-    symlinkSync(oldTarget, linkPath);
+    session.symlinkSync(oldTarget, linkPath);
     const status = smartEnsureSymlink(newTarget, linkPath, { allowedRoots: [assistantDir] });
     expect(status).toBe("created");
-    expect(readlinkSync(linkPath)).toBe(newTarget);
+    expect(session.symlinks.get(linkPath)).toBe(newTarget);
   });
 
   test("re-points a broken symlink where readlinkSync throws", () => {
     const { root, assistantDir, linkPath } = setupAssistantRoots("symlink-broken-readlink");
     const newTarget = join(root, "new-olt-deployment");
-    mkdirSync(newTarget, { recursive: true });
+    vfs.mkdirSync(newTarget, { recursive: true });
 
-    symlinkSync(join(root, "non-existent-target"), linkPath);
+    session.symlinkSync(join(root, "non-existent-target"), linkPath);
 
     const status = smartEnsureSymlink(newTarget, linkPath, {
       allowedRoots: [assistantDir],
@@ -194,7 +189,7 @@ describe("smartEnsureSymlink normal operation", () => {
   test("falls back to safeCpSync if symlinkSync throws", () => {
     const { root, assistantDir } = setupAssistantRoots("symlink-fallback-cp");
     const targetFile = join(root, "target.txt");
-    writeFileSync(targetFile, "content-to-copy", "utf-8");
+    vfs.writeFileSync(targetFile, "content-to-copy");
 
     const linkPath = join(assistantDir, "copied-file.txt");
     const status = smartEnsureSymlink(targetFile, linkPath, {
@@ -206,15 +201,15 @@ describe("smartEnsureSymlink normal operation", () => {
       },
     });
     expect(status).toBe("created");
-    expect(existsSync(linkPath)).toBe(true);
-    expect(readFileSync(linkPath, "utf-8")).toBe("content-to-copy");
+    expect(vfs.existsSync(linkPath)).toBe(true);
+    expect(vfs.readFileSync(linkPath, "utf-8")).toBe("content-to-copy");
   });
 
   test("tags directory fallback copy with marker and permits subsequent sync runs", () => {
     const { root, assistantDir } = setupAssistantRoots("symlink-fallback-dir");
     const targetDir = join(root, "canonical-skill-dir");
-    mkdirSync(targetDir, { recursive: true });
-    writeFileSync(join(targetDir, "SKILL.md"), "canonical\n", "utf-8");
+    vfs.mkdirSync(targetDir, { recursive: true });
+    vfs.writeFileSync(join(targetDir, "SKILL.md"), "canonical\n");
 
     const linkPath = join(assistantDir, "olt");
     const mockDriver = {
@@ -227,13 +222,13 @@ describe("smartEnsureSymlink normal operation", () => {
       fsDriver: mockDriver,
     });
     expect(status1).toBe("created");
-    expect(existsSync(join(linkPath, FALLBACK_MARKER))).toBe(true);
+    expect(vfs.existsSync(join(linkPath, FALLBACK_MARKER))).toBe(true);
 
     const status2 = smartEnsureSymlink(targetDir, linkPath, {
       allowedRoots: [assistantDir],
       fsDriver: mockDriver,
     });
     expect(status2).toBe("created");
-    expect(existsSync(join(linkPath, "SKILL.md"))).toBe(true);
+    expect(vfs.existsSync(join(linkPath, "SKILL.md"))).toBe(true);
   });
 });

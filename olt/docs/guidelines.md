@@ -187,7 +187,7 @@ Every codebase contribution, harness tool, script, and documentation artifact mu
 +-------------------+------------------------------------------+-----------------------------------+
 | Type Safety       | Exact 0 TypeScript 'any' or 'as any'     | bun run typecheck                 |
 | Zero Suppressions | 0 @ts-ignore, @ts-expect-error, eslint   | bun test tests/unit               |
-| Context Sizing    | Prod <= 200 lines, Tests <= 250 lines    | tests/unit/architecture/file-size |
+| Context Sizing    | Files <= 400 lines    | tests/unit/architecture/file-size |
 | Zero Leakage      | 0 cross-skill runtime imports            | tests/unit/architecture/isolation |
 | Native Runtime    | Native Bun and node:* built-ins only     | tests/unit/architecture/vendor    |
 | Capsule Isolation | Ephemeral runtime state in .olt/capsules | tests/unit/docs/doc-separation    |
@@ -208,8 +208,8 @@ Every codebase contribution, harness tool, script, and documentation artifact mu
 
 To ensure optimal attention distribution when code is loaded into LLM context windows:
 
-- **Production Source Files:** Maximum 200 physical lines of code per file.
-- **Unit and Integration Test Files:** Maximum 250 physical lines of code per file.
+- **Production Source Files:** Maximum 400 physical lines of code per file.
+- **Unit and Integration Test Files:** Maximum 400 physical lines of code per file.
 - Files approaching these boundaries must be refactored into cohesive modular sub-components within focused subdirectories.
 
 ### 4.4 Zero Cross-Skill Runtime Leakage
@@ -390,7 +390,7 @@ Commits must strictly conform to Conventional Commits formatting:
 - `fix(<skill>): Remediate boundary leak, type defect, or parser bug`
 - `docs(<skill>): Update Diataxis documentation, book chapters, or references`
 - `test(<skill>): Add falsifiable counterfactual test suite`
-- `refactor(<skill>): Modularize subsystem to comply with 200-line limit`
+- `refactor(<skill>): Modularize subsystem to comply with 400-line limit`
 - `chore(<skill>): Update configuration or synchronization metadata`
 
 ---

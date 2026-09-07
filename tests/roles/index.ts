@@ -19,13 +19,13 @@ export {
 } from "./personas/index.ts";
 
 export {
-  resolveAbstractProfile,
-  formatRoleCheatSheet,
-  formatCommandCheatSheet,
-  buildRoleCheatSheetData,
-  buildAllRolesCheatSheetData,
-  type RoleResolutionInput,
-  type RoleResolutionResult,
+  resolveProfile,
+  resolveAgentProfile,
+  roleToProfile,
+  formatUniversalCheatSheet,
+  generateRoleCheatSheet,
+  buildCommandCheatSheet,
+  formatCommandSyntax,
 } from "./profiles/index.ts";
 
 export {

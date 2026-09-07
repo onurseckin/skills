@@ -27,9 +27,7 @@ describe("Mind Product Manager Autonomous Expansion Suite (product-manager.ts)",
   afterEach(() => {
     try {
       rmSync(testDir, { recursive: true, force: true });
-    } catch {
-      // Best effort cleanup
-    }
+    } catch {}
   });
 
   describe("discoverGroundedFeatures re-export", () => {
@@ -207,11 +205,9 @@ describe("Mind Product Manager Autonomous Expansion Suite (product-manager.ts)",
       expect(result.macroMetrics.span).toBeGreaterThan(0);
       expect(result.macroMetrics.idealConcurrency).toBeGreaterThanOrEqual(1);
 
-      // Verify task assignment tiers mapped correctly
       const tierMap = result.synthesizedTasks.map((t) => t.assigned_tier);
       expect(tierMap).toContain("Tier_3_Implementer");
 
-      // Verify tasks written to queue on disk
       expect(existsSync(queuePath)).toBe(true);
     });
 

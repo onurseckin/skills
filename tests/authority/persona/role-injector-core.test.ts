@@ -46,7 +46,7 @@ describe("VerbatimRoleInjector - Core Resolution & Manifest Loading", () => {
       }
     });
 
-    it("resolves candidates in precedence order: olt/agents/*.yaml, olt/agents/*.yml, agents/*.yaml, agents/*.yml", () => {
+    it("resolves candidates in precedence order: agents/*.yaml, agents/*.yml", () => {
       const vfs = getVirtualAuthorityFS();
       const sandbox = "/virtual/role-injector/candidate-precedence";
       const agentsDir = join(sandbox, "agents");
@@ -64,6 +64,17 @@ describe("VerbatimRoleInjector - Core Resolution & Manifest Loading", () => {
       expect(VerbatimRoleInjector.resolveManifestPath(sandbox, "test-role")).toBe(
         resolve(agentsYamlPath),
       );
+    });
+
+    it("resolves unhidden olt/agents/*.yaml and *.yml ahead of agents/*.yaml only for the skill-home repo root", () => {
+      const vfs = getVirtualAuthorityFS();
+      const sandbox = "/virtual/role-injector/candidate-precedence-skill-home";
+      const agentsDir = join(sandbox, "agents");
+      vfs.mkdirSync(agentsDir, { recursive: true });
+      vfs.writeFileSync(join(agentsDir, "test-role.yaml"), "name: agents-yaml\n");
+
+      vfs.mkdirSync(join(sandbox, "olt", "scripts"), { recursive: true });
+      vfs.writeFileSync(join(sandbox, "olt", "scripts", "harness.ts"), "");
 
       const oltAgentsDir = join(sandbox, "olt", "agents");
       vfs.mkdirSync(oltAgentsDir, { recursive: true });
@@ -79,6 +90,18 @@ describe("VerbatimRoleInjector - Core Resolution & Manifest Loading", () => {
 
       expect(VerbatimRoleInjector.resolveManifestPath(sandbox, "test-role")).toBe(
         resolve(oltAgentsYamlPath),
+      );
+    });
+
+    it("never resolves an unhidden olt/agents manifest for a bare consumer repo root", () => {
+      const vfs = getVirtualAuthorityFS();
+      const sandbox = "/virtual/role-injector/candidate-precedence-consumer";
+      const oltAgentsDir = join(sandbox, "olt", "agents");
+      vfs.mkdirSync(oltAgentsDir, { recursive: true });
+      vfs.writeFileSync(join(oltAgentsDir, "test-role.yaml"), "name: olt-agents-yaml\n");
+
+      expect(() => VerbatimRoleInjector.resolveManifestPath(sandbox, "test-role")).toThrow(
+        HarnessError,
       );
     });
 

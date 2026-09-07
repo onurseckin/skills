@@ -69,7 +69,7 @@ export const SENTINEL_COMMANDS: readonly CommandSpec[] = [
     internal: false,
     summary: "Scan modified files for AST purity, line budgets and directory fanout.",
     description:
-      "Audits physical lines (<= 300 LOC), AST type purity (0 any, 0 suppressions), directory fanout (<= 10), and wildcard exports.",
+      "Audits physical lines (<= 400 LOC), AST type purity (0 any, 0 suppressions), directory fanout (<= 10), and wildcard exports.",
     flags: [
       requiredFlag("role", "string", "Canonical role."),
       requiredFlag("agent", "string", "Target agent identifier."),

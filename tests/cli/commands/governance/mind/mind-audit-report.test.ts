@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   formatMindAuditReportBrief,
@@ -10,6 +9,7 @@ import { transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
 import {
   cleanupRoots,
   cleanupVirtualCliFS,
+  getVirtualCliFS,
   setupVirtualCliFS,
 } from "../../fixtures/full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "../../fixtures/task-ops-fixture.ts";
@@ -133,7 +133,7 @@ describe("mind-audit-report", () => {
     ).toThrow("answers file not found");
 
     const badJsonPath = join(run, "bad.json");
-    await writeFile(badJsonPath, "{ malformed json");
+    getVirtualCliFS().writeFileSync(badJsonPath, "{ malformed json");
     expect(() =>
       mindAuditReportCommand({
         run,
@@ -144,7 +144,7 @@ describe("mind-audit-report", () => {
     ).toThrow("failed to parse answers JSON file");
 
     const incompletePath = join(run, "incomplete.json");
-    await writeFile(
+    getVirtualCliFS().writeFileSync(
       incompletePath,
       JSON.stringify([{ question_id: "Q1", command_id: "cmd-1", verdict: "pass" }]),
     );
@@ -196,7 +196,7 @@ describe("mind-audit-report", () => {
       { question_id: "Q8", command_id: "c8", verdict: "pass" },
     ];
     const answersPath = join(run, "answers-findings.json");
-    await writeFile(answersPath, JSON.stringify(objectFailAnswers));
+    getVirtualCliFS().writeFileSync(answersPath, JSON.stringify(objectFailAnswers));
 
     expect(() =>
       mindAuditReportCommand({

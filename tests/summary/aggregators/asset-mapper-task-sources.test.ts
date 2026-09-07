@@ -3,7 +3,7 @@ import {
   collectCriticEvidenceAssets,
   collectReportAssets,
 } from "../../../olt/scripts/src/summary/assets/index.ts";
-import type { CompletionReview } from "../../../olt/scripts/src/workflow/completion/types.ts";
+import type { CompletionReview } from "../../../olt/scripts/src/workflow/completion/index.ts";
 import type { MediaAsset } from "../../../olt/scripts/src/summary/graph/index.ts";
 import { makeTask } from "../reporters/dag/graph-fixtures.ts";
 import { cleanupVirtualSummaryFS, setupVirtualSummaryFS } from "../fixture.ts";
@@ -183,7 +183,11 @@ describe("collectCriticEvidenceAssets", () => {
     expect(assetsEmpty).toHaveLength(0);
 
     const { assets: assetsUndefined } = collect((add, nextIndex) =>
-      collectCriticEvidenceAssets(review({ integrity_evidence: undefined as never }), add, nextIndex),
+      collectCriticEvidenceAssets(
+        review({ integrity_evidence: undefined as never }),
+        add,
+        nextIndex,
+      ),
     );
     expect(assetsUndefined).toHaveLength(0);
   });

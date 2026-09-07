@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   formatManifestFilename,
@@ -14,7 +13,12 @@ import type {
   ElementPhysicsSnapshot,
   ValidationContext,
 } from "../../../olt/scripts/src/capture/validator/types.ts";
-import { cleanupVirtualCaptureFS, scratchRoot, setupVirtualCaptureFS } from "../fixture.ts";
+import {
+  cleanupVirtualCaptureFS,
+  getVirtualCaptureFS,
+  scratchRoot,
+  setupVirtualCaptureFS,
+} from "../fixture.ts";
 
 describe("Synthesis Engine & Manifest Certification", () => {
   beforeEach(() => {
@@ -178,7 +182,7 @@ describe("Synthesis Engine & Manifest Certification", () => {
     it("saves and loads companion manifest v2.0 cleanly", async () => {
       const root = scratchRoot(import.meta.path, "manifest-save-load");
       const tempDir = join(root, "manifest-test");
-      await mkdir(tempDir, { recursive: true });
+      getVirtualCaptureFS().mkdirSync(tempDir, { recursive: true });
 
       const manifest: CompanionManifestV2 = {
         version: "2.0",
@@ -222,13 +226,12 @@ describe("Synthesis Engine & Manifest Certification", () => {
     it("loadCompanionManifest rejects invalid manifests or non-v2.0 versions", async () => {
       const root = scratchRoot(import.meta.path, "manifest-invalid");
       const tempDir = join(root, "manifest-invalid");
-      await mkdir(tempDir, { recursive: true });
+      getVirtualCaptureFS().mkdirSync(tempDir, { recursive: true });
 
       const invalidFilePath = join(tempDir, "invalid.json");
-      await writeFile(
+      getVirtualCaptureFS().writeFileSync(
         invalidFilePath,
         JSON.stringify({ version: "1.0", screenId: "test" }),
-        "utf8",
       );
 
       expect(loadCompanionManifest(invalidFilePath)).rejects.toThrow(
@@ -236,7 +239,7 @@ describe("Synthesis Engine & Manifest Certification", () => {
       );
 
       const nonObjectPath = join(tempDir, "non-obj.json");
-      await writeFile(nonObjectPath, JSON.stringify("not-an-object"), "utf8");
+      getVirtualCaptureFS().writeFileSync(nonObjectPath, JSON.stringify("not-an-object"));
       expect(loadCompanionManifest(nonObjectPath)).rejects.toThrow(
         "Invalid Companion Manifest v2.0",
       );

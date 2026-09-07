@@ -1,16 +1,24 @@
-/**
- * Tool Discovery & Codegen Facade.
- */
 export {
-  discoverTools,
+  discoverToolsFromDirectory,
+  discoverToolsFromManifest,
+  generateToolCatalogTypeScript,
+  jsonSchemaPropertyToToolParameter,
+  jsonSchemaToToolDefinition,
   parseToolSpec,
+  scanAndRegisterTools,
+  toCamelCase,
+  toPascalCase,
+  toolDefinitionToJsonSchema,
+  toolDefinitionToTypeScript,
+  toolParameterToJsonSchemaProperty,
+  toolParametersToTypeScriptFields,
   validateToolSpec,
-  type DiscoveredTool,
-  type ToolDiscoveryOptions,
-} from "../../../olt/scripts/src/tooling/discovery.ts";
+  type ParameterSchemaParseResult,
+  type ToolSchemaParseResult,
+} from "../../../olt/scripts/src/tooling/index.ts";
 
-export {
-  generateToolTypeScriptTypes,
-  generateToolSchemaJson,
-  generateToolModuleDeclaration,
-} from "../../../olt/scripts/src/tooling/schema-codegen.ts";
+export type {
+  DiscoveredTool,
+  DiscoveryOptions,
+  DiscoveryReport,
+} from "../../../olt/scripts/src/tooling/index.ts";

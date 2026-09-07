@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   completionIssues,
   gateTally,
-} from "../../../../olt/scripts/src/workflow/completion/completion-state.ts";
+} from "../../../../olt/scripts/src/workflow/completion/index.ts";
 import { commandRecord, TEST_GATE_ARGV, workflowState } from "../../shared/test-port.ts";
 import type { WorkflowState } from "../../../../olt/scripts/src/workflow/types.ts";
 
@@ -199,5 +199,93 @@ describe("gateTally and completion state verification edge cases", () => {
     expect(issues).toContain("packet P-1 is not durably published");
     expect(issues).toContain("completion artifact verification digest is invalid");
     expect(issues).toContain("completion result provenance is stale");
+  });
+});
+
+describe("completionIssues: two-key validator pairing landing gate", () => {
+  test("does not block landing when a done task carries both an implementer and an independent validator receipt", () => {
+    const state = workflowState();
+    Object.assign(state.tasks["T-1"]!, {
+      status: "done",
+      original_implementer: "implementer-1",
+      report: { summary: "done" },
+      attempts: [{ agent_id: "implementer-1", submitted_at: "2026-08-13T12:00:00.000Z" }],
+      validations: [
+        {
+          validator_id: "validator-2",
+          domain: "code-quality",
+          token_digest: "digest",
+          attempt: 1,
+          started_at: "2026-08-13T12:00:00.000Z",
+          deadline_at: "2026-08-13T13:00:00.000Z",
+          verdict: "pass",
+          reviewed_requirement_ids: ["R-1"],
+          checks: [{ command_id: "C-V" }],
+        },
+      ],
+    });
+    const issues = completionIssues(state);
+    expect(issues.some((issue) => issue.includes("two-key"))).toBe(false);
+    expect(issues.some((issue) => issue.includes("Implementer test receipt"))).toBe(false);
+    expect(issues.some((issue) => issue.includes("Cognitive Validator audit receipt"))).toBe(false);
+  });
+
+  test("blocks landing when a done task has no implementer receipt", () => {
+    const state = workflowState();
+    Object.assign(state.tasks["T-1"]!, {
+      status: "done",
+      report: { summary: "done" },
+      validations: [
+        {
+          validator_id: "validator-2",
+          domain: "code-quality",
+          token_digest: "digest",
+          attempt: 1,
+          started_at: "2026-08-13T12:00:00.000Z",
+          deadline_at: "2026-08-13T13:00:00.000Z",
+          verdict: "pass",
+        },
+      ],
+    });
+    expect(completionIssues(state)).toContain(
+      "task T-1 lacks an independent Implementer test receipt",
+    );
+  });
+
+  test("blocks landing when a done task has no cognitive validator receipt", () => {
+    const state = workflowState();
+    Object.assign(state.tasks["T-1"]!, {
+      status: "done",
+      original_implementer: "implementer-1",
+      report: { summary: "done" },
+      attempts: [{ agent_id: "implementer-1", submitted_at: "2026-08-13T12:00:00.000Z" }],
+    });
+    expect(completionIssues(state)).toContain(
+      "task T-1 lacks an independent Cognitive Validator audit receipt",
+    );
+  });
+
+  test("blocks landing when the validator identity equals the implementer identity", () => {
+    const state = workflowState();
+    Object.assign(state.tasks["T-1"]!, {
+      status: "done",
+      original_implementer: "same-actor",
+      report: { summary: "done" },
+      attempts: [{ agent_id: "same-actor", submitted_at: "2026-08-13T12:00:00.000Z" }],
+      validations: [
+        {
+          validator_id: "same-actor",
+          domain: "code-quality",
+          token_digest: "digest",
+          attempt: 1,
+          started_at: "2026-08-13T12:00:00.000Z",
+          deadline_at: "2026-08-13T13:00:00.000Z",
+          verdict: "pass",
+        },
+      ],
+    });
+    expect(completionIssues(state)).toContain(
+      "task T-1 two-key validator pairing invalid: Implementer and Cognitive Validator must be independent actors.",
+    );
   });
 });

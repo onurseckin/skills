@@ -9,31 +9,12 @@ import {
 import {
   agentIdToRole,
   agentIdToTier,
-  roleToTier as strictRoleToTier,
+  roleToTier,
   validateTierSpawning,
   type ExecutionTier,
-} from "../thread/index.ts";
+} from "../thread/tier/index.ts";
 
-const SENTINEL_ROLE_TIER_PREFIXES: ReadonlyArray<readonly [string, ExecutionTier]> = [
-  ["mind-auditor", 1],
-  ["mind", 0],
-  ["human", 0],
-  ["lead", 0],
-  ["auditor", 1],
-  ["orchestrator", 1],
-  ["orch", 1],
-  ["coordinator", 2],
-  ["coord", 2],
-];
-
-export function roleToTier(role: string): ExecutionTier {
-  if (!role || typeof role !== "string") return 3;
-  const normalized = role.toLowerCase().trim();
-  for (const [prefix, tier] of SENTINEL_ROLE_TIER_PREFIXES) {
-    if (normalized === prefix || normalized.startsWith(prefix)) return tier;
-  }
-  return 3;
-}
+export { roleToTier };
 
 export {
   type AuditorLeaseLock,

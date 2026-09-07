@@ -1,4 +1,12 @@
-export { renderAsciiRoleTable } from "./ascii-table.ts";
+export {
+  renderAsciiRoleTable,
+  formatUniversalCheatSheet,
+  generateRoleCheatSheet,
+  listAvailableRoles,
+  parseRoleContract,
+  buildCommandCheatSheet,
+  formatCommandSyntax,
+} from "./presentation/index.ts";
 export { FORBIDDEN_VALIDATOR_COMMANDS, validateRoleAuthorityInvariants } from "./authority.ts";
 export { CANONICAL_ROLE_CAPABILITIES } from "./capability-matrix.ts";
 export {
@@ -8,12 +16,6 @@ export {
   isCommandPermitted,
   isSubagentSpawnPermitted,
 } from "./role-boundary.ts";
-export {
-  formatUniversalCheatSheet,
-  generateRoleCheatSheet,
-  listAvailableRoles,
-  parseRoleContract,
-} from "./cheat-sheets.ts";
 export {
   assertValidManifest,
   validateAgentManifestSchema,
@@ -38,7 +40,6 @@ export {
   resolveRoleArchetype,
   roleToProfile,
 } from "./profiles.ts";
-export { buildCommandCheatSheet, formatCommandSyntax } from "./syntax.ts";
 export type {
   AbstractProfile,
   AgentProfileResolution,

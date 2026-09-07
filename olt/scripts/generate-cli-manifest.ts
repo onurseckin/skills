@@ -89,6 +89,7 @@ export function writeManifest(): { markdown: string; splitFiles: string[] } {
   splitFiles.push(join(paths.splitRoot, "manifest.json"));
 
   const largeDomains = ["mind", "reporting", "plan", "task", "diagnostics"];
+  const domainsWithShardCatalog = ["diagnostics"];
   const allCommands = capabilityManifest().commands;
 
   let indexJsonl = renderCommandIndexJsonl();
@@ -141,6 +142,7 @@ export function writeManifest(): { markdown: string; splitFiles: string[] } {
       ];
 
       const sortedShards = Array.from(shards.keys()).sort();
+      const shardCatalogEntries: Array<{ id: string; path: string }> = [];
       for (const shard of sortedShards) {
         const lines = shards.get(shard);
         if (!lines) {
@@ -148,11 +150,24 @@ export function writeManifest(): { markdown: string; splitFiles: string[] } {
         }
         const shardFile = `domains/${domain}/${shard}.md`;
         domainIndexContent.push(`- [${shard}](${domain}/${shard}.md)`);
+        shardCatalogEntries.push({ id: shard, path: `${shard}.md` });
 
         const target = join(paths.splitRoot, shardFile);
         mkdirSync(dirname(target), { recursive: true });
         writeFileSync(target, lines.join("\n").trimEnd() + "\n", "utf-8");
         splitFiles.push(target);
+      }
+
+      if (domainsWithShardCatalog.includes(domain)) {
+        const shardCatalog = {
+          schema: "olt-cli-catalog/v1",
+          domain,
+          entries: shardCatalogEntries,
+        };
+        const catalogTarget = join(paths.splitRoot, `domains/${domain}/index.json`);
+        mkdirSync(dirname(catalogTarget), { recursive: true });
+        writeFileSync(catalogTarget, JSON.stringify(shardCatalog, null, 2) + "\n", "utf-8");
+        splitFiles.push(catalogTarget);
       }
 
       const target = join(paths.splitRoot, `domains/${domain}.md`);

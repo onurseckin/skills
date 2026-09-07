@@ -1,7 +1,5 @@
-import { describe, expect, it } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import {
   deregisterOrchestrator,
   isValidHostType,
@@ -15,6 +13,11 @@ import {
   type NewOrchestratorRecordInput,
 } from "../../../../olt/scripts/src/mind/lifecycle/orchestration/orchestrator-ledger.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 function createValidInput(
   partial: Partial<NewOrchestratorRecordInput> = {},
@@ -32,6 +35,18 @@ function createValidInput(
 }
 
 describe("Orchestrator Ledger Suite (orchestrator-ledger.ts)", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
+
+  beforeEach(() => {
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+  });
+
+  afterEach(() => {
+    session.cleanup();
+  });
+
   describe("Type Validators & Record Parsers", () => {
     it("validates host types and lifecycle statuses", () => {
       expect(isValidHostType("antigravity")).toBe(true);
@@ -99,30 +114,26 @@ describe("Orchestrator Ledger Suite (orchestrator-ledger.ts)", () => {
 
   describe("Ledger File Operations & Lock Mechanism", () => {
     it("reads empty ledger when file does not exist or uses default path", () => {
-      const nonExistent = join(tmpdir(), `missing-ledger-${Date.now()}.jsonl`);
+      const nonExistent = join("/virtual", `missing-ledger-${Date.now()}.jsonl`);
       expect(loadOrchestratorLedger(nonExistent)).toEqual([]);
       expect(Array.isArray(loadOrchestratorLedger())).toBe(true);
     });
 
     it("throws INTEGRITY error when ledger file contains invalid JSON lines or invalid schemas", () => {
-      const testDir = join(tmpdir(), `corrupt-ledger-${Date.now()}`);
-      mkdirSync(testDir, { recursive: true });
+      const testDir = join("/virtual", `corrupt-ledger-${Date.now()}`);
+      vfs.mkdirSync(testDir, { recursive: true });
       const badSyntax = join(testDir, "bad-syntax.jsonl");
-      writeFileSync(badSyntax, "this is not valid json\n");
+      vfs.writeFileSync(badSyntax, "this is not valid json\n");
 
       const badSchema = join(testDir, "bad-schema.jsonl");
-      writeFileSync(badSchema, '{"orchestrator_id": "bad"}\n');
+      vfs.writeFileSync(badSchema, '{"orchestrator_id": "bad"}\n');
 
-      try {
-        expect(() => loadOrchestratorLedger(badSyntax)).toThrow(HarnessError);
-        expect(() => loadOrchestratorLedger(badSchema)).toThrow(HarnessError);
-      } finally {
-        rmSync(testDir, { recursive: true, force: true });
-      }
+      expect(() => loadOrchestratorLedger(badSyntax)).toThrow(HarnessError);
+      expect(() => loadOrchestratorLedger(badSchema)).toThrow(HarnessError);
     });
 
     it("executes functions under withOrchestratorLedgerLock", () => {
-      const lockPath = join(tmpdir(), `lock-test-${Date.now()}.lock`);
+      const lockPath = join("/virtual", `lock-test-${Date.now()}.lock`);
       const val = withOrchestratorLedgerLock(lockPath, () => 42);
       expect(val).toBe(42);
     });
@@ -130,60 +141,52 @@ describe("Orchestrator Ledger Suite (orchestrator-ledger.ts)", () => {
 
   describe("Orchestrator Registration, Heartbeat, and Deregistration", () => {
     it("registers new orchestrator and handles re-registration with same and different pids", () => {
-      const testDir = join(tmpdir(), `ledger-crud-${Date.now()}`);
-      mkdirSync(testDir, { recursive: true });
+      const testDir = join("/virtual", `ledger-crud-${Date.now()}`);
+      vfs.mkdirSync(testDir, { recursive: true });
       const ledger = join(testDir, ".olt", "orchestrators.jsonl");
       const lock = join(testDir, ".olt", "locks", "orchestrators.lock");
 
-      try {
-        const input1 = createValidInput({ orchestrator_id: "orch-alpha", pid: 100 });
-        const rec1 = registerOrchestratorSpawn(input1, ledger, lock);
-        expect(rec1.orchestrator_id).toBe("orch-alpha");
-        expect(rec1.status).toBe("ACTIVE");
+      const input1 = createValidInput({ orchestrator_id: "orch-alpha", pid: 100 });
+      const rec1 = registerOrchestratorSpawn(input1, ledger, lock);
+      expect(rec1.orchestrator_id).toBe("orch-alpha");
+      expect(rec1.status).toBe("ACTIVE");
 
-        const inputSamePid = createValidInput({
-          orchestrator_id: "orch-alpha",
-          pid: 100,
-          run_id: "run-2",
-        });
-        const recUpdated = registerOrchestratorSpawn(inputSamePid, ledger, lock);
-        expect(recUpdated.run_id).toBe("run-2");
-        expect(recUpdated.spawned_at).toBe(rec1.spawned_at);
+      const inputSamePid = createValidInput({
+        orchestrator_id: "orch-alpha",
+        pid: 100,
+        run_id: "run-2",
+      });
+      const recUpdated = registerOrchestratorSpawn(inputSamePid, ledger, lock);
+      expect(recUpdated.run_id).toBe("run-2");
+      expect(recUpdated.spawned_at).toBe(rec1.spawned_at);
 
-        const inputDiffPid = createValidInput({ orchestrator_id: "orch-alpha", pid: 200 });
-        expect(() => registerOrchestratorSpawn(inputDiffPid, ledger, lock)).toThrow(HarnessError);
+      const inputDiffPid = createValidInput({ orchestrator_id: "orch-alpha", pid: 200 });
+      expect(() => registerOrchestratorSpawn(inputDiffPid, ledger, lock)).toThrow(HarnessError);
 
-        const hbRec = updateOrchestratorHeartbeat("orch-alpha", ledger, lock);
-        expect(hbRec).not.toBeNull();
-        expect(hbRec?.orchestrator_id).toBe("orch-alpha");
+      const hbRec = updateOrchestratorHeartbeat("orch-alpha", ledger, lock);
+      expect(hbRec).not.toBeNull();
+      expect(hbRec?.orchestrator_id).toBe("orch-alpha");
 
-        const deregRec = deregisterOrchestrator("orch-alpha", "COMPLETED", ledger, lock);
-        expect(deregRec?.status).toBe("COMPLETED");
+      const deregRec = deregisterOrchestrator("orch-alpha", "COMPLETED", ledger, lock);
+      expect(deregRec?.status).toBe("COMPLETED");
 
-        const inputNewSpawn = createValidInput({ orchestrator_id: "orch-alpha", pid: 300 });
-        const recReplaced = registerOrchestratorSpawn(inputNewSpawn, ledger, lock);
-        expect(recReplaced.pid).toBe(300);
-      } finally {
-        rmSync(testDir, { recursive: true, force: true });
-      }
+      const inputNewSpawn = createValidInput({ orchestrator_id: "orch-alpha", pid: 300 });
+      const recReplaced = registerOrchestratorSpawn(inputNewSpawn, ledger, lock);
+      expect(recReplaced.pid).toBe(300);
     });
 
     it("handles no-op and edge cases for heartbeat and deregistration", () => {
-      const testDir = join(tmpdir(), `ledger-edge-${Date.now()}`);
-      mkdirSync(testDir, { recursive: true });
+      const testDir = join("/virtual", `ledger-edge-${Date.now()}`);
+      vfs.mkdirSync(testDir, { recursive: true });
       const ledger = join(testDir, "custom", "orchestrators.jsonl");
 
-      try {
-        expect(updateOrchestratorHeartbeat("", ledger)).toBeNull();
-        expect(updateOrchestratorHeartbeat("non-existent", ledger)).toBeNull();
-        expect(deregisterOrchestrator("  ", "COMPLETED", ledger)).toBeNull();
-        expect(deregisterOrchestrator("non-existent", "FAILED", ledger)).toBeNull();
-        expect(() =>
-          deregisterOrchestrator("orch-x", "BAD_STATUS" as unknown as "FAILED", ledger),
-        ).toThrow(HarnessError);
-      } finally {
-        rmSync(testDir, { recursive: true, force: true });
-      }
+      expect(updateOrchestratorHeartbeat("", ledger)).toBeNull();
+      expect(updateOrchestratorHeartbeat("non-existent", ledger)).toBeNull();
+      expect(deregisterOrchestrator("  ", "COMPLETED", ledger)).toBeNull();
+      expect(deregisterOrchestrator("non-existent", "FAILED", ledger)).toBeNull();
+      expect(() =>
+        deregisterOrchestrator("orch-x", "BAD_STATUS" as unknown as "FAILED", ledger),
+      ).toThrow(HarnessError);
     });
   });
 });

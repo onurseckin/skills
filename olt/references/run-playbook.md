@@ -41,7 +41,7 @@ bun $PINNED plan:add --run $RUN --id <task-id> --label "<label>" --scope <path> 
   --gate "<gate-cmd>" --actor coordinator --requirement-lines "3-5" [--deps <dep-id>]
 
 bun $PINNED plan:status --run $RUN
-bun $PINNED plan:compile --run $RUN --actor planner --completion-gate "bun test tests/unit"
+bun $PINNED plan:compile --run $RUN --actor planner --completion-gate "<completion-gate>"
 ```
 
 `--completion-gate` is required: it is the command the whole run is finally held to, and the compiler
@@ -131,7 +131,7 @@ bun $PINNED branch:open --run $RUN --parent-task T-01 --agent worker-1 --token <
   --reason "parser rewrite blocks the API change and the two touch disjoint trees" \
   --sub-task S-1 --sub-label S-1="Fix the parser"    --sub-scope S-1=src/store/parser \
   --sub-task S-2 --sub-label S-2="Adapt the API"     --sub-scope S-2=src/api \
-  --sub-gate S-1="bun test tests/unit/store/parser.test.ts"
+  --sub-gate S-1="<targeted-test-command> tests/unit/store/parser.test.ts"
 
 # 2. Register and dispatch one sub-agent per sub-task, then each claims exactly one
 bun $PINNED agent:register --run $RUN --agent sub-1 --role sub-implementer --host claude-code \
@@ -160,7 +160,7 @@ bun $PINNED task:validate-start --run $RUN --task <task-id> --validator <val-age
 
 # Gate proof under monitoring; the recorded exit code is what a pass is judged on
 bun $PINNED run:exec --run $RUN --task <task-id> --gate <gate-id> --actor <val-agent> -- <gate-argv...>
-bun $PINNED run:exec --run $RUN --task <task-id> --gate gate-ui-visual --actor <val-agent> -- bun test tests/visual
+bun $PINNED run:exec --run $RUN --task <task-id> --gate gate-ui-visual --actor <val-agent> -- <test-runner> tests/visual
 
 bun $PINNED evidence:get --run $RUN --task <task-id> --screenshots
 bun $PINNED report:get   --run $RUN --task <task-id> --screenshots

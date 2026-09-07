@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { AstLintRuleModule } from "../ast/index.ts";
+import type { AstLintRuleModule } from "../core/index.ts";
 
 export const nullishCoalescingRule: AstLintRuleModule = {
   rule: "nullish_coalescing",

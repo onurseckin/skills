@@ -1,3 +1,4 @@
+import { inferRoleFromAgentId, normalizeRoleName } from "../../authority/thread/index.ts";
 import { CODE_EDIT_TOOLS } from "../../platform/index.ts";
 import type { BoundaryLeakCheck } from "./types.ts";
 
@@ -112,13 +113,9 @@ export function isCriticOrValidatorAgent(agentId: string): boolean {
 export function isSupervisorRole(role: string): boolean {
   const normalized = role.trim().toLowerCase();
   if (SUPERVISORY_ROLES.has(normalized)) return true;
-  return (
-    normalized.startsWith("mind-") ||
-    normalized.startsWith("coord-") ||
-    normalized.startsWith("coordinator-") ||
-    normalized.startsWith("orch-") ||
-    normalized.startsWith("orchestrator-")
-  );
+  const canonical = normalizeRoleName(normalized) ?? inferRoleFromAgentId(normalized);
+  if (canonical && SUPERVISORY_ROLES.has(canonical)) return true;
+  return false;
 }
 
 export function isCodeMutationAction(action: string): boolean {

@@ -1,5 +1,6 @@
 import type { AgentRole } from "../core/contracts/index.ts";
 import { HarnessError } from "../core/errors/index.ts";
+import { roleToTier } from "../authority/thread/index.ts";
 import { loadRoleContract, resolveRoleContractPath, type RoleContract } from "./role-contract.ts";
 import {
   formatHierarchicalRemediation,
@@ -8,27 +9,7 @@ import {
   type DetectedHost,
 } from "./command-authority-remediation.ts";
 
-export function roleToTier(role: string): number {
-  const r = role.toLowerCase().trim();
-  if (r === "mind" || r.startsWith("mind-") || r.includes("mind")) return 0;
-  if (
-    r === "orchestrator" ||
-    r.startsWith("orchestrator-") ||
-    r.startsWith("orch-") ||
-    r.includes("orchestrator")
-  ) {
-    return 1;
-  }
-  if (
-    r === "coordinator" ||
-    r.startsWith("coordinator-") ||
-    r.startsWith("coord-") ||
-    r.includes("coordinator")
-  ) {
-    return 2;
-  }
-  return 3;
-}
+export { roleToTier };
 
 export interface HierarchicalSpawningCheck {
   readonly valid: boolean;

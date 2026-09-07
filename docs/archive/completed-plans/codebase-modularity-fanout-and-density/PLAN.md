@@ -13,7 +13,7 @@
 
 ### 1.1 Backlog & Defect IDs
 
-1. `fb-codebase-modularity-fanout-facade-and-density-remediation`: Exhaustive Codebase Modularity (Directory Fanout $\le 10$ files, Physical Line Limits $\le 300$ LOC, Semantic Parity). Subsystems: `olt/scripts/src/reporting/`, `olt/scripts/src/graph/`, `olt/scripts/src/packets/`, `olt/scripts/src/mind/`.
+1. `fb-codebase-modularity-fanout-facade-and-density-remediation`: Exhaustive Codebase Modularity (Directory Fanout $\le 10$ files, Physical Line Limits $\le 400$ LOC, Semantic Parity). Subsystems: `olt/scripts/src/reporting/`, `olt/scripts/src/graph/`, `olt/scripts/src/packets/`, `olt/scripts/src/mind/`.
 2. `defect-mechanical-chunk-naming-anti-pattern`: Automated mechanical file splitting created meaningless `*-chunkN.ts` and `*_partN.ts` files instead of domain-semantic modularization.
 3. `defect-mind-proposals-semantic-renaming-missing-files`: Missing `renderers.ts` and `table.ts` referenced during proposals domain semantic migration.
 4. `defect-mind-brief-missing-format-citation-export`: Missing export `formatCitation` in `formatter.ts` during proposals semantic refactor.
@@ -23,7 +23,7 @@
 
 #### 1. Directory Fanout & Physical LOC Bloat
 
-- **`olt/scripts/src/packets/`:** Contains 52 flat files, and `packet-slicing.ts` spans 952 lines (exceeds the $\le 300$ LOC limit).
+- **`olt/scripts/src/packets/`:** Contains 52 flat files, and `packet-slicing.ts` spans 952 lines (exceeds the $\le 400$ LOC limit).
 - **`olt/scripts/src/graph/`:** Contains 37 flat files in root directory.
 - **`olt/scripts/src/reporting/`:** Contains 34 flat files in root directory.
 - **Root Cause:** Monolithic implementation of packet slicing, graph layout/validation, and reporting actions without domain-bounded subdirectory clustering.
@@ -51,7 +51,7 @@
 
 ## 2. Architectural Constraints & Invariants
 
-1. **Strict LOC Budget ($\le 300$ LOC/file):** Every decomposed file must not exceed 300 physical lines.
+1. **Strict LOC Budget ($\le 400$ LOC/file):** Every decomposed file must not exceed 400 physical lines.
 2. **Directory Density Limit ($\le 10$ files/dir):** Flat directories are grouped into domain-bounded subdirectories with dedicated named facades.
 3. **Named Facades (0 Wildcard `export *`):** 100% explicit named exports across all barrels and facades.
 4. **Zero Any Invariant:** **0 implicit or explicit `any`**, 0 `as any`, 0 `<any>`, 0 compiler suppressions (`@ts-ignore`, `@ts-expect-error`, `@ts-nocheck`).
@@ -70,7 +70,7 @@
 | **HOST_BOUNDARY**        | Path normalization across disparate filesystem roots in proposal builder  | `resolveFilePath` with strict repo root confinement.                              |
 | **STATE_TRANSITION**     | Invalid proposal state transitions (e.g. `granted -> needs_authority`)    | `VALID_PROPOSAL_TRANSITIONS` state machine rejects illegal state transitions.     |
 | **TYPE_INVARIANT**       | Missing exports or implicit any in proposal formatting or evolution types | Strict type definitions and export assertions verified via `tsc --noEmit`.        |
-| **CLI_TELEMETRY**        | Doctor engine reporting directory density and LOC compliance              | Doctor hygiene engine enforces $\le 300$ LOC and $\le 10$ files/dir.              |
+| **CLI_TELEMETRY**        | Doctor engine reporting directory density and LOC compliance              | Doctor hygiene engine enforces $\le 400$ LOC and $\le 10$ files/dir.              |
 | **ADVERSARIAL_GATE**     | Anti-batching or chunk naming regressively introduced                     | Linter and AST purity tests fail immediately if `chunkN.ts` or `any` is detected. |
 
 ---
@@ -181,7 +181,7 @@ bun test tests/unit/doctor/unified-master-doctor-engines.test.ts
 | :-------------------------------- | :------------------------------------------------------------ | :-------------------------------- | :------- |
 | **Mechanical Chunk Anti-Pattern** | File named `*-chunkN.ts`, `*_partN.ts`, or generic `parts.ts` | `MECHANICAL_CHUNK_NAMING_BLUNDER` | `ERROR`  |
 | **Directory Fanout Density**      | Directory contains $> 10$ files                               | `DENSITY_BUDGET_EXCEEDED`         | `ERROR`  |
-| **Physical File Length**          | File contains $> 300$ physical LOC                            | `PHYSICAL_LOC_EXCEEDED`           | `ERROR`  |
+| **Physical File Length**          | File contains $> 400$ physical LOC                            | `PHYSICAL_LOC_EXCEEDED`           | `ERROR`  |
 | **Barrel Facade Integrity**       | Sub-module export missing from directory facade `index.ts`    | `BARREL_EXPORT_MISSING`           | `ERROR`  |
 | **State Machine Governance**      | Illegal proposal state transition                             | `INVALID_PROPOSAL_TRANSITION`     | `ERROR`  |
 

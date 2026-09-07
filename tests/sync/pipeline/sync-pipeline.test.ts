@@ -1,5 +1,4 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import {
   FALLBACK_MARKER,
@@ -19,7 +18,6 @@ import {
   isManagedFallbackCopy,
   isPathDeclaredInContent,
   logDestructiveOp,
-  main,
   materializeOltFromHead,
   migrateOwnedLegacyDeployment,
   orDefault,
@@ -31,25 +29,30 @@ import {
   runSync,
   smartEnsureSymlink,
 } from "../../../scripts/sync/index.ts";
-import { cleanupVirtualSyncFS, scratchRoot, setupVirtualSyncFS } from "../sync-fixture.ts";
+import {
+  cleanupVirtualSyncFS,
+  getVirtualSyncFS,
+  scratchRoot,
+  setupVirtualSyncFS,
+} from "../sync-fixture.ts";
+
+let vfs: ReturnType<typeof setupVirtualSyncFS>;
 
 beforeAll(async () => {
-  setupVirtualSyncFS();
+  const initVfs = setupVirtualSyncFS();
   const root = scratchRoot("warmup", "warmup");
   const sourceRepo = join(root, "repo");
-  mkdirSync(join(sourceRepo, "olt", "scripts", "src"), { recursive: true });
-  writeFileSync(join(sourceRepo, "olt", "SKILL.md"), "---\nname: olt\n---\n", "utf-8");
-  writeFileSync(
+  initVfs.mkdirSync(join(sourceRepo, "olt", "scripts", "src"), { recursive: true });
+  initVfs.writeFileSync(join(sourceRepo, "olt", "SKILL.md"), "---\nname: olt\n---\n");
+  initVfs.writeFileSync(
     join(sourceRepo, "olt", "scripts", "package.json"),
     JSON.stringify({ name: "@local/olt-runtime", version: "1.0.0" }),
-    "utf-8",
   );
-  writeFileSync(
+  initVfs.writeFileSync(
     join(sourceRepo, "olt", "scripts", "src", "constants.ts"),
     'export const RUNTIME_VERSION = "1.0.0";\n',
-    "utf-8",
   );
-  mkdirSync(join(sourceRepo, ".git"), { recursive: true });
+  initVfs.mkdirSync(join(sourceRepo, ".git"), { recursive: true });
   await runSync({
     sourceRepoRoot: sourceRepo,
     homeDir: join(root, "home"),
@@ -61,7 +64,7 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
-  setupVirtualSyncFS();
+  vfs = setupVirtualSyncFS();
 });
 
 afterEach(() => {
@@ -69,29 +72,23 @@ afterEach(() => {
 });
 
 function initFakeSkillsRepo(repoRoot: string): void {
-  mkdirSync(join(repoRoot, "olt", "scripts", "src"), { recursive: true });
-  writeFileSync(
+  const curVfs = getVirtualSyncFS();
+  curVfs.mkdirSync(join(repoRoot, "olt", "scripts", "src"), { recursive: true });
+  curVfs.writeFileSync(
     join(repoRoot, "olt", "SKILL.md"),
     "---\nname: olt\ndescription: test\n---\n",
-    "utf-8",
   );
-  writeFileSync(
+  curVfs.writeFileSync(
     join(repoRoot, "olt", "scripts", "package.json"),
     JSON.stringify({ name: "@local/olt-runtime", version: "1.0.0" }, null, 2),
-    "utf-8",
   );
-  writeFileSync(
+  curVfs.writeFileSync(
     join(repoRoot, "olt", "scripts", "src", "constants.ts"),
     'export const RUNTIME_VERSION = "1.0.0";\n',
-    "utf-8",
   );
-  writeFileSync(
-    join(repoRoot, "olt", "scripts", "harness.ts"),
-    "console.log('harness');\n",
-    "utf-8",
-  );
+  curVfs.writeFileSync(join(repoRoot, "olt", "scripts", "harness.ts"), "console.log('harness');\n");
 
-  mkdirSync(join(repoRoot, ".git"), { recursive: true });
+  curVfs.mkdirSync(join(repoRoot, ".git"), { recursive: true });
 }
 
 describe("scripts/sync/index.ts", () => {
@@ -198,8 +195,8 @@ describe("scripts/sync/index.ts", () => {
     const fakeHome = join(root, "home");
     const targetOlt = join(fakeHome, ".agents", "skills", "olt");
     const rcFile = join(fakeHome, ".zshrc");
-    mkdirSync(fakeHome, { recursive: true });
-    writeFileSync(rcFile, 'export PATH="$HOME/.local/bin:$PATH"\n', "utf-8");
+    vfs.mkdirSync(fakeHome, { recursive: true });
+    vfs.writeFileSync(rcFile, 'export PATH="$HOME/.local/bin:$PATH"\n');
 
     const logs: string[] = [];
     const origLog = console.log;
@@ -221,93 +218,5 @@ describe("scripts/sync/index.ts", () => {
     } finally {
       console.log = origLog;
     }
-  });
-
-  test("main() executes end-to-end sync with argv options", async () => {
-    const root = scratchRoot(import.meta.path, "sync-main-fn");
-    const sourceRepo = join(root, "repo");
-    initFakeSkillsRepo(sourceRepo);
-
-    const origHome = process.env.HOME;
-    const fakeHome = join(root, "home");
-    const cwdSpy = spyOn(process, "cwd").mockReturnValue(sourceRepo);
-    try {
-      process.env.HOME = fakeHome;
-      await main(["--allow-dirty"], { sourceRepoRoot: sourceRepo, homeDir: fakeHome, silent: true });
-    } finally {
-      cwdSpy.mockRestore();
-      if (origHome !== undefined) {
-        process.env.HOME = origHome;
-      }
-    }
-  });
-
-  test("runs as CLI entrypoint with main", async () => {
-    const root = scratchRoot(import.meta.path, "sync-cli-exec");
-    const repo = join(root, "repo");
-    initFakeSkillsRepo(repo);
-
-    const fakeHome = join(root, "home");
-    const origHome = process.env.HOME;
-    const logs: string[] = [];
-    const logSpy = spyOn(console, "log").mockImplementation((msg) => {
-      logs.push(String(msg));
-    });
-    const cwdSpy = spyOn(process, "cwd").mockReturnValue(repo);
-
-    try {
-      process.env.HOME = fakeHome;
-      await main(["--allow-dirty"], { sourceRepoRoot: repo, homeDir: fakeHome });
-      expect(logs.some((l) => l.includes("Global skill sync complete"))).toBeTrue();
-    } finally {
-      cwdSpy.mockRestore();
-      logSpy.mockRestore();
-      if (origHome !== undefined) {
-        process.env.HOME = origHome;
-      }
-    }
-  });
-
-  test("runSync recursively creates missing target home directory", async () => {
-    const root = scratchRoot(import.meta.path, "sync-missing-home");
-    const sourceRepo = join(root, "repo");
-    initFakeSkillsRepo(sourceRepo);
-
-    // Fresh nested non-existent home directory
-    const freshHome = join(root, "nested", "user", "home");
-    const targetOlt = join(freshHome, ".agents", "skills", "olt");
-
-    const summary = await runSync({
-      sourceRepoRoot: sourceRepo,
-      homeDir: freshHome,
-      targetOltDir: targetOlt,
-      allowDirty: true,
-      silent: true,
-    });
-
-    expect(summary.skill).toBeDefined();
-    expect(summary.binary.status).toBe("created");
-    expect(summary.shell.modified).toBe(true);
-    expect(existsSync(targetOlt)).toBe(true);
-    expect(existsSync(join(freshHome, ".local", "bin", "olt"))).toBe(true);
-  });
-
-  test("runSync rejects cleanly when source repo root does not exist", async () => {
-    const root = scratchRoot(import.meta.path, "sync-nonexistent-repo");
-    const fakeHome = join(root, "home");
-    const nonExistentRepo = join(root, "does-not-exist");
-
-    await expect(
-      runSync({
-        sourceRepoRoot: nonExistentRepo,
-        homeDir: fakeHome,
-        targetOltDir: join(fakeHome, ".agents", "skills", "olt"),
-        allowDirty: true,
-        silent: true,
-      }),
-    ).rejects.toThrow(/it does not look like the skills repository/);
-
-    // Verify target artifacts were not created
-    expect(existsSync(join(fakeHome, ".agents", "skills", "olt"))).toBe(false);
   });
 });

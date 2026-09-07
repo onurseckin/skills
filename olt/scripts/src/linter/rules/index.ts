@@ -1,4 +1,4 @@
-import type { AstLintRuleModule } from "../ast/index.ts";
+import type { AstLintRuleModule } from "../core/index.ts";
 import { anyTypeRule } from "./any_type.ts";
 import { compilerSuppressionRule } from "./compiler_suppression.ts";
 import { logicalOrFallbackRule } from "./logical_or_fallback.ts";

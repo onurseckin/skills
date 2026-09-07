@@ -56,7 +56,7 @@ RUN=.olt/capsules/<slug>
 ```bash
 bun $PINNED plan:add --run $RUN --id task-d --label "Domain bank" --actor coordinator \
   --auto-partition "src/curriculum/mlQuestions/*.ts" \
-  --gate-template "bun test {scope}"
+  --gate-template "<test-runner-targeted> {scope}"
 ```
 
 This registers one task per matched file (`task-d-src-curriculum-mlQuestions-linearAlgebra-ts`, …),
@@ -73,7 +73,7 @@ A hand-declared dependency still needs a task's own `--scope`/`--gate`, plus one
 
 ```bash
 bun $PINNED plan:add --run $RUN --id task-index-aggregation --label "Aggregate domain indices" \
-  --scope src/curriculum/index.ts --gate "bun test src/curriculum/index.ts" --actor coordinator \
+  --scope src/curriculum/index.ts --gate "<test-runner-targeted> src/curriculum/index.ts" --actor coordinator \
   --deps task-d1-linear-algebra,task-d2-calculus-opt \
   --dep-reason "task-d1-linear-algebra:reads the question index task-d1 writes" \
   --dep-reason "task-d2-calculus-opt:reads the question index task-d2 writes"
@@ -86,7 +86,7 @@ edges were declared and why. Stating the reason is what makes an edge the planne
 visible to the planner itself, before it becomes an unquestioned barrier ten agents wait behind.
 
 ```bash
-bun $PINNED plan:compile --run $RUN --actor planner --completion-gate "bun test tests/unit"
+bun $PINNED plan:compile --run $RUN --actor planner --completion-gate "<completion-gate>"
 ```
 
 An edge whose write scopes are provably disjoint is also `plan:audit`'s `A4-false-barrier` — see

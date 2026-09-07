@@ -3,7 +3,7 @@ import { hostname } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { atomicWriteJson, fsyncDirectory } from "../../core/durable-write.ts";
-import { LOCKS_DIRECTORY } from "../../engine/store/layout/index.ts";
+const LOCKS_DIRECTORY = ".locks";
 
 interface Observer {
   path: string;

@@ -1,10 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import * as fs from "node:fs";
 import * as path from "node:path";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import {
-  DEFAULT_ORCHESTRATOR_LEDGER_FILE,
-  DEFAULT_ORCHESTRATOR_LOCK_FILE,
   deregisterOrchestrator,
   isValidHostType,
   isValidStatus,
@@ -22,6 +19,7 @@ import {
   scratchRoot,
   setupVirtualMindFS,
 } from "../../fixtures/mind-fixture.ts";
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 function createValidInput(
   partial: Partial<NewOrchestratorRecordInput> = {},
@@ -42,9 +40,10 @@ describe("Mind Assembly Lifecycle Orchestrator Ledger Suite", () => {
   let testDir: string;
   let ledgerPath: string;
   let lockPath: string;
+  let vfs: VirtualMemoryFS;
 
   beforeEach(() => {
-    setupVirtualMindFS();
+    vfs = setupVirtualMindFS();
     testDir = scratchRoot("orchestrator-ledger");
     ledgerPath = path.join(testDir, ".olt", "orchestrators.jsonl");
     lockPath = path.join(testDir, ".olt", "locks", "orchestrators.lock");
@@ -158,25 +157,25 @@ describe("Mind Assembly Lifecycle Orchestrator Ledger Suite", () => {
         manifest_sha256: "hash-ws",
         last_heartbeat_at: "2026-09-01T00:00:00.000Z",
       });
-      fs.mkdirSync(path.dirname(ledgerPath), { recursive: true });
-      fs.writeFileSync(ledgerPath, `\n   \n${validLine}\n\n   \t  \n`, "utf8");
+      vfs.mkdirSync(path.dirname(ledgerPath), { recursive: true });
+      vfs.writeFileSync(ledgerPath, `\n   \n${validLine}\n\n   \t  \n`, "utf8");
       const records = loadOrchestratorLedger(ledgerPath);
       expect(records).toHaveLength(1);
       expect(records[0]?.orchestrator_id).toBe("orch-ws");
     });
 
     it("throws INTEGRITY error when ledger line is invalid JSON or malformed schema", () => {
-      fs.mkdirSync(path.dirname(ledgerPath), { recursive: true });
-      fs.writeFileSync(ledgerPath, "invalid json string\n", "utf8");
+      vfs.mkdirSync(path.dirname(ledgerPath), { recursive: true });
+      vfs.writeFileSync(ledgerPath, "invalid json string\n", "utf8");
       expect(() => loadOrchestratorLedger(ledgerPath)).toThrow(HarnessError);
 
-      fs.writeFileSync(ledgerPath, '{"orchestrator_id":"incomplete"}\n', "utf8");
+      vfs.writeFileSync(ledgerPath, '{"orchestrator_id":"incomplete"}\n', "utf8");
       expect(() => loadOrchestratorLedger(ledgerPath)).toThrow(HarnessError);
     });
 
     it("executes critical blocks within withOrchestratorLedgerLock in VirtualMemoryFS", () => {
       const result = withOrchestratorLedgerLock(lockPath, () => {
-        expect(fs.existsSync(lockPath)).toBe(true);
+        expect(vfs.existsSync(lockPath)).toBe(true);
         return "lock-acquired-successfully";
       });
       expect(result).toBe("lock-acquired-successfully");
@@ -261,7 +260,7 @@ describe("Mind Assembly Lifecycle Orchestrator Ledger Suite", () => {
 
     it("updates heartbeat timestamp for existing active orchestrator", () => {
       const input = createValidInput({ orchestrator_id: "orch-hb", pid: 6001 });
-      const created = registerOrchestratorSpawn(input, ledgerPath, lockPath);
+      registerOrchestratorSpawn(input, ledgerPath, lockPath);
 
       const updated = updateOrchestratorHeartbeat("orch-hb", ledgerPath, lockPath);
       expect(updated).not.toBeNull();

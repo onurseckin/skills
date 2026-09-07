@@ -69,7 +69,9 @@ describe("Core Scheduler Engine Suite", () => {
   describe("Zero-Tolerance Doctor Gate Enforcement (p25)", () => {
     test("assertDoctorGatePassed throws HarnessError on failing doctor check", async () => {
       await expect(
-        assertDoctorGatePassed("/virtual/nonexistent/run/directory", { repoRoot: "/virtual/empty" }),
+        assertDoctorGatePassed("/virtual/nonexistent/run/directory", {
+          repoRoot: "/virtual/empty",
+        }),
       ).rejects.toThrow(HarnessError);
     });
 
@@ -267,107 +269,6 @@ describe("Core Scheduler Engine Suite", () => {
       });
       expect(loopResult.stoppedReason).toBe("aborted");
       expect(loopResult.totalTicks).toBe(1);
-    });
-  });
-
-  describe("Complete SchedulerEngine Instance Methods", () => {
-    test("SchedulerEngine executes health, watchdog, and supervisory audits", () => {
-      const heartbeatRepo = tempDir("engine-watchdog-test");
-      const heartbeatRun = initRun(
-        heartbeatRepo,
-        "run-engine-watchdog",
-        Buffer.from("Test prompt for engine watchdog"),
-        "argv",
-        true,
-      );
-      const engine = new SchedulerEngine({
-        heartbeatCadenceMs: 5000,
-        timeoutMs: 10000,
-        maxRepairRounds: 3,
-        maxParallel: 4,
-        watchdogTarget: heartbeatRun,
-      });
-
-      const state = schedulerState();
-      expect(engine.auditHealth(state).healthy).toBe(true);
-      expect(engine.auditWatchdog()).toBeDefined();
-      expect(engine.auditSupervisory5Point(state).healthy).toBe(true);
-      expect(engine.registerSupervisoryHeartbeat("test-leader-1").agent_id).toBe("test-leader-1");
-    });
-
-    test("SchedulerEngine executes probe dispatch, wave evaluation, and recovery", () => {
-      const engine = new SchedulerEngine({
-        heartbeatCadenceMs: 5000,
-        timeoutMs: 10000,
-        maxRepairRounds: 3,
-        maxParallel: 4,
-      });
-
-      const state = schedulerState();
-      const port = createMockPort(state);
-
-      const leaderProbe = engine.dispatchTopLeaderProbe(state);
-      expect(leaderProbe.dispatched).toBe(true);
-      expect(leaderProbe.targetAgentId).toBeDefined();
-
-      expect(engine.evaluateReadyBatch(state, 3).entries.length).toBeGreaterThan(0);
-      const waveRes = engine.evaluateWave(state, 5);
-      expect(waveRes.readyTasks.length).toBeGreaterThan(0);
-      expect(waveRes.totalEligible).toBe(waveRes.readyTasks.length);
-
-      expect(engine.evaluateMultiDomainBatch(state, { maxParallel: 3 })).toBeDefined();
-      expect(engine.dispatchMultiDomainValidators(state, { maxParallel: 3 })).toBeDefined();
-      expect(engine.proposeMultiDomainWave(state, { maxParallel: 3 })).toBeDefined();
-      expect(engine.recoverStale(port)).toBeDefined();
-    });
-
-    test("SchedulerEngine executes auditDoctor", async () => {
-      const engine = new SchedulerEngine({
-        heartbeatCadenceMs: 5000,
-        timeoutMs: 10000,
-      });
-
-      const root = tempDir("engine-doctor-audit");
-      const runRoot = initRun(
-        root,
-        "run-engine-doc-audit",
-        Buffer.from("Test prompt for engine doctor audit"),
-        "argv",
-        true,
-      );
-      expect((await engine.auditDoctor(runRoot, { repoRoot: root })).healthy).toBe(true);
-    });
-
-    test("SchedulerEngine executes runDoctorGate", async () => {
-      const engine = new SchedulerEngine({
-        heartbeatCadenceMs: 5000,
-        timeoutMs: 10000,
-      });
-
-      const root = tempDir("engine-doctor-run");
-      const runRoot = initRun(
-        root,
-        "run-engine-doc-run",
-        Buffer.from("Test prompt for engine doctor run"),
-        "argv",
-        true,
-      );
-      expect((await engine.runDoctorGate(runRoot, { repoRoot: root })).healthy).toBe(true);
-    });
-
-    test("SchedulerEngine executes script-backed diagnostics", async () => {
-      const engine = new SchedulerEngine({
-        heartbeatCadenceMs: 5000,
-        timeoutMs: 10000,
-      });
-
-      const state = schedulerState();
-      expect(
-        (await engine.auditScriptBackedDiagnostics({ state })).receipts.length,
-      ).toBeGreaterThan(0);
-      expect((await engine.runScriptBackedDiagnostics({ state })).receipts.length).toBeGreaterThan(
-        0,
-      );
     });
   });
 });

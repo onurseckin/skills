@@ -1,29 +1,34 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   createSuspendedAnimationEngine,
   type PausableTask,
   type SuspendedAnimationEngine,
 } from "../../../../olt/scripts/src/mind/lifecycle/suspended-animation.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Suspended Animation Engine Lifecycle Suite", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
   let tempDir: string;
   let engine: SuspendedAnimationEngine;
 
   beforeEach(() => {
-    tempDir = join(
-      tmpdir(),
-      `suspend-engine-cov-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    );
-    mkdirSync(tempDir, { recursive: true });
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    tempDir = `/virtual/suspend-engine-cov-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    vfs.mkdirSync(tempDir, { recursive: true });
+    vfs.chdir(tempDir);
     engine = createSuspendedAnimationEngine();
   });
 
   afterEach(() => {
     engine.dispose();
-    rmSync(tempDir, { recursive: true, force: true });
+    session.cleanup();
   });
 
   describe("Task & Timer Registration and Freezing", () => {
@@ -52,7 +57,7 @@ describe("Suspended Animation Engine Lifecycle Suite", () => {
         id: "timer-unreg",
         durationMs: 5000,
       });
-      unregisterTimer(); // removed immediately
+      unregisterTimer();
 
       engine.registerTimer({
         id: "timer-active",
@@ -77,7 +82,6 @@ describe("Suspended Animation Engine Lifecycle Suite", () => {
       expect(snapshot.tasksDag[0]?.taskId).toBe("task-test-01");
       expect(snapshot.tasksDag[0]?.checkpointData).toEqual({ offset: 42 });
 
-      // Check frozen timers
       expect(snapshot.frozenTimers.length).toBe(1);
       expect(snapshot.frozenTimers[0]?.id).toBe("timer-active");
       expect(snapshot.frozenTimers[0]?.elapsedMs).toBe(4000);
@@ -87,7 +91,6 @@ describe("Suspended Animation Engine Lifecycle Suite", () => {
       expect(snapshot.contextState).toEqual({ loopCount: 3 });
       expect(snapshot.socraticMemory).toEqual({ hypothesis: "active" });
 
-      // Resume from disk snapshot
       const restoreResult = await engine.resumeFromSnapshot(tempDir);
       expect(restoreResult.success).toBe(true);
       expect(restoreResult.restoredTaskCount).toBe(1);
@@ -106,14 +109,14 @@ describe("Suspended Animation Engine Lifecycle Suite", () => {
         customSnapshotPath: snapshotPath,
       });
 
-      expect(existsSync(snapshotPath)).toBe(true);
+      expect(vfs.existsSync(snapshotPath)).toBe(true);
 
       const res = await engine.resumeFromSnapshot(snapshotPath, {
         deleteSnapshotOnSuccess: false,
       });
 
       expect(res.success).toBe(true);
-      expect(existsSync(snapshotPath)).toBe(true); // preserved on disk
+      expect(vfs.existsSync(snapshotPath)).toBe(true);
     });
 
     it("returns failure RestorationResult when no snapshot is found on disk", async () => {

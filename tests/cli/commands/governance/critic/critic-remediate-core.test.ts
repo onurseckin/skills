@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { criticRemediateCommand } from "../../../../../olt/scripts/src/cli/commands/critic-ops.ts";
 import { transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
-import { completionReviewDigest } from "../../../../../olt/scripts/src/workflow/completion/completion-review-digest.ts";
+import { completionReviewDigest } from "../../../../../olt/scripts/src/workflow/completion/index.ts";
 import type {
   CompletionCriticAuthorization,
   CompletionFinding,

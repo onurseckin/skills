@@ -1,8 +1,3 @@
-/**
- * Runner Process Subdomain Test Facade.
- * Explicit named exports for process lifecycle, signals, group termination, and procfs inspection.
- */
-
 export {
   terminateProcessGroup,
   signalProcessGroup,
@@ -21,3 +16,6 @@ export {
   matchesTopology,
   type ProcessSnapshotEntry,
 } from "../../../olt/scripts/src/engine/runner/process/process-tree.ts";
+
+export { RUNNER_PROCESS_LIFECYCLE_SUITES } from "./lifecycle/index.ts";
+export { RUNNER_PROCESS_PIPES_SUITES } from "./pipes/index.ts";

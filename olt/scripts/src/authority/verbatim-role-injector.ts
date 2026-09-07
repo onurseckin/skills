@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { HarnessError } from "../core/errors/index.ts";
-import { resolveSkillHomeRepo } from "../core/index.ts";
+import { isSkillHomeRepoRoot, resolveSkillHomeRepo } from "../core/index.ts";
 
 export interface StagnationTelemetry {
   readonly agentId: string;
@@ -49,11 +49,16 @@ export class VerbatimRoleInjector {
   public constructor() {}
 
   public static resolveManifestPath(repoRoot: string, role: string): string {
+    const isSkillHome = isSkillHomeRepoRoot(repoRoot);
     const candidates = [
       join(repoRoot, ".olt", "agents", `${role}.yaml`),
       join(repoRoot, ".olt", "agents", `${role}.yml`),
-      join(repoRoot, "olt", "agents", `${role}.yaml`),
-      join(repoRoot, "olt", "agents", `${role}.yml`),
+      ...(isSkillHome
+        ? [
+            join(repoRoot, "olt", "agents", `${role}.yaml`),
+            join(repoRoot, "olt", "agents", `${role}.yml`),
+          ]
+        : []),
       join(repoRoot, "agents", `${role}.yaml`),
       join(repoRoot, "agents", `${role}.yml`),
       join(homedir(), ".agents", "skills", "olt", "agents", `${role}.yaml`),

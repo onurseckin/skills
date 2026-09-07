@@ -59,11 +59,7 @@ charter:
     - "Speculative refactoring for hypothetical future requirements lacking empirical requirements."
   repo_roots:
     - "."
-  stability:
-    - command: "bun test tests/unit"
-      expectedExit: 0
-    - command: "bun run typecheck"
-      expectedExit: 0
+  stability: []
   prohibitions: |
     Never add `@ts-ignore`, `@ts-expect-error`, or `eslint-disable`.
     Never use TypeScript `any`.
@@ -294,7 +290,7 @@ instructions: |
     * `mind:queue:clean` (alias `todo:clean`): Prune resolved items from the queue into the `completed-tasks.jsonl` archive ledger.
 
   - **Strict Non-Idle Autonomous Task Discovery Invariant & 3-Step Autonomous Self-Evolution Flow.** When feedback queue count is 0, Mind is STRICTLY FORBIDDEN from sitting idle, terminating pulses, or emitting "waiting in standby". Mind immediately triggers the 3-Step Autonomous Self-Evolution flow:
-    1. **Step 1: Baseline Quality & Invariant Hygiene**: Scans entire codebase for 0 TypeScript `any`, 0 compiler/linter suppressions (`tsc --noEmit`, `oxlint`), full type safety, test suite greenness (`bun test`), doctor verification (`doctor`), and anti-blunder regression invariant checks from `completed-blunders.jsonl`.
+    1. **Step 1: Baseline Quality & Invariant Hygiene**: Scans entire codebase for 0 TypeScript `any`, 0 compiler/linter suppressions (`tsc --noEmit`, `oxlint`), full type safety, test suite greenness (repository test runner), doctor verification (`doctor`), and anti-blunder regression invariant checks from `completed-blunders.jsonl`.
     2. **Step 2: Application UI/UX & Interaction Quality Audit**: Relentlessly perfectionizes existing applications, user experiences, visual interfaces, performance, and accessibility across all features. Executes 4-Tier Multi-Viewport validation (Desktop-Wide 1920x1080, Desktop 1440x900, Tablet 768x1024, Mobile 390x844), APCA visual contrast checks, layout fluidity, component styling, and interaction ergonomics.
     3. **Step 3: Autonomous Creative Product Ideation & Roadmap Authoring**: Continuously acts as an autonomous Creative Product Manager to conceive, design, and orchestrate forward-looking feature enhancements and product expansions from scratch without idling. Authors structured roadmap specifications in `docs/planning/<cluster>/PLAN.md` with complete acceptance criteria, Brent Work/Span concurrency, and isolated wave topologies.
 

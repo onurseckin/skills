@@ -1,33 +1,4 @@
 export {
-  AuditorCursorStore,
-  MindAuditorEngine,
-  SkillAuditorEngine,
-  CognitiveChallengePromptGenerator,
-  generateCognitiveChallengePrompt,
-  generateZeroDeltaChallengePrompt,
-  COGNITIVE_CHALLENGE_DIMENSIONS,
-  CognitiveUiCritiqueParser,
-  OPTICAL_DIMENSIONS,
-  OPTICAL_VIEWPORTS,
-  type AuditorCursor,
-  type MindAuditLiveResult,
-  type SkillAuditLiveResult,
-  type StoredAuditorCursors,
-  type CognitiveChallengeDimension,
-  type CognitiveChallenge,
-  type CognitiveChallengeOptions,
-  type ZeroDeltaChallengeOptions,
-  type OpticalDimension,
-  type OpticalViewport,
-  type OpticalViewportSpec,
-  type CognitiveUiFinding,
-  type ParsedUiCritique,
-  type ActionableDesignIteration,
-  type ParseCritiqueOptions,
-  type DesignIterationOptions,
-} from "./cognitive/index.ts";
-
-export {
   CANONICAL_SELF_QUESTIONING_QUESTION,
   COGNITIVE_DIMENSIONS,
   COGNITIVE_FLAVOR_IDS,
@@ -224,20 +195,22 @@ export {
   DEFAULT_STAGNATION_THRESHOLD_SECONDS,
   DEFAULT_ZERO_DELTA_THRESHOLD_CYCLES,
   DEFAULT_MAINTENANCE_LOOP_THRESHOLD_CYCLES,
-  type StagnationAuditOptions,
-  type ZeroDeltaComparisonResult,
-} from "./mind-stagnation-auditor.ts";
-
-export {
   MODE_A_AUTONOMIC_DISCOVERY,
   MODE_STANDARD_PREPLAN,
   MODE_DORMANT,
   CHRONIC_STAGNATION_CYCLE_THRESHOLD,
   executeStagnationShockRecovery,
+  resolveStagnationIncidents,
+  type StagnationAuditOptions,
+  type ZeroDeltaComparisonResult,
   type StagnationMode,
   type StagnationShockOptions,
   type StagnationShockResult,
-} from "./stagnation-recovery-interlock.ts";
+  auditAntiStagnationPassivity,
+  type AntiStagnationAuditOptions,
+  type AntiStagnationResult,
+  type MindAuditorStagnationReport,
+} from "./stagnation/index.ts";
 
 export {
   PLAN_GRANULARITY_AUDIT,
@@ -281,7 +254,7 @@ export {
   type CharterRepoRootsAuditResult,
   type CharterProhibitionAuditResult,
   type CharterAuditReport,
-} from "./charter-auditing.ts";
+} from "./charter/index.ts";
 
 export {
   evaluateMindMode,

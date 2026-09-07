@@ -164,7 +164,7 @@ Since $|L_c| = 44.1 < 60.0$, APCA accurately **REJECTS** the combination as unre
 
 ## 5. Concrete TypeScript Contracts & Schemas
 
-The APCA contrast evaluation contract is defined in [`apca.ts`](../../../../olt/scripts/src/cli/commands/defect-audit/apca.ts).
+The APCA contrast evaluation contract is defined in [`apca.ts`](../../../../olt/scripts/src/capture/validator/mechanical/apca.ts).
 
 ```typescript
 export interface RgbTuple {

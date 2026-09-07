@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import {
@@ -7,12 +6,15 @@ import {
   defectRecordCommand,
   defectResolveCommand,
 } from "../../../../../olt/scripts/src/cli/commands/defect-ops.ts";
+import type { VirtualMemoryFS } from "../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import { scratchRoot } from "../../../../shared/fixtures/scratch-root.ts";
 import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
 describe("Defect CLI commands", () => {
+  let vfs: VirtualMemoryFS;
+
   beforeEach(() => {
-    setupVirtualCliFS();
+    vfs = setupVirtualCliFS();
   });
 
   afterEach(() => {
@@ -55,7 +57,7 @@ describe("Defect CLI commands", () => {
       JSON.stringify({ id: "d-01", status: "open", severity: "warning", observation: "Warning 1" }),
       JSON.stringify({ id: "d-02", status: "resolved", severity: "info", observation: "Info 2" }),
     ].join("\n");
-    writeFileSync(filePath, content);
+    vfs.writeFileSync(filePath, content);
 
     const listRes = defectListCommand({
       file: filePath,

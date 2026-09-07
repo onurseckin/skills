@@ -1,6 +1,6 @@
 import { join, resolve } from "node:path";
 import { findRepoRoot } from "../../core/shared/paths.ts";
-import { auditMindPreplanningStagnation } from "../../mind/auditing/mind-stagnation-auditor.ts";
+import { auditMindPreplanningStagnation } from "../../mind/auditing/index.ts";
 import { auditSkillConcurrencySaturation } from "../../mind/auditing/skill-concurrency-auditor.ts";
 import {
   isPreplanningNeeded,
@@ -29,6 +29,8 @@ export interface FactoryStatusCommandResult {
     readonly open_defects: number;
     readonly is_stagnant: boolean;
     readonly is_concurrency_saturated: boolean;
+    readonly active_workers: number;
+    readonly active_supervisors: number;
     readonly preplanning_needed: boolean;
   };
   readonly [key: string]: unknown;
@@ -65,6 +67,8 @@ export function formatFactoryStatusBrief(status: {
   open_defects: number;
   is_stagnant: boolean;
   is_concurrency_saturated: boolean;
+  active_workers: number;
+  active_supervisors: number;
   preplanning_needed: boolean;
   findings: readonly string[];
 }): string {
@@ -74,7 +78,7 @@ export function formatFactoryStatusBrief(status: {
     `- **Open Defects**: ${status.open_defects}`,
     `- **Pre-Planning Needed**: ${status.preplanning_needed ? "YES" : "NO"}`,
     `- **Mind Auditor Stagnation**: ${status.is_stagnant ? "STAGNANT (MIND_PREPLANNING_STAGNATION)" : "HEALTHY"}`,
-    `- **Skill Concurrency Saturation**: ${status.is_concurrency_saturated ? "SATURATED" : "UNDER-SATURATED"}`,
+    `- **Skill Concurrency Saturation**: ${status.is_concurrency_saturated ? "SATURATED" : "UNDER-SATURATED"} (Tier 3 Workers: ${status.active_workers}, Ambient Supervisors: ${status.active_supervisors})`,
     "",
     "#### Health & Audit Findings:",
   ];
@@ -149,6 +153,8 @@ export function factoryStatusCommand(
     open_defects: eligibleDefects.length,
     is_stagnant: stagnationAudit.is_stagnant,
     is_concurrency_saturated: concurrencyAudit.is_saturated,
+    active_workers: concurrencyAudit.active_workers,
+    active_supervisors: concurrencyAudit.active_supervisors,
     preplanning_needed: preplanningNeeded,
     findings: Object.freeze(allFindings),
   };
@@ -162,6 +168,8 @@ export function factoryStatusCommand(
       open_defects: status.open_defects,
       is_stagnant: status.is_stagnant,
       is_concurrency_saturated: status.is_concurrency_saturated,
+      active_workers: status.active_workers,
+      active_supervisors: status.active_supervisors,
       preplanning_needed: status.preplanning_needed,
     },
   };

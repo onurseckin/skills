@@ -63,7 +63,7 @@ The **Agent-Scoped Live Shell Sentinel (`sentinel:watch` / `agent-sentinel`)** i
 │ implementer              │ • Disjoint write scope confinement    │ File modified outside scope,  │
 │                          │ • Strict zero-any, zero-suppressions  │ @ts-ignore added,             │
 │                          │ • File-scoped test execution          │ task:submit without test run, │
-│                          │ • Physical line budget (<= 300 LOC)   │ File exceeds 300 LOC          │
+│                          │ • Physical line budget (<= 400 LOC)   │ File exceeds 400 LOC          │
 ├──────────────────────────┼───────────────────────────────────────┼───────────────────────────────┤
 │ validator (cognitive)    │ • Strict zero-command lock (0 shell)  │ Attempted run:exec or test,   │
 │                          │ • Headful screenshot review (for UI)  │ Approved without view_file,   │

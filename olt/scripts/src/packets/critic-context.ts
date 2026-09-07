@@ -3,11 +3,11 @@ import type { JsonObject } from "../core/contracts/index.ts";
 import { HarnessError } from "../core/errors/index.ts";
 import { requireSubstantiveObjects } from "../workflow/evidence.ts";
 import { requireText } from "../workflow/task-state.ts";
-import { authoritativeRepositoryCommand } from "../workflow/completion/repository-evidence.ts";
+import { authoritativeRepositoryCommand } from "../workflow/completion/index.ts";
 import type { PacketInput } from "./types.ts";
 import { isolateCriticContext } from "./validator-context.ts";
-import { completionReadinessSnapshot } from "../workflow/completion/readiness-snapshot.ts";
-import { sameRepositoryBinding } from "../workflow/completion/repository-binding.ts";
+import { completionReadinessSnapshot } from "../workflow/completion/index.ts";
+import { sameRepositoryBinding } from "../workflow/completion/index.ts";
 import {
   repositoryBindingFromInspection,
   type RepositoryInspection,

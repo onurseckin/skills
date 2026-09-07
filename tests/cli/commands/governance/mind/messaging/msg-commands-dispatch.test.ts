@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { execute } from "../../../../../../olt/scripts/src/cli/execute.ts";
 import {
@@ -18,29 +17,31 @@ import {
 } from "../../../../../../olt/scripts/src/communication/mailbox/index.ts";
 import type { MailboxEnvelope } from "../../../../../../olt/scripts/src/communication/types.ts";
 import { HarnessError } from "../../../../../../olt/scripts/src/core/errors/index.ts";
+import type { VirtualMemoryFS } from "../../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   cleanupVirtualCliFS,
   setupVirtualCliFS,
 } from "../../../fixtures/full-lifecycle-fixture.ts";
 
 describe("Mailbox IPC CLI Commands - Registry, Send and Receive", () => {
+  let vfs: VirtualMemoryFS;
   let testRoot: string;
 
   beforeEach(() => {
-    setupVirtualCliFS();
+    vfs = setupVirtualCliFS();
     testRoot = join(
       process.cwd(),
       "scratch",
       "test-isolation",
       `msg-cmd-disp-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     );
-    mkdirSync(testRoot, { recursive: true });
+    vfs.mkdirSync(testRoot, { recursive: true });
   });
 
   afterEach(() => {
-    if (existsSync(testRoot)) {
+    if (vfs.existsSync(testRoot)) {
       try {
-        rmSync(testRoot, { recursive: true, force: true });
+        vfs.rmSync(testRoot, { recursive: true, force: true });
       } catch {}
     }
     cleanupVirtualCliFS();
@@ -119,8 +120,10 @@ describe("Mailbox IPC CLI Commands - Registry, Send and Receive", () => {
       expect(verifyEnvelopeHmac(env).valid).toBe(true);
 
       const paths = resolveMailboxPaths("worker-alpha", testRoot);
-      expect(existsSync(paths.inboxPath)).toBe(true);
-      expect(readFileSync(paths.inboxPath, "utf8").trim().split("\n").length).toBe(1);
+      expect(vfs.existsSync(paths.inboxPath)).toBe(true);
+      expect(vfs.readFileSync(paths.inboxPath, "utf8").toString().trim().split("\n").length).toBe(
+        1,
+      );
     });
 
     it("handles plain text payload and auto-derives sender when omitted", () => {

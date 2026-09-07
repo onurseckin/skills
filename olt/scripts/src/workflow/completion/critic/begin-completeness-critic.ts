@@ -1,0 +1,116 @@
+import { HarnessError } from "../../../core/errors/index.ts";
+import { MAX_REPAIR_ROUNDS } from "../../../core/config/index.ts";
+import { newLeaseToken, tokenDigest } from "../../lease/index.ts";
+import {
+  requireText,
+  systemClock,
+  utc,
+  type Clock,
+  type TransactionPort,
+  type WorkflowState,
+} from "../../index.ts";
+import { assertCriticIndependent } from "./critic-identity.ts";
+import { completionReadinessIssues } from "../issues/index.ts";
+import { completionReadinessSnapshot } from "../provenance/index.ts";
+import { currentRepositoryBinding, sameRepositoryBinding } from "../provenance/index.ts";
+
+const CRITIC_DURATION_MS = 20 * 60 * 1_000;
+
+export interface BeginCriticOptions {
+  clock?: Clock;
+  maxRepairRounds?: number;
+}
+
+export function beginCompletenessCritic(
+  port: TransactionPort,
+  criticId: string,
+  options: BeginCriticOptions = {},
+): { state: WorkflowState; token: string } {
+  criticId = requireText(criticId, "critic_id");
+  const now = (options.clock ?? systemClock).now();
+  const token = newLeaseToken();
+  const maxRounds = options.maxRepairRounds ?? MAX_REPAIR_ROUNDS;
+  const state = port.transact(criticId, "critic-assigned", {}, (draft) => {
+    if (draft.completion_result?.status === "complete") {
+      throw new HarnessError("INVALID_STATE", "run is already completed");
+    }
+    assertCriticIndependent(draft, criticId);
+    const history = draft.completion_critic_history ?? [];
+    const current = draft.completion_critic;
+    if (
+      (current && current.critic_id === criticId && current.status === "expired") ||
+      history.some((entry) => entry.critic_id === criticId && entry.status === "reviewed")
+    )
+      throw new HarnessError("INVALID_STATE", "a fresh completeness critic identity is required");
+    const remediations = draft.completion_remediations ?? [];
+    if (remediations.length >= maxRounds)
+      throw new HarnessError("INVALID_STATE", "completeness critic rounds are exhausted");
+    if (current) {
+      if (
+        current.status !== "reviewed" &&
+        current.status !== "expired" &&
+        sameRepositoryBinding(currentRepositoryBinding(draft), current.repository_binding)
+      )
+        throw new HarnessError(
+          "INVALID_STATE",
+          "completeness critic authorization is already active",
+        );
+      if (current.status !== "reviewed" && current.status !== "expired") {
+        current.status = "expired";
+      }
+      if (current.status === "reviewed") {
+        const review = draft.completion_review;
+        if (!review || review.critic_id !== current.critic_id)
+          throw new HarnessError("INTEGRITY", "completion critic review history is inconsistent");
+        if (
+          review.status === "clean" &&
+          sameRepositoryBinding(currentRepositoryBinding(draft), current.repository_binding) &&
+          completionReadinessSnapshot(draft, current.attempt, current.critic_id).sha256 ===
+            review.readiness_sha256
+        )
+          throw new HarnessError(
+            "INVALID_STATE",
+            "the completeness critic review is already clean",
+          );
+        if (
+          review.status === "findings" &&
+          !(draft.completion_remediations ?? []).some(
+            (entry) => entry.review_sha256 === review.review_sha256,
+          )
+        ) {
+          throw new HarnessError(
+            "INVALID_STATE",
+            "completion findings require recorded remediation",
+          );
+        }
+      }
+    }
+    for (const entry of history) {
+      if (entry.status !== "reviewed" && entry.status !== "expired") {
+        entry.status = "expired";
+      }
+    }
+    const attempt = history.length + 1;
+    const readinessIssues = completionReadinessIssues(draft);
+    if (readinessIssues.length > 0)
+      throw new HarnessError(
+        "INVALID_STATE",
+        `run is not ready for completeness critic: ${readinessIssues.join("; ")}`,
+      );
+    const readiness = completionReadinessSnapshot(draft, attempt, criticId);
+    const assignment = {
+      critic_id: criticId,
+      token_digest: tokenDigest(token),
+      attempt,
+      status: "assigned",
+      started_at: utc(now),
+      deadline_at: utc(new Date(now.valueOf() + CRITIC_DURATION_MS)),
+      readiness_sha256: readiness.sha256,
+      repository_binding: currentRepositoryBinding(draft),
+    } as const;
+    draft.completion_critic_history ??= [];
+    draft.completion_critic_history.push({ ...assignment });
+    draft.completion_critic = { ...assignment };
+  });
+  return { state, token };
+}

@@ -22,7 +22,7 @@ The sentinel governs agent execution through deterministic lifecycle hooks, poin
           Action Executes (Tool invocation / shell command)
                │
                ▼
-   [Hook: sentinel:post-action]  ──► Scans AST, line budget (<=300), fanout (<=10)
+   [Hook: sentinel:post-action]  ──► Scans AST, line budget (<=400), fanout (<=10)
                │
                ▼
    [Hook: sentinel:turn-end]     ──► Executes: bun harness.ts doctor:agent
@@ -43,7 +43,7 @@ The sentinel governs agent execution through deterministic lifecycle hooks, poin
 
 2. **`sentinel:post-action` (State & AST Delta Audit):**
    - Inspects modified files immediately after tool completion.
-   - Evaluates physical lines: triggers alarm if LOC $> 300$.
+   - Evaluates physical lines: triggers alarm if LOC $> 400$.
    - Runs fast AST parser for prohibited tokens (`: any`, `as any`, `@ts-ignore`, `@ts-expect-error`).
 
 3. **`sentinel:turn-end` (Holistic Role Probe):**

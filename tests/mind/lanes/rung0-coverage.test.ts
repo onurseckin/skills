@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { canonicalJsonBytes } from "../../../olt/scripts/src/core/json.ts";
 import * as store from "../../../olt/scripts/src/engine/store/index.ts";
@@ -20,6 +19,9 @@ describe("Rung 0 Rescue Lane Coverage Suite", () => {
 
   function fixture(label: string) {
     const repoRoot = scratchRoot(import.meta.path, `${label}-repo`);
+    const vfs = getVirtualStoreFS();
+    vfs.mkdirSync(join(repoRoot, "olt", "scripts"), { recursive: true });
+    vfs.writeFileSync(join(repoRoot, "olt", "scripts", "harness.ts"), "");
     const prompt = new TextEncoder().encode("Mind test prompt");
     const mindRunRoot = initRun(repoRoot, `mind-${label}`, prompt, "file", true);
     return { repoRoot, mindRunRoot, prompt, actor: "mind-tester" };
@@ -27,8 +29,9 @@ describe("Rung 0 Rescue Lane Coverage Suite", () => {
 
   function writeCharter(repoRoot: string, rel = "olt/agents/mind.yaml", content = "name: mind\n") {
     const full = join(repoRoot, rel);
-    mkdirSync(join(full, ".."), { recursive: true });
-    writeFileSync(full, content);
+    const vfs = getVirtualStoreFS();
+    vfs.mkdirSync(join(full, ".."), { recursive: true });
+    vfs.writeFileSync(full, content);
     return createHash("sha256").update(new TextEncoder().encode(content)).digest("hex");
   }
 
@@ -189,9 +192,10 @@ describe("Rung 0 Rescue Lane Coverage Suite", () => {
   it("repairs projection mismatch integrity issues via doctor and recoverProjection", async () => {
     const { repoRoot, mindRunRoot } = setupHealthy("repairable-integrity");
     const loadedMind = loadRun(mindRunRoot, false);
-    const stateObj = JSON.parse(readFileSync(join(mindRunRoot, "state.json"), "utf-8"));
+    const vfs = getVirtualStoreFS();
+    const stateObj = JSON.parse(vfs.readFileSync(join(mindRunRoot, "state.json"), "utf-8"));
     stateObj.revision = 999;
-    writeFileSync(join(mindRunRoot, "state.json"), canonicalJsonBytes(stateObj));
+    vfs.writeFileSync(join(mindRunRoot, "state.json"), canonicalJsonBytes(stateObj));
 
     const opts = { runtimeFreshnessOverride: { drifted: false, referenceRuntimeVersion: "1.0.0" } };
     const { result, actionsTaken } = await invokeRung0(mindRunRoot, loadedMind, repoRoot, opts);

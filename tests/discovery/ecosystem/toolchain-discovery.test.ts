@@ -1,21 +1,28 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { discoverToolchainPolicy } from "../../../olt/scripts/src/policy/index.ts";
-import { cleanupVirtualDiscoveryFS, setupVirtualDiscoveryFS } from "../fixtures/index.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Autonomous Toolchain Analysis & Policy Calibration", () => {
+  let vfs: VirtualMemoryFS;
+  let vfsSession: VirtualFSSession;
+
   beforeEach(() => {
-    setupVirtualDiscoveryFS();
+    vfs = new VirtualMemoryFS();
+    vfsSession = createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
-    cleanupVirtualDiscoveryFS();
+    vfsSession.cleanup();
   });
 
   it("discovers bun, oxlint, and tsc toolchains from package.json", () => {
     const testDir = join("/virtual/test-toolchain-sample");
-    mkdirSync(testDir, { recursive: true });
+    vfs.mkdirSync(testDir, { recursive: true });
 
     const pkg = {
       name: "sample-pkg",
@@ -31,7 +38,7 @@ describe("Autonomous Toolchain Analysis & Policy Calibration", () => {
         typescript: "^5.5.0",
       },
     };
-    writeFileSync(join(testDir, "package.json"), JSON.stringify(pkg));
+    vfs.writeFileSync(join(testDir, "package.json"), JSON.stringify(pkg));
 
     const policy = discoverToolchainPolicy(testDir);
     expect(policy).toBeDefined();
@@ -42,7 +49,7 @@ describe("Autonomous Toolchain Analysis & Policy Calibration", () => {
 
   it("handles missing package.json gracefully with safe defaults", () => {
     const testDir = join("/virtual/test-toolchain-empty");
-    mkdirSync(testDir, { recursive: true });
+    vfs.mkdirSync(testDir, { recursive: true });
 
     const policy = discoverToolchainPolicy(testDir);
     expect(policy).toBeDefined();

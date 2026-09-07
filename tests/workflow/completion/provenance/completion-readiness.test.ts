@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { beginCompletenessCritic } from "../../../../olt/scripts/src/workflow/completion/begin-completeness-critic.ts";
-import { completionReadinessSnapshot } from "../../../../olt/scripts/src/workflow/completion/readiness-snapshot.ts";
+import { beginCompletenessCritic } from "../../../../olt/scripts/src/workflow/completion/index.ts";
+import { completionReadinessSnapshot } from "../../../../olt/scripts/src/workflow/completion/index.ts";
 import { recoverStale } from "../../../../olt/scripts/src/workflow/lease/recover-stale.ts";
 import {
   at,

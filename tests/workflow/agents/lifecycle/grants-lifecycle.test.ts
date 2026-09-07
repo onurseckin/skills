@@ -31,8 +31,8 @@ describe("workflow/agents/grants: lifecycle and reporting", () => {
     withRun((runRoot) => {
       registerAgentGrant({
         runRoot,
-        agentId: "mind-auditor-1",
-        role: "mind-auditor",
+        agentId: "coord-1",
+        role: "coordinator",
         parentAgentId: null,
         parentTaskId: null,
         host: "local",
@@ -44,12 +44,12 @@ describe("workflow/agents/grants: lifecycle and reporting", () => {
       expect(() =>
         registerAgentGrant({
           runRoot,
-          agentId: "orch-illegit",
-          role: "orchestrator",
-          parentAgentId: "mind-auditor-1",
+          agentId: "val-illegit",
+          role: "ui-headless-validator",
+          parentAgentId: "coord-1",
           parentTaskId: null,
           host: "local",
-          authority: { kind: "verified_parent", actorId: "mind-auditor-1" },
+          authority: { kind: "verified_parent", actorId: "coord-1" },
           maxAgents: 5,
           telemetry: {},
         }),

@@ -25,12 +25,9 @@ export {
   CHECKLIST_DOMAIN_LINE,
 } from "./role-contract-types.ts";
 
-export {
-  readFrontmatter,
-  requireList,
-  parseRoleContract,
-  parseChecklist,
-} from "./role-contract-rules.ts";
+export { readFrontmatter, requireList } from "./role-contract-frontmatter.ts";
+export { parseRoleContract } from "./role-contract-rules.ts";
+export { parseChecklist } from "./role-contract-checklist.ts";
 
 export {
   resolveRoleContractPath,

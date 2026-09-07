@@ -4,7 +4,7 @@ import { requireText, utc } from "../task-state.ts";
 import { systemClock, type Clock, type TransactionPort } from "../types.ts";
 import type { OrphanEvidenceDisposition } from "./types.ts";
 import { orphanEvidenceSha256 } from "./digest.ts";
-import { jsonDigest } from "../completion/completion-review-digest.ts";
+import { jsonDigest } from "../completion/index.ts";
 
 const TERMINAL = new Set(["ignored_non_authoritative", "rejected", "superseded"]);
 

@@ -43,6 +43,8 @@ prohibitions:
     vfs = new VirtualMemoryFS();
     session = createVirtualFSSession(vfs);
     vfs.mkdirSync(`${repoRoot}/.git`, { recursive: true });
+    vfs.mkdirSync(`${repoRoot}/olt/scripts`, { recursive: true });
+    vfs.writeFileSync(`${repoRoot}/olt/scripts/harness.ts`, "");
     vfs.mkdirSync(`${repoRoot}/olt/agents`, { recursive: true });
     vfs.writeFileSync(`${repoRoot}/olt/agents/mind.yaml`, validYaml);
   });
@@ -119,5 +121,20 @@ prohibitions:
       "Goals (2): [G_INIT: Bootstrap autonomous runtime; G_GOV: Enforce governance policies]",
     );
     expect(summary).toContain("Repo Roots: [src, packages]");
+  });
+
+  describe("consumer repo isolation", () => {
+    const consumerRoot = "/virtual/mind-assembly-consumer-repo";
+
+    it("never resolves an unhidden olt/agents/mind.yaml for a bare consumer repo root", () => {
+      vfs.mkdirSync(`${consumerRoot}/olt/agents`, { recursive: true });
+      vfs.writeFileSync(`${consumerRoot}/olt/agents/mind.yaml`, validYaml);
+
+      const resolved = resolveCharterPath(consumerRoot);
+      expect(resolved).not.toBe(`${consumerRoot}/olt/agents/mind.yaml`);
+      expect(resolved).toBe(`${consumerRoot}/.olt/mind.yaml`);
+
+      expect(() => loadCharter(consumerRoot)).toThrow(HarnessError);
+    });
   });
 });

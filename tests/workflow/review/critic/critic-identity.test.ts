@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
-import { assertCriticIndependent } from "../../../../olt/scripts/src/workflow/completion/critic-identity.ts";
+import { assertCriticIndependent } from "../../../../olt/scripts/src/workflow/completion/index.ts";
 import { workflowState } from "../../shared/test-port.ts";
 
 describe("assertCriticIndependent", () => {

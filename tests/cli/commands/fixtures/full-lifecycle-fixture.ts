@@ -206,6 +206,27 @@ export function cleanupVirtualCliFS(): void {
 export function getVirtualCliFS(): VirtualMemoryFS {
   return vfs;
 }
+export function runGit(
+  repo: string,
+  argv: readonly string[],
+): { status: number; stdout: string; stderr: string } {
+  const res = childProcess.spawnSync("git", [...argv], {
+    cwd: repo,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    env: {
+      ...process.env,
+      GIT_CONFIG_GLOBAL: "/dev/null",
+      GIT_CONFIG_NOSYSTEM: "1",
+      GIT_TERMINAL_PROMPT: "0",
+    },
+  });
+  return {
+    status: res.status ?? 0,
+    stdout: String(res.stdout ?? ""),
+    stderr: String(res.stderr ?? ""),
+  };
+}
 export {
   GATE_SCRIPT,
   cleanCompletionReview,

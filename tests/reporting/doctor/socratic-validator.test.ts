@@ -19,18 +19,22 @@ describe(socraticValidatorSuiteName, () => {
     expect(keys).toContain("quantitative_empirical_proof");
   });
 
-  test("evaluates clean/compliant state as healthy across all 5 dimensions", () => {
+  test("evaluates clean/compliant state as healthy across all 6 dimensions", () => {
     const state: JsonObject = {
       tasks: {
         "task-1": {
           id: "task-1",
           status: "done",
+          original_implementer: "impl-1",
+          report: { summary: "done" },
+          attempts: [{ agent_id: "impl-1", submitted_at: "2024-01-01T00:00:00.000Z" }],
           validations: [
             {
               validator_id: "val-1",
               domain: "unit",
               review_round: 1,
               verdict: "pass",
+              started_at: "2024-01-01T01:00:00.000Z",
               checks: ["cmd-1", "cmd-2"],
             },
           ],
@@ -53,18 +57,18 @@ describe(socraticValidatorSuiteName, () => {
 
     const report = evaluateSocraticSelfQuestioning("/mock/run", state);
     expect(report.healthy).toBe(true);
-    expect(report.questions_evaluated).toBe(10);
-    expect(report.questions_passed).toBe(10);
+    expect(report.questions_evaluated).toBe(11);
+    expect(report.questions_passed).toBe(11);
     expect(report.questions_failed).toBe(0);
     expect(report.issues).toHaveLength(0);
-    expect(report.summary).toContain("10/10 criteria satisfied");
+    expect(report.summary).toContain("11/11 criteria satisfied");
 
-    // All dimensions must report positive counts
     expect(report.dimensions.premise_verification.passed).toBeGreaterThan(0);
     expect(report.dimensions.edge_case_exploration.passed).toBeGreaterThan(0);
     expect(report.dimensions.failure_mode_analysis.passed).toBeGreaterThan(0);
     expect(report.dimensions.hierarchy_invariant_preservation.passed).toBeGreaterThan(0);
     expect(report.dimensions.quantitative_empirical_proof.passed).toBeGreaterThan(0);
+    expect(report.dimensions.two_key_validator_pairing.passed).toBeGreaterThan(0);
   });
 
   test("flags premise verification defect when passing validation lacks checks", () => {

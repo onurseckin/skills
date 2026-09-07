@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { roleToTier } from "../../../olt/scripts/src/authority/guards/spawn-validator.ts";
+import { inferRoleFromAgentId } from "../../../olt/scripts/src/authority/thread/index.ts";
 import {
   executeTurnEndHook,
   mindProfile,
@@ -11,11 +12,15 @@ describe("Tier Spawning Hierarchy & Anti-Bottleneck Sentinel Enforcement", () =>
   describe("roleToTier semantic mapping", () => {
     test("maps standard and prefixed roles to expected execution tiers", () => {
       const cases =
-        "mind:0,human:0,lead:0,orchestrator:1,orchestrator_reporting:1,orchestrator-domain:1,orch_review:1,orch-pulse:1,mind-auditor:1,auditor:1,coordinator:2,coordinator_wave1:2,coordinator-backend:2,coord_infra:2,coord-domain:2,implementer:3,validator:3,sub-implementer:3,completeness-critic:3,unknown-role:3";
+        "mind:0,orchestrator:1,orchestrator_reporting:1,orchestrator-domain:1,mind-auditor:1,coordinator:2,coordinator_wave1:2,coordinator-backend:2,implementer:3,validator:3,sub-implementer:3,completeness-critic:3,unknown-role:3";
       for (const pair of cases.split(",")) {
         const [role, tier] = pair.split(":");
         expect(roleToTier(role!)).toBe(Number(tier));
       }
+      expect(inferRoleFromAgentId("orch_review")).toBe("orchestrator");
+      expect(inferRoleFromAgentId("orch-pulse")).toBe("orchestrator");
+      expect(inferRoleFromAgentId("coord_infra")).toBe("coordinator");
+      expect(inferRoleFromAgentId("coord-domain")).toBe("coordinator");
     });
   });
 

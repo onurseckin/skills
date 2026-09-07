@@ -1,9 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { revokeSessionGrant } from "../../../../../olt/scripts/src/authority/session/index.ts";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
-import { spawnSync } from "node:child_process";
 import {
   disableInMemoryAgentMetadata,
   enableInMemoryAgentMetadata,
@@ -11,26 +9,27 @@ import {
 import {
   cleanupRoots,
   cleanupVirtualCliFS,
+  runGit,
   setupVirtualCliFS,
 } from "../../fixtures/full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "../../fixtures/task-ops-fixture.ts";
+import { VirtualMemoryFS } from "../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 const roots: string[] = [];
+let vfs: VirtualMemoryFS;
 
 function git(repo: string, argv: readonly string[]): void {
-  spawnSync("git", [...argv], { cwd: repo });
+  runGit(repo, argv);
 }
 
 function clearCallerSession(run?: string, agentId = "worker-1"): void {
   try {
     revokeSessionGrant({ runRoot: run, agentId, pid: process.pid, ppid: process.ppid });
-  } catch {
-    // Ignore when running under VFS
-  }
+  } catch {}
 }
 
 beforeEach(() => {
-  setupVirtualCliFS();
+  vfs = setupVirtualCliFS();
   enableInMemoryAgentMetadata();
   clearCallerSession();
 });
@@ -47,15 +46,15 @@ async function compiledSingleTaskRun(
   name: string,
   gate: string,
 ): Promise<{ repo: string; run: string }> {
-  setupVirtualCliFS();
+  vfs = setupVirtualCliFS();
   const repo = `/virtual/cli/gate-prove-cmd-${name}-${Math.random().toString(36).slice(2)}`;
   roots.push(repo);
-  mkdirSync(repo, { recursive: true });
-  mkdirSync(join(repo, ".git"), { recursive: true });
-  writeFileSync(join(repo, ".gitignore"), ".olt/capsules/\nprompt.txt\n");
-  writeFileSync(join(repo, "README.md"), "hi\n");
+  vfs.mkdirSync(repo, { recursive: true });
+  vfs.mkdirSync(join(repo, ".git"), { recursive: true });
+  vfs.writeFileSync(join(repo, ".gitignore"), ".olt/capsules/\nprompt.txt\n");
+  vfs.writeFileSync(join(repo, "README.md"), "hi\n");
 
-  writeFileSync(join(repo, "prompt.txt"), "Add a feature file.\n");
+  vfs.writeFileSync(join(repo, "prompt.txt"), "Add a feature file.\n");
   const init = await execute([
     "plan:init",
     "--repo",
@@ -108,7 +107,7 @@ async function compiledSingleTaskRun(
 describe("gate:prove - Core Falsifiability Proofs", () => {
   test("proves task gate falsifiable and reports no prior proof on first call", async () => {
     const { repo, run } = await compiledSingleTaskRun("falsifiable", "test -f feature.ts");
-    writeFileSync(join(repo, "feature.ts"), "export const x = 1;\n");
+    vfs.writeFileSync(join(repo, "feature.ts"), "export const x = 1;\n");
 
     const result = await execute([
       "gate:prove",
@@ -129,7 +128,7 @@ describe("gate:prove - Core Falsifiability Proofs", () => {
 
   test("second proof against unchanged gate reports prior proof as unchanged", async () => {
     const { repo, run } = await compiledSingleTaskRun("unchanged", "test -f feature.ts");
-    writeFileSync(join(repo, "feature.ts"), "export const x = 1;\n");
+    vfs.writeFileSync(join(repo, "feature.ts"), "export const x = 1;\n");
     await execute(["gate:prove", "--run", run, "--task", "task-1", "--actor", "coordinator"]);
 
     const second = await execute([
@@ -148,7 +147,7 @@ describe("gate:prove - Core Falsifiability Proofs", () => {
 
   test("proof that regresses to not-falsifiable is reported against prior proof", async () => {
     const { repo, run } = await compiledSingleTaskRun("regressed", "test -f feature.ts");
-    writeFileSync(join(repo, "feature.ts"), "export const x = 1;\n");
+    vfs.writeFileSync(join(repo, "feature.ts"), "export const x = 1;\n");
     const first = await execute([
       "gate:prove",
       "--run",

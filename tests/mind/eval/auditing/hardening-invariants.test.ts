@@ -5,13 +5,11 @@ import { setupVirtualMindFS, cleanupVirtualMindFS, scratchRoot } from "../../fix
 import {
   computeStateSignature,
   compareReportDelta,
-} from "../../../../olt/scripts/src/mind/auditing/stagnation-delta.ts";
-import { analyzeRunForensics } from "../../../../olt/scripts/src/mind/auditing/meta/evaluator.ts";
-import {
+  analyzeRunForensics,
   resolveStagnationIncidents,
   executeStagnationShockRecovery,
   MODE_A_AUTONOMIC_DISCOVERY,
-} from "../../../../olt/scripts/src/mind/auditing/stagnation-recovery-interlock.ts";
+} from "../../../../olt/scripts/src/mind/auditing/index.ts";
 import type { Manifest, RunState } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import type { StagnationAuditResult } from "../../../../olt/scripts/src/mind/preplanning/types.ts";
 

@@ -10,8 +10,8 @@ import {
 } from "../../../../../olt/scripts/src/runtime/index.ts";
 import * as archivalModule from "../../../../../olt/scripts/src/mind/archival/index.ts";
 import * as summaryModule from "../../../../../olt/scripts/src/summary/formatters/index.ts";
-import * as autoSyncModule from "../../../../../olt/scripts/src/workflow/completion/auto-sync-and-commit.ts";
-import * as completeRunModule from "../../../../../olt/scripts/src/workflow/completion/complete-run.ts";
+import * as autoSyncModule from "../../../../../olt/scripts/src/workflow/completion/index.ts";
+import * as completeRunModule from "../../../../../olt/scripts/src/workflow/completion/index.ts";
 import * as quotaLifecycleModule from "../../../../../olt/scripts/src/workflow/lifecycle/quota-lifecycle.ts";
 import * as worktreeModule from "../../../../../olt/scripts/src/workflow/worktree/consolidate.ts";
 import type { WorkflowState } from "../../../../../olt/scripts/src/workflow/types.ts";

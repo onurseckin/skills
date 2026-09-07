@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/execution/attempt-disposition-capability.ts";
 import type { CommandRuntimeCapability } from "../../../olt/scripts/src/engine/runner/models/execution/command-execution-snapshot.ts";
 import { executeInternalPreparedCommand } from "../../../olt/scripts/src/engine/runner/core/execute-internal-command.ts";
 import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
-import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import type { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import { cleanupTempRoots, getRunnerVfs, tempRoot } from "../command/fixture.ts";
 
 const digest = (marker: string): string => marker.repeat(64);
 
@@ -24,11 +24,12 @@ function binding(): RepositoryBinding {
 
 afterEach(cleanupTempRoots);
 
-async function fixture(label: string) {
+function fixture(label: string) {
   const root = tempRoot(label);
-  await mkdir(join(root, "bin"));
-  await mkdir(join(root, ".olt", "capsules", "commands"), { recursive: true });
-  await writeFile(join(root, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
+  const vfs: VirtualMemoryFS = getRunnerVfs();
+  vfs.mkdirSync(join(root, "bin"), { recursive: true });
+  vfs.mkdirSync(join(root, ".olt", "capsules", "commands"), { recursive: true });
+  vfs.writeFileSync(join(root, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
   return {
     root,
     input: {
@@ -44,7 +45,7 @@ async function fixture(label: string) {
 
 describe("executeInternalPreparedCommand direct integrity-failure reporting", () => {
   test("throws the record's integrity failure directly when the attempt itself did not throw", async () => {
-    const { input } = await fixture("execute-internal-direct-integrity-failure");
+    const { input } = fixture("execute-internal-direct-integrity-failure");
     const empty = { path: "empty", bytes: 0, sha256: "e".repeat(64) };
     const dependencies = {
       inspectRepository: () => binding(),
@@ -82,7 +83,7 @@ describe("executeInternalPreparedCommand direct integrity-failure reporting", ()
 
 describe("executeInternalPreparedCommand signing capability guard", () => {
   test("rejects execution when the runtime signer does not match the durable intent's key", async () => {
-    const { input } = await fixture("execute-internal-signer-mismatch");
+    const { input } = fixture("execute-internal-signer-mismatch");
     let invoked = false;
     const dependencies = {
       inspectRepository: () => binding(),
@@ -94,8 +95,6 @@ describe("executeInternalPreparedCommand signing capability guard", () => {
     const runner = createInternalCommandRunner(dependencies);
     const prepared = await runner.prepareCommand(input);
 
-    // A fresh signing capability whose public key differs from the one embedded (and durably
-    // persisted) in the prepared record; nothing else about the runtime capability changes.
     const mismatchedRuntime: CommandRuntimeCapability = {
       commandRoot: prepared.commandRoot,
       recordPath: prepared.recordPath,

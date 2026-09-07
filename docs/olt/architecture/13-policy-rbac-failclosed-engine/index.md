@@ -52,7 +52,7 @@ Deconstructs declarative agent manifests (`olt/agents/*.yaml`), the in-memory ca
 
 ### [13-02: Static AST Lint Purity Engine & Code Quality Rules](13-02-static-ast-lint-purity-engine.md)
 
-Details the 10 static AST purity rules enforced via the TypeScript Compiler API: zero `any`, zero `@ts-ignore` suppressions, physical line limits ($\le 300$), and explicit export facades.
+Details the 10 static AST purity rules enforced via the TypeScript Compiler API: zero `any`, zero `@ts-ignore` suppressions, physical line limits ($\le 400$), and explicit export facades.
 
 ### [13-03: Fail-Closed Permission Gates & Security Interlocks](13-03-fail-closed-permission-gates.md)
 

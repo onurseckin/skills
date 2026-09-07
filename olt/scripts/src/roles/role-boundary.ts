@@ -1,3 +1,11 @@
+import {
+  inferRoleFromAgentId,
+  isCoordinatorRole,
+  isOrchestratorRole,
+  isSupervisoryRole,
+  normalizeRoleName,
+  roleToTier,
+} from "../authority/thread/index.ts";
 import { FORBIDDEN_VALIDATOR_COMMANDS } from "./authority.ts";
 import { CANONICAL_ROLE_CAPABILITIES } from "./capability-matrix.ts";
 import { resolveRoleArchetype } from "./profiles.ts";
@@ -13,23 +21,37 @@ export function getRoleCapabilities(role: string): RoleCapabilityEntry {
   if (exact !== undefined) return exact;
 
   const profile = resolveRoleArchetype(role);
+  const inferred = normalizeRoleName(role) ?? inferRoleFromAgentId(role);
   const isVal =
     profile === "adversarial" ||
-    role.startsWith("validator") ||
-    role.includes("critic") ||
-    role.includes("auditor");
+    inferred === "validator" ||
+    inferred === "sub-validator" ||
+    inferred === "plan-validator" ||
+    inferred === "completeness-critic" ||
+    inferred === "mind-auditor" ||
+    inferred === "skill-auditor" ||
+    role === "auditor" ||
+    role.startsWith("auditor-") ||
+    role.startsWith("auditor_") ||
+    role === "critic" ||
+    role.startsWith("critic-") ||
+    role.startsWith("critic_");
   const isSup =
     profile === "deliberate" ||
-    role.includes("coord") ||
-    role.includes("orchestrat") ||
-    role.includes("superv");
-  const tier: RoleExecutionTier = role.includes("mind")
-    ? 0
-    : role.includes("orchestrat")
-      ? 1
-      : role.includes("coord") || role.includes("planner")
-        ? 2
-        : 3;
+    isSupervisoryRole(role) ||
+    isCoordinatorRole(role) ||
+    isOrchestratorRole(role) ||
+    role === "supervisor" ||
+    role.startsWith("supervisor-") ||
+    role.startsWith("supervisor_");
+  const tier: RoleExecutionTier =
+    inferred === "mind" || roleToTier(role) === 0
+      ? 0
+      : isOrchestratorRole(role) || inferred === "mind-auditor" || roleToTier(role) === 1
+        ? 1
+        : isCoordinatorRole(role) || inferred === "planner" || roleToTier(role) === 2
+          ? 2
+          : 3;
 
   return {
     role,

@@ -1,15 +1,15 @@
 import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 import { buildPacket } from "../../../../olt/scripts/src/packets/render-packet.ts";
-import { beginCompletenessCritic } from "../../../../olt/scripts/src/workflow/completion/begin-completeness-critic.ts";
-import { completeRun } from "../../../../olt/scripts/src/workflow/completion/complete-run.ts";
-import { recordCompletionReview } from "../../../../olt/scripts/src/workflow/completion/record-completion-review.ts";
-import { completionArtifactRequirements } from "../../../../olt/scripts/src/workflow/completion/artifact-verification.ts";
-import { completionReadinessSnapshot } from "../../../../olt/scripts/src/workflow/completion/readiness-snapshot.ts";
+import { beginCompletenessCritic } from "../../../../olt/scripts/src/workflow/completion/index.ts";
+import { completeRun } from "../../../../olt/scripts/src/workflow/completion/index.ts";
+import { recordCompletionReview } from "../../../../olt/scripts/src/workflow/completion/index.ts";
+import { completionArtifactRequirements } from "../../../../olt/scripts/src/workflow/completion/index.ts";
+import { completionReadinessSnapshot } from "../../../../olt/scripts/src/workflow/completion/index.ts";
 import { tokenDigest } from "../../../../olt/scripts/src/workflow/lease/token.ts";
 import { inspectionContext } from "../../../packets/payloads/slicing/inspection-fixture.ts";
 import { repositoryBindingFromInspection } from "../../../../olt/scripts/src/packets/repository-inspection.ts";
-import { validateRepositoryBinding } from "../../../../olt/scripts/src/workflow/completion/repository-binding.ts";
+import { validateRepositoryBinding } from "../../../../olt/scripts/src/workflow/completion/index.ts";
 import {
   at,
   commandRecord,
@@ -29,7 +29,9 @@ function readyPort(): TestPort {
   const state = workflowState();
   Object.assign(state.tasks["T-1"]!, {
     status: "done",
+    original_implementer: "implementer",
     report: { summary: "done" },
+    attempts: [{ agent_id: "implementer", submitted_at: clock.now().toISOString() }],
     validations: [
       {
         validator_id: "validator",

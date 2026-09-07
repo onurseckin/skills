@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { coordinatorPushbackCommand } from "../../../../../olt/scripts/src/cli/commands/coordinator-pushback.ts";
 import { workflowPort } from "../../../../../olt/scripts/src/integration/store-ports.ts";
 import { loadRun } from "../../../../../olt/scripts/src/engine/store/index.ts";
+import type { VirtualMemoryFS } from "../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   cleanupRoots,
   cleanupVirtualCliFS,
@@ -12,9 +12,12 @@ import {
 } from "../../fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
+let vfs: VirtualMemoryFS;
+
 beforeEach(() => {
-  setupVirtualCliFS();
+  vfs = setupVirtualCliFS();
 });
+
 afterEach(async () => {
   await cleanupRoots(roots);
   cleanupVirtualCliFS();
@@ -22,16 +25,13 @@ afterEach(async () => {
 
 const TASK_ID = "task-1";
 
-/**
- * Builds a capsule via the CLI, then plants `task-1` directly at `validated` with one recorded pass.
- */
 async function setupValidatedRun(name: string): Promise<{ run: string }> {
   const repo = `/virtual/cli/coordpushback-${name}`;
   roots.push(repo);
-  await mkdir(repo, { recursive: true });
-  await mkdir(join(repo, ".git"), { recursive: true });
+  vfs.mkdirSync(repo, { recursive: true });
+  vfs.mkdirSync(join(repo, ".git"), { recursive: true });
   const promptPath = join(repo, "prompt.txt");
-  await writeFile(promptPath, "Fix the retry backoff in the queue worker");
+  vfs.writeFileSync(promptPath, "Fix the retry backoff in the queue worker");
 
   const init = await execute([
     "plan:init",
@@ -126,8 +126,6 @@ describe("coordinator:pushback CLI command", () => {
     expect(task.status).toBe("validating");
     expect(task.coordinator_pushbacks).toHaveLength(1);
 
-    // Reload from disk independently of the returned in-memory result, to prove this actually
-    // persisted rather than only mutating a local object the command happened to return.
     const reloaded = loadRun(run).state as unknown as {
       tasks: Record<string, { status: string; coordinator_pushbacks?: unknown[] }>;
     };

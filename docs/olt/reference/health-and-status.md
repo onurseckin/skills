@@ -58,7 +58,7 @@ OLT evaluates system health across ten orthogonal domains ($D_1 \dots D_{10}$). 
 | D5     | Worker Leases & SLA     | 5-minute heartbeat SLA (Delta t <= 300s), zombie worker tasks |
 | D6     | Topological Graph       | Acyclicity (Tarjan SCC |SCC| = 1), wave dependency continuity |
 | D7     | Git Workspace Hygiene   | Clean root working tree, valid out-of-repo .olt/worktrees     |
-| D8     | Static AST Purity       | TypeScript AST scan (0 any, 0 @ts-ignore, <= 300 line budget) |
+| D8     | Static AST Purity       | TypeScript AST scan (0 any, 0 @ts-ignore, <= 400 line budget) |
 | D9     | Inter-Agent Mailbox     | Mailbox IPC queue latency, deadletter inspection, JSON schema |
 | D10    | Telemetry & Audit Logs  | .olt/telemetry.jsonl append validity, Cowan token envelope    |
 +--------+-------------------------+---------------------------------------------------------------+

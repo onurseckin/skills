@@ -208,7 +208,7 @@ test("compiles file via parser stub", () => {
 ```ts
 // ❌ PROHIBITED: Inspecting repository disk files in unit tests
 import * as fs from "node:fs";
-test("all files under src are <= 300 lines", () => {
+test("all files under src are <= 400 lines", () => {
   const files = fs.readdirSync("src");
   for (const f of files) {
     const lines = fs.readFileSync(`src/${f}`, "utf8").split("\n");

@@ -3,7 +3,7 @@ import {
   executeAutoSyncAndCommit,
   type AutoSyncOptions,
   type GitRunner,
-} from "../../../../olt/scripts/src/workflow/completion/auto-sync-and-commit.ts";
+} from "../../../../olt/scripts/src/workflow/completion/index.ts";
 import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 describe("Error Handling & Failure Recovery", () => {

@@ -21,7 +21,7 @@ import type {
   CompletionRemediation,
   CompletionResult,
   CompletionReview,
-} from "./completion/types.ts";
+} from "./completion/index.ts";
 import type { OrphanEvidenceDisposition } from "./orphan-evidence/types.ts";
 import type { PlanReview, PlanValidationAuthorization } from "./plan-review/types.ts";
 
@@ -50,7 +50,7 @@ export type {
   CompletionResidualRisk,
   CompletionResult,
   CompletionReview,
-} from "./completion/types.ts";
+} from "./completion/index.ts";
 export type { OrphanEvidenceDisposition } from "./orphan-evidence/types.ts";
 
 export interface TaskHistory extends JsonObject {

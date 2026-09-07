@@ -9,7 +9,7 @@ import {
   type AutoFixResult,
   type DirectoryLintResult,
   type FixSuggestion,
-} from "./types.ts";
+} from "../core/index.ts";
 
 export function generateFixSuggestion(
   violation: AstLintViolation,

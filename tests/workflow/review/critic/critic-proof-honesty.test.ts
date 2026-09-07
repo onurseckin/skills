@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { beginCompletenessCritic } from "../../../../olt/scripts/src/workflow/completion/begin-completeness-critic.ts";
-import { parseRawProofs } from "../../../../olt/scripts/src/workflow/completion/parse-raw-proofs.ts";
-import { recordCompletionReview } from "../../../../olt/scripts/src/workflow/completion/record-completion-review.ts";
-import { completionReviewIssues } from "../../../../olt/scripts/src/workflow/completion/review-issues.ts";
-import { parseCompletionAssessment } from "../../../../olt/scripts/src/workflow/completion/review-input.ts";
+import { beginCompletenessCritic } from "../../../../olt/scripts/src/workflow/completion/index.ts";
+import { parseRawProofs } from "../../../../olt/scripts/src/workflow/completion/index.ts";
+import { recordCompletionReview } from "../../../../olt/scripts/src/workflow/completion/index.ts";
+import { completionReviewIssues } from "../../../../olt/scripts/src/workflow/completion/index.ts";
+import { parseCompletionAssessment } from "../../../../olt/scripts/src/workflow/completion/index.ts";
 import {
   at,
   commandRecord,

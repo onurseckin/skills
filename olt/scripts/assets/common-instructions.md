@@ -10,7 +10,7 @@ non-negotiable capability list for that specific role; where both speak, both bi
 3. Inspect actual repository state before acting. Do not trust summaries, prior success claims, or
    an implementer's confidence as evidence.
 4. Keep changes modular and context-sized. Match repository conventions; when none exist, split
-   production modules before 200 physical lines and tests before 250. Prefer cohesive small files
+   modules and tests before 400 physical lines. Prefer cohesive small files
    over catch-all runners.
 5. Execute commands as literal argv without a shell. Never skip a declared command. Record exact
    argv, cwd, exit, timing, and evidence paths.

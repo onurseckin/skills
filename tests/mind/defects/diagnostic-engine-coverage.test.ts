@@ -1,11 +1,5 @@
-/**
- * @file diagnostic-engine-coverage.test.ts
- * Comprehensive unit tests for empirical baseline probe execution and the DiagnosticClusteringEngine orchestrator.
- */
-
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import * as childProcess from "node:child_process";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import {
   DiagnosticClusteringEngine,
@@ -28,7 +22,7 @@ describe("Empirical Baseline Probing & Diagnostic Engine Coverage Suite", () => 
   beforeEach(() => {
     vfs = new VirtualMemoryFS();
     session = createVirtualFSSession(vfs);
-    fs.mkdirSync(tempDir, { recursive: true });
+    vfs.mkdirSync(tempDir, { recursive: true });
 
     spies.push(
       spyOn(childProcess, "spawnSync").mockImplementation((cmd, args) => {
@@ -118,7 +112,7 @@ describe("Empirical Baseline Probing & Diagnostic Engine Coverage Suite", () => 
 
     it("handles missing tsconfig.json and missing test runners for file checks", async () => {
       const emptyDir = join(tempDir, "empty-proj");
-      fs.mkdirSync(emptyDir);
+      vfs.mkdirSync(emptyDir);
 
       const probes: ProbeDefinition[] = [
         {

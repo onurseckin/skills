@@ -1,5 +1,4 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import * as fs from "node:fs";
 import { join, resolve } from "node:path";
 import {
   acquireMutexLock,
@@ -7,26 +6,25 @@ import {
 } from "../../../olt/scripts/src/engine/runner/models/execution/run-command.ts";
 import { activeExecutionRootInodes } from "../../../olt/scripts/src/engine/runner/models/execution/run-command-lock-deps.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import type { Stats } from "node:fs";
-import { cleanupVirtualEngineFS, getVirtualEngineFS, setupVirtualEngineFS } from "../fixture.ts";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+
+type Stats = ReturnType<VirtualFSSession["statSync"]>;
 
 describe("engine/runner/models/execution/run-command.ts - Mutex Locking", () => {
   let tempDir: string;
   let restoreDeps: (() => void) | undefined;
-  let restoreLockDeps: (() => void) | undefined;
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
 
   beforeEach(() => {
-    setupVirtualEngineFS();
-    restoreLockDeps = setExecutionLockDependenciesForTesting({
-      lstat: (p) => fs.lstatSync(p),
-      fstat: (fd) => fs.fstatSync(fd),
-      openRepositoryRoot: (p, flags) => fs.openSync(p, flags),
-      openLockFile: (p, flags, mode) => fs.openSync(p, flags, mode),
-      mkdirLockDirectory: (p, opts) => fs.mkdirSync(p, opts),
-      close: (fd) => fs.closeSync(fd),
-    });
+    if (session) session.cleanup();
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
     tempDir = "/virtual/run-cmd-mutex";
-    const vfs = getVirtualEngineFS();
     vfs.mkdirSync(tempDir, { recursive: true });
     vfs.mkdirSync(join(tempDir, ".olt", ".locks"), { recursive: true });
   });
@@ -37,11 +35,7 @@ describe("engine/runner/models/execution/run-command.ts - Mutex Locking", () => 
       restoreDeps();
       restoreDeps = undefined;
     }
-    if (restoreLockDeps) {
-      restoreLockDeps();
-      restoreLockDeps = undefined;
-    }
-    cleanupVirtualEngineFS();
+    session?.cleanup();
   });
 
   it("returns noop callback for non-broad scope commands", () => {
@@ -57,7 +51,7 @@ describe("engine/runner/models/execution/run-command.ts - Mutex Locking", () => 
   });
 
   it("throws LOCK_TIMEOUT when repository execution authority is already active in process", () => {
-    const realRootStat = fs.statSync(tempDir);
+    const realRootStat = session.statSync(tempDir);
     const rootInode = `${realRootStat.dev}:${realRootStat.ino}`;
     activeExecutionRootInodes.add(rootInode);
 
@@ -209,7 +203,7 @@ describe("engine/runner/models/execution/run-command.ts - Mutex Locking", () => 
   });
 
   it("throws when opened lock file is not a regular file", () => {
-    const realRootStat = fs.statSync(tempDir);
+    const realRootStat = session.statSync(tempDir);
     let fstatCount = 0;
     restoreDeps = setExecutionLockDependenciesForTesting({
       fstat: () => {
@@ -232,7 +226,7 @@ describe("engine/runner/models/execution/run-command.ts - Mutex Locking", () => 
 
   it("throws when lock directory identity changes while opening lock file", () => {
     const lockDir = resolve(join(tempDir, ".olt", ".locks"));
-    const realLockDirStat = fs.statSync(lockDir);
+    const realLockDirStat = session.statSync(lockDir);
     let lockDirLstatCount = 0;
     restoreDeps = setExecutionLockDependenciesForTesting({
       lstat: (path) => {
@@ -247,7 +241,7 @@ describe("engine/runner/models/execution/run-command.ts - Mutex Locking", () => 
             return modified;
           }
         }
-        return fs.statSync(path);
+        return session.statSync(path);
       },
     });
 

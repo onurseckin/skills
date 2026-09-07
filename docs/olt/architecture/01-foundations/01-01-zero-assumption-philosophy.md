@@ -167,7 +167,7 @@ The AST linter parses all modified TypeScript/JavaScript files using the TypeScr
 
 - **Zero `any` Types**: Explicit or implicit `any` usage is rejected.
 - **Zero Type Suppressions**: `@ts-ignore`, `@ts-expect-error`, and `eslint-disable` directives trigger instant rejection.
-- **Strict Budgets**: Source files must not exceed 300 lines; documentation topics must remain within 250–800 lines.
+- **Strict Budgets**: Source files must not exceed 400 lines; documentation topics must remain within 250–800 lines.
 - **Export Facades**: Every submodule must expose explicit index facades without barrel cycle leaks.
 
 ### 4.2 Dynamic Runtime Execution Proofs
@@ -260,11 +260,11 @@ export function evaluateVerificationPredicate(
     };
   }
 
-  if (bundle.astReceipt.maxLineCount > 300) {
+  if (bundle.astReceipt.maxLineCount > 400) {
     return {
       passed: false,
       violationCode: "AST_LINE_BUDGET_EXCEEDED",
-      failureReason: `File exceeds 300 lines budget: ${bundle.astReceipt.maxLineCount} lines.`,
+      failureReason: `File exceeds 400 lines budget: ${bundle.astReceipt.maxLineCount} lines.`,
       evaluatedAt: timestamp,
     };
   }

@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   agentBriefCommand,
@@ -8,6 +7,7 @@ import {
 } from "../../../olt/scripts/src/cli/commands/agent-brief.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   cleanupVirtualCliFS,
   setupVirtualCliFS,
@@ -15,9 +15,10 @@ import {
 
 describe("executeAgentBrief", () => {
   let scratchBase = "";
+  let vfs: VirtualMemoryFS;
 
   beforeEach(() => {
-    setupVirtualCliFS();
+    vfs = setupVirtualCliFS();
     scratchBase = "/virtual/agent-brief-suite";
   });
 
@@ -28,8 +29,8 @@ describe("executeAgentBrief", () => {
   test("renders allowed commands from the canonical repository policy", () => {
     const repoRoot = join(scratchBase, "custom-policy");
     const policyPath = join(repoRoot, ".olt", "policy.json");
-    mkdirSync(join(repoRoot, ".olt"), { recursive: true });
-    writeFileSync(
+    vfs.mkdirSync(join(repoRoot, ".olt"), { recursive: true });
+    vfs.writeFileSync(
       policyPath,
       JSON.stringify({ allowed_commands: ["bun test tests/cli/help/agent-brief.test.ts"] }),
       "utf-8",
@@ -44,8 +45,8 @@ describe("executeAgentBrief", () => {
   test("fails closed when the canonical repository policy is invalid", () => {
     const repoRoot = join(scratchBase, "invalid-policy");
     const policyPath = join(repoRoot, ".olt", "policy.json");
-    mkdirSync(join(repoRoot, ".olt"), { recursive: true });
-    writeFileSync(policyPath, "{ invalid json", "utf-8");
+    vfs.mkdirSync(join(repoRoot, ".olt"), { recursive: true });
+    vfs.writeFileSync(policyPath, "{ invalid json", "utf-8");
 
     expect(() => executeAgentBrief({ role: "implementer", repoRoot })).toThrow(
       /Repository policy.*invalid/i,
@@ -62,7 +63,7 @@ describe("executeAgentBrief", () => {
   test("fails closed when the canonical repository policy path is unreadable", () => {
     const repoRoot = join(scratchBase, "unreadable-policy");
     const policyPath = join(repoRoot, ".olt", "policy.json");
-    mkdirSync(policyPath, { recursive: true });
+    vfs.mkdirSync(policyPath, { recursive: true });
 
     expect(() => executeAgentBrief({ role: "implementer", repoRoot })).toThrow(
       /Repository policy.*invalid/i,
@@ -81,9 +82,9 @@ describe("executeAgentBrief", () => {
     const repoRoot = join(scratchBase, "nested-repository");
     const nestedDirectory = join(repoRoot, "packages", "worker");
     const policyPath = join(repoRoot, ".olt", "policy.json");
-    mkdirSync(nestedDirectory, { recursive: true });
-    mkdirSync(join(repoRoot, ".olt"), { recursive: true });
-    writeFileSync(
+    vfs.mkdirSync(nestedDirectory, { recursive: true });
+    vfs.mkdirSync(join(repoRoot, ".olt"), { recursive: true });
+    vfs.writeFileSync(
       policyPath,
       JSON.stringify({ allowed_commands: ["repository-root-command"] }),
       "utf-8",
@@ -127,7 +128,7 @@ describe("executeAgentBrief", () => {
 
   test("renders capsule milestone evidence verification when capsulePath is provided", async () => {
     const repoRoot = join(scratchBase, "capsule-evidence-repo");
-    mkdirSync(repoRoot, { recursive: true });
+    vfs.mkdirSync(repoRoot, { recursive: true });
     const runRoot = initRun(
       repoRoot,
       "evidence-test-run",
@@ -157,7 +158,7 @@ describe("executeAgentBrief", () => {
     ).rejects.toThrow(HarnessError);
 
     const repoRoot = join(scratchBase, "brief-cmd-run-repo");
-    mkdirSync(repoRoot, { recursive: true });
+    vfs.mkdirSync(repoRoot, { recursive: true });
     const runRoot = initRun(
       repoRoot,
       "brief-cmd-run",

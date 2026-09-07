@@ -211,10 +211,7 @@ export class ResourceGovernor {
       });
     }
 
-    if (
-      this.quota.maxCpuPercent !== undefined &&
-      snapshot.cpuPercent > this.quota.maxCpuPercent
-    ) {
+    if (this.quota.maxCpuPercent !== undefined && snapshot.cpuPercent > this.quota.maxCpuPercent) {
       this.cpuViolationStreak++;
       const maxStreak = this.quota.maxCpuViolationCount ?? 3;
       const isFatal = this.cpuViolationStreak >= maxStreak;

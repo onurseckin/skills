@@ -1,7 +1,7 @@
 import { classifyPath, type Violation } from "../core/index.ts";
 import type { IndexedBlob } from "./git-index.ts";
 
-const LINE_LIMIT = 300;
+const LINE_LIMIT = 400;
 
 export function countPhysicalLines(bytes: Uint8Array): number {
   if (bytes.length === 0) return 0;
@@ -27,7 +27,7 @@ export function findLineViolations(blobs: readonly IndexedBlob[]): readonly Viol
           path: blob.path,
           observed,
           limit: LINE_LIMIT,
-          detail: "File exceeds the 300 physical-line limit.",
+          detail: "File exceeds the 400 physical-line limit.",
         },
       ];
     }

@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "../types.ts";
+import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "../index.ts";
 import { checkCognitiveValidatorCommandLock } from "./audit.ts";
 
 function processCapsuleDirectory(

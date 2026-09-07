@@ -1,85 +1,30 @@
-import { beforeEach, afterEach, describe, expect, it } from "bun:test";
-import * as fs from "node:fs";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { join } from "node:path";
-import { setupVirtualMindFS, cleanupVirtualMindFS, scratchRoot } from "../../fixtures/index.ts";
+import { cleanupVirtualMindFS, scratchRoot, setupVirtualMindFS } from "../../fixtures/index.ts";
 import {
   auditDynamicRoles as auditDynamicRolesHierarchy,
-  runAutonomousMindRoleAudit,
-  formatRoleAuditMarkdown,
-  renderRoleAuditAsciiTable,
   formatNonDuplicatePersonaSummary,
+  formatRoleAuditMarkdown,
   isMindRole,
+  renderRoleAuditAsciiTable,
+  runAutonomousMindRoleAudit,
 } from "../../../../olt/scripts/src/mind/auditing/roles/rules/hierarchy.ts";
 import { auditSingleRole } from "../../../../olt/scripts/src/mind/auditing/roles/contract-auditor.ts";
-import {
-  auditDynamicRoles as auditDynamicRolesBatch,
-  formatRoleAuditMarkdown as formatBatchMarkdown,
-  renderRoleAuditAsciiTable as renderBatchAsciiTable,
-  formatNonDuplicatePersonaSummary as formatBatchPersonaSummary,
-} from "../../../../olt/scripts/src/mind/auditing/roles/batch-auditor.ts";
-import { synthesizeNonDuplicatePersona } from "../../../../olt/scripts/src/mind/auditing/roles/synthesizer.ts";
-import {
-  getRoleName,
-  computePersonaSignature,
-  calculatePersonaSimilarity,
-  findSimilarPersonas,
-} from "../../../../olt/scripts/src/mind/auditing/roles/similarity.ts";
-import {
-  validateParentChildSupervision,
-  assertParentChildBoundary,
-  createRoleBoundaryWatchdog,
-  verifyRoleBoundaryAction,
-  auditRoleBoundaryActions,
-} from "../../../../olt/scripts/src/mind/auditing/roles/auditor.ts";
-import {
-  checkValidatorHardLock,
-  checkSpawning,
-} from "../../../../olt/scripts/src/mind/auditing/roles/rules/leaf-checks.ts";
-import { isFullTestSuiteCommand } from "../../../../olt/scripts/src/mind/auditing/roles/rules/matrix.ts";
-import {
-  checkNeverUnattendedActions,
-  checkDeclinedCandidates,
-} from "../../../../olt/scripts/src/mind/auditing/questionnaire/evaluator.ts";
-import {
-  checkAdmittedCandidateWitnesses,
-  checkAdmittedCandidateGoals,
-  checkValueConsistency,
-} from "../../../../olt/scripts/src/mind/auditing/questionnaire/prompts.ts";
-import {
-  validateAuditAnswers,
-  checkAuditBlocksPulse,
-  assertAuditAllowsPulseOpen,
-} from "../../../../olt/scripts/src/mind/auditing/questionnaire/reporter.ts";
-import { analyzeRunForensics } from "../../../../olt/scripts/src/mind/auditing/meta/evaluator.ts";
-import { parseEventsFile } from "../../../../olt/scripts/src/mind/auditing/meta/types.ts";
-import {
-  parseStateFile,
-  parseManifestFile,
-  extractToolCallsFromTranscripts,
-  extractToolCallsFromEvents,
-  calculateEfficiencyScore,
-} from "../../../../olt/scripts/src/mind/auditing/meta/timeline.ts";
-import { runExtendedForensicsHeuristics } from "../../../../olt/scripts/src/mind/auditing/meta/heuristics-extended.ts";
-import { runForensicsHeuristics } from "../../../../olt/scripts/src/mind/auditing/meta/heuristics.ts";
-import { auditMindPreplanningStagnation } from "../../../../olt/scripts/src/mind/auditing/mind-stagnation-auditor.ts";
-import {
-  executeStagnationShockRecovery,
-  resolveStagnationIncidents,
-} from "../../../../olt/scripts/src/mind/auditing/stagnation-recovery-interlock.ts";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import { DynamicRoleRegistry } from "../../../../olt/scripts/src/mind/roles/dynamic/registry.ts";
 import type { DynamicRoleSpec } from "../../../../olt/scripts/src/mind/roles/dynamic/types.ts";
-import type { HarnessEvent, RunState } from "../../../../olt/scripts/src/core/contracts/index.ts";
-
-beforeEach(() => {
-  setupVirtualMindFS();
-});
-
-afterEach(() => {
-  cleanupVirtualMindFS();
-});
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Auditing & Roles Exhaustive Unit Test Suite", () => {
+  let vfs: VirtualMemoryFS;
+
+  beforeEach(() => {
+    vfs = setupVirtualMindFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualMindFS();
+  });
+
   describe("Hierarchy & Role Auditing Rules", () => {
     it("isMindRole matches mind patterns and rejects non-mind", () => {
       expect(isMindRole("mind")).toBe(true);
@@ -188,7 +133,7 @@ grantedCommands:
 ---
 # Role Definition
 `;
-      fs.writeFileSync(roleFile, yamlContent);
+      vfs.writeFileSync(roleFile, yamlContent);
 
       const findingsFromFile = auditSingleRole(roleFile);
       expect(findingsFromFile.length).toBe(0);
@@ -198,7 +143,6 @@ grantedCommands:
     });
 
     it("detects cross-tier spawning, invalid parent roles, forbidden commands, and validator write violations", () => {
-      // Tier 0 spawning non-orchestrator
       const tier0Spec: DynamicRoleSpec = {
         name: "bad-mind",
         tier: 0,
@@ -208,25 +152,23 @@ grantedCommands:
       const f0 = auditSingleRole(tier0Spec);
       expect(f0.some((f) => f.id.includes("FIND-HIER-SPAWN0"))).toBe(true);
 
-      // Tier 1 spawning non-coordinator
       const tier1Spec: DynamicRoleSpec = {
         name: "bad-orch",
         tier: 1,
         archetype: "tier_1_orchestrator",
         spawns: ["implementer"],
-        parentRole: "implementer", // invalid parent
+        parentRole: "implementer",
       };
       const f1 = auditSingleRole(tier1Spec);
       expect(f1.some((f) => f.id.includes("FIND-HIER-SPAWN1"))).toBe(true);
       expect(f1.some((f) => f.id.includes("FIND-HIER-PARENT1"))).toBe(true);
 
-      // Tier 2 spawning non-worker and invalid parent
       const tier2Spec: DynamicRoleSpec = {
         name: "bad-coord",
         tier: 2,
         archetype: "tier_2_coordinator",
         spawns: ["orchestrator"],
-        parentRole: "mind", // invalid parent (must be orchestrator)
+        parentRole: "mind",
         grantedCommands: ["task:claim", "orchestrator:run"],
       };
       const f2 = auditSingleRole(tier2Spec);
@@ -235,12 +177,11 @@ grantedCommands:
       expect(f2.some((f) => f.id.includes("FIND-CMD-SUPERCLAIM"))).toBe(true);
       expect(f2.some((f) => f.id.includes("FIND-CMD-ORCHRUN"))).toBe(true);
 
-      // Tier 3 invalid parent and validator write policy
       const tier3ValSpec: DynamicRoleSpec = {
         name: "bad-val",
         tier: 3,
         archetype: "tier_3_validator",
-        parentRole: "orchestrator", // invalid parent (must be coordinator)
+        parentRole: "orchestrator",
         writeScopePolicy: "lease_bounded",
         permittedActivities: ["edit code files"],
         cognitivePillars: [],

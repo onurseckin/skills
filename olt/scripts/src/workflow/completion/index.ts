@@ -2,9 +2,6 @@ export {
   completionArtifactRequirements,
   validateCompletionArtifactVerification,
   type CompletionArtifactRequirements,
-} from "./artifact-verification.ts";
-
-export {
   executeAutoSyncAndCommit,
   type AutoSyncOptions,
   type AutoSyncResult,
@@ -12,24 +9,28 @@ export {
   type GitRunnerResult,
   type SyncRunner,
   type SyncRunnerResult,
-} from "./auto-sync-and-commit.ts";
-
-export { beginCompletenessCritic, type BeginCriticOptions } from "./begin-completeness-critic.ts";
-
-export { completeRun, type CompletionArtifactVerifier } from "./complete-run.ts";
-
-export { completionHistoryIssues } from "./completion-history.ts";
-
-export { completionReviewDigest, jsonDigest } from "./completion-review-digest.ts";
-
-export {
+  completeRun,
+  type CompletionArtifactVerifier,
   completionIssues,
   gateTally,
   mandatoryRunGateCommands,
   type GateTally,
-} from "./completion-state.ts";
+  recordCompletionRemediation,
+  recordCompletionReview,
+} from "./verification/index.ts";
 
 export {
+  beginCompletenessCritic,
+  type BeginCriticOptions,
+  assertCriticIndependent,
+  loadCriticRolePacket,
+  resolveCriticToken,
+  saveCriticPacket,
+  deriveTaskTwoKeyPairing,
+  taskTwoKeyValidatorPairingIssues,
+  verifyTwoKeyValidatorPairing,
+  type TwoKeyValidatorPairing,
+  type ValidatorReceipt,
   generateStructuredFindingsFromCritic,
   isDeterministicFindingRepeat,
   routeCriticReviewFindings,
@@ -38,66 +39,45 @@ export {
   type RouteCriticFindingsResult,
   type TaskRepairBudgetStatus,
   type TaskRepairSummary,
-} from "./critic-feedback-loop.ts";
+} from "./critic/index.ts";
 
 export {
-  assertCriticIndependent,
-  loadCriticRolePacket,
-  resolveCriticToken,
-  saveCriticPacket,
-} from "./critic-identity.ts";
-
-export { observeCapsuleIntegrity, type CapsuleIntegrityEvidence } from "./integrity-evidence.ts";
-
-export { parseRawFindings } from "./parse-raw-findings.ts";
-
-export { parseRawProofs } from "./parse-raw-proofs.ts";
-
-export { completionReadinessIssues } from "./readiness-issues.ts";
+  parseRawFindings,
+  parseRawProofs,
+  completionReadinessIssues,
+  completionReviewIssues,
+  transitionSummaryIssues,
+} from "./issues/index.ts";
 
 export {
+  completionHistoryIssues,
+  completionReviewDigest,
+  jsonDigest,
+  observeCapsuleIntegrity,
+  type CapsuleIntegrityEvidence,
   commandIsSuccessfulGate,
   completionReadinessSnapshot,
   type CompletionReadinessSnapshot,
-} from "./readiness-snapshot.ts";
-
-export { recordCompletionRemediation } from "./record-completion-remediation.ts";
-
-export { recordCompletionReview } from "./record-completion-review.ts";
-
-export {
   currentRepositoryBinding,
   repositoryBindingIsValid,
   sameRepositoryBinding,
   validateRepositoryBinding,
   verifyRepositoryBinding,
   type RepositoryBindingVerifier,
-} from "./repository-binding.ts";
+  authoritativeRepositoryCommand,
+  parseCompletionAssessment,
+} from "./provenance/index.ts";
 
-export { authoritativeRepositoryCommand } from "./repository-evidence.ts";
-
-export { parseCompletionAssessment } from "./review-input.ts";
-
-export { completionReviewIssues } from "./review-issues.ts";
-
-export { transitionSummaryIssues } from "./transition-summary-issues.ts";
-
-export {
-  type CompletionArtifactPacket,
-  type CompletionArtifactVerification,
-  type CompletionCriticAuthorization,
-  type CompletionEvidenceItem,
-  type CompletionFinding,
-  type CompletionFindingResolution,
-  type CompletionRemediation,
-  type CompletionRequirementProof,
-  type CompletionResidualRisk,
-  type CompletionResult,
-  type CompletionReview,
-} from "./types.ts";
-
-export {
-  verifyTwoKeyValidatorPairing,
-  type TwoKeyValidatorPairing,
-  type ValidatorReceipt,
-} from "./two-key-validator-pairing.ts";
+export type {
+  CompletionArtifactPacket,
+  CompletionArtifactVerification,
+  CompletionCriticAuthorization,
+  CompletionEvidenceItem,
+  CompletionFinding,
+  CompletionFindingResolution,
+  CompletionRemediation,
+  CompletionRequirementProof,
+  CompletionResidualRisk,
+  CompletionResult,
+  CompletionReview,
+} from "./contracts/index.ts";

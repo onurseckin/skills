@@ -12,7 +12,7 @@ import * as commandAuthority from "./command-authority.ts";
 import * as commonInstructions from "./common-instructions.ts";
 import * as criticContext from "./critic-context.ts";
 import * as criticGrant from "./critic-grant.ts";
-import * as criticIntegrityDigest from "./critic-integrity-digest.ts";
+import { criticIntegrityDigest } from "./critic-integrity-digest.ts";
 import * as dynamicSteps from "./dynamic-steps.ts";
 import * as evidenceSchema from "./evidence-schema.ts";
 import * as grantBootstrapAllowlist from "./grant-bootstrap-allowlist.ts";

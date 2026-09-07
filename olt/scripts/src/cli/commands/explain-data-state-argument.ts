@@ -107,7 +107,7 @@ export const INVALID_STATE_AND_ARGUMENT_ENTRIES: readonly ExplainEntry[] = [
             "graph revision has drifted since validation started",
           ),
           example(
-            "workflow/completion/repository-binding.ts",
+            "workflow/completion/index.ts",
             "repository bytes changed after critic authorization",
           ),
           example("workflow/review/record-probe.ts", "probe round changed during the transaction"),
@@ -123,10 +123,7 @@ export const INVALID_STATE_AND_ARGUMENT_ENTRIES: readonly ExplainEntry[] = [
             "workflow/agents/ledger.ts",
             "max_agents budget of ${maxAgents} is exhausted: ${activeGrants.length} active grants and this needs ${additional} more; release completed agents or narrow the work",
           ),
-          example(
-            "workflow/completion/begin-completeness-critic.ts",
-            "completeness critic rounds are exhausted",
-          ),
+          example("workflow/completion/index.ts", "completeness critic rounds are exhausted"),
           example("engine/store/events/event-append.ts", "event count exceeds configured limit"),
         ],
       ),
@@ -205,7 +202,7 @@ export const INVALID_STATE_AND_ARGUMENT_ENTRIES: readonly ExplainEntry[] = [
         "Fix the JSON payload to match the documented shape in references/schema-examples.md - a missing field, wrong enum value, or duplicate id is refused, never guessed at.",
         [
           example(
-            "workflow/completion/parse-raw-findings.ts",
+            "workflow/completion/index.ts",
             "completion finding ${id} must declare severity critical, important or minor",
           ),
           example("workflow/submission/validate-report.ts", "report must be an object"),
@@ -239,10 +236,7 @@ export const INVALID_STATE_AND_ARGUMENT_ENTRIES: readonly ExplainEntry[] = [
         "Point the flag at a real, readable path of the right kind - a directory for --run, a file for --report or a findings/proofs file.",
         [
           example("engine/store/capsule/load.ts", "run_root must be a real directory: ${runRoot}"),
-          example(
-            "workflow/completion/parse-raw-findings.ts",
-            "cannot read findings file: ${findingsFile}",
-          ),
+          example("workflow/completion/index.ts", "cannot read findings file: ${findingsFile}"),
           example("engine/store/layout/blobs.ts", "not a regular file: ${sourcePath}"),
         ],
       ),

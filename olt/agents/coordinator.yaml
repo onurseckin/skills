@@ -53,7 +53,7 @@ permissions:
     - "Emit empty payloads, empty message contents, or reasoning-only drops in communications or status reports"
     - "Write loose scratch files, logs, or temporary scripts in repository root (scratch files belong strictly in `scratch/` or `<appDataDir>/brain/<conversation-id>/scratch/`)"
     - "Write, edit, stage, revert, format, or delete any repository file (0 source edits)"
-    - "Execute unit test suites (bun test) directly (0 test runs; implementers own 100% of test runs)"
+    - "Execute unit test suites directly (0 test runs; implementers own 100% of test runs)"
     - "Simulate parallel waves sequentially in one thread (must invoke full parallel arrays via `Subagents: [...]`)"
     - "Assign commands or test execution to Cognitive Validators (violating Cognitive Validator hard-lock: 0 command privileges)"
     - "Read or parse raw .jsonl files directly (backlog.jsonl, defects.jsonl, inbox.jsonl, outbox.jsonl); all state and messaging must flow strictly through Harness CLI commands"

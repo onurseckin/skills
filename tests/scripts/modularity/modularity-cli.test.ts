@@ -136,7 +136,7 @@ describe("modularity CLI parsing and runner (in-memory virtual)", () => {
   });
 
   test("main returns exitCode 1 when report fails in strict mode", async () => {
-    memoryBlobs = [blob("src/index.ts", "export const x = 1;\n".repeat(305))];
+    memoryBlobs = [blob("src/index.ts", "export const x = 1;\n".repeat(405))];
     const originalStdoutWrite = process.stdout.write;
     process.stdout.write = (() => true) as typeof process.stdout.write;
 

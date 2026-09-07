@@ -19,7 +19,7 @@ function baseline(observed: number): ModularityBaseline {
         path: "a.ts",
         observed,
         limit: 300,
-        detail: "File exceeds the 300 physical-line limit.",
+        detail: "File exceeds the 400 physical-line limit.",
       },
     ],
   };

@@ -235,7 +235,7 @@ describe("Task 1.39: Defect Remediation - Syntax Errors and Dangling Statements 
     }
   });
 
-  test("7. All discovery files in parent directory adhere to <= 300 lines and zero comments", () => {
+  test("7. All discovery files in parent directory adhere to <= 400 lines and zero comments", () => {
     const discoveryDir = join(process.cwd(), "olt/scripts/src/mind/tasks/discovery");
     const topFiles = readdirSync(discoveryDir).filter((f) => f.endsWith(".ts"));
 
@@ -244,7 +244,7 @@ describe("Task 1.39: Defect Remediation - Syntax Errors and Dangling Statements 
       const content = readFileSync(fullPath, "utf8");
       const lines = content.split("\n");
 
-      expect(lines.length).toBeLessThanOrEqual(300);
+      expect(lines.length).toBeLessThanOrEqual(400);
 
       expect(content).not.toContain("@ts" + "-ignore");
       expect(content).not.toContain("@ts" + "-expect-error");

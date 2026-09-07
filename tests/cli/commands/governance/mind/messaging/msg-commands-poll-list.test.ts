@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { execute } from "../../../../../../olt/scripts/src/cli/execute.ts";
 import {
@@ -9,29 +8,31 @@ import {
   msgSendCommand,
 } from "../../../../../../olt/scripts/src/cli/commands/index.ts";
 import { resolveMailboxPaths } from "../../../../../../olt/scripts/src/communication/mailbox/index.ts";
+import type { VirtualMemoryFS } from "../../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   cleanupVirtualCliFS,
   setupVirtualCliFS,
 } from "../../../fixtures/full-lifecycle-fixture.ts";
 
 describe("Mailbox IPC CLI Commands - Poll and List", () => {
+  let vfs: VirtualMemoryFS;
   let testRoot: string;
 
   beforeEach(() => {
-    setupVirtualCliFS();
+    vfs = setupVirtualCliFS();
     testRoot = join(
       process.cwd(),
       "scratch",
       "test-isolation",
       `msg-cmd-pl-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     );
-    mkdirSync(testRoot, { recursive: true });
+    vfs.mkdirSync(testRoot, { recursive: true });
   });
 
   afterEach(() => {
-    if (existsSync(testRoot)) {
+    if (vfs.existsSync(testRoot)) {
       try {
-        rmSync(testRoot, { recursive: true, force: true });
+        vfs.rmSync(testRoot, { recursive: true, force: true });
       } catch {}
     }
     cleanupVirtualCliFS();
@@ -109,7 +110,7 @@ describe("Mailbox IPC CLI Commands - Poll and List", () => {
       });
 
       const pathsOne = resolveMailboxPaths("worker-one", testRoot);
-      writeFileSync(pathsOne.quarantinePath, "corrupted line\n");
+      vfs.writeFileSync(pathsOne.quarantinePath, "corrupted line\n");
 
       await msgRecvCommand({ actor: "worker-one", "base-dir": testRoot });
       msgSendCommand({

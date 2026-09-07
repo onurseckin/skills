@@ -13,14 +13,14 @@ import {
 import { inspectRepositoryBinding } from "../../packets/repository-identity.ts";
 import { recordGrantInspections } from "../../packets/role-grant.ts";
 import { queryScreenshots } from "../../reporting/screenshot-store.ts";
-import { beginCompletenessCritic } from "../../workflow/completion/begin-completeness-critic.ts";
-import { observeCapsuleIntegrity } from "../../workflow/completion/integrity-evidence.ts";
-import { parseRawFindings } from "../../workflow/completion/parse-raw-findings.ts";
-import { parseRawProofs } from "../../workflow/completion/parse-raw-proofs.ts";
-import { recordCompletionRemediation } from "../../workflow/completion/record-completion-remediation.ts";
-import { recordCompletionReview } from "../../workflow/completion/record-completion-review.ts";
-import { authoritativeRepositoryCommand } from "../../workflow/completion/repository-evidence.ts";
-import type { CompletionFinding } from "../../workflow/completion/types.ts";
+import { beginCompletenessCritic } from "../../workflow/completion/index.ts";
+import { observeCapsuleIntegrity } from "../../workflow/completion/index.ts";
+import { parseRawFindings } from "../../workflow/completion/index.ts";
+import { parseRawProofs } from "../../workflow/completion/index.ts";
+import { recordCompletionRemediation } from "../../workflow/completion/index.ts";
+import { recordCompletionReview } from "../../workflow/completion/index.ts";
+import { authoritativeRepositoryCommand } from "../../workflow/completion/index.ts";
+import type { CompletionFinding } from "../../workflow/completion/index.ts";
 import { tokenDigest } from "../../workflow/lease/token.ts";
 import {
   formatCriticRejectBrief,

@@ -1,7 +1,5 @@
-/**
- * @file index.ts
- * Facade for Summary Nodes Reporter test suite.
- */
+export { nodesEvidenceSuite } from "./evidence/index.ts";
+export { nodesValidationSuite } from "./validation/index.ts";
 
 export const nodesSuite = [
   "graph-asset-completeness",
@@ -10,6 +8,8 @@ export const nodesSuite = [
   "graph-node-evidence-transitions",
   "graph-plan-validator-nodes",
   "graph-role-projection",
+  "graph-role-projection-branches",
   "graph-validator-nodes-core",
   "graph-validator-nodes-rounds",
+  "graph-validator-probe-pushback",
 ] as const;

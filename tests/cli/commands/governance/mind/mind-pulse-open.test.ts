@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   formatMindPulseOpenBrief,
@@ -44,12 +43,15 @@ function grantRole(run: string, agentId: string, role: AgentRole): void {
   });
 }
 
-async function setupValidCharter(repo: string, run: string): Promise<string> {
+function setupValidCharter(repo: string, run: string): string {
   const charterRel = "olt/agents/mind.yaml";
   const charterPath = join(repo, charterRel);
-  await mkdir(join(repo, "olt/agents"), { recursive: true });
+  const vfs = getVirtualCliFS();
+  vfs.mkdirSync(join(repo, "olt/scripts"), { recursive: true });
+  vfs.writeFileSync(join(repo, "olt/scripts/harness.ts"), "");
+  vfs.mkdirSync(join(repo, "olt/agents"), { recursive: true });
   const content = "version: 1\ngoals:\n  - G1\n";
-  await writeFile(charterPath, content);
+  vfs.writeFileSync(charterPath, content);
   const sha = createHash("sha256").update(content).digest("hex");
   transact(run, "coordinator", "set-charter", {}, (draft) => {
     draft.mind = { charter: { source_path: charterRel, pinned_sha256: sha, repo_roots: [repo] } };
@@ -88,7 +90,7 @@ describe("mind-pulse-open", () => {
 
   test("enforces agent grant requirements, valid roles, and mind halt states", async () => {
     const { repo, run } = await setupCompiledRun("mind-pulse-open-roles", roots);
-    await setupValidCharter(repo, run);
+    setupValidCharter(repo, run);
 
     expect(() =>
       mindPulseOpenCommand({ run, actor: "unregistered-agent", host: "local", driver: "claude" }),
@@ -124,7 +126,7 @@ describe("mind-pulse-open", () => {
 
   test("enforces open pulse conflict rules for active and expired pulses", async () => {
     const { repo, run } = await setupCompiledRun("mind-pulse-open-conflicts", roots);
-    await setupValidCharter(repo, run);
+    setupValidCharter(repo, run);
 
     transact(run, "coordinator", "open-pulse-active", {}, (draft) => {
       draft.pulse = { open: { pulse_id: "pulse-active", deadline_at: "2026-09-01T14:00:00.000Z" } };
@@ -158,7 +160,7 @@ describe("mind-pulse-open", () => {
       mindPulseOpenCommand({ run, actor: "mind", host: "local", driver: "claude" }),
     ).toThrow("charter file at 'olt/agents/mind.yaml' is missing");
 
-    await setupValidCharter(repo, run);
+    setupValidCharter(repo, run);
     transact(run, "coordinator", "corrupt-sha", {}, (draft) => {
       const m = draft.mind as Record<string, unknown>;
       const c = m.charter as Record<string, unknown>;
@@ -168,7 +170,7 @@ describe("mind-pulse-open", () => {
       mindPulseOpenCommand({ run, actor: "mind", host: "local", driver: "claude" }),
     ).toThrow("charter sha256 mismatch");
 
-    await setupValidCharter(repo, run);
+    setupValidCharter(repo, run);
     const vfs = getVirtualCliFS();
     const origRead = vfs.readFileSync;
     const readSpy = spyOn(vfs, "readFileSync").mockImplementation(function (
@@ -188,9 +190,9 @@ describe("mind-pulse-open", () => {
     readSpy.mockRestore();
 
     const statePath = join(run, "state.json");
-    const rawState = JSON.parse(await readFile(statePath, "utf-8")) as Record<string, unknown>;
+    const rawState = JSON.parse(vfs.readFileSync(statePath, "utf-8")) as Record<string, unknown>;
     rawState.event_sequence = 100_000;
-    await writeFile(statePath, canonicalJsonBytes(rawState as never));
+    vfs.writeFileSync(statePath, canonicalJsonBytes(rawState as never));
 
     expect(() =>
       mindPulseOpenCommand({ run, actor: "mind", host: "local", driver: "claude" }),
@@ -198,7 +200,7 @@ describe("mind-pulse-open", () => {
 
     rawState.event_sequence = 10;
     rawState.budget = { pulses_per_day: 1, pulses_today: 1, day_key: "2026-09-01" };
-    await writeFile(statePath, canonicalJsonBytes(rawState as never));
+    vfs.writeFileSync(statePath, canonicalJsonBytes(rawState as never));
 
     expect(() =>
       mindPulseOpenCommand({
@@ -213,7 +215,7 @@ describe("mind-pulse-open", () => {
 
   test("successfully opens pulse, writes auto-grant, advances pulse counter and writes last pulse", async () => {
     const { repo, run } = await setupCompiledRun("mind-pulse-open-success", roots);
-    await setupValidCharter(repo, run);
+    setupValidCharter(repo, run);
 
     transact(run, "coordinator", "set-custom-budget", {}, (draft) => {
       draft.budget = {

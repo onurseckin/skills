@@ -17,7 +17,7 @@ import {
   auditCharterRepoRoots,
   auditLiveCharter,
   parseCharter,
-} from "../../../../olt/scripts/src/mind/auditing/charter-auditing.ts";
+} from "../../../../olt/scripts/src/mind/auditing/index.ts";
 import {
   auditCharterGoals as barrelAuditCharterGoals,
   auditCharterManifest as barrelAuditCharterManifest,

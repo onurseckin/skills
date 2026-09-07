@@ -5,7 +5,7 @@ import { HarnessError } from "../core/errors/index.ts";
 import { readAgentLedger } from "../workflow/agents/ledger.ts";
 import { locateSubTask, readBranchLedger } from "../workflow/branch/ledger.ts";
 import { tokenMatches } from "../workflow/lease/token.ts";
-import { assertCriticIndependent } from "../workflow/completion/critic-identity.ts";
+import { assertCriticIndependent } from "../workflow/completion/index.ts";
 import { assertPlanValidatorIndependent } from "../workflow/plan-review/identity.ts";
 import type { Clock, PacketRecord, TransactionPort, WorkflowState } from "../workflow/types.ts";
 import { systemClock } from "../workflow/types.ts";
@@ -13,7 +13,7 @@ import { createPacketBundle, verifyPacketBundle } from "./packet-bundle.ts";
 import type { BuiltPacket } from "./types.ts";
 import { metadataInteger, metadataText, packetRecord } from "./packet-record.ts";
 import { assertActiveCriticDeadline } from "./authorization-deadline.ts";
-import { sameRepositoryBinding } from "../workflow/completion/repository-binding.ts";
+import { sameRepositoryBinding } from "../workflow/completion/index.ts";
 
 export interface PacketAuthorization {
   agentId: string;

@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { AstLintRuleModule, FixSuggestion, RuleContext } from "../../ast/types.ts";
+import type { AstLintRuleModule, FixSuggestion, RuleContext } from "../../core/index.ts";
 
 const PROHIBITED_FS_MODULES = new Set(["fs", "node:fs", "fs/promises", "node:fs/promises"]);
 
@@ -60,7 +60,7 @@ const VIRTUAL_FS_REGEX = /(?:vfs|virtual|memory|mem|mock|fake|stub|fixture|adapt
 function isTestFileOrContext(context: RuleContext): boolean {
   const norm = context.fileName.replace(/\\/gu, "/");
   if (
-    /(?:^|\/)tests\//u.test(norm) ||
+    /(?:^|\/)tests[/]/u.test(norm) ||
     /\.(?:test|spec)\.[cm]?[jt]sx?$/u.test(norm) ||
     norm.toLowerCase().includes("test") ||
     norm.toLowerCase().includes("spec")

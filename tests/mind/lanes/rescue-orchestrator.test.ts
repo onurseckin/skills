@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { executeRescueLane } from "../../../olt/scripts/src/mind/lanes/rescue/orchestrator.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import {
   cleanupVirtualStoreFS,
+  getVirtualStoreFS,
   scratchRoot,
   setupVirtualStoreFS,
 } from "../../store/store-fixture.ts";
@@ -21,6 +21,9 @@ describe("Rescue Lane Orchestrator Suite", () => {
 
   function fixture(label: string) {
     const repoRoot = scratchRoot(import.meta.path, `${label}-repo`);
+    const vfs = getVirtualStoreFS();
+    vfs.mkdirSync(join(repoRoot, "olt", "scripts"), { recursive: true });
+    vfs.writeFileSync(join(repoRoot, "olt", "scripts", "harness.ts"), "");
     const prompt = new TextEncoder().encode("Mind test prompt");
     const mindRunRoot = initRun(repoRoot, `mind-${label}`, prompt, "file", true);
     return { repoRoot, mindRunRoot, actor: "mind-tester" };
@@ -28,8 +31,9 @@ describe("Rescue Lane Orchestrator Suite", () => {
 
   function writeCharter(repoRoot: string, rel = "olt/agents/mind.yaml", content = "name: mind\n") {
     const full = join(repoRoot, rel);
-    mkdirSync(join(full, ".."), { recursive: true });
-    writeFileSync(full, content);
+    const vfs = getVirtualStoreFS();
+    vfs.mkdirSync(join(full, ".."), { recursive: true });
+    vfs.writeFileSync(full, content);
     return createHash("sha256").update(new TextEncoder().encode(content)).digest("hex");
   }
 
@@ -47,7 +51,6 @@ describe("Rescue Lane Orchestrator Suite", () => {
 
   it("returns outcome 'halted' when Rung 0 halts due to missing charter", async () => {
     const { mindRunRoot } = fixture("r0-halt");
-    // Charter file not created on disk -> Rung 0 halts
     const res = await executeRescueLane(mindRunRoot, {
       now: "2026-09-01T12:00:00.000Z",
     });
@@ -114,7 +117,6 @@ describe("Rescue Lane Orchestrator Suite", () => {
   it("returns outcome 'rescued' and executes recovery actions across rungs", async () => {
     const { mindRunRoot, actor } = setupHealthy("reclaimed-pulse");
 
-    // Seed an expired/crashed pulse with crash count < 3 so Rung 4 reclaims it instead of halting
     transact(mindRunRoot, actor, "seed-reclaimable-pulse", {}, (draft) => {
       draft.pulse = {
         open: {

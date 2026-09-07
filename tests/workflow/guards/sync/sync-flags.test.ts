@@ -7,7 +7,7 @@ import {
   type GitRunnerResult,
   type SyncRunner,
   type SyncRunnerResult,
-} from "../../../../olt/scripts/src/workflow/completion/auto-sync-and-commit.ts";
+} from "../../../../olt/scripts/src/workflow/completion/index.ts";
 import {
   CONVENTIONAL_COMMIT_TYPES,
   formatConventionalCommit,

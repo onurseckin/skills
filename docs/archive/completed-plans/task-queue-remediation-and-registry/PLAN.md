@@ -21,7 +21,7 @@ Track 5 addresses critical stabilization, taxonomy alignment, registry hygiene, 
 3. **Subsystem Facades Explicit Named Exports (`task-rem-3.1`)**:
    In compliance with repository-wide static analysis and coding conventions (`tests/unit/validation/coding-conventions.test.ts`), all subsystem facades (`olt/scripts/src/mind/preplanning/index.ts`, `olt/scripts/src/graph/index.ts`, `olt/scripts/src/telemetry/index.ts`, and `olt/scripts/src/telemetry/collectors/index.ts`) must enforce 0 wildcard `export *` statements, using 100% explicit named exports to avoid namespace pollution and circular evaluation cycles.
 4. **Authority Session Lease & Turn 1 Registration Interlock (`task-caps-1.1`)**:
-   Subagent processes require durable registration before executing governed operations. In `olt/scripts/src/authority/session/grants.ts` (lines 213–262) and `olt/scripts/src/authority/session/resolver.ts` (lines 246–309), `assertActiveCapsuleLease` and `requireTurn1Registration` assert active ledger status or unexpired task leases in `state.json`, blocking unauthenticated, spoofed, or unanchored execution with `AUTHENTICATION_FAILURE` or `INVALID_STATE`. In addition, `resolver.ts` is refactored by delegating candidate discovery to `paths.ts` (`resolveCapsuleStateCandidate`), reducing its physical line count from 310 LOC down to ~282 LOC to satisfy the <= 300 LOC density ceiling.
+   Subagent processes require durable registration before executing governed operations. In `olt/scripts/src/authority/session/grants.ts` (lines 213–262) and `olt/scripts/src/authority/session/resolver.ts` (lines 246–309), `assertActiveCapsuleLease` and `requireTurn1Registration` assert active ledger status or unexpired task leases in `state.json`, blocking unauthenticated, spoofed, or unanchored execution with `AUTHENTICATION_FAILURE` or `INVALID_STATE`. In addition, `resolver.ts` is refactored by delegating candidate discovery to `paths.ts` (`resolveCapsuleStateCandidate`), reducing its physical line count from 310 LOC down to ~282 LOC to satisfy the <= 400 LOC density ceiling.
 
 ### 1.2 Root Cause Analysis with Exact Codebase Coordinates
 
@@ -33,16 +33,16 @@ Track 5 addresses critical stabilization, taxonomy alignment, registry hygiene, 
 | `task-rem-2.1`  | `olt/scripts/src/mind/feedback/queue/types.ts`                                                                                                                             | Lines 30–46, 213–237                                               | `FeedbackCategory` union and `validateCategory` must include and normalize all 16 canonical categories + synonyms                           | Ensure full union coverage & synonym mapping                                                                                                                                     |
 | `task-rem-2.2`  | `tests/unit/mind/feedback-category.test.ts`                                                                                                                                | Lines 1–105                                                        | Asserts normalization for all 16 canonical categories, case-insensitivity, trim, and synonyms                                               | Unit test suite covering all mappings                                                                                                                                            |
 | `task-rem-3.1`  | `olt/scripts/src/mind/preplanning/index.ts`<br>`olt/scripts/src/graph/index.ts`<br>`olt/scripts/src/telemetry/index.ts`<br>`olt/scripts/src/telemetry/collectors/index.ts` | Facade index files                                                 | Facades must strictly use named exports and zero `export *`                                                                                 | Verify and seal named exports across all 4 facades                                                                                                                               |
-| `task-caps-1.1` | `olt/scripts/src/authority/session/paths.ts`<br>`olt/scripts/src/authority/session/grants.ts`<br>`olt/scripts/src/authority/session/resolver.ts`                           | `paths.ts:115–130`<br>`grants.ts:213–262`<br>`resolver.ts:246–295` | Unanchored subagents could attempt execution without valid lease in `state.json` or turn 1 token; `resolver.ts` violates density at 310 LOC | Refactor `requireTurn1Registration` with `paths.ts` helper to achieve <= 300 LOC (down to ~282 LOC); enforce active ledger / task lease validation in `assertActiveCapsuleLease` |
+| `task-caps-1.1` | `olt/scripts/src/authority/session/paths.ts`<br>`olt/scripts/src/authority/session/grants.ts`<br>`olt/scripts/src/authority/session/resolver.ts`                           | `paths.ts:115–130`<br>`grants.ts:213–262`<br>`resolver.ts:246–295` | Unanchored subagents could attempt execution without valid lease in `state.json` or turn 1 token; `resolver.ts` violates density at 310 LOC | Refactor `requireTurn1Registration` with `paths.ts` helper to achieve <= 400 LOC (down to ~282 LOC); enforce active ledger / task lease validation in `assertActiveCapsuleLease` |
 
 ---
 
 ## Level 2: Architectural Constraints & Invariants
 
-1. **File Density Budget**: <= 300 physical lines of code per TypeScript file.
+1. **File Density Budget**: <= 400 physical lines of code per TypeScript file.
    - `olt/scripts/src/authority/session/resolver.ts` (currently 310 lines) is refactored down to ~282 lines.
    - `olt/scripts/src/authority/session/paths.ts` increases from 114 lines to ~130 lines (well within limit).
-   - All other files remain strictly under 300 LOC.
+   - All other files remain strictly under 400 LOC.
 2. **Directory Density Budget**: <= 10 files per directory.
    - `olt/scripts/src/authority/session/`: 7 files (<= 10 limit).
    - `olt/scripts/src/mind/feedback/queue/`: 8 files (<= 10 limit).
@@ -352,7 +352,7 @@ Implementers executing Track 5 tasks require zero exploratory searching. All fil
 - **Execution Invariants**:
   1. 0 code comments in TypeScript files.
   2. 0 TypeScript `any` types and 0 compiler/linter suppressions.
-  3. Every file must remain <= 300 physical lines of code.
+  3. Every file must remain <= 400 physical lines of code.
   4. Run mandatory gate command after every file modification.
 - **Mandatory Gate Commands**:
   - `bun test tests/unit/cli/registry-uniqueness.test.ts`

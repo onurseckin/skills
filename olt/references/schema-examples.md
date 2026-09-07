@@ -323,7 +323,7 @@ One entry in `state.branches`, after a collect:
       "id": "S-1",
       "label": "Fix the parser",
       "write_scope": ["src/store/parser"],
-      "gate": "bun test tests/unit/store/parser.test.ts",
+      "gate": "<targeted-test-command> tests/unit/store/parser.test.ts",
       "status": "submitted",
       "agent_id": "sub-1",
       "claimed_at": "2026-08-19T10:05:02.000Z",

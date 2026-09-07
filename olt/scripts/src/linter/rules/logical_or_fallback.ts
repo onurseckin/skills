@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { AstLintRuleModule } from "../ast/index.ts";
+import type { AstLintRuleModule } from "../core/index.ts";
 
 export const logicalOrFallbackRule: AstLintRuleModule = {
   rule: "logical_or_fallback",

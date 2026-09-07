@@ -24,6 +24,8 @@ describe("cli/commands/mind-pulse smart-task integration (in-memory virtual)", (
     repo = scratchRoot("cli-smart-task", "repo");
     run = `${repo}/.olt/capsules/mind-gen-cmd-test`;
 
+    vfs.mkdirSync(join(repo, "olt", "scripts"), { recursive: true });
+    vfs.writeFileSync(join(repo, "olt", "scripts", "harness.ts"), "");
     vfs.mkdirSync(join(repo, "olt", "agents"), { recursive: true });
     vfs.mkdirSync(run, { recursive: true });
 

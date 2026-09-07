@@ -10,7 +10,7 @@ import {
 } from "../../../olt/scripts/src/cli/commands/task-claim.ts";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import * as completeRunModule from "../../../olt/scripts/src/workflow/completion/complete-run.ts";
+import * as completeRunModule from "../../../olt/scripts/src/workflow/completion/index.ts";
 import {
   executePostFlightDoctorAudit,
   executePreFlightDoctorAudit,

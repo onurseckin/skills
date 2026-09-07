@@ -364,14 +364,11 @@ export {
 } from "./policy-ops.ts";
 export { factoryPreplanCommand, factoryStatusCommand } from "./factory-ops.ts";
 export { notifyPhaseCommand, notifyTestCommand } from "./notify-ops.ts";
-export type { MsgSendResult } from "./msg-send.ts";
-export { msgSendCommand } from "./msg-send.ts";
-export type { MsgRecvResult } from "./msg-recv.ts";
-export { msgRecvCommand } from "./msg-recv.ts";
-export type { MsgPollResult } from "./msg-poll.ts";
-export { msgPollCommand } from "./msg-poll.ts";
-export type { MailboxSummary, MsgListResult } from "./msg-list.ts";
-export { msgListCommand } from "./msg-list.ts";
+export { msgSendCommand, type MsgSendResult } from "./msg-send.ts";
+export { msgRecvCommand, type MsgRecvResult } from "./msg-recv.ts";
+export { msgPollCommand, type MsgPollResult } from "./msg-poll.ts";
+export { msgListCommand, type MailboxSummary, type MsgListResult } from "./msg-list.ts";
+export { msgListenCommand, type MsgListenResult } from "./msg-listen.ts";
 export {
   taskAddCommand,
   executeTaskAdd,

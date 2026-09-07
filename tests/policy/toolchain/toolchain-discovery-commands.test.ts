@@ -1,7 +1,5 @@
-import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { cleanupVirtualPolicyFS, setupVirtualPolicyFS } from "../fixture.ts";
 import { mindInitCommand } from "../../../olt/scripts/src/cli/commands/index.ts";
 import { mindObserveCommand } from "../../../olt/scripts/src/cli/commands/index.ts";
 import {
@@ -9,24 +7,33 @@ import {
   loadRepoPolicy,
   validateRepoPolicy,
 } from "../../../olt/scripts/src/policy/index.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Toolchain Discovery - Auto-Calibration & Commands", () => {
   const scratch = "/virtual/policy/toolchain/discovery-commands";
+  let vfs: VirtualMemoryFS;
+  let vfsSession: VirtualFSSession;
 
   beforeEach(() => {
-    setupVirtualPolicyFS();
+    vfs = new VirtualMemoryFS();
+    vfsSession = createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
-    cleanupVirtualPolicyFS();
+    vfsSession.cleanup();
   });
 
   test("calibrates .olt/policy.json automatically on mind:init and mind:observe", async () => {
     const dir = join(scratch, "mind-init-calibration");
-    mkdirSync(dir, { recursive: true });
-    writeFileSync(join(dir, "bun.lock"), "");
-    writeFileSync(join(dir, "tsconfig.json"), "{}");
-    writeFileSync(
+    vfs.mkdirSync(dir, { recursive: true });
+    vfs.chdir(dir);
+    vfs.writeFileSync(join(dir, "bun.lock"), "");
+    vfs.writeFileSync(join(dir, "tsconfig.json"), "{}");
+    vfs.writeFileSync(
       join(dir, "package.json"),
       JSON.stringify({
         scripts: { typecheck: "tsc --noEmit", lint: "oxlint" },
@@ -34,7 +41,7 @@ describe("Toolchain Discovery - Auto-Calibration & Commands", () => {
       }),
     );
     const charterPath = join(dir, "mind.yaml");
-    writeFileSync(
+    vfs.writeFileSync(
       charterPath,
       `
 name: "mind"
@@ -70,14 +77,14 @@ charter:
 
     const runRoot = typeof initRes.run_root === "string" ? initRes.run_root : "";
     const cmdDir = join(runRoot, "commands");
-    mkdirSync(cmdDir, { recursive: true });
-    writeFileSync(
+    vfs.mkdirSync(cmdDir, { recursive: true });
+    vfs.writeFileSync(
       join(cmdDir, "cmd-1.json"),
       JSON.stringify({ command_id: "cmd-1", command: "health", exit_code: 0 }),
     );
 
-    unlinkSync(join(dir, ".olt", "policy.json"));
-    expect(existsSync(join(dir, ".olt", "policy.json"))).toBe(false);
+    vfs.unlinkSync(join(dir, ".olt", "policy.json"));
+    expect(vfs.existsSync(join(dir, ".olt", "policy.json"))).toBe(false);
 
     mindObserveCommand({
       run: runRoot,
@@ -87,7 +94,7 @@ charter:
       count: "0",
     });
 
-    expect(existsSync(join(dir, ".olt", "policy.json"))).toBe(true);
+    expect(vfs.existsSync(join(dir, ".olt", "policy.json"))).toBe(true);
     const reloaded = loadRepoPolicy(dir);
     expect(reloaded.ecosystem).toBe("bun");
     expect(reloaded.lint_command).toBe("bun run lint");
@@ -95,19 +102,19 @@ charter:
 
   test("discovers pnpm and yarn with TypeScript without custom typecheck script", () => {
     const pnpmDir = join(scratch, "pnpm-ts-only");
-    mkdirSync(pnpmDir, { recursive: true });
-    writeFileSync(join(pnpmDir, "pnpm-lock.yaml"), "");
-    writeFileSync(join(pnpmDir, "tsconfig.json"), "{}");
-    writeFileSync(join(pnpmDir, "package.json"), JSON.stringify({ name: "pnpm-ts-app" }));
+    vfs.mkdirSync(pnpmDir, { recursive: true });
+    vfs.writeFileSync(join(pnpmDir, "pnpm-lock.yaml"), "");
+    vfs.writeFileSync(join(pnpmDir, "tsconfig.json"), "{}");
+    vfs.writeFileSync(join(pnpmDir, "package.json"), JSON.stringify({ name: "pnpm-ts-app" }));
 
     const pnpmDisc = discoverToolchain(pnpmDir, "node");
     expect(pnpmDisc.typecheckCommand).toBe("pnpm exec tsc --noEmit");
 
     const yarnDir = join(scratch, "yarn-ts-only");
-    mkdirSync(yarnDir, { recursive: true });
-    writeFileSync(join(yarnDir, "yarn.lock"), "");
-    writeFileSync(join(yarnDir, "tsconfig.json"), "{}");
-    writeFileSync(join(yarnDir, "package.json"), JSON.stringify({ name: "yarn-ts-app" }));
+    vfs.mkdirSync(yarnDir, { recursive: true });
+    vfs.writeFileSync(join(yarnDir, "yarn.lock"), "");
+    vfs.writeFileSync(join(yarnDir, "tsconfig.json"), "{}");
+    vfs.writeFileSync(join(yarnDir, "package.json"), JSON.stringify({ name: "yarn-ts-app" }));
 
     const yarnDisc = discoverToolchain(yarnDir, "node");
     expect(yarnDisc.typecheckCommand).toBe("yarn tsc --noEmit");

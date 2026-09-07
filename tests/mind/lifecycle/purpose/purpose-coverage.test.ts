@@ -170,7 +170,6 @@ describe("Strategic Purpose & Admission Gates Suite (purpose.ts)", () => {
       expect(new Date(plan.plannedAt).getTime()).toBeGreaterThan(0);
       expect(plan.waves).toHaveLength(2);
 
-      // Wave 1 defaults
       expect(plan.waves[0]!.waveNumber).toBe(1);
       expect(plan.waves[0]!.title).toContain("Strategic Foundations");
       expect(plan.waves[0]!.isolatedWriteScopes).toEqual(["olt/scripts/src/core", "olt/roles"]);
@@ -179,7 +178,6 @@ describe("Strategic Purpose & Admission Gates Suite (purpose.ts)", () => {
       expect(plan.waves[0]!.atomicTasks[0]!.role).toBe("implementer");
       expect(plan.waves[0]!.atomicTasks[0]!.estimatedDurationMs).toBe(900_000);
 
-      // Wave 2 defaults
       expect(plan.waves[1]!.waveNumber).toBe(2);
       expect(plan.waves[1]!.title).toContain("Multi-Viewport Validation");
       expect(plan.waves[1]!.isolatedWriteScopes).toEqual(["tests/unit/mind", "tests/unit/roles"]);
@@ -239,7 +237,7 @@ describe("Strategic Purpose & Admission Gates Suite (purpose.ts)", () => {
       expect(plan.waves[0]!.atomicTasks[1]!.taskId).toBe("task-cand-b");
       expect(plan.waves[0]!.atomicTasks[2]!.taskId).toBe("task-cand-c");
       expect(plan.waves[0]!.estimatedParallelism).toBe(3);
-      expect(plan.totalTasks).toBe(5); // 3 in Wave 1 + 2 in Wave 2
+      expect(plan.totalTasks).toBe(5);
       expect(plan.maxParallelism).toBe(3);
     });
 

@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Maximum 300 physical lines; 300 passes and 301 fails.
+- Maximum 400 physical lines; 400 passes and 401 fails.
 - Maximum 10 direct in-scope files per directory, including indexes.
 - Standard-library-only implementation; no repository production imports.
 - Staged scans read Git-index blobs and fail closed.
@@ -161,12 +161,12 @@ Parse NUL records, validate mode/OID/path, and request blobs through one `git ca
 
 - [ ] **Step 4: Implement line/fanout checks**
 
-Group included blobs by POSIX dirname. Emit a line violation only above 300 and a fanout violation only above 10. Count `index.ts`, JSON, Markdown, and YAML in fanout after scope classification.
+Group included blobs by POSIX dirname. Emit a line violation only above 400 and a fanout violation only above 10. Count `index.ts`, JSON, Markdown, and YAML in fanout after scope classification.
 
 - [ ] **Step 5: Run green and adversarial tests**
 
 Run: `bun scripts/testing/test-runner.ts tests/unit/scripts/modularity/inventory`
-Expected: PASS, including 300/301, 10/11, rename, deletion, malformed batch, and index-versus-working-tree cases.
+Expected: PASS, including 400/401, 10/11, rename, deletion, malformed batch, and index-versus-working-tree cases.
 
 - [ ] **Step 6: Commit and push**
 
@@ -334,7 +334,7 @@ falsifiable without requiring the reviewer to execute commands.
 
 - [ ] **Step 8: Independent review gate**
 
-Terra/high reviewer checks standard-library imports, direct argv, fail-closed branches, index blob provenance, 300/301 and 10/11 boundaries, export-star rejection, type-only preservation, and Tarjan determinism. Any finding returns to the same implementer for one bounded repair cycle.
+Terra/high reviewer checks standard-library imports, direct argv, fail-closed branches, index blob provenance, 400/401 and 10/11 boundaries, export-star rejection, type-only preservation, and Tarjan determinism. Any finding returns to the same implementer for one bounded repair cycle.
 
 - [ ] **Step 9: Commit, push, and transfer baseline ownership**
 

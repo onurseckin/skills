@@ -1,6 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
-import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import {
   identifyExecutionContext,
@@ -11,6 +9,7 @@ import {
 import {
   cleanupRoots,
   cleanupVirtualCliFS,
+  getVirtualCliFS,
   setupVirtualCliFS,
 } from "../../fixtures/full-lifecycle-fixture.ts";
 
@@ -187,8 +186,9 @@ describe("Thread Authority Identifier - Resolution and Containment", () => {
   });
 
   test("records defect records to run directory when available", async () => {
+    const vfs = getVirtualCliFS();
     const dir = `/virtual/cli/harness-defect-test-${Date.now()}`;
-    await mkdir(dir, { recursive: true });
+    vfs.mkdirSync(dir, { recursive: true });
     roots.push(dir);
 
     const defect: DefectRecord = {
@@ -211,8 +211,8 @@ describe("Thread Authority Identifier - Resolution and Containment", () => {
     expect(recorded.id).toBe("defect-test-1");
 
     const defectsFile = join(dir, "defects.jsonl");
-    expect(existsSync(defectsFile)).toBeTrue();
-    const contents = readFileSync(defectsFile, "utf8");
+    expect(vfs.existsSync(defectsFile)).toBeTrue();
+    const contents = vfs.readFileSync(defectsFile, "utf8");
     expect(contents).toContain("defect-test-1");
   });
 });

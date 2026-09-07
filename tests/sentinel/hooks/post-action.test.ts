@@ -16,7 +16,7 @@ describe("sentinel:post-action hook & AST inspection", () => {
     expect(violations[0]?.severity).toBe("CRITICAL");
   });
 
-  test("passes physical line budget when lines <= 300", () => {
+  test("passes physical line budget when lines <= 400", () => {
     const lines = Array.from({ length: 250 }, (_, i) => `// line ${i}`).join("\n");
     const violations = inspectPhysicalLines(lines, "src/concise.ts");
 

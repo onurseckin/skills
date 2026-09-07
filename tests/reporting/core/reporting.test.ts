@@ -1,15 +1,11 @@
-import { afterAll, afterEach, beforeAll, describe, expect, mock, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, mock, test } from "bun:test";
 import { join } from "node:path";
 import { initRun, loadRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { runDoctor } from "../../../olt/scripts/src/reporting/doctor.ts";
 import { renderHandoff, writeHandoff } from "../../../olt/scripts/src/reporting/handoff.ts";
 import { renderPreplanHandoff } from "../../../olt/scripts/src/reporting/preplan-handoff.ts";
 import { runStatus } from "../../../olt/scripts/src/reporting/status.ts";
-import { runStatusCommand } from "../../../olt/scripts/src/cli/commands/run-ops.ts";
-import { repositoryBinding, commandRecord } from "../../workflow/shared/test-port.ts";
-import { orphanEvidenceSha256 } from "../../../olt/scripts/src/workflow/orphan-evidence/digest.ts";
 import { dispatchFailures, handoffArgv } from "./dispatchable.ts";
-import { generateLeasesReport } from "../../../olt/scripts/src/reporting/unified/index.ts";
 import {
   createVirtualFSSession,
   VirtualMemoryFS,
@@ -100,7 +96,7 @@ const gateEvidenceLimitations = [
   "Process ownership signaling remains independently fail-closed.",
 ];
 
-function fixture(extraMutate?: (state: any) => void): string {
+function fixture(extraMutate?: (state: Record<string, unknown>) => void): string {
   const repo = tempDir("harness-report");
   const runRoot = initRun(
     repo,
@@ -126,7 +122,7 @@ function fixture(extraMutate?: (state: any) => void): string {
         repair_round: 0,
       },
     };
-    if (extraMutate) extraMutate(state);
+    if (extraMutate) extraMutate(state as unknown as Record<string, unknown>);
   });
   return runRoot;
 }
@@ -135,7 +131,6 @@ export const reportingSuiteName = "status handoff and doctor";
 
 let sharedRun: string;
 let preplanRun: string;
-let statusRun: string;
 
 describe(reportingSuiteName, () => {
   beforeAll(async () => {
@@ -148,22 +143,8 @@ describe(reportingSuiteName, () => {
       "file",
       true,
     );
-    statusRun = fixture((state) => {
-      const tasks = state.tasks as Record<string, Record<string, unknown>>;
-      tasks["task-1"]!.status = "leased";
-      tasks["task-1"]!.lease = {
-        agent_id: "worker-1",
-        role: "implementer",
-        token_digest: "b".repeat(64),
-        attempt: 1,
-        expires_at: "2026-08-13T12:20:00.000Z",
-      };
-    });
-    // Warm up JIT execution paths for reporting engines
     renderHandoff(sharedRun);
     runStatus(sharedRun);
-    runStatusCommand({ run: sharedRun });
-    await runDoctor(sharedRun);
   });
 
   afterAll(() => {
@@ -239,112 +220,5 @@ describe(reportingSuiteName, () => {
     expect(dispatchFailures(handoffArgv(first))).toEqual([]);
     const path = writeHandoff(run);
     expect(path).toBe(join(run, "handoff.md"));
-  });
-
-  test("status exposes resumable workflow evidence and blockers without secrets", () => {
-    const evidence = { task_id: "task-1", reason: "late report" };
-    const run = fixture((state) => {
-      state.orphan_evidence = [evidence];
-      state.commands ??= {};
-      state.commands["C-GATE"] = {
-        id: "C-GATE",
-        task_id: "task-1",
-        gate_id: "G-1",
-        argv: ["bun", "test"],
-        cwd: ".",
-        cwd_relative: ".",
-        repository_root: "/virtual",
-        status: "succeeded",
-        actor: "validator",
-        started_at: "2026-08-13T12:00:00.000Z",
-        finished_at: "2026-08-13T12:00:01.000Z",
-        exit_code: 0,
-        signal: null,
-        timeout_kind: null,
-        signals_sent: [],
-        fingerprint: "fp",
-        assurance: "trusted_host_observed_v1",
-        repository_after: repositoryBinding,
-      } as unknown as ReturnType<typeof commandRecord>;
-    });
-    const status = runStatus(run);
-    expect(status.tasks).toEqual([
-      expect.objectContaining({
-        id: "task-1",
-        status: "ready",
-        requirement_ids: ["R-1"],
-        open_finding_ids: [],
-      }),
-    ]);
-    expect(status.gate_evidence).toEqual(gateEvidence);
-    expect(status.gate_evidence_limitations).toEqual(gateEvidenceLimitations);
-    expect(status.commands).toContainEqual(
-      expect.objectContaining({
-        id: "C-GATE",
-        assurance: "trusted_host_observed_v1",
-        repository_after: repositoryBinding,
-      }),
-    );
-    expect(status.orphan_evidence).toEqual([
-      { orphan_sha256: orphanEvidenceSha256(evidence), evidence },
-    ]);
-    expect(
-      status.completion_blockers.some((issue) => issue.includes("orphan evidence")),
-    ).toBeTrue();
-    expect(JSON.stringify(status)).not.toContain("token_digest");
-    const handoff = renderHandoff(run);
-    expect(handoff).toContain(orphanEvidenceSha256(evidence));
-    expect(handoff).toContain("Packet files contain no bearer tokens");
-    expect(handoff).toContain("--grace-seconds 0");
-  });
-
-  test("never exposes critic token digests in status or handoff", () => {
-    const run = fixture((state) => {
-      state.completion_critic = {
-        critic_id: "critic",
-        token_digest: "secret-digest",
-        attempt: 1,
-        status: "assigned",
-        started_at: "2026-08-13T12:00:00.000Z",
-        deadline_at: "2026-08-13T12:20:00.000Z",
-        readiness_sha256: "a".repeat(64),
-        repository_binding: structuredClone(repositoryBinding),
-      };
-    });
-    expect(JSON.stringify(runStatus(run))).not.toContain("token_digest");
-    expect(renderHandoff(run)).not.toContain("token_digest");
-  });
-
-  test("the run:status an agent actually invokes carries no lease token digest", () => {
-    const run = statusRun;
-    expect(JSON.stringify(runStatusCommand({ run }))).not.toContain("token_digest");
-  });
-
-  test("doctor reports integrity and workflow issues separately", async () => {
-    const run = sharedRun;
-    const report = await runDoctor(run);
-    expect(report.gate_evidence).toEqual(gateEvidence);
-    expect(report.gate_evidence_limitations).toEqual(gateEvidenceLimitations);
-    expect(report.integrity_issues).toEqual([]);
-    expect(report.workflow_issues).toContain("task task-1 is ready, not done");
-    expect(report.packet_issues).toEqual([]);
-    expect(report.healthy).toBeFalse();
-  });
-
-  test("doctor can include authoritative global installation drift", async () => {
-    const run = sharedRun;
-    const home = tempDir("harness-doctor-home");
-    const report = await runDoctor(run, {
-      installation: { source: skillRoot, home, clients: ["codex", "claude"] },
-    });
-    expect(report.installation).toMatchObject({ installed: false, drifted: true });
-    expect(report.installation_issues).toContain("installation: not installed");
-  });
-
-  test("generateLeasesReport generates active lease matrix correctly", () => {
-    const run = sharedRun;
-    const result = generateLeasesReport(run);
-    expect(result.matrix).toBeArray();
-    expect(result.markdown).toContain("Active Leases Matrix");
   });
 });

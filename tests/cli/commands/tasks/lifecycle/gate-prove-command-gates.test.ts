@@ -1,6 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   registerSessionGrant,
@@ -16,21 +14,22 @@ import {
 import {
   cleanupRoots,
   cleanupVirtualCliFS,
+  runGit,
   setupVirtualCliFS,
 } from "../../fixtures/full-lifecycle-fixture.ts";
+import { VirtualMemoryFS } from "../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 const roots: string[] = [];
+let vfs: VirtualMemoryFS;
 
 function clearCallerSession(run?: string, agentId = "worker-1"): void {
   try {
     revokeSessionGrant({ runRoot: run, agentId, pid: process.pid, ppid: process.ppid });
-  } catch {
-    // Ignore when running under VFS
-  }
+  } catch {}
 }
 
 beforeEach(() => {
-  setupVirtualCliFS();
+  vfs = setupVirtualCliFS();
   enableInMemoryAgentMetadata();
   clearCallerSession();
 });
@@ -44,22 +43,22 @@ afterEach(async () => {
 });
 
 function git(repo: string, argv: readonly string[]): void {
-  spawnSync("git", [...argv], { cwd: repo });
+  runGit(repo, argv);
 }
 
 async function compiledSingleTaskRun(
   name: string,
   gate: string,
 ): Promise<{ repo: string; run: string }> {
-  setupVirtualCliFS();
+  vfs = setupVirtualCliFS();
   const repo = `/virtual/cli/gate-prove-cmd-${name}-${Math.random().toString(36).slice(2)}`;
   roots.push(repo);
-  mkdirSync(repo, { recursive: true });
-  mkdirSync(join(repo, ".git"), { recursive: true });
-  writeFileSync(join(repo, ".gitignore"), ".olt/capsules/\nprompt.txt\n");
-  writeFileSync(join(repo, "README.md"), "hi\n");
+  vfs.mkdirSync(repo, { recursive: true });
+  vfs.mkdirSync(join(repo, ".git"), { recursive: true });
+  vfs.writeFileSync(join(repo, ".gitignore"), ".olt/capsules/\nprompt.txt\n");
+  vfs.writeFileSync(join(repo, "README.md"), "hi\n");
 
-  writeFileSync(join(repo, "prompt.txt"), "Add a feature file.\n");
+  vfs.writeFileSync(join(repo, "prompt.txt"), "Add a feature file.\n");
   const init = await execute([
     "plan:init",
     "--repo",
@@ -112,19 +111,7 @@ async function compiledSingleTaskRun(
 describe("gate:prove - Gate Bindings, Policies and Options", () => {
   test("defaults --base to sha task:claim recorded, not HEAD, once work landed", async () => {
     const { repo, run } = await compiledSingleTaskRun("claimed-base", "test -f feature.ts");
-    const shaAtClaim = String(
-      spawnSync("git", ["rev-parse", "HEAD"], {
-        cwd: repo,
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "pipe"],
-        env: {
-          ...process.env,
-          GIT_CONFIG_GLOBAL: "/dev/null",
-          GIT_CONFIG_NOSYSTEM: "1",
-          GIT_TERMINAL_PROMPT: "0",
-        },
-      }).stdout,
-    ).trim();
+    const shaAtClaim = runGit(repo, ["rev-parse", "HEAD"]).stdout.trim();
 
     await execute([
       "agent:register",
@@ -159,7 +146,7 @@ describe("gate:prove - Gate Bindings, Policies and Options", () => {
       host: "antigravity",
     });
 
-    writeFileSync(join(repo, "feature.ts"), "export const x = 1;\n");
+    vfs.writeFileSync(join(repo, "feature.ts"), "export const x = 1;\n");
     git(repo, ["add", "-A"]);
     git(repo, ["commit", "--quiet", "-m", "feature landed"]);
 
@@ -178,7 +165,7 @@ describe("gate:prove - Gate Bindings, Policies and Options", () => {
 
   test("accepts explicit --base ref and integer --timeout-ms / --max-files", async () => {
     const { repo, run } = await compiledSingleTaskRun("explicit-base", "test -f feature.ts");
-    writeFileSync(join(repo, "feature.ts"), "export const x = 1;\n");
+    vfs.writeFileSync(join(repo, "feature.ts"), "export const x = 1;\n");
     const result = await execute([
       "gate:prove",
       "--run",
@@ -201,7 +188,7 @@ describe("gate:prove - Gate Bindings, Policies and Options", () => {
   test("refuses to spawn compiled gate that fails gate-command-policy re-check at execution time", async () => {
     const { repo, run } = await compiledSingleTaskRun("policy-escape", "test -f feature.ts");
     const marker = join(repo, "policy-escape-marker.txt");
-    writeFileSync(join(repo, "feature.ts"), "export const x = 1;\n");
+    vfs.writeFileSync(join(repo, "feature.ts"), "export const x = 1;\n");
 
     transact(run, "coordinator", "test-corrupt-compiled-gate", {}, (draft) => {
       if (!isJsonObject(draft.graph) || !Array.isArray(draft.graph.gates)) {
@@ -217,12 +204,12 @@ describe("gate:prove - Gate Bindings, Policies and Options", () => {
     await expect(
       execute(["gate:prove", "--run", run, "--task", "task-1", "--actor", "coordinator"]),
     ).rejects.toThrow(/fails the gate-command-policy re-check/);
-    expect(existsSync(marker)).toBe(false);
+    expect(vfs.existsSync(marker)).toBe(false);
   });
 
   test("refuses an --actor with no registered grant", async () => {
     const { repo, run } = await compiledSingleTaskRun("no-grant", "test -f feature.ts");
-    writeFileSync(join(repo, "feature.ts"), "export const x = 1;\n");
+    vfs.writeFileSync(join(repo, "feature.ts"), "export const x = 1;\n");
     clearCallerSession(run, "coordinator");
 
     await expect(

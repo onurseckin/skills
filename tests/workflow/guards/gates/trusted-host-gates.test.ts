@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { CommandRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import { captureGateEnvironment } from "../../../../olt/scripts/src/engine/runner/index.ts";
 import { embeddedCommandIssues } from "../../../../olt/scripts/src/engine/runner/models/command/command-shape.ts";
-import { validateCompletionArtifactVerification } from "../../../../olt/scripts/src/workflow/completion/artifact-verification.ts";
+import { validateCompletionArtifactVerification } from "../../../../olt/scripts/src/workflow/completion/index.ts";
 import { attachGateResult } from "../../../../olt/scripts/src/workflow/gates/attach-result.ts";
 import {
   at,

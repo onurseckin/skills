@@ -177,7 +177,7 @@ export function isMessageProcessed(
       "Invalid MailboxCursor provided to isMessageProcessed",
     );
   if (cursor.seen_ids.includes(message.id)) return true;
-  return message.sequence > 0 && message.sequence <= cursor.last_read_sequence;
+  return message.sequence > 1 && message.sequence <= cursor.last_read_sequence;
 }
 
 export function advanceMailboxCursor(

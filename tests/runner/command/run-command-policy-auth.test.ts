@@ -1,17 +1,16 @@
-import { describe, expect, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { afterAll, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { prepareCommand } from "../../../olt/scripts/src/engine/runner/models/execution/run-command.ts";
-import { tempRoot, cleanupTempRoots } from "./fixture.ts";
-import { afterAll } from "bun:test";
-
-afterAll(cleanupTempRoots);
 import type { InternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 import type {
   CommandOptions,
   CommandResult,
   PreparedCommand,
 } from "../../../olt/scripts/src/engine/runner/types/types.ts";
+import type { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import { cleanupTempRoots, getRunnerVfs, tempRoot } from "./fixture.ts";
+
+afterAll(cleanupTempRoots);
 
 describe("prepareCommand authorization & RBAC", () => {
   test("throws ROLE_BOUNDARY_VIOLATION when actor metadata is missing", async () => {
@@ -41,9 +40,10 @@ describe("prepareCommand authorization & RBAC", () => {
 
   test("throws when command is not authorized by RBAC policy", async () => {
     const repo = tempRoot("prepare-unauthorized");
+    const vfs: VirtualMemoryFS = getRunnerVfs();
     const runtimeDir = join(repo, "runtime");
-    mkdirSync(runtimeDir, { recursive: true });
-    writeFileSync(
+    vfs.mkdirSync(runtimeDir, { recursive: true });
+    vfs.writeFileSync(
       join(runtimeDir, "agent-unauthorized-agent.json"),
       JSON.stringify({
         agent_id: "unauthorized-agent",

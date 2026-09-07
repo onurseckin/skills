@@ -6,6 +6,7 @@ const APPROVED_ROOT_PATHS = new Set([
   ".capture.yaml",
   ".gitignore",
   ".oxfmtrc.json",
+  ".oxlintrc.json",
   "AGENTS.md",
   "LICENSE",
   "README.md",

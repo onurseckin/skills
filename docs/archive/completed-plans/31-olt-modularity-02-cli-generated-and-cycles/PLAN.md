@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- 300 physical lines maximum; 10 direct files maximum per directory.
+- 400 physical lines maximum; 10 direct files maximum per directory.
 - Explicit named-export facades; no export-star.
 - Cross-directory imports use facades and preserve type-only semantics.
 - Generated CLI artifacts are included and deterministic.
@@ -133,7 +133,7 @@ C1–C5 edit disjoint original paths and newly named feature directories. Shared
 test("large domains render bounded semantic shards with indexes", () => {
   writeManifest();
   expect(readCatalog("commands/mind/index.json").entries).toHaveLength(4);
-  expect(maxGeneratedPhysicalLines()).toBeLessThanOrEqual(300);
+  expect(maxGeneratedPhysicalLines()).toBeLessThanOrEqual(400);
   expect(maxGeneratedDirectoryFanout()).toBeLessThanOrEqual(10);
 });
 ```
@@ -141,7 +141,7 @@ test("large domains render bounded semantic shards with indexes", () => {
 - [ ] **Step 2: Run the red tests**
 
 Run: `bun scripts/testing/test-runner.ts tests/unit/cli/manifest.test.ts tests/unit/cli/manifest-sharding.test.ts tests/unit/cli/registry-boundaries.test.ts`
-Expected: FAIL because shard indexes do not exist and four domain Markdown files exceed 300 lines.
+Expected: FAIL because shard indexes do not exist and four domain Markdown files exceed 400 lines.
 
 - [ ] **Step 3: Record compatibility assertions**
 
@@ -166,7 +166,7 @@ Assert all existing command names, aliases, flag shapes, summaries, and handler 
 
 - [ ] **Step 1: Split C1 into domain descriptors**
 
-Move flag declarations and command specs into cohesive slices such as `mind/queue.ts`, `mind/lifecycle.ts`, `plan/authoring.ts`, and `task/review.ts`. Every slice remains below 300 lines and imports handlers only through the command facade.
+Move flag declarations and command specs into cohesive slices such as `mind/queue.ts`, `mind/lifecycle.ts`, `plan/authoring.ts`, and `task/review.ts`. Every slice remains below 400 lines and imports handlers only through the command facade.
 
 - [ ] **Step 2: Split C2 by rendered concept**
 
@@ -228,7 +228,7 @@ Expected: PASS on unchanged code.
 
 - [ ] **Step 3: Move one responsibility at a time**
 
-For example, split `task-review.ts` into `task-review/start.ts`, `probe.ts`, `verdict.ts`, and `format.ts`; keep each file below 300 lines and the directory at ten files or fewer. Repeat for every exact C3–C5 path.
+For example, split `task-review.ts` into `task-review/start.ts`, `probe.ts`, `verdict.ts`, and `format.ts`; keep each file below 400 lines and the directory at ten files or fewer. Repeat for every exact C3–C5 path.
 
 - [ ] **Step 4: Run family tests after each move**
 
@@ -324,7 +324,7 @@ Partition mind, reporting, plan, and task commands by the registry’s semantic 
 
 - [ ] **Step 2: Emit and verify indexes**
 
-Every generated command shard gets `index.json`; domains over 300 rendered lines get bounded Markdown shards plus a domain index. Root manifest and `index.jsonl` reference each leaf exactly once.
+Every generated command shard gets `index.json`; domains over 400 rendered lines get bounded Markdown shards plus a domain index. Root manifest and `index.jsonl` reference each leaf exactly once.
 
 - [ ] **Step 3: Remove stale generated files safely**
 

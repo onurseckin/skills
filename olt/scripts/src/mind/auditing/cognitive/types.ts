@@ -2,8 +2,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { resolveOltDir } from "../../../core/shared/index.ts";
 import type { ForensicsIncident } from "../meta/index.ts";
-import type { StagnationTelemetry } from "../../../authority/verbatim-role-injector.ts";
-import type { AntiStagnationResult } from "../anti-stagnation-engine.ts";
+import type { StagnationTelemetry } from "../../../authority/index.ts";
+import type { AntiStagnationResult } from "../index.ts";
 
 export interface AuditorCursor {
   readonly lastInspectedTimestamp: string;

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { attachGateResult } from "../../../../olt/scripts/src/workflow/gates/attach-result.ts";
-import { completionIssues } from "../../../../olt/scripts/src/workflow/completion/completion-state.ts";
+import { completionIssues } from "../../../../olt/scripts/src/workflow/completion/index.ts";
 import { finishTask } from "../../../../olt/scripts/src/workflow/gates/finish-task.ts";
 import { makeAuthorityDecisionRecord } from "../../../../olt/scripts/src/workflow/authority/decision-record.ts";
 import { applicableGates } from "../../../../olt/scripts/src/workflow/gates/gate-policy.ts";

@@ -7,9 +7,9 @@ import { requireText } from "../workflow/task-state.ts";
 import type { TaskRecord } from "../workflow/types.ts";
 import { systemClock } from "../workflow/types.ts";
 import type { PacketInput } from "./types.ts";
-import { assertCriticIndependent } from "../workflow/completion/critic-identity.ts";
+import { assertCriticIndependent } from "../workflow/completion/index.ts";
 import { assertActiveCriticDeadline } from "./authorization-deadline.ts";
-import { sameRepositoryBinding } from "../workflow/completion/repository-binding.ts";
+import { sameRepositoryBinding } from "../workflow/completion/index.ts";
 
 function sameTask(left: TaskRecord, right: TaskRecord): boolean {
   return Buffer.from(canonicalJsonBytes(left)).equals(Buffer.from(canonicalJsonBytes(right)));

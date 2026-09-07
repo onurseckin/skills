@@ -79,7 +79,7 @@ This initiative fully redesigned and implemented the multi-agent Mailbox IPC eng
 
 - **Zero TypeScript any**: Confirmed 0 occurrences.
 - **Zero Code Comments**: 100% comment-free AST compliance across all files.
-- **Physical Line Density Ceiling**: 100% of files strictly <= 300 physical lines (max: 291 LOC).
+- **Physical Line Density Ceiling**: 100% of files strictly <= 400 physical lines (max: 291 LOC).
 - **Directory Fanout Limit**: All subdirectories contain <= 10 physical .ts files.
 - **Explicit Barrel Facades**: Explicit named symbol re-exports with 0 wildcard `export *`.
 

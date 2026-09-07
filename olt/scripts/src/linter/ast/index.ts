@@ -17,9 +17,6 @@ export {
   type DirectoryLintResult,
   type FixSuggestion,
   type RuleContext,
-} from "./types.ts";
-
-export {
   createEmptyRuleSummary,
   extractIdentifierWords,
   findVendorInWordList,
@@ -30,9 +27,6 @@ export {
   isJsFile,
   isJsxFile,
   matchesExcludePattern,
-} from "./utils.ts";
-
-export {
   ASSERTION_NAMES,
   detectMockDeclarations,
   EQUALITY_MATCHERS,
@@ -53,12 +47,14 @@ export {
   TEST_IDENTIFIERS,
   type MockInfo,
   type TestCallInfo,
-} from "./test-utils.ts";
+} from "../core/index.ts";
 
 export { formatAstLintReport, formatSummaryTable, formatViolationMarkdown } from "./formatters.ts";
 
 export { collectSourceFiles, lintDirectory } from "./scanner.ts";
 
-export { assertZeroFallbackCompliance, lintFile, lintSourceCode } from "./runner.ts";
+export { lintFile, lintSourceCode } from "./runner.ts";
+
+export { assertZeroFallbackCompliance } from "./compliance.ts";
 
 export { autoFixSourceCode, generateFixSuggestion, suggestRefactorings } from "./autofix.ts";

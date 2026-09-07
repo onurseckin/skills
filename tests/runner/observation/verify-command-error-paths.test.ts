@@ -1,11 +1,10 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { relative, join, sep } from "node:path";
 import type {
   CommandAttemptRecord,
   CommandRecord,
+  RepositoryBinding,
 } from "../../../olt/scripts/src/core/contracts/index.ts";
-import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { atomicWriteJson } from "../../../olt/scripts/src/core/durable-write.ts";
 import { readBoundedBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
 import {
@@ -22,7 +21,8 @@ import {
   verifyCommandAttempt,
   verifyCommandRecord,
 } from "../../../olt/scripts/src/engine/runner/signing/verify-command.ts";
-import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import type { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import { cleanupTempRoots, getRunnerVfs, tempRoot } from "../command/fixture.ts";
 
 afterEach(cleanupTempRoots);
 
@@ -49,23 +49,24 @@ function binding(): RepositoryBinding {
 
 async function succeededFixture(name: string): Promise<{ runRoot: string; stored: CommandRecord }> {
   const repositoryRoot = tempRoot(name);
-  await mkdir(join(repositoryRoot, "bin"));
-  await writeFile(join(repositoryRoot, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
+  const vfs: VirtualMemoryFS = getRunnerVfs();
+  vfs.mkdirSync(join(repositoryRoot, "bin"), { recursive: true });
+  vfs.writeFileSync(join(repositoryRoot, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
   const runRoot = join(repositoryRoot, ".olt", "capsules", "run");
-  await mkdir(join(runRoot, "commands"), { recursive: true });
+  vfs.mkdirSync(join(runRoot, "commands"), { recursive: true });
 
   const runner = createInternalCommandRunner({
     inspectRepository: () => binding(),
     attempt: async (options: NormalizedCommandOptions, attempt, id, commandRoot, signer) => {
       const attemptRoot = join(commandRoot, `attempt-${attempt}`);
-      await mkdir(attemptRoot);
+      vfs.mkdirSync(attemptRoot, { recursive: true });
       const stdoutPath = join(attemptRoot, "stdout.log");
       const stderrPath = join(attemptRoot, "stderr.log");
       const activityPath = join(attemptRoot, "activity.json");
       const startedAt = "2026-08-14T00:00:00.000Z";
       const finishedAt = "2026-08-14T00:00:01.000Z";
-      await writeFile(stdoutPath, "ok\n");
-      await writeFile(stderrPath, "");
+      vfs.writeFileSync(stdoutPath, "ok\n");
+      vfs.writeFileSync(stderrPath, "");
       const controller = startAttemptIntent(
         attemptRoot,
         id,
@@ -135,7 +136,7 @@ async function succeededFixture(name: string): Promise<{ runRoot: string; stored
     actor: "validator",
   });
   await runner.executePreparedCommand(prepared);
-  const stored = JSON.parse(await readFile(prepared.recordPath, "utf8")) as CommandRecord;
+  const stored = JSON.parse(vfs.readFileSync(prepared.recordPath, "utf8")) as CommandRecord;
   expect(verifyCommandRecord(runRoot, stored)).toEqual([]);
   return { runRoot, stored };
 }
@@ -143,9 +144,10 @@ async function succeededFixture(name: string): Promise<{ runRoot: string; stored
 describe("verify-command artifact-read error paths", () => {
   test("reports a stdout log issue and an output-evidence read issue when the log file is missing", async () => {
     const { runRoot, stored } = await succeededFixture("verify-command-missing-stdout-");
+    const vfs: VirtualMemoryFS = getRunnerVfs();
     const attempt = stored.attempts![0]!;
     const stdoutAbsolute = join(runRoot, attempt.logs.stdout.path);
-    await unlink(stdoutAbsolute);
+    vfs.unlinkSync(stdoutAbsolute);
     const issues = verifyCommandAttempt(runRoot, stored, attempt, 0);
     expect(issues.some((issue) => issue.startsWith("attempt 1 stdout log is invalid: "))).toBe(
       true,
@@ -157,12 +159,13 @@ describe("verify-command artifact-read error paths", () => {
 
   test("reports an unreadable started-marker issue when attempt-started.json is missing", async () => {
     const { runRoot, stored } = await succeededFixture("verify-command-missing-started-");
+    const vfs: VirtualMemoryFS = getRunnerVfs();
     const attempt = stored.attempts![0]!;
     const startedPath = join(
       runRoot,
       `${stored.record_path.replace(/\/record\.json$/u, "")}/attempt-1/attempt-started.json`,
     );
-    await unlink(startedPath);
+    vfs.unlinkSync(startedPath);
     const issues = verifyCommandAttempt(runRoot, stored, attempt, 0);
     expect(
       issues.some((issue) => issue.startsWith("attempt 1 started marker cannot be read: ")),
@@ -171,8 +174,9 @@ describe("verify-command artifact-read error paths", () => {
 
   test("reports an unreadable activity issue when activity.json is missing", async () => {
     const { runRoot, stored } = await succeededFixture("verify-command-missing-activity-");
+    const vfs: VirtualMemoryFS = getRunnerVfs();
     const attempt = stored.attempts![0]!;
-    await unlink(join(runRoot, attempt.activity_path));
+    vfs.unlinkSync(join(runRoot, attempt.activity_path));
     const issues = verifyCommandAttempt(runRoot, stored, attempt, 0);
     expect(issues.some((issue) => issue.startsWith("attempt 1 activity cannot be read: "))).toBe(
       true,
@@ -181,12 +185,13 @@ describe("verify-command artifact-read error paths", () => {
 
   test("reports an unreadable attempt-record issue when the attempt record.json is missing", async () => {
     const { runRoot, stored } = await succeededFixture("verify-command-missing-attempt-record-");
+    const vfs: VirtualMemoryFS = getRunnerVfs();
     const attempt = stored.attempts![0]!;
     const attemptRecordPath = join(
       runRoot,
       `${stored.record_path.replace(/\/record\.json$/u, "")}/attempt-1/record.json`,
     );
-    await unlink(attemptRecordPath);
+    vfs.unlinkSync(attemptRecordPath);
     const issues = verifyCommandAttempt(runRoot, stored, attempt, 0);
     expect(
       issues.some((issue) => issue.startsWith("attempt 1 attempt record cannot be read: ")),
@@ -235,7 +240,8 @@ describe("verify-command aggregate-record disk check", () => {
 
   test("reports an unreadable-aggregate issue when the durable record.json is missing", async () => {
     const { runRoot, stored } = await succeededFixture("verify-command-aggregate-missing-");
-    await unlink(join(runRoot, stored.record_path));
+    const vfs: VirtualMemoryFS = getRunnerVfs();
+    vfs.unlinkSync(join(runRoot, stored.record_path));
     const issues = verifyCommandRecord(runRoot, stored);
     expect(
       issues.some((issue) => issue.startsWith("aggregate command record cannot be read: ")),

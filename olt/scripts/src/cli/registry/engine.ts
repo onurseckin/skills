@@ -1,7 +1,10 @@
-import { msgListCommand } from "../commands/msg-list.ts";
-import { msgPollCommand } from "../commands/msg-poll.ts";
-import { msgRecvCommand } from "../commands/msg-recv.ts";
-import { msgSendCommand } from "../commands/msg-send.ts";
+import {
+  msgListCommand,
+  msgListenCommand,
+  msgPollCommand,
+  msgRecvCommand,
+  msgSendCommand,
+} from "../commands/index.ts";
 import { DEFAULT_EXIT_CODES, optionalFlag, requiredFlag, type CommandSpec } from "./types.ts";
 
 export const ENGINE_COMMANDS: readonly CommandSpec[] = [
@@ -77,12 +80,21 @@ export const ENGINE_COMMANDS: readonly CommandSpec[] = [
     internal: false,
     summary: "Poll mailbox for messages at regular intervals until received or timeout.",
     description:
-      "Repeatedly checks the inbox at specified intervals until unread messages arrive or limits are reached.",
+      "Repeatedly checks the inbox at specified intervals until unread messages arrive or limits are reached. A timeout of 0 indicates infinite timeout.",
     flags: [
       optionalFlag("actor", "string", "Recipient agent ID (auto-derived if omitted)."),
       optionalFlag("interval", "int", "Polling interval in milliseconds (default: 500)."),
-      optionalFlag("timeout", "int", "Polling timeout in milliseconds (default: 30000)."),
+      optionalFlag(
+        "timeout",
+        "int",
+        "Polling timeout in milliseconds (default: 30000). A timeout of 0 indicates infinite timeout.",
+      ),
       optionalFlag("max-rounds", "int", "Maximum polling rounds."),
+      optionalFlag(
+        "continuous",
+        "bool",
+        "Run continuously without exiting on first message batch.",
+      ),
       optionalFlag(
         "advance-cursor",
         "bool",
@@ -103,6 +115,34 @@ export const ENGINE_COMMANDS: readonly CommandSpec[] = [
       "bun harness.ts msg:poll --actor worker-1 --type DISPATCH_TASK",
     ],
     handler: msgPollCommand,
+  },
+  {
+    name: "msg:listen",
+    aliases: [],
+    domain: "msg",
+    tier: "primary",
+    internal: false,
+    summary: "Continuously listen for and drain incoming mailbox messages.",
+    description:
+      "Starts continuous draining on the agent mailbox, streaming incoming messages until interrupted.",
+    flags: [
+      optionalFlag("actor", "string", "Recipient agent ID (auto-derived if omitted)."),
+      optionalFlag(
+        "interval",
+        "int",
+        "Polling interval / idle wait in milliseconds (default: 50).",
+      ),
+      optionalFlag("batch-size", "int", "Maximum messages to process per drain pass."),
+      optionalFlag("base-dir", "string", "Base directory for mailbox root."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts msg:listen --actor worker-1",
+      "bun harness.ts msg:listen --actor worker-1 --interval 50 --batch-size 10",
+    ],
+    handler: msgListenCommand,
   },
   {
     name: "msg:list",

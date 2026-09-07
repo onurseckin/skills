@@ -1,4 +1,4 @@
-import type { ToolContext, ToolHandler } from "../types.ts";
+import type { ToolContext, ToolHandler } from "../types/index.ts";
 import { resolveSandboxQuota } from "./policy.ts";
 import { type ResourceGovernorOptions, ResourceGovernor } from "./resource-governor.ts";
 import { TimeoutWatcher } from "./timeout-watcher.ts";

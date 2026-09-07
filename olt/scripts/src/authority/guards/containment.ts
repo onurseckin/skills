@@ -1,5 +1,5 @@
 import { HarnessError } from "../../core/errors/index.ts";
-import { isCoordinatorFileEditForbidden } from "./coordinator-tool-guard.ts";
+import { isCoordinatorFileEditForbidden } from "./coordinator-tool-predicates.ts";
 
 export interface ContainmentResult {
   readonly action: string;
@@ -70,18 +70,13 @@ export function resetDefaultContainmentEngine(): void {
 const SUPERVISORY_ROLE_NAMES: ReadonlySet<string> = new Set([
   "mind",
   "mind-supervisor",
-  "tier-0",
   "mind-auditor",
   "skill-auditor",
   "orchestrator",
   "domain-orchestrator",
-  "orch",
-  "tier-1",
   "coordinator",
   "feature-coordinator",
   "domain-coordinator",
-  "coord",
-  "tier-2",
 ]);
 
 export function isSupervisoryRoleForContainment(role: string): boolean {

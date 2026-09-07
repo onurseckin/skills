@@ -1,5 +1,4 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import { setupVirtualMindFS, cleanupVirtualMindFS, scratchRoot } from "../../fixtures/index.ts";
 import {
@@ -7,21 +6,23 @@ import {
   MindAuditorEngine,
   type AuditorCursor,
 } from "../../../../olt/scripts/src/mind/auditing/cognitive/index.ts";
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 const MIN_MANIFEST_YAML = `role: mind\ntier: 0\nspawns:\n  - orchestrator\nmay:\n  - Coordinate strategic goals\nmust_not:\n  - Implement code directly\n`;
 
 describe("MindAuditorEngine in-memory virtual suite", () => {
   let testDir: string;
   let mothershipDir: string;
+  let vfs: VirtualMemoryFS;
 
   beforeEach(() => {
-    setupVirtualMindFS();
+    vfs = setupVirtualMindFS();
     testDir = scratchRoot("mind-auditor", "test");
     mothershipDir = scratchRoot("mind-auditor", "mothership");
 
-    fs.mkdirSync(join(testDir, ".olt", "capsules"), { recursive: true });
-    fs.mkdirSync(join(testDir, "olt", "agents"), { recursive: true });
-    fs.writeFileSync(join(testDir, "olt", "agents", "mind.yaml"), MIN_MANIFEST_YAML);
+    vfs.mkdirSync(join(testDir, ".olt", "capsules"), { recursive: true });
+    vfs.mkdirSync(join(testDir, "olt", "agents"), { recursive: true });
+    vfs.writeFileSync(join(testDir, "olt", "agents", "mind.yaml"), MIN_MANIFEST_YAML);
     process.env["OLT_SKILL_HOME_REPO"] = testDir;
   });
 
@@ -33,12 +34,12 @@ describe("MindAuditorEngine in-memory virtual suite", () => {
   test("auditMindPulse returns non-stagnant when idle duration is within threshold", () => {
     const now = "2026-08-24T12:02:00.000Z";
     const capsuleDir = join(testDir, ".olt", "capsules", "mind-gen-within-threshold");
-    fs.mkdirSync(capsuleDir, { recursive: true });
-    fs.writeFileSync(
+    vfs.mkdirSync(capsuleDir, { recursive: true });
+    vfs.writeFileSync(
       join(capsuleDir, "state.json"),
       JSON.stringify({ agents: [{ id: "mind-1", role: "mind", status: "active" }] }),
     );
-    fs.writeFileSync(
+    vfs.writeFileSync(
       join(capsuleDir, "last_pulse.json"),
       JSON.stringify({
         at: "2026-08-24T12:01:00.000Z",
@@ -68,12 +69,12 @@ describe("MindAuditorEngine in-memory virtual suite", () => {
   test("auditMindPulse detects stagnation (Mode A: empty backlog) and synthesizes injection prompt", () => {
     const now = "2026-08-24T12:05:00.000Z";
     const capsuleDir = join(testDir, ".olt", "capsules", "mind-gen-mode-a");
-    fs.mkdirSync(capsuleDir, { recursive: true });
-    fs.writeFileSync(
+    vfs.mkdirSync(capsuleDir, { recursive: true });
+    vfs.writeFileSync(
       join(capsuleDir, "state.json"),
       JSON.stringify({ agents: [{ id: "mind-1", role: "mind", status: "active" }] }),
     );
-    fs.writeFileSync(
+    vfs.writeFileSync(
       join(capsuleDir, "last_pulse.json"),
       JSON.stringify({
         at: "2026-08-24T12:00:00.000Z",
@@ -102,12 +103,12 @@ describe("MindAuditorEngine in-memory virtual suite", () => {
   test("auditMindPulse detects stagnation (Mode B: pending backlog items)", () => {
     const now = "2026-08-24T12:05:00.000Z";
     const capsuleDir = join(testDir, ".olt", "capsules", "mind-gen-mode-b");
-    fs.mkdirSync(capsuleDir, { recursive: true });
-    fs.writeFileSync(
+    vfs.mkdirSync(capsuleDir, { recursive: true });
+    vfs.writeFileSync(
       join(capsuleDir, "state.json"),
       JSON.stringify({ agents: [{ id: "mind-1", role: "mind", status: "active" }] }),
     );
-    fs.writeFileSync(
+    vfs.writeFileSync(
       join(capsuleDir, "last_pulse.json"),
       JSON.stringify({
         at: "2026-08-24T12:00:00.000Z",
@@ -118,7 +119,7 @@ describe("MindAuditorEngine in-memory virtual suite", () => {
     );
 
     const backlogPath = join(testDir, ".olt", "backlog.jsonl");
-    fs.writeFileSync(
+    vfs.writeFileSync(
       backlogPath,
       `${JSON.stringify({ id: "i1", status: "PENDING" })}\n${JSON.stringify({ id: "i2", status: "COMPLETED" })}\n${JSON.stringify({ id: "i3", status: "READY" })}\n`,
     );
@@ -139,7 +140,7 @@ describe("MindAuditorEngine in-memory virtual suite", () => {
       lastInspectedEventIndex: 0,
     };
     const defectsPath = join(testDir, ".olt", "defects.jsonl");
-    fs.writeFileSync(
+    vfs.writeFileSync(
       defectsPath,
       `${JSON.stringify({ id: "d1", error_code: "E1" })}\n${JSON.stringify({ id: "d2", error_code: "E2" })}\n`,
     );
@@ -160,14 +161,14 @@ describe("MindAuditorEngine in-memory virtual suite", () => {
       lastInspectedEventIndex: 0,
     };
 
-    fs.mkdirSync(join(mothershipDir, ".olt"), { recursive: true });
+    vfs.mkdirSync(join(mothershipDir, ".olt"), { recursive: true });
     process.env["OLT_SKILL_HOME_REPO"] = mothershipDir;
 
-    fs.writeFileSync(
+    vfs.writeFileSync(
       join(testDir, ".olt", "defects.jsonl"),
       `${JSON.stringify({ id: "local-1" })}\n`,
     );
-    fs.writeFileSync(
+    vfs.writeFileSync(
       join(mothershipDir, ".olt", "defects.jsonl"),
       `${JSON.stringify({ id: "m1" })}\n${JSON.stringify({ id: "m2" })}\n`,
     );
@@ -184,12 +185,12 @@ describe("MindAuditorEngine in-memory virtual suite", () => {
   test("auditMindPulse inspects last_pulse.json in active capsule when cursor is absent and prevents false stagnation", () => {
     const now = "2026-08-24T12:01:00.000Z";
     const capsuleDir = join(testDir, ".olt", "capsules", "mind-gen-1");
-    fs.mkdirSync(capsuleDir, { recursive: true });
-    fs.writeFileSync(
+    vfs.mkdirSync(capsuleDir, { recursive: true });
+    vfs.writeFileSync(
       join(capsuleDir, "state.json"),
       JSON.stringify({ agents: [{ id: "mind-1", role: "mind", status: "active" }] }),
     );
-    fs.writeFileSync(
+    vfs.writeFileSync(
       join(capsuleDir, "last_pulse.json"),
       JSON.stringify({
         at: "2026-08-24T12:00:30.000Z",

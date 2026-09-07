@@ -90,7 +90,7 @@ export function resolveAcceptanceCriteria(
       "Strict adherence to project architecture.",
       "Code passes all lint and typecheck rules.",
       "Strict type safety: 0 'any' types, 0 compiler suppressions (@ts-ignore, @ts-expect-error, eslint-disable).",
-      "Strict modularity invariants: File length <= 300 LOC, directory fanout <= 10 files, named facade exports in index.ts (0 export *), 0 facade bypasses.",
+      "Strict modularity invariants: File length <= 400 LOC, directory fanout <= 10 files, named facade exports in index.ts (0 export *), 0 facade bypasses.",
       "Zero quality gate bypasses: Absolute ban on --no-verify, --force, or LEFTHOOK=0.",
     );
   }

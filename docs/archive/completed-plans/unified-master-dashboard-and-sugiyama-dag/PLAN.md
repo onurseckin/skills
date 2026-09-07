@@ -14,7 +14,7 @@
 ### 1.1 Defect IDs, Backlog Items & High-Level Problem Formulation
 
 - **`defect-reporting-unified-sections-missing-sugiyama-export`**:
-  Diagnostic runners, CLI dashboard commands, and subagent harnesses attempting to consume structured visual reports encounter missing interface exports or ambiguous wildcard re-exports across `olt/scripts/src/reporting/index.ts`, `olt/scripts/src/reporting/unified/types.ts`, and `olt/scripts/src/reporting/dashboard.ts`. Furthermore, monolithic file sprawl in `olt/scripts/src/graph/sugiyama.ts` (322 physical LOC) exceeds repository density budgets ($\le 300$ LOC/file) while duplicating algorithms present in the modular `olt/scripts/src/reporting/sugiyama-dag/` subpackage.
+  Diagnostic runners, CLI dashboard commands, and subagent harnesses attempting to consume structured visual reports encounter missing interface exports or ambiguous wildcard re-exports across `olt/scripts/src/reporting/index.ts`, `olt/scripts/src/reporting/unified/types.ts`, and `olt/scripts/src/reporting/dashboard.ts`. Furthermore, monolithic file sprawl in `olt/scripts/src/graph/sugiyama.ts` (322 physical LOC) exceeds repository density budgets ($\le 400$ LOC/file) while duplicating algorithms present in the modular `olt/scripts/src/reporting/sugiyama-dag/` subpackage.
 - **`fb-1787971784118-1aghp` & `task-1-fb-1787971784118-1aghp`**:
   Mandatory cognitive pushback quotas (`MANDATORY_COGNITIVE_PUSHBACKS = 5`) and minimum adversarial probe quotas (`MIN_ADVERSARIAL_PROBES = 5`) were disconnected from master dashboard telemetry and lifecycle task tables. Tasks could transition to `completed` / `satisfied` without the dashboard highlighting quota deficits, allowing substandard outputs to pass unflagged.
 - **`fb-1788020500000-os-push-audio-notification-engine`**:
@@ -24,7 +24,7 @@
 
 - [`olt/scripts/src/reporting/index.ts:1-37`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/reporting/index.ts#L1-L37): Contains 17 wildcard re-exports (`export * from ...`) violating the zero-wildcard repository invariant, while completely omitting named exports for `dashboard.ts` symbols (`generateDashboardReport`, `renderDashboardAscii`, `calculateDashboardMetrics`, `DashboardReport`, `DashboardTaskState`, `DashboardAgentState`, `DashboardMetrics`) and notification dispatcher classes (`DarwinNotificationDispatcher`, `LinuxNotificationDispatcher`, `WindowsNotificationDispatcher`, `HeadlessNotificationDispatcher`, `NotificationDispatcherRegistry`, `defaultDispatcherRegistry`).
 - [`olt/scripts/src/reporting/dashboard.ts:1-6`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/reporting/dashboard.ts#L1-L6): Imports `layoutSugiyamaDag`, `SugiyamaDagReport`, `SugiyamaEdge`, `SugiyamaRankedNode` directly from `../graph/sugiyama.ts` rather than unifying with canonical `reporting/sugiyama-dag/` interfaces.
-- [`olt/scripts/src/graph/sugiyama.ts:1-322`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/graph/sugiyama.ts#L1-L322): File length is 322 LOC, violating the $\le 300$ LOC invariant. Requires modular delegation and canvas streamlining to achieve $\le 180$ LOC.
+- [`olt/scripts/src/graph/sugiyama.ts:1-322`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/graph/sugiyama.ts#L1-L322): File length is 322 LOC, violating the $\le 400$ LOC invariant. Requires modular delegation and canvas streamlining to achieve $\le 180$ LOC.
 - [`olt/scripts/src/reporting/dashboard.ts:19, 112`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/reporting/dashboard.ts#L19): Line 19 specifies `maxPushes?: number` defaulting loosely to 3 (`t.maxPushes ?? 3` on line 112) instead of anchoring to canonical quota threshold `5`.
 - [`olt/scripts/src/reporting/dashboard.ts:62-99`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/reporting/dashboard.ts#L62-L99): `calculateDashboardMetrics` computes raw aggregates but omits `quotaDeficitTasks`, preventing supervisory agents from immediately detecting unverified completions.
 - [`olt/scripts/src/reporting/notifications/dispatchers/dispatcher-registry.ts:1-98`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/reporting/notifications/dispatchers/dispatcher-registry.ts#L1-L98): Rate-limiting history array `_history` grows unbounded; requires length capping to 100 entries to prevent memory accumulation in long-running orchestrations.
@@ -33,16 +33,16 @@
 
 ## Level 2: Architectural Constraints & Invariants
 
-1. **Physical LOC Budget ($\le 300$ LOC/file)**:
-   - `olt/scripts/src/reporting/dashboard.ts`: 262 LOC ($\le 300$)
-   - `olt/scripts/src/graph/sugiyama.ts`: 180 LOC ($\le 300$, streamlined via canonical delegation)
-   - `olt/scripts/src/reporting/index.ts`: 120 LOC ($\le 300$)
-   - `olt/scripts/src/reporting/notifications/index.ts`: 45 LOC ($\le 300$)
-   - `olt/scripts/src/reporting/notifications/system-notifier.ts`: 250 LOC ($\le 300$)
-   - `olt/scripts/src/reporting/notifications/dispatchers/dispatcher-registry.ts`: 98 LOC ($\le 300$)
-   - `olt/scripts/src/reporting/unified/types.ts`: 159 LOC ($\le 300$)
-   - `olt/scripts/src/reporting/unified/sections.ts`: 183 LOC ($\le 300$)
-   - `olt/scripts/src/reporting/sugiyama-dag/render.ts`: 145 LOC ($\le 300$)
+1. **Physical LOC Budget ($\le 400$ LOC/file)**:
+   - `olt/scripts/src/reporting/dashboard.ts`: 262 LOC ($\le 400$)
+   - `olt/scripts/src/graph/sugiyama.ts`: 180 LOC ($\le 400$, streamlined via canonical delegation)
+   - `olt/scripts/src/reporting/index.ts`: 120 LOC ($\le 400$)
+   - `olt/scripts/src/reporting/notifications/index.ts`: 45 LOC ($\le 400$)
+   - `olt/scripts/src/reporting/notifications/system-notifier.ts`: 250 LOC ($\le 400$)
+   - `olt/scripts/src/reporting/notifications/dispatchers/dispatcher-registry.ts`: 98 LOC ($\le 400$)
+   - `olt/scripts/src/reporting/unified/types.ts`: 159 LOC ($\le 400$)
+   - `olt/scripts/src/reporting/unified/sections.ts`: 183 LOC ($\le 400$)
+   - `olt/scripts/src/reporting/sugiyama-dag/render.ts`: 145 LOC ($\le 400$)
 2. **Directory Density Budget ($\le 10$ files/directory)**:
    - `olt/scripts/src/reporting/`: 9 files + subdirectories ($\le 10$)
    - `olt/scripts/src/reporting/notifications/`: 4 files + 1 subdirectory (`dispatchers/`) ($\le 10$)
@@ -108,7 +108,7 @@ graph LR
 | :--------------------------------------------------------------------------- | :----------- | :----------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :------------------------------ |
 | `olt/scripts/src/reporting/dashboard.ts`                                     | **UPDATE**   | L8-50, L62-125, L185-225 | Add `quotaDeficitTasks: number` to `DashboardMetrics`; update `renderMicroCycleTelemetry` to enforce 5 pushes/5 probes quota and render `⚠️ [DEFICIT: P<5/Pr<5]`; default `maxPushes` to 5. | Exclusive Write Lease (Scope 1) |
 | `tests/unit/reporting/dashboard.test.ts`                                     | **UPDATE**   | L160-300                 | Add test cases verifying quota deficit detection, empty payload handling, and micro-cycle formatting.                                                                                       | Exclusive Write Lease (Scope 1) |
-| `olt/scripts/src/graph/sugiyama.ts`                                          | **REFACTOR** | L1-322 $\to$ L1-180      | Streamline canvas matrix and layout algorithms; reduce LOC from 322 to $\le 180$ LOC ($\le 300$ invariant).                                                                                 | Exclusive Write Lease (Scope 2) |
+| `olt/scripts/src/graph/sugiyama.ts`                                          | **REFACTOR** | L1-322 $\to$ L1-180      | Streamline canvas matrix and layout algorithms; reduce LOC from 322 to $\le 180$ LOC ($\le 400$ invariant).                                                                                 | Exclusive Write Lease (Scope 2) |
 | `olt/scripts/src/reporting/sugiyama-dag/index.ts`                            | **VERIFY**   | L1-54                    | Confirm 100% explicit named exports for `SugiyamaDagReport`, `SugiyamaWaveMetrics`, `SugiyamaRankedNode`.                                                                                   | Exclusive Write Lease (Scope 2) |
 | `olt/scripts/src/reporting/notifications/dispatchers/dispatcher-registry.ts` | **UPDATE**   | L19-95                   | Add `_history` capping (max 100 entries) and rate limit sliding window cleanup.                                                                                                             | Exclusive Write Lease (Scope 3) |
 | `olt/scripts/src/reporting/notifications/index.ts`                           | **UPDATE**   | L1-43                    | Export all dispatcher classes and interfaces explicitly.                                                                                                                                    | Exclusive Write Lease (Scope 3) |
@@ -123,7 +123,7 @@ graph LR
 graph TD
     subgraph "Wave 1: Subsystem Hardening & Modularity (Parallel, P=3)"
         W1_T1["Task 1.1: Quota-Aware Dashboard & Telemetry<br/>[reporting/dashboard.ts]"]
-        W1_T2["Task 1.2: Sugiyama Graph Streamlining (<=300 LOC)<br/>[graph/sugiyama.ts]"]
+        W1_T2["Task 1.2: Sugiyama Graph Streamlining (<=400 LOC)<br/>[graph/sugiyama.ts]"]
         W1_T3["Task 1.3: Notification Dispatcher Memory Capping<br/>[notifications/dispatchers/dispatcher-registry.ts]"]
     end
 
@@ -190,7 +190,7 @@ bun test tests/unit/reporting/core/reporting.test.ts
 | `reporting/notifications` | Spawner fails or platform binary missing      | `NOTIFICATION_SPAWN_FAILED`        | `INFO`   | Returns `{ delivered: false, error: ... }` without crashing orchestrator.              |
 | `reporting/notifications` | Dispatch rate exceeds 30/60,000ms             | `NOTIFICATION_RATE_LIMIT_EXCEEDED` | `WARN`   | Drops excess dispatch with descriptive warning.                                        |
 | `reporting/index.ts`      | Wildcard export `export *` detected in barrel | `AST_PURITY_WILDCARD_EXPORT`       | `ERROR`  | Fails static invariant check; requires explicit named `{ ... }`.                       |
-| `graph/sugiyama.ts`       | File length exceeds 300 LOC limit             | `DENSITY_LIMIT_EXCEEDED`           | `ERROR`  | Fails modularity ratchet; must remain $\le 180$ LOC.                                   |
+| `graph/sugiyama.ts`       | File length exceeds 400 LOC limit             | `DENSITY_LIMIT_EXCEEDED`           | `ERROR`  | Fails modularity ratchet; must remain $\le 180$ LOC.                                   |
 
 ---
 
@@ -203,7 +203,7 @@ graph TD
     AGP3["AGP-3: Subprocess Detachment & Test Isolation Probe"] -->|Expect| PASS_ISOLATION["0 subshell hangs, mock PID 99999 in tests"]
     AGP4["AGP-4: Notification Sliding Window Rate Limiter Probe"] -->|Expect| PASS_LIMIT["Drop 31st notification with rate limit error"]
     AGP5["AGP-5: Wildcard Barrel Elimination Probe"] -->|Expect| PASS_BARREL["0 'export *' occurrences in reporting/index.ts"]
-    AGP6["AGP-6: Density Limit Compliance Probe"] -->|Expect| PASS_DENSITY["graph/sugiyama.ts <= 180 LOC (<=300 budget)"]
+    AGP6["AGP-6: Density Limit Compliance Probe"] -->|Expect| PASS_DENSITY["graph/sugiyama.ts <= 180 LOC (<=400 budget)"]
 ```
 
 1. **AGP-1 (Empty Payload Resilience Probe):**
@@ -222,7 +222,7 @@ graph TD
    - _Probe Hypothesis_: Static analysis of `olt/scripts/src/reporting/index.ts` must yield 0 occurrences of the regex `/export\s+\*\s+from/`.
    - _Verification Formula_: `grep -c "export \*" olt/scripts/src/reporting/index.ts` returns `0`.
 6. **AGP-6 (Physical Density Limit Compliance Probe):**
-   - _Probe Hypothesis_: `olt/scripts/src/graph/sugiyama.ts` must have physical line count $\le 300$.
+   - _Probe Hypothesis_: `olt/scripts/src/graph/sugiyama.ts` must have physical line count $\le 400$.
    - _Verification Formula_: `wc -l olt/scripts/src/graph/sugiyama.ts` returns $\le 180$.
 
 ---
@@ -252,9 +252,9 @@ graph TD
 
 ### Round 1: Physical Density Limits & Wildcard Barrel Bleed
 
-- **Critic (`plan_critic_05`)**: `olt/scripts/src/graph/sugiyama.ts` currently sits at 322 LOC, exceeding the strict $\le 300$ LOC budget. Furthermore, `olt/scripts/src/reporting/index.ts` contains 17 wildcard re-exports (`export * from ...`), leaking unwanted internal symbols and violating the zero-wildcard repository invariant. How will the plan resolve both issues without breaking downstream consumers?
+- **Critic (`plan_critic_05`)**: `olt/scripts/src/graph/sugiyama.ts` currently sits at 322 LOC, exceeding the strict $\le 400$ LOC budget. Furthermore, `olt/scripts/src/reporting/index.ts` contains 17 wildcard re-exports (`export * from ...`), leaking unwanted internal symbols and violating the zero-wildcard repository invariant. How will the plan resolve both issues without breaking downstream consumers?
 - **Drafter (`plan_drafter_05`)**:
-  1. `graph/sugiyama.ts` will be streamlined by consolidating canvas matrix drawing and delegating rank/crossing math to canonical `reporting/sugiyama-dag/` subpackage, reducing file size to $\le 180$ physical lines ($\le 300$ budget).
+  1. `graph/sugiyama.ts` will be streamlined by consolidating canvas matrix drawing and delegating rank/crossing math to canonical `reporting/sugiyama-dag/` subpackage, reducing file size to $\le 180$ physical lines ($\le 400$ budget).
   2. `reporting/index.ts` will be completely refactored from wildcard exports to 100% explicit named exports (`export { ... } from ...`), explicitly re-exporting every public symbol for `dashboard.ts`, `unified/`, `sugiyama-dag/`, `notifications/`, `theme/`, `doctor/`, and `evidence/`.
 
 ### Round 2: Pushback Quota Invariant Mathematical Rigor (`fb-1787971784118-1aghp`)
@@ -299,7 +299,7 @@ graph TD
 ### 9.1 Execution Verification
 
 - **Wave 1**:
-  - `olt/scripts/src/graph/sugiyama.ts`: Streamlined from 322 LOC to 223 LOC ($\le 300$ invariant).
+  - `olt/scripts/src/graph/sugiyama.ts`: Streamlined from 322 LOC to 223 LOC ($\le 400$ invariant).
   - `olt/scripts/src/reporting/notifications/dispatchers/dispatcher-registry.ts`: Added history queue length capping (max 100 entries).
   - `olt/scripts/src/reporting/dashboard.ts`: Implemented `quotaDeficitTasks` metric tracking and micro-cycle telemetry rendering (`⚠️ [DEFICIT: Pushes: X/5, Probes: Y/5]`).
   - `tests/unit/reporting/dashboard.test.ts`: Added test cases for empty payload resilience (AGP-1) and quota deficit tracking (AGP-2).

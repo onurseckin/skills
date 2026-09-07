@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import {
   executeTaskAdd,
@@ -10,25 +9,29 @@ import {
   resolveTraceContext,
   type TraceContext,
 } from "../../../../../olt/scripts/src/telemetry/trace-context.ts";
-import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
+import {
+  createVirtualFSSession,
+  type VirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
-const roots: string[] = [];
+let vfs: VirtualMemoryFS;
+let session: VirtualFSSession;
 
-async function createVirtualDir(prefix: string): Promise<string> {
+function createVirtualDir(prefix: string): string {
   const dir = `/virtual/cli/${prefix}-${Math.random().toString(36).slice(2)}`;
-  roots.push(dir);
-  await mkdir(dir, { recursive: true });
+  vfs.mkdirSync(dir, { recursive: true });
   return dir;
 }
 
 describe("Telemetry Trace Context (task-cli-03)", () => {
   beforeEach(() => {
-    setupVirtualCliFS();
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
-    cleanupVirtualCliFS();
-    roots.length = 0;
+    session.cleanup();
   });
 
   test("resolves trace context from explicit command flags", () => {
@@ -107,12 +110,12 @@ describe("Telemetry Trace Context (task-cli-03)", () => {
 
 describe("Task CLI Enqueue and List Operations (task-cli-04)", () => {
   beforeEach(() => {
-    setupVirtualCliFS();
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
-    cleanupVirtualCliFS();
-    roots.length = 0;
+    session.cleanup();
   });
 
   test("executeTaskAdd enqueues task and returns exit code 0", async () => {

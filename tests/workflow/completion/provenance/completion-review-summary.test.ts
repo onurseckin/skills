@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { HarnessEvent } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import { recordCompletionReview } from "../../../../olt/scripts/src/workflow/completion/record-completion-review.ts";
-import type { RepositoryBindingVerifier } from "../../../../olt/scripts/src/workflow/completion/repository-binding.ts";
+import { recordCompletionReview } from "../../../../olt/scripts/src/workflow/completion/index.ts";
+import type { RepositoryBindingVerifier } from "../../../../olt/scripts/src/workflow/completion/index.ts";
 import type { TransactionPort } from "../../../../olt/scripts/src/workflow/types.ts";
 import { collectActionSteps } from "../../../../olt/scripts/src/summary/metrics/index.ts";
 import {
@@ -12,7 +12,7 @@ import {
   TestPort,
   workflowState,
 } from "../../shared/test-port.ts";
-import { beginCompletenessCritic } from "../../../../olt/scripts/src/workflow/completion/begin-completeness-critic.ts";
+import { beginCompletenessCritic } from "../../../../olt/scripts/src/workflow/completion/index.ts";
 import { criticIntegrityDigest } from "../../../../olt/scripts/src/packets/critic-integrity-digest.ts";
 
 // B21: recording the completion review is the run's final lifecycle closure. Before this, the
