@@ -7,6 +7,12 @@ import { DEFAULT_COVERAGE_THRESHOLD } from "./reporting/index.ts";
 import { auditTestPurity } from "./guardrails/index.ts";
 import type { PurityAuditOptions, PurityAuditResult } from "./guardrails/index.ts";
 import { detectSuiteLoadFailures, formatSuiteLoadFailureReport } from "./runner/index.ts";
+import {
+  buildDataReferenceIndex,
+  isDataFile,
+  selectTestsForDataFile,
+  type DataReferenceIndex,
+} from "./selection/index.ts";
 import { inspectRepoPolicy, isTestingEnabled } from "../../olt/scripts/src/policy/index.ts";
 
 export function gitOutput(args: string[]): string {
@@ -103,6 +109,7 @@ export function resolveAffectedTestFiles(
   runAll = false,
   unitTestDir = "tests",
   allTestsOverride?: readonly string[],
+  dataReferenceIndex?: DataReferenceIndex,
 ): { all: boolean; testFiles: string[] } {
   const allTests = allTestsOverride ? Array.from(allTestsOverride) : findAllTestFiles(unitTestDir);
   if (runAll) return { all: true, testFiles: allTests };
@@ -144,6 +151,14 @@ export function resolveAffectedTestFiles(
       for (const t of allTests) {
         if (basename(t).toLowerCase().includes(stem) && (!isGen || matchSeg(t))) affected.add(t);
       }
+    }
+  }
+
+  const changedDataFiles = changedFiles.filter(isDataFile);
+  if (changedDataFiles.length > 0) {
+    const dataIndex = dataReferenceIndex ?? buildDataReferenceIndex(allTests);
+    for (const file of changedDataFiles) {
+      for (const test of selectTestsForDataFile(file, dataIndex)) affected.add(test);
     }
   }
 

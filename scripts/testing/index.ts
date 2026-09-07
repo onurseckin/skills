@@ -89,8 +89,29 @@ export {
   type PurityViolationCategory,
 } from "./guardrails/index.ts";
 
+export {
+  buildDataReferenceIndex,
+  CODE_FILE_PATTERN,
+  collectBindings,
+  collectDataReferences,
+  extractCallArguments,
+  extractPathCandidates,
+  isDataFile,
+  isSelectablePrefix,
+  normalizePrefix,
+  resolvePathExpression,
+  selectTestsForDataFile,
+  splitTopLevelArguments,
+  TEST_FILE_PATTERN,
+  type DataReferenceIndex,
+  type DataReferenceOptions,
+  type DataReferencePorts,
+  type ExpressionScope,
+} from "./selection/index.ts";
+
 import * as guardrails from "./guardrails/index.ts";
 import * as reporting from "./reporting/index.ts";
 import * as runner from "./runner/index.ts";
+import * as selection from "./selection/index.ts";
 
-export { guardrails, reporting, runner };
+export { guardrails, reporting, runner, selection };
