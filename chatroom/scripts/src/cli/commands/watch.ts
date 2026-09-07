@@ -63,7 +63,7 @@ export const watchCommand: CommandHandler = async (
   let totalBatches = 0;
 
   while (true) {
-    const leaseRes: LeaseResult = withReaderLock(readerId, () => {
+    const leaseRes: LeaseResult = withReaderLock(roomFlag, readerId, () => {
       const { cursor, checksum } = loadCursor(cursorPath, {
         room: roomFlag,
         reader: readerId,
