@@ -17,3 +17,5 @@ export { readCommand } from "./read.ts";
 export { sayCommand } from "./say.ts";
 export { watchCommand } from "./watch.ts";
 export { initCommand, inviteCommand, joinCommand, roomsCommand } from "./lifecycle/index.ts";
+export { onCommand } from "./on.ts";
+export { offCommand } from "./off.ts";

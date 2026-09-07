@@ -31,6 +31,8 @@ export {
   initSpec,
   inviteSpec,
   joinSpec,
+  offSpec,
+  onSpec,
   readSpec,
   roomsSpec,
   saySpec,

@@ -87,3 +87,21 @@ export {
 } from "./health.ts";
 
 export { ensureDaemon, type EnsureDaemonOptions, type EnsureDaemonResult } from "./ensure.ts";
+
+export {
+  createProcessLifecycle,
+  dispatchDeliveryNotification,
+  dispatchNotify,
+  executeNotifyCommand,
+  recordConsumerReceipt,
+  runWithProcessLifecycle,
+  type DeliveryNotificationInput,
+  type DispatchNotifyOptions,
+  type ExecuteNotifyOptions,
+  type NotifyProcessChild,
+  type NotifyProcessStream,
+  type NotifyResult,
+  type NotifySpawner,
+  type ProcessLifecycleController,
+  type ProcessLifecycleRunInput,
+} from "./notify.ts";

@@ -27,6 +27,10 @@ export interface ResolvePolicyOptions {
   readonly env?: Record<string, string | undefined>;
   readonly probeRuntime?: boolean;
   readonly cacheProbedRuntime?: boolean;
+  readonly ports?: {
+    readonly existsSync?: (path: string) => boolean;
+    readonly readFileSync?: (path: string, encoding: string) => string;
+  };
 }
 
 export class ChatError extends Error {
@@ -95,12 +99,20 @@ export function probeRuntimeCommand(): string | null {
   return null;
 }
 
-function parseJsonFile(filePath: string): Record<string, unknown> {
-  if (!existsSync(filePath)) {
+function parseJsonFile(
+  filePath: string,
+  ports?: {
+    readonly existsSync?: (path: string) => boolean;
+    readonly readFileSync?: (path: string, encoding: string) => string;
+  },
+): Record<string, unknown> {
+  const exists = ports?.existsSync ?? existsSync;
+  const read = ports?.readFileSync ?? readFileSync;
+  if (!exists(filePath)) {
     return {};
   }
   try {
-    const raw = readFileSync(filePath, "utf8");
+    const raw = read(filePath, "utf8");
     const parsed: unknown = JSON.parse(raw);
     if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
       return parsed as Record<string, unknown>;
@@ -172,9 +184,9 @@ export function resolvePolicy(options: ResolvePolicyOptions = {}): ChatroomPolic
   const userPath = options.userPolicyPath ?? join(home, ".agents", "chatroom", "policy.json");
   const repoPath = join(repo, ".chatroom", "policy.json");
 
-  const layer1 = parseJsonFile(shippedPath);
-  const layer2 = parseJsonFile(userPath);
-  const layer3 = parseJsonFile(repoPath);
+  const layer1 = parseJsonFile(shippedPath, options.ports);
+  const layer2 = parseJsonFile(userPath, options.ports);
+  const layer3 = parseJsonFile(repoPath, options.ports);
 
   let runtime =
     parseString(env.CHATROOM_RUNTIME_COMMAND) ??
@@ -214,13 +226,14 @@ export function resolvePolicy(options: ResolvePolicyOptions = {}): ChatroomPolic
       ? home
       : rawHarness;
 
-  if (!existsSync(harness)) {
+  const exists = options.ports?.existsSync ?? existsSync;
+  if (!exists(harness)) {
     const localHarness = join(repo, "chatroom", "scripts", "harness.ts");
-    if (existsSync(localHarness)) {
+    if (exists(localHarness)) {
       harness = localHarness;
     } else {
       const rootHarness = join(repo, "chatroom", "harness.ts");
-      if (existsSync(rootHarness)) {
+      if (exists(rootHarness)) {
         harness = rootHarness;
       }
     }

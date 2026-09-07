@@ -101,8 +101,8 @@ To prevent multiple host cron triggers, CI webhooks, or background agents from r
 │                 │                                   │                                            │
 │                 ▼                                   ▼                                            │
 │  ┌───────────────────────────────┐   ┌───────────────────────────────┐                           │
-│  │ Execute mind:wake & observe   │   │ Exit 0 Immediately            │                           │
-│  │ Write evidence/mind-brief     │   │ (Yield without side-effects)  │                           │
+│  │ Execute mind:wake & observe   │   │ Exit 75 Immediately           │                           │
+│  │ Dispatch brief to HOST_CMD    │   │ (skipped_locked, not success) │                           │
 │  └──────────────┬────────────────┘   └───────────────────────────────┘                           │
 │                 │                                                                                │
 │                 ▼                                                                                │
@@ -121,56 +121,117 @@ The entrypoint [pulse.sh](../../../../olt/scripts/pulse.sh) opens file descripto
 ```bash
 #!/usr/bin/env bash
 # File: olt/scripts/pulse.sh
-set -euo pipefail
+set -uo pipefail
 
-CAPSULE="${1:-.olt/capsules/mind-gen-1}"
-HOST_CMD="${2:-${PULSE_HOST_CMD:-${HOST_CMD:-}}}"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-HARNESS="${HARNESS_PATH:-$SCRIPT_DIR/harness.ts}"
-BUN="${BUN_PATH:-bun}"
-LOCK_DIR="$CAPSULE/.locks"
-mkdir -p "$LOCK_DIR"
-LOCK_FILE="$LOCK_DIR/mind.pulse"
-EVIDENCE_DIR="$CAPSULE/evidence"
-mkdir -p "$EVIDENCE_DIR"
+EXIT_RAN=0                 # ran, held a lock, reached a host
+EXIT_FAILED=70             # could not complete
+EXIT_RAN_UNLOCKED=71       # ran with NO lock primitive available
+EXIT_RAN_UNDISPATCHED=72   # ran but reached no host, so it did nothing
+EXIT_SKIPPED_LOCKED=75     # a peer holds the pulse lock
 
-# 1. Open File Descriptor 9 on the Lock File
+# 1. Open File Descriptor 9 on the Lock File, then acquire a non-blocking
+#    exclusive lock across OS variants. Contention is NOT success: it exits 75.
 exec 9>"$LOCK_FILE"
-
-# 2. Acquire Non-Blocking Exclusive Lock across OS variants
 if command -v flock >/dev/null 2>&1; then
-  flock -n 9 || exit 0
+  LOCK_MECHANISM=flock
+  flock -n 9 || { report skipped_locked none; exit "$EXIT_SKIPPED_LOCKED"; }
 elif command -v perl >/dev/null 2>&1; then
-  perl -MFcntl=:flock -e 'open(my $fh, "<&=", 9) or exit 1; flock($fh, LOCK_EX|LOCK_NB) or exit 1' || exit 0
+  LOCK_MECHANISM=perl
+  perl -MFcntl=:flock -e '...' || { report skipped_locked none; exit "$EXIT_SKIPPED_LOCKED"; }
 elif command -v python3 >/dev/null 2>&1; then
-  python3 -c 'import fcntl; fcntl.flock(9, fcntl.LOCK_EX | fcntl.LOCK_NB)' 2>/dev/null || exit 0
+  LOCK_MECHANISM=python3
+  python3 -c '...' || { report skipped_locked none; exit "$EXIT_SKIPPED_LOCKED"; }
+else
+  LOCK_MECHANISM=none
+  echo "pulse.sh WARNING: no lock primitive available ..." >&2
 fi
 
-# 3. Provision Isolated Brief File with Auto-Cleanup Trap
-BRIEF_FILE="$EVIDENCE_DIR/mind-brief-$$-$RANDOM$RANDOM"
-cleanup() {
-  rm -f "$BRIEF_FILE"
-}
-trap cleanup EXIT INT TERM
+# 2. Establish a ledger-backed ancestry session, without which mind:wake
+#    refuses the caller. Read by the bun child through its ppid.
+cat > "$REPO_ROOT/.olt/.sessions/$$.json" <<JSON
+{"agent_id":"$PULSE_AGENT_ID","role":"$PULSE_ROLE", ...}
+JSON
 
-# 4. Wake Mind Engine & Generate Ephemeral Brief
-"$BUN" "$HARNESS" mind:wake --run "$CAPSULE" > "$BRIEF_FILE"
+# 3. Wake the Mind Engine into an ephemeral brief.
+"$BUN" "$HARNESS" mind:wake --run "$CAPSULE" > "$BRIEF_FILE" \
+  || { report failed none; exit "$EXIT_FAILED"; }
 
-# 5. Dispatch Brief to Host Supervisor if Configured
+# 4. Dispatch the brief to the host supervisor. A pulse that reaches no host
+#    consumed a cycle and accomplished nothing; it must not report success.
 if [ -n "$HOST_CMD" ]; then
-  eval "$HOST_CMD \"$BRIEF_FILE\""
+  eval "$HOST_CMD \"$BRIEF_FILE\"" && DISPATCH=delivered || {
+    report failed failed; exit "$EXIT_FAILED"; }
+else
+  echo "pulse.sh WARNING: no host command configured ..." >&2
 fi
+
+[ "$DISPATCH" = none ]        && { report ran_undispatched none; exit "$EXIT_RAN_UNDISPATCHED"; }
+[ "$LOCK_MECHANISM" = none ]  && { report ran_unlocked "$DISPATCH"; exit "$EXIT_RAN_UNLOCKED"; }
+report ran "$DISPATCH"; exit "$EXIT_RAN"
 ```
 
-### 3.2 Non-Blocking Exit Semantics
+Every invocation also writes one machine-readable line to stderr:
 
-When `flock -n 9` fails because an existing pulse cycle is actively executing:
+```text
+pulse_status=<outcome> pulse_lock_mechanism=<flock|perl|python3|none> pulse_host_dispatch=<none|delivered|failed>
+```
 
-1. The secondary invocation **exits immediately with code 0**.
-2. It does not queue, block, or corrupt the lock file.
-3. This guarantees that aggressive host cron schedules (e.g., every 30 seconds) do not pile up orphan processes or consume file descriptor tables.
+### 3.2 Outcome-Bearing Exit Semantics
 
----
+`pulse.sh` is a single-shot unit of work. Its exit code is its outcome, and no two outcomes share one:
+
+| Code | Outcome            | Meaning                                                        | Pages an operator? |
+| :--- | :----------------- | :------------------------------------------------------------- | :----------------- |
+| 0    | `ran`              | Pulse executed under an exclusive lock and reached a host      | No                 |
+| 70   | `failed`           | `mind:wake` or the host dispatch failed                        | Yes                |
+| 71   | `ran_unlocked`     | Pulse executed with no lock primitive available; degraded      | No, but visible    |
+| 72   | `ran_undispatched` | Pulse executed but reached no host, so it accomplished nothing | No, but visible    |
+| 75   | `skipped_locked`   | A genuine peer holds the pulse lock; the correct thing to do   | No                 |
+
+Two of these exist because their absence hid real outages:
+
+1. **Contention used to exit 0.** A pulse that could not run reported success, so nothing could
+   distinguish "pulse ran" from "pulse skipped" from "pulse never fired". Skipping because a peer
+   holds the lock is normal and must not page anyone, but it must not read as work either.
+2. **A pulse with no host dispatch used to exit 0.** `HOST_CMD` resolves from
+   `${2:-${PULSE_HOST_CMD:-${HOST_CMD:-}}}`; when all three are unset the brief is produced and
+   discarded. The harness never calls a language model, so a brief that reaches no host agent is
+   inert. That is now `ran_undispatched`, with a warning naming the variable to set.
+
+The lock fallback chain is load-bearing, not defensive decoration: `flock(1)` is absent on macOS, so
+production there runs on the `perl` branch. The `perl` and `python3` branches take the lock on the
+open file description that the shell holds on FD 9, so the lock survives the helper's exit and is
+released only when the shell closes FD 9. If none of the three exists the pulse still runs — liveness
+outranks mutual exclusion — but it says so loudly on stderr and exits 71 rather than pretending.
+
+### 3.3 The Pulse Driver
+
+`pulse.sh` has no loop, no sleep and no self-rescheduling: it takes a lock, runs one `mind:wake`, and
+exits. It was designed to be invoked repeatedly by an external scheduler — a host `schedule` cron, a
+systemd timer, or a supervised loop. When that external caller disappears, nothing announces it: the
+armed `next_wake_at` in `last_pulse.json` is a promise with no keeper, and the anti-stagnation
+detector that would notice the halt is itself downstream of the pulse it watches.
+
+`olt/scripts/pulse-driver.ts` closes that gap. It is a supervised foreground process, the shape that
+survives on this machine, and it is deadline-driven rather than cron-driven: each iteration reads
+`next_wake_at` from `last_pulse.json` and honours the adaptive backoff the Mind computed for itself,
+instead of overriding it with a fixed interval.
+
+```bash
+bun olt/scripts/pulse-driver.ts --run .olt/capsules/mind-gen-1 --foreground
+bun olt/scripts/pulse-driver.ts --run .olt/capsules/mind-gen-1 --status
+```
+
+- `--foreground` is mandatory. The driver never forks itself; a supervisor that outlives the calling
+  session starts it detached, so the process that must survive is never the driver's own child.
+- A `mind.driver` lock file rejects a second driver on a live pid, and reclaims the lock from a dead one.
+- A floor interval (`--min-interval`, default 60s) stops a permanently overdue capsule from being
+  hammered; a wait slice (`--max-slice`, default 60s) keeps the loop responsive to a re-armed deadline.
+- The health record at `<run>/runtime/pulse-driver-health.json` stores only facts observed at write
+  time, and is refused unless the writing process is the process it describes. It carries no `state`
+  field, because a stored state is a claim that outlives the fact it described. `--status` derives
+  `LIVE | DEGRADED | FAILING | STALE | DEAD` at read time from a liveness probe against the recorded
+  pid and the age of the heartbeat, so a record left behind by a dead driver can never read `LIVE`.
 
 ## 4. Quota Dynamics & Pillar 16 Zero-Kill Invariant
 

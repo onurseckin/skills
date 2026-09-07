@@ -23,6 +23,7 @@ export interface DaemonHealthRecord {
   readonly spool_bytes: number;
   readonly spool_lines: number;
   readonly consumer_last_ack_at: string | null;
+  readonly consumer_last_delivered_seq?: number | null;
   readonly consumer_lag_ms: number;
   readonly respawns_this_hour: number;
   readonly errors_recent: readonly string[];
@@ -71,6 +72,13 @@ export function isDaemonHealthRecord(value: unknown): value is DaemonHealthRecor
   if (
     candidate.consumer_last_ack_at !== null &&
     typeof candidate.consumer_last_ack_at !== "string"
+  ) {
+    return false;
+  }
+  if (
+    candidate.consumer_last_delivered_seq !== undefined &&
+    candidate.consumer_last_delivered_seq !== null &&
+    typeof candidate.consumer_last_delivered_seq !== "number"
   ) {
     return false;
   }
@@ -208,6 +216,7 @@ export function createInitialHealthRecord(
     spool_bytes: 0,
     spool_lines: 0,
     consumer_last_ack_at: null,
+    consumer_last_delivered_seq: null,
     consumer_lag_ms: 0,
     respawns_this_hour: 0,
     errors_recent: [],

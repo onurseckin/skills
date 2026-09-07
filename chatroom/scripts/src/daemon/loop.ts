@@ -1,18 +1,15 @@
-import { spawn } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import {
   ChatError,
   daemonHealthPath,
   readerCursorPath,
   readerLockPath,
-  roomKeyPath,
   roomLogDir,
-  roomManifestPath,
   roomQuarantinePath,
   writeAtomic,
   type Envelope,
 } from "../core/index.ts";
-import { CHATROOM_PUBLIC_KEY, verifyEnvelope } from "../crypto/index.ts";
+import { verifyEnvelope } from "../crypto/index.ts";
 import {
   ackLease,
   leaseNext,
@@ -20,20 +17,27 @@ import {
   saveCursorCas,
   withReaderLock,
   type Confirmation,
-  type LogEnvelope,
   type ReaderCursor,
 } from "../cursor/index.ts";
 import { resolvePolicy, type ChatroomPolicy } from "../policy/index.ts";
 import {
   claimHealthRecord,
   computeDaemonState,
-  stampStoppedIfOwned,
+  readHealthRecord,
   syncDaemonHealth,
   writeHealthRecord,
   type DaemonHealthRecord,
+  type HealthPorts,
 } from "./health.ts";
+import {
+  dispatchDeliveryNotification,
+  resolveRoomKey,
+  runWithProcessLifecycle,
+  type NotifyResult,
+  type NotifySpawner,
+} from "./notify.ts";
 import { appendSpool, getSpoolStats, isSpoolBackpressured, repairSpool } from "./spool.ts";
-import { acquireDaemonLock, releaseDaemonLock } from "./supervisor.ts";
+import { acquireDaemonLock } from "./supervisor.ts";
 import {
   computeChangeToken,
   DaemonWatcher,
@@ -50,6 +54,9 @@ export interface DaemonLoopOptions {
   readonly now?: string;
   readonly watcher?: DaemonWatcher;
   readonly watcherPorts?: DaemonWatcherPorts;
+  readonly healthPorts?: HealthPorts;
+  readonly spawnNotify?: NotifySpawner;
+  readonly notifyTimeoutMs?: number;
 }
 
 export interface DaemonStepResult {
@@ -57,41 +64,7 @@ export interface DaemonStepResult {
   readonly remaining: number;
   readonly backpressured: boolean;
   readonly idle: boolean;
-}
-
-function resolveRoomKey(roomId: string): string {
-  const manifestPath = roomManifestPath(roomId);
-  if (existsSync(manifestPath)) {
-    try {
-      const manifest: unknown = JSON.parse(readFileSync(manifestPath, "utf8"));
-      if (
-        typeof manifest === "object" &&
-        manifest !== null &&
-        "visibility" in manifest &&
-        (manifest as { visibility: unknown }).visibility === "public"
-      ) {
-        return CHATROOM_PUBLIC_KEY;
-      }
-    } catch {}
-  }
-  const keyPath = roomKeyPath(roomId);
-  if (existsSync(keyPath)) {
-    try {
-      return readFileSync(keyPath, "utf8").trim();
-    } catch {}
-  }
-  return CHATROOM_PUBLIC_KEY;
-}
-
-function fireNotify(command: string, batch: readonly unknown[]): boolean {
-  try {
-    const child = spawn(command, { shell: true, stdio: ["pipe", "ignore", "ignore"] });
-    child.stdin?.write(JSON.stringify(batch));
-    child.stdin?.end();
-    return true;
-  } catch {
-    return false;
-  }
+  readonly notifyPromise?: Promise<NotifyResult | null>;
 }
 
 export function stepDaemonLoop(
@@ -108,13 +81,11 @@ export function stepDaemonLoop(
 
   repairSpool(room, reader);
 
-  const existingHealth = claimHealthRecord(healthPath, {
-    room,
-    reader,
-    pid: process.pid,
-    startTime: nowIso,
-    pollIntervalMs: policy.poll_interval_ms,
-  });
+  const existingHealth = claimHealthRecord(
+    healthPath,
+    { room, reader, pid: process.pid, startTime: nowIso, pollIntervalMs: policy.poll_interval_ms },
+    options.healthPorts,
+  );
 
   const metrics = options.watcher?.getMetrics();
   const watchActive = metrics !== undefined ? metrics.watch_active : existingHealth.watch_active;
@@ -124,16 +95,21 @@ export function stepDaemonLoop(
     metrics !== undefined ? metrics.poll_interval_ms : existingHealth.poll_interval_ms;
 
   const updateHealth = (patch: Partial<DaemonHealthRecord>): void => {
-    writeHealthRecord(healthPath, {
-      ...existingHealth,
-      last_wake_at: nowIso,
-      last_wake_source: wakeSource,
-      watch_active: watchActive,
-      watch_failures: watchFailures,
-      poll_interval_ms: pollIntervalMs,
-      updated_at: nowIso,
-      ...patch,
-    });
+    const current = readHealthRecord(healthPath, options.healthPorts) ?? existingHealth;
+    writeHealthRecord(
+      healthPath,
+      {
+        ...current,
+        last_wake_at: nowIso,
+        last_wake_source: wakeSource,
+        watch_active: watchActive,
+        watch_failures: watchFailures,
+        poll_interval_ms: pollIntervalMs,
+        updated_at: nowIso,
+        ...patch,
+      },
+      options.healthPorts,
+    );
   };
 
   const spoolStats = getSpoolStats(room, reader);
@@ -150,7 +126,33 @@ export function stepDaemonLoop(
 
   let deliveredCount = 0;
   let remainingCount = 0;
-  let recentErrors: string[] = [...existingHealth.errors_recent];
+  const recentErrors: string[] = [...existingHealth.errors_recent];
+  let notifyPromise: Promise<NotifyResult | null> | undefined;
+
+  const recordStepState = (
+    deliveredSeq: number,
+    bytes: number,
+    lines: number,
+    errs?: readonly string[],
+  ): void => {
+    const base: DaemonHealthRecord = {
+      ...existingHealth,
+      state: existingHealth.state === "BACKPRESSURED" ? "LIVE" : existingHealth.state,
+      lag_seqs: remainingCount,
+      room_head_seq: headSeq,
+      last_delivered_seq: deliveredSeq,
+      last_wake_at: nowIso,
+    };
+    updateHealth({
+      room_head_seq: headSeq,
+      last_delivered_seq: deliveredSeq,
+      lag_seqs: remainingCount,
+      spool_bytes: bytes,
+      spool_lines: lines,
+      state: computeDaemonState(base, nowMs),
+      ...(errs !== undefined ? { errors_recent: errs } : {}),
+    });
+  };
 
   withReaderLock(rLockPath, () => {
     const loadedCursor = loadCursor(cPath, { room, reader });
@@ -184,22 +186,7 @@ export function stepDaemonLoop(
     });
 
     if (!leaseRes.leaseId || leaseRes.messages.length === 0) {
-      const baseRecord: DaemonHealthRecord = {
-        ...existingHealth,
-        state: existingHealth.state === "BACKPRESSURED" ? "LIVE" : existingHealth.state,
-        lag_seqs: remainingCount,
-        room_head_seq: headSeq,
-        last_wake_at: nowIso,
-      };
-      const state = computeDaemonState(baseRecord, nowMs);
-      updateHealth({
-        room_head_seq: headSeq,
-        last_delivered_seq: contiguousSeq,
-        lag_seqs: remainingCount,
-        spool_bytes: spoolStats.bytes,
-        spool_lines: spoolStats.lines,
-        state,
-      });
+      recordStepState(contiguousSeq, spoolStats.bytes, spoolStats.lines);
       return;
     }
 
@@ -223,9 +210,7 @@ export function stepDaemonLoop(
 
     if (validEnvelopes.length > 0) {
       const segmentMaxBytes = Math.floor(policy.max_spool_bytes / 10);
-      const appendRes = appendSpool(room, reader, validEnvelopes, {
-        segmentMaxBytes,
-      });
+      const appendRes = appendSpool(room, reader, validEnvelopes, { segmentMaxBytes });
       spoolOffset = appendRes.spoolOffset;
       spoolPath = appendRes.spoolPath;
     }
@@ -252,36 +237,26 @@ export function stepDaemonLoop(
     deliveredCount = validEnvelopes.length;
     remainingCount = Math.max(0, headSeq - ackedCursor.contiguous_seq);
 
-    if (policy.notify_command && validEnvelopes.length > 0) {
-      const fired = fireNotify(policy.notify_command, validEnvelopes);
-      if (!fired) {
-        recentErrors.push(`notify_command failed at ${nowIso}`);
-        if (recentErrors.length > 20) {
-          recentErrors = recentErrors.slice(recentErrors.length - 20);
-        }
-      }
-    }
+    notifyPromise = dispatchDeliveryNotification({
+      command: policy.notify_command,
+      envelopes: validEnvelopes,
+      lastSeq: lastContiguousVerifiedSeq,
+      healthPath,
+      nowIso,
+      recentErrors,
+      ...(options.notifyTimeoutMs !== undefined ? { timeoutMs: options.notifyTimeoutMs } : {}),
+      ...(options.healthPorts !== undefined ? { ports: options.healthPorts } : {}),
+      ...(options.spawnNotify !== undefined ? { spawnProcess: options.spawnNotify } : {}),
+      onErrorsUpdated: (errs) => updateHealth({ errors_recent: errs }),
+    });
 
     const updatedSpoolStats = getSpoolStats(room, reader);
-    const baseRecord: DaemonHealthRecord = {
-      ...existingHealth,
-      state: existingHealth.state === "BACKPRESSURED" ? "LIVE" : existingHealth.state,
-      lag_seqs: remainingCount,
-      room_head_seq: headSeq,
-      last_delivered_seq: ackedCursor.contiguous_seq,
-      last_wake_at: nowIso,
-    };
-    const computedState = computeDaemonState(baseRecord, nowMs);
-
-    updateHealth({
-      room_head_seq: headSeq,
-      last_delivered_seq: ackedCursor.contiguous_seq,
-      lag_seqs: remainingCount,
-      spool_bytes: updatedSpoolStats.bytes,
-      spool_lines: updatedSpoolStats.lines,
-      state: computedState,
-      errors_recent: recentErrors,
-    });
+    recordStepState(
+      ackedCursor.contiguous_seq,
+      updatedSpoolStats.bytes,
+      updatedSpoolStats.lines,
+      recentErrors,
+    );
   });
 
   return {
@@ -289,6 +264,7 @@ export function stepDaemonLoop(
     remaining: remainingCount,
     backpressured: isBp,
     idle: deliveredCount === 0 && remainingCount === 0,
+    ...(notifyPromise !== undefined ? { notifyPromise } : {}),
   };
 }
 
@@ -307,80 +283,65 @@ export async function runDaemonLoop(options: DaemonLoopOptions): Promise<void> {
   const healthPath = daemonHealthPath(room, reader);
   const nowIso = new Date().toISOString();
   const pollMs = options.pollIntervalMs ?? policy.poll_interval_ms;
-  claimHealthRecord(healthPath, {
-    room,
-    reader,
-    pid: process.pid,
-    startTime: nowIso,
-    pollIntervalMs: pollMs,
-  });
+  claimHealthRecord(
+    healthPath,
+    { room, reader, pid: process.pid, startTime: nowIso, pollIntervalMs: pollMs },
+    options.healthPorts,
+  );
 
   const watcher =
     options.watcher ??
     new DaemonWatcher(room, {
       reader,
       healthPath,
-      pollIntervalMs: options.pollIntervalMs ?? policy.poll_interval_ms,
-      ports: options.watcherPorts,
+      pollIntervalMs: pollMs,
+      ...(options.watcherPorts !== undefined ? { ports: options.watcherPorts } : {}),
     });
-
-  let running = true;
-  const onShutdown = (): void => {
-    running = false;
-    watcher.stop();
-  };
-  process.once("SIGTERM", onShutdown);
-  process.once("SIGINT", onShutdown);
 
   const stepOptions: DaemonLoopOptions = { ...options, watcher };
 
   const syncHealth = (source?: WakeSource): void => {
-    const nowIso = new Date().toISOString();
+    const syncIso = new Date().toISOString();
     syncDaemonHealth({
       healthPath,
-      nowIso,
+      nowIso: syncIso,
       metrics: watcher.getMetrics(),
-      claim: { room, reader, pid: process.pid, startTime: nowIso, pollIntervalMs: pollMs },
+      claim: { room, reader, pid: process.pid, startTime: syncIso, pollIntervalMs: pollMs },
       ...(source !== undefined ? { source } : {}),
+      ...(options.healthPorts !== undefined ? { ports: options.healthPorts } : {}),
     });
   };
 
-  const onWake = async (source: WakeSource, tokenChanged: boolean): Promise<void> => {
-    if (!running) return;
-
-    if (!tokenChanged && source !== "tick") {
-      syncHealth(source);
-      return;
-    }
-
-    let remaining = 1;
-    while (remaining > 0 && running) {
-      const result = stepDaemonLoop(stepOptions, source);
-      if (result.backpressured || result.idle || result.delivered === 0) {
-        break;
-      }
-      remaining = result.remaining;
-    }
-  };
-
-  try {
-    watcher.start((source, changed) => onWake(source, changed));
-    syncHealth();
-    await onWake("tick", true);
-
-    await new Promise<void>((resolvePromise) => {
-      const checkInterval = setInterval(() => {
-        if (!running) {
-          clearInterval(checkInterval);
-          resolvePromise();
+  await runWithProcessLifecycle({
+    healthPath,
+    lockFd: lockRes.lockFd,
+    room,
+    reader,
+    watcher,
+    ...(options.healthPorts !== undefined ? { ports: options.healthPorts } : {}),
+    start: async (controller) => {
+      const onWake = async (source: WakeSource, tokenChanged: boolean): Promise<void> => {
+        if (!controller.isRunning()) return;
+        if (!tokenChanged && source !== "tick") {
+          syncHealth(source);
+          return;
         }
-      }, 500);
-    });
-  } finally {
-    process.removeListener("SIGTERM", onShutdown);
-    process.removeListener("SIGINT", onShutdown);
-    watcher.stop();
-    stampStoppedIfOwned(healthPath, process.pid, new Date().toISOString());
-    releaseDaemonLock(room, reader, lockRes.lockFd);
-  }
+        let remaining = 1;
+        while (remaining > 0 && controller.isRunning()) {
+          const result = stepDaemonLoop(stepOptions, source);
+          if (result.notifyPromise) {
+            await result.notifyPromise;
+          }
+          if (result.backpressured || result.idle || result.delivered === 0) {
+            break;
+          }
+          remaining = result.remaining;
+        }
+      };
+
+      watcher.start((source, changed) => onWake(source, changed));
+      syncHealth();
+      await onWake("tick", true);
+    },
+  });
 }

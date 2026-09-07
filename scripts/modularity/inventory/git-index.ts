@@ -2,6 +2,12 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { assertRepositoryRelativePosixPath } from "../core/index.ts";
 
+declare global {
+  interface BunRuntimeGlobal {
+    readonly spawn: typeof import("bun").spawn;
+  }
+}
+
 export interface IndexedBlob {
   readonly path: string;
   readonly oid: string;
@@ -184,11 +190,12 @@ export async function readTreeBlobs(repoRoot: string): Promise<readonly IndexedB
       .sort(comparePaths)
       .map(async (path) => {
         try {
-          return {
+          const blob: IndexedBlob = {
             path,
             oid: "working-tree",
             bytes: new Uint8Array(await readFile(join(repoRoot, path))),
           };
+          return blob;
         } catch (error) {
           if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
           throw error;

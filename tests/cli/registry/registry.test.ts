@@ -221,11 +221,6 @@ describe("CLI command registry", () => {
     const deadJsonCommands = [
       "whoami",
       "role:cheat-sheet",
-      "watchdog:status",
-      "watchdog:cleanup",
-      "watchdog:phase-cleanup",
-      "watchdog:verify",
-      "watchdog:probe",
       "queue:status",
       "queue:add",
       "queue:drain",
@@ -240,8 +235,20 @@ describe("CLI command registry", () => {
       expect(spec?.flags.map((flag) => flag.name)).not.toContain("json");
     }
 
+    for (const name of [
+      "watchdog:status",
+      "watchdog:cleanup",
+      "watchdog:phase-cleanup",
+      "watchdog:verify",
+      "watchdog:probe",
+    ]) {
+      const spec = findCommand(name);
+      expect(spec).toBeDefined();
+      expect(spec?.flags.map((flag) => flag.name)).toContain("json");
+    }
+
     const memoryQuerySpec = findCommand("memory:query");
-    expect(memoryQuerySpec?.flags.map((flag) => flag.name)).not.toContain("json");
-    expect(memoryQuerySpec?.flags.map((flag) => flag.name)).not.toContain("format");
+    expect(memoryQuerySpec?.flags.map((flag) => flag.name)).toContain("json");
+    expect(memoryQuerySpec?.flags.map((flag) => flag.name)).toContain("format");
   });
 });

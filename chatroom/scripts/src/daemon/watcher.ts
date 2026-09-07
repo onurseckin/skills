@@ -39,10 +39,10 @@ export interface DaemonWatcherPorts {
 export interface DaemonWatcherOptions {
   readonly pollIntervalMs?: number;
   readonly retryDelayMs?: number;
-  readonly ports?: DaemonWatcherPorts;
-  readonly reader?: string;
-  readonly healthPath?: string;
-  readonly onStatusChange?: (metrics: WatcherMetrics) => void;
+  readonly ports?: DaemonWatcherPorts | undefined;
+  readonly reader?: string | undefined;
+  readonly healthPath?: string | undefined;
+  readonly onStatusChange?: ((metrics: WatcherMetrics) => void) | undefined;
 }
 
 const MIN_POLL_INTERVAL_MS = 250;
@@ -110,12 +110,12 @@ export function hasTokenChanged(prev: ChangeToken, current: ChangeToken): boolea
 
 export class DaemonWatcher {
   private readonly roomId: string;
-  private readonly reader?: string;
-  private readonly healthPath?: string;
-  private readonly ports?: DaemonWatcherPorts;
+  private readonly reader?: string | undefined;
+  private readonly healthPath?: string | undefined;
+  private readonly ports?: DaemonWatcherPorts | undefined;
   private readonly retryDelayMs: number;
   private readonly configuredPollIntervalMs: number;
-  private onStatusChange?: (metrics: WatcherMetrics) => void;
+  private onStatusChange?: ((metrics: WatcherMetrics) => void) | undefined;
   private watchFailures = 0;
   private watchActive = false;
   private dirWatcher: WatcherHandle | FSWatcher | null = null;

@@ -23,7 +23,7 @@
     "test:purity": "bun scripts/testing/guardrails/purity-guard.ts --all",
     "test:purity:staged": "bun scripts/testing/guardrails/purity-guard.ts --staged",
     "coverage:check": "bun test:coverage",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p chatroom/scripts/tsconfig.json --noEmit",
     "lint": "oxlint --deny-warnings",
     "format": "oxfmt",
     "format:check": "oxfmt --check",

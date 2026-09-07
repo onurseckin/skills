@@ -17,6 +17,7 @@ import {
   requiredFlag,
   type CommandSpec,
 } from "./types.ts";
+import { offSpec, onSpec } from "./policy.ts";
 
 export const initSpec: CommandSpec = {
   name: "chat:init",
@@ -276,7 +277,11 @@ export const CHAT_COMMANDS: readonly CommandSpec[] = [
   daemonSpec,
   doctorSpec,
   roomsSpec,
+  onSpec,
+  offSpec,
 ];
+
+export { offSpec, onSpec } from "./policy.ts";
 
 export function allCommands(): readonly CommandSpec[] {
   return CHAT_COMMANDS;
