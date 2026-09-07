@@ -47,7 +47,7 @@ describe(schedulerInvariantSuiteName, () => {
     expect(content).toMatch(/dag(:view)?/);
     expect(content).toContain("schedule");
     expect(content).toContain("commands:");
-    expect(content).toMatch(/-\s+"?dag"?/);
+    expect(content).toMatch(/-\s+"?report:dag"?/);
   });
 
   test("agents/coordinator.yaml mandates supervisory schedule and dag inspection", () => {
@@ -57,7 +57,7 @@ describe(schedulerInvariantSuiteName, () => {
     expect(content).toMatch(/resolveSupervisoryCadence/);
     expect(content).toMatch(/dag(:view)?/);
     expect(content).toContain("commands:");
-    expect(content).toMatch(/-\s+"?dag"?/);
+    expect(content).toMatch(/-\s+"?report:dag"?/);
   });
 
   test("agents/orchestrator.yaml mandates supervisory schedule and dag inspection", () => {
@@ -67,7 +67,7 @@ describe(schedulerInvariantSuiteName, () => {
     expect(content).toMatch(/resolveSupervisoryCadence/);
     expect(content).toMatch(/dag(:view)?/);
     expect(content).toContain("commands:");
-    expect(content).toMatch(/-\s+"?dag"?/);
+    expect(content).toMatch(/-\s+"?report:dag"?/);
   });
 
   test("references/host-adapters.md documents Section 5.6 for Mandatory Supervisory Scheduler", () => {
@@ -97,8 +97,8 @@ describe(schedulerInvariantSuiteName, () => {
     expect(content).toContain("Tier 1 Background Orchestrator");
   });
 
-  test("dag command is registered in COMMAND_REGISTRY with zero aliases", () => {
-    const dagSpec = findCommand("dag");
+  test("report:dag command is registered in COMMAND_REGISTRY with zero aliases", () => {
+    const dagSpec = findCommand("report:dag");
     expect(dagSpec).toBeDefined();
     expect(dagSpec?.aliases).toEqual([]);
     expect(dagSpec?.domain).toBe("reporting");

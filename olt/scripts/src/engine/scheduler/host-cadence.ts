@@ -29,11 +29,27 @@ export function resolveAgentSchedulerConfig(
   const normalizedKey = normalizeRoleKey(role);
   const trimmedRole = role.trim();
 
-  let agentPolicy = activePolicy.agents?.[normalizedKey] ?? activePolicy.agents?.[trimmedRole];
+  let agentPolicy =
+    activePolicy.agents?.[normalizedKey] ??
+    activePolicy.agents?.[trimmedRole] ??
+    (normalizedKey === "mind" || normalizedKey === "mind_supervisor"
+      ? (activePolicy.agents?.["mind"] ?? activePolicy.agents?.["mind_supervisor"])
+      : undefined) ??
+    (normalizedKey === "watchdog" || normalizedKey === "autonomic_watchdog"
+      ? (activePolicy.agents?.["autonomic_watchdog"] ?? activePolicy.agents?.["watchdog"])
+      : undefined);
 
   if (!agentPolicy && activePolicy.agents === undefined) {
     const defaultPolicy = generateDefaultRepoPolicy(repoRoot);
-    agentPolicy = defaultPolicy.agents?.[normalizedKey] ?? defaultPolicy.agents?.[trimmedRole];
+    agentPolicy =
+      defaultPolicy.agents?.[normalizedKey] ??
+      defaultPolicy.agents?.[trimmedRole] ??
+      (normalizedKey === "mind" || normalizedKey === "mind_supervisor"
+        ? (defaultPolicy.agents?.["mind"] ?? defaultPolicy.agents?.["mind_supervisor"])
+        : undefined) ??
+      (normalizedKey === "watchdog" || normalizedKey === "autonomic_watchdog"
+        ? (defaultPolicy.agents?.["autonomic_watchdog"] ?? defaultPolicy.agents?.["watchdog"])
+        : undefined);
   }
 
   if (!agentPolicy) {

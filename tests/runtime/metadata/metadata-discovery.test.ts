@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import * as fs from "node:fs";
 import { join, resolve } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -50,7 +49,7 @@ describe("agent metadata discovery (in-memory virtualization)", () => {
     expect(() =>
       writeAgentMetadata(createAgentMetadata({ agent_id: agentId, role: "implementer" }), root),
     ).toThrow(HarnessError);
-    expect(fs.readFileSync(external, "utf8")).toBe("sentinel");
+    expect(harness.files.get(external)).toBe("sentinel");
   });
 
   it("refuses a symlinked runtime directory without changing its external target", () => {
@@ -88,7 +87,7 @@ describe("agent metadata discovery (in-memory virtualization)", () => {
       expect(() =>
         writeAgentMetadata(createAgentMetadata({ agent_id: agentId, role: "implementer" }), root),
       ).toThrow(HarnessError);
-      expect(fs.readFileSync(external, "utf8")).toBe(bytes);
+      expect(harness.files.get(external)).toBe(bytes);
     }
   });
 
@@ -120,7 +119,9 @@ describe("agent metadata discovery (in-memory virtualization)", () => {
     const restore = setAgentMetadataDependenciesForTesting({
       readFile(path, encoding) {
         if (path === canonicalPath) throw missing;
-        return fs.readFileSync(path, encoding);
+        const val = harness.files.get(path);
+        if (val === undefined) throw Object.assign(new Error(`ENOENT: open '${path}'`), { code: "ENOENT" });
+        return encoding === "utf8" || encoding === "utf-8" ? val : Buffer.from(val, "utf8");
       },
     });
 
@@ -162,7 +163,9 @@ describe("agent metadata discovery (in-memory virtualization)", () => {
         readFile(path, encoding) {
           if (path === canonicalPath) throw failure;
           if (path === legacyPath) legacyReads += 1;
-          return fs.readFileSync(path, encoding);
+          const val = harness.files.get(path);
+          if (val === undefined) throw Object.assign(new Error(`ENOENT: open '${path}'`), { code: "ENOENT" });
+          return encoding === "utf8" || encoding === "utf-8" ? val : Buffer.from(val, "utf8");
         },
       });
       try {
@@ -190,9 +193,15 @@ describe("agent metadata discovery (in-memory virtualization)", () => {
         findRepoRoot: () => root,
         resolveCapsulesDir: () => capsules,
         resolveScratchDir: () => scratch,
-        readDirectory(path, options) {
-          const entries = fs.readdirSync(path, options);
-          return reverse ? entries.reverse() : entries;
+        readDirectory() {
+          const makeDirent = (name: string) => ({
+            name,
+            isDirectory: () => true,
+            isFile: () => false,
+            isSymbolicLink: () => false,
+          });
+          const entries = [makeDirent("a"), makeDirent("b")];
+          return (reverse ? [...entries].reverse() : entries) as unknown as never;
         },
       });
       try {
@@ -226,7 +235,7 @@ describe("agent metadata discovery (in-memory virtualization)", () => {
       findRepoRoot: () => root,
       resolveCapsulesDir: () => capsules,
       resolveScratchDir: () => join(root, "scratch"),
-      readDirectory: () => [malformedEntry as unknown as import("node:fs").Dirent],
+      readDirectory: () => [malformedEntry as unknown as never],
     });
 
     try {

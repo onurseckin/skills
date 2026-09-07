@@ -40,11 +40,7 @@ export interface StructuredTestReceipt extends JsonObject {
 }
 
 export function isMechanicValidatorReceipt(command: RecordedCommand): boolean {
-  return (
-    isMechanicValidatorRole(command.actor) ||
-    command.actor.includes("mechanic-validator") ||
-    command.actor.includes("ui-mechanic-validator")
-  );
+  return isMechanicValidatorRole(command.actor);
 }
 
 export function filterMechanicTestReceipts(

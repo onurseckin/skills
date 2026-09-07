@@ -260,6 +260,8 @@ describe("HistoricalDebateMemory", () => {
     }).toThrow('Commitment with id "missing-id" not found');
 
     expect(() => HistoricalDebateMemory.deserialize("invalid json")).toThrow();
+    expect(() => HistoricalDebateMemory.deserialize("")).toThrow(/invalid JSON/);
+    expect(() => HistoricalDebateMemory.deserialize("{broken-json")).toThrow(/invalid JSON/);
     expect(() => HistoricalDebateMemory.deserialize("null")).toThrow();
 
     const empty = HistoricalDebateMemory.deserialize("{}");

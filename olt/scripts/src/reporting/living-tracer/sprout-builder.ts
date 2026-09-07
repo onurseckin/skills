@@ -24,7 +24,7 @@ export function createSproutedRepairBranch(
     id: repairTaskId,
     label: repairLabel,
     status: "ready",
-    role: "repairer",
+    role: "implementer",
     dependencies: [targetTaskId],
     writeScope: targetTask.writeScope,
     assignedAgent: null,

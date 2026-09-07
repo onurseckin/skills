@@ -68,7 +68,7 @@ export function formatAgentBrief(params: AgentBriefParams): string {
       role: params.role,
       description: "Inspect task briefing and exact write scope",
     });
-    if (params.role === "implementer" || params.role === "repairer") {
+    if (params.role === "implementer") {
       nextActions.push({
         command: `bun harness.ts task:claim --task ${params.parentTaskId} --agent ${params.agentId} --role ${params.role}`,
         role: params.role,

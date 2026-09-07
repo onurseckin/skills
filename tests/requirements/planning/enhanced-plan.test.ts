@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import { renderEnhancedPlanMarkdown } from "../../../olt/scripts/src/requirements/enhanced-plan-markdown.ts";
 import {
@@ -16,8 +15,10 @@ import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
 import {
   cleanupVirtualRequirementsFS,
+  getVirtualRequirementsFS,
   scratchRoot,
   setupVirtualRequirementsFS,
+  statSync,
 } from "../requirements-fixture.ts";
 
 beforeEach(() => {
@@ -107,15 +108,16 @@ describe("writeEnhancedPlan (in-memory virtual)", () => {
     expect(artifacts.json_path).toBe(join(PLANNING_DIRECTORY, ENHANCED_PLAN_JSON_FILE));
     expect(artifacts.markdown_path).toBe(join(PLANNING_DIRECTORY, ENHANCED_PLAN_MARKDOWN_FILE));
 
-    const jsonBytes = fs.readFileSync(join(runRoot, artifacts.json_path));
-    const markdownBytes = fs.readFileSync(join(runRoot, artifacts.markdown_path));
+    const vfs = getVirtualRequirementsFS();
+    const jsonBytes = vfs.readFileSync(join(runRoot, artifacts.json_path));
+    const markdownBytes = vfs.readFileSync(join(runRoot, artifacts.markdown_path));
     expect(sha256Bytes(jsonBytes)).toBe(artifacts.json_sha256);
     expect(sha256Bytes(markdownBytes)).toBe(artifacts.markdown_sha256);
     expect(jsonBytes).toEqual(Buffer.from(canonicalJsonBytes(document)));
-    expect(markdownBytes.toString("utf8")).toBe(renderEnhancedPlanMarkdown(document));
+    expect(Buffer.from(markdownBytes).toString("utf8")).toBe(renderEnhancedPlanMarkdown(document));
 
-    expect(fs.statSync(join(runRoot, artifacts.json_path)).mode & 0o777).toBe(0o444);
-    expect(fs.statSync(join(runRoot, artifacts.markdown_path)).mode & 0o777).toBe(0o444);
+    expect(statSync(join(runRoot, artifacts.json_path)).mode & 0o777).toBe(0o444);
+    expect(statSync(join(runRoot, artifacts.markdown_path)).mode & 0o777).toBe(0o444);
   });
 });
 

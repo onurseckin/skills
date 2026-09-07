@@ -17,7 +17,7 @@ export function compileRepairDag(
 
   dominatingDirectives.push(
     `[DOMINATING REPAIR DAG COMPILATION — ROUND ${roundNumber}]`,
-    "1. Strict Hierarchical Execution: Repairers must execute only within their leased write scope.",
+    "1. Strict Hierarchical Execution: Implementers must execute only within their leased write scope.",
     "2. Zero Scope Creep: Modification outside scoped write paths is blocked by Harness Doctor.",
     "3. Mandatory Counterfactual Proof: All revalidation gates must pass before submitting task.",
   );
@@ -40,7 +40,7 @@ export function compileRepairDag(
 
     nodes.push({
       taskId: payload.taskId,
-      role: "repairer",
+      role: "implementer",
       tier: 2,
       status: payload.newStatus,
       repairRound: payload.repairRound,
@@ -55,7 +55,7 @@ export function compileRepairDag(
   }
 
   let isAcyclic = true;
-  let criticalPath: string[] = [];
+  const criticalPath: string[] = [];
   let totalWork = 0;
   let totalSpan = 0;
 

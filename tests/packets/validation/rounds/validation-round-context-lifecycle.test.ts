@@ -188,7 +188,7 @@ describe("a prior round enters the packet as a demand and never as a conclusion"
     const commands: RecordedCommand[] = [
       {
         command_id: "C-1",
-        actor: "mechanic-validator-1",
+        actor: "ui-headless-validator",
         argv: ["bun", "test"],
         cwd_relative: ".",
         gate_id: null,
@@ -199,7 +199,7 @@ describe("a prior round enters the packet as a demand and never as a conclusion"
       },
       {
         command_id: "C-2",
-        actor: "ui-mechanic-validator-2",
+        actor: "ui-headless-validator",
         argv: ["bun", "test"],
         cwd_relative: ".",
         gate_id: null,

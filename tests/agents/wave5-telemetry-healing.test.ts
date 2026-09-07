@@ -1,4 +1,3 @@
-const SCRATCH_TEST_DIR = path.join(process.cwd(), ".olt-test-scratch-wave5");
 import { afterEach, beforeEach, describe, expect, it, test } from "bun:test";
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -49,23 +48,26 @@ import {
   validateAgentSpawn,
   validateAgentToolCall,
 } from "../../olt/scripts/src/agents/index.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../olt/scripts/src/testing/virtual-fs/index.ts";
 
-const TEST_ROOT = path.join(process.cwd(), ".olt-test-scratch-wave5");
-
-function cleanTestRoot(): void {
-  if (fs.existsSync(TEST_ROOT)) {
-    fs.rmSync(TEST_ROOT, { recursive: true, force: true });
-  }
-}
+const SCRATCH_TEST_DIR = "/virtual/wave5-telemetry-healing";
 
 describe("Wave 5: Multi-Track Telemetry & Universal Self-Healing", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
+
   beforeEach(() => {
-    cleanTestRoot();
-    fs.mkdirSync(TEST_ROOT, { recursive: true });
+    vfs = new VirtualMemoryFS();
+    vfs.mkdirSync(SCRATCH_TEST_DIR, { recursive: true });
+    session = createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
-    cleanTestRoot();
+    session.cleanup();
   });
 
   describe("Multi-Track Telemetry & Universal Self-Healing", () => {
@@ -199,6 +201,33 @@ describe("Wave 5: Multi-Track Telemetry & Universal Self-Healing", () => {
       expect(fs.existsSync(path.join(fakeWorkspace, ".olt", "mailboxes"))).toBe(true);
       expect(fs.existsSync(path.join(fakeWorkspace, ".olt", "worktrees"))).toBe(true);
       expect(fs.existsSync(path.join(fakeWorkspace, ".olt", "scratch", "backups"))).toBe(true);
+    });
+
+    it("does not classify fresh mailbox locks as stale and ignores them during healing", async () => {
+      const fakeWorkspace = path.join(SCRATCH_TEST_DIR, "workspace-health-fresh");
+      const mailboxLocksDir = path.join(fakeWorkspace, ".olt", "locks", "mailboxes");
+      fs.mkdirSync(mailboxLocksDir, { recursive: true });
+      const freshLockPath = path.join(mailboxLocksDir, "fresh-agent.lock");
+      fs.writeFileSync(freshLockPath, "active-lock", "utf-8");
+
+      const healthReport = await diagnoseUniversalHealth(fakeWorkspace);
+      expect(healthReport.stats.staleLocks).toBe(0);
+      expect(healthReport.healthy).toBe(true);
+
+      const healingReport = await autoHealUniversalHealth(fakeWorkspace, healthReport);
+      expect(healingReport.healed).toBe(true);
+      expect(fs.existsSync(freshLockPath)).toBe(true);
+    });
+
+    it("handles malformed browsers.json gracefully without crashing", async () => {
+      const fakeWorkspace = path.join(SCRATCH_TEST_DIR, "workspace-health-corrupt-browser");
+      const browsersDir = path.join(fakeWorkspace, ".olt", "locks");
+      fs.mkdirSync(browsersDir, { recursive: true });
+      fs.writeFileSync(path.join(browsersDir, "browsers.json"), "{ bad json syntax...");
+
+      const healthReport = await diagnoseUniversalHealth(fakeWorkspace);
+      expect(healthReport).toBeDefined();
+      expect(healthReport.stats.danglingBrowsers).toBe(0);
     });
   });
 });

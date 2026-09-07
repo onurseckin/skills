@@ -45,9 +45,9 @@ function refusal(act: () => unknown): HarnessError {
   throw new Error("the call was expected to refuse and did not");
 }
 
-function claimSubmit(port: TestPort, agent: string, attempt: number, repair = false): void {
-  const { token } = claimTask(port, "T-1", agent, repair ? "repairer" : "implementer", { clock });
-  registerTaskPacket(port, repair ? "repairer" : "implementer", agent, attempt);
+function claimSubmit(port: TestPort, agent: string, attempt: number): void {
+  const { token } = claimTask(port, "T-1", agent, "implementer", { clock });
+  registerTaskPacket(port, "implementer", agent, attempt);
   submitTask(port, "T-1", agent, token, report, clock);
 }
 
@@ -84,7 +84,7 @@ describe("no agent validates a task it has already worked on or reviewed", () =>
       clock,
     );
     expect(port.read().tasks["T-1"]!.status).toBe("changes_requested");
-    claimSubmit(port, "worker", 2, true);
+    claimSubmit(port, "worker", 2);
     expect(port.read().tasks["T-1"]!.status).toBe("submitted");
 
     // Round 1's reviewer never held a lease on this task, so only the reviewed-it-before clause can

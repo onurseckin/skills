@@ -16,8 +16,9 @@ import {
   type StagnationTelemetry,
 } from "../../../authority/verbatim-role-injector.ts";
 import { executeStagnationShockRecovery } from "../stagnation-recovery-interlock.ts";
-import { AuditorCursorStore } from "./cursor.ts";
+import { AuditorCursorStore } from "./types.ts";
 import { CognitiveChallengePromptGenerator } from "./challenge-generator.ts";
+import { auditAntiStagnationPassivity } from "../anti-stagnation-engine.ts";
 import type { AuditorCursor, MindAuditLiveResult } from "./types.ts";
 
 export function auditMindPulseHelper(
@@ -173,6 +174,7 @@ export function auditMindPulseHelper(
   let injectionPrompt: string | undefined = undefined;
   let cognitiveChallengePrompt: string | undefined = undefined;
   let defectCreated = false;
+  const parallelismProvocation = auditAntiStagnationPassivity({ rootDir: repoRoot });
 
   if (pendingBacklogCount === 0) {
     cognitiveChallengePrompt = CognitiveChallengePromptGenerator.generateZeroDeltaChallengePrompt(
@@ -222,6 +224,13 @@ export function auditMindPulseHelper(
     }
   }
 
+  if (parallelismProvocation.provocationDelivered) {
+    injectionPrompt =
+      injectionPrompt !== undefined
+        ? `${injectionPrompt}\n\n${parallelismProvocation.message ?? ""}`
+        : parallelismProvocation.message;
+  }
+
   const updatedCursor: AuditorCursor = {
     lastInspectedTimestamp: nowIso,
     lastInspectedEventIndex: cursor.lastInspectedEventIndex,
@@ -239,6 +248,7 @@ export function auditMindPulseHelper(
     cognitiveChallengePrompt,
     defectCreated,
     localDefectCount,
+    parallelismProvocation,
     cursor: updatedCursor,
     timestamp: nowIso,
   };

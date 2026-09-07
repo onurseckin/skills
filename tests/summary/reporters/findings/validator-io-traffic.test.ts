@@ -1,6 +1,15 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { generateGraphDataset } from "../../../../olt/scripts/src/summary/graph/index.ts";
+import { cleanupVirtualSummaryFS, setupVirtualSummaryFS } from "../../fixture.ts";
 import { makeCommand, makeState, makeTask } from "../dag/graph-fixtures.ts";
+
+beforeEach(() => {
+  setupVirtualSummaryFS();
+});
+
+afterEach(() => {
+  cleanupVirtualSummaryFS();
+});
 
 function pipelineDataset() {
   const core = makeTask("T-core", {

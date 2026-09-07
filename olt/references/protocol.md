@@ -45,7 +45,7 @@ exact commands it may invoke, and the roles it may branch into:
 | 0          | `mind`                                                                                     |
 | 1          | `orchestrator`, `mind-auditor`                                                             |
 | 2          | `coordinator`                                                                              |
-| 3          | `planner`, `plan-validator`, `implementer`, `validator`, `repairer`, `completeness-critic` |
+| 3          | `planner`, `plan-validator`, `implementer`, `validator`, `completeness-critic`             |
 | 3 (branch) | `sub-implementer`, `sub-validator`, `sub-investigator`                                     |
 
 The orchestrator sits above every run: it dispatches exactly one coordinator per round and never a
@@ -56,7 +56,7 @@ main thread dispatches. On `/olt mind` (infinite product owner mode), the main t
 See `agents/orchestrator.yaml`, `agents/mind.yaml`, `agents/mind-auditor.yaml`, and `references/host-adapters.md`.
 
 `task:claim --role` names the contract the agent is bound to for the whole lease: `implementer` for
-a ready or retry-ready task, `repairer` for one in `changes_requested`. A mismatch is refused.
+a ready, retry-ready, or `changes_requested` task. A mismatch is refused.
 
 ## Lifecycle
 
@@ -197,7 +197,7 @@ For UI tasks, automated Playwright test execution and DOM rendering checks are s
 
 **The round-1 adversarial check is a probe, not a rejection.** `task:probe --demand "Prove X"` files
 a `probe_demand` finding: it asserts nothing about the code, it leaves the task in `validating` under
-the same validator, and it does not touch `repair_round` or reassign the repairer. A sign-off is
+the same validator, and it does not touch `repair_round` or reassign the repair. A sign-off is
 refused while `probe_round < min_adversarial_probes` (canonically **1**), so the check cannot be
 skipped and does not have to be faked as a defect.
 
@@ -217,7 +217,7 @@ true of `task:review --status fail`.
 ### 8. Repair with bounded feedback
 
 Route single-task repair findings to the original implementer within `write_scope`, claimed with
-`--role repairer`. If recorded policy marks the author unavailable, stale, or repeatedly failing,
+`--role implementer`. If recorded policy marks the author unavailable, stale, or repeatedly failing,
 lease a replacement with the same frozen task contract. A fresh validator must re-verify the repaired
 code against prior findings and re-run gate proofs with nonempty revalidation evidence. After
 `max_repair_rounds` (canonically **6**, configurable), the task transitions to `escalated` and the
@@ -482,7 +482,7 @@ triggers dynamic graph recompilation and parallel repair rounds:
 | `submitted`             | `task:validate-start`               | `validating`           | Independent validator assigned; implementer prose stripped from the packet.                     |
 | `validating`            | `task:probe`                        | `validating`           | `probe_round` +1; `repair_round` untouched; demands recorded as open findings.                  |
 | `validating`            | `task:reject` / `--status fail`     | `changes_requested`    | Validator-authored severity, observation and remediation; `repair_round` +1.                    |
-| `changes_requested`     | `task:claim --role repairer`        | `leased`               | Claimant is the recorded repair assignee; bounded by `max_repair_rounds`.                       |
+| `changes_requested`     | `task:claim --role implementer`     | `leased`               | Claimant is the recorded repair assignee; bounded by `max_repair_rounds`.                       |
 | `changes_requested`     | `task:reject` at the budget         | `escalated`            | `repair_round` reached `max_repair_rounds`; handoff preserved.                                  |
 | `validating`            | `task:review --status pass`         | `validated`            | Probe budget met; no failing gate run; every open finding `--resolve`d.                         |
 | `validated`             | mandatory gate attachment           | `gating`               | Gate argv fingerprint, task and gate ids match the contract; bindings match.                    |

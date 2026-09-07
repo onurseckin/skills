@@ -90,7 +90,7 @@ export function validateHierarchicalSpawning(
       childRole,
       parentTier: pTier,
       childTier: cTier,
-      reason: `Tier 2 Coordinator (${parentRole}) may only dispatch Tier 3 workers (Implementers, Validators, Critics, Repairers). Dispatched child role '${childRole}' (Tier ${cTier}) breaches strict hierarchical spawning boundary.`,
+      reason: `Tier 2 Coordinator (${parentRole}) may only dispatch Tier 3 workers (Implementers, Validators, Critics). Dispatched child role '${childRole}' (Tier ${cTier}) breaches strict hierarchical spawning boundary.`,
       remediation,
     };
   }

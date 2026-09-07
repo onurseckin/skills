@@ -156,7 +156,7 @@ describe("Telemetry Trace Context and Comprehensive Coverage", () => {
     expect(projected.plan).toBe("pro");
     expect(projected.disallowed).toBeUndefined();
 
-    let deep: unknown = {};
+    const deep: unknown = {};
     let cur = deep as Record<string, unknown>;
     for (let i = 0; i < 20; i++) {
       cur.nested = {};

@@ -4,7 +4,6 @@ import {
   taskHeartbeatCommand,
 } from "./task-claim.ts";
 import { taskAbandonCommand } from "./task-abandon.ts";
-import { taskAssignRepairerCommand } from "./task-assign-repairer.ts";
 import { taskProbeCommand } from "./task-probe.ts";
 import { taskRejectCommand } from "./task-reject.ts";
 import { taskReviewCommand } from "./task-review.ts";
@@ -18,7 +17,6 @@ export {
   taskClaimCommand,
   taskHeartbeatCommand,
   taskAbandonCommand,
-  taskAssignRepairerCommand,
   taskProbeCommand,
   taskRejectCommand,
   taskReviewCommand,

@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   findCaptureConfigFile,
@@ -11,7 +10,12 @@ import {
   DEFAULT_PRESETS,
   DEFAULT_SIDEBAR_LAYOUT,
 } from "../../../olt/scripts/src/capture/config/index.ts";
-import { cleanupVirtualCaptureFS, scratchRoot, setupVirtualCaptureFS } from "../fixture.ts";
+import {
+  cleanupVirtualCaptureFS,
+  getVirtualCaptureFS,
+  scratchRoot,
+  setupVirtualCaptureFS,
+} from "../fixture.ts";
 
 describe("capture config loader & schema", () => {
   beforeEach(() => {
@@ -76,12 +80,13 @@ screens:
   });
 
   test("discovers and loads config files in directory hierarchy", () => {
+    const vfs = getVirtualCaptureFS();
     const root = scratchRoot(import.meta.path, "hierarchy-discover");
     const testDir = join(root, "config-dir");
-    mkdirSync(testDir, { recursive: true });
+    vfs.mkdirSync(testDir, { recursive: true });
 
     const configPath = join(testDir, ".capture.yaml");
-    writeFileSync(
+    vfs.writeFileSync(
       configPath,
       `
 baseUrl: "http://localhost:4000"
@@ -98,6 +103,33 @@ screens:
     const loaded = loadCaptureConfig({ configPath });
     expect(loaded.baseUrl).toBe("http://localhost:4000");
     expect(loaded.screens[0]?.id).toBe("login");
+  });
+
+  test("discovers config file across multiple nested ancestor levels in virtual filesystem", () => {
+    const vfs = getVirtualCaptureFS();
+    const ancestor = "/virtual/capture-nested-ancestor";
+    const deepDir = join(ancestor, "level1", "level2", "level3");
+    vfs.mkdirSync(deepDir, { recursive: true });
+
+    const configPath = join(ancestor, ".capture.yaml");
+    vfs.writeFileSync(configPath, 'baseUrl: "http://ancestor.example.com"\n');
+
+    const found = findCaptureConfigFile(deepDir);
+    expect(found).toBe(configPath);
+  });
+
+  test("honors CONFIG_CANDIDATE_NAMES precedence when multiple candidate files exist", () => {
+    const vfs = getVirtualCaptureFS();
+    const dir = "/virtual/capture-precedence";
+    vfs.mkdirSync(dir, { recursive: true });
+
+    const yamlPath = join(dir, ".capture.yaml");
+    const jsonPath = join(dir, ".capture.json");
+    vfs.writeFileSync(yamlPath, 'baseUrl: "http://yaml.example.com"\n');
+    vfs.writeFileSync(jsonPath, JSON.stringify({ baseUrl: "http://json.example.com" }));
+
+    const found = findCaptureConfigFile(dir);
+    expect(found).toBe(yamlPath);
   });
 
   test("parses and validates JSON config fallback", () => {
@@ -244,19 +276,21 @@ screens:
   });
 
   test("findCaptureConfigFile returns null when no config file exists in hierarchy", () => {
-    const root = scratchRoot(import.meta.path, "empty-search-dir");
-    const emptyDir = join(root, "empty-dir");
-    mkdirSync(emptyDir, { recursive: true });
+    const vfs = getVirtualCaptureFS();
+    const emptyDir = "/virtual/capture-empty-search-dir/empty-dir";
+    vfs.mkdirSync(emptyDir, { recursive: true });
     const found = findCaptureConfigFile(emptyDir);
-    expect(found === null || typeof found === "string").toBe(true);
+    expect(found).toBeNull();
   });
 
   test("loadCaptureConfig falls back to default config when file path does not exist", () => {
-    const fallback = loadCaptureConfig({ configPath: "/nonexistent/path/to/.capture.yaml" });
+    const fallback = loadCaptureConfig({ configPath: "/virtual/nonexistent/path/to/.capture.yaml" });
     expect(fallback.baseUrl).toBe("http://localhost:3000");
     expect(fallback.viewports.desktop).toBeDefined();
 
-    const fallbackExplicit = loadCaptureConfig({ explicitPath: "/nonexistent/path/.capture.json" });
+    const fallbackExplicit = loadCaptureConfig({
+      explicitPath: "/virtual/nonexistent/path/.capture.json",
+    });
     expect(fallbackExplicit.baseUrl).toBe("http://localhost:3000");
   });
 });

@@ -72,6 +72,8 @@ export class VirtualMemoryFS implements IVirtualFileSystem {
     const now = Date.now();
     const stats = new VirtualStats({
       size: bytes.byteLength,
+      mode:
+        typeof options === "object" && typeof options?.mode === "number" ? options.mode : undefined,
       isDir: false,
       mtimeMs: now,
       ctimeMs: now,
@@ -118,7 +120,7 @@ export class VirtualMemoryFS implements IVirtualFileSystem {
     let firstCreated: string | undefined;
     for (const seg of norm.split("/").filter(Boolean)) {
       currPath += "/" + seg;
-      let child = current.children.get(seg);
+      const child = current.children.get(seg);
       if (!child) {
         const newDir = this.createDirNode(seg, currPath);
         current.children.set(seg, newDir);
@@ -164,6 +166,22 @@ export class VirtualMemoryFS implements IVirtualFileSystem {
     if (child.type === "dir" && !options?.recursive) throw VirtualFSError.eisdir(norm, "rm");
     parent.children.delete(leaf);
     parent.stats = parent.stats.clone({ mtimeMs: Date.now(), ctimeMs: Date.now() });
+  }
+
+  renameSync(oldPath: string, newPath: string): void {
+    const oldNorm = normalizePosixPath(oldPath, this.currentWorkingDir);
+    const newNorm = normalizePosixPath(newPath, this.currentWorkingDir);
+    if (oldNorm === "/" || newNorm === "/") throw VirtualFSError.eperm("/", "rename");
+    const { parent: oldParent, name: oldName } = this.resolveParent(oldNorm, "rename");
+    const node = oldParent.children.get(oldName);
+    if (!node) throw VirtualFSError.enoent(oldNorm, "rename");
+    const { parent: newParent, name: newName } = this.resolveParent(newNorm, "rename");
+    const rebased = this.rebasePath(node, newName, newNorm);
+    oldParent.children.delete(oldName);
+    newParent.children.set(newName, rebased);
+    const now = Date.now();
+    oldParent.stats = oldParent.stats.clone({ mtimeMs: now, ctimeMs: now });
+    newParent.stats = newParent.stats.clone({ mtimeMs: now, ctimeMs: now });
   }
 
   readdirSync(
@@ -266,6 +284,17 @@ export class VirtualMemoryFS implements IVirtualFileSystem {
       current = next;
     }
     return { node: current, parent, name: segments[segments.length - 1]! };
+  }
+
+  private rebasePath(node: VirtualFSNode, newName: string, newPath: string): VirtualFSNode {
+    if (node.type === "file") {
+      return { type: "file", name: newName, path: newPath, data: node.data, stats: node.stats };
+    }
+    const children = new Map<string, VirtualFSNode>();
+    for (const [childName, child] of node.children) {
+      children.set(childName, this.rebasePath(child, childName, `${newPath}/${childName}`));
+    }
+    return { type: "dir", name: newName, path: newPath, children, stats: node.stats };
   }
 
   private resolveParent(norm: string, syscall: string): { parent: VirtualDirNode; name: string } {

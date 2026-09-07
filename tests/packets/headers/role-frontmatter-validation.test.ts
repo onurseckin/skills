@@ -92,7 +92,7 @@ describe("role contract boundary & checklist validation", () => {
     );
 
     const mechanicWithRunExec = [
-      "role: mechanic-validator",
+      "role: ui-headless-validator",
       "tier: 3",
       "may:",
       "  - Run test commands",
@@ -104,7 +104,7 @@ describe("role contract boundary & checklist validation", () => {
     ].join("\n");
 
     const mechContract = parseRoleContract(doc(mechanicWithRunExec), "src");
-    expect(mechContract.role).toBe("mechanic-validator");
+    expect(mechContract.role).toBe("ui-headless-validator");
     expect(mechContract.commands).toContain("run:exec");
     expect(isMechanicValidatorContract(mechContract)).toBe(true);
     expect(isCognitiveValidatorContract(mechContract)).toBe(false);

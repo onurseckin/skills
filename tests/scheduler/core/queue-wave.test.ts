@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import {
   queueListCommand,
@@ -15,6 +14,7 @@ import {
   cleanupVirtualBrowserFS,
   setupVirtualBrowserFS,
   tempDir,
+  writeVirtualFile,
 } from "../../reporting/browser/browser-virtual-fs.ts";
 import { queueCapsuleState, schedulerState } from "../fixtures.ts";
 
@@ -28,7 +28,7 @@ interface ReadyEntryShape {
 function compiledRun(name: string, maxParallel?: number): string {
   const repo = tempDir(`harness-${name}`);
   if (maxParallel !== undefined) {
-    fs.writeFileSync(
+    writeVirtualFile(
       join(repo, "harness.config.json"),
       JSON.stringify({ default_max_parallel: maxParallel }),
     );

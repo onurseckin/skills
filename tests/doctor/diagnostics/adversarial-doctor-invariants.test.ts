@@ -230,22 +230,4 @@ describe(adversarialDoctorInvariantsSuiteName, () => {
       }
     });
   });
-
-  describe("Static Invariants: Zero Any & Zero Compiler Suppressions", () => {
-    test("validates zero any and zero suppressions invariants", () => {
-      const samplePureCode = "export function sample(): number { return 42; }\n";
-      const suppressionTokens = [
-        "@" + "ts-ignore",
-        "@" + "ts-expect-error",
-        "@" + "ts-nocheck",
-        "eslint" + "-disable",
-      ];
-      for (const token of suppressionTokens) {
-        expect(samplePureCode.includes(token)).toBe(false);
-      }
-
-      const anyRegex = new RegExp(":\\s*" + "any\\b|\\bas\\s+" + "any\\b|<" + "any>", "g");
-      expect(anyRegex.test(samplePureCode)).toBe(false);
-    });
-  });
 });

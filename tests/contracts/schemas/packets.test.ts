@@ -30,23 +30,23 @@ describe(packetsSuiteName, () => {
 
   test("isCognitiveValidatorRole identifies cognitive validator roles", () => {
     expect(isCognitiveValidatorRole("validator")).toBe(true);
-    expect(isCognitiveValidatorRole("ui-validator")).toBe(true);
+    expect(isCognitiveValidatorRole("ui-optical-validator")).toBe(true);
     expect(isCognitiveValidatorRole("validator-code-quality")).toBe(true);
     expect(isCognitiveValidatorRole("implementer")).toBe(false);
-    expect(isCognitiveValidatorRole("mechanic-validator")).toBe(false);
+    expect(isCognitiveValidatorRole("ui-headless-validator")).toBe(false);
   });
 
-  test("isMechanicValidatorRole identifies mechanic validator roles", () => {
-    expect(isMechanicValidatorRole("mechanic-validator")).toBe(true);
-    expect(isMechanicValidatorRole("ui-mechanic-validator")).toBe(true);
-    expect(isMechanicValidatorRole("mechanic_validator")).toBe(true);
+  test("isMechanicValidatorRole identifies headless validator roles", () => {
+    expect(isMechanicValidatorRole("ui-headless-validator")).toBe(true);
+    expect(isMechanicValidatorRole("mechanic-validator")).toBe(false);
+    expect(isMechanicValidatorRole("ui-mechanic-validator")).toBe(false);
     expect(isMechanicValidatorRole("validator")).toBe(false);
     expect(isMechanicValidatorRole("coordinator")).toBe(false);
   });
 
-  test("isAnyValidatorRole matches either cognitive or mechanic validators", () => {
+  test("isAnyValidatorRole matches either cognitive or headless validators", () => {
     expect(isAnyValidatorRole("validator")).toBe(true);
-    expect(isAnyValidatorRole("mechanic-validator")).toBe(true);
+    expect(isAnyValidatorRole("ui-headless-validator")).toBe(true);
     expect(isAnyValidatorRole("implementer")).toBe(false);
   });
 });

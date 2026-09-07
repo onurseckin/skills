@@ -15,7 +15,7 @@ const SUPERVISOR_ROLES = new Set([
   "lead",
   "architect",
 ]);
-const IMPLEMENTER_ROLES = new Set(["implementer", "developer", "coder", "repairer"]);
+const IMPLEMENTER_ROLES = new Set(["implementer", "developer", "coder"]);
 
 export const CODE_EDIT_TOOLS = new Set([
   "write_to_file",

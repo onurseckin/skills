@@ -1,14 +1,19 @@
-import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import type { HarnessEvent } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   appendTraceStep,
   writeTrace,
 } from "../../../olt/scripts/src/engine/store/recovery/trace.ts";
-import { scratchRoot as makeScratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
+import { cleanupVirtualStoreFS, scratchRoot as makeScratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
 
-setupVirtualStoreFS();
+let vfs: ReturnType<typeof setupVirtualStoreFS>;
+
+beforeEach(() => {
+  vfs = setupVirtualStoreFS();
+});
+
+afterEach(cleanupVirtualStoreFS);
 
 function scratchRoot(label: string): string {
   return makeScratchRoot(import.meta.path, label);
@@ -44,7 +49,7 @@ describe("writeTrace", () => {
   test("renders a header and one row per event with subject and outcome columns filled", () => {
     const root = scratchRoot("renders-a-header-and-one-row-per-event-with-subjec");
     writeTrace(root, [event()]);
-    const body = readFileSync(join(root, "trace.md"), "utf-8");
+    const body = vfs.readFileSync(join(root, "trace.md"), "utf8");
     expect(body).toContain("# Step trace");
     expect(body).toContain("| 1 | 2026-08-20T00:00:00.000Z | tester | task-created | T-1 | open |");
   });
@@ -52,7 +57,7 @@ describe("writeTrace", () => {
   test("falls back to unknown for subject and outcome when the payload has neither key", () => {
     const root = scratchRoot("falls-back-to-unknown-for-subject-and-outcome-when");
     writeTrace(root, [event({ payload: {} })]);
-    const body = readFileSync(join(root, "trace.md"), "utf-8");
+    const body = vfs.readFileSync(join(root, "trace.md"), "utf8");
     expect(body).toContain(
       "| 1 | 2026-08-20T00:00:00.000Z | tester | task-created | unknown | unknown |",
     );
@@ -61,7 +66,7 @@ describe("writeTrace", () => {
   test("falls back to an empty payload object when the event payload is not an object", () => {
     const root = scratchRoot("falls-back-to-an-empty-payload-object-when-the-eve");
     writeTrace(root, [event({ payload: "not-an-object" as unknown as Record<string, never> })]);
-    const body = readFileSync(join(root, "trace.md"), "utf-8");
+    const body = vfs.readFileSync(join(root, "trace.md"), "utf8");
     expect(body).toContain("unknown | unknown |");
   });
 
@@ -74,7 +79,7 @@ describe("writeTrace", () => {
         payload: { task_id: "has|pipe\nand-newline" },
       }),
     ]);
-    const body = readFileSync(join(root, "trace.md"), "utf-8");
+    const body = vfs.readFileSync(join(root, "trace.md"), "utf8");
     expect(body).toContain("a\\|b");
     expect(body).toContain("line1 line2");
     expect(body).toContain("has\\|pipe and-newline");
@@ -87,7 +92,7 @@ describe("writeTrace", () => {
       event({ sequence: 2, payload: { result: true } }),
       event({ sequence: 3, payload: { task_id: "", status: Number.NaN, branch_id: "B-1" } }),
     ]);
-    const body = readFileSync(join(root, "trace.md"), "utf-8");
+    const body = vfs.readFileSync(join(root, "trace.md"), "utf8");
     expect(body).toContain("| 3 |");
     expect(body).toContain("| true |");
     expect(body).toContain("B-1");
@@ -96,7 +101,7 @@ describe("writeTrace", () => {
   test("writes an empty body (header only) for zero events", () => {
     const root = scratchRoot("writes-an-empty-body-header-only-for-zero-events");
     writeTrace(root, []);
-    const body = readFileSync(join(root, "trace.md"), "utf-8");
+    const body = vfs.readFileSync(join(root, "trace.md"), "utf8");
     expect(body.endsWith("| ---: | ---- | ----- | ------------- | ------- | ------- |\n")).toBe(
       true,
     );
@@ -108,7 +113,7 @@ describe("appendTraceStep", () => {
     const root = scratchRoot("appends-a-single-row-to-an-existing-trace-file-wit");
     writeTrace(root, []);
     appendTraceStep(root, event());
-    const body = readFileSync(join(root, "trace.md"), "utf-8");
+    const body = vfs.readFileSync(join(root, "trace.md"), "utf8");
     expect(body).toContain("# Step trace");
     expect(body).toContain("| 1 | 2026-08-20T00:00:00.000Z | tester | task-created | T-1 | open |");
   });

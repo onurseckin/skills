@@ -188,9 +188,6 @@ export const SUPERVISOR_OR_VALIDATOR_ROLES = new Set([
   "completeness-critic",
   "socratic-validator",
   "plan-validator",
-  "ui-validator",
-  "mechanic-validator",
-  "ui-mechanic-validator",
   "sub-validator",
   "sub-investigator",
 ]);

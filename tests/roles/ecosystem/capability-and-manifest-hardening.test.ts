@@ -53,7 +53,7 @@ describe("Domain 16: Roles, Personas & Manifest Auditing Hardening", () => {
 
     test("evaluates permission checks correctly", () => {
       expect(isCodeWritePermitted("implementer")).toBe(true);
-      expect(isCodeWritePermitted("repairer")).toBe(true);
+      expect(isCodeWritePermitted("sub-implementer")).toBe(true);
       expect(isCodeWritePermitted("validator")).toBe(false);
       expect(isCodeWritePermitted("coordinator")).toBe(false);
 

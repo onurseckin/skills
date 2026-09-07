@@ -4,17 +4,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import {
-  existsSync,
-  linkSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import * as fs from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -23,23 +13,30 @@ import {
   requireDistinctLedgerPaths,
   validateRegressionTest,
 } from "../../../olt/scripts/src/mind/defects/loop/promotion.ts";
-import type {
-  DefectEntry,
-  DefectResolutionProof,
-} from "../../../olt/scripts/src/mind/defects/core/types.ts";
+import type { DefectResolutionProof } from "../../../olt/scripts/src/mind/defects/core/types.ts";
 import { createMockDefectEntry, createMockResolutionProof } from "./defect-fixture.ts";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Defect Promotion Coverage Suite", () => {
-  let tempDir: string;
+  const tempDir = "/virtual/defect-promo-test";
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
+
+  const writeLedger = (file: string, entries: unknown[]) =>
+    fs.writeFileSync(file, entries.map((e) => JSON.stringify(e)).join("\n") + "\n");
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "defect-promo-test-"));
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    fs.mkdirSync(tempDir, { recursive: true });
   });
 
   afterEach(() => {
-    if (existsSync(tempDir)) {
-      rmSync(tempDir, { recursive: true, force: true });
-    }
+    session.cleanup();
   });
 
   describe("requireDistinctLedgerPaths", () => {
@@ -53,10 +50,9 @@ describe("Defect Promotion Coverage Suite", () => {
 
     it("throws when target path is an existing directory", () => {
       const src = join(tempDir, "active.jsonl");
-      writeFileSync(src, "");
+      fs.writeFileSync(src, "");
       const targetDir = join(tempDir, "target_dir");
-      mkdirSync(targetDir);
-
+      fs.mkdirSync(targetDir);
       expect(() => requireDistinctLedgerPaths(src, targetDir)).toThrow(
         /completed target path is a directory/,
       );
@@ -64,10 +60,9 @@ describe("Defect Promotion Coverage Suite", () => {
 
     it("throws when source and target point to same file via symlink", () => {
       const realFile = join(tempDir, "real.jsonl");
-      writeFileSync(realFile, "{}");
+      fs.writeFileSync(realFile, "{}");
       const symlinkFile = join(tempDir, "symlink.jsonl");
-      symlinkSync(realFile, symlinkFile);
-
+      session.symlinkSync(realFile, symlinkFile);
       expect(() => requireDistinctLedgerPaths(realFile, symlinkFile)).toThrow(
         /same physical file via symlink/,
       );
@@ -75,18 +70,17 @@ describe("Defect Promotion Coverage Suite", () => {
 
     it("throws when source and target point to same file via hardlink", () => {
       const src = join(tempDir, "orig.jsonl");
-      writeFileSync(src, "{}");
+      fs.writeFileSync(src, "{}");
       const hardlinkFile = join(tempDir, "hardlink.jsonl");
-      linkSync(src, hardlinkFile);
-
+      fs.linkSync(src, hardlinkFile);
       expect(() => requireDistinctLedgerPaths(src, hardlinkFile)).toThrow(/same file via hardlink/);
     });
 
     it("succeeds when source and target are distinct paths", () => {
       const src = join(tempDir, "active.jsonl");
       const tgt = join(tempDir, "completed.jsonl");
-      writeFileSync(src, "{}");
-      writeFileSync(tgt, "{}");
+      fs.writeFileSync(src, "{}");
+      fs.writeFileSync(tgt, "{}");
       expect(() => requireDistinctLedgerPaths(src, tgt)).not.toThrow();
     });
   });
@@ -108,19 +102,18 @@ describe("Defect Promotion Coverage Suite", () => {
 
     it("detects mismatched braces and parentheses", () => {
       const badBraces = 'describe("suite", () => { test("t", () => { expect(1).toBe(1); });';
-      const resBraces = validateRegressionTest(badBraces);
-      expect(resBraces.isValid).toBe(false);
-      expect(resBraces.issues.some((i) => i.includes("Mismatched braces"))).toBe(true);
+      expect(
+        validateRegressionTest(badBraces).issues.some((i) => i.includes("Mismatched braces")),
+      ).toBe(true);
 
       const badParens = 'describe("suite", () => { test("t", () => { expect(1.toBe(1); }); });';
-      const resParens = validateRegressionTest(badParens);
-      expect(resParens.isValid).toBe(false);
-      expect(resParens.issues.some((i) => i.includes("Mismatched parentheses"))).toBe(true);
+      expect(
+        validateRegressionTest(badParens).issues.some((i) => i.includes("Mismatched parentheses")),
+      ).toBe(true);
     });
 
     it("accepts valid test code with balanced syntax and assertions", () => {
-      const code = 'it("works", () => { expect(42).toBe(42); });';
-      const res = validateRegressionTest(code);
+      const res = validateRegressionTest('it("works", () => { expect(42).toBe(42); });');
       expect(res.isValid).toBe(true);
       expect(res.issues).toHaveLength(0);
     });
@@ -138,7 +131,7 @@ describe("Defect Promotion Coverage Suite", () => {
 
     it("resolves paths via capsuleRoot when provided", () => {
       const capsule = join(tempDir, "capsule");
-      mkdirSync(join(capsule, "mind"), { recursive: true });
+      fs.mkdirSync(join(capsule, "mind"), { recursive: true });
       const res = promoteResolvedDefects({ capsuleRoot: capsule, dryRun: true });
       expect(res.source_path).toContain("capsule");
       expect(res.target_path).toContain("capsule");
@@ -191,26 +184,20 @@ describe("Defect Promotion Coverage Suite", () => {
         generateRegressionTests: true,
         dryRun: true,
       });
-      expect(res.generated_tests).toBeDefined();
       expect(res.generated_tests).toHaveLength(1);
-      expect(res.generated_test_suite).toBeDefined();
       expect(res.generated_test_suite).toContain("DEF-REG-GEN");
     });
 
     it("writes promoted entries to target and updates source file on disk", () => {
       const src = join(tempDir, "active.jsonl");
       const tgt = join(tempDir, "completed.jsonl");
-      const defect1 = createMockDefectEntry({
+      const d1 = createMockDefectEntry({
         id: "DEF-1",
         status: "resolved",
         resolution: createMockResolutionProof(),
       });
-      const defect2 = createMockDefectEntry({
-        id: "DEF-2",
-        status: "open",
-      });
-
-      writeFileSync(src, `${JSON.stringify(defect1)}\n${JSON.stringify(defect2)}\n`);
+      const d2 = createMockDefectEntry({ id: "DEF-2", status: "open" });
+      writeLedger(src, [d1, d2]);
 
       const res = promoteResolvedDefects({
         sourcePath: src,
@@ -221,14 +208,10 @@ describe("Defect Promotion Coverage Suite", () => {
 
       expect(res.promoted_count).toBe(1);
       expect(res.unpromoted_count).toBe(1);
-      expect(existsSync(tgt)).toBe(true);
-
-      const tgtContent = readFileSync(tgt, "utf-8");
-      expect(tgtContent).toContain("DEF-1");
-
-      const srcContent = readFileSync(src, "utf-8");
-      expect(srcContent).not.toContain("DEF-1");
-      expect(srcContent).toContain("DEF-2");
+      expect(fs.existsSync(tgt)).toBe(true);
+      expect(fs.readFileSync(tgt, "utf-8")).toContain("DEF-1");
+      expect(fs.readFileSync(src, "utf-8")).not.toContain("DEF-1");
+      expect(fs.readFileSync(src, "utf-8")).toContain("DEF-2");
     });
   });
 
@@ -236,13 +219,11 @@ describe("Defect Promotion Coverage Suite", () => {
     it("throws HarnessError when target defect is absent in active log", () => {
       const src = join(tempDir, "active.jsonl");
       const tgt = join(tempDir, "completed.jsonl");
-      writeFileSync(src, "");
-
-      const proof = createMockResolutionProof();
+      fs.writeFileSync(src, "");
       expect(() =>
         autoPromoteDefect({
           id: "NON-EXISTENT",
-          proof,
+          proof: createMockResolutionProof(),
           options: { sourcePath: src, targetPath: tgt },
         }),
       ).toThrow(HarnessError);
@@ -251,42 +232,36 @@ describe("Defect Promotion Coverage Suite", () => {
     it("promotes single defect, writes to target, and removes from source", () => {
       const src = join(tempDir, "active.jsonl");
       const tgt = join(tempDir, "completed.jsonl");
-      const defectA = createMockDefectEntry({ id: "DEF-A", status: "open" });
-      const defectB = createMockDefectEntry({ id: "DEF-B", status: "open" });
-
-      writeFileSync(src, `${JSON.stringify(defectA)}\n${JSON.stringify(defectB)}\n`);
-      const proof = createMockResolutionProof();
+      writeLedger(src, [
+        createMockDefectEntry({ id: "DEF-A", status: "open" }),
+        createMockDefectEntry({ id: "DEF-B", status: "open" }),
+      ]);
 
       const res = autoPromoteDefect({
         id: "DEF-A",
-        proof,
+        proof: createMockResolutionProof(),
         options: { sourcePath: src, targetPath: tgt, dryRun: false },
       });
 
       expect(res.promoted).toBe(true);
       expect(res.defect.id).toBe("DEF-A");
       expect(res.defect.status).toBe("resolved");
-
-      const tgtContent = readFileSync(tgt, "utf-8");
-      expect(tgtContent).toContain("DEF-A");
-
-      const srcContent = readFileSync(src, "utf-8");
-      expect(srcContent).not.toContain("DEF-A");
-      expect(srcContent).toContain("DEF-B");
+      expect(fs.readFileSync(tgt, "utf-8")).toContain("DEF-A");
+      expect(fs.readFileSync(src, "utf-8")).not.toContain("DEF-A");
+      expect(fs.readFileSync(src, "utf-8")).toContain("DEF-B");
     });
 
     it("respects dryRun and capsuleRoot options in autoPromoteDefect", () => {
       const capsule = join(tempDir, "capsule");
       const oltDir = join(capsule, ".olt");
-      mkdirSync(oltDir, { recursive: true });
-      const activePath = join(oltDir, "defects.jsonl");
-      const defect = createMockDefectEntry({ id: "DEF-CAP", status: "open" });
-      writeFileSync(activePath, `${JSON.stringify(defect)}\n`);
+      fs.mkdirSync(oltDir, { recursive: true });
+      writeLedger(join(oltDir, "defects.jsonl"), [
+        createMockDefectEntry({ id: "DEF-CAP", status: "open" }),
+      ]);
 
-      const proof = createMockResolutionProof();
       const res = autoPromoteDefect({
         id: "DEF-CAP",
-        proof,
+        proof: createMockResolutionProof(),
         options: { capsuleRoot: capsule, dryRun: true },
       });
 

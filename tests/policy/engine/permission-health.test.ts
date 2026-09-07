@@ -107,7 +107,7 @@ describe("auditPermissionHealth & Manifest Proof Invariants", () => {
     ).toBe(true);
 
     const validValidator = createManifest({
-      role: "ui-validator",
+      role: "ui-optical-validator",
       tools: {
         enable_subagent_tools: false,
         enable_write_tools: false,

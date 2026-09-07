@@ -53,7 +53,7 @@ export interface ClosedLoopRepairPayload {
 
 export interface CompiledRepairDagNode {
   readonly taskId: string;
-  readonly role: "repairer";
+  readonly role: "implementer";
   readonly tier: number;
   readonly status: TaskStatus;
   readonly repairRound: number;

@@ -85,7 +85,7 @@ export function validateBoundaryIntegrity(
             taskId,
             targetFile,
             `Agent '${check.agent_id}' with role '${check.role}' attempted to claim task '${taskId}' in violation of anti-boundary-leak rule.`,
-            "Critics and Validators are strictly prohibited from claiming code write leases or editing source files directly. Record findings via task:reject / finding:report and assign a dedicated repairer via task:assign-repairer.",
+            "Critics and Validators are strictly prohibited from claiming code write leases or editing source files directly. Record findings via task:reject / finding:report and let the assigned implementer repair in-lease.",
           ),
         );
       } else if (isCodeMutationAction(action)) {
@@ -97,7 +97,7 @@ export function validateBoundaryIntegrity(
             taskId,
             targetFile,
             `Agent '${check.agent_id}' with role '${check.role}' attempted direct code mutation via action '${check.action}' on file '${fileDisplay}'.`,
-            "Critics and Validators must not edit code files directly. Delegate code remediation to a designated implementer or repairer.",
+            "Critics and Validators must not edit code files directly. Delegate code remediation to a designated implementer.",
           ),
         );
       }
@@ -120,7 +120,7 @@ export function validateBoundaryIntegrity(
               taskId,
               targetFile,
               `Cognitive Validator Hard-Lock Violation: Cognitive Validator/Critic '${check.agent_id}' with role '${check.role}' attempted command execution or test running action '${check.action}'. Cognitive Validators and Critics are strictly locked from running bash, shell commands, test runners, build tools, or package managers.`,
-              "Cognitive Validators must evaluate tasks strictly through read-only inspection and artifact review. Test execution authority is strictly reserved for Mechanic Validators (mechanic-validator / ui-mechanic-validator).",
+              "Cognitive Validators must evaluate tasks strictly through read-only inspection and artifact review. Test execution authority is strictly reserved for the ui-headless-validator.",
               { metadata: check.metadata },
             ),
           );
@@ -154,9 +154,9 @@ export function validateBoundaryIntegrity(
         task_id: taskId,
         action: check.action,
         target_file: targetFile,
-        observation: `Validator '${check.metadata["validator_id"]}' was illegally assigned as repairer for task '${taskId}'.`,
+        observation: `Validator '${check.metadata["validator_id"]}' was illegally assigned to repair task '${taskId}'.`,
         remediation:
-          "A validator who discovers findings must not repair them (anti-boundary-leak rule). Assign a dedicated, separate repairer.",
+          "A validator who discovers findings must not repair them (anti-boundary-leak rule). Assign a separate implementer to repair the task.",
         evidence: {
           task_id: taskId,
           validator_id: check.metadata["validator_id"],
@@ -186,7 +186,7 @@ export function assertNoBoundaryLeak(
     const rem =
       first?.remediation && first.remediation.length > 0
         ? first.remediation
-        : "Delegate repair to an assigned implementer/repairer via task:assign-repairer.";
+        : "Delegate repair to the assigned implementer via an in-lease micro-cycle (task:reject --in-lease).";
     const details = result.violations.map((v) => ({
       violation_type: v.violation_type,
       agent_id: v.agent_id,

@@ -6,6 +6,7 @@ import {
   isAgentRole,
   isThinkingLevel,
   THINKING_LEVELS,
+  type AgentGrantRecord,
   type AgentModelTier,
   type AgentRole,
   type ThinkingLevel,
@@ -31,6 +32,8 @@ import { formatAgentRegisterBrief } from "../formatters/agent-formatter.ts";
 import { probeAgentTelemetry, withHostTelemetryConflicts } from "../host-telemetry-probe.ts";
 import { integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 import { toolRefFlags } from "../taxonomy-flags.ts";
+import { isCanonicalRole } from "../../sentinel/index.ts";
+import { SentinelMonitorRegistry } from "../../sentinel/monitor/index.ts";
 
 function roleFlag(flags: Flags): AgentRole {
   const role = textFlag(flags, "role")!;
@@ -62,6 +65,26 @@ function thinkingFlag(flags: Flags): ThinkingLevel | undefined {
     );
   }
   return level;
+}
+
+function attachRegistrationMonitor(
+  grant: AgentGrantRecord,
+  transcriptPath: string | undefined,
+  run: string,
+): void {
+  if (transcriptPath === undefined) return;
+  if (!isCanonicalRole(grant.role)) return;
+  if (SentinelMonitorRegistry.get(grant.id) !== undefined) return;
+  try {
+    SentinelMonitorRegistry.register({
+      agentId: grant.id,
+      role: grant.role,
+      transcriptPath,
+      repoRoot: findRepoRoot(run),
+      ...(grant.parent_agent_id === null ? {} : { parentSupervisor: grant.parent_agent_id }),
+      ...(grant.parent_task_id === null ? {} : { taskId: grant.parent_task_id }),
+    });
+  } catch {}
 }
 
 function telemetryFlags(flags: Flags): GrantTelemetryInput {
@@ -106,6 +129,7 @@ export function agentRegisterCommand(
       (grant) => grant.id === agent && grant.status === "active",
     );
     if (existing !== undefined) {
+      attachRegistrationMonitor(existing, derivedTelemetry.transcript?.sourcePath, run);
       return {
         markdown: formatAgentRegisterBrief(existing, run),
         run_root: run,
@@ -172,6 +196,7 @@ export function agentRegisterCommand(
           "INTEGRITY",
           `committed agent registration for ${agent} has no active grant in its event projection`,
         );
+      attachRegistrationMonitor(grant, derivedTelemetry.transcript?.sourcePath, run);
       return withHostTelemetryConflicts(
         {
           markdown: formatAgentRegisterBrief(grant, run),
@@ -208,6 +233,8 @@ export function agentRegisterCommand(
       run,
     );
   } catch {}
+
+  attachRegistrationMonitor(outcome.grant, derivedTelemetry.transcript?.sourcePath, run);
 
   return withHostTelemetryConflicts(
     {

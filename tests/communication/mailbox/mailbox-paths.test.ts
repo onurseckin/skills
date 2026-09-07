@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
   ensureMailboxDirectories,
@@ -23,7 +22,8 @@ describe("Mailbox Paths & Directory Provisioning Engine", () => {
 
   beforeEach(() => {
     setupVirtualCommunicationFS();
-    tempDir = mkdtempSync(join(tmpdir(), "mailbox-paths-test-"));
+    tempDir = "/tmp/mock-communication/mailbox-paths";
+    mkdirSync(tempDir, { recursive: true });
   });
 
   afterEach(() => {
@@ -205,6 +205,38 @@ describe("Mailbox Paths & Directory Provisioning Engine", () => {
       expect(() => resolveSystemLockPath(null as unknown as string)).toThrow(HarnessError);
       expect(() => resolveSystemLockPath("../escape.lock")).toThrow(HarnessError);
       expect(() => resolveSystemLockPath("bad/name.lock")).toThrow(HarnessError);
+    });
+  });
+
+  describe("Edge cases: trailing slashes, unicode agent IDs, and lock directory collisions", () => {
+    it("handles trailing slashes in baseDir without redundant double slashes", () => {
+      const paths = resolveMailboxPaths("agent-trail", `${tempDir}///`);
+      expect(paths.agentMailboxDir.includes("//.olt")).toBe(false);
+      expect(paths.agentMailboxDir).toBe(join(tempDir, ".olt", "mailboxes", "agent-trail"));
+      expect(paths.lockPath).toBe(join(tempDir, ".olt", "locks", "mailboxes", "agent-trail.lock"));
+    });
+
+    it("validates unicode, emoji, and rejects illegal control chars in agent IDs", () => {
+      expect(isValidAgentId("agent-🤖")).toBe(true);
+      expect(isValidAgentId("agent-worker-λ")).toBe(true);
+      expect(isValidAgentId("worker\0null")).toBe(false);
+      expect(isValidAgentId("worker/path")).toBe(false);
+      expect(isValidAgentId("worker\\path")).toBe(false);
+    });
+
+    it("throws INTEGRITY when lock directory creation collides with an existing file", () => {
+      const lockBlocker = join(tempDir, "lock-blocker-file");
+      writeFileSync(lockBlocker, "blocking", "utf8");
+      const badPaths: MailboxPaths = {
+        agentMailboxDir: join(tempDir, "ok-agent-dir"),
+        lockPath: join(lockBlocker, "nested", "agent.lock"),
+        inboxPath: "",
+        outboxPath: "",
+        archivePath: "",
+        cursorPath: "",
+        quarantinePath: "",
+      };
+      expect(() => ensureMailboxDirectories(badPaths)).toThrow(HarnessError);
     });
   });
 });

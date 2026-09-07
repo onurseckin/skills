@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, spyOn, test, type Mock } from "bun:test";
 import {
   clearManifestCache,
   findSkillRoot,
@@ -8,8 +8,34 @@ import {
   loadRoleContract,
   loadUnifiedAgentModel,
 } from "../../../olt/scripts/src/authority/manifest/index.ts";
+import {
+  cleanupVirtualAuthorityFS,
+  getVirtualAuthorityFS,
+  setupVirtualAuthorityFS,
+} from "../fixture.ts";
 
 describe("Authority Manifest Parser - Discovery & Caching", () => {
+  let cwdSpy: Mock<() => string> | undefined;
+
+  beforeAll(() => {
+    try {
+      findSkillRoot();
+      listAvailableRoles();
+      listAvailableManifests();
+    } catch {}
+  });
+
+  beforeEach(() => {
+    setupVirtualAuthorityFS();
+    clearManifestCache();
+    cwdSpy = spyOn(process, "cwd").mockReturnValue("/virtual/skills");
+  });
+
+  afterEach(() => {
+    cwdSpy?.mockRestore();
+    clearManifestCache();
+    cleanupVirtualAuthorityFS();
+  });
   test("findSkillRoot resolves skill repository root", () => {
     const root = findSkillRoot();
     expect(typeof root).toBe("string");
@@ -65,5 +91,28 @@ describe("Authority Manifest Parser - Discovery & Caching", () => {
     const model1 = loadUnifiedAgentModel("coordinator");
     const model2 = loadUnifiedAgentModel("coordinator", { bypassCache: true });
     expect(model1.role).toBe(model2.role);
+  });
+
+  test("filters out non-manifest artifacts and subdirectories during discovery", () => {
+    const vfs = getVirtualAuthorityFS();
+    const agentsDir = "/virtual/skills/agents";
+    vfs.writeFileSync(`${agentsDir}/readme.txt`, "Documentation");
+    vfs.writeFileSync(`${agentsDir}/schema.json`, "{}");
+    vfs.writeFileSync(`${agentsDir}/.DS_Store`, "binary");
+    vfs.mkdirSync(`${agentsDir}/nested-dir`, { recursive: true });
+
+    const roles = listAvailableRoles();
+    expect(roles).not.toContain("readme");
+    expect(roles).not.toContain("schema");
+    expect(roles).not.toContain(".DS_Store");
+    expect(roles).not.toContain("nested-dir");
+    expect(roles).toContain("mind");
+
+    const manifests = listAvailableManifests();
+    expect(manifests).not.toContain("readme");
+    expect(manifests).not.toContain("schema");
+    expect(manifests).not.toContain(".DS_Store");
+    expect(manifests).not.toContain("nested-dir");
+    expect(manifests).toContain("mind");
   });
 });

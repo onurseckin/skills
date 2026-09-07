@@ -10,7 +10,7 @@ export {
   isCoordinatorRole,
   isImplementerRole,
   isValidatorRole,
-  isMechanicValidatorRole,
+  isHeadlessValidatorRole,
   isCognitiveValidatorRole,
   roleToTier,
   isFullTestSuiteCommand,

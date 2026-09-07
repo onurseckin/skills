@@ -122,13 +122,13 @@ describe("Authority Session Registry - Resolution & Multi-Mechanism", () => {
       env: {
         HARNESS_SESSION_TOKEN: "tok_alias_111",
         HARNESS_AGENT_ID: "agent-alias",
-        HARNESS_ROLE: "repairer",
+        HARNESS_ROLE: "sub-implementer",
       },
     });
 
     expect(resolved).not.toBeNull();
     expect(resolved?.agent_id).toBe("agent-alias");
-    expect(resolved?.role).toBe("repairer");
+    expect(resolved?.role).toBe("sub-implementer");
     expect(resolved?.token).toBe("tok_alias_111");
   });
 

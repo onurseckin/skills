@@ -29,6 +29,26 @@ export const mindProfile: RoleDiagnosticProfile = {
       }
     }
 
+    if (context.executed_commands && context.executed_commands.length > 0) {
+      const isTailing = context.executed_commands.some(
+        (cmd) =>
+          cmd.match(/\btail\b/) ||
+          cmd.includes("tail -n") ||
+          cmd.includes("tail -f") ||
+          cmd.includes("tailf") ||
+          cmd.includes("less +F"),
+      );
+      if (isTailing) {
+        violations.push({
+          code: "MIND_LOG_TAILING_FORBIDDEN",
+          severity: "CRITICAL",
+          message: "Mind must not act as a spectator log-tailing agent.",
+          remediation_cmd: "Terminate tail process.",
+          documentation_ref: "docs/blueprints/agent-scoped-live-sentinel-profiles.md#section-21",
+        });
+      }
+    }
+
     if (
       context.wave_lane_count !== undefined &&
       context.wave_lane_count >= 2 &&

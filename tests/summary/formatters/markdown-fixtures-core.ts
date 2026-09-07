@@ -105,7 +105,7 @@ export const emptyGraph: GraphDataset = {
 export function render(state: JsonObject, extra: Partial<MarkdownFormatterInput> = {}): string {
   return formatSummaryMarkdown({
     runId: "unit-run",
-    runRoot: extra.runRoot ?? tempRoot(),
+    runRoot: extra.runRoot !== undefined ? extra.runRoot : tempRoot(),
     manifest,
     promptText: "Do the thing.",
     metrics,

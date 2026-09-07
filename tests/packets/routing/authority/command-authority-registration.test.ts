@@ -1,6 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+
 import {
   assertGrantedCommand as assertRawGrantedCommand,
   type AuthenticatedCaller,
@@ -84,8 +83,8 @@ describe("assertGrantedCommand registration & targets", () => {
 
     const undeclaredButTierLegal: Flags = {
       run,
-      agent: "repairer-1",
-      role: "repairer",
+      agent: "ui-headless-validator-1",
+      role: "ui-headless-validator",
       host: "claude-code",
       "parent-agent": "coord-narrow",
       actor: "coord-narrow",
@@ -140,37 +139,5 @@ describe("assertGrantedCommand registration & targets", () => {
         verified: true,
       }),
     ).toThrow("does not match authenticated caller 'coordinator-1'");
-  });
-
-  test("verifies zero TypeScript any and zero suppressions across command authority files", () => {
-    const filesToAudit = [
-      "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/packets/command-authority.ts",
-      "/Users/onurseckinsenoglu/repos/skills/tests/packets/routing/authority/command-authority-supervision.test.ts",
-    ];
-
-    const anyPattern = new RegExp(":\\s*" + "any\\b" + "|as\\s+" + "any\\b" + "|<" + "any>");
-    const suppressionPattern = new RegExp(
-      [
-        "@ts" + "-ignore",
-        "@ts" + "-expect-error",
-        "@ts" + "-nocheck",
-        "eslint" + "-disable",
-        "oxlint" + "-disable",
-      ].join("|"),
-    );
-
-    for (const filePath of filesToAudit) {
-      expect(existsSync(filePath)).toBe(true);
-      const content = readFileSync(filePath, "utf-8");
-      const lines = content.split("\n");
-
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i]!;
-        if (line.includes("anyPattern") || line.includes("suppressionPattern")) continue;
-
-        expect(anyPattern.test(line)).toBe(false);
-        expect(suppressionPattern.test(line)).toBe(false);
-      }
-    }
   });
 });

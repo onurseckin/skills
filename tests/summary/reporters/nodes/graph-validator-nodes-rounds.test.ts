@@ -114,7 +114,89 @@ describe("an archived round backed by validation_history stays acyclic", () => {
     expect(backtrack?.source).toBe("node-validator-T-multi-r1");
     expect(backtrack?.target).toBe("node-task-T-multi");
     expect(backtrack?.container?.title).toBe("Reassigned (repeated_failure)");
-    expect(backtrack?.container?.detail).toBe("Repairer: worker-2");
+    expect(backtrack?.container?.detail).toBe("Repair Assignee: worker-2");
     expect(dataset.edges.filter((edge) => edge.kind === "backtrack")).toHaveLength(1);
+  });
+
+  test("cascades across 3 rounds (>2 rounds) with strictly forward acyclic pushback edges", () => {
+    const task = multiRoundTask({
+      repair_round: 2,
+      validation_history: [
+        {
+          validator_id: "val-r1",
+          token_digest: "tok1",
+          attempt: 1,
+          started_at: "2026-08-14T20:00:00.000Z",
+          deadline_at: "2026-08-14T20:10:00.000Z",
+          verdict: "reject",
+        },
+        {
+          validator_id: "val-r2",
+          token_digest: "tok2",
+          attempt: 2,
+          started_at: "2026-08-14T20:20:00.000Z",
+          deadline_at: "2026-08-14T20:30:00.000Z",
+          verdict: "reject",
+        },
+      ],
+      validations: [
+        {
+          validator_id: "val-r3",
+          domain: "code-quality",
+          token_digest: "tok3",
+          attempt: 3,
+          started_at: "2026-08-14T20:40:00.000Z",
+          deadline_at: "2026-08-14T20:50:00.000Z",
+          verdict: "pass",
+        },
+      ],
+    });
+
+    const dataset = generateGraphDataset({
+      runId: "run-3-rounds",
+      state: makeState([task]),
+    });
+
+    // Check all distinct round nodes exist
+    expect(dataset.nodes.some((n) => n.id === "node-task-T-multi-r1")).toBe(true);
+    expect(dataset.nodes.some((n) => n.id === "node-validator-T-multi-r1")).toBe(true);
+    expect(dataset.nodes.some((n) => n.id === "node-task-T-multi-r2")).toBe(true);
+    expect(dataset.nodes.some((n) => n.id === "node-validator-T-multi-r2")).toBe(true);
+    expect(dataset.nodes.some((n) => n.id === "node-task-T-multi")).toBe(true);
+
+    // Forward pushback edges: r1 validator -> r2 task, r2 validator -> live task
+    const pushbackR1 = dataset.edges.find((e) => e.id === "edge-pushback-T-multi-r1");
+    expect(pushbackR1?.source).toBe("node-validator-T-multi-r1");
+    expect(pushbackR1?.target).toBe("node-task-T-multi-r2");
+
+    const pushbackR2 = dataset.edges.find((e) => e.id === "edge-pushback-T-multi-r2");
+    expect(pushbackR2?.source).toBe("node-validator-T-multi-r2");
+    expect(pushbackR2?.target).toBe("node-task-T-multi");
+
+    // All edges are acyclic
+    expect(dataset.edges.some((e) => e.isCycle === true)).toBe(false);
+  });
+
+  test("gracefully omits missing command records in validation history without throwing", () => {
+    const task = multiRoundTask({
+      validation_history: [
+        {
+          validator_id: "val-r1",
+          token_digest: "tok",
+          attempt: 1,
+          verdict: "reject",
+          checks: [{ command_id: "C-non-existent-dangling" }],
+        },
+      ],
+    });
+
+    const dataset = generateGraphDataset({
+      runId: "run-dangling-command",
+      state: makeState([task], { commands: {} }),
+    });
+
+    const archivedValidator = dataset.nodes.find((n) => n.id === "node-validator-T-multi-r1");
+    expect(archivedValidator).toBeDefined();
+    expect(archivedValidator?.scripts ?? []).toHaveLength(0);
   });
 });

@@ -1,7 +1,5 @@
-import { describe, expect, it } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import {
   buildLivingTracerReport,
   renderDynamicDagAscii,
@@ -12,6 +10,12 @@ import type {
   DynamicTaskState,
 } from "../../olt/scripts/src/reporting/living-tracer/types.ts";
 import type { HarnessEvent } from "../../olt/scripts/src/core/contracts/index.ts";
+import type { VirtualMemoryFS } from "../../olt/scripts/src/testing/virtual-fs/index.ts";
+import {
+  cleanupVirtualReportingFS,
+  setupVirtualReportingFS,
+  tempDir as makeTempDir,
+} from "./fixture.ts";
 
 describe("living-tracer render coverage", () => {
   describe("renderDynamicDagAscii", () => {
@@ -130,6 +134,16 @@ describe("living-tracer render coverage", () => {
   });
 
   describe("buildLivingTracerReport and traceCapsuleRun", () => {
+    let vfs: VirtualMemoryFS;
+
+    beforeEach(() => {
+      vfs = setupVirtualReportingFS();
+    });
+
+    afterEach(() => {
+      cleanupVirtualReportingFS();
+    });
+
     it("generates full markdown report with sprouted repair table and active agents registry", () => {
       const events: HarnessEvent[] = [
         {
@@ -187,28 +201,47 @@ describe("living-tracer render coverage", () => {
     });
 
     it("traces capsule run from disk directory", () => {
-      const tempDir = join(tmpdir(), `test-living-tracer-run-${Date.now()}`);
-      mkdirSync(tempDir, { recursive: true });
-      try {
-        const eventsPath = join(tempDir, "events.jsonl");
-        const manifestPath = join(tempDir, "manifest.json");
+      const tempDir = makeTempDir("living-tracer-run");
+      vfs.mkdirSync(tempDir, { recursive: true });
+      const eventsPath = join(tempDir, "events.jsonl");
+      const manifestPath = join(tempDir, "manifest.json");
 
-        writeFileSync(manifestPath, JSON.stringify({ run_id: "disk-run-123" }));
-        const ev1 = JSON.stringify({
-          sequence: 1,
-          timestamp: "2026-09-01T20:00:00.000Z",
-          actor: "root",
-          kind: "run_initialized",
-          payload: {},
-        });
-        writeFileSync(eventsPath, `${ev1}\n`);
+      vfs.writeFileSync(manifestPath, JSON.stringify({ run_id: "disk-run-123" }));
+      const ev1 = JSON.stringify({
+        sequence: 1,
+        timestamp: "2026-09-01T20:00:00.000Z",
+        actor: "root",
+        kind: "run_initialized",
+        payload: {},
+      });
+      vfs.writeFileSync(eventsPath, `${ev1}\n`);
 
-        const report = traceCapsuleRun(tempDir);
-        expect(report.summary.totalSteps).toBe(1);
-        expect(report.markdown).toContain("disk-run-123");
-      } finally {
-        rmSync(tempDir, { recursive: true, force: true });
-      }
+      const report = traceCapsuleRun(tempDir);
+      expect(report.summary.totalSteps).toBe(1);
+      expect(report.markdown).toContain("disk-run-123");
+    });
+
+    it("traces capsule run when manifest.json is missing, falling back to directory basename", () => {
+      const tempDir = makeTempDir("fallback-run-name");
+      vfs.mkdirSync(tempDir, { recursive: true });
+      const eventsPath = join(tempDir, "events.jsonl");
+      const ev1 = JSON.stringify({
+        sequence: 1,
+        timestamp: "2026-09-01T20:00:00.000Z",
+        actor: "root",
+        kind: "run_initialized",
+        payload: {},
+      });
+      vfs.writeFileSync(eventsPath, `${ev1}\n`);
+
+      const report = traceCapsuleRun(tempDir);
+      expect(report.summary.totalSteps).toBe(1);
+      expect(report.markdown).toContain("fallback-run-name");
+    });
+
+    it("throws HarnessError with INVALID_ARGUMENT when capsule directory does not exist", () => {
+      const nonExistentDir = makeTempDir("does-not-exist");
+      expect(() => traceCapsuleRun(nonExistentDir)).toThrow();
     });
   });
 });

@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import {
   ignoredByGit,
@@ -23,8 +22,10 @@ const throwingGitCommand = () => {
 export const doctorSuiteName = "doctor diagnostics and gitignore policy";
 
 describe(doctorSuiteName, () => {
+  let vfs: ReturnType<typeof setupVirtualReportingFS>;
+
   beforeEach(() => {
-    setupVirtualReportingFS();
+    vfs = setupVirtualReportingFS();
   });
 
   afterEach(() => {
@@ -46,7 +47,7 @@ describe(doctorSuiteName, () => {
     // Nothing to ask: the directory is not a repository.
     expect(ignoredByGit(runRoot)).toBeNull();
 
-    fs.mkdirSync(join(repo, ".git"), { recursive: true });
+    vfs.mkdirSync(join(repo, ".git"), { recursive: true });
     expect(ignoredByGit(runRoot, exitCode(0))).toBe(true);
     expect(ignoredByGit(runRoot, exitCode(1))).toBe(false);
 
@@ -93,7 +94,7 @@ describe(doctorSuiteName, () => {
 
   test("runDoctor collects command, packet, workflow, and git diff issues", async () => {
     const repo = tempDir("harness-doc-full");
-    fs.mkdirSync(join(repo, ".git"), { recursive: true });
+    vfs.mkdirSync(join(repo, ".git"), { recursive: true });
 
     const runRoot = initRun(
       repo,
@@ -135,7 +136,7 @@ describe(doctorSuiteName, () => {
     });
 
     const diffGitCommand = exitCode(0, "src/foo.ts\nsrc/bar.ts\n");
-    const report = await runDoctor(runRoot, {}, diffGitCommand);
+    const report = await runDoctor(runRoot, { repoRoot: repo, writeScope: [] }, diffGitCommand);
     expect(report.healthy).toBe(false);
     expect(report.run_root).toBe(runRoot);
     expect(report.bun_supported).toBe(true);
@@ -148,7 +149,7 @@ describe(doctorSuiteName, () => {
     const repo = tempDir("harness-doc-corrupted");
     const runRoot = join(repo, ".capsules", "empty-nonexistent");
 
-    const report = await runDoctor(runRoot);
+    const report = await runDoctor(runRoot, { repoRoot: repo, writeScope: [] });
     expect(report.healthy).toBe(false);
     expect(report.issues.length).toBeGreaterThan(0);
   });
@@ -163,19 +164,21 @@ describe(doctorSuiteName, () => {
       true,
     );
 
-    fs.writeFileSync(join(repo, "SKILL.md"), "---\nname: olt\ndescription: test\n---\n", "utf-8");
-    fs.mkdirSync(join(repo, "scripts", "src", "core", "config"), { recursive: true });
-    fs.writeFileSync(
+    vfs.writeFileSync(join(repo, "SKILL.md"), "---\nname: olt\ndescription: test\n---\n", "utf-8");
+    vfs.mkdirSync(join(repo, "scripts", "src", "core", "config"), { recursive: true });
+    vfs.writeFileSync(
       join(repo, "scripts", "package.json"),
       JSON.stringify({ name: "@local/olt-runtime" }),
       "utf-8",
     );
-    fs.writeFileSync(
+    vfs.writeFileSync(
       join(repo, "scripts", "src", "core", "config", "contracts.ts"),
       'export const RUNTIME_VERSION = "0.2.0";\n',
       "utf-8",
     );
     const report = await runDoctor(runRoot, {
+      repoRoot: repo,
+      writeScope: [],
       installation: {
         source: repo,
         home: repo,
@@ -189,7 +192,7 @@ describe(doctorSuiteName, () => {
 
   test("runDoctor flags run capsule when not gitignored", async () => {
     const repo = tempDir("harness-doc-unignored");
-    fs.mkdirSync(join(repo, ".git"), { recursive: true });
+    vfs.mkdirSync(join(repo, ".git"), { recursive: true });
     const runRoot = initRun(
       repo,
       "unignored-run",
@@ -197,14 +200,14 @@ describe(doctorSuiteName, () => {
       "file",
       true,
     );
-    const report = await runDoctor(runRoot, {}, exitCode(1));
+    const report = await runDoctor(runRoot, { repoRoot: repo, writeScope: [] }, exitCode(1));
     expect(report.gitignored).toBe(false);
     expect(report.issues).toContain("run capsule is not gitignored");
   });
 
   test("runDoctor reports an unanswerable gitignore probe as unknown, not as a violation", async () => {
     const repo = tempDir("harness-doc-unknown-ignore");
-    fs.mkdirSync(join(repo, ".git"), { recursive: true });
+    vfs.mkdirSync(join(repo, ".git"), { recursive: true });
     const runRoot = initRun(
       repo,
       "unknown-ignore-run",
@@ -212,7 +215,7 @@ describe(doctorSuiteName, () => {
       "file",
       true,
     );
-    const report = await runDoctor(runRoot, {}, throwingGitCommand);
+    const report = await runDoctor(runRoot, { repoRoot: repo, writeScope: [] }, throwingGitCommand);
     expect(report.gitignored).toBeNull();
     expect(report.issues).not.toContain("run capsule is not gitignored");
   });
@@ -227,7 +230,7 @@ describe(doctorSuiteName, () => {
       true,
     );
 
-    const report = await runDoctor(runRoot);
+    const report = await runDoctor(runRoot, { repoRoot: repo, writeScope: [] });
     expect(report.socratic_audit).toBeDefined();
     const socraticAudit = report.socratic_audit as {
       healthy: boolean;

@@ -120,8 +120,8 @@ The Open Loop Task (OLT) architecture classifies these failure modes into **28 c
 
 ### `VP-3`: Unstructured Pushback
 
-- **Empirical Failure Pattern**: A validator rejects a task with vague conversational complaints ("The error handling feels incomplete"), leaving the repairer with no actionable specification.
-- **Impact**: Thrashing repair loops; repairers guessing at requirements.
+- **Empirical Failure Pattern**: A validator rejects a task with vague conversational complaints ("The error handling feels incomplete"), leaving the implementer with no actionable specification.
+- **Impact**: Thrashing repair loops; implementers guessing at requirements.
 - **Harness Countermeasure**: **Mandatory Structured Finding Schema**. `task:reject` and `critic:reject` require structured payloads containing `id`, `requirement_id`, `severity` (`critical`, `important`, `minor`), `observation`, `evidence`, `remediation`, and `revalidation` command.
 - **Diagnostic Command**: `bun harness.ts task:findings --task <task-id>`
 
@@ -234,9 +234,9 @@ The Open Loop Task (OLT) architecture classifies these failure modes into **28 c
 
 ### `MC-3`: Repair Identity Reuse
 
-- **Empirical Failure Pattern**: The same implementer who wrote buggy code is re-assigned to fix it without fresh validation, repeating original flawed assumptions.
+- **Empirical Failure Pattern**: The same implementer who wrote buggy code repeats the original flawed assumptions across repair rounds without a fresh independent validator ever re-checking the work.
 - **Impact**: Repeated failure to identify cognitive blind spots.
-- **Harness Countermeasure**: **Different Repairer Preference**. `task:assign-repairer` requires designating a fresh repairer identity or explicit override justification.
+- **Harness Countermeasure**: **Independent Repair Validation, Not Repair Reassignment**. Repair is now structurally scoped to `task.repair_assignee`: only the recorded assignee may reclaim a `changes_requested` task via `task:claim --role implementer` (`workflow/lease/claim.ts`), so identity reuse itself is expected, not a defect to route around. What the harness actually enforces instead is that every repair round is re-checked by a fresh independent validator (`VP-4: Validator Independence Rotation`), so a repeated implementer can never grade its own fix.
 - **Diagnostic Command**: `bun harness.ts queue:next --run <run-path>`
 
 ---
@@ -381,7 +381,7 @@ The Open Loop Task (OLT) architecture classifies these failure modes into **28 c
 | `BR-4` | Branch Scope Escalation          | Branching Isolation    | Critical   | Scope Containment             | `branch:open`        |
 | `MC-1` | Monolithic In-Place Repair       | Multi-Agent Coord      | High       | Fan-Back Replanning           | `plan:replan`        |
 | `MC-2` | Repair Regression Cascade        | Multi-Agent Coord      | Critical   | Cumulative Gate Run           | `gate:run-all`       |
-| `MC-3` | Repair Identity Reuse            | Multi-Agent Coord      | Medium     | Fresh Repairer Policy         | `queue:next`         |
+| `MC-3` | Repair Identity Reuse            | Multi-Agent Coord      | Medium     | Validator Independence Rotation | `queue:next`       |
 | `MC-4` | Triad Floor Violation            | Multi-Agent Coord      | Critical   | Triad Floor Invariant         | `status`             |
 | `SM-1` | Host Binary Inversion            | State & Runtime        | High       | Host Binary Deny-List         | `run:exec`           |
 | `SM-2` | Interactive CLI Stall            | State & Runtime        | High       | Non-Interactive PTY Watchdog  | `run:exec`           |

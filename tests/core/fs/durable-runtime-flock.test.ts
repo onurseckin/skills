@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import {
   atomicWriteBytes,
@@ -12,37 +11,49 @@ import {
   runtimeTreeSnapshot,
 } from "../../../olt/scripts/src/core/runtime-tree.ts";
 import {
-  createDurableFsState,
-  createDurableRuntimeSpies,
-  populateRuntimeSourceTree,
-  type DurableFsState,
-} from "./fixtures.ts";
+  createVirtualFSSession,
+  type VirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("durable runtime files (flock & integrity)", () => {
-  let state: DurableFsState;
-  const spies: { mockRestore: () => void }[] = [];
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
   let rootCounter = 0;
 
   function fixture(): { root: string; source: string; destination: string } {
     const root = `/tmp/virtual/harness-runtime-${++rootCounter}`;
     const source = join(root, "source");
-    state.mockDirs.add(root);
-    populateRuntimeSourceTree(state, source);
+    vfs.mkdirSync(root, { recursive: true });
+    vfs.mkdirSync(source, { recursive: true });
+    ["src", "src/nested", "src/nested/__pycache__", "assets", "tests", "__pycache__"].forEach((p) =>
+      vfs.mkdirSync(join(source, ...p.split("/")), { recursive: true }),
+    );
+    vfs.writeFileSync(join(source, "src/nested/tool.ts"), "export {}\n");
+    session.chmodSync(join(source, "src/nested/tool.ts"), 0o750);
+    vfs.writeFileSync(join(source, "src/nested/legacy.py"), "bad\n");
+    vfs.writeFileSync(join(source, "src/nested/__pycache__/legacy.pyc"), "bad\n");
+    vfs.writeFileSync(join(source, "harness.ts"), "export {}\n");
+    vfs.writeFileSync(join(source, "package.json"), "{}\n");
+    vfs.writeFileSync(join(source, "tsconfig.json"), "{}\n");
+    vfs.writeFileSync(join(source, "assets/common.md"), "instructions\n");
+    vfs.writeFileSync(join(source, "tests/excluded.ts"), "bad\n");
+    vfs.writeFileSync(join(source, "__pycache__/root.pyc"), "bad\n");
     return { root, source, destination: join(root, "runtime") };
   }
 
   beforeEach(() => {
-    state = createDurableFsState();
-    spies.push(...createDurableRuntimeSpies(state));
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
-    while (spies.length > 0) spies.pop()?.mockRestore();
+    session.cleanup();
   });
 
   test("durableAppendBytes preserves a primary failure while attempting all cleanup", () => {
     const root = `/tmp/virtual/core-dur-${++rootCounter}`;
-    state.mockDirs.add(root);
+    vfs.mkdirSync(root, { recursive: true });
     const target = join(root, "events.jsonl");
     let closeCalls = 0;
     expect(() =>
@@ -57,7 +68,7 @@ describe("durable runtime files (flock & integrity)", () => {
           },
           close(descriptor): void {
             closeCalls += 1;
-            fs.closeSync(descriptor);
+            session.closeSync(descriptor);
             throw new Error("cleanup close failure");
           },
         },
@@ -65,7 +76,7 @@ describe("durable runtime files (flock & integrity)", () => {
     ).toThrow(/primary write failure/);
     expect(closeCalls).toBe(1);
     durableAppendBytes(target, new TextEncoder().encode("recovered\n"));
-    expect(fs.readFileSync(target, "utf8")).toBe("recovered\n");
+    expect(session.readFileSync(target, "utf8")).toBe("recovered\n");
 
     let threwUndefined = false;
     try {
@@ -85,7 +96,7 @@ describe("durable runtime files (flock & integrity)", () => {
 
   test("durableAppendBytes exposes directory and cleanup failures when no earlier operation failed", () => {
     const root = `/tmp/virtual/core-dur-${++rootCounter}`;
-    state.mockDirs.add(root);
+    vfs.mkdirSync(root, { recursive: true });
     const target = join(root, "events.jsonl");
     expect(() =>
       durableAppendBytes(target, new TextEncoder().encode("record\n"), {
@@ -111,41 +122,45 @@ describe("durable runtime files (flock & integrity)", () => {
   test("durableAppendBytes refuses final symlinks without following them", () => {
     if (process.platform === "win32") return;
     const root = `/tmp/virtual/core-dur-${++rootCounter}`;
-    state.mockDirs.add(root);
+    vfs.mkdirSync(root, { recursive: true });
     const external = join(root, "external.jsonl");
     const target = join(root, "events.jsonl");
-    fs.writeFileSync(external, "external\n");
-    fs.symlinkSync(external, target);
+    vfs.writeFileSync(external, "external\n");
+    session.symlinkSync(external, target);
     expect(() => durableAppendBytes(target, new TextEncoder().encode("record\n"))).toThrow();
-    expect(fs.readFileSync(external, "utf8")).toBe("external\n");
+    expect(session.readFileSync(external, "utf8")).toBe("external\n");
   });
 
   test("test_runtime_directory_is_copied_and_integrity_bound", () => {
     const { source, destination } = fixture();
     const pinned = copyPinnedRuntime(source, destination);
-    expect(fs.readFileSync(join(destination, "src/nested/tool.ts"), "utf8")).toBe("export {}\n");
-    expect(fs.statSync(join(destination, "src/nested/tool.ts")).mode & 0o777).toBe(0o750);
+    expect(session.readFileSync(join(destination, "src/nested/tool.ts"), "utf8")).toBe(
+      "export {}\n",
+    );
+    expect(session.statSync(join(destination, "src/nested/tool.ts")).mode & 0o777).toBe(0o750);
     expect(pinned.fileCount).toBe(5);
     expect(pinned.digest).toHaveLength(64);
     ["tests", "legacy.py", "src/nested/legacy.py", "src/nested/__pycache__", "__pycache__"].forEach(
-      (p) => expect(fs.existsSync(join(destination, p))).toBeFalse(),
+      (p) => expect(vfs.existsSync(join(destination, p))).toBeFalse(),
     );
-    expect(fs.readFileSync(join(destination, "assets/common.md"), "utf8")).toBe("instructions\n");
+    expect(session.readFileSync(join(destination, "assets/common.md"), "utf8")).toBe(
+      "instructions\n",
+    );
   });
 
   test("test_runtime_integrity_binds_empty_directories", () => {
     const { source, destination } = fixture();
-    fs.mkdirSync(join(source, "src", "empty", "nested"));
+    vfs.mkdirSync(join(source, "src", "empty", "nested"), { recursive: true });
     const pinned = copyPinnedRuntime(source, destination);
-    fs.rmSync(join(destination, "src", "empty", "nested"));
+    session.rmSync(join(destination, "src", "empty", "nested"), { recursive: true });
     expect(runtimeTreeSnapshot(destination).digest).not.toBe(pinned.digest);
   });
 
   test("test_runtime_integrity_binds_directory_modes", () => {
     const { source, destination } = fixture();
-    fs.chmodSync(join(source, "src", "nested"), 0o750);
+    session.chmodSync(join(source, "src", "nested"), 0o750);
     const pinned = copyPinnedRuntime(source, destination);
-    fs.chmodSync(join(destination, "src", "nested"), 0o700);
+    session.chmodSync(join(destination, "src", "nested"), 0o700);
     expect(runtimeTreeSnapshot(destination).digest).not.toBe(pinned.digest);
   });
 
@@ -156,13 +171,13 @@ describe("durable runtime files (flock & integrity)", () => {
 
   test("test_runtime_sources_reject_symlinks_and_non_directories", () => {
     const { root, source } = fixture();
-    fs.symlinkSync(source, join(root, "source-link"));
+    session.symlinkSync(source, join(root, "source-link"));
     expect(() => copyPinnedRuntime(join(root, "source-link"), join(root, "bad-one"))).toThrow(
       /real directory/i,
     );
-    fs.symlinkSync(root, join(source, "src", "escape"));
+    session.symlinkSync(root, join(source, "src", "escape"));
     expect(() => copyPinnedRuntime(source, join(root, "bad-two"))).toThrow(/symlink/i);
-    fs.writeFileSync(join(root, "file"), "x");
+    vfs.writeFileSync(join(root, "file"), "x");
     expect(() => copyPinnedRuntime(join(root, "file"), join(root, "bad-three"))).toThrow(
       /real directory/i,
     );
@@ -173,18 +188,18 @@ describe("durable runtime files (flock & integrity)", () => {
     expect(() =>
       copyPinnedRuntime(source, destination, {
         beforeSourceRecheck: () =>
-          fs.writeFileSync(join(source, "src/nested/tool.ts"), "changed\n"),
+          vfs.writeFileSync(join(source, "src/nested/tool.ts"), "changed\n"),
       }),
     ).toThrow(/changed/i);
-    expect(fs.existsSync(destination)).toBeFalse();
+    expect(vfs.existsSync(destination)).toBeFalse();
   });
 
   test("copy pinning refuses to delete a pre-existing destination that contains a .git entry", () => {
     const { source, destination } = fixture();
-    fs.mkdirSync(join(destination, ".git"));
+    vfs.mkdirSync(join(destination, ".git"), { recursive: true });
     expect(() => copyPinnedRuntime(source, destination)).toThrow(/REPOSITORY_INTERLOCK/);
-    expect(fs.existsSync(destination)).toBeTrue();
-    expect(fs.existsSync(join(destination, ".git"))).toBeTrue();
+    expect(vfs.existsSync(destination)).toBeTrue();
+    expect(vfs.existsSync(join(destination, ".git"))).toBeTrue();
   });
 
   test("atomicWriteBytes cleans up temporary file and descriptor when writing fails", () => {
@@ -197,7 +212,7 @@ describe("durable runtime files (flock & integrity)", () => {
         },
       }),
     ).toThrow(/simulated failure/);
-    expect(fs.existsSync(target)).toBeFalse();
+    expect(vfs.existsSync(target)).toBeFalse();
   });
 
   test("atomicWriteBytes handles post-rename failure when directory fsync fails", () => {
@@ -216,9 +231,9 @@ describe("durable runtime files (flock & integrity)", () => {
     const { root } = fixture();
     const target = join(root, "data.json");
     atomicWriteJson(target, { hello: "world", count: 42 }, 0o600);
-    expect(fs.existsSync(target)).toBeTrue();
-    expect(fs.readFileSync(target, "utf8")).toBe('{"count":42,"hello":"world"}');
-    expect(fs.statSync(target).mode & 0o777).toBe(0o600);
+    expect(vfs.existsSync(target)).toBeTrue();
+    expect(session.readFileSync(target, "utf8")).toBe('{"count":42,"hello":"world"}');
+    expect(session.statSync(target).mode & 0o777).toBe(0o600);
   });
 
   test("fsyncDirectory safely syncs an existing directory", () => {

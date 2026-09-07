@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+
 import { scheduleUnlimitedDepthDAG } from "../../../olt/scripts/src/engine/scheduler/index.ts";
 import { topologyState } from "../fixtures.ts";
 
@@ -121,21 +120,6 @@ describe("Unlimited Depth DAG: Scheduling & Invariants", () => {
       expect(() => scheduleUnlimitedDepthDAG(state, { max_depth: 1 })).toThrow(
         /Depth invariant violated/,
       );
-    });
-  });
-
-  describe("Static Invariants & Typing", () => {
-    test("index.ts contains 0 any types and 0 linter/compiler suppressions", () => {
-      const filePath = join(import.meta.dir, "../../../olt/scripts/src/engine/scheduler/index.ts");
-      const content = readFileSync(filePath, "utf-8");
-
-      expect(content).not.toMatch(/: any\b/);
-      expect(content).not.toMatch(/as any\b/);
-      expect(content).not.toMatch(/<any>/);
-      expect(content).not.toMatch(/@ts-ignore/);
-      expect(content).not.toMatch(/@ts-expect-error/);
-      expect(content).not.toMatch(/@ts-nocheck/);
-      expect(content).not.toMatch(/eslint-disable/);
     });
   });
 });

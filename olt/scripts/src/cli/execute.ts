@@ -8,6 +8,7 @@ import {
   assertGrantedCommand,
   explicitActingClaim,
   requiresActingIdentity,
+  subjectFlag,
 } from "../packets/command-authority.ts";
 import { commandInvocations, findCommand, flagShapes, type CommandSpec } from "./registry/index.ts";
 import { autoDeriveCallerIdentity } from "../authority/session/index.ts";
@@ -176,7 +177,9 @@ export async function execute(
     const hasAgentId = spec.flags.some((f) => f.name === "agent-id");
 
     if (hasActor || hasAgent || hasAgentId) {
-      if (hasActor && parsed.flags["actor"] === undefined) parsed.flags["actor"] = actorCandidate;
+      if (hasActor && parsed.flags["actor"] === undefined && subjectFlag(spec) !== "agent") {
+        parsed.flags["actor"] = actorCandidate;
+      }
       if (hasAgent && parsed.flags["agent"] === undefined) parsed.flags["agent"] = actorCandidate;
       if (hasAgentId && parsed.flags["agent-id"] === undefined)
         parsed.flags["agent-id"] = actorCandidate;
@@ -390,8 +393,7 @@ export async function execute(
       const parentAgentId =
         typeof parsed.flags["parent-agent"] === "string" ? parsed.flags["parent-agent"] : undefined;
 
-      let parentRole: string | undefined = undefined;
-
+      let ledgerBackedParentRole: string | undefined;
       if (parentAgentId !== undefined) {
         if (typeof parsed.flags["run"] === "string" && parsed.flags["run"].trim() !== "") {
           try {
@@ -402,47 +404,40 @@ export async function execute(
               const ledger = readAgentLedger(runData.state as unknown as JsonObject);
               const parentGrant = ledger.find((e) => e.id === parentAgentId);
               if (parentGrant?.role) {
-                parentRole = parentGrant.role;
+                ledgerBackedParentRole = parentGrant.role;
               }
             }
           } catch {
-            // ignore
-          }
-        }
-        if (!parentRole) {
-          if (isCanonicalRole(parentAgentId)) {
-            parentRole = parentAgentId;
-          } else {
-            const inferred = agentIdToRole(parentAgentId);
-            if (inferred && isCanonicalRole(inferred)) {
-              parentRole = inferred;
-            }
+            // ignore: a fake or unreadable run falls back to the heuristic below
           }
         }
       }
 
-      if (!parentRole) {
-        parentRole = identity.role;
-      }
-
-      if (parentRole && isCanonicalRole(parentRole) && childRole) {
-        const parentProfile = getProfileForRole(parentRole as AgentRole);
-        const spawnViolations = parentProfile.evaluate({
-          agent_id: parentAgentId ?? effectiveActor,
-          role: parentRole as AgentRole,
-          child_agent_roles: [childRole],
-          spawned_agent_roles: [childRole],
-          role_target: childRole,
-        });
-        const crossTier = spawnViolations.find((v) => v.code === "CROSS_TIER_SPAWNING_VIOLATION");
-        if (crossTier) {
-          throw new HarnessError(
-            "ROLE_CONFINEMENT_VIOLATION",
-            crossTier.message,
-            [],
-            3,
-            crossTier.remediation_cmd,
+      if (parentAgentId !== undefined && ledgerBackedParentRole === undefined && childRole) {
+        const heuristicParentRole = isCanonicalRole(parentAgentId)
+          ? parentAgentId
+          : agentIdToRole(parentAgentId);
+        if (heuristicParentRole && isCanonicalRole(heuristicParentRole)) {
+          const parentProfile = getProfileForRole(heuristicParentRole as AgentRole);
+          const spawnViolations = parentProfile.evaluate({
+            agent_id: parentAgentId,
+            role: heuristicParentRole as AgentRole,
+            child_agent_roles: [childRole],
+            spawned_agent_roles: [childRole],
+            role_target: childRole,
+          });
+          const crossTier = spawnViolations.find(
+            (v) => v.code === "CROSS_TIER_SPAWNING_VIOLATION",
           );
+          if (crossTier) {
+            throw new HarnessError(
+              "ROLE_CONFINEMENT_VIOLATION",
+              crossTier.message,
+              [],
+              3,
+              crossTier.remediation_cmd,
+            );
+          }
         }
       }
     }

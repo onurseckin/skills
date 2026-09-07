@@ -1,17 +1,12 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import * as fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { renderHandoff } from "../../../olt/scripts/src/reporting/handoff.ts";
 import { formatStatusBrief, runStatus } from "../../../olt/scripts/src/reporting/status.ts";
 import type { NextActions } from "../../../olt/scripts/src/reporting/action-types.ts";
 import { dispatchFailures, handoffArgv } from "../core/dispatchable.ts";
-import {
-  cleanupVirtualBrowserFS,
-  setupVirtualBrowserFS,
-  tempDir,
-} from "../browser/browser-run-fixture.ts";
+import { cleanupVirtualReportingFS, setupVirtualReportingFS, tempDir } from "../fixture.ts";
 
 const entrypoint = fileURLToPath(new URL("../../../../olt/scripts/harness.ts", import.meta.url));
 
@@ -65,16 +60,31 @@ function createMidFlightRun(taskCount = 2): string {
 export const statusActionsSuiteName = "status actions surfacing";
 
 describe(statusActionsSuiteName, () => {
+  let vfs: ReturnType<typeof setupVirtualReportingFS>;
+
+  beforeAll(() => {
+    setupVirtualReportingFS();
+    try {
+      const warmupRun = createMidFlightRun(2);
+      runStatus(warmupRun);
+      const handoff = renderHandoff(warmupRun);
+      const handoffCommands = handoffArgv(handoff);
+      dispatchFailures(handoffCommands);
+    } finally {
+      cleanupVirtualReportingFS();
+    }
+  });
+
   beforeEach(() => {
-    setupVirtualBrowserFS();
+    vfs = setupVirtualReportingFS();
   });
 
   afterEach(() => {
-    cleanupVirtualBrowserFS();
+    cleanupVirtualReportingFS();
   });
 
   test("runStatus returns next_actions and next_argv matching handoff.md for mid-flight capsule", () => {
-    const run = createMidFlightRun(2);
+    const run = createMidFlightRun(1);
     const status = runStatus(run);
 
     expect(status.next_actions).toBeDefined();
@@ -111,7 +121,7 @@ describe(statusActionsSuiteName, () => {
 
   test("runStatus on corrupt capsule reports empty next_actions and lists integrity issues", () => {
     const run = createMidFlightRun(1);
-    fs.writeFileSync(join(run, "state.json"), "{ broken json", "utf-8");
+    vfs.writeFileSync(join(run, "state.json"), "{ broken json");
 
     const status = runStatus(run);
     expect(status.next_actions).toEqual({ argv: [], unavailable: [] });

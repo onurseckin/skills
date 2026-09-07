@@ -3,7 +3,7 @@ import {
   evaluateSocraticSelfQuestioning,
   formatSocraticAuditSection,
   SOCRATIC_DIMENSIONS,
-} from "../../../olt/scripts/src/reporting/socratic-validator.ts";
+} from "../../../olt/scripts/src/reporting/socratic-validator/index.ts";
 import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 
 export const socraticValidatorSuiteName = "Socratic Reflexive Self-Questioning Engine";

@@ -34,7 +34,7 @@ export class DisambiguationGatewayEngine {
   /**
    * Process a fixture evaluation end-to-end:
    * 1. Runs pre-flight certification
-   * 2. If failure -> routes defect to Autonomous Repairer and throws or returns failure
+   * 2. If failure -> routes defect to Autonomous Implementer and throws or returns failure
    * 3. If success -> issues cryptographic handoff token
    */
   public processDataLayerEvaluation(params: {

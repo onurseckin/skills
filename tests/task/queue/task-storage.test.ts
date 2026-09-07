@@ -1,13 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import {
-  existsSync,
-  linkSync,
-  mkdirSync,
-  readFileSync,
-  symlinkSync,
-  utimesSync,
-  writeFileSync,
-} from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -18,7 +9,15 @@ import {
   withTaskQueueLock,
   type TaskQueueItem,
 } from "../../../olt/scripts/src/task/queue/index.ts";
-import { cleanupVirtualTaskFS, scratchRoot, setupVirtualTaskFS } from "../task-fixture.ts";
+import {
+  cleanupVirtualTaskFS,
+  createVirtualHardlink,
+  createVirtualSymlink,
+  getVirtualTaskFS,
+  scratchRoot,
+  setupVirtualTaskFS,
+  setVirtualMtime,
+} from "../task-fixture.ts";
 
 function createMockTask(id: string, title = "Test Task"): TaskQueueItem {
   return {
@@ -43,6 +42,8 @@ function createMockTask(id: string, title = "Test Task"): TaskQueueItem {
 }
 
 describe("Task Queue Storage and Locking (task-storage.test.ts)", () => {
+  const vfs = getVirtualTaskFS();
+
   beforeEach(() => {
     setupVirtualTaskFS();
   });
@@ -66,7 +67,7 @@ describe("Task Queue Storage and Locking (task-storage.test.ts)", () => {
 
     saveTaskQueue([t1, t2], queueFile);
 
-    expect(existsSync(queueFile)).toBe(true);
+    expect(vfs.existsSync(queueFile)).toBe(true);
     const loaded = loadTaskQueue(queueFile);
     expect(loaded.length).toBe(2);
     expect(loaded[0]!.id).toBe("task-1");
@@ -85,14 +86,14 @@ describe("Task Queue Storage and Locking (task-storage.test.ts)", () => {
 
     clearTaskQueue(queueFile);
     expect(loadTaskQueue(queueFile)).toEqual([]);
-    expect(readFileSync(queueFile, "utf8")).toBe("");
+    expect(vfs.readFileSync(queueFile, "utf8")).toBe("");
   });
 
   test("loadTaskQueue throws INTEGRITY error on corrupted JSONL line", () => {
     const sandbox = scratchRoot(import.meta.path, "storage");
     const queueFile = join(sandbox, "corrupt.jsonl");
 
-    writeFileSync(queueFile, "{ not valid json }\n", "utf8");
+    vfs.writeFileSync(queueFile, "{ not valid json }\n");
     expect(() => loadTaskQueue(queueFile)).toThrow(HarnessError);
     try {
       loadTaskQueue(queueFile);
@@ -107,8 +108,8 @@ describe("Task Queue Storage and Locking (task-storage.test.ts)", () => {
     const targetFile = join(sandbox, "real-target.jsonl");
     const symlinkFile = join(sandbox, "symlink.jsonl");
 
-    writeFileSync(targetFile, "{}\n", "utf8");
-    symlinkSync(targetFile, symlinkFile);
+    vfs.writeFileSync(targetFile, "{}\n");
+    createVirtualSymlink(targetFile, symlinkFile);
 
     expect(() => loadTaskQueue(symlinkFile)).toThrow(HarnessError);
     try {
@@ -124,8 +125,8 @@ describe("Task Queue Storage and Locking (task-storage.test.ts)", () => {
     const original = join(sandbox, "original.jsonl");
     const hardlink = join(sandbox, "hardlink.jsonl");
 
-    writeFileSync(original, "{}\n", "utf8");
-    linkSync(original, hardlink);
+    vfs.writeFileSync(original, "{}\n");
+    createVirtualHardlink(original, hardlink);
 
     expect(() => loadTaskQueue(original)).toThrow(HarnessError);
     expect(() => loadTaskQueue(hardlink)).toThrow(HarnessError);
@@ -133,28 +134,28 @@ describe("Task Queue Storage and Locking (task-storage.test.ts)", () => {
 
   test("cleanStaleTempFiles removes matching temp files older than maxAgeMs and preserves fresh files", () => {
     const sandbox = scratchRoot(import.meta.path, "storage");
-    mkdirSync(sandbox, { recursive: true });
+    vfs.mkdirSync(sandbox, { recursive: true });
 
     const stale1 = join(sandbox, ".task-queue.12345.abc123tmp.tmp");
     const stale2 = join(sandbox, ".task-queue.67890.def456tmp.tmp");
     const fresh = join(sandbox, ".task-queue.99999.fresh123.tmp");
     const nonMatching = join(sandbox, "other-temp-file.tmp");
 
-    writeFileSync(stale1, "stale content 1", "utf8");
-    writeFileSync(stale2, "stale content 2", "utf8");
-    writeFileSync(fresh, "fresh content", "utf8");
-    writeFileSync(nonMatching, "other file", "utf8");
+    vfs.writeFileSync(stale1, "stale content 1");
+    vfs.writeFileSync(stale2, "stale content 2");
+    vfs.writeFileSync(fresh, "fresh content");
+    vfs.writeFileSync(nonMatching, "other file");
 
-    const pastTime = (Date.now() - 120_000) / 1000;
-    utimesSync(stale1, pastTime, pastTime);
-    utimesSync(stale2, pastTime, pastTime);
+    const pastTime = Date.now() - 120_000;
+    setVirtualMtime(stale1, pastTime);
+    setVirtualMtime(stale2, pastTime);
 
     const cleaned = cleanStaleTempFiles(sandbox, 60_000);
     expect(cleaned).toBe(2);
-    expect(existsSync(stale1)).toBe(false);
-    expect(existsSync(stale2)).toBe(false);
-    expect(existsSync(fresh)).toBe(true);
-    expect(existsSync(nonMatching)).toBe(true);
+    expect(vfs.existsSync(stale1)).toBe(false);
+    expect(vfs.existsSync(stale2)).toBe(false);
+    expect(vfs.existsSync(fresh)).toBe(true);
+    expect(vfs.existsSync(nonMatching)).toBe(true);
   });
 
   test("cleanStaleTempFiles returns 0 for non-existent directory", () => {
@@ -199,5 +200,47 @@ describe("Task Queue Storage and Locking (task-storage.test.ts)", () => {
 
     const afterResult = await withTaskQueueLock(queueFile, () => "recovered");
     expect(afterResult).toBe("recovered");
+  });
+
+  test("withTaskQueueLock strictly serializes sequential operations preventing lock leaks", async () => {
+    const sandbox = scratchRoot(import.meta.path, "storage");
+    const queueFile = join(sandbox, "tasks.jsonl");
+    const order: string[] = [];
+
+    await withTaskQueueLock(queueFile, async () => {
+      order.push("op1:start");
+      saveTaskQueue([createMockTask("t1")], queueFile);
+      order.push("op1:end");
+    });
+
+    await withTaskQueueLock(queueFile, async () => {
+      order.push("op2:start");
+      const current = loadTaskQueue(queueFile);
+      current.push(createMockTask("t2"));
+      saveTaskQueue(current, queueFile);
+      order.push("op2:end");
+    });
+
+    expect(order).toEqual(["op1:start", "op1:end", "op2:start", "op2:end"]);
+    expect(loadTaskQueue(queueFile).length).toBe(2);
+  });
+
+  test("withTaskQueueLock safely refuses symlink directory to prevent path traversal", async () => {
+    const sandbox = scratchRoot(import.meta.path, "storage");
+    const realDir = join(sandbox, "real-parent");
+    const symlinkDir = join(sandbox, "symlink-parent");
+
+    vfs.mkdirSync(realDir, { recursive: true });
+    createVirtualSymlink(realDir, symlinkDir);
+
+    const queueFile = join(symlinkDir, "tasks.jsonl");
+    let caught: unknown;
+    try {
+      await withTaskQueueLock(queueFile, () => "fail");
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught instanceof HarnessError).toBe(true);
+    expect((caught as HarnessError).code).toBe("INTEGRITY");
   });
 });

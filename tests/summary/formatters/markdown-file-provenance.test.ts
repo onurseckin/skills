@@ -1,9 +1,16 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   fileProvenanceDetails,
   fileProvenanceTable,
   type AttributedFileRef,
 } from "../../../olt/scripts/src/summary/markdown/index.ts";
+import { cleanupRoots, setupVirtualFormattersFS } from "./markdown-fixtures-core.ts";
+
+beforeEach(() => {
+  setupVirtualFormattersFS();
+});
+
+afterEach(cleanupRoots);
 
 /**
  * Direct unit coverage of the B15.2 renderer: line ranges, diff, additions/deletions, rationale,

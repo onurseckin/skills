@@ -1033,26 +1033,26 @@ export async function updateDashboardSection(
     generatedAt: now,
     trajectory: {
       ...existingState.trajectory,
-      ...(sectionUpdates.trajectory ?? {}),
+      ...sectionUpdates.trajectory,
       lastUpdated: now,
     },
     portfolio: {
       ...existingState.portfolio,
-      ...(sectionUpdates.portfolio ?? {}),
+      ...sectionUpdates.portfolio,
       lastAuditedAt: now,
     },
     pareto: {
       ...existingState.pareto,
-      ...(sectionUpdates.pareto ?? {}),
+      ...sectionUpdates.pareto,
     },
     productCraft: {
       ...existingState.productCraft,
-      ...(sectionUpdates.productCraft ?? {}),
+      ...sectionUpdates.productCraft,
       evaluatedAt: now,
     },
     roadmap: {
       ...existingState.roadmap,
-      ...(sectionUpdates.roadmap ?? {}),
+      ...sectionUpdates.roadmap,
       lastUpdated: now,
     },
   };
@@ -1211,7 +1211,7 @@ export class ExecutiveDashboardEngine {
 
     const updatedPillars: Record<ProductCraftPillarKey, ProductCraftPillarScoreRecord> = {
       ...this.state.productCraft.pillarScores,
-      ...(params.pillarScores ?? {}),
+      ...params.pillarScores,
     };
 
     return this.updateProductCraft({

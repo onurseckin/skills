@@ -5,6 +5,8 @@ import { join } from "node:path";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { recordCaptures } from "../../../olt/scripts/src/engine/store/capsule/captures.ts";
 import { runDoctor } from "../../../olt/scripts/src/reporting/doctor.ts";
+import * as agentCanonical from "../../../olt/scripts/src/reporting/doctor/agent-canonical-engine.ts";
+import * as socratic2 from "../../../olt/scripts/src/reporting/socratic-validator/evaluators-2.ts";
 
 export const doctorDiagnosticsWiringSuiteName =
   "runDoctor wires capsule-root and evidence-location checks";
@@ -208,6 +210,11 @@ function setupVirtualFs(): void {
     realpathSpy,
     mkdirSpy,
     spawnSpy,
+    spyOn(agentCanonical, "checkAgentCanonicalAlignment").mockReturnValue({
+      engine: "checkAgentCanonicalAlignment",
+      findings: [],
+    }),
+    spyOn(socratic2, "evaluateTwoKeyValidatorPairing").mockReturnValue([]),
   );
 }
 

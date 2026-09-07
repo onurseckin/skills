@@ -117,7 +117,7 @@ describe("metrics timing collector - multi-round timing", () => {
         timestamp: "2026-08-14T20:05:00.000Z",
         actor: "impl-1",
         kind: "task-claimed",
-        payload: { task_id: "T-30", role: "repairer" },
+        payload: { task_id: "T-30", role: "implementer" },
         previous_hash: null,
         projection: {
           schema: "harness.state",

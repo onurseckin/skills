@@ -257,26 +257,6 @@ export function handleTaskStateTransition(
       updatedAtSeq: seq,
       activeStepIndex: seq,
     });
-  } else if (lowerKind === "replacement-repairer-assigned" || lowerKind === "assign-repairer") {
-    const replacementId = parsePayloadString(payload, [
-      "replacement_id",
-      "replacementId",
-      "repair_assignee",
-    ]);
-    if (replacementId) {
-      nextAgent = replacementId;
-      nextStatus = "leased";
-      nextExecutionState = `[🔧 REPAIRER ASSIGNED: ${replacementId} (step ${formatSeq(seq)})]`;
-
-      ctx.taskMap.set(targetTaskId, {
-        ...targetTask,
-        assignedAgent: nextAgent,
-        status: nextStatus,
-        executionState: nextExecutionState,
-        updatedAtSeq: seq,
-        activeStepIndex: seq,
-      });
-    }
   } else {
     ctx.taskMap.set(targetTaskId, {
       ...targetTask,

@@ -1,14 +1,24 @@
-import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
+import { readRegularFileNoFollow } from "../../../olt/scripts/src/core/no-follow.ts";
 import { loadRoleContract } from "../../../olt/scripts/src/packets/role-contract.ts";
 import { isAgentRole } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   MIND_STRATEGIC_ALTITUDE,
   verifyMindRoleStrategicInvariants,
 } from "../../../olt/scripts/src/mind/lifecycle/purpose/index.ts";
+import { cleanupVirtualRolesFS, setupVirtualRolesFS } from "../fixture.ts";
 
 describe("mind role contract & strategic purpose codification", () => {
+  let vfs: ReturnType<typeof setupVirtualRolesFS>;
+
+  beforeEach(() => {
+    vfs = setupVirtualRolesFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualRolesFS();
+  });
   test("mind role is registered with tier 0", () => {
     expect(isAgentRole("mind")).toBe(true);
     const contract = loadRoleContract("mind");
@@ -75,7 +85,7 @@ describe("mind role contract & strategic purpose codification", () => {
 
   test("mind agent persona (mind.yaml) specifies strategic brain invariants and prohibitions matching roles/mind.md", () => {
     const agentYamlPath = join(import.meta.dir, "..", "..", "..", "olt", "agents", "mind.yaml");
-    const yamlContent = readFileSync(agentYamlPath, "utf-8");
+    const yamlContent = new TextDecoder().decode(readRegularFileNoFollow(agentYamlPath));
 
     // Verify declared mind_invariants
     expect(yamlContent).toContain("SUPERVISOR_ZERO_CODE_EDITS");

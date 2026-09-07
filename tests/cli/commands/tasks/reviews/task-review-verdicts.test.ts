@@ -18,7 +18,9 @@ import {
   VALIDATOR,
   CHANGED_FILE,
   answeredBy,
+  findingIdsFrom,
   recordProbe,
+  recordProbeRounds,
   reviewPass,
   seedGateProof,
 } from "../../fixtures/probe-fixture.ts";
@@ -213,12 +215,15 @@ describe("task:review - Preconditions, Status & Checklists", () => {
     const probed = await recordProbe(run, token, "Prove it works");
     await expect(execute(reviewPass(run, token, gateCmd))).rejects.toThrow(/open finding/);
 
+    const laterRounds = await recordProbeRounds(run, token, "Prove it works", 2, 5);
+    const allFindingIds = findingIdsFrom([probed, ...laterRounds]);
+
     const passed = await execute(
-      reviewPass(run, token, gateCmd, answeredBy(probed.finding_ids, gateCmd)),
+      reviewPass(run, token, gateCmd, answeredBy(allFindingIds, gateCmd)),
     );
     expect(passed.verdict).toBe("pass");
     expect((passed.task as { status: string }).status).toBe("done");
-    expect((passed.resolved_findings as unknown[]).length).toBe(1);
+    expect((passed.resolved_findings as unknown[]).length).toBe(5);
   });
 
   test("--status fail requires fields and refuses --resolve", async () => {
@@ -313,7 +318,9 @@ describe("task:review - Preconditions, Status & Checklists", () => {
   test("records checklist coverage into validation record", async () => {
     const { repo, run, token, gateCmd } = await setupReviewRun("review-checklist-coverage");
     seedGateProof(run, TASK_ID);
-    const probed = await recordProbe(run, token, "Prove with checklist");
+    const first = await recordProbe(run, token, "Prove with checklist");
+    const laterRounds = await recordProbeRounds(run, token, "Prove with checklist", 2, 5);
+    const allFindingIds = findingIdsFrom([first, ...laterRounds]);
 
     const checklist = loadChecklist("code-quality");
     const reportPath = join(repo, "coverage.json");
@@ -329,7 +336,7 @@ describe("task:review - Preconditions, Status & Checklists", () => {
     );
 
     const passed = await execute([
-      ...reviewPass(run, token, gateCmd, answeredBy(probed.finding_ids, gateCmd)),
+      ...reviewPass(run, token, gateCmd, answeredBy(allFindingIds, gateCmd)),
       "--checklist-domain",
       "code-quality",
       "--checklist-report",

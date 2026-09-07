@@ -2,8 +2,10 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { join } from "node:path";
 import {
   claimTaskLease,
+  completeTask,
   enqueueTask,
   enqueueTasksBatch,
+  readTaskQueue,
 } from "../../../olt/scripts/src/task/queue/index.ts";
 import { cleanupVirtualTaskFS, scratchRoot, setupVirtualTaskFS } from "../task-fixture.ts";
 
@@ -153,5 +155,109 @@ describe("Stateful Task Queue Engine", () => {
         customPath: queuePath,
       });
     }).toThrow("actively leased to agent 'agent-mind-1'");
+  });
+
+  it("unblocks transitive dependency chain step-by-step", () => {
+    enqueueTasksBatch(
+      [
+        { id: "t0", title: "T0", write_scope: ["src/0.ts"], gate: "bun test" },
+        {
+          id: "t1",
+          title: "T1",
+          write_scope: ["src/1.ts"],
+          gate: "bun test",
+          dependencies: ["t0"],
+        },
+        {
+          id: "t2",
+          title: "T2",
+          write_scope: ["src/2.ts"],
+          gate: "bun test",
+          dependencies: ["t1"],
+        },
+      ],
+      queuePath,
+    );
+
+    const initial = readTaskQueue(queuePath);
+    expect(initial.find((t) => t.id === "t1")?.status).toBe("BLOCKED");
+    expect(initial.find((t) => t.id === "t2")?.status).toBe("BLOCKED");
+
+    const comp0 = completeTask({ taskId: "t0", customPath: queuePath });
+    expect(comp0.unblockedTasks.map((t) => t.id)).toEqual(["t1"]);
+
+    const after0 = readTaskQueue(queuePath);
+    expect(after0.find((t) => t.id === "t1")?.status).toBe("PENDING");
+    expect(after0.find((t) => t.id === "t2")?.status).toBe("BLOCKED");
+
+    const comp1 = completeTask({ taskId: "t1", customPath: queuePath });
+    expect(comp1.unblockedTasks.map((t) => t.id)).toEqual(["t2"]);
+
+    const after1 = readTaskQueue(queuePath);
+    expect(after1.find((t) => t.id === "t2")?.status).toBe("PENDING");
+  });
+
+  it("unblocks multiple parallel diamond children simultaneously upon parent completion", () => {
+    enqueueTasksBatch(
+      [
+        { id: "t-parent", title: "Parent", write_scope: ["src/p.ts"], gate: "bun test" },
+        {
+          id: "t-child-a",
+          title: "Child A",
+          write_scope: ["src/ca.ts"],
+          gate: "bun test",
+          dependencies: ["t-parent"],
+        },
+        {
+          id: "t-child-b",
+          title: "Child B",
+          write_scope: ["src/cb.ts"],
+          gate: "bun test",
+          dependencies: ["t-parent"],
+        },
+      ],
+      queuePath,
+    );
+
+    const comp = completeTask({ taskId: "t-parent", customPath: queuePath });
+    expect(comp.unblockedTasks).toHaveLength(2);
+    expect(comp.unblockedTasks.map((t) => t.id).sort()).toEqual(["t-child-a", "t-child-b"]);
+
+    const queue = readTaskQueue(queuePath);
+    expect(queue.find((t) => t.id === "t-child-a")?.status).toBe("PENDING");
+    expect(queue.find((t) => t.id === "t-child-b")?.status).toBe("PENDING");
+  });
+
+  it("ensures diamond join task remains BLOCKED until all parallel prerequisites complete", () => {
+    enqueueTasksBatch(
+      [
+        { id: "t-join-a", title: "Join A", write_scope: ["src/ja.ts"], gate: "bun test" },
+        { id: "t-join-b", title: "Join B", write_scope: ["src/jb.ts"], gate: "bun test" },
+        {
+          id: "t-join-node",
+          title: "Join Node",
+          write_scope: ["src/jn.ts"],
+          gate: "bun test",
+          dependencies: ["t-join-a", "t-join-b"],
+        },
+      ],
+      queuePath,
+    );
+
+    const compA = completeTask({ taskId: "t-join-a", customPath: queuePath });
+    expect(compA.unblockedTasks).toEqual([]);
+
+    const queueMid = readTaskQueue(queuePath);
+    const joinMid = queueMid.find((t) => t.id === "t-join-node")!;
+    expect(joinMid.status).toBe("BLOCKED");
+    expect(joinMid.blocked_by).toEqual(["t-join-b"]);
+
+    const compB = completeTask({ taskId: "t-join-b", customPath: queuePath });
+    expect(compB.unblockedTasks.map((t) => t.id)).toEqual(["t-join-node"]);
+
+    const queueEnd = readTaskQueue(queuePath);
+    const joinEnd = queueEnd.find((t) => t.id === "t-join-node")!;
+    expect(joinEnd.status).toBe("PENDING");
+    expect(joinEnd.blocked_by).toEqual([]);
   });
 });

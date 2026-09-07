@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, utimesSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, mkdirSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   reclaimInMemoryStaleLocks,
@@ -25,7 +24,7 @@ describe("Lock Reclaim Engine (Disk and In-Memory)", () => {
     setupVirtualCommunicationFS();
     setInMemoryLocking(false);
     resetInMemoryLocks();
-    tempDir = mkdtempSync(join(tmpdir(), "reclaim-test-"));
+    tempDir = "/virtual/communication/locks-reclaim";
     locksDir = join(tempDir, ".locks");
     mkdirSync(locksDir, { recursive: true });
   });

@@ -50,9 +50,7 @@ export function isOrchestratorRole(role: string): boolean {
 }
 
 export function isImplementerRole(role: string): boolean {
-  return (
-    role === "implementer" || role === "repairer" || role === "sub-implementer" || role === "worker"
-  );
+  return role === "implementer" || role === "sub-implementer" || role === "worker";
 }
 
 export function isValidatorRole(role: string): boolean {

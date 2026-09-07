@@ -10,7 +10,6 @@ describe("Roles authority invariants enforcement", () => {
     expect(FORBIDDEN_VALIDATOR_COMMANDS.has("run:exec")).toBe(true);
     expect(FORBIDDEN_VALIDATOR_COMMANDS.has("task:claim")).toBe(true);
     expect(FORBIDDEN_VALIDATOR_COMMANDS.has("task:submit")).toBe(true);
-    expect(FORBIDDEN_VALIDATOR_COMMANDS.has("task:assign-repairer")).toBe(true);
     expect(FORBIDDEN_VALIDATOR_COMMANDS.has("shell")).toBe(true);
     expect(FORBIDDEN_VALIDATOR_COMMANDS.has("run_command")).toBe(true);
     expect(FORBIDDEN_VALIDATOR_COMMANDS.has("edit_file")).toBe(true);

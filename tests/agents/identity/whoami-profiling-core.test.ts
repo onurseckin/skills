@@ -10,27 +10,14 @@ import {
   MAIN_THREAD_ADVISORY,
   type HostProfile,
 } from "../../../olt/scripts/src/authority/thread/index.ts";
-import { whoamiCommand } from "../../../olt/scripts/src/cli/commands/whoami.ts";
-import { taskClaimCommand } from "../../../olt/scripts/src/cli/commands/task-ops.ts";
-import { cleanupRoots } from "../../cli/commands/fixtures/full-lifecycle-fixture.ts";
-import { setupCompiledRun } from "../../cli/commands/fixtures/task-ops-fixture.ts";
-import {
-  TASK_ID,
-  VALIDATOR,
-  claimSubmitValidate,
-  setupRun,
-} from "../../cli/commands/fixtures/probe-fixture.ts";
 import { cleanupVirtualAgentsFS, setupVirtualAgentsFS } from "../fixture.ts";
-
-const roots: string[] = [];
 
 beforeEach(() => {
   setupVirtualAgentsFS();
 });
 
-afterEach(async () => {
+afterEach(() => {
   cleanupVirtualAgentsFS();
-  await cleanupRoots(roots);
 });
 
 describe("Agent Whoami Profiling - Core & Capabilities", () => {
@@ -92,6 +79,15 @@ describe("Agent Whoami Profiling - Core & Capabilities", () => {
       expect(capabilities.tools).toEqual([]);
       expect(capabilities.environment_grants).toEqual([]);
     });
+
+    it("should handle environment variables with noisy whitespace and empty tokens cleanly", () => {
+      const capabilities = buildCapabilitiesProfile(3, {
+        GRANTED_TOOLS: "  bash , , git  , bun  ",
+        ENVIRONMENT_GRANTS: " , READ_ONLY , , ",
+      });
+      expect(capabilities.tools).toEqual(["bash", "git", "bun"]);
+      expect(capabilities.environment_grants).toEqual(["READ_ONLY"]);
+    });
   });
 
   describe("Tier and Role Parsing", () => {
@@ -105,6 +101,16 @@ describe("Agent Whoami Profiling - Core & Capabilities", () => {
       expect(parseTierValue(undefined)).toBeNull();
     });
 
+    it("should reject out-of-range and malformed tier strings returning null", () => {
+      expect(parseTierValue("-1")).toBeNull();
+      expect(parseTierValue("4")).toBeNull();
+      expect(parseTierValue("1.5")).toBeNull();
+      expect(parseTierValue("99")).toBeNull();
+      expect(parseTierValue("")).toBeNull();
+      expect(parseTierValue("   ")).toBeNull();
+      expect(parseTierValue("tier-0")).toBeNull();
+    });
+
     it("should map roles to execution tiers", () => {
       expect(roleToTier("mind")).toBe(0);
       expect(roleToTier("orchestrator")).toBe(1);
@@ -113,7 +119,7 @@ describe("Agent Whoami Profiling - Core & Capabilities", () => {
       expect(roleToTier("implementer")).toBe(3);
       expect(roleToTier("validator")).toBe(3);
       expect(roleToTier("completeness-critic")).toBe(3);
-      expect(roleToTier("repairer")).toBe(3);
+      expect(roleToTier("sub-implementer")).toBe(3);
     });
 
     it("should map agent IDs to tiers and roles", () => {
@@ -138,8 +144,8 @@ describe("Agent Whoami Profiling - Core & Capabilities", () => {
       expect(agentIdToTier("completeness-critic-gate")).toBe(3);
       expect(agentIdToRole("completeness-critic-gate")).toBe("completeness-critic");
 
-      expect(agentIdToTier("repairer-patch")).toBe(3);
-      expect(agentIdToRole("repairer-patch")).toBe("repairer");
+      expect(agentIdToTier("sub-implementer-patch")).toBe(3);
+      expect(agentIdToRole("sub-implementer-patch")).toBe("sub-implementer");
 
       expect(agentIdToTier("planner-graph")).toBe(3);
       expect(agentIdToRole("planner-graph")).toBe("planner");

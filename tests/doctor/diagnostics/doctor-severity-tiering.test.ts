@@ -7,6 +7,8 @@ import { undeclaredEntries } from "../../../olt/scripts/src/engine/store/integri
 import * as doc from "../../../olt/scripts/src/reporting/doctor.ts";
 import * as tc from "../../../olt/scripts/src/reporting/doctor/tier-confinement/index.ts";
 import { formatDoctorBrief } from "../../../olt/scripts/src/cli/commands/diagnostics-ops.ts";
+import * as agentCanonical from "../../../olt/scripts/src/reporting/doctor/agent-canonical-engine.ts";
+import * as socratic2 from "../../../olt/scripts/src/reporting/socratic-validator/evaluators-2.ts";
 
 export const doctorSeverityTieringSuiteName =
   "Doctor Severity Tiering & Cosmetic Classification Suite";
@@ -143,6 +145,11 @@ function setupVirtualFs(): void {
           error: undefined,
         }) as unknown as cp.SpawnSyncReturns<string>,
     ),
+    spyOn(agentCanonical, "checkAgentCanonicalAlignment").mockReturnValue({
+      engine: "checkAgentCanonicalAlignment",
+      findings: [],
+    }),
+    spyOn(socratic2, "evaluateTwoKeyValidatorPairing").mockReturnValue([]),
   );
 }
 

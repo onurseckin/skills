@@ -1,18 +1,21 @@
-import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { assessRecyclingState } from "../../../olt/scripts/src/mind/archival/recycler/scanner.ts";
+import { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/memory-fs.ts";
+import { createVirtualFSSession } from "../../../olt/scripts/src/testing/virtual-fs/spies.ts";
 
 describe("assessRecyclingState", () => {
-  let tempDir: string;
+  let vfs: VirtualMemoryFS;
+  let session: ReturnType<typeof createVirtualFSSession>;
+  const baseDir = "/virtual/mind/archival/scanner";
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "recycler-scanner-test-"));
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    vfs.mkdirSync(baseDir, { recursive: true });
   });
 
   afterEach(() => {
-    rmSync(tempDir, { recursive: true, force: true });
+    session.cleanup();
   });
 
   it("handles fallback defaults when state is completely empty", () => {
@@ -72,8 +75,8 @@ describe("assessRecyclingState", () => {
     });
 
     it("transitions generation_rollover when pending feedback queue items exist", () => {
-      const qPath = join(tempDir, "feedback.jsonl");
-      writeFileSync(
+      const qPath = `${baseDir}/feedback.jsonl`;
+      vfs.writeFileSync(
         qPath,
         JSON.stringify({
           id: "fb-1",
@@ -206,8 +209,8 @@ describe("assessRecyclingState", () => {
     });
 
     it("transitions rollover_ready when all rounds converged and pending feedback exists", () => {
-      const qPath = join(tempDir, "feedback.jsonl");
-      writeFileSync(
+      const qPath = `${baseDir}/feedback.jsonl`;
+      vfs.writeFileSync(
         qPath,
         JSON.stringify({
           id: "fb-2",
@@ -239,8 +242,11 @@ describe("assessRecyclingState", () => {
     });
 
     it("does not trigger rollover_ready if some rounds are not converged", () => {
-      const qPath = join(tempDir, "feedback.jsonl");
-      writeFileSync(qPath, JSON.stringify({ id: "fb-3", status: "PENDING", title: "Task" }) + "\n");
+      const qPath = `${baseDir}/feedback.jsonl`;
+      vfs.writeFileSync(
+        qPath,
+        JSON.stringify({ id: "fb-3", status: "PENDING", title: "Task" }) + "\n",
+      );
 
       const state = {
         rounds: [

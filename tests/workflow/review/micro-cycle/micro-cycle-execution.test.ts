@@ -1,6 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
+import { afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { type MicroCycleRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import {
   getOpenMicroCycles,
@@ -12,6 +10,7 @@ import { taskRejectCommand } from "../../../../olt/scripts/src/cli/commands/task
 import { taskReviewCommand } from "../../../../olt/scripts/src/cli/commands/task-review.ts";
 import { initRun } from "../../../../olt/scripts/src/engine/store/capsule/capsule.ts";
 import { transact } from "../../../../olt/scripts/src/engine/store/events/transaction.ts";
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import type {
   Clock,
   TaskRecord,
@@ -35,21 +34,24 @@ class FakeClock implements Clock {
 }
 
 let vfsCleanup: (() => void) | undefined;
+let virtualFs: VirtualMemoryFS | undefined;
 let runCount = 0;
 
 beforeEach(() => {
   const setup = setupWorkflowVirtualFs();
   vfsCleanup = setup.cleanup;
+  virtualFs = setup.vfs;
 });
 
 afterEach(() => {
   vfsCleanup?.();
   vfsCleanup = undefined;
+  virtualFs = undefined;
 });
 
-function setupLeasedRun(name: string): { repo: string; run: string } {
+function setupLeasedRun(name: string, seedMicroCycle = false): { repo: string; run: string } {
   const repo = `/virtual/tmp/mc-exec-${name}-${++runCount}`;
-  mkdirSync(repo, { recursive: true });
+  virtualFs?.mkdirSync(repo, { recursive: true });
   const run = initRun(repo, name, new TextEncoder().encode("prompt"), "file", true);
 
   transact(run, "coord", "task-planned", {}, (state) => {
@@ -83,6 +85,20 @@ function setupLeasedRun(name: string): { repo: string; run: string } {
           write_scope: ["src/core"],
           attempt: 1,
         },
+        ...(seedMicroCycle
+          ? {
+              micro_cycle_round: 1,
+              micro_cycles: [
+                {
+                  round: 1,
+                  validator: "val-inline",
+                  critique: "Missing check",
+                  status: "open",
+                  created_at: new Date().toISOString(),
+                },
+              ],
+            }
+          : {}),
       },
     };
     state.requirements = [
@@ -99,7 +115,37 @@ function setupLeasedRun(name: string): { repo: string; run: string } {
   return { repo, run };
 }
 
-const taskIn = (s: WorkflowState, id = "T-1"): TaskRecord => s.tasks[id]!;
+beforeAll(async () => {
+  const setup = setupWorkflowVirtualFs();
+  virtualFs = setup.vfs;
+  const { run } = setupLeasedRun("warmup");
+  await taskRejectCommand({
+    run,
+    task: "task-core",
+    validator: "val-inline",
+    reason: "warm",
+    "micro-cycle": true,
+  });
+  await taskReviewCommand({
+    run,
+    task: "task-core",
+    validator: "val-1",
+    token: "dummy",
+    status: "fail",
+    summary: "warm",
+    remediation: "warm",
+    severity: "minor",
+    "micro-cycle": true,
+  });
+  setup.cleanup();
+  virtualFs = undefined;
+});
+
+const taskIn = (s: WorkflowState, id = "T-1"): TaskRecord => {
+  const task = s.tasks[id];
+  if (!task) throw new Error(`task ${id} not found`);
+  return task;
+};
 
 function leasedPort(clock: FakeClock): { port: TestPort; token: string } {
   const port = new TestPort(workflowState());
@@ -131,6 +177,10 @@ describe("CLI commands integration: task:reject and task:review with micro-cycle
     expect(task.status).toBe("leased");
     expect(task.lease?.agent_id).toBe("w-1");
     expect(task.micro_cycles?.[0]?.status).toBe("open");
+  });
+
+  test("taskRejectCommand with --in-lease advances micro-cycle to Round 2", async () => {
+    const { run } = setupLeasedRun("reject-r2-test", true);
 
     const r2 = await taskRejectCommand({
       run,
@@ -172,7 +222,8 @@ describe("CLI commands integration: task:reject and task:review with micro-cycle
     clock.tick(2_000);
     const task = taskIn(markMicroCycleAddressed(port, "T-1", "val-1", clock));
     expect(getOpenMicroCycles(task)).toHaveLength(0);
-    const cycles = (task.micro_cycles as MicroCycleRecord[] | undefined) ?? [];
+    const rawCycles = task.micro_cycles as MicroCycleRecord[] | undefined;
+    const cycles = rawCycles ? rawCycles : [];
     expect(cycles.every((c) => c.status === "addressed")).toBe(true);
   });
 

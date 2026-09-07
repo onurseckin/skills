@@ -45,15 +45,15 @@ function getHostDisplayName(host: DetectedHost): string {
 export function formatHardlockRemediation(host: DetectedHost = resolveCurrentHost()): string {
   switch (host) {
     case "antigravity":
-      return "[Remediation: In Antigravity, cognitive validators must not execute shell commands or tests directly. Delegate test execution to a mechanic-validator subagent via invoke_subagent or inspect files using read-only tools (view_file, read_resource).]";
+      return "[Remediation: In Antigravity, cognitive validators must not execute shell commands or tests directly. Delegate test execution to a ui-headless-validator subagent via invoke_subagent or inspect files using read-only tools (view_file, read_resource).]";
     case "claude_code":
-      return "[Remediation: In Claude Code, cognitive validators must not execute shell commands or tests directly. Delegate test execution to a mechanic-validator subagent via Agent/Task tools or inspect files using read-only tools.]";
+      return "[Remediation: In Claude Code, cognitive validators must not execute shell commands or tests directly. Delegate test execution to a ui-headless-validator subagent via Agent/Task tools or inspect files using read-only tools.]";
     case "codex":
-      return "[Remediation: In Codex, cognitive validators must not execute shell commands or tests directly. Delegate test execution to a mechanic-validator subagent via spawn_agent or inspect files using read-only tools.]";
+      return "[Remediation: In Codex, cognitive validators must not execute shell commands or tests directly. Delegate test execution to a ui-headless-validator subagent via spawn_agent or inspect files using read-only tools.]";
     case "cursor":
-      return "[Remediation: In Cursor, cognitive validators must not execute shell commands or tests directly. Delegate test execution to a mechanic-validator subagent or inspect files using read-only tools.]";
+      return "[Remediation: In Cursor, cognitive validators must not execute shell commands or tests directly. Delegate test execution to a ui-headless-validator subagent or inspect files using read-only tools.]";
     default:
-      return "[Remediation: Cognitive validators must not execute shell commands or tests directly. Delegate test execution to a mechanic-validator subagent or inspect files using read-only tools.]";
+      return "[Remediation: Cognitive validators must not execute shell commands or tests directly. Delegate test execution to a ui-headless-validator subagent or inspect files using read-only tools.]";
   }
 }
 
@@ -72,7 +72,7 @@ export function formatHierarchicalRemediation(
     return `[Remediation: In ${hostLabel}, Tier 1 Orchestrator must dispatch a Tier 2 Coordinator via ${toolName}.]`;
   }
   if (parentTier === 2) {
-    return `[Remediation: In ${hostLabel}, Tier 2 Coordinator must dispatch Tier 3 workers (Implementer, Validator, Critic, Repairer) via ${toolName}.]`;
+    return `[Remediation: In ${hostLabel}, Tier 2 Coordinator must dispatch Tier 3 workers (Implementer, Validator, Critic) via ${toolName}.]`;
   }
   return `[Remediation: In ${hostLabel}, Tier 3 execution workers are leaf nodes and cannot spawn subagents. Request delegation from your supervising coordinator.]`;
 }

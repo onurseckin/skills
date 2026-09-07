@@ -1,17 +1,11 @@
 import { enforceLineLimit } from "../index.ts";
 import {
   nextActionsBlock,
-  taskAssignRepairerNextActions,
   taskClaimNextActions,
   taskHeartbeatNextActions,
   taskSubmitNextActions,
 } from "../next-actions/index.ts";
-import type {
-  TaskAssignRepairerParams,
-  TaskClaimParams,
-  TaskHeartbeatParams,
-  TaskSubmitParams,
-} from "./types.ts";
+import type { TaskClaimParams, TaskHeartbeatParams, TaskSubmitParams } from "./types.ts";
 
 export function formatTaskClaimBrief(params: TaskClaimParams): string {
   const scopeStr = params.writeScope.map((s) => `\`${s}\``).join(", ") || "`none`";
@@ -65,20 +59,6 @@ export function formatTaskSubmitBrief(params: TaskSubmitParams): string {
     `- **Report**: \`${params.reportPath}\``,
     `- **Next Step**: Dispatch independent validator via \`bun harness.ts task:validate-start --run <RUN_ID> --task ${params.taskId} --validator <VALIDATOR_ID>\``,
     ...nextActionsBlock(taskSubmitNextActions(undefined, params.taskId)),
-  ].join("\n");
-  return enforceLineLimit(md, 30);
-}
-
-export function formatTaskAssignRepairerBrief(params: TaskAssignRepairerParams): string {
-  const md = [
-    `### Repairer Reassigned: ${params.taskId}`,
-    `- **Replacement**: \`${params.replacementId}\``,
-    `- **Reason**: ${params.reason}`,
-    `- **Evidence**: ${params.evidence}`,
-    `- **Next Step**: \`${params.replacementId}\` claims with \`task:claim --role repairer\`.`,
-    ...nextActionsBlock(
-      taskAssignRepairerNextActions(undefined, params.taskId, params.replacementId),
-    ),
   ].join("\n");
   return enforceLineLimit(md, 30);
 }

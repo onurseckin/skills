@@ -157,15 +157,6 @@ describe("narrateUnclassifiedEvent", () => {
     ).toBe("Plan enhanced by coordinator-1 (1 observations, 2 todos)");
   });
 
-  test("a field the payload never stated renders as an explicit absence, never a fabricated one", () => {
-    const narrated = narrateUnclassifiedEvent(
-      createEvent("replacement-repairer-assigned", {}, "coordinator-1"),
-    );
-    expect(narrated?.summary).toBe(
-      "Task an unrecorded task reassigned to an unrecorded agent by coordinator-1: no reason recorded",
-    );
-  });
-
   test("plan-recompiled names its repair round and how many new tasks it produced", () => {
     expect(
       narrateUnclassifiedEvent(
@@ -281,5 +272,22 @@ describe("narrateUnclassifiedEvent", () => {
       narrateUnclassifiedEvent(createEvent("orphan-evidence-dispositioned", {}, "coordinator-1"))
         ?.summary,
     ).toBe("Orphan evidence disposition recorded by coordinator-1");
+  });
+
+  test("gracefully handles malformed payload types and non-string attributes without throwing", () => {
+    const malformed = narrateUnclassifiedEvent(
+      createEvent("branch-opened", {
+        branch_id: 12345,
+        parent_task_id: { nested: true },
+        reason: null,
+      }),
+    );
+    expect(malformed?.phase).toBe("branch");
+    expect(malformed?.summary).toBe(
+      "Branch an unrecorded branch opened off an unrecorded task by actor-1: no reason recorded",
+    );
+
+    const emptyKind = narrateUnclassifiedEvent(createEvent(""));
+    expect(emptyKind).toBeUndefined();
   });
 });

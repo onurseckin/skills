@@ -1,5 +1,4 @@
-import { describe, it, expect } from "bun:test";
-import { existsSync } from "node:fs";
+import { afterEach, beforeEach, describe, it, expect } from "bun:test";
 import {
   findRepoRoot,
   isInsideCapsule,
@@ -15,12 +14,40 @@ import {
   resolveEvidenceDir,
   stripCapsulePath,
 } from "../../../olt/scripts/src/core/shared/paths.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Shared Path Resolvers", () => {
+  let session: VirtualFSSession;
+  let vfs: VirtualMemoryFS;
+  const virtualRepo = "/virtual/shared-paths-repo";
+
+  beforeEach(() => {
+    vfs = new VirtualMemoryFS();
+    vfs.mkdirSync(virtualRepo, { recursive: true });
+    vfs.mkdirSync(`${virtualRepo}/.git`, { recursive: true });
+    vfs.mkdirSync(`${virtualRepo}/.olt`, { recursive: true });
+    vfs.mkdirSync(`${virtualRepo}/.olt/capsules`, { recursive: true });
+    vfs.writeFileSync(`${virtualRepo}/package.json`, JSON.stringify({ name: "mock-repo" }));
+    vfs.chdir(virtualRepo);
+    session = createVirtualFSSession(vfs);
+  });
+
+  afterEach(() => {
+    session.cleanup();
+  });
+
   it("finds repository root correctly", () => {
     const root = findRepoRoot();
-    expect(existsSync(root)).toBe(true);
-    expect(existsSync(`${root}/package.json`)).toBe(true);
+    expect(root).toBe(virtualRepo);
+    expect(vfs.existsSync(root)).toBe(true);
+    expect(vfs.existsSync(`${root}/package.json`)).toBe(true);
+
+    const explicitRoot = findRepoRoot(virtualRepo);
+    expect(explicitRoot).toBe(virtualRepo);
   });
 
   it("identifies inside-capsule paths with isInsideCapsule and stripCapsulePath", () => {
@@ -34,13 +61,15 @@ describe("Shared Path Resolvers", () => {
   });
 
   it("resolves canonical .olt directory", () => {
-    const oltDir = resolveOltDir();
+    const oltDir = resolveOltDir(virtualRepo);
     expect(oltDir.endsWith(".olt") || oltDir.endsWith("olt")).toBe(true);
+    expect(oltDir).toBe(`${virtualRepo}/.olt`);
   });
 
   it("resolves canonical .olt/capsules directory", () => {
-    const capsulesDir = resolveCapsulesDir();
+    const capsulesDir = resolveCapsulesDir(virtualRepo);
     expect(capsulesDir).toContain("capsules");
+    expect(capsulesDir).toBe(`${virtualRepo}/.olt/capsules`);
   });
 
   it("resolves policy, backlog, defects, and telemetry paths", () => {
@@ -59,5 +88,20 @@ describe("Shared Path Resolvers", () => {
     const evidence = resolveEvidenceDir();
     expect(evidence).toContain("olt-scratch");
     expect(evidence).toContain("evidence");
+  });
+
+  it("walks up and resolves repo root from deeply nested virtual subdirectories", () => {
+    const deepDir = `${virtualRepo}/deep/nested/sub/dir`;
+    vfs.mkdirSync(deepDir, { recursive: true });
+
+    const root = findRepoRoot(deepDir);
+    expect(root).toBe(virtualRepo);
+  });
+
+  it("throws HarnessError with PATH_SAFETY when no repository anchor exists", () => {
+    const orphanDir = "/virtual/isolated-orphan";
+    vfs.mkdirSync(orphanDir, { recursive: true });
+
+    expect(() => findRepoRoot(orphanDir)).toThrow();
   });
 });

@@ -117,10 +117,15 @@ export class SandboxedToolExecutor {
 
     const combinedAbortController = new AbortController();
     if (context?.abortSignal) {
-      context.abortSignal.addEventListener("abort", () => {
+      if (context.abortSignal.aborted) {
         terminationReason = "aborted";
-        combinedAbortController.abort(context.abortSignal?.reason);
-      });
+        combinedAbortController.abort(context.abortSignal.reason);
+      } else {
+        context.abortSignal.addEventListener("abort", () => {
+          terminationReason = "aborted";
+          combinedAbortController.abort(context.abortSignal?.reason);
+        });
+      }
     }
 
     const governor = new ResourceGovernor({

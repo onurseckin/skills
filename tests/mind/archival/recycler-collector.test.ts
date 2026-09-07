@@ -1,6 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import {
   compileAutonomicWavePlan,
   drainAndAdmitFeedbackCandidates,
@@ -8,33 +6,28 @@ import {
   transitionPulseCloseToWake,
   transitionPulseToWake,
 } from "../../../olt/scripts/src/mind/archival/recycler/collector.ts";
-import { initRun, loadRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import {
-  cleanupRoots,
-  cleanupVirtualCliFS,
-  setupVirtualCliFS,
-} from "../../cli/commands/fixtures/full-lifecycle-fixture.ts";
-
-const roots: string[] = [];
+import { initRun, loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/memory-fs.ts";
+import { createVirtualFSSession } from "../../../olt/scripts/src/testing/virtual-fs/spies.ts";
 
 describe("Mind Archival Recycler Collector Suite", () => {
-  let testDir: string;
+  let vfs: VirtualMemoryFS;
+  let session: ReturnType<typeof createVirtualFSSession>;
+  const baseDir = "/virtual/mind/archival/collector";
 
   beforeEach(() => {
-    setupVirtualCliFS();
-    testDir = `/virtual/cli/recycler-test-${Date.now()}`;
-    mkdirSync(testDir, { recursive: true });
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    vfs.mkdirSync(baseDir, { recursive: true });
   });
 
-  afterEach(async () => {
-    await cleanupRoots(roots);
-    cleanupVirtualCliFS();
+  afterEach(() => {
+    session.cleanup();
   });
 
   function setupFixture(label: string) {
-    const repoRoot = `/virtual/cli/collector-${label}-${Math.random().toString(36).slice(2)}`;
-    roots.push(repoRoot);
-    mkdirSync(repoRoot, { recursive: true });
+    const repoRoot = `${baseDir}/${label}`;
+    vfs.mkdirSync(repoRoot, { recursive: true });
     const prompt = new TextEncoder().encode("Mind test prompt");
     const runRoot = initRun(repoRoot, `run-${label}`, prompt, "file", true);
     return { repoRoot, runRoot };
@@ -75,8 +68,8 @@ describe("Mind Archival Recycler Collector Suite", () => {
 
   it("drainAndAdmitFeedbackCandidates handles empty feedback queue gracefully", () => {
     const { runRoot } = setupFixture("empty-feedback");
-    const emptyQueuePath = join(testDir, "empty-feedback.jsonl");
-    writeFileSync(emptyQueuePath, "");
+    const emptyQueuePath = `${baseDir}/empty-feedback.jsonl`;
+    vfs.writeFileSync(emptyQueuePath, "");
 
     const res = drainAndAdmitFeedbackCandidates({
       runRoot,
@@ -93,7 +86,7 @@ describe("Mind Archival Recycler Collector Suite", () => {
 
   it("drainAndAdmitFeedbackCandidates drains items, mutates state, and creates admitted candidates", () => {
     const { runRoot } = setupFixture("drain-admit");
-    const queuePath = join(testDir, "pending-feedback.jsonl");
+    const queuePath = `${baseDir}/pending-feedback.jsonl`;
 
     const feedback1 = {
       id: "fb-101",
@@ -116,7 +109,7 @@ describe("Mind Archival Recycler Collector Suite", () => {
       content: "Ensure CLI handles empty input",
     };
 
-    writeFileSync(queuePath, `${JSON.stringify(feedback1)}\n${JSON.stringify(feedback2)}\n`);
+    vfs.writeFileSync(queuePath, `${JSON.stringify(feedback1)}\n${JSON.stringify(feedback2)}\n`);
 
     const res = drainAndAdmitFeedbackCandidates({
       runRoot,
@@ -170,12 +163,12 @@ describe("Mind Archival Recycler Collector Suite", () => {
     expect(res.runRoot).toBe("/virtual/wave-run");
     expect(res.generation).toBe(2);
     expect(res.totalCandidates).toBe(5);
-    expect(res.waves.length).toBe(3); // 2 + 2 + 1
+    expect(res.waves.length).toBe(3);
     expect(res.waves[0]?.waveIndex).toBe(1);
     expect(res.waves[0]?.candidateIds).toEqual(["c-1", "c-2"]);
     expect(res.waves[1]?.candidateIds).toEqual(["c-3", "c-4"]);
     expect(res.waves[2]?.candidateIds).toEqual(["c-5"]);
-    expect(res.dispatchCommands.length).toBe(7); // 5 round-open + 1 plan:compile + 1 orchestrate
+    expect(res.dispatchCommands.length).toBe(7);
     expect(res.nextInstruction).toContain(
       "mind:round-open --run /virtual/wave-run --actor mind-orchestrator --objective obj-c-1 --candidate c-1",
     );

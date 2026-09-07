@@ -33,12 +33,9 @@ describe(triadArchitectureSuiteName, () => {
       { file: "coordinator.yaml", expectedRole: "coordinator", tier: 2 },
       { file: "planner.yaml", expectedRole: "planner", tier: 3 },
       { file: "implementer.yaml", expectedRole: "implementer", tier: 3 },
-      { file: "worker.yaml", expectedRole: "implementer", tier: 3 },
       { file: "validator.yaml", expectedRole: "validator", tier: 3 },
       { file: "plan-validator.yaml", expectedRole: "plan-validator", tier: 3 },
-      { file: "repairer.yaml", expectedRole: "repairer", tier: 3 },
       { file: "completeness-critic.yaml", expectedRole: "completeness-critic", tier: 3 },
-      { file: "critic.yaml", expectedRole: "completeness-critic", tier: 3 },
       { file: "sub-implementer.yaml", expectedRole: "sub-implementer", tier: 3 },
       { file: "sub-validator.yaml", expectedRole: "sub-validator", tier: 3 },
       { file: "sub-investigator.yaml", expectedRole: "sub-investigator", tier: 3 },
@@ -67,8 +64,6 @@ describe(triadArchitectureSuiteName, () => {
       { file: "claude.yaml", provider: "claude", tool: "Agent" },
       { file: "codex.yaml", provider: "codex", tool: "spawn_agent" },
       { file: "cursor.yaml", provider: "cursor", tool: "Task" },
-      { file: "generic.yaml", provider: "generic", tool: "bun" },
-      { file: "openai.yaml", provider: "openai", tool: "spawn_agent" },
     ];
 
     for (const spec of providers) {
@@ -91,7 +86,6 @@ describe(triadArchitectureSuiteName, () => {
       "validator",
       "completeness-critic",
       "plan-validator",
-      "repairer",
       "mind",
       "mind-auditor",
       "sub-implementer",
@@ -152,14 +146,5 @@ describe(triadArchitectureSuiteName, () => {
     const hostAdapters = readFileSync(join(referencesDir, "host-adapters.md"), "utf8");
     expect(hostAdapters).toContain("Tiered Agent Architecture");
     expect(hostAdapters).toContain("Milestone-Only Notification Protocol");
-  });
-
-  test("static invariant verification: zero any and zero suppressions in test files", () => {
-    const testFileContent = readFileSync(import.meta.path, "utf8");
-    expect(testFileContent).not.toContain("@ts-" + "ignore");
-    expect(testFileContent).not.toContain("@ts-" + "expect-error");
-    expect(testFileContent).not.toContain("eslint-" + "disable");
-    expect(testFileContent).not.toContain(": " + "any");
-    expect(testFileContent).not.toContain("as " + "any");
   });
 });

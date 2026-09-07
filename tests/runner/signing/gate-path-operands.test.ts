@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { writeFileSync } from "node:fs";
-import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import { getRunnerVfs, tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
 afterEach(cleanupTempRoots);
 import {
@@ -61,8 +60,9 @@ describe("pathOperand", () => {
   });
 
   test("resolves an existing extensionless file in cwd", () => {
+    const vfs = getRunnerVfs();
     const root = tempRoot("path-operand-exist");
-    writeFileSync(join(root, "Makefile"), "all:\\n");
+    vfs.writeFileSync(join(root, "Makefile"), "all:\n");
     expect(pathOperand("Makefile", root, false)).toBe("Makefile");
     expect(pathOperand("nonexistent_file_no_ext", root, false)).toBeUndefined();
   });

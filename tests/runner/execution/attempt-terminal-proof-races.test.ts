@@ -1,5 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, writeFile } from "node:fs/promises";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { atomicWriteJson } from "../../../olt/scripts/src/core/durable-write.ts";
 import { cleanupFailedAttempt } from "../../../olt/scripts/src/engine/runner/execution/attempt-cleanup.ts";
@@ -7,9 +6,13 @@ import { writeAttemptFailureEvidence } from "../../../olt/scripts/src/engine/run
 import type { AttemptProcessProof } from "../../../olt/scripts/src/engine/runner/execution/attempt-intent.ts";
 import { DescendantTracker } from "../../../olt/scripts/src/engine/runner/reconciliation/descendant-tracker.ts";
 import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
-import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import { getRunnerVfs, tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
 const rootIdentity: ProcessIdentity = { pid: 40, parent: 30, group: 40, birth: "root" };
+
+beforeEach(() => {
+  getRunnerVfs();
+});
 
 afterEach(cleanupTempRoots);
 
@@ -151,12 +154,13 @@ describe("failed attempt descendant tracking and races", () => {
     });
     const runRoot = tempRoot("attempt-terminal-signals");
     const attemptDir = join(runRoot, "commands", "C-signals", "attempt-1");
-    await mkdir(attemptDir, { recursive: true });
+    const vfs = getRunnerVfs();
+    vfs.mkdirSync(attemptDir, { recursive: true });
     const stdoutPath = join(attemptDir, "stdout.log"),
       stderrPath = join(attemptDir, "stderr.log"),
       activityPath = join(attemptDir, "activity.json");
-    await writeFile(stdoutPath, "partial\n");
-    await writeFile(stderrPath, "");
+    vfs.writeFileSync(stdoutPath, "partial\n");
+    vfs.writeFileSync(stderrPath, "");
     atomicWriteJson(
       activityPath,
       {

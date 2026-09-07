@@ -1,6 +1,4 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, truncate, writeFile } from "node:fs/promises";
-import { openSync, readSync, realpathSync } from "node:fs";
 import { join } from "node:path";
 import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
@@ -9,7 +7,14 @@ import {
 } from "../../../olt/scripts/src/engine/runner/signing/gate-path-bindings.ts";
 import { gateControlBindingsOverlapWriteScopes } from "../../../olt/scripts/src/engine/runner/signing/gate-path-overlap.ts";
 import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
-import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import {
+  cleanupTempRoots,
+  getRunnerVfs,
+  openVirtualFile,
+  readVirtualFile,
+  realpathVirtual,
+  tempRoot,
+} from "../command/fixture.ts";
 
 const stableRepository = {
   schema: "harness.repository-binding",
@@ -24,18 +29,20 @@ const observer = { inspectRepository: () => stableRepository };
 
 afterEach(cleanupTempRoots);
 
-async function repository(): Promise<string> {
+function repository(): string {
   const root = tempRoot("gate-path-binding-dyn");
-  await mkdir(join(root, "tools"));
+  const vfs = getRunnerVfs();
+  vfs.mkdirSync(join(root, "tools"), { recursive: true });
   return root;
 }
 
 describe("dynamic gate path bindings", () => {
-  test("rejects repeated canonical directories before any recursive open or read", async () => {
-    const root = await repository();
-    await writeFile(join(root, "tools", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
-    await mkdir(join(root, "suite"));
-    await writeFile(join(root, "suite", "large.test.ts"), "x".repeat(64 * 1024));
+  test("rejects repeated canonical directories before any recursive open or read", () => {
+    const root = repository();
+    const vfs = getRunnerVfs();
+    vfs.writeFileSync(join(root, "tools", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
+    vfs.mkdirSync(join(root, "suite"), { recursive: true });
+    vfs.writeFileSync(join(root, "suite", "large.test.ts"), "x".repeat(64 * 1024));
     let opens = 0;
     let directoryReads = 0;
     let fileReads = 0;
@@ -44,7 +51,7 @@ describe("dynamic gate path bindings", () => {
       captureGatePathBindings(root, root, ["./tools/verify", "suite", "./suite"], undefined, {
         openPath: (path, flags) => {
           opens += 1;
-          return openSync(path, flags);
+          return openVirtualFile(path, flags);
         },
         openDirectory: () => {
           directoryReads += 1;
@@ -52,7 +59,7 @@ describe("dynamic gate path bindings", () => {
         },
         readFile: (...arguments_) => {
           fileReads += 1;
-          return readSync(...arguments_);
+          return readVirtualFile(...arguments_);
         },
       }),
     ).toThrow(/repeats canonical path operand/i);
@@ -63,45 +70,49 @@ describe("dynamic gate path bindings", () => {
     });
   });
 
-  test("shares the recursive byte and digest-work budget across distinct operands", async () => {
-    const root = await repository();
+  test("shares the recursive byte and digest-work budget across distinct operands", () => {
+    const root = repository();
+    const vfs = getRunnerVfs();
     const executable = join(root, "tools", "verify");
-    await writeFile(executable, "#!/bin/sh\nexit 0\n", { mode: 0o700 });
+    vfs.writeFileSync(executable, "#!/bin/sh\nexit 0\n", { mode: 0o700 });
     const first = join(root, "suite-a"),
       second = join(root, "suite-b");
-    await mkdir(first);
-    await mkdir(second);
+    vfs.mkdirSync(first, { recursive: true });
+    vfs.mkdirSync(second, { recursive: true });
     const firstFile = join(first, "large.test.ts"),
       secondFile = join(second, "large.test.ts");
-    await writeFile(firstFile, "");
-    await writeFile(secondFile, "");
-    await truncate(firstFile, 33 * 1024 * 1024);
-    await truncate(secondFile, 33 * 1024 * 1024);
+    vfs.writeFileSync(firstFile, Buffer.alloc(33 * 1024 * 1024));
+    vfs.writeFileSync(secondFile, Buffer.alloc(33 * 1024 * 1024));
     const opened = new Map<number, string>();
     const reads = new Map<string, number>();
 
     expect(() =>
       captureGatePathBindings(root, root, ["./tools/verify", "suite-a", "suite-b"], undefined, {
         openPath: (path, flags) => {
-          const descriptor = openSync(path, flags);
+          const descriptor = openVirtualFile(path, flags);
           opened.set(descriptor, path);
           return descriptor;
         },
         readFile: (descriptor, buffer, offset, length, position) => {
           const path = opened.get(descriptor)!;
           reads.set(path, (reads.get(path) ?? 0) + 1);
-          return readSync(descriptor, buffer, offset, length, position);
+          const pos = Number(position ?? 0);
+          const toRead = Math.min(length, 33 * 1024 * 1024 - pos);
+          if (toRead <= 0) return 0;
+          (buffer as Uint8Array).fill(0, offset, offset + toRead);
+          return toRead;
         },
       }),
     ).toThrow(/shared byte|digest-work/i);
-    expect(reads.get(realpathSync(firstFile))).toBeGreaterThan(0);
-    expect(reads.get(realpathSync(secondFile)) ?? 0).toBe(0);
+    expect(reads.get(realpathVirtual(firstFile))).toBeGreaterThan(0);
+    expect(reads.get(realpathVirtual(secondFile)) ?? 0).toBe(0);
   });
 
-  test("protects interpreter programs and configs from every task write scope", async () => {
-    const root = await repository();
-    await writeFile(join(root, "tools", "verify.ts"), "console.log('ok');\n");
-    await writeFile(join(root, "tools", "gate.json"), "{}\n");
+  test("protects interpreter programs and configs from every task write scope", () => {
+    const root = repository();
+    const vfs = getRunnerVfs();
+    vfs.writeFileSync(join(root, "tools", "verify.ts"), "console.log('ok');\n");
+    vfs.writeFileSync(join(root, "tools", "gate.json"), "{}\n");
     const bindings = captureGatePathBindings(root, root, [
       "bun",
       "tools/verify.ts",
@@ -117,15 +128,16 @@ describe("dynamic gate path bindings", () => {
     expect(gateControlBindingsOverlapWriteScopes(bindings, [["src"], ["tests"]])).toBeFalse();
   });
 
-  test("classifies shifted programs and accepted tool config flags as control inputs", async () => {
-    const root = await repository();
+  test("classifies shifted programs and accepted tool config flags as control inputs", () => {
+    const root = repository();
+    const vfs = getRunnerVfs();
     const bin = tempRoot("gate-role-bin");
     for (const executable of ["deno", "biome", "prettier", "tsc"])
-      await writeFile(join(bin, executable), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
-    await writeFile(join(root, "tools", "verify.ts"), "console.log('ok');\n");
+      vfs.writeFileSync(join(bin, executable), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
+    vfs.writeFileSync(join(root, "tools", "verify.ts"), "console.log('ok');\n");
     for (const file of ["biome.json", "ignore.txt", "tsconfig.json"])
-      await writeFile(join(root, "tools", file), "{}\n");
-    await mkdir(join(root, "src"));
+      vfs.writeFileSync(join(root, "tools", file), "{}\n");
+    vfs.mkdirSync(join(root, "src"), { recursive: true });
 
     const commands = [
       ["deno", "run", "--allow-read=src", "tools/verify.ts"],
@@ -144,25 +156,27 @@ describe("dynamic gate path bindings", () => {
     expect(roles[3]).toContainEqual(["tools/tsconfig.json", "config"]);
   });
 
-  test("does not infer package or tool configuration outside literal argv operands", async () => {
-    const root = await repository();
+  test("does not infer package or tool configuration outside literal argv operands", () => {
+    const root = repository();
+    const vfs = getRunnerVfs();
     const cwd = join(root, "packages", "api");
-    await mkdir(cwd, { recursive: true });
-    await writeFile(join(root, "package.json"), '{"scripts":{"test":"bun test"}}\n');
-    await writeFile(join(root, "bunfig.toml"), "[test]\n");
+    vfs.mkdirSync(cwd, { recursive: true });
+    vfs.writeFileSync(join(root, "package.json"), '{"scripts":{"test":"bun test"}}\n');
+    vfs.writeFileSync(join(root, "bunfig.toml"), "[test]\n");
     const argv = ["bun", "run", "test"];
     const bindings = captureGatePathBindings(root, cwd, argv);
     expect(bindings.filter(({ scope }) => scope === "repository")).toEqual([]);
-    await writeFile(join(root, "package.json"), '{"scripts":{"test":"false"}}\n');
+    vfs.writeFileSync(join(root, "package.json"), '{"scripts":{"test":"false"}}\n');
     expect(gatePathBindingIssues(root, cwd, argv, bindings)).toEqual([]);
   });
 
   test("rejects capture-to-spawn mutation before invoking the attempt runner", async () => {
-    const root = await repository();
+    const root = repository();
+    const vfs = getRunnerVfs();
     const runRoot = join(root, ".olt", "capsules");
-    await mkdir(join(runRoot, "commands"), { recursive: true });
+    vfs.mkdirSync(join(runRoot, "commands"), { recursive: true });
     const executable = join(root, "tools", "verify");
-    await writeFile(executable, "#!/bin/sh\nexit 0\n", { mode: 0o700 });
+    vfs.writeFileSync(executable, "#!/bin/sh\nexit 0\n", { mode: 0o700 });
     let invoked = false;
     const runner = createInternalCommandRunner({
       ...observer,
@@ -179,7 +193,7 @@ describe("dynamic gate path bindings", () => {
       actor: "validator",
       gateId: "G-test",
     });
-    await writeFile(executable, "#!/bin/sh\nexit 1\n", { mode: 0o700 });
+    vfs.writeFileSync(executable, "#!/bin/sh\nexit 1\n", { mode: 0o700 });
     await expect(runner.executePreparedCommand(prepared)).rejects.toThrow(
       /identity|digest|changed/i,
     );

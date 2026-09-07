@@ -188,7 +188,7 @@ describe("formatPlanReviewBrief", () => {
     });
 
     expect(brief).toContain("### Plan Validation Approved: run-1 (Graph Revision 2)");
-    expect(brief).toContain("implementers and repairers may now claim tasks");
+    expect(brief).toContain("implementers may now claim tasks");
     expect(brief).toContain("proceed to Phase 2 continuous dispatch.");
     expect(brief).toContain("**Coverage**: 1 dependency edge(s) and 2 gate(s) named");
   });
@@ -207,7 +207,7 @@ describe("formatPlanReviewBrief", () => {
 
     expect(brief).toContain("### Plan Validation Rejected: run-1 (Graph Revision 2)");
     expect(brief).toContain(
-      "**Findings**: 3 — every implementer and repairer claim against graph revision 2 is refused",
+      "**Findings**: 3 — every implementer claim against graph revision 2 is refused",
     );
     expect(brief).toContain("replan (plan:add / plan:compile)");
   });

@@ -147,8 +147,8 @@ telemetry-only `modelTier` field is never treated as a Codex model name.
 | :---------------------------- | :-------------------------------------------------------------------------------------------------------------------------- | :-------------- | :--------------- |
 | Product Mind                  | `mind`                                                                                                                      | `gpt-5.6-sol`   | `xhigh`          |
 | Run leadership                | `orchestrator`                                                                                                              | `gpt-5.6-sol`   | `high`           |
-| Mechanical and implementation | `coordinator`, `implementer`, `planner`, `repairer`, `sub-implementer`, `sub-investigator`                                  | `gpt-5.6-terra` | `xhigh`          |
-| Routine checking and auditing | `completeness-critic`, `mechanic-validator`, `meta-auditor`, `mind-auditor`, `plan-validator`, `sub-validator`, `validator` | `gpt-5.6-luna`  | `xhigh`          |
+| Mechanical and implementation | `coordinator`, `implementer`, `planner`, `sub-implementer`, `sub-investigator`                                              | `gpt-5.6-terra` | `xhigh`          |
+| Routine checking and auditing | `completeness-critic`, `meta-auditor`, `mind-auditor`, `plan-validator`, `sub-validator`, `validator`                       | `gpt-5.6-luna`  | `xhigh`          |
 
 ---
 

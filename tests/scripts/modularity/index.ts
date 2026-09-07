@@ -5,11 +5,11 @@
 
 export const scriptsModularitySuite = [
   "baseline",
-  "check",
-  "checker",
   "fanout-lines",
   "git-index",
   "imports",
+  "modularity-cli",
+  "modularity-engine",
   "policy-reporting",
   "scope",
   "tokenizer",

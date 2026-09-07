@@ -1,6 +1,16 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { compilerSuppressionRule } from "../../../olt/scripts/src/linter/rules/compiler_suppression.ts";
-import { lintSourceCode } from "../../../olt/scripts/src/linter/ast/runner.ts";
+import { lintFile, lintSourceCode } from "../../../olt/scripts/src/linter/ast/runner.ts";
+import { cleanupVirtualRulesFS, setupVirtualRulesFS } from "../fixture.ts";
+import type { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/memory-fs.ts";
+
+let vfs: VirtualMemoryFS;
+
+beforeEach(() => {
+  vfs = setupVirtualRulesFS();
+});
+
+afterEach(cleanupVirtualRulesFS);
 
 describe("Linter Rule: compiler_suppression", () => {
   it("has correct rule metadata", () => {
@@ -63,5 +73,21 @@ describe("Linter Rule: compiler_suppression", () => {
     });
     expect(suggestion?.suggestedReplacement).toBe("");
     expect(suggestion?.explanation).toContain("Remove compiler suppression");
+  });
+
+  it("lints virtual file via lintFile on VirtualMemoryFS", () => {
+    const filePath = "/virtual/rules-scratch/test-suppression.ts";
+    vfs.writeFileSync(filePath, "// @" + "ts-ignore with trailing comment\nexport const x = 1;");
+    const result = lintFile(filePath, { enabledRules: ["compiler_suppression"] });
+    expect(result.valid).toBe(false);
+    expect(result.violations.length).toBe(1);
+    expect(result.violations[0].message).toContain("@" + "ts-ignore");
+  });
+
+  it("detects multi-directive comments and eslint-disable variations", () => {
+    const code = "/* eslint-disable-next-line */\n// @" + "ts-expect-error reason\nconst x = 1;";
+    const result = lintSourceCode(code, "test.ts", { enabledRules: ["compiler_suppression"] });
+    expect(result.valid).toBe(false);
+    expect(result.violations.length).toBe(2);
   });
 });

@@ -761,7 +761,7 @@ export function parseRawDiagnostics(
           /^(TypeError|ReferenceError|SyntaxError|RangeError|URIError|EvalError|Error|InvariantViolation|ContractRegression|BoundaryViolation):\s*(.+)$/,
         );
         const errorTypeName = headerMatch ? headerMatch[1] : "Error";
-        let message = headerMatch && headerMatch[2] ? headerMatch[2] : trimmed;
+        const message = headerMatch && headerMatch[2] ? headerMatch[2] : trimmed;
         const stackLines: string[] = [];
         let filePath: string | undefined = undefined;
         let lineNum: number | undefined = undefined;

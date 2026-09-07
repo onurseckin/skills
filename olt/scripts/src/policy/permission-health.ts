@@ -113,7 +113,6 @@ export function auditPermissionHealth(
     "task:abandon",
     "task:brief",
     "task:check",
-    "task:assign-repairer",
     "task:finding-input",
     "task:review-support",
     "whoami",
@@ -136,9 +135,7 @@ export function auditPermissionHealth(
   }
 
   const isCognitiveCodeValidator =
-    (manifest.role === "validator" ||
-      manifest.role === "ui-validator" ||
-      manifest.role === "ui-optical-validator") &&
+    (manifest.role === "validator" || manifest.role === "ui-optical-validator") &&
     !manifest.role.includes("mechanic");
 
   if (isCognitiveCodeValidator) {

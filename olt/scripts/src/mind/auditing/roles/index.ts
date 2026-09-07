@@ -36,7 +36,7 @@ export {
   isCoordinatorRole,
   isImplementerRole,
   isValidatorRole,
-  isMechanicValidatorRole,
+  isHeadlessValidatorRole,
   isCognitiveValidatorRole,
   isMindRole,
   isFullTestSuiteCommand,

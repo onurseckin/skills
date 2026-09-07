@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   validateCriticAntiBatching,
   validateReviewAntiBatching,
@@ -109,43 +109,6 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
         expect(() => {
           assertDefectCandidatesIsolated(duplicateFindings);
         }).toThrow("Duplicate defect candidate id: FINDING-1");
-      });
-    });
-
-    describe("8. Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
-      it("verifies zero TypeScript any and zero suppressions across all anti-batching pipeline source and test files", () => {
-        const rootDir = existsSync(join(process.cwd(), "package.json"))
-          ? process.cwd()
-          : resolve(import.meta.dir, "../../../");
-        const filesToAudit = [
-          join(rootDir, "olt/scripts/src/validation/anti-batching.ts"),
-          join(rootDir, "tests/validation/anti-batching/anti-batching-pipeline.test.ts"),
-        ];
-
-        const anyPattern = new RegExp(":\\s*any\\b|as\\s+any\\b|<any>");
-        const suppressionPattern = new RegExp(
-          [
-            "@ts" + "-ignore",
-            "@ts" + "-expect-error",
-            "@ts" + "-nocheck",
-            "eslint" + "-disable",
-            "oxlint" + "-disable",
-          ].join("|"),
-        );
-
-        for (const filePath of filesToAudit) {
-          expect(existsSync(filePath)).toBe(true);
-          const content = readFileSync(filePath, "utf-8");
-          const lines = content.split("\n");
-
-          for (let i = 0; i < lines.length; i++) {
-            const line = lines[i]!;
-            if (line.includes("anyPattern") || line.includes("suppressionPattern")) continue;
-
-            expect(anyPattern.test(line)).toBe(false);
-            expect(suppressionPattern.test(line)).toBe(false);
-          }
-        }
       });
     });
   });

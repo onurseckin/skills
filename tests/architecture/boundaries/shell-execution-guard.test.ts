@@ -1,34 +1,34 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { readdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
-import { fileURLToPath } from "node:url";
 import {
   cleanupVirtualArchitectureFS,
+  scratchRoot,
   setupVirtualArchitectureFS,
 } from "../fixtures/architecture-fixture.ts";
 
-const repoRoot = fileURLToPath(new URL("../../..", import.meta.url));
-const oltScriptsRoot = join(repoRoot, "olt/scripts/src");
-const syncScriptsRoot = join(repoRoot, "scripts");
+let vfs: ReturnType<typeof setupVirtualArchitectureFS>;
 
 beforeEach(() => {
-  setupVirtualArchitectureFS();
+  vfs = setupVirtualArchitectureFS();
 });
 
 afterEach(() => {
   cleanupVirtualArchitectureFS();
 });
 
-async function filesBelow(root: string): Promise<string[]> {
-  const entries = await readdir(root, { withFileTypes: true });
-  const nested = await Promise.all(
-    entries.map(async (entry) => {
-      const path = join(root, entry.name);
-      if (entry.isDirectory()) return filesBelow(path);
-      return path.endsWith(".ts") && !path.endsWith(".test.ts") ? [path] : [];
-    }),
-  );
-  return nested.flat();
+function filesBelow(root: string): string[] {
+  if (!vfs.existsSync(root)) return [];
+  const entries = vfs.readdirSync(root, { withFileTypes: true });
+  const results: string[] = [];
+  for (const entry of entries) {
+    const full = join(root, entry.name);
+    if (entry.isDirectory()) {
+      results.push(...filesBelow(full));
+    } else if (full.endsWith(".ts") && !full.endsWith(".test.ts")) {
+      results.push(full);
+    }
+  }
+  return results;
 }
 
 const SHELL_EXECUTION_PATTERNS: readonly { readonly label: string; readonly pattern: RegExp }[] = [
@@ -55,22 +55,39 @@ export function scanSourceForShellExecution(source: string): string[] {
   return hits;
 }
 
-async function findShellExecution(): Promise<string[]> {
-  const files = [...(await filesBelow(oltScriptsRoot)), ...(await filesBelow(syncScriptsRoot))];
+function findShellExecution(roots: string[], baseDir = ""): string[] {
+  const files = roots.flatMap((root) => filesBelow(root));
   const findings: string[] = [];
   for (const file of files) {
-    const source = await readFile(file, "utf-8");
+    const source = vfs.readFileSync(file, "utf8");
     for (const label of new Set(scanSourceForShellExecution(source))) {
-      findings.push(`${relative(repoRoot, file)} uses ${label}`);
+      findings.push(`${baseDir ? relative(baseDir, file) : file} uses ${label}`);
     }
   }
   return findings.sort();
 }
 
 describe("shell execution is not permitted in harness source", () => {
-  test("no source file spawns a shell", async () => {
-    const findings = await findShellExecution();
+  test("no source file spawns a shell in compliant virtual tree", () => {
+    const root = scratchRoot(import.meta.path, "shell-guard-compliant");
+    vfs.mkdirSync(join(root, "src"), { recursive: true });
+    vfs.writeFileSync(join(root, "src/safe.ts"), 'export function run(cmd: string) { return "ok"; }');
+    vfs.writeFileSync(join(root, "src/worker.ts"), 'spawnSync("git", ["status"], { shell: false });');
+    const findings = findShellExecution([root], root);
     expect(findings).toEqual([]);
+  });
+
+  test("the scan discovers shell invocations in virtual file tree", () => {
+    const root = scratchRoot(import.meta.path, "shell-guard-violating");
+    vfs.mkdirSync(join(root, "src"), { recursive: true });
+    vfs.writeFileSync(join(root, "src/bad.ts"), 'execSync("rm -rf /");');
+    vfs.writeFileSync(join(root, "src/bad2.ts"), 'const s = spawnSync("/bin/sh", ["-c", cmd], { shell: true });');
+    const findings = findShellExecution([root], root);
+    expect(findings).toEqual([
+      "src/bad.ts uses execSync",
+      "src/bad2.ts uses /bin/sh",
+      "src/bad2.ts uses shell: true",
+    ]);
   });
 
   test("the scan actually detects a shell invocation", () => {

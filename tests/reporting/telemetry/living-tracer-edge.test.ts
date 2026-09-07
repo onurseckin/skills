@@ -175,4 +175,67 @@ describe(livingTracerEdgeSuiteName, () => {
     expect(task?.status).toBe("ready");
     expect(task?.assignedAgent).toBeNull();
   });
+
+  it("handles multi-round cascading rejections and sprouted repair branches cleanly", () => {
+    const events: HarnessEvent[] = [
+      {
+        schema: "harness-event-v1",
+        sequence: 1,
+        timestamp: "2026-08-29T10:00:00.000Z",
+        actor: "coordinator",
+        kind: "task-created",
+        payload: { task_id: "T-CASCADE", label: "Cascade Task", round: 0 },
+      },
+      {
+        schema: "harness-event-v1",
+        sequence: 2,
+        timestamp: "2026-08-29T10:00:01.000Z",
+        actor: "impl_14",
+        kind: "task-claimed",
+        payload: { task_id: "T-CASCADE" },
+      },
+      {
+        schema: "harness-event-v1",
+        sequence: 3,
+        timestamp: "2026-08-29T10:00:02.000Z",
+        actor: "val_07",
+        kind: "task-rejected",
+        payload: { task_id: "T-CASCADE", reason: "First round AST failure" },
+      },
+      {
+        schema: "harness-event-v1",
+        sequence: 4,
+        timestamp: "2026-08-29T10:00:03.000Z",
+        actor: "impl_14",
+        kind: "task-claimed",
+        payload: { task_id: "T-CASCADE-repair-r1" },
+      },
+      {
+        schema: "harness-event-v1",
+        sequence: 5,
+        timestamp: "2026-08-29T10:00:04.000Z",
+        actor: "val_07",
+        kind: "task-rejected",
+        payload: { task_id: "T-CASCADE-repair-r1", reason: "Second round lint failure" },
+      },
+    ];
+
+    const dagState = buildDynamicDagState(events);
+    expect(dagState.tasks.size).toBe(5);
+    expect(dagState.sproutedRepairPairs.length).toBe(2);
+
+    const cascadeTask = dagState.tasks.get("T-CASCADE");
+    expect(cascadeTask).toBeDefined();
+    if (cascadeTask) {
+      expect(cascadeTask.status).toBe("changes_requested");
+      expect(cascadeTask.executionState).toContain("[❌ REJECTED - R0]");
+      const sprouted = cascadeTask.sproutedChildren ? cascadeTask.sproutedChildren : [];
+      expect(sprouted.length).toBe(2);
+    }
+
+    const report = buildLivingTracerReport(events, { runId: "cascade-run" });
+    expect(report.summary.totalSteps).toBe(5);
+    expect(report.summary.repairBranchesCount).toBe(4);
+    expect(report.markdown).toContain("T-CASCADE");
+  });
 });

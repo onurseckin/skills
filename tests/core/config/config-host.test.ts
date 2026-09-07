@@ -137,7 +137,7 @@ describe("core/config/host-canon.ts", () => {
         timer_arming_mechanism: "systemd",
         wake_driver_present: true,
         self_wake_supported: false,
-        models_available: ["gpt-4o", "claude-3-5"],
+        models_available: ["gpt-4o", "generic-model-b"],
       },
       "claude-code": {
         timer_arming_mechanism: "invalid_mechanism",
@@ -151,7 +151,7 @@ describe("core/config/host-canon.ts", () => {
     expect(parsed.cursor?.timer_arming_mechanism).toEqual(attestedFact("systemd"));
     expect(parsed.cursor?.wake_driver_present).toEqual(attestedFact(true));
     expect(parsed.cursor?.self_wake_supported).toEqual(attestedFact(false));
-    expect(parsed.cursor?.models_available).toEqual(attestedFact(["gpt-4o", "claude-3-5"]));
+    expect(parsed.cursor?.models_available).toEqual(attestedFact(["gpt-4o", "generic-model-b"]));
 
     expect(parsed["claude-code"]?.timer_arming_mechanism).toEqual(unreadableFact("none"));
     expect(parsed["claude-code"]?.wake_driver_present).toEqual(unreadableFact(false));

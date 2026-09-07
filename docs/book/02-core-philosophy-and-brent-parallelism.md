@@ -274,7 +274,7 @@ gantt
     Task 1 (Fast)       :done, s1, 0, 3m
     Task 2 (Normal)     :done, s2, 0, 5m
     Task 3 (Reclaimed)  :crit, active, s3, 0, 5m
-    Task 3 (Repairer)   :done, s3r, 5, 8m
+    Task 3 (Repair)     :done, s3r, 5, 8m
     Wave 2 Barrier      :milestone, 8, 0m
 ```
 
@@ -284,7 +284,7 @@ To prevent straggler bottlenecks:
 
 1. **Monotonic Lease Deadlines**: Every task lease is issued with a strict 20-minute maximum duration and a mandatory **5-minute heartbeat interval**.
 2. **Automated Heartbeat Extension**: Active workers must call `task:heartbeat` within every 5-minute window to confirm forward progress.
-3. **Zombie Lease Reclaiming**: If an agent fails to send a heartbeat within 5 minutes, the Coordinator marks the lease `stale`, revokes write tokens, and reclaims the task for immediate reallocation to a fresh repairer agent.
+3. **Zombie Lease Reclaiming**: If an agent fails to send a heartbeat within 5 minutes, the Coordinator marks the lease `stale`, revokes write tokens, and reclaims the task for immediate reallocation to a fresh implementer.
 
 ---
 

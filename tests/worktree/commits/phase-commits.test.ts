@@ -1,6 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   createPhaseCommitPayload,
@@ -230,12 +228,10 @@ describe("Phase Commits: Verification and Execution", () => {
   });
 
   describe("Audit Invariants", () => {
-    test("phase-commits source files exist and compile cleanly", () => {
-      const repoRoot = resolve(import.meta.dir, "../../..");
-      const srcPath = join(repoRoot, "olt/scripts/src/engine/worktree/phase-commits.ts");
-      expect(existsSync(srcPath)).toBeTrue();
-      const content = readFileSync(srcPath, "utf8");
-      expect(content.length).toBeGreaterThan(0);
+    test("phase-commits source exports exist and compile cleanly", () => {
+      expect(typeof createPhaseCommitPayload).toBe("function");
+      expect(typeof evaluateUpstreamPushPolicy).toBe("function");
+      expect(typeof verifyPhasePreconditions).toBe("function");
     });
   });
 });

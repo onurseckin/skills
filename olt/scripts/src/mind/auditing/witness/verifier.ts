@@ -138,7 +138,7 @@ export function verifyDefectWitness(
     }
   }
 
-  let status: CommandStatus = (
+  const status: CommandStatus = (
     typeof commandRecord.status === "string" ? commandRecord.status : "failed"
   ) as CommandStatus;
 

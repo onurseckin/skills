@@ -207,5 +207,68 @@ describe("Multi-Domain Dispatch: Validator Concurrent Dispatch", () => {
       expect(valIds).toContain("sub-ui-clean");
       expect(valIds).not.toContain("sub-ui-conflict");
     });
+
+    test("verifies exact boundary condition at parallelismFactor = 2.5 vs 2.49", () => {
+      const tasks = [
+        createTask("impl-1", "src/ui/A.tsx", { status: "ready", priority: 10 }),
+        createTask("sub-1", "src/auth/B.ts", { status: "submitted", priority: 9, validator_domain: "security" }),
+      ];
+      const state = createMultiDomainState(tasks);
+
+      // At threshold 2.5: active
+      const atThreshold = evaluateMultiDomainBatch(state, {
+        parallelismFactor: 2.5,
+        maxParallel: 3,
+      });
+      expect(atThreshold.isMultiDomainActive).toBeTrue();
+      expect(atThreshold.validatorDispatches).toHaveLength(1);
+
+      // Just below threshold 2.49: inactive (toFixed(2) === 2.49 < 2.5)
+      const belowThreshold = evaluateMultiDomainBatch(state, {
+        parallelismFactor: 2.49,
+        maxParallel: 3,
+      });
+      expect(belowThreshold.isMultiDomainActive).toBeFalse();
+      expect(belowThreshold.validatorDispatches).toHaveLength(0);
+    });
+
+    test("enforces domain diversity and round-robin balancing across domains over raw priority stacking", () => {
+      const tasks = [
+        createTask("val-ui-1", "src/ui/Card.tsx", { status: "submitted", priority: 10 }),
+        createTask("val-ui-2", "src/ui/Button.tsx", { status: "submitted", priority: 9 }),
+        createTask("val-back-1", "src/api/Users.ts", { status: "submitted", priority: 8 }),
+        createTask("val-back-2", "src/api/Orders.ts", { status: "submitted", priority: 7 }),
+      ];
+      const state = createMultiDomainState(tasks);
+
+      const result = dispatchMultiDomainValidators(state, {
+        parallelismFactor: 3.0,
+        maxParallel: 2,
+      });
+
+      expect(result.validatorDispatches).toHaveLength(2);
+      const dispatchedDomains = result.dispatchedDomains;
+      expect(dispatchedDomains).toContain("backend-system");
+      expect(dispatchedDomains).toContain("frontend-ui");
+      const taskIds = result.validatorDispatches.map((v) => v.taskId);
+      expect(taskIds).toEqual(["val-back-1", "val-ui-1"]);
+    });
+
+    test("excludes validator candidates whose write scopes collide with multi-scope active implementers", () => {
+      const tasks = [
+        createTask("val-clean", "src/auth/Keys.ts", { status: "submitted", priority: 10, validator_domain: "security" }),
+        createTask("val-collide", "src/shared/Token.ts", { status: "submitted", priority: 9, validator_domain: "security" }),
+      ];
+      const state = createMultiDomainState(tasks);
+
+      const result = dispatchMultiDomainValidators(state, {
+        parallelismFactor: 3.0,
+        maxParallel: 3,
+        activeImplementerScopes: [["src/ui/Card.tsx", "src/shared/Token.ts"]],
+      });
+
+      expect(result.validatorDispatches).toHaveLength(1);
+      expect(result.validatorDispatches[0]!.taskId).toBe("val-clean");
+    });
   });
 });

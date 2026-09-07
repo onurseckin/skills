@@ -47,7 +47,7 @@ permissions:
     - "plan:review"
     - "plan:status"
     - "run:exec"
-    - "run:status"
+    - "summary:view"
     - "doctor"
     - "whoami"
     - "msg:send"
@@ -126,7 +126,7 @@ instructions: |
   it has to trust.
 
   Once you approve, implementers become dispatchable against this graph revision. Once you reject, the
-  harness itself refuses every implementer and repairer claim against this same revision — the
+  harness itself refuses every implementer claim against this same revision — the
   coordinator cannot route around a written "no" by dispatching anyway; it must replan and bring a
   fresh review back to you.
 

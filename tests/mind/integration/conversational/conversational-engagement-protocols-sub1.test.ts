@@ -27,15 +27,16 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import {
   advanceMailboxCursorBatch,
+  clearInMemoryCursors,
+  clearInMemoryMailboxStore,
   dispatchPeerMessage,
   ensureMailboxDir,
   loadMailboxCursor,
   readUnreadMessages,
+  registerInMemoryMailboxDir,
+  resetInMemoryMailboxDirs,
   type MailboxEnvelope,
 } from "../../../../olt/scripts/src/communication/mailbox/index.ts";
 import {
@@ -51,26 +52,26 @@ import {
   type ContainmentResult,
   type SupervisoryViolation,
 } from "../../../../olt/scripts/src/mind/containment/index.ts";
+import {
+  cleanupVirtualMindFS,
+  scratchRoot,
+  setupVirtualMindFS,
+} from "../../fixtures/mind-fixture.ts";
 
 describe("Conversational Engagement Protocols & Active Swarm Audit Suite", () => {
   let testRepoRoot: string;
 
   beforeEach(() => {
-    testRepoRoot = join(
-      tmpdir(),
-      `mind-conversational-audit-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    );
-    mkdirSync(testRepoRoot, { recursive: true });
-    mkdirSync(join(testRepoRoot, ".olt"), { recursive: true });
-    mkdirSync(join(testRepoRoot, ".olt", "mailboxes"), { recursive: true });
+    setupVirtualMindFS();
+    testRepoRoot = scratchRoot("conversational-audit", "sub1");
+    registerInMemoryMailboxDir(testRepoRoot);
   });
 
   afterEach(() => {
-    try {
-      rmSync(testRepoRoot, { recursive: true, force: true });
-    } catch {
-      // Best effort cleanup
-    }
+    resetInMemoryMailboxDirs();
+    clearInMemoryMailboxStore();
+    clearInMemoryCursors();
+    cleanupVirtualMindFS();
   });
 
   describe("1. Mandatory 3-Round (6-Turn) Socratic Conversational Laddering Protocol", () => {

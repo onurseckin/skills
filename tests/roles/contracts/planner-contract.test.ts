@@ -1,13 +1,22 @@
-import { describe, expect, test } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import {
   loadAgentManifest,
   loadUnifiedAgentModel,
 } from "../../../olt/scripts/src/authority/manifest/index.ts";
 import { loadRoleContract as loadPacketRoleContract } from "../../../olt/scripts/src/packets/role-contract.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { cleanupVirtualRolesFS, getVirtualRolesFS, setupVirtualRolesFS } from "../fixture.ts";
 
 describe("Planner & Plan-Validator Role Contracts & Agent Manifests Sync", () => {
+  beforeEach(() => {
+    setupVirtualRolesFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualRolesFS();
+  });
+
   const repoRoot = process.cwd();
   const plannerRolePath = join(repoRoot, "olt/agents/planner.yaml");
   const planValidatorRolePath = join(repoRoot, "olt/agents/plan-validator.yaml");
@@ -15,8 +24,9 @@ describe("Planner & Plan-Validator Role Contracts & Agent Manifests Sync", () =>
   const planValidatorAgentPath = join(repoRoot, "olt/agents/plan-validator.yaml");
 
   test("all target contract and manifest files exist on disk", () => {
-    expect(existsSync(plannerRolePath)).toBe(true);
-    expect(existsSync(planValidatorRolePath)).toBe(true);
+    const vfs = getVirtualRolesFS();
+    expect(vfs.existsSync(plannerRolePath)).toBe(true);
+    expect(vfs.existsSync(planValidatorRolePath)).toBe(true);
   });
 
   describe("Planner Role Contract (olt/roles/planner.md)", () => {
@@ -36,7 +46,8 @@ describe("Planner & Plan-Validator Role Contracts & Agent Manifests Sync", () =>
     });
 
     test("contains all mandatory keywords and invariants", () => {
-      const raw = readFileSync(plannerRolePath, "utf-8");
+      const vfs = getVirtualRolesFS();
+      const raw = vfs.readFileSync(plannerRolePath, "utf-8");
       expect(raw).toContain("plan:brainstorm");
       expect(raw).toContain("8-Vector");
       expect(raw).toContain("EMPTY_PAYLOAD");
@@ -74,11 +85,12 @@ describe("Planner & Plan-Validator Role Contracts & Agent Manifests Sync", () =>
       expect(contract.commands).toContain("plan:validate-start");
       expect(contract.commands).toContain("plan:review");
       expect(contract.commands).toContain("run:exec");
-      expect(contract.commands).toContain("run:status");
+      expect(contract.commands).toContain("summary:view");
     });
 
     test("contains all mandatory keywords and SHALLOW_PLAN_BLUNDER invariants", () => {
-      const raw = readFileSync(planValidatorRolePath, "utf-8");
+      const vfs = getVirtualRolesFS();
+      const raw = vfs.readFileSync(planValidatorRolePath, "utf-8");
       expect(raw).toContain("SHALLOW_PLAN_BLUNDER");
       expect(raw).toContain("8-vector");
       expect(raw).toContain("EMPTY_PAYLOAD");
@@ -114,7 +126,8 @@ describe("Planner & Plan-Validator Role Contracts & Agent Manifests Sync", () =>
     });
 
     test("instructions contain 8-vector matrix and plan:brainstorm mandates", () => {
-      const raw = readFileSync(plannerAgentPath, "utf-8");
+      const vfs = getVirtualRolesFS();
+      const raw = vfs.readFileSync(plannerAgentPath, "utf-8");
       expect(raw).toContain("plan:brainstorm");
       expect(raw).toContain("8-Vector");
       expect(raw).toContain("EMPTY_PAYLOAD");
@@ -147,7 +160,8 @@ describe("Planner & Plan-Validator Role Contracts & Agent Manifests Sync", () =>
     });
 
     test("instructions mandate rejection of SHALLOW_PLAN_BLUNDER and verify 8-vector expansion", () => {
-      const raw = readFileSync(planValidatorAgentPath, "utf-8");
+      const vfs = getVirtualRolesFS();
+      const raw = vfs.readFileSync(planValidatorAgentPath, "utf-8");
       expect(raw).toContain("SHALLOW_PLAN_BLUNDER");
       expect(raw).toContain("8-Vector");
       expect(raw).toContain("EMPTY_PAYLOAD");
@@ -172,4 +186,51 @@ describe("Planner & Plan-Validator Role Contracts & Agent Manifests Sync", () =>
       expect(validatorModel.commands).toContain("plan:review");
     });
   });
+
+  describe("Role Contract Integrity & Edge Cases", () => {
+    test("rejects mismatched role name (role spoofing) with HarnessError INTEGRITY", () => {
+      const vfs = getVirtualRolesFS();
+      const spoofedYaml = [
+        "name: planner",
+        "role: worker",
+        "tier: 3",
+        "provider: [anthropic]",
+        "tools:",
+        "  enable_subagent_tools: true",
+        "  enable_write_tools: true",
+        "interface:",
+        "  display_name: Planner",
+        "  short_description: Creates plans",
+      ].join("\n");
+      vfs.writeFileSync(plannerRolePath, spoofedYaml);
+
+      expect(() => loadPacketRoleContract("planner")).toThrow(HarnessError);
+      try {
+        loadPacketRoleContract("planner");
+        expect.unreachable("should have thrown HarnessError");
+      } catch (err) {
+        expect(err).toBeInstanceOf(HarnessError);
+        expect((err as HarnessError).code).toBe("INTEGRITY");
+      }
+    });
+
+    test("rejects malformed unparseable YAML contract with clean HarnessError INTEGRITY", () => {
+      const vfs = getVirtualRolesFS();
+      const corruptedYaml = `
+name: planner: [broken
+  bad_indent: {{{
+      `;
+      vfs.writeFileSync(plannerRolePath, corruptedYaml);
+
+      expect(() => loadPacketRoleContract("planner")).toThrow(HarnessError);
+      try {
+        loadPacketRoleContract("planner");
+        expect.unreachable("should have thrown HarnessError");
+      } catch (err) {
+        expect(err).toBeInstanceOf(HarnessError);
+        expect((err as HarnessError).code).toBe("INTEGRITY");
+      }
+    });
+  });
 });
+

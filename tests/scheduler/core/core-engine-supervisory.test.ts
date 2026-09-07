@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   auditSupervisory5PointHealth,
   determineTopLeader,
@@ -9,9 +9,20 @@ import {
   probeRoleBoundaryAdherence,
   probeWorkSpanParallelizationHealth,
 } from "../../../olt/scripts/src/engine/scheduler/index.ts";
-import { schedulerState } from "../fixtures.ts";
+import {
+  cleanupVirtualSchedulerFS,
+  getVirtualSchedulerFS,
+  schedulerState,
+  setupVirtualSchedulerFS,
+} from "../fixtures.ts";
 
 describe("Core Scheduler Engine — Structured 5-Point Supervisory Health Audit (p24)", () => {
+  beforeEach(() => {
+    setupVirtualSchedulerFS();
+  });
+  afterEach(() => {
+    cleanupVirtualSchedulerFS();
+  });
   test("Probe (a): Work/Span parallelization health evaluates metrics", () => {
     const state = schedulerState();
     const result = probeWorkSpanParallelizationHealth(state);
@@ -193,5 +204,21 @@ describe("Core Scheduler Engine — Structured 5-Point Supervisory Health Audit 
       "behavioral_evidence_unavailable",
     );
     expect(unavailable.markdown).not.toContain("🟢 HEALTHY");
+  });
+
+  test("intercepts virtual capsule runRoot in VirtualMemoryFS with zero disk fallback", () => {
+    const vfs = getVirtualSchedulerFS();
+    const virtualCapsule = "/virtual/scheduler-capsule-corrupt";
+    vfs.mkdirSync(virtualCapsule, { recursive: true });
+
+    const state = schedulerState();
+    const report = auditSupervisory5PointHealth(state, {
+      runRoot: virtualCapsule,
+    });
+
+    expect(report.healthy).toBeFalse();
+    expect(report.doctorResolution.passed).toBeFalse();
+    expect(report.doctorResolution.unresolvedErrors.length).toBeGreaterThan(0);
+    expect(report.doctorResolution.details.join(" ")).toContain("Integrity error: MANIFEST");
   });
 });

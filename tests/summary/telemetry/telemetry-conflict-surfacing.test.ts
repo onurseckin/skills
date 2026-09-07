@@ -1,9 +1,22 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { TelemetryFieldConflict } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { generateGraphDataset } from "../../../olt/scripts/src/summary/graph/index.ts";
 import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
 import { makeGrant, makeState, makeTask } from "../reporters/dag/graph-fixtures.ts";
-import { cleanupRoots, emptyState, render } from "../formatters/markdown-fixtures-core.ts";
+import {
+  cleanupRoots,
+  emptyState,
+  render,
+  setupVirtualFormattersFS,
+} from "../formatters/markdown-fixtures-core.ts";
+
+beforeEach(() => {
+  setupVirtualFormattersFS();
+});
+
+afterEach(() => {
+  cleanupRoots();
+});
 
 const CONFLICT: TelemetryFieldConflict = {
   field: "model",
@@ -95,7 +108,6 @@ describe("summary.md renders a Telemetry conflicts table in section 17", () => {
       ],
     };
     const markdown = render(state);
-    cleanupRoots();
 
     const section = markdown.slice(markdown.indexOf("## 17. Model And Token Telemetry"));
     expect(section).toContain("### Telemetry conflicts");
@@ -132,7 +144,6 @@ describe("summary.md renders a Telemetry conflicts table in section 17", () => {
       ],
     };
     const markdown = render(state);
-    cleanupRoots();
 
     const section = markdown.slice(markdown.indexOf("## 17. Model And Token Telemetry"));
     expect(section).toContain(
@@ -142,7 +153,6 @@ describe("summary.md renders a Telemetry conflicts table in section 17", () => {
 
   test("renders the explicit no-conflict note when no probe ever disagreed", () => {
     const markdown = render(emptyState);
-    cleanupRoots();
 
     const section = markdown.slice(markdown.indexOf("## 17. Model And Token Telemetry"));
     expect(section).toContain("### Telemetry conflicts");

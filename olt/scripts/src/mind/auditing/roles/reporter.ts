@@ -3,7 +3,6 @@ import {
   isCoordinatorRole,
   isCognitiveValidatorRole,
   isImplementerRole,
-  isMechanicValidatorRole,
   isMindRole,
   isOrchestratorRole,
   isFullTestSuiteCommand,

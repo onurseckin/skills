@@ -95,3 +95,9 @@ export {
   type CompletionResult,
   type CompletionReview,
 } from "./types.ts";
+
+export {
+  verifyTwoKeyValidatorPairing,
+  type TwoKeyValidatorPairing,
+  type ValidatorReceipt,
+} from "./two-key-validator-pairing.ts";

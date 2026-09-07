@@ -1,9 +1,18 @@
-import { describe, it, expect } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { RootDirectoryHygieneGuard } from "../../../olt/scripts/src/authority/guards/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { cleanupVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
 
 describe("RootDirectoryHygieneGuard", () => {
-  const repoRoot = "/Users/foo/repos/skills";
+  const repoRoot = "/virtual/authority-scratch/hygiene-guard-repo";
+
+  beforeEach(() => {
+    setupVirtualAuthorityFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualAuthorityFS();
+  });
 
   it("blocks writing ad-hoc scratch scripts in root with absolute and relative paths", () => {
     const unallowedFiles = ["fix_state.ts", "patch.cjs", "scratch_file.js", "random_file.ts"];
@@ -202,5 +211,41 @@ describe("RootDirectoryHygieneGuard", () => {
   it("can be instantiated without errors", () => {
     const guard = new RootDirectoryHygieneGuard();
     expect(guard).toBeDefined();
+  });
+
+  it("handles edge cases: leading dot-slash, redundant slashes, and unapproved hidden dot-files", () => {
+    // Leading ./ relative paths
+    expect(() => {
+      RootDirectoryHygieneGuard.assertAllowedWritePath(repoRoot, "./scratch/test.ts");
+    }).not.toThrow();
+
+    expect(() => {
+      RootDirectoryHygieneGuard.assertAllowedWritePath(repoRoot, "./package.json");
+    }).not.toThrow();
+
+    expect(() => {
+      RootDirectoryHygieneGuard.assertAllowedWritePath(repoRoot, "./fix-scratch.ts");
+    }).toThrow(HarnessError);
+
+    // Unapproved hidden/dot-files in root
+    const unapprovedDotFiles = [".bashrc", ".custom-secret", ".adhoc-env.jsonl", ".env.local.jsonl"];
+    for (const dotFile of unapprovedDotFiles) {
+      expect(() => {
+        RootDirectoryHygieneGuard.assertAllowedWritePath(repoRoot, dotFile);
+      }).toThrow(HarnessError);
+    }
+
+    // Redundant slashes
+    expect(() => {
+      RootDirectoryHygieneGuard.assertAllowedWritePath(repoRoot, "scratch//nested///test.ts");
+    }).not.toThrow();
+
+    expect(() => {
+      RootDirectoryHygieneGuard.assertAllowedWritePath(repoRoot, "scratch///test.ts");
+    }).not.toThrow();
+
+    expect(() => {
+      RootDirectoryHygieneGuard.assertAllowedWritePath(repoRoot, "custom_loose_dir///test.ts");
+    }).toThrow(HarnessError);
   });
 });

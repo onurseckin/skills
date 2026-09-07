@@ -119,8 +119,8 @@ function seedFalsifiableProof(port: TestPort): void {
 }
 
 function repaired(port: TestPort, attempt: number): void {
-  const { token } = claimTask(port, "T-1", "implementer", "repairer", { clock });
-  registerTaskPacket(port, "repairer", "implementer", attempt);
+  const { token } = claimTask(port, "T-1", "implementer", "implementer", { clock });
+  registerTaskPacket(port, "implementer", "implementer", attempt);
   submitTask(port, "T-1", "implementer", token, report, clock);
 }
 

@@ -237,8 +237,10 @@ export function gateProofCommand(
 ): string | undefined {
   const exact = checkIds.find((id) => commands[id]?.gate_id === gateId);
   if (exact !== undefined) return exact;
-  const zeroExit = checkIds.find((id) => (commands[id]?.exit_code ?? 0) === 0);
-  return zeroExit !== undefined ? zeroExit : checkIds[0];
+  const unclaimed = checkIds.filter(
+    (id) => commands[id]?.gate_id === null || commands[id]?.gate_id === undefined,
+  );
+  return unclaimed.find((id) => (commands[id]?.exit_code ?? 0) === 0) ?? unclaimed[0];
 }
 
 function rereadTask(port: TransactionPort, taskId: string): [WorkflowState, TaskRecord] {
@@ -274,7 +276,7 @@ export function finalizePassingTask(
 
   for (const gate of applicableGates(curState, currentTask)) {
     const matchingCmd = gateProofCommand(curState.commands, gate.id, checkIds);
-    if (!matchingCmd)
+    if (!matchingCmd || curState.commands[matchingCmd]?.gate_id !== gate.id)
       throw new HarnessError(
         "INVALID_STATE",
         `no matching proof command for mandatory gate ${gate.id}`,

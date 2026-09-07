@@ -36,9 +36,47 @@ export interface VirtualFSSession {
   vfs: VirtualMemoryFS;
   spies: Array<{ mockRestore: () => void }>;
   cleanup: () => void;
+  symlinkSync: (target: string, path: string) => void;
+  symlinks: Map<string, string>;
+  openSync: (path: fs.PathLike, flags: string | number) => number;
+  writeSync: (
+    descriptor: number,
+    buffer: NodeJS.ArrayBufferView | string,
+    offset?: number | null,
+    length?: number | null,
+    position?: number | bigint | null,
+  ) => number;
+  readSync: (
+    descriptor: number,
+    buffer: NodeJS.ArrayBufferView,
+    offset: number,
+    length: number,
+    position?: number | bigint | null,
+  ) => number;
+  closeSync: (descriptor: number) => void;
+  fsyncSync: (descriptor: number) => void;
+  statSync: (path: fs.PathLike, opts?: fs.StatOptions) => fs.Stats;
+  readFileSync: (
+    path: fs.PathOrFileDescriptor,
+    opts?: { encoding?: BufferEncoding | null; flag?: string } | BufferEncoding | null,
+  ) => string | Buffer;
+  writeFileSync: (
+    path: fs.PathOrFileDescriptor,
+    data: string | NodeJS.ArrayBufferView,
+    opts?: fs.WriteFileOptions,
+  ) => void;
+  existsSync: (path: fs.PathLike) => boolean;
+  chmodSync: (path: fs.PathLike, mode: fs.Mode) => void;
+  rmSync: (path: fs.PathLike, opts?: fs.RmOptions) => void;
+  mkdirSync: (path: fs.PathLike, opts?: fs.MakeDirectoryOptions | boolean) => string | undefined;
+  realpathSync: (path: fs.PathLike) => string;
+  customModes: Map<string, number>;
+  getWatcherCallback?: () => ((event: string, filename: string) => void) | undefined;
+  dispatchWatcherEvent?: (event: string, filename: string) => void;
 }
 
 export function createVirtualFSSession(vfs: VirtualMemoryFS): VirtualFSSession {
+  let activeWatcherCallback: ((event: string, filename: string) => void) | undefined;
   const state: VirtualFSSpyState = {
     vfs,
     customMtimes: new Map(),
@@ -120,7 +158,13 @@ export function createVirtualFSSession(vfs: VirtualMemoryFS): VirtualFSSession {
     spy("utimesSync", (p: fs.PathLike, _a: unknown, m: number | string | Date) => {
       state.customMtimes.set(
         normPath(String(p)),
-        typeof m === "number" ? m : m instanceof Date ? m.getTime() : Date.now(),
+        typeof m === "number"
+          ? m < 1e11
+            ? m * 1000
+            : m
+          : m instanceof Date
+            ? m.getTime()
+            : Date.now(),
       );
     }),
     spy("renameSync", (src: fs.PathLike, dst: fs.PathLike) => mockRename(state, src, dst)),
@@ -156,7 +200,13 @@ export function createVirtualFSSession(vfs: VirtualMemoryFS): VirtualFSSession {
       if (e)
         state.customMtimes.set(
           e.path,
-          typeof m === "number" ? m : m instanceof Date ? m.getTime() : Date.now(),
+          typeof m === "number"
+            ? m < 1e11
+              ? m * 1000
+              : m
+            : m instanceof Date
+              ? m.getTime()
+              : Date.now(),
         );
     }),
     spy("rmSync", (p: fs.PathLike, opts?: fs.RmOptions) => {
@@ -497,6 +547,25 @@ export function createVirtualFSSession(vfs: VirtualMemoryFS): VirtualFSSession {
     spyOn(process, "chdir").mockImplementation(((dir: string) => {
       state.vfs.chdir(String(dir));
     }) as never),
+    spy("watch", (_target: unknown, optionsOrCallback: unknown, maybeCallback?: unknown) => {
+      const cb =
+        typeof optionsOrCallback === "function"
+          ? (optionsOrCallback as (event: string, filename: string) => void)
+          : (maybeCallback as (event: string, filename: string) => void);
+      activeWatcherCallback = cb;
+      return {
+        close: () => {
+          if (activeWatcherCallback === cb) {
+            activeWatcherCallback = undefined;
+          }
+        },
+        ref: () => {},
+        unref: () => {},
+        on: () => {},
+        once: () => {},
+        emit: () => false,
+      } as unknown as fs.FSWatcher;
+    }),
   ];
 
   function cleanup(): void {
@@ -505,6 +574,7 @@ export function createVirtualFSSession(vfs: VirtualMemoryFS): VirtualFSSession {
         s.mockRestore();
       } catch {}
     }
+    activeWatcherCallback = undefined;
     state.openDescriptors.clear();
     state.customMtimes.clear();
     state.customModes.clear();
@@ -513,5 +583,115 @@ export function createVirtualFSSession(vfs: VirtualMemoryFS): VirtualFSSession {
     vfs.reset();
   }
 
-  return { vfs, spies, cleanup };
+  const symlinkSync = (t: string, p: string) => {
+    const np = normPath(String(p));
+    state.symlinks.set(np, String(t));
+    const parent = path.dirname(np);
+    if (!vfs.existsSync(parent)) vfs.mkdirSync(parent, { recursive: true });
+    if (!vfs.existsSync(np)) vfs.writeFileSync(np, "");
+  };
+
+  const openSync = (p: fs.PathLike, flags: string | number) => mockOpen(state, p, flags);
+  const writeSync = (
+    descriptor: number,
+    buffer: NodeJS.ArrayBufferView | string,
+    offset?: number | null,
+    length?: number | null,
+    position?: number | bigint | null,
+  ) => mockWrite(state, descriptor, buffer, offset, length, position);
+  const readSync = (
+    descriptor: number,
+    buffer: NodeJS.ArrayBufferView,
+    offset: number,
+    length: number,
+    position?: number | bigint | null,
+  ) => mockRead(state, descriptor, buffer, offset, length, position);
+  const closeSync = (descriptor: number) => {
+    if (state.openDescriptors.has(descriptor)) state.openDescriptors.delete(descriptor);
+    else {
+      try {
+        origClose(descriptor);
+      } catch {}
+    }
+  };
+  const fsyncSync = (_descriptor: number) => {};
+  const statSync = (p: fs.PathLike, opts?: fs.StatOptions) => mockStat(state, p, opts);
+  const readFileSync = (
+    p: fs.PathOrFileDescriptor,
+    opts?: { encoding?: BufferEncoding | null; flag?: string } | BufferEncoding | null,
+  ) => mockReadFile(state, p, opts);
+  const writeFileSync = (
+    p: fs.PathOrFileDescriptor,
+    data: string | NodeJS.ArrayBufferView,
+    opts?: fs.WriteFileOptions,
+  ) => mockWriteFile(state, p, data, opts);
+  const existsSync = (p: fs.PathLike) => mockExists(state, p);
+  const realpathSync = (p: fs.PathLike) => {
+    const s = String(p);
+    let norm = normPath(s);
+    for (const [sym, target] of state.symlinks) {
+      if (norm === sym) {
+        norm = target;
+        break;
+      }
+      if (norm.startsWith(sym + "/")) {
+        norm = target + norm.slice(sym.length);
+        break;
+      }
+    }
+    if (vfs.existsSync(norm) || vfs.existsSync(s) || state.symlinks.has(norm)) return norm;
+    if (isVirtualPath(s))
+      throw Object.assign(new Error(`ENOENT: no such file or directory, realpath '${s}'`), {
+        code: "ENOENT",
+      });
+    return origRealpath(s);
+  };
+
+  return {
+    vfs,
+    spies,
+    cleanup,
+    symlinkSync,
+    symlinks: state.symlinks,
+    openSync,
+    writeSync,
+    readSync,
+    closeSync,
+    fsyncSync,
+    statSync,
+    readFileSync,
+    writeFileSync,
+    existsSync,
+    chmodSync: (p: fs.PathLike, m: fs.Mode) => {
+      state.customModes.set(normPath(String(p)), typeof m === "string" ? parseInt(m, 8) : m);
+    },
+    rmSync: (p: fs.PathLike, opts?: fs.RmOptions) => {
+      const np = normPath(String(p));
+      checkRmPermissions(state, np, opts);
+      state.inodeMap.delete(np);
+      state.customModes.delete(np);
+      state.customMtimes.delete(np);
+      state.symlinks.delete(np);
+      for (const k of state.symlinks.keys()) if (k.startsWith(np + "/")) state.symlinks.delete(k);
+      for (const k of state.customModes.keys())
+        if (k.startsWith(np + "/")) state.customModes.delete(k);
+      vfs.rmSync(np, opts as Parameters<typeof vfs.rmSync>[1]);
+    },
+    mkdirSync: (p: fs.PathLike, opts?: fs.MakeDirectoryOptions | boolean) =>
+      mockMkdir(state, p, opts),
+    realpathSync,
+    customModes: state.customModes,
+    getWatcherCallback: () => activeWatcherCallback,
+    dispatchWatcherEvent: (event: string, filename: string) => {
+      if (activeWatcherCallback) {
+        activeWatcherCallback(event, filename);
+      }
+    },
+  };
+}
+
+export function mockSubprocess(
+  impl: (cmd: string, args: readonly string[], opts?: unknown) => unknown,
+): { mockRestore: () => void } {
+  return spyOn(childProcess, "spawnSync").mockImplementation(impl as never);
 }

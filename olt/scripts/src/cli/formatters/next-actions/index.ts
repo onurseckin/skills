@@ -19,7 +19,6 @@ export {
 } from "./plan-actions.ts";
 
 export {
-  taskAssignRepairerNextActions,
   taskClaimNextActions,
   taskHeartbeatNextActions,
   taskProbeNextActions,

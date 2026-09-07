@@ -268,7 +268,7 @@ by the active validator when the review is recorded.
 
 A repaired pass explicitly resolves every open finding with fresh command-backed evidence. Runtime
 authorization additionally requires a different validator identity from all earlier validation
-rounds and from every implementer or repairer.
+rounds and from the implementer.
 
 ## Adversarial probe demand
 

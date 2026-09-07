@@ -103,12 +103,13 @@ describe(tuiSuiteName, () => {
 
       expect(loop.isRunning()).toBe(false);
       loop.start();
-      expect(loop.isRunning()).toBe(true);
-
-      loop.requestRender(true);
-      expect(renderCount).toBeGreaterThanOrEqual(1);
-
-      loop.stop();
+      try {
+        expect(loop.isRunning()).toBe(true);
+        loop.requestRender(true);
+        expect(renderCount).toBeGreaterThanOrEqual(1);
+      } finally {
+        loop.stop();
+      }
       expect(loop.isRunning()).toBe(false);
     });
   });
@@ -199,20 +200,22 @@ describe(tuiSuiteName, () => {
       });
 
       controller.start();
-      controller.pushEvent("mailbox", { text: "Hello" }, "agent_1", "msg");
+      try {
+        controller.pushEvent("mailbox", { text: "Hello" }, "agent_1", "msg");
 
-      controller.renderFrame();
-      const canvasStr = controller.getCanvas().toString();
-      expect(canvasStr).toContain("OLT TERMINAL DASHBOARD");
-      expect(canvasStr).toContain("[mailbox]");
+        controller.renderFrame();
+        const canvasStr = controller.getCanvas().toString();
+        expect(canvasStr).toContain("OLT TERMINAL DASHBOARD");
+        expect(canvasStr).toContain("[mailbox]");
 
-      controller.handleInput("3");
-      expect(controller.getState().viewMode).toBe("tasks");
+        controller.handleInput("3");
+        expect(controller.getState().viewMode).toBe("tasks");
 
-      controller.handleInput("q");
-      expect(exited).toBe(true);
-
-      controller.stop();
+        controller.handleInput("q");
+        expect(exited).toBe(true);
+      } finally {
+        controller.stop();
+      }
     });
   });
 });

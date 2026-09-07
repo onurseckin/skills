@@ -101,7 +101,7 @@ describe("abandonAttempt", () => {
     state.tasks["T-1"]!.status = "changes_requested";
     state.tasks["T-1"]!.repair_assignee = "agent-a";
     const port = new TestPort(state);
-    claimTask(port, "T-1", "agent-a", "repairer", { clock: start });
+    claimTask(port, "T-1", "agent-a", "implementer", { clock: start });
     const result = abandonAttempt(port, "T-1", "supervisor", "stuck repair", start);
     expect(result.tasks["T-1"]!.status).toBe("changes_requested");
   });

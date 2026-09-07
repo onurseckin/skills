@@ -171,7 +171,7 @@ graph TD
 - **Validators (`validator.yaml`):**
   - Independent, adversarial evaluators operating under the **Two-Key Principle** (the implementer cannot grade its own work).
   - **Cognitive Validator Hard-Lock Interlock:** Cognitive validators possess zero command-execution authority (`can_execute_shell: false`, 0 command tools) to guarantee purely objective textual and structural review.
-  - **Mechanic Validators (`mechanic-validator.yaml`):** Retain shell execution authority exclusively for running deterministic test suites (`bun test`).
+  - **UI Headless Validators (`ui-headless-validator.yaml`):** Retain shell execution authority exclusively for running deterministic test suites (`bun test`).
 
 ---
 

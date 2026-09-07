@@ -35,6 +35,7 @@ export {
   OLT_FILES,
   findRepoRoot,
   isInsideCapsule,
+  isSandboxRepoRoot,
   isTestEnvironment,
   loadSkillGlobalConfig,
   resolveBacklogPath,

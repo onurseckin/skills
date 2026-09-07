@@ -1,5 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { readFileSync, readdirSync } from "node:fs";
+import { afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import {
   AGENT_NAMING_STANDARDS,
@@ -20,10 +19,34 @@ import {
   loadRoleContract,
 } from "../../../olt/scripts/src/authority/manifest/index.ts";
 import { whoamiCommand } from "../../../olt/scripts/src/cli/commands/whoami.ts";
-import { cleanupVirtualAgentsFS, setupVirtualAgentsFS } from "../fixture.ts";
+import { cleanupVirtualAgentsFS, getVirtualAgentsFS, seedAgentManifests, setupVirtualAgentsFS } from "../fixture.ts";
+
+beforeAll(() => {
+  setupVirtualAgentsFS();
+  seedAgentManifests();
+  const warmupRoles = [
+    "mind_pulse-gen-1",
+    "orchestrator_wave-1",
+    "mind-auditor_audit-1",
+    "coordinator_domain-cli",
+    "implementer_task-p54-naming",
+    "validator_task-p54-naming",
+    "implementer_task-1-fix",
+    "validator-code-quality_task-p54",
+    "sub-implementer_subtask-1",
+  ];
+  for (const agentId of warmupRoles) {
+    identifyExecutionContext({ agentId });
+    whoamiCommand({ agent: agentId, pid: "1234", ppid: "1" });
+  }
+  loadAgentManifest("implementer");
+  loadRoleContract("implementer");
+  cleanupVirtualAgentsFS();
+});
 
 beforeEach(() => {
   setupVirtualAgentsFS();
+  seedAgentManifests();
 });
 
 afterEach(() => {
@@ -35,7 +58,7 @@ describe("Agent Naming - Hierarchy & Manifests", () => {
     test("every yaml file in olt/agents matches standard naming conventions", () => {
       const skillRoot = findSkillRoot();
       const agentsDir = join(skillRoot, "agents");
-      const agentFiles = readdirSync(agentsDir)
+      const agentFiles = getVirtualAgentsFS().readdirSync(agentsDir)
         .filter((f) => f.endsWith(".yaml") || f.endsWith(".yml"))
         .filter(
           (f) =>
@@ -63,7 +86,7 @@ describe("Agent Naming - Hierarchy & Manifests", () => {
     test("every unified agent manifest in olt/agents matches standard role contracts", () => {
       const skillRoot = findSkillRoot();
       const agentsDir = join(skillRoot, "agents");
-      const agentFiles = readdirSync(agentsDir)
+      const agentFiles = getVirtualAgentsFS().readdirSync(agentsDir)
         .filter((f) => f.endsWith(".yaml") || f.endsWith(".yml"))
         .filter(
           (f) =>
@@ -96,7 +119,7 @@ describe("Agent Naming - Hierarchy & Manifests", () => {
         { agentId: "coordinator_domain-cli", expectedTier: 2, expectedRole: "coordinator" },
         { agentId: "implementer_task-p54-naming", expectedTier: 3, expectedRole: "implementer" },
         { agentId: "validator_task-p54-naming", expectedTier: 3, expectedRole: "validator" },
-        { agentId: "repairer_task-1-fix", expectedTier: 3, expectedRole: "repairer" },
+        { agentId: "implementer_task-1-fix", expectedTier: 3, expectedRole: "implementer" },
         {
           agentId: "validator-code-quality_task-p54",
           expectedTier: 3,
@@ -136,7 +159,7 @@ describe("Agent Naming - Hierarchy & Manifests", () => {
       const lintSuppressionB = "ox" + "lint-disable";
 
       for (const filePath of sourceFiles) {
-        const content = readFileSync(filePath, "utf8");
+        const content = getVirtualAgentsFS().readFileSync(filePath, "utf8");
 
         expect(content).not.toMatch(anyAnnotation);
         expect(content).not.toMatch(anyCast);

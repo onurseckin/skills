@@ -14,7 +14,7 @@ import {
 } from "../../../../olt/scripts/src/authority/session/paths.ts";
 import { inspection } from "../../payloads/slicing/inspection-fixture.ts";
 
-let vfs = new VirtualMemoryFS();
+const vfs = new VirtualMemoryFS();
 let session: VirtualFSSession | undefined;
 
 function ensureSession(): VirtualMemoryFS {

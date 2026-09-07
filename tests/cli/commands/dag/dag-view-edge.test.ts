@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, rmSync, utimesSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import { execute } from "../../../../olt/scripts/src/cli/execute.ts";
@@ -57,6 +57,8 @@ describe("DAG View Edge Suite", () => {
       const cap2 = join(capsulesDir, "run-2");
       mkdirSync(cap1);
       mkdirSync(cap2);
+      writeFileSync(join(cap1, "manifest.json"), "{}");
+      writeFileSync(join(cap2, "manifest.json"), "{}");
       utimesSync(cap1, new Date(1000), new Date(1000));
       utimesSync(cap2, new Date(5000), new Date(5000));
 

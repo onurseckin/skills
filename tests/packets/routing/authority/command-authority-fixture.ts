@@ -28,18 +28,20 @@ function normPath(p: string): string {
 
 export function setupVirtualAuthorityFS(): VirtualMemoryFS {
   enableInMemorySessionStore();
-  if (!currentSession) {
-    currentVfs = new VirtualMemoryFS();
-    const repoRoot = normPath(process.cwd());
-
-    currentVfs.mkdirSync(repoRoot, { recursive: true });
-    currentVfs.mkdirSync(path.join(repoRoot, ".git"), { recursive: true });
-    currentVfs.mkdirSync(path.join(repoRoot, ".olt"), { recursive: true });
-    currentVfs.mkdirSync(path.join(repoRoot, ".olt", "scratch"), { recursive: true });
-
-    currentVfs.chdir(repoRoot);
-    currentSession = createVirtualFSSession(currentVfs);
+  if (currentSession) {
+    currentSession.cleanup();
+    currentSession = null;
   }
+  currentVfs = new VirtualMemoryFS();
+  const repoRoot = normPath(process.cwd());
+
+  currentVfs.mkdirSync(repoRoot, { recursive: true });
+  currentVfs.mkdirSync(path.join(repoRoot, ".git"), { recursive: true });
+  currentVfs.mkdirSync(path.join(repoRoot, ".olt"), { recursive: true });
+  currentVfs.mkdirSync(path.join(repoRoot, ".olt", "scratch"), { recursive: true });
+
+  currentVfs.chdir(repoRoot);
+  currentSession = createVirtualFSSession(currentVfs);
   return currentVfs;
 }
 
@@ -79,12 +81,13 @@ export function testCaller(
   flags: Flags,
 ): AuthenticatedCaller | undefined {
   const callerFlag = ["actor", "validator", "critic", "agent"].find((name) => {
-    if (
-      (specification.name === "agent:register" ||
-        specification.name === "agent:report" ||
-        specification.name === "agent:release") &&
-      name === "agent"
-    ) {
+    const isAgentLifecycle =
+      specification.name === "agent:register"
+        ? true
+        : specification.name === "agent:report"
+          ? true
+          : specification.name === "agent:release";
+    if (isAgentLifecycle && name === "agent") {
       return false;
     }
     return typeof flags[name] === "string" && (flags[name] as string).trim() !== "";
@@ -98,7 +101,8 @@ export function assertGrantedCommand(
   flags: Flags,
   caller?: AuthenticatedCaller,
 ): void {
-  assertRawGrantedCommand(specification, flags, caller ?? testCaller(specification, flags));
+  const effectiveCaller = caller !== undefined ? caller : testCaller(specification, flags);
+  assertRawGrantedCommand(specification, flags, effectiveCaller);
 }
 
 export function installMetaAuditGrant(

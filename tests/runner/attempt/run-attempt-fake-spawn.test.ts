@@ -32,9 +32,9 @@ function neverExited(): Promise<number> {
 }
 
 import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
-import { afterAll } from "bun:test";
+import { afterEach } from "bun:test";
 
-afterAll(cleanupTempRoots);
+afterEach(cleanupTempRoots);
 
 function attemptRoot(label: string): { root: string; commandRoot: string } {
   const root = tempRoot(label);
@@ -101,7 +101,12 @@ describe("runAttempt via an injected spawnApi (no real subprocess)", () => {
 
   test("fails with a residual-pid error when the wall timeout fires and root identity never bound", async () => {
     const { root, commandRoot } = attemptRoot("run-attempt-timeout-");
-    const options = baseOptions(root, { wallTimeoutMs: 25, idleTimeoutMs: 5000, graceMs: 10 });
+    const options = baseOptions(root, {
+      wallTimeoutMs: 2,
+      idleTimeoutMs: 5000,
+      graceMs: 1,
+      drainTimeoutMs: 5,
+    });
     const spawnApi: BunSpawnApi = {
       spawn: () => ({
         pid: 999_999_998,
@@ -122,6 +127,8 @@ describe("runAttempt via an injected spawnApi (no real subprocess)", () => {
       maxOutputBytes: 1,
       wallTimeoutMs: 5000,
       idleTimeoutMs: 5000,
+      graceMs: 1,
+      drainTimeoutMs: 1,
     });
     const spawnApi: BunSpawnApi = {
       spawn: () => ({
@@ -159,19 +166,39 @@ describe("runAttempt via an injected spawnApi (no real subprocess)", () => {
   test("records and persists signals when process group is terminated on timeout", async () => {
     const { root, commandRoot } = attemptRoot("run-attempt-timeout-signal-");
     const options = baseOptions(root, {
-      argv: ["sleep", "10"],
+      argv: ["fake"],
       cwd: root,
-      wallTimeoutMs: 50,
+      wallTimeoutMs: 5,
       idleTimeoutMs: 50,
-      graceMs: 50,
-      drainTimeoutMs: 50,
+      graceMs: 1,
+      drainTimeoutMs: 5,
     });
+    let resolveExited: ((code: number) => void) | undefined;
+    const exited = new Promise<number>((resolve) => {
+      resolveExited = resolve;
+    });
+    const handlers = new Map<number, () => void>();
+    handlers.set(999999, () => {
+      resolveExited?.(0);
+    });
+    (globalThis as unknown as Record<string, unknown>).__virtualFsKillHandlers = handlers;
+
+    const spawnApi: BunSpawnApi = {
+      spawn: () => ({
+        pid: 999999,
+        exited,
+        signalCode: null,
+        stdout: textStream([]),
+        stderr: textStream([]),
+      }),
+    };
     const result = await runAttempt(
       options,
       1,
       "C-1",
       commandRoot,
       createCommandSigningCapability(),
+      spawnApi,
     );
     expect(result.record.status).toBe("timed_out");
     expect(result.record.signals_sent).toContain("SIGTERM");
@@ -220,5 +247,57 @@ describe("runAttempt via an injected spawnApi (no real subprocess)", () => {
     await expect(
       runAttempt(options, 1, "C-1", commandRoot, createCommandSigningCapability(), spawnApi),
     ).rejects.toThrow(/residual pid|termination withheld|unexpected exit failure/i);
+  });
+
+  test("records status failed and preserves exit code when fake child exits non-zero", async () => {
+    const { root, commandRoot } = attemptRoot("run-attempt-nonzero-");
+    const options = baseOptions(root);
+    const spawnApi: BunSpawnApi = {
+      spawn: () => ({
+        pid: 999_999_993,
+        exited: Promise.resolve(42),
+        signalCode: null,
+        stdout: textStream(["some output\n"]),
+        stderr: textStream([]),
+      }),
+    };
+    const result = await runAttempt(
+      options,
+      1,
+      "C-1",
+      commandRoot,
+      createCommandSigningCapability(),
+      spawnApi,
+    );
+    expect(result.record.status).toBe("failed");
+    expect(result.record.exit_code).toBe(42);
+    expect(result.record.signals_sent).toEqual([]);
+    expect(result.outputTail).toBe("some output\n");
+  });
+
+  test("records stderr output and outputTail when stdout is empty", async () => {
+    const { root, commandRoot } = attemptRoot("run-attempt-stderr-");
+    const options = baseOptions(root);
+    const spawnApi: BunSpawnApi = {
+      spawn: () => ({
+        pid: 999_999_992,
+        exited: Promise.resolve(0),
+        signalCode: null,
+        stdout: textStream([]),
+        stderr: textStream(["diagnostic error\n"]),
+      }),
+    };
+    const result = await runAttempt(
+      options,
+      1,
+      "C-1",
+      commandRoot,
+      createCommandSigningCapability(),
+      spawnApi,
+    );
+    expect(result.record.status).toBe("succeeded");
+    expect(result.record.logs.stdout.bytes).toBe(0);
+    expect(result.record.logs.stderr.bytes).toBe(17);
+    expect(result.outputTail).toBe("diagnostic error\n");
   });
 });

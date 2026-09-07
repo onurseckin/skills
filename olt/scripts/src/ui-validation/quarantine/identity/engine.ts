@@ -42,7 +42,7 @@ export class IdentityGovernanceEngine {
       iat: nowSeconds,
       exp,
       iss: "olt-identity-governor",
-      ...(options?.customClaims ?? {}),
+      ...options?.customClaims,
     };
 
     const encodedHeader = base64UrlEncode(JSON.stringify(header));

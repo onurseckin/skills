@@ -1,5 +1,4 @@
-import { describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { join } from "node:path";
 import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
@@ -15,9 +14,7 @@ import {
   validateEventsFileShaChain,
   validateMigratedRun,
 } from "../../../olt/scripts/src/engine/store/hierarchy/storage-migrator.ts";
-import { scratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
-
-setupVirtualStoreFS();
+import { cleanupVirtualStoreFS, scratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
 
 function createValidEvent(
   runId: string,
@@ -42,6 +39,15 @@ function createValidEvent(
 }
 
 describe("Storage Hierarchy & Migration Engine", () => {
+  let vfs: ReturnType<typeof setupVirtualStoreFS>;
+
+  beforeEach(() => {
+    vfs = setupVirtualStoreFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualStoreFS();
+  });
   describe("resolveStoragePaths", () => {
     it("resolves all canonical storage paths strictly within .olt/", () => {
       const root = scratchRoot(import.meta.path, "storage-paths-basic");
@@ -147,7 +153,7 @@ describe("Storage Hierarchy & Migration Engine", () => {
 
       const ev1 = createValidEvent("run-test-1", 1, null, { step: 1 });
       const ev2 = createValidEvent("run-test-1", 2, ev1.hash, { step: 2 });
-      writeFileSync(eventsPath, `${JSON.stringify(ev1)}\n${JSON.stringify(ev2)}\n`, "utf-8");
+      vfs.writeFileSync(eventsPath, `${JSON.stringify(ev1)}\n${JSON.stringify(ev2)}\n`, "utf-8");
 
       expect(validateEventsFileShaChain(eventsPath).valid).toBe(true);
     });
@@ -161,7 +167,7 @@ describe("Storage Hierarchy & Migration Engine", () => {
         ...createValidEvent("run-test-2", 2, ev1.hash, { step: 2 }),
         hash: "00".repeat(32),
       };
-      writeFileSync(eventsPath, `${JSON.stringify(ev1)}\n${JSON.stringify(ev2)}\n`, "utf-8");
+      vfs.writeFileSync(eventsPath, `${JSON.stringify(ev1)}\n${JSON.stringify(ev2)}\n`, "utf-8");
 
       const res = validateEventsFileShaChain(eventsPath);
       expect(res.valid).toBe(false);
@@ -174,20 +180,20 @@ describe("Storage Hierarchy & Migration Engine", () => {
       const root = scratchRoot(import.meta.path, "migrate-legacy-valid");
       const legacy1 = join(root, ".capsules", "legacy-run-01");
       const legacy2 = join(root, "olt", "capsules", "legacy-run-02");
-      mkdirSync(legacy1, { recursive: true });
-      mkdirSync(legacy2, { recursive: true });
+      vfs.mkdirSync(legacy1, { recursive: true });
+      vfs.mkdirSync(legacy2, { recursive: true });
 
       const ev1 = createValidEvent("legacy-run-01", 1, null);
-      writeFileSync(join(legacy1, "events.jsonl"), `${JSON.stringify(ev1)}\n`, "utf-8");
-      writeFileSync(
+      vfs.writeFileSync(join(legacy1, "events.jsonl"), `${JSON.stringify(ev1)}\n`, "utf-8");
+      vfs.writeFileSync(
         join(legacy1, "manifest.json"),
         JSON.stringify({ run_id: "legacy-run-01" }),
         "utf-8",
       );
 
       const ev2 = createValidEvent("legacy-run-02", 1, null);
-      writeFileSync(join(legacy2, "events.jsonl"), `${JSON.stringify(ev2)}\n`, "utf-8");
-      writeFileSync(
+      vfs.writeFileSync(join(legacy2, "events.jsonl"), `${JSON.stringify(ev2)}\n`, "utf-8");
+      vfs.writeFileSync(
         join(legacy2, "manifest.json"),
         JSON.stringify({ run_id: "legacy-run-02" }),
         "utf-8",
@@ -197,10 +203,10 @@ describe("Storage Hierarchy & Migration Engine", () => {
       expect(result.migratedCount).toBe(2);
       expect(result.errors.length).toBe(0);
 
-      expect(existsSync(join(root, ".olt", "capsules", "legacy-run-01"))).toBe(true);
-      expect(existsSync(join(root, ".olt", "capsules", "legacy-run-02"))).toBe(true);
-      expect(existsSync(legacy1)).toBe(false);
-      expect(existsSync(legacy2)).toBe(false);
+      expect(vfs.existsSync(join(root, ".olt", "capsules", "legacy-run-01"))).toBe(true);
+      expect(vfs.existsSync(join(root, ".olt", "capsules", "legacy-run-02"))).toBe(true);
+      expect(vfs.existsSync(legacy1)).toBe(false);
+      expect(vfs.existsSync(legacy2)).toBe(false);
 
       expect(validateMigratedRun(join(root, ".olt", "capsules", "legacy-run-01")).valid).toBe(true);
     });
@@ -208,7 +214,7 @@ describe("Storage Hierarchy & Migration Engine", () => {
     it("refuses to migrate legacy capsule with broken hash chain and prevents target corruption", () => {
       const root = scratchRoot(import.meta.path, "migrate-legacy-corrupted");
       const legacyDir = join(root, ".capsules", "corrupted-run-01");
-      mkdirSync(legacyDir, { recursive: true });
+      vfs.mkdirSync(legacyDir, { recursive: true });
 
       const badEvent = {
         actor: "test",
@@ -216,15 +222,15 @@ describe("Storage Hierarchy & Migration Engine", () => {
         previous_hash: null,
         sequence: 1,
       };
-      writeFileSync(join(legacyDir, "events.jsonl"), `${JSON.stringify(badEvent)}\n`, "utf-8");
+      vfs.writeFileSync(join(legacyDir, "events.jsonl"), `${JSON.stringify(badEvent)}\n`, "utf-8");
 
       const result = migrateLegacyCapsules(root);
       expect(result.migratedCount).toBe(0);
       expect(result.errors.length).toBe(1);
       expect(result.errors[0]).toMatch(/failed integrity check/i);
 
-      expect(existsSync(join(root, ".olt", "capsules", "corrupted-run-01"))).toBe(false);
-      expect(existsSync(legacyDir)).toBe(true);
+      expect(vfs.existsSync(join(root, ".olt", "capsules", "corrupted-run-01"))).toBe(false);
+      expect(vfs.existsSync(legacyDir)).toBe(true);
     });
   });
 
@@ -233,25 +239,25 @@ describe("Storage Hierarchy & Migration Engine", () => {
       const root = scratchRoot(import.meta.path, "relocate-vestigial");
       const staticOlt = join(root, "olt");
       const targetOlt = join(root, ".olt");
-      mkdirSync(staticOlt, { recursive: true });
-      mkdirSync(targetOlt, { recursive: true });
+      vfs.mkdirSync(staticOlt, { recursive: true });
+      vfs.mkdirSync(targetOlt, { recursive: true });
 
       // Existing target backlog with item A
-      writeFileSync(
+      vfs.writeFileSync(
         join(targetOlt, "backlog.jsonl"),
         JSON.stringify({ id: "item-A" }) + "\n",
         "utf-8",
       );
 
       // Vestigial backlog with item A and item B (tests merging without duplicate A)
-      writeFileSync(
+      vfs.writeFileSync(
         join(staticOlt, "backlog.jsonl"),
         `${JSON.stringify({ id: "item-A" })}\n${JSON.stringify({ id: "item-B" })}\n`,
         "utf-8",
       );
 
       // Vestigial defects
-      writeFileSync(
+      vfs.writeFileSync(
         join(staticOlt, "defects.jsonl"),
         JSON.stringify({ defect: "d1" }) + "\n",
         "utf-8",
@@ -259,28 +265,28 @@ describe("Storage Hierarchy & Migration Engine", () => {
 
       // Vestigial scratch
       const vestigialScratch = join(staticOlt, "scratch");
-      mkdirSync(vestigialScratch, { recursive: true });
-      writeFileSync(join(vestigialScratch, "temp.log"), "sample-log", "utf-8");
+      vfs.mkdirSync(vestigialScratch, { recursive: true });
+      vfs.writeFileSync(join(vestigialScratch, "temp.log"), "sample-log", "utf-8");
 
       const result = relocateVestigialLedgers(root);
       expect(result.migratedCount ?? result.relocatedCount).toBe(3);
       expect(result.errors.length).toBe(0);
 
       // Verify olt/ ledgers removed
-      expect(existsSync(join(staticOlt, "backlog.jsonl"))).toBe(false);
-      expect(existsSync(join(staticOlt, "defects.jsonl"))).toBe(false);
-      expect(existsSync(vestigialScratch)).toBe(false);
+      expect(vfs.existsSync(join(staticOlt, "backlog.jsonl"))).toBe(false);
+      expect(vfs.existsSync(join(staticOlt, "defects.jsonl"))).toBe(false);
+      expect(vfs.existsSync(vestigialScratch)).toBe(false);
 
       // Verify .olt/ target has merged contents
-      const mergedBacklog = readFileSync(join(targetOlt, "backlog.jsonl"), "utf-8")
+      const mergedBacklog = vfs.readFileSync(join(targetOlt, "backlog.jsonl"), "utf-8")
         .trim()
         .split("\n");
       expect(mergedBacklog.length).toBe(2);
       expect(mergedBacklog[0]).toBe(JSON.stringify({ id: "item-A" }));
       expect(mergedBacklog[1]).toBe(JSON.stringify({ id: "item-B" }));
 
-      expect(existsSync(join(targetOlt, "defects.jsonl"))).toBe(true);
-      expect(existsSync(join(targetOlt, "scratch", "temp.log"))).toBe(true);
+      expect(vfs.existsSync(join(targetOlt, "defects.jsonl"))).toBe(true);
+      expect(vfs.existsSync(join(targetOlt, "scratch", "temp.log"))).toBe(true);
     });
   });
 });

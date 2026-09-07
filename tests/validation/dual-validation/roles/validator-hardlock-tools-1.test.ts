@@ -76,11 +76,11 @@ describe("Validator Hard-Lock - Boundary Supervision (Part 1)", () => {
         "Tier 1 Orchestrator (orchestrator) may only dispatch Tier 2 Coordinators",
       );
 
-      // Tier 2 Coordinator -> Tier 3 Implementer / Validator / Critic / Repairer
+      // Tier 2 Coordinator -> Tier 3 Implementer / Validator / Critic / Sub-Implementer
       expect(validateHierarchicalSpawning("coordinator", "implementer").valid).toBe(true);
       expect(validateHierarchicalSpawning("coordinator", "validator").valid).toBe(true);
       expect(validateHierarchicalSpawning("coordinator", "completeness-critic").valid).toBe(true);
-      expect(validateHierarchicalSpawning("coordinator", "repairer").valid).toBe(true);
+      expect(validateHierarchicalSpawning("coordinator", "sub-implementer").valid).toBe(true);
 
       // Tier 2 Coordinator -> Tier 2 Coordinator [REJECT]
       expect(validateHierarchicalSpawning("coordinator", "coordinator").valid).toBe(false);
@@ -88,7 +88,7 @@ describe("Validator Hard-Lock - Boundary Supervision (Part 1)", () => {
       // Tier 3 workers -> leaf execution workers [REJECT]
       expect(validateHierarchicalSpawning("implementer", "sub-worker").valid).toBe(false);
       expect(validateHierarchicalSpawning("validator", "sub-validator").valid).toBe(false);
-      expect(validateHierarchicalSpawning("repairer", "sub-repairer").valid).toBe(false);
+      expect(validateHierarchicalSpawning("sub-implementer", "sub-worker-2").valid).toBe(false);
     });
 
     it("assertHierarchicalSpawning throws ROLE_CONFINEMENT_VIOLATION on cross-tier spawning", () => {

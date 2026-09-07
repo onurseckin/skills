@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import {
   CAPSULE_DIRECTORIES,
@@ -17,12 +17,18 @@ import { inspectionContext } from "../slicing/inspection-fixture.ts";
 import {
   createVirtualFSSession,
   VirtualMemoryFS,
+  type VirtualFSSession,
 } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
-const vfs = new VirtualMemoryFS();
-const session = createVirtualFSSession(vfs);
+let vfs: VirtualMemoryFS;
+let session: VirtualFSSession;
 
-afterAll(() => {
+beforeEach(() => {
+  vfs = new VirtualMemoryFS();
+  session = createVirtualFSSession(vfs);
+});
+
+afterEach(() => {
   session.cleanup();
   vfs.reset();
 });
@@ -55,9 +61,9 @@ describe("Decoupled Capsule Memory - Store & Structure", () => {
     });
 
     test("resolves capsule directory and file paths correctly", () => {
-      const root = "/tmp/test-capsule";
-      expect(resolveCapsuleDirectory(root, "evidence")).toBe("/tmp/test-capsule/evidence");
-      expect(resolveCapsuleFile(root, "events.jsonl")).toBe("/tmp/test-capsule/events.jsonl");
+      const root = "/virtual/test-capsule";
+      expect(resolveCapsuleDirectory(root, "evidence")).toBe("/virtual/test-capsule/evidence");
+      expect(resolveCapsuleFile(root, "events.jsonl")).toBe("/virtual/test-capsule/events.jsonl");
     });
 
     test("verifies full capsule layout for valid and incomplete directories", async () => {
@@ -89,6 +95,21 @@ describe("Decoupled Capsule Memory - Store & Structure", () => {
       expect(verifiedAsync.missingFiles).toEqual([]);
       expect(verifiedAsync.directories.every((d) => d.exists)).toBe(true);
       expect(verifiedAsync.files.every((f) => f.exists)).toBe(true);
+    });
+
+    test("detects partial capsule layout when only a single required file is missing", () => {
+      const tempRoot = createTempRoot("capsule-partial-test-");
+      for (const dir of CAPSULE_DIRECTORIES) {
+        vfs.mkdirSync(join(tempRoot, dir), { recursive: true });
+      }
+      for (const file of CAPSULE_FILES) {
+        if (file === "events.jsonl") continue;
+        vfs.writeFileSync(join(tempRoot, file), file.endsWith(".json") ? "{}" : "# test\n");
+      }
+      const verified = verifyCapsuleLayoutSync(tempRoot);
+      expect(verified.valid).toBe(false);
+      expect(verified.missingDirectories).toEqual([]);
+      expect(verified.missingFiles).toEqual(["events.jsonl"]);
     });
 
     test("verifyCapsuleLayoutSync handles filesystem errors gracefully", async () => {

@@ -16,7 +16,7 @@ function wedgedRepairTask(overrides: Record<string, unknown> = {}) {
       {
         attempt: 1,
         agent_id: "agent-a",
-        role: "repairer",
+        role: "implementer",
         started_at: "2026-08-19T00:00:00.000Z",
         kind: "repair",
       },
@@ -92,7 +92,7 @@ describe("the working path: abandonAttempt with an active lease", () => {
     const state = workflowState();
     Object.assign(state.tasks["T-1"]!, { status: "changes_requested", repair_assignee: "agent-a" });
     const port = new TestPort(state);
-    claimTask(port, "T-1", "agent-a", "repairer", { clock: start });
+    claimTask(port, "T-1", "agent-a", "implementer", { clock: start });
 
     const leased = port.read().tasks["T-1"]!;
     expect(leased.lease).toBeDefined();

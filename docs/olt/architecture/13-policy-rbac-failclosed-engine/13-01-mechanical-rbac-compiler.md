@@ -73,7 +73,7 @@ Capabilities are strictly partitioned across the 4-tier agent hierarchy:
 | **Coordinator**        | Tier 2 | Subagent Spawn, Mailbox, Lease | `task:claim`, `task:submit` | Strictly None            | Host Capsule Root     |
 | **Implementer**        | Tier 3 | File Edit, AST Query, Git Ops  | `branch:*`, `task:check`    | Assigned Worktree Only   | Dedicated Worktree    |
 | **Validator**          | Tier 3 | Read-Only File, AST Query      | Strictly 0 (Hard-Locked)    | Strictly None            | Read-Only Worktree    |
-| **Mechanic-Validator** | Tier 3 | Process Runner, Binary Probe   | `bun test`, `gate:prove`    | Read-Only Test Artifacts | Isolated Scratch Tree |
+| **UI-Headless-Validator** | Tier 3 | Process Runner, Binary Probe | `bun test`, `gate:prove`    | Read-Only Test Artifacts | Isolated Scratch Tree |
 
 ### 2.4 Compile-Time Schema Invariant Verification
 
@@ -311,7 +311,7 @@ export function compileRoleManifest(rawYaml: string): CompiledRoleContract {
 | :--- | :--- | :--- | :--- | :--- |
 | **`RBAC_MANIFEST_SYNTAX_ERROR`** | Corrupted YAML formatting or invalid UTF-8 in `olt/agents/*.yaml`. | FATAL | Engine fails boot compilation; halts startup. | Validate YAML syntax via `doctor:hygiene`; restore valid manifest from git history. |
 | **`SUPERVISOR_EDIT_ATTEMPT`** | Mind, Orchestrator, or Coordinator calls `write_to_file`. | FATAL | Immediate execution halt; lease revoked. | Refactor workflow to spawn a Tier 3 Implementer with dedicated worktree. |
-| **`VALIDATOR_COMMAND_TRAP`** | Cognitive Validator invokes bash or shell execution tool. | FATAL | Security trap; validator subagent quarantined. | Route dynamic test execution to a dedicated Mechanic-Validator role. |
+| **`VALIDATOR_COMMAND_TRAP`** | Cognitive Validator invokes bash or shell execution tool. | FATAL | Security trap; validator subagent quarantined. | Route dynamic test execution to a dedicated UI-Headless-Validator role. |
 | **`UNREGISTERED_ROLE_ARCHETYPE`** | Agent spawned with role name missing from manifest directory. | ERROR | Subagent spawn rejected at gate. | Declare role in `olt/agents/<role>.yaml` before invoking spawn primitives. |
 | **`WILDCARD_COMMAND_INJECTION`** | Manifest contains unescaped wildcard command pattern `*`. | ERROR | Boot compilation rejects over-permissive pattern. | Specify exact command namespaces (e.g., `task:check`, `branch:*`). |
 | **`STALE_CAPABILITY_CACHE`** | Manifest modified on disk without restarting harness process. | WARN | Runtime enforces cached in-memory matrix. | Rerun harness CLI command to force fresh ahead-of-time compilation. |

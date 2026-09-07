@@ -183,5 +183,52 @@ describe("Multi-Domain Dispatch: Thresholds, Eligibility & Classification", () =
       );
       expect(derivePrimaryValidatorDomain(null)).toBe("code-quality");
     });
+
+    test("handles edge case write_scopes: mixed domains, uppercase extensions, empty, and non-code files", () => {
+      // Mixed domains in write_scope: frontend-ui takes precedence when ui path marker matches first
+      expect(
+        classifyTaskDomain({ write_scope: ["src/ui/App.tsx", "src/api/Server.ts"] }),
+      ).toBe("frontend-ui");
+
+      // Case-insensitive path and extension matching
+      expect(classifyTaskDomain({ write_scope: ["src/components/HEADER.TSX"] })).toBe(
+        "frontend-ui",
+      );
+      expect(classifyTaskDomain({ write_scope: ["src/api/ROUTES.TS"] })).toBe("backend-system");
+      expect(classifyTaskDomain({ write_scope: ["src/auth/TOKEN.TS"] })).toBe("security-auth");
+
+      // Unrecognized extensions or files without extension default to core-engine
+      expect(classifyTaskDomain({ write_scope: ["Makefile"] })).toBe("core-engine");
+      expect(classifyTaskDomain({ write_scope: ["Dockerfile"] })).toBe("core-engine");
+      expect(classifyTaskDomain({ write_scope: ["README"] })).toBe("core-engine");
+      expect(classifyTaskDomain({ write_scope: [] })).toBe("core-engine");
+      expect(classifyTaskDomain({ write_scope: [123 as unknown as string] })).toBe("core-engine");
+    });
+
+    test("verifies high-precision floating point threshold boundaries", () => {
+      expect(isMultiDomainDispatchEligible(2.4999999)).toBeFalse();
+      expect(isMultiDomainDispatchEligible(2.5000000)).toBeTrue();
+      expect(resolveParallelismFactor({}, 0)).toBe(0);
+      expect(resolveParallelismFactor({}, 100000)).toBe(100000);
+    });
+
+    test("falls back cleanly on empty/blank strings and matches relative path prefixes", () => {
+      // Empty or whitespace-only domain strings fall back cleanly
+      expect(classifyTaskDomain({ domain: "" })).toBe("core-engine");
+      expect(classifyTaskDomain({ domain: "   " })).toBe("core-engine");
+      expect(classifyTaskDomain({ primary_domain: "" })).toBe("core-engine");
+      expect(classifyTaskDomain({ validator_domain: "" })).toBe("core-engine");
+      expect(classifyTaskDomain({ write_scope: [""] })).toBe("core-engine");
+
+      expect(derivePrimaryValidatorDomain({ validator_domain: "" })).toBe("code-quality");
+      expect(derivePrimaryValidatorDomain({ write_scope: [""] })).toBe("code-quality");
+
+      // Relative path prefixes (./ and ../) match domain markers correctly
+      expect(classifyTaskDomain({ write_scope: ["./src/ui/Button.tsx"] })).toBe("frontend-ui");
+      expect(classifyTaskDomain({ write_scope: ["../src/server/Api.ts"] })).toBe("backend-system");
+      expect(classifyTaskDomain({ write_scope: ["./components/Card.tsx"] })).toBe("frontend-ui");
+    });
   });
 });
+
+

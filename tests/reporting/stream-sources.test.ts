@@ -1,6 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { appendFileSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   CapsuleEventSource,
@@ -8,28 +6,32 @@ import {
   MailboxStreamSource,
   TelemetryStreamSource,
 } from "../../olt/scripts/src/reporting/tui/stream-sources.ts";
+import type { VirtualMemoryFS } from "../../olt/scripts/src/testing/virtual-fs/index.ts";
+import { cleanupVirtualReportingFS, setupVirtualReportingFS, tempDir } from "./fixture.ts";
 
 describe("TUI Stream Sources Suite (stream-sources.ts)", () => {
-  let tempDir: string;
+  let tempDirectory: string;
+  let vfs: VirtualMemoryFS;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "stream-sources-cov-"));
+    vfs = setupVirtualReportingFS();
+    tempDirectory = tempDir("stream-sources");
   });
 
   afterEach(() => {
-    rmSync(tempDir, { recursive: true, force: true });
+    cleanupVirtualReportingFS();
   });
 
   describe("CapsuleEventSource", () => {
     it("returns empty array when events.jsonl does not exist", () => {
-      const source = new CapsuleEventSource(tempDir);
+      const source = new CapsuleEventSource(tempDirectory);
       expect(source.channelName).toBe("capsule_events");
       expect(source.pollNewEvents()).toEqual([]);
     });
 
     it("polls and offsets events from events.jsonl, handling fallbacks and corrupt lines", () => {
-      const source = new CapsuleEventSource(tempDir);
-      const eventsFile = join(tempDir, "events.jsonl");
+      const source = new CapsuleEventSource(tempDirectory);
+      const eventsFile = join(tempDirectory, "events.jsonl");
 
       const line1 = JSON.stringify({ kind: "pulse-opened", timestamp: "2026-09-01T00:00:00Z" });
       const line2 = "invalid json line";
@@ -41,7 +43,7 @@ describe("TUI Stream Sources Suite (stream-sources.ts)", () => {
       });
       const line4 = JSON.stringify({ missing_kind: true, timestamp: "2026-09-01T00:02:00Z" });
 
-      writeFileSync(eventsFile, `${line1}\n${line2}\n${line3}\n${line4}`);
+      vfs.writeFileSync(eventsFile, `${line1}\n${line2}\n${line3}\n${line4}`);
 
       const polled1 = source.pollNewEvents();
       expect(polled1.length).toBe(2);
@@ -60,7 +62,8 @@ describe("TUI Stream Sources Suite (stream-sources.ts)", () => {
 
       // Append new event
       const line5 = JSON.stringify({ kind: "pulse-closed", timestamp: "2026-09-01T00:03:00Z" });
-      appendFileSync(eventsFile, `\n${line5}`);
+      const currentEvents = vfs.readFileSync(eventsFile, "utf-8");
+      vfs.writeFileSync(eventsFile, `${currentEvents}\n${line5}`);
 
       const polled2 = source.pollNewEvents();
       expect(polled2.length).toBe(1);
@@ -70,14 +73,14 @@ describe("TUI Stream Sources Suite (stream-sources.ts)", () => {
 
   describe("TelemetryStreamSource", () => {
     it("returns empty array when telemetry file does not exist", () => {
-      const filePath = join(tempDir, "nonexistent.jsonl");
+      const filePath = join(tempDirectory, "nonexistent.jsonl");
       const source = new TelemetryStreamSource(filePath);
       expect(source.channelName).toBe("telemetry");
       expect(source.pollNewEvents()).toEqual([]);
     });
 
     it("polls telemetry stream with action fallback and incremental offset tracking", () => {
-      const filePath = join(tempDir, "telemetry.jsonl");
+      const filePath = join(tempDirectory, "telemetry.jsonl");
       const source = new TelemetryStreamSource(filePath);
 
       const t1 = JSON.stringify({
@@ -89,7 +92,7 @@ describe("TUI Stream Sources Suite (stream-sources.ts)", () => {
       const t3 = JSON.stringify({ actor: "agent-2", timestamp: "2026-09-01T10:01:00Z" });
       const t4 = JSON.stringify({ missing_actor: true, timestamp: "2026-09-01T10:02:00Z" });
 
-      writeFileSync(filePath, `${t1}\n${t2}\n${t3}\n${t4}`);
+      vfs.writeFileSync(filePath, `${t1}\n${t2}\n${t3}\n${t4}`);
 
       const polled1 = source.pollNewEvents();
       expect(polled1.length).toBe(2);
@@ -109,7 +112,8 @@ describe("TUI Stream Sources Suite (stream-sources.ts)", () => {
         timestamp: "2026-09-01T10:03:00Z",
         action: "task_done",
       });
-      appendFileSync(filePath, `\n${t5}`);
+      const currentTelem = vfs.readFileSync(filePath, "utf-8");
+      vfs.writeFileSync(filePath, `${currentTelem}\n${t5}`);
 
       const polled2 = source.pollNewEvents();
       expect(polled2.length).toBe(1);

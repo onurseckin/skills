@@ -63,7 +63,9 @@ export function segmentTaskLifecycle(tasks: readonly TaskRecord[]): LifecycleSeg
           taskId: t.id,
           agentId: extractLeaseAgentId(t.lease) || "unknown",
           role:
-            typeof t.lease.role === "string" && t.lease.role.length > 0 ? t.lease.role : "repairer",
+            typeof t.lease.role === "string" && t.lease.role.length > 0
+              ? t.lease.role
+              : "implementer",
           attempt: typeof t.lease.attempt === "number" ? t.lease.attempt : 1,
           expiresAt: typeof t.lease.expires_at === "string" ? t.lease.expires_at : "",
         });

@@ -1,9 +1,18 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type {
   ActionStepRecord,
   GraphDataset,
 } from "../../../olt/scripts/src/summary/graph/index.ts";
+import { cleanupVirtualSummaryFS, setupVirtualSummaryFS } from "../fixture.ts";
 import { emptyGraph, emptyState, render } from "./markdown-fixtures-core.ts";
+
+beforeEach(() => {
+  setupVirtualSummaryFS();
+});
+
+afterEach(() => {
+  cleanupVirtualSummaryFS();
+});
 
 function graphWithSteps(steps: ActionStepRecord[]): GraphDataset {
   return {
@@ -143,5 +152,101 @@ describe("summary.md: action provenance trace (B15.1)", () => {
     const markdown = render(emptyState, { graph });
     const section = markdown.slice(markdown.indexOf("## 19. Action Provenance Trace"));
     expect(section.indexOf("| 3 |")).toBeLessThan(section.indexOf("| 9 |"));
+  });
+
+  test("edge cases: all 10 target fields rendered in strict canonical order", () => {
+    const reverseKeys = {
+      nodeId: "node-1",
+      path: "src/index.ts",
+      requirementId: "R-1",
+      packetId: "P-1",
+      commandId: "C-1",
+      agentId: "A-1",
+      subTaskId: "S-1",
+      branchId: "B-1",
+      gateId: "G-1",
+      taskId: "T-1",
+    };
+
+    const graph = graphWithSteps([
+      {
+        step: 10,
+        timestamp: "2026-08-19T00:00:00.000Z",
+        actor: "coordinator-1",
+        kind: "task",
+        rawKind: "task-dispatched",
+        target: reverseKeys,
+        outcome: "success",
+        evidence_class: "harness_observed",
+        summary: "all fields test",
+      },
+    ]);
+
+    const markdown = render(emptyState, { graph });
+    expect(markdown).toContain(
+      "taskId=T-1 gateId=G-1 branchId=B-1 subTaskId=S-1 agentId=A-1 commandId=C-1 packetId=P-1 requirementId=R-1 path=src/index.ts nodeId=node-1",
+    );
+  });
+
+  test("edge cases: empty target renders as none, partial target renders specific keys", () => {
+    const graph = graphWithSteps([
+      {
+        step: 11,
+        timestamp: "2026-08-19T00:00:00.000Z",
+        actor: "system",
+        kind: "run",
+        rawKind: "init",
+        target: {},
+        outcome: "success",
+        evidence_class: "harness_observed",
+        summary: "empty target",
+      },
+      {
+        step: 12,
+        timestamp: "2026-08-19T00:00:01.000Z",
+        actor: "worker-1",
+        kind: "file",
+        rawKind: "file-written",
+        target: { path: "src/main.ts", nodeId: "n1" },
+        outcome: "success",
+        evidence_class: "harness_observed",
+        summary: "partial target",
+      },
+    ]);
+
+    const markdown = render(emptyState, { graph });
+    expect(markdown).toContain("| 11 | 2026-08-19T00:00:00.000Z | `system` | run | `init` | none |");
+    expect(markdown).toContain("| 12 | 2026-08-19T00:00:01.000Z | `worker-1` | file | `file-written` | path=src/main.ts nodeId=n1 |");
+  });
+
+  test("edge cases: mixed outcomes and evidence classes maintain table alignment", () => {
+    const graph = graphWithSteps([
+      {
+        step: 20,
+        timestamp: "2026-08-19T00:00:00.000Z",
+        actor: "validator-1",
+        kind: "validation",
+        rawKind: "gate-rejected",
+        target: { taskId: "T-fail" },
+        outcome: "failure",
+        evidence_class: "agent_reported",
+        summary: "gate rejected with failure",
+      },
+      {
+        step: 21,
+        timestamp: "2026-08-19T00:00:01.000Z",
+        actor: "worker-2",
+        kind: "repair",
+        rawKind: "repair-attempted",
+        target: { taskId: "T-fail" },
+        outcome: "unknown",
+        evidence_class: "harness_observed",
+        summary: "repair in progress",
+      },
+    ]);
+
+    const markdown = render(emptyState, { graph });
+    expect(markdown).toContain("| failure | agent_reported | gate rejected with failure |");
+    expect(markdown).toContain("| unknown | harness_observed | repair in progress |");
   });
 });

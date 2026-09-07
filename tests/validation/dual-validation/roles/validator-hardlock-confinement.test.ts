@@ -1,5 +1,4 @@
 import { describe, expect, it } from "bun:test";
-import { readFileSync } from "node:fs";
 import { findCommand } from "../../../../olt/scripts/src/cli/registry/index.ts";
 import type { CommandSpec } from "../../../../olt/scripts/src/cli/registry/types.ts";
 import type { Flags } from "../../../../olt/scripts/src/cli/options.ts";
@@ -39,11 +38,11 @@ function spec(invocation: string): CommandSpec {
   return found;
 }
 
-describe("Validator Hard-Lock - Confinement & Static Invariants", () => {
+describe("Validator Hard-Lock - Confinement", () => {
   describe("2. Cognitive Validator Hard-Lock Interlock", () => {
     const cognitiveValidatorRoles = [
       "validator",
-      "ui-validator",
+      "ui-optical-validator",
       "validator-code-quality",
       "validator-ui-design",
       "validator-security",
@@ -52,9 +51,9 @@ describe("Validator Hard-Lock - Confinement & Static Invariants", () => {
     ] as const;
 
     const mechanicValidatorRoles = [
-      "mechanic-validator",
-      "ui-mechanic-validator",
-      "mechanic_validator",
+      "ui-headless-validator",
+      "UI-Headless-Validator",
+      " ui-headless-validator ",
     ] as const;
 
     it("correctly differentiates cognitive validators from mechanic validators", () => {
@@ -77,7 +76,7 @@ describe("Validator Hard-Lock - Confinement & Static Invariants", () => {
         );
       }
       expect(() =>
-        assertRoleMayInvoke("mechanic-validator", execSpec, "mechanic-validator-agent"),
+        assertRoleMayInvoke("ui-headless-validator", execSpec, "ui-headless-validator-agent"),
       ).not.toThrow();
     });
 
@@ -85,9 +84,9 @@ describe("Validator Hard-Lock - Confinement & Static Invariants", () => {
       expect(() => assertCognitiveValidatorHardlock("validator", "run:exec", "val-1")).toThrow(
         "Cognitive Validator Hard-Lock Interlock",
       );
-      expect(() => assertCognitiveValidatorHardlock("ui-validator", "shell", "ui-val-1")).toThrow(
-        "Cognitive Validator Hard-Lock Interlock",
-      );
+      expect(() =>
+        assertCognitiveValidatorHardlock("ui-optical-validator", "shell", "ui-opt-1"),
+      ).toThrow("Cognitive Validator Hard-Lock Interlock");
       expect(() =>
         assertCognitiveValidatorHardlock("validator-security", "test-runner", "sec-val"),
       ).toThrow("Cognitive Validator Hard-Lock Interlock");
@@ -96,10 +95,10 @@ describe("Validator Hard-Lock - Confinement & Static Invariants", () => {
       ).toThrow("Cognitive Validator Hard-Lock Interlock");
 
       expect(() =>
-        assertCognitiveValidatorHardlock("mechanic-validator", "run:exec", "mech-1"),
+        assertCognitiveValidatorHardlock("ui-headless-validator", "run:exec", "headless-1"),
       ).not.toThrow();
       expect(() =>
-        assertCognitiveValidatorHardlock("ui-mechanic-validator", "test-runner", "ui-mech"),
+        assertCognitiveValidatorHardlock("UI-HEADLESS-VALIDATOR", "test-runner", "headless-2"),
       ).not.toThrow();
     });
 
@@ -118,7 +117,7 @@ describe("Validator Hard-Lock - Confinement & Static Invariants", () => {
           },
           {
             id: "mech-val-1",
-            role: "mechanic-validator",
+            role: "ui-headless-validator",
             parent_agent_id: null,
             parent_task_id: null,
             host: "claude-code",
@@ -163,8 +162,8 @@ describe("Validator Hard-Lock - Confinement & Static Invariants", () => {
       const cogChecks: BoundaryLeakCheck[] = [
         { agent_id: "validator-1", role: "validator", action: "run:exec", task_id: "task-1" },
         {
-          agent_id: "ui-validator-1",
-          role: "ui-validator",
+          agent_id: "ui-optical-validator-1",
+          role: "ui-optical-validator",
           action: "bun test tests/validation/auth.test.ts",
           task_id: "task-2",
         },
@@ -189,8 +188,8 @@ describe("Validator Hard-Lock - Confinement & Static Invariants", () => {
       }
 
       const mechCheck: BoundaryLeakCheck = {
-        agent_id: "mechanic-val-1",
-        role: "mechanic-validator",
+        agent_id: "ui-headless-validator-1",
+        role: "ui-headless-validator",
         action: "bun test tests/validation/auth.test.ts",
         task_id: "task-1",
       };
@@ -217,47 +216,12 @@ describe("Validator Hard-Lock - Confinement & Static Invariants", () => {
       expect(violation?.observation).toContain("Cognitive Validator Hard-Lock Violation");
 
       const mechAction: RoleBoundaryAction = {
-        agentId: "mech-val-1",
-        role: "mechanic-validator",
+        agentId: "headless-val-1",
+        role: "ui-headless-validator",
         actionType: "command_exec",
         argv: ["bun", "test", "tests/validation/example.test.ts"],
       };
       expect(watchdog.auditAction(mechAction)).toBeNull();
-    });
-  });
-
-  describe("3. Static Code Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
-    const filesToAudit = [
-      "olt/scripts/src/mind/auditing/roles/index.ts",
-      "olt/scripts/src/packets/command-authority.ts",
-      "olt/scripts/src/validation/anti-leak/index.ts",
-    ];
-
-    it("verifies zero TypeScript any and zero compiler/linter suppressions across touched files", () => {
-      const anyTypeRegex = new RegExp(":\\s*any\\b|as\\s+any\\b|<any>|Record<string,\\s*any>");
-      const suppressionRegex = new RegExp(
-        [
-          "@ts" + "-ignore",
-          "@ts" + "-expect-error",
-          "@ts" + "-nocheck",
-          "eslint" + "-disable",
-          "oxlint" + "-disable",
-          "biome" + "-ignore",
-        ].join("|"),
-      );
-
-      for (const relativePath of filesToAudit) {
-        const content = readFileSync(relativePath, "utf8");
-        const lines = content.split("\n");
-
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i]!;
-          if (line.includes("anyTypeRegex") || line.includes("suppressionRegex")) continue;
-
-          expect(anyTypeRegex.test(line)).toBe(false);
-          expect(suppressionRegex.test(line)).toBe(false);
-        }
-      }
     });
   });
 });

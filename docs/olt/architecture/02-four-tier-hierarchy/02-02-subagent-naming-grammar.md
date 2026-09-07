@@ -148,7 +148,7 @@ Inter-agent communication flows strictly through isolated, flock-protected files
 
 ## 5. TypeScript Parsing & Registry Implementation
 
-The grammar validator is implemented under [`authority/naming.ts`](../../../../olt/scripts/src/authority/naming.ts):
+The grammar validator is implemented under [`authority/thread/naming.ts`](../../../../olt/scripts/src/authority/thread/naming.ts):
 
 ```typescript
 export interface ParsedSubagentIdentifier {

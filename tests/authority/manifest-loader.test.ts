@@ -152,11 +152,6 @@ describe("ManifestLoader Comprehensive Coverage", () => {
         archetype: "Scoped Modular Implementer",
       },
       {
-        name: "repairer",
-        tier: 3,
-        archetype: "Scoped Modular Implementer",
-      },
-      {
         name: "completeness-critic",
         tier: 3,
         archetype: "Run Completeness & Verification Critic",

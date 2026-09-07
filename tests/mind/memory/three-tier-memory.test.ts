@@ -220,5 +220,93 @@ describe("Three Tier Memory Engine Coverage Suite", () => {
     expect(() =>
       engine.importSnapshot(null as unknown as ReturnType<typeof engine.exportSnapshot>),
     ).toThrow("Invalid ThreeTierMemorySnapshot");
+    expect(() => ThreeTierMemoryEngine.fromJSON("invalid-json{")).toThrow();
+  });
+
+  it("evaluates strict priority hierarchies and future expiry preservation during pruning", () => {
+    const engine = new ThreeTierMemoryEngine();
+    engine.addWorkingEntry({
+      id: "W-CRIT",
+      title: "Critical Fix",
+      description: "Must run first",
+      priority: "CRITICAL",
+    });
+    engine.addWorkingEntry({
+      id: "W-MED",
+      title: "Medium Fix",
+      description: "Standard priority",
+      priority: "MEDIUM",
+    });
+    engine.addWorkingEntry({
+      id: "W-FUTURE",
+      title: "Future Task",
+      description: "Should not expire",
+      expiresAt: "2099-01-01T00:00:00.000Z",
+    });
+
+    expect(engine.getWorkingEntries({ minPriority: "CRITICAL" }).length).toBe(1);
+    expect(engine.getWorkingEntries({ minPriority: "HIGH" }).length).toBe(1);
+    expect(engine.getWorkingEntries({ minPriority: "MEDIUM" }).length).toBe(3); // CRITICAL (4), MEDIUM (2), W-FUTURE default (2)
+    expect(engine.getWorkingEntries({ minPriority: "LOW" }).length).toBe(3);
+
+    // Pruning with future expiry preserves active entries
+    const pruneResult = engine.pruneWorkingMemory();
+    expect(pruneResult.prunedIds.length).toBe(0);
+    expect(engine.getWorkingEntry("W-FUTURE")).toBeDefined();
+
+    // Pruning completely empty engine runs gracefully
+    const emptyEngine = new ThreeTierMemoryEngine();
+    const emptyPrune = emptyEngine.pruneWorkingMemory();
+    expect(emptyPrune.prunedIds.length).toBe(0);
+    expect(emptyPrune.prunedIds).toEqual([]);
+  });
+
+  it("maintains immutable integrity and epistemic linkage when promoting working entries with custom metadata", () => {
+    const engine = new ThreeTierMemoryEngine();
+    engine.addWorkingEntry({
+      id: "W-PROMO-CUSTOM",
+      title: "In-Memory IO Breakthrough",
+      description: "Replace physical disk I/O with VirtualMemoryFS",
+      resolutionSummary: "Zero real disk writes achieved",
+      tags: ["perf", "fs"],
+      category: "PARETO_CANDIDATE",
+      status: "RESOLVED",
+    });
+
+    const promoted = engine.promoteParetoResolutionToInvariant({
+      workingEntryId: "W-PROMO-CUSTOM",
+      invariantId: "AXIOM-ZERO-DISK",
+      category: "ARCHITECTURAL_INVARIANT",
+      statement: "Unit tests shall never touch physical storage",
+      rationale: "Ensures sub-10ms test execution and eliminates APFS lock contention",
+      tags: ["axiom", "testing"],
+      metadata: { author: "implementer_mind_memory_perf" },
+      archiveWorkingEntry: true,
+    });
+
+    expect(promoted.id).toBe("AXIOM-ZERO-DISK");
+    expect(promoted.category).toBe("ARCHITECTURAL_INVARIANT");
+    expect(promoted.tags).toEqual(["axiom", "testing"]);
+    expect(promoted.metadata?.author).toBe("implementer_mind_memory_perf");
+
+    // Tier 1 entry is strictly immutable
+    expect(() =>
+      engine.addBedrockInvariant({
+        id: "AXIOM-ZERO-DISK",
+        title: "Duplicate",
+        statement: "Dup",
+        rationale: "Dup",
+      }),
+    ).toThrow("Bedrock Invariant is immutable");
+
+    // Working entry is archived and marked superseded in the supersession index
+    expect(engine.getWorkingEntry("W-PROMO-CUSTOM")).toBeUndefined();
+    expect(engine.getSupersessionIndex().getEpistemicStatus("W-PROMO-CUSTOM")).toBe("SUPERSEDED");
+    expect(engine.getSupersessionIndex().getEntry("W-PROMO-CUSTOM")?.supersededBy).toBe(
+      "archive-W-PROMO-CUSTOM",
+    );
+    expect(engine.getSupersessionIndex().getTerminalSuccessor("W-PROMO-CUSTOM")?.id).toBe(
+      "AXIOM-ZERO-DISK",
+    );
   });
 });

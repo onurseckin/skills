@@ -94,7 +94,7 @@ export function evaluateUnfulfilledDemands(
         typeof taskInfo.lease?.agent_id === "string" ? taskInfo.lease.agent_id : undefined;
 
       let rootCause = `Task '${taskId}' is in non-terminal status '${status}'.`;
-      let blockingReason = `Advancement blocked: Planned task '${taskId}' must reach 'validated' or 'done' status.`;
+      const blockingReason = `Advancement blocked: Planned task '${taskId}' must reach 'validated' or 'done' status.`;
       let remediation = `bun harness.ts task:claim --task ${taskId} --agent <agent-id> --role implementer && bun harness.ts task:submit --task ${taskId} ...`;
 
       if (status === "proposed" || status === "ready") {
@@ -105,7 +105,7 @@ export function evaluateUnfulfilledDemands(
         remediation = `Submit completed task: bun harness.ts task:submit --task ${taskId} --agent ${assignedAgent ?? "worker"} --token <token> --summary "<summary>"`;
       } else if (status === "changes_requested") {
         rootCause = `Task '${taskId}' has open validator findings and requires implementer repair.`;
-        remediation = `Assign repairer and remediate findings: bun harness.ts task:assign-repairer --task ${taskId} --repairer rep-${taskId}`;
+        remediation = `Reclaim and remediate findings: bun harness.ts task:claim --task ${taskId} --agent <agent-id> --role implementer`;
       } else if (status === "validating" || status === "submitted") {
         rootCause = `Task '${taskId}' is awaiting independent validator sign-off.`;
         remediation = `Complete validator review: bun harness.ts task:review --task ${taskId} --status approved --validator val-${taskId} --domain code-quality`;

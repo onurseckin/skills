@@ -15,7 +15,6 @@ export const DEFAULT_SUBAGENT_ROLES: readonly string[] = Object.freeze([
   "probe",
   "subagent",
   "worker",
-  "mechanic-validator",
   "quality-validator",
   "domain-mechanic",
 ]);

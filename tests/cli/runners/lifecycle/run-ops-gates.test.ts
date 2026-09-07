@@ -57,6 +57,7 @@ function configureValidatedGateTask(runRoot: string, gateIds: readonly string[])
       history: [],
       repair_round: 0,
       report: { summary: "gate run fixture" },
+      adversarial_probes: [1, 2, 3, 4, 5],
       validations: [
         {
           validator_id: "validator",

@@ -25,7 +25,7 @@ export interface DefectAuditReport {
 export function auditDefectLog(
   defectsOrCapsules?: readonly (DefectEntry | string)[] | string,
 ): DefectAuditReport {
-  let rawDefects: DefectEntry[] = [];
+  const rawDefects: DefectEntry[] = [];
   const capsulesAudited: string[] = [];
 
   if (typeof defectsOrCapsules === "string") {

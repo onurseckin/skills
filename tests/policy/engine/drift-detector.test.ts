@@ -1,6 +1,6 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { cleanupVirtualPolicyFS, setupVirtualPolicyFS } from "../fixture.ts";
 
 import {

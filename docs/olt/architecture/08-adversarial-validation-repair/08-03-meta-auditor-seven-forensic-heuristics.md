@@ -90,7 +90,7 @@ Artifacts with $H(X) < 3.0\text{ bits/byte}$ trigger an automatic `ERR_LOW_ENTRO
 
 ## 4. Concrete TypeScript Forensic Inspection Scanner
 
-Implemented in [`meta-auditor.ts`](../../../../olt/scripts/src/reporting/meta-auditor.ts):
+Implemented in [`transcript-forensics/scanner.ts`](../../../../olt/scripts/src/reporting/transcript-forensics/scanner.ts):
 
 ```typescript
 export interface HeuristicViolation {

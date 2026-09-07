@@ -54,7 +54,7 @@ describe("SandboxedToolExecutor Unit Test Suite", () => {
       ctx?: { abortSignal?: AbortSignal },
     ) => {
       await new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(resolve, 500);
+        const timer = setTimeout(resolve, 100);
         ctx?.abortSignal?.addEventListener("abort", () => {
           clearTimeout(timer);
           reject(new Error("aborted"));
@@ -63,7 +63,7 @@ describe("SandboxedToolExecutor Unit Test Suite", () => {
       return "never";
     };
 
-    const quota: ResourceQuota = { timeoutMs: 50, gracePeriodMs: 0 };
+    const quota: ResourceQuota = { timeoutMs: 5, gracePeriodMs: 0 };
     const result = await executor.execute(hangingHandler, {}, { toolName: "hanging_tool", quota });
 
     expect(result.success).toBe(false);
@@ -77,7 +77,7 @@ describe("SandboxedToolExecutor Unit Test Suite", () => {
 
     const executor = new SandboxedToolExecutor();
     const handler = async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 5));
       return "done";
     };
 
@@ -99,7 +99,7 @@ describe("SandboxedToolExecutor Unit Test Suite", () => {
 
     const handler = async (_args: Record<string, unknown>, ctx?: { abortSignal?: AbortSignal }) => {
       await new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(resolve, 500);
+        const timer = setTimeout(resolve, 100);
         ctx?.abortSignal?.addEventListener("abort", () => {
           clearTimeout(timer);
           reject(new Error("External abort"));
@@ -108,7 +108,7 @@ describe("SandboxedToolExecutor Unit Test Suite", () => {
       return "never";
     };
 
-    setTimeout(() => abortController.abort(new Error("User cancelled")), 20);
+    setTimeout(() => abortController.abort(new Error("User cancelled")), 2);
 
     const result = await executor.execute(
       handler,
@@ -123,7 +123,7 @@ describe("SandboxedToolExecutor Unit Test Suite", () => {
   it("enforces max concurrent executions quota", async () => {
     const executor = new SandboxedToolExecutor();
     const slowHandler = async () => {
-      await new Promise((resolve) => setTimeout(resolve, 60));
+      await new Promise((resolve) => setTimeout(resolve, 5));
       return "ok";
     };
 
@@ -154,5 +154,31 @@ describe("SandboxedToolExecutor Unit Test Suite", () => {
     expect(result.success).toBe(false);
     expect(result.terminationReason).toBe("error");
     expect(result.error).toContain("Internal tool failure");
+  });
+
+  it("does not leak active concurrency count under repeated pre-aborted executions", async () => {
+    const executor = new SandboxedToolExecutor();
+    const preAborted = AbortSignal.abort();
+
+    for (let i = 0; i < 5; i++) {
+      const res = await executor.execute(
+        async () => "ok",
+        {},
+        { toolName: "pre_abort_tool", context: { abortSignal: preAborted } },
+      );
+      expect(res.success).toBe(false);
+      expect(res.terminationReason).toBe("aborted");
+    }
+
+    expect(executor.getActiveCount("pre_abort_tool")).toBe(0);
+
+    const finalRun = await executor.execute(
+      async () => "recovered",
+      {},
+      { toolName: "pre_abort_tool" },
+    );
+    expect(finalRun.success).toBe(true);
+    expect(finalRun.output).toBe("recovered");
+    expect(executor.getActiveCount("pre_abort_tool")).toBe(0);
   });
 });

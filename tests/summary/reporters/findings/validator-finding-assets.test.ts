@@ -1,9 +1,17 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { HarnessEvent } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import type { CompletionReview, TaskRecord } from "../../../../olt/scripts/src/workflow/types.ts";
 import { mapFindingDetails } from "../../../../olt/scripts/src/summary/assets/index.ts";
+import { cleanupVirtualSummaryFS, setupVirtualSummaryFS } from "../../fixture.ts";
 
 describe("Round 3: Validator Findings & Asset Pipeline", () => {
+  beforeEach(() => {
+    setupVirtualSummaryFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualSummaryFS();
+  });
   describe("Rich Validator Finding Extraction", () => {
     test("extracts task findings with pushbackReason, opposedChanges, rejection rounds, targetFiles, and proofs", () => {
       const task: TaskRecord = {
@@ -211,6 +219,60 @@ describe("Round 3: Validator Findings & Asset Pipeline", () => {
       ];
 
       expect(mapFindingDetails(task, { events })).toEqual([]);
+    });
+
+    test("normalizes unknown severities and safely handles sparse finding fields", () => {
+      const task: TaskRecord = {
+        id: "T-sparse",
+        label: "Sparse Findings Task",
+        status: "open",
+        requirement_ids: ["REQ-SPARSE-01"],
+        write_scope: ["src/sparse.ts"],
+        dependencies: [],
+        attempts: [],
+        history: [],
+        findings: [
+          {
+            id: "F-FATAL",
+            severity: "fatal" as unknown as "critical",
+            observation: "Unrecognized severity should fall back to important",
+          },
+          {
+            id: "F-COSMETIC",
+            severity: "cosmetic" as unknown as "suggestion",
+            observation: "Cosmetic should fall back to important",
+          },
+          {
+            id: "F-EMPTY-SEV",
+            severity: "" as unknown as "important",
+            observation: "Empty severity should fall back to important",
+          },
+          {
+            id: "F-NO-REMED-NO-EVID",
+            severity: "minor",
+            observation: "Finding without remediation or evidence",
+          },
+        ],
+      } as unknown as TaskRecord;
+
+      const findings = mapFindingDetails(task);
+      expect(findings).toHaveLength(4);
+
+      const fFatal = findings.find((f) => f.id === "F-FATAL");
+      expect(fFatal?.severity).toBe("important");
+      expect(fFatal?.remediation).toBeUndefined();
+      expect(fFatal?.evidence).toBeUndefined();
+
+      const fCosmetic = findings.find((f) => f.id === "F-COSMETIC");
+      expect(fCosmetic?.severity).toBe("important");
+
+      const fEmpty = findings.find((f) => f.id === "F-EMPTY-SEV");
+      expect(fEmpty?.severity).toBe("important");
+
+      const fSparse = findings.find((f) => f.id === "F-NO-REMED-NO-EVID");
+      expect(fSparse?.severity).toBe("suggestion");
+      expect(fSparse?.remediation).toBeUndefined();
+      expect(fSparse?.evidence).toBeUndefined();
     });
   });
 });

@@ -43,9 +43,30 @@ export function roleToTier(role: string): ExecutionTier {
     return 3;
   }
   const normalized = role.toLowerCase().trim();
-  if (normalized === "mind") return 0;
-  if (normalized === "orchestrator" || normalized === "mind-auditor") return 1;
-  if (normalized === "coordinator") return 2;
+  if (
+    normalized === "mind-auditor" ||
+    normalized.startsWith("mind-auditor") ||
+    normalized.startsWith("mind_auditor")
+  ) {
+    return 1;
+  }
+  if (normalized === "mind" || normalized.startsWith("mind-") || normalized.startsWith("mind_")) {
+    return 0;
+  }
+  if (
+    normalized === "orchestrator" ||
+    normalized.startsWith("orchestrator-") ||
+    normalized.startsWith("orchestrator_")
+  ) {
+    return 1;
+  }
+  if (
+    normalized === "coordinator" ||
+    normalized.startsWith("coordinator-") ||
+    normalized.startsWith("coordinator_")
+  ) {
+    return 2;
+  }
   return 3;
 }
 
@@ -55,7 +76,7 @@ export function agentIdToTier(agentId: string): ExecutionTier | null {
     .toLowerCase()
     .trim()
     .replace(/^(?:parent|agent)[-_]/i, "");
-  if (normalized.startsWith("mind-auditor")) return 1;
+  if (normalized.startsWith("mind-auditor") || normalized.startsWith("mind_auditor")) return 1;
   if (normalized.startsWith("mind")) return 0;
   if (normalized.startsWith("orchestrator")) return 1;
   if (normalized.startsWith("coordinator")) return 2;
@@ -63,7 +84,6 @@ export function agentIdToTier(agentId: string): ExecutionTier | null {
     normalized.startsWith("implementer") ||
     normalized.startsWith("validator") ||
     normalized.startsWith("completeness-critic") ||
-    normalized.startsWith("repairer") ||
     normalized.startsWith("planner") ||
     normalized.startsWith("plan-validator") ||
     normalized.startsWith("sub-implementer") ||
@@ -105,7 +125,6 @@ export function agentIdToRole(agentId: string): string | null {
   if (normalized.startsWith("implementer")) return "implementer";
   if (normalized.startsWith("validator")) return "validator";
   if (normalized.startsWith("completeness-critic")) return "completeness-critic";
-  if (normalized.startsWith("repairer")) return "repairer";
   if (normalized.startsWith("plan-validator")) return "plan-validator";
   if (normalized.startsWith("planner")) return "planner";
   return null;

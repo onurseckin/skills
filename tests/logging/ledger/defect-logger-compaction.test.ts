@@ -66,7 +66,7 @@ describe("Logging subsystem: Defect Log Compaction & Containment", () => {
   });
 
   test("handles nonexistent file reading gracefully", () => {
-    const entries = readDefectLogFile("/path/does/not/exist/defects.jsonl");
+    const entries = readDefectLogFile("/virtual/does/not/exist/defects.jsonl");
     expect(entries).toEqual([]);
   });
 
@@ -156,5 +156,45 @@ describe("Logging subsystem: Defect Log Compaction & Containment", () => {
       }),
     ).toThrow(HarnessError);
     expect(readFileSync(parentSentinel, "utf8")).toBe('{"id":"parent-sentinel"}\n');
+  });
+
+  test("handles empty and corrupted JSONL files gracefully without descriptor leaks", () => {
+    const dir = createLoggingSandbox();
+    const emptyFile = join(dir, "empty-defects.jsonl");
+    writeFileSync(emptyFile, "   \n\n   \n", "utf8");
+
+    const emptyResult = compactDefectLogFile(emptyFile);
+    expect(emptyResult.totalBefore).toBe(0);
+    expect(emptyResult.totalAfter).toBe(0);
+    expect(readDefectLogFile(emptyFile)).toEqual([]);
+
+    const corruptFile = join(dir, "corrupt-defects.jsonl");
+    const lines = [
+      "not json at all",
+      JSON.stringify({
+        id: "valid-1",
+        type: "error_1",
+        observation: "real defect",
+        timestamp: "2026-08-22T08:00:00.000Z",
+      }),
+      "{ incomplete json: true",
+      JSON.stringify({
+        id: "valid-2",
+        type: "error_2",
+        observation: "another defect",
+        timestamp: "2026-08-22T08:05:00.000Z",
+      }),
+      "12345",
+      "[1, 2, 3]",
+    ];
+    writeFileSync(corruptFile, `${lines.join("\n")}\n`, "utf8");
+
+    const corruptResult = compactDefectLogFile(corruptFile);
+    expect(corruptResult.totalBefore).toBe(6);
+    expect(corruptResult.totalAfter).toBe(2);
+
+    const compacted = readDefectLogFile(corruptFile);
+    expect(compacted).toHaveLength(2);
+    expect(compacted.map((c) => c.type).sort()).toEqual(["error_1", "error_2"]);
   });
 });

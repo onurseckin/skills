@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { cleanupVirtualReportingFS, setupVirtualReportingFS, tempDir } from "./fixture.ts";
 import {
   clearInMemoryMailboxStore,
   readUnreadMessages,
@@ -18,6 +19,7 @@ import {
 
 describe("Mechanical Canonical Agent Alignment & Sentinel Teardown Engine", () => {
   beforeEach(() => {
+    setupVirtualReportingFS();
     clearInMemoryMailboxStore();
     clearInMemoryMailboxDirs();
     clearRecentCanonicalTeardowns();
@@ -25,6 +27,7 @@ describe("Mechanical Canonical Agent Alignment & Sentinel Teardown Engine", () =
   });
 
   afterEach(() => {
+    cleanupVirtualReportingFS();
     clearInMemoryMailboxStore();
     clearInMemoryMailboxDirs();
     clearRecentCanonicalTeardowns();
@@ -200,6 +203,7 @@ describe("Mechanical Canonical Agent Alignment & Sentinel Teardown Engine", () =
       };
 
       const result = collectDiagnosticEngines({
+        repoRoot: tempDir("diag-collector-ok"),
         state: { agents: [conforming] },
       });
 
@@ -219,6 +223,7 @@ describe("Mechanical Canonical Agent Alignment & Sentinel Teardown Engine", () =
       };
 
       const result = collectDiagnosticEngines({
+        repoRoot: tempDir("diag-collector-rogue"),
         state: { agents: [rogue] },
       });
 

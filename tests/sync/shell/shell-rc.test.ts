@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -7,7 +7,7 @@ import {
   generateExportLine,
   isPathDeclaredInContent,
 } from "../../../scripts/sync/shell-rc.ts";
-import { cleanupVirtualSyncFS, scratchRoot, setupVirtualSyncFS } from "../sync-fixture.ts";
+import { cleanupVirtualSyncFS, getVirtualSyncFS, scratchRoot, setupVirtualSyncFS } from "../sync-fixture.ts";
 
 beforeEach(() => {
   setupVirtualSyncFS();
@@ -123,6 +123,21 @@ describe("isPathDeclaredInContent", () => {
       isPathDeclaredInContent('export PATH="$HOME/.local/bin_extra:$PATH"', binDir, home),
     ).toBe(false);
   });
+
+  test("returns true for single-quoted and unquoted PATH assignment variants", () => {
+    const home = "/Users/test";
+    const binDir = "/Users/test/.local/bin";
+
+    expect(
+      isPathDeclaredInContent("export PATH='$HOME/.local/bin:$PATH'", binDir, home),
+    ).toBe(true);
+    expect(
+      isPathDeclaredInContent("PATH=$HOME/.local/bin:$PATH", binDir, home),
+    ).toBe(true);
+    expect(
+      isPathDeclaredInContent("PATH=/Users/test/.local/bin:$PATH", binDir, home),
+    ).toBe(true);
+  });
 });
 
 describe("generateExportLine", () => {
@@ -233,5 +248,30 @@ describe("ensurePathInShellRc", () => {
 
     expect(result.modified).toBe(false);
     expect(result.reason).toContain("error:");
+  });
+
+  test("returns error reason when existing rc file write fails with permission denied", () => {
+    const root = scratchRoot(import.meta.path, "shell-rc-readonly");
+    const rcPath = join(root, ".zshrc");
+    writeFileSync(rcPath, "alias gs='git status'\n", "utf-8");
+    const vfs = getVirtualSyncFS();
+    const origWrite = vfs.writeFileSync.bind(vfs);
+    vfs.writeFileSync = () => {
+      throw new Error("EACCES: permission denied, open");
+    };
+
+    try {
+      const result = ensurePathInShellRc({
+        homeDir: root,
+        customRcPath: rcPath,
+        binDir: join(root, ".local", "bin"),
+      });
+
+      expect(result.modified).toBe(false);
+      expect(result.reason).toContain("error:");
+      expect(result.reason).toContain("EACCES");
+    } finally {
+      vfs.writeFileSync = origWrite;
+    }
   });
 });

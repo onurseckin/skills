@@ -1,12 +1,30 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { runDoctorDiagnostics } from "../../../olt/scripts/src/reporting/doctor/adversarial-doctor/diagnostics.ts";
 import type { HarnessHealthCheck } from "../../../olt/scripts/src/reporting/doctor/adversarial-doctor/types.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("adversarial-doctor diagnostics coverage", () => {
+  let session: VirtualFSSession | null = null;
+  let counter = 0;
+  const vDir = (label: string) => `/virtual/adversarial-diag/${label}-${++counter}`;
+
+  beforeEach(() => {
+    const vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+  });
+
+  afterEach(() => {
+    session?.cleanup();
+    session = null;
+  });
+
   it("evaluates bun runtime version check correctly (pass, fail, and disabled)", async () => {
     const checksPass = await runDoctorDiagnostics({ minimumBunVersion: "0.1.0" });
     const bunPass = checksPass.find((c) => c.name === "bun_runtime_version");
@@ -24,7 +42,7 @@ describe("adversarial-doctor diagnostics coverage", () => {
   });
 
   it("audits capsule root confinement (pass, fail, and exception branches)", async () => {
-    const tempRoot = join(tmpdir(), `test-diag-root-${Date.now()}`);
+    const tempRoot = vDir("root");
     const repoRoot = join(tempRoot, "repo");
     const validRun = join(repoRoot, ".olt", "capsules", "run-1");
     const invalidRun = join(tempRoot, "outside", "run-2");
@@ -61,7 +79,7 @@ describe("adversarial-doctor diagnostics coverage", () => {
   });
 
   it("audits unified evidence locations (pass, fail, and exception branches)", async () => {
-    const tempDir = join(tmpdir(), `test-diag-ev-${Date.now()}`);
+    const tempDir = vDir("ev");
     mkdirSync(tempDir, { recursive: true });
 
     try {
@@ -118,7 +136,7 @@ describe("adversarial-doctor diagnostics coverage", () => {
   });
 
   it("audits tier confinement isolation (pass, fail, and exception branches)", async () => {
-    const tempDir = join(tmpdir(), `test-diag-tier-${Date.now()}`);
+    const tempDir = vDir("tier");
     mkdirSync(tempDir, { recursive: true });
 
     try {
@@ -173,7 +191,7 @@ describe("adversarial-doctor diagnostics coverage", () => {
   });
 
   it("audits capsule state integrity and runs custom health checks", async () => {
-    const tempDir = join(tmpdir(), `test-diag-integ-${Date.now()}`);
+    const tempDir = vDir("integ");
     mkdirSync(tempDir, { recursive: true });
 
     try {

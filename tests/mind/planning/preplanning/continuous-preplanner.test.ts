@@ -106,7 +106,7 @@ describe("Continuous Preplanner Engine & PO Toposort Verification (in-memory vir
 
   test("startPreplanningDaemon executes ticks and aggregates counts", async () => {
     fs.writeFileSync(backlogPath, `${JSON.stringify(mkItem("b-daemon", "reporting"))}\n`);
-    const res = await startPreplanningDaemon({ rootDir: testDir, maxTicks: 2, intervalMs: 10 });
+    const res = await startPreplanningDaemon({ rootDir: testDir, maxTicks: 2, intervalMs: 0 });
     expect(res.totalTicks).toBe(2);
     expect(res.totalPlanned).toBe(1);
   });

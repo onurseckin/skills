@@ -1,6 +1,8 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { join } from "node:path";
 import { agentListCommand } from "../../../olt/scripts/src/cli/commands/agent-ops.ts";
-import type { AgentRole } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type { AgentGrantRecord, AgentRole } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import {
   registerAgentGrant,
   releaseAgentGrant,
@@ -11,8 +13,14 @@ import {
   childrenOf,
   taskLineage,
 } from "../../../olt/scripts/src/workflow/agents/lineage.ts";
-import { cleanupVirtualAgentsFS, setupVirtualAgentsFS } from "../fixture.ts";
+import { cleanupVirtualAgentsFS, getVirtualAgentsFS, scratchRoot, setupVirtualAgentsFS } from "../fixture.ts";
 import { ledgerOf, registerCoordinator, seededRun } from "../grants/agent-grant-fixtures.ts";
+
+beforeAll(() => {
+  setupVirtualAgentsFS();
+  deployedRun("warmup");
+  cleanupVirtualAgentsFS();
+});
 
 beforeEach(() => {
   setupVirtualAgentsFS();
@@ -22,40 +30,69 @@ afterEach(() => {
   cleanupVirtualAgentsFS();
 });
 
-function register(
-  run: string,
-  agent: string,
-  role: AgentRole,
-  parentAgent: string,
-  parentTask: string,
-): void {
-  registerAgentGrant({
-    runRoot: run,
-    agentId: agent,
-    role,
-    parentAgentId: parentAgent,
-    parentTaskId: parentTask,
-    host: "claude-code",
-    authority: { kind: "verified_parent", actorId: parentAgent },
-    maxAgents: 50,
-    telemetry: {},
-  });
+function sampleLedger(): AgentGrantRecord[] {
+  return [
+    {
+      id: "coordinator-1",
+      role: "coordinator",
+      parent_agent_id: null,
+      parent_task_id: null,
+      host: "claude-code",
+      granted_at: "2026-08-19T00:00:00.000Z",
+      status: "active",
+    },
+    {
+      id: "impl-1",
+      role: "implementer",
+      parent_agent_id: "coordinator-1",
+      parent_task_id: "task-1",
+      host: "claude-code",
+      granted_at: "2026-08-19T00:00:00.000Z",
+      status: "active",
+    },
+    {
+      id: "val-1",
+      role: "validator",
+      parent_agent_id: "coordinator-1",
+      parent_task_id: "task-1",
+      host: "claude-code",
+      granted_at: "2026-08-19T00:00:00.000Z",
+      status: "active",
+    },
+    {
+      id: "sub-1",
+      role: "sub-investigator",
+      parent_agent_id: "impl-1",
+      parent_task_id: "task-1",
+      host: "claude-code",
+      granted_at: "2026-08-19T00:00:00.000Z",
+      status: "active",
+    },
+    {
+      id: "impl-2",
+      role: "implementer",
+      parent_agent_id: "coordinator-1",
+      parent_task_id: "task-2",
+      host: "claude-code",
+      granted_at: "2026-08-19T00:00:00.000Z",
+      status: "active",
+    },
+  ] as AgentGrantRecord[];
 }
 
 function deployedRun(name: string): string {
-  const run = seededRun(import.meta.path, name);
-  registerCoordinator(run);
-  register(run, "impl-1", "implementer", "coordinator-1", "task-1");
-  register(run, "val-1", "validator", "coordinator-1", "task-1");
-  register(run, "sub-1", "sub-investigator", "impl-1", "task-1");
-  register(run, "impl-2", "implementer", "coordinator-1", "task-2");
+  const root = scratchRoot(import.meta.path, name);
+  const run = initRun(root, name, new Uint8Array(0), "file", true);
+  transact(run, "test-setup", "seed-graph-and-agents", {}, (draft) => {
+    draft.tasks = { "task-1": { id: "task-1" }, "task-2": { id: "task-2" } };
+    draft.agents = sampleLedger();
+  });
   return run;
 }
 
 describe("agent lineage", () => {
   test("answers who worked a task and under whom", () => {
-    const run = deployedRun("lineage-task");
-    const ledger = ledgerOf(run);
+    const ledger = sampleLedger();
 
     const lineage = taskLineage(ledger, "task-1");
     expect(lineage.agents.map((node) => node.agent_id)).toEqual(["impl-1", "val-1", "sub-1"]);
@@ -72,18 +109,23 @@ describe("agent lineage", () => {
     ]);
   });
 
-  test("serves the lineage and the roster through agent:list", () => {
+  test("serves lineage through agent:list", () => {
     const run = deployedRun("lineage-cli");
-
     const lineage = agentListCommand({ run, task: "task-1" });
     expect(String(lineage.markdown)).toContain("### Task Lineage: task-1");
     expect(String(lineage.markdown)).toContain("`impl-1` ← `coordinator-1`");
+  });
 
+  test("serves active roster through agent:list", () => {
+    const run = deployedRun("roster-cli");
     const roster = agentListCommand({ run });
     expect(roster.active_grants).toBe(5);
     expect(roster.released_grants).toBe(0);
     expect(String(roster.markdown)).toContain("### Deployed Agents");
+  });
 
+  test("reflects released grants in agent:list with --all", () => {
+    const run = deployedRun("lineage-release");
     releaseAgentGrant({
       runRoot: run,
       agentId: "sub-1",
@@ -112,5 +154,55 @@ describe("agent lineage", () => {
     };
     expect([...knownTaskIds(state)]).toEqual(["task-1", "task-1.a", "task-1.b"]);
     expect([...knownTaskIds({ tasks: {} })]).toEqual([]);
+  });
+
+  test("resolves deep 4-level lineage hierarchy from leaf to root", () => {
+    const deepLedger: AgentGrantRecord[] = [
+      {
+        id: "coord-root",
+        role: "coordinator",
+        parent_agent_id: null,
+        parent_task_id: null,
+        host: "claude-code",
+        granted_at: "2026-08-19T00:00:00.000Z",
+        status: "active",
+      },
+      {
+        id: "manager-1",
+        role: "implementer",
+        parent_agent_id: "coord-root",
+        parent_task_id: "task-deep",
+        host: "claude-code",
+        granted_at: "2026-08-19T00:00:00.000Z",
+        status: "active",
+      },
+      {
+        id: "impl-deep",
+        role: "implementer",
+        parent_agent_id: "manager-1",
+        parent_task_id: "task-deep",
+        host: "claude-code",
+        granted_at: "2026-08-19T00:00:00.000Z",
+        status: "active",
+      },
+      {
+        id: "sub-deep",
+        role: "sub-investigator",
+        parent_agent_id: "impl-deep",
+        parent_task_id: "task-deep",
+        host: "claude-code",
+        granted_at: "2026-08-19T00:00:00.000Z",
+        status: "active",
+      },
+    ] as AgentGrantRecord[];
+
+    const lineage = taskLineage(deepLedger, "task-deep");
+    expect(lineage.agents.map((n) => n.agent_id)).toEqual(["manager-1", "impl-deep", "sub-deep"]);
+    expect(lineage.agents.map((n) => n.depth)).toEqual([0, 1, 2]);
+
+    const leafNode = lineage.agents.find((n) => n.agent_id === "sub-deep");
+    expect(leafNode?.ancestors).toEqual(["impl-deep", "manager-1", "coord-root"]);
+
+    expect(ancestorChain(deepLedger, "sub-deep")).toEqual(["impl-deep", "manager-1", "coord-root"]);
   });
 });

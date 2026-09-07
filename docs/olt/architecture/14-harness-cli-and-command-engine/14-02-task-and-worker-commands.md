@@ -34,7 +34,7 @@ graph TD
         TS --> TVS["task:validate-start\n(Cognitive Lock: Zero Tool Invocation)"]
         TVS --> TPR["task:probe\n(Adversarial Demands)"]
         TPR --> TRV{"task:review\n(--status pass | fail)"}
-        TRV -->|fail / changes_requested| TRJ["task:reject / task:assign-repairer\n(Quarantined Repair Routing)"]
+        TRV -->|fail / changes_requested| TRJ["task:reject\n(Quarantined Repair Routing)"]
         TRJ --> TC
         TRV -->|pass| TDONE["Task Marked Done\n(Gate Satisfied)"]
     end
@@ -47,7 +47,7 @@ graph TD
 ### `task:claim`
 
 **Domain**: `task`  
-**Authority Tier**: `T3` (Implementer / Repairer)  
+**Authority Tier**: `T3` (Implementer)  
 **Advisory Lock**: Exclusive on task record  
 **Mutation Guarantee**: Transitions task status from `ready` (or `changes_requested`) to `leased`, records initial write-scope SHA-256 digest ($D_{\text{claim}}$), stamps lease expiration timestamp ($t_{\text{claim}} + \text{TTL}$), increments task attempt counter, and mints an ephemeral bearer token.
 
@@ -64,7 +64,7 @@ bun olt/scripts/harness.ts task:claim --run <RUN_DIR> --task <TASK_ID> --agent <
 | `--run`                               | `string` | Required |      —       | Capsule run root directory.                                                         |
 | `--task`                              | `string` | Required |      —       | Task ID to lease (must be in `ready` or `changes_requested`).                       |
 | `--agent`                             | `string` | Required |      —       | Unique identifier of claiming agent (e.g. `worker-auth-01`).                        |
-| `--role`                              | `string` | Required |      —       | Role contract: `implementer` (for `ready`) or `repairer` (for `changes_requested`). |
+| `--role`                              | `string` | Required |      —       | Role contract: `implementer` (for `ready` or `changes_requested`).                  |
 | `--lease-duration`, `--lease-seconds` |  `int`   | Optional | `1200` (20m) | Lease duration in seconds (Range: 5 to 86400).                                      |
 
 #### Input / Output Payloads
@@ -104,7 +104,7 @@ bun olt/scripts/harness.ts task:claim --run <RUN_DIR> --task <TASK_ID> --agent <
 
 - `0`: Success, lease granted.
 - `3`: `INVALID_STATE` (task not in `ready` or `changes_requested` state).
-- `3`: `ROLE_CONFINEMENT_VIOLATION` (claiming `repairer` on a fresh task or `implementer` on a rejected task).
+- `3`: `ROLE_CONFINEMENT_VIOLATION` (claiming with any role other than `implementer`, or reclaiming a rejected task under an agent id that does not match the recorded repair assignee).
 - `4`: `LOCK_TIMEOUT` (concurrent lease race contention).
 
 ---
@@ -278,19 +278,19 @@ bun olt/scripts/harness.ts task:review --run <RUN_DIR> --task <TASK_ID> --valida
 
 ---
 
-### `task:reject` & `task:assign-repairer`
+### `task:reject`
 
 **Aliases**: `task:repair`  
 **Domain**: `task`  
 **Authority Tier**: `T2` (Validator), `T0` (Orchestrator)  
 **Advisory Lock**: Exclusive  
-**Mutation Guarantee**: Records structured defect finding, unlocks task into `changes_requested` quarantine, and assigns an isolated repair lease to a repair agent.
+**Mutation Guarantee**: Records structured defect finding and unlocks task into `changes_requested` quarantine, bound to the recorded repair assignee. With `--in-lease` (or `--micro-cycle`), the same implementer keeps the existing lease instead of releasing it.
 
 #### Synopsis
 
 ```bash
 bun olt/scripts/harness.ts task:reject --run <RUN_DIR> --task <TASK_ID> --validator <VALIDATOR_ID> --token <TOKEN> --findings-file <FINDINGS_JSON>
-bun olt/scripts/harness.ts task:assign-repairer --run <RUN_DIR> --task <TASK_ID> --repairer <AGENT_ID> [--lease-seconds <SECS>]
+bun olt/scripts/harness.ts task:reject --run <RUN_DIR> --task <TASK_ID> --validator <VALIDATOR_ID> --in-lease --reason <STR>
 ```
 
 ---

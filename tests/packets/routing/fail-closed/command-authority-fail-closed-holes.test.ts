@@ -21,19 +21,19 @@ afterAll(() => {
 
 describe("assertGrantedCommand hole 2: no acting identity resolves", () => {
   test("denies a non-allowlisted command with --run but no identity flag", () => {
-    const flags: Flags = { run: "/nonexistent/capsule" };
+    const flags: Flags = { run: "/virtual/nonexistent/capsule" };
     expect(() => assertGrantedCommand(spec("task:heartbeat"), flags)).toThrow(
       "verified caller session",
     );
   });
 
   test("permits task:check with --run but no identity flag, the retired-actor bricking trap", () => {
-    const flags: Flags = { run: "/nonexistent/capsule" };
+    const flags: Flags = { run: "/virtual/nonexistent/capsule" };
     expect(() => assertGrantedCommand(spec("task:check"), flags)).not.toThrow();
   });
 
   test("permits doctor with --run but no identity flag", () => {
-    const flags: Flags = { run: "/nonexistent/capsule" };
+    const flags: Flags = { run: "/virtual/nonexistent/capsule" };
     expect(() => assertGrantedCommand(spec("doctor"), flags)).not.toThrow();
   });
 
@@ -107,7 +107,7 @@ describe("assertGrantedCommand fail-closed does not flip open for legitimate run
   });
 
   test("permits orchestrator:run against an unresolvable --run with no --actor", () => {
-    const flags: Flags = { run: "/nonexistent/probe-run" };
+    const flags: Flags = { run: "/virtual/nonexistent/probe-run" };
     expect(() => assertGrantedCommand(spec("orchestrator:run"), flags)).not.toThrow();
   });
 

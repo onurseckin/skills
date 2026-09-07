@@ -1,6 +1,5 @@
-import { afterAll, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { buildPacket } from "../../../../olt/scripts/src/packets/render-packet.ts";
 import {
@@ -14,12 +13,18 @@ import { inspectionContext } from "../slicing/inspection-fixture.ts";
 import {
   createVirtualFSSession,
   VirtualMemoryFS,
+  type VirtualFSSession,
 } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
-const vfs = new VirtualMemoryFS();
-const session = createVirtualFSSession(vfs);
+let vfs: VirtualMemoryFS;
+let session: VirtualFSSession;
 
-afterAll(() => {
+beforeEach(() => {
+  vfs = new VirtualMemoryFS();
+  session = createVirtualFSSession(vfs);
+});
+
+afterEach(() => {
   session.cleanup();
   vfs.reset();
 });
@@ -45,7 +50,7 @@ function baseTaskState() {
 
 describe("Decoupled Capsule Memory - Bundle Storage", () => {
   describe("Packet Bundle Storage & Metadata Decoupling", () => {
-    test("createPacketBundle writes packet.md and metadata.json as decoupled files", async () => {
+    test("createPacketBundle writes packet.md and metadata.json as decoupled files", () => {
       const root = createTempRoot("packet-bundle-test-");
 
       const { state, token } = baseTaskState();
@@ -69,8 +74,8 @@ describe("Decoupled Capsule Memory - Bundle Storage", () => {
       expect(paths.markdownPath).toBe(join(root, "packet-impl-1", "packet.md"));
       expect(paths.metadataPath).toBe(join(root, "packet-impl-1", "metadata.json"));
 
-      const readMarkdown = await readFile(paths.markdownPath, "utf-8");
-      const readMetadataJson = JSON.parse(await readFile(paths.metadataPath, "utf-8"));
+      const readMarkdown = vfs.readFileSync(paths.markdownPath, "utf8");
+      const readMetadataJson = JSON.parse(vfs.readFileSync(paths.metadataPath, "utf8") as string);
 
       expect(readMarkdown).toBe(built.markdown);
       expect(readMetadataJson).toEqual(built.metadata);
@@ -80,7 +85,42 @@ describe("Decoupled Capsule Memory - Bundle Storage", () => {
       expect(verified).toEqual(paths);
     });
 
-    test("createPacketBundle enforces immutability and rejects mutation attempts", async () => {
+    test("verifyPacketBundle throws INTEGRITY error when bundle file is deleted or tampered", () => {
+      const root = createTempRoot("packet-verify-err-");
+      const { state, token } = baseTaskState();
+      const built = buildPacket({
+        runId: "run-bundle",
+        graphRevision: 1,
+        role: "implementer",
+        agentId: "worker-1",
+        attempt: 1,
+        state,
+        task: state.tasks["T-1"],
+        commonInstructions: { bytes: commonBytes, sha256: commonSha256 },
+        evidenceSchema: evidenceSchema("implementer"),
+        targetedCommands: [["bun", "test"]],
+        leaseToken: token,
+        clock,
+        authoritativeContext: { ...inspectionContext() },
+      });
+
+      const paths = createPacketBundle(root, "packet-tamper-1", built, false);
+      expect(verifyPacketBundle(root, "packet-tamper-1", built)).toEqual(paths);
+
+      // Tamper with packet.md
+      vfs.writeFileSync(paths.markdownPath, "# Tampered content");
+      expect(() => verifyPacketBundle(root, "packet-tamper-1", built)).toThrow(
+        /packet bundle is missing or differs/u,
+      );
+
+      // Delete metadata.json
+      vfs.unlinkSync(paths.metadataPath);
+      expect(() => verifyPacketBundle(root, "packet-tamper-1", built)).toThrow(
+        /packet bundle is missing or differs/u,
+      );
+    });
+
+    test("createPacketBundle enforces immutability and rejects mutation attempts", () => {
       const root = createTempRoot("packet-immutability-");
 
       const { state, token } = baseTaskState();

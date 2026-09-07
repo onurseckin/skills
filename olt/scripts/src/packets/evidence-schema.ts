@@ -201,10 +201,10 @@ const metaAuditorRecord: JsonObject = {
   remediation_proposals: [{ id: "<proposal id>", title: "<title>", priority: "MEDIUM" }],
 };
 
-const mechanicValidatorReview: JsonObject = {
+const uiHeadlessValidatorReview: JsonObject = {
   verdict: "pass|reject",
   requirement_ids: ["<every task requirement id exactly once>"],
-  checks: [{ command_id: "<mechanic-validator gate command id>" }],
+  checks: [{ command_id: "<ui-headless-validator gate command id>" }],
   gate_receipts: [
     {
       gate_id: "<gate id>",
@@ -241,7 +241,7 @@ const ROLE_CONTRACTS: Readonly<Record<AgentRole, JsonObject>> = {
   "sub-implementer": taskSubmission,
   "sub-investigator": investigationReport,
   "sub-validator": validatorReview,
-  "ui-headless-validator": mechanicValidatorReview,
+  "ui-headless-validator": uiHeadlessValidatorReview,
   "ui-optical-validator": validatorReview,
   validator: validatorReview,
 };

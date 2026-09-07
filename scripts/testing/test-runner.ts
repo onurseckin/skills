@@ -7,6 +7,7 @@ import {
 } from "./reporting/index.ts";
 import { acquireTestLock } from "./mutex/index.ts";
 import { executeStreamingRunner, parseRunnerArgs } from "./runner/index.ts";
+import { auditTestPuritySync } from "./guardrails/index.ts";
 import { inspectRepoPolicy, isTestingEnabled } from "../../olt/scripts/src/policy/index.ts";
 
 export { executeStreamingRunner };
@@ -26,6 +27,15 @@ export function executeTestRunner(rawArgs: string[] = process.argv.slice(2)): nu
   const releaseLock = acquireTestLock(isLockRequired, rawArgs);
 
   try {
+    if ((parsed.isBroadScope || parsed.isCoverage) && process.env.OLT_SKIP_PURITY !== "1") {
+      const purityResult = auditTestPuritySync({ all: true });
+      if (!purityResult.passed) {
+        console.error(purityResult.terminalReport);
+        console.error("\n❌ [purity-guard] Whole repository test suite failed purity audit.");
+        return 1;
+      }
+      console.log(purityResult.terminalReport);
+    }
     const startMs = Date.now();
     const startTime = new Date(startMs).toISOString();
 

@@ -239,7 +239,7 @@ export function pruneStaleSessions(maxAgeMs = 86400000): void {
   if (io.isInMemorySessionStoreEnabled()) {
     const s = io.getInMemorySessionStore();
     if (s)
-      for (const k of [...s.keys()])
+      for (const k of Array.from(s.keys()))
         if (k.includes(".sessions") && k.endsWith(".json")) s.delete(k);
     return;
   }

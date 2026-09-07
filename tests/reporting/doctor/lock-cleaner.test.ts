@@ -1,15 +1,33 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { mkdirSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import {
   cleanseDanglingLocks,
   isProcessAlive,
   recoverStaleLeases,
 } from "../../../olt/scripts/src/reporting/doctor/lock-cleaner.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("lock-cleaner coverage", () => {
+  let session: VirtualFSSession | null = null;
+  let counter = 0;
+  const vDir = (label: string) => `/virtual/lock-cleaner/${label}-${++counter}`;
+
+  beforeEach(() => {
+    const vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+  });
+
+  afterEach(() => {
+    session?.cleanup();
+    session = null;
+  });
+
   describe("isProcessAlive", () => {
     it("returns false for invalid, non-integer, or non-positive PIDs", () => {
       expect(isProcessAlive(0)).toBe(false);
@@ -30,7 +48,7 @@ describe("lock-cleaner coverage", () => {
 
   describe("cleanseDanglingLocks", () => {
     it("handles missing target directories and default directories gracefully", () => {
-      const tempRoot = join(tmpdir(), `test-lock-cleaner-empty-${Date.now()}`);
+      const tempRoot = vDir("empty");
       mkdirSync(tempRoot, { recursive: true });
       try {
         const cleared = cleanseDanglingLocks({ repoRoot: tempRoot });
@@ -41,7 +59,7 @@ describe("lock-cleaner coverage", () => {
     });
 
     it("cleans zero-byte stagnant locks older than grace period, keeps fresh zero-byte locks", () => {
-      const tempDir = join(tmpdir(), `test-lock-cleaner-zerobyte-${Date.now()}`);
+      const tempDir = vDir("zerobyte");
       mkdirSync(tempDir, { recursive: true });
       try {
         const oldZero = join(tempDir, "old-zero.lock");
@@ -62,7 +80,7 @@ describe("lock-cleaner coverage", () => {
     });
 
     it("cleans stale locks exceeding staleSeconds limit and ignores non-lock files/directories", () => {
-      const tempDir = join(tmpdir(), `test-lock-cleaner-stale-${Date.now()}`);
+      const tempDir = vDir("stale");
       mkdirSync(tempDir, { recursive: true });
       try {
         const staleLock = join(tempDir, "stale.lock");
@@ -84,7 +102,7 @@ describe("lock-cleaner coverage", () => {
     });
 
     it("cleans JSON locks with expired timestamp or dead PID, and keeps valid JSON locks", () => {
-      const tempDir = join(tmpdir(), `test-lock-cleaner-json-${Date.now()}`);
+      const tempDir = vDir("json");
       mkdirSync(tempDir, { recursive: true });
       try {
         const expiredLock = join(tempDir, "expired.lock");
@@ -108,7 +126,7 @@ describe("lock-cleaner coverage", () => {
     });
 
     it("cleans plain text PID locks with dead PIDs and unparseable corrupt locks older than 30s", () => {
-      const tempDir = join(tmpdir(), `test-lock-cleaner-text-${Date.now()}`);
+      const tempDir = vDir("text");
       mkdirSync(tempDir, { recursive: true });
       try {
         const deadPidTxt = join(tempDir, "dead-pid.lock");
@@ -142,7 +160,7 @@ describe("lock-cleaner coverage", () => {
     });
 
     it("safely handles custom actor and graceSeconds options", () => {
-      const tempDir = join(tmpdir(), `test-lock-cleaner-run-${Date.now()}`);
+      const tempDir = vDir("run");
       mkdirSync(tempDir, { recursive: true });
       try {
         const recovered = recoverStaleLeases(tempDir, {
@@ -156,7 +174,7 @@ describe("lock-cleaner coverage", () => {
     });
 
     it("recovers stale task leases when expired lease exists in capsule state", () => {
-      const tempDir = join(tmpdir(), `test-lock-cleaner-stale-run-${Date.now()}`);
+      const tempDir = vDir("stale-run");
       mkdirSync(tempDir, { recursive: true });
       try {
         const runDir = initRun(tempDir, "stale-lease-run", new Uint8Array(), "file", true);

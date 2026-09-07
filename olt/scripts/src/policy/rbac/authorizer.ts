@@ -39,16 +39,15 @@ const RECOGNIZED_ROLES = new Set([
   "plan_validator",
   "sub-investigator",
   "sub_investigator",
-  "mechanic-validator",
-  "mechanic_validator",
   "sub-validator",
   "sub_validator",
   "implementer",
   "worker",
-  "repairer",
   "sub-task-worker",
   "sub_task_worker",
   "agent",
+  "ui-headless-validator",
+  "ui-optical-validator",
 ]);
 
 function isRecognizedRole(role: string): boolean {
@@ -134,7 +133,8 @@ export function verifyCommandAuthorization(
     normalizedRole === "plan-validator" ||
     normalizedRole === "plan_validator" ||
     normalizedRole === "sub-investigator" ||
-    normalizedRole === "sub_investigator";
+    normalizedRole === "sub_investigator" ||
+    normalizedRole === "ui-optical-validator";
 
   const isSupervisor =
     normalizedRole === "mind" ||

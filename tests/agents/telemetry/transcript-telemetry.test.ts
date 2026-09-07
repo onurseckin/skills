@@ -1,9 +1,8 @@
 import { afterAll, afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import { mkdir, writeFile } from "node:fs/promises";
 import * as os from "node:os";
 import { join } from "node:path";
 import { readAgentTranscriptTelemetry } from "../../../olt/scripts/src/workflow/agents/transcript-telemetry.ts";
-import { cleanupVirtualAgentsFS, setupVirtualAgentsFS } from "../fixture.ts";
+import { cleanupVirtualAgentsFS, getVirtualAgentsFS, setupVirtualAgentsFS } from "../fixture.ts";
 import {
   assistantLine as aLine,
   cleanupTranscriptRoots,
@@ -20,8 +19,8 @@ afterEach(() => {
   cleanupVirtualAgentsFS();
 });
 
-afterAll(async () => {
-  await cleanupTranscriptRoots();
+afterAll(() => {
+  cleanupTranscriptRoots();
 });
 
 const getTel = (agentId: string, home: string, sess: string) =>
@@ -48,9 +47,9 @@ describe("readAgentTranscriptTelemetry — fail-safe absence", () => {
     }
   });
 
-  test("a real session with no file for this exact agent id reads as no evidence", async () => {
+  test("a real session with no file for this exact agent id reads as no evidence", () => {
     const home = mktemp(import.meta.path, "session-a");
-    await wDirect(home, "session-a", "agent-known", [
+    wDirect(home, "session-a", "agent-known", [
       aLine({ timestamp: "2026-08-20T10:00:00.000Z", model: "claude-sonnet-5" }),
     ]);
     expect(getTel("agent-unknown", home, "session-a")).toBeNull();
@@ -58,9 +57,9 @@ describe("readAgentTranscriptTelemetry — fail-safe absence", () => {
 });
 
 describe("readAgentTranscriptTelemetry — a direct Task-tool subagent transcript", () => {
-  test("real model, effort, token totals and tool success/failure are read off transcript", async () => {
+  test("real model, effort, token totals and tool success/failure are read off transcript", () => {
     const home = mktemp(import.meta.path, "session-b");
-    await wDirect(
+    wDirect(
       home,
       "session-b",
       "agent-1",
@@ -109,15 +108,15 @@ describe("readAgentTranscriptTelemetry — a direct Task-tool subagent transcrip
     expect(res?.runContext).toBeUndefined();
   });
 
-  test("missing and malformed meta files are handled gracefully", async () => {
+  test("missing and malformed meta files are handled gracefully", () => {
     const homeC = mktemp(import.meta.path, "session-c");
-    await wDirect(homeC, "session-c", "agent-2", [
+    wDirect(homeC, "session-c", "agent-2", [
       aLine({ timestamp: "2026-08-20T10:00:00.000Z", model: "claude-opus-5", inputTokens: 1 }),
     ]);
     expect(getTel("agent-2", homeC, "session-c")?.model).toBe("claude-opus-5");
 
     const homeBad = mktemp(import.meta.path, "session-bad-meta");
-    await wDirect(homeBad, "session-bad-meta", "agent-5", [
+    wDirect(homeBad, "session-bad-meta", "agent-5", [
       aLine({ timestamp: "2026-08-20T10:00:00.000Z", model: "claude-sonnet-5" }),
     ]);
     const metaPath = join(
@@ -129,13 +128,13 @@ describe("readAgentTranscriptTelemetry — a direct Task-tool subagent transcrip
       "subagents",
       "agent-agent-5.meta.json",
     );
-    await writeFile(metaPath, "{ bad json");
+    getVirtualAgentsFS().writeFileSync(metaPath, "{ bad json");
     expect(getTel("agent-5", homeBad, "session-bad-meta")?.model).toBe("claude-sonnet-5");
   });
 
-  test("nested subagent meta, ephemeral cache buckets, and malformed run aggregates", async () => {
+  test("nested subagent meta, ephemeral cache buckets, and malformed run aggregates", () => {
     const homeD = mktemp(import.meta.path, "session-d");
-    await wDirect(
+    wDirect(
       homeD,
       "session-d",
       "agent-3",
@@ -160,14 +159,14 @@ describe("readAgentTranscriptTelemetry — a direct Task-tool subagent transcrip
         },
       },
     });
-    await wDirect(homeCache, "session-cache-buckets", "agent-6", [line]);
+    wDirect(homeCache, "session-cache-buckets", "agent-6", [line]);
     expect(getTel("agent-6", homeCache, "session-cache-buckets")?.tokenExtras).toEqual({
       cache_creation_ephemeral_5m_input_tokens: 7,
       cache_creation_ephemeral_1h_input_tokens: 3,
     });
 
     const homeBadRun = mktemp(import.meta.path, "session-bad-run");
-    await wDirect(homeBadRun, "session-bad-run", "agent-7", [
+    wDirect(homeBadRun, "session-bad-run", "agent-7", [
       aLine({ timestamp: "2026-08-20T10:00:00.000Z", model: "claude-sonnet-5" }),
     ]);
     const wfDir = join(
@@ -178,14 +177,14 @@ describe("readAgentTranscriptTelemetry — a direct Task-tool subagent transcrip
       "session-bad-run",
       "workflows",
     );
-    await mkdir(wfDir, { recursive: true });
-    await writeFile(join(wfDir, "wf_bad.json"), "{ bad json");
+    getVirtualAgentsFS().mkdirSync(wfDir, { recursive: true });
+    getVirtualAgentsFS().writeFileSync(join(wfDir, "wf_bad.json"), "{ bad json");
     expect(getTel("agent-7", homeBadRun, "session-bad-run")?.runContext).toBeUndefined();
   });
 });
 
 describe("readAgentTranscriptTelemetry — a Workflow-tool subagent, with its run aggregate", () => {
-  test("the run aggregate defaultModel and totals ride along as run context", async () => {
+  test("the run aggregate defaultModel and totals ride along as run context", () => {
     const home = mktemp(import.meta.path, "session-e");
     const runDir = join(
       home,
@@ -197,8 +196,9 @@ describe("readAgentTranscriptTelemetry — a Workflow-tool subagent, with its ru
       "workflows",
       "wf_test1",
     );
-    await mkdir(runDir, { recursive: true });
-    await writeFile(
+    const vfs = getVirtualAgentsFS();
+    vfs.mkdirSync(runDir, { recursive: true });
+    vfs.writeFileSync(
       join(runDir, "agent-agent-4.jsonl"),
       aLine({
         timestamp: "2026-08-20T11:00:00.000Z",
@@ -207,14 +207,14 @@ describe("readAgentTranscriptTelemetry — a Workflow-tool subagent, with its ru
         outputTokens: 5,
       }) + "\n",
     );
-    await writeFile(
+    vfs.writeFileSync(
       join(runDir, "agent-agent-4.meta.json"),
       JSON.stringify({ agentType: "workflow-subagent", spawnDepth: 1 }),
     );
 
     const wfDir = join(home, ".claude", "projects", "some-project", "session-e", "workflows");
-    await mkdir(wfDir, { recursive: true });
-    await writeFile(
+    vfs.mkdirSync(wfDir, { recursive: true });
+    vfs.writeFileSync(
       join(wfDir, "wf_test1.json"),
       JSON.stringify({
         runId: "wf_test1",

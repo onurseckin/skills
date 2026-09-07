@@ -101,7 +101,7 @@ describe("recordMicroCycleCritique: repair-attempt-and-lease minting on the real
       port,
       "T-1",
       "operator",
-      "repairer unresponsive",
+      "implementer unresponsive",
       round2Clock,
     );
     const task = requireTask(afterAbandon, "T-1");
@@ -112,7 +112,7 @@ describe("recordMicroCycleCritique: repair-attempt-and-lease minting on the real
       throw new Error("expected the repair attempt to still be present after abandon");
     }
     expect(isAttemptOpen(closedAttempt)).toBe(false);
-    expect(closedAttempt.abandoned_reason).toBe("repairer unresponsive");
+    expect(closedAttempt.abandoned_reason).toBe("implementer unresponsive");
   });
 
   test("round 1 recovery: stale reclaim reaps an expired repair lease automatically", () => {

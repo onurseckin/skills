@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { JsonObject } from "../../olt/scripts/src/core/contracts/index.ts";
 import { canonicalJsonBytes, sha256Bytes } from "../../olt/scripts/src/core/json.ts";
@@ -10,6 +9,7 @@ import {
   validateEventsFileShaChain,
   validateMigratedRun,
 } from "../../olt/scripts/src/engine/store/hierarchy/storage-migrator.ts";
+import { cleanupVirtualEngineFS, setupVirtualEngineFS } from "./fixture.ts";
 
 function createValidEventRecord(
   data: JsonObject,
@@ -25,13 +25,13 @@ describe("storage-migrator coverage suite", () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "migrator-cov-"));
+    setupVirtualEngineFS();
+    tempDir = `/virtual/migrator-cov-${crypto.randomUUID()}`;
+    mkdirSync(tempDir, { recursive: true });
   });
 
   afterEach(() => {
-    try {
-      rmSync(tempDir, { recursive: true, force: true });
-    } catch {}
+    cleanupVirtualEngineFS();
   });
 
   it("validates events file sha chain across empty, missing, invalid JSON, structure, and hashes", () => {
@@ -170,5 +170,39 @@ describe("storage-migrator coverage suite", () => {
     const emptyRepo = join(tempDir, "empty-repo");
     const noOltRes = relocateVestigialLedgers(emptyRepo);
     expect(noOltRes.relocatedCount).toBe(0);
+  });
+
+  it("ignores non-directory entries like .DS_Store in .capsules during migration", () => {
+    const repoRoot = join(tempDir, "repo-non-dir");
+    const legacyDir = join(repoRoot, ".capsules");
+    mkdirSync(legacyDir, { recursive: true });
+
+    // Add regular files that should be ignored
+    writeFileSync(join(legacyDir, ".DS_Store"), "binary-junk");
+    writeFileSync(join(legacyDir, ".gitkeep"), "");
+    writeFileSync(join(legacyDir, "notes.txt"), "some notes");
+
+    // Add one valid capsule
+    const validId = "2026-09-01T12-00-00-000Z-valid2";
+    const validRunDir = join(legacyDir, validId);
+    mkdirSync(validRunDir);
+    const recValid = createValidEventRecord({ type: "ok" }, null, 1);
+    writeFileSync(join(validRunDir, "events.jsonl"), JSON.stringify(recValid) + "\n");
+
+    const result = migrateLegacyCapsules(repoRoot);
+    expect(result.migratedCount).toBe(1);
+    expect(result.errors).toEqual([]);
+  });
+
+  it("reports integrity error on torn or truncated event line in events.jsonl", () => {
+    const tornPath = join(tempDir, "torn-event.jsonl");
+    const validRec = createValidEventRecord({ type: "start" }, null, 1);
+    writeFileSync(
+      tornPath,
+      `${JSON.stringify(validRec)}\n{"sequence": 2, "kind": "unfini`,
+    );
+    const res = validateEventsFileShaChain(tornPath);
+    expect(res.valid).toBe(false);
+    expect(res.error).toContain("is not valid JSON");
   });
 });

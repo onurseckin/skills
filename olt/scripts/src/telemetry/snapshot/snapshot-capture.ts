@@ -14,6 +14,16 @@ import {
 import { isOwnCode } from "./snapshot-lock.ts";
 import { requiredText, timestamp } from "./snapshot-persistence.ts";
 
+let snapshotCaptureGitRunner:
+  | ((repoRoot: string) => { status: number; stdout: string })
+  | undefined;
+
+export function __setDagSnapshotCaptureTestHook(
+  hook: ((repoRoot: string) => { status: number; stdout: string }) | undefined,
+): void {
+  snapshotCaptureGitRunner = hook;
+}
+
 export async function captureDagSnapshot(
   options: CaptureDagSnapshotOptions,
 ): Promise<QuotaDagSnapshot> {
@@ -58,12 +68,14 @@ export async function captureDagSnapshot(
       throw new HarnessError("INTEGRITY", "could not capture run memory evidence");
     }
   }
-  const git = spawnSync("git", ["status", "--porcelain"], {
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "ignore"],
-    cwd: repositoryRoot,
-    shell: false,
-  });
+  const git = snapshotCaptureGitRunner
+    ? snapshotCaptureGitRunner(repositoryRoot)
+    : spawnSync("git", ["status", "--porcelain"], {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+        cwd: repositoryRoot,
+        shell: false,
+      });
   if (git.status !== 0)
     throw new HarnessError("INTEGRITY", "could not capture repository status evidence");
   return {

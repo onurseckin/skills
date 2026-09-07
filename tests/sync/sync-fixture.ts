@@ -37,6 +37,64 @@ export function getVirtualSyncFS(): VirtualMemoryFS {
   return vfs;
 }
 
+export function getVirtualSyncSession(): VirtualFSSession {
+  if (!session) {
+    setupVirtualSyncFS();
+  }
+  const currentSession = session;
+  if (!currentSession) {
+    throw new Error("VirtualFSSession failed to initialize");
+  }
+  return currentSession;
+}
+
+export function isSymbolicLink(targetPath: string): boolean {
+  return session !== null && session.symlinks.has(targetPath);
+}
+
+export { mockSubprocess } from "../../olt/scripts/src/testing/virtual-fs/index.ts";
+import * as fs from "node:fs";
+
+export function virtualSymlinkSync(target: string, linkPath: string): void {
+  getVirtualSyncSession();
+  fs.symlinkSync(target, linkPath);
+}
+
+export function virtualReadlinkSync(linkPath: string): string {
+  getVirtualSyncSession();
+  return fs.readlinkSync(linkPath) as string;
+}
+
+export function virtualChmodSync(targetPath: string, mode: number): void {
+  getVirtualSyncSession();
+  fs.chmodSync(targetPath, mode);
+}
+
+export function virtualLstatSync(targetPath: string): fs.Stats {
+  getVirtualSyncSession();
+  return fs.lstatSync(targetPath);
+}
+
+export function virtualExistsSync(targetPath: string): boolean {
+  getVirtualSyncSession();
+  return fs.existsSync(targetPath);
+}
+
+export function virtualMkdirSync(dirPath: string, opts?: { recursive?: boolean } | boolean) {
+  getVirtualSyncSession();
+  return fs.mkdirSync(dirPath, opts);
+}
+
+export function virtualWriteFileSync(filePath: string, data: string | Uint8Array): void {
+  getVirtualSyncSession();
+  fs.writeFileSync(filePath, data);
+}
+
+export function virtualReadFileSync(filePath: string, encoding: "utf-8" | "utf8" = "utf-8"): string {
+  getVirtualSyncSession();
+  return fs.readFileSync(filePath, encoding) as string;
+}
+
 afterEach(() => {
   cleanupVirtualSyncFS();
 });

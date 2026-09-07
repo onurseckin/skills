@@ -28,7 +28,6 @@ import {
   formatRunCompleteBrief,
   formatRunExecBrief,
   formatRunStatusBrief,
-  formatTaskAssignRepairerBrief,
   formatTaskClaimBrief,
   formatTaskHeartbeatBrief,
   formatTaskProbeBrief,
@@ -167,12 +166,6 @@ describe("Formatter Integration with ⚡ Next Actions GPS blocks", () => {
         round: 1,
         demands: [{ id: "d1", demand: "show proof" }],
         repairRound: 0,
-      }),
-      formatTaskAssignRepairerBrief({
-        taskId: "task-1",
-        replacementId: "rep-2",
-        reason: "stuck",
-        evidence: "timeout",
       }),
       formatQueueNextBrief({
         taskId: "task-1",

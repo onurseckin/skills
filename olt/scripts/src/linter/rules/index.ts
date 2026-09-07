@@ -9,6 +9,7 @@ import {
   mockTautologyRule,
   trivialAssertionRule,
   trivialEarlyReturnRule,
+  unitTestPurityRule,
 } from "./testing/index.ts";
 import { vendorLeakRule } from "./vendor_leak.ts";
 
@@ -22,6 +23,7 @@ export {
   mockTautologyRule,
   trivialAssertionRule,
   trivialEarlyReturnRule,
+  unitTestPurityRule,
 } from "./testing/index.ts";
 export { vendorLeakRule } from "./vendor_leak.ts";
 
@@ -36,4 +38,5 @@ export const ALL_RULES: readonly AstLintRuleModule[] = [
   trivialAssertionRule,
   emptyTestBodyRule,
   trivialEarlyReturnRule,
+  unitTestPurityRule,
 ];

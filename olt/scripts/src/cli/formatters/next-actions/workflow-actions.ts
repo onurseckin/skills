@@ -119,7 +119,7 @@ export function criticReviewNextActions(
     },
     {
       command: `bun harness.ts critic:remediate --run ${run} --finding ${findingId ?? "<FINDING_ID>"} --evidence <EVIDENCE>`,
-      role: "Repairer",
+      role: "Implementer",
       description: "Record proof closing out critic finding",
     },
   ];
@@ -134,7 +134,7 @@ export function criticRejectNextActions(run: string, findingId?: string): NextAc
     },
     {
       command: `bun harness.ts critic:remediate --run ${run} --finding ${findingId ?? "<FINDING_ID>"} --evidence <EVIDENCE>`,
-      role: "Repairer",
+      role: "Implementer",
       description: "Prove remediation once repairs finish",
     },
   ];

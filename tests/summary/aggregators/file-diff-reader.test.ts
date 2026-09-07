@@ -1,23 +1,25 @@
-import { beforeEach, describe, expect, test } from "bun:test";
-import * as fs from "node:fs";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { enrichFileRefsWithDiffs } from "../../../olt/scripts/src/summary/formatters/index.ts";
 import type { RepositoryGitCommand } from "../../../olt/scripts/src/packets/repository-git-command.ts";
 import type { FileRef } from "../../../olt/scripts/src/summary/graph/index.ts";
-import { setupVirtualSummaryFS } from "../fixture.ts";
+import { cleanupVirtualSummaryFS, setupVirtualSummaryFS } from "../fixture.ts";
+import type { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/memory-fs.ts";
 
 let rootCounter = 0;
+let vfs: VirtualMemoryFS;
 
 beforeEach(() => {
-  setupVirtualSummaryFS();
+  vfs = setupVirtualSummaryFS();
 });
+
+afterEach(cleanupVirtualSummaryFS);
 
 function createSandboxRoot(testName: string): string {
   rootCounter += 1;
   const slug = testName.replace(/[^a-z0-9]+/giu, "-").toLowerCase();
   const dir = `/virtual/harness-file-diff-reader-tests/${slug}-${rootCounter}`;
-  mkdirSync(dir, { recursive: true });
+  vfs.mkdirSync(dir, { recursive: true });
   return dir;
 }
 
@@ -60,7 +62,7 @@ interface RunRootFixture {
 function seedRunRoot(testName: string): RunRootFixture {
   const repositoryRoot = createSandboxRoot(testName);
   const runRoot = join(repositoryRoot, ".olt", "capsules", "run-1");
-  mkdirSync(runRoot, { recursive: true });
+  vfs.mkdirSync(runRoot, { recursive: true });
   const headCommit = "f".repeat(40);
   const digest = "d".repeat(64);
   const inspection = {
@@ -69,7 +71,7 @@ function seedRunRoot(testName: string): RunRootFixture {
     phase: "baseline",
     git: { head: headCommit },
   };
-  writeFileSync(
+  vfs.writeFileSync(
     join(runRoot, "state.json"),
     JSON.stringify({
       baseline_repository_inspection_sha256: digest,
@@ -111,14 +113,14 @@ const UNIFIED_DIFF_B = [
 describe("enrichFileRefsWithDiffs", () => {
   test("a repository with no state.json at the run root passes files through unchanged", () => {
     const { runRoot } = seedRunRoot("no-state-json");
-    rmSync(join(runRoot, "state.json"));
+    vfs.rmSync(join(runRoot, "state.json"));
     const [enriched] = enrichFileRefsWithDiffs([ref("src/a.ts")], runRoot, throwingCommand);
     expect(enriched).toEqual(ref("src/a.ts"));
   });
 
   test("a state.json that is not valid JSON passes files through unchanged", () => {
     const root = createSandboxRoot("malformed-state-json");
-    writeFileSync(join(root, "state.json"), "{ not json");
+    vfs.writeFileSync(join(root, "state.json"), "{ not json");
     const [enriched] = enrichFileRefsWithDiffs([ref("src/a.ts")], root, throwingCommand);
     expect(enriched).toEqual(ref("src/a.ts"));
   });
@@ -131,7 +133,7 @@ describe("enrichFileRefsWithDiffs", () => {
 
   test("a state.json naming an inspection the registry does not hold passes files through unchanged", () => {
     const root = createSandboxRoot("dangling-inspection");
-    writeFileSync(
+    vfs.writeFileSync(
       join(root, "state.json"),
       JSON.stringify({
         baseline_repository_inspection_sha256: "missing",
@@ -167,7 +169,7 @@ describe("enrichFileRefsWithDiffs", () => {
   test("a run root with no repository on disk passes files through unchanged", () => {
     const root = createSandboxRoot("no-repo-on-disk");
     const runRoot = join(root, ".olt", "capsules", "run-1");
-    mkdirSync(runRoot, { recursive: true });
+    vfs.mkdirSync(runRoot, { recursive: true });
     const [enriched] = enrichFileRefsWithDiffs([ref("src/a.ts")], runRoot, throwingCommand);
     expect(enriched).toEqual(ref("src/a.ts"));
   });
@@ -195,5 +197,35 @@ describe("enrichFileRefsWithDiffs", () => {
     expect(enriched[0]!.diff).toContain("+line four");
     expect(enriched[1]!.diff).toContain("+export const b = 2;");
     expect(enriched[0]!.diff).not.toContain("export const b");
+  });
+
+  test("handles binary or malformed diff output safely without throwing", () => {
+    const { runRoot } = seedRunRoot("binary-diff");
+    const command = fixedDiffCommand(new Map([["src/bin.dat", "\0\0binary-diff\0"]]));
+    const [enriched] = enrichFileRefsWithDiffs([ref("src/bin.dat")], runRoot, command);
+    expect(enriched).toBeDefined();
+    expect(enriched?.path).toBe("src/bin.dat");
+  });
+
+  test("correlates diffs for deeply nested file paths correctly", () => {
+    const { runRoot } = seedRunRoot("deeply-nested");
+    const deepPath = "packages/core/src/deep/nested/module.ts";
+    const deepDiff = [
+      `diff --git a/${deepPath} b/${deepPath}`,
+      "index 1111111..2222222 100644",
+      `--- a/${deepPath}`,
+      `+++ b/${deepPath}`,
+      "@@ -1 +1 @@",
+      "-old()",
+      "+new()",
+      "",
+    ].join("\n");
+    const command = fixedDiffCommand(new Map([[deepPath, deepDiff]]));
+    const [enriched] = enrichFileRefsWithDiffs([ref(deepPath)], runRoot, command);
+    expect(enriched?.path).toBe(deepPath);
+    expect(enriched?.diff).toContain("+new()");
+    expect(enriched?.diff).toContain("-old()");
+    expect(enriched?.additions).toBe(1);
+    expect(enriched?.deletions).toBe(1);
   });
 });

@@ -1,6 +1,4 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import * as childProcess from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import * as os from "node:os";
 import { join } from "node:path";
 import {
@@ -14,16 +12,18 @@ import {
   refuseSyncSourceMessage,
   resolveOltSyncSource,
 } from "../../../scripts/sync/git-source.ts";
-import { cleanupVirtualSyncFS, scratchRoot, setupVirtualSyncFS } from "../sync-fixture.ts";
+import { cleanupVirtualSyncFS, getVirtualSyncFS, scratchRoot, setupVirtualSyncFS } from "../sync-fixture.ts";
 import { defaultMockSpawnSync, initSkillsRepoAt } from "./git-fixture.ts";
+import { mockSubprocess } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 let spawnSpy: { mockRestore: () => void } | undefined;
 let tmpdirSpy: { mockRestore: () => void } | undefined;
+let vfs: ReturnType<typeof getVirtualSyncFS>;
 
 beforeEach(() => {
-  setupVirtualSyncFS();
-  spawnSpy = spyOn(childProcess, "spawnSync").mockImplementation(
-    defaultMockSpawnSync as typeof childProcess.spawnSync,
+  vfs = setupVirtualSyncFS();
+  spawnSpy = mockSubprocess(
+    defaultMockSpawnSync as (cmd: string, args: readonly string[], opts?: unknown) => unknown,
   );
   tmpdirSpy = spyOn(os, "tmpdir").mockReturnValue("/virtual/sync/tmp");
 });
@@ -116,9 +116,13 @@ describe("getDirtyOltPaths", () => {
     const root = scratchRoot(import.meta.path, "dirty-paths-dirty");
     initSkillsRepoAt(root);
 
-    writeFileSync(join(root, "olt", "SKILL.md"), "dirty-edit\n", "utf-8");
-    writeFileSync(join(root, "olt", "untracked.ts"), "new\n", "utf-8");
-    renameSync(join(root, "olt", "harness.ts"), join(root, "olt", "harness-renamed.ts"));
+    vfs.writeFileSync(join(root, "olt", "SKILL.md"), "dirty-edit\n", "utf-8");
+    vfs.writeFileSync(join(root, "olt", "untracked.ts"), "new\n", "utf-8");
+    vfs.writeFileSync(
+      join(root, "olt", "harness-renamed.ts"),
+      vfs.readFileSync(join(root, "olt", "harness.ts")),
+    );
+    vfs.unlinkSync(join(root, "olt", "harness.ts"));
 
     const dirty = getDirtyOltPaths(root);
     expect(dirty).toContain("olt/SKILL.md");
@@ -131,8 +135,8 @@ describe("getDirtyOltPaths", () => {
     const root = scratchRoot(import.meta.path, "dirty-paths-outside-olt");
     initSkillsRepoAt(root);
 
-    writeFileSync(join(root, "package.json"), '{"name":"skills","v":2}\n', "utf-8");
-    writeFileSync(join(root, "README.md"), "docs\n", "utf-8");
+    vfs.writeFileSync(join(root, "package.json"), '{"name":"skills","v":2}\n', "utf-8");
+    vfs.writeFileSync(join(root, "README.md"), "docs\n", "utf-8");
 
     expect(getDirtyOltPaths(root)).toEqual([]);
   });
@@ -149,7 +153,7 @@ describe("materializeOltFromHead", () => {
     initSkillsRepoAt(root);
 
     const targetFile = join(root, "olt", "SKILL.md");
-    writeFileSync(targetFile, "dirty-edit-not-in-git\n", "utf-8");
+    vfs.writeFileSync(targetFile, "dirty-edit-not-in-git\n", "utf-8");
 
     const initialCount = getActiveCleanupsCount();
     const tmpParent = join(root, "my-custom-tmp");
@@ -157,9 +161,9 @@ describe("materializeOltFromHead", () => {
     try {
       expect(getActiveCleanupsCount()).toBe(initialCount + 1);
       expect(areSignalHooksRegistered()).toBe(true);
-      expect(existsSync(source.sourceOltDir)).toBe(true);
+      expect(vfs.existsSync(source.sourceOltDir)).toBe(true);
       expect(source.sourceOltDir.startsWith(tmpParent)).toBe(true);
-      expect(readFileSync(join(source.sourceOltDir, "SKILL.md"), "utf-8")).toBe(
+      expect(vfs.readFileSync(join(source.sourceOltDir, "SKILL.md"), "utf-8")).toBe(
         "canonical-skill\n",
       );
     } finally {
@@ -168,26 +172,26 @@ describe("materializeOltFromHead", () => {
 
     expect(getActiveCleanupsCount()).toBe(initialCount);
     expect(areSignalHooksRegistered()).toBe(false);
-    expect(existsSync(source.sourceOltDir)).toBe(false);
+    expect(vfs.existsSync(source.sourceOltDir)).toBe(false);
   });
 
   test("throws if git archive fails on a non-repo", () => {
     const root = scratchRoot(import.meta.path, "materialize-non-repo");
-    mkdirSync(root, { recursive: true });
+    vfs.mkdirSync(root, { recursive: true });
     expect(() => materializeOltFromHead(root)).toThrow(/git archive HEAD -- olt\/ failed/);
   });
 
   test("throws if git archive produces empty stdout", () => {
     const root = scratchRoot(import.meta.path, "materialize-empty-stdout");
     initSkillsRepoAt(root);
-    const mockSpawn = (() => ({
+    const mockSpawn: Parameters<typeof materializeOltFromHead>[2] = (() => ({
       status: 0,
       stdout: Buffer.alloc(0),
       stderr: Buffer.alloc(0),
       pid: 1,
       output: [],
       signal: null,
-    })) as unknown as typeof childProcess.spawnSync;
+    })) as unknown as Parameters<typeof materializeOltFromHead>[2];
 
     expect(() => materializeOltFromHead(root, undefined, mockSpawn)).toThrow(/produced no output/);
   });
@@ -195,7 +199,7 @@ describe("materializeOltFromHead", () => {
   test("throws if tar extract fails", () => {
     const root = scratchRoot(import.meta.path, "materialize-tar-fail");
     initSkillsRepoAt(root);
-    const mockSpawn = ((cmd: string) => {
+    const mockSpawn: Parameters<typeof materializeOltFromHead>[2] = ((cmd: string) => {
       if (cmd === "git") {
         return {
           status: 0,
@@ -214,7 +218,7 @@ describe("materializeOltFromHead", () => {
         output: [],
         signal: null,
       };
-    }) as unknown as typeof childProcess.spawnSync;
+    }) as unknown as Parameters<typeof materializeOltFromHead>[2];
 
     expect(() => materializeOltFromHead(root, undefined, mockSpawn)).toThrow(
       /failed to extract HEAD olt\/ archive/,
@@ -229,9 +233,9 @@ describe("resolveOltSyncSource", () => {
 
     const source = resolveOltSyncSource(root, false);
     try {
-      expect(existsSync(source.sourceOltDir)).toBe(true);
+      expect(vfs.existsSync(source.sourceOltDir)).toBe(true);
       expect(source.sourceOltDir).not.toBe(join(root, "olt"));
-      expect(readFileSync(join(source.sourceOltDir, "SKILL.md"), "utf-8")).toBe(
+      expect(vfs.readFileSync(join(source.sourceOltDir, "SKILL.md"), "utf-8")).toBe(
         "canonical-skill\n",
       );
     } finally {
@@ -242,7 +246,7 @@ describe("resolveOltSyncSource", () => {
   test("dirty tree without --allow-dirty refuses and names the dirty paths in the error", () => {
     const root = scratchRoot(import.meta.path, "resolve-dirty-refuse");
     initSkillsRepoAt(root);
-    writeFileSync(join(root, "olt", "SKILL.md"), "dirty\n", "utf-8");
+    vfs.writeFileSync(join(root, "olt", "SKILL.md"), "dirty\n", "utf-8");
 
     expect(() => resolveOltSyncSource(root, false)).toThrow(
       /refusing to sync from a dirty olt\/ tree/,
@@ -252,11 +256,11 @@ describe("resolveOltSyncSource", () => {
   test("dirty tree with --allow-dirty deploys the live worktree unchanged", () => {
     const root = scratchRoot(import.meta.path, "resolve-dirty-allow");
     initSkillsRepoAt(root);
-    writeFileSync(join(root, "olt", "SKILL.md"), "dirty\n", "utf-8");
+    vfs.writeFileSync(join(root, "olt", "SKILL.md"), "dirty\n", "utf-8");
 
     const source = resolveOltSyncSource(root, true);
     expect(source.sourceOltDir).toBe(join(root, "olt"));
-    expect(readFileSync(join(source.sourceOltDir, "SKILL.md"), "utf-8")).toBe("dirty\n");
+    expect(vfs.readFileSync(join(source.sourceOltDir, "SKILL.md"), "utf-8")).toBe("dirty\n");
     expect(() => source.cleanup()).not.toThrow();
   });
 });

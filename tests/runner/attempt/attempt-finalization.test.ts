@@ -1,6 +1,4 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { readFileSync } from "node:fs";
 import { relative, join, sep } from "node:path";
 import type { CommandAttemptRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
@@ -18,7 +16,7 @@ import type {
   BunSpawnApi,
   NormalizedCommandOptions,
 } from "../../../olt/scripts/src/engine/runner/types/types.ts";
-import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import { getRunnerVfs, tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
 afterEach(cleanupTempRoots);
 const digest = (marker: string): string => marker.repeat(64);
@@ -50,15 +48,16 @@ async function successfulAttempt(
   id: string,
   attempt: number,
 ): Promise<AttemptResult> {
+  const vfs = getRunnerVfs();
   const attemptRoot = join(commandRoot, `attempt-${attempt}`);
-  await mkdir(attemptRoot);
+  vfs.mkdirSync(attemptRoot, { recursive: true });
   const stdoutPath = join(attemptRoot, "stdout.log"),
     stderrPath = join(attemptRoot, "stderr.log"),
     activityPath = join(attemptRoot, "activity.json");
   const startedAt = "2026-08-14T00:00:00.000Z",
     finishedAt = "2026-08-14T00:00:01.000Z";
-  await writeFile(stdoutPath, "raw success\n");
-  await writeFile(stderrPath, "");
+  vfs.writeFileSync(stdoutPath, "raw success\n");
+  vfs.writeFileSync(stderrPath, "");
   atomicWriteJson(
     activityPath,
     {
@@ -98,8 +97,9 @@ async function successfulAttempt(
 describe("two-phase command attempt finalization", () => {
   test("persists a started marker before invoking the spawn dependency", async () => {
     const root = tempRoot("attempt-started");
+    const vfs = getRunnerVfs();
     const commandRoot = join(root, "commands", "C-started");
-    await mkdir(commandRoot, { recursive: true });
+    vfs.mkdirSync(commandRoot, { recursive: true });
     const ownershipToken = "12345678-1234-4234-8234-123456789abc";
     const options: NormalizedCommandOptions = {
       argv: ["injected"],
@@ -123,7 +123,7 @@ describe("two-phase command attempt finalization", () => {
     let marker: Record<string, unknown> | undefined;
     runtime.spawn = (() => {
       marker = JSON.parse(
-        readFileSync(join(commandRoot, "attempt-1", "attempt-started.json"), "utf8"),
+        vfs.readFileSync(join(commandRoot, "attempt-1", "attempt-started.json"), "utf8"),
       );
       throw new Error("injected spawn stop");
     }) as BunSpawnApi["spawn"];
@@ -146,21 +146,24 @@ describe("two-phase command attempt finalization", () => {
 
   test("leaves an unreturned started attempt running for conservative reconciliation", async () => {
     const root = tempRoot("attempt-unreturned");
+    const vfs = getRunnerVfs();
     const runRoot = join(root, ".olt", "capsules");
-    await mkdir(join(runRoot, "commands"), { recursive: true });
+    vfs.mkdirSync(join(runRoot, "commands"), { recursive: true });
     const runner = createInternalCommandRunner({
       inspectRepository: () => binding("a"),
       attempt: async (options, attempt, id, commandRoot, signer) => {
         const attemptRoot = join(commandRoot, `attempt-${attempt}`);
-        await mkdir(attemptRoot);
-        await writeFile(join(attemptRoot, "stdout.log"), "");
-        await writeFile(join(attemptRoot, "stderr.log"), "");
+        vfs.mkdirSync(attemptRoot, { recursive: true });
+        vfs.writeFileSync(join(attemptRoot, "stdout.log"), "");
+        vfs.writeFileSync(join(attemptRoot, "stderr.log"), "");
+        const envVal = options.environment[OWNERSHIP_ENV];
+        const ownership = typeof envVal === "string" ? envVal : "";
         writeAttemptStarted(
           attemptRoot,
           id,
           attempt,
           "2026-08-14T00:00:00.000Z",
-          options.environment[OWNERSHIP_ENV]!,
+          ownership,
           signer,
         );
         throw new Error("injected attempt interruption");
@@ -176,7 +179,7 @@ describe("two-phase command attempt finalization", () => {
     await expect(runner.executePreparedCommand(prepared)).rejects.toThrow(
       "injected attempt interruption",
     );
-    expect(JSON.parse(await readFile(prepared.recordPath, "utf8")).status).toBe("running");
+    expect(JSON.parse(vfs.readFileSync(prepared.recordPath, "utf8")).status).toBe("running");
     expect(
       recoverAggregateFromAttempts(runRoot, prepared.record, {
         probeProcess: () => {
@@ -188,17 +191,18 @@ describe("two-phase command attempt finalization", () => {
 
   test("retains raw attempt evidence when the repository changes after the child exits", async () => {
     const root = tempRoot("attempt-finalization");
+    const vfs = getRunnerVfs();
     const runRoot = join(root, ".olt", "capsules");
-    await mkdir(join(runRoot, "commands"), { recursive: true });
-    await mkdir(join(root, "bin"));
-    await writeFile(join(root, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
+    vfs.mkdirSync(join(runRoot, "commands"), { recursive: true });
+    vfs.mkdirSync(join(root, "bin"), { recursive: true });
+    vfs.writeFileSync(join(root, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
     let observations = 0,
       recordPath = "",
       rawAggregate: Record<string, unknown> | undefined;
     const runner = createInternalCommandRunner({
       inspectRepository: () => {
         observations += 1;
-        if (observations === 3) rawAggregate = JSON.parse(readFileSync(recordPath, "utf8"));
+        if (observations === 3) rawAggregate = JSON.parse(vfs.readFileSync(recordPath, "utf8"));
         return binding(observations < 3 ? "a" : "b");
       },
       attempt: async (_options, attempt, id, commandRoot) =>
@@ -223,9 +227,9 @@ describe("two-phase command attempt finalization", () => {
       repository_after: null,
       attempts: [{ exit_code: 0 }],
     });
-    const aggregate = JSON.parse(await readFile(prepared.recordPath, "utf8"));
+    const aggregate = JSON.parse(vfs.readFileSync(prepared.recordPath, "utf8"));
     const terminalAttempt = JSON.parse(
-      await readFile(join(prepared.commandRoot, "attempt-1", "record.json"), "utf8"),
+      vfs.readFileSync(join(prepared.commandRoot, "attempt-1", "record.json"), "utf8"),
     );
     expect(aggregate.attempts).toHaveLength(1);
     expect(aggregate.attempts[0].exit_code).toBe(0);
@@ -254,10 +258,11 @@ describe("two-phase command attempt finalization", () => {
 
   test("captures repository_after for a successful gate terminalization", async () => {
     const root = tempRoot("attempt-success-after");
+    const vfs = getRunnerVfs();
     const runRoot = join(root, ".olt", "capsules");
-    await mkdir(join(runRoot, "commands"), { recursive: true });
-    await mkdir(join(root, "bin"));
-    await writeFile(join(root, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
+    vfs.mkdirSync(join(runRoot, "commands"), { recursive: true });
+    vfs.mkdirSync(join(root, "bin"), { recursive: true });
+    vfs.writeFileSync(join(root, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
     const runner = createInternalCommandRunner({
       inspectRepository: () => binding("a"),
       attempt: async (_options, attempt, id, commandRoot) =>

@@ -250,6 +250,24 @@ export async function recordProbe(
   ]);
 }
 
+export async function recordProbeRounds(
+  run: string,
+  token: string,
+  label: string,
+  fromRound: number,
+  toRound: number,
+): Promise<Record<string, unknown>[]> {
+  const results: Record<string, unknown>[] = [];
+  for (let round = fromRound; round <= toRound; round++) {
+    results.push(await recordProbe(run, token, `${label} (round ${round})`));
+  }
+  return results;
+}
+
+export function findingIdsFrom(results: readonly Record<string, unknown>[]): string[] {
+  return results.flatMap((result) => result.finding_ids as string[]);
+}
+
 export function reviewPass(
   run: string,
   token: string,

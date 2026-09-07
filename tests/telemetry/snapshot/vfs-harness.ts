@@ -24,6 +24,32 @@ export class SnapshotVirtualFs {
     this.vfs.set(p, { isDir, content, ino: ++this.nextIno });
   }
 
+  symlink(target: string, path: string): void {
+    this.vfs.set(String(path), {
+      isDir: false,
+      isSymlink: true,
+      symlinkTarget: resolve(String(target)),
+      ino: ++this.nextIno,
+    });
+  }
+
+  link(existing: string, path: string): void {
+    const node = this.vfs.get(String(existing));
+    this.vfs.set(String(path), {
+      isDir: false,
+      content: node ? node.content : "",
+      nlink: 2,
+      ino: node ? node.ino : ++this.nextIno,
+    });
+    if (node) node.nlink = 2;
+  }
+
+  readFile(p: string): string {
+    const node = this.vfs.get(String(p));
+    if (!node || node.content === undefined) throw new Error(`ENOENT: ${p}`);
+    return node.content;
+  }
+
   getStats(p: fs.PathLike, isLstat: boolean): fs.Stats {
     const s = String(p).replace(/\/+$/, "");
     let n = this.vfs.get(s);

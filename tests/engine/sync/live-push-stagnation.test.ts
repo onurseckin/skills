@@ -111,7 +111,7 @@ describe("Stagnation Detection, Live Push Reports & Mind Pulse", () => {
 
       expect(warning.level).toBe("critical");
       expect(warning.isStagnating).toBe(true);
-      expect(warning.reason).toContain("failed and no repairers");
+      expect(warning.reason).toContain("failed and no implementers are currently leased to repair them");
       expect(warning.badge).toContain("Failed Tasks");
     });
 

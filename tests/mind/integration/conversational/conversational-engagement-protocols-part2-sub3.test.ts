@@ -27,15 +27,15 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   advanceMailboxCursorBatch,
   dispatchPeerMessage,
   ensureMailboxDir,
+  getInMemoryMailbox,
   loadMailboxCursor,
   readUnreadMessages,
+  setInMemoryMailbox,
   type MailboxEnvelope,
 } from "../../../../olt/scripts/src/communication/mailbox/index.ts";
 import {
@@ -51,26 +51,23 @@ import {
   type ContainmentResult,
   type SupervisoryViolation,
 } from "../../../../olt/scripts/src/mind/containment/index.ts";
+import {
+  cleanupVirtualMindFS,
+  getVirtualMindFS,
+  scratchRoot,
+  setupVirtualMindFS,
+} from "../../fixtures/mind-fixture.ts";
 
 describe("Conversational Engagement Protocols & Active Swarm Audit Suite", () => {
   let testRepoRoot: string;
 
   beforeEach(() => {
-    testRepoRoot = join(
-      tmpdir(),
-      `mind-conversational-audit-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    );
-    mkdirSync(testRepoRoot, { recursive: true });
-    mkdirSync(join(testRepoRoot, ".olt"), { recursive: true });
-    mkdirSync(join(testRepoRoot, ".olt", "mailboxes"), { recursive: true });
+    setupVirtualMindFS();
+    testRepoRoot = scratchRoot("conversational-audit", "sub3");
   });
 
   afterEach(() => {
-    try {
-      rmSync(testRepoRoot, { recursive: true, force: true });
-    } catch {
-      // Best effort cleanup
-    }
+    cleanupVirtualMindFS();
   });
 
   describe("4. Zero Main Thread Pollution Guarantee for Conversational Audits", () => {
@@ -91,14 +88,63 @@ describe("Conversational Engagement Protocols & Active Swarm Audit Suite", () =>
         });
       }
 
-      // Check inbox on disk
-      expect(existsSync(workerPaths.inboxPath)).toBe(true);
-      const lines = readFileSync(workerPaths.inboxPath, "utf8").trim().split("\n");
+      // Check inbox in memory
+      const lines = getInMemoryMailbox(workerPaths.inboxPath) ?? [];
       expect(lines.length).toBe(10);
 
       const unread = readUnreadMessages(workerPaths.inboxPath);
       expect(unread.messages.length).toBe(10);
       expect(unread.quarantinedCount).toBe(0);
+    });
+
+    it("handles non-existent and empty inboxes gracefully returning empty results", () => {
+      const nonExistent = join(testRepoRoot, ".olt", "mailboxes", "ghost-agent", "inbox.jsonl");
+      const res = readUnreadMessages(nonExistent);
+      expect(res.messages).toEqual([]);
+      expect(res.quarantinedCount).toBe(0);
+    });
+
+    it("quarantines corrupted/malformed envelopes without crashing reader", () => {
+      const paths = ensureMailboxDir("worker-corrupt", testRepoRoot);
+      setInMemoryMailbox(paths.inboxPath, [
+        "not-valid-json-syntax{{{",
+        JSON.stringify({ id: "valid-1", sequence: 1, sender_id: "s", recipient_id: "r", sender_role: "r", message_type: "t", timestamp: "ts", correlation_id: "c", hmac_signature: "h", payload: {} }),
+        JSON.stringify({ incomplete: "envelope" }),
+      ]);
+
+      const res = readUnreadMessages(paths.inboxPath, null, { quarantinePath: paths.quarantinePath });
+      expect(res.messages.length).toBe(1);
+      expect(res.messages[0]?.id).toBe("valid-1");
+      expect(res.quarantinedCount).toBe(2);
+    });
+
+    it("burst dispatches 50 messages maintaining 100% in-memory ordering and cursor advancement", () => {
+      const auditor = ensureMailboxDir("auditor-burst", testRepoRoot);
+      const worker = ensureMailboxDir("worker-burst", testRepoRoot);
+
+      for (let i = 1; i <= 50; i++) {
+        dispatchPeerMessage({
+          senderId: "auditor-burst",
+          senderRole: "skill-auditor",
+          recipientRoleOrId: "worker-burst",
+          messageType: "BURST_SIGNAL",
+          sequence: i,
+          payload: { index: i },
+          correlationId: `burst-${i}`,
+          baseDir: testRepoRoot,
+        });
+      }
+
+      const unread = readUnreadMessages(worker.inboxPath, loadMailboxCursor(worker.cursorPath));
+      expect(unread.messages.length).toBe(50);
+      expect(unread.messages[0]?.sequence).toBe(1);
+      expect(unread.messages[49]?.sequence).toBe(50);
+
+      const advanced = advanceMailboxCursorBatch(worker.cursorPath, unread.messages);
+      expect(advanced.last_read_sequence).toBe(50);
+
+      const unreadAfter = readUnreadMessages(worker.inboxPath, advanced);
+      expect(unreadAfter.messages.length).toBe(0);
     });
   });
 });

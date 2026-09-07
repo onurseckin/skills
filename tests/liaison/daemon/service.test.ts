@@ -10,7 +10,7 @@ describe("LiaisonDaemonService", () => {
   it("initializes and reports snapshot state cleanly", () => {
     const service = new LiaisonDaemonService({
       daemon_id: "daemon-test-1",
-      capsule_dir: ".olt/capsules/cross-system-communication-system",
+      capsule_dir: ".olt/capsules/archive/cross-system-communication-system",
       repo_root: process.cwd(),
       heartbeat_interval_ms: 1000,
       peer_ids: ["peer-alpha"],
@@ -28,10 +28,10 @@ describe("LiaisonDaemonService", () => {
   });
 
   it("orchestrates tick, emits heartbeat, and projects capsule state", async () => {
-    let mockTime = 50000;
+    const mockTime = 50000;
     const service = new LiaisonDaemonService({
       daemon_id: "daemon-test-2",
-      capsule_dir: ".olt/capsules/cross-system-communication-system",
+      capsule_dir: ".olt/capsules/archive/cross-system-communication-system",
       repo_root: process.cwd(),
       heartbeat_interval_ms: 1000,
       active_run_ids: ["cross-system-communication-system"],
@@ -55,7 +55,7 @@ describe("LiaisonDaemonService", () => {
     let mockTime = 10000;
     const service = new LiaisonDaemonService({
       daemon_id: "daemon-test-3",
-      capsule_dir: ".olt/capsules/cross-system-communication-system",
+      capsule_dir: ".olt/capsules/archive/cross-system-communication-system",
       repo_root: process.cwd(),
       heartbeat_interval_ms: 1000,
       missed_beat_threshold: 2,
@@ -97,10 +97,10 @@ describe("LiaisonDaemonService", () => {
   });
 
   it("enters and exits freeze cleanly with immediate heartbeat assertion", () => {
-    let mockTime = 20000;
+    const mockTime = 20000;
     const service = new LiaisonDaemonService({
       daemon_id: "daemon-test-freeze",
-      capsule_dir: ".olt/capsules/cross-system-communication-system",
+      capsule_dir: ".olt/capsules/archive/cross-system-communication-system",
       repo_root: process.cwd(),
       clock: () => mockTime,
     });
@@ -117,7 +117,7 @@ describe("LiaisonDaemonService", () => {
   it("handles lifecycle start and stop gracefully", async () => {
     const service = new LiaisonDaemonService({
       daemon_id: "daemon-lifecycle",
-      capsule_dir: ".olt/capsules/cross-system-communication-system",
+      capsule_dir: ".olt/capsules/archive/cross-system-communication-system",
       repo_root: process.cwd(),
       heartbeat_interval_ms: 10000,
     });

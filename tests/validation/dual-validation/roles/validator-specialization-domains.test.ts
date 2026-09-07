@@ -53,7 +53,7 @@ describe("Validator Specialization - Domains & Command Bans", () => {
   describe("1. Strict Command-Running Ban on Regular & Cognitive Validators", () => {
     const cognitiveRoles = [
       "validator",
-      "ui-validator",
+      "ui-optical-validator",
       "validator-code-quality",
       "validator-ui-design",
       "validator-security",
@@ -62,10 +62,9 @@ describe("Validator Specialization - Domains & Command Bans", () => {
     ] as const;
 
     const nonCognitiveRoles = [
-      "mechanic-validator",
-      "ui-mechanic-validator",
+      "ui-headless-validator",
       "implementer",
-      "repairer",
+      "sub-implementer",
       "coordinator",
       "orchestrator",
       "mind",
@@ -86,7 +85,7 @@ describe("Validator Specialization - Domains & Command Bans", () => {
 
       const testAgentIds = [
         "validator_task-1",
-        "ui-validator_task-1",
+        "ui-optical-validator_task-1",
         "validator-code-quality_task-1",
         "validator-ui-design_task-1",
         "validator-security_task-1",
@@ -115,7 +114,7 @@ describe("Validator Specialization - Domains & Command Bans", () => {
             status: "active",
           },
           {
-            id: "ui-validator_task-2",
+            id: "ui-optical-validator_task-2",
             role: "validator",
             parent_agent_id: null,
             parent_task_id: null,
@@ -136,10 +135,10 @@ describe("Validator Specialization - Domains & Command Bans", () => {
         "cognitive validators are strictly banned from executing bash/shell commands or running test suites (run:exec)",
       );
 
-      const flags2: Flags = { run, actor: "ui-validator_task-2" };
+      const flags2: Flags = { run, actor: "ui-optical-validator_task-2" };
       expect(() =>
         assertGrantedCommand(spec("run:exec"), flags2, {
-          actor: "ui-validator_task-2",
+          actor: "ui-optical-validator_task-2",
           verified: true,
         }),
       ).toThrow(
@@ -223,19 +222,19 @@ describe("Validator Specialization - Domains & Command Bans", () => {
 
   describe("2. Mechanic Validator Gate Execution & Structured Test Receipts", () => {
     it("correctly identifies mechanic validator roles", () => {
-      expect(isMechanicValidatorRole("mechanic-validator")).toBe(true);
-      expect(isMechanicValidatorRole("ui-mechanic-validator")).toBe(true);
-      expect(isMechanicValidatorRole("mechanic_validator")).toBe(true);
+      expect(isMechanicValidatorRole("ui-headless-validator")).toBe(true);
 
+      expect(isMechanicValidatorRole("mechanic-validator")).toBe(false);
+      expect(isMechanicValidatorRole("ui-mechanic-validator")).toBe(false);
       expect(isMechanicValidatorRole("validator")).toBe(false);
       expect(isMechanicValidatorRole("ui-validator")).toBe(false);
       expect(isMechanicValidatorRole("implementer")).toBe(false);
     });
 
-    it("permits mechanic-validator to invoke run:exec via assertRoleMayInvoke", () => {
+    it("permits ui-headless-validator to invoke run:exec via assertRoleMayInvoke", () => {
       const execSpec = spec("run:exec");
       expect(() =>
-        assertRoleMayInvoke("mechanic-validator", execSpec, "mechanic-validator_task-1"),
+        assertRoleMayInvoke("ui-headless-validator", execSpec, "ui-headless-validator_task-1"),
       ).not.toThrow();
     });
 
@@ -244,8 +243,8 @@ describe("Validator Specialization - Domains & Command Bans", () => {
       transact(run, "test-setup", "grant-mechanic", {}, (draft) => {
         draft.agents = [
           {
-            id: "mechanic-validator_task-1",
-            role: "mechanic-validator",
+            id: "ui-headless-validator_task-1",
+            role: "ui-headless-validator",
             parent_agent_id: null,
             parent_task_id: null,
             host: "claude-code",
@@ -255,17 +254,17 @@ describe("Validator Specialization - Domains & Command Bans", () => {
         ];
       });
 
-      const flags: Flags = { run, actor: "mechanic-validator_task-1" };
+      const flags: Flags = { run, actor: "ui-headless-validator_task-1" };
       expect(() =>
         assertGrantedCommand(spec("run:exec"), flags, {
-          actor: "mechanic-validator_task-1",
+          actor: "ui-headless-validator_task-1",
           verified: true,
         }),
       ).not.toThrow();
     });
 
-    it("validates mechanic-validator evidence schema structure including gate receipts and checks", () => {
-      const schema = evidenceSchema("mechanic-validator");
+    it("validates ui-headless-validator evidence schema structure including gate receipts and checks", () => {
+      const schema = evidenceSchema("ui-headless-validator");
       expect(schema.verdict).toBe("pass|reject");
       expect(Array.isArray(schema.requirement_ids)).toBe(true);
       expect(Array.isArray(schema.checks)).toBe(true);

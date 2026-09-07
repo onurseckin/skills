@@ -23,30 +23,6 @@ export const uiHeadlessValidatorProfile: RoleDiagnosticProfile = {
   },
 };
 
-export const uiMechanicValidatorProfile: RoleDiagnosticProfile = {
-  role: "ui-mechanic-validator",
-  tier: 3,
-  can_edit: false,
-  can_execute_shell: true,
-  evaluate: (context: EvaluationContext): readonly SentinelViolation[] => {
-    const violations: SentinelViolation[] = [];
-
-    if (context.modified_files && context.modified_files.length > 0) {
-      violations.push({
-        code: "UI_MECHANIC_SOURCE_MUTATION",
-        severity: "CRITICAL",
-        message:
-          "UI Mechanic Validator audits CSS and responsive DOM; zero source edits permitted.",
-        target_file: context.modified_files[0],
-        remediation_cmd: "bun harness.ts validate:dom",
-        documentation_ref: "docs/blueprints/agent-scoped-live-sentinel-profiles.md#section-64",
-      });
-    }
-
-    return violations;
-  },
-};
-
 export const uiOpticalValidatorProfile: RoleDiagnosticProfile = {
   role: "ui-optical-validator",
   tier: 3,
@@ -87,29 +63,6 @@ export const uiOpticalValidatorProfile: RoleDiagnosticProfile = {
         message: "You must inspect screenshot artifacts via view_file before rendering a verdict.",
         remediation_cmd: "view_file evidence/screenshots/<viewport>.png",
         documentation_ref: "docs/blueprints/agent-scoped-live-sentinel-profiles.md#section-65",
-      });
-    }
-
-    return violations;
-  },
-};
-
-export const uiValidatorProfile: RoleDiagnosticProfile = {
-  role: "ui-validator",
-  tier: 3,
-  can_edit: false,
-  can_execute_shell: false,
-  evaluate: (context: EvaluationContext): readonly SentinelViolation[] => {
-    const violations: SentinelViolation[] = [];
-
-    if (context.modified_files && context.modified_files.length > 0) {
-      violations.push({
-        code: "UI_VALIDATOR_SOURCE_MUTATION",
-        severity: "CRITICAL",
-        message: "UI Validator provides holistic UX evaluation and must not edit source files.",
-        target_file: context.modified_files[0],
-        remediation_cmd: "Revert source file changes",
-        documentation_ref: "docs/blueprints/agent-scoped-live-sentinel-profiles.md#section-66",
       });
     }
 

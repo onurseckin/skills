@@ -1,15 +1,15 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import { canonicalJsonBytes } from "../../../olt/scripts/src/core/json.ts";
 import { packetEvidenceIssues } from "../../../olt/scripts/src/reporting/packet-evidence.ts";
 import type { PacketRecord } from "../../../olt/scripts/src/workflow/types.ts";
 import {
-  cleanupVirtualBrowserFS,
-  setupVirtualBrowserFS,
+  cleanupVirtualReportingFS,
+  getVirtualReportingFS,
+  setupVirtualReportingFS,
   tempDir,
-} from "../browser/browser-virtual-fs.ts";
+} from "../fixture.ts";
 
 function packet(overrides: Partial<PacketRecord> = {}): PacketRecord {
   return {
@@ -37,8 +37,9 @@ function writePacket(
   const digest = createHash("sha256").update(markdown).digest("hex");
   const sealed: PacketRecord = { ...record, packet_sha256: digest };
   const dir = join(root, "packets", record.id);
-  fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(join(dir, "packet.md"), markdown, "utf-8");
+  const vfs = getVirtualReportingFS();
+  vfs.mkdirSync(dir, { recursive: true });
+  vfs.writeFileSync(join(dir, "packet.md"), markdown, "utf-8");
   const metadata = {
     packet_sha256: sealed.packet_sha256,
     role: sealed.role,
@@ -48,7 +49,7 @@ function writePacket(
     graph_revision: sealed.graph_revision,
     ...metadataOverrides,
   };
-  fs.writeFileSync(join(dir, "metadata.json"), Buffer.from(canonicalJsonBytes(metadata)), "utf-8");
+  vfs.writeFileSync(join(dir, "metadata.json"), Buffer.from(canonicalJsonBytes(metadata)), "utf-8");
   return sealed;
 }
 
@@ -56,11 +57,11 @@ export const packetEvidenceSuiteName = "packetEvidenceIssues";
 
 describe(packetEvidenceSuiteName, () => {
   beforeEach(() => {
-    setupVirtualBrowserFS();
+    setupVirtualReportingFS();
   });
 
   afterEach(() => {
-    cleanupVirtualBrowserFS();
+    cleanupVirtualReportingFS();
   });
 
   test("an untampered packet on disk matching its durable record has no issues", () => {
@@ -95,7 +96,11 @@ describe(packetEvidenceSuiteName, () => {
   test("flags a packet whose markdown bytes no longer match the sealed digest", () => {
     const root = tempDir("packet-evidence-tampered");
     const record = writePacket(root, packet(), "# Original body");
-    fs.writeFileSync(join(root, "packets", "P-1", "packet.md"), "# Tampered body", "utf-8");
+    getVirtualReportingFS().writeFileSync(
+      join(root, "packets", "P-1", "packet.md"),
+      "# Tampered body",
+      "utf-8",
+    );
 
     const issues = packetEvidenceIssues(root, { "P-1": record });
     expect(issues[0]).toContain("markdown digest differs");
@@ -144,5 +149,43 @@ describe(packetEvidenceSuiteName, () => {
 
   test("no packets means no issues", () => {
     expect(packetEvidenceIssues(tempDir("packet-evidence-none"), {})).toEqual([]);
+  });
+
+  test("flags a record attempting directory traversal in markdown or metadata path", () => {
+    const root = tempDir("packet-evidence-traversal");
+    const record1 = packet({ markdown_path: "../outside/packet.md" });
+    const record2 = packet({ id: "P-2", metadata_path: "/etc/passwd" });
+
+    const issues1 = packetEvidenceIssues(root, { "P-1": record1 });
+    expect(issues1).toHaveLength(1);
+    expect(issues1[0]).toContain("recorded paths do not match the packet identifier");
+
+    const issues2 = packetEvidenceIssues(root, { "P-2": record2 });
+    expect(issues2).toHaveLength(1);
+    expect(issues2[0]).toContain("recorded paths do not match the packet identifier");
+  });
+
+  test("flags a packet where packet.md is a directory rather than a regular file", () => {
+    const root = tempDir("packet-evidence-dir");
+    const record = packet();
+    const dir = join(root, "packets", record.id);
+    const vfs = getVirtualReportingFS();
+    vfs.mkdirSync(join(dir, "packet.md"), { recursive: true });
+    vfs.writeFileSync(
+      join(dir, "metadata.json"),
+      JSON.stringify({
+        packet_sha256: record.packet_sha256,
+        role: record.role,
+        agent_id: record.agent_id,
+        task_id: record.task_id,
+        attempt: record.attempt,
+        graph_revision: record.graph_revision,
+      }),
+      "utf-8",
+    );
+
+    const issues = packetEvidenceIssues(root, { "P-1": record });
+    expect(issues).toHaveLength(1);
+    expect(issues[0]).toContain("is not a regular file");
   });
 });

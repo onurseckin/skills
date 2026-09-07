@@ -134,7 +134,7 @@ describe("Task Review Dual-Channel - Companion Manifest Command Depth Check", ()
             },
             {
               attempt: 2,
-              role: "mechanic-validator",
+              role: "ui-headless-validator",
               agent_id: "mech-01",
               started_at: new Date().toISOString(),
               submitted_at: new Date().toISOString(),
@@ -157,7 +157,7 @@ describe("Task Review Dual-Channel - Companion Manifest Command Depth Check", ()
 
     for (const [agent_id, role] of [
       ["val-01", "validator"],
-      ["mech-01", "mechanic-validator"],
+      ["mech-01", "ui-headless-validator"],
       ["worker-01", "implementer"],
       ["critic-01", "critic"],
     ] as const) {

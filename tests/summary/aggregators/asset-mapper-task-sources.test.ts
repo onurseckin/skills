@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   collectCriticEvidenceAssets,
   collectReportAssets,
@@ -6,6 +6,16 @@ import {
 import type { CompletionReview } from "../../../olt/scripts/src/workflow/completion/types.ts";
 import type { MediaAsset } from "../../../olt/scripts/src/summary/graph/index.ts";
 import { makeTask } from "../reporters/dag/graph-fixtures.ts";
+import { cleanupVirtualSummaryFS, setupVirtualSummaryFS } from "../fixture.ts";
+import type { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/memory-fs.ts";
+
+let vfs: VirtualMemoryFS;
+
+beforeEach(() => {
+  vfs = setupVirtualSummaryFS();
+});
+
+afterEach(cleanupVirtualSummaryFS);
 
 function collect<T>(fn: (add: (asset: MediaAsset) => void, nextIndex: () => number) => T): {
   assets: MediaAsset[];
@@ -100,6 +110,20 @@ describe("collectReportAssets: report.media_assets", () => {
     const { assets } = collect((add, nextIndex) => collectReportAssets(task, add, nextIndex));
     expect(assets.map((asset) => asset.id)).toEqual(["asset-T-1-1", "asset-T-1-2"]);
   });
+
+  test("safely handles a task with empty or missing report object", () => {
+    const taskEmpty = makeTask("T-empty", { report: undefined });
+    const { assets: assetsEmpty } = collect((add, nextIndex) =>
+      collectReportAssets(taskEmpty, add, nextIndex),
+    );
+    expect(assetsEmpty).toHaveLength(0);
+
+    const taskNoKeys = makeTask("T-no-keys", { report: {} as never });
+    const { assets: assetsNoKeys } = collect((add, nextIndex) =>
+      collectReportAssets(taskNoKeys, add, nextIndex),
+    );
+    expect(assetsNoKeys).toHaveLength(0);
+  });
 });
 
 describe("collectCriticEvidenceAssets", () => {
@@ -150,5 +174,17 @@ describe("collectCriticEvidenceAssets", () => {
     ]);
     expect(assets[0]?.author).toBe("critic-1");
     expect(assets[0]?.metadata).toEqual({ stage: "critic" });
+  });
+
+  test("safely collects 0 assets when critic review has empty or missing integrity evidence", () => {
+    const { assets: assetsEmpty } = collect((add, nextIndex) =>
+      collectCriticEvidenceAssets(review({ integrity_evidence: [] }), add, nextIndex),
+    );
+    expect(assetsEmpty).toHaveLength(0);
+
+    const { assets: assetsUndefined } = collect((add, nextIndex) =>
+      collectCriticEvidenceAssets(review({ integrity_evidence: undefined as never }), add, nextIndex),
+    );
+    expect(assetsUndefined).toHaveLength(0);
   });
 });

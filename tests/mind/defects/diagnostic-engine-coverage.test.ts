@@ -3,9 +3,9 @@
  * Comprehensive unit tests for empirical baseline probe execution and the DiagnosticClusteringEngine orchestrator.
  */
 
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import * as childProcess from "node:child_process";
+import * as fs from "node:fs";
 import { join } from "node:path";
 import {
   DiagnosticClusteringEngine,
@@ -13,18 +13,73 @@ import {
   type DeficitTopologyMatrix,
   type ProbeDefinition,
 } from "../../../olt/scripts/src/mind/defects/diagnostic-clustering.ts";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Empirical Baseline Probing & Diagnostic Engine Coverage Suite", () => {
-  let tempDir: string;
+  const tempDir = "/virtual/diagnostic-engine-test";
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
+  const spies: Array<{ mockRestore: () => void }> = [];
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "diagnostic-engine-test-"));
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    fs.mkdirSync(tempDir, { recursive: true });
+
+    spies.push(
+      spyOn(childProcess, "spawnSync").mockImplementation((cmd, args) => {
+        const argList = Array.isArray(args) ? args.map(String) : [];
+        const cmdStr = String(cmd);
+        if (argList.includes("pass-output") || cmdStr.includes("pass-output")) {
+          return {
+            status: 0,
+            stdout: "pass-output\n",
+            stderr: "",
+            error: undefined,
+          } as unknown as childProcess.SpawnSyncReturns<string>;
+        }
+        if (argList.includes("process.exit(2)") || cmdStr.includes("process.exit(2)")) {
+          return {
+            status: 2,
+            stdout: "",
+            stderr: "process exited with code 2",
+            error: undefined,
+          } as unknown as childProcess.SpawnSyncReturns<string>;
+        }
+        if (argList.includes("typecheck") || cmdStr.includes("typecheck")) {
+          return {
+            status: 1,
+            stdout: "",
+            stderr: "error TS18003: No inputs were found in config file 'tsconfig.json'",
+            error: undefined,
+          } as unknown as childProcess.SpawnSyncReturns<string>;
+        }
+        if (argList.includes("test") || cmdStr.includes("test")) {
+          return {
+            status: 0,
+            stdout: "0 tests found",
+            stderr: "",
+            error: undefined,
+          } as unknown as childProcess.SpawnSyncReturns<string>;
+        }
+        return {
+          status: 0,
+          stdout: "",
+          stderr: "",
+          error: undefined,
+        } as unknown as childProcess.SpawnSyncReturns<string>;
+      }),
+    );
   });
 
   afterEach(() => {
-    if (existsSync(tempDir)) {
-      rmSync(tempDir, { recursive: true, force: true });
-    }
+    for (const spy of spies) spy.mockRestore();
+    spies.length = 0;
+    session.cleanup();
   });
 
   describe("runEmpiricalBaselineProbes", () => {
@@ -63,7 +118,7 @@ describe("Empirical Baseline Probing & Diagnostic Engine Coverage Suite", () => 
 
     it("handles missing tsconfig.json and missing test runners for file checks", async () => {
       const emptyDir = join(tempDir, "empty-proj");
-      mkdirSync(emptyDir);
+      fs.mkdirSync(emptyDir);
 
       const probes: ProbeDefinition[] = [
         {

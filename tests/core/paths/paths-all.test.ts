@@ -1,10 +1,8 @@
-import { describe, expect, it, beforeEach, afterEach, spyOn } from "bun:test";
-import * as fs from "node:fs";
-import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { dirname, join } from "node:path";
 import {
   isInsideCapsule,
   stripCapsulePath,
-  findRepoRoot,
   isTestEnvironment,
   resolveScratchDir,
   resolveOltDir,
@@ -24,23 +22,23 @@ import {
   resolveSkillHomeRepo,
   OLT_FILES,
 } from "../../../olt/scripts/src/core/shared/paths.ts";
+import {
+  createVirtualFSSession,
+  type VirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("core/shared/paths.ts comprehensive", () => {
-  const mockDirs = new Set<string>();
-  const spies: { mockRestore: () => void }[] = [];
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
 
   beforeEach(() => {
-    mockDirs.clear();
-    spies.push(
-      spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => {
-        const s = String(p);
-        return mockDirs.has(s);
-      }),
-    );
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
-    while (spies.length > 0) spies.pop()?.mockRestore();
+    session.cleanup();
   });
 
   it("isInsideCapsule identifies capsule paths", () => {
@@ -69,8 +67,8 @@ describe("core/shared/paths.ts comprehensive", () => {
 
   it("resolveOltDir and resolveCapsulesDir handle various root configurations", () => {
     const vRoot = "/virtual-paths-olt-test";
-    mockDirs.add(vRoot);
-    mockDirs.add(join(vRoot, ".olt"));
+    vfs.mkdirSync(vRoot, { recursive: true });
+    vfs.mkdirSync(join(vRoot, ".olt"), { recursive: true });
 
     const oltDir = resolveOltDir(vRoot);
     expect(oltDir).toBe(join(vRoot, ".olt"));
@@ -88,8 +86,8 @@ describe("core/shared/paths.ts comprehensive", () => {
 
   it("resolves all standard OLT file paths with default and custom paths", () => {
     const vRoot = "/virtual-paths-files-test";
-    mockDirs.add(vRoot);
-    mockDirs.add(join(vRoot, ".olt"));
+    vfs.mkdirSync(vRoot, { recursive: true });
+    vfs.mkdirSync(join(vRoot, ".olt"), { recursive: true });
 
     const custom = join(vRoot, "custom-policy.json");
     expect(resolvePolicyPath(vRoot, custom)).toBe(custom);
@@ -122,27 +120,51 @@ describe("core/shared/paths.ts comprehensive", () => {
 
   it("resolveEvidenceDir resolves run evidence or scratch evidence", () => {
     const vRoot = "/virtual-paths-evidence-test";
-    mockDirs.add(vRoot);
+    vfs.mkdirSync(vRoot, { recursive: true });
 
     const runEvidence = resolveEvidenceDir(undefined, vRoot);
     expect(runEvidence).toBe(join(vRoot, "evidence"));
 
-    const scratchEvidence = resolveEvidenceDir(undefined, "/nonexistent/path");
+    const scratchEvidence = resolveEvidenceDir(undefined, "/virtual-nonexistent/path");
     expect(scratchEvidence).toContain("evidence");
   });
 
   it("loadSkillGlobalConfig and resolveSkillHomeRepo resolve global configuration", () => {
-    mockDirs.add(process.cwd());
-    mockDirs.add(join(process.cwd(), ".git"));
+    const homeRepo = "/virtual/home-repo";
+    vfs.mkdirSync(homeRepo, { recursive: true });
+
     const configPath = resolveSkillGlobalConfigPath();
+    vfs.mkdirSync(dirname(configPath), { recursive: true });
+    vfs.writeFileSync(
+      configPath,
+      JSON.stringify({
+        home_repo_root: homeRepo,
+        synced_at: "2026-01-01T00:00:00.000Z",
+        version: "1.0.0",
+      }),
+    );
+
     expect(typeof configPath).toBe("string");
 
     const globalConfig = loadSkillGlobalConfig();
+    expect(globalConfig).toBeDefined();
     if (globalConfig) {
       expect(typeof globalConfig.home_repo_root).toBe("string");
+      expect(globalConfig.home_repo_root).toBe(homeRepo);
     }
 
-    const resolvedHome = resolveSkillHomeRepo();
-    expect(typeof resolvedHome).toBe("string");
+    const previousEnv = process.env["OLT_SKILL_HOME_REPO"];
+    process.env["OLT_SKILL_HOME_REPO"] = homeRepo;
+    try {
+      const resolvedHome = resolveSkillHomeRepo();
+      expect(typeof resolvedHome).toBe("string");
+      expect(resolvedHome).toBe(homeRepo);
+    } finally {
+      if (previousEnv === undefined) {
+        delete process.env["OLT_SKILL_HOME_REPO"];
+      } else {
+        process.env["OLT_SKILL_HOME_REPO"] = previousEnv;
+      }
+    }
   });
 });

@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { join } from "node:path";
 import { generateGraphDataset } from "../../../../olt/scripts/src/summary/graph/index.ts";
 import { recordCaptures } from "../../../../olt/scripts/src/engine/store/capsule/captures.ts";
 import { makeState, makeTask } from "../dag/graph-fixtures.ts";
+import { getVirtualSummaryFS } from "../../fixture.ts";
 import {
   capture,
   cleanupAssetVirtualFS,
@@ -199,5 +201,79 @@ describe("captured asset dimensions and byte size reach graph.json", () => {
     expect(asset).toBeDefined();
     expect(asset?.sizeBytes).toBeUndefined();
     expect(asset?.dimensions).toBeUndefined();
+  });
+
+  test("a truncated or corrupted PNG header preserves sizeBytes while leaving dimensions safely undefined", () => {
+    const root = runRoot();
+    const path = "evidence/corrupted.png";
+    const vfs = getVirtualSummaryFS();
+    const corruptedBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00]);
+    vfs.writeFileSync(join(root, path), corruptedBytes);
+
+    const task = makeTask("T-1", {
+      status: "done",
+      report: { summary: "Corrupted screenshot", files_changed: ["src/a.ts"], screenshots: [path] },
+    });
+    const dataset = generateGraphDataset({
+      runId: "run-corrupted-shot",
+      state: makeState([task]),
+      promptText: "prompt",
+      runRoot: root,
+    });
+    const asset = dataset.nodes
+      .find((n) => n.id === "node-task-T-1")
+      ?.assets?.find((c) => c.url === path);
+    expect(asset).toBeDefined();
+    expect(asset?.sizeBytes).toBe(10);
+    expect(asset?.dimensions).toBeUndefined();
+  });
+
+  test("a zero-byte screenshot file records sizeBytes 0 without NaN dimensions or crashes", () => {
+    const root = runRoot();
+    const path = "evidence/empty.png";
+    const vfs = getVirtualSummaryFS();
+    vfs.writeFileSync(join(root, path), Buffer.alloc(0));
+
+    const task = makeTask("T-1", {
+      status: "done",
+      report: { summary: "Empty screenshot", files_changed: ["src/a.ts"], screenshots: [path] },
+    });
+    const dataset = generateGraphDataset({
+      runId: "run-empty-shot",
+      state: makeState([task]),
+      promptText: "prompt",
+      runRoot: root,
+    });
+    const asset = dataset.nodes
+      .find((n) => n.id === "node-task-T-1")
+      ?.assets?.find((c) => c.url === path);
+    expect(asset).toBeDefined();
+    expect(asset?.sizeBytes).toBe(0);
+    expect(asset?.dimensions).toBeUndefined();
+  });
+
+  test("accurately measures screenshot assets in deeply nested subdirectories", () => {
+    const root = runRoot();
+    const path = "evidence/deep/nested/sub/shot.png";
+    const vfs = getVirtualSummaryFS();
+    vfs.mkdirSync(join(root, "evidence/deep/nested/sub"), { recursive: true });
+    const bytes = writePng(root, path, 640, 480);
+
+    const task = makeTask("T-1", {
+      status: "done",
+      report: { summary: "Deep screenshot", files_changed: ["src/a.ts"], screenshots: [path] },
+    });
+    const dataset = generateGraphDataset({
+      runId: "run-deep-shot",
+      state: makeState([task]),
+      promptText: "prompt",
+      runRoot: root,
+    });
+    const asset = dataset.nodes
+      .find((n) => n.id === "node-task-T-1")
+      ?.assets?.find((c) => c.url === path);
+    expect(asset).toBeDefined();
+    expect(asset?.sizeBytes).toBe(bytes);
+    expect(asset?.dimensions).toEqual({ width: 640, height: 480 });
   });
 });

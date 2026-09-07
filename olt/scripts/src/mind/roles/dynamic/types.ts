@@ -10,7 +10,6 @@ export type RoleArchetype =
   | "tier_2_coordinator"
   | "tier_3_implementer"
   | "tier_3_validator"
-  | "tier_3_repairer"
   | "tier_3_critic"
   | "tier_3_specialist";
 
@@ -111,7 +110,6 @@ export interface TaskRoleSynthesisParams {
   readonly gate: string;
   readonly domain?: string | undefined;
   readonly complexity?: "low" | "medium" | "high" | "critical" | undefined;
-  readonly requiresRepair?: boolean | undefined;
   readonly candidateId?: string | undefined;
   readonly feedbackId?: string | undefined;
   readonly charterGoals?: readonly string[] | undefined;
@@ -164,7 +162,6 @@ export const ARCHETYPE_TIER_MAP: Readonly<Record<RoleArchetype, number>> = {
   tier_2_coordinator: 2,
   tier_3_implementer: 3,
   tier_3_validator: 3,
-  tier_3_repairer: 3,
   tier_3_critic: 3,
   tier_3_specialist: 3,
 };
@@ -200,7 +197,6 @@ export const ARCHETYPE_DEFAULT_COMMANDS: Readonly<Record<RoleArchetype, readonly
   ],
   tier_3_implementer: ["task:claim", "task:heartbeat", "task:submit", "run:exec"],
   tier_3_validator: ["gate:check", "validator:findings", "evidence:record", "critic:evaluate"],
-  tier_3_repairer: ["task:claim", "task:heartbeat", "task:submit", "run:exec", "recover"],
   tier_3_critic: ["critic:evaluate", "gate:check", "evidence:record"],
   tier_3_specialist: ["task:claim", "task:heartbeat", "task:submit", "run:exec"],
 };
@@ -212,13 +208,11 @@ export const ARCHETYPE_DEFAULT_SPAWNS: Readonly<Record<RoleArchetype, readonly s
     "planner",
     "implementer",
     "validator",
-    "repairer",
     "completeness-critic",
     "plan-validator",
   ],
   tier_3_implementer: [],
   tier_3_validator: [],
-  tier_3_repairer: [],
   tier_3_critic: [],
   tier_3_specialist: [],
 };
@@ -229,7 +223,6 @@ export const ARCHETYPE_DEFAULT_WRITE_POLICY: Readonly<Record<RoleArchetype, Writ
   tier_2_coordinator: "forbidden",
   tier_3_implementer: "lease_bounded",
   tier_3_validator: "forbidden",
-  tier_3_repairer: "lease_bounded",
   tier_3_critic: "forbidden",
   tier_3_specialist: "lease_bounded",
 };

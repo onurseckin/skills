@@ -128,3 +128,18 @@ export function cleanupVirtualDiscoveryFS(): void {
 export function getVirtualDiscoveryFS(): VirtualMemoryFS {
   return vfs;
 }
+
+export function createVirtualSymlink(target: string, linkPath: string): void {
+  const strL = norm(String(linkPath));
+  symlinks.set(strL, String(target));
+}
+
+export function createVirtualHardlink(src: string, dst: string): void {
+  const sStr = norm(String(src));
+  const dStr = norm(String(dst));
+  hardlinks.set(dStr, sStr);
+  if (vfs.existsSync(sStr)) {
+    vfs.writeFileSync(dStr, vfs.readFileSync(sStr));
+  }
+}
+

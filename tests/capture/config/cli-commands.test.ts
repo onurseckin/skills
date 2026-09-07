@@ -69,6 +69,36 @@ describe("T-CAP-CLI-TESTS: Harness CLI Capture Commands Integration", () => {
       });
       expect(forceRes.status).toBe("initialized");
     });
+
+    it("provisions deeply nested non-existent directory trees idempotently", async () => {
+      const root = scratchRoot(import.meta.path, "cli-init-nested");
+      const nestedDir = join(root, "level1", "level2", "deep-configs");
+
+      // Verify provision in non-existent nested path
+      const res = await captureInitCommand({ "config-dir": nestedDir, format: "yaml" });
+      expect(res.status).toBe("initialized");
+      const targetPath = join(nestedDir, ".capture.yaml");
+      expect(existsSync(targetPath)).toBe(true);
+
+      // Second attempt without force must throw HarnessError("INVALID_STATE")
+      let threw = false;
+      try {
+        await captureInitCommand({ "config-dir": nestedDir, format: "yaml" });
+      } catch (err) {
+        threw = true;
+        expect(err).toBeInstanceOf(HarnessError);
+        expect((err as HarnessError).code).toBe("INVALID_STATE");
+      }
+      expect(threw).toBe(true);
+
+      // Force overwrite should succeed
+      const forceRes = await captureInitCommand({
+        "config-dir": nestedDir,
+        format: "yaml",
+        force: true,
+      });
+      expect(forceRes.status).toBe("initialized");
+    });
   });
 
   describe("capture:run", () => {
@@ -200,6 +230,83 @@ screens:
         expect(String(err)).toContain("Strict certification failed");
       }
       expect(threw).toBe(true);
+    });
+
+    it("recursively traverses in-memory VFS directory trees with --manifest-dir", async () => {
+      const root = scratchRoot(import.meta.path, "cli-eval-dir");
+      const baseDir = join(root, "manifests");
+      const subDir = join(baseDir, "nested", "sub");
+      mkdirSync(subDir, { recursive: true });
+
+      const cleanManifest = {
+        version: "2.0",
+        screenId: "screen-1",
+        viewport: "desktop",
+        elements: [
+          {
+            selector: "#title-1",
+            tagName: "H1",
+            bounds: { x: 0, y: 0, width: 200, height: 40 },
+            computedStyles: { color: "#000000", backgroundColor: "#ffffff" },
+          },
+        ],
+      };
+
+      const nestedManifest = {
+        version: "2.0",
+        screenId: "screen-2",
+        viewport: "mobile",
+        elements: [
+          {
+            selector: "#title-2",
+            tagName: "H2",
+            bounds: { x: 0, y: 0, width: 100, height: 30 },
+            computedStyles: { color: "#000000", backgroundColor: "#ffffff" },
+          },
+        ],
+      };
+
+      writeFileSync(join(baseDir, "root.manifest.json"), JSON.stringify(cleanManifest), "utf-8");
+      writeFileSync(join(subDir, "nested.manifest.json"), JSON.stringify(nestedManifest), "utf-8");
+      // Add non-manifest file that should be ignored by directory scanner
+      writeFileSync(join(subDir, "readme.txt"), "some notes", "utf-8");
+
+      const res = await captureEvalCommand({ "manifest-dir": baseDir, strict: true });
+      expect(res.verdict).toBe("CERTIFIED");
+      expect(res.total_defects).toBe(0);
+      expect(res.certified_manifests).toBe(2);
+    });
+
+    it("handles malformed and corrupt manifests by throwing INVALID_ARGUMENT without descriptor leakage", async () => {
+      const root = scratchRoot(import.meta.path, "cli-eval-corrupt");
+      const tempDir = join(root, "corrupt-dir");
+      mkdirSync(tempDir, { recursive: true });
+
+      const corruptPath = join(tempDir, "broken.manifest.json");
+      writeFileSync(corruptPath, "{ invalid json syntax: true", "utf-8");
+
+      let caught: unknown;
+      try {
+        await captureEvalCommand({ manifest: corruptPath });
+      } catch (err) {
+        caught = err;
+      }
+      expect(caught).toBeInstanceOf(HarnessError);
+      expect((caught as HarnessError).code).toBe("INVALID_ARGUMENT");
+      expect((caught as HarnessError).message).toContain("Failed to parse manifest JSON");
+
+      // Verify empty file also throws INVALID_ARGUMENT
+      const emptyPath = join(tempDir, "empty.manifest.json");
+      writeFileSync(emptyPath, "", "utf-8");
+
+      let emptyCaught: unknown;
+      try {
+        await captureEvalCommand({ manifest: emptyPath });
+      } catch (err) {
+        emptyCaught = err;
+      }
+      expect(emptyCaught).toBeInstanceOf(HarnessError);
+      expect((emptyCaught as HarnessError).code).toBe("INVALID_ARGUMENT");
     });
   });
 

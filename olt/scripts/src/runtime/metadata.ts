@@ -38,22 +38,21 @@ export function inferCanExecuteShell(role: string): boolean {
     normalized === "orchestrator" ||
     normalized === "coordinator" ||
     normalized === "meta-auditor" ||
-    normalized === "meta_auditor"
+    normalized === "meta_auditor" ||
+    normalized === "ui-optical-validator"
   ) {
     return false;
   }
 
   if (
     normalized === "implementer" ||
-    normalized === "repairer" ||
     normalized === "sub-implementer" ||
     normalized === "sub_implementer" ||
-    normalized === "mechanic-validator" ||
-    normalized === "mechanic_validator" ||
     normalized === "sub-validator" ||
     normalized === "sub_validator" ||
     normalized === "worker" ||
-    normalized === "owner"
+    normalized === "owner" ||
+    normalized === "ui-headless-validator"
   ) {
     return true;
   }

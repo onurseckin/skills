@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { finalizeSuccessfulAttempt } from "../../../olt/scripts/src/engine/runner/models/attempt/attempt-success-evidence.ts";
 import type {
@@ -7,20 +6,21 @@ import type {
   OutputSummary,
 } from "../../../olt/scripts/src/engine/runner/types/types.ts";
 import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
-import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import { getRunnerVfs, tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
 afterEach(cleanupTempRoots);
 
-async function attemptFixture(name: string) {
+function attemptFixture(name: string) {
   const runRoot = tempRoot(name);
+  const vfs = getRunnerVfs();
   const attemptDir = join(runRoot, "attempt-1");
-  await mkdir(attemptDir);
+  vfs.mkdirSync(attemptDir, { recursive: true });
   const stdoutPath = join(attemptDir, "stdout.log");
   const stderrPath = join(attemptDir, "stderr.log");
   const activityPath = join(attemptDir, "activity.json");
-  await writeFile(stdoutPath, "hello\n");
-  await writeFile(stderrPath, "");
-  await writeFile(activityPath, '{"status":"running"}');
+  vfs.writeFileSync(stdoutPath, "hello\n");
+  vfs.writeFileSync(stderrPath, "");
+  vfs.writeFileSync(activityPath, '{"status":"running"}');
   return { runRoot, attemptDir, stdoutPath, stderrPath, activityPath };
 }
 
@@ -55,7 +55,7 @@ describe("finalizeSuccessfulAttempt", () => {
   }
 
   test("uses a strong terminal proof and completes the activity record when root absence is proven", async () => {
-    const fixture = await attemptFixture("finalize-success-strong-");
+    const fixture = attemptFixture("finalize-success-strong-");
     const completedWith: Array<{ status: string; at: Date }> = [];
     const rootIdentity: ProcessIdentity = {
       pid: 111,
@@ -91,13 +91,13 @@ describe("finalizeSuccessfulAttempt", () => {
     });
     expect(result.record.status).toBe("succeeded");
     expect(completedWith).toHaveLength(1);
-    expect(completedWith[0]!.status).toBe("completed");
+    expect(completedWith[0]?.status).toBe("completed");
     expect(calls[0]).toMatch(/^record_pending:/);
     expect(calls[1]).toMatch(/^terminal_proof:/);
   });
 
   test("falls back to a settled terminal proof when root absence was not strongly proven", async () => {
-    const fixture = await attemptFixture("finalize-success-settled-");
+    const fixture = attemptFixture("finalize-success-settled-");
     const { controller } = fakeAttemptIntent();
     const result = await finalizeSuccessfulAttempt({
       allPumps: Promise.resolve([emptyLog, emptyLog]),
@@ -124,12 +124,12 @@ describe("finalizeSuccessfulAttempt", () => {
   });
 
   test("propagates a pipe-drain timeout instead of writing evidence", async () => {
-    const fixture = await attemptFixture("finalize-success-drain-timeout-");
+    const fixture = attemptFixture("finalize-success-drain-timeout-");
     const { controller } = fakeAttemptIntent();
     await expect(
       finalizeSuccessfulAttempt({
         allPumps: new Promise(() => undefined),
-        options: { ...options(fixture.runRoot), drainTimeoutMs: 5 } as NormalizedCommandOptions,
+        options: { ...options(fixture.runRoot), drainTimeoutMs: 1 } as NormalizedCommandOptions,
         commandId: "C-1",
         attempt: 1,
         attemptDir: fixture.attemptDir,

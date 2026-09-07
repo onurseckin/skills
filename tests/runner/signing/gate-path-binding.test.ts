@@ -1,6 +1,4 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { chmod, mkdir, rm, symlink, writeFile } from "node:fs/promises";
-import { realpathSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
 import {
@@ -10,26 +8,45 @@ import {
   gatePathBindingIssues,
 } from "../../../olt/scripts/src/engine/runner/signing/gate-path-bindings.ts";
 import { gateControlBindingsOverlapWriteScopes } from "../../../olt/scripts/src/engine/runner/signing/gate-path-overlap.ts";
-import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import {
+  getRunnerVfs,
+  tempRoot,
+  createVirtualSymlink,
+  removeVirtualSymlink,
+  cleanupTempRoots,
+} from "../command/fixture.ts";
 
 afterEach(cleanupTempRoots);
 
-async function repository(): Promise<string> {
+function repository(): string {
   const root = tempRoot("gate-path-binding");
-  await mkdir(join(root, "tools"));
+  const vfs = getRunnerVfs();
+  vfs.mkdirSync(join(root, "tools"), { recursive: true });
+  vfs.mkdirSync("/usr/bin", { recursive: true });
+  if (!vfs.existsSync("/usr/bin/env")) {
+    vfs.writeFileSync("/usr/bin/env", "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+  }
+  if (!vfs.existsSync("/usr/bin/command")) {
+    vfs.writeFileSync("/usr/bin/command", "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+  }
+  if (!vfs.existsSync("/usr/bin/true")) {
+    vfs.writeFileSync("/usr/bin/true", "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+  }
   return root;
 }
 
 describe("gate path identity binding", () => {
-  test("captures a canonical regular executable and rechecks its digest", async () => {
-    const root = await repository();
+  test("captures a canonical regular executable and rechecks its digest", () => {
+    const root = repository();
+    const vfs = getRunnerVfs();
     const executable = join(root, "tools", "verify");
-    await writeFile(executable, "#!/bin/sh\nexit 0\n");
-    await chmod(executable, 0o700);
+    vfs.writeFileSync(executable, "#!/bin/sh\nexit 0\n", { mode: 0o700 });
 
     const bindings = captureGatePathBindings(root, root, ["./tools/verify"]);
     expect(bindings).toHaveLength(1);
-    expect(bindings[0]).toMatchObject({
+    const firstBinding = bindings[0];
+    expect(firstBinding).toBeDefined();
+    expect(firstBinding).toMatchObject({
       argv_index: 0,
       argument: "./tools/verify",
       scope: "repository",
@@ -40,31 +57,32 @@ describe("gate path identity binding", () => {
       bytes: 17,
       sha256: createHash("sha256").update("#!/bin/sh\nexit 0\n").digest("hex"),
     });
-    expect(bindings[0]!.device).toMatch(/^\d+$/u);
-    expect(bindings[0]!.inode).toMatch(/^\d+$/u);
+    expect(firstBinding?.device).toMatch(/^\d+$/u);
+    expect(firstBinding?.inode).toMatch(/^\d+$/u);
     expect(gatePathBindingIssues(root, root, ["./tools/verify"], bindings)).toEqual([]);
     expect(gateControlBindingsOverlapWriteScopes(bindings, [["tools"]])).toBeTrue();
     expect(gateControlBindingsOverlapWriteScopes(bindings, [["src"]])).toBeFalse();
 
-    await writeFile(executable, "#!/bin/sh\nexit 1\n");
+    vfs.writeFileSync(executable, "#!/bin/sh\nexit 1\n", { mode: 0o700 });
     expect(gatePathBindingIssues(root, root, ["./tools/verify"], bindings).join("\n")).toMatch(
       /identity|digest|changed/i,
     );
   });
 
-  test("rejects final and intermediate symlinks before spawn", async () => {
-    const root = await repository();
-    await symlink("/usr/bin/true", join(root, "tools", "external"));
+  test("rejects final and intermediate symlinks before spawn", () => {
+    const root = repository();
+    createVirtualSymlink("/usr/bin/true", join(root, "tools", "external"));
     expect(() => captureGatePathBindings(root, root, ["./tools/external"])).toThrow(/symbolic/i);
 
-    await symlink("/usr/bin", join(root, "outside"));
+    createVirtualSymlink("/usr/bin", join(root, "outside"));
     expect(() => captureGatePathBindings(root, root, ["./outside/true"])).toThrow(/symbolic/i);
   });
 
-  test("binds runtime script and target paths without requiring them to be executable", async () => {
-    const root = await repository();
-    await writeFile(join(root, "tools", "verify.ts"), "console.log('ok');\n");
-    await mkdir(join(root, "tests"));
+  test("binds runtime script and target paths without requiring them to be executable", () => {
+    const root = repository();
+    const vfs = getRunnerVfs();
+    vfs.writeFileSync(join(root, "tools", "verify.ts"), "console.log('ok');\n");
+    vfs.mkdirSync(join(root, "tests"), { recursive: true });
     const bindings = captureGatePathBindings(root, root, ["bun", "tools/verify.ts", "tests"]);
     expect(
       bindings
@@ -76,12 +94,12 @@ describe("gate path identity binding", () => {
     expect(repositoryBindings.map(({ role }) => role)).toEqual(["program", "target"]);
   });
 
-  test("binds a bare PATH executable to its canonical system identity", async () => {
-    const root = await repository();
+  test("binds a bare PATH executable to its canonical system identity", () => {
+    const root = repository();
+    const vfs = getRunnerVfs();
     const bin = tempRoot("gate-path-bin");
     const executable = join(bin, "gate-tool");
-    await writeFile(executable, "#!/bin/sh\nexit 0\n");
-    await chmod(executable, 0o700);
+    vfs.writeFileSync(executable, "#!/bin/sh\nexit 0\n", { mode: 0o700 });
 
     const bindings = captureGatePathBindings(root, root, ["gate-tool"], bin);
     expect(bindings).toHaveLength(1);
@@ -89,18 +107,19 @@ describe("gate path identity binding", () => {
       argument: "gate-tool",
       scope: "system",
       role: "executable",
-      canonical_path: realpathSync(executable),
+      canonical_path: executable.replace(/\\/g, "/"),
       kind: "file",
       executable: true,
     });
-    expect(bindings[0]!.relative_path).toBeUndefined();
+    expect(bindings[0]?.relative_path).toBeUndefined();
   });
 
-  test("recursively binds and rewrites env and command wrapper executables", async () => {
-    const root = await repository();
+  test("recursively binds and rewrites env and command wrapper executables", () => {
+    const root = repository();
+    const vfs = getRunnerVfs();
     const bin = tempRoot("gate-wrapper-bin");
     const tool = join(bin, "gate-tool");
-    await writeFile(tool, "#!/bin/sh\nexit 0\n", { mode: 0o700 });
+    vfs.writeFileSync(tool, "#!/bin/sh\nexit 0\n", { mode: 0o700 });
     const pathValue = `/usr/bin:${bin}`;
     const argv = ["env", "command", "gate-tool", "tests"];
     const bindings = captureGatePathBindings(root, root, argv, pathValue);
@@ -110,26 +129,28 @@ describe("gate path identity binding", () => {
     expect(executionArgv(argv, bindings).slice(0, 3)).toEqual([
       "/usr/bin/env",
       "/usr/bin/command",
-      realpathSync(tool),
+      tool.replace(/\\/g, "/"),
     ]);
   });
 
-  test("recursively binds directory contents and rejects mutation before spawn", async () => {
-    const root = await repository();
-    await mkdir(join(root, "tests", "nested"), { recursive: true });
-    await writeFile(join(root, "tests", "nested", "one.test.ts"), "test('one', () => {});\n");
+  test("recursively binds directory contents and rejects mutation before spawn", () => {
+    const root = repository();
+    const vfs = getRunnerVfs();
+    vfs.mkdirSync(join(root, "tests", "nested"), { recursive: true });
+    vfs.writeFileSync(join(root, "tests", "nested", "one.test.ts"), "test('one', () => {});\n");
     const bindings = captureGatePathBindings(root, root, ["bun", "test", "tests"]);
-    const target = bindings.find(({ relative_path }) => relative_path === "tests")!;
+    const target = bindings.find(({ relative_path }) => relative_path === "tests");
+    expect(target).toBeDefined();
     expect(target).toMatchObject({ role: "target", kind: "directory", entries: 2 });
-    expect(target.tree_sha256).toMatch(/^[a-f0-9]{64}$/u);
+    expect(target?.tree_sha256).toMatch(/^[a-f0-9]{64}$/u);
 
-    await symlink("/usr/bin/true", join(root, "tests", "nested", "external"));
+    createVirtualSymlink("/usr/bin/true", join(root, "tests", "nested", "external"));
     expect(() => captureGatePathBindings(root, root, ["bun", "test", "tests"])).toThrow(
       /symlink|escape|outside/i,
     );
-    await rm(join(root, "tests", "nested", "external"));
+    removeVirtualSymlink(join(root, "tests", "nested", "external"));
 
-    await writeFile(join(root, "tests", "nested", "one.test.ts"), "test('changed', () => {});\n");
+    vfs.writeFileSync(join(root, "tests", "nested", "one.test.ts"), "test('changed', () => {});\n");
     expect(() => assertGatePathBindings(root, root, ["bun", "test", "tests"], bindings)).toThrow(
       /identity|digest|changed/i,
     );

@@ -173,7 +173,7 @@ export async function readTreeBlobs(repoRoot: string): Promise<readonly IndexedB
   const paths = new TextDecoder("utf-8", { fatal: true }).decode(listed.stdout).split("\0");
   if (paths.pop() !== "") failure("ls-files output was not NUL-terminated");
   const unique = new Set<string>();
-  const blobs = await Promise.all(
+  const candidates = await Promise.all(
     paths
       .map((path) => {
         assertRepositoryRelativePosixPath(path);
@@ -182,11 +182,18 @@ export async function readTreeBlobs(repoRoot: string): Promise<readonly IndexedB
         return path;
       })
       .sort(comparePaths)
-      .map(async (path) => ({
-        path,
-        oid: "working-tree",
-        bytes: new Uint8Array(await readFile(join(repoRoot, path))),
-      })),
+      .map(async (path) => {
+        try {
+          return {
+            path,
+            oid: "working-tree",
+            bytes: new Uint8Array(await readFile(join(repoRoot, path))),
+          };
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+          throw error;
+        }
+      }),
   );
-  return blobs;
+  return candidates.filter((blob): blob is IndexedBlob => blob !== undefined);
 }

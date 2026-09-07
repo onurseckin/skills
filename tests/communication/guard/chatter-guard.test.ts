@@ -11,20 +11,25 @@ import {
   verifyEnvelopeHmac,
 } from "../../../olt/scripts/src/communication/mailbox/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { cleanupVirtualCommunicationFS, setupVirtualCommunicationFS } from "../helpers.ts";
+import { cleanupVirtualCommunicationFS, setupVirtualCommunicationFS, vfs } from "../helpers.ts";
+
+const thisFilePath = join(process.cwd(), "tests/communication/guard/chatter-guard.test.ts");
+let cachedThisFile: string | null = null;
+try {
+  cachedThisFile = readFileSync(thisFilePath, "utf8");
+} catch {}
 
 describe("Chatter Guard & Mid-Flight Progress Narration Interlock", () => {
   let testRoot: string;
 
   beforeEach(() => {
     setupVirtualCommunicationFS();
-    testRoot = join(
-      process.cwd(),
-      "coverage",
-      "scratch",
-      `chatter-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    );
+    testRoot = `/virtual/communication/chatter-guard-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     mkdirSync(testRoot, { recursive: true });
+    if (cachedThisFile !== null) {
+      vfs.mkdirSync(join(process.cwd(), "tests/communication/guard"), { recursive: true });
+      vfs.writeFileSync(thisFilePath, cachedThisFile);
+    }
   });
 
   afterEach(() => {

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { join } from "node:path";
 import { buildNodeBrowserTests } from "../../../../olt/scripts/src/summary/formatters/index.ts";
 import { generateGraphDataset } from "../../../../olt/scripts/src/summary/graph/index.ts";
 import { makeCommand, makeState, makeTask } from "./graph-fixtures.ts";
@@ -9,6 +10,7 @@ import {
   runRootWith,
   setupBrowserVirtualFS,
 } from "./graph-browser-fixtures.ts";
+import { getVirtualSummaryFS } from "../../fixture.ts";
 
 beforeEach(() => {
   setupBrowserVirtualFS();
@@ -181,5 +183,26 @@ describe("browser runs in the graph", () => {
   test("without a capsule path or a command there is nothing to read", () => {
     expect(buildNodeBrowserTests([makeCommand("C-1")])).toEqual([]);
     expect(buildNodeBrowserTests([], runRootWith([run()]))).toEqual([]);
+  });
+
+  test("handles corrupt non-JSON browser-run.json gracefully without crashing", () => {
+    const runRoot = runRootWith([]);
+    const vfs = getVirtualSummaryFS();
+    const dir = join(runRoot, "commands", "C-corrupt");
+    vfs.mkdirSync(dir, { recursive: true });
+    vfs.writeFileSync(join(dir, "browser-run.json"), "{ invalid-json ...");
+    expect(buildNodeBrowserTests([makeCommand("C-corrupt")], runRoot)).toEqual([]);
+  });
+
+  test("skips browser-run.json with empty or invalid command_id", () => {
+    const runRoot = runRootWith([]);
+    const vfs = getVirtualSummaryFS();
+    const dir = join(runRoot, "commands", "C-invalid");
+    vfs.mkdirSync(dir, { recursive: true });
+    vfs.writeFileSync(
+      join(dir, "browser-run.json"),
+      JSON.stringify({ command_id: "", status: "passed" }),
+    );
+    expect(buildNodeBrowserTests([makeCommand("C-invalid")], runRoot)).toEqual([]);
   });
 });

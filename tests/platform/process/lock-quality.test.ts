@@ -1,13 +1,5 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import {
-  closeSync,
-  constants,
-  mkdirSync,
-  openSync,
-  renameSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { renameSync } from "node:fs";
 import { join } from "node:path";
 import {
   clearObserver,
@@ -25,7 +17,12 @@ import {
 } from "../../../olt/scripts/src/platform/fs/flock-ffi.ts";
 import * as platform from "../../../olt/scripts/src/platform/index.ts";
 import { resolveCapsulesDir } from "../../../olt/scripts/src/core/shared/paths.ts";
-import { cleanupVirtualPlatformFS, scratchRoot, setupVirtualPlatformFS } from "../fixture.ts";
+import {
+  cleanupVirtualPlatformFS,
+  getVirtualPlatformFS,
+  scratchRoot,
+  setupVirtualPlatformFS,
+} from "../fixture.ts";
 
 function runRoot(): string {
   return scratchRoot("lock-quality", "run");
@@ -88,6 +85,7 @@ describe("run-lock quality invariants", () => {
 
   test("withRunLock validates arguments and propagates execution results and errors", () => {
     const run = runRoot();
+    const vfs = getVirtualPlatformFS();
     expect(withRunLock(run, () => 42)).toBe(42);
 
     expect(() =>
@@ -99,7 +97,7 @@ describe("run-lock quality invariants", () => {
     expect(() => withRunLock(join(run, "nonexistent"), () => {})).toThrow();
 
     const filePath = join(run, "file-not-dir");
-    writeFileSync(filePath, "data");
+    vfs.writeFileSync(filePath, "data");
     expect(() => withRunLock(filePath, () => {})).toThrow(/real directory/i);
 
     expect(() => withRunLock(run, () => {}, { timeoutMs: -10 })).toThrow(
@@ -111,18 +109,18 @@ describe("run-lock quality invariants", () => {
 
     expect(() =>
       withRunLock(run, () => {
-        rmSync(run, { recursive: true, force: true });
+        vfs.rmSync(run, { recursive: true, force: true });
       }),
     ).toThrow(/run root disappeared while locked/i);
 
     const capsulesDir = resolveCapsulesDir();
     const relName = `test-run-rel-${Date.now()}`;
     const absPath = join(capsulesDir, relName);
-    mkdirSync(absPath, { recursive: true });
+    vfs.mkdirSync(absPath, { recursive: true });
     try {
       expect(withRunLock(relName, () => 99)).toBe(99);
     } finally {
-      rmSync(absPath, { recursive: true, force: true });
+      vfs.rmSync(absPath, { recursive: true, force: true });
     }
   });
 
@@ -141,24 +139,27 @@ describe("run-lock quality invariants", () => {
   test("clearObserver is a no-op once the whole observer directory has vanished", () => {
     const run = runRoot();
     const observer = publishObserver(run);
-    rmSync(observer.path, { recursive: true, force: true });
+    const vfs = getVirtualPlatformFS();
+    vfs.rmSync(observer.path, { recursive: true, force: true });
     expect(() => clearObserver(observer)).not.toThrow();
   });
 
   test("clearObserver is a no-op when the directory survives but owner.json itself is gone", () => {
     const run = runRoot();
     const observer = publishObserver(run);
-    rmSync(join(observer.path, "owner.json"));
+    const vfs = getVirtualPlatformFS();
+    vfs.rmSync(join(observer.path, "owner.json"));
     expect(() => clearObserver(observer)).not.toThrow();
   });
 
   test("a waiter rejects pathname replacement instead of mutating the new directory", () => {
     const run = runRoot();
     const moved = `${run}-moved`;
+    const vfs = getVirtualPlatformFS();
     expect(() =>
       withRunLock(run, () => {
         renameSync(run, moved);
-        mkdirSync(run);
+        vfs.mkdirSync(run);
       }),
     ).toThrow(/identity changed/);
   });

@@ -4,7 +4,7 @@ import { existsSync, readFileSync, lstatSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
 import { createHash } from "node:crypto";
-import { isTestEnvironment, resolveSkillHomeRepo } from "../../../core/index.ts";
+import { isSandboxRepoRoot, isTestEnvironment, resolveSkillHomeRepo } from "../../../core/index.ts";
 import type { ParsedCharter } from "./types.ts";
 import { parseCharterFromYaml } from "./parser.ts";
 export function parseCharter(content: string): ParsedCharter {
@@ -60,7 +60,7 @@ export function resolveCharterPath(
     }
     candidates.push(resolve(repoRoot, filename));
     candidates.push(resolve(repoRoot, charterSourceRel.replace(/^(\.\.\/)+/, "")));
-    if (!isTestEnvironment()) {
+    if (!isTestEnvironment() && !isSandboxRepoRoot(repoRoot)) {
       candidates.push(join(homedir(), ".agents", "skills", "olt", "agents", filename));
       candidates.push(join(resolveSkillHomeRepo(repoRoot), "olt", "agents", filename));
     }
@@ -74,7 +74,7 @@ export function resolveCharterPath(
         candidates.push(resolve(repoRoot, r, "agents", "mind.yaml"));
       }
     }
-    if (!isTestEnvironment()) {
+    if (!isTestEnvironment() && !isSandboxRepoRoot(repoRoot)) {
       candidates.push(join(homedir(), ".agents", "skills", "olt", "agents", "mind.yaml"));
       candidates.push(join(resolveSkillHomeRepo(repoRoot), "olt", "agents", "mind.yaml"));
     }

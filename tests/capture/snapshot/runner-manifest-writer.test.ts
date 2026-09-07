@@ -31,8 +31,8 @@ describe("Live Capture Runner & Multi-Viewport Companion Manifest Writer", () =>
       version: "1.0",
       baseUrl: "http://localhost:3000",
       viewports: {
-        desktop: { name: "desktop", width: 1440, height: 900 },
-        mobile: { name: "mobile", width: 375, height: 667, isMobile: true },
+        desktop: { name: "desktop", width: 320, height: 240 },
+        mobile: { name: "mobile", width: 160, height: 240, isMobile: true },
       },
       auth: {
         users: { admin: { id: "admin", name: "Admin", role: "admin", token: "tok-123" } },
@@ -83,7 +83,7 @@ describe("Live Capture Runner & Multi-Viewport Companion Manifest Writer", () =>
           setExtraHTTPHeaders: async () => {},
           goto: async () => {},
           waitForSelector: async () => {},
-          screenshot: async () => createSyntheticPngBuffer(1440, 900),
+          screenshot: async () => createSyntheticPngBuffer(320, 240),
           click: async (sel) => {
             actionsExecuted.push(`click:${sel}`);
           },
@@ -105,7 +105,7 @@ describe("Live Capture Runner & Multi-Viewport Companion Manifest Writer", () =>
     const testConfig: CaptureConfig = {
       version: "1.0",
       baseUrl: "http://localhost:3000",
-      viewports: { desktop: { name: "desktop", width: 1440, height: 900 } },
+      viewports: { desktop: { name: "desktop", width: 320, height: 240 } },
       screens: [
         {
           id: "interactive-form",
@@ -144,7 +144,7 @@ describe("Live Capture Runner & Multi-Viewport Companion Manifest Writer", () =>
     const testConfig: CaptureConfig = {
       version: "1.0",
       baseUrl: "http://localhost:3000",
-      viewports: { desktop: { name: "desktop", width: 1440, height: 900 } },
+      viewports: { desktop: { name: "desktop", width: 320, height: 240 } },
       screens: [{ id: "runner-visual-proof", name: "Runner Visual Proof", path: "/proof" }],
     };
     const result = await runLiveCapture({

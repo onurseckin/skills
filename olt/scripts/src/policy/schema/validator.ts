@@ -23,6 +23,8 @@ export function validateRepoPolicy(raw: unknown): RepoPolicy {
     "ecosystem",
     "package_manager",
     "skill_home_repo_root",
+    "test_execution",
+    "unit_test",
     "test_runner",
     "typecheck_command",
     "lint_command",
@@ -160,6 +162,12 @@ export function validateRepoPolicy(raw: unknown): RepoPolicy {
       : {}),
     ...(typeof rec["skill_home_repo_root"] === "string"
       ? { skill_home_repo_root: rec["skill_home_repo_root"].trim() }
+      : {}),
+    ...(rec["test_execution"] !== undefined
+      ? { test_execution: rec["test_execution"] as boolean | string | null }
+      : {}),
+    ...(rec["unit_test"] !== undefined
+      ? { unit_test: rec["unit_test"] as boolean | string | null }
       : {}),
     test_runner: testRunner,
     ...(typeof rec["typecheck_command"] === "string"

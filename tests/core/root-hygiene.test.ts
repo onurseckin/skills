@@ -1,27 +1,42 @@
-import { describe, expect, it } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { join } from "node:path";
 import { RootDirectoryHygieneGuard } from "../../olt/scripts/src/authority/guards/index.ts";
 import { VerbatimRoleInjector } from "../../olt/scripts/src/authority/verbatim-role-injector.ts";
+import { findAgentManifestPath } from "../../olt/scripts/src/cli/commands/agent-brief.ts";
 import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import { resolvePolicyPath } from "../../olt/scripts/src/core/index.ts";
+import { resolveOrGenerateCharter } from "../../olt/scripts/src/mind/lifecycle/mind-init-flow.ts";
+import { indexCharterDocuments } from "../../olt/scripts/src/mind/memory/core/indexer.ts";
 import { resolveAgentsDirectory } from "../../olt/scripts/src/reporting/doctor/agent-canonical-engine.ts";
-
-function withTestDir(fn: (testDir: string) => void): void {
-  const testDir = join(
-    tmpdir(),
-    `test-hygiene-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-  );
-  mkdirSync(testDir, { recursive: true });
-  try {
-    fn(testDir);
-  } finally {
-    rmSync(testDir, { force: true, recursive: true });
-  }
-}
+import {
+  createVirtualFSSession,
+  type VirtualFSSession,
+  VirtualMemoryFS,
+} from "../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Root Directory Hygiene Invariants (.olt vs olt)", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
+
+  beforeEach(() => {
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+  });
+
+  afterEach(() => {
+    session.cleanup();
+  });
+
+  function withTestDir(fn: (testDir: string) => void): void {
+    const testDir = `/virtual/test-hygiene-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    vfs.mkdirSync(testDir, { recursive: true });
+    try {
+      fn(testDir);
+    } finally {
+      vfs.rmSync(testDir, { recursive: true, force: true });
+    }
+  }
+
   it("resolves policy path strictly to .olt/policy.json in consumer repos", () => {
     withTestDir((testDir) => {
       const policyPath = resolvePolicyPath(testDir);
@@ -34,8 +49,8 @@ describe("Root Directory Hygiene Invariants (.olt vs olt)", () => {
     withTestDir((testDir) => {
       const dotOltAgents = join(testDir, ".olt", "agents");
       const unhiddenAgents = join(testDir, "olt", "agents");
-      mkdirSync(dotOltAgents, { recursive: true });
-      mkdirSync(unhiddenAgents, { recursive: true });
+      vfs.mkdirSync(dotOltAgents, { recursive: true });
+      vfs.mkdirSync(unhiddenAgents, { recursive: true });
 
       const resolved = resolveAgentsDirectory(testDir);
       expect(resolved).toBe(dotOltAgents);
@@ -47,14 +62,62 @@ describe("Root Directory Hygiene Invariants (.olt vs olt)", () => {
     withTestDir((testDir) => {
       const dotOltAgents = join(testDir, ".olt", "agents");
       const unhiddenAgents = join(testDir, "olt", "agents");
-      mkdirSync(dotOltAgents, { recursive: true });
-      mkdirSync(unhiddenAgents, { recursive: true });
-      writeFileSync(join(dotOltAgents, "implementer.yaml"), "role: implementer\ntier: 3\n");
-      writeFileSync(join(unhiddenAgents, "implementer.yaml"), "role: rogue\ntier: 1\n");
+      vfs.mkdirSync(dotOltAgents, { recursive: true });
+      vfs.mkdirSync(unhiddenAgents, { recursive: true });
+      vfs.writeFileSync(join(dotOltAgents, "implementer.yaml"), "role: implementer\ntier: 3\n");
+      vfs.writeFileSync(join(unhiddenAgents, "implementer.yaml"), "role: rogue\ntier: 1\n");
 
       const resolved = VerbatimRoleInjector.resolveManifestPath(testDir, "implementer");
       expect(resolved).toBe(join(dotOltAgents, "implementer.yaml"));
       expect(resolved.includes("/.olt/agents/")).toBe(true);
+    });
+  });
+
+  it("never resolves agents directory from a consumer repo with only unhidden olt/agents", () => {
+    withTestDir((testDir) => {
+      const unhiddenAgents = join(testDir, "olt", "agents");
+      vfs.mkdirSync(unhiddenAgents, { recursive: true });
+      vfs.writeFileSync(join(unhiddenAgents, "implementer.yaml"), "role: rogue\ntier: 1\n");
+
+      const resolved = resolveAgentsDirectory(testDir);
+      expect(resolved).not.toBe(unhiddenAgents);
+      expect(resolved.startsWith(join(testDir, "olt"))).toBe(false);
+    });
+  });
+
+  it("never trusts a consumer repo's unhidden olt/agents/mind.yaml as the charter source", () => {
+    withTestDir((testDir) => {
+      const unhiddenMindDir = join(testDir, "olt", "agents");
+      const unhiddenMind = join(unhiddenMindDir, "mind.yaml");
+      vfs.mkdirSync(unhiddenMindDir, { recursive: true });
+      vfs.writeFileSync(unhiddenMind, "identity:\n  name: rogue-charter\n");
+
+      const result = resolveOrGenerateCharter(testDir);
+      expect(result.fullPath).not.toBe(unhiddenMind);
+      expect(result.fullPath.startsWith(join(testDir, "olt"))).toBe(false);
+      expect(result.text).not.toContain("rogue-charter");
+    });
+  });
+
+  it("skips a consumer repo's unhidden olt/references directory when indexing charter documents", () => {
+    withTestDir((testDir) => {
+      const unhiddenRefs = join(testDir, "olt", "references");
+      vfs.mkdirSync(unhiddenRefs, { recursive: true });
+      vfs.writeFileSync(join(unhiddenRefs, "rogue-standard.md"), "# Rogue Standard\n");
+
+      const documents = indexCharterDocuments(testDir);
+      expect(documents.some((doc) => doc.id === "reference-rogue-standard")).toBe(false);
+    });
+  });
+
+  it("throws instead of resolving an agent manifest from a consumer repo's unhidden olt/agents", () => {
+    withTestDir((testDir) => {
+      const role = "totally-fake-role-xyz";
+      const unhiddenAgents = join(testDir, "olt", "agents");
+      vfs.mkdirSync(unhiddenAgents, { recursive: true });
+      vfs.writeFileSync(join(unhiddenAgents, `${role}.yaml`), "role: rogue\n");
+
+      expect(() => findAgentManifestPath(role, testDir)).toThrow(HarnessError);
     });
   });
 

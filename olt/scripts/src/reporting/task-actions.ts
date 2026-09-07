@@ -62,8 +62,8 @@ export function taskActions(
     pushArgv(argv, claimArgv(entrypoint, runRoot, task, "implementer", agent));
   }
   if (task.status === "changes_requested") {
-    const agent = task.repair_assignee ?? placeholder(`repairer-for:${task.id}`);
-    pushArgv(argv, claimArgv(entrypoint, runRoot, task, "repairer", agent));
+    const agent = task.repair_assignee ?? placeholder(`reassigned-implementer-for:${task.id}`);
+    pushArgv(argv, claimArgv(entrypoint, runRoot, task, "implementer", agent));
   }
   if ((task.status === "leased" || task.status === "running") && task.owner && task.role) {
     argv.push(...leasedActions(entrypoint, runRoot, task));

@@ -1,12 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { checkCliRegistryTaxonomy } from "../../../olt/scripts/src/reporting/doctor/registry-engine.ts";
+import { COMMAND_REGISTRY } from "../../../olt/scripts/src/cli/registry/index.ts";
 import type { CommandSpec } from "../../../olt/scripts/src/cli/registry/types.ts";
 
 export const registryEngineSuiteName = "Doctor CLI Registry Taxonomy & Zero-Alias Engine";
 
 describe(registryEngineSuiteName, () => {
   test("passes live COMMAND_REGISTRY with 100% compliance and zero findings", () => {
-    const result = checkCliRegistryTaxonomy();
+    const result = checkCliRegistryTaxonomy({ registry: COMMAND_REGISTRY });
     expect(result.engine).toBe("checkCliRegistryTaxonomy");
     expect(result.passed).toBeTrue();
     expect(result.findings).toEqual([]);

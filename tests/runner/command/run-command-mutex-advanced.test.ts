@@ -1,15 +1,14 @@
-import { describe, expect, test } from "bun:test";
-import { closeSync, mkdirSync, type Stats } from "node:fs";
+import { afterEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { releaseFlock as releaseNativeFlock } from "../../../olt/scripts/src/platform/index.ts";
 import {
   executePreparedCommand,
   setExecutionLockDependenciesForTesting,
+  type ExecutionLockDependencies,
 } from "../../../olt/scripts/src/engine/runner/models/execution/run-command.ts";
-import { tempRoot, cleanupTempRoots } from "./fixture.ts";
-import { afterAll } from "bun:test";
+import { cleanupTempRoots, closeSync, tempRoot } from "./fixture.ts";
 
-afterAll(cleanupTempRoots);
+afterEach(cleanupTempRoots);
 import type { InternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 import type {
   CommandResult,
@@ -34,14 +33,16 @@ function broadRunner(onExecute: () => Promise<CommandResult>): InternalCommandRu
   };
 }
 
-function syntheticStats(kind: "directory" | "file", inode: number): Stats {
+type ExecutionStats = ReturnType<ExecutionLockDependencies["lstat"]>;
+
+function syntheticStats(kind: "directory" | "file", inode: number): ExecutionStats {
   return {
     dev: 1,
     ino: inode,
     isDirectory: () => kind === "directory",
     isFile: () => kind === "file",
     isSymbolicLink: () => false,
-  } as unknown as Stats;
+  } as unknown as ExecutionStats;
 }
 
 function enoent(): Error & { code: string } {
@@ -222,7 +223,7 @@ describe("run-command broad scope mutex advanced behavior", () => {
     const repo = tempRoot("mutex-acquisition-cleanup");
     const lockDir = join(repo, ".olt", ".locks");
     const lockFile = join(lockDir, "execution.lock");
-    const lstat = (path: string): Stats => {
+    const lstat = (path: string): ExecutionStats => {
       if (path === repo || path === lockDir) return syntheticStats("directory", 1);
       if (path === lockFile) throw enoent();
       throw new Error(`unexpected lstat path: ${path}`);

@@ -64,11 +64,11 @@ export interface PreFlightCertificationResult {
 }
 
 /**
- * Defect Routing Receipt for Autonomous Repairer
+ * Defect Routing Receipt for Autonomous Implementer
  */
 export interface RoutedDefectReceipt {
   readonly defectId: string;
-  readonly recipient: "AUTONOMOUS_REPAIRER";
+  readonly recipient: "AUTONOMOUS_IMPLEMENTER";
   readonly category: "BACKEND_DATA_LAYER_FAULT";
   readonly severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
   readonly endpoint: string;

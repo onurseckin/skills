@@ -1,11 +1,10 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 import { embeddedCommandIssues } from "../../../olt/scripts/src/engine/runner/models/command/command-shape.ts";
 import type { AttemptResult } from "../../../olt/scripts/src/engine/runner/types/types.ts";
-import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import { cleanupTempRoots, getRunnerVfs, tempRoot } from "../command/fixture.ts";
 
 afterEach(cleanupTempRoots);
 const digest = (marker: string): string => marker.repeat(64);
@@ -50,18 +49,19 @@ function succeeded(id: string, attempt: number, commandRoot: string): AttemptRes
   };
 }
 
-async function setup(name: string) {
+function setup(name: string) {
   const root = tempRoot(name);
   const runRoot = join(root, ".olt", "capsules");
-  await mkdir(join(runRoot, "commands"), { recursive: true });
-  await mkdir(join(root, "bin"));
-  await writeFile(join(root, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
+  const vfs = getRunnerVfs();
+  vfs.mkdirSync(join(runRoot, "commands"), { recursive: true });
+  vfs.mkdirSync(join(root, "bin"));
+  vfs.writeFileSync(join(root, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o755 });
   return { root, runRoot };
 }
 
 describe("gate attempt observation integrity", () => {
   test("terminalizes preflight drift without inventing an attempt", async () => {
-    const { root, runRoot } = await setup("attempt-preflight-failure-");
+    const { root, runRoot } = setup("attempt-preflight-failure-");
     let observations = 0;
     let attempted = false;
     const runner = createInternalCommandRunner({
@@ -83,7 +83,7 @@ describe("gate attempt observation integrity", () => {
     await expect(runner.executePreparedCommand(prepared)).rejects.toThrow(
       "repository observation changed before gate attempt",
     );
-    const aggregate = JSON.parse(await readFile(prepared.recordPath, "utf8"));
+    const aggregate = JSON.parse(getRunnerVfs().readFileSync(prepared.recordPath, "utf8"));
     expect(attempted).toBeFalse();
     expect(aggregate).toMatchObject({
       status: "failed",
@@ -92,12 +92,12 @@ describe("gate attempt observation integrity", () => {
     });
     expect(aggregate.evidence_error).toContain("repository observation changed");
     expect(aggregate.preflight_failure).toBe(aggregate.evidence_error);
-    expect(await readdir(prepared.commandRoot)).toEqual(["record.json"]);
+    expect(getRunnerVfs().readdirSync(prepared.commandRoot)).toEqual(["record.json"]);
     expect(embeddedCommandIssues(aggregate)).toEqual([]);
   });
 
   test("retains prior attempts when a retry preflight fails", async () => {
-    const { root, runRoot } = await setup("attempt-retry-preflight-");
+    const { root, runRoot } = setup("attempt-retry-preflight-");
     let observations = 0;
     let attempts = 0;
     const runner = createInternalCommandRunner({
@@ -126,7 +126,7 @@ describe("gate attempt observation integrity", () => {
     await expect(runner.executePreparedCommand(prepared)).rejects.toThrow(
       "repository observation changed before gate attempt",
     );
-    const aggregate = JSON.parse(await readFile(prepared.recordPath, "utf8"));
+    const aggregate = JSON.parse(getRunnerVfs().readFileSync(prepared.recordPath, "utf8"));
     expect(attempts).toBe(1);
     expect(aggregate).toMatchObject({
       status: "failed",
@@ -137,7 +137,7 @@ describe("gate attempt observation integrity", () => {
   });
 
   test("does not reuse the prior binding when a retry preflight observer throws", async () => {
-    const { root, runRoot } = await setup("attempt-retry-observer-error-");
+    const { root, runRoot } = setup("attempt-retry-observer-error-");
     let observations = 0;
     const runner = createInternalCommandRunner({
       inspectRepository: () => {
@@ -165,14 +165,14 @@ describe("gate attempt observation integrity", () => {
     });
 
     await expect(runner.executePreparedCommand(prepared)).rejects.toThrow("observer unavailable");
-    const aggregate = JSON.parse(await readFile(prepared.recordPath, "utf8"));
+    const aggregate = JSON.parse(getRunnerVfs().readFileSync(prepared.recordPath, "utf8"));
     expect(aggregate).toMatchObject({ status: "failed", repository_after: null });
     expect(aggregate.preflight_failure).toContain("observer unavailable");
     expect(embeddedCommandIssues(aggregate)).toEqual([]);
   });
 
   test("retains the current binding when attempt setup fails before its marker", async () => {
-    const { root, runRoot } = await setup("attempt-pre-marker-failure-");
+    const { root, runRoot } = setup("attempt-pre-marker-failure-");
     const runner = createInternalCommandRunner({
       inspectRepository: () => binding("a"),
       attempt: async () => {
@@ -189,18 +189,18 @@ describe("gate attempt observation integrity", () => {
     });
 
     await expect(runner.executePreparedCommand(prepared)).rejects.toThrow("attempt setup failed");
-    const aggregate = JSON.parse(await readFile(prepared.recordPath, "utf8"));
+    const aggregate = JSON.parse(getRunnerVfs().readFileSync(prepared.recordPath, "utf8"));
     expect(aggregate).toMatchObject({
       status: "failed",
       repository_after: binding("a"),
       attempts: [],
     });
     expect(aggregate.preflight_failure).toBe(aggregate.evidence_error);
-    expect(await readdir(prepared.commandRoot)).toEqual(["record.json"]);
+    expect(getRunnerVfs().readdirSync(prepared.commandRoot)).toEqual(["record.json"]);
   });
 
   test("leaves raw evidence recoverable when post-observation throws", async () => {
-    const { root, runRoot } = await setup("attempt-observer-error-");
+    const { root, runRoot } = setup("attempt-observer-error-");
     let observations = 0;
     const runner = createInternalCommandRunner({
       inspectRepository: () => {
@@ -220,7 +220,7 @@ describe("gate attempt observation integrity", () => {
     });
 
     await expect(runner.executePreparedCommand(prepared)).rejects.toThrow("observer unavailable");
-    const aggregate = JSON.parse(await readFile(prepared.recordPath, "utf8"));
+    const aggregate = JSON.parse(getRunnerVfs().readFileSync(prepared.recordPath, "utf8"));
     expect(aggregate).toMatchObject({ status: "running", repository_after: null });
     expect(aggregate.attempts[0]).not.toHaveProperty("gate_finalized_at");
     expect(aggregate.attempts[0]).not.toHaveProperty("repository_after");

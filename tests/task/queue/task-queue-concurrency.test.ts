@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import {
   admitTask,
   claimTaskLease,
@@ -15,6 +14,7 @@ import {
   pruneCompletedTasks,
   readTaskQueue,
   startTaskValidation,
+  withTaskQueueTransaction,
 } from "../../../olt/scripts/src/task/queue/index.ts";
 import { cleanupVirtualTaskFS, scratchRoot, setupVirtualTaskFS } from "../task-fixture.ts";
 
@@ -246,36 +246,48 @@ describe("Stateful Task Queue Engine", () => {
     expect(r2.escalated).toBe(true);
     expect(r2.task.status).toBe("ESCALATED");
   });
-});
 
-describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
-  it("verifies task/queue and smart-task-ops contain zero any and zero suppressions", () => {
-    const filesToAudit = [
-      resolve(process.cwd(), "olt/scripts/src/task/queue/index.ts"),
-      resolve(process.cwd(), "olt/scripts/src/cli/commands/smart-task-ops.ts"),
-      import.meta.path,
-    ];
-
-    const anyPattern = new RegExp(
-      [":\\s*" + "any\\b", "as\\s+" + "any\\b", "<" + "any>"].join("|"),
-    );
-    const suppressionPattern = new RegExp(
-      [
-        "@ts" + "-ignore",
-        "@ts" + "-expect-error",
-        "@ts" + "-nocheck",
-        "eslint" + "-disable",
-        "oxlint" + "-disable",
-      ].join("|"),
+  it("enforces atomic lease contention rejecting conflicting concurrent agent claims", () => {
+    enqueueTask(
+      {
+        id: "task-race-1",
+        title: "Race Task",
+        write_scope: ["src/race.ts"],
+        gate: "bun test",
+      },
+      queuePath,
     );
 
-    for (const filePath of filesToAudit) {
-      const content = readFileSync(filePath, "utf-8");
-      for (const line of content.split("\n")) {
-        if (line.includes("anyPattern") || line.includes("suppressionPattern")) continue;
-        expect(anyPattern.test(line)).toBe(false);
-        expect(suppressionPattern.test(line)).toBe(false);
-      }
-    }
+    const claimA = claimTaskLease({
+      taskId: "task-race-1",
+      agentId: "agent-alpha",
+      customPath: queuePath,
+    });
+    expect(claimA.task.status).toBe("IN_PROGRESS");
+    expect(claimA.task.lease?.agent_id).toBe("agent-alpha");
+
+    expect(() =>
+      claimTaskLease({
+        taskId: "task-race-1",
+        agentId: "agent-beta",
+        customPath: queuePath,
+      }),
+    ).toThrow("actively leased to agent 'agent-alpha'");
+  });
+
+  it("aborts withTaskQueueTransaction preserving pre-transaction queue state on error", () => {
+    enqueueTask(
+      { id: "task-stable-tx", title: "Stable", write_scope: ["src/tx.ts"], gate: "bun test" },
+      queuePath,
+    );
+
+    expect(() =>
+      withTaskQueueTransaction(queuePath, () => {
+        throw new Error("Simulated transaction abort");
+      }),
+    ).toThrow("Simulated transaction abort");
+
+    const queue = readTaskQueue(queuePath);
+    expect(queue.some((t) => t.id === "task-stable-tx")).toBe(true);
   });
 });

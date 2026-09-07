@@ -58,7 +58,7 @@ describe("Workflow Mutation Interlock Gate", () => {
         "validator",
         "completeness-critic",
         "plan-validator",
-        "mechanic-validator",
+        "ui-headless-validator",
         "sub-validator",
         "sub-investigator",
         "skill-auditor",

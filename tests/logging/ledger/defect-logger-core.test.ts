@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   appendDefectLedgerRecord,
@@ -10,16 +9,20 @@ import {
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   cleanupLoggingSandboxes,
+  cleanupVirtualLoggingFS,
   createLoggingSandbox,
   setupVirtualLoggingFS,
 } from "../fixtures/index.ts";
 
+let vfs: ReturnType<typeof setupVirtualLoggingFS>;
+
 beforeEach(() => {
-  setupVirtualLoggingFS();
+  vfs = setupVirtualLoggingFS();
 });
 
 afterEach(() => {
   cleanupLoggingSandboxes();
+  cleanupVirtualLoggingFS();
 });
 
 describe("Logging subsystem: Keyed Defect Logger Core", () => {
@@ -39,7 +42,7 @@ describe("Logging subsystem: Keyed Defect Logger Core", () => {
 
     expect(r1.isNew).toBeTrue();
     expect(r1.recorded.count).toBe(1);
-    expect(existsSync(filePath)).toBeTrue();
+    expect(vfs.existsSync(filePath)).toBeTrue();
 
     const r2 = recordKeyedDefect(
       {
@@ -90,11 +93,11 @@ describe("Logging subsystem: Keyed Defect Logger Core", () => {
     const filePath = join(dir, "defects.jsonl");
     const cases = ["not-json\n", "42\n", '{"id":"same"}\n{"id":"same"}\n'];
     for (const raw of cases) {
-      writeFileSync(filePath, raw, "utf8");
+      vfs.writeFileSync(filePath, raw, "utf8");
       expect(() => appendDefectLedgerRecord(filePath, { id: "fresh", type: "test" })).toThrow(
         HarnessError,
       );
-      expect(readFileSync(filePath, "utf8")).toBe(raw);
+      expect(vfs.readFileSync(filePath, "utf8")).toBe(raw);
     }
   });
 
@@ -201,7 +204,7 @@ describe("Logging subsystem: Keyed Defect Logger Core", () => {
     const filePath = join(dir, "defects.jsonl");
     const originalBytes = "malformed prior bytes stay unchanged\n";
     const writeFailure = new HarnessError("INVALID_STATE", "atomic write denied");
-    writeFileSync(filePath, originalBytes);
+    vfs.writeFileSync(filePath, originalBytes);
     const restore = setDefectLogDependenciesForTesting({
       atomicWrite: () => {
         throw writeFailure;
@@ -232,6 +235,6 @@ describe("Logging subsystem: Keyed Defect Logger Core", () => {
       expect(caught.message).toContain(filePath);
       expect(caught.message).toContain("atomic write denied");
     }
-    expect(readFileSync(filePath, "utf-8")).toBe(originalBytes);
+    expect(vfs.readFileSync(filePath, "utf-8")).toBe(originalBytes);
   });
 });

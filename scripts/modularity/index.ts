@@ -1,4 +1,4 @@
-export { checkModularity } from "./checker.ts";
+export { checkModularity } from "./modularity-engine.ts";
 export type {
   CheckOptions,
   CheckReport,

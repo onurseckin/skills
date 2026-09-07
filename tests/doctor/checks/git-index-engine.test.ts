@@ -1,11 +1,12 @@
 import { afterEach, describe, expect, spyOn, test } from "bun:test";
+import type { SpawnSyncReturns } from "node:child_process";
 import { join } from "node:path";
-import * as childProcess from "node:child_process";
 import { setupVirtualDoctorFS, scratchRoot } from "../fixture.ts";
 import {
   checkGitIndexIntegrity,
   autoHealGitState,
 } from "../../../olt/scripts/src/reporting/doctor/git-index-engine.ts";
+import { mockSubprocess } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 export const gitIndexEngineSuiteName = "Wave 1 - Task 1.4: Git Index Integrity Engine";
 
@@ -37,13 +38,13 @@ describe(gitIndexEngineSuiteName, () => {
     vfs.mkdirSync(gitDir, { recursive: true });
     vfs.writeFileSync(lockFile, "9999999\n");
 
-    const spawnSpy = spyOn(childProcess, "spawnSync").mockImplementation(
+    const spawnSpy = mockSubprocess(
       () =>
         ({
           status: 0,
           stdout: "",
           stderr: "",
-        }) as unknown as childProcess.SpawnSyncReturns<string>,
+        }) as unknown as SpawnSyncReturns<string>,
     );
     spies.push(spawnSpy);
 
@@ -76,13 +77,13 @@ describe(gitIndexEngineSuiteName, () => {
 
     const now = Date.now();
     const nowSpy = spyOn(Date, "now").mockReturnValue(now + 200_000);
-    const spawnSpy = spyOn(childProcess, "spawnSync").mockImplementation(
+    const spawnSpy = mockSubprocess(
       () =>
         ({
           status: 0,
           stdout: "",
           stderr: "",
-        }) as unknown as childProcess.SpawnSyncReturns<string>,
+        }) as unknown as SpawnSyncReturns<string>,
     );
     spies.push(nowSpy, spawnSpy);
 
@@ -98,27 +99,27 @@ describe(gitIndexEngineSuiteName, () => {
     const gitDir = join(root, ".git");
     vfs.mkdirSync(gitDir, { recursive: true });
 
-    const spawnSpy = spyOn(childProcess, "spawnSync").mockImplementation((_cmd, args) => {
+    const spawnSpy = mockSubprocess((_cmd, args) => {
       const argList = Array.isArray(args) ? args : [];
       if (argList.includes("status")) {
         return {
           status: 0,
           stdout: " M src/index.ts\n?? uncommitted.txt\n",
           stderr: "",
-        } as unknown as childProcess.SpawnSyncReturns<string>;
+        } as unknown as SpawnSyncReturns<string>;
       }
       if (argList.includes("stash")) {
         return {
           status: 1,
           stdout: "",
           stderr: "fatal: bad object refs/stash",
-        } as unknown as childProcess.SpawnSyncReturns<string>;
+        } as unknown as SpawnSyncReturns<string>;
       }
       return {
         status: 0,
         stdout: "",
         stderr: "",
-      } as unknown as childProcess.SpawnSyncReturns<string>;
+      } as unknown as SpawnSyncReturns<string>;
     });
     spies.push(spawnSpy);
 
@@ -135,27 +136,27 @@ describe(gitIndexEngineSuiteName, () => {
     const gitDir = join(root, ".git");
     vfs.mkdirSync(gitDir, { recursive: true });
 
-    const spawnSpy = spyOn(childProcess, "spawnSync").mockImplementation((_cmd, args) => {
+    const spawnSpy = mockSubprocess((_cmd, args) => {
       const argList = Array.isArray(args) ? args : [];
       if (argList.includes("add")) {
         return {
           status: 0,
           stdout: "",
           stderr: "",
-        } as unknown as childProcess.SpawnSyncReturns<string>;
+        } as unknown as SpawnSyncReturns<string>;
       }
       if (argList.includes("diff")) {
         return {
           status: 0,
           stdout: "src/file1.ts\nsrc/file2.ts\n",
           stderr: "",
-        } as unknown as childProcess.SpawnSyncReturns<string>;
+        } as unknown as SpawnSyncReturns<string>;
       }
       return {
         status: 0,
         stdout: "",
         stderr: "",
-      } as unknown as childProcess.SpawnSyncReturns<string>;
+      } as unknown as SpawnSyncReturns<string>;
     });
     spies.push(spawnSpy);
 

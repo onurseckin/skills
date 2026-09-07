@@ -1,6 +1,6 @@
-import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import * as fs from "node:fs";
+import { dirname, resolve } from "node:path";
 import {
   CONTRACTS_TIER_2,
   ORCHESTRATION_CONTRACTS,
@@ -15,8 +15,35 @@ import {
   roleToTier,
   validateTierSpawning,
 } from "../../../olt/scripts/src/authority/thread/index.ts";
+import { cleanupVirtualAgentsFS, setupVirtualAgentsFS } from "../fixture.ts";
+
+const CONTRACT_PATHS = [
+  "olt/scripts/src/agents/fleet/contracts-tier2.ts",
+  "olt/scripts/src/agents/fleet/contracts/types.ts",
+  "olt/scripts/src/agents/fleet/contracts/index.ts",
+  "olt/scripts/src/agents/fleet/contracts/orchestration.ts",
+  "olt/scripts/src/agents/fleet/contracts/specialists.ts",
+  "olt/scripts/src/agents/fleet/contracts/execution-generic.ts",
+];
+
+const PRELOADED_CONTRACTS = new Map<string, string>();
+for (const relPath of CONTRACT_PATHS) {
+  const fullPath = resolve(relPath);
+  PRELOADED_CONTRACTS.set(fullPath, fs.readFileSync(fullPath, "utf-8"));
+}
 
 describe("Two-Key Socratic Cognitive Validation: Purge Agent Aliases & Partition Tier 2 Contracts", () => {
+  beforeEach(() => {
+    const vfs = setupVirtualAgentsFS();
+    for (const [fullPath, content] of PRELOADED_CONTRACTS) {
+      vfs.mkdirSync(dirname(fullPath), { recursive: true });
+      vfs.writeFileSync(fullPath, content);
+    }
+  });
+
+  afterEach(() => {
+    cleanupVirtualAgentsFS();
+  });
   describe("Probe 1: Modularity and Physical Line Limit Invariant", () => {
     test("verifies all partitioned tier-2 contracts files satisfy LOC <= 300 invariant", () => {
       const paths = [
@@ -30,7 +57,7 @@ describe("Two-Key Socratic Cognitive Validation: Purge Agent Aliases & Partition
 
       for (const relPath of paths) {
         const fullPath = resolve(relPath);
-        const text = readFileSync(fullPath, "utf-8");
+        const text = fs.readFileSync(fullPath, "utf-8");
         const lines = text.split(/\r?\n/).length;
         expect(lines).toBeLessThanOrEqual(300);
       }
@@ -77,6 +104,13 @@ describe("Two-Key Socratic Cognitive Validation: Purge Agent Aliases & Partition
       expect(parseTierValue("1")).toBe(1);
       expect(parseTierValue("2")).toBe(2);
       expect(parseTierValue("3")).toBe(3);
+
+      // Out-of-bounds, decimal, and padded strings
+      expect(parseTierValue("-1")).toBeNull();
+      expect(parseTierValue("4")).toBeNull();
+      expect(parseTierValue("0.0")).toBeNull();
+      expect(parseTierValue("NaN")).toBeNull();
+      expect(parseTierValue(" 2 ")).toBe(2);
     });
 
     test("verifies roleToTier drops alias prefix heuristics and falls back to Tier 3", () => {
@@ -121,6 +155,12 @@ describe("Two-Key Socratic Cognitive Validation: Purge Agent Aliases & Partition
       expect(agentIdToTier("validator-1")).toBe(3);
       expect(agentIdToTier("orchestrator-1")).toBe(1);
       expect(agentIdToTier("coordinator-1")).toBe(2);
+
+      // Compound and specialized agent IDs
+      expect(agentIdToTier("sub-implementer-01")).toBe(3);
+      expect(agentIdToTier("implementer-sub-01")).toBe(3);
+      expect(agentIdToTier("mind-auditor-beta")).toBe(1);
+      expect(agentIdToTier("mind-core")).toBe(0);
     });
   });
 

@@ -84,4 +84,31 @@ describe("ActivityRecord", () => {
     record.complete(undefined, new Date("2026-08-19T00:00:01.000Z"));
     expect(readRecord(record.path).status).toBe("completed");
   });
+
+  test("zero-byte output chunk advances last_output_at while preserving byte totals", () => {
+    const directory = scratchDir();
+    const startedAt = "2026-08-19T00:00:00.000Z";
+    const record = new ActivityRecord(directory, "C-1", 1, startedAt, 0);
+    const at = new Date("2026-08-19T00:00:01.500Z");
+    record.output("stdout", 0, at);
+    const persisted = readRecord(record.path);
+    expect(persisted.stdout_bytes).toBe(0);
+    expect(persisted.stderr_bytes).toBe(0);
+    expect(persisted.last_output_at).toBe(at.toISOString());
+  });
+
+  test("complete preserves terminal status and finished_at across subsequent inquiries", () => {
+    const directory = scratchDir();
+    const startedAt = "2026-08-19T00:00:00.000Z";
+    const record = new ActivityRecord(directory, "C-1", 1, startedAt, 0);
+    const finishedAt = new Date("2026-08-19T00:00:10.000Z");
+    record.complete("failed", finishedAt);
+    const firstRead = readRecord(record.path);
+    expect(firstRead.status).toBe("failed");
+    expect(firstRead.finished_at).toBe(finishedAt.toISOString());
+
+    // Second read remains identical and immutable
+    const secondRead = readRecord(record.path);
+    expect(secondRead).toEqual(firstRead);
+  });
 });

@@ -50,29 +50,22 @@ describe("Hierarchical Decision Tree & Dominating Skill Mechanics", () => {
     ).toThrow("Hierarchical decision tree violation [DOM-01-COORDINATOR-NO-CODE]");
   });
 
-  test("Rule D2: Prohibits Implementers from claiming a task in changes_requested directly", () => {
+  test("Rule D2: Allows the implementer role to claim a fresh ready task", () => {
+    const outcome = evaluateHierarchicalDecision(
+      { actor: "worker-1", role: "implementer", targetTaskId: "task-1", state: dummyState },
+      "claim_task",
+    );
+    expect(outcome.allowed).toBeTrue();
+    expect(outcome.ruleId).toBe("DOM-00-PERMITTED");
+  });
+
+  test("Rule D3: Allows the same implementer role to claim a changes_requested task for in-lease repair, since repair is no longer gated by a separate repairer role", () => {
     const outcome = evaluateHierarchicalDecision(
       { actor: "worker-1", role: "implementer", targetTaskId: "task-repair", state: dummyState },
       "claim_task",
     );
-    expect(outcome.allowed).toBeFalse();
-    expect(outcome.ruleId).toBe("DOM-02-IMPLEMENTER-NOT-REPAIRER");
-  });
-
-  test("Rule D3: Allows Repairers to claim tasks in changes_requested, rejects non-changes_requested", () => {
-    const outcome1 = evaluateHierarchicalDecision(
-      { actor: "worker-1", role: "repairer", targetTaskId: "task-repair", state: dummyState },
-      "claim_task",
-    );
-    expect(outcome1.allowed).toBeTrue();
-    expect(outcome1.ruleId).toBe("DOM-00-PERMITTED");
-
-    const outcome2 = evaluateHierarchicalDecision(
-      { actor: "worker-1", role: "repairer", targetTaskId: "task-1", state: dummyState },
-      "claim_task",
-    );
-    expect(outcome2.allowed).toBeFalse();
-    expect(outcome2.ruleId).toBe("DOM-03-REPAIRER-REQUIRES-CHANGES-REQUESTED");
+    expect(outcome.allowed).toBeTrue();
+    expect(outcome.ruleId).toBe("DOM-00-PERMITTED");
   });
 
   test("Rule D4: Prohibits Validators from reviewing their own code", () => {

@@ -1,5 +1,4 @@
 export type {
-  TaskAssignRepairerParams,
   TaskBriefParams,
   TaskClaimParams,
   TaskHeartbeatParams,
@@ -11,7 +10,6 @@ export type {
 } from "./task-formatter/index.ts";
 
 export {
-  formatTaskAssignRepairerBrief,
   formatTaskBrief,
   formatTaskClaimBrief,
   formatTaskHeartbeatBrief,

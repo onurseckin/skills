@@ -55,4 +55,45 @@ describe("WatchdogManager - Concurrency & Lock Exclusivity", () => {
     expect(typeof restore).toBe("function");
     restore();
   });
+
+  test("serializes concurrent lock acquisitions without race conditions", async () => {
+    const dir = "/virtual/watchdog/concurrency-serialization";
+    const storeFile = join(dir, "watchdogs.json");
+    saveWatchdogStore(createDefaultWatchdogStore(), storeFile);
+
+    const executionOrder: number[] = [];
+    const tasks = [1, 2, 3, 4, 5].map((id) =>
+      withWatchdogStoreLock(storeFile, async () => {
+        executionOrder.push(id);
+      }),
+    );
+
+    await Promise.all(tasks);
+    expect(executionOrder.length).toBe(5);
+    expect(new Set(executionOrder).size).toBe(5);
+  });
+
+  test("guarantees lock release when callback throws an error", async () => {
+    const dir = "/virtual/watchdog/concurrency-exception-safety";
+    const storeFile = join(dir, "watchdogs.json");
+    saveWatchdogStore(createDefaultWatchdogStore(), storeFile);
+
+    let threw = false;
+    try {
+      await withWatchdogStoreLock(storeFile, async () => {
+        throw new Error("Deliberate failure inside lock");
+      });
+    } catch (err: unknown) {
+      threw = true;
+      const error = err as Error;
+      expect(error.message).toBe("Deliberate failure inside lock");
+    }
+    expect(threw).toBe(true);
+
+    let acquiredAfterError = false;
+    await withWatchdogStoreLock(storeFile, async () => {
+      acquiredAfterError = true;
+    });
+    expect(acquiredAfterError).toBe(true);
+  });
 });

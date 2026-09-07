@@ -1,6 +1,16 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { anyTypeRule } from "../../../olt/scripts/src/linter/rules/any_type.ts";
-import { lintSourceCode } from "../../../olt/scripts/src/linter/ast/runner.ts";
+import { lintFile, lintSourceCode } from "../../../olt/scripts/src/linter/ast/runner.ts";
+import { cleanupVirtualRulesFS, setupVirtualRulesFS } from "../fixture.ts";
+import type { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/memory-fs.ts";
+
+let vfs: VirtualMemoryFS;
+
+beforeEach(() => {
+  vfs = setupVirtualRulesFS();
+});
+
+afterEach(cleanupVirtualRulesFS);
 
 describe("Linter Rule: " + "any" + "_type", () => {
   it("has correct rule metadata", () => {
@@ -77,5 +87,21 @@ describe("Linter Rule: " + "any" + "_type", () => {
       snippet: "Array" + "<" + "any>",
     });
     expect(suggestion3?.suggestedReplacement).toBe("Array<unknown>");
+  });
+
+  it("lints virtual file via lintFile on VirtualMemoryFS", () => {
+    const filePath = "/virtual/rules-scratch/test-any.ts";
+    vfs.writeFileSync(filePath, "const map: Record<string, " + "any> = {};");
+    const result = lintFile(filePath, { enabledRules: ["any_type"] });
+    expect(result.valid).toBe(false);
+    expect(result.violations.length).toBe(1);
+    expect(result.violations[0].snippet).toBe("any");
+  });
+
+  it("detects multiple any violations in a function signature and body", () => {
+    const code = "function transform(item: " + "any): " + "any { return item as " + "any; }";
+    const result = lintSourceCode(code, "test.ts", { enabledRules: ["any_type"] });
+    expect(result.valid).toBe(false);
+    expect(result.violations.length).toBe(3);
   });
 });

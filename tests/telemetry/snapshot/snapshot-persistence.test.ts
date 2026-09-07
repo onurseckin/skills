@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import {
   persistDagSnapshot,
@@ -9,8 +8,8 @@ import {
 } from "../../../olt/scripts/src/telemetry/dag-snapshot.ts";
 import { readTelemetryStream } from "../../../olt/scripts/src/reporting/telemetry-stream.ts";
 import { SnapshotVirtualFs } from "./vfs-harness.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
-// VirtualMemoryFS in-memory mocked snapshot tests
 export const snapshotPersistenceSuiteName = "DAG Snapshot Persistence & Durability";
 const svfs = new SnapshotVirtualFs();
 
@@ -79,20 +78,20 @@ describe(snapshotPersistenceSuiteName, () => {
     const snapshotPath = join(tmpDir, ".olt", "quota-dag-snapshot.json");
     svfs.setFile(join(tmpDir, ".olt"), "", true);
     svfs.setFile(external, "external sentinel", false);
-    fs.symlinkSync(external, snapshotPath);
+    svfs.symlink(external, snapshotPath);
     expect(() => loadDagSnapshot(tmpDir)).toThrow();
-    expect(fs.readFileSync(external, "utf8")).toBe("external sentinel");
+    expect(svfs.readFile(external)).toBe("external sentinel");
 
     svfs.vfs.delete(snapshotPath);
-    fs.linkSync(external, snapshotPath);
+    svfs.link(external, snapshotPath);
     expect(() => loadDagSnapshot(tmpDir)).toThrow();
-    expect(fs.readFileSync(external, "utf8")).toBe("external sentinel");
+    expect(svfs.readFile(external)).toBe("external sentinel");
   });
 
   it("preserves prior bytes on write/fsync/rename failures and reports post-rename uncertainty", () => {
     persistDagSnapshot(frozenSnapshot());
     const path = join(tmpDir, ".olt", "quota-dag-snapshot.json");
-    const before = fs.readFileSync(path, "utf8");
+    const before = svfs.readFile(path);
 
     for (const stage of ["before_write", "before_file_fsync", "before_rename"] as const) {
       __setDagSnapshotPersistenceTestHook((observed) => {
@@ -100,7 +99,7 @@ describe(snapshotPersistenceSuiteName, () => {
       });
       expect(() => persistDagSnapshot(frozenSnapshot(tmpDir, tmpDir, 2))).toThrow(`fault:${stage}`);
       __setDagSnapshotPersistenceTestHook(undefined);
-      expect(fs.readFileSync(path, "utf8")).toBe(before);
+      expect(svfs.readFile(path)).toBe(before);
     }
 
     for (const stage of ["after_rename", "before_directory_fsync"] as const) {
@@ -119,5 +118,20 @@ describe(snapshotPersistenceSuiteName, () => {
         readTelemetryStream(repo).filter((event) => event.action === "QUOTA_FREEZE_SNAPSHOT"),
       ).toHaveLength(1);
     }
+  });
+
+  it("Probe 1: rejects non-object snapshot primitives and missing mandatory fields fail-closed", () => {
+    const oltDir = join(tmpDir, "probe-repo", ".olt");
+    const snapshotPath = join(oltDir, "quota-dag-snapshot.json");
+    svfs.setFile(join(tmpDir, "probe-repo"), "", true);
+    svfs.setFile(oltDir, "", true);
+
+    // Non-object primitive
+    svfs.setFile(snapshotPath, JSON.stringify([1, 2, 3]), false);
+    expect(() => loadDagSnapshot(join(tmpDir, "probe-repo"))).toThrow(HarnessError);
+
+    // Missing mandatory frozenAt
+    svfs.setFile(snapshotPath, JSON.stringify({ version: "2", repositoryRoot: tmpDir }), false);
+    expect(() => loadDagSnapshot(join(tmpDir, "probe-repo"))).toThrow(HarnessError);
   });
 });

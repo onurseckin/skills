@@ -1,8 +1,6 @@
-import { describe, expect, it } from "bun:test";
-import {
-  recordProposal,
-  transitionProposalStatusInState,
-} from "../../../../olt/scripts/src/mind/proposals/proposal/transitions.ts";
+import { afterEach, describe, expect, it, spyOn } from "bun:test";
+import * as childProcess from "node:child_process";
+import { transitionProposalStatusInState } from "../../../../olt/scripts/src/mind/proposals/proposal/transitions.ts";
 import {
   isPathInRepoRoots,
   parseFalsifierArgv,
@@ -13,6 +11,12 @@ import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import type { CandidateRecord } from "../../../../olt/scripts/src/mind/proposals/gates/types.ts";
 
 describe("Proposals, Gates, and Brief - Exhaustive Unit Tests", () => {
+  const spies: Array<{ mockRestore: () => void }> = [];
+  afterEach(() => {
+    for (const spy of spies) spy.mockRestore();
+    spies.length = 0;
+  });
+
   describe("Proposal Transitions & Lifecycle", () => {
     it("records proposals and transitions lifecycle statuses with validation", () => {
       const state: Record<string, unknown> = {
@@ -90,6 +94,26 @@ describe("Proposals, Gates, and Brief - Exhaustive Unit Tests", () => {
     });
 
     it("parses falsifier argv and executes commands capturing exit codes and timeouts", () => {
+      spies.push(
+        spyOn(childProcess, "spawnSync").mockImplementation((cmd, args) => {
+          const argList = Array.isArray(args) ? args.map(String) : [];
+          if (argList.includes("hello") || String(cmd).includes("hello")) {
+            return {
+              status: 0,
+              stdout: "hello\n",
+              stderr: "",
+              error: undefined,
+            } as unknown as childProcess.SpawnSyncReturns<string>;
+          }
+          return {
+            status: 0,
+            stdout: "",
+            stderr: "",
+            error: undefined,
+          } as unknown as childProcess.SpawnSyncReturns<string>;
+        }),
+      );
+
       expect(parseFalsifierArgv()).toEqual([]);
       expect(parseFalsifierArgv(["bun", "test"])).toEqual(["bun", "test"]);
       expect(parseFalsifierArgv('bun test "my file"')).toEqual(["bun", "test", "my file"]);

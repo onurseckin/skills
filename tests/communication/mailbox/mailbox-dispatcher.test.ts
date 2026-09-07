@@ -47,7 +47,9 @@ describe("P2P Mailbox Dispatcher & Role Resolution (In-Memory)", () => {
       registerInMemoryMailboxDir(
         "virtual://dispatcher-suite/.olt/locks/mailboxes/validator-1.lock",
       );
-      registerInMemoryMailboxDir("virtual://dispatcher-suite/.olt/locks/mailboxes/repairer-1.lock");
+      registerInMemoryMailboxDir(
+        "virtual://dispatcher-suite/.olt/locks/mailboxes/sub-implementer-1.lock",
+      );
 
       expect(resolveRecipientAgentIds("worker-alpha", virtualRoot)).toEqual(["worker-alpha"]);
       expect(resolveRecipientAgentIds("worker", virtualRoot)).toEqual([
@@ -57,7 +59,9 @@ describe("P2P Mailbox Dispatcher & Role Resolution (In-Memory)", () => {
       ]);
       expect(resolveRecipientAgentIds("coordinator", virtualRoot)).toEqual(["coordinator-0"]);
       expect(resolveRecipientAgentIds("validator", virtualRoot)).toEqual(["validator-1"]);
-      expect(resolveRecipientAgentIds("repairer", virtualRoot)).toEqual(["repairer-1"]);
+      expect(resolveRecipientAgentIds("sub-implementer", virtualRoot)).toEqual([
+        "sub-implementer-1",
+      ]);
       expect(resolveRecipientAgentIds("custom-agent-99", virtualRoot)).toEqual(["custom-agent-99"]);
 
       const all = resolveRecipientAgentIds("*", virtualRoot);

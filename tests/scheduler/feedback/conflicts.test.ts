@@ -13,6 +13,24 @@ describe("scope conflicts", () => {
     expect(scopeConflict(["src/a"], ["src/a"])).toBeTrue();
     expect(scopeConflict(["src/a"], ["src/b"])).toBeFalse();
     expect(scopeConflict(["src/a"], ["src/ab"])).toBeFalse();
+    expect(scopeConflict(["src/component"], ["src/component-detail"])).toBeFalse();
+    expect(scopeConflict(["src/user"], ["src/users"])).toBeFalse();
+  });
+
+  test("deep double-wildcard intersects with exact match but stays disjoint from divergent branches", () => {
+    expect(scopeConflict(["src/**/test/*.ts"], ["src/a/b/c/test/unit.ts"])).toBeTrue();
+    expect(scopeConflict(["src/**/test/*.ts"], ["tests/a/b/c/test/unit.ts"])).toBeFalse();
+    expect(scopeConflict(["src/feature-a/**/test.ts"], ["src/feature-b/**/test.ts"])).toBeFalse();
+  });
+
+  test("empty scope safety returns false and empty ownership conflicts", () => {
+    expect(scopeConflict([], [])).toBeFalse();
+    expect(
+      ownershipConflicts(
+        { id: "T-1", status: "leased", write_scope: [] },
+        [{ id: "T-2", status: "running", write_scope: ["src/**"] }],
+      ),
+    ).toEqual([]);
   });
 
   test("resolves the glob scopes real capsules declare", () => {

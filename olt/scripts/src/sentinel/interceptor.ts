@@ -76,18 +76,9 @@ export function isCriticalDoctorFinding(finding: DoctorDiagnosticFinding): boole
 export function resolveSupervisorForRole(role: string): string {
   const norm = role.toLowerCase().trim();
   if (norm.includes("orch") || norm === "mind-auditor") return "mind";
-  if (
-    norm.includes("coord") ||
-    ["planner", "plan-validator", "repairer", "completeness-critic"].includes(norm)
-  )
+  if (norm.includes("coord") || ["planner", "plan-validator", "completeness-critic"].includes(norm))
     return "orchestrator";
-  if (
-    norm.includes("impl") ||
-    norm.includes("val") ||
-    norm.includes("sub-") ||
-    norm.includes("mechanic")
-  )
-    return "coordinator";
+  if (norm.includes("impl") || norm.includes("val") || norm.includes("sub-")) return "coordinator";
   return "supervisor";
 }
 
@@ -183,10 +174,9 @@ export function runFastDoctorChecks(
     for (const childRole of spawned) {
       const normChild = childRole.toLowerCase().trim();
       const isMindInvalid =
-        normRole === "mind" &&
-        ["coordinator", "implementer", "validator", "repairer"].includes(normChild);
+        normRole === "mind" && ["coordinator", "implementer", "validator"].includes(normChild);
       const isOrchInvalid =
-        normRole.includes("orch") && ["implementer", "validator", "repairer"].includes(normChild);
+        normRole.includes("orch") && ["implementer", "validator"].includes(normChild);
       if (isMindInvalid || isOrchInvalid) {
         findings.push({
           code: "CROSS_TIER_SPAWNING_VIOLATION",

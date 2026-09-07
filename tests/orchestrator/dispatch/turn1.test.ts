@@ -60,7 +60,7 @@ describe("Orchestrator Turn 1 Init", () => {
       "validator_code-quality",
       "worker",
       "critic",
-      "repairer",
+      "sub-implementer",
     ];
 
     for (const actorId of unauthorizedRoles) {

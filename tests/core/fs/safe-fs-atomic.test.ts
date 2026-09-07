@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
-import * as fs from "node:fs";
 import { dirname, join, resolve, sep } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -12,19 +11,19 @@ import {
   type DestructiveAuditEvent,
 } from "../../../olt/scripts/src/core/shared/safe-fs/index.ts";
 import {
-  createSafeFsMockState,
-  createSafeFsSpies,
-  type SafeFsMockState,
-} from "./safe-fs-fixtures.ts";
+  createVirtualFSSession,
+  type VirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("safe-fs: directory guards and atomic operations", () => {
-  let state: SafeFsMockState;
-  const spies: { mockRestore: () => void }[] = [];
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
   let rootCounter = 0;
 
   function makeFixtureRoot(): string {
-    const root = `/tmp/virtual/safe-fs-fixture-${++rootCounter}`;
-    state.mockDirs.add(root);
+    const root = `/virtual/safe-fs-fixture-${++rootCounter}`;
+    vfs.mkdirSync(root, { recursive: true });
     return root;
   }
 
@@ -43,18 +42,18 @@ describe("safe-fs: directory guards and atomic operations", () => {
   }
 
   beforeEach(() => {
-    state = createSafeFsMockState();
-    spies.push(...createSafeFsSpies(state));
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
-    while (spies.length > 0) spies.pop()?.mockRestore();
+    session.cleanup();
   });
 
   it("refuses the current working directory and its ancestors", () => {
     const fixtureRoot = makeFixtureRoot();
     const deepCwd = join(fixtureRoot, "a", "b", "c", "d");
-    fs.mkdirSync(deepCwd);
+    vfs.mkdirSync(deepCwd, { recursive: true });
 
     const cwdSpy = spyOn(process, "cwd").mockReturnValue(deepCwd);
     try {
@@ -104,7 +103,7 @@ describe("safe-fs: directory guards and atomic operations", () => {
   it("still enforces containment refusal even when missingOk is set", () => {
     const root = makeFixtureRoot();
     const allowedRoot = join(root, "allowed");
-    fs.mkdirSync(allowedRoot);
+    vfs.mkdirSync(allowedRoot, { recursive: true });
     const outsideMissing = join(root, "outside-missing");
 
     expectRefusal(
@@ -117,8 +116,8 @@ describe("safe-fs: directory guards and atomic operations", () => {
     const root = makeFixtureRoot();
     const allowedRoot = join(root, "allowed");
     const sibling = join(root, "sibling");
-    fs.mkdirSync(allowedRoot);
-    fs.mkdirSync(sibling);
+    vfs.mkdirSync(allowedRoot, { recursive: true });
+    vfs.mkdirSync(sibling, { recursive: true });
 
     let caught: unknown;
     try {
@@ -141,7 +140,7 @@ describe("safe-fs: directory guards and atomic operations", () => {
   it("records a successful delete through the audit hook", () => {
     const root = makeFixtureRoot();
     const target = join(root, "audited");
-    fs.mkdirSync(target);
+    vfs.mkdirSync(target, { recursive: true });
     const events: DestructiveAuditEvent[] = [];
 
     safeRmSync(target, { allowedRoots: [root], onAudit: (event) => events.push(event) });
@@ -155,29 +154,29 @@ describe("safe-fs: directory guards and atomic operations", () => {
   it("guards safeRenameSync source the same way as a delete", () => {
     const root = makeFixtureRoot();
     const repo = join(root, "repo");
-    fs.mkdirSync(join(repo, ".git"));
+    vfs.mkdirSync(join(repo, ".git"), { recursive: true });
     const destination = join(root, "moved-out");
 
     expectRefusal(
       () => safeRenameSync(repo, destination, { allowedRoots: [root] }),
       "REPOSITORY_INTERLOCK",
     );
-    expect(fs.existsSync(repo)).toBe(true);
+    expect(vfs.existsSync(repo)).toBe(true);
 
     const plain = join(root, "plain-source");
-    fs.mkdirSync(plain);
+    vfs.mkdirSync(plain, { recursive: true });
     safeRenameSync(plain, destination, { allowedRoots: [root] });
-    expect(fs.existsSync(plain)).toBe(false);
-    expect(fs.existsSync(destination)).toBe(true);
+    expect(vfs.existsSync(plain)).toBe(false);
+    expect(vfs.existsSync(destination)).toBe(true);
   });
 
   it("refuses safeCpSync onto an existing destination without allowOverwrite", () => {
     const root = makeFixtureRoot();
     const source = join(root, "source");
     const destination = join(root, "destination");
-    fs.mkdirSync(source);
-    fs.writeFileSync(join(source, "a.txt"), "one");
-    fs.mkdirSync(destination);
+    vfs.mkdirSync(source, { recursive: true });
+    vfs.writeFileSync(join(source, "a.txt"), "one");
+    vfs.mkdirSync(destination, { recursive: true });
 
     expectRefusal(
       () => safeCpSync(source, destination, { allowedRoots: [root] }),
@@ -185,13 +184,13 @@ describe("safe-fs: directory guards and atomic operations", () => {
     );
 
     safeCpSync(source, destination, { allowedRoots: [root], allowOverwrite: true });
-    expect(fs.existsSync(join(destination, "a.txt"))).toBe(true);
+    expect(vfs.existsSync(join(destination, "a.txt"))).toBe(true);
   });
 
   it("refuses safeWriteFileSync and safeMkdirSync outside the allowed root", () => {
     const root = makeFixtureRoot();
     const allowedRoot = join(root, "allowed");
-    fs.mkdirSync(allowedRoot);
+    vfs.mkdirSync(allowedRoot, { recursive: true });
     const outsideFile = join(root, "outside", "file.txt");
     const outsideDir = join(root, "outside", "dir");
 
@@ -200,12 +199,12 @@ describe("safe-fs: directory guards and atomic operations", () => {
       "CONTAINMENT",
     );
     expectRefusal(() => safeMkdirSync(outsideDir, { allowedRoots: [allowedRoot] }), "CONTAINMENT");
-    expect(fs.existsSync(outsideFile)).toBe(false);
-    expect(fs.existsSync(outsideDir)).toBe(false);
+    expect(vfs.existsSync(outsideFile)).toBe(false);
+    expect(vfs.existsSync(outsideDir)).toBe(false);
 
     safeWriteFileSync(join(allowedRoot, "inside.txt"), "data", { allowedRoots: [allowedRoot] });
     safeMkdirSync(join(allowedRoot, "inside-dir"), { allowedRoots: [allowedRoot] });
-    expect(fs.existsSync(join(allowedRoot, "inside.txt"))).toBe(true);
-    expect(fs.existsSync(join(allowedRoot, "inside-dir"))).toBe(true);
+    expect(vfs.existsSync(join(allowedRoot, "inside.txt"))).toBe(true);
+    expect(vfs.existsSync(join(allowedRoot, "inside-dir"))).toBe(true);
   });
 });

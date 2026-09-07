@@ -1,11 +1,21 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { chmodSync, existsSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { buildOltBinaryContent, ensureGlobalOltBinary } from "../../../scripts/sync/olt-bin.ts";
-import { cleanupVirtualSyncFS, scratchRoot, setupVirtualSyncFS } from "../sync-fixture.ts";
+import {
+  cleanupVirtualSyncFS,
+  getVirtualSyncFS,
+  getVirtualSyncSession,
+  isSymbolicLink,
+  scratchRoot,
+  setupVirtualSyncFS,
+} from "../sync-fixture.ts";
+
+let vfs: ReturnType<typeof getVirtualSyncFS>;
+let session: ReturnType<typeof getVirtualSyncSession>;
 
 beforeEach(() => {
-  setupVirtualSyncFS();
+  vfs = setupVirtualSyncFS();
+  session = getVirtualSyncSession();
 });
 
 afterEach(() => {
@@ -38,9 +48,9 @@ describe("ensureGlobalOltBinary", () => {
 
     expect(result.status).toBe("created");
     expect(result.binaryPath).toBe(join(targetBinDir, "olt"));
-    expect(existsSync(result.binaryPath)).toBe(true);
+    expect(vfs.existsSync(result.binaryPath)).toBe(true);
 
-    const content = readFileSync(result.binaryPath, "utf-8");
+    const content = vfs.readFileSync(result.binaryPath, "utf-8");
     expect(content).toBe(buildOltBinaryContent(harnessPath));
   });
 
@@ -70,11 +80,11 @@ describe("ensureGlobalOltBinary", () => {
   test("updates existing binary if content differs", () => {
     const root = scratchRoot(import.meta.path, "olt-bin-update-content");
     const targetBinDir = join(root, "bin");
-    mkdirSync(targetBinDir, { recursive: true });
+    vfs.mkdirSync(targetBinDir, { recursive: true });
     const binaryPath = join(targetBinDir, "olt");
 
     // Write outdated content
-    writeFileSync(binaryPath, "#!/bin/bash\necho old\n", { encoding: "utf-8", mode: 0o755 });
+    vfs.writeFileSync(binaryPath, "#!/bin/bash\necho old\n", { encoding: "utf-8", mode: 0o755 });
 
     const result = ensureGlobalOltBinary({
       homeDir: root,
@@ -83,18 +93,18 @@ describe("ensureGlobalOltBinary", () => {
     });
 
     expect(result.status).toBe("updated");
-    expect(readFileSync(binaryPath, "utf-8")).toBe(buildOltBinaryContent("/new/harness.ts"));
+    expect(vfs.readFileSync(binaryPath, "utf-8")).toBe(buildOltBinaryContent("/new/harness.ts"));
   });
 
   test("updates existing binary if not executable", () => {
     const root = scratchRoot(import.meta.path, "olt-bin-update-chmod");
     const targetBinDir = join(root, "bin");
-    mkdirSync(targetBinDir, { recursive: true });
+    vfs.mkdirSync(targetBinDir, { recursive: true });
     const binaryPath = join(targetBinDir, "olt");
     const harnessPath = "/custom/harness.ts";
 
-    writeFileSync(binaryPath, buildOltBinaryContent(harnessPath), "utf-8");
-    chmodSync(binaryPath, 0o644); // Not executable
+    vfs.writeFileSync(binaryPath, buildOltBinaryContent(harnessPath), "utf-8");
+    session.chmodSync(binaryPath, 0o644); // Not executable
 
     const result = ensureGlobalOltBinary({
       homeDir: root,
@@ -108,11 +118,11 @@ describe("ensureGlobalOltBinary", () => {
   test("updates binary if existing binary cannot be read or throws error", () => {
     const root = scratchRoot(import.meta.path, "olt-bin-catch-read");
     const targetBinDir = join(root, "bin");
-    mkdirSync(targetBinDir, { recursive: true });
+    vfs.mkdirSync(targetBinDir, { recursive: true });
     const binaryPath = join(targetBinDir, "olt");
-    writeFileSync(binaryPath, "old-content", { encoding: "utf-8", mode: 0o000 });
+    vfs.writeFileSync(binaryPath, "old-content", { encoding: "utf-8", mode: 0o000 });
     try {
-      chmodSync(binaryPath, 0o000);
+      session.chmodSync(binaryPath, 0o000);
     } catch {}
 
     try {
@@ -125,7 +135,7 @@ describe("ensureGlobalOltBinary", () => {
       expect(result.status).toBe("updated");
     } finally {
       try {
-        chmodSync(binaryPath, 0o755);
+        session.chmodSync(binaryPath, 0o755);
       } catch {}
     }
   });
@@ -133,7 +143,7 @@ describe("ensureGlobalOltBinary", () => {
   test("creates symlink in ~/.bun/bin if directory exists", () => {
     const root = scratchRoot(import.meta.path, "olt-bin-bun");
     const bunBinDir = join(root, ".bun", "bin");
-    mkdirSync(bunBinDir, { recursive: true });
+    vfs.mkdirSync(bunBinDir, { recursive: true });
 
     const targetBinDir = join(root, "bin");
     const result = ensureGlobalOltBinary({
@@ -145,14 +155,14 @@ describe("ensureGlobalOltBinary", () => {
     expect(result.bunBinaryCreated).toBe(true);
 
     const bunOlt = join(bunBinDir, "olt");
-    expect(existsSync(bunOlt)).toBe(true);
-    expect(lstatSync(bunOlt).isSymbolicLink()).toBe(true);
+    expect(vfs.existsSync(bunOlt)).toBe(true);
+    expect(isSymbolicLink(bunOlt)).toBe(true);
   });
 
   test("handles existing symlink in ~/.bun/bin gracefully", () => {
     const root = scratchRoot(import.meta.path, "olt-bin-bun-existing");
     const bunBinDir = join(root, ".bun", "bin");
-    mkdirSync(bunBinDir, { recursive: true });
+    vfs.mkdirSync(bunBinDir, { recursive: true });
 
     const targetBinDir = join(root, "bin");
     // Run twice
@@ -165,7 +175,7 @@ describe("ensureGlobalOltBinary", () => {
   test("handles existing directory in ~/.bun/bin gracefully via catch block", () => {
     const root = scratchRoot(import.meta.path, "olt-bin-bun-dir-catch");
     const bunBinDir = join(root, ".bun", "bin");
-    mkdirSync(join(bunBinDir, "olt"), { recursive: true }); // Real directory makes smartEnsureSymlink throw
+    vfs.mkdirSync(join(bunBinDir, "olt"), { recursive: true }); // Real directory makes smartEnsureSymlink throw
 
     const targetBinDir = join(root, "bin");
     const result = ensureGlobalOltBinary({ homeDir: root, targetBinDir });
@@ -176,6 +186,6 @@ describe("ensureGlobalOltBinary", () => {
     const root = scratchRoot(import.meta.path, "olt-bin-defaults");
     const result = ensureGlobalOltBinary({ homeDir: root });
     expect(result.binaryPath).toBe(join(root, ".local", "bin", "olt"));
-    expect(existsSync(result.binaryPath)).toBe(true);
+    expect(vfs.existsSync(result.binaryPath)).toBe(true);
   });
 });

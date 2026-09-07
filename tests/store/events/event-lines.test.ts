@@ -1,13 +1,19 @@
-import { describe, expect, test } from "bun:test";
-import { writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { streamEventLines } from "../../../olt/scripts/src/engine/store/events/event-lines.ts";
-import { scratchRoot as makeScratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
-
-setupVirtualStoreFS();
+import {
+  cleanupVirtualStoreFS,
+  getVirtualStoreFS,
+  scratchRoot as makeScratchRoot,
+  setupVirtualStoreFS,
+} from "../store-fixture.ts";
 
 function scratchRoot(label: string): string {
   return makeScratchRoot(import.meta.path, label);
+}
+
+function writeFile(path: string, content: string | Uint8Array): void {
+  getVirtualStoreFS().writeFileSync(path, content);
 }
 
 function collect(path: string, maximum: number, maximumTotal: number) {
@@ -15,17 +21,25 @@ function collect(path: string, maximum: number, maximumTotal: number) {
 }
 
 describe("streamEventLines", () => {
+  beforeEach(() => {
+    setupVirtualStoreFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualStoreFS();
+  });
+
   test("yields nothing for an empty file", () => {
     const root = scratchRoot("yields-nothing-for-an-empty-file");
     const path = join(root, "events.jsonl");
-    writeFileSync(path, "");
+    writeFile(path, "");
     expect(collect(path, 1024, 1024)).toEqual([]);
   });
 
   test("yields one terminated line per newline-delimited record", () => {
     const root = scratchRoot("yields-one-terminated-line-per-newline-delimited-r");
     const path = join(root, "events.jsonl");
-    writeFileSync(path, "line-one\nline-two\n");
+    writeFile(path, "line-one\nline-two\n");
     const lines = collect(path, 1024, 1024);
     expect(lines).toHaveLength(2);
     expect(lines[0]).toMatchObject({ index: 1, terminated: true, oversized: false });
@@ -38,7 +52,7 @@ describe("streamEventLines", () => {
   test("yields a final unterminated line when the file has no trailing newline", () => {
     const root = scratchRoot("yields-a-final-unterminated-line-when-the-file-has");
     const path = join(root, "events.jsonl");
-    writeFileSync(path, "complete\npartial-tail");
+    writeFile(path, "complete\npartial-tail");
     const lines = collect(path, 1024, 1024);
     expect(lines).toHaveLength(2);
     expect(lines[1]).toMatchObject({ index: 2, terminated: false, oversized: false });
@@ -48,7 +62,7 @@ describe("streamEventLines", () => {
   test("marks a line oversized and truncates its stored content once it exceeds the per-line maximum", () => {
     const root = scratchRoot("marks-a-line-oversized-and-truncates-its-stored-co");
     const path = join(root, "events.jsonl");
-    writeFileSync(path, `${"x".repeat(20)}\nnext\n`);
+    writeFile(path, `${"x".repeat(20)}\nnext\n`);
     const lines = collect(path, 5, 1024);
     expect(lines[0]).toMatchObject({ index: 1, terminated: true, oversized: true });
     expect(lines[0]!.content.byteLength).toBe(5);
@@ -58,7 +72,7 @@ describe("streamEventLines", () => {
   test("marks an oversized line even when the available budget is already exhausted at zero", () => {
     const root = scratchRoot("marks-an-oversized-line-even-when-the-available-bu");
     const path = join(root, "events.jsonl");
-    writeFileSync(path, `${"x".repeat(70_000)}\n`);
+    writeFile(path, `${"x".repeat(70_000)}\n`);
     const lines = collect(path, 5, 1024 * 1024);
     expect(lines[0]).toMatchObject({ oversized: true });
     expect(lines[0]!.content.byteLength).toBe(5);
@@ -67,7 +81,7 @@ describe("streamEventLines", () => {
   test("throws when the file's total size exceeds the maximumTotal budget", () => {
     const root = scratchRoot("throws-when-the-file-s-total-size-exceeds-the-maxi");
     const path = join(root, "events.jsonl");
-    writeFileSync(path, "x".repeat(100));
+    writeFile(path, "x".repeat(100));
     expect(() => collect(path, 1024, 10)).toThrow(/event log size exceeds limit/);
   });
 
@@ -80,9 +94,29 @@ describe("streamEventLines", () => {
     const root = scratchRoot("handles-a-line-that-spans-more-than-one-internal-r");
     const path = join(root, "events.jsonl");
     const long = "y".repeat(64 * 1024 + 200);
-    writeFileSync(path, `${long}\nshort\n`);
+    writeFile(path, `${long}\nshort\n`);
     const lines = collect(path, long.length + 10, 1024 * 1024);
     expect(Buffer.from(lines[0]!.content).toString()).toBe(long);
     expect(Buffer.from(lines[1]!.content).toString()).toBe("short");
+  });
+
+  test("correctly yields lines ending exactly on the 64KB read buffer boundary", () => {
+    const root = scratchRoot("buffer-boundary-exact-64kb");
+    const path = join(root, "events.jsonl");
+    const exactLine = "a".repeat(64 * 1024 - 1);
+    writeFile(path, `${exactLine}\nsecond\n`);
+    const lines = collect(path, 1024 * 1024, 1024 * 1024);
+    expect(lines).toHaveLength(2);
+    expect(lines[0]!.endOffset).toBe(64 * 1024);
+    expect(lines[0]!.terminated).toBe(true);
+    expect(Buffer.from(lines[0]!.content).toString()).toBe(exactLine);
+    expect(Buffer.from(lines[1]!.content).toString()).toBe("second");
+  });
+
+  test("aborts immediately when file size exceeds maximumTotal before reading records", () => {
+    const root = scratchRoot("immediate-total-budget-violation");
+    const path = join(root, "events.jsonl");
+    writeFile(path, "z".repeat(1000));
+    expect(() => collect(path, 1024, 500)).toThrow(/event log size exceeds limit 500 bytes/);
   });
 });

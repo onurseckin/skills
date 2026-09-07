@@ -27,7 +27,7 @@ function createMockSubprocess(
 
 describe("monitorSubprocessLoop Execution & Liveness Checks", () => {
   it("resolves clean exit successfully when subprocess completes within limits", async () => {
-    let now = 1700000000000;
+    const now = 1700000000000;
     const watchdog = new ProcessTimeoutWatchdog({
       pid: 1001,
       wallTimeoutMs: 10_000,
@@ -89,7 +89,7 @@ describe("monitorSubprocessLoop Execution & Liveness Checks", () => {
   });
 
   it("handles abort signal interruption by enforcing SIGKILL and returning interrupted outcome", async () => {
-    let now = 1700000000000;
+    const now = 1700000000000;
     const signalsSent: NodeJS.Signals[] = [];
 
     const watchdog = new ProcessTimeoutWatchdog({

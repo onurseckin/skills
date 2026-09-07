@@ -1,34 +1,29 @@
-import { describe, expect, it, beforeEach, afterEach, spyOn } from "bun:test";
-import * as fs from "node:fs";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { join, resolve } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { findRepoRoot, resolveSkillHomeRepo } from "../../../olt/scripts/src/core/shared/paths.ts";
+import {
+  createVirtualFSSession,
+  type VirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
-// VirtualMemoryFS in-memory mocked sandbox
 describe("findRepoRoot refuses to guess", () => {
-  const mockDirs = new Set<string>();
-  const spies: { mockRestore: () => void }[] = [];
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
 
   beforeEach(() => {
-    mockDirs.clear();
-    spies.push(
-      spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => mockDirs.has(String(p))),
-      spyOn(fs, "realpathSync").mockImplementation(((p: fs.PathLike) =>
-        String(p)) as unknown as typeof fs.realpathSync),
-      spyOn(fs, "mkdirSync").mockImplementation(((p: fs.PathLike) => {
-        mockDirs.add(String(p));
-        return undefined as unknown as string;
-      }) as unknown as typeof fs.mkdirSync),
-    );
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
-    while (spies.length > 0) spies.pop()?.mockRestore();
+    session.cleanup();
   });
 
   it("throws a HarnessError instead of returning a guessed root when no anchor exists", () => {
     const isolated = "/virtual-paths-no-anchor";
-    mockDirs.add(isolated);
+    vfs.mkdirSync(isolated, { recursive: true });
     let caught: unknown;
     try {
       findRepoRoot(isolated);
@@ -44,41 +39,33 @@ describe("findRepoRoot refuses to guess", () => {
 
   it("still resolves normally when an anchor is present", () => {
     const root = "/virtual-paths-with-anchor";
-    mockDirs.add(root);
-    mockDirs.add(join(root, ".git"));
+    vfs.mkdirSync(root, { recursive: true });
+    vfs.mkdirSync(join(root, ".git"), { recursive: true });
     const nested = join(root, "a", "b", "c");
-    mockDirs.add(nested);
+    vfs.mkdirSync(nested, { recursive: true });
     expect(findRepoRoot(nested)).toBe(root);
   });
 });
 
 describe("resolveSkillHomeRepo precedence", () => {
-  const mockDirs = new Set<string>();
-  const spies: { mockRestore: () => void }[] = [];
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
 
   beforeEach(() => {
-    mockDirs.clear();
-    spies.push(
-      spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => mockDirs.has(String(p))),
-      spyOn(fs, "realpathSync").mockImplementation(((p: fs.PathLike) =>
-        String(p)) as unknown as typeof fs.realpathSync),
-      spyOn(fs, "mkdirSync").mockImplementation(((p: fs.PathLike) => {
-        mockDirs.add(String(p));
-        return undefined as unknown as string;
-      }) as unknown as typeof fs.mkdirSync),
-    );
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
-    while (spies.length > 0) spies.pop()?.mockRestore();
+    session.cleanup();
   });
 
   it("prioritizes OLT_SKILL_HOME_REPO over currentRepoRoot and global config", () => {
     const base = "/virtual-skill-home-precedence";
     const explicitRoot = join(base, "explicit-repo");
     const envRoot = join(base, "env-repo");
-    mockDirs.add(explicitRoot);
-    mockDirs.add(envRoot);
+    vfs.mkdirSync(explicitRoot, { recursive: true });
+    vfs.mkdirSync(envRoot, { recursive: true });
 
     const previousEnv = process.env["OLT_SKILL_HOME_REPO"];
     process.env["OLT_SKILL_HOME_REPO"] = envRoot;
@@ -96,7 +83,7 @@ describe("resolveSkillHomeRepo precedence", () => {
   it("falls back to OLT_SKILL_HOME_REPO when no currentRepoRoot is supplied", () => {
     const base = "/virtual-skill-home-env-fallback";
     const envRoot = join(base, "env-repo");
-    mockDirs.add(envRoot);
+    vfs.mkdirSync(envRoot, { recursive: true });
 
     const previousEnv = process.env["OLT_SKILL_HOME_REPO"];
     process.env["OLT_SKILL_HOME_REPO"] = envRoot;

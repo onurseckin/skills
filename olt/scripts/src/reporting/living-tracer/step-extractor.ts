@@ -116,11 +116,6 @@ export function buildStepTraceEntries(
       glyph = "🌿";
       const bId = parsePayloadString(payload, ["branch_id", "branchId"]);
       if (bId) details.push(`Branch: ${bId}`);
-    } else if (lowerKind.includes("replacement") || lowerKind.includes("assign-repairer")) {
-      glyph = "🔧";
-      const replacementId = parsePayloadString(payload, ["replacement_id", "replacementId"]);
-      if (replacementId) details.push(`Replacement Repairer: ${replacementId}`);
-      if (errorMsg) details.push(`Reason: ${errorMsg}`);
     } else if (lowerKind.includes("exec") || lowerKind.includes("tool") || cmd) {
       glyph = "⚙️";
       if (tool) details.push(`Tool: ${tool}`);

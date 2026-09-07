@@ -256,7 +256,7 @@ describe("Data Layer Disambiguation Gateway - Pre-flight & Handoff Token", () =>
       expect(highLatency.violations.some((v) => v.includes("latency"))).toBe(true);
     });
 
-    it("routes data-layer defects directly to AUTONOMOUS_REPAIRER", () => {
+    it("routes data-layer defects directly to AUTONOMOUS_IMPLEMENTER", () => {
       const certifier = new DataLayerPreFlightCertifier();
       const defectRouter = new DefectRouter();
       const fixtures = createDashboardTelemetryFixtures();
@@ -271,7 +271,7 @@ describe("Data Layer Disambiguation Gateway - Pre-flight & Handoff Token", () =>
 
       const receipt = defectRouter.routeDefect(failedCert, { error: "Internal Server Error" });
 
-      expect(receipt.recipient).toBe("AUTONOMOUS_REPAIRER");
+      expect(receipt.recipient).toBe("AUTONOMOUS_IMPLEMENTER");
       expect(receipt.category).toBe("BACKEND_DATA_LAYER_FAULT");
       expect(receipt.severity).toBe("CRITICAL");
       expect(receipt.endpoint).toBe("/api/telemetry");
@@ -363,7 +363,7 @@ describe("Data Layer Disambiguation Gateway - Pre-flight & Handoff Token", () =>
       expect(successEval.handoffToken).toBeDefined();
       expect(successEval.defectReceipt).toBeUndefined();
 
-      // Failure path -> auto routes to AUTONOMOUS_REPAIRER
+      // Failure path -> auto routes to AUTONOMOUS_IMPLEMENTER
       const failEval = engine.processDataLayerEvaluation({
         endpoint: "/api/telemetry",
         componentOrRoute: "/dashboard",
@@ -376,7 +376,7 @@ describe("Data Layer Disambiguation Gateway - Pre-flight & Handoff Token", () =>
       expect(failEval.certification.certified).toBe(false);
       expect(failEval.handoffToken).toBeUndefined();
       expect(failEval.defectReceipt).toBeDefined();
-      expect(failEval.defectReceipt?.recipient).toBe("AUTONOMOUS_REPAIRER");
+      expect(failEval.defectReceipt?.recipient).toBe("AUTONOMOUS_IMPLEMENTER");
     });
 
     it("manages singleton instance correctly", () => {

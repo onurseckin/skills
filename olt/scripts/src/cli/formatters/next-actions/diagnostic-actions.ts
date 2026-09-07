@@ -74,7 +74,7 @@ export function whoamiNextActions(
   const leases = context.leases ?? [];
   if (leases.length > 0) {
     const lease = leases[0]!;
-    const role = lease.role === "repairer" ? "Repairer" : "Implementer";
+    const role = "Implementer";
     return [
       {
         command: `bun harness.ts task:heartbeat --run ${runRoot} --task ${lease.taskId} --agent ${agent} --token <TOKEN>`,
@@ -242,7 +242,7 @@ export function findingGetNextActions(run?: string, findingId?: string): NextAct
     },
     {
       command: `bun harness.ts critic:remediate${runArg} --finding ${findingId ?? "<FINDING_ID>"} --evidence <EVIDENCE>`,
-      role: "Repairer",
+      role: "Implementer",
       description: "Record remediation evidence",
     },
   ];

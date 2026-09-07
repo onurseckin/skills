@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import {
   runDoctor,
@@ -8,7 +7,12 @@ import {
 } from "../../../olt/scripts/src/reporting/doctor.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/events/transaction.ts";
-import { cleanupVirtualReportingFS, setupVirtualReportingFS, tempDir } from "../fixture.ts";
+import {
+  cleanupVirtualReportingFS,
+  getVirtualReportingFS,
+  setupVirtualReportingFS,
+  tempDir,
+} from "../fixture.ts";
 
 export const doctorUnifiedSuiteName =
   "Wave 4 - Task 4.1: Unified Master Doctor Engine Integration & Severity Tiering";
@@ -23,9 +27,10 @@ describe(doctorUnifiedSuiteName, () => {
   });
 
   test("runDoctor integrates all diagnostic engines and returns structured report", async () => {
+    const vfs = getVirtualReportingFS();
     const repo = tempDir("unified-doctor-repo");
-    fs.mkdirSync(join(repo, ".git"), { recursive: true });
-    fs.writeFileSync(join(repo, "package.json"), "{}");
+    vfs.mkdirSync(join(repo, ".git"), { recursive: true });
+    vfs.writeFileSync(join(repo, "package.json"), "{}");
 
     const runRoot = initRun(
       repo,
@@ -46,7 +51,10 @@ describe(doctorUnifiedSuiteName, () => {
       };
     });
 
-    const report = await runDoctor(runRoot, {}, () => ({ status: 0, bytes: new Uint8Array() }));
+    const report = await runDoctor(runRoot, { repoRoot: repo, writeScope: [] }, () => ({
+      status: 0,
+      bytes: new Uint8Array(),
+    }));
     expect(report.engine_results).toBeDefined();
 
     const engines = report.engine_results as Record<string, unknown>;

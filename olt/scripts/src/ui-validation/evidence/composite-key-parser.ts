@@ -10,7 +10,7 @@ export class CompositeKeyParser {
     return segment
       .trim()
       .toLowerCase()
-      .replace(/[\/\\]+/g, "-") // Convert slashes to hyphens
+      .replace(/[/\\]+/g, "-") // Convert slashes to hyphens
       .replace(/[^a-z0-9\-_]/g, "-") // Replace non-alphanumeric chars
       .replace(/-+/g, "-") // Deduplicate hyphens
       .replace(/^-|-$/g, ""); // Trim leading/trailing hyphens

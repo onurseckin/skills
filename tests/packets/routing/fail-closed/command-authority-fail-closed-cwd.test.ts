@@ -16,8 +16,17 @@ import { emptyGrantRun } from "../../validation/grants/grant-run-fixture.ts";
 import { execute } from "../../../../olt/scripts/src/cli/execute.ts";
 import { registerSessionGrant } from "../../../../olt/scripts/src/authority/session/index.ts";
 
-beforeAll(() => {
+beforeAll(async () => {
   setupVirtualAuthorityFS();
+  try {
+    await execute(["queue:status"]);
+    const { run } = await emptyGrantRun("warmup-");
+    installMetaAuditGrant(run, "mind", "mind");
+    registerSessionGrant({ runRoot: run, agentId: "mind", role: "mind" });
+    await execute(["queue:drain", "--authority-run", run, "--actor", "mind"]);
+    await execute(["queue:clean", "--authority-run", run, "--actor", "mind"]);
+    await execute(["watchdog:cleanup", "--authority-run", run, "--run", run, "--actor", "mind"]);
+  } catch {}
 });
 
 afterAll(() => {
@@ -203,13 +212,13 @@ describe("governed mutation authority", () => {
   });
 
   test("denies non-Mind, released, and mismatched authority-run callers", async () => {
+    const { repo, run } = await emptyGrantRun("governed-mutator-roles-");
     for (const [id, role, status] of [
       ["implementer", "implementer", "active"],
       ["validator", "validator", "active"],
       ["skill-auditor", "skill-auditor", "active"],
       ["released-mind", "mind", "released"],
     ] as const) {
-      const { run } = await emptyGrantRun(`governed-mutator-${id}-`);
       installMetaAuditGrant(run, id, role, status);
       expect(() =>
         assertRawGrantedCommand(
@@ -220,7 +229,6 @@ describe("governed mutation authority", () => {
       ).toThrow();
     }
 
-    const { repo, run } = await emptyGrantRun("governed-mutator-mismatch-");
     const otherRun = initRun(repo, "second-run", new TextEncoder().encode("prompt"), "file", true);
     installMetaAuditGrant(run, "mind", "mind");
     registerSessionGrant({ runRoot: run, agentId: "mind", role: "mind" });

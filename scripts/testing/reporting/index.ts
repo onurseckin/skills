@@ -227,9 +227,9 @@ export function main(repoRoot?: string): void {
   }
 }
 
-export function runCli(isMain: boolean = computeIsMain()): void {
+export function runCli(isMain: boolean = computeIsMain(), repoRoot?: string): void {
   if (isMain) {
-    main();
+    main(repoRoot);
   }
 }
 

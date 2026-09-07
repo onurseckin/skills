@@ -23,7 +23,7 @@ function screenshot(overrides: Partial<CaptureRecord> = {}): CaptureRecord {
     blob_path: "blobs/aa/shot",
     path: "evidence/screenshots/shot.png",
     storage: "hardlink",
-    original_path: "/tmp/shot.png",
+    original_path: "/virtual/tmp/shot.png",
     ...overrides,
   };
 }
@@ -31,8 +31,10 @@ function screenshot(overrides: Partial<CaptureRecord> = {}): CaptureRecord {
 export const screenshotStoreSuiteName = "queryScreenshots & screenshot store";
 
 describe(screenshotStoreSuiteName, () => {
+  let vfs: ReturnType<typeof setupVirtualBrowserFS>;
+
   beforeEach(() => {
-    setupVirtualBrowserFS();
+    vfs = setupVirtualBrowserFS();
   });
 
   afterEach(() => {
@@ -72,6 +74,15 @@ describe(screenshotStoreSuiteName, () => {
   test("an empty capsule has no screenshots", () => {
     expect(queryScreenshots(runRoot())).toEqual([]);
   });
+
+  test("returns empty array when captures.json is empty or malformed", () => {
+    const root = runRoot();
+    vfs.writeFileSync(join(root, "captures.json"), "");
+    expect(queryScreenshots(root)).toEqual([]);
+
+    vfs.writeFileSync(join(root, "captures.json"), "{bad json");
+    expect(queryScreenshots(root)).toEqual([]);
+  });
 });
 
 describe("getVisualReport", () => {
@@ -106,7 +117,7 @@ describe("getVisualReport", () => {
         blob_path: blobPath,
         path: "evidence/visual-report.json",
         storage: "hardlink",
-        original_path: "/tmp/visual-report.json",
+        original_path: "/virtual/tmp/visual-report.json",
         timestamp: "2026-08-19T00:00:00.000Z",
       },
     ]);
@@ -128,7 +139,7 @@ describe("getVisualReport", () => {
         blob_path: "blobs/report.json",
         path: "evidence/visual-report.json",
         storage: "hardlink",
-        original_path: "/tmp/visual-report.json",
+        original_path: "/virtual/tmp/visual-report.json",
         task_id: "T-1",
       },
     ]);
@@ -148,7 +159,7 @@ describe("getVisualReport", () => {
         blob_path: "blobs/missing.json",
         path: "evidence/visual-report.json",
         storage: "hardlink",
-        original_path: "/tmp/visual-report.json",
+        original_path: "/virtual/tmp/visual-report.json",
       },
     ]);
 
@@ -168,7 +179,67 @@ describe("getVisualReport", () => {
         blob_path: "blobs/bad.json",
         path: "evidence/visual-report.json",
         storage: "hardlink",
-        original_path: "/tmp/visual-report.json",
+        original_path: "/virtual/tmp/visual-report.json",
+      },
+    ]);
+
+    expect(getVisualReport(root)).toBeNull();
+  });
+
+  test("returns latest visual report when multiple exist", () => {
+    const root = runRoot();
+    vfs.mkdirSync(join(root, "blobs"), { recursive: true });
+    vfs.writeFileSync(
+      join(root, "blobs", "r1.json"),
+      JSON.stringify({ viewports: { mobile: { width: 375, height: 667 } } }),
+    );
+    vfs.writeFileSync(
+      join(root, "blobs", "r2.json"),
+      JSON.stringify({ viewports: { desktop: { width: 1920, height: 1080 } } }),
+    );
+    recordCaptures(root, [
+      {
+        kind: "visual_report",
+        name: "r1.json",
+        sha256: "1".repeat(64),
+        bytes: 10,
+        blob_path: "blobs/r1.json",
+        path: "evidence/r1.json",
+        storage: "hardlink",
+        original_path: "/virtual/tmp/r1.json",
+        timestamp: "2026-08-19T00:00:00.000Z",
+      },
+      {
+        kind: "visual_report",
+        name: "r2.json",
+        sha256: "2".repeat(64),
+        bytes: 10,
+        blob_path: "blobs/r2.json",
+        path: "evidence/r2.json",
+        storage: "hardlink",
+        original_path: "/virtual/tmp/r2.json",
+        timestamp: "2026-08-19T01:00:00.000Z",
+      },
+    ]);
+
+    const report = getVisualReport(root);
+    expect(report?.viewports).toEqual({ desktop: { width: 1920, height: 1080 } });
+  });
+
+  test("returns null when recorded blob is empty string", () => {
+    const root = runRoot();
+    vfs.mkdirSync(join(root, "blobs"), { recursive: true });
+    vfs.writeFileSync(join(root, "blobs", "empty.json"), "");
+    recordCaptures(root, [
+      {
+        kind: "visual_report",
+        name: "visual-report.json",
+        sha256: "0".repeat(64),
+        bytes: 0,
+        blob_path: "blobs/empty.json",
+        path: "evidence/visual-report.json",
+        storage: "hardlink",
+        original_path: "/virtual/tmp/visual-report.json",
       },
     ]);
 

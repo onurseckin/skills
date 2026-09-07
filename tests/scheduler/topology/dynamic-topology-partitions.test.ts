@@ -153,7 +153,17 @@ describe("Dynamic Topology: Partitions, Allocations & Disjointness", () => {
         ["t-core", new Set<string>()],
       ]);
       const partitions = partitionOrchestratorDomains(tasks, deps, 2);
-      expect(partitions.length).toBeLessThanOrEqual(2);
+      expect(partitions.length).toBe(2);
+      const composite = partitions.find((p) => p.domain === "composite");
+      expect(composite).toBeDefined();
+      expect(composite?.partitionId).toBe("orchestrator-domain-composite");
+      expect(composite?.taskIds.length).toBeGreaterThanOrEqual(2);
+      expect(composite?.work).toBeGreaterThanOrEqual(2);
+    });
+
+    test("partitionOrchestratorDomains returns empty array for empty task list", () => {
+      const partitions = partitionOrchestratorDomains([], new Map());
+      expect(partitions).toEqual([]);
     });
 
     test("partitionOrchestratorDomains maps system-design paths to backend-system domain", () => {
@@ -170,6 +180,24 @@ describe("Dynamic Topology: Partitions, Allocations & Disjointness", () => {
       const deps = new Map([["sys-1", new Set<string>()]]);
       const partitions = partitionOrchestratorDomains(tasks, deps);
       expect(partitions.some((p) => p.domain === "backend-system")).toBe(true);
+    });
+
+    test("partitionOrchestratorDomains assigns core-engine domain when write_scope is empty", () => {
+      const tasks = [
+        {
+          id: "empty-scope-task",
+          priority: 1,
+          created_order: 1,
+          effort: 1,
+          requirement_ids: [],
+          write_scope: [],
+        },
+      ];
+      const deps = new Map([["empty-scope-task", new Set<string>()]]);
+      const partitions = partitionOrchestratorDomains(tasks, deps);
+      expect(partitions.length).toBe(1);
+      expect(partitions[0]?.domain).toBe("core-engine");
+      expect(partitions[0]?.taskIds).toEqual(["empty-scope-task"]);
     });
   });
 
@@ -210,6 +238,34 @@ describe("Dynamic Topology: Partitions, Allocations & Disjointness", () => {
       const codeQual = demands.find((d) => d.domain === "code-quality");
       expect(codeQual?.taskCount).toBe(3);
     });
+
+    test("returns zeroed demands and fleet allocations for empty tasks", () => {
+      const { demands, fleet } = calculateValidatorAllocations([]);
+      expect(fleet["code-quality"]).toBe(0);
+      expect(fleet["ui-design"]).toBe(0);
+      expect(fleet["system-design"]).toBe(0);
+      expect(fleet.product).toBe(0);
+      expect(fleet.security).toBe(0);
+      expect(demands.every((d) => d.taskCount === 0 && d.recommendedValidators === 0)).toBe(true);
+    });
+
+    test("handles tasks with duplicate requirement IDs consistently", () => {
+      const tasks = [
+        {
+          id: "dup-req-task",
+          priority: 1,
+          created_order: 1,
+          effort: 1,
+          requirement_ids: ["R-001", "R-001", "R-002"],
+          write_scope: ["src/ui/Component.tsx"],
+        },
+      ];
+      const { demands, fleet } = calculateValidatorAllocations(tasks);
+      expect(fleet["code-quality"]).toBe(1);
+      expect(fleet["ui-design"]).toBe(1);
+      const uiDemand = demands.find((d) => d.domain === "ui-design");
+      expect(uiDemand?.taskCount).toBe(1);
+    });
   });
 
   describe("calculateCriticConcurrency", () => {
@@ -218,6 +274,12 @@ describe("Dynamic Topology: Partitions, Allocations & Disjointness", () => {
       expect(calculateCriticConcurrency(2, 1, 1)).toBe(1);
       expect(calculateCriticConcurrency(10, 2, 3)).toBe(3);
       expect(calculateCriticConcurrency(50, 2, 8)).toBe(4);
+    });
+
+    test("handles zero values and edge bounds gracefully", () => {
+      expect(calculateCriticConcurrency(0, 0, 0)).toBe(1);
+      expect(calculateCriticConcurrency(10, 0, 0)).toBe(1);
+      expect(calculateCriticConcurrency(100, 1, 10)).toBe(4);
     });
   });
 
@@ -287,11 +349,68 @@ describe("Dynamic Topology: Partitions, Allocations & Disjointness", () => {
       expect(metrics.disjointnessScore).toBe(0.67);
     });
 
+    test("merges hierarchical path containment into the same connected component", () => {
+      const tasks = [
+        {
+          id: "parent-dir-task",
+          priority: 1,
+          created_order: 1,
+          effort: 1,
+          requirement_ids: [],
+          write_scope: ["src/components"],
+        },
+        {
+          id: "child-file-task",
+          priority: 1,
+          created_order: 2,
+          effort: 1,
+          requirement_ids: [],
+          write_scope: ["src/components/Button.tsx"],
+        },
+        {
+          id: "other-task",
+          priority: 1,
+          created_order: 3,
+          effort: 1,
+          requirement_ids: [],
+          write_scope: ["src/services/api.ts"],
+        },
+      ];
+      const metrics = computeResourceDisjointness(tasks);
+      expect(metrics.disjointComponentCount).toBe(2);
+      const parentComp = metrics.componentTaskIds.find((c) => c.includes("parent-dir-task"));
+      expect(parentComp).toContain("child-file-task");
+    });
+
     test("returns zero components on empty task array", () => {
       const metrics = computeResourceDisjointness([]);
       expect(metrics.disjointComponentCount).toBe(0);
       expect(metrics.disjointnessScore).toBe(1);
       expect(metrics.componentTaskIds).toEqual([]);
+    });
+
+    test("merges glob wildcard scopes and child paths into the same connected component", () => {
+      const tasks = [
+        {
+          id: "glob-task",
+          priority: 1,
+          created_order: 1,
+          effort: 1,
+          requirement_ids: [],
+          write_scope: ["src/components/**"],
+        },
+        {
+          id: "child-task",
+          priority: 1,
+          created_order: 2,
+          effort: 1,
+          requirement_ids: [],
+          write_scope: ["src/components/Button.tsx"],
+        },
+      ];
+      const metrics = computeResourceDisjointness(tasks);
+      expect(metrics.disjointComponentCount).toBe(1);
+      expect(metrics.disjointnessScore).toBe(0.5);
     });
   });
 });

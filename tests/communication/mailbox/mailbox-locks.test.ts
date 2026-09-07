@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import {
   acquireMailboxLock,
@@ -14,20 +13,30 @@ import {
   resolveSystemLockPath,
   withLock,
 } from "../../../olt/scripts/src/policy/io-safety.ts";
-import { cleanupVirtualCommunicationFS, setupVirtualCommunicationFS } from "../helpers.ts";
+import { cleanupVirtualCommunicationFS, makeStats, setupVirtualCommunicationFS, vfs } from "../helpers.ts";
+
+const ARCHITECTURAL_FILES = [
+  "olt/scripts/src/communication/mailbox/mailbox-paths.ts",
+  "olt/scripts/src/communication/mailbox/index.ts",
+  "olt/scripts/src/communication/index.ts",
+  "olt/scripts/src/policy/io-safety.ts",
+  "olt/scripts/src/policy/index.ts",
+] as const;
+
+const ARCHITECTURAL_SNAPSHOT: Record<string, string> = {};
+for (const relPath of ARCHITECTURAL_FILES) {
+  const fullPath = join(process.cwd(), relPath);
+  ARCHITECTURAL_SNAPSHOT[fullPath] = await Bun.file(fullPath).text();
+}
 
 describe("Mailbox and System Lock Path Consolidation", () => {
   let testRoot: string;
 
   beforeEach(() => {
     setupVirtualCommunicationFS();
-    testRoot = join(
-      process.cwd(),
-      "coverage",
-      "scratch",
-      `lock-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    );
-    mkdirSync(testRoot, { recursive: true });
+    vfs.loadSnapshot(ARCHITECTURAL_SNAPSHOT);
+    testRoot = `/sandbox/scratch/lock-test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    vfs.mkdirSync(testRoot, { recursive: true });
   });
 
   afterEach(() => {
@@ -116,8 +125,8 @@ describe("Mailbox and System Lock Path Consolidation", () => {
       ensureMailboxDirectories(paths);
 
       const lockDir = join(testRoot, ".olt", "locks", "mailboxes");
-      expect(existsSync(lockDir)).toBe(true);
-      const stat = statSync(lockDir);
+      expect(vfs.existsSync(lockDir)).toBe(true);
+      const stat = makeStats(vfs.statSync(lockDir)!, lockDir);
       expect(stat.isDirectory()).toBe(true);
       expect(stat.mode & 0o777).toBe(0o700);
     });
@@ -128,7 +137,7 @@ describe("Mailbox and System Lock Path Consolidation", () => {
       try {
         expect(result.acquired).toBe(true);
         expect(result.lockPath).toBe(lockPath);
-        expect(existsSync(lockPath)).toBe(true);
+        expect(vfs.existsSync(lockPath)).toBe(true);
       } finally {
         releaseMailboxLock(result);
       }
@@ -141,23 +150,15 @@ describe("Mailbox and System Lock Path Consolidation", () => {
       });
       expect(res).toBe("policy-operation-success");
       const expectedLock = resolveSystemLockPath("policy.lock", testRoot);
-      expect(existsSync(expectedLock)).toBe(true);
+      expect(vfs.existsSync(expectedLock)).toBe(true);
     });
   });
 
   describe("Architectural Invariants & Zero Comments", () => {
     it("verifies source files have zero comments and adhere to physical line budget", () => {
-      const files = [
-        "olt/scripts/src/communication/mailbox/mailbox-paths.ts",
-        "olt/scripts/src/communication/mailbox/index.ts",
-        "olt/scripts/src/communication/index.ts",
-        "olt/scripts/src/policy/io-safety.ts",
-        "olt/scripts/src/policy/index.ts",
-      ];
-
-      for (const relPath of files) {
+      for (const relPath of ARCHITECTURAL_FILES) {
         const fullPath = join(process.cwd(), relPath);
-        const content = readFileSync(fullPath, "utf8");
+        const content = vfs.readFileSync(fullPath, "utf8");
         const lines = content.split("\n");
         expect(lines.length).toBeLessThanOrEqual(300);
         expect(content).not.toMatch(/\/\//);

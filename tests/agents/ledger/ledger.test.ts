@@ -51,6 +51,17 @@ describe("readAgentLedger / writeAgentLedger", () => {
       /state\.agents\[0\] is not an agent grant record/,
     );
   });
+
+  test("idempotently overwrites existing agent ledger without duplicating or polluting other state keys", () => {
+    const state: JsonObject = { existingKey: "keep-me", [AGENT_LEDGER_KEY]: [grant({ id: "old" })] };
+    writeAgentLedger(state, [grant({ id: "new-1" }), grant({ id: "new-2" })]);
+    expect(state.existingKey).toBe("keep-me");
+    expect(readAgentLedger(state).map((g) => g.id)).toEqual(["new-1", "new-2"]);
+
+    // Repeated write replaces cleanly
+    writeAgentLedger(state, [grant({ id: "new-3" })]);
+    expect(readAgentLedger(state).map((g) => g.id)).toEqual(["new-3"]);
+  });
 });
 
 describe("findGrant / requireGrant", () => {
@@ -98,6 +109,13 @@ describe("assertAgentBudget", () => {
     ];
 
     expect(() => assertAgentBudget(ledger, 1, 2)).not.toThrow();
+  });
+
+  test("throws exhaustion error when max_agents is zero or negative", () => {
+    const ledger = [grant({ id: "agent-1" })];
+    expect(() => assertAgentBudget(ledger, 1, 0)).toThrow(/max_agents budget of 0 is exhausted/);
+    expect(() => assertAgentBudget([], 1, 0)).toThrow(/max_agents budget of 0 is exhausted/);
+    expect(() => assertAgentBudget([], 1, -1)).toThrow(/max_agents budget of -1 is exhausted/);
   });
 });
 

@@ -95,7 +95,7 @@ Structured findings:
 Route `F-VP-001` to the original implementer recorded in authoritative task history. Because that
 history is currently absent, the coordinator must restore it before dispatch and must not infer an
 owner from untrusted prose. After repair, begin a new validation round with a fresh validator who is
-neither an implementer/repairer nor any earlier validator; rerun the pinned `doctor` command and the
+neither the implementer nor any earlier validator; rerun the pinned `doctor` command and the
 packet's focused checks from disk, then explicitly resolve `F-VP-001` with the new command evidence.
 ````
 

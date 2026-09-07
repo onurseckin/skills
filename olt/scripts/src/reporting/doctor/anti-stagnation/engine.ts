@@ -232,7 +232,7 @@ export function auditAntiStagnationHealth(
   let socraticIntact = true;
   let unfulfilledCount = 0;
   let unjustifiedCount = 0;
-  let deadlockedImpassesCount = 0;
+  const deadlockedImpassesCount = 0;
 
   if (ctx.socraticMemory instanceof HistoricalDebateMemory) {
     const unfulfilled = ctx.socraticMemory.getUnfulfilledCommitments();

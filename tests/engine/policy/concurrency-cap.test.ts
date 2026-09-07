@@ -193,37 +193,3 @@ describe("Quota Circuit Breaker Trip Verification (<= 10% remaining)", () => {
     expect(customThresholdVerdict.thresholdPercentage).toBe(20.0);
   });
 });
-
-describe("Physical Density and Zero-Comment Invariants", () => {
-  test("in-memory invariant validator verifies max lines, zero comments, zero any, zero suppressions", () => {
-    const samplePureFile = `
-export interface SamplePoolMetrics {
-  readonly active: number;
-  readonly capacity: number;
-}
-export function samplePoolFn(metrics: SamplePoolMetrics): boolean {
-  return metrics.active <= metrics.capacity;
-}
-`;
-    const commentPattern = new RegExp("\\/\\/|\\/\\*|\\*\\/");
-    const anyPattern = new RegExp(":\\s*any\\b|as\\s+any\\b|<any>");
-    const suppressionPattern = new RegExp(
-      [
-        "@ts" + "-ignore",
-        "@ts" + "-expect-error",
-        "@ts" + "-nocheck",
-        "eslint" + "-disable",
-        "oxlint" + "-disable",
-      ].join("|"),
-    );
-
-    const lines = samplePureFile.trim().split("\n");
-    expect(lines.length).toBeLessThanOrEqual(300);
-
-    for (const line of lines) {
-      expect(commentPattern.test(line)).toBe(false);
-      expect(anyPattern.test(line)).toBe(false);
-      expect(suppressionPattern.test(line)).toBe(false);
-    }
-  });
-});

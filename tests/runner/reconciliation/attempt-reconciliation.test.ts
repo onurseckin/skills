@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { CommandAttemptStartedRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
@@ -17,9 +16,10 @@ import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/
 import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/core/pipe-ownership.ts";
 import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
 import { verifyCommandRecord } from "../../../olt/scripts/src/engine/runner/signing/verify-command.ts";
-import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import { getRunnerVfs, tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
 const identity: ProcessIdentity = { pid: 4242, parent: 100, group: 4242, birth: "birth-1" };
+const defaultSigner = createCommandSigningCapability();
 const repository: RepositoryBinding = {
   schema: "harness.repository-binding",
   version: 1,
@@ -32,11 +32,15 @@ const repository: RepositoryBinding = {
 
 afterEach(cleanupTempRoots);
 
-async function fixture(rootIdentity: ProcessIdentity | null = identity, terminalProof = false) {
+async function fixture(
+  rootIdentity: ProcessIdentity | null = identity,
+  terminalProof = false,
+  signer = defaultSigner,
+) {
   const root = tempRoot("attempt-reconcile");
+  const vfs = getRunnerVfs();
   const runRoot = join(root, ".olt", "capsules");
-  await mkdir(join(runRoot, "commands"), { recursive: true });
-  const signer = createCommandSigningCapability();
+  vfs.mkdirSync(join(runRoot, "commands"), { recursive: true });
   const runner = createInternalCommandRunner({
     inspectRepository: () => repository,
     attempt: async () => {
@@ -53,9 +57,9 @@ async function fixture(rootIdentity: ProcessIdentity | null = identity, terminal
     maxOutputBytes: 1024,
   });
   const attemptRoot = join(prepared.commandRoot, "attempt-1");
-  await mkdir(attemptRoot);
-  await writeFile(join(attemptRoot, "stdout.log"), "partial\n");
-  await writeFile(join(attemptRoot, "stderr.log"), "");
+  vfs.mkdirSync(attemptRoot, { recursive: true });
+  vfs.writeFileSync(join(attemptRoot, "stdout.log"), "partial\n");
+  vfs.writeFileSync(join(attemptRoot, "stderr.log"), "");
   atomicWriteJson(
     join(attemptRoot, "activity.json"),
     {
@@ -93,7 +97,7 @@ async function fixture(rootIdentity: ProcessIdentity | null = identity, terminal
       "root and descendant absence proven",
       strongAttemptTerminalProof(rootIdentity!),
     );
-    marker = JSON.parse(await readFile(join(attemptRoot, "attempt-started.json"), "utf8"));
+    marker = JSON.parse(vfs.readFileSync(join(attemptRoot, "attempt-started.json"), "utf8"));
   } else {
     marker = writeAttemptStarted(
       attemptRoot,
@@ -118,8 +122,9 @@ describe("incomplete command attempt reconciliation", () => {
 
   test("leaves a base-only marker from an initial disposition failure stranded", async () => {
     const { runRoot, prepared, attemptRoot } = await fixture();
+    const vfs = getRunnerVfs();
     const markerPath = join(attemptRoot, "attempt-started.json");
-    const marker = JSON.parse(await readFile(markerPath, "utf8"));
+    const marker = JSON.parse(vfs.readFileSync(markerPath, "utf8"));
     marker.root_pid_identity = null;
     marker.disposition_head_sha256 = marker.base_sha256;
     marker.cleanup_disposition = null;
@@ -136,6 +141,7 @@ describe("incomplete command attempt reconciliation", () => {
 
   test("terminalizes without replay only after strong identity proves the child absent", async () => {
     const { runRoot, prepared, attemptRoot } = await fixture(identity, true);
+    const vfs = getRunnerVfs();
     let probes = 0;
     const recovered = recoverAggregateFromAttempts(runRoot, prepared.record, {
       probeProcess: () => {
@@ -155,7 +161,7 @@ describe("incomplete command attempt reconciliation", () => {
       integrity_failure: "attempt interrupted before terminal evidence was durable",
     });
     expect(recovered?.attempts![0]!.logs.stdout.bytes).toBe(8);
-    expect(JSON.parse(await readFile(join(attemptRoot, "record.json"), "utf8"))).toEqual(
+    expect(JSON.parse(vfs.readFileSync(join(attemptRoot, "record.json"), "utf8"))).toEqual(
       recovered?.attempts![0],
     );
     expect(verifyCommandRecord(runRoot, recovered!).join("\n")).toBe("");
@@ -163,8 +169,9 @@ describe("incomplete command attempt reconciliation", () => {
 
   test("rejects a stripped terminal-proof disposition before reconciliation", async () => {
     const { runRoot, prepared, attemptRoot } = await fixture(identity, true);
+    const vfs = getRunnerVfs();
     const markerPath = join(attemptRoot, "attempt-started.json");
-    const marker = JSON.parse(await readFile(markerPath, "utf8"));
+    const marker = JSON.parse(vfs.readFileSync(markerPath, "utf8"));
     marker.cleanup_disposition = null;
     atomicWriteJson(markerPath, marker, 0o600);
     expect(() =>
@@ -230,5 +237,27 @@ describe("incomplete command attempt reconciliation", () => {
         },
       }),
     ).toBeUndefined();
+  });
+
+  test("rejects reconciliation when activity.json is corrupted", async () => {
+    const { runRoot, prepared, attemptRoot } = await fixture(identity, true);
+    const vfs = getRunnerVfs();
+    vfs.writeFileSync(join(attemptRoot, "activity.json"), "{ invalid json");
+    expect(() =>
+      recoverAggregateFromAttempts(runRoot, prepared.record, {
+        probeProcess: () => "absent",
+      }),
+    ).toThrow();
+  });
+
+  test("rejects reconciliation when attempt-started.json is empty", async () => {
+    const { runRoot, prepared, attemptRoot } = await fixture(identity, true);
+    const vfs = getRunnerVfs();
+    vfs.writeFileSync(join(attemptRoot, "attempt-started.json"), "");
+    expect(() =>
+      recoverAggregateFromAttempts(runRoot, prepared.record, {
+        probeProcess: () => "absent",
+      }),
+    ).toThrow();
   });
 });

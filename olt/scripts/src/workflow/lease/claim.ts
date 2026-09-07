@@ -40,7 +40,7 @@ export function claimTask(
     if (!["ready", "retry_ready", "changes_requested"].includes(task.status)) {
       throw new HarnessError("INVALID_STATE", `task ${taskId} is not claimable`);
     }
-    if ((repair && role !== "repairer") || (!repair && role !== "implementer")) {
+    if (role !== "implementer") {
       throw new HarnessError("INVALID_ARGUMENT", "lease role does not match the task state");
     }
     if (repair && task.repair_assignee !== agentId) {
@@ -51,7 +51,7 @@ export function claimTask(
     if (review && review.graph_revision === liveRevision && review.status === "changes_requested") {
       throw new HarnessError(
         "INVALID_STATE",
-        "plan validation rejected this graph revision; replan and record a passing plan:review before any implementer or repairer can claim work",
+        "plan validation rejected this graph revision; replan and record a passing plan:review before any implementer can claim work",
       );
     }
     if (task.dependencies.some((id) => draft.tasks[id]?.status !== "done")) {

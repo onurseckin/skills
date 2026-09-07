@@ -32,7 +32,7 @@ own status in `exit_code`.
 | :--- | :--- | :--- |
 | plan | 15 | [cli-capabilities/domains/plan.md](cli-capabilities/domains/plan.md) |
 | queue | 9 | [cli-capabilities/domains/queue.md](cli-capabilities/domains/queue.md) |
-| task | 19 | [cli-capabilities/domains/task.md](cli-capabilities/domains/task.md) |
+| task | 18 | [cli-capabilities/domains/task.md](cli-capabilities/domains/task.md) |
 | reporting | 17 | [cli-capabilities/domains/reporting.md](cli-capabilities/domains/reporting.md) |
 | run | 4 | [cli-capabilities/domains/run.md](cli-capabilities/domains/run.md) |
 | critic | 4 | [cli-capabilities/domains/critic.md](cli-capabilities/domains/critic.md) |
@@ -92,7 +92,6 @@ own status in `exit_code`.
 | `task:review` | task | Record a validator verdict with its gate evidence. |
 | `task:probe` | task | Record the mandatory adversarial probe: a demand for proof, not a rejection. |
 | `task:reject` | task | Reject a task with a structured finding for targeted repair. |
-| `task:assign-repairer` | task | Replace the original implementer as a task's repairer, with a recorded reason. |
 | `task:abandon` | task | Close an open attempt nobody submitted or released, on the coordinator's authority. |
 | `task:release` | task | Hand a live lease back without waiting for it to expire. |
 | `task:check` | task | Incremental verification. |

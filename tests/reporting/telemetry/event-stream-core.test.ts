@@ -1,7 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import * as fs from "node:fs";
-import { spyOn } from "bun:test";
 import type { HarnessEvent } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   deliverEventsToWebhook,
   formatEventToNdjson,
@@ -11,7 +10,10 @@ import {
   readCapsuleEvents,
   renderAsciiEventStreamTable,
 } from "../../../olt/scripts/src/reporting/event-stream/index.ts";
-import { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 export const eventStreamCoreSuiteName = "reporting/event-stream core suite";
 
@@ -33,6 +35,7 @@ describe(eventStreamCoreSuiteName, () => {
 
   it("reads and filters capsule events from in-memory virtual filesystem", () => {
     const vfs = new VirtualMemoryFS();
+    const session = createVirtualFSSession(vfs);
     const runDir = "/virtual/capsules/run-1";
     vfs.mkdirSync(runDir, { recursive: true });
     vfs.writeFileSync(
@@ -70,19 +73,6 @@ describe(eventStreamCoreSuiteName, () => {
       [JSON.stringify(event1), JSON.stringify(event2), JSON.stringify(event3)].join("\n") + "\n",
     );
 
-    const existsSpy = spyOn(fs, "existsSync").mockImplementation((p) => vfs.existsSync(String(p)));
-    const lstatSpy = spyOn(fs, "lstatSync").mockImplementation((p) => {
-      const stat = vfs.statSync(String(p));
-      return {
-        isFile: () => !stat?.isDirectory(),
-        isDirectory: () => Boolean(stat?.isDirectory()),
-      } as unknown as fs.Stats;
-    });
-    const realpathSpy = spyOn(fs, "realpathSync").mockImplementation((p) => String(p));
-    const readSpy = spyOn(fs, "readFileSync").mockImplementation((p) =>
-      vfs.readFileSync(String(p), "utf8"),
-    );
-
     try {
       const result = readCapsuleEvents(runDir, { filterActor: "impl_1" });
       expect(result.runId).toBe("test-run-1");
@@ -96,10 +86,36 @@ describe(eventStreamCoreSuiteName, () => {
       expect(seqFiltered.matchingEvents.length).toBe(1);
       expect(seqFiltered.matchingEvents[0]?.actor).toBe("val_1");
     } finally {
-      existsSpy.mockRestore();
-      lstatSpy.mockRestore();
-      realpathSpy.mockRestore();
-      readSpy.mockRestore();
+      session.cleanup();
+    }
+  });
+
+  it("throws INVALID_ARGUMENT when events.jsonl is missing in capsule directory", () => {
+    const vfs = new VirtualMemoryFS();
+    const session = createVirtualFSSession(vfs);
+    const runDir = "/virtual/capsules/empty-capsule";
+    vfs.mkdirSync(runDir, { recursive: true });
+
+    try {
+      expect(() => readCapsuleEvents(runDir)).toThrow(HarnessError);
+      expect(() => readCapsuleEvents(runDir)).toThrow("events.jsonl not found");
+    } finally {
+      session.cleanup();
+    }
+  });
+
+  it("throws INTEGRITY when events.jsonl contains malformed JSON lines", () => {
+    const vfs = new VirtualMemoryFS();
+    const session = createVirtualFSSession(vfs);
+    const runDir = "/virtual/capsules/corrupt-capsule";
+    vfs.mkdirSync(runDir, { recursive: true });
+    vfs.writeFileSync(`${runDir}/events.jsonl`, "NOT_VALID_JSON_LINE\n");
+
+    try {
+      expect(() => readCapsuleEvents(runDir)).toThrow(HarnessError);
+      expect(() => readCapsuleEvents(runDir)).toThrow("failed to parse event at line 1");
+    } finally {
+      session.cleanup();
     }
   });
 
@@ -121,7 +137,9 @@ describe(eventStreamCoreSuiteName, () => {
       },
     ];
 
-    const singleLine = formatEventToNdjson(events[0]!);
+    const firstEvent = events[0];
+    if (!firstEvent) throw new Error("Expected first event");
+    const singleLine = formatEventToNdjson(firstEvent);
     expect(singleLine.endsWith("\n")).toBe(true);
 
     const stream = formatEventsToNdjsonStream(events);

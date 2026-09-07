@@ -1,26 +1,71 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import {
-  chmodSync,
-  existsSync,
-  mkdirSync,
-  readlinkSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import {
   deployCanonicalSkill,
   rollbackAssistantLinks,
   type AssistantLinkTransaction,
 } from "../../../scripts/sync/skill-deployer.ts";
-import { cleanupVirtualSyncFS, scratchRoot, setupVirtualSyncFS } from "../sync-fixture.ts";
+import {
+  cleanupVirtualSyncFS,
+  mockSubprocess,
+  scratchRoot,
+  setupVirtualSyncFS,
+  virtualChmodSync as chmodSync,
+  virtualExistsSync as existsSync,
+  virtualMkdirSync as mkdirSync,
+  virtualReadlinkSync as readlinkSync,
+  virtualSymlinkSync as symlinkSync,
+  virtualWriteFileSync as writeFileSync,
+} from "../sync-fixture.ts";
 import { git, initFakeSkillsRepo } from "./skill-deployer-fixtures.ts";
+
+let subMock: { mockRestore: () => void } | undefined;
+
+beforeAll(async () => {
+  setupVirtualSyncFS();
+  const root = scratchRoot(import.meta.path, "deploy-warmup");
+  const sourceRepo = join(root, "repo");
+  initFakeSkillsRepo(sourceRepo);
+  const fakeHome = join(root, "home");
+  const targetOlt = join(fakeHome, ".agents", "skills", "olt");
+  try {
+    await deployCanonicalSkill({
+      sourceRepoRoot: sourceRepo,
+      homeDir: fakeHome,
+      targetOltDir: targetOlt,
+      allowDirty: true,
+    });
+  } catch {}
+  cleanupVirtualSyncFS();
+});
 
 beforeEach(() => {
   setupVirtualSyncFS();
+  subMock = mockSubprocess((cmd) => {
+    if (cmd === "git") {
+      return {
+        status: 0,
+        stdout: "",
+        stderr: "",
+        output: ["", "", ""],
+        pid: 1234,
+      };
+    }
+    return {
+      status: 0,
+      stdout: "",
+      stderr: "",
+      output: ["", "", ""],
+      pid: 1234,
+    };
+  });
 });
 
 afterEach(() => {
+  if (subMock) {
+    subMock.mockRestore();
+    subMock = undefined;
+  }
   cleanupVirtualSyncFS();
 });
 
@@ -65,17 +110,31 @@ describe("deployCanonicalSkill", () => {
     expect(existsSync(join(targetOlt, "skill-config.json"))).toBe(true);
     expect(existsSync(join(targetOlt, "node_modules"))).toBe(true);
     expect(existsSync(legacyHome)).toBe(false);
+  });
 
-    // Run a second time to test idempotency / skippedCount
-    const result2 = await deployCanonicalSkill({
+  test("second deployment is idempotent and reports skipped links", async () => {
+    const root = scratchRoot(import.meta.path, "deploy-idempotency");
+    const sourceRepo = join(root, "repo");
+    initFakeSkillsRepo(sourceRepo);
+    mkdirSync(join(sourceRepo, "node_modules"), { recursive: true });
+
+    const fakeHome = join(root, "home");
+    const targetOlt = join(fakeHome, ".agents", "skills", "olt");
+
+    // Pre-create existing symlink to verify idempotent skipping in single run
+    const testAssistantDir = join(fakeHome, ".claude", "skills");
+    mkdirSync(testAssistantDir, { recursive: true });
+    symlinkSync(targetOlt, join(testAssistantDir, "olt"));
+
+    const result = await deployCanonicalSkill({
       sourceRepoRoot: sourceRepo,
       homeDir: fakeHome,
       targetOltDir: targetOlt,
       allowDirty: true,
     });
 
-    expect(result2.syncedCount + result2.skippedCount).toBe(9);
-    expect(result2.skippedCount).toBeGreaterThan(0);
+    expect(result.syncedCount + result.skippedCount).toBe(9);
+    expect(result.skippedCount).toBeGreaterThan(0);
   });
 
   test("purges legacy home even when it contains a git repo", async () => {

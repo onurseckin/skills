@@ -1,14 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import {
-  existsSync,
-  lstatSync,
-  mkdirSync,
-  readFileSync,
-  readlinkSync,
-  symlinkSync,
-  writeFileSync,
-  type Stats,
-} from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -17,7 +7,18 @@ import {
   logDestructiveOp,
   smartEnsureSymlink,
 } from "../../../scripts/sync/fs-helpers.ts";
-import { cleanupVirtualSyncFS, scratchRoot, setupVirtualSyncFS } from "../sync-fixture.ts";
+import {
+  cleanupVirtualSyncFS,
+  scratchRoot,
+  setupVirtualSyncFS,
+  virtualExistsSync as existsSync,
+  virtualLstatSync as lstatSync,
+  virtualMkdirSync as mkdirSync,
+  virtualReadFileSync as readFileSync,
+  virtualReadlinkSync as readlinkSync,
+  virtualSymlinkSync as symlinkSync,
+  virtualWriteFileSync as writeFileSync,
+} from "../sync-fixture.ts";
 
 beforeEach(() => {
   setupVirtualSyncFS();
@@ -127,7 +128,7 @@ describe("smartEnsureSymlink refuses to destroy a real directory", () => {
       isDirectory: () => false,
       isFile: () => false,
       isSymbolicLink: () => false,
-    } as unknown as Stats;
+    } as any;
     expect(() =>
       smartEnsureSymlink(join(root, "target"), join(root, "special"), {
         allowedRoots: [root],

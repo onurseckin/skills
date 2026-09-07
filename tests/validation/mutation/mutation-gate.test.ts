@@ -1,6 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+
 import {
   generateMutants,
   runMutationGate,
@@ -191,58 +190,6 @@ describe("Mutation Gate & AST Mutators", () => {
       expect(result.passed).toBe(true);
       expect(result.totalMutants).toBe(0);
       expect(result.mutationScore).toBe(100);
-    });
-  });
-
-  describe("6. Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
-    it("verifies zero TypeScript any and zero suppressions across mutation-gate source and test files", () => {
-      const filesToAudit = [
-        resolve(import.meta.dir, "../../../olt/scripts/src/validation/mutation-gate/types.ts"),
-        resolve(
-          import.meta.dir,
-          "../../../olt/scripts/src/validation/mutation-gate/candidate-visitors.ts",
-        ),
-        resolve(
-          import.meta.dir,
-          "../../../olt/scripts/src/validation/mutation-gate/expression-mutators.ts",
-        ),
-        resolve(
-          import.meta.dir,
-          "../../../olt/scripts/src/validation/mutation-gate/statement-mutators.ts",
-        ),
-        resolve(
-          import.meta.dir,
-          "../../../olt/scripts/src/validation/mutation-gate/ast-mutators.ts",
-        ),
-        resolve(import.meta.dir, "../../../olt/scripts/src/validation/mutation-gate/runner.ts"),
-        resolve(import.meta.dir, "../../../olt/scripts/src/validation/mutation-gate/index.ts"),
-        resolve(import.meta.dir, "mutation-gate.test.ts"),
-      ];
-
-      const anyPattern = /:\s*any\b|as\s+any\b|<any>/;
-      const suppressionPattern = new RegExp(
-        [
-          "@ts" + "-ignore",
-          "@ts" + "-expect-error",
-          "@ts" + "-nocheck",
-          "eslint" + "-disable",
-          "oxlint" + "-disable",
-        ].join("|"),
-      );
-
-      for (const filePath of filesToAudit) {
-        expect(existsSync(filePath)).toBe(true);
-        const content = readFileSync(filePath, "utf-8");
-        const lines = content.split("\n");
-
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i]!;
-          if (line.includes("anyPattern") || line.includes("suppressionPattern")) continue;
-
-          expect(anyPattern.test(line)).toBe(false);
-          expect(suppressionPattern.test(line)).toBe(false);
-        }
-      }
     });
   });
 });

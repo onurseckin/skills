@@ -1,4 +1,9 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import { isTopologyRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { computeTopology } from "../../../olt/scripts/src/engine/scheduler/topology/topology.ts";
 import { topologyState } from "../fixtures.ts";
@@ -13,6 +18,21 @@ function decision(
 }
 
 describe("computeTopology", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession | null = null;
+
+  beforeEach(() => {
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+  });
+
+  afterEach(() => {
+    if (session) {
+      session.cleanup();
+      session = null;
+    }
+    vfs.reset();
+  });
   test("packs conflict-free waves and carries the graph revision", () => {
     const topology = computeTopology(topologyState(), { default_max_parallel: 4 });
 
@@ -140,6 +160,52 @@ describe("computeTopology", () => {
 
     const topology = computeTopology(state, { default_max_parallel: 4 });
     expect(topology.waves[0]?.task_ids).toContain("t-alpha");
+  });
+
+  test("serializes tasks with disjoint write_scope but conflicting resource_scope into separate waves", () => {
+    const state = topologyState();
+    const tasks = state.tasks as Record<string, Record<string, unknown>>;
+    tasks["t-alpha"]!.write_scope = ["src/alpha.ts"];
+    tasks["t-alpha"]!.resource_scope = ["gpu:cluster-1"];
+    tasks["t-beta"]!.write_scope = ["src/beta.ts"];
+    tasks["t-beta"]!.resource_scope = ["gpu:cluster-1"];
+
+    const topology = computeTopology(state, { default_max_parallel: 4 });
+    const alpha = decision(topology, "t-alpha");
+    const beta = decision(topology, "t-beta");
+    expect(alpha.wave).toBe(1);
+    expect(beta.wave).toBe(2);
+    expect(beta.reason).toBe("write_scope_conflict");
+    expect(beta.serialized_after).toContain("t-alpha");
+  });
+
+  test("handles empty plan tasks map cleanly producing empty waves and decisions", () => {
+    const state = topologyState();
+    state.tasks = {};
+
+    const topology = computeTopology(state, { default_max_parallel: 4 });
+    expect(topology.waves).toEqual([]);
+    expect(topology.decisions).toEqual([]);
+    expect(isTopologyRecord(topology)).toBeTrue();
+  });
+
+  test("packs all independent tasks into wave 1 when default_max_parallel is large", () => {
+    const state = topologyState();
+    const topology = computeTopology(state, { default_max_parallel: 100 });
+    expect(topology.max_parallel).toBe(100);
+    expect(topology.waves[0]?.task_ids).toContain("t-alpha");
+    expect(topology.waves[0]?.task_ids).toContain("t-beta");
+  });
+
+  test("attributes reason to dependency when a task both depends on prerequisite and overlaps scope", () => {
+    const state = topologyState();
+    const tasks = state.tasks as Record<string, Record<string, unknown>>;
+    tasks["t-gamma"]!.write_scope = ["src/gamma", "src/beta/extra"];
+
+    const topology = computeTopology(state, { default_max_parallel: 4 });
+    const gamma = decision(topology, "t-gamma");
+    expect(gamma.reason).toBe("dependency");
+    expect(gamma.serialized_after).toEqual(["t-alpha", "t-beta"]);
   });
 });
 

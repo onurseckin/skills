@@ -44,9 +44,9 @@ describe("core/contracts/agents/agents.ts", () => {
 
     const conflict = {
       field: "model",
-      recorded_value: "gpt-4o",
+      recorded_value: "standard-model-a",
       recorded_evidence_class: "agent_reported" as const,
-      probed_value: "gpt-4o-mini",
+      probed_value: "standard-model-b",
       probed_evidence_class: "harness_observed" as const,
     };
     expect(isTelemetryFieldConflict(conflict)).toBe(true);
@@ -67,8 +67,8 @@ describe("core/contracts/agents/agents.ts", () => {
       host_address: "agent-1",
       released_at: undefined,
       release_reason: undefined,
-      provider: evidenced("anthropic", "agent_reported"),
-      model: evidenced("claude-3-5-sonnet", "agent_reported"),
+      provider: evidenced("standard-provider", "agent_reported"),
+      model: evidenced("standard-model-c", "agent_reported"),
       model_tier: evidenced("l" as const, "derived"),
       thinking_level: evidenced("high" as const, "agent_reported"),
       context_window: evidenced(200000, "agent_reported"),

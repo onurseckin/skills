@@ -1,5 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { writeFileSync, mkdirSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 import {
@@ -10,13 +9,24 @@ import {
 } from "../../../olt/scripts/src/engine/runner/models/attempt/attempt-support.ts";
 import { writeAttemptStarted } from "../../../olt/scripts/src/engine/runner/execution/attempt-intent.ts";
 import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/execution/attempt-disposition-capability.ts";
-import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import {
+  tempRoot,
+  setupVirtualRunnerFS,
+  cleanupVirtualRunnerFS,
+} from "../command/fixture.ts";
+import type { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/memory-fs.ts";
+
+let vfs: VirtualMemoryFS;
 
 function scratchDir(): string {
   return tempRoot("attempt-support");
 }
 
-afterEach(cleanupTempRoots);
+beforeEach(() => {
+  vfs = setupVirtualRunnerFS();
+});
+
+afterEach(cleanupVirtualRunnerFS);
 
 describe("raceWithTimeout", () => {
   test("resolves with the work result when it settles before the timeout", async () => {
@@ -33,6 +43,12 @@ describe("raceWithTimeout", () => {
     await expect(raceWithTimeout(Promise.reject(new Error("boom")), 50, "unused")).rejects.toThrow(
       "boom",
     );
+  });
+
+  test("rejects immediately when deadline is 0ms on unsettled promise", async () => {
+    await expect(
+      raceWithTimeout(new Promise(() => undefined), 0, "immediate timeout"),
+    ).rejects.toThrow("immediate timeout");
   });
 });
 
@@ -79,12 +95,24 @@ describe("activityMetadata", () => {
     const root = scratchDir();
     const path = join(root, "activity.json");
     const contents = Buffer.from('{"status":"running"}');
-    writeFileSync(path, contents);
+    vfs.writeFileSync(path, contents);
     const result = activityMetadata(path, "attempt-1/activity.json");
     expect(result).toEqual({
       path: "attempt-1/activity.json",
       bytes: contents.byteLength,
       sha256: createHash("sha256").update(contents).digest("hex"),
+    });
+  });
+
+  test("reports zero byte length and empty sha256 for empty file", () => {
+    const root = scratchDir();
+    const path = join(root, "empty-activity.json");
+    vfs.writeFileSync(path, Buffer.alloc(0));
+    const result = activityMetadata(path, "attempt-1/empty-activity.json");
+    expect(result).toEqual({
+      path: "attempt-1/empty-activity.json",
+      bytes: 0,
+      sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     });
   });
 });
@@ -94,7 +122,7 @@ describe("writeAttemptStarted directory durability", () => {
     const root = scratchDir();
     const commandRoot = join(root, "commands", "C-durable");
     const attemptRoot = join(commandRoot, "attempt-1");
-    mkdirSync(attemptRoot, { recursive: true });
+    vfs.mkdirSync(attemptRoot, { recursive: true });
     let synced: string | undefined;
 
     const record = writeAttemptStarted(
@@ -117,7 +145,7 @@ describe("writeAttemptStarted directory durability", () => {
     const root = scratchDir();
     const commandRoot = join(root, "commands", "C-default");
     const attemptRoot = join(commandRoot, "attempt-1");
-    mkdirSync(attemptRoot, { recursive: true });
+    vfs.mkdirSync(attemptRoot, { recursive: true });
 
     const record = writeAttemptStarted(
       attemptRoot,

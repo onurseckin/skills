@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { GitResult, GitRunner } from "../../../olt/scripts/src/workflow/worktree/git.ts";
 import {
@@ -7,7 +6,11 @@ import {
   createDomainLedger,
   provisionDomainWorktree,
 } from "../../../olt/scripts/src/engine/worktree/domain-sync.ts";
-import { cleanupVirtualWorktreeFS, setupVirtualWorktreeFS } from "../fixtures/index.ts";
+import {
+  cleanupVirtualWorktreeFS,
+  getVirtualWorktreeFS,
+  setupVirtualWorktreeFS,
+} from "../fixtures/index.ts";
 
 beforeEach(() => {
   setupVirtualWorktreeFS();
@@ -22,7 +25,7 @@ function trackedDir(prefix: string): string {
     "/virtual",
     `domain-sync-${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
   );
-  mkdirSync(dir, { recursive: true });
+  getVirtualWorktreeFS().mkdirSync(dir, { recursive: true });
   return dir;
 }
 
@@ -99,6 +102,19 @@ describe("Domain Sync: Ledger & Provisioning", () => {
         /domain name cannot be empty/,
       );
     });
+
+    test("re-provisioning an existing domain updates ledger entry cleanly", () => {
+      const repoRoot = trackedDir("repo");
+      const ledgerRoot = trackedDir("ledger");
+      const ledger = createDomainLedger("main", "sha001", ledgerRoot);
+      const { runner } = scripted(() => ok());
+
+      provisionDomainWorktree(repoRoot, ledger, "frontend-ui", "run-1", runner);
+      expect(ledger.domains["frontend-ui"]?.branch).toBe("harness--frontend-ui-run-1");
+
+      provisionDomainWorktree(repoRoot, ledger, "frontend-ui", "run-2", runner);
+      expect(ledger.domains["frontend-ui"]?.branch).toBe("harness--frontend-ui-run-2");
+    });
   });
 
   describe("commitAndPushDomainSubphase", () => {
@@ -144,6 +160,22 @@ describe("Domain Sync: Ledger & Provisioning", () => {
           writeScope: ["src/ui/**"],
           modifiedPaths: ["src/ui/Button.tsx", "src/server/auth.ts"],
           label: "add button",
+          runner,
+        }),
+      ).toThrow(/modified files outside its assigned write scope/);
+    });
+
+    test("rejects path traversal attempts that escape the write scope", () => {
+      const { runner } = scripted(() => ok());
+      expect(() =>
+        commitAndPushDomainSubphase({
+          domain: "frontend-ui",
+          taskId: "task-ui-1",
+          worktreeId: "domain-frontend-ui",
+          worktreePath: "/wt/frontend",
+          writeScope: ["src/ui/**"],
+          modifiedPaths: ["src/ui/../outside.ts", "../../secret.key"],
+          label: "attempt path traversal",
           runner,
         }),
       ).toThrow(/modified files outside its assigned write scope/);

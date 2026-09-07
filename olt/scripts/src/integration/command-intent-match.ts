@@ -2,7 +2,7 @@ import type { CommandRecord } from "../core/contracts/index.ts";
 import { sameCommandJson } from "../engine/runner/index.ts";
 
 export function sameOptionalJson(left: unknown, right: unknown): boolean {
-  if (left == null && right == null) return true;
+  if ((left === null || left === undefined) && (right === null || right === undefined)) return true;
   if (left === undefined || right === undefined) return left === right;
   return sameCommandJson(left, right);
 }
@@ -12,7 +12,8 @@ export function sameRepositoryTransition(intent: CommandRecord, terminal: Comman
     return sameOptionalJson(intent.repository_after, terminal.repository_after);
   return (
     intent.repository_after === null &&
-    (terminal.repository_after != null || terminal.preflight_failure !== undefined)
+    ((terminal.repository_after !== null && terminal.repository_after !== undefined) ||
+      terminal.preflight_failure !== undefined)
   );
 }
 

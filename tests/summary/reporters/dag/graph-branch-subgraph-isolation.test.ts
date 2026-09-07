@@ -1,7 +1,16 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { BranchRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import { generateGraphDataset } from "../../../../olt/scripts/src/summary/graph/index.ts";
+import { cleanupVirtualSummaryFS, setupVirtualSummaryFS } from "../../fixture.ts";
 import { makeCommand, makeState, makeTask } from "./graph-fixtures.ts";
+
+beforeEach(() => {
+  setupVirtualSummaryFS();
+});
+
+afterEach(() => {
+  cleanupVirtualSummaryFS();
+});
 
 const REASON = "The migration turned out to need a schema rewrite and a data backfill";
 

@@ -1,6 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import * as fs from "node:fs";
-import { join } from "node:path";
+import { describe, expect, it } from "bun:test";
 import {
   MIND_CHARTER_INVARIANTS,
   auditAntiStagnationHealth,
@@ -29,18 +27,6 @@ import { runDoctor } from "../../../olt/scripts/src/reporting/doctor.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 
 describe("Anti-Stagnation Doctor & Mind Charter Invariant Engine", () => {
-  let tempDir: string;
-
-  beforeEach(() => {
-    tempDir = fs.mkdtempSync(join(process.cwd(), "tmp-doctor-test-"));
-  });
-
-  afterEach(() => {
-    if (fs.existsSync(tempDir)) {
-      fs.rmSync(tempDir, { recursive: true, force: true });
-    }
-  });
-
   describe("9. Invariant 8: Ergonomic Walkthrough & Product Craft", () => {
     it("flags blocking aesthetic deficits as ERGONOMIC_WALKTHROUGH_AUDITING violation", () => {
       const options: AntiStagnationDoctorOptions = {

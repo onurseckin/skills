@@ -1,5 +1,4 @@
-import { describe, expect, it } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { afterAll, afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { join } from "node:path";
 import type { ProjectionPatchOp } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
@@ -10,38 +9,52 @@ import {
   fastForwardProjection,
   reconstructStateAtSequence,
 } from "../../../olt/scripts/src/engine/store/hierarchy/reconstruction-engine.ts";
-import { scratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
+import {
+  cleanupVirtualStoreFS,
+  getVirtualStoreFS,
+  resetVirtualStore,
+  scratchRoot,
+  setupVirtualStoreFS,
+} from "../store-fixture.ts";
 
 setupVirtualStoreFS();
 
+beforeEach(() => {
+  resetVirtualStore();
+});
+
+afterEach(() => {
+  resetVirtualStore();
+});
+
+afterAll(() => {
+  cleanupVirtualStoreFS();
+});
+
 function createEventLine(seq: number, patchOps?: ProjectionPatchOp[]): string {
-  const ops: ProjectionPatchOp[] =
-    patchOps ??
-    (seq === 1
-      ? [
-          { op: "set", path: ["count"], value: 1 },
-          { op: "set", path: ["items"], value: ["item-1"] },
-        ]
-      : [
-          { op: "set", path: ["count"], value: seq },
-          { op: "set", path: ["items", String(seq - 1)], value: `item-${seq}` },
-        ]);
-  return `${JSON.stringify({
-    schema: "harness.event",
-    version: 1,
-    run_id: "run-01",
-    capsule_id: "0123456789abcdef0123456789abcdef",
-    sequence: seq,
-    revision: seq,
-    timestamp: "2026-08-29T00:00:00.000Z",
-    actor: "system",
-    kind: "step",
-    payload: { seq },
-    previous_hash: null,
-    projection: null,
-    projection_patch: ops,
-    hash: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-  })}\n`;
+  if (patchOps) {
+    return `${JSON.stringify({
+      schema: "harness.event",
+      version: 1,
+      run_id: "run-01",
+      capsule_id: "0123456789abcdef0123456789abcdef",
+      sequence: seq,
+      revision: seq,
+      timestamp: "2026-08-29T00:00:00.000Z",
+      actor: "system",
+      kind: "step",
+      payload: { seq },
+      previous_hash: null,
+      projection: null,
+      projection_patch: patchOps,
+      hash: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    })}\n`;
+  }
+  const patch =
+    seq === 1
+      ? '[{"op":"set","path":["count"],"value":1},{"op":"set","path":["items"],"value":["item-1"]}]'
+      : `[{"op":"set","path":["count"],"value":${seq}},{"op":"set","path":["items","${seq - 1}"],"value":"item-${seq}"}]`;
+  return `{"schema":"harness.event","version":1,"run_id":"run-01","capsule_id":"0123456789abcdef0123456789abcdef","sequence":${seq},"revision":${seq},"timestamp":"2026-08-29T00:00:00.000Z","actor":"system","kind":"step","payload":{"seq":${seq}},"previous_hash":null,"projection":null,"projection_patch":${patch},"hash":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"}\n`;
 }
 
 function makeCapsulePaths(rootDir: string): CapsulePaths {
@@ -57,28 +70,81 @@ function makeCapsulePaths(rootDir: string): CapsulePaths {
   };
 }
 
-function setupTestCapsule(rootDir: string, totalEvents = 500): CapsulePaths {
-  const capsulePaths = makeCapsulePaths(rootDir);
-  mkdirSync(capsulePaths.snapshotsDir, { recursive: true });
+interface CapsuleTemplate {
+  eventsContent: string;
+  sparseIndexJson: string;
+  snapshot200Payload?: Record<string, unknown>;
+  snapshot400Payload?: Record<string, unknown>;
+}
 
+function buildCapsuleTemplate(totalEvents: number): CapsuleTemplate {
   let eventsContent = "";
   const items: string[] = [];
+  const byteOffsets: Record<string, number> = {};
+  let currentOffset = 0;
+  let snap200: Record<string, unknown> | undefined;
+  let snap400: Record<string, unknown> | undefined;
 
   for (let seq = 1; seq <= totalEvents; seq++) {
     items.push(`item-${seq}`);
-    eventsContent += createEventLine(seq);
+    if (seq === 1 || seq % 100 === 0) {
+      byteOffsets[String(seq)] = currentOffset;
+    }
+    const line = createEventLine(seq);
+    currentOffset += Buffer.byteLength(line, "utf-8");
+    eventsContent += line;
 
-    if (seq === 200 || seq === 400) {
-      writeAtomicSnapshot(capsulePaths.snapshotsDir, seq, {
+    if (seq === 200) {
+      snap200 = {
         count: seq,
         items: [...items],
         snapshot_marker: `snap-${seq}`,
-      });
+      };
+    } else if (seq === 400) {
+      snap400 = {
+        count: seq,
+        items: [...items],
+        snapshot_marker: `snap-${seq}`,
+      };
     }
   }
 
-  writeFileSync(capsulePaths.eventsPath, eventsContent, "utf-8");
-  rebuildSparseIndex(capsulePaths.eventsPath, capsulePaths.sparseIndexPath, 100);
+  return {
+    eventsContent,
+    sparseIndexJson: JSON.stringify({
+      version: 1,
+      indexed_at: "2026-08-29T00:00:00.000Z",
+      byte_offsets: byteOffsets,
+    }),
+    snapshot200Payload: snap200,
+    snapshot400Payload: snap400,
+  };
+}
+
+const TEMPLATE_500 = buildCapsuleTemplate(500);
+const TEMPLATE_100 = buildCapsuleTemplate(100);
+
+function setupTestCapsule(rootDir: string, totalEvents = 500): CapsulePaths {
+  const vfs = getVirtualStoreFS();
+  const capsulePaths = makeCapsulePaths(rootDir);
+  vfs.mkdirSync(capsulePaths.snapshotsDir, { recursive: true });
+
+  const template =
+    totalEvents === 500
+      ? TEMPLATE_500
+      : totalEvents === 100
+        ? TEMPLATE_100
+        : buildCapsuleTemplate(totalEvents);
+
+  if (template.snapshot200Payload) {
+    writeAtomicSnapshot(capsulePaths.snapshotsDir, 200, template.snapshot200Payload);
+  }
+  if (template.snapshot400Payload) {
+    writeAtomicSnapshot(capsulePaths.snapshotsDir, 400, template.snapshot400Payload);
+  }
+
+  vfs.writeFileSync(capsulePaths.eventsPath, template.eventsContent, "utf-8");
+  vfs.writeFileSync(capsulePaths.sparseIndexPath, template.sparseIndexJson, "utf-8");
   return capsulePaths;
 }
 
@@ -101,8 +167,6 @@ describe("Reconstruction Engine", () => {
     it("latency check: reconstructing sequence 350 takes < 100ms", () => {
       const root = scratchRoot(import.meta.path, "recon-latency");
       const paths = setupTestCapsule(root, 500);
-
-      reconstructStateAtSequence(paths, 350); // warmup
 
       const start = performance.now();
       const state = reconstructStateAtSequence(paths, 350);
@@ -181,9 +245,10 @@ describe("Reconstruction Engine", () => {
     });
 
     it("handles full projection reset events during replay", () => {
+      const vfs = getVirtualStoreFS();
       const root = scratchRoot(import.meta.path, "ff-full-projection");
       const paths = makeCapsulePaths(root);
-      mkdirSync(root, { recursive: true });
+      vfs.mkdirSync(root, { recursive: true });
 
       const e1 = createEventLine(1, [{ op: "set", path: ["a"], value: 1 }]);
       const e2 =
@@ -195,7 +260,7 @@ describe("Reconstruction Engine", () => {
           projection_patch: null,
         }) + "\n";
       const e3 = createEventLine(3, [{ op: "set", path: ["extra"], value: "yes" }]);
-      writeFileSync(paths.eventsPath, e1 + e2 + e3, "utf-8");
+      vfs.writeFileSync(paths.eventsPath, e1 + e2 + e3, "utf-8");
 
       const finalState = fastForwardProjection({}, 0, 3, paths);
       expect(finalState).toEqual({ reset: true, value: 99, extra: "yes" });
@@ -261,11 +326,12 @@ describe("Reconstruction Engine", () => {
     });
 
     it("throws INTEGRITY error on corrupted event JSON or malformed schema", () => {
+      const vfs = getVirtualStoreFS();
       const root = scratchRoot(import.meta.path, "neg-corrupted-event");
       const paths = makeCapsulePaths(root);
-      mkdirSync(root, { recursive: true });
+      vfs.mkdirSync(root, { recursive: true });
 
-      writeFileSync(paths.eventsPath, "CORRUPTED NOT JSON\n", "utf-8");
+      vfs.writeFileSync(paths.eventsPath, "CORRUPTED NOT JSON\n", "utf-8");
       expect(() => reconstructStateAtSequence(paths, 1)).toThrow(HarnessError);
       try {
         reconstructStateAtSequence(paths, 1);
@@ -275,13 +341,14 @@ describe("Reconstruction Engine", () => {
     });
 
     it("throws INTEGRITY error on sequence gap in events file", () => {
+      const vfs = getVirtualStoreFS();
       const root = scratchRoot(import.meta.path, "neg-seq-gap");
       const paths = makeCapsulePaths(root);
-      mkdirSync(root, { recursive: true });
+      vfs.mkdirSync(root, { recursive: true });
 
       const e1 = createEventLine(1);
       const e3 = createEventLine(3); // Sequence 2 is missing
-      writeFileSync(paths.eventsPath, e1 + e3, "utf-8");
+      vfs.writeFileSync(paths.eventsPath, e1 + e3, "utf-8");
 
       expect(() => reconstructStateAtSequence(paths, 3)).toThrow(HarnessError);
       try {

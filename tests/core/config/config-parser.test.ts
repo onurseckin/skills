@@ -1,6 +1,5 @@
-import { describe, expect, it, beforeEach, afterEach, spyOn } from "bun:test";
-import * as fs from "node:fs";
-import { join } from "node:path";
+import { describe, expect, it, beforeEach, afterEach } from "bun:test";
+import { dirname, join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
   parseConfigFile,
@@ -9,44 +8,47 @@ import {
   HARNESS_CONFIG_KEYS,
 } from "../../../olt/scripts/src/core/config/parser.ts";
 import { attestedFact, unreadableFact } from "../../../olt/scripts/src/core/config/provenance.ts";
+import {
+  createVirtualFSSession,
+  type VirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("core/config/parser.ts", () => {
-  const mockFiles = new Map<string, string>();
-  const spies: { mockRestore: () => void }[] = [];
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
+
+  function writeVirtual(path: string, content: string): void {
+    const dir = dirname(path);
+    vfs.mkdirSync(dir, { recursive: true });
+    vfs.writeFileSync(path, content);
+  }
 
   beforeEach(() => {
-    mockFiles.clear();
-    spies.push(
-      spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => mockFiles.has(String(p))),
-      spyOn(fs, "readFileSync").mockImplementation((p: fs.PathOrFileDescriptor) => {
-        const s = String(p);
-        const val = mockFiles.get(s);
-        if (val !== undefined) return val;
-        throw new Error(`ENOENT: no such file, open '${s}'`);
-      }),
-    );
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
-    while (spies.length > 0) spies.pop()?.mockRestore();
+    session.cleanup();
   });
 
   it("parseConfigFile returns null when file does not exist", () => {
-    expect(parseConfigFile("/path/to/nonexistent/file.json")).toBeNull();
+    expect(parseConfigFile("/virtual/path/to/nonexistent/file.json")).toBeNull();
   });
 
   it("parseConfigFile rejects invalid JSON or non-object root", () => {
     const vRoot = "/virtual-config-parser-tests";
     const badJson = join(vRoot, "bad.json");
-    mockFiles.set(badJson, "{ invalid json");
+    writeVirtual(badJson, "{ invalid json");
     expect(() => parseConfigFile(badJson)).toThrow(HarnessError);
 
     const arrayJson = join(vRoot, "array.json");
-    mockFiles.set(arrayJson, "[1, 2, 3]");
+    writeVirtual(arrayJson, "[1, 2, 3]");
     expect(() => parseConfigFile(arrayJson)).toThrow(HarnessError);
 
     const nullJson = join(vRoot, "null.json");
-    mockFiles.set(nullJson, "null");
+    writeVirtual(nullJson, "null");
     expect(() => parseConfigFile(nullJson)).toThrow(HarnessError);
   });
 
@@ -72,9 +74,9 @@ describe("core/config/parser.ts", () => {
       supervisory_cadence_seconds: 30,
       quota_freeze_threshold_pct: 80,
       fleet_agent_ceiling: 8,
-      model_by_role: { coordinator: "claude-3-5-sonnet" },
+      model_by_role: { coordinator: "standard-coordinator-model" },
     };
-    mockFiles.set(configPath, JSON.stringify(validPayload));
+    writeVirtual(configPath, JSON.stringify(validPayload));
     const parsed = parseConfigFile(configPath);
     expect(parsed).not.toBeNull();
     expect(parsed?.min_adversarial_probes).toBe(2);
@@ -94,7 +96,9 @@ describe("core/config/parser.ts", () => {
     expect(parsed?.supervisory_cadence_seconds).toEqual(attestedFact(30));
     expect(parsed?.quota_freeze_threshold_pct).toEqual(attestedFact(80));
     expect(parsed?.fleet_agent_ceiling).toEqual(attestedFact(8));
-    expect(parsed?.model_by_role).toEqual(attestedFact({ coordinator: "claude-3-5-sonnet" }));
+    expect(parsed?.model_by_role).toEqual(
+      attestedFact({ coordinator: "standard-coordinator-model" }),
+    );
   });
 
   it("parseConfigFile rejects unsupported keys and bad values", () => {
@@ -110,34 +114,34 @@ describe("core/config/parser.ts", () => {
     ];
     for (let i = 0; i < testCases.length; i++) {
       const file = join(vRoot, `test_${i}.json`);
-      mockFiles.set(file, JSON.stringify({ [testCases[i].key]: testCases[i].val }));
+      writeVirtual(file, JSON.stringify({ [testCases[i].key]: testCases[i].val }));
       expect(() => parseConfigFile(file)).toThrow(HarnessError);
     }
   });
 
   it("parsePolicyLayer parses valid and invalid policy files", () => {
-    expect(parsePolicyLayer("/nonexistent/policy.json")).toBeNull();
+    expect(parsePolicyLayer("/virtual/nonexistent/policy.json")).toBeNull();
     const vRoot = "/virtual-policy-layer-tests";
     const valid = join(vRoot, "policy_valid.json");
-    mockFiles.set(valid, JSON.stringify({ quota_freeze_threshold_pct: 75 }));
+    writeVirtual(valid, JSON.stringify({ quota_freeze_threshold_pct: 75 }));
     expect(parsePolicyLayer(valid)).toEqual({
       quota_freeze_threshold_pct: attestedFact(75),
     });
 
     const badVal = join(vRoot, "policy_bad_val.json");
-    mockFiles.set(badVal, JSON.stringify({ quota_freeze_threshold_pct: "not a number" }));
+    writeVirtual(badVal, JSON.stringify({ quota_freeze_threshold_pct: "not a number" }));
     expect(parsePolicyLayer(badVal)).toEqual({
       quota_freeze_threshold_pct: unreadableFact(null),
     });
 
     const badJson = join(vRoot, "policy_bad_json.json");
-    mockFiles.set(badJson, "invalid json");
+    writeVirtual(badJson, "invalid json");
     expect(parsePolicyLayer(badJson)).toEqual({
       quota_freeze_threshold_pct: unreadableFact(null),
     });
 
     const notAnObj = join(vRoot, "policy_array.json");
-    mockFiles.set(notAnObj, "[1, 2]");
+    writeVirtual(notAnObj, "[1, 2]");
     expect(parsePolicyLayer(notAnObj)).toEqual({
       quota_freeze_threshold_pct: unreadableFact(null),
     });
@@ -149,13 +153,13 @@ describe("core/config/parser.ts", () => {
     expect(inspectHarnessConfigFile(missing).status).toBe("auto_detected");
 
     const valid = join(vRoot, "valid.json");
-    mockFiles.set(valid, JSON.stringify({ max_repair_rounds: 5 }));
+    writeVirtual(valid, JSON.stringify({ max_repair_rounds: 5 }));
     const validRes = inspectHarnessConfigFile(valid);
     expect(validRes.status).toBe("valid_custom");
     expect(validRes.partial.max_repair_rounds).toBe(5);
 
     const invalid = join(vRoot, "invalid.json");
-    mockFiles.set(invalid, "{ bad json");
+    writeVirtual(invalid, "{ bad json");
     const invalidRes = inspectHarnessConfigFile(invalid);
     expect(invalidRes.status).toBe("invalid_custom");
     expect(invalidRes.error).toBeDefined();

@@ -31,9 +31,7 @@ export function compileEffectiveForbiddenPatterns(role: string, policy?: RepoPol
     normalizedRole === "plan-validator" ||
     normalizedRole === "plan_validator" ||
     normalizedRole === "sub-investigator" ||
-    normalizedRole === "sub_investigator" ||
-    normalizedRole === "ui-validator" ||
-    normalizedRole === "ui_validator";
+    normalizedRole === "sub_investigator";
 
   const isSupervisor =
     normalizedRole === "mind" ||

@@ -14,7 +14,7 @@ import type {
   TaskQueueStats,
 } from "../../olt/scripts/src/task/queue/index.ts";
 import { VirtualMemoryFS } from "../../olt/scripts/src/testing/virtual-fs/index.ts";
-import { createTaskFsSpies, type VirtualTaskState } from "./session/index.ts";
+import { createTaskFsSpies, norm, type VirtualTaskState } from "./session/index.ts";
 
 const VIRTUAL_SCRATCH_BASE = "/virtual/task-scratch";
 
@@ -67,6 +67,27 @@ export function cleanupVirtualTaskFS(): void {
 
 export function getVirtualTaskFS(): VirtualMemoryFS {
   return vfs;
+}
+
+export function createVirtualSymlink(target: string, link: string): void {
+  state.symlinks.set(norm(link), norm(target));
+}
+
+export function createVirtualHardlink(src: string, dst: string): void {
+  const sStr = norm(src);
+  const dStr = norm(dst);
+  state.hardlinks.set(dStr, sStr);
+  if (vfs.existsSync(sStr)) {
+    const parent = path.dirname(dStr);
+    if (parent && !vfs.existsSync(parent)) vfs.mkdirSync(parent, { recursive: true });
+    vfs.writeFileSync(dStr, vfs.readFileSync(sStr));
+    const mode = state.customModes.get(sStr);
+    if (mode !== undefined) state.customModes.set(dStr, mode);
+  }
+}
+
+export function setVirtualMtime(targetPath: string, mtimeMs: number): void {
+  state.customMtimes.set(norm(targetPath), mtimeMs);
 }
 
 function slug(value: string): string {

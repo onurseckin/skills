@@ -1,10 +1,10 @@
-# Agent-Scoped Live Shell Sentinel: 20-Role Diagnostic Profiles
+# Agent-Scoped Live Shell Sentinel: 16-Role Diagnostic Profiles
 
 ## Level 4 Modular Domain Decomposition & Role Invariant Matrices
 
 > **Document Type:** Companion Architectural Specification  
 > **Master Blueprint:** `docs/blueprints/agent-scoped-live-sentinel.md`  
-> **Applicability:** All 20 Canonical Agent Roles across all 4 Canonical Hosts  
+> **Applicability:** All 16 Canonical Agent Roles across all 4 Canonical Hosts  
 > **Tracking ID:** `bp-agent-scoped-live-sentinel-profiles`
 
 ---
@@ -15,18 +15,17 @@ The sentinel enforces strict role-specialized auditing: when instantiated, it lo
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                    20 CANONICAL AGENT ROLES HIERARCHY                   │
+│                    16 CANONICAL AGENT ROLES HIERARCHY                   │
 ├─────────┬───────────────────────────────────────────────────────────────┤
 │ Tier 0  │ mind, skill-auditor, policy-discovery                        │
 ├─────────┼───────────────────────────────────────────────────────────────┤
 │ Tier 1  │ orchestrator, mind-auditor                                    │
 ├─────────┼───────────────────────────────────────────────────────────────┤
-│ Tier 2  │ coordinator, planner, plan-validator, repairer,               │
+│ Tier 2  │ coordinator, planner, plan-validator,                          │
 │         │ completeness-critic                                           │
 ├─────────┼───────────────────────────────────────────────────────────────┤
-│ Tier 3  │ implementer, validator, mechanic-validator,                   │
-│         │ ui-headless-validator, ui-mechanic-validator,                │
-│         │ ui-optical-validator, ui-validator, sub-implementer,          │
+│ Tier 3  │ implementer, validator, ui-headless-validator,                │
+│         │ ui-optical-validator, sub-implementer,                        │
 │         │ sub-validator, sub-investigator                               │
 └─────────┴───────────────────────────────────────────────────────────────┘
 ```
@@ -91,13 +90,7 @@ The sentinel enforces strict role-specialized auditing: when instantiated, it lo
 - **Trigger Conditions:** Approving plans with overlapping write scopes or ambiguous file targets; rubber-stamping unevidenced DAG graphs.
 - **Remediation Action:** Reject plan validation receipt; mandate explicit AST symbols and line boundaries.
 
-### 4.4 `repairer` (Tier 2 — In-Lease Defect Remediation Specialist)
-
-- **Monitored Invariants:** Targeted defect resolution within leased scope; 1-hop micro-cycle execution (`task:reject --in-lease`); file-scoped regression tests.
-- **Trigger Conditions:** Modifying files outside the leased defect scope; submitting repairs without running targeted regression tests.
-- **Remediation Action:** Interject exact regression test command (`bun test <target.test.ts>`); block `task:submit` until green.
-
-### 4.5 `completeness-critic` (Tier 2 — Prompt Fidelity & Byte-Level Auditor)
+### 4.4 `completeness-critic` (Tier 2 — Prompt Fidelity & Byte-Level Auditor)
 
 - **Monitored Invariants:** Verifying byte-level prompt compliance against original user requests; verifying Canonical 8-Level Plan requirements; zero code edits.
 - **Trigger Conditions:** Approving incomplete tasks where prompt deliverables are missing; attempting source code edits.
@@ -135,37 +128,19 @@ The sentinel enforces strict role-specialized auditing: when instantiated, it lo
 - **Trigger Conditions:** Attempting any terminal command or test execution; submitting rubber-stamp reviews without Socratic code evaluation.
 - **Remediation Action:** Instant pre-action mechanical block on shell tool calls; prompt for substantive architectural critique.
 
-### 6.2 `mechanic-validator` (Tier 3 — AST Static Invariant & Type Auditor)
-
-- **Monitored Invariants:** Fast typechecking (`tsc --noEmit`); AST static invariant checks (0 `any`, 0 `@ts-ignore`); zero manual code edits.
-- **Trigger Conditions:** Attempting source code authoring; skipping AST audits before passing verification.
-- **Remediation Action:** Execute `bun harness.ts task:check --task <id>`; block approvals lacking cryptographic test receipts.
-
-### 6.3 `ui-headless-validator` (Tier 3 — Playwright & Headless DOM Auditor)
+### 6.2 `ui-headless-validator` (Tier 3 — Playwright & Headless DOM Auditor)
 
 - **Monitored Invariants:** Headless Playwright test execution; generation of 4-viewport screenshot artifacts; DOM touch-target geometry ($\ge 44\text{pt}$).
 - **Trigger Conditions:** Passing UI tasks without executing Playwright; missing screenshot outputs in `.olt/capsules/<run>/evidence/screenshots/`.
 - **Remediation Action:** Interject `bun test:playwright --headed=false`; block verification until screenshot files are written to disk.
 
-### 6.4 `ui-mechanic-validator` (Tier 3 — CSS Layout & Responsive DOM Auditor)
-
-- **Monitored Invariants:** Responsive breakpoint layout checks; DOM element bounding box validation; zero console error emissions during rendering.
-- **Trigger Conditions:** CSS overflow clipping; unhandled client exceptions; approving unrendered layouts.
-- **Remediation Action:** Interject DOM layout audit command; emit bounding-box failure report.
-
-### 6.5 `ui-optical-validator` (Tier 3 — Headful Visual Screenshot Reviewer)
+### 6.3 `ui-optical-validator` (Tier 3 — Headful Visual Screenshot Reviewer)
 
 - **Monitored Invariants:** Mandatory `view_file` calls on actual screenshot images ($\ge 1024$ bytes); inspection of all 4 viewports (mobile, tablet, desktop, wide); zero shell execution.
 - **Trigger Conditions:** Submitting approval without calling `view_file` on screenshot images; skipping viewports; attempting shell commands.
 - **Remediation Action:** Block approval: `[UI_OPTICAL_VIOLATION] You must inspect screenshot artifacts via view_file before rendering a verdict`.
 
-### 6.6 `ui-validator` (Tier 3 — Holistic Visual & Interaction Experience Critic)
-
-- **Monitored Invariants:** Comprehensive UX and optical harmony evaluation; design system fidelity; zero code modifications.
-- **Trigger Conditions:** Attempting code modifications; rendering verdict without consuming both headless receipts and optical review findings.
-- **Remediation Action:** Require comprehensive multi-modal critique; block direct write attempts.
-
-### 6.7 `sub-validator` (Tier 3 — Subordinate Evidence Collector)
+### 6.4 `sub-validator` (Tier 3 — Subordinate Evidence Collector)
 
 - **Monitored Invariants:** Read-only test artifact and assertion verification; writes proofs exclusively into `.olt/capsules/<run>/evidence/`.
 - **Trigger Conditions:** Attempting repository source code modifications; issuing final task approvals without parent validator delegation.

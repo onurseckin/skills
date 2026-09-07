@@ -32,9 +32,7 @@ describe("Thread Authority Identifier - Resolution and Containment", () => {
     });
 
     expect(identified.tier).toBe(3);
-    expect(identified.tier_name).toBe(
-      "Tier 3: Implementer / Validator / Repairer / Completeness Critic",
-    );
+    expect(identified.tier_name).toBe("Tier 3: Implementer / Validator / Completeness Critic");
     expect(identified.is_main_thread).toBeFalse();
     expect(identified.compliance_state).toBe("compliant");
     expect(identified.advisory).toBeNull();
@@ -127,9 +125,7 @@ describe("Thread Authority Identifier - Resolution and Containment", () => {
       env: { HARNESS_EXECUTION_TIER: "3" },
     });
     expect(fromEnvTier.tier).toBe(3);
-    expect(fromEnvTier.tier_name).toBe(
-      "Tier 3: Implementer / Validator / Repairer / Completeness Critic",
-    );
+    expect(fromEnvTier.tier_name).toBe("Tier 3: Implementer / Validator / Completeness Critic");
     expect(fromEnvTier.is_main_thread).toBeFalse();
 
     const fromTierString = identifyExecutionContext({
@@ -164,13 +160,13 @@ describe("Thread Authority Identifier - Resolution and Containment", () => {
     expect(critic.tier).toBe(3);
     expect(critic.role).toBe("completeness-critic");
 
-    const repairer = identifyExecutionContext({
+    const repairRound = identifyExecutionContext({
       pid: 4006,
       ppid: 4000,
-      env: { AGENT_ID: "repairer-task-1" },
+      env: { AGENT_ID: "implementer-repair-task-1" },
     });
-    expect(repairer.tier).toBe(3);
-    expect(repairer.role).toBe("repairer");
+    expect(repairRound.tier).toBe(3);
+    expect(repairRound.role).toBe("implementer");
   });
 
   test("identifies Main Interactive Agent Thread and raises containment advisory", () => {

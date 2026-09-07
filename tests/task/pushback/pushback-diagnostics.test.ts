@@ -95,6 +95,23 @@ describe("task pushback path unit tests", () => {
     expect(() => assertPushbackSafety(dummyState)).not.toThrow();
   });
 
+  it("traps unfulfilled demands and throws HarnessError on unsafe state in assertPushbackSafety", () => {
+    const unsafeState = {
+      tasks: {
+        "task-unfulfilled": {
+          status: "proposed",
+          write_scope: ["src/feature.ts"],
+        },
+      },
+    };
+    const report = evaluatePushbackReport(unsafeState);
+    expect(report.hasUnfulfilledDemands).toBe(true);
+    expect(report.totalUnfulfilled).toBe(1);
+    expect(report.unfulfilledItems[0]?.id).toBe("task-unfulfilled");
+    expect(report.unfulfilledItems[0]?.rootCause).toContain("never claimed");
+    expect(() => assertPushbackSafety(unsafeState)).toThrow(HarnessError);
+  });
+
   it("re-exports authority review tools and evaluators correctly", () => {
     let history = createPushbackHistory("task-reexport", 3);
     expect(history.currentRound).toBe(0);

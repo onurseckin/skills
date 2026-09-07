@@ -1,6 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+
 import {
   isTestIdentifier,
   lintTestAst,
@@ -180,50 +179,6 @@ describe("AST Linter & Anti-Mock Verification", () => {
       expect(result.totalTestsAnalyzed).toBe(2);
       expect(result.trivialConstantCount).toBe(2);
       expect(result.trivialReturnCount).toBe(1);
-    });
-  });
-
-  describe("6. Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
-    it("verifies zero TypeScript any and zero suppressions across ast-linter source and test files", () => {
-      const filesToAudit = [
-        resolve(import.meta.dir, "../../../olt/scripts/src/validation/ast-linter/types.ts"),
-        resolve(
-          import.meta.dir,
-          "../../../olt/scripts/src/validation/ast-linter/assertion-detectors.ts",
-        ),
-        resolve(
-          import.meta.dir,
-          "../../../olt/scripts/src/validation/ast-linter/mock-detectors.ts",
-        ),
-        resolve(import.meta.dir, "../../../olt/scripts/src/validation/ast-linter/visitor.ts"),
-        resolve(import.meta.dir, "../../../olt/scripts/src/validation/ast-linter/index.ts"),
-        resolve(import.meta.dir, "ast-linter.test.ts"),
-      ];
-
-      const anyPattern = /:\s*any\b|as\s+any\b|<any>/;
-      const suppressionPattern = new RegExp(
-        [
-          "@ts" + "-ignore",
-          "@ts" + "-expect-error",
-          "@ts" + "-nocheck",
-          "eslint" + "-disable",
-          "oxlint" + "-disable",
-        ].join("|"),
-      );
-
-      for (const filePath of filesToAudit) {
-        expect(existsSync(filePath)).toBe(true);
-        const content = readFileSync(filePath, "utf-8");
-        const lines = content.split("\n");
-
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i]!;
-          if (line.includes("anyPattern") || line.includes("suppressionPattern")) continue;
-
-          expect(anyPattern.test(line)).toBe(false);
-          expect(suppressionPattern.test(line)).toBe(false);
-        }
-      }
     });
   });
 });

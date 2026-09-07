@@ -58,6 +58,17 @@ describe("AssetRegistry.claim", () => {
     expect(owned).toEqual([]);
     expect(registry.idFor("")).toBeUndefined();
   });
+
+  test("claims candidates sharing the same asset ID if their URLs are distinct", () => {
+    const registry = new AssetRegistry();
+    const owned = registry.claim([
+      asset("shared-id", "https://x/view-1.png"),
+      asset("shared-id", "https://x/view-2.png"),
+    ]);
+    expect(owned).toHaveLength(2);
+    expect(registry.idFor("https://x/view-1.png")).toBe("shared-id");
+    expect(registry.idFor("https://x/view-2.png")).toBe("shared-id");
+  });
 });
 
 describe("AssetRegistry.idFor", () => {
@@ -104,6 +115,24 @@ describe("projectFindingsForNode", () => {
     );
     expect(result?.screenshotAssetIds).toEqual(["shot-1"]);
   });
+
+  test("maps multiple findings sharing the same screenshot without mutating original findings", () => {
+    const registry = new AssetRegistry();
+    const sharedShot = asset("shared-shot", "https://x/shared.png");
+    registry.claim([sharedShot]);
+
+    const originalF1 = finding("F-1", [sharedShot]);
+    const originalF2 = finding("F-2", [sharedShot]);
+
+    const results = projectFindingsForNode([originalF1, originalF2], registry);
+    expect(results).toHaveLength(2);
+    expect(results[0]?.screenshotAssetIds).toEqual(["shared-shot"]);
+    expect(results[1]?.screenshotAssetIds).toEqual(["shared-shot"]);
+
+    // Original finding objects are not mutated
+    expect(originalF1.screenshots).toHaveLength(1);
+    expect(originalF2.screenshots).toHaveLength(1);
+  });
 });
 
 describe("gate node", () => {
@@ -118,6 +147,7 @@ describe("gate node", () => {
       ["gating", "running"],
       ["proposed", "pending"],
       ["ready", "pending"],
+      ["unknown_custom_status" as any, "pending"],
     ];
     for (const [status, expected] of statuses) {
       expect(mapGateStatus(makeTask("T", { status }))).toBe(expected);

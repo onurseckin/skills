@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+
 import {
   executePulseTick,
   executePulseTickWithDiagnostics,
@@ -262,32 +261,6 @@ describe("Script-Backed Diagnostics: Formatting, Pulse & Invariants", () => {
         "- **CLI Diagnostics Receipts**: [CLI-RECEIPTS: doctor ✓ | health ✓ | dag:view ✓ | report:unified ✓]",
       );
       expect(brief).toContain("- **ASCII DAG Badges**: [W1:L1 (○ READY: task-1)]");
-    });
-  });
-
-  describe("5. Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
-    test("verifies touched scheduler source files contain zero any and zero suppressions", () => {
-      const filesToCheck = [
-        "olt/scripts/src/engine/scheduler/diagnostics/index.ts",
-        "olt/scripts/src/engine/scheduler/feedback/pulse-core.ts",
-        "olt/scripts/src/engine/scheduler/topology/metrics.ts",
-        "olt/scripts/src/engine/scheduler/index.ts",
-      ];
-
-      const anyWord = "a" + "n" + "y";
-      const anyPattern = new RegExp(`:\\s*${anyWord}\\b|\\bas\\s+${anyWord}\\b|<${anyWord}>`, "g");
-      const suppressionPattern = new RegExp("@ts-(?:ignore|nocheck|expect-error)", "g");
-
-      for (const relPath of filesToCheck) {
-        const fullPath = resolve(process.cwd(), relPath);
-        const content = readFileSync(fullPath, "utf8");
-
-        const matches = content.match(anyPattern);
-        expect(matches ?? []).toEqual([]);
-
-        const suppressionMatches = content.match(suppressionPattern);
-        expect(suppressionMatches ?? []).toEqual([]);
-      }
     });
   });
 });

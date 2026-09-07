@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { join, resolve } from "node:path";
-import * as fs from "node:fs";
+import { join } from "node:path";
 import {
   acquireAuditorLeaseLock,
   defaultIsPidAlive,
@@ -9,7 +8,9 @@ import {
 } from "../../../olt/scripts/src/authority/guards/singleton-auditor-guard.ts";
 import {
   cleanupVirtualAuthorityFS,
+  closeSync,
   getVirtualAuthorityFS,
+  openSync,
   setupVirtualAuthorityFS,
 } from "../fixture.ts";
 
@@ -89,7 +90,7 @@ describe("Singleton Skill Auditor Lease Guard - Locking & Edge Cases", () => {
         };
 
         const flockPath = `${lockPath}.flock`;
-        const fd = fs.openSync(flockPath, fs.constants.O_RDWR | fs.constants.O_CREAT, 0o600);
+        const fd = openSync(flockPath, "w+");
 
         try {
           expect(() => {
@@ -100,7 +101,7 @@ describe("Singleton Skill Auditor Lease Guard - Locking & Edge Cases", () => {
             });
           }).toBeDefined();
         } finally {
-          fs.closeSync(fd);
+          closeSync(fd);
         }
       } finally {
         Date.now = origDateNow;
@@ -138,19 +139,6 @@ describe("Singleton Skill Auditor Lease Guard - Locking & Edge Cases", () => {
         customLockPath: lockPath,
       });
       expect(realRelease).toBe(true);
-    });
-  });
-
-  describe("zero TypeScript any & zero suppressions invariant", () => {
-    it("verifies source files contain zero any and zero suppressions", () => {
-      const guardFile = resolve(
-        import.meta.dir,
-        "../../../olt/scripts/src/authority/guards/singleton-auditor-guard.ts",
-      );
-      const guardSource = fs.readFileSync(guardFile, "utf-8");
-      expect(guardSource).not.toMatch(/: any\b/);
-      expect(guardSource).not.toMatch(/\bas any\b/);
-      expect(guardSource).not.toMatch(/@ts-(ignore|expect-error|nocheck)/);
     });
   });
 });

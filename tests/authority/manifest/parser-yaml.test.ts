@@ -1,7 +1,19 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { parseYaml } from "../../../olt/scripts/src/authority/manifest/index.ts";
+import {
+  cleanupVirtualAuthorityFS,
+  setupVirtualAuthorityFS,
+} from "../fixture.ts";
 
 describe("Authority Manifest Parser - Advanced YAML Structures", () => {
+  beforeEach(() => {
+    setupVirtualAuthorityFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualAuthorityFS();
+  });
+
   test("parses block sequences and flow arrays", () => {
     const yaml = `
 block_list:
@@ -53,4 +65,21 @@ folded_block: >
     expect(typeof parsed.folded_block).toBe("string");
     expect(parsed.folded_block as string).toContain("This is a folded sentence.");
   });
+
+  test("handles flow collections with comments and preserves hashes within quotes", () => {
+    const yaml = `
+flow_arr: [1, 2, 3] # inline array comment
+nested_flow: { key: "val # not comment", list: [x, y] }
+url_string: "https://example.com/index.html#section"
+empty_map: {}
+empty_list: []
+`;
+    const parsed = parseYaml(yaml) as Record<string, unknown>;
+    expect(parsed.flow_arr).toEqual([1, 2, 3]);
+    expect(parsed.nested_flow).toEqual({ key: "val # not comment", list: ["x", "y"] });
+    expect(parsed.url_string).toBe("https://example.com/index.html#section");
+    expect(parsed.empty_map).toEqual({});
+    expect(parsed.empty_list).toEqual([]);
+  });
 });
+

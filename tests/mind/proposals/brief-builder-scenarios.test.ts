@@ -1,34 +1,50 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { canonicalJsonBytes } from "../../../olt/scripts/src/core/json.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
 import { computeFullWakeBrief } from "../../../olt/scripts/src/mind/proposals/brief/builder.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import { initVirtualCapsule } from "./proposals-fixture.ts";
+
+mock.module("../../../olt/scripts/src/installer/source-validation.ts", () => ({
+  validateSkillSource: async (source: string) => ({
+    root: source,
+    digest: "mock-tree-digest-sha256",
+    runtimeVersion: "1.4.0",
+  }),
+}));
+
+mock.module("../../../olt/scripts/src/installer/runtime-freshness.ts", () => ({
+  installedRuntimeFreshness: async () => ({
+    drifted: false,
+    installedRuntimeVersion: "1.4.0",
+    referenceRuntimeVersion: "1.4.0",
+  }),
+}));
 
 describe("Mind Proposal Brief Builder Scenarios Suite", () => {
+  let session: VirtualFSSession;
+  let vfs: VirtualMemoryFS;
   let tempRepo: string;
   let runRoot: string;
 
   beforeEach(() => {
-    tempRepo = join(
-      tmpdir(),
-      `brief-bld-scen-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    );
-    mkdirSync(tempRepo, { recursive: true });
-    runRoot = initRun(
-      tempRepo,
-      "mind-run-scen",
-      new TextEncoder().encode("system prompt"),
-      "file",
-      true,
-    );
+    vfs = new VirtualMemoryFS();
+    vfs.mkdirSync("/virtual/tmp", { recursive: true });
+    session = createVirtualFSSession(vfs);
+
+    tempRepo = `/virtual/brief-bld-scen-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    runRoot = initVirtualCapsule(vfs, tempRepo, "mind-run-scen");
     setupMatchingCharter();
   });
 
   afterEach(() => {
-    rmSync(tempRepo, { recursive: true, force: true });
+    session.cleanup();
   });
 
   const updateState = (updater: (state: Record<string, unknown>) => void) => {
@@ -91,6 +107,42 @@ describe("Mind Proposal Brief Builder Scenarios Suite", () => {
 
       expect(brief.facts.gapMs).toBe(14_400_000);
       expect(brief.facts.driverLateWarning).toBe(true);
+    });
+
+    it("handles degenerate pulse timestamps and zero intervals gracefully without NaN", async () => {
+      // 1. null / unparseable closed_at
+      updateState((state) => {
+        state["pulse"] = {
+          last: {
+            closed_at: "not-a-valid-timestamp",
+            armed_interval_ms: 600_000,
+          },
+        };
+      });
+
+      const briefInvalidDate = await computeFullWakeBrief(runRoot);
+      expect(briefInvalidDate.facts.gapMs).toBeNull();
+      expect(briefInvalidDate.facts.driverLatenessMs).toBeNull();
+      expect(briefInvalidDate.facts.driverLateWarning).toBe(false);
+
+      // 2. zero or negative armed_interval_ms
+      const closedTime = new Date("2026-09-01T20:00:00.000Z").toISOString();
+      const nowMs = Date.parse("2026-09-01T20:10:00.000Z");
+
+      updateState((state) => {
+        state["pulse"] = {
+          last: {
+            closed_at: closedTime,
+            armed_interval_ms: 0,
+          },
+        };
+      });
+
+      const briefZeroInterval = await computeFullWakeBrief(runRoot, { now: nowMs });
+      expect(briefZeroInterval.facts.gapMs).toBe(600_000);
+      expect(briefZeroInterval.facts.driverLatenessMs).toBe(600_000);
+      expect(briefZeroInterval.facts.driverLateWarning).toBe(true);
+      expect(Number.isNaN(briefZeroInterval.facts.driverLatenessMs)).toBe(false);
     });
   });
 

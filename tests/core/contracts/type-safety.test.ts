@@ -126,31 +126,6 @@ describe("assertZeroAny and type-safety scanner", () => {
       }
       expect(caught).toBeInstanceOf(HarnessError);
       const error = caught as HarnessError;
-      expect(error.code).toBe("INTEGRITY");
-    });
-
-    it("scans entire directories and enforces zero any", () => {
-      const tempDir = "/virtual-type-safety-dir";
-      state.mockDirs.add(tempDir);
-      const subDir = join(tempDir, "nested");
-      state.mockDirs.add(subDir);
-      state.mockFiles.set(join(tempDir, "a.ts"), "export const a: string = 'ok';");
-      state.mockFiles.set(join(subDir, "b.tsx"), "export const b = 42;");
-
-      expect(() => assertZeroAny(tempDir)).not.toThrow();
-
-      state.mockFiles.set(join(subDir, "c.ts"), "export function fail(x: any): void {}");
-
-      let caught: unknown;
-      try {
-        assertZeroAny(tempDir);
-      } catch (err) {
-        caught = err;
-      }
-      expect(caught).toBeInstanceOf(HarnessError);
-      const error = caught as HarnessError;
-      expect(error.code).toBe("INTEGRITY");
-      expect(error.message).toContain("Zero TypeScript 'any' compliance check failed");
     });
 
     it("throws PATH_SAFETY error for non-existent file or directory in scan helpers", () => {

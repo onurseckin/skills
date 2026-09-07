@@ -1,5 +1,4 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { inspectRepository } from "../../../../olt/scripts/src/packets/repository-snapshot.ts";
 import {
@@ -19,9 +18,9 @@ describe("repository directory streaming", () => {
   test("scans a non-Git repository without invoking the Git command dependency", () => {
     const repo = `/virtual/repository-directory-streaming-${Math.random().toString(36).slice(2)}`;
     vfs.mkdirSync(repo, { recursive: true });
-    mkdirSync(join(repo, "nested"));
-    writeFileSync(join(repo, "AGENTS.md"), "# Instructions\n");
-    writeFileSync(join(repo, "nested", "tsconfig.json"), "{}\n");
+    vfs.mkdirSync(join(repo, "nested"));
+    vfs.writeFileSync(join(repo, "AGENTS.md"), "# Instructions\n");
+    vfs.writeFileSync(join(repo, "nested", "tsconfig.json"), "{}\n");
     const snapshot = inspectRepository(repo, "current", new Date(0), {
       command: () => {
         throw new Error("Git command must not run");

@@ -133,7 +133,7 @@ export class TimeoutWatcher {
     if (this.state !== "running") return;
     const now = performance.now();
     const timeSinceLastHeartbeat = now - this.lastHeartbeatTime;
-    if (timeSinceLastHeartbeat > this.heartbeatIntervalMs * 2) {
+    if (timeSinceLastHeartbeat >= this.heartbeatIntervalMs * 2) {
       this.handleTimeout();
     }
   }

@@ -27,14 +27,15 @@ function createTask(
     id,
     type: "task",
     label: id,
-    requirement_ids: options.requirement_ids ?? ["R-001"],
+    requirement_ids:
+      options.requirement_ids !== undefined ? options.requirement_ids : ["R-001"],
     write_scope: scopes,
-    resource_scope: options.resource_scope ?? [],
+    resource_scope: options.resource_scope !== undefined ? options.resource_scope : [],
     artifact_ids: ["artifact-all"],
-    status: options.status ?? "ready",
-    priority: options.priority ?? 1,
-    created_order: options.created ?? 10,
-    effort: options.effort ?? 1,
+    status: options.status !== undefined ? options.status : "ready",
+    priority: options.priority !== undefined ? options.priority : 1,
+    created_order: options.created !== undefined ? options.created : 10,
+    effort: options.effort !== undefined ? options.effort : 1,
     domain: options.domain,
     primary_domain: options.primary_domain,
     validator_domain: options.validator_domain,
@@ -80,7 +81,8 @@ function createMultiDomainState(
     tasks: Object.fromEntries(
       tasks.map((item) => {
         const id = String(item.id);
-        return [id, { ...item, dependencies: [...(dependencySets.get(id) ?? [])] }];
+        const deps = dependencySets.get(id);
+        return [id, { ...item, dependencies: deps !== undefined ? [...deps] : [] }];
       }),
     ),
   };
@@ -205,7 +207,37 @@ describe("Multi-Domain Dispatch: Scope Isolation & Waves", () => {
       });
 
       expect(result.implementerDispatches).toHaveLength(1);
-      expect(result.implementerDispatches[0]!.taskId).toBe("task-res-1");
+      expect(result.implementerDispatches[0]?.taskId).toBe("task-res-1");
+      expect(result.scopeIsolated).toBeTrue();
+    });
+
+    test("Prevents simultaneous dispatch when write scope has parent directory containment overlap", () => {
+      const tasks = [
+        createTask("task-parent", "src/components", {
+          priority: 10,
+          domain: "frontend-ui",
+        }),
+        createTask("task-child", "src/components/Button.tsx", {
+          priority: 9,
+          domain: "frontend-ui",
+        }),
+        createTask("task-unrelated", "src/api/handler.ts", {
+          priority: 8,
+          domain: "backend-system",
+        }),
+      ];
+
+      const state = createMultiDomainState(tasks);
+
+      const result = evaluateMultiDomainBatch(state, {
+        parallelismFactor: 3.0,
+        maxParallel: 3,
+      });
+
+      const dispatchedIds = result.implementerDispatches.map((d) => d.taskId);
+      expect(dispatchedIds).toContain("task-parent");
+      expect(dispatchedIds).toContain("task-unrelated");
+      expect(dispatchedIds).not.toContain("task-child");
       expect(result.scopeIsolated).toBeTrue();
     });
   });
@@ -228,10 +260,10 @@ describe("Multi-Domain Dispatch: Scope Isolation & Waves", () => {
       expect(wave.wave).toBe(1);
       expect(typeof wave.evaluatedAt).toBe("string");
       expect(wave.implementerDispatches).toHaveLength(1);
-      expect(wave.implementerDispatches[0]!.taskId).toBe("task-ready");
+      expect(wave.implementerDispatches[0]?.taskId).toBe("task-ready");
       expect(wave.activeOccupiedTasks).toContain("task-running");
       expect(wave.blockedTasks).toHaveLength(1);
-      expect(wave.blockedTasks[0]!.taskId).toBe("task-blocked");
+      expect(wave.blockedTasks[0]?.taskId).toBe("task-blocked");
     });
   });
 });

@@ -1,5 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test, spyOn } from "bun:test";
 import { join } from "node:path";
 import {
   worktreeCleanCommand,
@@ -20,21 +19,35 @@ import {
   listOrchestratorWorktrees,
   listWorktrees,
 } from "../../olt/scripts/src/workflow/worktree/index.ts";
+import type { VirtualMemoryFS } from "../../olt/scripts/src/testing/virtual-fs/index.ts";
 import { setupWorkflowVirtualFs } from "../workflow/shared/index.ts";
 
 const TEST_DIR = "/virtual/orch-worktree-suite";
+const ACTIVE_PID = 580;
+let vfs: VirtualMemoryFS;
 let vfsCleanup: (() => void) | undefined;
 let restoreGit: (() => void) | undefined;
+let killSpy: ReturnType<typeof spyOn> | undefined;
 
 describe("Orchestrator Worktree Allocation & Reconciliation", () => {
   beforeEach(() => {
     const setup = setupWorkflowVirtualFs();
+    vfs = setup.vfs;
     vfsCleanup = setup.cleanup;
     restoreGit = setGitRunnerForTesting((_cwd, _argv) => ({ status: 0, stdout: "", stderr: "" }));
-    mkdirSync(TEST_DIR, { recursive: true });
+
+    const origKill = process.kill;
+    killSpy = spyOn(process, "kill").mockImplementation(((pid: number, sig?: string | number) => {
+      if (pid === ACTIVE_PID) return true;
+      return origKill.call(process, pid, sig as never);
+    }) as never);
+
+    vfs.mkdirSync(TEST_DIR, { recursive: true });
   });
 
   afterEach(() => {
+    killSpy?.mockRestore();
+    killSpy = undefined;
     restoreGit?.();
     restoreGit = undefined;
     vfsCleanup?.();
@@ -59,12 +72,12 @@ describe("Orchestrator Worktree Allocation & Reconciliation", () => {
     expect(record.worktreeId).toBe("orch-dispatch");
     expect(record.branch).toBe("orch/dispatch");
     expect(record.tier).toBe("orchestrator");
-    expect(existsSync(record.worktreePath)).toBe(true);
-    expect(existsSync(record.lockPath)).toBe(true);
+    expect(vfs.existsSync(record.worktreePath)).toBe(true);
+    expect(vfs.existsSync(record.lockPath)).toBe(true);
 
     const metaPath = join(record.worktreePath, ".worktree-meta.json");
-    expect(existsSync(metaPath)).toBe(true);
-    const meta = JSON.parse(readFileSync(metaPath, "utf8"));
+    expect(vfs.existsSync(metaPath)).toBe(true);
+    const meta = JSON.parse(vfs.readFileSync(metaPath, "utf8"));
     expect(meta.domain).toBe("dispatch");
     expect(meta.tier).toBe("orchestrator");
     expect(executed.some((c) => c[0] === "worktree" && c[1] === "add")).toBe(true);
@@ -106,10 +119,10 @@ describe("Orchestrator Worktree Allocation & Reconciliation", () => {
 
   test("handles lock timeouts and stale lock eviction for orchestrator worktrees", () => {
     const lockDir = join(TEST_DIR, ".olt", "worktrees", "locks");
-    mkdirSync(lockDir, { recursive: true });
+    vfs.mkdirSync(lockDir, { recursive: true });
 
     const lockedPath = join(lockDir, "orch-contended.lock");
-    writeFileSync(
+    vfs.writeFileSync(
       lockedPath,
       JSON.stringify({
         trackId: "orch-contended",
@@ -121,13 +134,13 @@ describe("Orchestrator Worktree Allocation & Reconciliation", () => {
       createOrchestratorWorktree({
         domain: "contended",
         repoRoot: TEST_DIR,
-        lockTimeoutMs: 50,
+        lockTimeoutMs: -1,
         runner: () => ({ status: 0, stdout: "", stderr: "" }),
       }),
     ).toThrow(HarnessError);
 
     const deadLockPath = join(lockDir, "orch-stale.lock");
-    writeFileSync(
+    vfs.writeFileSync(
       deadLockPath,
       JSON.stringify({
         trackId: "orch-stale",
@@ -148,9 +161,9 @@ describe("Orchestrator Worktree Allocation & Reconciliation", () => {
     const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "orch-active-test");
     const lockDir = join(TEST_DIR, ".olt", "worktrees", "locks");
     const lockPath = join(lockDir, "orch-active-test.lock");
-    mkdirSync(worktreeDir, { recursive: true });
-    mkdirSync(lockDir, { recursive: true });
-    writeFileSync(lockPath, JSON.stringify({ pid: 580, trackId: "orch-active-test" }), "utf8");
+    vfs.mkdirSync(worktreeDir, { recursive: true });
+    vfs.mkdirSync(lockDir, { recursive: true });
+    vfs.writeFileSync(lockPath, JSON.stringify({ pid: ACTIVE_PID, trackId: "orch-active-test" }), "utf8");
 
     const mockRunner: GitRunner = (_cwd, _argv) => ({ status: 0, stdout: "", stderr: "" });
 
@@ -169,7 +182,7 @@ describe("Orchestrator Worktree Allocation & Reconciliation", () => {
       runner: mockRunner,
     });
     expect(forceRes.cleaned).toBe(true);
-    expect(existsSync(worktreeDir)).toBe(false);
+    expect(vfs.existsSync(worktreeDir)).toBe(false);
   });
 
   test("lists orchestrator worktrees with filtering", () => {
@@ -199,7 +212,7 @@ describe("Orchestrator Worktree Allocation & Reconciliation", () => {
     expect(initialReport.issues.length).toBe(0);
 
     const lockPath = join(TEST_DIR, ".olt", "worktrees", "locks", "orch-health-test.lock");
-    writeFileSync(
+    vfs.writeFileSync(
       lockPath,
       JSON.stringify({
         trackId: "orch-health-test",
@@ -214,7 +227,7 @@ describe("Orchestrator Worktree Allocation & Reconciliation", () => {
 
     const healedReport = autoHealWorktreeState({ repoRoot: TEST_DIR, runner: mockRunner });
     expect(healedReport.repaired.length).toBeGreaterThan(0);
-    expect(existsSync(join(TEST_DIR, ".olt", "worktrees", "orch-health-test"))).toBe(false);
+    expect(vfs.existsSync(join(TEST_DIR, ".olt", "worktrees", "orch-health-test"))).toBe(false);
   });
 
   test("CLI commands support orchestrator worktree creation and safe clean", () => {
@@ -225,15 +238,15 @@ describe("Orchestrator Worktree Allocation & Reconciliation", () => {
     });
     expect(createRes.tier).toBe("orchestrator");
     expect(createRes.domain).toBe("billing");
-    expect(existsSync(createRes.worktree_path as string)).toBe(true);
+    expect(vfs.existsSync(createRes.worktree_path as string)).toBe(true);
 
     const protectedLockPath = join(TEST_DIR, ".olt", "worktrees", "locks", "orch-billing.lock");
-    writeFileSync(protectedLockPath, JSON.stringify({ pid: 580, trackId: "orch-billing" }), "utf8");
+    vfs.writeFileSync(protectedLockPath, JSON.stringify({ pid: ACTIVE_PID, trackId: "orch-billing" }), "utf8");
 
     const cleanRes = worktreeCleanCommand({ all: true, "repo-root": TEST_DIR });
     expect(cleanRes.count).toBe(0);
     const skipped = cleanRes.skipped as { skipped: boolean; trackId: string }[];
     expect(skipped.some((s) => s.trackId === "orch-billing")).toBe(true);
-    expect(existsSync(createRes.worktree_path as string)).toBe(true);
+    expect(vfs.existsSync(createRes.worktree_path as string)).toBe(true);
   });
 });

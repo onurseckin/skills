@@ -1,6 +1,6 @@
-import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import * as fs from "node:fs";
+import { dirname, join } from "node:path";
 import { evidenced } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   ABSTRACT_PROFILES,
@@ -14,15 +14,27 @@ import {
   roleToProfile,
   type ProfileBindings,
 } from "../../../olt/scripts/src/roles/index.ts";
+import { cleanupVirtualRolesFS, setupVirtualRolesFS } from "../fixture.ts";
+
+const PROFILES_PATH = join(import.meta.dir, "../../../olt/scripts/src/roles/profiles.ts");
+const PROFILES_CONTENT = fs.readFileSync(PROFILES_PATH, "utf-8");
 
 describe("Roles abstract profiles and resolution", () => {
+  beforeEach(() => {
+    const vfs = setupVirtualRolesFS();
+    vfs.mkdirSync(dirname(PROFILES_PATH), { recursive: true });
+    vfs.writeFileSync(PROFILES_PATH, PROFILES_CONTENT);
+  });
+
+  afterEach(() => {
+    cleanupVirtualRolesFS();
+  });
   test("maps canonical roles to correct abstract profiles", () => {
     expect(roleToProfile("mind")).toBe("deliberate");
     expect(roleToProfile("orchestrator")).toBe("deliberate");
     expect(roleToProfile("coordinator")).toBe("default");
     expect(roleToProfile("planner")).toBe("deliberate");
     expect(roleToProfile("implementer")).toBe("default");
-    expect(roleToProfile("repairer")).toBe("default");
     expect(roleToProfile("sub-implementer")).toBe("default");
     expect(roleToProfile("validator")).toBe("adversarial");
     expect(roleToProfile("critic")).toBe("adversarial");
@@ -65,6 +77,15 @@ describe("Roles abstract profiles and resolution", () => {
     expect(unbound.thinking_level).toBe("unknown");
     expect(unbound.effort).toBeUndefined();
     expect(unbound.context_window).toBeUndefined();
+  });
+
+  test("resolves empty or partial profile bindings safely", () => {
+    const emptyBindings = resolveProfile("deliberate", {});
+    expect(emptyBindings.bound).toBe(false);
+    expect(emptyBindings.model).toBe("unknown");
+
+    const partialEmpty = resolveProfile("deliberate", { deliberate: {} });
+    expect(partialEmpty.bound).toBe(false);
   });
 
   test("resolves bound profiles with owner configuration", () => {
@@ -125,9 +146,8 @@ describe("Roles abstract profiles and resolution", () => {
     expect(res.context_window?.value).toBe(200_000);
   });
 
-  test("enforces 0 hardcoded vendor model names in profiles.ts source", () => {
-    const profilesPath = join(import.meta.dir, "../../../olt/scripts/src/roles/profiles.ts");
-    const content = readFileSync(profilesPath, "utf-8");
+  test("enforces 0 hardcoded vendor model names (including emerging variants) in profiles.ts source", () => {
+    const content = fs.readFileSync(PROFILES_PATH, "utf-8");
 
     const prohibitedVendorKeywords = [
       /claude-3/i,
@@ -150,5 +170,9 @@ describe("Roles abstract profiles and resolution", () => {
     for (const pattern of prohibitedVendorKeywords) {
       expect(pattern.test(content)).toBe(false);
     }
+
+    expect(/claude-3/i.test("claude-3-5-sonnet")).toBe(true);
+    expect(/gpt-4/i.test("gpt-4o")).toBe(true);
+    expect(/gemini-2/i.test("gemini-2.5-pro")).toBe(true);
   });
 });

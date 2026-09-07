@@ -67,7 +67,7 @@ describe("packet authority and critic state", () => {
     expect(buildPacket(input).metadata.task_id).toBe("T-1");
     for (const override of [
       { agentId: "intruder" },
-      { role: "repairer" as const },
+      { role: "validator" as const },
       { leaseToken: "wrong" },
       { attempt: 2 },
       { task: { ...input.task!, status: "done" as const } },

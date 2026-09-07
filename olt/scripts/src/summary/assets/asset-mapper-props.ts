@@ -25,19 +25,28 @@ export function isImageExtension(str: string): boolean {
 }
 
 export function extractMediaPaths(text: string): string[] {
-  const matches = text.match(
-    /(?:[a-zA-Z0-9_\-./]+?\.(?:png|jpg|jpeg|webp|gif|svg|bmp|webm|mp4|pdf|log))\b/gi,
+  if (!text.includes(".")) return [];
+  const matches: string[] = [];
+  const extRegex = /\.(?:png|jpg|jpeg|webp|gif|svg|bmp|webm|mp4|pdf|log)\b/gi;
+  let m: RegExpExecArray | null;
+  while ((m = extRegex.exec(text)) !== null) {
+    const end = m.index + m[0].length;
+    let start = m.index;
+    while (start > 0 && /[a-zA-Z0-9_\-./]/.test(text[start - 1] ?? "")) {
+      start--;
+    }
+    if (start < m.index) {
+      matches.push(text.slice(start, end));
+    }
+  }
+  return Array.from(
+    new Set(
+      matches.filter(
+        (m) =>
+          !m.startsWith("http://") && !m.startsWith("https://") && !m.includes("node_modules"),
+      ),
+    ),
   );
-  return matches
-    ? Array.from(
-        new Set(
-          matches.filter(
-            (m) =>
-              !m.startsWith("http://") && !m.startsWith("https://") && !m.includes("node_modules"),
-          ),
-        ),
-      )
-    : [];
 }
 
 export function inferAssetProps(url: string, cmd?: CommandRecord, task?: TaskRecord) {

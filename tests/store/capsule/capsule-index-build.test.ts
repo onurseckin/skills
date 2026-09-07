@@ -1,15 +1,22 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { RunState } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { buildIndex } from "../../../olt/scripts/src/engine/store/capsule/capsule-index.ts";
 import {
+  cleanupVirtualStoreFS,
   createStoreFsSpies,
   scratchRoot as makeScratchRoot,
   setupVirtualStoreFS,
 } from "../store-fixture.ts";
 
-setupVirtualStoreFS();
+beforeEach(() => {
+  setupVirtualStoreFS();
+});
+
+afterEach(() => {
+  cleanupVirtualStoreFS();
+});
 
 function scratchRoot(label: string): string {
   return makeScratchRoot(import.meta.path, label);
@@ -164,5 +171,46 @@ describe("buildIndex", () => {
     const root = scratchRoot("carries-the-event-sequence-and-head-from-state-int");
     const index = buildIndex(root, baseState({ event_sequence: 4, event_head: "deadbeef" }), "run");
     expect(index.index_of_event).toEqual({ sequence: 4, head: "deadbeef" });
+  });
+
+  test("edge cases: non-numeric exit codes, invalid report round suffixes, and primitive findings", () => {
+    const root = scratchRoot("edge-cases-build-index");
+
+    // 1. Report with non-numeric round suffix: round should be undefined, not NaN
+    mkdirSync(join(root, "reports"), { recursive: true });
+    writeFileSync(join(root, "reports", "T-1-probe-abc.json"), "{}");
+    writeFileSync(join(root, "reports", "T-1-probe-.json"), "{}");
+
+    // 2. Command with null / string exit codes and task with null / primitive findings
+    const state = baseState({
+      tasks: {
+        "T-1": {
+          findings: [null, 42, "loose string", { not_an_id: "x" }, { id: "F-valid", status: "open" }],
+        },
+      },
+      commands: {
+        "C-null": { status: "running", exit_code: null },
+        "C-string": { status: "failed", exit_code: "1" as unknown as number },
+        "C-valid": { status: "succeeded", exit_code: 0 },
+      },
+    });
+
+    const index = buildIndex(root, state, "run-edge");
+
+    // Check report round
+    const repAbc = index.reports.find((r) => r.name === "T-1-probe-abc.json");
+    expect(repAbc).toBeDefined();
+    expect(repAbc?.round).toBeUndefined();
+
+    // Check commands
+    const cNull = index.commands.find((c) => c.id === "C-null");
+    expect(cNull?.exit_code).toBeUndefined();
+    const cString = index.commands.find((c) => c.id === "C-string");
+    expect(cString?.exit_code).toBeUndefined();
+    const cValid = index.commands.find((c) => c.id === "C-valid");
+    expect(cValid?.exit_code).toBe(0);
+
+    // Check findings
+    expect(index.findings).toEqual([{ id: "F-valid", task_id: "T-1", status: "open" }]);
   });
 });

@@ -192,7 +192,7 @@ describe("computeStateProjection", () => {
 describe("inspectDirectCapsule (graceful fallback)", () => {
   it("inspects the actual active run capsule directly without daemon process", () => {
     const projection = inspectDirectCapsule(
-      ".olt/capsules/cross-system-communication-system",
+      ".olt/capsules/archive/cross-system-communication-system",
       process.cwd(),
     );
 

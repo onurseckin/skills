@@ -40,7 +40,7 @@ describe("HierarchicalStallProbe Supervisory Probing", () => {
   });
 
   it("probes individual children and detects healthy vs stalled execution", () => {
-    let now = 1700000000000;
+    const now = 1700000000000;
     const probe = new HierarchicalStallProbe({
       supervisorTier: "coordinator",
       defaultWallTimeoutMs: 60_000,

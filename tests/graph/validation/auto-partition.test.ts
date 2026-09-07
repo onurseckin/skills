@@ -1,155 +1,55 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import * as fs from "node:fs";
-import * as fsp from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { join } from "node:path";
 import {
   enumerateGlobMatches,
   globToRegExp,
   partitionByGlob,
   slugifyScope,
 } from "../../../olt/scripts/src/graph/auto-partition.ts";
+import {
+  createVirtualFSSession,
+  type VirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
-// VirtualMemoryFS in-memory mocked sandbox
-const vfs = new Set<string>();
-const vdirs = new Set<string>();
-const vsymlinks = new Map<string, string>();
-const vlocked = new Set<string>();
+let currentSession: VirtualFSSession | null = null;
+let currentVfs: VirtualMemoryFS = new VirtualMemoryFS();
 let repoCounter = 0;
-const spies: Array<{ mockRestore: () => void }> = [];
-
-const norm = (p: fs.PathLike): string => resolve(String(p)).replace(/\/+$/, "");
 
 beforeEach(() => {
-  const oreaddir = fs.readdirSync.bind(fs),
-    ochmod = fs.chmodSync.bind(fs);
-  const omkdir = fsp.mkdir.bind(fsp),
-    owrite = fsp.writeFile.bind(fsp);
-  const osymlink = fsp.symlink.bind(fsp),
-    orm = fsp.rm.bind(fsp),
-    omkdtemp = fsp.mkdtemp.bind(fsp);
-
-  spies.push(
-    spyOn(fs, "chmodSync").mockImplementation((p, mode) => {
-      const s = norm(p);
-      if (s.startsWith("/virtual/")) {
-        if (mode === 0o000 || mode === 0) vlocked.add(s);
-        else vlocked.delete(s);
-        return;
-      }
-      ochmod(p, mode);
-    }),
-    spyOn(fs, "readdirSync").mockImplementation((p: fs.PathLike, opt?: unknown): unknown => {
-      const s = norm(p);
-      if (s.startsWith("/virtual/")) {
-        if (vlocked.has(s)) throw new Error(`EACCES: permission denied, scandir '${s}'`);
-        const prefix = `${s}/`;
-        const entries = new Map<string, { isDir: boolean; isSym: boolean }>();
-        for (const k of vfs) {
-          if (k.startsWith(prefix) && k.length > prefix.length) {
-            const rel = k.slice(prefix.length);
-            const firstSeg = rel.split("/")[0]!;
-            entries.set(firstSeg, { isDir: rel.includes("/"), isSym: false });
-          }
-        }
-        for (const d of vdirs) {
-          if (d.startsWith(prefix) && d.length > prefix.length) {
-            const rel = d.slice(prefix.length);
-            const firstSeg = rel.split("/")[0]!;
-            if (!entries.has(firstSeg)) entries.set(firstSeg, { isDir: true, isSym: false });
-          }
-        }
-        for (const [sym, target] of vsymlinks) {
-          if (sym.startsWith(prefix) && sym.length > prefix.length) {
-            const rel = sym.slice(prefix.length);
-            const firstSeg = rel.split("/")[0]!;
-            entries.set(firstSeg, { isDir: false, isSym: true });
-          }
-        }
-        const withTypes =
-          typeof opt === "object" &&
-          opt !== null &&
-          "withFileTypes" in opt &&
-          Boolean((opt as { withFileTypes?: boolean }).withFileTypes);
-        if (withTypes) {
-          return Array.from(entries.entries()).map(([name, meta]) => ({
-            name,
-            isDirectory: () => meta.isDir,
-            isFile: () => !meta.isDir && !meta.isSym,
-            isSymbolicLink: () => meta.isSym,
-          })) as unknown as fs.Dirent[];
-        }
-        return Array.from(entries.keys());
-      }
-      return oreaddir(p, opt as Parameters<typeof oreaddir>[1]);
-    }),
-    spyOn(fsp, "mkdir").mockImplementation(async (p) => {
-      const s = norm(p);
-      if (s.startsWith("/virtual/")) {
-        vdirs.add(s);
-        return undefined;
-      }
-      return omkdir(p);
-    }),
-    spyOn(fsp, "writeFile").mockImplementation(async (p) => {
-      const s = norm(p);
-      if (s.startsWith("/virtual/")) {
-        vfs.add(s);
-        return;
-      }
-      return owrite(p, "");
-    }),
-    spyOn(fsp, "symlink").mockImplementation(async (target, path) => {
-      const s = norm(path);
-      if (s.startsWith("/virtual/")) {
-        vsymlinks.set(s, String(target));
-        return;
-      }
-      return osymlink(target, path);
-    }),
-    spyOn(fsp, "rm").mockImplementation(async (p) => {
-      const s = norm(p);
-      if (s.startsWith("/virtual/")) {
-        vfs.delete(s);
-        vdirs.delete(s);
-        vsymlinks.delete(s);
-        vlocked.delete(s);
-        for (const k of Array.from(vfs)) if (k.startsWith(`${s}/`)) vfs.delete(k);
-        for (const d of Array.from(vdirs)) if (d.startsWith(`${s}/`)) vdirs.delete(d);
-        return;
-      }
-      return orm(p, { recursive: true, force: true });
-    }),
-  );
+  currentVfs = new VirtualMemoryFS();
+  currentSession = createVirtualFSSession(currentVfs);
 });
 
 afterEach(() => {
-  for (const s of spies.splice(0)) s.mockRestore();
-  vfs.clear();
-  vdirs.clear();
-  vsymlinks.clear();
-  vlocked.clear();
+  if (currentSession) {
+    currentSession.cleanup();
+    currentSession = null;
+  }
+  currentVfs = new VirtualMemoryFS();
 });
 
 async function fixtureRepo(name: string): Promise<string> {
   repoCounter += 1;
   const repo = `/virtual/auto-partition-${name}-${repoCounter}`;
-  vdirs.add(repo);
+  currentVfs.mkdirSync(repo, { recursive: true });
   return repo;
 }
+
 const mkdir = async (p: string, _opt?: unknown) => {
-  vdirs.add(norm(p));
+  currentVfs.mkdirSync(p, { recursive: true });
 };
-const writeFile = async (p: string, _d?: unknown) => {
-  vfs.add(norm(p));
+
+const writeFile = async (p: string, data = "export {};\n") => {
+  currentVfs.writeFileSync(p, data);
 };
+
 const symlink = async (target: string, path: string) => {
-  vsymlinks.set(norm(path), String(target));
+  currentSession?.symlinkSync(target, path);
 };
-const mkdtemp = async (prefix: string) => fixtureRepo("tmp");
+
 const chmodSync = (p: string, mode: number) => {
-  const s = norm(p);
-  if (mode === 0o000 || mode === 0) vlocked.add(s);
-  else vlocked.delete(s);
+  currentSession?.chmodSync(p, mode);
 };
 
 describe("enumerateGlobMatches", () => {
@@ -203,6 +103,16 @@ describe("enumerateGlobMatches", () => {
       chmodSync(join(repo, "src/locked"), 0o755);
     }
   });
+
+  test("strictly ignores circular symlinks and avoids infinite recursion", async () => {
+    const repo = await fixtureRepo("circular-symlink");
+    await mkdir(join(repo, "src/nested"), { recursive: true });
+    await writeFile(join(repo, "src/nested/valid.ts"), "export {};\n");
+    await symlink(join(repo, "src"), join(repo, "src/nested/loop"), "dir");
+
+    const matches = enumerateGlobMatches(repo, "**/*.ts");
+    expect(matches).toEqual(["src/nested/valid.ts"]);
+  });
 });
 
 describe("partitionByGlob", () => {
@@ -235,6 +145,23 @@ describe("partitionByGlob", () => {
       },
       { scope: "src/domains/beta", files: ["src/domains/beta/one.ts"] },
     ]);
+  });
+
+  test("correctly matches and slugifies paths with spaces and special characters", async () => {
+    const repo = await fixtureRepo("special-chars");
+    await mkdir(join(repo, "src/domains"), { recursive: true });
+    await writeFile(join(repo, "src/domains/my task [spec].ts"), "export {};\n");
+
+    const entries = partitionByGlob(repo, "src/domains/*.ts", "file");
+    expect(entries).toEqual([
+      {
+        scope: "src/domains/my task [spec].ts",
+        files: ["src/domains/my task [spec].ts"],
+      },
+    ]);
+
+    const slug = slugifyScope(entries[0].scope);
+    expect(slug).toBe("src-domains-my-task-spec-ts");
   });
 
   test("refuses a glob that matches nothing on disk rather than emitting zero tasks silently", async () => {

@@ -181,8 +181,8 @@ describe("Mind Autonomous Role Auditing & Non-Duplicate Persona Synthesis", () =
 
       const first = synthesizeNonDuplicatePersona(
         {
-          name: "standard-repairer",
-          archetype: "tier_3_repairer",
+          name: "standard-repair-implementer",
+          archetype: "tier_3_implementer",
           domain: "general",
           grantedCommands: ["task:claim", "task:submit", "recover"],
         },
@@ -194,8 +194,8 @@ describe("Mind Autonomous Role Auditing & Non-Duplicate Persona Synthesis", () =
       // Attempt to synthesize another persona with identical characteristics under a different name
       const second = synthesizeNonDuplicatePersona(
         {
-          name: "redundant-repairer",
-          archetype: "tier_3_repairer",
+          name: "redundant-repair-implementer",
+          archetype: "tier_3_implementer",
           domain: "general",
           grantedCommands: ["task:claim", "task:submit", "recover"],
         },
@@ -204,8 +204,8 @@ describe("Mind Autonomous Role Auditing & Non-Duplicate Persona Synthesis", () =
 
       expect(second.action).toBe("reused_existing");
       expect(second.deduplicated).toBe(true);
-      expect(second.contract.role).toBe("standard-repairer");
-      expect(second.duplicateOfRole).toBe("standard-repairer");
+      expect(second.contract.role).toBe("standard-repair-implementer");
+      expect(second.duplicateOfRole).toBe("standard-repair-implementer");
       expect(registry.count()).toBe(1);
     });
 

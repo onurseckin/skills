@@ -1,8 +1,16 @@
-import { describe, it, expect } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { TimerProtectionGuard } from "../../../olt/scripts/src/authority/guards/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { cleanupVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
 
 describe("TimerProtectionGuard", () => {
+  beforeEach(() => {
+    setupVirtualAuthorityFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualAuthorityFS();
+  });
   it("blocks subagents from killing protected supervisory timers", () => {
     const caller = { id: "mind-1", role: "mind" };
     const supervisoryTimer = { id: "task-6926", isSupervisory: true, label: "5m watchdog" };

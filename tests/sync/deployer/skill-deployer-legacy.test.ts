@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   getAssistantSkillDirs,
@@ -144,5 +144,33 @@ describe("migrateOwnedLegacyDeployment", () => {
 
     const migrated = await migrateOwnedLegacyDeployment(targetOlt, root);
     expect(migrated).toBe(true);
+  });
+
+  test("edge cases: corrupt skill-config, trailing slashes in homeDir, and incomplete installation.json", async () => {
+    const root = scratchRoot(import.meta.path, "deployer-legacy-edge");
+
+    // 1. Trailing slashes in homeDir
+    const dirs = getAssistantSkillDirs("/Users/dummy/");
+    expect(dirs.every((d) => !d.includes("//"))).toBe(true);
+    expect(dirs).toContain("/Users/dummy/.gemini/config/skills");
+
+    // 2. Corrupted skill-config.json
+    const targetCorrupt = join(root, "olt-corrupt");
+    mkdirSync(targetCorrupt, { recursive: true });
+    writeFileSync(join(targetCorrupt, "skill-config.json"), "{ invalid json");
+    expect(migrateOwnedLegacyDeployment(targetCorrupt, root)).rejects.toThrow(
+      /refusing to replace untrusted global skill directory/,
+    );
+
+    // 3. Incomplete installation.json without valid schema
+    const targetIncomplete = join(root, "olt-incomplete");
+    initFakeSkillsRepo(root);
+    initFakeTargetOlt(targetIncomplete, { homeRepoRoot: root });
+    writeFileSync(join(targetIncomplete, "installation.json"), JSON.stringify({ incomplete: true }));
+    // Since installation.json lacks valid schema, it proceeds to migrate ownership and overwrites with valid sealed manifest
+    const migrated = await migrateOwnedLegacyDeployment(targetIncomplete, root);
+    expect(migrated).toBe(true);
+    const resultManifest = JSON.parse(readFileSync(join(targetIncomplete, "installation.json"), "utf-8"));
+    expect(resultManifest.schema).toBe("harness.installation");
   });
 });

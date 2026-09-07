@@ -104,7 +104,7 @@ describe("role capability documents bind the CLI", () => {
 
   test("dispatch enforcement stays out of the way when no identity is named", () => {
     const flags: Flags = { run: "/nonexistent/capsule" };
-    expect(() => assertGrantedCommand(spec("run:status"), flags)).not.toThrow();
+    expect(() => assertGrantedCommand(spec("report"), flags)).not.toThrow();
   });
 
   test("a capsule that does not exist yet carries no ledger to enforce against", () => {

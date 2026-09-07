@@ -8,6 +8,12 @@ import {
 
 describe("Authority Manifest Comprehensive - Schema & YAML Parsing", () => {
   test("parseUnifiedAgentManifest and validateUnifiedAgentManifest complete error paths", () => {
+    expect(() => parseUnifiedAgentManifest("")).toThrow(
+      "expected a document, but the input is empty",
+    );
+    expect(() => parseUnifiedAgentManifest("   \n\n  ")).toThrow(
+      "expected a document, but the input is empty",
+    );
     expect(() => parseUnifiedAgentManifest("just a string")).toThrow(
       "YAML document must be an object",
     );
@@ -106,6 +112,13 @@ dispatch_contract: "custom_dispatch_spec"
     const invalidResult = validateUnifiedAgentManifest(invalidManifest);
     expect(invalidResult.valid).toBe(false);
     expect(invalidResult.errors.length).toBeGreaterThan(10);
+
+    const missingMandatoryManifest = {} as unknown as UnifiedAgentManifest;
+    const missingResult = validateUnifiedAgentManifest(missingMandatoryManifest);
+    expect(missingResult.valid).toBe(false);
+    expect(missingResult.errors).toContain("Field 'name' must be a string");
+    expect(missingResult.errors).toContain("Field 'role' must be a string");
+    expect(missingResult.errors).toContain("Field 'tier' must be a number or 'independent'");
   });
 
   test("parseYaml block scalar variations and advanced structures", () => {
@@ -156,5 +169,13 @@ stripped: |-
 `;
     const parsedStrip = parseYaml(stripYaml) as { stripped: string };
     expect(parsedStrip.stripped).toBe("text without trailing newline");
+
+    const keepYaml = `
+kept: |+
+  text with trailing newlines
+
+`;
+    const parsedKeep = parseYaml(keepYaml) as { kept: string };
+    expect(parsedKeep.kept).toBe("text with trailing newlines\n\n");
   });
 });

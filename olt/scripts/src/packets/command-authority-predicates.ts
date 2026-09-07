@@ -7,15 +7,7 @@ import {
 } from "./command-authority-remediation.ts";
 
 export function isMechanicValidatorRole(role: string): boolean {
-  const normalized = role.toLowerCase().trim();
-  return (
-    normalized === "mechanic-validator" ||
-    normalized === "ui-mechanic-validator" ||
-    normalized === "ui-headless-validator" ||
-    normalized === "mechanic_validator" ||
-    normalized.startsWith("mechanic-") ||
-    normalized.endsWith("-mechanic-validator")
-  );
+  return role.toLowerCase().trim() === "ui-headless-validator";
 }
 
 export function isCognitiveValidatorRole(role: string): boolean {
@@ -23,7 +15,6 @@ export function isCognitiveValidatorRole(role: string): boolean {
   if (isMechanicValidatorRole(normalized)) return false;
   return (
     normalized === "validator" ||
-    normalized === "ui-validator" ||
     normalized === "ui-optical-validator" ||
     normalized.startsWith("validator-")
   );

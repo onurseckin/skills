@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import {
   assertDoctorGatePassed,
   auditDoctorGate,
@@ -30,6 +30,34 @@ function createMockPort(initialState: Record<string, unknown>): TransactionPort 
 }
 
 describe("Core Scheduler Engine Suite", () => {
+  beforeAll(async () => {
+    setupVirtualBrowserFS();
+    try {
+      const root = tempDir("warmup-doc");
+      const runRoot = initRun(
+        root,
+        "run-warmup-doc",
+        Buffer.from("Warmup doctor gate JIT"),
+        "argv",
+        true,
+      );
+      await auditDoctorGate(runRoot, { repoRoot: root });
+      await assertDoctorGatePassed(runRoot, { repoRoot: root });
+      try {
+        await assertDoctorGatePassed("/virtual/nonexistent", { repoRoot: "/virtual/empty" });
+      } catch {}
+      const dummyEngine = new SchedulerEngine({ watchdogTarget: runRoot });
+      const st = schedulerState();
+      dummyEngine.registerSupervisoryHeartbeat("warmup-leader");
+      dummyEngine.auditSupervisory5Point(st);
+      await dummyEngine.auditDoctor(runRoot, { repoRoot: root });
+      await dummyEngine.runDoctorGate(runRoot, { repoRoot: root });
+      await dummyEngine.auditScriptBackedDiagnostics({ state: st });
+      await dummyEngine.runScriptBackedDiagnostics({ state: st });
+    } catch {}
+    cleanupVirtualBrowserFS();
+  });
+
   beforeEach(() => {
     setupVirtualBrowserFS();
   });
@@ -40,23 +68,34 @@ describe("Core Scheduler Engine Suite", () => {
 
   describe("Zero-Tolerance Doctor Gate Enforcement (p25)", () => {
     test("assertDoctorGatePassed throws HarnessError on failing doctor check", async () => {
-      await expect(assertDoctorGatePassed("/nonexistent/run/directory")).rejects.toThrow(
-        HarnessError,
-      );
+      await expect(
+        assertDoctorGatePassed("/virtual/nonexistent/run/directory", { repoRoot: "/virtual/empty" }),
+      ).rejects.toThrow(HarnessError);
     });
 
-    test("auditDoctorGate and assertDoctorGatePassed succeed on healthy initialized run", async () => {
-      const root = tempDir("doctor-gate-healthy");
+    test("auditDoctorGate succeeds on healthy initialized run", async () => {
+      const root = tempDir("doctor-gate-healthy-audit");
       const runRoot = initRun(
         root,
-        "run-healthy-doc",
+        "run-healthy-doc-audit",
         Buffer.from("Verify doctor gate passes cleanly"),
         "argv",
         true,
       );
-      const auditRes = await auditDoctorGate(runRoot);
+      const auditRes = await auditDoctorGate(runRoot, { repoRoot: root });
       expect(auditRes.healthy).toBe(true);
-      const assertRes = await assertDoctorGatePassed(runRoot);
+    });
+
+    test("assertDoctorGatePassed succeeds on healthy initialized run", async () => {
+      const root = tempDir("doctor-gate-healthy-assert");
+      const runRoot = initRun(
+        root,
+        "run-healthy-doc-assert",
+        Buffer.from("Verify doctor gate passes cleanly"),
+        "argv",
+        true,
+      );
+      const assertRes = await assertDoctorGatePassed(runRoot, { repoRoot: root });
       expect(assertRes.healthy).toBe(true);
     });
   });
@@ -79,7 +118,7 @@ describe("Core Scheduler Engine Suite", () => {
       const ticksRecorded: number[] = [];
       const loopResult = await runPulseLoop(port, {
         maxTicks: 3,
-        intervalMs: 10,
+        intervalMs: 0,
         onTick: (res) => ticksRecorded.push(res.tickNumber),
       });
       expect(loopResult.totalTicks).toBe(3);
@@ -95,7 +134,7 @@ describe("Core Scheduler Engine Suite", () => {
       const port = createMockPort(state);
       const loopResult = await runPulseLoop(port, {
         maxTicks: 10,
-        intervalMs: 10,
+        intervalMs: 0,
         stopWhenDone: true,
       });
       expect(loopResult.totalTicks).toBe(1);
@@ -106,12 +145,14 @@ describe("Core Scheduler Engine Suite", () => {
       const state = schedulerState();
       const port = createMockPort(state);
       const controller = new AbortController();
-      setTimeout(() => controller.abort(), 25);
 
       const loopResult = await runPulseLoop(port, {
         maxTicks: 100,
-        intervalMs: 10,
+        intervalMs: 0,
         signal: controller.signal,
+        onTick: (res) => {
+          if (res.tickNumber >= 2) controller.abort();
+        },
       });
       expect(loopResult.stoppedReason).toBe("aborted");
       expect(loopResult.totalTicks).toBeLessThan(100);
@@ -120,7 +161,12 @@ describe("Core Scheduler Engine Suite", () => {
     test("executePulseTick handles watchdog registration fallback and unexpected error recovery", () => {
       const state = schedulerState();
       const port = createMockPort(state);
-      const resWithWatchdog = executePulseTick(port, { tickNumber: 1, watchdogId: "pulse-wd-1" });
+      const wdTarget = tempDir("pulse-wd-root");
+      const resWithWatchdog = executePulseTick(port, {
+        tickNumber: 1,
+        watchdogId: "pulse-wd-1",
+        watchdogTarget: wdTarget,
+      });
       expect(resWithWatchdog.tickNumber).toBe(1);
 
       const failingPort: TransactionPort = {
@@ -148,6 +194,7 @@ describe("Core Scheduler Engine Suite", () => {
 
       const result = await runPulseLoop(failingPort, {
         maxTicks: 1,
+        intervalMs: 0,
         onError: () => {
           errorReported = true;
         },
@@ -165,6 +212,7 @@ describe("Core Scheduler Engine Suite", () => {
       const port = createMockPort(state);
       const loopResult = await runPulseLoop(port, {
         maxTicks: 1,
+        intervalMs: 0,
         runDiagnostics: true,
         diagnosticsOptions: {
           inspectors: ["failing:check" as unknown as "doctor"],
@@ -180,6 +228,28 @@ describe("Core Scheduler Engine Suite", () => {
       expect(loopResult.errors.some((e) => e.includes("Diagnostics explosion"))).toBe(true);
     });
 
+    test("runPulseLoop handles pre-aborted signal and zero maxTicks cleanly", async () => {
+      const state = schedulerState();
+      const port = createMockPort(state);
+      const preAbortedController = new AbortController();
+      preAbortedController.abort();
+
+      const abortedLoop = await runPulseLoop(port, {
+        maxTicks: 10,
+        intervalMs: 0,
+        signal: preAbortedController.signal,
+      });
+      expect(abortedLoop.stoppedReason).toBe("aborted");
+      expect(abortedLoop.totalTicks).toBe(0);
+
+      const zeroTickLoop = await runPulseLoop(port, {
+        maxTicks: 0,
+        intervalMs: 0,
+      });
+      expect(zeroTickLoop.stoppedReason).toBe("max_ticks_reached");
+      expect(zeroTickLoop.totalTicks).toBe(0);
+    });
+
     test("runPulseLoop stops on mid-loop abort signal", async () => {
       const state = schedulerState();
       const port = createMockPort(state);
@@ -188,7 +258,7 @@ describe("Core Scheduler Engine Suite", () => {
 
       const loopResult = await runPulseLoop(port, {
         maxTicks: 5,
-        intervalMs: 10,
+        intervalMs: 0,
         signal: controller.signal,
         onTick: () => {
           count++;
@@ -201,7 +271,7 @@ describe("Core Scheduler Engine Suite", () => {
   });
 
   describe("Complete SchedulerEngine Instance Methods", () => {
-    test("SchedulerEngine executes complete suite of methods", async () => {
+    test("SchedulerEngine executes health, watchdog, and supervisory audits", () => {
       const heartbeatRepo = tempDir("engine-watchdog-test");
       const heartbeatRun = initRun(
         heartbeatRepo,
@@ -219,11 +289,22 @@ describe("Core Scheduler Engine Suite", () => {
       });
 
       const state = schedulerState();
-      const port = createMockPort(state);
-
       expect(engine.auditHealth(state).healthy).toBe(true);
       expect(engine.auditWatchdog()).toBeDefined();
       expect(engine.auditSupervisory5Point(state).healthy).toBe(true);
+      expect(engine.registerSupervisoryHeartbeat("test-leader-1").agent_id).toBe("test-leader-1");
+    });
+
+    test("SchedulerEngine executes probe dispatch, wave evaluation, and recovery", () => {
+      const engine = new SchedulerEngine({
+        heartbeatCadenceMs: 5000,
+        timeoutMs: 10000,
+        maxRepairRounds: 3,
+        maxParallel: 4,
+      });
+
+      const state = schedulerState();
+      const port = createMockPort(state);
 
       const leaderProbe = engine.dispatchTopLeaderProbe(state);
       expect(leaderProbe.dispatched).toBe(true);
@@ -238,26 +319,55 @@ describe("Core Scheduler Engine Suite", () => {
       expect(engine.dispatchMultiDomainValidators(state, { maxParallel: 3 })).toBeDefined();
       expect(engine.proposeMultiDomainWave(state, { maxParallel: 3 })).toBeDefined();
       expect(engine.recoverStale(port)).toBeDefined();
+    });
 
-      expect(engine.registerSupervisoryHeartbeat("test-leader-1").agent_id).toBe("test-leader-1");
+    test("SchedulerEngine executes auditDoctor", async () => {
+      const engine = new SchedulerEngine({
+        heartbeatCadenceMs: 5000,
+        timeoutMs: 10000,
+      });
 
-      const root = tempDir("engine-doctor-test");
+      const root = tempDir("engine-doctor-audit");
       const runRoot = initRun(
         root,
-        "run-engine-doc",
-        Buffer.from("Test prompt for engine doctor"),
+        "run-engine-doc-audit",
+        Buffer.from("Test prompt for engine doctor audit"),
         "argv",
         true,
       );
-      expect((await engine.auditDoctor(runRoot)).healthy).toBe(true);
-      expect((await engine.runDoctorGate(runRoot)).healthy).toBe(true);
+      expect((await engine.auditDoctor(runRoot, { repoRoot: root })).healthy).toBe(true);
+    });
 
+    test("SchedulerEngine executes runDoctorGate", async () => {
+      const engine = new SchedulerEngine({
+        heartbeatCadenceMs: 5000,
+        timeoutMs: 10000,
+      });
+
+      const root = tempDir("engine-doctor-run");
+      const runRoot = initRun(
+        root,
+        "run-engine-doc-run",
+        Buffer.from("Test prompt for engine doctor run"),
+        "argv",
+        true,
+      );
+      expect((await engine.runDoctorGate(runRoot, { repoRoot: root })).healthy).toBe(true);
+    });
+
+    test("SchedulerEngine executes script-backed diagnostics", async () => {
+      const engine = new SchedulerEngine({
+        heartbeatCadenceMs: 5000,
+        timeoutMs: 10000,
+      });
+
+      const state = schedulerState();
       expect(
         (await engine.auditScriptBackedDiagnostics({ state })).receipts.length,
       ).toBeGreaterThan(0);
       expect((await engine.runScriptBackedDiagnostics({ state })).receipts.length).toBeGreaterThan(
         0,
       );
-    }, 20000);
+    });
   });
 });

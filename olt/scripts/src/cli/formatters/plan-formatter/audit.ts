@@ -64,8 +64,8 @@ export function formatPlanReviewBrief(params: PlanReviewParams): string {
     `- **Summary**: ${params.summary}`,
     `- **Coverage**: ${params.dependencyEdgesReviewed} dependency edge(s) and ${params.gateIdsReviewed} gate(s) named, verified against the compiled plan.`,
     approved
-      ? "- **Dispatch**: implementers and repairers may now claim tasks under this graph revision."
-      : `- **Findings**: ${params.findingsCount} — every implementer and repairer claim against graph revision ${params.graphRevision} is refused until a fresh compile passes plan:review.`,
+      ? "- **Dispatch**: implementers may now claim tasks under this graph revision."
+      : `- **Findings**: ${params.findingsCount} — every implementer claim against graph revision ${params.graphRevision} is refused until a fresh compile passes plan:review.`,
     `- **Next Step**: ${approved ? "proceed to Phase 2 continuous dispatch." : "replan (plan:add / plan:compile) and dispatch a fresh plan-validator against the new revision."}`,
     ...nextActionsBlock(planReviewNextActions(params.runId, approved)),
   ].join("\n");

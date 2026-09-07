@@ -105,7 +105,7 @@ export interface WriteScopeBoundary {
 
 export interface TaskInvariantChecklist {
   readonly taskId: string;
-  readonly role: "implementer" | "validator" | "repairer";
+  readonly role: "implementer" | "validator";
   readonly tier: number;
   readonly invariants: readonly TaskInvariantItem[];
   readonly writeScopeBoundary: WriteScopeBoundary;
@@ -153,7 +153,7 @@ export interface PreEnhancementTaskInput {
   readonly requirementIds?: readonly string[] | undefined;
   readonly description?: string | undefined;
   readonly depReasons?: Readonly<Record<string, string>> | undefined;
-  readonly roleContract?: "implementer" | "validator" | "repairer" | undefined;
+  readonly roleContract?: "implementer" | "validator" | undefined;
 }
 
 export interface PreEnhancedTaskResult {

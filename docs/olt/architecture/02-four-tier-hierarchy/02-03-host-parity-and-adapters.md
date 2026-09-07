@@ -90,7 +90,7 @@ $$\forall H_a, H_b \in \mathcal{H}, \quad \text{Exec}(\mathcal{M}, H_a) \cong \t
 
 ## 4. Universal Host Adapter Interface Contract
 
-The adapter interface is defined in TypeScript under [`host/types.ts`](../../../../olt/scripts/src/authority/host/types.ts):
+The adapter interface is defined in TypeScript under [`host/types.ts`](../../../../olt/scripts/src/platform/host/types.ts):
 
 ```typescript
 export interface SubagentSpawnOptions {

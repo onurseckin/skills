@@ -124,13 +124,35 @@ describe(commandLockSuiteName, () => {
 
   test("infers validator role from agent naming convention in grants", () => {
     const res = cle.checkCognitiveValidatorCommandLock({
-      grants: [{ id: "agent-x", role: "ui-validator" }],
+      grants: [{ id: "agent-x", role: "ui-optical-validator" }],
       commands: [{ actor: "agent-x", command: "bun test tests/mind/view.test.ts" }],
     });
     expect(
       !res.passed &&
         res.findings.length === 1 &&
         res.findings[0]?.code === "COGNITIVE_VALIDATOR_COMMAND_LOCK_VIOLATION",
+    ).toBe(true);
+  });
+
+  test("allows ui-headless-validator to execute Playwright commands (mechanic role is not command-locked)", () => {
+    const res = checkSt({ "agent-x": { role: "ui-headless-validator" } }, [
+      { agent_id: "agent-x", command: "npx playwright test" },
+    ]);
+    expect(
+      res.engine === "checkCognitiveValidatorCommandLock" &&
+        res.passed &&
+        res.findings.length === 0,
+    ).toBe(true);
+  });
+
+  test("infers ui-headless-validator role from agent naming convention and does not lock it", () => {
+    const res = cle.checkCognitiveValidatorCommandLock({
+      commands: [{ actor: "ui-headless-validator-1", command: "npx playwright test" }],
+    });
+    expect(
+      res.engine === "checkCognitiveValidatorCommandLock" &&
+        res.passed &&
+        res.findings.length === 0,
     ).toBe(true);
   });
 

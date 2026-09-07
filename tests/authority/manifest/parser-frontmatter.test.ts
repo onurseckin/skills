@@ -1,10 +1,22 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   parseMarkdownFrontmatter,
   parseRoleContract,
 } from "../../../olt/scripts/src/authority/manifest/index.ts";
+import {
+  cleanupVirtualAuthorityFS,
+  setupVirtualAuthorityFS,
+} from "../fixture.ts";
 
 describe("Authority Manifest Parser - Markdown Frontmatter", () => {
+  beforeEach(() => {
+    setupVirtualAuthorityFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualAuthorityFS();
+  });
+
   test("extracts markdown frontmatter and body cleanly", () => {
     const markdown = `---
 role: coordinator
@@ -74,4 +86,35 @@ Coordinator owns the run, not the code.
     expect(contract.body).toContain("# Coordinator Contract");
     expect(contract.filePath).toBe("roles/coordinator.md");
   });
+
+  test("preserves horizontal rules and markdown code blocks with --- within prose body", () => {
+    const markdown = `---
+role: coordinator
+tier: 2
+---
+# Section 1
+---
+Section 2 with hr above.
+\`\`\`yaml
+---
+embedded: yaml
+---
+\`\`\`
+`;
+    const { frontmatter, body } = parseMarkdownFrontmatter<Record<string, unknown>>(markdown);
+    expect(frontmatter.role).toBe("coordinator");
+    expect(body).toContain("# Section 1\n---\nSection 2");
+    expect(body).toContain("embedded: yaml");
+  });
+
+  test("handles CRLF (\\r\\n) line endings seamlessly", () => {
+    const markdown =
+      "---\r\nrole: validator\r\ntier: 3\r\n---\r\n\r\n# Validator\r\n\r\nValidates contracts.\r\n";
+    const { frontmatter, body } = parseMarkdownFrontmatter<Record<string, unknown>>(markdown);
+    expect(frontmatter.role).toBe("validator");
+    expect(frontmatter.tier).toBe(3);
+    expect(body).toContain("# Validator");
+    expect(body).not.toContain("\r");
+  });
 });
+

@@ -269,4 +269,43 @@ describe("restricted Git policy", () => {
       rmSync(root, { recursive: true, force: true });
     }
   });
+
+  test("strictly scrubs ambient Git worktree, index, and namespace injection variables", () => {
+    const scrubbed = repositoryGitEnvironment({
+      PATH: "/usr/bin:/bin",
+      LANG: "C",
+      GIT_WORK_TREE: "/poison/worktree",
+      GIT_INDEX_FILE: "/poison/index",
+      GIT_OBJECT_DIRECTORY: "/poison/objects",
+      GIT_NAMESPACE: "poison-ns",
+      GIT_CONFIG_PARAMETERS: "'evil.setting=1'",
+    });
+    expect(scrubbed).toEqual({ ...restrictedEnvironment, LANG: "C", PATH: "/usr/bin:/bin" });
+    expect(scrubbed.GIT_WORK_TREE).toBeUndefined();
+    expect(scrubbed.GIT_INDEX_FILE).toBeUndefined();
+    expect(scrubbed.GIT_OBJECT_DIRECTORY).toBeUndefined();
+    expect(scrubbed.GIT_NAMESPACE).toBeUndefined();
+    expect(scrubbed.GIT_CONFIG_PARAMETERS).toBeUndefined();
+  });
+
+  test("rejects relative or empty PATH in repositoryGitEnvironment", () => {
+    expect(() => repositoryGitEnvironment({ PATH: "relative/bin" })).toThrow(
+      "repository Git PATH must contain absolute directories",
+    );
+    expect(() => repositoryGitEnvironment({})).toThrow(
+      "repository Git PATH must contain absolute directories",
+    );
+  });
+
+  test("handles unaccepted or smuggled git commands without modifying non-diff invocations", () => {
+    expect(restrictedGateGitArgv(["/usr/bin/git", "status"])).toEqual(["/usr/bin/git", "status"]);
+    expect(
+      restrictedGateGitArgv(["/usr/bin/git", "-c", "core.editor=calc", "diff", "--check"]),
+    ).toEqual(["/usr/bin/git", "-c", "core.editor=calc", "diff", "--check"]);
+    expect(restrictedGateGitArgv(["not-git", "diff", "--check"])).toEqual([
+      "not-git",
+      "diff",
+      "--check",
+    ]);
+  });
 });

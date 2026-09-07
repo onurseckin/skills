@@ -1,6 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
-import { realpathSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import type { CommandAttemptRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
@@ -15,7 +13,7 @@ import type {
   AttemptResult,
   NormalizedCommandOptions,
 } from "../../../olt/scripts/src/engine/runner/types/types.ts";
-import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import { getRunnerVfs, tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
 const repositoryBinding: RepositoryBinding = {
   schema: "harness.repository-binding",
@@ -28,21 +26,26 @@ const repositoryBinding: RepositoryBinding = {
 };
 const observer = { inspectRepository: () => repositoryBinding };
 
+beforeEach(() => {
+  getRunnerVfs();
+});
+
 afterEach(cleanupTempRoots);
 
-async function repository(): Promise<string> {
+function repository(): string {
   const root = tempRoot("gate-provenance");
-  await mkdir(join(root, "bin"));
-  await mkdir(join(root, ".olt", "capsules", "commands"), { recursive: true });
+  const vfs = getRunnerVfs();
+  vfs.mkdirSync(join(root, "bin"), { recursive: true });
+  vfs.mkdirSync(join(root, ".olt", "capsules", "commands"), { recursive: true });
   return root;
 }
 
-async function tools(names: readonly string[]): Promise<string> {
+function tools(names: readonly string[]): string {
   const root = tempRoot("tools-bin");
+  const vfs = getRunnerVfs();
   for (const name of names) {
     const path = join(root, name);
-    await writeFile(path, "#!/bin/sh\nexit 0\n");
-    await chmod(path, 0o700);
+    vfs.writeFileSync(path, "#!/bin/sh\nexit 0\n", { mode: 0o700 });
   }
   return root;
 }
@@ -75,12 +78,13 @@ function success(id: string, attempt = 1): AttemptResult {
 }
 
 describe("gate trusted-host provenance", () => {
-  test("binds only literal executable, script, config, and target operands", async () => {
-    const root = await repository();
-    const bin = await tools(["bun"]);
-    await mkdir(join(root, "src"));
-    await writeFile(join(root, "src", "check.ts"), "export {};\n");
-    await writeFile(join(root, "bunfig.toml"), "[test]\n");
+  test("binds only literal executable, script, config, and target operands", () => {
+    const root = repository();
+    const bin = tools(["bun"]);
+    const vfs = getRunnerVfs();
+    vfs.mkdirSync(join(root, "src"), { recursive: true });
+    vfs.writeFileSync(join(root, "src", "check.ts"), "export {};\n");
+    vfs.writeFileSync(join(root, "bunfig.toml"), "[test]\n");
     const bindings = captureGatePathBindings(
       root,
       root,
@@ -97,9 +101,10 @@ describe("gate trusted-host provenance", () => {
   });
 
   test("executes with the recorded safe environment and excludes injection variables", async () => {
-    const root = await repository();
+    const root = repository();
+    const vfs = getRunnerVfs();
     const executable = join(root, "bin", "verify");
-    await writeFile(executable, "#!/bin/sh\nexit 0\n", { mode: 0o700 });
+    vfs.writeFileSync(executable, "#!/bin/sh\nexit 0\n", { mode: 0o700 });
     const previousNodeOptions = process.env.NODE_OPTIONS;
     const previousInterpreterPath = process.env.PYTHONPATH;
     const previousNodePath = process.env.NODE_PATH;
@@ -135,7 +140,7 @@ describe("gate trusted-host provenance", () => {
         [NO_TEST_PLUGIN_AUTOLOAD]: "1",
       });
       expect(prepared.record.environment?.[OWNERSHIP_ENV]).toMatch(/^[0-9a-f-]{36}$/u);
-      expect(executed!.argv[0]).toBe(realpathSync(executable));
+      expect(executed!.argv[0]).toBe(executable.replace(/\\/g, "/"));
     } finally {
       if (previousNodeOptions === undefined) delete process.env.NODE_OPTIONS;
       else process.env.NODE_OPTIONS = previousNodeOptions;
@@ -147,13 +152,14 @@ describe("gate trusted-host provenance", () => {
   });
 
   test("persists a terminal integrity failure when a control changes during an attempt", async () => {
-    const root = await repository();
+    const root = repository();
+    const vfs = getRunnerVfs();
     const executable = join(root, "bin", "verify");
-    await writeFile(executable, "#!/bin/sh\nexit 0\n", { mode: 0o700 });
+    vfs.writeFileSync(executable, "#!/bin/sh\nexit 0\n", { mode: 0o700 });
     const runner = createInternalCommandRunner({
       ...observer,
       attempt: async (_options, attempt, id) => {
-        await writeFile(executable, "#!/bin/sh\nexit 1\n", { mode: 0o700 });
+        vfs.writeFileSync(executable, "#!/bin/sh\nexit 1\n", { mode: 0o700 });
         return success(id, attempt);
       },
     });
@@ -168,15 +174,16 @@ describe("gate trusted-host provenance", () => {
     await expect(runner.executePreparedCommand(prepared)).rejects.toThrow(
       /post-attempt|identity|digest|changed/i,
     );
-    const stored = JSON.parse(await readFile(prepared.recordPath, "utf8"));
+    const stored = JSON.parse(vfs.readFileSync(prepared.recordPath, "utf8"));
     expect(stored.status).toBe("failed");
     expect(stored.evidence_error).toMatch(/post-attempt|identity|digest|changed/i);
   });
 
   test("does not execute from caller-mutated bindings or environment", async () => {
-    const root = await repository();
+    const root = repository();
+    const vfs = getRunnerVfs();
     const executable = join(root, "bin", "verify");
-    await writeFile(executable, "#!/bin/sh\nexit 0\n", { mode: 0o700 });
+    vfs.writeFileSync(executable, "#!/bin/sh\nexit 0\n", { mode: 0o700 });
     let invoked = false;
     const runner = createInternalCommandRunner({
       ...observer,
@@ -193,7 +200,7 @@ describe("gate trusted-host provenance", () => {
       actor: "validator",
       gateId: "G-intent",
     });
-    await writeFile(executable, "#!/bin/sh\nexit 1\n", { mode: 0o700 });
+    vfs.writeFileSync(executable, "#!/bin/sh\nexit 1\n", { mode: 0o700 });
     prepared.record.path_bindings = captureGatePathBindings(root, root, ["./bin/verify"]);
     prepared.record.environment!.LANG = "caller-mutated";
     await expect(runner.executePreparedCommand(prepared)).rejects.toThrow(/durable|intent|record/i);

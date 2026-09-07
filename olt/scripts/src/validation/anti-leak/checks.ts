@@ -42,11 +42,8 @@ export const PROHIBITED_COGNITIVE_ACTIONS: ReadonlySet<string> = new Set([
 ]);
 
 export const MECHANIC_VALIDATOR_ROLES: ReadonlySet<string> = new Set([
-  "mechanic-validator",
-  "ui-mechanic-validator",
   "ui-headless-validator",
   "headless-validator",
-  "mechanic_validator",
 ]);
 
 export function isMechanicValidatorRole(role: string): boolean {
@@ -59,7 +56,6 @@ export function isCognitiveValidatorRole(role: string): boolean {
   if (isMechanicValidatorRole(normalized)) return false;
   return (
     normalized === "validator" ||
-    normalized === "ui-validator" ||
     normalized === "ui-optical-validator" ||
     normalized === "optical-validator" ||
     normalized.startsWith("validator-") ||
@@ -169,7 +165,7 @@ export function isBoundaryLeakViolation(check: BoundaryLeakCheck): boolean {
     return true;
   }
 
-  // 5. Metadata indicating self-repair or validator-as-repairer assignment
+  // 5. Metadata indicating self-repair or validator-as-implementer assignment
   if (check.metadata) {
     const assignedRepairer = check.metadata["assigned_repairer"];
     const validatorId = check.metadata["validator_id"];

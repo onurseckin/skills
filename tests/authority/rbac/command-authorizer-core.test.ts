@@ -30,7 +30,8 @@ describe("Authority RBAC - Command Authorizer Core Verification", () => {
       "cognitive-validator",
       "cognitive_validator",
       "completeness-critic",
-      "ui-validator",
+      "ui-headless-validator",
+      "ui-optical-validator",
       "sub-validator",
       "plan-validator",
     ];

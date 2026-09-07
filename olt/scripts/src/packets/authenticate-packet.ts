@@ -52,7 +52,7 @@ export function authenticatePacketIdentity(
   if (!Number.isSafeInteger(input.attempt) || input.attempt < 1) {
     throw new HarnessError("INVALID_ARGUMENT", "packet attempt must be a positive integer");
   }
-  const taskRole = ["implementer", "repairer", "validator"].includes(input.role);
+  const taskRole = ["implementer", "validator"].includes(input.role);
   const now = (input.clock ?? systemClock).now().valueOf();
   if (!taskRole) {
     if (input.task)

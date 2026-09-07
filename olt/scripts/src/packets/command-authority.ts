@@ -29,6 +29,8 @@ export {
 
 export { requiresActingIdentity } from "./grant-bootstrap-allowlist.ts";
 
+export { subjectFlag } from "./command-authority-state.ts";
+
 export {
   type DetectedHost,
   resolveCurrentHost,

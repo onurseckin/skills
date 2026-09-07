@@ -143,7 +143,7 @@ export function extractRunSignals(
                   ? match.revalidation_gate
                   : undefined;
             const sev = typeof match.severity === "string" ? match.severity : undefined;
-            let cmdSrc =
+            const cmdSrc =
               typeof match.command_id === "string"
                 ? match.command_id
                 : typeof match.command_source === "string"

@@ -52,9 +52,9 @@ describe("role contract binding", () => {
     input.task!.original_implementer = "author-agent";
     input.agentId = "author-agent";
     input.task!.lease!.agent_id = "author-agent";
-    input.task!.lease!.role = "repairer";
-    const packet = buildPacket({ ...input, role: "repairer", agentId: "author-agent" });
-    expect(packet.metadata.role_contract_sha256).toBe(loadRoleContract("repairer").sha256);
+    input.task!.lease!.role = "implementer";
+    const packet = buildPacket({ ...input, role: "implementer", agentId: "author-agent" });
+    expect(packet.metadata.role_contract_sha256).toBe(loadRoleContract("implementer").sha256);
   });
 
   test("refuses a contract that does not match the packet role", () => {

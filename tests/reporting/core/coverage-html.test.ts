@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import {
   buildHtmlDocument,
@@ -19,7 +18,12 @@ import type {
   CoverageSummary,
   FileCoverageMetric,
 } from "../../../scripts/testing/reporting/types.ts";
-import { cleanupVirtualReportingFS, setupVirtualReportingFS, tempDir } from "../fixture.ts";
+import {
+  cleanupVirtualReportingFS,
+  getVirtualReportingFS,
+  setupVirtualReportingFS,
+  tempDir,
+} from "../fixture.ts";
 
 export const coverageHtmlSuiteName = "Coverage HTML Interactive Report Generation & Templating";
 
@@ -86,11 +90,12 @@ describe(coverageHtmlSuiteName, () => {
 
   describe("html data-extractor", () => {
     it("extractCoverageFileData extracts file info and handles missing files & read errors gracefully", () => {
+      const vfs = getVirtualReportingFS();
       const tmpRoot = tempDir("cov-html-extract");
-      fs.mkdirSync(join(tmpRoot, "src"), { recursive: true });
+      vfs.mkdirSync(join(tmpRoot, "src"), { recursive: true });
       const testSource = "function test() {\n  return 42;\n}\n";
       const srcFile = join(tmpRoot, "src/sample.ts");
-      fs.writeFileSync(srcFile, testSource, "utf-8");
+      vfs.writeFileSync(srcFile, testSource, "utf-8");
 
       const fileMap = new Map<string, FileCoverageMetric>();
       fileMap.set("src/sample.ts", {
@@ -131,7 +136,7 @@ describe(coverageHtmlSuiteName, () => {
       expect(missingData?.sourceLines).toBeUndefined();
 
       const directoryAsFile = join(tmpRoot, "src/dir_as_file");
-      fs.mkdirSync(directoryAsFile, { recursive: true });
+      vfs.mkdirSync(directoryAsFile, { recursive: true });
       const brokenMap = new Map<string, FileCoverageMetric>();
       brokenMap.set("src/dir_as_file", {
         file: "src/dir_as_file",
@@ -174,14 +179,15 @@ describe(coverageHtmlSuiteName, () => {
     });
 
     it("writeInteractiveHtml writes index.html file and creates directory if missing", () => {
+      const vfs = getVirtualReportingFS();
       const tmpRoot = tempDir("cov-html-writer");
       const fileMap = new Map<string, FileCoverageMetric>();
       const summary = buildCoverageSummary(fileMap);
 
       const outPath = writeInteractiveHtml(fileMap, summary, tmpRoot, "cov-html");
-      expect(fs.existsSync(outPath)).toBe(true);
+      expect(vfs.existsSync(outPath)).toBe(true);
 
-      const content = fs.readFileSync(outPath, "utf-8");
+      const content = vfs.readFileSync(outPath, "utf-8");
       expect(content).toContain("<!DOCTYPE html>");
 
       const outPath2 = writeInteractiveHtml(fileMap, summary, tmpRoot, "cov-html");

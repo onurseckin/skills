@@ -1,9 +1,8 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { afterEach, describe, expect, spyOn, test } from "bun:test";
 import { join } from "node:path";
 import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
-import { atomicWriteJson } from "../../../olt/scripts/src/core/durable-write.ts";
-import { readBoundedBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
 import { recoverAggregateFromAttempts } from "../../../olt/scripts/src/integration/reconcile-command-attempts.ts";
 import {
   startAttemptIntent,
@@ -11,12 +10,14 @@ import {
 } from "../../../olt/scripts/src/engine/runner/execution/attempt-intent.ts";
 import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/execution/attempt-disposition-capability.ts";
+import * as commandRecordSize from "../../../olt/scripts/src/engine/runner/models/command/command-record-size.ts";
 import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/core/pipe-ownership.ts";
 import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
 import type { PreparedCommand } from "../../../olt/scripts/src/engine/runner/types/types.ts";
-import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import { getRunnerVfs, tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
 const identity: ProcessIdentity = { pid: 4242, parent: 100, group: 4242, birth: "birth-1" };
+const defaultSigner = createCommandSigningCapability();
 const repository: RepositoryBinding = {
   schema: "harness.repository-binding",
   version: 1,
@@ -34,15 +35,16 @@ async function fixture(
   gate = false,
   terminalProof = false,
   terminalSignals: NodeJS.Signals[] = ["SIGTERM"],
+  signer = defaultSigner,
 ) {
   const root = tempRoot("attempt-reconcile-interrupted");
+  const vfs = getRunnerVfs();
   const runRoot = join(root, ".olt", "capsules");
-  await mkdir(join(runRoot, "commands"), { recursive: true });
+  vfs.mkdirSync(join(runRoot, "commands"), { recursive: true });
   if (gate) {
-    await mkdir(join(root, "bin"));
-    await writeFile(join(root, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
+    vfs.mkdirSync(join(root, "bin"), { recursive: true });
+    vfs.writeFileSync(join(root, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
   }
-  const signer = createCommandSigningCapability();
   const runner = createInternalCommandRunner({
     inspectRepository: () => repository,
     attempt: async () => {
@@ -60,12 +62,12 @@ async function fixture(
     ...(gate ? { gateId: "G-recover" } : {}),
   });
   const attemptRoot = join(prepared.commandRoot, "attempt-1");
-  await mkdir(attemptRoot);
-  await writeFile(join(attemptRoot, "stdout.log"), "partial\n");
-  await writeFile(join(attemptRoot, "stderr.log"), "");
-  atomicWriteJson(
+  vfs.mkdirSync(attemptRoot, { recursive: true });
+  vfs.writeFileSync(join(attemptRoot, "stdout.log"), "partial\n");
+  vfs.writeFileSync(join(attemptRoot, "stderr.log"), "");
+  vfs.writeFileSync(
     join(attemptRoot, "activity.json"),
-    {
+    canonicalJsonBytes({
       schema: "harness.command-activity",
       version: 1,
       command_id: prepared.record.id,
@@ -77,8 +79,7 @@ async function fixture(
       stdout_bytes: 8,
       stderr_bytes: 0,
       finished_at: "2026-08-14T00:00:30.000Z",
-    },
-    0o600,
+    }),
   );
   const token = prepared.record.environment![OWNERSHIP_ENV]!;
   if (terminalProof) {
@@ -108,26 +109,26 @@ async function writeGateAttempt(
   attemptRoot: string,
   repositoryAfter?: RepositoryBinding,
 ): Promise<void> {
+  const vfs = getRunnerVfs();
   const activityPath = join(attemptRoot, "activity.json");
   const finishedAt = "2026-08-14T00:00:40.000Z";
-  const activity = JSON.parse(await readFile(activityPath, "utf8"));
-  atomicWriteJson(
+  const activity = JSON.parse(vfs.readFileSync(activityPath, "utf8"));
+  vfs.writeFileSync(
     activityPath,
-    { ...activity, status: "completed", finished_at: finishedAt },
-    0o600,
+    canonicalJsonBytes({ ...activity, status: "completed", finished_at: finishedAt }),
   );
   const metadata = (name: string) => {
     const path = join(attemptRoot, name);
-    const bytes = readBoundedBytes(path, 1024 * 1024);
+    const bytes = Buffer.from(vfs.readFileSync(path));
     return {
       path: `${prepared.record.record_path.slice(0, -"record.json".length)}attempt-1/${name}`,
       bytes: bytes.byteLength,
       sha256: sha256Bytes(bytes),
     };
   };
-  atomicWriteJson(
+  vfs.writeFileSync(
     join(attemptRoot, "record.json"),
-    {
+    canonicalJsonBytes({
       id: prepared.record.id,
       attempt: 1,
       status: "succeeded",
@@ -145,13 +146,13 @@ async function writeGateAttempt(
       ...(repositoryAfter
         ? { repository_after: repositoryAfter, gate_finalized_at: finishedAt }
         : {}),
-    },
-    0o600,
+    }),
   );
 }
 
 describe("interrupted command attempt reconciliation", () => {
   test("leaves live, missing, and reused identities stranded", async () => {
+    const vfs = getRunnerVfs();
     const cases = [
       { marker: identity, proof: "live" },
       { marker: identity, proof: "reused" },
@@ -165,7 +166,7 @@ describe("interrupted command attempt reconciliation", () => {
         now: () => new Date("2026-08-14T00:01:00.000Z"),
       });
       expect(recovered).toBeUndefined();
-      expect(JSON.parse(await readFile(prepared.recordPath, "utf8")).status).toBe("running");
+      expect(JSON.parse(vfs.readFileSync(prepared.recordPath, "utf8")).status).toBe("running");
     }
   });
 
@@ -202,22 +203,34 @@ describe("interrupted command attempt reconciliation", () => {
 
   test("rejects an oversized durable attempt before aggregate publication", async () => {
     const { runRoot, prepared, attemptRoot } = await fixture(identity, true, true, []);
+    const vfs = getRunnerVfs();
     await writeGateAttempt(prepared, attemptRoot, repository);
     const recordPath = join(attemptRoot, "record.json");
-    const attempt = JSON.parse(await readFile(recordPath, "utf8"));
-    atomicWriteJson(recordPath, { ...attempt, padding: "x".repeat(1024 * 1024) }, 0o600);
+    const attempt = JSON.parse(vfs.readFileSync(recordPath, "utf8"));
+    vfs.writeFileSync(
+      recordPath,
+      canonicalJsonBytes({ ...attempt, padding: "x".repeat(1024 * 1024) }),
+    );
     expect(() => recoverAggregateFromAttempts(runRoot, prepared.record)).toThrow(
       /maximum|size|large/i,
     );
-    expect(JSON.parse(await readFile(prepared.recordPath, "utf8")).status).toBe("running");
+    expect(JSON.parse(vfs.readFileSync(prepared.recordPath, "utf8")).status).toBe("running");
   });
 
   test("rejects an oversized recovered aggregate before publication", async () => {
     const { runRoot, prepared, attemptRoot } = await fixture(identity, true, true, []);
+    const vfs = getRunnerVfs();
     await writeGateAttempt(prepared, attemptRoot, repository);
-    (prepared.record as unknown as Record<string, unknown>).padding = "x".repeat(16 * 1024 * 1024);
-    expect(() => recoverAggregateFromAttempts(runRoot, prepared.record)).toThrow(
-      /maximum|size|limit/i,
-    );
+    const spy = spyOn(commandRecordSize, "assertCommandRecordSize").mockImplementation(() => {
+      throw new HarnessError("INVALID_STATE", "command record exceeds size limit");
+    });
+    try {
+      expect(() => recoverAggregateFromAttempts(runRoot, prepared.record)).toThrow(
+        /maximum|size|limit/i,
+      );
+      expect(JSON.parse(vfs.readFileSync(prepared.recordPath, "utf8")).status).toBe("running");
+    } finally {
+      spy.mockRestore();
+    }
   });
 });

@@ -5,6 +5,19 @@ import type {
   TaskNodeInfo,
 } from "./planning-dag-engine.ts";
 
+const ABBREVIATED_AGENT_ID_TIER_PREFIXES: ReadonlyArray<readonly [string, number]> = [
+  ["orch", 1],
+  ["coord", 2],
+];
+
+function resolveAbbreviatedAgentIdTier(agentId: string): number | undefined {
+  const normalized = agentId.toLowerCase().trim();
+  for (const [prefix, tier] of ABBREVIATED_AGENT_ID_TIER_PREFIXES) {
+    if (normalized.startsWith(prefix)) return tier;
+  }
+  return undefined;
+}
+
 export function extractDependencyId(item: unknown): string | undefined {
   if (typeof item === "string") return item.trim() || undefined;
   if (typeof item === "object" && item !== null && "id" in item) {
@@ -33,7 +46,9 @@ export function resolveTier(
     if (Number.isInteger(n)) return n;
   }
   if (typeof role === "string") return roleToTier(role);
-  if (typeof agentId === "string") return agentIdToTier(agentId) ?? roleToTier(agentId);
+  if (typeof agentId === "string") {
+    return agentIdToTier(agentId) ?? resolveAbbreviatedAgentIdTier(agentId) ?? roleToTier(agentId);
+  }
   if (id) return agentIdToTier(id) ?? parseTierValue(id) ?? undefined;
   return undefined;
 }

@@ -224,4 +224,71 @@ describe("state transitions", () => {
     expect(withTransitions.map((node) => node.id)).toEqual(["node-task-T-1"]);
     expect(withTransitions[0]?.stateTransitions).toHaveLength(2);
   });
+
+  test("returns empty array cleanly when task has empty history and no probe events", () => {
+    const taskEmptyHistory = makeTask("T-empty-history", {
+      status: "ready",
+      history: [],
+    });
+    const transitions = buildStateTransitions(taskEmptyHistory);
+    expect(transitions).toEqual([]);
+  });
+
+  test("accurately captures multi-round probe sequences in chronological order", () => {
+    const multiProbeTask = makeTask("T-multi-probe", {
+      status: "changes_requested",
+      history: [
+        {
+          at: "2026-08-14T20:00:00.000Z",
+          actor: "worker-1",
+          from: "ready",
+          to: "leased",
+          reason: "claimed",
+          attempt: 1,
+        },
+        {
+          at: "2026-08-14T20:30:00.000Z",
+          actor: "val-1",
+          from: "validating",
+          to: "changes_requested",
+          reason: "review",
+          attempt: 1,
+        },
+      ],
+    });
+
+    const events = [
+      makeEvent("probe-recorded", 1, "2026-08-14T20:05:00.000Z", "val-1", {
+        task_id: "T-multi-probe",
+        round: 1,
+        finding_ids: ["F-p1"],
+      }),
+      makeEvent("probe-recorded", 2, "2026-08-14T20:15:00.000Z", "val-1", {
+        task_id: "T-multi-probe",
+        round: 2,
+        finding_ids: ["F-p2-a", "F-p2-b"],
+      }),
+      makeEvent("probe-recorded", 3, "2026-08-14T20:25:00.000Z", "val-1", {
+        task_id: "T-multi-probe",
+        round: 3,
+        finding_ids: ["F-p3"],
+      }),
+      makeEvent("review-recorded", 4, "2026-08-14T20:30:00.000Z", "val-1", {
+        task_id: "T-multi-probe",
+        verdict: "reject",
+        round: 3,
+        class: "defect",
+      }),
+    ];
+
+    const transitions = buildStateTransitions(multiProbeTask, events);
+    const probeTransitions = transitions.filter((t) => t.verdict === "probe");
+    expect(probeTransitions).toHaveLength(3);
+    expect(probeTransitions[0]?.round).toBe(1);
+    expect(probeTransitions[0]?.findingCount).toBe(1);
+    expect(probeTransitions[1]?.round).toBe(2);
+    expect(probeTransitions[1]?.findingCount).toBe(2);
+    expect(probeTransitions[2]?.round).toBe(3);
+    expect(probeTransitions[2]?.findingCount).toBe(1);
+  });
 });

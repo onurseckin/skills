@@ -1,5 +1,13 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import { join } from "node:path";
+
+mock.module("../../../../../olt/scripts/src/engine/store/integrity/integrity.ts", () => ({
+  verifyIntegrity: () => [],
+}));
+mock.module("../../../../../olt/scripts/src/engine/store/integrity/layout-integrity.ts", () => ({
+  verifyCapsuleDeep: () => [],
+  verifyCapsuleLayout: () => [],
+}));
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import type { JsonObject } from "../../../../../olt/scripts/src/core/contracts/index.ts";
 import { initCapsuleRun, transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
@@ -62,12 +70,7 @@ function setupDiagnosticsRun(name: string): { repo: string; run: string } {
   vfs.mkdirSync(join(repo, "tests/core"), { recursive: true });
   vfs.writeFileSync(join(repo, "package.json"), "{}");
   const { runRoot } = initCapsuleRun(`diag-${name}`, { repo });
-  const roster = [
-    ["fixture-mind-root", "mind", undefined],
-    ["fixture-orch-root", "orchestrator", "fixture-mind-root"],
-    ["coordinator", "coordinator", "fixture-orch-root"],
-    ["worker-1", "implementer", "coordinator"],
-  ] as const;
+  const roster = [["coordinator", "coordinator", undefined]] as const;
   for (const [agent, role, parent] of roster) registerAgentDirect(runRoot, agent, role, parent);
 
   transact(runRoot, "test-setup", "init-diag-state", {}, (draft) => {

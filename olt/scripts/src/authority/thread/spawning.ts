@@ -63,7 +63,7 @@ export function validateTierSpawning(
     };
   }
 
-  // Tier 2 (Coordinator) can deploy Tier 3 (Implementers, Validators, Critics, Repairers, Planners)
+  // Tier 2 (Coordinator) can deploy Tier 3 (Implementers, Validators, Critics, Planners)
   if (parentTier === 2) {
     if (childTier === 3) {
       return {
@@ -81,7 +81,7 @@ export function validateTierSpawning(
       childTier,
       parentRole: pRole,
       childRole: cRole,
-      reason: `Tier 2 Coordinator Lead cannot deploy Tier ${childTier} (${cRole}). Coordinators deploy Tier 3 Implementers, Validators, Repairers, and Critics.`,
+      reason: `Tier 2 Coordinator Lead cannot deploy Tier ${childTier} (${cRole}). Coordinators deploy Tier 3 Implementers, Validators, and Critics.`,
     };
   }
 

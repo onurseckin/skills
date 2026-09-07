@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { GitResult, GitRunner } from "../../../olt/scripts/src/workflow/worktree/git.ts";
 import {
@@ -9,7 +8,11 @@ import {
   syncGlobalToDomain,
   synchronizeAllDomains,
 } from "../../../olt/scripts/src/engine/worktree/domain-sync.ts";
-import { cleanupVirtualWorktreeFS, setupVirtualWorktreeFS } from "../fixtures/index.ts";
+import {
+  cleanupVirtualWorktreeFS,
+  getVirtualWorktreeFS,
+  setupVirtualWorktreeFS,
+} from "../fixtures/index.ts";
 
 beforeEach(() => {
   setupVirtualWorktreeFS();
@@ -24,7 +27,7 @@ function trackedDir(prefix: string): string {
     "/virtual",
     `domain-sync-ops-${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
   );
-  mkdirSync(dir, { recursive: true });
+  getVirtualWorktreeFS().mkdirSync(dir, { recursive: true });
   return dir;
 }
 
@@ -247,6 +250,69 @@ describe("Domain Sync: Operations & Synchronization", () => {
       expect(summary.rebaseTarget).toBe("origin/main");
       expect(summary.scopeIsolated).toBe(true);
       expect(ledger.globalSyncSummary).toBe(summary);
+    });
+
+    test("isolates merge conflicts to failedDomains while preserving already synced domains", () => {
+      const repoRoot = trackedDir("repo");
+      const ledgerRoot = trackedDir("ledger");
+      const ledger = createDomainLedger("main", "sha001", ledgerRoot);
+      const { runner } = scripted((call) => {
+        if (call.cwd.includes("domain-sync/backend-system") && call.argv[0] === "merge") {
+          return fail("CONFLICT", 1);
+        }
+        if (call.argv[0] === "diff" && call.argv.includes("--name-only")) {
+          return ok("backend-conflict.ts\n");
+        }
+        if (call.argv[0] === "rev-parse" && call.argv[1] === "HEAD") {
+          return ok("sha_fe_merged\n");
+        }
+        return ok();
+      });
+
+      provisionDomainWorktree(repoRoot, ledger, "frontend-ui", "run-1", runner);
+      provisionDomainWorktree(repoRoot, ledger, "backend-system", "run-1", runner);
+
+      ledger.commits.push({
+        taskId: "task-ui-1",
+        domain: "frontend-ui",
+        worktreeId: "domain-frontend-ui",
+        sha: "sha_ui_1",
+        subject: "feat(frontend-ui): buttons",
+        changedLines: 10,
+        overLimit: false,
+        committedAt: "2026-08-22T14:00:00.000Z",
+        pushed: true,
+      });
+
+      ledger.commits.push({
+        taskId: "task-be-1",
+        domain: "backend-system",
+        worktreeId: "domain-backend-system",
+        sha: "sha_be_1",
+        subject: "feat(backend-system): conflict edit",
+        changedLines: 20,
+        overLimit: false,
+        committedAt: "2026-08-22T14:00:00.000Z",
+        pushed: true,
+      });
+
+      const summary = synchronizeAllDomains({
+        repoRoot,
+        runId: "run-1",
+        ledger,
+        rebaseOnComplete: true,
+        runner,
+      });
+
+      expect(summary.syncedDomains).toEqual(["frontend-ui"]);
+      expect(summary.failedDomains).toEqual(["backend-system"]);
+      expect(summary.totalCommitsSynced).toBe(1);
+      expect(summary.conflicts.length).toBe(1);
+      expect(summary.rebased).toBe(false);
+      expect(summary.scopeIsolated).toBe(false);
+
+      expect(ledger.domains["frontend-ui"]?.status).toBe("synced");
+      expect(ledger.domains["backend-system"]?.status).toBe("conflict");
     });
   });
 });

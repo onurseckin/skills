@@ -9,19 +9,35 @@ import {
   verifyEnvelopeHmac,
 } from "../../../olt/scripts/src/communication/mailbox/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import type {
-  CreateEnvelopeOptions,
-  MailboxEnvelope,
-} from "../../../olt/scripts/src/communication/types.ts";
+import type { CreateEnvelopeOptions, MailboxEnvelope } from "../../../olt/scripts/src/communication/types.ts";
+import { cleanupVirtualCommunicationFS, setupVirtualCommunicationFS, vfs } from "../helpers.ts";
+
+const rootDir = join(process.cwd());
+const sourceFilesToCache = [
+  "olt/scripts/src/communication/mailbox/envelope.ts",
+  "olt/scripts/src/communication/mailbox/index.ts",
+  "tests/communication/envelope/envelope.test.ts",
+];
+const cachedSourceFiles = new Map<string, string>();
+for (const rel of sourceFilesToCache) {
+  const full = join(rootDir, rel);
+  try { cachedSourceFiles.set(full, readFileSync(full, "utf-8")); } catch {}
+}
 
 describe("Mailbox Envelope Cryptographic Serialization & Verification", () => {
   const originalEnvSecret = process.env.OLT_HMAC_SECRET;
 
   beforeEach(() => {
+    setupVirtualCommunicationFS();
+    for (const [fullPath, content] of cachedSourceFiles.entries()) {
+      vfs.mkdirSync(join(fullPath, ".."), { recursive: true });
+      vfs.writeFileSync(fullPath, content);
+    }
     delete process.env.OLT_HMAC_SECRET;
   });
 
   afterEach(() => {
+    cleanupVirtualCommunicationFS();
     if (originalEnvSecret !== undefined) {
       process.env.OLT_HMAC_SECRET = originalEnvSecret;
     } else {
@@ -180,17 +196,11 @@ describe("Mailbox Envelope Cryptographic Serialization & Verification", () => {
         payload: { status: "alive" },
       });
       expect(verifyEnvelopeHmac({ ...envelope, sender_id: "imposter" }).valid).toBe(false);
-      expect(
-        verifyEnvelopeHmac({ ...envelope, message_type: "DEFECT_ESCALATION" as const }).valid,
-      ).toBe(false);
+      expect(verifyEnvelopeHmac({ ...envelope, message_type: "DEFECT_ESCALATION" as const }).valid).toBe(false);
       expect(verifyEnvelopeHmac({ ...envelope, sequence: 11 }).valid).toBe(false);
       expect(verifyEnvelopeHmac({ ...envelope, recipient_id: "wrong-boss" }).valid).toBe(false);
-      expect(verifyEnvelopeHmac({ ...envelope, timestamp: "2099-01-01T00:00:00.000Z" }).valid).toBe(
-        false,
-      );
-      expect(
-        verifyEnvelopeHmac({ ...envelope, correlation_id: "hijacked-correlation-id" }).valid,
-      ).toBe(false);
+      expect(verifyEnvelopeHmac({ ...envelope, timestamp: "2099-01-01T00:00:00.000Z" }).valid).toBe(false);
+      expect(verifyEnvelopeHmac({ ...envelope, correlation_id: "hijacked-correlation-id" }).valid).toBe(false);
     });
 
     it("rejects malformed signature, non-object, and missing signature", () => {
@@ -201,12 +211,8 @@ describe("Mailbox Envelope Cryptographic Serialization & Verification", () => {
         messageType: "PULSE_HEARTBEAT",
         payload: {},
       });
-      expect(verifyEnvelopeHmac({ ...envelope, hmac_signature: "deadbeef00112233" }).valid).toBe(
-        false,
-      );
-      expect(
-        verifyEnvelopeHmac({ ...envelope, hmac_signature: "not_a_valid_hex_string!!" }).valid,
-      ).toBe(false);
+      expect(verifyEnvelopeHmac({ ...envelope, hmac_signature: "deadbeef00112233" }).valid).toBe(false);
+      expect(verifyEnvelopeHmac({ ...envelope, hmac_signature: "not_a_valid_hex_string!!" }).valid).toBe(false);
       expect(verifyEnvelopeHmac({ ...envelope, hmac_signature: "" }).valid).toBe(false);
       expect(verifyEnvelopeHmac(null as unknown as MailboxEnvelope).valid).toBe(false);
       expect(verifyEnvelopeHmac("not-an-object" as unknown as MailboxEnvelope).valid).toBe(false);

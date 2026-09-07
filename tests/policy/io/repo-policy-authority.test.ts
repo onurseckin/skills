@@ -1,16 +1,14 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
+import { join } from "node:path";
 import {
   chmodSync,
+  cleanupVirtualPolicyFS,
   fstatSync,
   linkSync,
-  mkdirSync,
-  readFileSync,
   renameSync,
+  setupVirtualPolicyFS,
   symlinkSync,
-  writeFileSync,
-} from "node:fs";
-import { join } from "node:path";
-import { cleanupVirtualPolicyFS, setupVirtualPolicyFS } from "../fixture.ts";
+} from "../fixture.ts";
 import {
   CURRENT_POLICY_SCHEMA_VERSION,
   generateDefaultRepoPolicy,
@@ -25,9 +23,10 @@ import {
 
 describe("Repo Policy Authority, Safety & Concurrency", () => {
   const scratchBase = "/virtual/policy/io/authority";
+  let vfs = setupVirtualPolicyFS();
 
   beforeEach(() => {
-    setupVirtualPolicyFS();
+    vfs = setupVirtualPolicyFS();
   });
 
   afterEach(() => {
@@ -37,8 +36,8 @@ describe("Repo Policy Authority, Safety & Concurrency", () => {
   test("authority loading rejects escaped, linked, and hard-linked custom policy targets", () => {
     const dir = join(scratchBase, "authority-paths");
     const outside = join(scratchBase, "outside-policy.json");
-    mkdirSync(dir, { recursive: true });
-    writeFileSync(outside, JSON.stringify(generateDefaultRepoPolicy(dir)), "utf-8");
+    vfs.mkdirSync(dir, { recursive: true });
+    vfs.writeFileSync(outside, JSON.stringify(generateDefaultRepoPolicy(dir)), "utf-8");
 
     expect(() => loadRepoPolicy(dir, outside)).toThrow(/PATH_SAFETY|outside/i);
 
@@ -95,11 +94,11 @@ describe("Repo Policy Authority, Safety & Concurrency", () => {
     const policyPath = join(dir, "nested", "policy.json");
     expect(loadRepoPolicy(dir, policyPath).schema_version).toBe(CURRENT_POLICY_SCHEMA_VERSION);
 
-    mkdirSync(join(dir, "nested"), { recursive: true });
-    writeFileSync(policyPath, "{ invalid json", "utf-8");
+    vfs.mkdirSync(join(dir, "nested"), { recursive: true });
+    vfs.writeFileSync(policyPath, "{ invalid json", "utf-8");
     expect(() => loadRepoPolicy(dir, policyPath)).toThrow(/Repository policy.*invalid/i);
 
-    writeFileSync(policyPath, "true", "utf-8");
+    vfs.writeFileSync(policyPath, "true", "utf-8");
     expect(() => loadRepoPolicy(dir, policyPath)).toThrow(/must be an object/i);
 
     const policy = generateDefaultRepoPolicy(process.cwd());
@@ -114,13 +113,13 @@ describe("Repo Policy Authority, Safety & Concurrency", () => {
     const dir = join(scratchBase, "durable-policy-save");
     const policyPath = join(dir, ".olt", "policy.json");
     saveRepoPolicy(generateDefaultRepoPolicy(dir), dir);
-    const originalBytes = readFileSync(policyPath, "utf-8");
+    const originalBytes = vfs.readFileSync(policyPath, "utf-8");
     const repl = { ...generateDefaultRepoPolicy(dir), forbidden_commands: ["curl"] };
 
     expect(() => saveRepoPolicy(repl, dir, undefined, { write: () => 0 })).toThrow(
       /write made no progress/i,
     );
-    expect(readFileSync(policyPath, "utf-8")).toBe(originalBytes);
+    expect(vfs.readFileSync(policyPath, "utf-8")).toBe(originalBytes);
     expect(() =>
       saveRepoPolicy(repl, dir, undefined, {
         fsync: () => {
@@ -128,7 +127,7 @@ describe("Repo Policy Authority, Safety & Concurrency", () => {
         },
       }),
     ).toThrow(/fsync fail/i);
-    expect(readFileSync(policyPath, "utf-8")).toBe(originalBytes);
+    expect(vfs.readFileSync(policyPath, "utf-8")).toBe(originalBytes);
     expect(() =>
       saveRepoPolicy(repl, dir, undefined, {
         rename: () => {
@@ -136,7 +135,7 @@ describe("Repo Policy Authority, Safety & Concurrency", () => {
         },
       }),
     ).toThrow(/rename fail/i);
-    expect(readFileSync(policyPath, "utf-8")).toBe(originalBytes);
+    expect(vfs.readFileSync(policyPath, "utf-8")).toBe(originalBytes);
     expect(() =>
       saveRepoPolicy(repl, dir, undefined, {
         fsyncDirectory: () => {
@@ -158,7 +157,7 @@ describe("Repo Policy Authority, Safety & Concurrency", () => {
       }
     };
     await Promise.all([saveWorker("curl-a"), saveWorker("curl-b")]);
-    const finalBytes = readFileSync(policyPath, "utf-8");
+    const finalBytes = vfs.readFileSync(policyPath, "utf-8");
     expect(() => parseRepoPolicy(JSON.parse(finalBytes) as unknown)).not.toThrow();
     expect(loadRepoPolicy(dir).schema_version).toBe(CURRENT_POLICY_SCHEMA_VERSION);
   });
@@ -209,12 +208,12 @@ describe("Repo Policy Authority, Safety & Concurrency", () => {
 
     expect(inspectRepoPolicy(dir, customPolicyPath).status).toBe("auto_detected");
 
-    mkdirSync(join(dir, ".olt"), { recursive: true });
+    vfs.mkdirSync(join(dir, ".olt"), { recursive: true });
     const sample = generateDefaultRepoPolicy(dir);
-    writeFileSync(customPolicyPath, JSON.stringify(sample, null, 2), "utf-8");
+    vfs.writeFileSync(customPolicyPath, JSON.stringify(sample, null, 2), "utf-8");
     expect(inspectRepoPolicy(dir, customPolicyPath).status).toBe("valid_custom");
 
-    writeFileSync(customPolicyPath, "{ malformed json", "utf-8");
+    vfs.writeFileSync(customPolicyPath, "{ malformed json", "utf-8");
     expect(inspectRepoPolicy(dir, customPolicyPath).status).toBe("invalid_custom");
   });
 });

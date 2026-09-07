@@ -103,7 +103,7 @@ export function authorizedRequirementIds(state: unknown): Set<string> {
   let changed = true;
   while (changed) {
     changed = false;
-    for (const id of [...authorized]) {
+    for (const id of Array.from(authorized)) {
       const dependencies = entries.get(id)?.dependencies ?? [];
       if (!Array.isArray(dependencies) || dependencies.some((value) => !authorized.has(value))) {
         authorized.delete(id);

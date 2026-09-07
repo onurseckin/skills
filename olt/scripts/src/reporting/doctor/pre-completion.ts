@@ -87,8 +87,8 @@ export function checkPreCompletionDiagnostics(
     }
   }
 
-  let orphanEvidenceList: string[] = [];
-  let missingRunGatesList: string[] = [];
+  const orphanEvidenceList: string[] = [];
+  const missingRunGatesList: string[] = [];
   let criticStatusVal: string | null = null;
 
   const stateObj = resolveStateObject(runRoot, options.state);

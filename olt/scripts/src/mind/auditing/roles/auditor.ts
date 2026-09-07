@@ -92,7 +92,7 @@ export function validateParentChildSupervision(
       childRole,
       parentTier: pTier,
       childTier: cTier,
-      reason: `Tier 2 Coordinator (${parentRole}) may only dispatch Tier 3 workers (Implementers, Validators, Critics, Repairers). Disagreeing child role '${childRole}' (Tier ${cTier}) violates hierarchical parent-child boundary.`,
+      reason: `Tier 2 Coordinator (${parentRole}) may only dispatch Tier 3 workers (Implementers, Validators, Critics). Disagreeing child role '${childRole}' (Tier ${cTier}) violates hierarchical parent-child boundary.`,
     };
   }
 

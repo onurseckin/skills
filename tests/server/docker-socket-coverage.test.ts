@@ -1,7 +1,6 @@
-import { describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { EventEmitter } from "node:events";
 import * as http from "node:http";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   DEFAULT_DOCKER_SOCKET_PATH,
@@ -10,12 +9,16 @@ import {
   isDockerSocketPresent,
   resolveDockerSocketPath,
 } from "../../olt/scripts/src/server/docker/socket.ts";
-
-function getTempSocketPath(): string {
-  return join(tmpdir(), `dockertest-${Date.now()}-${Math.random().toString(36).slice(2)}.sock`);
-}
+import { cleanupVirtualServerFS, getVirtualServerFS, setupVirtualServerFS } from "./fixture.ts";
 
 describe("Server Docker - Socket Discovery and Client", () => {
+  beforeEach(() => {
+    setupVirtualServerFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualServerFS();
+  });
   it("discovers candidate socket paths across platforms", () => {
     const originalHome = process.env["HOME"];
     const originalXdg = process.env["XDG_RUNTIME_DIR"];
@@ -81,10 +84,11 @@ describe("Server Docker - Socket Discovery and Client", () => {
     const origHost = process.env["DOCKER_HOST"];
     const origSock = process.env["DOCKER_SOCKET"];
 
-    const mockHome = join(tmpdir(), `mock-home-${Date.now()}`);
-    mkdirSync(join(mockHome, ".docker", "run"), { recursive: true });
+    const vfs = getVirtualServerFS();
+    const mockHome = "/virtual/mock-home";
+    vfs.mkdirSync(join(mockHome, ".docker", "run"), { recursive: true });
     const candidateFile = join(mockHome, ".docker", "run", "docker.sock");
-    writeFileSync(candidateFile, "");
+    vfs.writeFileSync(candidateFile, "");
 
     try {
       process.env["HOME"] = mockHome;
@@ -94,7 +98,6 @@ describe("Server Docker - Socket Discovery and Client", () => {
       const discovered = resolveDockerSocketPath();
       expect(discovered).toBe(candidateFile);
     } finally {
-      if (existsSync(mockHome)) rmSync(mockHome, { recursive: true, force: true });
       if (origHome !== undefined) process.env["HOME"] = origHome;
       else delete process.env["HOME"];
       if (origHost !== undefined) process.env["DOCKER_HOST"] = origHost;
@@ -115,28 +118,39 @@ describe("Server Docker - Socket Discovery and Client", () => {
   });
 
   it("inspects containers via socket: handles 200 OK response with containers", async () => {
-    const sockPath = getTempSocketPath();
-    const server = http.createServer((req, res) => {
-      if (req.url === "/containers/json" && req.method === "GET") {
-        const payload = JSON.stringify([
-          {
-            Id: "c1122334455",
-            Name: "/web-app",
-            Image: "node:20",
-            State: "running",
-            Status: "Up 2 hours",
-            Ports: [{ IP: "0.0.0.0", PublicPort: 8080, PrivatePort: 80, Type: "tcp" }],
-          },
-        ]);
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(payload);
-      } else {
-        res.writeHead(404);
-        res.end();
-      }
-    });
+    const vfs = getVirtualServerFS();
+    const sockPath = "/virtual/docker-200.sock";
+    vfs.writeFileSync(sockPath, "");
 
-    await new Promise<void>((res) => server.listen(sockPath, () => res()));
+    const payload = JSON.stringify([
+      {
+        Id: "c1122334455",
+        Name: "/web-app",
+        Image: "node:20",
+        State: "running",
+        Status: "Up 2 hours",
+        Ports: [{ IP: "0.0.0.0", PublicPort: 8080, PrivatePort: 80, Type: "tcp" }],
+      },
+    ]);
+
+    const reqSpy = spyOn(http, "request").mockImplementation(((
+      _opts: unknown,
+      cb?: (res: http.IncomingMessage) => void,
+    ) => {
+      const res = new EventEmitter() as unknown as http.IncomingMessage;
+      (res as unknown as Record<string, unknown>).statusCode = 200;
+      const req = new EventEmitter() as unknown as http.ClientRequest;
+      req.destroy = () => req;
+      req.end = () => {
+        queueMicrotask(() => {
+          if (cb) cb(res);
+          res.emit("data", Buffer.from(payload));
+          res.emit("end");
+        });
+        return req;
+      };
+      return req;
+    }) as never);
 
     try {
       const result = await inspectContainersViaSocket(sockPath, 1000);
@@ -146,19 +160,33 @@ describe("Server Docker - Socket Discovery and Client", () => {
       expect(result.containers[0]?.containerId).toBe("c1122334455");
       expect(result.containers[0]?.containerName).toBe("web-app");
     } finally {
-      await new Promise<void>((res) => server.close(() => res()));
-      if (existsSync(sockPath)) unlinkSync(sockPath);
+      reqSpy.mockRestore();
     }
   });
 
   it("inspects containers via socket: handles non-200 error response from daemon", async () => {
-    const sockPath = getTempSocketPath();
-    const server = http.createServer((_req, res) => {
-      res.writeHead(500, { "Content-Type": "text/plain" });
-      res.end("Internal docker engine error");
-    });
+    const vfs = getVirtualServerFS();
+    const sockPath = "/virtual/docker-500.sock";
+    vfs.writeFileSync(sockPath, "");
 
-    await new Promise<void>((res) => server.listen(sockPath, () => res()));
+    const reqSpy = spyOn(http, "request").mockImplementation(((
+      _opts: unknown,
+      cb?: (res: http.IncomingMessage) => void,
+    ) => {
+      const res = new EventEmitter() as unknown as http.IncomingMessage;
+      (res as unknown as Record<string, unknown>).statusCode = 500;
+      const req = new EventEmitter() as unknown as http.ClientRequest;
+      req.destroy = () => req;
+      req.end = () => {
+        queueMicrotask(() => {
+          if (cb) cb(res);
+          res.emit("data", Buffer.from("Internal docker engine error"));
+          res.emit("end");
+        });
+        return req;
+      };
+      return req;
+    }) as never);
 
     try {
       const result = await inspectContainersViaSocket(sockPath, 1000);
@@ -167,18 +195,26 @@ describe("Server Docker - Socket Discovery and Client", () => {
       expect(result.containers).toEqual([]);
       expect(result.error).toContain("Docker socket returned status 500");
     } finally {
-      await new Promise<void>((res) => server.close(() => res()));
-      if (existsSync(sockPath)) unlinkSync(sockPath);
+      reqSpy.mockRestore();
     }
   });
 
   it("inspects containers via socket: handles request timeout", async () => {
-    const sockPath = getTempSocketPath();
-    const server = http.createServer((_req, _res) => {
-      // Intentionally hang without responding
-    });
+    const vfs = getVirtualServerFS();
+    const sockPath = "/virtual/docker-timeout.sock";
+    vfs.writeFileSync(sockPath, "");
 
-    await new Promise<void>((res) => server.listen(sockPath, () => res()));
+    const reqSpy = spyOn(http, "request").mockImplementation((() => {
+      const req = new EventEmitter() as unknown as http.ClientRequest;
+      req.destroy = () => req;
+      req.end = () => {
+        queueMicrotask(() => {
+          req.emit("timeout");
+        });
+        return req;
+      };
+      return req;
+    }) as never);
 
     try {
       const result = await inspectContainersViaSocket(sockPath, 50);
@@ -187,19 +223,26 @@ describe("Server Docker - Socket Discovery and Client", () => {
       expect(result.containers).toEqual([]);
       expect(result.error).toContain("timed out after 50ms");
     } finally {
-      await new Promise<void>((res) => server.close(() => res()));
-      if (existsSync(sockPath)) unlinkSync(sockPath);
+      reqSpy.mockRestore();
     }
   });
 
   it("inspects containers via socket: handles socket connection error", async () => {
-    const sockPath = getTempSocketPath();
-    const server = http.createServer();
-    server.on("connection", (sock) => {
-      sock.destroy(new Error("Connection reset by test peer"));
-    });
+    const vfs = getVirtualServerFS();
+    const sockPath = "/virtual/docker-error.sock";
+    vfs.writeFileSync(sockPath, "");
 
-    await new Promise<void>((res) => server.listen(sockPath, () => res()));
+    const reqSpy = spyOn(http, "request").mockImplementation((() => {
+      const req = new EventEmitter() as unknown as http.ClientRequest;
+      req.destroy = () => req;
+      req.end = () => {
+        queueMicrotask(() => {
+          req.emit("error", new Error("Connection reset by test peer"));
+        });
+        return req;
+      };
+      return req;
+    }) as never);
 
     try {
       const result = await inspectContainersViaSocket(sockPath, 1000);
@@ -208,8 +251,7 @@ describe("Server Docker - Socket Discovery and Client", () => {
       expect(result.containers).toEqual([]);
       expect(result.error).toContain("Docker socket error");
     } finally {
-      await new Promise<void>((res) => server.close(() => res()));
-      if (existsSync(sockPath)) unlinkSync(sockPath);
+      reqSpy.mockRestore();
     }
   });
 });

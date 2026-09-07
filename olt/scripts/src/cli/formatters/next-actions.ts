@@ -51,7 +51,6 @@ export {
   runCompleteNextActions,
   runExecNextActions,
   runStatusNextActions,
-  taskAssignRepairerNextActions,
   taskClaimNextActions,
   taskHeartbeatNextActions,
   taskProbeNextActions,

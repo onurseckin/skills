@@ -1,6 +1,16 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { logicalOrFallbackRule } from "../../../olt/scripts/src/linter/rules/logical_or_fallback.ts";
-import { lintSourceCode } from "../../../olt/scripts/src/linter/ast/runner.ts";
+import { lintFile, lintSourceCode } from "../../../olt/scripts/src/linter/ast/runner.ts";
+import { cleanupVirtualRulesFS, setupVirtualRulesFS } from "../fixture.ts";
+import type { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/memory-fs.ts";
+
+let vfs: VirtualMemoryFS;
+
+beforeEach(() => {
+  vfs = setupVirtualRulesFS();
+});
+
+afterEach(cleanupVirtualRulesFS);
 
 describe("Linter Rule: logical_or_fallback", () => {
   it("has correct rule metadata", () => {
@@ -35,5 +45,24 @@ describe("Linter Rule: logical_or_fallback", () => {
       snippet: 'a || "default"',
     });
     expect(suggestion?.suggestedReplacement).toBe('(Boolean(a) ? a : "default")');
+  });
+
+  it("lints virtual file via lintFile on VirtualMemoryFS", () => {
+    const filePath = "/virtual/rules-scratch/test-fallback.ts";
+    vfs.writeFileSync(filePath, 'const host = process.env.HOST || "localhost";');
+    const result = lintFile(filePath, { enabledRules: ["logical_or_fallback"] });
+    expect(result.valid).toBe(false);
+    expect(result.violations.length).toBe(1);
+    expect(result.violations[0].rule).toBe("logical_or_fallback");
+  });
+
+  it("detects chained logical OR expressions while ignoring logical AND", () => {
+    const code = 'const val = a || b || "default"; const ok = cond1 && cond2;';
+    const result = lintSourceCode(code, "test.ts", { enabledRules: ["logical_or_fallback"] });
+    expect(result.valid).toBe(false);
+    expect(result.violations.length).toBe(2);
+    for (const v of result.violations) {
+      expect(v.rule).toBe("logical_or_fallback");
+    }
   });
 });

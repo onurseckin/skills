@@ -1,23 +1,29 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { checkMailboxHealth } from "../../olt/scripts/src/reporting/doctor/mailbox-health-engine.ts";
 import { collectDiagnosticEngines } from "../../olt/scripts/src/reporting/doctor/diagnostic-collector.ts";
+import type { VirtualMemoryFS } from "../../olt/scripts/src/testing/virtual-fs/index.ts";
+import {
+  cleanupVirtualReportingFS,
+  setupVirtualReportingFS,
+  tempDir as makeTempDir,
+} from "./fixture.ts";
 
 describe("Mailbox Health Scoping Gate", () => {
+  let vfs: VirtualMemoryFS;
   let tempDir: string;
   let mailboxesDir: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "mailbox-scoping-test-"));
+    vfs = setupVirtualReportingFS();
+    tempDir = makeTempDir("mailbox-scoping");
     mailboxesDir = join(tempDir, ".olt", "mailboxes");
-    mkdirSync(mailboxesDir, { recursive: true });
+    vfs.mkdirSync(mailboxesDir, { recursive: true });
 
     // Setup active-agent-1: clean and valid mailbox
     const activeDir = join(mailboxesDir, "active-agent-1");
-    mkdirSync(activeDir, { recursive: true });
-    writeFileSync(
+    vfs.mkdirSync(activeDir, { recursive: true });
+    vfs.writeFileSync(
       join(activeDir, "cursor.json"),
       JSON.stringify({
         last_read_sequence: 0,
@@ -27,18 +33,18 @@ describe("Mailbox Health Scoping Gate", () => {
       }),
       "utf8",
     );
-    writeFileSync(join(activeDir, "inbox.jsonl"), "", "utf8");
-    writeFileSync(join(activeDir, "outbox.jsonl"), "", "utf8");
+    vfs.writeFileSync(join(activeDir, "inbox.jsonl"), "", "utf8");
+    vfs.writeFileSync(join(activeDir, "outbox.jsonl"), "", "utf8");
 
     // Setup dead-agent-1: corrupted cursor
     const deadDir1 = join(mailboxesDir, "dead-agent-1");
-    mkdirSync(deadDir1, { recursive: true });
-    writeFileSync(join(deadDir1, "cursor.json"), "{ corrupt json ...", "utf8");
+    vfs.mkdirSync(deadDir1, { recursive: true });
+    vfs.writeFileSync(join(deadDir1, "cursor.json"), "{ corrupt json ...", "utf8");
 
     // Setup dead-agent-2: malformed envelope line
     const deadDir2 = join(mailboxesDir, "dead-agent-2");
-    mkdirSync(deadDir2, { recursive: true });
-    writeFileSync(
+    vfs.mkdirSync(deadDir2, { recursive: true });
+    vfs.writeFileSync(
       join(deadDir2, "cursor.json"),
       JSON.stringify({
         last_read_sequence: 0,
@@ -48,13 +54,11 @@ describe("Mailbox Health Scoping Gate", () => {
       }),
       "utf8",
     );
-    writeFileSync(join(deadDir2, "inbox.jsonl"), "not a json line\n", "utf8");
+    vfs.writeFileSync(join(deadDir2, "inbox.jsonl"), "not a json line\n", "utf8");
   });
 
   afterEach(() => {
-    try {
-      rmSync(tempDir, { recursive: true, force: true });
-    } catch {}
+    cleanupVirtualReportingFS();
   });
 
   test("when activeAgentIds is specified, dead mailboxes are completely ignored", async () => {
@@ -169,5 +173,39 @@ describe("Mailbox Health Scoping Gate", () => {
       state: null,
     });
     expect(resNull.engineResults.checkMailboxHealth).toBeDefined();
+  });
+
+  test("safely ignores loose, non-directory files inside .olt/mailboxes", async () => {
+    vfs.writeFileSync(join(mailboxesDir, ".DS_Store"), "binary-junk", "utf8");
+    vfs.writeFileSync(join(mailboxesDir, "README.txt"), "This is documentation", "utf8");
+
+    const res = await checkMailboxHealth({
+      repoRoot: tempDir,
+      activeAgentIds: ["active-agent-1"],
+    });
+
+    expect(res.passed).toBe(true);
+    expect(res.findings.filter((f) => f.severity === "ERROR").length).toBe(0);
+    const affectedAgents = res.findings.map((f) => f.details?.agentId);
+    expect(affectedAgents).not.toContain(".DS_Store");
+    expect(affectedAgents).not.toContain("README.txt");
+  });
+
+  test("flags active agent with missing cursor.json as an error", async () => {
+    const noCursorDir = join(mailboxesDir, "missing-cursor-agent");
+    vfs.mkdirSync(noCursorDir, { recursive: true });
+    vfs.writeFileSync(join(noCursorDir, "inbox.jsonl"), "", "utf8");
+
+    const res = await checkMailboxHealth({
+      repoRoot: tempDir,
+      activeAgentIds: ["missing-cursor-agent"],
+    });
+
+    expect(res.passed).toBe(false);
+    const cursorErrors = res.findings.filter(
+      (f) => f.severity === "ERROR" && f.code === "MAILBOX_CURSOR_CORRUPTED",
+    );
+    expect(cursorErrors.length).toBeGreaterThanOrEqual(1);
+    expect(cursorErrors.some((f) => f.details?.agentId === "missing-cursor-agent")).toBe(true);
   });
 });

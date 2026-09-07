@@ -27,6 +27,10 @@ export {
   writeAtomic,
 } from "./snapshot-persistence.ts";
 
-export { captureDagSnapshot, formatDagSnapshotMarkdown } from "./snapshot-capture.ts";
+export {
+  __setDagSnapshotCaptureTestHook,
+  captureDagSnapshot,
+  formatDagSnapshotMarkdown,
+} from "./snapshot-capture.ts";
 
 export { formatDagResumeMarkdown, resumeDagSnapshot } from "./snapshot-resume.ts";

@@ -27,8 +27,6 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   advanceMailboxCursorBatch,
@@ -51,26 +49,23 @@ import {
   type ContainmentResult,
   type SupervisoryViolation,
 } from "../../../../olt/scripts/src/mind/containment/index.ts";
+import {
+  cleanupVirtualMindFS,
+  scratchRoot,
+  setupVirtualMindFS,
+} from "../../fixtures/mind-fixture.ts";
 
 describe("Conversational Engagement Protocols & Active Swarm Audit Suite", () => {
   let testRepoRoot: string;
 
   beforeEach(() => {
-    testRepoRoot = join(
-      tmpdir(),
-      `mind-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    );
-    mkdirSync(testRepoRoot, { recursive: true });
-    mkdirSync(join(testRepoRoot, ".olt"), { recursive: true });
-    mkdirSync(join(testRepoRoot, ".olt", "mailboxes"), { recursive: true });
+    const vfs = setupVirtualMindFS();
+    testRepoRoot = scratchRoot("conv-protocols", "sub2");
+    vfs.mkdirSync(join(testRepoRoot, ".olt", "mailboxes"), { recursive: true });
   });
 
   afterEach(() => {
-    try {
-      rmSync(testRepoRoot, { recursive: true, force: true });
-    } catch {
-      // Best effort cleanup
-    }
+    cleanupVirtualMindFS();
   });
 
   describe("2. Active Swarm Tailored 1-on-1 Conversational Audits (Skill Auditor)", () => {
@@ -252,6 +247,60 @@ describe("Conversational Engagement Protocols & Active Swarm Audit Suite", () =>
       expect(strike1.strikeLevel).toBe(1);
       expect(strike1.action).toBe("HALT_AND_DELEGATE");
       expect(strike1.message).toContain("HALT_AND_DELEGATE");
+    });
+
+    it("handles empty mailbox and idempotent cursor advances gracefully in RAM", () => {
+      const paths = ensureMailboxDir("empty-agent", testRepoRoot);
+      const cursor = loadMailboxCursor(paths.cursorPath);
+      const unread = readUnreadMessages(paths.inboxPath, cursor);
+      expect(unread.messages).toHaveLength(0);
+
+      const advanced = advanceMailboxCursorBatch(paths.cursorPath, []);
+      expect(advanced).toBeDefined();
+    });
+
+    it("enforces supervisory code edit blocks across orchestrators and coordinators with post-termination permanence", () => {
+      const containmentEngine = new MechanicalContainmentEngine();
+      const coordId = "coordinator-beta";
+
+      const strike1 = containmentEngine.interceptAction({
+        agentId: coordId,
+        role: "coordinator",
+        actionType: "SUPERVISORY_CODE_EDIT",
+        attemptedAction: "write_to_file",
+        targetFile: "src/index.ts",
+      });
+      expect(strike1.blocked).toBe(true);
+      expect(strike1.strikeLevel).toBe(1);
+      expect(strike1.action).toBe("HALT_AND_DELEGATE");
+
+      // Advance to Strike 2 & 3
+      containmentEngine.interceptAction({
+        agentId: coordId,
+        role: "coordinator",
+        actionType: "SUPERVISORY_CODE_EDIT",
+        attemptedAction: "replace_file_content",
+      });
+      containmentEngine.interceptAction({
+        agentId: coordId,
+        role: "coordinator",
+        actionType: "SUPERVISORY_CODE_EDIT",
+        attemptedAction: "run_command",
+      });
+
+      const stateAfter3 = containmentEngine.getAgentState(coordId);
+      expect(stateAfter3.isTerminated).toBe(true);
+
+      // Subsequent actions remain terminated permanently
+      const repeated = containmentEngine.interceptAction({
+        agentId: coordId,
+        role: "coordinator",
+        actionType: "SUPERVISORY_CODE_EDIT",
+        attemptedAction: "write_to_file",
+      });
+      expect(repeated.blocked).toBe(true);
+      expect(repeated.action).toBe("PERSONA_RESPAWN");
+      expect(containmentEngine.getAgentState(coordId).isTerminated).toBe(true);
     });
   });
 });

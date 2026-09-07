@@ -81,9 +81,3 @@ export interface TaskProbeParams {
   warning?: string | undefined;
 }
 
-export interface TaskAssignRepairerParams {
-  taskId: string;
-  replacementId: string;
-  reason: string;
-  evidence: string;
-}

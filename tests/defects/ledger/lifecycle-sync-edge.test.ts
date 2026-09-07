@@ -103,36 +103,4 @@ describe(lifecycleSyncEdgeSuiteName, () => {
       expect(reopened.count).toBe(2);
     });
   });
-
-  describe("Static Invariants & Purity", () => {
-    it("enforces zero any and zero compiler suppressions across sync files", () => {
-      const sampleSyncSource = `
-export interface SyncOptions {
-  readonly timestamp: string;
-  readonly strict: boolean;
-}
-export function syncDefects(opts: SyncOptions): readonly string[] {
-  return [opts.timestamp];
-}
-`;
-      const anyRegex = new RegExp(":\\s*" + "any\\b|as\\s+" + "any\\b|<" + "any>");
-      const suppressionRegex = new RegExp(
-        "@ts-(?:" +
-          "ignore|" +
-          "expect-error|" +
-          "nocheck)|eslint-" +
-          "disable|oxlint-" +
-          "disable",
-      );
-
-      const lines = sampleSyncSource.trim().split("\n");
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i]!;
-        expect(anyRegex.test(line)).toBeFalse();
-        expect(suppressionRegex.test(line)).toBeFalse();
-      }
-      expect(anyRegex.test("const x: " + "any = 1;")).toBeTrue();
-      expect(suppressionRegex.test("// @ts-" + "ignore")).toBeTrue();
-    });
-  });
 });

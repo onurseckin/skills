@@ -104,7 +104,7 @@ absent and renders as "unknown".
 ## Phase 3 — Implementation
 
 ```bash
-# Claim under an explicit role: implementer for new work, repairer for changes_requested
+# Claim under an explicit role: implementer for new work or changes_requested repair
 bun $PINNED task:claim --run $RUN --task <task-id> --agent <worker-id> --role implementer
 
 bun $PINNED task:heartbeat --run $RUN --task <task-id> --agent <worker-id> --token <token>
@@ -206,8 +206,8 @@ bun $PINNED run:complete --run $RUN --actor coordinator --auth-token <token-from
 bun $PINNED report --run $RUN --detailed
 
 # Tier 3 Publisher: atomic wave landing and worktree cleanup
-bun $PINNED worktree:land --run $RUN --actor publisher
-bun $PINNED worktree:clean --run $RUN --actor publisher
+bun $PINNED worktree:land --track <track-id>
+bun $PINNED worktree:clean --track <track-id>
 bun $PINNED doctor --run $RUN
 ```
 
@@ -235,9 +235,6 @@ bun $PINNED summary:view --run $RUN
 # Render topological Sugiyama DAG with Work/Span metrics and decoupled artificial edges
 bun $PINNED report:dag --run $RUN --detailed
 
-# Alternatively inspect DAG directly via decoupled DAG engine
-bun $PINNED dag:view --run $RUN --detailed
-
 # Real-time supervisory telemetry with Work/Span metrics and active [W<wave>:L<lane>] badges
 bun $PINNED mind:pulse --run $RUN
 
@@ -251,4 +248,4 @@ bun $PINNED watchdog:probe --run $RUN
 ```
 
 > [!NOTE]
-> **Zero Backwards-Compatibility Purity Invariant**: Legacy root `dag` and `run:status` commands are permanently retired. Any invocation triggers `[RETIRED_COMMAND]` mechanical guards directing operators to `report:dag` and `report`.
+> **Zero Backwards-Compatibility Purity Invariant**: Legacy root `dag` and run:status commands are permanently retired. Any invocation triggers `[RETIRED_COMMAND]` mechanical guards directing operators to `report:dag` and `report`.

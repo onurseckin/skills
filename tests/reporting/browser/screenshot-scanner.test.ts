@@ -8,7 +8,7 @@ import {
   scanDirectoryForImages,
   scanDirectoryForVisualReports,
 } from "../../../olt/scripts/src/reporting/screenshot-scanner.ts";
-import { cleanupVirtualBrowserFS, setupVirtualBrowserFS, tempDir } from "./browser-run-fixture.ts";
+import { cleanupVirtualBrowserFS, setupVirtualBrowserFS, tempDir } from "./browser-virtual-fs.ts";
 
 export const screenshotScannerSuiteName = "scanDirectoryForImages & screenshot scanning";
 
@@ -166,7 +166,7 @@ describe(screenshotScannerSuiteName, () => {
   });
 
   test("a search dir that does not exist contributes nothing", () => {
-    expect(findVisualReportCandidates(["/nonexistent/for/sure"])).toEqual([]);
+    expect(findVisualReportCandidates(["/virtual/nonexistent/for/sure"])).toEqual([]);
   });
 
   test("finds candidates mentioned in stderr as well as stdout", () => {

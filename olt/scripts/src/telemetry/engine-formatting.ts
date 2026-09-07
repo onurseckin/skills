@@ -242,7 +242,7 @@ function extractAccountBadges(report: UnifiedTelemetryReport): string[] {
     }
 
     if (res.platformId === "codex" || res.platformId === "openai") {
-      let plan =
+      const plan =
         res.rawObservations.planType ?? res.rawObservations.plan_type ?? res.rawObservations.plan;
       if (plan !== undefined) {
         accountBadges.push(`\`[${res.platformId}]\` Plan: ${plan}`);

@@ -1,10 +1,20 @@
-import { describe, expect, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { commandLayout } from "../../../olt/scripts/src/engine/store/layout/layout-commands.ts";
-import { scratchRoot as makeScratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
+import {
+  cleanupVirtualStoreFS,
+  getVirtualStoreFS,
+  scratchRoot as makeScratchRoot,
+  setupVirtualStoreFS,
+} from "../store-fixture.ts";
 
-setupVirtualStoreFS();
+beforeEach(() => {
+  setupVirtualStoreFS();
+});
+
+afterEach(() => {
+  cleanupVirtualStoreFS();
+});
 
 function scratchRoot(label: string): string {
   return makeScratchRoot(import.meta.path, label);
@@ -50,9 +60,10 @@ describe("commandLayout", () => {
   });
 
   test("returns no issues when status is missing or not a terminal status", () => {
+    const vfs = getVirtualStoreFS();
     const root = scratchRoot("returns-no-issues-when-status-is-missing-or-not-a-");
-    mkdirSync(join(root, "commands", "C-1"), { recursive: true });
-    writeFileSync(join(root, "commands", "C-1", "record.json"), "{}");
+    vfs.mkdirSync(join(root, "commands", "C-1"), { recursive: true });
+    vfs.writeFileSync(join(root, "commands", "C-1", "record.json"), "{}");
     expect(
       commandLayout(root, { commands: { "C-1": { record_path: "commands/C-1/record.json" } } }),
     ).toEqual([]);
@@ -64,9 +75,10 @@ describe("commandLayout", () => {
   });
 
   test("reports COMMAND_RECORD_CONTENT when the on-disk record no longer matches the declared state", () => {
+    const vfs = getVirtualStoreFS();
     const root = scratchRoot("reports-command-record-content-when-the-on-disk-re");
-    mkdirSync(join(root, "commands", "C-1"), { recursive: true });
-    writeFileSync(
+    vfs.mkdirSync(join(root, "commands", "C-1"), { recursive: true });
+    vfs.writeFileSync(
       join(root, "commands", "C-1", "record.json"),
       JSON.stringify({ status: "succeeded" }),
     );
@@ -76,19 +88,21 @@ describe("commandLayout", () => {
   });
 
   test("returns no issues for each terminal status when the on-disk record matches exactly", () => {
+    const vfs = getVirtualStoreFS();
     for (const status of ["succeeded", "failed", "timed_out"]) {
       const root = scratchRoot("returns-no-issues-for-each-terminal-status-when-th");
-      mkdirSync(join(root, "commands", "C-1"), { recursive: true });
+      vfs.mkdirSync(join(root, "commands", "C-1"), { recursive: true });
       const record = { record_path: "commands/C-1/record.json", status };
-      writeFileSync(join(root, "commands", "C-1", "record.json"), JSON.stringify(record));
+      vfs.writeFileSync(join(root, "commands", "C-1", "record.json"), JSON.stringify(record));
       expect(commandLayout(root, { commands: { "C-1": record } })).toEqual([]);
     }
   });
 
   test("reports COMMAND_UNREADABLE when the on-disk record cannot be read as canonical JSON", () => {
+    const vfs = getVirtualStoreFS();
     const root = scratchRoot("reports-command-unreadable-when-the-on-disk-record");
-    mkdirSync(join(root, "commands", "C-1"), { recursive: true });
-    writeFileSync(join(root, "commands", "C-1", "record.json"), "not json");
+    vfs.mkdirSync(join(root, "commands", "C-1"), { recursive: true });
+    vfs.writeFileSync(join(root, "commands", "C-1", "record.json"), "not json");
     const record = { record_path: "commands/C-1/record.json", status: "succeeded" };
     const found = commandLayout(root, { commands: { "C-1": record } });
     expect(found).toEqual([expect.objectContaining({ code: "COMMAND_UNREADABLE" })]);
@@ -105,5 +119,45 @@ describe("commandLayout", () => {
     });
     expect(found).toHaveLength(2);
     expect(found.map((entry) => entry.code).sort()).toEqual(["COMMAND_ID", "COMMAND_PATH"]);
+  });
+
+  test("handles multiple divergent command errors across distinct commands without short-circuiting", () => {
+    const vfs = getVirtualStoreFS();
+    const root = scratchRoot("multi-command-divergence");
+
+    // Command A: exit code mismatch (declared exit_code not present in stored record)
+    vfs.mkdirSync(join(root, "commands", "C-A"), { recursive: true });
+    vfs.writeFileSync(
+      join(root, "commands", "C-A", "record.json"),
+      JSON.stringify({ status: "succeeded" }),
+    );
+
+    // Command B: unreadable record
+    vfs.mkdirSync(join(root, "commands", "C-B"), { recursive: true });
+    vfs.writeFileSync(join(root, "commands", "C-B", "record.json"), "{ corrupted json");
+
+    // Command C: record_path outside directory
+    const state = {
+      commands: {
+        "C-A": { record_path: "commands/C-A/record.json", status: "succeeded", exit_code: 1 },
+        "C-B": { record_path: "commands/C-B/record.json", status: "succeeded" },
+        "C-C": { record_path: "commands/other/record.json", status: "succeeded" },
+      },
+    };
+
+    const found = commandLayout(root, state);
+    expect(found).toHaveLength(3);
+    const codes = found.map((i) => i.code).sort();
+    expect(codes).toEqual(["COMMAND_PATH", "COMMAND_RECORD_CONTENT", "COMMAND_UNREADABLE"]);
+  });
+
+  test("reports COMMAND_UNREADABLE when record.json is an empty 0-byte file", () => {
+    const vfs = getVirtualStoreFS();
+    const root = scratchRoot("empty-record-json");
+    vfs.mkdirSync(join(root, "commands", "C-empty"), { recursive: true });
+    vfs.writeFileSync(join(root, "commands", "C-empty", "record.json"), "");
+    const record = { record_path: "commands/C-empty/record.json", status: "succeeded" };
+    const found = commandLayout(root, { commands: { "C-empty": record } });
+    expect(found).toEqual([expect.objectContaining({ code: "COMMAND_UNREADABLE" })]);
   });
 });

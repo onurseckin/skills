@@ -39,6 +39,13 @@ describe("Stateful Task Queue Engine", () => {
           gate: "bun test",
         },
         {
+          id: "task-norm",
+          title: "Medium Priority",
+          priority: "MEDIUM",
+          write_scope: ["src/norm.ts"],
+          gate: "bun test",
+        },
+        {
           id: "task-crit",
           title: "Critical Priority",
           priority: "CRITICAL",
@@ -72,13 +79,20 @@ describe("Stateful Task Queue Engine", () => {
     });
 
     expect(secondPopped).not.toBeNull();
-    expect(secondPopped!.task.id).toBe("task-low");
+    expect(secondPopped!.task.id).toBe("task-norm");
 
     const thirdPopped = popNextEligibleTask({
       agentId: "agent-worker-3",
       customPath: queuePath,
     });
-    expect(thirdPopped).toBeNull();
+    expect(thirdPopped).not.toBeNull();
+    expect(thirdPopped!.task.id).toBe("task-low");
+
+    const fourthPopped = popNextEligibleTask({
+      agentId: "agent-worker-4",
+      customPath: queuePath,
+    });
+    expect(fourthPopped).toBeNull();
   });
 
   it("completes task and unblocks dependent tasks cleanly", () => {
@@ -218,6 +232,15 @@ describe("Stateful Task Queue Engine", () => {
     expect(reclaimResult.tasks[0]!.status).toBe("PENDING");
     expect(reclaimResult.tasks[0]!.retry_count).toBe(1);
     expect(reclaimResult.tasks[0]!.lease).toBeNull();
+
+    expect(() =>
+      renewTaskLease({
+        taskId: "task-timeout",
+        agentId: "agent-dead",
+        leaseToken: "stale-token",
+        customPath: queuePath,
+      }),
+    ).toThrow("does not have an active lease");
   });
 
   it("renews and releases task leases", () => {
@@ -257,5 +280,14 @@ describe("Stateful Task Queue Engine", () => {
 
     expect(released.status).toBe("PENDING");
     expect(released.lease).toBeNull();
+
+    expect(() =>
+      renewTaskLease({
+        taskId: "task-renew-release",
+        agentId: "agent-active",
+        leaseToken: "invalid-token-xyz",
+        customPath: queuePath,
+      }),
+    ).toThrow();
   });
 });

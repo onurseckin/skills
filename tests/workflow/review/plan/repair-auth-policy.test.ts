@@ -3,11 +3,9 @@ import {
   appendGateProof,
   type GateProofRecord,
 } from "../../../../olt/scripts/src/graph/gate-proof.ts";
-import { assignReplacementRepairer } from "../../../../olt/scripts/src/workflow/review/assign-repairer.ts";
 import { beginValidation } from "../../../../olt/scripts/src/workflow/review/begin-validation.ts";
 import { recordReview } from "../../../../olt/scripts/src/workflow/review/record-review.ts";
 import { claimTask } from "../../../../olt/scripts/src/workflow/lease/claim.ts";
-import { recoverStale } from "../../../../olt/scripts/src/workflow/lease/recover-stale.ts";
 import { submitTask } from "../../../../olt/scripts/src/workflow/submission/submit.ts";
 import {
   at,
@@ -121,8 +119,8 @@ describe("repair and validator policy", () => {
       },
       clock,
     );
-    const { token } = claimTask(port, "T-1", "implementer", "repairer", { clock });
-    registerTaskPacket(port, "repairer", "implementer", 2);
+    const { token } = claimTask(port, "T-1", "implementer", "implementer", { clock });
+    registerTaskPacket(port, "implementer", "implementer", 2);
     submitTask(port, "T-1", "implementer", token, report, clock);
     expect(() => beginValidation(port, "T-1", "validator", clock)).toThrow();
   });
@@ -130,8 +128,8 @@ describe("repair and validator policy", () => {
   test("requires structured nonempty revalidation proof to resolve findings", () => {
     const port = submitted();
     reject(port);
-    const { token } = claimTask(port, "T-1", "implementer", "repairer", { clock });
-    registerTaskPacket(port, "repairer", "implementer", 2);
+    const { token } = claimTask(port, "T-1", "implementer", "implementer", { clock });
+    registerTaskPacket(port, "implementer", "implementer", 2);
     submitTask(port, "T-1", "implementer", token, report, clock);
     registerCommand(port, "C-validator-2", "validator-2");
     const started = beginValidation(port, "T-1", "validator-2", clock);
@@ -188,61 +186,5 @@ describe("repair and validator policy", () => {
       method: "bun test",
       evidence: [{ command_id: "C-validator-2" }],
     });
-  });
-  test("permits an evidenced replacement after the original is unavailable", () => {
-    const port = submitted();
-    reject(port);
-    expect(() =>
-      assignReplacementRepairer(port, "T-1", "replacement", "coordinator", "unavailable", ""),
-    ).toThrow();
-    assignReplacementRepairer(
-      port,
-      "T-1",
-      "replacement",
-      "coordinator",
-      "unavailable",
-      "host reports agent exited",
-    );
-    const claimed = claimTask(port, "T-1", "replacement", "repairer", { clock });
-    expect(claimed.state.tasks["T-1"]!.lease!.agent_id).toBe("replacement");
-    expect(claimed.state.tasks["T-1"]!.replacement_reason).toBe("unavailable");
-    expect(claimed.state.tasks["T-1"]!.replacement_evidence).toBe("host reports agent exited");
-  });
-
-  test("permits replacement after a stale original repair or repeated rejection", () => {
-    const stalePort = submitted();
-    reject(stalePort);
-    claimTask(stalePort, "T-1", "implementer", "repairer", { leaseSeconds: 5, clock });
-    recoverStale(stalePort, "coordinator", at("2026-08-13T12:00:36.000Z"), { graceSeconds: 30 });
-    assignReplacementRepairer(
-      stalePort,
-      "T-1",
-      "replacement",
-      "coordinator",
-      "stale",
-      "lease recovery event",
-    );
-    expect(
-      claimTask(stalePort, "T-1", "replacement", "repairer", { clock }).state.tasks["T-1"]!.lease,
-    ).toBeDefined();
-
-    const repeatedPort = submitted();
-    reject(repeatedPort, "validator-a");
-    const repair = claimTask(repeatedPort, "T-1", "implementer", "repairer", { clock });
-    registerTaskPacket(repeatedPort, "repairer", "implementer", 2);
-    submitTask(repeatedPort, "T-1", "implementer", repair.token, report, clock);
-    reject(repeatedPort, "validator-b", "F-2");
-    assignReplacementRepairer(
-      repeatedPort,
-      "T-1",
-      "replacement",
-      "coordinator",
-      "repeated_failure",
-      "two rejected rounds",
-    );
-    expect(
-      claimTask(repeatedPort, "T-1", "replacement", "repairer", { clock }).state.tasks["T-1"]!
-        .lease,
-    ).toBeDefined();
   });
 });

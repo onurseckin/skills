@@ -1,9 +1,18 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   getMimeTypeForUrl,
   inferAssetProps,
 } from "../../../olt/scripts/src/summary/assets/index.ts";
+import { cleanupVirtualSummaryFS, setupVirtualSummaryFS } from "../fixture.ts";
 import { makeCommand, makeTask } from "../reporters/dag/graph-fixtures.ts";
+
+beforeEach(() => {
+  setupVirtualSummaryFS();
+});
+
+afterEach(() => {
+  cleanupVirtualSummaryFS();
+});
 
 describe("getMimeTypeForUrl", () => {
   test("trusts an explicit MIME type over the url's own extension", () => {

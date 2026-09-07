@@ -1,6 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
 import {
   AGENT_NAMING_STANDARDS,
   agentIdToRole,
@@ -12,13 +10,6 @@ import {
   validateAgentNamingConvention,
   type StandardAgentRole,
 } from "../../../olt/scripts/src/authority/thread/index.ts";
-import { identifyExecutionContext } from "../../../olt/scripts/src/authority/thread/index.ts";
-import {
-  findSkillRoot,
-  loadAgentManifest,
-  loadRoleContract,
-} from "../../../olt/scripts/src/authority/manifest/index.ts";
-import { whoamiCommand } from "../../../olt/scripts/src/cli/commands/whoami.ts";
 import { cleanupVirtualAgentsFS, setupVirtualAgentsFS } from "../fixture.ts";
 
 beforeEach(() => {
@@ -37,7 +28,6 @@ describe("Agent Naming - Standards & Tiers", () => {
     "coordinator",
     "implementer",
     "validator",
-    "repairer",
     "completeness-critic",
     "planner",
     "plan-validator",
@@ -173,7 +163,7 @@ describe("Agent Naming - Standards & Tiers", () => {
     });
   });
 
-  describe("Tier 3: Implementers, Validators, Repairers, and Subagents", () => {
+  describe("Tier 3: Implementers, Validators, and Subagents", () => {
     test("validates Tier 3 task-bound implementers with optional slugs", () => {
       const validImplIds = [
         "implementer_task-1",
@@ -292,6 +282,23 @@ describe("Agent Naming - Standards & Tiers", () => {
       expect(isStandardAgentId("implementer_task_1")).toBe(false);
       expect(isStandardAgentId("implementer task-1")).toBe(false);
       expect(isStandardAgentId("")).toBe(false);
+    });
+
+    test("handles unstandardized role names in recommendStandardAgentId gracefully", () => {
+      expect(recommendStandardAgentId("rogue-agent", "task-99")).toBe("rogue-agent_task-99");
+      expect(recommendStandardAgentId("HACKER", "exploit-1", "patch")).toBe("hacker_exploit-1-patch");
+    });
+
+    test("rejects identifiers containing unicode, emojis, multiple underscores or punctuation with diagnostics", () => {
+      const emojiResult = validateAgentNamingConvention("implementer_task-1-🔥");
+      expect(emojiResult.valid).toBe(false);
+      expect(emojiResult.reason).toContain("does not match the standardized naming convention");
+
+      const doubleUnderscoreResult = validateAgentNamingConvention("implementer__task-1");
+      expect(doubleUnderscoreResult.valid).toBe(false);
+
+      const splitRoleResult = validateAgentNamingConvention("valida_tor_task-1");
+      expect(splitRoleResult.valid).toBe(false);
     });
   });
 });

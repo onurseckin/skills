@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { readdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -19,6 +19,10 @@ const GUARD_MODULES = [
 const installerPathSafetyRoot = join(oltScriptsRoot, "installer");
 const testingRoot = join(oltScriptsRoot, "testing");
 
+beforeAll(async () => {
+  await Promise.all([prodFilesPromise, installerFilesPromise]);
+});
+
 beforeEach(() => {
   setupVirtualArchitectureFS();
 });
@@ -27,7 +31,12 @@ afterEach(() => {
   cleanupVirtualArchitectureFS();
 });
 
+const inMemoryFileTree = new Map<string, string[]>();
+const inMemoryFileContent = new Map<string, string>();
+
 async function filesBelow(root: string): Promise<string[]> {
+  const hit = inMemoryFileTree.get(root);
+  if (hit) return hit;
   const entries = await readdir(root, { withFileTypes: true });
   const nested = await Promise.all(
     entries.map(async (entry) => {
@@ -36,8 +45,34 @@ async function filesBelow(root: string): Promise<string[]> {
       return path.endsWith(".ts") ? [path] : [];
     }),
   );
-  return nested.flat();
+  const flattened = nested.flat();
+  inMemoryFileTree.set(root, flattened);
+  return flattened;
 }
+
+async function readSource(filePath: string): Promise<string> {
+  const hit = inMemoryFileContent.get(filePath);
+  if (hit !== undefined) return hit;
+  const content = await readFile(filePath, "utf8");
+  inMemoryFileContent.set(filePath, content);
+  return content;
+}
+
+// Preload virtual in-memory cache of architecture files
+const prodFilesPromise = (async () => {
+  const files = [
+    ...(await filesBelow(oltScriptsRoot)),
+    ...(await filesBelow(syncScriptsRoot)),
+  ];
+  await Promise.all(files.map((f) => readSource(f)));
+  return files;
+})();
+
+const installerFilesPromise = (async () => {
+  const files = await filesBelow(installerPathSafetyRoot);
+  await Promise.all(files.map((f) => readSource(f)));
+  return files;
+})();
 
 const RECURSIVE_CAPABLE_CALL = /\b(rmSync|rmdirSync|cpSync|\brm|\bcp)\s*\(/g;
 
@@ -71,17 +106,14 @@ export function scanSourceForDestructiveCalls(source: string): { method: string;
 
 describe("destructive filesystem guard", () => {
   test("every recursive rm/rmdir/cp call in production code is routed through safe-fs.ts or an identity-guarded installer module", async () => {
-    const prodFiles = [
-      ...(await filesBelow(oltScriptsRoot)),
-      ...(await filesBelow(syncScriptsRoot)),
-    ];
+    const prodFiles = await prodFilesPromise;
     const violations: string[] = [];
     for (const path of prodFiles) {
       if (GUARD_MODULES.includes(path)) continue;
       if (path.endsWith(".test.ts")) continue;
       if (path.startsWith(installerPathSafetyRoot + "/")) continue;
       if (path.startsWith(testingRoot + "/")) continue;
-      const source = await readFile(path, "utf8");
+      const source = await readSource(path);
       const findings = scanSourceForDestructiveCalls(source);
       for (const finding of findings) {
         violations.push(
@@ -93,12 +125,12 @@ describe("destructive filesystem guard", () => {
   });
 
   test("every installer file with a recursive rm/cp call imports the path-safety identity guard", async () => {
-    const installerFiles = (await filesBelow(installerPathSafetyRoot)).filter(
+    const installerFiles = (await installerFilesPromise).filter(
       (path) => path !== join(installerPathSafetyRoot, "path-safety.ts"),
     );
     const violations: string[] = [];
     for (const path of installerFiles) {
-      const source = await readFile(path, "utf8");
+      const source = await readSource(path);
       const findings = scanSourceForDestructiveCalls(source);
       if (findings.length > 0 && !source.includes("./path-safety.ts")) {
         violations.push(relative(repoRoot, path));
@@ -119,5 +151,35 @@ describe("destructive filesystem guard", () => {
   test("the scan ignores non-recursive filesystem calls", () => {
     const sample = 'rmSync("/some/file");\nwriteFileSync("/some/file", "hello");';
     expect(scanSourceForDestructiveCalls(sample)).toEqual([]);
+  });
+
+  test("the scan correctly detects multiline recursive calls with arbitrary indentation", () => {
+    const sample = `
+rmSync(
+  "/some/path",
+  {
+    force: true,
+    recursive: true,
+  },
+);
+`;
+    const findings = scanSourceForDestructiveCalls(sample);
+    expect(findings.length).toBe(1);
+    expect(findings[0]?.method).toBe("rmSync");
+    expect(findings[0]?.line).toBe(2);
+  });
+
+  test("the scan isolates mixed calls in a single snippet, flagging only recursive invocations", () => {
+    const sample = `
+rmSync("/safe/file");
+cpSync(src, dst, {
+  recursive: true,
+});
+writeFileSync("/file", "data");
+`;
+    const findings = scanSourceForDestructiveCalls(sample);
+    expect(findings.length).toBe(1);
+    expect(findings[0]?.method).toBe("cpSync");
+    expect(findings[0]?.line).toBe(3);
   });
 });

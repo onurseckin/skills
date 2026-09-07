@@ -32,7 +32,6 @@ export const ROLE_PROFILE_MAP: Readonly<Record<string, AbstractProfile>> = {
   coordinator: "default",
   planner: "deliberate",
   implementer: "default",
-  repairer: "default",
   "sub-implementer": "default",
   validator: "adversarial",
   critic: "adversarial",
@@ -40,6 +39,8 @@ export const ROLE_PROFILE_MAP: Readonly<Record<string, AbstractProfile>> = {
   "plan-validator": "adversarial",
   "sub-validator": "adversarial",
   "sub-investigator": "cheap_bulk",
+  "ui-headless-validator": "default",
+  "ui-optical-validator": "adversarial",
 };
 
 export function roleToProfile(role: string | AgentRole): AbstractProfile | undefined {

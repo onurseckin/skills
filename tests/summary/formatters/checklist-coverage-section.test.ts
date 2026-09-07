@@ -1,14 +1,26 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { cleanupRoots, emptyState, render, task, tempRoot } from "./markdown-fixtures-core.ts";
+import {
+  cleanupRoots,
+  emptyState,
+  getVirtualFormattersFS,
+  render,
+  setupVirtualFormattersFS,
+  task,
+  tempRoot,
+} from "./markdown-fixtures-core.ts";
+
+beforeEach(() => {
+  setupVirtualFormattersFS();
+});
 
 afterEach(cleanupRoots);
 
 /** Writes the one field `task:review` persists that this section reads: `checklist_coverage`. */
 function withReviewReport(root: string, taskId: string, checklistCoverage: unknown): void {
-  mkdirSync(join(root, "reports"), { recursive: true });
-  writeFileSync(
+  const vfs = getVirtualFormattersFS();
+  vfs.mkdirSync(join(root, "reports"), { recursive: true });
+  vfs.writeFileSync(
     join(root, "reports", `${taskId}-review.json`),
     JSON.stringify({ task_id: taskId, checklist_coverage: checklistCoverage }),
   );

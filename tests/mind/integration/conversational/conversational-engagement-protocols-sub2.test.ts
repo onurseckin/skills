@@ -27,8 +27,6 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   advanceMailboxCursorBatch,
@@ -51,26 +49,25 @@ import {
   type ContainmentResult,
   type SupervisoryViolation,
 } from "../../../../olt/scripts/src/mind/containment/index.ts";
+import {
+  cleanupVirtualMindFS,
+  scratchRoot,
+  setupVirtualMindFS,
+} from "../../fixtures/mind-fixture.ts";
 
 describe("Conversational Engagement Protocols & Active Swarm Audit Suite", () => {
   let testRepoRoot: string;
+  let vfs: ReturnType<typeof setupVirtualMindFS>;
 
   beforeEach(() => {
-    testRepoRoot = join(
-      tmpdir(),
-      `mind-conversational-audit-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    );
-    mkdirSync(testRepoRoot, { recursive: true });
-    mkdirSync(join(testRepoRoot, ".olt"), { recursive: true });
-    mkdirSync(join(testRepoRoot, ".olt", "mailboxes"), { recursive: true });
+    vfs = setupVirtualMindFS();
+    testRepoRoot = scratchRoot(import.meta.path, "conversational-audit");
+    vfs.mkdirSync(join(testRepoRoot, ".olt"), { recursive: true });
+    vfs.mkdirSync(join(testRepoRoot, ".olt", "mailboxes"), { recursive: true });
   });
 
   afterEach(() => {
-    try {
-      rmSync(testRepoRoot, { recursive: true, force: true });
-    } catch {
-      // Best effort cleanup
-    }
+    cleanupVirtualMindFS();
   });
 
   describe("2. Active Swarm Tailored 1-on-1 Conversational Audits (Skill Auditor)", () => {

@@ -323,13 +323,11 @@ When a Cognitive Validator or Completeness Critic issues a rejection (`task:reje
 flowchart TD
     Reject["Validator / Critic Issues Reject\n(task:reject with structured findings)"] --> StatusCR["Task status -> changes_requested\n(Findings recorded in state.json)"]
 
-    StatusCR --> DispatchRepair["Coordinator assigns Fresh Repairer\n(MC-3: Different Repairer Preference)"]
+    StatusCR --> ImplementerClaim["Recorded implementer reclaims task\n(bun harness.ts task:claim --role implementer)"]
 
-    DispatchRepair --> RepairerClaim["Repairer claims task\n(bun harness.ts task:claim --role repairer)"]
-
-    RepairerClaim --> FixCode["Repairer modifies code within leased write scope"]
-    FixCode --> RunTests["Repairer executes gate & regression tests\n(MC-2: Cumulative Gate Re-Execution)"]
-    RunTests --> SubmitFix["Repairer submits fix\n(bun harness.ts task:submit)"]
+    ImplementerClaim --> FixCode["Implementer modifies code within leased write scope"]
+    FixCode --> RunTests["Implementer executes gate & regression tests\n(MC-2: Cumulative Gate Re-Execution)"]
+    RunTests --> SubmitFix["Implementer submits fix\n(bun harness.ts task:submit)"]
 
     SubmitFix --> FreshValidator["Fresh Independent Validator assigned\n(VP-4: Validator Independence Rotation)"]
     FreshValidator --> ProbeCheck["Adversarial Probe & Finding Verification\n(Resolve findings with command receipts)"]
@@ -340,13 +338,13 @@ flowchart TD
    ```bash
    bun olt/scripts/harness.ts task:findings --run .olt/capsules/<slug> --task <task-id>
    ```
-2. **Assign Fresh Repairer** (conforming to `MC-3`):
+2. **Reclaim for Repair** (conforming to `MC-3`; the harness only accepts the recorded `repair_assignee`):
    ```bash
    bun olt/scripts/harness.ts task:claim \
      --run .olt/capsules/<slug> \
      --task <task-id> \
-     --actor repairer-2 \
-     --role repairer
+     --actor <recorded-repair-assignee> \
+     --role implementer
    ```
 3. **Execute Cumulative Gates** (conforming to `MC-2`):
    ```bash

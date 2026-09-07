@@ -1,6 +1,4 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   clusterForensicFindings,
@@ -11,6 +9,11 @@ import {
   scanTranscriptForensics,
   scanTranscriptSteps,
 } from "../olt/scripts/src/reporting/transcript-forensics/index.ts";
+import {
+  cleanupVirtualCliFS,
+  getVirtualCliFS,
+  setupVirtualCliFS,
+} from "./cli/commands/fixtures/full-lifecycle-fixture.ts";
 
 const cmdStep = (step_index: number, CommandLine: string) => ({
   step_index,
@@ -26,49 +29,56 @@ const scanOne = (cmd: string, out: string, conv = "conv-test", path?: string) =>
   scanTranscriptSteps([cmdStep(1, cmd), outStep(2, out)], conv, path)[0];
 
 describe("Transcript Forensics Scanner & Defect Cluster Engine", () => {
-  const testRoot = join(
-    tmpdir(),
-    `test-transcript-forensics-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-  );
+  const testRoot = "/virtual/forensics/test-root";
   const brainDir = join(testRoot, "brain");
   const defectsFile = join(testRoot, "defects.jsonl");
 
   beforeAll(() => {
-    mkdirSync(brainDir, { recursive: true });
+    setupVirtualCliFS();
+    const vfs = getVirtualCliFS();
+    vfs.mkdirSync(brainDir, { recursive: true });
   });
+
   afterAll(() => {
-    if (existsSync(testRoot)) rmSync(testRoot, { recursive: true, force: true });
+    cleanupVirtualCliFS();
   });
 
   describe("Transcript Locator & Path Resolution", () => {
     it("locates direct file transcript paths", () => {
+      const vfs = getVirtualCliFS();
       const file = join(testRoot, "single-transcript.jsonl");
-      writeFileSync(file, '{"step_index":0,"content":"hello"}\n');
+      vfs.writeFileSync(file, '{"step_index":0,"content":"hello"}\n');
       expect(locateTranscripts({ transcriptPath: file })).toEqual([file]);
     });
 
     it("locates transcript.jsonl inside a directory", () => {
+      const vfs = getVirtualCliFS();
       const dir = join(testRoot, "conv-direct");
-      mkdirSync(dir, { recursive: true });
+      vfs.mkdirSync(dir, { recursive: true });
       const file = join(dir, "transcript.jsonl");
-      writeFileSync(file, '{"step_index":0,"content":"hello"}\n');
+      vfs.writeFileSync(file, '{"step_index":0,"content":"hello"}\n');
       expect(locateTranscripts({ transcriptPath: dir })).toEqual([file]);
     });
 
     it("locates .system_generated/logs/transcript.jsonl inside a conversation directory", () => {
+      const vfs = getVirtualCliFS();
       const conv = join(brainDir, "conv-sys-1");
       const logsDir = join(conv, ".system_generated", "logs");
-      mkdirSync(logsDir, { recursive: true });
+      vfs.mkdirSync(logsDir, { recursive: true });
       const file = join(logsDir, "transcript.jsonl");
-      writeFileSync(file, '{"step_index":0,"content":"init"}\n');
+      vfs.writeFileSync(file, '{"step_index":0,"content":"init"}\n');
       expect(locateTranscripts({ transcriptPath: conv })).toEqual([file]);
     });
 
     it("discovers all transcripts under a brain directory and respects limit", () => {
+      const vfs = getVirtualCliFS();
       for (let i = 1; i <= 4; i++) {
         const cDir = join(brainDir, `auto-conv-${i}`, ".system_generated", "logs");
-        mkdirSync(cDir, { recursive: true });
-        writeFileSync(join(cDir, "transcript.jsonl"), `{"step_index":0,"content":"step ${i}"}\n`);
+        vfs.mkdirSync(cDir, { recursive: true });
+        vfs.writeFileSync(
+          join(cDir, "transcript.jsonl"),
+          `{"step_index":0,"content":"step ${i}"}\n`,
+        );
       }
       expect(locateTranscripts({ brainDirectory: brainDir }).length).toBeGreaterThanOrEqual(4);
       expect(locateTranscripts({ brainDirectory: brainDir, limit: 2 })).toHaveLength(2);
@@ -181,8 +191,9 @@ describe("Transcript Forensics Scanner & Defect Cluster Engine", () => {
         outStep(2, "Task review approved successfully."),
       ];
       expect(scanTranscriptSteps(cleanSteps, "clean-conv")).toHaveLength(0);
+      const vfs = getVirtualCliFS();
       const malformedFile = join(testRoot, "malformed.jsonl");
-      writeFileSync(malformedFile, 'not-json\n{"step_index":0,"content":"normal"}\n{invalid\n');
+      vfs.writeFileSync(malformedFile, 'not-json\n{"step_index":0,"content":"normal"}\n{invalid\n');
       expect(parseTranscriptFile(malformedFile)).toHaveLength(1);
     });
   });
@@ -247,30 +258,32 @@ describe("Transcript Forensics Scanner & Defect Cluster Engine", () => {
         },
       ];
       expect(recordClusteredDefects(clusters, { defectsPath: defectsFile })).toBe(1);
-      expect(existsSync(defectsFile)).toBe(true);
-      expect(readFileSync(defectsFile, "utf-8")).toContain("cognitive_validator_lockout");
+      const vfs = getVirtualCliFS();
+      expect(vfs.existsSync(defectsFile)).toBe(true);
+      expect(vfs.readFileSync(defectsFile, "utf-8")).toContain("cognitive_validator_lockout");
     });
   });
 
   describe("End-to-End Forensics Scanner Execution", () => {
     it("runs complete scan over synthetic directory and generates structured summary", () => {
+      const vfs = getVirtualCliFS();
       const scanDir = join(testRoot, "full-scan-test");
       const c1 = join(scanDir, "conv-101", ".system_generated", "logs");
       const c2 = join(scanDir, "conv-102", ".system_generated", "logs");
-      mkdirSync(c1, { recursive: true });
-      mkdirSync(c2, { recursive: true });
+      vfs.mkdirSync(c1, { recursive: true });
+      vfs.mkdirSync(c2, { recursive: true });
 
       const l1 = JSON.stringify({ step_index: 0, content: "user request" });
       const l2 = JSON.stringify(cmdStep(1, "cat skills/olt/scripts/src/scanner.ts"));
       const l3 = JSON.stringify(
         outStep(2, "Output:\n**Error (INVALID_ARGUMENT)**: unknown option: --verbose"),
       );
-      writeFileSync(join(c1, "transcript.jsonl"), `${l1}\n${l2}\n${l3}\n`);
+      vfs.writeFileSync(join(c1, "transcript.jsonl"), `${l1}\n${l2}\n${l3}\n`);
 
       const l4 = JSON.stringify(
         outStep(0, "role validator may not invoke shell: cognitive validators restricted"),
       );
-      writeFileSync(join(c2, "transcript.jsonl"), `${l4}\n`);
+      vfs.writeFileSync(join(c2, "transcript.jsonl"), `${l4}\n`);
 
       const summary = scanTranscriptForensics({
         transcriptPath: scanDir,
@@ -285,6 +298,23 @@ describe("Transcript Forensics Scanner & Defect Cluster Engine", () => {
       expect(summary.categories.cognitive_validator_lockout).toBeGreaterThanOrEqual(1);
       expect(summary.clusters.length).toBeGreaterThanOrEqual(3);
       expect(summary.recordedDefectCount).toBeGreaterThanOrEqual(3);
+    });
+
+    it("handles completely empty directories gracefully returning zero counts", () => {
+      const vfs = getVirtualCliFS();
+      const emptyDir = join(testRoot, "empty-scan-dir");
+      vfs.mkdirSync(emptyDir, { recursive: true });
+
+      const summary = scanTranscriptForensics({
+        transcriptPath: emptyDir,
+        recordDefects: true,
+        defectsPath: defectsFile,
+      });
+      expect(summary.totalTranscriptsScanned).toBe(0);
+      expect(summary.totalStepsScanned).toBe(0);
+      expect(summary.totalFindings).toBe(0);
+      expect(summary.clusters).toHaveLength(0);
+      expect(summary.recordedDefectCount).toBe(0);
     });
   });
 });

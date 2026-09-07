@@ -23,7 +23,7 @@ describe(tierConfinementCoreSuiteName, () => {
     expect(roleToTier("coordinator")).toBe(2);
     expect(roleToTier("coordinator-backend")).toBe(2);
     expect(roleToTier("implementer")).toBe(3);
-    expect(roleToTier("repairer")).toBe(3);
+    expect(roleToTier("sub-implementer")).toBe(3);
     expect(roleToTier("validator")).toBe(3);
     expect(roleToTier("completeness-critic")).toBe(3);
     expect(roleToTier("planner")).toBe(3);

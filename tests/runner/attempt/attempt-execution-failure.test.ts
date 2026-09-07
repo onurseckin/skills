@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { relative, join, sep } from "node:path";
 import type { CommandAttemptRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { atomicWriteJson } from "../../../olt/scripts/src/core/durable-write.ts";
@@ -22,7 +21,7 @@ import type {
 } from "../../../olt/scripts/src/engine/runner/types/types.ts";
 import { verifyCommandRecord } from "../../../olt/scripts/src/engine/runner/signing/verify-command.ts";
 import type { CommandSigningCapability } from "../../../olt/scripts/src/engine/runner/execution/attempt-disposition-capability.ts";
-import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import { getRunnerVfs, tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
 afterEach(cleanupTempRoots);
 
@@ -44,16 +43,17 @@ async function attemptResult(
   signer: CommandSigningCapability,
   integrityFailure?: string,
 ): Promise<AttemptResult> {
+  const vfs = getRunnerVfs();
   const attemptRoot = join(commandRoot, `attempt-${attempt}`);
-  await mkdir(attemptRoot);
+  vfs.mkdirSync(attemptRoot, { recursive: true });
   const stdoutPath = join(attemptRoot, "stdout.log"),
     stderrPath = join(attemptRoot, "stderr.log"),
     activityPath = join(attemptRoot, "activity.json");
   const startedAt = `2026-08-14T00:00:0${attempt}.000Z`,
     finishedAt = `2026-08-14T00:00:1${attempt}.000Z`;
   const output = `attempt ${attempt}\n`;
-  await writeFile(stdoutPath, output);
-  await writeFile(stderrPath, "");
+  vfs.writeFileSync(stdoutPath, output);
+  vfs.writeFileSync(stderrPath, "");
   const controller = startAttemptIntent(
     attemptRoot,
     id,
@@ -120,10 +120,11 @@ async function attemptResult(
   };
 }
 
-async function fixture(name: string) {
+function fixture(name: string) {
   const repositoryRoot = tempRoot(name);
+  const vfs = getRunnerVfs();
   const runRoot = join(repositoryRoot, ".olt", "capsules", "run");
-  await mkdir(join(runRoot, "commands"), { recursive: true });
+  vfs.mkdirSync(join(runRoot, "commands"), { recursive: true });
   return { repositoryRoot, runRoot };
 }
 
@@ -134,7 +135,7 @@ describe("terminal attempt execution failures", () => {
   });
 
   test("publishes first-attempt evidence failure before rethrowing its original error", async () => {
-    const { repositoryRoot, runRoot } = await fixture("attempt-evidence-first-");
+    const { repositoryRoot, runRoot } = fixture("attempt-evidence-first-");
     const original = new Error("combined command output quota exceeded (1024 bytes)");
     let calls = 0;
     const runner = createInternalCommandRunner({
@@ -172,7 +173,8 @@ describe("terminal attempt execution failures", () => {
     }
     expect(caught).toBe(original);
     expect(calls).toBe(1);
-    const stored = JSON.parse(await readFile(prepared.recordPath, "utf8"));
+    const vfs = getRunnerVfs();
+    const stored = JSON.parse(vfs.readFileSync(prepared.recordPath, "utf8"));
     expect(stored).toMatchObject({
       status: "failed",
       evidence_error: original.message,
@@ -188,7 +190,7 @@ describe("terminal attempt execution failures", () => {
   });
 
   test("preserves a later evidence failure instead of recovering it as interrupted", async () => {
-    const { repositoryRoot, runRoot } = await fixture("attempt-evidence-later-");
+    const { repositoryRoot, runRoot } = fixture("attempt-evidence-later-");
     const original = new Error("second-attempt evidence storage failed");
     const runner = createInternalCommandRunner({
       inspectRepository: () => {
@@ -225,7 +227,8 @@ describe("terminal attempt execution failures", () => {
       caught = error;
     }
     expect(caught).toBe(original);
-    const stored = JSON.parse(await readFile(prepared.recordPath, "utf8"));
+    const vfs = getRunnerVfs();
+    const stored = JSON.parse(vfs.readFileSync(prepared.recordPath, "utf8"));
     expect(stored).toMatchObject({
       status: "failed",
       evidence_error: original.message,

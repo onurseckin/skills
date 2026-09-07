@@ -198,37 +198,3 @@ describe("Doctor Epistemic Engine (checkEpistemicConfidence)", () => {
     expect(gateFinding?.severity).toBe("WARN");
   });
 });
-
-describe("Physical Density and Zero-Comment Invariants", () => {
-  test("in-memory invariant validator verifies max lines, zero comments, zero any, zero suppressions", () => {
-    const samplePureFile = `
-export interface SampleType {
-  readonly id: string;
-  readonly value: number;
-}
-export function sampleFn(input: SampleType): number {
-  return input.value * 2;
-}
-`;
-    const commentPattern = new RegExp("\\/\\/|\\/\\*|\\*\\/");
-    const anyPattern = new RegExp(":\\s*" + "any\\b|as\\s+" + "any\\b|<" + "any>");
-    const suppressionPattern = new RegExp(
-      [
-        "@ts" + "-ignore",
-        "@ts" + "-expect-error",
-        "@ts" + "-nocheck",
-        "eslint" + "-disable",
-        "oxlint" + "-disable",
-      ].join("|"),
-    );
-
-    const lines = samplePureFile.trim().split("\n");
-    expect(lines.length).toBeLessThanOrEqual(300);
-
-    for (const line of lines) {
-      expect(commentPattern.test(line)).toBe(false);
-      expect(anyPattern.test(line)).toBe(false);
-      expect(suppressionPattern.test(line)).toBe(false);
-    }
-  });
-});

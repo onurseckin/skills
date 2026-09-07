@@ -25,12 +25,11 @@ const ALL_AGENT_ROLES: readonly AgentRole[] = [
   "orchestrator",
   "plan-validator",
   "planner",
-  "repairer",
   "sub-implementer",
   "sub-investigator",
   "sub-validator",
   "validator",
-  "mechanic-validator",
+  "ui-headless-validator",
 ];
 
 describe("packet evidence-schema validation and boundary parsing", () => {
@@ -64,13 +63,13 @@ describe("packet evidence-schema validation and boundary parsing", () => {
     });
   });
 
-  describe("task execution roles (implementer, repairer, sub-implementer)", () => {
+  describe("task execution roles (implementer, publisher, sub-implementer)", () => {
     test("task execution roles share identical submission schema contracts", () => {
       const impl = evidenceSchema("implementer");
-      const rep = evidenceSchema("repairer");
+      const pub = evidenceSchema("publisher");
       const subImpl = evidenceSchema("sub-implementer");
 
-      expect(impl).toEqual(rep);
+      expect(impl).toEqual(pub);
       expect(impl).toEqual(subImpl);
       expect(impl.summary).toBe("<nonempty summary>");
       expect(impl.requirement_ids).toEqual(["<every mapped requirement id exactly once>"]);
@@ -80,7 +79,7 @@ describe("packet evidence-schema validation and boundary parsing", () => {
     });
   });
 
-  describe("validation roles (validator, sub-validator, mechanic-validator)", () => {
+  describe("validation roles (validator, sub-validator, ui-headless-validator)", () => {
     test("validator and sub-validator share review schema contract without token field", () => {
       const val = evidenceSchema("validator");
       const subVal = evidenceSchema("sub-validator");
@@ -94,12 +93,12 @@ describe("packet evidence-schema validation and boundary parsing", () => {
       expect(JSON.stringify(val)).not.toContain("token");
     });
 
-    test("mechanic-validator schema includes gate receipts array and gate command checks", () => {
-      const mech = evidenceSchema("mechanic-validator");
+    test("ui-headless-validator schema includes gate receipts array and gate command checks", () => {
+      const mech = evidenceSchema("ui-headless-validator");
 
       expect(mech.verdict).toBe("pass|reject");
       expect(mech.requirement_ids).toEqual(["<every task requirement id exactly once>"]);
-      expect(mech.checks).toEqual([{ command_id: "<mechanic-validator gate command id>" }]);
+      expect(mech.checks).toEqual([{ command_id: "<ui-headless-validator gate command id>" }]);
       expect(mech.gate_receipts).toEqual([
         {
           gate_id: "<gate id>",

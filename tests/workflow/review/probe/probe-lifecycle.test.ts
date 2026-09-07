@@ -3,7 +3,6 @@ import {
   appendGateProof,
   type GateProofRecord,
 } from "../../../../olt/scripts/src/graph/gate-proof.ts";
-import { assignReplacementRepairer } from "../../../../olt/scripts/src/workflow/review/assign-repairer.ts";
 import { beginValidation } from "../../../../olt/scripts/src/workflow/review/begin-validation.ts";
 import { isProbeDemand } from "../../../../olt/scripts/src/workflow/review/finding-class.ts";
 import {
@@ -199,9 +198,6 @@ describe("probe lifecycle and rules", () => {
     expect(state.tasks["T-1"]!.status).toBe("changes_requested");
     expect(state.tasks["T-1"]!.repair_round).toBe(1);
     expect(state.tasks["T-1"]!.probe_round).toBe(1);
-    expect(() =>
-      assignReplacementRepairer(port, "T-1", "replacement", "coordinator", "repeated_failure", "e"),
-    ).toThrow(/has not failed repeatedly/);
   });
 
   test("probes never shorten the twenty-round repair budget", () => {
@@ -237,8 +233,8 @@ describe("probe lifecycle and rules", () => {
       expect(task.repair_round).toBe(round);
       if (round < 20) {
         expect(task.status).toBe("changes_requested");
-        const repair = claimTask(port, "T-1", "implementer", "repairer", { clock });
-        registerTaskPacket(port, "repairer", "implementer", round + 1);
+        const repair = claimTask(port, "T-1", "implementer", "implementer", { clock });
+        registerTaskPacket(port, "implementer", "implementer", round + 1);
         submitTask(port, "T-1", "implementer", repair.token, report, clock);
       }
     }

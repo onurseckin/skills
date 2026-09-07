@@ -189,6 +189,11 @@ describe("attempt-failure-settle", () => {
       },
     } as never;
 
+    const instantClock = {
+      now: () => Date.now(),
+      wait: async () => undefined,
+    };
+
     try {
       const res = await settleAndTerminateAttempt(
         { pid: 999998, exited: Promise.resolve(0) } as never,
@@ -198,6 +203,7 @@ describe("attempt-failure-settle", () => {
         { timeout: "wall", code: null, interrupted: false },
         [],
         () => undefined,
+        instantClock,
       );
       expect(res.descendantsAbsent).toBe(true);
       expect(res.rootProof).toBe(true);

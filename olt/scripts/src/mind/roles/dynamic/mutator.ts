@@ -19,22 +19,17 @@ export function synthesizeRoleFromTaskRequirements(
   params: TaskRoleSynthesisParams,
 ): DynamicRoleSynthesisPlan {
   const domainTag = params.domain ?? "general";
-  const isRepair = params.requiresRepair === true;
 
-  const implementerRoleName = isRepair
-    ? `repairer-${params.taskId.replace(/[^a-z0-9_-]/gi, "-").toLowerCase()}`
-    : `implementer-${domainTag}-${params.taskId.replace(/[^a-z0-9_-]/gi, "-").toLowerCase()}`;
+  const implementerRoleName = `implementer-${domainTag}-${params.taskId.replace(/[^a-z0-9_-]/gi, "-").toLowerCase()}`;
 
   const validatorRoleName = `validator-${domainTag}-${params.taskId.replace(/[^a-z0-9_-]/gi, "-").toLowerCase()}`;
 
   // Implementer synthesis
   const implementerRole = synthesizeDynamicRole({
     name: implementerRoleName,
-    archetype: isRepair ? "tier_3_repairer" : "tier_3_implementer",
+    archetype: "tier_3_implementer",
     domain: domainTag,
-    title: isRepair
-      ? `Specialized Repairer for Task ${params.taskId}`
-      : `Specialized Implementer for Task ${params.taskId}`,
+    title: `Specialized Implementer for Task ${params.taskId}`,
     summary: `Dedicated implementer executing task '${params.taskTitle}' within bounded write scope.`,
     writeScopePolicy: "lease_bounded",
     permittedActivities: [
@@ -126,10 +121,10 @@ export function synthesizeRoleFromDefectRemediation(
 
   return synthesizeDynamicRole({
     name: roleName,
-    archetype: "tier_3_repairer",
+    archetype: "tier_3_implementer",
     domain: "defect-investigation",
     title: `Defect Remediation Specialist: ${params.defectId}`,
-    summary: `Specialized repairer synthesized to fix defect '${params.defectId}' (${params.defectType}) without regressions.`,
+    summary: `Specialized implementer synthesized to fix defect '${params.defectId}' (${params.defectType}) without regressions.`,
     writeScopePolicy: "lease_bounded",
     permittedActivities: [
       `Claim write scope for defect remediation: [${params.affectedScope.join(", ")}]`,

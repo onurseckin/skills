@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import {
   flagPositions,
@@ -14,6 +14,7 @@ import {
   repeatableFlag,
   requiredFlag,
 } from "../../../olt/scripts/src/cli/registry/index.ts";
+import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import {
   cleanupVirtualCliFS,
   setupVirtualCliFS,
@@ -109,7 +110,6 @@ describe("repeatable flags", () => {
     expect(parseArguments(["plan:enhance", "--summary", "--help"], SHAPES).flags).toEqual({
       summary: "--help",
     });
-    // A declared flag is never swallowed as another flag's value.
     expect(parseArguments(["plan:enhance", "--summary", "--dry-run"], SHAPES).flags).toEqual({
       summary: true,
       "dry-run": true,
@@ -128,7 +128,6 @@ describe("repeatable flags", () => {
       "summary",
     ]);
     expect(flagPositions(["--run", "/tmp/run", "--help"], SHAPES)).toEqual(["run", "help"]);
-    // With no spec, a dashed token is always a flag.
     expect(flagPositions(["--summary", "--help"])).toEqual(["summary", "help"]);
   });
 });
@@ -152,25 +151,20 @@ describe("registry-driven required flags", () => {
   test("dispatches a real invocation against an existing capsule", async () => {
     const repo = "/virtual/repeatable-flags";
     mkdirSync(repo, { recursive: true });
-    const promptPath = join(repo, "prompt.txt");
-    writeFileSync(promptPath, "Just enough to dispatch run:status against.");
-    const init = await execute([
-      "plan:init",
-      "--repo",
+    mkdirSync(join(repo, ".git"), { recursive: true });
+    const runRoot = initRun(
       repo,
-      "--run",
       "dispatch-check",
-      "--prompt-file",
-      promptPath,
-    ]);
-    const result = await execute(["plan:status", "--run", init.run_root as string]);
+      new TextEncoder().encode("Just enough to dispatch run:status against."),
+      "file",
+      true,
+    );
+    const result = await execute(["plan:status", "--run", runRoot]);
     expect(typeof result.markdown).toBe("string");
   });
 });
 
 describe("flag reads are own-key only", () => {
-  // A plain `flags[name]` read resolves an absent `--constructor` to Object.prototype.constructor,
-  // which would crash listFlag and mis-report textFlag.
   test("an unsupplied flag named after an Object.prototype member reads as absent", () => {
     const parsed = parseArguments(["plan:enhance", "--run", "/tmp/run"], SHAPES);
     expect(listFlag(parsed.flags, "constructor")).toBeUndefined();

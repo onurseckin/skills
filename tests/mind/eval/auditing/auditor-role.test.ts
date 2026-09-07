@@ -102,7 +102,6 @@ describe("Phase 5 W5.1 - mind-auditor Role Contract", () => {
         "coordinator",
         "implementer",
         "validator",
-        "repairer",
         "planner",
         "plan-validator",
         "sub-implementer",

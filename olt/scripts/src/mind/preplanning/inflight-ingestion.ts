@@ -485,7 +485,7 @@ export class InFlightIngestionEngine {
     const snapshotId = `snap_${timestampKey}_${snapshotHash}`;
 
     const metadata: Record<string, unknown> = {
-      ...(options?.metadata ?? {}),
+      ...options?.metadata,
       version: "1.0.0",
       nodeVersion: process.version,
       platform: process.platform,
@@ -661,9 +661,10 @@ export async function loadInFlightSnapshot(
 export async function listInFlightSnapshots(
   snapshotsDir?: string,
 ): Promise<InFlightSnapshotSummary[]> {
-  const engine = new InFlightIngestionEngine(process.cwd(), {
-    ...(snapshotsDir !== undefined ? { snapshotsDir } : {}),
-  });
+  const engine = new InFlightIngestionEngine(
+    process.cwd(),
+    snapshotsDir !== undefined ? { snapshotsDir } : {},
+  );
   return engine.listSnapshots(snapshotsDir);
 }
 

@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import {
   auditCumulativeSocraticProgression,
@@ -13,9 +12,10 @@ import { cleanupVirtualReportingFS, setupVirtualReportingFS, tempDir } from "../
 
 describe("rules-socratic anti-stagnation coverage", () => {
   let sandboxDir: string;
+  let vfs: ReturnType<typeof setupVirtualReportingFS>;
 
   beforeEach(() => {
-    setupVirtualReportingFS();
+    vfs = setupVirtualReportingFS();
     sandboxDir = tempDir("socratic-rules");
   });
 
@@ -83,11 +83,11 @@ describe("rules-socratic anti-stagnation coverage", () => {
       expect(auditCumulativeSocraticProgression({})[0]?.compliant).toBe(true);
 
       const oltDir = join(sandboxDir, ".olt");
-      fs.mkdirSync(oltDir, { recursive: true });
-      fs.writeFileSync(join(oltDir, "debate-memory.json"), memory.serialize());
+      vfs.mkdirSync(oltDir, { recursive: true });
+      vfs.writeFileSync(join(oltDir, "debate-memory.json"), memory.serialize());
       expect(auditCumulativeSocraticProgression({ repoRoot: sandboxDir })[0]?.compliant).toBe(true);
 
-      fs.writeFileSync(join(oltDir, "debate-memory.json"), "{ invalid json");
+      vfs.writeFileSync(join(oltDir, "debate-memory.json"), "{ invalid json");
       expect(auditCumulativeSocraticProgression({ repoRoot: sandboxDir })[0]?.compliant).toBe(true);
     });
   });
@@ -161,8 +161,8 @@ describe("rules-socratic anti-stagnation coverage", () => {
 
     it("loads portfolio from disk dashboard json and handles empty state", () => {
       const dashPaths = resolveDashboardPaths(sandboxDir);
-      fs.mkdirSync(join(sandboxDir, ".olt"), { recursive: true });
-      fs.writeFileSync(
+      vfs.mkdirSync(join(sandboxDir, ".olt"), { recursive: true });
+      vfs.writeFileSync(
         dashPaths.jsonPath,
         JSON.stringify({
           portfolio: {
@@ -212,8 +212,8 @@ describe("rules-socratic anti-stagnation coverage", () => {
 
     it("loads product craft from disk dashboard json and handles missing craft", () => {
       const dashPaths = resolveDashboardPaths(sandboxDir);
-      fs.mkdirSync(join(sandboxDir, ".olt"), { recursive: true });
-      fs.writeFileSync(
+      vfs.mkdirSync(join(sandboxDir, ".olt"), { recursive: true });
+      vfs.writeFileSync(
         dashPaths.jsonPath,
         JSON.stringify({
           productCraft: {

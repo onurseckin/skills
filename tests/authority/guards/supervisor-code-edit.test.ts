@@ -66,10 +66,38 @@ describe("Supervisor Pre-Tool Guard (DEFECT-COORDINATOR-CODE-EDIT)", () => {
     });
 
     test("identifies non-supervisory roles correctly", () => {
-      const nonSupervisory = ["implementer", "worker", "validator", "tester", "repairer"];
+      const nonSupervisory = ["implementer", "worker", "validator", "tester", "sub-implementer"];
       for (const role of nonSupervisory) {
         expect(isSupervisorRole(role)).toBe(false);
       }
+    });
+
+    test("handles case-insensitivity and surrounding whitespace in supervisor role checks", () => {
+      expect(isSupervisorRole(" Coordinator ")).toBe(true);
+      expect(isSupervisorRole("MIND-SUPERVISOR")).toBe(true);
+      expect(isSupervisorRole(" Orch ")).toBe(true);
+      expect(isSupervisorRole(" tier_1 ")).toBe(true);
+      expect(isSupervisorRole("  FEATURE-COORDINATOR  ")).toBe(true);
+
+      expect(() => {
+        assertSupervisorPreToolGuard(" Coordinator ", "write_to_file", "ws-coord");
+      }).toThrow(HarnessError);
+
+      expect(() => {
+        assertSupervisorPreToolGuard(" MIND ", "replace_file_content", "ws-mind");
+      }).toThrow(HarnessError);
+    });
+
+    test("handles omitted or empty agentId with deterministic fallback", () => {
+      expect(() => {
+        assertSupervisorPreToolGuard("coordinator", "write_to_file", "");
+      }).toThrow(HarnessError);
+      expect(engine.getAgentState("coordinator-agent").strikeCount).toBe(1);
+
+      expect(() => {
+        assertSupervisorPreToolGuard("orchestrator", "replace_file_content", undefined);
+      }).toThrow(HarnessError);
+      expect(engine.getAgentState("orchestrator-agent").strikeCount).toBe(1);
     });
   });
 
@@ -223,6 +251,44 @@ describe("Supervisor Pre-Tool Guard (DEFECT-COORDINATOR-CODE-EDIT)", () => {
       expect(engine.getAgentState("repeat-agent").strikeCount).toBe(3);
       expect(engine.getAgentState("repeat-agent").isTerminated).toBe(true);
     });
+
+    test("progresses through full strike ladder to Strike 3 PERSONA_RESPAWN and strips capabilities", () => {
+      const agentId = "ladder-agent";
+      // Violation 1 -> Strike 1: HALT_AND_DELEGATE
+      try {
+        assertSupervisorPreToolGuard("coordinator", "write_to_file", agentId);
+        expect.unreachable("should throw");
+      } catch (e) {
+        expect((e as HarnessError).message).toContain("STRIKE 1 - HALT_AND_DELEGATE");
+      }
+      let st = engine.getAgentState(agentId);
+      expect(st.strikeCount).toBe(1);
+      expect(st.isTerminated).toBe(false);
+
+      // Violation 2 -> Strike 2: CAPABILITY_REVOCATION
+      try {
+        assertSupervisorPreToolGuard("coordinator", "replace_file_content", agentId);
+        expect.unreachable("should throw");
+      } catch (e) {
+        expect((e as HarnessError).message).toContain("STRIKE 2 - CAPABILITY_REVOCATION");
+      }
+      st = engine.getAgentState(agentId);
+      expect(st.strikeCount).toBe(2);
+      expect(st.isTerminated).toBe(false);
+
+      // Violation 3 -> Strike 3: PERSONA_RESPAWN
+      try {
+        assertSupervisorPreToolGuard("coordinator", "edit_file", agentId);
+        expect.unreachable("should throw");
+      } catch (e) {
+        expect((e as HarnessError).message).toContain("STRIKE 3 - PERSONA_RESPAWN");
+      }
+      st = engine.getAgentState(agentId);
+      expect(st.strikeCount).toBe(3);
+      expect(st.isTerminated).toBe(true);
+      expect(st.capabilitiesRevoked).toBe(true);
+      expect(st.revokedTools.length).toBeGreaterThan(0);
+    });
   });
 
   describe("Non-Supervisory Roles Permitted", () => {
@@ -244,7 +310,7 @@ describe("Supervisor Pre-Tool Guard (DEFECT-COORDINATOR-CODE-EDIT)", () => {
       }).not.toThrow();
 
       expect(() => {
-        assertSupervisorPreToolGuard("repairer", "write_to_file", "repairer-1");
+        assertSupervisorPreToolGuard("sub-implementer", "write_to_file", "sub-implementer-1");
       }).not.toThrow();
 
       expect(engine.getAgentState("impl-1").strikeCount).toBe(0);

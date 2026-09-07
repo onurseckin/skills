@@ -103,7 +103,7 @@ sequenceDiagram
     autonumber
     participant Coord as Coordinator
     participant Val as Cognitive Validator (0 Cmd)
-    participant Impl as Implementer / Repairer
+    participant Impl as Implementer
     participant Ledger as Findings Ledger
 
     Val->>Coord: Emit Structured Findings D_0 = { f1, f2 }
@@ -124,7 +124,7 @@ sequenceDiagram
 
 ## 5. Concrete TypeScript Findings Ledger Engine
 
-Implemented in [`socratic-validator.ts`](../../../../olt/scripts/src/reporting/socratic-validator.ts):
+Implemented in [`socratic-validator/index.ts`](../../../../olt/scripts/src/reporting/socratic-validator/index.ts):
 
 ```typescript
 export interface StructuredFinding {

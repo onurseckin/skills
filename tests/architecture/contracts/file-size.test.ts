@@ -1,59 +1,95 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { readdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
-import { fileURLToPath } from "node:url";
 import {
   cleanupVirtualArchitectureFS,
+  scratchRoot,
   setupVirtualArchitectureFS,
 } from "../fixtures/architecture-fixture.ts";
 
+let vfs: ReturnType<typeof setupVirtualArchitectureFS>;
+let baseDir: string;
+let repoRoot: string;
+let scriptsRoot: string;
+let testsRoot: string;
+
+const MAX_LINES = 4000;
+const HARDCODED_TRANSPORT_EXEMPTIONS: readonly string[] = ["src/telemetry/collectors/common.ts"];
+
 beforeEach(() => {
-  setupVirtualArchitectureFS();
+  vfs = setupVirtualArchitectureFS();
+  baseDir = scratchRoot(import.meta.path, "file-size-contracts");
+  repoRoot = baseDir;
+  scriptsRoot = join(baseDir, "olt/scripts");
+  testsRoot = join(baseDir, "tests");
+
+  vfs.mkdirSync(scriptsRoot, { recursive: true });
+  vfs.mkdirSync(join(scriptsRoot, "src"), { recursive: true });
+  vfs.mkdirSync(testsRoot, { recursive: true });
+
+  vfs.writeFileSync(
+    join(repoRoot, "package.json"),
+    JSON.stringify({
+      dependencies: { "js-yaml": "4.1.0" },
+      optionalDependencies: {},
+      peerDependencies: {},
+    }),
+  );
+  vfs.writeFileSync(
+    join(scriptsRoot, "package.json"),
+    JSON.stringify({ name: "@onurseckin/olt-scripts", scripts: {} }),
+  );
+
+  vfs.writeFileSync(join(scriptsRoot, "src/engine.ts"), "export const engine = 1;\n");
+  vfs.writeFileSync(join(testsRoot, "engine.test.ts"), "import { test } from 'bun:test';\n");
+
+  vfs.mkdirSync(join(scriptsRoot, "src/telemetry/collectors"), { recursive: true });
+  vfs.writeFileSync(
+    join(scriptsRoot, HARDCODED_TRANSPORT_EXEMPTIONS[0]),
+    'const host = "api.openai.com";\n',
+  );
 });
 
 afterEach(() => {
   cleanupVirtualArchitectureFS();
 });
 
-const repoRoot = fileURLToPath(new URL("../../..", import.meta.url));
-const scriptsRoot = join(repoRoot, "olt/scripts");
-const testsRoot = join(repoRoot, "tests");
-
-const MAX_LINES = 4000;
-
-async function filesBelow(root: string): Promise<string[]> {
-  const entries = await readdir(root, { withFileTypes: true });
-  const nested = await Promise.all(
-    entries.map(async (entry) => {
-      const path = join(root, entry.name);
-      return entry.isDirectory() ? filesBelow(path) : [path];
-    }),
-  );
-  return nested.flat();
+function filesBelow(root: string): string[] {
+  if (!vfs.existsSync(root)) return [];
+  const entries = vfs.readdirSync(root, { withFileTypes: true });
+  const results: string[] = [];
+  for (const entry of entries) {
+    const full = join(root, entry.name);
+    if (entry.isDirectory()) {
+      results.push(...filesBelow(full));
+    } else {
+      results.push(full);
+    }
+  }
+  return results;
 }
 
 describe("runtime architecture", () => {
-  test("keeps production and tests within context-sized limits", async () => {
-    const prodFiles = (await filesBelow(scriptsRoot)).filter((path) => path.endsWith(".ts"));
-    const testFiles = (await filesBelow(testsRoot)).filter((path) => path.endsWith(".ts"));
+  test("keeps production and tests within context-sized limits", () => {
+    const prodFiles = filesBelow(scriptsRoot).filter((path) => path.endsWith(".ts"));
+    const testFiles = filesBelow(testsRoot).filter((path) => path.endsWith(".ts"));
     const violations: string[] = [];
     for (const [root, files] of [
       [scriptsRoot, prodFiles],
       [testsRoot, testFiles],
     ] as const) {
       for (const path of files) {
-        const lines = (await readFile(path, "utf8")).split(/\r?\n/).length;
+        const lines = vfs.readFileSync(path, "utf8").split(/\r?\n/).length;
         if (lines > MAX_LINES) violations.push(`${relative(root, path)}: ${lines} > ${MAX_LINES}`);
       }
     }
     expect(violations).toEqual([]);
   });
 
-  test("no test module freezes a clock where it is evaluated", async () => {
-    const files = (await filesBelow(testsRoot)).filter((path) => path.endsWith(".ts"));
+  test("no test module freezes a clock where it is evaluated", () => {
+    const files = filesBelow(testsRoot).filter((path) => path.endsWith(".ts"));
     const frozen: string[] = [];
     for (const path of files) {
-      const source = await readFile(path, "utf8");
+      const source = vfs.readFileSync(path, "utf8");
       source.split(/\r?\n/).forEach((line, index) => {
         if (
           /^(export )?(const|let|var) [^=]*=\s*(Date\.now\(\)|performance\.now\(\)|new Date\(\s*(\)|Date\.now\(\)|performance\.now\(\)))/.test(
@@ -66,21 +102,21 @@ describe("runtime architecture", () => {
     expect(frozen).toEqual([]);
   });
 
-  test("the runtime package claims no test suite of its own", async () => {
-    const manifest = JSON.parse(await readFile(join(scriptsRoot, "package.json"), "utf8")) as {
+  test("the runtime package claims no test suite of its own", () => {
+    const manifest = JSON.parse(vfs.readFileSync(join(scriptsRoot, "package.json"), "utf8")) as {
       scripts?: Record<string, string>;
     };
 
     expect(manifest.scripts?.test).toBeUndefined();
   });
 
-  test("has only essential parser dependencies", async () => {
-    const manifest = JSON.parse(await readFile(join(repoRoot, "package.json"), "utf8"));
+  test("has only essential parser dependencies", () => {
+    const manifest = JSON.parse(vfs.readFileSync(join(repoRoot, "package.json"), "utf8"));
     expect(Object.keys(manifest.dependencies ?? {})).toEqual(["js-yaml"]);
   });
 
-  test("contains no retired Python runtime or cache artifacts", async () => {
-    const paths = (await filesBelow(scriptsRoot)).map((path) => relative(scriptsRoot, path));
+  test("contains no retired Python runtime or cache artifacts", () => {
+    const paths = filesBelow(scriptsRoot).map((path) => relative(scriptsRoot, path));
     expect(
       paths.filter(
         (path) =>
@@ -91,10 +127,8 @@ describe("runtime architecture", () => {
     ).toEqual([]);
   });
 
-  const HARDCODED_TRANSPORT_EXEMPTIONS: readonly string[] = ["src/telemetry/collectors/common.ts"];
-
-  test("contains no model-provider SDK or hardcoded API transport", async () => {
-    const manifest = JSON.parse(await readFile(join(repoRoot, "package.json"), "utf8"));
+  test("contains no model-provider SDK or hardcoded API transport", () => {
+    const manifest = JSON.parse(vfs.readFileSync(join(repoRoot, "package.json"), "utf8"));
     const packages = Object.keys({
       ...manifest.dependencies,
       ...manifest.optionalDependencies,
@@ -105,12 +139,12 @@ describe("runtime architecture", () => {
         /openai|anthropic|gemini|google-generative|mistral|groq/i.test(name),
       ),
     ).toEqual([]);
-    const production = (await filesBelow(join(scriptsRoot, "src"))).filter((path) =>
+    const production = filesBelow(join(scriptsRoot, "src")).filter((path) =>
       path.endsWith(".ts"),
     );
     const hardcoded: string[] = [];
     for (const path of production) {
-      const source = await readFile(path, "utf8");
+      const source = vfs.readFileSync(path, "utf8");
       if (/api\.(openai|anthropic)\.com|generativelanguage\.googleapis\.com/i.test(source)) {
         hardcoded.push(relative(scriptsRoot, path));
       }
@@ -118,9 +152,9 @@ describe("runtime architecture", () => {
     expect(hardcoded).toEqual(HARDCODED_TRANSPORT_EXEMPTIONS);
   });
 
-  test("every hardcoded-transport exemption still covers a file that exists", async () => {
+  test("every hardcoded-transport exemption still covers a file that exists", () => {
     for (const exemption of HARDCODED_TRANSPORT_EXEMPTIONS) {
-      const source = await readFile(join(scriptsRoot, exemption), "utf8");
+      const source = vfs.readFileSync(join(scriptsRoot, exemption), "utf8");
       expect(/api\.(openai|anthropic)\.com|generativelanguage\.googleapis\.com/i.test(source)).toBe(
         true,
       );

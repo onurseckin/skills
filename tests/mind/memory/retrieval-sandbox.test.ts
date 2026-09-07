@@ -186,4 +186,68 @@ describe("Retrieval Sandbox Coverage Suite", () => {
       "_No memory entries matched the search criteria._",
     );
   });
+
+  it("resolves multi-hop terminal successor lineage and formats table accurately", () => {
+    const engine = new ThreeTierMemoryEngine();
+    engine.addArchivedEntry({
+      id: "HIST-STEP-1",
+      title: "Ancient Logic",
+      summaryAbstract: "Old step 1",
+      epistemicStatus: "SUPERSEDED",
+    });
+
+    const index = engine.getSupersessionIndex();
+    index.registerEntry({
+      id: "HIST-STEP-1",
+      title: "Ancient Logic",
+      status: "SUPERSEDED",
+      supersededBy: "HIST-STEP-2",
+      reason: "Refactored to step 2",
+    });
+    index.registerEntry({
+      id: "HIST-STEP-2",
+      title: "Intermediate Logic",
+      status: "SUPERSEDED",
+      supersededBy: "INV-TERMINAL",
+      successorInvariantId: "INV-TERMINAL",
+      reason: "Promoted to bedrock invariant",
+    });
+    index.registerEntry({
+      id: "INV-TERMINAL",
+      title: "Terminal Invariant",
+      status: "ACTIVE",
+    });
+
+    const bundle = RetrievalSandbox.execute(engine, {
+      tiers: ["TIER_3"],
+      includeSuccessorGuidance: true,
+      suppressObsolete: false,
+    });
+
+    const res = bundle.results.find((r) => r.id === "HIST-STEP-1");
+    expect(res?.successorGuidance?.terminalSuccessorId).toBe("INV-TERMINAL");
+    expect(res?.successorGuidance?.lineagePath).toContain("HIST-STEP-1");
+    expect(res?.successorGuidance?.lineagePath).toContain("HIST-STEP-2");
+    expect(res?.successorGuidance?.lineagePath).toContain("INV-TERMINAL");
+
+    const md = formatCleanInsightBundleMarkdown(bundle);
+    expect(md).toContain("[-> INV-TERMINAL]");
+    expect(bundle.telemetry.activeEntriesReturned).toBe(0);
+    expect(bundle.telemetry.candidatesEvaluated).toBe(1);
+    expect(bundle.telemetry.suppressionRate).toBe(0);
+  });
+
+  it("falls back to tier base scores when query contains exclusively stop words", () => {
+    const engine = createPopulatedEngine();
+    const bundle = RetrievalSandbox.execute(engine, {
+      query: "is that it and with",
+      minScore: 0.1,
+    });
+
+    expect(bundle.results.length).toBe(2);
+    expect(bundle.results[0]?.tier).toBe("TIER_1");
+    expect(bundle.results[0]?.score).toBe(1.5);
+    expect(bundle.results[1]?.tier).toBe("TIER_2");
+    expect(bundle.results[1]?.score).toBe(1.2);
+  });
 });

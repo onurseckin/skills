@@ -1,7 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { createSignedEnvelope } from "../../../olt/scripts/src/communication/mailbox/envelope.ts";
 import {
   clearInMemoryMailboxDirs,
@@ -25,7 +22,7 @@ import type {
   MailboxEnvelope,
 } from "../../../olt/scripts/src/communication/types.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { cleanupVirtualCommunicationFS, setupVirtualCommunicationFS } from "../helpers.ts";
+import { cleanupVirtualCommunicationFS, setupVirtualCommunicationFS, vfs } from "../helpers.ts";
 
 describe("Mailbox Stream IO & Paths Engine (In-Memory)", () => {
   const virtualRoot = "virtual://stream-suite";
@@ -208,23 +205,20 @@ describe("Mailbox Stream IO & Paths Engine (In-Memory)", () => {
       ).toThrow(HarnessError);
     });
 
-    it("rotates messages on physical disk filesystem with lock", () => {
-      const tempDir = mkdtempSync(join(tmpdir(), "stream-disk-test-"));
-      try {
-        const paths = resolveMailboxPaths("disk-agent", tempDir);
-        ensureMailboxDirectories(paths);
-        for (let i = 1; i <= 4; i++) {
-          appendMailboxMessage(paths.inboxPath, makeEnv("disk-agent", i));
-        }
-        const rotated = rotateMailboxMessages(paths.inboxPath, paths.archivePath, {
-          maxActiveMessages: 2,
-        });
-        expect(rotated).toBe(2);
-        const res = readUnreadMessages(paths.inboxPath);
-        expect(res.messages.length).toBe(2);
-      } finally {
-        rmSync(tempDir, { recursive: true, force: true });
+    it("rotates messages on virtual filesystem with lock", () => {
+      const tempDir = `/virtual/scratch/stream-disk-test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      vfs.mkdirSync(tempDir, { recursive: true });
+      const paths = resolveMailboxPaths("disk-agent", tempDir);
+      ensureMailboxDirectories(paths);
+      for (let i = 1; i <= 4; i++) {
+        appendMailboxMessage(paths.inboxPath, makeEnv("disk-agent", i));
       }
+      const rotated = rotateMailboxMessages(paths.inboxPath, paths.archivePath, {
+        maxActiveMessages: 2,
+      });
+      expect(rotated).toBe(2);
+      const res = readUnreadMessages(paths.inboxPath);
+      expect(res.messages.length).toBe(2);
     });
 
     it("quarantines malformed envelopes when quarantinePath option is passed to readUnreadMessages", () => {

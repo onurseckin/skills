@@ -1,19 +1,32 @@
-import { describe, expect, test } from "bun:test";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { dirname, join } from "node:path";
 import { isAgentRole } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { resolveRoleContractPath } from "../../../olt/scripts/src/packets/role-contract.ts";
+import { cleanupVirtualRolesFS, getVirtualRolesFS, setupVirtualRolesFS } from "../fixture.ts";
 
 const agentsRoot = join(import.meta.dir, "..", "..", "..", "olt", "agents");
 const rolesRoot = dirname(resolveRoleContractPath("planner"));
 
 function persona(name: string): string {
-  return readFileSync(join(agentsRoot, name), "utf8");
+  const vfs = getVirtualRolesFS();
+  const raw = vfs.readFileSync(join(agentsRoot, name), "utf8");
+  return typeof raw === "string" ? raw : Buffer.from(raw).toString("utf8");
 }
 
 describe("agent personas", () => {
+  beforeEach(() => {
+    setupVirtualRolesFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualRolesFS();
+  });
+
   test("every declared persona role is part of the canonical vocabulary", () => {
-    const files = readdirSync(agentsRoot).filter((entry) => entry.endsWith(".yaml"));
+    const vfs = getVirtualRolesFS();
+    const files = (vfs.readdirSync(agentsRoot) as string[]).filter((entry) =>
+      entry.endsWith(".yaml"),
+    );
     expect(files.length).toBeGreaterThan(0);
     for (const file of files) {
       const declared = /^ {2}role: "([^"]+)"$/mu.exec(persona(file));
@@ -41,13 +54,21 @@ describe("agent personas", () => {
   // states it as the rule for every host, which is false under any host that names dispatch
   // differently — the contract must name the abstract capability and point at the adapter table.
   test("no persona or role contract hardcodes one host's dispatch call as the rule", () => {
-    const yamlFiles = readdirSync(agentsRoot).filter((entry) => entry.endsWith(".yaml"));
-    const mdFiles = readdirSync(rolesRoot).filter((entry) => entry.endsWith(".md"));
+    const vfs = getVirtualRolesFS();
+    const yamlFiles = (vfs.readdirSync(agentsRoot) as string[]).filter((entry) =>
+      entry.endsWith(".yaml"),
+    );
+    const mdFiles = (
+      vfs.existsSync(rolesRoot) ? (vfs.readdirSync(rolesRoot) as string[]) : []
+    ).filter((entry) => {
+      const full = join(rolesRoot, entry);
+      return entry.endsWith(".md") && vfs.statSync(full).isFile();
+    });
     const offenders: string[] = [];
     for (const file of yamlFiles)
       if (persona(file).includes("invoke_subagent(")) offenders.push(file);
     for (const file of mdFiles) {
-      const text = readFileSync(join(rolesRoot, file), "utf8");
+      const text = vfs.readFileSync(join(rolesRoot, file), "utf8") as string;
       if (text.includes("invoke_subagent(")) offenders.push(file);
     }
     expect(offenders).toEqual([]);

@@ -1,9 +1,27 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import {
   DescendantTracker,
   type ProcessIdentity,
 } from "../../../olt/scripts/src/engine/runner/reconciliation/descendant-tracker.ts";
 import { MIN_POLL_DELAY_MS } from "../../../olt/scripts/src/engine/runner/reconciliation/descendant-poll-policy.ts";
+
+const origSetTimeout = globalThis.setTimeout;
+let timerSpy: ReturnType<typeof spyOn> | undefined;
+
+beforeEach(() => {
+  timerSpy = spyOn(globalThis, "setTimeout").mockImplementation(((
+    fn: (...args: unknown[]) => void,
+    ms?: number,
+    ...args: unknown[]
+  ) => {
+    const scaled = ms === undefined || ms <= 0 ? 0 : ms <= 10 ? 1 : Math.round(ms / 10);
+    return origSetTimeout(fn, scaled, ...args);
+  }) as never);
+});
+
+afterEach(() => {
+  timerSpy?.mockRestore();
+});
 
 describe("DescendantTracker background polling", () => {
   test("schedules and runs background polls after a successful start, then stops cleanly", async () => {

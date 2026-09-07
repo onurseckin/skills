@@ -100,6 +100,9 @@ describe("Memory Search & Query Engine", () => {
       const paged = searchMemory(testIndex, { query: "", limit: 1, offset: 1 });
       expect(paged.length).toBe(1);
       expect(paged[0]?.id).toBe(allResults[1]?.id);
+
+      const outOfBounds = searchMemory(testIndex, { query: "", offset: 100 });
+      expect(outOfBounds).toEqual([]);
     });
 
     it("sorts by score descending, then matched terms length, then id", () => {
@@ -122,6 +125,20 @@ describe("Memory Search & Query Engine", () => {
       const results = searchMemory(tieIndex, { query: "token match extra" });
       expect(results.length).toBe(2);
       expect(results[0]?.id).toBe("doc-bbb");
+
+      // Verify ID tie-breaking when scores and matched terms count are identical
+      const docC = createMemoryDocument({
+        id: "doc-ccc",
+        kind: "charter",
+        title: "Same Score Charlie",
+        source_path: "c.md",
+        content: "token match",
+      });
+      const idTieIndex = buildMemoryIndex([docC, docA]);
+      const idResults = searchMemory(idTieIndex, { query: "token match" });
+      expect(idResults.length).toBe(2);
+      expect(idResults[0]?.id).toBe("doc-aaa");
+      expect(idResults[1]?.id).toBe("doc-ccc");
     });
 
     it("adds pattern match boost to BM25 query results", () => {
@@ -173,6 +190,14 @@ describe("Memory Search & Query Engine", () => {
       const text = "Prefix ".repeat(10) + "TARGET_PHRASE" + " Suffix ".repeat(10);
       const snippet = extractSnippet(text, ["a", "TARGET_PHRASE"], 40);
       expect(snippet.includes("TARGET_PHRASE")).toBe(true);
+    });
+
+    it("handles micro-window snippet lengths safely", () => {
+      const text = "Prefix TARGET_PHRASE Suffix";
+      const micro = extractSnippet(text, ["TARGET_PHRASE"], 5);
+      expect(typeof micro).toBe("string");
+      expect(micro.startsWith("...")).toBe(true);
+      expect(micro.endsWith("...")).toBe(true);
     });
   });
 });

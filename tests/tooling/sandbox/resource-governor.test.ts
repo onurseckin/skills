@@ -120,6 +120,21 @@ describe("ResourceGovernor Unit Test Suite", () => {
     governor.dispose();
   });
 
+  it("triggers fatal violation when quota threshold is explicitly 0", () => {
+    const mock = new MockSystemMetricsProvider();
+    mock.memory.rss = 1;
+
+    const governor = new ResourceGovernor({
+      quota: { maxMemoryRssBytes: 0 },
+      metricsProvider: mock,
+    });
+
+    governor.start();
+    expect(governor.hasFatalViolation()).toBe(true);
+    expect(governor.getViolations()[0]?.type).toBe("memory_rss");
+    governor.dispose();
+  });
+
   it("distinguishes between CPU spike and sustained CPU violation", () => {
     const mock = new MockSystemMetricsProvider();
     mock.cpuUsageValue = { user: 10000000, system: 5000000 };

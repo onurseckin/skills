@@ -1,9 +1,24 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { join } from "node:path";
 import {
   mapMediaAssets,
   mapRunScreenshotAssets,
 } from "../../../olt/scripts/src/summary/assets/index.ts";
+import {
+  cleanupVirtualSummaryFS,
+  getVirtualSummaryFS,
+  scratchRoot,
+  setupVirtualSummaryFS,
+} from "../fixture.ts";
 import { makeTask } from "../reporters/dag/graph-fixtures.ts";
+
+beforeEach(() => {
+  setupVirtualSummaryFS();
+});
+
+afterEach(() => {
+  cleanupVirtualSummaryFS();
+});
 
 /**
  * `queryScreenshots` reads `.captures.json` under the run root; its own internal try/catch already
@@ -22,5 +37,19 @@ describe("screenshot lookup failures never surface as a thrown error", () => {
     const task = makeTask("T-1", { label: "Task" });
     const assets = mapMediaAssets(task, [], { runRoot: NOT_A_PATH, scope: "validator" });
     expect(assets).toEqual([]);
+  });
+
+  test("absorbs missing and corrupted captures in in-memory VirtualMemoryFS", () => {
+    const vfs = getVirtualSummaryFS();
+    const runRoot = scratchRoot(import.meta.path, "corrupted-captures");
+    expect(mapRunScreenshotAssets(runRoot)).toEqual([]);
+
+    const capturesDir = join(runRoot, ".olt", "capsules");
+    vfs.mkdirSync(capturesDir, { recursive: true });
+    vfs.writeFileSync(join(capturesDir, ".captures.json"), "{ corrupted json");
+
+    expect(mapRunScreenshotAssets(runRoot)).toEqual([]);
+    const task = makeTask("T-2", { label: "Task 2" });
+    expect(mapMediaAssets(task, [], { runRoot, scope: "validator" })).toEqual([]);
   });
 });

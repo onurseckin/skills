@@ -1,5 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, readFile } from "node:fs/promises";
+import { afterEach, beforeAll, describe, expect, test } from "bun:test";
 import { generateKeyPairSync, sign } from "node:crypto";
 import { join } from "node:path";
 import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
@@ -23,7 +22,7 @@ import {
 import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 import { OWNERSHIP_ENV } from "../../../olt/scripts/src/engine/runner/core/pipe-ownership.ts";
 import { initRun, loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
-import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import { getRunnerVfs, tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
 afterEach(cleanupTempRoots);
 
@@ -56,8 +55,8 @@ describe("cleanup disposition history and chains", () => {
         signals_sent: [],
         root_pid_identity: null,
         proof_kind: status === "terminal_proof" ? "settled" : null,
-        previous_sha256: previous?.sha256 ?? baseSha256,
-        previous_signature: previous?.signature ?? null,
+        previous_sha256: previous ? previous.sha256 : baseSha256,
+        previous_signature: previous ? previous.signature : null,
       };
       const signature = sign(
         null,
@@ -72,7 +71,8 @@ describe("cleanup disposition history and chains", () => {
     };
     for (const status of ["uncertain", "record_pending", "terminal_proof", "uncertain"] as const)
       history.push(signed(status));
-    const latest = history.at(-1)!;
+    const latest = history[history.length - 1];
+    if (!latest) throw new Error("latest history entry missing");
     const marker = {
       ...base,
       root_pid_identity: null,
@@ -105,13 +105,57 @@ describe("cleanup disposition history and chains", () => {
     controller.markRecordPending("x".repeat(2_048));
     controller.markTerminalProof("x".repeat(2_048), settledAttemptTerminalProof(undefined));
 
-    const raw = await readFile(join(attemptDir, "attempt-started.json"));
-    const marker = JSON.parse(raw.toString("utf8"));
+    const raw = getRunnerVfs().readFileSync(join(attemptDir, "attempt-started.json"));
+    const marker = JSON.parse(Buffer.from(raw).toString("utf8"));
     expect(raw.byteLength).toBeLessThan(16 * 1024);
     expect(marker.cleanup_history).toHaveLength(12);
     expect(attemptStartedIssues(marker, "C-bound", 1, token, signer.verificationPublicKey)).toEqual(
       [],
     );
+  });
+
+  beforeAll(async () => {
+    const repo = tempRoot("warmup");
+    const runRoot = initRun(repo, "warm", new TextEncoder().encode("p"), "file", true);
+    const runner = createInternalCommandRunner({
+      inspectRepository: () => {
+        throw new Error("x");
+      },
+      attempt: async (options, attempt, id, commandRoot, signer) => {
+        const attemptDir = join(commandRoot, `attempt-${attempt}`);
+        getRunnerVfs().mkdirSync(attemptDir, { recursive: true });
+        const token = options.environment[OWNERSHIP_ENV];
+        if (!token) throw new Error("token missing");
+        const started = startAttemptIntent(
+          attemptDir,
+          id,
+          attempt,
+          "2026-08-14T00:00:00.000Z",
+          token,
+          () => undefined,
+          signer,
+        );
+        started.bindRoot({ pid: 1, parent: 1, group: 1, birth: "root" });
+        started.beginCleanupUncertain(["warm"]);
+        throw new Error("warm");
+      },
+    });
+    try {
+      await runAndRecordCommand(
+        runRoot,
+        { argv: ["tool"], cwd: repo, commandDir: join(runRoot, "commands"), actor: "validator" },
+        {
+          prepare: (input) => runner.prepareCommand(input),
+          execute: (prepared) => runner.executePreparedCommand(prepared),
+          reconcile: (root, actor) =>
+            reconcileStrandedCommands(root, actor, {
+              probeProcess: () => {
+                throw new Error("x");
+              },
+            }),
+        },
+      );
+    } catch {}
   });
 
   test("immediate reconciliation leaves a cleanup-uncertain attempt stranded", async () => {
@@ -135,13 +179,13 @@ describe("cleanup disposition history and chains", () => {
         executions += 1;
         commandId = id;
         const attemptDir = join(commandRoot, `attempt-${attempt}`);
-        await mkdir(attemptDir);
+        getRunnerVfs().mkdirSync(attemptDir, { recursive: true });
         const started = startAttemptIntent(
           attemptDir,
           id,
           attempt,
           "2026-08-14T00:00:00.000Z",
-          options.environment[OWNERSHIP_ENV]!,
+          options.environment[OWNERSHIP_ENV] ? options.environment[OWNERSHIP_ENV] : "",
           () => undefined,
           signer,
         );
@@ -185,11 +229,11 @@ describe("cleanup disposition history and chains", () => {
     const state = loadRun(runRoot).state.commands as Record<string, CommandRecord>;
     expect(state[commandId]?.status).toBe("running");
     const aggregate = JSON.parse(
-      await readFile(join(runRoot, "commands", commandId, "record.json"), "utf8"),
+      getRunnerVfs().readFileSync(join(runRoot, "commands", commandId, "record.json"), "utf8"),
     );
     expect(aggregate).toMatchObject({ status: "running", attempts: [] });
     const marker = JSON.parse(
-      await readFile(
+      getRunnerVfs().readFileSync(
         join(runRoot, "commands", commandId, "attempt-1", "attempt-started.json"),
         "utf8",
       ),

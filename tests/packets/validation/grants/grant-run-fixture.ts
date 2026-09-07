@@ -1,5 +1,4 @@
 import { afterAll } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import type { CommandRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import type { RepositoryBinding } from "../../../../olt/scripts/src/core/contracts/index.ts";
@@ -22,7 +21,7 @@ import {
   enableInMemorySessionStore,
 } from "../../../../olt/scripts/src/authority/session/paths.ts";
 
-let vfs = new VirtualMemoryFS();
+const vfs = new VirtualMemoryFS();
 let session: VirtualFSSession | undefined;
 
 function ensureSession(): VirtualMemoryFS {
@@ -58,15 +57,6 @@ export async function emptyGrantRun(prefix: string): Promise<GrantRun> {
   memFs.mkdirSync(join(repo, ".olt"), { recursive: true });
   memFs.mkdirSync(join(root, ".git"), { recursive: true });
   memFs.mkdirSync(join(root, ".olt"), { recursive: true });
-  try {
-    fs.mkdirSync(repo, { recursive: true });
-    fs.mkdirSync(join(repo, ".git"), { recursive: true });
-    fs.mkdirSync(join(repo, ".olt"), { recursive: true });
-    fs.mkdirSync(join(root, ".git"), { recursive: true });
-    fs.mkdirSync(join(root, ".olt"), { recursive: true });
-  } catch {
-    // Already in virtual memory
-  }
   const run = initRun(repo, "grant-run", new TextEncoder().encode("Build the thing"), "file", true);
   return { repo, run, port: workflowPort(run) };
 }
@@ -235,17 +225,18 @@ export async function seedRunGateCommand(
   run: string,
   options: { gateId?: string; commandId?: string; actor?: string } = {},
 ): Promise<string> {
-  const gateId = options.gateId ?? "gate-run-completion";
-  const commandId = options.commandId ?? "C-RUN-GATE-EVIDENCE";
-  const actor = options.actor ?? "coordinator";
+  const gateId = options.gateId !== undefined ? options.gateId : "gate-run-completion";
+  const commandId = options.commandId !== undefined ? options.commandId : "C-RUN-GATE-EVIDENCE";
+  const actor = options.actor !== undefined ? options.actor : "coordinator";
   const argv = ["bun", "run-gate.ts"];
   ensureSession().writeFileSync(join(repo, "run-gate.ts"), "console.log('run gate');\n");
   const binding = inspectRepositoryBinding(repo);
   const record = runGateCommandRecord(repo, binding, commandId, argv, gateId, actor);
   transact(run, "test-setup", "seed-run-gate", {}, (draft) => {
     const graph = draft.graph as { gates?: unknown[] };
+    const existingGates = graph.gates !== undefined && Array.isArray(graph.gates) ? graph.gates : [];
     graph.gates = [
-      ...(graph.gates ?? []),
+      ...existingGates,
       { id: gateId, command: argv, cwd: ".", scope: "run", requirement_ids: [], mandatory: true },
     ];
     draft.current_repository_binding = structuredClone(binding);

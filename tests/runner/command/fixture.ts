@@ -165,6 +165,112 @@ export function writeTree(base: string, files: Record<string, string>): string {
 }
 
 /**
+ * Creates an in-memory virtual symlink in the active runner virtual session.
+ */
+export function createVirtualSymlink(target: string, linkPath: string): void {
+  getRunnerVfs();
+  if (activeSession) {
+    activeSession.symlinkSync(target, linkPath);
+  }
+}
+
+/**
+ * Removes an in-memory virtual symlink in the active runner virtual session.
+ */
+export function removeVirtualSymlink(linkPath: string): void {
+  const vfs = getRunnerVfs();
+  if (activeSession) {
+    activeSession.symlinks.delete(linkPath.replace(/\\/g, "/"));
+  }
+  try {
+    vfs.rmSync(linkPath, { force: true });
+  } catch {}
+}
+
+/**
+ * Opens an in-memory virtual file descriptor in the active runner virtual session.
+ */
+export function openVirtualFile(filePath: string, flags?: number | string): number {
+  getRunnerVfs();
+  if (!activeSession) {
+    throw new Error("No active virtual session");
+  }
+  return activeSession.openSync(filePath, (flags ?? "r") as string | number);
+}
+
+/**
+ * Gets virtual stats with full dev/ino/mode properties from the active runner session.
+ */
+export function statVirtualFile(filePath: string): import("node:fs").Stats {
+  getRunnerVfs();
+  if (!activeSession) {
+    throw new Error("No active virtual session");
+  }
+  return activeSession.statSync(filePath) as import("node:fs").Stats;
+}
+
+/**
+ * Changes mode permissions for a file or directory in the active runner virtual session.
+ */
+export function chmodVirtualFile(filePath: string, mode: number): void {
+  getRunnerVfs();
+  if (activeSession) {
+    activeSession.chmodSync(filePath, mode);
+  }
+}
+
+/**
+ * Closes an in-memory virtual file descriptor in the active runner virtual session.
+ */
+export function closeVirtualFile(fd: number): void {
+  getRunnerVfs();
+  if (!activeSession) {
+    throw new Error("No active virtual session");
+  }
+  activeSession.closeSync(fd);
+}
+
+/**
+ * Reads from an in-memory virtual file descriptor in the active runner virtual session.
+ */
+export function readVirtualFile(
+  fd: number,
+  buffer: NodeJS.ArrayBufferView,
+  offset: number,
+  length: number,
+  position?: number | bigint | null,
+): number {
+  getRunnerVfs();
+  if (!activeSession) {
+    throw new Error("No active virtual session");
+  }
+  return activeSession.readSync(fd, buffer, offset, length, position);
+}
+
+/**
+ * Resolves the canonical realpath of an in-memory virtual path.
+ */
+export function realpathVirtual(filePath: string): string {
+  getRunnerVfs();
+  if (!activeSession) {
+    throw new Error("No active virtual session");
+  }
+  return activeSession.realpathSync(filePath);
+}
+
+export const closeSync = closeVirtualFile;
+export const readSync = readVirtualFile;
+export const realpathSync = realpathVirtual;
+
+export interface StatsLike {
+  dev?: number;
+  ino?: number;
+  isDirectory: () => boolean;
+  isFile: () => boolean;
+  isSymbolicLink?: () => boolean;
+}
+
+/**
  * Deterministically removes all active temporary roots and resets virtual memory.
  */
 export function cleanupTempRoots(): void {

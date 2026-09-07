@@ -1,6 +1,4 @@
 import { afterEach, describe, expect, spyOn, test } from "bun:test";
-import { writeFileSync } from "node:fs";
-import { mkdir, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   OWNERSHIP_ENV,
@@ -10,7 +8,13 @@ import {
   linuxTokenOwnerIdentities,
   parseLinuxProcessIdentity,
 } from "../../../olt/scripts/src/engine/runner/process/linux-pipes.ts";
-import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import {
+  chmodVirtualFile,
+  cleanupTempRoots,
+  createVirtualSymlink,
+  getRunnerVfs,
+  tempRoot,
+} from "../command/fixture.ts";
 
 /**
  * There is no real /proc on this platform (or in CI generally), and the production code only
@@ -33,18 +37,19 @@ function statLine(
   return `${pid} (${comm}) ${fields.join(" ")}`;
 }
 
-async function makeProcess(
+function makeProcess(
   root: string,
   pid: number,
   options: { parent?: number; group?: number; birth?: string; environ?: Buffer | string } = {},
-): Promise<void> {
+): void {
+  const vfs = getRunnerVfs();
   const dir = join(root, String(pid));
-  await mkdir(dir, { recursive: true });
-  await writeFile(
+  vfs.mkdirSync(dir, { recursive: true });
+  vfs.writeFileSync(
     join(dir, "stat"),
     statLine(pid, options.parent ?? 1, options.group ?? pid, options.birth ?? "1000"),
   );
-  if (options.environ !== undefined) await writeFile(join(dir, "environ"), options.environ);
+  if (options.environ !== undefined) vfs.writeFileSync(join(dir, "environ"), options.environ);
 }
 
 afterEach(cleanupTempRoots);
@@ -80,46 +85,49 @@ describe("parseLinuxProcessIdentity edge cases", () => {
 });
 
 describe("linuxPipeHandles against a fixture procfs", () => {
-  test("collects pipe inode numbers and ignores non-pipe descriptors", async () => {
-    const root = await fakeProc("pipes-valid");
+  test("collects pipe inode numbers and ignores non-pipe descriptors", () => {
+    const root = fakeProc("pipes-valid");
+    const vfs = getRunnerVfs();
     const dir = join(root, "4003", "fd");
-    await mkdir(dir, { recursive: true });
-    await symlink("pipe:[12345]", join(dir, "0"));
-    await symlink("pipe:[67890]", join(dir, "1"));
-    await symlink("socket:[99999]", join(dir, "2"));
-    await symlink("/dev/null", join(dir, "3"));
+    vfs.mkdirSync(dir, { recursive: true });
+    createVirtualSymlink("pipe:[12345]", join(dir, "0"));
+    createVirtualSymlink("pipe:[67890]", join(dir, "1"));
+    createVirtualSymlink("socket:[99999]", join(dir, "2"));
+    createVirtualSymlink("/dev/null", join(dir, "3"));
 
     expect(linuxPipeHandles(4003, root)).toEqual(new Set([12345n, 67890n]));
   });
 
-  test("returns an empty set when the process has no fd directory", async () => {
-    const root = await fakeProc("pipes-missing");
+  test("returns an empty set when the process has no fd directory", () => {
+    const root = fakeProc("pipes-missing");
     expect(linuxPipeHandles(4004, root)).toEqual(new Set());
   });
 });
 
 describe("linuxPipeOwners against a fixture procfs", () => {
-  test("returns only pids whose fds touch one of the anchor inodes", async () => {
-    const root = await fakeProc("pipe-owners");
+  test("returns only pids whose fds touch one of the anchor inodes", () => {
+    const root = fakeProc("pipe-owners");
+    const vfs = getRunnerVfs();
     const pid1Fd = join(root, "4005", "fd");
     const pid2Fd = join(root, "4006", "fd");
     const pid3Fd = join(root, "4007", "fd");
-    await mkdir(pid1Fd, { recursive: true });
-    await mkdir(pid2Fd, { recursive: true });
-    await mkdir(pid3Fd, { recursive: true });
-    await symlink("pipe:[100]", join(pid1Fd, "0"));
-    await symlink("pipe:[200]", join(pid2Fd, "0"));
-    await symlink("pipe:[300]", join(pid3Fd, "0"));
+    vfs.mkdirSync(pid1Fd, { recursive: true });
+    vfs.mkdirSync(pid2Fd, { recursive: true });
+    vfs.mkdirSync(pid3Fd, { recursive: true });
+    createVirtualSymlink("pipe:[100]", join(pid1Fd, "0"));
+    createVirtualSymlink("pipe:[200]", join(pid2Fd, "0"));
+    createVirtualSymlink("pipe:[300]", join(pid3Fd, "0"));
 
     const anchors = new Set([100n, 300n]);
     expect(linuxPipeOwners(anchors, root)).toEqual(new Set([4005, 4007]));
   });
 
-  test("never reports the scanning process itself even if its name collides", async () => {
-    const root = await fakeProc("pipe-owners-self");
+  test("never reports the scanning process itself even if its name collides", () => {
+    const root = fakeProc("pipe-owners-self");
+    const vfs = getRunnerVfs();
     const selfFd = join(root, String(process.pid), "fd");
-    await mkdir(selfFd, { recursive: true });
-    await symlink("pipe:[100]", join(selfFd, "0"));
+    vfs.mkdirSync(selfFd, { recursive: true });
+    createVirtualSymlink("pipe:[100]", join(selfFd, "0"));
 
     expect(linuxPipeOwners(new Set([100n]), root)).toEqual(new Set());
   });
@@ -148,83 +156,86 @@ describe("linuxTokenOwnerIdentities against a fixture procfs", () => {
     expect(linuxTokenOwnerIdentities("secret-token", root)).toEqual([]);
   });
 
-  test("skips a pid that owns no stat file, even though it passes the ownership check", async () => {
-    const root = await fakeProc("token-nostat");
+  test("skips a pid that owns no stat file, even though it passes the ownership check", () => {
+    const root = fakeProc("token-nostat");
+    const vfs = getRunnerVfs();
     const dir = join(root, "4010");
-    await mkdir(dir, { recursive: true });
-    await writeFile(join(dir, "environ"), `${OWNERSHIP_ENV}=secret-token\0`);
+    vfs.mkdirSync(dir, { recursive: true });
+    vfs.writeFileSync(join(dir, "environ"), `${OWNERSHIP_ENV}=secret-token\0`);
 
     expect(linuxTokenOwnerIdentities("secret-token", root)).toEqual([]);
   });
 
-  test("skips a pid that vanished before its ownership could be confirmed", async () => {
-    const root = await fakeProc("token-vanished");
-    await mkdir(join(root, "4012"), { recursive: true });
-    const { rmSync } = await import("node:fs");
-    rmSync(join(root, "4012"), { recursive: true });
+  test("skips a pid that vanished before its ownership could be confirmed", () => {
+    const root = fakeProc("token-vanished");
+    const vfs = getRunnerVfs();
+    vfs.mkdirSync(join(root, "4012"), { recursive: true });
+    vfs.rmSync(join(root, "4012"), { recursive: true });
 
     expect(linuxTokenOwnerIdentities("secret-token", root)).toEqual([]);
   });
 
-  test("never reports the scanning process itself even if it carries the token", async () => {
-    const root = await fakeProc("token-self");
+  test("never reports the scanning process itself even if it carries the token", () => {
+    const root = fakeProc("token-self");
     const marker = `${OWNERSHIP_ENV}=secret-token\0`;
-    await makeProcess(root, process.pid, { group: process.pid, birth: "1000", environ: marker });
+    makeProcess(root, process.pid, { group: process.pid, birth: "1000", environ: marker });
 
     expect(linuxTokenOwnerIdentities("secret-token", root)).toEqual([]);
   });
 
-  test("rethrows the same error when the environment scan exceeds the per-process budget", async () => {
-    const root = await fakeProc("token-environ-too-large");
-    const giant = Buffer.alloc(5 * 1024 * 1024);
-    await makeProcess(root, 4013, { group: 4013, birth: "1000", environ: giant });
+  test("rethrows the same error when the environment scan exceeds the per-process budget", () => {
+    const root = fakeProc("token-environ-too-large");
+    const giant = Buffer.allocUnsafe(4 * 1024 * 1024 + 1);
+    makeProcess(root, 4013, { group: 4013, birth: "1000", environ: giant });
 
     expect(() => linuxTokenOwnerIdentities("secret-token", root)).toThrow(
       /environment scan is too large/,
     );
   });
 
-  test("wraps a non-harness read failure as an inspection error", async () => {
-    const root = await fakeProc("token-environ-is-dir");
+  test("wraps a non-harness read failure as an inspection error", () => {
+    const root = fakeProc("token-environ-is-dir");
+    const vfs = getRunnerVfs();
     const dir = join(root, "4011");
-    await mkdir(dir, { recursive: true });
-    await writeFile(join(dir, "stat"), statLine(4011, 1, 4011, "1000"));
+    vfs.mkdirSync(dir, { recursive: true });
+    vfs.writeFileSync(join(dir, "stat"), statLine(4011, 1, 4011, "1000"));
     // Make environ a directory instead of a file: openSync succeeds (directories are openable
     // read-only on POSIX) but readSync on a directory fd raises a plain EISDIR, not a HarnessError.
-    await mkdir(join(dir, "environ"), { recursive: true });
+    vfs.mkdirSync(join(dir, "environ"), { recursive: true });
     expect(() => linuxTokenOwnerIdentities("secret-token", root)).toThrow(
       /cannot inspect ownership token/,
     );
   });
 
-  test("throws cannot determine process ownership when statSync fails with EACCES", async () => {
-    const root = await fakeProc("token-sameuser-eacces");
+  test("throws cannot determine process ownership when statSync fails with EACCES", () => {
+    const root = fakeProc("token-sameuser-eacces");
+    const vfs = getRunnerVfs();
     const sub = join(root, "sub");
-    await mkdir(sub, { recursive: true });
-    await writeFile(join(sub, "target"), "target");
-    await symlink(join(sub, "target"), join(root, "4019"));
-    const { chmod } = await import("node:fs/promises");
-    await chmod(sub, 0o000);
+    vfs.mkdirSync(sub, { recursive: true });
+    vfs.writeFileSync(join(sub, "target"), "target");
+    createVirtualSymlink(join(sub, "target"), join(root, "4019"));
+    chmodVirtualFile(sub, 0o000);
     try {
       expect(() => linuxTokenOwnerIdentities("secret-token", root)).toThrow(
         "cannot determine process ownership during token scan for pid 4019",
       );
     } finally {
-      await chmod(sub, 0o755);
+      chmodVirtualFile(sub, 0o755);
     }
   });
 
-  test("detects process identity change after reading environment", async () => {
-    const root = await fakeProc("token-identity-change");
+  test("detects process identity change after reading environment", () => {
+    const root = fakeProc("token-identity-change");
+    const vfs = getRunnerVfs();
     const marker = `${OWNERSHIP_ENV}=secret-token\0`;
-    await makeProcess(root, 4020, { group: 4020, birth: "1000", environ: marker });
+    makeProcess(root, 4020, { group: 4020, birth: "1000", environ: marker });
 
     const origAlloc = Buffer.allocUnsafe;
     let hooked = false;
     Buffer.allocUnsafe = function (size: number) {
       if (!hooked) {
         hooked = true;
-        writeFileSync(join(root, "4020", "stat"), statLine(4020, 1, 4020, "2000"));
+        vfs.writeFileSync(join(root, "4020", "stat"), statLine(4020, 1, 4020, "2000"));
       }
       return origAlloc.call(Buffer, size);
     };
@@ -238,17 +249,18 @@ describe("linuxTokenOwnerIdentities against a fixture procfs", () => {
     }
   });
 
-  test("detects process identity change when reading environment throws", async () => {
-    const root = await fakeProc("token-identity-change-on-throw");
+  test("detects process identity change when reading environment throws", () => {
+    const root = fakeProc("token-identity-change-on-throw");
+    const vfs = getRunnerVfs();
     const marker = `${OWNERSHIP_ENV}=secret-token\0`;
-    await makeProcess(root, 4021, { group: 4021, birth: "1000", environ: marker });
+    makeProcess(root, 4021, { group: 4021, birth: "1000", environ: marker });
 
     const origAlloc = Buffer.allocUnsafe;
     let hooked = false;
     Buffer.allocUnsafe = function (_size: number) {
       if (!hooked) {
         hooked = true;
-        writeFileSync(join(root, "4021", "stat"), statLine(4021, 1, 4021, "2000"));
+        vfs.writeFileSync(join(root, "4021", "stat"), statLine(4021, 1, 4021, "2000"));
         throw new Error("read error");
       }
       return origAlloc.call(Buffer, _size);
@@ -263,25 +275,30 @@ describe("linuxTokenOwnerIdentities against a fixture procfs", () => {
     }
   });
 
-  test("throws cannot enumerate processes when readdirSync fails", async () => {
-    const root = await fakeProc("token-file-not-dir");
+  test("throws cannot enumerate processes when readdirSync fails", () => {
+    const root = fakeProc("token-file-not-dir");
+    const vfs = getRunnerVfs();
     const filePath = join(root, "file.txt");
-    await writeFile(filePath, "test");
+    vfs.writeFileSync(filePath, "test");
     expect(() => linuxTokenOwnerIdentities("secret-token", filePath)).toThrow(
       "cannot enumerate processes for ownership tokens",
     );
   });
 
-  test("throws ownership-token process scan is too large when process count exceeds cap", async () => {
-    const root = await fakeProc("token-too-many-pids");
-    const fs = await import("node:fs");
-    const oversizedPids = Array.from({ length: 65537 }, (_, i) => String(i + 1));
-    const spy = spyOn(fs, "readdirSync").mockImplementation((path) => {
-      if (path === root) {
-        return oversizedPids as unknown as ReturnType<typeof fs.readdirSync>;
-      }
-      return spy.getMockImplementation()?.(path) ?? [];
+  test("throws ownership-token process scan is too large when process count exceeds cap", () => {
+    const root = fakeProc("token-too-many-pids");
+    const vfs = getRunnerVfs();
+    const oversizedPids = Object.assign(Array.from({ length: 65537 }), {
+      filter: () => oversizedPids,
+      map: () => oversizedPids,
     });
+    const origReaddir = vfs.readdirSync.bind(vfs);
+    const spy = spyOn(vfs, "readdirSync").mockImplementation(((p: string, opts?: unknown) => {
+      if (p === root || p.replace(/\\/g, "/").includes("token-too-many-pids")) {
+        return oversizedPids as unknown as ReturnType<typeof vfs.readdirSync>;
+      }
+      return origReaddir(p, opts as never);
+    }) as never);
     try {
       expect(() => linuxTokenOwnerIdentities("secret-token", root)).toThrow(
         "ownership-token process scan is too large",

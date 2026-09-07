@@ -1,6 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import * as fs from "node:fs";
-import { join } from "node:path";
 import {
   MIND_CHARTER_INVARIANTS,
   auditAntiStagnationHealth,
@@ -27,18 +25,22 @@ import {
 } from "../../../olt/scripts/src/mind/reporting/index.ts";
 import { runDoctor } from "../../../olt/scripts/src/reporting/doctor.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
+import {
+  cleanupVirtualReportingFS,
+  setupVirtualReportingFS,
+  tempDir as virtualTempDir,
+} from "../../reporting/fixture.ts";
 
 describe("Anti-Stagnation Doctor & Mind Charter Invariant Engine", () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(join(process.cwd(), "tmp-doctor-test-"));
+    setupVirtualReportingFS();
+    tempDir = virtualTempDir("anti-stagnation-sub4");
   });
 
   afterEach(() => {
-    if (fs.existsSync(tempDir)) {
-      fs.rmSync(tempDir, { recursive: true, force: true });
-    }
+    cleanupVirtualReportingFS();
   });
 
   describe("13. Invariant 15: Mandatory 3-Round Socratic Laddering", () => {

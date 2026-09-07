@@ -270,3 +270,19 @@ export function cleanupTempDirs(): void {
 export function setVirtualMtime(path: string, at: number): void {
   customMtimes.set(path, at);
 }
+
+export function getVirtualBrowserFS(): VirtualMemoryFS {
+  return vfs;
+}
+
+export function writeVirtualFile(filePath: string, data: string | Uint8Array): void {
+  const target = String(filePath);
+  const lastSlash = target.lastIndexOf("/");
+  if (lastSlash > 0) {
+    const parent = target.substring(0, lastSlash);
+    if (!vfs.existsSync(parent)) vfs.mkdirSync(parent, { recursive: true });
+  }
+  vfs.writeFileSync(target, typeof data === "string" ? data : Buffer.from(data as Uint8Array));
+}
+
+export const writeFileSync = writeVirtualFile;

@@ -40,7 +40,7 @@ describe(eventStreamEdgeSuiteName, () => {
     const result = await deliverEventsToWebhook(events, "https://webhook.example.com/stream", {
       customFetch: mockFetch,
       retries: 2,
-      backoffBaseMs: 10,
+      backoffBaseMs: 0,
     });
 
     expect(result.success).toBe(true);
@@ -73,7 +73,7 @@ describe(eventStreamEdgeSuiteName, () => {
     const result = await deliverEventsToWebhook(events, "https://webhook.example.com/stream", {
       customFetch: mockFetch,
       retries: 2,
-      backoffBaseMs: 5,
+      backoffBaseMs: 0,
     });
 
     expect(result.success).toBe(false);
@@ -109,5 +109,44 @@ describe(eventStreamEdgeSuiteName, () => {
     expect(result.success).toBe(true);
     expect(result.deliveredCount).toBe(7);
     expect(deliveredBatches).toEqual([3, 3, 1]);
+  });
+
+  it("rejects non-retryable 4xx client error immediately without retry and handles empty batch", async () => {
+    let callCount = 0;
+    const mockFetch = async () => {
+      callCount += 1;
+      return new Response(JSON.stringify({ error: "Bad request payload" }), {
+        status: 400,
+        statusText: "Bad Request",
+      });
+    };
+
+    const events: HarnessEvent[] = [
+      {
+        schema: "harness-event-v1",
+        sequence: 1,
+        timestamp: "2026-08-29T00:00:00.000Z",
+        actor: "impl_14",
+        kind: "task_start",
+      },
+    ];
+
+    const result = await deliverEventsToWebhook(events, "https://webhook.example.com/stream", {
+      customFetch: mockFetch,
+      retries: 5,
+      backoffBaseMs: 0,
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.statusCode).toBe(400);
+    expect(result.attempts).toBe(1);
+    expect(callCount).toBe(1);
+    expect(result.error).toContain("HTTP 400");
+
+    const emptyResult = await deliverEventsToWebhook([], "https://webhook.example.com/stream");
+    expect(emptyResult.success).toBe(true);
+    expect(emptyResult.attempts).toBe(0);
+    expect(emptyResult.deliveredCount).toBe(0);
+    expect(emptyResult.receiptId).toBe("rcpt_empty_batch");
   });
 });

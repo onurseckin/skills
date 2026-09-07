@@ -1,21 +1,24 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { join } from "node:path";
 import {
   formatMindQuiesceBrief,
   mindQuiesceCommand,
 } from "../../../../olt/scripts/src/cli/commands/mind-quiesce.ts";
-import {
-  loadRun,
-  transact,
-  verifyIntegrity,
-} from "../../../../olt/scripts/src/engine/store/index.ts";
-import {
-  cleanupRoots,
-  cleanupVirtualCliFS,
-  setupVirtualCliFS,
-} from "../fixtures/full-lifecycle-fixture.ts";
-import { setupCompiledRun } from "../fixtures/task-ops-fixture.ts";
+import { initRun, loadRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../fixtures/full-lifecycle-fixture.ts";
 
-const roots: string[] = [];
+let vfs: VirtualMemoryFS;
+
+function setupMindRun(name: string): { run: string; repo: string } {
+  const repo = `/virtual/mind-quiesce/${name}`;
+  vfs.mkdirSync(repo, { recursive: true });
+  vfs.mkdirSync(join(repo, ".git"), { recursive: true });
+  vfs.mkdirSync(join(repo, ".olt"), { recursive: true });
+  vfs.writeFileSync(join(repo, ".olt", "policy.json"), JSON.stringify({ version: "1.0.0" }));
+  const run = initRun(repo, `${name}-run`, new TextEncoder().encode("prompt"), "file", true);
+  return { run, repo };
+}
 
 function grantAgentRole(run: string, agentId: string, role: string): void {
   transact(run, "coordinator", `grant-${agentId}`, {}, (draft) => {
@@ -58,11 +61,10 @@ const ALL_10_SOURCES = [
 
 describe("mind:quiesce CLI Command Coverage Suite", () => {
   beforeEach(() => {
-    setupVirtualCliFS();
+    vfs = setupVirtualCliFS();
   });
 
-  afterEach(async () => {
-    await cleanupRoots(roots);
+  afterEach(() => {
     cleanupVirtualCliFS();
   });
 
@@ -104,7 +106,7 @@ describe("mind:quiesce CLI Command Coverage Suite", () => {
   });
 
   test("mindQuiesceCommand throws for missing or invalid source and timestamp flags", async () => {
-    const { run } = await setupCompiledRun("quiesce-flags", roots);
+    const { run } = setupMindRun("quiesce-flags");
     grantAgentRole(run, "mind-1", "mind");
 
     await expect(
@@ -133,7 +135,7 @@ describe("mind:quiesce CLI Command Coverage Suite", () => {
   });
 
   test("mindQuiesceCommand enforces agent role grants", async () => {
-    const { run } = await setupCompiledRun("quiesce-auth", roots);
+    const { run } = setupMindRun("quiesce-auth");
     seedCommands(run, ["C-cmd-1"]);
 
     await expect(
@@ -155,7 +157,7 @@ describe("mind:quiesce CLI Command Coverage Suite", () => {
   });
 
   test("mindQuiesceCommand validates all 10 sources and fails on short or dirty scans", async () => {
-    const { run } = await setupCompiledRun("quiesce-scan-val", roots);
+    const { run } = setupMindRun("quiesce-scan-val");
     grantAgentRole(run, "mind-1", "mind");
     seedCommands(run, ["C-cmd-1"]);
 
@@ -187,7 +189,7 @@ describe("mind:quiesce CLI Command Coverage Suite", () => {
   });
 
   test("mindQuiesceCommand executes successfully for initial streak 1 without digest", async () => {
-    const { run } = await setupCompiledRun("quiesce-streak-1", roots);
+    const { run } = setupMindRun("quiesce-streak-1");
     grantAgentRole(run, "mind-1", "mind");
     seedCommands(run, ["C-cmd-1"]);
 
@@ -213,7 +215,7 @@ describe("mind:quiesce CLI Command Coverage Suite", () => {
   });
 
   test("mindQuiesceCommand calculates multiplier, triggers digest at streak 8, and custom budget", async () => {
-    const { run } = await setupCompiledRun("quiesce-streak-8", roots);
+    const { run } = setupMindRun("quiesce-streak-8");
     grantAgentRole(run, "mind-1", "mind");
     seedCommands(run, ["C-cmd-1"]);
 

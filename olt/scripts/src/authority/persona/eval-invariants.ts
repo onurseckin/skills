@@ -59,8 +59,7 @@ export function evaluateRoleInvariants(
       severity: "critical",
       title: "Task Self-Implementation on Supervisory Role",
       description: `${supervisoryRole.toUpperCase()} attempted self-implementation actions: ${directExecutionAttempts.join(", ")}. Supervisory leads coordinate and supervise; they never claim or implement tasks directly.`,
-      recommendation:
-        "Release any self-claimed tasks and dispatch dedicated Tier 3 Implementers or Repairers.",
+      recommendation: "Release any self-claimed tasks and dispatch dedicated Tier 3 Implementers.",
       evidence: { directExecutionAttempts },
     });
     recommendedActions.push(

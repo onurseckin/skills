@@ -31,7 +31,7 @@ describe("Anti-Boundary-Leak Rule & Automated Repair Delegation", () => {
       expect(isCriticOrValidatorRole("security-critic")).toBe(true);
 
       expect(isCriticOrValidatorRole("implementer")).toBe(false);
-      expect(isCriticOrValidatorRole("repairer")).toBe(false);
+      expect(isCriticOrValidatorRole("sub-implementer")).toBe(false);
       expect(isCriticOrValidatorRole("coordinator")).toBe(false);
       expect(isCriticOrValidatorRole("orchestrator")).toBe(false);
     });
@@ -44,7 +44,7 @@ describe("Anti-Boundary-Leak Rule & Automated Repair Delegation", () => {
       expect(isCriticOrValidatorAgent("critic_assessment")).toBe(true);
 
       expect(isCriticOrValidatorAgent("implementer_task-p08")).toBe(false);
-      expect(isCriticOrValidatorAgent("repairer-task-p08")).toBe(false);
+      expect(isCriticOrValidatorAgent("sub-implementer-task-p08")).toBe(false);
       expect(isCriticOrValidatorAgent("coord-main")).toBe(false);
     });
 
@@ -60,7 +60,7 @@ describe("Anti-Boundary-Leak Rule & Automated Repair Delegation", () => {
       expect(isSupervisorRole("orch-eval")).toBe(true);
 
       expect(isSupervisorRole("implementer")).toBe(false);
-      expect(isSupervisorRole("repairer")).toBe(false);
+      expect(isSupervisorRole("sub-implementer")).toBe(false);
       expect(isSupervisorRole("validator")).toBe(false);
     });
 
@@ -142,7 +142,7 @@ describe("Anti-Boundary-Leak Rule & Automated Repair Delegation", () => {
       const selfRepairCheck: BoundaryLeakCheck = {
         agent_id: "val-tester-1",
         role: "validator",
-        action: "task:assign-repairer",
+        action: "task:reject",
         task_id: "task-repair-1",
         metadata: {
           validator_id: "val-tester-1",
@@ -152,7 +152,7 @@ describe("Anti-Boundary-Leak Rule & Automated Repair Delegation", () => {
       expect(isBoundaryLeakViolation(selfRepairCheck)).toBe(true);
     });
 
-    it("allows valid implementer and repairer actions", () => {
+    it("allows valid implementer and in-lease sub-implementer repair actions", () => {
       const validClaim: BoundaryLeakCheck = {
         agent_id: "implementer_task-auth",
         role: "implementer",
@@ -162,14 +162,14 @@ describe("Anti-Boundary-Leak Rule & Automated Repair Delegation", () => {
       };
       expect(isBoundaryLeakViolation(validClaim)).toBe(false);
 
-      const validRepairerEdit: BoundaryLeakCheck = {
-        agent_id: "repairer-task-auth",
-        role: "repairer",
+      const validInLeaseRepairEdit: BoundaryLeakCheck = {
+        agent_id: "sub-implementer_task-auth",
+        role: "sub-implementer",
         action: "replace_file_content",
         task_id: "task-auth",
         target_file: "src/auth/jwt.ts",
       };
-      expect(isBoundaryLeakViolation(validRepairerEdit)).toBe(false);
+      expect(isBoundaryLeakViolation(validInLeaseRepairEdit)).toBe(false);
     });
   });
 
@@ -184,8 +184,8 @@ describe("Anti-Boundary-Leak Rule & Automated Repair Delegation", () => {
           write_scope: ["src/feature.ts"],
         },
         {
-          agent_id: "repairer_task-2",
-          role: "repairer",
+          agent_id: "sub-implementer_task-2",
+          role: "sub-implementer",
           action: "write_to_file",
           task_id: "task-2",
           target_file: "src/fix.ts",
@@ -231,7 +231,7 @@ describe("Anti-Boundary-Leak Rule & Automated Repair Delegation", () => {
         {
           agent_id: "val-audit",
           role: "validator",
-          action: "task:assign-repairer",
+          action: "task:reject",
           task_id: "task-remedy",
           metadata: {
             validator_id: "val-audit",

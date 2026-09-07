@@ -133,8 +133,8 @@ export function planReplanNextActions(run: string, repairTaskId?: string): NextA
       description: "Dispatch parallel batch repair wave",
     },
     {
-      command: `bun harness.ts task:claim --run ${run} --task ${taskArg} --agent <REPAIRER> --role repairer`,
-      role: "Repairer",
+      command: `bun harness.ts task:claim --run ${run} --task ${taskArg} --agent <IMPLEMENTER> --role implementer`,
+      role: "Implementer",
       description: "Claim repair task under isolated scope",
     },
   ];

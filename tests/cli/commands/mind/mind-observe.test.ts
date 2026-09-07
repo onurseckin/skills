@@ -1,20 +1,25 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import {
   formatMindObserveBrief,
   mindObserveCommand,
   type MindObserveResult,
 } from "../../../../olt/scripts/src/cli/commands/mind-observe.ts";
-import { loadRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
-import {
-  cleanupRoots,
-  cleanupVirtualCliFS,
-  setupVirtualCliFS,
-} from "../fixtures/full-lifecycle-fixture.ts";
-import { setupCompiledRun } from "../fixtures/task-ops-fixture.ts";
+import { initRun, loadRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../fixtures/full-lifecycle-fixture.ts";
 
-const roots: string[] = [];
+let vfs: VirtualMemoryFS;
+
+function setupMindRun(name: string): { run: string; repo: string } {
+  const repo = `/virtual/mind/${name}`;
+  vfs.mkdirSync(repo, { recursive: true });
+  vfs.mkdirSync(join(repo, ".git"), { recursive: true });
+  vfs.mkdirSync(join(repo, ".olt"), { recursive: true });
+  vfs.writeFileSync(join(repo, ".olt", "policy.json"), JSON.stringify({ version: "1.0.0" }));
+  const run = initRun(repo, `${name}-run`, new TextEncoder().encode("prompt"), "file", true);
+  return { run, repo };
+}
 
 function grantAgentRole(run: string, agentId: string, role: string): void {
   transact(run, "coordinator", `grant-${agentId}`, {}, (draft) => {
@@ -34,11 +39,10 @@ function grantAgentRole(run: string, agentId: string, role: string): void {
 
 describe("mind:observe Unit & Coverage Suite", () => {
   beforeEach(() => {
-    setupVirtualCliFS();
+    vfs = setupVirtualCliFS();
   });
 
-  afterEach(async () => {
-    await cleanupRoots(roots);
+  afterEach(() => {
     cleanupVirtualCliFS();
   });
 
@@ -66,8 +70,8 @@ describe("mind:observe Unit & Coverage Suite", () => {
     expect(brief).toContain("- **Observed At**: `2026-09-01T12:00:00.000Z`");
   });
 
-  test("mindObserveCommand validates required flags, aliases, numbers, and sources", async () => {
-    const { run } = await setupCompiledRun("observe-val", roots);
+  test("mindObserveCommand validates required flags, aliases, numbers, and sources", () => {
+    const { run } = setupMindRun("observe-val");
     grantAgentRole(run, "mind-agent", "mind");
 
     expect(() =>
@@ -151,8 +155,8 @@ describe("mind:observe Unit & Coverage Suite", () => {
     ).toThrow("invalid --now timestamp: not-a-date");
   });
 
-  test("mindObserveCommand enforces agent role grants and rejects unverified commands", async () => {
-    const { run } = await setupCompiledRun("observe-auth", roots);
+  test("mindObserveCommand enforces agent role grants and rejects unverified commands", () => {
+    const { run } = setupMindRun("observe-auth");
 
     expect(() =>
       mindObserveCommand({
@@ -187,8 +191,8 @@ describe("mind:observe Unit & Coverage Suite", () => {
     ).toThrow("command id 'C-missing' was not found in any capsule");
   });
 
-  test("mindObserveCommand successfully records observation, handles IDs, and returns result", async () => {
-    const { run } = await setupCompiledRun("observe-exec", roots);
+  test("mindObserveCommand successfully records observation, handles IDs, and returns result", () => {
+    const { run } = setupMindRun("observe-exec");
     grantAgentRole(run, "mind-agent", "mind");
 
     transact(run, "coordinator", "seed-commands", {}, (draft) => {
@@ -248,8 +252,8 @@ describe("mind:observe Unit & Coverage Suite", () => {
     expect(observations[2]?.id).toBe("obs-3");
   });
 
-  test("mindObserveCommand handles non-standard existing observation IDs and policy init", async () => {
-    const { run, repo } = await setupCompiledRun("observe-edge", roots);
+  test("mindObserveCommand handles non-standard existing observation IDs and policy init", () => {
+    const { run, repo } = setupMindRun("observe-edge");
     grantAgentRole(run, "mind-agent", "mind");
 
     transact(run, "coordinator", "seed-observations", {}, (draft) => {
@@ -263,8 +267,8 @@ describe("mind:observe Unit & Coverage Suite", () => {
     });
 
     const policyFile = join(repo, ".olt", "policy.json");
-    if (existsSync(policyFile)) unlinkSync(policyFile);
-    expect(existsSync(policyFile)).toBe(false);
+    if (vfs.existsSync(policyFile)) vfs.unlinkSync(policyFile);
+    expect(vfs.existsSync(policyFile)).toBe(false);
 
     const res = mindObserveCommand({
       run,
@@ -277,6 +281,6 @@ describe("mind:observe Unit & Coverage Suite", () => {
     expect(res.observation_id).toBe("obs-10");
     expect(res.source).toBe("charter-backlog");
     expect(res.count).toBe(5);
-    expect(existsSync(policyFile)).toBe(true);
+    expect(vfs.existsSync(policyFile)).toBe(true);
   });
 });

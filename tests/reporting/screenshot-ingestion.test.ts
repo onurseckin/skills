@@ -1,19 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import { initRun, readCaptures } from "../../olt/scripts/src/engine/store/index.ts";
 import {
   ingestScreenshots,
   ingestVisualReport,
 } from "../../olt/scripts/src/reporting/screenshot-ingestion.ts";
+import type { VirtualMemoryFS } from "../../olt/scripts/src/testing/virtual-fs/index.ts";
 import { cleanupVirtualReportingFS, setupVirtualReportingFS, tempDir } from "./fixture.ts";
 
 describe("screenshot-ingestion coverage", () => {
   let sandboxDir: string;
   let runDir: string;
+  let vfs: VirtualMemoryFS;
 
   beforeEach(() => {
-    setupVirtualReportingFS();
+    vfs = setupVirtualReportingFS();
     sandboxDir = tempDir("screenshot-test");
     runDir = initRun(
       sandboxDir,
@@ -36,7 +37,7 @@ describe("screenshot-ingestion coverage", () => {
 
     it("ingests explicit screenshots with attribution metadata", () => {
       const imgPath = join(sandboxDir, "ui-screen.png");
-      fs.writeFileSync(imgPath, "fake-png-data-1", "utf-8");
+      vfs.writeFileSync(imgPath, "fake-png-data-1");
 
       const records = ingestScreenshots({
         runRoot: runDir,
@@ -60,13 +61,13 @@ describe("screenshot-ingestion coverage", () => {
     it("deduplicates identical sha256 blobs and handles filename collisions", () => {
       const dirA = join(sandboxDir, "dirA");
       const dirB = join(sandboxDir, "dirB");
-      fs.mkdirSync(dirA, { recursive: true });
-      fs.mkdirSync(dirB, { recursive: true });
+      vfs.mkdirSync(dirA, { recursive: true });
+      vfs.mkdirSync(dirB, { recursive: true });
 
       const file1 = join(dirA, "capture.png");
       const file2 = join(dirB, "capture.png");
-      fs.writeFileSync(file1, "content-version-1", "utf-8");
-      fs.writeFileSync(file2, "content-version-2", "utf-8");
+      vfs.writeFileSync(file1, "content-version-1");
+      vfs.writeFileSync(file2, "content-version-2");
 
       const firstPass = ingestScreenshots({
         runRoot: runDir,
@@ -91,7 +92,7 @@ describe("screenshot-ingestion coverage", () => {
 
     it("extracts and attributes images cited in stdout/stderr and timestamps", () => {
       const imgPath = join(sandboxDir, "cited-chart.png");
-      fs.writeFileSync(imgPath, "chart-binary-data", "utf-8");
+      vfs.writeFileSync(imgPath, "chart-binary-data");
 
       const stdout = `Generated screenshot at: ![Chart](${imgPath})`;
       const stderr = `Warn: see ![Fallback](${imgPath})`;
@@ -128,7 +129,7 @@ describe("screenshot-ingestion coverage", () => {
         metrics: { totalScreenshots: 3, passRate: 1.0 },
         artifacts: ["a.png", "b.png"],
       };
-      fs.writeFileSync(reportPath, JSON.stringify(reportData), "utf-8");
+      vfs.writeFileSync(reportPath, JSON.stringify(reportData));
 
       const report = ingestVisualReport({
         runRoot: runDir,
@@ -146,7 +147,7 @@ describe("screenshot-ingestion coverage", () => {
 
     it("skips invalid json and unnormalizable visual reports", () => {
       const corruptPath = join(sandboxDir, "broken-report.json");
-      fs.writeFileSync(corruptPath, "{ corrupt json data", "utf-8");
+      vfs.writeFileSync(corruptPath, "{ corrupt json data");
 
       const report = ingestVisualReport({
         runRoot: runDir,
@@ -155,7 +156,7 @@ describe("screenshot-ingestion coverage", () => {
       expect(report).toBeNull();
 
       const invalidSchemaPath = join(sandboxDir, "invalid-schema.json");
-      fs.writeFileSync(invalidSchemaPath, JSON.stringify({ unsupported: true }), "utf-8");
+      vfs.writeFileSync(invalidSchemaPath, JSON.stringify({ unsupported: true }));
       const reportInvalid = ingestVisualReport({
         runRoot: runDir,
         explicitPaths: [invalidSchemaPath],

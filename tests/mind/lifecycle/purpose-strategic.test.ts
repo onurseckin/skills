@@ -102,7 +102,7 @@ describe("Mind Strategic Diagnostics & Backlog Grooming Suite (strategic.ts)", (
           dependencies: ["f1", "f2", "f3", "f4"],
         },
         // Failed task
-        { taskId: "broken", role: "repairer", status: "failed", dependencies: [] },
+        { taskId: "broken", role: "implementer", status: "failed", dependencies: [] },
       ];
 
       const result = diagnoseMacroDag({ nodes });
@@ -121,7 +121,7 @@ describe("Mind Strategic Diagnostics & Backlog Grooming Suite (strategic.ts)", (
       const critPath = result.bottlenecks.find((b) => b.type === "critical_path");
       expect(critPath).toBeDefined();
       expect(critPath?.taskId).toBe("broken");
-      expect(critPath?.suggestedMitigation).toContain("Dispatch repairer lane");
+      expect(critPath?.suggestedMitigation).toContain("Dispatch an implementer repair attempt");
     });
   });
 

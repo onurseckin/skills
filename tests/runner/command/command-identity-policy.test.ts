@@ -1,6 +1,4 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { existsSync } from "node:fs";
-import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 import {
@@ -12,13 +10,14 @@ import {
   MAX_COMMAND_ARGUMENTS,
   MAX_COMMAND_ARGV_BYTES,
 } from "../../../olt/scripts/src/engine/runner/core/policy.ts";
-import { tempRoot, cleanupTempRoots } from "./fixture.ts";
+import { getRunnerVfs, tempRoot, cleanupTempRoots } from "./fixture.ts";
 
 afterEach(cleanupTempRoots);
 
 describe("command identity policy", () => {
   test("rejects blank actors, task IDs, and gate IDs before artifact mutation", async () => {
     const repositoryRoot = tempRoot("command-identity-policy");
+    const vfs = getRunnerVfs();
     let observed = false;
     const runner = createInternalCommandRunner({
       inspectRepository: () => {
@@ -40,7 +39,7 @@ describe("command identity policy", () => {
 
     for (const [index, identity] of hostile.entries()) {
       const runRoot = join(repositoryRoot, ".olt", "capsules", `run-${index}`);
-      await mkdir(runRoot, { recursive: true });
+      vfs.mkdirSync(runRoot, { recursive: true });
       const commandDir = join(runRoot, "commands");
       await expect(
         runner.prepareCommand({
@@ -51,13 +50,14 @@ describe("command identity policy", () => {
           ...identity,
         } as never),
       ).rejects.toThrow(/actor|taskId|gateId|identity/i);
-      expect(existsSync(commandDir)).toBeFalse();
+      expect(vfs.existsSync(commandDir)).toBeFalse();
     }
     expect(observed).toBeFalse();
   });
 
   test("rejects hostile identities before reconciliation or preparation", async () => {
     const repositoryRoot = tempRoot("command-entry-identity");
+    const vfs = getRunnerVfs();
     let reconcileCalls = 0;
     let prepareCalls = 0;
     const hostile = [
@@ -92,22 +92,24 @@ describe("command identity policy", () => {
           },
         ),
       ).rejects.toThrow(/actor|taskId|gateId/i);
-      expect(existsSync(runRoot)).toBeFalse();
+      expect(vfs.existsSync(runRoot)).toBeFalse();
     }
     expect(reconcileCalls).toBe(0);
     expect(prepareCalls).toBe(0);
   });
 
   test("validates recovery actor before reading the run store", () => {
+    const vfs = getRunnerVfs();
     const absentRun = "/virtual/absent-command-recovery-" + Date.now();
     expect(() => reconcileStrandedCommands(absentRun, " \n ")).toThrow(/actor/i);
-    expect(existsSync(absentRun)).toBeFalse();
+    expect(vfs.existsSync(absentRun)).toBeFalse();
   });
 
   test("rejects blank durable task and gate identities", async () => {
     const repositoryRoot = tempRoot("command-record-identity");
+    const vfs = getRunnerVfs();
     const runRoot = join(repositoryRoot, ".olt", "capsules");
-    await mkdir(runRoot, { recursive: true });
+    vfs.mkdirSync(runRoot, { recursive: true });
     const runner = createInternalCommandRunner({
       inspectRepository: () => {
         throw new Error("non-gate preparation must not observe the repository");
@@ -136,8 +138,9 @@ describe("command identity policy", () => {
 
   test("bounds argv count and aggregate UTF-8 bytes before creating command artifacts", async () => {
     const repositoryRoot = tempRoot("command-argv-policy");
+    const vfs = getRunnerVfs();
     const runRoot = join(repositoryRoot, ".olt", "capsules");
-    await mkdir(runRoot, { recursive: true });
+    vfs.mkdirSync(runRoot, { recursive: true });
     const runner = createInternalCommandRunner({
       inspectRepository: () => {
         throw new Error("must not observe");
@@ -160,7 +163,7 @@ describe("command identity policy", () => {
           actor: "validator",
         }),
       ).rejects.toThrow(/argv|argument|byte|limit/i);
-      expect(existsSync(commandDir)).toBeFalse();
+      expect(vfs.existsSync(commandDir)).toBeFalse();
     }
   });
 });

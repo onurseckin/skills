@@ -137,9 +137,14 @@ describe("core/config/validator.ts", () => {
   });
 
   it("modelByRoleField validates role mappings", () => {
-    expect(modelByRoleField({ coordinator: "gpt-4o", implementer: "claude-3-5-sonnet" })).toEqual({
-      coordinator: "gpt-4o",
-      implementer: "claude-3-5-sonnet",
+    expect(
+      modelByRoleField({
+        coordinator: "standard-coordinator-model",
+        implementer: "standard-implementer-model",
+      }),
+    ).toEqual({
+      coordinator: "standard-coordinator-model",
+      implementer: "standard-implementer-model",
     });
     expect(modelByRoleField(null)).toBeNull();
     expect(modelByRoleField("invalid")).toBeNull();
@@ -210,7 +215,7 @@ describe("core/config/provenance.ts", () => {
   });
 
   it("buildConfigProvenanceMap accurately attributes sources", () => {
-    const hostDiscovered = new Set<any>(["gate_max_parallel"]);
+    const hostDiscovered = new Set<string>(["gate_max_parallel"]);
     const map = buildConfigProvenanceMap(
       { max_repair_rounds: 3 },
       { max_agents: 5 },

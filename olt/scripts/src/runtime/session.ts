@@ -94,6 +94,8 @@ export function writeAgentMetadataUnlocked(metadata: AgentMetadata, runRoot?: st
 export function serializeValidatedAgentMetadata(metadata: AgentMetadata, filePath: string): string {
   let serialized: string;
   try {
+    // Fast unindented cycle pre-check: short-circuits JavaScriptCore ~500ms pretty-print cycle traversal
+    void JSON.stringify(metadata);
     serialized = JSON.stringify(metadata, null, 2) + "\n";
   } catch (error) {
     throw new HarnessError(

@@ -74,29 +74,6 @@ Records the submission report, audits write-scope compliance, and moves the task
 bun harness.ts task:submit --run <run> --task t1 --summary "Done"
 ```
 
-### `task:assign-repairer`
-
-Replace the original implementer as a task's repairer, with a recorded reason.
-
-Assigns repair lease to replacement agent with recorded justification.
-
-- **Aliases**: none
-- **Stdin**: not read
-- **Arguments after `--`**: rejected
-
-| Flag | Type | Required | Repeatable | Default | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `--run` | string | yes | no | - | Capsule run root. |
-| `--task` | string | yes | no | - | Task in changes_requested, awaiting its original repairer. |
-| `--actor` | string | yes | no | - | Who is recording the reassignment. |
-| `--repairer` | string | yes | no | - | Replacement agent id; must differ from the original. |
-| `--reason` | string | yes | no | - | repeated_failure, stale, or unavailable. |
-| `--evidence` | string | yes | no | - | Why the replacement is warranted. |
-
-```bash
-bun harness.ts task:assign-repairer --run <run> --task t1 --repairer w2
-```
-
 ### `task:release`
 
 Hand a live lease back without waiting for it to expire.

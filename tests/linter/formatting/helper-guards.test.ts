@@ -57,6 +57,7 @@ describe(helperGuardsSuiteName, () => {
         trivial_assertion: 0,
         empty_test_body: 0,
         trivial_early_return: 0,
+        unit_test_purity: 0,
       },
     };
     expect(isAstLintResult(validResult)).toBe(true);
@@ -92,7 +93,7 @@ describe(helperGuardsSuiteName, () => {
   });
 
   it("exports standard constants", () => {
-    expect(ALL_AST_LINT_RULES.length).toBe(10);
+    expect(ALL_AST_LINT_RULES.length).toBe(11);
     expect(DEFAULT_PROHIBITED_VENDORS).toContain("anthropic");
     expect(DEFAULT_PROHIBITED_VENDORS).toContain("openai");
     expect(DEFAULT_PROHIBITED_VENDORS).toContain("gemini");

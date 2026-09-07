@@ -1,5 +1,5 @@
 import { validateUiCognitive } from "./cognitive-validator.ts";
-import { validateUiMechanic } from "./mechanic-validator.ts";
+import { validateUiMechanic } from "./mechanical-inspection.ts";
 import type {
   DualUiAuditResult,
   UiCognitiveInspectionInput,

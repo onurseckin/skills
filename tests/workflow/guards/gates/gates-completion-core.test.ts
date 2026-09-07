@@ -15,6 +15,7 @@ function validatedPort(): TestPort {
   Object.assign(state.tasks["T-1"]!, {
     status: "validated",
     report: { summary: "done" },
+    adversarial_probes: [1, 2, 3, 4, 5],
     validations: [
       {
         validator_id: "validator",

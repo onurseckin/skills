@@ -56,7 +56,7 @@ export async function createEpistemicShard(
   const lease = await createWorktreeLease(repoRoot, {
     branch: branchName,
     agentId: options.agentId,
-    role: isReadOnly ? "sub-investigator" : "autonomous-repairer",
+    role: isReadOnly ? "sub-investigator" : "autonomous-implementer",
     taskId: options.taskId,
     shardType: leaseShardType,
   });

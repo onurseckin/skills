@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import {
   measureAssets,
@@ -7,7 +6,12 @@ import {
   readHeader,
 } from "../../../olt/scripts/src/summary/assets/index.ts";
 import type { MediaAsset } from "../../../olt/scripts/src/summary/graph/index.ts";
-import { setupVirtualSummaryFS } from "../fixture.ts";
+import {
+  chmodSync,
+  getVirtualSummaryFS,
+  setupVirtualSummaryFS,
+  symlinkSync,
+} from "../fixture.ts";
 
 let rootCounter = 0;
 
@@ -18,7 +22,7 @@ beforeEach(() => {
 function runRoot(): string {
   rootCounter += 1;
   const root = `/virtual/asset-measure-${rootCounter}`;
-  fs.mkdirSync(join(root, "evidence"), { recursive: true });
+  getVirtualSummaryFS().mkdirSync(join(root, "evidence"), { recursive: true });
   return root;
 }
 
@@ -57,7 +61,7 @@ describe("measuring an asset the capsule still holds", () => {
   test("reads the byte size and the pixel size out of a PNG header", () => {
     const root = runRoot();
     const bytes = png(1440, 900);
-    fs.writeFileSync(join(root, "evidence", "shot.png"), bytes);
+    getVirtualSummaryFS().writeFileSync(join(root, "evidence", "shot.png"), bytes);
 
     expect(measureCapsuleAsset(root, "evidence/shot.png")).toEqual({
       sizeBytes: bytes.length,
@@ -67,8 +71,9 @@ describe("measuring an asset the capsule still holds", () => {
 
   test("reads a GIF and a top-down BMP, whose headers state their size differently", () => {
     const root = runRoot();
-    fs.writeFileSync(join(root, "evidence", "loop.gif"), gif(320, 240));
-    fs.writeFileSync(join(root, "evidence", "raster.bmp"), bmp(64, 48));
+    const vfs = getVirtualSummaryFS();
+    vfs.writeFileSync(join(root, "evidence", "loop.gif"), gif(320, 240));
+    vfs.writeFileSync(join(root, "evidence", "raster.bmp"), bmp(64, 48));
 
     expect(measureCapsuleAsset(root, "evidence/loop.gif")?.dimensions).toEqual({
       width: 320,
@@ -82,7 +87,7 @@ describe("measuring an asset the capsule still holds", () => {
 
   test("reports the size but no dimensions for a format it cannot read", () => {
     const root = runRoot();
-    fs.writeFileSync(join(root, "evidence", "trace.zip"), Buffer.alloc(12, 7));
+    getVirtualSummaryFS().writeFileSync(join(root, "evidence", "trace.zip"), Buffer.alloc(12, 7));
 
     const measured = measureCapsuleAsset(root, "evidence/trace.zip");
     expect(measured?.sizeBytes).toBe(12);
@@ -101,8 +106,10 @@ describe("measuring an asset the capsule still holds", () => {
     const root = runRoot();
     rootCounter += 1;
     const outside = `/virtual/asset-outside-${rootCounter}`;
-    fs.writeFileSync(join(outside, "secret.png"), png(10, 10));
-    fs.symlinkSync(join(outside, "secret.png"), join(root, "evidence", "linked.png"));
+    const vfs = getVirtualSummaryFS();
+    vfs.mkdirSync(outside, { recursive: true });
+    vfs.writeFileSync(join(outside, "secret.png"), png(10, 10));
+    symlinkSync(join(outside, "secret.png"), join(root, "evidence", "linked.png"));
 
     expect(measureCapsuleAsset(root, "../../secret.png")).toBeUndefined();
     expect(measureCapsuleAsset(root, join(outside, "secret.png"))).toBeUndefined();
@@ -114,8 +121,10 @@ describe("measuring an asset the capsule still holds", () => {
     const root = runRoot();
     rootCounter += 1;
     const outside = `/virtual/asset-outside-dir-${rootCounter}`;
-    fs.writeFileSync(join(outside, "secret.png"), png(10, 10));
-    fs.symlinkSync(outside, join(root, "evidence", "elsewhere"));
+    const vfs = getVirtualSummaryFS();
+    vfs.mkdirSync(outside, { recursive: true });
+    vfs.writeFileSync(join(outside, "secret.png"), png(10, 10));
+    symlinkSync(outside, join(root, "evidence", "elsewhere"));
 
     expect(measureCapsuleAsset(root, "evidence/elsewhere/secret.png")).toBeUndefined();
   });
@@ -128,13 +137,13 @@ describe("measuring an asset the capsule still holds", () => {
   test("reports nothing when the file passes containment checks but cannot be opened", () => {
     const root = runRoot();
     const target = join(root, "evidence", "locked.png");
-    fs.writeFileSync(target, png(4, 4));
-    fs.chmodSync(target, 0o000);
+    getVirtualSummaryFS().writeFileSync(target, png(4, 4));
+    chmodSync(target, 0o000);
 
     try {
       expect(readHeader(target)).toBeUndefined();
     } finally {
-      fs.chmodSync(target, 0o644);
+      chmodSync(target, 0o644);
     }
   });
 });
@@ -143,7 +152,7 @@ describe("filling in what nobody measured", () => {
   test("fills the gaps and leaves every recorded value alone", () => {
     const root = runRoot();
     const bytes = png(800, 600);
-    fs.writeFileSync(join(root, "evidence", "shot.png"), bytes);
+    getVirtualSummaryFS().writeFileSync(join(root, "evidence", "shot.png"), bytes);
 
     const [measured, reported, absent] = measureAssets(
       [
@@ -168,7 +177,7 @@ describe("filling in what nobody measured", () => {
 
   test("keeps the size a source reported while adding the pixels it did not", () => {
     const root = runRoot();
-    fs.writeFileSync(join(root, "evidence", "shot.png"), png(120, 90));
+    getVirtualSummaryFS().writeFileSync(join(root, "evidence", "shot.png"), png(120, 90));
 
     const [only] = measureAssets([asset("evidence/shot.png", { sizeBytes: 4 })], root);
     expect(only?.sizeBytes).toBe(4);
@@ -181,3 +190,4 @@ describe("filling in what nobody measured", () => {
     expect(assets[0]?.sizeBytes).toBeUndefined();
   });
 });
+

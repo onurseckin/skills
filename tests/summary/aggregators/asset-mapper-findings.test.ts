@@ -1,7 +1,16 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mapFindingDetails } from "../../../olt/scripts/src/summary/assets/index.ts";
 import type { CompletionReview, TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
+import { cleanupVirtualSummaryFS, setupVirtualSummaryFS } from "../fixture.ts";
 import { makeTask } from "../reporters/dag/graph-fixtures.ts";
+
+beforeEach(() => {
+  setupVirtualSummaryFS();
+});
+
+afterEach(() => {
+  cleanupVirtualSummaryFS();
+});
 
 describe("mapFindingDetails: field-name fallbacks a harness or an older log format might use", () => {
   test("falls back from requirement_id to camelCase requirementId", () => {

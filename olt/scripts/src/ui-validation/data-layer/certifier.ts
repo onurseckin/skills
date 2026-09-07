@@ -81,13 +81,13 @@ export class DataLayerPreFlightCertifier {
 }
 
 /**
- * Autonomous Repairer Defect Router
+ * Autonomous Implementer Defect Router
  */
 export class DefectRouter {
   private readonly defectReceipts: RoutedDefectReceipt[] = [];
 
   /**
-   * Route a data-layer failure directly to AUTONOMOUS_REPAIRER
+   * Route a data-layer failure directly to AUTONOMOUS_IMPLEMENTER
    */
   public routeDefect(
     certification: PreFlightCertificationResult,
@@ -110,7 +110,7 @@ export class DefectRouter {
 
     const receipt: RoutedDefectReceipt = {
       defectId,
-      recipient: "AUTONOMOUS_REPAIRER",
+      recipient: "AUTONOMOUS_IMPLEMENTER",
       category: "BACKEND_DATA_LAYER_FAULT",
       severity,
       endpoint: certification.endpoint,

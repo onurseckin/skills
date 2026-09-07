@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { writeSuccessfulAttemptEvidence } from "../../../olt/scripts/src/engine/runner/models/attempt/attempt-success-evidence.ts";
 import type {
@@ -7,20 +6,21 @@ import type {
   OutputSummary,
 } from "../../../olt/scripts/src/engine/runner/types/types.ts";
 import type { WatchdogOutcome } from "../../../olt/scripts/src/engine/runner/telemetry/watchdog.ts";
-import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import { getRunnerVfs, tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
 afterEach(cleanupTempRoots);
 
-async function attemptFixture(name: string) {
+function attemptFixture(name: string) {
   const runRoot = tempRoot(name);
+  const vfs = getRunnerVfs();
   const attemptDir = join(runRoot, "attempt-1");
-  await mkdir(attemptDir);
+  vfs.mkdirSync(attemptDir, { recursive: true });
   const stdoutPath = join(attemptDir, "stdout.log");
   const stderrPath = join(attemptDir, "stderr.log");
   const activityPath = join(attemptDir, "activity.json");
-  await writeFile(stdoutPath, "hello\n");
-  await writeFile(stderrPath, "");
-  await writeFile(activityPath, '{"status":"running"}');
+  vfs.writeFileSync(stdoutPath, "hello\n");
+  vfs.writeFileSync(stderrPath, "");
+  vfs.writeFileSync(activityPath, '{"status":"running"}');
   return { runRoot, attemptDir, stdoutPath, stderrPath, activityPath };
 }
 
@@ -36,8 +36,8 @@ const emptyLog: OutputSummary = { path: "empty", bytes: 0, sha256: "e".repeat(64
 const noFailureSignals = { authorization: false, networkTransient: false, testFailure: false };
 
 describe("writeSuccessfulAttemptEvidence", () => {
-  test("marks a clean zero-exit run as succeeded with no failure class", async () => {
-    const fixture = await attemptFixture("success-evidence-succeeded-");
+  test("marks a clean zero-exit run as succeeded with no failure class", () => {
+    const fixture = attemptFixture("success-evidence-succeeded-");
     const outcome: WatchdogOutcome = { code: 0, timeout: null, interrupted: false };
     const result = writeSuccessfulAttemptEvidence({
       options: options(fixture.runRoot),
@@ -62,13 +62,15 @@ describe("writeSuccessfulAttemptEvidence", () => {
     expect(result.record.failure_class).toBeNull();
     expect(result.failureClass).toBeUndefined();
     expect(result.record.evidence_issues).toEqual([]);
-    const persisted = JSON.parse(await readFile(join(fixture.attemptDir, "record.json"), "utf8"));
+    const vfs = getRunnerVfs();
+    const persisted = JSON.parse(vfs.readFileSync(join(fixture.attemptDir, "record.json"), "utf8"));
     expect(persisted.status).toBe("succeeded");
   });
 
-  test("classifies a run with output-evidence issues as a terminal test failure", async () => {
-    const fixture = await attemptFixture("success-evidence-test-failure-");
-    await writeFile(fixture.stdoutPath, "no tests found\n");
+  test("classifies a run with output-evidence issues as a terminal test failure", () => {
+    const fixture = attemptFixture("success-evidence-test-failure-");
+    const vfs = getRunnerVfs();
+    vfs.writeFileSync(fixture.stdoutPath, "no tests found\n");
     const outcome: WatchdogOutcome = { code: 0, timeout: null, interrupted: false };
     const result = writeSuccessfulAttemptEvidence({
       options: { ...options(fixture.runRoot), argv: ["bun", "test"] } as NormalizedCommandOptions,
@@ -95,8 +97,8 @@ describe("writeSuccessfulAttemptEvidence", () => {
     expect(result.record.evidence_issues.length).toBeGreaterThan(0);
   });
 
-  test("marks a nonzero exit as failed and classifies it via the failure signals", async () => {
-    const fixture = await attemptFixture("success-evidence-nonzero-exit-");
+  test("marks a nonzero exit as failed and classifies it via the failure signals", () => {
+    const fixture = attemptFixture("success-evidence-nonzero-exit-");
     const outcome: WatchdogOutcome = { code: 1, timeout: null, interrupted: false };
     const result = writeSuccessfulAttemptEvidence({
       options: options(fixture.runRoot),
@@ -122,8 +124,8 @@ describe("writeSuccessfulAttemptEvidence", () => {
     expect(result.failureClass).toBe("network_transient");
   });
 
-  test("marks a wall-clock timeout as timed_out with a matching timeout_kind", async () => {
-    const fixture = await attemptFixture("success-evidence-timeout-");
+  test("marks a wall-clock timeout as timed_out with a matching timeout_kind", () => {
+    const fixture = attemptFixture("success-evidence-timeout-");
     const outcome: WatchdogOutcome = { code: null, timeout: "wall", interrupted: false };
     const result = writeSuccessfulAttemptEvidence({
       options: options(fixture.runRoot),
@@ -149,8 +151,8 @@ describe("writeSuccessfulAttemptEvidence", () => {
     expect(result.record.failure_class).toBe("timeout");
   });
 
-  test("marks a host-interrupted run as failed even with a zero exit code", async () => {
-    const fixture = await attemptFixture("success-evidence-interrupted-");
+  test("marks a host-interrupted run as failed even with a zero exit code", () => {
+    const fixture = attemptFixture("success-evidence-interrupted-");
     const outcome: WatchdogOutcome = { code: null, timeout: null, interrupted: true };
     const result = writeSuccessfulAttemptEvidence({
       options: options(fixture.runRoot),

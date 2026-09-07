@@ -78,9 +78,9 @@ describe(hostAdaptersSuiteName, () => {
     const agentDir = join(root, "olt/agents");
     const personas = {
       coordinator: "coordinator",
-      worker: "implementer",
+      implementer: "implementer",
       validator: "validator",
-      critic: "completeness-critic",
+      "completeness-critic": "completeness-critic",
     };
 
     for (const [persona, role] of Object.entries(personas)) {

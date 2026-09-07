@@ -1,47 +1,62 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { canonicalJsonBytes } from "../../../olt/scripts/src/core/json.ts";
-import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.ts";
 import { computeFullWakeBrief } from "../../../olt/scripts/src/mind/proposals/brief/builder.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import { initVirtualCapsule } from "./proposals-fixture.ts";
+
+mock.module("../../../olt/scripts/src/installer/source-validation.ts", () => ({
+  validateSkillSource: async (source: string) => ({
+    root: source,
+    digest: "mock-tree-digest-sha256",
+    runtimeVersion: "1.4.0",
+  }),
+}));
+
+mock.module("../../../olt/scripts/src/installer/runtime-freshness.ts", () => ({
+  installedRuntimeFreshness: async () => ({
+    drifted: false,
+    installedRuntimeVersion: "1.4.0",
+    referenceRuntimeVersion: "1.4.0",
+  }),
+}));
 
 describe("Mind Proposal Brief Builder Core Suite", () => {
+  let session: VirtualFSSession;
+  let vfs: VirtualMemoryFS;
   let tempRepo: string;
   let runRoot: string;
 
   beforeEach(() => {
-    tempRepo = join(
-      tmpdir(),
-      `brief-bld-cov-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    );
-    mkdirSync(tempRepo, { recursive: true });
-    runRoot = initRun(
-      tempRepo,
-      "mind-run-01",
-      new TextEncoder().encode("system prompt"),
-      "file",
-      true,
-    );
+    vfs = new VirtualMemoryFS();
+    vfs.mkdirSync("/virtual/tmp", { recursive: true });
+    session = createVirtualFSSession(vfs);
+
+    tempRepo = `/virtual/brief-bld-cov-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    runRoot = initVirtualCapsule(vfs, tempRepo, "mind-run-01");
   });
 
   afterEach(() => {
-    rmSync(tempRepo, { recursive: true, force: true });
+    session.cleanup();
   });
 
   const updateState = (updater: (state: Record<string, unknown>) => void) => {
     const statePath = join(runRoot, "state.json");
-    const current = JSON.parse(readFileSync(statePath, "utf-8")) as Record<string, unknown>;
+    const current = JSON.parse(vfs.readFileSync(statePath, "utf-8")) as Record<string, unknown>;
     updater(current);
-    writeFileSync(statePath, canonicalJsonBytes(current));
+    vfs.writeFileSync(statePath, canonicalJsonBytes(current));
   };
 
   const setupMatchingCharter = (content = "charter: valid\n") => {
     const charterDir = join(tempRepo, "olt", "agents");
-    mkdirSync(charterDir, { recursive: true });
+    vfs.mkdirSync(charterDir, { recursive: true });
     const charterPath = join(charterDir, "mind.yaml");
-    writeFileSync(charterPath, content, "utf-8");
+    vfs.writeFileSync(charterPath, content, "utf-8");
     const sha = createHash("sha256").update(Buffer.from(content)).digest("hex");
 
     updateState((state) => {
@@ -68,7 +83,7 @@ describe("Mind Proposal Brief Builder Core Suite", () => {
 
     it("reports DRIFTED and halts when charter exists but sha mismatches pinned digest", async () => {
       setupMatchingCharter("charter: valid\n");
-      writeFileSync(join(tempRepo, "olt", "agents", "mind.yaml"), "charter: drifted\n", "utf-8");
+      vfs.writeFileSync(join(tempRepo, "olt", "agents", "mind.yaml"), "charter: drifted\n", "utf-8");
 
       const brief = await computeFullWakeBrief(runRoot);
 
@@ -104,7 +119,7 @@ describe("Mind Proposal Brief Builder Core Suite", () => {
 
     it("reports FAILED and halts when event chain integrity is corrupt", async () => {
       setupMatchingCharter();
-      writeFileSync(join(runRoot, "events.jsonl"), "corrupt event line\n", "utf-8");
+      vfs.writeFileSync(join(runRoot, "events.jsonl"), "corrupt event line\n", "utf-8");
 
       const brief = await computeFullWakeBrief(runRoot);
 
@@ -163,6 +178,28 @@ describe("Mind Proposal Brief Builder Core Suite", () => {
 
       expect(brief.facts.budgetDeferred).toBe(true);
       expect(brief.mode).toBe("paused");
+    });
+  });
+
+  describe("Edge Case Boundary Conditions", () => {
+    it("computes empty SHA256 and reports DRIFTED for 0-byte charter file", async () => {
+      setupMatchingCharter("charter: valid\n");
+      vfs.writeFileSync(join(tempRepo, "olt", "agents", "mind.yaml"), "");
+
+      const brief = await computeFullWakeBrief(runRoot);
+
+      expect(brief.facts.charterStatus).toBe("DRIFTED");
+      expect(brief.facts.charterSha).toBe(
+        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      );
+      expect(brief.isHalted).toBe(true);
+    });
+
+    it("rejects corrupted state.json without uncaught crash", async () => {
+      setupMatchingCharter();
+      vfs.writeFileSync(join(runRoot, "state.json"), "{ corrupted state json syntax...");
+
+      expect(computeFullWakeBrief(runRoot)).rejects.toThrow();
     });
   });
 });

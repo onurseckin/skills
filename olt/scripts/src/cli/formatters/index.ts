@@ -43,7 +43,6 @@ export {
   runCompleteNextActions,
   runExecNextActions,
   runStatusNextActions,
-  taskAssignRepairerNextActions,
   taskClaimNextActions,
   taskHeartbeatNextActions,
   taskProbeNextActions,
@@ -93,7 +92,6 @@ export {
 } from "./plan-formatter/index.ts";
 
 export {
-  formatTaskAssignRepairerBrief,
   formatTaskBrief,
   formatTaskClaimBrief,
   formatTaskHeartbeatBrief,
@@ -102,7 +100,6 @@ export {
   formatTaskReviewPassBrief,
   formatTaskSubmitBrief,
   formatValidationStartBrief,
-  type TaskAssignRepairerParams,
   type TaskBriefParams,
   type TaskClaimParams,
   type TaskHeartbeatParams,

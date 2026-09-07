@@ -1,5 +1,50 @@
+import * as path from "node:path";
 import { dependencyMap } from "../../olt/scripts/src/graph/dependency-map.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../olt/scripts/src/testing/virtual-fs/index.ts";
 export { TestPort, workflowState } from "../workflow/shared/test-port.ts";
+
+let vfs = new VirtualMemoryFS();
+let session: VirtualFSSession | undefined;
+
+function normPath(p: string): string {
+  return path.resolve(String(p)).replace(/\\/g, "/");
+}
+
+export function setupVirtualSchedulerFS(): VirtualMemoryFS {
+  cleanupVirtualSchedulerFS();
+  vfs = new VirtualMemoryFS();
+  const repoRoot = normPath(process.cwd());
+  vfs.mkdirSync(repoRoot, { recursive: true });
+  vfs.mkdirSync(path.join(repoRoot, ".olt"), { recursive: true });
+  vfs.writeFileSync(
+    path.join(repoRoot, ".olt", "watchdogs.json"),
+    JSON.stringify({
+      schema: "harness.watchdog_store",
+      version: 1,
+      updated_at: new Date().toISOString(),
+      watchdogs: [],
+    }),
+  );
+  vfs.chdir(repoRoot);
+  session = createVirtualFSSession(vfs);
+  return vfs;
+}
+
+export function cleanupVirtualSchedulerFS(): void {
+  if (session) {
+    session.cleanup();
+    session = undefined;
+  }
+  vfs.reset();
+}
+
+export function getVirtualSchedulerFS(): VirtualMemoryFS {
+  return vfs;
+}
 
 function task(
   id: string,

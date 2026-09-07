@@ -33,14 +33,20 @@ describe("scheduler batches", () => {
     const state = schedulerState();
     const tasks = state.tasks as Record<string, Record<string, unknown>>;
     for (const id of Object.keys(tasks)) {
-      if (id !== "deep" && id !== "deep-child") tasks[id]!.status = "blocked";
+      if (id !== "deep" && id !== "deep-child") {
+        const taskObj = tasks[id];
+        if (taskObj !== undefined) taskObj.status = "blocked";
+      }
     }
     expect(proposeBatch(state).map(({ id }) => id)).toEqual(["deep"]);
-    tasks.deep!.status = "done";
+    const deepTask = tasks.deep;
+    if (deepTask !== undefined) deepTask.status = "done";
     const batch = proposeBatch(state, 1);
     expect(batch.map(({ id }) => id)).toEqual(["deep-child"]);
-    batch[0]!.status = "tampered";
-    expect(tasks["deep-child"]!.status).toBe("proposed");
+    const firstItem = batch[0];
+    if (firstItem !== undefined) firstItem.status = "tampered";
+    const childTask = tasks["deep-child"];
+    expect(childTask !== undefined ? childTask.status : undefined).toBe("proposed");
     for (const invalid of [0, -1, true, 1.5]) {
       expect(() => proposeBatch(state, invalid as number)).toThrow();
     }

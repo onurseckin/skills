@@ -26,18 +26,7 @@
  *    - Zero console / stdout spam.
  */
 
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import {
-  advanceMailboxCursorBatch,
-  dispatchPeerMessage,
-  ensureMailboxDir,
-  loadMailboxCursor,
-  readUnreadMessages,
-  type MailboxEnvelope,
-} from "../../../../olt/scripts/src/communication/mailbox/index.ts";
+import { describe, expect, it } from "bun:test";
 import {
   DIALECTICAL_LEVELS,
   HistoricalDebateMemory,
@@ -51,3 +40,56 @@ import {
   type ContainmentResult,
   type SupervisoryViolation,
 } from "../../../../olt/scripts/src/mind/containment/index.ts";
+
+describe("Conversational Engagement Protocols - Part 1", () => {
+  it("verifies dialectical levels and strategic commitment definitions in memory", () => {
+    expect(DIALECTICAL_LEVELS.L1_TRADE_OFF_VERIFICATION).toBe("L1_TRADE_OFF_VERIFICATION");
+    expect(DIALECTICAL_LEVELS.L2_SECOND_ORDER_IMPLICATIONS).toBe("L2_SECOND_ORDER_IMPLICATIONS");
+    expect(DIALECTICAL_LEVELS.L3_EMERGENT_PARADIGMS).toBe("L3_EMERGENT_PARADIGMS");
+
+    expect(PARETO_PRIORITY_LEVELS.UX_DELIGHT_AND_CORRECTNESS).toBe(1);
+    expect(PARETO_PRIORITY_LEVELS.SIMPLICITY_AND_MAINTAINABILITY).toBe(2);
+    expect(PARETO_PRIORITY_LEVELS.SCALABILITY_GEQ_15_PERCENT).toBe(3);
+    expect(PARETO_PRIORITY_LEVELS.SPECULATIVE_ABSTRACTION).toBe(4);
+
+    expect(DEFAULT_REVOKED_TOOLS).toBeDefined();
+    expect(DEFAULT_REVOKED_TOOLS).toContain("write_to_file");
+    expect(DEFAULT_REVOKED_TOOLS).toContain("run_command");
+  });
+
+  it("enforces immutability and state isolation in SocraticLadderingEngine and HistoricalDebateMemory", () => {
+    const memory = new HistoricalDebateMemory();
+    const engine = new SocraticLadderingEngine(memory);
+
+    const state = engine.getState();
+    expect(state.currentLevel).toBe(DIALECTICAL_LEVELS.L1_TRADE_OFF_VERIFICATION);
+    expect(state.consecutiveImpasseCycles).toBe(0);
+    expect(Object.isFrozen(state.history)).toBe(true);
+
+    const now = new Date().toISOString();
+    const commitment: StrategicCommitment = {
+      id: "comm-01",
+      topic: "in-memory-audit",
+      agreedResolution: "zero disk io",
+      targetMilestone: "M1",
+      status: "pending",
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    memory.recordCommitment(commitment);
+    const active = memory.getActiveCommitments();
+    expect(active.length).toBe(1);
+    expect(Object.isFrozen(active)).toBe(true);
+    const first = active[0];
+    expect(first).toBeDefined();
+    if (first) {
+      expect(first.id).toBe("comm-01");
+      expect(first.status).toBe("pending");
+    }
+
+    // Verify a fresh memory instance has zero leaked commitments
+    const isolatedMemory = new HistoricalDebateMemory();
+    expect(isolatedMemory.getActiveCommitments().length).toBe(0);
+  });
+});

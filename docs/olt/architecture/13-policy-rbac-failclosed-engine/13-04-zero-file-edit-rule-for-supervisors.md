@@ -44,7 +44,7 @@ The Orchestrating Long Tasks (OLT) framework strictly enforces the **Supervisor 
 |   ┌────────────────────────────────────────────────────────────────────────────────────────────────────────────┐   |
 |   │ Tier 3: Implementers (Worktree Isolated)  │  Tier 3: Validators (Adversarial, 0-Commands)                 │   |
 |   │ • Mutates Code in .olt/worktrees/T_i/     │  • Socratic AST Review & Static Proof Assertions               │   |
-|   │ • Generates Class 1 Falsifiable Evidence  │  • Mechanic-Validator: Isolated Binary Probes & Gate Prove     │   |
+|   │ • Generates Class 1 Falsifiable Evidence  │  • UI-Headless-Validator: Isolated Binary Probes & Gate Prove  │   |
 |   └────────────────────────────────────────────────────────────────────────────────────────────────────────────┘   |
 |                                                                                                                    |
 +--------------------------------------------------------------------------------------------------------------------+
@@ -77,7 +77,7 @@ Supervisors interact with the codebase exclusively through structured, machine-v
 | 2. Supervisor authors structured task descriptor in plan.json (specifying write_scope).     |
 | 3. Coordinator spawns Tier 3 Implementer bound to isolated worktree .olt/worktrees/T_i/.   |
 | 4. Implementer executes file mutations exclusively inside worktree sandbox.                 |
-| 5. Mechanic-Validator executes gate tests; Coordinator ingests cryptographic evidence.      |
+| 5. UI-Headless-Validator executes gate tests; Coordinator ingests cryptographic evidence.    |
 | 6. Supervisor reviews execution outcome without loading source diffs into active context.   |
 +---------------------------------------------------------------------------------------------+
 ```
@@ -92,7 +92,7 @@ By offloading implementation details to leaf workers, the supervisor's active me
 
 ### 2.5 Epistemic Hygiene & The Rubber-Stamp Barrier
 
-When code is written by the same entity that reviews or orchestrates it, verification degrades into circular self-affirmation. By mechanically preventing supervisors from writing code, the architecture guarantees that all code entering the repository is authored by an Implementer and independently audited by a Cognitive Validator and Mechanic-Validator.
+When code is written by the same entity that reviews or orchestrates it, verification degrades into circular self-affirmation. By mechanically preventing supervisors from writing code, the architecture guarantees that all code entering the repository is authored by an Implementer and independently audited by a Cognitive Validator and a UI-Headless-Validator.
 
 ---
 
@@ -192,7 +192,7 @@ The TypeScript interfaces governing supervisor role confinement are implemented 
 
 ```typescript
 export type SupervisorRole = "mind" | "orchestrator" | "coordinator";
-export type LeafWorkerRole = "implementer" | "validator" | "mechanic-validator";
+export type LeafWorkerRole = "implementer" | "validator" | "ui-headless-validator";
 
 export interface TaskClaimRequest {
   readonly taskId: string;
@@ -225,7 +225,7 @@ export function assertCanClaimCodeTask(roleName: string, actorId: string): void 
     );
   }
 
-  if (roleName === "validator" || roleName === "mechanic-validator") {
+  if (roleName === "validator" || roleName === "ui-headless-validator") {
     throw new HarnessError(
       "ROLE_CONFINEMENT_VIOLATION",
       `Validation role '${roleName}' cannot claim implementation tasks; must execute review sweeps exclusively`,
@@ -262,7 +262,7 @@ export function assertFileMutationPermitted(roleName: string, targetPath: string
 | **`SUPERVISOR_FILE_MUTATION_ATTEMPT`** | Orchestrator or Coordinator calls file edit tool directly. | FATAL | Tool call trapped fail-closed; agent reprimanded. | Refactor planning loop to emit task definitions and spawn Tier 3 Implementer. |
 | **`SUPERVISOR_TASK_CLAIM_VIOLATION`** | Supervisor agent attempts `task:claim` with supervisory credentials. | ERROR | Claim rejected; lease not granted. | Dispatch task to worker queue; spawn implementer subagent to claim lease. |
 | **`UNISOLATED_ROOT_MUTATION`** | Implementer attempts write directly in root instead of `.olt/worktrees/T_i/`. | FATAL | Mutation blocked; worktree escape prevented. | Configure git worktree environment; mount target path within isolated task directory. |
-| **`VALIDATOR_RUBBER_STAMP`** | Validator attempts to modify implementation files under review. | FATAL | Review rejected; validator quarantined. | Enforce read-only inspection; emit structured finding packets for repairer. |
+| **`VALIDATOR_RUBBER_STAMP`** | Validator attempts to modify implementation files under review. | FATAL | Review rejected; validator quarantined. | Enforce read-only inspection; emit structured finding packets for the assigned implementer. |
 | **`AGENT_ID_IMPERSONATION`** | Supervisor attempts to claim task by spoofing an `impl-` prefix. | FATAL | Session HMAC validation fails; actor banned. | Authenticate through valid coordinator delegation grant tokens. |
 | **`CONTEXT_WINDOW_EXHAUSTION`** | Supervisor attempts to read entire codebase into memory. | WARN | Token budget exhausted; planning degraded. | Use `doctor:hygiene` summary metrics rather than reading full source files. |
 | **`CROSS_WORKTREE_POLLUTION`** | Implementer $T_1$ attempts to edit files inside worktree of task $T_2$. | FATAL | Write rejected fail-closed; audit alert triggered. | Confine edits strictly to assigned worktree mount directory. |

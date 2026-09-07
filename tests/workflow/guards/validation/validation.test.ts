@@ -132,7 +132,7 @@ describe("independent validation and repair", () => {
     expect(state.tasks["T-1"]!.status).toBe("changes_requested");
     expect(state.tasks["T-1"]!.repair_assignee).toBe("implementer");
     expect(state.tasks["T-1"]!.findings).toHaveLength(1);
-    expect(() => claimTask(port, "T-1", "replacement", "repairer", { clock })).toThrow();
+    expect(() => claimTask(port, "T-1", "replacement", "implementer", { clock })).toThrow();
   });
 
   test("rejects prose-only or incomplete findings", () => {
@@ -223,8 +223,8 @@ describe("independent validation and repair", () => {
       { ...reject("validator"), validation_token: firstToken },
       clock,
     );
-    const { token } = claimTask(port, "T-1", "implementer", "repairer", { clock });
-    registerTaskPacket(port, "repairer", "implementer", 2);
+    const { token } = claimTask(port, "T-1", "implementer", "implementer", { clock });
+    registerTaskPacket(port, "implementer", "implementer", 2);
     submitTask(port, "T-1", "implementer", token, report, clock);
     const secondToken = validationToken(port, "validator-2");
     expect(() =>
@@ -274,8 +274,8 @@ describe("independent validation and repair", () => {
         clock,
       );
       if (round < 20) {
-        const { token } = claimTask(port, "T-1", "implementer", "repairer", { clock });
-        registerTaskPacket(port, "repairer", "implementer", round + 1);
+        const { token } = claimTask(port, "T-1", "implementer", "implementer", { clock });
+        registerTaskPacket(port, "implementer", "implementer", round + 1);
         submitTask(port, "T-1", "implementer", token, report, clock);
       }
     }

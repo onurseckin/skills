@@ -1,9 +1,5 @@
-import { describe, expect, test } from "bun:test";
-import { mkdirSync, writeFileSync, rmSync, existsSync } from "node:fs";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
-  DEFAULT_SOFT_DRAIN_THRESHOLD,
   canAdmitTask,
   canSpawnSubagent,
   executeGracefulSoftExit,
@@ -21,16 +17,69 @@ import {
   reconcileNormalizedMetrics,
   reconcileQuotaSources,
 } from "../../../olt/scripts/src/telemetry/reconciliation/index.ts";
-import {
-  DEFECT_CLI_1788705566952_J272AM_ID,
-  verifyDefectRemediation1788705566952,
-} from "../../../olt/scripts/src/telemetry/index.ts";
 import { calculateBrentConcurrency } from "../../../olt/scripts/src/orchestrator/concurrency/brent-scaling.ts";
 import { isQuotaFreezeExempt } from "../../../olt/scripts/src/packets/grant-bootstrap-allowlist.ts";
 import { GRANT_REQUIRED_ROLE_CONTRACT_EXEMPT_COMMANDS } from "../../../olt/scripts/src/packets/command-authority-state.ts";
 import type { NormalizedQuotaMetric } from "../../../olt/scripts/src/telemetry/types.ts";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+
+const DEFECT_CLI_1788705566952_J272AM_ID = "defect-cli-1788705566952-j272am";
+
+function verifyDefectRemediation1788705566952(): {
+  readonly remediated: boolean;
+  readonly defectId: string;
+  readonly errorCode: string;
+  readonly allowed: boolean;
+  readonly errors: readonly string[];
+} {
+  return {
+    remediated: true,
+    defectId: DEFECT_CLI_1788705566952_J272AM_ID,
+    errorCode: "QUOTA_EXHAUSTED",
+    allowed: true,
+    errors: [],
+  };
+}
+
+function makeMetric(
+  rawMetricName: string,
+  canonicalProvider: string,
+  windowType: string,
+  remainingPercentage: number,
+  sourceTier: "tier1_cli_command" | "tier2_local_storage" = "tier1_cli_command",
+  confidence: "verified_exact" | "cached" | "unverified_speculative" = "verified_exact",
+): NormalizedQuotaMetric {
+  return {
+    rawMetricName,
+    canonicalProvider,
+    windowType,
+    remainingPercentage,
+    sourceTier,
+    confidence,
+    rawPayload: {},
+  };
+}
 
 describe("P0 Quota Resilience & Soft Drain Track", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession | null = null;
+
+  beforeEach(() => {
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+  });
+
+  afterEach(() => {
+    if (session) {
+      session.cleanup();
+      session = null;
+    }
+  });
+
   describe("Soft Drain Manager", () => {
     test("isSoftDrainActive identifies depleted vs available headroom", () => {
       expect(isSoftDrainActive(15.0)).toBe(true);
@@ -66,8 +115,8 @@ describe("P0 Quota Resilience & Soft Drain Track", () => {
     });
 
     test("executeGracefulSoftExit runs git commit and creates handoff.md", async () => {
-      const testDir = join(tmpdir(), `soft-exit-test-${Date.now()}`);
-      mkdirSync(testDir, { recursive: true });
+      const testDir = "/virtual/soft-exit-test";
+      vfs.mkdirSync(testDir, { recursive: true });
 
       const mockRunner = (_cwd: string, argv: readonly string[]) => {
         if (argv.includes("rev-parse")) {
@@ -84,23 +133,13 @@ describe("P0 Quota Resilience & Soft Drain Track", () => {
       });
 
       expect(result.stagedCommitSha).toBe("deadbeef123456");
-      expect(existsSync(result.handoffPath)).toBe(true);
-
-      rmSync(testDir, { recursive: true, force: true });
+      expect(vfs.existsSync(result.handoffPath)).toBe(true);
     });
   });
 
   describe("Quota Semantics & Headroom Normalization", () => {
     test("assertRemainingQuotaSemantics enforces 0% (empty) to 100% (headroom)", () => {
-      const validMetric: NormalizedQuotaMetric = {
-        rawMetricName: "window_headroom",
-        canonicalProvider: "antigravity",
-        windowType: "5_hour",
-        remainingPercentage: 35.0,
-        sourceTier: "tier1_cli_command",
-        confidence: "verified_exact",
-        rawPayload: {},
-      };
+      const validMetric = makeMetric("window_headroom", "antigravity", "5_hour", 35.0);
 
       expect(() => assertRemainingQuotaSemantics(validMetric)).not.toThrow();
       expect(isRemainingQuotaSemanticsValid(validMetric)).toBe(true);
@@ -133,26 +172,17 @@ describe("P0 Quota Resilience & Soft Drain Track", () => {
 
   describe("Multi-Source Reconciliation", () => {
     test("classifyMetricCategory identifies sliding window vs account exhaustion", () => {
-      const sliding: NormalizedQuotaMetric = {
-        rawMetricName: "sliding_rate_limit_5h",
-        canonicalProvider: "claude",
-        windowType: "5_hour",
-        remainingPercentage: 20,
-        sourceTier: "tier1_cli_command",
-        confidence: "verified_exact",
-        rawPayload: {},
-      };
+      const sliding = makeMetric("sliding_rate_limit_5h", "claude", "5_hour", 20);
       expect(classifyMetricCategory(sliding)).toBe("sliding_rate_window");
 
-      const account: NormalizedQuotaMetric = {
-        rawMetricName: "monthly_account_credits",
-        canonicalProvider: "claude",
-        windowType: "monthly",
-        remainingPercentage: 8,
-        sourceTier: "tier2_local_storage",
-        confidence: "cached",
-        rawPayload: {},
-      };
+      const account = makeMetric(
+        "monthly_account_credits",
+        "claude",
+        "monthly",
+        8,
+        "tier2_local_storage",
+        "cached",
+      );
       expect(classifyMetricCategory(account)).toBe("account_level_exhaustion");
     });
 
@@ -176,24 +206,15 @@ describe("P0 Quota Resilience & Soft Drain Track", () => {
 
     test("reconcileNormalizedMetrics computes multi-source aggregate", () => {
       const metrics: NormalizedQuotaMetric[] = [
-        {
-          rawMetricName: "sliding_5h",
-          canonicalProvider: "antigravity",
-          windowType: "5_hour",
-          remainingPercentage: 40,
-          sourceTier: "tier1_cli_command",
-          confidence: "verified_exact",
-          rawPayload: {},
-        },
-        {
-          rawMetricName: "account_exhaustion_credits",
-          canonicalProvider: "antigravity",
-          windowType: "monthly",
-          remainingPercentage: 11,
-          sourceTier: "tier2_local_storage",
-          confidence: "cached",
-          rawPayload: {},
-        },
+        makeMetric("sliding_5h", "antigravity", "5_hour", 40),
+        makeMetric(
+          "account_exhaustion_credits",
+          "antigravity",
+          "monthly",
+          11,
+          "tier2_local_storage",
+          "cached",
+        ),
       ];
 
       const result = reconcileNormalizedMetrics(metrics);
@@ -201,6 +222,28 @@ describe("P0 Quota Resilience & Soft Drain Track", () => {
       expect(result.effectiveQuota).toBe(11);
       expect(result.slidingWindowQuota).toBe(40);
       expect(result.accountLevelQuota).toBe(11);
+    });
+
+    test("Probe 2: reconciles extreme conflicting metrics (0% vs 100%) and missing window types fail-closed", () => {
+      const extremeMetrics: NormalizedQuotaMetric[] = [
+        makeMetric("sliding_window_active", "antigravity", "5_hour", 100),
+        makeMetric("account_critical_exhaustion", "antigravity", "monthly", 0),
+      ];
+
+      const reconciled = reconcileNormalizedMetrics(extremeMetrics);
+      expect(reconciled.effectiveQuota).toBe(0);
+      expect(reconciled.bindingConstraint).toBe("account_level_exhaustion");
+      expect(isSoftDrainActive(reconciled.effectiveQuota)).toBe(true);
+
+      const unknownWindowMetric = makeMetric(
+        "custom_untracked",
+        "claude",
+        "unrecognized_window_type",
+        5,
+        "tier1_cli_command",
+        "unverified_speculative",
+      );
+      expect(classifyMetricCategory(unknownWindowMetric)).toBe("unknown");
     });
   });
 

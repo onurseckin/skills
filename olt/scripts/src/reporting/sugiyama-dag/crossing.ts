@@ -186,7 +186,7 @@ export function minimizeCrossingsBarycenter(
     }));
   }
 
-  let currentLayers: SugiyamaRankedNode[][] = layers.map((layer, rank) =>
+  const currentLayers: SugiyamaRankedNode[][] = layers.map((layer, rank) =>
     layer.nodes.map((node, order) => formatRankedNode(node, rank, order)),
   );
 

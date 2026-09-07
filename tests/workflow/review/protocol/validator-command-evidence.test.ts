@@ -168,8 +168,8 @@ describe("authoritative validator command evidence", () => {
       "C-V2": commandRecord("C-V2", { actor: "validator-2" }),
     });
     recordReview(port, "T-1", "validator", review(token(port, "validator"), "C-V1"), clock);
-    const repair = claimTask(port, "T-1", "implementer", "repairer", { clock });
-    registerTaskPacket(port, "repairer", "implementer", 2);
+    const repair = claimTask(port, "T-1", "implementer", "implementer", { clock });
+    registerTaskPacket(port, "implementer", "implementer", 2);
     submitTask(port, "T-1", "implementer", repair.token, report, clock);
     const validationToken = token(port, "validator-2");
     const passing = {
@@ -218,8 +218,8 @@ describe("authoritative validator command evidence", () => {
       "C-V2": commandRecord("C-V2", { actor: "validator-2" }),
     });
     recordReview(port, "T-1", "validator", review(token(port, "validator"), "C-V1"), clock);
-    const repair = claimTask(port, "T-1", "implementer", "repairer", { clock });
-    registerTaskPacket(port, "repairer", "implementer", 2);
+    const repair = claimTask(port, "T-1", "implementer", "implementer", { clock });
+    registerTaskPacket(port, "implementer", "implementer", 2);
     submitTask(port, "T-1", "implementer", repair.token, report, clock);
     const validationToken = token(port, "validator-2");
 

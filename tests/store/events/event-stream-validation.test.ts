@@ -1,12 +1,14 @@
-import { describe, expect, test } from "bun:test";
-import { writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import type { HarnessEvent, RunState } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
 import { validateEventChain } from "../../../olt/scripts/src/engine/store/events/event-stream.ts";
-import { scratchRoot as makeScratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
-
-setupVirtualStoreFS();
+import {
+  cleanupVirtualStoreFS,
+  getVirtualStoreFS,
+  scratchRoot as makeScratchRoot,
+  setupVirtualStoreFS,
+} from "../store-fixture.ts";
 
 function scratchRoot(label: string): string {
   return makeScratchRoot(import.meta.path, label);
@@ -50,11 +52,15 @@ function makeEvent(
   return { ...content, hash } as HarnessEvent;
 }
 
+function writeFile(path: string, content: string | Uint8Array): void {
+  getVirtualStoreFS().writeFileSync(path, content);
+}
+
 function writeEvents(path: string, events: readonly HarnessEvent[]): void {
   const body = events
     .map((event) => `${new TextDecoder().decode(canonicalJsonBytes(event as never))}\n`)
     .join("");
-  writeFileSync(path, body);
+  writeFile(path, body);
 }
 
 function eventsPath(root: string): string {
@@ -62,10 +68,17 @@ function eventsPath(root: string): string {
 }
 
 describe("validateEventChain format & integrity", () => {
+  beforeEach(() => {
+    setupVirtualStoreFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualStoreFS();
+  });
   test("accepts an empty file and returns the initial state with no events", () => {
     const root = scratchRoot("accepts-an-empty-file-and-returns-the-initial-stat");
     const path = eventsPath(root);
-    writeFileSync(path, "");
+    writeFile(path, "");
     const result = validateEventChain(path, IDENTITY);
     expect(result.issues).toEqual([]);
     expect(result.eventCount).toBe(0);
@@ -109,7 +122,7 @@ describe("validateEventChain format & integrity", () => {
   test("reports EVENT_TORN for an unterminated final line when reportTorn is true, and carries tornTail", () => {
     const root = scratchRoot("reports-event-torn-for-an-unterminated-final-line-");
     const path = eventsPath(root);
-    writeFileSync(path, '{"schema":"harness.event"}');
+    writeFile(path, '{"schema":"harness.event"}');
     const result = validateEventChain(path, IDENTITY, {}, true);
     expect(result.issues.some((i) => i.code === "EVENT_TORN")).toBe(true);
     expect(result.tornTail).toBeDefined();
@@ -118,7 +131,7 @@ describe("validateEventChain format & integrity", () => {
   test("omits the EVENT_TORN issue but still reports the torn tail when reportTorn is false", () => {
     const root = scratchRoot("omits-the-event-torn-issue-but-still-reports-the-t");
     const path = eventsPath(root);
-    writeFileSync(path, '{"schema":"harness.event"}');
+    writeFile(path, '{"schema":"harness.event"}');
     const result = validateEventChain(path, IDENTITY, {}, false);
     expect(result.issues.some((i) => i.code === "EVENT_TORN")).toBe(false);
     expect(result.tornTail).toBeDefined();
@@ -127,7 +140,7 @@ describe("validateEventChain format & integrity", () => {
   test("reports EVENT_JSON for a line that is not valid JSON", () => {
     const root = scratchRoot("reports-event-json-for-a-line-that-is-not-valid-js");
     const path = eventsPath(root);
-    writeFileSync(path, "not json at all\n");
+    writeFile(path, "not json at all\n");
     const result = validateEventChain(path, IDENTITY);
     expect(result.issues.some((i) => i.code === "EVENT_JSON")).toBe(true);
   });
@@ -135,7 +148,7 @@ describe("validateEventChain format & integrity", () => {
   test("reports EVENT_JSON when a line parses to a JSON array instead of an object", () => {
     const root = scratchRoot("reports-event-json-when-a-line-parses-to-a-json-ar");
     const path = eventsPath(root);
-    writeFileSync(path, "[1,2,3]\n");
+    writeFile(path, "[1,2,3]\n");
     const result = validateEventChain(path, IDENTITY);
     expect(result.issues.some((i) => i.code === "EVENT_JSON")).toBe(true);
   });
@@ -144,7 +157,7 @@ describe("validateEventChain format & integrity", () => {
     const root = scratchRoot("reports-event-canonical-when-the-stored-line-is-no");
     const path = eventsPath(root);
     const event = makeEvent({}, 1, null);
-    writeFileSync(path, `${JSON.stringify(event)}\n`);
+    writeFile(path, `${JSON.stringify(event)}\n`);
     const result = validateEventChain(path, IDENTITY);
     expect(result.issues.some((i) => i.code === "EVENT_CANONICAL")).toBe(true);
   });
@@ -197,5 +210,34 @@ describe("validateEventChain format & integrity", () => {
     writeEvents(path, [makeEvent({ previous_hash: "b".repeat(64) }, 1, null)]);
     const result = validateEventChain(path, IDENTITY);
     expect(result.issues.some((i) => i.code === "EVENT_CHAIN")).toBe(true);
+  });
+
+  test("reports EVENT_HASH when the hash does not match the event content", () => {
+    const root = scratchRoot("reports-event-hash-mismatch");
+    const path = eventsPath(root);
+    const valid = makeEvent({}, 1, null);
+    const tampered = { ...valid, payload: { task_id: "TAMPERED-T-2" } };
+    writeFile(path, `${new TextDecoder().decode(canonicalJsonBytes(tampered as never))}\n`);
+    const result = validateEventChain(path, IDENTITY);
+    expect(result.issues.some((i) => i.code === "EVENT_HASH")).toBe(true);
+    expect(result.eventCount).toBe(0);
+  });
+
+  test("reports EVENT_JSON for empty lines or blank lines between records", () => {
+    const root = scratchRoot("reports-event-json-blank-line");
+    const path = eventsPath(root);
+    const first = makeEvent({}, 1, null);
+    const validLine = `${new TextDecoder().decode(canonicalJsonBytes(first as never))}\n`;
+    writeFile(path, `${validLine}\n`);
+    const result = validateEventChain(path, IDENTITY);
+    expect(result.issues.some((i) => i.code === "EVENT_JSON")).toBe(true);
+  });
+
+  test("reports EVENT_READ when the events file path does not exist", () => {
+    const root = scratchRoot("reports-event-read-missing-file");
+    const path = join(root, "non-existent-events.jsonl");
+    const result = validateEventChain(path, IDENTITY);
+    expect(result.issues.some((i) => i.code === "EVENT_READ")).toBe(true);
+    expect(result.eventCount).toBe(0);
   });
 });

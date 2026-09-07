@@ -209,6 +209,7 @@ describe("runExecCommand gate preflight & authorization", () => {
       workflow.tasks["task-1"] = {
         ...mkT("task-1", "validated", ["req-1"]),
         report: { summary: "passed review report" },
+        adversarial_probes: [1, 2, 3, 4, 5],
         validations: [
           {
             validator_id: "val-1",

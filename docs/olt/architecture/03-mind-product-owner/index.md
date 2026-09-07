@@ -72,7 +72,7 @@ OLT enforces a strict **4-Tier Workforce Hierarchy** that physically segregates 
 │  - Authority: Write-scope overlap detection, lease token minting, wave barrier synchronization.  │
 │                                                                                                  │
 │  TIER 3: IMPLEMENTERS & COGNITIVE VALIDATORS (Adversarial File Scopes)                           │
-│  - Archetype: `implementer`, `validator`, `mechanic-validator`, `completeness-critic`            │
+│  - Archetype: `implementer`, `validator`, `ui-headless-validator`, `completeness-critic`         │
 │  - Authority: 1:1 file mutation scopes, POSIX flock leases, Class 1-4 proof submission.          │
 │  - Restriction: Cognitive Validators operate under Command Hard-Lock (0 mutating commands).      │
 │                                                                                                  │

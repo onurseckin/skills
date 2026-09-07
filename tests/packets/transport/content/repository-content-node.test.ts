@@ -1,5 +1,4 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { chmodSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { inspectRepositoryNode } from "../../../../olt/scripts/src/packets/repository-content-node.ts";
 import {
@@ -36,8 +35,8 @@ describe("repository-content-node", () => {
 
   test("inspects a symlink node and enforces byte limit and stability", () => {
     const repoRoot = createRepo();
-    writeFileSync(join(repoRoot, "target.txt"), "hello world");
-    symlinkSync("target.txt", join(repoRoot, "link.txt"));
+    vfs.writeFileSync(join(repoRoot, "target.txt"), "hello world");
+    session.symlinkSync("target.txt", join(repoRoot, "link.txt"));
 
     const node = inspectRepositoryNode(repoRoot, { path: "link.txt", index: [] }, 1024);
     expect(node.node_type).toBe("symlink");
@@ -59,7 +58,7 @@ describe("repository-content-node", () => {
       ),
     ).toThrow("repository gitlink/submodule nodes are unsupported");
 
-    mkdirSync(join(repoRoot, "some-dir"));
+    vfs.mkdirSync(join(repoRoot, "some-dir"));
     expect(() => inspectRepositoryNode(repoRoot, { path: "some-dir", index: [] }, 1024)).toThrow(
       "unsupported repository content node type",
     );
@@ -68,7 +67,7 @@ describe("repository-content-node", () => {
   test("inspects regular file and enforces byte bounds and stability", () => {
     const repoRoot = createRepo();
     const filePath = join(repoRoot, "large.txt");
-    writeFileSync(filePath, "1234567890");
+    vfs.writeFileSync(filePath, "1234567890");
 
     expect(() => inspectRepositoryNode(repoRoot, { path: "large.txt", index: [] }, 5)).toThrow(
       "repository file byte limit exceeded",
@@ -82,12 +81,12 @@ describe("repository-content-node", () => {
   test("rejects unstable file scan when modified during descriptor open", () => {
     const repoRoot = createRepo();
     const filePath = join(repoRoot, "unstable.txt");
-    writeFileSync(filePath, "original");
+    vfs.writeFileSync(filePath, "original");
 
     expect(() =>
       inspectRepositoryNode(repoRoot, { path: "unstable.txt", index: [] }, 1024, {
         beforeLeafOpen: () => {
-          writeFileSync(filePath, "mutated before open");
+          vfs.writeFileSync(filePath, "mutated before open");
         },
       }),
     ).toThrow("repository content scan was unstable");
@@ -99,25 +98,25 @@ describe("repository-content-node", () => {
     // own lstat isn't caught by verifyRepositoryAncestors — it surfaces as an EACCES from
     // lstatSync(identity.path) itself, the one non-ENOENT path through that catch block.
     const repoRoot = createRepo();
-    writeFileSync(join(repoRoot, "file.txt"), "hello");
+    vfs.writeFileSync(join(repoRoot, "file.txt"), "hello");
     try {
       expect(() =>
         inspectRepositoryNode(repoRoot, { path: "file.txt", index: [] }, 1024, {
-          afterAncestorCapture: () => chmodSync(repoRoot, 0o000),
+          afterAncestorCapture: () => session.chmodSync(repoRoot, 0o000),
         }),
       ).toThrow(/EACCES/);
     } finally {
-      chmodSync(repoRoot, 0o755);
+      session.chmodSync(repoRoot, 0o755);
     }
   });
 
   test("treats a file removed after ancestor capture as missing rather than an error", () => {
     const repoRoot = createRepo();
     const filePath = join(repoRoot, "vanishing.txt");
-    writeFileSync(filePath, "will be removed before its own stat");
+    vfs.writeFileSync(filePath, "will be removed before its own stat");
 
     const node = inspectRepositoryNode(repoRoot, { path: "vanishing.txt", index: [] }, 1024, {
-      afterAncestorCapture: () => rmSync(filePath),
+      afterAncestorCapture: () => session.rmSync(filePath),
     });
     expect(node.node_type).toBe("missing");
   });

@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   captureSnapshot,
@@ -21,7 +20,7 @@ import type {
   ServerEndpoint,
   PortConfiguration,
 } from "../../../olt/scripts/src/server/lifecycle/types.ts";
-import { cleanupVirtualServerFS, scratchRoot, setupVirtualServerFS } from "../fixture.ts";
+import { cleanupVirtualServerFS, getVirtualServerFS, scratchRoot, setupVirtualServerFS } from "../fixture.ts";
 
 describe("Dev Server Lifecycle Subsystem - State & Lock Daemon", () => {
   let testDir: string;
@@ -87,6 +86,7 @@ describe("Dev Server Lifecycle Subsystem - State & Lock Daemon", () => {
     });
 
     it("saves and loads state snapshot from disk", async () => {
+      const vfs = getVirtualServerFS();
       const snapshot = captureSnapshot({
         activeEndpoints: [{ path: "/status", port: 8080 }],
         portConfigurations: [{ port: 8080, protocol: "tcp", isPrimary: true }],
@@ -94,7 +94,7 @@ describe("Dev Server Lifecycle Subsystem - State & Lock Daemon", () => {
       });
 
       await saveSnapshot(snapshot, testSnapshotPath);
-      expect(existsSync(testSnapshotPath)).toBe(true);
+      expect(vfs.existsSync(testSnapshotPath)).toBe(true);
 
       const loaded = await loadSnapshot(testSnapshotPath);
       expect(loaded !== null).toBe(true);
@@ -109,19 +109,21 @@ describe("Dev Server Lifecycle Subsystem - State & Lock Daemon", () => {
     });
 
     it("clears saved snapshot file", async () => {
+      const vfs = getVirtualServerFS();
       const snapshot = captureSnapshot({ currentPid: 1234 });
       await saveSnapshot(snapshot, testSnapshotPath);
-      expect(existsSync(testSnapshotPath)).toBe(true);
+      expect(vfs.existsSync(testSnapshotPath)).toBe(true);
 
       const cleared = await clearSnapshot(testSnapshotPath);
       expect(cleared).toBe(true);
-      expect(existsSync(testSnapshotPath)).toBe(false);
+      expect(vfs.existsSync(testSnapshotPath)).toBe(false);
 
       const clearAgain = await clearSnapshot(testSnapshotPath);
       expect(clearAgain).toBe(false);
     });
 
     it("manages snapshot lifecycle using StatePreserver class", async () => {
+      const vfs = getVirtualServerFS();
       const preserver = createStatePreserver(testSnapshotPath);
       expect(preserver.getLatest()).toBeNull();
 
@@ -129,7 +131,7 @@ describe("Dev Server Lifecycle Subsystem - State & Lock Daemon", () => {
       expect(preserver.getLatest()?.currentPid).toBe(5555);
 
       await preserver.save();
-      expect(existsSync(testSnapshotPath)).toBe(true);
+      expect(vfs.existsSync(testSnapshotPath)).toBe(true);
 
       const newPreserver = new StatePreserver(testSnapshotPath);
       const loaded = await newPreserver.load();
@@ -140,22 +142,23 @@ describe("Dev Server Lifecycle Subsystem - State & Lock Daemon", () => {
       expect(restoreResult.targetPid).toBe(5555);
 
       await newPreserver.clear();
-      expect(existsSync(testSnapshotPath)).toBe(false);
+      expect(vfs.existsSync(testSnapshotPath)).toBe(false);
       expect(newPreserver.getLatest()).toBeNull();
     });
   });
 
   describe("Atomic Restart Lock", () => {
     it("acquires and releases atomic file lock cleanly", async () => {
+      const vfs = getVirtualServerFS();
       expect(await isLocked(testLockPath)).toBe(false);
 
       const handle = await acquireLock({ lockPath: testLockPath });
       expect(await isLocked(testLockPath)).toBe(true);
-      expect(existsSync(testLockPath)).toBe(true);
+      expect(vfs.existsSync(testLockPath)).toBe(true);
 
       await handle.release();
       expect(await isLocked(testLockPath)).toBe(false);
-      expect(existsSync(testLockPath)).toBe(false);
+      expect(vfs.existsSync(testLockPath)).toBe(false);
     });
 
     it("rejects concurrent lock acquisition and times out", async () => {
@@ -165,8 +168,8 @@ describe("Dev Server Lifecycle Subsystem - State & Lock Daemon", () => {
       try {
         await acquireLock({
           lockPath: testLockPath,
-          timeoutMs: 150,
-          pollIntervalMs: 25,
+          timeoutMs: 25,
+          pollIntervalMs: 5,
         });
       } catch (err: unknown) {
         errorThrown = err;
@@ -216,13 +219,14 @@ describe("Dev Server Lifecycle Subsystem - State & Lock Daemon", () => {
     });
 
     it("detects and breaks stale locks from terminated processes", async () => {
+      const vfs = getVirtualServerFS();
       await forceReleaseLock(testLockPath);
       const stalePayload = JSON.stringify({
         lockHolderId: "stale_process",
         pid: 9999999,
         acquiredAt: new Date(Date.now() - 100000).toISOString(),
       });
-      writeFileSync(testLockPath, stalePayload);
+      vfs.writeFileSync(testLockPath, stalePayload);
 
       const newHandle = await acquireLock({
         lockPath: testLockPath,
@@ -235,8 +239,9 @@ describe("Dev Server Lifecycle Subsystem - State & Lock Daemon", () => {
     });
 
     it("does not treat a recently created empty lock file as stale immediately", async () => {
+      const vfs = getVirtualServerFS();
       await forceReleaseLock(testLockPath);
-      writeFileSync(testLockPath, "");
+      vfs.writeFileSync(testLockPath, "");
 
       const locked = await isLocked(testLockPath);
       expect(locked).toBe(true);

@@ -27,8 +27,6 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   advanceMailboxCursorBatch,
@@ -51,26 +49,23 @@ import {
   type ContainmentResult,
   type SupervisoryViolation,
 } from "../../../../olt/scripts/src/mind/containment/index.ts";
+import {
+  cleanupVirtualMindFS,
+  getVirtualMindFS,
+  scratchRoot,
+  setupVirtualMindFS,
+} from "../../fixtures/mind-fixture.ts";
 
 describe("Conversational Engagement Protocols & Active Swarm Audit Suite", () => {
   let testRepoRoot: string;
 
   beforeEach(() => {
-    testRepoRoot = join(
-      tmpdir(),
-      `mind-conversational-audit-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    );
-    mkdirSync(testRepoRoot, { recursive: true });
-    mkdirSync(join(testRepoRoot, ".olt"), { recursive: true });
-    mkdirSync(join(testRepoRoot, ".olt", "mailboxes"), { recursive: true });
+    setupVirtualMindFS();
+    testRepoRoot = scratchRoot("conversational-audit", "sub1");
   });
 
   afterEach(() => {
-    try {
-      rmSync(testRepoRoot, { recursive: true, force: true });
-    } catch {
-      // Best effort cleanup
-    }
+    cleanupVirtualMindFS();
   });
 
   describe("1. Mandatory 3-Round (6-Turn) Socratic Conversational Laddering Protocol", () => {
@@ -213,6 +208,59 @@ describe("Conversational Engagement Protocols & Active Swarm Audit Suite", () =>
         DIALECTICAL_LEVELS.L2_SECOND_ORDER_IMPLICATIONS,
       );
       expect(socraticEngine.getState().consensusReached).toBe(false);
+    });
+
+    it("guarantees cursor idempotency on repeated or empty batch advances", () => {
+      const auditorPaths = ensureMailboxDir("auditor-idem", testRepoRoot);
+      const initialCursor = loadMailboxCursor(auditorPaths.cursorPath);
+      expect(initialCursor.last_read_sequence).toBe(0);
+
+      // Advance with empty array: no change
+      const emptyAdvance = advanceMailboxCursorBatch(auditorPaths.cursorPath, []);
+      expect(emptyAdvance.last_read_sequence).toBe(0);
+
+      const fakeEnvelope: MailboxEnvelope<unknown> = {
+        id: "msg-idem-1",
+        sequence: 42,
+        sender_id: "s",
+        recipient_id: "r",
+        sender_role: "r",
+        message_type: "t",
+        timestamp: new Date().toISOString(),
+        correlation_id: "c-1",
+        hmac_signature: "sig",
+        payload: { text: "hello" },
+      };
+
+      const advanced1 = advanceMailboxCursorBatch(auditorPaths.cursorPath, [fakeEnvelope]);
+      expect(advanced1.last_read_sequence).toBe(42);
+      expect(advanced1.seen_ids).toContain("msg-idem-1");
+
+      // Repeated advance with the exact same envelope: idempotent
+      const advanced2 = advanceMailboxCursorBatch(auditorPaths.cursorPath, [fakeEnvelope]);
+      expect(advanced2.last_read_sequence).toBe(42);
+      expect(advanced2.seen_ids.filter((id) => id === "msg-idem-1").length).toBe(1);
+    });
+
+    it("keeps consensusReached as false until explicit consensus recording", () => {
+      const debateMemory = new HistoricalDebateMemory();
+      const socraticEngine = new SocraticLadderingEngine(debateMemory);
+
+      socraticEngine.evaluateCycle("unsettled-cycle", "Unsettled Topic");
+      expect(socraticEngine.getState().consensusReached).toBeFalsy();
+
+      socraticEngine.submitResponse("unsettled-cycle", "Detailed defense", { isSatisfactory: true });
+      expect(socraticEngine.getState().consensusReached).toBe(false);
+
+      // Only true when explicitly recorded
+      socraticEngine.recordConsensus(
+        "unsettled-cycle",
+        "Topic",
+        "Winning approach",
+        PARETO_PRIORITY_LEVELS.SIMPLICITY_AND_MAINTAINABILITY,
+        "Settled",
+      );
+      expect(debateMemory.getResolutions()[0]?.consensusReached).toBe(true);
     });
   });
 });

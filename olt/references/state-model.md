@@ -69,8 +69,8 @@ Rules that hold across the machine:
 
 - Dependencies must be `done` before a task becomes ready/claimable.
 - A lease binds agent, role, attempt, scopes, duration, token digest, issuance, heartbeat, and expiry.
-  `task:claim --role` must be `implementer` for a ready or retry-ready task and `repairer` for one in
-  `changes_requested`, and a repair returns only to the recorded repair assignee.
+  `task:claim --role` must be `implementer` for a ready, retry-ready, or `changes_requested` task,
+  and a repair returns only to the recorded repair assignee.
 - Only a valid token may heartbeat, release, or submit. Tokens are returned once, kept only in the
   host-native dispatch channel, and never persisted in packets, status, reports, or handoff. A lost
   token is not recoverable from its digest: wait for expiry, run `recover`, and issue a new

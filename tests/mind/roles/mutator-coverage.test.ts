@@ -50,19 +50,18 @@ describe("Dynamic Role Mutator & Synthesizer Coverage", () => {
       expect(val.spec.metadata?.validatedImplementer).toBe("implementer-security-task-101-feature");
     });
 
-    it("synthesizes repairer role when requiresRepair is true and defaults domain to general", () => {
+    it("synthesizes implementer role for in-lease repair task and defaults domain to general", () => {
       const plan = synthesizeRoleFromTaskRequirements({
         taskId: "task-repair-202",
         taskTitle: "Fix race condition in store",
         writeScope: ["src/store.ts"],
         gate: "bun test tests/store.test.ts",
-        requiresRepair: true,
       });
 
-      expect(plan.implementerRole.role).toBe("repairer-task-repair-202");
-      expect(plan.implementerRole.spec.archetype).toBe("tier_3_repairer");
+      expect(plan.implementerRole.role).toBe("implementer-general-task-repair-202");
+      expect(plan.implementerRole.spec.archetype).toBe("tier_3_implementer");
       expect(plan.implementerRole.domain).toBe("general");
-      expect(plan.implementerRole.title).toBe("Specialized Repairer for Task task-repair-202");
+      expect(plan.implementerRole.title).toBe("Specialized Implementer for Task task-repair-202");
       expect(plan.validatorRole.role).toBe("validator-general-task-repair-202");
     });
   });
@@ -80,7 +79,7 @@ describe("Dynamic Role Mutator & Synthesizer Coverage", () => {
 
       expect(role.role).toBe("remediator-defect-def-882-patch");
       expect(role.tier).toBe(3);
-      expect(role.spec.archetype).toBe("tier_3_repairer");
+      expect(role.spec.archetype).toBe("tier_3_implementer");
       expect(role.domain).toBe("defect-investigation");
       expect(role.title).toBe("Defect Remediation Specialist: DEF-882.patch");
       expect(role.summary).toContain("DEF-882.patch");

@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   createVirtualFSSession,
@@ -18,14 +17,16 @@ import {
 } from "../../../olt/scripts/src/tooling/index.ts";
 
 describe("Tooling System Test Suite", () => {
+  let vfs: VirtualMemoryFS;
   let vfsSession: VirtualFSSession;
   let tempDir: string;
 
   beforeEach(() => {
     resetGlobalToolRegistry();
-    vfsSession = createVirtualFSSession(new VirtualMemoryFS());
+    vfs = new VirtualMemoryFS();
+    vfsSession = createVirtualFSSession(vfs);
     tempDir = `/virtual/tool-registry-test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    mkdirSync(tempDir, { recursive: true });
+    vfs.mkdirSync(tempDir, { recursive: true });
   });
 
   afterEach(() => {
@@ -226,7 +227,7 @@ describe("Tooling System Test Suite", () => {
 
     it("discovers tools from filesystem directory and manifests", () => {
       const subDir = join(tempDir, "sub");
-      mkdirSync(subDir, { recursive: true });
+      vfs.mkdirSync(subDir, { recursive: true });
 
       const tool1 = {
         name: "file-scanner",
@@ -241,10 +242,10 @@ describe("Tooling System Test Suite", () => {
         parameters: [],
       };
 
-      writeFileSync(join(tempDir, "scanner.tool.json"), JSON.stringify(tool1), "utf-8");
-      writeFileSync(join(subDir, "parser.json"), JSON.stringify(tool2), "utf-8");
-      writeFileSync(join(tempDir, "ignored.txt"), "some text", "utf-8");
-      writeFileSync(join(tempDir, "corrupted.json"), "{ invalid json", "utf-8");
+      vfs.writeFileSync(join(tempDir, "scanner.tool.json"), JSON.stringify(tool1), "utf-8");
+      vfs.writeFileSync(join(subDir, "parser.json"), JSON.stringify(tool2), "utf-8");
+      vfs.writeFileSync(join(tempDir, "ignored.txt"), "some text", "utf-8");
+      vfs.writeFileSync(join(tempDir, "corrupted.json"), "{ invalid json", "utf-8");
 
       const discovered = discoverToolsFromDirectory(tempDir, { defaultCategory: "custom-cat" });
       expect(discovered.length).toBe(2);
@@ -263,7 +264,7 @@ describe("Tooling System Test Suite", () => {
       expect(emptyDiscovery).toEqual([]);
 
       const manifestPath = join(tempDir, "manifest.json");
-      writeFileSync(manifestPath, JSON.stringify({ tools: [tool1, tool2] }), "utf-8");
+      vfs.writeFileSync(manifestPath, JSON.stringify({ tools: [tool1, tool2] }), "utf-8");
       const fromManifest = discoverToolsFromManifest(manifestPath, "manifest-cat");
       expect(fromManifest.length).toBe(2);
       expect(fromManifest[0]?.category).toBe("manifest-cat");

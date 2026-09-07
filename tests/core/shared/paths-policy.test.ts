@@ -1,18 +1,27 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { homedir, tmpdir } from "node:os";
+import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import {
   resolveGlobalSkillDir,
   resolveSkillHomeRepo,
 } from "../../../olt/scripts/src/core/shared/paths.ts";
+import {
+  createVirtualFSSession,
+  type VirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("paths-policy dynamic resolution and relocation invariants", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
   let tempBase: string;
   let savedEnv: string | undefined;
 
   beforeEach(() => {
-    tempBase = mkdtempSync(join(tmpdir(), "paths-policy-test-"));
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    tempBase = `/virtual/paths-policy-test-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    vfs.mkdirSync(tempBase, { recursive: true });
     savedEnv = process.env["OLT_SKILL_HOME_REPO"];
     delete process.env["OLT_SKILL_HOME_REPO"];
   });
@@ -23,7 +32,7 @@ describe("paths-policy dynamic resolution and relocation invariants", () => {
     } else {
       delete process.env["OLT_SKILL_HOME_REPO"];
     }
-    rmSync(tempBase, { recursive: true, force: true });
+    session.cleanup();
   });
 
   describe("resolveSkillHomeRepo", () => {
@@ -36,7 +45,7 @@ describe("paths-policy dynamic resolution and relocation invariants", () => {
 
     it("returns configured skills home instead of client repo when clientRepo is passed", () => {
       const clientRepo = join(tempBase, "client-app");
-      mkdirSync(clientRepo, { recursive: true });
+      vfs.mkdirSync(clientRepo, { recursive: true });
 
       const resolved = resolveSkillHomeRepo(clientRepo);
       expect(resolved).not.toBe(resolve(clientRepo));
@@ -45,24 +54,24 @@ describe("paths-policy dynamic resolution and relocation invariants", () => {
 
     it("overrides resolution when OLT_SKILL_HOME_REPO is set", () => {
       const customEnvRepo = join(tempBase, "custom-env-repo");
-      mkdirSync(customEnvRepo, { recursive: true });
+      vfs.mkdirSync(customEnvRepo, { recursive: true });
 
       process.env["OLT_SKILL_HOME_REPO"] = customEnvRepo;
 
       expect(resolveSkillHomeRepo()).toBe(resolve(customEnvRepo));
 
       const clientRepo = join(tempBase, "client-repo-with-env");
-      mkdirSync(clientRepo, { recursive: true });
+      vfs.mkdirSync(clientRepo, { recursive: true });
       expect(resolveSkillHomeRepo(clientRepo)).toBe(resolve(customEnvRepo));
     });
 
     it("resolves skill home repo driven by defect_routing.skill_home_repo_root in policy.json", () => {
       const clientRepo = join(tempBase, "client-with-defect-routing");
       const dotOltDir = join(clientRepo, ".olt");
-      mkdirSync(dotOltDir, { recursive: true });
+      vfs.mkdirSync(dotOltDir, { recursive: true });
 
       const configuredSkillHome = join(tempBase, "routed-skills-home");
-      mkdirSync(configuredSkillHome, { recursive: true });
+      vfs.mkdirSync(configuredSkillHome, { recursive: true });
 
       const policyPayload = {
         schema_version: 1,
@@ -72,7 +81,7 @@ describe("paths-policy dynamic resolution and relocation invariants", () => {
           dual_write_enabled: true,
         },
       };
-      writeFileSync(
+      vfs.writeFileSync(
         join(dotOltDir, "policy.json"),
         JSON.stringify(policyPayload, null, 2),
         "utf-8",
@@ -85,16 +94,16 @@ describe("paths-policy dynamic resolution and relocation invariants", () => {
     it("resolves skill home repo driven by root-level skill_home_repo_root in policy.json", () => {
       const clientRepo = join(tempBase, "client-with-root-skill-home");
       const dotOltDir = join(clientRepo, ".olt");
-      mkdirSync(dotOltDir, { recursive: true });
+      vfs.mkdirSync(dotOltDir, { recursive: true });
 
       const configuredSkillHome = join(tempBase, "root-skills-home");
-      mkdirSync(configuredSkillHome, { recursive: true });
+      vfs.mkdirSync(configuredSkillHome, { recursive: true });
 
       const policyPayload = {
         schema_version: 1,
         skill_home_repo_root: configuredSkillHome,
       };
-      writeFileSync(
+      vfs.writeFileSync(
         join(dotOltDir, "policy.json"),
         JSON.stringify(policyPayload, null, 2),
         "utf-8",
@@ -111,14 +120,14 @@ describe("paths-policy dynamic resolution and relocation invariants", () => {
       expect(resolveGlobalSkillDir()).toBe(expectedDefault);
 
       const emptyClient = join(tempBase, "empty-client");
-      mkdirSync(emptyClient, { recursive: true });
+      vfs.mkdirSync(emptyClient, { recursive: true });
       expect(resolveGlobalSkillDir(emptyClient)).toBe(expectedDefault);
     });
 
     it("returns configured global skill dir from policy defect_routing with tilde expansion", () => {
       const clientRepo = join(tempBase, "client-with-tilde-dir");
       const dotOltDir = join(clientRepo, ".olt");
-      mkdirSync(dotOltDir, { recursive: true });
+      vfs.mkdirSync(dotOltDir, { recursive: true });
 
       const policyPayload = {
         schema_version: 1,
@@ -128,7 +137,7 @@ describe("paths-policy dynamic resolution and relocation invariants", () => {
           dual_write_enabled: true,
         },
       };
-      writeFileSync(
+      vfs.writeFileSync(
         join(dotOltDir, "policy.json"),
         JSON.stringify(policyPayload, null, 2),
         "utf-8",
@@ -142,10 +151,10 @@ describe("paths-policy dynamic resolution and relocation invariants", () => {
     it("returns configured global skill dir from policy defect_routing with absolute path", () => {
       const clientRepo = join(tempBase, "client-with-abs-dir");
       const dotOltDir = join(clientRepo, ".olt");
-      mkdirSync(dotOltDir, { recursive: true });
+      vfs.mkdirSync(dotOltDir, { recursive: true });
 
       const customGlobalDir = join(tempBase, "custom-global-olt");
-      mkdirSync(customGlobalDir, { recursive: true });
+      vfs.mkdirSync(customGlobalDir, { recursive: true });
 
       const policyPayload = {
         schema_version: 1,
@@ -155,7 +164,7 @@ describe("paths-policy dynamic resolution and relocation invariants", () => {
           dual_write_enabled: true,
         },
       };
-      writeFileSync(
+      vfs.writeFileSync(
         join(dotOltDir, "policy.json"),
         JSON.stringify(policyPayload, null, 2),
         "utf-8",

@@ -141,3 +141,4 @@ instructions: |
   - Maintain persistent cursor state across inspection ticks (`.olt/auditor-cursors.json`).
   - On Quota Freeze (quota < 10%), suspend live audit ticks, preserving current state.
   - On Auto-Wake, resume live audit ticks without corrupting cursor state.
+  - Compute worktree occupancy. If disjoint backlog clusters exist while worktree concurrency <= 1, deliver Socratic provocation forcing worktree expansion.

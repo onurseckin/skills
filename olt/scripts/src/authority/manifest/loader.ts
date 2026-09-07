@@ -231,7 +231,7 @@ function getArchetypeAndMandate(
         "Independently verify task submissions with quantitative metrics, adversarial probes, dual-channel visual validation, and counterfactual falsifiability proofs.",
     };
   }
-  if (role === "implementer" || role === "repairer" || role === "worker") {
+  if (role === "implementer" || role === "worker") {
     return {
       archetype: "Scoped Modular Implementer",
       coreMandate:
@@ -272,7 +272,7 @@ export function loadUnifiedAgentModel(
   const enableWriteTools =
     manifest.tools?.enable_write_tools ??
     manifest.interface?.tools?.enable_write_tools ??
-    (tier === 3 && (role === "implementer" || role === "repairer" || role === "worker"));
+    (tier === 3 && (role === "implementer" || role === "worker"));
 
   const unified: UnifiedAgentModel = {
     role,

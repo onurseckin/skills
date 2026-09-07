@@ -1,8 +1,18 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { BranchRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import type { CompletionReview } from "../../../../olt/scripts/src/workflow/types.ts";
 import { generateGraphDataset } from "../../../../olt/scripts/src/summary/graph/index.ts";
 import { makeState, makeTask } from "./graph-fixtures.ts";
+import { cleanupVirtualSummaryFS, setupVirtualSummaryFS } from "../../fixture.ts";
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/memory-fs.ts";
+
+let vfs: VirtualMemoryFS;
+
+beforeEach(() => {
+  vfs = setupVirtualSummaryFS();
+});
+
+afterEach(cleanupVirtualSummaryFS);
 
 const review: CompletionReview = {
   critic_id: "critic-1",
@@ -172,5 +182,31 @@ describe("edge vocabulary", () => {
         `${edge.id}:true:true`,
       );
     }
+  });
+
+  test("safely generates graph on empty workflow state with all edges valid", () => {
+    const dataset = generateGraphDataset({
+      runId: "run-empty",
+      state: makeState([]),
+    });
+    expect(dataset.nodes.length).toBeGreaterThan(0);
+    const ids = new Set(dataset.nodes.map((node) => node.id));
+    for (const edge of dataset.edges) {
+      expect(ids.has(edge.source)).toBe(true);
+      expect(ids.has(edge.target)).toBe(true);
+    }
+  });
+
+  test("handles cyclic or self-referencing task dependencies without recursion errors", () => {
+    const taskA = makeTask("T-A", { dependencies: ["T-B"] });
+    const taskB = makeTask("T-B", { dependencies: ["T-A"] });
+    const dataset = generateGraphDataset({
+      runId: "run-cycle",
+      state: makeState([taskA, taskB]),
+    });
+    const depEdges = dataset.edges.filter((e) => e.kind === "dependency");
+    expect(depEdges).toHaveLength(2);
+    expect(depEdges.find((e) => e.id === "edge-dep-T-B-T-A")).toBeDefined();
+    expect(depEdges.find((e) => e.id === "edge-dep-T-A-T-B")).toBeDefined();
   });
 });

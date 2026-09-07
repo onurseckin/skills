@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   mindQueueCleanCommand,
@@ -7,32 +6,29 @@ import {
   todoCleanCommand,
   todoDrainCommand,
   todoSealCommand,
-} from "../../../../../olt/scripts/src/cli/commands/todo-ops.ts";
+} from "../../../../../olt/scripts/src/cli/commands/todo/index.ts";
 import {
   appendFeedbackItem,
   readFeedbackQueue,
   writeFeedbackQueue,
 } from "../../../../../olt/scripts/src/mind/feedback/queue/index.ts";
 import { readCompletedTasksLedger } from "../../../../../olt/scripts/src/mind/archival/completed/index.ts";
-import {
-  cleanupRoots,
-  cleanupVirtualCliFS,
-  setupVirtualCliFS,
-} from "../../fixtures/full-lifecycle-fixture.ts";
+import type { VirtualMemoryFS } from "../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
-const roots: string[] = [];
+let vfs: VirtualMemoryFS;
+
 beforeEach(() => {
-  setupVirtualCliFS();
+  vfs = setupVirtualCliFS();
 });
-afterEach(async () => {
-  await cleanupRoots(roots);
+
+afterEach(() => {
   cleanupVirtualCliFS();
 });
 
 function getTestDir(label: string): string {
   const dir = `/virtual/cli/todo-sync-${label}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  mkdirSync(dir, { recursive: true });
-  roots.push(dir);
+  vfs.mkdirSync(dir, { recursive: true });
   return dir;
 }
 
@@ -58,12 +54,12 @@ describe("CLI todo-ops and mind:queue commands - Clean & Sync", () => {
         ],
         canonicalQueueFile,
       );
-      writeFileSync(canonicalArchiveFile, "canonical archive sentinel\n", "utf-8");
-      writeFileSync(outsideSentinelFile, "outside sentinel\n", "utf-8");
+      vfs.writeFileSync(canonicalArchiveFile, "canonical archive sentinel\n", "utf-8");
+      vfs.writeFileSync(outsideSentinelFile, "outside sentinel\n", "utf-8");
 
-      const canonicalQueueBefore = readFileSync(canonicalQueueFile, "utf-8");
-      const canonicalArchiveBefore = readFileSync(canonicalArchiveFile, "utf-8");
-      const outsideSentinelBefore = readFileSync(outsideSentinelFile, "utf-8");
+      const canonicalQueueBefore = vfs.readFileSync(canonicalQueueFile, "utf-8");
+      const canonicalArchiveBefore = vfs.readFileSync(canonicalArchiveFile, "utf-8");
+      const outsideSentinelBefore = vfs.readFileSync(outsideSentinelFile, "utf-8");
 
       let thrown: unknown;
       try {
@@ -73,9 +69,9 @@ describe("CLI todo-ops and mind:queue commands - Clean & Sync", () => {
       }
 
       expect(thrown).toMatchObject({ code: "INVALID_ARGUMENT" });
-      expect(readFileSync(canonicalQueueFile, "utf-8")).toBe(canonicalQueueBefore);
-      expect(readFileSync(canonicalArchiveFile, "utf-8")).toBe(canonicalArchiveBefore);
-      expect(readFileSync(outsideSentinelFile, "utf-8")).toBe(outsideSentinelBefore);
+      expect(vfs.readFileSync(canonicalQueueFile, "utf-8")).toBe(canonicalQueueBefore);
+      expect(vfs.readFileSync(canonicalArchiveFile, "utf-8")).toBe(canonicalArchiveBefore);
+      expect(vfs.readFileSync(outsideSentinelFile, "utf-8")).toBe(outsideSentinelBefore);
     });
 
     it("todo clean preserves a concurrent transactional addition", () => {

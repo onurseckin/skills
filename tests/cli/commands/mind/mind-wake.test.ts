@@ -50,7 +50,6 @@ describe("mind:wake CLI Command Coverage Suite", () => {
       }),
     );
 
-    // With target-run specified
     const resultWithTarget = await mindWakeCommand({
       run: "/runs/main-run",
       depth: "run",
@@ -63,7 +62,6 @@ describe("mind:wake CLI Command Coverage Suite", () => {
     expect(resultWithTarget.target_run).toBe("/runs/target-run");
     expect(resultWithTarget.markdown).toBe("## Handoff for /runs/target-run");
 
-    // Without target-run specified (defaults to run)
     const resultDefaultTarget = await mindWakeCommand({
       run: "/runs/main-run",
       depth: "run",

@@ -1,7 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   admitFeedbackToQueue,
@@ -18,18 +15,26 @@ import type {
   FeedbackItem,
   FeedbackResolutionProof,
 } from "../../../olt/scripts/src/mind/feedback/queue/types.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Feedback Queue Operations Suite", () => {
-  let tempDir: string;
-  let queuePath: string;
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
+  const testDir = "/virtual/mind/feedback";
+  const queuePath = `${testDir}/queue-ops.jsonl`;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "fb-ops-test-"));
-    queuePath = join(tempDir, "feedback-queue.jsonl");
+    vfs = new VirtualMemoryFS();
+    vfs.mkdirSync(testDir, { recursive: true });
+    session = createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
-    rmSync(tempDir, { recursive: true, force: true });
+    session.cleanup();
   });
 
   function makeItem(id: string, overrides: Partial<FeedbackItem> = {}): FeedbackItem {
@@ -45,7 +50,10 @@ describe("Feedback Queue Operations Suite", () => {
   }
 
   it("appendFeedbackItem appends item and throws INVALID_ARGUMENT on duplicate id", () => {
-    const item1 = makeItem("fb-1", { priority: "HIGH", timestamp: "2026-09-01T10:00:00.000Z" });
+    const item1 = makeItem("fb-1", {
+      priority: "HIGH_ARCHITECTURAL_FEATURE",
+      timestamp: "2026-09-01T10:00:00.000Z",
+    });
     const appended = appendFeedbackItem(item1, queuePath);
     expect(appended.id).toBe("fb-1");
 

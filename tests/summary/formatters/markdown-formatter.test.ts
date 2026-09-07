@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { GraphDataset } from "../../../olt/scripts/src/summary/graph/index.ts";
 import {
   cleanupRoots,
   emptyState,
+  getVirtualFormattersFS,
   metrics,
   render,
   task,
@@ -69,9 +69,10 @@ describe("markdown report: absence is stated, never defaulted", () => {
   });
 
   test("a plan document with no summary renders the summary as unknown", () => {
+    const vfs = getVirtualFormattersFS();
     const runRoot = tempRoot();
-    mkdirSync(join(runRoot, "planning"), { recursive: true });
-    writeFileSync(
+    vfs.mkdirSync(join(runRoot, "planning"), { recursive: true });
+    vfs.writeFileSync(
       join(runRoot, "planning", "enhanced-plan.json"),
       JSON.stringify({
         schema: "harness.enhanced-plan",

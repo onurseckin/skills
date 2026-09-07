@@ -7,7 +7,6 @@ export type AgentRoleHierarchy =
   | "coordinator"
   | "orchestrator"
   | "implementer"
-  | "repairer"
   | "validator"
   | "plan-validator"
   | "completeness-critic";
@@ -54,7 +53,6 @@ export const HIERARCHICAL_TIERS: Readonly<Record<AgentRoleHierarchy, number>> = 
   coordinator: 1,
   orchestrator: 1,
   implementer: 2,
-  repairer: 2,
   validator: 3,
   "plan-validator": 3,
   "completeness-critic": 4,
@@ -76,7 +74,7 @@ export function evaluateHierarchicalDecision(
       role,
       action,
       reason:
-        "Coordinators and Orchestrators are prohibited from writing code directly; work must be dispatched to implementers or repairers",
+        "Coordinators and Orchestrators are prohibited from writing code directly; work must be dispatched to implementers",
       nextPermittedActions: [
         "plan_compile",
         "claim_task",
@@ -85,42 +83,6 @@ export function evaluateHierarchicalDecision(
         "abandon_task",
       ],
     };
-  }
-
-  // Rule D2: Implementers cannot claim a task in changes_requested directly (must claim as repairer)
-  if (role === "implementer" && action === "claim_task") {
-    if (targetTaskId && state) {
-      const task = state.tasks[targetTaskId];
-      if (task && task.status === "changes_requested") {
-        return {
-          allowed: false,
-          ruleId: "DOM-02-IMPLEMENTER-NOT-REPAIRER",
-          hierarchicalTier: tier,
-          role,
-          action,
-          reason: `Task ${targetTaskId} is in changes_requested and requires a repairer role to claim`,
-          nextPermittedActions: ["claim_task"],
-        };
-      }
-    }
-  }
-
-  // Rule D3: Repairers can only claim tasks in changes_requested
-  if (role === "repairer" && action === "claim_task") {
-    if (targetTaskId && state) {
-      const task = state.tasks[targetTaskId];
-      if (task && task.status !== "changes_requested") {
-        return {
-          allowed: false,
-          ruleId: "DOM-03-REPAIRER-REQUIRES-CHANGES-REQUESTED",
-          hierarchicalTier: tier,
-          role,
-          action,
-          reason: `Task ${targetTaskId} is ${task.status}, not changes_requested`,
-          nextPermittedActions: [],
-        };
-      }
-    }
   }
 
   // Rule D4: Validators cannot review tasks they personally implemented (independence)
@@ -165,19 +127,15 @@ export function evaluateHierarchicalDecision(
     }
   }
 
-  // Rule D6: Implementers/Repairers cannot record validation reviews or completeness reviews
-  if (
-    (role === "implementer" || role === "repairer") &&
-    (action === "record_review" || action === "critic_review")
-  ) {
+  // Rule D6: Implementers cannot record validation reviews or completeness reviews
+  if (role === "implementer" && (action === "record_review" || action === "critic_review")) {
     return {
       allowed: false,
       ruleId: "DOM-06-WORKER-NO-SELF-REVIEW",
       hierarchicalTier: tier,
       role,
       action,
-      reason:
-        "Implementers and Repairers cannot perform validation reviews or completeness reviews",
+      reason: "Implementers cannot perform validation reviews or completeness reviews",
       nextPermittedActions: ["submit_task"],
     };
   }
@@ -188,7 +146,6 @@ export function evaluateHierarchicalDecision(
     coordinator: ["plan_compile", "escalate", "abandon_task", "reclaim_lease"],
     orchestrator: ["plan_compile", "escalate", "abandon_task", "reclaim_lease"],
     implementer: ["claim_task", "submit_task", "write_code"],
-    repairer: ["claim_task", "submit_task", "write_code"],
     validator: ["validate_start", "record_review", "record_probe"],
     "plan-validator": ["validate_start", "record_review"],
     "completeness-critic": ["critic_start", "critic_review"],

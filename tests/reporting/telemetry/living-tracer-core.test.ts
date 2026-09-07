@@ -97,8 +97,9 @@ describe(livingTracerCoreSuiteName, () => {
     expect(leased?.status).toBe("leased");
     expect(leased?.assignedAgent).toBe("impl_13");
 
+    if (!leased) throw new Error("Expected leased task");
     handleTaskStateTransition(
-      leased!,
+      leased,
       "task-01",
       {
         actor: "impl_13",
@@ -121,8 +122,9 @@ describe(livingTracerCoreSuiteName, () => {
     expect(running?.status).toBe("in_progress");
     expect(running?.activeTool).toBe("write_to_file");
 
+    if (!running) throw new Error("Expected running task");
     handleTaskStateTransition(
-      running!,
+      running,
       "task-01",
       {
         actor: "val_07",
@@ -147,6 +149,57 @@ describe(livingTracerCoreSuiteName, () => {
     expect(ctx.maxRoundReached).toBe(1);
     expect(ctx.taskMap.has("task-01-repair-r1")).toBe(true);
     expect(ctx.taskMap.has("val-task-01-r1")).toBe(true);
+  });
+
+  it("handles terminal task completion transition on task:pass", () => {
+    const runningTask: DynamicTaskState = {
+      id: "task-02",
+      label: "Complete Task",
+      status: "in_progress",
+      role: "implementer",
+      dependencies: [],
+      writeScope: ["src/"],
+      assignedAgent: "impl_13",
+      origin: "static",
+      createdAtSeq: 1,
+      updatedAtSeq: 3,
+      round: 0,
+      attempt: 1,
+      executionState: "[🟢 RUNNING: test]",
+    };
+
+    const ctx: ReplayContext = {
+      taskMap: new Map([["task-02", runningTask]]),
+      agentMap: new Map(),
+      branches: new Set(),
+      sproutedRepairPairs: [],
+      revision: 1,
+      maxRoundReached: 0,
+    };
+
+    handleTaskStateTransition(
+      runningTask,
+      "task-02",
+      {
+        actor: "val_01",
+        kind: "task:pass",
+        lowerKind: "task:pass",
+        seq: 5,
+        payload: { verdict: "pass" },
+        role: "validator",
+        tool: null,
+        cmd: null,
+        exitCode: null,
+        roundInPayload: 0,
+        attemptInPayload: 1,
+        validatorFromPayload: "val_01",
+      },
+      ctx,
+    );
+
+    const passed = ctx.taskMap.get("task-02");
+    expect(passed?.status).toBe("satisfied");
+    expect(passed?.executionState).toBe("[✓ PASSED - R0]");
   });
 
   it("builds dynamic DAG state and living tracer report from events", () => {

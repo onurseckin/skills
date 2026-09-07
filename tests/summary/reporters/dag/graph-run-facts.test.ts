@@ -1,6 +1,4 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import * as fs from "node:fs";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   buildRunFacts,
@@ -8,18 +6,19 @@ import {
 } from "../../../../olt/scripts/src/summary/graph/index.ts";
 import type { WorkflowState } from "../../../../olt/scripts/src/workflow/types.ts";
 import { makeEvent, makeState, makeTask } from "./graph-fixtures.ts";
-import { setupVirtualSummaryFS } from "../../fixture.ts";
+import { getVirtualSummaryFS, setupVirtualSummaryFS } from "../../fixture.ts";
 
 let rootCounter = 0;
+let vfs: ReturnType<typeof getVirtualSummaryFS>;
 
 beforeEach(() => {
-  setupVirtualSummaryFS();
+  vfs = setupVirtualSummaryFS();
 });
 
 function tempRunRoot(): string {
   rootCounter += 1;
   const root = `/virtual/run-facts-${rootCounter}`;
-  mkdirSync(root, { recursive: true });
+  vfs.mkdirSync(root, { recursive: true });
   return root;
 }
 
@@ -54,12 +53,12 @@ describe("buildRunFacts: task order", () => {
 describe("buildRunFacts: enhanced plan", () => {
   test("reads every field of a recorded enhanced_plan entry, plus its markdown and json documents", () => {
     const runRoot = tempRunRoot();
-    mkdirSync(join(runRoot, "planning"), { recursive: true });
-    writeFileSync(
+    vfs.mkdirSync(join(runRoot, "planning"), { recursive: true });
+    vfs.writeFileSync(
       join(runRoot, "planning", "enhanced-plan.json"),
       JSON.stringify({ tasks: ["T-1"] }),
     );
-    writeFileSync(join(runRoot, "planning", "enhanced-plan.md"), "# Enhanced plan\n");
+    vfs.writeFileSync(join(runRoot, "planning", "enhanced-plan.md"), "# Enhanced plan\n");
 
     const state = {
       ...makeState([makeTask("T-1")]),
@@ -95,8 +94,8 @@ describe("buildRunFacts: enhanced plan", () => {
 
   test("is present from the on-disk documents alone, with no state.planning entry at all", () => {
     const runRoot = tempRunRoot();
-    mkdirSync(join(runRoot, "planning"), { recursive: true });
-    writeFileSync(join(runRoot, "planning", "enhanced-plan.md"), "# Plan\n");
+    vfs.mkdirSync(join(runRoot, "planning"), { recursive: true });
+    vfs.writeFileSync(join(runRoot, "planning", "enhanced-plan.md"), "# Plan\n");
 
     const facts = buildRunFacts(baseInput({ runRoot }));
     expect(facts.enhancedPlan).toEqual({ markdown: "# Plan\n", evidence_class: "agent_reported" });
@@ -104,9 +103,9 @@ describe("buildRunFacts: enhanced plan", () => {
 
   test("a corrupt enhanced-plan.json is read as absent, not thrown", () => {
     const runRoot = tempRunRoot();
-    mkdirSync(join(runRoot, "planning"), { recursive: true });
-    writeFileSync(join(runRoot, "planning", "enhanced-plan.json"), "{ not json");
-    writeFileSync(join(runRoot, "planning", "enhanced-plan.md"), "# Plan\n");
+    vfs.mkdirSync(join(runRoot, "planning"), { recursive: true });
+    vfs.writeFileSync(join(runRoot, "planning", "enhanced-plan.json"), "{ not json");
+    vfs.writeFileSync(join(runRoot, "planning", "enhanced-plan.md"), "# Plan\n");
 
     const facts = buildRunFacts(baseInput({ runRoot }));
     expect(facts.enhancedPlan?.document).toBeUndefined();
@@ -160,10 +159,10 @@ describe("buildRunFacts: requirements", () => {
 describe("buildRunFacts: reports", () => {
   test("reads every *.json report in the capsule's reports directory, sorted by name", () => {
     const runRoot = tempRunRoot();
-    mkdirSync(join(runRoot, "reports"), { recursive: true });
-    writeFileSync(join(runRoot, "reports", "T-2-review.json"), JSON.stringify({ task_id: "T-2" }));
-    writeFileSync(join(runRoot, "reports", "T-1-review.json"), JSON.stringify({ task_id: "T-1" }));
-    writeFileSync(join(runRoot, "reports", "notes.txt"), "not a report");
+    vfs.mkdirSync(join(runRoot, "reports"), { recursive: true });
+    vfs.writeFileSync(join(runRoot, "reports", "T-2-review.json"), JSON.stringify({ task_id: "T-2" }));
+    vfs.writeFileSync(join(runRoot, "reports", "T-1-review.json"), JSON.stringify({ task_id: "T-1" }));
+    vfs.writeFileSync(join(runRoot, "reports", "notes.txt"), "not a report");
 
     const facts = buildRunFacts(baseInput({ runRoot }));
     expect(facts.reports).toEqual([

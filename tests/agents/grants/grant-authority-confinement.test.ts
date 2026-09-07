@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import {
   registerAgentGrant,
   recordAgentReport,
@@ -6,6 +6,56 @@ import {
 } from "../../../olt/scripts/src/workflow/agents/grants.ts";
 import { cleanupVirtualAgentsFS, setupVirtualAgentsFS } from "../fixture.ts";
 import { cleanupGrantRoots, seededRun } from "./agent-grant-fixtures.ts";
+
+beforeAll(() => {
+  setupVirtualAgentsFS();
+  const run = seededRun(import.meta.path, "warmup");
+  registerAgentGrant({
+    runRoot: run,
+    agentId: "warm-orchestrator",
+    role: "orchestrator",
+    parentAgentId: null,
+    parentTaskId: "task-1",
+    host: "claude-code",
+    authority: { kind: "conditional_genesis" },
+    maxAgents: 10,
+    telemetry: {},
+  });
+  registerAgentGrant({
+    runRoot: run,
+    agentId: "warm-coordinator",
+    role: "coordinator",
+    parentAgentId: "warm-orchestrator",
+    parentTaskId: "task-1",
+    host: "claude-code",
+    authority: { kind: "verified_parent", actorId: "warm-orchestrator" },
+    maxAgents: 10,
+    telemetry: {},
+  });
+  recordAgentReport({
+    runRoot: run,
+    actor: "warm-coordinator",
+    agentId: "warm-coordinator",
+    tools: [{ name: "Bash" }],
+  });
+  try {
+    recordAgentReport({
+      runRoot: run,
+      actor: "other",
+      agentId: "warm-coordinator",
+      tools: [{ name: "Bash" }],
+    });
+  } catch {}
+  try {
+    releaseAgentGrant({
+      runRoot: run,
+      actor: "warm-coordinator",
+      agentId: "warm-orchestrator",
+      reason: "failed",
+    });
+  } catch {}
+  cleanupVirtualAgentsFS();
+});
 
 beforeEach(() => {
   setupVirtualAgentsFS();

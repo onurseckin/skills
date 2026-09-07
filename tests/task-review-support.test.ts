@@ -186,6 +186,7 @@ describe("Cognitive Validator Detached Evidence Integration", () => {
           write_scope: ["tests/core"],
           requirement_ids: ["req-core"],
           original_implementer: "worker-core",
+          bypass_cognitive_pushback: true,
           report: { summary: "Implemented" },
           attempts: [
             {

@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { constants, mkdirSync, openSync, unlinkSync, writeFileSync } from "node:fs";
+import { O_NONBLOCK, O_NOFOLLOW } from "node:constants";
 import { join } from "node:path";
 import { inspectRepositoryNode } from "../../../../olt/scripts/src/packets/repository-content-node.ts";
 import {
@@ -24,7 +24,7 @@ function repository(): string {
 describe("repository special-file scanning", () => {
   test("rejects a non-regular leaf before the injected open seam", () => {
     const repo = repository();
-    mkdirSync(join(repo, "special"));
+    vfs.mkdirSync(join(repo, "special"));
     let opens = 0;
     const hooks = {
       openFile: () => {
@@ -43,16 +43,16 @@ describe("repository special-file scanning", () => {
   test("opens a raced leaf nonblocking and rejects its non-regular descriptor", () => {
     const repo = repository();
     const leaf = join(repo, "leaf");
-    writeFileSync(leaf, "regular bytes\n");
+    vfs.writeFileSync(leaf, "regular bytes\n");
     let openedFlags = 0;
     const hooks = {
       beforeLeafOpen: () => {
-        unlinkSync(leaf);
-        mkdirSync(leaf);
+        vfs.unlinkSync(leaf);
+        vfs.mkdirSync(leaf);
       },
       openFile: (path: string, flags: number) => {
         openedFlags = flags;
-        return openSync(path, flags);
+        return session.openSync(path, flags);
       },
     } as Parameters<typeof inspectRepositoryNode>[3] & {
       beforeLeafOpen: () => void;
@@ -61,7 +61,7 @@ describe("repository special-file scanning", () => {
     expect(() => inspectRepositoryNode(repo, { path: "leaf", index: [] }, 1024, hooks)).toThrow(
       "repository content scan was unstable",
     );
-    expect(openedFlags & constants.O_NONBLOCK).toBe(constants.O_NONBLOCK);
-    expect(openedFlags & constants.O_NOFOLLOW).toBe(constants.O_NOFOLLOW);
+    expect(openedFlags & O_NONBLOCK).toBe(O_NONBLOCK);
+    expect(openedFlags & O_NOFOLLOW).toBe(O_NOFOLLOW);
   });
 });

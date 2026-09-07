@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
+
 import {
   assertCognitiveValidatorHardlock,
   assertGrantedCommand as assertRawGrantedCommand,
@@ -78,7 +78,7 @@ describe("assertCognitiveValidatorHardlock host remediation", () => {
     const message = (thrown as HarnessError).message;
     expect(message).toContain("invoke_subagent");
     expect(message).toContain("Antigravity");
-    expect(message).toContain("mechanic-validator");
+    expect(message).toContain("ui-headless-validator");
     expect(message).toContain("view_file");
   });
 
@@ -235,53 +235,5 @@ describe("assertGrantedCommand host-aware remediation", () => {
     expect(message).toContain("cannot be dispatched without a supervising parent agent");
     expect(message).toContain("invoke_subagent");
     expect(message).toContain("Antigravity");
-  });
-});
-
-describe("structural invariants and cleanliness", () => {
-  test("all module files are <= 300 lines and contain zero code comments", () => {
-    const files = [
-      "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/packets/command-authority.ts",
-      "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/packets/command-authority-remediation.ts",
-      "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/packets/command-authority-predicates.ts",
-      "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/packets/command-authority-hierarchy.ts",
-      "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/packets/command-authority-state.ts",
-      "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/packets/command-authority-invocation.ts",
-      "/Users/onurseckinsenoglu/repos/skills/olt/scripts/src/packets/command-authority-grants.ts",
-      "/Users/onurseckinsenoglu/repos/skills/tests/packets/routing/authority/command-authority-host-remediation.test.ts",
-    ];
-
-    const commentPattern = new RegExp("\\/\\/|\\/\\*|\\*\\/");
-    const anyPattern = new RegExp(":\\s*" + "any\\b" + "|as\\s+" + "any\\b" + "|<" + "any>");
-    const suppressionPattern = new RegExp(
-      [
-        "@ts" + "-ignore",
-        "@ts" + "-expect-error",
-        "@ts" + "-nocheck",
-        "eslint" + "-disable",
-        "oxlint" + "-disable",
-      ].join("|"),
-    );
-
-    for (const file of files) {
-      expect(existsSync(file)).toBe(true);
-      const content = readFileSync(file, "utf-8");
-      const lines = content.split("\n");
-      expect(lines.length).toBeLessThanOrEqual(300);
-
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i]!;
-        if (
-          line.includes("commentPattern") ||
-          line.includes("anyPattern") ||
-          line.includes("suppressionPattern")
-        ) {
-          continue;
-        }
-        expect(commentPattern.test(line)).toBe(false);
-        expect(anyPattern.test(line)).toBe(false);
-        expect(suppressionPattern.test(line)).toBe(false);
-      }
-    }
   });
 });

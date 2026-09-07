@@ -118,4 +118,59 @@ describe("scheduler active ownership and requirement authority", () => {
     addTask(state, "blocked-by-authority", "authority/dependent", [], ["R-001"]);
     expect(proposeBatch(state).map(({ id }) => id)).not.toContain("blocked-by-authority");
   });
+
+  test("dispatches actionable work once its prerequisite requirement authority is granted", () => {
+    const state = schedulerState();
+    const requirements = (state.requirements as Record<string, unknown>).requirements as Record<
+      string,
+      unknown
+    >[];
+    requirements[0]!.dependencies = ["R-002"];
+    const r002: Record<string, unknown> = {
+      id: "R-002",
+      disposition: "needs_authority",
+      dependencies: [],
+      authority_status: "granted",
+      authority_history: [
+        makeAuthorityDecisionRecord(
+          "R-002",
+          "coordinator",
+          { decision: "grant", rationale: "Prerequisite authority granted." },
+          "2026-08-13T12:00:00.000Z",
+        ),
+      ],
+    };
+    requirements.push(r002);
+    addTask(state, "transitive-target", "authority/transitive", [], ["R-001"]);
+    expect(proposeBatch(state).map(({ id }) => id)).toContain("transitive-target");
+  });
+
+  test("pauses a task when one required authority is declined but another is still pending", () => {
+    const state = schedulerState();
+    const requirements = (state.requirements as Record<string, unknown>).requirements as Record<
+      string,
+      unknown
+    >[];
+    requirements.push({
+      id: "R-002",
+      disposition: "needs_authority",
+      dependencies: [],
+      authority_status: "declined",
+      authority_history: [
+        makeAuthorityDecisionRecord(
+          "R-002",
+          "coordinator",
+          { decision: "decline", rationale: "Optional scope declined." },
+          "2026-08-13T12:00:00.000Z",
+        ),
+      ],
+    });
+    requirements.push({
+      id: "R-003",
+      disposition: "needs_authority",
+      dependencies: [],
+    });
+    addTask(state, "partially-gated", "authority/partial", [], ["R-001", "R-002", "R-003"]);
+    expect(proposeBatch(state).map(({ id }) => id)).not.toContain("partially-gated");
+  });
 });

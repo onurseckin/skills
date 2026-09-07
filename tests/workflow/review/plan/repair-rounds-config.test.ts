@@ -219,8 +219,8 @@ describe("configurable repair rounds", () => {
     recordReview(port, "T-1", "validator-1", rejectPayload(token1, "validator-1", 1), clock, 2);
     expect(port.read().tasks["T-1"]!.status).toBe("changes_requested");
 
-    const claim = claimTask(port, "T-1", "implementer", "repairer", { clock });
-    registerTaskPacket(port, "repairer", "implementer", 2);
+    const claim = claimTask(port, "T-1", "implementer", "implementer", { clock });
+    registerTaskPacket(port, "implementer", "implementer", 2);
     submitTask(port, "T-1", "implementer", claim.token, report, clock);
 
     const token2 = validationToken(port, "validator-2");

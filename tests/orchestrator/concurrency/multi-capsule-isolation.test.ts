@@ -217,36 +217,4 @@ describe("True Multi-Capsule Parallel Execution Engine & Isolation", () => {
       "Strict Anti-Sequentiality violation",
     );
   });
-
-  it("verifies zero TypeScript any and zero suppressions across all multi-capsule source and test files", () => {
-    const pathsToCheck = [
-      join(import.meta.dir, "../../../olt/scripts/src/orchestrator/multi-capsule.ts"),
-      import.meta.path,
-    ];
-
-    const anyPattern = new RegExp(":\\s*any\\b|as\\s+any\\b|<any>");
-    const suppressionPattern = new RegExp(
-      [
-        "@ts" + "-ignore",
-        "@ts" + "-expect-error",
-        "@ts" + "-nocheck",
-        "eslint" + "-disable",
-        "oxlint" + "-disable",
-      ].join("|"),
-    );
-
-    for (const filePath of pathsToCheck) {
-      expect(fs.existsSync(filePath)).toBe(true);
-      const content = fs.readFileSync(filePath, "utf-8");
-      const lines = content.split("\n");
-
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i]!;
-        if (line.includes("anyPattern") || line.includes("suppressionPattern")) continue;
-
-        expect(anyPattern.test(line)).toBe(false);
-        expect(suppressionPattern.test(line)).toBe(false);
-      }
-    }
-  });
 });

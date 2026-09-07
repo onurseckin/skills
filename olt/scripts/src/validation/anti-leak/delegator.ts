@@ -49,7 +49,7 @@ export function delegateRepairTask(params: DelegateRepairTaskParams): RepairDele
   const designatedRepairer =
     assignedRepairer && assignedRepairer.trim() !== ""
       ? assignedRepairer.trim()
-      : `repairer-${taskId.replace(/^task-/, "")}`;
+      : `implementer-${taskId.replace(/^task-/, "")}`;
 
   if (validatorId && designatedRepairer === validatorId) {
     throw new HarnessError(
@@ -57,7 +57,7 @@ export function delegateRepairTask(params: DelegateRepairTaskParams): RepairDele
       `Anti-boundary-leak rule violation: designated repairer '${designatedRepairer}' cannot be the validator '${validatorId}' of task '${taskId}'.`,
       [{ taskId, validatorId, designatedRepairer }],
       3,
-      "Assign a distinct dedicated repairer or return to the original implementer.",
+      "Assign a distinct dedicated implementer or return to the original implementer.",
     );
   }
 
@@ -68,11 +68,11 @@ export function delegateRepairTask(params: DelegateRepairTaskParams): RepairDele
       `Anti-boundary-leak rule violation: repairer '${designatedRepairer}' matches critic/validator naming pattern and cannot hold a write lease.`,
       [{ taskId, designatedRepairer }],
       3,
-      "Repairers must use implementer or repairer roles and names.",
+      "The designated repairer must use an implementer role and name.",
     );
   }
 
-  const command = `bun harness.ts task:claim --run ${runRoot} --task ${taskId} --agent ${designatedRepairer} --role repairer`;
+  const command = `bun harness.ts task:claim --run ${runRoot} --task ${taskId} --agent ${designatedRepairer} --role implementer`;
 
   return {
     task_id: taskId,
@@ -226,7 +226,7 @@ export function validateAcyclicPushbackDelegation(
     violations,
     remediation_guidance: valid
       ? undefined
-      : "Ensure all pushbacks provide structured remediation instructions and assign disjoint repairers without cyclic dependencies.",
+      : "Ensure all pushbacks provide structured remediation instructions and assign disjoint implementers without cyclic dependencies.",
   };
 }
 

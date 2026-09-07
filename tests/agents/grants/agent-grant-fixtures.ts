@@ -1,10 +1,9 @@
-import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { initRun, loadRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { registerAgentGrant } from "../../../olt/scripts/src/workflow/agents/grants.ts";
 import { readAgentLedger } from "../../../olt/scripts/src/workflow/agents/ledger.ts";
-import { cleanupVirtualAgentsFS, scratchRoot } from "../fixture.ts";
+import { cleanupVirtualAgentsFS, getVirtualAgentsFS, scratchRoot } from "../fixture.ts";
 
 /**
  * A run with task-1 and task-2 seeded directly into state — the minimum a grant can bind to.
@@ -12,9 +11,10 @@ import { cleanupVirtualAgentsFS, scratchRoot } from "../fixture.ts";
 export function seededRun(callerPath: string, label: string): string {
   const root = scratchRoot(callerPath, label);
   const repo = join(root, "repo");
-  mkdirSync(repo, { recursive: true });
-  mkdirSync(join(repo, ".git"), { recursive: true });
-  mkdirSync(join(repo, ".olt"), { recursive: true });
+  const vfs = getVirtualAgentsFS();
+  vfs.mkdirSync(repo, { recursive: true });
+  vfs.mkdirSync(join(repo, ".git"), { recursive: true });
+  vfs.mkdirSync(join(repo, ".olt"), { recursive: true });
   const run = initRun(repo, label, new TextEncoder().encode("Build the thing.\n"), "file", true);
   transact(run, "test-setup", "seed-graph", {}, (draft) => {
     draft.tasks = { "task-1": { id: "task-1" }, "task-2": { id: "task-2" } };

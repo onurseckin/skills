@@ -18,7 +18,7 @@ describe("Persona Grounding - Role Boundaries & Subordinates", () => {
 
     expect(isSupervisoryRole("implementer")).toBe(false);
     expect(isSupervisoryRole("validator")).toBe(false);
-    expect(isSupervisoryRole("repairer")).toBe(false);
+    expect(isSupervisoryRole("sub-implementer")).toBe(false);
     expect(isSupervisoryRole("completeness-critic")).toBe(false);
     expect(isSupervisoryRole("planner")).toBe(false);
     expect(isSupervisoryRole("unknown-role")).toBe(false);

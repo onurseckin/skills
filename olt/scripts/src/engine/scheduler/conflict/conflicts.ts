@@ -3,7 +3,7 @@ function segmentsIntersect(left: string, right: string): boolean {
   const leftLength = left.length;
   const rightLength = right.length;
   const reachable: boolean[][] = Array.from({ length: leftLength + 1 }, () =>
-    new Array<boolean>(rightLength + 1).fill(false),
+    Array.from({ length: rightLength + 1 }, () => false),
   );
   reachable[leftLength]![rightLength] = true;
   for (let j = rightLength - 1; j >= 0; j--) {
@@ -30,7 +30,7 @@ function patternsOverlap(left: readonly string[], right: readonly string[]): boo
   const leftCount = left.length;
   const rightCount = right.length;
   const overlap: boolean[][] = Array.from({ length: leftCount + 1 }, () =>
-    new Array<boolean>(rightCount + 1).fill(true),
+    Array.from({ length: rightCount + 1 }, () => true),
   );
   for (let i = leftCount - 1; i >= 0; i--) {
     for (let j = rightCount - 1; j >= 0; j--) {

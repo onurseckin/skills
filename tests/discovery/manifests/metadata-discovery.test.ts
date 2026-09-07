@@ -1,13 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import {
-  linkSync,
-  mkdirSync,
-  readFileSync,
-  readdirSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
-import type * as fs from "node:fs";
+import type { Dirent } from "node:fs";
 import { join, resolve } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -20,14 +12,17 @@ import {
 import {
   cleanupVirtualDiscoveryFS,
   createSyntheticAgentMetadata,
+  createVirtualHardlink,
+  createVirtualSymlink,
   setupVirtualDiscoveryFS,
 } from "../fixtures/index.ts";
 
 const scratchBase = "/virtual/metadata-discovery";
+let vfs: ReturnType<typeof setupVirtualDiscoveryFS>;
 
 function getScratch(label: string): string {
   const dir = join(scratchBase, `${label}-${Date.now()}-${Math.random().toString(36).slice(2)}`);
-  mkdirSync(dir, { recursive: true });
+  vfs.mkdirSync(dir, { recursive: true });
   return dir;
 }
 
@@ -37,14 +32,14 @@ function metadata(agentId: string): Record<string, unknown> {
 
 function writeMetadata(root: string, agentId: string, value: unknown): string {
   const path = join(root, "runtime", `agent-${agentId}.json`);
-  mkdirSync(join(root, "runtime"), { recursive: true });
-  writeFileSync(path, JSON.stringify(value), "utf-8");
+  vfs.mkdirSync(join(root, "runtime"), { recursive: true });
+  vfs.writeFileSync(path, JSON.stringify(value), "utf-8");
   return path;
 }
 
 describe("agent metadata discovery", () => {
   beforeEach(() => {
-    setupVirtualDiscoveryFS();
+    vfs = setupVirtualDiscoveryFS();
   });
 
   afterEach(() => {
@@ -64,14 +59,14 @@ describe("agent metadata discovery", () => {
     const runtime = join(root, "runtime");
     const external = join(root, "external-sentinel.json");
     const target = join(runtime, `agent-${agentId}.json`);
-    mkdirSync(runtime, { recursive: true });
-    writeFileSync(external, "sentinel", "utf8");
-    symlinkSync(external, target);
+    vfs.mkdirSync(runtime, { recursive: true });
+    vfs.writeFileSync(external, "sentinel", "utf8");
+    createVirtualSymlink(external, target);
 
     expect(() =>
       writeAgentMetadata(createAgentMetadata({ agent_id: agentId, role: "implementer" }), root),
     ).toThrow(HarnessError);
-    expect(readFileSync(external, "utf8")).toBe("sentinel");
+    expect(vfs.readFileSync(external, "utf8")).toBe("sentinel");
   });
 
   it("refuses a symlinked runtime directory without changing its external target", () => {
@@ -80,34 +75,34 @@ describe("agent metadata discovery", () => {
     const externalRuntime = join(root, "external-runtime");
     const runtime = join(root, "runtime");
     const externalFile = join(externalRuntime, `agent-${agentId}.json`);
-    mkdirSync(externalRuntime, { recursive: true });
-    writeFileSync(externalFile, "sentinel", "utf8");
-    symlinkSync(externalRuntime, runtime);
+    vfs.mkdirSync(externalRuntime, { recursive: true });
+    vfs.writeFileSync(externalFile, "sentinel", "utf8");
+    createVirtualSymlink(externalRuntime, runtime);
 
     expect(() =>
       writeAgentMetadata(createAgentMetadata({ agent_id: agentId, role: "implementer" }), root),
     ).toThrow(HarnessError);
-    expect(readFileSync(externalFile, "utf8")).toBe("sentinel");
+    expect(vfs.readFileSync(externalFile, "utf8")).toBe("sentinel");
   });
 
   it("refuses canonical and legacy hard-linked metadata without changing the external inode", () => {
     const root = getScratch("metadata-hard-links");
     const runtime = join(root, "runtime");
-    mkdirSync(runtime, { recursive: true });
+    vfs.mkdirSync(runtime, { recursive: true });
     for (const [agentId, name] of [
       ["impl-canonical-hard-link", "agent-impl-canonical-hard-link.json"],
       ["impl-legacy-hard-link", "impl-legacy-hard-link.json"],
     ]) {
       const external = join(root, `external-${agentId}.json`);
       const bytes = JSON.stringify(metadata(agentId));
-      writeFileSync(external, bytes, "utf8");
-      linkSync(external, join(runtime, name));
+      vfs.writeFileSync(external, bytes, "utf8");
+      createVirtualHardlink(external, join(runtime, name));
 
       expect(() => findAgentMetadataLocation(agentId, root)).toThrow(HarnessError);
       expect(() =>
         writeAgentMetadata(createAgentMetadata({ agent_id: agentId, role: "implementer" }), root),
       ).toThrow(HarnessError);
-      expect(readFileSync(external, "utf8")).toBe(bytes);
+      expect(vfs.readFileSync(external, "utf8")).toBe(bytes);
     }
   });
 
@@ -119,8 +114,8 @@ describe("agent metadata discovery", () => {
   it("uses a legacy filename only after the canonical file is genuinely absent", () => {
     const root = getScratch("legacy-only");
     const legacyPath = join(root, "runtime", "impl-legacy.json");
-    mkdirSync(join(root, "runtime"), { recursive: true });
-    writeFileSync(legacyPath, JSON.stringify(metadata("impl-legacy")), "utf-8");
+    vfs.mkdirSync(join(root, "runtime"), { recursive: true });
+    vfs.writeFileSync(legacyPath, JSON.stringify(metadata("impl-legacy")), "utf-8");
 
     expect(findAgentMetadataLocation("impl-legacy", root)?.filePath).toBe(legacyPath);
   });
@@ -130,13 +125,13 @@ describe("agent metadata discovery", () => {
     const agentId = "impl-trusted-enoent";
     const canonicalPath = join(root, "runtime", `agent-${agentId}.json`);
     const legacyPath = join(root, "runtime", `${agentId}.json`);
-    mkdirSync(join(root, "runtime"), { recursive: true });
-    writeFileSync(legacyPath, JSON.stringify(metadata(agentId)), "utf-8");
+    vfs.mkdirSync(join(root, "runtime"), { recursive: true });
+    vfs.writeFileSync(legacyPath, JSON.stringify(metadata(agentId)), "utf-8");
     const missing = Object.assign(new Error("missing"), { code: "ENOENT" });
     const restore = setAgentMetadataDependenciesForTesting({
       readFile(path, encoding) {
         if (path === canonicalPath) throw missing;
-        return readFileSync(path, encoding);
+        return vfs.readFileSync(path, encoding as BufferEncoding);
       },
     });
 
@@ -152,8 +147,8 @@ describe("agent metadata discovery", () => {
     const agentId = "impl-untrusted-enoent";
     const canonicalPath = join(root, "runtime", `agent-${agentId}.json`);
     const legacyPath = join(root, "runtime", `${agentId}.json`);
-    mkdirSync(join(root, "runtime"), { recursive: true });
-    writeFileSync(legacyPath, JSON.stringify(metadata(agentId)), "utf-8");
+    vfs.mkdirSync(join(root, "runtime"), { recursive: true });
+    vfs.writeFileSync(legacyPath, JSON.stringify(metadata(agentId)), "utf-8");
 
     const inherited = Object.create({ code: "ENOENT" });
     Object.defineProperty(inherited, "message", { value: "inherited code" });
@@ -195,7 +190,7 @@ describe("agent metadata discovery", () => {
         readFile(path, encoding) {
           if (path === canonicalPath) throw failure;
           if (path === legacyPath) legacyReads += 1;
-          return readFileSync(path, encoding);
+          return vfs.readFileSync(path, encoding as BufferEncoding);
         },
       });
       try {
@@ -223,7 +218,7 @@ describe("agent metadata discovery", () => {
         resolveCapsulesDir: () => capsules,
         resolveScratchDir: () => scratch,
         readDirectory(path, options) {
-          const entries = readdirSync(path, options);
+          const entries = vfs.readdirSync(path, options) as unknown as Dirent[];
           return reverse ? entries.reverse() : entries;
         },
       });
@@ -258,7 +253,7 @@ describe("agent metadata discovery", () => {
       findRepoRoot: () => root,
       resolveCapsulesDir: () => capsules,
       resolveScratchDir: () => join(root, "scratch"),
-      readDirectory: () => [malformedEntry as unknown as import("node:fs").Dirent],
+      readDirectory: () => [malformedEntry as unknown as Dirent],
     });
 
     try {

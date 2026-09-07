@@ -1,12 +1,5 @@
-/**
- * Unit Test Suite for Archived Objectives, Integrated Memory Indexer, and Report Formatters.
- * Covers indexArchivedObjectiveDocuments, indexAllMemory, truncateString, padRight,
- * renderAsciiMemoryTable, and formatMemoryQueryBrief.
- */
-
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
-import * as fs from "node:fs";
-import { normalize } from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { join } from "node:path";
 import {
   formatMemoryQueryBrief,
   indexAllMemory,
@@ -16,84 +9,31 @@ import {
   truncateString,
 } from "../../../../olt/scripts/src/mind/memory/core/archived.ts";
 import type { MemoryQueryResult } from "../../../../olt/scripts/src/mind/memory/core/types.ts";
+import { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/memory-fs.ts";
+import { createVirtualFSSession } from "../../../../olt/scripts/src/testing/virtual-fs/spies.ts";
 
 describe("Archived Objectives and Integrated Indexing (archived.ts)", () => {
-  const virtualFiles = new Map<string, string>();
-  const virtualDirs = new Set<string>();
-
-  let existsSpy: ReturnType<typeof spyOn>;
-  let readFileSyncSpy: ReturnType<typeof spyOn>;
-  let readdirSpy: ReturnType<typeof spyOn>;
+  let vfs: VirtualMemoryFS;
+  let session: ReturnType<typeof createVirtualFSSession>;
+  const baseDir = "/virtual/mind-memory/archived";
+  const capsulesDir = `${baseDir}/capsules`;
 
   beforeEach(() => {
-    virtualFiles.clear();
-    virtualDirs.clear();
-
-    existsSpy = spyOn(fs, "existsSync").mockImplementation((p) => {
-      const s = normalize(String(p));
-      return virtualFiles.has(s) || virtualDirs.has(s);
-    });
-
-    readFileSyncSpy = spyOn(fs, "readFileSync").mockImplementation((p) => {
-      const s = normalize(String(p));
-      const val = virtualFiles.get(s);
-      if (val === undefined) throw new Error(`ENOENT: ${s}`);
-      return val;
-    });
-
-    readdirSpy = spyOn(fs, "readdirSync").mockImplementation((p, options) => {
-      const s = normalize(String(p));
-      if (!virtualDirs.has(s)) throw new Error(`ENOENT: ${s}`);
-      const entryMap = new Map<string, boolean>();
-
-      for (const dirPath of virtualDirs) {
-        if (dirPath.startsWith(s) && dirPath !== s) {
-          const rel = dirPath.slice(s.length).replace(/^[/\\]+/, "");
-          const name = rel.split(/[/\\]/)[0];
-          if (name) entryMap.set(name, true);
-        }
-      }
-
-      for (const filePath of virtualFiles.keys()) {
-        if (filePath.startsWith(s) && filePath !== s) {
-          const rel = filePath.slice(s.length).replace(/^[/\\]+/, "");
-          const parts = rel.split(/[/\\]/);
-          const name = parts[0];
-          if (name && !entryMap.has(name)) entryMap.set(name, parts.length > 1);
-        }
-      }
-
-      const entries = Array.from(entryMap.entries()).map(([name, isDir]) => ({
-        name,
-        isDirectory: () => isDir,
-        isFile: () => !isDir,
-      }));
-
-      if (
-        typeof options === "object" &&
-        options !== null &&
-        (options as { withFileTypes?: boolean }).withFileTypes
-      ) {
-        return entries as unknown as fs.Dirent[];
-      }
-      return entries.map((e) => e.name) as unknown as string[];
-    });
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    vfs.mkdirSync(capsulesDir, { recursive: true });
   });
 
   afterEach(() => {
-    existsSpy.mockRestore();
-    readFileSyncSpy.mockRestore();
-    readdirSpy.mockRestore();
+    session.cleanup();
   });
 
   describe("indexArchivedObjectiveDocuments", () => {
-    it("indexes archived records from root and capsule JSONL files (both upper and lower)", () => {
-      const capsulesDir = normalize("/virtual/capsules");
-      const capDir1 = normalize(`${capsulesDir}/mind-gen-3`);
-      const capDir2 = normalize(`${capsulesDir}/mind-gen-4`);
-      virtualDirs.add(capsulesDir);
-      virtualDirs.add(capDir1);
-      virtualDirs.add(capDir2);
+    it("indexes archived records from root and capsule JSONL files in upper and lower case", () => {
+      const capDir1 = `${capsulesDir}/mind-gen-3`;
+      const capDir2 = `${capsulesDir}/mind-gen-4`;
+      vfs.mkdirSync(capDir1, { recursive: true });
+      vfs.mkdirSync(capDir2, { recursive: true });
 
       const rootJsonl = JSON.stringify({
         id: "OBJ-ROOT-1",
@@ -113,47 +53,72 @@ describe("Archived Objectives and Integrated Indexing (archived.ts)", () => {
         generation: 4,
       });
 
-      virtualFiles.set(normalize(`${capsulesDir}/ARCHIVED_OBJECTIVES.jsonl`), rootJsonl);
-      virtualFiles.set(normalize(`${capDir1}/ARCHIVED_OBJECTIVES.jsonl`), cap1Jsonl);
-      virtualFiles.set(normalize(`${capDir2}/archived_objectives.jsonl`), cap2Jsonl);
+      vfs.writeFileSync(join(capsulesDir, "ARCHIVED_OBJECTIVES.jsonl"), rootJsonl);
+      vfs.writeFileSync(join(capDir1, "ARCHIVED_OBJECTIVES.jsonl"), cap1Jsonl);
+      vfs.writeFileSync(join(capDir2, "archived_objectives.jsonl"), cap2Jsonl);
 
-      const docs = indexArchivedObjectiveDocuments("/virtual/capsules");
+      const docs = indexArchivedObjectiveDocuments(capsulesDir);
       expect(docs.length).toBe(3);
+      expect(docs.some((d) => d.id === "archived-OBJ-ROOT-1")).toBe(true);
+      expect(docs.some((d) => d.id === "archived-OBJ-CAP-1")).toBe(true);
+      expect(docs.some((d) => d.id === "archived-OBJ-CAP-2")).toBe(true);
+      expect(docs[0]?.kind).toBe("decision");
     });
 
     it("scans explicitRun JSONL files (both upper and lower case)", () => {
-      const explicit = normalize("/virtual/explicit-run/mind-gen-7");
-      virtualDirs.add(explicit);
-      virtualFiles.set(
-        normalize(`${explicit}/ARCHIVED_OBJECTIVES.jsonl`),
+      const explicit = `${baseDir}/explicit-run/mind-gen-7`;
+      vfs.mkdirSync(explicit, { recursive: true });
+      vfs.writeFileSync(
+        join(explicit, "ARCHIVED_OBJECTIVES.jsonl"),
         JSON.stringify({ id: "OBJ-EXP-1", statement: "Explicit upper objective" }),
       );
-      virtualFiles.set(
-        normalize(`${explicit}/archived_objectives.jsonl`),
+      vfs.writeFileSync(
+        join(explicit, "archived_objectives.jsonl"),
         JSON.stringify({ id: "OBJ-EXP-2", statement: "Explicit lower objective" }),
       );
 
-      const docs = indexArchivedObjectiveDocuments(
-        "/virtual/empty",
-        "/virtual/explicit-run/mind-gen-7",
-      );
+      const docs = indexArchivedObjectiveDocuments(`${baseDir}/empty-capsules`, explicit);
       expect(docs.length).toBe(2);
+      expect(docs.some((d) => d.id === "archived-OBJ-EXP-1")).toBe(true);
+      expect(docs.some((d) => d.id === "archived-OBJ-EXP-2")).toBe(true);
+    });
+
+    it("handles non-existent paths, blank lines, missing IDs, and corrupted JSONL gracefully", () => {
+      const emptyDocs = indexArchivedObjectiveDocuments(`${baseDir}/non-existent`);
+      expect(emptyDocs).toEqual([]);
+
+      const corruptedDir = `${capsulesDir}/mind-gen-corrupted`;
+      vfs.mkdirSync(corruptedDir, { recursive: true });
+      vfs.writeFileSync(
+        join(corruptedDir, "ARCHIVED_OBJECTIVES.jsonl"),
+        [
+          "",
+          "   ",
+          "{bad-json",
+          JSON.stringify({ statement: "missing id line" }),
+          JSON.stringify({ id: 12345, statement: "numeric id line" }),
+          JSON.stringify({ id: "OBJ-VALID", statement: "Valid record" }),
+        ].join("\n"),
+      );
+
+      const docs = indexArchivedObjectiveDocuments(capsulesDir);
+      expect(docs.some((d) => d.id === "archived-OBJ-VALID")).toBe(true);
+      expect(docs.some((d) => d.title.includes("12345"))).toBe(false);
     });
   });
 
   describe("indexAllMemory", () => {
     it("aggregates and deduplicates all memory documents into integrated index", () => {
-      const repoRoot = normalize("/virtual/repo");
-      const capsulesDir = normalize(`${repoRoot}/olt/capsules`);
-      virtualDirs.add(repoRoot);
-      virtualDirs.add(capsulesDir);
+      const repoRoot = `${baseDir}/repo`;
+      const repoCapsules = `${repoRoot}/olt/capsules`;
+      vfs.mkdirSync(repoCapsules, { recursive: true });
 
-      virtualFiles.set(
-        normalize(`${capsulesDir}/ARCHIVED_OBJECTIVES.jsonl`),
-        JSON.stringify({ id: "OBJ-INTEGRATED-1", statement: "All memory test" }),
+      vfs.writeFileSync(
+        join(repoCapsules, "ARCHIVED_OBJECTIVES.jsonl"),
+        `${JSON.stringify({ id: "OBJ-INTEGRATED-1", statement: "All memory test" })}\n${JSON.stringify({ id: "OBJ-INTEGRATED-1", statement: "Duplicate ID test" })}\n`,
       );
 
-      const index = indexAllMemory({ repoRoot, capsulesDir });
+      const index = indexAllMemory({ repoRoot, capsulesDir: repoCapsules });
       expect(index.total_documents).toBeGreaterThanOrEqual(1);
       expect(index.documents.some((d) => d.id === "archived-OBJ-INTEGRATED-1")).toBe(true);
       expect(index.avg_doc_length).toBeGreaterThan(0);
@@ -165,8 +130,12 @@ describe("Archived Objectives and Integrated Indexing (archived.ts)", () => {
     it("truncateString and padRight handle length edge cases", () => {
       expect(truncateString("short", 10)).toBe("short");
       expect(truncateString("longer than limit", 8)).toBe("longer …");
+      expect(truncateString("hello", 1)).toBe("…");
+      expect(truncateString("hello", 0)).toBe("hell…");
+      expect(truncateString("", 5)).toBe("");
       expect(padRight("pad", 6)).toBe("pad   ");
       expect(padRight("exact", 5)).toBe("exact");
+      expect(padRight("overflowing", 5)).toBe("overflowing");
     });
 
     it("renderAsciiMemoryTable formats empty state and populated tables", () => {
@@ -211,8 +180,8 @@ describe("Archived Objectives and Integrated Indexing (archived.ts)", () => {
         query: "leak",
         results: [mockResult],
         totalIndexed: 10,
-        capsulesDir: "/virtual/capsules",
-        runRoot: "/virtual/run",
+        capsulesDir,
+        runRoot: `${baseDir}/run`,
         kindFilter: "defect",
         generationFilter: 2,
         tagsFilter: "leak",
@@ -230,11 +199,12 @@ describe("Archived Objectives and Integrated Indexing (archived.ts)", () => {
         query: "",
         results: [],
         totalIndexed: 0,
-        capsulesDir: "/virtual/capsules",
+        capsulesDir,
         runRoot: null,
       });
       expect(briefEmpty).toContain("- **Search Query**: `*all*`");
       expect(briefEmpty).toContain("- **Target Run Root**: *all*");
+      expect(briefEmpty).toContain("No memory records discovered matching query");
     });
   });
 });

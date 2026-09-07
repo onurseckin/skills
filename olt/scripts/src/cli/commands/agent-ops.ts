@@ -17,6 +17,7 @@ import {
 import { probeAgentTelemetry, withHostTelemetryConflicts } from "../host-telemetry-probe.ts";
 import { boolFlag, integerFlag, textFlag, type Flags } from "../options.ts";
 import { tokenExtraFlags, toolRefFlags } from "../taxonomy-flags.ts";
+import { SentinelMonitorRegistry } from "../../sentinel/monitor/index.ts";
 
 export { agentRegisterCommand } from "./agent-registration.ts";
 
@@ -94,6 +95,9 @@ export function agentReleaseCommand(flags: Flags): Record<string, unknown> {
     actor,
     reason,
   });
+  try {
+    SentinelMonitorRegistry.unregister(agent);
+  } catch {}
   return withHostTelemetryConflicts(
     {
       markdown: formatAgentReleaseBrief(outcome.grant, run),

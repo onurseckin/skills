@@ -21,6 +21,7 @@ import { emitTelemetryEvent } from "../../reporting/telemetry-stream.ts";
 import { findRepoRoot, resolveEvidenceDir, resolveScratchDir } from "../../core/shared/paths.ts";
 import { runExecCommand } from "./run-ops.ts";
 import type { CommandRecord } from "../../core/contracts/index.ts";
+import { getProfileForRole } from "../../sentinel/profiles/index.ts";
 
 export interface ShellExecutionResult {
   readonly markdown: string;
@@ -53,7 +54,8 @@ const defaultShellCommandDependencies: ShellCommandDependencies = {
   existsSync: (p) => existsSync(p),
   mkdirSync: (p, opts) => mkdirSync(p, opts),
   openSync: (p, flags, mode) => openSync(p, flags, mode),
-  writeSync: (...args) => (writeSync as any)(...args),
+  writeSync: (fd: number, buffer: unknown, ...args: unknown[]) =>
+    (writeSync as Function)(fd, buffer, ...args),
   fsyncSync: (fd) => fsyncSync(fd),
   closeSync: (fd) => closeSync(fd),
   renameSync: (oldP, newP) => renameSync(oldP, newP),
@@ -265,14 +267,11 @@ export async function shellCommand(
   }
 
   const roleName = metadata.role;
-  if (
-    roleName === "validator" ||
-    roleName.startsWith("validator_") ||
-    roleName === "completeness_critic"
-  ) {
+  const profile = getProfileForRole(roleName as Parameters<typeof getProfileForRole>[0]);
+  if (!profile.can_execute_shell) {
     throw new HarnessError(
       "ROLE_CONFINEMENT_VIOLATION",
-      `[COGNITIVE_VALIDATOR_COMMAND_FORBIDDEN] Role '${roleName}' is a cognitive validator. Cognitive Validators are locked to 0 command execution.`,
+      `[SHELL_COMMAND_FORBIDDEN] Role '${roleName}' is locked to 0 command execution by its diagnostic profile.`,
     );
   }
 

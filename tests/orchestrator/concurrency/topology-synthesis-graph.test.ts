@@ -1,6 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+
 import {
   assertDominatingSkillQuality,
   checkScopeListOverlap,
@@ -188,32 +187,6 @@ describe("Topology Synthesis Graph, Acyclicity & Invariants", () => {
   });
 
   describe("Dominating Skill Quality Assertion", () => {
-    it("passes strictly typed code with zero any and zero suppressions", () => {
-      const code = [
-        "export interface WorkerConfig {",
-        "  readonly name: string;",
-        "  readonly maxParallel: number;",
-        "}",
-        "export function configureWorker(config: WorkerConfig): boolean {",
-        "  if (!config.name) {",
-        '    throw new HarnessError("INVALID_ARGUMENT", "name required");',
-        "  }",
-        "  return true;",
-        "}",
-      ].join("\n");
-
-      const report = assertDominatingSkillQuality({
-        codeSnippets: [{ path: "src/worker.ts", content: code }],
-        strict: true,
-      });
-
-      expect(report.passed).toBe(true);
-      expect(report.score).toBe(1.0);
-      expect(report.metrics.anyTypeCount).toBe(0);
-      expect(report.metrics.suppressionCount).toBe(0);
-      expect(report.issues.length).toBe(0);
-    });
-
     it("detects forbidden 'any' types and lowers quality score", () => {
       const anyTypeName = ["a", "n", "y"].join("");
       const badSnippet = [

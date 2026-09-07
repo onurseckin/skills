@@ -25,7 +25,7 @@ export function auditHierarchicalExecution(state: WorkflowState): HierarchicalAu
   const tasks = Object.values(state.tasks);
 
   for (const task of tasks) {
-    // Check implementer/repairer independence from validator
+    // Check implementer independence from validator
     if (task.validations) {
       for (const val of task.validations) {
         if (val.validator_id === task.original_implementer) {
@@ -43,24 +43,10 @@ export function auditHierarchicalExecution(state: WorkflowState): HierarchicalAu
     // Check that changes_requested tasks have a repair assignee
     if (task.status === "changes_requested" && !task.repair_assignee) {
       violations.push({
-        ruleId: "DOM-03-REPAIRER-ASSIGNMENT-MISSING",
+        ruleId: "DOM-03-REPAIR-ASSIGNMENT-MISSING",
         taskId: task.id,
         reason: `Task ${task.id} is in changes_requested without a designated repair_assignee`,
       });
-    }
-
-    // Check active lease role match
-    if (task.lease) {
-      const leaseRole = task.lease.role;
-      if (task.status === "changes_requested" && leaseRole === "implementer") {
-        violations.push({
-          ruleId: "DOM-02-IMPLEMENTER-NOT-REPAIRER",
-          taskId: task.id,
-          agentId: task.lease.agent_id,
-          role: leaseRole,
-          reason: `Task ${task.id} in changes_requested leased with implementer role instead of repairer`,
-        });
-      }
     }
   }
 
@@ -78,17 +64,15 @@ export function validateTaskDispatchCompliance(
   state?: WorkflowState,
 ): HierarchicalDecisionResult {
   const agentRole: AgentRoleHierarchy =
-    role === "repairer"
-      ? "repairer"
-      : role === "validator"
-        ? "validator"
-        : role === "coordinator" || role === "orchestrator"
-          ? "coordinator"
-          : role === "completeness-critic"
-            ? "completeness-critic"
-            : role === "plan-validator"
-              ? "plan-validator"
-              : "implementer";
+    role === "validator"
+      ? "validator"
+      : role === "coordinator" || role === "orchestrator"
+        ? "coordinator"
+        : role === "completeness-critic"
+          ? "completeness-critic"
+          : role === "plan-validator"
+            ? "plan-validator"
+            : "implementer";
 
   return evaluateHierarchicalDecision(
     {

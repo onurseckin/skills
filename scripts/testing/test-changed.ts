@@ -1,29 +1,29 @@
-/**
- * Fast Affected / Changed Unit Test Runner with Caching
- * Runs only test files affected by changes since origin/main or HEAD~1.
- */
+/** Fast Affected / Changed Unit Test Runner with Caching */
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync } from "node:fs";
 import { basename, extname, join } from "node:path";
 
 import { DEFAULT_COVERAGE_THRESHOLD } from "./reporting/index.ts";
+import { auditTestPurity } from "./guardrails/index.ts";
 import { inspectRepoPolicy, isTestingEnabled } from "../../olt/scripts/src/policy/index.ts";
 
 export function gitOutput(args: string[]): string {
   try {
-    const res = spawnSync("git", args, { encoding: "utf-8" });
-    return (res.stdout ?? "").trim();
+    return (spawnSync("git", args, { encoding: "utf-8" }).stdout ?? "").trim();
   } catch {
     return "";
   }
 }
 
 export function parseDiffOutput(diffText: string): string[] {
-  const lines = diffText
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean);
-  return [...new Set(lines)];
+  return [
+    ...new Set(
+      diffText
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean),
+    ),
+  ];
 }
 
 export function parseGitStatusPorcelain(statusText: string): string[] {
@@ -69,18 +69,12 @@ export function findAllTestFiles(dir: string): string[] {
   if (!existsSync(dir)) return [];
   const results: string[] = [];
   try {
-    const entries = readdirSync(dir, { withFileTypes: true });
-    for (const entry of entries) {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
       const full = join(dir, entry.name);
-      if (entry.isDirectory()) {
-        results.push(...findAllTestFiles(full));
-      } else if (/\.(test|spec)\.(ts|tsx)$/.test(entry.name)) {
-        results.push(full);
-      }
+      if (entry.isDirectory()) results.push(...findAllTestFiles(full));
+      else if (/\.(test|spec)\.(ts|tsx)$/.test(entry.name)) results.push(full);
     }
-  } catch {
-    // Gracefully handle unreadable directories
-  }
+  } catch {}
   return results;
 }
 
@@ -190,9 +184,7 @@ export async function run(argvArgs: string[] = process.argv.slice(2)): Promise<n
   try {
     const inspection = inspectRepoPolicy();
     if (!isTestingEnabled(inspection.policy)) {
-      console.log(
-        "[test] Unit testing is disabled in repository policy (.olt/policy.json); skipping test suite.",
-      );
+      console.log("[test] Unit testing disabled in repo policy; skipping.");
       return 0;
     }
   } catch {}
@@ -200,14 +192,11 @@ export async function run(argvArgs: string[] = process.argv.slice(2)): Promise<n
   const { all, testFiles } = resolveAffectedTestFiles(changed, runAll);
 
   if (!all && testFiles.length === 0) {
-    console.log(
-      "[test-changed] No test files affected by current changes. Skipping test execution.",
-    );
+    console.log("[test-changed] No test files affected by changes. Skipping test execution.");
     return 0;
   }
 
-  const isCoverage = argvArgs.includes("--coverage");
-  const testArgs = isCoverage
+  const testArgs = argvArgs.includes("--coverage")
     ? ["test", "--timeout", "30000", "--coverage"]
     : ["test", "--timeout", "30000"];
   const targetFiles = testFiles.length > 0 ? testFiles : findAllTestFiles("tests");
@@ -215,6 +204,13 @@ export async function run(argvArgs: string[] = process.argv.slice(2)): Promise<n
   if (targetFiles.length === 0) {
     console.log("[test-changed] No test files found. Skipping test execution.");
     return 0;
+  }
+
+  const purityResult = await auditTestPurity({ files: targetFiles });
+  console.log(purityResult.terminalReport);
+  if (!purityResult.passed) {
+    console.error("\n❌ [purity-guard] Test purity audit failed.");
+    return 1;
   }
 
   let combinedStdout = "";

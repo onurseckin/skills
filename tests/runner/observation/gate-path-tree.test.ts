@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { closeSync, mkdirSync, openSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { closeSync } from "node:fs";
 import { join } from "node:path";
 import {
   captureOpenedPath,
@@ -7,17 +7,29 @@ import {
   openGatePath,
   MAX_GATE_PATH_BINDINGS,
 } from "../../../olt/scripts/src/engine/runner/signing/gate-path-tree.ts";
-import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import {
+  tempRoot,
+  setupVirtualRunnerFS,
+  cleanupVirtualRunnerFS,
+  createVirtualSymlink,
+} from "../command/fixture.ts";
+import type { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/memory-fs.ts";
 
-afterEach(cleanupTempRoots);
+let vfs: VirtualMemoryFS;
+
+beforeEach(() => {
+  vfs = setupVirtualRunnerFS();
+});
+
+afterEach(cleanupVirtualRunnerFS);
 
 describe("gate-path-tree", () => {
   test("captures file and directory bindings with tree digest", () => {
     const repoRoot = tempRoot("tree-bind");
     const subDir = join(repoRoot, "dir");
-    mkdirSync(subDir);
-    writeFileSync(join(subDir, "file1.txt"), "hello");
-    writeFileSync(join(subDir, "file2.txt"), "world");
+    vfs.mkdirSync(subDir);
+    vfs.writeFileSync(join(subDir, "file1.txt"), "hello");
+    vfs.writeFileSync(join(subDir, "file2.txt"), "world");
 
     const fileFd = openGatePath(join(subDir, "file1.txt"));
     const fileBinding = captureOpenedPath(fileFd, repoRoot, {
@@ -73,7 +85,7 @@ describe("gate-path-tree", () => {
   test("rejects when binding budget limit is exceeded", () => {
     const repoRoot = tempRoot("tree-bind");
     const filePath = join(repoRoot, "a.txt");
-    writeFileSync(filePath, "a");
+    vfs.writeFileSync(filePath, "a");
     const fd = openGatePath(filePath);
     try {
       const budget = createGateCaptureBudget();
@@ -103,9 +115,9 @@ describe("gate-path-tree", () => {
   test("rejects directory containing symlinks or unsafe entries", () => {
     const repoRoot = tempRoot("tree-bind");
     const subDir = join(repoRoot, "sub");
-    mkdirSync(subDir);
-    writeFileSync(join(repoRoot, "target.txt"), "target");
-    symlinkSync(join(repoRoot, "target.txt"), join(subDir, "link.txt"));
+    vfs.mkdirSync(subDir);
+    vfs.writeFileSync(join(repoRoot, "target.txt"), "target");
+    createVirtualSymlink(join(repoRoot, "target.txt"), join(subDir, "link.txt"));
 
     const dirFd = openGatePath(subDir);
     try {
@@ -128,8 +140,8 @@ describe("gate-path-tree", () => {
   test("rejects unsafe entries or non-regular files in directory tree", () => {
     const repoRoot = tempRoot("tree-bind");
     const subDir = join(repoRoot, "sub");
-    mkdirSync(subDir);
-    writeFileSync(join(subDir, "file.txt"), "content");
+    vfs.mkdirSync(subDir);
+    vfs.writeFileSync(join(subDir, "file.txt"), "content");
 
     const dirFd = openGatePath(subDir);
     try {
@@ -187,7 +199,7 @@ describe("gate-path-tree", () => {
   test("rejects directory entries exceeding limit or custom directory reader", () => {
     const repoRoot = tempRoot("tree-bind");
     const subDir = join(repoRoot, "sub");
-    mkdirSync(subDir);
+    vfs.mkdirSync(subDir);
     const dirFd = openGatePath(subDir);
     try {
       let readCount = 0;
@@ -215,6 +227,59 @@ describe("gate-path-tree", () => {
           },
         ),
       ).toThrow("gate-bound directory exceeds entry limit");
+    } finally {
+      closeSync(dirFd);
+    }
+  });
+
+  test("captures empty directory tree binding with 0 entries and deterministic sha256", () => {
+    const repoRoot = tempRoot("tree-empty");
+    const emptyDir = join(repoRoot, "empty");
+    vfs.mkdirSync(emptyDir);
+
+    const dirFd = openGatePath(emptyDir);
+    try {
+      const dirBinding = captureOpenedPath(dirFd, repoRoot, {
+        argv_index: 0,
+        argument: "./empty",
+        operand: "./empty",
+        scope: "repository",
+        role: "target",
+        canonical_path: emptyDir,
+        executable: false,
+      });
+      expect(dirBinding.kind).toBe("directory");
+      expect(dirBinding.entries).toBe(0);
+      expect(dirBinding.tree_bytes).toBe(0);
+      expect(dirBinding.tree_sha256).toBeDefined();
+      expect(typeof dirBinding.tree_sha256).toBe("string");
+    } finally {
+      closeSync(dirFd);
+    }
+  });
+
+  test("captures multi-tier nested directory tree recursively in RAM", () => {
+    const repoRoot = tempRoot("tree-nested");
+    const nestedDir = join(repoRoot, "a", "b");
+    vfs.mkdirSync(nestedDir, { recursive: true });
+    vfs.writeFileSync(join(nestedDir, "deep.txt"), "deep-content");
+
+    const topDir = join(repoRoot, "a");
+    const dirFd = openGatePath(topDir);
+    try {
+      const dirBinding = captureOpenedPath(dirFd, repoRoot, {
+        argv_index: 0,
+        argument: "./a",
+        operand: "./a",
+        scope: "repository",
+        role: "target",
+        canonical_path: topDir,
+        executable: false,
+      });
+      expect(dirBinding.kind).toBe("directory");
+      expect(dirBinding.entries).toBe(2);
+      expect(dirBinding.tree_bytes).toBe("deep-content".length);
+      expect(dirBinding.tree_sha256).toBeDefined();
     } finally {
       closeSync(dirFd);
     }

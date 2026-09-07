@@ -1,25 +1,27 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import {
   enforceInfiniteMindCadence,
   inspectRecycleHealth,
   validateRolloverReadiness,
 } from "../../../olt/scripts/src/mind/archival/recycler/reporter.ts";
+import { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/memory-fs.ts";
+import { createVirtualFSSession } from "../../../olt/scripts/src/testing/virtual-fs/spies.ts";
 
 describe("Mind Archival Recycler Reporter (reporter.ts)", () => {
-  let tempDir: string;
-  let feedbackFile: string;
+  let vfs: VirtualMemoryFS;
+  let session: ReturnType<typeof createVirtualFSSession>;
+  const baseDir = "/virtual/mind/archival/reporter";
+  const feedbackFile = `${baseDir}/FEEDBACK_QUEUE.jsonl`;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "mind-reporter-test-"));
-    feedbackFile = join(tempDir, "FEEDBACK_QUEUE.jsonl");
-    writeFileSync(feedbackFile, "");
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    vfs.mkdirSync(baseDir, { recursive: true });
+    vfs.writeFileSync(feedbackFile, "");
   });
 
   afterEach(() => {
-    rmSync(tempDir, { recursive: true, force: true });
+    session.cleanup();
   });
 
   const writeFeedbackLine = (id: string, status: string = "PENDING") => {
@@ -32,7 +34,8 @@ describe("Mind Archival Recycler Reporter (reporter.ts)", () => {
       status,
       timestamp: new Date().toISOString(),
     };
-    writeFileSync(feedbackFile, JSON.stringify(item) + "\n", { flag: "a" });
+    const current = vfs.existsSync(feedbackFile) ? vfs.readFileSync(feedbackFile, "utf8") : "";
+    vfs.writeFileSync(feedbackFile, `${current}${JSON.stringify(item)}\n`);
   };
 
   describe("enforceInfiniteMindCadence", () => {

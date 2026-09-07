@@ -1,7 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import {
@@ -11,24 +8,26 @@ import {
   planAutonomousRoundRecycle,
 } from "../../../olt/scripts/src/mind/archival/recycler/pruner.ts";
 import type { RecycleAssessment } from "../../../olt/scripts/src/mind/archival/recycler/types.ts";
+import { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/memory-fs.ts";
+import { createVirtualFSSession } from "../../../olt/scripts/src/testing/virtual-fs/spies.ts";
 
 const validCharter = `name: "mind"\nrole: "mind"\ntier: 0\ncharter:\n  identity: "Mind Pruner Consciousness"\n  goals:\n    - id: "G1"\n      statement: "Goal 1"\n  cognitive_pillars:\n    - "Pillar 1"\n  non_goals:\n    - "No non-goals"\n  repo_roots:\n    - "."\n`;
 
 describe("Mind Archival Recycler Pruner Suite", () => {
-  let tempDir: string;
-  let repoRoot: string;
-  let charterFile: string;
+  let vfs: VirtualMemoryFS;
+  let session: ReturnType<typeof createVirtualFSSession>;
+  const baseDir = "/virtual/archival/pruner";
+  const repoRoot = baseDir;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "pruner-cov-test-"));
-    repoRoot = tempDir;
-    mkdirSync(join(repoRoot, "olt", "agents"), { recursive: true });
-    charterFile = join(repoRoot, "olt", "agents", "mind.yaml");
-    writeFileSync(charterFile, validCharter);
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    vfs.mkdirSync(`${repoRoot}/olt/agents`, { recursive: true });
+    vfs.writeFileSync(`${repoRoot}/olt/agents/mind.yaml`, validCharter);
   });
 
   afterEach(() => {
-    rmSync(tempDir, { recursive: true, force: true });
+    session.cleanup();
   });
 
   function setupCapsule(runId: string, mindStatus = "active", generation = 1): string {
@@ -154,7 +153,7 @@ describe("Mind Archival Recycler Pruner Suite", () => {
 
   it("executeAutonomicRollover rolls over generation, drains feedback, and compiles wave plan", () => {
     const sourceRunRoot = setupCapsule("rollover-source", "active", 1);
-    const queuePath = join(tempDir, "fb-queue.jsonl");
+    const queuePath = `${baseDir}/fb-queue.jsonl`;
     const fbItem = {
       id: "fb-pruner-1",
       timestamp: "2026-09-01T12:00:00.000Z",
@@ -164,7 +163,7 @@ describe("Mind Archival Recycler Pruner Suite", () => {
       title: "Pruner Feedback Item",
       content: "Ensure pruner drains queue cleanly",
     };
-    writeFileSync(queuePath, `${JSON.stringify(fbItem)}\n`);
+    vfs.writeFileSync(queuePath, `${JSON.stringify(fbItem)}\n`);
 
     const result = executeAutonomicRollover({
       sourceRunRoot,
@@ -190,7 +189,7 @@ describe("Mind Archival Recycler Pruner Suite", () => {
 
   it("executeAutonomicRollover skips feedback drainage when autoDrain is false", () => {
     const sourceRunRoot = setupCapsule("no-drain-source", "active", 1);
-    const queuePath = join(tempDir, "ignored-fb.jsonl");
+    const queuePath = `${baseDir}/ignored-fb.jsonl`;
     const fbItem = {
       id: "fb-ignored",
       timestamp: "2026-09-01T12:00:00.000Z",
@@ -200,7 +199,7 @@ describe("Mind Archival Recycler Pruner Suite", () => {
       title: "Ignored Item",
       content: "Should not be drained",
     };
-    writeFileSync(queuePath, `${JSON.stringify(fbItem)}\n`);
+    vfs.writeFileSync(queuePath, `${JSON.stringify(fbItem)}\n`);
 
     const result = executeAutonomicRollover({
       sourceRunRoot,

@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
 import {
-  formatTaskAssignRepairerBrief,
   formatTaskClaimBrief,
   formatTaskProbeBrief,
   formatTaskReviewPassBrief,
@@ -135,22 +134,5 @@ describe("formatTaskProbeBrief", () => {
       repairRound: 0,
     });
     expect(brief).not.toContain("Config Warning");
-  });
-});
-
-describe("formatTaskAssignRepairerBrief", () => {
-  test("names the replacement agent, the reason, and the evidence for reassignment", () => {
-    const brief = formatTaskAssignRepairerBrief({
-      taskId: "task-1",
-      replacementId: "repairer-2",
-      reason: "original agent's lease expired mid-fix",
-      evidence: "heartbeat gap exceeded grace period",
-    });
-
-    expect(brief).toContain("### Repairer Reassigned: task-1");
-    expect(brief).toContain("**Replacement**: `repairer-2`");
-    expect(brief).toContain("original agent's lease expired mid-fix");
-    expect(brief).toContain("heartbeat gap exceeded grace period");
-    expect(brief).toContain("task:claim --role repairer");
   });
 });

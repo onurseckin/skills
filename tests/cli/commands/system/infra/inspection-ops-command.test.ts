@@ -1,11 +1,12 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import { join } from "node:path";
+
+mock.module("../../../../../olt/scripts/src/engine/store/integrity/integrity.ts", () => ({
+  verifyIntegrity: () => [],
+}));
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { initCapsuleRun, transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
 import type { JsonObject } from "../../../../../olt/scripts/src/core/contracts/index.ts";
-import { registerAgentGrant } from "../../../../../olt/scripts/src/workflow/agents/grants.ts";
-import { stageSessionGrant } from "../../../../../olt/scripts/src/authority/session/index.ts";
-import { writeAgentMetadata } from "../../../../../olt/scripts/src/runtime/index.ts";
 import {
   cleanupVirtualCliFS,
   getVirtualCliFS,
@@ -19,42 +20,6 @@ afterEach(() => {
   cleanupVirtualCliFS();
 });
 
-function registerAgentDirect(run: string, agent: string, role: string, parentAgent?: string): void {
-  stageSessionGrant({ runRoot: run, agentId: agent, role, host: "antigravity" });
-  registerAgentGrant({
-    runRoot: run,
-    agentId: agent,
-    role,
-    parentAgentId: parentAgent ?? null,
-    parentTaskId: null,
-    host: "antigravity",
-    authority: parentAgent
-      ? { kind: "verified_parent", actorId: parentAgent }
-      : { kind: "conditional_genesis" },
-    maxAgents: 20,
-    telemetry: {},
-  });
-  const agentTier = (
-    role === "mind" ? 0 : role === "orchestrator" ? 1 : role === "coordinator" ? 2 : 3
-  ) as 0 | 1 | 2 | 3;
-  writeAgentMetadata(
-    {
-      agent_id: agent,
-      role,
-      token: `token-${agent}`,
-      write_scope: ["tests/core"],
-      allowed_read_scope: ["tests/core", "."],
-      can_execute_shell: true,
-      spawned_at: new Date().toISOString(),
-      tools_granted: [],
-      tier: agentTier,
-      thinking_level: "low",
-      registered_at: new Date().toISOString(),
-    },
-    run,
-  );
-}
-
 function setupInspectionRun(name: string): { repo: string; run: string } {
   const repo = `/virtual/cli/inspection-${name}`;
   const vfs = getVirtualCliFS();
@@ -62,13 +27,6 @@ function setupInspectionRun(name: string): { repo: string; run: string } {
   vfs.mkdirSync(join(repo, "tests/core"), { recursive: true });
   vfs.writeFileSync(join(repo, "gate-core.ts"), "console.log('gate-core');\n");
   const { runRoot } = initCapsuleRun(`inspection-${name}`, { repo });
-  const roster = [
-    ["fixture-mind-root", "mind", undefined],
-    ["fixture-orch-root", "orchestrator", "fixture-mind-root"],
-    ["coordinator", "coordinator", "fixture-orch-root"],
-    ["worker-1", "implementer", "coordinator"],
-  ] as const;
-  for (const [agent, role, parent] of roster) registerAgentDirect(runRoot, agent, role, parent);
 
   transact(runRoot, "test-setup", "init-inspection-state", {}, (draft) => {
     draft.requirements = {
@@ -151,27 +109,23 @@ function setupInspectionRun(name: string): { repo: string; run: string } {
   return { repo, run: runRoot };
 }
 
-async function recordGateCommand(run: string, repo: string, actor: string): Promise<string> {
-  transact(run, "test-setup", "task-validating-for-test", {}, (draft) => {
-    ((draft.tasks as JsonObject)["task-core"] as JsonObject).status = "validating";
+let cmdSeq = 0;
+function recordGateCommand(run: string, _repo: string, actor: string): string {
+  const id = `C-${++cmdSeq}`;
+  transact(run, "test-setup", "seed-command", {}, (draft) => {
+    draft.commands ??= {};
+    (draft.commands as JsonObject)[id] = {
+      id,
+      actor,
+      task_id: "task-core",
+      gate_id: "gate-core",
+      argv: ["bun", "gate-core.ts"],
+      exit_code: 0,
+      duration_ms: 1,
+      cwd: ".",
+    };
   });
-  const result = await execute([
-    "run:exec",
-    "--run",
-    run,
-    "--actor",
-    actor,
-    "--cwd",
-    repo,
-    "--task",
-    "task-core",
-    "--gate",
-    "gate-core",
-    "--",
-    "bun",
-    "gate-core.ts",
-  ]);
-  return (result.record as { id: string }).id;
+  return id;
 }
 
 function seedFinding(run: string, taskId: string, findingId: string): void {
@@ -380,7 +334,7 @@ describe("report:get", () => {
 describe("evidence:get", () => {
   test("without id, lists command evidence, filterable by task/gate/actor", async () => {
     const { repo, run } = setupInspectionRun("evidence-get-list");
-    await recordGateCommand(run, repo, "worker-1");
+    recordGateCommand(run, repo, "worker-1");
 
     const all = await execute(["evidence:get", "--run", run]);
     expect((all.evidence as unknown[]).length).toBe(1);
@@ -415,7 +369,7 @@ describe("evidence:get", () => {
 
   test("--command/--id/--cmd all resolve one command's evidence", async () => {
     const { repo, run } = setupInspectionRun("evidence-get-one");
-    const commandId = await recordGateCommand(run, repo, "worker-1");
+    const commandId = recordGateCommand(run, repo, "worker-1");
     expect((await execute(["evidence:get", "--run", run, "--command", commandId])).command_id).toBe(
       commandId,
     );

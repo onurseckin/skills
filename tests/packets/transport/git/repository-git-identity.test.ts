@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { inspectRepositoryGitIdentity } from "../../../../olt/scripts/src/packets/repository-git-identity.ts";
@@ -10,8 +10,14 @@ import {
 
 const vfs = new VirtualMemoryFS();
 const session = createVirtualFSSession(vfs);
+const originalWait = Atomics.wait;
+
+beforeAll(() => {
+  Atomics.wait = (() => "timed-out") as any;
+});
 
 afterAll(() => {
+  Atomics.wait = originalWait;
   session.cleanup();
   vfs.reset();
 });
@@ -114,5 +120,83 @@ describe("inspectRepositoryGitIdentity", () => {
     expect(() =>
       inspectRepositoryGitIdentity(repo, 1024, 1024 * 1024, 1024 * 1024, { command }),
     ).toThrow("repository Git ref probe returned an accepted status with no output");
+  });
+
+  test("captures detached HEAD state with head_oid present and head_ref null", () => {
+    const { repo, gitDir } = fixtureRepo("git-identity-detached-head-");
+    writeFileSync(join(gitDir, "config.worktree"), "");
+    const identity = inspectRepositoryGitIdentity(repo, 1024, 1024 * 1024, 1024 * 1024, {
+      command: fullCommand(gitDir, { headOid: "b".repeat(40), headRef: undefined }),
+    });
+    expect(identity.available).toBe(true);
+    expect(identity.head_oid).toBe("b".repeat(40));
+    expect(identity.head_ref).toBeNull();
+  });
+
+  test("recovers when probe reports empty on initial attempt and succeeds on retry", () => {
+    const { repo, gitDir } = fixtureRepo("git-identity-retry-recovery-");
+    writeFileSync(join(gitDir, "config.worktree"), "");
+    let verifyAttempts = 0;
+    const command: RepositoryGitCommand = (_repo, argv) => {
+      if (argv[0] === "rev-parse" && argv.includes("--is-inside-work-tree"))
+        return { status: 0, bytes: Buffer.from("true\n") };
+      if (argv[0] === "rev-parse" && argv.includes("--absolute-git-dir"))
+        return { status: 0, bytes: Buffer.from(`${gitDir}\n`) };
+      if (argv[0] === "rev-parse" && argv.includes("--git-common-dir"))
+        return { status: 0, bytes: Buffer.from(`${gitDir}\n`) };
+      if (argv[0] === "rev-parse" && argv.includes("config.worktree"))
+        return { status: 0, bytes: Buffer.from(`${join(gitDir, "config.worktree")}\n`) };
+      if (argv[0] === "rev-parse" && argv.includes("--verify")) {
+        verifyAttempts += 1;
+        if (verifyAttempts === 1) {
+          return { status: 0, bytes: Buffer.alloc(0) };
+        }
+        return { status: 0, bytes: Buffer.from(`${"c".repeat(40)}\n`) };
+      }
+      if (argv[0] === "symbolic-ref")
+        return { status: 0, bytes: Buffer.from("refs/heads/feature\n") };
+      if (argv[0] === "ls-files") return { status: 0, bytes: Buffer.alloc(0) };
+      if (argv[0] === "status") return { status: 0, bytes: Buffer.alloc(0) };
+      if (argv.includes("--null") || argv.includes("--get-regexp"))
+        return { status: 1, bytes: Buffer.alloc(0) };
+      throw new Error(`unexpected git invocation in test: ${argv.join(" ")}`);
+    };
+
+    const identity = inspectRepositoryGitIdentity(repo, 1024, 1024 * 1024, 1024 * 1024, {
+      command,
+    });
+    expect(verifyAttempts).toBe(2);
+    expect(identity.head_oid).toBe("c".repeat(40));
+    expect(identity.head_ref).toBe("refs/heads/feature");
+  });
+
+  test("returns null head_ref when symbolic-ref exits with non-zero status", () => {
+    const { repo, gitDir } = fixtureRepo("git-identity-symref-error-");
+    writeFileSync(join(gitDir, "config.worktree"), "");
+    const command: RepositoryGitCommand = (_repo, argv) => {
+      if (argv[0] === "rev-parse" && argv.includes("--is-inside-work-tree"))
+        return { status: 0, bytes: Buffer.from("true\n") };
+      if (argv[0] === "rev-parse" && argv.includes("--absolute-git-dir"))
+        return { status: 0, bytes: Buffer.from(`${gitDir}\n`) };
+      if (argv[0] === "rev-parse" && argv.includes("--git-common-dir"))
+        return { status: 0, bytes: Buffer.from(`${gitDir}\n`) };
+      if (argv[0] === "rev-parse" && argv.includes("config.worktree"))
+        return { status: 0, bytes: Buffer.from(`${join(gitDir, "config.worktree")}\n`) };
+      if (argv[0] === "rev-parse" && argv.includes("--verify"))
+        return { status: 0, bytes: Buffer.from(`${"d".repeat(40)}\n`) };
+      if (argv[0] === "symbolic-ref")
+        return { status: 128, bytes: Buffer.from("fatal: ref HEAD is not a symbolic ref\n") };
+      if (argv[0] === "ls-files") return { status: 0, bytes: Buffer.alloc(0) };
+      if (argv[0] === "status") return { status: 0, bytes: Buffer.alloc(0) };
+      if (argv.includes("--null") || argv.includes("--get-regexp"))
+        return { status: 1, bytes: Buffer.alloc(0) };
+      throw new Error(`unexpected git invocation: ${argv.join(" ")}`);
+    };
+
+    const identity = inspectRepositoryGitIdentity(repo, 1024, 1024 * 1024, 1024 * 1024, {
+      command,
+    });
+    expect(identity.head_oid).toBe("d".repeat(40));
+    expect(identity.head_ref).toBeNull();
   });
 });

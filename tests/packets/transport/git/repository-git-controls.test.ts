@@ -127,4 +127,38 @@ describe("inspectRepositoryGitControls", () => {
       inspectRepositoryGitControls(repo, baseCommand(gitDir, gitDir), 1024, 100),
     ).toThrow("repository Git controls total byte limit exceeded");
   });
+
+  test("rejects an individual control file exceeding single file byte limit", () => {
+    const { repo, gitDir } = fixtureRepo("git-controls-single-limit-");
+    writeFileSync(join(gitDir, "config.worktree"), "y".repeat(150));
+    expect(() =>
+      inspectRepositoryGitControls(repo, baseCommand(gitDir, gitDir), 100, 1024 * 1024),
+    ).toThrow("repository Git control byte limit exceeded: git-dir/config.worktree");
+  });
+
+  test("digests empty control files without throwing errors", () => {
+    const { repo, gitDir } = fixtureRepo("git-controls-empty-files-");
+    writeFileSync(join(gitDir, "config.worktree"), "");
+    writeFileSync(join(gitDir, "commondir"), `${gitDir}\n`);
+    const manifest = inspectRepositoryGitControls(
+      repo,
+      baseCommand(gitDir, gitDir),
+      1024 * 1024,
+      1024 * 1024,
+    );
+    expect(manifest.bytes).toBeGreaterThan(0);
+    expect(manifest.sha256).toMatch(/^[0-9a-f]{64}$/u);
+  });
+
+  test("rejects when git reports an invalid non-absolute or poisoned git-dir path", () => {
+    const { repo } = fixtureRepo("git-controls-poisoned-path-");
+    const command: RepositoryGitCommand = (_repo, argv) => {
+      if (argv.includes("--absolute-git-dir"))
+        return { status: 0, bytes: Buffer.from("relative/git/dir\n") };
+      return { status: 1, bytes: Buffer.alloc(0) };
+    };
+    expect(() => inspectRepositoryGitControls(repo, command, 1024 * 1024, 1024 * 1024)).toThrow(
+      "repository Git directory path is invalid",
+    );
+  });
 });

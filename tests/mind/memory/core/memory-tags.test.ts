@@ -1,96 +1,36 @@
-/**
- * Unit Test Suite for Memory Decision and Report Document Indexers.
- * Covers indexDecisionDocuments and indexReportDocuments with 100% in-memory virtual filesystem.
- */
-
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
-import * as fs from "node:fs";
-import { normalize } from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { join } from "node:path";
 import {
   indexDecisionDocuments,
   indexReportDocuments,
 } from "../../../../olt/scripts/src/mind/memory/core/tags.ts";
+import { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/memory-fs.ts";
+import { createVirtualFSSession } from "../../../../olt/scripts/src/testing/virtual-fs/spies.ts";
 
 describe("Decision and Report Document Indexers (tags.ts)", () => {
-  const virtualFiles = new Map<string, string>();
-  const virtualDirs = new Set<string>();
-
-  let existsSpy: ReturnType<typeof spyOn>;
-  let readFileSyncSpy: ReturnType<typeof spyOn>;
-  let readdirSpy: ReturnType<typeof spyOn>;
+  let vfs: VirtualMemoryFS;
+  let session: ReturnType<typeof createVirtualFSSession>;
+  const baseDir = "/virtual/mind-memory/tags";
+  const capsulesDir = `${baseDir}/capsules`;
 
   beforeEach(() => {
-    virtualFiles.clear();
-    virtualDirs.clear();
-
-    existsSpy = spyOn(fs, "existsSync").mockImplementation((p) => {
-      const s = normalize(String(p));
-      return virtualFiles.has(s) || virtualDirs.has(s);
-    });
-
-    readFileSyncSpy = spyOn(fs, "readFileSync").mockImplementation((p) => {
-      const s = normalize(String(p));
-      const val = virtualFiles.get(s);
-      if (val === undefined) throw new Error(`ENOENT: ${s}`);
-      return val;
-    });
-
-    readdirSpy = spyOn(fs, "readdirSync").mockImplementation((p, options) => {
-      const s = normalize(String(p));
-      if (!virtualDirs.has(s)) throw new Error(`ENOENT: ${s}`);
-      const entryMap = new Map<string, boolean>(); // name -> isDirectory
-
-      for (const dirPath of virtualDirs) {
-        if (dirPath.startsWith(s) && dirPath !== s) {
-          const rel = dirPath.slice(s.length).replace(/^[/\\]+/, "");
-          const name = rel.split(/[/\\]/)[0];
-          if (name) entryMap.set(name, true);
-        }
-      }
-
-      for (const filePath of virtualFiles.keys()) {
-        if (filePath.startsWith(s) && filePath !== s) {
-          const rel = filePath.slice(s.length).replace(/^[/\\]+/, "");
-          const parts = rel.split(/[/\\]/);
-          const name = parts[0];
-          if (name && !entryMap.has(name)) {
-            entryMap.set(name, parts.length > 1);
-          }
-        }
-      }
-
-      const entries = Array.from(entryMap.entries()).map(([name, isDir]) => ({
-        name,
-        isDirectory: () => isDir,
-        isFile: () => !isDir,
-      }));
-
-      if (
-        typeof options === "object" &&
-        options !== null &&
-        (options as { withFileTypes?: boolean }).withFileTypes
-      ) {
-        return entries as unknown as fs.Dirent[];
-      }
-      return entries.map((e) => e.name) as unknown as string[];
-    });
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    vfs.mkdirSync(capsulesDir, { recursive: true });
   });
 
   afterEach(() => {
-    existsSpy.mockRestore();
-    readFileSyncSpy.mockRestore();
-    readdirSpy.mockRestore();
+    session.cleanup();
   });
 
   describe("indexDecisionDocuments", () => {
     it("returns empty array when capsules directory does not exist or errors", () => {
-      expect(indexDecisionDocuments("/nonexistent/capsules")).toEqual([]);
+      expect(indexDecisionDocuments(`${baseDir}/nonexistent-capsules`)).toEqual([]);
     });
 
     it("indexes candidates and audit records from capsule state.json", () => {
-      const capDir = normalize("/virtual/capsules/mind-gen-2");
-      virtualDirs.add(normalize("/virtual/capsules"));
-      virtualDirs.add(capDir);
+      const capDir = `${capsulesDir}/mind-gen-2`;
+      vfs.mkdirSync(capDir, { recursive: true });
 
       const stateJson = JSON.stringify({
         candidates: [
@@ -119,10 +59,10 @@ describe("Decision and Report Document Indexers (tags.ts)", () => {
         ],
       });
 
-      virtualFiles.set(normalize(`${capDir}/state.json`), stateJson);
+      vfs.writeFileSync(join(capDir, "state.json"), stateJson);
 
-      const docs = indexDecisionDocuments("/virtual/capsules");
-      expect(docs.length).toBe(4); // 2 candidates + 2 audits
+      const docs = indexDecisionDocuments(capsulesDir);
+      expect(docs.length).toBe(4);
 
       const cand1 = docs.find((d) => d.id === "decision-candidate-cand-101");
       expect(cand1).toMatchObject({
@@ -149,42 +89,51 @@ describe("Decision and Report Document Indexers (tags.ts)", () => {
     });
 
     it("handles explicitRun directory and corrupted state.json gracefully", () => {
-      const explicit = normalize("/virtual/explicit/run-gen-5");
-      virtualDirs.add(explicit);
-      virtualFiles.set(normalize(`${explicit}/state.json`), "{ corrupt-json");
+      const explicit = `${baseDir}/explicit/run-gen-5`;
+      vfs.mkdirSync(explicit, { recursive: true });
+      vfs.writeFileSync(join(explicit, "state.json"), "{ corrupt-json");
 
-      const docs = indexDecisionDocuments("/virtual/empty-capsules", "/virtual/explicit/run-gen-5");
+      const docs = indexDecisionDocuments(`${baseDir}/empty-capsules`, explicit);
+      expect(docs).toEqual([]);
+    });
+
+    it("safely ignores non-array candidate and audit fields in state.json", () => {
+      const capDir = `${capsulesDir}/mind-gen-malformed`;
+      vfs.mkdirSync(capDir, { recursive: true });
+      vfs.writeFileSync(
+        join(capDir, "state.json"),
+        JSON.stringify({ candidates: "none", audits: null, other: 123 }),
+      );
+
+      const docs = indexDecisionDocuments(capsulesDir);
       expect(docs).toEqual([]);
     });
   });
 
   describe("indexReportDocuments", () => {
     it("returns empty array when capsules directory does not exist", () => {
-      expect(indexReportDocuments("/virtual/nonexistent")).toEqual([]);
+      expect(indexReportDocuments(`${baseDir}/nonexistent`)).toEqual([]);
     });
 
     it("indexes reports and packet markdown files across capsules", () => {
-      const capDir = normalize("/virtual/capsules/mind-gen-4");
-      const reportsDir = normalize(`${capDir}/reports`);
-      const packetsDir = normalize(`${capDir}/packets`);
-      const packetSubDir = normalize(`${packetsDir}/planner-role`);
+      const capDir = `${capsulesDir}/mind-gen-4`;
+      const reportsDir = `${capDir}/reports`;
+      const packetsDir = `${capDir}/packets`;
+      const packetSubDir = `${packetsDir}/planner-role`;
 
-      virtualDirs.add(normalize("/virtual/capsules"));
-      virtualDirs.add(capDir);
-      virtualDirs.add(reportsDir);
-      virtualDirs.add(packetsDir);
-      virtualDirs.add(packetSubDir);
+      vfs.mkdirSync(reportsDir, { recursive: true });
+      vfs.mkdirSync(packetSubDir, { recursive: true });
 
-      virtualFiles.set(
-        normalize(`${reportsDir}/summary.md`),
+      vfs.writeFileSync(
+        join(reportsDir, "summary.md"),
         "# Final Execution Summary\nAll stages completed successfully.",
       );
-      virtualFiles.set(
-        normalize(`${packetSubDir}/packet.md`),
+      vfs.writeFileSync(
+        join(packetSubDir, "packet.md"),
         "# Planner Packet\nAssigned objectives and invariants.",
       );
 
-      const docs = indexReportDocuments("/virtual/capsules");
+      const docs = indexReportDocuments(capsulesDir);
       expect(docs.length).toBe(2);
 
       const reportDoc = docs.find((d) => d.id === "report-mind-gen-4-summary");
@@ -206,14 +155,14 @@ describe("Decision and Report Document Indexers (tags.ts)", () => {
       expect(packetDoc?.tags).toContain("planner-role");
     });
 
-    it("handles explicitRun for reports indexer", () => {
-      const explicit = normalize("/virtual/explicit-run/mind-gen-9");
-      const reportsDir = normalize(`${explicit}/reports`);
-      virtualDirs.add(explicit);
-      virtualDirs.add(reportsDir);
-      virtualFiles.set(normalize(`${reportsDir}/perf.txt`), "Performance metrics OK.");
+    it("handles explicitRun for reports indexer and ignores directory entries in reports", () => {
+      const explicit = `${baseDir}/explicit-run/mind-gen-9`;
+      const reportsDir = `${explicit}/reports`;
+      const nestedSubDir = `${reportsDir}/sub-directory`;
+      vfs.mkdirSync(nestedSubDir, { recursive: true });
+      vfs.writeFileSync(join(reportsDir, "perf.txt"), "Performance metrics OK.");
 
-      const docs = indexReportDocuments("/virtual/capsules", "/virtual/explicit-run/mind-gen-9");
+      const docs = indexReportDocuments(capsulesDir, explicit);
       expect(docs.length).toBe(1);
       expect(docs[0]?.capsule_id).toBe("mind-gen-9");
       expect(docs[0]?.generation).toBe(9);

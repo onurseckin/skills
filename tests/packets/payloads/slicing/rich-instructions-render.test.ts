@@ -139,19 +139,19 @@ describe("rich instructions - core & contracts", () => {
       expect(packet.markdown).toContain("# planner packet");
     });
 
-    test("embeds uncompromised role contract into repairer packet", () => {
+    test("embeds uncompromised role contract into a re-briefed implementer packet", () => {
       const input = baseImplementer();
       input.task!.original_implementer = "author-agent";
       input.agentId = "author-agent";
       input.task!.lease!.agent_id = "author-agent";
-      input.task!.lease!.role = "repairer";
+      input.task!.lease!.role = "implementer";
       registerTaskPacket(new TestPort(input.state), "implementer", "author-agent", 1);
-      const contract = loadRoleContract("repairer");
+      const contract = loadRoleContract("implementer");
       const packet = buildPacket({
         ...input,
-        role: "repairer",
+        role: "implementer",
         agentId: "author-agent",
-        evidenceSchema: evidenceSchema("repairer"),
+        evidenceSchema: evidenceSchema("implementer"),
         authoritativeContext: {
           ...inspectionContext(),
           findings: [{ id: "F-1", observation: "broken test" }],
@@ -159,8 +159,8 @@ describe("rich instructions - core & contracts", () => {
       });
 
       expect(packet.metadata.role_contract_sha256).toBe(contract.sha256);
-      expect(packet.metadata.role).toBe("repairer");
-      expect(packet.markdown).toContain("# repairer packet");
+      expect(packet.metadata.role).toBe("implementer");
+      expect(packet.markdown).toContain("# implementer packet");
     });
   });
 });

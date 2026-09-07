@@ -17,6 +17,35 @@ import type {
   ThreadIdentification,
 } from "./types.ts";
 
+const HARNESS_TIER_ENV_ROLE_PATTERN =
+  /^(mind-auditor|mind|orchestrator|coordinator|implementer|validator|completeness-critic)/;
+
+function resolveHarnessTierEnv(rawValue: string | undefined): ExecutionTier | null {
+  const direct = parseTierValue(rawValue);
+  if (direct !== null) return direct;
+  if (!rawValue) return null;
+  const normalized = rawValue.trim().toLowerCase();
+  const tierWordMatch = normalized.match(/^tier[-_]?([0-3])$/);
+  if (tierWordMatch) return Number(tierWordMatch[1]) as ExecutionTier;
+  if (HARNESS_TIER_ENV_ROLE_PATTERN.test(normalized)) return roleToTier(normalized);
+  return null;
+}
+
+const ABBREVIATED_AGENT_ID_PREFIXES: ReadonlyArray<readonly [string, string]> = [
+  ["orch", "orchestrator"],
+  ["coord", "coordinator"],
+];
+
+function resolveAbbreviatedAgentId(
+  agentId: string,
+): { readonly role: string; readonly tier: ExecutionTier } | null {
+  const normalized = agentId.toLowerCase().trim();
+  for (const [prefix, role] of ABBREVIATED_AGENT_ID_PREFIXES) {
+    if (normalized.startsWith(prefix)) return { role, tier: roleToTier(role) };
+  }
+  return null;
+}
+
 export function detectHostApp(env: NodeJS.ProcessEnv | Record<string, string | undefined>): string {
   const termProgram = env["TERM_PROGRAM"]?.toLowerCase() || "";
 
@@ -90,7 +119,7 @@ export function identifyExecutionContext(
     }
   }
 
-  const explicitTierEnv = parseTierValue(env.HARNESS_EXECUTION_TIER);
+  const explicitTierEnv = resolveHarnessTierEnv(env.HARNESS_EXECUTION_TIER);
   const explicitRole = options.role ?? env.HARNESS_AGENT_ROLE ?? env.AGENT_ROLE ?? env.ROLE ?? null;
   const explicitAgentId = options.agentId ?? env.HARNESS_AGENT_ID ?? env.AGENT_ID ?? null;
 
@@ -114,7 +143,7 @@ export function identifyExecutionContext(
 
   let tier: ExecutionTier = 3;
   let inferredRole: string | null = explicitRole;
-  let inferredAgentId: string | null = explicitAgentId;
+  const inferredAgentId: string | null = explicitAgentId;
 
   if (options.tier !== undefined) {
     tier = options.tier;
@@ -135,10 +164,11 @@ export function identifyExecutionContext(
   } else if (explicitRole !== null) {
     tier = roleToTier(explicitRole);
   } else if (explicitAgentId !== null) {
-    const tierFromAgent = agentIdToTier(explicitAgentId);
-    tier = tierFromAgent ?? 3;
+    const strictTier = agentIdToTier(explicitAgentId);
+    const abbreviated = strictTier === null ? resolveAbbreviatedAgentId(explicitAgentId) : null;
+    tier = strictTier ?? abbreviated?.tier ?? 3;
     if (inferredRole === null) {
-      inferredRole = agentIdToRole(explicitAgentId);
+      inferredRole = agentIdToRole(explicitAgentId) ?? abbreviated?.role ?? null;
     }
   } else if (hasInteractiveMainIndicator) {
     tier = 0;

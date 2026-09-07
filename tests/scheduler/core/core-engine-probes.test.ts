@@ -163,6 +163,20 @@ describe("Core Scheduler Engine — 5-Point Graph Health Probes", () => {
       expect(result.passed).toBeFalse();
       expect(result.hasCycles).toBeTrue();
     });
+
+    test("detects 3-node transitive circular dependency (A -> B -> C -> A)", () => {
+      const state = schedulerState();
+      const graph = state.graph as Record<string, unknown>;
+      const edges = graph.edges as Record<string, string>[];
+      edges.push({ source: "newer", target: "older", type: "depends_on" });
+      edges.push({ source: "low-effort", target: "newer", type: "depends_on" });
+      edges.push({ source: "older", target: "low-effort", type: "depends_on" });
+
+      const result = probeCircularDependencies(state);
+      expect(result.passed).toBeFalse();
+      expect(result.hasCycles).toBeTrue();
+      expect(result.cycleDescriptions.length).toBeGreaterThan(0);
+    });
   });
 
   describe("Probe 4: Gate Coverage Violations", () => {
@@ -246,6 +260,20 @@ describe("Core Scheduler Engine — 5-Point Graph Health Probes", () => {
       expect(result.passed).toBeTrue();
       expect(result.candidateCollisions.length).toBe(1);
       expect(result.candidateCollisions[0]!.resourceScopeOverlap).toBeTrue();
+    });
+
+    test("detects deep wildcard glob collision (src/common/** vs src/common/nested/deep/file.ts)", () => {
+      const state = schedulerState();
+      const tasks = state.tasks as Record<string, Record<string, unknown>>;
+      tasks.priority!.status = "running";
+      tasks.priority!.write_scope = ["src/common/**"];
+      tasks.deep!.status = "running";
+      tasks.deep!.write_scope = ["src/common/nested/deep/file.ts"];
+
+      const result = probeScopeCollisionHazards(state);
+      expect(result.passed).toBeFalse();
+      expect(result.activeCollisions.length).toBe(1);
+      expect(result.activeCollisions[0]!.writeScopeOverlap).toBeTrue();
     });
   });
 

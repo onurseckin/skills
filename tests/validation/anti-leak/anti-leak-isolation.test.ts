@@ -77,33 +77,33 @@ describe("Anti-Boundary-Leak Rule & Automated Repair Delegation", () => {
 
       expect(order.task_id).toBe("task-p08-anti-leak");
       expect(order.original_implementer).toBe("implementer_task-p08-anti-leak");
-      expect(order.assigned_repairer).toBe("repairer-p08-anti-leak");
+      expect(order.assigned_repairer).toBe("implementer-p08-anti-leak");
       expect(order.validator_id).toBe("validator_task-p08-anti-leak");
       expect(order.finding_ids).toEqual(["FINDING-001", "FINDING-002"]);
       expect(order.write_scope.length).toBe(2);
       expect(order.reason).toBe("finding_remediation");
       expect(order.repair_round).toBe(1);
       expect(order.command).toContain("task:claim");
-      expect(order.command).toContain("--role repairer");
-      expect(order.command).toContain("--agent repairer-p08-anti-leak");
+      expect(order.command).toContain("--role implementer");
+      expect(order.command).toContain("--agent implementer-p08-anti-leak");
       expect(order.generated_at).toBeDefined();
     });
 
-    it("respects explicitly assigned repairers if distinct from validator", () => {
+    it("respects explicitly assigned repair implementers if distinct from validator", () => {
       const order = delegateRepairTask({
         taskId: "task-perf-01",
         originalImplementer: "impl-alice",
-        assignedRepairer: "repairer-bob",
+        assignedRepairer: "implementer-bob",
         validatorId: "val-carol",
         writeScope: ["src/perf.ts"],
         repairRound: 2,
         reason: "repeated_failure",
       });
 
-      expect(order.assigned_repairer).toBe("repairer-bob");
+      expect(order.assigned_repairer).toBe("implementer-bob");
       expect(order.repair_round).toBe(2);
       expect(order.reason).toBe("repeated_failure");
-      expect(order.command).toContain("--agent repairer-bob");
+      expect(order.command).toContain("--agent implementer-bob");
     });
 
     it("rejects repair delegation when assigned repairer equals validatorId (anti-leak violation)", () => {

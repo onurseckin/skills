@@ -31,6 +31,44 @@ function shortDigest(value: string): string {
   return createHash("sha256").update(value).digest("hex").slice(0, 8);
 }
 
+const STANDARD_COMPACT_AGENTS: Array<{ role: string; tier: number; desc: string }> = [
+  { role: "mind", tier: 0, desc: "Autonomous consciousness" },
+  { role: "orchestrator", tier: 1, desc: "Plan supervisor" },
+  { role: "coordinator", tier: 2, desc: "Wave execution" },
+  { role: "implementer", tier: 3, desc: "Scoped modular implementer" },
+  { role: "validator", tier: 3, desc: "Adversarial verifier" },
+];
+
+export function getCompactAgentManifestFiles(): Array<{ filename: string; content: string }> {
+  const files: Array<{ filename: string; content: string }> = [];
+  for (const a of STANDARD_COMPACT_AGENTS) {
+    const yaml = `name: "${a.role}"\nrole: "${a.role}"\ntier: ${a.tier}\ninterface:\n  display_name: "${a.role.toUpperCase()} Agent"\n  short_description: "${a.desc}"\n  role: "${a.role}"\n  tier: ${a.tier}\npermissions:\n  may:\n    - "task:claim"\n  must_not:\n    - "boundary:breach"\ninstructions: "${a.desc}"\n`;
+    files.push({ filename: `${a.role}.yaml`, content: yaml });
+
+    const md = `---\nname: "${a.role}"\nrole: "${a.role}"\ntier: ${a.tier}\npermissions:\n  may:\n    - "task:claim"\n  must_not:\n    - "boundary:breach"\n---\n# Role: ${a.role}\n\n${a.desc}\n`;
+    files.push({ filename: `${a.role}.md`, content: md });
+  }
+  return files;
+}
+
+export function seedVirtualAuthorityManifests(
+  vfsInstance: VirtualMemoryFS = vfs,
+  rootDir = "/virtual/skills",
+): void {
+  const files = getCompactAgentManifestFiles();
+  const targetDirs = [
+    path.join(rootDir, "agents"),
+    path.join(rootDir, "olt", "agents"),
+    path.join(rootDir, ".olt", "agents"),
+  ];
+  for (const dir of targetDirs) {
+    vfsInstance.mkdirSync(dir, { recursive: true });
+    for (const item of files) {
+      vfsInstance.writeFileSync(path.join(dir, item.filename), item.content);
+    }
+  }
+}
+
 export function setupVirtualAuthorityFS(): VirtualMemoryFS {
   cleanupVirtualAuthorityFS();
   vfs = new VirtualMemoryFS();
@@ -42,6 +80,8 @@ export function setupVirtualAuthorityFS(): VirtualMemoryFS {
     JSON.stringify(generateCanonicalDefaultPolicy(repoRoot, "bun")),
   );
   vfs.chdir(repoRoot);
+
+  seedVirtualAuthorityManifests(vfs, "/virtual/skills");
 
   session = createVirtualFSSession(vfs);
   restoreDefectDeps = setDefectLogDependenciesForTesting({
@@ -87,4 +127,23 @@ export function scratchRoot(callerPath = "authority-test", label = "test"): stri
 
 export function createSandboxDir(label = "sandbox"): string {
   return scratchRoot("sandbox", label);
+}
+
+export function createSymlinkInVirtualAuthorityFS(target: string, linkPath: string): void {
+  if (session) {
+    session.symlinkSync(target, linkPath);
+  }
+}
+
+export function openSync(filePath: string, flags: string | number = "w+"): number {
+  if (!session) {
+    setupVirtualAuthorityFS();
+  }
+  return session!.openSync(filePath, flags);
+}
+
+export function closeSync(descriptor: number): void {
+  if (session) {
+    session.closeSync(descriptor);
+  }
 }

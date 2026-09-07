@@ -45,9 +45,9 @@ export function evaluateAntiStagnation(
   const isZeroDelta =
     input.previousSignature !== undefined && currentSig === input.previousSignature;
 
-  let zeroDeltaCycles = isZeroDelta ? 1 : 0;
-  let maintenanceCycles = input.synthesizedCount === 0 && input.enqueuedCount === 0 ? 1 : 0;
-  let lastProgress = isZeroDelta ? memory.last_updated : nowIso;
+  const zeroDeltaCycles = isZeroDelta ? 1 : 0;
+  const maintenanceCycles = input.synthesizedCount === 0 && input.enqueuedCount === 0 ? 1 : 0;
+  const lastProgress = isZeroDelta ? memory.last_updated : nowIso;
 
   const isCreativeStagnant =
     zeroDeltaCycles >= zeroDeltaThreshold || maintenanceCycles >= maintenanceThreshold;

@@ -76,7 +76,7 @@ describe("PeerLivenessMonitor", () => {
   });
 
   it("marks peer as alive upon receiving positive heartbeat", () => {
-    let mockTime = 5000;
+    const mockTime = 5000;
     const monitor = new PeerLivenessMonitor({
       missed_beat_threshold: 2,
       default_interval_ms: 2000,

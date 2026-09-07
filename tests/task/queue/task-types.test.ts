@@ -231,4 +231,37 @@ describe("Task Queue Types & Schema Validation", () => {
     expect(activeItem.taskId).toBe("task-active-01");
     expect(TASK_QUEUE_SUITES.length).toBe(6);
   });
+
+  it("handles edge values and boundary deserialization accurately", () => {
+    const minimal: Record<string, unknown> = {
+      id: "min-task-01",
+      status: "PENDING",
+      write_scope: ["src/min.ts"],
+    };
+    const item = deserializeTaskQueueItem(minimal);
+    expect(item.priority).toBe("MEDIUM");
+    expect(item.source_type).toBe("self_evolution");
+    expect(item.retry_count).toBe(0);
+    expect(item.max_retries).toBe(3);
+    expect(item.title).toBe("");
+    expect(item.dependencies).toEqual([]);
+    expect(item.charter_goals).toEqual([]);
+    expect(item.acceptance_criteria).toEqual([]);
+
+    expect(() => deserializeTaskQueueItem({ ...minimal, status: "NONEXISTENT" })).toThrow(
+      HarnessError,
+    );
+
+    expect(() => deserializeTaskQueueItem({ ...minimal, write_scope: "not-an-array" })).toThrow(
+      HarnessError,
+    );
+
+    const withNonArrayDeps = deserializeTaskQueueItem({
+      ...minimal,
+      dependencies: "invalid" as unknown as string[],
+    });
+    expect(withNonArrayDeps.dependencies).toEqual([]);
+
+    expect(() => deserializeTaskQueueItem({ ...minimal, id: 99999 })).toThrow(HarnessError);
+  });
 });

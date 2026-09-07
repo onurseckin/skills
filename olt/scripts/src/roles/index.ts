@@ -1,13 +1,13 @@
 export { renderAsciiRoleTable } from "./ascii-table.ts";
 export { FORBIDDEN_VALIDATOR_COMMANDS, validateRoleAuthorityInvariants } from "./authority.ts";
+export { CANONICAL_ROLE_CAPABILITIES } from "./capability-matrix.ts";
 export {
-  CANONICAL_ROLE_CAPABILITIES,
   evaluateWatchdogRoleBoundary,
   getRoleCapabilities,
   isCodeWritePermitted,
   isCommandPermitted,
   isSubagentSpawnPermitted,
-} from "./capability-matrix.ts";
+} from "./role-boundary.ts";
 export {
   formatUniversalCheatSheet,
   generateRoleCheatSheet,

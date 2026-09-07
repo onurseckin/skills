@@ -36,7 +36,7 @@ function captureFixture(overrides: Record<string, unknown> = {}) {
     blob_path: `blobs/ee/${"e".repeat(64)}`,
     path: "evidence/shot.png",
     storage: "hardlink",
-    original_path: "/tmp/shot.png",
+    original_path: "/virtual/tmp/shot.png",
     ...overrides,
   };
 }
@@ -244,5 +244,38 @@ describe("verifyBlobContents", () => {
     mkdirSync(join(shardDir, digest));
     const found = verifyBlobContents(root);
     expect(found).toEqual([expect.objectContaining({ code: "BLOB_UNREADABLE" })]);
+  });
+
+  test("edge cases: corrupt captures.json, zero-byte blobs, and symlinked view detection", () => {
+    // 1. Corrupt captures.json
+    const rootCorrupt = scratchRoot("edge-case-corrupt-captures");
+    writeFileSync(join(rootCorrupt, "captures.json"), "{ broken json syntax");
+    expect(verifyCapsuleLayout(rootCorrupt)).toEqual([]);
+
+    writeFileSync(join(rootCorrupt, "captures.json"), "");
+    expect(verifyCapsuleLayout(rootCorrupt)).toEqual([]);
+
+    // 2. Zero-byte blob verification
+    const rootZero = scratchRoot("edge-case-zero-byte-blob");
+    const emptySource = join(rootZero, "empty.txt");
+    writeFileSync(emptySource, "");
+    const put = putBlobFile(rootZero, emptySource);
+    expect(put.sha256).toBe("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+    expect(verifyBlobContents(rootZero)).toEqual([]);
+
+    // Zero-byte hardlink capture
+    mkdirSync(join(rootZero, "evidence"), { recursive: true });
+    const viewPath = join(rootZero, "evidence", "empty.png");
+    linkSync(join(rootZero, put.path), viewPath);
+    writeCaptures(rootZero, [
+      captureFixture({
+        name: "empty.png",
+        sha256: put.sha256,
+        bytes: 0,
+        blob_path: put.path,
+        path: "evidence/empty.png",
+      }),
+    ]);
+    expect(verifyCapsuleLayout(rootZero)).toEqual([]);
   });
 });

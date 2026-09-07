@@ -54,7 +54,7 @@ describe("role-grant pure helpers", () => {
 
     // Execution tools on mechanic validator succeed
     expect(() =>
-      assertGrantedRoleTools("mechanic-validator", [{ name: "run:exec", category: "shell" }]),
+      assertGrantedRoleTools("ui-headless-validator", [{ name: "run:exec", category: "shell" }]),
     ).not.toThrow();
   });
 });

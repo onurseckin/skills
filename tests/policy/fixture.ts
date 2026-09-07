@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import * as fs from "node:fs";
 import * as path from "node:path";
 import {
   createVirtualFSSession,
@@ -69,6 +70,39 @@ export function cleanupVirtualPolicyFS(): void {
 export function getVirtualPolicyFS(): VirtualMemoryFS {
   return vfs;
 }
+
+export function getVirtualPolicySession(): VirtualFSSession | undefined {
+  return session;
+}
+
+export function chmodSync(filePath: fs.PathLike, mode: fs.Mode): void {
+  if (session) {
+    session.chmodSync(filePath, mode);
+  } else {
+    fs.chmodSync(filePath, mode);
+  }
+}
+
+export function symlinkSync(target: fs.PathLike, linkPath: fs.PathLike): void {
+  if (session) {
+    session.symlinkSync(String(target), String(linkPath));
+  } else {
+    fs.symlinkSync(target, linkPath);
+  }
+}
+
+export function linkSync(src: fs.PathLike, dst: fs.PathLike): void {
+  fs.linkSync(src, dst);
+}
+
+export function renameSync(oldPath: fs.PathLike, newPath: fs.PathLike): void {
+  fs.renameSync(oldPath, newPath);
+}
+
+export function fstatSync(fd: number, opts?: fs.StatOptions): fs.Stats {
+  return fs.fstatSync(fd, opts);
+}
+
 
 export function scratchRoot(callerPath = "policy-test", label = "test"): string {
   const currentFs = setupVirtualPolicyFS();

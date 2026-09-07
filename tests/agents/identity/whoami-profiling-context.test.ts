@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, beforeAll } from "bun:test";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -10,6 +10,13 @@ import { whoamiCommand } from "../../../olt/scripts/src/cli/commands/whoami.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { registerAgentGrant } from "../../../olt/scripts/src/workflow/agents/grants.ts";
 import { cleanupVirtualAgentsFS, scratchRoot, setupVirtualAgentsFS } from "../fixture.ts";
+
+beforeAll(() => {
+  setupVirtualAgentsFS();
+  const run = createWhoamiRun("warmup");
+  whoamiCommand({ run });
+  cleanupVirtualAgentsFS();
+});
 
 beforeEach(() => {
   setupVirtualAgentsFS();
@@ -232,6 +239,65 @@ describe("Agent Whoami Profiling - Context & Actions", () => {
         `bun harness.ts task:review --run ${run} --task ${taskId} --validator ${validatorId}`,
       );
       expect(md).not.toContain("agent:register");
+    });
+
+    it("handles non-existent virtual run path gracefully without crashing", () => {
+      const nonExistentRun = "/virtual/agents-scratch/nonexistent-run-capsule";
+      const result = whoamiCommand({
+        run: nonExistentRun,
+        agent: "worker-isolated",
+        pid: 8888,
+      });
+
+      expect(result.pid).toBe(8888);
+      expect(result.agent_id).toBe("worker-isolated");
+      expect(result.active_grants).toEqual([]);
+      expect(result.active_leases).toEqual([]);
+      expect(String(result.markdown)).toContain("Thread Authority Identification");
+    });
+
+    it("filters next-action suggestions to only recommend tasks leased to the active agent", () => {
+      const run = createWhoamiRun("multi-agent-leases");
+      registerAgentGrant({
+        runRoot: run,
+        agentId: "worker-1",
+        role: "implementer",
+        parentAgentId: null,
+        parentTaskId: null,
+        host: "test-host",
+        authority: { kind: "conditional_genesis" },
+        maxAgents: 10,
+        telemetry: {},
+        now: new Date(),
+      });
+      transact(run, "test", "seed-multi-leases", {}, (draft) => {
+        draft.tasks = {
+          "task-worker-1": {
+            id: "task-worker-1",
+            status: "claimed",
+            lease: {
+              agent_id: "worker-1",
+              role: "implementer",
+              expires_at: "2026-08-19T01:00:00.000Z",
+            },
+          },
+          "task-worker-2": {
+            id: "task-worker-2",
+            status: "claimed",
+            lease: {
+              agent_id: "worker-2",
+              role: "implementer",
+              expires_at: "2026-08-19T01:00:00.000Z",
+            },
+          },
+        };
+      });
+
+      const result = whoamiCommand({ run, agent: "worker-1" });
+      const md = String(result.markdown);
+      expect(md).toContain("task:heartbeat --run " + run + " --task task-worker-1 --agent worker-1");
+      expect(md).toContain("task:submit --run " + run + " --task task-worker-1 --agent worker-1");
+      expect(md).not.toContain("task-worker-2");
     });
   });
 });

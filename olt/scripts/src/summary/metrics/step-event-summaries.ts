@@ -230,15 +230,6 @@ function systemNarration(
     }
     case "stale-recovery":
       return { phase: "system", summary: `Stale lease recovery run by ${event.actor}` };
-    case "replacement-repairer-assigned": {
-      const taskId = textField(p, "task_id") ?? "an unrecorded task";
-      const replacementId = textField(p, "replacement_id") ?? "an unrecorded agent";
-      const reason = textField(p, "reason") ?? "no reason recorded";
-      return {
-        phase: "repair",
-        summary: `Task ${taskId} reassigned to ${replacementId} by ${event.actor}: ${reason}`,
-      };
-    }
     case "orphan-evidence-dispositioned": {
       const orphanSha = textField(p, "orphan_sha256");
       return {

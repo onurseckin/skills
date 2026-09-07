@@ -139,7 +139,11 @@ export function checkPolicyDoctor(options: PolicyDoctorCheckOptions = {}): Docto
         severity: "INFO",
         engine: "checkPolicyDoctor",
         message: "Unit testing is disabled in repository policy (.olt/policy.json)",
-        details: { testRunner: activePolicy.test_runner },
+        details: {
+          testRunner: activePolicy.test_runner,
+          testExecution: activePolicy.test_execution,
+          unitTest: activePolicy.unit_test,
+        },
       });
     }
   }

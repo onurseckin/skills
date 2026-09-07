@@ -69,8 +69,10 @@ export function commandMatchesGate(command: CommandRecord, gate: GateRuntime): b
   const expected = bound(gate);
   return (
     command.assurance === TRUSTED_HOST_ASSURANCE &&
-    command.repository_before != null &&
-    command.repository_after != null &&
+    command.repository_before !== null &&
+    command.repository_before !== undefined &&
+    command.repository_after !== null &&
+    command.repository_after !== undefined &&
     sameTrustedHostRepositoryBinding(command.repository_before, command.repository_after) &&
     embeddedCommandIssues(command).length === 0 &&
     gatePathBindingIssues(

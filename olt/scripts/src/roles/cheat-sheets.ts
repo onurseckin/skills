@@ -262,11 +262,11 @@ export function generateRoleCheatSheet(
     !prose.proseRules.some((r) => r.toLowerCase().includes("anti-boundary-leak"))
   ) {
     const rule =
-      "**Anti-Boundary-Leak Rule**: Strictly prohibited from claiming code write leases or editing source files; failures must be recorded via findings and delegated to an assigned repairer.";
+      "**Anti-Boundary-Leak Rule**: Strictly prohibited from claiming code write leases or editing source files; failures must be recorded via findings and delegated to the assigned implementer.";
     antiLeakRules.push(rule);
     if (!invariants.some((i) => i.toLowerCase().includes("anti-boundary-leak"))) {
       invariants.push(
-        "Anti-Boundary-Leak Rule: Strictly prohibited from claiming code write leases or editing source files; failures must be recorded via findings and delegated to an assigned repairer.",
+        "Anti-Boundary-Leak Rule: Strictly prohibited from claiming code write leases or editing source files; failures must be recorded via findings and delegated to the assigned implementer.",
       );
     }
   }

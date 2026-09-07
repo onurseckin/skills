@@ -122,8 +122,8 @@ export class EmpiricalCrucibleEngine {
       ...existing,
       candidateResults: uniqueCandidates,
       empiricalData: {
-        ...(existing.empiricalData ?? {}),
-        ...(data.empiricalData ?? {}),
+        ...existing.empiricalData,
+        ...data.empiricalData,
       },
       ...(data.artifacts !== undefined
         ? { artifacts: [...(existing.artifacts ?? []), ...data.artifacts] }

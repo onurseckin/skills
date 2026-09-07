@@ -178,7 +178,7 @@ Our documentation follows the **Diátaxis Documentation Framework**, systematica
 ### 2. Canonical Skill Specification (`olt`)
 
 - [**OLT Skill Specification (SKILL.md)**](../olt/SKILL.md): The canonical agent skill entry point containing trigger keywords, operational invariants, and workflow lifecycle.
-- [**OLT Agent Descriptors**](../olt/agents/): YAML-based agent personas and assistant configurations (`mind.yaml`, `orchestrator.yaml`, `coordinator.yaml`, `implementer.yaml`, `validator.yaml`, `repairer.yaml`, `completeness-critic.yaml`, and platform-specific descriptors).
+- [**OLT Agent Descriptors**](../olt/agents/): YAML-based agent personas and assistant configurations (`mind.yaml`, `orchestrator.yaml`, `coordinator.yaml`, `implementer.yaml`, `validator.yaml`, `completeness-critic.yaml`, and platform-specific descriptors).
 - [**Operational Checklists**](../olt/checklists/): Structured quality checklists used during implementation and adversarial reviews.
 
 ### 3. Technical Reference Manuals and Protocol Specifications

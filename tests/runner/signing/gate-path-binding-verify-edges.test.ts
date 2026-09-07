@@ -81,6 +81,32 @@ describe("resolvePathExecutable", () => {
       "gate executable is not resolvable: does-not-exist-anywhere",
     );
   });
+
+  test("resolves symlinked executables on PATH to their canonical realpath", async () => {
+    const root = await repoRoot();
+    const bin = join(root, "bin");
+    const lib = join(root, "lib");
+    await mkdir(bin);
+    await mkdir(lib);
+    const target = join(lib, "actual-tool");
+    await writeFile(target, "#!/bin/sh\nexit 0\n");
+    await chmod(target, 0o700);
+    const link = join(bin, "tool-link");
+    const { symlink } = await import("node:fs/promises");
+    await symlink(target, link);
+    expect(resolvePathExecutable("tool-link", bin)).toBe(realpathSync(target));
+  });
+
+  test("handles PATH strings with redundant consecutive and trailing delimiters", async () => {
+    const root = await repoRoot();
+    const bin = join(root, "bin");
+    await mkdir(bin);
+    const tool = join(bin, "my-tool");
+    await writeFile(tool, "#!/bin/sh\nexit 0\n");
+    await chmod(tool, 0o700);
+    const redundantPath = `${delimiter}${delimiter}${bin}${delimiter}${delimiter}`;
+    expect(resolvePathExecutable("my-tool", redundantPath)).toBe(realpathSync(tool));
+  });
 });
 
 describe("gatePathBindingIssues error handling", () => {

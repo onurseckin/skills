@@ -1,8 +1,5 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
-import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { transact } from "../../../olt/scripts/src/engine/store/index.ts";
+import { afterAll, beforeAll, describe, expect, mock, test } from "bun:test";
+import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import {
   buildUnifiedReport,
   formatLeaseDecisions,
@@ -13,96 +10,106 @@ import {
 } from "../../../olt/scripts/src/reporting/index.ts";
 import { cleanupVirtualReportingFS, setupVirtualReportingFS, tempDir } from "../fixture.ts";
 
+mock.module("../../../olt/scripts/src/engine/store/integrity/integrity.ts", () => ({
+  verifyIntegrity: () => [],
+}));
+
 export const unifiedReportSuiteName = "Unified Master Reporting Dashboard";
 
-async function createTestRun(name: string): Promise<{ repo: string; run: string }> {
+function createTestRun(name: string): { repo: string; run: string } {
   const repo = tempDir(`unified-report-test-${name}`);
-  await mkdir(join(repo, ".git"), { recursive: true });
-  await mkdir(join(repo, ".olt"), { recursive: true });
-  const promptPath = join(repo, "prompt.txt");
-  await writeFile(
-    promptPath,
-    "Unified dashboard requirement line 1.\nUnified dashboard requirement line 2.\n",
-  );
-
-  const init = await execute([
-    "plan:init",
-    "--repo",
+  const run = initRun(
     repo,
-    "--run",
     name,
-    "--prompt-file",
-    promptPath,
-  ]);
-  return { repo, run: init.run_root as string };
+    new TextEncoder().encode(
+      "Unified dashboard requirement line 1.\nUnified dashboard requirement line 2.\n",
+    ),
+    "file",
+    true,
+  );
+  return { repo, run };
 }
 
 describe(unifiedReportSuiteName, () => {
-  beforeEach(() => {
+  beforeAll(() => {
     setupVirtualReportingFS();
   });
 
-  afterEach(() => {
+  afterAll(() => {
     cleanupVirtualReportingFS();
   });
 
-  test("buildUnifiedReport and generateUnifiedReport assemble dashboard view", async () => {
-    const { repo, run } = await createTestRun("test-dashboard-view");
-    await mkdir(join(repo, "src/core"), { recursive: true });
-    await writeFile(join(repo, "gate.ts"), "console.log('gate');\n");
-
-    await execute([
-      "plan:add",
-      "--run",
-      run,
-      "--id",
-      "task-core",
-      "--label",
-      "Core Engine",
-      "--scope",
-      "src/core",
-      "--gate",
-      "bun gate.ts",
-      "--requirement-lines",
-      "1",
-      "--actor",
-      "planner",
-    ]);
-
-    await execute(["plan:brainstorm", "--run", run, "--actor", "planner"]);
-    await execute([
-      "plan:compile",
-      "--run",
-      run,
-      "--actor",
-      "planner",
-      "--completion-gate",
-      "bun test tests",
-    ]);
-
-    await execute([
-      "agent:register",
-      "--run",
-      run,
-      "--agent",
-      "implementer_03",
-      "--role",
-      "implementer",
-      "--host",
-      "cli",
-    ]);
-
-    await execute([
-      "task:claim",
-      "--run",
-      run,
-      "--task",
-      "task-core",
-      "--agent",
-      "implementer_03",
-      "--role",
-      "implementer",
-    ]);
+  test("buildUnifiedReport and generateUnifiedReport assemble dashboard view", () => {
+    const { run } = createTestRun("test-dashboard-view");
+    transact(run, "planner", "plan-applied", {}, (state) => {
+      state.graph = {
+        revision: 1,
+        gates: [
+          {
+            id: "G-core",
+            command: ["bun", "gate.ts"],
+            cwd: ".",
+            scope: "task",
+            requirement_ids: ["R-1"],
+            mandatory: true,
+          },
+          {
+            id: "G-completion",
+            command: ["bun", "test", "tests"],
+            cwd: ".",
+            scope: "run",
+            requirement_ids: [],
+            mandatory: true,
+          },
+        ],
+      };
+      state.requirements = {
+        requirements: [{ id: "R-1", text: "Core Engine", status: "planned" }],
+      };
+      state.agents = [
+        {
+          id: "coordinator",
+          agent_id: "coordinator",
+          role: "coordinator",
+          tier: 1,
+          status: "active",
+        },
+        {
+          id: "implementer_03",
+          agent_id: "implementer_03",
+          role: "implementer",
+          tier: 2,
+          status: "active",
+          host: "cli",
+        },
+      ];
+      state.tasks = {
+        "task-core": {
+          id: "task-core",
+          label: "Core Engine",
+          status: "leased",
+          requirement_ids: ["R-1"],
+          dependencies: [],
+          write_scope: ["src/core"],
+          attempts: [],
+          history: [],
+          repair_round: 0,
+          lease: {
+            agent_id: "implementer_03",
+            agent: "implementer_03",
+            role: "implementer",
+            attempt: 1,
+            token_digest: "tok-test",
+            issued_at: "2026-08-29T16:00:00.000Z",
+            expires_at: "2026-08-29T17:00:00.000Z",
+            duration_seconds: 3600,
+            write_scope: ["src/core"],
+            resource_scope: [],
+          },
+          validations: [],
+        },
+      };
+    });
 
     const reportViaBuilder = buildUnifiedReport({ runRoot: run, detailed: true });
     const reportViaGenerator = generateUnifiedReport(run, { detailed: true });
@@ -196,66 +203,84 @@ describe(unifiedReportSuiteName, () => {
     expect(ctx.revision).toBe(1);
   });
 
-  test("transacted multi-agent micro-cycle telemetry is reflected in tracking matrix", async () => {
-    const { repo, run } = await createTestRun("micro-cycle-tracking");
-    await mkdir(join(repo, "src/auth"), { recursive: true });
-    await writeFile(join(repo, "gate.ts"), "console.log('gate');\n");
-
-    await execute([
-      "plan:add",
-      "--run",
-      run,
-      "--id",
-      "task-auth",
-      "--label",
-      "Auth Module",
-      "--scope",
-      "src/auth",
-      "--gate",
-      "bun gate.ts",
-      "--requirement-lines",
-      "1",
-      "--actor",
-      "planner",
-    ]);
-
-    await execute(["plan:brainstorm", "--run", run, "--actor", "planner"]);
-    await execute([
-      "plan:compile",
-      "--run",
-      run,
-      "--actor",
-      "planner",
-      "--completion-gate",
-      "bun test tests",
-    ]);
-
-    transact(run, "coordinator", "task-updated", {}, (state) => {
-      const task = state.tasks["task-auth"];
-      if (task) {
-        task.status = "leased";
-        task.lease = {
-          agent: "implementer_03",
-          role: "implementer",
-          attempt: 2,
-          token_digest: "tok-test",
-          issued_at: "2026-08-29T16:00:00.000Z",
-          expires_at: "2026-08-29T16:30:00.000Z",
-          duration_seconds: 1800,
-          write_scope: ["src/auth"],
-          resource_scope: [],
-        };
-        task.validations = [
+  test("transacted multi-agent micro-cycle telemetry is reflected in tracking matrix", () => {
+    const { run } = createTestRun("micro-cycle-tracking");
+    transact(run, "coordinator", "plan-applied", {}, (state) => {
+      state.graph = {
+        revision: 1,
+        gates: [
           {
-            validator_id: "validator_02",
-            domain: "code",
-            token_digest: "val-tok",
-            attempt: 1,
-            started_at: "2026-08-29T16:10:00.000Z",
-            deadline_at: "2026-08-29T16:40:00.000Z",
+            id: "G-auth",
+            command: ["bun", "gate.ts"],
+            cwd: ".",
+            scope: "task",
+            requirement_ids: ["R-1"],
+            mandatory: true,
           },
-        ];
-      }
+          {
+            id: "G-completion",
+            command: ["bun", "test", "tests"],
+            cwd: ".",
+            scope: "run",
+            requirement_ids: [],
+            mandatory: true,
+          },
+        ],
+      };
+      state.requirements = {
+        requirements: [{ id: "R-1", text: "Auth Module", status: "planned" }],
+      };
+      state.agents = [
+        {
+          id: "coordinator",
+          agent_id: "coordinator",
+          role: "coordinator",
+          tier: 1,
+          status: "active",
+        },
+        {
+          id: "implementer_03",
+          agent_id: "implementer_03",
+          role: "implementer",
+          tier: 2,
+          status: "active",
+          host: "cli",
+        },
+      ];
+      state.tasks = {
+        "task-auth": {
+          id: "task-auth",
+          label: "Auth Module",
+          status: "leased",
+          requirement_ids: ["R-1"],
+          dependencies: [],
+          write_scope: ["src/auth"],
+          attempts: [],
+          history: [],
+          repair_round: 0,
+          lease: {
+            agent: "implementer_03",
+            role: "implementer",
+            attempt: 2,
+            token_digest: "tok-test",
+            issued_at: "2026-08-29T16:00:00.000Z",
+            expires_at: "2026-08-29T16:30:00.000Z",
+            duration_seconds: 1800,
+            write_scope: ["src/auth"],
+            resource_scope: [],
+          },
+          validations: [
+            {
+              validator_id: "validator_02",
+              domain: "code",
+              token_digest: "val-tok",
+              attempt: 1,
+              started_at: "2026-08-29T16:10:00.000Z",
+              deadline_at: "2026-08-29T16:40:00.000Z",
+            },
+          ],
+        },
+      };
     });
 
     const report = buildUnifiedReport({ runRoot: run, detailed: true });

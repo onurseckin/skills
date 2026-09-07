@@ -171,7 +171,10 @@ export class ResourceGovernor {
   }
 
   private evaluateSnapshot(snapshot: ResourceUsageSnapshot): void {
-    if (this.quota.maxMemoryRssBytes && snapshot.memoryRssBytes > this.quota.maxMemoryRssBytes) {
+    if (
+      this.quota.maxMemoryRssBytes !== undefined &&
+      snapshot.memoryRssBytes > this.quota.maxMemoryRssBytes
+    ) {
       this.recordViolation({
         type: "memory_rss",
         severity: "fatal",
@@ -181,7 +184,7 @@ export class ResourceGovernor {
         timestamp: snapshot.timestamp,
       });
     } else if (
-      this.quota.memoryWarningBytes &&
+      this.quota.memoryWarningBytes !== undefined &&
       snapshot.memoryRssBytes > this.quota.memoryWarningBytes
     ) {
       this.recordViolation({
@@ -194,7 +197,10 @@ export class ResourceGovernor {
       });
     }
 
-    if (this.quota.maxHeapBytes && snapshot.memoryHeapBytes > this.quota.maxHeapBytes) {
+    if (
+      this.quota.maxHeapBytes !== undefined &&
+      snapshot.memoryHeapBytes > this.quota.maxHeapBytes
+    ) {
       this.recordViolation({
         type: "memory_heap",
         severity: "fatal",
@@ -205,7 +211,10 @@ export class ResourceGovernor {
       });
     }
 
-    if (this.quota.maxCpuPercent && snapshot.cpuPercent > this.quota.maxCpuPercent) {
+    if (
+      this.quota.maxCpuPercent !== undefined &&
+      snapshot.cpuPercent > this.quota.maxCpuPercent
+    ) {
       this.cpuViolationStreak++;
       const maxStreak = this.quota.maxCpuViolationCount ?? 3;
       const isFatal = this.cpuViolationStreak >= maxStreak;

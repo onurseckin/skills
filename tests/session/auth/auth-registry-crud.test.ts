@@ -178,7 +178,7 @@ describe("Authority Session Registry - CRUD & Permissions", () => {
       expect(s.can_edit_files).toBe(false);
     }
 
-    const workerRoles = ["implementer", "repairer", "sub-implementer", "worker"];
+    const workerRoles = ["implementer", "sub-implementer", "worker"];
     for (const role of workerRoles) {
       const s = registerSessionGrant({
         runRoot: sandboxDir,

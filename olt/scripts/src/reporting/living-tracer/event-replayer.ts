@@ -174,7 +174,7 @@ export function replayTelemetryEvent(ev: HarnessEvent, ctx: ReplayContext): void
 
     if (
       (existing.status === "changes_requested" || existing.executionState.includes("REJECTED")) &&
-      (roundInPayload === 2 || role === "repairer" || (attemptInPayload && attemptInPayload > 1)) &&
+      (roundInPayload === 2 || (attemptInPayload && attemptInPayload > 1)) &&
       existing.sproutedChildren &&
       existing.sproutedChildren.length > 0
     ) {

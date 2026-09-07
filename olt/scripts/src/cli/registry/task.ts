@@ -1,7 +1,6 @@
 import { taskCheckCommand } from "../commands/task-check.ts";
 import {
   taskAbandonCommand,
-  taskAssignRepairerCommand,
   taskClaimCommand,
   taskHeartbeatCommand,
   taskProbeCommand,
@@ -34,7 +33,6 @@ import {
 export {
   taskAbandonCommand,
   taskAddCommand,
-  taskAssignRepairerCommand,
   taskBriefCommand,
   taskCheckCommand,
   taskClaimCommand,
@@ -258,21 +256,6 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
     ],
     taskRejectCommand,
     ['bun harness.ts task:reject --run <run> --task t1 --reason "fail"'],
-  ),
-  taskCmd(
-    "task:assign-repairer",
-    "Replace the original implementer as a task's repairer, with a recorded reason.",
-    "Assigns repair lease to replacement agent with recorded justification.",
-    [
-      req("run", "string", "Capsule run root."),
-      req("task", "string", "Task in changes_requested, awaiting its original repairer."),
-      req("actor", "string", "Who is recording the reassignment."),
-      req("repairer", "string", "Replacement agent id; must differ from the original."),
-      req("reason", "string", "repeated_failure, stale, or unavailable."),
-      req("evidence", "string", "Why the replacement is warranted."),
-    ],
-    taskAssignRepairerCommand,
-    ["bun harness.ts task:assign-repairer --run <run> --task t1 --repairer w2"],
   ),
   taskCmd(
     "task:abandon",

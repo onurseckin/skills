@@ -108,4 +108,74 @@ describe("Multi-Domain Dispatch: SchedulerEngine Instance Methods", () => {
     expect(wave.wave).toBe(1);
     expect(wave.allDispatches).toHaveLength(3);
   });
+
+  test("maintains state immutability across repeated invocations", () => {
+    const engine = new SchedulerEngine({ maxParallel: 4 });
+    const tasks = [
+      createTask("ui-task", "src/ui/Panel.tsx", { status: "ready", priority: 10 }),
+      createTask("backend-task", "src/api/Data.ts", { status: "ready", priority: 9 }),
+    ];
+    const state = createMultiDomainState(tasks);
+    const beforeJson = JSON.stringify(state);
+
+    engine.evaluateMultiDomainBatch(state, { parallelismFactor: 3.0 });
+    engine.dispatchMultiDomainValidators(state, { parallelismFactor: 3.0 });
+    engine.proposeMultiDomainWave(state, { parallelismFactor: 3.0 });
+
+    const afterJson = JSON.stringify(state);
+    expect(afterJson).toBe(beforeJson);
+  });
+
+  test("handles proposeMultiDomainWave with 0 ready tasks and dependency chains", () => {
+    const engine = new SchedulerEngine({ maxParallel: 4 });
+    const tasks = [
+      createTask("parent", "src/parent.ts", { status: "in_progress" }),
+      createTask("child", "src/child.ts", { status: "blocked" }),
+    ];
+    const state = createMultiDomainState(tasks, [["child", "parent"]]);
+
+    const wave = engine.proposeMultiDomainWave(state, { parallelismFactor: 3.0 });
+    expect(wave.wave).toBe(1);
+    expect(wave.allDispatches).toHaveLength(0);
+  });
+
+  test("method-level options override constructor-level engine defaults", () => {
+    const engine = new SchedulerEngine({ maxParallel: 5 });
+    const tasks = [
+      createTask("ui-1", "src/ui/1.tsx", { priority: 10 }),
+      createTask("api-1", "src/api/1.ts", { priority: 9 }),
+      createTask("auth-1", "src/auth/1.ts", { priority: 8 }),
+      createTask("core-1", "src/core/1.ts", { priority: 7 }),
+    ];
+    const state = createMultiDomainState(tasks);
+
+    // Method-level maxParallel: 2 strictly overrides constructor maxParallel: 5
+    const batch = engine.evaluateMultiDomainBatch(state, {
+      maxParallel: 2,
+      parallelismFactor: 4.0,
+    });
+
+    expect(batch.maxParallel).toBe(2);
+    expect(batch.implementerDispatches.length).toBeLessThanOrEqual(2);
+  });
+
+  test("handles tasks with malformed write_scope or missing metadata gracefully", () => {
+    const engine = new SchedulerEngine({ maxParallel: 4 });
+    const tasks = [
+      {
+        id: "malformed-task",
+        type: "task",
+        status: "ready",
+        write_scope: "not-an-array" as unknown as string[],
+        requirement_ids: null as unknown as string[],
+      },
+    ];
+    const state = createMultiDomainState(tasks);
+
+    const batch = engine.evaluateMultiDomainBatch(state, { parallelismFactor: 3.0 });
+    expect(batch).toBeDefined();
+    expect(batch.scopeIsolated).toBeTrue();
+  });
 });
+
+

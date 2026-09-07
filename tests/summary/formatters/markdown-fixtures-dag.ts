@@ -1,8 +1,7 @@
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { GraphDataset } from "../../../olt/scripts/src/summary/graph/index.ts";
-import { emptyState, tempRoot } from "./markdown-fixtures-core.ts";
+import { emptyState, getVirtualFormattersFS, tempRoot } from "./markdown-fixtures-core.ts";
 
 /**
  * Everything a run can record, present at once: the report has to render each of these from the
@@ -10,9 +9,10 @@ import { emptyState, tempRoot } from "./markdown-fixtures-core.ts";
  */
 export function populatedRunRoot(): string {
   const root = tempRoot();
-  mkdirSync(join(root, "planning"), { recursive: true });
-  mkdirSync(join(root, "reports"), { recursive: true });
-  writeFileSync(
+  const vfs = getVirtualFormattersFS();
+  vfs.mkdirSync(join(root, "planning"), { recursive: true });
+  vfs.mkdirSync(join(root, "reports"), { recursive: true });
+  vfs.writeFileSync(
     join(root, "planning", "enhanced-plan.json"),
     JSON.stringify({
       schema: "harness.enhanced-plan",
@@ -31,7 +31,7 @@ export function populatedRunRoot(): string {
       sources: [{ value: "src/one.ts", evidence_class: "agent_reported" }],
     }),
   );
-  writeFileSync(
+  vfs.writeFileSync(
     join(root, "reports", "critic-review.json"),
     JSON.stringify({
       critic: "critic-1",

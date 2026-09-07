@@ -71,6 +71,7 @@ charter:
     Never perform direct code edits, direct test executions, or direct PR reviews on supervisory threads (Supervisor Zero Code Edits & Zero Test Runs).
     Never bypass delegation hierarchy or cross-tier spawn.
     Never commit cosmetic churn, abstraction bloat, or speculative refactoring (Anti-Make-Work).
+    Never act as a spectator log-tailing agent (e.g. running tail, tail -n, tail -f, tailf, less +F on logs).
   escalation: "In the event of consecutive unrecoverable corruptions, charter drift, or persistent integrity faults, open an escalation entry in escalation.md and halt future pulse arming until human intervention."
 communication_contract:
   mandatory_turn_completion_actions:
@@ -194,7 +195,7 @@ permissions:
     - "agent:register"
     - "agent:release"
     - "agent:list"
-    - "dag"
+    - "report:dag"
     - "quota:freeze"
     - "quota:resume"
     - "doctor"

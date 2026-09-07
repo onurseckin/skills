@@ -1,7 +1,7 @@
 import * as childProcess from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { copyDirRecursive, normPath, type VirtualFSSpyState } from "./handlers.ts";
+import { copyDirRecursive, isVirtualPath, normPath, type VirtualFSSpyState } from "./handlers.ts";
 
 export const origOpenSync = fs.openSync;
 export const origReadSync = fs.readSync;
@@ -35,9 +35,14 @@ export function mockOpen(state: VirtualFSSpyState, p: fs.PathLike, flags: string
       });
     }
     if (!state.vfs.existsSync(target) && !state.symlinks.has(target)) {
-      try {
-        return origOpenSync(p, flags);
-      } catch {}
+      if (!isVirtualPath(target)) {
+        try {
+          return origOpenSync(p, flags);
+        } catch {}
+      }
+      throw Object.assign(new Error(`ENOENT: no such file or directory, open '${target}'`), {
+        code: "ENOENT",
+      });
     }
   }
   if (isWrite && !(numFlags & (fs.constants.O_DIRECTORY ?? 0))) {
@@ -84,7 +89,8 @@ export function mockRead(
       { code: "EISDIR" },
     );
   }
-  const data = state.vfs.readFileSync(entry.path);
+  const entryWithCache = entry as { path: string; position: number; flags: number; cachedData?: Buffer };
+  const data = entryWithCache.cachedData ?? (entryWithCache.cachedData = Buffer.from(state.vfs.readFileSync(entry.path)));
   const pos = position !== null && position !== undefined ? Number(position) : entry.position;
   const readLen = Math.min(length, Math.max(0, data.length - pos));
   const targetBuf = Buffer.isBuffer(buffer)
@@ -94,7 +100,7 @@ export function mockRead(
         (buffer as ArrayBufferView).byteOffset,
         (buffer as ArrayBufferView).byteLength,
       );
-  Buffer.from(data)
+  data
     .subarray(pos, pos + readLen)
     .copy(targetBuf, offset, 0, readLen);
   entry.position = pos + readLen;
@@ -146,6 +152,7 @@ export function mockWrite(
   const newBuf = Buffer.alloc(Math.max(existing.length, pos + slice.length));
   existing.copy(newBuf);
   slice.copy(newBuf, pos);
+  (entry as { cachedData?: Buffer | undefined }).cachedData = undefined;
   state.vfs.writeFileSync(entry.path, newBuf);
   entry.position = pos + slice.length;
   return slice.length;

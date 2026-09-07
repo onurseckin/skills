@@ -4,6 +4,7 @@ import { resolveCharterPath, parseCharter } from "../../lifecycle/charter/index.
 import { parseDefectLog } from "../../defects/index.ts";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, resolve, basename } from "node:path";
+import { isSkillHomeRepoRoot } from "../../../core/index.ts";
 import type { MemoryDocument } from "./types.ts";
 import { createMemoryDocument } from "./storage.ts";
 export function indexCharterDocuments(repoRoot: string): MemoryDocument[] {
@@ -18,7 +19,6 @@ export function indexCharterDocuments(repoRoot: string): MemoryDocument[] {
       const parsed = parseCharter(content);
       const relPath = "olt/agents/mind.yaml";
 
-      // Add root charter document
       documents.push(
         createMemoryDocument({
           id: "charter-root",
@@ -33,7 +33,6 @@ export function indexCharterDocuments(repoRoot: string): MemoryDocument[] {
         }),
       );
 
-      // Extract parsed goals G1, G2, etc.
       for (const goal of parsed.goals) {
         documents.push(
           createMemoryDocument({
@@ -49,15 +48,15 @@ export function indexCharterDocuments(repoRoot: string): MemoryDocument[] {
           }),
         );
       }
-    } catch {
-      // Charter parsing error handled non-fatally
-    }
+    } catch {}
   }
 
-  // Scan references directory for additional knowledge artifacts
   const dotRefDir = join(repoRoot, ".olt", "references");
-  const fallbackRefDir = join(repoRoot, "olt", "references");
-  const refDir = existsSync(dotRefDir) ? dotRefDir : fallbackRefDir;
+  const refDir = existsSync(dotRefDir)
+    ? dotRefDir
+    : isSkillHomeRepoRoot(repoRoot)
+      ? join(repoRoot, "olt", "references")
+      : dotRefDir;
   if (existsSync(refDir)) {
     try {
       const entries = readdirSync(refDir, { withFileTypes: true });
@@ -87,23 +86,16 @@ export function indexCharterDocuments(repoRoot: string): MemoryDocument[] {
                   metadata: { file: entry.name },
                 }),
               );
-            } catch {
-              // Ignore single file error
-            }
+            } catch {}
           }
         }
       }
-    } catch {
-      // Non-fatal references scan error
-    }
+    } catch {}
   }
 
   return documents;
 }
 
-/**
- * Indexes defects from defects.jsonl files across capsules and root directories.
- */
 export function indexDefectDocuments(capsulesDir: string, explicitRun?: string): MemoryDocument[] {
   const documents: MemoryDocument[] = [];
   const filesToScan: Array<{ capsule: string; filePath: string }> = [];
@@ -125,9 +117,7 @@ export function indexDefectDocuments(capsulesDir: string, explicitRun?: string):
           }
         }
       }
-    } catch {
-      // Non-fatal capsules directory scan error
-    }
+    } catch {}
   }
 
   if (explicitRun !== undefined) {
@@ -206,18 +196,10 @@ export function indexDefectDocuments(capsulesDir: string, explicitRun?: string):
               }),
             );
           }
-        } catch {
-          // Ignore malformed line
-        }
+        } catch {}
       }
-    } catch {
-      // Ignore file read error
-    }
+    } catch {}
   }
 
   return documents;
 }
-
-/**
- * Indexes capsule state, prompt, trace, and tasks.
- */

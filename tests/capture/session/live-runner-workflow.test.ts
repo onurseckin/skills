@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { CaptureConfig } from "../../../olt/scripts/src/capture/config/types.ts";
 import {
@@ -13,7 +12,12 @@ import type {
   CapturePageDriver,
   DomPhysicsSnapshot,
 } from "../../../olt/scripts/src/capture/runners/types.ts";
-import { cleanupVirtualCaptureFS, scratchRoot, setupVirtualCaptureFS } from "../fixture.ts";
+import {
+  cleanupVirtualCaptureFS,
+  getVirtualCaptureFS,
+  scratchRoot,
+  setupVirtualCaptureFS,
+} from "../fixture.ts";
 
 describe("live-capture-runner: workflow & provider execution", () => {
   beforeEach(() => {
@@ -46,13 +50,14 @@ describe("live-capture-runner: workflow & provider execution", () => {
       await page.goto("http://localhost:3000");
       await page.waitForSelector("#root");
 
+      const vfs = getVirtualCaptureFS();
       const testTmp = join(root, "test-fb");
-      mkdirSync(testTmp, { recursive: true });
+      vfs.mkdirSync(testTmp, { recursive: true });
       const imgPath = join(testTmp, "screenshot.png");
 
       const buf = await page.screenshot({ path: imgPath });
       expect(buf.byteLength).toBeGreaterThanOrEqual(1024);
-      expect(existsSync(imgPath)).toBe(true);
+      expect(vfs.existsSync(imgPath)).toBe(true);
 
       const bufNoPath = await page.screenshot({});
       expect(bufNoPath.byteLength).toBeGreaterThanOrEqual(1024);
@@ -75,9 +80,10 @@ describe("live-capture-runner: workflow & provider execution", () => {
     });
 
     it("executes live capture workflow with actions, auth, screenshot validation, and manifest generation", async () => {
+      const vfs = getVirtualCaptureFS();
       const root = scratchRoot(import.meta.path, "live-capture-workflow");
       const testDir = join(root, "output");
-      mkdirSync(testDir, { recursive: true });
+      vfs.mkdirSync(testDir, { recursive: true });
 
       const clicked: string[] = [];
       const filled: { selector: string; value: string }[] = [];
@@ -112,8 +118,7 @@ describe("live-capture-runner: workflow & provider execution", () => {
               screenshot: async (opts) => {
                 const buf = createSyntheticPngBuffer(currentVp.width, currentVp.height, 1024);
                 if (opts?.path) {
-                  const { writeFileSync } = await import("node:fs");
-                  writeFileSync(opts.path, buf);
+                  vfs.writeFileSync(opts.path, buf);
                 }
                 return buf;
               },
@@ -184,18 +189,19 @@ describe("live-capture-runner: workflow & provider execution", () => {
       const capture = result.captures[0]!;
       expect(capture.screenId).toBe("settings");
       expect(capture.viewport).toBe("desktop");
-      expect(existsSync(capture.imagePath)).toBe(true);
-      expect(existsSync(capture.manifestPath)).toBe(true);
+      expect(vfs.existsSync(capture.imagePath)).toBe(true);
+      expect(vfs.existsSync(capture.manifestPath)).toBe(true);
 
-      const manifestContent = JSON.parse(readFileSync(capture.manifestPath, "utf-8"));
+      const manifestContent = JSON.parse(vfs.readFileSync(capture.manifestPath, "utf-8"));
       expect(manifestContent.screenId).toBe("settings");
       expect(manifestContent.authRole).toBe("admin");
     });
 
     it("records errors when screenshot PNG validation fails or actions throw", async () => {
+      const vfs = getVirtualCaptureFS();
       const root = scratchRoot(import.meta.path, "live-capture-png-err");
       const testDir = join(root, "output");
-      mkdirSync(testDir, { recursive: true });
+      vfs.mkdirSync(testDir, { recursive: true });
 
       const mockProvider: CaptureBrowserProvider = {
         launch: async () => ({
@@ -229,10 +235,90 @@ describe("live-capture-runner: workflow & provider execution", () => {
       expect(result.errors[0]?.error).toContain("failed PNG IHDR validation");
     });
 
+    it("handles unexpected page.screenshot exceptions and guarantees browser.close()", async () => {
+      const vfs = getVirtualCaptureFS();
+      const root = scratchRoot(import.meta.path, "live-capture-screenshot-throw");
+      const testDir = join(root, "output");
+      vfs.mkdirSync(testDir, { recursive: true });
+
+      let closed = false;
+      const mockProvider: CaptureBrowserProvider = {
+        launch: async () => ({
+          newPage: async (): Promise<CapturePageDriver> => ({
+            setViewportSize: async () => {},
+            setExtraHTTPHeaders: async () => {},
+            goto: async () => {},
+            screenshot: async () => {
+              throw new Error("Simulated browser rendering crash during screenshot");
+            },
+            evaluate: async () => ({}) as never,
+          }),
+          close: async () => {
+            closed = true;
+          },
+        }),
+      };
+
+      const customConfig: CaptureConfig = {
+        baseUrl: "http://localhost:8080",
+        screens: [{ id: "home", name: "Home", path: "/" }],
+        viewports: { desktop: { name: "desktop", width: 1440, height: 900 } },
+      };
+
+      const result = await runLiveCapture({
+        config: customConfig,
+        browserProvider: mockProvider,
+        outDir: testDir,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.totalCaptures).toBe(0);
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0]?.error).toContain("Simulated browser rendering crash");
+      expect(closed).toBe(true);
+    });
+
+    it("rejects truncated/corrupted PNG buffers lacking IHDR structure", async () => {
+      const vfs = getVirtualCaptureFS();
+      const root = scratchRoot(import.meta.path, "live-capture-truncated-png");
+      const testDir = join(root, "output");
+      vfs.mkdirSync(testDir, { recursive: true });
+
+      const mockProvider: CaptureBrowserProvider = {
+        launch: async () => ({
+          newPage: async (): Promise<CapturePageDriver> => ({
+            setViewportSize: async () => {},
+            setExtraHTTPHeaders: async () => {},
+            goto: async () => {},
+            screenshot: async () => Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+            evaluate: async () => ({}) as never,
+          }),
+          close: async () => {},
+        }),
+      };
+
+      const customConfig: CaptureConfig = {
+        baseUrl: "http://localhost:8080",
+        screens: [{ id: "home", name: "Home", path: "/" }],
+        viewports: { desktop: { name: "desktop", width: 1440, height: 900 } },
+      };
+
+      const result = await runLiveCapture({
+        config: customConfig,
+        browserProvider: mockProvider,
+        outDir: testDir,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0]?.error).toContain("failed PNG IHDR validation");
+    });
+
     it("handles default screen fallback and string errors in actions/navigation", async () => {
+      const vfs = getVirtualCaptureFS();
       const root = scratchRoot(import.meta.path, "live-capture-string-err");
       const testDir = join(root, "output");
-      mkdirSync(testDir, { recursive: true });
+      vfs.mkdirSync(testDir, { recursive: true });
 
       const mockProvider: CaptureBrowserProvider = {
         launch: async () => ({
@@ -267,9 +353,10 @@ describe("live-capture-runner: workflow & provider execution", () => {
     });
 
     it("runs live capture loading default config when options.config is omitted", async () => {
+      const vfs = getVirtualCaptureFS();
       const root = scratchRoot(import.meta.path, "live-capture-default-config");
       const testDir = join(root, "output");
-      mkdirSync(testDir, { recursive: true });
+      vfs.mkdirSync(testDir, { recursive: true });
 
       const mockProvider: CaptureBrowserProvider = {
         launch: async () => ({
@@ -285,7 +372,8 @@ describe("live-capture-runner: workflow & provider execution", () => {
       };
 
       const result = await runLiveCapture({
-        configPath: "nonexistent-config.yaml",
+        configPath: "/virtual/nonexistent-config.yaml",
+        targetViewports: ["desktop"],
         browserProvider: mockProvider,
         outDir: testDir,
       });

@@ -200,7 +200,7 @@ describe("Dynamic Role Cheat-Sheets Engine", () => {
           tier: 2,
           commandCount: 40,
           spawnsCount: 4,
-          spawns: ["planner", "implementer", "validator", "repairer"],
+          spawns: ["planner", "implementer", "validator", "completeness-critic"],
           invariantsCount: 17,
         },
         {

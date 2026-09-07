@@ -49,7 +49,7 @@ const READ_ONLY_BRANCH_ROLES: ReadonlySet<string> = new Set(["sub-investigator",
 const VALIDATION_ROLES: ReadonlySet<string> = new Set([
   "sub-validator",
   "validator",
-  "mechanic-validator",
+  "ui-headless-validator",
 ]);
 
 function responsibilityChecklist(role: AgentRole): string {
@@ -60,7 +60,7 @@ function responsibilityChecklist(role: AgentRole): string {
       "- [ ] 3. Adversarial Gate Proofs (AGP) & falsifiability: Verify gate counterfactual falsifiability (`gate:prove` / manual negative checks) proving the gate fails on broken logic.",
       "- [ ] 4. Direct end-to-end command verification: Inspect deterministic test receipts, command outputs, and gate results produced by mechanic validators alongside direct source inspections; validate actual runtime command behavior, not isolated mocks or superficial unit tests.",
       "- [ ] 5. Strict quantitative metric floors: Enforce 0 TypeScript `any` types, 0 compiler/linter suppressions, 100% test pass rate in mechanic receipts, and exact execution timings.",
-      "- [ ] 6. Anti-boundary-leak rule: Never edit repository files directly to fix defects; record structured findings via `task:reject` and delegate repair to an assigned repairer.",
+      "- [ ] 6. Anti-boundary-leak rule: Never edit repository files directly to fix defects; record structured findings via `task:reject` and delegate repair to the assigned implementer.",
       "- [ ] 7. Disk-backed evidence submission: Save all proof artifacts and screenshots strictly under `.capsules/<run>/evidence/` and record structured review verdict.",
     ].join("\n");
   }
@@ -71,7 +71,7 @@ function responsibilityChecklist(role: AgentRole): string {
       "- [ ] 3. Adversarial Gate Proofs (AGP) & Falsifiability: Prove gate commands are discriminative by verifying that defective logic or reverted write scope produces non-zero exit codes.",
       "- [ ] 4. Structured Test Receipts & Evidence Generation: Produce structured execution receipts, exit codes, and timing logs under `.capsules/<run>/evidence/`.",
       "- [ ] 5. Static Invariant & Metric Enforcement: Mechanically verify 0 TypeScript `any` types, 0 compiler/linter suppressions, and 100% gate pass rate.",
-      "- [ ] 6. Anti-boundary-leak rule: Never edit repository files directly; record structured findings via `task:reject` and delegate repair to an assigned repairer.",
+      "- [ ] 6. Anti-boundary-leak rule: Never edit repository files directly; record structured findings via `task:reject` and delegate repair to the assigned implementer.",
       "- [ ] 7. Disk-backed test receipt submission: Store all command logs and test receipts under `.capsules/<run>/evidence/` and report execution results.",
     ].join("\n");
   }

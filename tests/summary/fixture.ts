@@ -30,24 +30,26 @@ function normPath(p: string): string {
 
 export function setupVirtualSummaryFS(): VirtualMemoryFS {
   enableInMemorySessionStore();
-  if (!session) {
-    vfs = new VirtualMemoryFS();
-    const repoRoot = normPath(process.cwd());
-    vfs.mkdirSync(repoRoot, { recursive: true });
-    vfs.mkdirSync(join(repoRoot, ".git"), { recursive: true });
-    vfs.mkdirSync(join(repoRoot, ".olt"), { recursive: true });
-    vfs.mkdirSync(join(repoRoot, ".olt", "capsules"), { recursive: true });
-    vfs.mkdirSync(join(repoRoot, ".olt", "scratch"), { recursive: true });
-    vfs.mkdirSync(join(repoRoot, ".olt", "runs"), { recursive: true });
-    vfs.mkdirSync(join(repoRoot, ".tmp"), { recursive: true });
-    vfs.writeFileSync(
-      join(repoRoot, "package.json"),
-      JSON.stringify({ name: "@onurseckin/skills" }),
-    );
-    vfs.mkdirSync(SCRATCH_BASE, { recursive: true });
-    vfs.chdir(repoRoot);
-    session = createVirtualFSSession(vfs);
+  if (session) {
+    session.cleanup();
+    session = null;
   }
+  vfs = new VirtualMemoryFS();
+  const repoRoot = normPath(process.cwd());
+  vfs.mkdirSync(repoRoot, { recursive: true });
+  vfs.mkdirSync(join(repoRoot, ".git"), { recursive: true });
+  vfs.mkdirSync(join(repoRoot, ".olt"), { recursive: true });
+  vfs.mkdirSync(join(repoRoot, ".olt", "capsules"), { recursive: true });
+  vfs.mkdirSync(join(repoRoot, ".olt", "scratch"), { recursive: true });
+  vfs.mkdirSync(join(repoRoot, ".olt", "runs"), { recursive: true });
+  vfs.mkdirSync(join(repoRoot, ".tmp"), { recursive: true });
+  vfs.writeFileSync(
+    join(repoRoot, "package.json"),
+    JSON.stringify({ name: "@onurseckin/skills" }),
+  );
+  vfs.mkdirSync(SCRATCH_BASE, { recursive: true });
+  vfs.chdir(repoRoot);
+  session = createVirtualFSSession(vfs);
   return vfs;
 }
 
@@ -63,6 +65,21 @@ export function cleanupVirtualSummaryFS(): void {
 export function getVirtualSummaryFS(): VirtualMemoryFS {
   return vfs;
 }
+
+export function symlinkVirtual(target: string, linkPath: string): void {
+  if (session) {
+    session.symlinkSync(target, linkPath);
+  }
+}
+
+export function chmodVirtual(filePath: string, mode: number): void {
+  if (session) {
+    session.chmodSync(filePath, mode);
+  }
+}
+
+export const symlinkSync = symlinkVirtual;
+export const chmodSync = chmodVirtual;
 
 afterEach(() => {
   cleanupVirtualSummaryFS();

@@ -134,7 +134,7 @@ describe("B12.2: the validator-family domain field", () => {
     expect(isCognitiveValidatorContract(valContract)).toBe(true);
     expect(isMechanicValidatorContract(valContract)).toBe(false);
 
-    const mechContract = loadRoleContract("mechanic-validator");
+    const mechContract = loadRoleContract("ui-headless-validator");
     expect(isCognitiveValidatorContract(mechContract)).toBe(false);
     expect(isMechanicValidatorContract(mechContract)).toBe(true);
   });

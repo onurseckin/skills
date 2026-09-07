@@ -272,6 +272,6 @@ describe("subtask allocation: dynamic expansion & parallel lanes", () => {
       (t.write_scope as string[]).includes("src/auth/token.ts"),
     );
     expect(repairAuth).toBeDefined();
-    expect(repairAuth?.role).toBe("repairer");
+    expect(repairAuth?.role).toBe("implementer");
   });
 });

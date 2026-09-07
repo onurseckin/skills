@@ -19,7 +19,7 @@ export function assertCriticIndependent(state: WorkflowState, criticId: string):
   if (conflicted)
     throw new HarnessError(
       "INVALID_STATE",
-      "completeness critic must be independent from implementers, repairers, and validators",
+      "completeness critic must be independent from implementers and validators",
     );
 }
 

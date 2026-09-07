@@ -1,12 +1,5 @@
-/**
- * Unit Test Suite for Core Memory Entrypoint, Charter/Defect/Capsule Indexers, and Tokenizer Types.
- * Covers indexCharterDocuments, indexDefectDocuments, indexCapsuleDocuments,
- * normalizeTags, createMemoryDocument, buildMemoryIndex, tokenize, isRecord, and extractGeneration.
- */
-
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
-import * as fs from "node:fs";
-import { normalize } from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { join } from "node:path";
 import {
   MEMORY_KINDS,
   buildMemoryIndex,
@@ -22,105 +15,41 @@ import {
   normalizeTags,
   tokenize,
 } from "../../../../olt/scripts/src/mind/memory/core/index.ts";
+import { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/memory-fs.ts";
+import { createVirtualFSSession } from "../../../../olt/scripts/src/testing/virtual-fs/spies.ts";
 
 describe("Core Memory Entrypoint & Indexers (entry.ts)", () => {
-  const virtualFiles = new Map<string, string>();
-  const virtualDirs = new Set<string>();
-
-  let existsSpy: ReturnType<typeof spyOn>;
-  let readFileSyncSpy: ReturnType<typeof spyOn>;
-  let readdirSpy: ReturnType<typeof spyOn>;
-  let lstatSpy: ReturnType<typeof spyOn>;
+  let vfs: VirtualMemoryFS;
+  let session: ReturnType<typeof createVirtualFSSession>;
+  const baseDir = "/virtual/mind-memory/entry";
 
   beforeEach(() => {
-    virtualFiles.clear();
-    virtualDirs.clear();
-
-    existsSpy = spyOn(fs, "existsSync").mockImplementation((p) => {
-      const s = normalize(String(p));
-      return virtualFiles.has(s) || virtualDirs.has(s);
-    });
-
-    lstatSpy = spyOn(fs, "lstatSync").mockImplementation((p) => {
-      const s = normalize(String(p));
-      const isF = virtualFiles.has(s);
-      const isD = virtualDirs.has(s);
-      if (!isF && !isD) throw new Error(`ENOENT: ${s}`);
-      return {
-        isFile: () => isF,
-        isDirectory: () => isD,
-        isSymbolicLink: () => false,
-      } as unknown as fs.Stats;
-    });
-
-    readFileSyncSpy = spyOn(fs, "readFileSync").mockImplementation((p) => {
-      const s = normalize(String(p));
-      const val = virtualFiles.get(s);
-      if (val === undefined) throw new Error(`ENOENT: ${s}`);
-      return val;
-    });
-
-    readdirSpy = spyOn(fs, "readdirSync").mockImplementation((p, options) => {
-      const s = normalize(String(p));
-      if (!virtualDirs.has(s)) throw new Error(`ENOENT: ${s}`);
-      const entryMap = new Map<string, boolean>();
-
-      for (const dirPath of virtualDirs) {
-        if (dirPath.startsWith(s) && dirPath !== s) {
-          const rel = dirPath.slice(s.length).replace(/^[/\\]+/, "");
-          const name = rel.split(/[/\\]/)[0];
-          if (name) entryMap.set(name, true);
-        }
-      }
-
-      for (const filePath of virtualFiles.keys()) {
-        if (filePath.startsWith(s) && filePath !== s) {
-          const rel = filePath.slice(s.length).replace(/^[/\\]+/, "");
-          const parts = rel.split(/[/\\]/);
-          const name = parts[0];
-          if (name && !entryMap.has(name)) entryMap.set(name, parts.length > 1);
-        }
-      }
-
-      const entries = Array.from(entryMap.entries()).map(([name, isDir]) => ({
-        name,
-        isDirectory: () => isDir,
-        isFile: () => !isDir,
-      }));
-
-      if (
-        typeof options === "object" &&
-        options !== null &&
-        (options as { withFileTypes?: boolean }).withFileTypes
-      ) {
-        return entries as unknown as fs.Dirent[];
-      }
-      return entries.map((e) => e.name) as unknown as string[];
-    });
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    vfs.mkdirSync(baseDir, { recursive: true });
   });
 
   afterEach(() => {
-    existsSpy.mockRestore();
-    lstatSpy.mockRestore();
-    readFileSyncSpy.mockRestore();
-    readdirSpy.mockRestore();
+    session.cleanup();
   });
 
   describe("indexCharterDocuments and indexDefectDocuments", () => {
-    it("indexes charter directives and references without physical disk writes", () => {
-      const repoRoot = normalize("/virtual/repo");
-      const refDir = normalize(`${repoRoot}/olt/references`);
-      virtualDirs.add(repoRoot);
-      virtualDirs.add(normalize(`${repoRoot}/olt`));
-      virtualDirs.add(normalize(`${repoRoot}/olt/agents`));
-      virtualDirs.add(refDir);
+    it("indexes charter directives and references without physical disk writes in the skill-home repo", () => {
+      const repoRoot = `${baseDir}/repo`;
+      const refDir = `${repoRoot}/olt/references`;
+      const agentsDir = `${repoRoot}/olt/agents`;
+      const skillScriptsDir = `${repoRoot}/olt/scripts`;
+      vfs.mkdirSync(refDir, { recursive: true });
+      vfs.mkdirSync(agentsDir, { recursive: true });
+      vfs.mkdirSync(skillScriptsDir, { recursive: true });
+      vfs.writeFileSync(join(skillScriptsDir, "harness.ts"), "");
 
-      virtualFiles.set(
-        normalize(`${repoRoot}/olt/agents/mind.yaml`),
+      vfs.writeFileSync(
+        join(agentsDir, "mind.yaml"),
         "identity: mind\ngoals:\n  - id: G1\n    statement: Autonomous Governance\nnon_goals:\n  - Manual intervention\ndirectives:\n  - Invariant 1",
       );
-      virtualFiles.set(
-        normalize(`${refDir}/architecture.md`),
+      vfs.writeFileSync(
+        join(refDir, "architecture.md"),
         "# Architecture Overview\nSystem description.",
       );
 
@@ -132,19 +61,18 @@ describe("Core Memory Entrypoint & Indexers (entry.ts)", () => {
     });
 
     it("indexes defects from root, capsules, and explicit runs", () => {
-      const capsulesDir = normalize("/virtual/capsules");
-      const capDir = normalize(`${capsulesDir}/mind-gen-6`);
-      const explicit = normalize("/virtual/explicit/run-gen-9");
-      virtualDirs.add(capsulesDir);
-      virtualDirs.add(capDir);
-      virtualDirs.add(explicit);
+      const capsulesDir = `${baseDir}/capsules`;
+      const capDir = `${capsulesDir}/mind-gen-6`;
+      const explicit = `${baseDir}/explicit/run-gen-9`;
+      vfs.mkdirSync(capDir, { recursive: true });
+      vfs.mkdirSync(explicit, { recursive: true });
 
-      virtualFiles.set(
-        normalize(`${capsulesDir}/defects.jsonl`),
+      vfs.writeFileSync(
+        join(capsulesDir, "defects.jsonl"),
         JSON.stringify({ id: "DEF-ROOT", type: "root_bug", observation: "Root issue" }),
       );
-      virtualFiles.set(
-        normalize(`${capDir}/defects.jsonl`),
+      vfs.writeFileSync(
+        join(capDir, "defects.jsonl"),
         JSON.stringify({
           id: "DEF-100",
           type: "type_error",
@@ -157,8 +85,8 @@ describe("Core Memory Entrypoint & Indexers (entry.ts)", () => {
           agent_id: "agent-01",
         }),
       );
-      virtualFiles.set(
-        normalize(`${explicit}/defects.jsonl`),
+      vfs.writeFileSync(
+        join(explicit, "defects.jsonl"),
         JSON.stringify({ id: "DEF-EXP", type: "explicit_defect", observation: "Exp issue" }),
       );
 
@@ -172,34 +100,35 @@ describe("Core Memory Entrypoint & Indexers (entry.ts)", () => {
 
   describe("indexCapsuleDocuments", () => {
     it("indexes prompt, trace, and task artifacts from capsules and explicitRun", () => {
-      const capsulesDir = normalize("/virtual/capsules");
-      const capDir = normalize(`${capsulesDir}/mind-gen-8`);
-      const explicit = normalize("/virtual/explicit/cap-gen-9");
-      virtualDirs.add(capsulesDir);
-      virtualDirs.add(capDir);
-      virtualDirs.add(explicit);
+      const capsulesDir = `${baseDir}/capsules`;
+      const capDir = `${capsulesDir}/mind-gen-8`;
+      const explicit = `${baseDir}/explicit/cap-gen-9`;
+      vfs.mkdirSync(capDir, { recursive: true });
+      vfs.mkdirSync(explicit, { recursive: true });
 
-      virtualFiles.set(normalize(`${capDir}/prompt.md`), "System prompt instructions.");
-      virtualFiles.set(normalize(`${capDir}/trace.md`), "Execution trace logs.");
-      virtualFiles.set(
-        normalize(`${capDir}/state.json`),
+      vfs.writeFileSync(join(capDir, "prompt.md"), "System prompt instructions.");
+      vfs.writeFileSync(join(capDir, "trace.md"), "Execution trace logs.");
+      vfs.writeFileSync(
+        join(capDir, "state.json"),
         JSON.stringify({
           tasks: [
             { id: "task-boot", label: "Bootstrap", status: "completed", write_scope: ["src/"] },
           ],
         }),
       );
-      virtualFiles.set(normalize(`${explicit}/prompt.md`), "Explicit prompt instructions.");
+      vfs.writeFileSync(join(explicit, "prompt.md"), "Explicit prompt instructions.");
 
       const docs = indexCapsuleDocuments(capsulesDir, explicit);
       expect(docs.length).toBe(4);
       expect(docs.some((d) => d.id === "prompt-mind-gen-8")).toBe(true);
+      expect(docs.some((d) => d.id === "trace-mind-gen-8")).toBe(true);
+      expect(docs.some((d) => d.id === "task-mind-gen-8-task-boot")).toBe(true);
       expect(docs.some((d) => d.id === "prompt-cap-gen-9")).toBe(true);
     });
   });
 
   describe("Storage, Tokenizer, and Types", () => {
-    it("normalizes tags into lowercase unique arrays", () => {
+    it("normalizes tags into lowercase unique arrays and rejects empty tokens", () => {
       expect(normalizeTags(["Tag1", "tag2", "TAG1 ", "   "])).toEqual(["tag1", "tag2"]);
       expect(normalizeTags("alpha, beta; gamma delta")).toEqual([
         "alpha",
@@ -207,7 +136,13 @@ describe("Core Memory Entrypoint & Indexers (entry.ts)", () => {
         "gamma",
         "delta",
       ]);
+      expect(normalizeTags("  ALPHA ,,, BETA;;; ;  GAMMA   alpha  ")).toEqual([
+        "alpha",
+        "beta",
+        "gamma",
+      ]);
       expect(normalizeTags(undefined)).toEqual([]);
+      expect(normalizeTags("")).toEqual([]);
     });
 
     it("tokenizes text filtering stop words and extracts generations", () => {
@@ -219,20 +154,25 @@ describe("Core Memory Entrypoint & Indexers (entry.ts)", () => {
       expect(MEMORY_KINDS).toEqual(["capsule", "defect", "decision", "charter", "report"]);
       expect(isRecord({ key: "value" })).toBe(true);
       expect(isRecord(null)).toBe(false);
+      expect(isRecord("string")).toBe(false);
 
       expect(extractGenerationFromCapsuleId("mind-gen-12")).toBe(12);
       expect(extractGenerationFromCapsuleId("run_generation_4")).toBe(4);
       expect(extractGenerationFromCapsuleId("invalid-cap")).toBeNull();
 
+      expect(extractGeneration({})).toBeNull();
+      expect(extractGeneration({ generation: "" })).toBeNull();
+      expect(extractGeneration({ generation: "no-num" })).toBeNull();
       expect(extractGeneration({ generation: 5 })).toBe(5);
+      expect(extractGeneration({ generation: -5 })).toBe(-5);
       expect(extractGeneration({ generation: "7" })).toBe(7);
       expect(extractGeneration({ generation_id: 8 })).toBe(8);
       expect(extractGeneration({ generation_id: "gen-9" })).toBe(9);
+      expect(extractGeneration({ generation_id: "no-gen-here" })).toBeNull();
       expect(extractGeneration({ generation_id: "invalid-string" })).toBeNull();
       expect(extractGeneration({ metadata: { generation: 11 } })).toBe(11);
       expect(extractGeneration({ capsule: "capsule-generation-13" })).toBe(13);
       expect(extractGeneration({}, "fallback-gen-15")).toBe(15);
-      expect(extractGeneration({})).toBeNull();
     });
 
     it("creates memory documents, indexes them, and compiles search patterns", () => {

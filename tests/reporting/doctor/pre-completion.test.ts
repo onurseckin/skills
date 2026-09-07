@@ -1,12 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import { checkPreCompletionDiagnostics } from "../../../olt/scripts/src/reporting/doctor/pre-completion.ts";
 import { cleanupVirtualReportingFS, setupVirtualReportingFS, tempDir } from "../fixture.ts";
 
 describe("checkPreCompletionDiagnostics", () => {
+  let vfs: ReturnType<typeof setupVirtualReportingFS>;
+
   beforeEach(() => {
-    setupVirtualReportingFS();
+    vfs = setupVirtualReportingFS();
   });
 
   afterEach(() => {
@@ -15,10 +16,10 @@ describe("checkPreCompletionDiagnostics", () => {
 
   test("evaluates clean compliant run state with default autoHeal and custom repoRoot", () => {
     const repo = tempDir("pre-comp-clean");
-    fs.mkdirSync(join(repo, ".git"), { recursive: true });
-    fs.writeFileSync(join(repo, "package.json"), "{}");
+    vfs.mkdirSync(join(repo, ".git"), { recursive: true });
+    vfs.writeFileSync(join(repo, "package.json"), "{}");
     const runRoot = join(repo, ".olt", "capsules", "run-clean");
-    fs.mkdirSync(runRoot, { recursive: true });
+    vfs.mkdirSync(runRoot, { recursive: true });
 
     const result = checkPreCompletionDiagnostics({
       runRoot,
@@ -37,17 +38,17 @@ describe("checkPreCompletionDiagnostics", () => {
 
   test("resolves state from state.json file, handles corrupt state.json, and handles fallback repoRoot", () => {
     const repo = tempDir("pre-comp-state-json");
-    fs.mkdirSync(join(repo, ".git"), { recursive: true });
-    fs.writeFileSync(join(repo, "package.json"), "{}");
+    vfs.mkdirSync(join(repo, ".git"), { recursive: true });
+    vfs.writeFileSync(join(repo, "package.json"), "{}");
     const runRoot = join(repo, ".olt", "capsules", "run-disk");
-    fs.mkdirSync(runRoot, { recursive: true });
+    vfs.mkdirSync(runRoot, { recursive: true });
 
     // Missing state.json
     const noStateRes = checkPreCompletionDiagnostics({ runRoot, repoRoot: repo, autoHeal: false });
     expect(noStateRes.readyForCompletion).toBe(true);
 
     // Corrupt state.json
-    fs.writeFileSync(join(runRoot, "state.json"), "invalid json {");
+    vfs.writeFileSync(join(runRoot, "state.json"), "invalid json {");
     const corruptStateRes = checkPreCompletionDiagnostics({
       runRoot,
       repoRoot: repo,
@@ -60,7 +61,7 @@ describe("checkPreCompletionDiagnostics", () => {
     expect(fallbackRes).toBeDefined();
 
     // Valid state.json on disk
-    fs.writeFileSync(
+    vfs.writeFileSync(
       join(runRoot, "state.json"),
       JSON.stringify({
         completion_critic: { status: "expired" },
@@ -77,30 +78,30 @@ describe("checkPreCompletionDiagnostics", () => {
 
   test("runs auto-healing routines for git index lock, dangling locks, worktrees, and mailboxes", () => {
     const repo = tempDir("pre-comp-heal");
-    fs.mkdirSync(join(repo, ".git"), { recursive: true });
-    fs.writeFileSync(join(repo, "package.json"), "{}");
-    fs.mkdirSync(join(repo, ".olt", "locks"), { recursive: true });
-    fs.mkdirSync(join(repo, ".olt", "mailboxes", "agent-1"), { recursive: true });
-    fs.mkdirSync(join(repo, ".olt", "worktrees", "locks"), { recursive: true });
+    vfs.mkdirSync(join(repo, ".git"), { recursive: true });
+    vfs.writeFileSync(join(repo, "package.json"), "{}");
+    vfs.mkdirSync(join(repo, ".olt", "locks"), { recursive: true });
+    vfs.mkdirSync(join(repo, ".olt", "mailboxes", "agent-1"), { recursive: true });
+    vfs.mkdirSync(join(repo, ".olt", "worktrees", "locks"), { recursive: true });
 
     // Dead PID in index.lock
-    fs.writeFileSync(join(repo, ".git", "index.lock"), "99999999");
+    vfs.writeFileSync(join(repo, ".git", "index.lock"), "99999999");
     // Dead PID in dangling lock
-    fs.writeFileSync(
+    vfs.writeFileSync(
       join(repo, ".olt", "locks", "stale.lock"),
       JSON.stringify({ pid: 99999999, expiresAt: Date.now() - 10000 }),
     );
     // Corrupt cursor for mailbox
-    fs.writeFileSync(join(repo, ".olt", "mailboxes", "agent-1", "cursor.json"), "corrupt {");
-    fs.writeFileSync(join(repo, ".olt", "mailboxes", "agent-1", "inbox.jsonl"), "");
+    vfs.writeFileSync(join(repo, ".olt", "mailboxes", "agent-1", "cursor.json"), "corrupt {");
+    vfs.writeFileSync(join(repo, ".olt", "mailboxes", "agent-1", "inbox.jsonl"), "");
     // Orphan lock in worktrees
-    fs.writeFileSync(
+    vfs.writeFileSync(
       join(repo, ".olt", "worktrees", "locks", "track-orphan.lock"),
       JSON.stringify({ pid: 99999999, trackId: "track-orphan" }),
     );
 
     const runRoot = join(repo, ".olt", "capsules", "run-heal");
-    fs.mkdirSync(runRoot, { recursive: true });
+    vfs.mkdirSync(runRoot, { recursive: true });
 
     const result = checkPreCompletionDiagnostics({
       runRoot,
@@ -117,14 +118,21 @@ describe("checkPreCompletionDiagnostics", () => {
       true,
     );
     expect(result.autoHealedItems.some((item) => item.includes("track-orphan"))).toBe(true);
+
+    // Hardened state verification: confirm physical unlinking / state mutability in RAM
+    expect(vfs.existsSync(join(repo, ".git", "index.lock"))).toBe(false);
+    expect(vfs.existsSync(join(repo, ".olt", "locks", "stale.lock"))).toBe(false);
+    expect(vfs.existsSync(join(repo, ".olt", "worktrees", "locks", "track-orphan.lock"))).toBe(
+      false,
+    );
   });
 
   test("flags undispositioned orphan evidence for strings and objects", () => {
     const repo = tempDir("pre-comp-orphan");
-    fs.mkdirSync(join(repo, ".git"), { recursive: true });
-    fs.writeFileSync(join(repo, "package.json"), "{}");
+    vfs.mkdirSync(join(repo, ".git"), { recursive: true });
+    vfs.writeFileSync(join(repo, "package.json"), "{}");
     const runRoot = join(repo, ".olt", "capsules", "run-1");
-    fs.mkdirSync(runRoot, { recursive: true });
+    vfs.mkdirSync(runRoot, { recursive: true });
 
     const state = {
       orphan_evidence: [
@@ -152,10 +160,10 @@ describe("checkPreCompletionDiagnostics", () => {
 
   test("flags completion critic statuses (expired, assigned, packet_published)", () => {
     const repo = tempDir("pre-comp-critic");
-    fs.mkdirSync(join(repo, ".git"), { recursive: true });
-    fs.writeFileSync(join(repo, "package.json"), "{}");
+    vfs.mkdirSync(join(repo, ".git"), { recursive: true });
+    vfs.writeFileSync(join(repo, "package.json"), "{}");
     const runRoot = join(repo, ".olt", "capsules", "run-critic");
-    fs.mkdirSync(runRoot, { recursive: true });
+    vfs.mkdirSync(runRoot, { recursive: true });
 
     // Expired critic
     const resExpired = checkPreCompletionDiagnostics({
@@ -198,10 +206,10 @@ describe("checkPreCompletionDiagnostics", () => {
 
   test("flags unaddressed findings, quotas, hygiene, git, and worktree blockers", () => {
     const repo = tempDir("pre-comp-findings");
-    fs.mkdirSync(join(repo, ".git"), { recursive: true });
-    fs.writeFileSync(join(repo, "package.json"), "{}");
+    vfs.mkdirSync(join(repo, ".git"), { recursive: true });
+    vfs.writeFileSync(join(repo, "package.json"), "{}");
     const runRoot = join(repo, ".olt", "capsules", "run-f");
-    fs.mkdirSync(runRoot, { recursive: true });
+    vfs.mkdirSync(runRoot, { recursive: true });
 
     const rUn = checkPreCompletionDiagnostics({
       runRoot,
@@ -222,8 +230,8 @@ describe("checkPreCompletionDiagnostics", () => {
     });
     expect(rRem.blockers.filter((b) => b.code === "CRITIC_FINDINGS_UNADDRESSED")).toHaveLength(0);
 
-    fs.writeFileSync(join(repo, "temp_loose.sh"), "#!/bin/bash");
-    fs.writeFileSync(join(repo, ".git", "index.lock"), "99999999");
+    vfs.writeFileSync(join(repo, "temp_loose.sh"), "#!/bin/bash");
+    vfs.writeFileSync(join(repo, ".git", "index.lock"), "99999999");
     const rHygiene = checkPreCompletionDiagnostics({
       runRoot,
       repoRoot: repo,

@@ -17,7 +17,7 @@ import { canonicalJsonBytes, sha256Bytes } from "../../olt/scripts/src/core/json
 import { initialState } from "../../olt/scripts/src/engine/store/capsule/state.ts";
 import { setDefectLogDependenciesForTesting } from "../../olt/scripts/src/logging/lock.ts";
 import { VirtualMemoryFS } from "../../olt/scripts/src/testing/virtual-fs/index.ts";
-import { createStoreFsSpies, type VirtualStoreState } from "./session/index.ts";
+import { createStoreFsSpies, norm, type VirtualStoreState } from "./session/index.ts";
 export { createStoreFsSpies } from "./session/index.ts";
 
 const VIRTUAL_SCRATCH_BASE = "/virtual/store-scratch";
@@ -79,6 +79,14 @@ export function cleanupVirtualStoreFS(): void {
 
 export function getVirtualStoreFS(): VirtualMemoryFS {
   return vfs;
+}
+
+export function symlinkSync(target: string, link: string): void {
+  state.symlinks.set(norm(link), norm(target));
+}
+
+export function chmodSync(targetPath: string, mode: number | string): void {
+  state.customModes.set(norm(targetPath), typeof mode === "string" ? parseInt(mode, 8) : mode);
 }
 
 function slug(value: string): string {

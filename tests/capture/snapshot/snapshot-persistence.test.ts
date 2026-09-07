@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -10,7 +9,12 @@ import {
   persistSnapshotTree,
 } from "../../../olt/scripts/src/capture/snapshot/index.ts";
 import type { DomPhysicsSnapshot } from "../../../olt/scripts/src/capture/runners/types.ts";
-import { cleanupVirtualCaptureFS, scratchRoot, setupVirtualCaptureFS } from "../fixture.ts";
+import {
+  cleanupVirtualCaptureFS,
+  getVirtualCaptureFS,
+  scratchRoot,
+  setupVirtualCaptureFS,
+} from "../fixture.ts";
 
 function createDummyPhysics(): DomPhysicsSnapshot {
   return {
@@ -78,6 +82,8 @@ describe("Snapshot Persistence & Path Safety Confinement", () => {
     const rootLeak = join(process.cwd(), "snapshot-tree.json");
     const capturesDirLeak = join(process.cwd(), "captures", "snapshot-tree.json");
     const relativeRootLeak = "snapshot.json";
+    const tmpTraversal = join(process.cwd(), ".tmp", "..", "escaped.json");
+    const scratchTraversal = join(process.cwd(), ".olt", "scratch", "..", "..", "sneaky.json");
 
     expect(() => assertSafeCaptureDestination(rootLeak)).toThrow("outside safe confinement roots");
     expect(() => assertSafeCaptureDestination(capturesDirLeak)).toThrow(
@@ -86,11 +92,18 @@ describe("Snapshot Persistence & Path Safety Confinement", () => {
     expect(() => assertSafeCaptureDestination(relativeRootLeak)).toThrow(
       "outside safe confinement roots",
     );
+    expect(() => assertSafeCaptureDestination(tmpTraversal)).toThrow(
+      "outside safe confinement roots",
+    );
+    expect(() => assertSafeCaptureDestination(scratchTraversal)).toThrow(
+      "outside safe confinement roots",
+    );
   });
 
   it("persists and loads snapshot tree with verified state integrity", () => {
+    const vfs = getVirtualCaptureFS();
     const testDir = scratchRoot("snapshot-persistence", "persist");
-    mkdirSync(testDir, { recursive: true });
+    vfs.mkdirSync(testDir, { recursive: true });
     const targetFile = join(testDir, "tree.snapshot.json");
 
     const tree = createSnapshotTree();
@@ -108,7 +121,7 @@ describe("Snapshot Persistence & Path Safety Confinement", () => {
     expect(persistResult.filePath).toBe(targetFile);
     expect(persistResult.bytesWritten).toBeGreaterThan(100);
     expect(persistResult.merkleRoot).toHaveLength(64);
-    expect(existsSync(targetFile)).toBe(true);
+    expect(vfs.existsSync(targetFile)).toBe(true);
 
     const loadedTree = loadSnapshotTree(targetFile);
     expect(loadedTree.size()).toBe(2);
@@ -118,8 +131,9 @@ describe("Snapshot Persistence & Path Safety Confinement", () => {
   });
 
   it("rejects corrupted or tampered snapshot files on load", () => {
+    const vfs = getVirtualCaptureFS();
     const testDir = scratchRoot("snapshot-persistence", "tamper");
-    mkdirSync(testDir, { recursive: true });
+    vfs.mkdirSync(testDir, { recursive: true });
     const targetFile = join(testDir, "corrupted.snapshot.json");
 
     const tree = createSnapshotTree();
@@ -131,9 +145,9 @@ describe("Snapshot Persistence & Path Safety Confinement", () => {
 
     persistSnapshotTree(tree, targetFile);
 
-    const raw = JSON.parse(readFileSync(targetFile, "utf-8"));
+    const raw = JSON.parse(vfs.readFileSync(targetFile, "utf-8"));
     raw.nodes[0].label = "Unauthorized Tampered Label";
-    writeFileSync(targetFile, JSON.stringify(raw), "utf-8");
+    vfs.writeFileSync(targetFile, JSON.stringify(raw), "utf-8");
 
     expect(() => loadSnapshotTree(targetFile)).toThrow("Corrupted state hash detected");
   });
@@ -142,5 +156,73 @@ describe("Snapshot Persistence & Path Safety Confinement", () => {
     expect(() => loadSnapshotTree("/virtual/non-existent-snapshot-file-xyz.json")).toThrow(
       "not found",
     );
+  });
+
+  it("handles malformed JSON and schema mismatches with INTEGRITY errors", () => {
+    const vfs = getVirtualCaptureFS();
+    const testDir = scratchRoot("snapshot-persistence", "integrity");
+    vfs.mkdirSync(testDir, { recursive: true });
+
+    const malformedFile = join(testDir, "bad.json");
+    vfs.writeFileSync(malformedFile, "not-valid-json{{{");
+    expect(() => loadSnapshotTree(malformedFile)).toThrow("Invalid JSON in snapshot tree file");
+
+    const badSchemaFile = join(testDir, "bad-schema.json");
+    vfs.writeFileSync(
+      badSchemaFile,
+      JSON.stringify({ schema: "snapshot.tree.v999", nodes: [] }),
+    );
+    expect(() => loadSnapshotTree(badSchemaFile)).toThrow("Unsupported snapshot tree schema");
+  });
+
+  it("loads empty snapshot tree when nodes array is empty", () => {
+    const vfs = getVirtualCaptureFS();
+    const testDir = scratchRoot("snapshot-persistence", "empty-nodes");
+    vfs.mkdirSync(testDir, { recursive: true });
+    const emptyFile = join(testDir, "empty.snapshot.json");
+
+    vfs.writeFileSync(
+      emptyFile,
+      JSON.stringify({
+        schema: "snapshot.tree.v1",
+        version: 1,
+        stats: { totalNodes: 0, maxDepth: 0, leafCount: 0, treeMerkleRoot: "" },
+        nodes: [],
+        persistedAt: new Date().toISOString(),
+      }),
+    );
+
+    const loaded = loadSnapshotTree(emptyFile);
+    expect(loaded.size()).toBe(0);
+    expect(loaded.getRoot()).toBeNull();
+  });
+
+  it("persists and loads snapshot tree in deeply nested directories in virtual memory", () => {
+    const vfs = getVirtualCaptureFS();
+    const deepDir = join(
+      scratchRoot("snapshot-persistence", "deep"),
+      "level1",
+      "level2",
+      "level3",
+    );
+    vfs.mkdirSync(deepDir, { recursive: true });
+    const deepFile = join(deepDir, "deep.snapshot.json");
+
+    const tree = createSnapshotTree();
+    const context = createSnapshotContext({
+      viewport: { name: "desktop", width: 1440, height: 900 },
+      url: "http://localhost:3000/",
+      screenId: "deep-screen",
+    });
+    const physics = createDummyPhysics();
+    tree.addRoot({ id: "root-deep", label: "Deep Root", context, physics });
+
+    const res = persistSnapshotTree(tree, deepFile);
+    expect(res.filePath).toBe(deepFile);
+    expect(vfs.existsSync(deepFile)).toBe(true);
+
+    const loaded = loadSnapshotTree(deepFile);
+    expect(loaded.size()).toBe(1);
+    expect(loaded.getRoot()?.id).toBe("root-deep");
   });
 });

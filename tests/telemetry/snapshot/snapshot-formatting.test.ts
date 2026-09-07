@@ -65,6 +65,25 @@ describe("DAG Snapshot Markdown Formatting & Path Resolution", () => {
     expect(md).toContain("Directive 1");
   });
 
+  it("Probe 2: formats empty constrained models and zero quota gracefully", () => {
+    const emptySnap: QuotaDagSnapshot = {
+      ...snapshot,
+      constrainedModels: [],
+      tasks: [],
+      uncommittedFiles: [],
+    };
+    const zeroEval: CircuitBreakerEvaluation = {
+      ...evaluation,
+      lowestRemainingQuota: 0,
+      constrainedModels: [],
+    };
+    const md = formatDagSnapshotMarkdown(emptySnap, zeroEval, true);
+    expect(md).toContain("0%");
+    expect(md).toContain("None");
+    expect(md).toContain("*No active tasks*");
+    expect(md).toContain("*None*");
+  });
+
   describe("resolveQuotaDagSnapshotPath", () => {
     it("should resolve relative to repoRoot", () => {
       const resolved = resolveQuotaDagSnapshotPath("/repo");

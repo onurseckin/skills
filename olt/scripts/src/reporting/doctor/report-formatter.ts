@@ -4,7 +4,10 @@ import {
   type BehavioralFinding,
 } from "../behavioral-auditor/index.ts";
 import type { TierConfinementFinding } from "./tier-confinement/index.ts";
-import { formatSocraticAuditSection, type SocraticAuditReport } from "../socratic-validator.ts";
+import {
+  formatSocraticAuditSection,
+  type SocraticAuditReport,
+} from "../socratic-validator/index.ts";
 import type { LifecycleFinding } from "./state-machine-auditor.ts";
 
 export interface DoctorReportFormatParams {

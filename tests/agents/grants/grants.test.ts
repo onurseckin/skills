@@ -1,5 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync } from "node:fs";
+import { afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { isAgentGrantRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { initRun, loadRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
@@ -9,12 +8,56 @@ import {
   releaseAgentGrant,
 } from "../../../olt/scripts/src/workflow/agents/grants.ts";
 import { readAgentLedger } from "../../../olt/scripts/src/workflow/agents/ledger.ts";
-import { cleanupVirtualAgentsFS, scratchRoot, setupVirtualAgentsFS } from "../fixture.ts";
+import {
+  cleanupVirtualAgentsFS,
+  getVirtualAgentsFS,
+  scratchRoot,
+  setupVirtualAgentsFS,
+} from "../fixture.ts";
+
+beforeAll(() => {
+  setupVirtualAgentsFS();
+  const run = freshRun("warmup");
+  registerAgentGrant({
+    runRoot: run,
+    agentId: "warm-agent",
+    role: "implementer",
+    parentAgentId: null,
+    parentTaskId: null,
+    host: "some-host",
+    authority: { kind: "conditional_genesis" },
+    maxAgents: 10,
+    telemetry: {},
+    now: new Date(),
+  });
+  recordAgentReport({
+    runRoot: run,
+    agentId: "warm-agent",
+    actor: "warm-agent",
+    tools: [{ name: "Bash" }],
+  });
+  releaseAgentGrant({
+    runRoot: run,
+    agentId: "warm-agent",
+    actor: "warm-agent",
+    reason: "done",
+  });
+  cleanupVirtualAgentsFS();
+});
+
+beforeEach(() => {
+  setupVirtualAgentsFS();
+});
+
+afterEach(() => {
+  cleanupVirtualAgentsFS();
+});
 
 function freshRun(label: string): string {
   const root = scratchRoot("agent-grants-test", label);
   const repo = join(root, "repo");
-  mkdirSync(repo, { recursive: true });
+  const vfs = getVirtualAgentsFS();
+  vfs.mkdirSync(repo, { recursive: true });
   return initRun(repo, "grants-run", new TextEncoder().encode("prompt"), "file", true);
 }
 

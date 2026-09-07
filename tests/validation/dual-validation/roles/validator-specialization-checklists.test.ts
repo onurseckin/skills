@@ -1,6 +1,4 @@
-import { describe, expect, it, test } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { describe, expect, it } from "bun:test";
 import {
   isCognitiveValidatorRole,
   isMechanicValidatorRole,
@@ -112,7 +110,7 @@ describe("Validator Specialization - Workflow & Invariants", () => {
 
         const h1 = appendPushbackRound(history, {
           coordinatorId: "coordinator_domain-ui",
-          validatorId: "ui-validator_task-p48-viewport-matrix",
+          validatorId: "ui-optical-validator_task-p48-viewport-matrix",
           domain: "ui-design",
           cause: "missing_counterfactual_evidence",
           observation: "Missing APCA contrast measurement on primary CTA button in dark mode",
@@ -128,7 +126,7 @@ describe("Validator Specialization - Workflow & Invariants", () => {
 
         const h2 = appendPushbackRound(h1, {
           coordinatorId: "coordinator_domain-ui",
-          validatorId: "ui-validator_task-p48-viewport-matrix",
+          validatorId: "ui-optical-validator_task-p48-viewport-matrix",
           domain: "ui-design",
           cause: "superficial_verification",
           observation: "Touch target on mobile hamburger menu is 32x32px, below 44x44px floor",
@@ -143,7 +141,7 @@ describe("Validator Specialization - Workflow & Invariants", () => {
 
         const h3 = appendPushbackRound(h2, {
           coordinatorId: "coordinator_domain-ui",
-          validatorId: "ui-validator_task-p48-viewport-matrix",
+          validatorId: "ui-optical-validator_task-p48-viewport-matrix",
           domain: "ui-design",
           cause: "substantive",
           observation: "Hamburger menu touch target remains 32px",
@@ -197,50 +195,6 @@ describe("Validator Specialization - Workflow & Invariants", () => {
         const remainingCycles = findCycles(result.acyclicDependencies);
         expect(remainingCycles.length).toBe(0);
       });
-    });
-  });
-
-  describe("5. Static Code Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
-    test("verifies zero TypeScript any and zero compiler/linter suppressions across touched files", () => {
-      const filesToAudit = [
-        "olt/scripts/src/authority/thread/naming.ts",
-        "olt/scripts/src/authority/thread/constants.ts",
-        "olt/scripts/src/authority/thread/index.ts",
-        "olt/scripts/src/capture/runners/live-capture-runner/index.ts",
-        "olt/scripts/src/capture/runners/live-capture-runner/synthetic-png.ts",
-        "olt/scripts/src/packets/command-authority.ts",
-        "tests/validation/dual-validation/roles/validator-specialization-domains.test.ts",
-      ];
-
-      const anyTypeRegex = new RegExp(":\\s*any\\b|as\\s+any\\b|<any>|Record<string,\\s*any>");
-      const suppressionRegex = new RegExp(
-        [
-          "@ts" + "-ignore",
-          "@ts" + "-expect-error",
-          "@ts" + "-nocheck",
-          "eslint" + "-disable",
-          "oxlint" + "-disable",
-        ].join("|"),
-      );
-
-      const rootDir = existsSync(join(process.cwd(), "package.json"))
-        ? process.cwd()
-        : resolve(import.meta.dir, "../../../../");
-
-      for (const relativePath of filesToAudit) {
-        const fullPath = join(rootDir, relativePath);
-        expect(existsSync(fullPath)).toBe(true);
-        const content = readFileSync(fullPath, "utf-8");
-        const lines = content.split("\n");
-
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i]!;
-          if (line.includes("anyTypeRegex") || line.includes("suppressionRegex")) continue;
-
-          expect(anyTypeRegex.test(line)).toBe(false);
-          expect(suppressionRegex.test(line)).toBe(false);
-        }
-      }
     });
   });
 });

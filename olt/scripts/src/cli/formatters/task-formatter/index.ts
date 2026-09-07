@@ -1,5 +1,4 @@
 export type {
-  TaskAssignRepairerParams,
   TaskBriefParams,
   TaskClaimParams,
   TaskHeartbeatParams,
@@ -13,7 +12,6 @@ export type {
 export { formatTaskBrief } from "./brief.ts";
 
 export {
-  formatTaskAssignRepairerBrief,
   formatTaskClaimBrief,
   formatTaskHeartbeatBrief,
   formatTaskSubmitBrief,

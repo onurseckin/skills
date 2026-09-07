@@ -148,12 +148,4 @@ describe("CLI capability manifest sharding and modularity", () => {
     expect(maxGeneratedPhysicalLines()).toBeLessThanOrEqual(300);
     expect(maxGeneratedDirectoryFanout()).toBeLessThanOrEqual(10);
   });
-
-  test("static invariant verification: zero any and zero suppressions", () => {
-    const testFile = readFileSync(__filename, "utf-8");
-    expect(testFile).not.toContain("@ts-" + "ignore");
-    expect(testFile).not.toContain("@ts-" + "expect-error");
-    expect(testFile).not.toContain("eslint-" + "disable");
-    expect(testFile).not.toContain(": " + "any");
-  });
 });

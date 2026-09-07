@@ -22,7 +22,7 @@ Every task execution unit $T_i$ in OLT requires two distinct cryptographic keys 
 ```mermaid
 graph LR
     subgraph Execution Wave
-        I[Implementer / Repairer<br/>Write-Lease Holder]
+        I[Implementer<br/>Write-Lease Holder]
     end
 
     subgraph The 2-Key Gate
@@ -47,7 +47,7 @@ graph LR
 
 | Dimension              | Key 1: Independent Mechanic Validator                                                        | Key 2: Independent Cognitive Validator                                             |
 | :--------------------- | :------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------- |
-| **Agent Role**         | `mechanic-validator`                                                                         | `validator` / `sub-validator`                                                      |
+| **Agent Role**         | `ui-headless-validator`                                                                      | `validator` / `sub-validator`                                                      |
 | **Evaluation Scope**   | Static types (`tsc --noEmit`), AST linting, test suite execution, file boundary confinement. | Semantic fidelity to user prompt, Diátaxis compliance, completeness of edge cases. |
 | **Permitted Commands** | `task:validate-start`, `task:check`, `run:exec`, `doctor:verify`, `task:review`              | `task:brief`, `task:probe`, `task:reject`, `task:review`, `finding:get`            |
 | **Write Permission**   | Strictly read-only; editing codebase files triggers immediate `ROLE_CONFINEMENT_VIOLATION`.  | Strictly read-only; modifying code files triggers immediate defect logging.        |
@@ -85,7 +85,7 @@ sequenceDiagram
 ### In-Lease Micro-Cycle Invariants
 
 1. **Lease Continuity**: When a validator issues a probe demand (`task:probe --demand "<condition>"`), the task remains in `validating` status under the **same** lease without releasing or dropping the token.
-2. **Bounded Iteration Count ($k \le 5$)**: If an implementer fails within $k_{\text{max}} = 5$ rounds, the task escalates to `escalated` for re-assignment via `task:assign-repairer`.
+2. **Bounded Iteration Count ($k \le 5$)**: If an implementer fails within $k_{\text{max}} = 5$ rounds, the task escalates to `escalated` for a fresh implementer to reclaim it.
 3. **Anti-Ritual Probe Mandate**: The validator cannot issue generic prose rejections; every demand must be a structured record with `finding_id`, `requirement_id`, and a verifiable counterfactual check.
 
 ---

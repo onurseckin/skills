@@ -1,17 +1,20 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { execute } from "../olt/scripts/src/cli/execute.ts";
 import { HarnessError } from "../olt/scripts/src/core/errors/index.ts";
+import {
+  cleanupVirtualCliFS,
+  getVirtualCliFS,
+  setupVirtualCliFS,
+} from "./cli/commands/fixtures/full-lifecycle-fixture.ts";
 
-const FIXTURE_DIR = join(process.cwd(), ".tmp", `flag-aliases-test-${Date.now()}`);
-const LIVE_CAPSULE =
-  "/Users/onurseckinsenoglu/repos/skills/.olt/capsules/olt-forensics-and-hardening";
+const FIXTURE_DIR = "/virtual/cli/capsules/flag-aliases-test";
+const RICH_CAPSULE = "/virtual/cli/capsules/rich-capsule-test";
 
-function setupFixtureCapsule(): string {
-  if (!existsSync(FIXTURE_DIR)) {
-    mkdirSync(FIXTURE_DIR, { recursive: true });
-  }
+function setupFixtureCapsule(): void {
+  const vfs = getVirtualCliFS();
+  vfs.mkdirSync(FIXTURE_DIR, { recursive: true });
+
   const state = {
     schema: "harness.state",
     version: 1,
@@ -40,23 +43,37 @@ function setupFixtureCapsule(): string {
     },
   };
 
-  writeFileSync(join(FIXTURE_DIR, "state.json"), JSON.stringify(state), "utf-8");
-  return FIXTURE_DIR;
+  vfs.writeFileSync(join(FIXTURE_DIR, "state.json"), JSON.stringify(state));
+
+  vfs.mkdirSync(RICH_CAPSULE, { recursive: true });
+  const richTasks: Record<string, unknown> = {};
+  for (let i = 1; i <= 8; i++) {
+    richTasks[`task-${i}`] = {
+      id: `task-${i}`,
+      label: `Rich Task ${i}`,
+      status: i === 1 ? "ready" : "leased",
+      priority: 50,
+      write_scope: [`src/task-${i}.ts`],
+      dependencies: [],
+    };
+  }
+  vfs.writeFileSync(
+    join(RICH_CAPSULE, "state.json"),
+    JSON.stringify({ schema: "harness.state", version: 1, tasks: richTasks }),
+  );
+
+  vfs.mkdirSync("/virtual/cli/src", { recursive: true });
+  vfs.writeFileSync("/virtual/cli/src/dummy.ts", "export const value = 42;\n");
 }
 
 describe("CLI flag aliasing and task:list --run support", () => {
   beforeAll(() => {
+    setupVirtualCliFS();
     setupFixtureCapsule();
   });
 
   afterAll(() => {
-    try {
-      if (existsSync(FIXTURE_DIR)) {
-        rmSync(FIXTURE_DIR, { recursive: true, force: true });
-      }
-    } catch {
-      // Ignore cleanup error
-    }
+    cleanupVirtualCliFS();
   });
 
   test("task:list accepts --run and returns capsule tasks nicely formatted", async () => {
@@ -109,15 +126,11 @@ describe("CLI flag aliasing and task:list --run support", () => {
   });
 
   test("universal alias --capsule normalizes to --run on commands declaring run", async () => {
-    if (existsSync(LIVE_CAPSULE)) {
-      const result = await execute(["task:brief", "--capsule", LIVE_CAPSULE, "--task", "task-4"]);
-      expect(result).toBeDefined();
-      expect(typeof result.markdown).toBe("string");
-      expect((result.markdown as string).includes("task-4")).toBe(true);
-    } else {
-      const result = await execute(["task:list", "--capsule", FIXTURE_DIR]);
-      expect(result.tasks).toBeDefined();
-    }
+    const result = await execute(["task:list", "--capsule", RICH_CAPSULE]);
+    expect(result).toBeDefined();
+    expect(result.tasks).toBeDefined();
+    const tasks = result.tasks as Record<string, unknown>[];
+    expect(tasks.length).toBe(8);
   });
 
   test("universal alias --agent normalizes to --actor on task:check", async () => {
@@ -127,7 +140,7 @@ describe("CLI flag aliasing and task:list --run support", () => {
       "auditor-1",
       "--lint",
       "--file",
-      "olt/scripts/src/cli/execute.ts",
+      "/virtual/cli/src/dummy.ts",
     ]);
     expect(result).toBeDefined();
     expect(result.passed).toBe(true);
@@ -136,7 +149,7 @@ describe("CLI flag aliasing and task:list --run support", () => {
   test("universal alias rejects unknown options when command does not accept actor/agent", async () => {
     let thrownError: HarnessError | undefined;
     try {
-      await execute(["plan:init", "--repo", ".", "--run", "x", "--actor", "planner"]);
+      await execute(["plan:init", "--repo", "/virtual/cli", "--run", "x", "--actor", "planner"]);
     } catch (err: unknown) {
       if (err instanceof HarnessError) thrownError = err;
     }
@@ -145,21 +158,20 @@ describe("CLI flag aliasing and task:list --run support", () => {
   });
 
   test("derives queue-path when --run is provided to queue commands", async () => {
+    const vfs = getVirtualCliFS();
     const dummyQueueFile = join(FIXTURE_DIR, "tasks.jsonl");
-    writeFileSync(dummyQueueFile, "", "utf-8");
+    vfs.writeFileSync(dummyQueueFile, "");
     const result = await execute(["task:prune", "--run", FIXTURE_DIR]);
     expect(result).toBeDefined();
     expect(typeof result.prunedCount).toBe("number");
   });
 
-  test("task:list works with live capsule if available", async () => {
-    if (existsSync(LIVE_CAPSULE)) {
-      const result = await execute(["task:list", "--run", LIVE_CAPSULE]);
-      expect(result).toBeDefined();
-      const tasks = result.tasks as Record<string, unknown>[];
-      expect(tasks.length).toBeGreaterThanOrEqual(7);
-      expect(tasks.some((t) => t.id === "task-4")).toBe(true);
-      expect((result.markdown as string).includes("task-4")).toBe(true);
-    }
+  test("task:list works with rich capsule", async () => {
+    const result = await execute(["task:list", "--run", RICH_CAPSULE]);
+    expect(result).toBeDefined();
+    const tasks = result.tasks as Record<string, unknown>[];
+    expect(tasks.length).toBeGreaterThanOrEqual(7);
+    expect(tasks.some((t) => t.id === "task-4")).toBe(true);
+    expect((result.markdown as string).includes("task-4")).toBe(true);
   });
 });

@@ -23,12 +23,7 @@ describe("Mailbox Quarantine Engine", () => {
 
   beforeEach(() => {
     setupVirtualCommunicationFS();
-    testRoot = join(
-      process.cwd(),
-      "coverage",
-      "scratch",
-      `quarantine-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    );
+    testRoot = "/tmp/mock-communication/quarantine-test";
     mkdirSync(testRoot, { recursive: true });
   });
 
@@ -292,6 +287,67 @@ describe("Mailbox Quarantine Engine", () => {
 
       clearInMemoryQuarantines();
       expect(getInMemoryQuarantine(p)).toBeUndefined();
+    });
+  });
+
+  describe("Edge cases: CRLF escaping, future timestamp retention, and multi-entry append", () => {
+    it("strictly escapes CRLF line endings to preserve single-line log structure", () => {
+      const crlfPayload = "line1\r\nline2\r\nline3";
+      const entry = ingestToQuarantine("agent-crlf", crlfPayload, "CRLF_ERR", {
+        baseDir: testRoot,
+      });
+      const content = readFileSync(entry.quarantinePath, "utf8").trim();
+      const lines = content.split("\n");
+      expect(lines.length).toBe(1);
+      expect(lines[0]).toContain("\\r\\nline2\\r\\nline3");
+
+      const sweep = sweepQuarantineDeadLetters({ baseDir: testRoot, agentId: "agent-crlf" });
+      expect(sweep.deadLetters.length).toBe(1);
+      expect(sweep.deadLetters[0]?.rawEnvelope).toBe(crlfPayload);
+    });
+
+    it("safely retains future-timestamped dead letters during age-based purge", () => {
+      const paths = resolveMailboxPaths("agent-future", testRoot);
+      ensureMailboxDirectories(paths);
+      const futureTime = new Date(Date.now() + 1000000).toISOString();
+      const pastTime = new Date(Date.now() - 200000).toISOString();
+      writeFileSync(
+        paths.quarantinePath,
+        `[${pastTime}] [REASON: OLD] old data\n[${futureTime}] [REASON: FUTURE] future data\n`,
+        "utf8",
+      );
+
+      const sweep = sweepQuarantineDeadLetters({
+        baseDir: testRoot,
+        agentId: "agent-future",
+        maxAgeMs: 50000,
+        purge: true,
+      });
+
+      expect(sweep.totalEntries).toBe(2);
+      expect(sweep.purgedEntries).toBe(1);
+      expect(sweep.deadLetters.length).toBe(1);
+      expect(sweep.deadLetters[0]?.reason).toBe("OLD");
+
+      const remaining = readFileSync(paths.quarantinePath, "utf8");
+      expect(remaining).toContain("FUTURE");
+      expect(remaining).not.toContain("OLD");
+    });
+
+    it("maintains file integrity across multiple sequential ingests for the same agent", () => {
+      const a = ingestToQuarantine("agent-multi", { seq: 1 }, "ERR_1", { baseDir: testRoot });
+      const b = ingestToQuarantine("agent-multi", { seq: 2 }, "ERR_2", { baseDir: testRoot });
+      const c = ingestToQuarantine("agent-multi", { seq: 3 }, "ERR_3", { baseDir: testRoot });
+
+      expect(a.quarantinePath).toBe(b.quarantinePath);
+      expect(b.quarantinePath).toBe(c.quarantinePath);
+
+      const content = readFileSync(a.quarantinePath, "utf8").trim();
+      const lines = content.split("\n");
+      expect(lines.length).toBe(3);
+      expect(lines[0]).toContain("ERR_1");
+      expect(lines[1]).toContain("ERR_2");
+      expect(lines[2]).toContain("ERR_3");
     });
   });
 });

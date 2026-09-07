@@ -16,7 +16,47 @@ import type {
   DynamicDagState,
   DynamicTaskState,
 } from "../../olt/scripts/src/reporting/living-tracer/index.ts";
-import type { SugiyamaNode } from "../../olt/scripts/src/reporting/sugiyama-dag/index.ts";
+import type {
+  SugiyamaNode,
+  SugiyamaSubtask,
+} from "../../olt/scripts/src/reporting/sugiyama-dag/index.ts";
+
+function mockDynamicTask(overrides: Partial<DynamicTaskState> = {}): DynamicTaskState {
+  return {
+    id: "task-default",
+    label: "Task Default",
+    status: "ready",
+    dependencies: [],
+    writeScope: [],
+    origin: "static",
+    createdAtSeq: 1,
+    updatedAtSeq: 1,
+    round: 1,
+    attempt: 1,
+    executionState: "pending",
+    ...overrides,
+  };
+}
+
+function mockDynamicDag(
+  tasks: Map<string, DynamicTaskState>,
+  overrides: Partial<DynamicDagState> = {},
+): DynamicDagState {
+  return {
+    runId: "run-test",
+    revision: 1,
+    totalTasks: tasks.size,
+    staticTasksCount: tasks.size,
+    dynamicTasksCount: 0,
+    repairBranchesCount: 0,
+    currentRound: 1,
+    tasks,
+    activeAgents: new Map(),
+    activeBranches: [],
+    sproutedRepairPairs: [],
+    ...overrides,
+  };
+}
 
 describe("DAG View Presentation Subsystem", () => {
   describe("re-exported utilities", () => {
@@ -65,10 +105,10 @@ describe("DAG View Presentation Subsystem", () => {
     });
 
     it("renders SugiyamaSubtask objects with implementer, validator, and coordinates", () => {
-      const subtasks = [
+      const subtasks: SugiyamaSubtask[] = [
         {
           id: "sub-impl",
-          status: "in_progress" as const,
+          status: "in_progress",
           role: "implementer",
           assignedAgent: "agent-impl-1",
           validatorId: "agent-val-1",
@@ -76,7 +116,7 @@ describe("DAG View Presentation Subsystem", () => {
         },
         {
           id: "sub-val",
-          status: "passed" as const,
+          status: "passed",
           role: "validator",
           assignedAgent: "agent-val-2",
         },
@@ -92,17 +132,17 @@ describe("DAG View Presentation Subsystem", () => {
       expect(lines[2]).toContain("agent-val-2");
     });
 
-    it("renders DynamicTaskState objects with implementerAgent and validatorAgent", () => {
-      const dynamicTask: Partial<DynamicTaskState> = {
+    it("renders SugiyamaSubtask objects with implementerAgent and validatorAgent", () => {
+      const dynamicTask: SugiyamaSubtask = {
         id: "task-dyn-1",
-        status: "ready" as any,
+        status: "ready",
         role: "implementer",
         implementerAgent: "impl-42",
         validatorAgent: "val-42",
         coordinates: { wave: 3, lane: 2 },
       };
 
-      const lines = renderBranchExpansionHierarchy("root", [dynamicTask as DynamicTaskState]);
+      const lines = renderBranchExpansionHierarchy("root", [dynamicTask]);
       expect(lines[1]).toContain("[task-dyn-1]");
       expect(lines[1]).toContain("impl-42");
       expect(lines[1]).toContain("val-42");
@@ -113,35 +153,41 @@ describe("DAG View Presentation Subsystem", () => {
   describe("dynamicDagStateToSugiyama", () => {
     it("transforms dynamic DAG state into nodes and edges with fallback coordinates", () => {
       const tasksMap = new Map<string, DynamicTaskState>();
-      tasksMap.set("t1", {
-        id: "t1",
-        label: "Task One",
-        status: "passed",
-        dependencies: [],
-        writeScope: ["src/a.ts"],
-        assignedAgent: "impl-1",
-        role: "implementer",
-        activeTool: "write_file",
-        validatorId: "val-1",
-        coordinates: { wave: 1, lane: 1 },
-        round: 1,
-        probeRound: 1,
-        branchId: "b-main",
-        origin: "initial",
-      } as any);
+      tasksMap.set(
+        "t1",
+        mockDynamicTask({
+          id: "t1",
+          label: "Task One",
+          status: "passed",
+          dependencies: [],
+          writeScope: ["src/a.ts"],
+          assignedAgent: "impl-1",
+          role: "implementer",
+          activeTool: "write_file",
+          validatorId: "val-1",
+          coordinates: { wave: 1, lane: 1 },
+          round: 1,
+          probeRound: 1,
+          branchId: "b-main",
+          origin: "static",
+        }),
+      );
 
-      tasksMap.set("t2", {
-        id: "t2",
-        label: "Task Two",
-        status: "ready",
-        dependencies: ["t1"],
-        writeScope: ["src/b.ts"],
-        round: 2,
-        repairForTaskId: "t1",
-        origin: "dynamic_repair",
-      } as any);
+      tasksMap.set(
+        "t2",
+        mockDynamicTask({
+          id: "t2",
+          label: "Task Two",
+          status: "ready",
+          dependencies: ["t1"],
+          writeScope: ["src/b.ts"],
+          round: 2,
+          repairForTaskId: "t1",
+          origin: "repair_branch",
+        }),
+      );
 
-      const dynamicDag: DynamicDagState = { tasks: tasksMap } as any;
+      const dynamicDag = mockDynamicDag(tasksMap);
       const { nodes, edges } = dynamicDagStateToSugiyama(dynamicDag);
 
       expect(nodes).toHaveLength(2);
@@ -154,7 +200,7 @@ describe("DAG View Presentation Subsystem", () => {
       expect(nodes[1]?.id).toBe("t2");
       expect(nodes[1]?.coordinates).toEqual({ wave: 2, lane: 1 });
       expect(nodes[1]?.parentTaskId).toBe("t1");
-      expect(nodes[1]?.dynamicOrigin).toBe("dynamic_repair");
+      expect(nodes[1]?.dynamicOrigin).toBe("repair_branch");
 
       expect(edges[0]).toEqual({
         from: "t1",
@@ -167,16 +213,19 @@ describe("DAG View Presentation Subsystem", () => {
   describe("renderDynamicDagView", () => {
     it("renders dynamic DAG view from DynamicDagState object", () => {
       const tasksMap = new Map<string, DynamicTaskState>();
-      tasksMap.set("t1", {
-        id: "t1",
-        label: "Build Core",
-        status: "passed",
-        dependencies: [],
-        writeScope: [],
-        round: 1,
-      } as any);
+      tasksMap.set(
+        "t1",
+        mockDynamicTask({
+          id: "t1",
+          label: "Build Core",
+          status: "passed",
+          dependencies: [],
+          writeScope: [],
+          round: 1,
+        }),
+      );
 
-      const dynamicDag: DynamicDagState = { tasks: tasksMap } as any;
+      const dynamicDag = mockDynamicDag(tasksMap);
       const report = renderDynamicDagView(dynamicDag, { maxWidth: 100 });
 
       expect(report).toBeDefined();

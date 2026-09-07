@@ -66,7 +66,7 @@ export async function validateUiCommand(flags: Flags): Promise<Record<string, un
   const screenshots = collectTaskScreenshots(
     loaded.runRoot,
     taskId,
-    "ui-mechanic-validator",
+    "ui-headless-validator",
     checkIds,
   );
   const manifests = collectCompanionManifests(loaded.runRoot, taskId);

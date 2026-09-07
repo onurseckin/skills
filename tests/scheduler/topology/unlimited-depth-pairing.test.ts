@@ -1,7 +1,31 @@
-import { describe, expect, test } from "bun:test";
-import { pairValidatorsStrictly } from "../../../olt/scripts/src/engine/scheduler/index.ts";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import {
+  assertUnboundedConcurrencySafety,
+  pairValidatorsStrictly,
+} from "../../../olt/scripts/src/engine/scheduler/index.ts";
 
 describe("Unlimited Depth DAG: Validator Pairing", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession | null = null;
+
+  beforeEach(() => {
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+  });
+
+  afterEach(() => {
+    if (session) {
+      session.cleanup();
+      session = null;
+    }
+    vfs.reset();
+  });
+
   describe("pairValidatorsStrictly", () => {
     test("pairs code-quality as baseline validator for generic tasks", () => {
       const tasks = [
@@ -131,6 +155,61 @@ describe("Unlimited Depth DAG: Validator Pairing", () => {
         assignedImplementers: 123 as unknown as Record<string, string>,
       });
       expect(fallbackPairings[0]!.assignedImplementer).toBeNull();
+    });
+
+    test("returns empty array when passed zero tasks", () => {
+      expect(pairValidatorsStrictly([])).toEqual([]);
+    });
+
+    test("differentiates relaxed vs strict domain pairing on multi-scope task", () => {
+      const task = {
+        id: "task-multi",
+        priority: 1,
+        created_order: 1,
+        effort: 1,
+        requirement_ids: [],
+        write_scope: ["src/components/Modal.tsx", "src/contracts/user.graphql"],
+      };
+
+      const strictPairings = pairValidatorsStrictly([task], { pairingStrictness: "strict" });
+      expect(strictPairings[0]!.applicableDomains.length).toBeGreaterThanOrEqual(2);
+      expect(strictPairings[0]!.pairedValidatorDomains).toEqual(strictPairings[0]!.applicableDomains);
+      expect(strictPairings[0]!.isPaired).toBe(true);
+
+      const relaxedPairings = pairValidatorsStrictly([task], { pairingStrictness: "relaxed" });
+      expect(relaxedPairings[0]!.pairedValidatorDomains.length).toBe(1);
+      expect(relaxedPairings[0]!.isPaired).toBe(false);
+    });
+
+    test("assertUnboundedConcurrencySafety throws HarnessError on write scope conflict in same wave", () => {
+      const conflictingWave = [
+        {
+          wave: 1,
+          taskIds: ["t1", "t2"],
+          tasks: [
+            {
+              id: "t1",
+              priority: 1,
+              created_order: 1,
+              effort: 1,
+              requirement_ids: [],
+              write_scope: ["src/shared.ts"],
+            },
+            {
+              id: "t2",
+              priority: 1,
+              created_order: 2,
+              effort: 1,
+              requirement_ids: [],
+              write_scope: ["src/shared.ts"],
+            },
+          ],
+        },
+      ] as unknown as Parameters<typeof assertUnboundedConcurrencySafety>[0];
+
+      expect(() => assertUnboundedConcurrencySafety(conflictingWave)).toThrow(
+        /Concurrency safety violation in wave 1/,
+      );
     });
   });
 });

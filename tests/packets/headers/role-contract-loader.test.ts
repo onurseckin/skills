@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
 import {
   loadChecklist,
   loadRoleContract,
@@ -10,14 +9,56 @@ import {
 } from "../../../olt/scripts/src/packets/role-contract.ts";
 
 /**
- * loadRoleContract/loadChecklist/loadValidatorDomainContract's own unreadable-file and
- * declared-role/declared-domain-mismatch guards are integrity checks against a checked-in
- * document set that is (by construction) always internally consistent — so nothing on disk can
- * exercise them without editing the digested roles/checklists files, which this task must never
- * touch. The `read` parameter added to each loader (defaulting to readRegularFileNoFollow, so
- * every real caller is unaffected) is the injection seam that reaches them instead: swap in a
- * throwing reader, or a reader that returns a different real document than the one requested.
+ * In-memory synthetic document fixtures.
+ * Zero physical disk reads occur; 100% in-memory Uint8Array buffers.
  */
+const encoder = new TextEncoder();
+
+const implementerDocBytes = encoder.encode(`name: "implementer"
+role: "implementer"
+provider:
+  - "antigravity"
+tier: 3
+tools:
+  enable_subagent_tools: false
+  enable_write_tools: true
+communication_contract:
+  mandatory_turn_completion_actions: []
+  protocol: "mailbox_ipc"
+  mailbox_path: ".olt/mailboxes/{agent_id}/"
+  lock_path: ".olt/locks/mailboxes/{agent_id}.lock"
+  allowed_channels: []
+  ban_raw_jsonl_reading: true
+  forbid_native_messaging: true
+permissions:
+  may: []
+  must_not: []
+  commands: []
+  spawns: []
+instructions: |
+  # Implementer
+`);
+
+const securityChecklistBytes = encoder.encode(
+  [
+    "# Security checklist",
+    "Domain: security",
+    "",
+    "## SEC-AUTHN-001",
+    "",
+    "rule: A credential is required",
+    "rationale: Security boundary",
+    "how-to-check: Check auth token",
+    "severity: critical",
+    "sources:",
+    "  - OWASP",
+    "",
+  ].join("\n"),
+);
+
+const securityContractBytes = encoder.encode(
+  "---\nrole: validator\ntier: 3\ndomain: security\nmay:\n  - a\nmust_not:\n  - b\ncommands: []\nspawns: []\n---\n\n# Validator Security\n",
+);
 
 function throwingRead(): never {
   throw new Error("simulated read failure");
@@ -30,11 +71,24 @@ describe("loadRoleContract", () => {
     );
   });
 
+  test("wraps custom reader error with error cause details", () => {
+    const customFailureRead = () => {
+      throw new Error("Simulated I/O corruption code 404");
+    };
+    expect(() => loadRoleContract("implementer", customFailureRead)).toThrow(
+      `role contract is unreadable: ${resolveRoleContractPath("implementer")}`,
+    );
+  });
+
   test("rejects a document at the requested path that declares a different role", () => {
-    const implementerBytes = readFileSync(resolveRoleContractPath("implementer"));
-    expect(() => loadRoleContract("validator", () => implementerBytes)).toThrow(
+    expect(() => loadRoleContract("validator", () => implementerDocBytes)).toThrow(
       `role contract ${resolveRoleContractPath("validator")} declares role implementer`,
     );
+  });
+
+  test("fails closed when document bytes contain malformed frontmatter", () => {
+    const malformedBytes = encoder.encode("not valid frontmatter at all without fences\n");
+    expect(() => loadRoleContract("implementer", () => malformedBytes)).toThrow();
   });
 });
 
@@ -46,10 +100,14 @@ describe("loadChecklist", () => {
   });
 
   test("rejects a document at the requested path that declares a different domain", () => {
-    const securityChecklist = readFileSync(resolveChecklistPath("security"));
-    expect(() => loadChecklist("product", () => securityChecklist)).toThrow(
+    expect(() => loadChecklist("product", () => securityChecklistBytes)).toThrow(
       `checklist ${resolveChecklistPath("product")} declares domain security`,
     );
+  });
+
+  test("fails closed on corrupt checklist content", () => {
+    const corruptBytes = encoder.encode("---\nmalformed yaml : [incomplete\n---\n");
+    expect(() => loadChecklist("security", () => corruptBytes)).toThrow();
   });
 });
 
@@ -61,17 +119,13 @@ describe("loadValidatorDomainContract", () => {
   });
 
   test("rejects a document that does not declare the validator role", () => {
-    const implementerBytes = readFileSync(resolveRoleContractPath("implementer"));
-    expect(() => loadValidatorDomainContract("security", () => implementerBytes)).toThrow(
+    expect(() => loadValidatorDomainContract("security", () => implementerDocBytes)).toThrow(
       `validator domain contract ${resolveValidatorDomainContractPath("security")} declares role implementer`,
     );
   });
 
   test("rejects a validator document that declares a different domain", () => {
-    const securityContract = new TextEncoder().encode(
-      "---\nrole: validator\ntier: 3\ndomain: security\nmay:\n  - a\nmust_not:\n  - b\ncommands: []\nspawns: []\n---\n\n# Validator Security\n",
-    );
-    expect(() => loadValidatorDomainContract("product", () => securityContract)).toThrow(
+    expect(() => loadValidatorDomainContract("product", () => securityContractBytes)).toThrow(
       `validator domain contract ${resolveValidatorDomainContractPath("product")} declares domain security`,
     );
   });

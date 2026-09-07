@@ -1,6 +1,5 @@
-import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { cleanupVirtualAgentsFS, scratchRoot, setupVirtualAgentsFS } from "../fixture.ts";
+import { cleanupVirtualAgentsFS, getVirtualAgentsFS, scratchRoot, setupVirtualAgentsFS } from "../fixture.ts";
 
 export { cleanupVirtualAgentsFS, scratchRoot, setupVirtualAgentsFS };
 
@@ -53,18 +52,19 @@ export function toolResultLine(opts: {
   });
 }
 
-export async function writeDirectTranscript(
+export function writeDirectTranscript(
   homeDir: string,
   sessionId: string,
   agentId: string,
   lines: string[],
   meta?: Record<string, unknown>,
-): Promise<void> {
+): void {
+  const vfs = getVirtualAgentsFS();
   const dir = join(homeDir, ".claude", "projects", "some-project", sessionId, "subagents");
-  await mkdir(dir, { recursive: true });
-  await writeFile(join(dir, `agent-${agentId}.jsonl`), lines.join("\n") + "\n");
+  vfs.mkdirSync(dir, { recursive: true });
+  vfs.writeFileSync(join(dir, `agent-${agentId}.jsonl`), lines.join("\n") + "\n");
   if (meta !== undefined) {
-    await writeFile(join(dir, `agent-${agentId}.meta.json`), JSON.stringify(meta));
+    vfs.writeFileSync(join(dir, `agent-${agentId}.meta.json`), JSON.stringify(meta));
   }
 }
 

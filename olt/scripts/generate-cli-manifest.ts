@@ -108,7 +108,7 @@ export function writeManifest(): { markdown: string; splitFiles: string[] } {
     const specs = domainCommandSpecs(domain);
     const domainCommands = allCommands.filter((c) => c.domain === domain);
 
-    let domainMarkdown = renderDomainMarkdown(domain);
+    const domainMarkdown = renderDomainMarkdown(domain);
     const domainLines = domainMarkdown.split("\n");
 
     if (domainLines.length > 300 && largeDomains.includes(domain)) {

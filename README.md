@@ -59,9 +59,9 @@ ceiling rather than assembled into fixed-size batches:
      └───────────────────────────────┘
 ```
 
-Nine canonical roles exist, each with a binding capability contract in
+Eight canonical roles exist, each with a binding capability contract in
 [`olt/roles/`](./olt/roles): `coordinator`, `planner`,
-`implementer`, `validator`, `repairer`, `completeness-critic`, `sub-implementer`, `sub-validator`,
+`implementer`, `validator`, `completeness-critic`, `sub-implementer`, `sub-validator`,
 `sub-investigator`. `task:claim --role` binds the agent to one for the whole lease.
 
 1. **Tier 1 (Main Interactive Thread)**: Dedicated exclusively to user interaction, requirement intake, and milestone delivery.

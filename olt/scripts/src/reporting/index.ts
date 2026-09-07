@@ -137,8 +137,11 @@ export type {
   SocraticDimension,
   SocraticQuestionEvaluation,
   SocraticAuditReport,
-} from "./socratic-validator.ts";
-export { SOCRATIC_DIMENSIONS, evaluateSocraticSelfQuestioning } from "./socratic-validator.ts";
+} from "./socratic-validator/index.ts";
+export {
+  SOCRATIC_DIMENSIONS,
+  evaluateSocraticSelfQuestioning,
+} from "./socratic-validator/index.ts";
 
 export type { LeaseRecordView } from "./lease-agent-extractor.ts";
 export {

@@ -39,7 +39,7 @@ describe("ActivityTracker Subagent State & Heartbeat Tracking", () => {
     expect(act3?.lastHeartbeatAt).toBe(Date.parse("2026-08-20T13:00:00.000Z"));
 
     // Undefined / fallback timestamp
-    tracker.registerSubagent({ agentId: "agent-4", role: "repairer" });
+    tracker.registerSubagent({ agentId: "agent-4", role: "sub-implementer" });
     const act4 = tracker.activities.get("agent-4");
     expect(act4?.lastHeartbeatAt).toBeGreaterThan(0);
   });

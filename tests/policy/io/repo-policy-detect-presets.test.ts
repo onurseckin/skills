@@ -32,7 +32,8 @@ describe("Repo Policy Presets, Normalization & Schema Validation", () => {
     const empty = validateRepoPolicy({});
     expect(empty.schema_version).toBe(CURRENT_POLICY_SCHEMA_VERSION);
     expect(empty.ecosystem).toBe("unknown");
-    expect(empty.test_runner.default_command).toBe("bun test");
+    expect(empty.test_runner?.enabled).toBe(false);
+    expect(empty.test_runner?.default_command).toBeUndefined();
     expect(empty.read_scope_neighborhood_depth).toBe(2);
     expect(empty.review_protocol).toEqual(DEFAULT_REVIEW_PROTOCOL_POLICY);
     expect(empty.planning).toEqual(DEFAULT_PLANNING_POLICY);
@@ -95,7 +96,7 @@ describe("Repo Policy Presets, Normalization & Schema Validation", () => {
   test("rejects unsupported top-level keys while retaining partial defaults for documented keys", () => {
     const partial = validateRepoPolicy({ forbidden_commands: ["git push"] });
     expect(partial.forbidden_commands).toEqual(["git push"]);
-    expect(partial.test_runner.default_command).toBe("bun test");
+    expect(partial.test_runner?.enabled).toBe(false);
 
     expect(() => validateRepoPolicy({ timeout_ms: 45_000 })).toThrow(/unknown.*timeout_ms/i);
     expect(() => validateRepoPolicy({ forbidden_commands: [], typo_policy_flag: true })).toThrow(
@@ -135,7 +136,7 @@ describe("Repo Policy Presets, Normalization & Schema Validation", () => {
       ["$.ecosystem", { ...required, ecosystem: "BUN" }],
       [
         "$.test_runner.default_command",
-        { ...required, test_runner: { ...required.test_runner, default_command: "" } },
+        { ...required, test_runner: { ...required.test_runner, default_command: 123 } },
       ],
       [
         "$.test_runner.unknown",

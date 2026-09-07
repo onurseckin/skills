@@ -114,7 +114,6 @@ export const SUPERVISORY_ROLE_BOUNDARIES: Readonly<Record<SupervisoryRole, RoleB
       "planner",
       "implementer",
       "validator",
-      "repairer",
       "completeness-critic",
       "plan-validator",
     ],

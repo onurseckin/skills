@@ -12,6 +12,12 @@ import {
   createVirtualFSSession,
   type VirtualFSSession,
 } from "../../olt/scripts/src/testing/virtual-fs/index.ts";
+import {
+  origExists,
+  origRead,
+  origReaddir,
+  origStat,
+} from "../../olt/scripts/src/testing/virtual-fs/handlers.ts";
 
 let currentSession: VirtualFSSession | null = null;
 let currentVfs: VirtualMemoryFS = new VirtualMemoryFS();
@@ -33,6 +39,62 @@ export function setupVirtualRolesFS(): VirtualMemoryFS {
     currentVfs.mkdirSync(path.join(repoRoot, ".olt", "runs"), { recursive: true });
     currentVfs.mkdirSync(path.join(repoRoot, ".tmp"), { recursive: true });
     currentVfs.mkdirSync("/virtual/roles-scratch", { recursive: true });
+
+    const agentsDir = path.join(repoRoot, "olt", "agents");
+    if (origExists(agentsDir)) {
+      currentVfs.mkdirSync(agentsDir, { recursive: true });
+      for (const f of origReaddir(agentsDir)) {
+        const fullPath = path.join(agentsDir, f);
+        try {
+          if (origStat(fullPath).isFile()) {
+            currentVfs.writeFileSync(fullPath, origRead(fullPath, "utf8"));
+          }
+        } catch {}
+      }
+    }
+
+    const rolesDir = path.join(repoRoot, "olt", "scripts", "src", "packets", "roles");
+    if (origExists(rolesDir)) {
+      currentVfs.mkdirSync(rolesDir, { recursive: true });
+      for (const f of origReaddir(rolesDir)) {
+        const fullPath = path.join(rolesDir, f);
+        try {
+          if (origStat(fullPath).isFile()) {
+            currentVfs.writeFileSync(fullPath, origRead(fullPath, "utf8"));
+          }
+        } catch {}
+      }
+    }
+
+    const checklistsDir = path.join(repoRoot, "olt", "checklists");
+    if (origExists(checklistsDir)) {
+      currentVfs.mkdirSync(checklistsDir, { recursive: true });
+      for (const f of origReaddir(checklistsDir)) {
+        const fullPath = path.join(checklistsDir, f);
+        try {
+          if (origStat(fullPath).isFile()) {
+            currentVfs.writeFileSync(fullPath, origRead(fullPath, "utf8"));
+          }
+        } catch {}
+      }
+    }
+
+    const docFiles = [
+      path.join(repoRoot, "AGENTS.md"),
+      path.join(repoRoot, "olt", "SKILL.md"),
+      path.join(repoRoot, "olt/scripts/src/cli/commands/smart-task-ops.ts"),
+      path.join(repoRoot, "olt/scripts/src/graph/parallel-decoupler.ts"),
+      path.join(repoRoot, "olt/scripts/src/graph/topology.ts"),
+      path.join(repoRoot, "olt/scripts/src/packets/role-contract.ts"),
+      path.join(repoRoot, "olt/scripts/src/cli/commands/task-check.ts"),
+    ];
+    for (const doc of docFiles) {
+      if (origExists(doc)) {
+        currentVfs.mkdirSync(path.dirname(doc), { recursive: true });
+        currentVfs.writeFileSync(doc, origRead(doc, "utf8"));
+      }
+    }
+
     currentVfs.chdir(repoRoot);
     currentSession = createVirtualFSSession(currentVfs);
   }

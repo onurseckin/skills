@@ -1,5 +1,7 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, readdirSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test, spyOn } from "bun:test";
+import * as childProcess from "node:child_process";
+import type { SpawnSyncReturns } from "node:child_process";
+import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { shellCommand } from "../../../../olt/scripts/src/cli/commands/shell.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
@@ -12,10 +14,14 @@ import {
   disableInMemoryAgentMetadata,
   enableInMemoryAgentMetadata,
 } from "../../../../olt/scripts/src/runtime/session.ts";
+import { initRun } from "../../../../olt/scripts/src/engine/store/index.ts";
+import { workflowPort } from "../../../../olt/scripts/src/integration/store-ports.ts";
 import {
   cleanupVirtualCliFS,
   setupVirtualCliFS,
 } from "../../commands/fixtures/full-lifecycle-fixture.ts";
+
+let spawnSyncSpy: { mockRestore: () => void } | undefined;
 
 function registerStandaloneActor(actor: string, role: string): void {
   writeAgentMetadata(
@@ -29,12 +35,19 @@ function registerStandaloneActor(actor: string, role: string): void {
 
 describe("CLI Shell Interlock - Basic & Role Confinement", () => {
   beforeEach(() => {
+    setupVirtualCliFS();
     enableInMemoryAgentMetadata();
   });
 
   afterEach(() => {
+    if (spawnSyncSpy) {
+      spawnSyncSpy.mockRestore();
+      spawnSyncSpy = undefined;
+    }
     disableInMemoryAgentMetadata();
+    cleanupVirtualCliFS();
   });
+
   test("instantly blocks un-targeted whole-repo test run for implementer", async () => {
     registerStandaloneActor("imp-test", "implementer");
     let thrown: unknown;
@@ -63,7 +76,7 @@ describe("CLI Shell Interlock - Basic & Role Confinement", () => {
     const harnessErr = thrown as HarnessError;
     expect(harnessErr.code).toBe("ROLE_CONFINEMENT_VIOLATION");
     expect(harnessErr.message).toContain(
-      "[COGNITIVE_VALIDATOR_COMMAND_FORBIDDEN] Role 'validator' is a cognitive validator",
+      "[SHELL_COMMAND_FORBIDDEN] Role 'validator' is locked to 0 command execution by its diagnostic profile.",
     );
   });
 
@@ -99,41 +112,94 @@ describe("CLI Shell Interlock - Basic & Role Confinement", () => {
   });
 
   test("refuses unknown capsule gate before recording command evidence", async () => {
-    setupVirtualCliFS();
-    try {
-      const { setupCompiledRun } = await import("../../commands/fixtures/task-ops-fixture.ts");
-      const { run: runRoot } = await setupCompiledRun("shell-unknown-gate", []);
-      writeAgentMetadata(
-        createAgentMetadata({
-          agent_id: "impl-shell-unknown-gate",
-          role: "implementer",
-          write_scope: ["src/"],
-          can_execute_shell: true,
-        }),
-        runRoot,
-      );
+    const repo = "/virtual/cli/unknown-gate-repo";
+    mkdirSync(repo, { recursive: true });
+    const runRoot = initRun(
+      repo,
+      "shell-unknown-gate",
+      new TextEncoder().encode("prompt"),
+      "file",
+      true,
+    );
+    const port = workflowPort(runRoot);
+    port.transact("test", "init-task", {}, (state) => {
+      state.tasks["T-1"] = {
+        id: "T-1",
+        status: "claimed",
+        requirement_ids: ["R-1"],
+        write_scope: ["src/"],
+        dependencies: [],
+        attempts: [],
+        history: [],
+        repair_round: 0,
+        bypass_cognitive_pushback: true,
+        report: { summary: "test task" },
+        validations: [],
+      };
+    });
+    writeAgentMetadata(
+      createAgentMetadata({
+        agent_id: "impl-shell-unknown-gate",
+        role: "implementer",
+        write_scope: ["src/"],
+        can_execute_shell: true,
+      }),
+      runRoot,
+    );
 
-      await expect(
-        shellCommand(
-          {
-            actor: "impl-shell-unknown-gate",
-            role: "implementer",
-            run: runRoot,
-            task: "T-1",
-            gate: "unknown-gate-id",
-          },
-          {},
-          ["echo", "must-not-run"],
-        ),
-      ).rejects.toMatchObject({ code: "INVALID_ARGUMENT" });
-      expect(readdirSync(join(runRoot, "commands"))).toEqual([]);
-    } finally {
-      cleanupVirtualCliFS();
-    }
+    await expect(
+      shellCommand(
+        {
+          actor: "impl-shell-unknown-gate",
+          role: "implementer",
+          run: runRoot,
+          task: "T-1",
+          gate: "unknown-gate-id",
+        },
+        {},
+        ["echo", "must-not-run"],
+      ),
+    ).rejects.toMatchObject({ code: "INVALID_ARGUMENT" });
+    expect(readdirSync(join(runRoot, "commands"))).toEqual([]);
   });
 
   test("formats stderr in standalone direct execution when command writes to stderr", async () => {
     registerStandaloneActor("imp-test", "implementer");
+    spawnSyncSpy = spyOn(childProcess, "spawnSync").mockImplementation(((
+      cmd: string,
+      args?: string[],
+    ) => {
+      if (
+        cmd === "git" &&
+        args?.[0] === "show" &&
+        args?.[1] === "nonexistent-commit-object-12345"
+      ) {
+        return {
+          pid: 10003,
+          output: [
+            "",
+            "",
+            "fatal: ambiguous argument 'nonexistent-commit-object-12345': unknown revision or path not in the working tree.\n",
+          ],
+          stdout: "",
+          stderr:
+            "fatal: ambiguous argument 'nonexistent-commit-object-12345': unknown revision or path not in the working tree.\n",
+          status: 128,
+          signal: null,
+          error: undefined,
+        } as SpawnSyncReturns<string>;
+      }
+      return {
+        pid: 10004,
+        output: ["", "", ""],
+        stdout: "",
+        stderr: "",
+        status: 0,
+        signal: null,
+        error: undefined,
+      } as SpawnSyncReturns<string>;
+    }) as never);
+
     const result = await shellCommand({ actor: "imp-test", role: "implementer" }, {}, [
       "git",
       "show",

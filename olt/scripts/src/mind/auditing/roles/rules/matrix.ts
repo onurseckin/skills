@@ -27,7 +27,6 @@ export function isImplementerRole(role: string): boolean {
   const r = role.toLowerCase().trim();
   return (
     r === "implementer" ||
-    r === "repairer" ||
     r === "sub-implementer" ||
     r === "worker" ||
     r.startsWith("impl-") ||
@@ -48,23 +47,16 @@ export function isValidatorRole(role: string): boolean {
   );
 }
 
-export function isMechanicValidatorRole(role: string): boolean {
-  const normalized = role.toLowerCase().trim();
-  return (
-    normalized === "mechanic-validator" ||
-    normalized === "ui-mechanic-validator" ||
-    normalized === "mechanic_validator" ||
-    normalized.startsWith("mechanic-") ||
-    normalized.endsWith("-mechanic-validator")
-  );
+export function isHeadlessValidatorRole(role: string): boolean {
+  return role.toLowerCase().trim() === "ui-headless-validator";
 }
 
 export function isCognitiveValidatorRole(role: string): boolean {
   const normalized = role.toLowerCase().trim();
-  if (isMechanicValidatorRole(normalized)) return false;
+  if (isHeadlessValidatorRole(normalized)) return false;
   return (
     normalized === "validator" ||
-    normalized === "ui-validator" ||
+    normalized === "ui-optical-validator" ||
     normalized.startsWith("validator-")
   );
 }

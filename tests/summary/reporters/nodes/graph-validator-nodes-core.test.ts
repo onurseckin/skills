@@ -143,7 +143,7 @@ describe("probe and pushback are different relationships", () => {
     expect(backtrack?.target).toBe("node-gate-T-stale");
     expect(backtrack?.isCycle).toBeUndefined();
     expect(backtrack?.container?.title).toBe("Reassigned (repeated_failure)");
-    expect(backtrack?.container?.detail).toBe("Repairer: worker-2");
+    expect(backtrack?.container?.detail).toBe("Repair Assignee: worker-2");
   });
 });
 
@@ -198,4 +198,162 @@ describe("validator node", () => {
       true,
     );
   });
+
+  test("simultaneous probe demands and defect findings emit concurrent partitioned feedback edges and ports", () => {
+    const dualTask = makeTask("T-concurrent", {
+      status: "changes_requested",
+      probe_round: 1,
+      repair_round: 1,
+      validations: [
+        {
+          validator_id: "val-concurrent",
+          domain: "code-quality",
+          token_digest: "tok",
+          attempt: 1,
+          started_at: "2026-08-14T20:00:00.000Z",
+          deadline_at: "2026-08-14T20:10:00.000Z",
+          verdict: "reject",
+        },
+      ],
+      findings: [
+        {
+          id: "F-probe",
+          requirement_id: "REQ-T-concurrent",
+          severity: "important",
+          observation: "Demand proof of invariant preservation",
+          remediation: "Add an adversarial invariant test",
+          revalidation: "Re-run test suite",
+          status: "open",
+          class: "probe_demand",
+          evidence: [],
+        },
+        {
+          id: "F-defect",
+          requirement_id: "REQ-T-concurrent",
+          severity: "critical",
+          observation: "Unhandled error state on network drop",
+          remediation: "Wrap call in try-catch handler",
+          revalidation: "Execute disconnect simulation",
+          status: "open",
+          class: "defect",
+          evidence: [],
+        },
+      ],
+    });
+
+    const dataset = generateGraphDataset({
+      runId: "run-concurrent",
+      state: makeState([dualTask]),
+    });
+
+    // 1. Assert probe edge
+    const probeEdge = dataset.edges.find((e) => e.id === "edge-probe-T-concurrent");
+    expect(probeEdge).toBeDefined();
+    expect(probeEdge?.kind).toBe("probe");
+    expect(probeEdge?.source).toBe("node-validator-T-concurrent");
+    expect(probeEdge?.target).toBe("node-gate-T-concurrent");
+    expect(probeEdge?.container?.variant).toBe("cyan");
+    expect(probeEdge?.exchanges?.[0]?.verdict).toBe("PROBE");
+    expect(probeEdge?.exchanges?.[0]?.finding?.class).toBe("probe_demand");
+    expect(probeEdge?.exchanges?.[0]?.finding?.id).toBe("F-probe");
+
+    // 2. Assert pushback edge
+    const pushbackEdge = dataset.edges.find((e) => e.id === "edge-pushback-T-concurrent");
+    expect(pushbackEdge).toBeDefined();
+    expect(pushbackEdge?.kind).toBe("pushback");
+    expect(pushbackEdge?.source).toBe("node-validator-T-concurrent");
+    expect(pushbackEdge?.target).toBe("node-gate-T-concurrent");
+    expect(pushbackEdge?.container?.variant).toBe("warning");
+    expect(pushbackEdge?.exchanges?.[0]?.verdict).toBe("FAIL");
+    expect(pushbackEdge?.exchanges?.[0]?.finding?.class).toBe("defect");
+    expect(pushbackEdge?.exchanges?.[0]?.finding?.id).toBe("F-defect");
+
+    // 3. Assert validator node outputs partition
+    const validator = dataset.nodes.find((n) => n.id === "node-validator-T-concurrent");
+    expect(validator).toBeDefined();
+    const probePort = validator?.io?.outputs?.find((p) => p.label === "Adversarial Probe Demands");
+    expect(probePort).toBeDefined();
+    expect(probePort?.preview).toBe("1 probe round demanding proof");
+
+    const findingsPort = validator?.io?.outputs?.find((p) => p.label === "Validator Findings");
+    expect(findingsPort).toBeDefined();
+    expect(findingsPort?.preview).toBe("2 findings recorded (0 resolved)");
+  });
+
+  test("validator findings output preview strictly displays resolved vs open finding ratios", () => {
+    const taskWithRatios = makeTask("T-ratios", {
+      status: "changes_requested",
+      repair_round: 1,
+      validations: [
+        {
+          validator_id: "val-ratios",
+          domain: "code-quality",
+          token_digest: "tok",
+          attempt: 1,
+          started_at: "2026-08-14T20:00:00.000Z",
+          deadline_at: "2026-08-14T20:10:00.000Z",
+          verdict: "reject",
+        },
+      ],
+      findings: [
+        {
+          id: "F-1",
+          requirement_id: "REQ-1",
+          severity: "critical",
+          observation: "Issue 1",
+          remediation: "Fix 1",
+          revalidation: "Check 1",
+          status: "resolved",
+          class: "defect",
+          evidence: [],
+        },
+        {
+          id: "F-2",
+          requirement_id: "REQ-2",
+          severity: "important",
+          observation: "Issue 2",
+          remediation: "Fix 2",
+          revalidation: "Check 2",
+          status: "resolved",
+          class: "defect",
+          evidence: [],
+        },
+        {
+          id: "F-3",
+          requirement_id: "REQ-3",
+          severity: "normal",
+          observation: "Issue 3",
+          remediation: "Fix 3",
+          revalidation: "Check 3",
+          status: "resolved",
+          class: "defect",
+          evidence: [],
+        },
+        {
+          id: "F-4",
+          requirement_id: "REQ-4",
+          severity: "critical",
+          observation: "Issue 4",
+          remediation: "Fix 4",
+          revalidation: "Check 4",
+          status: "open",
+          class: "defect",
+          evidence: [],
+        },
+      ],
+    });
+
+    const dataset = generateGraphDataset({
+      runId: "run-ratios",
+      state: makeState([taskWithRatios]),
+    });
+
+    const validator = dataset.nodes.find((n) => n.id === "node-validator-T-ratios");
+    expect(validator).toBeDefined();
+
+    const findingsPort = validator?.io?.outputs?.find((p) => p.label === "Validator Findings");
+    expect(findingsPort).toBeDefined();
+    expect(findingsPort?.preview).toBe("4 findings recorded (3 resolved)");
+  });
 });
+

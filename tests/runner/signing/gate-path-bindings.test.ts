@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { CommandPathBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { captureGatePathBindings } from "../../../olt/scripts/src/engine/runner/signing/gate-path-bindings.ts";
@@ -7,7 +6,7 @@ import {
   gateControlBindingScopeIssues,
   gateControlBindingsOverlapWriteScopes,
 } from "../../../olt/scripts/src/engine/runner/signing/gate-path-overlap.ts";
-import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import { getRunnerVfs, tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
 afterEach(cleanupTempRoots);
 
@@ -31,10 +30,10 @@ function createBinding(overrides: Partial<CommandPathBinding>): CommandPathBindi
 
 describe("gate-path-bindings", () => {
   test("rejects repo-local gate executable when file is not executable", () => {
+    const vfs = getRunnerVfs();
     const repoRoot = tempRoot("gate-bind");
     const scriptPath = join(repoRoot, "run.sh");
-    writeFileSync(scriptPath, "#!/bin/sh\necho hi\n");
-    chmodSync(scriptPath, 0o644);
+    vfs.writeFileSync(scriptPath, "#!/bin/sh\necho hi\n", { mode: 0o644 });
 
     expect(() => captureGatePathBindings(repoRoot, repoRoot, ["./run.sh"])).toThrow(
       "repo-local gate executable is not executable: run.sh",
@@ -42,12 +41,12 @@ describe("gate-path-bindings", () => {
   });
 
   test("rejects bare executable resolved inside repositoryRoot", () => {
+    const vfs = getRunnerVfs();
     const repoRoot = tempRoot("gate-bind");
     const binDir = join(repoRoot, "bin");
-    mkdirSync(binDir);
+    vfs.mkdirSync(binDir, { recursive: true });
     const execPath = join(binDir, "mycmd");
-    writeFileSync(execPath, "#!/bin/sh\necho hi\n");
-    chmodSync(execPath, 0o755);
+    vfs.writeFileSync(execPath, "#!/bin/sh\necho hi\n", { mode: 0o755 });
 
     expect(() => captureGatePathBindings(repoRoot, repoRoot, ["mycmd"], binDir)).toThrow(
       "bare gate executable resolved inside repositoryRoot",
@@ -66,12 +65,12 @@ describe("gate-path-bindings", () => {
   });
 
   test("rejects repeated canonical path operands", () => {
+    const vfs = getRunnerVfs();
     const repoRoot = tempRoot("gate-bind");
     const file1 = join(repoRoot, "file1.txt");
-    writeFileSync(file1, "content");
+    vfs.writeFileSync(file1, "content");
     const script = join(repoRoot, "test.sh");
-    writeFileSync(script, "#!/bin/sh\n");
-    chmodSync(script, 0o755);
+    vfs.writeFileSync(script, "#!/bin/sh\n", { mode: 0o755 });
 
     expect(() =>
       captureGatePathBindings(repoRoot, repoRoot, ["./test.sh", "./file1.txt", "file1.txt"]),
@@ -79,14 +78,14 @@ describe("gate-path-bindings", () => {
   });
 
   test("successfully captures valid repo and system path bindings", () => {
+    const vfs = getRunnerVfs();
     const repoRoot = tempRoot("gate-bind");
     const sysDir = tempRoot("gate-sys");
     const sysExec = join(sysDir, "tool");
-    writeFileSync(sysExec, "#!/bin/sh\nexit 0\n");
-    chmodSync(sysExec, 0o755);
+    vfs.writeFileSync(sysExec, "#!/bin/sh\nexit 0\n", { mode: 0o755 });
 
     const repoFile = join(repoRoot, "input.json");
-    writeFileSync(repoFile, "{}");
+    vfs.writeFileSync(repoFile, "{}");
 
     const bindings = captureGatePathBindings(repoRoot, repoRoot, ["tool", "./input.json"], sysDir);
 

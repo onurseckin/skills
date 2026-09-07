@@ -45,7 +45,7 @@ describe("Virtual FS Spies - Synchronous Operations", () => {
   it("handles utimesSync with number, Date, and fallback", () => {
     fs.writeFileSync("/virtual/mtime.txt", "hello");
     fs.utimesSync("/virtual/mtime.txt", 1000, 2000);
-    expect(fs.statSync("/virtual/mtime.txt").mtimeMs).toBe(2000);
+    expect(fs.statSync("/virtual/mtime.txt").mtimeMs).toBe(2_000_000);
 
     const d = new Date("2025-01-01T00:00:00Z");
     fs.utimesSync("/virtual/mtime.txt", d, d);
@@ -95,7 +95,7 @@ describe("Virtual FS Spies - Synchronous Operations", () => {
     expect(() => fs.fchownSync(fd, 1000, 1000)).not.toThrow();
 
     fs.futimesSync(fd, 500, 1500);
-    expect(fs.statSync("/virtual/futimes.txt").mtimeMs).toBe(1500);
+    expect(fs.statSync("/virtual/futimes.txt").mtimeMs).toBe(1_500_000);
 
     const date = new Date("2026-06-01T12:00:00Z");
     fs.futimesSync(fd, date, date);

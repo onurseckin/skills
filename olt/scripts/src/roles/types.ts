@@ -108,7 +108,6 @@ export type RoleActionType =
   | "subagent_spawn"
   | "lease_claim"
   | "lease_submit"
-  | "repairer_assign"
   | "state_mutate"
   | "file_read"
   | "message_send";

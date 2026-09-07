@@ -1,12 +1,15 @@
 import { describe, expect, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { HarnessEvent, RunState } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
 import { validateEventChain } from "../../../olt/scripts/src/engine/store/events/event-stream.ts";
-import { scratchRoot as makeScratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
+import {
+  getVirtualStoreFS,
+  scratchRoot as makeScratchRoot,
+  setupVirtualStoreFS,
+} from "../store-fixture.ts";
 
-setupVirtualStoreFS();
+const vfs = setupVirtualStoreFS();
 
 function scratchRoot(label: string): string {
   return makeScratchRoot(import.meta.path, label);
@@ -54,7 +57,7 @@ function writeEvents(path: string, events: readonly HarnessEvent[]): void {
   const body = events
     .map((event) => `${new TextDecoder().decode(canonicalJsonBytes(event as never))}\n`)
     .join("");
-  writeFileSync(path, body);
+  vfs.writeFileSync(path, body);
 }
 
 function eventsPath(root: string): string {
@@ -147,7 +150,7 @@ describe("validateEventChain payloads & replay", () => {
   test("reports EVENT_READ when the underlying file cannot be streamed at all", () => {
     const root = scratchRoot("reports-event-read-when-the-underlying-file-cannot");
     const directoryAsPath = join(root, "a-directory");
-    mkdirSync(directoryAsPath);
+    vfs.mkdirSync(directoryAsPath);
     const result = validateEventChain(directoryAsPath, IDENTITY);
     expect(result.issues.some((i) => i.code === "EVENT_READ")).toBe(true);
   });

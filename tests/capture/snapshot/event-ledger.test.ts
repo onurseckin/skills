@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -12,7 +11,12 @@ import {
   verifyEventChain,
 } from "../../../olt/scripts/src/capture/ledger/index.ts";
 import type { CaptureEventRecord } from "../../../olt/scripts/src/capture/ledger/types.ts";
-import { cleanupVirtualCaptureFS, scratchRoot, setupVirtualCaptureFS } from "../fixture.ts";
+import {
+  cleanupVirtualCaptureFS,
+  getVirtualCaptureFS,
+  scratchRoot,
+  setupVirtualCaptureFS,
+} from "../fixture.ts";
 
 describe("Capture Event Ledger & Cryptographic Hash Chaining", () => {
   beforeEach(() => {
@@ -98,8 +102,9 @@ describe("Capture Event Ledger & Cryptographic Hash Chaining", () => {
   });
 
   it("streams events to safe disk location and recovers them cleanly", () => {
+    const vfs = getVirtualCaptureFS();
     const testDir = scratchRoot("event-ledger", "stream");
-    mkdirSync(testDir, { recursive: true });
+    vfs.mkdirSync(testDir, { recursive: true });
     const ledgerFile = join(testDir, "capture-events.jsonl");
 
     const ledger = new CaptureEventLedger({ ledgerPath: ledgerFile, autoFlush: true });
@@ -108,7 +113,7 @@ describe("Capture Event Ledger & Cryptographic Hash Chaining", () => {
     ledger.appendEvent("CAPTURE_FINALIZED", { totalScreens: 1 });
     ledger.close();
 
-    expect(existsSync(ledgerFile)).toBe(true);
+    expect(vfs.existsSync(ledgerFile)).toBe(true);
 
     const recovered = readEventLedger(ledgerFile);
     expect(recovered.length).toBe(3);
@@ -120,20 +125,26 @@ describe("Capture Event Ledger & Cryptographic Hash Chaining", () => {
     expect(verifyRes.valid).toBe(true);
   });
 
-  it("enforces path safety: allows .tmp and .olt/capsules, rejects root leaks", () => {
+  it("enforces path safety: allows .tmp, .olt/capsules, .olt/scratch, rejects root leaks and traversal", () => {
     const safeTmp = join(process.cwd(), ".tmp", "test-ledger.jsonl");
     const safeCapsule = join(process.cwd(), ".olt/capsules/run-1/ledger.jsonl");
+    const safeScratch = join(process.cwd(), ".olt/scratch", "test-ledger.jsonl");
     const safeOsTmp = join(tmpdir(), "ledger.jsonl");
 
     expect(() => assertSafeLedgerPath(safeTmp)).not.toThrow();
     expect(() => assertSafeLedgerPath(safeCapsule)).not.toThrow();
+    expect(() => assertSafeLedgerPath(safeScratch)).not.toThrow();
     expect(() => assertSafeLedgerPath(safeOsTmp)).not.toThrow();
 
     const rootLeak = join(process.cwd(), "events.jsonl");
     const arbitraryLeak = join(process.cwd(), "captures", "events.jsonl");
+    const tmpTraversal = join(process.cwd(), ".tmp", "..", "escaped.jsonl");
+    const scratchTraversal = join(process.cwd(), ".olt", "scratch", "..", "..", "sneaky.jsonl");
 
     expect(() => assertSafeLedgerPath(rootLeak)).toThrow("outside allowed storage roots");
     expect(() => assertSafeLedgerPath(arbitraryLeak)).toThrow("outside allowed storage roots");
+    expect(() => assertSafeLedgerPath(tmpTraversal)).toThrow("outside allowed storage roots");
+    expect(() => assertSafeLedgerPath(scratchTraversal)).toThrow("outside allowed storage roots");
   });
 
   it("resolves default ledger path under .tmp or .olt/capsules", () => {
@@ -142,5 +153,55 @@ describe("Capture Event Ledger & Cryptographic Hash Chaining", () => {
 
     const runPath = resolveDefaultLedgerPath({ runId: "test-run-abc" });
     expect(runPath).toContain("test-run-abc/ledger/capture-events.jsonl");
+  });
+
+  it("strictly rejects appendEvent and flush on closed ledger", () => {
+    const ledger = createEventLedger();
+    ledger.appendEvent("CAPTURE_INITIALIZED", { runId: "close-test" });
+    expect(ledger.isClosed).toBe(false);
+    ledger.close();
+    expect(ledger.isClosed).toBe(true);
+
+    expect(() => ledger.appendEvent("DOM_MUTATED", {})).toThrow(
+      "Cannot append to a closed CaptureEventLedger",
+    );
+    expect(() => ledger.flush()).toThrow("Cannot append to a closed CaptureEventLedger");
+  });
+
+  it("detects genesis prevHash tampering and correctly verifies empty chains", () => {
+    const emptyRes = verifyEventChain([]);
+    expect(emptyRes.valid).toBe(true);
+    expect(emptyRes.totalEvents).toBe(0);
+    expect(emptyRes.latestHash).toBe(GENESIS_HASH);
+
+    const ledger = createEventLedger();
+    ledger.appendEvent("CAPTURE_INITIALIZED", { runId: "genesis-test" });
+    const events = ledger.getEvents();
+
+    const tamperedGenesis: CaptureEventRecord[] = [
+      {
+        ...events[0]!,
+        prevHash: "f".repeat(64),
+      },
+    ];
+    const res = verifyEventChain(tamperedGenesis);
+    expect(res.valid).toBe(false);
+    expect(res.error).toContain("Broken hash chain at sequence 1");
+  });
+
+  it("streams events to deeply nested directories in virtual memory", () => {
+    const vfs = getVirtualCaptureFS();
+    const deepDir = join(scratchRoot("event-ledger", "deep"), "sub1", "sub2", "sub3");
+    vfs.mkdirSync(deepDir, { recursive: true });
+    const ledgerFile = join(deepDir, "deep-events.jsonl");
+
+    const ledger = new CaptureEventLedger({ ledgerPath: ledgerFile, autoFlush: true });
+    ledger.appendEvent("CAPTURE_INITIALIZED", { runId: "deep-run" });
+    ledger.close();
+
+    expect(vfs.existsSync(ledgerFile)).toBe(true);
+    const recovered = readEventLedger(ledgerFile);
+    expect(recovered).toHaveLength(1);
+    expect(verifyEventChain(recovered).valid).toBe(true);
   });
 });

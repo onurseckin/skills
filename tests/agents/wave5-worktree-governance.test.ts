@@ -1,4 +1,3 @@
-const SCRATCH_TEST_DIR = path.join(process.cwd(), ".olt-test-scratch-wave5");
 import { afterEach, beforeEach, describe, expect, it, test } from "bun:test";
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -51,23 +50,26 @@ import {
   validateAgentSpawn,
   validateAgentToolCall,
 } from "../../olt/scripts/src/agents/index.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../olt/scripts/src/testing/virtual-fs/index.ts";
 
-const TEST_ROOT = path.join(process.cwd(), ".olt-test-scratch-wave5");
-
-function cleanTestRoot(): void {
-  if (fs.existsSync(TEST_ROOT)) {
-    fs.rmSync(TEST_ROOT, { recursive: true, force: true });
-  }
-}
+const SCRATCH_TEST_DIR = "/virtual/wave5-worktree-governance";
 
 describe("Wave 5: High-Density Ephemeral Worktree Governance", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
+
   beforeEach(() => {
-    cleanTestRoot();
-    fs.mkdirSync(TEST_ROOT, { recursive: true });
+    vfs = new VirtualMemoryFS();
+    vfs.mkdirSync(SCRATCH_TEST_DIR, { recursive: true });
+    session = createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
-    cleanTestRoot();
+    session.cleanup();
   });
 
   describe("High-Density Ephemeral Worktree Governance", () => {
@@ -195,7 +197,7 @@ describe("Wave 5: High-Density Ephemeral Worktree Governance", () => {
       // Remediation Shard
       const remediation = await createEpistemicShard(fakeRepoRoot, {
         shardType: "remediation-isolated",
-        agentId: "repairer-1",
+        agentId: "implementer-1",
         taskId: "task-defect-99",
       });
       expect(remediation.isReadOnly).toBe(false);
@@ -205,9 +207,32 @@ describe("Wave 5: High-Density Ephemeral Worktree Governance", () => {
       await cleanupEpistemicShard(fakeRepoRoot, forensic.shardPath);
       expect(fs.existsSync(forensic.shardPath)).toBe(false);
     });
-  });
 
-  // =========================================================================
-  // 5. Multi-Track Telemetry & Universal Self-Healing Engine
-  // =========================================================================
+    it("safely handles non-existent worktree lease renewal and retrieval", async () => {
+      const fakeRepoRoot = path.join(SCRATCH_TEST_DIR, "repo-nonexistent-lease");
+      fs.mkdirSync(fakeRepoRoot, { recursive: true });
+
+      const renewal = await renewWorktreeHeartbeat(fakeRepoRoot, "bogus-worktree-999", 600);
+      expect(renewal.success).toBe(false);
+
+      const retrieved = await getWorktreeLease(fakeRepoRoot, "bogus-worktree-999");
+      expect(retrieved).toBeNull();
+    });
+
+    it("returns clean zero-result when symlinkDependencyCache receives empty or non-existent items", async () => {
+      const fakeRepoRoot = path.join(SCRATCH_TEST_DIR, "repo-empty-cache");
+      const fakeWorktree = path.join(SCRATCH_TEST_DIR, "worktree-empty-cache");
+      fs.mkdirSync(fakeRepoRoot, { recursive: true });
+
+      const emptyResult = await symlinkDependencyCache(fakeRepoRoot, fakeWorktree, []);
+      expect(emptyResult.symlinked).toEqual([]);
+      expect(emptyResult.savedBytesEstimate).toBe(0);
+
+      const nonExistentResult = await symlinkDependencyCache(fakeRepoRoot, fakeWorktree, [
+        "non-existent-dep-dir",
+      ]);
+      expect(nonExistentResult.symlinked).toEqual([]);
+      expect(nonExistentResult.savedBytesEstimate).toBe(0);
+    });
+  });
 });

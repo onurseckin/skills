@@ -170,7 +170,17 @@ export {
 export { discoverToolchainPolicy, type DiscoveredToolchainPolicy } from "./repo-policy.ts";
 
 export function isTestingEnabled(policy?: RepoPolicy | undefined): boolean {
-  if (!policy || !policy.test_runner) return false;
+  if (!policy) return false;
+
+  if (policy.test_execution === false || policy.unit_test === false) return false;
+  if (policy.test_execution === "" || policy.unit_test === "") return false;
+
+  if (policy.test_execution === true || policy.unit_test === true) return true;
+  if (typeof policy.test_execution === "string" && policy.test_execution.trim().length > 0)
+    return true;
+  if (typeof policy.unit_test === "string" && policy.unit_test.trim().length > 0) return true;
+
+  if (!policy.test_runner) return false;
   if (policy.test_runner.enabled === false) return false;
   return Boolean(
     policy.test_runner.default_command && policy.test_runner.default_command.trim().length > 0,

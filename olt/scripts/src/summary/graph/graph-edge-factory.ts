@@ -227,7 +227,7 @@ function archivedRoundTransitionEdges(params: TaskEdgeFactoryParams): GraphEdgeD
           stepNumber: `${taskStep} -> ${gateStep}`,
           title: `Reassigned (${task.replacement_reason})`,
           detail: task.repair_assignee
-            ? `Repairer: ${task.repair_assignee}`
+            ? `Repair Assignee: ${task.repair_assignee}`
             : "Implementer replaced",
           variant: "error",
           icon: "IconRotate",
@@ -275,7 +275,7 @@ function liveRoundFeedbackEdges(params: TaskEdgeFactoryParams): GraphEdgeData[] 
           stepNumber: `${taskStep} -> ${gateStep}`,
           title: `Reassigned (${task.replacement_reason})`,
           detail: task.repair_assignee
-            ? `Repairer: ${task.repair_assignee}`
+            ? `Repair Assignee: ${task.repair_assignee}`
             : "Implementer replaced",
           variant: "error",
           icon: "IconRotate",

@@ -75,3 +75,11 @@ export type {
 } from "./engine/index.ts";
 
 export { detectScopeOverlapWarnings, evaluatePlanEpistemicReadiness } from "./engine/index.ts";
+
+export type {
+  TaskCluster,
+  ClusterAndProvisionOptions,
+  ProvisionedCluster,
+} from "./dynamic-graph-clustering.ts";
+
+export { clusterTasks, provisionTaskClusters } from "./dynamic-graph-clustering.ts";

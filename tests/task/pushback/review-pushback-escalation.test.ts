@@ -42,8 +42,8 @@ function createMockTransactionPort(initialState: WorkflowState): TransactionPort
 }
 
 function createValidatedState(
-  taskId: string = "task-alpha",
-  validatorId: string = "val-1",
+  taskId = "task-alpha",
+  validatorId = "val-1",
   domain: "code-quality" | "tests" = "code-quality",
 ): WorkflowState {
   return {
@@ -82,6 +82,7 @@ describe("Review Pushback Authority Validation and Criteria", () => {
   afterEach(() => {
     cleanupVirtualTaskFS();
   });
+
   it("validates well-formed pushback input structure", () => {
     const valid = validateReviewPushbackInput({
       validator_id: "val-99",
@@ -103,71 +104,49 @@ describe("Review Pushback Authority Validation and Criteria", () => {
   });
 
   it("refuses invalid pushback cause", () => {
-    expect(() =>
-      validateReviewPushbackInput({
-        validator_id: "val-99",
-        domain: "code-quality",
-        cause: "arbitrary_opinion",
-        observation: "Test observation",
-        remediation: "Test remediation",
-      }),
-    ).toThrow(/procedural.*substantive/);
+    const base = {
+      validator_id: "val-99",
+      domain: "code-quality",
+      observation: "Obs",
+      remediation: "Rem",
+    };
+    expect(() => validateReviewPushbackInput({ ...base, cause: "arbitrary_opinion" })).toThrow(
+      /procedural.*substantive/,
+    );
   });
 
   it("refuses unrecognized validator domain", () => {
-    expect(() =>
-      validateReviewPushbackInput({
-        validator_id: "val-99",
-        domain: "quantum-physics",
-        cause: "procedural",
-        observation: "Test observation",
-        remediation: "Test remediation",
-      }),
-    ).toThrow(/recognized validator domain/);
+    const base = {
+      validator_id: "val-99",
+      cause: "procedural",
+      observation: "Obs",
+      remediation: "Rem",
+    };
+    expect(() => validateReviewPushbackInput({ ...base, domain: "quantum-physics" })).toThrow(
+      /recognized validator domain/,
+    );
   });
 
   it("refuses blank observation or blank remediation", () => {
+    const base = { validator_id: "val-99", domain: "code-quality", cause: "substantive" };
     expect(() =>
-      validateReviewPushbackInput({
-        validator_id: "val-99",
-        domain: "code-quality",
-        cause: "substantive",
-        observation: "   ",
-        remediation: "Fix the code",
-      }),
+      validateReviewPushbackInput({ ...base, observation: "   ", remediation: "Fix" }),
     ).toThrow(HarnessError);
-
     expect(() =>
-      validateReviewPushbackInput({
-        validator_id: "val-99",
-        domain: "code-quality",
-        cause: "substantive",
-        observation: "Observation",
-        remediation: "",
-      }),
+      validateReviewPushbackInput({ ...base, observation: "Obs", remediation: "" }),
     ).toThrow(HarnessError);
   });
 
   it("validates authority review pushback criteria invariants", () => {
-    expect(() =>
-      validateReviewPushbackCriteria("", "coordinator-1", {
-        validator_id: "val-1",
-        domain: "code-quality",
-        cause: "procedural",
-        observation: "Observation",
-        remediation: "Remediation",
-      }),
-    ).toThrow(HarnessError);
-
-    expect(() =>
-      validateReviewPushbackCriteria("task-1", "", {
-        validator_id: "val-1",
-        domain: "code-quality",
-        cause: "procedural",
-        observation: "Observation",
-        remediation: "Remediation",
-      }),
-    ).toThrow(HarnessError);
+    const valid = {
+      validator_id: "val-1",
+      domain: "code-quality",
+      cause: "procedural",
+      observation: "O",
+      remediation: "R",
+    };
+    expect(() => validateReviewPushbackCriteria("", "coordinator-1", valid)).toThrow(HarnessError);
+    expect(() => validateReviewPushbackCriteria("task-1", "", valid)).toThrow(HarnessError);
   });
 });
 
@@ -237,7 +216,7 @@ describe("Coordinator Pushback Workflow & Scepticism Integration", () => {
         remediation: "Escalate to coordinator for re-planning",
       },
       undefined,
-      1, // Max repair rounds = 1, so round 1 exhausts it
+      1,
     );
 
     const task = updatedState.tasks["task-p3"]!;
@@ -275,5 +254,51 @@ describe("Coordinator Pushback Workflow & Scepticism Integration", () => {
         remediation: "Valid remediation",
       }),
     ).not.toThrow();
+  });
+
+  it("validates coordinator pushback input constraints and evaluates repair progression", () => {
+    const valid = {
+      validator_id: "val-1",
+      domain: "code-quality",
+      cause: "procedural",
+      observation: "Obs",
+      remediation: "Rem",
+    };
+    expect(() => validateCoordinatorPushbackInput({ ...valid, domain: "invalid-domain" })).toThrow(
+      HarnessError,
+    );
+    expect(() => validateCoordinatorPushbackInput({ ...valid, cause: "invalid-cause" })).toThrow(
+      HarnessError,
+    );
+    expect(() => validateCoordinatorPushbackInput({ ...valid, observation: "   " })).toThrow(
+      HarnessError,
+    );
+
+    const history = createPushbackHistory("task-prog", 3);
+    const initialProg = evaluateRepairProgression(history, {
+      taskId: "task-prog",
+      summary: "Fresh work",
+      checks: [{ command: "bun test", exit_code: 0 }],
+    });
+    expect(initialProg.progressMade).toBe(true);
+    expect(initialProg.stagnant).toBe(false);
+
+    const withRound = appendPushbackRound(history, {
+      coordinatorId: "coord-1",
+      validatorId: "val-1",
+      domain: "code-quality",
+      cause: "substantive",
+      observation: "Math error",
+      remediation: "Fix sum",
+      rejectionReasons: ["math_overflow"],
+      previousEvidenceSummary: "old summary",
+    });
+    const addressedProg = evaluateRepairProgression(withRound, {
+      taskId: "task-prog",
+      summary: "Fixed math_overflow in calculation",
+      checks: [{ command: "bun test --filter math", exit_code: 0 }],
+    });
+    expect(addressedProg.progressMade).toBe(true);
+    expect(addressedProg.addressedReasons).toContain("math_overflow");
   });
 });

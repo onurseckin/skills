@@ -218,14 +218,10 @@ export const INVALID_STATE_AND_ARGUMENT_ENTRIES: readonly ExplainEntry[] = [
       cause(
         "semantic-rule-on-caller-intent",
         "Request breaks an explicit business rule",
-        "The caller's stated intent - an agent naming itself as its own parent, a repairer replacement equal to the original, a review verdict outside pass/reject, a dependency edge with no --dep-reason - is refused by name.",
-        "The message names the exact rule the request broke; adjust the request to match it: a different --repairer, a --dep-reason on the edge, task:probe instead of a reject with no findings.",
+        "The caller's stated intent - an agent naming itself as its own parent, a review verdict outside pass/reject, a dependency edge with no --dep-reason - is refused by name.",
+        "The message names the exact rule the request broke; adjust the request to match it: a --dep-reason on the edge, task:probe instead of a reject with no findings.",
         [
           example("workflow/agents/grants.ts", "an agent cannot be its own parent"),
-          example(
-            "workflow/review/assign-repairer.ts",
-            "replacement must differ from original implementer",
-          ),
           example(
             "workflow/review/validate-review.ts",
             "review verdict must be pass or reject; a probe is recorded with task:probe",

@@ -15,10 +15,6 @@
       "path": "task-submit.json"
     },
     {
-      "id": "task:assign-repairer",
-      "path": "task-assign-repairer.json"
-    },
-    {
       "id": "task:release",
       "path": "task-release.json"
     },

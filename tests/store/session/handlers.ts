@@ -215,9 +215,9 @@ export function handleRename(s: VirtualStoreState, src: string, dst: string): vo
   } else {
     const parent = path.dirname(dst);
     if (parent && !s.vfs.existsSync(parent)) s.vfs.mkdirSync(parent, { recursive: true });
-    s.vfs.writeFileSync(dst, s.vfs.readFileSync(src));
-    s.vfs.unlinkSync(src);
     const mode = s.customModes.get(src);
+    s.vfs.writeFileSync(dst, s.vfs.readFileSync(src), mode !== undefined ? { mode } : undefined);
+    s.vfs.unlinkSync(src);
     if (mode !== undefined) {
       s.customModes.delete(src);
       s.customModes.set(dst, mode);

@@ -1,11 +1,10 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { realpathSync } from "node:fs";
 import { join } from "node:path";
 import {
   portableArtifactPath,
   resolveArtifactPath,
 } from "../../../olt/scripts/src/engine/runner/core/artifact-paths.ts";
-import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import { cleanupTempRoots, realpathVirtual, tempRoot } from "../command/fixture.ts";
 
 function createTestRoot(): string {
   return tempRoot("artifact-paths");
@@ -36,7 +35,7 @@ describe("resolveArtifactPath", () => {
   test("resolves a portable path back to an absolute path under the run root", () => {
     const root = createTestRoot();
     expect(resolveArtifactPath(root, "commands/C-1/stdout.log")).toBe(
-      join(realpathSync(root), "commands", "C-1", "stdout.log"),
+      join(realpathVirtual(root), "commands", "C-1", "stdout.log"),
     );
   });
 

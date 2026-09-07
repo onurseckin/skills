@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import type { Manifest, RunState } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
@@ -12,9 +11,9 @@ import {
 } from "../../../olt/scripts/src/engine/store/events/event-append.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/capsule/load.ts";
 import { cloneObject, initialState } from "../../../olt/scripts/src/engine/store/capsule/state.ts";
-import { scratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
+import { getVirtualStoreFS, scratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
 
-setupVirtualStoreFS();
+const vfs = setupVirtualStoreFS();
 import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
 import { recoverProjection } from "../../../olt/scripts/src/engine/store/recovery/recovery.ts";
 import { brainstormingProjection } from "../../../olt/scripts/src/engine/store/projections/materialized-projections.ts";
@@ -26,7 +25,8 @@ function freshRun(label: string): { runRoot: string; manifest: Manifest } {
 }
 
 function eventObjects(runRoot: string): JsonObject[] {
-  return readFileSync(join(runRoot, "events.jsonl"), "utf8")
+  const raw = vfs.readFileSync(join(runRoot, "events.jsonl"), "utf8");
+  return (typeof raw === "string" ? raw : Buffer.from(raw).toString("utf8"))
     .trim()
     .split("\n")
     .filter(Boolean)
@@ -55,8 +55,8 @@ function brainstormingDraft(): RunState {
 describe("appendProjectionEvent recovery & transaction boundaries", () => {
   test("classifies a trace projection failure after the event commit as recovery-pending", () => {
     const { runRoot, manifest } = freshRun("refresh-derived-propagates-failure");
-    rmSync(join(runRoot, "trace.md"), { force: true });
-    mkdirSync(join(runRoot, "trace.md"));
+    vfs.rmSync(join(runRoot, "trace.md"), { force: true });
+    vfs.mkdirSync(join(runRoot, "trace.md"));
     const current = initialState();
     const draft = { ...cloneObject(current), counter: 1 } as RunState;
     expect(() =>
@@ -73,8 +73,10 @@ describe("appendProjectionEvent recovery & transaction boundaries", () => {
     ).toThrow(CommittedWithRecoveryPendingError);
     const events = eventObjects(runRoot);
     expect(events).toHaveLength(1);
-    expect(existsSync(join(runRoot, TRANSACTION_MARKER_FILE))).toBe(true);
-    const marker = JSON.parse(readFileSync(join(runRoot, TRANSACTION_MARKER_FILE), "utf8")) as {
+    expect(vfs.existsSync(join(runRoot, TRANSACTION_MARKER_FILE))).toBe(true);
+    const marker = JSON.parse(
+      vfs.readFileSync(join(runRoot, TRANSACTION_MARKER_FILE), "utf8") as string,
+    ) as {
       phase: string;
       sequence: number;
     };
@@ -84,8 +86,8 @@ describe("appendProjectionEvent recovery & transaction boundaries", () => {
 
   test("leaves canonical files byte-identical and clears its marker when append fails before commit", () => {
     const { runRoot, manifest } = freshRun("pre-commit-rejection");
-    const events = readFileSync(join(runRoot, "events.jsonl"));
-    const state = readFileSync(join(runRoot, "state.json"));
+    const events = vfs.readFileSync(join(runRoot, "events.jsonl"));
+    const state = vfs.readFileSync(join(runRoot, "state.json"));
     expect(() =>
       appendProjectionEvent(
         runRoot,
@@ -103,13 +105,15 @@ describe("appendProjectionEvent recovery & transaction boundaries", () => {
         },
       ),
     ).toThrow("append fault");
-    expect(readFileSync(join(runRoot, "events.jsonl"))).toEqual(events);
-    expect(readFileSync(join(runRoot, "state.json"))).toEqual(state);
-    expect(existsSync(join(runRoot, TRANSACTION_MARKER_FILE))).toBe(false);
+    expect(vfs.readFileSync(join(runRoot, "events.jsonl"))).toEqual(events);
+    expect(vfs.readFileSync(join(runRoot, "state.json"))).toEqual(state);
+    expect(vfs.existsSync(join(runRoot, TRANSACTION_MARKER_FILE))).toBe(false);
   });
 
   test("crash immediately after event fsync retains a recoverable, fully prepared marker", () => {
     const { runRoot, manifest } = freshRun("after-event-fsync-crash");
+    const draftProjection = brainstormingProjection(brainstormingDraft());
+    const draftSha256 = draftProjection ? draftProjection.sha256 : "";
     expect(() =>
       appendProjectionEvent(
         runRoot,
@@ -122,7 +126,7 @@ describe("appendProjectionEvent recovery & transaction boundaries", () => {
           semantic_version: 1,
           request_key: "a".repeat(64),
           authority_actor: "tester",
-          artifact_sha256: brainstormingProjection(brainstormingDraft())!.sha256,
+          artifact_sha256: draftSha256,
         },
         brainstormingDraft(),
         limits(),
@@ -133,7 +137,9 @@ describe("appendProjectionEvent recovery & transaction boundaries", () => {
         },
       ),
     ).toThrow(CommittedWithRecoveryPendingError);
-    const marker = JSON.parse(readFileSync(join(runRoot, TRANSACTION_MARKER_FILE), "utf8")) as {
+    const marker = JSON.parse(
+      vfs.readFileSync(join(runRoot, TRANSACTION_MARKER_FILE), "utf8") as string,
+    ) as {
       phase: string;
       request_key: string;
       payload_sha256: string;
@@ -156,7 +162,7 @@ describe("appendProjectionEvent recovery & transaction boundaries", () => {
       { path: "brainstorming.json", sha256: expect.any(String) },
     ]);
     expect(() => recoverProjection(runRoot, "recovery")).not.toThrow();
-    expect(existsSync(join(runRoot, TRANSACTION_MARKER_FILE))).toBe(false);
+    expect(vfs.existsSync(join(runRoot, TRANSACTION_MARKER_FILE))).toBe(false);
   });
 
   for (const boundary of ["write", "rename", "fsync"] as const) {
@@ -181,7 +187,9 @@ describe("appendProjectionEvent recovery & transaction boundaries", () => {
       ).toThrow(CommittedWithRecoveryPendingError);
       expect(eventObjects(runRoot)).toHaveLength(1);
       expect(
-        JSON.parse(readFileSync(join(runRoot, TRANSACTION_MARKER_FILE), "utf8")),
+        JSON.parse(
+          vfs.readFileSync(join(runRoot, TRANSACTION_MARKER_FILE), "utf8") as string,
+        ),
       ).toMatchObject({
         phase: "STATE_PENDING",
         sequence: 1,
@@ -224,19 +232,19 @@ describe("appendProjectionEvent recovery & transaction boundaries", () => {
         ),
       ).toThrow(CommittedWithRecoveryPendingError);
       expect(eventObjects(runRoot)).toHaveLength(1);
-      expect(existsSync(join(runRoot, TRANSACTION_MARKER_FILE))).toBe(true);
-      const eventsBeforeRecovery = readFileSync(join(runRoot, "events.jsonl"), "utf8");
+      expect(vfs.existsSync(join(runRoot, TRANSACTION_MARKER_FILE))).toBe(true);
+      const eventsBeforeRecovery = vfs.readFileSync(join(runRoot, "events.jsonl"), "utf8");
       const recovered = recoverProjection(runRoot, "recovery");
       const projection = brainstormingProjection(recovered);
       expect(projection).toBeDefined();
-      expect(readFileSync(join(runRoot, "brainstorming.json"))).toEqual(
-        Buffer.from(canonicalJsonBytes(projection!.document)),
+      expect(vfs.readFileSync(join(runRoot, "brainstorming.json"))).toEqual(
+        Buffer.from(canonicalJsonBytes(projection ? projection.document : ({} as never))),
       );
       expect(loadRun(runRoot).state).toEqual(recovered);
-      expect(existsSync(join(runRoot, "trace.md"))).toBe(true);
-      expect(existsSync(join(runRoot, "index.json"))).toBe(true);
-      expect(existsSync(join(runRoot, TRANSACTION_MARKER_FILE))).toBe(false);
-      expect(readFileSync(join(runRoot, "events.jsonl"), "utf8")).toBe(eventsBeforeRecovery);
+      expect(vfs.existsSync(join(runRoot, "trace.md"))).toBe(true);
+      expect(vfs.existsSync(join(runRoot, "index.json"))).toBe(true);
+      expect(vfs.existsSync(join(runRoot, TRANSACTION_MARKER_FILE))).toBe(false);
+      expect(vfs.readFileSync(join(runRoot, "events.jsonl"), "utf8")).toBe(eventsBeforeRecovery);
     });
   }
 });

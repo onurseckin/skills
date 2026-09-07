@@ -1,120 +1,42 @@
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
-import * as fs from "node:fs";
-import * as cp from "node:child_process";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { join } from "node:path";
 import {
   STANDARD_SUPERVISORY_CRONS,
+  __setDagSnapshotCaptureTestHook,
   captureDagSnapshot,
   formatDagSnapshotMarkdown,
   type QuotaDagSnapshot,
 } from "../../../olt/scripts/src/telemetry/snapshot/index.ts";
 import type { CircuitBreakerEvaluation } from "../../../olt/scripts/src/telemetry/circuit-breaker.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 export const snapshotCaptureSuiteName = "Telemetry Quota DAG Snapshot Capture Suite";
 
-const vfs = new Map<string, { isDir: boolean; content?: string }>();
-const spies: Array<{ mockRestore: () => void }> = [];
-
-function setupVirtualFs(): void {
-  vfs.clear();
-  vfs.set(process.cwd(), { isDir: true });
-  vfs.set(join(process.cwd(), ".git"), { isDir: true });
-  vfs.set(join(process.cwd(), "package.json"), { content: "{}", isDir: false });
-
-  const existsSpy = spyOn(fs, "existsSync").mockImplementation((p) => {
-    const s = String(p).replace(/\/+$/, "");
-    if (vfs.has(s)) return true;
-    const prefix = `${s}/`;
-    for (const k of vfs.keys()) {
-      if (k.startsWith(prefix)) return true;
-    }
-    return false;
-  });
-  const statSpy = spyOn(fs, "statSync").mockImplementation((p) => {
-    const s = String(p).replace(/\/+$/, "");
-    const n = vfs.get(s);
-    if (!n) throw new Error(`ENOENT: ${s}`);
-    return {
-      dev: 1,
-      ino: 1,
-      nlink: 1,
-      isFile: () => !n.isDir,
-      isDirectory: () => n.isDir,
-      isSymbolicLink: () => false,
-      mode: n.isDir ? 0o755 : 0o644,
-      size: n.content ? Buffer.byteLength(n.content) : 0,
-      mtimeMs: Date.now(),
-    } as fs.Stats;
-  });
-  const lstatSpy = spyOn(fs, "lstatSync").mockImplementation((p) => {
-    const s = String(p).replace(/\/+$/, "");
-    const n = vfs.get(s);
-    if (!n) throw new Error(`ENOENT: ${s}`);
-    return {
-      dev: 1,
-      ino: 1,
-      nlink: 1,
-      isFile: () => !n.isDir,
-      isDirectory: () => n.isDir,
-      isSymbolicLink: () => false,
-      mode: n.isDir ? 0o755 : 0o644,
-      size: n.content ? Buffer.byteLength(n.content) : 0,
-      mtimeMs: Date.now(),
-    } as fs.Stats;
-  });
-  const realpathSpy = spyOn(fs, "realpathSync").mockImplementation((p) => String(p));
-  const readSpy = spyOn(fs, "readFileSync").mockImplementation((p, options) => {
-    const s = String(p);
-    const n = vfs.get(s);
-    if (!n || n.content === undefined) {
-      const err = new Error(`ENOENT: ${s}`) as Error & { code: string };
-      err.code = "ENOENT";
-      throw err;
-    }
-    const enc =
-      typeof options === "string"
-        ? options
-        : (options as { encoding?: string } | undefined)?.encoding;
-    return enc === "utf-8" || enc === "utf8"
-      ? n.content
-      : (Buffer.from(n.content) as unknown as string);
-  });
-  const writeSpy = spyOn(fs, "writeFileSync").mockImplementation((p, data) => {
-    vfs.set(String(p), {
-      content: typeof data === "string" ? data : new TextDecoder().decode(data as Uint8Array),
-      isDir: false,
-    });
-  });
-  const mkdirSpy = spyOn(fs, "mkdirSync").mockImplementation((p) => {
-    vfs.set(String(p), { isDir: true });
-    return undefined;
-  });
-  const spawnSpy = spyOn(cp, "spawnSync").mockImplementation(() => ({
-    status: 0,
-    stdout: "" as unknown as Buffer,
-    stderr: "" as unknown as Buffer,
-    pid: 1234,
-    output: [null, "" as unknown as Buffer, "" as unknown as Buffer],
-    signal: null,
-  }));
-
-  spies.push(existsSpy, statSpy, lstatSpy, realpathSpy, readSpy, writeSpy, mkdirSpy, spawnSpy);
-}
-
 describe(snapshotCaptureSuiteName, () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession | null = null;
   let testDir: string;
 
   beforeEach(() => {
-    setupVirtualFs();
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
     testDir = "/virtual/snapshot-capture";
-    vfs.set(testDir, { isDir: true });
-    vfs.set(join(testDir, ".git"), { isDir: true });
+    vfs.mkdirSync(testDir, { recursive: true });
+    vfs.mkdirSync(join(testDir, ".git"), { recursive: true });
+    __setDagSnapshotCaptureTestHook(() => ({ status: 0, stdout: "" }));
   });
 
   afterEach(() => {
-    for (const s of spies.splice(0)) s.mockRestore();
-    vfs.clear();
+    __setDagSnapshotCaptureTestHook(undefined);
+    if (session) {
+      session.cleanup();
+      session = null;
+    }
   });
 
   function createTestSnapshot(
@@ -164,7 +86,7 @@ describe(snapshotCaptureSuiteName, () => {
       agents: [{ id: "agent-alpha", role: "implementer", status: "busy" }],
       activeWave: { waveId: "wave-001", status: "in_progress", lanes: ["lane-a", "lane-b"] },
     };
-    vfs.set(join(testDir, "memory.json"), { content: JSON.stringify(memoryData), isDir: false });
+    vfs.writeFileSync(join(testDir, "memory.json"), JSON.stringify(memoryData));
 
     const snap = await captureDagSnapshot({
       runRoot: testDir,
@@ -225,5 +147,56 @@ describe(snapshotCaptureSuiteName, () => {
     const detailedMd = formatDagSnapshotMarkdown(snap, evalData, true);
     expect(detailedMd).toContain("src/test.ts");
     expect(detailedMd).toContain("t-1");
+  });
+
+  it("Probe 1: rejects malformed memory.json and git status failure with INTEGRITY error", async () => {
+    // Malformed JSON
+    vfs.writeFileSync(join(testDir, "memory.json"), "{ unparseable-json");
+    expect(
+      captureDagSnapshot({
+        runRoot: testDir,
+        repositoryRoot: testDir,
+        lowestQuotaObserved: null,
+        constrainedModels: [],
+        resetTime: "2026-01-01T04:00:00.000Z",
+      }),
+    ).rejects.toThrow(HarnessError);
+
+    // Non-object memory.json
+    vfs.writeFileSync(join(testDir, "memory.json"), JSON.stringify([1, 2, 3]));
+    expect(
+      captureDagSnapshot({
+        runRoot: testDir,
+        repositoryRoot: testDir,
+        lowestQuotaObserved: null,
+        constrainedModels: [],
+        resetTime: "2026-01-01T04:00:00.000Z",
+      }),
+    ).rejects.toThrow(HarnessError);
+
+    // Tasks not an array
+    vfs.writeFileSync(join(testDir, "memory.json"), JSON.stringify({ tasks: "not-array" }));
+    expect(
+      captureDagSnapshot({
+        runRoot: testDir,
+        repositoryRoot: testDir,
+        lowestQuotaObserved: null,
+        constrainedModels: [],
+        resetTime: "2026-01-01T04:00:00.000Z",
+      }),
+    ).rejects.toThrow(HarnessError);
+
+    // Git status non-zero exit code throws INTEGRITY error
+    vfs.writeFileSync(join(testDir, "memory.json"), JSON.stringify({ tasks: [] }));
+    __setDagSnapshotCaptureTestHook(() => ({ status: 1, stdout: "fatal: git error" }));
+    expect(
+      captureDagSnapshot({
+        runRoot: testDir,
+        repositoryRoot: testDir,
+        lowestQuotaObserved: null,
+        constrainedModels: [],
+        resetTime: "2026-01-01T04:00:00.000Z",
+      }),
+    ).rejects.toThrow(HarnessError);
   });
 });

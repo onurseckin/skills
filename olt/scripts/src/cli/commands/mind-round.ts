@@ -22,7 +22,7 @@ import {
 } from "../../mind/lifecycle/rounds/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { transact } from "../../engine/store/index.ts";
-import { findGrant, readAgentLedger, writeAgentLedger } from "../../workflow/agents/ledger.ts";
+import { findGrant, readAgentLedger, writeAgentLedger } from "../../workflow/agents/index.ts";
 import { integerFlag, textFlag, type CommandContext, type Flags } from "../options.ts";
 
 export interface MindRoundOpenResult {

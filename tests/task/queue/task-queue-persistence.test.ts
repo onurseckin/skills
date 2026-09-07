@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, linkSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -11,11 +10,19 @@ import {
   popNextEligibleTaskWithCleanup,
   readTaskQueue,
 } from "../../../olt/scripts/src/task/queue/index.ts";
-import { cleanupVirtualTaskFS, scratchRoot, setupVirtualTaskFS } from "../task-fixture.ts";
+import {
+  cleanupVirtualTaskFS,
+  createVirtualHardlink,
+  createVirtualSymlink,
+  getVirtualTaskFS,
+  scratchRoot,
+  setupVirtualTaskFS,
+} from "../task-fixture.ts";
 
 describe("Stateful Task Queue Engine", () => {
   let testDir = "";
   let queuePath = "";
+  const vfs = getVirtualTaskFS();
 
   beforeEach(() => {
     setupVirtualTaskFS();
@@ -41,7 +48,7 @@ describe("Stateful Task Queue Engine", () => {
 
     expect(task.id).toBe("task-alpha");
     expect(task.status).toBe("PENDING");
-    expect(existsSync(queuePath)).toBe(true);
+    expect(vfs.existsSync(queuePath)).toBe(true);
 
     const items = readTaskQueue(queuePath);
     expect(items).toHaveLength(1);
@@ -107,7 +114,7 @@ describe("Stateful Task Queue Engine", () => {
       "after_rename",
       "before_directory_fsync",
     ] as const) {
-      writeFileSync(queuePath, "{not-json}\n", "utf8");
+      vfs.writeFileSync(queuePath, "{not-json}\n");
       expect(() =>
         enqueueTask(
           {
@@ -120,14 +127,14 @@ describe("Stateful Task Queue Engine", () => {
         ),
       ).toThrow(HarnessError);
     }
-    writeFileSync(queuePath, "{not-json}\n", "utf8");
+    vfs.writeFileSync(queuePath, "{not-json}\n");
     expect(() => readTaskQueue(queuePath)).toThrow(HarnessError);
   });
 
   it("refuses a symlink queue without changing its sentinel target", () => {
     const sentinel = join(testDir, "sentinel.jsonl");
-    writeFileSync(sentinel, "sentinel\n", "utf8");
-    symlinkSync(sentinel, queuePath);
+    vfs.writeFileSync(sentinel, "sentinel\n");
+    createVirtualSymlink(sentinel, queuePath);
     expect(() =>
       enqueueTask(
         {
@@ -139,16 +146,16 @@ describe("Stateful Task Queue Engine", () => {
         queuePath,
       ),
     ).toThrow(HarnessError);
-    expect(readFileSync(sentinel, "utf8")).toBe("sentinel\n");
+    expect(vfs.readFileSync(sentinel, "utf8")).toBe("sentinel\n");
   });
 
   it("refuses a hardlinked queue without changing either name", () => {
     const sibling = join(testDir, "queue-alias.jsonl");
-    writeFileSync(queuePath, "sentinel\n", "utf8");
-    linkSync(queuePath, sibling);
+    vfs.writeFileSync(queuePath, "sentinel\n");
+    createVirtualHardlink(queuePath, sibling);
     expect(() => readTaskQueue(queuePath)).toThrow(HarnessError);
-    expect(readFileSync(queuePath, "utf8")).toBe("sentinel\n");
-    expect(readFileSync(sibling, "utf8")).toBe("sentinel\n");
+    expect(vfs.readFileSync(queuePath, "utf8")).toBe("sentinel\n");
+    expect(vfs.readFileSync(sibling, "utf8")).toBe("sentinel\n");
   });
 
   it("preserves previous bytes when a durable write, fsync, or rename stage fails", () => {
@@ -240,5 +247,21 @@ describe("Stateful Task Queue Engine", () => {
     expect(claimed?.prunedCount).toBe(1);
     expect(readTaskQueue(queuePath).map((item) => item.id)).toEqual(["next"]);
     expect(popNextEligibleTask({ agentId: "contender", customPath: queuePath })).toBeNull();
+  });
+
+  it("safely skips whitespace lines and strictly rejects malformed or truncated JSON lines", () => {
+    enqueueTask({ id: "valid-1", title: "Valid 1", write_scope: ["1.ts"], gate: "g" }, queuePath);
+    enqueueTask({ id: "valid-2", title: "Valid 2", write_scope: ["2.ts"], gate: "g" }, queuePath);
+
+    const raw = vfs.readFileSync(queuePath, "utf8");
+    const withWhitespace = raw.replace("\n", "\n   \n\n");
+    vfs.writeFileSync(queuePath, withWhitespace);
+
+    const items = readTaskQueue(queuePath);
+    expect(items).toHaveLength(2);
+    expect(items.map((i) => i.id)).toEqual(["valid-1", "valid-2"]);
+
+    vfs.writeFileSync(queuePath, withWhitespace + '{"id": "truncated"\n');
+    expect(() => readTaskQueue(queuePath)).toThrow(HarnessError);
   });
 });

@@ -4,21 +4,23 @@
 **Target Repository**: `@onurseckin/skills`  
 **Execution Worktree**: `.olt/worktrees/track-sentinel-hygiene`  
 **Target Branch**: `track/track-sentinel-hygiene`  
-**Supervising Orchestrator**: `orchestrator_sentinel_hygiene`  
+**Supervising Orchestrator**: `orchestrator_sentinel_hygiene`
 
 ---
 
 ## Executive Summary & Problem Formulation
 
 Recent forensic investigations revealed four critical architectural flaws in the OLT skill system:
+
 1. **Potemkin "Defect-CLI" Blunder**: Over 100 source files in `olt/scripts/src/` (`core/`, `engine/`, `mind/`, `reporting/`, `validation/`) and 326 test files were synthetically created with defect ID filenames (e.g. `defect-cli-1788679500002-auditorblind.ts`) containing dummy stubs returning `{ remediated: true }`. They pollute the directory fanout budget, mask real underlying bugs, and constitute pure dead code.
 2. **Directory Resolution Bleed (`olt` vs `.olt`)**: Several engine modules hardcode `join(repoRoot, "olt", ...)` instead of `join(repoRoot, ".olt", ...)`, causing OLT to look for or erroneously create an unhidden `olt/` directory in external/consumer repositories.
-3. **Passive / Blind Sentinel Architecture**: The "Live Sentinel" system was implemented as passive command-wrapped hooks inside `cli/execute.ts` (`executePreActionHook`), executing *only* when an agent explicitly routes through `harness.ts <command>`. When subagents invoke host tools (`run_command("cat > file")`), Sentinel never executes. Furthermore, `orchestratorProfile` had `can_execute_shell: true`, and `context.modified_files` was never passed during watch loops.
+3. **Passive / Blind Sentinel Architecture**: The "Live Sentinel" system was implemented as passive command-wrapped hooks inside `cli/execute.ts` (`executePreActionHook`), executing _only_ when an agent explicitly routes through `harness.ts <command>`. When subagents invoke host tools (`run_command("cat > file")`), Sentinel never executes. Furthermore, `orchestratorProfile` had `can_execute_shell: true`, and `context.modified_files` was never passed during watch loops.
 4. **Host Transcript Blindness in Supervisory Audits**: `SkillAuditorEngine` in `skill-auditor.ts` and `checkRoleBoundaryInterlock` in `role-boundary-engine.ts` inspect only `events.jsonl`, which does not record native host tool calls, leaving host transcripts (`transcript.jsonl`) uninspected.
 
 This plan details the full end-to-end remediation to be executed in an isolated worktree (`track-sentinel-hygiene`) by a dedicated Tier 1 Orchestrator (`orchestrator_sentinel_hygiene`).
 
 ### Registered Canonical Defects
+
 - `doctor-orchestrator-role-boundary-violation-fd3e726f1752`: Tier 1 Orchestrator bypassed subagent hierarchy and directly executed shell commands, ran test suites, and authored code directly using host `run_command` instead of delegating to Tier 2 Coordinator and Tier 3 Implementers.
 - `doctor-skill-auditor-transcript-blindness-and-oversight-failure-9513c5bdd75a`: Skill Auditor failed to detect active orchestrators executing out of role for an extended period due to scanning only capsule `events.jsonl` and git diffs, remaining completely blind to host-level conversation transcripts (`transcript.jsonl`).
 
@@ -64,6 +66,7 @@ This plan details the full end-to-end remediation to be executed in an isolated 
 ## 2. Detailed Technical Specifications
 
 ### Phase 1: Potemkin Defect-CLI Purge, Test Location Invariant & Generator Safety
+
 - **Dedicated Test Location Invariant (`tests/` ONLY)**:
   - All unit, integration, and regression tests MUST strictly reside inside the dedicated top-level `tests/` directory (e.g. `tests/unit/`, `tests/sentinel/`, `tests/core/`).
   - ZERO test files (`*.test.ts`, `*.spec.ts`) are ever permitted to be placed, authored, or generated under `olt/` or `skills/olt/` or inside source directories.
@@ -79,6 +82,7 @@ This plan details the full end-to-end remediation to be executed in an isolated 
   - Audit `olt/scripts/src/validation/index.ts` and ensure clean named exports with zero references to deleted defect-cli files.
 
 ### Phase 2: Universal `.olt` vs `olt` Boundary
+
 - **Core Principle**:
   - Only `@onurseckin/skills` contains `olt/` (holding the skill source).
   - External / consumer repositories MUST ONLY EVER contain `.olt/` (hidden dot-folder).
@@ -91,6 +95,7 @@ This plan details the full end-to-end remediation to be executed in an isolated 
   - [`olt/scripts/src/mind/memory/core/indexer.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/mind/memory/core/indexer.ts): change `join(repoRoot, "olt", "references")` to `join(repoRoot, ".olt", "references")`.
 
 ### Phase 3: True Live Registered Sentinel Strategy Monitors
+
 - **Monitor Registration Lifecycle**:
   - Add `SentinelMonitorRegistry` in `olt/scripts/src/sentinel/monitor/registry.ts`.
   - When an agent is registered via `agent:register` or spawned by an orchestrator, instantiate a `LiveStrategyMonitor`:
@@ -119,6 +124,7 @@ This plan details the full end-to-end remediation to be executed in an isolated 
   - When an agent status transitions to `completed`, `failed`, or when the wave is torn down (`manage_subagents kill`), the monitor's interval / file watcher is cleanly closed (`stop()`) and de-registered from `.olt/sentinel-monitors.json`.
 
 ### Phase 4: Supervisory Boundary Hardlocks & Audit Transparency
+
 - **Orchestrator Profile Hardlock**:
   - In [`olt/scripts/src/sentinel/profiles/tier1/orchestrator.ts`](file:///Users/onurseckinsenoglu/repos/skills/olt/scripts/src/sentinel/profiles/tier1/orchestrator.ts#L8):
     Change `can_execute_shell: true` to `can_execute_shell: false`. Tier 1 Orchestrators must never execute terminal commands.

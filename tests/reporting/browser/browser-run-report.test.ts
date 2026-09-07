@@ -1,13 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { readBrowserRunReport } from "../../../olt/scripts/src/reporting/browser-run-report.ts";
-import { cleanupTempDirs, setupVirtualBrowserFS, tempDir } from "./browser-run-fixture.ts";
+import { cleanupVirtualBrowserFS, setupVirtualBrowserFS, tempDir } from "./browser-run-fixture.ts";
+
+let vfs: ReturnType<typeof setupVirtualBrowserFS>;
 
 beforeEach(() => {
-  setupVirtualBrowserFS();
+  vfs = setupVirtualBrowserFS();
 });
-afterEach(cleanupTempDirs);
+afterEach(cleanupVirtualBrowserFS);
 
 export const browserRunReportSuiteName = "readBrowserRunReport";
 
@@ -16,7 +17,7 @@ describe(browserRunReportSuiteName, () => {
     const dir = tempDir("oversize");
     const path = join(dir, "huge.json");
     // One byte past MAX_BROWSER_REPORT_BYTES (8 MiB); content does not matter, only size.
-    writeFileSync(path, Buffer.alloc(8 * 1024 * 1024 + 1, 0x20));
+    vfs.writeFileSync(path, Buffer.alloc(8 * 1024 * 1024 + 1, 0x20));
 
     expect(readBrowserRunReport(path)).toBeUndefined();
   });
@@ -24,7 +25,7 @@ describe(browserRunReportSuiteName, () => {
   test("refuses malformed JSON", () => {
     const dir = tempDir("malformed");
     const path = join(dir, "report.json");
-    writeFileSync(path, "{not json", "utf-8");
+    vfs.writeFileSync(path, "{not json");
 
     expect(readBrowserRunReport(path)).toBeUndefined();
   });
@@ -32,7 +33,7 @@ describe(browserRunReportSuiteName, () => {
   test("refuses a JSON value that is not an object", () => {
     const dir = tempDir("array-json");
     const path = join(dir, "report.json");
-    writeFileSync(path, "[1, 2, 3]", "utf-8");
+    vfs.writeFileSync(path, "[1, 2, 3]");
 
     expect(readBrowserRunReport(path)).toBeUndefined();
   });
@@ -40,7 +41,7 @@ describe(browserRunReportSuiteName, () => {
   test("refuses a document that is neither a runner report nor a visual report", () => {
     const dir = tempDir("neither");
     const path = join(dir, "report.json");
-    writeFileSync(path, JSON.stringify({ unrelated: true }), "utf-8");
+    vfs.writeFileSync(path, JSON.stringify({ unrelated: true }));
 
     expect(readBrowserRunReport(path)).toBeUndefined();
   });
@@ -48,7 +49,7 @@ describe(browserRunReportSuiteName, () => {
   test("refuses a document that carries only unmapped extras and no real fact", () => {
     const dir = tempDir("extras-only");
     const path = join(dir, "report.json");
-    writeFileSync(path, JSON.stringify({ suites: [], custom_field: "value" }), "utf-8");
+    vfs.writeFileSync(path, JSON.stringify({ suites: [], custom_field: "value" }));
 
     // Extras alone (without any of browser/status/testFile/etc.) is not a fact worth recording.
     expect(readBrowserRunReport(path)).toBeUndefined();
@@ -64,10 +65,9 @@ describe(browserRunReportSuiteName, () => {
     const path = join(dir, "report.json");
     const extraFields: Record<string, number> = {};
     for (let index = 0; index < 40; index += 1) extraFields[`custom_${index}`] = index;
-    writeFileSync(
+    vfs.writeFileSync(
       path,
       JSON.stringify({ suites: [{ file: "tests/a.spec.ts" }], ...extraFields }),
-      "utf-8",
     );
 
     const facts = readBrowserRunReport(path);
@@ -79,13 +79,12 @@ describe(browserRunReportSuiteName, () => {
   test("a project without a viewport contributes no viewport entry", () => {
     const dir = tempDir("no-viewport");
     const path = join(dir, "report.json");
-    writeFileSync(
+    vfs.writeFileSync(
       path,
       JSON.stringify({
         config: { projects: [{ name: "chromium", use: { browserName: "chromium" } }] },
         suites: [{ file: "tests/a.spec.ts" }],
       }),
-      "utf-8",
     );
 
     const facts = readBrowserRunReport(path);
@@ -98,10 +97,9 @@ describe(browserRunReportSuiteName, () => {
   test("a config that is not an object contributes no browser or viewport facts", () => {
     const dir = tempDir("bad-config");
     const path = join(dir, "report.json");
-    writeFileSync(
+    vfs.writeFileSync(
       path,
       JSON.stringify({ config: "not-an-object", suites: [{ file: "tests/a.spec.ts" }] }),
-      "utf-8",
     );
 
     const facts = readBrowserRunReport(path);
@@ -114,10 +112,9 @@ describe(browserRunReportSuiteName, () => {
   test("a visual report with viewports but no metadata still reports a source path", () => {
     const dir = tempDir("bare-visual");
     const path = join(dir, "visual-report.json");
-    writeFileSync(
+    vfs.writeFileSync(
       path,
       JSON.stringify({ viewports: { desktop: { width: 1024, height: 768 } }, extra_metric: 7 }),
-      "utf-8",
     );
 
     const facts = readBrowserRunReport(path);
@@ -131,7 +128,7 @@ describe(browserRunReportSuiteName, () => {
   test("a visual report with neither viewport data nor other facts is not a fact worth recording", () => {
     const dir = tempDir("empty-visual");
     const path = join(dir, "visual-report.json");
-    writeFileSync(path, JSON.stringify({ viewports: {} }), "utf-8");
+    vfs.writeFileSync(path, JSON.stringify({ viewports: {} }));
 
     expect(readBrowserRunReport(path)).toBeUndefined();
   });
@@ -139,7 +136,7 @@ describe(browserRunReportSuiteName, () => {
   test("attachments outside the recognised trace/video names are ignored", () => {
     const dir = tempDir("other-attachment");
     const path = join(dir, "report.json");
-    writeFileSync(
+    vfs.writeFileSync(
       path,
       JSON.stringify({
         suites: [
@@ -151,7 +148,6 @@ describe(browserRunReportSuiteName, () => {
           },
         ],
       }),
-      "utf-8",
     );
 
     const facts = readBrowserRunReport(path);
@@ -167,7 +163,7 @@ describe(browserRunReportSuiteName, () => {
       attachments: [{ name: "trace", path: "/deepest.zip" }],
     };
     for (let depth = 0; depth < 14; depth += 1) node = { suites: [node] };
-    writeFileSync(path, JSON.stringify({ suites: node.suites as unknown[] }), "utf-8");
+    vfs.writeFileSync(path, JSON.stringify({ suites: node.suites as unknown[] }));
 
     // The attachment sits deeper than the recursion cap; it must not surface, and reading must
     // not throw or hang on a report this deeply nested.

@@ -9,6 +9,10 @@ export {
   setupVirtualRunnerFS,
   tempRoot,
   writeTree,
+  createVirtualSymlink,
+  removeVirtualSymlink,
+  openVirtualFile,
+  statVirtualFile,
   cleanupTempRoots,
   cleanupVirtualRunnerFS,
 } from "./command/fixture.ts";

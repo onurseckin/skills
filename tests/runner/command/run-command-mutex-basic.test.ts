@@ -1,24 +1,14 @@
-import { describe, expect, test } from "bun:test";
-import {
-  closeSync,
-  existsSync,
-  lstatSync,
-  mkdirSync,
-  readFileSync,
-  symlinkSync,
-  type Stats,
-  writeFileSync,
-} from "node:fs";
+import { afterEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { releaseFlock as releaseNativeFlock } from "../../../olt/scripts/src/platform/index.ts";
 import {
   executePreparedCommand,
   setExecutionLockDependenciesForTesting,
 } from "../../../olt/scripts/src/engine/runner/models/execution/run-command.ts";
-import { tempRoot, cleanupTempRoots } from "./fixture.ts";
-import { afterAll } from "bun:test";
+import { getExecutionLockDependencies } from "../../../olt/scripts/src/engine/runner/models/execution/run-command-lock-deps.ts";
+import { cleanupTempRoots, createVirtualSymlink, getRunnerVfs, tempRoot } from "./fixture.ts";
 
-afterAll(cleanupTempRoots);
+afterEach(cleanupTempRoots);
 import type { InternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 import type {
   CommandResult,
@@ -45,29 +35,31 @@ function broadRunner(onExecute: () => Promise<CommandResult>): InternalCommandRu
 
 describe("run-command broad scope test detection and mutex basic lock", () => {
   test("keeps a persistent regular lock inode after a broad run releases it", async () => {
+    const vfs = getRunnerVfs();
     const repo = tempRoot("mutex-broad-test");
     const lockFile = join(repo, ".olt", ".locks", "execution.lock");
 
     let ran = false;
     const fakeRunner = broadRunner(async () => {
       ran = true;
-      expect(existsSync(lockFile)).toBe(true);
+      expect(vfs.existsSync(lockFile)).toBe(true);
       return { record: { id: "C-1" } } as unknown as CommandResult;
     });
 
     await executePreparedCommand(broadPrepared(repo), fakeRunner);
     expect(ran).toBe(true);
-    expect(lstatSync(lockFile).isFile()).toBe(true);
+    expect(vfs.statSync(lockFile)?.isFile()).toBe(true);
   });
 
   test("executePreparedCommand bypasses mutex for targeted file-scoped runs", async () => {
+    const vfs = getRunnerVfs();
     const repo = tempRoot("mutex-targeted-test");
     const lockFile = join(repo, ".olt", ".locks", "execution.lock");
 
     let ran = false;
     const fakeRunner = broadRunner(async () => {
       ran = true;
-      expect(existsSync(lockFile)).toBe(false);
+      expect(vfs.existsSync(lockFile)).toBe(false);
       return { record: { id: "C-2" } } as unknown as CommandResult;
     });
 
@@ -79,10 +71,11 @@ describe("run-command broad scope test detection and mutex basic lock", () => {
   });
 
   test("treats malformed stale PID text as irrelevant after flock acquisition", async () => {
+    const vfs = getRunnerVfs();
     const repo = tempRoot("mutex-stale-pid");
     const lockDir = join(repo, ".olt", ".locks");
-    mkdirSync(lockDir, { recursive: true });
-    writeFileSync(join(lockDir, "execution.lock"), "not-a-pid", "utf-8");
+    vfs.mkdirSync(lockDir, { recursive: true });
+    vfs.writeFileSync(join(lockDir, "execution.lock"), "not-a-pid");
     let ran = false;
 
     await executePreparedCommand(
@@ -96,12 +89,13 @@ describe("run-command broad scope test detection and mutex basic lock", () => {
   });
 
   test("refuses a final-component symlink without touching its target or running", async () => {
+    const vfs = getRunnerVfs();
     const repo = tempRoot("mutex-symlink");
     const lockDir = join(repo, ".olt", ".locks");
-    mkdirSync(lockDir, { recursive: true });
+    vfs.mkdirSync(lockDir, { recursive: true });
     const target = join(repo, "outside-lock-target");
-    writeFileSync(target, "sentinel", "utf-8");
-    symlinkSync(target, join(lockDir, "execution.lock"));
+    vfs.writeFileSync(target, "sentinel");
+    createVirtualSymlink(target, join(lockDir, "execution.lock"));
 
     let ran = false;
     await expect(
@@ -114,13 +108,14 @@ describe("run-command broad scope test detection and mutex basic lock", () => {
       ),
     ).rejects.toMatchObject({ code: "PATH_SAFETY" });
     expect(ran).toBe(false);
-    expect(readFileSync(target, "utf-8")).toBe("sentinel");
+    expect(vfs.readFileSync(target, "utf8")).toBe("sentinel");
   });
 
   test("fails closed for a wrong-kind lock node and injected unreadable lock open", async () => {
+    const vfs = getRunnerVfs();
     const repo = tempRoot("mutex-wrong-kind");
     const lockFile = join(repo, ".olt", ".locks", "execution.lock");
-    mkdirSync(lockFile, { recursive: true });
+    vfs.mkdirSync(lockFile, { recursive: true });
     let ran = false;
     await expect(
       executePreparedCommand(
@@ -179,13 +174,14 @@ describe("run-command broad scope test detection and mutex basic lock", () => {
 
   test("preserves an undefined runner failure when cleanup also fails", async () => {
     const repo = tempRoot("mutex-undefined-runner-failure");
+    const previousDeps = getExecutionLockDependencies();
     const restore = setExecutionLockDependenciesForTesting({
       releaseFlock(descriptor) {
         releaseNativeFlock(descriptor);
         throw new Error("release failed");
       },
       close(descriptor) {
-        closeSync(descriptor);
+        previousDeps.close(descriptor);
         throw new Error("close failed");
       },
     });

@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { staleExemptions } from "../../../olt/scripts/src/health/vendor-identifiers.ts";
 import {
   HOST_DISPATCH_TERMS,
@@ -15,16 +14,21 @@ import {
   setupVirtualArchitectureFS,
 } from "../fixtures/architecture-fixture.ts";
 
+const skillRoot = "/virtual/skill-root";
+
 beforeEach(() => {
-  setupVirtualArchitectureFS();
+  const vfs = setupVirtualArchitectureFS();
+  vfs.mkdirSync(join(skillRoot, "agents"), { recursive: true });
+  vfs.mkdirSync(join(skillRoot, "references"), { recursive: true });
+  vfs.writeFileSync(
+    join(skillRoot, "references", "host-adapters.md"),
+    "# Host Adapters\n\nUnder Antigravity, invoke_subagent and define_subagent are used.\nUnder Codex, spawn_agent is used.\n",
+  );
 });
 
 afterEach(() => {
   cleanupVirtualArchitectureFS();
 });
-
-const repoRoot = fileURLToPath(new URL("../../..", import.meta.url));
-const skillRoot = join(repoRoot, "olt");
 
 /**
  * Nothing is exempted today: every `.md`/`.yaml` file under the skill root already qualifies every

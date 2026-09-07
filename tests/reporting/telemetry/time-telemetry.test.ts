@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { getDualTime } from "../../../olt/scripts/src/core/dual-time/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   buildTimeTelemetryReport,
   categorizeHarnessAction,
@@ -100,6 +101,11 @@ describe(timeTelemetrySuiteName, () => {
 
       const health = validateTimeTelemetryHealth(collector.getRecords());
       expect(health.healthy).toBe(true);
+
+      expect(() => collector.finishSpan("nonexistent-action-id")).toThrow(HarnessError);
+      expect(() => collector.finishSpan("nonexistent-action-id")).toThrow(
+        "No active action span found with ID: nonexistent-action-id",
+      );
     });
   });
 

@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import type { VirtualMemoryFS } from "./memory-fs.ts";
-import { VirtualStats } from "./types.ts";
+import { VirtualStats, type VirtualDirent } from "./types.ts";
 
 export interface VirtualFSSpyState {
   vfs: VirtualMemoryFS;
@@ -104,7 +104,7 @@ export function makeFsStats(
 ): fs.Stats {
   const norm = normPath(targetPath);
   const mtimeMs = state.customMtimes.get(norm) ?? s.mtimeMs;
-  const mode = state.customModes.get(norm) ?? (s.isDirectory() ? 0o755 : 0o644);
+  const mode = state.customModes.get(norm) ?? s.mode;
   const ino = getInode(state, norm);
   const nlink = state.hardlinks?.get(ino) ?? 1;
   const uid = typeof process.getuid === "function" ? process.getuid() : 0;
@@ -265,10 +265,29 @@ export function mockReaddir(
   const s = String(p);
   const norm = normPath(s);
   const lookup = state.vfs.existsSync(norm) ? norm : s;
+  const dirMode = state.customModes.get(lookup) ?? state.customModes.get(norm);
+  if (dirMode !== undefined && (dirMode & 0o444) === 0) {
+    throw fsErr("EACCES", `permission denied, scandir '${lookup}'`);
+  }
   if (state.vfs.existsSync(lookup)) {
-    return (typeof opts === "object" && opts?.withFileTypes
-      ? state.vfs.readdirSync(lookup, { withFileTypes: true })
-      : state.vfs.readdirSync(lookup)) as unknown as fs.Dirent[] & string[];
+    if (typeof opts === "object" && opts !== null && opts.withFileTypes) {
+      const rawEntries = state.vfs.readdirSync(lookup, { withFileTypes: true }) as VirtualDirent[];
+      return rawEntries.map((e) => {
+        const ep = normPath(`${lookup}/${e.name}`);
+        const isSym = state.symlinks.has(ep);
+        return {
+          name: e.name,
+          isDirectory: () => e.isDirectory() && !isSym,
+          isFile: () => e.isFile() && !isSym,
+          isSymbolicLink: () => isSym,
+          isBlockDevice: NOOP_FALSE,
+          isCharacterDevice: NOOP_FALSE,
+          isFIFO: NOOP_FALSE,
+          isSocket: NOOP_FALSE,
+        } as unknown as fs.Dirent;
+      }) as fs.Dirent[];
+    }
+    return state.vfs.readdirSync(lookup) as string[];
   }
   if (!isVirtualPath(s) && !isVirtualPath(norm)) {
     try {

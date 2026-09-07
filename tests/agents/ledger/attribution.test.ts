@@ -152,6 +152,27 @@ describe("resolveAttribution", () => {
       /state\.agents\[0\] is not an agent grant record/,
     );
   });
+
+  test("strictly rejects whitespace-padded actor names as no-such-grant", () => {
+    const populated = stateWith(grant({ id: "agent-1" }));
+    for (const actor of [" agent-1", "agent-1 ", " agent-1 "]) {
+      const result = resolveAttribution(populated, actor);
+      expect(result.kind).toBe("unattributed");
+      expect(result.reason).toBe("no-such-grant");
+    }
+  });
+
+  test("prioritizes released grant over active grant when multiple records exist for same id", () => {
+    const active = grant({ id: "agent-dup", status: "active" });
+    const releasedRecord = released({ id: "agent-dup", release_reason: "retired" });
+    const state = stateWith(active, releasedRecord);
+    const result = resolveAttribution(state, "agent-dup");
+    expect(result.kind).toBe("unattributed");
+    expect(result.reason).toBe("grant-released");
+    if (result.kind === "unattributed" && result.reason === "grant-released") {
+      expect(result.releasedGrant.status).toBe("released");
+    }
+  });
 });
 
 describe("resolveAttributionInLedger", () => {

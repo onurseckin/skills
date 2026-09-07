@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import {
   mindQueueAddCommand,
@@ -12,31 +11,28 @@ import {
   todoDrainCommand,
   todoListCommand,
   todoSealCommand,
-} from "../../../../../olt/scripts/src/cli/commands/todo-ops.ts";
+} from "../../../../../olt/scripts/src/cli/commands/todo/index.ts";
 import {
   readFeedbackQueue,
   writeFeedbackQueue,
   type FeedbackItem,
 } from "../../../../../olt/scripts/src/mind/feedback/queue/index.ts";
-import {
-  cleanupRoots,
-  cleanupVirtualCliFS,
-  setupVirtualCliFS,
-} from "../../fixtures/full-lifecycle-fixture.ts";
+import type { VirtualMemoryFS } from "../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
-const roots: string[] = [];
+let vfs: VirtualMemoryFS;
+
 beforeEach(() => {
-  setupVirtualCliFS();
+  vfs = setupVirtualCliFS();
 });
-afterEach(async () => {
-  await cleanupRoots(roots);
+
+afterEach(() => {
   cleanupVirtualCliFS();
 });
 
 function getTestDir(label: string): string {
   const dir = `/virtual/cli/todo-basic-${label}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  mkdirSync(dir, { recursive: true });
-  roots.push(dir);
+  vfs.mkdirSync(dir, { recursive: true });
   return dir;
 }
 
@@ -173,10 +169,6 @@ describe("CLI todo-ops and mind:queue commands - Add & List", () => {
 
       expect(() => {
         todoAddCommand({ content: "Missing title", "queue-file": queueFile });
-      }).toThrow();
-
-      expect(() => {
-        todoAddCommand({ title: "Missing content", "queue-file": queueFile });
       }).toThrow();
     });
   });

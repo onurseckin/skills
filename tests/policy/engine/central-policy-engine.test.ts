@@ -1,7 +1,10 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { cleanupVirtualPolicyFS, setupVirtualPolicyFS } from "../fixture.ts";
+import {
+  cleanupVirtualPolicyFS,
+  getVirtualPolicyFS,
+  setupVirtualPolicyFS,
+} from "../fixture.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   CURRENT_POLICY_SCHEMA_VERSION,
@@ -35,8 +38,9 @@ describe("Central Policy & Lifecycle Hooks Engine", () => {
   }
 
   test("loadRepoPolicy loads authoritative .olt/policy.json with schema validation and explicit provenance", () => {
+    const vfs = getVirtualPolicyFS();
     const dir = join(scratchBase, "valid-policy");
-    mkdirSync(join(dir, ".olt"), { recursive: true });
+    vfs.mkdirSync(join(dir, ".olt"), { recursive: true });
     const policyPath = join(dir, ".olt", "policy.json");
     const canonical = generateCanonicalDefaultPolicy(dir);
     const customPolicy: RepoPolicy = {
@@ -47,7 +51,7 @@ describe("Central Policy & Lifecycle Hooks Engine", () => {
         on_release_push: ["echo push-done {commit_sha}"],
       },
     };
-    writeFileSync(policyPath, JSON.stringify(customPolicy, null, 2), "utf-8");
+    vfs.writeFileSync(policyPath, JSON.stringify(customPolicy, null, 2), "utf-8");
 
     const loaded = loadRepoPolicy(dir);
     expect(loaded.schema_version).toBe(CURRENT_POLICY_SCHEMA_VERSION);
@@ -62,9 +66,10 @@ describe("Central Policy & Lifecycle Hooks Engine", () => {
   });
 
   test("loadRepoPolicy falls back to auto-detected default policy with auto_detected provenance when missing", () => {
+    const vfs = getVirtualPolicyFS();
     const dir = join(scratchBase, "missing-policy");
-    mkdirSync(dir, { recursive: true });
-    writeFileSync(join(dir, "bun.lock"), "");
+    vfs.mkdirSync(dir, { recursive: true });
+    vfs.writeFileSync(join(dir, "bun.lock"), "");
 
     const loaded = loadRepoPolicy(dir);
     expect(loaded.schema_version).toBe(CURRENT_POLICY_SCHEMA_VERSION);
@@ -77,16 +82,17 @@ describe("Central Policy & Lifecycle Hooks Engine", () => {
   });
 
   test("loadRepoPolicy enforces fail-closed error handling on corrupt JSON and schema violations", () => {
+    const vfs = getVirtualPolicyFS();
     const corruptDir = join(scratchBase, "corrupt-json");
-    mkdirSync(join(corruptDir, ".olt"), { recursive: true });
-    writeFileSync(join(corruptDir, ".olt", "policy.json"), "{ invalid-json", "utf-8");
+    vfs.mkdirSync(join(corruptDir, ".olt"), { recursive: true });
+    vfs.writeFileSync(join(corruptDir, ".olt", "policy.json"), "{ invalid-json", "utf-8");
 
     expect(() => loadRepoPolicy(corruptDir)).toThrow(HarnessError);
     expect(() => loadRepoPolicy(corruptDir)).toThrow(/invalid/i);
 
     const invalidSchemaDir = join(scratchBase, "invalid-schema");
-    mkdirSync(join(invalidSchemaDir, ".olt"), { recursive: true });
-    writeFileSync(
+    vfs.mkdirSync(join(invalidSchemaDir, ".olt"), { recursive: true });
+    vfs.writeFileSync(
       join(invalidSchemaDir, ".olt", "policy.json"),
       JSON.stringify({ schema_version: 999, unknown_key: "forbidden" }),
       "utf-8",
@@ -97,8 +103,9 @@ describe("Central Policy & Lifecycle Hooks Engine", () => {
   });
 
   test("saveRepoPolicy and initRepoPolicy atomically write validated configuration", () => {
+    const vfs = getVirtualPolicyFS();
     const dir = join(scratchBase, "init-save");
-    mkdirSync(dir, { recursive: true });
+    vfs.mkdirSync(dir, { recursive: true });
 
     const initialized = initRepoPolicy(dir);
     expect(initialized.schema_version).toBe(CURRENT_POLICY_SCHEMA_VERSION);
@@ -176,9 +183,10 @@ describe("Central Policy & Lifecycle Hooks Engine", () => {
   });
 
   test("PolicyDiscoveryEngine.isPolicyCalibrated and ensurePolicyCalibrated enforce mandatory policy calibration", async () => {
+    const vfs = getVirtualPolicyFS();
     const dir = join(scratchBase, "auto-calibrate-test");
-    mkdirSync(dir, { recursive: true });
-    writeFileSync(join(dir, "bun.lock"), "");
+    vfs.mkdirSync(dir, { recursive: true });
+    vfs.writeFileSync(join(dir, "bun.lock"), "");
 
     const { PolicyDiscoveryEngine } =
       await import("../../../olt/scripts/src/engine/policy-discovery.ts");

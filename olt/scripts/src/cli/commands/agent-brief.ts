@@ -22,7 +22,7 @@ export interface AgentBriefOptions {
   readonly capsulePath?: string | undefined;
 }
 
-function findAgentManifestPath(role: string, repoRoot?: string): string {
+export function findAgentManifestPath(role: string, repoRoot?: string): string {
   const root = repoRoot ?? findRepoRoot();
   const normalized = normalizeRoleKey(role);
   const kebab = role.replace(/_/g, "-");
@@ -49,7 +49,6 @@ function findAgentManifestPath(role: string, repoRoot?: string): string {
 
   const searchDirs = [
     join(root, ".olt", "agents"),
-    join(root, "olt", "agents"),
     join(root, "agents"),
     join(import.meta.dir, "..", "..", "..", "..", "agents"),
     join(import.meta.dir, "..", "..", "..", "agents"),

@@ -227,7 +227,7 @@ describe("validate-ui CLI command coverage suite", () => {
         storage: link.storage,
         original_path: "header.png",
         task_id: "task-ui-1",
-        actor: "ui-mechanic-validator",
+        actor: "ui-headless-validator",
       },
     ]);
     refreshIndex(runRoot);

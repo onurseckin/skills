@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   identifierWords,
@@ -10,6 +9,7 @@ import {
 } from "../../../olt/scripts/src/health/vendor-identifiers.ts";
 import {
   cleanupVirtualArchitectureFS,
+  getVirtualArchitectureFS,
   scratchRoot,
   setupVirtualArchitectureFS,
 } from "../fixtures/architecture-fixture.ts";
@@ -23,11 +23,12 @@ afterEach(() => {
 });
 
 function tree(files: Record<string, string>): string {
+  const vfs = getVirtualArchitectureFS();
   const root = scratchRoot(import.meta.path, "vendor-scan");
   for (const [path, content] of Object.entries(files)) {
     const full = join(root, path);
-    mkdirSync(join(full, ".."), { recursive: true });
-    writeFileSync(full, content, "utf-8");
+    vfs.mkdirSync(join(full, ".."), { recursive: true });
+    vfs.writeFileSync(full, content);
   }
   return root;
 }

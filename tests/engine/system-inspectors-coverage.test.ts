@@ -1,12 +1,16 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   runInspectorDoctor,
   runInspectorHealth,
 } from "../../olt/scripts/src/engine/scheduler/diagnostics/system-inspectors.ts";
 import type { Clock } from "../../olt/scripts/src/workflow/index.ts";
+import {
+  cleanupVirtualEngineFS,
+  getVirtualEngineFS,
+  setupVirtualEngineFS,
+} from "./fixture.ts";
 
 describe("System Diagnostics Inspectors", () => {
   let tempDir: string;
@@ -15,13 +19,14 @@ describe("System Diagnostics Inspectors", () => {
   };
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "inspectors-test-"));
+    setupVirtualEngineFS();
+    tempDir = "/virtual/engine/inspectors-test";
+    const vfs = getVirtualEngineFS();
+    vfs.mkdirSync(tempDir, { recursive: true });
   });
 
   afterEach(() => {
-    if (tempDir) {
-      rmSync(tempDir, { recursive: true, force: true });
-    }
+    cleanupVirtualEngineFS();
   });
 
   describe("runInspectorDoctor", () => {
@@ -94,6 +99,17 @@ describe("System Diagnostics Inspectors", () => {
       const origTest = process.env.TEST;
       const origArgv = [...process.argv];
 
+      const doctorRunner = await import(
+        "../../olt/scripts/src/reporting/doctor/runner.ts"
+      );
+      const doctorSpy = spyOn(doctorRunner, "runDoctor").mockResolvedValue({
+        healthy: true,
+        issues: [],
+        behavioral_findings: [],
+        critical_issues: [],
+        bun_version: "v1.4.0",
+      });
+
       try {
         delete process.env.NODE_ENV;
         delete process.env.BUN_TEST;
@@ -105,11 +121,59 @@ describe("System Diagnostics Inspectors", () => {
         expect(receipt.timestamp).toBe("2026-09-01T15:30:00.000Z");
         expect(["passed", "failed"]).toContain(receipt.status);
       } finally {
+        doctorSpy.mockRestore();
         if (origNodeEnv !== undefined) process.env.NODE_ENV = origNodeEnv;
         if (origBunTest !== undefined) process.env.BUN_TEST = origBunTest;
         if (origTest !== undefined) process.env.TEST = origTest;
         process.argv = origArgv;
       }
+    });
+
+    it("correctly maps unhealthy doctor findings to failed receipt with critical issue count", async () => {
+      const origNodeEnv = process.env.NODE_ENV;
+      const origBunTest = process.env.BUN_TEST;
+      const origTest = process.env.TEST;
+      const origArgv = [...process.argv];
+
+      const doctorRunner = await import(
+        "../../olt/scripts/src/reporting/doctor/runner.ts"
+      );
+      const doctorSpy = spyOn(doctorRunner, "runDoctor").mockResolvedValue({
+        healthy: false,
+        issues: ["corrupted_state", "[INFO] harmless info"],
+        critical_issues: ["corrupted_state"],
+        behavioral_findings: [{ id: "finding-1" }],
+        bun_version: "v1.4.0",
+      });
+
+      try {
+        delete process.env.NODE_ENV;
+        delete process.env.BUN_TEST;
+        delete process.env.TEST;
+        process.argv = ["bun", "run", "entrypoint.ts"];
+
+        const receipt = await runInspectorDoctor(tempDir, {}, mockClock);
+        expect(receipt.inspector).toBe("doctor");
+        expect(receipt.status).toBe("failed");
+        expect(receipt.badge).toBe("[RECEIPT: doctor FAIL]");
+        expect(receipt.summary).toContain("Doctor detected 1 issue(s) and 1 behavioral finding(s)");
+        expect(receipt.details?.healthy).toBe(false);
+        expect(receipt.details?.issuesCount).toBe(2);
+        expect(receipt.details?.behavioralFindingsCount).toBe(1);
+      } finally {
+        doctorSpy.mockRestore();
+        if (origNodeEnv !== undefined) process.env.NODE_ENV = origNodeEnv;
+        if (origBunTest !== undefined) process.env.BUN_TEST = origBunTest;
+        if (origTest !== undefined) process.env.TEST = origTest;
+        process.argv = origArgv;
+      }
+    });
+
+    it("guarantees deterministic SHA256 receipt hash computation across identical runs", async () => {
+      const receipt1 = await runInspectorDoctor(undefined, {}, mockClock);
+      const receipt2 = await runInspectorDoctor(undefined, {}, mockClock);
+      expect(receipt1.receiptHash).toBe(receipt2.receiptHash);
+      expect(receipt1.receiptHash.length).toBe(64);
     });
   });
 

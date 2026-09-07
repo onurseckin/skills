@@ -8,6 +8,7 @@ import {
   loadAgentManifest,
   loadRoleContract,
   loadUnifiedAgentModel,
+  MANIFEST_CACHE,
   normalizeRoleName,
   parseMarkdownFrontmatter,
   parseRoleContract,
@@ -50,6 +51,10 @@ describe("Authority Manifest Comprehensive - Core & Loader", () => {
     expect(parseMarkdownFrontmatter("---\nkey: val\nno closing delimiter")).toEqual({
       frontmatter: {},
       body: "---\nkey: val\nno closing delimiter",
+    });
+    expect(parseMarkdownFrontmatter("---\n[unbalanced bracket\n---\nbody text")).toEqual({
+      frontmatter: {},
+      body: "body text",
     });
     const parsed = parseMarkdownFrontmatter<{ role: string }>(
       "---\nrole: custom\n---\n# Header\nBody text",
@@ -158,6 +163,36 @@ Custom worker autonomous execution instructions.
     expect(roles).toContain("custom-worker");
     const manifests = listAvailableManifests({ agentsDir });
     expect(manifests).toContain("custom-worker");
+  });
+
+  test("manifest and contract cache population and clean invalidation", () => {
+    const sandbox = "/virtual/manifest/test-sandbox";
+    const agentsDir = join(sandbox, "agents");
+
+    clearManifestCache();
+    expect(MANIFEST_CACHE.has("custom-worker")).toBe(false);
+
+    // Initial load populates cache
+    const m1 = loadAgentManifest("custom-worker", { agentsDir, bypassCache: false });
+    expect(m1).toBeDefined();
+    expect(MANIFEST_CACHE.has("custom-worker")).toBe(true);
+
+    // Subsequent load hits cache
+    const m2 = loadAgentManifest("custom-worker", { agentsDir, bypassCache: false });
+    expect(m2).toBe(m1);
+
+    // Invalidation clears cache
+    clearManifestCache();
+    expect(MANIFEST_CACHE.has("custom-worker")).toBe(false);
+  });
+
+  test("empty agents directory returns empty arrays cleanly", () => {
+    const emptyDir = "/virtual/manifest/empty-sandbox-dir";
+    const vfs = getVirtualAuthorityFS();
+    vfs.mkdirSync(emptyDir, { recursive: true });
+
+    expect(listAvailableRoles({ agentsDir: emptyDir })).toEqual([]);
+    expect(listAvailableManifests({ agentsDir: emptyDir })).toEqual([]);
   });
 
   test("getArchetypeAndMandate archetypes across all tier levels", () => {

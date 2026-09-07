@@ -105,4 +105,42 @@ describe("Coordinator Tool Guard & Pre-Tool Enforcement", () => {
       assertCoordinatorPreToolGuard("worker", "replace_file_content", "worker-1");
     }).not.toThrow();
   });
+
+  test("edge cases: role casing, whitespace normalization, and boundary variations", () => {
+    expect(isCoordinatorRole("COORDINATOR")).toBe(true);
+    expect(isCoordinatorRole("  Coordinator  ")).toBe(true);
+    expect(isCoordinatorRole("COORDINATOR_BETA")).toBe(true);
+    expect(isCoordinatorRole("coordinator-lead")).toBe(true);
+    expect(isCoordinatorRole("lead-coordinator")).toBe(true);
+    expect(isCoordinatorRole("   ")).toBe(false);
+    expect(isCoordinatorRole("")).toBe(false);
+    expect(isCoordinatorRole("implementer-coordinator-trainee")).toBe(true);
+  });
+
+  test("edge cases: empty, unknown tool names and missing agentId enforcement", () => {
+    // Empty tool names and unknown non-mutating tools do not trigger forbidden file edit
+    expect(isCoordinatorFileEditForbidden("")).toBe(false);
+    expect(isCoordinatorFileEditForbidden("unknown_read_tool")).toBe(false);
+
+    expect(() => {
+      assertCoordinatorPreToolGuard("coordinator", "");
+    }).not.toThrow();
+
+    expect(() => {
+      assertCoordinatorPreToolGuard("coordinator", "unknown_read_tool");
+    }).not.toThrow();
+
+    // Missing or blank agentId still triggers guard on forbidden tools
+    expect(() => {
+      assertCoordinatorPreToolGuard("coordinator", "write_to_file");
+    }).toThrow(HarnessError);
+
+    expect(() => {
+      assertCoordinatorPreToolGuard("coordinator", "write_to_file", "");
+    }).toThrow(HarnessError);
+
+    expect(() => {
+      assertCoordinatorPreToolGuard("coordinator", "write_to_file", undefined);
+    }).toThrow(HarnessError);
+  });
 });

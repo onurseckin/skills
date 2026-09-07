@@ -13,7 +13,6 @@ export interface SubtaskDecomposition {
   readonly role?:
     | "implementer"
     | "sub_implementer"
-    | "repairer"
     | "validator"
     | "sub_validator"
     | undefined;

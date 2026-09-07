@@ -183,4 +183,93 @@ describe("Multi-Domain Dispatch: Edge Cases & Options", () => {
     expect(result.validatorDispatches).toHaveLength(2);
     expect(result.dispatchedDomains).toEqual(["backend-system"]);
   });
+
+  test("enforces strict floating point boundary gating for multi-domain batching", () => {
+    const tasks = [
+      createTask("ui-1", "src/ui/1.tsx", { priority: 10 }),
+      createTask("api-1", "src/api/1.ts", { priority: 9 }),
+    ];
+    const state = createMultiDomainState(tasks);
+
+    // resolveParallelismFactor rounds to 2 decimal places via Number(factor.toFixed(2))
+    // 2.494 rounds to 2.49 (< 2.5 threshold => isMultiDomainActive: false)
+    const subThreshold = evaluateMultiDomainBatch(state, {
+      parallelismFactor: 2.494,
+      maxParallel: 2,
+    });
+    expect(subThreshold.isMultiDomainActive).toBeFalse();
+
+    // 2.50 meets threshold (>= 2.5 threshold => isMultiDomainActive: true)
+    const atThreshold = evaluateMultiDomainBatch(state, {
+      parallelismFactor: 2.5,
+      maxParallel: 2,
+    });
+    expect(atThreshold.isMultiDomainActive).toBeTrue();
+    expect(atThreshold.distinctDomainCount).toBe(2);
+  });
+
+  test("isolates scope conflicts across domains and handles large parallelism bounds", () => {
+    // Two tasks in different domains with overlapping write_scope
+    const tasks = [
+      createTask("ui-task", ["src/ui/1.tsx", "src/shared/types.ts"], { priority: 10 }),
+      createTask("api-task", ["src/api/1.ts", "src/shared/types.ts"], { priority: 9 }),
+    ];
+    const state = createMultiDomainState(tasks);
+
+    const batch = evaluateMultiDomainBatch(state, {
+      parallelismFactor: 5.0,
+      maxParallel: 1000,
+    });
+
+    expect(batch.isMultiDomainActive).toBeTrue();
+    // Scope conflict on src/shared/types.ts prevents concurrent dispatch of conflicting tasks
+    expect(batch.implementerDispatches).toHaveLength(1);
+    expect(batch.implementerDispatches[0]!.taskId).toBe("ui-task");
+  });
+
+  test("rejects cyclic dependencies at the graph boundary with HarnessError", () => {
+    // Tasks forming a mutual dependency cycle are rejected at graph dependency construction
+    const tasks = [
+      createTask("cycle-1", "src/c1.ts", { status: "ready" }),
+      createTask("cycle-2", "src/c2.ts", { status: "ready" }),
+    ];
+    expect(() =>
+      createMultiDomainState(tasks, [
+        ["cycle-1", "cycle-2"],
+        ["cycle-2", "cycle-1"],
+      ]),
+    ).toThrow(HarnessError);
+  });
+
+  test("respects strict maxParallel option override over larger task pools", () => {
+    const tasks = [
+      createTask("t1", "src/ui/1.tsx", { priority: 10 }),
+      createTask("t2", "src/api/1.ts", { priority: 9 }),
+      createTask("t3", "src/auth/1.ts", { priority: 8 }),
+    ];
+    const state = createMultiDomainState(tasks);
+
+    const batch = evaluateMultiDomainBatch(state, {
+      parallelismFactor: 4.0,
+      maxParallel: 1,
+    });
+    expect(batch.implementerDispatches).toHaveLength(1);
+    expect(batch.implementerDispatches[0]!.taskId).toBe("t1");
+  });
+
+  test("prevents validator dispatch when active implementer scopes conflict", () => {
+    const tasks = [
+      createTask("sub-task", "src/shared/file.ts", { status: "submitted" }),
+    ];
+    const state = createMultiDomainState(tasks);
+
+    const result = dispatchMultiDomainValidators(state, {
+      parallelismFactor: 3.0,
+      activeImplementerScopes: [["src/shared/file.ts"]],
+    });
+
+    expect(result.validatorDispatches).toHaveLength(0);
+  });
 });
+
+

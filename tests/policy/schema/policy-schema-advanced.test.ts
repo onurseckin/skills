@@ -257,10 +257,10 @@ describe("Policy Schema Advanced - Lifecycle Hooks", () => {
     );
     expect(() => parseRepoPolicy(rawLowTemp)).toThrow(HarnessError);
 
-    // Omitted test_runner
     const rawNoTestRunner = canonicalPolicy();
     delete (rawNoTestRunner as Record<string, unknown>)["test_runner"];
     const parsedNoTestRunner = parseRepoPolicy(rawNoTestRunner);
-    expect(parsedNoTestRunner.test_runner.default_command).toBe("bun test");
+    expect(parsedNoTestRunner.test_runner?.enabled).toBe(false);
+    expect(parsedNoTestRunner.test_runner?.default_command).toBeUndefined();
   });
 });

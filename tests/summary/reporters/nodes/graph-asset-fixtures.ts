@@ -1,8 +1,6 @@
-import * as fs from "node:fs";
-import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { CaptureRecord } from "../../../../olt/scripts/src/engine/store/capsule/captures.ts";
-import { cleanupVirtualSummaryFS, setupVirtualSummaryFS } from "../../fixture.ts";
+import { cleanupVirtualSummaryFS, getVirtualSummaryFS, setupVirtualSummaryFS } from "../../fixture.ts";
 
 let rootCounter = 0;
 
@@ -17,7 +15,7 @@ export function cleanupAssetVirtualFS(): void {
 export function runRoot(): string {
   rootCounter += 1;
   const root = `/virtual/graph-asset-completeness-${rootCounter}`;
-  fs.mkdirSync(join(root, "evidence"), { recursive: true });
+  getVirtualSummaryFS().mkdirSync(join(root, "evidence"), { recursive: true });
   return root;
 }
 
@@ -39,7 +37,7 @@ export function writePng(
   height: number,
 ): number {
   const bytes = png(width, height);
-  writeFileSync(join(root, relativePath), bytes);
+  getVirtualSummaryFS().writeFileSync(join(root, relativePath), bytes);
   return bytes.length;
 }
 

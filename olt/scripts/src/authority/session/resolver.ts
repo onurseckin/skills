@@ -37,7 +37,7 @@ export function resolveActiveSession(options: ResolveSessionOptions = {}): Sessi
   let detectedAgentId: string | null = null;
   let detectedRole: string | null = null;
   let detectedToken: string | null = null;
-  let detectedHost: string = detectHostApp(env);
+  const detectedHost: string = detectHostApp(env);
   let detectedCanShell = true;
   let detectedCanEdit = true;
   let detectedWriteScope: readonly string[] | undefined;

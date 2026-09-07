@@ -340,7 +340,6 @@ function classifyActionKind(kind: string): ActionKind {
     case "task-cancelled":
     case "task-finished":
     case "tasks-unblocked":
-    case "replacement-repairer-assigned":
     case "orphan-evidence-dispositioned":
       return "task";
     case "capsule-initialized":

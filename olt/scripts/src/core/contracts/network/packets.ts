@@ -40,27 +40,20 @@ export const AGENT_ROLES: readonly AgentRole[] = [
 const ROLE_SET = new Set<string>(AGENT_ROLES);
 
 export function isAgentRole(value: unknown): value is AgentRole {
-  return typeof value === "string" && (ROLE_SET.has(value) || isMechanicValidatorRole(value));
+  return typeof value === "string" && ROLE_SET.has(value);
 }
 
 export function isCognitiveValidatorRole(role: string): boolean {
   const normalized = role.toLowerCase().trim();
   return (
     normalized === "validator" ||
-    normalized === "ui-validator" ||
     normalized === "ui-optical-validator" ||
     normalized.startsWith("validator-")
   );
 }
 
 export function isMechanicValidatorRole(role: string): boolean {
-  const normalized = role.toLowerCase().trim();
-  return (
-    normalized === "mechanic-validator" ||
-    normalized === "ui-mechanic-validator" ||
-    normalized === "ui-headless-validator" ||
-    normalized === "mechanic_validator"
-  );
+  return role.toLowerCase().trim() === "ui-headless-validator";
 }
 
 export function isAnyValidatorRole(role: string): boolean {

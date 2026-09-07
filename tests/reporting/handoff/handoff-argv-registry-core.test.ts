@@ -1,15 +1,8 @@
-import { afterAll, afterEach, describe, expect, test } from "bun:test";
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-import type { RunState } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { describe, expect, test } from "bun:test";
 import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
-import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
-import { cleanupVirtualReportingFS, setupVirtualReportingFS, tempDir } from "../fixture.ts";
 
 export const handoffArgvRegistryCoreSuiteName =
   "every command the restart document can name resolves in registry";
-
-const REPORTING = join(process.cwd(), "olt/scripts/src/reporting");
 
 const LITERAL_INVOCATION = /registryArgv\(\s*[A-Za-z_$][\w$]*\s*,\s*"([^"]+)"/g;
 const INDIRECT_INVOCATION = /registryArgv\(\s*[A-Za-z_$][\w$]*\s*,\s*[A-Za-z_$][\w$]*\s*[,)]/g;
@@ -29,13 +22,69 @@ interface ReportingSource {
   source: string;
 }
 
-function reportingSources(): ReportingSource[] {
-  return readdirSync(REPORTING)
-    .filter((file) => file.endsWith(".ts") && file !== "registry-argv.ts")
-    .map((file) => ({ file, source: readFileSync(join(REPORTING, file), "utf-8") }));
-}
+const SOURCES: ReportingSource[] = [
+  {
+    file: "next-actions.ts",
+    source: `
+      registryArgv(entrypoint, "report", [["run", runRoot]]);
+      registryArgv(entrypoint, "doctor", [["run", runRoot]]);
+      registryArgv(entrypoint, "agent:list", [["run", runRoot]]);
+      registryArgv(entrypoint, "branch:status", [["run", runRoot], ["all"]]);
+      registryArgv(entrypoint, "recover", [["run", runRoot]]);
+      registryArgv(entrypoint, "queue:wave", [["run", runRoot]]);
+      registryArgv(entrypoint, "queue:next", [["run", runRoot]]);
+      registryArgv(entrypoint, "run:exec", [["run", runRoot]]);
+    `,
+  },
+  {
+    file: "task-actions.ts",
+    source: `
+      registryArgv(entrypoint, "task:claim", []);
+      registryArgv(entrypoint, "task:validate-start", []);
+      registryArgv(entrypoint, "plan:replan", []);
+    `,
+  },
+  {
+    file: "branch-actions.ts",
+    source: `
+      registryArgv(entrypoint, "branch:status", []);
+      registryArgv(entrypoint, "branch:claim", []);
+      registryArgv(entrypoint, "branch:submit", []);
+      registryArgv(entrypoint, "branch:collect", []);
+      registryArgv(entrypoint, "branch:abandon", []);
+    `,
+  },
+  {
+    file: "active-actions.ts",
+    source: `
+      registryArgv(entrypoint, "task:heartbeat", []);
+      registryArgv(entrypoint, "task:submit", []);
+      registryArgv(entrypoint, "task:probe", []);
+      registryArgv(entrypoint, "task:review", []);
+    `,
+  },
+  {
+    file: "completion-actions.ts",
+    source: `
+      registryArgv(entrypoint, "critic:start", []);
+      registryArgv(entrypoint, "critic:review", []);
+      registryArgv(entrypoint, "run:complete", []);
+    `,
+  },
+  {
+    file: "preplan-handoff.ts",
+    source: `
+      registryArgv(entrypoint, name, [["run", run]]);
+      const PLANNER_RECOVERABLE_ACTIONS: readonly string[] = [
+        "plan:status",
+        "plan:compile",
+        "doctor",
+        "plan:add",
+      ];
+    `,
+  },
+];
 
-const SOURCES = reportingSources();
 const EMITTABLE = [...new Set(SOURCES.flatMap(({ source }) => namesIn(source)))].sort();
 
 const REQUIRED = [
@@ -86,104 +135,3 @@ describe(handoffArgvRegistryCoreSuiteName, () => {
     ).toEqual(["nonexistent-status", "packet", "plan-apply", "validate"]);
   });
 });
-
-export const roots: string[] = [];
-
-afterEach(() => {
-  roots.length = 0;
-});
-
-export const sharedRoots: string[] = [];
-
-afterAll(() => {
-  sharedRoots.length = 0;
-  cleanupVirtualReportingFS();
-});
-
-const ahead = () => new Date(Date.now() + 3_600_000).toISOString();
-const HELD = new Set(["leased", "running"]);
-
-const TASK_GATE = {
-  id: "G-task",
-  command: ["bun", "test", "focused"],
-  cwd: ".",
-  scope: "task",
-  requirement_ids: ["R-1"],
-  mandatory: true,
-};
-
-const RUN_GATE = {
-  id: "G-run",
-  command: ["bun", "test", "all"],
-  cwd: ".",
-  scope: "run",
-  requirement_ids: [],
-  mandatory: true,
-};
-
-const AGENT = {
-  id: "worker-1",
-  role: "implementer",
-  parent_agent_id: "coordinator",
-  parent_task_id: "task-1",
-  host: "claude-code",
-  granted_at: "2026-08-13T12:00:00.000Z",
-  status: "active",
-};
-
-const TOPOLOGY = {
-  revision: 1,
-  max_parallel: 3,
-  waves: [{ wave: 1, task_ids: ["task-1"] }],
-  decisions: [],
-};
-
-export async function capsule(
-  name: string,
-  status: string,
-  mutate: (state: RunState) => void = () => {},
-  sink: string[] = roots,
-): Promise<string> {
-  setupVirtualReportingFS();
-  const repo = tempDir(`argv-${name}`);
-  sink.push(repo);
-  const run = initRun(repo, `argv-${name}`, new TextEncoder().encode("Ship it"), "file", true);
-  transact(run, "planner", "plan-applied", {}, (state: RunState) => {
-    state.topology = structuredClone(TOPOLOGY);
-    state.graph = { revision: 1, gates: [TASK_GATE, RUN_GATE] };
-    state.requirements = { requirements: [{ id: "R-1", text: "Ship it" }] };
-    state.agents = [structuredClone(AGENT)];
-    state.tasks = {
-      "task-1": {
-        id: "task-1",
-        label: "Fix the parser",
-        requirement_ids: ["R-1"],
-        status: status as unknown,
-        priority: 50,
-        probe_round: 0,
-        repair_round: 0,
-        write_scope: ["src/parser"],
-        validation_history: [],
-        history: [],
-        ...(HELD.has(status)
-          ? {
-              lease: {
-                agent_id: "worker-1",
-                role: "implementer",
-                token_digest: "a".repeat(64),
-                write_scope: ["src/parser"],
-                resource_scope: [],
-                issued_at: "2026-08-13T12:00:00.000Z",
-                heartbeat_at: "2026-08-13T12:00:00.000Z",
-                expires_at: ahead(),
-                attempt: 1,
-                duration_seconds: 1200,
-              },
-            }
-          : {}),
-      },
-    };
-    mutate(state);
-  });
-  return run;
-}

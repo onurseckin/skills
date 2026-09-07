@@ -24,14 +24,15 @@ function createTask(
     id,
     type: "task",
     label: id,
-    requirement_ids: options.requirement_ids ?? ["R-001"],
+    requirement_ids:
+      options.requirement_ids !== undefined ? options.requirement_ids : ["R-001"],
     write_scope: scopes,
-    resource_scope: options.resource_scope ?? [],
+    resource_scope: options.resource_scope !== undefined ? options.resource_scope : [],
     artifact_ids: ["artifact-all"],
-    status: options.status ?? "ready",
-    priority: options.priority ?? 1,
-    created_order: options.created ?? 10,
-    effort: options.effort ?? 1,
+    status: options.status !== undefined ? options.status : "ready",
+    priority: options.priority !== undefined ? options.priority : 1,
+    created_order: options.created !== undefined ? options.created : 10,
+    effort: options.effort !== undefined ? options.effort : 1,
     domain: options.domain,
     primary_domain: options.primary_domain,
     validator_domain: options.validator_domain,
@@ -77,7 +78,8 @@ function createMultiDomainState(
     tasks: Object.fromEntries(
       tasks.map((item) => {
         const id = String(item.id);
-        return [id, { ...item, dependencies: [...(dependencySets.get(id) ?? [])] }];
+        const deps = dependencySets.get(id);
+        return [id, { ...item, dependencies: deps !== undefined ? [...deps] : [] }];
       }),
     ),
   };
@@ -161,6 +163,55 @@ describe("Multi-Domain Dispatch: Implementer Concurrent Dispatch", () => {
       expect(result.implementerDispatches).toHaveLength(4);
       const dispatchedTaskIds = result.implementerDispatches.map((d) => d.taskId);
       expect(dispatchedTaskIds).toEqual(["ui-1", "backend-1", "sec-1", "ui-2"]);
+    });
+
+    test("When P = 2.5, exact boundary condition activates multi-domain dispatch", () => {
+      const tasks = [
+        createTask("ui-1", "src/ui/CompA.tsx", { priority: 10 }),
+        createTask("ui-2", "src/ui/CompB.tsx", { priority: 9 }),
+        createTask("backend-1", "src/api/UserApi.ts", { priority: 8 }),
+      ];
+
+      const state = createMultiDomainState(tasks);
+
+      const result = evaluateMultiDomainBatch(state, {
+        parallelismFactor: 2.5,
+        maxParallel: 2,
+      });
+
+      expect(result.isMultiDomainActive).toBeTrue();
+      expect(result.mandatedConcurrentDomains).toBeTrue();
+      expect(result.parallelismFactor).toBe(2.5);
+      const dispatchedTaskIds = result.implementerDispatches.map((d) => d.taskId);
+      expect(dispatchedTaskIds).toEqual(["ui-1", "backend-1"]);
+    });
+
+    test("Skewed domain distribution: allocates slot to singleton domain without starvation and backfills", () => {
+      const tasks = [
+        ...Array.from({ length: 10 }, (_, i) =>
+          createTask(`task-a-${i}`, `src/domainA/${i}.ts`, {
+            priority: 10 - i,
+            domain: "domain-a",
+          }),
+        ),
+        createTask("task-b-0", "src/domainB/0.ts", { priority: 5, domain: "domain-b" }),
+      ];
+
+      const state = createMultiDomainState(tasks);
+
+      const result = evaluateMultiDomainBatch(state, {
+        parallelismFactor: 3.0,
+        maxParallel: 4,
+      });
+
+      const dispatchedIds = result.implementerDispatches.map((d) => d.taskId);
+      expect(dispatchedIds).toEqual([
+        "task-a-0",
+        "task-b-0",
+        "task-a-1",
+        "task-a-2",
+      ]);
+      expect(result.distinctDomainCount).toBe(2);
     });
   });
 });

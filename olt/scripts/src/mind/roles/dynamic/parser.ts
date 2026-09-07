@@ -145,9 +145,7 @@ export function parseDynamicRoleContract(
           ? "tier_2_coordinator"
           : roleName.includes("validator") || roleName.includes("critic")
             ? "tier_3_validator"
-            : roleName.includes("repair")
-              ? "tier_3_repairer"
-              : "tier_3_implementer";
+            : "tier_3_implementer";
 
   const writeScopePolicy: WriteScopePolicy =
     tier === 3 && (roleName.includes("validator") || roleName.includes("critic"))

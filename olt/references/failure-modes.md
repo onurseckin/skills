@@ -63,7 +63,7 @@ section owns evidence wording only.
   it has not observed, so the first round records a fabricated fault and burns a repair round.
   - Structural countermeasure: A probe is not a rejection. `task:probe --demand` files a
     `probe_demand` finding — "prove X holds", which asserts nothing about the code — leaves the task
-    in `validating` under the same validator, and does not touch `repair_round` or trigger repairer
+    in `validating` under the same validator, and does not touch `repair_round` or trigger a repair
     reassignment. `task:reject` stays reserved for a defect the validator actually observed, and it
     demands the validator's own `--severity` and remediation.
 - `VT-3` — Observed loophole: A demand is answered with prose. The implementer explains why the

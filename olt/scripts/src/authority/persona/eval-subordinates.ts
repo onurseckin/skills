@@ -49,7 +49,7 @@ export function evaluateSubordinateFulfillment(
       title: "Stale Subordinate Leases Detected",
       description: `Found ${totalStaleCount} subordinate agent(s) with stale heartbeats exceeding the timeout threshold (${DEFAULT_WATCHDOG_TIMEOUT_MS / 1000}s).`,
       recommendation:
-        "Reclaim stale leases with `task:release` or `task:assign-repairer` to prevent pipeline stalls.",
+        "Reclaim stale leases with `task:release` or `task:claim --role implementer` to prevent pipeline stalls.",
       evidence: {
         staleLeaseTaskIds: staleLeases.map((l) => l.taskId),
         staleAgentIds: staleSubordinates.map((s) => s.agentId),

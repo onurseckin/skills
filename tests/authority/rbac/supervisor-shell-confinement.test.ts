@@ -31,9 +31,8 @@ describe("Supervisor and Validator Shell Confinement & Antigravity Enablement", 
       "plan-validator",
       "sub-validator",
       "validator",
-      "ui-validator",
-      "mechanic-validator",
-      "ui-mechanic-validator",
+      "ui-headless-validator",
+      "ui-optical-validator",
       "sub-investigator",
     ];
     for (const name of manifests) {
@@ -118,8 +117,8 @@ describe("Supervisor and Validator Shell Confinement & Antigravity Enablement", 
       "plan_validator",
       "sub-validator",
       "sub-investigator",
-      "ui-validator",
-      "mechanic-validator",
+      "ui-headless-validator",
+      "ui-optical-validator",
     ];
     for (const role of nonMutatingRoles) {
       const perms = inferCanExecute(role);
@@ -129,7 +128,7 @@ describe("Supervisor and Validator Shell Confinement & Antigravity Enablement", 
     const mutatingRoles = [
       "implementer",
       "worker",
-      "repairer",
+      "implementer-task-1",
       "owner",
       "sub-implementer",
       "sub_implementer",

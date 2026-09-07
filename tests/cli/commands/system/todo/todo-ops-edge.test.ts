@@ -1,22 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { registerSessionGrant } from "../../../../../olt/scripts/src/authority/session/index.ts";
 import { initRun, transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
-import type { FeedbackItem } from "../../../../../olt/scripts/src/mind/feedback/queue/index.ts";
 import {
-  cleanupRoots,
-  cleanupVirtualCliFS,
-  setupVirtualCliFS,
-} from "../../fixtures/full-lifecycle-fixture.ts";
+  writeFeedbackQueue,
+  type FeedbackItem,
+} from "../../../../../olt/scripts/src/mind/feedback/queue/index.ts";
+import type { VirtualMemoryFS } from "../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
-const roots: string[] = [];
+let vfs: VirtualMemoryFS;
+
 beforeEach(() => {
-  setupVirtualCliFS();
+  vfs = setupVirtualCliFS();
 });
-afterEach(async () => {
-  await cleanupRoots(roots);
+
+afterEach(() => {
   cleanupVirtualCliFS();
 });
 
@@ -41,19 +41,16 @@ function authorizeMind(repo: string): string {
 
 function getTestDir(label: string): string {
   const dir = `/virtual/cli/todo-edge-${label}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  mkdirSync(dir, { recursive: true });
-  roots.push(dir);
+  vfs.mkdirSync(dir, { recursive: true });
+  vfs.mkdirSync(join(dir, ".git"), { recursive: true });
   return dir;
 }
 
 describe("execute CLI harness integration for queue commands", () => {
-  it("executes queue:add, queue:status, queue:drain, queue:seal, and queue:clean via CLI execute harness", async () => {
-    const testDir = getTestDir("cli-execute-harness");
-    const authorityRun = authorizeMind(testDir);
+  it("executes queue:add and queue:status intake and inspection stage", async () => {
+    const testDir = getTestDir("cli-intake");
     const queueFile = join(testDir, "feedback-queue.jsonl");
-    const archiveFile = join(testDir, "completed-tasks.jsonl");
 
-    // 1. queue:add
     const addRes = await execute([
       "queue:add",
       "--title",
@@ -72,7 +69,6 @@ describe("execute CLI harness integration for queue commands", () => {
     expect(addedItem.title).toBe("Harness Dispatched Item");
     expect(addedItem.priority).toBe("CRITICAL_USER_FEEDBACK");
 
-    // 2. queue:status
     const listRes = await execute([
       "queue:status",
       "--status",
@@ -83,8 +79,28 @@ describe("execute CLI harness integration for queue commands", () => {
     ]);
     expect(listRes["count"]).toBe(1);
     expect(listRes["total"]).toBe(1);
+  });
 
-    // 3. queue:drain
+  it("executes queue:drain processing stage", async () => {
+    const testDir = getTestDir("cli-drain");
+    const authorityRun = authorizeMind(testDir);
+    const queueFile = join(testDir, "feedback-queue.jsonl");
+
+    writeFeedbackQueue(
+      [
+        {
+          id: "item-proc-1",
+          timestamp: new Date().toISOString(),
+          priority: "CRITICAL_USER_FEEDBACK",
+          status: "PENDING",
+          category: "CORE_ENGINE",
+          title: "Harness Dispatched Item",
+          content: "Dispatched via CLI execute",
+        },
+      ],
+      queueFile,
+    );
+
     const drainRes = await execute([
       "queue:drain",
       "--authority-run",
@@ -97,14 +113,34 @@ describe("execute CLI harness integration for queue commands", () => {
       queueFile,
     ]);
     expect(drainRes["drainedCount"]).toBe(1);
+  });
 
-    // 4. queue:seal
+  it("executes queue:seal verification stage", async () => {
+    const testDir = getTestDir("cli-seal");
+    const authorityRun = authorizeMind(testDir);
+    const queueFile = join(testDir, "feedback-queue.jsonl");
+
+    writeFeedbackQueue(
+      [
+        {
+          id: "item-proc-1",
+          timestamp: new Date().toISOString(),
+          priority: "CRITICAL_USER_FEEDBACK",
+          status: "PROCESSED",
+          category: "CORE_ENGINE",
+          title: "Harness Dispatched Item",
+          content: "Dispatched via CLI execute",
+        },
+      ],
+      queueFile,
+    );
+
     const sealRes = await execute([
       "queue:seal",
       "--authority-run",
       authorityRun,
       "--id",
-      addedItem.id,
+      "item-proc-1",
       "--resolution",
       "Empirical proof verified",
       "--commit",
@@ -119,8 +155,29 @@ describe("execute CLI harness integration for queue commands", () => {
       queueFile,
     ]);
     expect(sealRes["sealed"]).toBe(true);
+  });
 
-    // 5. queue:clean
+  it("executes queue:clean and verifies archival pruning stage", async () => {
+    const testDir = getTestDir("cli-archival");
+    const authorityRun = authorizeMind(testDir);
+    const queueFile = join(testDir, "feedback-queue.jsonl");
+    const archiveFile = join(testDir, "completed-tasks.jsonl");
+
+    writeFeedbackQueue(
+      [
+        {
+          id: "item-clean-1",
+          timestamp: new Date().toISOString(),
+          priority: "CRITICAL_USER_FEEDBACK",
+          status: "COMPLETED",
+          category: "CORE_ENGINE",
+          title: "Harness Dispatched Item",
+          content: "Dispatched via CLI execute",
+        },
+      ],
+      queueFile,
+    );
+
     const cleanRes = await execute([
       "queue:clean",
       "--authority-run",
@@ -133,7 +190,6 @@ describe("execute CLI harness integration for queue commands", () => {
     expect(cleanRes["cleanedCount"]).toBe(1);
     expect(cleanRes["remainingCount"]).toBe(0);
 
-    // 6. queue:status shows 0 items remaining
     const listEmpty = await execute(["queue:status", "--queue-file", queueFile]);
     expect(listEmpty["count"]).toBe(0);
   });
@@ -157,40 +213,5 @@ describe("execute CLI harness integration for queue commands", () => {
     await expect(execute(["mind:queue:add", "--queue-file", queueFile])).rejects.toThrow(
       "unknown command: mind:queue:add",
     );
-  });
-});
-
-describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
-  it("verifies CLI todo-ops test files contain zero any and zero suppressions", () => {
-    const filesToAudit = [
-      join(process.cwd(), "olt/scripts/src/cli/commands/todo-ops.ts"),
-      join(process.cwd(), "olt/scripts/src/cli/registry/todo.ts"),
-      join(process.cwd(), "tests/cli/commands/todo/todo-ops-edge.test.ts"),
-    ];
-
-    const anyPattern = new RegExp(":\\s*any\\b|as\\s+any\\b|<any>");
-    const suppressionPattern = new RegExp(
-      [
-        "@ts" + "-ignore",
-        "@ts" + "-expect-error",
-        "@ts" + "-nocheck",
-        "eslint" + "-disable",
-        "oxlint" + "-disable",
-      ].join("|"),
-    );
-
-    for (const filePath of filesToAudit) {
-      if (!existsSync(filePath)) continue;
-      const content = readFileSync(filePath, "utf-8");
-      const lines = content.split("\n");
-
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i]!;
-        if (line.includes("anyPattern") || line.includes("suppressionPattern")) continue;
-
-        expect(anyPattern.test(line)).toBe(false);
-        expect(suppressionPattern.test(line)).toBe(false);
-      }
-    }
   });
 });

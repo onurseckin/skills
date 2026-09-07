@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import * as fs from "node:fs";
 import { resolve } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
@@ -60,7 +59,7 @@ describe("Runtime Agent Metadata & Read Scope Guard (in-memory virtualization)",
       });
 
       const writtenPath = writeAgentMetadata(meta, scratch);
-      expect(fs.existsSync(writtenPath)).toBe(true);
+      expect(harness.files.has(writtenPath)).toBe(true);
 
       const readBack = readAgentMetadata("imp-test-write", scratch);
       expect(readBack).toBeDefined();
@@ -169,6 +168,35 @@ describe("Runtime Agent Metadata & Read Scope Guard (in-memory virtualization)",
       harness.fileNlinks.set(targetPath, 2);
 
       expect(() => expandReadScope(agentId, "src/forbidden.ts", scratch)).toThrow(HarnessError);
+    });
+
+    it("handles non-existent agent metadata gracefully and initializes defaults", () => {
+      const scratch = "/virtual/runtime/non-existent-agent-test";
+      const readNonExistent = readAgentMetadata("agent-never-created", scratch);
+      expect(readNonExistent).toBeUndefined();
+
+      const expanded = expandReadScope("agent-auto-init", "src/auto.ts", scratch);
+      expect(expanded.success).toBe(true);
+      expect(expanded.allowed_read_scope).toEqual(["src/auto.ts"]);
+      expect(expanded.metadata.role).toBe("implementer");
+
+      const readAfter = readAgentMetadata("agent-auto-init", scratch);
+      expect(readAfter).toBeDefined();
+      expect(readAfter?.agent_id).toBe("agent-auto-init");
+    });
+
+    it("normalizes paths with relative segments consistently against write scope", () => {
+      const meta = createAgentMetadata({
+        agent_id: "imp-norm-test",
+        role: "implementer",
+        write_scope: ["src/feature/mod.ts"],
+      });
+
+      const res = checkReadScopeAuthorization(meta, "src/./feature/../feature/mod.ts");
+      expect(res.authorized).toBe(true);
+
+      const resNeighbor = checkReadScopeAuthorization(meta, "src/feature/sub/../neighbor.ts");
+      expect(resNeighbor.authorized).toBe(true);
     });
   });
 });

@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { TelemetryFieldConflict } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
@@ -14,7 +13,12 @@ import {
   transcriptAuditContext,
 } from "../../../olt/scripts/src/workflow/agents/telemetry-merge.ts";
 import type { AgentTranscriptTelemetry } from "../../../olt/scripts/src/workflow/agents/transcript-telemetry.ts";
-import { cleanupVirtualAgentsFS, scratchRoot, setupVirtualAgentsFS } from "../fixture.ts";
+import {
+  cleanupVirtualAgentsFS,
+  getVirtualAgentsFS,
+  scratchRoot,
+  setupVirtualAgentsFS,
+} from "../fixture.ts";
 
 beforeEach(() => {
   setupVirtualAgentsFS();
@@ -114,8 +118,9 @@ describe("appendTelemetryConflicts", () => {
 
 function freshRun(label: string): string {
   const root = scratchRoot("agent-telemetry-run", label);
+  const vfs = getVirtualAgentsFS();
   const repo = join(root, "repo");
-  mkdirSync(repo, { recursive: true });
+  vfs.mkdirSync(repo, { recursive: true });
   return initRun(repo, "telemetry-merge-run", new TextEncoder().encode("prompt"), "file", true);
 }
 
@@ -217,4 +222,103 @@ describe("refreshAgentDerivedTelemetry", () => {
     });
     expect(outcome).toBeNull();
   });
+
+  test("handles multiple simultaneous telemetry conflicts and atomically aggregates tokens", () => {
+    const run = freshRun("multi-conflict-tokens");
+    registerAgentGrant({
+      runRoot: run,
+      agentId: "agent-1",
+      role: "implementer",
+      parentAgentId: null,
+      parentTaskId: null,
+      host: "some-host",
+      authority: { kind: "conditional_genesis" },
+      maxAgents: 10,
+      telemetry: {
+        model: "claude-3-opus",
+      },
+    });
+
+    const outcome = refreshAgentDerivedTelemetry({
+      runRoot: run,
+      agentId: "agent-1",
+      actor: "coordinator",
+      boundary: "post-tool",
+      derived: {
+        transcript: {
+          sourcePath: "/sessions/multi-conflict.jsonl",
+          parentAgentId: "transcript-observed-parent",
+          model: "claude-3-haiku",
+          tokensIn: 1500,
+          tokensOut: 750,
+          tools: [],
+        },
+      },
+    });
+
+    expect(outcome).not.toBeNull();
+    expect(outcome!.grant.tokens_in).toEqual({ value: 1500, evidence_class: "harness_observed" });
+    expect(outcome!.grant.tokens_out).toEqual({ value: 750, evidence_class: "harness_observed" });
+    expect(outcome!.grant.model?.value).toBe("claude-3-opus");
+    expect(outcome!.conflicts).toBeDefined();
+    expect(outcome!.conflicts).toHaveLength(2);
+    expect(outcome!.conflicts!.map((c) => c.field).sort()).toEqual(["model", "parent_agent_id"]);
+    expect(outcome!.grant.telemetry_conflicts).toBeDefined();
+    expect(outcome!.grant.telemetry_conflicts!.map((c) => c.field).sort()).toEqual([
+      "model",
+      "parent_agent_id",
+    ]);
+  });
+
+  test("safely handles zero and negative token counts without crashing", () => {
+    const run = freshRun("zero-and-negative-tokens");
+    registerAgentGrant({
+      runRoot: run,
+      agentId: "agent-1",
+      role: "implementer",
+      parentAgentId: null,
+      parentTaskId: null,
+      host: "some-host",
+      authority: { kind: "conditional_genesis" },
+      maxAgents: 10,
+      telemetry: {},
+    });
+
+    const outcomeZero = refreshAgentDerivedTelemetry({
+      runRoot: run,
+      agentId: "agent-1",
+      actor: "coordinator",
+      boundary: "post-tool",
+      derived: {
+        transcript: {
+          sourcePath: "/sessions/zero-tokens.jsonl",
+          tokensIn: 0,
+          tokensOut: 0,
+          tools: [],
+        },
+      },
+    });
+    expect(outcomeZero).not.toBeNull();
+    expect(outcomeZero!.grant.tokens_in).toEqual({ value: 0, evidence_class: "harness_observed" });
+    expect(outcomeZero!.grant.tokens_out).toEqual({ value: 0, evidence_class: "harness_observed" });
+
+    const outcomeNegative = refreshAgentDerivedTelemetry({
+      runRoot: run,
+      agentId: "agent-1",
+      actor: "coordinator",
+      boundary: "post-tool",
+      derived: {
+        transcript: {
+          sourcePath: "/sessions/negative-tokens.jsonl",
+          tokensIn: -1,
+          tokensOut: -50,
+          tools: [],
+        },
+      },
+    });
+    expect(outcomeNegative).not.toBeNull();
+    expect(outcomeNegative!.grant.tokens_in).toEqual({ value: -1, evidence_class: "harness_observed" });
+    expect(outcomeNegative!.grant.tokens_out).toEqual({ value: -50, evidence_class: "harness_observed" });
+  });
 });
+

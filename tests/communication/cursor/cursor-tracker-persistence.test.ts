@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   DEFAULT_MAX_SEEN_IDS,
@@ -40,7 +39,8 @@ describe("Cursor Tracker Persistence & Advancement", () => {
 
   beforeEach(() => {
     setupVirtualCommunicationFS();
-    tempDir = mkdtempSync(join(tmpdir(), "cursor-persistence-test-"));
+    tempDir = "/tmp/mock-communication/cursor-persistence";
+    mkdirSync(tempDir, { recursive: true });
     cursorPath = join(tempDir, "cursor.json");
     lockPath = join(tempDir, "cursor.lock");
   });
@@ -247,6 +247,46 @@ describe("Cursor Tracker Persistence & Advancement", () => {
 
       clearInMemoryCursors();
       expect(loadMailboxCursor(vPath).last_read_sequence).toBe(0);
+    });
+  });
+
+  describe("Edge cases: massive sequence jumps, CRLF corruptions, and locked saves", () => {
+    it("handles massive sequence jumps cleanly without integer overflow or seen_ids corruption", () => {
+      const hugeSeq = 10_000_000;
+      const env = makeEnvelope(hugeSeq, "uuid-massive");
+      const advanced = advanceMailboxCursor(cursorPath, env);
+      expect(advanced.last_read_sequence).toBe(hugeSeq);
+      expect(advanced.seen_ids).toEqual(["uuid-massive"]);
+      expect(loadMailboxCursor(cursorPath).last_read_sequence).toBe(hugeSeq);
+    });
+
+    it("quarantines corrupt cursor with Windows CRLF line endings", () => {
+      writeFileSync(cursorPath, "{\r\n  \"bad\": true,\r\n  \"truncated\": \r\n", "utf8");
+      const cursor = loadMailboxCursor(cursorPath);
+      expect(cursor.last_read_sequence).toBe(0);
+      expect(cursor.seen_ids).toEqual([]);
+      expect(readdirSync(tempDir).some((f) => f.includes(".corrupt-"))).toBe(true);
+    });
+
+    it("supports sequential atomic saves with lock concurrency protection", () => {
+      const cur1 = {
+        last_read_sequence: 1,
+        last_read_id: "id-1",
+        seen_ids: ["id-1"],
+        updated_at: new Date().toISOString(),
+      };
+      const cur2 = {
+        last_read_sequence: 2,
+        last_read_id: "id-2",
+        seen_ids: ["id-1", "id-2"],
+        updated_at: new Date().toISOString(),
+      };
+      saveMailboxCursor(cursorPath, cur1, lockPath);
+      expect(loadMailboxCursor(cursorPath).last_read_sequence).toBe(1);
+
+      saveMailboxCursor(cursorPath, cur2, lockPath);
+      expect(loadMailboxCursor(cursorPath).last_read_sequence).toBe(2);
+      expect(loadMailboxCursor(cursorPath).seen_ids).toEqual(["id-1", "id-2"]);
     });
   });
 });

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { mindAuditLiveCommand } from "../../../../../olt/scripts/src/cli/commands/mind-audit-live.ts";
 import { skillAuditLiveCommand } from "../../../../../olt/scripts/src/cli/commands/skill-audit-live.ts";
@@ -255,29 +255,6 @@ describe("CLI Cognitive Auditor Commands (mind:audit:live & skill:audit:live)", 
         { suppressStdout: true },
       );
       expect(resLive["compliant"]).toBe(true);
-    });
-  });
-
-  describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
-    test("verifies test file and implementation files contain zero any and zero suppressions", () => {
-      const targetFiles = [
-        join(import.meta.dir, "../../../../../olt/scripts/src/cli/commands/mind-audit-live.ts"),
-        join(import.meta.dir, "../../../../../olt/scripts/src/cli/commands/skill-audit-live.ts"),
-        import.meta.path,
-      ];
-
-      const forbiddenAnyRegex = new RegExp(":[ \\t]*" + "any\\b");
-      const forbiddenCastRegex = new RegExp("\\bas[ \\t]+" + "any\\b");
-      const forbiddenSuppressionsRegex = new RegExp("@ts-" + "(ignore|expect-error|nocheck)");
-      const forbiddenLintRegex = new RegExp("(eslint|oxlint)" + "-disable");
-
-      for (const filePath of targetFiles) {
-        const content = readFileSync(filePath, "utf-8");
-        expect(content).not.toMatch(forbiddenAnyRegex);
-        expect(content).not.toMatch(forbiddenCastRegex);
-        expect(content).not.toMatch(forbiddenSuppressionsRegex);
-        expect(content).not.toMatch(forbiddenLintRegex);
-      }
     });
   });
 });

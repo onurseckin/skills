@@ -1,31 +1,48 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { homedir, tmpdir } from "node:os";
+import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import {
   SplitChannelDefectRouter,
   expandHomeDir,
   resolveDefectRoutingPolicy,
 } from "../../olt/scripts/src/reporting/split-channel-defect-router.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("SplitChannelDefectRouter Policy & Dual-Write", () => {
-  const tempDirs: string[] = [];
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession | null = null;
+  let dirCounter = 0;
+
+  function normPath(p: string): string {
+    return p.replace(/\\/g, "/");
+  }
 
   function makeTempDir(prefix: string): string {
-    const dir = mkdtempSync(join(tmpdir(), `test-split-router-${prefix}-`));
-    tempDirs.push(dir);
+    const dir = `/virtual/test-split-router/${prefix}-${++dirCounter}`;
+    vfs.mkdirSync(dir, { recursive: true });
     return dir;
   }
 
-  afterEach(() => {
-    for (const dir of tempDirs) {
-      try {
-        if (existsSync(dir)) {
-          rmSync(dir, { recursive: true, force: true });
-        }
-      } catch {}
+  beforeEach(() => {
+    if (session) {
+      session.cleanup();
+      session = null;
     }
-    tempDirs.length = 0;
+    vfs = new VirtualMemoryFS();
+    vfs.mkdirSync(normPath(process.cwd()), { recursive: true });
+    vfs.mkdirSync("/virtual/test-split-router", { recursive: true });
+    session = createVirtualFSSession(vfs);
+  });
+
+  afterEach(() => {
+    if (session) {
+      session.cleanup();
+      session = null;
+    }
   });
 
   test("expands tilde paths to user home directory", () => {
@@ -58,9 +75,9 @@ describe("SplitChannelDefectRouter Policy & Dual-Write", () => {
     expect(result.dualWriteEnabled).toBe(false);
 
     const targetDefectsFile = join(localRepo, ".olt", "defects.jsonl");
-    expect(existsSync(targetDefectsFile)).toBe(true);
+    expect(vfs.existsSync(targetDefectsFile)).toBe(true);
 
-    const raw = readFileSync(targetDefectsFile, "utf-8").trim();
+    const raw = vfs.readFileSync(targetDefectsFile, "utf-8").trim();
     const parsed = JSON.parse(raw) as Record<string, unknown>;
     expect(parsed["id"]).toBe("defect-local-1");
     expect(parsed["error_code"]).toBe("TEST_ERR_LOCAL");
@@ -100,18 +117,18 @@ describe("SplitChannelDefectRouter Policy & Dual-Write", () => {
     const skillHomeDefectsFile = join(skillHome, ".olt", "defects.jsonl");
     const globalDefectsFile = join(globalSkill, ".olt", "defects.jsonl");
 
-    expect(existsSync(localDefectsFile)).toBe(true);
-    expect(existsSync(skillHomeDefectsFile)).toBe(true);
-    expect(existsSync(globalDefectsFile)).toBe(true);
+    expect(vfs.existsSync(localDefectsFile)).toBe(true);
+    expect(vfs.existsSync(skillHomeDefectsFile)).toBe(true);
+    expect(vfs.existsSync(globalDefectsFile)).toBe(true);
 
-    const skillHomeRaw = readFileSync(skillHomeDefectsFile, "utf-8").trim();
+    const skillHomeRaw = vfs.readFileSync(skillHomeDefectsFile, "utf-8").trim();
     const skillHomeRecord = JSON.parse(skillHomeRaw) as Record<string, unknown>;
     expect(skillHomeRecord["id"]).toBe("defect-dw-1");
     expect(skillHomeRecord["source_repo"]).toBe(resolve(localRepo));
     expect(typeof skillHomeRecord["timestamp"]).toBe("string");
     expect(skillHomeRecord["error_code"]).toBe("ERR_DUAL_WRITE");
 
-    const globalRaw = readFileSync(globalDefectsFile, "utf-8").trim();
+    const globalRaw = vfs.readFileSync(globalDefectsFile, "utf-8").trim();
     const globalRecord = JSON.parse(globalRaw) as Record<string, unknown>;
     expect(globalRecord["id"]).toBe("defect-dw-1");
     expect(globalRecord["source_repo"]).toBe(resolve(localRepo));
@@ -130,8 +147,8 @@ describe("SplitChannelDefectRouter Policy & Dual-Write", () => {
     const globalSkill = makeTempDir("policy-global-skill");
 
     const oltDir = join(localRepo, ".olt");
-    mkdirSync(oltDir, { recursive: true });
-    writeFileSync(
+    vfs.mkdirSync(oltDir, { recursive: true });
+    vfs.writeFileSync(
       join(oltDir, "policy.json"),
       JSON.stringify({
         schema_version: 1,
@@ -141,7 +158,6 @@ describe("SplitChannelDefectRouter Policy & Dual-Write", () => {
           dual_write_enabled: true,
         },
       }),
-      "utf-8",
     );
 
     const resolved = resolveDefectRoutingPolicy(localRepo);
@@ -160,8 +176,8 @@ describe("SplitChannelDefectRouter Policy & Dual-Write", () => {
     });
 
     expect(result.routed).toBe(true);
-    expect(existsSync(join(skillHome, ".olt", "defects.jsonl"))).toBe(true);
-    expect(existsSync(join(globalSkill, ".olt", "defects.jsonl"))).toBe(true);
+    expect(vfs.existsSync(join(skillHome, ".olt", "defects.jsonl"))).toBe(true);
+    expect(vfs.existsSync(join(globalSkill, ".olt", "defects.jsonl"))).toBe(true);
   });
 
   test("respects dual_write_enabled: false defined in policy.json", () => {
@@ -170,8 +186,8 @@ describe("SplitChannelDefectRouter Policy & Dual-Write", () => {
     const globalSkill = makeTempDir("disabled-global-skill");
 
     const oltDir = join(localRepo, ".olt");
-    mkdirSync(oltDir, { recursive: true });
-    writeFileSync(
+    vfs.mkdirSync(oltDir, { recursive: true });
+    vfs.writeFileSync(
       join(oltDir, "policy.json"),
       JSON.stringify({
         defect_routing: {
@@ -180,7 +196,6 @@ describe("SplitChannelDefectRouter Policy & Dual-Write", () => {
           dual_write_enabled: false,
         },
       }),
-      "utf-8",
     );
 
     const result = SplitChannelDefectRouter.routeDefect({
@@ -195,16 +210,16 @@ describe("SplitChannelDefectRouter Policy & Dual-Write", () => {
 
     expect(result.routed).toBe(true);
     expect(result.dualWriteEnabled).toBe(false);
-    expect(existsSync(join(localRepo, ".olt", "defects.jsonl"))).toBe(true);
-    expect(existsSync(join(skillHome, ".olt", "defects.jsonl"))).toBe(false);
-    expect(existsSync(join(globalSkill, ".olt", "defects.jsonl"))).toBe(false);
+    expect(vfs.existsSync(join(localRepo, ".olt", "defects.jsonl"))).toBe(true);
+    expect(vfs.existsSync(join(skillHome, ".olt", "defects.jsonl"))).toBe(false);
+    expect(vfs.existsSync(join(globalSkill, ".olt", "defects.jsonl"))).toBe(false);
     expect(result.forwardedDestinations?.length ?? 0).toBe(0);
   });
 
   test("isolates forwarding errors when remote directory is inaccessible without failing primary route", () => {
     const localRepo = makeTempDir("error-isolation-local");
     const blockerFile = join(localRepo, "blocker.txt");
-    writeFileSync(blockerFile, "I am a file, not a directory", "utf-8");
+    vfs.writeFileSync(blockerFile, "I am a file, not a directory");
 
     const inaccessiblePath = join(blockerFile, "impossible", "nested");
 
@@ -229,8 +244,8 @@ describe("SplitChannelDefectRouter Policy & Dual-Write", () => {
     expect(result.forwardedDestinations).toEqual([]);
 
     const localDefectsFile = join(localRepo, ".olt", "defects.jsonl");
-    expect(existsSync(localDefectsFile)).toBe(true);
-    const raw = readFileSync(localDefectsFile, "utf-8");
+    expect(vfs.existsSync(localDefectsFile)).toBe(true);
+    const raw = vfs.readFileSync(localDefectsFile, "utf-8");
     expect(raw).toContain("defect-nonblocking-1");
   });
 
@@ -257,6 +272,6 @@ describe("SplitChannelDefectRouter Policy & Dual-Write", () => {
 
     expect(result.routed).toBe(true);
     expect(result.isMothership).toBe(true);
-    expect(existsSync(join(globalSkill, ".olt", "defects.jsonl"))).toBe(true);
+    expect(vfs.existsSync(join(globalSkill, ".olt", "defects.jsonl"))).toBe(true);
   });
 });

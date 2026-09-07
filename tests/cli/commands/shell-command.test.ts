@@ -1,26 +1,24 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test, spyOn } from "bun:test";
+import * as childProcess from "node:child_process";
+import type { SpawnSyncReturns } from "node:child_process";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import type { writeSync } from "node:fs";
 import { join } from "node:path";
 import {
   persistStandaloneReceipt,
   setShellCommandDependenciesForTesting,
   shellCommand,
 } from "../../../olt/scripts/src/cli/commands/shell.ts";
+import type { runExecCommand } from "../../../olt/scripts/src/cli/commands/run-ops.ts";
 import { createAgentMetadata, writeAgentMetadata } from "../../../olt/scripts/src/runtime/index.ts";
 import {
   disableInMemoryAgentMetadata,
   enableInMemoryAgentMetadata,
 } from "../../../olt/scripts/src/runtime/session.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "./fixtures/full-lifecycle-fixture.ts";
 
-const realTmpDirs: string[] = [];
-function createTempDir(prefix: string): string {
-  const dir = mkdtempSync(join(tmpdir(), `skills-${prefix}-`));
-  realTmpDirs.push(dir);
-  return dir;
-}
+let spawnSyncSpy: { mockRestore: () => void } | undefined;
 
 function registerStandaloneActor(actor: string, role: string): void {
   writeAgentMetadata(
@@ -34,35 +32,34 @@ function registerStandaloneActor(actor: string, role: string): void {
 
 describe("shell command coverage: persistStandaloneReceipt and dependencies", () => {
   beforeEach(() => {
+    setupVirtualCliFS();
     enableInMemoryAgentMetadata();
   });
   afterEach(() => {
-    disableInMemoryAgentMetadata();
-    for (const d of realTmpDirs) {
-      try {
-        rmSync(d, { recursive: true, force: true });
-      } catch {}
+    if (spawnSyncSpy) {
+      spawnSyncSpy.mockRestore();
+      spawnSyncSpy = undefined;
     }
-    realTmpDirs.length = 0;
+    disableInMemoryAgentMetadata();
+    cleanupVirtualCliFS();
   });
 
-  test("persistStandaloneReceipt handles happy path and fsync failure recovery", async () => {
-    const root = createTempDir("receipt-cov");
-    const evidenceDir = join(root, "evidence");
-    await mkdir(evidenceDir, { recursive: true });
+  test("persistStandaloneReceipt handles happy path and fsync failure recovery", () => {
+    const evidenceDir = "/virtual/shell-receipt/evidence";
+    mkdirSync(evidenceDir, { recursive: true });
     const receiptPath = join(evidenceDir, "cmd-test.json");
     const body = JSON.stringify({ ok: true });
     persistStandaloneReceipt(evidenceDir, receiptPath, body);
-    expect(await Bun.file(receiptPath).text()).toBe(body);
+    expect(readFileSync(receiptPath, "utf8")).toBe(body);
   });
 
-  test("persistStandaloneReceipt error paths: zero write progress, post-rename failure, unlink error", async () => {
-    const root = createTempDir("receipt-errs");
-    const evidenceDir = join(root, "evidence");
-    await mkdir(evidenceDir, { recursive: true });
+  test("persistStandaloneReceipt error paths: zero write progress, post-rename failure, unlink error", () => {
+    const evidenceDir = "/virtual/shell-errs/evidence";
+    mkdirSync(evidenceDir, { recursive: true });
     const receiptPath = join(evidenceDir, "cmd-err.json");
 
-    let restore = setShellCommandDependenciesForTesting({ writeSync: (() => 0) as any });
+    const mockZeroWrite: typeof writeSync = () => 0;
+    let restore = setShellCommandDependenciesForTesting({ writeSync: mockZeroWrite });
     try {
       expect(() => persistStandaloneReceipt(evidenceDir, receiptPath, "data")).toThrow(
         /no forward write progress/,
@@ -71,10 +68,11 @@ describe("shell command coverage: persistStandaloneReceipt and dependencies", ()
       restore();
     }
 
+    const mockThrowWrite: typeof writeSync = () => {
+      throw new Error("disk error");
+    };
     restore = setShellCommandDependenciesForTesting({
-      writeSync: (() => {
-        throw new Error("disk error");
-      }) as any,
+      writeSync: mockThrowWrite,
       unlinkSync: () => {
         throw new Error("unlink failed");
       },
@@ -87,10 +85,11 @@ describe("shell command coverage: persistStandaloneReceipt and dependencies", ()
       restore();
     }
 
+    const mockRawStringThrow: typeof writeSync = () => {
+      throw "raw string write failure";
+    };
     restore = setShellCommandDependenciesForTesting({
-      writeSync: (() => {
-        throw "raw string write failure";
-      }) as any,
+      writeSync: mockRawStringThrow,
     });
     try {
       expect(() => persistStandaloneReceipt(evidenceDir, receiptPath, "data")).toThrow(
@@ -100,9 +99,12 @@ describe("shell command coverage: persistStandaloneReceipt and dependencies", ()
       restore();
     }
 
+    const mockBufferWrite: typeof writeSync = (_fd, buf) =>
+      typeof buf === "string" ? Buffer.byteLength(buf) : buf.byteLength;
+
     restore = setShellCommandDependenciesForTesting({
-      openSync: (p, flags) => (flags === "r" ? 99 : 42),
-      writeSync: ((_fd: number, buf: Buffer) => buf.length) as any,
+      openSync: (_p, flags) => (flags === "r" ? 99 : 42),
+      writeSync: mockBufferWrite,
       fsyncSync: (fd) => {
         if (fd === 99) throw new Error("dir sync failed");
       },
@@ -119,7 +121,7 @@ describe("shell command coverage: persistStandaloneReceipt and dependencies", ()
     }
 
     restore = setShellCommandDependenciesForTesting({
-      writeSync: ((_fd: number, buf: Buffer) => buf.length) as any,
+      writeSync: mockBufferWrite,
       fsyncSync: () => {},
       closeSync: () => {},
       renameSync: () => {},
@@ -137,16 +139,16 @@ describe("shell command coverage: persistStandaloneReceipt and dependencies", ()
 
 describe("shell command coverage: argument validation and capsule execution", () => {
   beforeEach(() => {
+    setupVirtualCliFS();
     enableInMemoryAgentMetadata();
   });
   afterEach(() => {
-    disableInMemoryAgentMetadata();
-    for (const d of realTmpDirs) {
-      try {
-        rmSync(d, { recursive: true, force: true });
-      } catch {}
+    if (spawnSyncSpy) {
+      spawnSyncSpy.mockRestore();
+      spawnSyncSpy = undefined;
     }
-    realTmpDirs.length = 0;
+    disableInMemoryAgentMetadata();
+    cleanupVirtualCliFS();
   });
 
   test("validates empty remainder and invalid gate flags", async () => {
@@ -165,7 +167,8 @@ describe("shell command coverage: argument validation and capsule execution", ()
   });
 
   test("capsule mode handles missing metadata, role mismatch, log defects, and duration calculation", async () => {
-    const root = createTempDir("capsule-shell");
+    const root = "/virtual/capsule-shell-root";
+    mkdirSync(root, { recursive: true });
     const runRoot = initRun(root, "run-shell", new TextEncoder().encode("prompt"), "file", true);
     writeAgentMetadata(
       createAgentMetadata({
@@ -180,25 +183,27 @@ describe("shell command coverage: argument validation and capsule execution", ()
     ).rejects.toThrow(/ROLE_ASSERTION_MISMATCH/);
 
     const dummyEvidence = join(runRoot, "evidence.json");
-    await writeFile(dummyEvidence, JSON.stringify({ ok: true }));
+    writeFileSync(dummyEvidence, JSON.stringify({ ok: true }));
 
-    const restore = setShellCommandDependenciesForTesting({
-      runExecCommand: (async () => ({
-        markdown: "### executed",
-        evidence_path: dummyEvidence,
-        evidence: {},
-        command: {
-          id: "cmd-1",
-          status: "succeeded",
-          exit_code: 0,
-          started_at: new Date().toISOString(),
-          finished_at: new Date().toISOString(),
-          logs: {
-            stdout: { sha256: "abc", bytes: 10, path: "stdout.log" },
-            stderr: { sha256: "def", bytes: 0, path: "stderr.log" },
-          },
+    const mockExecSuccess: typeof runExecCommand = async () => ({
+      markdown: "### executed",
+      evidence_path: dummyEvidence,
+      evidence: {},
+      command: {
+        id: "cmd-1",
+        status: "succeeded",
+        exit_code: 0,
+        started_at: new Date().toISOString(),
+        finished_at: new Date().toISOString(),
+        logs: {
+          stdout: { sha256: "abc", bytes: 10, path: "stdout.log" },
+          stderr: { sha256: "def", bytes: 0, path: "stderr.log" },
         },
-      })) as any,
+      },
+    });
+
+    let restore = setShellCommandDependenciesForTesting({
+      runExecCommand: mockExecSuccess,
       existsSync: () => true,
     });
     try {
@@ -212,18 +217,20 @@ describe("shell command coverage: argument validation and capsule execution", ()
       restore();
     }
 
-    const restoreMissing = setShellCommandDependenciesForTesting({
-      runExecCommand: (async () => ({
-        markdown: "### executed",
-        evidence_path: "/missing.json",
-        command: {
-          id: "cmd-3",
-          exit_code: 0,
-          started_at: new Date().toISOString(),
-          finished_at: new Date().toISOString(),
-          logs: { stdout: { sha256: "1" } },
-        },
-      })) as any,
+    const mockExecMissing: typeof runExecCommand = async () => ({
+      markdown: "### executed",
+      evidence_path: "/missing.json",
+      command: {
+        id: "cmd-3",
+        exit_code: 0,
+        started_at: new Date().toISOString(),
+        finished_at: new Date().toISOString(),
+        logs: { stdout: { sha256: "1" } },
+      },
+    });
+
+    restore = setShellCommandDependenciesForTesting({
+      runExecCommand: mockExecMissing,
       existsSync: () => false,
     });
     try {
@@ -231,34 +238,55 @@ describe("shell command coverage: argument validation and capsule execution", ()
         shellCommand({ actor: "actor-capsule", run: runRoot }, {}, ["echo", "test"]),
       ).rejects.toThrow(/no durable canonical/);
     } finally {
-      restoreMissing();
+      restore();
     }
   });
 
   test("standalone rejects unauth roles and executes direct process with receipts", async () => {
-    enableInMemoryAgentMetadata();
-    try {
-      await expect(shellCommand({ actor: "unreg" }, {}, ["git", "status"])).rejects.toThrow(
-        /MISSING_AGENT_METADATA/,
-      );
-      registerStandaloneActor("val-1", "validator_subsystem");
-      await expect(shellCommand({ actor: "val-1" }, {}, ["git", "status"])).rejects.toThrow(
-        /COGNITIVE_VALIDATOR_COMMAND_FORBIDDEN/,
-      );
+    await expect(shellCommand({ actor: "unreg" }, {}, ["git", "status"])).rejects.toThrow(
+      /MISSING_AGENT_METADATA/,
+    );
+    registerStandaloneActor("val-1", "validator");
+    await expect(shellCommand({ actor: "val-1" }, {}, ["git", "status"])).rejects.toThrow(
+      "[SHELL_COMMAND_FORBIDDEN] Role 'validator' is locked to 0 command execution by its diagnostic profile.",
+    );
 
-      registerStandaloneActor("imp-worker", "implementer");
-      await expect(
-        shellCommand({ actor: "imp-worker", role: "implementer" }, {}, ["sh", "-c", "echo 1"]),
-      ).rejects.toThrow(/UNSHIELDED_COMMAND_DEFECT/);
+    registerStandaloneActor("imp-worker", "implementer");
+    await expect(
+      shellCommand({ actor: "imp-worker", role: "implementer" }, {}, ["sh", "-c", "echo 1"]),
+    ).rejects.toThrow(/UNSHIELDED_COMMAND_DEFECT/);
 
-      const result = await shellCommand(
-        { actor: "imp-worker", role: "implementer", wave: 1, task: "T1" },
-        {},
-        ["git", "status"],
-      );
-      expect(result.command === "git status" && !!result.receipt_sha256).toBe(true);
-    } finally {
-      disableInMemoryAgentMetadata();
-    }
+    spawnSyncSpy = spyOn(childProcess, "spawnSync").mockImplementation(((
+      cmd: string,
+      args?: string[],
+    ) => {
+      if (cmd === "git" && args?.[0] === "status") {
+        return {
+          pid: 10001,
+          output: ["", "On branch main\nnothing to commit, working tree clean\n", ""],
+          stdout: "On branch main\nnothing to commit, working tree clean\n",
+          stderr: "",
+          status: 0,
+          signal: null,
+          error: undefined,
+        } as SpawnSyncReturns<string>;
+      }
+      return {
+        pid: 10002,
+        output: ["", "", ""],
+        stdout: "",
+        stderr: "",
+        status: 0,
+        signal: null,
+        error: undefined,
+      } as SpawnSyncReturns<string>;
+    }) as never);
+
+    const result = await shellCommand(
+      { actor: "imp-worker", role: "implementer", wave: 1, task: "T1" },
+      {},
+      ["git", "status"],
+    );
+    expect(result.command === "git status" && !!result.receipt_sha256).toBe(true);
   });
 });

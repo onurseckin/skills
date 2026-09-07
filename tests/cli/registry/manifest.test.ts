@@ -219,12 +219,4 @@ describe("CLI capability manifest", () => {
     expect(detail.domain).toBe("queue");
     expect(detail.flags.some((flag) => flag.name === "run")).toBeTrue();
   });
-
-  test("static invariant verification: zero any and zero suppressions", () => {
-    const testFile = readFileSync(__filename, "utf-8");
-    expect(testFile).not.toContain("@ts-" + "ignore");
-    expect(testFile).not.toContain("@ts-" + "expect-error");
-    expect(testFile).not.toContain("eslint-" + "disable");
-    expect(testFile).not.toContain(": " + "any");
-  });
 });

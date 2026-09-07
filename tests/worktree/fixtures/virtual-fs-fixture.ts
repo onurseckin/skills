@@ -1,9 +1,14 @@
 import type { Mock } from "bun:test";
 import type * as fs from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import {
   VirtualMemoryFS,
   type VirtualStats,
 } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import {
+  origExists,
+  origRead,
+} from "../../../olt/scripts/src/testing/virtual-fs/handlers.ts";
 import { createFsSpies } from "./virtual-fs-spies.ts";
 
 let vfs = new VirtualMemoryFS();
@@ -95,6 +100,19 @@ export function setupVirtualWorktreeFS(): VirtualMemoryFS {
     norm,
     getInode,
   });
+
+  const repoRoot = resolve(import.meta.dir, "../../..");
+  const filesToPreload = [
+    join(repoRoot, "olt/scripts/src/engine/worktree/zero-destructive-policy.ts"),
+    join(repoRoot, "olt/scripts/src/workflow/worktree/git.ts"),
+    join(repoRoot, "tests/worktree/isolation/git-scope-confinement.test.ts"),
+  ];
+  for (const filePath of filesToPreload) {
+    if (origExists(filePath)) {
+      vfs.mkdirSync(dirname(filePath), { recursive: true });
+      vfs.writeFileSync(filePath, origRead(filePath, "utf8"));
+    }
+  }
 
   return vfs;
 }

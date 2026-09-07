@@ -38,6 +38,6 @@ export {
   normalizeWeightMultiplier,
 } from "./optical-hierarchy.ts";
 export { inspectDescenderIntegrity } from "./descender-inspector.ts";
-export { validateUiMechanic } from "./mechanic-validator.ts";
+export { validateUiMechanic } from "./mechanical-inspection.ts";
 export { evaluateAestheticHarmony, validateUiCognitive } from "./cognitive-validator.ts";
 export { evaluateDualUiGates, type DualUiEvaluationParams } from "./dual-gate-engine.ts";

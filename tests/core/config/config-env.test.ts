@@ -1,5 +1,4 @@
-import { describe, expect, it, beforeEach, afterEach, spyOn } from "bun:test";
-import * as fs from "node:fs";
+import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/harness-error.ts";
 import {
@@ -27,32 +26,24 @@ import {
   CADENCE_WAKE_REFERENCE_FRAMES,
 } from "../../../olt/scripts/src/core/config/cadence.ts";
 import * as CoreConfigIndex from "../../../olt/scripts/src/core/config/index.ts";
+import {
+  createVirtualFSSession,
+  type VirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("core/config/env.ts", () => {
-  const mockFiles = new Map<string, string>();
-  const mockDirs = new Set<string>();
-  const spies: { mockRestore: () => void }[] = [];
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
 
   beforeEach(() => {
     resetHarnessConfigCache();
-    mockFiles.clear();
-    mockDirs.clear();
-    spies.push(
-      spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => {
-        const s = String(p);
-        return mockFiles.has(s) || mockDirs.has(s);
-      }),
-      spyOn(fs, "readFileSync").mockImplementation((p: fs.PathOrFileDescriptor) => {
-        const s = String(p);
-        const val = mockFiles.get(s);
-        if (val !== undefined) return val;
-        throw new Error(`ENOENT: no such file, open '${s}'`);
-      }),
-    );
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
-    while (spies.length > 0) spies.pop()?.mockRestore();
+    session.cleanup();
   });
 
   it("quotaProvenanceSource resolves source correctly", () => {
@@ -113,12 +104,13 @@ describe("core/config/env.ts", () => {
 
   it("resolveHarnessConfig and getHarnessConfig caching", () => {
     const vRoot = "/virtual-resolve-harness-tests";
+    vfs.mkdirSync(vRoot, { recursive: true });
     const repoCfg = join(vRoot, "harness.config.json");
-    mockFiles.set(repoCfg, JSON.stringify({ max_agents: 7, gate_max_parallel: 3 }));
+    vfs.writeFileSync(repoCfg, JSON.stringify({ max_agents: 7, gate_max_parallel: 3 }));
     const capDir = join(vRoot, "capsule");
-    mockDirs.add(capDir);
+    vfs.mkdirSync(capDir, { recursive: true });
     const capCfg = join(capDir, "config.json");
-    mockFiles.set(capCfg, JSON.stringify({ default_lease_seconds: 300 }));
+    vfs.writeFileSync(capCfg, JSON.stringify({ default_lease_seconds: 300 }));
 
     const resolved = resolveHarnessConfig(vRoot, capDir, { cpuCount: 8 });
     expect(resolved.max_agents).toBe(7);
@@ -181,7 +173,6 @@ describe("core/config/cadence.ts", () => {
     expect(valid.max_safe_arm_interval_seconds).toBe(50);
     expect(valid.wake_driver_attested).toBe(true);
 
-    // Negative / non-integer values
     expect(() =>
       resolveSupervisoryCadence({
         armIntervalSeconds: 0,
@@ -192,7 +183,6 @@ describe("core/config/cadence.ts", () => {
       }),
     ).toThrow(HarnessError);
 
-    // Deadline <= grace
     expect(() =>
       resolveSupervisoryCadence({
         armIntervalSeconds: 30,
@@ -203,7 +193,6 @@ describe("core/config/cadence.ts", () => {
       }),
     ).toThrow(HarnessError);
 
-    // Arm interval >= deadline
     expect(() =>
       resolveSupervisoryCadence({
         armIntervalSeconds: 60,
@@ -214,7 +203,6 @@ describe("core/config/cadence.ts", () => {
       }),
     ).toThrow(HarnessError);
 
-    // Arm interval > maxSafeArmInterval
     expect(() =>
       resolveSupervisoryCadence({
         armIntervalSeconds: 55,

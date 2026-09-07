@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import {
   parseUnifiedAgentManifest,
   validateUnifiedAgentManifest,
@@ -12,9 +12,23 @@ const AGENTS_DIR = join(REPO_ROOT, "olt/agents");
 const AGENTS_MD_PATH = join(REPO_ROOT, "AGENTS.md");
 const SKILL_MD_PATH = join(REPO_ROOT, "olt/SKILL.md");
 
+const fileCache = new Map<string, string>();
+function getFileContent(filePath: string): string {
+  let content = fileCache.get(filePath);
+  if (content === undefined) {
+    content = readFileSync(filePath, "utf-8");
+    fileCache.set(filePath, content);
+  }
+  return content;
+}
+
 describe("Cognitive Auditor Manifests (mind-auditor.yaml & skill-auditor.yaml)", () => {
   beforeEach(() => {
-    setupVirtualAgentsFS();
+    const vfs = setupVirtualAgentsFS();
+    for (const [p, content] of fileCache) {
+      vfs.mkdirSync(dirname(p), { recursive: true });
+      vfs.writeFileSync(p, content);
+    }
   });
 
   afterEach(() => {
@@ -22,10 +36,9 @@ describe("Cognitive Auditor Manifests (mind-auditor.yaml & skill-auditor.yaml)",
   });
   describe("mind-auditor.yaml", () => {
     const filePath = join(AGENTS_DIR, "mind-auditor.yaml");
-    const rawYaml = readFileSync(filePath, "utf-8");
 
     it("parses correctly as a Tier 0 out-of-band observer", () => {
-      const manifest = parseUnifiedAgentManifest(rawYaml, filePath);
+      const manifest = parseUnifiedAgentManifest(getFileContent(filePath), filePath);
 
       expect(manifest.name).toBe("mind-auditor");
       expect(manifest.role).toBe("mind-auditor");
@@ -62,7 +75,7 @@ describe("Cognitive Auditor Manifests (mind-auditor.yaml & skill-auditor.yaml)",
     });
 
     it("passes schema validation", () => {
-      const manifest = parseUnifiedAgentManifest(rawYaml, filePath);
+      const manifest = parseUnifiedAgentManifest(getFileContent(filePath), filePath);
       const validation = validateUnifiedAgentManifest(manifest);
 
       expect(validation.valid).toBe(true);
@@ -72,10 +85,9 @@ describe("Cognitive Auditor Manifests (mind-auditor.yaml & skill-auditor.yaml)",
 
   describe("skill-auditor.yaml", () => {
     const filePath = join(AGENTS_DIR, "skill-auditor.yaml");
-    const rawYaml = readFileSync(filePath, "utf-8");
 
     it("parses correctly as a Tier 0 out-of-band observer", () => {
-      const manifest = parseUnifiedAgentManifest(rawYaml, filePath);
+      const manifest = parseUnifiedAgentManifest(getFileContent(filePath), filePath);
 
       expect(manifest.name).toBe("skill-auditor");
       expect(manifest.role).toBe("skill-auditor");
@@ -112,7 +124,7 @@ describe("Cognitive Auditor Manifests (mind-auditor.yaml & skill-auditor.yaml)",
     });
 
     it("passes schema validation", () => {
-      const manifest = parseUnifiedAgentManifest(rawYaml, filePath);
+      const manifest = parseUnifiedAgentManifest(getFileContent(filePath), filePath);
       const validation = validateUnifiedAgentManifest(manifest);
 
       expect(validation.valid).toBe(true);
@@ -126,8 +138,7 @@ describe("Cognitive Auditor Manifests (mind-auditor.yaml & skill-auditor.yaml)",
 
       for (const file of files) {
         const filePath = join(AGENTS_DIR, file);
-        const rawYaml = readFileSync(filePath, "utf-8");
-        const manifest = parseUnifiedAgentManifest(rawYaml, filePath);
+        const manifest = parseUnifiedAgentManifest(getFileContent(filePath), filePath);
 
         expect(manifest.tier).toBe(0);
         expect(manifest.tools.enable_write_tools).toBe(false);
@@ -141,8 +152,8 @@ describe("Cognitive Auditor Manifests (mind-auditor.yaml & skill-auditor.yaml)",
 
   describe("Documentation Synchronization (AGENTS.md & SKILL.md)", () => {
     it("verifies AGENTS.md and SKILL.md include Step Machines G, H, I and policy-discovery Tier 0 definition", () => {
-      const agentsMd = readFileSync(AGENTS_MD_PATH, "utf-8");
-      const skillMd = readFileSync(SKILL_MD_PATH, "utf-8");
+      const agentsMd = getFileContent(AGENTS_MD_PATH);
+      const skillMd = getFileContent(SKILL_MD_PATH);
 
       // Step Machine G: Tier 0 Policy Discovery Protocol
       expect(agentsMd).toContain(

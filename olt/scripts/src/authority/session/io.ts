@@ -87,7 +87,6 @@ export function readPersistedSession(
 const EDIT_ROLES = new Set([
   "implementer",
   "worker",
-  "repairer",
   "owner",
   "sub-implementer",
   "sub_implementer",

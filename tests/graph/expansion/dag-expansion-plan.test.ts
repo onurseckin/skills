@@ -252,11 +252,11 @@ describe("DAG Expansion: planning, metrics, reconstruction, and replanning", () 
       expect(replan.partitionedScopes.length).toBe(2);
 
       const repair1 = replan.addedRepairTasks[0]!;
-      expect(repair1.role).toBe("repairer");
+      expect(repair1.role).toBe("implementer");
       expect(repair1.write_scope).toEqual(["src/db/pool.ts"]);
 
       const repair2 = replan.addedRepairTasks[1]!;
-      expect(repair2.role).toBe("repairer");
+      expect(repair2.role).toBe("implementer");
       expect(repair2.write_scope).toEqual(["src/db/query.ts"]);
     });
   });

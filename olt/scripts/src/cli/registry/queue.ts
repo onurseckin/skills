@@ -15,7 +15,7 @@ import {
   todoDrainCommand,
   todoListCommand,
   todoSealCommand,
-} from "../commands/todo-ops.ts";
+} from "../commands/todo/index.ts";
 import { DEFAULT_EXIT_CODES, optionalFlag, requiredFlag, type CommandSpec } from "./types.ts";
 
 export {

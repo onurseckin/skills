@@ -41,7 +41,7 @@ describe("Thread Identifier - Parsing, Tiers, and Naming Standards", () => {
     expect(roleToTier("coordinator")).toBe(2);
     expect(roleToTier("implementer")).toBe(3);
     expect(roleToTier("validator")).toBe(3);
-    expect(roleToTier("repairer")).toBe(3);
+    expect(roleToTier("sub-implementer")).toBe(3);
     expect(roleToTier("random-worker")).toBe(3);
   });
 
@@ -67,8 +67,8 @@ describe("Thread Identifier - Parsing, Tiers, and Naming Standards", () => {
     expect(agentIdToTier("completeness-critic-task-1")).toBe(3);
     expect(agentIdToRole("completeness-critic-task-1")).toBe("completeness-critic");
 
-    expect(agentIdToTier("repairer-task-1")).toBe(3);
-    expect(agentIdToRole("repairer-task-1")).toBe("repairer");
+    expect(agentIdToTier("sub-implementer-task-1")).toBe(3);
+    expect(agentIdToRole("sub-implementer-task-1")).toBe("sub-implementer");
 
     expect(agentIdToTier("plan-validator-1")).toBe(3);
     expect(agentIdToRole("plan-validator-1")).toBe("plan-validator");
@@ -120,11 +120,12 @@ describe("Thread Identifier - Parsing, Tiers, and Naming Standards", () => {
     expect(valParsed?.tier).toBe(3);
     expect(valParsed?.taskId).toBe("task-p47");
 
-    const repParsed = parseStandardAgentId("repairer_task-p47");
-    expect(repParsed).not.toBeNull();
-    expect(repParsed?.role).toBe("repairer");
-    expect(repParsed?.tier).toBe(3);
-    expect(repParsed?.taskId).toBe("task-p47");
+    const reassignedImplParsed = parseStandardAgentId("implementer_task-p47-repair");
+    expect(reassignedImplParsed).not.toBeNull();
+    expect(reassignedImplParsed?.role).toBe("implementer");
+    expect(reassignedImplParsed?.tier).toBe(3);
+    expect(reassignedImplParsed?.taskId).toBe("task-p47");
+    expect(reassignedImplParsed?.taskSlug).toBe("repair");
 
     const criticParsed = parseStandardAgentId("completeness-critic_wave-2-foundations");
     expect(criticParsed).not.toBeNull();

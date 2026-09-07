@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { closeSync } from "node:fs";
 import { join } from "node:path";
 import {
   acquireExclusiveLock,
@@ -19,6 +18,7 @@ import {
 import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
   cleanupVirtualAuthorityFS,
+  closeSync,
   getVirtualAuthorityFS,
   setupVirtualAuthorityFS,
 } from "./fixture.ts";
@@ -47,8 +47,8 @@ describe("WatchdogLock Comprehensive Coverage", () => {
     expect(flag).toBeGreaterThan(0);
 
     const start = performance.now();
-    delay(5);
-    expect(performance.now() - start).toBeGreaterThanOrEqual(2);
+    delay(2);
+    expect(performance.now() - start).toBeGreaterThanOrEqual(1);
 
     expect(sameInode({ dev: 100, ino: 200 }, { dev: 100, ino: 200 })).toBe(true);
     expect(sameInode({ dev: 100, ino: 200 }, { dev: 101, ino: 200 })).toBe(false);

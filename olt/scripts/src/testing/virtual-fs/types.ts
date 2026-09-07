@@ -250,6 +250,7 @@ export interface IVirtualFileSystem {
   mkdirSync(dirPath: string, options?: MkdirOptions): string | undefined;
   unlinkSync(filePath: string): void;
   rmSync(targetPath: string, options?: RmOptions): void;
+  renameSync(oldPath: string, newPath: string): void;
   readdirSync(
     dirPath: string,
     options: { withFileTypes: true; recursive?: boolean },

@@ -39,8 +39,8 @@ describe("Repo Policy I/O, Integrity & TOCTOU Verification", () => {
     expect(agents).toBeDefined();
     if (!agents) throw new Error("Agents undefined");
 
-    const ms = agents["mind_supervisor"];
-    if (!ms) throw new Error("mind_supervisor undefined");
+    const ms = agents["mind"];
+    if (!ms) throw new Error("mind undefined");
     expect(ms.tier).toBe(0);
     expect(ms.silent_daemon).toBe(true);
     expect(ms.hosts.antigravity.thinking_effort).toBe("high");

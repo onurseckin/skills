@@ -1,5 +1,4 @@
-import { describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { afterAll, afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { join } from "node:path";
 import type { JsonValue } from "../../../olt/scripts/src/core/contracts/json.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
@@ -11,9 +10,27 @@ import {
   writeAtomicSnapshot,
   type SnapshotRecord,
 } from "../../../olt/scripts/src/engine/store/hierarchy/snapshot-manager.ts";
-import { scratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
+import {
+  cleanupVirtualStoreFS,
+  getVirtualStoreFS,
+  resetVirtualStore,
+  scratchRoot,
+  setupVirtualStoreFS,
+} from "../store-fixture.ts";
 
 setupVirtualStoreFS();
+
+beforeEach(() => {
+  resetVirtualStore();
+});
+
+afterEach(() => {
+  resetVirtualStore();
+});
+
+afterAll(() => {
+  cleanupVirtualStoreFS();
+});
 
 describe("Snapshot Manager Engine", () => {
   describe("shouldCreateSnapshot", () => {
@@ -64,10 +81,11 @@ describe("Snapshot Manager Engine", () => {
       expect(typeof record.created_at).toBe("string");
       expect(Number.isNaN(Date.parse(record.created_at))).toBe(false);
 
+      const vfs = getVirtualStoreFS();
       const targetFile = join(snapshotsDir, "state.200.json");
-      expect(existsSync(targetFile)).toBe(true);
+      expect(vfs.existsSync(targetFile)).toBe(true);
 
-      const raw = readFileSync(targetFile, "utf-8");
+      const raw = vfs.readFileSync(targetFile, "utf-8");
       const diskRecord = JSON.parse(raw) as SnapshotRecord;
       expect(diskRecord.sequence).toBe(200);
       expect(diskRecord.snapshot_sha256).toBe(expectedSha);
@@ -150,23 +168,25 @@ describe("Snapshot Manager Engine", () => {
     });
 
     it("returns null when directory does not exist or has no snapshot files", () => {
+      const vfs = getVirtualStoreFS();
       const root = scratchRoot(import.meta.path, "load-latest-empty");
       const nonExistentDir = join(root, "does-not-exist");
       expect(loadLatestSnapshot(nonExistentDir)).toBeNull();
 
       const emptyDir = join(root, "empty-snapshots");
-      mkdirSync(emptyDir, { recursive: true });
+      vfs.mkdirSync(emptyDir, { recursive: true });
       expect(loadLatestSnapshot(emptyDir)).toBeNull();
     });
   });
 
   describe("Negative Gates & Integrity Invariants", () => {
     it("throws HarnessError(INTEGRITY) on corrupted JSON", () => {
+      const vfs = getVirtualStoreFS();
       const root = scratchRoot(import.meta.path, "negative-corrupted-json");
       const snapshotsDir = join(root, "snapshots");
-      mkdirSync(snapshotsDir, { recursive: true });
+      vfs.mkdirSync(snapshotsDir, { recursive: true });
 
-      writeFileSync(join(snapshotsDir, "state.200.json"), "NOT VALID JSON {", "utf-8");
+      vfs.writeFileSync(join(snapshotsDir, "state.200.json"), "NOT VALID JSON {", "utf-8");
 
       expect(() => loadSnapshotAtSequence(snapshotsDir, 200)).toThrow(HarnessError);
       try {
@@ -177,9 +197,10 @@ describe("Snapshot Manager Engine", () => {
     });
 
     it("throws HarnessError(INTEGRITY) on SHA-256 hash mismatch", () => {
+      const vfs = getVirtualStoreFS();
       const root = scratchRoot(import.meta.path, "negative-hash-mismatch");
       const snapshotsDir = join(root, "snapshots");
-      mkdirSync(snapshotsDir, { recursive: true });
+      vfs.mkdirSync(snapshotsDir, { recursive: true });
 
       const corruptedSnapshot: SnapshotRecord = {
         sequence: 200,
@@ -187,7 +208,7 @@ describe("Snapshot Manager Engine", () => {
         created_at: new Date().toISOString(),
         state_payload: { foo: "bar" },
       };
-      writeFileSync(
+      vfs.writeFileSync(
         join(snapshotsDir, "state.200.json"),
         JSON.stringify(corruptedSnapshot),
         "utf-8",
@@ -203,9 +224,10 @@ describe("Snapshot Manager Engine", () => {
     });
 
     it("throws HarnessError(INTEGRITY) on sequence mismatch between filename and record", () => {
+      const vfs = getVirtualStoreFS();
       const root = scratchRoot(import.meta.path, "negative-seq-mismatch");
       const snapshotsDir = join(root, "snapshots");
-      mkdirSync(snapshotsDir, { recursive: true });
+      vfs.mkdirSync(snapshotsDir, { recursive: true });
 
       const payload = { test: true };
       const hash = sha256Bytes(canonicalJsonBytes(payload as unknown as JsonValue));
@@ -216,7 +238,7 @@ describe("Snapshot Manager Engine", () => {
         state_payload: payload,
       };
 
-      writeFileSync(join(snapshotsDir, "state.200.json"), JSON.stringify(record), "utf-8");
+      vfs.writeFileSync(join(snapshotsDir, "state.200.json"), JSON.stringify(record), "utf-8");
 
       expect(() => loadSnapshotAtSequence(snapshotsDir, 200)).toThrow(HarnessError);
       try {
@@ -228,9 +250,10 @@ describe("Snapshot Manager Engine", () => {
     });
 
     it("throws HarnessError(INTEGRITY) on missing or malformed fields", () => {
+      const vfs = getVirtualStoreFS();
       const root = scratchRoot(import.meta.path, "negative-malformed-fields");
       const snapshotsDir = join(root, "snapshots");
-      mkdirSync(snapshotsDir, { recursive: true });
+      vfs.mkdirSync(snapshotsDir, { recursive: true });
 
       const badRecords: unknown[] = [
         { sequence: "200", snapshot_sha256: "abc", created_at: "now", state_payload: {} },
@@ -244,7 +267,7 @@ describe("Snapshot Manager Engine", () => {
 
       for (let i = 0; i < badRecords.length; i++) {
         const seq = 100 + i;
-        writeFileSync(
+        vfs.writeFileSync(
           join(snapshotsDir, `state.${seq}.json`),
           JSON.stringify(badRecords[i]),
           "utf-8",
@@ -259,12 +282,13 @@ describe("Snapshot Manager Engine", () => {
     });
 
     it("propagates INTEGRITY error during loadLatestSnapshot if latest candidate is corrupted", () => {
+      const vfs = getVirtualStoreFS();
       const root = scratchRoot(import.meta.path, "negative-load-latest-corrupt");
       const snapshotsDir = join(root, "snapshots");
-      mkdirSync(snapshotsDir, { recursive: true });
+      vfs.mkdirSync(snapshotsDir, { recursive: true });
 
       writeAtomicSnapshot(snapshotsDir, 200, { valid: true });
-      writeFileSync(join(snapshotsDir, "state.400.json"), "CORRUPTED DATA", "utf-8");
+      vfs.writeFileSync(join(snapshotsDir, "state.400.json"), "CORRUPTED DATA", "utf-8");
 
       expect(() => loadLatestSnapshot(snapshotsDir)).toThrow(HarnessError);
       try {

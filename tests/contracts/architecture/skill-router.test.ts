@@ -80,9 +80,9 @@ describe(skillRouterSuiteName, () => {
       const roleRows = skill
         .split("\n")
         .filter((line) =>
-          /^\| `(?:coordinator|planner|implementer|repairer|validator)/u.test(line),
+          /^\| `(?:coordinator|planner|implementer|validator)/u.test(line),
         );
-      expect(roleRows.length).toBe(5);
+      expect(roleRows.length).toBe(4);
       for (const row of roleRows) expect(row.split("|").length).toBe(6);
     });
 

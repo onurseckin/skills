@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import { initRun, loadIndex, indexFreshness } from "../../../olt/scripts/src/engine/store/index.ts";
 import { ingestScreenshots } from "../../../olt/scripts/src/reporting/screenshot-ingestion.ts";
@@ -61,8 +60,10 @@ describe(statusDoctorGapsSuiteName, () => {
 });
 
 describe("capsule catalogue byte accounting", () => {
+  let vfs: ReturnType<typeof setupVirtualReportingFS>;
+
   beforeEach(() => {
-    setupVirtualReportingFS();
+    vfs = setupVirtualReportingFS();
   });
 
   afterEach(() => {
@@ -74,7 +75,7 @@ describe("capsule catalogue byte accounting", () => {
     const run = initRun(repo, "catalogue-run", new TextEncoder().encode("Prompt"), "file", true);
 
     const source = join(repo, "shot.png");
-    fs.writeFileSync(source, "0123456789", "utf-8");
+    vfs.writeFileSync(source, "0123456789", "utf-8");
     ingestScreenshots({ runRoot: run, explicitPaths: [source] });
 
     const catalogue = capsuleCatalogue(run);
@@ -87,15 +88,17 @@ describe("capsule catalogue byte accounting", () => {
   test("an unreadable index is reported as unavailable rather than thrown", () => {
     const repo = tempDir("harness-catalogue-broken");
     const run = initRun(repo, "broken-index-run", new TextEncoder().encode("Prompt"), "file", true);
-    fs.writeFileSync(join(run, "index.json"), "{not json", "utf-8");
+    vfs.writeFileSync(join(run, "index.json"), "{not json", "utf-8");
 
     expect(capsuleCatalogue(run)).toEqual({ available: false, freshness: "unknown" });
   });
 });
 
 describe("doctor integrity reporting", () => {
+  let vfs: ReturnType<typeof setupVirtualReportingFS>;
+
   beforeEach(() => {
-    setupVirtualReportingFS();
+    vfs = setupVirtualReportingFS();
   });
 
   afterEach(() => {
@@ -105,7 +108,7 @@ describe("doctor integrity reporting", () => {
   test("a corrupt state.json is surfaced as a code-labelled integrity issue", async () => {
     const repo = tempDir("harness-doctor-corrupt");
     const run = initRun(repo, "corrupt-run", new TextEncoder().encode("Prompt"), "file", true);
-    fs.writeFileSync(join(run, "state.json"), "{not json", "utf-8");
+    vfs.writeFileSync(join(run, "state.json"), "{not json", "utf-8");
 
     const report = await runDoctor(run);
 

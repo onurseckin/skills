@@ -1,7 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { closeSync, mkdirSync, mkdtempSync, openSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   acquireArchivedObjectivesFlock,
@@ -12,16 +9,23 @@ import {
   validateArchivedObjectiveRecord,
 } from "../../../olt/scripts/src/mind/archival/generational.ts";
 import type { ArchivedObjectiveRecord } from "../../../olt/scripts/src/mind/archival/types.ts";
+import * as platform from "../../../olt/scripts/src/platform/index.ts";
+import { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/memory-fs.ts";
+import { createVirtualFSSession } from "../../../olt/scripts/src/testing/virtual-fs/spies.ts";
 
 describe("Generational Archival Coverage Suite", () => {
-  let tempDir: string;
+  let vfs: VirtualMemoryFS;
+  let session: ReturnType<typeof createVirtualFSSession>;
+  const baseDir = "/virtual/archival/generational";
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "gen-cov-test-"));
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    vfs.mkdirSync(baseDir, { recursive: true });
   });
 
   afterEach(() => {
-    rmSync(tempDir, { recursive: true, force: true });
+    session.cleanup();
   });
 
   it("validates current schema_version 2 and legacy schema_version 1 records", () => {
@@ -132,10 +136,10 @@ describe("Generational Archival Coverage Suite", () => {
   });
 
   it("safely reads files, handles ENOENT, and throws on directories", () => {
-    const missing = readArchivedObjectivesFile(join(tempDir, "missing.jsonl"));
+    const missing = readArchivedObjectivesFile(`${baseDir}/missing.jsonl`);
     expect(missing.raw).toBe("");
 
-    const targetFile = join(tempDir, "ledger.jsonl");
+    const targetFile = `${baseDir}/ledger.jsonl`;
     const sampleRecord = JSON.stringify({
       id: "read-1",
       type: "task",
@@ -144,7 +148,7 @@ describe("Generational Archival Coverage Suite", () => {
       completed_at: "2026-09-01",
       result: "ok",
     });
-    writeFileSync(targetFile, `${sampleRecord}\n`);
+    vfs.writeFileSync(targetFile, `${sampleRecord}\n`);
 
     const snapshot = readArchivedObjectivesFile(targetFile);
     expect(snapshot.raw).toContain("read-1");
@@ -154,19 +158,14 @@ describe("Generational Archival Coverage Suite", () => {
     expect(objectives.length).toBe(1);
     expect(objectives[0]?.id).toBe("read-1");
 
-    const subDir = join(tempDir, "dir-not-file");
-    mkdirSync(subDir);
+    const subDir = `${baseDir}/dir-not-file`;
+    vfs.mkdirSync(subDir);
     expect(() => readArchivedObjectivesFile(subDir)).toThrow(HarnessError);
   });
 
   it("acquires exclusive file flock successfully", () => {
-    const lockFile = join(tempDir, "test.lock");
-    writeFileSync(lockFile, "lock");
-    const fd = openSync(lockFile, "r+");
-    try {
-      expect(() => acquireArchivedObjectivesFlock(fd, "test-lock")).not.toThrow();
-    } finally {
-      closeSync(fd);
-    }
+    const flockSpy = spyOn(platform, "tryExclusiveFlock").mockReturnValue(true);
+    expect(() => acquireArchivedObjectivesFlock(42, "test-lock")).not.toThrow();
+    flockSpy.mockRestore();
   });
 });

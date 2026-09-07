@@ -7,4 +7,7 @@ export {
   cleanupVirtualDiscoveryFS,
   getVirtualDiscoveryFS,
   isVirtualDiscoveryPath,
+  createVirtualHardlink,
+  createVirtualSymlink,
 } from "./virtual-fs-fixture.ts";
+

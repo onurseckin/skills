@@ -1,6 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   formatMindRotateBrief,
@@ -8,6 +6,8 @@ import {
 } from "../../../../olt/scripts/src/cli/commands/mind-rotate.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import { initRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../fixtures/full-lifecycle-fixture.ts";
 
 const validCharterYaml = `
 name: "mind"
@@ -27,39 +27,39 @@ charter:
 `;
 
 describe("mind:rotate CLI Command Coverage Suite", () => {
-  let tempDir: string;
-  let repoRoot: string;
-  let capsulesParent: string;
+  let vfs: VirtualMemoryFS;
+  const repoRoot = "/virtual/mind-rotate";
+  const capsulesParent = join(repoRoot, ".olt", "capsules");
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "mind-rotate-cli-test-"));
-    repoRoot = tempDir;
-    capsulesParent = join(repoRoot, ".olt", "capsules");
-    mkdirSync(join(repoRoot, "olt", "agents"), { recursive: true });
-    writeFileSync(join(repoRoot, "olt", "agents", "mind.yaml"), validCharterYaml);
+    vfs = setupVirtualCliFS();
+    vfs.mkdirSync(join(repoRoot, ".git"), { recursive: true });
+    vfs.mkdirSync(capsulesParent, { recursive: true });
+    vfs.mkdirSync(join(repoRoot, "olt", "agents"), { recursive: true });
+    vfs.writeFileSync(join(repoRoot, "olt", "agents", "mind.yaml"), validCharterYaml);
   });
 
   afterEach(() => {
-    rmSync(tempDir, { recursive: true, force: true });
+    cleanupVirtualCliFS();
   });
 
   function setupCapsule(runId: string): string {
     const promptBytes = new TextEncoder().encode(validCharterYaml);
     const runRoot = initRun(repoRoot, runId, promptBytes, "file", true);
-    transact(runRoot, "owner", "mind-init", {}, (state) => {
-      state.mind = {
+    transact(runRoot, "owner", "mind-init", {}, (draft) => {
+      draft.mind = {
         generation: 1,
         status: "active",
         charter: {
           source_path: "olt/agents/mind.yaml",
           repo_roots: ["."],
         },
-      } as unknown as typeof state.mind;
-      state.pulse = {
+      };
+      draft.pulse = {
         counter: 4,
         open: null,
         last_pulse_at: new Date().toISOString(),
-      } as unknown as typeof state.pulse;
+      };
     });
     return runRoot;
   }

@@ -39,15 +39,10 @@ export function resolveAgentsDirectory(repoRoot?: string): string {
   if (repoRoot) {
     const dotOlt = join(repoRoot, ".olt", "agents");
     if (existsSync(dotOlt)) return dotOlt;
-    const oltAgents = join(repoRoot, "olt", "agents");
-    if (existsSync(oltAgents)) return oltAgents;
   }
   const globalSkills = join(homedir(), ".agents", "skills", "olt", "agents");
   if (existsSync(globalSkills)) return globalSkills;
-  const dotFallback = join(process.cwd(), ".olt", "agents");
-  if (existsSync(dotFallback)) return dotFallback;
-  const fallback = join(process.cwd(), "olt", "agents");
-  return existsSync(fallback) ? fallback : dotFallback;
+  return join(process.cwd(), ".olt", "agents");
 }
 
 export function loadCanonicalContract(

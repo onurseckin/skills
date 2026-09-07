@@ -1,130 +1,33 @@
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
-import * as fs from "node:fs";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { dirname, join, normalize } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { lintDirectory, lintFile } from "../../../olt/scripts/src/linter/ast/index.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 export const directoryLinterSuiteName =
   "AST File and Directory Recursive Linting Engine (in-memory virtualization)";
 
 describe(directoryLinterSuiteName, () => {
-  const files = new Map<string, string>();
-  const dirs = new Set<string>();
-
-  let existsSpy: ReturnType<typeof spyOn>;
-  let statSpy: ReturnType<typeof spyOn>;
-  let lstatSpy: ReturnType<typeof spyOn>;
-  let readdirSpy: ReturnType<typeof spyOn>;
-  let readFileSyncSpy: ReturnType<typeof spyOn>;
+  let session: VirtualFSSession;
+  let vfs: VirtualMemoryFS;
 
   beforeEach(() => {
-    files.clear();
-    dirs.clear();
-
-    existsSpy = spyOn(fs, "existsSync").mockImplementation((p) => {
-      const s = normalize(String(p));
-      return files.has(s) || dirs.has(s);
-    });
-
-    statSpy = spyOn(fs, "statSync").mockImplementation((p) => {
-      const s = normalize(String(p));
-      const isD = dirs.has(s);
-      const isF = files.has(s);
-      if (!isD && !isF) {
-        throw Object.assign(new Error(`ENOENT: no such file or directory, stat '${s}'`), {
-          code: "ENOENT",
-        });
-      }
-      const content = files.get(s) ?? "";
-      return {
-        isFile: () => isF,
-        isDirectory: () => isD,
-        isSymbolicLink: () => false,
-        size: Buffer.byteLength(content),
-        mtimeMs: Date.now(),
-      } as unknown as fs.Stats;
-    });
-
-    lstatSpy = spyOn(fs, "lstatSync").mockImplementation((p) => {
-      const s = normalize(String(p));
-      const isD = dirs.has(s);
-      const isF = files.has(s);
-      if (!isD && !isF) {
-        throw Object.assign(new Error(`ENOENT: no such file or directory, lstat '${s}'`), {
-          code: "ENOENT",
-        });
-      }
-      const content = files.get(s) ?? "";
-      return {
-        isFile: () => isF,
-        isDirectory: () => isD,
-        isSymbolicLink: () => false,
-        size: Buffer.byteLength(content),
-        mtimeMs: Date.now(),
-      } as unknown as fs.Stats;
-    });
-
-    readdirSpy = spyOn(fs, "readdirSync").mockImplementation((p, options) => {
-      const s = normalize(String(p));
-      const names = new Set<string>();
-      for (const f of files.keys()) {
-        if (f.startsWith(s) && f !== s) {
-          const sub = f.slice(s.length).replace(/^[/\\]+/, "");
-          const first = sub.split(/[/\\]/)[0];
-          if (first) names.add(first);
-        }
-      }
-      for (const d of dirs) {
-        if (d.startsWith(s) && d !== s) {
-          const sub = d.slice(s.length).replace(/^[/\\]+/, "");
-          const first = sub.split(/[/\\]/)[0];
-          if (first) names.add(first);
-        }
-      }
-      const arr = [...names];
-      if (
-        typeof options === "object" &&
-        options !== null &&
-        (options as { withFileTypes?: boolean }).withFileTypes
-      ) {
-        return arr.map((name) => ({
-          name,
-          isDirectory: () => dirs.has(join(s, name)),
-          isFile: () => files.has(join(s, name)),
-          isSymbolicLink: () => false,
-        })) as unknown as fs.Dirent[];
-      }
-      return arr as unknown as string[];
-    });
-
-    readFileSyncSpy = spyOn(fs, "readFileSync").mockImplementation((p) => {
-      const s = normalize(String(p));
-      const val = files.get(s);
-      if (val === undefined) {
-        throw Object.assign(new Error(`ENOENT: no such file or directory, open '${s}'`), {
-          code: "ENOENT",
-        });
-      }
-      return val;
-    });
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
-    existsSpy.mockRestore();
-    statSpy.mockRestore();
-    lstatSpy.mockRestore();
-    readdirSpy.mockRestore();
-    readFileSyncSpy.mockRestore();
+    session.cleanup();
   });
 
   function addVirtualFile(path: string, content: string): void {
     const s = normalize(path);
-    files.set(s, content);
-    let curr = dirname(s);
-    while (curr && curr !== "/" && curr !== ".") {
-      dirs.add(curr);
-      curr = dirname(curr);
-    }
+    vfs.mkdirSync(dirname(s), { recursive: true });
+    vfs.writeFileSync(s, content);
   }
 
   it("lints a single file on disk", () => {

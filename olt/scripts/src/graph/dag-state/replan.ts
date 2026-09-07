@@ -74,7 +74,7 @@ export function replanFromFindings(input: ReplanFromFindingsInput): ReplanFromFi
       writeScope: group.scope,
       gate: group.gate,
       validatorId: validatorTaskId,
-      role: "repairer",
+      role: "implementer",
       priority: 90,
       effort: 2,
     });

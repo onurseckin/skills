@@ -50,118 +50,116 @@ function spec(invocation: string): CommandSpec {
 }
 
 describe("Validator Specialization - Split Architecture & Model", () => {
-  describe("3. UI Validator Split Architecture (ui-mechanic-validator vs ui-validator)", () => {
+  describe("3. UI Validator Split Architecture (ui-headless-validator vs ui-optical-validator)", () => {
     describe("Taxonomy and Naming Conventions", () => {
-      it("recognizes ui-mechanic-validator and ui-validator in AGENT_NAMING_STANDARDS", () => {
-        expect(AGENT_NAMING_STANDARDS["ui-mechanic-validator"]).toBeDefined();
-        expect(AGENT_NAMING_STANDARDS["ui-mechanic-validator"]!.tier).toBe(3);
-        expect(AGENT_NAMING_STANDARDS["ui-mechanic-validator"]!.bindingType).toBe("task");
+      it("recognizes ui-headless-validator and ui-optical-validator in AGENT_NAMING_STANDARDS", () => {
+        expect(AGENT_NAMING_STANDARDS["ui-headless-validator"]).toBeDefined();
+        expect(AGENT_NAMING_STANDARDS["ui-headless-validator"]!.tier).toBe(3);
+        expect(AGENT_NAMING_STANDARDS["ui-headless-validator"]!.bindingType).toBe("task");
 
-        expect(AGENT_NAMING_STANDARDS["ui-validator"]).toBeDefined();
-        expect(AGENT_NAMING_STANDARDS["ui-validator"]!.tier).toBe(3);
-        expect(AGENT_NAMING_STANDARDS["ui-validator"]!.bindingType).toBe("task");
-
-        expect(AGENT_NAMING_STANDARDS["mechanic-validator"]).toBeDefined();
-        expect(AGENT_NAMING_STANDARDS["mechanic-validator"]!.tier).toBe(3);
+        expect(AGENT_NAMING_STANDARDS["ui-optical-validator"]).toBeDefined();
+        expect(AGENT_NAMING_STANDARDS["ui-optical-validator"]!.tier).toBe(3);
+        expect(AGENT_NAMING_STANDARDS["ui-optical-validator"]!.bindingType).toBe("task");
       });
 
-      it("validates naming convention for ui-mechanic-validator and ui-validator identifiers", () => {
+      it("validates naming convention for ui-headless-validator and ui-optical-validator identifiers", () => {
         const mechRes = validateAgentNamingConvention(
-          "ui-mechanic-validator_task-p48-viewport-matrix",
+          "ui-headless-validator_task-p48-viewport-matrix",
         );
         expect(mechRes.valid).toBe(true);
-        expect(mechRes.role).toBe("ui-mechanic-validator");
+        expect(mechRes.role).toBe("ui-headless-validator");
         expect(mechRes.tier).toBe(3);
         expect(mechRes.parsedComponents?.taskId).toBe("task-p48");
         expect(mechRes.parsedComponents?.taskSlug).toBe("viewport-matrix");
 
-        const cogRes = validateAgentNamingConvention("ui-validator_task-p48-viewport-matrix");
+        const cogRes = validateAgentNamingConvention(
+          "ui-optical-validator_task-p48-viewport-matrix",
+        );
         expect(cogRes.valid).toBe(true);
-        expect(cogRes.role).toBe("ui-validator");
+        expect(cogRes.role).toBe("ui-optical-validator");
         expect(cogRes.tier).toBe(3);
         expect(cogRes.parsedComponents?.taskId).toBe("task-p48");
         expect(cogRes.parsedComponents?.taskSlug).toBe("viewport-matrix");
       });
 
       it("parses standard agent IDs and generates standard recommendations", () => {
-        const parsedMech = parseStandardAgentId("ui-mechanic-validator_task-1-dom-metrics");
+        const parsedMech = parseStandardAgentId("ui-headless-validator_task-1-dom-metrics");
         expect(parsedMech).not.toBeNull();
-        expect(parsedMech?.role).toBe("ui-mechanic-validator");
+        expect(parsedMech?.role).toBe("ui-headless-validator");
         expect(parsedMech?.tier).toBe(3);
         expect(parsedMech?.taskId).toBe("task-1");
         expect(parsedMech?.taskSlug).toBe("dom-metrics");
 
-        const parsedCog = parseStandardAgentId("ui-validator_task-1-visual-critique");
+        const parsedCog = parseStandardAgentId("ui-optical-validator_task-1-visual-critique");
         expect(parsedCog).not.toBeNull();
-        expect(parsedCog?.role).toBe("ui-validator");
+        expect(parsedCog?.role).toBe("ui-optical-validator");
         expect(parsedCog?.tier).toBe(3);
         expect(parsedCog?.taskId).toBe("task-1");
         expect(parsedCog?.taskSlug).toBe("visual-critique");
 
         expect(
-          recommendStandardAgentId("ui-mechanic-validator", "task-p48", "viewport-matrix"),
-        ).toBe("ui-mechanic-validator_task-p48-viewport-matrix");
-        expect(recommendStandardAgentId("ui-validator", "task-p48", "viewport-matrix")).toBe(
-          "ui-validator_task-p48-viewport-matrix",
+          recommendStandardAgentId("ui-headless-validator", "task-p48", "viewport-matrix"),
+        ).toBe("ui-headless-validator_task-p48-viewport-matrix");
+        expect(recommendStandardAgentId("ui-optical-validator", "task-p48", "viewport-matrix")).toBe(
+          "ui-optical-validator_task-p48-viewport-matrix",
         );
       });
 
       it("maps agent IDs to roles and execution tiers", () => {
-        expect(agentIdToRole("ui-mechanic-validator_task-p48-matrix")).toBe(
-          "ui-mechanic-validator",
+        expect(agentIdToRole("ui-headless-validator_task-p48-matrix")).toBe(
+          "ui-headless-validator",
         );
-        expect(agentIdToRole("ui-validator_task-p48-critique")).toBe("ui-validator");
-        expect(agentIdToRole("mechanic-validator_task-p47-watchdog")).toBe("mechanic-validator");
+        expect(agentIdToRole("ui-optical-validator_task-p48-critique")).toBe(
+          "ui-optical-validator",
+        );
 
-        expect(agentIdToTier("ui-mechanic-validator_task-p48-matrix")).toBe(3);
-        expect(agentIdToTier("ui-validator_task-p48-critique")).toBe(3);
-        expect(agentIdToTier("mechanic-validator_task-p47-watchdog")).toBe(3);
+        expect(agentIdToTier("ui-headless-validator_task-p48-matrix")).toBe(3);
+        expect(agentIdToTier("ui-optical-validator_task-p48-critique")).toBe(3);
 
-        expect(roleToTier("ui-mechanic-validator")).toBe(3);
-        expect(roleToTier("ui-validator")).toBe(3);
-        expect(roleToTier("mechanic-validator")).toBe(3);
+        expect(roleToTier("ui-headless-validator")).toBe(3);
+        expect(roleToTier("ui-optical-validator")).toBe(3);
       });
     });
 
     describe("Agent Unified Model Integration (Identity, Contract, Permissions)", () => {
-      it("loads valid agent manifests for ui-mechanic-validator and ui-validator", () => {
-        const mechId = loadAgentManifest("ui-mechanic-validator");
-        expect(mechId.name).toBe("ui-mechanic-validator");
+      it("loads valid agent manifests for ui-headless-validator and ui-optical-validator", () => {
+        const mechId = loadAgentManifest("ui-headless-validator");
+        expect(mechId.name).toBe("ui-headless-validator");
         expect(mechId.tier).toBe(3);
-        expect(mechId.interface?.display_name).toBe("UI Mechanic Validator");
+        expect(mechId.interface?.display_name).toBe("UI Headless Mechanic Validator");
         expect(mechId.tools?.enable_write_tools).toBe(true);
         expect(mechId.filePath).toBeDefined();
 
-        const cogId = loadAgentManifest("ui-validator");
-        expect(cogId.name).toBe("ui-validator");
+        const cogId = loadAgentManifest("ui-optical-validator");
+        expect(cogId.name).toBe("ui-optical-validator");
         expect(cogId.tier).toBe(3);
-        expect(cogId.interface?.display_name).toBe("UI Cognitive Validator");
+        expect(cogId.interface?.display_name).toBe("UI Optical Cognitive Validator");
         expect(cogId.tools?.enable_write_tools).toBe(true);
         expect(cogId.filePath).toBeDefined();
       });
 
-      it("loads valid role definition contracts for ui-mechanic-validator and ui-validator", () => {
-        const mechDef = loadRoleContract("ui-mechanic-validator");
+      it("loads valid role definition contracts for ui-headless-validator and ui-optical-validator", () => {
+        const mechDef = loadRoleContract("ui-headless-validator");
         expect(mechDef.tier).toBe(3);
         expect(mechDef.commands.includes("run:exec")).toBe(true);
         expect(mechDef.filePath).toBeDefined();
 
-        const cogDef = loadRoleContract("ui-validator");
+        const cogDef = loadRoleContract("ui-optical-validator");
         expect(cogDef.tier).toBe(3);
         expect(cogDef.commands.includes("run:exec")).toBe(false);
         expect(cogDef.filePath).toBeDefined();
       });
 
-      it("validates unified model consistency and synthesizes complete models for ui-mechanic-validator and ui-validator", () => {
-        const mechModel = loadUnifiedAgentModel("ui-mechanic-validator");
-        expect(mechModel.role).toBe("ui-mechanic-validator");
+      it("validates unified model consistency and synthesizes complete models for ui-headless-validator and ui-optical-validator", () => {
+        const mechModel = loadUnifiedAgentModel("ui-headless-validator");
+        expect(mechModel.role).toBe("ui-headless-validator");
         expect(mechModel.tier).toBe(3);
         expect(mechModel.manifest).toBeDefined();
         expect(mechModel.contract).toBeDefined();
         expect(mechModel.commands.includes("run:exec")).toBe(true);
 
-        const cogModel = loadUnifiedAgentModel("ui-validator");
-        expect(cogModel.role).toBe("ui-validator");
+        const cogModel = loadUnifiedAgentModel("ui-optical-validator");
+        expect(cogModel.role).toBe("ui-optical-validator");
         expect(cogModel.tier).toBe(3);
         expect(cogModel.manifest).toBeDefined();
         expect(cogModel.contract).toBeDefined();

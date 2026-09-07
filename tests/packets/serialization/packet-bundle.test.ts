@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, test } from "bun:test";
+import { afterAll, beforeEach, describe, expect, test } from "bun:test";
 import { chmodSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
@@ -15,6 +15,10 @@ import {
 
 const vfs = new VirtualMemoryFS();
 const session = createVirtualFSSession(vfs);
+
+beforeEach(() => {
+  vfs.reset();
+});
 
 afterAll(() => {
   session.cleanup();

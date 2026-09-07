@@ -137,14 +137,14 @@ describe("workflow leases", () => {
     const clock = new FakeClock();
     const state = workflowState();
     const port = new TestPort(state);
-    expect(() => claimTask(port, "T-1", "agent-a", "repairer", { clock })).toThrow(
+    expect(() => claimTask(port, "T-1", "agent-a", "validator", { clock })).toThrow(
       "lease role does not match the task state",
     );
 
     state.tasks["T-1"]!.status = "changes_requested";
-    state.tasks["T-1"]!.repair_assignee = "agent-a";
+    state.tasks["T-1"]!.repair_assignee = "agent-b";
     expect(() => claimTask(port, "T-1", "agent-a", "implementer", { clock })).toThrow(
-      "lease role does not match the task state",
+      "repair must return to the assigned implementer",
     );
   });
 
@@ -194,14 +194,14 @@ describe("workflow leases", () => {
     state.tasks["T-1"]!.repair_assignee = "agent-a";
     const port = new TestPort(state);
 
-    const { token } = claimTask(port, "T-1", "agent-a", "repairer", { clock });
+    const { token } = claimTask(port, "T-1", "agent-a", "implementer", { clock });
     expect(port.read().tasks["T-1"]!.status).toBe("leased");
 
     const releasedState = releaseLease(port, "T-1", "agent-a", token, clock);
     expect(releasedState.tasks["T-1"]!.status).toBe("changes_requested");
     expect(releasedState.tasks["T-1"]!.lease).toBeUndefined();
 
-    const { token: t2 } = claimTask(port, "T-1", "agent-a", "repairer", { clock });
+    const { token: t2 } = claimTask(port, "T-1", "agent-a", "implementer", { clock });
     port.transact("test", "modify-status", {}, (draft) => {
       draft.tasks["T-1"]!.status = "done";
     });

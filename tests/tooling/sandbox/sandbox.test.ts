@@ -142,6 +142,17 @@ describe("Dynamic Tool Sandboxing & Execution Isolation Suite", () => {
       expect(isPathAllowed("/tmp/other/file.txt", customPolicy, false)).toBe(false);
     });
 
+    it("blocks path traversal attacks and boundary prefix collisions", () => {
+      const customPolicy = createCustomSandboxPolicy({
+        allowedDirectories: ["/tmp/app"],
+      });
+
+      expect(isPathAllowed("/tmp/app/../../etc/passwd", customPolicy, false)).toBe(false);
+      expect(isPathAllowed("/tmp/app/../other/secret.txt", customPolicy, false)).toBe(false);
+      expect(isPathAllowed("/tmp/app-rogue/exploit", customPolicy, false)).toBe(false);
+      expect(isPathAllowed("/tmp/app/safe/nested.txt", customPolicy, false)).toBe(true);
+    });
+
     it("assertsPathWithinBoundaries throws on violations", () => {
       expect(() => {
         assertPathWithinBoundaries("/etc/shadow", STRICT_SANDBOX_POLICY, false);
@@ -204,13 +215,13 @@ describe("Dynamic Tool Sandboxing & Execution Isolation Suite", () => {
 
     it("terminates long-running process when timeout or abort signal is reached", async () => {
       const manager = new IsolatedChildProcessManager();
-      const resTimeout = await manager.runIsolated("sleep", ["5"], { timeoutMs: 100 });
+      const resTimeout = await manager.runIsolated("sleep", ["5"], { timeoutMs: 5 });
       expect(resTimeout.timedOut).toBe(true);
       expect(resTimeout.killed).toBe(true);
 
       const controller = new AbortController();
       const promise = manager.runIsolated("sleep", ["5"], { abortSignal: controller.signal });
-      setTimeout(() => controller.abort(), 50);
+      setTimeout(() => controller.abort(), 2);
       const resAbort = await promise;
       expect(resAbort.killed).toBe(true);
     });
@@ -246,8 +257,8 @@ describe("Dynamic Tool Sandboxing & Execution Isolation Suite", () => {
 
     it("enforces timeout on hanging in-memory functions", async () => {
       const sandbox = new DynamicExecutionSandbox();
-      const res = await sandbox.executeFunction(() => new Promise((r) => setTimeout(r, 500)), {
-        timeoutMs: 50,
+      const res = await sandbox.executeFunction(() => new Promise((r) => setTimeout(r, 100)), {
+        timeoutMs: 5,
       });
       expect(res.success).toBe(false);
       expect(res.timedOut).toBe(true);

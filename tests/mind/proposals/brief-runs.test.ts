@@ -1,28 +1,37 @@
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as storeModule from "../../../olt/scripts/src/engine/store/index.ts";
 import { extractLiveRuns, parseNowMs } from "../../../olt/scripts/src/mind/proposals/brief/runs.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Mind Proposal Brief Runs Module (runs.ts)", () => {
+  let session: VirtualFSSession;
+  let vfs: VirtualMemoryFS;
   let tempDir: string;
   let capsulesDir: string;
   let currentRunDir: string;
   let loadRunSpy: ReturnType<typeof spyOn> | undefined;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "brief-runs-test-"));
+    vfs = new VirtualMemoryFS();
+    vfs.mkdirSync("/virtual/tmp", { recursive: true });
+    session = createVirtualFSSession(vfs);
+
+    tempDir = `/virtual/tmp/brief-runs-test-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     capsulesDir = join(tempDir, "capsules");
     currentRunDir = join(capsulesDir, "run-current");
-    mkdirSync(capsulesDir, { recursive: true });
-    mkdirSync(currentRunDir, { recursive: true });
+    vfs.mkdirSync(capsulesDir, { recursive: true });
+    vfs.mkdirSync(currentRunDir, { recursive: true });
   });
 
   afterEach(() => {
     loadRunSpy?.mockRestore();
     loadRunSpy = undefined;
-    rmSync(tempDir, { recursive: true, force: true });
+    session.cleanup();
   });
 
   describe("parseNowMs", () => {
@@ -51,14 +60,14 @@ describe("Mind Proposal Brief Runs Module (runs.ts)", () => {
       expect(extractLiveRuns(join(tempDir, "non-existent"), currentRunDir, Date.now())).toEqual([]);
 
       const filePath = join(tempDir, "regular-file.txt");
-      writeFileSync(filePath, "not a directory");
+      vfs.writeFileSync(filePath, "not a directory");
       expect(extractLiveRuns(filePath, currentRunDir, Date.now())).toEqual([]);
     });
 
     it("filters out currentBasename, mind-* prefixed, dot files, and regular files", () => {
-      mkdirSync(join(capsulesDir, "mind-agent-1"), { recursive: true });
-      mkdirSync(join(capsulesDir, ".hidden-capsule"), { recursive: true });
-      writeFileSync(join(capsulesDir, "stray-file.json"), "{}");
+      vfs.mkdirSync(join(capsulesDir, "mind-agent-1"), { recursive: true });
+      vfs.mkdirSync(join(capsulesDir, ".hidden-capsule"), { recursive: true });
+      vfs.writeFileSync(join(capsulesDir, "stray-file.json"), "{}");
 
       const summaries = extractLiveRuns(capsulesDir, currentRunDir, Date.now());
       expect(summaries).toEqual([]);
@@ -67,8 +76,8 @@ describe("Mind Proposal Brief Runs Module (runs.ts)", () => {
     it("skips directories where loadRun throws or completion status is complete", () => {
       const corruptDir = join(capsulesDir, "run-corrupt");
       const completedDir = join(capsulesDir, "run-complete");
-      mkdirSync(corruptDir, { recursive: true });
-      mkdirSync(completedDir, { recursive: true });
+      vfs.mkdirSync(corruptDir, { recursive: true });
+      vfs.mkdirSync(completedDir, { recursive: true });
 
       loadRunSpy = spyOn(storeModule, "loadRun").mockImplementation((path: string) => {
         if (path.endsWith("run-corrupt")) {
@@ -89,9 +98,9 @@ describe("Mind Proposal Brief Runs Module (runs.ts)", () => {
       const runPlanning = join(capsulesDir, "run-plan");
       const runExecuting = join(capsulesDir, "run-exec");
       const runValidating = join(capsulesDir, "run-valid");
-      mkdirSync(runPlanning, { recursive: true });
-      mkdirSync(runExecuting, { recursive: true });
-      mkdirSync(runValidating, { recursive: true });
+      vfs.mkdirSync(runPlanning, { recursive: true });
+      vfs.mkdirSync(runExecuting, { recursive: true });
+      vfs.mkdirSync(runValidating, { recursive: true });
 
       const nowMs = 1756728000000;
 
@@ -182,9 +191,9 @@ describe("Mind Proposal Brief Runs Module (runs.ts)", () => {
 
     it("processes symbolic links targeting valid runs", () => {
       const realTarget = join(tempDir, "external-run-target");
-      mkdirSync(realTarget, { recursive: true });
+      vfs.mkdirSync(realTarget, { recursive: true });
       const symlinkPath = join(capsulesDir, "run-symlink");
-      symlinkSync(realTarget, symlinkPath);
+      session.symlinkSync(realTarget, symlinkPath);
 
       loadRunSpy = spyOn(storeModule, "loadRun").mockReturnValue({
         manifest: {} as never,

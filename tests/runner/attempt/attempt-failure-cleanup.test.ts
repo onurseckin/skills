@@ -1,12 +1,10 @@
 import { afterAll, afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
-import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { handleAttemptFailure } from "../../../olt/scripts/src/engine/runner/execution/attempt-failure-cleanup.ts";
 import { createAttemptExecutionError } from "../../../olt/scripts/src/engine/runner/execution/attempt-failure-evidence.ts";
 import type { NormalizedCommandOptions } from "../../../olt/scripts/src/engine/runner/types/types.ts";
 import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
-import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import { getRunnerVfs, tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
 afterEach(cleanupTempRoots);
 afterAll(cleanupTempRoots);
@@ -39,10 +37,11 @@ describe("attempt-failure-cleanup: handleAttemptFailure", () => {
 
   beforeEach(() => {
     const tempDir = tempRoot("handle-failure");
+    const vfs = getRunnerVfs();
     attemptDir = join(tempDir, "attempts/1");
-    mkdirSync(attemptDir, { recursive: true });
-    writeFileSync(join(attemptDir, "stdout.log"), "sample stdout");
-    writeFileSync(join(attemptDir, "stderr.log"), "sample stderr");
+    vfs.mkdirSync(attemptDir, { recursive: true });
+    vfs.writeFileSync(join(attemptDir, "stdout.log"), "sample stdout");
+    vfs.writeFileSync(join(attemptDir, "stderr.log"), "sample stderr");
 
     baseCtx = {
       error: new Error("initial crash"),
@@ -137,7 +136,8 @@ describe("attempt-failure-cleanup: handleAttemptFailure", () => {
 
   test("creates execution error and preserves original error cause", async () => {
     const startedAt = new Date("2026-08-14T00:00:00.000Z");
-    writeFileSync(join(attemptDir, "activity.json"), JSON.stringify({ pid: 12345 }));
+    const vfs = getRunnerVfs();
+    vfs.writeFileSync(join(attemptDir, "activity.json"), JSON.stringify({ pid: 12345 }));
 
     try {
       await handleAttemptFailure({
@@ -163,8 +163,9 @@ describe("attempt-failure-cleanup: handleAttemptFailure", () => {
 describe("createAttemptExecutionError terminal-evidence-failure fallback", () => {
   test("wraps a failure while persisting evidence around the original error message", async () => {
     const runRoot = tempRoot("attempt-failure-evidence-terminal");
+    const vfs = getRunnerVfs();
     const attemptDir = join(runRoot, "attempt-1");
-    await mkdir(attemptDir);
+    vfs.mkdirSync(attemptDir, { recursive: true });
     const options = { runRoot, maxOutputBytes: 1024, argv: ["tool"] } as NormalizedCommandOptions;
 
     expect(() =>
@@ -185,8 +186,9 @@ describe("createAttemptExecutionError terminal-evidence-failure fallback", () =>
 
   test("falls back to String(error) when the original error is not an Error instance", async () => {
     const runRoot = tempRoot("attempt-failure-evidence-terminal-nonerror");
+    const vfs = getRunnerVfs();
     const attemptDir = join(runRoot, "attempt-1");
-    await mkdir(attemptDir);
+    vfs.mkdirSync(attemptDir, { recursive: true });
     const options = { runRoot, maxOutputBytes: 1024, argv: ["tool"] } as NormalizedCommandOptions;
 
     expect(() =>

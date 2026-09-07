@@ -156,7 +156,7 @@ describe("a validator node's domain distinguishes it from every other validator"
   });
 });
 
-describe("a repairer's ledger-granted role agrees with telemetry instead of contradicting it", () => {
+describe("an in-lease repair round's ledger-granted role agrees with telemetry instead of contradicting it", () => {
   function repairingTask(): TaskRecord {
     return makeTask("T-repair", {
       status: "changes_requested",
@@ -165,15 +165,17 @@ describe("a repairer's ledger-granted role agrees with telemetry instead of cont
     });
   }
 
-  test("metadata.role mirrors the repairer grant on the live implementer node", () => {
+  test("metadata.role mirrors the implementer grant on the live repair-round node", () => {
     const dataset = generateGraphDataset({
       runId: "run-repair",
-      state: makeState([repairingTask()], { agents: [makeGrant("agent-1", { role: "repairer" })] }),
+      state: makeState([repairingTask()], {
+        agents: [makeGrant("agent-1", { role: "implementer" })],
+      }),
     });
     const node = dataset.nodes.find((entry) => entry.id === "node-task-T-repair");
 
-    expect(node?.telemetry?.role).toBe("repairer");
-    expect(node?.metadata?.role).toBe("repairer");
+    expect(node?.telemetry?.role).toBe("implementer");
+    expect(node?.metadata?.role).toBe("implementer");
   });
 
   test("states no role at all when the agent has no ledger grant to read one from", () => {
@@ -207,14 +209,58 @@ describe("a repairer's ledger-granted role agrees with telemetry instead of cont
     });
     const dataset = generateGraphDataset({
       runId: "run-archived-repair",
-      state: makeState([task], { agents: [makeGrant("agent-1", { role: "repairer" })] }),
+      state: makeState([task], { agents: [makeGrant("agent-1", { role: "implementer" })] }),
     });
     const archivedImpl = dataset.nodes.find(
       (entry) => entry.id === "node-task-T-archived-repair-r1",
     );
 
-    expect(archivedImpl?.telemetry?.role).toBe("repairer");
-    expect(archivedImpl?.metadata?.role).toBe("repairer");
+    expect(archivedImpl?.telemetry?.role).toBe("implementer");
+    expect(archivedImpl?.metadata?.role).toBe("implementer");
+  });
+
+  test("reassigned implementer multi-round role projection cleanly distinguishes the initial round from the repair round by agent, not by role name", () => {
+    const task = makeTask("T-reassign", {
+      status: "changes_requested",
+      repair_round: 1,
+      original_implementer: "agent-1",
+      repair_assignee: "agent-2",
+      validation_history: [
+        {
+          validator_id: "val-1",
+          domain: "security",
+          token_digest: "tok",
+          attempt: 1,
+          started_at: "2026-08-14T20:00:00.000Z",
+          deadline_at: "2026-08-14T20:10:00.000Z",
+          verdict: "reject",
+        },
+      ],
+    });
+
+    const dataset = generateGraphDataset({
+      runId: "run-reassign",
+      state: makeState([task], {
+        agents: [
+          makeGrant("agent-1", { role: "implementer" }),
+          makeGrant("agent-2", { role: "implementer" }),
+        ],
+      }),
+    });
+
+    const archivedNode = dataset.nodes.find((n) => n.id === "node-task-T-reassign-r1");
+    const liveNode = dataset.nodes.find((n) => n.id === "node-task-T-reassign");
+
+    expect(archivedNode?.metadata?.role).toBe("implementer");
+    expect(archivedNode?.telemetry?.role).toBe("implementer");
+    expect(archivedNode?.telemetry?.agentId).toBe("agent-1");
+
+    expect(liveNode?.metadata?.role).toBe("implementer");
+    expect(liveNode?.telemetry?.role).toBe("implementer");
+    expect(liveNode?.metadata?.agentId).toBe("agent-2");
+
+    expect(archivedNode?.metadata?.role).toBe(liveNode?.metadata?.role);
+    expect(archivedNode?.telemetry?.agentId).not.toBe(liveNode?.metadata?.agentId);
   });
 });
 
@@ -278,5 +324,61 @@ describe("a branched sub-task's ledger-granted role reaches its node", () => {
 
     expect(impl?.metadata?.role).toBeUndefined();
     expect("role" in (impl?.metadata ?? {})).toBe(false);
+  });
+
+  test("confines sub-task roles to grants and prevents role leakage to ungranted sub-tasks", () => {
+    const branchWith3SubTasks: BranchRecord = {
+      id: "B-triple",
+      parent_task_id: "T-parent",
+      parent_agent_id: "worker-1",
+      reason: "decomposition",
+      depth: 1,
+      status: "open",
+      opened_at: "2026-08-14T20:05:00.000Z",
+      sub_tasks: [
+        {
+          id: "B-triple-sub-1",
+          label: "Subtask 1",
+          write_scope: ["src/1.ts"],
+          status: "claimed",
+          agent_id: "agent-sub-1",
+        },
+        {
+          id: "B-triple-sub-2",
+          label: "Subtask 2",
+          write_scope: ["src/2.ts"],
+          status: "claimed",
+          agent_id: "agent-sub-2",
+        },
+        {
+          id: "B-triple-sub-3",
+          label: "Subtask 3",
+          write_scope: ["src/3.ts"],
+          status: "claimed",
+          agent_id: "agent-sub-3",
+        },
+      ],
+    };
+
+    const dataset = generateGraphDataset({
+      runId: "run-sub-confinement",
+      state: makeState([makeTask("T-parent", { status: "branched" })], {
+        branches: [branchWith3SubTasks],
+        agents: [
+          makeGrant("agent-sub-1", { role: "sub-implementer" }),
+          makeGrant("agent-sub-2", { role: "sub-validator" }),
+        ],
+      }),
+    });
+
+    const node1 = dataset.nodes.find((n) => n.id === "node-branch-B-triple-B-triple-sub-1");
+    const node2 = dataset.nodes.find((n) => n.id === "node-branch-B-triple-B-triple-sub-2");
+    const node3 = dataset.nodes.find((n) => n.id === "node-branch-B-triple-B-triple-sub-3");
+
+    expect(node1?.metadata?.role).toBe("sub-implementer");
+    expect(node2?.metadata?.role).toBe("sub-validator");
+    expect(node3?.metadata?.role).toBeUndefined();
+    expect(node3?.telemetry).toBeUndefined();
+    expect("role" in (node3?.metadata ?? {})).toBe(false);
   });
 });

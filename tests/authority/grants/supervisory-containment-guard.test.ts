@@ -35,7 +35,7 @@ describe("Authority Guards Integration", () => {
     expect(isSupervisoryRoleForContainment("coordinator-1")).toBe(true);
     expect(isSupervisoryRoleForContainment("implementer")).toBe(false);
     expect(isSupervisoryRoleForContainment("worker")).toBe(false);
-    expect(isSupervisoryRoleForContainment("mechanic-validator")).toBe(false);
+    expect(isSupervisoryRoleForContainment("ui-optical-validator")).toBe(false);
   });
 
   test("detects violations from tool names, commands, and arguments", () => {

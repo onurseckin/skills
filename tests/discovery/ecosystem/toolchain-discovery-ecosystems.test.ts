@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -15,6 +15,14 @@ import { cleanupVirtualDiscoveryFS, setupVirtualDiscoveryFS } from "../fixtures/
 
 describe("Toolchain Discovery - Ecosystems (Bun, Node, Cargo, Python, Make)", () => {
   const scratch = "/virtual/toolchain-discovery-ecosystems";
+
+  beforeAll(() => {
+    try {
+      getCargoPresets();
+      getPythonPresets();
+      getUnknownPresets();
+    } catch {}
+  });
 
   beforeEach(() => {
     setupVirtualDiscoveryFS();
@@ -242,5 +250,52 @@ describe("Toolchain Discovery - Ecosystems (Bun, Node, Cargo, Python, Make)", ()
     const discovered = discoverToolchain(dir, "node");
     expect(discovered.isMonorepo).toBe(true);
     expect(discovered.typecheckCommand).toBe("turbo run typecheck");
+  });
+
+  test("gracefully falls back on an empty directory", () => {
+    const dir = join(scratch, "empty-project");
+    mkdirSync(dir, { recursive: true });
+
+    const discovered = discoverToolchain(dir);
+    expect(discovered.ecosystem).toBe("unknown");
+    expect(discovered.packageManager).toBeUndefined();
+    expect(discovered.typecheckCommand).toBeUndefined();
+    expect(discovered.lintCommand).toBeUndefined();
+    expect(discovered.testRunner.default_command).toBe("test");
+    expect(discovered.allowedCommands).toContain("ls");
+    expect(discovered.allowedCommands).toContain("cat");
+    expect(discovered.isMonorepo).toBe(false);
+    expect(discovered.isTypeScript).toBe(false);
+
+    const policy = generateDefaultRepoPolicy(dir);
+    expect(policy.ecosystem).toBe("unknown");
+    expect(policy.test_runner.default_command).toBe("test");
+  });
+
+  test("gracefully falls back on malformed package.json and empty scripts", () => {
+    const malformedDir = join(scratch, "malformed-json-project");
+    mkdirSync(malformedDir, { recursive: true });
+    writeFileSync(join(malformedDir, "package.json"), "{ NOT VALID JSON");
+
+    const malformedDiscovered = discoverToolchain(malformedDir);
+    expect(malformedDiscovered.ecosystem).toBe("node");
+    expect(malformedDiscovered.packageManager).toBe("npm");
+    expect(malformedDiscovered.typecheckCommand).toBe("npm run typecheck");
+    expect(malformedDiscovered.lintCommand).toBe("npm run lint");
+    expect(malformedDiscovered.testRunner.default_command).toBe("npm test");
+
+    const emptyScriptsDir = join(scratch, "empty-scripts-project");
+    mkdirSync(emptyScriptsDir, { recursive: true });
+    writeFileSync(
+      join(emptyScriptsDir, "package.json"),
+      JSON.stringify({ name: "empty-scripts", scripts: {} }),
+    );
+
+    const emptyScriptsDiscovered = discoverToolchain(emptyScriptsDir);
+    expect(emptyScriptsDiscovered.ecosystem).toBe("node");
+    expect(emptyScriptsDiscovered.packageManager).toBe("npm");
+    expect(emptyScriptsDiscovered.typecheckCommand).toBe("npm run typecheck");
+    expect(emptyScriptsDiscovered.lintCommand).toBe("npm run lint");
+    expect(emptyScriptsDiscovered.testRunner.default_command).toBe("npm test");
   });
 });

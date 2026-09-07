@@ -1,5 +1,4 @@
 import { afterEach, expect, test } from "bun:test";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { atomicWriteJson } from "../../../olt/scripts/src/core/durable-write.ts";
@@ -11,9 +10,11 @@ import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/run
 import { embeddedCommandIssues } from "../../../olt/scripts/src/engine/runner/models/command/command-shape.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/execution/attempt-disposition-capability.ts";
-import { tempRoot, cleanupTempRoots } from "./fixture.ts";
+import { getRunnerVfs, tempRoot, cleanupTempRoots } from "./fixture.ts";
 
 afterEach(cleanupTempRoots);
+
+const PROMPT_BYTES = new Uint8Array([112, 114, 111, 109, 112, 116]);
 
 function binding(marker: string): RepositoryBinding {
   return {
@@ -29,15 +30,10 @@ function binding(marker: string): RepositoryBinding {
 
 async function preparedIntent() {
   const repo = tempRoot("command-intent-equality");
-  await mkdir(join(repo, "bin"));
-  await writeFile(join(repo, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
-  const runRoot = initRun(
-    repo,
-    "intent-equality",
-    new TextEncoder().encode("prompt"),
-    "file",
-    true,
-  );
+  const vfs = getRunnerVfs();
+  vfs.mkdirSync(join(repo, "bin"), { recursive: true });
+  vfs.writeFileSync(join(repo, "bin", "verify"), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
+  const runRoot = initRun(repo, "intent-equality", PROMPT_BYTES, "file", true);
   const runner = createInternalCommandRunner({
     inspectRepository: () => binding("a"),
     attempt: async () => {
@@ -88,6 +84,7 @@ test("reconciliation accepts only the trusted-host terminal observation transiti
   expect(embeddedCommandIssues(forgedSuccess)).not.toEqual([]);
   expect(() => reconcileCommandResult(success.runRoot, "validator", forgedSuccess)).toThrow();
 
+  const rejected = await preparedIntent();
   for (const [label, mutate] of [
     [
       "attempt signing public key",
@@ -120,7 +117,6 @@ test("reconciliation accepts only the trusted-host terminal observation transiti
       },
     ],
   ] as const) {
-    const rejected = await preparedIntent();
     const forged = terminalRecord(rejected.prepared);
     forged.repository_after = binding("b");
     forged.preflight_failure = forged.evidence_error;
@@ -132,9 +128,10 @@ test("reconciliation accepts only the trusted-host terminal observation transiti
 
 test("failed preflight path drift reconciles from durable evidence", async () => {
   const { prepared, repo, runRoot, runner } = await preparedIntent();
-  await writeFile(join(repo, "bin", "verify"), "#!/bin/sh\nexit 1\n", { mode: 0o700 });
+  const vfs = getRunnerVfs();
+  vfs.writeFileSync(join(repo, "bin", "verify"), "#!/bin/sh\nexit 1\n", { mode: 0o700 });
   await expect(runner.executePreparedCommand(prepared)).rejects.toThrow(/identity|digest/i);
-  const failed = JSON.parse(await readFile(prepared.recordPath, "utf8"));
+  const failed = JSON.parse(vfs.readFileSync(prepared.recordPath, "utf8"));
   expect(failed).toMatchObject({ status: "failed", attempts: [] });
   expect(failed.preflight_failure).toMatch(/identity|digest/i);
   expect(() => reconcileCommandResult(runRoot, "validator", failed)).not.toThrow();

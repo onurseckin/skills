@@ -199,7 +199,7 @@ describe("rich instructions - scopes & viewports", () => {
         expect(schema).toHaveProperty("gate_evidence");
         expect(schema).toHaveProperty("gate_evidence_limitations");
 
-        if (role === "implementer" || role === "repairer" || role === "sub-implementer") {
+        if (role === "implementer" || role === "publisher" || role === "sub-implementer") {
           expect(schema).toHaveProperty("summary");
           expect(schema).toHaveProperty("requirement_ids");
           expect(schema).toHaveProperty("files_changed");

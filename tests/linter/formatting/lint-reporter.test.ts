@@ -28,6 +28,7 @@ describe(lintReporterSuiteName, () => {
         trivial_assertion: 0,
         empty_test_body: 0,
         trivial_early_return: 0,
+        unit_test_purity: 0,
       },
     };
 
@@ -64,6 +65,7 @@ describe(lintReporterSuiteName, () => {
         trivial_assertion: 0,
         empty_test_body: 0,
         trivial_early_return: 0,
+        unit_test_purity: 0,
       },
     };
 
@@ -99,6 +101,7 @@ describe(lintReporterSuiteName, () => {
       trivial_assertion: 0,
       empty_test_body: 0,
       trivial_early_return: 0,
+      unit_test_purity: 0,
     });
     expect(table).toContain("| `logical_or_fallback` | 1 |");
   });

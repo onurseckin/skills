@@ -1,6 +1,5 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   findCommandRecord,
@@ -12,14 +11,32 @@ import {
   type GateEvaluationContext,
   type CommandRecordCandidate,
 } from "../../../olt/scripts/src/mind/proposals/gates/types.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Mind Proposals Gates Types & Helpers Module", () => {
+  let session: VirtualFSSession;
+  let vfs: VirtualMemoryFS;
+
+  beforeEach(() => {
+    vfs = new VirtualMemoryFS();
+    vfs.mkdirSync("/virtual/tmp", { recursive: true });
+    session = createVirtualFSSession(vfs);
+  });
+
+  afterEach(() => {
+    session.cleanup();
+  });
+
   describe("findCommandRecord", () => {
     it("returns null for empty or non-string commandId", () => {
-      expect(findCommandRecord("/path", "")).toBeNull();
-      expect(findCommandRecord("/path", null as unknown as string)).toBeNull();
-      expect(findCommandRecord("/path", undefined as unknown as string)).toBeNull();
-      expect(findCommandRecord("/path", 123 as unknown as string)).toBeNull();
+      expect(findCommandRecord("/virtual/path", "")).toBeNull();
+      expect(findCommandRecord("/virtual/path", null as unknown as string)).toBeNull();
+      expect(findCommandRecord("/virtual/path", undefined as unknown as string)).toBeNull();
+      expect(findCommandRecord("/virtual/path", 123 as unknown as string)).toBeNull();
     });
 
     it("retrieves command record from state.commands dictionary", () => {
@@ -29,14 +46,14 @@ describe("Mind Proposals Gates Types & Helpers Module", () => {
         status: "completed",
       };
       const state = { commands: { "cmd-state-1": record } };
-      expect(findCommandRecord("/path", "cmd-state-1", state)).toBe(record);
+      expect(findCommandRecord("/virtual/path", "cmd-state-1", state)).toBe(record);
 
       const stateNonObject = { commands: "not-an-object" as unknown as Record<string, unknown> };
-      expect(findCommandRecord("/nonexistent/path", "cmd-missing", stateNonObject)).toBeNull();
+      expect(findCommandRecord("/virtual/nonexistent/path", "cmd-missing", stateNonObject)).toBeNull();
     });
 
     it("reads direct record.json from runRoot/commands/<commandId>", () => {
-      const tmp = mkdtempSync(join(tmpdir(), "cmd-direct-"));
+      const tmp = mkdtempSync(join("/virtual/tmp", "cmd-direct-"));
       try {
         const cmdDir = join(tmp, "commands", "cmd-dir-1");
         mkdirSync(cmdDir, { recursive: true });
@@ -61,7 +78,7 @@ describe("Mind Proposals Gates Types & Helpers Module", () => {
     });
 
     it("finds command record in sibling runs under capsules directory", () => {
-      const capsulesDir = mkdtempSync(join(tmpdir(), "capsules-sibling-"));
+      const capsulesDir = mkdtempSync(join("/virtual/tmp", "capsules-sibling-"));
       try {
         const run1 = join(capsulesDir, "run-current");
         mkdirSync(run1, { recursive: true });
@@ -91,6 +108,28 @@ describe("Mind Proposals Gates Types & Helpers Module", () => {
     it("returns null when runRoot directory structure does not exist", () => {
       expect(findCommandRecord("/nonexistent/virtual/dir/deep/runRoot", "cmd-x")).toBeNull();
     });
+
+    it("handles non-object JSON and empty output logs cleanly without runtime errors", () => {
+      const tmp = mkdtempSync(join("/virtual/tmp", "cmd-non-obj-"));
+      try {
+        const cmdDir = join(tmp, "commands", "cmd-array-json");
+        mkdirSync(cmdDir, { recursive: true });
+        writeFileSync(join(cmdDir, "record.json"), "[1, 2, 3]");
+
+        const found = findCommandRecord(tmp, "cmd-array-json");
+        expect(Array.isArray(found)).toBe(true);
+
+        const emptyLogPath = join(tmp, "empty.log");
+        writeFileSync(emptyLogPath, "");
+        const recordWithEmptyLog: CommandRecordCandidate = {
+          id: "cmd-empty-log",
+          logs: { stdout: { path: emptyLogPath } },
+        };
+        expect(readCandidateCommandOutput(recordWithEmptyLog, tmp)).toBe("");
+      } finally {
+        rmSync(tmp, { recursive: true, force: true });
+      }
+    });
   });
 
   describe("readCandidateCommandOutput", () => {
@@ -100,7 +139,7 @@ describe("Mind Proposals Gates Types & Helpers Module", () => {
     });
 
     it("reads stdout and stderr from record.logs using relative and absolute paths", () => {
-      const tmp = mkdtempSync(join(tmpdir(), "cmd-output-logs-"));
+      const tmp = mkdtempSync(join("/virtual/tmp", "cmd-output-logs-"));
       try {
         const stdoutRelPath = "stdout.log";
         const stderrAbsPath = join(tmp, "stderr.log");
@@ -122,7 +161,7 @@ describe("Mind Proposals Gates Types & Helpers Module", () => {
     });
 
     it("handles readFileSync errors when stdout or stderr path points to a directory", () => {
-      const tmp = mkdtempSync(join(tmpdir(), "cmd-output-dir-err-"));
+      const tmp = mkdtempSync(join("/virtual/tmp", "cmd-output-dir-err-"));
       try {
         const subDir = join(tmp, "dir-not-file");
         mkdirSync(subDir, { recursive: true });
@@ -140,7 +179,7 @@ describe("Mind Proposals Gates Types & Helpers Module", () => {
     });
 
     it("falls back to last attempt logs when record.logs is missing or empty", () => {
-      const tmp = mkdtempSync(join(tmpdir(), "cmd-output-attempts-"));
+      const tmp = mkdtempSync(join("/virtual/tmp", "cmd-output-attempts-"));
       try {
         const attemptStderr = join(tmp, "attempt2.err");
         writeFileSync(attemptStderr, "Error in attempt 2");
@@ -163,8 +202,8 @@ describe("Mind Proposals Gates Types & Helpers Module", () => {
       const record1: CommandRecordCandidate = {
         id: "cmd-empty-paths",
         logs: {
-          stdout: { path: "/nonexistent/path/out.log" },
-          stderr: { path: "/nonexistent/path/err.log" },
+          stdout: { path: "/virtual/nonexistent/path/out.log" },
+          stderr: { path: "/virtual/nonexistent/path/err.log" },
         },
       };
       expect(readCandidateCommandOutput(record1, "/virtual/root")).toBe("");

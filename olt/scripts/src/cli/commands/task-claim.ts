@@ -168,7 +168,7 @@ export async function taskClaimCommand(
       `role '${role}' cannot claim code implementation tasks: critics and validators are strictly prohibited from claiming code write leases (anti-boundary-leak rule)`,
       [{ task_id: taskId, agent_id: agent, role }],
       3,
-      "Delegate repair to an assigned implementer/repairer via task:assign-repairer.",
+      "Delegate repair to the assigned implementer via an in-lease micro-cycle (task:reject --in-lease).",
     );
   }
   const leaseSeconds =

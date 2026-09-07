@@ -1,8 +1,18 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { cleanupRoots, emptyState, render, tempRoot } from "./markdown-fixtures-core.ts";
+import {
+  cleanupRoots,
+  emptyState,
+  getVirtualFormattersFS,
+  render,
+  setupVirtualFormattersFS,
+  tempRoot,
+} from "./markdown-fixtures-core.ts";
 import { populatedGraph, populatedRunRoot, populatedState } from "./markdown-fixtures-dag.ts";
+
+beforeEach(() => {
+  setupVirtualFormattersFS();
+});
 
 afterEach(cleanupRoots);
 
@@ -82,8 +92,9 @@ describe("markdown report: a fully populated capsule renders every recorded fact
 
   test("a plan document whose entries are unreadable loses the entries, not the page", () => {
     const runRoot = tempRoot();
-    mkdirSync(join(runRoot, "planning"), { recursive: true });
-    writeFileSync(
+    const vfs = getVirtualFormattersFS();
+    vfs.mkdirSync(join(runRoot, "planning"), { recursive: true });
+    vfs.writeFileSync(
       join(runRoot, "planning", "enhanced-plan.json"),
       JSON.stringify({
         schema: "harness.enhanced-plan",
@@ -103,8 +114,9 @@ describe("markdown report: a fully populated capsule renders every recorded fact
 
   test("an unparseable plan document is reported as unreadable, not as an empty plan", () => {
     const root = tempRoot();
-    mkdirSync(join(root, "planning"), { recursive: true });
-    writeFileSync(join(root, "planning", "enhanced-plan.json"), "{ not json");
+    const vfs = getVirtualFormattersFS();
+    vfs.mkdirSync(join(root, "planning"), { recursive: true });
+    vfs.writeFileSync(join(root, "planning", "enhanced-plan.json"), "{ not json");
     const markdown = render(
       { ...emptyState, planning: { enhanced_plan: { revision: 1 } } },
       { runRoot: root },

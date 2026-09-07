@@ -68,7 +68,23 @@ export {
   type SummaryTableOptions,
 } from "./runner/index.ts";
 
+export {
+  auditSourceCode,
+  auditTestPurity,
+  auditTestPuritySync,
+  buildAuditResult,
+  formatMarkdownReport,
+  formatTerminalReport,
+  getAllTestFiles,
+  getStagedTestFiles,
+  type PurityAuditOptions,
+  type PurityAuditResult,
+  type PurityViolation,
+  type PurityViolationCategory,
+} from "./guardrails/index.ts";
+
+import * as guardrails from "./guardrails/index.ts";
 import * as reporting from "./reporting/index.ts";
 import * as runner from "./runner/index.ts";
 
-export { reporting, runner };
+export { guardrails, reporting, runner };

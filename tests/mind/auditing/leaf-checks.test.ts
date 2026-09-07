@@ -63,7 +63,7 @@ describe("Mind Auditing Leaf Checks Coverage Suite", () => {
 
   describe("checkValidatorHardLock", () => {
     it("returns null for non-cognitive validator roles", () => {
-      expect(checkValidatorHardLock(act("mechanic-validator", "test_run"), 3, ts)).toBeNull();
+      expect(checkValidatorHardLock(act("ui-headless-validator", "test_run"), 3, ts)).toBeNull();
       expect(checkValidatorHardLock(act("implementer", "command_exec"), 3, ts)).toBeNull();
     });
 
@@ -76,7 +76,7 @@ describe("Mind Auditing Leaf Checks Coverage Suite", () => {
       expect(vTool?.violationType).toBe("validator_hardlock_violation");
 
       const vCat = checkValidatorHardLock(
-        act("ui-validator", "tool_use", { toolCategory: "shell" }),
+        act("ui-optical-validator", "tool_use", { toolCategory: "shell" }),
         3,
         ts,
       );

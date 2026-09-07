@@ -56,6 +56,8 @@ const TOP_LEVEL_KEYS: ReadonlySet<string> = new Set([
   "ecosystem",
   "package_manager",
   "skill_home_repo_root",
+  "test_execution",
+  "unit_test",
   "test_runner",
   "typecheck_command",
   "lint_command",
@@ -128,6 +130,12 @@ export function parseRepoPolicy(raw: unknown): RepoPolicy {
     ...(pm !== undefined ? { package_manager: pm } : {}),
     ...(raw["skill_home_repo_root"] !== undefined
       ? { skill_home_repo_root: reqString(raw["skill_home_repo_root"], "$.skill_home_repo_root") }
+      : {}),
+    ...(raw["test_execution"] !== undefined
+      ? { test_execution: raw["test_execution"] as boolean | string | null }
+      : {}),
+    ...(raw["unit_test"] !== undefined
+      ? { unit_test: raw["unit_test"] as boolean | string | null }
       : {}),
     test_runner: testRunner,
     ...(raw["typecheck_command"] !== undefined

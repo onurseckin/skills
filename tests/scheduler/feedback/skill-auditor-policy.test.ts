@@ -34,6 +34,11 @@ describe("SkillAuditorPolicy", () => {
     it("returns false for unrelated repositories", () => {
       expect(SkillAuditorPolicy.isMandatoryTarget("/Users/foo/repos/unrelated-app")).toBe(false);
     });
+
+    it("returns true (fails safe) when repoRoot is undefined or empty", () => {
+      expect(SkillAuditorPolicy.isMandatoryTarget(undefined)).toBe(true);
+      expect(SkillAuditorPolicy.isMandatoryTarget("")).toBe(true);
+    });
   });
 
   describe("assertSkillAuditorRequired", () => {
@@ -56,6 +61,24 @@ describe("SkillAuditorPolicy", () => {
           activeAgents,
         );
       }).not.toThrow();
+    });
+
+    it("enforces mandatory skill-auditor when repoRoot is omitted (undefined)", () => {
+      const activeAgents: readonly AgentGrantRecord[] = [
+        {
+          id: "orchestrator-1",
+          role: "orchestrator",
+          parent_agent_id: null,
+          parent_task_id: null,
+          host: "local",
+          granted_at: "2026-08-24T00:00:00.000Z",
+          status: "active",
+        },
+      ];
+
+      expect(() => {
+        SkillAuditorPolicy.assertSkillAuditorRequired(undefined as unknown as string, activeAgents);
+      }).toThrow(HarnessError);
     });
 
     it("throws SKILL_AUDITOR_MANDATE_VIOLATION when skill-auditor or meta-auditor is missing", () => {

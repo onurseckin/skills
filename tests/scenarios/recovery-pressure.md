@@ -168,7 +168,7 @@ The prior validator chat is quarantined with provenance as non-authoritative rec
 is not approval and is excluded from Agent C’s packet, along with implementer reports, confidence,
 deadline pressure, and earlier review notes. Agent C independently inspects disk and runs its own
 focused checks. A rejection creates structured findings and returns them to the original
-implementer/repairer; another fresh validator rechecks every finding. After three rejected repair
+implementer; another fresh validator rechecks every finding. After three rejected repair
 rounds the task is escalated, not self-approved.
 
 Only after `impl-2` has a current authenticated submission, fresh independent pass, closed findings,

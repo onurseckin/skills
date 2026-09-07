@@ -1,17 +1,24 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { join } from "node:path";
 import {
   formatMindAuditStartBrief,
   mindAuditStartCommand,
 } from "../../../../olt/scripts/src/cli/commands/mind-audit-start.ts";
-import { loadRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
-import {
-  cleanupRoots,
-  cleanupVirtualCliFS,
-  setupVirtualCliFS,
-} from "../fixtures/full-lifecycle-fixture.ts";
-import { setupCompiledRun } from "../fixtures/task-ops-fixture.ts";
+import { initRun, loadRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import { cleanupVirtualCliFS, setupVirtualCliFS } from "../fixtures/full-lifecycle-fixture.ts";
 
-const roots: string[] = [];
+let vfs: VirtualMemoryFS;
+
+function setupMindRun(name: string): { run: string; repo: string } {
+  const repo = `/virtual/mind-audit-start/${name}`;
+  vfs.mkdirSync(repo, { recursive: true });
+  vfs.mkdirSync(join(repo, ".git"), { recursive: true });
+  vfs.mkdirSync(join(repo, ".olt"), { recursive: true });
+  vfs.writeFileSync(join(repo, ".olt", "policy.json"), JSON.stringify({ version: "1.0.0" }));
+  const run = initRun(repo, `${name}-run`, new TextEncoder().encode("prompt"), "file", true);
+  return { run, repo };
+}
 
 function grantAgentRole(run: string, agentId: string, role: string): void {
   transact(run, "coordinator", `grant-${agentId}`, {}, (draft) => {
@@ -31,11 +38,10 @@ function grantAgentRole(run: string, agentId: string, role: string): void {
 
 describe("mind:audit-start CLI Command Coverage Suite", () => {
   beforeEach(() => {
-    setupVirtualCliFS();
+    vfs = setupVirtualCliFS();
   });
 
-  afterEach(async () => {
-    await cleanupRoots(roots);
+  afterEach(() => {
     cleanupVirtualCliFS();
   });
 
@@ -55,8 +61,8 @@ describe("mind:audit-start CLI Command Coverage Suite", () => {
     expect(brief).toContain("- **Status**: in_progress (awaiting 8-question report)");
   });
 
-  test("mindAuditStartCommand throws on invalid timestamp flag", async () => {
-    const { run } = await setupCompiledRun("audit-time-err", roots);
+  test("mindAuditStartCommand throws on invalid timestamp flag", () => {
+    const { run } = setupMindRun("audit-time-err");
 
     expect(() =>
       mindAuditStartCommand({
@@ -67,8 +73,8 @@ describe("mind:audit-start CLI Command Coverage Suite", () => {
     ).toThrow("invalid --now timestamp: not-a-timestamp");
   });
 
-  test("mindAuditStartCommand validates agent authorization and auto-grants mind roles", async () => {
-    const { run } = await setupCompiledRun("audit-auth", roots);
+  test("mindAuditStartCommand validates agent authorization and auto-grants mind roles", () => {
+    const { run } = setupMindRun("audit-auth");
 
     expect(() =>
       mindAuditStartCommand({
@@ -85,7 +91,6 @@ describe("mind:audit-start CLI Command Coverage Suite", () => {
       }),
     ).toThrow("role 'mind-auditor' or 'mind' is required");
 
-    // Auto-grant for mind-auditor actor
     const res = mindAuditStartCommand({
       run,
       actor: "mind-auditor-auto",
@@ -95,8 +100,8 @@ describe("mind:audit-start CLI Command Coverage Suite", () => {
     expect(res.actor).toBe("mind-auditor-auto");
   });
 
-  test("mindAuditStartCommand throws when mind is halted (with and without reason)", async () => {
-    const { run } = await setupCompiledRun("audit-halted", roots);
+  test("mindAuditStartCommand throws when mind is halted (with and without reason)", () => {
+    const { run } = setupMindRun("audit-halted");
 
     transact(run, "coordinator", "halt-mind-with-reason", {}, (draft) => {
       draft.mind = { halted: true, halt_reason: "invariant failure" };
@@ -121,11 +126,10 @@ describe("mind:audit-start CLI Command Coverage Suite", () => {
     ).toThrow("mind is halted (unknown reason); cannot start audit. Outcome: halted.");
   });
 
-  test("mindAuditStartCommand handles counter, explicit auditId, window aliases, and fallback start", async () => {
-    const { run } = await setupCompiledRun("audit-counter", roots);
+  test("mindAuditStartCommand handles counter, explicit auditId, window aliases, and fallback start", () => {
+    const { run } = setupMindRun("audit-counter");
     grantAgentRole(run, "mind-auditor-custom", "mind-auditor");
 
-    // 1. Initial run without existing audit state
     const res1 = mindAuditStartCommand({
       run,
       actor: "mind-auditor-custom",
@@ -134,7 +138,6 @@ describe("mind:audit-start CLI Command Coverage Suite", () => {
     expect(res1.audit_id).toBe("audit-1");
     expect(res1.status).toBe("in_progress");
 
-    // 2. Subsequent run deriving window start from existing audit.last_started_at
     const res2 = mindAuditStartCommand({
       run,
       actor: "mind-auditor-custom",
@@ -143,7 +146,6 @@ describe("mind:audit-start CLI Command Coverage Suite", () => {
     expect(res2.audit_id).toBe("audit-2");
     expect(res2.window_start).toBe("2026-09-02T12:00:00.000Z");
 
-    // 3. Explicit audit-id and window flags
     const res3 = mindAuditStartCommand({
       run,
       actor: "mind-auditor-custom",
@@ -153,7 +155,6 @@ describe("mind:audit-start CLI Command Coverage Suite", () => {
     expect(res3.audit_id).toBe("audit-custom-99");
     expect(res3.window_start).toBe("2026-09-01T08:00:00.000Z");
 
-    // 4. Test window-start flag precedence over window
     const res4 = mindAuditStartCommand({
       run,
       actor: "mind-auditor-custom",
@@ -162,7 +163,6 @@ describe("mind:audit-start CLI Command Coverage Suite", () => {
     });
     expect(res4.window_start).toBe("2026-09-01T09:00:00.000Z");
 
-    // 5. Test fallback to state.audit_counter when audit.counter is absent
     transact(run, "coordinator", "set-audit-counter", {}, (draft) => {
       delete draft.audit;
       draft.audit_counter = 10;

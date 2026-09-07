@@ -1,5 +1,4 @@
-import { describe, expect, test } from "bun:test";
-import { readFileSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import type { IntegrityIssue } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
@@ -8,9 +7,12 @@ import { initRun } from "../../../olt/scripts/src/engine/store/capsule/capsule.t
 import { verifyIntegrity } from "../../../olt/scripts/src/engine/store/integrity/integrity.ts";
 import { issue } from "../../../olt/scripts/src/engine/store/integrity/issues.ts";
 import { transact } from "../../../olt/scripts/src/engine/store/events/transaction.ts";
-import { scratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
-
-setupVirtualStoreFS();
+import {
+  cleanupVirtualStoreFS,
+  getVirtualStoreFS,
+  scratchRoot,
+  setupVirtualStoreFS,
+} from "../store-fixture.ts";
 
 function freshRun(label: string): string {
   const repo = scratchRoot(import.meta.path, label);
@@ -39,12 +41,21 @@ describe("IntegrityIssue subcode and issue helper", () => {
 });
 
 describe("verifyIntegrity READ_RACE discrimination", () => {
+  beforeEach(() => {
+    setupVirtualStoreFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualStoreFS();
+  });
+
   test("flags transient read race with subcode READ_RACE when state.json lags behind 1 event", () => {
+    const vfs = getVirtualStoreFS();
     const runRoot = freshRun("lag-1-event");
 
     // Capture initial state before transaction
     const stateFile = join(runRoot, "state.json");
-    const initialStateBytes = readFileSync(stateFile);
+    const initialStateBytes = vfs.readFileSync(stateFile);
 
     // Mutate state to add event 1
     transact(runRoot, "test-actor", "test-kind", {}, (draft) => {
@@ -52,7 +63,7 @@ describe("verifyIntegrity READ_RACE discrimination", () => {
     });
 
     // Overwrite state.json with initial state (simulating read race where events.jsonl updated first)
-    writeFileSync(stateFile, initialStateBytes);
+    vfs.writeFileSync(stateFile, initialStateBytes);
 
     const issues = verifyIntegrity(runRoot);
     const projectionIssues = issues.filter((i) => i.code === "STATE_PROJECTION");
@@ -61,6 +72,7 @@ describe("verifyIntegrity READ_RACE discrimination", () => {
   });
 
   test("flags transient read race with subcode READ_RACE when state.json lags behind multiple events", () => {
+    const vfs = getVirtualStoreFS();
     const runRoot = freshRun("lag-multiple-events");
     const stateFile = join(runRoot, "state.json");
 
@@ -68,7 +80,7 @@ describe("verifyIntegrity READ_RACE discrimination", () => {
     transact(runRoot, "test-actor", "event-1", {}, (draft) => {
       draft.step = 1;
     });
-    const stateAfterEvent1 = readFileSync(stateFile);
+    const stateAfterEvent1 = vfs.readFileSync(stateFile);
 
     // Event 2 and 3
     transact(runRoot, "test-actor", "event-2", {}, (draft) => {
@@ -79,7 +91,7 @@ describe("verifyIntegrity READ_RACE discrimination", () => {
     });
 
     // Reset state.json to state after event 1 (2 events behind)
-    writeFileSync(stateFile, stateAfterEvent1);
+    vfs.writeFileSync(stateFile, stateAfterEvent1);
 
     const issues = verifyIntegrity(runRoot);
     const projectionIssues = issues.filter((i) => i.code === "STATE_PROJECTION");
@@ -88,8 +100,9 @@ describe("verifyIntegrity READ_RACE discrimination", () => {
   });
 
   test("does not set subcode on STATE_PROJECTION when state.json is deliberately corrupted with fake revision", () => {
+    const vfs = getVirtualStoreFS();
     const runRoot = freshRun("corrupted-revision");
-    writeFileSync(
+    vfs.writeFileSync(
       join(runRoot, "state.json"),
       canonicalJsonBytes({
         schema: "harness.state",
@@ -107,6 +120,7 @@ describe("verifyIntegrity READ_RACE discrimination", () => {
   });
 
   test("does not set subcode on STATE_PROJECTION when state.json contains tampered payload", () => {
+    const vfs = getVirtualStoreFS();
     const runRoot = freshRun("tampered-payload");
     const stateFile = join(runRoot, "state.json");
 
@@ -115,9 +129,9 @@ describe("verifyIntegrity READ_RACE discrimination", () => {
     });
 
     // Read current state, tamper with a property while keeping revision and event_head
-    const current = JSON.parse(readFileSync(stateFile, "utf8")) as JsonObject;
+    const current = JSON.parse(vfs.readFileSync(stateFile, "utf8")) as JsonObject;
     current.task_count = 999;
-    writeFileSync(stateFile, canonicalJsonBytes(current));
+    vfs.writeFileSync(stateFile, canonicalJsonBytes(current));
 
     const issues = verifyIntegrity(runRoot);
     const projectionIssues = issues.filter((i) => i.code === "STATE_PROJECTION");
@@ -126,6 +140,7 @@ describe("verifyIntegrity READ_RACE discrimination", () => {
   });
 
   test("does not set subcode on STATE_PROJECTION when state.json contains fake event_head digest", () => {
+    const vfs = getVirtualStoreFS();
     const runRoot = freshRun("fake-head");
     const stateFile = join(runRoot, "state.json");
 
@@ -133,9 +148,9 @@ describe("verifyIntegrity READ_RACE discrimination", () => {
       draft.value = "real";
     });
 
-    const current = JSON.parse(readFileSync(stateFile, "utf8")) as JsonObject;
+    const current = JSON.parse(vfs.readFileSync(stateFile, "utf8")) as JsonObject;
     current.event_head = "0000000000000000000000000000000000000000000000000000000000000000";
-    writeFileSync(stateFile, canonicalJsonBytes(current));
+    vfs.writeFileSync(stateFile, canonicalJsonBytes(current));
 
     const issues = verifyIntegrity(runRoot);
     const projectionIssues = issues.filter((i) => i.code === "STATE_PROJECTION");
@@ -144,6 +159,7 @@ describe("verifyIntegrity READ_RACE discrimination", () => {
   });
 
   test("does not set subcode READ_RACE when events.jsonl has corruption", () => {
+    const vfs = getVirtualStoreFS();
     const runRoot = freshRun("events-corrupted");
     const eventsFile = join(runRoot, "events.jsonl");
 
@@ -152,7 +168,7 @@ describe("verifyIntegrity READ_RACE discrimination", () => {
     });
 
     // Corrupt events.jsonl with a broken line
-    writeFileSync(eventsFile, new TextEncoder().encode("bad json line\n"));
+    vfs.writeFileSync(eventsFile, new TextEncoder().encode("bad json line\n"));
 
     const issues = verifyIntegrity(runRoot);
     const projectionIssues = issues.filter((i) => i.code === "STATE_PROJECTION");

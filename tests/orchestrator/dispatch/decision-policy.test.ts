@@ -43,14 +43,14 @@ describe("Orchestrator Decision Policy & Hierarchical Audit", () => {
     const report = auditHierarchicalExecution(state);
     expect(report.compliant).toBeFalse();
     expect(
-      report.violations.some((v) => v.ruleId === "DOM-03-REPAIRER-ASSIGNMENT-MISSING"),
+      report.violations.some((v) => v.ruleId === "DOM-03-REPAIR-ASSIGNMENT-MISSING"),
     ).toBeTrue();
   });
 
-  test("auditHierarchicalExecution catches role mismatch on active lease", () => {
+  test("auditHierarchicalExecution treats an implementer lease on a changes_requested task as compliant", () => {
     const state = workflowState();
     state.tasks["T-1"]!.status = "changes_requested";
-    state.tasks["T-1"]!.repair_assignee = "worker-repairer-1";
+    state.tasks["T-1"]!.repair_assignee = "worker-1";
     state.tasks["T-1"]!.lease = {
       agent_id: "worker-1",
       role: "implementer",
@@ -65,13 +65,11 @@ describe("Orchestrator Decision Policy & Hierarchical Audit", () => {
     };
 
     const report = auditHierarchicalExecution(state);
-    expect(report.compliant).toBeFalse();
-    expect(
-      report.violations.some((v) => v.ruleId === "DOM-02-IMPLEMENTER-NOT-REPAIRER"),
-    ).toBeTrue();
+    expect(report.compliant).toBeTrue();
+    expect(report.violations.length).toBe(0);
   });
 
-  test("validateTaskDispatchCompliance verifies role matching at dispatch", () => {
+  test("validateTaskDispatchCompliance allows the implementer role to claim both fresh and repair work", () => {
     const state = workflowState();
     const readyTask = state.tasks["T-1"]!;
     readyTask.status = "ready";
@@ -80,11 +78,8 @@ describe("Orchestrator Decision Policy & Hierarchical Audit", () => {
     expect(allowed.allowed).toBeTrue();
 
     readyTask.status = "changes_requested";
-    const refused = validateTaskDispatchCompliance(readyTask, "worker-1", "implementer", state);
-    expect(refused.allowed).toBeFalse();
-    expect(refused.ruleId).toBe("DOM-02-IMPLEMENTER-NOT-REPAIRER");
-
-    const repairAllowed = validateTaskDispatchCompliance(readyTask, "worker-1", "repairer", state);
+    readyTask.repair_assignee = "worker-1";
+    const repairAllowed = validateTaskDispatchCompliance(readyTask, "worker-1", "implementer", state);
     expect(repairAllowed.allowed).toBeTrue();
   });
 });

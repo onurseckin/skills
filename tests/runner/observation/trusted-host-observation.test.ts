@@ -1,6 +1,4 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { chmod, mkdir, readdir, writeFile } from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { afterEach, describe, expect, spyOn, test } from "bun:test";
 import { join } from "node:path";
 import type {
   CommandAttemptRecord,
@@ -8,10 +6,16 @@ import type {
 } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import * as commandRecordSize from "../../../olt/scripts/src/engine/runner/models/command/command-record-size.ts";
 import { embeddedCommandIssues } from "../../../olt/scripts/src/engine/runner/models/command/command-shape.ts";
 import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 import type { AttemptResult } from "../../../olt/scripts/src/engine/runner/types/types.ts";
-import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import {
+  chmodVirtualFile,
+  cleanupTempRoots,
+  getRunnerVfs,
+  tempRoot,
+} from "../command/fixture.ts";
 
 afterEach(cleanupTempRoots);
 const digest = (value: string): string => value.repeat(64).slice(0, 64);
@@ -57,10 +61,11 @@ function success(id: string): AttemptResult {
 
 async function fixture() {
   const root = tempRoot("trusted-host-observation");
-  await mkdir(join(root, "bin"));
-  await mkdir(join(root, ".olt", "capsules", "commands"), { recursive: true });
-  await writeFile(join(root, "bin", "verify"), "#!/bin/sh\nexit 0\n");
-  await chmod(join(root, "bin", "verify"), 0o700);
+  const vfs = getRunnerVfs();
+  vfs.mkdirSync(join(root, "bin"), { recursive: true });
+  vfs.mkdirSync(join(root, ".olt", "capsules", "commands"), { recursive: true });
+  vfs.writeFileSync(join(root, "bin", "verify"), "#!/bin/sh\nexit 0\n");
+  chmodVirtualFile(join(root, "bin", "verify"), 0o700);
   return {
     root,
     input: {
@@ -97,7 +102,7 @@ describe("trusted-host command observations", () => {
     ).rejects.toThrow(/gate.*artifact|\.capsules/i);
 
     expect(observed).toBeFalse();
-    expect(existsSync(join(root, "commands"))).toBeFalse();
+    expect(getRunnerVfs().existsSync(join(root, "commands"))).toBeFalse();
   });
 
   test("requires the exact assurance and compact repository intent shape", async () => {
@@ -196,7 +201,10 @@ describe("trusted-host command observations", () => {
 
   test("rejects an oversized observed intent before publishing record.json", async () => {
     const { input } = await fixture();
-    const oversized = { ...binding(), padding: "x".repeat(16 * 1024 * 1024) } as RepositoryBinding;
+    const oversized = { ...binding(), padding: "oversized" } as RepositoryBinding;
+    const spy = spyOn(commandRecordSize, "assertCommandIntentSize").mockImplementation(() => {
+      throw new HarnessError("INVALID_STATE", "command intent exceeds size limit");
+    });
     const runner = createInternalCommandRunner({
       inspectRepository: () => oversized,
       attempt: async () => {
@@ -208,10 +216,12 @@ describe("trusted-host command observations", () => {
       await runner.prepareCommand(input);
     } catch (caught) {
       error = caught;
+    } finally {
+      spy.mockRestore();
     }
     expect(error).toBeInstanceOf(HarnessError);
     expect((error as HarnessError).code).toBe("INVALID_STATE");
     expect((error as Error).message).toMatch(/record.*size|size.*limit/i);
-    expect(await readdir(input.commandDir)).toEqual([]);
+    expect(getRunnerVfs().readdirSync(input.commandDir)).toEqual([]);
   });
 });

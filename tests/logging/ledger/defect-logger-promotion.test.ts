@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   appendDefectLedgerRecord,
@@ -10,17 +9,21 @@ import {
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   cleanupLoggingSandboxes,
+  cleanupVirtualLoggingFS,
   createLoggingSandbox,
   setupVirtualLoggingFS,
 } from "../fixtures/index.ts";
 
+let vfs: ReturnType<typeof setupVirtualLoggingFS>;
+
 beforeEach(() => {
-  setupVirtualLoggingFS();
+  vfs = setupVirtualLoggingFS();
 });
 
 afterEach(() => {
   __setDefectPromotionPersistenceTestHook(undefined);
   cleanupLoggingSandboxes();
+  cleanupVirtualLoggingFS();
 });
 
 describe("Logging subsystem: Durable Defect Promotion & Recovery", () => {
@@ -30,7 +33,7 @@ describe("Logging subsystem: Durable Defect Promotion & Recovery", () => {
       const dir = createLoggingSandbox();
       const sourcePath = join(dir, `active-${stage}.jsonl`);
       const targetPath = join(dir, `completed-${stage}.jsonl`);
-      writeFileSync(sourcePath, '{"id":"recover-me","unknown":{"kept":true}}\n', "utf8");
+      vfs.writeFileSync(sourcePath, '{"id":"recover-me","unknown":{"kept":true}}\n', "utf8");
       __setDefectPromotionPersistenceTestHook((observed) => {
         if (observed === stage) throw new Error(`crash-${stage}`);
       });
@@ -40,8 +43,8 @@ describe("Logging subsystem: Durable Defect Promotion & Recovery", () => {
       __setDefectPromotionPersistenceTestHook(undefined);
       recoverDefectPromotion(sourcePath, targetPath);
       recoverDefectPromotion(sourcePath, targetPath);
-      const source = existsSync(sourcePath) ? readFileSync(sourcePath, "utf8") : "";
-      const target = existsSync(targetPath) ? readFileSync(targetPath, "utf8") : "";
+      const source = vfs.existsSync(sourcePath) ? vfs.readFileSync(sourcePath, "utf8") : "";
+      const target = vfs.existsSync(targetPath) ? vfs.readFileSync(targetPath, "utf8") : "";
       if (stage === "PREPARED") {
         expect(source).toBe('{"id":"recover-me","unknown":{"kept":true}}\n');
         expect(target).toBe("");
@@ -58,7 +61,7 @@ describe("Logging subsystem: Durable Defect Promotion & Recovery", () => {
     const targetPath = join(dir, "completed.jsonl");
     const journalPath = join(dir, ".completed.jsonl.defect-promotion.journal.json");
     const sourceBytes = '{"id":"journal-evidence"}\n';
-    writeFileSync(sourcePath, sourceBytes, "utf8");
+    vfs.writeFileSync(sourcePath, sourceBytes, "utf8");
     __setDefectPromotionPersistenceTestHook((stage) => {
       if (stage === "PREPARED") throw new Error("crash-prepared");
     });
@@ -66,15 +69,15 @@ describe("Logging subsystem: Durable Defect Promotion & Recovery", () => {
       "crash-prepared",
     );
     __setDefectPromotionPersistenceTestHook(undefined);
-    const journal = JSON.parse(readFileSync(journalPath, "utf8")) as Record<string, unknown>;
-    writeFileSync(
+    const journal = JSON.parse(vfs.readFileSync(journalPath, "utf8")) as Record<string, unknown>;
+    vfs.writeFileSync(
       journalPath,
       `${JSON.stringify({ ...journal, sourceHash: "invalid" })}\n`,
       "utf8",
     );
     expect(() => recoverDefectPromotion(sourcePath, targetPath)).toThrow(HarnessError);
-    expect(readFileSync(sourcePath, "utf8")).toBe(sourceBytes);
-    expect(existsSync(targetPath)).toBeFalse();
+    expect(vfs.readFileSync(sourcePath, "utf8")).toBe(sourceBytes);
+    expect(vfs.existsSync(targetPath)).toBeFalse();
   });
 
   test("synchronized child completed appends retain both distinct records", async () => {
@@ -96,15 +99,15 @@ describe("Logging subsystem: Durable Defect Promotion & Recovery", () => {
       })(),
     ]);
 
-    expect(readFileSync(targetPath, "utf8")).toContain('"id":"completed-a"');
-    expect(readFileSync(targetPath, "utf8")).toContain('"id":"completed-b"');
+    expect(vfs.readFileSync(targetPath, "utf8")).toContain('"id":"completed-a"');
+    expect(vfs.readFileSync(targetPath, "utf8")).toContain('"id":"completed-b"');
   });
 
   test("active append concurrent with promotion preserves both pieces of evidence", async () => {
     const dir = createLoggingSandbox();
     const sourcePath = join(dir, "active.jsonl");
     const targetPath = join(dir, "completed.jsonl");
-    writeFileSync(sourcePath, '{"id":"move-me"}\n', "utf8");
+    vfs.writeFileSync(sourcePath, '{"id":"move-me"}\n', "utf8");
 
     await Promise.all([
       (async () => {
@@ -115,7 +118,7 @@ describe("Logging subsystem: Durable Defect Promotion & Recovery", () => {
       })(),
     ]);
 
-    expect(readFileSync(targetPath, "utf8")).toBe('{"id":"move-me"}\n');
-    expect(readFileSync(sourcePath, "utf8")).toBe('{"id":"new-evidence"}\n');
+    expect(vfs.readFileSync(targetPath, "utf8")).toBe('{"id":"move-me"}\n');
+    expect(vfs.readFileSync(sourcePath, "utf8")).toBe('{"id":"new-evidence"}\n');
   });
 });

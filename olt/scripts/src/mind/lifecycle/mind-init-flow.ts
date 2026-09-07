@@ -1,8 +1,14 @@
 import * as fs from "node:fs";
+import { homedir } from "node:os";
 import * as path from "node:path";
 import { calibrateRepoGovernance, type RepoGovernanceStatus } from "../governance/index.ts";
 import { createInitialDashboardState, writeDashboardFilesSync } from "../reporting/index.ts";
-import { canonicalJsonBytes } from "../../core/index.ts";
+import {
+  canonicalJsonBytes,
+  isSandboxRepoRoot,
+  isSkillHomeRepoRoot,
+  isTestEnvironment,
+} from "../../core/index.ts";
 import { initCapsuleRun, transact } from "../../engine/store/index.ts";
 
 export const CANONICAL_BEDROCK_INVARIANTS_LIST = [
@@ -66,8 +72,12 @@ export function resolveOrGenerateCharter(
     custom && fs.existsSync(custom)
       ? custom
       : [
-          path.join(workspaceRoot, ".olt", "agents", "mind.yaml"),
-          path.join(workspaceRoot, "olt", "agents", "mind.yaml"),
+          ...(isSkillHomeRepoRoot(workspaceRoot)
+            ? [path.join(workspaceRoot, "olt", "agents", "mind.yaml")]
+            : []),
+          ...(isTestEnvironment() || isSandboxRepoRoot(workspaceRoot)
+            ? []
+            : [path.join(homedir(), ".agents", "skills", "olt", "agents", "mind.yaml")]),
         ].find(fs.existsSync);
 
   if (target) {

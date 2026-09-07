@@ -1,5 +1,8 @@
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import {
+  virtualMkdirSync as mkdirSync,
+  virtualWriteFileSync as writeFileSync,
+} from "../sync-fixture.ts";
 
 export function git(_args: string[], cwd: string): void {
   mkdirSync(join(cwd, ".git"), { recursive: true });

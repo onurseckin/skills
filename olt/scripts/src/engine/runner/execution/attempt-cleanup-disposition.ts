@@ -106,7 +106,8 @@ export function cleanupDispositionIssues(
     latest &&
     record.cleanup_history.length > 1 &&
     latest.root_pid_identity === null &&
-    record.root_pid_identity != null
+    record.root_pid_identity !== null &&
+    record.root_pid_identity !== undefined
   )
     issues.push("attempt cleanup root identity lacks a signed binding transition");
   return issues;

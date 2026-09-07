@@ -259,7 +259,6 @@ export type { StreamEventsResult } from "./stream-events.ts";
 export { streamEventsCommand } from "./stream-events.ts";
 export { summaryExportCommand, summaryViewCommand } from "./summary-ops.ts";
 export { taskAbandonCommand } from "./task-abandon.ts";
-export { taskAssignRepairerCommand } from "./task-assign-repairer.ts";
 export { taskBriefCommand } from "./task-brief.ts";
 export type {
   TypeCheckDiagnostic,
@@ -313,7 +312,7 @@ export type {
   TodoDrainResult,
   TodoSealResult,
   TodoCleanResult,
-} from "./todo-ops.ts";
+} from "./todo/index.ts";
 export {
   todoListCommand,
   todoAddCommand,
@@ -325,7 +324,7 @@ export {
   mindQueueDrainCommand,
   mindQueueSealCommand,
   mindQueueCleanCommand,
-} from "./todo-ops.ts";
+} from "./todo/index.ts";
 export {
   reportUnifiedCommand,
   reportDagCommand,

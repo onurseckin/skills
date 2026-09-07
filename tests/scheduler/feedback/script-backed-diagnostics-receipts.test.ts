@@ -140,6 +140,40 @@ describe("Script-Backed Diagnostics: Execution & Receipts", () => {
       ).toBeTrue();
     });
 
+    test("isolates non-Error primitive inspector throw without crashing the overall diagnostics suite", async () => {
+      const primitiveThrowInspector = (): CliDiagnosticReceipt => {
+        throw "raw-string-panic";
+      };
+
+      const result = await runScriptBackedDiagnostics({
+        inspectors: ["primitive:throw"],
+        customInspectors: {
+          "primitive:throw": primitiveThrowInspector,
+        },
+      });
+
+      expect(result.healthy).toBeFalse();
+      expect(result.errors).toContain("raw-string-panic");
+      expect(result.receipts[0]?.status).toBe("failed");
+      expect(result.receipts[0]?.receiptHash).toHaveLength(64);
+      expect(result.receipts[0]?.summary).toContain("raw-string-panic");
+    });
+
+    test("produces bitwise deterministic receipt hashes when fixed clock is provided", async () => {
+      const fixedTime = new Date("2026-09-01T12:00:00.000Z");
+      const mockClock = { now: () => fixedTime };
+      const state = schedulerState();
+
+      const result1 = await runScriptBackedDiagnostics({ state, clock: mockClock });
+      const result2 = await runScriptBackedDiagnostics({ state, clock: mockClock });
+
+      expect(result1.receipts.length).toBe(result2.receipts.length);
+      for (let i = 0; i < result1.receipts.length; i++) {
+        expect(result1.receipts[i]?.receiptHash).toBe(result2.receipts[i]?.receiptHash);
+        expect(result1.receipts[i]?.badge).toBe(result2.receipts[i]?.badge);
+      }
+    });
+
     test("handles unrecognized inspector names by generating warning receipt", async () => {
       const result = await runScriptBackedDiagnostics({
         inspectors: ["unrecognized:inspector" as unknown as "doctor"],

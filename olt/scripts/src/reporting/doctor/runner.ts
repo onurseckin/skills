@@ -14,7 +14,7 @@ import { trustedHostEvidence, trustedHostLimitations } from "../../core/contract
 import { repositoryGit, type RepositoryGitCommand } from "../../packets/repository-git-command.ts";
 import { inspectRepoPolicy } from "../../policy/repo-policy.ts";
 import { auditTierConfinement, summarizeTierConfinement } from "./tier-confinement/index.ts";
-import { evaluateSocraticSelfQuestioning } from "../socratic-validator.ts";
+import { evaluateSocraticSelfQuestioning } from "../socratic-validator/index.ts";
 import { StateMachineAuditor } from "./state-machine-auditor.ts";
 import { runDoctorDiagnostics } from "./adversarial-doctor/index.ts";
 import { autoHealCapsule, type DoctorAutoHealResult } from "./engines.ts";

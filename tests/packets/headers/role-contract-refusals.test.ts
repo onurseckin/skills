@@ -37,10 +37,11 @@ describe("acting without a published contract is refused", () => {
     ).toBe("submitted");
   });
 
-  test("a repairer cannot submit without a published packet", () => {
-    // submitTask's guard reads lease.role, not a literal "implementer" — the only way to prove it
-    // actually covers repairer too is to drive a real reject-then-repair cycle and claim under that
-    // role, the same path task-state uses to route rejected work back to the original implementer.
+  test("a reclaimed (changes_requested) task cannot submit without a published packet", () => {
+    // submitTask's guard reads lease.role, not a literal string check — the only way to prove it
+    // actually covers a repair cycle too is to drive a real reject-then-reclaim cycle and claim
+    // under "implementer" again, the same path task-state uses to route rejected work back to the
+    // original implementer (claimTask requires role === "implementer" unconditionally).
     const port = new TestPort(workflowState());
     const { token: implToken } = claimTask(port, "T-1", "implementer", "implementer", { clock });
     registerTaskPacket(port, "implementer", "implementer", 1);
@@ -76,11 +77,11 @@ describe("acting without a published contract is refused", () => {
       },
       clock,
     );
-    const { token: repairToken } = claimTask(port, "T-1", "implementer", "repairer", { clock });
+    const { token: repairToken } = claimTask(port, "T-1", "implementer", "implementer", { clock });
     expect(() => submitTask(port, "T-1", "implementer", repairToken, report, clock)).toThrow(
-      "repairer action requires a matching durably published packet",
+      "implementer action requires a matching durably published packet",
     );
-    registerTaskPacket(port, "repairer", "implementer", 2);
+    registerTaskPacket(port, "implementer", "implementer", 2);
     expect(
       submitTask(port, "T-1", "implementer", repairToken, report, clock).state.tasks["T-1"]!.status,
     ).toBe("submitted");

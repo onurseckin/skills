@@ -20,7 +20,7 @@ export {
   type SocraticAuditReport,
   type SocraticDimension,
   type SocraticQuestionEvaluation,
-} from "./socratic-validator.ts";
+} from "./socratic-validator";
 export {
   StateMachineAuditor,
   type LifecycleFinding,

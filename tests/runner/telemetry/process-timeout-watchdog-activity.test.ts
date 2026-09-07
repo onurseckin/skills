@@ -51,7 +51,7 @@ describe("ProcessTimeoutWatchdog - Initialization & Defaults", () => {
 
 describe("ProcessTimeoutWatchdog - Activity, Buffers, & Diagnostics", () => {
   test("records stdout/stderr text and byte counts, maintaining tail buffer", () => {
-    let now = 1_000_000;
+    const now = 1_000_000;
     const watchdog = new ProcessTimeoutWatchdog({
       now: () => now,
       maxTailBytes: 100,

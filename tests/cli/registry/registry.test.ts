@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
 import {
@@ -19,6 +18,7 @@ import { dagViewCommand } from "../../../olt/scripts/src/cli/commands/dag-view.t
 import { autoDeriveCallerIdentity } from "../../../olt/scripts/src/authority/session/index.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import { loadRun } from "../../../olt/scripts/src/engine/store/index.ts";
+import type { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   cleanupVirtualCliFS,
   setupVirtualCliFS,
@@ -27,8 +27,10 @@ import {
 const EXPECTED_INVOCATIONS: readonly string[] = COMMAND_REGISTRY.map((spec) => spec.name);
 
 describe("CLI command registry", () => {
+  let vfs: VirtualMemoryFS;
+
   beforeEach(() => {
-    setupVirtualCliFS();
+    vfs = setupVirtualCliFS();
   });
   afterEach(() => {
     cleanupVirtualCliFS();
@@ -128,9 +130,10 @@ describe("CLI command registry", () => {
 
   test("task:check never attributes an omitted --actor to a fabricated role-name literal", async () => {
     const repo = "/virtual/task-check-actor";
-    mkdirSync(repo, { recursive: true });
+    vfs.mkdirSync(repo, { recursive: true });
+    vfs.mkdirSync(join(repo, ".git"), { recursive: true });
     const cleanPath = join(repo, "clean.ts");
-    writeFileSync(cleanPath, "export const cleanVal = 10;\n");
+    vfs.writeFileSync(cleanPath, "export const cleanVal = 10;\n");
     const runRoot = initRun(
       repo,
       "actor-attribution-run",
@@ -147,39 +150,71 @@ describe("CLI command registry", () => {
     const receiptKeys = Object.keys(receipts);
     expect(receiptKeys.length).toBe(1);
     const receiptEntry = receipts[receiptKeys[0] as string];
-    expect(receiptEntry?.actor).not.toBe("mechanic-validator");
+    expect(receiptEntry?.actor).not.toBe("ui-headless-validator");
     expect(receiptEntry?.actor).toBe(autoDeriveCallerIdentity().actor);
   });
 
-  test("a declared --json flag actually changes what the handler returns, for every command this lane owns", () => {
-    const repo = "/virtual/declared-json";
-    mkdirSync(repo, { recursive: true });
+  test("a declared --json flag toggles json output for report", () => {
+    const repo = "/virtual/declared-json-report";
+    vfs.mkdirSync(repo, { recursive: true });
+    vfs.mkdirSync(join(repo, ".git"), { recursive: true });
     const run = initRun(
       repo,
-      "declared-json-flag-run",
+      "declared-json-report-run",
       new TextEncoder().encode("prompt"),
       "file",
       true,
     );
 
-    const liveJsonCommands: {
-      name: string;
-      handler: (flags: Record<string, unknown>) => Record<string, unknown>;
-    }[] = [
-      { name: "report", handler: reportUnifiedCommand },
-      { name: "report:summary", handler: summaryViewCommand },
-      { name: "report:dag", handler: reportDagCommand },
-    ];
+    const spec = findCommand("report");
+    expect(spec?.flags.map((flag) => flag.name)).toContain("json");
 
-    for (const { name, handler } of liveJsonCommands) {
-      const spec = findCommand(name);
-      expect(spec?.flags.map((flag) => flag.name)).toContain("json");
+    const withoutFlag = reportUnifiedCommand({ run });
+    const withFlag = reportUnifiedCommand({ run, json: true });
+    expect(withoutFlag["json"]).not.toBe(true);
+    expect(withFlag["json"]).toBe(true);
+  });
 
-      const withoutFlag = handler({ run });
-      const withFlag = handler({ run, json: true });
-      expect(withoutFlag["json"]).not.toBe(true);
-      expect(withFlag["json"]).toBe(true);
-    }
+  test("a declared --json flag toggles json output for report:summary", () => {
+    const repo = "/virtual/declared-json-summary";
+    vfs.mkdirSync(repo, { recursive: true });
+    vfs.mkdirSync(join(repo, ".git"), { recursive: true });
+    const run = initRun(
+      repo,
+      "declared-json-summary-run",
+      new TextEncoder().encode("prompt"),
+      "file",
+      true,
+    );
+
+    const spec = findCommand("report:summary");
+    expect(spec?.flags.map((flag) => flag.name)).toContain("json");
+
+    const withoutFlag = summaryViewCommand({ run });
+    const withFlag = summaryViewCommand({ run, json: true });
+    expect(withoutFlag["json"]).not.toBe(true);
+    expect(withFlag["json"]).toBe(true);
+  });
+
+  test("a declared --json flag toggles json output for report:dag", () => {
+    const repo = "/virtual/declared-json-dag";
+    vfs.mkdirSync(repo, { recursive: true });
+    vfs.mkdirSync(join(repo, ".git"), { recursive: true });
+    const run = initRun(
+      repo,
+      "declared-json-dag-run",
+      new TextEncoder().encode("prompt"),
+      "file",
+      true,
+    );
+
+    const spec = findCommand("report:dag");
+    expect(spec?.flags.map((flag) => flag.name)).toContain("json");
+
+    const withoutFlag = reportDagCommand({ run }) as Record<string, unknown>;
+    const withFlag = reportDagCommand({ run, json: true }) as Record<string, unknown>;
+    expect(withoutFlag["json"]).not.toBe(true);
+    expect(withFlag["json"]).toBe(true);
   });
 
   test("removes --json from commands whose handler never read it, instead of leaving a flag that silently does nothing", () => {

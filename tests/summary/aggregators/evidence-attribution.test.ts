@@ -1,30 +1,33 @@
-import { beforeEach, describe, expect, test } from "bun:test";
-import * as fs from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { generateGraphDataset } from "../../../olt/scripts/src/summary/graph/index.ts";
 import type { ScreenshotRecord } from "../../../olt/scripts/src/reporting/screenshot-types.ts";
 import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
 import { makeCommand, makeState, makeTask } from "../reporters/dag/graph-fixtures.ts";
-import { setupVirtualSummaryFS } from "../fixture.ts";
+import { cleanupVirtualSummaryFS, setupVirtualSummaryFS } from "../fixture.ts";
+import type { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/memory-fs.ts";
 
 let rootCounter = 0;
+let vfs: VirtualMemoryFS;
 
 beforeEach(() => {
-  setupVirtualSummaryFS();
+  vfs = setupVirtualSummaryFS();
 });
+
+afterEach(cleanupVirtualSummaryFS);
 
 function runRootWithScreenshots(records: ScreenshotRecord[]): string {
   rootCounter += 1;
   const root = `/virtual/screenshot-attribution-${rootCounter}`;
-  fs.mkdirSync(root, { recursive: true });
-  fs.writeFileSync(
+  vfs.mkdirSync(root, { recursive: true });
+  vfs.writeFileSync(
     join(root, "captures.json"),
     JSON.stringify({ schema: "harness.captures", version: 1, captures: records }),
   );
   return root;
 }
 
-function screenshot(name: string, actor: string): ScreenshotRecord {
+function screenshot(name: string, actor: string, taskId = "T-1"): ScreenshotRecord {
   return {
     kind: "screenshot",
     name,
@@ -35,7 +38,7 @@ function screenshot(name: string, actor: string): ScreenshotRecord {
     storage: "hardlink",
     original_path: `/repo/test-results/${name}`,
     timestamp: "2026-08-15T19:00:00.000Z",
-    task_id: "T-1",
+    task_id: taskId,
     actor,
   };
 }
@@ -120,6 +123,54 @@ describe("screenshot attribution follows the recorded agent, not the agent's nam
     expect(ghost).toBeDefined();
     expect(ghost?.metadata?.attribution).toBe("unattributed");
     expect(ghost?.author).toBe("val");
+  });
+
+  test("handles empty captures list in captures.json safely", () => {
+    const runRoot = runRootWithScreenshots([]);
+    const dataset = datasetFor(runRoot);
+    const allAssets = dataset.nodes.flatMap((node) => node.assets ?? []);
+    const screenshotAssets = allAssets.filter(
+      (asset) => asset.type === "screenshot" || asset.url.includes("screenshots"),
+    );
+    expect(screenshotAssets).toHaveLength(0);
+  });
+
+  test("partitions screenshots by the same actor across separate tasks to respective task nodes", () => {
+    const task2 = makeTask("T-2", {
+      status: "done",
+      report: { summary: "done task 2", files_changed: ["src/T-2.ts"] },
+      lease: {
+        agent_id: "impl-7",
+        role: "implementer",
+        attempt: 1,
+        token_digest: "tok-2",
+        issued_at: "2026-08-15T18:00:00.000Z",
+        expires_at: "2026-08-15T20:00:00.000Z",
+        heartbeat_at: "2026-08-15T18:30:00.000Z",
+        duration_seconds: 7200,
+        write_scope: ["src/T-2.ts"],
+        resource_scope: [],
+      },
+    });
+    const runRoot = runRootWithScreenshots([
+      screenshot("t1-shot.png", "impl-7", "T-1"),
+      screenshot("t2-shot.png", "impl-7", "T-2"),
+    ]);
+    const dataset = generateGraphDataset({
+      runId: "run-multi-task",
+      state: makeState([reviewedTask(), task2]),
+      runRoot,
+    });
+    const t1Assets = (
+      dataset.nodes.find((node) => node.id === "node-task-T-1")?.assets ?? []
+    ).map((a) => a.url);
+    const t2Assets = (
+      dataset.nodes.find((node) => node.id === "node-task-T-2")?.assets ?? []
+    ).map((a) => a.url);
+    expect(t1Assets).toContain("evidence/screenshots/t1-shot.png");
+    expect(t1Assets).not.toContain("evidence/screenshots/t2-shot.png");
+    expect(t2Assets).toContain("evidence/screenshots/t2-shot.png");
+    expect(t2Assets).not.toContain("evidence/screenshots/t1-shot.png");
   });
 });
 

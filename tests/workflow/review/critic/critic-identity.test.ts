@@ -3,10 +3,6 @@ import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import { assertCriticIndependent } from "../../../../olt/scripts/src/workflow/completion/critic-identity.ts";
 import { workflowState } from "../../shared/test-port.ts";
 
-// B26: the completeness critic role is refused to any identity this run has already used as an
-// implementer, repairer, lease holder, attempter, or validator - the independence guarantee the
-// audit found asserted 12+ times in prose and proven by no test at all.
-
 describe("assertCriticIndependent", () => {
   test("does not refuse an identity the run has never used", () => {
     const state = workflowState();
@@ -23,7 +19,7 @@ describe("assertCriticIndependent", () => {
     } catch (error) {
       expect((error as HarnessError).code).toBe("INVALID_STATE");
       expect((error as HarnessError).message).toBe(
-        "completeness critic must be independent from implementers, repairers, and validators",
+        "completeness critic must be independent from implementers and validators",
       );
     }
   });
@@ -55,9 +51,6 @@ describe("assertCriticIndependent", () => {
     expect(() => assertCriticIndependent(state, "critic-1")).toThrow(HarnessError);
   });
 
-  // The case B26 calls out by name: "critic-identity.ts disqualifies any agent that validated
-  // anything from serving as completeness critic run-wide" - a validator that reviewed round 1
-  // must not later certify the whole run's completeness, active assignment or historical.
   test("refuses the current validator of a task", () => {
     const state = workflowState();
     state.tasks["T-1"]!.validations = [

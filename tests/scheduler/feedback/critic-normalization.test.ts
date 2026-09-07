@@ -1,4 +1,9 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   deriveCounterfactualRequirement,
   normalizeCriticFinding,
@@ -9,6 +14,21 @@ import {
 import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
 
 describe("Critic Feedback: Normalization, Pair Selection & Repeat Detection", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession | null = null;
+
+  beforeEach(() => {
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+  });
+
+  afterEach(() => {
+    if (session) {
+      session.cleanup();
+      session = null;
+    }
+    vfs.reset();
+  });
   describe("deriveCounterfactualRequirement", () => {
     test("derives counterfactual requirement from observation and remediation", () => {
       const counterfactual = deriveCounterfactualRequirement(
@@ -25,9 +45,34 @@ describe("Critic Feedback: Normalization, Pair Selection & Repeat Detection", ()
       const counterfactual = deriveCounterfactualRequirement("Memory leak", "Drain pool", explicit);
       expect(counterfactual).toBe(explicit);
     });
+
+    test("trims whitespace and rejects whitespace-only explicit string falling back to derived template", () => {
+      const counterfactual = deriveCounterfactualRequirement(
+        "  Buffer overflow in parser  ",
+        "  Add bounds check  ",
+        "     ",
+      );
+      expect(counterfactual).toBe(
+        'Counterfactual Requirement: Implementation must specifically resolve and prevent recurrence of: "Buffer overflow in parser". Concrete fix applied: "Add bounds check".',
+      );
+    });
   });
 
   describe("normalizeCriticFinding", () => {
+    test("defaults revalidation gate to bun test tests/unit and unrecognized severity to important", () => {
+      const raw = {
+        id: "F-FALLBACK-01",
+        requirement_id: "REQ-01",
+        severity: "unknown_level",
+        observation: "Missing validation",
+        remediation: "Add validation check",
+      };
+      const normalized = normalizeCriticFinding(raw);
+      expect(normalized).not.toBeNull();
+      expect(normalized?.severity).toBe("important");
+      expect(normalized?.revalidation).toBe("bun test tests/unit");
+    });
+
     test("normalizes raw critic finding object into strongly typed CriticFindingDetail", () => {
       const raw = {
         id: "F-AUTH-01",
@@ -112,6 +157,24 @@ describe("Critic Feedback: Normalization, Pair Selection & Repeat Detection", ()
       expect(pair.isReplacementPair).toBeTrue();
       expect(pair.implementerId).toBe("worker-alpha");
     });
+
+    test("handles pool exhaustion safely when pool contains only original and assigned implementer", () => {
+      const taskWithAssignee: TaskRecord = {
+        ...dummyTask,
+        original_implementer: "worker-original",
+        repair_assignee: "worker-repair",
+      };
+      const pair = selectImplementerValidatorPair(
+        taskWithAssignee,
+        2,
+        "replacement_pair",
+        ["worker-original", "worker-repair"],
+        ["val-1"],
+      );
+      expect(pair.isReplacementPair).toBeTrue();
+      expect(pair.implementerId).toBe("worker-original");
+      expect(pair.validatorId).toBe("val-1");
+    });
   });
 
   describe("detectDeterministicRepeat", () => {
@@ -143,6 +206,46 @@ describe("Critic Feedback: Normalization, Pair Selection & Repeat Detection", ()
       };
 
       expect(detectDeterministicRepeat(priorFindings, newFinding)).toBeTrue();
+    });
+
+    test("returns false when prior finding matches observation and requirement_id but is resolved or closed", () => {
+      const priorFindings = [
+        {
+          id: "F-RESOLVED-01",
+          requirement_id: "R-1",
+          severity: "critical" as const,
+          observation: "Race condition in queue drain",
+          evidence: [],
+          remediation: "Add lock",
+          revalidation: "bun test",
+          status: "resolved" as const,
+        },
+        {
+          id: "F-CLOSED-02",
+          requirement_id: "R-1",
+          severity: "critical" as const,
+          observation: "Race condition in queue drain",
+          evidence: [],
+          remediation: "Add lock",
+          revalidation: "bun test",
+          status: "closed" as const,
+        },
+      ];
+
+      const newFinding: CriticFindingDetail = {
+        id: "F-NEW-03",
+        requirement_id: "R-1",
+        severity: "critical",
+        observation: "Race condition in queue drain",
+        counterfactualRequirement: "Lock must be held",
+        evidence: [],
+        remediation: "Add lock",
+        revalidation: "bun test",
+        status: "open",
+        affectedFilePaths: [],
+      };
+
+      expect(detectDeterministicRepeat(priorFindings, newFinding)).toBeFalse();
     });
 
     test("returns false when finding is novel or materially different", () => {

@@ -1,10 +1,15 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   auditSupervisoryWatchdog,
   recoverStaleTasks,
 } from "../../../olt/scripts/src/engine/scheduler/index.ts";
 import type { TransactionPort, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
-import { schedulerState } from "../fixtures.ts";
+import {
+  cleanupVirtualSchedulerFS,
+  getVirtualSchedulerFS,
+  schedulerState,
+  setupVirtualSchedulerFS,
+} from "../fixtures.ts";
 
 function createMockPort(initialState: Record<string, unknown>): TransactionPort {
   let state = structuredClone(initialState) as unknown as WorkflowState;
@@ -20,6 +25,12 @@ function createMockPort(initialState: Record<string, unknown>): TransactionPort 
 }
 
 describe("Core Scheduler Engine — Supervisory Watchdog & Stale Recovery", () => {
+  beforeEach(() => {
+    setupVirtualSchedulerFS();
+  });
+  afterEach(() => {
+    cleanupVirtualSchedulerFS();
+  });
   test("auditSupervisoryWatchdog detects active watchdogs and overdue heartbeats", () => {
     const now = new Date("2026-08-22T10:30:00.000Z");
     const report = auditSupervisoryWatchdog(undefined, { now });
@@ -84,5 +95,51 @@ describe("Core Scheduler Engine — Supervisory Watchdog & Stale Recovery", () =
 
     const updatedState = port.read();
     expect(updatedState.tasks["priority"]!.status).toBe("stale");
+  });
+
+  test("handles seeded overdue watchdogs and corrupted JSON in virtual store", () => {
+    const vfs = getVirtualSchedulerFS();
+    const now = new Date("2026-08-22T12:00:00.000Z");
+    const storePath = `${process.cwd()}/.olt/watchdogs.json`.replace(/\\/g, "/");
+
+    // 1. Seed active overdue watchdog
+    vfs.writeFileSync(
+      storePath,
+      JSON.stringify({
+        schema: "harness.watchdog_store",
+        version: 1,
+        updated_at: "2026-08-22T10:00:00.000Z",
+        watchdogs: [
+          {
+            id: "wd-overdue-1",
+            generation: 1,
+            pulse_id: null,
+            phase: "execution",
+            run_id: null,
+            run_root: null,
+            pid: 12345,
+            ppid: 1,
+            agent_id: "agent-hung",
+            started_at: "2026-08-22T09:00:00.000Z",
+            last_heartbeat_at: "2026-08-22T10:00:00.000Z",
+            heartbeat_cadence_ms: 10000,
+            timeout_ms: 60000,
+            status: "active",
+            terminated_at: null,
+            termination_reason: null,
+          },
+        ],
+      }),
+    );
+
+    const report = auditSupervisoryWatchdog(storePath, { now });
+    expect(report.healthy).toBeFalse();
+    expect(report.activeWatchdogsCount).toBe(1);
+    expect(report.hungAgentIds).toContain("agent-hung");
+    expect(report.issues.length).toBeGreaterThan(0);
+
+    // 2. Corrupt store JSON
+    vfs.writeFileSync(storePath, "{ invalid: json");
+    expect(() => auditSupervisoryWatchdog(storePath, { now })).toThrow(/corrupted watchdog store/i);
   });
 });

@@ -1,4 +1,5 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
+import { join } from "node:path";
 import {
   executePreparedCommand,
   prepareCommand,
@@ -9,25 +10,17 @@ import type {
   CommandResult,
   PreparedCommand,
 } from "../../../olt/scripts/src/engine/runner/types/types.ts";
-import { tempRoot, cleanupTempRoots, writeTree } from "./fixture.ts";
-import { afterAll } from "bun:test";
+import { getRunnerVfs, tempRoot, cleanupTempRoots, writeTree } from "./fixture.ts";
 
-afterAll(cleanupTempRoots);
-import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
-
-// `prepareCommand`/`executePreparedCommand` are the production entry points: by default they
-// delegate to a runner wired to the real repository inspector and the real attempt spawner, which
-// unit tests must not drive directly (that means real git plumbing and a real spawned child).
-// The `runner` parameter exists solely so this delegation itself -- forwarding the exact input and
-// returning the exact result, nothing more -- can be verified without touching either.
+afterEach(cleanupTempRoots);
 
 describe("prepareCommand / executePreparedCommand delegation", () => {
   test("prepareCommand forwards its input to the supplied runner unchanged and returns its result", async () => {
     const repo = tempRoot("delegation-prepare");
+    const vfs = getRunnerVfs();
     const runtimeDir = join(repo, "runtime");
-    mkdirSync(runtimeDir, { recursive: true });
-    writeFileSync(
+    vfs.mkdirSync(runtimeDir, { recursive: true });
+    vfs.writeFileSync(
       join(runtimeDir, "agent-implementer-1.json"),
       JSON.stringify({
         agent_id: "implementer-1",

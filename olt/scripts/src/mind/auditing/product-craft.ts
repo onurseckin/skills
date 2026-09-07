@@ -359,7 +359,7 @@ export function calculateCompositeCraftScore(
 ): number {
   const weights: Record<ProductCraftPillar, number> = {
     ...DEFAULT_PILLAR_WEIGHTS,
-    ...(customWeights ?? {}),
+    ...customWeights,
   };
 
   const totalWeight = PRODUCT_CRAFT_PILLAR_LIST.reduce(

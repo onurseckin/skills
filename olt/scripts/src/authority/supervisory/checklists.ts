@@ -196,7 +196,7 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     targetRoles: ["coordinator"],
   },
 
-  // Implementer / Repairer / Tier 3 Checklists
+  // Implementer / Tier 3 Checklists
   {
     id: "RESP-IMPL-001",
     category: "boundary",
@@ -206,7 +206,7 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     verificationCriteria:
       "All modified files fall strictly within the task's declared write_scope.",
     protocolKey: "strict_tier_hierarchy",
-    targetRoles: ["implementer", "repairer", "worker", "sub-implementer"],
+    targetRoles: ["implementer", "worker", "sub-implementer"],
   },
   {
     id: "RESP-IMPL-002",
@@ -216,7 +216,7 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
       "Maintain 100% strict TypeScript types: 0 `any`, 0 `@ts-ignore`, 0 `@ts-expect-error`, 0 lint suppressions.",
     verificationCriteria: "Codebase compiles with 0 type errors and 0 type suppressions.",
     protocolKey: "scepticism_quantitative_proof",
-    targetRoles: ["implementer", "repairer", "worker", "sub-implementer"],
+    targetRoles: ["implementer", "worker", "sub-implementer"],
   },
   {
     id: "RESP-IMPL-003",
@@ -227,7 +227,7 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
     verificationCriteria:
       "Verification commands recorded via `run:exec` and cited in submission evidence.",
     protocolKey: "scepticism_quantitative_proof",
-    targetRoles: ["implementer", "repairer", "worker", "sub-implementer"],
+    targetRoles: ["implementer", "worker", "sub-implementer"],
   },
   {
     id: "RESP-IMPL-004",
@@ -237,7 +237,7 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
       "Never validate, review, probe, or sign off own work; submit to independent validator.",
     verificationCriteria: "Implementer never claims validation lease or executes `task:review`.",
     protocolKey: "strict_tier_hierarchy",
-    targetRoles: ["implementer", "repairer", "worker", "sub-implementer"],
+    targetRoles: ["implementer", "worker", "sub-implementer"],
   },
   {
     id: "RESP-IMPL-005",
@@ -247,7 +247,7 @@ export const STANDING_CHECKLIST_DEFINITIONS: readonly ChecklistItemDefinition[] 
       "Register and claim leases using standardized task-bound agent ID (implementer_<task-id>-<slug>).",
     verificationCriteria: "Agent ID conforms to standardized implementer_<task-id>-<slug> pattern.",
     protocolKey: "standardized_agent_naming",
-    targetRoles: ["implementer", "repairer", "worker", "sub-implementer"],
+    targetRoles: ["implementer", "worker", "sub-implementer"],
   },
 
   // Validator / Tier 3 Checklists

@@ -203,25 +203,59 @@ export function validateParameter(
     const itemTypeStr: ToolParameterType =
       typeof param.itemType === "string"
         ? (param.itemType as ToolParameterType)
-        : (param.itemType.type as ToolParameterType);
+        : ((param.itemType as any).type as ToolParameterType ?? "object");
     const itemErrors: ToolValidationError[] = [];
     const sanitizedItems: unknown[] = [];
     for (let i = 0; i < value.length; i++) {
       let itemVal = value[i];
-      if (options.coerceTypes) itemVal = coerceValue(itemVal, itemTypeStr);
-      if (!validateTypeOnly(itemTypeStr, itemVal)) {
-        itemErrors.push({
-          field: `${fieldName}[${i}]`,
-          code: "INVALID_ITEM",
-          message: `Array item at index ${i} for '${fieldName}' must be ${itemTypeStr}`,
-          received: typeof itemVal,
-          expected: itemTypeStr,
-        });
+      if (
+        typeof param.itemType === "object" &&
+        param.itemType !== null &&
+        "properties" in param.itemType &&
+        param.itemType.properties &&
+        typeof itemVal === "object" &&
+        itemVal !== null &&
+        !Array.isArray(itemVal)
+      ) {
+        const itemProps: readonly ToolParameter[] = Array.isArray(param.itemType.properties)
+          ? (param.itemType.properties as readonly ToolParameter[])
+          : Object.entries(param.itemType.properties).map(([pName, p]) => ({
+              name: pName,
+              type: (p as any).type as ToolParameterType,
+              description: (p as any).description ?? "",
+              required: (p as any).required,
+              defaultValue: (p as any).defaultValue,
+              enumValues: (p as any).enumValues,
+            }));
+        const nestedRes = sanitizeAndValidatePayload(
+          itemProps,
+          itemVal as Record<string, unknown>,
+          options,
+        );
+        if (!nestedRes.valid && nestedRes.errors) {
+          for (const nestedErr of nestedRes.errors) {
+            if (typeof nestedErr === "object" && nestedErr !== null) {
+              itemErrors.push({ ...nestedErr, field: `${fieldName}[${i}].${nestedErr.field ?? ""}` });
+            }
+          }
+        }
+        sanitizedItems.push(nestedRes.sanitized ?? itemVal);
+      } else {
+        if (options.coerceTypes) itemVal = coerceValue(itemVal, itemTypeStr);
+        if (!validateTypeOnly(itemTypeStr, itemVal)) {
+          itemErrors.push({
+            field: `${fieldName}[${i}]`,
+            code: "INVALID_ITEM",
+            message: `Array item at index ${i} for '${fieldName}' must be ${itemTypeStr}`,
+            received: typeof itemVal,
+            expected: itemTypeStr,
+          });
+        }
+        sanitizedItems.push(itemVal);
       }
-      sanitizedItems.push(itemVal);
     }
+    value = sanitizedItems;
     if (itemErrors.length > 0) errors.push(...itemErrors);
-    else value = sanitizedItems;
   }
 
   if (
@@ -289,6 +323,9 @@ export function sanitizeAndValidatePayload(
     const validation = validateParameter(param, rawVal, options);
     if (!validation.valid) {
       errors.push(...validation.errors);
+      if (validation.value !== undefined) {
+        sanitized[param.name] = validation.value;
+      }
     } else if (validation.value !== undefined) {
       sanitized[param.name] = validation.value;
     }

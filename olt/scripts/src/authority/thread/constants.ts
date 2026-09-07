@@ -4,7 +4,7 @@ export const TIER_NAMES: Readonly<Record<ExecutionTier, string>> = {
   0: "Tier 0: Mind Lead (Observe-Only Supervisor & Human Shell)",
   1: "Tier 1: Orchestrator Lead (Plan Supervisor & Release Manager)",
   2: "Tier 2: Coordinator Lead (Wave Execution & Lease Manager)",
-  3: "Tier 3: Implementer / Validator / Repairer / Completeness Critic",
+  3: "Tier 3: Implementer / Validator / Completeness Critic",
 };
 
 export const MAIN_THREAD_ADVISORY =
@@ -64,45 +64,6 @@ export const AGENT_NAMING_STANDARDS: Readonly<Record<string, AgentNamingStandard
     regexPattern: /^validator_(task-[a-z0-9]+)(?:-([a-z0-9]+(?:-[a-z0-9]+)*))?$/,
     example: "validator_task-p47-autonomic-watchdog",
     description: "Tier 3 Adversarial Validator strictly bound to validated task ID",
-  },
-  "mechanic-validator": {
-    role: "mechanic-validator",
-    tier: 3,
-    bindingType: "task",
-    formatTemplate: "mechanic-validator_<task-id>[-<descriptive-slug>]",
-    regexPattern: /^mechanic-validator_(task-[a-z0-9]+)(?:-([a-z0-9]+(?:-[a-z0-9]+)*))?$/,
-    example: "mechanic-validator_task-p47-autonomic-watchdog",
-    description:
-      "Tier 3 Mechanic Validator strictly bound to validated task ID for deterministic test/gate execution",
-  },
-  "ui-mechanic-validator": {
-    role: "ui-mechanic-validator",
-    tier: 3,
-    bindingType: "task",
-    formatTemplate: "ui-mechanic-validator_<task-id>[-<descriptive-slug>]",
-    regexPattern: /^ui-mechanic-validator_(task-[a-z0-9]+)(?:-([a-z0-9]+(?:-[a-z0-9]+)*))?$/,
-    example: "ui-mechanic-validator_task-p48-viewport-matrix",
-    description:
-      "Tier 3 UI Mechanic Validator bound to task ID for automated DOM metrics and screenshot capture",
-  },
-  "ui-validator": {
-    role: "ui-validator",
-    tier: 3,
-    bindingType: "task",
-    formatTemplate: "ui-validator_<task-id>[-<descriptive-slug>]",
-    regexPattern: /^ui-validator_(task-[a-z0-9]+)(?:-([a-z0-9]+(?:-[a-z0-9]+)*))?$/,
-    example: "ui-validator_task-p48-viewport-matrix",
-    description:
-      "Tier 3 UI Cognitive Validator bound to task ID for visual aesthetics, layout, UX, and accessibility critique",
-  },
-  repairer: {
-    role: "repairer",
-    tier: 3,
-    bindingType: "task",
-    formatTemplate: "repairer_<task-id>[-<descriptive-slug>]",
-    regexPattern: /^repairer_(task-[a-z0-9]+)(?:-([a-z0-9]+(?:-[a-z0-9]+)*))?$/,
-    example: "repairer_task-p47-autonomic-watchdog",
-    description: "Tier 3 Task Repairer bound to leased task ID for remediation",
   },
   "completeness-critic": {
     role: "completeness-critic",
@@ -212,5 +173,25 @@ export const AGENT_NAMING_STANDARDS: Readonly<Record<string, AgentNamingStandard
       /^sub-investigator_(subtask-[a-z0-9]+|[a-z0-9]+)(?:-([a-z0-9]+(?:-[a-z0-9]+)*))?$/,
     example: "sub-investigator_subtask-1-diag",
     description: "Tier 3 Branch Sub-Investigator bound to branch subtask ID",
+  },
+  "ui-headless-validator": {
+    role: "ui-headless-validator",
+    tier: 3,
+    bindingType: "task",
+    formatTemplate: "ui-headless-validator_<task-id>[-<descriptive-slug>]",
+    regexPattern: /^ui-headless-validator_(task-[a-z0-9]+)(?:-([a-z0-9]+(?:-[a-z0-9]+)*))?$/,
+    example: "ui-headless-validator_task-p48-viewport-matrix",
+    description:
+      "Tier 3 UI Headless Mechanic Validator bound to task ID: runs Playwright, captures screenshots and DOM metrics, executes commands",
+  },
+  "ui-optical-validator": {
+    role: "ui-optical-validator",
+    tier: 3,
+    bindingType: "task",
+    formatTemplate: "ui-optical-validator_<task-id>[-<descriptive-slug>]",
+    regexPattern: /^ui-optical-validator_(task-[a-z0-9]+)(?:-([a-z0-9]+(?:-[a-z0-9]+)*))?$/,
+    example: "ui-optical-validator_task-p48-viewport-matrix",
+    description:
+      "Tier 3 UI Optical Cognitive Validator bound to task ID: adversarial visual/UX critique, hard-locked from command execution",
   },
 };

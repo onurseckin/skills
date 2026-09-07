@@ -5,7 +5,6 @@ export const FORBIDDEN_VALIDATOR_COMMANDS: ReadonlySet<string> = new Set<string>
   "run:exec",
   "task:claim",
   "task:submit",
-  "task:assign-repairer",
   "shell",
   "run_command",
   "edit_file",

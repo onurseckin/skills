@@ -24,7 +24,7 @@ describe("Budget Calculator Suite (calculator.ts)", () => {
           { role: "implementer", status: "active" },
           { role: "validator", status: "active" },
           { role: "orchestrator", status: "active" },
-          { role: "repairer", status: "active" },
+          { role: "implementer", status: "active" },
           { role: "mind-auditor", status: "active" },
           { role: "observer", status: "active" }, // unauthorized role
           { role: "implementer", status: "idle" }, // inactive

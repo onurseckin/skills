@@ -1,25 +1,62 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   runAdversarialCounterfactualCheck,
   runAdversarialDoctorCheck,
 } from "../../../olt/scripts/src/reporting/doctor/adversarial-doctor/check-runner.ts";
+import { mockSubprocess } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import { cleanupVirtualReportingFS, setupVirtualReportingFS, tempDir } from "../fixture.ts";
 
 describe("adversarial-doctor check-runner coverage", () => {
   let sandboxDir: string;
   let testFile: string;
+  let vfs: ReturnType<typeof setupVirtualReportingFS>;
+  let spawnSpy: ReturnType<typeof mockSubprocess>;
 
   beforeEach(() => {
-    setupVirtualReportingFS();
+    vfs = setupVirtualReportingFS();
     sandboxDir = tempDir("adv-runner");
     testFile = join(sandboxDir, "sample.ts");
-    fs.writeFileSync(testFile, "export const value = 42;\n");
+    vfs.writeFileSync(testFile, "export const value = 42;\n");
+
+    spawnSpy = mockSubprocess((cmd: string, ..._args: unknown[]) => {
+      if (cmd === "echo") {
+        return {
+          status: 0,
+          stdout: "pass",
+          stderr: "",
+          error: undefined,
+          pid: 1234,
+          output: ["", "pass", ""],
+          signal: null,
+        };
+      }
+      if (cmd === "git") {
+        return {
+          status: 1,
+          stdout: "",
+          stderr: "nonexistent",
+          error: undefined,
+          pid: 1234,
+          output: ["", "", "nonexistent"],
+          signal: null,
+        };
+      }
+      return {
+        status: 0,
+        stdout: "1 pass",
+        stderr: "",
+        error: undefined,
+        pid: 1234,
+        output: ["", "1 pass", ""],
+        signal: null,
+      };
+    });
   });
 
   afterEach(() => {
+    spawnSpy.mockRestore();
     cleanupVirtualReportingFS();
   });
 
@@ -113,8 +150,8 @@ describe("adversarial-doctor check-runner coverage", () => {
     const revertThrowingRunner = async () => {
       callCount += 1;
       if (callCount === 2) {
-        fs.unlinkSync(testFile);
-        fs.mkdirSync(testFile);
+        vfs.unlinkSync(testFile);
+        vfs.mkdirSync(testFile);
       }
       return { success: callCount === 1 };
     };
@@ -149,7 +186,7 @@ describe("adversarial-doctor check-runner coverage", () => {
 
   it("executes bun test runner for .test.ts files and regular files", async () => {
     const testPath = join(sandboxDir, "dummy.test.ts");
-    fs.writeFileSync(testPath, "export const a = 1;");
+    vfs.writeFileSync(testPath, "export const a = 1;");
     const testResult = await runAdversarialCounterfactualCheck(testPath, {
       allowedRoots: [sandboxDir],
     });

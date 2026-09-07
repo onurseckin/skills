@@ -17,7 +17,7 @@ export function extractSystemMetricsFromState(
   let readyTasks = 0;
   let pendingTasks = 0;
   let failedTasks = 0;
-  let falseBarrierCount = 0;
+  const falseBarrierCount = 0;
 
   for (const t of tasks) {
     const status = String(t.status || "").toLowerCase();

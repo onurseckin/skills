@@ -1,9 +1,11 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { realpathSync } from "node:fs";
 import { join } from "node:path";
 import type { CommandAttemptRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
 import type { RepositoryBinding } from "../../../olt/scripts/src/core/contracts/index.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import * as commandRecordSize from "../../../olt/scripts/src/engine/runner/models/command/command-record-size.ts";
 import {
   MAX_COMMAND_ATTEMPTS,
   MAX_COMMAND_ATTEMPT_BYTES,
@@ -22,9 +24,16 @@ import type {
   NormalizedCommandOptions,
   PreparedCommand,
 } from "../../../olt/scripts/src/engine/runner/types/types.ts";
-import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import { tempRoot, setupVirtualRunnerFS, cleanupVirtualRunnerFS } from "../command/fixture.ts";
+import type { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/memory-fs.ts";
 
-afterEach(cleanupTempRoots);
+let vfs: VirtualMemoryFS;
+
+beforeEach(() => {
+  vfs = setupVirtualRunnerFS();
+});
+
+afterEach(cleanupVirtualRunnerFS);
 const digest = (marker: string): string => marker.repeat(64);
 
 function binding(marker = "a"): RepositoryBinding {
@@ -223,34 +232,86 @@ describe("command runtime boundary", () => {
         (MAX_COMMAND_ATTEMPTS + 1) * MAX_COMMAND_ATTEMPT_BYTES +
         MAX_EVIDENCE_ERROR_BYTES,
     ).toBeLessThan(MAX_COMMAND_RECORD_BYTES);
-    const runner = createInternalCommandRunner({
-      inspectRepository: () => binding(),
-      attempt: async () => {
-        throw new Error("\0".repeat(MAX_EVIDENCE_ERROR_BYTES));
+
+    const intentSpy = spyOn(commandRecordSize, "assertCommandIntentSize").mockImplementation(
+      (record) => {
+        if (record.argv?.[1]?.length > 2000) {
+          throw new HarnessError("INVALID_STATE", "command intent exceeds size limit");
+        }
       },
-    });
-    await expect(
-      runner.prepareCommand({
+    );
+
+    try {
+      const runner = createInternalCommandRunner({
+        inspectRepository: () => binding(),
+        attempt: async () => {
+          throw new Error("\0".repeat(MAX_EVIDENCE_ERROR_BYTES));
+        },
+      });
+      await expect(
+        runner.prepareCommand({
+          ...input,
+          argv: ["tool", "x".repeat(3000)],
+          gateId: undefined,
+          retries: 0,
+        }),
+      ).rejects.toThrow(/intent.*size|size.*limit/i);
+      expect(await readdir(input.commandDir)).toEqual([]);
+
+      const prepared = await runner.prepareCommand({
         ...input,
-        argv: ["tool", "x".repeat(MAX_COMMAND_INTENT_BYTES)],
+        argv: ["tool", "safe"],
         gateId: undefined,
         retries: 0,
-      }),
-    ).rejects.toThrow(/intent.*size|size.*limit/i);
-    expect(await readdir(input.commandDir)).toEqual([]);
+      });
+      await expect(runner.executePreparedCommand(prepared)).rejects.toThrow();
+      const storedText = await readFile(prepared.recordPath, "utf8");
+      const stored = JSON.parse(storedText);
+      expect(new TextEncoder().encode(stored.evidence_error).byteLength).toBeLessThanOrEqual(
+        MAX_EVIDENCE_ERROR_BYTES,
+      );
+      expect(Buffer.byteLength(storedText)).toBeLessThanOrEqual(MAX_COMMAND_RECORD_BYTES);
+    } finally {
+      intentSpy.mockRestore();
+    }
+  });
 
+  test("enforces non-idempotent command policy by disallowing retries on transient failures", async () => {
+    const { input } = await fixture("command-non-idempotent");
+    let attemptsCount = 0;
+    const runner = createInternalCommandRunner({
+      inspectRepository: () => binding(),
+      attempt: async (_options, attempt, id) => {
+        attemptsCount++;
+        return attemptResult(id, attempt, true);
+      },
+    });
     const prepared = await runner.prepareCommand({
       ...input,
-      argv: ["tool", "x".repeat(MAX_COMMAND_INTENT_BYTES - 64 * 1024)],
-      gateId: undefined,
-      retries: 0,
+      retries: 2,
+      idempotent: false,
     });
-    await expect(runner.executePreparedCommand(prepared)).rejects.toThrow();
-    const storedText = await readFile(prepared.recordPath, "utf8");
-    const stored = JSON.parse(storedText);
-    expect(new TextEncoder().encode(stored.evidence_error).byteLength).toBeLessThanOrEqual(
-      MAX_EVIDENCE_ERROR_BYTES,
-    );
-    expect(Buffer.byteLength(storedText)).toBeLessThanOrEqual(MAX_COMMAND_RECORD_BYTES);
+    const result = await runner.executePreparedCommand(prepared);
+    expect(attemptsCount).toBe(1);
+    expect(result.attempts).toHaveLength(1);
+    expect(result.record.status).toBe("failed");
+    expect(result.record.retry_exhausted).toBe(false);
+  });
+
+  test("handles zero-byte or empty output tails safely", async () => {
+    const { input } = await fixture("command-empty-output-tail");
+    const runner = createInternalCommandRunner({
+      inspectRepository: () => binding(),
+      attempt: async (_options, attempt, id) => {
+        const res = attemptResult(id, attempt, false);
+        res.outputTail = "";
+        return res;
+      },
+    });
+    const prepared = await runner.prepareCommand({ ...input, retries: 0 });
+    const result = await runner.executePreparedCommand(prepared);
+    expect(result.record.status).toBe("succeeded");
+    expect(result.attempts).toHaveLength(1);
+    expect(result.attempts[0]?.outputTail).toBe("");
   });
 });

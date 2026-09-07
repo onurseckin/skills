@@ -64,7 +64,13 @@ export function strictFeedbackItem(parsed: unknown, lineNumber: number): Feedbac
   const timestamp = typeof record.timestamp === "string" ? record.timestamp.trim() : "";
   const title = typeof record.title === "string" ? record.title : "";
   const content = typeof record.content === "string" ? record.content : "";
-  if (!id || !timestamp || !Number.isFinite(Date.parse(timestamp)) || !title || !content) {
+  if (
+    !id ||
+    !timestamp ||
+    !Number.isFinite(Date.parse(timestamp)) ||
+    !title ||
+    typeof content !== "string"
+  ) {
     throw new HarnessError("INTEGRITY", `feedback queue line ${lineNumber} is malformed`);
   }
   const priority = validatePriority(record.priority);

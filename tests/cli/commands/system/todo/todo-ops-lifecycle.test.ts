@@ -7,7 +7,7 @@ import {
   todoAddCommand,
   todoDrainCommand,
   todoSealCommand,
-} from "../../../../../olt/scripts/src/cli/commands/todo-ops.ts";
+} from "../../../../../olt/scripts/src/cli/commands/todo/index.ts";
 import {
   readFeedbackQueue,
   writeFeedbackQueue,

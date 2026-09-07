@@ -1,7 +1,18 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { parseYaml } from "../../../olt/scripts/src/authority/manifest/index.ts";
+import {
+  cleanupVirtualAuthorityFS,
+  setupVirtualAuthorityFS,
+} from "../fixture.ts";
 
 describe("Authority Manifest Parser - Basic YAML Parsing", () => {
+  beforeEach(() => {
+    setupVirtualAuthorityFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualAuthorityFS();
+  });
   test("parses plain scalars, booleans, numbers, and nulls correctly", () => {
     const yaml = `
 string_val: hello world
@@ -53,5 +64,38 @@ key2: 100 # Inline comment 2
 
     expect(parseYaml("")).toEqual({});
     expect(parseYaml("   \n\t \n")).toEqual({});
+  });
+
+  test("parses multi-line scalars, nested structures, and values containing colons", () => {
+    const yaml = `
+api_endpoint: "https://localhost:8080/v1"
+special_key: "val:1:2"
+unquoted_url: https://example.com/api
+nested:
+  child:
+    name: deep_node
+    count: 10
+literal_text: |
+  First line
+  Second line
+folded_text: >
+  Folded line one
+  folded line two
+`;
+    const parsed = parseYaml(yaml) as Record<string, unknown>;
+    expect(parsed.api_endpoint).toBe("https://localhost:8080/v1");
+    expect(parsed.special_key).toBe("val:1:2");
+    expect(parsed.unquoted_url).toBe("https://example.com/api");
+
+    const nested = parsed.nested as Record<string, unknown>;
+    const child = nested.child as Record<string, unknown>;
+    expect(child.name).toBe("deep_node");
+    expect(child.count).toBe(10);
+
+    expect(typeof parsed.literal_text).toBe("string");
+    expect(parsed.literal_text as string).toContain("First line\nSecond line");
+
+    expect(typeof parsed.folded_text).toBe("string");
+    expect(parsed.folded_text as string).toContain("Folded line one folded line two");
   });
 });

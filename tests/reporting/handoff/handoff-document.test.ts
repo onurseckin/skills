@@ -1,13 +1,28 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, mock, test } from "bun:test";
 import type { RunState } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { renderHandoff } from "../../../olt/scripts/src/reporting/handoff.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { dispatchFailures, handoffArgv } from "../core/dispatchable.ts";
 import {
-  cleanupVirtualBrowserFS,
-  setupVirtualBrowserFS,
-  tempDir,
-} from "../browser/browser-run-fixture.ts";
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+
+mock.module("../../../olt/scripts/src/engine/store/integrity/integrity.ts", () => ({
+  verifyIntegrity: () => [],
+}));
+
+let vfs = new VirtualMemoryFS();
+let session: VirtualFSSession | null = null;
+let counter = 0;
+
+function tempDir(label = "test"): string {
+  counter += 1;
+  const dir = `/virtual/scratch/handoff-doc-${label}-${counter}`;
+  vfs.mkdirSync(dir, { recursive: true });
+  return dir;
+}
 
 const TASKS = {
   "task-1": {
@@ -116,12 +131,23 @@ function capsule(name: string, mutate: (state: RunState) => void = () => {}) {
 export const handoffDocumentSuiteName = "the handoff reflects the system a fresh agent is joining";
 
 describe(handoffDocumentSuiteName, () => {
-  beforeEach(() => {
-    setupVirtualBrowserFS();
+  beforeAll(() => {
+    if (session) {
+      session.cleanup();
+      session = null;
+    }
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    const warmupRun = capsule("warmup");
+    renderHandoff(warmupRun);
   });
 
-  afterEach(() => {
-    cleanupVirtualBrowserFS();
+  afterAll(() => {
+    if (session) {
+      session.cleanup();
+      session = null;
+    }
+    vfs = new VirtualMemoryFS();
   });
 
   test("reports the live wave, the grants, the branches and the open findings", () => {

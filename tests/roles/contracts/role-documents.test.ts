@@ -1,5 +1,4 @@
-import { describe, expect, test } from "bun:test";
-import { readdirSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { dirname } from "node:path";
 import { AGENT_ROLES, isAgentRole } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
@@ -8,6 +7,20 @@ import {
   resolveRoleContractPath,
   VALIDATOR_DOMAINS,
 } from "../../../olt/scripts/src/packets/role-contract.ts";
+import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import {
+  cleanupVirtualRolesFS,
+  getVirtualRolesFS,
+  setupVirtualRolesFS,
+} from "../fixture.ts";
+
+beforeEach(() => {
+  setupVirtualRolesFS();
+});
+
+afterEach(() => {
+  cleanupVirtualRolesFS();
+});
 
 const rolesRoot = dirname(resolveRoleContractPath("planner"));
 
@@ -18,7 +31,8 @@ const rolesRoot = dirname(resolveRoleContractPath("planner"));
 
 describe("canonical role documents", () => {
   test("agents/ holds unified manifests for all canonical roles", () => {
-    const documented = readdirSync(rolesRoot)
+    const vfs = getVirtualRolesFS();
+    const documented = vfs.readdirSync(rolesRoot)
       .filter((entry) => entry.endsWith(".yaml") || entry.endsWith(".yml"))
       .map((entry) => entry.replace(/\.(yaml|yml)$/, ""))
       .filter((entry) => isAgentRole(entry))
@@ -112,21 +126,25 @@ describe("canonical role documents", () => {
     );
   });
 
-  test("validator and completeness-critic contracts enforce mechanical anti-boundary-leak rules and repairer delegation", () => {
+  test("validator and completeness-critic contracts enforce mechanical anti-boundary-leak rules and in-lease implementer repair delegation", () => {
     const validatorContract = loadRoleContract("validator");
     const validatorMustNot = validatorContract.must_not.join("\n").toLowerCase();
     expect(validatorMustNot).toContain("anti-boundary-leak rule");
     expect(validatorMustNot).toContain("task:reject");
-    expect(validatorMustNot).toContain("assigned repairer");
+    expect(validatorMustNot).toContain("assigned implementer");
     expect(validatorContract.text).toContain("Anti-Boundary-Leak Rule");
-    expect(validatorContract.text).toContain("task:assign-repairer");
+    expect(validatorContract.text).toContain("task:reject --in-lease");
 
     const criticContract = loadRoleContract("completeness-critic");
     const criticMustNot = criticContract.must_not.join("\n").toLowerCase();
     expect(criticMustNot).toContain("anti-boundary-leak rule");
     expect(criticMustNot).toContain("critic:reject");
-    expect(criticMustNot).toContain("assigned repairer");
+    expect(criticMustNot).toContain("assigned implementer");
     expect(criticContract.text).toContain("Anti-Boundary-Leak Rule");
-    expect(criticContract.text).toContain("task:assign-repairer");
+  });
+
+  test("clean error behavior on non-existent validator domain and non-canonical role", () => {
+    expect(() => loadValidatorDomainContract("non-existent-domain" as any)).toThrow(HarnessError);
+    expect(() => loadRoleContract("non-canonical-role-xyz" as any)).toThrow(HarnessError);
   });
 });

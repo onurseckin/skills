@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { readFile } from "node:fs/promises";
 import { generateKeyPairSync, sign } from "node:crypto";
 import { join } from "node:path";
 import {
@@ -15,7 +14,7 @@ import {
   settledAttemptTerminalProof,
   startAttemptIntent,
 } from "../../../olt/scripts/src/engine/runner/execution/attempt-intent.ts";
-import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import { getRunnerVfs, tempRoot, cleanupTempRoots } from "../command/fixture.ts";
 
 afterEach(cleanupTempRoots);
 
@@ -34,7 +33,9 @@ describe("cleanup uncertainty reconciliation", () => {
       () => undefined,
       substituted,
     );
-    const marker = JSON.parse(await readFile(join(attemptDir, "attempt-started.json"), "utf8"));
+    const marker = JSON.parse(
+      getRunnerVfs().readFileSync(join(attemptDir, "attempt-started.json"), "utf8"),
+    );
 
     expect(
       attemptStartedIssues(
@@ -134,7 +135,9 @@ describe("cleanup uncertainty reconciliation", () => {
     controller.bindRoot({ pid: 4242, parent: 100, group: 4242, birth: "root" });
     controller.beginCleanupUncertain(["pump failed"]);
     controller.recordSignal("SIGTERM");
-    const marker = JSON.parse(await readFile(join(attemptDir, "attempt-started.json"), "utf8"));
+    const marker = JSON.parse(
+      getRunnerVfs().readFileSync(join(attemptDir, "attempt-started.json"), "utf8"),
+    );
 
     expect(marker.base_sha256).toMatch(/^[0-9a-f]{64}$/u);
     expect(marker.verification_public_key).toMatch(/^[A-Za-z0-9+/]+=*$/u);
@@ -218,7 +221,7 @@ describe("cleanup uncertainty reconciliation", () => {
     );
     controller.markRecordPending("terminal evidence is ready");
     controller.markTerminalProof("child settlement proven", settledAttemptTerminalProof(undefined));
-    const terminal = await readFile(join(attemptDir, "attempt-started.json"), "utf8");
+    const terminal = getRunnerVfs().readFileSync(join(attemptDir, "attempt-started.json"), "utf8");
 
     expect(() => controller.recordSignal("SIGTERM")).toThrow(/terminal|final|uncertainty/i);
     expect(() => controller.markRecordPending("again")).toThrow(/terminal|final|transition/i);
@@ -228,6 +231,8 @@ describe("cleanup uncertainty reconciliation", () => {
     expect(() => controller.beginCleanupUncertain(["evidence publication failed"])).toThrow(
       /terminal|final/i,
     );
-    expect(await readFile(join(attemptDir, "attempt-started.json"), "utf8")).toBe(terminal);
+    expect(getRunnerVfs().readFileSync(join(attemptDir, "attempt-started.json"), "utf8")).toBe(
+      terminal,
+    );
   });
 });

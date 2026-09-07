@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import {
   collectInboxReceipts,
@@ -8,20 +7,19 @@ import {
   resolveMailboxPaths,
 } from "../../../olt/scripts/src/communication/mailbox/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { cleanupVirtualCommunicationFS, setupVirtualCommunicationFS } from "../helpers.ts";
+import { cleanupVirtualCommunicationFS, setupVirtualCommunicationFS, vfs } from "../helpers.ts";
+
+const TEST_FILE_PATH = join(process.cwd(), "tests/communication/mailbox/mailbox-receipts.test.ts");
+const TEST_FILE_CONTENT = await Bun.file(TEST_FILE_PATH).text();
 
 describe("Mailbox Receipt Collection & Cursor Integration", () => {
   let testRoot: string;
 
   beforeEach(() => {
     setupVirtualCommunicationFS();
-    testRoot = join(
-      process.cwd(),
-      "coverage",
-      "scratch",
-      `rcpt-test-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    );
-    mkdirSync(testRoot, { recursive: true });
+    vfs.loadSnapshot({ [TEST_FILE_PATH]: TEST_FILE_CONTENT });
+    testRoot = `/sandbox/scratch/rcpt-test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    vfs.mkdirSync(testRoot, { recursive: true });
 
     dispatchPeerMessage({
       senderId: "w-1",
@@ -54,7 +52,6 @@ describe("Mailbox Receipt Collection & Cursor Integration", () => {
 
   afterEach(() => {
     cleanupVirtualCommunicationFS();
-    if (existsSync(testRoot)) rmSync(testRoot, { recursive: true, force: true });
   });
 
   it("collects all unread messages when no filters are set", () => {
@@ -125,7 +122,7 @@ describe("Mailbox Receipt Collection & Cursor Integration", () => {
 
   it("quarantines tampered HMAC signatures and torn lines during receipt collection", () => {
     const paths = resolveMailboxPaths("tamper-agent", testRoot);
-    mkdirSync(join(testRoot, ".olt", "mailboxes", "tamper-agent"), { recursive: true });
+    vfs.mkdirSync(join(testRoot, ".olt", "mailboxes", "tamper-agent"), { recursive: true });
 
     const validEnv = dispatchPeerMessage({
       senderId: "w-1",
@@ -141,13 +138,17 @@ describe("Mailbox Receipt Collection & Cursor Integration", () => {
       id: "fake-id",
       hmac_signature: "deadbeef00112233445566778899aabbccddeeff",
     };
-    appendFileSync(paths.inboxPath, "\n{ torn JSON invalid\n" + JSON.stringify(tamperedEnv) + "\n");
+    const prev = vfs.existsSync(paths.inboxPath) ? vfs.readFileSync(paths.inboxPath, "utf8") : "";
+    vfs.writeFileSync(
+      paths.inboxPath,
+      prev + "\n{ torn JSON invalid\n" + JSON.stringify(tamperedEnv) + "\n",
+    );
 
     const result = collectInboxReceipts("tamper-agent", { baseDir: testRoot });
     expect(result.totalReceipts).toBe(1);
     expect(result.receipts[0]!.id).toBe(validEnv.id);
-    expect(existsSync(paths.quarantinePath)).toBe(true);
-    const qLog = readFileSync(paths.quarantinePath, "utf8");
+    expect(vfs.existsSync(paths.quarantinePath)).toBe(true);
+    const qLog = vfs.readFileSync(paths.quarantinePath, "utf8");
     expect(qLog).toContain("MALFORMED_JSON_SYNTAX");
     expect(qLog).toContain("HMAC_VERIFICATION_FAILED");
   });
@@ -158,7 +159,7 @@ describe("Mailbox Receipt Collection & Cursor Integration", () => {
 
   it("ensures file is <= 300 physical lines", () => {
     const file = join(process.cwd(), "tests/communication/mailbox/mailbox-receipts.test.ts");
-    const lines = readFileSync(file, "utf8").split("\n");
+    const lines = vfs.readFileSync(file, "utf8").split("\n");
     expect(lines.length).toBeLessThanOrEqual(300);
   });
 });

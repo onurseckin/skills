@@ -59,4 +59,57 @@ describe("Design Rule: Material Design 3 State Layers", () => {
     expect(def?.severity).toBe("moderate");
     expect(def?.message).toContain("Material Design 3 state layer deviation");
   });
+
+  it("passes exact boundary min and max tolerance values across all MD3 states", () => {
+    const elMinBoundaries: ElementPhysicsSnapshot = {
+      selector: "button.boundaries-min",
+      tagName: "BUTTON",
+      bounds: { x: 0, y: 0, width: 100, height: 40 },
+      stateLayers: {
+        hover: 0.06,
+        focus: 0.1,
+        pressed: 0.1,
+        dragged: 0.14,
+      },
+    };
+    expect(validateMaterialStateLayers(elMinBoundaries, 0)).toBeNull();
+
+    const elMaxBoundaries: ElementPhysicsSnapshot = {
+      selector: "button.boundaries-max",
+      tagName: "BUTTON",
+      bounds: { x: 0, y: 0, width: 100, height: 40 },
+      stateLayers: {
+        hover: 0.1,
+        focus: 0.14,
+        pressed: 0.14,
+        dragged: 0.18,
+      },
+    };
+    expect(validateMaterialStateLayers(elMaxBoundaries, 0)).toBeNull();
+  });
+
+  it("aggregates multiple simultaneous state violations into a single defect", () => {
+    const elMultiViolation: ElementPhysicsSnapshot = {
+      selector: "button.multi-violation",
+      tagName: "BUTTON",
+      bounds: { x: 0, y: 0, width: 100, height: 40 },
+      stateLayers: { hover: 0.2, pressed: 0.02 },
+    };
+    const def = validateMaterialStateLayers(elMultiViolation, 2);
+    expect(def).not.toBeNull();
+    expect(def?.message).toContain("hover");
+    expect(def?.message).toContain("pressed");
+    expect(def?.metadata?.violations).toContain("hover");
+    expect(def?.metadata?.violations).toContain("pressed");
+  });
+
+  it("gracefully ignores unrecognized custom states without crashing", () => {
+    const elCustom: ElementPhysicsSnapshot = {
+      selector: "button.custom-state",
+      tagName: "BUTTON",
+      bounds: { x: 0, y: 0, width: 100, height: 40 },
+      stateLayers: { customActive: 0.8 as any },
+    };
+    expect(validateMaterialStateLayers(elCustom, 0)).toBeNull();
+  });
 });

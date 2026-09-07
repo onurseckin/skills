@@ -58,6 +58,23 @@ describe("Multi-Domain Dispatch & Validator Pairing", () => {
         "ui-design",
       ]);
     });
+
+    it("identifies diverse UI extensions (.vue, .css) as requiring dual validation", () => {
+      const vueTask = {
+        id: "task-vue",
+        write_scope: ["src/views/App.vue"],
+      };
+      const cssTask = {
+        id: "task-css",
+        write_scope: ["src/styles/theme.css"],
+      };
+
+      expect(isDualValidationRequired(vueTask)).toBe(true);
+      expect(getRequiredValidatorDomains(vueTask)).toEqual(["code-quality", "ui-design"]);
+
+      expect(isDualValidationRequired(cssTask)).toBe(true);
+      expect(getRequiredValidatorDomains(cssTask)).toEqual(["code-quality", "ui-design"]);
+    });
   });
 
   describe("2. Task and Domain Classification", () => {

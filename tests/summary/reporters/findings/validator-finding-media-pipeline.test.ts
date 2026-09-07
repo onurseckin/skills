@@ -1,9 +1,8 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import { mapMediaAssets } from "../../../../olt/scripts/src/summary/assets/index.ts";
 import { makeCommand, makeTask } from "../dag/graph-fixtures.ts";
-import { setupVirtualSummaryFS } from "../../fixture.ts";
+import { getVirtualSummaryFS, setupVirtualSummaryFS } from "../../fixture.ts";
 
 let rootCounter = 0;
 
@@ -15,8 +14,9 @@ function runRootWithLog(contents: string): string {
   rootCounter += 1;
   const root = `/virtual/asset-mapper-${rootCounter}`;
   const logDir = join(root, "commands", "CMD-GATE");
-  fs.mkdirSync(logDir, { recursive: true });
-  fs.writeFileSync(join(logDir, "stdout.log"), contents);
+  const vfs = getVirtualSummaryFS();
+  vfs.mkdirSync(logDir, { recursive: true });
+  vfs.writeFileSync(join(logDir, "stdout.log"), contents);
   return root;
 }
 

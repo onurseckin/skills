@@ -121,6 +121,16 @@ describe("OmnipresentTelemetryCollector Unit & Coverage Suite", () => {
     expect(rec.metadata?.component).toBe("liveness");
     expect(rec.metadata?.ping).toBe(true);
 
+    // Negative clock drift when actualTick precedes expectedTickMs
+    const negDriftRec = collector.recordWatchdogHeartbeat(
+      "early-probe",
+      "watchdog-daemon",
+      5000,
+      expectedTickMs,
+      new Date("2026-09-01T11:59:59.850Z"),
+    );
+    expect(negDriftRec.driftMs).toBe(-150);
+
     // Default actualTick branch (new Date())
     const defaultRec = collector.recordWatchdogHeartbeat(
       "default-probe",
@@ -172,6 +182,7 @@ describe("OmnipresentTelemetryCollector Unit & Coverage Suite", () => {
     expect(collector.getRecords({ fromMs: baseTime + 1500 }).length).toBe(2);
     expect(collector.getRecords({ toMs: baseTime + 2500 }).length).toBe(2);
     expect(collector.getRecords({ fromMs: baseTime + 1500, toMs: baseTime + 2500 }).length).toBe(1);
+    expect(collector.getRecords({ fromMs: baseTime + 3000, toMs: baseTime + 1000 }).length).toBe(0);
   });
 
   it("generates time telemetry report and clears active spans and records", () => {

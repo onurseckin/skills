@@ -1,23 +1,27 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { ingestPushbacks } from "../../../olt/scripts/src/mind/feedback/pushbacks/ingest.ts";
 import type { FeedbackItem } from "../../../olt/scripts/src/mind/feedback/queue/types.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Pushbacks Ingest Coverage Suite", () => {
-  let tempDir: string;
-  let markdownPath: string;
-  let queuePath: string;
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
+  const testDir = "/virtual/mind/feedback";
+  const markdownPath = `${testDir}/pushbacks.md`;
+  const queuePath = `${testDir}/feedback-queue.jsonl`;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "pushbacks-ingest-test-"));
-    markdownPath = join(tempDir, "pushbacks.md");
-    queuePath = join(tempDir, "feedback-queue.jsonl");
+    vfs = new VirtualMemoryFS();
+    vfs.mkdirSync(testDir, { recursive: true });
+    session = createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
-    rmSync(tempDir, { recursive: true, force: true });
+    session.cleanup();
   });
 
   it("handles missing markdown and empty feedback queue cleanly", () => {
@@ -28,12 +32,25 @@ describe("Pushbacks Ingest Coverage Suite", () => {
     expect(report.by_category.code_defect).toBe(0);
     expect(report.generated_at).toBeDefined();
 
-    // Also verify when called without parameters
+    // Also verify when called with non-existent virtual paths
     const defaultReport = ingestPushbacks(
-      join(tempDir, "non-existent.md"),
-      join(tempDir, "non-existent-queue.jsonl"),
+      `${testDir}/non-existent.md`,
+      `${testDir}/non-existent-queue.jsonl`,
     );
     expect(defaultReport.records).toEqual([]);
+  });
+
+  it("safely handles malformed and degraded markdown without throwing", () => {
+    const malformedMd = `
+      Plain narrative text with no pushback headings or lists.
+      Just comments and observations.
+    `;
+    vfs.writeFileSync(markdownPath, malformedMd);
+
+    const report = ingestPushbacks(markdownPath, queuePath);
+    expect(report.candidate_proposals).toEqual([]);
+    expect(report.total_feedback_items).toBe(0);
+    expect(report.generated_at).toBeDefined();
   });
 
   it("processes parsed pushback records across defect categories and goal assignments", () => {
@@ -52,7 +69,7 @@ describe("Pushbacks Ingest Coverage Suite", () => {
   - Issue: Missing flag description in docs
   - Resolution: Update README.md
 `;
-    writeFileSync(markdownPath, mdContent);
+    vfs.writeFileSync(markdownPath, mdContent);
 
     const report = ingestPushbacks(markdownPath, queuePath);
     expect(report.total_pushbacks).toBe(1);
@@ -107,7 +124,7 @@ describe("Pushbacks Ingest Coverage Suite", () => {
       timestamp: "2026-09-01T12:00:00.000Z",
     };
 
-    writeFileSync(
+    vfs.writeFileSync(
       queuePath,
       `${JSON.stringify(itemPending)}\n${JSON.stringify(itemAdmitted)}\n${JSON.stringify(itemCompleted)}\n`,
     );

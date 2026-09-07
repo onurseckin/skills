@@ -208,7 +208,7 @@ describe("Tool Quarantine Engine - Capability Stripping", () => {
   describe("ToolQuarantineEngine", () => {
     it("identifies optical validator roles correctly", () => {
       expect(isOpticalValidatorRole("ui-optical-validator")).toBe(true);
-      expect(isOpticalValidatorRole("ui-validator")).toBe(true);
+      expect(isOpticalValidatorRole("ui-cognitive-validator")).toBe(true);
       expect(isOpticalValidatorRole("optical-validator")).toBe(true);
       expect(isOpticalValidatorRole("UI_OPTICAL_VALIDATOR")).toBe(true);
       expect(isOpticalValidatorRole("cognitive-ui-validator")).toBe(true);

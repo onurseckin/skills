@@ -1,24 +1,24 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import * as fs from "node:fs";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { join } from "node:path";
 import { verifyUnifiedEvidenceLocation } from "../../../olt/scripts/src/reporting/doctor/evidence-location.ts";
 import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { UNIFIED_EVIDENCE_DIRECTORY } from "../../../olt/scripts/src/validation/reporters/index.ts";
 import {
-  cleanupVirtualBrowserFS,
-  setupVirtualBrowserFS,
+  cleanupVirtualReportingFS,
+  getVirtualReportingFS,
+  setupVirtualReportingFS,
   tempDir,
-} from "../browser/browser-virtual-fs.ts";
+} from "../fixture.ts";
 
 export const evidenceLocationSuiteName = "doctor/evidence-location";
 
 describe(evidenceLocationSuiteName, () => {
   beforeEach(() => {
-    setupVirtualBrowserFS();
+    setupVirtualReportingFS();
   });
 
   afterEach(() => {
-    cleanupVirtualBrowserFS();
+    cleanupVirtualReportingFS();
   });
 
   it("returns valid result when no captures, state, or evidence directory exist", () => {
@@ -62,7 +62,7 @@ describe(evidenceLocationSuiteName, () => {
       ],
       updated_at: "2026-08-24T00:00:00.000Z",
     };
-    fs.writeFileSync(capturesFile, JSON.stringify(ledger, null, 2), "utf-8");
+    getVirtualReportingFS().writeFileSync(capturesFile, JSON.stringify(ledger, null, 2), "utf-8");
 
     const result = verifyUnifiedEvidenceLocation(runRoot, null);
     expect(result.valid).toBe(false);
@@ -144,14 +144,58 @@ describe(evidenceLocationSuiteName, () => {
 
   it("audits physical evidence directory entries", () => {
     const runRoot = tempDir("physical-evidence-run");
+    const vfs = getVirtualReportingFS();
     const evidenceDir = join(runRoot, UNIFIED_EVIDENCE_DIRECTORY);
-    fs.mkdirSync(evidenceDir, { recursive: true });
-    fs.writeFileSync(join(evidenceDir, "file1.txt"), "evidence 1");
-    fs.writeFileSync(join(evidenceDir, "file2.txt"), "evidence 2");
+    vfs.mkdirSync(evidenceDir, { recursive: true });
+    vfs.writeFileSync(join(evidenceDir, "file1.txt"), "evidence 1");
+    vfs.writeFileSync(join(evidenceDir, "file2.txt"), "evidence 2");
 
     const result = verifyUnifiedEvidenceLocation(runRoot, null);
     expect(result.valid).toBe(true);
     expect(result.checkedCount).toBe(2);
+    expect(result.invalidCount).toBe(0);
+  });
+
+  it("flags path traversal and sandbox escaping evidence paths in state", () => {
+    const runRoot = tempDir("traversal-evidence-run");
+    const state: JsonObject = {
+      tasks: {
+        "task-traversal": {
+          id: "task-traversal",
+          validations: [
+            {
+              findings: [
+                {
+                  id: "f-escape",
+                  evidence: [
+                    { path: "evidence/../../etc/passwd" },
+                    { path: "evidence/../run/secret.txt" },
+                    { path: "evidence/screenshots/valid.png" },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      },
+    };
+
+    const result = verifyUnifiedEvidenceLocation(runRoot, state);
+    expect(result.valid).toBe(false);
+    expect(result.checkedCount).toBe(3);
+    expect(result.invalidCount).toBe(2);
+    expect(result.invalidPaths).toContain("evidence/../../etc/passwd");
+    expect(result.invalidPaths).toContain("evidence/../run/secret.txt");
+  });
+
+  it("gracefully recovers from corrupted non-JSON captures.json", () => {
+    const runRoot = tempDir("corrupted-captures-run");
+    const capturesFile = join(runRoot, "captures.json");
+    getVirtualReportingFS().writeFileSync(capturesFile, "{ broken json ...", "utf-8");
+
+    const result = verifyUnifiedEvidenceLocation(runRoot, null);
+    expect(result.valid).toBe(true);
+    expect(result.checkedCount).toBe(0);
     expect(result.invalidCount).toBe(0);
   });
 });

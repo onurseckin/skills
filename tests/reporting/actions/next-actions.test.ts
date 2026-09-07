@@ -56,7 +56,7 @@ describe(nextActionsSuiteName, () => {
     expect(ready).toContain(" queue:next ");
     expect(ready).toContain(" task:claim ");
     expect(ready).toContain("--role implementer");
-    expect(rendered("changes_requested")).toContain("--role repairer");
+    expect(rendered("changes_requested")).toContain("--role implementer");
     expect(rendered("changes_requested")).toContain("--agent worker");
   });
 

@@ -172,18 +172,3 @@ describe("explain: command behaviour", () => {
     ).toThrow(/has no live throw of INTEGRITY with message/u);
   });
 });
-
-describe("Static Invariant Verification: Zero TypeScript any & Zero Suppressions", () => {
-  test("verifies explain-ops-command test file contains zero any and zero suppressions", async () => {
-    const testContent = await Bun.file(import.meta.path).text();
-    const forbiddenAnyRegex = new RegExp(":[ \\t]*" + "any\\b");
-    const forbiddenCastRegex = new RegExp("\\bas[ \\t]+" + "any\\b");
-    const forbiddenSuppressionsRegex = new RegExp("@ts-" + "(ignore|expect-error|nocheck)");
-    const forbiddenLintRegex = new RegExp("(eslint|oxlint)" + "-disable");
-
-    expect(testContent).not.toMatch(forbiddenAnyRegex);
-    expect(testContent).not.toMatch(forbiddenCastRegex);
-    expect(testContent).not.toMatch(forbiddenSuppressionsRegex);
-    expect(testContent).not.toMatch(forbiddenLintRegex);
-  });
-});

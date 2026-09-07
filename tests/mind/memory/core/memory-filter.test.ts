@@ -196,4 +196,53 @@ describe("Memory Filtering & Pattern Engine", () => {
       expect(extractSnippetBM25(long, ["nonexistent"], 20)).toBe("Header start. Imp...");
     });
   });
+
+  describe("Compound Filtering & Ranking", () => {
+    it("applies multiple filters simultaneously (kind + generation + tags)", () => {
+      const match = searchMemory(index, {
+        query: "",
+        kind: "defect",
+        generation: 2,
+        tags: ["pipeline"],
+      });
+      expect(match).toHaveLength(1);
+      expect(match[0]?.id).toBe("doc-defect");
+
+      const mismatch = searchMemory(index, {
+        query: "",
+        kind: "defect",
+        generation: 1,
+        tags: ["pipeline"],
+      });
+      expect(mismatch).toHaveLength(0);
+    });
+
+    it("ranks search results in descending BM25 score order and respects limit", () => {
+      const results = searchMemory(index, { query: "invariant pattern", limit: 5 });
+      expect(results.length).toBeGreaterThan(1);
+      for (let i = 0; i < results.length - 1; i++) {
+        expect(results[i]!.score).toBeGreaterThanOrEqual(results[i + 1]!.score);
+      }
+
+      const limited = searchMemory(index, { query: "invariant pattern", limit: 1 });
+      expect(limited).toHaveLength(1);
+      expect(limited[0]?.id).toBe(results[0]?.id);
+    });
+
+    it("safely handles regex special characters in literal search queries", () => {
+      const res = searchMemory(index, { query: "foo[bar]*?+()^$" });
+      expect(Array.isArray(res)).toBe(true);
+      expect(res).toEqual([]);
+    });
+
+    it("falls back to default limit when zero or negative limit values are supplied", () => {
+      const zeroLimit = searchMemory(index, { query: "invariant", limit: 0 });
+      expect(zeroLimit).toHaveLength(1);
+      expect(zeroLimit[0]?.id).toBe("doc-charter");
+
+      const negLimit = searchMemory(index, { query: "", limit: -1 });
+      expect(Array.isArray(negLimit)).toBe(true);
+      expect(negLimit).toHaveLength(docs.length);
+    });
+  });
 });

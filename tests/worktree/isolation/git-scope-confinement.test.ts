@@ -1,5 +1,4 @@
-import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join, resolve } from "node:path";
 import {
   assertNonDestructiveWriteScope,
@@ -15,6 +14,19 @@ import {
   type GitSpawn,
 } from "../../../olt/scripts/src/workflow/worktree/git.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import {
+  cleanupVirtualWorktreeFS,
+  getVirtualWorktreeFS,
+  setupVirtualWorktreeFS,
+} from "../fixtures/index.ts";
+
+beforeEach(() => {
+  setupVirtualWorktreeFS();
+});
+
+afterEach(() => {
+  cleanupVirtualWorktreeFS();
+});
 
 describe("P55 Write Scope Confinement and Unfamiliar User Edits Preservation", () => {
   test("isPathInWriteScope correctly evaluates exact files, directory trees, and wildcards", () => {
@@ -50,6 +62,20 @@ describe("P55 Write Scope Confinement and Unfamiliar User Edits Preservation", (
       "src/workflow/worktree/git-ops.ts",
       "tests/worktree/git-preservation.test.ts",
     ]);
+  });
+
+  test("filterPathsToScope fails closed on empty scopes and normalizes path traversal", () => {
+    const observedFiles = [
+      "src/workflow/worktree/git.ts",
+      "src/workflow/worktree/../escaped.ts",
+      "../../dangerous.ts",
+    ];
+
+    expect(filterPathsToScope(observedFiles, [])).toEqual([]);
+    expect(filterPathsToScope([], ["src/**"])).toEqual([]);
+
+    const scope = ["src/workflow/worktree"];
+    expect(filterPathsToScope(observedFiles, scope)).toEqual(["src/workflow/worktree/git.ts"]);
   });
 
   test("assertNonDestructiveWriteScope prevents agent from touching out-of-scope files", () => {
@@ -188,8 +214,10 @@ describe("Invariants & TypeScript Strictness Audit", () => {
     const lintSuppressionA = "es" + "lint-disable";
     const lintSuppressionB = "ox" + "lint-disable";
 
+    const vfs = getVirtualWorktreeFS();
     for (const filePath of sourceFiles) {
-      const content = readFileSync(filePath, "utf8");
+      const raw = vfs.readFileSync(filePath, "utf8");
+      const content = typeof raw === "string" ? raw : Buffer.from(raw).toString("utf8");
 
       expect(content).not.toMatch(anyAnnotation);
       expect(content).not.toMatch(anyCast);

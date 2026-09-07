@@ -5,7 +5,7 @@ export type {
   StoredAuditorCursors,
 } from "./types.ts";
 
-export { AuditorCursorStore } from "./cursor.ts";
+export { AuditorCursorStore } from "./types.ts";
 
 export { MindAuditorEngine } from "./engine.ts";
 

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import { join } from "node:path";
 import { generateGraphDataset } from "../../../../olt/scripts/src/summary/graph/index.ts";
@@ -8,12 +8,24 @@ import {
   LOG_READ_CEILING_BYTES,
 } from "../../../../olt/scripts/src/summary/markdown/index.ts";
 import { makeCommand, makeGrant, makeState, makeTask } from "../dag/graph-fixtures.ts";
-import { setupVirtualSummaryFS } from "../../fixture.ts";
+import { cleanupVirtualSummaryFS, setupVirtualSummaryFS } from "../../fixture.ts";
 
 let rootCounter = 0;
 
+try {
+  generateGraphDataset({
+    runId: "mod-warm",
+    state: makeState([]),
+    commands: {},
+  });
+} catch {}
+
 beforeEach(() => {
   setupVirtualSummaryFS();
+});
+
+afterEach(() => {
+  cleanupVirtualSummaryFS();
 });
 
 function runRootWithStdout(contents: string): string {
@@ -22,6 +34,7 @@ function runRootWithStdout(contents: string): string {
   const logDir = join(root, "commands", "C-1");
   fs.mkdirSync(logDir, { recursive: true });
   fs.writeFileSync(join(logDir, "stdout.log"), contents);
+  fs.writeFileSync(join(logDir, "stderr.log"), "");
   return root;
 }
 
@@ -69,9 +82,35 @@ describe("node scripts", () => {
   });
 
   test("leaves the log absent when the file is missing", () => {
-    expect(readLog("commands/C-1/stdout.log", "/nonexistent")).toBeUndefined();
+    expect(readLog("commands/C-1/stdout.log", "/virtual/nonexistent")).toBeUndefined();
     expect(readLog(undefined)).toBeUndefined();
     expect(readLogText(undefined)).toBeUndefined();
+  });
+
+  test("handles zero-byte log files and deep nested subdirectory clipping", () => {
+    rootCounter += 1;
+    const root = `/virtual/node-evidence-${rootCounter}`;
+    const deepDir = join(root, "commands", "nested", "deep");
+    fs.mkdirSync(deepDir, { recursive: true });
+
+    // Zero-byte log
+    fs.writeFileSync(join(deepDir, "empty.log"), "");
+    expect(readLog("commands/nested/deep/empty.log", root)).toBeUndefined();
+    expect(readLogText("commands/nested/deep/empty.log", root)).toBeUndefined();
+
+    // Deep nested log with clipping
+    fs.writeFileSync(
+      join(deepDir, "nested-stdout.log"),
+      `PREFIX-${"z".repeat(128)}-SUFFIX`,
+    );
+    const clipped = readLog("commands/nested/deep/nested-stdout.log", root, 16);
+    expect(clipped?.truncated).toBe(true);
+    expect(clipped?.text.endsWith("SUFFIX")).toBe(true);
+    expect(clipped?.text.includes("PREFIX")).toBe(false);
+
+    const full = readLogText("commands/nested/deep/nested-stdout.log", root);
+    expect(full?.startsWith("PREFIX")).toBe(true);
+    expect(full?.endsWith("SUFFIX")).toBe(true);
   });
 });
 

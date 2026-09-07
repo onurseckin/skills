@@ -23,7 +23,9 @@ afterEach(() => {
 });
 
 function task(): TaskRecord {
-  return workflowState().tasks["T-1"]!;
+  const record = workflowState().tasks["T-1"];
+  if (!record) throw new Error("task T-1 missing");
+  return record;
 }
 
 function gitStub(records: readonly string[]): RepositoryGitCommand {
@@ -96,7 +98,7 @@ describe("submission report construction", () => {
   test("fails instead of inventing a check command id", () => {
     expect(() =>
       buildSubmissionReport({
-        task: task(),
+        task: { ...task(), gate: "G-1" },
         agentId: "agent-1",
         summary: "implemented",
         declaredFiles: ["src/owned/auth.ts"],

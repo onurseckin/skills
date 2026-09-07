@@ -108,7 +108,6 @@ export function countActiveAgentsInFlight(state: Record<string, unknown>): numbe
       (role === "implementer" ||
         role === "validator" ||
         role === "orchestrator" ||
-        role === "repairer" ||
         role === "mind-auditor")
     );
   }).length;

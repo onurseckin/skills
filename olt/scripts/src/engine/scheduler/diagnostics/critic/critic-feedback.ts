@@ -216,7 +216,7 @@ export function routeCriticFeedback(
 
         const directiveLines: string[] = [
           `### 🛠️ CLOSED-LOOP REPAIR DIRECTIVE: [${task.id}] (Round ${currentRound})`,
-          `- **Assigned Repairer**: \`${binding.implementerId}\`${binding.isReplacementPair ? " *(Replacement Clean-Slate Assignee)*" : ""}`,
+          `- **Repair Assignee**: \`${binding.implementerId}\`${binding.isReplacementPair ? " *(Replacement Clean-Slate Assignee)*" : ""}`,
           `- **Assigned Validator**: \`${binding.validatorId}\``,
           `- **Strict Leased Write Scope**: ${task.write_scope.map((s) => `\`${s}\``).join(", ")}`,
           `- **Counterfactual Requirements**:`,

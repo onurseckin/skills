@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { afterEach, beforeAll, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   FALLBACK_MARKER,
@@ -32,6 +32,33 @@ import {
   smartEnsureSymlink,
 } from "../../../scripts/sync/index.ts";
 import { cleanupVirtualSyncFS, scratchRoot, setupVirtualSyncFS } from "../sync-fixture.ts";
+
+beforeAll(async () => {
+  setupVirtualSyncFS();
+  const root = scratchRoot("warmup", "warmup");
+  const sourceRepo = join(root, "repo");
+  mkdirSync(join(sourceRepo, "olt", "scripts", "src"), { recursive: true });
+  writeFileSync(join(sourceRepo, "olt", "SKILL.md"), "---\nname: olt\n---\n", "utf-8");
+  writeFileSync(
+    join(sourceRepo, "olt", "scripts", "package.json"),
+    JSON.stringify({ name: "@local/olt-runtime", version: "1.0.0" }),
+    "utf-8",
+  );
+  writeFileSync(
+    join(sourceRepo, "olt", "scripts", "src", "constants.ts"),
+    'export const RUNTIME_VERSION = "1.0.0";\n',
+    "utf-8",
+  );
+  mkdirSync(join(sourceRepo, ".git"), { recursive: true });
+  await runSync({
+    sourceRepoRoot: sourceRepo,
+    homeDir: join(root, "home"),
+    targetOltDir: join(root, "home", ".agents", "skills", "olt"),
+    allowDirty: true,
+    silent: true,
+  });
+  cleanupVirtualSyncFS();
+});
 
 beforeEach(() => {
   setupVirtualSyncFS();
@@ -132,8 +159,8 @@ describe("scripts/sync/index.ts", () => {
     expect(summary.shell.modified).toBe(true);
   });
 
-  test("runSync executes with console logging when silent is false", async () => {
-    const root = scratchRoot(import.meta.path, "sync-index-logging");
+  test("runSync logs when shell rc is modified on first run", async () => {
+    const root = scratchRoot(import.meta.path, "sync-index-logging-1");
     const sourceRepo = join(root, "repo");
     initFakeSkillsRepo(sourceRepo);
 
@@ -147,7 +174,6 @@ describe("scripts/sync/index.ts", () => {
     };
 
     try {
-      // First run: shell modified is true
       const summary1 = await runSync({
         sourceRepoRoot: sourceRepo,
         homeDir: fakeHome,
@@ -159,10 +185,29 @@ describe("scripts/sync/index.ts", () => {
       expect(summary1.shell.modified).toBe(true);
       expect(logs.some((l) => l.includes("Global skill sync complete"))).toBe(true);
       expect(logs.some((l) => l.includes("Shell PATH: Configured in"))).toBe(true);
+    } finally {
+      console.log = origLog;
+    }
+  });
 
-      logs.length = 0;
+  test("runSync logs when shell rc is already configured on subsequent run", async () => {
+    const root = scratchRoot(import.meta.path, "sync-index-logging-2");
+    const sourceRepo = join(root, "repo");
+    initFakeSkillsRepo(sourceRepo);
 
-      // Second run: shell modified is false (already configured)
+    const fakeHome = join(root, "home");
+    const targetOlt = join(fakeHome, ".agents", "skills", "olt");
+    const rcFile = join(fakeHome, ".zshrc");
+    mkdirSync(fakeHome, { recursive: true });
+    writeFileSync(rcFile, 'export PATH="$HOME/.local/bin:$PATH"\n', "utf-8");
+
+    const logs: string[] = [];
+    const origLog = console.log;
+    console.log = (...args: unknown[]) => {
+      logs.push(args.map(String).join(" "));
+    };
+
+    try {
       const summary2 = await runSync({
         sourceRepoRoot: sourceRepo,
         homeDir: fakeHome,
@@ -188,7 +233,7 @@ describe("scripts/sync/index.ts", () => {
     const cwdSpy = spyOn(process, "cwd").mockReturnValue(sourceRepo);
     try {
       process.env.HOME = fakeHome;
-      await main(["--allow-dirty"], { sourceRepoRoot: sourceRepo, homeDir: fakeHome });
+      await main(["--allow-dirty"], { sourceRepoRoot: sourceRepo, homeDir: fakeHome, silent: true });
     } finally {
       cwdSpy.mockRestore();
       if (origHome !== undefined) {
@@ -221,5 +266,48 @@ describe("scripts/sync/index.ts", () => {
         process.env.HOME = origHome;
       }
     }
+  });
+
+  test("runSync recursively creates missing target home directory", async () => {
+    const root = scratchRoot(import.meta.path, "sync-missing-home");
+    const sourceRepo = join(root, "repo");
+    initFakeSkillsRepo(sourceRepo);
+
+    // Fresh nested non-existent home directory
+    const freshHome = join(root, "nested", "user", "home");
+    const targetOlt = join(freshHome, ".agents", "skills", "olt");
+
+    const summary = await runSync({
+      sourceRepoRoot: sourceRepo,
+      homeDir: freshHome,
+      targetOltDir: targetOlt,
+      allowDirty: true,
+      silent: true,
+    });
+
+    expect(summary.skill).toBeDefined();
+    expect(summary.binary.status).toBe("created");
+    expect(summary.shell.modified).toBe(true);
+    expect(existsSync(targetOlt)).toBe(true);
+    expect(existsSync(join(freshHome, ".local", "bin", "olt"))).toBe(true);
+  });
+
+  test("runSync rejects cleanly when source repo root does not exist", async () => {
+    const root = scratchRoot(import.meta.path, "sync-nonexistent-repo");
+    const fakeHome = join(root, "home");
+    const nonExistentRepo = join(root, "does-not-exist");
+
+    await expect(
+      runSync({
+        sourceRepoRoot: nonExistentRepo,
+        homeDir: fakeHome,
+        targetOltDir: join(fakeHome, ".agents", "skills", "olt"),
+        allowDirty: true,
+        silent: true,
+      }),
+    ).rejects.toThrow(/it does not look like the skills repository/);
+
+    // Verify target artifacts were not created
+    expect(existsSync(join(fakeHome, ".agents", "skills", "olt"))).toBe(false);
   });
 });

@@ -1,6 +1,5 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import { type ChildProcess, type spawn } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { cleanupVirtualPolicyFS, setupVirtualPolicyFS } from "../fixture.ts";
 import {
@@ -98,9 +97,10 @@ describe("Policy Hooks Validation", () => {
 
 describe("Lifecycle Hooks Engine Execution", () => {
   const scratchDir = "/virtual/policy/hooks/exec";
+  let vfs = setupVirtualPolicyFS();
 
   beforeEach(() => {
-    setupVirtualPolicyFS();
+    vfs = setupVirtualPolicyFS();
   });
 
   afterEach(() => {
@@ -213,12 +213,12 @@ describe("Lifecycle Hooks Engine Execution", () => {
   });
 
   test("falls back to inspectRepoPolicy when policy and hooks are omitted", () => {
-    mkdirSync(join(scratchDir, ".olt"), { recursive: true });
+    vfs.mkdirSync(join(scratchDir, ".olt"), { recursive: true });
     const customPolicy: RepoPolicy = {
       ...generateCanonicalDefaultPolicy(scratchDir),
       hooks: { on_release_push: ["echo release-dispatched"] },
     };
-    writeFileSync(join(scratchDir, ".olt", "policy.json"), JSON.stringify(customPolicy));
+    vfs.writeFileSync(join(scratchDir, ".olt", "policy.json"), JSON.stringify(customPolicy));
     const { runner, calls } = createMockRunner();
     const result = executeLifecycleHooks({
       event: "on_release_push",

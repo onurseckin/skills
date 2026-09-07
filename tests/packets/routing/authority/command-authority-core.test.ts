@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   isExecutionCommand,
@@ -17,6 +16,7 @@ import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import { emptyGrantRun } from "../../validation/grants/grant-run-fixture.ts";
 import {
   cleanupVirtualAuthorityFS,
+  getVirtualAuthorityFS,
   setupVirtualAuthorityFS,
   spec,
   assertGrantedCommand,
@@ -62,7 +62,7 @@ describe("command predicates and classification", () => {
     expect(roleToTier("coord-1")).toBe(2);
     expect(roleToTier("implementer")).toBe(3);
     expect(roleToTier("validator")).toBe(3);
-    expect(roleToTier("repairer")).toBe(3);
+    expect(roleToTier("ui-headless-validator")).toBe(3);
     expect(roleToTier("custom-role")).toBe(3);
   });
 });
@@ -83,13 +83,13 @@ describe("validateHierarchicalSpawning & assertHierarchicalSpawning", () => {
   test("allows Tier 2 Coordinator to spawn Tier 3 workers only", () => {
     expect(validateHierarchicalSpawning("coordinator", "implementer").valid).toBe(true);
     expect(validateHierarchicalSpawning("coordinator", "validator").valid).toBe(true);
-    expect(validateHierarchicalSpawning("coordinator", "repairer").valid).toBe(true);
+    expect(validateHierarchicalSpawning("coordinator", "ui-headless-validator").valid).toBe(true);
     expect(validateHierarchicalSpawning("coordinator", "orchestrator").valid).toBe(false);
   });
 
   test("disallows Tier 3 workers from spawning subagents", () => {
     expect(validateHierarchicalSpawning("implementer", "validator").valid).toBe(false);
-    expect(validateHierarchicalSpawning("validator", "repairer").valid).toBe(false);
+    expect(validateHierarchicalSpawning("validator", "ui-headless-validator").valid).toBe(false);
   });
 
   test("assertHierarchicalSpawning throws HarnessError when invalid", () => {
@@ -113,7 +113,7 @@ describe("assertCognitiveValidatorHardlock", () => {
 
   test("allows mechanic validator or other roles without throwing", () => {
     expect(() =>
-      assertCognitiveValidatorHardlock("mechanic-validator", "run:exec", "mech-1"),
+      assertCognitiveValidatorHardlock("ui-headless-validator", "run:exec", "mech-1"),
     ).not.toThrow();
     expect(() =>
       assertCognitiveValidatorHardlock("implementer", "run:exec", "impl-1"),
@@ -167,8 +167,9 @@ describe("assertGrantedCommand", () => {
   test("denies a non-allowlisted command against a state.json that does not belong to a real capsule", async () => {
     const { repo } = await emptyGrantRun("command-authority-broken-capsule-");
     const brokenRoot = join(repo, "not-a-capsule");
-    await mkdir(brokenRoot);
-    await writeFile(join(brokenRoot, "state.json"), "{}");
+    const vfs = getVirtualAuthorityFS();
+    vfs.mkdirSync(brokenRoot, { recursive: true });
+    vfs.writeFileSync(join(brokenRoot, "state.json"), "{}");
     const flags: Flags = { run: brokenRoot, agent: "agent-1" };
     expect(() => assertGrantedCommand(spec("task:submit"), flags)).toThrow(
       "not on the grant bootstrap allowlist",

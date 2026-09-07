@@ -157,7 +157,7 @@ describe("transitionSummaryIssues: task submission and hand-off", () => {
     expect(transitionSummaryIssues(state)).toEqual([]);
   });
 
-  test("flags a hand-off to a replacement repairer with no recorded evidence", () => {
+  test("flags a hand-off to a replacement implementer with no recorded evidence", () => {
     const state = workflowState();
     Object.assign(state.tasks["T-1"]!, {
       original_implementer: "agent-1",
@@ -169,7 +169,7 @@ describe("transitionSummaryIssues: task submission and hand-off", () => {
     ]);
   });
 
-  test("passes a hand-off to a replacement repairer that carries its evidence", () => {
+  test("passes a hand-off to a replacement implementer that carries its evidence", () => {
     const state = workflowState();
     Object.assign(state.tasks["T-1"]!, {
       original_implementer: "agent-1",

@@ -1,5 +1,4 @@
-import { describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import {
   appendCapsuleDefect,
@@ -9,9 +8,15 @@ import {
 } from "../../../olt/scripts/src/engine/store/recovery/defect-store.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { setDefectLogDependenciesForTesting } from "../../../olt/scripts/src/logging/defect-logger.ts";
-import { scratchRoot as makeScratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
+import { cleanupVirtualStoreFS, scratchRoot as makeScratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
 
-setupVirtualStoreFS();
+let vfs: ReturnType<typeof setupVirtualStoreFS>;
+
+beforeEach(() => {
+  vfs = setupVirtualStoreFS();
+});
+
+afterEach(cleanupVirtualStoreFS);
 
 function createTempRunDir(label = "capsule-defect"): string {
   return makeScratchRoot(import.meta.path, label);
@@ -30,7 +35,7 @@ describe("Store Layer Capsule Defect Engine", () => {
     });
 
     expect(b1.count).toBe(1);
-    expect(existsSync(join(runRoot, "defects.jsonl"))).toBeTrue();
+    expect(vfs.existsSync(join(runRoot, "defects.jsonl"))).toBeTrue();
 
     const b2 = appendCapsuleDefect(runRoot, {
       id: "defect-cap-2",
@@ -52,8 +57,8 @@ describe("Store Layer Capsule Defect Engine", () => {
     const defectsPath = join(runRoot, "defects.jsonl");
     const sentinelPath = join(defectsPath, "sentinel.txt");
     const sentinelBytes = "preserve-capsule-directory";
-    mkdirSync(defectsPath, { recursive: true });
-    writeFileSync(sentinelPath, sentinelBytes);
+    vfs.mkdirSync(defectsPath, { recursive: true });
+    vfs.writeFileSync(sentinelPath, sentinelBytes);
 
     let caught: unknown;
     try {
@@ -73,7 +78,7 @@ describe("Store Layer Capsule Defect Engine", () => {
       expect(caught.message).toContain(defectsPath);
       expect(caught.message).toContain("EISDIR");
     }
-    expect(readFileSync(sentinelPath, "utf-8")).toBe(sentinelBytes);
+    expect(vfs.readFileSync(sentinelPath, "utf8")).toBe(sentinelBytes);
   });
 
   test("propagates a structured atomic-write failure without a fabricated capsule defect", () => {
@@ -81,7 +86,7 @@ describe("Store Layer Capsule Defect Engine", () => {
     const defectsPath = join(runRoot, "defects.jsonl");
     const originalBytes = "prior capsule bytes\n";
     const expected = new HarnessError("INTEGRITY", "durable write failed");
-    writeFileSync(defectsPath, originalBytes);
+    vfs.writeFileSync(defectsPath, originalBytes);
     const restore = setDefectLogDependenciesForTesting({
       atomicWrite: () => {
         throw expected;
@@ -102,7 +107,7 @@ describe("Store Layer Capsule Defect Engine", () => {
     }
 
     expect(caught).toBe(expected);
-    expect(readFileSync(defectsPath, "utf-8")).toBe(originalBytes);
+    expect(vfs.readFileSync(defectsPath, "utf8")).toBe(originalBytes);
   });
 
   test("resolves a defect by ID or dedup key with resolution proof", () => {
@@ -143,7 +148,7 @@ describe("Store Layer Capsule Defect Engine", () => {
       JSON.stringify({ id: "b2", type: "lint_error", observation: "Unused var" }),
       JSON.stringify({ id: "b3", type: "lint_error", observation: "Unused var" }),
     ];
-    writeFileSync(defectPath, `${lines.join("\n")}\n`);
+    vfs.writeFileSync(defectPath, `${lines.join("\n")}\n`);
 
     const result = compactCapsuleDefects(runRoot);
     expect(result.totalBefore).toBe(3);

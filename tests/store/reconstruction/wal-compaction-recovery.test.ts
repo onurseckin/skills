@@ -1,5 +1,4 @@
-import { describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { join } from "node:path";
 import {
   compactWalLog,
@@ -10,9 +9,16 @@ import {
   shouldTriggerCheckpoint,
   writeAtomicSnapshot,
 } from "../../../olt/scripts/src/engine/store/index.ts";
-import { scratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
+import {
+  cleanupVirtualStoreFS,
+  getVirtualStoreFS,
+  scratchRoot,
+  setupVirtualStoreFS,
+} from "../store-fixture.ts";
 
-setupVirtualStoreFS();
+function vfs() {
+  return getVirtualStoreFS();
+}
 
 function getTestRoot(label = "wal-compaction"): string {
   return scratchRoot(import.meta.path, label);
@@ -44,6 +50,14 @@ function createTestEvent(
 }
 
 describe("WAL Compaction & State Checkpointing Extensions", () => {
+  beforeEach(() => {
+    setupVirtualStoreFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualStoreFS();
+  });
+
   describe("shouldTriggerCheckpoint", () => {
     it("returns true on exact interval sequences", () => {
       expect(shouldTriggerCheckpoint({ sequence: 200 }, { intervalSequences: 200 })).toBe(true);
@@ -81,7 +95,7 @@ describe("WAL Compaction & State Checkpointing Extensions", () => {
   describe("createStateCheckpoint & pruneExpiredCheckpoints", () => {
     it("creates snapshots and prunes older ones adhering to retention limits", () => {
       const paths = resolveCapsulePaths("run-chk-01", getTestRoot("chk-01"));
-      mkdirSync(paths.snapshotsDir, { recursive: true });
+      vfs().mkdirSync(paths.snapshotsDir, { recursive: true });
 
       createStateCheckpoint(paths.snapshotsDir, 100, { count: 100 });
       createStateCheckpoint(paths.snapshotsDir, 200, { count: 200 });
@@ -99,16 +113,16 @@ describe("WAL Compaction & State Checkpointing Extensions", () => {
       expect(pruneRes.retainedSequences).toEqual([400, 500, 600]);
       expect(pruneRes.prunedSequences).toEqual([100, 200, 300]);
 
-      expect(existsSync(join(paths.snapshotsDir, "state.100.json"))).toBe(false);
-      expect(existsSync(join(paths.snapshotsDir, "state.600.json"))).toBe(true);
+      expect(vfs().existsSync(join(paths.snapshotsDir, "state.100.json"))).toBe(false);
+      expect(vfs().existsSync(join(paths.snapshotsDir, "state.600.json"))).toBe(true);
     });
   });
 
   describe("compactWalLog", () => {
     it("compacts events up to latest snapshot and archives pruned events", () => {
       const paths = resolveCapsulePaths("run-compact-01", getTestRoot("compact-01"));
-      mkdirSync(paths.runRoot, { recursive: true });
-      mkdirSync(paths.snapshotsDir, { recursive: true });
+      vfs().mkdirSync(paths.runRoot, { recursive: true });
+      vfs().mkdirSync(paths.snapshotsDir, { recursive: true });
 
       const eventLines: string[] = [];
       for (let i = 1; i <= 500; i++) {
@@ -123,7 +137,7 @@ describe("WAL Compaction & State Checkpointing Extensions", () => {
         }
       }
 
-      writeFileSync(paths.eventsPath, eventLines.join("\n") + "\n", "utf-8");
+      vfs().writeFileSync(paths.eventsPath, eventLines.join("\n") + "\n", "utf-8");
 
       writeAtomicSnapshot(paths.snapshotsDir, 200, { counter: 200 });
       writeAtomicSnapshot(paths.snapshotsDir, 400, { counter: 400 });
@@ -136,9 +150,11 @@ describe("WAL Compaction & State Checkpointing Extensions", () => {
       expect(result.prunedEventsCount).toBe(399);
       expect(result.retainedEventsCount).toBe(101);
       expect(result.archivedPath).toBeDefined();
-      expect(existsSync(result.archivedPath!)).toBe(true);
+      expect(vfs().existsSync(result.archivedPath!)).toBe(true);
 
-      const compactedContent = readFileSync(paths.eventsPath, "utf-8").trim().split("\n");
+      const compactedContent = (vfs().readFileSync(paths.eventsPath, "utf-8") as string)
+        .trim()
+        .split("\n");
       expect(compactedContent.length).toBe(101);
 
       const firstRetained = JSON.parse(compactedContent[0]!);
@@ -150,8 +166,8 @@ describe("WAL Compaction & State Checkpointing Extensions", () => {
 
     it("returns early when no snapshot or sequence <= 1", () => {
       const paths = resolveCapsulePaths("run-compact-02", getTestRoot("compact-02"));
-      mkdirSync(paths.runRoot, { recursive: true });
-      writeFileSync(
+      vfs().mkdirSync(paths.runRoot, { recursive: true });
+      vfs().writeFileSync(
         paths.eventsPath,
         createTestEvent(1, null, [{ op: "set", path: ["x"], value: 1 }]) + "\n",
       );
@@ -160,13 +176,38 @@ describe("WAL Compaction & State Checkpointing Extensions", () => {
       expect(result.success).toBe(true);
       expect(result.prunedEventsCount).toBe(0);
     });
+
+    it("returns early leaving events intact when snapshots directory contains no snapshots", () => {
+      const paths = resolveCapsulePaths(
+        "run-compact-empty-snaps",
+        getTestRoot("compact-empty-snaps"),
+      );
+      vfs().mkdirSync(paths.runRoot, { recursive: true });
+      vfs().mkdirSync(paths.snapshotsDir, { recursive: true });
+
+      const eventLines = [
+        createTestEvent(1, null, [{ op: "set", path: ["a"], value: 1 }]),
+        createTestEvent(2, "hash-seq-1", [{ op: "set", path: ["a"], value: 2 }]),
+      ];
+      vfs().writeFileSync(paths.eventsPath, eventLines.join("\n") + "\n", "utf-8");
+
+      const result = compactWalLog(paths);
+      expect(result.success).toBe(true);
+      expect(result.prunedEventsCount).toBe(0);
+      expect(result.baseSnapshotSequence).toBe(0);
+
+      const content = (vfs().readFileSync(paths.eventsPath, "utf-8") as string)
+        .trim()
+        .split("\n");
+      expect(content.length).toBe(2);
+    });
   });
 
   describe("recoverDiskState", () => {
     it("recovers state from disk snapshot and delta replay", () => {
       const paths = resolveCapsulePaths("run-rec-01", getTestRoot("rec-01"));
-      mkdirSync(paths.runRoot, { recursive: true });
-      mkdirSync(paths.snapshotsDir, { recursive: true });
+      vfs().mkdirSync(paths.runRoot, { recursive: true });
+      vfs().mkdirSync(paths.snapshotsDir, { recursive: true });
 
       const eventLines: string[] = [];
       for (let i = 1; i <= 250; i++) {
@@ -180,7 +221,7 @@ describe("WAL Compaction & State Checkpointing Extensions", () => {
           );
         }
       }
-      writeFileSync(paths.eventsPath, eventLines.join("\n") + "\n", "utf-8");
+      vfs().writeFileSync(paths.eventsPath, eventLines.join("\n") + "\n", "utf-8");
 
       writeAtomicSnapshot(paths.snapshotsDir, 200, { total: 200 });
 
@@ -194,8 +235,8 @@ describe("WAL Compaction & State Checkpointing Extensions", () => {
 
     it("quarantines torn trailing bytes and recovers clean events", () => {
       const paths = resolveCapsulePaths("run-rec-torn-01", getTestRoot("rec-torn-01"));
-      mkdirSync(paths.runRoot, { recursive: true });
-      mkdirSync(paths.snapshotsDir, { recursive: true });
+      vfs().mkdirSync(paths.runRoot, { recursive: true });
+      vfs().mkdirSync(paths.snapshotsDir, { recursive: true });
 
       const eventLines = [
         createTestEvent(1, null, [{ op: "set", path: ["v"], value: 10 }]),
@@ -204,20 +245,20 @@ describe("WAL Compaction & State Checkpointing Extensions", () => {
       const validBuffer = Buffer.from(eventLines.join("\n") + "\n", "utf-8");
       const tornBytes = Buffer.from('{"sequence": 3, "kind": "unfinis', "utf-8");
 
-      writeFileSync(paths.eventsPath, Buffer.concat([validBuffer, tornBytes]));
+      vfs().writeFileSync(paths.eventsPath, Buffer.concat([validBuffer, tornBytes]));
 
       const outcome = recoverDiskState(paths, { quarantineTornTail: true });
 
       expect(outcome.quarantinedTail).toBe(true);
       expect(outcome.finalSequence).toBe(2);
       expect(outcome.recoveredState).toEqual({ v: 20 });
-      expect(existsSync(join(paths.runRoot, "quarantine"))).toBe(true);
+      expect(vfs().existsSync(join(paths.runRoot, "quarantine"))).toBe(true);
     });
 
     it("falls back to earlier valid snapshot when latest is corrupted", () => {
       const paths = resolveCapsulePaths("run-rec-corrupt-snap", getTestRoot("rec-corrupt"));
-      mkdirSync(paths.runRoot, { recursive: true });
-      mkdirSync(paths.snapshotsDir, { recursive: true });
+      vfs().mkdirSync(paths.runRoot, { recursive: true });
+      vfs().mkdirSync(paths.snapshotsDir, { recursive: true });
 
       const eventLines: string[] = [];
       for (let i = 1; i <= 300; i++) {
@@ -231,10 +272,14 @@ describe("WAL Compaction & State Checkpointing Extensions", () => {
           );
         }
       }
-      writeFileSync(paths.eventsPath, eventLines.join("\n") + "\n", "utf-8");
+      vfs().writeFileSync(paths.eventsPath, eventLines.join("\n") + "\n", "utf-8");
 
       writeAtomicSnapshot(paths.snapshotsDir, 100, { num: 100 });
-      writeFileSync(join(paths.snapshotsDir, "state.200.json"), "CORRUPTED_JSON_CONTENT", "utf-8");
+      vfs().writeFileSync(
+        join(paths.snapshotsDir, "state.200.json"),
+        "CORRUPTED_JSON_CONTENT",
+        "utf-8",
+      );
 
       const outcome = recoverDiskState(paths);
 
@@ -242,6 +287,28 @@ describe("WAL Compaction & State Checkpointing Extensions", () => {
       expect(outcome.finalSequence).toBe(300);
       expect(outcome.replayedEventsCount).toBe(200);
       expect(outcome.recoveredState).toEqual({ num: 300 });
+    });
+
+    it("recovers full state from sequence 1 when all snapshots are corrupted", () => {
+      const paths = resolveCapsulePaths("run-rec-all-corrupt", getTestRoot("rec-all-corrupt"));
+      vfs().mkdirSync(paths.runRoot, { recursive: true });
+      vfs().mkdirSync(paths.snapshotsDir, { recursive: true });
+
+      const eventLines = [
+        createTestEvent(1, null, [{ op: "set", path: ["count"], value: 10 }]),
+        createTestEvent(2, "hash-seq-1", [{ op: "set", path: ["count"], value: 20 }]),
+        createTestEvent(3, "hash-seq-2", [{ op: "set", path: ["count"], value: 30 }]),
+      ];
+      vfs().writeFileSync(paths.eventsPath, eventLines.join("\n") + "\n", "utf-8");
+
+      vfs().writeFileSync(join(paths.snapshotsDir, "state.1.json"), "NOT_JSON_A", "utf-8");
+      vfs().writeFileSync(join(paths.snapshotsDir, "state.2.json"), "{ invalid: json", "utf-8");
+
+      const outcome = recoverDiskState(paths);
+      expect(outcome.baseSnapshotSequence).toBe(0);
+      expect(outcome.finalSequence).toBe(3);
+      expect(outcome.replayedEventsCount).toBe(3);
+      expect(outcome.recoveredState).toEqual({ count: 30 });
     });
   });
 });

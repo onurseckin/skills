@@ -1,7 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import {
   buildQuiescentDigest,
   calculateQuiescentInterval,
@@ -12,16 +9,22 @@ import {
 } from "../../../olt/scripts/src/mind/archival/quiesce/evaluator.ts";
 import { MIND_DISCOVERY_SOURCES } from "../../../olt/scripts/src/mind/memory/sources/index.ts";
 import type { QuiescentSourceObservation } from "../../../olt/scripts/src/mind/archival/quiesce/types.ts";
+import { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/memory-fs.ts";
+import { createVirtualFSSession } from "../../../olt/scripts/src/testing/virtual-fs/spies.ts";
 
 describe("Quiesce Evaluator Coverage Suite", () => {
-  let tempDir: string;
+  let vfs: VirtualMemoryFS;
+  let session: ReturnType<typeof createVirtualFSSession>;
+  const baseDir = "/virtual/archival/quiesce";
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "quiesce-cov-test-"));
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    vfs.mkdirSync(baseDir, { recursive: true });
   });
 
   afterEach(() => {
-    rmSync(tempDir, { recursive: true, force: true });
+    session.cleanup();
   });
 
   it("computes quiescent streaks across valid and invalid inputs", () => {
@@ -104,13 +107,13 @@ describe("Quiesce Evaluator Coverage Suite", () => {
   });
 
   it("executes quiesce lane when all 10 sources are validated with command evidence", async () => {
-    const runRoot = join(tempDir, "capsules", "run-quiesce-test");
-    mkdirSync(join(runRoot, "commands"), { recursive: true });
+    const runRoot = `${baseDir}/capsules/run-quiesce-test`;
+    vfs.mkdirSync(`${runRoot}/commands`, { recursive: true });
 
     const sourcesInput: string[] = [];
     for (const def of MIND_DISCOVERY_SOURCES) {
       const commandId = `cmd-${def.id}`;
-      writeFileSync(join(runRoot, "commands", `${commandId}.json`), JSON.stringify({ ok: true }));
+      vfs.writeFileSync(`${runRoot}/commands/${commandId}.json`, JSON.stringify({ ok: true }));
       sourcesInput.push(`${def.id}:${commandId}:0`);
     }
 
@@ -125,10 +128,10 @@ describe("Quiesce Evaluator Coverage Suite", () => {
     expect(result.ok).toBe(true);
     expect(result.streak).toBe(4);
     expect(result.digest).toBeDefined();
-    expect(result.reportPath).toBe(join(runRoot, "reports", "quiescent-digest.md"));
-    expect(existsSync(result.reportPath!)).toBe(true);
+    expect(result.reportPath).toBe(`${runRoot}/reports/quiescent-digest.md`);
+    expect(vfs.existsSync(result.reportPath!)).toBe(true);
 
-    const reportContent = readFileSync(result.reportPath!, "utf-8");
+    const reportContent = vfs.readFileSync(result.reportPath!, "utf-8");
     expect(reportContent).toContain("Streak 4");
     expect(reportContent).toContain("run-quiesce-test");
   });

@@ -167,6 +167,8 @@ export interface RepoPolicy {
   readonly ecosystem: RepoEcosystem;
   readonly package_manager?: PackageManager | undefined;
   readonly skill_home_repo_root?: string | undefined;
+  readonly test_execution?: boolean | string | null | undefined;
+  readonly unit_test?: boolean | string | null | undefined;
   readonly test_runner?: TestRunnerPolicy | null | undefined;
   readonly typecheck_command?: string | undefined;
   readonly lint_command?: string | undefined;

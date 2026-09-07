@@ -353,7 +353,7 @@ bun olt/scripts/harness.ts role:matrix [--role <ROLE_NAME>] [--all] [--compact]
 | **`T0`** | `Orchestrator`           | `run:*`, `plan:compile`, `queue:wave`, `run:complete`                               | Modifying source code directly; claiming task leases     |
 | **`T1`** | `Mind Supervisor`        | `mind:*`, `plan:brainstorm`, `plan:enhance`, `todo:*`                               | Direct task execution; modifying working tree            |
 | **`T2`** | `Validator / Critic`     | `task:validate-start`, `task:probe`, `task:review`, `critic:*`                      | **Writing code; modifying test files to make them pass** |
-| **`T3`** | `Implementer / Repairer` | `task:claim`, `task:heartbeat`, `run:exec`, `task:check`, `task:submit`, `branch:*` | Altering plan DAG; validating own submissions            |
+| **`T3`** | `Implementer`            | `task:claim`, `task:heartbeat`, `run:exec`, `task:check`, `task:submit`, `branch:*` | Altering plan DAG; validating own submissions            |
 
 ---
 

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import {
   parseUnifiedAgentManifest,
   validateUnifiedAgentManifest,
@@ -13,9 +13,23 @@ const AGENTS_MD_PATH = join(REPO_ROOT, "AGENTS.md");
 const SKILL_MD_PATH = join(REPO_ROOT, "olt/SKILL.md");
 const BOOK_DIR = join(REPO_ROOT, "docs/book");
 
+const fileCache = new Map<string, string>();
+function getFileContent(filePath: string): string {
+  let content = fileCache.get(filePath);
+  if (content === undefined) {
+    content = readFileSync(filePath, "utf-8");
+    fileCache.set(filePath, content);
+  }
+  return content;
+}
+
 describe("Dual UI Validators & Governance Manifests", () => {
   beforeEach(() => {
-    setupVirtualAgentsFS();
+    const vfs = setupVirtualAgentsFS();
+    for (const [p, content] of fileCache) {
+      vfs.mkdirSync(dirname(p), { recursive: true });
+      vfs.writeFileSync(p, content);
+    }
   });
 
   afterEach(() => {
@@ -24,7 +38,7 @@ describe("Dual UI Validators & Governance Manifests", () => {
   describe("ui-headless-validator.yaml", () => {
     it("validates ui-headless-validator manifest structure and invariants", () => {
       const filePath = join(AGENTS_DIR, "ui-headless-validator.yaml");
-      const rawYaml = readFileSync(filePath, "utf-8");
+      const rawYaml = getFileContent(filePath);
       const manifest = parseUnifiedAgentManifest(rawYaml, filePath);
 
       expect(manifest.name).toBe("ui-headless-validator");
@@ -52,7 +66,7 @@ describe("Dual UI Validators & Governance Manifests", () => {
   describe("ui-optical-validator.yaml", () => {
     it("validates ui-optical-validator manifest zero commands and Socratic focus", () => {
       const filePath = join(AGENTS_DIR, "ui-optical-validator.yaml");
-      const rawYaml = readFileSync(filePath, "utf-8");
+      const rawYaml = getFileContent(filePath);
       const manifest = parseUnifiedAgentManifest(rawYaml, filePath);
 
       expect(manifest.name).toBe("ui-optical-validator");
@@ -78,8 +92,8 @@ describe("Dual UI Validators & Governance Manifests", () => {
 
   describe("Governance Documentation Parity", () => {
     it("verifies AGENTS.md and SKILL.md contain Dual UI Validator separation and companion bootstrapping", () => {
-      const agentsMd = readFileSync(AGENTS_MD_PATH, "utf-8");
-      const skillMd = readFileSync(SKILL_MD_PATH, "utf-8");
+      const agentsMd = getFileContent(AGENTS_MD_PATH);
+      const skillMd = getFileContent(SKILL_MD_PATH);
 
       expect(agentsMd).toContain("ui-headless-validator");
       expect(agentsMd).toContain("ui-optical-validator");
@@ -98,16 +112,14 @@ describe("Dual UI Validators & Governance Manifests", () => {
     });
 
     it("verifies book chapters 03, 04, 05, and 08 contain updated governance invariants", () => {
-      const ch3 = readFileSync(
+      const ch3 = getFileContent(
         join(BOOK_DIR, "03-tier-0-governance-and-autonomous-mind.md"),
-        "utf-8",
       );
-      const ch4 = readFileSync(
+      const ch4 = getFileContent(
         join(BOOK_DIR, "04-toolchain-discovery-and-policy-engine.md"),
-        "utf-8",
       );
-      const ch5 = readFileSync(join(BOOK_DIR, "05-mandatory-companion-auditors.md"), "utf-8");
-      const ch8 = readFileSync(join(BOOK_DIR, "08-verification-and-socratic-gating.md"), "utf-8");
+      const ch5 = getFileContent(join(BOOK_DIR, "05-mandatory-companion-auditors.md"));
+      const ch8 = getFileContent(join(BOOK_DIR, "08-verification-and-socratic-gating.md"));
 
       expect(ch3).toContain("Cold-Start Policy Awakening");
       expect(ch3).toContain("Idle-Trap Elimination & Human-Grade Cognitive Critique");

@@ -27,13 +27,12 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   advanceMailboxCursorBatch,
   dispatchPeerMessage,
   ensureMailboxDir,
+  getInMemoryMailbox,
   loadMailboxCursor,
   readUnreadMessages,
   type MailboxEnvelope,
@@ -51,26 +50,26 @@ import {
   type ContainmentResult,
   type SupervisoryViolation,
 } from "../../../../olt/scripts/src/mind/containment/index.ts";
+import {
+  cleanupVirtualMindFS,
+  getVirtualMindFS,
+  scratchRoot,
+  setupVirtualMindFS,
+} from "../../fixtures/mind-fixture.ts";
 
 describe("Conversational Engagement Protocols & Active Swarm Audit Suite", () => {
   let testRepoRoot: string;
 
   beforeEach(() => {
-    testRepoRoot = join(
-      tmpdir(),
-      `mind-conversational-audit-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    );
-    mkdirSync(testRepoRoot, { recursive: true });
-    mkdirSync(join(testRepoRoot, ".olt"), { recursive: true });
-    mkdirSync(join(testRepoRoot, ".olt", "mailboxes"), { recursive: true });
+    setupVirtualMindFS();
+    testRepoRoot = scratchRoot("conversational-audit", "sub3");
+    const vfs = getVirtualMindFS();
+    vfs.mkdirSync(join(testRepoRoot, ".olt"), { recursive: true });
+    vfs.mkdirSync(join(testRepoRoot, ".olt", "mailboxes"), { recursive: true });
   });
 
   afterEach(() => {
-    try {
-      rmSync(testRepoRoot, { recursive: true, force: true });
-    } catch {
-      // Best effort cleanup
-    }
+    cleanupVirtualMindFS();
   });
 
   describe("3. Three-Strike Mechanical Containment & Capability Revocation", () => {
@@ -173,6 +172,56 @@ describe("Conversational Engagement Protocols & Active Swarm Audit Suite", () =>
       expect(strike1.action).toBe("HALT_AND_DELEGATE");
       expect(strike1.message).toContain("HALT_AND_DELEGATE");
     });
+
+    it("maintains strict multi-tenant isolation across multiple rogue agents", () => {
+      const containmentEngine = new MechanicalContainmentEngine();
+      const supervisor1 = "supervisor-tenant-1";
+      const supervisor2 = "supervisor-tenant-2";
+
+      // Agent 1 commits 3 violations -> Strike 3 (Terminated)
+      containmentEngine.interceptAction({
+        agentId: supervisor1,
+        role: "supervisor",
+        actionType: "SUPERVISORY_CODE_EDIT",
+        attemptedAction: "write_to_file",
+      });
+      containmentEngine.interceptAction({
+        agentId: supervisor1,
+        role: "supervisor",
+        actionType: "SUPERVISORY_CODE_EDIT",
+        attemptedAction: "replace_file_content",
+      });
+      const strike3Tenant1 = containmentEngine.interceptAction({
+        agentId: supervisor1,
+        role: "supervisor",
+        actionType: "SUPERVISORY_CODE_EDIT",
+        attemptedAction: "run_command",
+      });
+
+      expect(strike3Tenant1.strikeLevel).toBe(3);
+      expect(strike3Tenant1.action).toBe("PERSONA_RESPAWN");
+
+      // Agent 2 commits 1 violation -> Strike 1 (Halt & Delegate)
+      const strike1Tenant2 = containmentEngine.interceptAction({
+        agentId: supervisor2,
+        role: "supervisor",
+        actionType: "SUPERVISORY_CODE_EDIT",
+        attemptedAction: "write_to_file",
+      });
+
+      expect(strike1Tenant2.strikeLevel).toBe(1);
+      expect(strike1Tenant2.action).toBe("HALT_AND_DELEGATE");
+
+      // Verify states are strictly isolated in memory
+      const state1 = containmentEngine.getAgentState(supervisor1);
+      const state2 = containmentEngine.getAgentState(supervisor2);
+
+      expect(state1.strikeCount).toBe(3);
+      expect(state1.isTerminated).toBe(true);
+
+      expect(state2.strikeCount).toBe(1);
+      expect(state2.isTerminated).toBe(false);
+    });
   });
 
   describe("4. Zero Main Thread Pollution Guarantee for Conversational Audits", () => {
@@ -193,14 +242,50 @@ describe("Conversational Engagement Protocols & Active Swarm Audit Suite", () =>
         });
       }
 
-      // Check inbox on disk
-      expect(existsSync(workerPaths.inboxPath)).toBe(true);
-      const lines = readFileSync(workerPaths.inboxPath, "utf8").trim().split("\n");
+      // Check inbox on virtual FS / in-memory mailbox store
+      const vfs = getVirtualMindFS();
+      const inMemory = getInMemoryMailbox(workerPaths.inboxPath);
+      const isPresent = inMemory !== undefined ? true : vfs.existsSync(workerPaths.inboxPath);
+      expect(isPresent).toBe(true);
+      const lines = inMemory
+        ? inMemory
+        : (vfs.readFileSync(workerPaths.inboxPath, "utf8") as string).trim().split("\n");
       expect(lines.length).toBe(10);
 
       const unread = readUnreadMessages(workerPaths.inboxPath);
       expect(unread.messages.length).toBe(10);
       expect(unread.quarantinedCount).toBe(0);
+
+      // Verify strict FIFO ordering
+      for (let i = 0; i < 10; i++) {
+        const msg = unread.messages[i];
+        expect(msg).toBeDefined();
+        if (msg) {
+          const payload = msg.payload as { batchIndex: number };
+          expect(payload.batchIndex).toBe(i);
+        }
+      }
+
+      // Advance cursor across all 10 messages
+      const initialCursor = loadMailboxCursor(workerPaths.cursorPath);
+      const advancedCursor = advanceMailboxCursorBatch(
+        workerPaths.cursorPath,
+        unread.messages,
+        initialCursor,
+      );
+      expect(advancedCursor).toBeDefined();
+
+      // Subsequent read yields exactly 0 unread messages
+      const secondRead = readUnreadMessages(workerPaths.inboxPath, advancedCursor);
+      expect(secondRead.messages.length).toBe(0);
+
+      // Advance with empty array yields same cursor without memory leak
+      const noOpCursor = advanceMailboxCursorBatch(
+        workerPaths.cursorPath,
+        [],
+        advancedCursor,
+      );
+      expect(noOpCursor).toEqual(advancedCursor);
     });
   });
 });

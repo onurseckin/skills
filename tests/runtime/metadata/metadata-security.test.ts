@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -39,7 +38,7 @@ describe("agent metadata security and validation (in-memory virtualization)", ()
     });
 
     expect(() => writeAgentMetadata(record, root)).toThrow(HarnessError);
-    expect(fs.existsSync(join(root, "runtime"))).toBe(false);
+    expect(harness.dirs.has(join(root, "runtime"))).toBe(false);
   });
 
   it("does not fall through from corrupt preferred metadata", () => {
@@ -136,7 +135,9 @@ describe("agent metadata security and validation (in-memory virtualization)", ()
     const restore = setAgentMetadataDependenciesForTesting({
       readFile(path, encoding) {
         if (path === filePath) throw denied;
-        return fs.readFileSync(path, encoding);
+        const val = harness.files.get(path);
+        if (val === undefined) throw Object.assign(new Error(`ENOENT: open '${path}'`), { code: "ENOENT" });
+        return encoding === "utf8" || encoding === "utf-8" ? val : Buffer.from(val, "utf8");
       },
     });
 
@@ -162,7 +163,9 @@ describe("agent metadata security and validation (in-memory virtualization)", ()
     const restore = setAgentMetadataDependenciesForTesting({
       readFile(path, encoding) {
         if (path === canonicalPath) throw denied;
-        return fs.readFileSync(path, encoding);
+        const val = harness.files.get(path);
+        if (val === undefined) throw Object.assign(new Error(`ENOENT: open '${path}'`), { code: "ENOENT" });
+        return encoding === "utf8" || encoding === "utf-8" ? val : Buffer.from(val, "utf8");
       },
     });
 

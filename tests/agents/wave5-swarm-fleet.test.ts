@@ -1,11 +1,4 @@
-import {
-  parseUnifiedAgentManifest,
-  validateUnifiedAgentManifest,
-} from "../../olt/scripts/src/authority/index.ts";
-const AGENTS_DIR = path.join(process.cwd(), "olt", "agents");
-import { afterEach, beforeEach, describe, expect, it, test } from "bun:test";
-import * as fs from "node:fs";
-import * as path from "node:path";
+import { describe, expect, it } from "bun:test";
 import {
   ALL_31_AGENT_ARCHETYPES,
   AntiOverheadWatchdog,
@@ -99,7 +92,7 @@ describe("Wave 5: Dedicated Agent Manifests & Fleet Matrix", () => {
 
       expect(normalizeAgentRole("orch")).toBe("orch");
       expect(normalizeAgentRole("coord")).toBe("coord");
-      expect(normalizeAgentRole("repairer")).toBe("repairer");
+      expect(normalizeAgentRole("sub-implementer")).toBe("sub-implementer");
       expect(normalizeAgentRole("worker")).toBe("worker");
     });
 

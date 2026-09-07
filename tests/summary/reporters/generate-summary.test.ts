@@ -1,6 +1,4 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import * as fs from "node:fs";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import type { RunFiles, RunState } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
@@ -9,18 +7,19 @@ import {
 } from "../../../olt/scripts/src/summary/formatters/index.ts";
 import { makeCommand, makeEvent, makeState, makeTask } from "./dag/graph-fixtures.ts";
 import { manifest } from "./../formatters/markdown-fixtures-core.ts";
-import { setupVirtualSummaryFS } from "../fixture.ts";
+import { getVirtualSummaryFS, setupVirtualSummaryFS } from "../fixture.ts";
 
 let rootCounter = 0;
+let vfs: ReturnType<typeof getVirtualSummaryFS>;
 
 beforeEach(() => {
-  setupVirtualSummaryFS();
+  vfs = setupVirtualSummaryFS();
 });
 
 function tempRoot(prefix = "generate-summary-"): string {
   rootCounter += 1;
   const root = `/virtual/${prefix}${rootCounter}`;
-  fs.mkdirSync(root, { recursive: true });
+  vfs.mkdirSync(root, { recursive: true });
   return root;
 }
 
@@ -49,15 +48,15 @@ describe("generateSummarySuite", () => {
     );
 
     const summaryDir = join(runRoot, "summary");
-    expect(existsSync(summaryDir)).toBe(true);
-    expect(JSON.parse(readFileSync(join(summaryDir, "timeline.json"), "utf-8"))).toEqual(
+    expect(vfs.existsSync(summaryDir)).toBe(true);
+    expect(JSON.parse(vfs.readFileSync(join(summaryDir, "timeline.json"), "utf-8"))).toEqual(
       suite.timeline,
     );
-    expect(JSON.parse(readFileSync(join(summaryDir, "metrics.json"), "utf-8"))).toEqual(
+    expect(JSON.parse(vfs.readFileSync(join(summaryDir, "metrics.json"), "utf-8"))).toEqual(
       suite.metrics,
     );
-    expect(JSON.parse(readFileSync(join(summaryDir, "graph.json"), "utf-8"))).toEqual(suite.graph);
-    expect(readFileSync(join(summaryDir, "summary.md"), "utf-8")).toBe(suite.markdown);
+    expect(JSON.parse(vfs.readFileSync(join(summaryDir, "graph.json"), "utf-8"))).toEqual(suite.graph);
+    expect(vfs.readFileSync(join(summaryDir, "summary.md"), "utf-8")).toBe(suite.markdown);
   });
 
   test("threads the decoded prompt bytes into the generated markdown", () => {
@@ -77,7 +76,7 @@ describe("generateSummarySuite", () => {
 
     const suite = generateSummarySuite({ capsulePath: "x", writeToDisk: false }, () => loaded);
 
-    expect(existsSync(join(runRoot, "summary"))).toBe(false);
+    expect(vfs.existsSync(join(runRoot, "summary"))).toBe(false);
     expect(suite.timeline.length).toBeGreaterThan(0);
     expect(typeof suite.markdown).toBe("string");
   });
@@ -89,8 +88,8 @@ describe("generateSummarySuite", () => {
 
     const suite = generateSummarySuite({ capsulePath: "x", outDir }, () => loaded);
 
-    expect(existsSync(outDir)).toBe(true);
-    expect(JSON.parse(readFileSync(join(outDir, "run-alpha.json"), "utf-8"))).toEqual(suite.graph);
+    expect(vfs.existsSync(outDir)).toBe(true);
+    expect(JSON.parse(vfs.readFileSync(join(outDir, "run-alpha.json"), "utf-8"))).toEqual(suite.graph);
   });
 
   test("reuses an outDir that already exists instead of failing on mkdir", () => {
@@ -100,7 +99,7 @@ describe("generateSummarySuite", () => {
 
     generateSummarySuite({ capsulePath: "x", outDir }, () => loaded);
 
-    expect(existsSync(join(outDir, "run-alpha.json"))).toBe(true);
+    expect(vfs.existsSync(join(outDir, "run-alpha.json"))).toBe(true);
   });
 
   test("falls back to the run root's own directory name when the manifest carries no run id", () => {
@@ -110,14 +109,14 @@ describe("generateSummarySuite", () => {
 
     generateSummarySuite({ capsulePath: "x", outDir }, () => loaded);
 
-    expect(existsSync(join(outDir, `${basename(runRoot)}.json`))).toBe(true);
+    expect(vfs.existsSync(join(outDir, `${basename(runRoot)}.json`))).toBe(true);
   });
 
   test("reads command records already on disk under <runRoot>/commands and counts them", () => {
     const runRoot = tempRoot();
     const commandDir = join(runRoot, "commands", "C-1");
-    mkdirSync(commandDir, { recursive: true });
-    writeFileSync(
+    vfs.mkdirSync(commandDir, { recursive: true });
+    vfs.writeFileSync(
       join(commandDir, "record.json"),
       JSON.stringify(makeCommand("C-1", { task_id: "T-1" })),
       "utf-8",
@@ -139,38 +138,38 @@ describe("loadCommandsFromDir", () => {
   test("returns no commands for an empty directory", () => {
     const runRoot = tempRoot();
     const dir = join(runRoot, "commands");
-    mkdirSync(dir, { recursive: true });
+    vfs.mkdirSync(dir, { recursive: true });
     expect(loadCommandsFromDir(dir)).toEqual({});
   });
 
   test("ignores a file that sits directly in the commands directory", () => {
     const runRoot = tempRoot();
     const dir = join(runRoot, "commands");
-    mkdirSync(dir, { recursive: true });
-    writeFileSync(join(dir, "stray.json"), "{}", "utf-8");
+    vfs.mkdirSync(dir, { recursive: true });
+    vfs.writeFileSync(join(dir, "stray.json"), "{}", "utf-8");
     expect(loadCommandsFromDir(dir)).toEqual({});
   });
 
   test("ignores a command subdirectory that has no record.json", () => {
     const runRoot = tempRoot();
     const dir = join(runRoot, "commands");
-    mkdirSync(join(dir, "C-empty"), { recursive: true });
+    vfs.mkdirSync(join(dir, "C-empty"), { recursive: true });
     expect(loadCommandsFromDir(dir)).toEqual({});
   });
 
   test("swallows a record.json that is not valid JSON instead of throwing", () => {
     const runRoot = tempRoot();
     const dir = join(runRoot, "commands");
-    mkdirSync(join(dir, "C-bad"), { recursive: true });
-    writeFileSync(join(dir, "C-bad", "record.json"), "{not json", "utf-8");
+    vfs.mkdirSync(join(dir, "C-bad"), { recursive: true });
+    vfs.writeFileSync(join(dir, "C-bad", "record.json"), "{not json", "utf-8");
     expect(loadCommandsFromDir(dir)).toEqual({});
   });
 
   test("skips a record.json whose id is missing or empty", () => {
     const runRoot = tempRoot();
     const dir = join(runRoot, "commands");
-    mkdirSync(join(dir, "C-noid"), { recursive: true });
-    writeFileSync(
+    vfs.mkdirSync(join(dir, "C-noid"), { recursive: true });
+    vfs.writeFileSync(
       join(dir, "C-noid", "record.json"),
       JSON.stringify({ ...makeCommand("C-noid"), id: "" }),
       "utf-8",
@@ -181,10 +180,10 @@ describe("loadCommandsFromDir", () => {
   test("keys each valid command record by its own id, across multiple subdirectories", () => {
     const runRoot = tempRoot();
     const dir = join(runRoot, "commands");
-    mkdirSync(join(dir, "C-1"), { recursive: true });
-    mkdirSync(join(dir, "C-2"), { recursive: true });
-    writeFileSync(join(dir, "C-1", "record.json"), JSON.stringify(makeCommand("C-1")), "utf-8");
-    writeFileSync(join(dir, "C-2", "record.json"), JSON.stringify(makeCommand("C-2")), "utf-8");
+    vfs.mkdirSync(join(dir, "C-1"), { recursive: true });
+    vfs.mkdirSync(join(dir, "C-2"), { recursive: true });
+    vfs.writeFileSync(join(dir, "C-1", "record.json"), JSON.stringify(makeCommand("C-1")), "utf-8");
+    vfs.writeFileSync(join(dir, "C-2", "record.json"), JSON.stringify(makeCommand("C-2")), "utf-8");
 
     const commands = loadCommandsFromDir(dir);
 

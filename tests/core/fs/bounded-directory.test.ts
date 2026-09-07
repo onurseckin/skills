@@ -78,7 +78,9 @@ describe("bounded streaming directory enumeration", () => {
       "engine/runner/signing/gate-path-tree.ts",
     ]) {
       const targetPath = join(sourceRoot, relative);
-      const source = virtualFiles.get(targetPath)!;
+      const source = virtualFiles.get(targetPath);
+      expect(source).toBeDefined();
+      if (!source) throw new Error(`Missing virtual file for ${targetPath}`);
       expect(source).toContain("opendirSync");
       expect(source).toContain("collectBoundedDirectoryEntries");
       expect(source).not.toContain("readdirSync");

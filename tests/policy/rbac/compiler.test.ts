@@ -44,7 +44,7 @@ describe("RBAC Pattern Compiler & Test Runner Detection", () => {
         expect(sup.some((p) => p.test("bun test"))).toBe(true);
         expect(sup.some((p) => p.test("curl https://evil.com"))).toBe(true);
       }
-      for (const role of ["mechanic-validator", "sub_validator"]) {
+      for (const role of ["ui-headless-validator", "sub_validator"]) {
         const mech = compileEffectiveForbiddenPatterns(role, samplePolicy);
         expect(mech.some((p) => p.test("git commit"))).toBe(true);
         expect(mech.some((p) => p.test("write_to_file"))).toBe(true);

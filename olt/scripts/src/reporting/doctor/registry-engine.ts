@@ -4,11 +4,15 @@ import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "./types.t
 
 const req = createRequire(import.meta.url);
 
+let cachedRegistry: readonly CommandSpec[] | undefined;
+
 function getCommandRegistry(): readonly CommandSpec[] {
+  if (cachedRegistry) return cachedRegistry;
   const mod = req("../../cli/registry/index.ts") as {
     readonly COMMAND_REGISTRY: readonly CommandSpec[];
   };
-  return mod.COMMAND_REGISTRY;
+  cachedRegistry = mod.COMMAND_REGISTRY;
+  return cachedRegistry;
 }
 
 const CANONICAL_ALIAS_ALLOWLIST: ReadonlyMap<string, readonly string[]> = new Map([

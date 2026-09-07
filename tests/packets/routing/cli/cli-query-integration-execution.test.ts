@@ -24,16 +24,16 @@ describe("CLI Query Integration - Role Grants & Authority", () => {
       expect(contract.commands).not.toContain("run:exec");
     });
 
-    test("coordinator contract grants dag and all CLI query commands", () => {
+    test("coordinator contract grants report:dag and all CLI query commands", () => {
       const contract = loadRoleContract("coordinator");
-      expect(contract.commands).toContain("dag");
+      expect(contract.commands).toContain("report:dag");
       expect(contract.commands).toContain("finding:get");
       expect(contract.commands).toContain("report:get");
       expect(contract.commands).toContain("evidence:get");
       expect(contract.commands).toContain("evidence:screenshots");
 
       for (const cmd of [
-        "dag",
+        "report:dag",
         "finding:get",
         "report:get",
         "evidence:get",

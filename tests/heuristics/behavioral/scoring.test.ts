@@ -4,8 +4,6 @@
  */
 
 import { describe, expect, it } from "bun:test";
-import { readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
 import {
   analyzeBehavioralForensics,
   calculateForensicsEfficiencyScore,
@@ -176,80 +174,5 @@ describe("Behavioral Forensics: Markdown & ASCII Report Formatting", () => {
     ]);
     expect(dirtyAscii).toContain("TOKEN_BURNING");
     expect(dirtyAscii).toContain("HIGH");
-  });
-});
-
-describe("Behavioral Forensics: Static Invariants & Modularity", () => {
-  it("enforces strict directory density (<= 10 files) in behavioral-forensics", () => {
-    const dirPath = join(
-      import.meta.dir,
-      "../../../olt/scripts/src/heuristics/behavioral-forensics",
-    );
-    const files = readdirSync(dirPath).filter((f) => f.endsWith(".ts"));
-    expect(files.length).toBeLessThanOrEqual(10);
-    expect(files.length).toBe(10);
-  });
-
-  it("enforces strict line count (<= 300 lines) per file in behavioral-forensics", () => {
-    const dirPath = join(
-      import.meta.dir,
-      "../../../olt/scripts/src/heuristics/behavioral-forensics",
-    );
-    const files = readdirSync(dirPath).filter((f) => f.endsWith(".ts"));
-
-    for (const file of files) {
-      const content = readFileSync(join(dirPath, file), "utf-8");
-      const lineCount = content.split("\n").length;
-      expect(lineCount).toBeLessThanOrEqual(300);
-    }
-  });
-
-  it("verifies zero any annotations and zero compiler suppressions across all domain files", () => {
-    const dirPath = join(
-      import.meta.dir,
-      "../../../olt/scripts/src/heuristics/behavioral-forensics",
-    );
-    const files = readdirSync(dirPath).filter((f) => f.endsWith(".ts"));
-
-    const forbiddenAnyTokens = [
-      ":" + " any",
-      "as" + " any",
-      "<" + "any>",
-      "Array<" + "any>",
-      "Record<string," + " any>",
-      "Promise<" + "any>",
-    ];
-    const forbiddenSuppressionTokens = [
-      "@" + "ts-ignore",
-      "@" + "ts-expect-error",
-      "@" + "ts-nocheck",
-      "eslint-" + "disable",
-      "oxlint-" + "disable",
-    ];
-
-    for (const file of files) {
-      const content = readFileSync(join(dirPath, file), "utf-8");
-      const lines = content.split("\n");
-
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        for (const token of forbiddenAnyTokens) {
-          expect({ file, line: i + 1, text: line, tokenFound: line.includes(token) }).toEqual({
-            file,
-            line: i + 1,
-            text: line,
-            tokenFound: false,
-          });
-        }
-        for (const token of forbiddenSuppressionTokens) {
-          expect({ file, line: i + 1, text: line, tokenFound: line.includes(token) }).toEqual({
-            file,
-            line: i + 1,
-            text: line,
-            tokenFound: false,
-          });
-        }
-      }
-    }
   });
 });

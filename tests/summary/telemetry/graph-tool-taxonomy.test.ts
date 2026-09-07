@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import { ingestBrowserRun } from "../../../olt/scripts/src/reporting/browser-run-ingestion.ts";
 import { readBrowserRunReport } from "../../../olt/scripts/src/reporting/browser-run-report.ts";
@@ -7,23 +6,26 @@ import { buildNodeBrowserTests } from "../../../olt/scripts/src/summary/formatte
 import { buildNodeScripts } from "../../../olt/scripts/src/summary/markdown/index.ts";
 import { makeCommand } from "../reporters/dag/graph-fixtures.ts";
 import { setupVirtualSummaryFS } from "../fixture.ts";
+import type { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 let rootCounter = 0;
+let vfs: VirtualMemoryFS;
 
 beforeEach(() => {
-  setupVirtualSummaryFS();
+  vfs = setupVirtualSummaryFS();
 });
 
 function tempRoot(name: string): string {
   rootCounter += 1;
   const root = `/virtual/${name}-${rootCounter}`;
-  fs.mkdirSync(root, { recursive: true });
+  vfs.mkdirSync(root, { recursive: true });
   return root;
 }
 
 function writeReport(dir: string, body: unknown): string {
+  vfs.mkdirSync(dir, { recursive: true });
   const path = join(dir, "report.json");
-  fs.writeFileSync(path, JSON.stringify(body));
+  vfs.writeFileSync(path, JSON.stringify(body));
   return path;
 }
 
@@ -144,5 +146,22 @@ describe("a browser run is one instance of a generic category", () => {
     const path = writeReport(repo, { traceFormat: "zip", suites: [] });
 
     expect(readBrowserRunReport(path)).toBeUndefined();
+  });
+
+  test("ingestBrowserRun gracefully returns null when searchDirs are empty or nonexistent", () => {
+    const root = tempRoot("browser-empty-run");
+    const emptyResult = ingestBrowserRun({
+      runRoot: root,
+      commandId: "C-empty",
+      searchDirs: [],
+    });
+    expect(emptyResult).toBeNull();
+
+    const nonexistentResult = ingestBrowserRun({
+      runRoot: root,
+      commandId: "C-nonexistent",
+      searchDirs: ["/virtual/nonexistent-search-directory"],
+    });
+    expect(nonexistentResult).toBeNull();
   });
 });

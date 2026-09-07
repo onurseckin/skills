@@ -34,9 +34,6 @@ function isCognitiveValidatorRole(role: string): boolean {
     norm === "completeness-critic" ||
     norm === "socratic-validator" ||
     norm === "plan-validator" ||
-    norm === "ui-validator" ||
-    norm === "mechanic-validator" ||
-    norm === "ui-mechanic-validator" ||
     norm === "sub-validator" ||
     norm === "sub-investigator" ||
     norm === "skill-auditor" ||

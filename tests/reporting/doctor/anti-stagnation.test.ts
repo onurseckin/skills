@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import {
   auditThreeTierSemanticMemory,
@@ -141,8 +140,10 @@ describe("auditEpistemicSupersessionIndexing", () => {
 });
 
 describe("auditSuspendedAnimationProtocol", () => {
+  let vfs: ReturnType<typeof setupVirtualReportingFS>;
+
   beforeEach(() => {
-    setupVirtualReportingFS();
+    vfs = setupVirtualReportingFS();
   });
 
   afterEach(() => {
@@ -222,8 +223,8 @@ describe("auditSuspendedAnimationProtocol", () => {
 
     // Corrupted file on disk
     const diskPath = join(repo, ".olt", "suspended-state.json");
-    fs.mkdirSync(join(repo, ".olt"), { recursive: true });
-    fs.writeFileSync(diskPath, "not valid json {");
+    vfs.mkdirSync(join(repo, ".olt"), { recursive: true });
+    vfs.writeFileSync(diskPath, "not valid json {");
     const resCorrupt = auditSuspendedAnimationProtocol({ repoRoot: repo });
     expect(resCorrupt[0]?.compliant).toBe(false);
     expect(resCorrupt[0]?.message).toContain("Corrupted or unreadable");

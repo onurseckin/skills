@@ -43,10 +43,10 @@ describe("timeline collector", () => {
 
     const timeline = collectTimeline(events, 1024);
     expect(timeline).toHaveLength(3);
-    expect(timeline[0]!.phase).toBe("planning");
-    expect(timeline[0]!.payload_ref).toBe("prompt.md");
-    expect(timeline[1]!.task_id).toBe("T-1");
-    expect(timeline[2]!.summary).toContain("Plan compiled");
+    expect(timeline[0]?.phase).toBe("planning");
+    expect(timeline[0]?.payload_ref).toBe("prompt.md");
+    expect(timeline[1]?.task_id).toBe("T-1");
+    expect(timeline[2]?.summary).toContain("Plan compiled");
   });
 
   test("collects execution and repair events", () => {
@@ -71,11 +71,11 @@ describe("timeline collector", () => {
 
     const timeline = collectTimeline(events);
     expect(timeline).toHaveLength(7);
-    expect(timeline[0]!.phase).toBe("execution");
-    expect(timeline[4]!.phase).toBe("repair");
-    expect(timeline[4]!.round).toBe(1);
-    expect(timeline[5]!.phase).toBe("validation");
-    expect(timeline[6]!.summary).toContain("marked done");
+    expect(timeline[0]?.phase).toBe("execution");
+    expect(timeline[4]?.phase).toBe("repair");
+    expect(timeline[4]?.round).toBe(1);
+    expect(timeline[5]?.phase).toBe("validation");
+    expect(timeline[6]?.summary).toContain("marked done");
   });
 
   test("collects command, critic, and completion events", () => {
@@ -92,10 +92,10 @@ describe("timeline collector", () => {
 
     const timeline = collectTimeline(events);
     expect(timeline).toHaveLength(4);
-    expect(timeline[0]!.command_id).toBe("C-1");
-    expect(timeline[1]!.phase).toBe("review");
-    expect(timeline[2]!.phase).toBe("review");
-    expect(timeline[3]!.phase).toBe("completion");
+    expect(timeline[0]?.command_id).toBe("C-1");
+    expect(timeline[1]?.phase).toBe("review");
+    expect(timeline[2]?.phase).toBe("review");
+    expect(timeline[3]?.phase).toBe("completion");
   });
 
   test("propagates optional telemetry fields (tokens, cost_usd, duration_ms) when present in event payloads", () => {
@@ -139,22 +139,22 @@ describe("timeline collector", () => {
     expect(timeline).toHaveLength(3);
 
     // Event 1 (command-recorded with snake_case fields)
-    expect(timeline[0]!.command_id).toBe("C-100");
-    expect(timeline[0]!.duration_ms).toBe(1250);
-    expect(timeline[0]!.tokens).toBe(450);
-    expect(timeline[0]!.cost_usd).toBe(0.0025);
+    expect(timeline[0]?.command_id).toBe("C-100");
+    expect(timeline[0]?.duration_ms).toBe(1250);
+    expect(timeline[0]?.tokens).toBe(450);
+    expect(timeline[0]?.cost_usd).toBe(0.0025);
 
     // Event 2 (task-submitted with total_tokens & duration_ms)
-    expect(timeline[1]!.task_id).toBe("T-1");
-    expect(timeline[1]!.tokens).toBe(1500);
-    expect(timeline[1]!.cost_usd).toBe(0.012);
-    expect(timeline[1]!.duration_ms).toBe(45000);
+    expect(timeline[1]?.task_id).toBe("T-1");
+    expect(timeline[1]?.tokens).toBe(1500);
+    expect(timeline[1]?.cost_usd).toBe(0.012);
+    expect(timeline[1]?.duration_ms).toBe(45000);
 
     // Event 3 (gate-completed with camelCase totalTokens / costUsd / durationMs)
-    expect(timeline[2]!.task_id).toBe("T-1");
-    expect(timeline[2]!.tokens).toBe(800);
-    expect(timeline[2]!.cost_usd).toBe(0.004);
-    expect(timeline[2]!.duration_ms).toBe(3200);
+    expect(timeline[2]?.task_id).toBe("T-1");
+    expect(timeline[2]?.tokens).toBe(800);
+    expect(timeline[2]?.cost_usd).toBe(0.004);
+    expect(timeline[2]?.duration_ms).toBe(3200);
   });
 
   test("a review verdict is read from the event, and an unstated one is not a rejection", () => {
@@ -164,12 +164,12 @@ describe("timeline collector", () => {
       createEvent("review-recorded", { task_id: "T-1" }, 3),
     ]);
 
-    expect(timeline[0]!.phase).toBe("repair");
-    expect(timeline[0]!.summary).toBe("Task T-1 review requested changes (2 findings)");
-    expect(timeline[1]!.phase).toBe("validation");
-    expect(timeline[1]!.summary).toBe("Task T-1 passed validation review");
-    expect(timeline[2]!.phase).toBe("general");
-    expect(timeline[2]!.summary).toBe("Task T-1 review recorded; the event states no verdict");
+    expect(timeline[0]?.phase).toBe("repair");
+    expect(timeline[0]?.summary).toBe("Task T-1 review requested changes (2 findings)");
+    expect(timeline[1]?.phase).toBe("validation");
+    expect(timeline[1]?.summary).toBe("Task T-1 passed validation review");
+    expect(timeline[2]?.phase).toBe("general");
+    expect(timeline[2]?.summary).toBe("Task T-1 review recorded; the event states no verdict");
   });
 
   test("a command event states only the exit code and argv it carries", () => {
@@ -182,8 +182,8 @@ describe("timeline collector", () => {
       createEvent("command-recorded", {}, 2),
     ]);
 
-    expect(timeline[0]!.summary).toBe("Command executed: bun test (exit 1)");
-    expect(timeline[1]!.summary).toBe("Command recorded");
+    expect(timeline[0]?.summary).toBe("Command executed: bun test (exit 1)");
+    expect(timeline[1]?.summary).toBe("Command recorded");
   });
 
   test("an event missing an optional descriptive field says so, never a plausible-looking filler", () => {
@@ -193,9 +193,9 @@ describe("timeline collector", () => {
       createEvent("critic-reviewed", {}, 3),
     ]);
 
-    expect(timeline[0]!.summary).toBe("Task T-9 added: an unrecorded label");
-    expect(timeline[1]!.summary).toBe("Task T-9 escalated by test-actor: no reason recorded");
-    expect(timeline[2]!.summary).toBe("Completeness critic review completed (no verdict recorded)");
+    expect(timeline[0]?.summary).toBe("Task T-9 added: an unrecorded label");
+    expect(timeline[1]?.summary).toBe("Task T-9 escalated by test-actor: no reason recorded");
+    expect(timeline[2]?.summary).toBe("Completeness critic review completed (no verdict recorded)");
   });
 
   test("lease-renewed and lease-revoked each name the task the lease belongs to", () => {
@@ -203,11 +203,11 @@ describe("timeline collector", () => {
       createEvent("lease-renewed", { task_id: "T-1" }, 1),
       createEvent("lease-revoked", { task_id: "T-1" }, 2),
     ]);
-    expect(timeline[0]!.phase).toBe("execution");
-    expect(timeline[0]!.summary).toBe("Lease renewed for task T-1 by test-actor");
-    expect(timeline[0]!.task_id).toBe("T-1");
-    expect(timeline[1]!.summary).toBe("Lease revoked for task T-1");
-    expect(timeline[1]!.task_id).toBe("T-1");
+    expect(timeline[0]?.phase).toBe("execution");
+    expect(timeline[0]?.summary).toBe("Lease renewed for task T-1 by test-actor");
+    expect(timeline[0]?.task_id).toBe("T-1");
+    expect(timeline[1]?.summary).toBe("Lease revoked for task T-1");
+    expect(timeline[1]?.task_id).toBe("T-1");
   });
 
   test("command-intent-recorded and command-reconciled each state the command's own progress", () => {
@@ -218,18 +218,18 @@ describe("timeline collector", () => {
       // No task_id on either: phase falls to "system" rather than "execution".
       createEvent("command-intent-recorded", { command_id: "C-3" }, 4),
     ]);
-    expect(timeline[0]!.phase).toBe("execution");
-    expect(timeline[0]!.summary).toBe("Command C-1 started");
-    expect(timeline[0]!.command_id).toBe("C-1");
-    expect(timeline[1]!.summary).toBe("Command C-1 finished (succeeded)");
-    expect(timeline[2]!.summary).toBe("Command C-2 reconciled");
-    expect(timeline[3]!.phase).toBe("system");
+    expect(timeline[0]?.phase).toBe("execution");
+    expect(timeline[0]?.summary).toBe("Command C-1 started");
+    expect(timeline[0]?.command_id).toBe("C-1");
+    expect(timeline[1]?.summary).toBe("Command C-1 finished (succeeded)");
+    expect(timeline[2]?.summary).toBe("Command C-2 reconciled");
+    expect(timeline[3]?.phase).toBe("system");
   });
 
   test("tasks-unblocked states a fixed, self-explanatory summary", () => {
     const [entry] = collectTimeline([createEvent("tasks-unblocked", {}, 1)]);
-    expect(entry!.phase).toBe("execution");
-    expect(entry!.summary).toBe("Downstream tasks unblocked and marked ready");
+    expect(entry?.phase).toBe("execution");
+    expect(entry?.summary).toBe("Downstream tasks unblocked and marked ready");
   });
 
   test("both collectTimeline and collectActionSteps narrate a kind their own switch has no case for", () => {
@@ -239,15 +239,29 @@ describe("timeline collector", () => {
       1,
     );
     const [timelineEntry] = collectTimeline([event]);
-    expect(timelineEntry!.phase).toBe("branch");
-    expect(timelineEntry!.summary).toBe(
+    expect(timelineEntry?.phase).toBe("branch");
+    expect(timelineEntry?.summary).toBe(
       "Branch B-1 opened off T-1 by test-actor: the flush path needs investigation",
     );
 
     const [step] = collectActionSteps([event]);
-    expect(step!.summary).toBe(
+    expect(step?.summary).toBe(
       "Branch B-1 opened off T-1 by test-actor: the flush path needs investigation",
     );
-    expect(step!.summary.startsWith("Event ")).toBe(false);
+    expect(step?.summary?.startsWith("Event ")).toBe(false);
+  });
+
+  test("handles non-standard telemetry values like zero tokens or negative duration without error", () => {
+    const events: HarnessEvent[] = [
+      createEvent("command-recorded", {
+        command_id: "C-ZERO",
+        duration_ms: -1,
+        tokens: 0,
+      }),
+    ];
+    const timeline = collectTimeline(events);
+    expect(timeline[0]?.duration_ms).toBe(-1);
+    expect(timeline[0]?.tokens).toBe(0);
+    expect(timeline[0]?.cost_usd).toBeUndefined();
   });
 });

@@ -1,6 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -10,20 +8,26 @@ import {
   scanCodeQuality,
   scanTestCoverage,
 } from "../../../olt/scripts/src/mind/tasks/smart/executor/backlog-drainer.ts";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Backlog Drainer & Scanner Coverage Suite", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = join(
-      tmpdir(),
-      `backlog-drainer-cov-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    );
-    mkdirSync(tempDir, { recursive: true });
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    tempDir = `/virtual/backlog-drainer-cov-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    vfs.mkdirSync(tempDir, { recursive: true });
   });
 
   afterEach(() => {
-    rmSync(tempDir, { recursive: true, force: true });
+    session.cleanup();
   });
 
   describe("Scanner functions", () => {
@@ -81,9 +85,9 @@ describe("Backlog Drainer & Scanner Coverage Suite", () => {
       });
 
       expect(result.enqueued_count).toBe(3);
-      expect(existsSync(queuePath)).toBe(true);
+      expect(vfs.existsSync(queuePath)).toBe(true);
 
-      const queueLines = readFileSync(queuePath, "utf-8").trim().split("\n");
+      const queueLines = vfs.readFileSync(queuePath, "utf-8").trim().split("\n");
       expect(queueLines.length).toBe(3);
     });
 
@@ -101,7 +105,7 @@ describe("Backlog Drainer & Scanner Coverage Suite", () => {
   describe("assertMindModeAllowed", () => {
     it("throws HarnessError INVALID_STATE when manifest.json does not exist", () => {
       const emptyRunDir = join(tempDir, "missing-manifest-run");
-      mkdirSync(emptyRunDir, { recursive: true });
+      vfs.mkdirSync(emptyRunDir, { recursive: true });
 
       expect(() => assertMindModeAllowed(emptyRunDir, "mind:cycle")).toThrow(HarnessError);
 
@@ -117,8 +121,8 @@ describe("Backlog Drainer & Scanner Coverage Suite", () => {
 
     it("passes assertion cleanly when capsule is running in mind mode", () => {
       const mindRunDir = join(tempDir, "mind-run");
-      mkdirSync(mindRunDir, { recursive: true });
-      writeFileSync(
+      vfs.mkdirSync(mindRunDir, { recursive: true });
+      vfs.writeFileSync(
         join(mindRunDir, "manifest.json"),
         JSON.stringify({ mode: "mind", run_id: "mind-capsule-001" }),
         "utf-8",
@@ -129,8 +133,8 @@ describe("Backlog Drainer & Scanner Coverage Suite", () => {
 
     it("throws HarnessError INVALID_STATE with capsule run_id when running in feature mode", () => {
       const featureRunDir = join(tempDir, "feature-run");
-      mkdirSync(featureRunDir, { recursive: true });
-      writeFileSync(
+      vfs.mkdirSync(featureRunDir, { recursive: true });
+      vfs.writeFileSync(
         join(featureRunDir, "manifest.json"),
         JSON.stringify({ mode: "feature", run_id: "feat-capsule-999" }),
         "utf-8",
@@ -153,8 +157,8 @@ describe("Backlog Drainer & Scanner Coverage Suite", () => {
 
     it("falls back to 'unknown' capsule id when run_id is omitted in manifest", () => {
       const namelessRunDir = join(tempDir, "nameless-run");
-      mkdirSync(namelessRunDir, { recursive: true });
-      writeFileSync(
+      vfs.mkdirSync(namelessRunDir, { recursive: true });
+      vfs.writeFileSync(
         join(namelessRunDir, "manifest.json"),
         JSON.stringify({ mode: "standard" }),
         "utf-8",
@@ -170,6 +174,25 @@ describe("Backlog Drainer & Scanner Coverage Suite", () => {
           "Current capsule 'unknown' is running in feature mode.",
         );
       }
+    });
+  });
+
+  describe("Session Isolation & Teardown Security", () => {
+    it("session.cleanup() hermetically restores spies and resets virtual state", () => {
+      const subVfs = new VirtualMemoryFS();
+      const subSession = createVirtualFSSession(subVfs);
+      const testVirtualPath = "/virtual/leak-check.txt";
+
+      subVfs.mkdirSync("/virtual", { recursive: true });
+      subVfs.writeFileSync(testVirtualPath, "ephemeral-payload");
+      expect(subVfs.existsSync(testVirtualPath)).toBe(true);
+
+      // Perform cleanup
+      subSession.cleanup();
+
+      // VirtualMemoryFS is reset
+      expect(subVfs.existsSync(testVirtualPath)).toBe(false);
+      expect(subSession.spies.length).toBeGreaterThan(0);
     });
   });
 });

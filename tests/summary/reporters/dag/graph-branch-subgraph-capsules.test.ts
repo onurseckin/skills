@@ -1,11 +1,10 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import type { BranchRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
 import type { RepositoryGitCommand } from "../../../../olt/scripts/src/packets/repository-git-command.ts";
 import { generateGraphDataset } from "../../../../olt/scripts/src/summary/graph/index.ts";
 import { makeState, makeTask } from "./graph-fixtures.ts";
-import { setupVirtualSummaryFS } from "../../fixture.ts";
+import { getVirtualSummaryFS, setupVirtualSummaryFS } from "../../fixture.ts";
 
 const REASON = "The migration turned out to need a schema rewrite and a data backfill";
 
@@ -57,19 +56,22 @@ describe("branch region files carry a diff (B3/B15.2)", () => {
 
   function fakeGitCommand(diffByPath: ReadonlyMap<string, string>): RepositoryGitCommand {
     return (_repositoryRoot, argv) => {
-      const path = argv.at(-1) ?? "";
-      const text = diffByPath.get(path) ?? "";
+      const lastArg = argv.at(-1);
+      const path = lastArg !== undefined ? lastArg : "";
+      const textVal = diffByPath.get(path);
+      const text = textVal !== undefined ? textVal : "";
       return { status: 0, bytes: Buffer.from(text, "utf8") };
     };
   }
 
   function seedRunRoot(): string {
+    const vfs = getVirtualSummaryFS();
     rootCounter += 1;
     const root = `/virtual/branch-diff-${rootCounter}`;
     const runRoot = join(root, ".olt", "capsules", "run-1");
     const digest = "d".repeat(64);
-    fs.mkdirSync(runRoot, { recursive: true });
-    fs.writeFileSync(
+    vfs.mkdirSync(runRoot, { recursive: true });
+    vfs.writeFileSync(
       join(runRoot, "state.json"),
       JSON.stringify({
         baseline_repository_inspection_sha256: digest,

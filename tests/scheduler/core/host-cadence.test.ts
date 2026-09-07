@@ -56,11 +56,15 @@ describe("Embedded Schedulers & Host Cadence (Task 2.3)", () => {
       expect(codexConfig.enabled).toBe(true);
     });
 
-    test("resolves aliases like 'mind' and 'mind-supervisor'", () => {
+    test("resolves aliases like 'mind' and 'mind-supervisor' with casing and whitespace resilience", () => {
       expect(resolveSchedulerIntervalSeconds("mind", "antigravity", policy)).toBe(300);
       expect(resolveSchedulerIntervalSeconds("mind-supervisor", "claude_code", policy)).toBe(900);
+      expect(resolveSchedulerIntervalSeconds("  MIND-SUPERVISOR  ", "claude_code", policy)).toBe(900);
+      expect(resolveSchedulerIntervalSeconds(" mind ", "antigravity", policy)).toBe(300);
       expect(resolveSchedulerCron("mind", "antigravity", policy)).toBe("*/5 * * * *");
+      expect(resolveSchedulerCron(" MIND ", "antigravity", policy)).toBe("*/5 * * * *");
       expect(isSchedulerEnabled("mind", "antigravity", policy)).toBe(true);
+      expect(isSchedulerEnabled("  mind_supervisor  ", "antigravity", policy)).toBe(true);
     });
   });
 
@@ -73,9 +77,11 @@ describe("Embedded Schedulers & Host Cadence (Task 2.3)", () => {
       }
     });
 
-    test("resolves alias 'watchdog'", () => {
+    test("resolves alias 'watchdog' with casing and whitespace resilience", () => {
       expect(resolveSchedulerIntervalSeconds("watchdog", "antigravity", policy)).toBe(300);
+      expect(resolveSchedulerIntervalSeconds("  WATCHDOG  ", "antigravity", policy)).toBe(300);
       expect(isSchedulerEnabled("watchdog", "antigravity", policy)).toBe(true);
+      expect(isSchedulerEnabled("  autonomic_watchdog  ", "antigravity", policy)).toBe(true);
     });
   });
 

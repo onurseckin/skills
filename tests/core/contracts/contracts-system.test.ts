@@ -155,13 +155,13 @@ describe("core/contracts/network/packets.ts", () => {
     expect(isAgentRole(null)).toBe(false);
 
     expect(isCognitiveValidatorRole("validator")).toBe(true);
-    expect(isCognitiveValidatorRole("ui-validator")).toBe(true);
+    expect(isCognitiveValidatorRole("ui-optical-validator")).toBe(true);
     expect(isCognitiveValidatorRole("validator-security")).toBe(true);
     expect(isCognitiveValidatorRole("implementer")).toBe(false);
 
-    expect(isMechanicValidatorRole("mechanic-validator")).toBe(true);
-    expect(isMechanicValidatorRole("ui-mechanic-validator")).toBe(true);
-    expect(isMechanicValidatorRole("mechanic_validator")).toBe(true);
+    expect(isMechanicValidatorRole("ui-headless-validator")).toBe(true);
+    expect(isMechanicValidatorRole("mechanic-validator")).toBe(false);
+    expect(isMechanicValidatorRole("ui-mechanic-validator")).toBe(false);
     expect(isMechanicValidatorRole("planner")).toBe(false);
   });
 });

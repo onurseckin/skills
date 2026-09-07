@@ -9,6 +9,7 @@ import {
 import type {
   BackpropagationRecord,
   FeedbackItem,
+  FeedbackPriority,
 } from "../../../olt/scripts/src/mind/feedback/queue/types.ts";
 import { writeFeedbackQueue } from "../../../olt/scripts/src/mind/feedback/queue/admission.ts";
 import {
@@ -210,9 +211,9 @@ describe("Feedback Queue Filter, Backpropagation & Drainage Suite (filter.ts)", 
         compareFeedbackPriority("HIGH_ARCHITECTURAL_FEATURE", "CRITICAL_USER_FEEDBACK"),
       ).toBeGreaterThan(0);
       expect(compareFeedbackPriority("NORMAL", "NORMAL")).toBe(0);
-      expect(compareFeedbackPriority("UNKNOWN" as any, "CRITICAL_USER_FEEDBACK")).toBeGreaterThan(
-        0,
-      );
+      expect(
+        compareFeedbackPriority("UNKNOWN" as unknown as FeedbackPriority, "CRITICAL_USER_FEEDBACK"),
+      ).toBeGreaterThan(0);
 
       const early: FeedbackItem = { ...item1, id: "e", timestamp: "2026-09-01T08:00:00.000Z" };
       const late: FeedbackItem = { ...item1, id: "l", timestamp: "2026-09-01T09:00:00.000Z" };

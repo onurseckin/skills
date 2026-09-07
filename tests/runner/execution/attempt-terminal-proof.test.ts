@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { cleanupFailedAttempt } from "../../../olt/scripts/src/engine/runner/execution/attempt-cleanup.ts";
 import {
@@ -9,7 +8,7 @@ import {
 import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/execution/attempt-disposition-capability.ts";
 import type { ProcessIdentity } from "../../../olt/scripts/src/engine/runner/process/process-identity.ts";
 import { cleanupAfterAttemptFailure } from "../../../olt/scripts/src/engine/runner/models/attempt/run-attempt.ts";
-import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import { cleanupTempRoots, getRunnerVfs, tempRoot } from "../command/fixture.ts";
 
 const rootIdentity: ProcessIdentity = { pid: 40, parent: 30, group: 40, birth: "root" };
 
@@ -51,7 +50,7 @@ describe("failed attempt terminal proof", () => {
     controller.markRecordPending("successful evidence is ready");
     controller.markTerminalProof("child settlement proven", settledAttemptTerminalProof(undefined));
     const markerPath = join(attemptDir, "attempt-started.json");
-    const terminalMarker = await readFile(markerPath, "utf8");
+    const terminalMarker = getRunnerVfs().readFileSync(markerPath, "utf8");
     const original = new Error("successful attempt evidence write failed");
     let cleanupCalls = 0;
 
@@ -68,7 +67,7 @@ describe("failed attempt terminal proof", () => {
 
     expect(caught).toBe(original);
     expect(cleanupCalls).toBe(0);
-    expect(await readFile(markerPath, "utf8")).toBe(terminalMarker);
+    expect(getRunnerVfs().readFileSync(markerPath, "utf8")).toBe(terminalMarker);
   });
 
   test("keeps an identity-unavailable child stranded when exit never settles", async () => {

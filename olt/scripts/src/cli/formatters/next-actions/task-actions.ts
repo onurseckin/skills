@@ -121,14 +121,9 @@ export function taskRejectNextActions(run?: string, taskId?: string): NextAction
   const tArg = taskId ? ` --task ${taskId}` : "";
   return [
     {
-      command: `bun harness.ts task:claim${runArg}${tArg} --agent <REPAIRER> --role repairer`,
-      role: "Repairer",
-      description: "Claim task in repair mode",
-    },
-    {
-      command: `bun harness.ts task:assign-repairer${runArg}${tArg} --replacement <AGENT> --reason repeated_failure`,
-      role: "Coordinator",
-      description: "Reassign stuck task to alternate repairer if needed",
+      command: `bun harness.ts task:claim${runArg}${tArg} --agent <IMPLEMENTER> --role implementer`,
+      role: "Implementer",
+      description: "Reclaim the task for a repair attempt",
     },
   ];
 }
@@ -153,23 +148,6 @@ export function taskProbeNextActions(
       command: `bun harness.ts task:review${runArg}${tArg}${vArg}${tokArg} --status pass`,
       role: "Validator",
       description: "Sign off once all probe demands are answered",
-    },
-  ];
-}
-
-export function taskAssignRepairerNextActions(
-  run?: string,
-  taskId?: string,
-  replacementId?: string,
-): NextActionItem[] {
-  const runArg = run ? ` --run ${run}` : "";
-  const tArg = taskId ? ` --task ${taskId}` : "";
-  const rArg = replacementId ? ` --agent ${replacementId}` : " --agent <REPAIRER>";
-  return [
-    {
-      command: `bun harness.ts task:claim${runArg}${tArg}${rArg} --role repairer`,
-      role: "Repairer",
-      description: "Claim task under assigned repair lease",
     },
   ];
 }

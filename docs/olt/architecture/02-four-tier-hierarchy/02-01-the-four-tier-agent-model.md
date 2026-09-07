@@ -81,7 +81,7 @@ OLT enforces a canonical, non-overlapping 20-role taxonomy across all 4 tiers, c
 | **3** | `sub-investigator`        | Read-only root-cause diagnosis             | **Strictly None** | view_file, grep_search (0 writes)          |
 
 _Independent Genesis Roles_: `owner` (genesis authority conferral), `independent-planner`, and `independent-planner-audit`.  
-_Permanently Purged_: `worker`, `critic`, `repairer` (handled in-lease), `mechanic-validator` (anchored in `task:check`), and duplicate UI roles.
+_Permanently Purged_: `worker`, `critic`, and duplicate UI roles; repair is handled in-lease by the same implementer, and static/type checks are anchored in `task:check`.
 
 ---
 

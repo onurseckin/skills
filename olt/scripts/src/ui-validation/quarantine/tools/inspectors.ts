@@ -24,7 +24,6 @@ export function isOpticalValidatorRole(role: string): boolean {
   const norm = role.trim().toLowerCase().replace(/_/gu, "-");
   return (
     norm === "ui-optical-validator" ||
-    norm === "ui-validator" ||
     norm === "optical-validator" ||
     norm === "cognitive-ui-validator" ||
     norm === "ui-optical-cognitive-validator" ||

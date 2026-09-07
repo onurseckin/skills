@@ -103,7 +103,12 @@ export function parseRoleContract(bytes: Uint8Array, source: string): RoleContra
   if (!text.trimStart().startsWith("---")) {
     if (source.endsWith(".md"))
       invalid("role contract", source, "missing opening frontmatter fence");
-    const manifest = parseUnifiedAgentManifest(text, source);
+    let manifest: ReturnType<typeof parseUnifiedAgentManifest>;
+    try {
+      manifest = parseUnifiedAgentManifest(text, source);
+    } catch (err) {
+      invalid("role contract", source, err instanceof Error ? err.message : String(err));
+    }
     const role = (manifest.role ?? manifest.name) as AgentRole;
     if (!isAgentRole(role))
       invalid("role contract", source, `role is not a canonical agent role: ${role}`);
@@ -248,7 +253,7 @@ export function parseChecklist(bytes: Uint8Array, source: string): Checklist {
 
   const headingIndices: number[] = [];
   for (let i = 0; i < lines.length; i += 1) {
-    if (/^## /u.test(lines[i]!)) headingIndices.push(i);
+    if (lines[i]!.startsWith("## ")) headingIndices.push(i);
   }
   if (headingIndices.length === 0)
     invalid("checklist", source, "document declares no checklist items");

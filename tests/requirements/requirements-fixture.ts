@@ -7,7 +7,12 @@
 import { createHash } from "node:crypto";
 import * as path from "node:path";
 import { VirtualMemoryFS } from "../../olt/scripts/src/testing/virtual-fs/index.ts";
-import { createRequirementsFsSpies, type VirtualRequirementsState } from "./session/index.ts";
+import {
+  createRequirementsFsSpies,
+  makeFsStats,
+  norm,
+  type VirtualRequirementsState,
+} from "./session/index.ts";
 
 const VIRTUAL_SCRATCH_BASE = "/virtual/requirements-scratch";
 
@@ -58,6 +63,13 @@ export function cleanupVirtualRequirementsFS(): void {
 
 export function getVirtualRequirementsFS(): VirtualMemoryFS {
   return vfs;
+}
+
+export function statSync(targetPath: string): { mode: number } {
+  const t = norm(targetPath);
+  const vs = vfs.statSync(t);
+  if (!vs) throw Object.assign(new Error(`ENOENT: no such file or directory, stat '${t}'`), { code: "ENOENT" });
+  return makeFsStats(state, vs, t);
 }
 
 function slug(value: string): string {

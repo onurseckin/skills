@@ -27,7 +27,6 @@ import {
   runCompleteNextActions,
   runExecNextActions,
   runStatusNextActions,
-  taskAssignRepairerNextActions,
   taskClaimNextActions,
   taskHeartbeatNextActions,
   taskProbeNextActions,
@@ -61,15 +60,12 @@ describe("Next Actions Formatter - Action Chains & Roles", () => {
     expect(revPass[0]!.command).toContain("--task task-2");
 
     const rej = taskRejectNextActions("run-1", "task-1");
-    expect(rej[0]!.role).toBe("Repairer");
-    expect(rej[1]!.role).toBe("Coordinator");
+    expect(rej[0]!.role).toBe("Implementer");
+    expect(rej[0]!.command).toContain("--role implementer");
 
     const probe = taskProbeNextActions("run-1", "task-1", "val-1", "tok-v");
     expect(probe[0]!.command).toContain("run:exec");
     expect(probe[1]!.command).toContain("task:review");
-
-    const repAssign = taskAssignRepairerNextActions("run-1", "task-1", "rep-2");
-    expect(repAssign[0]!.command).toContain("--agent rep-2");
   });
 
   test("queue, critic, and run helpers generate exact guidance", () => {

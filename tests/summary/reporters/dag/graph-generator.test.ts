@@ -1,6 +1,16 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { generateGraphDataset } from "../../../../olt/scripts/src/summary/graph/index.ts";
 import { makeCommand, makeEvent, makeState, makeTask } from "./graph-fixtures.ts";
+import { cleanupVirtualSummaryFS, setupVirtualSummaryFS } from "../../fixture.ts";
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/memory-fs.ts";
+
+let vfs: VirtualMemoryFS;
+
+beforeEach(() => {
+  vfs = setupVirtualSummaryFS();
+});
+
+afterEach(cleanupVirtualSummaryFS);
 
 function twoTaskDataset() {
   const task1 = makeTask("T-1", {
@@ -237,5 +247,34 @@ describe("graph generator", () => {
     const dataset = twoTaskDataset();
     const node = dataset.nodes.find((n) => n.id === "node-task-T-1");
     expect(node?.metadata?.worktreeCommit).toBeUndefined();
+  });
+
+  test("handles virtual runRoot with non-existent directories cleanly without ENOENT", () => {
+    const dataset = generateGraphDataset({
+      runId: "run-missing-dirs",
+      state: makeState([makeTask("T-1")]),
+      runRoot: "/virtual/non-existent-run-root-xyz",
+    });
+    expect(dataset.id).toBe("run-missing-dirs");
+    expect(dataset.nodes.length).toBeGreaterThan(0);
+  });
+
+  test("aggregates multi-round repair and probe badges correctly on implementer node", () => {
+    const multiRoundTask = makeTask("T-multi", {
+      status: "done",
+      repair_round: 3,
+      probe_round: 2,
+      replacement_reason: "repeated_failure",
+    });
+    const dataset = generateGraphDataset({
+      runId: "run-multi-round",
+      state: makeState([multiRoundTask]),
+    });
+    const node = dataset.nodes.find((n) => n.id === "node-task-T-multi");
+    expect(node?.metadata?.repairRounds).toBe(3);
+    expect(node?.metadata?.probeRounds).toBe(2);
+    const badgeLabels = node?.badges?.map((b) => b.label);
+    expect(badgeLabels).toContain("3 repair rounds");
+    expect(badgeLabels).toContain("2 adversarial probes");
   });
 });

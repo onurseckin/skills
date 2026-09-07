@@ -119,7 +119,11 @@ export function validateCompletionArtifactVerification(
   for (const id of Object.values(mandatoryRunGateCommands(state))) gateCommandIds.add(id);
   for (const id of gateCommandIds) {
     const command = state.commands[id];
-    if (command?.assurance !== TRUSTED_HOST_ASSURANCE || command.repository_after == null)
+    if (
+      command?.assurance !== TRUSTED_HOST_ASSURANCE ||
+      command.repository_after === null ||
+      command.repository_after === undefined
+    )
       throw new HarnessError(
         "INVALID_STATE",
         `gate command ${id} lacks terminal trusted-host assurance`,

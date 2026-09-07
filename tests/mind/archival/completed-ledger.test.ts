@@ -1,14 +1,10 @@
-import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
   formatCompletedTasksBrief,
   getCompletedTasksStats,
   readCompletedTasksLedger,
   recordCompletedTask,
   recordCompletedTasksBatch,
-  recordCompletedTasksBatchUnlocked,
   updateDefectItems,
   updateFeedbackQueueItems,
   writeCompletedTasksLedger,
@@ -20,6 +16,8 @@ import {
   writeFeedbackQueue,
 } from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
 import type { FeedbackItem } from "../../../olt/scripts/src/mind/feedback/queue/types.ts";
+import { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/memory-fs.ts";
+import { createVirtualFSSession } from "../../../olt/scripts/src/testing/virtual-fs/spies.ts";
 
 const sampleTask1: CompletedTaskRecord = {
   id: "task-001",
@@ -42,28 +40,32 @@ const sampleTask2: CompletedTaskRecord = {
 };
 
 describe("Completed Tasks Ledger Module", () => {
-  let tempDir: string;
-  let ledgerPath: string;
-  let oltDir: string;
+  let vfs: VirtualMemoryFS;
+  let session: ReturnType<typeof createVirtualFSSession>;
+  const baseDir = "/virtual/archival/completed-ledger";
+  const oltDir = `${baseDir}/.olt`;
+  const ledgerPath = `${oltDir}/completed-tasks.jsonl`;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "completed-ledger-test-"));
-    oltDir = join(tempDir, ".olt");
-    mkdirSync(oltDir, { recursive: true });
-    ledgerPath = join(oltDir, "completed-tasks.jsonl");
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    vfs.mkdirSync(oltDir, { recursive: true });
   });
 
   afterEach(() => {
-    rmSync(tempDir, { recursive: true, force: true });
+    session.cleanup();
   });
 
   describe("readCompletedTasksLedger", () => {
     it("returns empty array if file does not exist", () => {
-      expect(readCompletedTasksLedger(join(oltDir, "missing.jsonl"))).toEqual([]);
+      expect(readCompletedTasksLedger(`${oltDir}/missing.jsonl`)).toEqual([]);
     });
 
     it("reads and parses valid JSONL ledger records", () => {
-      writeFileSync(ledgerPath, `${JSON.stringify(sampleTask1)}\n${JSON.stringify(sampleTask2)}\n`);
+      vfs.writeFileSync(
+        ledgerPath,
+        `${JSON.stringify(sampleTask1)}\n${JSON.stringify(sampleTask2)}\n`,
+      );
       const records = readCompletedTasksLedger(ledgerPath);
       expect(records).toHaveLength(2);
       expect(records[0]?.id).toBe("task-001");
@@ -71,14 +73,14 @@ describe("Completed Tasks Ledger Module", () => {
     });
 
     it("skips blank lines seamlessly", () => {
-      writeFileSync(ledgerPath, `\n\n${JSON.stringify(sampleTask1)}\n  \n`);
+      vfs.writeFileSync(ledgerPath, `\n\n${JSON.stringify(sampleTask1)}\n  \n`);
       const records = readCompletedTasksLedger(ledgerPath);
       expect(records).toHaveLength(1);
       expect(records[0]?.id).toBe("task-001");
     });
 
     it("throws HarnessError INTEGRITY on malformed JSON", () => {
-      writeFileSync(ledgerPath, `${JSON.stringify(sampleTask1)}\n{invalid-json\n`);
+      vfs.writeFileSync(ledgerPath, `${JSON.stringify(sampleTask1)}\n{invalid-json\n`);
       expect(() => readCompletedTasksLedger(ledgerPath)).toThrow(
         /completed tasks ledger line 2 is malformed/,
       );
@@ -86,7 +88,7 @@ describe("Completed Tasks Ledger Module", () => {
 
     it("throws HarnessError INTEGRITY when record validation fails", () => {
       const badRecord = { id: "bad-1", source: "invalid-source" };
-      writeFileSync(ledgerPath, `${JSON.stringify(badRecord)}\n`);
+      vfs.writeFileSync(ledgerPath, `${JSON.stringify(badRecord)}\n`);
       expect(() => readCompletedTasksLedger(ledgerPath)).toThrow(
         /completed tasks ledger line 1: CompletedTaskRecord requires valid source/,
       );
@@ -103,15 +105,15 @@ describe("Completed Tasks Ledger Module", () => {
 
     it("writes empty file when passed empty records", () => {
       writeCompletedTasksLedgerUnlocked([], ledgerPath);
-      expect(existsSync(ledgerPath)).toBe(true);
-      expect(readFileSync(ledgerPath, "utf8")).toBe("");
+      expect(vfs.existsSync(ledgerPath)).toBe(true);
+      expect(vfs.readFileSync(ledgerPath, "utf8")).toBe("");
       expect(readCompletedTasksLedger(ledgerPath)).toEqual([]);
     });
   });
 
   describe("updateFeedbackQueueItems", () => {
     it("prunes feedback items matching record id, candidate id, or status COMPLETED", () => {
-      const feedbackPath = join(oltDir, "feedback-queue.jsonl");
+      const feedbackPath = `${oltDir}/feedback-queue.jsonl`;
       const f1: FeedbackItem = {
         id: "fb-1",
         timestamp: "2026-09-01T10:00:00.000Z",
@@ -170,20 +172,23 @@ describe("Completed Tasks Ledger Module", () => {
   describe("updateDefectItems", () => {
     it("returns early if defect file does not exist", () => {
       expect(() =>
-        updateDefectItems([sampleTask1], join(oltDir, "nonexistent-defects.jsonl")),
+        updateDefectItems([sampleTask1], `${oltDir}/nonexistent-defects.jsonl`),
       ).not.toThrow();
     });
 
     it("prunes defects matching completed task ids or with resolved/closed status", () => {
-      const defectsPath = join(oltDir, "defects.jsonl");
+      const defectsPath = `${oltDir}/defects.jsonl`;
       const d1 = { id: "def-1", status: "open", description: "Bug 1" };
       const d2 = { id: "task-002", status: "open", description: "Bug matching task-002" };
       const d3 = { id: "def-3", status: "resolved", description: "Bug resolved" };
       const d4 = { id: "def-4", status: "CLOSED", description: "Bug closed" };
-      writeFileSync(defectsPath, `${[d1, d2, d3, d4].map((d) => JSON.stringify(d)).join("\n")}\n`);
+      vfs.writeFileSync(
+        defectsPath,
+        `${[d1, d2, d3, d4].map((d) => JSON.stringify(d)).join("\n")}\n`,
+      );
 
       updateDefectItems([sampleTask2], defectsPath);
-      const remainingContent = readFileSync(defectsPath, "utf8");
+      const remainingContent = vfs.readFileSync(defectsPath, "utf8");
       expect(remainingContent).toContain("def-1");
       expect(remainingContent).not.toContain("task-002");
       expect(remainingContent).not.toContain("def-3");
@@ -210,8 +215,8 @@ describe("Completed Tasks Ledger Module", () => {
     });
 
     it("triggers feedback queue and defect updates when options are set", () => {
-      const feedbackPath = join(oltDir, "feedback-queue.jsonl");
-      const defectsPath = join(oltDir, "defects.jsonl");
+      const feedbackPath = `${oltDir}/feedback-queue.jsonl`;
+      const defectsPath = `${oltDir}/defects.jsonl`;
       writeFeedbackQueue(
         [
           {
@@ -226,7 +231,7 @@ describe("Completed Tasks Ledger Module", () => {
         ],
         feedbackPath,
       );
-      writeFileSync(
+      vfs.writeFileSync(
         defectsPath,
         `${JSON.stringify({ id: "task-001", status: "open", description: "Defect 1" })}\n`,
       );
@@ -241,7 +246,7 @@ describe("Completed Tasks Ledger Module", () => {
 
       expect(res.id).toBe("task-001");
       expect(readFeedbackQueueStrict(feedbackPath)).toEqual([]);
-      expect(readFileSync(defectsPath, "utf8")).toBe("");
+      expect(vfs.readFileSync(defectsPath, "utf8")).toBe("");
     });
   });
 
@@ -250,7 +255,7 @@ describe("Completed Tasks Ledger Module", () => {
       const taskWithEmptySource: CompletedTaskRecord = {
         ...sampleTask1,
         id: "task-direct",
-        source: "" as any,
+        source: "" as unknown as CompletedTaskRecord["source"],
         category: "  ",
       };
       const stats = getCompletedTasksStats([sampleTask1, sampleTask2, taskWithEmptySource]);

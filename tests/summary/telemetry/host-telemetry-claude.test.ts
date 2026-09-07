@@ -1,29 +1,29 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import * as fs from "node:fs";
-import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { detectHostTelemetry } from "../../../olt/scripts/src/summary/metrics/index.ts";
 import { setupVirtualSummaryFS } from "../fixture.ts";
+import type { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 const HOST_MODEL_VARIABLE = "CLAUDE_CODE_MODEL";
 
 let rootCounter = 0;
+let vfs: VirtualMemoryFS;
 
 beforeEach(() => {
-  setupVirtualSummaryFS();
+  vfs = setupVirtualSummaryFS();
 });
 
 function withTempHome(fn: (home: string) => void): void {
   rootCounter += 1;
   const tempHome = `/virtual/telemetry-claude-test-${rootCounter}`;
-  fs.mkdirSync(tempHome, { recursive: true });
+  vfs.mkdirSync(tempHome, { recursive: true });
   fn(tempHome);
 }
 
 function writeHostSettings(home: string, settings: unknown): void {
   const dir = join(home, ".gemini", "antigravity-cli");
-  fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(join(dir, "settings.json"), JSON.stringify(settings));
+  vfs.mkdirSync(dir, { recursive: true });
+  vfs.writeFileSync(join(dir, "settings.json"), JSON.stringify(settings));
 }
 
 describe("host telemetry probing: claude-code, antigravity, cursor", () => {
@@ -58,7 +58,7 @@ describe("host telemetry probing: claude-code, antigravity, cursor", () => {
 
   test("claude-code: reads the current project's last model usage, keyed by its exact cwd", () => {
     withTempHome((home) => {
-      writeFileSync(
+      vfs.writeFileSync(
         join(home, ".claude.json"),
         JSON.stringify({
           projects: {
@@ -96,7 +96,7 @@ describe("host telemetry probing: claude-code, antigravity, cursor", () => {
 
   test("claude-code: a .claude.json whose projects field is not an object is read as no usage", () => {
     withTempHome((home) => {
-      writeFileSync(join(home, ".claude.json"), JSON.stringify({ projects: "not-an-object" }));
+      vfs.writeFileSync(join(home, ".claude.json"), JSON.stringify({ projects: "not-an-object" }));
       const probe = detectHostTelemetry("worker-1", {
         homeDir: home,
         env: { [HOST_MODEL_VARIABLE]: "claude-3-7-sonnet" },
@@ -136,6 +136,32 @@ describe("host telemetry probing: claude-code, antigravity, cursor", () => {
       expect(
         detectHostTelemetry("worker-1", { homeDir: home, env: { AI_MODEL: "in-house" } }),
       ).toBeNull();
+    });
+  });
+
+  test("claude-code: reads thinking_level from .claude/settings.json effortLevel and rejects unrecognised levels", () => {
+    withTempHome((home) => {
+      const claudeDir = join(home, ".claude");
+      vfs.mkdirSync(claudeDir, { recursive: true });
+      vfs.writeFileSync(join(claudeDir, "settings.json"), JSON.stringify({ effortLevel: "high" }));
+
+      const probe = detectHostTelemetry("worker-1", {
+        homeDir: home,
+        env: { [HOST_MODEL_VARIABLE]: "claude-3-7-sonnet" },
+      });
+      expect(probe?.thinking_level).toEqual({ value: "high", evidence_class: "derived" });
+    });
+
+    withTempHome((home) => {
+      const claudeDir = join(home, ".claude");
+      vfs.mkdirSync(claudeDir, { recursive: true });
+      vfs.writeFileSync(join(claudeDir, "settings.json"), JSON.stringify({ effortLevel: "hyper" }));
+
+      const probe = detectHostTelemetry("worker-1", {
+        homeDir: home,
+        env: { [HOST_MODEL_VARIABLE]: "claude-3-7-sonnet" },
+      });
+      expect(probe?.thinking_level).toBeUndefined();
     });
   });
 });
