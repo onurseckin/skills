@@ -61,12 +61,10 @@ export {
   TASK_NEW_SCHEMA,
   TASK_NOTE_SCHEMA,
   TASK_STATUS_SCHEMA,
-  clearWorkItemsCache,
   foldWorkItems,
   generateTaskId,
-  getWorkCachePath,
-  loadWorkItems,
   processAutoAcknowledge,
+  readRoomLogEnvelopes,
   replayWorkItems,
   scanMineRecovery,
 } from "./scripts/index.ts";

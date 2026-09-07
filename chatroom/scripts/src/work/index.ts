@@ -1,12 +1,6 @@
 export { processAutoAcknowledge } from "./auto-ack.ts";
 export { foldWorkItems } from "./projection.ts";
-export {
-  clearWorkItemsCache,
-  getWorkCachePath,
-  loadWorkItems,
-  readRoomLogEnvelopes,
-  replayWorkItems,
-} from "./store.ts";
+export { readRoomLogEnvelopes, replayWorkItems } from "./store.ts";
 export {
   generateTaskId,
   TASK_ACCEPTED_SCHEMA,

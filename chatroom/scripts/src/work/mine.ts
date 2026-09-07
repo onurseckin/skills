@@ -62,7 +62,6 @@ function listRoomIds(root: string, ports?: HealthPorts): readonly string[] {
         existsFn(join(roomPath, "room.json")) ||
         existsFn(join(roomPath, "log")) ||
         existsFn(join(roomPath, "log.index.json")) ||
-        existsFn(join(roomPath, "work.cache.json")) ||
         ext?.statSync?.(roomPath)?.isDirectory() ||
         (() => {
           try {

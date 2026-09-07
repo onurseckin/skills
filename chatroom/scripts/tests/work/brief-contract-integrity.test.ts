@@ -10,10 +10,8 @@ import { type MemberRecord } from "../../src/room/index.ts";
 import { ChatVirtualFS } from "../../src/testing/virtual-fs/index.ts";
 import {
   BRIEF_SET_SCHEMA,
-  clearWorkItemsCache,
   extractMemberBrief,
   formatMineRecovery,
-  getWorkCachePath,
   scanMineRecovery,
   TASK_NEW_SCHEMA,
   type ExtendedHealthPorts,
@@ -255,10 +253,6 @@ describe("Brief Contract Integrity Suite (Lane B4)", () => {
     const initialReport = scanMineRecovery("projection-agent", ports);
     const initialView = formatMineRecovery(initialReport);
 
-    clearWorkItemsCache(room, ports);
-    const cachePath = getWorkCachePath(room);
-    if (vfs.existsSync(cachePath)) vfs.unlinkSync(cachePath);
-
     const replayedEnvelopes = readVirtualLogEnvelopes(vfs, room);
     const replayedBrief = extractMemberBrief(replayedEnvelopes, "projection-agent");
     const replayedReport = scanMineRecovery("projection-agent", ports);
@@ -310,7 +304,6 @@ describe("Brief Contract Integrity Suite (Lane B4)", () => {
     const segPath = roomLogSegmentPath(room, "000001.jsonl");
     vfs.writeFileSync(segPath, strippedEnvelopes.map((e) => JSON.stringify(e)).join("\n") + "\n");
 
-    clearWorkItemsCache(room, ports);
     const reportWithoutBrief = scanMineRecovery("projection-agent", ports);
     expect(reportWithoutBrief.brief).toBeNull();
 

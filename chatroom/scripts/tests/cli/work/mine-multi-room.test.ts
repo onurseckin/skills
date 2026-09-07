@@ -6,7 +6,6 @@ import {
   BRIEF_SET_SCHEMA,
   TASK_NEW_SCHEMA,
   TASK_STATUS_SCHEMA,
-  clearWorkItemsCache,
   formatMineRecovery,
   scanMineRecovery,
   type ExtendedHealthPorts,
@@ -111,7 +110,6 @@ describe("Multi-Room Aggregation Recovery View", () => {
       env: process.env,
       cwd: VFS_PREFIX,
     };
-    clearWorkItemsCache();
 
     seedRoom(vfs, "room-alpha");
     seedRoom(vfs, "room-beta");

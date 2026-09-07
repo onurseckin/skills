@@ -1,8 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import { dirname } from "node:path";
+import { dirname, join } from "node:path";
 import {
   canonicalJson,
   canonicalJsonBytes,
+  roomDir,
   roomLogIndexPath,
   roomLogSegmentPath,
   timingSafeEqualBuffers,
@@ -14,11 +15,8 @@ import { signEnvelope } from "../../src/crypto/index.ts";
 import { type HealthPorts } from "../../src/daemon/index.ts";
 import { ChatVirtualFS } from "../../src/testing/virtual-fs/index.ts";
 import {
-  clearWorkItemsCache,
   foldWorkItems,
   generateTaskId,
-  getWorkCachePath,
-  loadWorkItems,
   replayWorkItems,
   TASK_ACCEPTED_SCHEMA,
   TASK_NEW_SCHEMA,
@@ -230,12 +228,10 @@ describe("work item envelopes and projection", () => {
     expect(item?.topic_seqs).toEqual([1]);
   });
 
-  it("enforces replay equality after wiping all cached state in ChatVirtualFS", () => {
+  it("enforces replay equality in ChatVirtualFS and ensures no cache file is created", () => {
     const vfs = new ChatVirtualFS();
     const ports = createHealthPorts(vfs);
     const room = "replay-room";
-
-    clearWorkItemsCache();
 
     const e1 = makeEnvelope(room, 1, TASK_NEW_SCHEMA, {
       id: "T-0001",
@@ -335,36 +331,27 @@ describe("work item envelopes and projection", () => {
       appendToVirtualLog(vfs, room, env);
     }
 
-    const loaded = loadWorkItems(room, ports);
-    expect(loaded.size).toBe(3);
+    const firstReplay = replayWorkItems(room, ports);
+    expect(firstReplay.size).toBe(3);
 
-    const cachePath = getWorkCachePath(room);
-    expect(vfs.existsSync(cachePath)).toBe(true);
-
-    clearWorkItemsCache(room, ports);
-    expect(vfs.readFileSync(cachePath, "utf8")).toBe("");
-    if (vfs.existsSync(cachePath)) {
-      vfs.unlinkSync(cachePath);
-    }
+    const cachePath = join(roomDir(room), "work.cache.json");
     expect(vfs.existsSync(cachePath)).toBe(false);
 
     const replayed = replayWorkItems(room, ports);
     expect(replayed.size).toBe(3);
+    expect(vfs.existsSync(cachePath)).toBe(false);
 
-    expect(replayed).toEqual(loaded);
+    expect(replayed).toEqual(firstReplay);
 
-    const loadedEntries = Array.from(loaded.entries());
+    const firstEntries = Array.from(firstReplay.entries());
     const replayedEntries = Array.from(replayed.entries());
 
-    const loadedSerialized = canonicalJson(loadedEntries);
+    const firstSerialized = canonicalJson(firstEntries);
     const replayedSerialized = canonicalJson(replayedEntries);
-    expect(replayedSerialized).toBe(loadedSerialized);
+    expect(replayedSerialized).toBe(firstSerialized);
 
-    const loadedBytes = canonicalJsonBytes(loadedEntries);
+    const firstBytes = canonicalJsonBytes(firstEntries);
     const replayedBytes = canonicalJsonBytes(replayedEntries);
-    expect(timingSafeEqualBuffers(loadedBytes, replayedBytes)).toBe(true);
-
-    const reloaded = loadWorkItems(room, ports);
-    expect(reloaded).toEqual(replayed);
+    expect(timingSafeEqualBuffers(firstBytes, replayedBytes)).toBe(true);
   });
 });

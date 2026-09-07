@@ -1,7 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import { dirname, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import ts from "typescript";
 import {
+  roomDir,
   roomLogIndexPath,
   roomLogSegmentPath,
   type Envelope,
@@ -12,10 +13,7 @@ import { signEnvelope } from "../../src/crypto/index.ts";
 import { type HealthPorts } from "../../src/daemon/index.ts";
 import { ChatVirtualFS } from "../../src/testing/virtual-fs/index.ts";
 import {
-  clearWorkItemsCache,
   foldWorkItems,
-  getWorkCachePath,
-  loadWorkItems,
   processAutoAcknowledge,
   replayWorkItems,
   TASK_ACCEPTED_SCHEMA,
@@ -138,7 +136,7 @@ describe("Work Tracking Integrity Validation Suite (LANE T5)", () => {
     ];
     for (const env of envelopes) appendEnvelopeToVFS(vfs, room, env);
 
-    const baseline = loadWorkItems(room, ports);
+    const baseline = replayWorkItems(room, ports);
     expect(baseline.size).toBe(2);
     expect(baseline.get("T-a001")?.status).toBe("in_progress");
     expect(baseline.get("T-a001")?.notes.length).toBe(1);
@@ -146,18 +144,16 @@ describe("Work Tracking Integrity Validation Suite (LANE T5)", () => {
     expect(baseline.get("T-a002")?.status).toBe("review");
     expect(baseline.get("T-a002")?.accepted_at).toBe("2026-09-07T12:05:00.000Z");
 
-    const baselineJson = JSON.stringify(Array.from(baseline.entries()));
-    const cachePath = getWorkCachePath(room);
-    expect(vfs.existsSync(cachePath)).toBe(true);
-
-    clearWorkItemsCache(room, ports);
-    vfs.unlinkSync(cachePath);
+    const cachePath = join(roomDir(room), "work.cache.json");
     expect(vfs.existsSync(cachePath)).toBe(false);
+
+    const baselineJson = JSON.stringify(Array.from(baseline.entries()));
 
     const replayed = replayWorkItems(room, ports);
     const replayedJson = JSON.stringify(Array.from(replayed.entries()));
     expect(replayedJson).toBe(baselineJson);
     expect(replayed.size).toBe(baseline.size);
+    expect(vfs.existsSync(cachePath)).toBe(false);
     for (const [id, originalItem] of baseline.entries()) {
       expect(replayed.get(id)).toEqual(originalItem);
     }
@@ -181,7 +177,7 @@ describe("Work Tracking Integrity Validation Suite (LANE T5)", () => {
     });
     for (const env of [e1, e2]) appendEnvelopeToVFS(vfs, room, env);
 
-    const baseline = loadWorkItems(room, ports);
+    const baseline = replayWorkItems(room, ports);
     const baselineJson = JSON.stringify(Array.from(baseline.entries()));
 
     const neuteredLog = [
@@ -192,13 +188,13 @@ describe("Work Tracking Integrity Validation Suite (LANE T5)", () => {
     const neuteredJson = JSON.stringify(Array.from(neuteredProjection.entries()));
     expect(neuteredJson === baselineJson).toBe(false);
 
-    clearWorkItemsCache(room, ports);
-    const cachePath = getWorkCachePath(room);
-    if (vfs.existsSync(cachePath)) vfs.unlinkSync(cachePath);
+    const cachePath = join(roomDir(room), "work.cache.json");
+    expect(vfs.existsSync(cachePath)).toBe(false);
 
     const restored = replayWorkItems(room, ports);
     const restoredJson = JSON.stringify(Array.from(restored.entries()));
     expect(restoredJson === baselineJson).toBe(true);
+    expect(vfs.existsSync(cachePath)).toBe(false);
   });
 
   it("Property 2: ZERO STATUS ADVANCE ON READ - reading a work message sets ACCEPTED and does NOT change status", () => {
@@ -247,7 +243,7 @@ describe("Work Tracking Integrity Validation Suite (LANE T5)", () => {
     expect(acceptedData["accepted_at"]).toBe(processedData["accepted_at"]);
     expect(acceptedData["status"]).toBeUndefined();
 
-    const updatedBoard = loadWorkItems(room, ports);
+    const updatedBoard = replayWorkItems(room, ports);
     const updatedItem = updatedBoard.get("T-b001");
     expect(updatedItem?.status).toBe("open");
     expect(updatedItem?.accepted_at).toBe(processedData["accepted_at"]);
