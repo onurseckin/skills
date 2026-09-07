@@ -94,7 +94,12 @@ export {
   type HealthSyncInput,
 } from "./health-types.ts";
 
-export { ensureDaemon, type EnsureDaemonOptions, type EnsureDaemonResult } from "./ensure.ts";
+export {
+  ensureDaemon,
+  type EnsureDaemonOptions,
+  type EnsureDaemonPorts,
+  type EnsureDaemonResult,
+} from "./ensure.ts";
 
 export {
   createProcessLifecycle,

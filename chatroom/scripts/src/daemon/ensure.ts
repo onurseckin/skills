@@ -8,12 +8,21 @@ import {
 import { resolvePolicy, type ChatroomPolicy } from "../policy/index.ts";
 import { parseDaemonLockPayload, startDaemon } from "./supervisor.ts";
 
+export interface EnsureDaemonPorts {
+  readonly existsSync?: (path: string) => boolean;
+  readonly readFileSync?: (path: string, encoding: string) => string;
+  readonly statSync?: (path: string) => { readonly mtimeMs: number };
+  readonly isProcessAlive?: (pid: number) => boolean;
+  readonly now?: () => number;
+}
+
 export interface EnsureDaemonOptions {
   readonly policy?: ChatroomPolicy;
   readonly heartbeatIntervalMs?: number;
   readonly isProcessAlive?: (pid: number) => boolean;
   readonly now?: () => number;
   readonly autoStart?: boolean;
+  readonly ports?: EnsureDaemonPorts;
 }
 
 export interface EnsureDaemonResult {
@@ -32,40 +41,39 @@ export function ensureDaemon(
   const policy = options.policy ?? resolvePolicy();
   const lockPath = daemonLockPath(room, reader);
   const healthPath = daemonHealthPath(room, reader);
-  const checkAlive = options.isProcessAlive ?? isProcessAlive;
+  const exists = options.ports?.existsSync ?? existsSync;
+  const readText = options.ports?.readFileSync ?? readFileSync;
+  const stat = options.ports?.statSync ?? statSync;
+  const checkAlive = options.ports?.isProcessAlive ?? options.isProcessAlive ?? isProcessAlive;
+  const getNow = options.ports?.now ?? options.now ?? Date.now;
   const heartbeatInterval = options.heartbeatIntervalMs ?? policy.heartbeat_interval_ms ?? 5000;
   const autoStart = options.autoStart ?? true;
 
-  if (existsSync(lockPath)) {
+  if (exists(lockPath)) {
     let payload: LockPayload | null = null;
     try {
-      const raw = readFileSync(lockPath, "utf8");
+      const raw = readText(lockPath, "utf8");
       payload = parseDaemonLockPayload(raw);
     } catch {}
 
     if (payload !== null && checkAlive(payload.pid)) {
-      if (existsSync(healthPath)) {
+      let healthy = false;
+      if (exists(healthPath)) {
         try {
-          const stats = statSync(healthPath);
-          const now = options.now ? options.now() : Date.now();
+          const stats = stat(healthPath);
+          const now = getNow();
           const age = now - stats.mtimeMs;
           if (age <= heartbeatInterval * 2) {
-            return {
-              status: "running",
-              pid: payload.pid,
-              healthy: true,
-              probedMs: performance.now() - startProbe,
-            };
+            healthy = true;
           }
         } catch {}
-      } else {
-        return {
-          status: "running",
-          pid: payload.pid,
-          healthy: false,
-          probedMs: performance.now() - startProbe,
-        };
       }
+      return {
+        status: "running",
+        pid: payload.pid,
+        healthy,
+        probedMs: performance.now() - startProbe,
+      };
     }
   }
 
@@ -85,10 +93,21 @@ export function ensureDaemon(
   });
 
   if (startRes.status === "already_running") {
+    let healthy = false;
+    if (exists(healthPath)) {
+      try {
+        const stats = stat(healthPath);
+        const now = getNow();
+        const age = now - stats.mtimeMs;
+        if (age <= heartbeatInterval * 2) {
+          healthy = true;
+        }
+      } catch {}
+    }
     return {
       status: "running",
       pid: startRes.pid ?? null,
-      healthy: true,
+      healthy,
       probedMs: performance.now() - startProbe,
     };
   }
