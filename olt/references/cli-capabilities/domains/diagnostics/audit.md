@@ -25,11 +25,18 @@ Discovers defects.jsonl files across .olt/capsules/ and active run, deduplicates
 | `--all` | bool | no | no | - | Show all defects without line truncation. |
 | `--now` | string | no | no | - | Timestamp override (ISO8601). |
 | `--json` | bool | no | no | - | Output JSON. |
+| `--auto-promote` | bool | no | no | - | Automatically promote resolved defects to completed registry. |
+| `--promote` | string | no | no | - | Promote a specific defect ID or 'all' resolved defects. |
+| `--generate-tests` | bool | no | no | - | Generate regression test templates from defects. |
+| `--output-tests` | string | no | no | - | Output file path for generated regression test suite. |
+| `--completed-file` | string | no | no | - | Destination file path for completed defects. |
+| `--dry-run` | bool | no | no | - | Simulate defect promotion without writing to disk. |
 
 ```bash
 bun harness.ts defect:audit
 bun harness.ts defect:audit --run .olt/capsules/<run-id> --filter-status open
 bun harness.ts defect:audit --auto-admit --actor coordinator
+bun harness.ts defect:audit --auto-promote --dry-run
 ```
 
 ### `coverage:check`

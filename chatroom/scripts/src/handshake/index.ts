@@ -9,6 +9,7 @@ export {
 export {
   CHATROOM_PUBLIC_KEY,
   HandshakeError,
+  isInviteRecord,
   type ConfirmationPreview,
   type ConsumedInviteRecord,
   type ConsumeInviteResult,
@@ -17,9 +18,8 @@ export {
   type InviteRecord,
 } from "./types.ts";
 
-export {
-  consumeInvite,
-  formatConfirmationPreview,
-  getConfirmationPreview,
-  mintInvite,
-} from "./invite.ts";
+export { mintInvite, wrapKey } from "./mint.ts";
+
+export { consumeInvite, validateInvite } from "./consume.ts";
+
+export { formatConfirmationPreview, getConfirmationPreview } from "./preview.ts";

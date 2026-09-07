@@ -1,6 +1,4 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import * as fs from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import ts from "typescript";
 import {
@@ -14,20 +12,22 @@ import * as coreModule from "../../../../../olt/scripts/src/core/index.ts";
 import * as storeModule from "../../../../../olt/scripts/src/engine/store/index.ts";
 import * as integrationModule from "../../../../../olt/scripts/src/integration/index.ts";
 import * as astLinterModule from "../../../../../olt/scripts/src/linter/ast/index.ts";
+import type { VirtualMemoryFS } from "../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
+let vfs: VirtualMemoryFS;
 const roots: string[] = [];
 
 async function createVirtualDir(prefix: string): Promise<string> {
   const dir = `/virtual/cli/${prefix}-${Math.random().toString(36).slice(2)}`;
   roots.push(dir);
-  await mkdir(dir, { recursive: true });
+  vfs.mkdirSync(dir, { recursive: true });
   return dir;
 }
 
 describe("task:check - Diagnostics, AST Invariants & Compiler Environments", () => {
   beforeEach(() => {
-    setupVirtualCliFS();
+    vfs = setupVirtualCliFS();
   });
 
   afterEach(() => {
@@ -38,9 +38,9 @@ describe("task:check - Diagnostics, AST Invariants & Compiler Environments", () 
   test("findNearestTsconfig handles virtual boundaries and cwd fallback", async () => {
     const root = await createVirtualDir("tsconfig-boundaries");
     const subDir = join(root, "sub");
-    await mkdir(subDir, { recursive: true });
+    vfs.mkdirSync(subDir, { recursive: true });
     const tsconfig = join(root, "tsconfig.json");
-    await writeFile(tsconfig, "{}");
+    vfs.writeFileSync(tsconfig, "{}");
 
     expect(findNearestTsconfig(subDir)).toBe(tsconfig);
     expect(findNearestTsconfig(join(subDir, "missing.ts"))).toBe(tsconfig);
@@ -76,14 +76,14 @@ describe("task:check - Diagnostics, AST Invariants & Compiler Environments", () 
 
     const root = await createVirtualDir("typecheck-diags");
     const validTs = join(root, "valid.ts");
-    await writeFile(validTs, "export const num: number = 100;\n");
+    vfs.writeFileSync(validTs, "export const num: number = 100;\n");
     const validRes = performIncrementalTypecheck([validTs]);
     expect(validRes.passed).toBe(true);
     expect(validRes.totalFiles).toBe(1);
     expect(validRes.totalErrors).toBe(0);
 
     const errTs = join(root, "err.ts");
-    await writeFile(errTs, "export const wrong: number = 'not a number';\n");
+    vfs.writeFileSync(errTs, "export const wrong: number = 'not a number';\n");
     const errRes = performIncrementalTypecheck([errTs]);
     expect(errRes.passed).toBe(false);
     expect(errRes.totalErrors).toBeGreaterThan(0);
@@ -94,16 +94,16 @@ describe("task:check - Diagnostics, AST Invariants & Compiler Environments", () 
   test("performIncrementalTypecheck handles live compiler multi-groups and fallback files", async () => {
     const root = await createVirtualDir("live-typecheck-suite");
     const tsconfigPath = join(root, "tsconfig.json");
-    await writeFile(tsconfigPath, JSON.stringify({ compilerOptions: { target: "ESNext" } }));
+    vfs.writeFileSync(tsconfigPath, JSON.stringify({ compilerOptions: { target: "ESNext" } }));
     const fileA = join(root, "fileA.ts");
     const fileB = join(root, "fileB.ts");
-    await writeFile(fileA, "export const a: number = 1;\n");
-    await writeFile(fileB, "export const b: number = 2;\n");
+    vfs.writeFileSync(fileA, "export const a: number = 1;\n");
+    vfs.writeFileSync(fileB, "export const b: number = 2;\n");
 
     const noConfigDir = await createVirtualDir("no-config-suite");
     const fallbackA = join(noConfigDir, "fbA.ts");
     const fallbackB = join(noConfigDir, "fbB.ts");
-    await writeFile(fallbackA, "export const fbErr: number = 'bad string';\n");
+    vfs.writeFileSync(fallbackA, "export const fbErr: number = 'bad string';\n");
     const liveRes = performIncrementalTypecheck([fileA, fileB, fallbackA, fallbackB]);
     expect(liveRes.passed).toBe(false);
     expect(liveRes.totalErrors).toBeGreaterThan(0);
@@ -111,9 +111,9 @@ describe("task:check - Diagnostics, AST Invariants & Compiler Environments", () 
 
     const corruptDir = await createVirtualDir("corrupt-read-dir");
     const corruptConfig = join(corruptDir, "tsconfig.json");
-    await writeFile(corruptConfig, "{}");
+    vfs.writeFileSync(corruptConfig, "{}");
     const corruptTs = join(corruptDir, "corrupt.ts");
-    await writeFile(corruptTs, "export const c = 1;\n");
+    vfs.writeFileSync(corruptTs, "export const c = 1;\n");
 
     const okRes = performIncrementalTypecheck([corruptTs]);
     expect(okRes.passed).toBe(true);
@@ -122,7 +122,7 @@ describe("task:check - Diagnostics, AST Invariants & Compiler Environments", () 
   test("performAstLintCheck handles rule tracking and dynamic violations", async () => {
     const root = await createVirtualDir("ast-rules-suite");
     const srcFile = join(root, "test.ts");
-    await writeFile(srcFile, "export const val = 100;\n");
+    vfs.writeFileSync(srcFile, "export const val = 100;\n");
 
     const lintSpy = spyOn(astLinterModule, "lintFile").mockImplementation((() => ({
       passed: false,
@@ -176,15 +176,15 @@ describe("task:check - Diagnostics, AST Invariants & Compiler Environments", () 
 
     const collectRoot = await createVirtualDir("collect-ignored-dirs");
     for (const d of ["node_modules", ".git", "dist", "build", "coverage"]) {
-      await mkdir(join(collectRoot, d), { recursive: true });
-      await writeFile(join(collectRoot, d, "ignored.ts"), "export const x = 1;");
+      vfs.mkdirSync(join(collectRoot, d), { recursive: true });
+      vfs.writeFileSync(join(collectRoot, d, "ignored.ts"), "export const x = 1;");
     }
-    await writeFile(join(collectRoot, "valid.ts"), "export const ok = true;");
+    vfs.writeFileSync(join(collectRoot, "valid.ts"), "export const ok = true;");
     const files = collectSourceFilesRecursively(collectRoot);
     expect(files.length).toBe(1);
     expect(files[0]?.endsWith("valid.ts")).toBe(true);
 
-    const readdirSpy = spyOn(fs, "readdirSync").mockImplementation(() => {
+    const readdirSpy = spyOn(vfs, "readdirSync").mockImplementation(() => {
       throw new Error("Simulated readdir error");
     });
     try {

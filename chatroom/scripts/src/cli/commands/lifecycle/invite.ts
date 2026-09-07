@@ -32,11 +32,11 @@ export const inviteCommand: CommandHandler = async (
 
   const identity = resolveIdentity({ as: asFlag, cwd: process.cwd() });
 
+  assertMember(roomFlag, identity);
+
   try {
     ensureDaemon(roomFlag, identity.id);
   } catch {}
-
-  assertMember(roomFlag, identity);
 
   const ttl = ttlFlag !== undefined ? ttlFlag : 3600;
   const uri = mintInvite(roomFlag, identity.id, ttl);

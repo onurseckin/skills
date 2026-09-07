@@ -57,7 +57,7 @@ describe("Dev Server Lifecycle Subsystem - State & Lock Daemon", () => {
 
       const input: ServerStateSnapshotInput = {
         activeEndpoints: endpoints,
-        envVariables: { NODE_ENV: "development", PORT: "3000" },
+        envVariables: { NODE_ENV: "development", CI: "true" },
         pidHistory: [101, 102],
         portConfigurations: ports,
         runFlags: { inspect: true, reload: "auto", workers: 2 },
@@ -69,7 +69,7 @@ describe("Dev Server Lifecycle Subsystem - State & Lock Daemon", () => {
 
       expect(snapshot.activeEndpoints).toHaveLength(2);
       expect(snapshot.activeEndpoints[0]?.path).toBe("/api/health");
-      expect(snapshot.envVariables["PORT"]).toBe("3000");
+      expect(snapshot.envVariables["CI"]).toBe("true");
       expect(snapshot.pidHistory).toEqual([101, 102]);
       expect(snapshot.portConfigurations).toHaveLength(2);
       expect(snapshot.portConfigurations[0]?.port).toBe(3000);

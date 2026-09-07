@@ -1,5 +1,4 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { inspectRepository } from "../../../../olt/scripts/src/packets/repository-snapshot.ts";
 import { inspectRepositoryBinding } from "../../../../olt/scripts/src/packets/repository-identity.ts";
@@ -34,22 +33,20 @@ function createRepo(prefix: string): string {
 describe("repository-snapshot", () => {
   test("inspects a non-git directory with instructions and conventions", () => {
     const repo = createRepo("repo-snap-");
-    writeFileSync(join(repo, "AGENTS.md"), "# Agents");
-    writeFileSync(join(repo, "GEMINI.md"), "# Gemini");
-    writeFileSync(join(repo, "package.json"), "{}");
-    writeFileSync(join(repo, "tsconfig.json"), "{}");
-    writeFileSync(join(repo, "Cargo.toml"), "");
+    vfs.writeFileSync(join(repo, "AGENTS.md"), "# Agents");
+    vfs.writeFileSync(join(repo, "GEMINI.md"), "# Gemini");
+    vfs.writeFileSync(join(repo, "package.json"), "{}");
+    vfs.writeFileSync(join(repo, "tsconfig.json"), "{}");
+    vfs.writeFileSync(join(repo, "Cargo.toml"), "");
 
-    // Nested directory
     const nested = join(repo, "src", "deep");
-    mkdirSync(nested, { recursive: true });
-    writeFileSync(join(nested, "prettier.config.js"), "module.exports = {};");
+    vfs.mkdirSync(nested, { recursive: true });
+    vfs.writeFileSync(join(nested, "prettier.config.js"), "module.exports = {};");
 
-    // Add ignored directory and symlink
     const ignoredDir = join(repo, "node_modules");
-    mkdirSync(ignoredDir);
-    writeFileSync(join(ignoredDir, "package.json"), "{}");
-    symlinkSync(join(repo, "package.json"), join(repo, "symlink.json"));
+    vfs.mkdirSync(ignoredDir);
+    vfs.writeFileSync(join(ignoredDir, "package.json"), "{}");
+    session.symlinkSync(join(repo, "package.json"), join(repo, "symlink.json"));
 
     const snapshot = inspectRepository(repo, "baseline", new Date("2026-08-14T00:00:00.000Z"));
     expect(snapshot.git.available).toBe(false);
@@ -61,13 +58,13 @@ describe("repository-snapshot", () => {
 
   test("excludes .olt capsule state from the walk, including vendored instruction/convention copies", () => {
     const repo = createRepo("repo-snap-olt-");
-    writeFileSync(join(repo, "CLAUDE.md"), "# Root instructions");
-    writeFileSync(join(repo, "package.json"), "{}");
+    vfs.writeFileSync(join(repo, "CLAUDE.md"), "# Root instructions");
+    vfs.writeFileSync(join(repo, "package.json"), "{}");
 
     const vendored = join(repo, ".olt", "capsules", "run-1", "runtime", "src");
-    mkdirSync(vendored, { recursive: true });
-    writeFileSync(join(vendored, "CLAUDE.md"), "# Vendored capsule copy");
-    writeFileSync(join(vendored, "package.json"), "{}");
+    vfs.mkdirSync(vendored, { recursive: true });
+    vfs.writeFileSync(join(vendored, "CLAUDE.md"), "# Vendored capsule copy");
+    vfs.writeFileSync(join(vendored, "package.json"), "{}");
 
     const snapshot = inspectRepository(repo, "baseline", new Date("2026-08-14T00:00:00.000Z"));
     expect(snapshot.instruction_files).toEqual([expect.objectContaining({ path: "CLAUDE.md" })]);
@@ -77,7 +74,7 @@ describe("repository-snapshot", () => {
   test("rejects when repo root is not a directory", () => {
     const tempDir = createRepo("repo-snap-");
     const filePath = join(tempDir, "file.txt");
-    writeFileSync(filePath, "content");
+    vfs.writeFileSync(filePath, "content");
 
     expect(() =>
       inspectRepository(filePath, "baseline", new Date("2026-08-14T00:00:00.000Z")),
@@ -86,9 +83,9 @@ describe("repository-snapshot", () => {
 
   test("rejects a directory whose entry count exceeds an injected traversal ceiling", () => {
     const repo = createRepo("repo-snap-limit-");
-    writeFileSync(join(repo, "a.txt"), "a");
-    writeFileSync(join(repo, "b.txt"), "b");
-    writeFileSync(join(repo, "c.txt"), "c");
+    vfs.writeFileSync(join(repo, "a.txt"), "a");
+    vfs.writeFileSync(join(repo, "b.txt"), "b");
+    vfs.writeFileSync(join(repo, "c.txt"), "c");
 
     expect(() =>
       inspectRepository(repo, "baseline", new Date("2026-08-14T00:00:00.000Z"), {
@@ -183,7 +180,6 @@ describe("repository-snapshot", () => {
       inspection_sha256: repositoryInspectionDigest(validBase),
     };
 
-    // Invalid file count (< 0) -> throws INTEGRITY
     expect(() =>
       validateRepositoryInspectionPair({
         baseline_repository_state: { ...validBaseWithDigest, repository_file_count: -1 },
@@ -191,7 +187,6 @@ describe("repository-snapshot", () => {
       }),
     ).toThrow("baseline repository inspection is invalid");
 
-    // Empty repository_root -> throws INTEGRITY
     expect(() =>
       validateRepositoryInspectionPair({
         baseline_repository_state: { ...validBaseWithDigest, repository_root: "" },
@@ -199,7 +194,6 @@ describe("repository-snapshot", () => {
       }),
     ).toThrow("baseline repository inspection is invalid");
 
-    // fromState with mismatched binding
     const mockState = {
       baseline_repository_inspection_sha256: validBaseWithDigest.inspection_sha256,
       repository_inspections: {

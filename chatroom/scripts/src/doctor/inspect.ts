@@ -7,6 +7,7 @@ import {
   inspectManifest,
   inspectMembers,
   inspectProvisioning,
+  inspectQuarantined,
   readJsonSafely,
   resolveDataDir,
   resolveHeadSeq,
@@ -42,16 +43,40 @@ function inspectReaders(
   aliveCheck: (pid: number) => boolean,
   filter?: string,
 ): readonly ReaderHealthReport[] {
+  const readerNames = new Set<string>();
+  for (const m of members) {
+    readerNames.add(m);
+  }
   const dir = join(roomDir, "readers");
-  if (!existsSync(dir)) return [];
-  const entries = readdirSync(dir).filter(
-    (n) => n.endsWith(".cursor.json") && !n.endsWith(".spool.cursor.json"),
-  );
+  if (existsSync(dir)) {
+    for (const n of readdirSync(dir)) {
+      if (n.endsWith(".cursor.json") && !n.endsWith(".spool.cursor.json")) {
+        readerNames.add(n.slice(0, -".cursor.json".length));
+      }
+    }
+  }
+  const daemonDir = join(roomDir, "daemon");
+  if (existsSync(daemonDir)) {
+    for (const n of readdirSync(daemonDir)) {
+      if (n.endsWith(".health.json")) {
+        readerNames.add(n.slice(0, -".health.json".length));
+      }
+    }
+  }
+  const daemonLocksDir = join(roomDir, "locks", "daemon");
+  if (existsSync(daemonLocksDir)) {
+    for (const n of readdirSync(daemonLocksDir)) {
+      if (n.endsWith(".lock")) {
+        readerNames.add(n.slice(0, -".lock".length));
+      }
+    }
+  }
+
   const reports: ReaderHealthReport[] = [];
-  for (const entry of entries) {
-    const reader = entry.slice(0, -".cursor.json".length);
+  for (const reader of readerNames) {
     if (filter !== undefined && filter.length > 0 && reader !== filter) continue;
-    const cur = readJsonSafely(join(dir, entry));
+    const curPath = join(dir, `${reader}.cursor.json`);
+    const cur = existsSync(curPath) ? readJsonSafely(curPath) : null;
     const contiguousSeq =
       cur !== null && typeof cur["contiguous_seq"] === "number" ? cur["contiguous_seq"] : 0;
     const lag = Math.max(0, headSeq - contiguousSeq);
@@ -78,7 +103,24 @@ function inspectReaders(
     }
     const hp = join(roomDir, "daemon", `${reader}.health.json`);
     const health = readHealthRecord(hp);
-    const pid = health !== null ? health.pid : null;
+    let pid = health !== null ? health.pid : null;
+    if (pid === null) {
+      const lp = join(roomDir, "locks", "daemon", `${reader}.lock`);
+      if (existsSync(lp)) {
+        try {
+          const raw = readFileSync(lp, "utf-8");
+          const parsed: unknown = JSON.parse(raw);
+          if (
+            parsed &&
+            typeof parsed === "object" &&
+            "pid" in parsed &&
+            typeof (parsed as { pid: unknown }).pid === "number"
+          ) {
+            pid = (parsed as { pid: number }).pid;
+          }
+        } catch {}
+      }
+    }
     let lastHeartbeat: string | null = null;
     let heartbeatAgeMs: number | null = null;
     if (health !== null) {
@@ -106,7 +148,7 @@ function inspectReaders(
     }
     const isBackpressured = spoolBytes >= MAX_SPOOL_BYTES || spoolLines >= MAX_SPOOL_LINES;
     let daemonState: DaemonLivenessState = "STOPPED";
-    if (health !== null) {
+    if (health !== null && isAlive) {
       const lagStuck =
         health.state === "WEDGED"
           ? 0
@@ -168,6 +210,7 @@ export function inspectRoom(room: string, options: DoctorInspectOptions = {}): R
       members: [],
       readers: [],
       locks: [],
+      quarantined: 0,
       quarantined_lines: [],
       quarantined_count: 0,
       orphan_cursors: [],
@@ -190,11 +233,8 @@ export function inspectRoom(room: string, options: DoctorInspectOptions = {}): R
   for (const l of locks) {
     if (l.is_stale) issues.push(`Stale lock: ${l.path} (${l.reason ?? "unknown"})`);
   }
-  const qDir = join(roomDir, "quarantine");
-  const quarantinedLines = existsSync(qDir)
-    ? readdirSync(qDir).filter((n) => !n.startsWith("."))
-    : [];
-  if (quarantinedLines.length > 0) issues.push(`Quarantined lines: ${quarantinedLines.length}`);
+  const quarantinedLines = inspectQuarantined(roomDir);
+  if (quarantinedLines.length > 0) issues.push(`Quarantined envelopes: ${quarantinedLines.length}`);
   const orphanCursors = readers.filter((r) => r.is_orphan).map((r) => r.reader);
   if (orphanCursors.length > 0) issues.push(`Orphan cursors: ${orphanCursors.join(", ")}`);
   const orphanMembers = members.filter((m) => !readers.some((r) => r.reader === m));
@@ -216,6 +256,7 @@ export function inspectRoom(room: string, options: DoctorInspectOptions = {}): R
     members,
     readers,
     locks,
+    quarantined: quarantinedLines.length,
     quarantined_lines: quarantinedLines,
     quarantined_count: quarantinedLines.length,
     orphan_cursors: orphanCursors,

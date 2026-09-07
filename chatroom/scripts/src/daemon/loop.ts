@@ -21,6 +21,7 @@ import {
   withReaderLock,
   type Confirmation,
   type LogEnvelope,
+  type ReaderCursor,
 } from "../cursor/index.ts";
 import { resolvePolicy, type ChatroomPolicy } from "../policy/index.ts";
 import {
@@ -40,6 +41,7 @@ export interface DaemonLoopOptions {
   readonly policy?: ChatroomPolicy;
   readonly pollIntervalMs?: number;
   readonly singleStep?: boolean;
+  readonly now?: string;
 }
 
 export interface DaemonStepResult {
@@ -98,8 +100,8 @@ export function stepDaemonLoop(
   const token = computeChangeToken(room);
   const headSeq = token.next_seq > 0 ? token.next_seq - 1 : 0;
   const healthPath = daemonHealthPath(room, reader);
-  const nowIso = new Date().toISOString();
-  const nowMs = Date.now();
+  const nowIso = options.now ?? new Date().toISOString();
+  const nowMs = options.now ? Date.parse(options.now) : Date.now();
 
   repairSpool(room, reader);
 
@@ -135,7 +137,15 @@ export function stepDaemonLoop(
   let recentErrors: string[] = [...existingHealth.errors_recent];
 
   withReaderLock(rLockPath, () => {
-    const { cursor, checksum } = loadCursor(cPath);
+    const loadedCursor = loadCursor(cPath, { room, reader });
+    let cursor = loadedCursor.cursor;
+    let checksum = loadedCursor.checksum;
+    if (!existsSync(cPath)) {
+      saveCursorCas(cPath, cursor, checksum);
+      const reloaded = loadCursor(cPath, { room, reader });
+      cursor = reloaded.cursor;
+      checksum = reloaded.checksum;
+    }
     const contiguousSeq = cursor.contiguous_seq;
     remainingCount = Math.max(0, headSeq - contiguousSeq);
 
@@ -186,15 +196,18 @@ export function stepDaemonLoop(
       return;
     }
 
+    let lastContiguousVerifiedSeq: number | null = null;
     const validEnvelopes: Envelope[] = [];
     for (const msg of leaseRes.messages) {
       const envelopeCandidate = msg as unknown as Envelope;
       const verifyRes = verifyEnvelope(envelopeCandidate, key);
       if (verifyRes.valid) {
         validEnvelopes.push(envelopeCandidate);
+        lastContiguousVerifiedSeq = msg.seq;
       } else {
         const qPath = roomQuarantinePath(room, msg.ts, msg.seq);
         writeAtomic(qPath, JSON.stringify(msg, null, 2) + "\n");
+        break;
       }
     }
 
@@ -224,13 +237,15 @@ export function stepDaemonLoop(
             at: nowIso,
           };
 
-    const ackedCursor = ackLease(leaseRes.cursor, leaseRes.leaseId, null, confirmation, {
-      now: nowIso,
-    });
-
+    const ackedCursor: ReaderCursor =
+      validEnvelopes.length > 0 && lastContiguousVerifiedSeq !== null
+        ? ackLease(leaseRes.cursor, leaseRes.leaseId, lastContiguousVerifiedSeq, confirmation, {
+            now: nowIso,
+          })
+        : leaseRes.cursor;
     saveCursorCas(cPath, ackedCursor, checksum);
 
-    deliveredCount = leaseRes.messages.length;
+    deliveredCount = validEnvelopes.length;
     remainingCount = Math.max(0, headSeq - ackedCursor.contiguous_seq);
 
     if (policy.notify_command && validEnvelopes.length > 0) {
@@ -289,6 +304,20 @@ export async function runDaemonLoop(options: DaemonLoopOptions): Promise<void> {
     );
   }
 
+  const healthPath = daemonHealthPath(room, reader);
+  const nowIso = new Date().toISOString();
+  const initialHealth =
+    readHealthRecord(healthPath) ??
+    createInitialHealthRecord(
+      room,
+      reader,
+      process.pid,
+      nowIso,
+      "boot",
+      options.pollIntervalMs ?? policy.poll_interval_ms,
+    );
+  writeHealthRecord(healthPath, initialHealth);
+
   const watcher = new DaemonWatcher(room, {
     pollIntervalMs: options.pollIntervalMs ?? policy.poll_interval_ms,
   });
@@ -324,7 +353,7 @@ export async function runDaemonLoop(options: DaemonLoopOptions): Promise<void> {
     let remaining = 1;
     while (remaining > 0 && running) {
       const result = stepDaemonLoop(options, source);
-      if (result.backpressured || result.idle) {
+      if (result.backpressured || result.idle || result.delivered === 0) {
         break;
       }
       remaining = result.remaining;

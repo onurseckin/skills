@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { runDoctorDiagnostics } from "../../../olt/scripts/src/reporting/doctor/adversarial-doctor/diagnostics.ts";
 import type { HarnessHealthCheck } from "../../../olt/scripts/src/reporting/doctor/adversarial-doctor/types.ts";
@@ -11,12 +10,13 @@ import {
 } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("adversarial-doctor diagnostics coverage", () => {
+  let vfs: VirtualMemoryFS;
   let session: VirtualFSSession | null = null;
   let counter = 0;
   const vDir = (label: string) => `/virtual/adversarial-diag/${label}-${++counter}`;
 
   beforeEach(() => {
-    const vfs = new VirtualMemoryFS();
+    vfs = new VirtualMemoryFS();
     session = createVirtualFSSession(vfs);
   });
 
@@ -46,9 +46,9 @@ describe("adversarial-doctor diagnostics coverage", () => {
     const repoRoot = join(tempRoot, "repo");
     const validRun = join(repoRoot, ".olt", "capsules", "run-1");
     const invalidRun = join(tempRoot, "outside", "run-2");
-    mkdirSync(join(repoRoot, ".git"), { recursive: true });
-    mkdirSync(validRun, { recursive: true });
-    mkdirSync(invalidRun, { recursive: true });
+    vfs.mkdirSync(join(repoRoot, ".git"), { recursive: true });
+    vfs.mkdirSync(validRun, { recursive: true });
+    vfs.mkdirSync(invalidRun, { recursive: true });
 
     try {
       const pass = await runDoctorDiagnostics({
@@ -74,13 +74,13 @@ describe("adversarial-doctor diagnostics coverage", () => {
       });
       expect(skipped.find((c) => c.name === "capsule_root_confinement")).toBeUndefined();
     } finally {
-      rmSync(tempRoot, { recursive: true, force: true });
+      vfs.rmSync(tempRoot, { recursive: true, force: true });
     }
   });
 
   it("audits unified evidence locations (pass, fail, and exception branches)", async () => {
     const tempDir = vDir("ev");
-    mkdirSync(tempDir, { recursive: true });
+    vfs.mkdirSync(tempDir, { recursive: true });
 
     try {
       const statePass = {
@@ -131,13 +131,13 @@ describe("adversarial-doctor diagnostics coverage", () => {
       expect(evExc?.status).toBe("fail");
       expect(evExc?.message).toContain("Evidence inspection failure");
     } finally {
-      rmSync(tempDir, { recursive: true, force: true });
+      vfs.rmSync(tempDir, { recursive: true, force: true });
     }
   });
 
   it("audits tier confinement isolation (pass, fail, and exception branches)", async () => {
     const tempDir = vDir("tier");
-    mkdirSync(tempDir, { recursive: true });
+    vfs.mkdirSync(tempDir, { recursive: true });
 
     try {
       const cleanState = { grants: {}, commands: {}, tasks: {} };
@@ -186,13 +186,13 @@ describe("adversarial-doctor diagnostics coverage", () => {
       expect(tierExc?.status).toBe("fail");
       expect(tierExc?.message).toContain("Tier confinement crash");
     } finally {
-      rmSync(tempDir, { recursive: true, force: true });
+      vfs.rmSync(tempDir, { recursive: true, force: true });
     }
   });
 
   it("audits capsule state integrity and runs custom health checks", async () => {
     const tempDir = vDir("integ");
-    mkdirSync(tempDir, { recursive: true });
+    vfs.mkdirSync(tempDir, { recursive: true });
 
     try {
       const runDir = initRun(tempDir, "run-valid", new Uint8Array(), "file", true);
@@ -228,7 +228,7 @@ describe("adversarial-doctor diagnostics coverage", () => {
       expect(thrownCheck?.status).toBe("fail");
       expect(thrownCheck?.message).toContain("Simulated custom check crash");
     } finally {
-      rmSync(tempDir, { recursive: true, force: true });
+      vfs.rmSync(tempDir, { recursive: true, force: true });
     }
   });
 });

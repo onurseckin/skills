@@ -151,12 +151,14 @@ export function inspectLocks(
           parsed !== null && typeof parsed["holder"] === "string" ? parsed["holder"] : null;
         let isStale = false;
         let reason: string | null = null;
-        if (pid !== null && !aliveCheck(pid)) {
-          isStale = true;
-          reason = "dead_process";
+        if (pid !== null) {
+          if (!aliveCheck(pid)) {
+            isStale = true;
+            reason = "dead_process";
+          }
         } else if (nowMs - st.mtimeMs > STALE_MS) {
           isStale = true;
-          reason = "stale_lock_mtime";
+          reason = "unparseable_stale_lock";
         }
         reports.push({
           path: full,
@@ -222,4 +224,10 @@ export function inspectProvisioning(
     });
   }
   return reports;
+}
+
+export function inspectQuarantined(roomDir: string): readonly string[] {
+  const dir = join(roomDir, "quarantine");
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir).filter((n) => !n.startsWith("."));
 }

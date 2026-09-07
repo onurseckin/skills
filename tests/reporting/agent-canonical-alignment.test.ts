@@ -147,6 +147,53 @@ describe("Mechanical Canonical Agent Alignment & Sentinel Teardown Engine", () =
       );
       expect(tagFinding).toBeDefined();
     });
+
+    it("does not flatten specialized validator roles into generic validator when role is omitted", () => {
+      const headless = {
+        id: "ui-headless-validator",
+        tools: { enable_write_tools: false, enable_shell: true },
+        invariants: ["ZERO_SOURCE_EDITS", "NO_TEST_RE_RUNS"],
+      };
+      const optical = {
+        id: "ui-optical-validator",
+        tools: { enable_write_tools: false },
+        invariants: ["COGNITIVE_VALIDATOR_ZERO_COMMANDS_HARDLOCK"],
+      };
+      const plan = {
+        id: "plan-validator",
+        tools: { enable_write_tools: false, enable_shell: true },
+        invariants: ["CANONICAL_EIGHT_LEVEL_PLAN_ARCHITECTURE"],
+      };
+
+      const result = checkAgentCanonicalAlignment({
+        agentDefinitions: [headless, optical, plan],
+      });
+
+      expect(result.passed).toBe(true);
+      expect(result.findings).toHaveLength(0);
+    });
+
+    it("does not enforce generic cognitive validator constraints on specialized validator roles", () => {
+      const headlessWithRole = {
+        id: "ui-headless-1",
+        role: "ui-headless-validator",
+        tools: { enable_write_tools: false, enable_shell: true },
+        invariants: ["ZERO_SOURCE_EDITS"],
+      };
+      const planWithRole = {
+        id: "plan-val-1",
+        role: "plan-validator",
+        tools: { enable_write_tools: false, enable_shell: true },
+        invariants: ["CANONICAL_EIGHT_LEVEL_PLAN_ARCHITECTURE"],
+      };
+
+      const result = checkAgentCanonicalAlignment({
+        agentDefinitions: [headlessWithRole, planWithRole],
+      });
+
+      expect(result.passed).toBe(true);
+      expect(result.findings).toHaveLength(0);
+    });
   });
 
   describe("handleCanonicalMisalignment Sentinel Teardown", () => {

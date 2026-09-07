@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import * as path from "node:path";
-import * as fs from "node:fs";
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import {
   loadDagSnapshot,
@@ -43,14 +43,15 @@ function createFrozenSnapshot(repoRoot: string): QuotaDagSnapshot {
 }
 
 describe("Mind Assembly Pulse Freeze Snapshot Suite", () => {
+  let vfs: VirtualMemoryFS;
   let testDir: string;
   const spies: Array<{ mockRestore: () => void }> = [];
 
   beforeEach(() => {
-    setupVirtualMindFS();
+    vfs = setupVirtualMindFS();
     testDir = scratchRoot("freeze-snapshot");
-    fs.mkdirSync(path.join(testDir, ".olt"), { recursive: true });
-    fs.mkdirSync(path.join(testDir, ".git"), { recursive: true });
+    vfs.mkdirSync(path.join(testDir, ".olt"), { recursive: true });
+    vfs.mkdirSync(path.join(testDir, ".git"), { recursive: true });
   });
 
   afterEach(() => {
@@ -77,13 +78,13 @@ describe("Mind Assembly Pulse Freeze Snapshot Suite", () => {
 
     it("returns undefined when loading non-existent snapshot", () => {
       const emptyDir = path.join(testDir, "sub-empty");
-      fs.mkdirSync(emptyDir, { recursive: true });
+      vfs.mkdirSync(emptyDir, { recursive: true });
       expect(loadDagSnapshot(emptyDir)).toBeUndefined();
     });
 
     it("throws HarnessError on loading malformed snapshot file from disk", () => {
       const snapPath = path.join(testDir, ".olt", "quota-dag-snapshot.json");
-      fs.writeFileSync(snapPath, "{ corrupted snapshot file content", "utf8");
+      vfs.writeFileSync(snapPath, "{ corrupted snapshot file content", "utf8");
       expect(() => loadDagSnapshot(testDir)).toThrow(HarnessError);
     });
   });

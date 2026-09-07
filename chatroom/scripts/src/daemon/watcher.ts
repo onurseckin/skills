@@ -16,20 +16,42 @@ export interface WatcherMetrics {
   readonly poll_interval_ms: number;
 }
 
+export interface WatcherHandle {
+  close: () => void;
+  on: (event: "error", listener: () => void) => void;
+}
+
+export interface DaemonWatcherPorts {
+  readonly existsSync?: (path: string) => boolean;
+  readonly watch?: (
+    path: string,
+    options: { persistent?: boolean },
+    listener: (event: string, filename: string | null) => void,
+  ) => WatcherHandle | FSWatcher;
+  readonly readdirSync?: (path: string) => string[];
+  readonly readFileSync?: (path: string, encoding: string) => string;
+  readonly statSync?: (path: string) => { size: number; ino?: number };
+}
+
 export interface DaemonWatcherOptions {
   readonly pollIntervalMs?: number;
+  readonly retryDelayMs?: number;
+  readonly ports?: DaemonWatcherPorts;
 }
 
 const MIN_POLL_INTERVAL_MS = 250;
 const DEFAULT_POLL_INTERVAL_MS = 750;
+const DEFAULT_RETRY_DELAY_MS = 1000;
 
-export function computeChangeToken(roomId: string): ChangeToken {
+export function computeChangeToken(roomId: string, ports?: DaemonWatcherPorts): ChangeToken {
   let nextSeq = 0;
   const indexPath = roomLogIndexPath(roomId);
+  const existsFn = ports?.existsSync ?? existsSync;
+  const readFn = ports?.readFileSync ?? readFileSync;
 
-  if (existsSync(indexPath)) {
+  if (existsFn(indexPath)) {
     try {
-      const raw = readFileSync(indexPath, "utf8");
+      const raw = readFn(indexPath, "utf8");
       const parsed: unknown = JSON.parse(raw);
       if (
         typeof parsed === "object" &&
@@ -45,19 +67,21 @@ export function computeChangeToken(roomId: string): ChangeToken {
   let headSegmentSize = 0;
   let headSegmentInode = 0;
   const logDir = roomLogDir(roomId);
+  const readdirFn = ports?.readdirSync ?? readdirSync;
+  const statFn = ports?.statSync ?? statSync;
 
-  if (existsSync(logDir)) {
+  if (existsFn(logDir)) {
     try {
-      const entries = readdirSync(logDir)
+      const entries = readdirFn(logDir)
         .filter((name) => name.endsWith(".jsonl"))
         .sort();
       if (entries.length > 0) {
         const headName = entries[entries.length - 1];
         if (headName) {
           const headPath = join(logDir, headName);
-          const stats = statSync(headPath);
+          const stats = statFn(headPath);
           headSegmentSize = stats.size;
-          headSegmentInode = stats.ino;
+          headSegmentInode = typeof stats.ino === "number" ? stats.ino : 0;
         }
       }
     } catch {}
@@ -80,13 +104,15 @@ export function hasTokenChanged(prev: ChangeToken, current: ChangeToken): boolea
 
 export class DaemonWatcher {
   private readonly roomId: string;
-  private configuredPollIntervalMs: number;
-  private currentPollIntervalMs: number;
+  private readonly ports?: DaemonWatcherPorts;
+  private readonly retryDelayMs: number;
+  private readonly configuredPollIntervalMs: number;
   private watchFailures = 0;
   private watchActive = false;
-  private dirWatcher: FSWatcher | null = null;
-  private indexWatcher: FSWatcher | null = null;
+  private dirWatcher: WatcherHandle | FSWatcher | null = null;
+  private indexWatcher: WatcherHandle | FSWatcher | null = null;
   private pollTimer: ReturnType<typeof setInterval> | null = null;
+  private retryTimer: ReturnType<typeof setTimeout> | null = null;
   private lastToken: ChangeToken;
   private isRunning = false;
   private onWakeCallback:
@@ -95,17 +121,19 @@ export class DaemonWatcher {
 
   constructor(roomId: string, options: DaemonWatcherOptions = {}) {
     this.roomId = roomId;
+    this.ports = options.ports;
+    this.retryDelayMs = options.retryDelayMs ?? DEFAULT_RETRY_DELAY_MS;
     const requested = options.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
-    this.configuredPollIntervalMs = Math.max(MIN_POLL_INTERVAL_MS, requested);
-    this.currentPollIntervalMs = this.configuredPollIntervalMs;
-    this.lastToken = computeChangeToken(roomId);
+    const minInterval = options.ports ? 1 : MIN_POLL_INTERVAL_MS;
+    this.configuredPollIntervalMs = Math.max(minInterval, requested);
+    this.lastToken = computeChangeToken(roomId, this.ports);
   }
 
   public getMetrics(): WatcherMetrics {
     return {
       watch_active: this.watchActive,
       watch_failures: this.watchFailures,
-      poll_interval_ms: this.currentPollIntervalMs,
+      poll_interval_ms: this.configuredPollIntervalMs,
     };
   }
 
@@ -127,6 +155,7 @@ export class DaemonWatcher {
   public stop(): void {
     this.isRunning = false;
     this.onWakeCallback = null;
+    this.cancelRetry();
     this.teardownWatchers();
     if (this.pollTimer !== null) {
       clearInterval(this.pollTimer);
@@ -135,7 +164,7 @@ export class DaemonWatcher {
   }
 
   public async triggerWake(source: WakeSource): Promise<void> {
-    const currentToken = computeChangeToken(this.roomId);
+    const currentToken = computeChangeToken(this.roomId, this.ports);
     const tokenChanged = hasTokenChanged(this.lastToken, currentToken);
     this.lastToken = currentToken;
 
@@ -144,44 +173,78 @@ export class DaemonWatcher {
     }
   }
 
+  private scheduleRetry(): void {
+    if (!this.isRunning || this.retryTimer !== null) {
+      return;
+    }
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = null;
+      if (this.isRunning) {
+        this.setupWatchers();
+      }
+    }, this.retryDelayMs);
+  }
+
+  private cancelRetry(): void {
+    if (this.retryTimer !== null) {
+      clearTimeout(this.retryTimer);
+      this.retryTimer = null;
+    }
+  }
+
   private setupWatchers(): void {
-    this.teardownWatchers();
+    const existsFn = this.ports?.existsSync ?? existsSync;
+    const watchFn = this.ports?.watch ?? watch;
     const logDir = roomLogDir(this.roomId);
     const indexPath = roomLogIndexPath(this.roomId);
 
-    try {
-      if (existsSync(logDir)) {
-        this.dirWatcher = watch(logDir, { persistent: false }, () => {
-          void this.handleWatchEvent();
-        });
-        this.dirWatcher.on("error", () => {
-          this.handleWatchError();
-        });
+    if (this.dirWatcher === null) {
+      try {
+        if (existsFn(logDir)) {
+          this.dirWatcher = watchFn(logDir, { persistent: false }, () => {
+            void this.handleWatchEvent();
+          });
+          this.dirWatcher.on("error", () => {
+            this.handleWatchError("dir");
+          });
+        }
+      } catch {
+        this.handleWatchError("dir");
       }
+    }
 
-      if (existsSync(indexPath)) {
-        this.indexWatcher = watch(indexPath, { persistent: false }, () => {
-          void this.handleWatchEvent();
-        });
-        this.indexWatcher.on("error", () => {
-          this.handleWatchError();
-        });
+    if (this.indexWatcher === null) {
+      try {
+        if (existsFn(indexPath)) {
+          this.indexWatcher = watchFn(indexPath, { persistent: false }, () => {
+            void this.handleWatchEvent();
+          });
+          this.indexWatcher.on("error", () => {
+            this.handleWatchError("index");
+          });
+        }
+      } catch {
+        this.handleWatchError("index");
       }
+    }
 
-      this.watchActive = this.dirWatcher !== null || this.indexWatcher !== null;
-    } catch {
-      this.handleWatchError();
+    this.watchActive = this.dirWatcher !== null || this.indexWatcher !== null;
+
+    if (this.dirWatcher === null || this.indexWatcher === null) {
+      this.scheduleRetry();
+    } else {
+      this.cancelRetry();
     }
   }
 
   private teardownWatchers(): void {
-    if (this.dirWatcher) {
+    if (this.dirWatcher !== null) {
       try {
         this.dirWatcher.close();
       } catch {}
       this.dirWatcher = null;
     }
-    if (this.indexWatcher) {
+    if (this.indexWatcher !== null) {
       try {
         this.indexWatcher.close();
       } catch {}
@@ -190,18 +253,26 @@ export class DaemonWatcher {
     this.watchActive = false;
   }
 
-  private handleWatchError(): void {
+  private handleWatchError(target: "dir" | "index" | "all" = "all"): void {
     this.watchFailures++;
-    this.watchActive = false;
-    this.teardownWatchers();
-    this.currentPollIntervalMs = MIN_POLL_INTERVAL_MS;
-    this.restartPollLoop();
-
-    setTimeout(() => {
-      if (this.isRunning) {
-        this.setupWatchers();
+    if (target === "dir" || target === "all") {
+      if (this.dirWatcher !== null) {
+        try {
+          this.dirWatcher.close();
+        } catch {}
+        this.dirWatcher = null;
       }
-    }, 1000);
+    }
+    if (target === "index" || target === "all") {
+      if (this.indexWatcher !== null) {
+        try {
+          this.indexWatcher.close();
+        } catch {}
+        this.indexWatcher = null;
+      }
+    }
+    this.watchActive = this.dirWatcher !== null || this.indexWatcher !== null;
+    this.scheduleRetry();
   }
 
   private async handleWatchEvent(): Promise<void> {
@@ -219,17 +290,10 @@ export class DaemonWatcher {
       if (!this.isRunning) {
         return;
       }
+      if (this.dirWatcher === null || this.indexWatcher === null) {
+        this.setupWatchers();
+      }
       void this.triggerWake("poll");
-    }, this.currentPollIntervalMs);
-  }
-
-  private restartPollLoop(): void {
-    if (this.pollTimer !== null) {
-      clearInterval(this.pollTimer);
-      this.pollTimer = null;
-    }
-    if (this.isRunning) {
-      this.startPollLoop();
-    }
+    }, this.configuredPollIntervalMs);
   }
 }

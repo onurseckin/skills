@@ -30,6 +30,23 @@ export interface InviteRecord {
   readonly wrapped_key: string;
 }
 
+export function isInviteRecord(value: unknown): value is InviteRecord {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate["code"] === "string" &&
+    typeof candidate["created_at"] === "string" &&
+    typeof candidate["created_by"] === "string" &&
+    typeof candidate["expires_at"] === "string" &&
+    !Number.isNaN(Date.parse(candidate["expires_at"])) &&
+    typeof candidate["uses_remaining"] === "number" &&
+    Number.isFinite(candidate["uses_remaining"]) &&
+    typeof candidate["wrapped_key"] === "string"
+  );
+}
+
 export interface ConsumedInviteRecord extends InviteRecord {
   readonly consumed_at: string;
   readonly consumed_by: string;

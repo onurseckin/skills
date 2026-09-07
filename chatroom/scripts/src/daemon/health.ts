@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { isProcessAlive, writeAtomic } from "../core/index.ts";
 
 export type DaemonLivenessState = "LIVE" | "IDLE" | "BACKPRESSURED" | "WEDGED" | "STOPPED";
@@ -98,6 +99,10 @@ export function readHealthRecord(healthPath: string): DaemonHealthRecord | null 
 export function writeHealthRecord(healthPath: string, record: DaemonHealthRecord): void {
   const serialized = JSON.stringify(record, null, 2) + "\n";
   writeAtomic(healthPath, serialized, { mode: 0o644 });
+  try {
+    const heartbeatPath = join(dirname(healthPath), "heartbeat.json");
+    writeAtomic(heartbeatPath, serialized, { mode: 0o644 });
+  } catch {}
 }
 
 export function computeDaemonState(

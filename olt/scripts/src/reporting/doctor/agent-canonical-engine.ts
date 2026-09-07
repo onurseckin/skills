@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import * as yaml from "js-yaml";
+import { inferRoleFromAgentId, matchesBoundaryPrefix } from "../../authority/index.ts";
 import type { DoctorCheckEngineResult, DoctorDiagnosticFinding } from "./types.ts";
 
 export interface AgentCanonicalAlignmentOptions {
@@ -152,15 +153,10 @@ export function checkAgentCanonicalAlignment(
     );
     let role = typeof agent.role === "string" ? agent.role : "";
     if (!role) {
-      const lower = agentId.toLowerCase();
-      if (lower.includes("validator")) role = "validator";
-      else if (lower.includes("implementer")) role = "implementer";
-      else if (lower.includes("coordinator")) role = "coordinator";
-      else if (lower.includes("orchestrator")) role = "orchestrator";
-      else if (lower.includes("mind")) role = "mind";
+      role = inferRoleFromAgentId(agentId) ?? "";
     }
 
-    if (role === "validator" || role.includes("validator")) {
+    if (matchesBoundaryPrefix(role, "validator")) {
       const prompt = String(
         agent.systemPrompt ?? agent.prompt ?? agent.system_prompt ?? agent.instructions ?? "",
       );

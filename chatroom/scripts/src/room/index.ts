@@ -11,6 +11,7 @@ export {
   listRooms,
   readRoomKey,
   resolveRepoBinding,
+  rotateRoomKey,
   writeRepoBinding,
   type CreateRoomOptions,
   type CreateRoomResult,

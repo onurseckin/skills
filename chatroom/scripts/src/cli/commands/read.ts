@@ -70,11 +70,11 @@ export const readCommand: CommandHandler = async (
   const identity = resolveIdentity({ as: asFlag, cwd: process.cwd() });
   const readerId = readerFlag !== undefined ? readerFlag : identity.id;
 
+  assertMember(roomFlag, identity);
+
   try {
     ensureDaemon(roomFlag, readerId);
   } catch {}
-
-  assertMember(roomFlag, identity);
 
   const limit = limitFlag !== undefined ? limitFlag : 50;
 

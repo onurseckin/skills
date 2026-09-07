@@ -2,6 +2,10 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import * as cle from "../../../olt/scripts/src/reporting/doctor/command-lock-engine.ts";
 import {
+  isMechanicValidatorRole,
+  isValidatorRole,
+} from "../../../olt/scripts/src/reporting/doctor/command-lock/roles.ts";
+import {
   VirtualMemoryFS,
   createVirtualFSSession,
   type VirtualFSSession,
@@ -235,5 +239,35 @@ describe(commandLockSuiteName, () => {
     expect(
       res.engine === "checkCommandLockIntegrity" && res.passed && res.findings.length === 0,
     ).toBe(true);
+  });
+
+  test("enforces boundary-safe validator role matching and rejects non-boundary substrings", () => {
+    expect(isValidatorRole("validator")).toBe(true);
+    expect(isValidatorRole("validator-1")).toBe(true);
+    expect(isValidatorRole("validator_worker")).toBe(true);
+    expect(isValidatorRole("ui-optical-validator")).toBe(true);
+    expect(isValidatorRole("plan-validator")).toBe(true);
+    expect(isValidatorRole("cognitive-validator")).toBe(true);
+    expect(isValidatorRole("socratic-validator")).toBe(true);
+    expect(isValidatorRole("completeness-critic")).toBe(true);
+
+    expect(isValidatorRole("validatorish")).toBe(false);
+    expect(isValidatorRole("unvalidated")).toBe(false);
+    expect(isValidatorRole("invalidation")).toBe(false);
+    expect(isValidatorRole("coordinates")).toBe(false);
+
+    expect(isMechanicValidatorRole("ui-headless-validator")).toBe(true);
+    expect(isMechanicValidatorRole("ui-headless-validator-1")).toBe(true);
+    expect(isMechanicValidatorRole("ui-optical-validator")).toBe(false);
+    expect(isMechanicValidatorRole("validator")).toBe(false);
+    expect(isValidatorRole("ui-headless-validator")).toBe(false);
+    expect(isValidatorRole("ui-headless-validator-1")).toBe(false);
+
+    const res = cle.checkCognitiveValidatorCommandLock({
+      grants: [{ id: "non-lock-agent", role: "validatorish" }],
+      commands: [{ actor: "non-lock-agent", command: "echo safe" }],
+    });
+    expect(res.passed).toBe(true);
+    expect(res.findings).toHaveLength(0);
   });
 });

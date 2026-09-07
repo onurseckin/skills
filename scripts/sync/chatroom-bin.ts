@@ -90,7 +90,7 @@ export function ensureGlobalChatBinary(options?: EnsureBinaryOptions): EnsureBin
   const binaryPath = join(targetBinDir, "chat");
   const harnessTarget = orDefault(
     options?.harnessPath,
-    "${HOME}/.agents/skills/chatroom/scripts/harness.ts",
+    "${HOME}/.agents/skills/chatroom/harness.ts",
   );
 
   const expectedContent = buildChatBinaryContent(harnessTarget);

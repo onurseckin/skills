@@ -69,6 +69,7 @@ export interface RoomHealthReport {
   readonly members: readonly string[];
   readonly readers: readonly ReaderHealthReport[];
   readonly locks: readonly LockReport[];
+  readonly quarantined: number;
   readonly quarantined_lines: readonly string[];
   readonly quarantined_count: number;
   readonly orphan_cursors: readonly string[];

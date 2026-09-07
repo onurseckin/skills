@@ -216,3 +216,7 @@ export function scratchRoot(callerPath = "server-test", label = "test"): string 
 export function getVirtualServerFS(): VirtualMemoryFS {
   return currentVfs;
 }
+
+export function getVirtualServerSession(): VirtualFSSession | null {
+  return currentSession;
+}

@@ -2,6 +2,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { ChatError, type Identity } from "../identity/index.ts";
+import { writeAtomic } from "../core/index.ts";
 
 export interface RoomSettings {
   readonly lease_ttl_ms?: number | undefined;
@@ -96,13 +97,10 @@ function resolveRoomDirAndId(
     : typeof room === "string"
       ? room
       : room.id;
-  const defaultBase = path.join(
-    options?.homeDir ?? process.env["HOME"] ?? os.homedir(),
-    ".agents",
-    "chatroom",
-    "rooms",
-    roomId,
-  );
+  const chatroomHome =
+    process.env["CHATROOM_HOME"] ??
+    path.join(options?.homeDir ?? process.env["HOME"] ?? os.homedir(), ".agents", "chatroom");
+  const defaultBase = path.join(chatroomHome, "rooms", roomId);
   const roomDir = isPath
     ? path.resolve(room as string)
     : (options?.roomDir ?? (options?.baseDir ? path.join(options.baseDir, roomId) : defaultBase));
@@ -308,8 +306,7 @@ export function addMember(
         : undefined,
   };
 
-  const writeFile =
-    options?.writeFile ?? ((p: string, c: string) => fs.writeFileSync(p, c, "utf-8"));
+  const writeFile = options?.writeFile ?? ((p: string, c: string) => writeAtomic(p, c));
   writeFile(memberPath, JSON.stringify(record, null, 2) + "\n");
   return record;
 }

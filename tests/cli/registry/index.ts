@@ -1,4 +1,5 @@
 export { detectDuplicateInvocations, type DuplicateCollision } from "./registry-uniqueness.test.ts";
+export { extractHandlerFlags, type ExtractedHandlerFlags } from "./flag-conformance.test.ts";
 
 export {
   COMMAND_DOMAINS,

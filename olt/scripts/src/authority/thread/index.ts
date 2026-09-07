@@ -44,5 +44,7 @@ export {
   isCoordinatorRole,
   isOrchestratorRole,
   isSupervisoryRole,
+  matchesBoundaryPrefix,
+  matchesBoundarySuffix,
   normalizeRoleName,
 } from "./role-inference.ts";

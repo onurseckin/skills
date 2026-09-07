@@ -1,3 +1,5 @@
+import { matchesBoundaryPrefix, matchesBoundarySuffix } from "../../../authority/index.ts";
+
 export const BANNED_VALIDATOR_ROLES = new Set([
   "validator",
   "cognitive-validator",
@@ -5,6 +7,8 @@ export const BANNED_VALIDATOR_ROLES = new Set([
   "socratic-validator",
   "socratic_validator",
   "plan-validator",
+  "ui-optical-validator",
+  "ui_optical_validator",
 ]);
 
 export const IMPLEMENTER_ROLES = new Set([
@@ -21,7 +25,10 @@ export const normalizeRole = (role: string): string =>
 
 export const isMechanicValidatorRole = (role: string): boolean => {
   const norm = normalizeRole(role);
-  return norm === "ui-headless-validator" || norm.startsWith("ui-headless-validator-");
+  return (
+    matchesBoundaryPrefix(norm, "ui-headless-validator") ||
+    matchesBoundarySuffix(norm, "ui-headless-validator")
+  );
 };
 
 export const isValidatorRole = (role: string): boolean => {
@@ -30,9 +37,10 @@ export const isValidatorRole = (role: string): boolean => {
   return (
     BANNED_VALIDATOR_ROLES.has(norm) ||
     BANNED_VALIDATOR_ROLES.has(role.trim().toLowerCase()) ||
-    norm.startsWith("validator") ||
-    norm.includes("validator") ||
-    norm.includes("critic")
+    matchesBoundaryPrefix(norm, "validator") ||
+    matchesBoundarySuffix(norm, "validator") ||
+    matchesBoundaryPrefix(norm, "critic") ||
+    matchesBoundarySuffix(norm, "critic")
   );
 };
 

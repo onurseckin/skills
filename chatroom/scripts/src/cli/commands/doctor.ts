@@ -61,8 +61,8 @@ function formatMarkdownReport(
     );
     lines.push(`- **Head Sequence**: \`${r.head_seq}\``);
     lines.push(`- **Members**: \`${r.members.length}\` (${r.members.join(", ")})`);
-    lines.push(`- **Layout**: \`${r.has_corrupt_layout ? "CORRUPT_LAYOUT" : "CLEAN"}\``);
-    lines.push(`- **Quarantined**: \`${r.quarantined_count}\` file(s)`);
+    const quarantineWarning = r.quarantined > 0 ? " (WARNING: quarantined envelopes detected)" : "";
+    lines.push(`- **Quarantined**: \`${r.quarantined}\`${quarantineWarning}`);
     lines.push(
       `- **Provisioning Drift**: \`${r.provisioning_drift ? "DRIFT_DETECTED" : "CONSISTENT"}\``,
     );
@@ -122,10 +122,20 @@ export async function doctorCommand(
   const reader = readStringFlag(flags, "reader");
   const fix = readBoolFlag(flags, "fix");
 
+  const isProcessAlive =
+    typeof flags["isProcessAlive"] === "function"
+      ? (flags["isProcessAlive"] as (pid: number) => boolean)
+      : undefined;
+  const now = typeof flags["now"] === "function" ? (flags["now"] as () => number) : undefined;
+  const baseDir = typeof flags["baseDir"] === "string" ? flags["baseDir"] : undefined;
+
   const opts = {
     ...(room !== undefined ? { room } : {}),
     ...(as !== undefined ? { as } : {}),
     ...(reader !== undefined ? { reader } : {}),
+    ...(isProcessAlive !== undefined ? { isProcessAlive } : {}),
+    ...(now !== undefined ? { now } : {}),
+    ...(baseDir !== undefined ? { baseDir } : {}),
   };
 
   let repairs: readonly RoomRepairReport[] | undefined;

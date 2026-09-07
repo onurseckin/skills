@@ -136,6 +136,23 @@ export function readRoomKey(roomId: string): string {
   return readFileSync(keyPath, "utf8").trim();
 }
 
+export function rotateRoomKey(roomId: string): string {
+  const manifest = readRoomManifest(roomId);
+  if (manifest.visibility === "public") {
+    return CHATROOM_PUBLIC_KEY;
+  }
+  const key = randomBytes(32).toString("hex");
+  const keyFingerprint = computeFingerprint(key);
+  mkdirSync(keysDir(), { recursive: true });
+  writeAtomic(roomKeyPath(roomId), key, { mode: 0o600 });
+  const updatedManifest: RoomManifest = {
+    ...manifest,
+    key_fingerprint: keyFingerprint,
+  };
+  writeRoomManifest(updatedManifest);
+  return key;
+}
+
 export function listRooms(): readonly RoomManifest[] {
   const root = roomsDir();
   if (!existsSync(root)) {

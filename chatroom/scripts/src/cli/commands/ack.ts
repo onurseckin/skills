@@ -51,11 +51,11 @@ export const ackCommand: CommandHandler = async (
   const identity = resolveIdentity({ as: asFlag, cwd: process.cwd() });
   const readerId = readerFlag !== undefined ? readerFlag : identity.id;
 
+  assertMember(roomFlag, identity);
+
   try {
     ensureDaemon(roomFlag, readerId);
   } catch {}
-
-  assertMember(roomFlag, identity);
 
   const spoolCursorPath = readerSpoolCursorPath(roomFlag, readerId);
   const roomCursorPath = readerCursorPath(roomFlag, readerId);

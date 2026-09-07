@@ -267,6 +267,16 @@ export async function repairRoom(
 ): Promise<RoomRepairReport> {
   const baseDir = resolveDataDir(options.baseDir);
   const roomDir = join(baseDir, "rooms", room);
+  if (!existsSync(roomDir)) {
+    return {
+      room,
+      reclaimed_locks: [],
+      repaired_spools: [],
+      restarted_daemons: [],
+      total_repairs: 0,
+      success: true,
+    };
+  }
   const nowMs = options.now ? options.now() : Date.now();
   const inspectOpts = {
     ...(options.baseDir !== undefined ? { baseDir: options.baseDir } : {}),

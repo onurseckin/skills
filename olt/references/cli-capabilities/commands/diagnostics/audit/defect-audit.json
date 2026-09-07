@@ -73,6 +73,48 @@
       "required": false,
       "repeatable": false,
       "default": null
+    },
+    {
+      "name": "auto-promote",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "promote",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "generate-tests",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "output-tests",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "completed-file",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "dry-run",
+      "type": "bool",
+      "required": false,
+      "repeatable": false,
+      "default": null
     }
   ],
   "reads_stdin": false,

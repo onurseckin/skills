@@ -37,3 +37,9 @@ export {
   type SubagentDispatchPromptOptions,
   type SubagentSystemPromptOptions,
 } from "./verbatim-role-injector.ts";
+
+export {
+  inferRoleFromAgentId,
+  matchesBoundaryPrefix,
+  matchesBoundarySuffix,
+} from "./thread/index.ts";

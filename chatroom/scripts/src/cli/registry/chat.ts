@@ -43,6 +43,7 @@ export const initSpec: CommandSpec = {
     optionalFlag("no-agent", "bool", "skip communicator agent generation"),
     optionalFlag("no-daemon", "bool", "skip daemon start"),
     optionalFlag("print-invite", "bool", "mint and print a first invite immediately"),
+    optionalFlag("rotate-key", "bool", "rotate the room key and invalidate existing invites"),
     optionalFlag("json", "bool", "machine output"),
   ],
   readsStdin: false,

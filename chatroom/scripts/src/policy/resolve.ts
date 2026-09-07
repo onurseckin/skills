@@ -201,12 +201,30 @@ export function resolvePolicy(options: ResolvePolicyOptions = {}): ChatroomPolic
 
   const resolvedRuntime = runtime.trim();
 
-  const harness =
+  const rawHarness =
     parseString(env.CHATROOM_HARNESS_PATH) ??
     parseString(layer3.harness_path) ??
     parseString(layer2.harness_path) ??
     parseString(layer1.harness_path) ??
     join(home, ".agents", "skills", "chatroom", "scripts", "harness.ts");
+
+  let harness = rawHarness.startsWith("~/")
+    ? join(home, rawHarness.slice(2))
+    : rawHarness === "~"
+      ? home
+      : rawHarness;
+
+  if (!existsSync(harness)) {
+    const localHarness = join(repo, "chatroom", "scripts", "harness.ts");
+    if (existsSync(localHarness)) {
+      harness = localHarness;
+    } else {
+      const rootHarness = join(repo, "chatroom", "harness.ts");
+      if (existsSync(rootHarness)) {
+        harness = rootHarness;
+      }
+    }
+  }
 
   const notify =
     (env.CHATROOM_NOTIFY_COMMAND !== undefined

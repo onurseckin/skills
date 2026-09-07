@@ -57,11 +57,11 @@ export const sayCommand: CommandHandler = async (
 
   const identity = resolveIdentity({ as: asFlag, cwd: process.cwd() });
 
+  assertMember(roomFlag, identity);
+
   try {
     ensureDaemon(roomFlag, identity.id);
   } catch {}
-
-  assertMember(roomFlag, identity);
 
   const mentions: string[] = [];
   if (toFlag !== undefined) {

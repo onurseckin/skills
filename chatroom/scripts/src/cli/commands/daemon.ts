@@ -54,24 +54,25 @@ export const daemonCommand: CommandHandler = async (
   const pollIntervalFlag = intFlag(flags, "poll-interval", { minimum: 250 });
   const jsonFlag = boolFlag(flags, "json");
 
-  const actionCount = [startFlag, stopFlag, statusFlag, tickFlag].filter(Boolean).length;
+  const isStart = Boolean(startFlag || foregroundFlag);
+  const actionCount = [isStart, stopFlag, statusFlag, tickFlag].filter(Boolean).length;
   if (actionCount !== 1) {
     throw new ChatError(
       "INVALID_ARGUMENT",
-      "Exactly one of --start, --stop, --status, or --tick must be specified",
+      "Exactly one of --start, --stop, --status, --tick, or --foreground must be specified",
     );
   }
 
-  const identity = resolveIdentity({ as: asFlag, cwd: process.cwd() });
+  const identity = resolveIdentity({ as: asFlag ?? readerFlag, cwd: process.cwd() });
   const readerId = readerFlag !== undefined ? readerFlag : identity.id;
-
-  try {
-    ensureDaemon(roomFlag, readerId, { autoStart: !stopFlag });
-  } catch {}
 
   assertMember(roomFlag, identity);
 
-  if (startFlag) {
+  try {
+    ensureDaemon(roomFlag, readerId, { autoStart: false });
+  } catch {}
+
+  if (isStart) {
     if (foregroundFlag) {
       await runDaemonLoop({
         room: roomFlag,

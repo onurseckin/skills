@@ -1,10 +1,3 @@
-/**
- * Dev Server State Snapshot Capture & Persistence Subsystem.
- *
- * Captures, serializes, loads, and atomically persists server state snapshots
- * (active endpoints, environment variables, PID history, port configs, run flags).
- */
-
 import {
   existsSync,
   mkdirSync,
@@ -15,6 +8,8 @@ import {
   fsyncSync,
   renameSync,
   unlinkSync,
+  chmodSync,
+  rmdirSync,
   constants,
 } from "node:fs";
 import { randomBytes } from "node:crypto";
@@ -27,16 +22,68 @@ import type {
   ServerStateRestoreResult,
 } from "./types.ts";
 
-export const DEFAULT_SNAPSHOT_PATH = ".locks/server-state.json";
+export interface SnapshotFsPorts {
+  readonly existsSync?: (path: string) => boolean;
+  readonly writeFileSync?: (
+    path: string,
+    data: string,
+    options?: string | { mode?: number; encoding?: string },
+  ) => void;
+  readonly readFileSync?: (path: string, options?: string | { encoding?: string }) => string;
+  readonly unlinkSync?: (path: string) => void;
+  readonly mkdirSync?: (
+    path: string,
+    options?: { recursive?: boolean; mode?: number },
+  ) => string | undefined;
+  readonly chmodSync?: (path: string, mode: number) => void;
+  readonly statSync?: (path: string) => { mode: number };
+}
 
-/**
- * Captures an immutable snapshot of current dev server state.
- */
+export const DEFAULT_SNAPSHOT_PATH = ".olt/locks/server-state.json";
+export const LEGACY_SNAPSHOT_PATH = ".locks/server-state.json";
+
+export const ALLOWED_ENV_VARS = new Set<string>(["NODE_ENV", "SHELL", "TERM", "LANG", "CI"]);
+
+export const CREDENTIAL_PATTERNS: readonly RegExp[] = Object.freeze([
+  /sk-[a-zA-Z0-9_-]{16,}/i,
+  /ghp_[a-zA-Z0-9]{20,}/,
+  /AIza[0-9A-Za-z-_]{20,}/,
+  /\b[0-9a-fA-F]{32,}\b/,
+  /\b[A-Za-z0-9+/]{32,}={0,2}\b/,
+]);
+
+export function isCredentialValue(value: string): boolean {
+  for (const pattern of CREDENTIAL_PATTERNS) {
+    if (pattern.test(value)) return true;
+  }
+  return false;
+}
+
+export function purgeLegacySnapshot(
+  legacyPath: string = LEGACY_SNAPSHOT_PATH,
+  ports?: SnapshotFsPorts,
+): void {
+  try {
+    const resolved = resolve(legacyPath);
+    const exists = ports?.existsSync ?? existsSync;
+    const unlink = ports?.unlinkSync ?? unlinkSync;
+    if (exists(resolved)) {
+      unlink(resolved);
+      const parent = dirname(resolved);
+      try {
+        rmdirSync(parent);
+      } catch {}
+    }
+  } catch {}
+}
+
 export function captureSnapshot(input?: ServerStateSnapshotInput): ServerStateSnapshot {
   const envSource = input?.envVariables ?? (typeof process !== "undefined" ? process.env : {});
   const safeEnv: Record<string, string> = {};
   for (const [k, v] of Object.entries(envSource)) {
-    if (typeof v === "string") safeEnv[k] = v;
+    if (ALLOWED_ENV_VARS.has(k) && typeof v === "string" && !isCredentialValue(v)) {
+      safeEnv[k] = v;
+    }
   }
 
   const currentPid =
@@ -81,7 +128,9 @@ export function captureSnapshot(input?: ServerStateSnapshotInput): ServerStateSn
   const metadata: Record<string, string> = {};
   if (input?.metadata) {
     for (const [k, v] of Object.entries(input.metadata)) {
-      if (typeof v === "string") metadata[k] = v;
+      if (typeof v === "string" && !isCredentialValue(v)) {
+        metadata[k] = v;
+      }
     }
   }
 
@@ -99,9 +148,6 @@ export function captureSnapshot(input?: ServerStateSnapshotInput): ServerStateSn
 
 export const captureServerStateSnapshot = captureSnapshot;
 
-/**
- * Validates whether an unknown object conforms to the ServerStateSnapshot schema.
- */
 export function isValidServerStateSnapshot(data: unknown): data is ServerStateSnapshot {
   if (typeof data !== "object" || data === null) return false;
   const obj = data as Record<string, unknown>;
@@ -117,22 +163,36 @@ export function isValidServerStateSnapshot(data: unknown): data is ServerStateSn
   );
 }
 
-/**
- * Atomically saves a server state snapshot to disk via temp-file + fsync + rename.
- */
 export async function saveSnapshot(
   snapshot: ServerStateSnapshot,
   filepath?: string,
+  ports?: SnapshotFsPorts,
 ): Promise<void> {
+  purgeLegacySnapshot(undefined, ports);
   const resolvedPath = resolve(filepath && filepath.length > 0 ? filepath : DEFAULT_SNAPSHOT_PATH);
   const dir = dirname(resolvedPath);
-  if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true });
+  const exists = ports?.existsSync ?? existsSync;
+  const mkdir = ports?.mkdirSync ?? mkdirSync;
+  const chmod = ports?.chmodSync ?? chmodSync;
+
+  if (!exists(dir)) {
+    mkdir(dir, { recursive: true, mode: 0o700 });
+  }
+  try {
+    chmod(dir, 0o700);
+  } catch {}
+
+  const serialized = JSON.stringify(snapshot, null, 2);
+  if (ports?.writeFileSync) {
+    ports.writeFileSync(resolvedPath, serialized, { mode: 0o600 });
+    try {
+      chmod(resolvedPath, 0o600);
+    } catch {}
+    return;
   }
 
   const nonce = randomBytes(4).toString("hex");
   const tempPath = `${resolvedPath}.${process.pid}.${Date.now()}.${nonce}.tmp`;
-  const serialized = JSON.stringify(snapshot, null, 2);
 
   const fd = openSync(tempPath, constants.O_CREAT | constants.O_WRONLY | constants.O_TRUNC, 0o600);
   try {
@@ -143,25 +203,33 @@ export async function saveSnapshot(
   }
 
   try {
+    chmodSync(tempPath, 0o600);
+  } catch {}
+
+  try {
     renameSync(tempPath, resolvedPath);
+    try {
+      chmod(resolvedPath, 0o600);
+    } catch {}
   } catch (err) {
     try {
       unlinkSync(tempPath);
-    } catch {
-      // Ignore temp file cleanup error
-    }
+    } catch {}
     throw err;
   }
 }
 
-/**
- * Synchronously or asynchronously loads a server state snapshot from disk.
- */
-export async function loadSnapshot(filepath?: string): Promise<ServerStateSnapshot | null> {
+export async function loadSnapshot(
+  filepath?: string,
+  ports?: SnapshotFsPorts,
+): Promise<ServerStateSnapshot | null> {
+  purgeLegacySnapshot(undefined, ports);
   const resolvedPath = resolve(filepath && filepath.length > 0 ? filepath : DEFAULT_SNAPSHOT_PATH);
-  if (!existsSync(resolvedPath)) return null;
+  const exists = ports?.existsSync ?? existsSync;
+  const readFile = ports?.readFileSync ?? readFileSync;
+  if (!exists(resolvedPath)) return null;
   try {
-    const content = readFileSync(resolvedPath, "utf-8");
+    const content = readFile(resolvedPath, "utf-8");
     const parsed: unknown = JSON.parse(content);
     return isValidServerStateSnapshot(parsed) ? parsed : null;
   } catch {
@@ -169,29 +237,29 @@ export async function loadSnapshot(filepath?: string): Promise<ServerStateSnapsh
   }
 }
 
-/**
- * Clears the snapshot file from disk if present.
- */
-export async function clearSnapshot(filepath?: string): Promise<boolean> {
+export async function clearSnapshot(filepath?: string, ports?: SnapshotFsPorts): Promise<boolean> {
+  purgeLegacySnapshot(undefined, ports);
   const resolvedPath = resolve(filepath && filepath.length > 0 ? filepath : DEFAULT_SNAPSHOT_PATH);
-  if (!existsSync(resolvedPath)) return false;
+  const exists = ports?.existsSync ?? existsSync;
+  const unlink = ports?.unlinkSync ?? unlinkSync;
+  if (!exists(resolvedPath)) return false;
   try {
-    unlinkSync(resolvedPath);
+    unlink(resolvedPath);
     return true;
   } catch {
     return false;
   }
 }
 
-/**
- * State Preserver container for dev server state.
- */
 export class StatePreserver {
   private currentSnapshot: ServerStateSnapshot | null = null;
   private readonly defaultPath: string;
+  private readonly ports?: SnapshotFsPorts | undefined;
 
-  public constructor(defaultPath?: string) {
+  public constructor(defaultPath?: string, ports?: SnapshotFsPorts) {
+    purgeLegacySnapshot(undefined, ports);
     this.defaultPath = defaultPath && defaultPath.length > 0 ? defaultPath : DEFAULT_SNAPSHOT_PATH;
+    this.ports = ports;
   }
 
   public capture(input?: ServerStateSnapshotInput): ServerStateSnapshot {
@@ -203,18 +271,18 @@ export class StatePreserver {
   public async save(snapshot?: ServerStateSnapshot, filepath?: string): Promise<void> {
     const target = snapshot ?? this.currentSnapshot ?? captureSnapshot();
     this.currentSnapshot = target;
-    await saveSnapshot(target, filepath ?? this.defaultPath);
+    await saveSnapshot(target, filepath ?? this.defaultPath, this.ports);
   }
 
   public async load(filepath?: string): Promise<ServerStateSnapshot | null> {
-    const loaded = await loadSnapshot(filepath ?? this.defaultPath);
+    const loaded = await loadSnapshot(filepath ?? this.defaultPath, this.ports);
     if (loaded !== null) this.currentSnapshot = loaded;
     return loaded;
   }
 
   public async clear(filepath?: string): Promise<boolean> {
     this.currentSnapshot = null;
-    return clearSnapshot(filepath ?? this.defaultPath);
+    return clearSnapshot(filepath ?? this.defaultPath, this.ports);
   }
 
   public getLatest(): ServerStateSnapshot | null {
@@ -231,6 +299,9 @@ export class StatePreserver {
   }
 }
 
-export function createStatePreserver(defaultPath?: string): StatePreserver {
-  return new StatePreserver(defaultPath);
+export function createStatePreserver(
+  defaultPath?: string,
+  ports?: SnapshotFsPorts,
+): StatePreserver {
+  return new StatePreserver(defaultPath, ports);
 }
