@@ -10,6 +10,8 @@ import {
   readFileSync,
   renameSync,
   statSync,
+  unlinkSync,
+  writeFileSync,
   writeSync,
 } from "node:fs";
 import { dirname } from "node:path";
@@ -19,6 +21,7 @@ import {
   isEnvelope,
   spoolLockPath,
   withLock,
+  writeAtomic,
   type Envelope,
 } from "../core/index.ts";
 
@@ -44,8 +47,12 @@ export interface SpoolPorts {
   readonly existsSync?: (path: string) => boolean;
   readonly readFileSync?: (path: string, encoding?: string) => string | Uint8Array;
   readonly writeFileSync?: (path: string, content: string | Uint8Array) => void;
+  readonly appendFileSync?: (path: string, content: string | Uint8Array) => void;
   readonly statSync?: (path: string) => { readonly size: number };
   readonly withLock?: <T>(lockPath: string, fn: () => T) => T;
+  readonly unlinkSync?: (path: string) => void;
+  readonly renameSync?: (oldPath: string, newPath: string) => void;
+  readonly writeAtomic?: (path: string, content: string | Uint8Array) => void;
 }
 
 export interface SpoolOptions {
@@ -62,9 +69,7 @@ const DEFAULT_MAX_SPOOL_LINES = 20000;
 function findNextSegmentNumber(roomId: string, readerId: string): number {
   const basePath = daemonOutSpoolPath(roomId, readerId);
   const dir = dirname(basePath);
-  if (!existsSync(dir)) {
-    return 1;
-  }
+  if (!existsSync(dir)) return 1;
   if (!statSync(dir).isDirectory()) {
     throw new ChatError("INVALID_STATE", `Expected directory at path '${dir}'`);
   }
@@ -76,9 +81,7 @@ function findNextSegmentNumber(roomId: string, readerId: string): number {
     if (file.startsWith(prefix) && file.endsWith(suffix)) {
       const middle = file.slice(prefix.length, file.length - suffix.length);
       const parsed = Number.parseInt(middle, 10);
-      if (Number.isInteger(parsed) && parsed > maxSegment) {
-        maxSegment = parsed;
-      }
+      if (Number.isInteger(parsed) && parsed > maxSegment) maxSegment = parsed;
     }
   }
   return maxSegment + 1;
@@ -88,28 +91,55 @@ export function rotateSpoolIfNeeded(
   roomId: string,
   readerId: string,
   segmentMaxBytes: number = DEFAULT_SEGMENT_MAX_BYTES,
+  ports?: SpoolPorts,
 ): boolean {
   const currentPath = daemonOutSpoolPath(roomId, readerId);
-  if (!existsSync(currentPath)) {
-    return false;
-  }
+  const existsFn = ports?.existsSync ?? existsSync;
+  if (!existsFn(currentPath)) return false;
   try {
-    const stats = statSync(currentPath);
+    const statFn = ports?.statSync ?? statSync;
+    const stats = statFn(currentPath);
     if (stats.size >= segmentMaxBytes) {
       const nextNum = findNextSegmentNumber(roomId, readerId);
       const rotatedPath = daemonOutSpoolPath(roomId, readerId, nextNum);
-      renameSync(currentPath, rotatedPath);
+      const renameFn = ports?.renameSync ?? renameSync;
+      renameFn(currentPath, rotatedPath);
+      const unlinkFn = ports?.unlinkSync ?? unlinkSync;
+      const hwmPath = `${currentPath}.hwm`;
+      if (existsFn(hwmPath)) {
+        try {
+          unlinkFn(hwmPath);
+        } catch {}
+      }
       return true;
     }
   } catch {}
   return false;
 }
 
-function getSpoolHighestSeq(targetPath: string, ports?: SpoolPorts): number {
+export function getSpoolHighestSeq(targetPath: string, ports?: SpoolPorts): number {
   const existsFn = ports?.existsSync ?? existsSync;
   if (!existsFn(targetPath)) return 0;
+  const statFn = ports?.statSync ?? statSync;
+  const spoolSize = statFn(targetPath).size;
+  const readFn = ports?.readFileSync ?? readFileSync;
+  const atomicWriteFn = ports?.writeAtomic ?? writeAtomic;
+  const hwmPath = `${targetPath}.hwm`;
+  if (existsFn(hwmPath)) {
+    try {
+      const raw = readFn(hwmPath, "utf8");
+      const content = typeof raw === "string" ? raw : Buffer.from(raw).toString("utf8");
+      const trimmed = content.trim();
+      const sep = trimmed.indexOf(":");
+      if (sep !== -1) {
+        const seq = Number.parseInt(trimmed.slice(0, sep), 10);
+        const recordedSize = Number.parseInt(trimmed.slice(sep + 1), 10);
+        if (Number.isInteger(seq) && seq >= 0 && recordedSize === spoolSize) return seq;
+      }
+    } catch {}
+  }
   try {
-    const raw = (ports?.readFileSync ?? readFileSync)(targetPath, "utf8");
+    const raw = readFn(targetPath, "utf8");
     const content = typeof raw === "string" ? raw : Buffer.from(raw).toString("utf8");
     let highest = 0;
     for (const line of content.split("\n")) {
@@ -117,11 +147,12 @@ function getSpoolHighestSeq(targetPath: string, ports?: SpoolPorts): number {
       if (!trimmed) continue;
       try {
         const parsed: unknown = JSON.parse(trimmed);
-        if (isEnvelope(parsed) && parsed.seq > highest) {
-          highest = parsed.seq;
-        }
+        if (isEnvelope(parsed) && parsed.seq > highest) highest = parsed.seq;
       } catch {}
     }
+    try {
+      atomicWriteFn(hwmPath, `${highest}:${spoolSize}`);
+    } catch {}
     return highest;
   } catch {
     return 0;
@@ -158,49 +189,43 @@ export function appendSpool(
     const statFn = options.ports?.statSync ?? statSync;
     if (toAppend.length === 0) {
       const currentSize = existsFn(targetPath) ? statFn(targetPath).size : 0;
-      return {
-        spoolOffset: currentSize,
-        bytesWritten: 0,
-        spoolPath: targetPath,
-        rotated: false,
-      };
+      return { spoolOffset: currentSize, bytesWritten: 0, spoolPath: targetPath, rotated: false };
     }
 
-    let linesContent = "";
-    for (const envelope of toAppend) {
-      linesContent += JSON.stringify(envelope) + "\n";
-    }
-
+    const linesContent = toAppend.map((e) => JSON.stringify(e)).join("\n") + "\n";
     const buffer = Buffer.from(linesContent, "utf8");
-
-    if (options.ports?.writeFileSync) {
-      const existing = existsFn(targetPath)
-        ? ((options.ports.readFileSync?.(targetPath, "utf8") as string) ?? "")
-        : "";
-      const offset = Buffer.byteLength(existing, "utf8");
-      options.ports.writeFileSync(targetPath, existing + linesContent);
-      return {
-        spoolOffset: offset,
-        bytesWritten: buffer.byteLength,
-        spoolPath: targetPath,
-        rotated: false,
-      };
-    }
-
-    const fd = openSync(targetPath, "a+", 0o644);
+    const atomicWriteFn = options.ports?.writeAtomic ?? writeAtomic;
     let offset = 0;
     let bytesWritten = 0;
 
-    try {
-      const stats = fstatSync(fd);
-      offset = stats.size;
-      bytesWritten = writeSync(fd, buffer, 0, buffer.byteLength);
-      fsyncSync(fd);
-    } finally {
-      closeSync(fd);
+    if (options.ports?.appendFileSync) {
+      offset = existsFn(targetPath) ? statFn(targetPath).size : 0;
+      options.ports.appendFileSync(targetPath, linesContent);
+      bytesWritten = buffer.byteLength;
+    } else if (options.ports?.writeFileSync) {
+      const existing = existsFn(targetPath)
+        ? ((options.ports.readFileSync?.(targetPath, "utf8") as string) ?? "")
+        : "";
+      offset = Buffer.byteLength(existing, "utf8");
+      options.ports.writeFileSync(targetPath, existing + linesContent);
+      bytesWritten = buffer.byteLength;
+    } else {
+      const fd = openSync(targetPath, "a+", 0o644);
+      try {
+        offset = fstatSync(fd).size;
+        bytesWritten = writeSync(fd, buffer, 0, buffer.byteLength);
+        fsyncSync(fd);
+      } finally {
+        closeSync(fd);
+      }
     }
 
-    const didRotate = rotateSpoolIfNeeded(roomId, readerId, segmentMax);
+    const newSize = offset + bytesWritten;
+    try {
+      atomicWriteFn(`${targetPath}.hwm`, `${runningHighest}:${newSize}`);
+    } catch {}
+
+    const didRotate = !options.ports ? rotateSpoolIfNeeded(roomId, readerId, segmentMax) : false;
 
     return {
       spoolOffset: offset,
@@ -222,24 +247,12 @@ export function repairSpool(
 
   return lockFn(lock, () => {
     const targetPath = daemonOutSpoolPath(roomId, readerId);
-    if (!existsFn(targetPath)) {
-      return {
-        repaired: false,
-        truncatedBytes: 0,
-        highestSeq: 0,
-      };
-    }
+    if (!existsFn(targetPath)) return { repaired: false, truncatedBytes: 0, highestSeq: 0 };
 
     const raw = (options.ports?.readFileSync ?? readFileSync)(targetPath);
     const buffer = typeof raw === "string" ? Buffer.from(raw, "utf8") : Buffer.from(raw);
     const totalBytes = buffer.byteLength;
-    if (totalBytes === 0) {
-      return {
-        repaired: false,
-        truncatedBytes: 0,
-        highestSeq: 0,
-      };
-    }
+    if (totalBytes === 0) return { repaired: false, truncatedBytes: 0, highestSeq: 0 };
 
     let validByteOffset = 0;
     let currentLineStart = 0;
@@ -262,9 +275,7 @@ export function repairSpool(
               } else {
                 seenSeqs.add(parsed.seq);
                 uniqueEnvelopes.push(parsed);
-                if (parsed.seq > highestSeq) {
-                  highestSeq = parsed.seq;
-                }
+                if (parsed.seq > highestSeq) highestSeq = parsed.seq;
               }
               validByteOffset = i + 1;
             } else {
@@ -282,9 +293,7 @@ export function repairSpool(
       }
     }
 
-    if (currentLineStart < totalBytes) {
-      needsTruncation = true;
-    }
+    if (currentLineStart < totalBytes) needsTruncation = true;
 
     if (hasDuplicates) {
       uniqueEnvelopes.sort((a, b) => a.seq - b.seq);
@@ -304,6 +313,12 @@ export function repairSpool(
         }
       }
       const maxSeq = uniqueEnvelopes.reduce((m, e) => Math.max(m, e.seq), 0);
+      try {
+        (options.ports?.writeAtomic ?? writeAtomic)(
+          `${targetPath}.hwm`,
+          `${maxSeq}:${newBuf.byteLength}`,
+        );
+      } catch {}
       return {
         repaired: true,
         truncatedBytes: Math.max(0, totalBytes - newBuf.byteLength),
@@ -320,6 +335,12 @@ export function repairSpool(
       } finally {
         closeSync(fd);
       }
+      try {
+        (options.ports?.writeAtomic ?? writeAtomic)(
+          `${targetPath}.hwm`,
+          `${highestSeq}:${validByteOffset}`,
+        );
+      } catch {}
       return {
         repaired: true,
         truncatedBytes,
@@ -327,32 +348,20 @@ export function repairSpool(
       };
     }
 
-    return {
-      repaired: false,
-      truncatedBytes: 0,
-      highestSeq,
-    };
+    return { repaired: false, truncatedBytes: 0, highestSeq };
   });
 }
 
 export function getSpoolStats(roomId: string, readerId: string): SpoolStats {
   const currentPath = daemonOutSpoolPath(roomId, readerId);
-  if (!existsSync(currentPath)) {
-    return { bytes: 0, lines: 0 };
-  }
-
+  if (!existsSync(currentPath)) return { bytes: 0, lines: 0 };
   try {
     const content = readFileSync(currentPath, "utf8");
     let lineCount = 0;
     for (let i = 0; i < content.length; i++) {
-      if (content.charCodeAt(i) === 10) {
-        lineCount++;
-      }
+      if (content.charCodeAt(i) === 10) lineCount++;
     }
-    return {
-      bytes: Buffer.byteLength(content, "utf8"),
-      lines: lineCount,
-    };
+    return { bytes: Buffer.byteLength(content, "utf8"), lines: lineCount };
   } catch {
     return { bytes: 0, lines: 0 };
   }
@@ -365,12 +374,8 @@ export function isSpoolBackpressured(
 ): boolean {
   const maxBytes = options.maxSpoolBytes ?? DEFAULT_MAX_SPOOL_BYTES;
   const maxLines = options.maxSpoolLines ?? DEFAULT_MAX_SPOOL_LINES;
-
   if (currentlyBackpressured) {
-    const lowWaterBytes = maxBytes * 0.5;
-    const lowWaterLines = maxLines * 0.5;
-    return stats.bytes >= lowWaterBytes || stats.lines >= lowWaterLines;
+    return stats.bytes >= maxBytes * 0.5 || stats.lines >= maxLines * 0.5;
   }
-
   return stats.bytes >= maxBytes || stats.lines >= maxLines;
 }

@@ -49,12 +49,14 @@ export {
 
 export {
   appendSpool,
+  getSpoolHighestSeq,
   getSpoolStats,
   isSpoolBackpressured,
   repairSpool,
   rotateSpoolIfNeeded,
   type SpoolAppendResult,
   type SpoolOptions,
+  type SpoolPorts,
   type SpoolRepairResult,
   type SpoolStats,
 } from "./spool.ts";
