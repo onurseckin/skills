@@ -1,19 +1,11 @@
 import type { PurityViolation } from "../guardrails/index.ts";
+import type { PurityBaselineEntry } from "../purity-baseline/index.ts";
 
 export type PurityRatchetMode = "ratchet" | "strict";
 
 export type PurityRatchetFormat = "markdown" | "json" | "jsonl";
 
-export interface PurityBaselineEntry {
-  readonly file: string;
-  readonly rule: string;
-  readonly count: number;
-}
-
-export interface PurityBaseline {
-  readonly schema: "olt-purity-baseline/v1";
-  readonly entries: readonly PurityBaselineEntry[];
-}
+export type { PurityBaseline, PurityBaselineEntry } from "../purity-baseline/index.ts";
 
 export interface PurityRatchetDelta {
   readonly file: string;

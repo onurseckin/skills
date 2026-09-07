@@ -1,13 +1,14 @@
 import { auditTestPuritySync } from "../guardrails/index.ts";
 import { loadPurityBaseline } from "./purity-ratchet-baseline.ts";
 import { comparePurityBaseline, summarizeViolations } from "./purity-ratchet-compare.ts";
+import { DEFAULT_PURITY_BASELINE } from "../purity-baseline/index.ts";
 import type {
   PurityAuditSnapshot,
   PurityRatchetOptions,
   PurityRatchetReport,
 } from "./purity-ratchet-contracts.ts";
 
-export const DEFAULT_PURITY_BASELINE = "scripts/testing/purity-ratchet/baseline/index.jsonl";
+export { DEFAULT_PURITY_BASELINE } from "../purity-baseline/index.ts";
 
 function runAudit(options: PurityRatchetOptions): PurityAuditSnapshot {
   if (options.audit !== undefined) return options.audit();

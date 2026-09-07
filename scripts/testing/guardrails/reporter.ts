@@ -3,7 +3,14 @@
  * Formats purity audit results for terminal output and markdown documentation.
  */
 
-import type { PurityAuditResult, PurityAuditScope, PurityViolation } from "./types.ts";
+import { EMPTY_PURITY_ALLOWANCE, partitionByAllowance } from "./allowance.ts";
+import type {
+  PurityAllowance,
+  PurityAuditResult,
+  PurityAuditScope,
+  PurityTolerance,
+  PurityViolation,
+} from "./types.ts";
 
 export function describeVacuity(
   scope: PurityAuditScope,
@@ -20,10 +27,29 @@ export function describeVacuity(
   return undefined;
 }
 
+function formatToleratedNote(tolerance?: PurityTolerance): string | undefined {
+  if (tolerance === undefined) return undefined;
+  if (tolerance.tolerated.length === 0) return undefined;
+  return `[purity-guard] ${tolerance.tolerated.length} pre-existing baselined violation(s) tolerated; they may never grow.`;
+}
+
+function formatExceedanceLines(tolerance?: PurityTolerance): readonly string[] {
+  if (tolerance === undefined) return [];
+  if (tolerance.exceedances.length === 0) return [];
+  const lines = ["", "[purity-guard] Over the committed baseline allowance:"];
+  for (const exceedance of tolerance.exceedances) {
+    lines.push(
+      `  - ${exceedance.file} [${exceedance.rule}]: observed ${exceedance.observed} > allowed ${exceedance.allowed}`,
+    );
+  }
+  return lines;
+}
+
 export function formatTerminalReport(
   scannedFiles: number,
   violations: readonly PurityViolation[],
   vacuityReason?: string,
+  tolerance?: PurityTolerance,
 ): string {
   if (vacuityReason !== undefined) {
     return [
@@ -34,11 +60,13 @@ export function formatTerminalReport(
   }
 
   if (violations.length === 0) {
-    return `[purity-guard] ✓ All ${scannedFiles} test file(s) passed purity audit with 0 violations.`;
+    const note = formatToleratedNote(tolerance);
+    const headline = `[purity-guard] ✓ All ${scannedFiles} test file(s) passed purity audit with 0 new violations.`;
+    return note === undefined ? headline : `${headline}\n${note}`;
   }
 
   const lines: string[] = [
-    `[purity-guard] ❌ Test purity audit FAILED: ${violations.length} violation(s) found across ${scannedFiles} file(s).`,
+    `[purity-guard] ❌ Test purity audit FAILED: ${violations.length} blocking violation(s) found across ${scannedFiles} file(s).`,
     "",
   ];
 
@@ -49,7 +77,11 @@ export function formatTerminalReport(
     }
   }
 
+  lines.push(...formatExceedanceLines(tolerance));
+
   lines.push("");
+  const note = formatToleratedNote(tolerance);
+  if (note !== undefined) lines.push(note);
   lines.push(
     "[purity-guard] Pure test invariant violated. Use VirtualMemoryFS and in-memory mocks.",
   );
@@ -60,6 +92,7 @@ export function formatMarkdownReport(
   scannedFiles: number,
   violations: readonly PurityViolation[],
   vacuityReason?: string,
+  tolerance?: PurityTolerance,
 ): string {
   const isVacuous = vacuityReason !== undefined;
   const status = isVacuous ? "VACUOUS" : violations.length === 0 ? "PASSED" : "FAILED";
@@ -69,6 +102,7 @@ export function formatMarkdownReport(
     `- **Status**: ${status}`,
     `- **Scanned Files**: ${scannedFiles}`,
     `- **Total Violations**: ${violations.length}`,
+    `- **Baselined Violations Tolerated**: ${tolerance === undefined ? 0 : tolerance.tolerated.length}`,
     "",
   ];
 
@@ -117,16 +151,31 @@ export function buildAuditResult(
   violations: readonly PurityViolation[],
   scope: PurityAuditScope = "repository",
   requestedFiles: number = scannedFiles,
+  allowance: PurityAllowance = EMPTY_PURITY_ALLOWANCE,
 ): PurityAuditResult {
   const vacuityReason = describeVacuity(scope, requestedFiles, scannedFiles);
+  const tolerance = partitionByAllowance(violations, allowance);
   return {
-    passed: vacuityReason === undefined && violations.length === 0,
+    passed: vacuityReason === undefined && tolerance.blocking.length === 0,
     scope,
     requestedFiles,
     scannedFiles,
     vacuous: vacuityReason !== undefined,
     violations,
-    terminalReport: formatTerminalReport(scannedFiles, violations, vacuityReason),
-    markdownReport: formatMarkdownReport(scannedFiles, violations, vacuityReason),
+    blockingViolations: tolerance.blocking,
+    toleratedViolations: tolerance.tolerated,
+    exceedances: tolerance.exceedances,
+    terminalReport: formatTerminalReport(
+      scannedFiles,
+      tolerance.blocking,
+      vacuityReason,
+      tolerance,
+    ),
+    markdownReport: formatMarkdownReport(
+      scannedFiles,
+      tolerance.blocking,
+      vacuityReason,
+      tolerance,
+    ),
   };
 }

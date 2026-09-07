@@ -7,11 +7,22 @@
 export { auditSourceCode } from "./ast-checker.ts";
 
 export {
+  allowanceAppliesTo,
+  allowanceIdentity,
+  buildPurityAllowance,
+  EMPTY_PURITY_ALLOWANCE,
+  parsePurityAllowance,
+  partitionByAllowance,
+  readPurityAllowance,
+} from "./allowance.ts";
+
+export {
   auditTestPurity,
   auditTestPuritySync,
   computeIsMain,
   getAllTestFiles,
   getStagedTestFiles,
+  resolveAllowance,
   resolveAuditRequest,
   main as runPurityGuardMain,
 } from "./purity-guard.ts";
@@ -35,10 +46,13 @@ export {
 } from "./rules-config.ts";
 
 export type {
+  PurityAllowance,
   PurityAuditOptions,
   PurityAuditRequest,
   PurityAuditResult,
   PurityAuditScope,
+  PurityExceedance,
+  PurityTolerance,
   PurityViolation,
   PurityViolationCategory,
 } from "./types.ts";

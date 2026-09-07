@@ -7,8 +7,10 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { auditSourceCode } from "./ast-checker.ts";
+import { allowanceAppliesTo, EMPTY_PURITY_ALLOWANCE, readPurityAllowance } from "./allowance.ts";
 import { buildAuditResult } from "./reporter.ts";
 import type {
+  PurityAllowance,
   PurityAuditOptions,
   PurityAuditRequest,
   PurityAuditResult,
@@ -59,10 +61,22 @@ export function resolveAuditRequest(
   return { scope: "repository", files: getAllTestFiles("tests") };
 }
 
+export function resolveAllowance(
+  request: PurityAuditRequest,
+  optionsOrFiles?: PurityAuditOptions | string[],
+): PurityAllowance {
+  const options = Array.isArray(optionsOrFiles) ? undefined : optionsOrFiles;
+  const strict = options?.strict === true;
+  if (!allowanceAppliesTo(request.scope, strict)) return EMPTY_PURITY_ALLOWANCE;
+  if (options?.allowance !== undefined) return options.allowance;
+  return readPurityAllowance();
+}
+
 export function auditTestPuritySync(
   optionsOrFiles?: PurityAuditOptions | string[],
 ): PurityAuditResult {
   const request = resolveAuditRequest(optionsOrFiles);
+  const allowance = resolveAllowance(request, optionsOrFiles);
 
   const allViolations: PurityViolation[] = [];
   let scannedCount = 0;
@@ -78,7 +92,13 @@ export function auditTestPuritySync(
     }
   }
 
-  return buildAuditResult(scannedCount, allViolations, request.scope, request.files.length);
+  return buildAuditResult(
+    scannedCount,
+    allViolations,
+    request.scope,
+    request.files.length,
+    allowance,
+  );
 }
 
 export async function auditTestPurity(
@@ -101,11 +121,13 @@ export function computeIsMain(
 export async function main(argvArgs: string[] = process.argv.slice(2)): Promise<number> {
   const isStaged = argvArgs.includes("--staged");
   const isAll = argvArgs.includes("--all");
+  const isStrict = argvArgs.includes("--strict");
   const specificFiles = argvArgs.filter((arg) => !arg.startsWith("-"));
 
   const options: PurityAuditOptions = {
     stagedOnly: isStaged,
     all: isAll,
+    strict: isStrict,
     files: specificFiles.length > 0 ? specificFiles : undefined,
   };
 
