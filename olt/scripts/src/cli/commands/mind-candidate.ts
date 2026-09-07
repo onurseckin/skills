@@ -56,8 +56,9 @@ export function formatMindCandidateBrief(params: {
 
 export function mindCandidateCommand(
   flags: Flags,
-  _context?: CommandContext,
+  context?: CommandContext,
 ): Record<string, unknown> {
+  const store = context?.store ?? { loadRun, transact };
   const run = textFlag(flags, "run", true)!;
   const actor = textFlag(flags, "actor", true)!;
   const kind = textFlag(flags, "kind", true)!;
@@ -71,7 +72,7 @@ export function mindCandidateCommand(
   const rawWriteScope = listFlag(flags, "write-scope", true)!;
   const writeScope = [...rawWriteScope];
 
-  const loaded = loadRun(run, false);
+  const loaded = store.loadRun(run, false);
   const state = loaded.state;
 
   // 1. Enforce acting agent role grant
@@ -197,7 +198,7 @@ export function mindCandidateCommand(
     objective_run_id: null,
   };
 
-  transact(
+  store.transact(
     loaded.runRoot,
     actor,
     "mind-candidate-opened",

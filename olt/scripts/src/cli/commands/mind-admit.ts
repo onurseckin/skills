@@ -58,14 +58,15 @@ function canDeclineFromStatus(status: string | undefined): boolean {
   );
 }
 
-export function mindAdmitCommand(flags: Flags, _context?: CommandContext): Record<string, unknown> {
+export function mindAdmitCommand(flags: Flags, context?: CommandContext): Record<string, unknown> {
+  const store = context?.store ?? { loadRun, transact };
   const run = textFlag(flags, "run", true)!;
   const actor = textFlag(flags, "actor", true)!;
   const candidateId = textFlag(flags, "candidate", true)!;
   const now = textFlag(flags, "now", false);
 
   const nowIso = now ?? new Date().toISOString();
-  const loaded = loadRun(run, false);
+  const loaded = store.loadRun(run, false);
   const state = loaded.state;
 
   // 1. Enforce acting agent role grant
@@ -178,7 +179,7 @@ export function mindAdmitCommand(flags: Flags, _context?: CommandContext): Recor
   }
 
   // 7. Transact mind-candidate-admitted
-  transact(
+  store.transact(
     run,
     actor,
     "mind-candidate-admitted",
@@ -230,7 +231,7 @@ export function mindAdmitCommand(flags: Flags, _context?: CommandContext): Recor
 
 export async function mindDeclineCommand(
   flags: Flags,
-  _context?: CommandContext,
+  context?: CommandContext,
 ): Promise<{
   readonly markdown: string;
   readonly run_root: string;
@@ -248,7 +249,8 @@ export async function mindDeclineCommand(
   if (!candidateId) throw new HarnessError("INVALID_ARGUMENT", "--candidate is required");
   if (!reason) throw new HarnessError("INVALID_ARGUMENT", "--reason is required");
 
-  const loaded = loadRun(run);
+  const store = context?.store ?? { loadRun, transact };
+  const loaded = store.loadRun(run);
   const nowIso = new Date().toISOString();
 
   const candidates = (Array.isArray(loaded.state.candidates)
@@ -265,7 +267,7 @@ export async function mindDeclineCommand(
     );
   }
 
-  transact(
+  store.transact(
     run,
     actor,
     "mind-candidate-declined",

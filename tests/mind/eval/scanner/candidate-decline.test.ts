@@ -1,12 +1,70 @@
-import { describe, expect, test, beforeEach, spyOn } from "bun:test";
+import { describe, expect, test, beforeEach } from "bun:test";
 import * as storeModule from "../../../../olt/scripts/src/engine/store/index.ts";
 import { mindCandidateCommand } from "../../../../olt/scripts/src/cli/commands/mind-candidate.ts";
 import { mindDeclineCommand } from "../../../../olt/scripts/src/cli/commands/mind-admit.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
-import type { RunState } from "../../../../olt/scripts/src/core/contracts/index.ts";
+import type { CommandContext, StorePorts } from "../../../../olt/scripts/src/cli/options.ts";
+import type {
+  Manifest,
+  RunFiles,
+  RunState,
+} from "../../../../olt/scripts/src/core/contracts/index.ts";
+
+const PRISTINE_LOAD_RUN = storeModule.loadRun;
+const PRISTINE_TRANSACT = storeModule.transact;
 
 const MAX_OPEN_PROPOSALS = 3;
 const mockRuns = new Map<string, RunState>();
+
+const MANIFEST: Manifest = {
+  schema: "harness.manifest",
+  version: 2,
+  run_id: "mind-decline-reach",
+  capsule_id: "mind-decline-reach",
+  mode: "mind",
+  prompt_sha256: "0".repeat(64),
+  prompt_bytes: 0,
+  capture_mode: "file",
+  source_verified: true,
+  assurance: "source-verified",
+  bun_version: "1.4.0",
+  runtime_version: "2.0.0",
+};
+
+function stateFor(runRoot: string): RunState {
+  const existing = mockRuns.get(runRoot);
+  if (existing) return existing;
+  const created: RunState = {
+    version: "2.0.0",
+    run_id: "test",
+    created_at: "2026-08-21T00:00:00.000Z",
+    updated_at: "2026-08-21T00:00:00.000Z",
+    status: "succeeded",
+    tasks: {},
+    agents: [],
+  };
+  mockRuns.set(runRoot, created);
+  return created;
+}
+
+const inMemoryStore: StorePorts = {
+  loadRun(runRoot: string): RunFiles {
+    return {
+      runRoot,
+      manifest: MANIFEST,
+      prompt: new Uint8Array(),
+      state: stateFor(runRoot),
+      events: [],
+    };
+  },
+  transact(runRoot, _actor, _kind, _payload, mutate): RunState {
+    const state = stateFor(runRoot);
+    mutate(state);
+    return state;
+  },
+};
+
+const storeContext: CommandContext = { store: inMemoryStore };
 
 function setupReachabilityTest(name: string): { readonly repo: string; readonly run: string } {
   const repo = `${process.cwd()}/.olt/virtual-reach-${name}`;
@@ -67,66 +125,24 @@ function setupReachabilityTest(name: string): { readonly repo: string; readonly 
 
 beforeEach(() => {
   mockRuns.clear();
-  spyOn(storeModule, "loadRun").mockImplementation((runPath: string) => {
-    const state = mockRuns.get(runPath) ?? {
-      version: "2.0.0",
-      run_id: "test",
-      created_at: "2026-08-21T00:00:00.000Z",
-      updated_at: "2026-08-21T00:00:00.000Z",
-      status: "succeeded",
-      tasks: {},
-      agents: [],
-    };
-    return {
-      runRoot: runPath,
-      manifest: {
-        version: "2.0.0",
-        run_id: "test",
-        created_at: "2026-08-21T00:00:00.000Z",
-        entry_task_id: "task-1",
-      },
-      state,
-      events: [],
-      prompt: new Uint8Array(),
-      mode: "file",
-      sourceVerified: true,
-    };
-  });
-
-  spyOn(storeModule, "transact").mockImplementation((runPath, _actor, _kind, _payload, mutator) => {
-    let state = mockRuns.get(runPath);
-    if (!state) {
-      state = {
-        version: "2.0.0",
-        run_id: "test",
-        created_at: "2026-08-21T00:00:00.000Z",
-        updated_at: "2026-08-21T00:00:00.000Z",
-        status: "succeeded",
-        tasks: {},
-        agents: [],
-      };
-      mockRuns.set(runPath, state);
-    }
-    mutator(state);
-    return {
-      event_id: "evt-mock",
-    } as unknown as import("../../../../olt/scripts/src/core/contracts/index.ts").HarnessEvent;
-  });
 });
 
 function fileProposal(run: string, statement: string): { readonly candidate_id: string } {
-  return mindCandidateCommand({
-    run,
-    actor: "mind-1",
-    kind: "proposal",
-    statement,
-    "charter-goal": ["G1"],
-    "write-scope": ["src/x.ts"],
-  }) as { readonly candidate_id: string };
+  return mindCandidateCommand(
+    {
+      run,
+      actor: "mind-1",
+      kind: "proposal",
+      statement,
+      "charter-goal": ["G1"],
+      "write-scope": ["src/x.ts"],
+    },
+    storeContext,
+  ) as { readonly candidate_id: string };
 }
 
 function candidateStatus(run: string, candidateId: string): unknown {
-  const loaded = storeModule.loadRun(run, true);
+  const loaded = inMemoryStore.loadRun(run, true);
   const candidates = (
     Array.isArray(loaded.state.candidates) ? loaded.state.candidates : []
   ) as Record<string, unknown>[];
@@ -134,7 +150,7 @@ function candidateStatus(run: string, candidateId: string): unknown {
 }
 
 function setCandidateStatus(run: string, candidateId: string, status: string): void {
-  storeModule.transact(
+  inMemoryStore.transact(
     run,
     "mind-1",
     `set-status-${status}`,
@@ -176,12 +192,15 @@ describe("candidate decline reachability (cand-11 wedge) in-memory virtual", () 
 
     const targetId = first.candidate_id;
     expect(candidateStatus(run, targetId)).toBe("open");
-    const declineResult = await mindDeclineCommand({
-      run,
-      actor: "mind-1",
-      candidate: targetId,
-      reason: "superseded by a better proposal",
-    });
+    const declineResult = await mindDeclineCommand(
+      {
+        run,
+        actor: "mind-1",
+        candidate: targetId,
+        reason: "superseded by a better proposal",
+      },
+      storeContext,
+    );
     expect(declineResult.candidate_id).toBe(targetId);
     expect(candidateStatus(run, targetId)).toBe("declined");
 
@@ -192,22 +211,18 @@ describe("candidate decline reachability (cand-11 wedge) in-memory virtual", () 
   test("4. declining a genuinely terminal status (declined, completed) is still refused", async () => {
     const { run } = setupReachabilityTest("terminal-refused");
     const { candidate_id } = fileProposal(run, "will be declined once");
-    await mindDeclineCommand({
-      run,
-      actor: "mind-1",
-      candidate: candidate_id,
-      reason: "first decline",
-    });
+    await mindDeclineCommand(
+      { run, actor: "mind-1", candidate: candidate_id, reason: "first decline" },
+      storeContext,
+    );
     expect(candidateStatus(run, candidate_id)).toBe("declined");
 
     let caughtDeclined: HarnessError | null = null;
     try {
-      await mindDeclineCommand({
-        run,
-        actor: "mind-1",
-        candidate: candidate_id,
-        reason: "second decline attempt",
-      });
+      await mindDeclineCommand(
+        { run, actor: "mind-1", candidate: candidate_id, reason: "second decline attempt" },
+        storeContext,
+      );
     } catch (err) {
       if (err instanceof HarnessError) caughtDeclined = err;
     }
@@ -219,12 +234,10 @@ describe("candidate decline reachability (cand-11 wedge) in-memory virtual", () 
 
     let caughtCompleted: HarnessError | null = null;
     try {
-      await mindDeclineCommand({
-        run,
-        actor: "mind-1",
-        candidate: completedId,
-        reason: "should be refused",
-      });
+      await mindDeclineCommand(
+        { run, actor: "mind-1", candidate: completedId, reason: "should be refused" },
+        storeContext,
+      );
     } catch (err) {
       if (err instanceof HarnessError) caughtCompleted = err;
     }
@@ -237,23 +250,28 @@ describe("candidate decline reachability (cand-11 wedge) in-memory virtual", () 
     const { candidate_id: grantedId } = fileProposal(run, "will be granted then declined");
     setCandidateStatus(run, grantedId, "granted");
     expect(candidateStatus(run, grantedId)).toBe("granted");
-    await mindDeclineCommand({
-      run,
-      actor: "mind-1",
-      candidate: grantedId,
-      reason: "owner revoked the grant",
-    });
+    await mindDeclineCommand(
+      { run, actor: "mind-1", candidate: grantedId, reason: "owner revoked the grant" },
+      storeContext,
+    );
     expect(candidateStatus(run, grantedId)).toBe("declined");
 
     const { candidate_id: admittedId } = fileProposal(run, "will be admitted then declined");
     setCandidateStatus(run, admittedId, "admitted");
     expect(candidateStatus(run, admittedId)).toBe("admitted");
-    await mindDeclineCommand({
-      run,
-      actor: "mind-1",
-      candidate: admittedId,
-      reason: "revoked before work started",
-    });
+    await mindDeclineCommand(
+      { run, actor: "mind-1", candidate: admittedId, reason: "revoked before work started" },
+      storeContext,
+    );
     expect(candidateStatus(run, admittedId)).toBe("declined");
+  });
+
+  test("6. the suite never patches the shared store module, so later suites see the real one", () => {
+    const { run } = setupReachabilityTest("no-module-patching");
+    fileProposal(run, "exercise the injected store before probing the module");
+
+    expect(storeModule.loadRun).toBe(PRISTINE_LOAD_RUN);
+    expect(storeModule.transact).toBe(PRISTINE_TRANSACT);
+    expect(() => storeModule.loadRun(run)).toThrow();
   });
 });

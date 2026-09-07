@@ -15,6 +15,10 @@ import {
   disableInMemorySessionStore,
   enableInMemorySessionStore,
 } from "../../../olt/scripts/src/authority/session/paths.ts";
+import type { RepositoryGitCommand } from "../../../olt/scripts/src/packets/repository-git-command.ts";
+import reportingSuiteSource from "./reporting.test.ts" with { type: "text" };
+
+const sandboxGit: RepositoryGitCommand = () => ({ status: 0, bytes: Buffer.alloc(0) });
 
 mock.module("../../../olt/scripts/src/installer/installation-status.ts", () => ({
   installationStatus: async () => ({
@@ -24,11 +28,6 @@ mock.module("../../../olt/scripts/src/installer/installation-status.ts", () => (
     links: { codex: "/virtual/destination", claude: null },
     issues: ["not installed"],
   }),
-}));
-
-mock.module("../../../olt/scripts/src/packets/repository-git-command.ts", () => ({
-  repositoryGit: () => ({ status: 0, bytes: Buffer.alloc(0) }),
-  REPOSITORY_GIT_TIMEOUT_MS: 15_000,
 }));
 
 mock.module("../../../olt/scripts/src/engine/store/integrity/integrity.ts", () => ({
@@ -159,7 +158,9 @@ describe(reportingSuiteName, () => {
     expect(handoff).toContain(JSON.stringify(gateEvidence));
     expect(handoff).toContain("neither configures nor attests it");
     expect(runStatus(run).gate_evidence_limitations).toEqual(gateEvidenceLimitations);
-    expect((await runDoctor(run)).gate_evidence_limitations).toEqual(gateEvidenceLimitations);
+    expect((await runDoctor(run, {}, sandboxGit)).gate_evidence_limitations).toEqual(
+      gateEvidenceLimitations,
+    );
     const entrypoint = join(skillRoot, "scripts", "harness.ts");
     expect(handoff).toContain(JSON.stringify(["bun", entrypoint, "plan:status", "--run", run]));
     expect(handoff).toContain(JSON.stringify(["bun", entrypoint, "doctor", "--run", run]));
@@ -221,4 +222,15 @@ describe(reportingSuiteName, () => {
     const path = writeHandoff(run);
     expect(path).toBe(join(run, "handoff.md"));
   });
+});
+
+const MODULE_MOCK_CALL = ["mock", "module("].join(".");
+const GIT_COMMAND_MODULE = "repository-git-command.ts";
+
+test("never globally replaces the repository git command module", () => {
+  expect(reportingSuiteSource).toContain(reportingSuiteName);
+  const offending = reportingSuiteSource
+    .split("\n")
+    .filter((line) => line.includes(MODULE_MOCK_CALL) && line.includes(GIT_COMMAND_MODULE));
+  expect(offending).toEqual([]);
 });

@@ -1,4 +1,5 @@
 import { HarnessError } from "../core/errors/index.ts";
+import type { JsonObject, RunFiles, RunState, StateMutator } from "../core/contracts/index.ts";
 import { suggestFlag, type FlagValue, type FlagValues } from "./arguments.ts";
 
 export type Flags = Readonly<Record<string, FlagValues>>;
@@ -15,10 +16,22 @@ function given(flags: Flags, name: string): FlagValues | undefined {
   return Object.hasOwn(flags, name) ? flags[name] : undefined;
 }
 
+export interface StorePorts {
+  readonly loadRun: (runRoot: string, verify?: boolean) => RunFiles;
+  readonly transact: (
+    runRoot: string,
+    actor: string,
+    kind: string,
+    payload: JsonObject,
+    mutate: StateMutator,
+  ) => RunState;
+}
+
 export interface CommandContext {
   stdin?: Uint8Array;
   executingRuntime?: string;
   inlinePrompt?: string;
+  store?: StorePorts;
   /** Internal identity injected by execute after caller-provided context is spread. */
   authenticatedCaller?: {
     readonly actor: string;
