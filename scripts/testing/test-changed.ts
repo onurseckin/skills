@@ -5,6 +5,7 @@ import { basename, extname, join } from "node:path";
 
 import { DEFAULT_COVERAGE_THRESHOLD } from "./reporting/index.ts";
 import { auditTestPurity } from "./guardrails/index.ts";
+import type { PurityAuditOptions, PurityAuditResult } from "./guardrails/index.ts";
 import { detectSuiteLoadFailures, formatSuiteLoadFailureReport } from "./runner/index.ts";
 import { inspectRepoPolicy, isTestingEnabled } from "../../olt/scripts/src/policy/index.ts";
 
@@ -149,6 +150,14 @@ export function resolveAffectedTestFiles(
   return { all: false, testFiles: Array.from(affected) };
 }
 
+export function resolveChangedTestFiles(
+  changedFiles: readonly string[],
+  candidateTestFiles: readonly string[],
+): string[] {
+  const changed = new Set(changedFiles);
+  return candidateTestFiles.filter((candidate) => changed.has(candidate));
+}
+
 export interface FileCoverageSummary {
   readonly file: string;
   readonly linesPct: number;
@@ -172,7 +181,14 @@ export function parseCoverageOutput(output: string): FileCoverageSummary[] {
   return results;
 }
 
-export async function run(argvArgs: string[] = process.argv.slice(2)): Promise<number> {
+export interface TestChangedPorts {
+  readonly auditTestPurity?: (options: PurityAuditOptions) => Promise<PurityAuditResult>;
+}
+
+export async function run(
+  argvArgs: string[] = process.argv.slice(2),
+  ports: TestChangedPorts = {},
+): Promise<number> {
   const showHelp = argvArgs.includes("--help") || argvArgs.includes("-h");
   const runAll = argvArgs.includes("--all");
 
@@ -207,11 +223,15 @@ export async function run(argvArgs: string[] = process.argv.slice(2)): Promise<n
     return 0;
   }
 
-  const purityResult = await auditTestPurity({ files: targetFiles });
-  console.log(purityResult.terminalReport);
-  if (!purityResult.passed) {
-    console.error("\n❌ [purity-guard] Test purity audit failed.");
-    return 1;
+  const purityTargets = resolveChangedTestFiles(changed, targetFiles);
+  if (purityTargets.length > 0) {
+    const auditPurity = ports.auditTestPurity ?? auditTestPurity;
+    const purityResult = await auditPurity({ files: purityTargets });
+    console.log(purityResult.terminalReport);
+    if (!purityResult.passed) {
+      console.error("\n❌ [purity-guard] Test purity audit failed.");
+      return 1;
+    }
   }
 
   let combinedStdout = "";
@@ -289,9 +309,12 @@ export function computeIsMain(
   );
 }
 
-export async function main(argvArgs: string[] = process.argv.slice(2)): Promise<number> {
+export async function main(
+  argvArgs: string[] = process.argv.slice(2),
+  ports: TestChangedPorts = {},
+): Promise<number> {
   try {
-    return await run(argvArgs);
+    return await run(argvArgs, ports);
   } catch (err) {
     console.error("[test-changed] Execution error:", err);
     return 1;

@@ -10,11 +10,14 @@ import {
   type VirtualFSSession,
   VirtualMemoryFS,
 } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import type { PurityAuditResult } from "../../../scripts/testing/guardrails/index.ts";
 import {
   main,
   parseDiffOutput,
   parseGitStatusPorcelain,
   parseUnifiedDiffHeaders,
+  resolveAffectedTestFiles,
+  resolveChangedTestFiles,
   run,
 } from "../../../scripts/testing/test-changed.ts";
 
@@ -129,5 +132,76 @@ describe("test-changed script (in-memory virtual)", () => {
 
     const exitCode = await main([]);
     expect(exitCode).toBe(0);
+  });
+});
+
+describe("purity audit scope decoupling", () => {
+  const ALL_TESTS = ["tests/a.test.ts", "tests/b.test.ts", "tests/c.test.ts"];
+
+  function makeGitSpy(changedOutput: string): ReturnType<typeof spyOn> {
+    return spyOn(childProcess, "spawnSync").mockImplementation((cmd, args) => {
+      const command = String(cmd);
+      const argList = Array.isArray(args) ? args.map(String) : [];
+      const empty = { stdout: "", stderr: "", status: 0, pid: 1, output: [], signal: null };
+      if (command === "git" && argList.includes("diff") && argList.includes("--name-only")) {
+        return { ...empty, stdout: changedOutput };
+      }
+      return empty;
+    });
+  }
+
+  function failingAudit(
+    captured: string[][],
+  ): (options: { readonly files?: readonly string[] | undefined }) => Promise<PurityAuditResult> {
+    return async (options) => {
+      captured.push([...(options.files ?? [])]);
+      return {
+        passed: false,
+        scannedFiles: (options.files ?? []).length,
+        violations: [],
+        terminalReport: "stub-report",
+        markdownReport: "stub-report",
+      };
+    };
+  }
+
+  test("a critical config file still selects every test file for execution", () => {
+    const selection = resolveAffectedTestFiles(["package.json"], false, "tests", ALL_TESTS);
+    expect(selection.all).toBe(true);
+    expect(selection.testFiles).toEqual(ALL_TESTS);
+  });
+
+  test("purity targets are the intersection of changed files and selected test files", () => {
+    expect(resolveChangedTestFiles(["package.json"], ALL_TESTS)).toEqual([]);
+    expect(resolveChangedTestFiles(["tsconfig.json", "bunfig.toml"], ALL_TESTS)).toEqual([]);
+    expect(resolveChangedTestFiles(["package.json", "tests/b.test.ts"], ALL_TESTS)).toEqual([
+      "tests/b.test.ts",
+    ]);
+    expect(resolveChangedTestFiles(["tests/removed.test.ts"], ALL_TESTS)).toEqual([]);
+  });
+
+  test("editing only a critical config file never invokes the purity audit", async () => {
+    const captured: string[][] = [];
+    const spy = makeGitSpy("package.json\n");
+    try {
+      const code = await run([], { auditTestPurity: failingAudit(captured) });
+      expect(captured).toEqual([]);
+      expect(code).toBe(0);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  test("a changed test file that fails the purity audit still blocks the run", async () => {
+    const captured: string[][] = [];
+    const changedTest = "tests/scripts/testing/test-mutex.test.ts";
+    const spy = makeGitSpy(`package.json\n${changedTest}\n`);
+    try {
+      const code = await run([], { auditTestPurity: failingAudit(captured) });
+      expect(captured).toEqual([[changedTest]]);
+      expect(code).toBe(1);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });

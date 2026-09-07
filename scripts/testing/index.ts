@@ -6,8 +6,10 @@ export {
   main as runTestChangedMain,
   parseCoverageOutput,
   resolveAffectedTestFiles,
+  resolveChangedTestFiles,
   run as runTestChanged,
   type FileCoverageSummary,
+  type TestChangedPorts,
 } from "./test-changed.ts";
 
 export {
