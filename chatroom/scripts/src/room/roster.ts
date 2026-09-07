@@ -110,7 +110,7 @@ function resolveRoomDirAndId(
 function isIdentity(value: unknown): value is Identity {
   if (typeof value !== "object" || value === null) return false;
   const c = value as Record<string, unknown>;
-  return typeof c["id"] === "string" && c["verified"] === true && typeof c["source"] === "string";
+  return typeof c["id"] === "string" && typeof c["source"] === "string";
 }
 
 function extractIdentityAndRoom(
@@ -119,7 +119,7 @@ function extractIdentityAndRoom(
 ): { readonly identity: Identity; readonly room: RoomManifest | string } {
   if (isIdentity(first)) return { identity: first, room: second as RoomManifest | string };
   if (isIdentity(second)) return { identity: second, room: first as RoomManifest | string };
-  if (typeof second === "object" && second !== null && "id" in second && "verified" in second) {
+  if (typeof second === "object" && second !== null && "id" in second && "source" in second) {
     return { identity: second as unknown as Identity, room: first as RoomManifest | string };
   }
   return { identity: first as unknown as Identity, room: second as RoomManifest | string };

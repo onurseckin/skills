@@ -86,7 +86,27 @@ export const readCommand: CommandHandler = async (
 
     if (!jsonFlag) {
       for (const msg of filtered) {
-        process.stdout.write(`[${msg.seq}] <${msg.sender.id}> ${msg.text ?? ""}\n`);
+        const bodyData =
+          typeof msg.body === "object" &&
+          msg.body !== null &&
+          "data" in msg.body &&
+          typeof (msg.body as { data: unknown }).data === "object" &&
+          (msg.body as { data: unknown }).data !== null
+            ? (msg.body as { data: Record<string, unknown> }).data
+            : undefined;
+        const bodyText =
+          typeof bodyData?.["text"] === "string" ? (bodyData["text"] as string) : undefined;
+        const displayText = msg.text ?? bodyText;
+        if (
+          msg.kind === "message" &&
+          (displayText === undefined || displayText.trim().length === 0)
+        ) {
+          throw new ChatError(
+            "INVALID_STATE",
+            `Envelope ${msg.id} (seq ${msg.seq}) has empty displayable content`,
+          );
+        }
+        process.stdout.write(`[${msg.seq}] <${msg.sender.id}> ${displayText ?? ""}\n`);
       }
     }
 
@@ -140,7 +160,27 @@ export const readCommand: CommandHandler = async (
       );
     }
     for (const msg of leaseResult.messages) {
-      process.stdout.write(`[${msg.seq}] <${msg.sender.id}> ${msg.text ?? ""}\n`);
+      const bodyData =
+        typeof msg.body === "object" &&
+        msg.body !== null &&
+        "data" in msg.body &&
+        typeof (msg.body as { data: unknown }).data === "object" &&
+        (msg.body as { data: unknown }).data !== null
+          ? (msg.body as { data: Record<string, unknown> }).data
+          : undefined;
+      const bodyText =
+        typeof bodyData?.["text"] === "string" ? (bodyData["text"] as string) : undefined;
+      const displayText = msg.text ?? bodyText;
+      if (
+        msg.kind === "message" &&
+        (displayText === undefined || displayText.trim().length === 0)
+      ) {
+        throw new ChatError(
+          "INVALID_STATE",
+          `Envelope ${msg.id} (seq ${msg.seq}) has empty displayable content`,
+        );
+      }
+      process.stdout.write(`[${msg.seq}] <${msg.sender.id}> ${displayText ?? ""}\n`);
     }
   }
 

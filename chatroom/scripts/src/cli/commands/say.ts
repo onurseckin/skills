@@ -136,6 +136,12 @@ export const sayCommand: CommandHandler = async (
     kindFlag !== undefined && isEnvelopeKind(kindFlag) ? kindFlag : "message"
   ) as EnvelopeKind;
 
+  const payloadText =
+    payloadData !== undefined && typeof payloadData["text"] === "string"
+      ? (payloadData["text"] as string)
+      : undefined;
+  const resolvedText = text !== undefined ? text : payloadText;
+
   const envelope = appendMessage(roomFlag, {
     sender: {
       id: identity.id,
@@ -148,7 +154,7 @@ export const sayCommand: CommandHandler = async (
     ...(threadFlag !== undefined ? { thread: threadFlag } : {}),
     ...(replyToFlag !== undefined ? { reply_to: replyToFlag } : {}),
     ...(mentions.length > 0 ? { mentions } : {}),
-    ...(text !== undefined ? { text } : {}),
+    ...(resolvedText !== undefined ? { text: resolvedText } : {}),
     body: {
       schema,
       data: finalData,

@@ -1,7 +1,12 @@
 import { describe, expect, it } from "bun:test";
 import { readCommand, sayCommand } from "../../src/cli/commands/index.ts";
 import { type MemberRecord, type RoomManifest } from "../../src/core/index.ts";
-import { ChatError, resolveIdentity, type Identity } from "../../src/identity/index.ts";
+import {
+  ChatError,
+  resolveIdentity,
+  type Identity,
+  type IdentitySource,
+} from "../../src/identity/index.ts";
 import { assertMember, listMembers } from "../../src/room/index.ts";
 
 function createRoomManifest(id: string): RoomManifest {
@@ -31,10 +36,11 @@ describe("Defect D6: one identity path with strict send/read authorization equiv
     expect(caughtCode).toBe("IDENTITY_UNRESOLVED");
   });
 
-  it("ensures resolved identities always have verified: true", () => {
+  it("ensures resolved identities have valid IdentitySource and expected id", () => {
+    const validSources: readonly IdentitySource[] = ["explicit", "env", "binding", "repo_binding"];
     const ident = resolveIdentity({ as: "agent-alice" });
     expect(ident.id).toBe("agent-alice");
-    expect(ident.verified).toBe(true);
+    expect(validSources.includes(ident.source)).toBe(true);
     expect(ident.source).toBe("explicit");
   });
 
@@ -119,7 +125,6 @@ describe("Defect D6: one identity path with strict send/read authorization equiv
         role: "communicator",
         host: "local",
         source: "explicit",
-        verified: true,
       };
 
       let sendAuthorized = false;

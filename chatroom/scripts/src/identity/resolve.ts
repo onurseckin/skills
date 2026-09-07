@@ -10,7 +10,6 @@ export interface Identity {
   readonly host: string;
   readonly repo_hint?: string | undefined;
   readonly source: IdentitySource;
-  readonly verified: true;
 }
 
 export interface IdentityInput {
@@ -271,7 +270,6 @@ export function resolveIdentity(input: IdentityInput = {}): Identity {
       host: baseHost,
       repo_hint: repoHint,
       source: "explicit",
-      verified: true,
     };
   }
 
@@ -286,7 +284,6 @@ export function resolveIdentity(input: IdentityInput = {}): Identity {
       host: baseHost,
       repo_hint: repoHint,
       source: "env",
-      verified: true,
     };
   }
 
@@ -299,7 +296,6 @@ export function resolveIdentity(input: IdentityInput = {}): Identity {
       host: userBinding.host ?? baseHost,
       repo_hint: userBinding.repo ?? repoHint,
       source: "binding",
-      verified: true,
     };
   }
 
@@ -312,7 +308,6 @@ export function resolveIdentity(input: IdentityInput = {}): Identity {
       host: repoBinding.host ?? baseHost,
       repo_hint: repoBinding.repo ?? repoHint,
       source: "repo_binding",
-      verified: true,
     };
   }
 
