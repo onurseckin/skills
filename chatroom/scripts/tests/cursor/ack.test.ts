@@ -41,14 +41,15 @@ function createTestCursor(
 }
 
 describe("cursor ackLease and Confirmation validation", () => {
-  it("rejects flushed confirmation when drained is false with INVALID_ARGUMENT", () => {
+  it("rejects spooled confirmation when spool_path is empty with INVALID_ARGUMENT", () => {
     const now = new Date().toISOString();
     const cursor = createTestCursor("room-1", "reader-1", now);
     const confirmation: Confirmation = {
-      kind: "flushed",
+      kind: "spooled",
       at: now,
-      bytes: 1024,
-      drained: false,
+      spool_path: "",
+      spool_offset: 1024,
+      fsynced: true,
     };
 
     try {
@@ -58,7 +59,7 @@ describe("cursor ackLease and Confirmation validation", () => {
       expect(err instanceof ChatError).toBe(true);
       const chatErr = err as ChatError;
       expect(chatErr.code).toBe("INVALID_ARGUMENT");
-      expect(chatErr.message).toBe("flushed confirmation requires drained: true");
+      expect(chatErr.message).toBe("spooled confirmation requires non-empty spool_path");
     }
   });
 
@@ -84,14 +85,15 @@ describe("cursor ackLease and Confirmation validation", () => {
     }
   });
 
-  it("rejects flushed confirmation when drained is not a boolean", () => {
+  it("rejects spooled confirmation when spool_offset is negative", () => {
     const now = new Date().toISOString();
     const cursor = createTestCursor("room-1", "reader-1", now);
     const invalidConfirmation = {
-      kind: "flushed",
+      kind: "spooled",
       at: now,
-      bytes: 1024,
-      drained: "true",
+      spool_path: "/spool/test",
+      spool_offset: -1,
+      fsynced: true,
     } as unknown as Confirmation;
 
     try {
@@ -123,14 +125,15 @@ describe("cursor ackLease and Confirmation validation", () => {
     }
   });
 
-  it("succeeds for flushed confirmation when drained is true and advances contiguous_seq", () => {
+  it("succeeds for spooled confirmation with zero offset and advances contiguous_seq", () => {
     const now = new Date().toISOString();
     const cursor = createTestCursor("room-1", "reader-1", now);
     const confirmation: Confirmation = {
-      kind: "flushed",
+      kind: "spooled",
       at: now,
-      bytes: 1024,
-      drained: true,
+      spool_path: "/spool/reader-1.out.jsonl",
+      spool_offset: 0,
+      fsynced: true,
     };
 
     const updated = ackLease(cursor, "lease-1", 5, confirmation);
@@ -174,29 +177,23 @@ describe("cursor ackLease and Confirmation validation", () => {
     const now = new Date().toISOString();
     const cursor = createTestCursor("room-1", "reader-1", now);
 
-    expect(() =>
-      ackLease(cursor, "lease-1", 5, null as unknown as Confirmation),
-    ).toThrow(ChatError);
+    expect(() => ackLease(cursor, "lease-1", 5, null as unknown as Confirmation)).toThrow(
+      ChatError,
+    );
 
     expect(() =>
-      ackLease(
-        cursor,
-        "lease-1",
-        5,
-        { kind: "unknown", at: now } as unknown as Confirmation,
-      ),
+      ackLease(cursor, "lease-1", 5, { kind: "unknown", at: now } as unknown as Confirmation),
     ).toThrow(ChatError);
 
-    expect(() =>
-      ackLease(cursor, "lease-1", 5, { kind: "explicit", at: "" }),
-    ).toThrow(ChatError);
+    expect(() => ackLease(cursor, "lease-1", 5, { kind: "explicit", at: "" })).toThrow(ChatError);
 
     expect(() =>
       ackLease(cursor, "lease-1", 5, {
-        kind: "flushed",
-        at: now,
-        bytes: -5,
-        drained: true,
+        kind: "spooled",
+        at: "",
+        spool_path: "/valid/path",
+        spool_offset: 10,
+        fsynced: true,
       }),
     ).toThrow(ChatError);
 

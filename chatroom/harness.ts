@@ -32,10 +32,10 @@ export async function main(argv: readonly string[]): Promise<void> {
   const result = await executeCommand(argv);
   const isJson = argv.includes("--json");
 
-  if (!isJson && typeof result["markdown"] === "string") {
-    process.stdout.write(`${result["markdown"]}\n`);
-  } else {
+  if (isJson) {
     process.stdout.write(`${JSON.stringify(result)}\n`);
+  } else if (typeof result["markdown"] === "string" && result["markdown"].length > 0) {
+    process.stdout.write(`${result["markdown"]}\n`);
   }
 }
 

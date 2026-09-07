@@ -106,23 +106,9 @@ describe("Defect D2: stdout write returning true is never delivery", () => {
     expect(ackSource.includes('from "node:tty"')).toBe(false);
   });
 
-  it("requires drained: true on flushed and fsynced: true on spooled confirmations", () => {
+  it("requires fsynced: true on spooled confirmations", () => {
     const now = new Date().toISOString();
     const cursor = createCursor(now);
-
-    const drainedFalse: Confirmation = {
-      kind: "flushed",
-      at: now,
-      bytes: 1024,
-      drained: false,
-    };
-    try {
-      ackLease(cursor, "lease-d2", 2, drainedFalse);
-      expect.unreachable();
-    } catch (err) {
-      expect(err instanceof ChatError).toBe(true);
-      expect((err as ChatError).code).toBe("INVALID_ARGUMENT");
-    }
 
     const fsyncedFalse: Confirmation = {
       kind: "spooled",
@@ -139,15 +125,6 @@ describe("Defect D2: stdout write returning true is never delivery", () => {
       expect((err as ChatError).code).toBe("INVALID_ARGUMENT");
     }
 
-    const drainedTrue: Confirmation = {
-      kind: "flushed",
-      at: now,
-      bytes: 1024,
-      drained: true,
-    };
-    const flushedAdvanced = ackLease(cursor, "lease-d2", 2, drainedTrue);
-    expect(flushedAdvanced.contiguous_seq).toBe(2);
-
     const cursorForSpooled = createCursor(now);
     const fsyncedTrue: Confirmation = {
       kind: "spooled",
@@ -159,21 +136,23 @@ describe("Defect D2: stdout write returning true is never delivery", () => {
     const spooledAdvanced = ackLease(cursorForSpooled, "lease-d2", 2, fsyncedTrue);
     expect(spooledAdvanced.contiguous_seq).toBe(2);
 
-    const negativeBytesFlushed: Confirmation = {
-      kind: "flushed",
+    const negativeOffsetSpooled: Confirmation = {
+      kind: "spooled",
       at: now,
-      bytes: -1,
-      drained: true,
+      spool_path: "/spool/test.log",
+      spool_offset: -1,
+      fsynced: true,
     };
-    expect(() => ackLease(cursor, "lease-d2", 2, negativeBytesFlushed)).toThrow(ChatError);
+    expect(() => ackLease(cursor, "lease-d2", 2, negativeOffsetSpooled)).toThrow(ChatError);
 
-    const emptyTimestampFlushed: Confirmation = {
-      kind: "flushed",
+    const emptyTimestampSpooled: Confirmation = {
+      kind: "spooled",
       at: "",
-      bytes: 1024,
-      drained: true,
+      spool_path: "/spool/test.log",
+      spool_offset: 0,
+      fsynced: true,
     };
-    expect(() => ackLease(cursor, "lease-d2", 2, emptyTimestampFlushed)).toThrow(ChatError);
+    expect(() => ackLease(cursor, "lease-d2", 2, emptyTimestampSpooled)).toThrow(ChatError);
   });
 
   it("advances nothing when stdout write returns true without callback firing", async () => {
@@ -216,10 +195,11 @@ describe("Defect D2: stdout write returning true is never delivery", () => {
     expect(gateResult.bytes).toBe(Buffer.byteLength(payload, "utf-8"));
 
     const confirmation: Confirmation = {
-      kind: "flushed",
+      kind: "spooled",
       at: now,
-      bytes: gateResult.bytes,
-      drained: true,
+      spool_path: "/spool/test.log",
+      spool_offset: gateResult.bytes,
+      fsynced: true,
     };
     confirmationConstructed = true;
 

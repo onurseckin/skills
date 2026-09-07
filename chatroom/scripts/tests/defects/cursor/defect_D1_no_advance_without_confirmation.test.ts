@@ -61,9 +61,11 @@ describe("Defect D1: no cursor advance without confirmation", () => {
 
     expect(() =>
       ackModule.ackLease(cursor, "lease-1", 3, {
-        kind: "flushed",
+        kind: "spooled",
         at: now,
-        bytes: 50,
+        spool_path: "",
+        spool_offset: 10,
+        fsynced: true,
       } as unknown as Confirmation),
     ).toThrow(ChatError);
 

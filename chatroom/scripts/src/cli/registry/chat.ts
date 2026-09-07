@@ -19,6 +19,8 @@ import {
   type CommandSpec,
 } from "./types.ts";
 import { offSpec, onSpec } from "./policy.ts";
+import { taskSpec, topicSpec } from "./task.ts";
+import { mineSpec } from "./mine.ts";
 
 export const initSpec: CommandSpec = {
   name: "chat:init",
@@ -143,10 +145,7 @@ export const readSpec: CommandSpec = {
   readsStdin: false,
   takesRemainder: false,
   exitCodes: DEFAULT_EXIT_CODES,
-  examples: [
-    "chat:read --room build-review",
-    "chat:read --room build-review --wait 5000",
-  ],
+  examples: ["chat:read --room build-review", "chat:read --room build-review --wait 5000"],
   handler: readCommand,
 };
 
@@ -294,9 +293,14 @@ export const CHAT_COMMANDS: readonly CommandSpec[] = [
   inspectSpec,
   onSpec,
   offSpec,
+  taskSpec,
+  topicSpec,
+  mineSpec,
 ];
 
 export { offSpec, onSpec } from "./policy.ts";
+export { taskSpec, topicSpec } from "./task.ts";
+export { mineSpec } from "./mine.ts";
 
 export function allCommands(): readonly CommandSpec[] {
   return CHAT_COMMANDS;

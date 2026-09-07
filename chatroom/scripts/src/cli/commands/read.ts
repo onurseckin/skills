@@ -16,17 +16,21 @@ import {
   readerCursorPath,
   readerSpoolCursorPath,
   roomLogDir,
+  type Envelope,
 } from "../../core/index.ts";
 import { assertMember } from "../../room/index.ts";
 import { resolveIdentity } from "../../identity/index.ts";
 import {
+  ackLease,
   leaseNext,
   loadCursor,
   saveCursorCas,
   withReaderLock,
+  type Confirmation,
   type LeaseResult,
 } from "../../cursor/index.ts";
 import { ensureDaemon } from "../../daemon/index.ts";
+import { processAutoAcknowledge } from "../../work/index.ts";
 
 export const readCommand: CommandHandler = async (
   flags: Flags,
@@ -89,6 +93,14 @@ export const readCommand: CommandHandler = async (
     await delay(Math.min(100, waitMs));
   }
 
+  if (leaseResult.messages.length > 0) {
+    processAutoAcknowledge(
+      roomFlag,
+      readerId,
+      leaseResult.messages as unknown as readonly Envelope[],
+    );
+  }
+
   const result: Record<string, unknown> = {
     room: roomFlag,
     reader: readerId,
@@ -126,6 +138,18 @@ export const readCommand: CommandHandler = async (
       }
       process.stdout.write(`[${msg.seq}] <${msg.sender.id}> ${displayText ?? ""}\n`);
     }
+  }
+
+  if (leaseResult.leaseId !== null && leaseResult.messages.length > 0) {
+    const confirmation: Confirmation = {
+      kind: "explicit",
+      at: new Date().toISOString(),
+    };
+    withReaderLock(roomFlag, readerId, () => {
+      const { cursor, checksum } = loadCursor(cursorPath, { room: roomFlag, reader: readerId });
+      const updated = ackLease(cursor, leaseResult.leaseId!, null, confirmation);
+      saveCursorCas(cursorPath, updated, checksum);
+    });
   }
 
   return result;

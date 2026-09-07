@@ -32,10 +32,13 @@ export {
   inspectSpec,
   inviteSpec,
   joinSpec,
+  mineSpec,
   offSpec,
   onSpec,
   readSpec,
   roomsSpec,
   saySpec,
+  taskSpec,
+  topicSpec,
   watchSpec,
 } from "./chat.ts";

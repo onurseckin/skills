@@ -31,6 +31,7 @@ export interface AppendMessageInput {
   readonly reply_to?: string | null;
   readonly mentions?: readonly string[];
   readonly text?: string;
+  readonly ts?: string;
   readonly body: EnvelopeBody;
 }
 
@@ -70,7 +71,7 @@ export function appendMessage(
 
       const seq = index.next_seq;
       const id = randomUUID();
-      const ts = new Date().toISOString();
+      const ts = message.ts ?? new Date().toISOString();
       const keyFingerprint = computeFingerprint(keyToUse);
 
       const unsigned: UnsignedEnvelope = {

@@ -1,5 +1,4 @@
 import { afterAll, beforeEach, describe, expect, it, spyOn } from "bun:test";
-import { readFileSync as nodeReadFileSync } from "node:fs";
 import { CHAT_COMMANDS, findCommand, inspectCommand, inspectSpec } from "../../src/cli/index.ts";
 import { ChatError, type Envelope } from "../../src/core/index.ts";
 import { ChatVirtualFS } from "../../src/testing/virtual-fs/index.ts";
@@ -71,9 +70,9 @@ describe("inspectSpec and Derived Guard", () => {
     expect(findCommand("inspect")).toBe(inspectSpec);
   });
 
-  it("Derived Guard: inspect.ts does not import or reference cursor mutation or lock primitives", () => {
+  it("Derived Guard: inspect.ts does not import or reference cursor mutation or lock primitives", async () => {
     const inspectFilePath = new URL("../../src/cli/commands/inspect.ts", import.meta.url);
-    const source = nodeReadFileSync(inspectFilePath, "utf-8");
+    const source = await Bun.file(inspectFilePath).text();
 
     const forbidden = [
       "leaseNext",
@@ -183,7 +182,11 @@ describe("inspectCommand log inspection with ChatVirtualFS", () => {
   });
 
   afterAll(() => {
-    process.env.CHATROOM_HOME = previousChatroomHome;
+    if (previousChatroomHome === undefined) {
+      delete process.env.CHATROOM_HOME;
+    } else {
+      process.env.CHATROOM_HOME = previousChatroomHome;
+    }
     existsSpy.mockRestore();
     readSpy.mockRestore();
     readdirSpy.mockRestore();

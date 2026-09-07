@@ -39,6 +39,7 @@ export {
   inspectSpec,
   inviteSpec,
   joinSpec,
+  mineSpec,
   offSpec,
   onSpec,
   optionalFlag,
@@ -47,6 +48,8 @@ export {
   requiredFlag,
   roomsSpec,
   saySpec,
+  taskSpec,
+  topicSpec,
   watchSpec,
 } from "./registry/index.ts";
 export {
@@ -58,10 +61,13 @@ export {
   inspectCommand,
   inviteCommand,
   joinCommand,
+  mineCommand,
   offCommand,
   onCommand,
   readCommand,
   roomsCommand,
   sayCommand,
+  taskCommand,
+  topicCommand,
   watchCommand,
 } from "./commands/index.ts";

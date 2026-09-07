@@ -21,6 +21,8 @@ export {
   helpRequest,
   initCommand,
   initSpec,
+  inspectCommand,
+  inspectSpec,
   intFlag,
   integerFlag,
   inviteCommand,
@@ -28,6 +30,8 @@ export {
   joinCommand,
   joinSpec,
   listFlag,
+  mineCommand,
+  mineSpec,
   nearestFlagNames,
   offCommand,
   offSpec,
@@ -46,7 +50,11 @@ export {
   saySpec,
   suggestCommand,
   suggestFlag,
+  taskCommand,
+  taskSpec,
   textFlag,
+  topicCommand,
+  topicSpec,
   watchCommand,
   watchSpec,
 } from "./cli/index.ts";
@@ -68,3 +76,31 @@ export type {
   HelpRequest,
   ParsedArguments,
 } from "./cli/index.ts";
+
+export {
+  TASK_ACCEPTED_SCHEMA,
+  TASK_NEW_SCHEMA,
+  TASK_NOTE_SCHEMA,
+  TASK_STATUS_SCHEMA,
+  clearWorkItemsCache,
+  foldWorkItems,
+  generateTaskId,
+  getWorkCachePath,
+  loadWorkItems,
+  processAutoAcknowledge,
+  replayWorkItems,
+  scanMineRecovery,
+} from "./work/index.ts";
+
+export type {
+  ExtendedHealthPorts,
+  MineRecoveryReport,
+  TaskAcceptedPayload,
+  TaskNewPayload,
+  TaskNotePayload,
+  TaskStatusPayload,
+  WorkItem,
+  WorkItemNote,
+  WorkItemStatus,
+  WorkItemType,
+} from "./work/index.ts";

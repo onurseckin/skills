@@ -20,3 +20,11 @@ export { initCommand, inviteCommand, joinCommand, roomsCommand } from "./lifecyc
 export { inspectCommand } from "./inspect.ts";
 export { onCommand } from "./on.ts";
 export { offCommand } from "./off.ts";
+export {
+  chatMineCommand,
+  chatTaskCommand,
+  chatTopicCommand,
+  mineCommand,
+  taskCommand,
+  topicCommand,
+} from "./work/index.ts";

@@ -10,12 +10,6 @@ import {
 export type Confirmation =
   | { readonly kind: "explicit"; readonly at: string }
   | {
-      readonly kind: "flushed";
-      readonly at: string;
-      readonly bytes: number;
-      readonly drained: boolean;
-    }
-  | {
       readonly kind: "spooled";
       readonly at: string;
       readonly spool_path: string;
@@ -35,19 +29,6 @@ function validateConfirmation(confirmation: Confirmation): void {
   if (confirmation.kind === "explicit") {
     if (typeof confirmation.at !== "string" || confirmation.at.length === 0) {
       throw new ChatError("INVALID_ARGUMENT", "explicit confirmation requires non-empty at string");
-    }
-    return;
-  }
-
-  if (confirmation.kind === "flushed") {
-    if (typeof confirmation.at !== "string" || confirmation.at.length === 0) {
-      throw new ChatError("INVALID_ARGUMENT", "flushed confirmation requires non-empty at string");
-    }
-    if (typeof confirmation.bytes !== "number" || confirmation.bytes < 0) {
-      throw new ChatError("INVALID_ARGUMENT", "flushed confirmation requires non-negative bytes");
-    }
-    if (typeof confirmation.drained !== "boolean" || !confirmation.drained) {
-      throw new ChatError("INVALID_ARGUMENT", "flushed confirmation requires drained: true");
     }
     return;
   }
