@@ -6,7 +6,6 @@ import {
   mkdirSync,
   openSync,
   readFileSync,
-  statSync,
   unlinkSync,
   writeSync,
 } from "node:fs";
@@ -34,6 +33,7 @@ export interface SupervisorPorts {
   readonly readFileSync?: (path: string, encoding: string) => string;
   readonly writeFileSync?: (path: string, content: string) => void;
   readonly writeAtomic?: (path: string, content: string) => void;
+  readonly daemonRespawnPath?: (roomId: string, readerId: string) => string;
   readonly spawnDetached?: (
     cmd: string,
     args: readonly string[],
@@ -88,6 +88,16 @@ export function parseDaemonLockPayload(raw: string): LockPayload | null {
   }
 }
 
+function readLockPid(path: string): number | null {
+  try {
+    return existsSync(path)
+      ? (parseDaemonLockPayload(readFileSync(path, "utf8"))?.pid ?? null)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 function getRecentRespawnTimestamps(
   respawnPath: string,
   windowStart: number,
@@ -114,17 +124,21 @@ export function checkRespawnBudget(
   maxPerHour = 20,
   ports: SupervisorPorts = {},
 ): { readonly allowed: boolean; readonly count: number } {
-  const respawnPath = daemonRespawnPath(roomId, readerId);
+  const respawnPath =
+    ports.daemonRespawnPath?.(roomId, readerId) ?? daemonRespawnPath(roomId, readerId);
   const now = ports.now?.() ?? Date.now();
   const recent = getRecentRespawnTimestamps(respawnPath, now - 3600000, ports);
   return { allowed: recent.length < maxPerHour, count: recent.length };
 }
 
 export function recordRespawn(roomId: string, readerId: string, ports: SupervisorPorts = {}): void {
-  const respawnPath = daemonRespawnPath(roomId, readerId);
+  const respawnPath =
+    ports.daemonRespawnPath?.(roomId, readerId) ?? daemonRespawnPath(roomId, readerId);
   const now = ports.now?.() ?? Date.now();
-  const recent = getRecentRespawnTimestamps(respawnPath, now - 3600000, ports);
-  recent.push(new Date(now).toISOString());
+  const recent = [
+    ...getRecentRespawnTimestamps(respawnPath, now - 3600000, ports),
+    new Date(now).toISOString(),
+  ];
   const writeFn = ports.writeAtomic ?? ports.writeFileSync ?? writeAtomic;
   writeFn(respawnPath, JSON.stringify({ timestamps: recent }, null, 2) + "\n");
 }
@@ -132,21 +146,21 @@ export function recordRespawn(roomId: string, readerId: string, ports: Superviso
 export function reclaimStaleLock(
   roomId: string,
   readerId: string,
-  priorPayload: LockPayload,
+  prior: LockPayload,
   reason: string,
   evidence: string,
   ports: SupervisorPorts = {},
 ): void {
   const reclaimed_at = new Date(ports.now?.() ?? Date.now()).toISOString();
-  const entry = {
+  const data = {
     reclaimed_at,
-    prior_pid: priorPayload.pid,
-    prior_start_time: priorPayload.start_time,
-    prior_boot_id: priorPayload.boot_id,
+    prior_pid: prior.pid,
+    prior_start_time: prior.start_time,
+    prior_boot_id: prior.boot_id,
     reason,
     evidence,
   };
-  appendAtomic(daemonReclaimPath(roomId, readerId), JSON.stringify(entry) + "\n");
+  appendAtomic(daemonReclaimPath(roomId, readerId), JSON.stringify(data) + "\n");
   releaseDaemonLock(roomId, readerId, null);
 }
 
@@ -155,16 +169,13 @@ export function acquireDaemonLock(
   readerId: string,
   host: string = "unknown",
   ports: SupervisorPorts = {},
-  policy?: ChatroomPolicy,
+  _policy?: ChatroomPolicy,
 ): LockAcquisitionResult {
   const lockPath = daemonLockPath(roomId, readerId);
-  const healthPath = daemonHealthPath(roomId, readerId);
   const now = ports.now?.() ?? Date.now();
   const nowIso = new Date(now).toISOString();
   const checkAlive = ports.isProcessAlive ?? isProcessAlive;
   const bootId = ports.getBootId?.() ?? getSystemBootId();
-  const staleThreshold = policy?.stale_after_ms ?? 30000;
-  const heartbeatInterval = policy?.heartbeat_interval_ms ?? 5000;
 
   mkdirSync(dirname(lockPath), { recursive: true });
 
@@ -177,26 +188,20 @@ export function acquireDaemonLock(
     if (existingPayload !== null) {
       if (checkAlive(existingPayload.pid)) {
         const isReused =
-          (existingPayload.boot_id && existingPayload.boot_id !== bootId) ||
-          (ports.getStartTime &&
+          Boolean(existingPayload.boot_id && existingPayload.boot_id !== bootId) ||
+          Boolean(
+            ports.getStartTime &&
             existingPayload.start_time &&
             ports.getStartTime(existingPayload.pid) !== undefined &&
-            ports.getStartTime(existingPayload.pid) !== existingPayload.start_time);
+            ports.getStartTime(existingPayload.pid) !== existingPayload.start_time,
+          );
 
-        const health = readHealthRecord(healthPath);
-        const lastWake = health ? Date.parse(health.last_wake_at) : NaN;
-        const isHeartbeatStale = !Number.isNaN(lastWake) && now - lastWake > heartbeatInterval * 2;
-        let lockMtimeStale = false;
-        try {
-          if (now - statSync(lockPath).mtimeMs > staleThreshold) lockMtimeStale = true;
-        } catch {}
-
-        if ((isReused || isHeartbeatStale) && lockMtimeStale) {
+        if (isReused) {
           reclaimStaleLock(
             roomId,
             readerId,
             existingPayload,
-            isReused ? "pid_reused" : "heartbeat_stale",
+            "pid_reused",
             "stale lock holder",
             ports,
           );
@@ -235,12 +240,13 @@ export function acquireDaemonLock(
         ? (error as { readonly code?: string }).code
         : undefined;
     if (code === "EEXIST") {
-      let holderPid: number | null = null;
-      try {
-        const payload = parseDaemonLockPayload(readFileSync(lockPath, "utf8"));
-        if (payload) holderPid = payload.pid;
-      } catch {}
-      return { acquired: false, lockFd: null, lockPath, holderPid, reason: "already_running" };
+      return {
+        acquired: false,
+        lockFd: null,
+        lockPath,
+        holderPid: readLockPid(lockPath),
+        reason: "already_running",
+      };
     }
     throw error;
   }
@@ -269,8 +275,7 @@ export function releaseDaemonLock(roomId: string, readerId: string, lockFd: numb
     if (lockFd !== null) closeSync(lockFd);
   } catch {}
   try {
-    const lockPath = daemonLockPath(roomId, readerId);
-    if (existsSync(lockPath)) unlinkSync(lockPath);
+    unlinkSync(daemonLockPath(roomId, readerId));
   } catch {}
 }
 
@@ -286,15 +291,9 @@ export function startDaemon(options: SupervisorOptions): SupervisorResult {
     return { status: "already_running", pid: existingHealth.pid, already_running: true };
   }
 
-  const lockCheck = daemonLockPath(room, reader);
-  if (existsSync(lockCheck)) {
-    let payload: LockPayload | null = null;
-    try {
-      payload = parseDaemonLockPayload(readFileSync(lockCheck, "utf8"));
-    } catch {}
-    if (payload !== null && checkAlive(payload.pid)) {
-      return { status: "already_running", pid: payload.pid, already_running: true };
-    }
+  const lockPid = readLockPid(daemonLockPath(room, reader));
+  if (lockPid !== null && checkAlive(lockPid)) {
+    return { status: "already_running", pid: lockPid, already_running: true };
   }
 
   const budget = checkRespawnBudget(room, reader, resolved.respawn_budget_per_hour, ports);
@@ -360,16 +359,8 @@ export function startDaemon(options: SupervisorOptions): SupervisorResult {
 export function stopDaemon(options: SupervisorOptions): SupervisorResult {
   const { room, reader } = options;
   const ports = options.ports ?? {};
-  const lockPath = daemonLockPath(room, reader);
   const checkAlive = ports.isProcessAlive ?? isProcessAlive;
-
-  let pid: number | null = null;
-  if (existsSync(lockPath)) {
-    try {
-      const payload = parseDaemonLockPayload(readFileSync(lockPath, "utf8"));
-      if (payload) pid = payload.pid;
-    } catch {}
-  }
+  const pid = readLockPid(daemonLockPath(room, reader));
 
   const hPath = daemonHealthPath(room, reader);
   const existingHealth = readHealthRecord(hPath, ports);

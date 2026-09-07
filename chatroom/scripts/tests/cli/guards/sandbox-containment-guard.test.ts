@@ -8,9 +8,38 @@ const mockOs = await import("node:os");
 describe("Sandbox Containment Guard", () => {
   it("ensures no orphan directories exist in live user rooms directory", () => {
     const liveRoomsDir = join(mockOs.homedir(), ".agents", "chatroom", "rooms");
-    const orphanRooms = ["default", "integ-room", "room-1", "test-room"];
-    for (const orphan of orphanRooms) {
-      expect(mockFs.existsSync(join(liveRoomsDir, orphan))).toBe(false);
+    if (!mockFs.existsSync(liveRoomsDir)) return;
+    const entries = mockFs.readdirSync(liveRoomsDir);
+    for (const entry of entries) {
+      const fullPath = join(liveRoomsDir, entry);
+      let isDir = false;
+      try {
+        isDir = mockFs.statSync(fullPath).isDirectory();
+      } catch {
+        continue;
+      }
+      if (!isDir) continue;
+
+      const isTestRoom =
+        entry.startsWith("test-") ||
+        entry.startsWith("integ-") ||
+        entry.startsWith("room-") ||
+        entry.startsWith("sandbox-") ||
+        entry === "default";
+      expect(isTestRoom).toBe(false);
+
+      const manifestPath = join(fullPath, "room.json");
+      expect(mockFs.existsSync(manifestPath)).toBe(true);
+
+      let parsed: Record<string, unknown> | null = null;
+      try {
+        parsed = JSON.parse(mockFs.readFileSync(manifestPath, "utf8")) as Record<string, unknown>;
+      } catch {
+        parsed = null;
+      }
+      expect(parsed !== null && typeof parsed === "object").toBe(true);
+      expect(parsed?.id).toBe(entry);
+      expect(parsed?.v).toBe(1);
     }
   });
 

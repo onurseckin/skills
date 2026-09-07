@@ -1,5 +1,14 @@
-import { describe, expect, it } from "bun:test";
-import { dirname } from "node:path";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { dirname, join } from "node:path";
+
+const mockOs = await import("node:os");
+const mockFs = await import("node:fs");
+
+const tempHome = join(
+  mockOs.tmpdir(),
+  "chat-test-" + Date.now() + "-" + Math.random().toString(36).slice(2),
+);
+const prevHome = process.env.CHATROOM_HOME;
 import { ChatError } from "../../src/core/index.ts";
 import {
   claimHealthRecord,
@@ -37,6 +46,22 @@ function makePorts(vfs: ChatVirtualFS): HealthPorts {
 }
 
 describe("Health record write protection and honest ownership", () => {
+  beforeAll(() => {
+    mockFs.mkdirSync(tempHome, { recursive: true });
+    process.env.CHATROOM_HOME = tempHome;
+  });
+
+  afterAll(() => {
+    if (prevHome === undefined) {
+      delete process.env.CHATROOM_HOME;
+    } else {
+      process.env.CHATROOM_HOME = prevHome;
+    }
+    if (mockFs.existsSync(tempHome)) {
+      mockFs.rmSync(tempHome, { recursive: true, force: true });
+    }
+  });
+
   it("rejects non-owner writes with PERMISSION_DENIED when incumbent PID is alive", () => {
     const vfs = new ChatVirtualFS(Date.parse(NOW_ISO));
     const ports = makePorts(vfs);
@@ -171,6 +196,8 @@ describe("Health record write protection and honest ownership", () => {
       ports: {
         isProcessAlive: (pid: number) => vfs.isProcessAlive(pid),
         spawnDetached: () => null,
+        daemonRespawnPath: (r: string, rd: string) =>
+          join(tempHome, "rooms", r, "daemon", `${rd}.respawn.json`),
       },
     });
 

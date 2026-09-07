@@ -343,7 +343,7 @@ export async function runDaemonLoop(options: DaemonLoopOptions): Promise<void> {
     start: async (controller) => {
       const onWake = async (source: WakeSource, tokenChanged: boolean): Promise<void> => {
         if (!controller.isRunning()) return;
-        if (!existsFn(rDir)) {
+        if (!existsFn(rDir) || !existsFn(roomManifestPath(room))) {
           controller.stop();
           return;
         }
@@ -353,7 +353,7 @@ export async function runDaemonLoop(options: DaemonLoopOptions): Promise<void> {
         }
         let remaining = 1;
         while (remaining > 0 && controller.isRunning()) {
-          if (!existsFn(rDir)) {
+          if (!existsFn(rDir) || !existsFn(roomManifestPath(room))) {
             controller.stop();
             return;
           }

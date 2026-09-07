@@ -1,7 +1,12 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { resolveActiveConsumerCursorPath } from "../core/index.ts";
-import { computeDaemonState, readHealthRecord, type DaemonLivenessState } from "../daemon/index.ts";
+import {
+  computeDaemonState,
+  parseDaemonLockPayload,
+  readHealthRecord,
+  type DaemonLivenessState,
+} from "../daemon/index.ts";
 import {
   checkProcessAlive,
   inspectLocks,
@@ -276,6 +281,22 @@ export function inspectRoom(room: string, options: DoctorInspectOptions = {}): R
   const provisioningDrift = driftedProvisions.length > 0;
   if (provisioningDrift) issues.push(`Provisioning drift: ${driftedProvisions.join(", ")}`);
   for (const r of readers) {
+    const hp = join(roomDir, "daemon", `${r.reader}.health.json`);
+    const lp = join(roomDir, "locks", "daemon", `${r.reader}.lock`);
+    if (existsSync(hp) && existsSync(lp)) {
+      const health = readHealthRecord(hp);
+      let lockPid: number | null = null;
+      try {
+        const payload = parseDaemonLockPayload(readFileSync(lp, "utf-8"));
+        if (payload) lockPid = payload.pid;
+      } catch {}
+      const healthPid = health !== null ? health.pid : null;
+      if (lockPid !== null && healthPid !== null && lockPid !== healthPid && aliveCheck(lockPid)) {
+        issues.push(
+          "daemon lock PID " + lockPid + " disagrees with health record PID " + healthPid,
+        );
+      }
+    }
     if (r.expired_leases.length > 0)
       issues.push(`Reader ${r.reader} has ${r.expired_leases.length} expired lease(s)`);
     if (r.daemon_state === "STOPPED") issues.push(`Reader ${r.reader} daemon is STOPPED`);
