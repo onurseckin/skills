@@ -58,6 +58,16 @@ import {
   type GuardedRemoveOptions,
   type SmartEnsureSymlinkOptions,
 } from "./fs-helpers.ts";
+import {
+  assertInsideMirrorRoot,
+  collectStalePaths,
+  formatPruneReport,
+  isPreservedEntry,
+  pruneMirror,
+  PRESERVED_MIRROR_ENTRIES,
+  type PruneMirrorOptions,
+  type PruneMirrorResult,
+} from "./prune.ts";
 
 export {
   deployCanonicalSkill,
@@ -122,8 +132,20 @@ export {
   type SmartEnsureSymlinkOptions,
 };
 
+export {
+  assertInsideMirrorRoot,
+  collectStalePaths,
+  formatPruneReport,
+  isPreservedEntry,
+  pruneMirror,
+  PRESERVED_MIRROR_ENTRIES,
+  type PruneMirrorOptions,
+  type PruneMirrorResult,
+};
+
 export interface SyncOptions extends DeploySkillOptions, EnsureBinaryOptions, EnsureShellRcOptions {
   silent?: boolean | undefined;
+  prune?: boolean | undefined;
 }
 
 export interface SyncSummary {
@@ -132,6 +154,7 @@ export interface SyncSummary {
   shell: EnsureShellRcResult;
   skills?: Record<string, DeploySkillResult> | undefined;
   binaries?: Record<string, EnsureBinaryResult> | undefined;
+  prune?: Record<string, PruneMirrorResult> | undefined;
 }
 
 export const GLOBAL_SYNC_GEN5 = true;
@@ -169,6 +192,29 @@ export function ensureDefectRoutingDeployment(targetOlt: string, sourceRepoRoot:
   } catch {}
 }
 
+export interface MirrorPruneTarget {
+  readonly skillName: string;
+  readonly sourceDir: string;
+  readonly mirrorDir: string;
+}
+
+export function pruneDeployedMirrors(
+  targets: readonly MirrorPruneTarget[],
+  apply: boolean,
+): Record<string, PruneMirrorResult> {
+  const results: Record<string, PruneMirrorResult> = {};
+  for (const target of targets) {
+    results[target.skillName] = pruneMirror({
+      sourceDir: target.sourceDir,
+      mirrorDir: target.mirrorDir,
+      mirrorRoot: target.mirrorDir,
+      apply,
+      onAudit: logDestructiveOp,
+    });
+  }
+  return results;
+}
+
 export async function runSync(options?: SyncOptions): Promise<SyncSummary> {
   const sourceRepoRoot = orDefault(options?.sourceRepoRoot, process.cwd());
   const home = orDefault(options?.homeDir, process.env.HOME || homedir());
@@ -196,6 +242,16 @@ export async function runSync(options?: SyncOptions): Promise<SyncSummary> {
       }
     }
     ensureDefectRoutingDeployment(targetOlt, sourceRepoRoot);
+    const pruneResults = pruneDeployedMirrors(
+      [
+        { skillName: "olt", sourceDir: sourceOlt, mirrorDir: targetOlt },
+        { skillName: "chatroom", sourceDir: sourceChatroom, mirrorDir: targetChatroom },
+      ],
+      options?.prune === true,
+    );
+    if (!options?.silent) {
+      console.log(formatPruneReport(Object.values(pruneResults)));
+    }
     const oltBinaryResult = ensureGlobalOltBinary({ ...options, homeDir: home });
     const chatBinaryResult = ensureGlobalChatBinary({ ...options, homeDir: home });
     const shellResult = ensurePathInShellRc({ ...options, homeDir: home });
@@ -235,6 +291,7 @@ export async function runSync(options?: SyncOptions): Promise<SyncSummary> {
         olt: oltBinaryResult,
         chat: chatBinaryResult,
       },
+      prune: pruneResults,
     };
   } catch (error) {
     if (allTransactions.length > 0) {
@@ -260,7 +317,8 @@ export async function main(
   options?: Partial<SyncOptions>,
 ): Promise<void> {
   const allowDirty = argv.includes("--allow-dirty") || (options?.allowDirty ?? false);
-  await runSync({ ...options, allowDirty });
+  const prune = argv.includes("--prune") || (options?.prune ?? false);
+  await runSync({ ...options, allowDirty, prune });
 }
 
 if (computeIsMain()) {
