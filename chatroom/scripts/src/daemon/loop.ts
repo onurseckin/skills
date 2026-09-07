@@ -215,16 +215,13 @@ export function stepDaemonLoop(
       spoolPath = appendRes.spoolPath;
     }
 
-    const confirmation: Confirmation =
-      validEnvelopes.length > 0
-        ? {
-            kind: "spooled",
-            at: nowIso,
-            spool_path: spoolPath,
-            spool_offset: spoolOffset,
-            fsynced: true,
-          }
-        : { kind: "explicit", at: nowIso };
+    const confirmation: Confirmation = {
+      kind: "spooled",
+      at: nowIso,
+      spool_path: spoolPath,
+      spool_offset: spoolOffset,
+      fsynced: true,
+    };
 
     const ackedCursor: ReaderCursor =
       validEnvelopes.length > 0 && lastContiguousVerifiedSeq !== null

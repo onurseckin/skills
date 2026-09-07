@@ -98,6 +98,7 @@ export interface ReaderCursor {
   readonly held: readonly HeldLease[];
   readonly acked_above: readonly number[];
   readonly last_ack_at: string | null;
+  readonly last_ack_kind: "spooled" | "explicit" | null;
   readonly updated_at: string;
   readonly checksum: string;
 }
@@ -301,6 +302,13 @@ export function isReaderCursor(value: unknown): value is ReaderCursor {
   if (!Array.isArray(value.acked_above) || !value.acked_above.every(isPositiveInteger))
     return false;
   if (value.last_ack_at !== null && !isString(value.last_ack_at)) return false;
+  if (
+    value.last_ack_kind !== undefined &&
+    value.last_ack_kind !== null &&
+    value.last_ack_kind !== "spooled" &&
+    value.last_ack_kind !== "explicit"
+  )
+    return false;
   if (!isString(value.updated_at) || value.updated_at.length === 0) return false;
   if (!isString(value.checksum) || value.checksum.length === 0) return false;
   return true;

@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { daemonHealthPath, isProcessAlive, writeAtomic } from "../core/index.ts";
+import { daemonHealthPath, isProcessAlive, readerCursorPath, writeAtomic } from "../core/index.ts";
 
 export type DaemonLivenessState = "LIVE" | "IDLE" | "BACKPRESSURED" | "WEDGED" | "STOPPED";
 
@@ -36,6 +36,11 @@ export interface DaemonHealthRecord {
   readonly updated_at?: string;
 }
 
+export type CursorAckProvenance = {
+  readonly last_ack_at: string | null;
+  readonly last_ack_kind: "spooled" | "explicit" | null;
+};
+
 export interface HealthComputeOptions {
   readonly wedgeAfterMs?: number;
   readonly heartbeatIntervalMs?: number;
@@ -43,73 +48,64 @@ export interface HealthComputeOptions {
   readonly lagStuckSinceMs?: number | null;
   readonly isExplicitlyStopped?: boolean;
   readonly isBackpressured?: boolean;
+  readonly cursor?: CursorAckProvenance | null;
+}
+
+export function deriveConsumerLastAckAt(
+  cursor?: CursorAckProvenance | null,
+  existingAckAt: string | null = null,
+): string | null {
+  if (!cursor || cursor.last_ack_kind !== "explicit") return existingAckAt;
+  return cursor.last_ack_at;
 }
 
 export function isDaemonHealthRecord(value: unknown): value is DaemonHealthRecord {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const c = value as Record<string, unknown>;
+  if (c.v !== 1) return false;
+  if (typeof c.room !== "string" || c.room.length === 0) return false;
+  if (typeof c.reader !== "string" || c.reader.length === 0) return false;
+  if (typeof c.pid !== "number" || !Number.isInteger(c.pid)) return false;
+  if (typeof c.start_time !== "string" || typeof c.boot_id !== "string") return false;
+  const s = c.state;
+  if (s !== "LIVE" && s !== "IDLE" && s !== "BACKPRESSURED" && s !== "WEDGED" && s !== "STOPPED")
     return false;
-  }
-  const candidate = value as Record<string, unknown>;
-  if (candidate.v !== 1) return false;
-  if (typeof candidate.room !== "string" || candidate.room.length === 0) return false;
-  if (typeof candidate.reader !== "string" || candidate.reader.length === 0) return false;
-  if (typeof candidate.pid !== "number" || !Number.isInteger(candidate.pid)) return false;
-  if (typeof candidate.start_time !== "string") return false;
-  if (typeof candidate.boot_id !== "string") return false;
+  if (typeof c.last_wake_at !== "string" || typeof c.last_wake_source !== "string") return false;
   if (
-    candidate.state !== "LIVE" &&
-    candidate.state !== "IDLE" &&
-    candidate.state !== "BACKPRESSURED" &&
-    candidate.state !== "WEDGED" &&
-    candidate.state !== "STOPPED"
-  ) {
+    typeof c.last_delivered_seq !== "number" ||
+    typeof c.room_head_seq !== "number" ||
+    typeof c.lag_seqs !== "number"
+  )
     return false;
-  }
-  if (typeof candidate.last_wake_at !== "string") return false;
-  if (typeof candidate.last_wake_source !== "string") return false;
-  if (typeof candidate.last_delivered_seq !== "number") return false;
-  if (typeof candidate.room_head_seq !== "number") return false;
-  if (typeof candidate.lag_seqs !== "number") return false;
-  if (typeof candidate.watch_active !== "boolean") return false;
-  if (typeof candidate.watch_failures !== "number") return false;
-  if (typeof candidate.poll_interval_ms !== "number") return false;
-  if (candidate.wakes_by_source !== undefined) {
+  if (
+    typeof c.watch_active !== "boolean" ||
+    typeof c.watch_failures !== "number" ||
+    typeof c.poll_interval_ms !== "number"
+  )
+    return false;
+  if (c.wakes_by_source !== undefined) {
     if (
-      typeof candidate.wakes_by_source !== "object" ||
-      candidate.wakes_by_source === null ||
-      Array.isArray(candidate.wakes_by_source)
-    ) {
+      typeof c.wakes_by_source !== "object" ||
+      c.wakes_by_source === null ||
+      Array.isArray(c.wakes_by_source)
+    )
       return false;
-    }
-    const w = candidate.wakes_by_source as Record<string, unknown>;
+    const w = c.wakes_by_source as Record<string, unknown>;
     if (
       typeof w.watch !== "number" ||
       typeof w.poll !== "number" ||
       typeof w.tick !== "number" ||
       typeof w.token !== "number"
-    ) {
+    )
       return false;
-    }
   }
-  if (typeof candidate.spool_bytes !== "number") return false;
-  if (typeof candidate.spool_lines !== "number") return false;
-  if (
-    candidate.consumer_last_ack_at !== null &&
-    typeof candidate.consumer_last_ack_at !== "string"
-  ) {
+  if (typeof c.spool_bytes !== "number" || typeof c.spool_lines !== "number") return false;
+  if (c.consumer_last_ack_at !== null && typeof c.consumer_last_ack_at !== "string") return false;
+  const seq = c.consumer_last_delivered_seq;
+  if (seq !== undefined && seq !== null && typeof seq !== "number") return false;
+  if (typeof c.consumer_lag_ms !== "number" || typeof c.respawns_this_hour !== "number")
     return false;
-  }
-  if (
-    candidate.consumer_last_delivered_seq !== undefined &&
-    candidate.consumer_last_delivered_seq !== null &&
-    typeof candidate.consumer_last_delivered_seq !== "number"
-  ) {
-    return false;
-  }
-  if (typeof candidate.consumer_lag_ms !== "number") return false;
-  if (typeof candidate.respawns_this_hour !== "number") return false;
-  if (!Array.isArray(candidate.errors_recent)) return false;
-  return true;
+  return Array.isArray(c.errors_recent);
 }
 
 export interface HealthPorts {
@@ -126,16 +122,10 @@ export function readHealthRecord(
 ): DaemonHealthRecord | null {
   const existsFn = ports?.existsSync ?? existsSync;
   const readFn = ports?.readFileSync ?? readFileSync;
-  if (!existsFn(healthPath)) {
-    return null;
-  }
+  if (!existsFn(healthPath)) return null;
   try {
-    const raw = readFn(healthPath, "utf8");
-    const parsed: unknown = JSON.parse(raw);
-    if (isDaemonHealthRecord(parsed)) {
-      return parsed;
-    }
-    return null;
+    const parsed: unknown = JSON.parse(readFn(healthPath, "utf8"));
+    return isDaemonHealthRecord(parsed) ? parsed : null;
   } catch {
     return null;
   }
@@ -153,8 +143,7 @@ export function writeHealthRecord(
     ((target: string, content: string) => writeAtomic(target, content, { mode: 0o644 }));
   writeFn(healthPath, serialized);
   try {
-    const heartbeatPath = join(dirname(healthPath), "heartbeat.json");
-    writeFn(heartbeatPath, serialized);
+    writeFn(join(dirname(healthPath), "heartbeat.json"), serialized);
   } catch {}
 }
 
@@ -163,39 +152,20 @@ export function computeDaemonState(
   nowMs: number,
   options: HealthComputeOptions = {},
 ): DaemonLivenessState {
-  if (options.isExplicitlyStopped) {
-    return "STOPPED";
-  }
-
+  if (options.isExplicitlyStopped) return "STOPPED";
   const checkAlive = options.isProcessAlive ?? isProcessAlive;
-  if (!checkAlive(record.pid)) {
-    return "STOPPED";
-  }
-
+  if (!checkAlive(record.pid)) return "STOPPED";
   const heartbeatIntervalMs = options.heartbeatIntervalMs ?? 5000;
   const lastWakeMs = Date.parse(record.last_wake_at);
-  if (!Number.isNaN(lastWakeMs) && nowMs - lastWakeMs > heartbeatIntervalMs * 2) {
-    return "STOPPED";
-  }
-
-  if (options.isBackpressured || record.state === "BACKPRESSURED") {
-    return "BACKPRESSURED";
-  }
-
+  if (!Number.isNaN(lastWakeMs) && nowMs - lastWakeMs > heartbeatIntervalMs * 2) return "STOPPED";
+  if (options.isBackpressured || record.state === "BACKPRESSURED") return "BACKPRESSURED";
   if (record.lag_seqs > 0) {
     const wedgeAfterMs = options.wedgeAfterMs ?? 60000;
     const stuckSince = options.lagStuckSinceMs ?? lastWakeMs;
-    if (!Number.isNaN(stuckSince) && nowMs - stuckSince > wedgeAfterMs) {
-      return "WEDGED";
-    }
+    if (!Number.isNaN(stuckSince) && nowMs - stuckSince > wedgeAfterMs) return "WEDGED";
     return "LIVE";
   }
-
-  if (record.room_head_seq === record.last_delivered_seq) {
-    return "IDLE";
-  }
-
-  return "LIVE";
+  return record.room_head_seq === record.last_delivered_seq ? "IDLE" : "LIVE";
 }
 
 export function writeDerivedHealthRecord(
@@ -205,10 +175,15 @@ export function writeDerivedHealthRecord(
   options: HealthComputeOptions = {},
   ports?: HealthPorts,
 ): DaemonHealthRecord {
+  const consumerLastAckAt =
+    options.cursor !== undefined
+      ? deriveConsumerLastAckAt(options.cursor, record.consumer_last_ack_at)
+      : record.consumer_last_ack_at;
   const derived: DaemonHealthRecord = {
     ...record,
     state: computeDaemonState(record, nowMs, options),
     wakes_by_source: record.wakes_by_source ?? { watch: 0, poll: 0, tick: 0, token: 0 },
+    consumer_last_ack_at: consumerLastAckAt,
   };
   writeHealthRecord(healthPath, derived, ports);
   return derived;
@@ -266,9 +241,7 @@ export function isHealthRecordOwnerStale(
   pid: number,
   checkAlive: (candidate: number) => boolean,
 ): boolean {
-  if (record.pid === pid) {
-    return false;
-  }
+  if (record.pid === pid) return false;
   return !checkAlive(record.pid);
 }
 
@@ -327,6 +300,7 @@ export interface HealthSyncInput {
   readonly claim: HealthClaimOptions;
   readonly compute?: HealthComputeOptions;
   readonly ports?: HealthPorts;
+  readonly cursor?: CursorAckProvenance | null;
 }
 
 export function syncDaemonHealth(input: HealthSyncInput): DaemonHealthRecord | null {
@@ -335,6 +309,29 @@ export function syncDaemonHealth(input: HealthSyncInput): DaemonHealthRecord | n
   if (existing === null) {
     return null;
   }
+  let cursorToUse = input.cursor ?? input.compute?.cursor;
+  if (cursorToUse === undefined) {
+    const cPath = readerCursorPath(input.claim.room, input.claim.reader);
+    const existsFn = input.ports?.existsSync ?? existsSync;
+    const readFn = input.ports?.readFileSync ?? readFileSync;
+    if (existsFn(cPath)) {
+      try {
+        const raw = readFn(cPath, "utf8");
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          const kind =
+            parsed.last_ack_kind === "explicit" || parsed.last_ack_kind === "spooled"
+              ? parsed.last_ack_kind
+              : null;
+          cursorToUse = {
+            last_ack_at: typeof parsed.last_ack_at === "string" ? parsed.last_ack_at : null,
+            last_ack_kind: kind,
+          };
+        }
+      } catch {}
+    }
+  }
+  const consumerLastAckAt = deriveConsumerLastAckAt(cursorToUse, existing.consumer_last_ack_at);
   const merged: DaemonHealthRecord = {
     ...existing,
     watch_active: input.metrics.watch_active,
@@ -342,6 +339,7 @@ export function syncDaemonHealth(input: HealthSyncInput): DaemonHealthRecord | n
     poll_interval_ms: input.metrics.poll_interval_ms,
     wakes_by_source: input.metrics.wakes_by_source ??
       existing.wakes_by_source ?? { watch: 0, poll: 0, tick: 0, token: 0 },
+    consumer_last_ack_at: consumerLastAckAt,
     updated_at: input.nowIso,
     ...(input.source !== undefined
       ? { last_wake_at: input.nowIso, last_wake_source: input.source }
@@ -351,7 +349,7 @@ export function syncDaemonHealth(input: HealthSyncInput): DaemonHealthRecord | n
     input.healthPath,
     merged,
     Date.parse(input.nowIso),
-    input.compute ?? {},
+    { ...input.compute, ...(cursorToUse !== undefined ? { cursor: cursorToUse } : {}) },
     input.ports,
   );
 }

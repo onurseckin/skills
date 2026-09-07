@@ -153,6 +153,7 @@ export function ackLease(
     held: updatedHeld,
     acked_above: nextAckedAbove,
     last_ack_at: confirmation.at,
+    last_ack_kind: confirmation.kind,
     updated_at: now,
   };
 

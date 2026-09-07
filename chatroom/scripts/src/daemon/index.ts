@@ -69,6 +69,7 @@ export {
 export {
   claimHealthRecord,
   createInitialHealthRecord,
+  deriveConsumerLastAckAt,
   inspectDaemon,
   isDaemonHealthRecord,
   isHealthRecordOwnerStale,

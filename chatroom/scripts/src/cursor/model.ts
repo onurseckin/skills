@@ -20,6 +20,7 @@ export interface ReaderCursor {
   readonly held: readonly HeldLease[];
   readonly acked_above: readonly number[];
   readonly last_ack_at: string | null;
+  readonly last_ack_kind: "spooled" | "explicit" | null;
   readonly updated_at: string;
   readonly checksum: string;
 }
@@ -39,6 +40,9 @@ export function computeCursorChecksum(
     last_ack_at: cursor.last_ack_at,
     updated_at: cursor.updated_at,
   };
+  if (cursor.last_ack_kind !== undefined && cursor.last_ack_kind !== null) {
+    payload.last_ack_kind = cursor.last_ack_kind;
+  }
   const canonical = canonicalJson(payload);
   const digest = createHash("sha256").update(canonical, "utf8").digest("hex");
   return `sha256:${digest}`;
@@ -168,6 +172,14 @@ export function assertCursorInvariants(cursor: ReaderCursor): void {
   if (cursor.last_ack_at !== null && typeof cursor.last_ack_at !== "string") {
     throw new ChatError("CURSOR_CORRUPT", "last_ack_at must be string or null");
   }
+  if (
+    cursor.last_ack_kind !== undefined &&
+    cursor.last_ack_kind !== null &&
+    cursor.last_ack_kind !== "spooled" &&
+    cursor.last_ack_kind !== "explicit"
+  ) {
+    throw new ChatError("CURSOR_CORRUPT", "last_ack_kind must be 'spooled', 'explicit', or null");
+  }
   if (typeof cursor.updated_at !== "string" || cursor.updated_at.length === 0) {
     throw new ChatError("CURSOR_CORRUPT", "updated_at must be a non-empty string");
   }
@@ -193,6 +205,7 @@ export function createInitialCursor(room: string, reader: string, now?: string):
     held: [],
     acked_above: [],
     last_ack_at: null,
+    last_ack_kind: null,
     updated_at: timestamp,
   };
   const checksum = computeCursorChecksum(unsigned);

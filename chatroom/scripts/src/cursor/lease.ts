@@ -308,6 +308,7 @@ export function leaseNext(
         held: activeHeld,
         acked_above: cursor.acked_above,
         last_ack_at: cursor.last_ack_at,
+        last_ack_kind: cursor.last_ack_kind,
         updated_at: now,
       };
       const checksum = computeCursorChecksum(unsigned);
@@ -370,6 +371,7 @@ export function leaseNext(
     held: updatedHeld,
     acked_above: cursor.acked_above,
     last_ack_at: cursor.last_ack_at,
+    last_ack_kind: cursor.last_ack_kind,
     updated_at: now,
   };
 

@@ -214,6 +214,7 @@ export function saveCursorCas(
     held: next.held,
     acked_above: absorbedAbove,
     last_ack_at: next.last_ack_at,
+    last_ack_kind: next.last_ack_kind,
     updated_at: timestamp,
   };
 
