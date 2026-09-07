@@ -41,6 +41,10 @@ Evaluates proposed file mutations and commands against leased write scopes and r
 | `--action` | string | no | no | - | Action type: file_write, shell_command, task_submit. |
 | `--write-scope` | string | no | no | - | Comma-separated leased write scope paths. |
 | `--task` | string | no | no | - | Task ID under active lease. |
+| `--action-type` | string | no | no | - | Alias for action. |
+| `--actor` | string | no | no | - | Alias for agent identifier. |
+| `--agent-id` | string | no | no | - | Alias for agent identifier. |
+| `--task-id` | string | no | no | - | Alias for task identifier. |
 
 ```bash
 bun harness.ts sentinel:pre-action --role implementer --agent impl_01 --target src/app.ts --write-scope src/app.ts
@@ -62,6 +66,8 @@ Audits physical lines (<= 400 LOC), AST type purity (0 any, 0 suppressions), dir
 | `--agent` | string | yes | no | - | Target agent identifier. |
 | `--files` | string | yes | no | - | Comma-separated list of modified files. |
 | `--repo-root` | string | no | no | - | Repository root directory. |
+| `--actor` | string | no | no | - | Alias for agent identifier. |
+| `--agent-id` | string | no | no | - | Alias for agent identifier. |
 
 ```bash
 bun harness.ts sentinel:post-action --role implementer --agent impl_01 --files src/foo.ts,src/bar.ts
@@ -87,6 +93,11 @@ Evaluates role profile, advances strike ladder, and dispatches scoped interjecti
 | `--dry-run` | bool | no | no | - | Dry run evaluation without mailbox delivery. |
 | `--files` | string | no | no | - | Comma-separated list of modified files. |
 | `--commands` | string | no | no | - | Comma-separated list of executed commands. |
+| `--actor` | string | no | no | - | Alias for agent identifier. |
+| `--agent-id` | string | no | no | - | Alias for agent identifier. |
+| `--repo-root` | string | no | no | - | Repository root path. |
+| `--run-id` | string | no | no | - | Alias for capsule run root. |
+| `--task-id` | string | no | no | - | Alias for task identifier. |
 
 ```bash
 bun harness.ts sentinel:turn-end --role implementer --agent impl_01 --task task-100
@@ -109,6 +120,10 @@ Runs continuous or stepped evaluation of agent contracts, dispatching immediate 
 | `--task` | string | no | no | - | Task ID. |
 | `--interval` | int | no | no | - | Watch interval in ms. |
 | `--max-iterations` | int | no | no | - | Maximum check iterations. |
+| `--actor` | string | no | no | - | Alias for agent identifier. |
+| `--agent-id` | string | no | no | - | Alias for agent identifier. |
+| `--repo-root` | string | no | no | - | Repository root path. |
+| `--task-id` | string | no | no | - | Alias for task identifier. |
 
 ```bash
 bun harness.ts sentinel:watch --role implementer --agent impl_01

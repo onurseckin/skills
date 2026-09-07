@@ -36,6 +36,7 @@ Computes anti-idle sleep and rollover intervals based on work status, rate limit
 | `--apply-jitter` | bool | no | no | - | Alias for jitter. |
 | `--jitter-ratio` | string | no | no | - | Jitter ratio fraction. |
 | `--multiplier` | string | no | no | - | Exponential backoff multiplier. |
+| `--no-jitter` | bool | no | no | - | Disable jitter for deterministic evaluation. |
 
 ```bash
 bun harness.ts sched:eval --streak 2

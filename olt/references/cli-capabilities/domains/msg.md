@@ -82,6 +82,7 @@ Repeatedly checks the inbox at specified intervals until unread messages arrive 
 | `--correlation-id` | string | no | no | - | Filter by correlation ID. |
 | `--secret` | string | no | no | - | Repository secret key for HMAC verification. |
 | `--base-dir` | string | no | no | - | Base directory for mailbox root. |
+| `--json` | bool | no | no | - | Output machine-readable JSON. |
 
 ```bash
 bun harness.ts msg:poll --actor worker-1 --interval 200 --timeout 5000

@@ -274,10 +274,8 @@ describe("Mind Assembly Pulse Command and Telemetry Suite", () => {
         } as unknown as ReturnType<typeof evidenceModule.verifyMilestoneEvidence>),
       );
 
-      const result = await mindPulseCommand({
-        run: testDir,
-        actor: "mind-1",
-        now: "2026-09-01T12:05:00.000Z",
+      const result = await mindPulseCommand({ run: testDir, actor: "mind-1" }, undefined, {
+        now: () => new Date("2026-09-01T12:05:00.000Z"),
       });
       expect(result.status).toBe("active");
       expect(result.actor).toBe("mind-1");

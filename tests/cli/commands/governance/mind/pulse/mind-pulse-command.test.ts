@@ -1,14 +1,17 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { join } from "node:path";
-import { mindPulseCommand } from "../../../../../olt/scripts/src/cli/commands/mind-pulse.ts";
-import * as evidenceModule from "../../../../../olt/scripts/src/mind/evidence/index.ts";
-import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
-import { initRun, transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
-import type { VirtualMemoryFS } from "../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import { mindPulseCommand } from "../../../../../../olt/scripts/src/cli/commands/mind-pulse.ts";
+import * as evidenceModule from "../../../../../../olt/scripts/src/mind/evidence/index.ts";
+import {
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../../fixtures/full-lifecycle-fixture.ts";
+import { initRun, transact } from "../../../../../../olt/scripts/src/engine/store/index.ts";
+import type { VirtualMemoryFS } from "../../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   disableInMemoryAgentMetadata,
   enableInMemoryAgentMetadata,
-} from "../../../../../olt/scripts/src/runtime/session.ts";
+} from "../../../../../../olt/scripts/src/runtime/session.ts";
 
 let vfs: VirtualMemoryFS;
 let evidSpy: { mockRestore: () => void } | undefined;

@@ -1,13 +1,14 @@
 import { createHash } from "node:crypto";
 import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { HarnessError } from "../../core/errors/index.ts";
-import { checkDailyBudget, parseNowMs } from "../../mind/lifecycle/budget/index.ts";
+import { checkDailyBudget } from "../../mind/lifecycle/budget/index.ts";
 import { DEFAULT_MIND_BUDGET, resolveCharterPath } from "../../mind/lifecycle/charter/index.ts";
 import { loadRun } from "../../engine/store/index.ts";
 import { findGrant, readAgentLedger } from "../../workflow/agents/ledger.ts";
 import { findRepoRoot } from "../../core/shared/paths.ts";
 import { resolveHostProviderLoose } from "../../core/config/host-canon.ts";
 import { textFlag, type CommandContext, type Flags } from "../options.ts";
+import { systemClock, type Clock } from "../../workflow/index.ts";
 import { verifyMilestoneEvidence } from "../../mind/evidence/index.ts";
 import {
   computeMindCognitiveTelemetry,
@@ -48,15 +49,15 @@ export type {
 export async function mindPulseCommand(
   flags: Flags,
   _context?: CommandContext,
+  clock: Clock = systemClock,
 ): Promise<MindPulseResult> {
   const run = textFlag(flags, "run", true)!;
   const actor = textFlag(flags, "actor", false) ?? "mind-1";
   const host = resolveHostProviderLoose(textFlag(flags, "host", false));
   const driver = textFlag(flags, "driver", false) ?? "perpetual-loop";
   const arm = textFlag(flags, "arm", false);
-  const now = textFlag(flags, "now", false);
 
-  const nowMs = parseNowMs(now);
+  const nowMs = clock.now().getTime();
   const loaded = loadRun(run, false);
   const state = loaded.state;
 

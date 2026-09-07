@@ -174,13 +174,11 @@ describe("cli/commands/mind-pulse smart-task integration (in-memory virtual)", (
     const openTime = "2026-08-29T10:00:00.000Z";
     const checkTime = "2026-08-29T10:05:00.000Z";
 
-    const openedResult = await mindPulseCommand({
-      run,
-      actor: "mind-1",
-      host: "antigravity",
-      driver: "perpetual-loop",
-      now: openTime,
-    });
+    const openedResult = await mindPulseCommand(
+      { run, actor: "mind-1", host: "antigravity", driver: "perpetual-loop" },
+      undefined,
+      { now: () => new Date(openTime) },
+    );
 
     expect(openedResult.status).toBe("opened");
     expect(openedResult.action).toBe("opened");
@@ -188,10 +186,8 @@ describe("cli/commands/mind-pulse smart-task integration (in-memory virtual)", (
     expect(openedResult.closing_permitted).toBe(false);
     expect(openedResult.invariant).toBe(CLOSING_FORBIDDEN_FOR_MIND);
 
-    const activeResult = await mindPulseCommand({
-      run,
-      actor: "mind-1",
-      now: checkTime,
+    const activeResult = await mindPulseCommand({ run, actor: "mind-1" }, undefined, {
+      now: () => new Date(checkTime),
     });
 
     expect(activeResult.status).toBe("active");

@@ -26,6 +26,8 @@ Replays events.jsonl to construct dynamic branch expansions and renders a chrono
 | `--filter-type` | string | no | no | - | Filter steps by event kind. |
 | `--detailed` | bool | no | no | - | Detailed step inspection. |
 | `--all` | bool | no | no | - | Return all steps without line truncation. |
+| `--box-style` | string | no | no | - | Terminal border rendering style. |
+| `--filter-kind` | string | no | no | - | Filter steps by event kind. |
 
 ```bash
 bun harness.ts events:trace --run .olt/capsules/<run-id>
@@ -94,6 +96,15 @@ Triggers a non-blocking test notification and Glass audio chime on macOS or stan
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--no-sound` | bool | no | no | `false` | Mute audio chime. |
 | `--json` | bool | no | no | `false` | Output structured JSON report. |
+| `--commit` | string | no | no | - | Commit SHA for notification test. |
+| `--details` | string | no | no | - | Notification details body. |
+| `--duration-ms` | int | no | no | - | Execution duration in milliseconds. |
+| `--phase` | string | no | no | - | Phase name for notification. |
+| `--silent` | bool | no | no | - | Suppress audio notification. |
+| `--sound` | bool | no | no | - | Trigger sound effect. |
+| `--subtitle` | string | no | no | - | Notification subtitle string. |
+| `--tasks` | string | no | no | - | Affected tasks list. |
+| `--title` | string | no | no | - | Notification title string. |
 
 ```bash
 bun harness.ts notify:test

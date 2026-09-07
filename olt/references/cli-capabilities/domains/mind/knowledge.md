@@ -24,6 +24,13 @@ Performs full-text retrieval and ranking across knowledge base, charter, finding
 | `--min-score` | string | no | no | - | Minimum similarity/match score threshold. |
 | `--all` | bool | no | no | - | Display all matching documents without truncation. |
 | `--now` | string | no | no | - | Timestamp override (ISO8601). |
+| `--format` | string | no | no | - | Output format: json, table, or text. |
+| `--gen` | int | no | no | - | Alias for generation filter. |
+| `--generation` | int | no | no | - | Generation filter integer. |
+| `--json` | bool | no | no | - | Output machine-readable JSON. |
+| `--pattern` | string | no | no | - | Search pattern string. |
+| `--tag` | string | no | no | - | Tag filter string. |
+| `--tags` | string | no | no | - | Comma-separated tag filters. |
 
 ```bash
 bun harness.ts memory:query --query "authentication refactor"

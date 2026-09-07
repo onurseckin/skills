@@ -42,7 +42,6 @@ Unified perpetual mind pulse command. If a pulse is open, outputs active pulse t
 | `--driver` | string | no | no | `perpetual-loop` | Driver identity as reported. |
 | `--arm` | string | no | no | - | Scheduled duration for the next interval, e.g. 15m. |
 | `--arm-mechanism` | string | no | no | - | How the pulse was armed, as reported. |
-| `--now` | string | no | no | - | Timestamp override (ISO8601). |
 
 ```bash
 bun harness.ts mind:pulse --run .olt/capsules/mind-gen-1 --actor mind-1

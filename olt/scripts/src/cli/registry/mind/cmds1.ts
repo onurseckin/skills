@@ -145,7 +145,6 @@ export const MIND_COMMANDS_1: readonly CommandSpec[] = [
       optionalFlag("driver", "string", "Driver identity as reported.", "perpetual-loop"),
       optionalFlag("arm", "string", "Scheduled duration for the next interval, e.g. 15m."),
       optionalFlag("arm-mechanism", "string", "How the pulse was armed, as reported."),
-      optionalFlag("now", "string", "Timestamp override (ISO8601)."),
     ],
     mindPulseCommand,
     ["bun harness.ts mind:pulse --run .olt/capsules/mind-gen-1 --actor mind-1"],

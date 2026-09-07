@@ -71,6 +71,7 @@ Inspects background watchdog monitors across runs and generations, reporting act
 | `--dry-run` | bool | no | no | - | Simulate cleanup without disk mutation. |
 | `--all` | bool | no | no | - | Show all watchdog monitors. |
 | `--now` | string | no | no | - | Timestamp override (ISO8601). |
+| `--json` | bool | no | no | - | Output machine-readable JSON. |
 
 ```bash
 bun harness.ts watchdog:status
@@ -102,6 +103,9 @@ Scans registered watchdog monitors across generations and pulses, transitioning 
 | `--dry-run` | bool | no | no | - | Simulate cleanup without disk mutation. |
 | `--all` | bool | no | no | - | Show all cleaned monitors in report. |
 | `--now` | string | no | no | - | Timestamp override (ISO8601). |
+| `--current-phase` | string | no | no | - | Target phase to filter purge. |
+| `--exclude-id` | string | no | no | - | Watchdog ID to preserve. |
+| `--json` | bool | no | no | - | Output machine-readable JSON. |
 
 ```bash
 bun harness.ts watchdog:cleanup --authority-run <run> --run <target-run>
@@ -133,6 +137,7 @@ Terminates active watchdog monitors belonging to completed or superseded phases.
 | `--dry-run` | bool | no | no | - | Simulate phase cleanup. |
 | `--all` | bool | no | no | - | Show all terminated monitors. |
 | `--now` | string | no | no | - | Timestamp override (ISO8601). |
+| `--json` | bool | no | no | - | Output machine-readable JSON. |
 
 ```bash
 bun harness.ts watchdog:phase-cleanup --authority-run <run> --run <target-run> --phase planning --generation 1
@@ -157,6 +162,7 @@ Audits the watchdog registry against architectural constraints.
 | `--phase` | string | no | no | - | Filter by phase. |
 | `--all` | bool | no | no | - | Show all monitors in table. |
 | `--now` | string | no | no | - | Timestamp override (ISO8601). |
+| `--json` | bool | no | no | - | Output machine-readable JSON. |
 
 ```bash
 bun harness.ts watchdog:verify
@@ -181,6 +187,7 @@ Audits the live capsule across 5 supervisory health points and dispatches active
 | `--pulse-id` | string | no | no | - | Target pulse ID. |
 | `--all` | bool | no | no | - | Show verbose report details. |
 | `--now` | string | no | no | - | Timestamp override (ISO8601). |
+| `--json` | bool | no | no | - | Output machine-readable JSON. |
 
 ```bash
 bun harness.ts watchdog:probe

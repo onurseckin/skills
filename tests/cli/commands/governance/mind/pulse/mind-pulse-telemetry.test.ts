@@ -4,8 +4,8 @@ import {
   formatMindPulseActiveBrief,
   formatMindPulseOpenedBrief,
   formatPulseDirective,
-} from "../../../../../olt/scripts/src/cli/commands/mind-pulse.ts";
-import { handleOpenPulseTelemetry } from "../../../../../olt/scripts/src/cli/commands/mind-pulse-telemetry.ts";
+} from "../../../../../../olt/scripts/src/cli/commands/mind-pulse.ts";
+import { handleOpenPulseTelemetry } from "../../../../../../olt/scripts/src/cli/commands/mind-pulse-telemetry.ts";
 
 describe("mind-pulse formatters", () => {
   test("formatPulseDirective returns discovery proposal text when activeRuns=0 and pendingBacklog=0", () => {

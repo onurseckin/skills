@@ -4,21 +4,21 @@ import { join } from "node:path";
 import {
   formatMindPulseOpenBrief,
   mindPulseOpenCommand,
-} from "../../../../../olt/scripts/src/cli/commands/mind-pulse-open.ts";
-import type { AgentRole } from "../../../../../olt/scripts/src/core/contracts/index.ts";
-import { canonicalJsonBytes } from "../../../../../olt/scripts/src/core/json.ts";
-import { transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
+} from "../../../../../../olt/scripts/src/cli/commands/mind-pulse-open.ts";
+import type { AgentRole } from "../../../../../../olt/scripts/src/core/contracts/index.ts";
+import { canonicalJsonBytes } from "../../../../../../olt/scripts/src/core/json.ts";
+import { transact } from "../../../../../../olt/scripts/src/engine/store/index.ts";
 import type {
   VirtualMemoryFS,
   ReadFileOptions,
-} from "../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
+} from "../../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   cleanupRoots,
   cleanupVirtualCliFS,
   getVirtualCliFS,
   setupVirtualCliFS,
-} from "../../fixtures/full-lifecycle-fixture.ts";
-import { setupCompiledRun } from "../../fixtures/task-ops-fixture.ts";
+} from "../../../fixtures/full-lifecycle-fixture.ts";
+import { setupCompiledRun } from "../../../fixtures/task-ops-fixture.ts";
 
 const roots: string[] = [];
 beforeEach(() => setupVirtualCliFS());

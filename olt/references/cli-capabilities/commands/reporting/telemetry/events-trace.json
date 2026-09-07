@@ -80,6 +80,20 @@
       "required": false,
       "repeatable": false,
       "default": null
+    },
+    {
+      "name": "box-style",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "filter-kind",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
     }
   ],
   "reads_stdin": false,

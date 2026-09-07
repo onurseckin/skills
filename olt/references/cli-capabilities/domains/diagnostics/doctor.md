@@ -43,6 +43,8 @@ Re-hashes the event chain, re-verifies every recorded command, reports workflow 
 | `--source` | string | no | no | - | Skill source directory for the installation check. |
 | `--home` | string | no | no | - | Home directory for the installation check. |
 | `--clients` | string | no | no | - | Comma-separated clients for the installation check. |
+| `--actor` | string | no | no | - | Acting persona identity. |
+| `--role` | string | no | no | - | Acting supervisory role. |
 
 ```bash
 bun harness.ts doctor --run .olt/capsules/<run-id>
@@ -64,6 +66,8 @@ Re-hashes the event chain, re-verifies every recorded command, reports workflow 
 | `--source` | string | no | no | - | Skill source directory for the installation check. |
 | `--home` | string | no | no | - | Home directory for the installation check. |
 | `--clients` | string | no | no | - | Comma-separated clients for the installation check. |
+| `--actor` | string | no | no | - | Acting persona identity. |
+| `--role` | string | no | no | - | Acting supervisory role. |
 
 ```bash
 bun harness.ts doctor:verify --run .olt/capsules/<run-id>
@@ -150,6 +154,11 @@ Performs fine-grained, deterministic, role-tailored diagnostic checks against an
 | `--files` | string | no | no | - | Comma-separated modified files for AST evaluation. |
 | `--commands` | string | no | no | - | Comma-separated executed commands. |
 | `--repo-root` | string | no | no | - | Repository root path. |
+| `--actor` | string | no | no | - | Alias for agent identifier. |
+| `--agent-id` | string | no | no | - | Alias for agent identifier. |
+| `--capsule` | string | no | no | - | Alias for capsule run root. |
+| `--run-id` | string | no | no | - | Alias for capsule run root. |
+| `--task-id` | string | no | no | - | Alias for task identifier. |
 
 ```bash
 bun harness.ts doctor:agent --role implementer --agent implementer_core_01
