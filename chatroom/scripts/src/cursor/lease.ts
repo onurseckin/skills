@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import * as fs from "node:fs";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import {
   assertCursorInvariants,
   computeCursorChecksum,
@@ -41,10 +41,23 @@ export interface LogSource {
   readonly getEnvelopes?: () => readonly LogEnvelope[];
 }
 
+export interface LeaseFsStats {
+  isDirectory(): boolean;
+  isFile(): boolean;
+}
+
+export interface LeaseFsPorts {
+  readonly existsSync?: (path: string) => boolean;
+  readonly statSync?: (path: string) => LeaseFsStats | undefined;
+  readonly readdirSync?: (path: string) => readonly (string | { readonly name: string })[];
+  readonly readFileSync?: (path: string, encoding: string) => string | Uint8Array;
+}
+
 export interface LeaseOptions {
   readonly now?: string;
   readonly ttlMs?: number;
   readonly leaseId?: string;
+  readonly fs?: LeaseFsPorts;
 }
 
 export interface LeaseResult {
@@ -53,21 +66,56 @@ export interface LeaseResult {
   readonly messages: readonly LogEnvelope[];
 }
 
-function scanFromDirectory(logDir: string, fromSeq: number, limit: number): LogEnvelope[] {
-  if (!fs.existsSync(logDir)) {
+function fsExists(targetPath: string, fsPorts?: LeaseFsPorts): boolean {
+  try {
+    return fsPorts?.existsSync ? fsPorts.existsSync(targetPath) : fs.existsSync(targetPath);
+  } catch {
+    return false;
+  }
+}
+
+function fsStat(targetPath: string, fsPorts?: LeaseFsPorts): LeaseFsStats | undefined {
+  try {
+    return fsPorts?.statSync ? fsPorts.statSync(targetPath) : fs.statSync(targetPath);
+  } catch {
+    return undefined;
+  }
+}
+
+function fsRead(targetPath: string, fsPorts?: LeaseFsPorts): string {
+  try {
+    const raw = fsPorts?.readFileSync
+      ? fsPorts.readFileSync(targetPath, "utf8")
+      : fs.readFileSync(targetPath, "utf8");
+    return typeof raw === "string" ? raw : new TextDecoder().decode(raw);
+  } catch {
+    return "";
+  }
+}
+
+function fsReaddir(dirPath: string, fsPorts?: LeaseFsPorts): readonly string[] {
+  try {
+    const entries = fsPorts?.readdirSync ? fsPorts.readdirSync(dirPath) : fs.readdirSync(dirPath);
+    return entries.map((entry) => (typeof entry === "string" ? entry : entry.name));
+  } catch {
     return [];
   }
-  const files = fs
-    .readdirSync(logDir)
-    .filter((name) => name.endsWith(".jsonl"))
-    .sort();
+}
 
+function scanFromFiles(
+  filePaths: readonly string[],
+  fromSeq: number,
+  limit: number,
+  fsPorts?: LeaseFsPorts,
+): LogEnvelope[] {
   const collected: LogEnvelope[] = [];
   let expectedSeq = fromSeq;
 
-  for (const file of files) {
-    const filePath = join(logDir, file);
-    const content = fs.readFileSync(filePath, "utf8");
+  for (const filePath of filePaths) {
+    if (!fsExists(filePath, fsPorts)) {
+      continue;
+    }
+    const content = fsRead(filePath, fsPorts);
     const lines = content.split("\n");
 
     for (const line of lines) {
@@ -93,10 +141,74 @@ function scanFromDirectory(logDir: string, fromSeq: number, limit: number): LogE
   return collected;
 }
 
+export function scanFromDirectory(
+  logDir: string,
+  fromSeq: number,
+  limit: number,
+  fsPorts?: LeaseFsPorts,
+): LogEnvelope[] {
+  const stat = fsStat(logDir, fsPorts);
+  if (!fsExists(logDir, fsPorts) || !stat || !stat.isDirectory()) {
+    return [];
+  }
+  const files = fsReaddir(logDir, fsPorts)
+    .filter((name) => name.endsWith(".jsonl"))
+    .sort();
+
+  const filePaths = files.map((file) => join(logDir, file));
+  return scanFromFiles(filePaths, fromSeq, limit, fsPorts);
+}
+
+export function scanFromFile(
+  filePath: string,
+  fromSeq: number,
+  limit: number,
+  fsPorts?: LeaseFsPorts,
+): LogEnvelope[] {
+  if (!fsExists(filePath, fsPorts)) {
+    return [];
+  }
+  const stat = fsStat(filePath, fsPorts);
+  if (!stat || !stat.isFile()) {
+    return [];
+  }
+
+  const fileName = basename(filePath);
+  const dir = dirname(filePath);
+  const spoolMatch = fileName.match(/^(.+\.out)\.jsonl$/);
+
+  if (spoolMatch) {
+    const prefix = spoolMatch[1]!;
+    const prefixWithDot = `${prefix}.`;
+    const suffix = ".jsonl";
+    const dirEntries = fsReaddir(dir, fsPorts);
+    const segments: { readonly num: number; readonly path: string }[] = [];
+
+    for (const entry of dirEntries) {
+      if (entry.startsWith(prefixWithDot) && entry.endsWith(suffix)) {
+        const middle = entry.slice(prefixWithDot.length, entry.length - suffix.length);
+        if (/^\d+$/.test(middle)) {
+          const num = Number.parseInt(middle, 10);
+          if (Number.isSafeInteger(num) && num >= 0) {
+            segments.push({ num, path: join(dir, entry) });
+          }
+        }
+      }
+    }
+
+    segments.sort((a, b) => a.num - b.num);
+    const filesToScan = [...segments.map((s) => s.path), filePath];
+    return scanFromFiles(filesToScan, fromSeq, limit, fsPorts);
+  }
+
+  return scanFromFiles([filePath], fromSeq, limit, fsPorts);
+}
+
 function scanFromInput(
   log: readonly LogEnvelope[] | LogSource | string,
   fromSeq: number,
   limit: number,
+  fsPorts?: LeaseFsPorts,
 ): LogEnvelope[] {
   if (Array.isArray(log)) {
     const sorted = [...log].sort((a, b) => a.seq - b.seq);
@@ -112,7 +224,20 @@ function scanFromInput(
   }
 
   if (typeof log === "string") {
-    return scanFromDirectory(log, fromSeq, limit);
+    if (!fsExists(log, fsPorts)) {
+      return [];
+    }
+    const stat = fsStat(log, fsPorts);
+    if (!stat) {
+      return [];
+    }
+    if (stat.isDirectory()) {
+      return scanFromDirectory(log, fromSeq, limit, fsPorts);
+    }
+    if (stat.isFile()) {
+      return scanFromFile(log, fromSeq, limit, fsPorts);
+    }
+    return [];
   }
 
   if ("scan" in log && typeof log.scan === "function") {
@@ -123,7 +248,7 @@ function scanFromInput(
   }
   if ("getEnvelopes" in log && typeof log.getEnvelopes === "function") {
     const all = log.getEnvelopes();
-    return scanFromInput(all, fromSeq, limit);
+    return scanFromInput(all, fromSeq, limit, fsPorts);
   }
 
   return [];
@@ -133,11 +258,11 @@ export function leaseNext(
   cursor: ReaderCursor,
   log: readonly LogEnvelope[] | LogSource | string,
   limit: number,
-  options?: LeaseOptions,
+  options: LeaseOptions = {},
 ): LeaseResult {
   const effectiveLimit = Math.max(1, Math.min(Number.isFinite(limit) ? limit : 50, 500));
-  const now = options?.now ?? new Date().toISOString();
-  const ttlMs = options?.ttlMs ?? 120000;
+  const now = options.now ?? new Date().toISOString();
+  const ttlMs = options.ttlMs ?? 120000;
 
   const activeHeld: HeldLease[] = [];
   const expiredHeld: HeldLease[] = [];
@@ -170,7 +295,7 @@ export function leaseNext(
     }
   }
 
-  const rawMessages = scanFromInput(log, startSeq, nextLimit);
+  const rawMessages = scanFromInput(log, startSeq, nextLimit, options.fs);
 
   if (rawMessages.length === 0) {
     if (activeHeld.length !== cursor.held.length) {
@@ -222,7 +347,7 @@ export function leaseNext(
     redelivery_count: redeliveryCount,
   }));
 
-  const leaseId = options?.leaseId ?? `L-${randomUUID().slice(0, 8)}`;
+  const leaseId = options.leaseId ?? `L-${randomUUID().slice(0, 8)}`;
   const expiresAt = new Date(Date.parse(now) + ttlMs).toISOString();
 
   const newLease: HeldLease = {

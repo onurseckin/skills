@@ -19,6 +19,9 @@ export {
 
 export {
   leaseNext,
+  scanFromDirectory,
+  scanFromFile,
+  type LeaseFsPorts,
   type LeaseOptions,
   type LeaseResult,
   type LogEnvelope,

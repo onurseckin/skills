@@ -52,7 +52,11 @@ const DEFAULT_MAX_SPOOL_LINES = 20000;
 function findNextSegmentNumber(roomId: string, readerId: string): number {
   const basePath = daemonOutSpoolPath(roomId, readerId);
   const dir = dirname(basePath);
-  if (!existsSync(dir)) {
+  try {
+    if (!existsSync(dir) || !statSync(dir).isDirectory()) {
+      return 1;
+    }
+  } catch {
     return 1;
   }
   const prefix = `${readerId}.out.`;
