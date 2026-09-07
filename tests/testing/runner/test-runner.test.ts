@@ -22,7 +22,10 @@ function createAuditRecorder(passed: boolean): {
         calls.push(options);
         return {
           passed,
+          scope: "repository",
+          requestedFiles: 3,
           scannedFiles: 3,
+          vacuous: false,
           violations: [],
           terminalReport: passed ? "PURITY_OK" : "PURITY_FAILED",
           markdownReport: "",

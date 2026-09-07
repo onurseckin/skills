@@ -3,12 +3,36 @@
  * Formats purity audit results for terminal output and markdown documentation.
  */
 
-import type { PurityAuditResult, PurityViolation } from "./types.ts";
+import type { PurityAuditResult, PurityAuditScope, PurityViolation } from "./types.ts";
+
+export function describeVacuity(
+  scope: PurityAuditScope,
+  requestedFiles: number,
+  scannedFiles: number,
+): string | undefined {
+  if (scope !== "explicit") return undefined;
+  if (requestedFiles === 0) {
+    return "an explicitly empty file list was supplied, so no test file was examined";
+  }
+  if (scannedFiles < requestedFiles) {
+    return `${requestedFiles - scannedFiles} of ${requestedFiles} explicitly requested file(s) could not be read, so they were never examined`;
+  }
+  return undefined;
+}
 
 export function formatTerminalReport(
   scannedFiles: number,
   violations: readonly PurityViolation[],
+  vacuityReason?: string,
 ): string {
+  if (vacuityReason !== undefined) {
+    return [
+      `[purity-guard] \u274c Test purity audit is VACUOUS: ${vacuityReason}.`,
+      "[purity-guard] A vacuous audit proves nothing and is never reported as a pass.",
+      "[purity-guard] Pass no argument (or { all: true }) to audit the whole repository.",
+    ].join("\n");
+  }
+
   if (violations.length === 0) {
     return `[purity-guard] ✓ All ${scannedFiles} test file(s) passed purity audit with 0 violations.`;
   }
@@ -35,8 +59,10 @@ export function formatTerminalReport(
 export function formatMarkdownReport(
   scannedFiles: number,
   violations: readonly PurityViolation[],
+  vacuityReason?: string,
 ): string {
-  const status = violations.length === 0 ? "PASSED" : "FAILED";
+  const isVacuous = vacuityReason !== undefined;
+  const status = isVacuous ? "VACUOUS" : violations.length === 0 ? "PASSED" : "FAILED";
   const lines: string[] = [
     "# Test Purity Guardrail Audit Report",
     "",
@@ -45,6 +71,13 @@ export function formatMarkdownReport(
     `- **Total Violations**: ${violations.length}`,
     "",
   ];
+
+  if (isVacuous) {
+    lines.push(`\u274c Audit was vacuous: ${vacuityReason}.`);
+    lines.push("");
+    lines.push("A vacuous audit examines nothing and therefore cannot be reported as a pass.");
+    return lines.join("\n");
+  }
 
   if (violations.length === 0) {
     lines.push("✓ All audited test files conform to pure in-memory test standards.");
@@ -82,12 +115,18 @@ export function formatMarkdownReport(
 export function buildAuditResult(
   scannedFiles: number,
   violations: readonly PurityViolation[],
+  scope: PurityAuditScope = "repository",
+  requestedFiles: number = scannedFiles,
 ): PurityAuditResult {
+  const vacuityReason = describeVacuity(scope, requestedFiles, scannedFiles);
   return {
-    passed: violations.length === 0,
+    passed: vacuityReason === undefined && violations.length === 0,
+    scope,
+    requestedFiles,
     scannedFiles,
+    vacuous: vacuityReason !== undefined,
     violations,
-    terminalReport: formatTerminalReport(scannedFiles, violations),
-    markdownReport: formatMarkdownReport(scannedFiles, violations),
+    terminalReport: formatTerminalReport(scannedFiles, violations, vacuityReason),
+    markdownReport: formatMarkdownReport(scannedFiles, violations, vacuityReason),
   };
 }

@@ -7,9 +7,12 @@
 import { describe, expect, it } from "bun:test";
 import {
   auditSourceCode,
+  auditTestPuritySync,
   buildAuditResult,
+  describeVacuity,
   formatMarkdownReport,
   formatTerminalReport,
+  resolveAuditRequest,
   type PurityViolation,
 } from "../../../../scripts/testing/guardrails/index.ts";
 
@@ -233,5 +236,123 @@ describe("Test Purity Guardrail - Reporting & Results", () => {
     expect(result.terminalReport).toContain("❌ Test purity audit FAILED");
     expect(result.terminalReport).toContain("tests/example.test.ts:12:5");
     expect(result.markdownReport).toContain("| `tests/example.test.ts` | 12:5 | `filesystem` |");
+  });
+});
+
+describe("Test Purity Guardrail - Argument Normalisation", () => {
+  it("resolves the bare array and the files option to the same explicit request", () => {
+    const paths = ["tests/alpha.test.ts", "tests/beta.test.ts"];
+    const fromArray = resolveAuditRequest(paths);
+    const fromOptions = resolveAuditRequest({ files: paths });
+    expect(fromArray).toEqual(fromOptions);
+    expect(fromArray.scope).toBe("explicit");
+    expect(fromArray.files).toEqual(paths);
+  });
+
+  it("treats an explicitly empty list as an explicit request for nothing in both shapes", () => {
+    const fromArray = resolveAuditRequest([]);
+    const fromOptions = resolveAuditRequest({ files: [] });
+    expect(fromArray).toEqual(fromOptions);
+    expect(fromArray.scope).toBe("explicit");
+    expect(fromArray.files).toHaveLength(0);
+  });
+
+  it("routes an absent argument to the repository scope rather than to an empty scan", () => {
+    const request = resolveAuditRequest();
+    expect(request.scope).toBe("repository");
+    expect(request.files.length).toBeGreaterThan(0);
+  });
+
+  it("routes the all option to the repository scope", () => {
+    const request = resolveAuditRequest({ all: true });
+    expect(request.scope).toBe("repository");
+    expect(request.files.length).toBeGreaterThan(0);
+  });
+
+  it("routes stagedOnly to the staged scope without falling back to the repository", () => {
+    const request = resolveAuditRequest({ stagedOnly: true });
+    expect(request.scope).toBe("staged");
+  });
+
+  it("does not let an explicit empty list silently borrow the repository scope", () => {
+    const explicitEmpty = resolveAuditRequest({ files: [] });
+    const repository = resolveAuditRequest();
+    expect(explicitEmpty.scope).not.toBe(repository.scope);
+    expect(explicitEmpty.files.length).toBeLessThan(repository.files.length);
+  });
+});
+
+describe("Test Purity Guardrail - Vacuity Detection", () => {
+  it("reports an explicitly empty request as vacuous", () => {
+    const reason = describeVacuity("explicit", 0, 0);
+    expect(reason).toBeDefined();
+    expect(reason).toContain("explicitly empty");
+  });
+
+  it("reports explicitly requested files that were never read as vacuous", () => {
+    const reason = describeVacuity("explicit", 3, 1);
+    expect(reason).toBeDefined();
+    expect(reason).toContain("2 of 3");
+  });
+
+  it("does not call a fully honoured explicit request vacuous", () => {
+    expect(describeVacuity("explicit", 4, 4)).toBeUndefined();
+  });
+
+  it("never calls a discovery scope vacuous when discovery legitimately finds nothing", () => {
+    expect(describeVacuity("staged", 0, 0)).toBeUndefined();
+    expect(describeVacuity("repository", 0, 0)).toBeUndefined();
+  });
+
+  it("refuses to mark a vacuous explicit audit as passed", () => {
+    const result = buildAuditResult(0, [], "explicit", 0);
+    expect(result.passed).toBe(false);
+    expect(result.vacuous).toBe(true);
+    expect(result.terminalReport).toContain("VACUOUS");
+    expect(result.markdownReport).toContain("- **Status**: VACUOUS");
+  });
+
+  it("still passes a discovery scope that found no files to audit", () => {
+    const result = buildAuditResult(0, [], "staged", 0);
+    expect(result.passed).toBe(true);
+    expect(result.vacuous).toBe(false);
+  });
+
+  it("carries the requested and scanned counts so callers can detect an empty audit", () => {
+    const result = buildAuditResult(2, [], "explicit", 5);
+    expect(result.requestedFiles).toBe(5);
+    expect(result.scannedFiles).toBe(2);
+    expect(result.passed).toBe(false);
+  });
+});
+
+describe("Test Purity Guardrail - Empty List Fail-Open Regression", () => {
+  it("returns an identical result for an empty array and an empty files option", () => {
+    const fromArray = auditTestPuritySync([]);
+    const fromOptions = auditTestPuritySync({ files: [] });
+    expect(fromArray).toEqual(fromOptions);
+  });
+
+  it("never reports a green audit for an empty array argument", () => {
+    const result = auditTestPuritySync([]);
+    expect(result.passed).toBe(false);
+    expect(result.vacuous).toBe(true);
+    expect(result.scannedFiles).toBe(0);
+    expect(result.requestedFiles).toBe(0);
+  });
+
+  it("never reports a green audit for an empty files option", () => {
+    const result = auditTestPuritySync({ files: [] });
+    expect(result.passed).toBe(false);
+    expect(result.vacuous).toBe(true);
+    expect(result.scannedFiles).toBe(0);
+  });
+
+  it("fails rather than passing when every explicitly requested file is unreadable", () => {
+    const result = auditTestPuritySync(["tests/__absent__/never-created.test.ts"]);
+    expect(result.passed).toBe(false);
+    expect(result.vacuous).toBe(true);
+    expect(result.requestedFiles).toBe(1);
+    expect(result.scannedFiles).toBe(0);
   });
 });

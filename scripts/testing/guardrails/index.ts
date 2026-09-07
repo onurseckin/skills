@@ -12,10 +12,16 @@ export {
   computeIsMain,
   getAllTestFiles,
   getStagedTestFiles,
+  resolveAuditRequest,
   main as runPurityGuardMain,
 } from "./purity-guard.ts";
 
-export { buildAuditResult, formatMarkdownReport, formatTerminalReport } from "./reporter.ts";
+export {
+  buildAuditResult,
+  describeVacuity,
+  formatMarkdownReport,
+  formatTerminalReport,
+} from "./reporter.ts";
 
 export {
   createViolation,
@@ -30,7 +36,9 @@ export {
 
 export type {
   PurityAuditOptions,
+  PurityAuditRequest,
   PurityAuditResult,
+  PurityAuditScope,
   PurityViolation,
   PurityViolationCategory,
 } from "./types.ts";

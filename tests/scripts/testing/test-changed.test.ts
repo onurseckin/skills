@@ -157,7 +157,10 @@ describe("purity audit scope decoupling", () => {
       captured.push([...(options.files ?? [])]);
       return {
         passed: false,
+        scope: "explicit",
+        requestedFiles: (options.files ?? []).length,
         scannedFiles: (options.files ?? []).length,
+        vacuous: false,
         violations: [],
         terminalReport: "stub-report",
         markdownReport: "stub-report",

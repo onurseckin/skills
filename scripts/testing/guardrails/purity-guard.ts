@@ -8,7 +8,12 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { auditSourceCode } from "./ast-checker.ts";
 import { buildAuditResult } from "./reporter.ts";
-import type { PurityAuditOptions, PurityAuditResult, PurityViolation } from "./types.ts";
+import type {
+  PurityAuditOptions,
+  PurityAuditRequest,
+  PurityAuditResult,
+  PurityViolation,
+} from "./types.ts";
 
 export function getStagedTestFiles(): string[] {
   try {
@@ -39,24 +44,30 @@ export function getAllTestFiles(dir = "tests"): string[] {
   return results;
 }
 
+export function resolveAuditRequest(
+  optionsOrFiles?: PurityAuditOptions | string[],
+): PurityAuditRequest {
+  if (Array.isArray(optionsOrFiles)) {
+    return { scope: "explicit", files: [...optionsOrFiles] };
+  }
+  if (optionsOrFiles?.files !== undefined) {
+    return { scope: "explicit", files: [...optionsOrFiles.files] };
+  }
+  if (optionsOrFiles?.stagedOnly === true) {
+    return { scope: "staged", files: getStagedTestFiles() };
+  }
+  return { scope: "repository", files: getAllTestFiles("tests") };
+}
+
 export function auditTestPuritySync(
   optionsOrFiles?: PurityAuditOptions | string[],
 ): PurityAuditResult {
-  let targetFiles: string[] = [];
-  if (Array.isArray(optionsOrFiles)) {
-    targetFiles = optionsOrFiles;
-  } else if (optionsOrFiles?.files && optionsOrFiles.files.length > 0) {
-    targetFiles = Array.from(optionsOrFiles.files);
-  } else if (optionsOrFiles?.stagedOnly) {
-    targetFiles = getStagedTestFiles();
-  } else {
-    targetFiles = getAllTestFiles("tests");
-  }
+  const request = resolveAuditRequest(optionsOrFiles);
 
   const allViolations: PurityViolation[] = [];
   let scannedCount = 0;
 
-  for (const filePath of targetFiles) {
+  for (const filePath of request.files) {
     if (!existsSync(filePath)) continue;
     try {
       const code = readFileSync(filePath, "utf-8");
@@ -67,7 +78,7 @@ export function auditTestPuritySync(
     }
   }
 
-  return buildAuditResult(scannedCount, allViolations);
+  return buildAuditResult(scannedCount, allViolations, request.scope, request.files.length);
 }
 
 export async function auditTestPurity(

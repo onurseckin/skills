@@ -5,6 +5,8 @@
 
 export type PurityViolationCategory = "filesystem" | "subprocess" | "ast_scan" | "anti_pattern";
 
+export type PurityAuditScope = "repository" | "staged" | "explicit";
+
 export interface PurityViolation {
   readonly file: string;
   readonly line: number;
@@ -21,9 +23,17 @@ export interface PurityAuditOptions {
   readonly all?: boolean | undefined;
 }
 
+export interface PurityAuditRequest {
+  readonly scope: PurityAuditScope;
+  readonly files: readonly string[];
+}
+
 export interface PurityAuditResult {
   readonly passed: boolean;
+  readonly scope: PurityAuditScope;
+  readonly requestedFiles: number;
   readonly scannedFiles: number;
+  readonly vacuous: boolean;
   readonly violations: readonly PurityViolation[];
   readonly terminalReport: string;
   readonly markdownReport: string;
