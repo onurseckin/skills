@@ -12,3 +12,4 @@ export {
   engineVerdictsBoundarySuiteName,
   engineVerdictsWorkspaceSuiteName,
 } from "./verdicts/index.ts";
+export { engineWiringSuiteName, engineWiringPredicateSuiteName } from "./wiring/index.ts";
