@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { verifyCronWiring, type SupportedHost, type WireCronResult } from "../provision/index.ts";
 import type { LockReport, ManifestReport, ProvisionReport, ReaderHealthReport } from "./types.ts";
 
 const PUBLIC_KEY_CONSTANT = "chatroom:public:v1";
@@ -26,10 +27,21 @@ export function resolveDataDir(override?: string): string {
     : join(homedir(), ".agents", "chatroom");
 }
 
-export function readJsonSafely(path: string): Record<string, unknown> | null {
+export interface InspectorPorts {
+  readonly existsSync?: (path: string) => boolean;
+  readonly readdirSync?: (path: string) => string[];
+  readonly readFileSync?: (path: string, encoding: string) => string;
+}
+
+export function readJsonSafely(
+  path: string,
+  ports?: InspectorPorts,
+): Record<string, unknown> | null {
   try {
-    if (!existsSync(path)) return null;
-    const res = JSON.parse(readFileSync(path, "utf-8")) as unknown;
+    const existsFn = ports?.existsSync ?? existsSync;
+    const readFn = ports?.readFileSync ?? readFileSync;
+    if (!existsFn(path)) return null;
+    const res = JSON.parse(readFn(path, "utf-8")) as unknown;
     return typeof res === "object" && res !== null ? (res as Record<string, unknown>) : null;
   } catch {
     return null;
@@ -179,17 +191,25 @@ export function inspectLocks(
 export function inspectProvisioning(
   roomDir: string,
   readers: readonly ReaderHealthReport[],
+  aliveCheck: (pid: number) => boolean = checkProcessAlive,
+  ports?: InspectorPorts,
 ): readonly ProvisionReport[] {
+  const existsFn = ports?.existsSync ?? existsSync;
+  const readdirFn = ports?.readdirSync ?? readdirSync;
   const dir = join(roomDir, "provision");
-  if (!existsSync(dir)) return [];
+  if (!existsFn(dir)) return [];
   const reports: ProvisionReport[] = [];
-  for (const file of readdirSync(dir).filter((n) => n.endsWith(".json"))) {
+  for (const file of readdirFn(dir).filter((n) => n.endsWith(".json"))) {
     const full = join(dir, file);
-    const parsed = readJsonSafely(full);
+    const parsed = readJsonSafely(full, ports);
     const issues: string[] = [];
     let host = "";
     let member = "";
     let agentExists = false;
+    let daemonAlive = false;
+    let cronVerified = false;
+    let cronMech: string | undefined;
+
     if (parsed === null || parsed["v"] !== 1) {
       issues.push("corrupt provisioning receipt");
     } else {
@@ -202,16 +222,79 @@ export function inspectProvisioning(
             ? parsed["agent_path"]
             : null;
       if (rawArtifact !== null) {
-        agentExists = existsSync(rawArtifact);
+        agentExists = existsFn(rawArtifact);
         if (!agentExists) issues.push("communicator agent artifact missing");
       } else {
         issues.push("communicator agent artifact missing");
       }
+
+      let daemonPid: number | null = null;
+      if (
+        parsed["daemon"] &&
+        typeof parsed["daemon"] === "object" &&
+        !Array.isArray(parsed["daemon"])
+      ) {
+        const d = parsed["daemon"] as Record<string, unknown>;
+        if (typeof d["pid"] === "number") {
+          daemonPid = d["pid"];
+        }
+      }
+      if (daemonPid !== null) {
+        daemonAlive = aliveCheck(daemonPid);
+        if (!daemonAlive) {
+          issues.push(`receipt claims daemon pid ${daemonPid}, process is dead`);
+        }
+      } else {
+        const r = readers.find((item) => item.reader === member);
+        daemonAlive = r !== undefined && r.is_daemon_alive;
+        if (r !== undefined && r.daemon_state === "STOPPED") {
+          issues.push("daemon is not live for provisioned member");
+        } else if (!daemonAlive) {
+          issues.push("daemon is not live for provisioned member");
+        }
+      }
+
+      let cronExpr: string | null = null;
+      let cadenceSeconds = 300;
+      if (parsed["cron"] && typeof parsed["cron"] === "object" && !Array.isArray(parsed["cron"])) {
+        const c = parsed["cron"] as Record<string, unknown>;
+        if (typeof c["mechanism"] === "string") {
+          cronMech = c["mechanism"];
+        }
+        if (typeof c["expression"] === "string") {
+          cronExpr = c["expression"];
+        }
+        if (typeof c["cadence_seconds"] === "number") {
+          cadenceSeconds = c["cadence_seconds"];
+        }
+      }
+      if (cronMech === "none") {
+        cronVerified = false;
+        issues.push("no scheduled wake mechanism configured");
+      } else if (cronMech === "self_watchdog") {
+        cronVerified = daemonAlive;
+        if (!cronVerified) {
+          issues.push("receipt claims self_watchdog, daemon process is dead");
+        }
+      } else if (cronMech !== undefined) {
+        cronVerified = verifyCronWiring(
+          {
+            mechanism: cronMech as WireCronResult["mechanism"],
+            expression: cronExpr,
+            cadence_seconds: cadenceSeconds,
+            configPath: null,
+          },
+          {
+            host: host as SupportedHost,
+            room: typeof parsed["room"] === "string" ? parsed["room"] : "",
+          },
+        );
+        if (!cronVerified) {
+          issues.push(`receipt claims cron ${cronMech}, registration missing or not found on host`);
+        }
+      }
     }
-    const r = readers.find((item) => item.reader === member);
-    const daemonAlive = r !== undefined && r.is_daemon_alive;
-    if (r !== undefined && r.daemon_state === "STOPPED")
-      issues.push("daemon is not live for provisioned member");
+
     reports.push({
       host,
       member,
@@ -219,6 +302,8 @@ export function inspectProvisioning(
       is_valid: issues.length === 0,
       agent_exists: agentExists,
       daemon_alive: daemonAlive,
+      cron_verified: cronVerified,
+      ...(cronMech !== undefined ? { cron_mechanism: cronMech } : {}),
       drift_detected: issues.length > 0,
       issues,
     });

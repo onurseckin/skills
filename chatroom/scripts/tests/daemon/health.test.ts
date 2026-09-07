@@ -209,7 +209,7 @@ describe("daemon health record tells the truth about its owning process", () => 
     );
 
     expect(claimed.last_wake_at).toBe("2026-09-07T17:05:00.000Z");
-    expect(claimed.last_wake_source).toBe("start");
+    expect(claimed.last_wake_source).toBe("claim");
     expect(
       computeDaemonState(claimed, Date.parse("2026-09-07T17:05:01.000Z"), {
         isProcessAlive: aliveCheck,
@@ -242,7 +242,14 @@ describe("daemon health record tells the truth about its owning process", () => 
   it("initializes, validates, and persists wakes_by_source in health records", () => {
     const vfs = new ChatVirtualFS();
     const ports = createHealthPorts(vfs);
-    const initial = createInitialHealthRecord(ROOM, READER, 100, "2026-09-07T17:00:00.000Z", "boot", 750);
+    const initial = createInitialHealthRecord(
+      ROOM,
+      READER,
+      100,
+      "2026-09-07T17:00:00.000Z",
+      "boot",
+      750,
+    );
     expect(initial.wakes_by_source).toEqual({ watch: 0, poll: 0, tick: 0, token: 0 });
     expect(isDaemonHealthRecord(initial)).toBe(true);
 
@@ -250,7 +257,10 @@ describe("daemon health record tells the truth about its owning process", () => 
     delete (withoutWakes as { wakes_by_source?: unknown }).wakes_by_source;
     expect(isDaemonHealthRecord(withoutWakes)).toBe(true);
 
-    const invalidWakes = { ...initial, wakes_by_source: { watch: "bad", poll: 0, tick: 0, token: 0 } };
+    const invalidWakes = {
+      ...initial,
+      wakes_by_source: { watch: "bad", poll: 0, tick: 0, token: 0 },
+    };
     expect(isDaemonHealthRecord(invalidWakes)).toBe(false);
 
     writeHealthRecord(HEALTH_PATH, initial, ports);

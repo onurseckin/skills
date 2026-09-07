@@ -173,7 +173,6 @@ function inspectReaders(
         nowMs,
         {
           isProcessAlive: aliveCheck,
-          isExplicitlyStopped: health.state === "STOPPED",
           isBackpressured,
           ...(lagStuck !== null ? { lagStuckSinceMs: lagStuck } : {}),
         },
@@ -253,7 +252,7 @@ export function inspectRoom(room: string, options: DoctorInspectOptions = {}): R
   const orphanCursors = readers.filter((r) => r.is_orphan).map((r) => r.reader);
   if (orphanCursors.length > 0) issues.push(`Orphan cursors: ${orphanCursors.join(", ")}`);
   const orphanMembers = members.filter((m) => !readers.some((r) => r.reader === m));
-  const provisioning = inspectProvisioning(roomDir, readers);
+  const provisioning = inspectProvisioning(roomDir, readers, aliveCheck);
   const driftedProvisions = formatProvisioningDrift(provisioning);
   const provisioningDrift = driftedProvisions.length > 0;
   if (provisioningDrift) issues.push(`Provisioning drift: ${driftedProvisions.join(", ")}`);

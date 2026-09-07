@@ -1,8 +1,21 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { daemonHealthPath, isProcessAlive, readerCursorPath, writeAtomic } from "../core/index.ts";
+import {
+  ChatError,
+  daemonHealthPath,
+  isProcessAlive,
+  readerCursorPath,
+  writeAtomic,
+} from "../core/index.ts";
 
 export type DaemonLivenessState = "LIVE" | "IDLE" | "BACKPRESSURED" | "WEDGED" | "STOPPED";
+
+export type DaemonWakesBySource = {
+  readonly watch: number;
+  readonly poll: number;
+  readonly tick: number;
+  readonly token: number;
+};
 
 export interface DaemonHealthRecord {
   readonly v: 1;
@@ -20,12 +33,7 @@ export interface DaemonHealthRecord {
   readonly watch_active: boolean;
   readonly watch_failures: number;
   readonly poll_interval_ms: number;
-  readonly wakes_by_source?: {
-    readonly watch: number;
-    readonly poll: number;
-    readonly tick: number;
-    readonly token: number;
-  };
+  readonly wakes_by_source?: DaemonWakesBySource;
   readonly spool_bytes: number;
   readonly spool_lines: number;
   readonly consumer_last_ack_at: string | null;
@@ -55,57 +63,36 @@ export function deriveConsumerLastAckAt(
   cursor?: CursorAckProvenance | null,
   existingAckAt: string | null = null,
 ): string | null {
-  if (!cursor || cursor.last_ack_kind !== "explicit") return existingAckAt;
-  return cursor.last_ack_at;
+  return cursor?.last_ack_kind === "explicit" ? cursor.last_ack_at : existingAckAt;
 }
+
+const STATES = new Set("LIVE,IDLE,BACKPRESSURED,WEDGED,STOPPED".split(","));
 
 export function isDaemonHealthRecord(value: unknown): value is DaemonHealthRecord {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const c = value as Record<string, unknown>;
-  if (c.v !== 1) return false;
-  if (typeof c.room !== "string" || c.room.length === 0) return false;
-  if (typeof c.reader !== "string" || c.reader.length === 0) return false;
-  if (typeof c.pid !== "number" || !Number.isInteger(c.pid)) return false;
-  if (typeof c.start_time !== "string" || typeof c.boot_id !== "string") return false;
-  const s = c.state;
-  if (s !== "LIVE" && s !== "IDLE" && s !== "BACKPRESSURED" && s !== "WEDGED" && s !== "STOPPED")
-    return false;
-  if (typeof c.last_wake_at !== "string" || typeof c.last_wake_source !== "string") return false;
-  if (
-    typeof c.last_delivered_seq !== "number" ||
-    typeof c.room_head_seq !== "number" ||
-    typeof c.lag_seqs !== "number"
-  )
-    return false;
-  if (
-    typeof c.watch_active !== "boolean" ||
-    typeof c.watch_failures !== "number" ||
-    typeof c.poll_interval_ms !== "number"
-  )
-    return false;
-  if (c.wakes_by_source !== undefined) {
-    if (
-      typeof c.wakes_by_source !== "object" ||
-      c.wakes_by_source === null ||
-      Array.isArray(c.wakes_by_source)
-    )
-      return false;
-    const w = c.wakes_by_source as Record<string, unknown>;
-    if (
-      typeof w.watch !== "number" ||
-      typeof w.poll !== "number" ||
-      typeof w.tick !== "number" ||
-      typeof w.token !== "number"
-    )
-      return false;
-  }
-  if (typeof c.spool_bytes !== "number" || typeof c.spool_lines !== "number") return false;
+  if (c.v !== 1 || !STATES.has(String(c.state)) || !Number.isInteger(c.pid)) return false;
+  if (typeof c.watch_active !== "boolean" || !Array.isArray(c.errors_recent)) return false;
   if (c.consumer_last_ack_at !== null && typeof c.consumer_last_ack_at !== "string") return false;
   const seq = c.consumer_last_delivered_seq;
   if (seq !== undefined && seq !== null && typeof seq !== "number") return false;
-  if (typeof c.consumer_lag_ms !== "number" || typeof c.respawns_this_hour !== "number")
+  for (const k of "room,reader,start_time,boot_id,last_wake_at,last_wake_source".split(",")) {
+    if (typeof c[k] !== "string" || !c[k]) return false;
+  }
+  for (const k of "pid,last_delivered_seq,room_head_seq,lag_seqs,watch_failures,poll_interval_ms,spool_bytes,spool_lines,consumer_lag_ms,respawns_this_hour".split(
+    ",",
+  )) {
+    if (typeof c[k] !== "number") return false;
+  }
+  const w = c.wakes_by_source as Record<string, unknown> | undefined;
+  if (
+    w &&
+    (typeof w !== "object" ||
+      Array.isArray(w) ||
+      "watch,poll,tick,token".split(",").some((k) => typeof w[k] !== "number"))
+  )
     return false;
-  return Array.isArray(c.errors_recent);
+  return true;
 }
 
 export interface HealthPorts {
@@ -114,17 +101,16 @@ export interface HealthPorts {
   readonly writeAtomic?: (path: string, content: string) => void;
   readonly writeFileSync?: (path: string, content: string) => void;
   readonly fs?: { readonly existsSync?: (path: string) => boolean };
+  readonly isProcessAlive?: (pid: number) => boolean;
 }
 
 export function readHealthRecord(
   healthPath: string,
   ports?: HealthPorts,
 ): DaemonHealthRecord | null {
-  const existsFn = ports?.existsSync ?? existsSync;
-  const readFn = ports?.readFileSync ?? readFileSync;
-  if (!existsFn(healthPath)) return null;
+  if (!(ports?.existsSync ?? existsSync)(healthPath)) return null;
   try {
-    const parsed: unknown = JSON.parse(readFn(healthPath, "utf8"));
+    const parsed: unknown = JSON.parse((ports?.readFileSync ?? readFileSync)(healthPath, "utf8"));
     return isDaemonHealthRecord(parsed) ? parsed : null;
   } catch {
     return null;
@@ -136,14 +122,19 @@ export function writeHealthRecord(
   record: DaemonHealthRecord,
   ports?: HealthPorts,
 ): void {
-  const serialized = JSON.stringify(record, null, 2) + "\n";
-  const writeFn =
-    ports?.writeAtomic ??
-    ports?.writeFileSync ??
-    ((target: string, content: string) => writeAtomic(target, content, { mode: 0o644 }));
-  writeFn(healthPath, serialized);
+  const existing = readHealthRecord(healthPath, ports);
+  const alive = ports?.isProcessAlive ?? isProcessAlive;
+  if (existing && existing.pid !== record.pid && alive(existing.pid)) {
+    throw new ChatError(
+      "PERMISSION_DENIED",
+      `Cannot overwrite health record owned by live process ${existing.pid}`,
+    );
+  }
+  const s = JSON.stringify(record, null, 2) + "\n";
+  const w = ports?.writeAtomic ?? ports?.writeFileSync ?? writeAtomic;
+  w(healthPath, s);
   try {
-    writeFn(join(dirname(healthPath), "heartbeat.json"), serialized);
+    w(join(dirname(healthPath), "heartbeat.json"), s);
   } catch {}
 }
 
@@ -152,21 +143,26 @@ export function computeDaemonState(
   nowMs: number,
   options: HealthComputeOptions = {},
 ): DaemonLivenessState {
-  if (options.isExplicitlyStopped) return "STOPPED";
-  const checkAlive = options.isProcessAlive ?? isProcessAlive;
-  if (!checkAlive(record.pid)) return "STOPPED";
-  const heartbeatIntervalMs = options.heartbeatIntervalMs ?? 5000;
-  const lastWakeMs = Date.parse(record.last_wake_at);
-  if (!Number.isNaN(lastWakeMs) && nowMs - lastWakeMs > heartbeatIntervalMs * 2) return "STOPPED";
+  const isAlive = options.isProcessAlive ?? isProcessAlive;
+  if (options.isExplicitlyStopped || !isAlive(record.pid)) return "STOPPED";
+  const wake = Date.parse(record.last_wake_at);
+  if (!Number.isNaN(wake) && nowMs - wake > (options.heartbeatIntervalMs ?? 5000) * 2)
+    return "STOPPED";
   if (options.isBackpressured || record.state === "BACKPRESSURED") return "BACKPRESSURED";
   if (record.lag_seqs > 0) {
-    const wedgeAfterMs = options.wedgeAfterMs ?? 60000;
-    const stuckSince = options.lagStuckSinceMs ?? lastWakeMs;
-    if (!Number.isNaN(stuckSince) && nowMs - stuckSince > wedgeAfterMs) return "WEDGED";
-    return "LIVE";
+    const stuck = options.lagStuckSinceMs ?? wake;
+    return !Number.isNaN(stuck) && nowMs - stuck > (options.wedgeAfterMs ?? 60000)
+      ? "WEDGED"
+      : "LIVE";
   }
   return record.room_head_seq === record.last_delivered_seq ? "IDLE" : "LIVE";
 }
+
+const ZERO_WAKES: DaemonWakesBySource = { watch: 0, poll: 0, tick: 0, token: 0 };
+const getInitialMetrics = () =>
+  JSON.parse(
+    '{"last_delivered_seq":0,"room_head_seq":0,"lag_seqs":0,"watch_active":false,"watch_failures":0,"spool_bytes":0,"spool_lines":0,"consumer_last_ack_at":null,"consumer_last_delivered_seq":null,"consumer_lag_ms":0,"respawns_this_hour":0,"errors_recent":[]}',
+  );
 
 export function writeDerivedHealthRecord(
   healthPath: string,
@@ -175,17 +171,21 @@ export function writeDerivedHealthRecord(
   options: HealthComputeOptions = {},
   ports?: HealthPorts,
 ): DaemonHealthRecord {
-  const consumerLastAckAt =
+  const p = {
+    ...ports,
+    isProcessAlive: options.isProcessAlive ?? ports?.isProcessAlive ?? isProcessAlive,
+  };
+  const ack =
     options.cursor !== undefined
       ? deriveConsumerLastAckAt(options.cursor, record.consumer_last_ack_at)
       : record.consumer_last_ack_at;
   const derived: DaemonHealthRecord = {
     ...record,
     state: computeDaemonState(record, nowMs, options),
-    wakes_by_source: record.wakes_by_source ?? { watch: 0, poll: 0, tick: 0, token: 0 },
-    consumer_last_ack_at: consumerLastAckAt,
+    wakes_by_source: record.wakes_by_source ?? { ...ZERO_WAKES },
+    consumer_last_ack_at: ack,
   };
-  writeHealthRecord(healthPath, derived, ports);
+  writeHealthRecord(healthPath, derived, p);
   return derived;
 }
 
@@ -197,8 +197,9 @@ export function createInitialHealthRecord(
   bootId: string,
   pollIntervalMs: number = 750,
 ): DaemonHealthRecord {
-  const nowIso = new Date().toISOString();
+  const now = new Date().toISOString();
   return {
+    ...getInitialMetrics(),
     v: 1,
     room,
     reader,
@@ -206,23 +207,11 @@ export function createInitialHealthRecord(
     start_time: startTime,
     boot_id: bootId,
     state: "LIVE",
-    last_wake_at: nowIso,
+    last_wake_at: now,
     last_wake_source: "start",
-    last_delivered_seq: 0,
-    room_head_seq: 0,
-    lag_seqs: 0,
-    watch_active: false,
-    watch_failures: 0,
     poll_interval_ms: pollIntervalMs,
-    wakes_by_source: { watch: 0, poll: 0, tick: 0, token: 0 },
-    spool_bytes: 0,
-    spool_lines: 0,
-    consumer_last_ack_at: null,
-    consumer_last_delivered_seq: null,
-    consumer_lag_ms: 0,
-    respawns_this_hour: 0,
-    errors_recent: [],
-    updated_at: nowIso,
+    wakes_by_source: { ...ZERO_WAKES },
+    updated_at: now,
   };
 }
 
@@ -236,14 +225,11 @@ export interface HealthClaimOptions {
   readonly isProcessAlive?: (pid: number) => boolean;
 }
 
-export function isHealthRecordOwnerStale(
+export const isHealthRecordOwnerStale = (
   record: DaemonHealthRecord,
   pid: number,
   checkAlive: (candidate: number) => boolean,
-): boolean {
-  if (record.pid === pid) return false;
-  return !checkAlive(record.pid);
-}
+): boolean => record.pid !== pid && !checkAlive(record.pid);
 
 export function claimHealthRecord(
   healthPath: string,
@@ -252,50 +238,60 @@ export function claimHealthRecord(
 ): DaemonHealthRecord {
   const existing = readHealthRecord(healthPath, ports);
   const bootId = options.bootId ?? existing?.boot_id ?? "boot";
-  const pollIntervalMs = options.pollIntervalMs ?? existing?.poll_interval_ms ?? 750;
+  const pollMs = options.pollIntervalMs ?? existing?.poll_interval_ms ?? 750;
   if (existing === null) {
-    const created = createInitialHealthRecord(
-      options.room,
-      options.reader,
-      options.pid,
-      options.startTime,
-      bootId,
-      pollIntervalMs,
-    );
-    writeHealthRecord(healthPath, created, ports);
-    return created;
+    const { room, reader, pid, startTime } = options;
+    const cr = createInitialHealthRecord(room, reader, pid, startTime, bootId, pollMs);
+    writeHealthRecord(healthPath, cr, ports);
+    return cr;
   }
-  const checkAlive = options.isProcessAlive ?? isProcessAlive;
-  if (!isHealthRecordOwnerStale(existing, options.pid, checkAlive)) {
-    return existing;
+  const checkAlive = options.isProcessAlive ?? ports?.isProcessAlive ?? isProcessAlive;
+  if (existing.pid !== options.pid && !checkAlive(existing.pid)) {
+    const claimed: DaemonHealthRecord = {
+      ...existing,
+      pid: options.pid,
+      start_time: options.startTime,
+      boot_id: bootId,
+      state: "LIVE",
+      last_wake_at: options.startTime,
+      last_wake_source: "claim",
+      watch_active: false,
+      watch_failures: 0,
+      poll_interval_ms: pollMs,
+      wakes_by_source: existing.wakes_by_source ?? { ...ZERO_WAKES },
+      updated_at: options.startTime,
+    };
+    writeHealthRecord(healthPath, claimed, { ...ports, isProcessAlive: checkAlive });
+    return claimed;
   }
-  const claimed: DaemonHealthRecord = {
-    ...existing,
-    pid: options.pid,
-    start_time: options.startTime,
-    boot_id: bootId,
-    state: "LIVE",
-    last_wake_at: options.startTime,
-    last_wake_source: "start",
-    watch_active: false,
-    watch_failures: 0,
-    poll_interval_ms: pollIntervalMs,
-    wakes_by_source: existing.wakes_by_source ?? { watch: 0, poll: 0, tick: 0, token: 0 },
-    updated_at: options.startTime,
-  };
-  writeHealthRecord(healthPath, claimed, ports);
-  return claimed;
+  return existing;
 }
+
+function parseCursorProvenance(raw: string): CursorAckProvenance | null {
+  try {
+    const p = JSON.parse(raw) as { last_ack_at?: unknown; last_ack_kind?: unknown };
+    const k =
+      p.last_ack_kind === "explicit" || p.last_ack_kind === "spooled" ? p.last_ack_kind : null;
+    return {
+      last_ack_at: typeof p.last_ack_at === "string" ? p.last_ack_at : null,
+      last_ack_kind: k,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export type HealthMetrics = Pick<
+  DaemonHealthRecord,
+  "watch_active" | "watch_failures" | "poll_interval_ms"
+> & {
+  readonly wakes_by_source?: DaemonWakesBySource;
+};
 
 export interface HealthSyncInput {
   readonly healthPath: string;
   readonly nowIso: string;
-  readonly metrics: Pick<
-    DaemonHealthRecord,
-    "watch_active" | "watch_failures" | "poll_interval_ms"
-  > & {
-    readonly wakes_by_source?: DaemonHealthRecord["wakes_by_source"];
-  };
+  readonly metrics: HealthMetrics;
   readonly source?: string;
   readonly claim: HealthClaimOptions;
   readonly compute?: HealthComputeOptions;
@@ -304,54 +300,42 @@ export interface HealthSyncInput {
 }
 
 export function syncDaemonHealth(input: HealthSyncInput): DaemonHealthRecord | null {
-  claimHealthRecord(input.healthPath, input.claim, input.ports);
-  const existing = readHealthRecord(input.healthPath, input.ports);
-  if (existing === null) {
-    return null;
-  }
-  let cursorToUse = input.cursor ?? input.compute?.cursor;
-  if (cursorToUse === undefined) {
-    const cPath = readerCursorPath(input.claim.room, input.claim.reader);
-    const existsFn = input.ports?.existsSync ?? existsSync;
-    const readFn = input.ports?.readFileSync ?? readFileSync;
-    if (existsFn(cPath)) {
-      try {
-        const raw = readFn(cPath, "utf8");
-        const parsed = JSON.parse(raw);
-        if (parsed && typeof parsed === "object") {
-          const kind =
-            parsed.last_ack_kind === "explicit" || parsed.last_ack_kind === "spooled"
-              ? parsed.last_ack_kind
-              : null;
-          cursorToUse = {
-            last_ack_at: typeof parsed.last_ack_at === "string" ? parsed.last_ack_at : null,
-            last_ack_kind: kind,
-          };
-        }
-      } catch {}
+  const isAlive =
+    input.compute?.isProcessAlive ??
+    input.claim.isProcessAlive ??
+    input.ports?.isProcessAlive ??
+    isProcessAlive;
+  const p: HealthPorts = { ...input.ports, isProcessAlive: isAlive };
+  const pre = readHealthRecord(input.healthPath, p);
+  if (pre !== null && pre.pid !== input.claim.pid && isAlive(pre.pid)) return null;
+  claimHealthRecord(input.healthPath, { ...input.claim, isProcessAlive: isAlive }, p);
+  const existing = readHealthRecord(input.healthPath, p);
+  if (existing === null || (existing.pid !== input.claim.pid && isAlive(existing.pid))) return null;
+  let cur = input.cursor ?? input.compute?.cursor;
+  if (cur === undefined) {
+    const cp = readerCursorPath(input.claim.room, input.claim.reader);
+    if ((p.existsSync ?? existsSync)(cp)) {
+      cur = parseCursorProvenance((p.readFileSync ?? readFileSync)(cp, "utf8"));
     }
   }
-  const consumerLastAckAt = deriveConsumerLastAckAt(cursorToUse, existing.consumer_last_ack_at);
+  const wakeSrc =
+    input.source !== undefined
+      ? { last_wake_at: input.nowIso, last_wake_source: input.source }
+      : {};
   const merged: DaemonHealthRecord = {
     ...existing,
-    watch_active: input.metrics.watch_active,
-    watch_failures: input.metrics.watch_failures,
-    poll_interval_ms: input.metrics.poll_interval_ms,
-    wakes_by_source: input.metrics.wakes_by_source ??
-      existing.wakes_by_source ?? { watch: 0, poll: 0, tick: 0, token: 0 },
-    consumer_last_ack_at: consumerLastAckAt,
+    ...input.metrics,
+    wakes_by_source: input.metrics.wakes_by_source ?? existing.wakes_by_source ?? { ...ZERO_WAKES },
+    consumer_last_ack_at: deriveConsumerLastAckAt(cur, existing.consumer_last_ack_at),
     updated_at: input.nowIso,
-    ...(input.source !== undefined
-      ? { last_wake_at: input.nowIso, last_wake_source: input.source }
-      : {}),
+    ...wakeSrc,
   };
-  return writeDerivedHealthRecord(
-    input.healthPath,
-    merged,
-    Date.parse(input.nowIso),
-    { ...input.compute, ...(cursorToUse !== undefined ? { cursor: cursorToUse } : {}) },
-    input.ports,
-  );
+  const opts = {
+    ...input.compute,
+    isProcessAlive: isAlive,
+    ...(cur !== undefined ? { cursor: cur } : {}),
+  };
+  return writeDerivedHealthRecord(input.healthPath, merged, Date.parse(input.nowIso), opts, p);
 }
 
 export function stampStoppedIfOwned(
@@ -360,13 +344,11 @@ export function stampStoppedIfOwned(
   nowIso: string,
   ports?: HealthPorts,
 ): boolean {
-  const existing = readHealthRecord(healthPath, ports);
-  if (existing === null || existing.pid !== pid) {
-    return false;
-  }
+  const ex = readHealthRecord(healthPath, ports);
+  if (ex === null || ex.pid !== pid) return false;
   writeHealthRecord(
     healthPath,
-    { ...existing, watch_active: false, state: "STOPPED", updated_at: nowIso },
+    { ...ex, watch_active: false, state: "STOPPED", updated_at: nowIso },
     ports,
   );
   return true;
@@ -386,11 +368,12 @@ export function inspectDaemon(
   options: HealthComputeOptions = {},
   ports?: HealthPorts,
 ): DaemonInspectionResult {
-  const healthPath = daemonHealthPath(room, reader);
-  const health = readHealthRecord(healthPath, ports);
-  if (health === null) {
-    return { room, reader, state: "STOPPED", health: null, watch_active: false };
-  }
-  const state = computeDaemonState(health, Date.now(), options);
+  const health = readHealthRecord(daemonHealthPath(room, reader), ports);
+  if (health === null) return { room, reader, state: "STOPPED", health: null, watch_active: false };
+  const opts = {
+    ...options,
+    isProcessAlive: options.isProcessAlive ?? ports?.isProcessAlive ?? isProcessAlive,
+  };
+  const state = computeDaemonState(health, Date.now(), opts);
   return { room, reader, state, health, watch_active: health.watch_active };
 }

@@ -167,9 +167,11 @@ describe("a daemon wake re-asserts ownership of a record left by a dead predeces
     const ports = createHealthPorts(vfs);
     const incumbentPid = vfs.spawnProcess({ cmd: "chatroom-daemon" });
     const challengerPid = vfs.spawnProcess({ cmd: "chatroom-daemon" });
-    seedDepartedPredecessorRecord(vfs, ports, incumbentPid);
+    const seeded = seedDepartedPredecessorRecord(vfs, ports, incumbentPid);
+    writeHealthRecord(HEALTH_PATH, { ...seeded, state: "IDLE" }, ports);
 
-    wakeAt(vfs, ports, WAKE_ISO, challengerPid);
+    const res = wakeAt(vfs, ports, WAKE_ISO, challengerPid);
+    expect(res).toBeNull();
 
     const persisted = readHealthRecord(HEALTH_PATH, ports);
     expect(persisted?.pid).toBe(incumbentPid);

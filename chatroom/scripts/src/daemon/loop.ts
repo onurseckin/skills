@@ -4,7 +4,9 @@ import {
   daemonHealthPath,
   readerCursorPath,
   readerLockPath,
+  roomDir,
   roomLogDir,
+  roomManifestPath,
   roomQuarantinePath,
   writeAtomic,
   type Envelope,
@@ -267,6 +269,15 @@ export function stepDaemonLoop(
 
 export async function runDaemonLoop(options: DaemonLoopOptions): Promise<void> {
   const { room, reader } = options;
+  const existsFn = options.healthPorts?.existsSync ?? existsSync;
+  const rDir = roomDir(room);
+  const mPath = roomManifestPath(room);
+  if (!existsFn(rDir)) {
+    throw new ChatError("NOT_FOUND", `Room directory not found for room '${room}'`);
+  }
+  if (!existsFn(mPath)) {
+    throw new ChatError("NOT_FOUND", `Room manifest not found for room '${room}'`);
+  }
   const policy = options.policy ?? resolvePolicy();
 
   const lockRes = acquireDaemonLock(room, reader, "daemon", {}, policy);
@@ -319,12 +330,20 @@ export async function runDaemonLoop(options: DaemonLoopOptions): Promise<void> {
     start: async (controller) => {
       const onWake = async (source: WakeSource, tokenChanged: boolean): Promise<void> => {
         if (!controller.isRunning()) return;
+        if (!existsFn(rDir)) {
+          controller.stop();
+          return;
+        }
         if (!tokenChanged && source !== "tick") {
           syncHealth(source);
           return;
         }
         let remaining = 1;
         while (remaining > 0 && controller.isRunning()) {
+          if (!existsFn(rDir)) {
+            controller.stop();
+            return;
+          }
           const result = stepDaemonLoop(stepOptions, source);
           if (result.notifyPromise) {
             await result.notifyPromise;

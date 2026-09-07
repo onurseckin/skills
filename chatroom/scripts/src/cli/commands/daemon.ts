@@ -1,3 +1,4 @@
+import { existsSync, readFileSync } from "node:fs";
 import {
   assertFlags,
   boolFlag,
@@ -7,7 +8,13 @@ import {
   type CommandHandler,
   type Flags,
 } from "./shared/index.ts";
-import { assertValidRoomId, ChatError, daemonHealthPath } from "../../core/index.ts";
+import {
+  assertValidRoomId,
+  ChatError,
+  daemonHealthPath,
+  daemonLockPath,
+  isProcessAlive,
+} from "../../core/index.ts";
 import { assertMember } from "../../room/index.ts";
 import { resolveIdentity } from "../../identity/index.ts";
 import {
@@ -72,6 +79,31 @@ export const daemonCommand: CommandHandler = async (
   } catch {}
 
   if (isStart) {
+    const healthPath = daemonHealthPath(roomFlag, readerId);
+    const healthRec = readHealthRecord(healthPath);
+    let recordedPid: number | null = null;
+    if (healthRec !== null && isProcessAlive(healthRec.pid)) {
+      recordedPid = healthRec.pid;
+    }
+    if (recordedPid === null) {
+      const lockPath = daemonLockPath(roomFlag, readerId);
+      if (existsSync(lockPath)) {
+        try {
+          const raw = readFileSync(lockPath, "utf8");
+          const payload = JSON.parse(raw) as Record<string, unknown>;
+          if (typeof payload.pid === "number" && isProcessAlive(payload.pid)) {
+            recordedPid = payload.pid;
+          }
+        } catch {}
+      }
+    }
+    if (recordedPid !== null) {
+      throw new ChatError(
+        "DAEMON_ALREADY_RUNNING",
+        `Daemon already running as pid ${recordedPid} for reader '${readerId}' in room '${roomFlag}'`,
+      );
+    }
+
     if (foregroundFlag) {
       await runDaemonLoop({
         room: roomFlag,
@@ -91,6 +123,12 @@ export const daemonCommand: CommandHandler = async (
       reader: readerId,
       ...(pollIntervalFlag !== undefined ? { pollIntervalMs: pollIntervalFlag } : {}),
     });
+    if (res.status === "already_running") {
+      throw new ChatError(
+        "DAEMON_ALREADY_RUNNING",
+        `Daemon already running as pid ${res.pid ?? recordedPid} for reader '${readerId}' in room '${roomFlag}'`,
+      );
+    }
     const result: Record<string, unknown> = {
       room: roomFlag,
       reader: readerId,

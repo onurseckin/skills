@@ -58,6 +58,8 @@ export interface ProvisionReport {
   readonly is_valid: boolean;
   readonly agent_exists: boolean;
   readonly daemon_alive: boolean;
+  readonly cron_verified?: boolean;
+  readonly cron_mechanism?: string;
   readonly drift_detected: boolean;
   readonly issues: readonly string[];
 }

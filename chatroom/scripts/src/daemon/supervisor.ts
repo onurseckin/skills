@@ -87,18 +87,15 @@ export function parseDaemonLockPayload(raw: string): LockPayload | null {
 function getRecentRespawnTimestamps(respawnPath: string, windowStart: number): string[] {
   if (!existsSync(respawnPath)) return [];
   try {
-    const parsed: unknown = JSON.parse(readFileSync(respawnPath, "utf8"));
-    const list =
-      parsed && typeof parsed === "object" && "timestamps" in parsed
-        ? (parsed as { timestamps: unknown }).timestamps
-        : null;
-    if (Array.isArray(list)) {
-      return list.filter(
-        (ts): ts is string => typeof ts === "string" && Date.parse(ts) >= windowStart,
-      );
-    }
-  } catch {}
-  return [];
+    const parsed = JSON.parse(readFileSync(respawnPath, "utf8")) as { timestamps?: unknown };
+    return Array.isArray(parsed?.timestamps)
+      ? parsed.timestamps.filter(
+          (ts): ts is string => typeof ts === "string" && Date.parse(ts) >= windowStart,
+        )
+      : [];
+  } catch {
+    return [];
+  }
 }
 
 export function checkRespawnBudget(
@@ -129,9 +126,8 @@ export function reclaimStaleLock(
   evidence: string,
   ports: SupervisorPorts = {},
 ): void {
-  const now = ports.now?.() ?? Date.now();
   const entry = {
-    reclaimed_at: new Date(now).toISOString(),
+    reclaimed_at: new Date(ports.now?.() ?? Date.now()).toISOString(),
     prior_pid: priorPayload.pid,
     prior_start_time: priorPayload.start_time,
     prior_boot_id: priorPayload.boot_id,
@@ -155,7 +151,6 @@ export function acquireDaemonLock(
   const nowIso = new Date(now).toISOString();
   const checkAlive = ports.isProcessAlive ?? isProcessAlive;
   const bootId = ports.getBootId?.() ?? getSystemBootId();
-
   const staleThreshold = policy?.stale_after_ms ?? 30000;
   const heartbeatInterval = policy?.heartbeat_interval_ms ?? 5000;
 
@@ -233,13 +228,7 @@ export function acquireDaemonLock(
         const payload = parseDaemonLockPayload(readFileSync(lockPath, "utf8"));
         if (payload) holderPid = payload.pid;
       } catch {}
-      return {
-        acquired: false,
-        lockFd: null,
-        lockPath,
-        holderPid,
-        reason: "already_running",
-      };
+      return { acquired: false, lockFd: null, lockPath, holderPid, reason: "already_running" };
     }
     throw error;
   }
@@ -277,6 +266,13 @@ export function startDaemon(options: SupervisorOptions): SupervisorResult {
   const { room, reader } = options;
   const resolved = options.policy ?? resolvePolicy();
   const ports = options.ports ?? {};
+  const checkAlive = ports.isProcessAlive ?? isProcessAlive;
+
+  const healthPath = daemonHealthPath(room, reader);
+  const existingHealth = readHealthRecord(healthPath);
+  if (existingHealth !== null && checkAlive(existingHealth.pid)) {
+    return { status: "already_running", pid: existingHealth.pid, already_running: true };
+  }
 
   const lockCheck = daemonLockPath(room, reader);
   if (existsSync(lockCheck)) {
@@ -284,7 +280,6 @@ export function startDaemon(options: SupervisorOptions): SupervisorResult {
     try {
       payload = parseDaemonLockPayload(readFileSync(lockCheck, "utf8"));
     } catch {}
-    const checkAlive = ports.isProcessAlive ?? isProcessAlive;
     if (payload !== null && checkAlive(payload.pid)) {
       return { status: "already_running", pid: payload.pid, already_running: true };
     }
@@ -292,13 +287,11 @@ export function startDaemon(options: SupervisorOptions): SupervisorResult {
 
   const budget = checkRespawnBudget(room, reader, resolved.respawn_budget_per_hour, ports);
   if (!budget.allowed) {
-    const healthPath = daemonHealthPath(room, reader);
-    const existing = readHealthRecord(healthPath);
-    if (existing) {
+    if (existingHealth) {
       writeHealthRecord(healthPath, {
-        ...existing,
+        ...existingHealth,
         state: "STOPPED",
-        errors_recent: [...existing.errors_recent, "respawn_budget_exhausted"],
+        errors_recent: [...existingHealth.errors_recent, "respawn_budget_exhausted"],
       });
     }
     return { status: "exhausted", reason: "respawn_budget_exhausted" };
@@ -306,35 +299,23 @@ export function startDaemon(options: SupervisorOptions): SupervisorResult {
 
   recordRespawn(room, reader, ports);
   const command = resolved.runtime_command;
-  const baseArgs = [
-    resolved.harness_path,
-    "daemon",
-    "--room",
-    room,
-    "--as",
-    reader,
-    "--foreground",
-  ];
+  const baseArgs =
+    `${resolved.harness_path} daemon --room ${room} --as ${reader} --foreground`.split(" ");
   const args =
     options.pollIntervalMs !== undefined
       ? [...baseArgs, "--poll-interval", String(options.pollIntervalMs)]
       : baseArgs;
 
-  let pid: number | null = null;
-  if (ports.spawnDetached) {
-    pid = ports.spawnDetached(command, args, { detached: true, stdio: "ignore" });
-  } else {
-    const child = spawn(command, args, { detached: true, stdio: "ignore" });
-    child.unref();
-    pid = child.pid ?? null;
-  }
+  const pid = ports.spawnDetached
+    ? ports.spawnDetached(command, args, { detached: true, stdio: "ignore" })
+    : (() => {
+        const child = spawn(command, args, { detached: true, stdio: "ignore" });
+        child.unref();
+        return child.pid ?? null;
+      })();
 
-  if (pid === null) {
-    return { status: "failed", reason: "spawn_failed" };
-  }
+  if (pid === null) return { status: "failed", reason: "spawn_failed" };
 
-  const checkAlive = ports.isProcessAlive ?? isProcessAlive;
-  const healthPath = daemonHealthPath(room, reader);
   const graceMs = options.gracePeriodMs ?? 2000;
   const nowFn = ports.now ?? Date.now;
   const deadline = nowFn() + graceMs;

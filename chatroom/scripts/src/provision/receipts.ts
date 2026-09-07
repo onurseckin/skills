@@ -5,7 +5,7 @@ import { ProvisionError, type SupportedHost } from "./detect.ts";
 import { verifyCronWiring } from "./cron.ts";
 
 export interface ProvisionReceiptCron {
-  readonly mechanism: "schedule" | "settings_hooks" | "notify_hook" | "self_watchdog";
+  readonly mechanism: "schedule" | "settings_hooks" | "notify_hook" | "self_watchdog" | "none";
   readonly expression: string | null;
   readonly cadence_seconds: number;
 }
@@ -33,6 +33,7 @@ export interface VerifyReceiptOptions {
   readonly baseDir?: string;
   readonly repoRoot?: string;
   readonly homeDir?: string;
+  readonly existsSync?: (path: string) => boolean;
 }
 
 export interface VerifyReceiptResult {
@@ -160,11 +161,20 @@ export function verifyProvisionReceipt(
     };
   }
 
-  if (!existsSync(receipt.agent_artifact)) {
+  const existsFn = options.existsSync ?? existsSync;
+  if (!existsFn(receipt.agent_artifact)) {
     return {
       valid: false,
       code: "PROVISION_DRIFT",
       reason: `Agent artifact does not exist: ${receipt.agent_artifact}`,
+    };
+  }
+
+  if (receipt.cron.mechanism === "none") {
+    return {
+      valid: false,
+      code: "PROVISION_DRIFT",
+      reason: "no scheduled wake mechanism configured",
     };
   }
 
@@ -185,7 +195,7 @@ export function verifyProvisionReceipt(
     return {
       valid: false,
       code: "PROVISION_DRIFT",
-      reason: `Cron registration missing or invalid for mechanism ${receipt.cron.mechanism}`,
+      reason: `receipt claims cron ${receipt.cron.mechanism}, registration missing or not found on host`,
     };
   }
 
@@ -194,7 +204,7 @@ export function verifyProvisionReceipt(
     return {
       valid: false,
       code: "PROVISION_DRIFT",
-      reason: `Daemon process PID ${receipt.daemon.pid} is not alive`,
+      reason: `receipt claims daemon pid ${receipt.daemon.pid}, process is dead`,
     };
   }
 
