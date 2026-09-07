@@ -25,3 +25,5 @@ export {
   type AddMemberInput,
   type RosterOptions,
 } from "./roster.ts";
+
+export type { MemberRecord, RoomManifest, RoomSettings } from "../core/index.ts";

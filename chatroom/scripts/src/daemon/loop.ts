@@ -199,7 +199,7 @@ export function stepDaemonLoop(
       if (msg.seq <= highestSpooledSeq) {
         continue;
       }
-      const envelopeCandidate = msg as unknown as Envelope;
+      const envelopeCandidate = msg;
       const verifyRes = verifyEnvelope(envelopeCandidate, key);
       if (verifyRes.valid) {
         validEnvelopes.push(envelopeCandidate);

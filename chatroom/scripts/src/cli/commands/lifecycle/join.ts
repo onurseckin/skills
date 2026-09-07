@@ -113,11 +113,7 @@ export const joinCommand: CommandHandler = async (
     if (!isExistingMember) {
       try {
         const manifest = readRoomManifest(targetRoomId);
-        const manifestRecord = manifest as unknown as { members?: unknown; created_by?: unknown };
-        if (
-          (Array.isArray(manifestRecord.members) && manifestRecord.members.includes(identity.id)) ||
-          manifestRecord.created_by === identity.id
-        ) {
+        if (manifest.created_by === identity.id) {
           isExistingMember = true;
         }
       } catch {}

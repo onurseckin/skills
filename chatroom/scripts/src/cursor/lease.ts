@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import * as fs from "node:fs";
 import { basename, dirname, join } from "node:path";
-import { ChatError } from "../core/index.ts";
+import { ChatError, type Envelope } from "../core/index.ts";
 import {
   assertCursorInvariants,
   computeCursorChecksum,
@@ -9,37 +9,12 @@ import {
   type ReaderCursor,
 } from "./model.ts";
 
-export interface LogEnvelope {
-  readonly v: number;
-  readonly id: string;
-  readonly room: string;
-  readonly seq: number;
-  readonly ts: string;
-  readonly sender: {
-    readonly id: string;
-    readonly role: string;
-    readonly host: string;
-    readonly repo_hint?: string;
-    readonly pid?: number;
-  };
-  readonly kind: string;
-  readonly thread?: string;
-  readonly reply_to?: string | null;
-  readonly mentions?: readonly string[];
-  readonly text?: string;
-  readonly body?: {
-    readonly schema: string;
-    readonly data: Record<string, unknown>;
-  };
-  readonly key_fingerprint: string;
-  redelivery_count?: number;
-  readonly sig: string;
-}
+export type LogEnvelope = Envelope;
 
 export interface LogSource {
-  readonly scan?: (fromSeq: number, limit: number) => readonly LogEnvelope[];
-  readonly readRange?: (fromSeq: number, toSeq: number) => readonly LogEnvelope[];
-  readonly getEnvelopes?: () => readonly LogEnvelope[];
+  readonly scan?: (fromSeq: number, limit: number) => readonly Envelope[];
+  readonly readRange?: (fromSeq: number, toSeq: number) => readonly Envelope[];
+  readonly getEnvelopes?: () => readonly Envelope[];
 }
 
 export interface LeaseFsStats {
@@ -64,7 +39,7 @@ export interface LeaseOptions {
 export interface LeaseResult {
   readonly cursor: ReaderCursor;
   readonly leaseId: string | null;
-  readonly messages: readonly LogEnvelope[];
+  readonly messages: readonly Envelope[];
 }
 
 function fsExists(targetPath: string, fsPorts?: LeaseFsPorts): boolean {
@@ -108,8 +83,8 @@ function scanFromFiles(
   fromSeq: number,
   limit: number,
   fsPorts?: LeaseFsPorts,
-): LogEnvelope[] {
-  const collected: LogEnvelope[] = [];
+): Envelope[] {
+  const collected: Envelope[] = [];
   let expectedSeq = fromSeq;
 
   for (const filePath of filePaths) {
@@ -125,7 +100,7 @@ function scanFromFiles(
         continue;
       }
       try {
-        const envelope = JSON.parse(trimmed) as LogEnvelope;
+        const envelope = JSON.parse(trimmed) as Envelope;
         if (envelope && typeof envelope === "object" && typeof envelope.seq === "number") {
           if (envelope.seq === expectedSeq && collected.length < limit) {
             collected.push(envelope);
@@ -147,7 +122,7 @@ export function scanFromDirectory(
   fromSeq: number,
   limit: number,
   fsPorts?: LeaseFsPorts,
-): LogEnvelope[] {
+): Envelope[] {
   if (!fsExists(logDir, fsPorts)) {
     return [];
   }
@@ -168,7 +143,7 @@ export function scanFromFile(
   fromSeq: number,
   limit: number,
   fsPorts?: LeaseFsPorts,
-): LogEnvelope[] {
+): Envelope[] {
   if (!fsExists(filePath, fsPorts)) {
     return [];
   }
@@ -209,14 +184,14 @@ export function scanFromFile(
 }
 
 function scanFromInput(
-  log: readonly LogEnvelope[] | LogSource | string,
+  log: readonly Envelope[] | LogSource | string,
   fromSeq: number,
   limit: number,
   fsPorts?: LeaseFsPorts,
-): LogEnvelope[] {
+): Envelope[] {
   if (Array.isArray(log)) {
     const sorted = [...log].sort((a, b) => a.seq - b.seq);
-    const result: LogEnvelope[] = [];
+    const result: Envelope[] = [];
     let expectedSeq = fromSeq;
     for (const env of sorted) {
       if (env.seq === expectedSeq && result.length < limit) {
@@ -257,7 +232,7 @@ function scanFromInput(
 
 export function leaseNext(
   cursor: ReaderCursor,
-  log: readonly LogEnvelope[] | LogSource | string,
+  log: readonly Envelope[] | LogSource | string,
   limit: number,
   options: LeaseOptions = {},
 ): LeaseResult {
@@ -344,7 +319,7 @@ export function leaseNext(
   const attempt = maxExpiredAttempt > 0 ? maxExpiredAttempt + 1 : 1;
   const redeliveryCount = attempt > 1 ? attempt - 1 : 0;
 
-  const deliveredMessages: LogEnvelope[] = rawMessages.map((msg) => ({
+  const deliveredMessages: Envelope[] = rawMessages.map((msg) => ({
     ...msg,
     redelivery_count: redeliveryCount,
   }));

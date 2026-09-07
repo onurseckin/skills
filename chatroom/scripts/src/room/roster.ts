@@ -2,37 +2,14 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { ChatError, type Identity } from "../identity/index.ts";
-import { writeAtomic } from "../core/index.ts";
+import {
+  writeAtomic,
+  type MemberRecord,
+  type RoomManifest,
+  type RoomSettings,
+} from "../core/index.ts";
 
-export interface RoomSettings {
-  readonly lease_ttl_ms?: number | undefined;
-  readonly max_payload_bytes?: number | undefined;
-  readonly segment_max_bytes?: number | undefined;
-  readonly segment_max_lines?: number | undefined;
-}
-
-export interface RoomManifest {
-  readonly v: number;
-  readonly id: string;
-  readonly title: string;
-  readonly visibility: "keyed" | "public";
-  readonly key_fingerprint: string;
-  readonly created_at: string;
-  readonly created_by: string;
-  readonly settings?: RoomSettings | undefined;
-}
-
-export interface MemberRecord {
-  readonly v: number;
-  readonly id: string;
-  readonly display_name?: string | undefined;
-  readonly role: string;
-  readonly host: string;
-  readonly repo_hint?: string | undefined;
-  readonly joined_at: string;
-  readonly key_fingerprint?: string | undefined;
-  readonly aliases?: readonly string[] | undefined;
-}
+export type { MemberRecord, RoomManifest, RoomSettings };
 
 export interface AddMemberInput {
   readonly id: string;
@@ -110,7 +87,7 @@ function resolveRoomDirAndId(
 function isIdentity(value: unknown): value is Identity {
   if (typeof value !== "object" || value === null) return false;
   const c = value as Record<string, unknown>;
-  return typeof c["id"] === "string" && typeof c["source"] === "string";
+  return typeof c["id"] === "string" && !("visibility" in c);
 }
 
 function extractIdentityAndRoom(
@@ -119,10 +96,7 @@ function extractIdentityAndRoom(
 ): { readonly identity: Identity; readonly room: RoomManifest | string } {
   if (isIdentity(first)) return { identity: first, room: second as RoomManifest | string };
   if (isIdentity(second)) return { identity: second, room: first as RoomManifest | string };
-  if (typeof second === "object" && second !== null && "id" in second && "source" in second) {
-    return { identity: second as unknown as Identity, room: first as RoomManifest | string };
-  }
-  return { identity: first as unknown as Identity, room: second as RoomManifest | string };
+  throw new ChatError("INVALID_IDENTITY", "invalid identity provided");
 }
 
 function levenshteinDistance(source: string, target: string): number {
@@ -178,17 +152,22 @@ function parseMemberFile(content: string, fallbackId: string): MemberRecord | un
   try {
     const p = JSON.parse(content) as Record<string, unknown>;
     return {
-      v: typeof p["v"] === "number" ? p["v"] : 1,
+      v: 1,
       id: typeof p["id"] === "string" ? p["id"] : fallbackId,
-      display_name: typeof p["display_name"] === "string" ? p["display_name"] : undefined,
+      display_name:
+        typeof p["display_name"] === "string"
+          ? p["display_name"]
+          : typeof p["id"] === "string"
+            ? p["id"]
+            : fallbackId,
       role: typeof p["role"] === "string" ? p["role"] : "communicator",
       host: typeof p["host"] === "string" ? p["host"] : "local",
-      repo_hint: typeof p["repo_hint"] === "string" ? p["repo_hint"] : undefined,
+      ...(typeof p["repo_hint"] === "string" ? { repo_hint: p["repo_hint"] } : {}),
       joined_at: typeof p["joined_at"] === "string" ? p["joined_at"] : "",
-      key_fingerprint: typeof p["key_fingerprint"] === "string" ? p["key_fingerprint"] : undefined,
+      key_fingerprint: typeof p["key_fingerprint"] === "string" ? p["key_fingerprint"] : "",
       aliases: Array.isArray(p["aliases"])
         ? p["aliases"].filter((a): a is string => typeof a === "string")
-        : undefined,
+        : [],
     };
   } catch {
     return undefined;
@@ -291,19 +270,19 @@ export function addMember(
     display_name:
       "display_name" in member && typeof member.display_name === "string"
         ? member.display_name
-        : undefined,
+        : member.id,
     role: member.role ?? "communicator",
     host: member.host ?? "local",
-    repo_hint: member.repo_hint,
+    ...(typeof member.repo_hint === "string" ? { repo_hint: member.repo_hint } : {}),
     joined_at: joinedAt,
     key_fingerprint:
       "key_fingerprint" in member && typeof member.key_fingerprint === "string"
         ? member.key_fingerprint
-        : undefined,
+        : "",
     aliases:
       "aliases" in member && Array.isArray(member.aliases)
         ? member.aliases.filter((a): a is string => typeof a === "string")
-        : undefined,
+        : [],
   };
 
   const writeFile = options?.writeFile ?? ((p: string, c: string) => writeAtomic(p, c));

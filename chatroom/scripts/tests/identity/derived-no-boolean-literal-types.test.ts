@@ -91,8 +91,7 @@ function findBooleanLiteralViolations(
         const opposite = prop.literal === "true" ? "false" : "true";
         const hasOppositeSibling = armPropLists.some(
           (otherArm, otherIdx) =>
-            otherIdx !== i &&
-            otherArm.some((p) => p.name === prop.name && p.literal === opposite),
+            otherIdx !== i && otherArm.some((p) => p.name === prop.name && p.literal === opposite),
         );
         if (!hasOppositeSibling) {
           violations.push({
@@ -227,15 +226,7 @@ describe("Derived invariant: AST sibling-arm rule for boolean literal types", ()
     const glob = new Glob("**/*.ts");
     const relativePaths = Array.from(glob.scanSync({ cwd: srcDir }));
 
-    const requiredDirs = [
-      "identity",
-      "core",
-      "cursor",
-      "daemon",
-      "room",
-      "cli",
-      "testing",
-    ];
+    const requiredDirs = ["identity", "core", "cursor", "daemon", "room", "cli", "testing"];
 
     for (const dir of requiredDirs) {
       const hasDirFiles = relativePaths.some((p) => p.startsWith(`${dir}/`));

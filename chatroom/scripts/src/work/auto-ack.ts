@@ -20,7 +20,7 @@ function getAssignee(envelope: Envelope): string | undefined {
       return rawAssignee;
     }
   }
-  const candidate = (envelope as unknown as Record<string, unknown>)["assignee"];
+  const candidate = (envelope as { readonly assignee?: unknown }).assignee;
   if (typeof candidate === "string") {
     return candidate;
   }

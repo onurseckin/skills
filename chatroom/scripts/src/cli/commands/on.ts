@@ -18,7 +18,7 @@ export interface OnCommandContext extends CommandContext {
   readonly policyPorts?: PolicyPorts;
 }
 
-export interface OnCommandResult {
+export type OnCommandResult = {
   readonly ok: boolean;
   readonly action: "register";
   readonly room: string;
@@ -31,7 +31,7 @@ export interface OnCommandResult {
     readonly healthy: boolean;
   };
   readonly markdown: string;
-}
+};
 
 export const onCommand: CommandHandler = async (
   flags: Flags,
@@ -117,5 +117,5 @@ export const onCommand: CommandHandler = async (
     process.stdout.write(`${markdown}\n`);
   }
 
-  return result as unknown as Record<string, unknown>;
+  return result;
 };

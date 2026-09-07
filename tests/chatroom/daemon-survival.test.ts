@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { join } from "node:path";
 import { startDaemon, type SupervisorPorts } from "../../chatroom/scripts/src/daemon/supervisor.ts";
 import { doctorCommand } from "../../chatroom/scripts/src/cli/commands/doctor.ts";
 import { addMember } from "../../chatroom/scripts/src/room/index.ts";
@@ -24,7 +23,7 @@ afterEach(() => {
 });
 
 describe("daemon survival and truthful liveness reporting", () => {
-  it("verifies process is alive and heartbeat file exists, then reports STOPPED when killed", async () => {
+  it("verifies process is alive and health file exists, then reports STOPPED when killed", async () => {
     const room = "survival-test-room";
     const reader = "test-agent";
 
@@ -43,7 +42,6 @@ describe("daemon survival and truthful liveness reporting", () => {
     let processAlive = true;
     const testPid = 99881;
     const healthPath = daemonHealthPath(room, reader);
-    const heartbeatPath = join("/virtual/chatroom/rooms", room, "daemon", "heartbeat.json");
 
     const ports: SupervisorPorts = {
       isProcessAlive: (pid: number): boolean => pid === testPid && processAlive,
@@ -71,7 +69,6 @@ describe("daemon survival and truthful liveness reporting", () => {
     expect(startResult.pid).toBe(testPid);
     expect(ports.isProcessAlive !== undefined && ports.isProcessAlive(testPid)).toBe(true);
     expect(getVirtualChatroomFS().existsSync(healthPath)).toBe(true);
-    expect(getVirtualChatroomFS().existsSync(heartbeatPath)).toBe(true);
 
     const docBefore = await doctorCommand({
       room,

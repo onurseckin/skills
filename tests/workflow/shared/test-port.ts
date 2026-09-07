@@ -1,6 +1,9 @@
 import { dirname } from "node:path";
-import type { JsonObject } from "../../../olt/scripts/src/core/contracts/index.ts";
-import type { CommandRecord } from "../../../olt/scripts/src/core/contracts/index.ts";
+import type {
+  CommandPathBinding,
+  CommandRecord,
+  JsonObject,
+} from "../../../olt/scripts/src/core/contracts/index.ts";
 import { commandFingerprint } from "../../../olt/scripts/src/workflow/gates/gate-policy.ts";
 import { captureGatePathBindings } from "../../../olt/scripts/src/engine/runner/index.ts";
 import { captureGateEnvironment } from "../../../olt/scripts/src/engine/runner/index.ts";
@@ -113,6 +116,19 @@ export function workflowState() {
 
 export const at = (iso: string) => ({ now: () => new Date(iso) });
 
+function safeGatePathBindings(
+  repositoryRoot: string,
+  cwd: string,
+  argv: readonly string[],
+  pathValue: string,
+): CommandPathBinding[] {
+  try {
+    return captureGatePathBindings(repositoryRoot, cwd, argv, pathValue);
+  } catch {
+    return [];
+  }
+}
+
 export function commandRecord(id: string, overrides: Partial<CommandRecord> = {}): CommandRecord {
   const root = process.cwd();
   const repositoryRoot = overrides.repository_root ?? root;
@@ -162,7 +178,9 @@ export function commandRecord(id: string, overrides: Partial<CommandRecord> = {}
     environment,
     ...(gateId
       ? {
-          path_bindings: captureGatePathBindings(repositoryRoot, cwd, argv, environment.PATH),
+          path_bindings:
+            overrides.path_bindings ??
+            safeGatePathBindings(repositoryRoot, cwd, argv, environment.PATH),
         }
       : {}),
     record_path: `commands/${id}/record.json`,

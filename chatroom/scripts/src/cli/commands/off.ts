@@ -13,7 +13,7 @@ export interface OffCommandContext extends CommandContext {
   readonly policyPorts?: PolicyPorts;
 }
 
-export interface OffCommandResult {
+export type OffCommandResult = {
   readonly ok: boolean;
   readonly action: "unregister";
   readonly room: string;
@@ -21,7 +21,7 @@ export interface OffCommandResult {
   readonly policy_path: string;
   readonly notify_command: null;
   readonly markdown: string;
-}
+};
 
 export const offCommand: CommandHandler = async (
   flags: Flags,
@@ -77,5 +77,5 @@ export const offCommand: CommandHandler = async (
     process.stdout.write(`${markdown}\n`);
   }
 
-  return result as unknown as Record<string, unknown>;
+  return result;
 };

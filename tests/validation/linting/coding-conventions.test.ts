@@ -10,6 +10,8 @@ import {
   validateZeroCommentsInCode,
 } from "../../../olt/scripts/src/validation/coding-conventions.ts";
 
+const REPO_ROOT = join(import.meta.dir, "../../..");
+
 describe("Coding Conventions Validation", () => {
   describe("validateZeroCommentsInCode", () => {
     it("detects single-line, multi-line, and docblock comments", () => {
@@ -145,7 +147,7 @@ describe("Coding Conventions Validation", () => {
         "olt/scripts/src/telemetry/collectors/index.ts",
       ];
       for (const relPath of facades) {
-        const fullPath = join(process.cwd(), relPath);
+        const fullPath = join(REPO_ROOT, relPath);
         const content = readFileSync(fullPath, "utf8");
         const res = validateFacadeExports(content, relPath);
         expect(res.valid).toBe(true);
@@ -267,7 +269,7 @@ describe("Coding Conventions Validation", () => {
         "olt/scripts/src/engine/store/recovery/defect-store.ts",
       ];
       for (const relPath of keyFiles) {
-        const fullPath = join(process.cwd(), relPath);
+        const fullPath = join(REPO_ROOT, relPath);
         const content = readFileSync(fullPath, "utf8");
         const res = validateNoBackwardsCompatibilityShims(content, relPath);
         expect(res.valid).toBe(true);
@@ -284,7 +286,7 @@ describe("Coding Conventions Validation", () => {
         "olt/scripts/src/reporting/doctor/hygiene-engine.ts",
       ];
       for (const relPath of files) {
-        const fullPath = join(process.cwd(), relPath);
+        const fullPath = join(REPO_ROOT, relPath);
         const content = readFileSync(fullPath, "utf8");
         const res = validateZeroCommentsInCode(content, relPath);
         expect(res.valid).toBe(true);

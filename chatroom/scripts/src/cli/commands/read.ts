@@ -91,11 +91,7 @@ export const readCommand: CommandHandler = async (
   }
 
   if (leaseResult.messages.length > 0) {
-    processAutoAcknowledge(
-      roomFlag,
-      readerId,
-      leaseResult.messages as unknown as readonly Envelope[],
-    );
+    processAutoAcknowledge(roomFlag, readerId, leaseResult.messages);
   }
 
   const result: Record<string, unknown> = {
