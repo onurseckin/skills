@@ -120,6 +120,7 @@ describe("Doctor provisioning receipt honesty and drift verification", () => {
         mechanism: "schedule",
         expression: "*/5 * * * *",
         cadence_seconds: 300,
+        configPath: "/schedules/communicator-alice.json",
       },
       daemon: {
         started_at: NOW_ISO,
@@ -245,7 +246,12 @@ describe("Doctor provisioning receipt honesty and drift verification", () => {
     const receipt = makeReceipt({
       agent_artifact: "/agents/alice.json",
       daemon: { started_at: NOW_ISO, pid: livePid },
-      cron: { mechanism: "schedule", expression: "*/5 * * * *", cadence_seconds: 300 },
+      cron: {
+        mechanism: "schedule",
+        expression: "*/5 * * * *",
+        cadence_seconds: 300,
+        configPath: "/schedules/communicator-alice.json",
+      },
     });
 
     const receiptDir = `/rooms/${ROOM}/provision`;
@@ -267,6 +273,44 @@ describe("Doctor provisioning receipt honesty and drift verification", () => {
     expect(rep.issues).toContain(
       "receipt claims cron schedule, registration missing or not found on host",
     );
+  });
+
+  it("detects drift when configPath is null or missing on a non-self_watchdog receipt", () => {
+    const vfs = new ChatVirtualFS(NOW_MS);
+    const inspectorPorts = makeInspectorPorts(vfs);
+    const livePid = vfs.spawnProcess({ cmd: "chatroom-daemon" });
+
+    vfs.mkdirSync("/agents", { recursive: true });
+    vfs.writeFileSync("/agents/alice.json", "{}");
+
+    const receipt = makeReceipt({
+      agent_artifact: "/agents/alice.json",
+      daemon: { started_at: NOW_ISO, pid: livePid },
+      cron: {
+        mechanism: "schedule",
+        expression: "*/5 * * * *",
+        cadence_seconds: 300,
+        configPath: null,
+      },
+    });
+
+    const receiptDir = `/rooms/${ROOM}/provision`;
+    vfs.mkdirSync(receiptDir, { recursive: true });
+    vfs.writeFileSync(`${receiptDir}/antigravity.alice.json`, JSON.stringify(receipt, null, 2));
+
+    const reports = inspectProvisioning(
+      `/rooms/${ROOM}`,
+      [],
+      (pid: number) => vfs.isProcessAlive(pid),
+      inspectorPorts,
+    );
+
+    expect(reports.length).toBe(1);
+    const rep = reports[0];
+    expect(rep).toBeDefined();
+    if (!rep) return;
+    expect(rep.cron_verified).toBe(false);
+    expect(rep.issues).toContain("receipt does not record where cron was installed");
   });
 
   it("verifies receipt through verifyProvisionReceipt API", () => {

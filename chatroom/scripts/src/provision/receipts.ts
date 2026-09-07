@@ -8,6 +8,7 @@ export interface ProvisionReceiptCron {
   readonly mechanism: "schedule" | "settings_hooks" | "notify_hook" | "self_watchdog" | "none";
   readonly expression: string | null;
   readonly cadence_seconds: number;
+  readonly configPath?: string | null;
 }
 
 export interface ProvisionReceiptDaemon {
@@ -106,6 +107,7 @@ function parseReceiptUnknown(parsed: unknown): ProvisionReceipt {
   if (typeof rec.runtime_command !== "string" || typeof rec.created_at !== "string") {
     throw new ProvisionError("INVALID_RECEIPT", "Receipt runtime or timestamp malformed");
   }
+  const rawConfigPath = cron.configPath !== undefined ? cron.configPath : cron.config_path;
   return {
     v: 1,
     host: rec.host as SupportedHost,
@@ -117,6 +119,7 @@ function parseReceiptUnknown(parsed: unknown): ProvisionReceipt {
       mechanism: cron.mechanism as ProvisionReceiptCron["mechanism"],
       expression: typeof cron.expression === "string" ? cron.expression : null,
       cadence_seconds: cron.cadence_seconds,
+      configPath: typeof rawConfigPath === "string" ? rawConfigPath : null,
     },
     daemon: {
       started_at: daemon.started_at,
@@ -178,6 +181,14 @@ export function verifyProvisionReceipt(
     };
   }
 
+  if (receipt.cron.mechanism !== "self_watchdog" && !receipt.cron.configPath) {
+    return {
+      valid: false,
+      code: "PROVISION_DRIFT",
+      reason: "receipt does not record where cron was installed",
+    };
+  }
+
   const cronOptions = {
     host: receipt.host,
     room: receipt.room,
@@ -188,7 +199,7 @@ export function verifyProvisionReceipt(
     mechanism: receipt.cron.mechanism,
     expression: receipt.cron.expression,
     cadence_seconds: receipt.cron.cadence_seconds,
-    configPath: null,
+    configPath: receipt.cron.configPath ?? null,
   };
   const cronValid = verifyCronWiring(cronResult, cronOptions);
   if (!cronValid) {

@@ -256,6 +256,7 @@ export function inspectProvisioning(
 
       let cronExpr: string | null = null;
       let cadenceSeconds = 300;
+      let cronConfigPath: string | null = null;
       if (parsed["cron"] && typeof parsed["cron"] === "object" && !Array.isArray(parsed["cron"])) {
         const c = parsed["cron"] as Record<string, unknown>;
         if (typeof c["mechanism"] === "string") {
@@ -267,6 +268,13 @@ export function inspectProvisioning(
         if (typeof c["cadence_seconds"] === "number") {
           cadenceSeconds = c["cadence_seconds"];
         }
+        const rawConfigPath =
+          typeof c["configPath"] === "string"
+            ? c["configPath"]
+            : typeof c["config_path"] === "string"
+              ? c["config_path"]
+              : null;
+        cronConfigPath = rawConfigPath;
       }
       if (cronMech === "none") {
         cronVerified = false;
@@ -277,20 +285,27 @@ export function inspectProvisioning(
           issues.push("receipt claims self_watchdog, daemon process is dead");
         }
       } else if (cronMech !== undefined) {
-        cronVerified = verifyCronWiring(
-          {
-            mechanism: cronMech as WireCronResult["mechanism"],
-            expression: cronExpr,
-            cadence_seconds: cadenceSeconds,
-            configPath: null,
-          },
-          {
-            host: host as SupportedHost,
-            room: typeof parsed["room"] === "string" ? parsed["room"] : "",
-          },
-        );
-        if (!cronVerified) {
-          issues.push(`receipt claims cron ${cronMech}, registration missing or not found on host`);
+        if (cronConfigPath === null) {
+          cronVerified = false;
+          issues.push("receipt does not record where cron was installed");
+        } else {
+          cronVerified = verifyCronWiring(
+            {
+              mechanism: cronMech as WireCronResult["mechanism"],
+              expression: cronExpr,
+              cadence_seconds: cadenceSeconds,
+              configPath: cronConfigPath,
+            },
+            {
+              host: host as SupportedHost,
+              room: typeof parsed["room"] === "string" ? parsed["room"] : "",
+            },
+          );
+          if (!cronVerified) {
+            issues.push(
+              `receipt claims cron ${cronMech}, registration missing or not found on host`,
+            );
+          }
         }
       }
     }

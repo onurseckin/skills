@@ -141,54 +141,20 @@ export function wireCron(options: WireCronOptions): WireCronResult {
   };
 }
 
-export function verifyCronWiring(result: WireCronResult, options: WireCronOptions): boolean {
+export function verifyCronWiring(result: WireCronResult, _options?: WireCronOptions): boolean {
   if (result.mechanism === "self_watchdog") {
     return true;
   }
-
-  const home = options.homeDir ?? homedir();
-  const repo = options.repoRoot ?? process.cwd();
-
-  if (result.mechanism === "schedule") {
-    const schedulePath =
-      result.configPath ??
-      join(home, ".antigravity", "schedules", `communicator-${options.room}.json`);
-    if (!existsSync(schedulePath)) {
-      return false;
-    }
-    try {
-      const raw = readFileSync(schedulePath, "utf8");
-      return raw.includes("chat:daemon --tick");
-    } catch {
-      return false;
-    }
+  if (!result.configPath) {
+    return false;
   }
-
-  if (result.mechanism === "settings_hooks") {
-    const settingsPath = result.configPath ?? join(repo, ".claude", "settings.json");
-    if (!existsSync(settingsPath)) {
-      return false;
-    }
-    try {
-      const raw = readFileSync(settingsPath, "utf8");
-      return raw.includes("chat:daemon --tick");
-    } catch {
-      return false;
-    }
+  if (!existsSync(result.configPath)) {
+    return false;
   }
-
-  if (result.mechanism === "notify_hook") {
-    const configPath = result.configPath ?? join(home, ".codex", "config.toml");
-    if (!existsSync(configPath)) {
-      return false;
-    }
-    try {
-      const raw = readFileSync(configPath, "utf8");
-      return raw.includes("chat:daemon --tick");
-    } catch {
-      return false;
-    }
+  try {
+    const raw = readFileSync(result.configPath, "utf8");
+    return raw.includes("chat:daemon --tick");
+  } catch {
+    return false;
   }
-
-  return false;
 }

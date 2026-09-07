@@ -31,6 +31,7 @@ import { ensureDaemon, startDaemon } from "../../../daemon/index.ts";
 import {
   detectHost,
   generateCommunicatorAgent,
+  verifyCronWiring,
   wireCron,
   writeProvisionReceipt,
   type SupportedHost,
@@ -188,16 +189,24 @@ export const initCommand: CommandHandler = async (
     });
     agentName = agentResult.agentName;
     agentArtifact = agentResult.artifactPath;
+    if (!fs.existsSync(agentArtifact)) {
+      throw new ChatError(
+        "PROVISION_FAILED",
+        `Communicator agent artifact was not created at '${agentArtifact}'`,
+      );
+    }
   }
 
   let cronResult: {
     readonly mechanism: "schedule" | "settings_hooks" | "notify_hook" | "self_watchdog";
     readonly expression: string | null;
     readonly cadence_seconds: number;
+    readonly configPath: string | null;
   } = {
     mechanism: "self_watchdog",
     expression: null,
     cadence_seconds: 300,
+    configPath: null,
   };
 
   if (!noAgentFlag && !noDaemonFlag) {
@@ -206,7 +215,15 @@ export const initCommand: CommandHandler = async (
       mechanism: wired.mechanism,
       expression: wired.expression ?? null,
       cadence_seconds: wired.cadence_seconds,
+      configPath: wired.configPath ?? null,
     };
+    const cronValid = verifyCronWiring(wired, { host: detectedHost, room: targetRoom, repoRoot });
+    if (!cronValid) {
+      throw new ChatError(
+        "PROVISION_FAILED",
+        `Cron wiring verification failed for host '${detectedHost}' using mechanism '${wired.mechanism}'`,
+      );
+    }
   }
 
   let daemonPid: number | null = null;

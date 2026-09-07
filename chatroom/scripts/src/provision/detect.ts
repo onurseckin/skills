@@ -52,7 +52,11 @@ function probeEnv(env: Record<string, string | undefined>): SupportedHost | null
     }
   }
   for (const key of keys) {
-    if (key.startsWith("CLAUDE_CODE_") || key.startsWith("ANTHROPIC_")) {
+    if (
+      key.startsWith("CLAUDE_") ||
+      key.startsWith("CLAUDE_CODE_") ||
+      key.startsWith("ANTHROPIC_")
+    ) {
       return "claude_code";
     }
   }
