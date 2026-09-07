@@ -21,6 +21,8 @@ export { inspectCommand } from "./inspect.ts";
 export { onCommand } from "./on.ts";
 export { offCommand } from "./off.ts";
 export {
+  briefCommand,
+  chatBriefCommand,
   chatMineCommand,
   chatTaskCommand,
   chatTopicCommand,

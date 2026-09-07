@@ -57,8 +57,10 @@ export function isDaemonHealthRecord(value: unknown): value is DaemonHealthRecor
   if (typeof candidate.start_time !== "string") return false;
   if (typeof candidate.boot_id !== "string") return false;
   if (
-    candidate.state !== "LIVE" && candidate.state !== "IDLE" &&
-    candidate.state !== "BACKPRESSURED" && candidate.state !== "WEDGED" &&
+    candidate.state !== "LIVE" &&
+    candidate.state !== "IDLE" &&
+    candidate.state !== "BACKPRESSURED" &&
+    candidate.state !== "WEDGED" &&
     candidate.state !== "STOPPED"
   ) {
     return false;
@@ -81,15 +83,20 @@ export function isDaemonHealthRecord(value: unknown): value is DaemonHealthRecor
     }
     const w = candidate.wakes_by_source as Record<string, unknown>;
     if (
-      typeof w.watch !== "number" || typeof w.poll !== "number" ||
-      typeof w.tick !== "number" || typeof w.token !== "number"
+      typeof w.watch !== "number" ||
+      typeof w.poll !== "number" ||
+      typeof w.tick !== "number" ||
+      typeof w.token !== "number"
     ) {
       return false;
     }
   }
   if (typeof candidate.spool_bytes !== "number") return false;
   if (typeof candidate.spool_lines !== "number") return false;
-  if (candidate.consumer_last_ack_at !== null && typeof candidate.consumer_last_ack_at !== "string") {
+  if (
+    candidate.consumer_last_ack_at !== null &&
+    typeof candidate.consumer_last_ack_at !== "string"
+  ) {
     return false;
   }
   if (
@@ -110,6 +117,7 @@ export interface HealthPorts {
   readonly readFileSync?: (path: string, encoding: string) => string;
   readonly writeAtomic?: (path: string, content: string) => void;
   readonly writeFileSync?: (path: string, content: string) => void;
+  readonly fs?: { readonly existsSync?: (path: string) => boolean };
 }
 
 export function readHealthRecord(
@@ -332,8 +340,7 @@ export function syncDaemonHealth(input: HealthSyncInput): DaemonHealthRecord | n
     watch_active: input.metrics.watch_active,
     watch_failures: input.metrics.watch_failures,
     poll_interval_ms: input.metrics.poll_interval_ms,
-    wakes_by_source:
-      input.metrics.wakes_by_source ??
+    wakes_by_source: input.metrics.wakes_by_source ??
       existing.wakes_by_source ?? { watch: 0, poll: 0, tick: 0, token: 0 },
     updated_at: input.nowIso,
     ...(input.source !== undefined

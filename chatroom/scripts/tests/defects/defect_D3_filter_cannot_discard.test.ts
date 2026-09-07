@@ -1,11 +1,6 @@
 import { describe, expect, it, spyOn } from "bun:test";
-import * as nodeFs from "node:fs";
-import {
-  inspectCommand,
-  inspectSpec,
-  readCommand,
-  readSpec,
-} from "../../src/cli/index.ts";
+const mockFs = await import("node:fs");
+import { inspectCommand, inspectSpec, readCommand, readSpec } from "../../src/cli/index.ts";
 import { type EnvelopeKind } from "../../src/core/index.ts";
 import { createInitialCursor, leaseNext, type LogEnvelope } from "../../src/cursor/index.ts";
 import { ChatVirtualFS } from "../../src/testing/virtual-fs/index.ts";
@@ -113,21 +108,19 @@ describe("Defect D3: filtering cannot discard unrelated messages", () => {
     const prevChatHome = process.env.CHATROOM_HOME;
     process.env.CHATROOM_HOME = `${vfsPrefix}/chatroom`;
 
-    const origExists = nodeFs.existsSync;
-    const origRead = nodeFs.readFileSync;
-    const origReaddir = nodeFs.readdirSync;
+    const origExists = mockFs.existsSync;
+    const origRead = mockFs.readFileSync;
+    const origReaddir = mockFs.readdirSync;
 
-    const existsSpy = spyOn(nodeFs, "existsSync").mockImplementation(
-      (target: unknown): boolean => {
-        const p = String(target);
-        if (p.startsWith(vfsPrefix)) {
-          return vfs.existsSync(p);
-        }
-        return origExists(target as Parameters<typeof origExists>[0]);
-      },
-    );
+    const existsSpy = spyOn(mockFs, "existsSync").mockImplementation((target: unknown): boolean => {
+      const p = String(target);
+      if (p.startsWith(vfsPrefix)) {
+        return vfs.existsSync(p);
+      }
+      return origExists(target as Parameters<typeof origExists>[0]);
+    });
 
-    const readSpy = spyOn(nodeFs, "readFileSync").mockImplementation(
+    const readSpy = spyOn(mockFs, "readFileSync").mockImplementation(
       (target: unknown, options?: unknown): string | Buffer => {
         const p = String(target);
         if (p.startsWith(vfsPrefix)) {
@@ -140,7 +133,7 @@ describe("Defect D3: filtering cannot discard unrelated messages", () => {
       },
     );
 
-    const readdirSpy = spyOn(nodeFs, "readdirSync").mockImplementation(
+    const readdirSpy = spyOn(mockFs, "readdirSync").mockImplementation(
       (target: unknown, options?: unknown): string[] => {
         const p = String(target);
         if (p.startsWith(vfsPrefix)) {
@@ -173,20 +166,13 @@ describe("Defect D3: filtering cannot discard unrelated messages", () => {
       const initialLogContent = mixedLog.map((env) => JSON.stringify(env)).join("\n") + "\n";
       vfs.writeFileSync(`${roomLogDirectory}/000001.jsonl`, initialLogContent);
 
-      const filteredResult = await inspectCommand(
-        { room: "room-d3", type: "verdict" },
-        {},
-        [],
-      );
+      const filteredResult = await inspectCommand({ room: "room-d3", type: "verdict" }, {}, []);
       expect(filteredResult["count"]).toBe(1);
       const filteredMessages = filteredResult["messages"] as readonly LogEnvelope[];
       expect(filteredMessages[0]?.seq).toBe(2);
       expect(filteredMessages[0]?.kind).toBe("verdict");
 
-      const logContentAfterInspect = vfs.readFileSync(
-        `${roomLogDirectory}/000001.jsonl`,
-        "utf8",
-      );
+      const logContentAfterInspect = vfs.readFileSync(`${roomLogDirectory}/000001.jsonl`, "utf8");
       expect(logContentAfterInspect).toBe(initialLogContent);
 
       const allResult = await inspectCommand({ room: "room-d3" }, {}, []);
@@ -198,7 +184,11 @@ describe("Defect D3: filtering cannot discard unrelated messages", () => {
       expect(leased.messages.map((m) => m.seq)).toEqual([1, 2, 3]);
     } finally {
       process.stdout.write = originalWrite;
-      process.env.CHATROOM_HOME = prevChatHome;
+      if (prevChatHome === undefined) {
+        delete process.env.CHATROOM_HOME;
+      } else {
+        process.env.CHATROOM_HOME = prevChatHome;
+      }
       existsSpy.mockRestore();
       readSpy.mockRestore();
       readdirSpy.mockRestore();

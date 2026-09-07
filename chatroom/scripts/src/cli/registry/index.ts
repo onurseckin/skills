@@ -24,6 +24,7 @@ export {
   CHAT_COMMANDS,
   ackSpec,
   allCommands,
+  briefSpec,
   commandInvocations,
   daemonSpec,
   doctorSpec,

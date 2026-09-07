@@ -21,7 +21,14 @@ import {
 import { mineCommand } from "../../../src/cli/commands/index.ts";
 import { mineSpec } from "../../../src/cli/registry/index.ts";
 
-import { appendToLog, createHealthPorts, makeEnvelope, seedRoom, VFS_PREFIX } from "./helpers.ts";
+import {
+  appendToLog,
+  createHealthPorts,
+  makeEnvelope,
+  seedMember,
+  seedRoom,
+  VFS_PREFIX,
+} from "./helpers.ts";
 
 const mockFs = await import("node:fs");
 
@@ -75,7 +82,11 @@ describe("Recovery View: chat mine and scanMineRecovery", () => {
   });
 
   afterAll(() => {
-    process.env.CHATROOM_HOME = previousChatroomHome;
+    if (previousChatroomHome === undefined) {
+      delete process.env.CHATROOM_HOME;
+    } else {
+      process.env.CHATROOM_HOME = previousChatroomHome;
+    }
   });
 
   it("verifies mineSpec schema and properties", () => {
@@ -92,9 +103,9 @@ describe("Recovery View: chat mine and scanMineRecovery", () => {
   });
 
   it("scans across 3 simulated rooms, grouping by status and detecting unseen items", () => {
-    seedRoom(vfs, "core-dev");
-    seedRoom(vfs, "qa-lane");
-    seedRoom(vfs, "ops-cluster");
+    seedRoom(vfs, "core-dev", ["alice", "bob"]);
+    seedRoom(vfs, "qa-lane", ["alice"]);
+    seedRoom(vfs, "ops-cluster", ["alice"]);
 
     appendToLog(
       vfs,
@@ -345,5 +356,32 @@ describe("Recovery View: chat mine and scanMineRecovery", () => {
     expect(unknownReport.items_by_status.in_progress).toEqual([]);
     expect(unknownReport.items_by_status.review).toEqual([]);
     expect(unknownReport.items_by_status.blocked).toEqual([]);
+  });
+
+  it("filters non-member rooms without leaking mentions or notices in chat mine", async () => {
+    seedRoom(vfs, "room-alpha", ["dave"]);
+    seedRoom(vfs, "room-beta");
+    appendToLog(vfs, "room-alpha", 1, TASK_NEW_SCHEMA, {
+      id: "T-A01",
+      title: "Alpha Task",
+      status: "open",
+      assignee: "dave",
+    });
+    appendToLog(vfs, "room-beta", 1, TASK_NEW_SCHEMA, {
+      id: "T-B01",
+      title: "Beta Task",
+      status: "open",
+      assignee: "dave",
+    });
+
+    const report = scanMineRecovery("dave", ports);
+    expect(report.rooms.map((r) => r.room)).toContain("room-alpha");
+    expect(report.rooms.map((r) => r.room)).not.toContain("room-beta");
+
+    const result = await mineCommand({ as: "dave" }, { ports }, []);
+    const markdown = String(result["markdown"]);
+    expect(markdown).toContain("room-alpha");
+    expect(markdown).not.toContain("room-beta");
+    expect(markdown).not.toContain("[NOTICE] No recovery brief set for dave in room room-beta");
   });
 });

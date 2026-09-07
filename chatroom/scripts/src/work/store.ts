@@ -39,7 +39,7 @@ export function clearWorkItemsCache(room?: string, ports?: HealthPorts): void {
   }
 }
 
-function readRoomLogEnvelopes(room: string, ports?: HealthPorts): readonly Envelope[] {
+export function readRoomLogEnvelopes(room: string, ports?: HealthPorts): readonly Envelope[] {
   const existsFn = ports?.existsSync ?? existsSync;
   const readFn = ports?.readFileSync ?? readFileSync;
 

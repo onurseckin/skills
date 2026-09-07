@@ -157,8 +157,16 @@ describe("task and topic command suite", () => {
     resolveMentionSpy.mockRestore();
     ensureDaemonSpy.mockRestore();
     appendMessageSpy.mockRestore();
-    process.env.CHATROOM_HOME = prevChatHome;
-    process.env.CHATROOM_AS = prevChatAs;
+    if (prevChatHome === undefined) {
+      delete process.env.CHATROOM_HOME;
+    } else {
+      process.env.CHATROOM_HOME = prevChatHome;
+    }
+    if (prevChatAs === undefined) {
+      delete process.env.CHATROOM_AS;
+    } else {
+      process.env.CHATROOM_AS = prevChatAs;
+    }
   });
 
   it("verifies command specifications have 0 sequence numbers in flags or args", () => {

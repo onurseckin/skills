@@ -311,8 +311,6 @@ export function startDaemon(options: SupervisorOptions): SupervisorResult {
     "daemon",
     "--room",
     room,
-    "--reader",
-    reader,
     "--as",
     reader,
     "--foreground",

@@ -1,6 +1,12 @@
 export { processAutoAcknowledge } from "./auto-ack.ts";
 export { foldWorkItems } from "./projection.ts";
-export { clearWorkItemsCache, getWorkCachePath, loadWorkItems, replayWorkItems } from "./store.ts";
+export {
+  clearWorkItemsCache,
+  getWorkCachePath,
+  loadWorkItems,
+  readRoomLogEnvelopes,
+  replayWorkItems,
+} from "./store.ts";
 export {
   generateTaskId,
   TASK_ACCEPTED_SCHEMA,
@@ -16,4 +22,17 @@ export {
   type WorkItemStatus,
   type WorkItemType,
 } from "./types.ts";
-export { scanMineRecovery, type ExtendedHealthPorts, type MineRecoveryReport } from "./mine.ts";
+export {
+  formatMineRecovery,
+  scanMineRecovery,
+  type ExtendedHealthPorts,
+  type MineRecoveryReport,
+  type MineRecoveryRoom,
+} from "./mine.ts";
+export {
+  BRIEF_SET_SCHEMA,
+  extractMemberBrief,
+  foldMemberBriefs,
+  type MemberBriefPayload,
+  type MemberBriefRecord,
+} from "./brief.ts";

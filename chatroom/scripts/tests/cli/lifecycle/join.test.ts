@@ -1,7 +1,21 @@
-import { describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { main } from "../../../../index.ts";
 
 describe("CLI real entry point: chat:join", () => {
+  let prevChatroomHome: string | undefined;
+
+  beforeAll(() => {
+    prevChatroomHome = process.env.CHATROOM_HOME;
+    process.env.CHATROOM_HOME = `/virtual/chat-test-${Date.now()}`;
+  });
+
+  afterAll(() => {
+    if (prevChatroomHome === undefined) {
+      delete process.env.CHATROOM_HOME;
+    } else {
+      process.env.CHATROOM_HOME = prevChatroomHome;
+    }
+  });
   it("executes full argv parsing, flag assertion, and entry pipeline with URI", async () => {
     let caughtCode = "";
     try {

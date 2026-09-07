@@ -1,4 +1,11 @@
-import { CliError, type FlagShapes, type FlagValue, type FlagValues } from "./registry/index.ts";
+import {
+  CliError,
+  flagShapes,
+  type CommandSpec,
+  type FlagShapes,
+  type FlagValue,
+  type FlagValues,
+} from "./registry/index.ts";
 
 export interface ParsedArguments {
   command: string;
@@ -140,6 +147,9 @@ function consumesFollowing(
   if (following === undefined || following === "--") {
     return false;
   }
+  if (shapes !== undefined && shapes.has(name) && !takesValue(name, shapes)) {
+    return false;
+  }
   if (!following.startsWith("--")) {
     return true;
   }
@@ -155,28 +165,145 @@ function consumesFollowing(
   return !shapes.has(flagCandidate);
 }
 
-export function parseArguments(argv: readonly string[], shapes?: FlagShapes): ParsedArguments {
-  const [command, ...tokens] = argv;
-  if (!command?.trim() || command.startsWith("-")) {
-    throw new CliError("INVALID_ARGUMENT", "a command is required", 3);
+export function splitCommandLine(line: string): string[] {
+  const args: string[] = [];
+  let current = "";
+  let inSingle = false;
+  let inDouble = false;
+  let escape = false;
+  let hasToken = false;
+
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+
+    if (escape) {
+      current += char;
+      hasToken = true;
+      escape = false;
+      continue;
+    }
+
+    if (char === "\\") {
+      escape = true;
+      continue;
+    }
+
+    if (char === "'" && !inDouble) {
+      inSingle = !inSingle;
+      hasToken = true;
+      continue;
+    }
+
+    if (char === '"' && !inSingle) {
+      inDouble = !inDouble;
+      hasToken = true;
+      continue;
+    }
+
+    if ((char === " " || char === "\t" || char === "\n") && !inSingle && !inDouble) {
+      if (hasToken) {
+        args.push(current);
+        current = "";
+        hasToken = false;
+      }
+      continue;
+    }
+
+    current += char;
+    hasToken = true;
   }
+
+  if (hasToken) {
+    args.push(current);
+  }
+
+  return args;
+}
+
+function isCommandSpec(candidate: unknown): candidate is CommandSpec {
+  return (
+    typeof candidate === "object" &&
+    candidate !== null &&
+    "name" in candidate &&
+    "flags" in candidate &&
+    "takesRemainder" in candidate
+  );
+}
+
+function resolveCommandTokens(
+  spec: CommandSpec,
+  rawTokens: readonly string[],
+): { command: string; tokens: readonly string[] } {
+  if (rawTokens.length === 0) {
+    return { command: spec.name, tokens: [] };
+  }
+  const first = rawTokens[0] ?? "";
+  const second = rawTokens[1];
+  if (
+    first === "chat" &&
+    second !== undefined &&
+    (`${first}:${second}` === spec.name || spec.aliases.includes(second))
+  ) {
+    return { command: `${first} ${second}`, tokens: rawTokens.slice(2) };
+  }
+  if (first === spec.name || spec.aliases.includes(first) || first.startsWith("chat:")) {
+    return { command: first, tokens: rawTokens.slice(1) };
+  }
+  return { command: spec.name, tokens: rawTokens };
+}
+
+export function parseArguments(spec: CommandSpec, argv: readonly string[]): ParsedArguments;
+export function parseArguments(argv: readonly string[], shapes?: FlagShapes): ParsedArguments;
+export function parseArguments(
+  first: CommandSpec | readonly string[],
+  second?: readonly string[] | FlagShapes,
+): ParsedArguments {
+  let command: string;
+  let tokens: readonly string[];
+  let shapes: FlagShapes | undefined;
+  let spec: CommandSpec | undefined;
+
+  if (isCommandSpec(first)) {
+    spec = first;
+    shapes = flagShapes(first.flags);
+    const rawTokens = Array.isArray(second) ? second : [];
+    const resolved = resolveCommandTokens(first, rawTokens);
+    command = resolved.command;
+    tokens = resolved.tokens;
+  } else {
+    const [commandToken, ...restTokens] = first;
+    if (!commandToken?.trim() || commandToken.startsWith("-")) {
+      throw new CliError("INVALID_ARGUMENT", "a command is required", 3);
+    }
+    command = commandToken;
+    tokens = restTokens;
+    shapes = second instanceof Map ? second : undefined;
+  }
+
   const singles: Record<string, FlagValue> = {};
   const repeats: Record<string, FlagValue[]> = {};
   const remainder: string[] = [];
+  let seenSeparator = false;
 
   for (let index = 0; index < tokens.length; index += 1) {
     const token = tokens[index];
     if (token === undefined) {
       continue;
     }
+    if (seenSeparator) {
+      remainder.push(token);
+      continue;
+    }
     if (token === "--") {
-      for (const item of tokens.slice(index + 1)) {
-        remainder.push(item);
-      }
-      break;
+      seenSeparator = true;
+      continue;
     }
     if (!token.startsWith("--")) {
-      throw new CliError("INVALID_ARGUMENT", `unexpected positional argument: ${token}`, 3);
+      if (spec !== undefined && !spec.takesRemainder) {
+        throw new CliError("INVALID_ARGUMENT", `unexpected positional argument: ${token}`, 3);
+      }
+      remainder.push(token);
+      continue;
     }
     let name: string;
     let value: FlagValue = true;

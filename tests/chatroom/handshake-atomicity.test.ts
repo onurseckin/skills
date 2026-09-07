@@ -60,6 +60,7 @@ describe("handshake atomicity and durable membership", () => {
         invite: inviteUri,
         as: joiner,
         yes: true,
+        brief: "recovery instructions for joiner",
       },
       {},
       [],
@@ -109,6 +110,7 @@ describe("handshake atomicity and durable membership", () => {
           invite: inviteUri,
           as: joiner,
           yes: true,
+          brief: "recovery instructions for joiner",
           writeFile: () => {
             throw new Error("simulated disk full failure");
           },
@@ -137,6 +139,7 @@ describe("handshake atomicity and durable membership", () => {
         invite: inviteUri,
         as: joiner,
         yes: true,
+        brief: "recovery instructions for joiner",
       },
       {},
       [],

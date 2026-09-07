@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { executeCommand, findCommand } from "../../src/cli/index.ts";
 import { offCommand, onCommand } from "../../src/cli/commands/index.ts";
 import { offSpec, onSpec } from "../../src/cli/registry/index.ts";
@@ -35,6 +35,21 @@ function createMemoryPorts(vfs: VirtualMemoryFS): PolicyPorts {
 }
 
 describe("CLI event registration commands and policy persistence", () => {
+  let prevChatroomHome: string | undefined;
+
+  beforeAll(() => {
+    prevChatroomHome = process.env.CHATROOM_HOME;
+    process.env.CHATROOM_HOME = `/virtual/chat-test-${Date.now()}`;
+  });
+
+  afterAll(() => {
+    if (prevChatroomHome === undefined) {
+      delete process.env.CHATROOM_HOME;
+    } else {
+      process.env.CHATROOM_HOME = prevChatroomHome;
+    }
+  });
+
   it("chat:on registers notify_command, calls ensureDaemon, and returns structured brief", async () => {
     const vfs = new VirtualMemoryFS();
     const ports = createMemoryPorts(vfs);

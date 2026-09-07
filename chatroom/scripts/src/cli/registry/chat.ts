@@ -21,6 +21,7 @@ import {
 import { offSpec, onSpec } from "./policy.ts";
 import { taskSpec, topicSpec } from "./task.ts";
 import { mineSpec } from "./mine.ts";
+import { briefSpec } from "./brief.ts";
 
 export const initSpec: CommandSpec = {
   name: "chat:init",
@@ -87,6 +88,7 @@ export const joinSpec: CommandSpec = {
     optionalFlag("invite", "string", "chatroom://<room>#<fingerprint>.<code>"),
     optionalFlag("room", "string", "public room id (no invite needed)"),
     optionalFlag("as", "string", "member id to register"),
+    optionalFlag("brief", "string", "recovery brief for room member"),
     optionalFlag("yes", "bool", "accept the confirmation preview without prompting"),
     optionalFlag("json", "bool", "machine output"),
   ],
@@ -296,11 +298,13 @@ export const CHAT_COMMANDS: readonly CommandSpec[] = [
   taskSpec,
   topicSpec,
   mineSpec,
+  briefSpec,
 ];
 
 export { offSpec, onSpec } from "./policy.ts";
 export { taskSpec, topicSpec } from "./task.ts";
 export { mineSpec } from "./mine.ts";
+export { briefSpec } from "./brief.ts";
 
 export function allCommands(): readonly CommandSpec[] {
   return CHAT_COMMANDS;

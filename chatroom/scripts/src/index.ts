@@ -8,6 +8,9 @@ export {
   allCommands,
   assertFlags,
   boolFlag,
+  briefCommand,
+  briefSpec,
+  chatBriefCommand,
   commandInvocations,
   daemonCommand,
   daemonSpec,
@@ -48,6 +51,7 @@ export {
   roomsSpec,
   sayCommand,
   saySpec,
+  splitCommandLine,
   suggestCommand,
   suggestFlag,
   taskCommand,
@@ -78,16 +82,20 @@ export type {
 } from "./cli/index.ts";
 
 export {
+  BRIEF_SET_SCHEMA,
   TASK_ACCEPTED_SCHEMA,
   TASK_NEW_SCHEMA,
   TASK_NOTE_SCHEMA,
   TASK_STATUS_SCHEMA,
   clearWorkItemsCache,
+  extractMemberBrief,
+  foldMemberBriefs,
   foldWorkItems,
   generateTaskId,
   getWorkCachePath,
   loadWorkItems,
   processAutoAcknowledge,
+  readRoomLogEnvelopes,
   replayWorkItems,
   scanMineRecovery,
 } from "./work/index.ts";

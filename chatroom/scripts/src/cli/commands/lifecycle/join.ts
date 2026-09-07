@@ -9,7 +9,7 @@ import {
   type CommandHandler,
   type Flags,
 } from "../shared/index.ts";
-import { assertValidRoomId, ChatError, writeAtomic } from "../../../core/index.ts";
+import { assertValidRoomId, ChatError, roomMemberPath, writeAtomic } from "../../../core/index.ts";
 import { addMember, readRoomManifest, type RosterOptions } from "../../../room/index.ts";
 import { resolveIdentity } from "../../../identity/index.ts";
 import {
@@ -22,17 +22,19 @@ import {
 } from "../../../handshake/index.ts";
 import { appendMessage } from "../../../log/index.ts";
 import { ensureDaemon } from "../../../daemon/index.ts";
+import { BRIEF_SET_SCHEMA } from "../../../work/index.ts";
 
 export const joinCommand: CommandHandler = async (
   flags: Flags,
   context: CommandContext,
   remainder: readonly string[],
 ): Promise<Record<string, unknown>> => {
-  assertFlags(flags, ["invite", "room", "as", "yes", "json", "writeFile"]);
+  assertFlags(flags, ["invite", "room", "as", "yes", "json", "writeFile", "brief"]);
 
   const inviteFlag = textFlag(flags, "invite", false);
   const roomFlag = textFlag(flags, "room", false);
   const asFlag = textFlag(flags, "as", false);
+  const briefFlag = textFlag(flags, "brief", false);
   const yesFlag = boolFlag(flags, "yes");
   const jsonFlag = boolFlag(flags, "json");
 
@@ -105,6 +107,29 @@ export const joinCommand: CommandHandler = async (
       }
     }
 
+    const memberFile = roomMemberPath(targetRoomId, identity.id);
+    const existsFn = rosterOptions?.exists ?? fs.existsSync;
+    let isExistingMember = existsFn(memberFile);
+    if (!isExistingMember) {
+      try {
+        const manifest = readRoomManifest(targetRoomId);
+        const manifestRecord = manifest as unknown as { members?: unknown; created_by?: unknown };
+        if (
+          (Array.isArray(manifestRecord.members) && manifestRecord.members.includes(identity.id)) ||
+          manifestRecord.created_by === identity.id
+        ) {
+          isExistingMember = true;
+        }
+      } catch {}
+    }
+
+    if (!isExistingMember && (briefFlag === undefined || briefFlag.trim().length === 0)) {
+      throw new ChatError(
+        "INVALID_ARGUMENT",
+        "recovery brief required for new room members. Provide --brief <prose> describing identity, current objective, peer, and recovery instructions.",
+      );
+    }
+
     addMember(
       targetRoomId,
       {
@@ -164,10 +189,35 @@ export const joinCommand: CommandHandler = async (
     });
   } catch {}
 
+  if (briefFlag !== undefined && briefFlag.trim().length > 0) {
+    try {
+      appendMessage(targetRoomId, {
+        sender: {
+          id: identity.id,
+          role: identity.role,
+          host: identity.host,
+          ...(identity.repo_hint !== undefined ? { repo_hint: identity.repo_hint } : {}),
+          pid: process.pid,
+        },
+        kind: "message",
+        text: briefFlag,
+        body: {
+          schema: BRIEF_SET_SCHEMA,
+          data: {
+            member_id: identity.id,
+            text: briefFlag,
+            updated_at: new Date().toISOString(),
+          },
+        },
+      });
+    } catch {}
+  }
+
   const result: Record<string, unknown> = {
     room: targetRoomId,
     as: identity.id,
     joined: true,
+    ...(briefFlag !== undefined ? { brief: briefFlag } : {}),
   };
 
   if (!jsonFlag) {

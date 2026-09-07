@@ -39,12 +39,12 @@ export async function executeCommand(
     throw new CliError("INVALID_ARGUMENT", `unknown command: ${cmdName}${hint}`, 3);
   }
 
-  const parsed = parseArguments(effectiveArgv, flagShapes(spec.flags));
+  const parsed = parseArguments(spec, effectiveArgv);
 
   if (parsed.remainder.length > 0 && !spec.takesRemainder) {
     throw new CliError(
       "INVALID_ARGUMENT",
-      `command ${parsed.command} does not accept -- arguments`,
+      `unexpected positional argument: ${parsed.remainder[0]}`,
       3,
     );
   }

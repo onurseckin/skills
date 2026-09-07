@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
 import { dirname, join } from "node:path";
+import { chatroomHomeDir } from "../core/index.ts";
 import { ProvisionError, type SupportedHost } from "./detect.ts";
 import { verifyCronWiring } from "./cron.ts";
 
@@ -59,7 +59,7 @@ export function getProvisionReceiptPath(
   member: string,
   baseDir?: string,
 ): string {
-  const root = baseDir ?? join(homedir(), ".agents", "chatroom");
+  const root = baseDir ?? chatroomHomeDir();
   return join(root, "rooms", room, "provision", `${host}.${member}.json`);
 }
 

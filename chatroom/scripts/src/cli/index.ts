@@ -2,6 +2,7 @@ export {
   flagPositions,
   nearestFlagNames,
   parseArguments,
+  splitCommandLine,
   suggestCommand,
   suggestFlag,
 } from "./arguments.ts";
@@ -30,6 +31,7 @@ export {
   DEFAULT_EXIT_CODES,
   ackSpec,
   allCommands,
+  briefSpec,
   commandInvocations,
   daemonSpec,
   doctorSpec,
@@ -55,6 +57,8 @@ export {
 export {
   CommandExecutionError,
   ackCommand,
+  briefCommand,
+  chatBriefCommand,
   daemonCommand,
   doctorCommand,
   initCommand,

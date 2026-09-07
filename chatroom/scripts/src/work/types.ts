@@ -30,6 +30,7 @@ export const TASK_NEW_SCHEMA = "chatroom.task.new.v1";
 export const TASK_STATUS_SCHEMA = "chatroom.task.status.v1";
 export const TASK_NOTE_SCHEMA = "chatroom.task.note.v1";
 export const TASK_ACCEPTED_SCHEMA = "chatroom.task.accepted.v1";
+export const BRIEF_SET_SCHEMA = "chatroom.member.brief.v1" as const;
 
 export interface TaskNewPayload {
   readonly id?: string;
@@ -64,6 +65,19 @@ export interface TaskAcceptedPayload {
   readonly id?: string;
   readonly task_id?: string;
   readonly accepted_at?: string;
+}
+
+export interface MemberBriefPayload {
+  readonly member_id: string;
+  readonly text: string;
+  readonly updated_at: string;
+}
+
+export interface MemberBriefRecord {
+  readonly member_id: string;
+  readonly text: string;
+  readonly updated_at: string;
+  readonly seq: number;
 }
 
 export function generateTaskId(seq: number, ts: string): string {

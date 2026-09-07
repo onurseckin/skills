@@ -26,6 +26,9 @@ export function createHealthPorts(vfs: ChatVirtualFS): ExtendedHealthPorts {
     },
     readdirSync: (t: string) => vfs.readdirSync(t) as string[],
     statSync: (t: string) => ({ isDirectory: () => vfs.statSync(t).isDirectory() }),
+    fs: {
+      existsSync: (t: string) => vfs.existsSync(t),
+    },
   };
 }
 
@@ -78,11 +81,35 @@ export function appendToLog(
   vfs.writeFileSync(indexPath, JSON.stringify(index, null, 2));
 }
 
-export function seedRoom(vfs: ChatVirtualFS, room: string): void {
+export function seedMember(vfs: ChatVirtualFS, room: string, member: string): void {
+  const memberPath = join(VFS_PREFIX, "rooms", room, "members", `${member}.json`);
+  vfs.mkdirSync(dirname(memberPath), { recursive: true });
+  vfs.writeFileSync(
+    memberPath,
+    JSON.stringify({
+      v: 1,
+      id: member,
+      display_name: member,
+      role: "worker",
+      host: "local",
+      joined_at: "2026-09-07T10:00:00.000Z",
+      key_fingerprint: "sha256:12345678",
+      aliases: [],
+    }),
+  );
+}
+
+export function seedRoom(vfs: ChatVirtualFS, room: string, members?: readonly string[]): void {
   const roomPath = join(VFS_PREFIX, "rooms", room);
   vfs.mkdirSync(join(roomPath, "log"), { recursive: true });
+  vfs.mkdirSync(join(roomPath, "members"), { recursive: true });
   vfs.writeFileSync(
     join(roomPath, "room.json"),
     JSON.stringify({ id: room, title: `Test Room ${room}`, visibility: "private" }),
   );
+  if (members !== undefined) {
+    for (const member of members) {
+      seedMember(vfs, room, member);
+    }
+  }
 }

@@ -1,6 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
+import { globalIdentityPath } from "../core/index.ts";
 
 export type SupportedHost = "antigravity" | "claude_code" | "codex" | "cursor";
 
@@ -141,8 +140,7 @@ export function detectHost(options: DetectHostOptions = {}): SupportedHost {
     return envHost;
   }
 
-  const identityPath =
-    options.identityPath ?? join(homedir(), ".agents", "chatroom", "identity.json");
+  const identityPath = options.identityPath ?? globalIdentityPath();
   const repoRoot = options.repoRoot ?? process.cwd();
   const identityHost = probeIdentityFile(identityPath, repoRoot);
   if (identityHost) {

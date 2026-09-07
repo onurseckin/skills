@@ -1,3 +1,4 @@
+export { guardsTestsSuite } from "./guards/index.ts";
 export { lifecycleTestsSuite } from "./lifecycle/index.ts";
 
 export const cliTestsSuite = [
