@@ -25,8 +25,8 @@ import {
 } from "../cursor/index.ts";
 import { resolvePolicy, type ChatroomPolicy } from "../policy/index.ts";
 import {
+  claimHealthRecord,
   computeDaemonState,
-  createInitialHealthRecord,
   readHealthRecord,
   writeHealthRecord,
   type DaemonHealthRecord,
@@ -107,11 +107,13 @@ export function stepDaemonLoop(
 
   repairSpool(room, reader);
 
-  let existingHealth = readHealthRecord(healthPath);
-  if (!existingHealth) {
-    const pollMs = policy.poll_interval_ms;
-    existingHealth = createInitialHealthRecord(room, reader, process.pid, nowIso, "boot", pollMs);
-  }
+  const existingHealth = claimHealthRecord(healthPath, {
+    room,
+    reader,
+    pid: process.pid,
+    startTime: nowIso,
+    pollIntervalMs: policy.poll_interval_ms,
+  });
 
   const metrics = options.watcher?.getMetrics();
   const watchActive = metrics !== undefined ? metrics.watch_active : existingHealth.watch_active;
@@ -186,6 +188,7 @@ export function stepDaemonLoop(
         state: existingHealth.state === "BACKPRESSURED" ? "LIVE" : existingHealth.state,
         lag_seqs: remainingCount,
         room_head_seq: headSeq,
+        last_wake_at: nowIso,
       };
       const state = computeDaemonState(baseRecord, nowMs);
       updateHealth({
@@ -265,6 +268,7 @@ export function stepDaemonLoop(
       lag_seqs: remainingCount,
       room_head_seq: headSeq,
       last_delivered_seq: ackedCursor.contiguous_seq,
+      last_wake_at: nowIso,
     };
     const computedState = computeDaemonState(baseRecord, nowMs);
 
@@ -302,10 +306,13 @@ export async function runDaemonLoop(options: DaemonLoopOptions): Promise<void> {
   const healthPath = daemonHealthPath(room, reader);
   const nowIso = new Date().toISOString();
   const pollMs = options.pollIntervalMs ?? policy.poll_interval_ms;
-  const initialHealth =
-    readHealthRecord(healthPath) ??
-    createInitialHealthRecord(room, reader, process.pid, nowIso, "boot", pollMs);
-  writeHealthRecord(healthPath, initialHealth);
+  claimHealthRecord(healthPath, {
+    room,
+    reader,
+    pid: process.pid,
+    startTime: nowIso,
+    pollIntervalMs: pollMs,
+  });
 
   const watcher =
     options.watcher ??

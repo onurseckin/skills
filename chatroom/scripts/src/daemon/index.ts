@@ -67,14 +67,17 @@ export {
 } from "./loop.ts";
 
 export {
+  claimHealthRecord,
   createInitialHealthRecord,
   inspectDaemon,
   isDaemonHealthRecord,
+  isHealthRecordOwnerStale,
   readHealthRecord,
   writeHealthRecord,
   type DaemonHealthRecord,
   type DaemonInspectionResult,
   type DaemonLivenessState,
+  type HealthClaimOptions,
   type HealthComputeOptions,
   type HealthPorts,
 } from "./health.ts";

@@ -200,6 +200,68 @@ export function createInitialHealthRecord(
   };
 }
 
+export interface HealthClaimOptions {
+  readonly room: string;
+  readonly reader: string;
+  readonly pid: number;
+  readonly startTime: string;
+  readonly bootId?: string;
+  readonly pollIntervalMs?: number;
+  readonly isProcessAlive?: (pid: number) => boolean;
+}
+
+export function isHealthRecordOwnerStale(
+  record: DaemonHealthRecord,
+  pid: number,
+  checkAlive: (candidate: number) => boolean,
+): boolean {
+  if (record.pid === pid) {
+    return false;
+  }
+  return !checkAlive(record.pid);
+}
+
+export function claimHealthRecord(
+  healthPath: string,
+  options: HealthClaimOptions,
+  ports?: HealthPorts,
+): DaemonHealthRecord {
+  const existing = readHealthRecord(healthPath, ports);
+  const bootId = options.bootId ?? existing?.boot_id ?? "boot";
+  const pollIntervalMs = options.pollIntervalMs ?? existing?.poll_interval_ms ?? 750;
+  if (existing === null) {
+    const created = createInitialHealthRecord(
+      options.room,
+      options.reader,
+      options.pid,
+      options.startTime,
+      bootId,
+      pollIntervalMs,
+    );
+    writeHealthRecord(healthPath, created, ports);
+    return created;
+  }
+  const checkAlive = options.isProcessAlive ?? isProcessAlive;
+  if (!isHealthRecordOwnerStale(existing, options.pid, checkAlive)) {
+    return existing;
+  }
+  const claimed: DaemonHealthRecord = {
+    ...existing,
+    pid: options.pid,
+    start_time: options.startTime,
+    boot_id: bootId,
+    state: "LIVE",
+    last_wake_at: options.startTime,
+    last_wake_source: "start",
+    watch_active: false,
+    watch_failures: 0,
+    poll_interval_ms: pollIntervalMs,
+    updated_at: options.startTime,
+  };
+  writeHealthRecord(healthPath, claimed, ports);
+  return claimed;
+}
+
 export interface DaemonInspectionResult {
   readonly room: string;
   readonly reader: string;
