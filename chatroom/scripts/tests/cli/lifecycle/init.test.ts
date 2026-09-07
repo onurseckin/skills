@@ -3,17 +3,27 @@ import { main } from "../../../../index.ts";
 
 describe("CLI real entry point: chat:init", () => {
   let prevChatroomHome: string | undefined;
+  let testHome = "";
 
-  beforeAll(() => {
+  beforeAll(async () => {
     prevChatroomHome = process.env.CHATROOM_HOME;
-    process.env.CHATROOM_HOME = `/virtual/chat-test-${Date.now()}`;
+    const osMod = await import("node:os");
+    const { join } = await import("node:path");
+    testHome = join(osMod.tmpdir(), "chat-test-" + Date.now());
+    process.env.CHATROOM_HOME = testHome;
   });
 
-  afterAll(() => {
+  afterAll(async () => {
     if (prevChatroomHome === undefined) {
       delete process.env.CHATROOM_HOME;
     } else {
       process.env.CHATROOM_HOME = prevChatroomHome;
+    }
+    if (testHome) {
+      const virtualFs = await import("node:fs/promises");
+      try {
+        await virtualFs.rm(testHome, { recursive: true, force: true });
+      } catch {}
     }
   });
   it("executes full argv parsing, flag assertion, and entry pipeline", async () => {

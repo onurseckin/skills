@@ -1,8 +1,3 @@
-/**
- * @file test-changed.test.ts
- * Unit tests for test-changed script with 100% in-memory virtual filesystem mocking.
- */
-
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import * as childProcess from "node:child_process";
 import {
@@ -12,6 +7,7 @@ import {
 } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import type { PurityAuditResult } from "../../../scripts/testing/guardrails/index.ts";
 import {
+  findAllTestFiles,
   main,
   parseDiffOutput,
   parseGitStatusPorcelain,
@@ -206,5 +202,71 @@ describe("purity audit scope decoupling", () => {
     } finally {
       spy.mockRestore();
     }
+  });
+});
+
+describe("dynamic repo-wide test discovery", () => {
+  let vfs: VirtualMemoryFS;
+  let vfsSession: VirtualFSSession;
+
+  beforeEach(() => {
+    vfs = new VirtualMemoryFS();
+    vfsSession = createVirtualFSSession(vfs);
+  });
+
+  afterEach(() => {
+    vfsSession.cleanup();
+  });
+
+  test("findAllTestFiles discovers tests across all non-ignored directories and excludes ignored ones", () => {
+    vfs.mkdirSync("tests/unit", { recursive: true });
+    vfs.writeFileSync("tests/unit/core.test.ts", "");
+    vfs.mkdirSync("chatroom/scripts/tests/work", { recursive: true });
+    vfs.writeFileSync("chatroom/scripts/tests/work/brief.test.ts", "");
+    vfs.mkdirSync("node_modules/pkg/tests", { recursive: true });
+    vfs.writeFileSync("node_modules/pkg/tests/bad.test.ts", "");
+    vfs.mkdirSync(".git/hooks", { recursive: true });
+    vfs.writeFileSync(".git/hooks/hook.test.ts", "");
+    vfs.mkdirSync("dist/tests", { recursive: true });
+    vfs.writeFileSync("dist/tests/bundle.test.ts", "");
+    vfs.mkdirSync("coverage", { recursive: true });
+    vfs.writeFileSync("coverage/coverage.test.ts", "");
+    vfs.mkdirSync("scratch", { recursive: true });
+    vfs.writeFileSync("scratch/scratch.test.ts", "");
+    vfs.mkdirSync("artifacts", { recursive: true });
+    vfs.writeFileSync("artifacts/art.test.ts", "");
+    vfs.mkdirSync(".olt", { recursive: true });
+    vfs.writeFileSync(".olt/olt.test.ts", "");
+    vfs.mkdirSync("capsules", { recursive: true });
+    vfs.writeFileSync("capsules/capsule.test.ts", "");
+    vfs.mkdirSync(".capsules", { recursive: true });
+    vfs.writeFileSync(".capsules/dotcapsule.test.ts", "");
+
+    const found = findAllTestFiles(".");
+    expect(found.sort()).toEqual([
+      "chatroom/scripts/tests/work/brief.test.ts",
+      "tests/unit/core.test.ts",
+    ]);
+  });
+
+  test("resolveAffectedTestFiles includes changed test files outside tests/ directory", () => {
+    const chatTest = "chatroom/scripts/tests/work/brief.test.ts";
+    vfs.mkdirSync("chatroom/scripts/tests/work", { recursive: true });
+    vfs.writeFileSync(chatTest, "");
+
+    const result = resolveAffectedTestFiles([chatTest]);
+    expect(result.all).toBe(false);
+    expect(result.testFiles).toContain(chatTest);
+  });
+
+  test("resolveAffectedTestFiles matches changed source files to test files across discovered roots", () => {
+    vfs.mkdirSync("chatroom/scripts/src/work", { recursive: true });
+    vfs.mkdirSync("chatroom/scripts/tests/work", { recursive: true });
+    vfs.writeFileSync("chatroom/scripts/src/work/brief.ts", "");
+    vfs.writeFileSync("chatroom/scripts/tests/work/brief.test.ts", "");
+
+    const result = resolveAffectedTestFiles(["chatroom/scripts/src/work/brief.ts"]);
+    expect(result.all).toBe(false);
+    expect(result.testFiles).toContain("chatroom/scripts/tests/work/brief.test.ts");
   });
 });

@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import {
   ChatError,
+  roomLogSegmentPath,
   roomMemberPath,
   timingSafeEqualBuffers,
   type Envelope,

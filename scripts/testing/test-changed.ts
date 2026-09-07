@@ -1,4 +1,3 @@
-/** Fast Affected / Changed Unit Test Runner with Caching */
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync } from "node:fs";
 import { basename, extname, join } from "node:path";
@@ -73,12 +72,25 @@ export function getChangedFiles(customGitOutput?: (args: string[]) => string): s
   );
 }
 
-export function findAllTestFiles(dir: string): string[] {
+const IGNORED_DIRECTORIES = new Set([
+  "node_modules",
+  ".git",
+  ".olt",
+  "capsules",
+  ".capsules",
+  "dist",
+  "coverage",
+  "scratch",
+  "artifacts",
+]);
+
+export function findAllTestFiles(dir: string = "."): string[] {
   if (!existsSync(dir)) return [];
   const results: string[] = [];
   try {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      const full = join(dir, entry.name);
+      if (IGNORED_DIRECTORIES.has(entry.name)) continue;
+      const full = dir === "." || dir === "" ? entry.name : join(dir, entry.name);
       if (entry.isDirectory()) results.push(...findAllTestFiles(full));
       else if (/\.(test|spec)\.(ts|tsx)$/.test(entry.name)) results.push(full);
     }
@@ -107,7 +119,7 @@ const GENERIC_STEMS = new Set(
 export function resolveAffectedTestFiles(
   changedFiles: readonly string[],
   runAll = false,
-  unitTestDir = "tests",
+  unitTestDir = ".",
   allTestsOverride?: readonly string[],
   dataReferenceIndex?: DataReferenceIndex,
 ): { all: boolean; testFiles: string[] } {
@@ -127,10 +139,7 @@ export function resolveAffectedTestFiles(
   const affected = new Set<string>();
 
   for (const file of changedFiles) {
-    if (
-      (file.startsWith("tests/") || file.startsWith(unitTestDir)) &&
-      /\.(test|spec)\.(ts|tsx)$/.test(file)
-    ) {
+    if (/\.(test|spec)\.(ts|tsx)$/.test(file)) {
       if (allTestsOverride ? allTests.includes(file) : existsSync(file)) {
         affected.add(file);
       }
@@ -231,7 +240,7 @@ export async function run(
   const testArgs = argvArgs.includes("--coverage")
     ? ["test", "--timeout", "30000", "--coverage"]
     : ["test", "--timeout", "30000"];
-  const targetFiles = testFiles.length > 0 ? testFiles : findAllTestFiles("tests");
+  const targetFiles = testFiles.length > 0 ? testFiles : findAllTestFiles();
 
   if (targetFiles.length === 0) {
     console.log("[test-changed] No test files found. Skipping test execution.");
