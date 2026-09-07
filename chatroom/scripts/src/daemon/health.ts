@@ -180,60 +180,6 @@ export function writeDerivedHealthRecord(
   return derived;
 }
 
-export interface HealthSyncInput {
-  readonly healthPath: string;
-  readonly nowIso: string;
-  readonly metrics: Pick<
-    DaemonHealthRecord,
-    "watch_active" | "watch_failures" | "poll_interval_ms"
-  >;
-  readonly source?: string;
-  readonly compute?: HealthComputeOptions;
-  readonly ports?: HealthPorts;
-}
-
-export function syncDaemonHealth(input: HealthSyncInput): DaemonHealthRecord | null {
-  const existing = readHealthRecord(input.healthPath, input.ports);
-  if (existing === null) {
-    return null;
-  }
-  const merged: DaemonHealthRecord = {
-    ...existing,
-    watch_active: input.metrics.watch_active,
-    watch_failures: input.metrics.watch_failures,
-    poll_interval_ms: input.metrics.poll_interval_ms,
-    updated_at: input.nowIso,
-    ...(input.source !== undefined
-      ? { last_wake_at: input.nowIso, last_wake_source: input.source }
-      : {}),
-  };
-  return writeDerivedHealthRecord(
-    input.healthPath,
-    merged,
-    Date.parse(input.nowIso),
-    input.compute ?? {},
-    input.ports,
-  );
-}
-
-export function stampStoppedIfOwned(
-  healthPath: string,
-  pid: number,
-  nowIso: string,
-  ports?: HealthPorts,
-): boolean {
-  const existing = readHealthRecord(healthPath, ports);
-  if (existing === null || existing.pid !== pid) {
-    return false;
-  }
-  writeHealthRecord(
-    healthPath,
-    { ...existing, watch_active: false, state: "STOPPED", updated_at: nowIso },
-    ports,
-  );
-  return true;
-}
-
 export function createInitialHealthRecord(
   room: string,
   reader: string,
@@ -329,6 +275,62 @@ export function claimHealthRecord(
   };
   writeHealthRecord(healthPath, claimed, ports);
   return claimed;
+}
+
+export interface HealthSyncInput {
+  readonly healthPath: string;
+  readonly nowIso: string;
+  readonly metrics: Pick<
+    DaemonHealthRecord,
+    "watch_active" | "watch_failures" | "poll_interval_ms"
+  >;
+  readonly source?: string;
+  readonly claim: HealthClaimOptions;
+  readonly compute?: HealthComputeOptions;
+  readonly ports?: HealthPorts;
+}
+
+export function syncDaemonHealth(input: HealthSyncInput): DaemonHealthRecord | null {
+  claimHealthRecord(input.healthPath, input.claim, input.ports);
+  const existing = readHealthRecord(input.healthPath, input.ports);
+  if (existing === null) {
+    return null;
+  }
+  const merged: DaemonHealthRecord = {
+    ...existing,
+    watch_active: input.metrics.watch_active,
+    watch_failures: input.metrics.watch_failures,
+    poll_interval_ms: input.metrics.poll_interval_ms,
+    updated_at: input.nowIso,
+    ...(input.source !== undefined
+      ? { last_wake_at: input.nowIso, last_wake_source: input.source }
+      : {}),
+  };
+  return writeDerivedHealthRecord(
+    input.healthPath,
+    merged,
+    Date.parse(input.nowIso),
+    input.compute ?? {},
+    input.ports,
+  );
+}
+
+export function stampStoppedIfOwned(
+  healthPath: string,
+  pid: number,
+  nowIso: string,
+  ports?: HealthPorts,
+): boolean {
+  const existing = readHealthRecord(healthPath, ports);
+  if (existing === null || existing.pid !== pid) {
+    return false;
+  }
+  writeHealthRecord(
+    healthPath,
+    { ...existing, watch_active: false, state: "STOPPED", updated_at: nowIso },
+    ports,
+  );
+  return true;
 }
 
 export interface DaemonInspectionResult {

@@ -8,6 +8,7 @@ import {
   syncDaemonHealth,
   writeHealthRecord,
   type DaemonHealthRecord,
+  type HealthClaimOptions,
   type HealthPorts,
 } from "../../src/daemon/index.ts";
 import { ChatVirtualFS } from "../../src/testing/virtual-fs/index.ts";
@@ -51,12 +52,29 @@ function seedDepartedPredecessorRecord(
   return record;
 }
 
-function wakeAt(vfs: ChatVirtualFS, ports: HealthPorts, nowIso: string): DaemonHealthRecord | null {
+function claimFor(vfs: ChatVirtualFS, pid: number, nowIso: string): HealthClaimOptions {
+  return {
+    room: ROOM,
+    reader: READER,
+    pid,
+    startTime: nowIso,
+    pollIntervalMs: 750,
+    isProcessAlive: (candidate: number) => vfs.isProcessAlive(candidate),
+  };
+}
+
+function wakeAt(
+  vfs: ChatVirtualFS,
+  ports: HealthPorts,
+  nowIso: string,
+  wakingPid: number,
+): DaemonHealthRecord | null {
   return syncDaemonHealth({
     healthPath: HEALTH_PATH,
     nowIso,
     metrics: METRICS,
     source: "poll",
+    claim: claimFor(vfs, wakingPid, nowIso),
     compute: { isProcessAlive: (pid: number) => vfs.isProcessAlive(pid) },
     ports,
   });
@@ -76,7 +94,7 @@ describe("the state a daemon wake persists is the state it computes", () => {
       }),
     ).toBe("IDLE");
 
-    wakeAt(vfs, ports, WAKE_ISO);
+    wakeAt(vfs, ports, WAKE_ISO, livePid);
 
     const persisted = readHealthRecord(HEALTH_PATH, ports);
     expect(persisted?.state).toBe("IDLE");
@@ -94,7 +112,7 @@ describe("the state a daemon wake persists is the state it computes", () => {
     const observed: string[] = [];
     for (let i = 1; i <= 12; i++) {
       const nowIso = new Date(WAKE_MS + i * 750).toISOString();
-      wakeAt(vfs, ports, nowIso);
+      wakeAt(vfs, ports, nowIso, livePid);
       observed.push(readHealthRecord(HEALTH_PATH, ports)?.state ?? "MISSING");
     }
 
@@ -109,7 +127,7 @@ describe("the state a daemon wake persists is the state it computes", () => {
     writeHealthRecord(HEALTH_PATH, { ...base, state: "IDLE" }, ports);
     vfs.killProcess(deadPid);
 
-    wakeAt(vfs, ports, WAKE_ISO);
+    wakeAt(vfs, ports, WAKE_ISO, deadPid);
 
     expect(readHealthRecord(HEALTH_PATH, ports)?.state).toBe("STOPPED");
   });
@@ -121,9 +139,41 @@ describe("the state a daemon wake persists is the state it computes", () => {
     const base = seedDepartedPredecessorRecord(vfs, ports, livePid);
     writeHealthRecord(HEALTH_PATH, { ...base, state: "BACKPRESSURED" }, ports);
 
-    wakeAt(vfs, ports, WAKE_ISO);
+    wakeAt(vfs, ports, WAKE_ISO, livePid);
 
     expect(readHealthRecord(HEALTH_PATH, ports)?.state).toBe("BACKPRESSURED");
+  });
+});
+
+describe("a daemon wake re-asserts ownership of a record left by a dead predecessor", () => {
+  it("persists its own pid and IDLE when the record still names a dead predecessor", () => {
+    const vfs = new ChatVirtualFS(WAKE_MS);
+    const ports = createHealthPorts(vfs);
+    const deadPid = vfs.spawnProcess({ cmd: "chatroom-daemon" });
+    const livePid = vfs.spawnProcess({ cmd: "chatroom-daemon" });
+    seedDepartedPredecessorRecord(vfs, ports, deadPid);
+    vfs.killProcess(deadPid);
+
+    wakeAt(vfs, ports, WAKE_ISO, livePid);
+
+    const persisted = readHealthRecord(HEALTH_PATH, ports);
+    expect(persisted?.pid).toBe(livePid);
+    expect(persisted?.state).toBe("IDLE");
+    expect(persisted?.last_delivered_seq).toBe(145);
+  });
+
+  it("never steals a record whose named daemon is still alive", () => {
+    const vfs = new ChatVirtualFS(WAKE_MS);
+    const ports = createHealthPorts(vfs);
+    const incumbentPid = vfs.spawnProcess({ cmd: "chatroom-daemon" });
+    const challengerPid = vfs.spawnProcess({ cmd: "chatroom-daemon" });
+    seedDepartedPredecessorRecord(vfs, ports, incumbentPid);
+
+    wakeAt(vfs, ports, WAKE_ISO, challengerPid);
+
+    const persisted = readHealthRecord(HEALTH_PATH, ports);
+    expect(persisted?.pid).toBe(incumbentPid);
+    expect(persisted?.state).toBe("IDLE");
   });
 });
 

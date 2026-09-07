@@ -335,10 +335,12 @@ export async function runDaemonLoop(options: DaemonLoopOptions): Promise<void> {
   const stepOptions: DaemonLoopOptions = { ...options, watcher };
 
   const syncHealth = (source?: WakeSource): void => {
+    const nowIso = new Date().toISOString();
     syncDaemonHealth({
       healthPath,
-      nowIso: new Date().toISOString(),
+      nowIso,
       metrics: watcher.getMetrics(),
+      claim: { room, reader, pid: process.pid, startTime: nowIso, pollIntervalMs: pollMs },
       ...(source !== undefined ? { source } : {}),
     });
   };
