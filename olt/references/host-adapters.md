@@ -295,7 +295,8 @@ Every host adapter implementation must enforce the following guardrails:
 - **Anti-Pattern**: Schedulers terminating when hitting an idle tick or requiring human intervention between execution phases.
 - **Guardrail**: Maintain continuous non-stop autonomous loops:
   - Register background cron schedules (`schedule` tool with `CronExpression="*/5 * * * *"`, systemd timers).
-  - Use shell floor loop drivers (`pulse.sh`) with error isolation (`|| true`) to ensure crashed pulses do not terminate the loop.
+  - Run `bun olt/scripts/pulse-driver.ts --run <capsule> --foreground` as a supervised process where no host timer exists. It fires `pulse.sh` when the capsule's own armed `next_wake_at` comes due, so the Mind's adaptive backoff is honoured rather than overridden by a fixed cron.
+  - Never wrap a pulse in `|| true`. Its exit code is its outcome (`0` ran, `70` failed, `71` ran unlocked, `72` ran but reached no host, `75` skipped because a peer holds the lock); discarding it restores the defect where a pulse that did nothing reported success. A crashed pulse must not terminate the loop, but the driver records the failure rather than swallowing it.
   - Automatically chain subsequent phases upon completion without halting for user confirmation.
 
 ### 5.5 Repository Root Capsule Resolution Protocol
