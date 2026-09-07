@@ -7,6 +7,13 @@ export function initSkillsRepoAt(repoRoot: string): void {
   vfs.mkdirSync(join(repoRoot, "olt"), { recursive: true });
   vfs.writeFileSync(join(repoRoot, "olt", "SKILL.md"), "canonical-skill\n", "utf-8");
   vfs.writeFileSync(join(repoRoot, "olt", "harness.ts"), "console.log('harness');\n", "utf-8");
+  vfs.mkdirSync(join(repoRoot, "chatroom"), { recursive: true });
+  vfs.writeFileSync(join(repoRoot, "chatroom", "SKILL.md"), "canonical-chatroom\n", "utf-8");
+  vfs.writeFileSync(
+    join(repoRoot, "chatroom", "harness.ts"),
+    "console.log('chatroom');\n",
+    "utf-8",
+  );
   vfs.writeFileSync(join(repoRoot, "package.json"), '{"name":"skills"}\n', "utf-8");
   vfs.mkdirSync(join(repoRoot, ".git"), { recursive: true });
 }
@@ -32,18 +39,24 @@ export function defaultMockSpawnSync(
     if (args && args[0] === "status") {
       if (!isRepo) return { ...base, status: 1, stderr: "fatal: not a git repository" };
       const dirty: string[] = [];
-      const sp = join(cwd, "olt", "SKILL.md");
-      if (vfs.existsSync(sp) && vfs.readFileSync(sp, "utf-8") !== "canonical-skill\n") {
-        dirty.push(" M olt/SKILL.md");
+      const skillFilter = args[3] ?? "olt/";
+      const skillName = skillFilter.replace(/\/$/, "");
+      const sp = join(cwd, skillName, "SKILL.md");
+      const canonicalContent = skillName === "olt" ? "canonical-skill\n" : "canonical-chatroom\n";
+      if (vfs.existsSync(sp) && vfs.readFileSync(sp, "utf-8") !== canonicalContent) {
+        dirty.push(` M ${skillName}/SKILL.md`);
       }
-      if (vfs.existsSync(join(cwd, "olt", "untracked.ts"))) {
-        dirty.push("?? olt/untracked.ts");
+      if (vfs.existsSync(join(cwd, skillName, "untracked.ts"))) {
+        dirty.push(`?? ${skillName}/untracked.ts`);
       }
       if (
-        !vfs.existsSync(join(cwd, "olt", "harness.ts")) &&
-        vfs.existsSync(join(cwd, "olt", "harness-renamed.ts"))
+        !vfs.existsSync(join(cwd, skillName, "harness.ts")) &&
+        vfs.existsSync(join(cwd, skillName, "harness-renamed.ts"))
       ) {
-        dirty.push(" M olt/harness.ts", "R  olt/harness.ts -> olt/harness-renamed.ts");
+        dirty.push(
+          ` M ${skillName}/harness.ts`,
+          `R  ${skillName}/harness.ts -> ${skillName}/harness-renamed.ts`,
+        );
       }
       return { ...base, status: 0, stdout: dirty.length > 0 ? dirty.join("\n") + "\n" : "" };
     }
@@ -71,6 +84,8 @@ export function defaultMockSpawnSync(
     if (extractDir) {
       vfs.mkdirSync(join(extractDir, "olt"), { recursive: true });
       vfs.writeFileSync(join(extractDir, "olt", "SKILL.md"), "canonical-skill\n", "utf-8");
+      vfs.mkdirSync(join(extractDir, "chatroom"), { recursive: true });
+      vfs.writeFileSync(join(extractDir, "chatroom", "SKILL.md"), "canonical-chatroom\n", "utf-8");
     }
     return { ...base, status: 0, stdout: Buffer.alloc(0), stderr: Buffer.alloc(0) };
   }

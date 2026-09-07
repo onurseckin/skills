@@ -40,12 +40,12 @@ import {
   decideSyncSource,
   firstNonEmpty,
   getActiveCleanupsCount,
-  getDirtyOltPaths,
-  materializeOltFromHead,
+  getDirtySkillPaths,
+  materializeSkillFromHead,
   parsePorcelainStatus,
   refuseSyncSourceMessage,
-  resolveOltSyncSource,
-  type ResolvedOltSource,
+  resolveSkillSyncSource,
+  type ResolvedSkillSource,
   type SyncSourceDecision,
 } from "./git-source.ts";
 import {
@@ -112,12 +112,12 @@ export {
   decideSyncSource,
   firstNonEmpty,
   getActiveCleanupsCount,
-  getDirtyOltPaths,
-  materializeOltFromHead,
+  getDirtySkillPaths,
+  materializeSkillFromHead,
   parsePorcelainStatus,
   refuseSyncSourceMessage,
-  resolveOltSyncSource,
-  type ResolvedOltSource,
+  resolveSkillSyncSource,
+  type ResolvedSkillSource,
   type SyncSourceDecision,
 };
 

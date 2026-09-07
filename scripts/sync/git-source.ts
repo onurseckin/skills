@@ -10,8 +10,8 @@ export type SyncSourceDecision =
   | { readonly mode: "worktree" }
   | { readonly mode: "refuse"; readonly dirtyPaths: readonly string[] };
 
-export interface ResolvedOltSource {
-  sourceOltDir: string;
+export interface ResolvedSkillSource {
+  sourceSkillDir: string;
   cleanup: () => void;
 }
 
@@ -49,22 +49,22 @@ export function parsePorcelainStatus(output: string): string[] {
     });
 }
 
-export function getDirtyOltPaths(repoRoot: string): string[] {
-  const result = spawnSync("git", ["status", "--porcelain", "--", "olt/"], {
+export function getDirtySkillPaths(repoRoot: string, skillName: string): string[] {
+  const result = spawnSync("git", ["status", "--porcelain", "--", `${skillName}/`], {
     cwd: repoRoot,
     encoding: "utf-8",
   });
   if (result.status !== 0) {
     throw new Error(
-      `git status --porcelain -- olt/ failed in ${repoRoot}: ${firstNonEmpty(result.stderr, result.error?.message)}`,
+      `git status --porcelain -- ${skillName}/ failed in ${repoRoot}: ${firstNonEmpty(result.stderr, result.error?.message)}`,
     );
   }
   return parsePorcelainStatus(result.stdout);
 }
 
-export function refuseSyncSourceMessage(dirtyPaths: readonly string[]): string {
+export function refuseSyncSourceMessage(dirtyPaths: readonly string[], skillName: string): string {
   const list = dirtyPaths.map((path) => `  ${path}`).join("\n");
-  return `refusing to sync from a dirty olt/ tree; commit these paths or pass --allow-dirty:\n${list}`;
+  return `refusing to sync from a dirty ${skillName}/ tree; commit these paths or pass --allow-dirty:\n${list}`;
 }
 
 const activeCleanups = new Set<() => void>();
@@ -114,11 +114,12 @@ export function getActiveCleanupsCount(): number {
   return activeCleanups.size;
 }
 
-export function materializeOltFromHead(
+export function materializeSkillFromHead(
   repoRoot: string,
+  skillName: string,
   tmpParentDir?: string,
   customSpawn: typeof spawnSync = spawnSync,
-): ResolvedOltSource {
+): ResolvedSkillSource {
   registerSignalHooks();
   let tmpParent: string;
   if (tmpParentDir !== undefined) {
@@ -128,7 +129,7 @@ export function materializeOltFromHead(
   }
   mkdirSync(tmpParent, { recursive: true });
   const resolvedTmpParent = resolve(tmpParent);
-  const extractDir = mkdtempSync(join(resolvedTmpParent, "olt-sync-head-"));
+  const extractDir = mkdtempSync(join(resolvedTmpParent, `${skillName}-sync-head-`));
 
   let cleanedUp = false;
   const removeExtractDir = (): void => {
@@ -146,23 +147,23 @@ export function materializeOltFromHead(
   };
   activeCleanups.add(removeExtractDir);
 
-  const archiveResult = customSpawn("git", ["archive", "--format=tar", "HEAD", "--", "olt/"], {
-    cwd: repoRoot,
-    maxBuffer: 1024 * 1024 * 256,
-  });
+  const archiveResult = customSpawn(
+    "git",
+    ["archive", "--format=tar", "HEAD", "--", `${skillName}/`],
+    {
+      cwd: repoRoot,
+      maxBuffer: 1024 * 1024 * 256,
+    },
+  );
   if (archiveResult.status !== 0) {
     removeExtractDir();
     throw new Error(
-      `git archive HEAD -- olt/ failed in ${repoRoot}: ${firstNonEmpty(archiveResult.stderr?.toString(), archiveResult.error?.message)}`,
+      `git archive HEAD -- ${skillName}/ failed in ${repoRoot}: ${firstNonEmpty(archiveResult.stderr?.toString(), archiveResult.error?.message)}`,
     );
   }
-  if (!archiveResult.stdout) {
+  if (!archiveResult.stdout || archiveResult.stdout.length === 0) {
     removeExtractDir();
-    throw new Error(`git archive HEAD -- olt/ produced no output in ${repoRoot}`);
-  }
-  if (archiveResult.stdout.length === 0) {
-    removeExtractDir();
-    throw new Error(`git archive HEAD -- olt/ produced no output in ${repoRoot}`);
+    throw new Error(`git archive HEAD -- ${skillName}/ produced no output in ${repoRoot}`);
   }
 
   const extractResult = customSpawn("tar", ["-x", "-C", extractDir], {
@@ -171,25 +172,29 @@ export function materializeOltFromHead(
   if (extractResult.status !== 0) {
     removeExtractDir();
     throw new Error(
-      `failed to extract HEAD olt/ archive into ${extractDir}: ${firstNonEmpty(extractResult.stderr?.toString(), extractResult.error?.message)}`,
+      `failed to extract HEAD ${skillName}/ archive into ${extractDir}: ${firstNonEmpty(extractResult.stderr?.toString(), extractResult.error?.message)}`,
     );
   }
 
   return {
-    sourceOltDir: join(extractDir, "olt"),
+    sourceSkillDir: join(extractDir, skillName),
     cleanup: removeExtractDir,
   };
 }
 
-export function resolveOltSyncSource(repoRoot: string, allowDirty: boolean): ResolvedOltSource {
-  const dirtyPaths = getDirtyOltPaths(repoRoot);
+export function resolveSkillSyncSource(
+  repoRoot: string,
+  skillName: string,
+  allowDirty: boolean,
+): ResolvedSkillSource {
+  const dirtyPaths = getDirtySkillPaths(repoRoot, skillName);
   const decision = decideSyncSource(dirtyPaths, allowDirty);
 
   if (decision.mode === "refuse") {
-    throw new Error(refuseSyncSourceMessage(decision.dirtyPaths));
+    throw new Error(refuseSyncSourceMessage(decision.dirtyPaths, skillName));
   }
   if (decision.mode === "worktree") {
-    return { sourceOltDir: join(repoRoot, "olt"), cleanup: () => {} };
+    return { sourceSkillDir: join(repoRoot, skillName), cleanup: () => {} };
   }
-  return materializeOltFromHead(repoRoot);
+  return materializeSkillFromHead(repoRoot, skillName);
 }

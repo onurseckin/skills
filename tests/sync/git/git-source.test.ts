@@ -6,11 +6,11 @@ import {
   decideSyncSource,
   firstNonEmpty,
   getActiveCleanupsCount,
-  getDirtyOltPaths,
-  materializeOltFromHead,
+  getDirtySkillPaths,
+  materializeSkillFromHead,
   parsePorcelainStatus,
   refuseSyncSourceMessage,
-  resolveOltSyncSource,
+  resolveSkillSyncSource,
 } from "../../../scripts/sync/git-source.ts";
 import {
   cleanupVirtualSyncFS,
@@ -74,11 +74,19 @@ describe("firstNonEmpty", () => {
 
 describe("refuseSyncSourceMessage", () => {
   test("names every dirty path, not just a count", () => {
-    const message = refuseSyncSourceMessage(["olt/SKILL.md", "olt/harness.ts"]);
+    const message = refuseSyncSourceMessage(["olt/SKILL.md", "olt/harness.ts"], "olt");
     expect(message).toContain("refusing to sync from a dirty olt/ tree");
     expect(message).toContain("--allow-dirty");
     expect(message).toContain("  olt/SKILL.md");
     expect(message).toContain("  olt/harness.ts");
+  });
+
+  test("formats message correctly for chatroom", () => {
+    const message = refuseSyncSourceMessage(["chatroom/SKILL.md", "chatroom/extra.ts"], "chatroom");
+    expect(message).toContain("refusing to sync from a dirty chatroom/ tree");
+    expect(message).toContain("--allow-dirty");
+    expect(message).toContain("  chatroom/SKILL.md");
+    expect(message).toContain("  chatroom/extra.ts");
   });
 });
 
@@ -110,11 +118,12 @@ describe("parsePorcelainStatus", () => {
   });
 });
 
-describe("getDirtyOltPaths", () => {
+describe("getDirtySkillPaths", () => {
   test("reports nothing for a clean tree", () => {
     const root = scratchRoot(import.meta.path, "dirty-paths-clean");
     initSkillsRepoAt(root);
-    expect(getDirtyOltPaths(root)).toEqual([]);
+    expect(getDirtySkillPaths(root, "olt")).toEqual([]);
+    expect(getDirtySkillPaths(root, "chatroom")).toEqual([]);
   });
 
   test("reports modified, untracked, and renamed paths under olt/", () => {
@@ -129,11 +138,24 @@ describe("getDirtyOltPaths", () => {
     );
     vfs.unlinkSync(join(root, "olt", "harness.ts"));
 
-    const dirty = getDirtyOltPaths(root);
+    const dirty = getDirtySkillPaths(root, "olt");
     expect(dirty).toContain("olt/SKILL.md");
     expect(dirty).toContain("olt/untracked.ts");
     expect(dirty).toContain("olt/harness.ts");
     expect(dirty).toContain("olt/harness-renamed.ts");
+  });
+
+  test("reports dirty paths under chatroom/", () => {
+    const root = scratchRoot(import.meta.path, "dirty-paths-chatroom");
+    initSkillsRepoAt(root);
+
+    vfs.writeFileSync(join(root, "chatroom", "SKILL.md"), "dirty-chatroom\n", "utf-8");
+    vfs.writeFileSync(join(root, "chatroom", "untracked.ts"), "new-chat\n", "utf-8");
+
+    const dirty = getDirtySkillPaths(root, "chatroom");
+    expect(dirty).toContain("chatroom/SKILL.md");
+    expect(dirty).toContain("chatroom/untracked.ts");
+    expect(getDirtySkillPaths(root, "olt")).toEqual([]);
   });
 
   test("ignores changes outside the olt/ subtree", () => {
@@ -143,16 +165,21 @@ describe("getDirtyOltPaths", () => {
     vfs.writeFileSync(join(root, "package.json"), '{"name":"skills","v":2}\n', "utf-8");
     vfs.writeFileSync(join(root, "README.md"), "docs\n", "utf-8");
 
-    expect(getDirtyOltPaths(root)).toEqual([]);
+    expect(getDirtySkillPaths(root, "olt")).toEqual([]);
   });
 
   test("throws an informative error if git status fails", () => {
     const nonExistent = "/tmp/non-existent-repo-path-for-git-status-test-" + Date.now();
-    expect(() => getDirtyOltPaths(nonExistent)).toThrow(/git status --porcelain -- olt\/ failed/);
+    expect(() => getDirtySkillPaths(nonExistent, "olt")).toThrow(
+      /git status --porcelain -- olt\/ failed/,
+    );
+    expect(() => getDirtySkillPaths(nonExistent, "chatroom")).toThrow(
+      /git status --porcelain -- chatroom\/ failed/,
+    );
   });
 });
 
-describe("materializeOltFromHead", () => {
+describe("materializeSkillFromHead", () => {
   test("materializes the committed content, not the dirty worktree edit", () => {
     const root = scratchRoot(import.meta.path, "materialize-tmp-parent");
     initSkillsRepoAt(root);
@@ -162,13 +189,13 @@ describe("materializeOltFromHead", () => {
 
     const initialCount = getActiveCleanupsCount();
     const tmpParent = join(root, "my-custom-tmp");
-    const source = materializeOltFromHead(root, tmpParent);
+    const source = materializeSkillFromHead(root, "olt", tmpParent);
     try {
       expect(getActiveCleanupsCount()).toBe(initialCount + 1);
       expect(areSignalHooksRegistered()).toBe(true);
-      expect(vfs.existsSync(source.sourceOltDir)).toBe(true);
-      expect(source.sourceOltDir.startsWith(tmpParent)).toBe(true);
-      expect(vfs.readFileSync(join(source.sourceOltDir, "SKILL.md"), "utf-8")).toBe(
+      expect(vfs.existsSync(source.sourceSkillDir)).toBe(true);
+      expect(source.sourceSkillDir.startsWith(tmpParent)).toBe(true);
+      expect(vfs.readFileSync(join(source.sourceSkillDir, "SKILL.md"), "utf-8")).toBe(
         "canonical-skill\n",
       );
     } finally {
@@ -177,34 +204,53 @@ describe("materializeOltFromHead", () => {
 
     expect(getActiveCleanupsCount()).toBe(initialCount);
     expect(areSignalHooksRegistered()).toBe(false);
-    expect(vfs.existsSync(source.sourceOltDir)).toBe(false);
+    expect(vfs.existsSync(source.sourceSkillDir)).toBe(false);
+  });
+
+  test("materializes committed content for chatroom", () => {
+    const root = scratchRoot(import.meta.path, "materialize-chatroom");
+    initSkillsRepoAt(root);
+
+    vfs.writeFileSync(join(root, "chatroom", "SKILL.md"), "dirty-edit-chatroom\n", "utf-8");
+
+    const source = materializeSkillFromHead(root, "chatroom");
+    try {
+      expect(vfs.existsSync(source.sourceSkillDir)).toBe(true);
+      expect(vfs.readFileSync(join(source.sourceSkillDir, "SKILL.md"), "utf-8")).toBe(
+        "canonical-chatroom\n",
+      );
+    } finally {
+      source.cleanup();
+    }
   });
 
   test("throws if git archive fails on a non-repo", () => {
     const root = scratchRoot(import.meta.path, "materialize-non-repo");
     vfs.mkdirSync(root, { recursive: true });
-    expect(() => materializeOltFromHead(root)).toThrow(/git archive HEAD -- olt\/ failed/);
+    expect(() => materializeSkillFromHead(root, "olt")).toThrow(/git archive HEAD -- olt\/ failed/);
   });
 
   test("throws if git archive produces empty stdout", () => {
     const root = scratchRoot(import.meta.path, "materialize-empty-stdout");
     initSkillsRepoAt(root);
-    const mockSpawn: Parameters<typeof materializeOltFromHead>[2] = (() => ({
+    const mockSpawn: Parameters<typeof materializeSkillFromHead>[3] = (() => ({
       status: 0,
       stdout: Buffer.alloc(0),
       stderr: Buffer.alloc(0),
       pid: 1,
       output: [],
       signal: null,
-    })) as unknown as Parameters<typeof materializeOltFromHead>[2];
+    })) as unknown as Parameters<typeof materializeSkillFromHead>[3];
 
-    expect(() => materializeOltFromHead(root, undefined, mockSpawn)).toThrow(/produced no output/);
+    expect(() => materializeSkillFromHead(root, "olt", undefined, mockSpawn)).toThrow(
+      /produced no output/,
+    );
   });
 
   test("throws if tar extract fails", () => {
     const root = scratchRoot(import.meta.path, "materialize-tar-fail");
     initSkillsRepoAt(root);
-    const mockSpawn: Parameters<typeof materializeOltFromHead>[2] = ((cmd: string) => {
+    const mockSpawn: Parameters<typeof materializeSkillFromHead>[3] = ((cmd: string) => {
       if (cmd === "git") {
         return {
           status: 0,
@@ -223,24 +269,24 @@ describe("materializeOltFromHead", () => {
         output: [],
         signal: null,
       };
-    }) as unknown as Parameters<typeof materializeOltFromHead>[2];
+    }) as unknown as Parameters<typeof materializeSkillFromHead>[3];
 
-    expect(() => materializeOltFromHead(root, undefined, mockSpawn)).toThrow(
+    expect(() => materializeSkillFromHead(root, "olt", undefined, mockSpawn)).toThrow(
       /failed to extract HEAD olt\/ archive/,
     );
   });
 });
 
-describe("resolveOltSyncSource", () => {
+describe("resolveSkillSyncSource", () => {
   test("clean tree without --allow-dirty materializes an isolated HEAD copy", () => {
     const root = scratchRoot(import.meta.path, "resolve-clean-head");
     initSkillsRepoAt(root);
 
-    const source = resolveOltSyncSource(root, false);
+    const source = resolveSkillSyncSource(root, "olt", false);
     try {
-      expect(vfs.existsSync(source.sourceOltDir)).toBe(true);
-      expect(source.sourceOltDir).not.toBe(join(root, "olt"));
-      expect(vfs.readFileSync(join(source.sourceOltDir, "SKILL.md"), "utf-8")).toBe(
+      expect(vfs.existsSync(source.sourceSkillDir)).toBe(true);
+      expect(source.sourceSkillDir).not.toBe(join(root, "olt"));
+      expect(vfs.readFileSync(join(source.sourceSkillDir, "SKILL.md"), "utf-8")).toBe(
         "canonical-skill\n",
       );
     } finally {
@@ -253,7 +299,7 @@ describe("resolveOltSyncSource", () => {
     initSkillsRepoAt(root);
     vfs.writeFileSync(join(root, "olt", "SKILL.md"), "dirty\n", "utf-8");
 
-    expect(() => resolveOltSyncSource(root, false)).toThrow(
+    expect(() => resolveSkillSyncSource(root, "olt", false)).toThrow(
       /refusing to sync from a dirty olt\/ tree/,
     );
   });
@@ -263,9 +309,35 @@ describe("resolveOltSyncSource", () => {
     initSkillsRepoAt(root);
     vfs.writeFileSync(join(root, "olt", "SKILL.md"), "dirty\n", "utf-8");
 
-    const source = resolveOltSyncSource(root, true);
-    expect(source.sourceOltDir).toBe(join(root, "olt"));
-    expect(vfs.readFileSync(join(source.sourceOltDir, "SKILL.md"), "utf-8")).toBe("dirty\n");
+    const source = resolveSkillSyncSource(root, "olt", true);
+    expect(source.sourceSkillDir).toBe(join(root, "olt"));
+    expect(vfs.readFileSync(join(source.sourceSkillDir, "SKILL.md"), "utf-8")).toBe("dirty\n");
     expect(() => source.cleanup()).not.toThrow();
+  });
+
+  test("chatroom clean tree without --allow-dirty materializes isolated HEAD copy", () => {
+    const root = scratchRoot(import.meta.path, "resolve-chatroom-clean");
+    initSkillsRepoAt(root);
+
+    const source = resolveSkillSyncSource(root, "chatroom", false);
+    try {
+      expect(vfs.existsSync(source.sourceSkillDir)).toBe(true);
+      expect(source.sourceSkillDir).not.toBe(join(root, "chatroom"));
+      expect(vfs.readFileSync(join(source.sourceSkillDir, "SKILL.md"), "utf-8")).toBe(
+        "canonical-chatroom\n",
+      );
+    } finally {
+      source.cleanup();
+    }
+  });
+
+  test("chatroom dirty tree without --allow-dirty refuses naming dirty paths", () => {
+    const root = scratchRoot(import.meta.path, "resolve-chatroom-dirty-refuse");
+    initSkillsRepoAt(root);
+    vfs.writeFileSync(join(root, "chatroom", "SKILL.md"), "dirty-chat\n", "utf-8");
+
+    expect(() => resolveSkillSyncSource(root, "chatroom", false)).toThrow(
+      /refusing to sync from a dirty chatroom\/ tree/,
+    );
   });
 });

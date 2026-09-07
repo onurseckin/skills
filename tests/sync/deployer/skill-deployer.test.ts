@@ -1,4 +1,5 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeAll, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import * as os from "node:os";
 import { join } from "node:path";
 import {
   type VirtualFSSession,
@@ -6,6 +7,7 @@ import {
 } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   deployCanonicalSkill,
+  deploySkill,
   rollbackAssistantLinks,
   type AssistantLinkTransaction,
 } from "../../../scripts/sync/skill-deployer.ts";
@@ -20,8 +22,10 @@ import {
 import { git, initFakeSkillsRepo } from "./skill-deployer-fixtures.ts";
 
 let subMock: { mockRestore: () => void } | undefined;
+let tmpdirSpy: { mockRestore: () => void } | undefined;
 let session: VirtualFSSession;
 let vfs: VirtualMemoryFS;
+let gitStatusOutput = "";
 
 beforeAll(async () => {
   setupVirtualSyncFS();
@@ -42,25 +46,35 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
+  gitStatusOutput = "";
   vfs = setupVirtualSyncFS();
   session = getVirtualSyncSession();
-  subMock = mockSubprocess((cmd) => {
+  tmpdirSpy = spyOn(os, "tmpdir").mockReturnValue("/virtual/sync/tmp");
+  subMock = mockSubprocess((cmd, args) => {
     if (cmd === "git") {
-      return {
+      const gitOut = (stdout: string | Buffer) => ({
         status: 0,
-        stdout: "",
+        stdout,
         stderr: "",
-        output: ["", "", ""],
+        output: ["", stdout, ""],
         pid: 1234,
-      };
+      });
+      if (args && args[0] === "status") return gitOut(gitStatusOutput);
+      if (args && args[0] === "archive") return gitOut(Buffer.from("fake-archive"));
+      return gitOut("");
     }
-    return {
-      status: 0,
-      stdout: "",
-      stderr: "",
-      output: ["", "", ""],
-      pid: 1234,
-    };
+    if (cmd === "tar") {
+      const cIdx = args ? args.indexOf("-C") : -1;
+      const extractDir = cIdx !== -1 && args ? args[cIdx + 1] : undefined;
+      if (extractDir) {
+        vfs.mkdirSync(join(extractDir, "chatroom"), { recursive: true });
+        vfs.writeFileSync(join(extractDir, "chatroom", "SKILL.md"), "head-chatroom\n", "utf-8");
+        vfs.mkdirSync(join(extractDir, "olt"), { recursive: true });
+        vfs.writeFileSync(join(extractDir, "olt", "SKILL.md"), "head-olt\n", "utf-8");
+      }
+      return { status: 0, stdout: "", stderr: "", output: ["", "", ""], pid: 1234 };
+    }
+    return { status: 0, stdout: "", stderr: "", output: ["", "", ""], pid: 1234 };
   });
 });
 
@@ -69,6 +83,8 @@ afterEach(() => {
     subMock.mockRestore();
     subMock = undefined;
   }
+  tmpdirSpy?.mockRestore();
+  tmpdirSpy = undefined;
   cleanupVirtualSyncFS();
 });
 
@@ -248,5 +264,130 @@ describe("deployCanonicalSkill", () => {
 
     expect(virtualReadlinkSync(join(dir1, "olt"))).toBe(targetA);
     expect(session.existsSync(join(dir2, "olt"))).toBe(false);
+  });
+});
+
+describe("deploySkill chatroom", () => {
+  test("refuses on dirty chatroom/ tree without --allow-dirty and names dirty paths before copying", async () => {
+    const root = scratchRoot(import.meta.path, "deploy-chatroom-dirty-refuse");
+    const sourceRepo = join(root, "repo");
+    initFakeSkillsRepo(sourceRepo);
+    vfs.mkdirSync(join(sourceRepo, "chatroom"), { recursive: true });
+    vfs.writeFileSync(join(sourceRepo, "chatroom", "SKILL.md"), "dirty-chatroom\n", "utf-8");
+
+    gitStatusOutput = " M chatroom/SKILL.md\n?? chatroom/extra.ts\n";
+
+    const fakeHome = join(root, "home");
+    const targetChatroom = join(fakeHome, ".agents", "skills", "chatroom");
+
+    await expect(
+      deploySkill("chatroom", {
+        sourceRepoRoot: sourceRepo,
+        homeDir: fakeHome,
+        targetChatroomDir: targetChatroom,
+      }),
+    ).rejects.toThrow(
+      "refusing to sync from a dirty chatroom/ tree; commit these paths or pass --allow-dirty:\n  chatroom/SKILL.md\n  chatroom/extra.ts",
+    );
+  });
+
+  test("target directory contents before refusal is byte-identical to after refusal", async () => {
+    const root = scratchRoot(import.meta.path, "deploy-chatroom-byte-identical");
+    const sourceRepo = join(root, "repo");
+    initFakeSkillsRepo(sourceRepo);
+    vfs.mkdirSync(join(sourceRepo, "chatroom"), { recursive: true });
+    vfs.writeFileSync(join(sourceRepo, "chatroom", "SKILL.md"), "dirty-worktree\n", "utf-8");
+
+    gitStatusOutput = " M chatroom/SKILL.md\n";
+
+    const fakeHome = join(root, "home");
+    const targetChatroom = join(fakeHome, ".agents", "skills", "chatroom");
+    vfs.mkdirSync(targetChatroom, { recursive: true });
+    vfs.writeFileSync(join(targetChatroom, "SKILL.md"), "mirror-initial-skill\n", "utf-8");
+    vfs.writeFileSync(join(targetChatroom, "custom.json"), '{"version":1}\n', "utf-8");
+
+    const beforeSkillBytes = vfs.readFileSync(join(targetChatroom, "SKILL.md"), "utf-8");
+    const beforeCustomBytes = vfs.readFileSync(join(targetChatroom, "custom.json"), "utf-8");
+    const beforeConfigExists = session.existsSync(join(targetChatroom, "skill-config.json"));
+
+    let threw = false;
+    try {
+      await deploySkill("chatroom", {
+        sourceRepoRoot: sourceRepo,
+        homeDir: fakeHome,
+        targetChatroomDir: targetChatroom,
+        allowDirty: false,
+      });
+    } catch (err) {
+      threw = true;
+      expect((err as Error).message).toContain("refusing to sync from a dirty chatroom/ tree");
+    }
+    expect(threw).toBe(true);
+
+    const afterSkillBytes = vfs.readFileSync(join(targetChatroom, "SKILL.md"), "utf-8");
+    const afterCustomBytes = vfs.readFileSync(join(targetChatroom, "custom.json"), "utf-8");
+    const afterConfigExists = session.existsSync(join(targetChatroom, "skill-config.json"));
+
+    expect(afterSkillBytes).toBe(beforeSkillBytes);
+    expect(afterCustomBytes).toBe(beforeCustomBytes);
+    expect(afterConfigExists).toBe(beforeConfigExists);
+  });
+
+  test("succeeds with allowDirty: true", async () => {
+    const root = scratchRoot(import.meta.path, "deploy-chatroom-allow-dirty");
+    const sourceRepo = join(root, "repo");
+    initFakeSkillsRepo(sourceRepo);
+    vfs.mkdirSync(join(sourceRepo, "chatroom"), { recursive: true });
+    vfs.writeFileSync(
+      join(sourceRepo, "chatroom", "SKILL.md"),
+      "dirty-worktree-content\n",
+      "utf-8",
+    );
+
+    gitStatusOutput = " M chatroom/SKILL.md\n";
+
+    const fakeHome = join(root, "home");
+    const targetChatroom = join(fakeHome, ".agents", "skills", "chatroom");
+
+    const result = await deploySkill("chatroom", {
+      sourceRepoRoot: sourceRepo,
+      homeDir: fakeHome,
+      targetChatroomDir: targetChatroom,
+      allowDirty: true,
+    });
+
+    expect(result.targetDir).toBe(targetChatroom);
+    expect(vfs.readFileSync(join(targetChatroom, "SKILL.md"), "utf-8")).toBe(
+      "dirty-worktree-content\n",
+    );
+    expect(session.existsSync(join(targetChatroom, "skill-config.json"))).toBe(true);
+  });
+
+  test("succeeds from HEAD when tree is clean", async () => {
+    const root = scratchRoot(import.meta.path, "deploy-chatroom-clean-head");
+    const sourceRepo = join(root, "repo");
+    initFakeSkillsRepo(sourceRepo);
+    vfs.mkdirSync(join(sourceRepo, "chatroom"), { recursive: true });
+    vfs.writeFileSync(
+      join(sourceRepo, "chatroom", "SKILL.md"),
+      "worktree-dirty-ignored\n",
+      "utf-8",
+    );
+
+    gitStatusOutput = "";
+
+    const fakeHome = join(root, "home");
+    const targetChatroom = join(fakeHome, ".agents", "skills", "chatroom");
+
+    const result = await deploySkill("chatroom", {
+      sourceRepoRoot: sourceRepo,
+      homeDir: fakeHome,
+      targetChatroomDir: targetChatroom,
+      allowDirty: false,
+    });
+
+    expect(result.targetDir).toBe(targetChatroom);
+    expect(vfs.readFileSync(join(targetChatroom, "SKILL.md"), "utf-8")).toBe("head-chatroom\n");
+    expect(session.existsSync(join(targetChatroom, "skill-config.json"))).toBe(true);
   });
 });

@@ -13,18 +13,18 @@ import {
   firstNonEmpty,
   generateExportLine,
   getAssistantSkillDirs,
-  getDirtyOltPaths,
+  getDirtySkillPaths,
   guardedRemoveSync,
   isManagedFallbackCopy,
   isPathDeclaredInContent,
   logDestructiveOp,
-  materializeOltFromHead,
+  materializeSkillFromHead,
   migrateOwnedLegacyDeployment,
   orDefault,
   parsePorcelainStatus,
   readJsonStringField,
   refuseSyncSourceMessage,
-  resolveOltSyncSource,
+  resolveSkillSyncSource,
   rollbackAssistantLinks,
   runSync,
   smartEnsureSymlink,
@@ -107,11 +107,11 @@ describe("scripts/sync/index.ts", () => {
     expect(typeof isPathDeclaredInContent).toBe("function");
     expect(typeof decideSyncSource).toBe("function");
     expect(typeof firstNonEmpty).toBe("function");
-    expect(typeof getDirtyOltPaths).toBe("function");
-    expect(typeof materializeOltFromHead).toBe("function");
+    expect(typeof getDirtySkillPaths).toBe("function");
+    expect(typeof materializeSkillFromHead).toBe("function");
     expect(typeof parsePorcelainStatus).toBe("function");
     expect(typeof refuseSyncSourceMessage).toBe("function");
-    expect(typeof resolveOltSyncSource).toBe("function");
+    expect(typeof resolveSkillSyncSource).toBe("function");
     expect(typeof guardedRemoveSync).toBe("function");
     expect(typeof isManagedFallbackCopy).toBe("function");
     expect(typeof logDestructiveOp).toBe("function");
