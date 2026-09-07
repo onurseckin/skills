@@ -19,7 +19,6 @@ import {
 } from "../../core/index.ts";
 import { assertMember } from "../../room/index.ts";
 import { resolveIdentity } from "../../identity/index.ts";
-import { scanRange } from "../../log/index.ts";
 import {
   leaseNext,
   loadCursor,
@@ -34,7 +33,7 @@ export const readCommand: CommandHandler = async (
   _context: CommandContext,
   _remainder: readonly string[],
 ): Promise<Record<string, unknown>> => {
-  assertFlags(flags, ["room", "as", "limit", "wait", "peek", "type", "since", "json"]);
+  assertFlags(flags, ["room", "as", "limit", "wait", "json"]);
 
   const roomFlag = textFlag(flags, "room", true);
   if (roomFlag === undefined) {
@@ -45,14 +44,7 @@ export const readCommand: CommandHandler = async (
   const asFlag = textFlag(flags, "as", false);
   const limitFlag = intFlag(flags, "limit", { minimum: 1, maximum: 500 });
   const waitFlag = intFlag(flags, "wait", { minimum: 0 });
-  const peekFlag = boolFlag(flags, "peek");
-  const typeFlag = textFlag(flags, "type", false);
-  const sinceFlag = intFlag(flags, "since", { minimum: 0 });
   const jsonFlag = boolFlag(flags, "json");
-
-  if (!peekFlag && (typeFlag !== undefined || sinceFlag !== undefined)) {
-    throw new ChatError("FILTER_REQUIRES_PEEK", "--type and --since can only be used with --peek");
-  }
 
   const identity = resolveIdentity({ as: asFlag, cwd: process.cwd() });
   const readerId = identity.id;
@@ -64,54 +56,6 @@ export const readCommand: CommandHandler = async (
   } catch {}
 
   const limit = limitFlag !== undefined ? limitFlag : 50;
-
-  if (peekFlag) {
-    const startSeq = sinceFlag !== undefined ? sinceFlag + 1 : 1;
-    const scanned = scanRange(roomFlag, startSeq, startSeq + limit - 1);
-    const filtered =
-      typeFlag !== undefined
-        ? scanned.filter(
-            (env) =>
-              env.kind === typeFlag || (env.body !== undefined && env.body.schema === typeFlag),
-          )
-        : scanned;
-
-    const result: Record<string, unknown> = {
-      room: roomFlag,
-      reader: readerId,
-      peek: true,
-      count: filtered.length,
-      messages: filtered,
-    };
-
-    if (!jsonFlag) {
-      for (const msg of filtered) {
-        const bodyData =
-          typeof msg.body === "object" &&
-          msg.body !== null &&
-          "data" in msg.body &&
-          typeof (msg.body as { data: unknown }).data === "object" &&
-          (msg.body as { data: unknown }).data !== null
-            ? (msg.body as { data: Record<string, unknown> }).data
-            : undefined;
-        const bodyText =
-          typeof bodyData?.["text"] === "string" ? (bodyData["text"] as string) : undefined;
-        const displayText = msg.text ?? bodyText;
-        if (
-          msg.kind === "message" &&
-          (displayText === undefined || displayText.trim().length === 0)
-        ) {
-          throw new ChatError(
-            "INVALID_STATE",
-            `Envelope ${msg.id} (seq ${msg.seq}) has empty displayable content`,
-          );
-        }
-        process.stdout.write(`[${msg.seq}] <${msg.sender.id}> ${displayText ?? ""}\n`);
-      }
-    }
-
-    return result;
-  }
 
   const waitMs = waitFlag !== undefined ? waitFlag : 0;
 

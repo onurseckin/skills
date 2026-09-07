@@ -62,11 +62,6 @@ describe("sayCommand and readCommand text resolution and validation", () => {
     },
   );
 
-  let mockScanRangeEnvelopes: Envelope[] = [];
-  const scanRangeSpy = spyOn(logModule, "scanRange").mockImplementation(
-    (): readonly Envelope[] => mockScanRangeEnvelopes,
-  );
-
   let mockLeaseResult: cursorModule.LeaseResult | undefined;
   const withReaderLockSpy = spyOn(cursorModule, "withReaderLock").mockImplementation(
     (): cursorModule.LeaseResult =>
@@ -89,7 +84,6 @@ describe("sayCommand and readCommand text resolution and validation", () => {
   beforeEach(() => {
     vfs.reset();
     capturedAppendInput = undefined;
-    mockScanRangeEnvelopes = [];
     mockLeaseResult = undefined;
   });
 
@@ -97,7 +91,6 @@ describe("sayCommand and readCommand text resolution and validation", () => {
     assertMemberSpy.mockRestore();
     ensureDaemonSpy.mockRestore();
     appendMessageSpy.mockRestore();
-    scanRangeSpy.mockRestore();
     withReaderLockSpy.mockRestore();
   });
 
@@ -134,41 +127,6 @@ describe("sayCommand and readCommand text resolution and validation", () => {
   });
 
   it("reading an envelope that only has body.data.text outputs the display text correctly", async () => {
-    mockScanRangeEnvelopes = [
-      {
-        v: 1,
-        id: "env-peek-1",
-        room: "test-room",
-        seq: 1,
-        ts: new Date().toISOString(),
-        sender: { id: "agent-2", role: "communicator", host: "local" },
-        kind: "message",
-        mentions: [],
-        reply_to: null,
-        body: {
-          schema: "chatroom.text.v1",
-          data: { text: "hello from body" },
-        },
-        key_fingerprint: "fp-test",
-        sig: "sig-test",
-      },
-    ];
-
-    let capturedPeekOutput = "";
-    const originalWrite = process.stdout.write;
-    process.stdout.write = (chunk: string | Uint8Array): boolean => {
-      capturedPeekOutput += typeof chunk === "string" ? chunk : chunk.toString();
-      return true;
-    };
-
-    try {
-      await readCommand({ room: "test-room", as: "agent-1", peek: true }, {}, []);
-    } finally {
-      process.stdout.write = originalWrite;
-    }
-
-    expect(capturedPeekOutput).toContain("[1] <agent-2> hello from body");
-
     mockLeaseResult = {
       leaseId: "lease-100",
       cursor: {
@@ -201,6 +159,7 @@ describe("sayCommand and readCommand text resolution and validation", () => {
     };
 
     let capturedLeaseOutput = "";
+    const originalWrite = process.stdout.write;
     process.stdout.write = (chunk: string | Uint8Array): boolean => {
       capturedLeaseOutput += typeof chunk === "string" ? chunk : chunk.toString();
       return true;
@@ -217,31 +176,48 @@ describe("sayCommand and readCommand text resolution and validation", () => {
   });
 
   it("reading an envelope of kind 'message' with no text throws ChatError with code INVALID_STATE", async () => {
-    mockScanRangeEnvelopes = [
-      {
+    mockLeaseResult = {
+      leaseId: "lease-100",
+      cursor: {
         v: 1,
-        id: "env-empty-1",
         room: "test-room",
-        seq: 1,
-        ts: new Date().toISOString(),
-        sender: { id: "agent-2", role: "communicator", host: "local" },
-        kind: "message",
-        mentions: [],
-        reply_to: null,
-        body: {
-          schema: "chatroom.text.v1",
-          data: {},
-        },
-        key_fingerprint: "fp-test",
-        sig: "sig-test",
+        reader: "agent-1",
+        contiguous_seq: 1,
+        held: [],
+        acked_above: [],
+        last_ack_at: new Date().toISOString(),
+        checksum: "sha256:abc",
       },
-    ];
+      messages: [
+        {
+          v: 1,
+          id: "env-empty-1",
+          room: "test-room",
+          seq: 1,
+          ts: new Date().toISOString(),
+          sender: { id: "agent-2", role: "communicator", host: "local" },
+          kind: "message",
+          mentions: [],
+          reply_to: null,
+          body: {
+            schema: "chatroom.text.v1",
+            data: {},
+          },
+          key_fingerprint: "fp-test",
+          sig: "sig-test",
+        },
+      ],
+    };
 
     let caughtError: unknown;
+    const originalWrite = process.stdout.write;
+    process.stdout.write = (): boolean => true;
     try {
-      await readCommand({ room: "test-room", as: "agent-1", peek: true }, {}, []);
+      await readCommand({ room: "test-room", as: "agent-1" }, {}, []);
     } catch (err: unknown) {
       caughtError = err;
+    } finally {
+      process.stdout.write = originalWrite;
     }
 
     expect(caughtError instanceof ChatError).toBe(true);
@@ -282,7 +258,6 @@ describe("sayCommand and readCommand text resolution and validation", () => {
     };
 
     let caughtLeaseError: unknown;
-    const originalWrite = process.stdout.write;
     process.stdout.write = (): boolean => true;
     try {
       await readCommand({ room: "test-room", as: "agent-1" }, {}, []);

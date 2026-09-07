@@ -21,9 +21,7 @@ import { ChatVirtualFS } from "../../src/testing/virtual-fs/index.ts";
 
 function createVirtualPorts(
   vfs: ChatVirtualFS,
-  options?: {
-    readonly onDirWatchCreated?: (handle: WatcherHandle) => void;
-  },
+  options?: { readonly onDirWatchCreated?: (handle: WatcherHandle) => void },
 ): DaemonWatcherPorts {
   return {
     existsSync: (targetPath: string) => vfs.existsSync(targetPath),
@@ -32,9 +30,7 @@ function createVirtualPorts(
         listener("change", filename);
       });
       const handle: WatcherHandle = {
-        close: () => {
-          virtualWatcher.close();
-        },
+        close: () => virtualWatcher.close(),
         on: (_event: "error", _errListener: () => void) => {},
       };
       if (options?.onDirWatchCreated && targetPath.includes("/log")) {
@@ -44,20 +40,12 @@ function createVirtualPorts(
     },
     readdirSync: (dirPath: string) => vfs.readdirSync(dirPath) as string[],
     readFileSync: (filePath: string) => vfs.readFileSync(filePath, "utf8"),
-    statSync: (targetPath: string) => {
-      const stat = vfs.statSync(targetPath);
-      return {
-        size: stat?.size ?? 0,
-        ino: 1,
-      };
-    },
+    statSync: (targetPath: string) => ({ size: vfs.statSync(targetPath)?.size ?? 0, ino: 1 }),
     writeAtomic: (targetPath: string, content: string) => {
       vfs.mkdirSync(dirname(targetPath), { recursive: true });
       vfs.writeFileSync(targetPath, content);
     },
-    writeFileSync: (targetPath: string, content: string) => {
-      vfs.writeFileSync(targetPath, content);
-    },
+    writeFileSync: (targetPath: string, content: string) => vfs.writeFileSync(targetPath, content),
   };
 }
 
@@ -67,33 +55,23 @@ describe("DaemonWatcher attachment retry and unconditional polling", () => {
     const ports = createVirtualPorts(vfs);
     const watcher = new DaemonWatcher("uncreated-room", { ports });
     const metrics = watcher.getMetrics();
-
     expect(metrics.watch_active).toBe(false);
     expect(metrics.watch_failures).toBe(0);
     expect(metrics.poll_interval_ms).toBe(750);
+    expect(metrics.wakes_by_source).toEqual({ watch: 0, poll: 0, tick: 0, token: 0 });
   });
 
   it("retries attachment and activates watcher when room directory is created after startup", async () => {
     const vfs = new ChatVirtualFS();
     const ports = createVirtualPorts(vfs);
     const roomId = "delayed-room";
-    const watcher = new DaemonWatcher(roomId, {
-      ports,
-      pollIntervalMs: 25,
-      retryDelayMs: 10,
-    });
-
+    const watcher = new DaemonWatcher(roomId, { ports, pollIntervalMs: 25, retryDelayMs: 10 });
     const receivedWakes: WakeSource[] = [];
-    watcher.start((source) => {
-      receivedWakes.push(source);
-    });
-
-    const initialMetrics = watcher.getMetrics();
-    expect(initialMetrics.watch_active).toBe(false);
+    watcher.start((source) => { receivedWakes.push(source); });
+    expect(watcher.getMetrics().watch_active).toBe(false);
 
     vfs.mkdirSync(roomLogDir(roomId), { recursive: true });
     vfs.writeFileSync(roomLogIndexPath(roomId), JSON.stringify({ next_seq: 1 }));
-
     await new Promise((resolve) => setTimeout(resolve, 60));
 
     const attachedMetrics = watcher.getMetrics();
@@ -101,8 +79,7 @@ describe("DaemonWatcher attachment retry and unconditional polling", () => {
     expect(attachedMetrics.watch_failures).toBe(0);
 
     watcher.stop();
-    const stoppedMetrics = watcher.getMetrics();
-    expect(stoppedMetrics.watch_active).toBe(false);
+    expect(watcher.getMetrics().watch_active).toBe(false);
     expect(receivedWakes.length).toBeGreaterThan(0);
   });
 
@@ -111,17 +88,10 @@ describe("DaemonWatcher attachment retry and unconditional polling", () => {
     const roomId = "poll-room";
     vfs.mkdirSync(roomLogDir(roomId), { recursive: true });
     vfs.writeFileSync(roomLogIndexPath(roomId), JSON.stringify({ next_seq: 1 }));
-
     const ports = createVirtualPorts(vfs);
-    const watcher = new DaemonWatcher(roomId, {
-      ports,
-      pollIntervalMs: 20,
-    });
-
+    const watcher = new DaemonWatcher(roomId, { ports, pollIntervalMs: 20 });
     const wakes: WakeSource[] = [];
-    watcher.start((source) => {
-      wakes.push(source);
-    });
+    watcher.start((source) => { wakes.push(source); });
 
     await new Promise((resolve) => setTimeout(resolve, 70));
     watcher.stop();
@@ -160,27 +130,20 @@ describe("DaemonWatcher attachment retry and unconditional polling", () => {
       pollIntervalMs: 750,
       retryDelayMs: 15,
     });
-
     watcher.start(() => {});
-    const initialMetrics = watcher.getMetrics();
-    expect(initialMetrics.watch_active).toBe(true);
-    expect(initialMetrics.watch_failures).toBe(0);
-    expect(initialMetrics.poll_interval_ms).toBe(750);
+    expect(watcher.getMetrics().watch_active).toBe(true);
+    expect(watcher.getMetrics().watch_failures).toBe(0);
+    expect(watcher.getMetrics().poll_interval_ms).toBe(750);
 
-    for (const listener of errorListeners) {
-      listener();
-    }
+    for (const listener of errorListeners) { listener(); }
 
-    const failedMetrics = watcher.getMetrics();
-    expect(failedMetrics.watch_failures).toBeGreaterThan(0);
-    expect(failedMetrics.poll_interval_ms).toBe(750);
+    expect(watcher.getMetrics().watch_failures).toBeGreaterThan(0);
+    expect(watcher.getMetrics().poll_interval_ms).toBe(750);
 
     await new Promise((resolve) => setTimeout(resolve, 60));
 
-    const recoveredMetrics = watcher.getMetrics();
-    expect(recoveredMetrics.watch_active).toBe(true);
-    expect(recoveredMetrics.poll_interval_ms).toBe(750);
-
+    expect(watcher.getMetrics().watch_active).toBe(true);
+    expect(watcher.getMetrics().poll_interval_ms).toBe(750);
     watcher.stop();
   });
 
@@ -211,13 +174,7 @@ describe("DaemonWatcher attachment retry and unconditional polling", () => {
     vfs.mkdirSync(roomLogDir(roomId), { recursive: true });
     vfs.writeFileSync(roomLogIndexPath(roomId), JSON.stringify({ next_seq: 1 }));
 
-    const initialHealth = createInitialHealthRecord(
-      roomId,
-      readerId,
-      12345,
-      new Date().toISOString(),
-      "test-boot",
-    );
+    const initialHealth = createInitialHealthRecord(roomId, readerId, 12345, new Date().toISOString(), "test-boot");
     vfs.mkdirSync(dirname(healthPath), { recursive: true });
     vfs.writeFileSync(healthPath, JSON.stringify(initialHealth, null, 2));
 
@@ -246,37 +203,24 @@ describe("DaemonWatcher attachment retry and unconditional polling", () => {
       retryDelayMs: 20,
     });
 
-    const recordBefore = readHealthRecord(healthPath, ports);
-    expect(recordBefore?.watch_active).toBe(false);
-
+    expect(readHealthRecord(healthPath, ports)?.watch_active).toBe(false);
     watcher.start(() => {});
 
-    const recordRunning = readHealthRecord(healthPath, ports);
-    expect(recordRunning?.watch_active).toBe(true);
+    expect(readHealthRecord(healthPath, ports)?.watch_active).toBe(true);
+    expect(inspectDaemon(roomId, readerId, {}, ports).watch_active).toBe(true);
 
-    const inspected = inspectDaemon(roomId, readerId, {}, ports);
-    expect(inspected.watch_active).toBe(true);
-
-    for (const listener of errorListeners) {
-      listener();
-    }
+    for (const listener of errorListeners) { listener(); }
 
     const recordFailed = readHealthRecord(healthPath, ports);
     expect(recordFailed?.watch_active).toBe(false);
     expect(recordFailed?.watch_failures).toBeGreaterThan(0);
 
     await new Promise((resolve) => setTimeout(resolve, 60));
-
-    const recordRecovered = readHealthRecord(healthPath, ports);
-    expect(recordRecovered?.watch_active).toBe(true);
-
+    expect(readHealthRecord(healthPath, ports)?.watch_active).toBe(true);
     watcher.stop();
 
-    const recordStopped = readHealthRecord(healthPath, ports);
-    expect(recordStopped?.watch_active).toBe(false);
-
-    const inspectedStopped = inspectDaemon(roomId, readerId, {}, ports);
-    expect(inspectedStopped.watch_active).toBe(false);
+    expect(readHealthRecord(healthPath, ports)?.watch_active).toBe(false);
+    expect(inspectDaemon(roomId, readerId, {}, ports).watch_active).toBe(false);
   });
 
   it("attaches watcher and sets watch_active true when room directory is created after daemon start", async () => {
@@ -284,15 +228,8 @@ describe("DaemonWatcher attachment retry and unconditional polling", () => {
     const roomId = "delayed-health-room";
     const readerId = "agent-delayed";
     const healthPath = daemonHealthPath(roomId, readerId);
-
     vfs.mkdirSync(dirname(healthPath), { recursive: true });
-    const initialHealth = createInitialHealthRecord(
-      roomId,
-      readerId,
-      44111,
-      new Date().toISOString(),
-      "boot-delayed",
-    );
+    const initialHealth = createInitialHealthRecord(roomId, readerId, 44111, new Date().toISOString(), "boot-delayed");
     vfs.writeFileSync(healthPath, JSON.stringify(initialHealth, null, 2));
 
     const ports = createVirtualPorts(vfs);
@@ -303,22 +240,16 @@ describe("DaemonWatcher attachment retry and unconditional polling", () => {
       pollIntervalMs: 25,
       retryDelayMs: 15,
     });
-
     watcher.start(() => {});
-
-    const recordBefore = readHealthRecord(healthPath, ports);
-    expect(recordBefore?.watch_active).toBe(false);
+    expect(readHealthRecord(healthPath, ports)?.watch_active).toBe(false);
     expect(inspectDaemon(roomId, readerId, {}, ports).watch_active).toBe(false);
 
     vfs.mkdirSync(roomLogDir(roomId), { recursive: true });
     vfs.writeFileSync(roomLogIndexPath(roomId), JSON.stringify({ next_seq: 1 }));
-
     await new Promise((resolve) => setTimeout(resolve, 60));
 
-    const recordAfter = readHealthRecord(healthPath, ports);
-    expect(recordAfter?.watch_active).toBe(true);
+    expect(readHealthRecord(healthPath, ports)?.watch_active).toBe(true);
     expect(inspectDaemon(roomId, readerId, {}, ports).watch_active).toBe(true);
-
     watcher.stop();
   });
 
@@ -395,5 +326,53 @@ describe("DaemonWatcher attachment retry and unconditional polling", () => {
     expect(readHealthRecord(healthPath, ports)?.watch_active).toBe(false);
 
     watcher.stop();
+  });
+
+  it("tracks and increments wakes_by_source when watch, poll, tick, and token wakes fire", async () => {
+    const vfs = new ChatVirtualFS();
+    const ports = createVirtualPorts(vfs);
+    const watcher = new DaemonWatcher("wakes-count-room", { ports });
+    expect(watcher.getMetrics().wakes_by_source).toEqual({ watch: 0, poll: 0, tick: 0, token: 0 });
+
+    await watcher.triggerWake("watch");
+    await watcher.triggerWake("poll");
+    await watcher.triggerWake("poll");
+    await watcher.triggerWake("tick");
+    await watcher.triggerWake("tick");
+    await watcher.triggerWake("tick");
+    await watcher.triggerWake("token");
+
+    expect(watcher.getMetrics().wakes_by_source).toEqual({ watch: 1, poll: 2, tick: 3, token: 1 });
+  });
+
+  it("persists and derives wakes_by_source in health record across wakes and stop", async () => {
+    const vfs = new ChatVirtualFS();
+    const roomId = "health-wakes-source-room";
+    const readerId = "agent-wakes-source";
+    const healthPath = daemonHealthPath(roomId, readerId);
+    vfs.mkdirSync(dirname(healthPath), { recursive: true });
+    const initialHealth = createInitialHealthRecord(roomId, readerId, 9876, new Date().toISOString(), "boot-wakes");
+    vfs.writeFileSync(healthPath, JSON.stringify(initialHealth, null, 2));
+
+    const ports = createVirtualPorts(vfs);
+    const watcher = new DaemonWatcher(roomId, {
+      reader: readerId,
+      healthPath,
+      ports,
+      pollIntervalMs: 50,
+      retryDelayMs: 20,
+    });
+    watcher.start(() => {});
+
+    const recordBefore = readHealthRecord(healthPath, ports);
+    expect(recordBefore?.wakes_by_source).toEqual({ watch: 0, poll: 0, tick: 0, token: 0 });
+
+    await watcher.triggerWake("watch");
+    await watcher.triggerWake("token");
+    await watcher.triggerWake("tick");
+    watcher.stop();
+
+    const recordAfter = readHealthRecord(healthPath, ports);
+    expect(recordAfter?.wakes_by_source).toEqual({ watch: 1, poll: 0, tick: 1, token: 1 });
   });
 });

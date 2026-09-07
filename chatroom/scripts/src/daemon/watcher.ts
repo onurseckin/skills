@@ -15,6 +15,12 @@ export interface WatcherMetrics {
   readonly watch_active: boolean;
   readonly watch_failures: number;
   readonly poll_interval_ms: number;
+  readonly wakes_by_source: {
+    readonly watch: number;
+    readonly poll: number;
+    readonly tick: number;
+    readonly token: number;
+  };
 }
 
 export interface WatcherHandle {
@@ -118,6 +124,7 @@ export class DaemonWatcher {
   private onStatusChange?: ((metrics: WatcherMetrics) => void) | undefined;
   private watchFailures = 0;
   private watchActive = false;
+  private wakesBySource = { watch: 0, poll: 0, tick: 0, token: 0 };
   private dirWatcher: WatcherHandle | FSWatcher | null = null;
   private indexWatcher: WatcherHandle | FSWatcher | null = null;
   private pollTimer: ReturnType<typeof setInterval> | null = null;
@@ -150,6 +157,7 @@ export class DaemonWatcher {
       watch_active: this.watchActive,
       watch_failures: this.watchFailures,
       poll_interval_ms: this.configuredPollIntervalMs,
+      wakes_by_source: { ...this.wakesBySource },
     };
   }
 
@@ -180,6 +188,7 @@ export class DaemonWatcher {
   }
 
   public async triggerWake(source: WakeSource): Promise<void> {
+    this.wakesBySource[source] = (this.wakesBySource[source] ?? 0) + 1;
     const currentToken = computeChangeToken(this.roomId, this.ports);
     const tokenChanged = hasTokenChanged(this.lastToken, currentToken);
     this.lastToken = currentToken;
@@ -308,6 +317,7 @@ export class DaemonWatcher {
             watch_active: this.watchActive,
             watch_failures: this.watchFailures,
             poll_interval_ms: this.configuredPollIntervalMs,
+            wakes_by_source: { ...this.wakesBySource },
             updated_at: nowIso,
           },
           this.ports,

@@ -30,7 +30,10 @@ describe("CLI real entry point: chat:read", () => {
 
     expect(captured.includes("chat:read")).toBe(true);
     expect(captured.includes("--limit")).toBe(true);
-    expect(captured.includes("--peek")).toBe(true);
+    expect(captured.includes("--wait")).toBe(true);
+    expect(captured.includes("--peek")).toBe(false);
+    expect(captured.includes("--type")).toBe(false);
+    expect(captured.includes("--since")).toBe(false);
   });
 
   it("fails with INVALID_ARGUMENT when required --room flag is omitted", async () => {
@@ -55,5 +58,19 @@ describe("CLI real entry point: chat:read", () => {
       }
     }
     expect(caughtCode).toBe("INVALID_ARGUMENT");
+  });
+
+  it("rejects removed flags --peek, --type, and --since with INVALID_ARGUMENT", async () => {
+    for (const flag of ["--peek", "--type", "--since"]) {
+      let caughtCode = "";
+      try {
+        await main(["chat:read", "--room", "room-1", flag]);
+      } catch (err: unknown) {
+        if (typeof err === "object" && err !== null && "code" in err) {
+          caughtCode = String((err as { code: unknown }).code);
+        }
+      }
+      expect(caughtCode).toBe("INVALID_ARGUMENT");
+    }
   });
 });

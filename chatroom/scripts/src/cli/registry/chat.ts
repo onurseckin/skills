@@ -3,6 +3,7 @@ import {
   daemonCommand,
   doctorCommand,
   initCommand,
+  inspectCommand,
   inviteCommand,
   joinCommand,
   readCommand,
@@ -137,9 +138,6 @@ export const readSpec: CommandSpec = {
     optionalFlag("as", "string", "member identity"),
     optionalFlag("limit", "int", "max envelopes in the batch (default 50, max 500)"),
     optionalFlag("wait", "int", "ms to block for arrival; 0 (default) returns immediately"),
-    optionalFlag("peek", "bool", "read-only: no lease, no cursor mutation, no ack possible"),
-    optionalFlag("type", "string", "--peek only; display filter"),
-    optionalFlag("since", "int", "--peek only; start seq"),
     optionalFlag("json", "bool", "machine output"),
   ],
   readsStdin: false,
@@ -147,7 +145,6 @@ export const readSpec: CommandSpec = {
   exitCodes: DEFAULT_EXIT_CODES,
   examples: [
     "chat:read --room build-review",
-    "chat:read --room build-review --peek",
     "chat:read --room build-review --wait 5000",
   ],
   handler: readCommand,
@@ -259,6 +256,30 @@ export const roomsSpec: CommandSpec = {
   handler: roomsCommand,
 };
 
+export const inspectSpec: CommandSpec = {
+  name: "chat:inspect",
+  aliases: ["inspect"],
+  summary: "inspect room log envelopes",
+  description:
+    "Non-mutating inspection of room log envelopes with optional sequence and type filters.",
+  flags: [
+    requiredFlag("room", "string", "room id"),
+    optionalFlag("since", "int", "start seq filter"),
+    optionalFlag("type", "string", "kind filter"),
+    optionalFlag("limit", "int", "max envelopes to return (default 50)"),
+    optionalFlag("json", "bool", "machine output"),
+  ],
+  readsStdin: false,
+  takesRemainder: false,
+  exitCodes: DEFAULT_EXIT_CODES,
+  examples: [
+    "chat:inspect --room build-review",
+    "chat:inspect --room build-review --since 10",
+    "chat:inspect --room build-review --type verdict --limit 20",
+  ],
+  handler: inspectCommand,
+};
+
 export const CHAT_COMMANDS: readonly CommandSpec[] = [
   initSpec,
   inviteSpec,
@@ -270,6 +291,7 @@ export const CHAT_COMMANDS: readonly CommandSpec[] = [
   daemonSpec,
   doctorSpec,
   roomsSpec,
+  inspectSpec,
   onSpec,
   offSpec,
 ];

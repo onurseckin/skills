@@ -20,6 +20,12 @@ export interface DaemonHealthRecord {
   readonly watch_active: boolean;
   readonly watch_failures: number;
   readonly poll_interval_ms: number;
+  readonly wakes_by_source?: {
+    readonly watch: number;
+    readonly poll: number;
+    readonly tick: number;
+    readonly token: number;
+  };
   readonly spool_bytes: number;
   readonly spool_lines: number;
   readonly consumer_last_ack_at: string | null;
@@ -51,10 +57,8 @@ export function isDaemonHealthRecord(value: unknown): value is DaemonHealthRecor
   if (typeof candidate.start_time !== "string") return false;
   if (typeof candidate.boot_id !== "string") return false;
   if (
-    candidate.state !== "LIVE" &&
-    candidate.state !== "IDLE" &&
-    candidate.state !== "BACKPRESSURED" &&
-    candidate.state !== "WEDGED" &&
+    candidate.state !== "LIVE" && candidate.state !== "IDLE" &&
+    candidate.state !== "BACKPRESSURED" && candidate.state !== "WEDGED" &&
     candidate.state !== "STOPPED"
   ) {
     return false;
@@ -67,12 +71,25 @@ export function isDaemonHealthRecord(value: unknown): value is DaemonHealthRecor
   if (typeof candidate.watch_active !== "boolean") return false;
   if (typeof candidate.watch_failures !== "number") return false;
   if (typeof candidate.poll_interval_ms !== "number") return false;
+  if (candidate.wakes_by_source !== undefined) {
+    if (
+      typeof candidate.wakes_by_source !== "object" ||
+      candidate.wakes_by_source === null ||
+      Array.isArray(candidate.wakes_by_source)
+    ) {
+      return false;
+    }
+    const w = candidate.wakes_by_source as Record<string, unknown>;
+    if (
+      typeof w.watch !== "number" || typeof w.poll !== "number" ||
+      typeof w.tick !== "number" || typeof w.token !== "number"
+    ) {
+      return false;
+    }
+  }
   if (typeof candidate.spool_bytes !== "number") return false;
   if (typeof candidate.spool_lines !== "number") return false;
-  if (
-    candidate.consumer_last_ack_at !== null &&
-    typeof candidate.consumer_last_ack_at !== "string"
-  ) {
+  if (candidate.consumer_last_ack_at !== null && typeof candidate.consumer_last_ack_at !== "string") {
     return false;
   }
   if (
@@ -183,6 +200,7 @@ export function writeDerivedHealthRecord(
   const derived: DaemonHealthRecord = {
     ...record,
     state: computeDaemonState(record, nowMs, options),
+    wakes_by_source: record.wakes_by_source ?? { watch: 0, poll: 0, tick: 0, token: 0 },
   };
   writeHealthRecord(healthPath, derived, ports);
   return derived;
@@ -213,6 +231,7 @@ export function createInitialHealthRecord(
     watch_active: false,
     watch_failures: 0,
     poll_interval_ms: pollIntervalMs,
+    wakes_by_source: { watch: 0, poll: 0, tick: 0, token: 0 },
     spool_bytes: 0,
     spool_lines: 0,
     consumer_last_ack_at: null,
@@ -280,6 +299,7 @@ export function claimHealthRecord(
     watch_active: false,
     watch_failures: 0,
     poll_interval_ms: pollIntervalMs,
+    wakes_by_source: existing.wakes_by_source ?? { watch: 0, poll: 0, tick: 0, token: 0 },
     updated_at: options.startTime,
   };
   writeHealthRecord(healthPath, claimed, ports);
@@ -292,7 +312,9 @@ export interface HealthSyncInput {
   readonly metrics: Pick<
     DaemonHealthRecord,
     "watch_active" | "watch_failures" | "poll_interval_ms"
-  >;
+  > & {
+    readonly wakes_by_source?: DaemonHealthRecord["wakes_by_source"];
+  };
   readonly source?: string;
   readonly claim: HealthClaimOptions;
   readonly compute?: HealthComputeOptions;
@@ -310,6 +332,9 @@ export function syncDaemonHealth(input: HealthSyncInput): DaemonHealthRecord | n
     watch_active: input.metrics.watch_active,
     watch_failures: input.metrics.watch_failures,
     poll_interval_ms: input.metrics.poll_interval_ms,
+    wakes_by_source:
+      input.metrics.wakes_by_source ??
+      existing.wakes_by_source ?? { watch: 0, poll: 0, tick: 0, token: 0 },
     updated_at: input.nowIso,
     ...(input.source !== undefined
       ? { last_wake_at: input.nowIso, last_wake_source: input.source }
@@ -359,20 +384,8 @@ export function inspectDaemon(
   const healthPath = daemonHealthPath(room, reader);
   const health = readHealthRecord(healthPath, ports);
   if (health === null) {
-    return {
-      room,
-      reader,
-      state: "STOPPED",
-      health: null,
-      watch_active: false,
-    };
+    return { room, reader, state: "STOPPED", health: null, watch_active: false };
   }
   const state = computeDaemonState(health, Date.now(), options);
-  return {
-    room,
-    reader,
-    state,
-    health,
-    watch_active: health.watch_active,
-  };
+  return { room, reader, state, health, watch_active: health.watch_active };
 }

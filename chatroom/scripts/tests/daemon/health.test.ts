@@ -4,7 +4,10 @@ import {
   claimHealthRecord,
   computeDaemonState,
   createInitialHealthRecord,
+  isDaemonHealthRecord,
   readHealthRecord,
+  syncDaemonHealth,
+  writeDerivedHealthRecord,
   writeHealthRecord,
   type DaemonHealthRecord,
   type HealthPorts,
@@ -234,5 +237,93 @@ describe("daemon health record tells the truth about its owning process", () => 
     expect(created.pid).toBe(livePid);
     expect(created.state).toBe("LIVE");
     expect(readHealthRecord(HEALTH_PATH, ports)?.pid).toBe(livePid);
+  });
+
+  it("initializes, validates, and persists wakes_by_source in health records", () => {
+    const vfs = new ChatVirtualFS();
+    const ports = createHealthPorts(vfs);
+    const initial = createInitialHealthRecord(ROOM, READER, 100, "2026-09-07T17:00:00.000Z", "boot", 750);
+    expect(initial.wakes_by_source).toEqual({ watch: 0, poll: 0, tick: 0, token: 0 });
+    expect(isDaemonHealthRecord(initial)).toBe(true);
+
+    const withoutWakes = { ...initial };
+    delete (withoutWakes as { wakes_by_source?: unknown }).wakes_by_source;
+    expect(isDaemonHealthRecord(withoutWakes)).toBe(true);
+
+    const invalidWakes = { ...initial, wakes_by_source: { watch: "bad", poll: 0, tick: 0, token: 0 } };
+    expect(isDaemonHealthRecord(invalidWakes)).toBe(false);
+
+    writeHealthRecord(HEALTH_PATH, initial, ports);
+    const read = readHealthRecord(HEALTH_PATH, ports);
+    expect(read?.wakes_by_source).toEqual({ watch: 0, poll: 0, tick: 0, token: 0 });
+  });
+
+  it("preserves wakes_by_source when claiming a stale record", () => {
+    const vfs = new ChatVirtualFS();
+    const ports = createHealthPorts(vfs);
+    const deadPid = vfs.spawnProcess({ cmd: "chatroom-daemon" });
+    vfs.killProcess(deadPid);
+    const livePid = vfs.spawnProcess({ cmd: "chatroom-daemon" });
+
+    seedRecord(vfs, ports, {
+      pid: deadPid,
+      wakes_by_source: { watch: 4, poll: 12, tick: 2, token: 1 },
+    });
+
+    const claimed = claimHealthRecord(
+      HEALTH_PATH,
+      {
+        room: ROOM,
+        reader: READER,
+        pid: livePid,
+        startTime: "2026-09-07T17:10:00.000Z",
+        isProcessAlive: (pid: number) => vfs.isProcessAlive(pid),
+      },
+      ports,
+    );
+
+    expect(claimed.wakes_by_source).toEqual({ watch: 4, poll: 12, tick: 2, token: 1 });
+    const persisted = readHealthRecord(HEALTH_PATH, ports);
+    expect(persisted?.wakes_by_source).toEqual({ watch: 4, poll: 12, tick: 2, token: 1 });
+  });
+
+  it("syncs and derives wakes_by_source during health sync", () => {
+    const vfs = new ChatVirtualFS();
+    const ports = createHealthPorts(vfs);
+    const pid = vfs.spawnProcess({ cmd: "chatroom-daemon" });
+    seedRecord(vfs, ports, { pid, wakes_by_source: { watch: 1, poll: 2, tick: 0, token: 0 } });
+
+    const synced = syncDaemonHealth({
+      healthPath: HEALTH_PATH,
+      nowIso: "2026-09-07T17:15:00.000Z",
+      metrics: {
+        watch_active: true,
+        watch_failures: 0,
+        poll_interval_ms: 750,
+        wakes_by_source: { watch: 5, poll: 10, tick: 3, token: 2 },
+      },
+      source: "watch",
+      claim: {
+        room: ROOM,
+        reader: READER,
+        pid,
+        startTime: "2026-09-07T17:00:00.000Z",
+        isProcessAlive: (p: number) => vfs.isProcessAlive(p),
+      },
+      ports,
+    });
+
+    expect(synced?.wakes_by_source).toEqual({ watch: 5, poll: 10, tick: 3, token: 2 });
+    const persisted = readHealthRecord(HEALTH_PATH, ports);
+    expect(persisted?.wakes_by_source).toEqual({ watch: 5, poll: 10, tick: 3, token: 2 });
+
+    const derived = writeDerivedHealthRecord(
+      HEALTH_PATH,
+      persisted!,
+      Date.parse("2026-09-07T17:15:01.000Z"),
+      { isProcessAlive: (p: number) => vfs.isProcessAlive(p) },
+      ports,
+    );
+    expect(derived.wakes_by_source).toEqual({ watch: 5, poll: 10, tick: 3, token: 2 });
   });
 });

@@ -13,14 +13,14 @@ export type Confirmation =
       readonly kind: "flushed";
       readonly at: string;
       readonly bytes: number;
-      readonly drained: true;
+      readonly drained: boolean;
     }
   | {
       readonly kind: "spooled";
       readonly at: string;
       readonly spool_path: string;
       readonly spool_offset: number;
-      readonly fsynced: true;
+      readonly fsynced: boolean;
     };
 
 export interface AckOptions {
@@ -46,7 +46,7 @@ function validateConfirmation(confirmation: Confirmation): void {
     if (typeof confirmation.bytes !== "number" || confirmation.bytes < 0) {
       throw new ChatError("INVALID_ARGUMENT", "flushed confirmation requires non-negative bytes");
     }
-    if (confirmation.drained !== true) {
+    if (typeof confirmation.drained !== "boolean" || !confirmation.drained) {
       throw new ChatError("INVALID_ARGUMENT", "flushed confirmation requires drained: true");
     }
     return;
@@ -65,7 +65,7 @@ function validateConfirmation(confirmation: Confirmation): void {
         "spooled confirmation requires non-negative spool_offset",
       );
     }
-    if (confirmation.fsynced !== true) {
+    if (typeof confirmation.fsynced !== "boolean" || !confirmation.fsynced) {
       throw new ChatError("INVALID_ARGUMENT", "spooled confirmation requires fsynced: true");
     }
     return;

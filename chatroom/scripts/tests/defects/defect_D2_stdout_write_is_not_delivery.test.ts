@@ -106,35 +106,73 @@ describe("Defect D2: stdout write returning true is never delivery", () => {
     expect(ackSource.includes('from "node:tty"')).toBe(false);
   });
 
-  it("requires drained: true literal on flushed confirmations", () => {
+  it("requires drained: true on flushed and fsynced: true on spooled confirmations", () => {
     const now = new Date().toISOString();
     const cursor = createCursor(now);
 
-    const incompleteFlushed = {
+    const drainedFalse: Confirmation = {
       kind: "flushed",
       at: now,
       bytes: 1024,
       drained: false,
-    } as unknown as Confirmation;
+    };
+    try {
+      ackLease(cursor, "lease-d2", 2, drainedFalse);
+      expect.unreachable();
+    } catch (err) {
+      expect(err instanceof ChatError).toBe(true);
+      expect((err as ChatError).code).toBe("INVALID_ARGUMENT");
+    }
 
-    expect(() => ackLease(cursor, "lease-d2", 2, incompleteFlushed)).toThrow(ChatError);
+    const fsyncedFalse: Confirmation = {
+      kind: "spooled",
+      at: now,
+      spool_path: "/spool/test.log",
+      spool_offset: 0,
+      fsynced: false,
+    };
+    try {
+      ackLease(cursor, "lease-d2", 2, fsyncedFalse);
+      expect.unreachable();
+    } catch (err) {
+      expect(err instanceof ChatError).toBe(true);
+      expect((err as ChatError).code).toBe("INVALID_ARGUMENT");
+    }
 
-    const negativeBytesFlushed = {
+    const drainedTrue: Confirmation = {
+      kind: "flushed",
+      at: now,
+      bytes: 1024,
+      drained: true,
+    };
+    const flushedAdvanced = ackLease(cursor, "lease-d2", 2, drainedTrue);
+    expect(flushedAdvanced.contiguous_seq).toBe(2);
+
+    const cursorForSpooled = createCursor(now);
+    const fsyncedTrue: Confirmation = {
+      kind: "spooled",
+      at: now,
+      spool_path: "/spool/test.log",
+      spool_offset: 0,
+      fsynced: true,
+    };
+    const spooledAdvanced = ackLease(cursorForSpooled, "lease-d2", 2, fsyncedTrue);
+    expect(spooledAdvanced.contiguous_seq).toBe(2);
+
+    const negativeBytesFlushed: Confirmation = {
       kind: "flushed",
       at: now,
       bytes: -1,
       drained: true,
-    } as unknown as Confirmation;
-
+    };
     expect(() => ackLease(cursor, "lease-d2", 2, negativeBytesFlushed)).toThrow(ChatError);
 
-    const emptyTimestampFlushed = {
+    const emptyTimestampFlushed: Confirmation = {
       kind: "flushed",
       at: "",
       bytes: 1024,
       drained: true,
-    } as unknown as Confirmation;
-
+    };
     expect(() => ackLease(cursor, "lease-d2", 2, emptyTimestampFlushed)).toThrow(ChatError);
   });
 

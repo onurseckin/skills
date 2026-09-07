@@ -59,7 +59,7 @@ describe("Defect D6: one identity path with strict send/read authorization equiv
 
       let readErrorCode = "";
       try {
-        await readCommand({ room: "room-d6", as: agentId, peek: true }, {});
+        await readCommand({ room: "room-d6", as: agentId }, {});
       } catch (err: unknown) {
         if (err instanceof ChatError) {
           readErrorCode = err.code;

@@ -29,6 +29,7 @@ export {
   doctorSpec,
   findCommand,
   initSpec,
+  inspectSpec,
   inviteSpec,
   joinSpec,
   offSpec,
