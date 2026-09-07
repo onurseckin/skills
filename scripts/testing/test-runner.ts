@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import {
   evaluateCoverageGate,
   formatCoverageGateMessage,
@@ -22,10 +22,10 @@ export interface TestRunnerPorts {
   readonly auditTestPuritySync?: (options: PurityAuditOptions) => PurityAuditResult;
 }
 
-export function executeTestRunner(
+export async function executeTestRunner(
   rawArgs: string[] = process.argv.slice(2),
   ports: TestRunnerPorts = {},
-): number {
+): Promise<number> {
   try {
     const inspection = inspectRepoPolicy();
     if (!isTestingEnabled(inspection.policy)) {
@@ -53,10 +53,8 @@ export function executeTestRunner(
     const startMs = Date.now();
     const startTime = new Date(startMs).toISOString();
 
-    const result = spawnSync("bun", parsed.bunTestArgs, {
+    const child = spawn("bun", parsed.bunTestArgs, {
       stdio: ["inherit", "inherit", "pipe"],
-      encoding: "utf-8",
-      maxBuffer: 100 * 1024 * 1024,
       env: {
         ...process.env,
         OLT_VIRTUAL_FS: "1",
@@ -64,17 +62,31 @@ export function executeTestRunner(
       },
     });
 
-    const childStderr = typeof result.stderr === "string" ? result.stderr : "";
-    if (childStderr.length > 0) {
-      process.stderr.write(childStderr);
+    let childStderr = "";
+    if (child.stderr) {
+      child.stderr.on("data", (chunk: Buffer | string) => {
+        const text = typeof chunk === "string" ? chunk : chunk.toString("utf-8");
+        childStderr += text;
+        process.stderr.write(text);
+      });
     }
+
+    const status = await new Promise<number>((resolve, reject) => {
+      child.on("error", (error) => {
+        reject(error);
+      });
+      child.on("close", (code) => {
+        resolve(code !== null && code !== undefined ? code : 0);
+      });
+    });
+
     const loadFailures = detectSuiteLoadFailures(childStderr);
 
     const endMs = Date.now();
     const endTime = new Date(endMs).toISOString();
     const totalDurationMs = Math.max(0, endMs - startMs);
 
-    let exitCode = result.status !== undefined && result.status !== null ? result.status : 0;
+    let exitCode = status;
 
     if (parsed.isCoverage) {
       const targetCovDir =
@@ -131,11 +143,11 @@ export function computeIsMain(
   return false;
 }
 
-export function main(ports: TestRunnerPorts = {}): void {
-  const code = executeTestRunner(process.argv.slice(2), ports);
+export async function main(ports: TestRunnerPorts = {}): Promise<void> {
+  const code = await executeTestRunner(process.argv.slice(2), ports);
   process.exit(code);
 }
 
 if (computeIsMain()) {
-  main();
+  void main();
 }

@@ -4,6 +4,7 @@ import * as reporting from "../../../scripts/testing/reporting/index.ts";
 import * as testMutex from "../../../scripts/testing/index.ts";
 import { computeIsMain, executeTestRunner, main } from "../../../scripts/testing/test-runner.ts";
 import type { TestRunnerPorts } from "../../../scripts/testing/test-runner.ts";
+import { createSpawnMock } from "./index.ts";
 import type {
   PurityAuditOptions,
   PurityAuditResult,
@@ -47,16 +48,9 @@ describe("test-runner script", () => {
     lockSpy.mockRestore();
   });
 
-  test("main() executes runner and calls process.exit", () => {
+  test("main() executes runner and calls process.exit", async () => {
     const exitSpy = spyOn(process, "exit").mockImplementation(() => undefined as never);
-    const spawnSyncSpy = spyOn(childProcess, "spawnSync").mockReturnValue({
-      status: 0,
-      pid: 1234,
-      output: [],
-      stdout: "",
-      stderr: "",
-      signal: null,
-    });
+    const spawnSpy = spyOn(childProcess, "spawn").mockImplementation(createSpawnMock());
     const reportSpy = spyOn(reporting, "processCoverageArtifacts").mockReturnValue({
       lcovExists: true,
       filesCount: 5,
@@ -71,11 +65,11 @@ describe("test-runner script", () => {
     });
 
     try {
-      main(CLEAN_AUDIT_PORTS);
+      await main(CLEAN_AUDIT_PORTS);
       expect(exitSpy).toHaveBeenCalledWith(0);
     } finally {
       exitSpy.mockRestore();
-      spawnSyncSpy.mockRestore();
+      spawnSpy.mockRestore();
       reportSpy.mockRestore();
     }
   });
@@ -88,21 +82,14 @@ describe("test-runner script", () => {
     expect(computeIsMain(false, "/repo/other.ts")).toBe(false);
   });
 
-  test("executeTestRunner runs targeted test suite with injected test environment", () => {
-    const spawnSyncSpy = spyOn(childProcess, "spawnSync").mockReturnValue({
-      status: 0,
-      pid: 1234,
-      output: [],
-      stdout: "",
-      stderr: "",
-      signal: null,
-    });
+  test("executeTestRunner runs targeted test suite with injected test environment", async () => {
+    const spawnSpy = spyOn(childProcess, "spawn").mockImplementation(createSpawnMock());
 
     try {
-      const code = executeTestRunner(["tests/testing/runner/test-runner.test.ts"]);
+      const code = await executeTestRunner(["tests/testing/runner/test-runner.test.ts"]);
       expect(code).toBe(0);
-      expect(spawnSyncSpy).toHaveBeenCalledTimes(1);
-      const callArgs = spawnSyncSpy.mock.calls[0];
+      expect(spawnSpy).toHaveBeenCalledTimes(1);
+      const callArgs = spawnSpy.mock.calls[0];
       expect(callArgs[0]).toBe("bun");
       expect(callArgs[1]).toEqual([
         "test",
@@ -111,24 +98,17 @@ describe("test-runner script", () => {
         "--parallel",
         "tests/testing/runner/test-runner.test.ts",
       ]);
-      const opts = callArgs[2] as { env?: Record<string, string>; maxBuffer?: number };
-      expect(opts.maxBuffer).toBe(100 * 1024 * 1024);
+      const opts = callArgs[2] as { env?: Record<string, string>; stdio?: readonly string[] };
+      expect(opts.stdio).toEqual(["inherit", "inherit", "pipe"]);
       expect(opts.env?.OLT_VIRTUAL_FS).toBe("1");
       expect(opts.env?.BUN_ENV).toBe("test");
     } finally {
-      spawnSyncSpy.mockRestore();
+      spawnSpy.mockRestore();
     }
   });
 
-  test("executeTestRunner runs broad test suite with --coverage flag and passes 90% quality gate", () => {
-    const spawnSyncSpy = spyOn(childProcess, "spawnSync").mockReturnValue({
-      status: 0,
-      pid: 1234,
-      output: [],
-      stdout: "",
-      stderr: "",
-      signal: null,
-    });
+  test("executeTestRunner runs broad test suite with --coverage flag and passes 90% quality gate", async () => {
+    const spawnSpy = spyOn(childProcess, "spawn").mockImplementation(createSpawnMock());
 
     const reportSpy = spyOn(reporting, "processCoverageArtifacts").mockReturnValue({
       lcovExists: true,
@@ -147,28 +127,21 @@ describe("test-runner script", () => {
     });
 
     try {
-      const code = executeTestRunner(["--coverage", "tests/testing"], CLEAN_AUDIT_PORTS);
+      const code = await executeTestRunner(["--coverage", "tests/testing"], CLEAN_AUDIT_PORTS);
       expect(code).toBe(0);
       expect(reportSpy).toHaveBeenCalled();
-      const callArgs = spawnSyncSpy.mock.calls[0];
+      const callArgs = spawnSpy.mock.calls[0];
       const opts = callArgs[2] as { env?: Record<string, string> };
       expect(opts.env?.OLT_VIRTUAL_FS).toBe("1");
       expect(opts.env?.BUN_ENV).toBe("test");
     } finally {
-      spawnSyncSpy.mockRestore();
+      spawnSpy.mockRestore();
       reportSpy.mockRestore();
     }
   });
 
-  test("executeTestRunner rejects and returns exit code 1 when coverage falls below 90% quality gate", () => {
-    const spawnSyncSpy = spyOn(childProcess, "spawnSync").mockReturnValue({
-      status: 0,
-      pid: 1234,
-      output: [],
-      stdout: "",
-      stderr: "",
-      signal: null,
-    });
+  test("executeTestRunner rejects and returns exit code 1 when coverage falls below 90% quality gate", async () => {
+    const spawnSpy = spyOn(childProcess, "spawn").mockImplementation(createSpawnMock());
 
     const reportSpy = spyOn(reporting, "processCoverageArtifacts").mockReturnValue({
       lcovExists: true,
@@ -186,50 +159,36 @@ describe("test-runner script", () => {
     const errSpy = spyOn(console, "error").mockImplementation(() => {});
 
     try {
-      const code = executeTestRunner(["tests"], CLEAN_AUDIT_PORTS);
+      const code = await executeTestRunner(["tests"], CLEAN_AUDIT_PORTS);
       expect(code).toBe(1);
       expect(reportSpy).toHaveBeenCalled();
       expect(errSpy).toHaveBeenCalled();
     } finally {
-      spawnSyncSpy.mockRestore();
+      spawnSpy.mockRestore();
       reportSpy.mockRestore();
       errSpy.mockRestore();
     }
   });
 
-  test("executeTestRunner with --no-coverage skips coverage even on broad scope", () => {
-    const spawnSyncSpy = spyOn(childProcess, "spawnSync").mockReturnValue({
-      status: 0,
-      pid: 1234,
-      output: [],
-      stdout: "",
-      stderr: "",
-      signal: null,
-    });
+  test("executeTestRunner with --no-coverage skips coverage even on broad scope", async () => {
+    const spawnSpy = spyOn(childProcess, "spawn").mockImplementation(createSpawnMock());
 
     const reportSpy = spyOn(reporting, "processCoverageArtifacts");
 
     try {
-      const code = executeTestRunner(["--no-coverage", "tests"], CLEAN_AUDIT_PORTS);
+      const code = await executeTestRunner(["--no-coverage", "tests"], CLEAN_AUDIT_PORTS);
       expect(code).toBe(0);
       expect(reportSpy).not.toHaveBeenCalled();
-      const callArgs = spawnSyncSpy.mock.calls[0];
+      const callArgs = spawnSpy.mock.calls[0];
       expect(callArgs[1]).not.toContain("--coverage");
     } finally {
-      spawnSyncSpy.mockRestore();
+      spawnSpy.mockRestore();
       reportSpy.mockRestore();
     }
   });
 
-  test("executeTestRunner with default args runs broad scope with default coverage and injected env", () => {
-    const spawnSyncSpy = spyOn(childProcess, "spawnSync").mockReturnValue({
-      status: 0,
-      pid: 1234,
-      output: [],
-      stdout: "",
-      stderr: "",
-      signal: null,
-    });
+  test("executeTestRunner with default args runs broad scope with default coverage and injected env", async () => {
+    const spawnSpy = spyOn(childProcess, "spawn").mockImplementation(createSpawnMock());
 
     const reportSpy = spyOn(reporting, "processCoverageArtifacts").mockReturnValue({
       lcovExists: true,
@@ -245,54 +204,40 @@ describe("test-runner script", () => {
     });
 
     try {
-      const code = executeTestRunner([], CLEAN_AUDIT_PORTS);
+      const code = await executeTestRunner([], CLEAN_AUDIT_PORTS);
       expect(code).toBe(0);
       expect(reportSpy).toHaveBeenCalled();
-      const callArgs = spawnSyncSpy.mock.calls[0];
+      const callArgs = spawnSpy.mock.calls[0];
       expect(callArgs[1]).toContain("--coverage");
       const opts = callArgs[2] as { env?: Record<string, string> };
       expect(opts.env?.OLT_VIRTUAL_FS).toBe("1");
       expect(opts.env?.BUN_ENV).toBe("test");
     } finally {
-      spawnSyncSpy.mockRestore();
+      spawnSpy.mockRestore();
       reportSpy.mockRestore();
     }
   });
 
-  test("executeTestRunner audits whole-repo purity on broad scope and aborts before spawning", () => {
+  test("executeTestRunner audits whole-repo purity on broad scope and aborts before spawning", async () => {
     const recorder = createAuditRecorder(false);
-    const spawnSyncSpy = spyOn(childProcess, "spawnSync").mockReturnValue({
-      status: 0,
-      pid: 1234,
-      output: [],
-      stdout: "",
-      stderr: "",
-      signal: null,
-    });
+    const spawnSpy = spyOn(childProcess, "spawn").mockImplementation(createSpawnMock());
     const errSpy = spyOn(console, "error").mockImplementation(() => {});
 
     try {
-      const code = executeTestRunner(["tests"], recorder.ports);
+      const code = await executeTestRunner(["tests"], recorder.ports);
       expect(code).toBe(1);
       expect(recorder.calls).toEqual([{ all: true }]);
-      expect(spawnSyncSpy).not.toHaveBeenCalled();
+      expect(spawnSpy).not.toHaveBeenCalled();
       expect(errSpy).toHaveBeenCalledWith("PURITY_FAILED");
     } finally {
-      spawnSyncSpy.mockRestore();
+      spawnSpy.mockRestore();
       errSpy.mockRestore();
     }
   });
 
-  test("executeTestRunner audits whole-repo purity whenever coverage is requested", () => {
+  test("executeTestRunner audits whole-repo purity whenever coverage is requested", async () => {
     const recorder = createAuditRecorder(true);
-    const spawnSyncSpy = spyOn(childProcess, "spawnSync").mockReturnValue({
-      status: 0,
-      pid: 1234,
-      output: [],
-      stdout: "",
-      stderr: "",
-      signal: null,
-    });
+    const spawnSpy = spyOn(childProcess, "spawn").mockImplementation(createSpawnMock());
     const reportSpy = spyOn(reporting, "processCoverageArtifacts").mockReturnValue({
       lcovExists: false,
       filesCount: 0,
@@ -300,62 +245,51 @@ describe("test-runner script", () => {
     });
 
     try {
-      const code = executeTestRunner(["--coverage", "tests/testing"], recorder.ports);
+      const code = await executeTestRunner(["--coverage", "tests/testing"], recorder.ports);
       expect(code).toBe(0);
       expect(recorder.calls).toEqual([{ all: true }]);
-      expect(spawnSyncSpy).toHaveBeenCalledTimes(1);
+      expect(spawnSpy).toHaveBeenCalledTimes(1);
     } finally {
-      spawnSyncSpy.mockRestore();
+      spawnSpy.mockRestore();
       reportSpy.mockRestore();
     }
   });
 
-  test("executeTestRunner skips the purity audit for a narrow non-coverage scope", () => {
+  test("executeTestRunner skips the purity audit for a narrow non-coverage scope", async () => {
     const recorder = createAuditRecorder(false);
-    const spawnSyncSpy = spyOn(childProcess, "spawnSync").mockReturnValue({
-      status: 0,
-      pid: 1234,
-      output: [],
-      stdout: "",
-      stderr: "",
-      signal: null,
-    });
+    const spawnSpy = spyOn(childProcess, "spawn").mockImplementation(createSpawnMock());
 
     try {
-      const code = executeTestRunner(["tests/testing/runner/arg-parser.test.ts"], recorder.ports);
+      const code = await executeTestRunner(
+        ["tests/testing/runner/arg-parser.test.ts"],
+        recorder.ports,
+      );
       expect(code).toBe(0);
       expect(recorder.calls).toEqual([]);
-      expect(spawnSyncSpy).toHaveBeenCalledTimes(1);
+      expect(spawnSpy).toHaveBeenCalledTimes(1);
     } finally {
-      spawnSyncSpy.mockRestore();
+      spawnSpy.mockRestore();
     }
   });
 
-  test("executeTestRunner skips the purity audit when OLT_SKIP_PURITY is set", () => {
+  test("executeTestRunner skips the purity audit when OLT_SKIP_PURITY is set", async () => {
     const recorder = createAuditRecorder(false);
-    const spawnSyncSpy = spyOn(childProcess, "spawnSync").mockReturnValue({
-      status: 0,
-      pid: 1234,
-      output: [],
-      stdout: "",
-      stderr: "",
-      signal: null,
-    });
+    const spawnSpy = spyOn(childProcess, "spawn").mockImplementation(createSpawnMock());
     const previous = process.env.OLT_SKIP_PURITY;
     process.env.OLT_SKIP_PURITY = "1";
 
     try {
-      const code = executeTestRunner(["--no-coverage", "tests"], recorder.ports);
+      const code = await executeTestRunner(["--no-coverage", "tests"], recorder.ports);
       expect(code).toBe(0);
       expect(recorder.calls).toEqual([]);
-      expect(spawnSyncSpy).toHaveBeenCalledTimes(1);
+      expect(spawnSpy).toHaveBeenCalledTimes(1);
     } finally {
       if (previous === undefined) {
         delete process.env.OLT_SKIP_PURITY;
       } else {
         process.env.OLT_SKIP_PURITY = previous;
       }
-      spawnSyncSpy.mockRestore();
+      spawnSpy.mockRestore();
     }
   });
 });

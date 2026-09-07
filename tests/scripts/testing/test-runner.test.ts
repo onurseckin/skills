@@ -6,6 +6,7 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import * as childProcess from "node:child_process";
 import { join } from "node:path";
+import { createSpawnMock } from "../../testing/runner/index.ts";
 import {
   createVirtualFSSession,
   type VirtualFSSession,
@@ -35,25 +36,19 @@ describe("test-runner script (in-memory virtual)", () => {
     vfsSession.cleanup();
   });
 
-  test("runs in-process to cover test-runner module evaluation with mocked spawnSync", async () => {
+  test("runs in-process to cover test-runner module evaluation with mocked spawn", async () => {
     const origArgv = [...process.argv];
     process.argv = ["bun", runnerScript, "tests/scripts/testing/test-runner.test.ts"];
 
-    const spawnSyncSpy = spyOn(childProcess, "spawnSync").mockReturnValue({
-      status: 0,
-      pid: 1234,
-      output: [],
-      stdout: "",
-      stderr: "",
-      signal: null,
-    });
+    const spawnSpy = spyOn(childProcess, "spawn").mockImplementation(createSpawnMock());
 
     try {
       const { main: runMain } = await import("../../../scripts/testing/test-runner.ts");
-      runMain();
+      await runMain();
+      await new Promise((resolve) => setTimeout(resolve, 25));
     } finally {
       process.argv = origArgv;
-      spawnSyncSpy.mockRestore();
+      spawnSpy.mockRestore();
     }
 
     expect(recordedExitCode).toBe(0);

@@ -1,3 +1,3 @@
-export { createSampleScopedPolicy } from "./fixture.ts";
+export { createSampleScopedPolicy, createSpawnMock, type SpawnMockOptions } from "./fixture.ts";
 
 export const RUNNER_SUITES = ["test-runner", "scoped-execution"] as const;

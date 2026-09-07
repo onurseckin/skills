@@ -132,7 +132,7 @@ describe("runner integration for unloadable test files", () => {
     }
   });
 
-  test("the synchronous runner exits non-zero and names a fixture that cannot be imported", () => {
+  test("the default runner exits non-zero and names a fixture that cannot be imported", async () => {
     const reported: string[] = [];
     const errorSpy = spyOn(console, "error").mockImplementation((...args: unknown[]) => {
       reported.push(args.map((entry) => String(entry)).join(" "));
@@ -140,7 +140,7 @@ describe("runner integration for unloadable test files", () => {
     const stderrSpy = spyOn(process.stderr, "write").mockImplementation(() => true);
 
     try {
-      const code = executeTestRunner(["--no-coverage", BROKEN_FIXTURE]);
+      const code = await executeTestRunner(["--no-coverage", BROKEN_FIXTURE]);
       const rendered = reported.join("\n");
       expect(code).toBe(1);
       expect(rendered).toContain("MODULE LOAD FAILURE");
