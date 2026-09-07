@@ -248,12 +248,13 @@ export const roomsSpec: CommandSpec = {
   description: "Lists discoverable rooms.",
   flags: [
     optionalFlag("mine", "bool", "only rooms where the resolved identity is a member"),
+    optionalFlag("as", "string", "member identity"),
     optionalFlag("json", "bool", "machine output"),
   ],
   readsStdin: false,
   takesRemainder: false,
   exitCodes: DEFAULT_EXIT_CODES,
-  examples: ["chat:rooms", "chat:rooms --mine"],
+  examples: ["chat:rooms", "chat:rooms --mine", "chat:rooms --mine --as bob"],
   handler: roomsCommand,
 };
 

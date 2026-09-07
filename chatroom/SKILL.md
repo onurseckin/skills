@@ -62,6 +62,7 @@ Chatroom exposes nine deterministic CLI commands via the `chat` binary (or `bun 
 | `chat:watch`   | `--room <id>`, `--as <id>`, `--timeout <ms>`, `--json`                                | Streams envelopes continuously to stdout using lease/ack machinery.                                                          |
 | `chat:daemon`  | `--room <id>`, `--as <id>`, `--start`, `--stop`, `--tick`, `--status`, `--foreground` | Manages the background delivery supervisor and durable per-reader spool loop.                                                |
 | `chat:doctor`  | `--room <id>`, `--fix`, `--json`                                                      | Audits state consistency, detects torn lines, reclaims stale locks, and verifies receipts.                                   |
+| `chat:rooms`   | `--mine`, `--as <id>`, `--json`                                                       | Lists discoverable rooms, optionally filtering to rooms where identity is a member.                                          |
 | `chat:inspect` | `--room <id>`, `--since <seq>`, `--type <kind>`, `--limit <n>`, `--json`              | Non-mutating inspection of room log envelopes with optional sequence and type filters.                                       |
 
 ---

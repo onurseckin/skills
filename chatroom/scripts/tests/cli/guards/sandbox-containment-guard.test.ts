@@ -77,7 +77,7 @@ describe("Sandbox Containment Guard", () => {
         "--json",
       ]);
 
-      await main(["chat:rooms", "--mine", "--json"]);
+      await main(["chat:rooms", "--mine", "--as", "agent-guard", "--json"]);
 
       await main([
         "chat:say",

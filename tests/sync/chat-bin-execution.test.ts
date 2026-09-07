@@ -116,7 +116,7 @@ describe("global harness entry point executions", () => {
 
   it("executes chat root harness chat:rooms with json output", async () => {
     const output = await captureStdout(async () => {
-      await chatRootMain(["chat:rooms", "--mine", "--json"]);
+      await chatRootMain(["chat:rooms", "--json"]);
     });
 
     expect(output.length).toBeGreaterThan(0);
