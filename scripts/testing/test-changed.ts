@@ -5,6 +5,7 @@ import { basename, extname, join } from "node:path";
 
 import { DEFAULT_COVERAGE_THRESHOLD } from "./reporting/index.ts";
 import { auditTestPurity } from "./guardrails/index.ts";
+import { detectSuiteLoadFailures, formatSuiteLoadFailureReport } from "./runner/index.ts";
 import { inspectRepoPolicy, isTestingEnabled } from "../../olt/scripts/src/policy/index.ts";
 
 export function gitOutput(args: string[]): string {
@@ -234,6 +235,13 @@ export async function run(argvArgs: string[] = process.argv.slice(2)): Promise<n
     if (result.stderr) {
       process.stderr.write(result.stderr);
       combinedStderr += result.stderr;
+    }
+
+    const loadFailures = detectSuiteLoadFailures(`${result.stdout ?? ""}\n${result.stderr ?? ""}`);
+    if (loadFailures.length > 0) {
+      console.error(formatSuiteLoadFailureReport(loadFailures));
+      console.error("\n❌ [test-changed] Test file(s) failed to load; run aborted.");
+      return 1;
     }
 
     if (result.status !== 0) {

@@ -6,13 +6,26 @@ import {
   processCoverageArtifacts,
 } from "./reporting/index.ts";
 import { acquireTestLock } from "./mutex/index.ts";
-import { executeStreamingRunner, parseRunnerArgs } from "./runner/index.ts";
+import {
+  detectSuiteLoadFailures,
+  executeStreamingRunner,
+  formatSuiteLoadFailureReport,
+  parseRunnerArgs,
+} from "./runner/index.ts";
 import { auditTestPuritySync } from "./guardrails/index.ts";
+import type { PurityAuditOptions, PurityAuditResult } from "./guardrails/index.ts";
 import { inspectRepoPolicy, isTestingEnabled } from "../../olt/scripts/src/policy/index.ts";
 
 export { executeStreamingRunner };
 
-export function executeTestRunner(rawArgs: string[] = process.argv.slice(2)): number {
+export interface TestRunnerPorts {
+  readonly auditTestPuritySync?: (options: PurityAuditOptions) => PurityAuditResult;
+}
+
+export function executeTestRunner(
+  rawArgs: string[] = process.argv.slice(2),
+  ports: TestRunnerPorts = {},
+): number {
   try {
     const inspection = inspectRepoPolicy();
     if (!isTestingEnabled(inspection.policy)) {
@@ -28,7 +41,8 @@ export function executeTestRunner(rawArgs: string[] = process.argv.slice(2)): nu
 
   try {
     if ((parsed.isBroadScope || parsed.isCoverage) && process.env.OLT_SKIP_PURITY !== "1") {
-      const purityResult = auditTestPuritySync({ all: true });
+      const auditPurity = ports.auditTestPuritySync ?? auditTestPuritySync;
+      const purityResult = auditPurity({ all: true });
       if (!purityResult.passed) {
         console.error(purityResult.terminalReport);
         console.error("\n❌ [purity-guard] Whole repository test suite failed purity audit.");
@@ -40,7 +54,8 @@ export function executeTestRunner(rawArgs: string[] = process.argv.slice(2)): nu
     const startTime = new Date(startMs).toISOString();
 
     const result = spawnSync("bun", parsed.bunTestArgs, {
-      stdio: "inherit",
+      stdio: ["inherit", "inherit", "pipe"],
+      encoding: "utf-8",
       maxBuffer: 100 * 1024 * 1024,
       env: {
         ...process.env,
@@ -49,9 +64,17 @@ export function executeTestRunner(rawArgs: string[] = process.argv.slice(2)): nu
       },
     });
 
+    const childStderr = typeof result.stderr === "string" ? result.stderr : "";
+    if (childStderr.length > 0) {
+      process.stderr.write(childStderr);
+    }
+    const loadFailures = detectSuiteLoadFailures(childStderr);
+
     const endMs = Date.now();
     const endTime = new Date(endMs).toISOString();
     const totalDurationMs = Math.max(0, endMs - startMs);
+
+    let exitCode = result.status !== undefined && result.status !== null ? result.status : 0;
 
     if (parsed.isCoverage) {
       const targetCovDir =
@@ -70,17 +93,24 @@ export function executeTestRunner(rawArgs: string[] = process.argv.slice(2)): nu
           console.log(
             `\n[coverage] Generated coverage/lcov.info, coverage/coverage-summary.json, coverage/REPORT.md, and coverage/index.html across ${reportRes.filesCount} files (${reportRes.totalPct}% line coverage).\n${message}`,
           );
-          return 0;
+          exitCode = 0;
         } else {
           console.error(
             `\n[coverage] Generated coverage artifacts across ${reportRes.filesCount} files (${reportRes.totalPct}% line coverage).\n${message}`,
           );
-          return 1;
+          exitCode = 1;
         }
       }
     }
 
-    return result.status !== undefined && result.status !== null ? result.status : 0;
+    if (loadFailures.length > 0) {
+      console.error(formatSuiteLoadFailureReport(loadFailures));
+      if (exitCode === 0) {
+        exitCode = 1;
+      }
+    }
+
+    return exitCode;
   } finally {
     releaseLock();
   }
@@ -101,8 +131,8 @@ export function computeIsMain(
   return false;
 }
 
-export function main(): void {
-  const code = executeTestRunner();
+export function main(ports: TestRunnerPorts = {}): void {
+  const code = executeTestRunner(process.argv.slice(2), ports);
   process.exit(code);
 }
 

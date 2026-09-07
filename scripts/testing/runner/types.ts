@@ -145,6 +145,12 @@ export function createDefaultRunnerStats(overrides: Partial<RunnerStats> = {}): 
   };
 }
 
+export interface SuiteLoadFailure {
+  readonly file: string;
+  readonly message: string;
+  readonly isModuleLoadFailure: boolean;
+}
+
 export interface RunnerResult {
   readonly exitCode: number;
   readonly stats: RunnerStats;
@@ -155,6 +161,7 @@ export interface RunnerResult {
   readonly endTime?: string | undefined;
   readonly durationMs: number;
   readonly coverageResult?: CoverageArtifactResult | undefined;
+  readonly loadFailures?: readonly SuiteLoadFailure[] | undefined;
 }
 
 export interface WrapperOptions {

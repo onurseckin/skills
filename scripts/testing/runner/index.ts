@@ -9,6 +9,7 @@ export {
   type StreamEventListener,
   type StreamEventType,
   type SuiteEndEvent,
+  type SuiteLoadFailure,
   type SuiteStartEvent,
   type SummaryEvent,
   type TestFailEvent,
@@ -30,6 +31,15 @@ export {
 } from "./arg-parser.ts";
 
 export { isErrorPreviewLine, parseDurationMs, StreamParser, stripAnsi } from "./stream-parser.ts";
+
+export {
+  countReportedUnhandledErrors,
+  detectSuiteLoadFailures,
+  formatSuiteLoadFailureReport,
+  isModuleLoadErrorMessage,
+  UNHANDLED_ERROR_MARKER,
+  UNKNOWN_SUITE_FILE,
+} from "./load-failure-detector.ts";
 
 export {
   formatElapsedSeconds,

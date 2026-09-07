@@ -7,6 +7,7 @@ import {
 } from "../reporting/index.ts";
 import { acquireTestLock } from "../mutex/index.ts";
 import { buildBunTestArgs, parseRunnerArgs } from "./arg-parser.ts";
+import { detectSuiteLoadFailures, formatSuiteLoadFailureReport } from "./load-failure-detector.ts";
 import { StreamParser } from "./stream-parser.ts";
 import { formatSummaryTable } from "./summary-table.ts";
 import { isInteractiveTerminal, TerminalTicker } from "./terminal-ticker.ts";
@@ -168,12 +169,21 @@ export async function executeStreamingRunner(
       options.stdout !== undefined && options.stdout !== null ? options.stdout : process.stdout;
     outStream.write(summary + "\n");
 
+    const loadFailures = detectSuiteLoadFailures([rawStdout, rawStderr].join("\n"));
+    if (loadFailures.length > 0) {
+      outStream.write(formatSuiteLoadFailureReport(loadFailures) + "\n");
+      if (exitCode === 0) {
+        exitCode = 1;
+      }
+    }
+
     return {
       exitCode,
       stats,
       rawOutput: [rawStdout, rawStderr].join("\n"),
       coverageResult,
       durationMs: totalDurationMs,
+      loadFailures,
     };
   } finally {
     ticker.stop();
