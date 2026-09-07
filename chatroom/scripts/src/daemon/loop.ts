@@ -27,7 +27,8 @@ import { resolvePolicy, type ChatroomPolicy } from "../policy/index.ts";
 import {
   claimHealthRecord,
   computeDaemonState,
-  readHealthRecord,
+  stampStoppedIfOwned,
+  syncDaemonHealth,
   writeHealthRecord,
   type DaemonHealthRecord,
 } from "./health.ts";
@@ -334,17 +335,11 @@ export async function runDaemonLoop(options: DaemonLoopOptions): Promise<void> {
   const stepOptions: DaemonLoopOptions = { ...options, watcher };
 
   const syncHealth = (source?: WakeSource): void => {
-    const existing = readHealthRecord(healthPath);
-    if (!existing) return;
-    const now = new Date().toISOString();
-    const metrics = watcher.getMetrics();
-    writeHealthRecord(healthPath, {
-      ...existing,
-      watch_active: metrics.watch_active,
-      watch_failures: metrics.watch_failures,
-      poll_interval_ms: metrics.poll_interval_ms,
-      updated_at: now,
-      ...(source !== undefined ? { last_wake_at: now, last_wake_source: source } : {}),
+    syncDaemonHealth({
+      healthPath,
+      nowIso: new Date().toISOString(),
+      metrics: watcher.getMetrics(),
+      ...(source !== undefined ? { source } : {}),
     });
   };
 
@@ -383,15 +378,7 @@ export async function runDaemonLoop(options: DaemonLoopOptions): Promise<void> {
     process.removeListener("SIGTERM", onShutdown);
     process.removeListener("SIGINT", onShutdown);
     watcher.stop();
-    const finalHealth = readHealthRecord(healthPath);
-    if (finalHealth) {
-      writeHealthRecord(healthPath, {
-        ...finalHealth,
-        watch_active: false,
-        state: "STOPPED",
-        updated_at: new Date().toISOString(),
-      });
-    }
+    stampStoppedIfOwned(healthPath, process.pid, new Date().toISOString());
     releaseDaemonLock(room, reader, lockRes.lockFd);
   }
 }

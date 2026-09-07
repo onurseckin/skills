@@ -1,1 +1,1 @@
-export const daemonTestsSuite = ["health", "watcher"] as const;
+export const daemonTestsSuite = ["health", "loop-health-persistence", "watcher"] as const;
