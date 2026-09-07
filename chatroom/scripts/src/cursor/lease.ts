@@ -253,10 +253,20 @@ export function leaseNext(
 
   activeHeld.sort((a, b) => a.from - b.from);
 
+  const ackedSet = new Set<number>(cursor.acked_above);
   let startSeq = cursor.contiguous_seq + 1;
-  for (const h of activeHeld) {
-    if (startSeq >= h.from && startSeq <= h.to) {
-      startSeq = h.to + 1;
+  let advanced = true;
+  while (advanced) {
+    advanced = false;
+    for (const h of activeHeld) {
+      if (startSeq >= h.from && startSeq <= h.to) {
+        startSeq = h.to + 1;
+        advanced = true;
+      }
+    }
+    while (ackedSet.has(startSeq)) {
+      startSeq++;
+      advanced = true;
     }
   }
 
@@ -264,6 +274,15 @@ export function leaseNext(
   for (const h of activeHeld) {
     if (h.from > startSeq) {
       const gap = h.from - startSeq;
+      if (gap < nextLimit) {
+        nextLimit = gap;
+      }
+      break;
+    }
+  }
+  for (const ackSeq of cursor.acked_above) {
+    if (ackSeq > startSeq) {
+      const gap = ackSeq - startSeq;
       if (gap < nextLimit) {
         nextLimit = gap;
       }
@@ -286,10 +305,9 @@ export function leaseNext(
         last_ack_kind: cursor.last_ack_kind,
         updated_at: now,
       };
-      const checksum = computeCursorChecksum(unsigned);
       const updatedCursor: ReaderCursor = {
         ...unsigned,
-        checksum,
+        checksum: computeCursorChecksum(unsigned),
       };
       assertCursorInvariants(updatedCursor);
       return {
@@ -350,10 +368,9 @@ export function leaseNext(
     updated_at: now,
   };
 
-  const checksum = computeCursorChecksum(unsigned);
   const nextCursor: ReaderCursor = {
     ...unsigned,
-    checksum,
+    checksum: computeCursorChecksum(unsigned),
   };
 
   assertCursorInvariants(nextCursor);
