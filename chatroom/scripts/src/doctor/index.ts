@@ -1,4 +1,4 @@
-export { inspectAllRooms, inspectRoom } from "./inspect.ts";
+export { formatProvisioningDrift, inspectAllRooms, inspectRoom } from "./inspect.ts";
 export { repairAllRooms, repairRoom } from "./repair.ts";
 
 export type {

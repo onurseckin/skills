@@ -16,6 +16,7 @@ import type {
   DoctorInspectOptions,
   DoctorInspectionResult,
   LeaseInfo,
+  ProvisionReport,
   ReaderHealthReport,
   RoomHealthReport,
 } from "./types.ts";
@@ -31,6 +32,18 @@ export type {
   ReaderHealthReport,
   RoomHealthReport,
 } from "./types.ts";
+
+export function formatProvisioningDrift(
+  provisioning: readonly ProvisionReport[],
+): readonly string[] {
+  return provisioning
+    .filter((p) => p.drift_detected)
+    .map((p) => {
+      const subject =
+        p.member.length > 0 ? (p.host.length > 0 ? `${p.member}@${p.host}` : p.member) : p.path;
+      return `${subject} (${p.issues.join("; ")})`;
+    });
+}
 
 const MAX_SPOOL_BYTES = 33554432;
 const MAX_SPOOL_LINES = 20000;
@@ -241,8 +254,9 @@ export function inspectRoom(room: string, options: DoctorInspectOptions = {}): R
   if (orphanCursors.length > 0) issues.push(`Orphan cursors: ${orphanCursors.join(", ")}`);
   const orphanMembers = members.filter((m) => !readers.some((r) => r.reader === m));
   const provisioning = inspectProvisioning(roomDir, readers);
-  const provisioningDrift = provisioning.some((p) => p.drift_detected);
-  if (provisioningDrift) issues.push("Provisioning drift detected");
+  const driftedProvisions = formatProvisioningDrift(provisioning);
+  const provisioningDrift = driftedProvisions.length > 0;
+  if (provisioningDrift) issues.push(`Provisioning drift: ${driftedProvisions.join(", ")}`);
   for (const r of readers) {
     if (r.expired_leases.length > 0)
       issues.push(`Reader ${r.reader} has ${r.expired_leases.length} expired lease(s)`);
