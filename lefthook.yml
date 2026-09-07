@@ -4,6 +4,12 @@
 # staged-only typecheck would be unsound. Lint and format checks run against
 # the staged set only, so a commit is never blocked by unrelated files that a
 # concurrent workstream left dirty.
+# Purity runs twice at pre-commit because the two gates answer different
+# questions: test:purity:staged demands zero violations in the files being
+# committed, while the purity ratchet compares the whole repository against a
+# committed per-file baseline so an already-committed violation that is never
+# staged again can still never grow. Only added and worsened findings block;
+# removals land in a resolved bucket and can never fail the gate.
 # Commit-msg rejects any AI/tool attribution trailer or generated-with banner.
 # Pre-push runs skill synchronization, whole-tree typecheck, and unit tests.
 # Zero-tolerance: Pass or error only, zero warnings allowed, fail-fast quality gates.
@@ -23,6 +29,8 @@ pre-commit:
       run: bun run modularity:staged
     purity:
       run: bun run test:purity:staged
+    purity-ratchet:
+      run: bun scripts/testing/purity-ratchet/purity-ratchet-cli.ts --mode ratchet
     test:
       run: bun run test:changed
 
