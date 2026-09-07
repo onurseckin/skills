@@ -29,7 +29,6 @@ export const daemonCommand: CommandHandler = async (
   assertFlags(flags, [
     "room",
     "as",
-    "reader",
     "start",
     "stop",
     "status",
@@ -46,7 +45,6 @@ export const daemonCommand: CommandHandler = async (
   assertValidRoomId(roomFlag);
 
   const asFlag = textFlag(flags, "as", false);
-  const readerFlag = textFlag(flags, "reader", false);
   const startFlag = boolFlag(flags, "start");
   const stopFlag = boolFlag(flags, "stop");
   const statusFlag = boolFlag(flags, "status");
@@ -64,8 +62,8 @@ export const daemonCommand: CommandHandler = async (
     );
   }
 
-  const identity = resolveIdentity({ as: asFlag ?? readerFlag, cwd: process.cwd() });
-  const readerId = readerFlag !== undefined ? readerFlag : identity.id;
+  const identity = resolveIdentity({ as: asFlag, cwd: process.cwd() });
+  const readerId = identity.id;
 
   assertMember(roomFlag, identity);
 

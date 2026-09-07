@@ -2,7 +2,7 @@ import { afterAll, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { dirname } from "node:path";
 import * as coreModule from "../../src/core/index.ts";
 import { ChatError, readerLockPath } from "../../src/core/index.ts";
-import { withReaderLock } from "../../src/cursor/store.ts";
+import { loadCursor, withReaderLock } from "../../src/cursor/index.ts";
 import { ChatVirtualFS } from "../../src/testing/virtual-fs/index.ts";
 
 describe("Reader lock room isolation and store hardening", () => {
@@ -117,5 +117,32 @@ describe("Reader lock room isolation and store hardening", () => {
     expect(observedInVfs).toBe(true);
     expect(capturedLockPath).toBe("/custom/path.lock");
     expect(vfs.existsSync("/custom/path.lock")).toBe(false);
+  });
+
+  it("throws ChatError with INVALID_STATE when loading cursor from unparseable path without options", () => {
+    let caughtError: unknown;
+    try {
+      loadCursor("unparseable-path.json");
+    } catch (error: unknown) {
+      caughtError = error;
+    }
+
+    expect(caughtError instanceof ChatError).toBe(true);
+    expect((caughtError as ChatError).code).toBe("INVALID_STATE");
+    expect((caughtError as ChatError).message).toContain(
+      "Cannot resolve room and reader from cursor path 'unparseable-path.json' without explicit options",
+    );
+  });
+
+  it("resolves cleanly when explicit options or canonical path are provided", () => {
+    const fromExplicit = loadCursor("unparseable-path.json", { room: "r", reader: "a" });
+    expect(fromExplicit.cursor.room).toBe("r");
+    expect(fromExplicit.cursor.reader).toBe("a");
+    expect(fromExplicit.cursor.contiguous_seq).toBe(0);
+
+    const fromCanonical = loadCursor("rooms/alpha/readers/agent-1.cursor.json");
+    expect(fromCanonical.cursor.room).toBe("alpha");
+    expect(fromCanonical.cursor.reader).toBe("agent-1");
+    expect(fromCanonical.cursor.contiguous_seq).toBe(0);
   });
 });

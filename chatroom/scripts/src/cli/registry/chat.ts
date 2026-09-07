@@ -183,8 +183,6 @@ export const watchSpec: CommandSpec = {
   flags: [
     requiredFlag("room", "string", "room id"),
     optionalFlag("as", "string", "member identity"),
-    optionalFlag("reader", "string", "consumer-group id"),
-    optionalFlag("ack-mode", "string", "explicit (default) or flushed"),
     optionalFlag("timeout", "int", "ms; 0 = forever (default 0)"),
     optionalFlag("json", "bool", "machine output"),
   ],
@@ -203,7 +201,6 @@ export const daemonSpec: CommandSpec = {
   flags: [
     requiredFlag("room", "string", "room id"),
     optionalFlag("as", "string", "member identity"),
-    optionalFlag("reader", "string", "consumer-group id"),
     optionalFlag("start", "bool", "idempotent start (or report already_running)"),
     optionalFlag("stop", "bool", "graceful stop; releases the lock; writes state: STOPPED"),
     optionalFlag("status", "bool", "print the health record and computed state"),
@@ -232,7 +229,6 @@ export const doctorSpec: CommandSpec = {
   flags: [
     optionalFlag("room", "string", "omit to check every room the user is a member of"),
     optionalFlag("as", "string", "member identity"),
-    optionalFlag("reader", "string", "consumer-group id"),
     optionalFlag(
       "fix",
       "bool",

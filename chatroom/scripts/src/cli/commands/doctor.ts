@@ -5,11 +5,12 @@ import {
   type RoomHealthReport,
   type RoomRepairReport,
 } from "../../doctor/index.ts";
+import { assertFlags, type Flags } from "./shared/index.ts";
+import { resolveIdentity } from "../../identity/index.ts";
 
 export interface DoctorCommandFlags {
   readonly room?: string;
   readonly as?: string;
-  readonly reader?: string;
   readonly fix?: boolean;
   readonly json?: boolean;
   readonly [key: string]: unknown;
@@ -119,10 +120,14 @@ export async function doctorCommand(
   _context?: unknown,
   _remainder?: readonly string[],
 ): Promise<DoctorCommandResult> {
+  assertFlags(flags as Flags, ["room", "as", "fix", "json", "isProcessAlive", "now", "baseDir"]);
+
   const room = readStringFlag(flags, "room");
   const as = readStringFlag(flags, "as");
-  const reader = readStringFlag(flags, "reader");
   const fix = readBoolFlag(flags, "fix");
+
+  const identity = as !== undefined ? resolveIdentity({ as, cwd: process.cwd() }) : undefined;
+  const readerId = identity?.id;
 
   const isProcessAlive =
     typeof flags["isProcessAlive"] === "function"
@@ -134,7 +139,7 @@ export async function doctorCommand(
   const opts = {
     ...(room !== undefined ? { room } : {}),
     ...(as !== undefined ? { as } : {}),
-    ...(reader !== undefined ? { reader } : {}),
+    ...(readerId !== undefined ? { reader: readerId } : {}),
     ...(isProcessAlive !== undefined ? { isProcessAlive } : {}),
     ...(now !== undefined ? { now } : {}),
     ...(baseDir !== undefined ? { baseDir } : {}),

@@ -36,8 +36,14 @@ function resolveRoomAndReader(
     };
   }
   const readerMatch = cursorPath.match(/([^/]+)\.cursor\.json$/);
-  const reader = options?.reader ?? (readerMatch && readerMatch[1] ? readerMatch[1] : "default");
-  const room = options?.room ?? "default";
+  const reader = options?.reader ?? (readerMatch && readerMatch[1] ? readerMatch[1] : undefined);
+  const room = options?.room ?? undefined;
+  if (!room || !reader) {
+    throw new ChatError(
+      "INVALID_STATE",
+      `Cannot resolve room and reader from cursor path '${cursorPath}' without explicit options`,
+    );
+  }
   return { room, reader };
 }
 
