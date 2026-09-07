@@ -1,5 +1,4 @@
 import { describe, expect, it } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   assertAcyclicPushbackDelegation,

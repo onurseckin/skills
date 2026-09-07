@@ -177,5 +177,3 @@ describe("Multi-Domain Dispatch: SchedulerEngine Instance Methods", () => {
     expect(batch.scopeIsolated).toBeTrue();
   });
 });
-
-

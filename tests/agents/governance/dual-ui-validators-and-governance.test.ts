@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
+
+const mockFs = await import("node:fs");
 import {
   parseUnifiedAgentManifest,
   validateUnifiedAgentManifest,
@@ -17,7 +18,7 @@ const fileCache = new Map<string, string>();
 function getFileContent(filePath: string): string {
   let content = fileCache.get(filePath);
   if (content === undefined) {
-    content = readFileSync(filePath, "utf-8");
+    content = mockFs.readFileSync(filePath, "utf-8");
     fileCache.set(filePath, content);
   }
   return content;
@@ -112,12 +113,8 @@ describe("Dual UI Validators & Governance Manifests", () => {
     });
 
     it("verifies book chapters 03, 04, 05, and 08 contain updated governance invariants", () => {
-      const ch3 = getFileContent(
-        join(BOOK_DIR, "03-tier-0-governance-and-autonomous-mind.md"),
-      );
-      const ch4 = getFileContent(
-        join(BOOK_DIR, "04-toolchain-discovery-and-policy-engine.md"),
-      );
+      const ch3 = getFileContent(join(BOOK_DIR, "03-tier-0-governance-and-autonomous-mind.md"));
+      const ch4 = getFileContent(join(BOOK_DIR, "04-toolchain-discovery-and-policy-engine.md"));
       const ch5 = getFileContent(join(BOOK_DIR, "05-mandatory-companion-auditors.md"));
       const ch8 = getFileContent(join(BOOK_DIR, "08-verification-and-socratic-gating.md"));
 

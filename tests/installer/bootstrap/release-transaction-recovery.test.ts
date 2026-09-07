@@ -1,6 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { cp, mkdir, rename, writeFile } from "node:fs/promises";
-import { mkdirSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { canonicalJsonBytes } from "../../../olt/scripts/src/core/json.ts";
@@ -17,13 +15,20 @@ import { treeDigest } from "../../../olt/scripts/src/installer/tree-digest.ts";
 import { validateSkillSource } from "../../../olt/scripts/src/installer/source-validation.ts";
 import { markerPath } from "../../../olt/scripts/src/installer/transaction-marker.ts";
 import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
-import { cleanInstallerFixtures, installerFixture, setupVirtualInstallerFS } from "../helpers.ts";
+import {
+  cleanInstallerFixtures,
+  copyDirRecursive,
+  getVirtualInstallerFS,
+  handleRenameSync,
+  installerFixture,
+  setupVirtualInstallerFS,
+} from "../helpers.ts";
 
 beforeEach(setupVirtualInstallerFS);
 afterEach(cleanInstallerFixtures);
 
 async function makeRelease(sourceRoot: string, dir: string): Promise<string> {
-  await cp(sourceRoot, dir, { recursive: true });
+  copyDirRecursive(sourceRoot, dir);
   const validated = await validateSkillSource(sourceRoot);
   const digest = await treeDigest(dir, new Set(["installation.json"]));
   const sealed = sealInstallationManifest({
@@ -35,7 +40,7 @@ async function makeRelease(sourceRoot: string, dir: string): Promise<string> {
     installed_at: "2026-01-01T00:00:00.000Z",
     clients: [],
   });
-  await writeFile(join(dir, "installation.json"), canonicalJsonBytes(sealed));
+  getVirtualInstallerFS().writeFileSync(join(dir, "installation.json"), canonicalJsonBytes(sealed));
   return digest;
 }
 
@@ -43,7 +48,7 @@ describe("recoverReleaseTransaction", () => {
   test("is a no-op when no marker is present, acquiring and releasing its own lock", async () => {
     const root = scratchRoot(import.meta.path, "no-marker");
     const parent = join(root, "parent");
-    mkdirSync(parent);
+    getVirtualInstallerFS().mkdirSync(parent);
     await expect(recoverReleaseTransaction(parent, join(parent, "dest"))).resolves.toBeUndefined();
     const lock = acquireInstallerLock(parent);
     lock.release();
@@ -52,7 +57,7 @@ describe("recoverReleaseTransaction", () => {
   test("reuses a caller-held lock instead of acquiring or releasing its own", async () => {
     const root = scratchRoot(import.meta.path, "held-lock");
     const parent = join(root, "parent");
-    mkdirSync(parent);
+    getVirtualInstallerFS().mkdirSync(parent);
     const lock = acquireInstallerLock(parent);
     try {
       await expect(
@@ -67,8 +72,8 @@ describe("recoverReleaseTransaction", () => {
   test("throws when the marker path exists but is not a regular file", async () => {
     const root = scratchRoot(import.meta.path, "marker-not-file");
     const parent = join(root, "parent");
-    mkdirSync(parent);
-    mkdirSync(markerPath(parent));
+    getVirtualInstallerFS().mkdirSync(parent);
+    getVirtualInstallerFS().mkdirSync(markerPath(parent));
     await expect(recoverReleaseTransaction(parent, join(parent, "dest"))).rejects.toBeInstanceOf(
       HarnessError,
     );
@@ -78,8 +83,8 @@ describe("recoverReleaseTransaction", () => {
     const root = scratchRoot(import.meta.path, "marker-wrong-owner");
     const parent = join(root, "parent");
     const otherParent = join(root, "other-parent");
-    mkdirSync(parent);
-    mkdirSync(otherParent);
+    getVirtualInstallerFS().mkdirSync(parent);
+    getVirtualInstallerFS().mkdirSync(otherParent);
     const otherLock = acquireInstallerLock(otherParent);
     const destination = join(parent, "dest");
     try {
@@ -94,7 +99,7 @@ describe("recoverReleaseTransaction", () => {
         otherLock,
       );
       void transaction;
-      await rename(markerPath(otherParent), markerPath(parent));
+      handleRenameSync(markerPath(otherParent), markerPath(parent));
 
       await expect(recoverReleaseTransaction(parent, destination)).rejects.toThrow(
         /belongs to another parent inode/,
@@ -108,7 +113,7 @@ describe("recoverReleaseTransaction", () => {
     const { source } = await installerFixture();
     const root = scratchRoot(import.meta.path, "recovers-real");
     const parent = join(root, "parent");
-    mkdirSync(parent);
+    getVirtualInstallerFS().mkdirSync(parent);
     const destination = join(parent, "dest");
     const temporary = join(parent, `dest.tmp-${randomUUID()}`);
     const digest = await makeRelease(source, temporary);

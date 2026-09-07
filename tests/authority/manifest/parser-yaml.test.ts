@@ -1,9 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { parseYaml } from "../../../olt/scripts/src/authority/manifest/index.ts";
-import {
-  cleanupVirtualAuthorityFS,
-  setupVirtualAuthorityFS,
-} from "../fixture.ts";
+import { cleanupVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
 
 describe("Authority Manifest Parser - Advanced YAML Structures", () => {
   beforeEach(() => {
@@ -82,4 +79,3 @@ empty_list: []
     expect(parsed.empty_list).toEqual([]);
   });
 });
-

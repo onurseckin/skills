@@ -15,27 +15,35 @@ import {
   disableInMemoryAgentMetadata,
   enableInMemoryAgentMetadata,
 } from "../../../../olt/scripts/src/runtime/session.ts";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as completeRunModule from "../../../../olt/scripts/src/workflow/completion/index.ts";
 import * as autoSyncModule from "../../../../olt/scripts/src/workflow/completion/index.ts";
 import * as summaryModule from "../../../../olt/scripts/src/summary/formatters/index.ts";
 import * as archivalModule from "../../../../olt/scripts/src/mind/archival/index.ts";
 import type { WorkflowState } from "../../../../olt/scripts/src/workflow/types.ts";
+import {
+  cleanupVirtualCliFS,
+  setupVirtualCliFS,
+} from "../../commands/fixtures/full-lifecycle-fixture.ts";
+import { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
+
+let vfs: VirtualMemoryFS;
 
 beforeEach(() => {
+  vfs = setupVirtualCliFS();
   enableInMemoryAgentMetadata();
 });
 
 afterEach(() => {
   disableInMemoryAgentMetadata();
+  cleanupVirtualCliFS();
 });
 
 async function initializeRun(label: string): Promise<{ repo: string; runRoot: string }> {
-  const repo = mkdtempSync(join(tmpdir(), `run-ops-basic-${label}-`));
+  const repo = `/virtual/run-ops-basic-${label}`;
+  vfs.mkdirSync(repo, { recursive: true });
   const promptPath = join(repo, "prompt.txt");
-  writeFileSync(promptPath, "runner metadata authority test", "utf-8");
+  vfs.writeFileSync(promptPath, "runner metadata authority test", "utf-8");
   const initialized = await execute([
     "plan:init",
     "--repo",
@@ -141,7 +149,6 @@ describe("runCompleteCommand", () => {
     autoSyncSpy.mockRestore();
     summarySpy.mockRestore();
     pruneSpy.mockRestore();
-    rmSync(repo, { recursive: true, force: true });
   });
 });
 

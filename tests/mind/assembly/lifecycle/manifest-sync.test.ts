@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import * as fs from "node:fs";
 import * as path from "node:path";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -15,12 +14,14 @@ import {
   cleanupVirtualMindFS,
   scratchRoot,
 } from "../../fixtures/mind-fixture.ts";
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Mind Assembly Lifecycle Manifest Sync Suite", () => {
   let testDir: string;
+  let vfs: VirtualMemoryFS;
 
   beforeEach(() => {
-    setupVirtualMindFS();
+    vfs = setupVirtualMindFS();
     testDir = scratchRoot("manifest-sync");
   });
 
@@ -144,8 +145,8 @@ describe("Mind Assembly Lifecycle Manifest Sync Suite", () => {
       expect(syncResult.updatedManifest.orchestrator_id).toBe("orch-sync-1");
       expect(syncResult.updatedManifest.orchestrator_binding_sha256).toBeDefined();
 
-      expect(fs.existsSync(manifestPath)).toBe(true);
-      const savedRaw = fs.readFileSync(manifestPath, "utf8");
+      expect(vfs.existsSync(manifestPath)).toBe(true);
+      const savedRaw = vfs.readFileSync(manifestPath, "utf8");
       const saved = JSON.parse(savedRaw);
       expect(saved.run_id).toBe("run-sync-100");
     });
@@ -189,14 +190,12 @@ describe("Mind Assembly Lifecycle Manifest Sync Suite", () => {
       const manifestPath = path.join(testDir, "manifest.json");
       const record = makeRecord();
 
-      // Corrupted JSON content
-      fs.writeFileSync(manifestPath, "{ invalid json root", "utf8");
+      vfs.writeFileSync(manifestPath, "{ invalid json root", "utf8");
       expect(() => validateCapsuleManifestBinding(record, { manifestPath, assert: true })).toThrow(
         HarnessError,
       );
 
-      // Orchestrator ID mismatch
-      fs.writeFileSync(
+      vfs.writeFileSync(
         manifestPath,
         JSON.stringify({ orchestrator_id: "mismatched-orch" }),
         "utf8",
@@ -205,8 +204,7 @@ describe("Mind Assembly Lifecycle Manifest Sync Suite", () => {
         HarnessError,
       );
 
-      // Run ID mismatch
-      fs.writeFileSync(
+      vfs.writeFileSync(
         manifestPath,
         JSON.stringify({ orchestrator_id: record.orchestrator_id, run_id: "mismatched-run" }),
         "utf8",

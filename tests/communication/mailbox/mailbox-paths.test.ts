@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
   ensureMailboxDirectories,
@@ -15,7 +14,7 @@ import {
 } from "../../../olt/scripts/src/communication/mailbox/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import type { MailboxPaths } from "../../../olt/scripts/src/communication/types.ts";
-import { cleanupVirtualCommunicationFS, setupVirtualCommunicationFS } from "../helpers.ts";
+import { cleanupVirtualCommunicationFS, setupVirtualCommunicationFS, vfs } from "../helpers.ts";
 
 describe("Mailbox Paths & Directory Provisioning Engine", () => {
   let tempDir: string;
@@ -23,7 +22,7 @@ describe("Mailbox Paths & Directory Provisioning Engine", () => {
   beforeEach(() => {
     setupVirtualCommunicationFS();
     tempDir = "/tmp/mock-communication/mailbox-paths";
-    mkdirSync(tempDir, { recursive: true });
+    vfs.mkdirSync(tempDir, { recursive: true });
   });
 
   afterEach(() => {
@@ -106,15 +105,14 @@ describe("Mailbox Paths & Directory Provisioning Engine", () => {
   describe("ensureMailboxDirectories", () => {
     it("creates agent mailbox and lock directories if they do not exist", () => {
       const paths = resolveMailboxPaths("provision-test", tempDir);
-      expect(existsSync(paths.agentMailboxDir)).toBe(false);
-      expect(existsSync(join(tempDir, ".olt", "locks", "mailboxes"))).toBe(false);
+      expect(vfs.existsSync(paths.agentMailboxDir)).toBe(false);
+      expect(vfs.existsSync(join(tempDir, ".olt", "locks", "mailboxes"))).toBe(false);
 
       ensureMailboxDirectories(paths);
 
-      expect(existsSync(paths.agentMailboxDir)).toBe(true);
-      expect(existsSync(join(tempDir, ".olt", "locks", "mailboxes"))).toBe(true);
+      expect(vfs.existsSync(paths.agentMailboxDir)).toBe(true);
+      expect(vfs.existsSync(join(tempDir, ".olt", "locks", "mailboxes"))).toBe(true);
 
-      // Re-running when directories exist is a safe no-op
       expect(() => ensureMailboxDirectories(paths)).not.toThrow();
     });
 
@@ -151,7 +149,7 @@ describe("Mailbox Paths & Directory Provisioning Engine", () => {
 
     it("throws INTEGRITY when directory creation fails due to filesystem collision", () => {
       const blockerPath = join(tempDir, "blocker-file");
-      writeFileSync(blockerPath, "collision", "utf8");
+      vfs.writeFileSync(blockerPath, "collision", "utf8");
       const badPaths: MailboxPaths = {
         agentMailboxDir: join(blockerPath, "sub", "agent"),
         lockPath: join(tempDir, "safe", "lock.lock"),
@@ -226,7 +224,7 @@ describe("Mailbox Paths & Directory Provisioning Engine", () => {
 
     it("throws INTEGRITY when lock directory creation collides with an existing file", () => {
       const lockBlocker = join(tempDir, "lock-blocker-file");
-      writeFileSync(lockBlocker, "blocking", "utf8");
+      vfs.writeFileSync(lockBlocker, "blocking", "utf8");
       const badPaths: MailboxPaths = {
         agentMailboxDir: join(tempDir, "ok-agent-dir"),
         lockPath: join(lockBlocker, "nested", "agent.lock"),

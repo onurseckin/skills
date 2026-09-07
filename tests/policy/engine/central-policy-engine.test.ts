@@ -1,10 +1,6 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import { join } from "node:path";
-import {
-  cleanupVirtualPolicyFS,
-  getVirtualPolicyFS,
-  setupVirtualPolicyFS,
-} from "../fixture.ts";
+import { cleanupVirtualPolicyFS, getVirtualPolicyFS, setupVirtualPolicyFS } from "../fixture.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   CURRENT_POLICY_SCHEMA_VERSION,

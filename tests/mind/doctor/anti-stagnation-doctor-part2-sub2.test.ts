@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import * as fs from "node:fs";
+import { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import { join } from "node:path";
 import {
   MIND_CHARTER_INVARIANTS,
@@ -79,7 +79,7 @@ describe("Anti-Stagnation Doctor & Mind Charter Invariant Engine", () => {
             agreedResolution: "Achieve 20% gain",
             targetMilestone: "M2",
             status: "breached",
-            justification: "", // Missing justification
+            justification: "",
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           },
@@ -143,7 +143,7 @@ describe("Anti-Stagnation Doctor & Mind Charter Invariant Engine", () => {
                 id: "arb-bad-1",
                 topic: "Indirection Layer",
                 winningApproach: "Deep Factory Wrappers",
-                chosenPriorityLevel: 4, // Forbidden Priority 4
+                chosenPriorityLevel: 4,
                 rationale: "Hypothetical future extensibility",
               },
             ],
@@ -165,7 +165,7 @@ describe("Anti-Stagnation Doctor & Mind Charter Invariant Engine", () => {
           mind: { generation: 1 },
           socratic: {
             consecutiveImpasseCycles: 4,
-            requiresCrucible: false, // Crucible omitted despite deadlock
+            requiresCrucible: false,
           },
         },
       };
@@ -247,7 +247,7 @@ describe("Anti-Stagnation Doctor & Mind Charter Invariant Engine", () => {
           status: "SUPERSEDED",
           supersededBy: "A",
           timestamp: new Date().toISOString(),
-        }, // Cycle A -> B -> C -> A
+        },
       ]);
 
       const options: AntiStagnationDoctorOptions = {

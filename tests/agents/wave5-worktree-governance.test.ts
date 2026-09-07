@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, test } from "bun:test";
-import * as fs from "node:fs";
 import * as path from "node:path";
 import {
   ALL_31_AGENT_ARCHETYPES,
@@ -76,9 +75,9 @@ describe("Wave 5: High-Density Ephemeral Worktree Governance", () => {
     it("symlinks shared dependency cache from repo root with footprint reduction", async () => {
       const fakeRepoRoot = path.join(SCRATCH_TEST_DIR, "repo");
       const fakeWorktree = path.join(SCRATCH_TEST_DIR, "worktree-1");
-      fs.mkdirSync(fakeRepoRoot, { recursive: true });
-      fs.mkdirSync(path.join(fakeRepoRoot, "node_modules"), { recursive: true });
-      fs.writeFileSync(path.join(fakeRepoRoot, "bun.lock"), "lock-data", "utf-8");
+      vfs.mkdirSync(fakeRepoRoot, { recursive: true });
+      vfs.mkdirSync(path.join(fakeRepoRoot, "node_modules"), { recursive: true });
+      vfs.writeFileSync(path.join(fakeRepoRoot, "bun.lock"), "lock-data", "utf-8");
 
       const result = await symlinkDependencyCache(fakeRepoRoot, fakeWorktree, [
         "node_modules",
@@ -88,14 +87,13 @@ describe("Wave 5: High-Density Ephemeral Worktree Governance", () => {
       expect(result.symlinked).toContain("bun.lock");
       expect(result.savedBytesEstimate).toBeGreaterThan(0);
 
-      // Verify symlinks exist in worktree
-      expect(fs.existsSync(path.join(fakeWorktree, "node_modules"))).toBe(true);
-      expect(fs.existsSync(path.join(fakeWorktree, "bun.lock"))).toBe(true);
+      expect(vfs.existsSync(path.join(fakeWorktree, "node_modules"))).toBe(true);
+      expect(vfs.existsSync(path.join(fakeWorktree, "bun.lock"))).toBe(true);
     });
 
     it("manages strict 15-minute lease lifecycles, renewals, and expiration", async () => {
       const fakeRepoRoot = path.join(SCRATCH_TEST_DIR, "repo-lease");
-      fs.mkdirSync(fakeRepoRoot, { recursive: true });
+      vfs.mkdirSync(fakeRepoRoot, { recursive: true });
 
       const lease = await createWorktreeLease(fakeRepoRoot, {
         branch: "feature/wave5",
@@ -110,17 +108,14 @@ describe("Wave 5: High-Density Ephemeral Worktree Governance", () => {
       expect(isLeaseExpired(lease, lease.createdAt + 1000)).toBe(false);
       expect(isLeaseExpired(lease, lease.createdAt + DEFAULT_LEASE_DURATION_MS + 5000)).toBe(true);
 
-      // Renew heartbeat
       const renewal = await renewWorktreeHeartbeat(fakeRepoRoot, lease.worktreeId, 600);
       expect(renewal.success).toBe(true);
       expect(renewal.newExpiry).toBeGreaterThan(lease.createdAt);
 
-      // Retrieve lease
       const retrieved = await getWorktreeLease(fakeRepoRoot, lease.worktreeId);
       expect(retrieved).not.toBeNull();
       expect(retrieved?.worktreeId).toBe(lease.worktreeId);
 
-      // Release lease
       const released = await releaseWorktreeLease(fakeRepoRoot, lease.worktreeId);
       expect(released).toBe(true);
 
@@ -130,21 +125,18 @@ describe("Wave 5: High-Density Ephemeral Worktree Governance", () => {
 
     it("automatically reclaims orphaned worktrees and creates scratch backups", async () => {
       const fakeRepoRoot = path.join(SCRATCH_TEST_DIR, "repo-reclaim");
-      fs.mkdirSync(fakeRepoRoot, { recursive: true });
+      vfs.mkdirSync(fakeRepoRoot, { recursive: true });
 
-      // Create an expired lease
       const lease = await createWorktreeLease(fakeRepoRoot, {
         branch: "bugfix/stale",
         agentId: "implementer-stale",
         role: "primary-implementer",
         taskId: "task-stale",
-        customDurationMs: 1000, // 1 second duration
+        customDurationMs: 1000,
       });
 
-      // Write some uncommitted scratch code in the worktree
-      fs.writeFileSync(path.join(lease.worktreePath, "scratch.ts"), "const x = 42;", "utf-8");
+      vfs.writeFileSync(path.join(lease.worktreePath, "scratch.ts"), "const x = 42;", "utf-8");
 
-      // Reclaim with a timestamp beyond expiration
       const reclaimReport = await reclaimOrphanedWorktrees(fakeRepoRoot, {
         now: lease.createdAt + 5000,
       });
@@ -153,18 +145,16 @@ describe("Wave 5: High-Density Ephemeral Worktree Governance", () => {
       expect(reclaimReport.backedUpCount).toBe(1);
       expect(reclaimReport.reclaimedWorktreeIds).toContain(lease.worktreeId);
 
-      // Worktree directory should be deleted from worktrees
-      expect(fs.existsSync(lease.worktreePath)).toBe(false);
+      expect(vfs.existsSync(lease.worktreePath)).toBe(false);
 
-      // Backup should exist in scratch backups
       expect(reclaimReport.backupPaths.length).toBe(1);
-      expect(fs.existsSync(reclaimReport.backupPaths[0])).toBe(true);
-      expect(fs.existsSync(path.join(reclaimReport.backupPaths[0], "scratch.ts"))).toBe(true);
+      expect(vfs.existsSync(reclaimReport.backupPaths[0])).toBe(true);
+      expect(vfs.existsSync(path.join(reclaimReport.backupPaths[0], "scratch.ts"))).toBe(true);
     });
 
     it("performs automated non-destructive rebase sync before fast-forward merges", async () => {
       const fakeRepoRoot = path.join(SCRATCH_TEST_DIR, "repo-ff");
-      fs.mkdirSync(fakeRepoRoot, { recursive: true });
+      vfs.mkdirSync(fakeRepoRoot, { recursive: true });
 
       const lease = await createWorktreeLease(fakeRepoRoot, {
         branch: "feature/clean-sync",
@@ -182,9 +172,8 @@ describe("Wave 5: High-Density Ephemeral Worktree Governance", () => {
 
     it("creates and cleans up epistemic workspace shards (read-only forensic & remediation)", async () => {
       const fakeRepoRoot = path.join(SCRATCH_TEST_DIR, "repo-shards");
-      fs.mkdirSync(fakeRepoRoot, { recursive: true });
+      vfs.mkdirSync(fakeRepoRoot, { recursive: true });
 
-      // Forensic Read-Only Shard
       const forensic = await createEpistemicShard(fakeRepoRoot, {
         shardType: "forensic-readonly",
         agentId: "investigator-1",
@@ -192,9 +181,8 @@ describe("Wave 5: High-Density Ephemeral Worktree Governance", () => {
       });
       expect(forensic.isReadOnly).toBe(true);
       expect(forensic.lease.shardType).toBe("read-only-forensic");
-      expect(fs.existsSync(forensic.shardPath)).toBe(true);
+      expect(vfs.existsSync(forensic.shardPath)).toBe(true);
 
-      // Remediation Shard
       const remediation = await createEpistemicShard(fakeRepoRoot, {
         shardType: "remediation-isolated",
         agentId: "implementer-1",
@@ -203,14 +191,13 @@ describe("Wave 5: High-Density Ephemeral Worktree Governance", () => {
       expect(remediation.isReadOnly).toBe(false);
       expect(remediation.lease.shardType).toBe("remediation");
 
-      // Clean up shards
       await cleanupEpistemicShard(fakeRepoRoot, forensic.shardPath);
-      expect(fs.existsSync(forensic.shardPath)).toBe(false);
+      expect(vfs.existsSync(forensic.shardPath)).toBe(false);
     });
 
     it("safely handles non-existent worktree lease renewal and retrieval", async () => {
       const fakeRepoRoot = path.join(SCRATCH_TEST_DIR, "repo-nonexistent-lease");
-      fs.mkdirSync(fakeRepoRoot, { recursive: true });
+      vfs.mkdirSync(fakeRepoRoot, { recursive: true });
 
       const renewal = await renewWorktreeHeartbeat(fakeRepoRoot, "bogus-worktree-999", 600);
       expect(renewal.success).toBe(false);
@@ -222,7 +209,7 @@ describe("Wave 5: High-Density Ephemeral Worktree Governance", () => {
     it("returns clean zero-result when symlinkDependencyCache receives empty or non-existent items", async () => {
       const fakeRepoRoot = path.join(SCRATCH_TEST_DIR, "repo-empty-cache");
       const fakeWorktree = path.join(SCRATCH_TEST_DIR, "worktree-empty-cache");
-      fs.mkdirSync(fakeRepoRoot, { recursive: true });
+      vfs.mkdirSync(fakeRepoRoot, { recursive: true });
 
       const emptyResult = await symlinkDependencyCache(fakeRepoRoot, fakeWorktree, []);
       expect(emptyResult.symlinked).toEqual([]);

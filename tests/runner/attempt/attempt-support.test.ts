@@ -9,11 +9,7 @@ import {
 } from "../../../olt/scripts/src/engine/runner/models/attempt/attempt-support.ts";
 import { writeAttemptStarted } from "../../../olt/scripts/src/engine/runner/execution/attempt-intent.ts";
 import { createCommandSigningCapability } from "../../../olt/scripts/src/engine/runner/execution/attempt-disposition-capability.ts";
-import {
-  tempRoot,
-  setupVirtualRunnerFS,
-  cleanupVirtualRunnerFS,
-} from "../command/fixture.ts";
+import { tempRoot, setupVirtualRunnerFS, cleanupVirtualRunnerFS } from "../command/fixture.ts";
 import type { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/memory-fs.ts";
 
 let vfs: VirtualMemoryFS;

@@ -1,5 +1,4 @@
-import { afterEach, describe, expect, spyOn, test } from "bun:test";
-import * as fs from "node:fs";
+import { afterEach, describe, expect, test } from "bun:test";
 import { checkAntiMockMutation } from "../../../olt/scripts/src/reporting/doctor/anti-mock-engine.ts";
 import {
   checkAstPurity,
@@ -13,14 +12,20 @@ import {
 } from "../../../olt/scripts/src/reporting/doctor/rules/companion-auditors.ts";
 import type { MailboxCursor } from "../../../olt/scripts/src/communication/types.ts";
 import type { UnifiedTelemetryReport } from "../../../olt/scripts/src/telemetry/types.ts";
-import { setupVirtualDoctorFS } from "../fixture.ts";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 export const doctorSocraticHardeningSuiteName =
   "Doctor Diagnostic Engines - Socratic Hardening Suite";
 
-const spies: Array<{ mockRestore: () => void }> = [];
+let session: VirtualFSSession | null = null;
+
 afterEach(() => {
-  for (const s of spies.splice(0)) s.mockRestore();
+  session?.cleanup();
+  session = null;
 });
 
 describe(doctorSocraticHardeningSuiteName, () => {
@@ -52,7 +57,8 @@ describe(doctorSocraticHardeningSuiteName, () => {
   });
 
   test("Challenge 2: healCorruptedCursor protects unacknowledged actionable envelopes even when outbox is empty", () => {
-    const vfs = new Map<string, string>();
+    const vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
     const cursorPath = "/virtual/mailboxes/worker-1/cursor.json";
     const inboxPath = "/virtual/mailboxes/worker-1/inbox.jsonl";
 
@@ -68,33 +74,14 @@ describe(doctorSocraticHardeningSuiteName, () => {
       payload: { taskId: "task-1" },
     };
 
-    vfs.set(inboxPath, `${JSON.stringify(env1)}\n`);
-    vfs.set(cursorPath, "invalid json");
-
-    const existsSpy = spyOn(fs, "existsSync").mockImplementation((p) => vfs.has(String(p)));
-    const readSpy = spyOn(fs, "readFileSync").mockImplementation((p) => {
-      const pathStr = String(p);
-      const c = vfs.get(pathStr);
-      if (c === undefined) throw new Error(`ENOENT: ${pathStr}`);
-      return c;
-    });
-    const writeSpy = spyOn(fs, "writeFileSync").mockImplementation((p, data) => {
-      vfs.set(String(p), String(data));
-    });
-    const renameSpy = spyOn(fs, "renameSync").mockImplementation((from, to) => {
-      const c = vfs.get(String(from));
-      if (c !== undefined) {
-        vfs.set(String(to), c);
-        vfs.delete(String(from));
-      }
-    });
-    const mkdirSpy = spyOn(fs, "mkdirSync").mockImplementation(() => undefined);
-    spies.push(existsSpy, readSpy, writeSpy, renameSpy, mkdirSpy);
+    vfs.mkdirSync("/virtual/mailboxes/worker-1", { recursive: true });
+    vfs.writeFileSync(inboxPath, `${JSON.stringify(env1)}\n`);
+    vfs.writeFileSync(cursorPath, "invalid json");
 
     const success = healCorruptedCursor(cursorPath, inboxPath);
     expect(success).toBe(true);
 
-    const parsedCursor = JSON.parse(vfs.get(cursorPath) ?? "{}") as MailboxCursor;
+    const parsedCursor = JSON.parse(vfs.readFileSync(cursorPath, "utf-8")) as MailboxCursor;
     expect(parsedCursor.last_read_sequence).toBe(0);
     expect(parsedCursor.seen_ids).toEqual([]);
   });

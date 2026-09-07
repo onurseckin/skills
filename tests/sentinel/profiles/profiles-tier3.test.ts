@@ -78,7 +78,6 @@ describe("Sentinel 20-Role Profiles: Tier 3", () => {
       });
       expect(violations.some((v) => v.code === "UI_OPTICAL_SHELL_FORBIDDEN")).toBe(true);
     });
-
   });
 
   describe("sub-worker profiles", () => {

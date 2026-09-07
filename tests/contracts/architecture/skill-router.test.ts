@@ -1,14 +1,15 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { DEFAULT_RESOLVED_CONFIG } from "../../../olt/scripts/src/core/config/index.ts";
 import { COMMAND_REGISTRY } from "../../../olt/scripts/src/cli/registry/index.ts";
+
+const mockFs = await import("node:fs");
 
 export const skillRouterSuiteName = "SKILL.md is a router, not a manual & reference consistency";
 
 const skillRoot = join(process.cwd(), "olt");
 const skillPath = join(skillRoot, "SKILL.md");
-const skill = readFileSync(skillPath, "utf8");
+const skill = mockFs.readFileSync(skillPath, "utf8");
 
 const LINE_BUDGET = 150;
 
@@ -50,7 +51,7 @@ describe(skillRouterSuiteName, () => {
     test("every document path it names exists", () => {
       const paths = linkedPaths(skill).filter((path) => !path.startsWith("http"));
       expect(paths.length).toBeGreaterThan(20);
-      for (const path of paths) expect(existsSync(join(skillRoot, path))).toBe(true);
+      for (const path of paths) expect(mockFs.existsSync(join(skillRoot, path))).toBe(true);
     });
 
     test("every command it names resolves in the command registry", () => {
@@ -61,17 +62,17 @@ describe(skillRouterSuiteName, () => {
     });
 
     test("routes to every agent manifest and host adapter", () => {
-      const personas = readdirSync(join(skillRoot, "agents")).filter((file) =>
-        file.endsWith(".yaml"),
-      );
+      const personas = mockFs
+        .readdirSync(join(skillRoot, "agents"))
+        .filter((file) => file.endsWith(".yaml"));
       expect(personas.length).toBeGreaterThanOrEqual(19);
       for (const persona of personas) expect(skill).toContain(`agents/${persona}`);
     });
 
     test("routes to every reference, so no reference is written and then orphaned", () => {
-      const unrouted = readdirSync(join(skillRoot, "references")).filter(
-        (file) => !skill.includes(`references/${file}`),
-      );
+      const unrouted = mockFs
+        .readdirSync(join(skillRoot, "references"))
+        .filter((file) => !skill.includes(`references/${file}`));
       expect(unrouted).toEqual([]);
     });
 
@@ -79,9 +80,7 @@ describe(skillRouterSuiteName, () => {
       expect(skill).toContain("Never read");
       const roleRows = skill
         .split("\n")
-        .filter((line) =>
-          /^\| `(?:coordinator|planner|implementer|validator)/u.test(line),
-        );
+        .filter((line) => /^\| `(?:coordinator|planner|implementer|validator)/u.test(line));
       expect(roleRows.length).toBe(4);
       for (const row of roleRows) expect(row.split("|").length).toBe(6);
     });
@@ -109,31 +108,31 @@ describe(skillRouterSuiteName, () => {
 
     test("every command the hand-written references name resolves in the registry", () => {
       const known = new Set(COMMAND_REGISTRY.map((spec) => spec.name));
-      const handWritten = readdirSync(referenceDir).filter(
-        (file) => file.endsWith(".md") && file !== "cli-capabilities.md",
-      );
+      const handWritten = mockFs
+        .readdirSync(referenceDir)
+        .filter((file) => file.endsWith(".md") && file !== "cli-capabilities.md");
       for (const file of handWritten) {
-        const content = readFileSync(join(referenceDir, file), "utf8");
+        const content = mockFs.readFileSync(join(referenceDir, file), "utf8");
         for (const command of namedCommands(content)) expect(known).toContain(command);
       }
     });
 
     test("every document path the hand-written references name exists", () => {
-      const handWritten = readdirSync(referenceDir).filter(
-        (file) => file.endsWith(".md") && file !== "cli-capabilities.md",
-      );
+      const handWritten = mockFs
+        .readdirSync(referenceDir)
+        .filter((file) => file.endsWith(".md") && file !== "cli-capabilities.md");
       for (const file of handWritten) {
-        const content = readFileSync(join(referenceDir, file), "utf8");
+        const content = mockFs.readFileSync(join(referenceDir, file), "utf8");
         const paths = linkedPaths(content).filter((path) => !path.startsWith("http"));
         for (const path of paths)
-          expect(existsSync(join(referenceDir, path)) || existsSync(join(skillRoot, path))).toBe(
-            true,
-          );
+          expect(
+            mockFs.existsSync(join(referenceDir, path)) || mockFs.existsSync(join(skillRoot, path)),
+          ).toBe(true);
       }
     });
 
     test("the run playbook is the home for the phase-ordered command sequences", () => {
-      const playbook = readFileSync(join(referenceDir, "run-playbook.md"), "utf8");
+      const playbook = mockFs.readFileSync(join(referenceDir, "run-playbook.md"), "utf8");
       for (const phase of [
         "Phase 1 — Capture, enhance, plan, compile",
         "Phase 2 — Continuous dispatch",
@@ -152,13 +151,15 @@ describe(skillRouterSuiteName, () => {
         specs.set(spec.name, spec);
         for (const alias of spec.aliases) specs.set(alias, spec);
       }
-      const handWritten = readdirSync(referenceDir).filter(
-        (file) => file.endsWith(".md") && file !== "cli-capabilities.md",
-      );
+      const handWritten = mockFs
+        .readdirSync(referenceDir)
+        .filter((file) => file.endsWith(".md") && file !== "cli-capabilities.md");
       const unresolved: string[] = [];
       let checked = 0;
       for (const file of handWritten) {
-        for (const invocation of shellInvocations(readFileSync(join(referenceDir, file), "utf8"))) {
+        for (const invocation of shellInvocations(
+          mockFs.readFileSync(join(referenceDir, file), "utf8"),
+        )) {
           checked += 1;
           const spec = specs.get(invocation.command);
           if (spec === undefined) {
@@ -194,7 +195,7 @@ describe(skillRouterSuiteName, () => {
     }
 
     test("configuration.md defaults are the defaults the harness actually resolves", () => {
-      const rows = readFileSync(join(referenceDir, "configuration.md"), "utf8").split("\n");
+      const rows = mockFs.readFileSync(join(referenceDir, "configuration.md"), "utf8").split("\n");
       const wrong: string[] = [];
       for (const [key, value] of Object.entries(DEFAULT_RESOLVED_CONFIG)) {
         if (NON_CONFIGURABLE_DEFAULT_KEYS.has(key)) continue;
@@ -208,7 +209,7 @@ describe(skillRouterSuiteName, () => {
     });
 
     test("configuration.md documents every configurable key with its default", () => {
-      const configuration = readFileSync(join(referenceDir, "configuration.md"), "utf8");
+      const configuration = mockFs.readFileSync(join(referenceDir, "configuration.md"), "utf8");
       for (const key of [
         "min_adversarial_probes",
         "max_repair_rounds",

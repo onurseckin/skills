@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import { setupVirtualMindFS, cleanupVirtualMindFS, scratchRoot } from "../../fixtures/index.ts";
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   injectRemediationToFeedbackQueue,
   type FeedbackInjectionOptions,
@@ -13,11 +13,12 @@ import {
 } from "../../../../olt/scripts/src/mind/feedback/queue/index.ts";
 
 describe("Meta Auditor - Feedback Queue Remediation Injection (in-memory virtual)", () => {
+  let vfs: VirtualMemoryFS;
   let scratchDir: string;
   let queuePath: string;
 
   beforeEach(() => {
-    setupVirtualMindFS();
+    vfs = setupVirtualMindFS();
     scratchDir = scratchRoot("feedback-injection", "test");
     queuePath = join(scratchDir, "FEEDBACK_QUEUE.jsonl");
   });
@@ -51,11 +52,10 @@ describe("Meta Auditor - Feedback Queue Remediation Injection (in-memory virtual
       queue_path: queuePath,
     };
 
-    // 1. First injection: should inject 1 proposal
     const res1 = injectRemediationToFeedbackQueue([incident], injectionOptions);
     expect(res1.injectedCount).toBe(1);
     expect(res1.itemIds).toHaveLength(1);
-    expect(fs.existsSync(queuePath)).toBe(true);
+    expect(vfs.existsSync(queuePath)).toBe(true);
 
     const itemsInQueue = readFeedbackQueue(queuePath);
     expect(itemsInQueue).toHaveLength(1);
@@ -63,7 +63,6 @@ describe("Meta Auditor - Feedback Queue Remediation Injection (in-memory virtual
     expect(itemsInQueue[0]?.status).toBe("PENDING");
     expect(itemsInQueue[0]?.category).toBe("CORE_ENGINE");
 
-    // 2. Second injection with same incident: should detect duplicate title and skip
     const res2 = injectRemediationToFeedbackQueue([incident], injectionOptions);
     expect(res2.injectedCount).toBe(0);
     expect(res2.itemIds).toHaveLength(0);
@@ -108,7 +107,7 @@ describe("Meta Auditor - Feedback Queue Remediation Injection (in-memory virtual
       expect(() =>
         injectRemediationToFeedbackQueue([incident], { queue_path: queuePathFail }),
       ).toThrow("forced persistence failure");
-      expect(fs.existsSync(queuePathFail)).toBe(false);
+      expect(vfs.existsSync(queuePathFail)).toBe(false);
     } finally {
       __setFeedbackQueuePersistenceTestHook(undefined);
     }

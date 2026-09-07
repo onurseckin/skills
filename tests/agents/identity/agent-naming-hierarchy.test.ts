@@ -19,7 +19,12 @@ import {
   loadRoleContract,
 } from "../../../olt/scripts/src/authority/manifest/index.ts";
 import { whoamiCommand } from "../../../olt/scripts/src/cli/commands/whoami.ts";
-import { cleanupVirtualAgentsFS, getVirtualAgentsFS, seedAgentManifests, setupVirtualAgentsFS } from "../fixture.ts";
+import {
+  cleanupVirtualAgentsFS,
+  getVirtualAgentsFS,
+  seedAgentManifests,
+  setupVirtualAgentsFS,
+} from "../fixture.ts";
 
 beforeAll(() => {
   setupVirtualAgentsFS();
@@ -58,7 +63,8 @@ describe("Agent Naming - Hierarchy & Manifests", () => {
     test("every yaml file in olt/agents matches standard naming conventions", () => {
       const skillRoot = findSkillRoot();
       const agentsDir = join(skillRoot, "agents");
-      const agentFiles = getVirtualAgentsFS().readdirSync(agentsDir)
+      const agentFiles = getVirtualAgentsFS()
+        .readdirSync(agentsDir)
         .filter((f) => f.endsWith(".yaml") || f.endsWith(".yml"))
         .filter(
           (f) =>
@@ -86,7 +92,8 @@ describe("Agent Naming - Hierarchy & Manifests", () => {
     test("every unified agent manifest in olt/agents matches standard role contracts", () => {
       const skillRoot = findSkillRoot();
       const agentsDir = join(skillRoot, "agents");
-      const agentFiles = getVirtualAgentsFS().readdirSync(agentsDir)
+      const agentFiles = getVirtualAgentsFS()
+        .readdirSync(agentsDir)
         .filter((f) => f.endsWith(".yaml") || f.endsWith(".yml"))
         .filter(
           (f) =>

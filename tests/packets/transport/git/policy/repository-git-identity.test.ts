@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { inspectRepositoryGitIdentity } from "../../../../../olt/scripts/src/packets/repository-git-identity.ts";
 import type { RepositoryGitCommand } from "../../../../../olt/scripts/src/packets/repository-git-command.ts";
@@ -87,7 +86,7 @@ describe("inspectRepositoryGitIdentity", () => {
 
   test("captures a resolved HEAD commit and branch ref", () => {
     const { repo, gitDir } = fixtureRepo("git-identity-resolved-head-");
-    writeFileSync(join(gitDir, "config.worktree"), "");
+    vfs.writeFileSync(join(gitDir, "config.worktree"), "");
     const identity = inspectRepositoryGitIdentity(repo, 1024, 1024 * 1024, 1024 * 1024, {
       command: fullCommand(gitDir, { headOid: "a".repeat(40), headRef: "refs/heads/main" }),
     });
@@ -122,7 +121,7 @@ describe("inspectRepositoryGitIdentity", () => {
 
   test("captures detached HEAD state with head_oid present and head_ref null", () => {
     const { repo, gitDir } = fixtureRepo("git-identity-detached-head-");
-    writeFileSync(join(gitDir, "config.worktree"), "");
+    vfs.writeFileSync(join(gitDir, "config.worktree"), "");
     const identity = inspectRepositoryGitIdentity(repo, 1024, 1024 * 1024, 1024 * 1024, {
       command: fullCommand(gitDir, { headOid: "b".repeat(40), headRef: undefined }),
     });
@@ -133,7 +132,7 @@ describe("inspectRepositoryGitIdentity", () => {
 
   test("recovers when probe reports empty on initial attempt and succeeds on retry", () => {
     const { repo, gitDir } = fixtureRepo("git-identity-retry-recovery-");
-    writeFileSync(join(gitDir, "config.worktree"), "");
+    vfs.writeFileSync(join(gitDir, "config.worktree"), "");
     let verifyAttempts = 0;
     const command: RepositoryGitCommand = (_repo, argv) => {
       if (argv[0] === "rev-parse" && argv.includes("--is-inside-work-tree"))
@@ -170,7 +169,7 @@ describe("inspectRepositoryGitIdentity", () => {
 
   test("returns null head_ref when symbolic-ref exits with non-zero status", () => {
     const { repo, gitDir } = fixtureRepo("git-identity-symref-error-");
-    writeFileSync(join(gitDir, "config.worktree"), "");
+    vfs.writeFileSync(join(gitDir, "config.worktree"), "");
     const command: RepositoryGitCommand = (_repo, argv) => {
       if (argv[0] === "rev-parse" && argv.includes("--is-inside-work-tree"))
         return { status: 0, bytes: Buffer.from("true\n") };

@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   collectSourceFilesRecursively,
@@ -11,20 +10,22 @@ import {
   SUPPORTED_EXTENSIONS,
   type TaskCheckSummary,
 } from "../../../../../olt/scripts/src/cli/commands/task-check.ts";
+import { type VirtualMemoryFS } from "../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
+let vfs: VirtualMemoryFS;
 
-async function createVirtualDir(prefix: string): Promise<string> {
+function createVirtualDir(prefix: string): string {
   const dir = `/virtual/cli/${prefix}-${Math.random().toString(36).slice(2)}`;
   roots.push(dir);
-  await mkdir(dir, { recursive: true });
+  vfs.mkdirSync(dir, { recursive: true });
   return dir;
 }
 
 describe("task:check - File Inspection & AST Linting", () => {
   beforeEach(() => {
-    setupVirtualCliFS();
+    vfs = setupVirtualCliFS();
   });
 
   afterEach(() => {
@@ -47,18 +48,18 @@ describe("task:check - File Inspection & AST Linting", () => {
     expect(isSupportedSourceFile("test.py")).toBe(false);
   });
 
-  test("collectSourceFilesRecursively collects nested files", async () => {
-    const root = await createVirtualDir("task-check-collect");
+  test("collectSourceFilesRecursively collects nested files", () => {
+    const root = createVirtualDir("task-check-collect");
 
-    await mkdir(join(root, "src", "nested"), { recursive: true });
-    await mkdir(join(root, "node_modules", "pkg"), { recursive: true });
-    await mkdir(join(root, ".git"), { recursive: true });
+    vfs.mkdirSync(join(root, "src", "nested"), { recursive: true });
+    vfs.mkdirSync(join(root, "node_modules", "pkg"), { recursive: true });
+    vfs.mkdirSync(join(root, ".git"), { recursive: true });
 
-    await writeFile(join(root, "src", "index.ts"), "export const a = 1;");
-    await writeFile(join(root, "src", "nested", "util.tsx"), "export const b = 2;");
-    await writeFile(join(root, "src", "readme.md"), "# Readme");
-    await writeFile(join(root, "node_modules", "pkg", "index.ts"), "export const c = 3;");
-    await writeFile(join(root, ".git", "head.ts"), "export const d = 4;");
+    vfs.writeFileSync(join(root, "src", "index.ts"), "export const a = 1;");
+    vfs.writeFileSync(join(root, "src", "nested", "util.tsx"), "export const b = 2;");
+    vfs.writeFileSync(join(root, "src", "readme.md"), "# Readme");
+    vfs.writeFileSync(join(root, "node_modules", "pkg", "index.ts"), "export const c = 3;");
+    vfs.writeFileSync(join(root, ".git", "head.ts"), "export const d = 4;");
 
     const files = collectSourceFilesRecursively(root);
     expect(files.length).toBe(2);
@@ -66,24 +67,24 @@ describe("task:check - File Inspection & AST Linting", () => {
     expect(files.some((f) => f.endsWith("util.tsx"))).toBe(true);
   });
 
-  test("findNearestTsconfig locates tsconfig up directory tree", async () => {
-    const root = await createVirtualDir("task-check-tsconfig");
+  test("findNearestTsconfig locates tsconfig up directory tree", () => {
+    const root = createVirtualDir("task-check-tsconfig");
 
     const nested = join(root, "a", "b", "c");
-    await mkdir(nested, { recursive: true });
+    vfs.mkdirSync(nested, { recursive: true });
     const tsconfig = join(root, "tsconfig.json");
-    await writeFile(tsconfig, "{}");
+    vfs.writeFileSync(tsconfig, "{}");
 
     expect(findNearestTsconfig(nested)).toBe(tsconfig);
     expect(findNearestTsconfig(join(root, "a"))).toBe(tsconfig);
   });
 
-  test("performAstLintCheck detects forbidden patterns (type any, type suppressions)", async () => {
-    const root = await createVirtualDir("task-check-lint");
+  test("performAstLintCheck detects forbidden patterns (type any, type suppressions)", () => {
+    const root = createVirtualDir("task-check-lint");
 
     const badFile = join(root, "bad.ts");
     const anyType = "an" + "y";
-    await writeFile(
+    vfs.writeFileSync(
       badFile,
       [
         "// @" + "ts-ignore",
@@ -97,7 +98,7 @@ describe("task:check - File Inspection & AST Linting", () => {
     );
 
     const cleanFile = join(root, "clean.ts");
-    await writeFile(cleanFile, `export const good: number = 42;`);
+    vfs.writeFileSync(cleanFile, `export const good: number = 42;`);
 
     const result = performAstLintCheck([badFile, cleanFile]);
     expect(result.passed).toBe(false);
@@ -107,11 +108,11 @@ describe("task:check - File Inspection & AST Linting", () => {
     expect(result.summaryByRule.compiler_suppression).toBeGreaterThan(0);
   });
 
-  test("performIncrementalTypecheck checks files with ts program", async () => {
-    const root = await createVirtualDir("task-check-typecheck");
+  test("performIncrementalTypecheck checks files with ts program", () => {
+    const root = createVirtualDir("task-check-typecheck");
 
     const validTs = join(root, "valid.ts");
-    await writeFile(validTs, "export const num: number = 10;");
+    vfs.writeFileSync(validTs, "export const num: number = 10;");
 
     const result = performIncrementalTypecheck([validTs]);
     expect(result.totalFiles).toBe(1);
@@ -119,7 +120,7 @@ describe("task:check - File Inspection & AST Linting", () => {
     expect(result.totalErrors).toBe(0);
 
     const invalidTs = join(root, "invalid.ts");
-    await writeFile(invalidTs, "export const text: string = 10;");
+    vfs.writeFileSync(invalidTs, "export const text: string = 10;");
 
     const failResult = performIncrementalTypecheck([invalidTs]);
     expect(failResult.passed).toBe(false);

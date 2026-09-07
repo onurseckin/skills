@@ -120,7 +120,8 @@ describe("agent metadata discovery (in-memory virtualization)", () => {
       readFile(path, encoding) {
         if (path === canonicalPath) throw missing;
         const val = harness.files.get(path);
-        if (val === undefined) throw Object.assign(new Error(`ENOENT: open '${path}'`), { code: "ENOENT" });
+        if (val === undefined)
+          throw Object.assign(new Error(`ENOENT: open '${path}'`), { code: "ENOENT" });
         return encoding === "utf8" || encoding === "utf-8" ? val : Buffer.from(val, "utf8");
       },
     });
@@ -164,7 +165,8 @@ describe("agent metadata discovery (in-memory virtualization)", () => {
           if (path === canonicalPath) throw failure;
           if (path === legacyPath) legacyReads += 1;
           const val = harness.files.get(path);
-          if (val === undefined) throw Object.assign(new Error(`ENOENT: open '${path}'`), { code: "ENOENT" });
+          if (val === undefined)
+            throw Object.assign(new Error(`ENOENT: open '${path}'`), { code: "ENOENT" });
           return encoding === "utf8" || encoding === "utf-8" ? val : Buffer.from(val, "utf8");
         },
       });

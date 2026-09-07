@@ -86,4 +86,3 @@ describe("Design Rule: Geist Design Tokens", () => {
     expect(validateGeistTokens(elNegative, 0)).toBeNull();
   });
 });
-

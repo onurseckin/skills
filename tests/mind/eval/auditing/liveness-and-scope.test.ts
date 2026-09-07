@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import { setupVirtualMindFS, cleanupVirtualMindFS, scratchRoot } from "../../fixtures/index.ts";
 import {
   AuditorCursorStore,
@@ -12,8 +12,10 @@ import { writeLastPulse } from "../../../../olt/scripts/src/mind/lifecycle/index
 const MIN_MANIFEST_YAML = `role: mind\ntier: 0\nspawns:\n  - orchestrator\nmay:\n  - Coordinate strategic goals\nmust_not:\n  - Implement code directly\n`;
 
 describe("Liveness and Scope Compliance Suite (in-memory virtual)", () => {
+  let vfs: VirtualMemoryFS;
+
   beforeEach(() => {
-    setupVirtualMindFS();
+    vfs = setupVirtualMindFS();
   });
 
   afterEach(() => {
@@ -22,9 +24,9 @@ describe("Liveness and Scope Compliance Suite (in-memory virtual)", () => {
 
   function freshRepoRoot(prefix: string): string {
     const repo = scratchRoot("liveness-scope", prefix);
-    fs.mkdirSync(join(repo, ".olt", "capsules"), { recursive: true });
-    fs.mkdirSync(join(repo, "olt", "agents"), { recursive: true });
-    fs.writeFileSync(join(repo, "olt", "agents", "mind.yaml"), MIN_MANIFEST_YAML);
+    vfs.mkdirSync(join(repo, ".olt", "capsules"), { recursive: true });
+    vfs.mkdirSync(join(repo, "olt", "agents"), { recursive: true });
+    vfs.writeFileSync(join(repo, "olt", "agents", "mind.yaml"), MIN_MANIFEST_YAML);
     return repo;
   }
 
@@ -32,16 +34,16 @@ describe("Liveness and Scope Compliance Suite (in-memory virtual)", () => {
     capsuleRoot: string,
     lines: readonly Record<string, unknown>[],
   ): void {
-    fs.mkdirSync(capsuleRoot, { recursive: true });
-    fs.writeFileSync(
+    vfs.mkdirSync(capsuleRoot, { recursive: true });
+    vfs.writeFileSync(
       join(capsuleRoot, "events.jsonl"),
       lines.map((l) => JSON.stringify(l)).join("\n") + "\n",
     );
   }
 
   function writeCapsuleState(capsuleRoot: string, state: Record<string, unknown>): void {
-    fs.mkdirSync(capsuleRoot, { recursive: true });
-    fs.writeFileSync(join(capsuleRoot, "state.json"), JSON.stringify(state));
+    vfs.mkdirSync(capsuleRoot, { recursive: true });
+    vfs.writeFileSync(join(capsuleRoot, "state.json"), JSON.stringify(state));
   }
 
   function simpleEvent(
@@ -108,7 +110,7 @@ describe("Liveness and Scope Compliance Suite (in-memory virtual)", () => {
     test("watchdog fires when the Mind is stale even while the auditor cursor keeps advancing", () => {
       const repoRoot = freshRepoRoot("watchdog-fires");
       const capsuleRoot = join(repoRoot, ".olt", "capsules", "mind-gen-1");
-      fs.mkdirSync(capsuleRoot, { recursive: true });
+      vfs.mkdirSync(capsuleRoot, { recursive: true });
       writeLastPulse(capsuleRoot, {
         at: "2026-08-24T20:00:00.000Z",
         pulse_id: "pulse-9",
@@ -150,7 +152,7 @@ describe("Liveness and Scope Compliance Suite (in-memory virtual)", () => {
     test("an unexpired active pulse beats a stale last-pulse snapshot and retains its registered actor", () => {
       const repoRoot = freshRepoRoot("active-pulse-liveness");
       const capsuleRoot = join(repoRoot, ".olt", "capsules", "mind-gen-2");
-      fs.mkdirSync(capsuleRoot, { recursive: true });
+      vfs.mkdirSync(capsuleRoot, { recursive: true });
       writeLastPulse(capsuleRoot, {
         at: "2026-08-25T04:29:30.952Z",
         pulse_id: "pulse-7",
@@ -198,7 +200,7 @@ describe("Liveness and Scope Compliance Suite (in-memory virtual)", () => {
     test("treats an active Harness-only Codex grant as recovery work, not native Mind liveness", () => {
       const repoRoot = freshRepoRoot("harness-only-codex-grant");
       const capsuleRoot = join(repoRoot, ".olt", "capsules", "mind-gen-3");
-      fs.mkdirSync(capsuleRoot, { recursive: true });
+      vfs.mkdirSync(capsuleRoot, { recursive: true });
       writeCapsuleState(capsuleRoot, {
         agents: [
           {

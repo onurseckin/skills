@@ -426,9 +426,7 @@ export async function execute(
             spawned_agent_roles: [childRole],
             role_target: childRole,
           });
-          const crossTier = spawnViolations.find(
-            (v) => v.code === "CROSS_TIER_SPAWNING_VIOLATION",
-          );
+          const crossTier = spawnViolations.find((v) => v.code === "CROSS_TIER_SPAWNING_VIOLATION");
           if (crossTier) {
             throw new HarnessError(
               "ROLE_CONFINEMENT_VIOLATION",

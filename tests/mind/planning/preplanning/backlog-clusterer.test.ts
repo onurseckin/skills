@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import { setupVirtualMindFS, cleanupVirtualMindFS, scratchRoot } from "../../fixtures/index.ts";
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   CANONICAL_DOMAINS,
   classifyDomain,
@@ -19,10 +19,11 @@ import { validateTaskQueueDag } from "../../../../olt/scripts/src/task/queue/enq
 import { detectCyclesTarjan } from "../../../../olt/scripts/src/reporting/sugiyama-dag/tarjan.ts";
 
 describe("Backlog Clusterer Engine & Cluster DAG Verification (in-memory virtual)", () => {
+  let vfs: VirtualMemoryFS;
   let testDir: string;
 
   beforeEach(() => {
-    setupVirtualMindFS();
+    vfs = setupVirtualMindFS();
     testDir = scratchRoot("backlog-clusterer", "test");
   });
 
@@ -32,7 +33,7 @@ describe("Backlog Clusterer Engine & Cluster DAG Verification (in-memory virtual
 
   test("filterEligibleBacklogItems checks actual disk existence rather than path prefix", () => {
     const existingPlan = join(testDir, "existing-plan.md");
-    fs.writeFileSync(existingPlan, "# Existing Plan\n");
+    vfs.writeFileSync(existingPlan, "# Existing Plan\n");
 
     const items: RawBacklogItem[] = [
       { id: "i1", status: "PENDING" },
@@ -55,7 +56,7 @@ describe("Backlog Clusterer Engine & Cluster DAG Verification (in-memory virtual
 
   test("filterEligibleDefects checks disk existence for plan path and filters in-flight defects", () => {
     const existingPlan = join(testDir, "existing-defect-plan.md");
-    fs.writeFileSync(existingPlan, "# Defect Plan\n");
+    vfs.writeFileSync(existingPlan, "# Defect Plan\n");
 
     const defects: RawDefectItem[] = [
       { id: "d1", status: "open" },
@@ -133,7 +134,7 @@ describe("Backlog Clusterer Engine & Cluster DAG Verification (in-memory virtual
     expect(loadDefectItems(join(testDir, "missing.jsonl"))).toEqual([]);
 
     const backlogFile = join(testDir, "backlog.jsonl");
-    fs.writeFileSync(
+    vfs.writeFileSync(
       backlogFile,
       '{"id":"b1","title":"Item 1"}\n\n{"id":"b2","title":"Item 2"}\ninvalid-json\n',
     );
@@ -143,7 +144,7 @@ describe("Backlog Clusterer Engine & Cluster DAG Verification (in-memory virtual
     expect(loadedItems[1]!.id).toBe("b2");
 
     const defectsFile = join(testDir, "defects.jsonl");
-    fs.writeFileSync(
+    vfs.writeFileSync(
       defectsFile,
       '{"id":"d1","title":"Defect 1"}\n{"id":"d2","title":"Defect 2"}\n',
     );

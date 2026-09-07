@@ -4,10 +4,7 @@ import {
   validateUnifiedAgentManifest,
   type UnifiedAgentManifest,
 } from "../../../olt/scripts/src/authority/manifest-schema.ts";
-import {
-  cleanupVirtualAuthorityFS,
-  setupVirtualAuthorityFS,
-} from "../fixture.ts";
+import { cleanupVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
 
 describe("Authority Manifest Parser - Schema Validation", () => {
   beforeEach(() => {
@@ -110,4 +107,3 @@ mandatory_turn1_actions:
     expect(result.errors.some((e) => e.includes("communication_contract.protocol"))).toBe(true);
   });
 });
-

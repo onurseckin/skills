@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { mindHaltCommand } from "../../../../../olt/scripts/src/cli/commands/mind-halt.ts";
 import { runInitCommand } from "../../../../../olt/scripts/src/cli/commands/run-init.ts";
@@ -14,9 +13,12 @@ import { transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
 import * as archivalModule from "../../../../../olt/scripts/src/mind/archival/index.ts";
 import * as freshnessModule from "../../../../../olt/scripts/src/installer/runtime-freshness.ts";
 import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
+import type { VirtualMemoryFS } from "../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
+
+let vfs: VirtualMemoryFS;
 
 beforeEach(() => {
-  setupVirtualCliFS();
+  vfs = setupVirtualCliFS();
 });
 
 afterEach(() => {
@@ -25,9 +27,9 @@ afterEach(() => {
 
 function createTestRepo(name: string): { repo: string; promptFile: string } {
   const repo = `/virtual/cli/run-ops-${name}-${Math.random().toString(36).slice(2)}`;
-  mkdirSync(join(repo, ".git"), { recursive: true });
+  vfs.mkdirSync(join(repo, ".git"), { recursive: true });
   const promptFile = join(repo, "prompt.txt");
-  writeFileSync(promptFile, "Test capsule prompt content\n");
+  vfs.writeFileSync(promptFile, "Test capsule prompt content\n");
   return { repo, promptFile };
 }
 
@@ -38,7 +40,7 @@ describe("runInitCommand", () => {
 
   test("initializes capsule with explicit prompt and flags", async () => {
     const { repo } = createTestRepo("init-prompt");
-    mkdirSync("/virtual/runtime", { recursive: true });
+    vfs.mkdirSync("/virtual/runtime", { recursive: true });
     const freshSpy = spyOn(freshnessModule, "assertInstalledRuntimeFresh").mockResolvedValue();
 
     const result = await runInitCommand(
@@ -62,7 +64,7 @@ describe("runInitCommand", () => {
 
   test("initializes capsule reading prompt from prompt-file and stdin variations", async () => {
     const { repo, promptFile } = createTestRepo("init-file");
-    mkdirSync("/virtual/custom-source", { recursive: true });
+    vfs.mkdirSync("/virtual/custom-source", { recursive: true });
     const fileRes = await runInitCommand({
       "run-id": "run-from-file",
       repo,

@@ -1,7 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import * as fs from "node:fs";
-import type { AgentGrantRecord, RunState } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import { setupVirtualMindFS, cleanupVirtualMindFS, scratchRoot } from "../../fixtures/mind-fixture.ts";
+import type {
+  AgentGrantRecord,
+  RunState,
+} from "../../../../olt/scripts/src/core/contracts/index.ts";
+import {
+  setupVirtualMindFS,
+  cleanupVirtualMindFS,
+  scratchRoot,
+} from "../../fixtures/mind-fixture.ts";
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   extractActiveGrants,
   verifyPulseCompanionAuditors,
@@ -28,10 +35,11 @@ import {
 } from "../../../../olt/scripts/src/mind/lifecycle/liveness/types.ts";
 
 describe("Pulse & Heartbeat Lifecycle Verification Suite", () => {
+  let vfs: VirtualMemoryFS;
   let capsuleRoot: string;
 
   beforeEach(() => {
-    setupVirtualMindFS();
+    vfs = setupVirtualMindFS();
     capsuleRoot = scratchRoot("pulse-heartbeat");
   });
 
@@ -133,7 +141,7 @@ describe("Pulse & Heartbeat Lifecycle Verification Suite", () => {
 
       writeLastPulse(capsuleRoot, record);
       const pulseFile = resolveLastPulsePath(capsuleRoot);
-      expect(fs.existsSync(pulseFile)).toBe(true);
+      expect(vfs.existsSync(pulseFile)).toBe(true);
 
       const loaded = readLastPulse(capsuleRoot);
       expect(loaded).not.toBeNull();
@@ -146,7 +154,7 @@ describe("Pulse & Heartbeat Lifecycle Verification Suite", () => {
       expect(readLastPulse(capsuleRoot)).toBeNull();
 
       const pulseFile = resolveLastPulsePath(capsuleRoot);
-      fs.writeFileSync(pulseFile, "not-valid-json", "utf-8");
+      vfs.writeFileSync(pulseFile, "not-valid-json");
       expect(readLastPulse(capsuleRoot)).toBeNull();
     });
 

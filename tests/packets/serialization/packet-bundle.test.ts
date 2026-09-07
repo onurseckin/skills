@@ -1,5 +1,4 @@
 import { afterAll, beforeEach, describe, expect, test } from "bun:test";
-import { chmodSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { safeRmSync } from "../../../olt/scripts/src/core/shared/safe-fs/index.ts";
@@ -75,19 +74,16 @@ describe("createPacketBundle", () => {
 
   test("cleans up its temporary directory when the write fails partway through", () => {
     const bundleRoot = root("packet-bundle-cleanup-");
-    // A non-finite number can't be canonically encoded — canonicalJsonBytes throws while
-    // building metadata.json, after the temp directory already exists.
     const broken = { markdown: "# x", metadata: { value: Number.NaN } } as unknown as BuiltPacket;
     expect(() => createPacketBundle(bundleRoot, "pkt-1", broken, false)).toThrow(
       "JSON numbers must be finite",
     );
-    // No leftover .pkt-1.<uuid>.tmp directory, and no partial "pkt-1" bundle either.
-    expect(readdirSync(bundleRoot)).toEqual([]);
+    expect(vfs.readdirSync(bundleRoot)).toEqual([]);
   });
 
   test("the failure-cleanup path refuses to remove its temp directory when the bundle root is itself a git repository", () => {
     const bundleRoot = root("packet-bundle-cleanup-git-guard-");
-    mkdirSync(join(bundleRoot, ".git"), { recursive: true });
+    vfs.mkdirSync(join(bundleRoot, ".git"), { recursive: true });
     const broken = { markdown: "# x", metadata: { value: Number.NaN } } as unknown as BuiltPacket;
 
     let caught: unknown;
@@ -100,7 +96,7 @@ describe("createPacketBundle", () => {
     expect(caught).toBeInstanceOf(HarnessError);
     expect((caught as HarnessError).code).toBe("PATH_SAFETY");
     expect((caught as HarnessError).message).toContain("REPOSITORY_INTERLOCK");
-    const leftover = readdirSync(bundleRoot).filter((entry) => entry !== ".git");
+    const leftover = (vfs.readdirSync(bundleRoot) as string[]).filter((entry) => entry !== ".git");
     expect(leftover.length).toBe(1);
     expect(leftover[0]!.startsWith(".pkt-1.")).toBe(true);
   });
@@ -108,8 +104,8 @@ describe("createPacketBundle", () => {
   test("the failure-cleanup path refuses to delete anything outside the bundle root instead of deleting it", () => {
     const bundleRoot = root("packet-bundle-cleanup-containment-");
     const outsideTarget = join(bundleRoot, "..", "not-a-bundle-root");
-    mkdirSync(outsideTarget, { recursive: true });
-    writeFileSync(join(outsideTarget, "keep.txt"), "still-here");
+    vfs.mkdirSync(outsideTarget, { recursive: true });
+    vfs.writeFileSync(join(outsideTarget, "keep.txt"), "still-here");
 
     expect(() => safeRmSync(outsideTarget, { allowedRoots: [bundleRoot] })).toThrow(HarnessError);
     try {
@@ -119,7 +115,7 @@ describe("createPacketBundle", () => {
       expect((error as HarnessError).message).toContain("CONTAINMENT");
     }
 
-    expect(readFileSync(join(outsideTarget, "keep.txt"), "utf-8")).toBe("still-here");
+    expect(vfs.readFileSync(join(outsideTarget, "keep.txt"), "utf-8")).toBe("still-here");
   });
 });
 
@@ -143,8 +139,8 @@ describe("verifyPacketBundle", () => {
     const bundleRoot = root("packet-bundle-verify-tampered-");
     createPacketBundle(bundleRoot, "pkt-1", packet(), false);
     const markdownPath = join(bundleRoot, "pkt-1", "packet.md");
-    chmodSync(markdownPath, 0o644); // createPacketBundle wrote it read-only (0o444)
-    writeFileSync(markdownPath, "# Tampered");
+    session.chmodSync(markdownPath, 0o644);
+    vfs.writeFileSync(markdownPath, "# Tampered");
     expect(() => verifyPacketBundle(bundleRoot, "pkt-1", packet())).toThrow(
       "packet bundle is missing or differs: pkt-1",
     );
@@ -153,7 +149,7 @@ describe("verifyPacketBundle", () => {
   test("rejects when the bundle directory holds the wrong set of files", () => {
     const bundleRoot = root("packet-bundle-verify-extra-file-");
     createPacketBundle(bundleRoot, "pkt-1", packet(), false);
-    writeFileSync(join(bundleRoot, "pkt-1", "extra.txt"), "surprise");
+    vfs.writeFileSync(join(bundleRoot, "pkt-1", "extra.txt"), "surprise");
     expect(() => verifyPacketBundle(bundleRoot, "pkt-1", packet())).toThrow(
       "packet bundle is missing or differs: pkt-1",
     );
@@ -161,8 +157,8 @@ describe("verifyPacketBundle", () => {
 
   test("rejects when the bundle path is a file rather than a directory", () => {
     const bundleRoot = root("packet-bundle-verify-not-dir-");
-    mkdirSync(bundleRoot, { recursive: true });
-    writeFileSync(join(bundleRoot, "pkt-1"), "not a directory");
+    vfs.mkdirSync(bundleRoot, { recursive: true });
+    vfs.writeFileSync(join(bundleRoot, "pkt-1"), "not a directory");
     expect(() => verifyPacketBundle(bundleRoot, "pkt-1", packet())).toThrow(
       "packet bundle is missing or differs: pkt-1",
     );

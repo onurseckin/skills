@@ -1,15 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../../olt/scripts/src/cli/execute.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import { type VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   cleanupVirtualCliFS,
   setupVirtualCliFS,
 } from "../../commands/fixtures/full-lifecycle-fixture.ts";
 
+let vfs: VirtualMemoryFS;
+
 beforeEach(() => {
-  setupVirtualCliFS();
+  vfs = setupVirtualCliFS();
 });
 
 afterEach(() => {
@@ -19,9 +21,9 @@ afterEach(() => {
 describe("execute universal middleware", () => {
   it("blocks task commands if planning phase has no compiled tasks", async () => {
     const repo = `/virtual/middleware-test-${Date.now()}`;
-    await mkdir(repo, { recursive: true });
+    vfs.mkdirSync(repo, { recursive: true });
     const promptPath = join(repo, "prompt.txt");
-    await writeFile(promptPath, "Prompt content");
+    vfs.writeFileSync(promptPath, "Prompt content");
     const init = await execute([
       "plan:init",
       "--repo",
@@ -45,7 +47,7 @@ describe("execute universal middleware", () => {
         "--role",
         "implementer",
       ]);
-      expect(true).toBe(false); // Should not reach here
+      expect(true).toBe(false);
     } catch (e: unknown) {
       expect(e).toBeInstanceOf(HarnessError);
       if (e instanceof HarnessError) {
@@ -60,9 +62,9 @@ describe("execute universal middleware", () => {
 
   it("lets report inspect a run before the plan phase is verified and rejects retired run:status", async () => {
     const repo = `/virtual/run-status-pre-plan-${Date.now()}`;
-    await mkdir(repo, { recursive: true });
+    vfs.mkdirSync(repo, { recursive: true });
     const promptPath = join(repo, "prompt.txt");
-    await writeFile(promptPath, "Prompt content");
+    vfs.writeFileSync(promptPath, "Prompt content");
     const init = await execute([
       "plan:init",
       "--repo",
@@ -85,9 +87,9 @@ describe("execute universal middleware", () => {
 
   it("refuses to auto-fill --agent/--role for an unauthenticated caller instead of defaulting to mind", async () => {
     const repo = `/virtual/unauth-claim-${Date.now()}`;
-    await mkdir(repo, { recursive: true });
+    vfs.mkdirSync(repo, { recursive: true });
     const promptPath = join(repo, "prompt.txt");
-    await writeFile(promptPath, "Prompt content");
+    vfs.writeFileSync(promptPath, "Prompt content");
     const init = await execute([
       "plan:init",
       "--repo",

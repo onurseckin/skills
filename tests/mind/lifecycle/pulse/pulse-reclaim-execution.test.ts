@@ -5,9 +5,7 @@ import type {
   JsonObject,
   RunState,
 } from "../../../../olt/scripts/src/core/contracts/index.ts";
-import {
-  reclaimDeadPulse,
-} from "../../../../olt/scripts/src/mind/lifecycle/pulse/pulse-reclaim.ts";
+import { reclaimDeadPulse } from "../../../../olt/scripts/src/mind/lifecycle/pulse/pulse-reclaim.ts";
 import * as storeModule from "../../../../olt/scripts/src/engine/store/index.ts";
 import * as lastPulseModule from "../../../../olt/scripts/src/mind/lifecycle/pulse/last-pulse.ts";
 

@@ -13,7 +13,12 @@ import {
   resolveSystemLockPath,
   withLock,
 } from "../../../olt/scripts/src/policy/io-safety.ts";
-import { cleanupVirtualCommunicationFS, makeStats, setupVirtualCommunicationFS, vfs } from "../helpers.ts";
+import {
+  cleanupVirtualCommunicationFS,
+  makeStats,
+  setupVirtualCommunicationFS,
+  vfs,
+} from "../helpers.ts";
 
 const ARCHITECTURAL_FILES = [
   "olt/scripts/src/communication/mailbox/mailbox-paths.ts",

@@ -1,0 +1,56 @@
+provider: "codex"
+display_name: "OpenAI Codex"
+aliases:
+  - "openai-codex"
+  - "codex-cli"
+config_path: "~/.codex/config.toml"
+platform_mapping:
+  host_id: "codex"
+  supervisory_model: "gpt-5.6-sol"
+  supervisory_thinking: "high"
+  worker_model: "gpt-5.6-terra"
+  worker_thinking: "medium"
+  supervisory_cadence_seconds: 900
+  supervisory_cron: "*/15 * * * *"
+  max_single_task_seconds: 300
+  heartbeat_tick_seconds: 180
+  watchdog_timeout_seconds: 900
+dispatch:
+  collaboration_group: "collaboration"
+  tool: "spawn_agent"
+  task_name_parameter: "task_name"
+  message_parameter: "message"
+  model_parameter: "model"
+  reasoning_effort_parameter: "reasoning_effort"
+messaging:
+  tool: "send_message"
+  followup_tool: "followup_task"
+command_execution:
+  tool: "exec"
+scheduling:
+  tool: "none"
+  mechanism: "notify_hook"
+  config_path: "~/.codex/config.toml"
+  command: "chat:daemon --tick"
+  cadence_seconds: 900
+capabilities:
+  hierarchical_subagents: true
+  concurrency_ceiling: 20
+  native_resume: false
+  liveness_layers:
+    - 1
+    - 2
+    - 3
+communicator:
+  agent_name_template: "communicator_{room}"
+  model: "gpt-5.6-terra"
+  reasoning_effort: "medium"
+  artifact_path: "~/.codex/agents/communicator-{room}.toml"
+  cron_mechanism: "notify_hook"
+  cadence_seconds: 900
+instructions: |
+  # OpenAI Codex Host Adapter for Chatroom
+  - Communicator subagent: task_name communicator_<room> dispatched via spawn_agent.
+  - Cron mechanism: notify hook in ~/.codex/config.toml invoking chat:daemon --tick if config exists; otherwise falls back to Layers 1 and 3.
+  - Daemon start: exec tool invoking chat:daemon --start.
+  - Liveness layers 1, 2, 3 supported.

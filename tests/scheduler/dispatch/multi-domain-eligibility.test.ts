@@ -186,9 +186,9 @@ describe("Multi-Domain Dispatch: Thresholds, Eligibility & Classification", () =
 
     test("handles edge case write_scopes: mixed domains, uppercase extensions, empty, and non-code files", () => {
       // Mixed domains in write_scope: frontend-ui takes precedence when ui path marker matches first
-      expect(
-        classifyTaskDomain({ write_scope: ["src/ui/App.tsx", "src/api/Server.ts"] }),
-      ).toBe("frontend-ui");
+      expect(classifyTaskDomain({ write_scope: ["src/ui/App.tsx", "src/api/Server.ts"] })).toBe(
+        "frontend-ui",
+      );
 
       // Case-insensitive path and extension matching
       expect(classifyTaskDomain({ write_scope: ["src/components/HEADER.TSX"] })).toBe(
@@ -207,7 +207,7 @@ describe("Multi-Domain Dispatch: Thresholds, Eligibility & Classification", () =
 
     test("verifies high-precision floating point threshold boundaries", () => {
       expect(isMultiDomainDispatchEligible(2.4999999)).toBeFalse();
-      expect(isMultiDomainDispatchEligible(2.5000000)).toBeTrue();
+      expect(isMultiDomainDispatchEligible(2.5)).toBeTrue();
       expect(resolveParallelismFactor({}, 0)).toBe(0);
       expect(resolveParallelismFactor({}, 100000)).toBe(100000);
     });
@@ -230,5 +230,3 @@ describe("Multi-Domain Dispatch: Thresholds, Eligibility & Classification", () =
     });
   });
 });
-
-

@@ -1,0 +1,38 @@
+export type {
+  CommandContext,
+  CommandFlagSpec,
+  CommandHandler,
+  CommandSpec,
+  ExitCodeSpec,
+  FlagShape,
+  FlagShapes,
+  FlagSpec,
+  FlagType,
+  FlagValue,
+  FlagValues,
+  Flags,
+} from "./types.ts";
+export {
+  CliError,
+  DEFAULT_EXIT_CODES,
+  flagShapes,
+  optionalFlag,
+  repeatableFlag,
+  requiredFlag,
+} from "./types.ts";
+export {
+  CHAT_COMMANDS,
+  ackSpec,
+  allCommands,
+  commandInvocations,
+  daemonSpec,
+  doctorSpec,
+  findCommand,
+  initSpec,
+  inviteSpec,
+  joinSpec,
+  readSpec,
+  roomsSpec,
+  saySpec,
+  watchSpec,
+} from "./chat.ts";

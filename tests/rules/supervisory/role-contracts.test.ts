@@ -44,32 +44,21 @@ describe("Supervisory Rule: Role Contracts & Authority Invariants", () => {
   });
 
   it("throws error on duplicate frontmatter key", () => {
-    const lines = [
-      "role: coordinator",
-      "tier: 1",
-      "role: orchestrator",
-    ];
+    const lines = ["role: coordinator", "tier: 1", "role: orchestrator"];
     expect(() => readFrontmatter(lines, "test.md", new Set(), "contract")).toThrow(
       /duplicate key: role/,
     );
   });
 
   it("throws error on list item outside a list", () => {
-    const lines = [
-      "role: coordinator",
-      "  - dangling item",
-    ];
+    const lines = ["role: coordinator", "  - dangling item"];
     expect(() => readFrontmatter(lines, "test.md", new Set(), "contract")).toThrow(
       /list item outside a list/,
     );
   });
 
   it("handles multiline continuation in frontmatter list item", () => {
-    const lines = [
-      "responsibilities:",
-      "  - delegate tasks",
-      "    across multiple teams",
-    ];
+    const lines = ["responsibilities:", "  - delegate tasks", "    across multiple teams"];
     const listFields = new Set(["responsibilities"]);
     const res = readFrontmatter(lines, "test.md", listFields, "contract");
     expect(res.lists.get("responsibilities")).toEqual(["delegate tasks across multiple teams"]);

@@ -211,7 +211,11 @@ describe("Multi-Domain Dispatch: Validator Concurrent Dispatch", () => {
     test("verifies exact boundary condition at parallelismFactor = 2.5 vs 2.49", () => {
       const tasks = [
         createTask("impl-1", "src/ui/A.tsx", { status: "ready", priority: 10 }),
-        createTask("sub-1", "src/auth/B.ts", { status: "submitted", priority: 9, validator_domain: "security" }),
+        createTask("sub-1", "src/auth/B.ts", {
+          status: "submitted",
+          priority: 9,
+          validator_domain: "security",
+        }),
       ];
       const state = createMultiDomainState(tasks);
 
@@ -256,8 +260,16 @@ describe("Multi-Domain Dispatch: Validator Concurrent Dispatch", () => {
 
     test("excludes validator candidates whose write scopes collide with multi-scope active implementers", () => {
       const tasks = [
-        createTask("val-clean", "src/auth/Keys.ts", { status: "submitted", priority: 10, validator_domain: "security" }),
-        createTask("val-collide", "src/shared/Token.ts", { status: "submitted", priority: 9, validator_domain: "security" }),
+        createTask("val-clean", "src/auth/Keys.ts", {
+          status: "submitted",
+          priority: 10,
+          validator_domain: "security",
+        }),
+        createTask("val-collide", "src/shared/Token.ts", {
+          status: "submitted",
+          priority: 9,
+          validator_domain: "security",
+        }),
       ];
       const state = createMultiDomainState(tasks);
 

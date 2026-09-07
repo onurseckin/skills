@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
+
+const mockOs = await import("node:os");
 import {
   assertSafeCaptureDestination,
   createSnapshotContext,
@@ -72,7 +73,7 @@ describe("Snapshot Persistence & Path Safety Confinement", () => {
     const safeTmp = join(process.cwd(), ".tmp", "tree.json");
     const safeCapsule = join(process.cwd(), ".olt/capsules/run-x/tree.json");
     const safeScratch = join(process.cwd(), ".olt/scratch/tree.json");
-    const safeOsTmp = join(tmpdir(), "tree.json");
+    const safeOsTmp = join(mockOs.tmpdir(), "tree.json");
 
     expect(() => assertSafeCaptureDestination(safeTmp)).not.toThrow();
     expect(() => assertSafeCaptureDestination(safeCapsule)).not.toThrow();
@@ -168,10 +169,7 @@ describe("Snapshot Persistence & Path Safety Confinement", () => {
     expect(() => loadSnapshotTree(malformedFile)).toThrow("Invalid JSON in snapshot tree file");
 
     const badSchemaFile = join(testDir, "bad-schema.json");
-    vfs.writeFileSync(
-      badSchemaFile,
-      JSON.stringify({ schema: "snapshot.tree.v999", nodes: [] }),
-    );
+    vfs.writeFileSync(badSchemaFile, JSON.stringify({ schema: "snapshot.tree.v999", nodes: [] }));
     expect(() => loadSnapshotTree(badSchemaFile)).toThrow("Unsupported snapshot tree schema");
   });
 
@@ -199,12 +197,7 @@ describe("Snapshot Persistence & Path Safety Confinement", () => {
 
   it("persists and loads snapshot tree in deeply nested directories in virtual memory", () => {
     const vfs = getVirtualCaptureFS();
-    const deepDir = join(
-      scratchRoot("snapshot-persistence", "deep"),
-      "level1",
-      "level2",
-      "level3",
-    );
+    const deepDir = join(scratchRoot("snapshot-persistence", "deep"), "level1", "level2", "level3");
     vfs.mkdirSync(deepDir, { recursive: true });
     const deepFile = join(deepDir, "deep.snapshot.json");
 

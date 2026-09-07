@@ -100,7 +100,9 @@ describe("Wave 1 - Task 1.3: Repository Hygiene Guard (Invariant 30)", () => {
       expect(vfs.existsSync(join(repo, "README.md"))).toBe(true);
       expect(vfs.readFileSync(join(repo, "README.md"), "utf8")).toBe("# Test Readme");
       expect(vfs.existsSync(join(repo, "scratch", "script.ts"))).toBe(true);
-      expect(vfs.readFileSync(join(repo, "scratch", "script.ts"), "utf8")).toBe("console.log('scratch');");
+      expect(vfs.readFileSync(join(repo, "scratch", "script.ts"), "utf8")).toBe(
+        "console.log('scratch');",
+      );
 
       // 4. Verify unapproved files were removed from repo root
       expect(vfs.existsSync(join(repo, "fix-1.ts"))).toBe(false);

@@ -57,7 +57,18 @@ const CONFIG_FILE_NAMES = [
 const CONFIG_SOURCE_SNAPSHOT = new Map<string, string>();
 for (const name of CONFIG_FILE_NAMES) {
   try {
-    const p = join(import.meta.dir, "..", "..", "..", "olt", "scripts", "src", "core", "config", name);
+    const p = join(
+      import.meta.dir,
+      "..",
+      "..",
+      "..",
+      "olt",
+      "scripts",
+      "src",
+      "core",
+      "config",
+      name,
+    );
     CONFIG_SOURCE_SNAPSHOT.set(name, Bun.file(p).text() as unknown as string);
   } catch {}
 }

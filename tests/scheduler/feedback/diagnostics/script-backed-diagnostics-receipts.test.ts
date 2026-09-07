@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import * as fs from "node:fs";
 import { resolve } from "node:path";
 import {
   formatDiagnosticReceiptsMarkdown,
@@ -13,19 +12,35 @@ import {
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import { initRun } from "../../../../olt/scripts/src/engine/store/index.ts";
 import {
-  cleanupVirtualBrowserFS,
-  setupVirtualBrowserFS,
-  tempDir,
-} from "../../../reporting/browser/browser-virtual-fs.ts";
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import { schedulerState } from "../../fixtures.ts";
+
+let vfs = new VirtualMemoryFS();
+let session: VirtualFSSession | null = null;
+let dirCounter = 0;
+
+function tempDir(prefix: string): string {
+  dirCounter += 1;
+  const p = `/virtual/${prefix}-${dirCounter}`;
+  vfs.mkdirSync(p, { recursive: true });
+  return p;
+}
 
 describe("Script-Backed Diagnostics: Execution & Receipts", () => {
   beforeEach(() => {
-    setupVirtualBrowserFS();
+    vfs = new VirtualMemoryFS();
+    vfs.mkdirSync("/virtual", { recursive: true });
+    session = createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
-    cleanupVirtualBrowserFS();
+    if (session) {
+      session.cleanup();
+      session = null;
+    }
   });
 
   describe("1. Script-Backed Diagnostics Execution & Receipts", () => {
@@ -209,8 +224,8 @@ describe("Script-Backed Diagnostics: Execution & Receipts", () => {
 
       const corruptDocRoot = tempDir("corrupt-doc-test");
       const corruptDocRun = resolve(corruptDocRoot, "corrupt-run");
-      fs.mkdirSync(corruptDocRun, { recursive: true });
-      fs.writeFileSync(resolve(corruptDocRun, "manifest.json"), "NOT_JSON");
+      vfs.mkdirSync(corruptDocRun, { recursive: true });
+      vfs.writeFileSync(resolve(corruptDocRun, "manifest.json"), "NOT_JSON");
       const receiptCorrupt = await runInspectorDoctor(corruptDocRun);
       expect(receiptCorrupt.status).toBe("failed");
     });
@@ -283,7 +298,7 @@ describe("Script-Backed Diagnostics: Execution & Receipts", () => {
 
       const corruptRoot = tempDir("corrupt-unified-test");
       const corruptRunRoot = resolve(corruptRoot, "corrupt-run");
-      fs.mkdirSync(corruptRunRoot, { recursive: true });
+      vfs.mkdirSync(corruptRunRoot, { recursive: true });
       const receiptCatch = await runInspectorUnifiedReport(corruptRunRoot);
       expect(receiptCatch.status).toBe("failed");
     });

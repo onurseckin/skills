@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it } from "bun:test";
-import * as fs from "node:fs";
-import { tmpdir } from "node:os";
+import { O_NOFOLLOW } from "node:constants";
 import { join } from "node:path";
 import {
   mockOpen,
   mockRead,
   mockSpawnSync,
   mockWrite,
+  origCloseSync,
+  origOpenSync,
 } from "../../olt/scripts/src/testing/virtual-fs/descriptors.ts";
 import type { VirtualFSSpyState } from "../../olt/scripts/src/testing/virtual-fs/handlers.ts";
 import { VirtualMemoryFS } from "../../olt/scripts/src/testing/virtual-fs/memory-fs.ts";
@@ -34,7 +35,7 @@ describe("Virtual FS Descriptors & Mock Spawn Engine", () => {
   describe("mockOpen", () => {
     it("throws ELOOP with O_NOFOLLOW on symlink", () => {
       state.symlinks.set("/virtual/link.txt", "/virtual/target.txt");
-      expect(() => mockOpen(state, "/virtual/link.txt", fs.constants.O_NOFOLLOW)).toThrow("ELOOP");
+      expect(() => mockOpen(state, "/virtual/link.txt", O_NOFOLLOW)).toThrow("ELOOP");
     });
 
     it("throws EISDIR when opening directory for writing", () => {
@@ -60,15 +61,10 @@ describe("Virtual FS Descriptors & Mock Spawn Engine", () => {
     });
 
     it("falls back to origOpenSync when reading non-virtual existing file", () => {
-      const realPath = join(tmpdir(), `real-test-${Date.now()}.txt`);
-      fs.writeFileSync(realPath, "real content", "utf8");
-      try {
-        const fd = mockOpen(state, realPath, "r");
-        expect(typeof fd).toBe("number");
-        fs.closeSync(fd);
-      } finally {
-        fs.rmSync(realPath, { force: true });
-      }
+      const realPath = join(process.cwd(), "package.json");
+      const fd = mockOpen(state, realPath, "r");
+      expect(typeof fd).toBe("number");
+      origCloseSync(fd);
     });
   });
 
@@ -82,7 +78,7 @@ describe("Virtual FS Descriptors & Mock Spawn Engine", () => {
       expect(bytesRead).toBe(7);
       expect(new TextDecoder().decode(u8)).toBe("initial");
 
-      const rawU8 = new Uint8Array([79, 86, 69, 82]); // "OVER"
+      const rawU8 = new Uint8Array([79, 86, 69, 82]);
       const writeU8Count = mockWrite(state, fd, rawU8, 0, 4, 0);
       expect(writeU8Count).toBe(4);
 
@@ -107,21 +103,20 @@ describe("Virtual FS Descriptors & Mock Spawn Engine", () => {
     });
 
     it("falls back to origReadSync and origWriteSync on unmanaged descriptors", () => {
-      const realPath = join(tmpdir(), `real-rw-${Date.now()}.txt`);
-      fs.writeFileSync(realPath, "fallback-data", "utf8");
-      const fd = fs.openSync(realPath, "r+");
+      const fdRead = origOpenSync("/dev/zero", "r");
+      const fdWrite = origOpenSync("/dev/null", "w");
       try {
         const buf = Buffer.alloc(8);
-        const r = mockRead(state, fd, buf, 0, 8, 0);
+        const r = mockRead(state, fdRead, buf, 0, 8, 0);
         expect(r).toBe(8);
 
-        const wBuf = mockWrite(state, fd, Buffer.from("MOD"), 0, 3, 0);
+        const wBuf = mockWrite(state, fdWrite, Buffer.from("MOD"), 0, 3, 0);
         expect(wBuf).toBe(3);
-        const ws = mockWrite(state, fd, "STR");
+        const ws = mockWrite(state, fdWrite, "STR");
         expect(ws).toBe(3);
       } finally {
-        fs.closeSync(fd);
-        fs.rmSync(realPath, { force: true });
+        origCloseSync(fdRead);
+        origCloseSync(fdWrite);
       }
     });
   });

@@ -1,5 +1,10 @@
 import { join } from "node:path";
-import { cleanupVirtualAgentsFS, getVirtualAgentsFS, scratchRoot, setupVirtualAgentsFS } from "../fixture.ts";
+import {
+  cleanupVirtualAgentsFS,
+  getVirtualAgentsFS,
+  scratchRoot,
+  setupVirtualAgentsFS,
+} from "../fixture.ts";
 
 export { cleanupVirtualAgentsFS, scratchRoot, setupVirtualAgentsFS };
 

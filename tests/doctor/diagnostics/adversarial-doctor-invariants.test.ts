@@ -1,5 +1,4 @@
-import { afterEach, describe, expect, spyOn, test } from "bun:test";
-import * as fs from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
   assertDoctorCertification,
@@ -8,66 +7,28 @@ import {
   type DoctorCertificationReport,
   type HarnessHealthCheck,
 } from "../../../olt/scripts/src/reporting/doctor/adversarial-doctor/index.ts";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 export const adversarialDoctorInvariantsSuiteName =
   "Adversarial Doctor - Certification, Diagnostics & Invariant Integrity";
 
-interface VirtualNode {
-  isDir: boolean;
-  content?: string;
-}
-
-const vfs = new Map<string, VirtualNode>();
-const spies: Array<{ mockRestore: () => void }> = [];
-
-function setupVirtualFs(): void {
-  vfs.clear();
-  const existsSpy = spyOn(fs, "existsSync").mockImplementation((p) => vfs.has(String(p)));
-  const statSpy = spyOn(fs, "statSync").mockImplementation((p) => {
-    const node = vfs.get(String(p));
-    if (!node) throw new Error(`ENOENT: no such file or directory, stat '${String(p)}'`);
-    return {
-      isFile: () => !node.isDir,
-      isDirectory: () => node.isDir,
-      isSymbolicLink: () => false,
-      mode: node.isDir ? 0o755 : 0o644,
-      size: node.content ? node.content.length : 0,
-      mtimeMs: Date.now(),
-    } as fs.Stats;
-  });
-  const lstatSpy = spyOn(fs, "lstatSync").mockImplementation((p) => {
-    const node = vfs.get(String(p));
-    if (!node) throw new Error(`ENOENT: no such file or directory, lstat '${String(p)}'`);
-    return {
-      isFile: () => !node.isDir,
-      isDirectory: () => node.isDir,
-      isSymbolicLink: () => false,
-      mode: node.isDir ? 0o755 : 0o644,
-      size: node.content ? node.content.length : 0,
-      mtimeMs: Date.now(),
-    } as fs.Stats;
-  });
-  const readSpy = spyOn(fs, "readFileSync").mockImplementation((p) => {
-    const node = vfs.get(String(p));
-    if (!node) throw new Error(`ENOENT: no such file or directory, open '${String(p)}'`);
-    return node.content ?? "";
-  });
-  const writeSpy = spyOn(fs, "writeFileSync").mockImplementation((p, data) => {
-    vfs.set(String(p), { content: String(data), isDir: false });
-  });
-  const realpathSpy = spyOn(fs, "realpathSync").mockImplementation((p) => String(p));
-
-  spies.push(existsSpy, statSpy, lstatSpy, readSpy, writeSpy, realpathSpy);
-}
-
-afterEach(() => {
-  for (const s of spies.splice(0)) {
-    s.mockRestore();
-  }
-  vfs.clear();
-});
-
 describe(adversarialDoctorInvariantsSuiteName, () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
+
+  beforeEach(() => {
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+  });
+
+  afterEach(() => {
+    session.cleanup();
+  });
+
   describe("runDoctorDiagnostics", () => {
     test("runs bun version diagnostics accurately", async () => {
       const checksPass = await runDoctorDiagnostics({
@@ -98,13 +59,10 @@ describe(adversarialDoctorInvariantsSuiteName, () => {
     });
 
     test("runs capsule root, evidence location, and tier confinement diagnostics", async () => {
-      setupVirtualFs();
       const repo = "/virtual/repo";
-      vfs.set(repo, { isDir: true });
-      vfs.set(`${repo}/.git`, { isDir: true });
+      vfs.mkdirSync(`${repo}/.git`, { recursive: true });
       const runRoot = `${repo}/.capsules/run-diag-1`;
-      vfs.set(runRoot, { isDir: true });
-      vfs.set(`${runRoot}/evidence`, { isDir: true });
+      vfs.mkdirSync(`${runRoot}/evidence`, { recursive: true });
 
       const state = {
         meta: { run_id: "run-diag-1" },
@@ -155,15 +113,13 @@ describe(adversarialDoctorInvariantsSuiteName, () => {
 
   describe("certifyHarnessDoctor and assertDoctorCertification", () => {
     test("certifies successfully when all health checks and adversarial checks pass", async () => {
-      setupVirtualFs();
       const repo = "/virtual/repo";
-      vfs.set(repo, { isDir: true });
-      vfs.set(`${repo}/.git`, { isDir: true });
+      vfs.mkdirSync(`${repo}/.git`, { recursive: true });
       const runRoot = `${repo}/.capsules/run-cert-1`;
-      vfs.set(runRoot, { isDir: true });
+      vfs.mkdirSync(runRoot, { recursive: true });
 
       const testFile = `${runRoot}/component.test.ts`;
-      vfs.set(testFile, { content: "export const certified = true;\n", isDir: false });
+      vfs.writeFileSync(testFile, "export const certified = true;\n");
 
       const report: DoctorCertificationReport = await certifyHarnessDoctor({
         runRoot,
@@ -172,7 +128,7 @@ describe(adversarialDoctorInvariantsSuiteName, () => {
         minimumBunVersion: "1.0.0",
         checkIntegrity: false,
         adversarialTestRunner: async (p) => {
-          const content = vfs.get(p)?.content ?? "";
+          const content = vfs.existsSync(p) ? vfs.readFileSync(p, "utf-8") : "";
           const mutated = content.includes("INJECTED_ADVERSARIAL_SYNTAX_ERROR");
           return { success: !mutated, exitCode: mutated ? 1 : 0 };
         },

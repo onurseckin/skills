@@ -1,5 +1,4 @@
-import { describe, expect, it, spyOn, afterEach } from "bun:test";
-import * as fs from "node:fs";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import {
   DEFAULT_LIVENESS_INTERVAL_MS,
   DEFAULT_LIVENESS_GRACE_MS,
@@ -17,48 +16,49 @@ import type {
   LivenessStatus,
   LivenessStatusKind,
 } from "../../../../olt/scripts/src/mind/lifecycle/liveness/types.ts";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Mind Lifecycle Liveness Heartbeat Suite", () => {
-  const spies: Array<{ mockRestore: () => void }> = [];
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
+
+  beforeEach(() => {
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+  });
 
   afterEach(() => {
-    for (const spy of spies) {
-      spy.mockRestore();
-    }
-    spies.length = 0;
+    session.cleanup();
   });
 
   describe("resolvePulseFilePath", () => {
     it("returns direct path when target is an existing file", () => {
-      spies.push(spyOn(fs, "existsSync").mockReturnValue(true));
-      spies.push(
-        spyOn(fs, "statSync").mockReturnValue({
-          isFile: () => true,
-        } as unknown as fs.Stats),
-      );
+      vfs.mkdirSync("/capsules/run-1", { recursive: true });
+      vfs.writeFileSync("/capsules/run-1/custom_pulse.json", "{}");
       const res = resolvePulseFilePath("/capsules/run-1/custom_pulse.json");
       expect(res).toBe("/capsules/run-1/custom_pulse.json");
     });
 
     it("falls through if statSync throws and path ends with .json", () => {
-      spies.push(spyOn(fs, "existsSync").mockReturnValue(true));
-      spies.push(
-        spyOn(fs, "statSync").mockImplementation(() => {
-          throw new Error("stat failure");
-        }),
-      );
+      vfs.mkdirSync("/capsules/run-1", { recursive: true });
+      vfs.writeFileSync("/capsules/run-1/last_pulse.json", "{}");
+      spyOn(vfs, "statSync").mockImplementation(() => {
+        throw new Error("stat failure");
+      });
       const res = resolvePulseFilePath("/capsules/run-1/last_pulse.json");
       expect(res).toBe("/capsules/run-1/last_pulse.json");
     });
 
     it("returns path if it ends with .json and file does not exist on disk", () => {
-      spies.push(spyOn(fs, "existsSync").mockReturnValue(false));
       const res = resolvePulseFilePath("/capsules/custom_pulse.json");
       expect(res).toBe("/capsules/custom_pulse.json");
     });
 
     it("joins last_pulse.json when given a directory path", () => {
-      spies.push(spyOn(fs, "existsSync").mockReturnValue(false));
       const res = resolvePulseFilePath("/capsules/run-1");
       expect(res).toBe("/capsules/run-1/last_pulse.json");
     });

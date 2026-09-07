@@ -1,0 +1,13 @@
+{
+  "name": "@local/chatroom-runtime",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.0",
+    "@types/node": "^26.2.0",
+    "typescript": "5.7"
+  }
+}

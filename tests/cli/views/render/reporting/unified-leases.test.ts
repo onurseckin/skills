@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
@@ -9,13 +8,16 @@ import {
   extractLeaseAttempt,
 } from "../../../../../olt/scripts/src/reporting/lease-agent-extractor.ts";
 import type { UnifiedReport } from "../../../../../olt/scripts/src/reporting/index.ts";
+import { type VirtualMemoryFS } from "../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   cleanupVirtualCliFS,
   setupVirtualCliFS,
 } from "../../../commands/fixtures/full-lifecycle-fixture.ts";
 
+let vfs: VirtualMemoryFS;
+
 beforeEach(() => {
-  setupVirtualCliFS();
+  vfs = setupVirtualCliFS();
 });
 afterEach(() => {
   cleanupVirtualCliFS();
@@ -23,10 +25,10 @@ afterEach(() => {
 
 async function createBaseRun(name: string): Promise<{ repo: string; run: string }> {
   const repo = `/virtual/unified-leases-${name}-${Math.random().toString(36).slice(2)}`;
-  await mkdir(join(repo, ".git"), { recursive: true });
-  await mkdir(join(repo, ".olt"), { recursive: true });
+  vfs.mkdirSync(join(repo, ".git"), { recursive: true });
+  vfs.mkdirSync(join(repo, ".olt"), { recursive: true });
   const promptPath = join(repo, "prompt.txt");
-  await writeFile(
+  vfs.writeFileSync(
     promptPath,
     "Build modular system with API backend, UI frontend, and automated testing.\nSecond requirement line for data storage.\n",
   );
@@ -46,8 +48,8 @@ async function createBaseRun(name: string): Promise<{ repo: string; run: string 
 describe("Unified Reporting - Leases and Decisions Views", () => {
   test("report:leases and report:decisions format durable records cleanly", async () => {
     const { repo, run } = await createBaseRun("leases-decisions");
-    await mkdir(join(repo, "src/core"), { recursive: true });
-    await writeFile(join(repo, "gate.ts"), "console.log('gate');\n");
+    vfs.mkdirSync(join(repo, "src/core"), { recursive: true });
+    vfs.writeFileSync(join(repo, "gate.ts"), "console.log('gate');\n");
 
     await execute([
       "plan:add",
@@ -116,8 +118,8 @@ describe("Unified Reporting - Leases and Decisions Views", () => {
 
   test("robust lease agent extraction handles legacy agent field and prevents undefined in CLI outputs", async () => {
     const { repo, run } = await createBaseRun("legacy-lease-extraction");
-    await mkdir(join(repo, "src/legacy"), { recursive: true });
-    await writeFile(join(repo, "gate.ts"), "console.log('legacy');\n");
+    vfs.mkdirSync(join(repo, "src/legacy"), { recursive: true });
+    vfs.writeFileSync(join(repo, "gate.ts"), "console.log('legacy');\n");
 
     await execute([
       "plan:add",

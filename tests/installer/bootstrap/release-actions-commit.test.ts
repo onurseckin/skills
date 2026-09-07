@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { InstallerLock } from "../../../olt/scripts/src/installer/installer-lock.ts";
 import { pathIdentity } from "../../../olt/scripts/src/installer/path-safety.ts";
@@ -11,12 +10,15 @@ import type { ReleaseTransaction } from "../../../olt/scripts/src/installer/rele
 import type { TransactionStage } from "../../../olt/scripts/src/installer/transaction-marker.ts";
 import type { ReleaseCopyHooks } from "../../../olt/scripts/src/installer/release-copy.ts";
 import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
-import { cleanupVirtualInstallerFS, setupVirtualInstallerFS } from "../helpers.ts";
+import {
+  cleanupVirtualInstallerFS,
+  getVirtualInstallerFS,
+  setupVirtualInstallerFS,
+} from "../helpers.ts";
 
 beforeEach(setupVirtualInstallerFS);
 afterEach(cleanupVirtualInstallerFS);
 
-/** A transaction double: records every stage transition and finish() call without touching disk. */
 function fakeTransaction() {
   const stages: TransactionStage[] = [];
   let finished = false;
@@ -45,8 +47,6 @@ function fakeLock(): { lock: InstallerLock; released: () => boolean } {
   };
 }
 
-/** Builds a ReleaseState wired to real directories on disk, so bound-mutations' own identity
- * checks (which do real lstat calls) succeed exactly as they would in production. */
 async function buildState(
   root: string,
   options: { withExisting: boolean },
@@ -56,20 +56,21 @@ async function buildState(
   finished: () => boolean;
   lockReleased: () => boolean;
 }> {
+  const vfs = getVirtualInstallerFS();
   const parent = join(root, "parent");
-  mkdirSync(parent);
+  vfs.mkdirSync(parent);
   const destination = join(parent, "dest");
   const temporary = join(parent, "dest.tmp-1");
   const backup = join(parent, "dest.old-1");
   const backupQuarantine = join(parent, "dest.delete-1");
 
-  mkdirSync(temporary);
-  writeFileSync(join(temporary, "marker.txt"), "staged content");
+  vfs.mkdirSync(temporary);
+  vfs.writeFileSync(join(temporary, "marker.txt"), "staged content");
 
   let existingIdentity = null;
   if (options.withExisting) {
-    mkdirSync(destination);
-    writeFileSync(join(destination, "marker.txt"), "old content");
+    vfs.mkdirSync(destination);
+    vfs.writeFileSync(join(destination, "marker.txt"), "old content");
     existingIdentity = await pathIdentity(destination);
   }
 
@@ -108,7 +109,8 @@ describe("preparedRelease().commit()", () => {
     const { state, stages } = await buildState(root, { withExisting: false });
     const release = preparedRelease(state, {});
     await release.commit();
-    expect(readFileSync(join(state.destination, "marker.txt"), "utf8")).toBe("staged content");
+    const vfs = getVirtualInstallerFS();
+    expect(vfs.readFileSync(join(state.destination, "marker.txt"), "utf8")).toBe("staged content");
     expect(stages).toEqual(["publish-intent", "published"]);
     expect(state.committed).toBe(true);
     expect(state.oldMoved).toBe(false);
@@ -119,8 +121,9 @@ describe("preparedRelease().commit()", () => {
     const { state, stages } = await buildState(root, { withExisting: true });
     const release = preparedRelease(state, {});
     await release.commit();
-    expect(readFileSync(join(state.destination, "marker.txt"), "utf8")).toBe("staged content");
-    expect(readFileSync(join(state.backup, "marker.txt"), "utf8")).toBe("old content");
+    const vfs = getVirtualInstallerFS();
+    expect(vfs.readFileSync(join(state.destination, "marker.txt"), "utf8")).toBe("staged content");
+    expect(vfs.readFileSync(join(state.backup, "marker.txt"), "utf8")).toBe("old content");
     expect(stages).toEqual(["old-move-intent", "old-moved", "publish-intent", "published"]);
     expect(state.oldMoved).toBe(true);
   });
@@ -180,7 +183,6 @@ describe("preparedRelease().commit()", () => {
       },
     });
     await expect(release.commit()).rejects.toBe(failure);
-    // The old-move half of commit() had already completed and been journaled before the hook ran.
     expect(stages).toEqual(["old-move-intent", "old-moved", "publish-intent"]);
     expect(state.oldMoved).toBe(true);
     expect(state.committed).toBe(false);

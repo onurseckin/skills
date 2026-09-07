@@ -1,5 +1,4 @@
-import { describe, expect, test } from "bun:test";
-import { existsSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import {
   getFeedbackStats,
@@ -12,14 +11,43 @@ import {
   resolvePushbackMarkdownPath,
   type PushbackAuditReport,
 } from "../../../olt/scripts/src/mind/feedback/pushbacks/index.ts";
+import {
+  createVirtualFSSession,
+  type VirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Diagnostics Pushback Ingestion Engine", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
   const repoRoot = process.cwd();
   const feedbackQueuePath = join(repoRoot, ".olt", "capsules", "FEEDBACK_QUEUE.jsonl");
 
+  beforeEach(() => {
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    vfs.mkdirSync(join(repoRoot, ".olt", "capsules"), { recursive: true });
+    vfs.writeFileSync(
+      feedbackQueuePath,
+      JSON.stringify({
+        id: "fb-001",
+        title: "Test Feedback",
+        content: "Pushback content",
+        timestamp: "2026-08-20T10:00:00.000Z",
+        priority: "CRITICAL_USER_FEEDBACK",
+        status: "PENDING",
+        category: "CORE_ENGINE",
+      }) + "\n",
+    );
+  });
+
+  afterEach(() => {
+    session.cleanup();
+  });
+
   describe("FEEDBACK_QUEUE.jsonl Ingestion", () => {
     test("reads and parses all items from actual FEEDBACK_QUEUE.jsonl", () => {
-      if (!existsSync(feedbackQueuePath)) {
+      if (!vfs.existsSync(feedbackQueuePath)) {
         return;
       }
 
@@ -41,7 +69,6 @@ describe("Diagnostics Pushback Ingestion Engine", () => {
       ]);
       const validStatuses = new Set(["PENDING", "ADMITTED", "DECLINED", "PROCESSED", "COMPLETED"]);
 
-      // Check that all items match expected schema and properties
       for (const item of items) {
         expect(typeof item.id).toBe("string");
         expect(item.id.length).toBeGreaterThan(0);
@@ -57,7 +84,6 @@ describe("Diagnostics Pushback Ingestion Engine", () => {
     });
 
     test("maps feedback queue categories to canonical defect categories", () => {
-      // Boundary violations
       expect(mapFeedbackCategoryToDefectCategory("AGENT_CONTRACTS")).toBe("boundary_violation");
       expect(mapFeedbackCategoryToDefectCategory("WATCHDOG")).toBe("boundary_violation");
       expect(mapFeedbackCategoryToDefectCategory("EXECUTION_EFFICIENCY")).toBe(
@@ -68,13 +94,11 @@ describe("Diagnostics Pushback Ingestion Engine", () => {
         "boundary_violation",
       );
 
-      // Model reasoning errors
       expect(mapFeedbackCategoryToDefectCategory("DOCUMENTATION")).toBe("model_reasoning_error");
       expect(mapFeedbackCategoryToDefectCategory("GENERAL")).toBe("model_reasoning_error");
       expect(mapFeedbackCategoryToDefectCategory("ARCHITECTURE")).toBe("model_reasoning_error");
       expect(mapFeedbackCategoryToDefectCategory("plan_revision")).toBe("model_reasoning_error");
 
-      // Code defects
       expect(mapFeedbackCategoryToDefectCategory("CLI_TOOLING")).toBe("code_defect");
       expect(mapFeedbackCategoryToDefectCategory("CORE_ENGINE")).toBe("code_defect");
       expect(mapFeedbackCategoryToDefectCategory("REPAIR")).toBe("code_defect");
@@ -115,7 +139,6 @@ describe("Diagnostics Pushback Ingestion Engine", () => {
 
       expect(records.length).toBeGreaterThanOrEqual(2);
 
-      // Verify User Pushback #8 record
       const pushback8 = records.find((r) => r.pushback_number === 8);
       expect(pushback8 !== undefined).toBeTrue();
       if (pushback8 !== undefined) {
@@ -143,7 +166,6 @@ describe("Diagnostics Pushback Ingestion Engine", () => {
         expect(g2Item !== undefined).toBeTrue();
       }
 
-      // Verify generation convergence records
       const gen1 = records.find((r) => r.generation === 1);
       expect(gen1 !== undefined).toBeTrue();
       if (gen1 !== undefined) {
@@ -172,7 +194,7 @@ describe("Diagnostics Pushback Ingestion Engine", () => {
 
   describe("Aggregated Pushback Ingestion & Candidate Formulation", () => {
     test("ingestPushbacks aggregates records, feedback items, category stats, and proposals", () => {
-      if (!existsSync(feedbackQueuePath)) {
+      if (!vfs.existsSync(feedbackQueuePath)) {
         return;
       }
 

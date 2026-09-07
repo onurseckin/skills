@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { cp, mkdir, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { canonicalJsonBytes } from "../../../olt/scripts/src/core/json.ts";
 import { sealInstallationManifest } from "../../../olt/scripts/src/installer/manifest-integrity.ts";
@@ -10,13 +9,19 @@ import { treeDigest } from "../../../olt/scripts/src/installer/tree-digest.ts";
 import { validateSkillSource } from "../../../olt/scripts/src/installer/source-validation.ts";
 import type { TransactionMarker } from "../../../olt/scripts/src/installer/transaction-marker.ts";
 import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
-import { cleanInstallerFixtures, installerFixture, setupVirtualInstallerFS } from "../helpers.ts";
+import {
+  cleanInstallerFixtures,
+  copyDirRecursive,
+  getVirtualInstallerFS,
+  installerFixture,
+  setupVirtualInstallerFS,
+} from "../helpers.ts";
 
 beforeEach(setupVirtualInstallerFS);
 afterEach(cleanInstallerFixtures);
 
 async function makeRelease(sourceRoot: string, dir: string): Promise<string> {
-  await cp(sourceRoot, dir, { recursive: true });
+  copyDirRecursive(sourceRoot, dir);
   const validated = await validateSkillSource(sourceRoot);
   const digest = await treeDigest(dir, new Set(["installation.json"]));
   const sealed = sealInstallationManifest({
@@ -28,7 +33,7 @@ async function makeRelease(sourceRoot: string, dir: string): Promise<string> {
     installed_at: "2026-01-01T00:00:00.000Z",
     clients: [],
   });
-  await writeFile(join(dir, "installation.json"), canonicalJsonBytes(sealed));
+  getVirtualInstallerFS().writeFileSync(join(dir, "installation.json"), canonicalJsonBytes(sealed));
   return digest;
 }
 
@@ -59,7 +64,7 @@ describe("recoverReleasePaths: temporary-only crash (nothing else touched)", () 
     const { source } = await installerFixture();
     const root = scratchRoot(import.meta.path, "temp-only");
     const home = join(root, "home");
-    await mkdir(home, { recursive: true });
+    getVirtualInstallerFS().mkdirSync(home, { recursive: true });
     const destination = join(home, "dest");
     const temporary = join(home, "dest.tmp-1");
     const digest = await makeRelease(source, temporary);
@@ -74,7 +79,7 @@ describe("recoverReleasePaths: temporary-only crash (nothing else touched)", () 
   test("is a no-op when nothing at all is present (marker already fully cleaned up)", async () => {
     const root = scratchRoot(import.meta.path, "all-missing");
     const home = join(root, "home");
-    await mkdir(home, { recursive: true });
+    getVirtualInstallerFS().mkdirSync(home, { recursive: true });
     const destination = join(home, "dest");
     const marker = baseMarker(home, destination);
     await expect(recoverReleasePaths(marker)).resolves.toBeUndefined();
@@ -86,7 +91,7 @@ describe("recoverReleasePaths: publish already ran (destination is the new relea
     const { source } = await installerFixture();
     const root = scratchRoot(import.meta.path, "published-with-backup");
     const home = join(root, "home");
-    await mkdir(home, { recursive: true });
+    getVirtualInstallerFS().mkdirSync(home, { recursive: true });
     const destination = join(home, "dest");
     const temporary = join(home, "dest.tmp-1");
     const backup = join(home, "dest.old-1");
@@ -120,7 +125,7 @@ describe("recoverReleasePaths: publish already ran (destination is the new relea
     const { source } = await installerFixture();
     const root = scratchRoot(import.meta.path, "published-with-quarantine");
     const home = join(root, "home");
-    await mkdir(home, { recursive: true });
+    getVirtualInstallerFS().mkdirSync(home, { recursive: true });
     const destination = join(home, "dest");
     const temporary = join(home, "dest.tmp-1");
     const backupQuarantine = join(home, "dest.delete-1");
@@ -151,7 +156,7 @@ describe("recoverReleasePaths: publish already ran (destination is the new relea
     const { source } = await installerFixture();
     const root = scratchRoot(import.meta.path, "published-clean");
     const home = join(root, "home");
-    await mkdir(home, { recursive: true });
+    getVirtualInstallerFS().mkdirSync(home, { recursive: true });
     const destination = join(home, "dest");
     const temporary = join(home, "dest.tmp-1");
     const digest = await makeRelease(source, destination);
@@ -174,7 +179,7 @@ describe("recoverReleasePaths: publish never ran (destination still missing)", (
     const { source } = await installerFixture();
     const root = scratchRoot(import.meta.path, "old-moved-not-published");
     const home = join(root, "home");
-    await mkdir(home, { recursive: true });
+    getVirtualInstallerFS().mkdirSync(home, { recursive: true });
     const destination = join(home, "dest");
     const temporary = join(home, "dest.tmp-1");
     const backup = join(home, "dest.old-1");
@@ -199,7 +204,7 @@ describe("recoverReleasePaths: publish never ran (destination still missing)", (
     const { source } = await installerFixture();
     const root = scratchRoot(import.meta.path, "untouched-old-release");
     const home = join(root, "home");
-    await mkdir(home, { recursive: true });
+    getVirtualInstallerFS().mkdirSync(home, { recursive: true });
     const destination = join(home, "dest");
     const temporary = join(home, "dest.tmp-1");
     const digest = await makeRelease(source, temporary);
@@ -223,12 +228,12 @@ describe("recoverReleasePaths: readdir sanity", () => {
     const { source } = await installerFixture();
     const root = scratchRoot(import.meta.path, "readdir-sanity");
     const home = join(root, "home");
-    await mkdir(home, { recursive: true });
+    getVirtualInstallerFS().mkdirSync(home, { recursive: true });
     const destination = join(home, "dest");
     const temporary = join(home, "dest.tmp-1");
     const digest = await makeRelease(source, temporary);
     const marker = baseMarker(home, destination, { temporary, source_sha256: digest });
     await recoverReleasePaths(marker);
-    expect(await readdir(home)).toEqual([]);
+    expect(getVirtualInstallerFS().readdirSync(home)).toEqual([]);
   });
 });

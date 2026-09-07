@@ -1,7 +1,4 @@
 import { beforeEach, describe, expect, it } from "bun:test";
-import * as fs from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import {
   checkRmPermissions,
   copyDirRecursive,
@@ -140,24 +137,19 @@ describe("Virtual FS Handlers Comprehensive Suite", () => {
     expect(mockStat(state, "/virtual/link.txt").isFile()).toBe(true);
     expect(mockLstat(state, "/virtual/link.txt").isSymbolicLink()).toBe(true);
 
-    const realFile = join(tmpdir(), `real-h-${Date.now()}.txt`);
-    const realDir = join(tmpdir(), `real-d-${Date.now()}`);
-    fs.writeFileSync(realFile, "real-data", "utf8");
-    fs.mkdirSync(realDir, { recursive: true });
-    try {
-      expect(mockExists(state, realFile)).toBe(true);
-      expect(mockExists(state, "/virtual/missing")).toBe(false);
-      expect(String(mockReadFile(state, realFile, "utf8"))).toBe("real-data");
-      expect(mockStat(state, realFile).isFile()).toBe(true);
-      expect(mockLstat(state, realFile).isFile()).toBe(true);
-      expect(mockReaddir(state, realDir)).toEqual([]);
-      const dir = mockOpendir(state, realDir);
-      expect(dir.readSync()).toBeNull();
-      dir.closeSync();
-    } finally {
-      fs.rmSync(realFile, { force: true });
-      fs.rmSync(realDir, { recursive: true, force: true });
-    }
+    const realFile = "/virtual/real-h.txt";
+    const realDir = "/virtual/real-d";
+    vfs.writeFileSync(realFile, "real-data");
+    vfs.mkdirSync(realDir, { recursive: true });
+    expect(mockExists(state, realFile)).toBe(true);
+    expect(mockExists(state, "/virtual/missing")).toBe(false);
+    expect(String(mockReadFile(state, realFile, "utf8"))).toBe("real-data");
+    expect(mockStat(state, realFile).isFile()).toBe(true);
+    expect(mockLstat(state, realFile).isFile()).toBe(true);
+    expect(mockReaddir(state, realDir)).toEqual([]);
+    const dir = mockOpendir(state, realDir);
+    expect(dir.readSync()).toBeNull();
+    dir.closeSync();
 
     expect(() => mockStat(state, "/virtual/missing.txt")).toThrow("ENOENT");
     expect(() => mockLstat(state, "/virtual/missing.txt")).toThrow("ENOENT");

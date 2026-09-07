@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -12,17 +11,26 @@ import {
   type DoctorFindingInput,
 } from "../../../olt/scripts/src/mind/defects/sync/lifecycle-sync.ts";
 import type { DefectEntry } from "../../../olt/scripts/src/mind/contracts/defect-contracts.ts";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
-const TEST_DIR = join(process.cwd(), ".tmp-test-lifecycle-sync");
+const TEST_DIR = "/virtual/test-lifecycle-sync";
 const CUSTOM_DEFECTS_PATH = join(TEST_DIR, ".olt", "defects.jsonl");
 
+let vfs: VirtualMemoryFS;
+let session: VirtualFSSession;
+
 beforeEach(() => {
-  if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true, force: true });
-  mkdirSync(join(TEST_DIR, ".olt"), { recursive: true });
+  vfs = new VirtualMemoryFS();
+  session = createVirtualFSSession(vfs);
+  vfs.mkdirSync(join(TEST_DIR, ".olt"), { recursive: true });
 });
 
 afterEach(() => {
-  if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true, force: true });
+  session.cleanup();
 });
 
 describe("Lifecycle Sync Suite", () => {
@@ -34,15 +42,15 @@ describe("Lifecycle Sync Suite", () => {
 
     it("migrates vestigial defects file when canonical target does not exist", () => {
       const vestigialDir = join(TEST_DIR, "olt");
-      mkdirSync(vestigialDir, { recursive: true });
+      vfs.mkdirSync(vestigialDir, { recursive: true });
       const vestigialFile = join(vestigialDir, "defects.jsonl");
       const sample = JSON.stringify({ id: "def-1", type: "ERR_1", status: "open" }) + "\n";
-      writeFileSync(vestigialFile, sample, "utf-8");
+      vfs.writeFileSync(vestigialFile, sample, "utf-8");
 
       cleanupVestigialDefectsFile(CUSTOM_DEFECTS_PATH);
-      expect(existsSync(vestigialFile)).toBe(false);
-      expect(existsSync(CUSTOM_DEFECTS_PATH)).toBe(true);
-      expect(readFileSync(CUSTOM_DEFECTS_PATH, "utf-8")).toBe(sample);
+      expect(vfs.existsSync(vestigialFile)).toBe(false);
+      expect(vfs.existsSync(CUSTOM_DEFECTS_PATH)).toBe(true);
+      expect(vfs.readFileSync(CUSTOM_DEFECTS_PATH, "utf-8")).toBe(sample);
     });
   });
 
@@ -141,7 +149,7 @@ describe("Lifecycle Sync Suite", () => {
         count: 1,
         dedup_key: "closed-key-1",
       };
-      writeFileSync(CUSTOM_DEFECTS_PATH, JSON.stringify(closedDefect) + "\n", "utf-8");
+      vfs.writeFileSync(CUSTOM_DEFECTS_PATH, JSON.stringify(closedDefect) + "\n", "utf-8");
 
       const finding: DoctorFindingInput = {
         id: "doctor-e-closed-123456789012",
@@ -181,7 +189,7 @@ describe("Lifecycle Sync Suite", () => {
         count: 1,
         dedup_key: "strict-key-1",
       };
-      writeFileSync(CUSTOM_DEFECTS_PATH, JSON.stringify(resolved) + "\n", "utf-8");
+      vfs.writeFileSync(CUSTOM_DEFECTS_PATH, JSON.stringify(resolved) + "\n", "utf-8");
 
       expect(() =>
         syncDoctorFindingsToDefects([{ id: "doc-strict-1", code: "E_STRICT" }], {
@@ -213,7 +221,7 @@ describe("Lifecycle Sync Suite", () => {
         dryRun: true,
       });
       expect(res.newlyCreated).toBe(1);
-      expect(existsSync(CUSTOM_DEFECTS_PATH)).toBe(false);
+      expect(vfs.existsSync(CUSTOM_DEFECTS_PATH)).toBe(false);
     });
   });
 });

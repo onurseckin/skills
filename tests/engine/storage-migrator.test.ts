@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { JsonObject } from "../../olt/scripts/src/core/contracts/index.ts";
 import { canonicalJsonBytes, sha256Bytes } from "../../olt/scripts/src/core/json.ts";
@@ -23,11 +22,12 @@ function createValidEventRecord(
 
 describe("storage-migrator coverage suite", () => {
   let tempDir: string;
+  let vfs: ReturnType<typeof setupVirtualEngineFS>;
 
   beforeEach(() => {
-    setupVirtualEngineFS();
+    vfs = setupVirtualEngineFS();
     tempDir = `/virtual/migrator-cov-${crypto.randomUUID()}`;
-    mkdirSync(tempDir, { recursive: true });
+    vfs.mkdirSync(tempDir, { recursive: true });
   });
 
   afterEach(() => {
@@ -39,42 +39,42 @@ describe("storage-migrator coverage suite", () => {
     expect(validateEventsFileShaChain(missingPath).valid).toBe(true);
 
     const emptyPath = join(tempDir, "empty.jsonl");
-    writeFileSync(emptyPath, "   \n\n");
+    vfs.writeFileSync(emptyPath, "   \n\n");
     expect(validateEventsFileShaChain(emptyPath).valid).toBe(true);
 
     const badJsonPath = join(tempDir, "bad-json.jsonl");
-    writeFileSync(badJsonPath, "{not-json\n");
+    vfs.writeFileSync(badJsonPath, "{not-json\n");
     const badJsonRes = validateEventsFileShaChain(badJsonPath);
     expect(badJsonRes.valid).toBe(false);
     expect(badJsonRes.error).toContain("is not valid JSON");
 
     const nonObjPath = join(tempDir, "non-obj.jsonl");
-    writeFileSync(nonObjPath, '["an", "array"]\n');
+    vfs.writeFileSync(nonObjPath, '["an", "array"]\n');
     expect(validateEventsFileShaChain(nonObjPath).error).toContain("must be a JSON object");
 
     const badHashPath = join(tempDir, "bad-hash.jsonl");
-    writeFileSync(badHashPath, JSON.stringify({ hash: "not-a-sha", sequence: 1 }) + "\n");
+    vfs.writeFileSync(badHashPath, JSON.stringify({ hash: "not-a-sha", sequence: 1 }) + "\n");
     expect(validateEventsFileShaChain(badHashPath).error).toContain(
       "invalid or missing SHA-256 hash",
     );
 
     const badPrevHashPath = join(tempDir, "bad-prev.jsonl");
     const dummyHash = "a".repeat(64);
-    writeFileSync(
+    vfs.writeFileSync(
       badPrevHashPath,
       JSON.stringify({ hash: dummyHash, previous_hash: "wrong", sequence: 1 }) + "\n",
     );
     expect(validateEventsFileShaChain(badPrevHashPath).error).toContain("previous_hash");
 
     const badSeqPath = join(tempDir, "bad-seq.jsonl");
-    writeFileSync(
+    vfs.writeFileSync(
       badSeqPath,
       JSON.stringify({ hash: dummyHash, previous_hash: null, sequence: 99 }) + "\n",
     );
     expect(validateEventsFileShaChain(badSeqPath).error).toContain("sequence 99 does not match");
 
     const hashMismatchPath = join(tempDir, "mismatch.jsonl");
-    writeFileSync(
+    vfs.writeFileSync(
       hashMismatchPath,
       JSON.stringify({ event: "e", previous_hash: null, sequence: 1, hash: dummyHash }) + "\n",
     );
@@ -83,52 +83,52 @@ describe("storage-migrator coverage suite", () => {
     const validPath = join(tempDir, "valid.jsonl");
     const rec1 = createValidEventRecord({ type: "start" }, null, 1);
     const rec2 = createValidEventRecord({ type: "finish" }, rec1.hash as string, 2);
-    writeFileSync(validPath, `${JSON.stringify(rec1)}\n${JSON.stringify(rec2)}\n`);
+    vfs.writeFileSync(validPath, `${JSON.stringify(rec1)}\n${JSON.stringify(rec2)}\n`);
     expect(validateEventsFileShaChain(validPath).valid).toBe(true);
   });
 
   it("validates migrated run directory checks", () => {
     const nonDir = join(tempDir, "a-file.txt");
-    writeFileSync(nonDir, "hello");
+    vfs.writeFileSync(nonDir, "hello");
     expect(validateMigratedRun(nonDir).valid).toBe(false);
 
     const validCapsuleDir = join(tempDir, "capsule-dir");
-    mkdirSync(validCapsuleDir, { recursive: true });
+    vfs.mkdirSync(validCapsuleDir, { recursive: true });
     const rec = createValidEventRecord({ type: "init" }, null, 1);
-    writeFileSync(join(validCapsuleDir, "events.jsonl"), JSON.stringify(rec) + "\n");
+    vfs.writeFileSync(join(validCapsuleDir, "events.jsonl"), JSON.stringify(rec) + "\n");
     expect(validateMigratedRun(validCapsuleDir).valid).toBe(true);
   });
 
   it("migrates legacy capsules handling invalid IDs, corrupt chains, collisions, and clean migration", () => {
     const repoRoot = join(tempDir, "repo");
     const legacyDir = join(repoRoot, ".capsules");
-    mkdirSync(legacyDir, { recursive: true });
+    vfs.mkdirSync(legacyDir, { recursive: true });
 
     // 1. Invalid run ID directory
     const invalidIdDir = join(legacyDir, "-invalid-start-dash-");
-    mkdirSync(invalidIdDir);
+    vfs.mkdirSync(invalidIdDir);
 
     // 2. Corrupt run directory
     const corruptId = "2026-09-01T12-00-00-000Z-corrupt";
     const corruptDir = join(legacyDir, corruptId);
-    mkdirSync(corruptDir);
-    writeFileSync(join(corruptDir, "events.jsonl"), "{bad-json\n");
+    vfs.mkdirSync(corruptDir);
+    vfs.writeFileSync(join(corruptDir, "events.jsonl"), "{bad-json\n");
 
     // 3. Collision run directory (already exists in target storage)
     const collisionId = "2026-09-01T12-00-00-000Z-collsn";
     const collisionDir = join(legacyDir, collisionId);
-    mkdirSync(collisionDir);
+    vfs.mkdirSync(collisionDir);
     const recCollision = createValidEventRecord({ type: "c" }, null, 1);
-    writeFileSync(join(collisionDir, "events.jsonl"), JSON.stringify(recCollision) + "\n");
+    vfs.writeFileSync(join(collisionDir, "events.jsonl"), JSON.stringify(recCollision) + "\n");
     const targetCollisionDir = join(repoRoot, ".olt", "capsules", collisionId);
-    mkdirSync(targetCollisionDir, { recursive: true });
+    vfs.mkdirSync(targetCollisionDir, { recursive: true });
 
     // 4. Valid legacy run directory
     const validId = "2026-09-01T12-00-00-000Z-valid1";
     const validRunDir = join(legacyDir, validId);
-    mkdirSync(validRunDir);
+    vfs.mkdirSync(validRunDir);
     const recValid = createValidEventRecord({ type: "ok" }, null, 1);
-    writeFileSync(join(validRunDir, "events.jsonl"), JSON.stringify(recValid) + "\n");
+    vfs.writeFileSync(join(validRunDir, "events.jsonl"), JSON.stringify(recValid) + "\n");
 
     const result = migrateLegacyCapsules(repoRoot);
     expect(result.migratedCount).toBe(1);
@@ -144,23 +144,23 @@ describe("storage-migrator coverage suite", () => {
     const repoRoot = join(tempDir, "repo2");
     const staticOlt = join(repoRoot, "olt");
     const targetOlt = join(repoRoot, ".olt");
-    mkdirSync(staticOlt, { recursive: true });
-    mkdirSync(targetOlt, { recursive: true });
+    vfs.mkdirSync(staticOlt, { recursive: true });
+    vfs.mkdirSync(targetOlt, { recursive: true });
 
     // 1. Backlog file with merge
-    writeFileSync(join(staticOlt, "backlog.jsonl"), '{"id":"b1"}\n{"id":"b2"}\n');
-    writeFileSync(join(targetOlt, "backlog.jsonl"), '{"id":"b1"}\n');
+    vfs.writeFileSync(join(staticOlt, "backlog.jsonl"), '{"id":"b1"}\n{"id":"b2"}\n');
+    vfs.writeFileSync(join(targetOlt, "backlog.jsonl"), '{"id":"b1"}\n');
 
     // 2. Defects file without pre-existing target
-    writeFileSync(join(staticOlt, "defects.jsonl"), '{"id":"d1"}\n');
+    vfs.writeFileSync(join(staticOlt, "defects.jsonl"), '{"id":"d1"}\n');
 
     // 3. Empty telemetry file
-    writeFileSync(join(staticOlt, "telemetry.jsonl"), "\n");
+    vfs.writeFileSync(join(staticOlt, "telemetry.jsonl"), "\n");
 
     // 4. Scratch directory
     const staticScratch = join(staticOlt, "scratch");
-    mkdirSync(staticScratch, { recursive: true });
-    writeFileSync(join(staticScratch, "notes.txt"), "scratch notes");
+    vfs.mkdirSync(staticScratch, { recursive: true });
+    vfs.writeFileSync(join(staticScratch, "notes.txt"), "scratch notes");
 
     const res = relocateVestigialLedgers(repoRoot);
     expect(res.relocatedCount).toBe(4);
@@ -175,19 +175,19 @@ describe("storage-migrator coverage suite", () => {
   it("ignores non-directory entries like .DS_Store in .capsules during migration", () => {
     const repoRoot = join(tempDir, "repo-non-dir");
     const legacyDir = join(repoRoot, ".capsules");
-    mkdirSync(legacyDir, { recursive: true });
+    vfs.mkdirSync(legacyDir, { recursive: true });
 
     // Add regular files that should be ignored
-    writeFileSync(join(legacyDir, ".DS_Store"), "binary-junk");
-    writeFileSync(join(legacyDir, ".gitkeep"), "");
-    writeFileSync(join(legacyDir, "notes.txt"), "some notes");
+    vfs.writeFileSync(join(legacyDir, ".DS_Store"), "binary-junk");
+    vfs.writeFileSync(join(legacyDir, ".gitkeep"), "");
+    vfs.writeFileSync(join(legacyDir, "notes.txt"), "some notes");
 
     // Add one valid capsule
     const validId = "2026-09-01T12-00-00-000Z-valid2";
     const validRunDir = join(legacyDir, validId);
-    mkdirSync(validRunDir);
+    vfs.mkdirSync(validRunDir);
     const recValid = createValidEventRecord({ type: "ok" }, null, 1);
-    writeFileSync(join(validRunDir, "events.jsonl"), JSON.stringify(recValid) + "\n");
+    vfs.writeFileSync(join(validRunDir, "events.jsonl"), JSON.stringify(recValid) + "\n");
 
     const result = migrateLegacyCapsules(repoRoot);
     expect(result.migratedCount).toBe(1);
@@ -197,10 +197,7 @@ describe("storage-migrator coverage suite", () => {
   it("reports integrity error on torn or truncated event line in events.jsonl", () => {
     const tornPath = join(tempDir, "torn-event.jsonl");
     const validRec = createValidEventRecord({ type: "start" }, null, 1);
-    writeFileSync(
-      tornPath,
-      `${JSON.stringify(validRec)}\n{"sequence": 2, "kind": "unfini`,
-    );
+    vfs.writeFileSync(tornPath, `${JSON.stringify(validRec)}\n{"sequence": 2, "kind": "unfini`);
     const res = validateEventsFileShaChain(tornPath);
     expect(res.valid).toBe(false);
     expect(res.error).toContain("is not valid JSON");

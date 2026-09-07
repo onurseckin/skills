@@ -1,7 +1,7 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { cleanupVirtualPolicyFS, setupVirtualPolicyFS } from "../fixture.ts";
+import type { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   AuditTrailWriter,
   PolicyEngineTelemetryCollector,
@@ -30,9 +30,10 @@ import {
 
 describe("Policy Presets, Manifest Readers, Audit, Telemetry & RBAC Runners Comprehensive", () => {
   const scratchBase = "/virtual/policy/schema/presets-audit";
+  let vfs: VirtualMemoryFS;
 
   beforeEach(() => {
-    setupVirtualPolicyFS();
+    vfs = setupVirtualPolicyFS();
   });
 
   afterEach(() => {
@@ -57,11 +58,10 @@ describe("Policy Presets, Manifest Readers, Audit, Telemetry & RBAC Runners Comp
 
   test("manifest readers handle valid, invalid, and missing files", () => {
     const scratch = join(scratchBase, "manifest-readers");
-    mkdirSync(scratch, { recursive: true });
+    vfs.mkdirSync(scratch, { recursive: true });
 
-    // package.json
     expect(readPackageJson(scratch).exists).toBe(false);
-    writeFileSync(
+    vfs.writeFileSync(
       join(scratch, "package.json"),
       JSON.stringify({
         name: "my-pkg",
@@ -75,9 +75,8 @@ describe("Policy Presets, Manifest Readers, Audit, Telemetry & RBAC Runners Comp
     expect(pkg.hasScript("test")).toBe(true);
     expect(pkg.hasDep("react")).toBe(true);
 
-    // turbo.json
     expect(readTurboJson(scratch).exists).toBe(false);
-    writeFileSync(
+    vfs.writeFileSync(
       join(scratch, "turbo.json"),
       JSON.stringify({ pipeline: { build: { dependsOn: ["^build"] } } }),
       "utf-8",
@@ -86,14 +85,13 @@ describe("Policy Presets, Manifest Readers, Audit, Telemetry & RBAC Runners Comp
     expect(turbo.exists).toBe(true);
     expect(turbo.hasTask("build")).toBe(true);
 
-    // Python manifests
     expect(readPythonManifests(scratch).hasPyproject).toBe(false);
-    writeFileSync(
+    vfs.writeFileSync(
       join(scratch, "pyproject.toml"),
       '[project]\nname = "my-py-proj"\n[tool.ruff]\n',
       "utf-8",
     );
-    writeFileSync(join(scratch, "requirements.txt"), "pytest>=7.0.0\nmypy\n", "utf-8");
+    vfs.writeFileSync(join(scratch, "requirements.txt"), "pytest>=7.0.0\nmypy\n", "utf-8");
     const py = readPythonManifests(scratch);
     expect(py.hasPyproject).toBe(true);
     expect(py.hasRequirements).toBe(true);
@@ -101,9 +99,12 @@ describe("Policy Presets, Manifest Readers, Audit, Telemetry & RBAC Runners Comp
     expect(py.usesPytest).toBe(true);
     expect(py.usesMypy).toBe(true);
 
-    // Makefile
     expect(readMakefile(scratch).exists).toBe(false);
-    writeFileSync(join(scratch, "Makefile"), "build:\n\techo build\ntest:\n\techo test\n", "utf-8");
+    vfs.writeFileSync(
+      join(scratch, "Makefile"),
+      "build:\n\techo build\ntest:\n\techo test\n",
+      "utf-8",
+    );
     const makefile = readMakefile(scratch);
     expect(makefile.exists).toBe(true);
     expect(makefile.hasTarget("build")).toBe(true);
@@ -112,14 +113,13 @@ describe("Policy Presets, Manifest Readers, Audit, Telemetry & RBAC Runners Comp
 
   test("AuditTrailWriter, SecurityAuditLogger, TelemetryCollector, ViolationAlertDispatcher lifecycle", async () => {
     const scratch = join(scratchBase, "audit-system");
-    mkdirSync(scratch, { recursive: true });
+    vfs.mkdirSync(scratch, { recursive: true });
     const auditFile = join(scratch, "audit.jsonl");
 
     const logger = new SecurityAuditLogger({
       writerOptions: { logFilePath: auditFile, maxInMemoryEvents: 50 },
     });
 
-    // Record various events
     await logger.logRbacDecision({
       actor: { id: "worker-1", role: "implementer" },
       command: "bun test",

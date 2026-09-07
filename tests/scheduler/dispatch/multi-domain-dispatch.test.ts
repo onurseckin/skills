@@ -258,9 +258,7 @@ describe("Multi-Domain Dispatch: Edge Cases & Options", () => {
   });
 
   test("prevents validator dispatch when active implementer scopes conflict", () => {
-    const tasks = [
-      createTask("sub-task", "src/shared/file.ts", { status: "submitted" }),
-    ];
+    const tasks = [createTask("sub-task", "src/shared/file.ts", { status: "submitted" })];
     const state = createMultiDomainState(tasks);
 
     const result = dispatchMultiDomainValidators(state, {
@@ -271,5 +269,3 @@ describe("Multi-Domain Dispatch: Edge Cases & Options", () => {
     expect(result.validatorDispatches).toHaveLength(0);
   });
 });
-
-

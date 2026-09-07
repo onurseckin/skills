@@ -1,5 +1,4 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { inspectRepositoryGitControls } from "../../../../../olt/scripts/src/packets/repository-git-controls.ts";
 import type { RepositoryGitCommand } from "../../../../../olt/scripts/src/packets/repository-git-command.ts";
@@ -54,14 +53,14 @@ describe("inspectRepositoryGitControls", () => {
   test("digests real control files, a separate common dir, and an info directory", () => {
     const { repo, gitDir } = fixtureRepo("git-controls-full-");
     const commonDir = join(repo, ".git-common");
-    mkdirSync(commonDir);
-    mkdirSync(join(commonDir, "info"));
-    writeFileSync(join(commonDir, "info", "attributes"), "* text=auto\n");
-    writeFileSync(join(commonDir, "info", "exclude"), "*.log\n");
-    writeFileSync(join(commonDir, "config"), "[core]\n\tbare = false\n");
-    writeFileSync(join(gitDir, "config.worktree"), "[core]\n\tworktree = true\n");
-    writeFileSync(join(gitDir, "commondir"), `${commonDir}\n`);
-    writeFileSync(join(gitDir, "gitdir"), `${gitDir}\n`);
+    vfs.mkdirSync(commonDir, { recursive: true });
+    vfs.mkdirSync(join(commonDir, "info"), { recursive: true });
+    vfs.writeFileSync(join(commonDir, "info", "attributes"), "* text=auto\n");
+    vfs.writeFileSync(join(commonDir, "info", "exclude"), "*.log\n");
+    vfs.writeFileSync(join(commonDir, "config"), "[core]\n\tbare = false\n");
+    vfs.writeFileSync(join(gitDir, "config.worktree"), "[core]\n\tworktree = true\n");
+    vfs.writeFileSync(join(gitDir, "commondir"), `${commonDir}\n`);
+    vfs.writeFileSync(join(gitDir, "gitdir"), `${gitDir}\n`);
 
     const manifest = inspectRepositoryGitControls(
       repo,
@@ -75,10 +74,10 @@ describe("inspectRepositoryGitControls", () => {
   test("rejects a repository whose common directory info path is a symlink", () => {
     const { repo, gitDir } = fixtureRepo("git-controls-symlinked-info-");
     const commonDir = join(repo, ".git-common");
-    mkdirSync(commonDir);
+    vfs.mkdirSync(commonDir, { recursive: true });
     const realInfo = join(repo, "real-info");
-    mkdirSync(realInfo);
-    symlinkSync(realInfo, join(commonDir, "info"));
+    vfs.mkdirSync(realInfo, { recursive: true });
+    session.symlinkSync(realInfo, join(commonDir, "info"));
 
     expect(() =>
       inspectRepositoryGitControls(repo, baseCommand(gitDir, commonDir), 1024 * 1024, 1024 * 1024),
@@ -103,7 +102,7 @@ describe("inspectRepositoryGitControls", () => {
 
   test("rejects a common config that indirects through include/includeIf", () => {
     const { repo, gitDir } = fixtureRepo("git-controls-indirection-");
-    writeFileSync(join(gitDir, "config"), "[include]\n\tpath = other.gitconfig\n");
+    vfs.writeFileSync(join(gitDir, "config"), "[include]\n\tpath = other.gitconfig\n");
     const command: RepositoryGitCommand = (_repo, argv) => {
       if (argv.includes("--absolute-git-dir"))
         return { status: 0, bytes: Buffer.from(`${gitDir}\n`) };
@@ -122,7 +121,7 @@ describe("inspectRepositoryGitControls", () => {
 
   test("rejects control files whose combined size exceeds the total byte limit", () => {
     const { repo, gitDir } = fixtureRepo("git-controls-total-limit-");
-    writeFileSync(join(gitDir, "config.worktree"), "x".repeat(200));
+    vfs.writeFileSync(join(gitDir, "config.worktree"), "x".repeat(200));
     expect(() =>
       inspectRepositoryGitControls(repo, baseCommand(gitDir, gitDir), 1024, 100),
     ).toThrow("repository Git controls total byte limit exceeded");
@@ -130,7 +129,7 @@ describe("inspectRepositoryGitControls", () => {
 
   test("rejects an individual control file exceeding single file byte limit", () => {
     const { repo, gitDir } = fixtureRepo("git-controls-single-limit-");
-    writeFileSync(join(gitDir, "config.worktree"), "y".repeat(150));
+    vfs.writeFileSync(join(gitDir, "config.worktree"), "y".repeat(150));
     expect(() =>
       inspectRepositoryGitControls(repo, baseCommand(gitDir, gitDir), 100, 1024 * 1024),
     ).toThrow("repository Git control byte limit exceeded: git-dir/config.worktree");
@@ -138,8 +137,8 @@ describe("inspectRepositoryGitControls", () => {
 
   test("digests empty control files without throwing errors", () => {
     const { repo, gitDir } = fixtureRepo("git-controls-empty-files-");
-    writeFileSync(join(gitDir, "config.worktree"), "");
-    writeFileSync(join(gitDir, "commondir"), `${gitDir}\n`);
+    vfs.writeFileSync(join(gitDir, "config.worktree"), "");
+    vfs.writeFileSync(join(gitDir, "commondir"), `${gitDir}\n`);
     const manifest = inspectRepositoryGitControls(
       repo,
       baseCommand(gitDir, gitDir),

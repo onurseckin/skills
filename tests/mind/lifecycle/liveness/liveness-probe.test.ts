@@ -1,5 +1,4 @@
-import { describe, expect, it, spyOn, afterEach } from "bun:test";
-import * as fs from "node:fs";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import {
   evaluateMindLiveness,
   calculateTimeToStaleMs,
@@ -12,18 +11,27 @@ import {
   EXIT_CODE_HEALTHY,
   EXIT_CODE_STALE,
 } from "../../../../olt/scripts/src/mind/lifecycle/liveness/types.ts";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Mind Lifecycle Liveness Probe Suite", () => {
-  const spies: Array<{ mockRestore: () => void }> = [];
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
+
+  beforeEach(() => {
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+  });
 
   afterEach(() => {
-    for (const spy of spies) spy.mockRestore();
-    spies.length = 0;
+    session.cleanup();
   });
 
   describe("evaluateMindLiveness", () => {
     it("returns missing_record status when pulse file does not exist", () => {
-      spies.push(spyOn(fs, "existsSync").mockReturnValue(false));
       const res = evaluateMindLiveness("/mock/capsule");
       expect(res.status).toBe("missing_record");
       expect(res.healthy).toBe(false);
@@ -33,40 +41,41 @@ describe("Mind Lifecycle Liveness Probe Suite", () => {
     });
 
     it("returns corrupted_record when readFileSync throws an Error or non-Error", () => {
-      spies.push(spyOn(fs, "existsSync").mockReturnValue(true));
-      spies.push(
-        spyOn(fs, "readFileSync").mockImplementation(() => {
-          throw new Error("EACCES: permission denied");
-        }),
-      );
+      vfs.mkdirSync("/mock/capsule", { recursive: true });
+      vfs.writeFileSync("/mock/capsule/last_pulse.json", "{}");
+
+      const spy1 = spyOn(vfs, "readFileSync").mockImplementation(() => {
+        throw new Error("EACCES: permission denied");
+      });
       const res1 = evaluateMindLiveness("/mock/capsule");
       expect(res1.status).toBe("corrupted_record");
       expect(res1.healthy).toBe(false);
       expect(res1.exitCode).toBe(EXIT_CODE_CHECK_FAILURE);
       expect(res1.reason).toContain("EACCES");
+      spy1.mockRestore();
 
-      spies.push(
-        spyOn(fs, "readFileSync").mockImplementation(() => {
-          throw "Disk failure string";
-        }),
-      );
+      const spy2 = spyOn(vfs, "readFileSync").mockImplementation(() => {
+        throw "Disk failure string";
+      });
       const res2 = evaluateMindLiveness("/mock/capsule");
       expect(res2.status).toBe("corrupted_record");
       expect(res2.reason).toContain("Disk failure string");
+      spy2.mockRestore();
     });
 
     it("returns corrupted_record when JSON is primitive, array, or malformed", () => {
-      spies.push(spyOn(fs, "existsSync").mockReturnValue(true));
-      spies.push(spyOn(fs, "readFileSync").mockReturnValue("null" as unknown as Buffer));
+      vfs.mkdirSync("/mock/capsule", { recursive: true });
+
+      vfs.writeFileSync("/mock/capsule/last_pulse.json", "null");
       expect(evaluateMindLiveness("/mock/capsule").status).toBe("corrupted_record");
 
-      spies.push(spyOn(fs, "readFileSync").mockReturnValue('"just a string"' as unknown as Buffer));
+      vfs.writeFileSync("/mock/capsule/last_pulse.json", '"just a string"');
       expect(evaluateMindLiveness("/mock/capsule").status).toBe("corrupted_record");
 
-      spies.push(spyOn(fs, "readFileSync").mockReturnValue("[1, 2, 3]" as unknown as Buffer));
+      vfs.writeFileSync("/mock/capsule/last_pulse.json", "[1, 2, 3]");
       expect(evaluateMindLiveness("/mock/capsule").status).toBe("corrupted_record");
 
-      spies.push(spyOn(fs, "readFileSync").mockReturnValue("{ invalid json" as unknown as Buffer));
+      vfs.writeFileSync("/mock/capsule/last_pulse.json", "{ invalid json");
       expect(evaluateMindLiveness("/mock/capsule").status).toBe("corrupted_record");
     });
 
@@ -78,8 +87,8 @@ describe("Mind Lifecycle Liveness Probe Suite", () => {
         outcome: "success",
         next_wake_at: new Date(now + 60_000).toISOString(),
       });
-      spies.push(spyOn(fs, "existsSync").mockReturnValue(true));
-      spies.push(spyOn(fs, "readFileSync").mockReturnValue(freshRecord as unknown as Buffer));
+      vfs.mkdirSync("/mock/capsule", { recursive: true });
+      vfs.writeFileSync("/mock/capsule/last_pulse.json", freshRecord);
 
       const res = evaluateMindLiveness("/mock/capsule", {
         nowMs: now,
@@ -101,8 +110,8 @@ describe("Mind Lifecycle Liveness Probe Suite", () => {
         closed_at: new Date(now - 2_000_000).toISOString(),
         outcome: "active",
       });
-      spies.push(spyOn(fs, "existsSync").mockReturnValue(true));
-      spies.push(spyOn(fs, "readFileSync").mockReturnValue(staleRecord as unknown as Buffer));
+      vfs.mkdirSync("/mock/capsule", { recursive: true });
+      vfs.writeFileSync("/mock/capsule/last_pulse.json", staleRecord);
 
       const res = evaluateMindLiveness("/mock/capsule", { nowMs: now });
       expect(res.status).toBe("stale");

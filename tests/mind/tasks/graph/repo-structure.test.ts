@@ -1,8 +1,11 @@
-import { describe, expect, it } from "bun:test";
-import { mkdirSync, rmSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { detectRepositoryStructure } from "../../../../olt/scripts/src/mind/tasks/smart/executor/evolution/repo-structure.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 function runInNonTestEnvironment<T>(fn: () => T): T {
   const origNodeEnv = process.env["NODE_ENV"];
@@ -27,6 +30,19 @@ function runInNonTestEnvironment<T>(fn: () => T): T {
 }
 
 describe("Repository Structure Detection Suite (repo-structure.ts)", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
+
+  beforeEach(() => {
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    vfs.mkdirSync(join(process.cwd(), "src"), { recursive: true });
+  });
+
+  afterEach(() => {
+    session.cleanup();
+  });
+
   it("detects virtual and test environment mock structure when undefined or virtual path passed", () => {
     const resDefault = detectRepositoryStructure();
     expect(resDefault.apps).toEqual(["apps"]);
@@ -52,115 +68,99 @@ describe("Repository Structure Detection Suite (repo-structure.ts)", () => {
   });
 
   it("scans standard directory structures in non-test runtime environment", () => {
-    const tempDir = join(tmpdir(), `repo-struct-std-${Date.now()}`);
-    mkdirSync(join(tempDir, "apps", "web"), { recursive: true });
-    mkdirSync(join(tempDir, "packages", "core"), { recursive: true });
-    mkdirSync(join(tempDir, "src", "engine"), { recursive: true });
-    mkdirSync(join(tempDir, "tests", "unit"), { recursive: true });
-    mkdirSync(join(tempDir, "docs", "planning"), { recursive: true });
+    const tempDir = "/virtual/repo-struct-std";
+    vfs.mkdirSync(join(tempDir, "apps", "web"), { recursive: true });
+    vfs.mkdirSync(join(tempDir, "packages", "core"), { recursive: true });
+    vfs.mkdirSync(join(tempDir, "src", "engine"), { recursive: true });
+    vfs.mkdirSync(join(tempDir, "tests", "unit"), { recursive: true });
+    vfs.mkdirSync(join(tempDir, "docs", "planning"), { recursive: true });
 
-    try {
-      const result = runInNonTestEnvironment(() => detectRepositoryStructure(tempDir));
-      expect(result.repoRoot).toBe(tempDir);
-      expect(result.hasApps).toBe(true);
-      expect(result.apps).toContain("apps");
-      expect(result.apps).toContain("apps/web");
-      expect(result.hasPackages).toBe(true);
-      expect(result.packages).toContain("packages");
-      expect(result.packages).toContain("packages/core");
-      expect(result.hasSrc).toBe(true);
-      expect(result.src).toContain("src");
-      expect(result.src).toContain("src/engine");
-      expect(result.hasTests).toBe(true);
-      expect(result.tests).toContain("tests");
-      expect(result.tests).toContain("tests/unit");
-      expect(result.hasDocs).toBe(true);
-      expect(result.docs).toContain("docs");
-      expect(result.docs).toContain("docs/planning");
-      expect(result.hasPlanning).toBe(true);
-      expect(result.planning).toEqual(["docs/planning"]);
-    } finally {
-      rmSync(tempDir, { recursive: true, force: true });
-    }
+    const result = runInNonTestEnvironment(() => detectRepositoryStructure(tempDir));
+    expect(result.repoRoot).toBe(tempDir);
+    expect(result.hasApps).toBe(true);
+    expect(result.apps).toContain("apps");
+    expect(result.apps).toContain("apps/web");
+    expect(result.hasPackages).toBe(true);
+    expect(result.packages).toContain("packages");
+    expect(result.packages).toContain("packages/core");
+    expect(result.hasSrc).toBe(true);
+    expect(result.src).toContain("src");
+    expect(result.src).toContain("src/engine");
+    expect(result.hasTests).toBe(true);
+    expect(result.tests).toContain("tests");
+    expect(result.tests).toContain("tests/unit");
+    expect(result.hasDocs).toBe(true);
+    expect(result.docs).toContain("docs");
+    expect(result.docs).toContain("docs/planning");
+    expect(result.hasPlanning).toBe(true);
+    expect(result.planning).toEqual(["docs/planning"]);
   });
 
   it("scans alternative naming directory conventions (app, pkg, lib, test, documentation, planning)", () => {
-    const tempDir = join(tmpdir(), `repo-struct-alt1-${Date.now()}`);
-    mkdirSync(join(tempDir, "app", "mobile"), { recursive: true });
-    mkdirSync(join(tempDir, "pkg", "utils"), { recursive: true });
-    mkdirSync(join(tempDir, "lib", "helpers"), { recursive: true });
-    mkdirSync(join(tempDir, "test", "e2e"), { recursive: true });
-    mkdirSync(join(tempDir, "documentation"), { recursive: true });
-    mkdirSync(join(tempDir, "planning"), { recursive: true });
+    const tempDir = "/virtual/repo-struct-alt1";
+    vfs.mkdirSync(join(tempDir, "app", "mobile"), { recursive: true });
+    vfs.mkdirSync(join(tempDir, "pkg", "utils"), { recursive: true });
+    vfs.mkdirSync(join(tempDir, "lib", "helpers"), { recursive: true });
+    vfs.mkdirSync(join(tempDir, "test", "e2e"), { recursive: true });
+    vfs.mkdirSync(join(tempDir, "documentation"), { recursive: true });
+    vfs.mkdirSync(join(tempDir, "planning"), { recursive: true });
 
-    try {
-      const result = runInNonTestEnvironment(() => detectRepositoryStructure(tempDir));
-      expect(result.hasApps).toBe(true);
-      expect(result.apps).toContain("app");
-      expect(result.apps).toContain("app/mobile");
-      expect(result.hasPackages).toBe(true);
-      expect(result.packages).toContain("pkg");
-      expect(result.packages).toContain("pkg/utils");
-      expect(result.hasSrc).toBe(true);
-      expect(result.src).toContain("lib");
-      expect(result.src).toContain("lib/helpers");
-      expect(result.hasTests).toBe(true);
-      expect(result.tests).toContain("test");
-      expect(result.tests).toContain("test/e2e");
-      expect(result.hasDocs).toBe(true);
-      expect(result.docs).toEqual(["documentation"]);
-      expect(result.hasPlanning).toBe(true);
-      expect(result.planning).toEqual(["planning"]);
-    } finally {
-      rmSync(tempDir, { recursive: true, force: true });
-    }
+    const result = runInNonTestEnvironment(() => detectRepositoryStructure(tempDir));
+    expect(result.hasApps).toBe(true);
+    expect(result.apps).toContain("app");
+    expect(result.apps).toContain("app/mobile");
+    expect(result.hasPackages).toBe(true);
+    expect(result.packages).toContain("pkg");
+    expect(result.packages).toContain("pkg/utils");
+    expect(result.hasSrc).toBe(true);
+    expect(result.src).toContain("lib");
+    expect(result.src).toContain("lib/helpers");
+    expect(result.hasTests).toBe(true);
+    expect(result.tests).toContain("test");
+    expect(result.tests).toContain("test/e2e");
+    expect(result.hasDocs).toBe(true);
+    expect(result.docs).toEqual(["documentation"]);
+    expect(result.hasPlanning).toBe(true);
+    expect(result.planning).toEqual(["planning"]);
   });
 
   it("scans secondary alternative naming conventions (modules, olt/scripts/src, spec)", () => {
-    const tempDir = join(tmpdir(), `repo-struct-alt2-${Date.now()}`);
-    mkdirSync(join(tempDir, "modules", "auth"), { recursive: true });
-    mkdirSync(join(tempDir, "olt", "scripts", "src"), { recursive: true });
-    mkdirSync(join(tempDir, "spec", "features"), { recursive: true });
+    const tempDir = "/virtual/repo-struct-alt2";
+    vfs.mkdirSync(join(tempDir, "modules", "auth"), { recursive: true });
+    vfs.mkdirSync(join(tempDir, "olt", "scripts", "src"), { recursive: true });
+    vfs.mkdirSync(join(tempDir, "spec", "features"), { recursive: true });
 
-    try {
-      const result = runInNonTestEnvironment(() => detectRepositoryStructure(tempDir));
-      expect(result.hasApps).toBe(false);
-      expect(result.apps).toEqual([]);
-      expect(result.hasPackages).toBe(true);
-      expect(result.packages).toContain("modules");
-      expect(result.packages).toContain("modules/auth");
-      expect(result.hasSrc).toBe(true);
-      expect(result.src).toEqual(["olt/scripts/src"]);
-      expect(result.hasTests).toBe(true);
-      expect(result.tests).toContain("spec");
-      expect(result.tests).toContain("spec/features");
-      expect(result.hasDocs).toBe(false);
-      expect(result.hasPlanning).toBe(false);
-    } finally {
-      rmSync(tempDir, { recursive: true, force: true });
-    }
+    const result = runInNonTestEnvironment(() => detectRepositoryStructure(tempDir));
+    expect(result.hasApps).toBe(false);
+    expect(result.apps).toEqual([]);
+    expect(result.hasPackages).toBe(true);
+    expect(result.packages).toContain("modules");
+    expect(result.packages).toContain("modules/auth");
+    expect(result.hasSrc).toBe(true);
+    expect(result.src).toEqual(["olt/scripts/src"]);
+    expect(result.hasTests).toBe(true);
+    expect(result.tests).toContain("spec");
+    expect(result.tests).toContain("spec/features");
+    expect(result.hasDocs).toBe(false);
+    expect(result.hasPlanning).toBe(false);
   });
 
   it("handles completely empty repository directory cleanly in non-test runtime", () => {
-    const tempDir = join(tmpdir(), `repo-struct-empty-${Date.now()}`);
-    mkdirSync(tempDir, { recursive: true });
+    const tempDir = "/virtual/repo-struct-empty";
+    vfs.mkdirSync(tempDir, { recursive: true });
 
-    try {
-      const result = runInNonTestEnvironment(() => detectRepositoryStructure(tempDir));
-      expect(result.hasApps).toBe(false);
-      expect(result.hasPackages).toBe(false);
-      expect(result.hasSrc).toBe(false);
-      expect(result.hasTests).toBe(false);
-      expect(result.hasDocs).toBe(false);
-      expect(result.hasPlanning).toBe(false);
-      expect(result.apps).toEqual([]);
-      expect(result.packages).toEqual([]);
-      expect(result.src).toEqual([]);
-      expect(result.tests).toEqual([]);
-      expect(result.docs).toEqual([]);
-      expect(result.planning).toEqual([]);
-    } finally {
-      rmSync(tempDir, { recursive: true, force: true });
-    }
+    const result = runInNonTestEnvironment(() => detectRepositoryStructure(tempDir));
+    expect(result.hasApps).toBe(false);
+    expect(result.hasPackages).toBe(false);
+    expect(result.hasSrc).toBe(false);
+    expect(result.hasTests).toBe(false);
+    expect(result.hasDocs).toBe(false);
+    expect(result.hasPlanning).toBe(false);
+    expect(result.apps).toEqual([]);
+    expect(result.packages).toEqual([]);
+    expect(result.src).toEqual([]);
+    expect(result.tests).toEqual([]);
+    expect(result.docs).toEqual([]);
+    expect(result.planning).toEqual([]);
   });
 });

@@ -1,5 +1,4 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { ensureHarnessIgnored } from "../../../../../olt/scripts/src/cli/git-ignore.ts";
 import { ignoredByGit } from "../../../../../olt/scripts/src/reporting/doctor.ts";
@@ -105,7 +104,7 @@ describe("restricted repository Git callers", () => {
       join(scriptsRoot, "src", "cli", "git-ignore.ts"),
       join(scriptsRoot, "src", "reporting", "doctor", "facts.ts"),
     ]) {
-      const source = readFileSync(path, "utf8");
+      const source = session.readFileSync(path, "utf8");
       expect(source).not.toMatch(/spawnSync[\s\S]{0,200}["']git["']/u);
       expect(source).toContain("RepositoryGitCommand");
     }

@@ -1,5 +1,4 @@
 import { describe, expect, it, beforeEach, afterEach, spyOn } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -102,7 +101,7 @@ describe("AutonomousLoopRunner Unit Tests", () => {
     summary,
   });
 
-  const exec = (fn: (inp: RoundExecutionInput) => RoundExecutionResult): RoundExecutor => ({
+  const makeExecutor = (fn: (inp: RoundExecutionInput) => RoundExecutionResult): RoundExecutor => ({
     executeRound: async (inp) => fn(inp),
   });
 
@@ -113,7 +112,7 @@ describe("AutonomousLoopRunner Unit Tests", () => {
       baseRunId: "run-test-r1",
       repoPath: dir,
       initialPrompt: "Implement feature X",
-      executor: exec((i) =>
+      executor: makeExecutor((i) =>
         makeResult(i.runId, i.round, "completed", "approve", [], true, "Verified."),
       ),
       onRoundStart: (r) => rounds.push(r),
@@ -124,7 +123,7 @@ describe("AutonomousLoopRunner Unit Tests", () => {
     expect(summary.gateStatus).toBe("passed");
     expect(summary.finalCriticDecision).toBe("approve");
     expect(rounds).toEqual([1]);
-    expect(fs.existsSync(join(dir, ".olt", "capsules", "run-test-r1-loop-summary.json"))).toBe(
+    expect(vfs.existsSync(join(dir, ".olt", "capsules", "run-test-r1-loop-summary.json"))).toBe(
       true,
     );
   });
@@ -137,7 +136,9 @@ describe("AutonomousLoopRunner Unit Tests", () => {
       repoPath: dir,
       initialPrompt: "Gate check",
       maxRounds: 3,
-      executor: exec((i) => makeResult(i.runId, ++count, "completed", "approve", [], count > 1)),
+      executor: makeExecutor((i) =>
+        makeResult(i.runId, ++count, "completed", "approve", [], count > 1),
+      ),
     }).run();
     expect(summary.totalRoundsExecuted).toBe(2);
     expect(summary.finalStatus).toBe("converged_success");
@@ -152,7 +153,7 @@ describe("AutonomousLoopRunner Unit Tests", () => {
       baseRunId: "run-chain",
       repoPath: dir,
       initialPrompt: "Build pipeline",
-      executor: exec((i) => {
+      executor: makeExecutor((i) => {
         if (i.round === 1)
           return makeResult(i.runId, 1, "rejected", "request_changes", [finding("f-01", "open")]);
         r2Prompt = i.prompt;
@@ -176,7 +177,7 @@ describe("AutonomousLoopRunner Unit Tests", () => {
       repoPath: dir,
       initialPrompt: "Fail task",
       maxRounds: 3,
-      executor: exec((i) =>
+      executor: makeExecutor((i) =>
         makeResult(i.runId, i.round, "rejected", "request_changes", [
           finding(`f-${i.round}`, "open", "important"),
         ]),
@@ -190,7 +191,7 @@ describe("AutonomousLoopRunner Unit Tests", () => {
       repoPath: dir,
       initialPrompt: "Crash",
       maxRounds: 5,
-      executor: exec((i) => makeResult(i.runId, i.round, "failed", "rejected")),
+      executor: makeExecutor((i) => makeResult(i.runId, i.round, "failed", "rejected")),
     }).run();
     expect(summary2.totalRoundsExecuted).toBe(1);
     expect(summary2.finalStatus).toBe("failed");
@@ -223,7 +224,7 @@ describe("AutonomousLoopRunner Unit Tests", () => {
       baseRunId: ".olt/capsules/2026-08-20-curriculum",
       repoPath: dir,
       initialPrompt: "Implement",
-      executor: exec((i) => makeResult(i.runId, i.round, "completed", "approve")),
+      executor: makeExecutor((i) => makeResult(i.runId, i.round, "completed", "approve")),
     });
     expect(rPrefix.baseRunId).toBe("2026-08-20-curriculum");
     expect((await rPrefix.run()).loopId).toBe("loop-2026-08-20-curriculum");
@@ -236,7 +237,7 @@ describe("AutonomousLoopRunner Unit Tests", () => {
       repoPath: dir,
       initialPrompt: "Run track",
       maxRounds: 2,
-      executor: exec((i) =>
+      executor: makeExecutor((i) =>
         makeResult(i.runId, i.round, "completed", "approve", [], true, "Track done."),
       ),
     });

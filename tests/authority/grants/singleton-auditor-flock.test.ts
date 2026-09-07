@@ -6,31 +6,25 @@ import {
   readAuditorLeaseLock,
   releaseAuditorLeaseLock,
 } from "../../../olt/scripts/src/authority/guards/singleton-auditor-guard.ts";
-import {
-  cleanupVirtualAuthorityFS,
-  closeSync,
-  getVirtualAuthorityFS,
-  openSync,
-  setupVirtualAuthorityFS,
-} from "../fixture.ts";
+import * as virtualAuthority from "../fixture.ts";
 
 describe("Singleton Skill Auditor Lease Guard - Locking & Edge Cases", () => {
   const tempDir = "/virtual/grants/auditor-flock-test";
   const lockPath = join(tempDir, "skill_auditor.lock");
 
   beforeEach(() => {
-    setupVirtualAuthorityFS();
-    const vfs = getVirtualAuthorityFS();
+    virtualAuthority.setupVirtualAuthorityFS();
+    const vfs = virtualAuthority.getVirtualAuthorityFS();
     vfs.mkdirSync(tempDir, { recursive: true });
   });
 
   afterEach(() => {
-    cleanupVirtualAuthorityFS();
+    virtualAuthority.cleanupVirtualAuthorityFS();
   });
 
   describe("readAuditorLeaseLock edge cases", () => {
     it("returns null on non-existent, empty, or corrupt files", () => {
-      const vfs = getVirtualAuthorityFS();
+      const vfs = virtualAuthority.getVirtualAuthorityFS();
       expect(readAuditorLeaseLock(join(tempDir, "missing.lock"))).toBeNull();
       vfs.writeFileSync(lockPath, "   \n  ");
       expect(readAuditorLeaseLock(lockPath)).toBeNull();
@@ -90,7 +84,7 @@ describe("Singleton Skill Auditor Lease Guard - Locking & Edge Cases", () => {
         };
 
         const flockPath = `${lockPath}.flock`;
-        const fd = openSync(flockPath, "w+");
+        const fd = virtualAuthority.openSync(flockPath, "w+");
 
         try {
           expect(() => {
@@ -101,7 +95,7 @@ describe("Singleton Skill Auditor Lease Guard - Locking & Edge Cases", () => {
             });
           }).toBeDefined();
         } finally {
-          closeSync(fd);
+          virtualAuthority.closeSync(fd);
         }
       } finally {
         Date.now = origDateNow;
@@ -111,7 +105,7 @@ describe("Singleton Skill Auditor Lease Guard - Locking & Edge Cases", () => {
 
   describe("releaseAuditorLeaseLock edge cases", () => {
     it("returns false if existing lock file cannot be read or parsed", () => {
-      const vfs = getVirtualAuthorityFS();
+      const vfs = virtualAuthority.getVirtualAuthorityFS();
       vfs.writeFileSync(lockPath, "{ invalid json");
       expect(
         releaseAuditorLeaseLock({

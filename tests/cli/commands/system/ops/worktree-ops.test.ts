@@ -1,9 +1,9 @@
-import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
 import { setGitRunnerForTesting } from "../../../../../olt/scripts/src/workflow/worktree/git.ts";
+import { type VirtualMemoryFS } from "../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   cleanupRoots,
   cleanupVirtualCliFS,
@@ -13,9 +13,10 @@ import { setupCompiledRun } from "../../fixtures/task-ops-fixture.ts";
 
 const roots: string[] = [];
 let restoreGitRunner: (() => void) | undefined;
+let vfs: VirtualMemoryFS;
 
 beforeEach(() => {
-  setupVirtualCliFS();
+  vfs = setupVirtualCliFS();
   restoreGitRunner = setGitRunnerForTesting((_cwd, argv) => {
     if (argv[0] === "rev-parse" && argv[1] === "HEAD") {
       return { status: 0, stdout: "0123456789abcdef0123456789abcdef01234567\n", stderr: "" };
@@ -39,7 +40,7 @@ afterEach(async () => {
 function createTestGitRepo(): string {
   const repo = `/virtual/cli/worktree-cli-test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   roots.push(repo);
-  mkdirSync(join(repo, ".git"), { recursive: true });
+  vfs.mkdirSync(join(repo, ".git"), { recursive: true });
   return repo;
 }
 
@@ -73,8 +74,8 @@ describe("worktree:create", () => {
     expect(result.worktree_path).toBe(join(repo, ".olt", "worktrees", "track-alpha"));
     expect(result.lock_path).toBe(join(repo, ".olt", "worktrees", "locks", "track-alpha.lock"));
     expect(result.markdown).toBeDefined();
-    expect(existsSync(result.worktree_path as string)).toBe(true);
-    expect(existsSync(result.lock_path as string)).toBe(true);
+    expect(vfs.existsSync(result.worktree_path as string)).toBe(true);
+    expect(vfs.existsSync(result.lock_path as string)).toBe(true);
   });
 
   test("creates a track worktree with custom base branch", async () => {
@@ -92,7 +93,7 @@ describe("worktree:create", () => {
 
     expect(result.track_id).toBe("track-custom");
     expect(result.base_branch).toBe("custom-base");
-    expect(existsSync(result.worktree_path as string)).toBe(true);
+    expect(vfs.existsSync(result.worktree_path as string)).toBe(true);
   });
 
   test("fails when track argument is missing or invalid", async () => {
@@ -178,8 +179,8 @@ describe("worktree:land", () => {
     expect(landResult.pushed).toBe(false);
     expect(typeof landResult.commit_sha).toBe("string");
     expect(typeof landResult.duration_ms).toBe("number");
-    expect(existsSync(join(repo, ".olt", "worktrees", "track-land"))).toBe(false);
-    expect(existsSync(join(repo, ".olt", "worktrees", "locks", "track-land.lock"))).toBe(false);
+    expect(vfs.existsSync(join(repo, ".olt", "worktrees", "track-land"))).toBe(false);
+    expect(vfs.existsSync(join(repo, ".olt", "worktrees", "locks", "track-land.lock"))).toBe(false);
   });
 
   test("fails when attempting to land nonexistent track", async () => {
@@ -204,10 +205,10 @@ describe("worktree:clean", () => {
     ]);
 
     expect(cleanResult.count).toBe(1);
-    expect(existsSync(join(repo, ".olt", "worktrees", "track-clean-single"))).toBe(false);
-    expect(existsSync(join(repo, ".olt", "worktrees", "locks", "track-clean-single.lock"))).toBe(
-      false,
-    );
+    expect(vfs.existsSync(join(repo, ".olt", "worktrees", "track-clean-single"))).toBe(false);
+    expect(
+      vfs.existsSync(join(repo, ".olt", "worktrees", "locks", "track-clean-single.lock")),
+    ).toBe(false);
   });
 
   test("cleans all active track worktrees with --all flag", async () => {
@@ -217,8 +218,8 @@ describe("worktree:clean", () => {
 
     const cleanAllResult = await execute(["worktree:clean", "--all", "--repo-root", repo]);
     expect(cleanAllResult.count).toBe(2);
-    expect(existsSync(join(repo, ".olt", "worktrees", "track-clean-all-1"))).toBe(false);
-    expect(existsSync(join(repo, ".olt", "worktrees", "track-clean-all-2"))).toBe(false);
+    expect(vfs.existsSync(join(repo, ".olt", "worktrees", "track-clean-all-1"))).toBe(false);
+    expect(vfs.existsSync(join(repo, ".olt", "worktrees", "track-clean-all-2"))).toBe(false);
   });
 });
 
@@ -242,7 +243,7 @@ describe("worktree:reclaim", () => {
     const { repo, run } = await setupCompiledRun("worktree-reclaim-success", roots, {
       worktree_isolation: true,
     });
-    mkdirSync(join(repo, ".git"), { recursive: true });
+    vfs.mkdirSync(join(repo, ".git"), { recursive: true });
     await seedLedger(run);
 
     const result = await execute(["worktree:reclaim", "--run", run, "--actor", "coordinator"]);
@@ -255,7 +256,7 @@ describe("worktree:reclaim", () => {
     const { repo, run } = await setupCompiledRun("worktree-reclaim-sealed", roots, {
       worktree_isolation: true,
     });
-    mkdirSync(join(repo, ".git"), { recursive: true });
+    vfs.mkdirSync(join(repo, ".git"), { recursive: true });
     transact(run, "test-seed", "seed-worktree-ledger-and-seal", {}, (state) => {
       state.worktree_ledger = {
         harness_branch: "harness/worktree-ops-test",

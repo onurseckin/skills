@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   assertNonChatterPolicy,
@@ -14,10 +13,7 @@ import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { cleanupVirtualCommunicationFS, setupVirtualCommunicationFS, vfs } from "../helpers.ts";
 
 const thisFilePath = join(process.cwd(), "tests/communication/guard/chatter-guard.test.ts");
-let cachedThisFile: string | null = null;
-try {
-  cachedThisFile = readFileSync(thisFilePath, "utf8");
-} catch {}
+const cachedThisFile = await Bun.file(thisFilePath).text();
 
 describe("Chatter Guard & Mid-Flight Progress Narration Interlock", () => {
   let testRoot: string;
@@ -25,11 +21,9 @@ describe("Chatter Guard & Mid-Flight Progress Narration Interlock", () => {
   beforeEach(() => {
     setupVirtualCommunicationFS();
     testRoot = `/virtual/communication/chatter-guard-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    mkdirSync(testRoot, { recursive: true });
-    if (cachedThisFile !== null) {
-      vfs.mkdirSync(join(process.cwd(), "tests/communication/guard"), { recursive: true });
-      vfs.writeFileSync(thisFilePath, cachedThisFile);
-    }
+    vfs.mkdirSync(testRoot, { recursive: true });
+    vfs.mkdirSync(join(process.cwd(), "tests/communication/guard"), { recursive: true });
+    vfs.writeFileSync(thisFilePath, cachedThisFile);
   });
 
   afterEach(() => {
@@ -205,7 +199,7 @@ describe("Chatter Guard & Mid-Flight Progress Narration Interlock", () => {
       expect(result.filteredText).toBe(nonNarration);
 
       const parentPaths = resolveMailboxPaths(options.parentId, testRoot);
-      expect(existsSync(parentPaths.inboxPath)).toBe(false);
+      expect(vfs.existsSync(parentPaths.inboxPath)).toBe(false);
     });
 
     it("fails closed on invalid arguments", () => {
@@ -251,7 +245,7 @@ describe("Chatter Guard & Mid-Flight Progress Narration Interlock", () => {
   describe("Architecture Invariants", () => {
     it("ensures test file is <= 400 physical lines with 0 any", () => {
       const file = join(process.cwd(), "tests/communication/guard/chatter-guard.test.ts");
-      const lines = readFileSync(file, "utf8").split("\n");
+      const lines = vfs.readFileSync(file, "utf8").split("\n");
       expect(lines.length).toBeLessThanOrEqual(400);
     });
   });

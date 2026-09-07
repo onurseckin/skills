@@ -40,13 +40,13 @@ model, tier or thinking level is inferred from the machine that exported the run
 Thirteen roles, each with a capability contract in `agents/<role>.yaml` declaring `may`, `must_not`, the
 exact commands it may invoke, and the roles it may branch into:
 
-| Tier       | Roles                                                                                      |
-| :--------- | :----------------------------------------------------------------------------------------- |
-| 0          | `mind`                                                                                     |
-| 1          | `orchestrator`, `mind-auditor`                                                             |
-| 2          | `coordinator`                                                                              |
-| 3          | `planner`, `plan-validator`, `implementer`, `validator`, `completeness-critic`             |
-| 3 (branch) | `sub-implementer`, `sub-validator`, `sub-investigator`                                     |
+| Tier       | Roles                                                                          |
+| :--------- | :----------------------------------------------------------------------------- |
+| 0          | `mind`                                                                         |
+| 1          | `orchestrator`, `mind-auditor`                                                 |
+| 2          | `coordinator`                                                                  |
+| 3          | `planner`, `plan-validator`, `implementer`, `validator`, `completeness-critic` |
+| 3 (branch) | `sub-implementer`, `sub-validator`, `sub-investigator`                         |
 
 The orchestrator sits above every run: it dispatches exactly one coordinator per round and never a
 tier 3 agent directly. On standard task runs (`orchestrate`), `orchestrator` is the single role the

@@ -1,6 +1,9 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import { AGENT_ROLES } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   assertGrantedCommand,
@@ -17,6 +20,14 @@ import {
   type CommandSpec,
 } from "../../../olt/scripts/src/cli/registry/index.ts";
 import type { Flags } from "../../../olt/scripts/src/cli/options.ts";
+
+const vfs = new VirtualMemoryFS();
+const session = createVirtualFSSession(vfs);
+
+afterAll(() => {
+  session.cleanup();
+  vfs.reset();
+});
 
 function spec(invocation: string): CommandSpec {
   const found = findCommand(invocation);
@@ -116,7 +127,7 @@ describe("role capability documents bind the CLI", () => {
 describe("role capability documents are what the packet digests", () => {
   test.each(AGENT_ROLES)("%s digest covers the checked-in bytes exactly", (role) => {
     const path = resolveRoleContractPath(role);
-    const bytes = readFileSync(path);
+    const bytes = session.readFileSync(path);
     const contract = loadRoleContract(role);
     expect(contract.sha256).toBe(createHash("sha256").update(bytes).digest("hex"));
     expect(contract.text).toBe(new TextDecoder().decode(bytes));
@@ -124,7 +135,7 @@ describe("role capability documents are what the packet digests", () => {
   });
 
   test.each(AGENT_ROLES)("%s digest moves the moment a single byte is tampered with", (role) => {
-    const bytes = readFileSync(resolveRoleContractPath(role));
+    const bytes = session.readFileSync(resolveRoleContractPath(role));
     const original = parseRoleContract(bytes, `${role}.yaml`);
     const tampered = new TextEncoder().encode(`${original.text} `);
     expect(parseRoleContract(tampered, `${role}.yaml`).sha256).not.toBe(original.sha256);

@@ -1,4 +1,5 @@
 import {
+  msgHealthCommand,
   msgListCommand,
   msgListenCommand,
   msgPollCommand,
@@ -134,6 +135,10 @@ export const ENGINE_COMMANDS: readonly CommandSpec[] = [
       ),
       optionalFlag("batch-size", "int", "Maximum messages to process per drain pass."),
       optionalFlag("base-dir", "string", "Base directory for mailbox root."),
+      optionalFlag("secret", "string", "Repository secret key for HMAC verification."),
+      optionalFlag("json", "bool", "Emit JSON output rather than text stream."),
+      optionalFlag("timeout", "int", "Drain timeout in milliseconds."),
+      optionalFlag("max-messages", "int", "Maximum messages to process before stopping."),
     ],
     readsStdin: false,
     takesRemainder: false,
@@ -156,6 +161,10 @@ export const ENGINE_COMMANDS: readonly CommandSpec[] = [
     flags: [
       optionalFlag("actor", "string", "Filter mailbox summary to a single agent ID."),
       optionalFlag("base-dir", "string", "Base directory for mailbox root."),
+      optionalFlag("detailed", "bool", "Show detailed per-message delivery status."),
+      optionalFlag("verbose", "bool", "Alias for detailed per-message delivery status."),
+      optionalFlag("message-id", "string", "Inspect delivery status of a specific message ID."),
+      optionalFlag("id", "string", "Alias for message-id."),
     ],
     readsStdin: false,
     takesRemainder: false,
@@ -166,6 +175,29 @@ export const ENGINE_COMMANDS: readonly CommandSpec[] = [
       "bun harness.ts msg:list --base-dir /path/to/project",
     ],
     handler: msgListCommand,
+  },
+  {
+    name: "msg:health",
+    aliases: [],
+    domain: "msg",
+    tier: "primary",
+    internal: false,
+    summary: "Check mailbox listener liveness and health status.",
+    description:
+      "Inspects listener heartbeat, lock state, process status, and delivery metrics to determine listener health.",
+    flags: [
+      optionalFlag("actor", "string", "Recipient agent ID (auto-derived if omitted)."),
+      optionalFlag("base-dir", "string", "Base directory for mailbox root."),
+    ],
+    readsStdin: false,
+    takesRemainder: false,
+    exitCodes: DEFAULT_EXIT_CODES,
+    examples: [
+      "bun harness.ts msg:health",
+      "bun harness.ts msg:health --actor worker-1",
+      "bun harness.ts msg:health --base-dir /path/to/project",
+    ],
+    handler: msgHealthCommand,
   },
 ];
 

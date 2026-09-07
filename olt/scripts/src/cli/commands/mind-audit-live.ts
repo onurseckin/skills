@@ -54,9 +54,7 @@ export async function mindAuditLiveCommand(
     local_defect_count: result.localDefectCount,
     remediation: result.remediation,
     defect_created: Boolean(result.defectCreated),
-    parallelism_provocation_delivered: Boolean(
-      result.parallelismProvocation?.provocationDelivered,
-    ),
+    parallelism_provocation_delivered: Boolean(result.parallelismProvocation?.provocationDelivered),
     worktree_occupancy: result.parallelismProvocation?.worktreeOccupancy ?? null,
     disjoint_cluster_count: result.parallelismProvocation?.disjointClusterCount ?? null,
     injection_prompt: result.injectionPrompt ?? null,

@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { runInitCommand } from "../../../../../olt/scripts/src/cli/commands/run-init.ts";
 import { runExecCommand } from "../../../../../olt/scripts/src/cli/commands/run-ops.ts";
@@ -10,9 +9,12 @@ import {
   writeAgentMetadata,
 } from "../../../../../olt/scripts/src/runtime/index.ts";
 import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
+import type { VirtualMemoryFS } from "../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
+
+let vfs: VirtualMemoryFS;
 
 beforeEach(() => {
-  setupVirtualCliFS();
+  vfs = setupVirtualCliFS();
 });
 
 afterEach(() => {
@@ -21,9 +23,9 @@ afterEach(() => {
 
 function createTestRepo(name: string): { repo: string; promptFile: string } {
   const repo = `/virtual/cli/run-exec-${name}-${Math.random().toString(36).slice(2)}`;
-  mkdirSync(join(repo, ".git"), { recursive: true });
+  vfs.mkdirSync(join(repo, ".git"), { recursive: true });
   const promptFile = join(repo, "prompt.txt");
-  writeFileSync(promptFile, "Run execution tests prompt\n");
+  vfs.writeFileSync(promptFile, "Run execution tests prompt\n");
   return { repo, promptFile };
 }
 
@@ -73,7 +75,8 @@ const mkR = (id: string) => ({
 describe("runExecCommand gate preflight & authorization", () => {
   test("rejects command when actor lacks durable metadata or violates policy", async () => {
     const { repo } = createTestRepo("exec-auth");
-    writeFileSync(
+    vfs.mkdirSync(join(repo, ".olt"), { recursive: true });
+    vfs.writeFileSync(
       join(repo, ".olt", "policy.json"),
       JSON.stringify({ forbidden_commands: ["forbidden-cmd"] }),
     );

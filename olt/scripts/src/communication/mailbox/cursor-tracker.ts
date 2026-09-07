@@ -38,16 +38,33 @@ export function createEmptyCursor(): MailboxCursor {
   };
 }
 
+function syncDirectory(dirPath: string): void {
+  try {
+    const dirFd = fs.openSync(dirPath, fs.constants.O_RDONLY | (fs.constants.O_DIRECTORY ?? 0));
+    try {
+      fs.fsyncSync(dirFd);
+    } finally {
+      fs.closeSync(dirFd);
+    }
+  } catch {}
+}
+
 function quarantineCorruptCursor(cursorPath: string): void {
   try {
     const corruptPath = `${cursorPath}.corrupt-${Date.now()}-${randomUUID().slice(0, 8)}`;
     fs.renameSync(cursorPath, corruptPath);
+    syncDirectory(dirname(cursorPath));
   } catch {}
 }
 
 function writeCursorAtomically(cursorPath: string, cursor: MailboxCursor): void {
   if (shouldUseInMemoryCursor(cursorPath)) {
-    inMemoryCursors.set(cursorPath, { ...cursor });
+    inMemoryCursors.set(cursorPath, {
+      last_read_sequence: cursor.last_read_sequence,
+      last_read_id: cursor.last_read_id,
+      seen_ids: [...cursor.seen_ids],
+      updated_at: cursor.updated_at,
+    });
     return;
   }
   const dir = dirname(cursorPath);
@@ -62,13 +79,33 @@ function writeCursorAtomically(cursorPath: string, cursor: MailboxCursor): void 
     }
   }
   const tempPath = join(dir, `.cursor-${randomUUID()}.tmp`);
+  let fd: number | undefined;
   try {
-    fs.writeFileSync(tempPath, JSON.stringify(cursor, null, 2) + "\n", {
-      encoding: "utf8",
-      mode: 0o600,
-    });
+    const content = Buffer.from(JSON.stringify(cursor, null, 2) + "\n", "utf8");
+    fd = fs.openSync(
+      tempPath,
+      fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_TRUNC,
+      0o600,
+    );
+    let offset = 0;
+    while (offset < content.byteLength) {
+      const written = fs.writeSync(fd, content, offset, content.byteLength - offset);
+      if (written <= 0) {
+        throw new Error(`Write failed to make progress on '${tempPath}'`);
+      }
+      offset += written;
+    }
+    fs.fsyncSync(fd);
+    fs.closeSync(fd);
+    fd = undefined;
     fs.renameSync(tempPath, cursorPath);
+    syncDirectory(dir);
   } catch (error) {
+    if (fd !== undefined) {
+      try {
+        fs.closeSync(fd);
+      } catch {}
+    }
     try {
       if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
     } catch {}
@@ -103,7 +140,7 @@ function computeAdvancedCursor(
 }
 
 export function loadMailboxCursor(cursorPath: string): MailboxCursor {
-  if (!cursorPath || typeof cursorPath !== "string")
+  if (!cursorPath || typeof cursorPath !== "string" || cursorPath.trim().length === 0)
     throw new HarnessError("INVALID_ARGUMENT", "cursorPath must be a non-empty string");
   if (shouldUseInMemoryCursor(cursorPath))
     return inMemoryCursors.get(cursorPath) ?? createEmptyCursor();
@@ -140,7 +177,7 @@ export function saveMailboxCursor(
   cursor: MailboxCursor,
   lockPath?: string,
 ): void {
-  if (!cursorPath || typeof cursorPath !== "string")
+  if (!cursorPath || typeof cursorPath !== "string" || cursorPath.trim().length === 0)
     throw new HarnessError("INVALID_ARGUMENT", "cursorPath must be a non-empty string");
   if (!isValidCursorPayload(cursor))
     throw new HarnessError(
@@ -148,7 +185,12 @@ export function saveMailboxCursor(
       "Invalid MailboxCursor object provided to saveMailboxCursor",
     );
   if (shouldUseInMemoryCursor(cursorPath)) {
-    inMemoryCursors.set(cursorPath, { ...cursor });
+    inMemoryCursors.set(cursorPath, {
+      last_read_sequence: cursor.last_read_sequence,
+      last_read_id: cursor.last_read_id,
+      seen_ids: [...cursor.seen_ids],
+      updated_at: cursor.updated_at,
+    });
     return;
   }
   const execute = (): void => writeCursorAtomically(cursorPath, cursor);
@@ -164,7 +206,8 @@ export function isMessageProcessed(
     !message ||
     typeof message !== "object" ||
     typeof message.id !== "string" ||
-    typeof message.sequence !== "number"
+    typeof message.sequence !== "number" ||
+    !Number.isFinite(message.sequence)
   ) {
     throw new HarnessError(
       "INVALID_ARGUMENT",
@@ -186,13 +229,14 @@ export function advanceMailboxCursor(
   currentCursor?: MailboxCursor | null,
   lockPath?: string,
 ): MailboxCursor {
-  if (!cursorPath || typeof cursorPath !== "string")
+  if (!cursorPath || typeof cursorPath !== "string" || cursorPath.trim().length === 0)
     throw new HarnessError("INVALID_ARGUMENT", "cursorPath must be a non-empty string");
   if (
     !processedMessage ||
     typeof processedMessage !== "object" ||
     typeof processedMessage.id !== "string" ||
-    typeof processedMessage.sequence !== "number"
+    typeof processedMessage.sequence !== "number" ||
+    !Number.isFinite(processedMessage.sequence)
   ) {
     throw new HarnessError(
       "INVALID_ARGUMENT",
@@ -227,7 +271,7 @@ export function advanceMailboxCursorBatch(
   currentCursor?: MailboxCursor | null,
   lockPath?: string,
 ): MailboxCursor {
-  if (!cursorPath || typeof cursorPath !== "string")
+  if (!cursorPath || typeof cursorPath !== "string" || cursorPath.trim().length === 0)
     throw new HarnessError("INVALID_ARGUMENT", "cursorPath must be a non-empty string");
   if (!Array.isArray(processedMessages))
     throw new HarnessError("INVALID_ARGUMENT", "processedMessages must be an array");
@@ -236,7 +280,8 @@ export function advanceMailboxCursorBatch(
       !msg ||
       typeof msg !== "object" ||
       typeof msg.id !== "string" ||
-      typeof msg.sequence !== "number"
+      typeof msg.sequence !== "number" ||
+      !Number.isFinite(msg.sequence)
     ) {
       throw new HarnessError(
         "INVALID_ARGUMENT",

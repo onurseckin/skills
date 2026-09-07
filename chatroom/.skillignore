@@ -1,0 +1,8 @@
+docs/
+documentation/
+*.log
+.DS_Store
+tests/
+*.test.ts
+coverage/
+.tmp/

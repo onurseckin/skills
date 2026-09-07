@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import { setupVirtualMindFS, cleanupVirtualMindFS, scratchRoot } from "../../fixtures/index.ts";
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   analyzeRunForensics,
   type ForensicsAnalysisResult,
@@ -10,10 +10,11 @@ import type { Manifest, RunState } from "../../../../olt/scripts/src/core/contra
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 
 describe("Meta Auditor - Deep Behavioral Forensics Core Heuristics (in-memory virtual)", () => {
+  let vfs: VirtualMemoryFS;
   let scratchDir: string;
 
   beforeEach(() => {
-    setupVirtualMindFS();
+    vfs = setupVirtualMindFS();
     scratchDir = scratchRoot("meta-core", "test");
   });
 
@@ -38,7 +39,7 @@ describe("Meta Auditor - Deep Behavioral Forensics Core Heuristics (in-memory vi
       created_at: "2026-08-23T00:00:00.000Z",
       entry_task_id: "task-1",
     };
-    fs.writeFileSync(join(scratchDir, "manifest.json"), JSON.stringify(manifest, null, 2));
+    vfs.writeFileSync(join(scratchDir, "manifest.json"), JSON.stringify(manifest, null, 2));
 
     const state: RunState = {
       version: "2.0.0",
@@ -75,7 +76,7 @@ describe("Meta Auditor - Deep Behavioral Forensics Core Heuristics (in-memory vi
         },
       ],
     };
-    fs.writeFileSync(join(scratchDir, "state.json"), JSON.stringify(state, null, 2));
+    vfs.writeFileSync(join(scratchDir, "state.json"), JSON.stringify(state, null, 2));
 
     const res: ForensicsAnalysisResult = analyzeRunForensics({ runRoot: scratchDir });
     expect(res).toBeDefined();

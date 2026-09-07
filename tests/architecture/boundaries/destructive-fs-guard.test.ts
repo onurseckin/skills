@@ -1,7 +1,8 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
-import { readdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+
+const mockFsPromises = await import("node:fs/promises");
 import {
   cleanupVirtualArchitectureFS,
   setupVirtualArchitectureFS,
@@ -37,7 +38,7 @@ const inMemoryFileContent = new Map<string, string>();
 async function filesBelow(root: string): Promise<string[]> {
   const hit = inMemoryFileTree.get(root);
   if (hit) return hit;
-  const entries = await readdir(root, { withFileTypes: true });
+  const entries = await mockFsPromises.readdir(root, { withFileTypes: true });
   const nested = await Promise.all(
     entries.map(async (entry) => {
       const path = join(root, entry.name);
@@ -53,17 +54,13 @@ async function filesBelow(root: string): Promise<string[]> {
 async function readSource(filePath: string): Promise<string> {
   const hit = inMemoryFileContent.get(filePath);
   if (hit !== undefined) return hit;
-  const content = await readFile(filePath, "utf8");
+  const content = await mockFsPromises.readFile(filePath, "utf8");
   inMemoryFileContent.set(filePath, content);
   return content;
 }
 
-// Preload virtual in-memory cache of architecture files
 const prodFilesPromise = (async () => {
-  const files = [
-    ...(await filesBelow(oltScriptsRoot)),
-    ...(await filesBelow(syncScriptsRoot)),
-  ];
+  const files = [...(await filesBelow(oltScriptsRoot)), ...(await filesBelow(syncScriptsRoot))];
   await Promise.all(files.map((f) => readSource(f)));
   return files;
 })();

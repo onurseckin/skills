@@ -59,7 +59,9 @@ describe("Embedded Schedulers & Host Cadence (Task 2.3)", () => {
     test("resolves aliases like 'mind' and 'mind-supervisor' with casing and whitespace resilience", () => {
       expect(resolveSchedulerIntervalSeconds("mind", "antigravity", policy)).toBe(300);
       expect(resolveSchedulerIntervalSeconds("mind-supervisor", "claude_code", policy)).toBe(900);
-      expect(resolveSchedulerIntervalSeconds("  MIND-SUPERVISOR  ", "claude_code", policy)).toBe(900);
+      expect(resolveSchedulerIntervalSeconds("  MIND-SUPERVISOR  ", "claude_code", policy)).toBe(
+        900,
+      );
       expect(resolveSchedulerIntervalSeconds(" mind ", "antigravity", policy)).toBe(300);
       expect(resolveSchedulerCron("mind", "antigravity", policy)).toBe("*/5 * * * *");
       expect(resolveSchedulerCron(" MIND ", "antigravity", policy)).toBe("*/5 * * * *");

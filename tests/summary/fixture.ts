@@ -43,10 +43,7 @@ export function setupVirtualSummaryFS(): VirtualMemoryFS {
   vfs.mkdirSync(join(repoRoot, ".olt", "scratch"), { recursive: true });
   vfs.mkdirSync(join(repoRoot, ".olt", "runs"), { recursive: true });
   vfs.mkdirSync(join(repoRoot, ".tmp"), { recursive: true });
-  vfs.writeFileSync(
-    join(repoRoot, "package.json"),
-    JSON.stringify({ name: "@onurseckin/skills" }),
-  );
+  vfs.writeFileSync(join(repoRoot, "package.json"), JSON.stringify({ name: "@onurseckin/skills" }));
   vfs.mkdirSync(SCRATCH_BASE, { recursive: true });
   vfs.chdir(repoRoot);
   session = createVirtualFSSession(vfs);

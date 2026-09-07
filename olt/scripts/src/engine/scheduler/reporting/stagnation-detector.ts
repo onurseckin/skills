@@ -61,7 +61,8 @@ export function detectStagnation(options: StagnationDetectionOptions): Stagnatio
       isStagnating: true,
       streak: Math.max(streak, 1),
       reason: `${options.snapshot.failedTasks} task(s) (${failedIds}) failed and no implementers are currently leased to repair them.`,
-      remediation: "Assign implementer subagents with task:claim --role implementer or run recover.",
+      remediation:
+        "Assign implementer subagents with task:claim --role implementer or run recover.",
       badge: `[🔴 Failed Tasks: ${options.snapshot.failedTasks} blocked]`,
     };
   }

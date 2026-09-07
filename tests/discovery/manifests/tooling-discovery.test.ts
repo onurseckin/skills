@@ -23,7 +23,6 @@ describe("Tool Discovery and Scanning Unit Test Suite", () => {
     cleanupVirtualDiscoveryFS();
   });
 
-
   const sampleToolSpec1 = {
     name: "calculatorTool",
     description: "Performs basic mathematical operations",
@@ -197,7 +196,10 @@ describe("Tool Discovery and Scanning Unit Test Suite", () => {
       const wrappedManifestDir = join(testRoot, "wrapped-manifest");
       vfs.mkdirSync(wrappedManifestDir, { recursive: true });
       const manifestPath = join(wrappedManifestDir, "wrapped.json");
-      vfs.writeFileSync(manifestPath, JSON.stringify({ tools: [sampleToolSpec1, sampleToolSpec2] }));
+      vfs.writeFileSync(
+        manifestPath,
+        JSON.stringify({ tools: [sampleToolSpec1, sampleToolSpec2] }),
+      );
 
       const tools = discoverToolsFromManifest(manifestPath);
       expect(tools.length).toBe(2);

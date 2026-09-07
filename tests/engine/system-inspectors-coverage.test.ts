@@ -1,19 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   runInspectorDoctor,
   runInspectorHealth,
 } from "../../olt/scripts/src/engine/scheduler/diagnostics/system-inspectors.ts";
 import type { Clock } from "../../olt/scripts/src/workflow/index.ts";
-import {
-  cleanupVirtualEngineFS,
-  getVirtualEngineFS,
-  setupVirtualEngineFS,
-} from "./fixture.ts";
+import { cleanupVirtualEngineFS, getVirtualEngineFS, setupVirtualEngineFS } from "./fixture.ts";
 
 describe("System Diagnostics Inspectors", () => {
   let tempDir: string;
+  let vfs: ReturnType<typeof getVirtualEngineFS>;
   const mockClock: Clock = {
     now: () => new Date("2026-09-01T15:30:00.000Z"),
   };
@@ -21,7 +17,7 @@ describe("System Diagnostics Inspectors", () => {
   beforeEach(() => {
     setupVirtualEngineFS();
     tempDir = "/virtual/engine/inspectors-test";
-    const vfs = getVirtualEngineFS();
+    vfs = getVirtualEngineFS();
     vfs.mkdirSync(tempDir, { recursive: true });
   });
 
@@ -60,7 +56,7 @@ describe("System Diagnostics Inspectors", () => {
     });
 
     it("returns passed receipt when valid manifest.json exists in runRoot", async () => {
-      writeFileSync(
+      vfs.writeFileSync(
         join(tempDir, "manifest.json"),
         JSON.stringify({ role: "mind", tier: 0 }),
         "utf-8",
@@ -73,7 +69,7 @@ describe("System Diagnostics Inspectors", () => {
     });
 
     it("returns failed receipt when manifest.json is invalid JSON", async () => {
-      writeFileSync(join(tempDir, "manifest.json"), "{ invalid JSON content", "utf-8");
+      vfs.writeFileSync(join(tempDir, "manifest.json"), "{ invalid JSON content", "utf-8");
 
       const receipt = await runInspectorDoctor(tempDir, {}, mockClock);
       expect(receipt.status).toBe("failed");
@@ -85,7 +81,7 @@ describe("System Diagnostics Inspectors", () => {
     });
 
     it("returns failed receipt when manifest.json contains non-object payload", async () => {
-      writeFileSync(join(tempDir, "manifest.json"), "null", "utf-8");
+      vfs.writeFileSync(join(tempDir, "manifest.json"), "null", "utf-8");
 
       const receipt = await runInspectorDoctor(tempDir, {}, mockClock);
       expect(receipt.status).toBe("failed");
@@ -99,9 +95,7 @@ describe("System Diagnostics Inspectors", () => {
       const origTest = process.env.TEST;
       const origArgv = [...process.argv];
 
-      const doctorRunner = await import(
-        "../../olt/scripts/src/reporting/doctor/runner.ts"
-      );
+      const doctorRunner = await import("../../olt/scripts/src/reporting/doctor/runner.ts");
       const doctorSpy = spyOn(doctorRunner, "runDoctor").mockResolvedValue({
         healthy: true,
         issues: [],
@@ -135,9 +129,7 @@ describe("System Diagnostics Inspectors", () => {
       const origTest = process.env.TEST;
       const origArgv = [...process.argv];
 
-      const doctorRunner = await import(
-        "../../olt/scripts/src/reporting/doctor/runner.ts"
-      );
+      const doctorRunner = await import("../../olt/scripts/src/reporting/doctor/runner.ts");
       const doctorSpy = spyOn(doctorRunner, "runDoctor").mockResolvedValue({
         healthy: false,
         issues: ["corrupted_state", "[INFO] harmless info"],
@@ -180,7 +172,7 @@ describe("System Diagnostics Inspectors", () => {
   describe("runInspectorHealth", () => {
     it("returns skipped receipt when scriptsRoot has no src directory", async () => {
       const emptyScriptsRoot = join(tempDir, "empty-scripts");
-      mkdirSync(emptyScriptsRoot, { recursive: true });
+      vfs.mkdirSync(emptyScriptsRoot, { recursive: true });
 
       const receipt = await runInspectorHealth(emptyScriptsRoot, undefined, mockClock);
       expect(receipt.inspector).toBe("health");
@@ -192,7 +184,7 @@ describe("System Diagnostics Inspectors", () => {
 
     it("returns passed receipt for layout with src directory in test environment", async () => {
       const validScriptsRoot = join(tempDir, "valid-scripts");
-      mkdirSync(join(validScriptsRoot, "src"), { recursive: true });
+      vfs.mkdirSync(join(validScriptsRoot, "src"), { recursive: true });
 
       const receipt = await runInspectorHealth(validScriptsRoot, undefined, mockClock);
       expect(receipt.inspector).toBe("health");
@@ -205,7 +197,7 @@ describe("System Diagnostics Inspectors", () => {
 
     it("records exact count of custom checks in test environment", async () => {
       const validScriptsRoot = join(tempDir, "valid-scripts-custom");
-      mkdirSync(join(validScriptsRoot, "src"), { recursive: true });
+      vfs.mkdirSync(join(validScriptsRoot, "src"), { recursive: true });
 
       const customChecks = ["intent-drift" as const, "doc-truth" as const];
       const receipt = await runInspectorHealth(validScriptsRoot, customChecks, mockClock);
@@ -216,7 +208,7 @@ describe("System Diagnostics Inspectors", () => {
 
     it("handles health check execution when non-test environment branch is exercised", async () => {
       const validScriptsRoot = join(tempDir, "valid-scripts-nontest");
-      mkdirSync(join(validScriptsRoot, "src"), { recursive: true });
+      vfs.mkdirSync(join(validScriptsRoot, "src"), { recursive: true });
 
       const origNodeEnv = process.env.NODE_ENV;
       const origBunTest = process.env.BUN_TEST;

@@ -1,0 +1,60 @@
+provider: "claude"
+display_name: "Anthropic Claude Code"
+aliases:
+  - "claude-code"
+  - "claude_code"
+platform_mapping:
+  host_id: "claude_code"
+  supervisory_model: "claude-5-opus"
+  supervisory_thinking: "high"
+  worker_model: "claude-5-sonnet"
+  worker_thinking: "medium"
+  supervisory_cadence_seconds: 900
+  supervisory_cron: "*/15 * * * *"
+  max_single_task_seconds: 300
+  heartbeat_tick_seconds: 180
+  watchdog_timeout_seconds: 900
+dispatch:
+  tool: "Agent"
+  batch_dispatch: true
+  agent_definition_path: ".claude/agents/communicator-{room}.md"
+messaging:
+  tool: "SendMessage"
+  recipient_parameter: "to"
+  message_parameter: "message"
+command_execution:
+  tool: "Bash"
+  command_parameter: "command"
+file_editing:
+  tool: "Edit"
+scheduling:
+  tool: "none"
+  mechanism: "settings_hooks"
+  settings_path: ".claude/settings.json"
+  hooks:
+    - "SessionStart"
+    - "PostToolUse"
+  command: "chat:daemon --tick"
+  cadence_seconds: 900
+capabilities:
+  hierarchical_subagents: true
+  max_spawn_depth: 3
+  concurrency_ceiling: 20
+  native_resume: false
+  liveness_layers:
+    - 1
+    - 2
+    - 3
+communicator:
+  agent_name_template: "communicator_{room}"
+  model: "claude-5-sonnet"
+  thinking: "medium"
+  artifact_path: ".claude/agents/communicator-{room}.md"
+  cron_mechanism: "settings_hooks"
+  cadence_seconds: 900
+instructions: |
+  # Claude Code Host Adapter for Chatroom
+  - Communicator definition: .claude/agents/communicator-<room>.md dispatched via Agent tool.
+  - Cron mechanism: SessionStart and PostToolUse hooks in .claude/settings.json invoking chat:daemon --tick.
+  - Daemon start: Bash tool invoking chat:daemon --start.
+  - Liveness layers 1, 2, 3 supported (Layer 2 driven by SessionStart and PostToolUse hooks).

@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -18,15 +17,17 @@ import {
   translateSuspendedLeases,
 } from "../../olt/scripts/src/task/queue/lease.ts";
 import { cleanupVirtualTaskFS, scratchRoot, setupVirtualTaskFS } from "./task-fixture.ts";
+import type { VirtualMemoryFS } from "../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Task Queue Comprehensive Coverage", () => {
+  let vfs: VirtualMemoryFS;
   let testDirQueue = "";
   let testDirArchive = "";
   let queuePath = "";
   let completedPath = "";
 
   beforeEach(() => {
-    setupVirtualTaskFS();
+    vfs = setupVirtualTaskFS();
     testDirQueue = scratchRoot(import.meta.path, "queue");
     testDirArchive = scratchRoot(import.meta.path, "archive");
     queuePath = join(testDirQueue, "queue", "TASK_QUEUE.jsonl");
@@ -38,16 +39,18 @@ describe("Task Queue Comprehensive Coverage", () => {
   });
 
   function setup() {
-    if (existsSync(testDirQueue)) rmSync(testDirQueue, { recursive: true, force: true });
-    if (existsSync(testDirArchive)) rmSync(testDirArchive, { recursive: true, force: true });
-    mkdirSync(join(testDirQueue, "queue"), { recursive: true });
-    mkdirSync(join(testDirArchive, "archived"), { recursive: true });
-    writeFileSync(completedPath, "");
+    if (vfs.existsSync(testDirQueue)) vfs.rmSync(testDirQueue, { recursive: true, force: true });
+    if (vfs.existsSync(testDirArchive))
+      vfs.rmSync(testDirArchive, { recursive: true, force: true });
+    vfs.mkdirSync(join(testDirQueue, "queue"), { recursive: true });
+    vfs.mkdirSync(join(testDirArchive, "archived"), { recursive: true });
+    vfs.writeFileSync(completedPath, "");
   }
 
   function teardown() {
-    if (existsSync(testDirQueue)) rmSync(testDirQueue, { recursive: true, force: true });
-    if (existsSync(testDirArchive)) rmSync(testDirArchive, { recursive: true, force: true });
+    if (vfs.existsSync(testDirQueue)) vfs.rmSync(testDirQueue, { recursive: true, force: true });
+    if (vfs.existsSync(testDirArchive))
+      vfs.rmSync(testDirArchive, { recursive: true, force: true });
   }
 
   it("covers batch enqueuing and blocked_by dependency resolution", () => {
@@ -85,13 +88,11 @@ describe("Task Queue Comprehensive Coverage", () => {
     expect(tasks[1]!.status).toBe("BLOCKED");
     expect(tasks[2]!.status).toBe("BLOCKED");
 
-    // Completing dep-1 unblocks dep-2
     const completeDep1 = completeTask("dep-1", undefined, undefined, queuePath);
     expect(completeDep1.unblockedTasks.length).toBe(1);
     expect(completeDep1.unblockedTasks[0]!.id).toBe("dep-2");
     expect(completeDep1.unblockedTasks[0]!.status).toBe("PENDING");
 
-    // Duplicate in batch throws
     expect(() =>
       enqueueTasksBatch(
         [
@@ -138,7 +139,6 @@ describe("Task Queue Comprehensive Coverage", () => {
     });
     expect(claimed.task.lease?.agent_id).toBe("agent-x");
 
-    // assertValidActiveLease
     expect(() => assertValidActiveLease(claimed.task, claimed.leaseToken)).not.toThrow();
     expect(() => assertValidActiveLease({ ...claimed.task, lease: null })).toThrow(HarnessError);
     expect(() => assertValidActiveLease(claimed.task, "bad-token")).toThrow(HarnessError);
@@ -149,12 +149,10 @@ describe("Task Queue Comprehensive Coverage", () => {
       }),
     ).toThrow(HarnessError);
 
-    // Re-claiming active lease with different agent throws
     expect(() =>
       claimTaskLease({ taskId: "lease-task", agentId: "agent-y", customPath: queuePath }),
     ).toThrow(HarnessError);
 
-    // Renew lease with correct token
     const token = claimed.leaseToken;
     const renewed = renewTaskLease({
       taskId: "lease-task",
@@ -165,7 +163,6 @@ describe("Task Queue Comprehensive Coverage", () => {
     });
     expect(renewed.lease?.token).toBe(token);
 
-    // Renew with invalid token throws
     expect(() =>
       renewTaskLease({
         taskId: "lease-task",
@@ -175,7 +172,6 @@ describe("Task Queue Comprehensive Coverage", () => {
       }),
     ).toThrow(HarnessError);
 
-    // Release lease
     const released = releaseTaskLease({
       taskId: "lease-task",
       agentId: "agent-x",
@@ -185,7 +181,6 @@ describe("Task Queue Comprehensive Coverage", () => {
     expect(released.lease).toBeNull();
     expect(released.status).toBe("PENDING");
 
-    // Release lease mismatch agent throws
     const reclaimedForErr = claimTaskLease({
       taskId: "lease-task",
       agentId: "agent-x",
@@ -204,12 +199,10 @@ describe("Task Queue Comprehensive Coverage", () => {
     ).toThrow(HarnessError);
     releaseTaskLease({ taskId: "lease-task", agentId: "agent-x", customPath: queuePath });
 
-    // translateSuspendedLeases
     const translated = translateSuspendedLeases([claimed.task], 60_000);
     expect(translated.translatedCount).toBe(1);
     expect(translateSuspendedLeases([claimed.task], 0).translatedCount).toBe(0);
 
-    // AST purity assertion
     assertWriteScopeASTPurity(process.cwd(), []);
     stageWorktreeProgress(testDirQueue);
 
@@ -234,7 +227,6 @@ describe("Task Queue Comprehensive Coverage", () => {
       customPath: queuePath,
     });
 
-    // Valid startTaskValidation
     const validating = startTaskValidation({
       taskId: "val-task",
       agentId: "agent-val",
@@ -243,17 +235,14 @@ describe("Task Queue Comprehensive Coverage", () => {
     });
     expect(validating.status).toBe("VALIDATING");
 
-    // Token mismatch throws
     expect(() =>
       startTaskValidation({ taskId: "val-task", leaseToken: "bad-token", customPath: queuePath }),
     ).toThrow(HarnessError);
 
-    // Agent mismatch throws
     expect(() =>
       startTaskValidation({ taskId: "val-task", agentId: "wrong-agent", customPath: queuePath }),
     ).toThrow(HarnessError);
 
-    // Cannot validate completed task
     completeTask({ taskId: "val-task", customPath: queuePath });
     expect(() => startTaskValidation({ taskId: "val-task", customPath: queuePath })).toThrow(
       HarnessError,

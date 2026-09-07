@@ -40,8 +40,7 @@ When invoked via `/olt mind` or when autonomous creative product manager / infin
 
 ## When to use
 
-Use when the prompt carries many instructions, files, phases or criteria; when lanes run concurrently;
-when work needs adversarial review, repair loops or mandatory gates; or when stale workers need recovery.
+Use when the prompt carries many instructions, files, phases or criteria; when lanes run concurrently; when work needs adversarial review, repair loops or mandatory gates; or when stale workers need recovery.
 Do not create a harness for a simple answer, one-file mechanical edit, or short single-agent diagnostic.
 
 ## Hard rules
@@ -99,6 +98,7 @@ Do not create a harness for a simple answer, one-file mechanical edit, or short 
 51. Zero Backwards-Compatibility Purity Invariant: OLT enforces strictly forward-only canonical evolution with zero backwards-compatibility aliases, shims, or deprecated shims. Legacy commands (run:status, root `dag`) are intercepted by fail-closed `[RETIRED_COMMAND]` guards redirecting operators to `report`, `report:dag`, and `dag:check`. All legacy manifests are permanently purged from role routing tables.
 
 ## Route by role
+
 Every agent holds exactly one role; `agents/<role>.yaml` is its binding unified manifest. Load your manifest and reference.
 
 | Role (tier)                 | Unified manifest                                                       | Read for the job                                                                                             | Never read                                                                                                                                                                                                                                          |

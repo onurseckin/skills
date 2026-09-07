@@ -280,11 +280,7 @@ describe("Conversational Engagement Protocols & Active Swarm Audit Suite", () =>
       expect(secondRead.messages.length).toBe(0);
 
       // Advance with empty array yields same cursor without memory leak
-      const noOpCursor = advanceMailboxCursorBatch(
-        workerPaths.cursorPath,
-        [],
-        advancedCursor,
-      );
+      const noOpCursor = advanceMailboxCursorBatch(workerPaths.cursorPath, [], advancedCursor);
       expect(noOpCursor).toEqual(advancedCursor);
     });
   });

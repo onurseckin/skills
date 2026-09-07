@@ -1,0 +1,66 @@
+provider: "antigravity"
+display_name: "Google Antigravity"
+aliases:
+  - "agy"
+  - "antigravity-cli"
+platform_mapping:
+  host_id: "antigravity"
+  supervisory_model: "gemini-3.7-flash"
+  supervisory_thinking: "high"
+  worker_model: "gemini-3.7-flash"
+  worker_thinking: "medium"
+  supervisory_cadence_seconds: 300
+  supervisory_cron: "*/5 * * * *"
+  max_single_task_seconds: 300
+  heartbeat_tick_seconds: 60
+  watchdog_timeout_seconds: 300
+dispatch:
+  tool: "invoke_subagent"
+  subagent_type_default: "self"
+  batch_dispatch: true
+  batch_parameter: "Subagents"
+  workspace_mode: "inherit"
+messaging:
+  tool: "send_message"
+  recipient_parameter: "Recipient"
+  message_parameter: "Message"
+task_management:
+  tool: "manage_task"
+  actions:
+    - "list"
+    - "kill"
+    - "status"
+    - "send_input"
+command_execution:
+  tool: "run_command"
+  command_parameter: "CommandLine"
+  cwd_parameter: "Cwd"
+  async_threshold_parameter: "WaitMsBeforeAsync"
+scheduling:
+  tool: "schedule"
+  cron_parameter: "CronExpression"
+  duration_parameter: "DurationSeconds"
+  command: "chat:daemon --tick"
+capabilities:
+  hierarchical_subagents: true
+  concurrency_ceiling: 20
+  native_resume: true
+  liveness_layers:
+    - 1
+    - 2
+    - 3
+communicator:
+  agent_name_template: "communicator_{room}"
+  model: "gemini-3.7-flash"
+  thinking: "medium"
+  dispatch_tool: "invoke_subagent"
+  workspace: "inherit"
+  cron_mechanism: "schedule"
+  cron_expression: "*/5 * * * *"
+  cadence_seconds: 300
+instructions: |
+  # Antigravity Host Adapter for Chatroom
+  - Communicator subagent: communicator_<room> dispatched via invoke_subagent.
+  - Native cron scheduler: schedule tool with CronExpression: "*/5 * * * *" invoking chat:daemon --tick.
+  - Daemon start: run_command with CommandLine invoking chat:daemon --start.
+  - Liveness layers 1, 2, 3 supported natively.

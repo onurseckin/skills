@@ -52,11 +52,20 @@ function getCachedFiles(): Array<{ path: string; content: string }> {
       }
       const threadNaming = path.join(repoRoot, "olt/scripts/src/authority/thread/naming.ts");
       if (realFs.existsSync(threadNaming)) {
-        cachedFiles.push({ path: threadNaming, content: realFs.readFileSync(threadNaming, "utf8") });
+        cachedFiles.push({
+          path: threadNaming,
+          content: realFs.readFileSync(threadNaming, "utf8"),
+        });
       }
-      const hierarchyTest = path.join(repoRoot, "tests/agents/identity/agent-naming-hierarchy.test.ts");
+      const hierarchyTest = path.join(
+        repoRoot,
+        "tests/agents/identity/agent-naming-hierarchy.test.ts",
+      );
       if (realFs.existsSync(hierarchyTest)) {
-        cachedFiles.push({ path: hierarchyTest, content: realFs.readFileSync(hierarchyTest, "utf8") });
+        cachedFiles.push({
+          path: hierarchyTest,
+          content: realFs.readFileSync(hierarchyTest, "utf8"),
+        });
       }
     } catch {}
   }

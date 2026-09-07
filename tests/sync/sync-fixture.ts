@@ -90,7 +90,10 @@ export function virtualWriteFileSync(filePath: string, data: string | Uint8Array
   fs.writeFileSync(filePath, data);
 }
 
-export function virtualReadFileSync(filePath: string, encoding: "utf-8" | "utf8" = "utf-8"): string {
+export function virtualReadFileSync(
+  filePath: string,
+  encoding: "utf-8" | "utf8" = "utf-8",
+): string {
   getVirtualSyncSession();
   return fs.readFileSync(filePath, encoding) as string;
 }

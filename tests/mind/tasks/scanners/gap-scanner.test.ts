@@ -1,24 +1,35 @@
-import { describe, expect, it, spyOn, afterEach } from "bun:test";
-import * as fs from "node:fs";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import {
   scanCognitiveGaps,
   scanDormantCriteria,
 } from "../../../../olt/scripts/src/mind/tasks/discovery/scanners/gap-scanner.ts";
 import type { TaskQueueItem } from "../../../../olt/scripts/src/task/queue/index.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Mind Task Discovery Gap Scanner Suite", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
   const spies: Array<{ mockRestore: () => void }> = [];
+
+  beforeEach(() => {
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+  });
 
   afterEach(() => {
     for (const spy of spies) {
       spy.mockRestore();
     }
     spies.length = 0;
+    session.cleanup();
   });
 
   describe("scanCognitiveGaps", () => {
     it("returns zero findings when directory contains no source files", () => {
-      spies.push(spyOn(fs, "existsSync").mockReturnValue(false));
       const result = scanCognitiveGaps({ sourceRoots: ["/virtual/empty"] });
       expect(result.filesScanned).toBe(0);
       expect(result.totalFindings).toBe(0);
@@ -35,13 +46,8 @@ describe("Mind Task Discovery Gap Scanner Suite", () => {
         "}",
       ].join("\n");
 
-      spies.push(spyOn(fs, "existsSync").mockReturnValue(true));
-      spies.push(
-        spyOn(fs, "readdirSync").mockReturnValue([
-          { name: "nested.ts", isFile: () => true, isDirectory: () => false },
-        ] as unknown as fs.Dirent[]),
-      );
-      spies.push(spyOn(fs, "readFileSync").mockReturnValue(code as unknown as Buffer));
+      vfs.mkdirSync("/virtual/code", { recursive: true });
+      vfs.writeFileSync("/virtual/code/nested.ts", code);
 
       const result = scanCognitiveGaps({ sourceRoots: ["/virtual/code"] });
       expect(result.totalFindings).toBe(1);
@@ -56,13 +62,8 @@ describe("Mind Task Discovery Gap Scanner Suite", () => {
         "const fnB = (p1: string, p2: string, p3: string, p4: string, p5: string, p6: string) => 2;",
       ].join("\n");
 
-      spies.push(spyOn(fs, "existsSync").mockReturnValue(true));
-      spies.push(
-        spyOn(fs, "readdirSync").mockReturnValue([
-          { name: "chunking.ts", isFile: () => true, isDirectory: () => false },
-        ] as unknown as fs.Dirent[]),
-      );
-      spies.push(spyOn(fs, "readFileSync").mockReturnValue(code as unknown as Buffer));
+      vfs.mkdirSync("/virtual/chunking", { recursive: true });
+      vfs.writeFileSync("/virtual/chunking/chunking.ts", code);
 
       const result = scanCognitiveGaps({ sourceRoots: ["/virtual/chunking"] });
       expect(result.totalFindings).toBe(2);
@@ -80,13 +81,8 @@ describe("Mind Task Discovery Gap Scanner Suite", () => {
         "}",
       ].join("\n");
 
-      spies.push(spyOn(fs, "existsSync").mockReturnValue(true));
-      spies.push(
-        spyOn(fs, "readdirSync").mockReturnValue([
-          { name: "json.ts", isFile: () => true, isDirectory: () => false },
-        ] as unknown as fs.Dirent[]),
-      );
-      spies.push(spyOn(fs, "readFileSync").mockReturnValue(code as unknown as Buffer));
+      vfs.mkdirSync("/virtual/json", { recursive: true });
+      vfs.writeFileSync("/virtual/json/json.ts", code);
 
       const result = scanCognitiveGaps({ sourceRoots: ["/virtual/json"] });
       expect(result.totalFindings).toBe(1);
@@ -105,13 +101,8 @@ describe("Mind Task Discovery Gap Scanner Suite", () => {
         "}",
       ].join("\n");
 
-      spies.push(spyOn(fs, "existsSync").mockReturnValue(true));
-      spies.push(
-        spyOn(fs, "readdirSync").mockReturnValue([
-          { name: "loop.ts", isFile: () => true, isDirectory: () => false },
-        ] as unknown as fs.Dirent[]),
-      );
-      spies.push(spyOn(fs, "readFileSync").mockReturnValue(code as unknown as Buffer));
+      vfs.mkdirSync("/virtual/loop", { recursive: true });
+      vfs.writeFileSync("/virtual/loop/loop.ts", code);
 
       const result = scanCognitiveGaps({ sourceRoots: ["/virtual/loop"] });
       expect(result.totalFindings).toBe(1);
@@ -130,13 +121,8 @@ describe("Mind Task Discovery Gap Scanner Suite", () => {
         "}",
       ].join("\n");
 
-      spies.push(spyOn(fs, "existsSync").mockReturnValue(true));
-      spies.push(
-        spyOn(fs, "readdirSync").mockReturnValue([
-          { name: "catch.ts", isFile: () => true, isDirectory: () => false },
-        ] as unknown as fs.Dirent[]),
-      );
-      spies.push(spyOn(fs, "readFileSync").mockReturnValue(code as unknown as Buffer));
+      vfs.mkdirSync("/virtual/catch", { recursive: true });
+      vfs.writeFileSync("/virtual/catch/catch.ts", code);
 
       const result = scanCognitiveGaps({ sourceRoots: ["/virtual/catch"] });
       expect(result.totalFindings).toBe(4);
@@ -152,15 +138,12 @@ describe("Mind Task Discovery Gap Scanner Suite", () => {
         "const p3 = JSON.parse(c);",
       ].join("\n");
 
-      spies.push(spyOn(fs, "existsSync").mockReturnValue(true));
+      vfs.mkdirSync("/virtual/cap", { recursive: true });
+      vfs.writeFileSync("/virtual/cap/err.ts", code);
+      vfs.writeFileSync("/virtual/cap/valid.ts", code);
+
       spies.push(
-        spyOn(fs, "readdirSync").mockReturnValue([
-          { name: "err.ts", isFile: () => true, isDirectory: () => false },
-          { name: "valid.ts", isFile: () => true, isDirectory: () => false },
-        ] as unknown as fs.Dirent[]),
-      );
-      spies.push(
-        spyOn(fs, "readFileSync").mockImplementation((p) => {
+        spyOn(vfs, "readFileSync").mockImplementation((p: string) => {
           if (String(p).includes("err.ts")) throw new Error("unreadable");
           return code;
         }),
@@ -177,7 +160,6 @@ describe("Mind Task Discovery Gap Scanner Suite", () => {
 
   describe("scanDormantCriteria", () => {
     it("returns critical missing-charter finding when charter does not exist", () => {
-      spies.push(spyOn(fs, "existsSync").mockReturnValue(false));
       const result = scanDormantCriteria({ charterPath: "/virtual/missing.yaml" });
       expect(result.dormantCount).toBe(1);
       expect(result.goalsCheckedCount).toBe(0);
@@ -210,8 +192,8 @@ describe("Mind Task Discovery Gap Scanner Suite", () => {
         } as unknown as TaskQueueItem,
       ];
 
-      spies.push(spyOn(fs, "existsSync").mockReturnValue(true));
-      spies.push(spyOn(fs, "readFileSync").mockReturnValue(charterYaml as unknown as Buffer));
+      vfs.mkdirSync("/virtual", { recursive: true });
+      vfs.writeFileSync("/virtual/charter.yaml", charterYaml);
 
       const result = scanDormantCriteria({
         charterPath: "/virtual/charter.yaml",
@@ -243,15 +225,12 @@ describe("Mind Task Discovery Gap Scanner Suite", () => {
         "  - Out of scope",
       ].join("\n");
 
-      spies.push(spyOn(fs, "existsSync").mockReturnValue(true));
-      spies.push(
-        spyOn(fs, "readFileSync").mockImplementation((p) => {
-          if (String(p).includes("tasks.json")) {
-            return JSON.stringify({
-              tasks: [{ id: "t1", charter_goals: ["G1"], status: "completed" }],
-            });
-          }
-          return charterYaml;
+      vfs.mkdirSync("/virtual", { recursive: true });
+      vfs.writeFileSync("/virtual/charter.yaml", charterYaml);
+      vfs.writeFileSync(
+        "/virtual/tasks.json",
+        JSON.stringify({
+          tasks: [{ id: "t1", charter_goals: ["G1"], status: "completed" }],
         }),
       );
 
@@ -266,8 +245,8 @@ describe("Mind Task Discovery Gap Scanner Suite", () => {
     });
 
     it("emits critical finding when charter fails schema validation (HarnessError)", () => {
-      spies.push(spyOn(fs, "existsSync").mockReturnValue(true));
-      spies.push(spyOn(fs, "readFileSync").mockReturnValue('identity: ""\n' as unknown as Buffer));
+      vfs.mkdirSync("/virtual", { recursive: true });
+      vfs.writeFileSync("/virtual/corrupt.yaml", 'identity: ""\n');
 
       const result = scanDormantCriteria({ charterPath: "/virtual/corrupt.yaml" });
       expect(result.dormantCount).toBe(1);
@@ -276,9 +255,11 @@ describe("Mind Task Discovery Gap Scanner Suite", () => {
     });
 
     it("handles generic errors during charter parse without crashing", () => {
-      spies.push(spyOn(fs, "existsSync").mockReturnValue(true));
+      vfs.mkdirSync("/virtual", { recursive: true });
+      vfs.writeFileSync("/virtual/charter.yaml", "identity: Test\n");
+
       spies.push(
-        spyOn(fs, "readFileSync").mockImplementation(() => {
+        spyOn(vfs, "readFileSync").mockImplementation(() => {
           throw new TypeError("Generic JS type error");
         }),
       );

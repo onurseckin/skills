@@ -1,48 +1,27 @@
-import { describe, expect, it } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
-  validateCriticAntiBatching,
-  validateReviewAntiBatching,
-} from "../../../olt/scripts/src/validation/anti-batching.ts";
-import {
-  assertAntiBatchingRule,
-  detectScopeCollisions,
-  partitionCandidatesStrictly,
-  partitionGroupedFeedbacksStrictly,
-  partitionIntoDisjointWaves,
-  synthesizeAutonomousTasks,
-  validateAntiBatchingIsolation,
-  type SmartTaskPlan,
-} from "../../../olt/scripts/src/mind/tasks/smart/index.ts";
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import { validateAntiBatchingIsolation } from "../../../olt/scripts/src/mind/tasks/smart/index.ts";
 import {
   assertDefectCandidatesIsolated,
-  assertDiscriminatingSignOffProofs,
-  assertOneToOneImplementerValidatorIsolation,
   partitionDefectsToIsolatedTasks,
 } from "../../../olt/scripts/src/orchestrator/anti-batching.ts";
-import { validateReview } from "../../../olt/scripts/src/workflow/review/validate-review.ts";
-import { parseCompletionAssessment } from "../../../olt/scripts/src/workflow/completion/index.ts";
-import type { TaskRecord, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
-import {
-  cleanupVirtualValidationFS,
-  scratchRoot,
-  setupVirtualValidationFS,
-} from "../validation-fixture.ts";
 
 describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Verification", () => {
-  const testDir = scratchRoot("anti-batching-invariants", "invariants");
-  const feedbackFile = join(testDir, "FEEDBACK_QUEUE.jsonl");
-  const taskQueueFile = join(testDir, "TASK_QUEUE.jsonl");
+  let session: VirtualFSSession;
+  let vfs: VirtualMemoryFS;
 
-  function setup(): void {
-    setupVirtualValidationFS();
-    mkdirSync(testDir, { recursive: true });
-  }
+  beforeEach(() => {
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+  });
 
-  function teardown(): void {
-    cleanupVirtualValidationFS();
-  }
+  afterEach(() => {
+    session.cleanup();
+  });
 
   describe("1. Strict 1:1 Feedback & Directive Partitioning", () => {
     describe("7. Orchestrator Defect Candidate Partitioning", () => {

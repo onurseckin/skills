@@ -24,8 +24,7 @@ function createTask(
     id,
     type: "task",
     label: id,
-    requirement_ids:
-      options.requirement_ids !== undefined ? options.requirement_ids : ["R-001"],
+    requirement_ids: options.requirement_ids !== undefined ? options.requirement_ids : ["R-001"],
     write_scope: scopes,
     resource_scope: options.resource_scope !== undefined ? options.resource_scope : [],
     artifact_ids: ["artifact-all"],
@@ -205,12 +204,7 @@ describe("Multi-Domain Dispatch: Implementer Concurrent Dispatch", () => {
       });
 
       const dispatchedIds = result.implementerDispatches.map((d) => d.taskId);
-      expect(dispatchedIds).toEqual([
-        "task-a-0",
-        "task-b-0",
-        "task-a-1",
-        "task-a-2",
-      ]);
+      expect(dispatchedIds).toEqual(["task-a-0", "task-b-0", "task-a-1", "task-a-2"]);
       expect(result.distinctDomainCount).toBe(2);
     });
   });

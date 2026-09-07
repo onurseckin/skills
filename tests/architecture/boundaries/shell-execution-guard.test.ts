@@ -71,8 +71,14 @@ describe("shell execution is not permitted in harness source", () => {
   test("no source file spawns a shell in compliant virtual tree", () => {
     const root = scratchRoot(import.meta.path, "shell-guard-compliant");
     vfs.mkdirSync(join(root, "src"), { recursive: true });
-    vfs.writeFileSync(join(root, "src/safe.ts"), 'export function run(cmd: string) { return "ok"; }');
-    vfs.writeFileSync(join(root, "src/worker.ts"), 'spawnSync("git", ["status"], { shell: false });');
+    vfs.writeFileSync(
+      join(root, "src/safe.ts"),
+      'export function run(cmd: string) { return "ok"; }',
+    );
+    vfs.writeFileSync(
+      join(root, "src/worker.ts"),
+      'spawnSync("git", ["status"], { shell: false });',
+    );
     const findings = findShellExecution([root], root);
     expect(findings).toEqual([]);
   });
@@ -81,7 +87,10 @@ describe("shell execution is not permitted in harness source", () => {
     const root = scratchRoot(import.meta.path, "shell-guard-violating");
     vfs.mkdirSync(join(root, "src"), { recursive: true });
     vfs.writeFileSync(join(root, "src/bad.ts"), 'execSync("rm -rf /");');
-    vfs.writeFileSync(join(root, "src/bad2.ts"), 'const s = spawnSync("/bin/sh", ["-c", cmd], { shell: true });');
+    vfs.writeFileSync(
+      join(root, "src/bad2.ts"),
+      'const s = spawnSync("/bin/sh", ["-c", cmd], { shell: true });',
+    );
     const findings = findShellExecution([root], root);
     expect(findings).toEqual([
       "src/bad.ts uses execSync",

@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   detectShellRcPath,
@@ -7,10 +6,17 @@ import {
   generateExportLine,
   isPathDeclaredInContent,
 } from "../../../scripts/sync/shell-rc.ts";
-import { cleanupVirtualSyncFS, getVirtualSyncFS, scratchRoot, setupVirtualSyncFS } from "../sync-fixture.ts";
+import {
+  cleanupVirtualSyncFS,
+  getVirtualSyncFS,
+  scratchRoot,
+  setupVirtualSyncFS,
+} from "../sync-fixture.ts";
+
+let vfs: ReturnType<typeof setupVirtualSyncFS>;
 
 beforeEach(() => {
-  setupVirtualSyncFS();
+  vfs = setupVirtualSyncFS();
 });
 
 afterEach(() => {
@@ -32,7 +38,7 @@ describe("detectShellRcPath", () => {
 
   test("detects bash shell configuration path with .bash_profile on darwin", () => {
     const root = scratchRoot(import.meta.path, "detect-rc-bash-profile");
-    writeFileSync(join(root, ".bash_profile"), "# profile\n", "utf-8");
+    vfs.writeFileSync(join(root, ".bash_profile"), "# profile\n", "utf-8");
 
     const rcPath = detectShellRcPath({ shell: "/bin/bash", homeDir: root });
     if (process.platform === "darwin") {
@@ -50,7 +56,7 @@ describe("detectShellRcPath", () => {
 
   test("falls back to existing config files when shell is unknown", () => {
     const root = scratchRoot(import.meta.path, "detect-rc-fallback-existing");
-    writeFileSync(join(root, ".bashrc"), "# bashrc\n", "utf-8");
+    vfs.writeFileSync(join(root, ".bashrc"), "# bashrc\n", "utf-8");
 
     const rcPath = detectShellRcPath({ shell: "/bin/unknown-sh", homeDir: root });
     expect(rcPath).toBe(join(root, ".bashrc"));
@@ -128,15 +134,11 @@ describe("isPathDeclaredInContent", () => {
     const home = "/Users/test";
     const binDir = "/Users/test/.local/bin";
 
-    expect(
-      isPathDeclaredInContent("export PATH='$HOME/.local/bin:$PATH'", binDir, home),
-    ).toBe(true);
-    expect(
-      isPathDeclaredInContent("PATH=$HOME/.local/bin:$PATH", binDir, home),
-    ).toBe(true);
-    expect(
-      isPathDeclaredInContent("PATH=/Users/test/.local/bin:$PATH", binDir, home),
-    ).toBe(true);
+    expect(isPathDeclaredInContent("export PATH='$HOME/.local/bin:$PATH'", binDir, home)).toBe(
+      true,
+    );
+    expect(isPathDeclaredInContent("PATH=$HOME/.local/bin:$PATH", binDir, home)).toBe(true);
+    expect(isPathDeclaredInContent("PATH=/Users/test/.local/bin:$PATH", binDir, home)).toBe(true);
   });
 });
 
@@ -172,7 +174,7 @@ describe("ensurePathInShellRc", () => {
   test("does nothing if path is already configured", () => {
     const root = scratchRoot(import.meta.path, "shell-rc-already-configured");
     const rcPath = join(root, ".zshrc");
-    writeFileSync(rcPath, 'export PATH="$HOME/.local/bin:$PATH"\n', "utf-8");
+    vfs.writeFileSync(rcPath, 'export PATH="$HOME/.local/bin:$PATH"\n', "utf-8");
 
     const result = ensurePathInShellRc({
       homeDir: root,
@@ -187,7 +189,7 @@ describe("ensurePathInShellRc", () => {
   test("appends export block to existing rc file without trailing newline", () => {
     const root = scratchRoot(import.meta.path, "shell-rc-append-no-newline");
     const rcPath = join(root, ".zshrc");
-    writeFileSync(rcPath, "alias ll='ls -la'", "utf-8");
+    vfs.writeFileSync(rcPath, "alias ll='ls -la'", "utf-8");
 
     const result = ensurePathInShellRc({
       homeDir: root,
@@ -198,7 +200,7 @@ describe("ensurePathInShellRc", () => {
     expect(result.modified).toBe(true);
     expect(result.reason).toBe("appended");
 
-    const content = readFileSync(rcPath, "utf-8");
+    const content = vfs.readFileSync(rcPath, "utf-8");
     expect(content).toContain("alias ll='ls -la'\n");
     expect(content).toContain('export PATH="$HOME/.local/bin:$PATH"');
   });
@@ -206,7 +208,7 @@ describe("ensurePathInShellRc", () => {
   test("appends export block to existing rc file with trailing newline", () => {
     const root = scratchRoot(import.meta.path, "shell-rc-append-with-newline");
     const rcPath = join(root, ".zshrc");
-    writeFileSync(rcPath, "alias ll='ls -la'\n", "utf-8");
+    vfs.writeFileSync(rcPath, "alias ll='ls -la'\n", "utf-8");
 
     const result = ensurePathInShellRc({
       homeDir: root,
@@ -230,16 +232,16 @@ describe("ensurePathInShellRc", () => {
 
     expect(result.modified).toBe(true);
     expect(result.reason).toBe("created_and_appended");
-    expect(existsSync(rcPath)).toBe(true);
+    expect(vfs.existsSync(rcPath)).toBe(true);
 
-    const content = readFileSync(rcPath, "utf-8");
+    const content = vfs.readFileSync(rcPath, "utf-8");
     expect(content).toContain("fish_add_path ~/.local/bin");
   });
 
   test("handles errors gracefully and returns error reason", () => {
     const root = scratchRoot(import.meta.path, "shell-rc-error");
     const blockedFile = join(root, "blocking-file");
-    writeFileSync(blockedFile, "file-not-dir", "utf-8");
+    vfs.writeFileSync(blockedFile, "file-not-dir", "utf-8");
 
     const invalidRcPath = join(blockedFile, "impossible", ".zshrc");
     const result = ensurePathInShellRc({
@@ -253,8 +255,7 @@ describe("ensurePathInShellRc", () => {
   test("returns error reason when existing rc file write fails with permission denied", () => {
     const root = scratchRoot(import.meta.path, "shell-rc-readonly");
     const rcPath = join(root, ".zshrc");
-    writeFileSync(rcPath, "alias gs='git status'\n", "utf-8");
-    const vfs = getVirtualSyncFS();
+    vfs.writeFileSync(rcPath, "alias gs='git status'\n", "utf-8");
     const origWrite = vfs.writeFileSync.bind(vfs);
     vfs.writeFileSync = () => {
       throw new Error("EACCES: permission denied, open");

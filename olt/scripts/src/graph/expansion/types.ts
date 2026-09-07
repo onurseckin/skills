@@ -10,12 +10,7 @@ export interface SubtaskDecomposition {
   readonly priority?: number | undefined;
   readonly effort?: number | undefined;
   readonly requirementLines?: readonly number[] | undefined;
-  readonly role?:
-    | "implementer"
-    | "sub_implementer"
-    | "validator"
-    | "sub_validator"
-    | undefined;
+  readonly role?: "implementer" | "sub_implementer" | "validator" | "sub_validator" | undefined;
   readonly assignedAgent?: string | undefined;
   readonly validatorId?: string | undefined;
   readonly validatorGate?: string | readonly string[] | undefined;

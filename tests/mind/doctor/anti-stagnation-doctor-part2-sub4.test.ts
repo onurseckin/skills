@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import {
   MIND_CHARTER_INVARIANTS,
@@ -27,18 +26,27 @@ import {
 } from "../../../olt/scripts/src/mind/reporting/index.ts";
 import { runDoctor } from "../../../olt/scripts/src/reporting/doctor.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Anti-Stagnation Doctor & Mind Charter Invariant Engine", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
   let tempDir: string;
+  let counter = 0;
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(join(process.cwd(), "tmp-doctor-test-"));
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    tempDir = `/virtual/tmp-doctor-test-${++counter}`;
+    vfs.mkdirSync(tempDir, { recursive: true });
   });
 
   afterEach(() => {
-    if (fs.existsSync(tempDir)) {
-      fs.rmSync(tempDir, { recursive: true, force: true });
-    }
+    session?.cleanup();
   });
 
   describe("16. Full Integration with runDoctor", () => {

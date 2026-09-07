@@ -1,21 +1,5 @@
-/**
- * @file sovereign-lifecycle.test.ts
- * Sovereign Lifecycle & Autonomous Single-Touch Bootstrap Integration Test Suite.
- *
- * Validates:
- * 1. Stage 1: Non-destructive in-flight snapshot & intent extraction (Priority 1 binding).
- * 2. Stage 2: Active empirical baseline probing & diagnostic clustering into Deficit Topology Matrix
- *    (Class 1 Blockers, Class 2 Regressions, Class 3 Quality Deficits).
- * 3. Stage 3: Strategic goal configuration, 70/20/10 portfolio balancing, bedrock invariants lockdown,
- *    and companion auditor mobilization (Mind Auditor, Skill Auditor, Orchestrator).
- * 4. Perpetual cadence execution: pulse counter increment, cadence state transitions, memory compaction,
- *    supervisor-auditor sparring, and milestone progression.
- * 5. Autonomous bootstrap without requiring human prompts.
- */
-
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import { join } from "node:path";
 import {
   advanceMailboxCursorBatch,

@@ -1,5 +1,4 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import * as fs from "node:fs";
 import {
   pairCompanionAuditor,
   pairMindCompanionAuditor,
@@ -95,9 +94,9 @@ describe("OrchestratorCompanionAuditor Unit Tests - Pairing & Health", () => {
   });
 
   test("clean up test directory", () => {
-    if (fs.existsSync(testRoot)) {
-      fs.rmSync(testRoot, { recursive: true, force: true });
+    if (vfs.existsSync(testRoot)) {
+      vfs.rmSync(testRoot, { recursive: true, force: true });
     }
-    expect(fs.existsSync(testRoot)).toBe(false);
+    expect(vfs.existsSync(testRoot)).toBe(false);
   });
 });

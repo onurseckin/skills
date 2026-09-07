@@ -1,50 +1,38 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  validateCriticAntiBatching,
-  validateReviewAntiBatching,
-} from "../../../olt/scripts/src/validation/anti-batching.ts";
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import type { FeedbackItem } from "../../../olt/scripts/src/mind/feedback/queue/index.ts";
 import {
   assertAntiBatchingRule,
-  detectScopeCollisions,
   partitionCandidatesStrictly,
   partitionGroupedFeedbacksStrictly,
-  partitionIntoDisjointWaves,
   synthesizeAutonomousTasks,
   validateAntiBatchingIsolation,
   type SmartTaskPlan,
 } from "../../../olt/scripts/src/mind/tasks/smart/index.ts";
-import {
-  assertDefectCandidatesIsolated,
-  assertDiscriminatingSignOffProofs,
-  assertOneToOneImplementerValidatorIsolation,
-  partitionDefectsToIsolatedTasks,
-} from "../../../olt/scripts/src/orchestrator/anti-batching.ts";
-import { validateReview } from "../../../olt/scripts/src/workflow/review/validate-review.ts";
-import { parseCompletionAssessment } from "../../../olt/scripts/src/workflow/completion/index.ts";
-import type { TaskRecord, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
-import {
-  cleanupVirtualValidationFS,
-  scratchRoot,
-  setupVirtualValidationFS,
-} from "../validation-fixture.ts";
 
 describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Verification", () => {
+  let session: VirtualFSSession;
+  let vfs: VirtualMemoryFS;
   let testDir: string;
   let feedbackFile: string;
   let taskQueueFile: string;
 
   beforeEach(() => {
-    setupVirtualValidationFS();
-    testDir = scratchRoot("anti-batching-pipeline", "pipeline");
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    testDir = "/virtual/validation-scratch/anti-batching-pipeline";
     feedbackFile = join(testDir, "FEEDBACK_QUEUE.jsonl");
     taskQueueFile = join(testDir, "TASK_QUEUE.jsonl");
-    mkdirSync(testDir, { recursive: true });
+    vfs.mkdirSync(testDir, { recursive: true });
   });
 
   afterEach(() => {
-    cleanupVirtualValidationFS();
+    session.cleanup();
   });
 
   describe("1. Strict 1:1 Feedback & Directive Partitioning", () => {
@@ -79,7 +67,7 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
         },
       ];
 
-      writeFileSync(
+      vfs.writeFileSync(
         feedbackFile,
         feedbacks.map((f) => JSON.stringify(f)).join("\n") + "\n",
         "utf8",
@@ -94,7 +82,6 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
       expect(result.tasks.length).toBe(3);
       expect(result.anti_batching_enforced).toBe(true);
 
-      // Verify every feedback item is mapped 1:1 to its own distinct task
       for (let i = 0; i < feedbacks.length; i++) {
         const fb = feedbacks[i]!;
         const task = result.tasks.find((t) => t.feedback_id === fb.id);
@@ -138,7 +125,6 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
       expect(tasks[1]!.assigned_implementer).toBe("implementer-fb-beta");
       expect(tasks[1]!.assigned_validator).toBe("validator-fb-beta");
 
-      // Verify validation passes cleanly
       const report = validateAntiBatchingIsolation(tasks);
       expect(report.compliant).toBe(true);
       expect(report.violations.length).toBe(0);

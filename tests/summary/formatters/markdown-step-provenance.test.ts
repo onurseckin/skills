@@ -215,8 +215,12 @@ describe("summary.md: action provenance trace (B15.1)", () => {
     ]);
 
     const markdown = render(emptyState, { graph });
-    expect(markdown).toContain("| 11 | 2026-08-19T00:00:00.000Z | `system` | run | `init` | none |");
-    expect(markdown).toContain("| 12 | 2026-08-19T00:00:01.000Z | `worker-1` | file | `file-written` | path=src/main.ts nodeId=n1 |");
+    expect(markdown).toContain(
+      "| 11 | 2026-08-19T00:00:00.000Z | `system` | run | `init` | none |",
+    );
+    expect(markdown).toContain(
+      "| 12 | 2026-08-19T00:00:01.000Z | `worker-1` | file | `file-written` | path=src/main.ts nodeId=n1 |",
+    );
   });
 
   test("edge cases: mixed outcomes and evidence classes maintain table alignment", () => {

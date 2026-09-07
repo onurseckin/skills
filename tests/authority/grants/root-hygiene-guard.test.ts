@@ -228,7 +228,12 @@ describe("RootDirectoryHygieneGuard", () => {
     }).toThrow(HarnessError);
 
     // Unapproved hidden/dot-files in root
-    const unapprovedDotFiles = [".bashrc", ".custom-secret", ".adhoc-env.jsonl", ".env.local.jsonl"];
+    const unapprovedDotFiles = [
+      ".bashrc",
+      ".custom-secret",
+      ".adhoc-env.jsonl",
+      ".env.local.jsonl",
+    ];
     for (const dotFile of unapprovedDotFiles) {
       expect(() => {
         RootDirectoryHygieneGuard.assertAllowedWritePath(repoRoot, dotFile);

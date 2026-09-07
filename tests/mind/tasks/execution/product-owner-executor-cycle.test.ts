@@ -257,5 +257,4 @@ describe("Product Owner Executor Test Suite (in-memory virtualized)", () => {
     expect(result.decisions.length).toBe(0);
     expect(result.synthesized_tasks.length).toBe(0);
   });
-
 });

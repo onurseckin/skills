@@ -69,8 +69,7 @@ describe("Authority Session Registry - Lifecycle & Pruning", () => {
   });
 
   it("prunes in-memory session records", () => {
-    pruneStaleSessions(86400000);
-    expect(true).toBe(true);
+    expect(() => pruneStaleSessions(86400000)).not.toThrow();
   });
 
   it("resolves active session with derived agentId and unauthenticated token when omitted", () => {

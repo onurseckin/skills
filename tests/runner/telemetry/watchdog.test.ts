@@ -134,7 +134,7 @@ describe("monitorProcess", () => {
 
 describe("Invariants & Cleanliness Audit - Runner Watchdog", () => {
   test("zero TypeScript any and zero suppressions across runner watchdog files", () => {
-    const { readFileSync } = require("node:fs");
+    const mockFs = require("node:fs");
     const { resolve } = require("node:path");
     const sourceFiles = [
       resolve(import.meta.dir, "../../../olt/scripts/src/engine/runner/telemetry/watchdog.ts"),
@@ -151,7 +151,7 @@ describe("Invariants & Cleanliness Audit - Runner Watchdog", () => {
     const suppressionDirectiveB = "oxlint" + "-disable";
 
     for (const filePath of sourceFiles) {
-      const content = readFileSync(filePath, "utf8");
+      const content = mockFs.readFileSync(filePath, "utf8");
 
       expect(content).not.toMatch(anyAnnotation);
       expect(content).not.toMatch(anyCast);

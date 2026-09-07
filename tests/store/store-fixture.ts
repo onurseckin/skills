@@ -1,9 +1,3 @@
-/**
- * @file store-fixture.ts
- * In-memory / fast test sandbox fixture and harness for tests/store domain.
- * Provides 100% in-memory virtual filesystem mocking with zero disk writes.
- */
-
 import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -104,10 +98,26 @@ function shortDigest(value: string): string {
 
 let counter = 0;
 
-/**
- * Creates an isolated in-memory scratch sandbox directory for testing.
- * 100% RAM resident with zero disk writes.
- */
+export const mockFs = {
+  writeFileSync: (
+    p: string,
+    d: string | NodeJS.ArrayBufferView,
+    opts?: fs.WriteFileOptions,
+  ): void => fs.writeFileSync(p, d, opts),
+  mkdirSync: (p: string, opts?: fs.MakeDirectoryOptions | boolean): void => {
+    fs.mkdirSync(p, opts as never);
+  },
+  rmSync: (p: string, opts?: fs.RmOptions): void => {
+    fs.rmSync(p, opts);
+  },
+  symlinkSync: (target: string, link: string): void => {
+    symlinkSync(target, link);
+  },
+  chmodSync: (targetPath: string, mode: number | string): void => {
+    chmodSync(targetPath, mode);
+  },
+};
+
 export function scratchRoot(callerPath = "store-test", label = "test"): string {
   counter += 1;
   const fileTag = slug(callerPath);

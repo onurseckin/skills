@@ -1,5 +1,6 @@
-import { describe, expect, test } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { setupVirtualRolesFS, cleanupVirtualRolesFS } from "../../../roles/fixture.ts";
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   AGENT_ROLES,
   isAgentRole,
@@ -14,6 +15,16 @@ import { findCommand } from "../../../../olt/scripts/src/cli/registry/index.ts";
 import type { AgentGrantRecord } from "../../../../olt/scripts/src/core/contracts/index.ts";
 
 describe("Phase 5 W5.1 - mind-auditor Role Contract", () => {
+  let vfs: VirtualMemoryFS;
+
+  beforeEach(() => {
+    vfs = setupVirtualRolesFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualRolesFS();
+  });
+
   test("mind-auditor is a recognized canonical AgentRole", () => {
     expect(isAgentRole("mind-auditor")).toBe(true);
     expect(AGENT_ROLES).toContain("mind-auditor");
@@ -21,9 +32,9 @@ describe("Phase 5 W5.1 - mind-auditor Role Contract", () => {
 
   test("mind-auditor contract file exists and resolves properly", () => {
     const resolvedPath = resolveRoleContractPath("mind-auditor");
-    expect(existsSync(resolvedPath)).toBe(true);
+    expect(vfs.existsSync(resolvedPath)).toBe(true);
 
-    const rawContent = readFileSync(resolvedPath, "utf-8");
+    const rawContent = vfs.readFileSync(resolvedPath, "utf-8");
     expect(rawContent).toContain("mind-auditor");
     expect(rawContent).toContain("tier: 0");
   });
@@ -56,7 +67,6 @@ describe("Phase 5 W5.1 - mind-auditor Role Contract", () => {
       expect(spec?.name).toBe(cmd);
     }
 
-    // Must not grant any write, lease, or task execution commands
     const forbiddenCommands = [
       "task:claim",
       "task:submit",
@@ -117,7 +127,6 @@ describe("Phase 5 W5.1 - mind-auditor Role Contract", () => {
         const grantedAt = new Date(grant.granted_at).valueOf();
         const releasedAt = grant.released_at ? new Date(grant.released_at).valueOf() : Date.now();
 
-        // Check if grant overlaps window
         const overlaps = grantedAt <= windowEnd && releasedAt >= windowStart;
         if (overlaps) {
           return {
@@ -165,14 +174,12 @@ describe("Phase 5 W5.1 - mind-auditor Role Contract", () => {
     const windowStart = "2026-08-20T09:00:00.000Z";
     const windowEnd = "2026-08-20T11:30:00.000Z";
 
-    // Former implementer in that window is refused
     const implementerCheck = isAuditorEligible(
       "agent-prior-worker",
       windowStart,
       windowEnd,
       testGrants,
     );
-    // Independence rule helper checks
     const activeGrants: AgentGrantRecord[] = [
       {
         agent_id: "agent-1",
@@ -190,7 +197,7 @@ describe("Phase 5 W5.1 - mind-auditor Role Contract", () => {
   });
 
   test("rejects invalid role contract modifications for mind-auditor", () => {
-    const validRaw = readFileSync(resolveRoleContractPath("mind-auditor"), "utf-8");
+    const validRaw = vfs.readFileSync(resolveRoleContractPath("mind-auditor"), "utf-8");
     const invalidRole = validRaw.replace('role: "mind-auditor"', 'role: "rogue-auditor"');
     expect(() =>
       parseRoleContract(new TextEncoder().encode(invalidRole), "mind-auditor.yaml"),

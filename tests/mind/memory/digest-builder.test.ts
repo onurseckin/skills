@@ -1,6 +1,4 @@
-import { describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { join } from "node:path";
 import {
   buildEscalationDigest,
@@ -13,27 +11,51 @@ import type {
   DigestFinding,
   DigestOpenProposal,
 } from "../../../olt/scripts/src/mind/memory/digest/types.ts";
-import { generateTrailingValueSeries } from "../../../olt/scripts/src/mind/lifecycle/interval/index.ts";
+import {
+  generateTrailingValueSeries,
+  type TrailingValueSeries,
+} from "../../../olt/scripts/src/mind/lifecycle/interval/index.ts";
 import { canonicalJsonBytes } from "../../../olt/scripts/src/core/json.ts";
-
-function createMockCapsule(
-  baseDir: string,
-  runId: string,
-  state: Record<string, unknown> = {},
-): string {
-  const capDir = join(baseDir, runId);
-  mkdirSync(capDir, { recursive: true });
-  writeFileSync(
-    join(capDir, "manifest.json"),
-    canonicalJsonBytes({ capsule_id: `c-${runId}`, run_id: runId }),
-  );
-  writeFileSync(join(capDir, "prompt.md"), "# Prompt\n");
-  writeFileSync(join(capDir, "state.json"), canonicalJsonBytes(state as any));
-  writeFileSync(join(capDir, "events.jsonl"), "");
-  return capDir;
-}
+import type { JsonValue } from "../../../olt/scripts/src/core/contracts/json.ts";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Digest Builder (buildEscalationDigest & buildOwnerDigest)", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
+
+  beforeEach(() => {
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+  });
+
+  afterEach(() => {
+    session.cleanup();
+  });
+
+  function createMockCapsule(
+    baseDir: string,
+    runId: string,
+    state: Record<string, unknown> = {},
+  ): string {
+    const capDir = join(baseDir, runId);
+    vfs.mkdirSync(capDir, { recursive: true });
+    vfs.writeFileSync(
+      join(capDir, "manifest.json"),
+      canonicalJsonBytes({ capsule_id: `c-${runId}`, run_id: runId }),
+    );
+    vfs.writeFileSync(join(capDir, "prompt.md"), "# Prompt\n");
+    vfs.writeFileSync(
+      join(capDir, "state.json"),
+      canonicalJsonBytes(state as unknown as JsonValue),
+    );
+    vfs.writeFileSync(join(capDir, "events.jsonl"), "");
+    return capDir;
+  }
+
   it("builds empty digest with default parameters", () => {
     const digest = buildEscalationDigest();
     expect(digest.runId).toBe("mind");
@@ -149,91 +171,82 @@ describe("Digest Builder (buildEscalationDigest & buildOwnerDigest)", () => {
   });
 
   it("extracts signals from liveRuns array with in-memory state and on-disk runRoot", () => {
-    const tmp = mkdtempSync(join(tmpdir(), "live-runs-"));
-    try {
-      const diskCap = createMockCapsule(tmp, "disk-run", {
-        gates: [{ id: "disk-gate", status: "failed", command: "bun test" }],
-      });
-      const corruptedCap = join(tmp, "corrupted-run");
-      mkdirSync(corruptedCap, { recursive: true });
+    const tmp = "/virtual/live-runs";
+    vfs.mkdirSync(tmp, { recursive: true });
+    const diskCap = createMockCapsule(tmp, "disk-run", {
+      gates: [{ id: "disk-gate", status: "failed", command: "bun test" }],
+    });
+    const corruptedCap = join(tmp, "corrupted-run");
+    vfs.mkdirSync(corruptedCap, { recursive: true });
 
-      const digest = buildEscalationDigest({
-        liveRuns: [
-          {
-            runId: "mem-run",
-            state: {
-              escalations: [{ id: "mem-esc", reason: "memory escalation" }],
-            },
+    const digest = buildEscalationDigest({
+      liveRuns: [
+        {
+          runId: "mem-run",
+          state: {
+            escalations: [{ id: "mem-esc", reason: "memory escalation" }],
           },
-          {
-            runId: "disk-run",
-            runRoot: diskCap,
-          },
-          {
-            runId: "corrupt-run",
-            runRoot: corruptedCap,
-          },
-          {
-            runId: "nonexistent-run",
-            runRoot: join(tmp, "does-not-exist"),
-          },
-        ],
-      });
+        },
+        {
+          runId: "disk-run",
+          runRoot: diskCap,
+        },
+        {
+          runId: "corrupt-run",
+          runRoot: corruptedCap,
+        },
+        {
+          runId: "nonexistent-run",
+          runRoot: join(tmp, "does-not-exist"),
+        },
+      ],
+    });
 
-      expect(digest.escalations.some((e) => e.escalationId === "mem-esc")).toBe(true);
-      expect(digest.failingGates.some((g) => g.gateId === "disk-gate")).toBe(true);
-    } finally {
-      rmSync(tmp, { recursive: true, force: true });
-    }
+    expect(digest.escalations.some((e) => e.escalationId === "mem-esc")).toBe(true);
+    expect(digest.failingGates.some((g) => g.gateId === "disk-gate")).toBe(true);
   });
 
   it("extracts signals from capsulesDir and handles unreadable entries", () => {
-    const tmp = mkdtempSync(join(tmpdir(), "capsules-dir-"));
-    try {
-      createMockCapsule(tmp, "run-alpha", {
-        candidates: [
-          {
-            id: "cand-alpha",
-            statement: "alpha prop",
-            rationale: "rat",
-            kind: "proposal",
-            status: "proposed",
-          },
-        ],
-      });
-      mkdirSync(join(tmp, ".hidden-dir"), { recursive: true });
-      writeFileSync(join(tmp, "some-file.txt"), "hello");
-      const corruptDir = join(tmp, "run-corrupt");
-      mkdirSync(corruptDir, { recursive: true });
-      writeFileSync(join(corruptDir, "manifest.json"), "invalid json");
+    const tmp = "/virtual/capsules-dir";
+    vfs.mkdirSync(tmp, { recursive: true });
+    createMockCapsule(tmp, "run-alpha", {
+      candidates: [
+        {
+          id: "cand-alpha",
+          statement: "alpha prop",
+          rationale: "rat",
+          kind: "proposal",
+          status: "proposed",
+        },
+      ],
+    });
+    vfs.mkdirSync(join(tmp, ".hidden-dir"), { recursive: true });
+    vfs.writeFileSync(join(tmp, "some-file.txt"), "hello");
+    const corruptDir = join(tmp, "run-corrupt");
+    vfs.mkdirSync(corruptDir, { recursive: true });
+    vfs.writeFileSync(join(corruptDir, "manifest.json"), "invalid json");
 
-      const digest = buildEscalationDigest({ capsulesDir: tmp });
-      expect(digest.openProposals.some((p) => p.proposalId === "cand-alpha")).toBe(true);
+    const digest = buildEscalationDigest({ capsulesDir: tmp });
+    expect(digest.openProposals.some((p) => p.proposalId === "cand-alpha")).toBe(true);
 
-      const nonExistentDigest = buildEscalationDigest({ capsulesDir: join(tmp, "non-existent") });
-      expect(nonExistentDigest.openProposals).toEqual([]);
-    } finally {
-      rmSync(tmp, { recursive: true, force: true });
-    }
+    const nonExistentDigest = buildEscalationDigest({ capsulesDir: join(tmp, "non-existent") });
+    expect(nonExistentDigest.openProposals).toEqual([]);
   });
 
   it("extracts signals and series from mindRunRoot when state is not provided", () => {
-    const tmp = mkdtempSync(join(tmpdir(), "mind-root-"));
-    try {
-      const root = createMockCapsule(tmp, "root-run", {
-        escalations: [{ id: "root-esc", reason: "root escalation" }],
-      });
-      const digest = buildEscalationDigest({ mindRunRoot: root });
-      expect(digest.escalations.some((e) => e.escalationId === "root-esc")).toBe(true);
-      expect(digest.runId).toBe("root-run");
+    const tmp = "/virtual/mind-root";
+    vfs.mkdirSync(tmp, { recursive: true });
+    const root = createMockCapsule(tmp, "root-run", {
+      escalations: [{ id: "root-esc", reason: "root escalation" }],
+    });
+    const digest = buildEscalationDigest({ mindRunRoot: root });
+    expect(digest.escalations.some((e) => e.escalationId === "root-esc")).toBe(true);
+    expect(digest.runId).toBe("root-run");
 
-      const corruptRoot = join(tmp, "corrupt-root");
-      mkdirSync(corruptRoot, { recursive: true });
-      const corruptDigest = buildEscalationDigest({ mindRunRoot: corruptRoot });
-      expect(corruptDigest.escalations).toEqual([]);
-    } finally {
-      rmSync(tmp, { recursive: true, force: true });
-    }
+    const corruptRoot = join(tmp, "corrupt-root");
+    vfs.mkdirSync(corruptRoot, { recursive: true });
+    const corruptDigest = buildEscalationDigest({ mindRunRoot: corruptRoot });
+    expect(corruptDigest.escalations).toEqual([]);
   });
 
   it("handles various trailingValueSeries option formats and fallbacks", () => {
@@ -259,7 +272,7 @@ describe("Digest Builder (buildEscalationDigest & buildOwnerDigest)", () => {
     expect(dPoints.trailingValueSeries.rawValues).toEqual([8, 0]);
 
     const dInvalidObj = buildEscalationDigest({
-      trailingValueSeries: { notAValidSeries: true } as unknown as any,
+      trailingValueSeries: { notAValidSeries: true } as unknown as TrailingValueSeries,
     });
     expect(dInvalidObj.trailingValueSeries.rawValues).toEqual([]);
 

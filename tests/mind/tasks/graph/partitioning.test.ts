@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import type { FeedbackItem } from "../../../../olt/scripts/src/mind/feedback/queue/index.ts";
@@ -10,8 +9,15 @@ import {
   validateAntiBatchingIsolation,
   validateAntiBatchingRule,
 } from "../../../../olt/scripts/src/mind/tasks/smart/planner/partitioning.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
-const TEST_DIR = join(process.cwd(), ".tmp-test-partitioning-cov");
+const TEST_DIR = "/virtual/test-partitioning-cov";
+let vfs: VirtualMemoryFS;
+let session: VirtualFSSession;
 
 function createPlan(overrides: Partial<SmartTaskPlan> = {}): SmartTaskPlan {
   return {
@@ -32,12 +38,13 @@ function createPlan(overrides: Partial<SmartTaskPlan> = {}): SmartTaskPlan {
 }
 
 beforeEach(() => {
-  if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true, force: true });
-  mkdirSync(TEST_DIR, { recursive: true });
+  vfs = new VirtualMemoryFS();
+  session = createVirtualFSSession(vfs);
+  vfs.mkdirSync(TEST_DIR, { recursive: true });
 });
 
 afterEach(() => {
-  if (existsSync(TEST_DIR)) rmSync(TEST_DIR, { recursive: true, force: true });
+  session.cleanup();
 });
 
 describe("Partitioning & Anti-Batching Validation Suite", () => {
@@ -174,7 +181,7 @@ describe("Partitioning & Anti-Batching Validation Suite", () => {
       expect(tasks[1]?.id).toBe("smart-task-2-fb-wd-2");
       expect(tasks[1]?.priority).toBe("HIGH");
       expect(tasks[1]?.dependencies).toContain("smart-task-1-fb-wd-1");
-      expect(existsSync(queuePath)).toBe(true);
+      expect(vfs.existsSync(queuePath)).toBe(true);
     });
 
     it("returns empty array when feedbacks is empty", () => {

@@ -195,3 +195,16 @@ export function listMailboxAgentIds(baseDir?: string): readonly string[] {
   }
   return [];
 }
+
+export function resolveListenerHeartbeatPath(actor: string, runRoot?: string): string {
+  if (typeof actor !== "string" || actor.trim().length === 0) {
+    throw new HarnessError("INVALID_ARGUMENT", "actor must be a non-empty string");
+  }
+  if (!isValidAgentId(actor)) {
+    throw new HarnessError("PATH_SAFETY", `Invalid actor '${actor}'`);
+  }
+  const paths = resolveMailboxPaths(actor, runRoot);
+  return isVirtualMailboxPath(paths.agentMailboxDir)
+    ? `${paths.agentMailboxDir}/heartbeat.json`
+    : join(paths.agentMailboxDir, "heartbeat.json");
+}

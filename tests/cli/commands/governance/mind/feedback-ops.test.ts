@@ -1,21 +1,22 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import {
   feedbackDrainCommand,
   feedbackIngestCommand,
   feedbackListCommand,
 } from "../../../../../olt/scripts/src/cli/commands/feedback-ops.ts";
+import { type VirtualMemoryFS } from "../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 
 describe("feedback-ops CLI commands", () => {
+  let vfs: VirtualMemoryFS;
   let testDir: string;
   let queueFile: string;
 
   beforeEach(() => {
-    setupVirtualCliFS();
+    vfs = setupVirtualCliFS();
     testDir = `/virtual/cli/feedback-ops-test-${Date.now()}`;
-    mkdirSync(testDir, { recursive: true });
+    vfs.mkdirSync(testDir, { recursive: true });
     queueFile = join(testDir, "feedback.jsonl");
   });
 
@@ -24,7 +25,6 @@ describe("feedback-ops CLI commands", () => {
   });
 
   test("feedbackIngestCommand ingests feedback with default and custom options", () => {
-    // Default priority and category
     const res1 = feedbackIngestCommand({
       id: "fb-1",
       title: "Fix crash on startup",
@@ -38,7 +38,6 @@ describe("feedback-ops CLI commands", () => {
     expect(res1.markdown).toContain("### Feedback Item Ingested: `fb-1`");
     expect(res1.markdown).toContain("Fix crash on startup");
 
-    // Custom priority and category
     const res2 = feedbackIngestCommand({
       id: "fb-2",
       title: "Improve doc formatting",
@@ -54,7 +53,6 @@ describe("feedback-ops CLI commands", () => {
   });
 
   test("feedbackListCommand lists and filters feedback items", () => {
-    // Empty list
     const emptyRes = feedbackListCommand({
       "queue-file": queueFile,
     });
@@ -62,7 +60,6 @@ describe("feedback-ops CLI commands", () => {
     expect(emptyRes.items).toHaveLength(0);
     expect(emptyRes.markdown).toContain("_No feedback items matching the current filter._");
 
-    // Seed multiple items
     feedbackIngestCommand({
       id: "fb-1",
       title: "Bug 1",
@@ -88,7 +85,6 @@ describe("feedback-ops CLI commands", () => {
       "queue-file": queueFile,
     });
 
-    // Unfiltered listing
     const listRes = feedbackListCommand({
       "queue-file": queueFile,
       limit: 10,
@@ -102,21 +98,18 @@ describe("feedback-ops CLI commands", () => {
     expect(listRes.markdown).toContain("`fb-2`");
     expect(listRes.markdown).toContain("`fb-3`");
 
-    // Filter by status
     const statusRes = feedbackListCommand({
       "queue-file": queueFile,
       status: "PENDING",
     });
     expect(statusRes.count).toBe(3);
 
-    // Filter by non-existent status
     const closedRes = feedbackListCommand({
       "queue-file": queueFile,
       status: "COMPLETED",
     });
     expect(closedRes.count).toBe(0);
 
-    // Filter by category
     const catRes = feedbackListCommand({
       "queue-file": queueFile,
       category: "REPAIR",
@@ -124,7 +117,6 @@ describe("feedback-ops CLI commands", () => {
     expect(catRes.count).toBe(1);
     expect(catRes.items[0]?.id).toBe("fb-1");
 
-    // Limit check
     const limitRes = feedbackListCommand({
       "queue-file": queueFile,
       limit: 2,
@@ -148,7 +140,6 @@ describe("feedback-ops CLI commands", () => {
       "queue-file": queueFile,
     });
 
-    // Drain with category filter
     const drain1 = feedbackDrainCommand({
       category: "ARCHITECTURE",
       "mark-as": "ADMITTED",
@@ -160,7 +151,6 @@ describe("feedback-ops CLI commands", () => {
     expect(drain1.markdown).toContain("`fb-1`");
     expect(drain1.markdown).toContain("- **Marked As**: ADMITTED");
 
-    // Drain remaining with default mark-as (PROCESSED) and limit
     const drain2 = feedbackDrainCommand({
       limit: 5,
       "queue-file": queueFile,
@@ -169,7 +159,6 @@ describe("feedback-ops CLI commands", () => {
     expect(drain2.items[0]?.id).toBe("fb-2");
     expect(drain2.markdown).toContain("- **Marked As**: PROCESSED");
 
-    // Drain when empty
     const drain3 = feedbackDrainCommand({
       "queue-file": queueFile,
     });

@@ -1,24 +1,26 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { inspectToolchainDetails } from "../../../olt/scripts/src/mind/governance/toolchain-inspector.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Toolchain Inspector Suite (toolchain-inspector.ts)", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
   let testDir: string;
 
   beforeEach(() => {
-    testDir = join(
-      tmpdir(),
-      `toolchain-cov-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    );
-    mkdirSync(testDir, { recursive: true });
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    testDir = "/virtual/toolchain-inspector-coverage";
+    vfs.mkdirSync(testDir, { recursive: true });
   });
 
   afterEach(() => {
-    try {
-      rmSync(testDir, { recursive: true, force: true });
-    } catch {}
+    session.cleanup();
   });
 
   describe("Package.json parsing and edge cases", () => {
@@ -27,11 +29,11 @@ describe("Toolchain Inspector Suite (toolchain-inspector.ts)", () => {
       expect(emptyRes.detectedPackageManagers).toEqual([]);
       expect(emptyRes.isMonorepo).toBe(false);
 
-      writeFileSync(join(testDir, "package.json"), "invalid { json");
+      vfs.writeFileSync(join(testDir, "package.json"), "invalid { json");
       const badJsonRes = inspectToolchainDetails(testDir);
       expect(badJsonRes.detectedLinters).toEqual([]);
 
-      writeFileSync(
+      vfs.writeFileSync(
         join(testDir, "package.json"),
         JSON.stringify({
           dependencies: "string-not-object",
@@ -45,7 +47,7 @@ describe("Toolchain Inspector Suite (toolchain-inspector.ts)", () => {
     });
 
     it("parses valid dependencies, devDependencies, and test scripts", () => {
-      writeFileSync(
+      vfs.writeFileSync(
         join(testDir, "package.json"),
         JSON.stringify({
           dependencies: { vitest: "^1.0.0", eslint: "^8.0.0" },
@@ -66,11 +68,11 @@ describe("Toolchain Inspector Suite (toolchain-inspector.ts)", () => {
 
   describe("Workspace topologies & monorepo runners", () => {
     it("detects pnpm workspace with yaml member list", () => {
-      writeFileSync(
+      vfs.writeFileSync(
         join(testDir, "pnpm-workspace.yaml"),
         "packages:\n  - 'packages/*'\n  - \"apps/web\"\n  - \n",
       );
-      writeFileSync(join(testDir, "pnpm-lock.yaml"), "");
+      vfs.writeFileSync(join(testDir, "pnpm-lock.yaml"), "");
 
       const res = inspectToolchainDetails(testDir);
       expect(res.isMonorepo).toBe(true);
@@ -81,16 +83,16 @@ describe("Toolchain Inspector Suite (toolchain-inspector.ts)", () => {
 
     it("detects turbo and cargo workspace runners", () => {
       const turboDir = join(testDir, "turbo-repo");
-      mkdirSync(turboDir, { recursive: true });
-      writeFileSync(join(turboDir, "turbo.json"), "{}");
+      vfs.mkdirSync(turboDir, { recursive: true });
+      vfs.writeFileSync(join(turboDir, "turbo.json"), "{}");
       const turboRes = inspectToolchainDetails(turboDir);
       expect(turboRes.isMonorepo).toBe(true);
       expect(turboRes.monorepoRunner).toBe("turbo");
       expect(turboRes.detectedTestRunners).toContain("turbo test");
 
       const cargoDir = join(testDir, "cargo-repo");
-      mkdirSync(cargoDir, { recursive: true });
-      writeFileSync(join(cargoDir, "Cargo.toml"), "[workspace]\nmembers = ['crates/*']");
+      vfs.mkdirSync(cargoDir, { recursive: true });
+      vfs.writeFileSync(join(cargoDir, "Cargo.toml"), "[workspace]\nmembers = ['crates/*']");
       const cargoRes = inspectToolchainDetails(cargoDir);
       expect(cargoRes.isMonorepo).toBe(true);
       expect(cargoRes.monorepoRunner).toBe("cargo");
@@ -99,23 +101,23 @@ describe("Toolchain Inspector Suite (toolchain-inspector.ts)", () => {
 
     it("detects nx, lerna, and go.work topologies", () => {
       const nxDir = join(testDir, "nx-repo");
-      mkdirSync(nxDir, { recursive: true });
-      writeFileSync(join(nxDir, "nx.json"), "{}");
+      vfs.mkdirSync(nxDir, { recursive: true });
+      vfs.writeFileSync(join(nxDir, "nx.json"), "{}");
       expect(inspectToolchainDetails(nxDir).workspaceKind).toBe("nx");
 
       const lernaDir = join(testDir, "lerna-repo");
-      mkdirSync(lernaDir, { recursive: true });
-      writeFileSync(join(lernaDir, "lerna.json"), "{}");
+      vfs.mkdirSync(lernaDir, { recursive: true });
+      vfs.writeFileSync(join(lernaDir, "lerna.json"), "{}");
       expect(inspectToolchainDetails(lernaDir).workspaceKind).toBe("lerna");
 
       const goDir = join(testDir, "go-repo");
-      mkdirSync(goDir, { recursive: true });
-      writeFileSync(join(goDir, "go.work"), "go 1.22");
+      vfs.mkdirSync(goDir, { recursive: true });
+      vfs.writeFileSync(join(goDir, "go.work"), "go 1.22");
       expect(inspectToolchainDetails(goDir).workspaceKind).toBe("go_work");
     });
 
     it("detects workspaces specified in package.json as array or object", () => {
-      writeFileSync(
+      vfs.writeFileSync(
         join(testDir, "package.json"),
         JSON.stringify({ workspaces: ["packages/*", "tools/*"] }),
       );
@@ -124,7 +126,7 @@ describe("Toolchain Inspector Suite (toolchain-inspector.ts)", () => {
       expect(resArr.workspaceKind).toBe("npm_yarn_bun");
       expect(resArr.workspaceMembers).toEqual(["packages/*", "tools/*"]);
 
-      writeFileSync(
+      vfs.writeFileSync(
         join(testDir, "package.json"),
         JSON.stringify({ workspaces: { packages: ["libs/*"] } }),
       );
@@ -136,9 +138,9 @@ describe("Toolchain Inspector Suite (toolchain-inspector.ts)", () => {
 
   describe("Ecosystem detection & Formatter command derivation", () => {
     it("detects Bun package manager, lockfile, and bunx prettier command", () => {
-      writeFileSync(join(testDir, "package.json"), JSON.stringify({ name: "bun-app" }));
-      writeFileSync(join(testDir, "bun.lockb"), "");
-      writeFileSync(join(testDir, ".prettierrc"), "{}");
+      vfs.writeFileSync(join(testDir, "package.json"), JSON.stringify({ name: "bun-app" }));
+      vfs.writeFileSync(join(testDir, "bun.lockb"), "");
+      vfs.writeFileSync(join(testDir, ".prettierrc"), "{}");
 
       const res = inspectToolchainDetails(testDir);
       expect(res.detectedPackageManagers).toContain("bun");
@@ -147,9 +149,9 @@ describe("Toolchain Inspector Suite (toolchain-inspector.ts)", () => {
     });
 
     it("detects PNPM and pnpm exec prettier command", () => {
-      writeFileSync(join(testDir, "package.json"), JSON.stringify({ name: "pnpm-app" }));
-      writeFileSync(join(testDir, "pnpm-lock.yaml"), "");
-      writeFileSync(join(testDir, "prettier.config.js"), "module.exports = {}");
+      vfs.writeFileSync(join(testDir, "package.json"), JSON.stringify({ name: "pnpm-app" }));
+      vfs.writeFileSync(join(testDir, "pnpm-lock.yaml"), "");
+      vfs.writeFileSync(join(testDir, "prettier.config.js"), "module.exports = {}");
 
       const res = inspectToolchainDetails(testDir);
       expect(res.detectedPackageManagers).toContain("pnpm");
@@ -157,8 +159,8 @@ describe("Toolchain Inspector Suite (toolchain-inspector.ts)", () => {
     });
 
     it("detects NPM and npx prettier command fallback", () => {
-      writeFileSync(join(testDir, "package-lock.json"), "{}");
-      writeFileSync(join(testDir, ".prettierrc.json"), "{}");
+      vfs.writeFileSync(join(testDir, "package-lock.json"), "{}");
+      vfs.writeFileSync(join(testDir, ".prettierrc.json"), "{}");
 
       const res = inspectToolchainDetails(testDir);
       expect(res.detectedPackageManagers).toContain("npm");
@@ -166,8 +168,8 @@ describe("Toolchain Inspector Suite (toolchain-inspector.ts)", () => {
     });
 
     it("detects Biome linter/formatter with precedence over Prettier", () => {
-      writeFileSync(join(testDir, "biome.json"), "{}");
-      writeFileSync(join(testDir, ".prettierrc"), "{}");
+      vfs.writeFileSync(join(testDir, "biome.json"), "{}");
+      vfs.writeFileSync(join(testDir, ".prettierrc"), "{}");
 
       const res = inspectToolchainDetails(testDir);
       expect(res.detectedLinters).toContain("biome");
@@ -176,8 +178,8 @@ describe("Toolchain Inspector Suite (toolchain-inspector.ts)", () => {
     });
 
     it("detects Rust toolchain, clippy, rustfmt, and cargo fmt command", () => {
-      writeFileSync(join(testDir, "Cargo.toml"), "[package]\nname = 'test-rs'");
-      writeFileSync(join(testDir, "rustfmt.toml"), "");
+      vfs.writeFileSync(join(testDir, "Cargo.toml"), "[package]\nname = 'test-rs'");
+      vfs.writeFileSync(join(testDir, "rustfmt.toml"), "");
 
       const res = inspectToolchainDetails(testDir);
       expect(res.detectedPackageManagers).toContain("cargo");
@@ -189,8 +191,8 @@ describe("Toolchain Inspector Suite (toolchain-inspector.ts)", () => {
     });
 
     it("detects Go toolchain, vet, golangci-lint, gofmt, and gofmt -w . command", () => {
-      writeFileSync(join(testDir, "go.mod"), "module example.com/app\n\ngo 1.22\n");
-      writeFileSync(join(testDir, ".golangci.yml"), "version: 2\n");
+      vfs.writeFileSync(join(testDir, "go.mod"), "module example.com/app\n\ngo 1.22\n");
+      vfs.writeFileSync(join(testDir, ".golangci.yml"), "version: 2\n");
 
       const res = inspectToolchainDetails(testDir);
       expect(res.detectedPackageManagers).toContain("go");
@@ -202,12 +204,12 @@ describe("Toolchain Inspector Suite (toolchain-inspector.ts)", () => {
     });
 
     it("detects Python toolchain with poetry, pipenv, pip, pytest, pyright, mypy, ruff, flake8", () => {
-      writeFileSync(join(testDir, "poetry.lock"), "");
-      writeFileSync(join(testDir, "pytest.ini"), "[pytest]\n");
-      writeFileSync(join(testDir, "pyrightconfig.json"), "{}");
-      writeFileSync(join(testDir, "mypy.ini"), "[mypy]\n");
-      writeFileSync(join(testDir, "ruff.toml"), "");
-      writeFileSync(join(testDir, ".flake8"), "[flake8]\n");
+      vfs.writeFileSync(join(testDir, "poetry.lock"), "");
+      vfs.writeFileSync(join(testDir, "pytest.ini"), "[pytest]\n");
+      vfs.writeFileSync(join(testDir, "pyrightconfig.json"), "{}");
+      vfs.writeFileSync(join(testDir, "mypy.ini"), "[mypy]\n");
+      vfs.writeFileSync(join(testDir, "ruff.toml"), "");
+      vfs.writeFileSync(join(testDir, ".flake8"), "[flake8]\n");
 
       const res = inspectToolchainDetails(testDir);
       expect(res.detectedPackageManagers).toContain("poetry");
@@ -221,8 +223,8 @@ describe("Toolchain Inspector Suite (toolchain-inspector.ts)", () => {
     });
 
     it("detects Pipfile for pipenv and yarn lockfile", () => {
-      writeFileSync(join(testDir, "Pipfile"), "");
-      writeFileSync(join(testDir, "yarn.lock"), "");
+      vfs.writeFileSync(join(testDir, "Pipfile"), "");
+      vfs.writeFileSync(join(testDir, "yarn.lock"), "");
       const res = inspectToolchainDetails(testDir);
       expect(res.detectedPackageManagers).toContain("pipenv");
       expect(res.detectedPackageManagers).toContain("yarn");
@@ -231,12 +233,12 @@ describe("Toolchain Inspector Suite (toolchain-inspector.ts)", () => {
 
   describe("Monorepo nested member inspection & tool discovery", () => {
     it("scans tools across candidate parent dirs (packages, apps, modules)", () => {
-      writeFileSync(join(testDir, "turbo.json"), "{}");
-      writeFileSync(join(testDir, "package.json"), JSON.stringify({ name: "root" }));
+      vfs.writeFileSync(join(testDir, "turbo.json"), "{}");
+      vfs.writeFileSync(join(testDir, "package.json"), JSON.stringify({ name: "root" }));
 
       const pkgCore = join(testDir, "packages", "core");
-      mkdirSync(pkgCore, { recursive: true });
-      writeFileSync(
+      vfs.mkdirSync(pkgCore, { recursive: true });
+      vfs.writeFileSync(
         join(pkgCore, "package.json"),
         JSON.stringify({
           name: "@repo/core",
@@ -246,8 +248,8 @@ describe("Toolchain Inspector Suite (toolchain-inspector.ts)", () => {
       );
 
       const appWeb = join(testDir, "apps", "web");
-      mkdirSync(appWeb, { recursive: true });
-      writeFileSync(
+      vfs.mkdirSync(appWeb, { recursive: true });
+      vfs.writeFileSync(
         join(appWeb, "package.json"),
         JSON.stringify({
           name: "@repo/web",
@@ -269,10 +271,13 @@ describe("Toolchain Inspector Suite (toolchain-inspector.ts)", () => {
     });
 
     it("collects member dirs from explicit workspaceMembers when candidate parents absent", () => {
-      writeFileSync(join(testDir, "pnpm-workspace.yaml"), "packages:\n  - 'custom_modules/*'\n");
+      vfs.writeFileSync(
+        join(testDir, "pnpm-workspace.yaml"),
+        "packages:\n  - 'custom_modules/*'\n",
+      );
       const modDir = join(testDir, "custom_modules", "alpha");
-      mkdirSync(modDir, { recursive: true });
-      writeFileSync(
+      vfs.mkdirSync(modDir, { recursive: true });
+      vfs.writeFileSync(
         join(modDir, "package.json"),
         JSON.stringify({
           name: "alpha",

@@ -2,11 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { resolve } from "node:path";
 import { AGENT_ROLES } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { loadRoleContract } from "../../../olt/scripts/src/packets/role-contract.ts";
-import {
-  cleanupVirtualRolesFS,
-  getVirtualRolesFS,
-  setupVirtualRolesFS,
-} from "../fixture.ts";
+import { cleanupVirtualRolesFS, getVirtualRolesFS, setupVirtualRolesFS } from "../fixture.ts";
 
 describe("Plan 91 Pillar 2: Streamlined Persona Ecosystem & Role Invariants", () => {
   beforeEach(() => {

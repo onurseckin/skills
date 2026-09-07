@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { runInitCommand } from "../../../../../olt/scripts/src/cli/commands/run-init.ts";
 import { runCompleteCommand } from "../../../../../olt/scripts/src/cli/commands/run-ops.ts";
@@ -16,9 +15,12 @@ import * as quotaLifecycleModule from "../../../../../olt/scripts/src/workflow/l
 import * as worktreeModule from "../../../../../olt/scripts/src/workflow/worktree/consolidate.ts";
 import type { WorkflowState } from "../../../../../olt/scripts/src/workflow/types.ts";
 import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
+import type { VirtualMemoryFS } from "../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
+
+let vfs: VirtualMemoryFS;
 
 beforeEach(() => {
-  setupVirtualCliFS();
+  vfs = setupVirtualCliFS();
 });
 
 afterEach(() => {
@@ -27,9 +29,9 @@ afterEach(() => {
 
 function createTestRepo(name: string): { repo: string; promptFile: string } {
   const repo = `/virtual/cli/run-comp-${name}-${Math.random().toString(36).slice(2)}`;
-  mkdirSync(join(repo, ".git"), { recursive: true });
+  vfs.mkdirSync(join(repo, ".git"), { recursive: true });
   const promptFile = join(repo, "prompt.txt");
-  writeFileSync(promptFile, "Run complete tests prompt\n");
+  vfs.writeFileSync(promptFile, "Run complete tests prompt\n");
   return { repo, promptFile };
 }
 
@@ -48,7 +50,7 @@ function grantAgent(runRoot: string, actor: string): void {
 describe("runCompleteCommand and artifact verification", () => {
   test("completes run with auto-sync, quota badge, and worktree consolidation brief", async () => {
     const { repo } = createTestRepo("complete-worktree");
-    writeFileSync(
+    vfs.writeFileSync(
       join(repo, "harness.config.json"),
       JSON.stringify({ worktree_isolation: true, rebase_on_complete: true }),
     );

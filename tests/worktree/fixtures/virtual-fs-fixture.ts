@@ -5,10 +5,7 @@ import {
   VirtualMemoryFS,
   type VirtualStats,
 } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
-import {
-  origExists,
-  origRead,
-} from "../../../olt/scripts/src/testing/virtual-fs/handlers.ts";
+import { origExists, origRead } from "../../../olt/scripts/src/testing/virtual-fs/handlers.ts";
 import { createFsSpies } from "./virtual-fs-spies.ts";
 
 let vfs = new VirtualMemoryFS();

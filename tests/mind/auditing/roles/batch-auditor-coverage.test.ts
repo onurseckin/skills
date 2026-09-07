@@ -26,7 +26,7 @@ describe("Mind Role Batch Auditor Suite", () => {
   beforeEach(() => {
     vfs = new VirtualMemoryFS();
     session = createVirtualFSSession(vfs);
-    vfs.mkdir(tempDir, { recursive: true });
+    vfs.mkdirSync(tempDir, { recursive: true });
   });
 
   afterEach(() => {
@@ -105,8 +105,8 @@ describe("Mind Role Batch Auditor Suite", () => {
     expect(registryReport.summary.totalRolesAudited).toBe(1);
 
     const roleMd = `---\nrole: file-role\ntier: 3\narchetype: tier_3_implementer\n---\n# Doc\n`;
-    vfs.writeFile(join(tempDir, "file-role.md"), roleMd);
-    vfs.writeFile(join(tempDir, "ignore.txt"), "text");
+    vfs.writeFileSync(join(tempDir, "file-role.md"), roleMd);
+    vfs.writeFileSync(join(tempDir, "ignore.txt"), "text");
     const dirReport = auditDynamicRoles({ rolesDir: tempDir });
     expect(dirReport.rolesDir).toBe(tempDir);
 

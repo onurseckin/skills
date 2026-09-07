@@ -1,19 +1,31 @@
-import { describe, expect, it, spyOn, afterEach } from "bun:test";
-import * as fs from "node:fs";
-import { resolve, join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { join, resolve } from "node:path";
 import {
-  sanitizeSlug,
-  resolveDiscoveryCharterPath,
   collectFilesRecursively,
+  resolveDiscoveryCharterPath,
+  sanitizeSlug,
   scanCodeQuality,
 } from "../../../../olt/scripts/src/mind/tasks/discovery/scanners/quality-scanner.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Mind Task Discovery Quality Scanner Suite", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
   const spies: Array<{ mockRestore: () => void }> = [];
+
+  beforeEach(() => {
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+  });
 
   afterEach(() => {
     for (const spy of spies) spy.mockRestore();
     spies.length = 0;
+    session.cleanup();
   });
 
   describe("sanitizeSlug", () => {
@@ -39,32 +51,18 @@ describe("Mind Task Discovery Quality Scanner Suite", () => {
 
   describe("collectFilesRecursively", () => {
     it("returns accumulated files when dir does not exist", () => {
-      spies.push(spyOn(fs, "existsSync").mockReturnValue(false));
-      expect(collectFilesRecursively("/root", "/root/missing", [".ts"], [])).toEqual([]);
+      expect(
+        collectFilesRecursively("/virtual/root", "/virtual/root/missing", [".ts"], []),
+      ).toEqual([]);
     });
 
     it("filters files by extension and respects exclude patterns", () => {
-      const root = "/project";
-      spies.push(
-        spyOn(fs, "existsSync").mockReturnValue(true),
-        spyOn(fs, "readdirSync").mockImplementation((p) => {
-          const s = String(p);
-          if (s === root) {
-            return [
-              { name: "node_modules", isDirectory: () => true, isFile: () => false },
-              { name: "sub", isDirectory: () => true, isFile: () => false },
-              { name: "index.ts", isDirectory: () => false, isFile: () => true },
-              { name: "README.md", isDirectory: () => false, isFile: () => true },
-            ] as unknown as fs.Dirent[];
-          }
-          if (s === join(root, "sub")) {
-            return [
-              { name: "component.tsx", isDirectory: () => false, isFile: () => true },
-            ] as unknown as fs.Dirent[];
-          }
-          return [] as unknown as fs.Dirent[];
-        }),
-      );
+      const root = "/virtual/project";
+      vfs.mkdirSync(join(root, "node_modules"), { recursive: true });
+      vfs.mkdirSync(join(root, "sub"), { recursive: true });
+      vfs.writeFileSync(join(root, "index.ts"), "");
+      vfs.writeFileSync(join(root, "README.md"), "");
+      vfs.writeFileSync(join(root, "sub", "component.tsx"), "");
 
       const files = collectFilesRecursively(root, root, [".ts", ".tsx"], ["node_modules"]);
       expect(files.sort()).toEqual(
@@ -75,7 +73,9 @@ describe("Mind Task Discovery Quality Scanner Suite", () => {
 
   describe("scanCodeQuality", () => {
     it("uses default options when none are passed", () => {
-      spies.push(spyOn(fs, "existsSync").mockReturnValue(false));
+      (session.spies[0] as unknown as { mockReturnValue: (v: boolean) => void }).mockReturnValue(
+        false,
+      );
       const res = scanCodeQuality();
       expect(res.filesScanned).toBe(0);
       expect(res.totalFindings).toBe(0);
@@ -84,15 +84,10 @@ describe("Mind Task Discovery Quality Scanner Suite", () => {
 
     it("detects OVERSIZED_MODULE when line count exceeds threshold", () => {
       const longContent = Array.from({ length: 20 }, (_, i) => `const x${i} = ${i};`).join("\n");
-      spies.push(
-        spyOn(fs, "existsSync").mockReturnValue(true),
-        spyOn(fs, "readdirSync").mockReturnValue([
-          { name: "large.ts", isDirectory: () => false, isFile: () => true },
-        ] as unknown as fs.Dirent[]),
-        spyOn(fs, "readFileSync").mockReturnValue(longContent),
-      );
+      vfs.mkdirSync("/virtual/src", { recursive: true });
+      vfs.writeFileSync("/virtual/src/large.ts", longContent);
 
-      const res = scanCodeQuality({ sourceRoots: ["/src"], maxLineThreshold: 10 });
+      const res = scanCodeQuality({ sourceRoots: ["/virtual/src"], maxLineThreshold: 10 });
       expect(res.findings.some((f) => f.issueType === "OVERSIZED_MODULE")).toBe(true);
     });
 
@@ -112,15 +107,10 @@ describe("Mind Task Discovery Quality Scanner Suite", () => {
         "// const commentedOut = 2;",
       ].join("\n");
 
-      spies.push(
-        spyOn(fs, "existsSync").mockReturnValue(true),
-        spyOn(fs, "readdirSync").mockReturnValue([
-          { name: "dead.ts", isDirectory: () => false, isFile: () => true },
-        ] as unknown as fs.Dirent[]),
-        spyOn(fs, "readFileSync").mockReturnValue(code),
-      );
+      vfs.mkdirSync("/virtual/src", { recursive: true });
+      vfs.writeFileSync("/virtual/src/dead.ts", code);
 
-      const res = scanCodeQuality({ sourceRoots: ["/src"], maxLineThreshold: 1000 });
+      const res = scanCodeQuality({ sourceRoots: ["/virtual/src"], maxLineThreshold: 1000 });
       const deadTypes = res.findings.filter((f) => f.issueType === "UNEXPORTED_DEAD_CODE");
       expect(deadTypes.length).toBeGreaterThanOrEqual(4);
       expect(deadTypes.some((f) => f.description.includes("unusedSecret"))).toBe(true);
@@ -131,20 +121,13 @@ describe("Mind Task Discovery Quality Scanner Suite", () => {
 
     it("skips dead code check in test files and files with <= 5 lines", () => {
       const shortCode = "const deadA = 1;\nconst deadB = 2;";
-      spies.push(
-        spyOn(fs, "existsSync").mockReturnValue(true),
-        spyOn(fs, "readdirSync").mockReturnValue([
-          { name: "short.ts", isDirectory: () => false, isFile: () => true },
-          { name: "module.test.ts", isDirectory: () => false, isFile: () => true },
-        ] as unknown as fs.Dirent[]),
-        spyOn(fs, "readFileSync").mockImplementation((p) =>
-          String(p).includes("test")
-            ? "const deadTest = 1;\nconst deadTest2 = 2;\nconst deadTest3 = 3;\nconst deadTest4 = 4;\nconst deadTest5 = 5;\nconst deadTest6 = 6;"
-            : shortCode,
-        ),
-      );
+      const testCode =
+        "const deadTest = 1;\nconst deadTest2 = 2;\nconst deadTest3 = 3;\nconst deadTest4 = 4;\nconst deadTest5 = 5;\nconst deadTest6 = 6;";
+      vfs.mkdirSync("/virtual/src", { recursive: true });
+      vfs.writeFileSync("/virtual/src/short.ts", shortCode);
+      vfs.writeFileSync("/virtual/src/module.test.ts", testCode);
 
-      const res = scanCodeQuality({ sourceRoots: ["/src"] });
+      const res = scanCodeQuality({ sourceRoots: ["/virtual/src"] });
       expect(res.findings.some((f) => f.issueType === "UNEXPORTED_DEAD_CODE")).toBe(false);
     });
 
@@ -164,15 +147,10 @@ describe("Mind Task Discovery Quality Scanner Suite", () => {
         "* multiline doc with as any ignored",
       ].join("\n");
 
-      spies.push(
-        spyOn(fs, "existsSync").mockReturnValue(true),
-        spyOn(fs, "readdirSync").mockReturnValue([
-          { name: "types.ts", isDirectory: () => false, isFile: () => true },
-        ] as unknown as fs.Dirent[]),
-        spyOn(fs, "readFileSync").mockReturnValue(code),
-      );
+      vfs.mkdirSync("/virtual/src", { recursive: true });
+      vfs.writeFileSync("/virtual/src/types.ts", code);
 
-      const res = scanCodeQuality({ sourceRoots: ["/src"] });
+      const res = scanCodeQuality({ sourceRoots: ["/virtual/src"] });
       const suppressions = res.findings.filter((f) => f.issueType === "COMPILER_SUPPRESSION");
       const anyTypes = res.findings.filter((f) => f.issueType === "TYPE_SAFETY_ANY");
 
@@ -195,16 +173,11 @@ describe("Mind Task Discovery Quality Scanner Suite", () => {
         "const note = 2; /* FALLBACK */",
       ].join("\n");
 
-      spies.push(
-        spyOn(fs, "existsSync").mockReturnValue(true),
-        spyOn(fs, "readdirSync").mockReturnValue([
-          { name: "fallback.ts", isDirectory: () => false, isFile: () => true },
-          { name: "fallback.spec.ts", isDirectory: () => false, isFile: () => true },
-        ] as unknown as fs.Dirent[]),
-        spyOn(fs, "readFileSync").mockReturnValue(code),
-      );
+      vfs.mkdirSync("/virtual/src", { recursive: true });
+      vfs.writeFileSync("/virtual/src/fallback.ts", code);
+      vfs.writeFileSync("/virtual/src/fallback.spec.ts", code);
 
-      const res = scanCodeQuality({ sourceRoots: ["/src"] });
+      const res = scanCodeQuality({ sourceRoots: ["/virtual/src"] });
       const fallbacks = res.findings.filter((f) => f.issueType === "LITERAL_FALLBACK");
       expect(fallbacks.length).toBeGreaterThanOrEqual(8);
       expect(fallbacks.every((f) => f.file.endsWith("fallback.ts"))).toBe(true);
@@ -220,15 +193,10 @@ describe("Mind Task Discovery Quality Scanner Suite", () => {
         "const normalCode = 1;",
       ].join("\n");
 
-      spies.push(
-        spyOn(fs, "existsSync").mockReturnValue(true),
-        spyOn(fs, "readdirSync").mockReturnValue([
-          { name: "markers.ts", isDirectory: () => false, isFile: () => true },
-        ] as unknown as fs.Dirent[]),
-        spyOn(fs, "readFileSync").mockReturnValue(code),
-      );
+      vfs.mkdirSync("/virtual/src", { recursive: true });
+      vfs.writeFileSync("/virtual/src/markers.ts", code);
 
-      const res = scanCodeQuality({ sourceRoots: ["/src"] });
+      const res = scanCodeQuality({ sourceRoots: ["/virtual/src"] });
       const markers = res.findings.filter((f) => f.issueType === "TODO_FIXME_MARKER");
       expect(markers).toHaveLength(5);
     });
@@ -242,19 +210,18 @@ describe("Mind Task Discovery Quality Scanner Suite", () => {
         "// TODO: 5",
       ].join("\n");
 
+      vfs.mkdirSync("/virtual/src", { recursive: true });
+      vfs.writeFileSync("/virtual/src/unreadable.ts", multiFindings);
+      vfs.writeFileSync("/virtual/src/valid.ts", multiFindings);
+
       spies.push(
-        spyOn(fs, "existsSync").mockReturnValue(true),
-        spyOn(fs, "readdirSync").mockReturnValue([
-          { name: "unreadable.ts", isDirectory: () => false, isFile: () => true },
-          { name: "valid.ts", isDirectory: () => false, isFile: () => true },
-        ] as unknown as fs.Dirent[]),
-        spyOn(fs, "readFileSync").mockImplementation((p) => {
+        spyOn(vfs, "readFileSync").mockImplementation((p: string) => {
           if (String(p).includes("unreadable")) throw new Error("Permission denied");
           return multiFindings;
         }),
       );
 
-      const res = scanCodeQuality({ sourceRoots: ["/src"], maxFindings: 3 });
+      const res = scanCodeQuality({ sourceRoots: ["/virtual/src"], maxFindings: 3 });
       expect(res.totalFindings).toBe(3);
       expect(res.findings).toHaveLength(3);
     });

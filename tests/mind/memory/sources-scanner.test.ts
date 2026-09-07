@@ -1,6 +1,4 @@
-import { describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { join, resolve } from "node:path";
 import {
   getSourceRevalidationGate,
@@ -13,14 +11,31 @@ import {
 } from "../../../olt/scripts/src/mind/memory/sources/scanner.ts";
 import { MIND_DISCOVERY_SOURCES } from "../../../olt/scripts/src/mind/memory/sources/types.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-
-function createTempWorkspace(prefix: string): string {
-  const tmp = mkdtempSync(join(tmpdir(), prefix));
-  mkdirSync(join(tmp, ".olt"), { recursive: true });
-  return tmp;
-}
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Sources Scanner Module", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
+
+  beforeEach(() => {
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+  });
+
+  afterEach(() => {
+    session.cleanup();
+  });
+
+  function createTempWorkspace(prefix: string): string {
+    const tmp = `/virtual/${prefix}`;
+    vfs.mkdirSync(join(tmp, ".olt"), { recursive: true });
+    return tmp;
+  }
+
   describe("getSourceRevalidationGate", () => {
     it("returns standard revalidation gate when no targetPath is provided", () => {
       const gate = getSourceRevalidationGate("unused-code");
@@ -82,113 +97,93 @@ describe("Sources Scanner Module", () => {
 
     it("resolves command records from commands/<id>/record.json", () => {
       const tmp = createTempWorkspace("cmd-res-1-");
-      try {
-        const cmdDir = join(tmp, "commands", "cmd-001");
-        mkdirSync(cmdDir, { recursive: true });
-        const recordData = { id: "cmd-001", exitCode: 0, stdout: "ok" };
-        writeFileSync(join(cmdDir, "record.json"), JSON.stringify(recordData));
+      const cmdDir = join(tmp, "commands", "cmd-001");
+      vfs.mkdirSync(cmdDir, { recursive: true });
+      const recordData = { id: "cmd-001", exitCode: 0, stdout: "ok" };
+      vfs.writeFileSync(join(cmdDir, "record.json"), JSON.stringify(recordData));
 
-        const res = resolveCommandRecord("cmd-001", { runRoot: tmp });
-        expect(res.found).toBe(true);
-        expect(res.commandId).toBe("cmd-001");
-        expect(res.runRoot).toBe(tmp);
-        expect(res.location).toBe(join(cmdDir, "record.json"));
-        expect(res.record).toEqual(recordData);
+      const res = resolveCommandRecord("cmd-001", { runRoot: tmp });
+      expect(res.found).toBe(true);
+      expect(res.commandId).toBe("cmd-001");
+      expect(res.runRoot).toBe(tmp);
+      expect(res.location).toBe(join(cmdDir, "record.json"));
+      expect(res.record).toEqual(recordData);
 
-        writeFileSync(join(cmdDir, "record.json"), "invalid json");
-        const resInvalid = resolveCommandRecord("cmd-001", { runRoot: tmp });
-        expect(resInvalid.found).toBe(true);
-        expect(resInvalid.record).toBeUndefined();
-      } finally {
-        rmSync(tmp, { recursive: true, force: true });
-      }
+      vfs.writeFileSync(join(cmdDir, "record.json"), "invalid json");
+      const resInvalid = resolveCommandRecord("cmd-001", { runRoot: tmp });
+      expect(resInvalid.found).toBe(true);
+      expect(resInvalid.record).toBeUndefined();
     });
 
     it("resolves command records from commands/<id>.json", () => {
       const tmp = createTempWorkspace("cmd-res-2-");
-      try {
-        const cmdsDir = join(tmp, "commands");
-        mkdirSync(cmdsDir, { recursive: true });
-        const recordData = { id: "cmd-002", status: "success" };
-        writeFileSync(join(cmdsDir, "cmd-002.json"), JSON.stringify(recordData));
+      const cmdsDir = join(tmp, "commands");
+      vfs.mkdirSync(cmdsDir, { recursive: true });
+      const recordData = { id: "cmd-002", status: "success" };
+      vfs.writeFileSync(join(cmdsDir, "cmd-002.json"), JSON.stringify(recordData));
 
-        const res = resolveCommandRecord("cmd-002", { runRoot: tmp });
-        expect(res.found).toBe(true);
-        expect(res.commandId).toBe("cmd-002");
-        expect(res.location).toBe(join(cmdsDir, "cmd-002.json"));
-        expect(res.record).toEqual(recordData);
+      const res = resolveCommandRecord("cmd-002", { runRoot: tmp });
+      expect(res.found).toBe(true);
+      expect(res.commandId).toBe("cmd-002");
+      expect(res.location).toBe(join(cmdsDir, "cmd-002.json"));
+      expect(res.record).toEqual(recordData);
 
-        writeFileSync(join(cmdsDir, "cmd-002.json"), "{ broken");
-        const resCorrupt = resolveCommandRecord("cmd-002", { runRoot: tmp });
-        expect(resCorrupt.found).toBe(true);
-        expect(resCorrupt.record).toBeUndefined();
-      } finally {
-        rmSync(tmp, { recursive: true, force: true });
-      }
+      vfs.writeFileSync(join(cmdsDir, "cmd-002.json"), "{ broken");
+      const resCorrupt = resolveCommandRecord("cmd-002", { runRoot: tmp });
+      expect(resCorrupt.found).toBe(true);
+      expect(resCorrupt.record).toBeUndefined();
     });
 
     it("resolves command directory without JSON file", () => {
       const tmp = createTempWorkspace("cmd-res-3-");
-      try {
-        const cmdDir = join(tmp, "commands", "cmd-003");
-        mkdirSync(cmdDir, { recursive: true });
+      const cmdDir = join(tmp, "commands", "cmd-003");
+      vfs.mkdirSync(cmdDir, { recursive: true });
 
-        const res = resolveCommandRecord("cmd-003", { runRoot: tmp });
-        expect(res.found).toBe(true);
-        expect(res.commandId).toBe("cmd-003");
-        expect(res.location).toBe(cmdDir);
-      } finally {
-        rmSync(tmp, { recursive: true, force: true });
-      }
+      const res = resolveCommandRecord("cmd-003", { runRoot: tmp });
+      expect(res.found).toBe(true);
+      expect(res.commandId).toBe("cmd-003");
+      expect(res.location).toBe(cmdDir);
     });
 
     it("resolves command from state.json commands map", () => {
       const tmp = createTempWorkspace("cmd-res-4-");
-      try {
-        const stateData = {
-          commands: {
-            "cmd-state-1": { command: "bun test", exit_code: 0 },
-          },
-        };
-        writeFileSync(join(tmp, "state.json"), JSON.stringify(stateData));
+      const stateData = {
+        commands: {
+          "cmd-state-1": { command: "bun test", exit_code: 0 },
+        },
+      };
+      vfs.writeFileSync(join(tmp, "state.json"), JSON.stringify(stateData));
 
-        const res = resolveCommandRecord("cmd-state-1", { runRoot: tmp });
-        expect(res.found).toBe(true);
-        expect(res.commandId).toBe("cmd-state-1");
-        expect(res.record).toEqual({ command: "bun test", exit_code: 0 });
+      const res = resolveCommandRecord("cmd-state-1", { runRoot: tmp });
+      expect(res.found).toBe(true);
+      expect(res.commandId).toBe("cmd-state-1");
+      expect(res.record).toEqual({ command: "bun test", exit_code: 0 });
 
-        writeFileSync(join(tmp, "state.json"), "invalid json");
-        const resUnreadable = resolveCommandRecord("cmd-missing", { runRoot: tmp });
-        expect(resUnreadable.found).toBe(false);
-      } finally {
-        rmSync(tmp, { recursive: true, force: true });
-      }
+      vfs.writeFileSync(join(tmp, "state.json"), "invalid json");
+      const resUnreadable = resolveCommandRecord("cmd-missing", { runRoot: tmp });
+      expect(resUnreadable.found).toBe(false);
     });
 
     it("searches candidate capsulesDir, repoRoot, and handles unfound commands", () => {
       const tmp = createTempWorkspace("cmd-res-5-");
-      try {
-        const capDir = join(tmp, "capsule-alpha");
-        const cmdDir = join(capDir, "commands", "cmd-alpha");
-        mkdirSync(cmdDir, { recursive: true });
-        writeFileSync(join(cmdDir, "record.json"), JSON.stringify({ ok: true }));
+      const capDir = join(tmp, "capsule-alpha");
+      const cmdDir = join(capDir, "commands", "cmd-alpha");
+      vfs.mkdirSync(cmdDir, { recursive: true });
+      vfs.writeFileSync(join(cmdDir, "record.json"), JSON.stringify({ ok: true }));
 
-        const res = resolveCommandRecord("cmd-alpha", { capsulesDir: tmp });
-        expect(res.found).toBe(true);
-        expect(res.commandId).toBe("cmd-alpha");
+      const res = resolveCommandRecord("cmd-alpha", { capsulesDir: tmp });
+      expect(res.found).toBe(true);
+      expect(res.commandId).toBe("cmd-alpha");
 
-        const resWithRepo = resolveCommandRecord("cmd-alpha", { repoRoot: tmp, capsulesDir: tmp });
-        expect(resWithRepo.found).toBe(true);
+      const resWithRepo = resolveCommandRecord("cmd-alpha", { repoRoot: tmp, capsulesDir: tmp });
+      expect(resWithRepo.found).toBe(true);
 
-        const notFound = resolveCommandRecord("non-existent-cmd", {
-          capsulesDir: tmp,
-          repoRoot: tmp,
-        });
-        expect(notFound.found).toBe(false);
-        expect(notFound.commandId).toBe("non-existent-cmd");
-      } finally {
-        rmSync(tmp, { recursive: true, force: true });
-      }
+      const notFound = resolveCommandRecord("non-existent-cmd", {
+        capsulesDir: tmp,
+        repoRoot: tmp,
+      });
+      expect(notFound.found).toBe(false);
+      expect(notFound.commandId).toBe("non-existent-cmd");
     });
   });
 

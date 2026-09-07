@@ -108,11 +108,24 @@ describe("Conversational Engagement Protocols & Active Swarm Audit Suite", () =>
       const paths = ensureMailboxDir("worker-corrupt", testRepoRoot);
       setInMemoryMailbox(paths.inboxPath, [
         "not-valid-json-syntax{{{",
-        JSON.stringify({ id: "valid-1", sequence: 1, sender_id: "s", recipient_id: "r", sender_role: "r", message_type: "t", timestamp: "ts", correlation_id: "c", hmac_signature: "h", payload: {} }),
+        JSON.stringify({
+          id: "valid-1",
+          sequence: 1,
+          sender_id: "s",
+          recipient_id: "r",
+          sender_role: "r",
+          message_type: "t",
+          timestamp: "ts",
+          correlation_id: "c",
+          hmac_signature: "h",
+          payload: {},
+        }),
         JSON.stringify({ incomplete: "envelope" }),
       ]);
 
-      const res = readUnreadMessages(paths.inboxPath, null, { quarantinePath: paths.quarantinePath });
+      const res = readUnreadMessages(paths.inboxPath, null, {
+        quarantinePath: paths.quarantinePath,
+      });
       expect(res.messages.length).toBe(1);
       expect(res.messages[0]?.id).toBe("valid-1");
       expect(res.quarantinedCount).toBe(2);

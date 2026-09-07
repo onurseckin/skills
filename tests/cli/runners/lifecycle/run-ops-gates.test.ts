@@ -8,7 +8,6 @@ import {
   disableInMemoryAgentMetadata,
   enableInMemoryAgentMetadata,
 } from "../../../../olt/scripts/src/runtime/session.ts";
-import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import type { Flags } from "../../../../olt/scripts/src/cli/options.ts";
 import { workflowPort } from "../../../../olt/scripts/src/integration/store-ports.ts";
@@ -18,10 +17,13 @@ import {
   setupVirtualCliFS,
 } from "../../commands/fixtures/full-lifecycle-fixture.ts";
 import { setupCompiledRun } from "../../commands/fixtures/task-ops-fixture.ts";
+import { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 const roots: string[] = [];
+let vfs: VirtualMemoryFS;
+
 beforeEach(() => {
-  setupVirtualCliFS();
+  vfs = setupVirtualCliFS();
   enableInMemoryAgentMetadata();
 });
 
@@ -127,7 +129,7 @@ describe("runExecCommand task gate lifecycle", () => {
       runExecCommand(gateRunFlags(runRoot, actor, "T-1", "G-1"), {}, ["echo", "gate"]),
     ).rejects.toMatchObject({ code: "INVALID_STATE" });
 
-    expect(readdirSync(join(runRoot, "commands"))).toEqual([]);
+    expect(vfs.readdirSync(join(runRoot, "commands"))).toEqual([]);
   });
 
   test("attaches each passed applicable gate and finishes only after the final gate", async () => {

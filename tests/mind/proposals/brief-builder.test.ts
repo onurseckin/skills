@@ -83,7 +83,11 @@ describe("Mind Proposal Brief Builder Core Suite", () => {
 
     it("reports DRIFTED and halts when charter exists but sha mismatches pinned digest", async () => {
       setupMatchingCharter("charter: valid\n");
-      vfs.writeFileSync(join(tempRepo, "olt", "agents", "mind.yaml"), "charter: drifted\n", "utf-8");
+      vfs.writeFileSync(
+        join(tempRepo, "olt", "agents", "mind.yaml"),
+        "charter: drifted\n",
+        "utf-8",
+      );
 
       const brief = await computeFullWakeBrief(runRoot);
 

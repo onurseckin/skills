@@ -139,9 +139,7 @@ describe("runtime architecture", () => {
         /openai|anthropic|gemini|google-generative|mistral|groq/i.test(name),
       ),
     ).toEqual([]);
-    const production = filesBelow(join(scriptsRoot, "src")).filter((path) =>
-      path.endsWith(".ts"),
-    );
+    const production = filesBelow(join(scriptsRoot, "src")).filter((path) => path.endsWith(".ts"));
     const hardcoded: string[] = [];
     for (const path of production) {
       const source = vfs.readFileSync(path, "utf8");

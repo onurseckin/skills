@@ -1,4 +1,8 @@
-import type { RawBacklogItem, RawDefectItem, StagnationAuditResult } from "../../preplanning/index.ts";
+import type {
+  RawBacklogItem,
+  RawDefectItem,
+  StagnationAuditResult,
+} from "../../preplanning/index.ts";
 import type { StagnationShockResult } from "./stagnation-recovery-interlock.ts";
 
 export interface ZeroDeltaComparisonResult {

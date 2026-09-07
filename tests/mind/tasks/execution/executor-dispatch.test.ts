@@ -1,6 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   executeAtomicAdmissionToDispatch,
@@ -12,36 +10,45 @@ import * as invariantsMod from "../../../../olt/scripts/src/mind/tasks/smart/exe
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import type { FeedbackItem } from "../../../../olt/scripts/src/mind/feedback/index.ts";
 import type { TaskQueueItem } from "../../../../olt/scripts/src/task/queue/index.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Smart Tasks Executor Dispatch (dispatch.ts)", () => {
-  let tempDir: string;
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
+  const tempDir = "/virtual/mind-dispatch-test";
   let feedbackFile: string;
   let taskQueueFile: string;
   const spies: Array<{ mockRestore: () => void }> = [];
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "mind-dispatch-test-"));
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    vfs.mkdirSync(tempDir, { recursive: true });
     feedbackFile = join(tempDir, "FEEDBACK_QUEUE.jsonl");
     taskQueueFile = join(tempDir, "TASK_QUEUE.jsonl");
-    writeFileSync(feedbackFile, "");
-    writeFileSync(taskQueueFile, "");
+    vfs.writeFileSync(feedbackFile, "");
+    vfs.writeFileSync(taskQueueFile, "");
   });
 
   afterEach(() => {
     for (const spy of spies) spy.mockRestore();
     spies.length = 0;
-    rmSync(tempDir, { recursive: true, force: true });
+    session.cleanup();
   });
 
   const writeFeedbacks = (items: FeedbackItem[]) => {
-    writeFileSync(
+    vfs.writeFileSync(
       feedbackFile,
       items.map((i) => JSON.stringify(i)).join("\n") + (items.length ? "\n" : ""),
     );
   };
 
   const writeTasks = (items: TaskQueueItem[]) => {
-    writeFileSync(
+    vfs.writeFileSync(
       taskQueueFile,
       items.map((i) => JSON.stringify(i)).join("\n") + (items.length ? "\n" : ""),
     );

@@ -1,0 +1,79 @@
+import {
+  computeDaemonState as baseComputeDaemonState,
+  type DaemonHealthRecord,
+  type DaemonLivenessState,
+  type HealthComputeOptions,
+} from "./health.ts";
+
+export function computeDaemonState(
+  record: DaemonHealthRecord,
+  nowMs: number,
+  options: HealthComputeOptions = {},
+): DaemonLivenessState {
+  const DEFAULT_MAX_SPOOL_BYTES = 33554432;
+  const isBackpressured =
+    options.isBackpressured ??
+    (record.spool_bytes >= DEFAULT_MAX_SPOOL_BYTES || record.spool_lines >= 20000);
+  const adjustedRecord: DaemonHealthRecord =
+    !isBackpressured && record.state === "BACKPRESSURED" ? { ...record, state: "LIVE" } : record;
+  return baseComputeDaemonState(adjustedRecord, nowMs, {
+    ...options,
+    isBackpressured,
+  });
+}
+
+export {
+  acquireDaemonLock,
+  checkRespawnBudget,
+  parseDaemonLockPayload,
+  reclaimStaleLock,
+  recordRespawn,
+  releaseDaemonLock,
+  startDaemon,
+  stopDaemon,
+  type LockAcquisitionResult,
+  type SupervisorOptions,
+  type SupervisorPorts,
+  type SupervisorResult,
+} from "./supervisor.ts";
+
+export {
+  DaemonWatcher,
+  computeChangeToken,
+  hasTokenChanged,
+  type ChangeToken,
+  type DaemonWatcherOptions,
+  type WakeSource,
+  type WatcherMetrics,
+} from "./watcher.ts";
+
+export {
+  appendSpool,
+  getSpoolStats,
+  isSpoolBackpressured,
+  repairSpool,
+  rotateSpoolIfNeeded,
+  type SpoolAppendResult,
+  type SpoolOptions,
+  type SpoolRepairResult,
+  type SpoolStats,
+} from "./spool.ts";
+
+export {
+  runDaemonLoop,
+  stepDaemonLoop,
+  type DaemonLoopOptions,
+  type DaemonStepResult,
+} from "./loop.ts";
+
+export {
+  createInitialHealthRecord,
+  isDaemonHealthRecord,
+  readHealthRecord,
+  writeHealthRecord,
+  type DaemonHealthRecord,
+  type DaemonLivenessState,
+  type HealthComputeOptions,
+} from "./health.ts";
+
+export { ensureDaemon, type EnsureDaemonOptions, type EnsureDaemonResult } from "./ensure.ts";

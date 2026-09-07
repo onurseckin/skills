@@ -161,12 +161,12 @@ describe("screenshot attribution follows the recorded agent, not the agent's nam
       state: makeState([reviewedTask(), task2]),
       runRoot,
     });
-    const t1Assets = (
-      dataset.nodes.find((node) => node.id === "node-task-T-1")?.assets ?? []
-    ).map((a) => a.url);
-    const t2Assets = (
-      dataset.nodes.find((node) => node.id === "node-task-T-2")?.assets ?? []
-    ).map((a) => a.url);
+    const t1Assets = (dataset.nodes.find((node) => node.id === "node-task-T-1")?.assets ?? []).map(
+      (a) => a.url,
+    );
+    const t2Assets = (dataset.nodes.find((node) => node.id === "node-task-T-2")?.assets ?? []).map(
+      (a) => a.url,
+    );
     expect(t1Assets).toContain("evidence/screenshots/t1-shot.png");
     expect(t1Assets).not.toContain("evidence/screenshots/t2-shot.png");
     expect(t2Assets).toContain("evidence/screenshots/t2-shot.png");

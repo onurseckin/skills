@@ -1,33 +1,37 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import {
   evaluateMindMode,
   runMindProductManagerLoop,
   discoverGroundedFeatures,
 } from "../../../olt/scripts/src/mind/lifecycle/orchestration/product-manager.ts";
 import { writeTaskQueue } from "../../../olt/scripts/src/task/queue/index.ts";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Mind Product Manager Autonomous Expansion Suite (product-manager.ts)", () => {
-  let testDir: string;
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
+  const testDir = "/virtual/pm-test";
   let queuePath: string;
   let feedbackPath: string;
   let memoryPath: string;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `pm-cov-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`);
-    mkdirSync(testDir, { recursive: true });
-    mkdirSync(join(testDir, ".olt"), { recursive: true });
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    vfs.mkdirSync(testDir, { recursive: true });
+    vfs.mkdirSync(join(testDir, ".olt"), { recursive: true });
     queuePath = join(testDir, ".olt", "tasks.jsonl");
     feedbackPath = join(testDir, ".olt", "backlog.jsonl");
     memoryPath = join(testDir, ".olt", "memory.json");
   });
 
   afterEach(() => {
-    try {
-      rmSync(testDir, { recursive: true, force: true });
-    } catch {}
+    session.cleanup();
   });
 
   describe("discoverGroundedFeatures re-export", () => {
@@ -82,7 +86,7 @@ describe("Mind Product Manager Autonomous Expansion Suite (product-manager.ts)",
         status: "PENDING",
         category: "GENERAL",
       };
-      writeFileSync(feedbackPath, JSON.stringify(validFeedback) + "\n", "utf-8");
+      vfs.writeFileSync(feedbackPath, JSON.stringify(validFeedback) + "\n");
 
       const result = evaluateMindMode({
         queuePath,
@@ -100,7 +104,7 @@ describe("Mind Product Manager Autonomous Expansion Suite (product-manager.ts)",
 
     it("evaluates MODE_A_CREATIVE_PRODUCT_MANAGER when queue and feedback intake are clear", () => {
       writeTaskQueue([], queuePath);
-      writeFileSync(feedbackPath, "", "utf-8");
+      vfs.writeFileSync(feedbackPath, "");
 
       const result = evaluateMindMode({
         queuePath,
@@ -130,7 +134,7 @@ describe("Mind Product Manager Autonomous Expansion Suite (product-manager.ts)",
         status: "PENDING",
         category: "GENERAL",
       };
-      writeFileSync(feedbackPath, JSON.stringify(validFeedback) + "\n", "utf-8");
+      vfs.writeFileSync(feedbackPath, JSON.stringify(validFeedback) + "\n");
 
       const result = evaluateMindMode({
         queuePath,
@@ -152,7 +156,7 @@ describe("Mind Product Manager Autonomous Expansion Suite (product-manager.ts)",
 
     it("evaluates open defect logs from capsulesDir", () => {
       const capsulesDir = join(testDir, "test-capsules");
-      mkdirSync(capsulesDir, { recursive: true });
+      vfs.mkdirSync(capsulesDir, { recursive: true });
       const defectEntry = {
         id: "defect-101",
         fingerprint: "fp-101",
@@ -164,11 +168,7 @@ describe("Mind Product Manager Autonomous Expansion Suite (product-manager.ts)",
         last_observed_at: "2026-09-01T12:00:00.000Z",
         occurrence_count: 1,
       };
-      writeFileSync(
-        join(capsulesDir, "defects.jsonl"),
-        JSON.stringify(defectEntry) + "\n",
-        "utf-8",
-      );
+      vfs.writeFileSync(join(capsulesDir, "defects.jsonl"), JSON.stringify(defectEntry) + "\n");
 
       const result = evaluateMindMode({
         queuePath,
@@ -208,7 +208,7 @@ describe("Mind Product Manager Autonomous Expansion Suite (product-manager.ts)",
       const tierMap = result.synthesizedTasks.map((t) => t.assigned_tier);
       expect(tierMap).toContain("Tier_3_Implementer");
 
-      expect(existsSync(queuePath)).toBe(true);
+      expect(vfs.existsSync(queuePath)).toBe(true);
     });
 
     it("runs loop with autoEnqueue=false and multi-orchestrator staging", () => {

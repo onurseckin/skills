@@ -105,6 +105,10 @@ Starts continuous draining on the agent mailbox, streaming incoming messages unt
 | `--interval` | int | no | no | - | Polling interval / idle wait in milliseconds (default: 50). |
 | `--batch-size` | int | no | no | - | Maximum messages to process per drain pass. |
 | `--base-dir` | string | no | no | - | Base directory for mailbox root. |
+| `--secret` | string | no | no | - | Repository secret key for HMAC verification. |
+| `--json` | bool | no | no | - | Emit JSON output rather than text stream. |
+| `--timeout` | int | no | no | - | Drain timeout in milliseconds. |
+| `--max-messages` | int | no | no | - | Maximum messages to process before stopping. |
 
 ```bash
 bun harness.ts msg:listen --actor worker-1
@@ -125,9 +129,34 @@ Scans the repository mailbox store to report message counts, unread queue depths
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `--actor` | string | no | no | - | Filter mailbox summary to a single agent ID. |
 | `--base-dir` | string | no | no | - | Base directory for mailbox root. |
+| `--detailed` | bool | no | no | - | Show detailed per-message delivery status. |
+| `--verbose` | bool | no | no | - | Alias for detailed per-message delivery status. |
+| `--message-id` | string | no | no | - | Inspect delivery status of a specific message ID. |
+| `--id` | string | no | no | - | Alias for message-id. |
 
 ```bash
 bun harness.ts msg:list
 bun harness.ts msg:list --actor worker-1
 bun harness.ts msg:list --base-dir /path/to/project
+```
+
+### `msg:health`
+
+Check mailbox listener liveness and health status.
+
+Inspects listener heartbeat, lock state, process status, and delivery metrics to determine listener health.
+
+- **Aliases**: none
+- **Stdin**: not read
+- **Arguments after `--`**: rejected
+
+| Flag | Type | Required | Repeatable | Default | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `--actor` | string | no | no | - | Recipient agent ID (auto-derived if omitted). |
+| `--base-dir` | string | no | no | - | Base directory for mailbox root. |
+
+```bash
+bun harness.ts msg:health
+bun harness.ts msg:health --actor worker-1
+bun harness.ts msg:health --base-dir /path/to/project
 ```

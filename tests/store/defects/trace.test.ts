@@ -5,7 +5,11 @@ import {
   appendTraceStep,
   writeTrace,
 } from "../../../olt/scripts/src/engine/store/recovery/trace.ts";
-import { cleanupVirtualStoreFS, scratchRoot as makeScratchRoot, setupVirtualStoreFS } from "../store-fixture.ts";
+import {
+  cleanupVirtualStoreFS,
+  scratchRoot as makeScratchRoot,
+  setupVirtualStoreFS,
+} from "../store-fixture.ts";
 
 let vfs: ReturnType<typeof setupVirtualStoreFS>;
 

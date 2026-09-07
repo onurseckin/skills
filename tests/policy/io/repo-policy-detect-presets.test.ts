@@ -1,5 +1,4 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { cleanupVirtualPolicyFS, setupVirtualPolicyFS } from "../fixture.ts";
 import {
@@ -12,12 +11,14 @@ import {
   parseRepoPolicy,
   validateRepoPolicy,
 } from "../../../olt/scripts/src/policy/index.ts";
+import type { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Repo Policy Presets, Normalization & Schema Validation", () => {
   const scratchBase = "/virtual/policy/io/detect-presets";
+  let vfs: VirtualMemoryFS;
 
   beforeEach(() => {
-    setupVirtualPolicyFS();
+    vfs = setupVirtualPolicyFS();
   });
 
   afterEach(() => {
@@ -98,6 +99,8 @@ describe("Repo Policy Presets, Normalization & Schema Validation", () => {
     expect(partial.forbidden_commands).toEqual(["git push"]);
     expect(partial.test_runner?.enabled).toBe(false);
 
+    expect(() => validateRepoPolicy({ unknown_field: "test" })).toThrow(/unknown.*unknown_field/i);
+
     expect(() => validateRepoPolicy({ timeout_ms: 45_000 })).toThrow(/unknown.*timeout_ms/i);
     expect(() => validateRepoPolicy({ forbidden_commands: [], typo_policy_flag: true })).toThrow(
       /unknown.*typo_policy_flag/i,
@@ -105,8 +108,8 @@ describe("Repo Policy Presets, Normalization & Schema Validation", () => {
 
     const dir = join(scratchBase, "unknown-top-level-policy");
     const policyPath = join(dir, ".olt", "policy.json");
-    mkdirSync(join(dir, ".olt"), { recursive: true });
-    writeFileSync(policyPath, JSON.stringify({ timeout_ms: 45_000 }), "utf-8");
+    vfs.mkdirSync(join(dir, ".olt"), { recursive: true });
+    vfs.writeFileSync(policyPath, JSON.stringify({ timeout_ms: 45_000 }), "utf-8");
     try {
       loadRepoPolicy(dir);
       throw new Error("expected invalid custom policy to throw");
@@ -168,9 +171,9 @@ describe("Repo Policy Presets, Normalization & Schema Validation", () => {
 
   test("discoverToolchainPolicy detects toolchain commands across repositories", () => {
     const dir = join(scratchBase, "discover-toolchain-test");
-    mkdirSync(dir, { recursive: true });
-    writeFileSync(join(dir, "bun.lock"), "");
-    writeFileSync(
+    vfs.mkdirSync(dir, { recursive: true });
+    vfs.writeFileSync(join(dir, "bun.lock"), "");
+    vfs.writeFileSync(
       join(dir, "package.json"),
       JSON.stringify({
         scripts: {
@@ -192,7 +195,7 @@ describe("Repo Policy Presets, Normalization & Schema Validation", () => {
 
   test("inspectRepoPolicy falls back to auto_detected when policy file does not exist", () => {
     const dir = join(scratchBase, "nonexistent-policy-inspect-test");
-    mkdirSync(dir, { recursive: true });
+    vfs.mkdirSync(dir, { recursive: true });
     const res = inspectRepoPolicy(dir);
     expect(res.status).toBe("auto_detected");
     expect(res.provenance).toBe("auto_detected");

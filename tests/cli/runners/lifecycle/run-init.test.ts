@@ -1,20 +1,21 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { runInitCommand } from "../../../../olt/scripts/src/cli/commands/run-init.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
+import { type VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   cleanupVirtualCliFS,
   setupVirtualCliFS,
 } from "../../commands/fixtures/full-lifecycle-fixture.ts";
 
 describe("run:init CLI command", () => {
+  let vfs: VirtualMemoryFS;
   let testDir: string;
 
   beforeEach(() => {
-    setupVirtualCliFS();
+    vfs = setupVirtualCliFS();
     testDir = `/virtual/run-init-cli-test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    mkdirSync(testDir, { recursive: true });
+    vfs.mkdirSync(testDir, { recursive: true });
   });
 
   afterEach(() => {
@@ -40,10 +41,10 @@ describe("run:init CLI command", () => {
     expect(result.existed).toBe(false);
     expect(typeof result.markdown).toBe("string");
     expect(result.markdown as string).toContain("Capsule Initialized");
-    expect(existsSync(result.run_root as string)).toBe(true);
-    expect(existsSync(join(result.run_root as string, "manifest.json"))).toBe(true);
-    expect(existsSync(join(result.run_root as string, "state.json"))).toBe(true);
-    expect(existsSync(join(result.run_root as string, "evidence"))).toBe(true);
+    expect(vfs.existsSync(result.run_root as string)).toBe(true);
+    expect(vfs.existsSync(join(result.run_root as string, "manifest.json"))).toBe(true);
+    expect(vfs.existsSync(join(result.run_root as string, "state.json"))).toBe(true);
+    expect(vfs.existsSync(join(result.run_root as string, "evidence"))).toBe(true);
   });
 
   test("supports alias --run-id and idempotently handles existing runs", async () => {

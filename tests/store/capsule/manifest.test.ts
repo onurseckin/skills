@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { chmodSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { canonicalJsonBytes, sha256Bytes } from "../../../olt/scripts/src/core/json.ts";
 import { checkManifest } from "../../../olt/scripts/src/engine/store/layout/manifest.ts";
 import type { Manifest } from "../../../olt/scripts/src/core/contracts/index.ts";
 import {
   createStoreFsSpies,
+  mockFs,
   scratchRoot as makeScratchRoot,
   setupVirtualStoreFS,
 } from "../store-fixture.ts";
@@ -17,7 +17,7 @@ function scratchRoot(label: string): string {
 }
 
 function writeCanonical(path: string, value: unknown): void {
-  writeFileSync(path, canonicalJsonBytes(value as never));
+  mockFs.writeFileSync(path, canonicalJsonBytes(value as never));
 }
 
 function validManifest(runRoot: string, promptBytes: Uint8Array): Manifest {
@@ -39,7 +39,7 @@ function validManifest(runRoot: string, promptBytes: Uint8Array): Manifest {
 
 function seedValid(root: string): { promptBytes: Uint8Array } {
   const promptBytes = new TextEncoder().encode("hello prompt");
-  writeFileSync(join(root, "prompt.md"), promptBytes, { mode: 0o444 });
+  mockFs.writeFileSync(join(root, "prompt.md"), promptBytes, { mode: 0o444 });
   writeCanonical(join(root, "manifest.json"), validManifest(root, promptBytes));
   return { promptBytes };
 }
@@ -56,43 +56,43 @@ describe("checkManifest", () => {
 
   test("reports MANIFEST_JSON when manifest.json is missing or not canonical JSON", () => {
     const root = scratchRoot("reports-manifest-json-when-manifest-json-is-missin");
-    writeFileSync(join(root, "prompt.md"), "x", { mode: 0o444 });
+    mockFs.writeFileSync(join(root, "prompt.md"), "x", { mode: 0o444 });
     expect(checkManifest(root).issues.some((i) => i.code === "MANIFEST_JSON")).toBe(true);
-    writeFileSync(join(root, "manifest.json"), "not json");
+    mockFs.writeFileSync(join(root, "manifest.json"), "not json");
     expect(checkManifest(root).issues.some((i) => i.code === "MANIFEST_JSON")).toBe(true);
   });
 
   test("reports PROMPT_READ when prompt.md is missing, a directory, or a symlink", () => {
     const root = scratchRoot("reports-prompt-read-when-prompt-md-is-missing-a-di");
     seedValid(root);
-    rmSync(join(root, "prompt.md"));
+    mockFs.rmSync(join(root, "prompt.md"));
     expect(checkManifest(root).issues.some((i) => i.code === "PROMPT_READ")).toBe(true);
 
     const dirRoot = scratchRoot("reports-prompt-read-when-prompt-md-is-missing-a-di-dirRoot");
     seedValid(dirRoot);
-    rmSync(join(dirRoot, "prompt.md"));
-    mkdirSync(join(dirRoot, "prompt.md"));
+    mockFs.rmSync(join(dirRoot, "prompt.md"));
+    mockFs.mkdirSync(join(dirRoot, "prompt.md"));
     expect(checkManifest(dirRoot).issues.some((i) => i.code === "PROMPT_READ")).toBe(true);
 
     const linkRoot = scratchRoot("reports-prompt-read-when-prompt-md-is-missing-a-di-linkRoot");
     seedValid(linkRoot);
-    rmSync(join(linkRoot, "prompt.md"));
+    mockFs.rmSync(join(linkRoot, "prompt.md"));
     const target = join(linkRoot, "real-prompt.md");
-    writeFileSync(target, "elsewhere");
-    symlinkSync(target, join(linkRoot, "prompt.md"));
+    mockFs.writeFileSync(target, "elsewhere");
+    mockFs.symlinkSync(target, join(linkRoot, "prompt.md"));
     expect(checkManifest(linkRoot).issues.some((i) => i.code === "PROMPT_READ")).toBe(true);
   });
 
   test("reports PROMPT_MODE when prompt.md is writable", () => {
     const root = scratchRoot("reports-prompt-mode-when-prompt-md-is-writable");
     seedValid(root);
-    chmodSync(join(root, "prompt.md"), 0o644);
+    mockFs.chmodSync(join(root, "prompt.md"), 0o644);
     expect(checkManifest(root).issues.some((i) => i.code === "PROMPT_MODE")).toBe(true);
   });
 
   test("stops early with only the collected issues when manifest is undefined but prompt is readable", () => {
     const root = scratchRoot("stops-early-with-only-the-collected-issues-when-ma");
-    writeFileSync(join(root, "prompt.md"), "readable", { mode: 0o444 });
+    mockFs.writeFileSync(join(root, "prompt.md"), "readable", { mode: 0o444 });
     const result = checkManifest(root);
     expect(result.manifest).toBeUndefined();
     expect(result.prompt).toBeDefined();
@@ -103,7 +103,7 @@ describe("checkManifest", () => {
     const root = scratchRoot("reports-manifest-schema-for-a-wrong-schema-version");
     const { promptBytes } = (() => {
       const bytes = new TextEncoder().encode("p");
-      writeFileSync(join(root, "prompt.md"), bytes, { mode: 0o444 });
+      mockFs.writeFileSync(join(root, "prompt.md"), bytes, { mode: 0o444 });
       return { promptBytes: bytes };
     })();
     writeCanonical(join(root, "manifest.json"), {

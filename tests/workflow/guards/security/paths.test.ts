@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   resolveBacklogPath,
@@ -12,16 +11,19 @@ import {
   resolveTelemetryPath,
 } from "../../../../olt/scripts/src/core/shared/paths.ts";
 import { setupWorkflowVirtualFs } from "../../shared/index.ts";
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Canonical olt/ Storage & Paths System", () => {
-  let tmpRoot: string;
+  let virtualRoot: string;
+  let vfs: VirtualMemoryFS;
   let vfsCleanup: (() => void) | undefined;
   let sc = 0;
 
   beforeEach(() => {
     const setup = setupWorkflowVirtualFs();
     vfsCleanup = setup.cleanup;
-    tmpRoot = `/virtual/tmp/test-olt-paths-${++sc}`;
+    vfs = setup.vfs;
+    virtualRoot = `/virtual/security-paths/test-olt-paths-${++sc}`;
   });
 
   afterEach(() => {
@@ -30,26 +32,28 @@ describe("Canonical olt/ Storage & Paths System", () => {
   });
 
   test("resolves canonical .olt/ directory and persistent files", () => {
-    mkdirSync(join(tmpRoot, ".olt"), { recursive: true });
-    writeFileSync(join(tmpRoot, ".olt", "policy.json"), "{}", "utf-8");
-    writeFileSync(join(tmpRoot, ".olt", "backlog.jsonl"), "", "utf-8");
-    writeFileSync(join(tmpRoot, ".olt", "completed-tasks.jsonl"), "", "utf-8");
-    writeFileSync(join(tmpRoot, ".olt", "defects.jsonl"), "", "utf-8");
-    writeFileSync(join(tmpRoot, ".olt", "completed-defects.jsonl"), "", "utf-8");
-    writeFileSync(join(tmpRoot, ".olt", "telemetry.jsonl"), "", "utf-8");
+    vfs.mkdirSync(join(virtualRoot, ".olt"), { recursive: true });
+    vfs.writeFileSync(join(virtualRoot, ".olt", "policy.json"), "{}", "utf-8");
+    vfs.writeFileSync(join(virtualRoot, ".olt", "backlog.jsonl"), "", "utf-8");
+    vfs.writeFileSync(join(virtualRoot, ".olt", "completed-tasks.jsonl"), "", "utf-8");
+    vfs.writeFileSync(join(virtualRoot, ".olt", "defects.jsonl"), "", "utf-8");
+    vfs.writeFileSync(join(virtualRoot, ".olt", "completed-defects.jsonl"), "", "utf-8");
+    vfs.writeFileSync(join(virtualRoot, ".olt", "telemetry.jsonl"), "", "utf-8");
 
-    expect(resolveOltDir(tmpRoot)).toBe(join(tmpRoot, ".olt"));
-    expect(resolvePolicyPath(tmpRoot)).toBe(join(tmpRoot, ".olt", "policy.json"));
-    expect(resolveBacklogPath(tmpRoot)).toBe(join(tmpRoot, ".olt", "backlog.jsonl"));
-    expect(resolveCompletedTasksPath(tmpRoot)).toBe(join(tmpRoot, ".olt", "completed-tasks.jsonl"));
-    expect(resolveDefectsPath(tmpRoot)).toBe(join(tmpRoot, ".olt", "defects.jsonl"));
-    expect(resolveCompletedDefectsPath(tmpRoot)).toBe(
-      join(tmpRoot, ".olt", "completed-defects.jsonl"),
+    expect(resolveOltDir(virtualRoot)).toBe(join(virtualRoot, ".olt"));
+    expect(resolvePolicyPath(virtualRoot)).toBe(join(virtualRoot, ".olt", "policy.json"));
+    expect(resolveBacklogPath(virtualRoot)).toBe(join(virtualRoot, ".olt", "backlog.jsonl"));
+    expect(resolveCompletedTasksPath(virtualRoot)).toBe(
+      join(virtualRoot, ".olt", "completed-tasks.jsonl"),
     );
-    expect(resolveTelemetryPath(tmpRoot)).toBe(join(tmpRoot, ".olt", "telemetry.jsonl"));
+    expect(resolveDefectsPath(virtualRoot)).toBe(join(virtualRoot, ".olt", "defects.jsonl"));
+    expect(resolveCompletedDefectsPath(virtualRoot)).toBe(
+      join(virtualRoot, ".olt", "completed-defects.jsonl"),
+    );
+    expect(resolveTelemetryPath(virtualRoot)).toBe(join(virtualRoot, ".olt", "telemetry.jsonl"));
   });
 
   test("resolves canonical .olt/capsules runtime directory", () => {
-    expect(resolveCapsulesDir(tmpRoot)).toBe(join(tmpRoot, ".olt", "capsules"));
+    expect(resolveCapsulesDir(virtualRoot)).toBe(join(virtualRoot, ".olt", "capsules"));
   });
 });

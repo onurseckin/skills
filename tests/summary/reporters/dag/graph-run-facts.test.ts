@@ -160,8 +160,14 @@ describe("buildRunFacts: reports", () => {
   test("reads every *.json report in the capsule's reports directory, sorted by name", () => {
     const runRoot = tempRunRoot();
     vfs.mkdirSync(join(runRoot, "reports"), { recursive: true });
-    vfs.writeFileSync(join(runRoot, "reports", "T-2-review.json"), JSON.stringify({ task_id: "T-2" }));
-    vfs.writeFileSync(join(runRoot, "reports", "T-1-review.json"), JSON.stringify({ task_id: "T-1" }));
+    vfs.writeFileSync(
+      join(runRoot, "reports", "T-2-review.json"),
+      JSON.stringify({ task_id: "T-2" }),
+    );
+    vfs.writeFileSync(
+      join(runRoot, "reports", "T-1-review.json"),
+      JSON.stringify({ task_id: "T-1" }),
+    );
     vfs.writeFileSync(join(runRoot, "reports", "notes.txt"), "not a report");
 
     const facts = buildRunFacts(baseInput({ runRoot }));

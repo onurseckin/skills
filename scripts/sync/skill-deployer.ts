@@ -8,7 +8,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { canonicalJsonBytes } from "../../olt/scripts/src/core/json.ts";
 import { installSkill } from "../../olt/scripts/src/installer/install.ts";
 import {
@@ -19,12 +19,17 @@ import {
 import { sealInstallationManifest } from "../../olt/scripts/src/installer/manifest-integrity.ts";
 import { validateSkillSource } from "../../olt/scripts/src/installer/source-validation.ts";
 import { identifiedInstallation } from "../../olt/scripts/src/installer/identity.ts";
+import { safeCpSync } from "../../olt/scripts/src/core/shared/safe-fs/index.ts";
 import { guardedRemoveSync, logDestructiveOp, smartEnsureSymlink } from "./fs-helpers.ts";
 import { resolveOltSyncSource } from "./git-source.ts";
+
+export const SKILL_NAMES = ["olt", "chatroom"] as const;
+export type SkillName = (typeof SKILL_NAMES)[number];
 
 export interface DeploySkillOptions {
   sourceRepoRoot?: string | undefined;
   targetOltDir?: string | undefined;
+  targetChatroomDir?: string | undefined;
   homeDir?: string | undefined;
   allowDirty?: boolean | undefined;
 }
@@ -164,63 +169,19 @@ export function orDefault<T>(value: T | undefined, fallback: T): T {
   return fallback;
 }
 
-export async function deployCanonicalSkill(
-  options?: DeploySkillOptions,
-): Promise<DeploySkillResult> {
-  const sourceRepoRoot = assertIsSkillsRepoRoot(orDefault(options?.sourceRepoRoot, process.cwd()));
-  const home = orDefault(options?.homeDir, homedir());
-  const targetOlt = orDefault(options?.targetOltDir, join(home, ".agents", "skills", "olt"));
-  const allowDirty = orDefault(options?.allowDirty, false);
+interface LinkAssistantSkillsResult {
+  syncedCount: number;
+  skippedCount: number;
+  assistantDirsCount: number;
+  transactions: AssistantLinkTransaction[];
+}
 
-  await migrateOwnedLegacyDeployment(targetOlt, sourceRepoRoot);
-
-  const { sourceOltDir: sourceOlt, cleanup: cleanupSourceOlt } = resolveOltSyncSource(
-    sourceRepoRoot,
-    allowDirty,
-  );
-
-  try {
-    await installSkill(sourceOlt, home, ["claude", "antigravity", "codex", "chatgpt"]);
-  } finally {
-    cleanupSourceOlt();
-  }
-
-  const skillConfig = {
-    home_repo_root: sourceRepoRoot,
-    synced_at: new Date().toISOString(),
-    version: "1.0.0",
-  };
-  writeFileSync(
-    join(targetOlt, "skill-config.json"),
-    JSON.stringify(skillConfig, null, 2) + "\n",
-    "utf-8",
-  );
-
-  const sourceNodeModules = join(sourceRepoRoot, "node_modules");
-  if (existsSync(sourceNodeModules)) {
-    smartEnsureSymlink(sourceNodeModules, join(targetOlt, "node_modules"), {
-      allowedRoots: [targetOlt],
-      allowGitRepositoryDeletion: true,
-      onAudit: logDestructiveOp,
-    });
-  }
-
-  let legacyHomePurged = true;
-  try {
-    guardedRemoveSync(join(home, ".agents", "skills", LEGACY_NAME), {
-      allowedRoots: [join(home, ".agents", "skills")],
-      missingOk: true,
-      allowGitRepositoryDeletion: true,
-      onAudit: logDestructiveOp,
-    });
-  } catch (err) {
-    legacyHomePurged = false;
-    console.warn(
-      `[sync] Left ${join(home, ".agents", "skills", LEGACY_NAME)} in place (best-effort legacy cleanup):`,
-      err,
-    );
-  }
-
+function linkAssistantSkills(
+  home: string,
+  targetDir: string,
+  skillName: string,
+  legacyName?: string,
+): LinkAssistantSkillsResult {
   const assistantSkillDirs = getAssistantSkillDirs(home);
   let syncedCount = 0;
   let skippedCount = 0;
@@ -231,26 +192,28 @@ export async function deployCanonicalSkill(
       try {
         mkdirSync(dir, { recursive: true });
 
-        const legacyPath = join(dir, LEGACY_NAME);
-        guardedRemoveSync(legacyPath, {
-          allowedRoots: [dir],
-          missingOk: true,
-          allowGitRepositoryDeletion: true,
-          onAudit: logDestructiveOp,
-        });
+        if (legacyName !== undefined) {
+          const legacyPath = join(dir, legacyName);
+          guardedRemoveSync(legacyPath, {
+            allowedRoots: [dir],
+            missingOk: true,
+            allowGitRepositoryDeletion: true,
+            onAudit: logDestructiveOp,
+          });
+        }
 
-        const oltPath = join(dir, "olt");
+        const skillPath = join(dir, skillName);
         let existed = false;
         let previousTarget: string | null = null;
         try {
-          const st = lstatSync(oltPath);
+          const st = lstatSync(skillPath);
           existed = true;
           if (st.isSymbolicLink()) {
-            previousTarget = readlinkSync(oltPath);
+            previousTarget = readlinkSync(skillPath);
           }
         } catch {}
 
-        const status = smartEnsureSymlink(targetOlt, oltPath, {
+        const status = smartEnsureSymlink(targetDir, skillPath, {
           allowedRoots: [dir],
           allowGitRepositoryDeletion: true,
           onAudit: logDestructiveOp,
@@ -258,7 +221,7 @@ export async function deployCanonicalSkill(
 
         transactions.push({
           dir,
-          oltPath,
+          oltPath: skillPath,
           previousTarget,
           existed,
           status,
@@ -281,9 +244,139 @@ export async function deployCanonicalSkill(
   return {
     syncedCount,
     skippedCount,
-    targetDir: targetOlt,
     assistantDirsCount: assistantSkillDirs.length,
-    legacyHomePurged,
     transactions,
   };
+}
+
+export async function deploySkill(
+  skillName: string,
+  options?: DeploySkillOptions,
+): Promise<DeploySkillResult> {
+  const sourceRepoRoot = assertIsSkillsRepoRoot(orDefault(options?.sourceRepoRoot, process.cwd()));
+  const home = orDefault(options?.homeDir, homedir());
+
+  if (skillName === "olt") {
+    const targetOlt = orDefault(options?.targetOltDir, join(home, ".agents", "skills", "olt"));
+    const allowDirty = orDefault(options?.allowDirty, false);
+
+    await migrateOwnedLegacyDeployment(targetOlt, sourceRepoRoot);
+
+    const { sourceOltDir: sourceOlt, cleanup: cleanupSourceOlt } = resolveOltSyncSource(
+      sourceRepoRoot,
+      allowDirty,
+    );
+
+    try {
+      await installSkill(sourceOlt, home, ["claude", "antigravity", "codex", "chatgpt"]);
+    } finally {
+      cleanupSourceOlt();
+    }
+
+    const skillConfig = {
+      home_repo_root: sourceRepoRoot,
+      synced_at: new Date().toISOString(),
+      version: "1.0.0",
+    };
+    writeFileSync(
+      join(targetOlt, "skill-config.json"),
+      JSON.stringify(skillConfig, null, 2) + "\n",
+      "utf-8",
+    );
+
+    const sourceNodeModules = join(sourceRepoRoot, "node_modules");
+    if (existsSync(sourceNodeModules)) {
+      smartEnsureSymlink(sourceNodeModules, join(targetOlt, "node_modules"), {
+        allowedRoots: [targetOlt],
+        allowGitRepositoryDeletion: true,
+        onAudit: logDestructiveOp,
+      });
+    }
+
+    let legacyHomePurged = true;
+    try {
+      guardedRemoveSync(join(home, ".agents", "skills", LEGACY_NAME), {
+        allowedRoots: [join(home, ".agents", "skills")],
+        missingOk: true,
+        allowGitRepositoryDeletion: true,
+        onAudit: logDestructiveOp,
+      });
+    } catch (err) {
+      legacyHomePurged = false;
+      console.warn(
+        `[sync] Left ${join(home, ".agents", "skills", LEGACY_NAME)} in place (best-effort legacy cleanup):`,
+        err,
+      );
+    }
+
+    const linkResult = linkAssistantSkills(home, targetOlt, "olt", LEGACY_NAME);
+
+    return {
+      syncedCount: linkResult.syncedCount,
+      skippedCount: linkResult.skippedCount,
+      targetDir: targetOlt,
+      assistantDirsCount: linkResult.assistantDirsCount,
+      legacyHomePurged,
+      transactions: linkResult.transactions,
+    };
+  }
+
+  const targetSkill = orDefault(
+    skillName === "chatroom" ? options?.targetChatroomDir : undefined,
+    join(home, ".agents", "skills", skillName),
+  );
+  const sourceSkill = join(sourceRepoRoot, skillName);
+
+  mkdirSync(targetSkill, { recursive: true });
+
+  if (existsSync(sourceSkill)) {
+    safeCpSync(sourceSkill, targetSkill, {
+      allowedRoots: [dirname(targetSkill)],
+      allowOverwrite: true,
+      onAudit: logDestructiveOp,
+    });
+  }
+
+  const skillConfig = {
+    home_repo_root: sourceRepoRoot,
+    synced_at: new Date().toISOString(),
+    version: "1.0.0",
+  };
+  writeFileSync(
+    join(targetSkill, "skill-config.json"),
+    JSON.stringify(skillConfig, null, 2) + "\n",
+    "utf-8",
+  );
+
+  const sourceNodeModules = join(sourceRepoRoot, "node_modules");
+  if (existsSync(sourceNodeModules)) {
+    smartEnsureSymlink(sourceNodeModules, join(targetSkill, "node_modules"), {
+      allowedRoots: [targetSkill],
+      allowGitRepositoryDeletion: true,
+      onAudit: logDestructiveOp,
+    });
+  }
+
+  const linkResult = linkAssistantSkills(home, targetSkill, skillName);
+
+  return {
+    syncedCount: linkResult.syncedCount,
+    skippedCount: linkResult.skippedCount,
+    targetDir: targetSkill,
+    assistantDirsCount: linkResult.assistantDirsCount,
+    legacyHomePurged: false,
+    transactions: linkResult.transactions,
+  };
+}
+
+export async function deployCanonicalSkill(
+  options?: DeploySkillOptions,
+): Promise<DeploySkillResult> {
+  return deploySkill("olt", options);
+}
+
+export async function deployChatroomSkill(
+  options?: DeploySkillOptions,
+): Promise<DeploySkillResult> {
+  return deploySkill("chatroom", options);
 }

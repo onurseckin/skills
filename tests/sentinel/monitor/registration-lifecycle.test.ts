@@ -2,7 +2,10 @@ import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import * as os from "node:os";
 import { join } from "node:path";
 import { execute } from "../../../olt/scripts/src/cli/execute.ts";
-import { registerSessionGrant, revokeSessionGrant } from "../../../olt/scripts/src/authority/session/index.ts";
+import {
+  registerSessionGrant,
+  revokeSessionGrant,
+} from "../../../olt/scripts/src/authority/session/index.ts";
 import {
   disableInMemoryAgentMetadata,
   enableInMemoryAgentMetadata,
@@ -18,7 +21,10 @@ import {
   LiveStrategyMonitorImpl,
   SentinelMonitorRegistry,
 } from "../../../olt/scripts/src/sentinel/monitor/index.ts";
-import { clearInMemoryStrikes, setInMemoryStrikeMode } from "../../../olt/scripts/src/sentinel/index.ts";
+import {
+  clearInMemoryStrikes,
+  setInMemoryStrikeMode,
+} from "../../../olt/scripts/src/sentinel/index.ts";
 
 const roots: string[] = [];
 const SESSION_ID = "sentinel-registration-lifecycle-session";
@@ -28,7 +34,15 @@ let homedirSpy: ReturnType<typeof spyOn>;
 let previousHome: string | undefined;
 
 function transcriptPathFor(agentId: string): string {
-  return join(HOME_DIR, ".claude", "projects", PROJECT_SLUG, SESSION_ID, "subagents", `agent-${agentId}.jsonl`);
+  return join(
+    HOME_DIR,
+    ".claude",
+    "projects",
+    PROJECT_SLUG,
+    SESSION_ID,
+    "subagents",
+    `agent-${agentId}.jsonl`,
+  );
 }
 
 function seedTranscript(agentId: string): void {
@@ -120,7 +134,15 @@ describe("Sentinel monitor registration lifecycle", () => {
     await registerCoordAndWorker(run);
     expect(SentinelMonitorRegistry.get("worker-1")?.isMonitoring()).toBe(true);
 
-    await execute(["agent:release", "--run", run, "--agent", "worker-1", "--reason", "task complete"]);
+    await execute([
+      "agent:release",
+      "--run",
+      run,
+      "--agent",
+      "worker-1",
+      "--reason",
+      "task complete",
+    ]);
 
     expect(SentinelMonitorRegistry.get("worker-1")).toBeUndefined();
     expect(SentinelMonitorRegistry.get("coordinator-1")?.isMonitoring()).toBe(true);

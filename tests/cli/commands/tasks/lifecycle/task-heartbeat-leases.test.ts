@@ -1,4 +1,3 @@
-import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
@@ -12,13 +11,22 @@ import { transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
 import {
   cleanupRoots,
   cleanupVirtualCliFS,
+  getVirtualCliSession,
   setupVirtualCliFS,
 } from "../../fixtures/full-lifecycle-fixture.ts";
 import { TASK_ID, setupRun } from "../../fixtures/probe-fixture.ts";
+import {
+  type VirtualFSSession,
+  type VirtualMemoryFS,
+} from "../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 const roots: string[] = [];
+let vfs: VirtualMemoryFS;
+let session: VirtualFSSession | undefined;
+
 beforeEach(() => {
-  setupVirtualCliFS();
+  vfs = setupVirtualCliFS();
+  session = getVirtualCliSession();
 });
 afterEach(async () => {
   await cleanupRoots(roots);
@@ -84,8 +92,8 @@ describe("task:heartbeat and task:claim Leases", () => {
     const { repo, run } = await setupRun("claim-persistence-failure", roots);
     const external = join(repo, "external-defects.jsonl");
     const externalBytes = '{"id":"external-sentinel"}\n';
-    writeFileSync(external, externalBytes, "utf8");
-    symlinkSync(external, join(run, "defects.jsonl"));
+    vfs.writeFileSync(external, externalBytes, "utf8");
+    session?.symlinkSync(external, join(run, "defects.jsonl"));
 
     let caught: unknown;
     try {
@@ -105,7 +113,7 @@ describe("task:heartbeat and task:claim Leases", () => {
     }
     expect(caught).toBeInstanceOf(HarnessError);
     expect((caught as HarnessError).code).toBe("INTEGRITY");
-    expect(readFileSync(external, "utf8")).toBe(externalBytes);
+    expect(vfs.readFileSync(external, "utf8")).toBe(externalBytes);
   }, 30_000);
 
   test("task:claim with explicit --lease-duration and --lease-seconds", async () => {
@@ -148,23 +156,23 @@ describe("task:heartbeat and task:claim Leases", () => {
       commit_per_subphase: true,
     });
 
-    mkdirSync(join(repo, ".olt"), { recursive: true });
-    writeFileSync(
+    vfs.mkdirSync(join(repo, ".olt"), { recursive: true });
+    vfs.writeFileSync(
       join(repo, "harness.config.json"),
       JSON.stringify({ worktree_isolation: true, commit_per_subphase: true }),
     );
-    writeFileSync(
+    vfs.writeFileSync(
       join(repo, ".olt", "harness.config.json"),
       JSON.stringify({ worktree_isolation: true, commit_per_subphase: true }),
     );
-    writeFileSync(
+    vfs.writeFileSync(
       join(resolve(run, "..", ".."), "harness.config.json"),
       JSON.stringify({ worktree_isolation: true, commit_per_subphase: true }),
     );
 
     const wtDir = join(repo, ".worktrees", "task-core");
-    mkdirSync(join(wtDir, "tests/core"), { recursive: true });
-    writeFileSync(join(wtDir, "tests/core/probe-target.ts"), "export const a = 1;\n");
+    vfs.mkdirSync(join(wtDir, "tests/core"), { recursive: true });
+    vfs.writeFileSync(join(wtDir, "tests/core/probe-target.ts"), "export const a = 1;\n");
 
     transact(run, "coordinator", "worktree-assigned", {}, (draft) => {
       draft.worktree_ledger = {

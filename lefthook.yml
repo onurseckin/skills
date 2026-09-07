@@ -4,6 +4,7 @@
 # staged-only typecheck would be unsound. Lint and format checks run against
 # the staged set only, so a commit is never blocked by unrelated files that a
 # concurrent workstream left dirty.
+# Commit-msg rejects any AI/tool attribution trailer or generated-with banner.
 # Pre-push runs skill synchronization, whole-tree typecheck, and unit tests.
 # Zero-tolerance: Pass or error only, zero warnings allowed, fail-fast quality gates.
 
@@ -24,6 +25,12 @@ pre-commit:
       run: bun run test:purity:staged
     test:
       run: bun run test:changed
+
+commit-msg:
+  parallel: false
+  commands:
+    attribution-guard:
+      run: bun scripts/git/commit-msg-guard.ts {1}
 
 pre-push:
   parallel: false

@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import {
   MIND_CHARTER_INVARIANTS,
@@ -27,18 +26,27 @@ import {
 } from "../../../olt/scripts/src/mind/reporting/index.ts";
 import { runDoctor } from "../../../olt/scripts/src/reporting/doctor.ts";
 import { initRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Anti-Stagnation Doctor & Mind Charter Invariant Engine", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
   let tempDir: string;
+  let counter = 0;
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(join(process.cwd(), "tmp-doctor-test-"));
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    tempDir = `/virtual/tmp-doctor-test-${++counter}`;
+    vfs.mkdirSync(tempDir, { recursive: true });
   });
 
   afterEach(() => {
-    if (fs.existsSync(tempDir)) {
-      fs.rmSync(tempDir, { recursive: true, force: true });
-    }
+    session?.cleanup();
   });
 
   describe("11. Invariant 11: Suspended Animation Protocol", () => {
@@ -55,7 +63,7 @@ describe("Anti-Stagnation Doctor & Mind Charter Invariant Engine", () => {
         frozenTimers: [],
         activeWatchdogs: [],
         contextState: {},
-        checksum: "invalid_checksum_hash", // Tampered
+        checksum: "invalid_checksum_hash",
       };
 
       const options: AntiStagnationDoctorOptions = {
@@ -151,7 +159,7 @@ describe("Anti-Stagnation Doctor & Mind Charter Invariant Engine", () => {
     });
 
     it("warns when dashboard timestamp exceeds 5m staleness latency threshold", () => {
-      const oldTime = new Date(Date.now() - 400_000).toISOString(); // 400s old > 300s
+      const oldTime = new Date(Date.now() - 400_000).toISOString();
       const dashState = createInitialDashboardState();
       const staleDash: ExecutiveDashboardState = {
         ...dashState,
@@ -186,9 +194,7 @@ describe("Anti-Stagnation Doctor & Mind Charter Invariant Engine", () => {
           mind: { generation: 1 },
           socratic: {
             consensusReached: true,
-            history: [
-              { id: "ex-1", level: "L1_TRADE_OFF_VERIFICATION", inquiry: "Q1" }, // Skipped L2 and L3
-            ],
+            history: [{ id: "ex-1", level: "L1_TRADE_OFF_VERIFICATION", inquiry: "Q1" }],
           },
         },
       };
@@ -213,7 +219,7 @@ describe("Anti-Stagnation Doctor & Mind Charter Invariant Engine", () => {
           mind: { generation: 1 },
           grants: [
             { id: "mind-1", role: "mind", parent_agent_id: null },
-            { id: "impl-bypass-1", role: "implementer", parent_agent_id: "mind-1" }, // Direct bypass of Coordinator
+            { id: "impl-bypass-1", role: "implementer", parent_agent_id: "mind-1" },
           ],
         },
       };

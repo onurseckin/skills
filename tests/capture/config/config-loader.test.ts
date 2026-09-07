@@ -284,7 +284,9 @@ screens:
   });
 
   test("loadCaptureConfig falls back to default config when file path does not exist", () => {
-    const fallback = loadCaptureConfig({ configPath: "/virtual/nonexistent/path/to/.capture.yaml" });
+    const fallback = loadCaptureConfig({
+      configPath: "/virtual/nonexistent/path/to/.capture.yaml",
+    });
     expect(fallback.baseUrl).toBe("http://localhost:3000");
     expect(fallback.viewports.desktop).toBeDefined();
 

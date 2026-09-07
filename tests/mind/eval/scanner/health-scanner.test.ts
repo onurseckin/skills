@@ -1,6 +1,6 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import { setupVirtualMindFS, cleanupVirtualMindFS, scratchRoot } from "../../fixtures/index.ts";
 import {
   scanArchitecturalHealth,
@@ -11,12 +11,13 @@ import {
 } from "../../../../olt/scripts/src/mind/tasks/discovery/scanners/health-scanner.ts";
 
 describe("health-scanner unit tests (in-memory virtual)", () => {
+  let vfs: VirtualMemoryFS;
   let virtualDir: string;
 
   beforeEach(() => {
-    setupVirtualMindFS();
+    vfs = setupVirtualMindFS();
     virtualDir = scratchRoot("health-scanner", "test");
-    fs.mkdirSync(virtualDir, { recursive: true });
+    vfs.mkdirSync(virtualDir, { recursive: true });
   });
 
   afterEach(() => {
@@ -49,7 +50,7 @@ describe("health-scanner unit tests (in-memory virtual)", () => {
   test("scanArchitecturalHealth detects broken imports and circular dependencies", () => {
     const testDir = join(virtualDir, "circ-test");
     const subDir = join(testDir, "sub");
-    fs.mkdirSync(subDir, { recursive: true });
+    vfs.mkdirSync(subDir, { recursive: true });
 
     const fileA = join(testDir, "fileA.ts");
     const fileB = join(testDir, "fileB.ts");
@@ -57,11 +58,14 @@ describe("health-scanner unit tests (in-memory virtual)", () => {
     const fileD = join(testDir, "fileD.ts");
     const indexFile = join(subDir, "index.ts");
 
-    fs.writeFileSync(fileA, `import { b } from "./fileB.ts";\nexport const a = 1;`);
-    fs.writeFileSync(fileB, `import { a } from "./fileA.ts";\nexport const b = 2;`);
-    fs.writeFileSync(fileC, `import { missing } from "./nonExistentFile.ts";\nexport const c = 3;`);
-    fs.writeFileSync(fileD, `import { sub } from "./sub";\nexport const d = 4;`);
-    fs.writeFileSync(indexFile, `export const sub = "sub";`);
+    vfs.writeFileSync(fileA, `import { b } from "./fileB.ts";\nexport const a = 1;`);
+    vfs.writeFileSync(fileB, `import { a } from "./fileA.ts";\nexport const b = 2;`);
+    vfs.writeFileSync(
+      fileC,
+      `import { missing } from "./nonExistentFile.ts";\nexport const c = 3;`,
+    );
+    vfs.writeFileSync(fileD, `import { sub } from "./sub";\nexport const d = 4;`);
+    vfs.writeFileSync(indexFile, `export const sub = "sub";`);
 
     const result = scanArchitecturalHealth({
       sourceRoots: [testDir],
@@ -84,13 +88,13 @@ describe("health-scanner unit tests (in-memory virtual)", () => {
 
   test("scanArchitecturalHealth handles clean workspace with zero findings", () => {
     const testDir = join(virtualDir, "clean-test");
-    fs.mkdirSync(testDir, { recursive: true });
+    vfs.mkdirSync(testDir, { recursive: true });
 
     const fileA = join(testDir, "cleanA.ts");
     const fileB = join(testDir, "cleanB.ts");
 
-    fs.writeFileSync(fileA, `export const a = 10;`);
-    fs.writeFileSync(fileB, `import { a } from "./cleanA.ts";\nexport const b = a + 20;`);
+    vfs.writeFileSync(fileA, `export const a = 10;`);
+    vfs.writeFileSync(fileB, `import { a } from "./cleanA.ts";\nexport const b = a + 20;`);
 
     const result = scanArchitecturalHealth({
       sourceRoots: [testDir],

@@ -1,19 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { loadWatchdogStore, saveWatchdogStore } from "../../../olt/scripts/src/watchdog/index.ts";
 import type {
   WatchdogRecord,
   WatchdogStore,
 } from "../../../olt/scripts/src/authority/watchdog/index.ts";
+import type { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   cleanupVirtualWatchdogFS,
   scratchRoot,
   setupVirtualWatchdogFS,
 } from "../watchdog-fixture.ts";
 
+let vfs: VirtualMemoryFS;
+
 beforeEach(() => {
-  setupVirtualWatchdogFS();
+  vfs = setupVirtualWatchdogFS();
 });
 
 afterEach(() => {
@@ -74,7 +76,7 @@ describe("WatchdogStore CRUD & Schema Validation", () => {
   it("throws HarnessError when store file contains corrupted JSON", () => {
     const root = scratchRoot(import.meta.path, "store-crud-corrupt");
     const storePath = join(root, "corrupt-watchdogs.json");
-    writeFileSync(storePath, "{ invalid json content ...", "utf-8");
+    vfs.writeFileSync(storePath, "{ invalid json content ...", "utf-8");
 
     expect(() => loadWatchdogStore(storePath)).toThrow("corrupted watchdog store JSON");
   });

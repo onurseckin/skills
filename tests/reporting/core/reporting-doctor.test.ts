@@ -28,15 +28,6 @@ mock.module("../../../olt/scripts/src/installer/installation-status.ts", () => (
   }),
 }));
 
-mock.module("../../../olt/scripts/src/packets/repository-git-command.ts", () => ({
-  repositoryGit: () => ({ status: 0, bytes: Buffer.alloc(0) }),
-  REPOSITORY_GIT_TIMEOUT_MS: 15_000,
-}));
-
-mock.module("../../../olt/scripts/src/engine/store/integrity/integrity.ts", () => ({
-  verifyIntegrity: () => [],
-}));
-
 let vfs = new VirtualMemoryFS();
 let session: VirtualFSSession | null = null;
 let counter = 0;

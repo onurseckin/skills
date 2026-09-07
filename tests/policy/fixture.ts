@@ -103,7 +103,6 @@ export function fstatSync(fd: number, opts?: fs.StatOptions): fs.Stats {
   return fs.fstatSync(fd, opts);
 }
 
-
 export function scratchRoot(callerPath = "policy-test", label = "test"): string {
   const currentFs = setupVirtualPolicyFS();
   counter += 1;

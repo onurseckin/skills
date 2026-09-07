@@ -1,50 +1,30 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
 import {
-  InFlightIngestionEngine,
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import {
   UserIntentExtractionEngine,
-  createInFlightSnapshot,
   extractUserIntent,
-  inspectInFlightWork,
   integrateUserIntentIntoRoadmap,
-  listInFlightSnapshots,
-  loadInFlightSnapshot,
-  parseDiffSummary,
-  parseGitStashes,
-  parseGitStatusOutput,
-  saveInFlightSnapshot,
-  structureUserIntentAsBacklogDeliverable,
   toCanonicalDomainCategory,
-  type GitRunner,
   type InFlightSnapshot,
-  type InFlightSnapshotOptions,
   type IntentCategory,
   type IntentDomain,
-  type SaveSnapshotOptions,
 } from "../../../olt/scripts/src/mind/preplanning/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("In-Flight Work Ingestion & Intent Extraction Engine Suite", () => {
-  let testDir: string;
-  let snapshotsDir: string;
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
 
   beforeEach(() => {
-    testDir = join(
-      tmpdir(),
-      `test-inflight-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    );
-    snapshotsDir = join(testDir, ".olt", "snapshots");
-    mkdirSync(snapshotsDir, { recursive: true });
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
-    try {
-      rmSync(testDir, { recursive: true, force: true });
-    } catch {
-      // Best effort cleanup
-    }
+    session.cleanup();
   });
 
   describe("UserIntentExtractionEngine & Priority 1 Binding", () => {
@@ -109,7 +89,6 @@ describe("In-Flight Work Ingestion & Intent Extraction Engine Suite", () => {
         true,
       );
 
-      // Verify Priority 1 deliverable structuring
       const deliverable = engine.structureAsBacklogDeliverable(intent);
       expect(deliverable.priority).toBe("P1");
       expect(deliverable.deliverableId.startsWith("deliv_p1_")).toBe(true);
@@ -119,7 +98,6 @@ describe("In-Flight Work Ingestion & Intent Extraction Engine Suite", () => {
       expect(deliverable.backlogItem.content).toContain(intent.statement);
       expect(deliverable.acceptanceCriteria).toEqual(intent.suggestedAcceptanceCriteria);
 
-      // Verify Roadmap integration as expedited P1 blueprint
       const integration = engine.integrateIntoRoadmap(intent);
       expect(integration.roadmapAction).toBe("CREATE_EXPEDITED_PLAN");
       expect(integration.targetPlanPath).toContain("plans/plan-p1-");

@@ -3,13 +3,17 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import {
   deployCanonicalSkill,
+  deployChatroomSkill,
+  deploySkill,
   getAssistantSkillDirs,
   migrateOwnedLegacyDeployment,
   readJsonStringField,
   rollbackAssistantLinks,
+  SKILL_NAMES,
   type AssistantLinkTransaction,
   type DeploySkillOptions,
   type DeploySkillResult,
+  type SkillName,
 } from "./skill-deployer.ts";
 import {
   buildOltBinaryContent,
@@ -17,6 +21,12 @@ import {
   type EnsureBinaryOptions,
   type EnsureBinaryResult,
 } from "./olt-bin.ts";
+import {
+  buildChatBinaryContent,
+  buildChatroomBinaryContent,
+  ensureGlobalChatBinary,
+  ensureGlobalChatroomBinary,
+} from "./chatroom-bin.ts";
 import {
   detectShellRcPath,
   ensurePathInShellRc,
@@ -51,13 +61,17 @@ import {
 
 export {
   deployCanonicalSkill,
+  deployChatroomSkill,
+  deploySkill,
   getAssistantSkillDirs,
   migrateOwnedLegacyDeployment,
   readJsonStringField,
   rollbackAssistantLinks,
+  SKILL_NAMES,
   type AssistantLinkTransaction,
   type DeploySkillOptions,
   type DeploySkillResult,
+  type SkillName,
 };
 
 export {
@@ -65,6 +79,13 @@ export {
   ensureGlobalOltBinary,
   type EnsureBinaryOptions,
   type EnsureBinaryResult,
+};
+
+export {
+  buildChatBinaryContent,
+  buildChatroomBinaryContent,
+  ensureGlobalChatBinary,
+  ensureGlobalChatroomBinary,
 };
 
 export {
@@ -109,6 +130,8 @@ export interface SyncSummary {
   skill: DeploySkillResult;
   binary: EnsureBinaryResult;
   shell: EnsureShellRcResult;
+  skills?: Record<string, DeploySkillResult> | undefined;
+  binaries?: Record<string, EnsureBinaryResult> | undefined;
 }
 
 export const GLOBAL_SYNC_GEN5 = true;
@@ -150,24 +173,50 @@ export async function runSync(options?: SyncOptions): Promise<SyncSummary> {
   const sourceRepoRoot = orDefault(options?.sourceRepoRoot, process.cwd());
   const home = orDefault(options?.homeDir, process.env.HOME || homedir());
   const targetOlt = orDefault(options?.targetOltDir, join(home, ".agents", "skills", "olt"));
+  const targetChatroom = orDefault(
+    options?.targetChatroomDir,
+    join(home, ".agents", "skills", "chatroom"),
+  );
   const sourceOlt = join(sourceRepoRoot, "olt");
+  const sourceChatroom = join(sourceRepoRoot, "chatroom");
 
   if (!options?.silent) {
     console.log(`[sync] Deploying ${sourceOlt} -> ${targetOlt}...`);
+    console.log(`[sync] Deploying ${sourceChatroom} -> ${targetChatroom}...`);
   }
 
-  let skillResult: DeploySkillResult | undefined;
+  const skillResults: Record<string, DeploySkillResult> = {};
+  const allTransactions: AssistantLinkTransaction[] = [];
   try {
-    skillResult = await deployCanonicalSkill({ ...options, homeDir: home });
+    for (const skillName of SKILL_NAMES) {
+      const res = await deploySkill(skillName, { ...options, homeDir: home });
+      skillResults[skillName] = res;
+      if (res.transactions) {
+        allTransactions.push(...res.transactions);
+      }
+    }
     ensureDefectRoutingDeployment(targetOlt, sourceRepoRoot);
-    const binaryResult = ensureGlobalOltBinary({ ...options, homeDir: home });
+    const oltBinaryResult = ensureGlobalOltBinary({ ...options, homeDir: home });
+    const chatBinaryResult = ensureGlobalChatBinary({ ...options, homeDir: home });
     const shellResult = ensurePathInShellRc({ ...options, homeDir: home });
 
+    const oltResult = skillResults["olt"];
+    if (!oltResult) {
+      throw new Error("OLT skill deployment failed");
+    }
+
     if (!options?.silent) {
+      const chatResult = skillResults["chatroom"];
       console.log(
-        `✓ Global skill sync complete: ~/.agents/skills/olt deployed. Ecosystem symlinks verified across ${skillResult.assistantDirsCount} assistant platforms (${skillResult.syncedCount} synced, ${skillResult.skippedCount} verified/skipped). Legacy 'orchestrating-long-tasks' ${skillResult.legacyHomePurged ? "purged" : "left in place (see warning above)"}.`,
+        `✓ Global skill sync complete: ~/.agents/skills/olt deployed. Ecosystem symlinks verified across ${oltResult.assistantDirsCount} assistant platforms (${oltResult.syncedCount} synced, ${oltResult.skippedCount} verified/skipped). Legacy 'orchestrating-long-tasks' ${oltResult.legacyHomePurged ? "purged" : "left in place (see warning above)"}.`,
       );
-      console.log(`✓ Global binary: ${binaryResult.binaryPath} (${binaryResult.status}).`);
+      if (chatResult) {
+        console.log(
+          `✓ Global skill sync complete: ~/.agents/skills/chatroom deployed. Ecosystem symlinks verified across ${chatResult.assistantDirsCount} assistant platforms (${chatResult.syncedCount} synced, ${chatResult.skippedCount} verified/skipped).`,
+        );
+      }
+      console.log(`✓ Global binary: ${oltBinaryResult.binaryPath} (${oltBinaryResult.status}).`);
+      console.log(`✓ Global binary: ${chatBinaryResult.binaryPath} (${chatBinaryResult.status}).`);
       if (shellResult.modified) {
         console.log(`✓ Shell PATH: Configured in ${shellResult.targetRc}.`);
       } else {
@@ -178,13 +227,18 @@ export async function runSync(options?: SyncOptions): Promise<SyncSummary> {
     }
 
     return {
-      skill: skillResult,
-      binary: binaryResult,
+      skill: oltResult,
+      binary: oltBinaryResult,
       shell: shellResult,
+      skills: skillResults,
+      binaries: {
+        olt: oltBinaryResult,
+        chat: chatBinaryResult,
+      },
     };
   } catch (error) {
-    if (skillResult?.transactions) {
-      rollbackAssistantLinks(skillResult.transactions, [home]);
+    if (allTransactions.length > 0) {
+      rollbackAssistantLinks(allTransactions, [home]);
     }
     throw error;
   }

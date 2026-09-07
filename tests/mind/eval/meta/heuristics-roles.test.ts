@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import { setupVirtualMindFS, cleanupVirtualMindFS, scratchRoot } from "../../fixtures/index.ts";
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   analyzeRunForensics,
   type ForensicsAnalysisResult,
@@ -9,10 +9,11 @@ import {
 import type { Manifest, RunState } from "../../../../olt/scripts/src/core/contracts/index.ts";
 
 describe("Meta Auditor - Behavioral Forensics (Roles, Polling, Context) (in-memory virtual)", () => {
+  let vfs: VirtualMemoryFS;
   let scratchDir: string;
 
   beforeEach(() => {
-    setupVirtualMindFS();
+    vfs = setupVirtualMindFS();
     scratchDir = scratchRoot("meta-roles", "test");
   });
 
@@ -27,7 +28,7 @@ describe("Meta Auditor - Behavioral Forensics (Roles, Polling, Context) (in-memo
       created_at: "2026-08-23T00:00:00.000Z",
       entry_task_id: "task-1",
     };
-    fs.writeFileSync(join(scratchDir, "manifest.json"), JSON.stringify(manifest, null, 2));
+    vfs.writeFileSync(join(scratchDir, "manifest.json"), JSON.stringify(manifest, null, 2));
 
     const state: RunState = {
       version: "2.0.0",
@@ -38,7 +39,7 @@ describe("Meta Auditor - Behavioral Forensics (Roles, Polling, Context) (in-memo
       tasks: {},
       agents: [],
     };
-    fs.writeFileSync(join(scratchDir, "state.json"), JSON.stringify(state, null, 2));
+    vfs.writeFileSync(join(scratchDir, "state.json"), JSON.stringify(state, null, 2));
 
     const events = [
       {
@@ -63,7 +64,7 @@ describe("Meta Auditor - Behavioral Forensics (Roles, Polling, Context) (in-memo
         payload: { tool: "run_command", arguments: { CommandLine: "bun test tests/ok.test.ts" } },
       },
     ];
-    fs.writeFileSync(
+    vfs.writeFileSync(
       join(scratchDir, "events.jsonl"),
       events.map((e) => JSON.stringify(e)).join("\n") + "\n",
     );
@@ -88,7 +89,7 @@ describe("Meta Auditor - Behavioral Forensics (Roles, Polling, Context) (in-memo
       created_at: "2026-08-23T00:00:00.000Z",
       entry_task_id: "task-1",
     };
-    fs.writeFileSync(join(scratchDir, "manifest.json"), JSON.stringify(manifest, null, 2));
+    vfs.writeFileSync(join(scratchDir, "manifest.json"), JSON.stringify(manifest, null, 2));
 
     const state: RunState = {
       version: "2.0.0",
@@ -99,7 +100,7 @@ describe("Meta Auditor - Behavioral Forensics (Roles, Polling, Context) (in-memo
       tasks: {},
       agents: [],
     };
-    fs.writeFileSync(join(scratchDir, "state.json"), JSON.stringify(state, null, 2));
+    vfs.writeFileSync(join(scratchDir, "state.json"), JSON.stringify(state, null, 2));
 
     const events = [];
     for (let i = 1; i <= 5; i++) {
@@ -111,7 +112,7 @@ describe("Meta Auditor - Behavioral Forensics (Roles, Polling, Context) (in-memo
         payload: { tool: "manage_task", arguments: { Action: "status", TaskId: "t-1" } },
       });
     }
-    fs.writeFileSync(
+    vfs.writeFileSync(
       join(scratchDir, "events.jsonl"),
       events.map((e) => JSON.stringify(e)).join("\n") + "\n",
     );
@@ -130,7 +131,7 @@ describe("Meta Auditor - Behavioral Forensics (Roles, Polling, Context) (in-memo
       created_at: "2026-08-23T00:00:00.000Z",
       entry_task_id: "task-1",
     };
-    fs.writeFileSync(join(scratchDir, "manifest.json"), JSON.stringify(manifest, null, 2));
+    vfs.writeFileSync(join(scratchDir, "manifest.json"), JSON.stringify(manifest, null, 2));
 
     const state: RunState = {
       version: "2.0.0",
@@ -149,8 +150,8 @@ describe("Meta Auditor - Behavioral Forensics (Roles, Polling, Context) (in-memo
         },
       ],
     };
-    fs.writeFileSync(join(scratchDir, "state.json"), JSON.stringify(state, null, 2));
-    fs.writeFileSync(join(scratchDir, "events.jsonl"), "");
+    vfs.writeFileSync(join(scratchDir, "state.json"), JSON.stringify(state, null, 2));
+    vfs.writeFileSync(join(scratchDir, "events.jsonl"), "");
 
     const result: ForensicsAnalysisResult = analyzeRunForensics({ runRoot: scratchDir });
     const coInc = result.incidents.find((i) => i.category === "CONTEXT_OVERFLOW");

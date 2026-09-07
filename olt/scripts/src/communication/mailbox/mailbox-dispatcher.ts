@@ -11,11 +11,13 @@ import type {
   ReceiptCollectionResult,
 } from "../types.ts";
 import {
+  DEFAULT_MAX_SEEN_IDS,
   advanceMailboxCursorBatch,
   clearInMemoryCursors,
   createEmptyCursor,
   getInMemoryCursor,
   loadMailboxCursor,
+  saveMailboxCursor,
   setInMemoryCursor,
 } from "./cursor-tracker.ts";
 import { createSignedEnvelope } from "./envelope.ts";
@@ -29,7 +31,9 @@ import {
   appendMailboxMessage,
   isInMemoryStreamMode,
   readUnreadMessages,
+  shouldUseInMemory,
 } from "./mailbox-stream.ts";
+import { withExclusiveLock } from "../locking/index.ts";
 
 export { clearInMemoryCursors, getInMemoryCursor, setInMemoryCursor };
 
@@ -223,28 +227,62 @@ export function collectInboxReceipts(
 ): ReceiptCollectionResult {
   const validId = reqStr(agentId, "agentId");
   const p = resolveMailboxPaths(validId, opts?.baseDir);
-  const cur = opts?.cursor ?? loadMailboxCursor(p.cursorPath);
 
-  const { messages } = readUnreadMessages(p.inboxPath, cur, {
-    lockPath: p.lockPath,
-    quarantinePath: p.quarantinePath,
-    verifyHmac: true,
-  });
+  const executeCollect = (): ReceiptCollectionResult => {
+    const cur = opts?.cursor ?? loadMailboxCursor(p.cursorPath);
+    const { messages } = readUnreadMessages(p.inboxPath, cur, {
+      lockPath: `${p.lockPath}.read`,
+      quarantinePath: p.quarantinePath,
+      verifyHmac: true,
+    });
 
-  let receipts = messages;
-  if (opts?.correlationId !== undefined) {
-    receipts = receipts.filter((m) => m.correlation_id === opts.correlationId);
-  }
-  if (opts?.messageType !== undefined) {
-    receipts = receipts.filter((m) => m.message_type === opts.messageType);
-  }
+    let receipts = messages;
+    if (opts?.correlationId !== undefined) {
+      receipts = receipts.filter((m) => m.correlation_id === opts.correlationId);
+    }
+    if (opts?.messageType !== undefined) {
+      receipts = receipts.filter((m) => m.message_type === opts.messageType);
+    }
 
-  if (opts?.advanceCursor === true && receipts.length > 0) {
-    advanceMailboxCursorBatch(p.cursorPath, receipts, cur, p.lockPath);
-  }
+    if (opts?.advanceCursor === true && receipts.length > 0) {
+      const deliveredIds = new Set(receipts.map((r) => r.id));
+      const seenSet = new Set(cur.seen_ids);
+      for (const id of deliveredIds) {
+        seenSet.add(id);
+      }
+      let safeSeq = cur.last_read_sequence;
+      for (const msg of messages) {
+        if (deliveredIds.has(msg.id) || seenSet.has(msg.id)) {
+          if (msg.sequence > safeSeq) {
+            safeSeq = msg.sequence;
+          }
+        } else {
+          break;
+        }
+      }
+      const mergedSeen = Array.from(seenSet);
+      const boundedSeen =
+        mergedSeen.length > DEFAULT_MAX_SEEN_IDS
+          ? mergedSeen.slice(-DEFAULT_MAX_SEEN_IDS)
+          : mergedSeen;
+      const lastId = receipts[receipts.length - 1]!.id;
+      const updatedCursor: MailboxCursor = {
+        last_read_sequence: safeSeq,
+        last_read_id: lastId,
+        seen_ids: boundedSeen,
+        updated_at: new Date().toISOString(),
+      };
+      saveMailboxCursor(p.cursorPath, updatedCursor);
+    }
 
-  return {
-    totalReceipts: receipts.length,
-    receipts: Object.freeze(receipts as readonly MailboxEnvelope[]),
+    return {
+      totalReceipts: receipts.length,
+      receipts: Object.freeze(receipts as readonly MailboxEnvelope[]),
+    };
   };
+
+  if (shouldUseInMemory(p.inboxPath)) {
+    return executeCollect();
+  }
+  return withExclusiveLock(p.lockPath, "mailbox-dispatcher", executeCollect);
 }

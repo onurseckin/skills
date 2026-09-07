@@ -13,7 +13,12 @@ import {
   childrenOf,
   taskLineage,
 } from "../../../olt/scripts/src/workflow/agents/lineage.ts";
-import { cleanupVirtualAgentsFS, getVirtualAgentsFS, scratchRoot, setupVirtualAgentsFS } from "../fixture.ts";
+import {
+  cleanupVirtualAgentsFS,
+  getVirtualAgentsFS,
+  scratchRoot,
+  setupVirtualAgentsFS,
+} from "../fixture.ts";
 import { ledgerOf, registerCoordinator, seededRun } from "../grants/agent-grant-fixtures.ts";
 
 beforeAll(() => {

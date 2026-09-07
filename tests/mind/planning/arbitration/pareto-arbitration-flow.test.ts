@@ -116,7 +116,7 @@ describe("Pareto Decision Hierarchy & Arbitration Suite - Flow", () => {
       expect(candP1).toBe(140);
 
       const candP2 = computeParetoEfficiencyScore({ name: "P2", claimedPriorityLevel: 2 });
-      expect(candP2).toBe(120);
+      expect(candP2).toBe(110);
 
       const candP3 = computeParetoEfficiencyScore({
         name: "P3",

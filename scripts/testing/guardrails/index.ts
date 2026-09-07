@@ -6,7 +6,6 @@
 
 export { auditSourceCode } from "./ast-checker.ts";
 
-
 export {
   auditTestPurity,
   auditTestPuritySync,

@@ -68,7 +68,10 @@ export function getVirtualRequirementsFS(): VirtualMemoryFS {
 export function statSync(targetPath: string): { mode: number } {
   const t = norm(targetPath);
   const vs = vfs.statSync(t);
-  if (!vs) throw Object.assign(new Error(`ENOENT: no such file or directory, stat '${t}'`), { code: "ENOENT" });
+  if (!vs)
+    throw Object.assign(new Error(`ENOENT: no such file or directory, stat '${t}'`), {
+      code: "ENOENT",
+    });
   return makeFsStats(state, vs, t);
 }
 

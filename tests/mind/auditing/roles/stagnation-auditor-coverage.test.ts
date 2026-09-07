@@ -1,7 +1,10 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   auditMindPreplanningStagnation,
   auditMindCreativeStagnation,
@@ -19,16 +22,18 @@ import type {
 } from "../../../../olt/scripts/src/mind/preplanning/index.ts";
 
 describe("Mind Stagnation Auditor Suite", () => {
-  let tempDir: string;
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
+  const tempDir = "/virtual/stagnation-test";
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "stagnation-test-"));
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    vfs.mkdirSync(tempDir, { recursive: true });
   });
 
   afterEach(() => {
-    try {
-      rmSync(tempDir, { recursive: true, force: true });
-    } catch {}
+    session.cleanup();
   });
 
   const makeBacklog = (id: string, status = "PENDING"): RawBacklogItem => ({
@@ -256,7 +261,7 @@ describe("Mind Stagnation Auditor Suite", () => {
 
       const backlogFile = join(tempDir, "b.jsonl");
       const defectsFile = join(tempDir, "d.jsonl");
-      writeFileSync(
+      vfs.writeFileSync(
         backlogFile,
         JSON.stringify({
           id: "b1",
@@ -266,7 +271,7 @@ describe("Mind Stagnation Auditor Suite", () => {
           domain: "core",
         }) + "\n",
       );
-      writeFileSync(
+      vfs.writeFileSync(
         defectsFile,
         JSON.stringify({
           id: "d1",

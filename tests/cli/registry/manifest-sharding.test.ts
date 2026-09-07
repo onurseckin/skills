@@ -1,10 +1,17 @@
-import { describe, expect, test } from "bun:test";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { writeManifest } from "../../../olt/scripts/generate-cli-manifest.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 const repoRoot = join(import.meta.dir, "..", "..", "..");
 const splitRoot = join(repoRoot, "olt", "references", "cli-capabilities");
+
+let vfs = new VirtualMemoryFS();
+let session: VirtualFSSession;
 
 interface CatalogIndexEntry {
   readonly id: string;
@@ -19,10 +26,10 @@ interface CatalogIndex {
 
 function readCatalog(relativePath: string): CatalogIndex {
   const fullPath = join(splitRoot, relativePath);
-  if (!existsSync(fullPath)) {
+  if (!vfs.existsSync(fullPath)) {
     throw new Error(`Catalog index not found: ${fullPath}`);
   }
-  const content = readFileSync(fullPath, "utf-8");
+  const content = vfs.readFileSync(fullPath, "utf-8");
   return JSON.parse(content) as CatalogIndex;
 }
 
@@ -36,8 +43,8 @@ function countPhysicalLines(bytes: Uint8Array): number {
 }
 
 function collectFiles(dir: string): readonly string[] {
-  if (!existsSync(dir)) return [];
-  const entries = readdirSync(dir, { withFileTypes: true });
+  if (!vfs.existsSync(dir)) return [];
+  const entries = vfs.readdirSync(dir, { withFileTypes: true });
   const files: string[] = [];
   for (const entry of entries) {
     const fullPath = join(dir, entry.name);
@@ -51,8 +58,8 @@ function collectFiles(dir: string): readonly string[] {
 }
 
 function collectDirectories(dir: string): readonly string[] {
-  if (!existsSync(dir)) return [];
-  const entries = readdirSync(dir, { withFileTypes: true });
+  if (!vfs.existsSync(dir)) return [];
+  const entries = vfs.readdirSync(dir, { withFileTypes: true });
   const dirs: string[] = [dir];
   for (const entry of entries) {
     if (entry.isDirectory()) {
@@ -66,7 +73,7 @@ function maxGeneratedPhysicalLines(): number {
   const files = collectFiles(splitRoot);
   let maxLines = 0;
   for (const file of files) {
-    const lines = countPhysicalLines(readFileSync(file));
+    const lines = countPhysicalLines(vfs.readFileSync(file, null));
     if (lines > maxLines) {
       maxLines = lines;
     }
@@ -85,7 +92,7 @@ function maxGeneratedDirectoryFanout(): number {
     ) {
       continue;
     }
-    const entries = readdirSync(dir);
+    const entries = vfs.readdirSync(dir);
     if (entries.length > maxFanout) {
       maxFanout = entries.length;
     }
@@ -94,6 +101,15 @@ function maxGeneratedDirectoryFanout(): number {
 }
 
 describe("CLI capability manifest sharding and modularity", () => {
+  beforeEach(() => {
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+  });
+
+  afterEach(() => {
+    session.cleanup();
+  });
+
   test("large domains render bounded semantic shards with indexes", () => {
     writeManifest();
     expect(readCatalog("commands/mind/index.json").entries).toHaveLength(6);
@@ -115,7 +131,7 @@ describe("CLI capability manifest sharding and modularity", () => {
         expect(entry.id.length).toBeGreaterThan(0);
         expect(typeof entry.path).toBe("string");
         expect(entry.path.length).toBeGreaterThan(0);
-        expect(existsSync(join(splitRoot, "commands", domain, entry.path))).toBeTrue();
+        expect(vfs.existsSync(join(splitRoot, "commands", domain, entry.path))).toBeTrue();
       }
     }
   });
@@ -127,7 +143,7 @@ describe("CLI capability manifest sharding and modularity", () => {
     );
     expect(domainFiles.length).toBeGreaterThan(0);
     for (const file of domainFiles) {
-      const lines = countPhysicalLines(readFileSync(file));
+      const lines = countPhysicalLines(vfs.readFileSync(file, null));
       expect(lines).toBeLessThanOrEqual(400);
     }
   });
@@ -137,8 +153,8 @@ describe("CLI capability manifest sharding and modularity", () => {
     const commandRoot = join(splitRoot, "commands");
     const commandDirs = collectDirectories(commandRoot);
     for (const dir of commandDirs) {
-      if (dir === commandRoot) continue; // Root has 18 domains, which is expected
-      const entries = readdirSync(dir);
+      if (dir === commandRoot) continue;
+      const entries = vfs.readdirSync(dir);
       expect(entries.length).toBeLessThanOrEqual(10);
     }
   });

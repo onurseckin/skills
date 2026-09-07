@@ -1,9 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { parseYaml } from "../../../olt/scripts/src/authority/manifest/index.ts";
-import {
-  cleanupVirtualAuthorityFS,
-  setupVirtualAuthorityFS,
-} from "../fixture.ts";
+import { cleanupVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
 
 describe("Authority Manifest Parser - Basic YAML Parsing", () => {
   beforeEach(() => {

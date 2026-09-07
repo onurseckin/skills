@@ -53,7 +53,10 @@ describe("readAgentLedger / writeAgentLedger", () => {
   });
 
   test("idempotently overwrites existing agent ledger without duplicating or polluting other state keys", () => {
-    const state: JsonObject = { existingKey: "keep-me", [AGENT_LEDGER_KEY]: [grant({ id: "old" })] };
+    const state: JsonObject = {
+      existingKey: "keep-me",
+      [AGENT_LEDGER_KEY]: [grant({ id: "old" })],
+    };
     writeAgentLedger(state, [grant({ id: "new-1" }), grant({ id: "new-2" })]);
     expect(state.existingKey).toBe("keep-me");
     expect(readAgentLedger(state).map((g) => g.id)).toEqual(["new-1", "new-2"]);

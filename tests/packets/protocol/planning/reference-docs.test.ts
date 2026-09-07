@@ -71,15 +71,21 @@ describe("operator reference examples", () => {
   });
 
   test("describes implementer submissions as trusted-host observed evidence", () => {
-    const implementer = vfs.readFileSync(join(skillRoot, "agents", "implementer.yaml"), { encoding: "utf8" });
+    const implementer = vfs.readFileSync(join(skillRoot, "agents", "implementer.yaml"), {
+      encoding: "utf8",
+    });
     expect(implementer).toContain("trusted-host observed evidence");
     expect(implementer).not.toContain("reproducible evidence");
   });
 
   test("documents restricted Git execution and versioned path caps without assurance inflation", () => {
     const skill = vfs.readFileSync(join(skillRoot, "SKILL.md"), { encoding: "utf8" });
-    const protocol = vfs.readFileSync(join(skillRoot, "references", "protocol.md"), { encoding: "utf8" });
-    const state = vfs.readFileSync(join(skillRoot, "references", "state-model.md"), { encoding: "utf8" });
+    const protocol = vfs.readFileSync(join(skillRoot, "references", "protocol.md"), {
+      encoding: "utf8",
+    });
+    const state = vfs.readFileSync(join(skillRoot, "references", "state-model.md"), {
+      encoding: "utf8",
+    });
     expect(protocol).toContain("`filter.*.clean`, `filter.*.smudge`, or `filter.*.process`");
     expect(protocol).toContain("local `diff.external`, every `diff.*.textconv`");
     expect(protocol).toContain("declared Git gate argv and fingerprint remain unchanged");

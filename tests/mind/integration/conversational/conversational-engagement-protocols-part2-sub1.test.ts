@@ -249,7 +249,9 @@ describe("Conversational Engagement Protocols & Active Swarm Audit Suite", () =>
       socraticEngine.evaluateCycle("unsettled-cycle", "Unsettled Topic");
       expect(socraticEngine.getState().consensusReached).toBeFalsy();
 
-      socraticEngine.submitResponse("unsettled-cycle", "Detailed defense", { isSatisfactory: true });
+      socraticEngine.submitResponse("unsettled-cycle", "Detailed defense", {
+        isSatisfactory: true,
+      });
       expect(socraticEngine.getState().consensusReached).toBe(false);
 
       // Only true when explicitly recorded

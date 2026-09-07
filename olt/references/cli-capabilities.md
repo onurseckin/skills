@@ -49,7 +49,7 @@ own status in `exit_code`.
 | capture | 3 | [cli-capabilities/domains/capture.md](cli-capabilities/domains/capture.md) |
 | mind | 23 | [cli-capabilities/domains/mind.md](cli-capabilities/domains/mind.md) |
 | policy | 5 | [cli-capabilities/domains/policy.md](cli-capabilities/domains/policy.md) |
-| msg | 5 | [cli-capabilities/domains/msg.md](cli-capabilities/domains/msg.md) |
+| msg | 6 | [cli-capabilities/domains/msg.md](cli-capabilities/domains/msg.md) |
 | worktree | 6 | [cli-capabilities/domains/worktree.md](cli-capabilities/domains/worktree.md) |
 | sched | 3 | [cli-capabilities/domains/sched.md](cli-capabilities/domains/sched.md) |
 | role | 3 | [cli-capabilities/domains/role.md](cli-capabilities/domains/role.md) |
@@ -207,6 +207,7 @@ own status in `exit_code`.
 | `msg:poll` | msg | Poll mailbox for messages at regular intervals until received or timeout. |
 | `msg:listen` | msg | Continuously listen for and drain incoming mailbox messages. |
 | `msg:list` | msg | List mailbox summaries and unread counts across agents. |
+| `msg:health` | msg | Check mailbox listener liveness and health status. |
 | `worktree:create` | worktree | Create a hermetic track worktree with lock acquisition. |
 | `worktree:land` | worktree | Land a completed track worktree to main with immediate teardown. |
 | `worktree:list` | worktree | List all active track worktrees. |

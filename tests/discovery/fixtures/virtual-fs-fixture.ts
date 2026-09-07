@@ -142,4 +142,3 @@ export function createVirtualHardlink(src: string, dst: string): void {
     vfs.writeFileSync(dStr, vfs.readFileSync(sStr));
   }
 }
-

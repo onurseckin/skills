@@ -1,6 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   CANONICAL_WATCHDOG_FILE,
@@ -14,16 +12,26 @@ import {
   type WatchdogRecord,
   type WatchdogStore,
 } from "../../../../olt/scripts/src/mind/lifecycle/watchdog/watchdog-manager.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Watchdog Manager Coverage Suite", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "watchdog-mgr-test-"));
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    tempDir = "/virtual/watchdog-mgr-test";
+    vfs.mkdirSync(tempDir, { recursive: true });
   });
 
   afterEach(() => {
-    rmSync(tempDir, { recursive: true, force: true });
+    session.cleanup();
   });
 
   const mkRecord = (id: string, pid: number = process.pid): WatchdogRecord => ({
@@ -78,15 +86,15 @@ describe("Watchdog Manager Coverage Suite", () => {
     expect(loadMindWatchdogStore(nonExistent).watchdogs).toEqual([]);
 
     const invalidJsonPath = join(tempDir, "corrupted.json");
-    writeFileSync(invalidJsonPath, "{ not-json");
+    vfs.writeFileSync(invalidJsonPath, "{ not-json");
     expect(loadMindWatchdogStore(invalidJsonPath).watchdogs).toEqual([]);
 
     const noWatchdogsKeyPath = join(tempDir, "no-watchdogs.json");
-    writeFileSync(noWatchdogsKeyPath, JSON.stringify({ foo: "bar" }));
+    vfs.writeFileSync(noWatchdogsKeyPath, JSON.stringify({ foo: "bar" }));
     expect(loadMindWatchdogStore(noWatchdogsKeyPath).watchdogs).toEqual([]);
 
     const primitiveJsonPath = join(tempDir, "primitive.json");
-    writeFileSync(primitiveJsonPath, "12345");
+    vfs.writeFileSync(primitiveJsonPath, "12345");
     expect(loadMindWatchdogStore(primitiveJsonPath).watchdogs).toEqual([]);
   });
 
@@ -100,7 +108,7 @@ describe("Watchdog Manager Coverage Suite", () => {
     };
 
     saveMindWatchdogStore(testStore, targetPath1);
-    expect(existsSync(targetPath1)).toBe(true);
+    expect(vfs.existsSync(targetPath1)).toBe(true);
     const loaded1 = loadMindWatchdogStore(targetPath1);
     expect(loaded1.watchdogs).toHaveLength(1);
     expect(loaded1.watchdogs[0].id).toBe("wd-1");

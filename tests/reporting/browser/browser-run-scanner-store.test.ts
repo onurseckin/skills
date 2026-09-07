@@ -62,7 +62,9 @@ describe(browserRunScannerStoreSuiteName, () => {
   test("ignores text that names no report file", () => {
     expect(extractBrowserReportsFromText("", "/virtual/tmp")).toEqual([]);
     expect(extractBrowserReportsFromText("nothing relevant here")).toEqual([]);
-    expect(extractBrowserReportsFromText("package.json and config.json", "/virtual/tmp")).toEqual([]);
+    expect(extractBrowserReportsFromText("package.json and config.json", "/virtual/tmp")).toEqual(
+      [],
+    );
   });
 
   test("a search dir that does not exist contributes no candidates", () => {

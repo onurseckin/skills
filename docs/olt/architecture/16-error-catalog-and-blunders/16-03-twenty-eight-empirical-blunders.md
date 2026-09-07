@@ -359,41 +359,41 @@ The Open Loop Task (OLT) architecture classifies these failure modes into **28 c
 
 ## 9. Master 28-Blunder Matrix
 
-| Code   | Blunder Name                     | Category               | Risk Level | Invariant Enforced            | Automated Detection  |
-| :----- | :------------------------------- | :--------------------- | :--------- | :---------------------------- | :------------------- |
-| `LP-1` | Unread Tail Dropping             | Lifecycle & Planning   | High       | Source Line Disposition       | `plan:audit`         |
-| `LP-2` | Chat Context Capture Loophole    | Lifecycle & Planning   | High       | Provenance-Bound Capture      | `doctor`             |
-| `LP-3` | Implicit Goal Invention          | Lifecycle & Planning   | Medium     | Closed Requirement Boundary   | `plan:audit`         |
-| `LP-4` | Prompt Rewrite Inversion         | Lifecycle & Planning   | High       | Immutable Prompt Authority    | `doctor`             |
-| `LP-5` | Line Range Hallucination         | Lifecycle & Planning   | High       | Line Range Bounds Verifier    | `plan:audit`         |
-| `LP-6` | Premature Architecture Invention | Lifecycle & Planning   | Medium     | Two-Stage Architecture Freeze | `plan:audit`         |
-| `VP-1` | Context Anchoring & Sycophancy   | Validation & Probing   | Critical   | Context Sanitization          | `task:packet`        |
-| `VP-2` | Broad Test Fallacy               | Validation & Probing   | Critical   | Substantive Test Discovery    | `task:check`         |
-| `VP-3` | Unstructured Pushback            | Validation & Probing   | Medium     | Structured Finding Schema     | `task:findings`      |
-| `VP-4` | Validator Exhaustion             | Validation & Probing   | High       | Independence Rotation         | `status`             |
-| `VT-1` | Premature First-Round Approval   | Verification & Testing | Critical   | Adversarial Probe Round       | `task:probe`         |
-| `VT-2` | Ritual Rejection                 | Verification & Testing | Medium     | Probe / Defect Separation     | `task:probe`         |
-| `VT-3` | Prose-Answered Demands           | Verification & Testing | Critical   | Receipt-Bound Resolution      | `task:review`        |
-| `VT-4` | Green Sign-Off Over Red Gate     | Verification & Testing | Critical   | Mechanical Gate Interlock     | `gate:status`        |
-| `BR-1` | Dead Sub-Agent Freeze            | Branching Isolation    | High       | Lease Reclamation             | `recover`            |
-| `BR-2` | Uncollected Branch Leak          | Branching Isolation    | High       | Completion Barrier            | `branch:list`        |
-| `BR-3` | Branched Parent Stale Reap       | Branching Isolation    | Medium     | Lease Clock Suspension        | `status`             |
-| `BR-4` | Branch Scope Escalation          | Branching Isolation    | Critical   | Scope Containment             | `branch:open`        |
-| `MC-1` | Monolithic In-Place Repair       | Multi-Agent Coord      | High       | Fan-Back Replanning           | `plan:replan`        |
-| `MC-2` | Repair Regression Cascade        | Multi-Agent Coord      | Critical   | Cumulative Gate Run           | `gate:run-all`       |
-| `MC-3` | Repair Identity Reuse            | Multi-Agent Coord      | Medium     | Validator Independence Rotation | `queue:next`       |
-| `MC-4` | Triad Floor Violation            | Multi-Agent Coord      | Critical   | Triad Floor Invariant         | `status`             |
-| `SM-1` | Host Binary Inversion            | State & Runtime        | High       | Host Binary Deny-List         | `run:exec`           |
-| `SM-2` | Interactive CLI Stall            | State & Runtime        | High       | Non-Interactive PTY Watchdog  | `run:exec`           |
-| `SM-3` | Nested Harness Recursion         | State & Runtime        | Critical   | Process Tree Check            | `run:init`           |
-| `SM-4` | Turn 0 Paralysis                 | State & Runtime        | Medium     | Turn 0 Autonomous Wakeup      | `mind:pulse`         |
-| `SM-5` | Thinking Chain Truncation        | State & Runtime        | Medium     | Token Telemetry Alert         | `status`             |
-| `SM-6` | Empty Payload Dropout            | State & Runtime        | Medium     | Non-Empty Payload Mandate     | `agent:health`       |
-| `SM-7` | Markdown Fence Escape            | State & Runtime        | Low        | Quad-Backtick File IO         | `task:findings`      |
-| `SM-8` | Rogue Sleep Loops                | State & Runtime        | High       | Root Hygiene & Anti-Sleep     | `doctor`             |
-| `G5-1` | Supervisor Boundary Leak         | Governance & Boundary  | Critical   | Supervisor Zero-File-Edit     | `role:cheat-sheet`   |
-| `G5-2` | Unfalsifiable Evidence           | Governance & Boundary  | Critical   | Classes 1-4 Evidence Engine   | `gate:prove`         |
-| `G5-3` | Ephemeral Evidence Loss          | Governance & Boundary  | High       | Content-Addressed Store       | `inspection:receipt` |
+| Code   | Blunder Name                     | Category               | Risk Level | Invariant Enforced              | Automated Detection  |
+| :----- | :------------------------------- | :--------------------- | :--------- | :------------------------------ | :------------------- |
+| `LP-1` | Unread Tail Dropping             | Lifecycle & Planning   | High       | Source Line Disposition         | `plan:audit`         |
+| `LP-2` | Chat Context Capture Loophole    | Lifecycle & Planning   | High       | Provenance-Bound Capture        | `doctor`             |
+| `LP-3` | Implicit Goal Invention          | Lifecycle & Planning   | Medium     | Closed Requirement Boundary     | `plan:audit`         |
+| `LP-4` | Prompt Rewrite Inversion         | Lifecycle & Planning   | High       | Immutable Prompt Authority      | `doctor`             |
+| `LP-5` | Line Range Hallucination         | Lifecycle & Planning   | High       | Line Range Bounds Verifier      | `plan:audit`         |
+| `LP-6` | Premature Architecture Invention | Lifecycle & Planning   | Medium     | Two-Stage Architecture Freeze   | `plan:audit`         |
+| `VP-1` | Context Anchoring & Sycophancy   | Validation & Probing   | Critical   | Context Sanitization            | `task:packet`        |
+| `VP-2` | Broad Test Fallacy               | Validation & Probing   | Critical   | Substantive Test Discovery      | `task:check`         |
+| `VP-3` | Unstructured Pushback            | Validation & Probing   | Medium     | Structured Finding Schema       | `task:findings`      |
+| `VP-4` | Validator Exhaustion             | Validation & Probing   | High       | Independence Rotation           | `status`             |
+| `VT-1` | Premature First-Round Approval   | Verification & Testing | Critical   | Adversarial Probe Round         | `task:probe`         |
+| `VT-2` | Ritual Rejection                 | Verification & Testing | Medium     | Probe / Defect Separation       | `task:probe`         |
+| `VT-3` | Prose-Answered Demands           | Verification & Testing | Critical   | Receipt-Bound Resolution        | `task:review`        |
+| `VT-4` | Green Sign-Off Over Red Gate     | Verification & Testing | Critical   | Mechanical Gate Interlock       | `gate:status`        |
+| `BR-1` | Dead Sub-Agent Freeze            | Branching Isolation    | High       | Lease Reclamation               | `recover`            |
+| `BR-2` | Uncollected Branch Leak          | Branching Isolation    | High       | Completion Barrier              | `branch:list`        |
+| `BR-3` | Branched Parent Stale Reap       | Branching Isolation    | Medium     | Lease Clock Suspension          | `status`             |
+| `BR-4` | Branch Scope Escalation          | Branching Isolation    | Critical   | Scope Containment               | `branch:open`        |
+| `MC-1` | Monolithic In-Place Repair       | Multi-Agent Coord      | High       | Fan-Back Replanning             | `plan:replan`        |
+| `MC-2` | Repair Regression Cascade        | Multi-Agent Coord      | Critical   | Cumulative Gate Run             | `gate:run-all`       |
+| `MC-3` | Repair Identity Reuse            | Multi-Agent Coord      | Medium     | Validator Independence Rotation | `queue:next`         |
+| `MC-4` | Triad Floor Violation            | Multi-Agent Coord      | Critical   | Triad Floor Invariant           | `status`             |
+| `SM-1` | Host Binary Inversion            | State & Runtime        | High       | Host Binary Deny-List           | `run:exec`           |
+| `SM-2` | Interactive CLI Stall            | State & Runtime        | High       | Non-Interactive PTY Watchdog    | `run:exec`           |
+| `SM-3` | Nested Harness Recursion         | State & Runtime        | Critical   | Process Tree Check              | `run:init`           |
+| `SM-4` | Turn 0 Paralysis                 | State & Runtime        | Medium     | Turn 0 Autonomous Wakeup        | `mind:pulse`         |
+| `SM-5` | Thinking Chain Truncation        | State & Runtime        | Medium     | Token Telemetry Alert           | `status`             |
+| `SM-6` | Empty Payload Dropout            | State & Runtime        | Medium     | Non-Empty Payload Mandate       | `agent:health`       |
+| `SM-7` | Markdown Fence Escape            | State & Runtime        | Low        | Quad-Backtick File IO           | `task:findings`      |
+| `SM-8` | Rogue Sleep Loops                | State & Runtime        | High       | Root Hygiene & Anti-Sleep       | `doctor`             |
+| `G5-1` | Supervisor Boundary Leak         | Governance & Boundary  | Critical   | Supervisor Zero-File-Edit       | `role:cheat-sheet`   |
+| `G5-2` | Unfalsifiable Evidence           | Governance & Boundary  | Critical   | Classes 1-4 Evidence Engine     | `gate:prove`         |
+| `G5-3` | Ephemeral Evidence Loss          | Governance & Boundary  | High       | Content-Addressed Store         | `inspection:receipt` |
 
 ---
 

@@ -1,4 +1,3 @@
-
 export { beginValidation } from "./begin-validation.ts";
 
 export { assertValidatorCommands } from "./command-evidence.ts";

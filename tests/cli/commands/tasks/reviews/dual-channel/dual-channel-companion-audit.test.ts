@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { runDualChannelAudit } from "../../../../../../olt/scripts/src/cli/commands/task-review-support.ts";
 import type { TaskRecord } from "../../../../../../olt/scripts/src/workflow/types.ts";
@@ -10,13 +9,15 @@ import {
   cleanupVirtualCliFS,
   setupVirtualCliFS,
 } from "../../../fixtures/full-lifecycle-fixture.ts";
+import type { VirtualMemoryFS } from "../../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 const roots: string[] = [];
+let vfs: VirtualMemoryFS;
 
 function createValidScreenshotFixtures(label: string): ScreenshotRecord[] {
   const dir = `/virtual/cli/dual-chan-${label}-${Math.random().toString(36).slice(2)}`;
   roots.push(dir);
-  mkdirSync(dir, { recursive: true });
+  vfs.mkdirSync(dir, { recursive: true });
   const specs = [
     { name: "button-desktop.png", w: 1440, h: 900, bytes: 2048, sha: "sha-desktop" },
     { name: "button-tablet.png", w: 768, h: 1024, bytes: 1536, sha: "sha-tablet" },
@@ -24,7 +25,7 @@ function createValidScreenshotFixtures(label: string): ScreenshotRecord[] {
   ];
   return specs.map(({ name, w, h, bytes, sha }) => {
     const path = join(dir, name);
-    writeFileSync(path, createSyntheticPngBuffer(w, h, bytes));
+    vfs.writeFileSync(path, createSyntheticPngBuffer(w, h, bytes));
     return {
       kind: "screenshot",
       name,
@@ -40,7 +41,7 @@ function createValidScreenshotFixtures(label: string): ScreenshotRecord[] {
 
 describe("Task Review Dual-Channel - Companion Manifest Audit", () => {
   beforeEach(() => {
-    setupVirtualCliFS();
+    vfs = setupVirtualCliFS();
   });
 
   afterEach(() => {

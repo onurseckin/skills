@@ -1,4 +1,4 @@
-import { appendFileSync, mkdirSync } from "node:fs";
+import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import { parseRawFindings } from "../../../../olt/scripts/src/workflow/completion/index.ts";
@@ -6,6 +6,7 @@ import { observeCapsuleIntegrity } from "../../../../olt/scripts/src/workflow/co
 import { initRun, loadRun } from "../../../../olt/scripts/src/engine/store/index.ts";
 import { integrityGateIssues } from "../../shared/integrity-review-fixture.ts";
 import { setupWorkflowVirtualFs } from "../../shared/index.ts";
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 const complete = {
   id: "F-1",
@@ -23,12 +24,12 @@ function withoutField(field: string): string {
 }
 
 let runCounter = 0;
-function withRun<T>(name: string, body: (runRoot: string) => T): T {
-  const { cleanup } = setupWorkflowVirtualFs();
-  const repo = `/virtual/tmp/${name}-${++runCounter}`;
-  mkdirSync(repo, { recursive: true });
+function withRun<T>(name: string, body: (runRoot: string, vfs: VirtualMemoryFS) => T): T {
+  const { cleanup, vfs } = setupWorkflowVirtualFs();
+  const repo = `/virtual/review-critic/${name}-${++runCounter}`;
+  vfs.mkdirSync(repo, { recursive: true });
   try {
-    return body(initRun(repo, name, new TextEncoder().encode("do the work"), "file", true));
+    return body(initRun(repo, name, new TextEncoder().encode("do the work"), "file", true), vfs);
   } finally {
     cleanup();
   }
@@ -107,10 +108,11 @@ describe("capsule integrity evidence is measured", () => {
   });
 
   test("a tampered event log is observed as failed and blocks completion", () => {
-    withRun("integrity-tampered", (runRoot) => {
+    withRun("integrity-tampered", (runRoot, vfs) => {
       const eventsPath = join(runRoot, "events.jsonl");
       const head = loadRun(runRoot).state.event_head;
-      appendFileSync(eventsPath, "this line was never appended by the harness\n", "utf-8");
+      const current = vfs.readFileSync(eventsPath, "utf-8");
+      vfs.writeFileSync(eventsPath, `${current}this line was never appended by the harness\n`);
 
       const evidence = observeCapsuleIntegrity(runRoot, head);
       expect(evidence.status).toBe("failed");

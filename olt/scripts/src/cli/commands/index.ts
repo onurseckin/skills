@@ -364,6 +364,7 @@ export {
 } from "./policy-ops.ts";
 export { factoryPreplanCommand, factoryStatusCommand } from "./factory-ops.ts";
 export { notifyPhaseCommand, notifyTestCommand } from "./notify-ops.ts";
+export { msgHealthCommand, type MsgHealthResult } from "./msg-health.ts";
 export { msgSendCommand, type MsgSendResult } from "./msg-send.ts";
 export { msgRecvCommand, type MsgRecvResult } from "./msg-recv.ts";
 export { msgPollCommand, type MsgPollResult } from "./msg-poll.ts";
@@ -386,10 +387,10 @@ export {
   executeRoleProfile,
 } from "./role-ops.ts";
 export {
-  hygieneAuditCommand,
   executeHygieneAudit,
-  hygieneFixCommand,
   executeHygieneFix,
+  hygieneAuditCommand,
+  hygieneFixCommand,
 } from "./hygiene-ops.ts";
 export { defectRecordCommand, defectResolveCommand, defectListCommand } from "./defect-ops.ts";
 export { mindAuditLiveCommand } from "./mind-audit-live.ts";

@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { constants, lstatSync, mkdirSync, openSync, unlinkSync, writeFileSync } from "node:fs";
+import { O_NONBLOCK, O_NOFOLLOW } from "node:constants";
 import type { Stats } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../../../olt/scripts/src/core/errors/index.ts";
@@ -32,7 +32,7 @@ function repository(): string {
 
 function special(path: string): Stats {
   return {
-    ...lstatSync(path),
+    ...session.statSync(path),
     isDirectory: () => false,
     isFile: () => false,
     isSymbolicLink: () => false,
@@ -43,10 +43,10 @@ describe("repository Git availability controls", () => {
   test("rejects special controls before open and uses nonblocking no-follow opens", () => {
     const repo = repository();
     const config = join(repo, ".git", "config");
-    writeFileSync(config, "[core]\n");
+    vfs.writeFileSync(config, "[core]\n");
     let opens = 0;
     const hostile: RepositoryGitFileHooks = {
-      lstatPath: (path) => (path === config ? special(path) : lstatSync(path)),
+      lstatPath: (path) => (path === config ? special(path) : session.statSync(path)),
       openFile: () => {
         opens += 1;
         throw new Error("special control reached open");
@@ -61,18 +61,18 @@ describe("repository Git availability controls", () => {
     readRepositoryGitControlFile(config, "config", 1024, {
       openFile: (path, value) => {
         flags = value;
-        return openSync(path, value);
+        return session.openSync(path, value);
       },
     });
-    expect(flags & constants.O_NONBLOCK).toBe(constants.O_NONBLOCK);
-    expect(flags & constants.O_NOFOLLOW).toBe(constants.O_NOFOLLOW);
+    expect(flags & O_NONBLOCK).toBe(O_NONBLOCK);
+    expect(flags & O_NOFOLLOW).toBe(O_NOFOLLOW);
 
     expect(() =>
       readRepositoryGitControlFile(config, "config", 1024, {
         openFile: (path, value) => {
-          unlinkSync(path);
-          mkdirSync(path);
-          return openSync(path, value);
+          vfs.unlinkSync(path);
+          vfs.mkdirSync(path);
+          return session.openSync(path, value);
         },
       }),
     ).toThrow(/changed during scan/i);
@@ -81,7 +81,7 @@ describe("repository Git availability controls", () => {
   test("preflights ordinary controls before the shared Git spawn", () => {
     const repo = repository();
     const config = join(repo, ".git", "config");
-    writeFileSync(config, "[core]\n");
+    vfs.writeFileSync(config, "[core]\n");
     let spawned = false;
     const command = createRepositoryGitCommand(
       environment,
@@ -93,7 +93,7 @@ describe("repository Git availability controls", () => {
         preflight: (path) =>
           preflightRepositoryGitMetadata(path, {
             lstatPath: (candidate) =>
-              candidate === config ? special(candidate) : lstatSync(candidate),
+              candidate === config ? special(candidate) : session.statSync(candidate),
           }),
       },
     );
@@ -126,14 +126,14 @@ describe("repository Git availability controls", () => {
       preflightRepositoryGitMetadata(repo, {
         openFile: (path, flags) => {
           opens.push({ path, flags });
-          return openSync(path, flags);
+          return session.openSync(path, flags);
         },
       }),
     ).toBeTrue();
     expect(opens.map(({ path }) => path)).toContain(join(repo, ".git"));
     expect(opens.map(({ path }) => path)).toContain(join(gitDir, "commondir"));
     expect(opens.map(({ path }) => path)).toContain(join(commonDir, "config"));
-    expect(opens.every(({ flags }) => (flags & constants.O_NONBLOCK) !== 0)).toBeTrue();
+    expect(opens.every(({ flags }) => (flags & O_NONBLOCK) !== 0)).toBeTrue();
   });
 
   test("rejects a special linked-worktree pointer before opening it", () => {
@@ -147,7 +147,7 @@ describe("repository Git availability controls", () => {
     let opened = false;
     expect(() =>
       preflightRepositoryGitMetadata(repo, {
-        lstatPath: (path) => (path === pointer ? special(path) : lstatSync(path)),
+        lstatPath: (path) => (path === pointer ? special(path) : session.statSync(path)),
         openFile: () => {
           opened = true;
           throw new Error("special linked pointer reached open");

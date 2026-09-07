@@ -1,6 +1,6 @@
-import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { dirname, join } from "node:path";
+import registrySource from "../../../olt/scripts/src/cli/registry/index.ts" with { type: "text" };
 import {
   COMMAND_DOMAINS,
   COMMAND_REGISTRY,
@@ -14,8 +14,28 @@ import {
   type CommandDomain,
   type FlagSpec,
 } from "../../../olt/scripts/src/cli/registry/index.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("CLI registry boundaries and behavioral characterization", () => {
+  let vfs = new VirtualMemoryFS();
+  let session: VirtualFSSession;
+
+  beforeEach(() => {
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    const registryPath = join(import.meta.dir, "../../../olt/scripts/src/cli/registry/index.ts");
+    vfs.mkdirSync(dirname(registryPath), { recursive: true });
+    vfs.writeFileSync(registryPath, registrySource);
+  });
+
+  afterEach(() => {
+    session.cleanup();
+  });
+
   describe("command lookup by name and alias via findCommand", () => {
     test("finds every registered command by its canonical name", () => {
       for (const spec of COMMAND_REGISTRY) {
@@ -185,7 +205,7 @@ describe("CLI registry boundaries and behavioral characterization", () => {
     });
 
     test("registry descriptors do not import execute composition root", () => {
-      const registryIndex = readFileSync(
+      const registryIndex = vfs.readFileSync(
         join(import.meta.dir, "../../../olt/scripts/src/cli/registry/index.ts"),
         "utf-8",
       );

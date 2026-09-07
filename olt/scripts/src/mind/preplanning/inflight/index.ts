@@ -24,11 +24,7 @@ export {
   parsePorcelainStatusCode,
 } from "./inflight-parsers.ts";
 
-export {
-  listSnapshotFiles,
-  loadSnapshotFile,
-  saveSnapshotFile,
-} from "./inflight-storage.ts";
+export { listSnapshotFiles, loadSnapshotFile, saveSnapshotFile } from "./inflight-storage.ts";
 
 export {
   InFlightIngestionEngine,

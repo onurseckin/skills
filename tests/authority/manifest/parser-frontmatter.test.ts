@@ -3,10 +3,7 @@ import {
   parseMarkdownFrontmatter,
   parseRoleContract,
 } from "../../../olt/scripts/src/authority/manifest/index.ts";
-import {
-  cleanupVirtualAuthorityFS,
-  setupVirtualAuthorityFS,
-} from "../fixture.ts";
+import { cleanupVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
 
 describe("Authority Manifest Parser - Markdown Frontmatter", () => {
   beforeEach(() => {
@@ -117,4 +114,3 @@ embedded: yaml
     expect(body).not.toContain("\r");
   });
 });
-

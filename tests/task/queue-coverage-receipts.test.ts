@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -10,15 +9,17 @@ import {
   validateCompletionReceipts,
 } from "../../olt/scripts/src/task/queue/index.ts";
 import { cleanupVirtualTaskFS, scratchRoot, setupVirtualTaskFS } from "./task-fixture.ts";
+import type { VirtualMemoryFS } from "../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Task Queue Comprehensive Coverage", () => {
+  let vfs: VirtualMemoryFS;
   let testDirQueue = "";
   let testDirArchive = "";
   let queuePath = "";
   let completedPath = "";
 
   beforeEach(() => {
-    setupVirtualTaskFS();
+    vfs = setupVirtualTaskFS();
     testDirQueue = scratchRoot(import.meta.path, "queue");
     testDirArchive = scratchRoot(import.meta.path, "archive");
     queuePath = join(testDirQueue, "queue", "TASK_QUEUE.jsonl");
@@ -30,16 +31,18 @@ describe("Task Queue Comprehensive Coverage", () => {
   });
 
   function setup() {
-    if (existsSync(testDirQueue)) rmSync(testDirQueue, { recursive: true, force: true });
-    if (existsSync(testDirArchive)) rmSync(testDirArchive, { recursive: true, force: true });
-    mkdirSync(join(testDirQueue, "queue"), { recursive: true });
-    mkdirSync(join(testDirArchive, "archived"), { recursive: true });
-    writeFileSync(completedPath, "");
+    if (vfs.existsSync(testDirQueue)) vfs.rmSync(testDirQueue, { recursive: true, force: true });
+    if (vfs.existsSync(testDirArchive))
+      vfs.rmSync(testDirArchive, { recursive: true, force: true });
+    vfs.mkdirSync(join(testDirQueue, "queue"), { recursive: true });
+    vfs.mkdirSync(join(testDirArchive, "archived"), { recursive: true });
+    vfs.writeFileSync(completedPath, "");
   }
 
   function teardown() {
-    if (existsSync(testDirQueue)) rmSync(testDirQueue, { recursive: true, force: true });
-    if (existsSync(testDirArchive)) rmSync(testDirArchive, { recursive: true, force: true });
+    if (vfs.existsSync(testDirQueue)) vfs.rmSync(testDirQueue, { recursive: true, force: true });
+    if (vfs.existsSync(testDirArchive))
+      vfs.rmSync(testDirArchive, { recursive: true, force: true });
   }
 
   it("covers completeTask and completeTaskUnlocked with all receipt and archive permutations", () => {
@@ -70,7 +73,6 @@ describe("Task Queue Comprehensive Coverage", () => {
       durationSeconds: 60,
     });
 
-    // Call completeTask using object with autoArchive
     const res1 = completeTask({
       taskId: "task-comp-1",
       leaseToken: leaseRes.leaseToken,
@@ -83,11 +85,9 @@ describe("Task Queue Comprehensive Coverage", () => {
     expect(res1.archivedRecord).toBeDefined();
     expect(res1.archivedRecord?.proof_summary).toBe("Custom proof summary");
 
-    // Re-completing already completed task returns it immediately
     const resAlready = completeTask({ taskId: "task-comp-1", customPath: queuePath });
     expect(resAlready.completedTask.status).toBe("COMPLETED");
 
-    // String overload with path in receiptsArgOrPath
     enqueueTask(
       {
         id: "task-comp-str",
@@ -106,7 +106,6 @@ describe("Task Queue Comprehensive Coverage", () => {
     const resStr = completeTask("task-comp-str", leaseStr.leaseToken, queuePath);
     expect(resStr.completedTask.status).toBe("COMPLETED");
 
-    // String overload with receipts object
     enqueueTask(
       {
         id: "task-comp-str-rec",
@@ -130,7 +129,6 @@ describe("Task Queue Comprehensive Coverage", () => {
     );
     expect(resStrRec.completedTask.status).toBe("COMPLETED");
 
-    // Mismatched token throws
     enqueueTask(
       {
         id: "task-comp-2",
@@ -150,7 +148,6 @@ describe("Task Queue Comprehensive Coverage", () => {
       completeTask({ taskId: "task-comp-2", leaseToken: "wrong-token", customPath: queuePath }),
     ).toThrow(HarnessError);
 
-    // Complete with autoPrune=true
     const pruneRes = completeTask({
       taskId: "task-comp-2",
       leaseToken: lease2.leaseToken,
@@ -163,7 +160,6 @@ describe("Task Queue Comprehensive Coverage", () => {
     const remaining = readTaskQueue(queuePath);
     expect(remaining.some((t) => t.id === "task-comp-2")).toBe(false);
 
-    // Missing task throws
     expect(() => completeTask({ taskId: "non-existent", customPath: queuePath })).toThrow(
       HarnessError,
     );

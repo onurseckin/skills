@@ -13,7 +13,6 @@ import {
   disableInMemoryAgentMetadata,
   enableInMemoryAgentMetadata,
 } from "../../../../olt/scripts/src/runtime/session.ts";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Flags } from "../../../../olt/scripts/src/cli/options.ts";
 import { generateDefaultRepoPolicy } from "../../../../olt/scripts/src/policy/repo-policy.ts";
@@ -22,9 +21,12 @@ import {
   cleanupVirtualCliFS,
   setupVirtualCliFS,
 } from "../../commands/fixtures/full-lifecycle-fixture.ts";
+import { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
+
+let vfs: VirtualMemoryFS;
 
 beforeEach(() => {
-  setupVirtualCliFS();
+  vfs = setupVirtualCliFS();
 });
 
 afterEach(() => {
@@ -33,9 +35,9 @@ afterEach(() => {
 
 async function initializeRun(label: string): Promise<{ repo: string; runRoot: string }> {
   const repo = `/virtual/run-ops-status-${label}-${Math.random().toString(36).slice(2)}`;
-  mkdirSync(repo, { recursive: true });
+  vfs.mkdirSync(repo, { recursive: true });
   const promptPath = join(repo, "prompt.txt");
-  writeFileSync(promptPath, "runner metadata authority test", "utf-8");
+  vfs.writeFileSync(promptPath, "runner metadata authority test", "utf-8");
   const initialized = await execute([
     "plan:init",
     "--repo",
@@ -175,13 +177,13 @@ describe("runExecCommand durable metadata authority", () => {
     const { runRoot } = await initializeRun("run-exec-missing-grant");
     for (const actor of ["worker-auto", "impl-auto"]) {
       const metadataPath = join(runRoot, "runtime", `agent-${actor}.json`);
-      expect(existsSync(metadataPath)).toBe(false);
+      expect(vfs.existsSync(metadataPath)).toBe(false);
       await expect(
         runExecCommand(runFlags(runRoot, actor), {}, ["echo", "must-not-run"]),
       ).rejects.toMatchObject({
         code: "ROLE_CONFINEMENT_VIOLATION",
       });
-      expect(existsSync(metadataPath)).toBe(false);
+      expect(vfs.existsSync(metadataPath)).toBe(false);
     }
   });
 
@@ -202,7 +204,7 @@ describe("runExecCommand durable metadata authority", () => {
     expect(result.exit_code).toBe(0);
     expect(result.command_id).toBeDefined();
 
-    if (existsSync(metadataPath)) rmSync(metadataPath);
+    if (vfs.existsSync(metadataPath)) vfs.rmSync(metadataPath);
     clearInMemoryAgentMetadata();
     await expect(
       runExecCommand(runFlags(runRoot, actor), {}, ["echo", "revoked"]),
@@ -227,7 +229,7 @@ describe("runExecCommand durable metadata authority", () => {
   test("authorizes a durable run grant against the target repository policy", async () => {
     const { repo, runRoot } = await initializeRun("run-exec-target-policy");
     const actor = "impl-target-policy";
-    writeFileSync(
+    vfs.writeFileSync(
       join(repo, ".olt", "policy.json"),
       JSON.stringify({ ...generateDefaultRepoPolicy(repo), forbidden_commands: ["echo"] }),
     );

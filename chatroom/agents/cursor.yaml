@@ -1,0 +1,50 @@
+provider: "cursor"
+display_name: "Cursor"
+aliases:
+  - "cursor-ide"
+  - "cursor-cli"
+platform_mapping:
+  host_id: "cursor"
+  supervisory_model: "cursor-latest"
+  supervisory_thinking: "high"
+  worker_model: "cursor-latest"
+  worker_thinking: "medium"
+  supervisory_cadence_seconds: 300
+  supervisory_cron: "*/5 * * * *"
+  max_single_task_seconds: 300
+  heartbeat_tick_seconds: 60
+  watchdog_timeout_seconds: 300
+dispatch:
+  tool: "Task"
+  policy_name: "task"
+  subagent_nesting_limit: 1
+messaging:
+  tool: "none"
+command_execution:
+  tool: "terminal"
+scheduling:
+  tool: "none"
+  mechanism: "none"
+  cadence_seconds: 0
+capabilities:
+  hierarchical_subagents: true
+  max_spawn_depth: 1
+  concurrency_ceiling: 10
+  native_resume: false
+  liveness_layers:
+    - 1
+    - 3
+communicator:
+  agent_name_template: "communicator_{room}"
+  model: "cursor-latest"
+  thinking: "medium"
+  artifact_path: "~/.cursor/agents/communicator-{room}.md"
+  cron_mechanism: "none"
+  cadence_seconds: 0
+instructions: |
+  # Cursor Platform Adapter for Chatroom
+  - Reference worst case: no native cron, messaging tool is none.
+  - Communicator subagent: Task subagent named communicator_<room>.
+  - Scheduling mechanism: none (Cursor has no host scheduler).
+  - Daemon start: terminal tool invoking chat:daemon --start.
+  - Liveness rests on Layer 1 (detached process + 3-source wake loop) and Layer 3 (turn-by-turn ensureDaemon on every command invocation); these two layers suffice with zero host dependencies.

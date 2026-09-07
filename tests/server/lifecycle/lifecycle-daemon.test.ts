@@ -20,7 +20,12 @@ import type {
   ServerEndpoint,
   PortConfiguration,
 } from "../../../olt/scripts/src/server/lifecycle/types.ts";
-import { cleanupVirtualServerFS, getVirtualServerFS, scratchRoot, setupVirtualServerFS } from "../fixture.ts";
+import {
+  cleanupVirtualServerFS,
+  getVirtualServerFS,
+  scratchRoot,
+  setupVirtualServerFS,
+} from "../fixture.ts";
 
 describe("Dev Server Lifecycle Subsystem - State & Lock Daemon", () => {
   let testDir: string;

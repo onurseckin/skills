@@ -8,33 +8,37 @@ import {
   type LiveSubagentInfo,
 } from "../../../../olt/scripts/src/mind/lifecycle/ghost-reconciler.ts";
 import type { OrchestratorRegistrationRecord } from "../../../../olt/scripts/src/mind/lifecycle/orchestration/index.ts";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Ghost Reconciler Suite (ghost-reconciler.ts)", () => {
-  let tempDir: string;
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
+  const tempDir = "/virtual/ghost-rec";
   let customLedgerPath: string;
   let customLockPath: string;
   const fixedNow = new Date("2026-09-01T12:00:00.000Z").getTime();
   const oldSpawnTime = new Date(fixedNow - 30_000).toISOString();
 
   beforeEach(() => {
-    tempDir = join(tmpdir(), `ghost-rec-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`);
-    mkdirSync(tempDir, { recursive: true });
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    vfs.mkdirSync(tempDir, { recursive: true });
     customLedgerPath = join(tempDir, "orchestrators.jsonl");
     customLockPath = join(tempDir, "orchestrators.lock");
   });
 
   afterEach(() => {
-    if (existsSync(tempDir)) {
-      rmSync(tempDir, { recursive: true, force: true });
-    }
+    session.cleanup();
   });
 
   const writeLedgerRecords = (records: OrchestratorRegistrationRecord[]) => {
     const lines = records.map((r) => JSON.stringify(r)).join("\n") + "\n";
-    writeFileSync(customLedgerPath, lines, "utf8");
+    vfs.writeFileSync(customLedgerPath, lines);
   };
 
   const makeRecord = (
@@ -171,7 +175,7 @@ describe("Ghost Reconciler Suite (ghost-reconciler.ts)", () => {
         run_id: "run-1",
         conversation_id: "conv-orch-ok",
       };
-      writeFileSync(manifestPath, JSON.stringify(manifestObj), "utf8");
+      vfs.writeFileSync(manifestPath, JSON.stringify(manifestObj));
       const rec = makeRecord("orch-ok", 400, "ACTIVE", "run-1");
       writeLedgerRecords([rec]);
       const liveAgents: LiveSubagentInfo[] = [

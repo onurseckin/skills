@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import { setupVirtualMindFS, cleanupVirtualMindFS, scratchRoot } from "../../fixtures/index.ts";
 import {
   computeStateSignature,
@@ -14,12 +14,13 @@ import type { Manifest, RunState } from "../../../../olt/scripts/src/core/contra
 import type { StagnationAuditResult } from "../../../../olt/scripts/src/mind/preplanning/types.ts";
 
 describe("Domain 4 Hardening Invariants (INV-AUDIT-01 to INV-AUDIT-04) (in-memory virtual)", () => {
+  let vfs: VirtualMemoryFS;
   let scratch: string;
 
   beforeEach(() => {
-    setupVirtualMindFS();
+    vfs = setupVirtualMindFS();
     scratch = scratchRoot("hardening", "test");
-    fs.mkdirSync(join(scratch, ".olt"), { recursive: true });
+    vfs.mkdirSync(join(scratch, ".olt"), { recursive: true });
   });
 
   afterEach(() => {
@@ -66,7 +67,7 @@ describe("Domain 4 Hardening Invariants (INV-AUDIT-01 to INV-AUDIT-04) (in-memor
         created_at: "2026-08-31T00:00:00.000Z",
         entry_task_id: "task-1",
       };
-      fs.writeFileSync(join(scratch, "manifest.json"), JSON.stringify(manifest));
+      vfs.writeFileSync(join(scratch, "manifest.json"), JSON.stringify(manifest));
 
       const state: RunState = {
         version: "2.0.0",
@@ -92,7 +93,7 @@ describe("Domain 4 Hardening Invariants (INV-AUDIT-01 to INV-AUDIT-04) (in-memor
           },
         ],
       };
-      fs.writeFileSync(join(scratch, "state.json"), JSON.stringify(state));
+      vfs.writeFileSync(join(scratch, "state.json"), JSON.stringify(state));
 
       const events = [
         {
@@ -110,7 +111,7 @@ describe("Domain 4 Hardening Invariants (INV-AUDIT-01 to INV-AUDIT-04) (in-memor
           timestamp: "2026-08-31T00:02:00.000Z",
         },
       ];
-      fs.writeFileSync(
+      vfs.writeFileSync(
         join(scratch, "events.jsonl"),
         events.map((e) => JSON.stringify(e)).join("\n") + "\n",
       );
@@ -129,7 +130,7 @@ describe("Domain 4 Hardening Invariants (INV-AUDIT-01 to INV-AUDIT-04) (in-memor
         created_at: "2026-08-31T00:00:00.000Z",
         entry_task_id: "task-1",
       };
-      fs.writeFileSync(join(scratch, "manifest.json"), JSON.stringify(manifest));
+      vfs.writeFileSync(join(scratch, "manifest.json"), JSON.stringify(manifest));
 
       const state: RunState = {
         version: "2.0.0",
@@ -180,8 +181,8 @@ describe("Domain 4 Hardening Invariants (INV-AUDIT-01 to INV-AUDIT-04) (in-memor
           { id: "agent-2", role: "implementer", status: "released" },
         ],
       };
-      fs.writeFileSync(join(scratch, "state.json"), JSON.stringify(state));
-      fs.writeFileSync(join(scratch, "events.jsonl"), "");
+      vfs.writeFileSync(join(scratch, "state.json"), JSON.stringify(state));
+      vfs.writeFileSync(join(scratch, "events.jsonl"), "");
 
       const result = analyzeRunForensics({ runRoot: scratch });
       const fsIncidents = result.incidents.filter((i) => i.category === "FALSE_SERIALIZATION");
@@ -200,7 +201,7 @@ describe("Domain 4 Hardening Invariants (INV-AUDIT-01 to INV-AUDIT-04) (in-memor
         { id: "d3", error_code: "MIND_CREATIVE_STAGNATION", status: "OPEN" },
         { id: "d4", error_code: "OTHER_DEFECT", status: "OPEN" },
       ];
-      fs.writeFileSync(
+      vfs.writeFileSync(
         join(oltDir, "defects.jsonl"),
         defects.map((d) => JSON.stringify(d)).join("\n") + "\n",
       );

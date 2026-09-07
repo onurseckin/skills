@@ -1,17 +1,19 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { RunState } from "../../../olt/scripts/src/core/contracts/index.ts";
 import { buildIndex } from "../../../olt/scripts/src/engine/store/capsule/capsule-index.ts";
 import {
   cleanupVirtualStoreFS,
-  createStoreFsSpies,
-  scratchRoot as makeScratchRoot,
+  getVirtualStoreFS,
   setupVirtualStoreFS,
+  symlinkSync,
 } from "../store-fixture.ts";
 
+let vfs = getVirtualStoreFS();
+let rootCounter = 0;
+
 beforeEach(() => {
-  setupVirtualStoreFS();
+  vfs = setupVirtualStoreFS();
 });
 
 afterEach(() => {
@@ -19,7 +21,10 @@ afterEach(() => {
 });
 
 function scratchRoot(label: string): string {
-  return makeScratchRoot(import.meta.path, label);
+  rootCounter += 1;
+  const root = `/virtual/capsule-build-${label}-${rootCounter}`;
+  vfs.mkdirSync(root, { recursive: true });
+  return root;
 }
 
 function baseState(overrides: Partial<RunState> & Record<string, unknown> = {}): RunState {
@@ -123,11 +128,11 @@ describe("buildIndex", () => {
 
   test("indexes reports/, attributing owner task ids and parsed round numbers from the file name", () => {
     const root = scratchRoot("indexes-reports-attributing-owner-task-ids-and-par");
-    mkdirSync(join(root, "reports"));
-    writeFileSync(join(root, "reports", "T-1-probe-02.json"), "{}");
-    writeFileSync(join(root, "reports", "T-1-review.json"), "{}");
-    writeFileSync(join(root, "reports", "not-json.txt"), "ignored");
-    mkdirSync(join(root, "reports", "a-directory.json"));
+    vfs.mkdirSync(join(root, "reports"), { recursive: true });
+    vfs.writeFileSync(join(root, "reports", "T-1-probe-02.json"), "{}");
+    vfs.writeFileSync(join(root, "reports", "T-1-review.json"), "{}");
+    vfs.writeFileSync(join(root, "reports", "not-json.txt"), "ignored");
+    vfs.mkdirSync(join(root, "reports", "a-directory.json"), { recursive: true });
     const state = baseState({ tasks: { "T-1": {} } });
     const index = buildIndex(root, state, "run");
     expect(index.reports).toEqual([
@@ -149,8 +154,8 @@ describe("buildIndex", () => {
 
   test("skips a report entry whose stat fails, such as a dangling symlink", () => {
     const root = scratchRoot("skips-a-report-entry-whose-stat-fails-such-as-a-da");
-    mkdirSync(join(root, "reports"));
-    writeFileSync(join(root, "reports", "T-1-review.json"), "{}");
+    vfs.mkdirSync(join(root, "reports"), { recursive: true });
+    vfs.writeFileSync(join(root, "reports", "T-1-review.json"), "{}");
     symlinkSync(join(root, "reports", "missing-target"), join(root, "reports", "T-1-broken.json"));
     const index = buildIndex(root, baseState({ tasks: { "T-1": {} } }), "run");
     expect(index.reports.map((report) => report.name)).toEqual(["T-1-review.json"]);
@@ -159,8 +164,8 @@ describe("buildIndex", () => {
   test("indexes blobs with byte counts and zero references when uncaptured", () => {
     const root = scratchRoot("indexes-blobs-with-byte-counts-and-zero-references");
     const digest = "b".repeat(64);
-    mkdirSync(join(root, "blobs", "bb"), { recursive: true });
-    writeFileSync(join(root, "blobs", "bb", digest), "hello");
+    vfs.mkdirSync(join(root, "blobs", "bb"), { recursive: true });
+    vfs.writeFileSync(join(root, "blobs", "bb", digest), "hello");
     const index = buildIndex(root, baseState(), "run");
     expect(index.blobs).toEqual([
       { sha256: digest, bytes: 5, path: `blobs/bb/${digest}`, references: 0 },
@@ -176,16 +181,20 @@ describe("buildIndex", () => {
   test("edge cases: non-numeric exit codes, invalid report round suffixes, and primitive findings", () => {
     const root = scratchRoot("edge-cases-build-index");
 
-    // 1. Report with non-numeric round suffix: round should be undefined, not NaN
-    mkdirSync(join(root, "reports"), { recursive: true });
-    writeFileSync(join(root, "reports", "T-1-probe-abc.json"), "{}");
-    writeFileSync(join(root, "reports", "T-1-probe-.json"), "{}");
+    vfs.mkdirSync(join(root, "reports"), { recursive: true });
+    vfs.writeFileSync(join(root, "reports", "T-1-probe-abc.json"), "{}");
+    vfs.writeFileSync(join(root, "reports", "T-1-probe-.json"), "{}");
 
-    // 2. Command with null / string exit codes and task with null / primitive findings
     const state = baseState({
       tasks: {
         "T-1": {
-          findings: [null, 42, "loose string", { not_an_id: "x" }, { id: "F-valid", status: "open" }],
+          findings: [
+            null,
+            42,
+            "loose string",
+            { not_an_id: "x" },
+            { id: "F-valid", status: "open" },
+          ],
         },
       },
       commands: {
@@ -197,12 +206,10 @@ describe("buildIndex", () => {
 
     const index = buildIndex(root, state, "run-edge");
 
-    // Check report round
     const repAbc = index.reports.find((r) => r.name === "T-1-probe-abc.json");
     expect(repAbc).toBeDefined();
     expect(repAbc?.round).toBeUndefined();
 
-    // Check commands
     const cNull = index.commands.find((c) => c.id === "C-null");
     expect(cNull?.exit_code).toBeUndefined();
     const cString = index.commands.find((c) => c.id === "C-string");
@@ -210,7 +217,6 @@ describe("buildIndex", () => {
     const cValid = index.commands.find((c) => c.id === "C-valid");
     expect(cValid?.exit_code).toBe(0);
 
-    // Check findings
     expect(index.findings).toEqual([{ id: "F-valid", task_id: "T-1", status: "open" }]);
   });
 });

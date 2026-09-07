@@ -59,13 +59,13 @@ bun olt/scripts/harness.ts task:claim --run <RUN_DIR> --task <TASK_ID> --agent <
 
 #### Flags & Parameters
 
-| Flag                                  |   Type   | Required |   Default    | Description                                                                         |
-| :------------------------------------ | :------: | :------: | :----------: | :---------------------------------------------------------------------------------- |
-| `--run`                               | `string` | Required |      —       | Capsule run root directory.                                                         |
-| `--task`                              | `string` | Required |      —       | Task ID to lease (must be in `ready` or `changes_requested`).                       |
-| `--agent`                             | `string` | Required |      —       | Unique identifier of claiming agent (e.g. `worker-auth-01`).                        |
-| `--role`                              | `string` | Required |      —       | Role contract: `implementer` (for `ready` or `changes_requested`).                  |
-| `--lease-duration`, `--lease-seconds` |  `int`   | Optional | `1200` (20m) | Lease duration in seconds (Range: 5 to 86400).                                      |
+| Flag                                  |   Type   | Required |   Default    | Description                                                        |
+| :------------------------------------ | :------: | :------: | :----------: | :----------------------------------------------------------------- |
+| `--run`                               | `string` | Required |      —       | Capsule run root directory.                                        |
+| `--task`                              | `string` | Required |      —       | Task ID to lease (must be in `ready` or `changes_requested`).      |
+| `--agent`                             | `string` | Required |      —       | Unique identifier of claiming agent (e.g. `worker-auth-01`).       |
+| `--role`                              | `string` | Required |      —       | Role contract: `implementer` (for `ready` or `changes_requested`). |
+| `--lease-duration`, `--lease-seconds` |  `int`   | Optional | `1200` (20m) | Lease duration in seconds (Range: 5 to 86400).                     |
 
 #### Input / Output Payloads
 

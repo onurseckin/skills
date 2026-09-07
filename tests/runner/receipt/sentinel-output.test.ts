@@ -1,8 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { readFile, open } from "node:fs/promises";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
-import { tempRoot, cleanupTempRoots } from "../command/fixture.ts";
+import { cleanupTempRoots, getRunnerVfs, tempRoot } from "../command/fixture.ts";
 
 export interface SentinelOutputResult {
   bytes: number;
@@ -17,33 +16,33 @@ export async function captureSentinelOutput(
   sink?: (chunk: Uint8Array) => void,
   maxBytes = 8 * 1024 * 1024,
 ): Promise<SentinelOutputResult> {
-  const handle = await open(path, "w", 0o600);
+  const vfs = getRunnerVfs();
   const hash = createHash("sha256");
   const reader = stream.getReader();
   let bytes = 0;
   let retained_bytes = 0;
   let truncated = false;
+  const retainedChunks: Uint8Array[] = [];
 
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      if (!value || value.byteLength === 0) continue;
-      bytes += value.byteLength;
-      hash.update(value);
-      sink?.(value);
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (!value || value.byteLength === 0) continue;
+    bytes += value.byteLength;
+    hash.update(value);
+    sink?.(value);
 
-      if (retained_bytes < maxBytes) {
-        const remaining = maxBytes - retained_bytes;
-        const slice = value.byteLength <= remaining ? value : value.subarray(0, remaining);
-        await handle.write(slice);
-        retained_bytes += slice.byteLength;
-      }
-      if (bytes > maxBytes) truncated = true;
+    if (retained_bytes < maxBytes) {
+      const remaining = maxBytes - retained_bytes;
+      const slice = value.byteLength <= remaining ? value : value.subarray(0, remaining);
+      retainedChunks.push(slice);
+      retained_bytes += slice.byteLength;
     }
-  } finally {
-    await handle.close();
+    if (bytes > maxBytes) truncated = true;
   }
+
+  const fileData = retainedChunks.length === 0 ? new Uint8Array(0) : Buffer.concat(retainedChunks);
+  vfs.writeFileSync(path, fileData);
 
   return {
     bytes,
@@ -79,7 +78,8 @@ describe("sentinel child output capture", () => {
       truncated: false,
       sha256: createHash("sha256").update(new Uint8Array(0)).digest("hex"),
     });
-    expect(await readFile(logPath)).toEqual(Buffer.alloc(0));
+    const vfs = getRunnerVfs();
+    expect(Buffer.from(vfs.readFileSync(logPath))).toEqual(Buffer.alloc(0));
   });
 
   test("captures and streams unbudgeted chunks", async () => {
@@ -99,7 +99,8 @@ describe("sentinel child output capture", () => {
       truncated: false,
       sha256: createHash("sha256").update(Buffer.from("hello world\n")).digest("hex"),
     });
-    expect(await readFile(logPath, "utf8")).toBe("hello world\n");
+    const vfs = getRunnerVfs();
+    expect(vfs.readFileSync(logPath, "utf8")).toBe("hello world\n");
   });
 
   test("truncates output when exceeding the maximum allowed bytes", async () => {
@@ -115,6 +116,7 @@ describe("sentinel child output capture", () => {
       truncated: true,
       sha256: createHash("sha256").update(Buffer.from("1234567890")).digest("hex"),
     });
-    expect(await readFile(logPath, "utf8")).toBe("1234567");
+    const vfs = getRunnerVfs();
+    expect(vfs.readFileSync(logPath, "utf8")).toBe("1234567");
   });
 });

@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   PROSE_ASSERTION_OVER_EVIDENCE_BIAS,
   assertEvidenceOverProse,
@@ -9,42 +13,38 @@ import {
   verifyProseAssertionDefectRemediated,
   type EvidenceAuditOptions,
 } from "../../../olt/scripts/src/validation/index.ts";
-import {
-  cleanupVirtualValidationFS,
-  scratchRoot,
-  setupVirtualValidationFS,
-} from "../validation-fixture.ts";
 
-let TEST_DIR: string;
+let session: VirtualFSSession;
+let vfs: VirtualMemoryFS;
+let testDir: string;
+let counter = 0;
 
 function setupTestEnv(): void {
-  TEST_DIR = scratchRoot("prose-assertion-audit", "audit");
-  mkdirSync(TEST_DIR, { recursive: true });
-}
-
-function cleanupTestEnv(): void {
-  // Handled in afterEach
+  testDir = `/virtual/validation-scratch/prose-assertion-audit-${++counter}`;
+  vfs.mkdirSync(testDir, { recursive: true });
 }
 
 describe("Defect Remediation: PROSE_ASSERTION_OVER_EVIDENCE_BIAS Audit", () => {
   beforeEach(() => {
-    setupVirtualValidationFS();
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
-    cleanupVirtualValidationFS();
+    session.cleanup();
   });
+
   describe("3. Remediation of Prose Assertion Over Evidence Bias", () => {
     it("rejects unproven prose report claiming ignition when events.jsonl has 0 command executions", () => {
       setupTestEnv();
-      const eventsPath = join(TEST_DIR, "events.jsonl");
+      const eventsPath = join(testDir, "events.jsonl");
 
       const line1 = JSON.stringify({
         sequence: 1,
         type: "init",
         timestamp: "2026-08-30T00:00:00.000Z",
       });
-      writeFileSync(eventsPath, `${line1}\n`);
+      vfs.writeFileSync(eventsPath, `${line1}\n`);
 
       const unprovenReport = `
 # Antigravity Subagent Execution Report
@@ -67,13 +67,11 @@ Everything ran smoothly.
       expect(ignitionViolation?.reason).toContain(
         "sequence is <= 1 with 0 command executions recorded",
       );
-
-      cleanupTestEnv();
     });
 
     it("rejects unproven prose report claiming 3 commands executed when events.jsonl only records 1", () => {
       setupTestEnv();
-      const eventsPath = join(TEST_DIR, "events.jsonl");
+      const eventsPath = join(testDir, "events.jsonl");
 
       const line1 = JSON.stringify({
         sequence: 1,
@@ -87,7 +85,7 @@ Everything ran smoothly.
           stdout_hash: "hash1",
         },
       });
-      writeFileSync(eventsPath, `${line1}\n`);
+      vfs.writeFileSync(eventsPath, `${line1}\n`);
 
       const unprovenReport = `
 ### Task Summary
@@ -106,14 +104,12 @@ Executed 3 commands in the container.
       expect(execViolation?.reason).toContain(
         "Prose claims 3 command(s) executed, but only 1 command receipt(s) recorded",
       );
-
-      cleanupTestEnv();
     });
 
     it("rejects report claiming tests passed when 0 command receipts recorded", () => {
       setupTestEnv();
-      const eventsPath = join(TEST_DIR, "events.jsonl");
-      writeFileSync(eventsPath, `${JSON.stringify({ sequence: 1, type: "init" })}\n`);
+      const eventsPath = join(testDir, "events.jsonl");
+      vfs.writeFileSync(eventsPath, `${JSON.stringify({ sequence: 1, type: "init" })}\n`);
 
       const report = "All tests passed 100% without issues.";
       const audit = auditProseAgainstEvidence({
@@ -128,13 +124,11 @@ Executed 3 commands in the container.
       expect(testViolation?.reason).toContain(
         "0 command receipts or test execution events were recorded",
       );
-
-      cleanupTestEnv();
     });
 
     it("accepts report when cryptographic evidence in events.jsonl corroborates all claims", () => {
       setupTestEnv();
-      const eventsPath = join(TEST_DIR, "events.jsonl");
+      const eventsPath = join(testDir, "events.jsonl");
 
       const stdoutHash1 = createHash("sha256").update("pass 250 tests").digest("hex");
       const stdoutHash2 = createHash("sha256").update("build output").digest("hex");
@@ -174,7 +168,7 @@ Executed 3 commands in the container.
         },
       });
 
-      writeFileSync(eventsPath, `${line1}\n${line2}\n${line3}\n`);
+      vfs.writeFileSync(eventsPath, `${line1}\n${line2}\n${line3}\n`);
 
       const verifiedReport = `
 # Stage Execution
@@ -195,13 +189,11 @@ Invariants were enforced.
       expect(audit.violations.length).toBe(0);
       expect(audit.evidenceSummary.totalEvents).toBe(3);
       expect(audit.evidenceSummary.commandReceiptsCount).toBe(2);
-
-      cleanupTestEnv();
     });
 
     it("throws error with PROSE_ASSERTION_OVER_EVIDENCE_BIAS when assertEvidenceOverProse fails", () => {
       const opts: EvidenceAuditOptions = {
-        eventsPath: "/tmp/nonexistent-events.jsonl",
+        eventsPath: "/virtual/nonexistent-events.jsonl",
         markdownReport: "Ignition is complete.",
       };
 

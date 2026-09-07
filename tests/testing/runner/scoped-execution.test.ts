@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -12,10 +11,12 @@ import {
   type ScopedExecutionAuditResult,
   type ScopedExecutionPolicy,
 } from "../../../olt/scripts/src/testing/scoped-execution.ts";
+import { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import { createSampleScopedPolicy, RUNNER_SUITES } from "./index.ts";
 
 describe("scoped-execution static invariants", () => {
-  test("scoped-execution source and test files have 0 any and 0 compiler/linter suppressions", () => {
+  test("scoped-execution source and test files have 0 any and 0 compiler/linter suppressions", async () => {
+    const vfs = new VirtualMemoryFS();
     const srcPath = join(process.cwd(), "olt/scripts/src/testing/scoped-execution.ts");
     const tstPath = join(import.meta.dir, "scoped-execution.test.ts");
     const anyKw = "a" + "n" + "y";
@@ -24,9 +25,14 @@ describe("scoped-execution static invariants", () => {
       tsNocheck = "@ts-" + "nocheck",
       linter = "eslint-" + "disable";
 
+    vfs.mkdirSync(join(process.cwd(), "olt/scripts/src/testing"), { recursive: true });
+    vfs.mkdirSync(import.meta.dir, { recursive: true });
+    vfs.writeFileSync(srcPath, await Bun.file(srcPath).text());
+    vfs.writeFileSync(tstPath, await Bun.file(tstPath).text());
+
     for (const filePath of [srcPath, tstPath]) {
-      expect(existsSync(filePath)).toBe(true);
-      const content = readFileSync(filePath, "utf8");
+      expect(vfs.existsSync(filePath)).toBe(true);
+      const content = vfs.readFileSync(filePath, "utf8");
       expect(content.includes(tsIgnore)).toBe(false);
       expect(content.includes(tsExpectError)).toBe(false);
       expect(content.includes(tsNocheck)).toBe(false);

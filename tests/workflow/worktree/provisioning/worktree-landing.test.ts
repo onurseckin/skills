@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import type { GitRunner } from "../../../../olt/scripts/src/workflow/worktree/git.ts";
@@ -11,15 +10,18 @@ import {
   listTrackWorktrees,
 } from "../../../../olt/scripts/src/workflow/worktree/index.ts";
 import { setupWorkflowVirtualFs } from "../../shared/index.ts";
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 const TEST_DIR = "/virtual/worktree-landing-suite";
 let vfsCleanup: (() => void) | undefined;
+let vfs: VirtualMemoryFS;
 
 describe("Worktree Manager & Landing", () => {
   beforeEach(() => {
     const setup = setupWorkflowVirtualFs();
     vfsCleanup = setup.cleanup;
-    mkdirSync(TEST_DIR, { recursive: true });
+    vfs = setup.vfs;
+    vfs.mkdirSync(TEST_DIR, { recursive: true });
   });
 
   afterEach(() => {
@@ -29,25 +31,23 @@ describe("Worktree Manager & Landing", () => {
 
   test("destroyTrackWorktree string overload executes and returns void", () => {
     const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-str-destroy");
-    mkdirSync(worktreeDir, { recursive: true });
+    vfs.mkdirSync(worktreeDir, { recursive: true });
 
     destroyTrackWorktree({
       trackId: "track-str-destroy",
       repoRoot: TEST_DIR,
       runner: () => ({ status: 0, stdout: "", stderr: "" }),
     });
-    expect(existsSync(worktreeDir)).toBe(false);
+    expect(vfs.existsSync(worktreeDir)).toBe(false);
   });
 
   test("listTrackWorktrees handles missing worktree root and corrupt meta files", () => {
-    // 1. Missing root
     const missingRoot = join(TEST_DIR, "nonexistent-repo");
     expect(listTrackWorktrees({ repoRoot: missingRoot })).toEqual([]);
 
-    // 2. Existing root with corrupt meta file
     const wtDir = join(TEST_DIR, ".olt", "worktrees", "track-corrupt-meta");
-    mkdirSync(wtDir, { recursive: true });
-    writeFileSync(join(wtDir, ".worktree-meta.json"), "invalid json");
+    vfs.mkdirSync(wtDir, { recursive: true });
+    vfs.writeFileSync(join(wtDir, ".worktree-meta.json"), "invalid json");
 
     const list = listTrackWorktrees({ repoRoot: TEST_DIR });
     expect(list.length).toBe(1);
@@ -57,7 +57,7 @@ describe("Worktree Manager & Landing", () => {
 
   test("cleanupTrackWorktree alias performs identical teardown", () => {
     const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-clean-alias");
-    mkdirSync(worktreeDir, { recursive: true });
+    vfs.mkdirSync(worktreeDir, { recursive: true });
 
     const result = cleanupTrackWorktree({
       trackId: "track-clean-alias",
@@ -66,7 +66,7 @@ describe("Worktree Manager & Landing", () => {
     });
 
     expect(result.cleaned).toBe(true);
-    expect(existsSync(worktreeDir)).toBe(false);
+    expect(vfs.existsSync(worktreeDir)).toBe(false);
   });
 
   test("createTrackWorktree attaches existing branch if already present", () => {
@@ -93,11 +93,10 @@ describe("Worktree Manager & Landing", () => {
 
   test("evicts stale lock when lock timestamp is older than STALE_LOCK_THRESHOLD even if PID matches", () => {
     const lockDir = join(TEST_DIR, ".olt", "worktrees", "locks");
-    mkdirSync(lockDir, { recursive: true });
+    vfs.mkdirSync(lockDir, { recursive: true });
     const lockPath = join(lockDir, "track-expired.lock");
-    // Write lock with living PID but 2 hours ago
     const oldDate = new Date(Date.now() - 2 * 3600 * 1000).toISOString();
-    writeFileSync(
+    vfs.writeFileSync(
       lockPath,
       JSON.stringify({
         trackId: "track-expired",
@@ -117,7 +116,7 @@ describe("Worktree Manager & Landing", () => {
 
   test("landTrackToMain uses fast-forward CAS verification when advancing non-active target branch", () => {
     const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-land-cas");
-    mkdirSync(worktreeDir, { recursive: true });
+    vfs.mkdirSync(worktreeDir, { recursive: true });
 
     const executed: string[][] = [];
     const mockRunner: GitRunner = (_cwd, argv) => {
@@ -141,7 +140,6 @@ describe("Worktree Manager & Landing", () => {
 
     expect(result.success).toBe(true);
     expect(result.commitSha).toBe("commit-sha-777");
-    // Verify update-ref CAS advancement instead of branch -f
     expect(
       executed.some(
         (c) => c[0] === "update-ref" && c[1] === "refs/heads/main" && c[2] === "commit-sha-777",
@@ -151,7 +149,7 @@ describe("Worktree Manager & Landing", () => {
 
   test("landTrackToMain throws INTEGRITY when target branch advance is non-fast-forward", () => {
     const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-land-diverged");
-    mkdirSync(worktreeDir, { recursive: true });
+    vfs.mkdirSync(worktreeDir, { recursive: true });
 
     const mockRunner: GitRunner = (_cwd, argv) => {
       if (argv[0] === "symbolic-ref") return { status: 0, stdout: "other-branch\n", stderr: "" };
@@ -176,7 +174,7 @@ describe("Worktree Manager & Landing", () => {
 
   test("landTrackToMain throws INTEGRITY when remote push fails", () => {
     const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-push-fail");
-    mkdirSync(worktreeDir, { recursive: true });
+    vfs.mkdirSync(worktreeDir, { recursive: true });
 
     const mockRunner: GitRunner = (_cwd, argv) => {
       if (argv[0] === "symbolic-ref") return { status: 0, stdout: "main\n", stderr: "" };

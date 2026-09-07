@@ -1,0 +1,16 @@
+{
+  "runtime_command": null,
+  "harness_path": "~/.agents/skills/chatroom/scripts/harness.ts",
+  "notify_command": null,
+  "poll_interval_ms": 750,
+  "heartbeat_interval_ms": 5000,
+  "lease_ttl_ms": 120000,
+  "stale_after_ms": 30000,
+  "wedge_after_ms": 60000,
+  "max_spool_bytes": 33554432,
+  "max_spool_lines": 20000,
+  "spool_retention_ms": 86400000,
+  "respawn_budget_per_hour": 20,
+  "batch_size": 50,
+  "test_runner": null
+}

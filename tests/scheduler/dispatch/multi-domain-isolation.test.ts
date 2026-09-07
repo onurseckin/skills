@@ -27,8 +27,7 @@ function createTask(
     id,
     type: "task",
     label: id,
-    requirement_ids:
-      options.requirement_ids !== undefined ? options.requirement_ids : ["R-001"],
+    requirement_ids: options.requirement_ids !== undefined ? options.requirement_ids : ["R-001"],
     write_scope: scopes,
     resource_scope: options.resource_scope !== undefined ? options.resource_scope : [],
     artifact_ids: ["artifact-all"],

@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import {
   mindQueueDrainCommand,
@@ -13,6 +12,7 @@ import {
   writeFeedbackQueue,
   type FeedbackItem,
 } from "../../../../../olt/scripts/src/mind/feedback/queue/index.ts";
+import { type VirtualMemoryFS } from "../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   cleanupRoots,
   cleanupVirtualCliFS,
@@ -20,8 +20,10 @@ import {
 } from "../../fixtures/full-lifecycle-fixture.ts";
 
 const roots: string[] = [];
+let vfs: VirtualMemoryFS;
+
 beforeEach(() => {
-  setupVirtualCliFS();
+  vfs = setupVirtualCliFS();
 });
 afterEach(async () => {
   await cleanupRoots(roots);
@@ -30,7 +32,7 @@ afterEach(async () => {
 
 function getTestDir(label: string): string {
   const dir = `/virtual/cli/todo-lifecycle-${label}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  mkdirSync(dir, { recursive: true });
+  vfs.mkdirSync(dir, { recursive: true });
   roots.push(dir);
   return dir;
 }
@@ -84,7 +86,6 @@ describe("CLI todo-ops and mind:queue commands - Drain & Seal", () => {
 
       writeFeedbackQueue(items, queueFile);
 
-      // Drain with category filter
       const drainCli = mindQueueDrainCommand({
         category: "CLI_TOOLING",
         "mark-as": "ADMITTED",
@@ -94,12 +95,10 @@ describe("CLI todo-ops and mind:queue commands - Drain & Seal", () => {
       expect(drainCli.item?.id).toBe("item-high-cli");
       expect(drainCli.item?.status).toBe("ADMITTED");
 
-      // Verify updated queue status in storage
       const queueAfterCli = readFeedbackQueue(queueFile);
       const cliItem = queueAfterCli.find((i) => i.id === "item-high-cli");
       expect(cliItem?.status).toBe("ADMITTED");
 
-      // Drain next item (FIFO priority orders CRITICAL before LOW)
       const drainCrit = todoDrainCommand({
         limit: "1",
         "queue-file": queueFile,
@@ -108,7 +107,6 @@ describe("CLI todo-ops and mind:queue commands - Drain & Seal", () => {
       expect(drainCrit.item?.id).toBe("item-crit");
       expect(drainCrit.item?.status).toBe("PROCESSED");
 
-      // Drain remaining with priority filter
       const drainLow = todoDrainCommand({
         priority: "LOW",
         "mark-as": "DECLINED",

@@ -1,5 +1,4 @@
 import { describe, expect, it, test } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
 import {
   isCognitiveValidatorRole,
   isMechanicValidatorRole,
@@ -100,9 +99,9 @@ describe("Validator Specialization - Split Architecture & Model", () => {
         expect(
           recommendStandardAgentId("ui-headless-validator", "task-p48", "viewport-matrix"),
         ).toBe("ui-headless-validator_task-p48-viewport-matrix");
-        expect(recommendStandardAgentId("ui-optical-validator", "task-p48", "viewport-matrix")).toBe(
-          "ui-optical-validator_task-p48-viewport-matrix",
-        );
+        expect(
+          recommendStandardAgentId("ui-optical-validator", "task-p48", "viewport-matrix"),
+        ).toBe("ui-optical-validator_task-p48-viewport-matrix");
       });
 
       it("maps agent IDs to roles and execution tiers", () => {

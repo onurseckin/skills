@@ -1,56 +1,38 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
 import {
-  InFlightIngestionEngine,
-  UserIntentExtractionEngine,
-  createInFlightSnapshot,
-  extractUserIntent,
-  inspectInFlightWork,
-  integrateUserIntentIntoRoadmap,
-  listInFlightSnapshots,
-  loadInFlightSnapshot,
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import {
   parseDiffSummary,
   parseGitStashes,
   parseGitStatusOutput,
-  saveInFlightSnapshot,
-  structureUserIntentAsBacklogDeliverable,
-  toCanonicalDomainCategory,
-  type GitRunner,
-  type InFlightSnapshot,
-  type InFlightSnapshotOptions,
-  type IntentCategory,
-  type IntentDomain,
-  type SaveSnapshotOptions,
 } from "../../../olt/scripts/src/mind/preplanning/index.ts";
-import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("In-Flight Work Ingestion & Intent Extraction Engine Suite", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
   let testDir: string;
   let snapshotsDir: string;
 
   beforeEach(() => {
-    testDir = join(
-      tmpdir(),
-      `test-inflight-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    );
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    testDir = `/virtual/test-inflight-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     snapshotsDir = join(testDir, ".olt", "snapshots");
-    mkdirSync(snapshotsDir, { recursive: true });
+    vfs.mkdirSync(snapshotsDir, { recursive: true });
   });
 
   afterEach(() => {
-    try {
-      rmSync(testDir, { recursive: true, force: true });
-    } catch {
-      // Best effort cleanup
-    }
+    session.cleanup();
   });
 
   describe("Git Status, Diff & Stash Parsers (Non-Destructive)", () => {
     it("parses porcelain v1 status with various file change statuses", () => {
       const dummyFile = join(testDir, "test-file.ts");
-      writeFileSync(dummyFile, "export const HELLO = 'world';\n", "utf-8");
+      vfs.writeFileSync(dummyFile, "export const HELLO = 'world';\n", "utf-8");
 
       const statusOutput = [
         " M test-file.ts",

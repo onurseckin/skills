@@ -206,6 +206,9 @@ export function cleanupVirtualCliFS(): void {
 export function getVirtualCliFS(): VirtualMemoryFS {
   return vfs;
 }
+export function getVirtualCliSession(): VirtualFSSession | undefined {
+  return session;
+}
 export function runGit(
   repo: string,
   argv: readonly string[],

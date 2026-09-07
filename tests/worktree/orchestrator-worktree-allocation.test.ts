@@ -163,7 +163,11 @@ describe("Orchestrator Worktree Allocation & Reconciliation", () => {
     const lockPath = join(lockDir, "orch-active-test.lock");
     vfs.mkdirSync(worktreeDir, { recursive: true });
     vfs.mkdirSync(lockDir, { recursive: true });
-    vfs.writeFileSync(lockPath, JSON.stringify({ pid: ACTIVE_PID, trackId: "orch-active-test" }), "utf8");
+    vfs.writeFileSync(
+      lockPath,
+      JSON.stringify({ pid: ACTIVE_PID, trackId: "orch-active-test" }),
+      "utf8",
+    );
 
     const mockRunner: GitRunner = (_cwd, _argv) => ({ status: 0, stdout: "", stderr: "" });
 
@@ -241,7 +245,11 @@ describe("Orchestrator Worktree Allocation & Reconciliation", () => {
     expect(vfs.existsSync(createRes.worktree_path as string)).toBe(true);
 
     const protectedLockPath = join(TEST_DIR, ".olt", "worktrees", "locks", "orch-billing.lock");
-    vfs.writeFileSync(protectedLockPath, JSON.stringify({ pid: ACTIVE_PID, trackId: "orch-billing" }), "utf8");
+    vfs.writeFileSync(
+      protectedLockPath,
+      JSON.stringify({ pid: ACTIVE_PID, trackId: "orch-billing" }),
+      "utf8",
+    );
 
     const cleanRes = worktreeCleanCommand({ all: true, "repo-root": TEST_DIR });
     expect(cleanRes.count).toBe(0);

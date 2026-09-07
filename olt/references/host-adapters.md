@@ -143,12 +143,12 @@ For Codex native dispatch, Harness declares these role defaults rather than inhe
 parent choice. An explicit packet `model` or `thinkingLevel` remains an intentional override; the
 telemetry-only `modelTier` field is never treated as a Codex model name.
 
-| Role class                    | Roles                                                                                                                       | Model           | Reasoning effort |
-| :---------------------------- | :-------------------------------------------------------------------------------------------------------------------------- | :-------------- | :--------------- |
-| Product Mind                  | `mind`                                                                                                                      | `gpt-5.6-sol`   | `xhigh`          |
-| Run leadership                | `orchestrator`                                                                                                              | `gpt-5.6-sol`   | `high`           |
-| Mechanical and implementation | `coordinator`, `implementer`, `planner`, `sub-implementer`, `sub-investigator`                                              | `gpt-5.6-terra` | `xhigh`          |
-| Routine checking and auditing | `completeness-critic`, `meta-auditor`, `mind-auditor`, `plan-validator`, `sub-validator`, `validator`                       | `gpt-5.6-luna`  | `xhigh`          |
+| Role class                    | Roles                                                                                                 | Model           | Reasoning effort |
+| :---------------------------- | :---------------------------------------------------------------------------------------------------- | :-------------- | :--------------- |
+| Product Mind                  | `mind`                                                                                                | `gpt-5.6-sol`   | `xhigh`          |
+| Run leadership                | `orchestrator`                                                                                        | `gpt-5.6-sol`   | `high`           |
+| Mechanical and implementation | `coordinator`, `implementer`, `planner`, `sub-implementer`, `sub-investigator`                        | `gpt-5.6-terra` | `xhigh`          |
+| Routine checking and auditing | `completeness-critic`, `meta-auditor`, `mind-auditor`, `plan-validator`, `sub-validator`, `validator` | `gpt-5.6-luna`  | `xhigh`          |
 
 ---
 

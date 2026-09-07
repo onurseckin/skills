@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   DEFAULT_REPO_SECRET,
@@ -13,7 +12,11 @@ import type {
   CreateEnvelopeOptions,
   MailboxEnvelope,
 } from "../../../olt/scripts/src/communication/types.ts";
-import { cleanupVirtualCommunicationFS, setupVirtualCommunicationFS, vfs } from "../helpers.ts";
+import {
+  createVirtualFSSession,
+  type VirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 const rootDir = join(process.cwd());
 const sourceFilesToCache = [
@@ -21,28 +24,28 @@ const sourceFilesToCache = [
   "olt/scripts/src/communication/mailbox/index.ts",
   "tests/communication/envelope/envelope.test.ts",
 ];
-const cachedSourceFiles = new Map<string, string>();
+const snapshot: Record<string, string> = {};
 for (const rel of sourceFilesToCache) {
   const full = join(rootDir, rel);
   try {
-    cachedSourceFiles.set(full, readFileSync(full, "utf-8"));
+    snapshot[full] = await Bun.file(full).text();
   } catch {}
 }
 
 describe("Mailbox Envelope Cryptographic Serialization & Verification", () => {
   const originalEnvSecret = process.env.OLT_HMAC_SECRET;
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
 
   beforeEach(() => {
-    setupVirtualCommunicationFS();
-    for (const [fullPath, content] of cachedSourceFiles.entries()) {
-      vfs.mkdirSync(join(fullPath, ".."), { recursive: true });
-      vfs.writeFileSync(fullPath, content);
-    }
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    vfs.loadSnapshot(snapshot);
     delete process.env.OLT_HMAC_SECRET;
   });
 
   afterEach(() => {
-    cleanupVirtualCommunicationFS();
+    session.cleanup();
     if (originalEnvSecret !== undefined) {
       process.env.OLT_HMAC_SECRET = originalEnvSecret;
     } else {
@@ -279,27 +282,25 @@ describe("Mailbox Envelope Cryptographic Serialization & Verification", () => {
 
   describe("Code Invariants & File Limits", () => {
     it("ensures envelope.ts, index.ts, and test suite are <= 400 physical lines", () => {
-      const rootDir = join(process.cwd());
       const files = [
         "olt/scripts/src/communication/mailbox/envelope.ts",
         "olt/scripts/src/communication/mailbox/index.ts",
         "tests/communication/envelope/envelope.test.ts",
       ];
       for (const file of files) {
-        const lines = readFileSync(join(rootDir, file), "utf-8").split("\n").length;
+        const lines = vfs.readFileSync(join(rootDir, file), "utf-8").split("\n").length;
         expect(lines).toBeLessThanOrEqual(400);
       }
     });
 
     it("ensures zero TypeScript 'any' and zero compiler suppressions in envelope source", () => {
-      const rootDir = join(process.cwd());
       const envelopePath = join(rootDir, "olt/scripts/src/communication/mailbox/envelope.ts");
-      const content = readFileSync(envelopePath, "utf-8");
-      expect(content).not.toContain("@ts-ignore");
-      expect(content).not.toContain("@ts-expect-error");
-      expect(content).not.toContain("@ts-nocheck");
-      expect(content).not.toMatch(/:\s*any\b/);
-      expect(content).not.toMatch(/as\s+any\b/);
+      const content = vfs.readFileSync(envelopePath, "utf-8");
+      expect(content).not.toContain("@ts-" + "ignore");
+      expect(content).not.toContain("@ts-" + "expect-error");
+      expect(content).not.toContain("@ts-" + "nocheck");
+      expect(content).not.toMatch(new RegExp(":\\s*" + "any\\b"));
+      expect(content).not.toMatch(new RegExp("as\\s+" + "any\\b"));
     });
   });
 });

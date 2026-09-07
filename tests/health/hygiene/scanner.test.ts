@@ -1,23 +1,50 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { scanRootHygiene } from "../../../olt/scripts/src/health/hygiene/index.ts";
-import { cleanupVirtualHealthFS, setupVirtualHealthFS } from "../fixture.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+
+const repoRoot = process.cwd();
+
+const HEALTH_FILES = [
+  "olt/scripts/src/health/hygiene/types.ts",
+  "olt/scripts/src/health/hygiene/scanner.ts",
+  "olt/scripts/src/health/hygiene/quarantine.ts",
+  "olt/scripts/src/health/hygiene/index.ts",
+  "tests/health/hygiene/scanner.test.ts",
+] as const;
+
+const HEALTH_SNAPSHOT: Record<string, string> = {};
+
+let vfs: VirtualMemoryFS;
+let session: VirtualFSSession;
+
+beforeAll(async () => {
+  for (const rel of HEALTH_FILES) {
+    const p = join(repoRoot, rel);
+    HEALTH_SNAPSHOT[p] = await Bun.file(p).text();
+  }
+});
 
 beforeEach(() => {
-  setupVirtualHealthFS();
+  vfs = new VirtualMemoryFS();
+  session = createVirtualFSSession(vfs);
+  vfs.loadSnapshot(HEALTH_SNAPSHOT);
 });
 
 afterEach(() => {
-  cleanupVirtualHealthFS();
+  session.cleanup();
 });
 
 function createTempWorkspace(): string {
   const dir = `/virtual/test-hygiene-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, "package.json"), "{}");
-  writeFileSync(join(dir, "README.md"), "# Test");
-  writeFileSync(join(dir, "tsconfig.json"), "{}");
+  vfs.mkdirSync(dir, { recursive: true });
+  vfs.writeFileSync(join(dir, "package.json"), "{}");
+  vfs.writeFileSync(join(dir, "README.md"), "# Test");
+  vfs.writeFileSync(join(dir, "tsconfig.json"), "{}");
   return dir;
 }
 
@@ -29,13 +56,13 @@ describe("Health Hygiene - Root Hygiene Scanner", () => {
     const syncDir = join(scriptsDir, "sync");
     const oltDir = join(ws, "olt");
     const refDir = join(oltDir, "references");
-    mkdirSync(modDir, { recursive: true });
-    mkdirSync(syncDir, { recursive: true });
-    mkdirSync(refDir, { recursive: true });
-    writeFileSync(join(scriptsDir, "README.md"), "# Scripts");
-    writeFileSync(join(modDir, "index.ts"), "export const mod = 1;");
-    writeFileSync(join(syncDir, "index.ts"), "export const sync = 1;");
-    writeFileSync(join(refDir, "notes.md"), "# Notes");
+    vfs.mkdirSync(modDir, { recursive: true });
+    vfs.mkdirSync(syncDir, { recursive: true });
+    vfs.mkdirSync(refDir, { recursive: true });
+    vfs.writeFileSync(join(scriptsDir, "README.md"), "# Scripts");
+    vfs.writeFileSync(join(modDir, "index.ts"), "export const mod = 1;");
+    vfs.writeFileSync(join(syncDir, "index.ts"), "export const sync = 1;");
+    vfs.writeFileSync(join(refDir, "notes.md"), "# Notes");
 
     const result = scanRootHygiene({ repoRoot: ws });
     expect(result.passed).toBe(true);
@@ -46,10 +73,10 @@ describe("Health Hygiene - Root Hygiene Scanner", () => {
 
   test("detects loose executables and unapproved files in repository root", () => {
     const ws = createTempWorkspace();
-    writeFileSync(join(ws, "fix-pulse.ts"), "console.log(1);");
-    writeFileSync(join(ws, "run-tool.sh"), "#!/bin/bash\necho 1");
-    writeFileSync(join(ws, "unapproved.txt"), "data");
-    mkdirSync(join(ws, "rogue_dir"), { recursive: true });
+    vfs.writeFileSync(join(ws, "fix-pulse.ts"), "console.log(1);");
+    vfs.writeFileSync(join(ws, "run-tool.sh"), "#!/bin/bash\necho 1");
+    vfs.writeFileSync(join(ws, "unapproved.txt"), "data");
+    vfs.mkdirSync(join(ws, "rogue_dir"), { recursive: true });
 
     const result = scanRootHygiene({ repoRoot: ws });
     expect(result.passed).toBe(false);
@@ -77,13 +104,13 @@ describe("Health Hygiene - Root Hygiene Scanner", () => {
   test("detects loose executables, test artifacts, and unapproved dirs in scripts/ root", () => {
     const ws = createTempWorkspace();
     const scriptsDir = join(ws, "scripts");
-    mkdirSync(scriptsDir, { recursive: true });
-    writeFileSync(join(scriptsDir, "loose-runner.sh"), "#!/bin/bash\necho 1");
-    writeFileSync(join(scriptsDir, "scratch-fix.ts"), "console.log(1);");
-    writeFileSync(join(scriptsDir, "test-artifact.test.ts"), "describe('test', () => {});");
-    writeFileSync(join(scriptsDir, "orphan.log"), "log output");
-    writeFileSync(join(scriptsDir, "scratch.tmp"), "temp data");
-    mkdirSync(join(scriptsDir, "unapproved_sub"), { recursive: true });
+    vfs.mkdirSync(scriptsDir, { recursive: true });
+    vfs.writeFileSync(join(scriptsDir, "loose-runner.sh"), "#!/bin/bash\necho 1");
+    vfs.writeFileSync(join(scriptsDir, "scratch-fix.ts"), "console.log(1);");
+    vfs.writeFileSync(join(scriptsDir, "test-artifact.test.ts"), "describe('test', () => {});");
+    vfs.writeFileSync(join(scriptsDir, "orphan.log"), "log output");
+    vfs.writeFileSync(join(scriptsDir, "scratch.tmp"), "temp data");
+    vfs.mkdirSync(join(scriptsDir, "unapproved_sub"), { recursive: true });
 
     const result = scanRootHygiene({ repoRoot: ws });
     expect(result.passed).toBe(false);
@@ -107,10 +134,10 @@ describe("Health Hygiene - Root Hygiene Scanner", () => {
     const ws = createTempWorkspace();
     const oltDir = join(ws, "olt");
     const covDir = join(oltDir, "coverage");
-    mkdirSync(covDir, { recursive: true });
-    writeFileSync(join(covDir, "lcov.info"), "TN:");
-    writeFileSync(join(oltDir, "defects.jsonl"), "{}");
-    writeFileSync(join(oltDir, "runtime.log"), "log data");
+    vfs.mkdirSync(covDir, { recursive: true });
+    vfs.writeFileSync(join(covDir, "lcov.info"), "TN:");
+    vfs.writeFileSync(join(oltDir, "defects.jsonl"), "{}");
+    vfs.writeFileSync(join(oltDir, "runtime.log"), "log data");
 
     const result = scanRootHygiene({ repoRoot: ws });
     expect(result.passed).toBe(false);
@@ -131,9 +158,9 @@ describe("Health Hygiene - Root Hygiene Scanner", () => {
     ];
 
     for (const rel of files) {
-      const filePath = join(process.cwd(), rel);
-      expect(existsSync(filePath)).toBe(true);
-      const content = readFileSync(filePath, "utf8");
+      const filePath = join(repoRoot, rel);
+      expect(vfs.existsSync(filePath)).toBe(true);
+      const content = vfs.readFileSync(filePath, "utf8");
       const lines = content.split("\n");
       expect(lines.length).toBeLessThanOrEqual(300);
 
@@ -165,9 +192,9 @@ describe("Health Hygiene - Root Hygiene Scanner", () => {
       }
     }
 
-    const testFilePath = join(process.cwd(), "tests/health/hygiene/scanner.test.ts");
-    expect(existsSync(testFilePath)).toBe(true);
-    const testContent = readFileSync(testFilePath, "utf8");
+    const testFilePath = join(repoRoot, "tests/health/hygiene/scanner.test.ts");
+    expect(vfs.existsSync(testFilePath)).toBe(true);
+    const testContent = vfs.readFileSync(testFilePath, "utf8");
     const testLines = testContent.split("\n");
     expect(testLines.length).toBeLessThanOrEqual(300);
   });

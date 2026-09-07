@@ -1,0 +1,24 @@
+{
+  "name": "msg:health",
+  "aliases": [],
+  "domain": "msg",
+  "summary": "Check mailbox listener liveness and health status.",
+  "flags": [
+    {
+      "name": "actor",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    },
+    {
+      "name": "base-dir",
+      "type": "string",
+      "required": false,
+      "repeatable": false,
+      "default": null
+    }
+  ],
+  "reads_stdin": false,
+  "takes_remainder": false
+}

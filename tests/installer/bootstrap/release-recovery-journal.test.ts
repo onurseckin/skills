@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { cp, mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { canonicalJsonBytes } from "../../../olt/scripts/src/core/json.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
@@ -11,13 +10,19 @@ import { treeDigest } from "../../../olt/scripts/src/installer/tree-digest.ts";
 import { validateSkillSource } from "../../../olt/scripts/src/installer/source-validation.ts";
 import type { TransactionMarker } from "../../../olt/scripts/src/installer/transaction-marker.ts";
 import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
-import { cleanInstallerFixtures, installerFixture, setupVirtualInstallerFS } from "../helpers.ts";
+import {
+  cleanInstallerFixtures,
+  copyDirRecursive,
+  getVirtualInstallerFS,
+  installerFixture,
+  setupVirtualInstallerFS,
+} from "../helpers.ts";
 
 beforeEach(setupVirtualInstallerFS);
 afterEach(cleanInstallerFixtures);
 
 async function makeRelease(sourceRoot: string, dir: string): Promise<string> {
-  await cp(sourceRoot, dir, { recursive: true });
+  copyDirRecursive(sourceRoot, dir);
   const validated = await validateSkillSource(sourceRoot);
   const digest = await treeDigest(dir, new Set(["installation.json"]));
   const sealed = sealInstallationManifest({
@@ -29,7 +34,7 @@ async function makeRelease(sourceRoot: string, dir: string): Promise<string> {
     installed_at: "2026-01-01T00:00:00.000Z",
     clients: [],
   });
-  await writeFile(join(dir, "installation.json"), canonicalJsonBytes(sealed));
+  getVirtualInstallerFS().writeFileSync(join(dir, "installation.json"), canonicalJsonBytes(sealed));
   return digest;
 }
 
@@ -60,7 +65,7 @@ describe("recoverReleasePaths: requireRelease validation", () => {
     const root = scratchRoot(import.meta.path, "temp-not-identified");
     const home = join(root, "home");
     const temporary = join(home, "dest.tmp-1");
-    await mkdir(temporary, { recursive: true });
+    getVirtualInstallerFS().mkdirSync(temporary, { recursive: true });
     const marker = baseMarker(home, join(home, "dest"), { temporary });
     await expect(recoverReleasePaths(marker)).rejects.toBeInstanceOf(HarnessError);
   });
@@ -69,7 +74,7 @@ describe("recoverReleasePaths: requireRelease validation", () => {
     const { source } = await installerFixture();
     const root = scratchRoot(import.meta.path, "temp-digest-mismatch");
     const home = join(root, "home");
-    await mkdir(home, { recursive: true });
+    getVirtualInstallerFS().mkdirSync(home, { recursive: true });
     const temporary = join(home, "dest.tmp-1");
     await makeRelease(source, temporary);
     const marker = baseMarker(home, join(home, "dest"), {
@@ -85,7 +90,7 @@ describe("recoverReleasePaths: security & anti-tamper validations", () => {
     const { source } = await installerFixture();
     const root = scratchRoot(import.meta.path, "published-both-backup-and-quarantine");
     const home = join(root, "home");
-    await mkdir(home, { recursive: true });
+    getVirtualInstallerFS().mkdirSync(home, { recursive: true });
     const destination = join(home, "dest");
     const backup = join(home, "dest.old-1");
     const backupQuarantine = join(home, "dest.delete-1");
@@ -113,7 +118,7 @@ describe("recoverReleasePaths: security & anti-tamper validations", () => {
     const { source } = await installerFixture();
     const root = scratchRoot(import.meta.path, "published-unexpected-backup");
     const home = join(root, "home");
-    await mkdir(home, { recursive: true });
+    getVirtualInstallerFS().mkdirSync(home, { recursive: true });
     const destination = join(home, "dest");
     const backup = join(home, "dest.old-1");
     const digest = await makeRelease(source, destination);
@@ -136,7 +141,7 @@ describe("recoverReleasePaths: security & anti-tamper validations", () => {
     const { source } = await installerFixture();
     const root = scratchRoot(import.meta.path, "published-backup-identity-changed");
     const home = join(root, "home");
-    await mkdir(home, { recursive: true });
+    getVirtualInstallerFS().mkdirSync(home, { recursive: true });
     const destination = join(home, "dest");
     const backup = join(home, "dest.old-1");
     const digest = await makeRelease(source, destination);
@@ -159,7 +164,7 @@ describe("recoverReleasePaths: security & anti-tamper validations", () => {
     const { source } = await installerFixture();
     const root = scratchRoot(import.meta.path, "quarantine-identity-changed");
     const home = join(root, "home");
-    await mkdir(home, { recursive: true });
+    getVirtualInstallerFS().mkdirSync(home, { recursive: true });
     const destination = join(home, "dest");
     const backupQuarantine = join(home, "dest.delete-1");
     const digest = await makeRelease(source, destination);
@@ -182,7 +187,7 @@ describe("recoverReleasePaths: security & anti-tamper validations", () => {
     const { source } = await installerFixture();
     const root = scratchRoot(import.meta.path, "destination-and-backup-both-exist");
     const home = join(root, "home");
-    await mkdir(home, { recursive: true });
+    getVirtualInstallerFS().mkdirSync(home, { recursive: true });
     const destination = join(home, "dest");
     const backup = join(home, "dest.old-1");
     const destinationDigest = await makeRelease(source, destination);
@@ -203,7 +208,7 @@ describe("recoverReleasePaths: security & anti-tamper validations", () => {
     const { source } = await installerFixture();
     const root = scratchRoot(import.meta.path, "quarantine-without-publish");
     const home = join(root, "home");
-    await mkdir(home, { recursive: true });
+    getVirtualInstallerFS().mkdirSync(home, { recursive: true });
     const destination = join(home, "dest");
     const backupQuarantine = join(home, "dest.delete-1");
     await makeRelease(source, backupQuarantine);

@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import { setupVirtualMindFS, cleanupVirtualMindFS, scratchRoot } from "../../fixtures/index.ts";
 import type { DefectEntry } from "../../../../olt/scripts/src/mind/defects/index.ts";
 import {
@@ -15,12 +15,13 @@ import {
 } from "../../../../olt/scripts/src/mind/tasks/discovery/scanners/remediation-scanner.ts";
 
 describe("Remediation Scanner Engine (in-memory virtual)", () => {
+  let vfs: VirtualMemoryFS;
   let virtualDir: string;
 
   beforeEach(() => {
-    setupVirtualMindFS();
+    vfs = setupVirtualMindFS();
     virtualDir = scratchRoot("remediation-scanner", "test");
-    fs.mkdirSync(virtualDir, { recursive: true });
+    vfs.mkdirSync(virtualDir, { recursive: true });
   });
 
   afterEach(() => {
@@ -182,13 +183,13 @@ describe("Remediation Scanner Engine (in-memory virtual)", () => {
 
   it("scans defect records from capsule directory on disk", () => {
     const capsuleDir = join(virtualDir, "capsule-alpha");
-    fs.mkdirSync(capsuleDir, { recursive: true });
+    vfs.mkdirSync(capsuleDir, { recursive: true });
 
     const defectJsonl = [
       JSON.stringify(sampleOpenDefect),
       JSON.stringify(sampleResolvedDefect),
     ].join("\n");
-    fs.writeFileSync(join(capsuleDir, "defects.jsonl"), `${defectJsonl}\n`);
+    vfs.writeFileSync(join(capsuleDir, "defects.jsonl"), `${defectJsonl}\n`);
 
     const result = scanDefectRemediations({ capsulesDir: capsuleDir });
     expect(result.totalDefects).toBe(2);

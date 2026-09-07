@@ -8,11 +8,7 @@ import {
   VALIDATOR_DOMAINS,
 } from "../../../olt/scripts/src/packets/role-contract.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import {
-  cleanupVirtualRolesFS,
-  getVirtualRolesFS,
-  setupVirtualRolesFS,
-} from "../fixture.ts";
+import { cleanupVirtualRolesFS, getVirtualRolesFS, setupVirtualRolesFS } from "../fixture.ts";
 
 beforeEach(() => {
   setupVirtualRolesFS();
@@ -32,7 +28,8 @@ const rolesRoot = dirname(resolveRoleContractPath("planner"));
 describe("canonical role documents", () => {
   test("agents/ holds unified manifests for all canonical roles", () => {
     const vfs = getVirtualRolesFS();
-    const documented = vfs.readdirSync(rolesRoot)
+    const documented = vfs
+      .readdirSync(rolesRoot)
       .filter((entry) => entry.endsWith(".yaml") || entry.endsWith(".yml"))
       .map((entry) => entry.replace(/\.(yaml|yml)$/, ""))
       .filter((entry) => isAgentRole(entry))

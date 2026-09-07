@@ -1,6 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdir, readdir, rm } from "node:fs/promises";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
@@ -9,7 +7,13 @@ import { pathIdentity } from "../../../olt/scripts/src/installer/path-safety.ts"
 import { beginReleaseTransaction } from "../../../olt/scripts/src/installer/release-transaction.ts";
 import { markerPath, readMarker } from "../../../olt/scripts/src/installer/transaction-marker.ts";
 import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
-import { cleanupVirtualInstallerFS, setupVirtualInstallerFS } from "../helpers.ts";
+import {
+  cleanupVirtualInstallerFS,
+  getVirtualInstallerFS,
+  normPath,
+  setupVirtualInstallerFS,
+  vfsState,
+} from "../helpers.ts";
 
 beforeEach(setupVirtualInstallerFS);
 afterEach(cleanupVirtualInstallerFS);
@@ -18,7 +22,7 @@ describe("beginReleaseTransaction", () => {
   test("writes a marker readable back with the expected fields", async () => {
     const root = scratchRoot(import.meta.path, "writes-marker");
     const parent = join(root, "parent");
-    mkdirSync(parent);
+    getVirtualInstallerFS().mkdirSync(parent);
     const destination = join(parent, "dest");
     const lock = acquireInstallerLock(parent);
     try {
@@ -44,7 +48,7 @@ describe("beginReleaseTransaction", () => {
   test("records old_device/old_inode when an old identity is provided", async () => {
     const root = scratchRoot(import.meta.path, "records-old-identity");
     const parent = join(root, "parent");
-    mkdirSync(parent);
+    getVirtualInstallerFS().mkdirSync(parent);
     const destination = join(parent, "dest");
     const lock = acquireInstallerLock(parent);
     try {
@@ -69,7 +73,7 @@ describe("beginReleaseTransaction", () => {
   test("update() rewrites the marker's stage atomically", async () => {
     const root = scratchRoot(import.meta.path, "update-stage");
     const parent = join(root, "parent");
-    mkdirSync(parent);
+    getVirtualInstallerFS().mkdirSync(parent);
     const destination = join(parent, "dest");
     const lock = acquireInstallerLock(parent);
     try {
@@ -95,7 +99,7 @@ describe("beginReleaseTransaction", () => {
   test("finish() removes the marker and is idempotent on a second call", async () => {
     const root = scratchRoot(import.meta.path, "finish-idempotent");
     const parent = join(root, "parent");
-    mkdirSync(parent);
+    getVirtualInstallerFS().mkdirSync(parent);
     const destination = join(parent, "dest");
     const lock = acquireInstallerLock(parent);
     try {
@@ -120,7 +124,7 @@ describe("beginReleaseTransaction", () => {
   test("finish() calls beforeRemove before deleting the marker", async () => {
     const root = scratchRoot(import.meta.path, "finish-hook");
     const parent = join(root, "parent");
-    mkdirSync(parent);
+    getVirtualInstallerFS().mkdirSync(parent);
     const destination = join(parent, "dest");
     const lock = acquireInstallerLock(parent);
     try {
@@ -148,7 +152,7 @@ describe("beginReleaseTransaction", () => {
   test("update() propagates the failure when the marker changed identity before the swap could even start", async () => {
     const root = scratchRoot(import.meta.path, "update-identity-changed");
     const parent = join(root, "parent");
-    mkdirSync(parent);
+    getVirtualInstallerFS().mkdirSync(parent);
     const destination = join(parent, "dest");
     const lock = acquireInstallerLock(parent);
     try {
@@ -162,12 +166,14 @@ describe("beginReleaseTransaction", () => {
         null,
         lock,
       );
-      await rm(markerPath(parent));
-      await mkdir(markerPath(parent));
+      const vfs = getVirtualInstallerFS();
+      vfsState.inodeMap.delete(normPath(markerPath(parent)));
+      vfs.rmSync(markerPath(parent));
+      vfs.mkdirSync(markerPath(parent));
 
       await expect(transaction.update("published")).rejects.toThrow(HarnessError);
 
-      const names = await readdir(parent);
+      const names = vfs.readdirSync(parent) as string[];
       expect(names.some((name) => name.includes(".update-"))).toBe(false);
     } finally {
       lock.release();
@@ -177,7 +183,7 @@ describe("beginReleaseTransaction", () => {
   test("update() inner catch cleans up replacement marker when replaceBoundPath fails", async () => {
     const root = scratchRoot(import.meta.path, "update-inner-catch-cleanup");
     const parent = join(root, "parent");
-    mkdirSync(parent);
+    getVirtualInstallerFS().mkdirSync(parent);
     const destination = join(parent, "dest");
     const lock = acquireInstallerLock(parent);
     try {
@@ -194,15 +200,17 @@ describe("beginReleaseTransaction", () => {
 
       const maliciousStage = {
         get stage() {
-          rmSync(markerPath(parent));
-          writeFileSync(markerPath(parent), "tampered content");
+          const vfs = getVirtualInstallerFS();
+          vfsState.inodeMap.delete(normPath(markerPath(parent)));
+          vfs.rmSync(markerPath(parent));
+          vfs.writeFileSync(markerPath(parent), "tampered content");
           return "published";
         },
       };
 
       await expect(transaction.update(maliciousStage as unknown as "published")).rejects.toThrow();
 
-      const names = await readdir(parent);
+      const names = getVirtualInstallerFS().readdirSync(parent) as string[];
       expect(names.some((name) => name.includes(".update-"))).toBe(false);
     } finally {
       lock.release();

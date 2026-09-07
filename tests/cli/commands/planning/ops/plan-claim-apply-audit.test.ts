@@ -40,9 +40,9 @@ describe("plan:claim / plan:apply", () => {
   test("plan:claim issues a planner packet naming the planning write scope", async () => {
     const repo = `/virtual/cli/harness-plan-claim-${Math.random().toString(36).slice(2)}`;
     roots.push(repo);
-    await mkdir(join(repo, ".git"), { recursive: true });
+    vfs.mkdirSync(join(repo, ".git"), { recursive: true });
     const promptPath = join(repo, "prompt.txt");
-    await writeFile(promptPath, "Implement one independently verified change");
+    vfs.writeFileSync(promptPath, "Implement one independently verified change");
     const init = await execute([
       "plan:init",
       "--repo",
@@ -63,11 +63,11 @@ describe("plan:claim / plan:apply", () => {
   test("plan:apply validates and commits requirements/graph as revision 1, honouring --expected-revision", async () => {
     const repo = `/virtual/cli/harness-plan-apply-${Math.random().toString(36).slice(2)}`;
     roots.push(repo);
-    await mkdir(join(repo, ".git"), { recursive: true });
+    vfs.mkdirSync(join(repo, ".git"), { recursive: true });
     const prompt = "Implement one independently verified change";
     const promptPath = join(repo, "prompt.txt");
-    await writeFile(promptPath, prompt);
-    await writeFile(join(repo, "gate-check.ts"), "console.log('gate-ok');\n");
+    vfs.writeFileSync(promptPath, prompt);
+    vfs.writeFileSync(join(repo, "gate-check.ts"), "console.log('gate-ok');\n");
     const requirements = requirementsDocument(prompt);
     const graph = graphDocument(requirements);
     for (const gate of graph.gates as Record<string, unknown>[]) {
@@ -108,11 +108,11 @@ describe("plan:claim / plan:apply", () => {
   test("plan:apply refuses a stale --expected-revision", async () => {
     const repo = `/virtual/cli/harness-plan-apply-stale-${Math.random().toString(36).slice(2)}`;
     roots.push(repo);
-    await mkdir(join(repo, ".git"), { recursive: true });
+    vfs.mkdirSync(join(repo, ".git"), { recursive: true });
     const prompt = "Implement one independently verified change";
     const promptPath = join(repo, "prompt.txt");
-    await writeFile(promptPath, prompt);
-    await writeFile(join(repo, "gate-check.ts"), "console.log('gate-ok');\n");
+    vfs.writeFileSync(promptPath, prompt);
+    vfs.writeFileSync(join(repo, "gate-check.ts"), "console.log('gate-ok');\n");
     const requirements = requirementsDocument(prompt);
     const graph = graphDocument(requirements);
     for (const gate of graph.gates as Record<string, unknown>[]) {
@@ -152,11 +152,11 @@ describe("plan:claim / plan:apply", () => {
   test("plan:apply defaults its paths to planning/requirements.json and planning/graph.json", async () => {
     const repo = `/virtual/cli/harness-plan-apply-default-paths-${Math.random().toString(36).slice(2)}`;
     roots.push(repo);
-    await mkdir(join(repo, ".git"), { recursive: true });
+    vfs.mkdirSync(join(repo, ".git"), { recursive: true });
     const prompt = "Implement one independently verified change";
     const promptPath = join(repo, "prompt.txt");
-    await writeFile(promptPath, prompt);
-    await writeFile(join(repo, "gate-check.ts"), "console.log('gate-ok');\n");
+    vfs.writeFileSync(promptPath, prompt);
+    vfs.writeFileSync(join(repo, "gate-check.ts"), "console.log('gate-ok');\n");
     const init = await execute([
       "plan:init",
       "--repo",
@@ -173,9 +173,9 @@ describe("plan:claim / plan:apply", () => {
     for (const gate of graph.gates as Record<string, unknown>[]) {
       gate.command = ["bun", "gate-check.ts"];
     }
-    await mkdir(join(run, "planning"), { recursive: true });
-    await writeFile(join(run, "planning", "requirements.json"), JSON.stringify(requirements));
-    await writeFile(join(run, "planning", "graph.json"), JSON.stringify(graph));
+    vfs.mkdirSync(join(run, "planning"), { recursive: true });
+    vfs.writeFileSync(join(run, "planning", "requirements.json"), JSON.stringify(requirements));
+    vfs.writeFileSync(join(run, "planning", "graph.json"), JSON.stringify(graph));
 
     const applied = await execute(["plan:apply", "--run", run, "--actor", "planner"]);
     expect(applied.revision).toBe(1);
@@ -184,7 +184,7 @@ describe("plan:claim / plan:apply", () => {
 
 describe("plan:audit", () => {
   beforeEach(() => {
-    setupVirtualCliFS();
+    vfs = setupVirtualCliFS();
   });
 
   afterEach(() => {
@@ -195,9 +195,9 @@ describe("plan:audit", () => {
   test("refuses to audit an empty planning buffer", async () => {
     const repo = `/virtual/cli/harness-plan-audit-empty-${Math.random().toString(36).slice(2)}`;
     roots.push(repo);
-    await mkdir(join(repo, ".git"), { recursive: true });
+    vfs.mkdirSync(join(repo, ".git"), { recursive: true });
     const promptPath = join(repo, "prompt.txt");
-    await writeFile(promptPath, "Do one thing");
+    vfs.writeFileSync(promptPath, "Do one thing");
     const init = await execute([
       "plan:init",
       "--repo",
@@ -216,9 +216,9 @@ describe("plan:audit", () => {
   test("audits a nonempty buffer and reports findings and revision", async () => {
     const repo = `/virtual/cli/harness-plan-audit-basic-${Math.random().toString(36).slice(2)}`;
     roots.push(repo);
-    await mkdir(join(repo, ".git"), { recursive: true });
+    vfs.mkdirSync(join(repo, ".git"), { recursive: true });
     const promptPath = join(repo, "prompt.txt");
-    await writeFile(promptPath, "Do one thing");
+    vfs.writeFileSync(promptPath, "Do one thing");
     const init = await execute([
       "plan:init",
       "--repo",
@@ -254,9 +254,9 @@ describe("plan:audit", () => {
   test("capsulePlanningStore throws INTEGRITY when mutation returns a Promise", async () => {
     const repo = `/virtual/cli/harness-plan-store-async-${Math.random().toString(36).slice(2)}`;
     roots.push(repo);
-    await mkdir(join(repo, ".git"), { recursive: true });
+    vfs.mkdirSync(join(repo, ".git"), { recursive: true });
     const promptPath = join(repo, "prompt.txt");
-    await writeFile(promptPath, "Test prompt");
+    vfs.writeFileSync(promptPath, "Test prompt");
     const init = await execute([
       "plan:init",
       "--repo",

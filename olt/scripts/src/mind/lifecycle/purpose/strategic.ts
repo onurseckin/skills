@@ -128,7 +128,8 @@ export function diagnoseMacroDag(
         type: "critical_path",
         taskId: node.taskId,
         description: `Failed node on execution graph blocking dependent branches.`,
-        suggestedMitigation: "Dispatch an implementer repair attempt or prune unrecoverable branch.",
+        suggestedMitigation:
+          "Dispatch an implementer repair attempt or prune unrecoverable branch.",
       });
     }
   }

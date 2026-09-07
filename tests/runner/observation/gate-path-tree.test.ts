@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { closeSync } from "node:fs";
 import { join } from "node:path";
 import {
   captureOpenedPath,
@@ -12,6 +11,7 @@ import {
   setupVirtualRunnerFS,
   cleanupVirtualRunnerFS,
   createVirtualSymlink,
+  closeSync,
 } from "../command/fixture.ts";
 import type { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/memory-fs.ts";
 
@@ -145,7 +145,6 @@ describe("gate-path-tree", () => {
 
     const dirFd = openGatePath(subDir);
     try {
-      // Non-regular file hook
       expect(() =>
         captureOpenedPath(
           dirFd,
@@ -170,7 +169,6 @@ describe("gate-path-tree", () => {
         ),
       ).toThrow("gate tree entry is not a regular file or directory");
 
-      // openPath error hook
       expect(() =>
         captureOpenedPath(
           dirFd,

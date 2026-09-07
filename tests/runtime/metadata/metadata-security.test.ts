@@ -136,7 +136,8 @@ describe("agent metadata security and validation (in-memory virtualization)", ()
       readFile(path, encoding) {
         if (path === filePath) throw denied;
         const val = harness.files.get(path);
-        if (val === undefined) throw Object.assign(new Error(`ENOENT: open '${path}'`), { code: "ENOENT" });
+        if (val === undefined)
+          throw Object.assign(new Error(`ENOENT: open '${path}'`), { code: "ENOENT" });
         return encoding === "utf8" || encoding === "utf-8" ? val : Buffer.from(val, "utf8");
       },
     });
@@ -164,7 +165,8 @@ describe("agent metadata security and validation (in-memory virtualization)", ()
       readFile(path, encoding) {
         if (path === canonicalPath) throw denied;
         const val = harness.files.get(path);
-        if (val === undefined) throw Object.assign(new Error(`ENOENT: open '${path}'`), { code: "ENOENT" });
+        if (val === undefined)
+          throw Object.assign(new Error(`ENOENT: open '${path}'`), { code: "ENOENT" });
         return encoding === "utf8" || encoding === "utf-8" ? val : Buffer.from(val, "utf8");
       },
     });

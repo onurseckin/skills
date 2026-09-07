@@ -49,9 +49,10 @@ export async function drainMailboxPass(
   metrics.totalDrained += batch.length;
   metrics.lastDrainedAt = new Date().toISOString();
 
+  const successfulBatch: MailboxEnvelope<unknown>[] = [];
+
   for (const env of batch) {
     try {
-      // 1. Emit Phase 1: RECEIPT_DELIVERED back to sender if requested
       const isReceipt =
         env.message_type === "HANDOFF_RECEIPT" || env.message_type === "PULSE_HEARTBEAT";
       if (options.emitDeliveredReceipts !== false && !isReceipt) {
@@ -68,20 +69,17 @@ export async function drainMailboxPass(
             ...(options.secretKey !== undefined ? { secretKey: options.secretKey } : {}),
           });
           metrics.totalDeliveredReceiptsEmitted++;
-        } catch {
-          // Failure to deliver receipt does not drop the message
-        }
+        } catch {}
       }
 
-      // 2. Custom onMessage handler takes precedence if provided
       if (options.onMessage) {
         const itemResult = await options.onMessage(env);
         results.push(itemResult);
         metrics.totalProcessed++;
+        successfulBatch.push(env);
         continue;
       }
 
-      // 3. Check for peer state queries to answer locally
       if (isPeerStateQuery(env) && options.stateProvider) {
         const query = parsePeerQuery(env);
         const resp = answerPeerStateQuery(query, options.stateProvider, agentId as LiaisonAgentId);
@@ -98,10 +96,10 @@ export async function drainMailboxPass(
           status: "answered",
           detail: `Answered ${query.queryType} query`,
         });
+        successfulBatch.push(env);
         continue;
       }
 
-      // 4. Check for escalation needs
       if (options.orchestratorId) {
         const escalation = evaluateEscalation(env, options.planOrState);
         if (escalation.shouldEscalate) {
@@ -122,28 +120,33 @@ export async function drainMailboxPass(
             status: "escalated",
             detail: escalation.reason,
           });
+          successfulBatch.push(env);
           continue;
         }
       }
 
-      // 5. Default delivery
       metrics.totalProcessed++;
       results.push({
         messageId: env.id,
         correlationId: env.correlation_id,
         status: "delivered",
       });
+      successfulBatch.push(env);
     } catch (err) {
       metrics.totalErrors++;
       if (options.onError) {
         options.onError(err);
       }
+      break;
     }
   }
 
-  // Atomically advance cursor batch for all drained messages
-  if (options.autoAdvanceCursor !== false && batch.length > 0) {
-    advanceMailboxCursorBatch(paths.cursorPath, batch, cursor, paths.lockPath);
+  if (
+    options.autoAdvanceCursor !== false &&
+    successfulBatch.length > 0 &&
+    metrics.totalErrors === 0
+  ) {
+    advanceMailboxCursorBatch(paths.cursorPath, successfulBatch, cursor, paths.lockPath);
   }
 
   metrics.cyclesCompleted++;
@@ -198,7 +201,6 @@ export function startContinuousDrain(options: ContinuousDrainOptions): Continuou
     }
   };
 
-  // Start background event loop immediately
   queueMicrotask(() => {
     void runDrainLoop();
   });
@@ -213,7 +215,6 @@ export function startContinuousDrain(options: ContinuousDrainOptions): Continuou
         clearTimeout(timerId);
         timerId = null;
       }
-      // Wait for in-flight drain pass if active
       while (isDraining) {
         await new Promise((resolve) => setTimeout(resolve, 10));
       }

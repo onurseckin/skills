@@ -1,25 +1,27 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import {
+  type VirtualFSSession,
+  type VirtualMemoryFS,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import {
   deployCanonicalSkill,
   rollbackAssistantLinks,
   type AssistantLinkTransaction,
 } from "../../../scripts/sync/skill-deployer.ts";
 import {
   cleanupVirtualSyncFS,
+  getVirtualSyncSession,
   mockSubprocess,
   scratchRoot,
   setupVirtualSyncFS,
-  virtualChmodSync as chmodSync,
-  virtualExistsSync as existsSync,
-  virtualMkdirSync as mkdirSync,
-  virtualReadlinkSync as readlinkSync,
-  virtualSymlinkSync as symlinkSync,
-  virtualWriteFileSync as writeFileSync,
+  virtualReadlinkSync,
 } from "../sync-fixture.ts";
 import { git, initFakeSkillsRepo } from "./skill-deployer-fixtures.ts";
 
 let subMock: { mockRestore: () => void } | undefined;
+let session: VirtualFSSession;
+let vfs: VirtualMemoryFS;
 
 beforeAll(async () => {
   setupVirtualSyncFS();
@@ -40,7 +42,8 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
-  setupVirtualSyncFS();
+  vfs = setupVirtualSyncFS();
+  session = getVirtualSyncSession();
   subMock = mockSubprocess((cmd) => {
     if (cmd === "git") {
       return {
@@ -82,14 +85,12 @@ describe("deployCanonicalSkill", () => {
     const sourceRepo = join(root, "repo");
     initFakeSkillsRepo(sourceRepo);
 
-    // Create fake node_modules
-    mkdirSync(join(sourceRepo, "node_modules"), { recursive: true });
+    vfs.mkdirSync(join(sourceRepo, "node_modules"), { recursive: true });
 
-    // Create fake legacy home
     const fakeHome = join(root, "home");
     const legacyHome = join(fakeHome, ".agents", "skills", "orchestrating-long-tasks");
-    mkdirSync(legacyHome, { recursive: true });
-    writeFileSync(join(legacyHome, "old.txt"), "legacy\n", "utf-8");
+    vfs.mkdirSync(legacyHome, { recursive: true });
+    vfs.writeFileSync(join(legacyHome, "old.txt"), "legacy\n", "utf-8");
 
     const targetOlt = join(fakeHome, ".agents", "skills", "olt");
 
@@ -106,25 +107,24 @@ describe("deployCanonicalSkill", () => {
     expect(result.syncedCount).toBeGreaterThan(0);
     expect(result.legacyHomePurged).toBe(true);
 
-    expect(existsSync(join(targetOlt, "SKILL.md"))).toBe(true);
-    expect(existsSync(join(targetOlt, "skill-config.json"))).toBe(true);
-    expect(existsSync(join(targetOlt, "node_modules"))).toBe(true);
-    expect(existsSync(legacyHome)).toBe(false);
+    expect(session.existsSync(join(targetOlt, "SKILL.md"))).toBe(true);
+    expect(session.existsSync(join(targetOlt, "skill-config.json"))).toBe(true);
+    expect(session.existsSync(join(targetOlt, "node_modules"))).toBe(true);
+    expect(session.existsSync(legacyHome)).toBe(false);
   });
 
   test("second deployment is idempotent and reports skipped links", async () => {
     const root = scratchRoot(import.meta.path, "deploy-idempotency");
     const sourceRepo = join(root, "repo");
     initFakeSkillsRepo(sourceRepo);
-    mkdirSync(join(sourceRepo, "node_modules"), { recursive: true });
+    vfs.mkdirSync(join(sourceRepo, "node_modules"), { recursive: true });
 
     const fakeHome = join(root, "home");
     const targetOlt = join(fakeHome, ".agents", "skills", "olt");
 
-    // Pre-create existing symlink to verify idempotent skipping in single run
     const testAssistantDir = join(fakeHome, ".claude", "skills");
-    mkdirSync(testAssistantDir, { recursive: true });
-    symlinkSync(targetOlt, join(testAssistantDir, "olt"));
+    vfs.mkdirSync(testAssistantDir, { recursive: true });
+    session.symlinkSync(targetOlt, join(testAssistantDir, "olt"));
 
     const result = await deployCanonicalSkill({
       sourceRepoRoot: sourceRepo,
@@ -144,8 +144,8 @@ describe("deployCanonicalSkill", () => {
 
     const fakeHome = join(root, "home");
     const legacyHome = join(fakeHome, ".agents", "skills", "orchestrating-long-tasks");
-    mkdirSync(legacyHome, { recursive: true });
-    git(["init", "--quiet", "--initial-branch", "main"], legacyHome); // Contains .git -> safely purged with override
+    vfs.mkdirSync(legacyHome, { recursive: true });
+    git(["init", "--quiet", "--initial-branch", "main"], legacyHome);
 
     const targetOlt = join(fakeHome, ".agents", "skills", "olt");
 
@@ -157,7 +157,7 @@ describe("deployCanonicalSkill", () => {
     });
 
     expect(result.legacyHomePurged).toBe(true);
-    expect(existsSync(legacyHome)).toBe(false);
+    expect(session.existsSync(legacyHome)).toBe(false);
   });
 
   test("handles legacyHomePurged failure when legacy home cannot be deleted", async () => {
@@ -169,11 +169,10 @@ describe("deployCanonicalSkill", () => {
     const skillsDir = join(fakeHome, ".agents", "skills");
     const legacyHome = join(skillsDir, "orchestrating-long-tasks");
     const unremovableSub = join(legacyHome, "unremovable");
-    mkdirSync(unremovableSub, { recursive: true });
-    writeFileSync(join(unremovableSub, "file.txt"), "cannot delete", "utf-8");
+    vfs.mkdirSync(unremovableSub, { recursive: true });
+    vfs.writeFileSync(join(unremovableSub, "file.txt"), "cannot delete", "utf-8");
 
-    // Make subdirectory non-executable so rmSync cannot traverse or unlink its contents
-    chmodSync(unremovableSub, 0o000);
+    session.chmodSync(unremovableSub, 0o000);
 
     const targetOlt = join(fakeHome, ".agents", "skills", "olt");
 
@@ -187,7 +186,7 @@ describe("deployCanonicalSkill", () => {
 
       expect(result.legacyHomePurged).toBe(false);
     } finally {
-      chmodSync(unremovableSub, 0o755);
+      session.chmodSync(unremovableSub, 0o755);
     }
   });
 
@@ -197,10 +196,9 @@ describe("deployCanonicalSkill", () => {
     initFakeSkillsRepo(sourceRepo);
 
     const fakeHome = join(root, "home");
-    // Place a plain file where an assistant directory is expected to cause mkdirSync to throw
     const blockedDir = join(fakeHome, ".cursor");
-    mkdirSync(fakeHome, { recursive: true });
-    writeFileSync(blockedDir, "blocking-file", "utf-8");
+    vfs.mkdirSync(fakeHome, { recursive: true });
+    vfs.writeFileSync(blockedDir, "blocking-file", "utf-8");
 
     const targetOlt = join(fakeHome, ".agents", "skills", "olt");
 
@@ -218,13 +216,13 @@ describe("deployCanonicalSkill", () => {
     const root = scratchRoot(import.meta.path, "deploy-rollback-assistant-links");
     const dir1 = join(root, "dir1");
     const dir2 = join(root, "dir2");
-    mkdirSync(dir1, { recursive: true });
-    mkdirSync(dir2, { recursive: true });
+    vfs.mkdirSync(dir1, { recursive: true });
+    vfs.mkdirSync(dir2, { recursive: true });
 
     const targetA = join(root, "targetA");
     const targetB = join(root, "targetB");
-    mkdirSync(targetA, { recursive: true });
-    mkdirSync(targetB, { recursive: true });
+    vfs.mkdirSync(targetA, { recursive: true });
+    vfs.mkdirSync(targetB, { recursive: true });
 
     const txs: AssistantLinkTransaction[] = [
       {
@@ -243,12 +241,12 @@ describe("deployCanonicalSkill", () => {
       },
     ];
 
-    symlinkSync(targetB, join(dir1, "olt"));
-    symlinkSync(targetB, join(dir2, "olt"));
+    session.symlinkSync(targetB, join(dir1, "olt"));
+    session.symlinkSync(targetB, join(dir2, "olt"));
 
     rollbackAssistantLinks(txs, [root]);
 
-    expect(readlinkSync(join(dir1, "olt"))).toBe(targetA);
-    expect(existsSync(join(dir2, "olt"))).toBe(false);
+    expect(virtualReadlinkSync(join(dir1, "olt"))).toBe(targetA);
+    expect(session.existsSync(join(dir2, "olt"))).toBe(false);
   });
 });

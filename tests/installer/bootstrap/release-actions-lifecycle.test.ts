@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { InstallerLock } from "../../../olt/scripts/src/installer/installer-lock.ts";
 import { pathIdentity } from "../../../olt/scripts/src/installer/path-safety.ts";
@@ -10,7 +9,13 @@ import {
 import type { ReleaseTransaction } from "../../../olt/scripts/src/installer/release-transaction.ts";
 import type { TransactionStage } from "../../../olt/scripts/src/installer/transaction-marker.ts";
 import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
-import { cleanupVirtualInstallerFS, setupVirtualInstallerFS } from "../helpers.ts";
+import {
+  cleanupVirtualInstallerFS,
+  getVirtualInstallerFS,
+  normPath,
+  setupVirtualInstallerFS,
+  vfsState,
+} from "../helpers.ts";
 
 beforeEach(setupVirtualInstallerFS);
 afterEach(cleanupVirtualInstallerFS);
@@ -52,20 +57,21 @@ async function buildState(
   finished: () => boolean;
   lockReleased: () => boolean;
 }> {
+  const vfs = getVirtualInstallerFS();
   const parent = join(root, "parent");
-  mkdirSync(parent);
+  vfs.mkdirSync(parent);
   const destination = join(parent, "dest");
   const temporary = join(parent, "dest.tmp-1");
   const backup = join(parent, "dest.old-1");
   const backupQuarantine = join(parent, "dest.delete-1");
 
-  mkdirSync(temporary);
-  writeFileSync(join(temporary, "marker.txt"), "staged content");
+  vfs.mkdirSync(temporary);
+  vfs.writeFileSync(join(temporary, "marker.txt"), "staged content");
 
   let existingIdentity = null;
   if (options.withExisting) {
-    mkdirSync(destination);
-    writeFileSync(join(destination, "marker.txt"), "old content");
+    vfs.mkdirSync(destination);
+    vfs.writeFileSync(join(destination, "marker.txt"), "old content");
     existingIdentity = await pathIdentity(destination);
   }
 
@@ -105,7 +111,8 @@ describe("preparedRelease().rollback()", () => {
     const release = preparedRelease(state, {});
     await release.commit();
     await release.rollback();
-    expect(existsSync(state.destination)).toBe(false);
+    const vfs = getVirtualInstallerFS();
+    expect(vfs.existsSync(state.destination)).toBe(false);
     expect(finished()).toBe(true);
   });
 
@@ -115,8 +122,9 @@ describe("preparedRelease().rollback()", () => {
     const release = preparedRelease(state, {});
     await release.commit();
     await release.rollback();
-    expect(readFileSync(join(state.destination, "marker.txt"), "utf8")).toBe("old content");
-    expect(existsSync(state.backup)).toBe(false);
+    const vfs = getVirtualInstallerFS();
+    expect(vfs.readFileSync(join(state.destination, "marker.txt"), "utf8")).toBe("old content");
+    expect(vfs.existsSync(state.backup)).toBe(false);
   });
 
   test("crashed between old-move and publish: restores the backup, nothing to remove", async () => {
@@ -131,8 +139,9 @@ describe("preparedRelease().rollback()", () => {
     expect(state.committed).toBe(false);
     expect(state.oldMoved).toBe(true);
     await release.rollback();
-    expect(readFileSync(join(state.destination, "marker.txt"), "utf8")).toBe("old content");
-    expect(existsSync(state.backup)).toBe(false);
+    const vfs = getVirtualInstallerFS();
+    expect(vfs.readFileSync(join(state.destination, "marker.txt"), "utf8")).toBe("old content");
+    expect(vfs.existsSync(state.backup)).toBe(false);
   });
 
   test("crashed before any mutation: rollback is a pure no-op besides finishing the transaction", async () => {
@@ -147,7 +156,8 @@ describe("preparedRelease().rollback()", () => {
     expect(state.committed).toBe(false);
     expect(state.oldMoved).toBe(false);
     await release.rollback();
-    expect(readFileSync(join(state.destination, "marker.txt"), "utf8")).toBe("old content");
+    const vfs = getVirtualInstallerFS();
+    expect(vfs.readFileSync(join(state.destination, "marker.txt"), "utf8")).toBe("old content");
     expect(finished()).toBe(true);
   });
 
@@ -158,7 +168,8 @@ describe("preparedRelease().rollback()", () => {
     await release.commit();
     await release.finalize();
     await expect(release.rollback()).resolves.toBeUndefined();
-    expect(readFileSync(join(state.destination, "marker.txt"), "utf8")).toBe("staged content");
+    const vfs = getVirtualInstallerFS();
+    expect(vfs.readFileSync(join(state.destination, "marker.txt"), "utf8")).toBe("staged content");
   });
 
   test("calls beforeRollbackRemove and beforeRollbackRestore hooks", async () => {
@@ -183,8 +194,10 @@ describe("preparedRelease().rollback()", () => {
     const { state } = await buildState(root, { withExisting: false });
     const release = preparedRelease(state, {});
     await release.commit();
-    rmSync(state.destination, { recursive: true });
-    mkdirSync(state.destination);
+    const vfs = getVirtualInstallerFS();
+    vfsState.inodeMap.delete(normPath(state.destination));
+    vfs.rmSync(state.destination, { recursive: true });
+    vfs.mkdirSync(state.destination);
     await expect(release.rollback()).rejects.toBeInstanceOf(AggregateError);
   });
 });
@@ -207,8 +220,9 @@ describe("preparedRelease().finalize()", () => {
     const release = preparedRelease(state, {});
     await release.commit();
     await release.finalize();
-    expect(existsSync(state.backup)).toBe(false);
-    expect(existsSync(state.backupQuarantine)).toBe(false);
+    const vfs = getVirtualInstallerFS();
+    expect(vfs.existsSync(state.backup)).toBe(false);
+    expect(vfs.existsSync(state.backupQuarantine)).toBe(false);
     expect(stages).toEqual([
       "old-move-intent",
       "old-moved",
@@ -238,7 +252,8 @@ describe("preparedRelease().dispose() / cleanup()", () => {
     const { state, lockReleased } = await buildState(root, { withExisting: false });
     const release = preparedRelease(state, {});
     await release.cleanup();
-    expect(existsSync(state.temporary)).toBe(false);
+    const vfs = getVirtualInstallerFS();
+    expect(vfs.existsSync(state.temporary)).toBe(false);
     expect(lockReleased()).toBe(true);
   });
 });

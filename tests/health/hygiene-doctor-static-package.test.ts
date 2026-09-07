@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ALLOWED_ROOT_FILES } from "../../olt/scripts/src/authority/guards/constants.ts";
 import {
@@ -8,7 +7,7 @@ import {
   scanStaticPackage,
 } from "../../olt/scripts/src/health/hygiene/index.ts";
 import { checkRepositoryHygiene } from "../../olt/scripts/src/reporting/doctor/hygiene-engine.ts";
-import { cleanupVirtualHealthFS, setupVirtualHealthFS } from "./fixture.ts";
+import { cleanupVirtualHealthFS, mockFs, setupVirtualHealthFS, vfs } from "./fixture.ts";
 
 beforeEach(() => {
   setupVirtualHealthFS();
@@ -20,10 +19,10 @@ afterEach(() => {
 
 function createMockWorkspace(): string {
   const dir = `/virtual/hygiene-recon-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, "package.json"), "{}");
-  writeFileSync(join(dir, "README.md"), "# Mock");
-  writeFileSync(join(dir, "tsconfig.json"), "{}");
+  vfs.mkdirSync(dir, { recursive: true });
+  vfs.writeFileSync(join(dir, "package.json"), "{}");
+  vfs.writeFileSync(join(dir, "README.md"), "# Mock");
+  vfs.writeFileSync(join(dir, "tsconfig.json"), "{}");
   return dir;
 }
 
@@ -32,7 +31,7 @@ describe("Health Hygiene - Doctor Static Package Reconciliation", () => {
     expect(ALLOWED_ROOT_FILES.has(".session.json")).toBe(true);
 
     const ws = createMockWorkspace();
-    writeFileSync(join(ws, ".session.json"), JSON.stringify({ token: "test-token" }));
+    vfs.writeFileSync(join(ws, ".session.json"), JSON.stringify({ token: "test-token" }));
 
     const repoScan = scanRepoRoot(ws, ALLOWED_ROOT_FILES, new Set(["olt", "scripts"]));
     expect(repoScan.findings).toHaveLength(0);
@@ -47,12 +46,12 @@ describe("Health Hygiene - Doctor Static Package Reconciliation", () => {
     const oltDir = join(ws, "olt");
     const refDir = join(oltDir, "references", "cli-capabilities");
     const reportDir = join(refDir, "commands", "reporting", "reports");
-    mkdirSync(reportDir, { recursive: true });
+    vfs.mkdirSync(reportDir, { recursive: true });
 
-    writeFileSync(join(refDir, "index.jsonl"), '{"capability":"agent:define"}\n');
-    writeFileSync(join(reportDir, "report.json"), '{"summary":"report"}\n');
-    writeFileSync(join(refDir, "reference.log"), "sample log output\n");
-    writeFileSync(join(refDir, "temporary.tmp"), "transient spec content\n");
+    vfs.writeFileSync(join(refDir, "index.jsonl"), '{"capability":"agent:define"}\n');
+    vfs.writeFileSync(join(reportDir, "report.json"), '{"summary":"report"}\n');
+    vfs.writeFileSync(join(refDir, "reference.log"), "sample log output\n");
+    vfs.writeFileSync(join(refDir, "temporary.tmp"), "transient spec content\n");
 
     const scanResult = scanStaticPackage(oltDir, ws);
     expect(scanResult.findings).toHaveLength(0);
@@ -64,10 +63,13 @@ describe("Health Hygiene - Doctor Static Package Reconciliation", () => {
     const oltDir = join(ws, "olt");
     const quarantineSourceDir = join(oltDir, "scripts", "src", "ui-validation", "quarantine");
     const identityDir = join(quarantineSourceDir, "identity");
-    mkdirSync(identityDir, { recursive: true });
+    vfs.mkdirSync(identityDir, { recursive: true });
 
-    writeFileSync(join(quarantineSourceDir, "index.ts"), "export const quarantineReady = true;\n");
-    writeFileSync(
+    vfs.writeFileSync(
+      join(quarantineSourceDir, "index.ts"),
+      "export const quarantineReady = true;\n",
+    );
+    vfs.writeFileSync(
       join(identityDir, "check.ts"),
       "export function checkIdentity(): boolean { return true; }\n",
     );
@@ -86,17 +88,17 @@ describe("Health Hygiene - Doctor Static Package Reconciliation", () => {
     const tmpDir = join(oltDir, ".tmp");
     const scratchDir = join(oltDir, "scratch");
 
-    mkdirSync(runtimeQuarantineDir, { recursive: true });
-    mkdirSync(coverageDir, { recursive: true });
-    mkdirSync(logsDir, { recursive: true });
-    mkdirSync(tmpDir, { recursive: true });
-    mkdirSync(scratchDir, { recursive: true });
+    vfs.mkdirSync(runtimeQuarantineDir, { recursive: true });
+    vfs.mkdirSync(coverageDir, { recursive: true });
+    vfs.mkdirSync(logsDir, { recursive: true });
+    vfs.mkdirSync(tmpDir, { recursive: true });
+    vfs.mkdirSync(scratchDir, { recursive: true });
 
-    writeFileSync(join(oltDir, "defects.jsonl"), '{"id":"def-1"}\n');
-    writeFileSync(join(oltDir, "report.json"), '{"status":"dirty"}\n');
-    writeFileSync(join(oltDir, ".session.json"), '{"session":"stray"}\n');
-    writeFileSync(join(oltDir, "audit.log"), "stray log\n");
-    writeFileSync(join(oltDir, "transient.tmp"), "stray temp\n");
+    vfs.writeFileSync(join(oltDir, "defects.jsonl"), '{"id":"def-1"}\n');
+    vfs.writeFileSync(join(oltDir, "report.json"), '{"status":"dirty"}\n');
+    vfs.writeFileSync(join(oltDir, ".session.json"), '{"session":"stray"}\n');
+    vfs.writeFileSync(join(oltDir, "audit.log"), "stray log\n");
+    vfs.writeFileSync(join(oltDir, "transient.tmp"), "stray temp\n");
 
     const scanResult = scanStaticPackage(oltDir, ws);
     expect(scanResult.findings.length).toBe(10);
@@ -114,13 +116,16 @@ describe("Health Hygiene - Doctor Static Package Reconciliation", () => {
     const reportDir = join(refDir, "commands", "reporting", "reports");
     const quarantineSourceDir = join(oltDir, "scripts", "src", "ui-validation", "quarantine");
 
-    mkdirSync(reportDir, { recursive: true });
-    mkdirSync(quarantineSourceDir, { recursive: true });
+    vfs.mkdirSync(reportDir, { recursive: true });
+    vfs.mkdirSync(quarantineSourceDir, { recursive: true });
 
-    writeFileSync(join(ws, ".session.json"), '{"sessionId":"session-active-001"}\n');
-    writeFileSync(join(refDir, "index.jsonl"), '{"name":"agent-brief","type":"spec"}\n');
-    writeFileSync(join(reportDir, "report.json"), '{"format":"json","schema":"reference"}\n');
-    writeFileSync(join(quarantineSourceDir, "index.ts"), "export const quarantineGuard = true;\n");
+    vfs.writeFileSync(join(ws, ".session.json"), '{"sessionId":"session-active-001"}\n');
+    vfs.writeFileSync(join(refDir, "index.jsonl"), '{"name":"agent-brief","type":"spec"}\n');
+    vfs.writeFileSync(join(reportDir, "report.json"), '{"format":"json","schema":"reference"}\n');
+    vfs.writeFileSync(
+      join(quarantineSourceDir, "index.ts"),
+      "export const quarantineGuard = true;\n",
+    );
 
     const rootHygieneResult = scanRootHygiene({ repoRoot: ws });
     expect(rootHygieneResult.passed).toBe(true);
@@ -143,8 +148,8 @@ describe("Health Hygiene - Doctor Static Package Reconciliation", () => {
 
     for (const rel of files) {
       const fullPath = join(process.cwd(), rel);
-      expect(existsSync(fullPath)).toBe(true);
-      const raw = readFileSync(fullPath, "utf8");
+      expect(mockFs.existsSync(fullPath)).toBe(true);
+      const raw = mockFs.readFileSync(fullPath, "utf8");
       const lines = raw.split("\n");
 
       expect(lines.length).toBeLessThanOrEqual(300);

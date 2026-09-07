@@ -1,3 +1,4 @@
+import * as fs from "node:fs";
 import { join } from "node:path";
 import { buildModules } from "../../olt/scripts/src/health/modules.ts";
 import { loadSources, type SourceFile } from "../../olt/scripts/src/health/sources.ts";
@@ -8,7 +9,16 @@ export {
   cleanupVirtualHealthFS,
   setupVirtualHealthFS,
   ensureVirtualHealthFS,
+  vfs,
 } from "./virtual-fs.ts";
+
+export const mockFs = {
+  existsSync: (p: fs.PathLike): boolean => fs.existsSync(p),
+  readFileSync: (
+    p: fs.PathOrFileDescriptor,
+    opts?: { encoding?: BufferEncoding | null; flag?: string } | BufferEncoding | null,
+  ): string | Buffer => fs.readFileSync(p, opts as never),
+};
 
 let rootCount = 0;
 
@@ -40,7 +50,6 @@ export function cleanupTempRoots(): void {
   cleanupVirtualHealthFS();
 }
 
-/** A single in-memory source file, for checks that read files rather than a module graph. */
 export function sourceOf(relative: string, text: string): SourceFile {
   return {
     path: `/virtual/${Math.random().toString(36).slice(2)}-${relative}`,

@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { lstatSync, type Stats } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -7,10 +6,11 @@ import {
   type HashWriteScopeDependencies,
 } from "../../../../olt/scripts/src/workflow/lease/write-scope-hash.ts";
 import { setupWorkflowVirtualFs } from "../../shared/index.ts";
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 const ROOT = "/virtual/root";
 let vfsCleanup: (() => void) | undefined;
-let vfsInstance: ReturnType<typeof setupWorkflowVirtualFs>["vfs"] | undefined;
+let vfsInstance: VirtualMemoryFS | undefined;
 let scopeCounter = 0;
 
 beforeEach(() => {
@@ -35,9 +35,23 @@ function createVirtualScope(initialFiles: Record<string, string> = {}) {
     vfsInstance!.writeFileSync(fullPath, content);
   }
 
+  const defaultLstat = (
+    path: string,
+  ): ReturnType<NonNullable<HashWriteScopeDependencies["lstat"]>> => {
+    const stat = vfsInstance!.statSync(path);
+    if (!stat) {
+      throw Object.assign(new Error(`ENOENT: no such file or directory, lstat '${path}'`), {
+        code: "ENOENT",
+      });
+    }
+    return stat as unknown as ReturnType<NonNullable<HashWriteScopeDependencies["lstat"]>>;
+  };
+
   return {
     root,
-    dependencies: {},
+    dependencies: {
+      lstat: defaultLstat,
+    } satisfies HashWriteScopeDependencies,
   };
 }
 
@@ -69,7 +83,7 @@ describe("assertWriteScopeUnmodified and validation in-memory virtualization", (
             if (path === childPath) {
               throw Object.assign(new Error("simulated child eio"), { code: "EIO" });
             }
-            return (vfs.dependencies.lstat ?? lstatSync)(path);
+            return vfs.dependencies.lstat!(path);
           },
         }),
       childPath,
@@ -85,9 +99,10 @@ describe("assertWriteScopeUnmodified and validation in-memory virtualization", (
     const actual = hashWriteScope(vfs.root, ["src/planned.ts"], {
       ...vfs.dependencies,
       lstat(path) {
-        if (path === scopedPath)
-          return (vfs.dependencies.lstat ?? lstatSync)(join(vfs.root, "src/fixture.ts"));
-        return (vfs.dependencies.lstat ?? lstatSync)(path);
+        if (path === scopedPath) {
+          return vfs.dependencies.lstat!(join(vfs.root, "src/fixture.ts"));
+        }
+        return vfs.dependencies.lstat!(path);
       },
       open() {
         throw Object.assign(new Error("simulated open race"), { code: "ENOENT" });
@@ -169,7 +184,7 @@ describe("assertWriteScopeUnmodified and validation in-memory virtualization", (
               isDirectory: () => false,
               isSymbolicLink: () => true,
               size: 10,
-            } as unknown as Stats;
+            } as unknown as ReturnType<NonNullable<HashWriteScopeDependencies["lstat"]>>;
           }
           return vfs.dependencies.lstat!(path);
         },

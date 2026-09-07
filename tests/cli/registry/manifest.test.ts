@@ -1,5 +1,4 @@
-import { describe, expect, test } from "bun:test";
-import { readFileSync, readdirSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { getShardKey } from "../../../olt/scripts/generate-cli-manifest.ts";
 import {
@@ -19,13 +18,36 @@ import {
   SPLIT_MANIFEST_SCHEMA,
 } from "../../../olt/scripts/src/cli/manifest-split.ts";
 import { COMMAND_DOMAINS, COMMAND_REGISTRY } from "../../../olt/scripts/src/cli/registry/index.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import { origRead, origReaddir } from "../../../olt/scripts/src/testing/virtual-fs/handlers.ts";
 
 const references = join(import.meta.dir, "..", "..", "..", "olt", "references");
 const splitRoot = join(references, "cli-capabilities");
 
+const mockFs = {
+  readFileSync: (p: string, encoding: BufferEncoding = "utf-8"): string => origRead(p, encoding),
+  readdirSync: (p: string, opts?: { recursive?: boolean }) => origReaddir(p, opts),
+};
+
 describe("CLI capability manifest", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
+
+  beforeEach(() => {
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+  });
+
+  afterEach(() => {
+    session.cleanup();
+  });
+
   test("checked-in index markdown matches the registry render", () => {
-    expect(readFileSync(join(references, "cli-capabilities.md"), "utf-8")).toBe(
+    expect(mockFs.readFileSync(join(references, "cli-capabilities.md"), "utf-8")).toBe(
       renderManifestMarkdown(),
     );
   });
@@ -34,17 +56,19 @@ describe("CLI capability manifest", () => {
     const largeDomains = ["mind", "reporting", "plan", "task", "diagnostics"];
     for (const domain of COMMAND_DOMAINS) {
       if (largeDomains.includes(domain)) continue;
-      const onDisk = readFileSync(join(splitRoot, `domains/${domain}.md`), "utf-8");
+      const onDisk = mockFs.readFileSync(join(splitRoot, `domains/${domain}.md`), "utf-8");
       expect(onDisk).toBe(renderDomainMarkdown(domain));
     }
   });
 
   test("checked-in split manifest.json matches the registry render", () => {
-    expect(readFileSync(join(splitRoot, "manifest.json"), "utf-8")).toBe(renderSplitManifestJson());
+    expect(mockFs.readFileSync(join(splitRoot, "manifest.json"), "utf-8")).toBe(
+      renderSplitManifestJson(),
+    );
   });
 
   test("checked-in index.jsonl matches the registry render", () => {
-    const onDisk = readFileSync(join(splitRoot, "index.jsonl"), "utf-8");
+    const onDisk = mockFs.readFileSync(join(splitRoot, "index.jsonl"), "utf-8");
 
     const largeDomains = ["mind", "reporting", "plan", "task", "diagnostics"];
 
@@ -72,7 +96,7 @@ describe("CLI capability manifest", () => {
       const subpath = largeDomains.includes(command.domain)
         ? `${command.domain}/${getShardKey(command.name, command.domain)}/${slug}.json`
         : `${command.domain}/${slug}.json`;
-      const onDisk = readFileSync(join(splitRoot, "commands", subpath), "utf-8");
+      const onDisk = mockFs.readFileSync(join(splitRoot, "commands", subpath), "utf-8");
       expect(onDisk).toBe(renderCommandDetailJson(command));
     }
   });
@@ -112,12 +136,12 @@ describe("CLI capability manifest", () => {
     actual.add("manifest.json");
     actual.add("index.jsonl");
 
-    for (const entry of readdirSync(join(splitRoot, "domains"), { recursive: true })) {
+    for (const entry of mockFs.readdirSync(join(splitRoot, "domains"), { recursive: true })) {
       const p = entry.toString();
       if (p.endsWith(".md")) actual.add(`domains/${p}`);
     }
 
-    for (const entry of readdirSync(join(splitRoot, "commands"), { recursive: true })) {
+    for (const entry of mockFs.readdirSync(join(splitRoot, "commands"), { recursive: true })) {
       const p = entry.toString();
       if (p.endsWith(".json")) actual.add(`commands/${p}`);
     }
@@ -157,9 +181,9 @@ describe("CLI capability manifest", () => {
         ? `${command.domain}/${getShardKey(command.name, command.domain)}/${slug}.json`
         : `${command.domain}/${slug}.json`;
       const path = join(splitRoot, "commands", subpath);
-      const bytes = Buffer.byteLength(readFileSync(path, "utf-8"), "utf-8");
+      const bytes = Buffer.byteLength(mockFs.readFileSync(path, "utf-8"), "utf-8");
       expect(bytes).toBeLessThan(1024 * 16);
-      const lines = readFileSync(path, "utf-8").split("\n").length;
+      const lines = mockFs.readFileSync(path, "utf-8").split("\n").length;
       expect(lines).toBeLessThanOrEqual(200);
     }
   });
@@ -186,10 +210,21 @@ describe("CLI capability manifest", () => {
   });
 
   test("renders deterministically so the freshness check cannot drift", () => {
-    expect(renderCommandIndexJsonl()).toBe(renderCommandIndexJsonl());
-    expect(renderSplitManifestJson()).toBe(renderSplitManifestJson());
-    expect(renderManifestMarkdown()).toBe(renderManifestMarkdown());
-    expect(renderDomainMarkdown("mind")).toBe(renderDomainMarkdown("mind"));
+    const indexFirst = renderCommandIndexJsonl();
+    const indexSecond = renderCommandIndexJsonl();
+    expect(indexFirst).toBe(indexSecond);
+
+    const splitFirst = renderSplitManifestJson();
+    const splitSecond = renderSplitManifestJson();
+    expect(splitFirst).toBe(splitSecond);
+
+    const manifestFirst = renderManifestMarkdown();
+    const manifestSecond = renderManifestMarkdown();
+    expect(manifestFirst).toBe(manifestSecond);
+
+    const domainFirst = renderDomainMarkdown("mind");
+    const domainSecond = renderDomainMarkdown("mind");
+    expect(domainFirst).toBe(domainSecond);
   });
 
   test("split manifest.json carries a digest that changes when the tree would change", () => {

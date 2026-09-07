@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import type { GitRunner } from "../../../../olt/scripts/src/workflow/worktree/git.ts";
@@ -11,15 +10,18 @@ import {
   listTrackWorktrees,
 } from "../../../../olt/scripts/src/workflow/worktree/index.ts";
 import { setupWorkflowVirtualFs } from "../../shared/index.ts";
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 const TEST_DIR = "/virtual/worktree-lifecycle-suite";
 let vfsCleanup: (() => void) | undefined;
+let vfs: VirtualMemoryFS;
 
 describe("Worktree Manager & Landing", () => {
   beforeEach(() => {
     const setup = setupWorkflowVirtualFs();
     vfsCleanup = setup.cleanup;
-    mkdirSync(TEST_DIR, { recursive: true });
+    vfs = setup.vfs;
+    vfs.mkdirSync(TEST_DIR, { recursive: true });
   });
 
   afterEach(() => {
@@ -43,12 +45,12 @@ describe("Worktree Manager & Landing", () => {
     expect(record.trackId).toBe("track-prov-1");
     expect(record.branch).toBe("track/track-prov-1");
     expect(record.status).toBe("active");
-    expect(existsSync(record.worktreePath)).toBe(true);
-    expect(existsSync(record.lockPath)).toBe(true);
+    expect(vfs.existsSync(record.worktreePath)).toBe(true);
+    expect(vfs.existsSync(record.lockPath)).toBe(true);
 
     const metaPath = join(record.worktreePath, ".worktree-meta.json");
-    expect(existsSync(metaPath)).toBe(true);
-    const meta = JSON.parse(readFileSync(metaPath, "utf8"));
+    expect(vfs.existsSync(metaPath)).toBe(true);
+    const meta = JSON.parse(vfs.readFileSync(metaPath, "utf8"));
     expect(meta.trackId).toBe("track-prov-1");
 
     expect(executed.some((c) => c[0] === "worktree" && c[1] === "add")).toBe(true);
@@ -56,7 +58,7 @@ describe("Worktree Manager & Landing", () => {
 
   test("createTrackWorktree supports string shorthand", () => {
     const defaultWorktreeRoot = join(TEST_DIR, ".olt", "worktrees");
-    mkdirSync(defaultWorktreeRoot, { recursive: true });
+    vfs.mkdirSync(defaultWorktreeRoot, { recursive: true });
     const mockRunner: GitRunner = (_cwd, _argv) => ({ status: 0, stdout: "", stderr: "" });
 
     const wtPath = createTrackWorktree({
@@ -105,11 +107,10 @@ describe("Worktree Manager & Landing", () => {
 
   test("evicts stale locks with dead PIDs or corrupted JSON", () => {
     const lockDir = join(TEST_DIR, ".olt", "worktrees", "locks");
-    mkdirSync(lockDir, { recursive: true });
+    vfs.mkdirSync(lockDir, { recursive: true });
 
-    // 1. Dead PID lock
     const deadLockPath = join(lockDir, "track-dead.lock");
-    writeFileSync(
+    vfs.writeFileSync(
       deadLockPath,
       JSON.stringify({
         trackId: "track-dead",
@@ -126,10 +127,9 @@ describe("Worktree Manager & Landing", () => {
     });
     expect(res1.trackId).toBe("track-dead");
 
-    // 2. Corrupted JSON lock
     destroyTrackWorktree({ trackId: "track-dead", repoRoot: TEST_DIR, runner: mockRunner });
     const corruptLockPath = join(lockDir, "track-corrupt.lock");
-    writeFileSync(corruptLockPath, "invalid json content");
+    vfs.writeFileSync(corruptLockPath, "invalid json content");
     const res2 = createTrackWorktree({
       trackId: "track-corrupt",
       repoRoot: TEST_DIR,
@@ -140,10 +140,9 @@ describe("Worktree Manager & Landing", () => {
 
   test("throws LOCK_TIMEOUT when lock is held by living process beyond timeout", () => {
     const lockDir = join(TEST_DIR, ".olt", "worktrees", "locks");
-    mkdirSync(lockDir, { recursive: true });
+    vfs.mkdirSync(lockDir, { recursive: true });
     const lockPath = join(lockDir, "track-locked.lock");
-    // Write lock with current living PID
-    writeFileSync(
+    vfs.writeFileSync(
       lockPath,
       JSON.stringify({
         trackId: "track-locked",
@@ -171,9 +170,9 @@ describe("Worktree Manager & Landing", () => {
 
     const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-teardown");
     const lockPath = join(TEST_DIR, ".olt", "worktrees", "locks", "track-teardown.lock");
-    mkdirSync(worktreeDir, { recursive: true });
-    mkdirSync(join(TEST_DIR, ".olt", "worktrees", "locks"), { recursive: true });
-    writeFileSync(
+    vfs.mkdirSync(worktreeDir, { recursive: true });
+    vfs.mkdirSync(join(TEST_DIR, ".olt", "worktrees", "locks"), { recursive: true });
+    vfs.writeFileSync(
       lockPath,
       JSON.stringify({ pid: process.pid, trackId: "track-teardown" }),
       "utf8",
@@ -187,14 +186,14 @@ describe("Worktree Manager & Landing", () => {
 
     expect(result.cleaned).toBe(true);
     expect(result.trackId).toBe("track-teardown");
-    expect(existsSync(worktreeDir)).toBe(false);
-    expect(existsSync(lockPath)).toBe(false);
+    expect(vfs.existsSync(worktreeDir)).toBe(false);
+    expect(vfs.existsSync(lockPath)).toBe(false);
     expect(executed.some((c) => c[0] === "worktree" && c[1] === "prune")).toBe(true);
   });
 
   test("destroyTrackWorktree handles git remove failure by falling back to safeRmSync", () => {
     const worktreeDir = join(TEST_DIR, ".olt", "worktrees", "track-git-fail");
-    mkdirSync(worktreeDir, { recursive: true });
+    vfs.mkdirSync(worktreeDir, { recursive: true });
 
     const failingRunner: GitRunner = (_cwd, argv) => {
       if (argv[0] === "worktree" && argv[1] === "remove")
@@ -207,6 +206,6 @@ describe("Worktree Manager & Landing", () => {
       runner: failingRunner,
     });
     expect(result.cleaned).toBe(true);
-    expect(existsSync(worktreeDir)).toBe(false);
+    expect(vfs.existsSync(worktreeDir)).toBe(false);
   });
 });

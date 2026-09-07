@@ -1,22 +1,28 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import {
   parseUnifiedAgentManifest,
   validateUnifiedAgentManifest,
 } from "../../../olt/scripts/src/authority/manifest-schema.ts";
-import { cleanupVirtualAgentsFS, setupVirtualAgentsFS } from "../fixture.ts";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 const REPO_ROOT = resolve(import.meta.dir, "../../..");
 const AGENTS_DIR = join(REPO_ROOT, "olt/agents");
 const AGENTS_MD_PATH = join(REPO_ROOT, "AGENTS.md");
 const SKILL_MD_PATH = join(REPO_ROOT, "olt/SKILL.md");
 
+let vfs = new VirtualMemoryFS();
+let session: VirtualFSSession = createVirtualFSSession(vfs);
+
 const fileCache = new Map<string, string>();
 function getFileContent(filePath: string): string {
   let content = fileCache.get(filePath);
   if (content === undefined) {
-    content = readFileSync(filePath, "utf-8");
+    content = String(session.readFileSync(filePath, "utf-8"));
     fileCache.set(filePath, content);
   }
   return content;
@@ -24,7 +30,9 @@ function getFileContent(filePath: string): string {
 
 describe("Cognitive Auditor Manifests (mind-auditor.yaml & skill-auditor.yaml)", () => {
   beforeEach(() => {
-    const vfs = setupVirtualAgentsFS();
+    session.cleanup();
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
     for (const [p, content] of fileCache) {
       vfs.mkdirSync(dirname(p), { recursive: true });
       vfs.writeFileSync(p, content);
@@ -32,7 +40,7 @@ describe("Cognitive Auditor Manifests (mind-auditor.yaml & skill-auditor.yaml)",
   });
 
   afterEach(() => {
-    cleanupVirtualAgentsFS();
+    session.cleanup();
   });
   describe("mind-auditor.yaml", () => {
     const filePath = join(AGENTS_DIR, "mind-auditor.yaml");
@@ -155,7 +163,6 @@ describe("Cognitive Auditor Manifests (mind-auditor.yaml & skill-auditor.yaml)",
       const agentsMd = getFileContent(AGENTS_MD_PATH);
       const skillMd = getFileContent(SKILL_MD_PATH);
 
-      // Step Machine G: Tier 0 Policy Discovery Protocol
       expect(agentsMd).toContain(
         "### G. Tier 0 Policy Discovery & Toolchain Bootstrapping Step-Machine",
       );
@@ -164,7 +171,6 @@ describe("Cognitive Auditor Manifests (mind-auditor.yaml & skill-auditor.yaml)",
       expect(skillMd).toContain("Tier 0 Policy Discovery");
       expect(skillMd).toContain("policy:init");
 
-      // Step Machine H: Mandatory Companion Auditors
       expect(agentsMd).toContain(
         "### H. Mandatory Companion Auditor Lifecycle & Doctor Health Check Step-Machine",
       );
@@ -174,7 +180,6 @@ describe("Cognitive Auditor Manifests (mind-auditor.yaml & skill-auditor.yaml)",
       expect(skillMd).toContain("mind-auditor");
       expect(skillMd).toContain("skill-auditor");
 
-      // Step Machine I: Live Host-Aware Quota Telemetry
       expect(agentsMd).toContain(
         "### I. Live Host-Aware Quota Telemetry & Circuit-Breaker Step-Machine",
       );
@@ -183,7 +188,6 @@ describe("Cognitive Auditor Manifests (mind-auditor.yaml & skill-auditor.yaml)",
       expect(skillMd).toContain("Live Host-Aware Quota Telemetry");
       expect(skillMd).toContain(".olt/telemetry.jsonl");
 
-      // policy-discovery Tier 0 definition
       expect(agentsMd).toContain("policy-discovery");
       expect(agentsMd).toContain(
         "Elevation of Policy Discovery to Tier 0 Autonomous Governance Bootstrapper",

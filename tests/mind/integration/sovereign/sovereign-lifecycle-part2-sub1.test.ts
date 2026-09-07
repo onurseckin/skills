@@ -1,21 +1,4 @@
-/**
- * @file sovereign-lifecycle.test.ts
- * Sovereign Lifecycle & Autonomous Single-Touch Bootstrap Integration Test Suite.
- *
- * Validates:
- * 1. Stage 1: Non-destructive in-flight snapshot & intent extraction (Priority 1 binding).
- * 2. Stage 2: Active empirical baseline probing & diagnostic clustering into Deficit Topology Matrix
- *    (Class 1 Blockers, Class 2 Regressions, Class 3 Quality Deficits).
- * 3. Stage 3: Strategic goal configuration, 70/20/10 portfolio balancing, bedrock invariants lockdown,
- *    and companion auditor mobilization (Mind Auditor, Skill Auditor, Orchestrator).
- * 4. Perpetual cadence execution: pulse counter increment, cadence state transitions, memory compaction,
- *    supervisor-auditor sparring, and milestone progression.
- * 5. Autonomous bootstrap without requiring human prompts.
- */
-
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   advanceMailboxCursorBatch,
@@ -74,35 +57,38 @@ import {
   readDashboardState,
   type RoadmapDeliverableTask,
 } from "../../../../olt/scripts/src/mind/reporting/index.ts";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Sovereign Lifecycle & Autonomous Single-Touch Bootstrap Suite", () => {
   let testRepoRoot: string;
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
+  let counter = 0;
 
   beforeEach(() => {
-    testRepoRoot = join(
-      tmpdir(),
-      `mind-lifecycle-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    );
-    mkdirSync(testRepoRoot, { recursive: true });
-    mkdirSync(join(testRepoRoot, ".olt"), { recursive: true });
-    mkdirSync(join(testRepoRoot, ".olt", "mailboxes"), { recursive: true });
-    mkdirSync(join(testRepoRoot, ".olt", "snapshots"), { recursive: true });
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    testRepoRoot = `/virtual/mind-lifecycle-test-${++counter}`;
+    vfs.mkdirSync(testRepoRoot, { recursive: true });
+    vfs.mkdirSync(join(testRepoRoot, ".olt"), { recursive: true });
+    vfs.mkdirSync(join(testRepoRoot, ".olt", "mailboxes"), { recursive: true });
+    vfs.mkdirSync(join(testRepoRoot, ".olt", "snapshots"), { recursive: true });
   });
 
   afterEach(() => {
-    try {
-      rmSync(testRepoRoot, { recursive: true, force: true });
-    } catch {
-      // Best effort cleanup
-    }
+    session?.cleanup();
   });
 
   describe("1. Stage 1: Non-Destructive In-Flight Snapshot & User Intent Extraction", () => {
     it("captures uncommitted workspace modifications without destructive changes and binds intent to P1 deliverable", async () => {
       const srcDir = join(testRepoRoot, "src", "compiler");
-      mkdirSync(srcDir, { recursive: true });
+      vfs.mkdirSync(srcDir, { recursive: true });
       const targetFile = join(srcDir, "parser.ts");
-      writeFileSync(
+      vfs.writeFileSync(
         targetFile,
         `export function parseExpression(input: string): boolean {\n  return input.length > 0;\n}\n`,
         "utf8",
@@ -135,9 +121,8 @@ describe("Sovereign Lifecycle & Autonomous Single-Touch Bootstrap Suite", () => 
       expect(snapshot.branch).toBe("feature/compiler-ast");
       expect(snapshot.uncommittedFiles.length).toBeGreaterThan(0);
 
-      // Verify file on disk was NOT mutated or deleted
-      expect(existsSync(targetFile)).toBe(true);
-      expect(readFileSync(targetFile, "utf8")).toContain("parseExpression");
+      expect(vfs.existsSync(targetFile)).toBe(true);
+      expect(vfs.readFileSync(targetFile, "utf8")).toContain("parseExpression");
 
       const intent: UserIntentRecord = extractUserIntent(snapshot);
       expect(intent.title).toBeDefined();
@@ -167,7 +152,6 @@ describe("Sovereign Lifecycle & Autonomous Single-Touch Bootstrap Suite", () => 
       expect(probeResult.probes.length).toBeGreaterThan(0);
       expect(probeResult.topologyMatrix).toBeDefined();
 
-      // Diagnostic Clustering Engine
       const clusteringEngine = new DiagnosticClusteringEngine();
 
       const sampleLog = [
@@ -188,12 +172,10 @@ describe("Sovereign Lifecycle & Autonomous Single-Touch Bootstrap Suite", () => 
       expect(topology.totalRawErrors).toBeGreaterThanOrEqual(3);
       expect(topology.clusters.length).toBeGreaterThanOrEqual(1);
 
-      // Deficit Classification
       expect(topology.summary.blockers).toBeGreaterThanOrEqual(1);
       expect(topology.summary.regressions).toBeGreaterThanOrEqual(1);
       expect(topology.summary.qualityDeficits).toBeGreaterThanOrEqual(1);
 
-      // Recommended Roadmap Allocation based on Deficit Matrix
       expect(topology.recommendedRoadmapAllocation.coreStability).toBeGreaterThanOrEqual(50);
       expect(topology.recommendedRoadmapAllocation.architecturalEvolution).toBeGreaterThanOrEqual(
         1,
@@ -204,7 +186,6 @@ describe("Sovereign Lifecycle & Autonomous Single-Touch Bootstrap Suite", () => 
 
   describe("3. Stage 3: Strategic Goal Configuration, Portfolio Balancing & Invariant Lockdown", () => {
     it("locks canonical bedrock invariants and mobilizes mandatory companion auditors", async () => {
-      // 1. Bedrock Invariants Lockdown
       const memoryEngine = new ThreeTierMemoryEngine();
       for (const invName of CANONICAL_BEDROCK_INVARIANTS_LIST) {
         memoryEngine.addBedrockInvariant({
@@ -219,7 +200,6 @@ describe("Sovereign Lifecycle & Autonomous Single-Touch Bootstrap Suite", () => 
         CANONICAL_BEDROCK_INVARIANTS_LIST.length,
       );
 
-      // Verify core invariants are present
       expect(memoryEngine.hasBedrockInvariant("bedrock-supervisor-zero-code-edits")).toBe(true);
       expect(memoryEngine.hasBedrockInvariant("bedrock-supervisor-zero-test-runs")).toBe(true);
       expect(memoryEngine.hasBedrockInvariant("bedrock-three-strike-mechanical-containment")).toBe(
@@ -227,10 +207,8 @@ describe("Sovereign Lifecycle & Autonomous Single-Touch Bootstrap Suite", () => 
       );
       expect(memoryEngine.hasBedrockInvariant("bedrock-innovation-portfolio-70-20-10")).toBe(true);
 
-      // 2. 70/20/10 Innovation Portfolio Governance
       const portfolio = new InnovationPortfolioManager();
       const workstreams: PortfolioWorkstream[] = [
-        // 7 Core Stability (70%)
         {
           id: "ws-c1",
           title: "Remediate Blocker 1",
@@ -262,7 +240,6 @@ describe("Sovereign Lifecycle & Autonomous Single-Touch Bootstrap Suite", () => 
           title: "P1 User Intent Completion",
           track: PORTFOLIO_TRACKS.CORE_STABILITY_AND_POLISH,
         },
-        // 2 Architectural Evolution (20%)
         {
           id: "ws-a1",
           title: "Ring Buffer Pipeline Decoupling",
@@ -273,7 +250,6 @@ describe("Sovereign Lifecycle & Autonomous Single-Touch Bootstrap Suite", () => 
           title: "Memory Compactor Optimization",
           track: PORTFOLIO_TRACKS.ARCHITECTURAL_EVOLUTION,
         },
-        // 1 Exploratory Bet (10%)
         {
           id: "ws-e1",
           title: "Lockless IPC Streaming Prototype",

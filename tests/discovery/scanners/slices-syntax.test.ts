@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   performDiscoveryScans,
   transformFindingsToDiscoveries,
@@ -16,6 +16,38 @@ import type {
   DormantCriteriaFinding,
   TaskDiscoveryResult,
 } from "../../../olt/scripts/src/mind/tasks/discovery/types.ts";
+
+const SLICE_FILE_NAMES = [
+  "engine.ts",
+  "index.ts",
+  "runner.ts",
+  "scans.ts",
+  "transformers.ts",
+] as const;
+
+const DISCOVERY_FILE_NAMES = [
+  "discovery-engine.ts",
+  "discovery-scans.ts",
+  "discovery-transformers.ts",
+  "engine.ts",
+  "index.ts",
+  "runner.ts",
+  "types.ts",
+] as const;
+
+const vfs = new VirtualMemoryFS();
+const slicesDir = join(process.cwd(), "olt/scripts/src/mind/tasks/discovery/slices");
+const discoveryDir = join(process.cwd(), "olt/scripts/src/mind/tasks/discovery");
+vfs.mkdirSync(slicesDir, { recursive: true });
+vfs.mkdirSync(discoveryDir, { recursive: true });
+for (const name of SLICE_FILE_NAMES) {
+  const fullPath = join(slicesDir, name);
+  vfs.writeFileSync(fullPath, await Bun.file(fullPath).text());
+}
+for (const name of DISCOVERY_FILE_NAMES) {
+  const fullPath = join(discoveryDir, name);
+  vfs.writeFileSync(fullPath, await Bun.file(fullPath).text());
+}
 
 describe("Task 1.39: Defect Remediation - Syntax Errors and Dangling Statements in mind/tasks/discovery/slices/", () => {
   test("1. All discovery slice modules and barrel exports exist and export required functions", () => {
@@ -196,10 +228,9 @@ describe("Task 1.39: Defect Remediation - Syntax Errors and Dangling Statements 
   });
 
   test("6. Slices directory structure and files adhere to strict repository invariants", () => {
-    const slicesDir = join(process.cwd(), "olt/scripts/src/mind/tasks/discovery/slices");
-    expect(existsSync(slicesDir)).toBe(true);
+    expect(vfs.existsSync(slicesDir)).toBe(true);
 
-    const sliceFiles = readdirSync(slicesDir).filter((f) => f.endsWith(".ts"));
+    const sliceFiles = (vfs.readdirSync(slicesDir) as string[]).filter((f) => f.endsWith(".ts"));
     expect(sliceFiles.length).toBeGreaterThanOrEqual(4);
     expect(sliceFiles).toContain("scans.ts");
     expect(sliceFiles).toContain("transformers.ts");
@@ -209,7 +240,7 @@ describe("Task 1.39: Defect Remediation - Syntax Errors and Dangling Statements 
 
     for (const file of sliceFiles) {
       const fullPath = join(slicesDir, file);
-      const content = readFileSync(fullPath, "utf8");
+      const content = vfs.readFileSync(fullPath, "utf8");
       const lines = content.split("\n");
 
       expect(lines.length).toBeLessThanOrEqual(300);
@@ -236,12 +267,11 @@ describe("Task 1.39: Defect Remediation - Syntax Errors and Dangling Statements 
   });
 
   test("7. All discovery files in parent directory adhere to <= 400 lines and zero comments", () => {
-    const discoveryDir = join(process.cwd(), "olt/scripts/src/mind/tasks/discovery");
-    const topFiles = readdirSync(discoveryDir).filter((f) => f.endsWith(".ts"));
+    const topFiles = (vfs.readdirSync(discoveryDir) as string[]).filter((f) => f.endsWith(".ts"));
 
     for (const file of topFiles) {
       const fullPath = join(discoveryDir, file);
-      const content = readFileSync(fullPath, "utf8");
+      const content = vfs.readFileSync(fullPath, "utf8");
       const lines = content.split("\n");
 
       expect(lines.length).toBeLessThanOrEqual(400);

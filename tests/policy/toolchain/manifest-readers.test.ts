@@ -1,5 +1,4 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { cleanupVirtualPolicyFS, setupVirtualPolicyFS } from "../fixture.ts";
 import {
@@ -8,12 +7,14 @@ import {
   readPythonManifests,
   readTurboJson,
 } from "../../../olt/scripts/src/policy/generator/manifest-readers.ts";
+import type { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("manifest-readers", () => {
   const scratchBase = "/virtual/policy/toolchain/manifest-readers";
+  let vfs: VirtualMemoryFS;
 
   beforeEach(() => {
-    setupVirtualPolicyFS();
+    vfs = setupVirtualPolicyFS();
   });
 
   afterEach(() => {
@@ -22,7 +23,7 @@ describe("manifest-readers", () => {
 
   it("handles nonexistent files gracefully", () => {
     const emptyDir = join(scratchBase, "empty-dir");
-    mkdirSync(emptyDir, { recursive: true });
+    vfs.mkdirSync(emptyDir, { recursive: true });
 
     const pkg = readPackageJson(emptyDir);
     expect(pkg.exists).toBe(false);
@@ -48,37 +49,40 @@ describe("manifest-readers", () => {
 
   it("handles non-object JSON and corrupted files in safeReadJson", () => {
     const testDir = join(scratchBase, "corrupt-dir");
-    mkdirSync(testDir, { recursive: true });
+    vfs.mkdirSync(testDir, { recursive: true });
 
-    writeFileSync(join(testDir, "package.json"), "12345");
+    vfs.writeFileSync(join(testDir, "package.json"), "12345");
     const pkg1 = readPackageJson(testDir);
     expect(pkg1.exists).toBe(false);
 
-    writeFileSync(join(testDir, "package.json"), '["array", "not", "object"]');
+    vfs.writeFileSync(join(testDir, "package.json"), '["array", "not", "object"]');
     const pkg2 = readPackageJson(testDir);
     expect(pkg2.exists).toBe(false);
 
-    writeFileSync(join(testDir, "package.json"), "{ invalid json ");
+    vfs.writeFileSync(join(testDir, "package.json"), "{ invalid json ");
     const pkg3 = readPackageJson(testDir);
     expect(pkg3.exists).toBe(false);
   });
 
   it("reads turbo.json with tasks format and pipeline format", () => {
     const testDir = join(scratchBase, "turbo-dir");
-    mkdirSync(testDir, { recursive: true });
+    vfs.mkdirSync(testDir, { recursive: true });
 
-    writeFileSync(join(testDir, "turbo.json"), JSON.stringify({ tasks: { build: {}, test: {} } }));
+    vfs.writeFileSync(
+      join(testDir, "turbo.json"),
+      JSON.stringify({ tasks: { build: {}, test: {} } }),
+    );
     const turboTasks = readTurboJson(testDir);
     expect(turboTasks.exists).toBe(true);
     expect(turboTasks.hasTask("build")).toBe(true);
     expect(turboTasks.hasTask("nonexistent")).toBe(false);
 
-    writeFileSync(join(testDir, "turbo.json"), JSON.stringify({ pipeline: { lint: {} } }));
+    vfs.writeFileSync(join(testDir, "turbo.json"), JSON.stringify({ pipeline: { lint: {} } }));
     const turboPipe = readTurboJson(testDir);
     expect(turboPipe.exists).toBe(true);
     expect(turboPipe.hasTask("lint")).toBe(true);
 
-    writeFileSync(join(testDir, "turbo.json"), JSON.stringify({}));
+    vfs.writeFileSync(join(testDir, "turbo.json"), JSON.stringify({}));
     const turboEmpty = readTurboJson(testDir);
     expect(turboEmpty.exists).toBe(true);
     expect(turboEmpty.hasTask("build")).toBe(false);
@@ -86,9 +90,9 @@ describe("manifest-readers", () => {
 
   it("reads Makefile targets accurately", () => {
     const testDir = join(scratchBase, "makefile-dir");
-    mkdirSync(testDir, { recursive: true });
+    vfs.mkdirSync(testDir, { recursive: true });
 
-    writeFileSync(
+    vfs.writeFileSync(
       join(testDir, "Makefile"),
       `
 .PHONY: build test clean
@@ -113,9 +117,9 @@ check: test
 
   it("reads Python manifests pyproject.toml and requirements.txt", () => {
     const testDir = join(scratchBase, "py-dir");
-    mkdirSync(testDir, { recursive: true });
+    vfs.mkdirSync(testDir, { recursive: true });
 
-    writeFileSync(
+    vfs.writeFileSync(
       join(testDir, "pyproject.toml"),
       `
 [tool.poetry]
@@ -128,7 +132,7 @@ line-length = 88
 strict = true
 `,
     );
-    writeFileSync(join(testDir, "Pipfile"), "");
+    vfs.writeFileSync(join(testDir, "Pipfile"), "");
 
     const py = readPythonManifests(testDir);
     expect(py.hasPyproject).toBe(true);
@@ -141,8 +145,8 @@ strict = true
 
   it("handles unreadable paths or directories gracefully in safeReadText", () => {
     const testDir = join(scratchBase, "dir-manifest");
-    mkdirSync(join(testDir, "Makefile"), { recursive: true });
-    mkdirSync(join(testDir, "package.json"), { recursive: true });
+    vfs.mkdirSync(join(testDir, "Makefile"), { recursive: true });
+    vfs.mkdirSync(join(testDir, "package.json"), { recursive: true });
 
     const make = readMakefile(testDir);
     expect(make.exists).toBe(false);

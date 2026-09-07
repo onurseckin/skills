@@ -79,7 +79,12 @@ describe("Orchestrator Decision Policy & Hierarchical Audit", () => {
 
     readyTask.status = "changes_requested";
     readyTask.repair_assignee = "worker-1";
-    const repairAllowed = validateTaskDispatchCompliance(readyTask, "worker-1", "implementer", state);
+    const repairAllowed = validateTaskDispatchCompliance(
+      readyTask,
+      "worker-1",
+      "implementer",
+      state,
+    );
     expect(repairAllowed.allowed).toBeTrue();
   });
 });

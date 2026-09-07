@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { syncTree } from "../../../olt/scripts/src/installer/durable-tree.ts";
 import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
 import {
   cleanupVirtualInstallerFS,
+  getVirtualInstallerFS,
+  handleCreateSymlink,
   registerSpecialFile,
   setupVirtualInstallerFS,
 } from "../helpers.ts";
@@ -16,10 +17,11 @@ afterEach(cleanupVirtualInstallerFS);
 describe("syncTree", () => {
   test("fsyncs every file and directory in a nested tree without throwing", () => {
     const root = scratchRoot(import.meta.path, "nested-tree");
-    mkdirSync(join(root, "a", "b"), { recursive: true });
-    writeFileSync(join(root, "top.txt"), "top");
-    writeFileSync(join(root, "a", "mid.txt"), "mid");
-    writeFileSync(join(root, "a", "b", "leaf.txt"), "leaf");
+    const vfs = getVirtualInstallerFS();
+    vfs.mkdirSync(join(root, "a", "b"), { recursive: true });
+    vfs.writeFileSync(join(root, "top.txt"), "top");
+    vfs.writeFileSync(join(root, "a", "mid.txt"), "mid");
+    vfs.writeFileSync(join(root, "a", "b", "leaf.txt"), "leaf");
     expect(() => syncTree(root)).not.toThrow();
   });
 
@@ -31,8 +33,9 @@ describe("syncTree", () => {
   test("throws on a symlink anywhere in the tree", () => {
     const root = scratchRoot(import.meta.path, "symlink-tree");
     const elsewhere = join(root, "symlink-target");
-    mkdirSync(elsewhere, { recursive: true });
-    symlinkSync(elsewhere, join(root, "link"));
+    const vfs = getVirtualInstallerFS();
+    vfs.mkdirSync(elsewhere, { recursive: true });
+    handleCreateSymlink(elsewhere, join(root, "link"));
     expect(() => syncTree(root)).toThrow(HarnessError);
     try {
       syncTree(root);
@@ -46,9 +49,10 @@ describe("syncTree", () => {
   describe("special files", () => {
     test("throws on a non-regular, non-directory path such as a unix socket", () => {
       const shortRoot = "/virtual/dt-special";
-      mkdirSync(shortRoot, { recursive: true });
+      const vfs = getVirtualInstallerFS();
+      vfs.mkdirSync(shortRoot, { recursive: true });
       const socketPath = join(shortRoot, "socket");
-      writeFileSync(socketPath, "");
+      vfs.writeFileSync(socketPath, "");
       registerSpecialFile(socketPath, "socket");
       expect(() => syncTree(shortRoot)).toThrow(HarnessError);
       try {

@@ -13,17 +13,17 @@
 
 Lefthook's gates have two different scopes, and that asymmetry is what makes staged sequencing possible instead of a big-bang rewrite:
 
-| Hook          | Command                                                   | Scope                     |
-| :------------ | :--------------------------------------------------------- | :------------------------ |
-| `pre-commit`  | `oxlint {staged_files}`                                    | staged files only         |
-| `pre-commit`  | `oxfmt {staged_files}`                                     | staged files only         |
-| `pre-commit`  | `modularity:staged`                                        | staged files only         |
-| `pre-commit`  | `test:purity:staged`                                       | staged files only         |
-| `pre-commit`  | `test:changed`                                              | staged files only         |
-| `pre-commit`  | `typecheck`                                                 | **repo-wide**              |
-| `pre-push`    | `modularity:check`                                          | **repo-wide**              |
-| `pre-push`    | `test:purity --all`                                         | **repo-wide**              |
-| `pre-push`    | `test:coverage`                                             | **repo-wide**              |
+| Hook         | Command                 | Scope             |
+| :----------- | :---------------------- | :---------------- |
+| `pre-commit` | `oxlint {staged_files}` | staged files only |
+| `pre-commit` | `oxfmt {staged_files}`  | staged files only |
+| `pre-commit` | `modularity:staged`     | staged files only |
+| `pre-commit` | `test:purity:staged`    | staged files only |
+| `pre-commit` | `test:changed`          | staged files only |
+| `pre-commit` | `typecheck`             | **repo-wide**     |
+| `pre-push`   | `modularity:check`      | **repo-wide**     |
+| `pre-push`   | `test:purity --all`     | **repo-wide**     |
+| `pre-push`   | `test:coverage`         | **repo-wide**     |
 
 Every pre-commit gate except `typecheck` only ever looks at the files in the current commit. That means purity debt (4643 violations) and modularity debt (2566 violations) are payable **incrementally, one staged batch at a time** — nobody has to touch all 508 impure test files or the whole modularity backlog in a single sitting. The repo-wide totals only matter at `pre-push`.
 
@@ -40,11 +40,11 @@ Every wave below is scoped so the files it touches leave `pre-commit` green on m
 
 Small, do first — nothing downstream can be trusted while the gate itself is broken.
 
-| # | Item | Location | Definition of Done |
-| :- | :--- | :--- | :--- |
-| 0.1 | `modularity:check` crash | `bun run modularity:check` currently throws `ENOENT` walking a stale staged-add whose target file was deleted (observed against `scripts/testing/guardrails/baseline/index.json`; re-verify the exact path at pickup time since the tree is in flux — re-running showed a second, different ENOENT against a since-deleted `olt/scripts/src/cli/commands/task-assign-repairer.ts`). Re-stage or remove the dangling index entries so the walker only sees files that exist on disk; if a code path in `scripts/modularity/modularity-cli.ts` assumes staged adds always resolve, add a existence guard instead of trusting the git index blindly. | `bun run modularity:check` exits without ENOENT. |
-| 0.2 | Stray debug output | `olt/scripts/src/packets/command-authority-grants.ts` — remove any `console.error("DEBUG assertGrantedCommand", ...)` left in `assertGrantedCommand` (re-check first: as of this audit the string no longer greps in the file, so this may already be resolved by a concurrent track — confirm before spending a task on it). | `grep -rn "DEBUG assertGrantedCommand" olt/scripts/src/` returns nothing. |
-| 0.3 | Oversized test file | `tests/cli/commands/tasks/reviews/task-review-verdicts.test.ts` is 347 lines, over the 400-line cap; it will fail `modularity:staged` the next time anyone touches it. Split by verdict category (e.g. `-approve`, `-reject`, `-escalate` siblings) mirroring the domain split used elsewhere in `tests/cli/commands/tasks/reviews/`. | `wc -l` on every resulting file ≤ 400; `modularity:staged` passes when the split files are staged. |
+| #   | Item                     | Location                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Definition of Done                                                                                 |
+| :-- | :----------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :------------------------------------------------------------------------------------------------- |
+| 0.1 | `modularity:check` crash | `bun run modularity:check` currently throws `ENOENT` walking a stale staged-add whose target file was deleted (observed against `scripts/testing/guardrails/baseline/index.json`; re-verify the exact path at pickup time since the tree is in flux — re-running showed a second, different ENOENT against a since-deleted `olt/scripts/src/cli/commands/task-assign-repairer.ts`). Re-stage or remove the dangling index entries so the walker only sees files that exist on disk; if a code path in `scripts/modularity/modularity-cli.ts` assumes staged adds always resolve, add a existence guard instead of trusting the git index blindly. | `bun run modularity:check` exits without ENOENT.                                                   |
+| 0.2 | Stray debug output       | `olt/scripts/src/packets/command-authority-grants.ts` — remove any `console.error("DEBUG assertGrantedCommand", ...)` left in `assertGrantedCommand` (re-check first: as of this audit the string no longer greps in the file, so this may already be resolved by a concurrent track — confirm before spending a task on it).                                                                                                                                                                                                                                                                                                                     | `grep -rn "DEBUG assertGrantedCommand" olt/scripts/src/` returns nothing.                          |
+| 0.3 | Oversized test file      | `tests/cli/commands/tasks/reviews/task-review-verdicts.test.ts` is 347 lines, over the 400-line cap; it will fail `modularity:staged` the next time anyone touches it. Split by verdict category (e.g. `-approve`, `-reject`, `-escalate` siblings) mirroring the domain split used elsewhere in `tests/cli/commands/tasks/reviews/`.                                                                                                                                                                                                                                                                                                             | `wc -l` on every resulting file ≤ 400; `modularity:staged` passes when the split files are staged. |
 
 ---
 
@@ -84,7 +84,7 @@ Highest value: in every case below, tests are green while the feature is either 
 
 ### 3.7 Test-runner and language-agnosticism in agent manifests
 
-Agent YAML manifests and reference docs hardcode `bun test`, baking a Bun/TypeScript assumption into a skill that must govern *any* consumer repository regardless of language, package manager, or test runner. `.olt/policy.json` already declares the single source of truth:
+Agent YAML manifests and reference docs hardcode `bun test`, baking a Bun/TypeScript assumption into a skill that must govern _any_ consumer repository regardless of language, package manager, or test runner. `.olt/policy.json` already declares the single source of truth:
 
 ```
 "test_runner": { "enabled": true, "default_command": "bun test", "targeted_pattern": "bun test <path>", "full_suite_command": "bun test:all", "timeout_ms": 30000 }
@@ -111,23 +111,23 @@ The same class of assumption likely exists for typecheck (`tsc --noEmit`) and li
 
 Largest and most mechanical; suitable for cheap/fast models running in parallel batches. 508 of 2195 test files carry 4643 violations, ~95% category `filesystem`. Migrate real filesystem access to `VirtualMemoryFS`, one domain batch per commit so `test:purity:staged` passes on each commit.
 
-| Batch | Scope | Definition of Done |
-| :- | :--- | :--- |
-| 1 | `tests/store/**` | Zero `filesystem`-category rows for this path in `bun run test:purity:staged` when staged; `bun run test:purity --all` violation count for `tests/store/` drops to 0. |
-| 2 | `tests/session/**` | Same criteria, scoped to `tests/session/`. |
-| 3 | `tests/capture/**` | Same criteria, scoped to `tests/capture/`. |
-| 4 | `tests/cli/**` | Same criteria, scoped to `tests/cli/`. |
-| 5 | `tests/agents/**` | Same criteria, scoped to `tests/agents/`. |
-| 6 | `tests/authority/**` | Same criteria, scoped to `tests/authority/`. |
-| 7 | Remainder | All files not covered above; run to zero. |
+| Batch | Scope                | Definition of Done                                                                                                                                                    |
+| :---- | :------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | `tests/store/**`     | Zero `filesystem`-category rows for this path in `bun run test:purity:staged` when staged; `bun run test:purity --all` violation count for `tests/store/` drops to 0. |
+| 2     | `tests/session/**`   | Same criteria, scoped to `tests/session/`.                                                                                                                            |
+| 3     | `tests/capture/**`   | Same criteria, scoped to `tests/capture/`.                                                                                                                            |
+| 4     | `tests/cli/**`       | Same criteria, scoped to `tests/cli/`.                                                                                                                                |
+| 5     | `tests/agents/**`    | Same criteria, scoped to `tests/agents/`.                                                                                                                             |
+| 6     | `tests/authority/**` | Same criteria, scoped to `tests/authority/`.                                                                                                                          |
+| 7     | Remainder            | All files not covered above; run to zero.                                                                                                                             |
 
 Each batch commit: stage only that domain's files, run `bun ai:coverage-orchestrator:validate <changed files>`, confirm `test:purity:staged` is clean before committing.
 
-**Bundled — same root cause, `.olt/` pollution:** impure tests currently write into the *real* `.olt/`, not a virtual FS. 693 of 1065 rows in `.olt/defects.jsonl` are test fixtures (e.g. `"unknown command: nope"`, `"--id is required"`, `source_repo` paths under `/private/var/folders/.../olt-defect-routing-*`), and sentinel strike files are written during test runs. The Mind reads this ledger for real signal, so today it is partly reading its own test noise.
+**Bundled — same root cause, `.olt/` pollution:** impure tests currently write into the _real_ `.olt/`, not a virtual FS. 693 of 1065 rows in `.olt/defects.jsonl` are test fixtures (e.g. `"unknown command: nope"`, `"--id is required"`, `source_repo` paths under `/private/var/folders/.../olt-defect-routing-*`), and sentinel strike files are written during test runs. The Mind reads this ledger for real signal, so today it is partly reading its own test noise.
 
 - Redirect all such fixtures to `VirtualMemoryFS` as part of the batch that owns them (most land in the `tests/cli` and `tests/agents` batches above).
 - Once redirected, purge the 693 identified test-fixture rows from `.olt/defects.jsonl` (filter by the `source_repo` pattern and known fixture message strings above) and any sentinel strike files with the same provenance.
-**DoD:** `.olt/defects.jsonl` contains zero rows whose `source_repo` matches a temp-directory pattern; a full local test run leaves `.olt/` byte-identical before and after (`git status` on `.olt/` before/after shows no diff).
+  **DoD:** `.olt/defects.jsonl` contains zero rows whose `source_repo` matches a temp-directory pattern; a full local test run leaves `.olt/` byte-identical before and after (`git status` on `.olt/` before/after shows no diff).
 
 ---
 
@@ -141,7 +141,7 @@ Each batch commit: stage only that domain's files, run `bun ai:coverage-orchestr
   - Orphaned lease `.olt/locks/leases/track-multi-orch-dispatch.json` (`status: "active"`, `expiresAt: 9999999999999`) points at a worktree that no longer exists — release it.
   - 9 agent grants under `.olt/capsules/mind-gen-1` have zero matching release events — audit and close them out.
   - Capsule `track-rbac-test-mutex` stalled after coordinator registration: `task-1` stuck `ready`, `task-2`/`task-3` stuck `proposed` — either advance or archive the capsule.
-  **DoD:** `harness.ts lease:list` and `harness.ts capsule:status` show none of the three anomalies above.
+    **DoD:** `harness.ts lease:list` and `harness.ts capsule:status` show none of the three anomalies above.
 - **Stale defect closure.** `defect-cognitive-pushback-quota-runtime-gap` claims the pushback quota is only a post-hoc diagnostic; that is no longer true — `olt/scripts/src/workflow/gates/finish-task.ts:106-114` now hard-enforces `MIN_ADVERSARIAL_PROBES = 5` before a task can transition to `done` (landed in commit `4c6083aa`). Close the defect citing that gate as resolution proof. Separately, 3 defects in `completed-defects.jsonl` were closed by `main-thread-stabilizer` with `resolution_note: null` — require a real resolution note or reopen them.
   **DoD:** the defect is `resolved` with a `resolution_note` citing the file:line above; the 3 null-note defects each carry a substantive note or are back in an open state.
 - **Non-reproducible fixtures.** `tests/liaison/daemon/{service,projection}.test.ts` point at a gitignored, locally-archived capsule and will not reproduce on a fresh checkout or in CI. Replace with a committed synthetic fixture that exercises the same code path.

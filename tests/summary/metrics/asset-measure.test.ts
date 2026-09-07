@@ -6,12 +6,7 @@ import {
   readHeader,
 } from "../../../olt/scripts/src/summary/assets/index.ts";
 import type { MediaAsset } from "../../../olt/scripts/src/summary/graph/index.ts";
-import {
-  chmodSync,
-  getVirtualSummaryFS,
-  setupVirtualSummaryFS,
-  symlinkSync,
-} from "../fixture.ts";
+import { chmodSync, getVirtualSummaryFS, setupVirtualSummaryFS, symlinkSync } from "../fixture.ts";
 
 let rootCounter = 0;
 
@@ -190,4 +185,3 @@ describe("filling in what nobody measured", () => {
     expect(assets[0]?.sizeBytes).toBeUndefined();
   });
 });
-

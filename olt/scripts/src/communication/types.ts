@@ -10,7 +10,20 @@ export type MailboxMessageType =
   | "COGNITIVE_PUSHBACK"
   | "PULSE_HEARTBEAT"
   | "DEFECT_ESCALATION"
-  | "SYSTEM_ALERT";
+  | "SYSTEM_ALERT"
+  | "ACK"
+  | "STATUS"
+  | "QUESTION"
+  | "COMPLETE"
+  | "BLOCKED"
+  | "DIRECTIVE"
+  | "VERDICT_PASS"
+  | "VERDICT_FAIL"
+  | "PROTOCOL"
+  | "PING"
+  | "HANDSHAKE"
+  | "WAKE"
+  | "SOCRATIC_CHALLENGE";
 
 export interface MailboxEnvelope<T = Record<string, unknown>> {
   readonly id: string;

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { type VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   getAssistantSkillDirs,
   migrateOwnedLegacyDeployment,
@@ -10,8 +10,10 @@ import {
 import { cleanupVirtualSyncFS, scratchRoot, setupVirtualSyncFS } from "../sync-fixture.ts";
 import { initFakeSkillsRepo, initFakeTargetOlt } from "./skill-deployer-fixtures.ts";
 
+let vfs: VirtualMemoryFS;
+
 beforeEach(() => {
-  setupVirtualSyncFS();
+  vfs = setupVirtualSyncFS();
 });
 
 afterEach(() => {
@@ -40,23 +42,23 @@ describe("readJsonStringField and orDefault", () => {
     expect(readJsonStringField(join(root, "missing.json"), "foo")).toBeUndefined();
 
     const badJson = join(root, "bad.json");
-    writeFileSync(badJson, "not json", "utf-8");
+    vfs.writeFileSync(badJson, "not json", "utf-8");
     expect(readJsonStringField(badJson, "foo")).toBeUndefined();
 
     const nullJson = join(root, "null.json");
-    writeFileSync(nullJson, "null", "utf-8");
+    vfs.writeFileSync(nullJson, "null", "utf-8");
     expect(readJsonStringField(nullJson, "foo")).toBeUndefined();
 
     const numberJson = join(root, "number.json");
-    writeFileSync(numberJson, "123", "utf-8");
+    vfs.writeFileSync(numberJson, "123", "utf-8");
     expect(readJsonStringField(numberJson, "foo")).toBeUndefined();
 
     const nonStringField = join(root, "non-string.json");
-    writeFileSync(nonStringField, JSON.stringify({ count: 42 }), "utf-8");
+    vfs.writeFileSync(nonStringField, JSON.stringify({ count: 42 }), "utf-8");
     expect(readJsonStringField(nonStringField, "count")).toBeUndefined();
 
     const validField = join(root, "valid.json");
-    writeFileSync(validField, JSON.stringify({ name: "hello" }), "utf-8");
+    vfs.writeFileSync(validField, JSON.stringify({ name: "hello" }), "utf-8");
     expect(readJsonStringField(validField, "name")).toBe("hello");
   });
 
@@ -78,11 +80,9 @@ describe("migrateOwnedLegacyDeployment", () => {
     const targetOlt = join(root, "olt");
     initFakeTargetOlt(targetOlt, { homeRepoRoot: root });
 
-    // First migrate seals manifest
     const firstMigrate = await migrateOwnedLegacyDeployment(targetOlt, root);
     expect(firstMigrate).toBe(true);
 
-    // Second call should detect identified installation
     const secondMigrate = await migrateOwnedLegacyDeployment(targetOlt, root);
     expect(secondMigrate).toBe(true);
   });
@@ -90,8 +90,8 @@ describe("migrateOwnedLegacyDeployment", () => {
   test("throws if legacy directory is not owned by the source checkout", async () => {
     const root = scratchRoot(import.meta.path, "migrate-untrusted");
     const targetOlt = join(root, "olt");
-    mkdirSync(targetOlt, { recursive: true });
-    writeFileSync(
+    vfs.mkdirSync(targetOlt, { recursive: true });
+    vfs.writeFileSync(
       join(targetOlt, "skill-config.json"),
       JSON.stringify({ home_repo_root: "/unrelated/other/repo" }),
       "utf-8",
@@ -111,7 +111,7 @@ describe("migrateOwnedLegacyDeployment", () => {
 
     const migrated = await migrateOwnedLegacyDeployment(targetOlt, root);
     expect(migrated).toBe(true);
-    expect(existsSync(join(targetOlt, "installation.json"))).toBe(true);
+    expect(vfs.existsSync(join(targetOlt, "installation.json"))).toBe(true);
   });
 
   test("migrates owned legacy directory with policy.json matching skill_home_repo_root", async () => {
@@ -123,7 +123,7 @@ describe("migrateOwnedLegacyDeployment", () => {
 
     const migrated = await migrateOwnedLegacyDeployment(targetOlt, root);
     expect(migrated).toBe(true);
-    expect(existsSync(join(targetOlt, "installation.json"))).toBe(true);
+    expect(vfs.existsSync(join(targetOlt, "installation.json"))).toBe(true);
   });
 
   test("returns true if valid installation manifest is already present", async () => {
@@ -140,7 +140,11 @@ describe("migrateOwnedLegacyDeployment", () => {
       installed_at: new Date().toISOString(),
       clients: ["claude"],
     };
-    writeFileSync(join(targetOlt, "installation.json"), JSON.stringify(manifest, null, 2), "utf-8");
+    vfs.writeFileSync(
+      join(targetOlt, "installation.json"),
+      JSON.stringify(manifest, null, 2),
+      "utf-8",
+    );
 
     const migrated = await migrateOwnedLegacyDeployment(targetOlt, root);
     expect(migrated).toBe(true);
@@ -149,28 +153,29 @@ describe("migrateOwnedLegacyDeployment", () => {
   test("edge cases: corrupt skill-config, trailing slashes in homeDir, and incomplete installation.json", async () => {
     const root = scratchRoot(import.meta.path, "deployer-legacy-edge");
 
-    // 1. Trailing slashes in homeDir
     const dirs = getAssistantSkillDirs("/Users/dummy/");
     expect(dirs.every((d) => !d.includes("//"))).toBe(true);
     expect(dirs).toContain("/Users/dummy/.gemini/config/skills");
 
-    // 2. Corrupted skill-config.json
     const targetCorrupt = join(root, "olt-corrupt");
-    mkdirSync(targetCorrupt, { recursive: true });
-    writeFileSync(join(targetCorrupt, "skill-config.json"), "{ invalid json");
+    vfs.mkdirSync(targetCorrupt, { recursive: true });
+    vfs.writeFileSync(join(targetCorrupt, "skill-config.json"), "{ invalid json");
     expect(migrateOwnedLegacyDeployment(targetCorrupt, root)).rejects.toThrow(
       /refusing to replace untrusted global skill directory/,
     );
 
-    // 3. Incomplete installation.json without valid schema
     const targetIncomplete = join(root, "olt-incomplete");
     initFakeSkillsRepo(root);
     initFakeTargetOlt(targetIncomplete, { homeRepoRoot: root });
-    writeFileSync(join(targetIncomplete, "installation.json"), JSON.stringify({ incomplete: true }));
-    // Since installation.json lacks valid schema, it proceeds to migrate ownership and overwrites with valid sealed manifest
+    vfs.writeFileSync(
+      join(targetIncomplete, "installation.json"),
+      JSON.stringify({ incomplete: true }),
+    );
     const migrated = await migrateOwnedLegacyDeployment(targetIncomplete, root);
     expect(migrated).toBe(true);
-    const resultManifest = JSON.parse(readFileSync(join(targetIncomplete, "installation.json"), "utf-8"));
+    const resultManifest = JSON.parse(
+      vfs.readFileSync(join(targetIncomplete, "installation.json"), "utf-8"),
+    );
     expect(resultManifest.schema).toBe("harness.installation");
   });
 });

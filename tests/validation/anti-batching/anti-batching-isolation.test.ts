@@ -1,48 +1,35 @@
-import { describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
-  validateCriticAntiBatching,
-  validateReviewAntiBatching,
-} from "../../../olt/scripts/src/validation/anti-batching.ts";
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import { validateReviewAntiBatching } from "../../../olt/scripts/src/validation/anti-batching.ts";
 import {
-  assertAntiBatchingRule,
   detectScopeCollisions,
-  partitionCandidatesStrictly,
-  partitionGroupedFeedbacksStrictly,
   partitionIntoDisjointWaves,
-  synthesizeAutonomousTasks,
   validateAntiBatchingIsolation,
   type SmartTaskPlan,
 } from "../../../olt/scripts/src/mind/tasks/smart/index.ts";
 import {
-  assertDefectCandidatesIsolated,
   assertDiscriminatingSignOffProofs,
   assertOneToOneImplementerValidatorIsolation,
-  partitionDefectsToIsolatedTasks,
 } from "../../../olt/scripts/src/orchestrator/anti-batching.ts";
 import { validateReview } from "../../../olt/scripts/src/workflow/review/validate-review.ts";
-import { parseCompletionAssessment } from "../../../olt/scripts/src/workflow/completion/index.ts";
-import type { TaskRecord, WorkflowState } from "../../../olt/scripts/src/workflow/types.ts";
-import {
-  cleanupVirtualValidationFS,
-  scratchRoot,
-  setupVirtualValidationFS,
-} from "../validation-fixture.ts";
+import type { TaskRecord } from "../../../olt/scripts/src/workflow/types.ts";
 
 describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Verification", () => {
-  const testDir = scratchRoot("anti-batching-isolation", "isolation");
-  const feedbackFile = join(testDir, "FEEDBACK_QUEUE.jsonl");
-  const taskQueueFile = join(testDir, "TASK_QUEUE.jsonl");
+  let session: VirtualFSSession;
+  let vfs: VirtualMemoryFS;
 
-  function setup(): void {
-    setupVirtualValidationFS();
-    mkdirSync(testDir, { recursive: true });
-  }
+  beforeEach(() => {
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+  });
 
-  function teardown(): void {
-    cleanupVirtualValidationFS();
-  }
+  afterEach(() => {
+    session.cleanup();
+  });
 
   describe("3. 1:1 Implementer and Validator Assignment & Self-Validation Refusal", () => {
     it("rejects task plans where implementer is assigned as validator (self-validation)", () => {
@@ -209,7 +196,7 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
       const batchedReviewAttempt = {
         verdict: "pass" as const,
         requirement_ids: ["req-1", "req-2"],
-        checks: [{ command_id: "cmd-generic-check" }], // Only 1 check for 2 distinct requirements
+        checks: [{ command_id: "cmd-generic-check" }],
         findings: [],
       };
 
@@ -251,7 +238,7 @@ describe("Strict Anti-Batching Pipeline & 1:1 Isolated Implementer-Validator Ver
           {
             finding_id: "FINDING-1",
             method: "Fixed defect",
-            evidence: [], // Missing evidence
+            evidence: [],
           },
         ],
       };

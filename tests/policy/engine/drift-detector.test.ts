@@ -1,7 +1,7 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { cleanupVirtualPolicyFS, setupVirtualPolicyFS } from "../fixture.ts";
+import type { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 import {
   checkAndHandlePolicyDrift,
@@ -18,9 +18,10 @@ import {
 
 describe("SHA-256 Policy Drift Watchdog & Fleet Re-Arming (Task 1.3)", () => {
   const scratchBase = "/virtual/policy/engine/drift-detector";
+  let vfs: VirtualMemoryFS;
 
   beforeEach(() => {
-    setupVirtualPolicyFS();
+    vfs = setupVirtualPolicyFS();
   });
 
   afterEach(() => {
@@ -29,7 +30,7 @@ describe("SHA-256 Policy Drift Watchdog & Fleet Re-Arming (Task 1.3)", () => {
 
   test("computes valid SHA-256 hex checksum and detects zero drift on identical file", () => {
     const dir = join(scratchBase, "checksum-stability");
-    mkdirSync(dir, { recursive: true });
+    vfs.mkdirSync(dir, { recursive: true });
     initRepoPolicy(dir);
 
     const hash1 = computePolicyChecksum(dir);
@@ -45,7 +46,7 @@ describe("SHA-256 Policy Drift Watchdog & Fleet Re-Arming (Task 1.3)", () => {
 
   test("computes deterministic fallback checksum when policy file does not exist", () => {
     const dir = join(scratchBase, "missing-policy");
-    mkdirSync(dir, { recursive: true });
+    vfs.mkdirSync(dir, { recursive: true });
 
     const hashMissing1 = computePolicyChecksum(dir);
     const hashMissing2 = computePolicyChecksum(dir);
@@ -55,7 +56,7 @@ describe("SHA-256 Policy Drift Watchdog & Fleet Re-Arming (Task 1.3)", () => {
 
   test("detects drift when single character is modified in policy file", () => {
     const dir = join(scratchBase, "single-char-mutation");
-    mkdirSync(dir, { recursive: true });
+    vfs.mkdirSync(dir, { recursive: true });
     initRepoPolicy(dir);
 
     const initialChecksum = computePolicyChecksum(dir);
@@ -71,7 +72,7 @@ describe("SHA-256 Policy Drift Watchdog & Fleet Re-Arming (Task 1.3)", () => {
 
   test("handlePolicyDrift executes callbacks and writes POLICY_RELOAD_EVENT to events.jsonl", async () => {
     const dir = join(scratchBase, "callback-events");
-    mkdirSync(dir, { recursive: true });
+    vfs.mkdirSync(dir, { recursive: true });
     initRepoPolicy(dir);
 
     const initialChecksum = computePolicyChecksum(dir);
@@ -116,7 +117,7 @@ describe("SHA-256 Policy Drift Watchdog & Fleet Re-Arming (Task 1.3)", () => {
 
   test("checkAndHandlePolicyDrift logs event to events.jsonl file when no custom logEvent callback is provided", async () => {
     const dir = join(scratchBase, "file-events-log");
-    mkdirSync(dir, { recursive: true });
+    vfs.mkdirSync(dir, { recursive: true });
     initRepoPolicy(dir);
 
     const initialChecksum = computePolicyChecksum(dir);
@@ -137,9 +138,9 @@ describe("SHA-256 Policy Drift Watchdog & Fleet Re-Arming (Task 1.3)", () => {
     expect(schedulerRearmed).toBe(true);
 
     const eventsPath = join(dir, ".olt", "events.jsonl");
-    expect(existsSync(eventsPath)).toBe(true);
+    expect(vfs.existsSync(eventsPath)).toBe(true);
 
-    const lines = readFileSync(eventsPath, "utf-8").trim().split("\n");
+    const lines = vfs.readFileSync(eventsPath, "utf-8").trim().split("\n");
     expect(lines.length).toBeGreaterThanOrEqual(1);
 
     const lastEvent = JSON.parse(lines[lines.length - 1]!) as PolicyReloadEvent;
@@ -150,7 +151,7 @@ describe("SHA-256 Policy Drift Watchdog & Fleet Re-Arming (Task 1.3)", () => {
 
   test("checkAndHandlePolicyDrift performs a no-op when no drift occurs", async () => {
     const dir = join(scratchBase, "non-drift-noop");
-    mkdirSync(dir, { recursive: true });
+    vfs.mkdirSync(dir, { recursive: true });
     initRepoPolicy(dir);
 
     const initialChecksum = computePolicyChecksum(dir);
@@ -180,12 +181,12 @@ describe("SHA-256 Policy Drift Watchdog & Fleet Re-Arming (Task 1.3)", () => {
     expect(logEventCalled).toBe(false);
 
     const eventsPath = join(dir, ".olt", "events.jsonl");
-    expect(existsSync(eventsPath)).toBe(false);
+    expect(vfs.existsSync(eventsPath)).toBe(false);
   });
 
   test("checkAndHandlePolicyDrift supports custom policyPath and custom eventsLogPath", async () => {
     const dir = join(scratchBase, "custom-paths");
-    mkdirSync(dir, { recursive: true });
+    vfs.mkdirSync(dir, { recursive: true });
     const customPolicyRel = join(".olt", "custom-policy.json");
     const customEventsRel = join(".olt", "custom-events.jsonl");
     const customEventsAbs = join(dir, customEventsRel);
@@ -203,9 +204,9 @@ describe("SHA-256 Policy Drift Watchdog & Fleet Re-Arming (Task 1.3)", () => {
     });
 
     expect(result.drifted).toBe(true);
-    expect(existsSync(customEventsAbs)).toBe(true);
+    expect(vfs.existsSync(customEventsAbs)).toBe(true);
 
-    const lines = readFileSync(customEventsAbs, "utf-8").trim().split("\n");
+    const lines = vfs.readFileSync(customEventsAbs, "utf-8").trim().split("\n");
     const lastEvent = JSON.parse(lines[lines.length - 1]!) as PolicyReloadEvent;
     expect(lastEvent.type).toBe("POLICY_RELOAD_EVENT");
     expect(lastEvent.policy_path).toBe(join(dir, customPolicyRel));
@@ -220,6 +221,6 @@ describe("SHA-256 Policy Drift Watchdog & Fleet Re-Arming (Task 1.3)", () => {
       customPath: customPolicyRel,
       eventsLogPath: nonExistentDir,
     });
-    expect(existsSync(nonExistentDir)).toBe(true);
+    expect(vfs.existsSync(nonExistentDir)).toBe(true);
   });
 });

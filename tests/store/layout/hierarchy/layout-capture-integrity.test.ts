@@ -1,6 +1,4 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import * as fs from "node:fs";
-import { chmodSync, linkSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { sha256Bytes } from "../../../../olt/scripts/src/core/json.ts";
 import { putBlobFile } from "../../../../olt/scripts/src/engine/store/layout/blobs.ts";
@@ -11,12 +9,16 @@ import {
 } from "../../../../olt/scripts/src/engine/store/integrity/layout-integrity.ts";
 import {
   cleanupVirtualStoreFS,
+  getVirtualStoreFS,
   scratchRoot as makeScratchRoot,
   setupVirtualStoreFS,
 } from "../../store-fixture.ts";
 
+const mockFs = await import("node:fs");
+let vfs = getVirtualStoreFS();
+
 beforeEach(() => {
-  setupVirtualStoreFS();
+  vfs = setupVirtualStoreFS();
 });
 
 afterEach(() => {
@@ -42,7 +44,7 @@ function captureFixture(overrides: Record<string, unknown> = {}) {
 }
 
 function writeCaptures(root: string, captures: unknown[]): void {
-  writeFileSync(join(root, "captures.json"), JSON.stringify({ captures }));
+  vfs.writeFileSync(join(root, "captures.json"), JSON.stringify({ captures }));
 }
 
 describe("capture references (via verifyCapsuleLayout)", () => {
@@ -79,12 +81,12 @@ describe("capture references (via verifyCapsuleLayout)", () => {
     const root = scratchRoot("reports-no-divergence-issue-for-a-hardlinked-captu");
     const digest = "e".repeat(64);
     const blobDir = join(root, "blobs", "ee");
-    mkdirSync(blobDir, { recursive: true });
+    vfs.mkdirSync(blobDir, { recursive: true });
     const blobPath = join(blobDir, digest);
-    writeFileSync(blobPath, "hello", { mode: 0o444 });
-    mkdirSync(join(root, "evidence"), { recursive: true });
+    mockFs.writeFileSync(blobPath, "hello", { mode: 0o444 });
+    vfs.mkdirSync(join(root, "evidence"), { recursive: true });
     const viewPath = join(root, "evidence", "shot.png");
-    linkSync(blobPath, viewPath);
+    mockFs.linkSync(blobPath, viewPath);
     writeCaptures(root, [captureFixture({ sha256: digest, blob_path: `blobs/ee/${digest}` })]);
     expect(verifyCapsuleLayout(root)).toEqual([]);
   });
@@ -93,10 +95,10 @@ describe("capture references (via verifyCapsuleLayout)", () => {
     const root = scratchRoot("reports-capture-view-diverged-for-a-hardlinked-cap");
     const digest = "e".repeat(64);
     const blobDir = join(root, "blobs", "ee");
-    mkdirSync(blobDir, { recursive: true });
-    writeFileSync(join(blobDir, digest), "hello", { mode: 0o444 });
-    mkdirSync(join(root, "evidence"), { recursive: true });
-    writeFileSync(join(root, "evidence", "shot.png"), "hello");
+    vfs.mkdirSync(blobDir, { recursive: true });
+    mockFs.writeFileSync(join(blobDir, digest), "hello", { mode: 0o444 });
+    vfs.mkdirSync(join(root, "evidence"), { recursive: true });
+    vfs.writeFileSync(join(root, "evidence", "shot.png"), "hello");
     writeCaptures(root, [captureFixture({ sha256: digest, blob_path: `blobs/ee/${digest}` })]);
     const found = verifyCapsuleLayout(root);
     expect(found).toEqual([expect.objectContaining({ code: "CAPTURE_VIEW_DIVERGED" })]);
@@ -106,15 +108,15 @@ describe("capture references (via verifyCapsuleLayout)", () => {
     const root = scratchRoot("reports-capture-view-diverged-when-stat-throws");
     const digest = "e".repeat(64);
     const blobDir = join(root, "blobs", "ee");
-    mkdirSync(blobDir, { recursive: true });
+    vfs.mkdirSync(blobDir, { recursive: true });
     const blobPath = join(blobDir, digest);
-    writeFileSync(blobPath, "hello", { mode: 0o444 });
-    mkdirSync(join(root, "evidence"), { recursive: true });
+    vfs.writeFileSync(blobPath, "hello", { mode: 0o444 });
+    vfs.mkdirSync(join(root, "evidence"), { recursive: true });
     const viewPath = join(root, "evidence", "shot.png");
-    writeFileSync(viewPath, "hello");
+    vfs.writeFileSync(viewPath, "hello");
     writeCaptures(root, [captureFixture({ sha256: digest, blob_path: `blobs/ee/${digest}` })]);
 
-    spyOn(fs, "statSync").mockImplementation(() => {
+    spyOn(mockFs, "statSync").mockImplementation(() => {
       throw new Error("stat error");
     });
     try {
@@ -129,10 +131,10 @@ describe("capture references (via verifyCapsuleLayout)", () => {
     const root = scratchRoot("accepts-a-copy-storage-capture-whose-view-content-");
     const digest = sha256Bytes(new TextEncoder().encode("copied bytes"));
     const blobDir = join(root, "blobs", digest.slice(0, 2));
-    mkdirSync(blobDir, { recursive: true });
-    writeFileSync(join(blobDir, digest), "copied bytes", { mode: 0o444 });
-    mkdirSync(join(root, "evidence"), { recursive: true });
-    writeFileSync(join(root, "evidence", "shot.png"), "copied bytes");
+    vfs.mkdirSync(blobDir, { recursive: true });
+    mockFs.writeFileSync(join(blobDir, digest), "copied bytes", { mode: 0o444 });
+    vfs.mkdirSync(join(root, "evidence"), { recursive: true });
+    vfs.writeFileSync(join(root, "evidence", "shot.png"), "copied bytes");
     writeCaptures(root, [
       captureFixture({
         sha256: digest,
@@ -147,10 +149,10 @@ describe("capture references (via verifyCapsuleLayout)", () => {
     const root = scratchRoot("reports-capture-view-diverged-for-a-copy-storage-c");
     const digest = sha256Bytes(new TextEncoder().encode("original bytes"));
     const blobDir = join(root, "blobs", digest.slice(0, 2));
-    mkdirSync(blobDir, { recursive: true });
-    writeFileSync(join(blobDir, digest), "original bytes", { mode: 0o444 });
-    mkdirSync(join(root, "evidence"), { recursive: true });
-    writeFileSync(join(root, "evidence", "shot.png"), "tampered bytes");
+    vfs.mkdirSync(blobDir, { recursive: true });
+    mockFs.writeFileSync(join(blobDir, digest), "original bytes", { mode: 0o444 });
+    vfs.mkdirSync(join(root, "evidence"), { recursive: true });
+    vfs.writeFileSync(join(root, "evidence", "shot.png"), "tampered bytes");
     writeCaptures(root, [
       captureFixture({
         sha256: digest,
@@ -166,9 +168,9 @@ describe("capture references (via verifyCapsuleLayout)", () => {
     const root = scratchRoot("reports-capture-unreadable-for-a-copy-storage-capt");
     const digest = "e".repeat(64);
     const blobDir = join(root, "blobs", "ee");
-    mkdirSync(blobDir, { recursive: true });
-    writeFileSync(join(blobDir, digest), "hello", { mode: 0o444 });
-    mkdirSync(join(root, "evidence", "shot.png"), { recursive: true });
+    vfs.mkdirSync(blobDir, { recursive: true });
+    mockFs.writeFileSync(join(blobDir, digest), "hello", { mode: 0o444 });
+    vfs.mkdirSync(join(root, "evidence", "shot.png"), { recursive: true });
     writeCaptures(root, [
       captureFixture({ sha256: digest, blob_path: `blobs/ee/${digest}`, storage: "copy" }),
     ]);
@@ -180,10 +182,10 @@ describe("capture references (via verifyCapsuleLayout)", () => {
     const root = scratchRoot("reports-capture-storage-for-an-unrecognized-storag");
     const digest = "e".repeat(64);
     const blobDir = join(root, "blobs", "ee");
-    mkdirSync(blobDir, { recursive: true });
-    writeFileSync(join(blobDir, digest), "hello", { mode: 0o444 });
-    mkdirSync(join(root, "evidence"), { recursive: true });
-    writeFileSync(join(root, "evidence", "shot.png"), "hello");
+    vfs.mkdirSync(blobDir, { recursive: true });
+    mockFs.writeFileSync(join(blobDir, digest), "hello", { mode: 0o444 });
+    vfs.mkdirSync(join(root, "evidence"), { recursive: true });
+    vfs.writeFileSync(join(root, "evidence", "shot.png"), "hello");
     writeCaptures(root, [
       captureFixture({ sha256: digest, blob_path: `blobs/ee/${digest}`, storage: "teleport" }),
     ]);
@@ -205,7 +207,7 @@ describe("capture references (via verifyCapsuleLayout)", () => {
 describe("verifyCapsuleDeep", () => {
   test("combines undeclared entries and blob content verification", () => {
     const root = scratchRoot("combines-undeclared-entries-and-blob-content-verif");
-    writeFileSync(join(root, "mystery.txt"), "x");
+    vfs.writeFileSync(join(root, "mystery.txt"), "x");
     const found = verifyCapsuleDeep(root);
     expect(found.some((i) => i.code === "LAYOUT_UNDECLARED")).toBe(true);
   });
@@ -220,7 +222,7 @@ describe("verifyBlobContents", () => {
   test("returns no issues when every stored blob's content still hashes to its own name", () => {
     const root = scratchRoot("returns-no-issues-when-every-stored-blob-s-content");
     const source = join(root, "source.txt");
-    writeFileSync(source, "authentic bytes");
+    vfs.writeFileSync(source, "authentic bytes");
     putBlobFile(root, source);
     expect(verifyBlobContents(root)).toEqual([]);
   });
@@ -228,10 +230,10 @@ describe("verifyBlobContents", () => {
   test("reports BLOB_CONTENT when a stored blob's bytes no longer match its own digest name", () => {
     const root = scratchRoot("reports-blob-content-when-a-stored-blob-s-bytes-no");
     const source = join(root, "source.txt");
-    writeFileSync(source, "authentic bytes");
+    vfs.writeFileSync(source, "authentic bytes");
     const put = putBlobFile(root, source);
-    chmodSync(join(root, put.path), 0o644);
-    writeFileSync(join(root, put.path), "tampered bytes");
+    mockFs.chmodSync(join(root, put.path), 0o644);
+    vfs.writeFileSync(join(root, put.path), "tampered bytes");
     const found = verifyBlobContents(root);
     expect(found).toEqual([expect.objectContaining({ code: "BLOB_CONTENT" })]);
   });
@@ -240,30 +242,30 @@ describe("verifyBlobContents", () => {
     const root = scratchRoot("reports-blob-unreadable-when-a-listed-blob-cannot-");
     const digest = "f".repeat(64);
     const shardDir = join(root, "blobs", "ff");
-    mkdirSync(shardDir, { recursive: true });
-    mkdirSync(join(shardDir, digest));
+    vfs.mkdirSync(shardDir, { recursive: true });
+    vfs.mkdirSync(join(shardDir, digest));
     const found = verifyBlobContents(root);
     expect(found).toEqual([expect.objectContaining({ code: "BLOB_UNREADABLE" })]);
   });
 
   test("edge cases: corrupt captures.json, zero-byte blobs, and symlinked view detection", () => {
     const rootCorrupt = scratchRoot("edge-case-corrupt-captures");
-    writeFileSync(join(rootCorrupt, "captures.json"), "{ broken json syntax");
+    vfs.writeFileSync(join(rootCorrupt, "captures.json"), "{ broken json syntax");
     expect(verifyCapsuleLayout(rootCorrupt)).toEqual([]);
 
-    writeFileSync(join(rootCorrupt, "captures.json"), "");
+    vfs.writeFileSync(join(rootCorrupt, "captures.json"), "");
     expect(verifyCapsuleLayout(rootCorrupt)).toEqual([]);
 
     const rootZero = scratchRoot("edge-case-zero-byte-blob");
     const emptySource = join(rootZero, "empty.txt");
-    writeFileSync(emptySource, "");
+    vfs.writeFileSync(emptySource, "");
     const put = putBlobFile(rootZero, emptySource);
     expect(put.sha256).toBe("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
     expect(verifyBlobContents(rootZero)).toEqual([]);
 
-    mkdirSync(join(rootZero, "evidence"), { recursive: true });
+    vfs.mkdirSync(join(rootZero, "evidence"), { recursive: true });
     const viewPath = join(rootZero, "evidence", "empty.png");
-    linkSync(join(rootZero, put.path), viewPath);
+    mockFs.linkSync(join(rootZero, put.path), viewPath);
     writeCaptures(rootZero, [
       captureFixture({
         name: "empty.png",

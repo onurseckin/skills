@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import type { CaptureConfig } from "../../../olt/scripts/src/capture/config/types.ts";
 import {
@@ -8,11 +7,14 @@ import {
   resolveViewportsForScreen,
   runLiveCapture,
 } from "../../../olt/scripts/src/capture/runners/index.ts";
+import type { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import { cleanupVirtualCaptureFS, scratchRoot, setupVirtualCaptureFS } from "../fixture.ts";
 
 describe("Companion Manifest Resolution & Error Protection", () => {
+  let vfs: VirtualMemoryFS;
+
   beforeEach(() => {
-    setupVirtualCaptureFS();
+    vfs = setupVirtualCaptureFS();
   });
 
   afterEach(() => {
@@ -47,7 +49,7 @@ describe("Companion Manifest Resolution & Error Protection", () => {
   test("refuses to silently fabricate evidence when no browserProvider is supplied", async () => {
     const root = scratchRoot(import.meta.path, "test-capture-no-provider");
     const tempDir = join(root, "output");
-    mkdirSync(tempDir, { recursive: true });
+    vfs.mkdirSync(tempDir, { recursive: true });
 
     const testConfig: CaptureConfig = {
       version: "1.0",
@@ -63,6 +65,6 @@ describe("Companion Manifest Resolution & Error Protection", () => {
       threw = true;
     }
     expect(threw).toBe(true);
-    expect(existsSync(join(tempDir, "index-desktop.png"))).toBe(false);
+    expect(vfs.existsSync(join(tempDir, "index-desktop.png"))).toBe(false);
   });
 });

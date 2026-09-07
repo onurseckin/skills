@@ -66,14 +66,14 @@ By default, an unauthenticated or newly initialized agent has zero permissions (
 
 Capabilities are strictly partitioned across the 4-tier agent hierarchy:
 
-| Role Archetype         | Tier   | Permitted Tool Categories      | Permitted CLI Commands      | File Mutation Scope      | Isolation Boundary    |
-| :--------------------- | :----- | :----------------------------- | :-------------------------- | :----------------------- | :-------------------- |
-| **Mind**               | Tier 0 | Mailbox, Telemetry, Doctor     | `mind:*`, `doctor:*`        | Strictly None            | Host Capsule Root     |
-| **Orchestrator**       | Tier 1 | Subagent Spawn, Mailbox        | `plan:*`, `dag:*`, `wave:*` | Strictly None            | Host Capsule Root     |
-| **Coordinator**        | Tier 2 | Subagent Spawn, Mailbox, Lease | `task:claim`, `task:submit` | Strictly None            | Host Capsule Root     |
-| **Implementer**        | Tier 3 | File Edit, AST Query, Git Ops  | `branch:*`, `task:check`    | Assigned Worktree Only   | Dedicated Worktree    |
-| **Validator**          | Tier 3 | Read-Only File, AST Query      | Strictly 0 (Hard-Locked)    | Strictly None            | Read-Only Worktree    |
-| **UI-Headless-Validator** | Tier 3 | Process Runner, Binary Probe | `bun test`, `gate:prove`    | Read-Only Test Artifacts | Isolated Scratch Tree |
+| Role Archetype            | Tier   | Permitted Tool Categories      | Permitted CLI Commands      | File Mutation Scope      | Isolation Boundary    |
+| :------------------------ | :----- | :----------------------------- | :-------------------------- | :----------------------- | :-------------------- |
+| **Mind**                  | Tier 0 | Mailbox, Telemetry, Doctor     | `mind:*`, `doctor:*`        | Strictly None            | Host Capsule Root     |
+| **Orchestrator**          | Tier 1 | Subagent Spawn, Mailbox        | `plan:*`, `dag:*`, `wave:*` | Strictly None            | Host Capsule Root     |
+| **Coordinator**           | Tier 2 | Subagent Spawn, Mailbox, Lease | `task:claim`, `task:submit` | Strictly None            | Host Capsule Root     |
+| **Implementer**           | Tier 3 | File Edit, AST Query, Git Ops  | `branch:*`, `task:check`    | Assigned Worktree Only   | Dedicated Worktree    |
+| **Validator**             | Tier 3 | Read-Only File, AST Query      | Strictly 0 (Hard-Locked)    | Strictly None            | Read-Only Worktree    |
+| **UI-Headless-Validator** | Tier 3 | Process Runner, Binary Probe   | `bun test`, `gate:prove`    | Read-Only Test Artifacts | Isolated Scratch Tree |
 
 ### 2.4 Compile-Time Schema Invariant Verification
 

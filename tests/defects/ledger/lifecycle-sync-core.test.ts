@@ -1,5 +1,4 @@
-import { beforeEach, describe, expect, it } from "bun:test";
-import * as fs from "node:fs";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { dirname, join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -13,19 +12,26 @@ import type {
   DefectEntry,
   EmpiricalFailureProof,
 } from "../../../olt/scripts/src/mind/contracts/defect-contracts.ts";
-import { scratchRoot, setupVirtualDefectsFS } from "../defects-fixture.ts";
+import type { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import { cleanupVirtualDefectsFS, scratchRoot, setupVirtualDefectsFS } from "../defects-fixture.ts";
 
 export const lifecycleSyncCoreSuiteName = "Defect Lifecycle Sync & Key Generation Core Engine";
 
 describe(lifecycleSyncCoreSuiteName, () => {
+  let vfs: VirtualMemoryFS;
+
   beforeEach(() => {
-    setupVirtualDefectsFS();
+    vfs = setupVirtualDefectsFS();
+  });
+
+  afterEach(() => {
+    cleanupVirtualDefectsFS();
   });
 
   function createTestPaths() {
     const tempDir = scratchRoot(import.meta.path, "lifecycle-core");
     const defectsPath = join(tempDir, ".olt", "defects.jsonl");
-    fs.mkdirSync(dirname(defectsPath), { recursive: true });
+    vfs.mkdirSync(dirname(defectsPath), { recursive: true });
     return { tempDir, defectsPath };
   }
 
@@ -89,7 +95,7 @@ describe(lifecycleSyncCoreSuiteName, () => {
       });
       const defectId = initResult.defects[0]?.id;
 
-      const existing = parseDefectsJsonl(fs.readFileSync(defectsPath, "utf-8"));
+      const existing = parseDefectsJsonl(vfs.readFileSync(defectsPath, "utf-8"));
       const completed = existing.map((d) =>
         d.id === defectId
           ? {
@@ -99,7 +105,7 @@ describe(lifecycleSyncCoreSuiteName, () => {
             }
           : d,
       );
-      fs.writeFileSync(defectsPath, serializeDefectsJsonl(completed), "utf-8");
+      vfs.writeFileSync(defectsPath, serializeDefectsJsonl(completed), "utf-8");
 
       const failureProof: EmpiricalFailureProof = {
         commit_sha: "abc1234def5678",
@@ -133,7 +139,7 @@ describe(lifecycleSyncCoreSuiteName, () => {
         status: "completed",
         timestamp: "2026-08-29T01:00:00.000Z",
       };
-      fs.writeFileSync(defectsPath, serializeDefectsJsonl([defect]), "utf-8");
+      vfs.writeFileSync(defectsPath, serializeDefectsJsonl([defect]), "utf-8");
       const finding: DoctorFindingInput = {
         id: "doctor-completed-defect",
         code: "INVARIANT_BREACH",
@@ -152,18 +158,18 @@ describe(lifecycleSyncCoreSuiteName, () => {
     it("migrates and removes loose olt/defects.jsonl", () => {
       const { tempDir, defectsPath } = createTestPaths();
       const vestigialPath = join(tempDir, "olt", "defects.jsonl");
-      fs.mkdirSync(dirname(vestigialPath), { recursive: true });
+      vfs.mkdirSync(dirname(vestigialPath), { recursive: true });
       const sampleDefect: DefectEntry = {
         id: "legacy-defect-1",
         type: "LEGACY_BUG",
         status: "open",
         timestamp: "2026-08-29T00:00:00.000Z",
       };
-      fs.writeFileSync(vestigialPath, serializeDefectsJsonl([sampleDefect]), "utf-8");
+      vfs.writeFileSync(vestigialPath, serializeDefectsJsonl([sampleDefect]), "utf-8");
 
       cleanupVestigialDefectsFile(defectsPath);
-      expect(fs.existsSync(vestigialPath)).toBeFalse();
-      const canonicalEntries = parseDefectsJsonl(fs.readFileSync(defectsPath, "utf-8"));
+      expect(vfs.existsSync(vestigialPath)).toBeFalse();
+      const canonicalEntries = parseDefectsJsonl(vfs.readFileSync(defectsPath, "utf-8"));
       expect(canonicalEntries.some((d) => d.id === "legacy-defect-1")).toBeTrue();
     });
   });

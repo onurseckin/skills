@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, spyOn, test } from "bun:test";
-import * as fs from "node:fs";
 import * as cp from "node:child_process";
 import { join } from "node:path";
 import {
@@ -73,7 +72,7 @@ describe(unifiedMasterDoctorHealingSuiteName, () => {
         state.data = { t1: { id: "t1", status: "open" } };
       });
 
-      fs.writeFileSync(
+      vfs.writeFileSync(
         join(runRoot, "state.json"),
         JSON.stringify({ schema: "harness.state", event_sequence: 999, corrupted: true }),
       );
@@ -84,7 +83,7 @@ describe(unifiedMasterDoctorHealingSuiteName, () => {
           healResult.autoHealed[0].includes("Recovered state projection"),
       ).toBe(true);
 
-      fs.writeFileSync(
+      vfs.writeFileSync(
         join(runRoot, "state.json"),
         JSON.stringify({ schema: "harness.state", event_sequence: 999, corrupted: true }),
       );

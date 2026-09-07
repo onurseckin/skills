@@ -12,7 +12,12 @@ import {
   refuseSyncSourceMessage,
   resolveOltSyncSource,
 } from "../../../scripts/sync/git-source.ts";
-import { cleanupVirtualSyncFS, getVirtualSyncFS, scratchRoot, setupVirtualSyncFS } from "../sync-fixture.ts";
+import {
+  cleanupVirtualSyncFS,
+  getVirtualSyncFS,
+  scratchRoot,
+  setupVirtualSyncFS,
+} from "../sync-fixture.ts";
 import { defaultMockSpawnSync, initSkillsRepoAt } from "./git-fixture.ts";
 import { mockSubprocess } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 

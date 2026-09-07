@@ -55,7 +55,9 @@ describe("generateSummarySuite", () => {
     expect(JSON.parse(vfs.readFileSync(join(summaryDir, "metrics.json"), "utf-8"))).toEqual(
       suite.metrics,
     );
-    expect(JSON.parse(vfs.readFileSync(join(summaryDir, "graph.json"), "utf-8"))).toEqual(suite.graph);
+    expect(JSON.parse(vfs.readFileSync(join(summaryDir, "graph.json"), "utf-8"))).toEqual(
+      suite.graph,
+    );
     expect(vfs.readFileSync(join(summaryDir, "summary.md"), "utf-8")).toBe(suite.markdown);
   });
 
@@ -89,7 +91,9 @@ describe("generateSummarySuite", () => {
     const suite = generateSummarySuite({ capsulePath: "x", outDir }, () => loaded);
 
     expect(vfs.existsSync(outDir)).toBe(true);
-    expect(JSON.parse(vfs.readFileSync(join(outDir, "run-alpha.json"), "utf-8"))).toEqual(suite.graph);
+    expect(JSON.parse(vfs.readFileSync(join(outDir, "run-alpha.json"), "utf-8"))).toEqual(
+      suite.graph,
+    );
   });
 
   test("reuses an outDir that already exists instead of failing on mkdir", () => {

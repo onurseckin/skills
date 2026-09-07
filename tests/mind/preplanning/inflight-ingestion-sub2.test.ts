@@ -1,50 +1,39 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   InFlightIngestionEngine,
-  UserIntentExtractionEngine,
   createInFlightSnapshot,
-  extractUserIntent,
   inspectInFlightWork,
-  integrateUserIntentIntoRoadmap,
   listInFlightSnapshots,
   loadInFlightSnapshot,
-  parseDiffSummary,
-  parseGitStashes,
-  parseGitStatusOutput,
   saveInFlightSnapshot,
-  structureUserIntentAsBacklogDeliverable,
-  toCanonicalDomainCategory,
   type GitRunner,
-  type InFlightSnapshot,
   type InFlightSnapshotOptions,
-  type IntentCategory,
-  type IntentDomain,
   type SaveSnapshotOptions,
 } from "../../../olt/scripts/src/mind/preplanning/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 
 describe("In-Flight Work Ingestion & Intent Extraction Engine Suite", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
   let testDir: string;
   let snapshotsDir: string;
 
   beforeEach(() => {
-    testDir = join(
-      tmpdir(),
-      `test-inflight-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    );
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    testDir = `/virtual/test-inflight-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     snapshotsDir = join(testDir, ".olt", "snapshots");
-    mkdirSync(snapshotsDir, { recursive: true });
+    vfs.mkdirSync(snapshotsDir, { recursive: true });
   });
 
   afterEach(() => {
-    try {
-      rmSync(testDir, { recursive: true, force: true });
-    } catch {
-      // Best effort cleanup
-    }
+    session.cleanup();
   });
 
   describe("InFlightIngestionEngine Snapshot Lifecycle", () => {
@@ -94,13 +83,11 @@ describe("In-Flight Work Ingestion & Intent Extraction Engine Suite", () => {
       expect(snapshot.uncommittedFiles.length).toBe(2);
       expect(snapshot.stashes.length).toBe(1);
 
-      // Save snapshot to .olt/snapshots/
       const savedPath = await engine.saveSnapshot(snapshot);
-      expect(existsSync(savedPath)).toBe(true);
+      expect(vfs.existsSync(savedPath)).toBe(true);
       expect(savedPath).toContain(snapshot.snapshotId);
       expect(savedPath.endsWith(".json")).toBe(true);
 
-      // Overwrite protection
       let threwOverwrite = false;
       try {
         await engine.saveSnapshot(snapshot, { overwrite: false });
@@ -109,17 +96,14 @@ describe("In-Flight Work Ingestion & Intent Extraction Engine Suite", () => {
       }
       expect(threwOverwrite).toBe(true);
 
-      // Load snapshot by ID
       const loadedById = await engine.loadSnapshot(snapshot.snapshotId);
       expect(loadedById.snapshotId).toBe(snapshot.snapshotId);
       expect(loadedById.branch).toBe(snapshot.branch);
       expect(loadedById.headCommit).toBe(snapshot.headCommit);
 
-      // Load snapshot by file path
       const loadedByPath = await engine.loadSnapshot(savedPath);
       expect(loadedByPath.snapshotId).toBe(snapshot.snapshotId);
 
-      // List snapshots
       const list = await engine.listSnapshots();
       expect(list.length).toBe(1);
       const firstSummary = list[0];
@@ -127,7 +111,6 @@ describe("In-Flight Work Ingestion & Intent Extraction Engine Suite", () => {
       expect(firstSummary?.snapshotId).toBe(snapshot.snapshotId);
       expect(firstSummary?.filesChanged).toBe(snapshot.diffSummary.filesChanged);
 
-      // Inspect in-flight work
       const inspection = await engine.inspectInFlightWork();
       expect(inspection.hasUncommittedChanges).toBe(true);
       expect(inspection.uncommittedFilesCount).toBe(2);
@@ -163,7 +146,7 @@ describe("In-Flight Work Ingestion & Intent Extraction Engine Suite", () => {
         snapshotsDir,
       };
       const filePath = await saveInFlightSnapshot(snapshot, saveOptions);
-      expect(existsSync(filePath)).toBe(true);
+      expect(vfs.existsSync(filePath)).toBe(true);
 
       const loaded = await loadInFlightSnapshot(snapshot.snapshotId, {
         snapshotsDir,

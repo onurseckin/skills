@@ -1,6 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { cp, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
-import { mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
@@ -18,7 +16,15 @@ import { pathIdentity } from "../../../olt/scripts/src/installer/path-safety.ts"
 import { validateSkillSource } from "../../../olt/scripts/src/installer/source-validation.ts";
 import { SKILL_NAME } from "../../../olt/scripts/src/installer/constants.ts";
 import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
-import { cleanInstallerFixtures, installerFixture, setupVirtualInstallerFS } from "../helpers.ts";
+import {
+  cleanInstallerFixtures,
+  copyDirRecursive,
+  getVirtualInstallerFS,
+  installerFixture,
+  normPath,
+  setupVirtualInstallerFS,
+  vfsState,
+} from "../helpers.ts";
 
 beforeEach(setupVirtualInstallerFS);
 afterEach(cleanInstallerFixtures);
@@ -50,7 +56,8 @@ describe("prepareReleaseCopy", () => {
     await release.commit();
     await release.finalize();
     await release.cleanup();
-    expect(await readFile(join(destination, "installation.json"), "utf8")).toContain(SKILL_NAME);
+    const vfs = getVirtualInstallerFS();
+    expect(vfs.readFileSync(join(destination, "installation.json"), "utf8")).toContain(SKILL_NAME);
   });
 
   test("rejects an unsupported platform before touching the filesystem", async () => {
@@ -68,9 +75,10 @@ describe("prepareReleaseCopy", () => {
     const { source } = await installerFixture();
     const root = scratchRoot(import.meta.path, "prepare-dest-is-file");
     const home = join(root, "home");
-    await mkdir(home, { recursive: true });
+    const vfs = getVirtualInstallerFS();
+    vfs.mkdirSync(home, { recursive: true });
     const destination = join(home, "dest");
-    writeFileSync(destination, "not a directory");
+    vfs.writeFileSync(destination, "not a directory");
     await expect(
       prepareReleaseCopy(source, destination, await validManifest(source)),
     ).rejects.toThrow(/refusing to replace unrelated path/);
@@ -81,8 +89,9 @@ describe("prepareReleaseCopy", () => {
     const root = scratchRoot(import.meta.path, "prepare-dest-not-identified");
     const home = join(root, "home");
     const destination = join(home, "dest");
-    await mkdir(destination, { recursive: true });
-    await writeFile(join(destination, "random.txt"), "not a real install");
+    const vfs = getVirtualInstallerFS();
+    vfs.mkdirSync(destination, { recursive: true });
+    vfs.writeFileSync(join(destination, "random.txt"), "not a real install");
     await expect(
       prepareReleaseCopy(source, destination, await validManifest(source)),
     ).rejects.toThrow(/refusing to replace unrelated path/);
@@ -110,7 +119,10 @@ describe("prepareReleaseCopy", () => {
       prepareReleaseCopy(source, destination, manifest, {
         hooks: {
           async beforeSourceRecheck() {
-            await writeFile(join(source, "extra-file.txt"), "mutated after staging");
+            getVirtualInstallerFS().writeFileSync(
+              join(source, "extra-file.txt"),
+              "mutated after staging",
+            );
           },
         },
       }),
@@ -127,7 +139,8 @@ describe("prepareReleaseCopy", () => {
     await expect(prepareReleaseCopy(source, destination, manifest)).rejects.toThrow(
       /staged release digest or runtime does not match its manifest/,
     );
-    const entries = await readdir(home).catch(() => []);
+    const vfs = getVirtualInstallerFS();
+    const entries = vfs.existsSync(home) ? (vfs.readdirSync(home) as string[]) : [];
     expect(entries.some((name) => name.includes(".tmp-"))).toBe(true);
     const lock = acquireInstallerLock(home);
     lock.release();
@@ -140,10 +153,11 @@ describe("prepareReleaseCopy", () => {
     const destination = join(home, "dest");
     const manifest = await validManifest(source);
 
-    await mkdir(home, { recursive: true });
+    const vfs = getVirtualInstallerFS();
+    vfs.mkdirSync(home, { recursive: true });
     const validated = await validateSkillSource(source);
     const temporary = join(home, `dest.tmp-${randomUUID()}`);
-    await cp(source, temporary, { recursive: true });
+    copyDirRecursive(source, temporary);
     const sealed = sealInstallationManifest({
       schema: "harness.installation",
       version: 1,
@@ -153,7 +167,7 @@ describe("prepareReleaseCopy", () => {
       installed_at: "2026-01-01T00:00:00.000Z",
       clients: [],
     });
-    await writeFile(join(temporary, "installation.json"), canonicalJsonBytes(sealed));
+    vfs.writeFileSync(join(temporary, "installation.json"), canonicalJsonBytes(sealed));
     const setupLock = acquireInstallerLock(home);
     await beginReleaseTransaction(
       home,
@@ -174,7 +188,7 @@ describe("prepareReleaseCopy", () => {
     await release.finalize();
     await release.cleanup();
     expect(await pathIdentity(markerPath(home))).toBeNull();
-    expect(await readFile(join(destination, "installation.json"), "utf8")).toContain(SKILL_NAME);
+    expect(vfs.readFileSync(join(destination, "installation.json"), "utf8")).toContain(SKILL_NAME);
   });
 
   test("stages an upgrade over an existing identified installation", async () => {
@@ -193,7 +207,8 @@ describe("prepareReleaseCopy", () => {
     await second.commit();
     await second.finalize();
     await second.cleanup();
-    expect(await readFile(join(destination, "installation.json"), "utf8")).toContain(SKILL_NAME);
+    const vfs = getVirtualInstallerFS();
+    expect(vfs.readFileSync(join(destination, "installation.json"), "utf8")).toContain(SKILL_NAME);
   });
 });
 
@@ -204,7 +219,8 @@ describe("atomicReleaseCopy", () => {
     const home = join(root, "home");
     const destination = join(home, "dest");
     await atomicReleaseCopy(source, destination, await validManifest(source));
-    expect(await readFile(join(destination, "installation.json"), "utf8")).toContain(SKILL_NAME);
+    const vfs = getVirtualInstallerFS();
+    expect(vfs.readFileSync(join(destination, "installation.json"), "utf8")).toContain(SKILL_NAME);
     expect(await pathIdentity(markerPath(home))).toBeNull();
   });
 
@@ -215,7 +231,8 @@ describe("atomicReleaseCopy", () => {
     const destination = join(home, "dest");
     await atomicReleaseCopy(source, destination, await validManifest(source));
     await atomicReleaseCopy(source, destination, await validManifest(source));
-    expect(await readFile(join(destination, "installation.json"), "utf8")).toContain(SKILL_NAME);
+    const vfs = getVirtualInstallerFS();
+    expect(vfs.readFileSync(join(destination, "installation.json"), "utf8")).toContain(SKILL_NAME);
   });
 
   test("rolls back and re-throws the original failure when commit fails partway", async () => {
@@ -233,7 +250,8 @@ describe("atomicReleaseCopy", () => {
     await expect(
       atomicReleaseCopy(source, destination, await validManifest(source), { hooks }),
     ).rejects.toBe(failure);
-    expect(await readFile(join(destination, "installation.json"), "utf8")).toContain(SKILL_NAME);
+    const vfs = getVirtualInstallerFS();
+    expect(vfs.readFileSync(join(destination, "installation.json"), "utf8")).toContain(SKILL_NAME);
     expect(await pathIdentity(markerPath(home))).toBeNull();
   });
 
@@ -249,11 +267,13 @@ describe("atomicReleaseCopy", () => {
         throw failure;
       },
       beforeCleanupTemporary() {
-        const tempName = readdirSync(home).find((name) => name.includes(".tmp-"));
+        const vfs = getVirtualInstallerFS();
+        const tempName = (vfs.readdirSync(home) as string[]).find((name) => name.includes(".tmp-"));
         if (!tempName) return;
         const tempPath = join(home, tempName);
-        rmSync(tempPath, { recursive: true });
-        mkdirSync(tempPath);
+        vfsState.inodeMap.delete(normPath(tempPath));
+        vfs.rmSync(tempPath, { recursive: true });
+        vfs.mkdirSync(tempPath);
       },
     };
     await expect(

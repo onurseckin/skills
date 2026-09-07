@@ -1,6 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { attachGateResult } from "../../../olt/scripts/src/workflow/gates/attach-result.ts";
@@ -13,6 +11,7 @@ import { reviewPolicyFor } from "../../../olt/scripts/src/cli/commands/task-revi
 import { validatorProfile } from "../../../olt/scripts/src/sentinel/profiles/tier3/validator.ts";
 import { setupWorkflowVirtualFs } from "../shared/index.ts";
 import { at, commandRecord, TestPort, workflowState } from "../shared/test-port.ts";
+import type { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 const clock = at("2026-09-06T12:00:00.000Z");
 
@@ -135,14 +134,21 @@ describe("finishTask cognitive pushback quotas enforcement", () => {
 
 describe("reviewPolicyFor pushback quotas defaulting", () => {
   let tempDir: string;
+  let vfsCleanup: (() => void) | undefined;
+  let vfs: VirtualMemoryFS;
+  let counter = 0;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "review-policy-quota-"));
-    mkdirSync(join(tempDir, ".git"), { recursive: true });
+    const setup = setupWorkflowVirtualFs();
+    vfsCleanup = setup.cleanup;
+    vfs = setup.vfs;
+    tempDir = `/virtual/review-policy-quota-${++counter}`;
+    vfs.mkdirSync(join(tempDir, ".git"), { recursive: true });
   });
 
   afterEach(() => {
-    rmSync(tempDir, { recursive: true, force: true });
+    vfsCleanup?.();
+    vfsCleanup = undefined;
   });
 
   test("defaults minProbes to MIN_ADVERSARIAL_PROBES (5) when unconfigured", () => {
@@ -153,7 +159,7 @@ describe("reviewPolicyFor pushback quotas defaulting", () => {
   });
 
   test("honors explicitly configured min_adversarial_probes in harness config", () => {
-    writeFileSync(
+    vfs.writeFileSync(
       join(tempDir, "harness.config.json"),
       JSON.stringify({ min_adversarial_probes: 2 }),
       "utf-8",

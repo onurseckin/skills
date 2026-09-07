@@ -6,17 +6,29 @@ import {
   pruneStaleSessions,
   enableInMemorySessionStore,
   disableInMemorySessionStore,
+  getInMemorySessionStore,
 } from "../../../olt/scripts/src/authority/session/index.ts";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Authority Session Registry - Lifecycle & Pruning", () => {
   const sandboxDir = "/virtual/capsules/registry-lifecycle";
+  let vfs = new VirtualMemoryFS();
+  let session: VirtualFSSession = createVirtualFSSession(vfs);
 
   beforeEach(() => {
+    session.cleanup();
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
     enableInMemorySessionStore();
   });
 
   afterEach(() => {
     disableInMemorySessionStore();
+    session.cleanup();
   });
 
   it("autoDeriveCallerIdentity returns active session info when resolved", () => {
@@ -69,8 +81,10 @@ describe("Authority Session Registry - Lifecycle & Pruning", () => {
   });
 
   it("prunes in-memory session records", () => {
+    const store = getInMemorySessionStore();
+    store?.set("/some/path/.sessions/test.json", "{}");
     pruneStaleSessions(86400000);
-    expect(true).toBe(true);
+    expect(store?.has("/some/path/.sessions/test.json")).toBe(false);
   });
 
   it("resolves active session with derived agentId and unauthenticated token when omitted", () => {
@@ -181,7 +195,7 @@ describe("Authority Session Registry - Lifecycle & Pruning", () => {
 
   it("resolveActiveSession handles empty options and returns null", () => {
     const res = resolveActiveSession({
-      cwd: "/tmp/non-repo-dir",
+      cwd: "/virtual/non-repo-dir",
       env: {},
       pid: 0,
       ppid: 0,

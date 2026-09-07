@@ -46,7 +46,11 @@ class VirtualClock {
       }
     }) as typeof clearTimeout;
 
-    globalThis.setInterval = ((handler: TimerHandler, timeout?: number, ...args: unknown[]): any => {
+    globalThis.setInterval = ((
+      handler: TimerHandler,
+      timeout?: number,
+      ...args: unknown[]
+    ): any => {
       const id = this.nextId++;
       const ms = Math.max(1, timeout ?? 1);
       const runAt = this.currentTime + ms;

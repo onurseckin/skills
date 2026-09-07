@@ -1,15 +1,18 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { registerWatchdog } from "../../../../../olt/scripts/src/authority/watchdog/index.ts";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import { initRun, transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
 import { registerSessionGrant } from "../../../../../olt/scripts/src/authority/session/index.ts";
+import { type VirtualMemoryFS } from "../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import { origRead } from "../../../../../olt/scripts/src/testing/virtual-fs/handlers.ts";
 import { cleanupVirtualCliFS, setupVirtualCliFS } from "../../fixtures/full-lifecycle-fixture.ts";
 import { scratchRoot } from "../../../../shared/fixtures/scratch-root.ts";
 
+let vfs: VirtualMemoryFS;
+
 beforeEach(() => {
-  setupVirtualCliFS();
+  vfs = setupVirtualCliFS();
 });
 afterEach(() => {
   cleanupVirtualCliFS();
@@ -187,7 +190,10 @@ describe("CLI - watchdog:probe", () => {
 
 describe("Invariants & Cleanliness Audit - CLI Watchdog Ops", () => {
   test("zero TypeScript any and zero suppressions across CLI test file", () => {
-    const sourceContent = readFileSync(import.meta.path, "utf-8");
+    vfs.mkdirSync(dirname(import.meta.path), { recursive: true });
+    vfs.writeFileSync(import.meta.path, origRead(import.meta.path, "utf-8"));
+    const raw = vfs.readFileSync(import.meta.path, "utf-8");
+    const sourceContent = typeof raw === "string" ? raw : Buffer.from(raw).toString("utf-8");
     const forbiddenAnyRegex = new RegExp(":[ \\t]*" + "any\\b");
     const forbiddenCastRegex = new RegExp("\\bas[ \\t]+" + "any\\b");
     const forbiddenSuppressionsRegex = new RegExp("@ts-" + "(ignore|expect-error|nocheck)");

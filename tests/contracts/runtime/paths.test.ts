@@ -1,37 +1,47 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import { safeRepoPath } from "../../../olt/scripts/src/core/paths.ts";
 import {
-  cleanupVirtualBrowserFS,
-  setupVirtualBrowserFS,
-  tempDir,
-} from "../../reporting/browser/browser-virtual-fs.ts";
+  createVirtualFSSession,
+  type VirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 export const pathsSuiteName = "core paths & safeRepoPath safety invariants";
 
 describe(pathsSuiteName, () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
+  let dirCounter = 0;
+
+  function makeVirtualDir(prefix: string): string {
+    const dir = `/tmp/virtual/paths-${prefix}-${++dirCounter}`;
+    vfs.mkdirSync(dir, { recursive: true });
+    return dir;
+  }
+
   beforeEach(() => {
-    setupVirtualBrowserFS();
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
-    cleanupVirtualBrowserFS();
+    session.cleanup();
   });
 
   test("safeRepoPath validates repository directory existence and rejects invalid roots", () => {
-    const root = tempDir("validation");
+    const root = makeVirtualDir("validation");
 
     const nonExistent = join(root, "missing-dir");
     expect(() => safeRepoPath(nonExistent, "file.txt")).toThrow(/not a directory/i);
 
     const fileAsRoot = join(root, "plain-file.txt");
-    fs.writeFileSync(fileAsRoot, "content", "utf-8");
+    vfs.writeFileSync(fileAsRoot, "content");
     expect(() => safeRepoPath(fileAsRoot, "file.txt")).toThrow(/not a directory/i);
   });
 
   test("safeRepoPath rejects absolute paths and parent traversal", () => {
-    const repo = tempDir("traversal-repo");
+    const repo = makeVirtualDir("traversal-repo");
 
     expect(() => safeRepoPath(repo, "/absolute/path/file.txt")).toThrow(
       /absolute paths are not allowed/i,
@@ -43,7 +53,7 @@ describe(pathsSuiteName, () => {
   });
 
   test("safeRepoPath rejects escaping paths and empty/root-resolving paths", () => {
-    const repo = tempDir("escape-repo");
+    const repo = makeVirtualDir("escape-repo");
 
     expect(() => safeRepoPath(repo, "")).toThrow();
     expect(() => safeRepoPath(repo, ".")).toThrow();
@@ -51,25 +61,24 @@ describe(pathsSuiteName, () => {
   });
 
   test("safeRepoPath rejects symbolic links inside path hierarchy", () => {
-    const repo = tempDir("symlink-repo");
-    const outside = tempDir("outside-target");
+    const repo = makeVirtualDir("symlink-repo");
+    const outside = makeVirtualDir("outside-target");
 
-    fs.symlinkSync(outside, join(repo, "sym-link-dir"));
+    session.symlinkSync(outside, join(repo, "sym-link-dir"));
     expect(() => safeRepoPath(repo, "sym-link-dir/file.txt")).toThrow(
       /symbolic path components are not allowed/i,
     );
   });
 
   test("safeRepoPath allows valid relative sub-paths and handles non-existent leaf files cleanly", () => {
-    const repo = tempDir("valid-repo");
-    fs.mkdirSync(join(repo, "src", "nested"), { recursive: true });
-    fs.writeFileSync(join(repo, "src", "nested", "index.ts"), "export {}", "utf-8");
+    const repo = makeVirtualDir("valid-repo");
+    vfs.mkdirSync(join(repo, "src", "nested"), { recursive: true });
+    vfs.writeFileSync(join(repo, "src", "nested", "index.ts"), "export {}");
 
     const resolved = safeRepoPath(repo, "src/nested/index.ts");
-    expect(resolved).toBe(join(fs.realpathSync(repo), "src/nested/index.ts"));
+    expect(resolved).toBe(join(repo, "src", "nested", "index.ts"));
 
-    // Future/non-existent leaf in valid directory
     const futureLeaf = safeRepoPath(repo, "src/nested/future.ts");
-    expect(futureLeaf).toBe(join(fs.realpathSync(repo), "src/nested/future.ts"));
+    expect(futureLeaf).toBe(join(repo, "src", "nested", "future.ts"));
   });
 });

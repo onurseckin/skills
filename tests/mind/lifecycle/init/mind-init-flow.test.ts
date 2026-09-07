@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import * as path from "node:path";
-import { setupVirtualMindFS, cleanupVirtualMindFS, scratchRoot } from "../../fixtures/mind-fixture.ts";
+import {
+  setupVirtualMindFS,
+  cleanupVirtualMindFS,
+  scratchRoot,
+} from "../../fixtures/mind-fixture.ts";
 import {
   executeAutonomousMindInit,
   AutonomousMindInitializer,

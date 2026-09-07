@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
-import { setupVirtualMindFS, cleanupVirtualMindFS, scratchRoot } from "../../fixtures/index.ts";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   assertValidBlueprintStructure,
   deriveDisjointTaskScope,
@@ -14,15 +17,19 @@ import {
 } from "../../../../olt/scripts/src/mind/preplanning/index.ts";
 
 describe("Plan Factory Engine (in-memory virtual)", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
   let testDir: string;
 
   beforeEach(() => {
-    setupVirtualMindFS();
-    testDir = scratchRoot("plan-factory", "test");
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
+    testDir = `/virtual/plan-factory-${Date.now()}`;
+    vfs.mkdirSync(testDir, { recursive: true });
   });
 
   afterEach(() => {
-    cleanupVirtualMindFS();
+    session.cleanup();
   });
 
   const mockCluster: ThematicCluster = {
@@ -118,8 +125,8 @@ describe("Plan Factory Engine (in-memory virtual)", () => {
     const targetFile = join(testDir, "docs/planning/cluster-1/PLAN.md");
     const written = writePlanFile(targetFile, "# Test Plan", testDir);
     expect(written).toBe(targetFile);
-    expect(fs.existsSync(targetFile)).toBe(true);
-    expect(fs.readFileSync(targetFile, "utf-8")).toBe("# Test Plan");
+    expect(vfs.existsSync(targetFile)).toBe(true);
+    expect(vfs.readFileSync(targetFile, "utf-8")).toBe("# Test Plan");
   });
 
   test("generateAndWritePlan outputs plan and writes to destination", () => {
@@ -129,7 +136,7 @@ describe("Plan Factory Engine (in-memory virtual)", () => {
     };
     const result = generateAndWritePlan(cluster, mockItems, mockDefects, testDir);
     expect(result.planPath).toBe(join(testDir, "docs/planning/custom-cluster/PLAN.md"));
-    expect(fs.existsSync(result.planPath)).toBe(true);
+    expect(vfs.existsSync(result.planPath)).toBe(true);
     expect(assertValidBlueprintStructure(result.markdown)).toBe(true);
   });
 });

@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import * as fs from "node:fs";
 import { dirname, resolve } from "node:path";
 import {
   CONTRACTS_TIER_2,
@@ -15,7 +14,11 @@ import {
   roleToTier,
   validateTierSpawning,
 } from "../../../olt/scripts/src/authority/thread/index.ts";
-import { cleanupVirtualAgentsFS, setupVirtualAgentsFS } from "../fixture.ts";
+import {
+  VirtualMemoryFS,
+  createVirtualFSSession,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 const CONTRACT_PATHS = [
   "olt/scripts/src/agents/fleet/contracts-tier2.ts",
@@ -26,15 +29,20 @@ const CONTRACT_PATHS = [
   "olt/scripts/src/agents/fleet/contracts/execution-generic.ts",
 ];
 
+let vfs = new VirtualMemoryFS();
+let session: VirtualFSSession = createVirtualFSSession(vfs);
+
 const PRELOADED_CONTRACTS = new Map<string, string>();
 for (const relPath of CONTRACT_PATHS) {
   const fullPath = resolve(relPath);
-  PRELOADED_CONTRACTS.set(fullPath, fs.readFileSync(fullPath, "utf-8"));
+  PRELOADED_CONTRACTS.set(fullPath, String(session.readFileSync(fullPath, "utf-8")));
 }
 
 describe("Two-Key Socratic Cognitive Validation: Purge Agent Aliases & Partition Tier 2 Contracts", () => {
   beforeEach(() => {
-    const vfs = setupVirtualAgentsFS();
+    session.cleanup();
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
     for (const [fullPath, content] of PRELOADED_CONTRACTS) {
       vfs.mkdirSync(dirname(fullPath), { recursive: true });
       vfs.writeFileSync(fullPath, content);
@@ -42,7 +50,7 @@ describe("Two-Key Socratic Cognitive Validation: Purge Agent Aliases & Partition
   });
 
   afterEach(() => {
-    cleanupVirtualAgentsFS();
+    session.cleanup();
   });
   describe("Probe 1: Modularity and Physical Line Limit Invariant", () => {
     test("verifies all partitioned tier-2 contracts files satisfy LOC <= 400 invariant", () => {
@@ -57,7 +65,7 @@ describe("Two-Key Socratic Cognitive Validation: Purge Agent Aliases & Partition
 
       for (const relPath of paths) {
         const fullPath = resolve(relPath);
-        const text = fs.readFileSync(fullPath, "utf-8");
+        const text = vfs.readFileSync(fullPath, "utf-8");
         const lines = text.split(/\r?\n/).length;
         expect(lines).toBeLessThanOrEqual(400);
       }
@@ -99,13 +107,11 @@ describe("Two-Key Socratic Cognitive Validation: Purge Agent Aliases & Partition
         expect(parseTierValue(legacy)).toBeNull();
       }
 
-      // Canonical numeric tier strings must still resolve cleanly
       expect(parseTierValue("0")).toBe(0);
       expect(parseTierValue("1")).toBe(1);
       expect(parseTierValue("2")).toBe(2);
       expect(parseTierValue("3")).toBe(3);
 
-      // Out-of-bounds, decimal, and padded strings
       expect(parseTierValue("-1")).toBeNull();
       expect(parseTierValue("4")).toBeNull();
       expect(parseTierValue("0.0")).toBeNull();
@@ -120,7 +126,6 @@ describe("Two-Key Socratic Cognitive Validation: Purge Agent Aliases & Partition
       expect(roleToTier("lead")).toBe(3);
       expect(roleToTier("user")).toBe(3);
 
-      // Canonical roles must strictly resolve
       expect(roleToTier("mind")).toBe(0);
       expect(roleToTier("orchestrator")).toBe(1);
       expect(roleToTier("mind-auditor")).toBe(1);
@@ -138,7 +143,6 @@ describe("Two-Key Socratic Cognitive Validation: Purge Agent Aliases & Partition
       expect(agentIdToRole("coord-101")).toBeNull();
       expect(agentIdToRole("human-operator")).toBeNull();
 
-      // Canonical full prefixes must resolve
       expect(agentIdToRole("implementer-123")).toBe("implementer");
       expect(agentIdToRole("validator-456")).toBe("validator");
       expect(agentIdToRole("orchestrator-789")).toBe("orchestrator");
@@ -156,7 +160,6 @@ describe("Two-Key Socratic Cognitive Validation: Purge Agent Aliases & Partition
       expect(agentIdToTier("orchestrator-1")).toBe(1);
       expect(agentIdToTier("coordinator-1")).toBe(2);
 
-      // Compound and specialized agent IDs
       expect(agentIdToTier("sub-implementer-01")).toBe(3);
       expect(agentIdToTier("implementer-sub-01")).toBe(3);
       expect(agentIdToTier("mind-auditor-beta")).toBe(1);
@@ -189,13 +192,11 @@ describe("Two-Key Socratic Cognitive Validation: Purge Agent Aliases & Partition
 
   describe("Probe 5: Strict 4-Tier Hierarchy and Spawning Boundary Invariant", () => {
     test("verifies validateTierSpawning enforces hierarchical descent and forbids escalation", () => {
-      // Valid transitions
       expect(validateTierSpawning(0, 1).allowed).toBe(true);
       expect(validateTierSpawning(1, 2).allowed).toBe(true);
       expect(validateTierSpawning(2, 3).allowed).toBe(true);
       expect(validateTierSpawning(3, 3).allowed).toBe(true);
 
-      // Forbidden skips and escalations
       expect(validateTierSpawning(0, 2).allowed).toBe(false);
       expect(validateTierSpawning(1, 3).allowed).toBe(false);
       expect(validateTierSpawning(2, 0).allowed).toBe(false);

@@ -187,9 +187,7 @@ describe("appendProjectionEvent recovery & transaction boundaries", () => {
       ).toThrow(CommittedWithRecoveryPendingError);
       expect(eventObjects(runRoot)).toHaveLength(1);
       expect(
-        JSON.parse(
-          vfs.readFileSync(join(runRoot, TRANSACTION_MARKER_FILE), "utf8") as string,
-        ),
+        JSON.parse(vfs.readFileSync(join(runRoot, TRANSACTION_MARKER_FILE), "utf8") as string),
       ).toMatchObject({
         phase: "STATE_PENDING",
         sequence: 1,

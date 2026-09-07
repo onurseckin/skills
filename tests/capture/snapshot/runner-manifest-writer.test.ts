@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { CaptureConfig } from "../../../olt/scripts/src/capture/config/types.ts";
 import {
@@ -12,11 +11,14 @@ import {
   type CapturePageDriver,
   type CompanionManifest,
 } from "../../../olt/scripts/src/capture/runners/index.ts";
+import type { VirtualMemoryFS } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import { cleanupVirtualCaptureFS, scratchRoot, setupVirtualCaptureFS } from "../fixture.ts";
 
 describe("Live Capture Runner & Multi-Viewport Companion Manifest Writer", () => {
+  let vfs: VirtualMemoryFS;
+
   beforeEach(() => {
-    setupVirtualCaptureFS();
+    vfs = setupVirtualCaptureFS();
   });
 
   afterEach(() => {
@@ -25,7 +27,7 @@ describe("Live Capture Runner & Multi-Viewport Companion Manifest Writer", () =>
   test("executes multi-viewport capture and persists companion manifest alongside PNG", async () => {
     const root = scratchRoot(import.meta.path, "test-capture-runner");
     const tempDir = join(root, "output");
-    mkdirSync(tempDir, { recursive: true });
+    vfs.mkdirSync(tempDir, { recursive: true });
 
     const testConfig: CaptureConfig = {
       version: "1.0",
@@ -57,11 +59,13 @@ describe("Live Capture Runner & Multi-Viewport Companion Manifest Writer", () =>
     expect(result.totalCaptures).toBe(2);
 
     for (const item of result.captures) {
-      expect(existsSync(item.imagePath)).toBe(true);
-      expect(existsSync(item.manifestPath)).toBe(true);
+      expect(vfs.existsSync(item.imagePath)).toBe(true);
+      expect(vfs.existsSync(item.manifestPath)).toBe(true);
       expect(item.manifestPath).toBe(item.imagePath.replace(/\.png$/, ".manifest.json"));
 
-      const manifest = JSON.parse(readFileSync(item.manifestPath, "utf-8")) as CompanionManifest;
+      const manifest = JSON.parse(
+        vfs.readFileSync(item.manifestPath, "utf-8"),
+      ) as CompanionManifest;
       expect(manifest.schema).toBe("companion.manifest.v1");
       expect(manifest.screenId).toBe("dashboard");
       expect(manifest.viewport).toBe(item.viewport);
@@ -73,7 +77,7 @@ describe("Live Capture Runner & Multi-Viewport Companion Manifest Writer", () =>
   test("executes custom actions cleanly", async () => {
     const root = scratchRoot(import.meta.path, "test-capture-actions");
     const tempDir = join(root, "output");
-    mkdirSync(tempDir, { recursive: true });
+    vfs.mkdirSync(tempDir, { recursive: true });
 
     const actionsExecuted: string[] = [];
     const customProvider: CaptureBrowserProvider = {
@@ -139,7 +143,7 @@ describe("Live Capture Runner & Multi-Viewport Companion Manifest Writer", () =>
   test("persists visual evidence to active capsule and scratch root", async () => {
     const root = scratchRoot(import.meta.path, "test-capture-proof");
     const tempDir = join(root, "output");
-    mkdirSync(tempDir, { recursive: true });
+    vfs.mkdirSync(tempDir, { recursive: true });
 
     const testConfig: CaptureConfig = {
       version: "1.0",
@@ -155,7 +159,7 @@ describe("Live Capture Runner & Multi-Viewport Companion Manifest Writer", () =>
     expect(result.success).toBe(true);
     const proofPng = join(tempDir, "runner-visual-proof-desktop.png");
     const proofManifest = join(tempDir, "runner-visual-proof-desktop.manifest.json");
-    expect(existsSync(proofPng)).toBe(true);
-    expect(existsSync(proofManifest)).toBe(true);
+    expect(vfs.existsSync(proofPng)).toBe(true);
+    expect(vfs.existsSync(proofManifest)).toBe(true);
   });
 });

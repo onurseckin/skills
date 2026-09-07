@@ -16,7 +16,8 @@ export const IMPLEMENTER_ROLES = new Set([
   "custom-implementer",
 ]);
 
-export const normalizeRole = (role: string): string => role.trim().toLowerCase().replace(/_/gu, "-");
+export const normalizeRole = (role: string): string =>
+  role.trim().toLowerCase().replace(/_/gu, "-");
 
 export const isMechanicValidatorRole = (role: string): boolean => {
   const norm = normalizeRole(role);

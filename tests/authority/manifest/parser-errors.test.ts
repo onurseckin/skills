@@ -1,14 +1,20 @@
-import { afterEach, beforeAll, beforeEach, describe, expect, spyOn, test, type Mock } from "bun:test";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  spyOn,
+  test,
+  type Mock,
+} from "bun:test";
 import {
   clearManifestCache,
   loadAgentManifest,
   loadRoleContract,
 } from "../../../olt/scripts/src/authority/manifest/index.ts";
 import { parseUnifiedAgentManifest } from "../../../olt/scripts/src/authority/manifest-schema.ts";
-import {
-  cleanupVirtualAuthorityFS,
-  setupVirtualAuthorityFS,
-} from "../fixture.ts";
+import { cleanupVirtualAuthorityFS, setupVirtualAuthorityFS } from "../fixture.ts";
 
 describe("Authority Manifest Parser - Error Handling & Fallbacks", () => {
   let cwdSpy: Mock<() => string> | undefined;

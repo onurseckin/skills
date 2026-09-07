@@ -1,12 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
-import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
+
+const mockProcRunner = await import("node:child_process");
+const mockFs = await import("node:fs");
+const mockOs = await import("node:os");
 
 describe("Oxlint Pure-Rust Hardening Invariants", () => {
   const configPath = join(process.cwd(), ".oxlintrc.json");
-  const rawConfig = readFileSync(configPath, "utf8");
+  const rawConfig = mockFs.readFileSync(configPath, "utf8");
   const config = JSON.parse(rawConfig);
 
   describe("1. Static Configuration Invariants", () => {
@@ -54,31 +55,36 @@ describe("Oxlint Pure-Rust Hardening Invariants", () => {
     let tempDir: string;
 
     beforeAll(() => {
-      tempDir = mkdtempSync(join(tmpdir(), "oxlint-invariants-"));
+      tempDir = mockFs.mkdtempSync(join(mockOs.tmpdir(), "oxlint-invariants-"));
     });
 
     afterAll(() => {
-      rmSync(tempDir, { recursive: true, force: true });
+      mockFs.rmSync(tempDir, { recursive: true, force: true });
     });
 
     function probe(code: string): { status: number | null; output: string } {
       const filePath = join(tempDir, "probe-" + Math.random().toString(36).slice(2) + ".ts");
-      writeFileSync(filePath, code);
+      mockFs.writeFileSync(filePath, code);
       try {
-        const proc = spawnSync("bunx", ["oxlint", "--deny-warnings", filePath], {
-          encoding: "utf8",
-        });
+        const proc = mockProcRunner.spawnSync(
+          "bunx",
+          ["oxlint", "--deny-warnings", "-f", "unix", filePath],
+          {
+            encoding: "utf8",
+          },
+        );
         return {
           status: proc.status,
           output: (proc.stdout ?? "") + (proc.stderr ?? ""),
         };
       } finally {
-        rmSync(filePath, { force: true });
+        mockFs.rmSync(filePath, { force: true });
       }
     }
 
     it("passes cleanly on valid idiomatic modern TypeScript", () => {
-      const validSnippet = "export function compute(a: number, b: number): number {\n  const sum = a + b;\n  return sum;\n}\n";
+      const validSnippet =
+        "export function compute(a: number, b: number): number {\n  const sum = a + b;\n  return sum;\n}\n";
       const result = probe(validSnippet);
       expect(result.status).toBe(0);
       expect(result.output).not.toMatch(/error|warning/iu);
@@ -97,7 +103,7 @@ describe("Oxlint Pure-Rust Hardening Invariants", () => {
     });
 
     it("fails fast with exit code 1 on eval usage", () => {
-      const result = probe("export const unsafe = eval(\"2 + 2\");\n");
+      const result = probe('export const unsafe = eval("2 + 2");\n');
       expect(result.status).toBe(1);
       expect(result.output).toContain("no-eval");
     });

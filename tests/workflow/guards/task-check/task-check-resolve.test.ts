@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   collectSourceFilesRecursively,
@@ -22,13 +21,16 @@ import { ALL_AST_LINT_RULES } from "../../../../olt/scripts/src/linter/ast/index
 import { initRun, transact } from "../../../../olt/scripts/src/engine/store/index.ts";
 import type { TaskRecord } from "../../../../olt/scripts/src/workflow/types.ts";
 import { setupWorkflowVirtualFs } from "../../shared/index.ts";
+import type { VirtualMemoryFS } from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 let vfsCleanup: (() => void) | undefined;
+let vfs: VirtualMemoryFS;
 let scratchCount = 0;
 
 beforeEach(() => {
   const setup = setupWorkflowVirtualFs();
   vfsCleanup = setup.cleanup;
+  vfs = setup.vfs;
 });
 
 afterEach(() => {
@@ -42,7 +44,7 @@ function createScratchContext(label: string): {
 } {
   const rootDir = `/virtual/tmp/task-check-res-${label}-${++scratchCount}`;
   const repoDir = join(rootDir, "repo");
-  mkdirSync(repoDir, { recursive: true });
+  vfs.mkdirSync(repoDir, { recursive: true });
   return { rootDir, repoDir };
 }
 
@@ -68,6 +70,7 @@ function createCapsuleRun(
   });
   return { runRoot, repoDir };
 }
+
 describe("task-check: resolveTargetFiles", () => {
   test("resolves explicit file flags with single and comma-separated entries", () => {
     const { repoDir } = createScratchContext("resolve-file-flags");
@@ -75,9 +78,9 @@ describe("task-check: resolveTargetFiles", () => {
     const fileB = join(repoDir, "b.ts");
     const fileC = join(repoDir, "c.ts");
 
-    writeFileSync(fileA, "export const a = 1;");
-    writeFileSync(fileB, "export const b = 2;");
-    writeFileSync(fileC, "export const c = 3;");
+    vfs.writeFileSync(fileA, "export const a = 1;");
+    vfs.writeFileSync(fileB, "export const b = 2;");
+    vfs.writeFileSync(fileC, "export const c = 3;");
 
     const resolved = resolveTargetFiles({
       fileFlags: [fileA, `${fileB}, ${fileC}`],
@@ -92,12 +95,12 @@ describe("task-check: resolveTargetFiles", () => {
   test("recursively expands directories passed in file flags", () => {
     const { repoDir } = createScratchContext("resolve-dir-flags");
     const srcDir = join(repoDir, "src");
-    mkdirSync(srcDir, { recursive: true });
+    vfs.mkdirSync(srcDir, { recursive: true });
 
     const file1 = join(srcDir, "one.ts");
     const file2 = join(srcDir, "two.ts");
-    writeFileSync(file1, "export const one = 1;");
-    writeFileSync(file2, "export const two = 2;");
+    vfs.writeFileSync(file1, "export const one = 1;");
+    vfs.writeFileSync(file2, "export const two = 2;");
 
     const resolved = resolveTargetFiles({
       fileFlags: [srcDir],
@@ -131,8 +134,8 @@ describe("task-check: resolveTargetFiles", () => {
     const file1 = join(repoDir, "target.ts");
     const file2 = join(repoDir, "scoped.ts");
     const uncreatedCandidate = join(repoDir, "future-feature.ts");
-    writeFileSync(file1, "export const t = 1;");
-    writeFileSync(file2, "export const s = 2;");
+    vfs.writeFileSync(file1, "export const t = 1;");
+    vfs.writeFileSync(file2, "export const s = 2;");
 
     const taskRecord: TaskRecord = {
       id: "task-1",
@@ -165,8 +168,8 @@ describe("task-check: resolveTargetFiles", () => {
     const { repoDir } = createScratchContext("run-scope-all");
     const fileA = join(repoDir, "a.ts");
     const fileB = join(repoDir, "b.ts");
-    writeFileSync(fileA, "export const a = 1;");
-    writeFileSync(fileB, "export const b = 2;");
+    vfs.writeFileSync(fileA, "export const a = 1;");
+    vfs.writeFileSync(fileB, "export const b = 2;");
 
     const task1: TaskRecord = {
       id: "task-1",

@@ -10,12 +10,7 @@ import * as commandRecordSize from "../../../olt/scripts/src/engine/runner/model
 import { embeddedCommandIssues } from "../../../olt/scripts/src/engine/runner/models/command/command-shape.ts";
 import { createInternalCommandRunner } from "../../../olt/scripts/src/engine/runner/models/execution/internal-command-runner.ts";
 import type { AttemptResult } from "../../../olt/scripts/src/engine/runner/types/types.ts";
-import {
-  chmodVirtualFile,
-  cleanupTempRoots,
-  getRunnerVfs,
-  tempRoot,
-} from "../command/fixture.ts";
+import { chmodVirtualFile, cleanupTempRoots, getRunnerVfs, tempRoot } from "../command/fixture.ts";
 
 afterEach(cleanupTempRoots);
 const digest = (value: string): string => value.repeat(64).slice(0, 64);

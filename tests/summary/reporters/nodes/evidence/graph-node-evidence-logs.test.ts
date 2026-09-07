@@ -1,5 +1,4 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
-import * as fs from "node:fs";
 import { join } from "node:path";
 import { generateGraphDataset } from "../../../../../olt/scripts/src/summary/graph/index.ts";
 import {
@@ -8,7 +7,11 @@ import {
   LOG_READ_CEILING_BYTES,
 } from "../../../../../olt/scripts/src/summary/markdown/index.ts";
 import { makeCommand, makeGrant, makeState, makeTask } from "../../dag/graph-fixtures.ts";
-import { cleanupVirtualSummaryFS, setupVirtualSummaryFS } from "../../../fixture.ts";
+import {
+  cleanupVirtualSummaryFS,
+  getVirtualSummaryFS,
+  setupVirtualSummaryFS,
+} from "../../../fixture.ts";
 
 let rootCounter = 0;
 
@@ -32,9 +35,10 @@ function runRootWithStdout(contents: string): string {
   rootCounter += 1;
   const root = `/virtual/node-evidence-${rootCounter}`;
   const logDir = join(root, "commands", "C-1");
-  fs.mkdirSync(logDir, { recursive: true });
-  fs.writeFileSync(join(logDir, "stdout.log"), contents);
-  fs.writeFileSync(join(logDir, "stderr.log"), "");
+  const vfs = getVirtualSummaryFS();
+  vfs.mkdirSync(logDir, { recursive: true });
+  vfs.writeFileSync(join(logDir, "stdout.log"), contents);
+  vfs.writeFileSync(join(logDir, "stderr.log"), "");
   return root;
 }
 
@@ -91,13 +95,14 @@ describe("node scripts", () => {
     rootCounter += 1;
     const root = `/virtual/node-evidence-${rootCounter}`;
     const deepDir = join(root, "commands", "nested", "deep");
-    fs.mkdirSync(deepDir, { recursive: true });
+    const vfs = getVirtualSummaryFS();
+    vfs.mkdirSync(deepDir, { recursive: true });
 
-    fs.writeFileSync(join(deepDir, "empty.log"), "");
+    vfs.writeFileSync(join(deepDir, "empty.log"), "");
     expect(readLog("commands/nested/deep/empty.log", root)).toBeUndefined();
     expect(readLogText("commands/nested/deep/empty.log", root)).toBeUndefined();
 
-    fs.writeFileSync(join(deepDir, "nested-stdout.log"), `PREFIX-${"z".repeat(128)}-SUFFIX`);
+    vfs.writeFileSync(join(deepDir, "nested-stdout.log"), `PREFIX-${"z".repeat(128)}-SUFFIX`);
     const clipped = readLog("commands/nested/deep/nested-stdout.log", root, 16);
     expect(clipped?.truncated).toBe(true);
     expect(clipped?.text.endsWith("SUFFIX")).toBe(true);
