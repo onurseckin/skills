@@ -62,6 +62,10 @@ function isPidAlive(pid: number): boolean {
   }
 }
 
+function isEnoentError(error: unknown): error is NodeJS.ErrnoException {
+  return error instanceof Error && (error as NodeJS.ErrnoException).code === "ENOENT";
+}
+
 /**
  * Checks if a lock file is stale with race-resilient timestamp and PID validation.
  */
@@ -98,8 +102,13 @@ function isLockStale(lockPath: string, staleLockAgeMs: number): boolean {
     try {
       const stat = statSync(lockPath);
       return Date.now() - stat.mtimeMs > staleLockAgeMs;
-    } catch {
-      return true;
+    } catch (fallbackError) {
+      if (isEnoentError(fallbackError)) return true;
+      throw new ServerLockError(
+        `Cannot determine lock staleness; stat failed for a reason other than absence: ${lockPath}`,
+        lockPath,
+        "LOCK_STATE_INDETERMINATE",
+      );
     }
   }
   return false;
