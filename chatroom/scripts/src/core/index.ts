@@ -57,6 +57,7 @@ export {
   delay,
   isProcessAlive,
   releaseLock,
+  safeFsync,
   withLock,
   writeAtomic,
   type AppendAtomicResult,

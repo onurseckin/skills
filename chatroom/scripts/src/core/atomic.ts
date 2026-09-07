@@ -18,6 +18,7 @@ import { isLockPayload, type LockPayload } from "./guards.ts";
 
 export interface WriteAtomicOptions {
   readonly mode?: number;
+  readonly fsync?: (fd: number) => void;
 }
 
 export interface AppendAtomicResult {
@@ -30,6 +31,21 @@ export interface LockOptions {
   readonly retryMs?: number;
   readonly staleAfterMs?: number;
   readonly holder?: string;
+  readonly fsync?: (fd: number) => void;
+}
+
+export function safeFsync(fd: number, fsyncFn: (fd: number) => void = fsyncSync): void {
+  try {
+    fsyncFn(fd);
+  } catch (error: unknown) {
+    if (typeof error === "object" && error !== null && "code" in error) {
+      const code = (error as { readonly code?: string }).code;
+      if (code === "EINVAL" || code === "ENOTSUP" || code === "ENOSYS") {
+        return;
+      }
+    }
+    throw error;
+  }
 }
 
 export function writeAtomic(
@@ -41,17 +57,16 @@ export function writeAtomic(
   mkdirSync(dir, { recursive: true });
   const tempPath = join(dir, `.${basename(filePath)}.${randomUUID()}.tmp`);
   const mode = options.mode ?? 0o644;
-  const fd = openSync(tempPath, "w", mode);
+  const syncFn = options.fsync ?? safeFsync;
   try {
-    const buffer = typeof content === "string" ? Buffer.from(content, "utf8") : content;
-    writeSync(fd, buffer);
+    const fd = openSync(tempPath, "w", mode);
     try {
-      fsyncSync(fd);
-    } catch {}
-  } finally {
-    closeSync(fd);
-  }
-  try {
+      const buffer = typeof content === "string" ? Buffer.from(content, "utf8") : content;
+      writeSync(fd, buffer);
+      syncFn(fd);
+    } finally {
+      closeSync(fd);
+    }
     renameSync(tempPath, filePath);
   } catch (error) {
     try {
@@ -69,15 +84,14 @@ export function appendAtomic(
   const dir = dirname(filePath);
   mkdirSync(dir, { recursive: true });
   const mode = options.mode ?? 0o644;
+  const syncFn = options.fsync ?? safeFsync;
   const fd = openSync(filePath, "a+", mode);
   try {
     const stats = fstatSync(fd);
     const offset = stats.size;
     const buffer = typeof content === "string" ? Buffer.from(content, "utf8") : content;
     const bytesWritten = writeSync(fd, buffer);
-    try {
-      fsyncSync(fd);
-    } catch {}
+    syncFn(fd);
     return { offset, bytesWritten };
   } finally {
     closeSync(fd);
@@ -128,6 +142,7 @@ export function acquireLock(lockPath: string, options: LockOptions = {}): void {
   const retryMs = options.retryMs ?? 25;
   const staleAfterMs = options.staleAfterMs ?? 30000;
   const holder = options.holder ?? `pid:${process.pid}`;
+  const syncFn = options.fsync ?? safeFsync;
 
   const dir = dirname(lockPath);
   mkdirSync(dir, { recursive: true });
@@ -145,9 +160,7 @@ export function acquireLock(lockPath: string, options: LockOptions = {}): void {
       };
       const buffer = Buffer.from(JSON.stringify(payload), "utf8");
       writeSync(fd, buffer);
-      try {
-        fsyncSync(fd);
-      } catch {}
+      syncFn(fd);
       return;
     } catch (error: unknown) {
       if (fd !== null) {
