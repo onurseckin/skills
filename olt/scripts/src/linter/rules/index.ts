@@ -10,6 +10,7 @@ import {
   trivialAssertionRule,
   trivialEarlyReturnRule,
   unitTestPurityRule,
+  unrestoredGlobalMockRule,
 } from "./testing/index.ts";
 import { vendorLeakRule } from "./vendor_leak.ts";
 
@@ -24,6 +25,7 @@ export {
   trivialAssertionRule,
   trivialEarlyReturnRule,
   unitTestPurityRule,
+  unrestoredGlobalMockRule,
 } from "./testing/index.ts";
 export { vendorLeakRule } from "./vendor_leak.ts";
 
@@ -39,4 +41,5 @@ export const ALL_RULES: readonly AstLintRuleModule[] = [
   emptyTestBodyRule,
   trivialEarlyReturnRule,
   unitTestPurityRule,
+  unrestoredGlobalMockRule,
 ];

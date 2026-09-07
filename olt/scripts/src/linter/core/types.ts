@@ -15,7 +15,8 @@ export type AstLintRule =
   | "trivial_assertion"
   | "empty_test_body"
   | "trivial_early_return"
-  | "unit_test_purity";
+  | "unit_test_purity"
+  | "unrestored_global_mock";
 
 export const ALL_AST_LINT_RULES: readonly AstLintRule[] = [
   "nullish_coalescing",
@@ -29,6 +30,7 @@ export const ALL_AST_LINT_RULES: readonly AstLintRule[] = [
   "empty_test_body",
   "trivial_early_return",
   "unit_test_purity",
+  "unrestored_global_mock",
 ] as const;
 
 export const DEFAULT_PROHIBITED_VENDORS: readonly string[] = [

@@ -92,6 +92,7 @@ export function createEmptyRuleSummary(): Record<AstLintRule, number> {
     empty_test_body: 0,
     trivial_early_return: 0,
     unit_test_purity: 0,
+    unrestored_global_mock: 0,
   };
 }
 

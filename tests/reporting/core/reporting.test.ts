@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, mock, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { initRun, loadRun, transact } from "../../../olt/scripts/src/engine/store/index.ts";
 import { runDoctor } from "../../../olt/scripts/src/reporting/doctor.ts";
@@ -19,20 +19,6 @@ import type { RepositoryGitCommand } from "../../../olt/scripts/src/packets/repo
 import reportingSuiteSource from "./reporting.test.ts" with { type: "text" };
 
 const sandboxGit: RepositoryGitCommand = () => ({ status: 0, bytes: Buffer.alloc(0) });
-
-mock.module("../../../olt/scripts/src/installer/installation-status.ts", () => ({
-  installationStatus: async () => ({
-    installed: false,
-    drifted: true,
-    destination: "/virtual/destination",
-    links: { codex: "/virtual/destination", claude: null },
-    issues: ["not installed"],
-  }),
-}));
-
-mock.module("../../../olt/scripts/src/engine/store/integrity/integrity.ts", () => ({
-  verifyIntegrity: () => [],
-}));
 
 let vfs = new VirtualMemoryFS();
 let session: VirtualFSSession | null = null;
@@ -226,6 +212,8 @@ describe(reportingSuiteName, () => {
 
 const MODULE_MOCK_CALL = ["mock", "module("].join(".");
 const GIT_COMMAND_MODULE = "repository-git-command.ts";
+const INSTALLATION_STATUS_MODULE = "installation-status.ts";
+const INTEGRITY_MODULE = "integrity/integrity.ts";
 
 test("never globally replaces the repository git command module", () => {
   expect(reportingSuiteSource).toContain(reportingSuiteName);
@@ -233,4 +221,17 @@ test("never globally replaces the repository git command module", () => {
     .split("\n")
     .filter((line) => line.includes(MODULE_MOCK_CALL) && line.includes(GIT_COMMAND_MODULE));
   expect(offending).toEqual([]);
+});
+
+test("never globally replaces the installation status or integrity modules", () => {
+  expect(reportingSuiteSource).toContain(reportingSuiteName);
+  const lines = reportingSuiteSource.split("\n");
+  const offendingInstallationStatus = lines.filter(
+    (line) => line.includes(MODULE_MOCK_CALL) && line.includes(INSTALLATION_STATUS_MODULE),
+  );
+  const offendingIntegrity = lines.filter(
+    (line) => line.includes(MODULE_MOCK_CALL) && line.includes(INTEGRITY_MODULE),
+  );
+  expect(offendingInstallationStatus).toEqual([]);
+  expect(offendingIntegrity).toEqual([]);
 });

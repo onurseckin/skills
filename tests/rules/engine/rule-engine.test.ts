@@ -4,9 +4,9 @@ import { ALL_AST_LINT_RULES } from "../../../olt/scripts/src/linter/ast/types.ts
 import { lintSourceCode } from "../../../olt/scripts/src/linter/ast/runner.ts";
 
 describe("Rule Engine: Lifecycle, Registry & Execution", () => {
-  it("registers all 11 canonical AST lint rules", () => {
-    expect(ALL_RULES.length).toBe(11);
-    expect(ALL_AST_LINT_RULES.length).toBe(11);
+  it("registers all 12 canonical AST lint rules", () => {
+    expect(ALL_RULES.length).toBe(12);
+    expect(ALL_AST_LINT_RULES.length).toBe(12);
 
     const ruleNames = ALL_RULES.map((r) => r.rule);
     expect(ruleNames).toContain("any_type");
@@ -20,6 +20,7 @@ describe("Rule Engine: Lifecycle, Registry & Execution", () => {
     expect(ruleNames).toContain("empty_test_body");
     expect(ruleNames).toContain("trivial_early_return");
     expect(ruleNames).toContain("unit_test_purity");
+    expect(ruleNames).toContain("unrestored_global_mock");
   });
 
   it("executes single-rule isolated scans", () => {

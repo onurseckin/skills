@@ -93,7 +93,7 @@ describe(helperGuardsSuiteName, () => {
   });
 
   it("exports standard constants", () => {
-    expect(ALL_AST_LINT_RULES.length).toBe(11);
+    expect(ALL_AST_LINT_RULES.length).toBe(12);
     expect(DEFAULT_PROHIBITED_VENDORS).toContain("anthropic");
     expect(DEFAULT_PROHIBITED_VENDORS).toContain("openai");
     expect(DEFAULT_PROHIBITED_VENDORS).toContain("gemini");
