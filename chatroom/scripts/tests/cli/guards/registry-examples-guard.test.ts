@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { parseArguments, splitCommandLine } from "../../../src/cli/index.ts";
-import { CHAT_COMMANDS, CliError, taskSpec } from "../../../src/cli/registry/index.ts";
+import { parseArguments, splitCommandLine, validateArguments } from "../../../src/cli/index.ts";
+import { CHAT_COMMANDS, CliError, taskSpec, watchSpec } from "../../../src/cli/registry/index.ts";
 
 describe("Registry Examples Guard", () => {
   for (const spec of CHAT_COMMANDS) {
@@ -9,25 +9,23 @@ describe("Registry Examples Guard", () => {
     }
 
     for (const example of spec.examples) {
-      it(`parses ${spec.name} example: ${example}`, () => {
+      it(`validates ${spec.name} example: ${example}`, () => {
         const args = splitCommandLine(example);
-        let caught: unknown;
-        try {
-          parseArguments(spec, args);
-        } catch (err: unknown) {
-          caught = err;
-        }
-
-        if (caught instanceof CliError) {
-          const isPositionalError =
-            caught.code === "INVALID_ARGUMENT" &&
-            caught.message.includes("unexpected positional argument");
-          expect(isPositionalError).toBe(false);
-        }
-        expect(caught).toBeUndefined();
+        const parsed = parseArguments(spec, args);
+        validateArguments(spec, parsed);
       });
     }
   }
+
+  it("rejects an example containing an undeclared flag", () => {
+    const fakeSpec = {
+      ...watchSpec,
+      examples: ["chat:watch --room build-review --ack-mode flushed"],
+    };
+    const args = splitCommandLine(fakeSpec.examples[0] ?? "");
+    const parsed = parseArguments(fakeSpec, args);
+    expect(() => validateArguments(fakeSpec, parsed)).toThrow(CliError);
+  });
 
   it("collects remainder from chat:task with flags and positional args", () => {
     const parsed = parseArguments(taskSpec, [

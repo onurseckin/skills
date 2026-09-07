@@ -1,12 +1,34 @@
-import { parseArguments, suggestCommand } from "./arguments.ts";
+import { parseArguments, suggestCommand, type ParsedArguments } from "./arguments.ts";
 import { assertFlags } from "./options.ts";
 import {
   CliError,
   commandInvocations,
   findCommand,
-  flagShapes,
   type CommandContext,
+  type CommandSpec,
 } from "./registry/index.ts";
+
+export function validateArguments(spec: CommandSpec, parsed: ParsedArguments): void {
+  if (parsed.remainder.length > 0 && !spec.takesRemainder) {
+    throw new CliError(
+      "INVALID_ARGUMENT",
+      `unexpected positional argument: ${parsed.remainder[0]}`,
+      3,
+    );
+  }
+
+  assertFlags(
+    parsed.flags,
+    spec.flags.map((flag) => flag.name),
+  );
+
+  const missing = spec.flags.find(
+    (flag) => flag.required && !Object.hasOwn(parsed.flags, flag.name),
+  );
+  if (missing !== undefined) {
+    throw new CliError("INVALID_ARGUMENT", `--${missing.name} is required`, 3);
+  }
+}
 
 export async function executeCommand(
   argv: readonly string[],
@@ -40,26 +62,7 @@ export async function executeCommand(
   }
 
   const parsed = parseArguments(spec, effectiveArgv);
-
-  if (parsed.remainder.length > 0 && !spec.takesRemainder) {
-    throw new CliError(
-      "INVALID_ARGUMENT",
-      `unexpected positional argument: ${parsed.remainder[0]}`,
-      3,
-    );
-  }
-
-  assertFlags(
-    parsed.flags,
-    spec.flags.map((flag) => flag.name),
-  );
-
-  const missing = spec.flags.find(
-    (flag) => flag.required && !Object.hasOwn(parsed.flags, flag.name),
-  );
-  if (missing !== undefined) {
-    throw new CliError("INVALID_ARGUMENT", `--${missing.name} is required`, 3);
-  }
+  validateArguments(spec, parsed);
 
   const result = await spec.handler(parsed.flags, context, parsed.remainder);
   return result;

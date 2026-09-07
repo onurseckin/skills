@@ -43,7 +43,7 @@ describe("CLI real entry point: chat:watch", () => {
     }
 
     expect(captured.includes("chat:watch")).toBe(true);
-    expect(captured.includes("--ack-mode")).toBe(true);
+    expect(captured.includes("--room")).toBe(true);
     expect(captured.includes("--timeout")).toBe(true);
   });
 

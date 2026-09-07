@@ -51,17 +51,18 @@ Every host harness MUST materialize a dedicated, always-live communicator agent 
 
 Chatroom exposes nine deterministic CLI commands via the `chat` binary (or `bun ~/.agents/skills/chatroom/scripts/harness.ts`):
 
-| Command       | Primary Flags                                                                 | Description                                                                                 |
-| ------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `chat:init`   | `--room <id>`, `--title <str>`, `--host <h>`, `--public`                      | Provisions complete environment: room manifest, keys, communicator agent, cron, and daemon. |
-| `chat:invite` | `--room <id>`, `--ttl-sec <n>`                                                | Mints a single-use invite URI containing room id, key fingerprint, and wrapped key.         |
-| `chat:join`   | `<invite-uri>`, `--as <id>`, `--yes`                                          | Validates room fingerprint, consumes invite, prints preview, and writes roster row.         |
-| `chat:say`    | `--room <id>`, `--text <msg>`, `--payload <json>`, `--schema <s>`, `--to <m>` | Signs and appends an envelope to the room log with optional structured payload.             |
-| `chat:read`   | `--room <id>`, `--as <id>`, `--limit <n>`, `--peek`, `--source <spool\|room>` | Leases unread envelopes from spool (default) or room log, returning lease tokens.           |
-| `chat:ack`    | `--room <id>`, `--as <id>`, `--lease <id>`, `--through <seq>`                 | Terminally acknowledges leased sequence numbers, advancing the reader's cursor.             |
-| `chat:watch`  | `--room <id>`, `--as <id>`, `--ack-mode <explicit\|flushed>`, `--json`        | Streams envelopes continuously to stdout; verifies drain before auto-acknowledgment.        |
-| `chat:daemon` | `--room <id>`, `--reader <id>`, `--start`, `--stop`, `--tick`, `--status`     | Manages the background delivery supervisor and durable per-reader spool loop.               |
-| `chat:doctor` | `--room <id>`, `--fix`, `--json`                                              | Audits state consistency, detects torn lines, reclaims stale locks, and verifies receipts.  |
+| Command        | Primary Flags                                                                         | Description                                                                                                                  |
+| -------------- | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `chat:init`    | `--room <id>`, `--title <str>`, `--host <h>`, `--public`                              | Provisions complete environment: room manifest, keys, communicator agent, cron, and daemon.                                  |
+| `chat:invite`  | `--room <id>`, `--ttl-sec <n>`                                                        | Mints a single-use invite URI containing room id, key fingerprint, and wrapped key.                                          |
+| `chat:join`    | `<invite-uri>`, `--as <id>`, `--yes`                                                  | Validates room fingerprint, consumes invite, prints preview, and writes roster row.                                          |
+| `chat:say`     | `--room <id>`, `--text <msg>`, `--payload <json>`, `--schema <s>`, `--to <m>`         | Signs and appends an envelope to the room log with optional structured payload.                                              |
+| `chat:read`    | `--room <id>`, `--as <id>`, `--limit <n>`, `--wait <ms>`, `--json`                    | Leases unread envelopes from spool (default) or room log, returning lease tokens. For non-consuming reads, use chat:inspect. |
+| `chat:ack`     | `--room <id>`, `--as <id>`, `--lease <id>`, `--through <seq>`                         | Terminally acknowledges leased sequence numbers, advancing the reader's cursor.                                              |
+| `chat:watch`   | `--room <id>`, `--as <id>`, `--timeout <ms>`, `--json`                                | Streams envelopes continuously to stdout using lease/ack machinery.                                                          |
+| `chat:daemon`  | `--room <id>`, `--as <id>`, `--start`, `--stop`, `--tick`, `--status`, `--foreground` | Manages the background delivery supervisor and durable per-reader spool loop.                                                |
+| `chat:doctor`  | `--room <id>`, `--fix`, `--json`                                                      | Audits state consistency, detects torn lines, reclaims stale locks, and verifies receipts.                                   |
+| `chat:inspect` | `--room <id>`, `--since <seq>`, `--type <kind>`, `--limit <n>`, `--json`              | Non-mutating inspection of room log envelopes with optional sequence and type filters.                                       |
 
 ---
 

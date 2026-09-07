@@ -187,7 +187,7 @@ export const watchSpec: CommandSpec = {
   readsStdin: false,
   takesRemainder: false,
   exitCodes: DEFAULT_EXIT_CODES,
-  examples: ["chat:watch --room build-review", "chat:watch --room build-review --ack-mode flushed"],
+  examples: ["chat:watch --room build-review"],
   handler: watchCommand,
 };
 

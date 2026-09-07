@@ -10,7 +10,7 @@ export type { FlagSuggestion, ParsedArguments } from "./arguments.ts";
 export { assertFlags, boolFlag, intFlag, integerFlag, listFlag, textFlag } from "./options.ts";
 export { formatCommandHelp, helpRequest, renderHelp } from "./help.ts";
 export type { HelpRequest } from "./help.ts";
-export { executeCommand } from "./execute.ts";
+export { executeCommand, validateArguments } from "./execute.ts";
 export type {
   CommandContext,
   CommandFlagSpec,
