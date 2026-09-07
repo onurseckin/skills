@@ -14,7 +14,6 @@ export interface SubmissionReportInputs {
   readonly observedFiles: readonly string[] | null;
   readonly commands: Readonly<Record<string, CommandRecord>>;
   readonly allowEmptyFiles?: boolean;
-  readonly skipChecks?: boolean;
 }
 
 function resolveFiles(inputs: SubmissionReportInputs): {
@@ -75,11 +74,7 @@ export function resolveChecks(inputs: SubmissionReportInputs): {
       .sort((left, right) => left.id.localeCompare(right.id));
   }
   if (observed.length === 0) {
-    if (
-      isGateEmpty(inputs.task.gate) ||
-      Boolean(inputs.allowEmptyFiles) ||
-      Boolean(inputs.skipChecks)
-    ) {
+    if (isGateEmpty(inputs.task.gate) || Boolean(inputs.allowEmptyFiles)) {
       return { commands: [], evidenceClass: "agent_reported" };
     }
     throw new HarnessError(

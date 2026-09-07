@@ -4,6 +4,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import {
   checkRmPermissions,
+  forgetInode,
   isVirtualPath,
   makeFsStats,
   mockCp,
@@ -146,7 +147,7 @@ export function buildSyncSpies(
     spy("rmSync", (p: fs.PathLike, opts?: fs.RmOptions) => {
       const np = normPath(String(p));
       checkRmPermissions(state, np, opts);
-      state.inodeMap.delete(np);
+      forgetInode(state, np);
       state.customModes.delete(np);
       state.customMtimes.delete(np);
       state.symlinks.delete(np);
@@ -157,7 +158,7 @@ export function buildSyncSpies(
     }),
     spy("unlinkSync", (p: fs.PathLike) => {
       const np = normPath(String(p));
-      state.inodeMap.delete(np);
+      forgetInode(state, np);
       state.customModes.delete(np);
       state.customMtimes.delete(np);
       state.symlinks.delete(np);

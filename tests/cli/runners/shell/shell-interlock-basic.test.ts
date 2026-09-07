@@ -1,8 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test, spyOn } from "bun:test";
 import * as childProcess from "node:child_process";
 import type { SpawnSyncReturns } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import { shellCommand } from "../../../../olt/scripts/src/cli/commands/shell.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
 import {
@@ -22,6 +26,8 @@ import {
 } from "../../commands/fixtures/full-lifecycle-fixture.ts";
 
 let spawnSyncSpy: { mockRestore: () => void } | undefined;
+let vfs: VirtualMemoryFS;
+let session: VirtualFSSession | undefined;
 
 function registerStandaloneActor(actor: string, role: string): void {
   writeAgentMetadata(
@@ -35,7 +41,8 @@ function registerStandaloneActor(actor: string, role: string): void {
 
 describe("CLI Shell Interlock - Basic & Role Confinement", () => {
   beforeEach(() => {
-    setupVirtualCliFS();
+    vfs = setupVirtualCliFS();
+    session = createVirtualFSSession(vfs);
     enableInMemoryAgentMetadata();
   });
 
@@ -44,6 +51,8 @@ describe("CLI Shell Interlock - Basic & Role Confinement", () => {
       spawnSyncSpy.mockRestore();
       spawnSyncSpy = undefined;
     }
+    session?.cleanup();
+    session = undefined;
     disableInMemoryAgentMetadata();
     cleanupVirtualCliFS();
   });
@@ -113,7 +122,7 @@ describe("CLI Shell Interlock - Basic & Role Confinement", () => {
 
   test("refuses unknown capsule gate before recording command evidence", async () => {
     const repo = "/virtual/cli/unknown-gate-repo";
-    mkdirSync(repo, { recursive: true });
+    vfs.mkdirSync(repo, { recursive: true });
     const runRoot = initRun(
       repo,
       "shell-unknown-gate",
@@ -160,7 +169,7 @@ describe("CLI Shell Interlock - Basic & Role Confinement", () => {
         ["echo", "must-not-run"],
       ),
     ).rejects.toMatchObject({ code: "INVALID_ARGUMENT" });
-    expect(readdirSync(join(runRoot, "commands"))).toEqual([]);
+    expect(vfs.readdirSync(join(runRoot, "commands"))).toEqual([]);
   });
 
   test("formats stderr in standalone direct execution when command writes to stderr", async () => {
@@ -213,11 +222,11 @@ describe("CLI Shell Interlock - Basic & Role Confinement", () => {
   test("refuses unknown standalone authority even when --role claims implementer", async () => {
     const actor = "impl-no-durable-grant";
     const metadataPath = getAgentMetadataPath(actor);
-    expect(existsSync(metadataPath)).toBe(false);
+    expect(vfs.existsSync(metadataPath)).toBe(false);
     await expect(
       shellCommand({ actor, role: "implementer" }, {}, ["echo", "must-not-run"]),
     ).rejects.toMatchObject({ code: "ROLE_CONFINEMENT_VIOLATION" });
-    expect(existsSync(metadataPath)).toBe(false);
+    expect(vfs.existsSync(metadataPath)).toBe(false);
   });
 
   test("treats --role only as a consistency assertion against durable metadata", async () => {

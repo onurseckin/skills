@@ -1,13 +1,31 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
 import { acquireInstallerLock } from "../../../olt/scripts/src/installer/installer-lock.ts";
+import {
+  createVirtualFSSession,
+  type VirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import { scratchRoot } from "../../shared/fixtures/scratch-root.ts";
-import { cleanupVirtualInstallerFS, setupVirtualInstallerFS } from "../helpers.ts";
+import {
+  cleanupVirtualInstallerFS,
+  handleCreateSymlink,
+  setupVirtualInstallerFS,
+} from "../helpers.ts";
 
-beforeEach(setupVirtualInstallerFS);
-afterEach(cleanupVirtualInstallerFS);
+let vfs: VirtualMemoryFS;
+let session: VirtualFSSession;
+
+beforeEach(() => {
+  session = createVirtualFSSession(new VirtualMemoryFS());
+  vfs = setupVirtualInstallerFS();
+});
+
+afterEach(() => {
+  cleanupVirtualInstallerFS();
+  session.cleanup();
+});
 
 describe("acquireInstallerLock", () => {
   test("acquires and releases a lock on a real directory", () => {
@@ -52,16 +70,17 @@ describe("acquireInstallerLock", () => {
   test("throws when the parent path is not a directory", () => {
     const root = scratchRoot(import.meta.path, "not-a-directory");
     const file = join(root, "file.txt");
-    writeFileSync(file, "x");
+    vfs.writeFileSync(file, "x");
     expect(() => acquireInstallerLock(file)).toThrow(HarnessError);
   });
 
   test("throws when the parent path is a symlink to a directory, not a real directory", () => {
     const root = scratchRoot(import.meta.path, "symlink-parent");
     const real = join(root, "real");
-    mkdirSync(real);
+    vfs.mkdirSync(real);
     const link = join(root, "link");
-    symlinkSync(real, link);
+    session.symlinkSync(real, link);
+    handleCreateSymlink(real, link);
     expect(() => acquireInstallerLock(link)).toThrow(HarnessError);
   });
 
@@ -74,8 +93,8 @@ describe("acquireInstallerLock", () => {
     const root = scratchRoot(import.meta.path, "distinct-identity");
     const first = join(root, "a");
     const second = join(root, "b");
-    mkdirSync(first);
-    mkdirSync(second);
+    vfs.mkdirSync(first);
+    vfs.mkdirSync(second);
     const lockA = acquireInstallerLock(first);
     const lockB = acquireInstallerLock(second);
     try {

@@ -190,15 +190,21 @@ describe("resolveChecks: empty gates and check skipping", () => {
     ).toThrow(/cannot determine checks for task-3/);
   });
 
-  test("does not throw when skipChecks is true even with non-empty gate", () => {
-    const result = resolveChecks(
-      defaultInputs({
-        task: createTask("task-3", { gate: "bun test tests/submission-checks.test.ts" }),
-        commands: {},
-        skipChecks: true,
-      }),
-    );
-    expect(result).toEqual({ commands: [], evidenceClass: "agent_reported" });
+  test("strictly throws INVALID_STATE when gate is defined and non-empty and no commands exist without allowEmptyFiles", () => {
+    let capturedError: unknown;
+    try {
+      buildSubmissionReport(
+        defaultInputs({
+          task: createTask("task-3", { gate: "bun test tests/submission-checks.test.ts" }),
+          commands: {},
+        }),
+      );
+    } catch (err) {
+      capturedError = err;
+    }
+    expect(capturedError).toBeInstanceOf(HarnessError);
+    expect((capturedError as HarnessError).code).toBe("INVALID_STATE");
+    expect((capturedError as HarnessError).message).toContain("cannot determine checks for task-3");
   });
 
   test("does not throw when allowEmptyFiles is true even with non-empty gate", () => {
@@ -274,17 +280,5 @@ describe("buildSubmissionReport end-to-end", () => {
     expect(report.checks).toEqual([]);
     expect(report.checks_evidence_class).toBe("agent_reported");
     expect(report.evidence).toEqual([]);
-  });
-
-  test("builds report with skipChecks: true", () => {
-    const report = buildSubmissionReport(
-      defaultInputs({
-        task: createTask("task-3", { gate: "bun test tests/submission-checks.test.ts" }),
-        commands: {},
-        skipChecks: true,
-      }),
-    );
-    expect(report.checks).toEqual([]);
-    expect(report.checks_evidence_class).toBe("agent_reported");
   });
 });

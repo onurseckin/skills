@@ -1,31 +1,30 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  assertMutationInterlock,
-  verifyMutationInterlock,
-} from "../../../../olt/scripts/src/workflow/lease/index.ts";
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import { verifyMutationInterlock } from "../../../../olt/scripts/src/workflow/lease/index.ts";
 import { tokenDigest } from "../../../../olt/scripts/src/workflow/lease/token.ts";
-import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
-import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 describe("Workflow Mutation Interlock Gate", () => {
   let sandboxDir: string;
   let capsuleDir: string;
-  let vfsCleanup: (() => void) | undefined;
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
   let sc = 0;
 
   beforeEach(() => {
-    const setup = setupWorkflowVirtualFs();
-    vfsCleanup = setup.cleanup;
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
     sandboxDir = `/virtual/tmp/mutation-interlock-verify-${++sc}`;
     capsuleDir = join(sandboxDir, ".olt", "capsules", "run-interlock-test-1");
-    mkdirSync(capsuleDir, { recursive: true });
+    vfs.mkdirSync(capsuleDir, { recursive: true });
   });
 
   afterEach(() => {
-    vfsCleanup?.();
-    vfsCleanup = undefined;
+    session.cleanup();
   });
 
   describe("verifyMutationInterlock", () => {
@@ -47,7 +46,7 @@ describe("Workflow Mutation Interlock Gate", () => {
     });
 
     it("rejects when capsule state.json contains corrupted JSON", () => {
-      writeFileSync(join(capsuleDir, "state.json"), "invalid json {", "utf8");
+      vfs.writeFileSync(join(capsuleDir, "state.json"), "invalid json {", "utf8");
       const res = verifyMutationInterlock(capsuleDir, "impl-1");
       expect(res.allowed).toBe(false);
       expect(res.reason).toContain("failed to read capsule state");
@@ -82,7 +81,7 @@ describe("Workflow Mutation Interlock Gate", () => {
             },
           ],
         };
-        writeFileSync(join(capsuleDir, "state.json"), JSON.stringify(state), "utf8");
+        vfs.writeFileSync(join(capsuleDir, "state.json"), JSON.stringify(state), "utf8");
 
         const res = verifyMutationInterlock(capsuleDir, `agent-${role}`, "file:edit");
         expect(res.allowed).toBe(false);
@@ -109,7 +108,7 @@ describe("Workflow Mutation Interlock Gate", () => {
           },
         ],
       };
-      writeFileSync(join(capsuleDir, "state.json"), JSON.stringify(stateReleased), "utf8");
+      vfs.writeFileSync(join(capsuleDir, "state.json"), JSON.stringify(stateReleased), "utf8");
 
       const resReleased = verifyMutationInterlock(capsuleDir, "impl-released");
       expect(resReleased.allowed).toBe(false);
@@ -123,7 +122,7 @@ describe("Workflow Mutation Interlock Gate", () => {
         tasks: {},
         agents: [],
       };
-      writeFileSync(join(capsuleDir, "state.json"), JSON.stringify(state), "utf8");
+      vfs.writeFileSync(join(capsuleDir, "state.json"), JSON.stringify(state), "utf8");
 
       const res = verifyMutationInterlock(capsuleDir, "ghost-agent");
       expect(res.allowed).toBe(false);
@@ -144,7 +143,7 @@ describe("Workflow Mutation Interlock Gate", () => {
         },
         agents: [],
       };
-      writeFileSync(join(capsuleDir, "state.json"), JSON.stringify(state), "utf8");
+      vfs.writeFileSync(join(capsuleDir, "state.json"), JSON.stringify(state), "utf8");
 
       const res = verifyMutationInterlock(capsuleDir, "leased-worker");
       expect(res.allowed).toBe(true);
@@ -167,7 +166,7 @@ describe("Workflow Mutation Interlock Gate", () => {
           },
         ],
       };
-      writeFileSync(join(capsuleDir, "state.json"), JSON.stringify(state), "utf8");
+      vfs.writeFileSync(join(capsuleDir, "state.json"), JSON.stringify(state), "utf8");
 
       const res = verifyMutationInterlock(capsuleDir, "impl-active", "file:edit");
       expect(res.allowed).toBe(true);
@@ -215,7 +214,7 @@ describe("Workflow Mutation Interlock Gate", () => {
         },
         agents: [],
       };
-      writeFileSync(join(capsuleDir, "state.json"), JSON.stringify(state), "utf8");
+      vfs.writeFileSync(join(capsuleDir, "state.json"), JSON.stringify(state), "utf8");
 
       const resValid = verifyMutationInterlock(capsuleDir, "impl-task", {
         taskId: "task-active",
@@ -273,7 +272,7 @@ describe("Workflow Mutation Interlock Gate", () => {
           },
         ],
       };
-      writeFileSync(join(capsuleDir, "state.json"), JSON.stringify(state), "utf8");
+      vfs.writeFileSync(join(capsuleDir, "state.json"), JSON.stringify(state), "utf8");
 
       const allowedRes = verifyMutationInterlock(capsuleDir, "impl-scoped", {
         targetFile: "olt/scripts/src/workflow/lease/mutation-interlock.ts",

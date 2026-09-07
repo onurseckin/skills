@@ -1,31 +1,30 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  assertMutationInterlock,
-  verifyMutationInterlock,
-} from "../../../../olt/scripts/src/workflow/lease/index.ts";
-import { tokenDigest } from "../../../../olt/scripts/src/workflow/lease/token.ts";
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import { assertMutationInterlock } from "../../../../olt/scripts/src/workflow/lease/index.ts";
 import { HarnessError } from "../../../../olt/scripts/src/core/errors/index.ts";
-import { setupWorkflowVirtualFs } from "../../shared/index.ts";
 
 describe("Workflow Mutation Interlock Gate", () => {
   let sandboxDir: string;
   let capsuleDir: string;
-  let vfsCleanup: (() => void) | undefined;
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
   let sc = 0;
 
   beforeEach(() => {
-    const setup = setupWorkflowVirtualFs();
-    vfsCleanup = setup.cleanup;
+    vfs = new VirtualMemoryFS();
+    session = createVirtualFSSession(vfs);
     sandboxDir = `/virtual/tmp/mutation-interlock-${++sc}`;
     capsuleDir = join(sandboxDir, ".olt", "capsules", "run-interlock-test-1");
-    mkdirSync(capsuleDir, { recursive: true });
+    vfs.mkdirSync(capsuleDir, { recursive: true });
   });
 
   afterEach(() => {
-    vfsCleanup?.();
-    vfsCleanup = undefined;
+    session.cleanup();
   });
 
   describe("assertMutationInterlock", () => {
@@ -55,7 +54,7 @@ describe("Workflow Mutation Interlock Gate", () => {
           },
         ],
       };
-      writeFileSync(join(capsuleDir, "state.json"), JSON.stringify(state), "utf8");
+      vfs.writeFileSync(join(capsuleDir, "state.json"), JSON.stringify(state), "utf8");
 
       expect(() => assertMutationInterlock(capsuleDir, "impl-assert")).not.toThrow();
 

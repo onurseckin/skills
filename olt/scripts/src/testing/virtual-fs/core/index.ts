@@ -34,6 +34,7 @@ export {
   checkParentExec,
   checkRmPermissions,
   fsErr,
+  forgetInode,
   getInode,
   isVirtualPath,
   makeFsStats,

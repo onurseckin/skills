@@ -122,18 +122,41 @@ export function acquireOrchestratorLock(
   acquireWorktreeLock(lockPath, domain, timeoutMs, "orchestrator");
 }
 
-export function releaseWorktreeLock(lockPath: string): void {
-  if (existsSync(lockPath)) {
-    try {
-      unlinkSync(lockPath);
-    } catch {}
+export interface ReleaseWorktreeLockOptions {
+  ownerPid?: number | undefined;
+  force?: boolean | undefined;
+}
+
+export function releaseWorktreeLock(
+  lockPath: string,
+  options?: ReleaseWorktreeLockOptions,
+): boolean {
+  if (!existsSync(lockPath)) return true;
+  const payload = readLockPayload(lockPath);
+  if (payload && typeof payload.pid === "number") {
+    const expectedPid = options?.ownerPid ?? process.pid;
+    if (!options?.force && payload.pid !== expectedPid) {
+      return false;
+    }
+  }
+  try {
+    unlinkSync(lockPath);
+    return true;
+  } catch (err: unknown) {
+    if ((err as { code?: string })?.code === "ENOENT" || !existsSync(lockPath)) {
+      return true;
+    }
+    return false;
   }
 }
 
-export function releaseTrackLock(lockPath: string): void {
-  releaseWorktreeLock(lockPath);
+export function releaseTrackLock(lockPath: string, options?: ReleaseWorktreeLockOptions): boolean {
+  return releaseWorktreeLock(lockPath, options);
 }
 
-export function releaseOrchestratorLock(lockPath: string): void {
-  releaseWorktreeLock(lockPath);
+export function releaseOrchestratorLock(
+  lockPath: string,
+  options?: ReleaseWorktreeLockOptions,
+): boolean {
+  return releaseWorktreeLock(lockPath, options);
 }

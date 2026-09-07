@@ -13,6 +13,7 @@ import { resolveIdentity } from "../../identity/index.ts";
 import {
   computeDaemonState,
   ensureDaemon,
+  inspectDaemon,
   readHealthRecord,
   runDaemonLoop,
   startDaemon,
@@ -126,13 +127,14 @@ export const daemonCommand: CommandHandler = async (
   }
 
   if (statusFlag) {
-    const health = readHealthRecord(daemonHealthPath(roomFlag, readerId));
-    if (health === null) {
+    const inspection = inspectDaemon(roomFlag, readerId);
+    if (inspection.health === null) {
       const result: Record<string, unknown> = {
         room: roomFlag,
         reader: readerId,
         state: "STOPPED",
         health: null,
+        watch_active: false,
       };
       if (!jsonFlag) {
         process.stdout.write("Daemon state: STOPPED (no health record)\n");
@@ -140,18 +142,19 @@ export const daemonCommand: CommandHandler = async (
       return result;
     }
 
-    const state = computeDaemonState(health, Date.now());
     const result: Record<string, unknown> = {
       room: roomFlag,
       reader: readerId,
-      state,
-      health,
+      state: inspection.state,
+      health: inspection.health,
+      watch_active: inspection.watch_active,
     };
     if (!jsonFlag) {
-      process.stdout.write(`Daemon state: ${state} (PID: ${health.pid})\n`);
+      process.stdout.write(`Daemon state: ${inspection.state} (PID: ${inspection.health.pid})\n`);
       process.stdout.write(
-        `Delivered seq: ${health.last_delivered_seq}, Lag: ${health.lag_seqs}\n`,
+        `Delivered seq: ${inspection.health.last_delivered_seq}, Lag: ${inspection.health.lag_seqs}\n`,
       );
+      process.stdout.write(`Watch active: ${inspection.watch_active}\n`);
     }
     return result;
   }

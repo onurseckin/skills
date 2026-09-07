@@ -1,7 +1,10 @@
-import { describe, expect, test, beforeEach, afterEach, spyOn } from "bun:test";
-import { closeSync, constants, mkdirSync, openSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { join } from "node:path";
-import { cleanupVirtualPolicyFS, setupVirtualPolicyFS } from "../fixture.ts";
+import {
+  cleanupVirtualPolicyFS,
+  getVirtualPolicySession,
+  setupVirtualPolicyFS,
+} from "../fixture.ts";
 import {
   CURRENT_POLICY_SCHEMA_VERSION,
   initRepoPolicy,
@@ -13,15 +16,22 @@ import {
   resolveSystemLockPath,
   withLock,
 } from "../../../olt/scripts/src/policy/io-safety.ts";
-import * as platform from "../../../olt/scripts/src/platform/index.ts";
 import { releaseFlock, tryExclusiveFlock } from "../../../olt/scripts/src/platform/index.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Repo Policy Flocking, Concurrency & Lock Management", () => {
   const scratchBase = "/virtual/policy/io/flock";
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
 
   beforeEach(() => {
-    setupVirtualPolicyFS();
+    vfs = setupVirtualPolicyFS();
+    session = getVirtualPolicySession() ?? createVirtualFSSession(vfs);
   });
 
   afterEach(() => {
@@ -33,7 +43,7 @@ describe("Repo Policy Flocking, Concurrency & Lock Management", () => {
       scratchBase,
       `concurrent-flock-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     );
-    mkdirSync(dir, { recursive: true });
+    vfs.mkdirSync(dir, { recursive: true });
     initRepoPolicy(dir);
 
     const runWorker = async (id: number) => {
@@ -70,7 +80,7 @@ describe("Repo Policy Flocking, Concurrency & Lock Management", () => {
 
   test("withLock prevents nested re-entry on the same repo root and manages system flock", () => {
     const dir = join(scratchBase, "lock-reentry-test");
-    mkdirSync(dir, { recursive: true });
+    vfs.mkdirSync(dir, { recursive: true });
     const loc = resolvePolicyLocation(dir, undefined, true);
     expect(
       withLock(loc, () => {
@@ -79,20 +89,19 @@ describe("Repo Policy Flocking, Concurrency & Lock Management", () => {
       }),
     ).toBe(42);
 
-    // Test withLock when lock is already held externally
     const lockPath = resolveSystemLockPath("policy.lock", loc.root);
-    const holderFd = openSync(lockPath, constants.O_RDWR | constants.O_CREAT, 0o600);
+    const holderFd = session.openSync(lockPath, "w+");
     expect(tryExclusiveFlock(holderFd)).toBe(true);
     try {
       releaseFlock(holderFd);
     } finally {
-      closeSync(holderFd);
+      session.closeSync(holderFd);
     }
   });
 
   test("withLock times out when exclusive flock cannot be acquired within deadline", () => {
     const dir = join(scratchBase, "lock-timeout-test");
-    mkdirSync(dir, { recursive: true });
+    vfs.mkdirSync(dir, { recursive: true });
     const loc = resolvePolicyLocation(dir, undefined, true);
 
     let time = 0;

@@ -5,6 +5,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import {
   checkRmPermissions,
+  forgetInode,
   isVirtualPath,
   mockExists,
   mockMkdir,
@@ -77,6 +78,7 @@ export function createVirtualFSSession(vfs: VirtualMemoryFS): VirtualFSSession {
     hardlinks: new Map(),
     openDescriptors: new Map(),
     inodeMap: new Map(),
+    inodeAliases: new Map(),
     nextFd: { value: 3000 },
     nextIno: { value: 5000 },
   };
@@ -99,6 +101,7 @@ export function createVirtualFSSession(vfs: VirtualMemoryFS): VirtualFSSession {
     state.customModes.clear();
     state.symlinks.clear();
     state.inodeMap.clear();
+    state.inodeAliases?.clear();
     vfs.reset();
   }
 
@@ -187,7 +190,7 @@ export function createVirtualFSSession(vfs: VirtualMemoryFS): VirtualFSSession {
     rmSync: (p: fs.PathLike, opts?: fs.RmOptions) => {
       const np = normPath(String(p));
       checkRmPermissions(state, np, opts);
-      state.inodeMap.delete(np);
+      forgetInode(state, np);
       state.customModes.delete(np);
       state.customMtimes.delete(np);
       state.symlinks.delete(np);

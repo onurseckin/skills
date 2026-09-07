@@ -27,6 +27,7 @@ export interface ReaderHealthReport {
   readonly spool_bytes: number;
   readonly spool_lines: number;
   readonly is_orphan: boolean;
+  readonly watch_active: boolean;
 }
 
 export interface LockReport {

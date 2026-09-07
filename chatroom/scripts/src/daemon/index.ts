@@ -68,12 +68,15 @@ export {
 
 export {
   createInitialHealthRecord,
+  inspectDaemon,
   isDaemonHealthRecord,
   readHealthRecord,
   writeHealthRecord,
   type DaemonHealthRecord,
+  type DaemonInspectionResult,
   type DaemonLivenessState,
   type HealthComputeOptions,
+  type HealthPorts,
 } from "./health.ts";
 
 export { ensureDaemon, type EnsureDaemonOptions, type EnsureDaemonResult } from "./ensure.ts";

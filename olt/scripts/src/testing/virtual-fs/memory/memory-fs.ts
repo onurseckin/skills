@@ -66,6 +66,7 @@ export class VirtualMemoryFS implements IVirtualFileSystem {
     if (existing?.type === "dir") throw VirtualFSError.eisdir(norm, "open");
     const now = Date.now();
     const stats = new VirtualStats({
+      ino: existing?.stats.ino,
       size: bytes.byteLength,
       mode:
         typeof options === "object" && typeof options?.mode === "number" ? options.mode : undefined,

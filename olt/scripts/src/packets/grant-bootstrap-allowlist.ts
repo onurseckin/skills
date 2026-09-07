@@ -89,6 +89,13 @@ const COMMANDS_WHOSE_ACTING_FLAG_NAME_IS_A_DISPLAY_FILTER_NOT_AN_IDENTITY: Reado
     "test:summary",
     "task:brief",
     "msg:list",
+    "doctor",
+    "doctor:verify",
+    "doctor:agent",
+    "sentinel:pre-action",
+    "sentinel:post-action",
+    "sentinel:turn-end",
+    "sentinel:watch",
   ]);
 
 export function requiresActingIdentity(spec: CommandSpec): boolean {

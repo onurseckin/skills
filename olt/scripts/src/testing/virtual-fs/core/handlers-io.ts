@@ -1,8 +1,10 @@
 import { Buffer } from "node:buffer";
 import * as fs from "node:fs";
+import * as path from "node:path";
 import type { IVirtualFileSystem } from "./types.ts";
 import {
   type VirtualFSSpyState,
+  forgetInode,
   fsErr,
   getInode,
   isVirtualPath,
@@ -50,18 +52,22 @@ export function mockRename(state: VirtualFSSpyState, src: fs.PathLike, dst: fs.P
   if (!stat) {
     throw fsErr("ENOENT", `no such file or directory, rename '${srcStr}' -> '${dstStr}'`);
   }
+  const dstStat = state.vfs.statSync(dstStr, { throwIfNoEntry: false });
+  if (dstStat && dstStat.isDirectory() !== stat.isDirectory()) {
+    throw dstStat.isDirectory()
+      ? fsErr("EISDIR", `illegal operation on a directory, rename '${srcStr}' -> '${dstStr}'`)
+      : fsErr("ENOTDIR", `not a directory, rename '${srcStr}' -> '${dstStr}'`);
+  }
   remapPrefix(state.customModes, srcStr, dstStr);
   remapPrefix(state.customMtimes, srcStr, dstStr);
-  const srcIno = state.inodeMap.get(srcStr);
-  state.inodeMap.delete(srcStr);
-  state.inodeMap.set(dstStr, srcIno ?? state.nextIno.value++);
+  forgetInode(state, dstStr);
+  remapPrefix(state.inodeMap, srcStr, dstStr);
+  if (state.inodeAliases) remapPrefix(state.inodeAliases, srcStr, dstStr);
   if (stat.isDirectory()) {
-    copyDirRecursive(state.vfs, srcStr, dstStr, state);
-    state.vfs.rmSync(srcStr, { recursive: true, force: true });
-  } else {
-    state.vfs.writeFileSync(dstStr, state.vfs.readFileSync(srcStr));
-    state.vfs.unlinkSync(srcStr);
+    const parent = path.dirname(dstStr);
+    if (!state.vfs.existsSync(parent)) state.vfs.mkdirSync(parent, { recursive: true });
   }
+  state.vfs.renameSync(srcStr, dstStr);
 }
 
 export function mockLink(state: VirtualFSSpyState, src: fs.PathLike, dst: fs.PathLike): void {
@@ -73,7 +79,8 @@ export function mockLink(state: VirtualFSSpyState, src: fs.PathLike, dst: fs.Pat
   }
   state.vfs.writeFileSync(dstStr, state.vfs.readFileSync(srcStr));
   const ino = getInode(state, srcStr);
-  state.inodeMap.set(dstStr, ino);
+  if (!state.inodeAliases) state.inodeAliases = new Map();
+  state.inodeAliases.set(dstStr, ino);
   if (!state.hardlinks) state.hardlinks = new Map();
   state.hardlinks.set(ino, (state.hardlinks.get(ino) ?? 1) + 1);
 }

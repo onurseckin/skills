@@ -35,6 +35,7 @@ export const SCHED_COMMANDS: readonly CommandSpec[] = [
       optionalFlag("apply-jitter", "bool", "Alias for jitter."),
       optionalFlag("jitter-ratio", "string", "Jitter ratio fraction."),
       optionalFlag("multiplier", "string", "Exponential backoff multiplier."),
+      optionalFlag("no-jitter", "bool", "Disable jitter for deterministic evaluation."),
     ],
     readsStdin: false,
     takesRemainder: false,

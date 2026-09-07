@@ -77,6 +77,7 @@ export {
   type CleanupOrchestratorWorktreeOptions,
   type ListWorktreesOptions,
   type LockPayload,
+  type ReleaseWorktreeLockOptions,
 } from "./manager.ts";
 export { landTrackToMain, type LandTrackOptions, type LandTrackResult } from "./landing.ts";
 export {

@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync, statSync, watch, type FSWatcher } from "node:fs";
 import { join } from "node:path";
-import { roomLogDir, roomLogIndexPath } from "../core/index.ts";
+import { daemonHealthPath, roomLogDir, roomLogIndexPath } from "../core/index.ts";
+import { readHealthRecord, writeHealthRecord } from "./health.ts";
 
 export type WakeSource = "watch" | "poll" | "tick" | "token";
 
@@ -31,12 +32,17 @@ export interface DaemonWatcherPorts {
   readonly readdirSync?: (path: string) => string[];
   readonly readFileSync?: (path: string, encoding: string) => string;
   readonly statSync?: (path: string) => { size: number; ino?: number };
+  readonly writeAtomic?: (path: string, content: string) => void;
+  readonly writeFileSync?: (path: string, content: string) => void;
 }
 
 export interface DaemonWatcherOptions {
   readonly pollIntervalMs?: number;
   readonly retryDelayMs?: number;
   readonly ports?: DaemonWatcherPorts;
+  readonly reader?: string;
+  readonly healthPath?: string;
+  readonly onStatusChange?: (metrics: WatcherMetrics) => void;
 }
 
 const MIN_POLL_INTERVAL_MS = 250;
@@ -104,9 +110,12 @@ export function hasTokenChanged(prev: ChangeToken, current: ChangeToken): boolea
 
 export class DaemonWatcher {
   private readonly roomId: string;
+  private readonly reader?: string;
+  private readonly healthPath?: string;
   private readonly ports?: DaemonWatcherPorts;
   private readonly retryDelayMs: number;
   private readonly configuredPollIntervalMs: number;
+  private onStatusChange?: (metrics: WatcherMetrics) => void;
   private watchFailures = 0;
   private watchActive = false;
   private dirWatcher: WatcherHandle | FSWatcher | null = null;
@@ -121,12 +130,19 @@ export class DaemonWatcher {
 
   constructor(roomId: string, options: DaemonWatcherOptions = {}) {
     this.roomId = roomId;
+    this.reader = options.reader;
+    this.healthPath = options.healthPath;
     this.ports = options.ports;
     this.retryDelayMs = options.retryDelayMs ?? DEFAULT_RETRY_DELAY_MS;
+    this.onStatusChange = options.onStatusChange;
     const requested = options.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
     const minInterval = options.ports ? 1 : MIN_POLL_INTERVAL_MS;
     this.configuredPollIntervalMs = Math.max(minInterval, requested);
     this.lastToken = computeChangeToken(roomId, this.ports);
+  }
+
+  public setOnStatusChange(cb?: (metrics: WatcherMetrics) => void): void {
+    this.onStatusChange = cb;
   }
 
   public getMetrics(): WatcherMetrics {
@@ -229,6 +245,7 @@ export class DaemonWatcher {
     }
 
     this.watchActive = this.dirWatcher !== null || this.indexWatcher !== null;
+    this.syncHealth();
 
     if (this.dirWatcher === null || this.indexWatcher === null) {
       this.scheduleRetry();
@@ -251,6 +268,7 @@ export class DaemonWatcher {
       this.indexWatcher = null;
     }
     this.watchActive = false;
+    this.syncHealth();
   }
 
   private handleWatchError(target: "dir" | "index" | "all" = "all"): void {
@@ -272,7 +290,33 @@ export class DaemonWatcher {
       }
     }
     this.watchActive = this.dirWatcher !== null || this.indexWatcher !== null;
+    this.syncHealth();
     this.scheduleRetry();
+  }
+
+  private syncHealth(): void {
+    const targetPath =
+      this.healthPath ?? (this.reader ? daemonHealthPath(this.roomId, this.reader) : undefined);
+    if (targetPath) {
+      const health = readHealthRecord(targetPath, this.ports);
+      if (health) {
+        const nowIso = new Date().toISOString();
+        writeHealthRecord(
+          targetPath,
+          {
+            ...health,
+            watch_active: this.watchActive,
+            watch_failures: this.watchFailures,
+            poll_interval_ms: this.configuredPollIntervalMs,
+            updated_at: nowIso,
+          },
+          this.ports,
+        );
+      }
+    }
+    if (this.onStatusChange) {
+      this.onStatusChange(this.getMetrics());
+    }
   }
 
   private async handleWatchEvent(): Promise<void> {

@@ -106,6 +106,7 @@ export const ENGINE_COMMANDS: readonly CommandSpec[] = [
       optionalFlag("correlation-id", "string", "Filter by correlation ID."),
       optionalFlag("secret", "string", "Repository secret key for HMAC verification."),
       optionalFlag("base-dir", "string", "Base directory for mailbox root."),
+      optionalFlag("json", "bool", "Output machine-readable JSON."),
     ],
     readsStdin: false,
     takesRemainder: false,

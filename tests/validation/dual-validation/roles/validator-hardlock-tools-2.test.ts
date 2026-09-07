@@ -1,5 +1,9 @@
-import { describe, expect, it } from "bun:test";
-import { readFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import { findCommand } from "../../../../olt/scripts/src/cli/registry/index.ts";
 import type { CommandSpec } from "../../../../olt/scripts/src/cli/registry/types.ts";
 import type { Flags } from "../../../../olt/scripts/src/cli/options.ts";
@@ -39,12 +43,26 @@ function spec(invocation: string): CommandSpec {
   return found;
 }
 
+const vfs = new VirtualMemoryFS();
+let session: VirtualFSSession | null = null;
+
 describe("Validator Hard-Lock - Boundary Supervision (Part 2)", () => {
+  beforeEach(() => {
+    session = createVirtualFSSession(vfs);
+  });
+
+  afterEach(() => {
+    if (session) {
+      session.cleanup();
+      session = null;
+    }
+    vfs.reset();
+  });
+
   describe("1. Hierarchical Parent-Child Boundary Supervision", () => {
     it("enforces hierarchical spawning in real-time RoleBoundaryWatchdog", () => {
       const watchdog = createRoleBoundaryWatchdog();
 
-      // Tier 3 Leaf spawning
       const leafAction: RoleBoundaryAction = {
         agentId: "impl-1",
         role: "implementer",
@@ -57,7 +75,6 @@ describe("Validator Hard-Lock - Boundary Supervision (Part 2)", () => {
       expect(leafViolation?.violationType).toBe("leaf_spawning");
       expect(leafViolation?.severity).toBe("CRITICAL");
 
-      // Tier 0 Mind cross-tier spawning (attempting to spawn implementer)
       const mindAction: RoleBoundaryAction = {
         agentId: "mind-1",
         role: "mind",
@@ -70,7 +87,6 @@ describe("Validator Hard-Lock - Boundary Supervision (Part 2)", () => {
       expect(mindViolation?.violationType).toBe("cross_tier_spawning");
       expect(mindViolation?.observation).toContain("Mind may only dispatch Tier 1 Orchestrators");
 
-      // Tier 1 Orchestrator cross-tier spawning (attempting to spawn implementer directly)
       const orchAction: RoleBoundaryAction = {
         agentId: "orch-1",
         role: "orchestrator",
@@ -85,7 +101,6 @@ describe("Validator Hard-Lock - Boundary Supervision (Part 2)", () => {
         "Orchestrators may only dispatch Tier 2 Coordinators",
       );
 
-      // Tier 2 Coordinator spawning Tier 3 Implementer [VALID]
       const validCoordAction: RoleBoundaryAction = {
         agentId: "coord-1",
         role: "coordinator",
@@ -130,7 +145,6 @@ describe("Validator Hard-Lock - Boundary Supervision (Part 2)", () => {
         ];
       });
 
-      // Valid registration: Coordinator registering Implementer
       const validRegFlags: Flags = {
         run,
         actor: "coord-lead",
@@ -146,7 +160,6 @@ describe("Validator Hard-Lock - Boundary Supervision (Part 2)", () => {
         }),
       ).not.toThrow();
 
-      // Invalid registration: Orchestrator attempting to directly register Implementer
       const invalidOrchRegFlags: Flags = {
         run,
         actor: "orch-lead",
@@ -162,7 +175,6 @@ describe("Validator Hard-Lock - Boundary Supervision (Part 2)", () => {
         }),
       ).toThrow("Hierarchical Parent-Child Boundary Violation");
 
-      // Invalid registration: Tier 3 Implementer dispatched with no parent agent
       const orphanRegFlags: Flags = {
         run,
         actor: "mind-lead",

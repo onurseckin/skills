@@ -6,6 +6,7 @@ export {
   checkRmPermissions,
   copyDirRecursive,
   fsErr,
+  forgetInode,
   getInode,
   isVirtualPath,
   makeFsStats,

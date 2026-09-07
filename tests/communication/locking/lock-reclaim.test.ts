@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   reclaimInMemoryStaleLocks,
@@ -14,22 +13,36 @@ import {
   setInMemoryLocking,
 } from "../../../olt/scripts/src/communication/locking/safe-lock.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { cleanupVirtualCommunicationFS, setupVirtualCommunicationFS } from "../helpers.ts";
+import {
+  createVirtualFSSession,
+  type VirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import {
+  cleanupVirtualCommunicationFS,
+  normPath,
+  setupVirtualCommunicationFS,
+  vfs,
+} from "../helpers.ts";
+import { customMtimes } from "../virtual-state.ts";
 
 describe("Lock Reclaim Engine (Disk and In-Memory)", () => {
   let tempDir: string;
   let locksDir: string;
+  let session: VirtualFSSession;
 
   beforeEach(() => {
+    session = createVirtualFSSession(vfs);
     setupVirtualCommunicationFS();
     setInMemoryLocking(false);
     resetInMemoryLocks();
     tempDir = "/virtual/communication/locks-reclaim";
     locksDir = join(tempDir, ".locks");
-    mkdirSync(locksDir, { recursive: true });
+    vfs.mkdirSync(locksDir, { recursive: true });
   });
 
   afterEach(() => {
+    session.cleanup();
     cleanupVirtualCommunicationFS();
   });
 
@@ -51,7 +64,7 @@ describe("Lock Reclaim Engine (Disk and In-Memory)", () => {
     it("returns empty array for non-existent directory or file path as directory on disk", () => {
       expect(reclaimStaleLocks(join(tempDir, "nonexistent"))).toEqual([]);
       const filePath = join(tempDir, "file-not-dir");
-      writeFileSync(filePath, "file-content", "utf8");
+      vfs.writeFileSync(filePath, "file-content");
       expect(reclaimStaleLocks(filePath)).toEqual([]);
     });
   });
@@ -60,65 +73,62 @@ describe("Lock Reclaim Engine (Disk and In-Memory)", () => {
     it("reclaims stale locks from dead processes older than threshold", () => {
       const staleLockPath = join(locksDir, "dead-agent.lock");
       const pastDate = new Date(Date.now() - 25_000).toISOString();
-      writeFileSync(
+      vfs.writeFileSync(
         staleLockPath,
         JSON.stringify({ pid: 99_999_999, holder: "dead-agent", created_at: pastDate }),
-        "utf8",
       );
       const reclaimed = reclaimStaleLocks(locksDir, 10_000);
       expect(reclaimed).toContain(staleLockPath);
-      expect(existsSync(staleLockPath)).toBe(false);
+      expect(vfs.existsSync(staleLockPath)).toBe(false);
     });
 
     it("reclaims unparseable stale lock files based on file mtime", () => {
       const staleUnparseable = join(locksDir, "corrupted-stale.lock");
-      writeFileSync(staleUnparseable, "not-json-content", "utf8");
+      vfs.writeFileSync(staleUnparseable, "not-json-content");
       const pastTime = new Date(Date.now() - 30_000);
-      utimesSync(staleUnparseable, pastTime, pastTime);
+      customMtimes.set(normPath(staleUnparseable), pastTime.getTime());
 
       const reclaimed = reclaimStaleLocks(locksDir, 10_000);
       expect(reclaimed).toContain(staleUnparseable);
-      expect(existsSync(staleUnparseable)).toBe(false);
+      expect(vfs.existsSync(staleUnparseable)).toBe(false);
     });
 
     it("ignores non-lock files and subdirectories ending in .lock", () => {
       const notLockFile = join(locksDir, "ignored.txt");
-      writeFileSync(notLockFile, "test", "utf8");
+      vfs.writeFileSync(notLockFile, "test");
       const subDirLock = join(locksDir, "nested.lock");
-      mkdirSync(subDirLock);
+      vfs.mkdirSync(subDirLock);
 
       const reclaimed = reclaimStaleLocks(locksDir, 10_000);
       expect(reclaimed).toEqual([]);
-      expect(existsSync(notLockFile)).toBe(true);
-      expect(existsSync(subDirLock)).toBe(true);
+      expect(vfs.existsSync(notLockFile)).toBe(true);
+      expect(vfs.existsSync(subDirLock)).toBe(true);
     });
 
     it("does not reclaim locks held by living PIDs even if older than threshold", () => {
       const activeLockPath = join(locksDir, "living-agent.lock");
       const pastDate = new Date(Date.now() - 25_000).toISOString();
-      writeFileSync(
+      vfs.writeFileSync(
         activeLockPath,
         JSON.stringify({ pid: process.pid, holder: "living-agent", created_at: pastDate }),
-        "utf8",
       );
 
       const reclaimed = reclaimStaleLocks(locksDir, 10_000);
       expect(reclaimed).toEqual([]);
-      expect(existsSync(activeLockPath)).toBe(true);
+      expect(vfs.existsSync(activeLockPath)).toBe(true);
     });
 
     it("does not reclaim locks younger than threshold even if process is dead", () => {
       const freshLockPath = join(locksDir, "fresh-dead.lock");
       const freshDate = new Date(Date.now() - 1_000).toISOString();
-      writeFileSync(
+      vfs.writeFileSync(
         freshLockPath,
         JSON.stringify({ pid: 99_999_999, holder: "fresh-agent", created_at: freshDate }),
-        "utf8",
       );
 
       const reclaimed = reclaimStaleLocks(locksDir, 10_000);
       expect(reclaimed).toEqual([]);
-      expect(existsSync(freshLockPath)).toBe(true);
+      expect(vfs.existsSync(freshLockPath)).toBe(true);
     });
 
     it("never breaks or unlinks a lock actively held via flock even if stale timestamp", () => {
@@ -126,14 +136,13 @@ describe("Lock Reclaim Engine (Disk and In-Memory)", () => {
       const activeAcquisition = acquireMailboxLock(activeLockPath, "flocked-holder");
       try {
         const pastDate = new Date(Date.now() - 25_000).toISOString();
-        writeFileSync(
+        vfs.writeFileSync(
           activeLockPath,
           JSON.stringify({ pid: 99_999_999, holder: "flocked-holder", created_at: pastDate }),
-          "utf8",
         );
         const reclaimed = reclaimStaleLocks(locksDir, 10_000);
         expect(reclaimed).toEqual([]);
-        expect(existsSync(activeLockPath)).toBe(true);
+        expect(vfs.existsSync(activeLockPath)).toBe(true);
       } finally {
         releaseMailboxLock(activeAcquisition);
       }

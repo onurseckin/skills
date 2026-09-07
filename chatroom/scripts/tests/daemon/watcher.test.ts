@@ -1,9 +1,18 @@
 import { describe, expect, it } from "bun:test";
-import { roomLogDir, roomLogIndexPath, roomLogSegmentPath } from "../../src/core/index.ts";
+import { dirname } from "node:path";
+import {
+  daemonHealthPath,
+  roomLogDir,
+  roomLogIndexPath,
+  roomLogSegmentPath,
+} from "../../src/core/index.ts";
 import {
   computeChangeToken,
+  createInitialHealthRecord,
   DaemonWatcher,
   hasTokenChanged,
+  inspectDaemon,
+  readHealthRecord,
   type DaemonWatcherPorts,
   type WatcherHandle,
   type WakeSource,
@@ -41,6 +50,13 @@ function createVirtualPorts(
         size: stat?.size ?? 0,
         ino: 1,
       };
+    },
+    writeAtomic: (targetPath: string, content: string) => {
+      vfs.mkdirSync(dirname(targetPath), { recursive: true });
+      vfs.writeFileSync(targetPath, content);
+    },
+    writeFileSync: (targetPath: string, content: string) => {
+      vfs.writeFileSync(targetPath, content);
     },
   };
 }
@@ -184,5 +200,200 @@ describe("DaemonWatcher attachment retry and unconditional polling", () => {
     const token2 = computeChangeToken(roomId, ports);
     expect(token2.head_segment_size).toBe(12);
     expect(hasTokenChanged(token1, token2)).toBe(true);
+  });
+
+  it("updates watch_active in daemon health record when watcher starts, errors, and stops", async () => {
+    const vfs = new ChatVirtualFS();
+    const roomId = "health-room";
+    const readerId = "agent-alpha";
+    const healthPath = daemonHealthPath(roomId, readerId);
+
+    vfs.mkdirSync(roomLogDir(roomId), { recursive: true });
+    vfs.writeFileSync(roomLogIndexPath(roomId), JSON.stringify({ next_seq: 1 }));
+
+    const initialHealth = createInitialHealthRecord(
+      roomId,
+      readerId,
+      12345,
+      new Date().toISOString(),
+      "test-boot",
+    );
+    vfs.mkdirSync(dirname(healthPath), { recursive: true });
+    vfs.writeFileSync(healthPath, JSON.stringify(initialHealth, null, 2));
+
+    const errorListeners: Array<() => void> = [];
+    const basePorts = createVirtualPorts(vfs);
+    const ports: DaemonWatcherPorts = {
+      ...basePorts,
+      watch: (targetPath, opts, listener) => {
+        const h = basePorts.watch!(targetPath, opts, listener);
+        return {
+          close: () => h.close(),
+          on: (event: "error", errCb: () => void) => {
+            if (event === "error" && targetPath.includes("/log")) {
+              errorListeners.push(errCb);
+            }
+          },
+        };
+      },
+    };
+
+    const watcher = new DaemonWatcher(roomId, {
+      reader: readerId,
+      healthPath,
+      ports,
+      pollIntervalMs: 50,
+      retryDelayMs: 20,
+    });
+
+    const recordBefore = readHealthRecord(healthPath, ports);
+    expect(recordBefore?.watch_active).toBe(false);
+
+    watcher.start(() => {});
+
+    const recordRunning = readHealthRecord(healthPath, ports);
+    expect(recordRunning?.watch_active).toBe(true);
+
+    const inspected = inspectDaemon(roomId, readerId, {}, ports);
+    expect(inspected.watch_active).toBe(true);
+
+    for (const listener of errorListeners) {
+      listener();
+    }
+
+    const recordFailed = readHealthRecord(healthPath, ports);
+    expect(recordFailed?.watch_active).toBe(false);
+    expect(recordFailed?.watch_failures).toBeGreaterThan(0);
+
+    await new Promise((resolve) => setTimeout(resolve, 60));
+
+    const recordRecovered = readHealthRecord(healthPath, ports);
+    expect(recordRecovered?.watch_active).toBe(true);
+
+    watcher.stop();
+
+    const recordStopped = readHealthRecord(healthPath, ports);
+    expect(recordStopped?.watch_active).toBe(false);
+
+    const inspectedStopped = inspectDaemon(roomId, readerId, {}, ports);
+    expect(inspectedStopped.watch_active).toBe(false);
+  });
+
+  it("attaches watcher and sets watch_active true when room directory is created after daemon start", async () => {
+    const vfs = new ChatVirtualFS();
+    const roomId = "delayed-health-room";
+    const readerId = "agent-delayed";
+    const healthPath = daemonHealthPath(roomId, readerId);
+
+    vfs.mkdirSync(dirname(healthPath), { recursive: true });
+    const initialHealth = createInitialHealthRecord(
+      roomId,
+      readerId,
+      44111,
+      new Date().toISOString(),
+      "boot-delayed",
+    );
+    vfs.writeFileSync(healthPath, JSON.stringify(initialHealth, null, 2));
+
+    const ports = createVirtualPorts(vfs);
+    const watcher = new DaemonWatcher(roomId, {
+      reader: readerId,
+      healthPath,
+      ports,
+      pollIntervalMs: 25,
+      retryDelayMs: 15,
+    });
+
+    watcher.start(() => {});
+
+    const recordBefore = readHealthRecord(healthPath, ports);
+    expect(recordBefore?.watch_active).toBe(false);
+    expect(inspectDaemon(roomId, readerId, {}, ports).watch_active).toBe(false);
+
+    vfs.mkdirSync(roomLogDir(roomId), { recursive: true });
+    vfs.writeFileSync(roomLogIndexPath(roomId), JSON.stringify({ next_seq: 1 }));
+
+    await new Promise((resolve) => setTimeout(resolve, 60));
+
+    const recordAfter = readHealthRecord(healthPath, ports);
+    expect(recordAfter?.watch_active).toBe(true);
+    expect(inspectDaemon(roomId, readerId, {}, ports).watch_active).toBe(true);
+
+    watcher.stop();
+  });
+
+  it("records watch_active false when watch fails while message delivery continues via poll loop", async () => {
+    const vfs = new ChatVirtualFS();
+    const roomId = "fail-poll-room";
+    const readerId = "agent-poll";
+    const healthPath = daemonHealthPath(roomId, readerId);
+
+    vfs.mkdirSync(roomLogDir(roomId), { recursive: true });
+    vfs.writeFileSync(roomLogIndexPath(roomId), JSON.stringify({ next_seq: 1 }));
+    vfs.mkdirSync(dirname(healthPath), { recursive: true });
+
+    const initialHealth = createInitialHealthRecord(
+      roomId,
+      readerId,
+      55111,
+      new Date().toISOString(),
+      "boot-poll",
+    );
+    vfs.writeFileSync(healthPath, JSON.stringify(initialHealth, null, 2));
+
+    let watchShouldFail = false;
+    const errorListeners: Array<() => void> = [];
+    const basePorts = createVirtualPorts(vfs);
+    const ports: DaemonWatcherPorts = {
+      ...basePorts,
+      watch: (targetPath, opts, listener) => {
+        if (watchShouldFail) {
+          throw new Error("EACCES: watch disabled");
+        }
+        const h = basePorts.watch!(targetPath, opts, listener);
+        return {
+          close: () => h.close(),
+          on: (event: "error", errCb: () => void) => {
+            if (event === "error") {
+              errorListeners.push(errCb);
+            }
+          },
+        };
+      },
+    };
+
+    const receivedWakes: Array<{ source: WakeSource; tokenChanged: boolean }> = [];
+    const watcher = new DaemonWatcher(roomId, {
+      reader: readerId,
+      healthPath,
+      ports,
+      pollIntervalMs: 25,
+      retryDelayMs: 500,
+    });
+
+    watcher.start((source, changed) => {
+      receivedWakes.push({ source, tokenChanged: changed });
+    });
+
+    expect(readHealthRecord(healthPath, ports)?.watch_active).toBe(true);
+
+    watchShouldFail = true;
+    for (const listener of errorListeners) {
+      listener();
+    }
+
+    const failedRecord = readHealthRecord(healthPath, ports);
+    expect(failedRecord?.watch_active).toBe(false);
+    expect(failedRecord?.watch_failures).toBeGreaterThan(0);
+
+    vfs.writeFileSync(roomLogIndexPath(roomId), JSON.stringify({ next_seq: 2 }));
+
+    await new Promise((resolve) => setTimeout(resolve, 70));
+
+    const pollWakes = receivedWakes.filter((w) => w.source === "poll" && w.tokenChanged);
+    expect(pollWakes.length).toBeGreaterThan(0);
+    expect(readHealthRecord(healthPath, ports)?.watch_active).toBe(false);
+
+    watcher.stop();
   });
 });

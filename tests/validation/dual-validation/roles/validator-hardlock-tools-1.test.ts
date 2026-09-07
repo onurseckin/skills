@@ -1,5 +1,9 @@
-import { describe, expect, it } from "bun:test";
-import { readFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import { findCommand } from "../../../../olt/scripts/src/cli/registry/index.ts";
 import type { CommandSpec } from "../../../../olt/scripts/src/cli/registry/types.ts";
 import type { Flags } from "../../../../olt/scripts/src/cli/options.ts";
@@ -39,53 +43,59 @@ function spec(invocation: string): CommandSpec {
   return found;
 }
 
+const vfs = new VirtualMemoryFS();
+let session: VirtualFSSession | null = null;
+
 describe("Validator Hard-Lock - Boundary Supervision (Part 1)", () => {
+  beforeEach(() => {
+    session = createVirtualFSSession(vfs);
+  });
+
+  afterEach(() => {
+    if (session) {
+      session.cleanup();
+      session = null;
+    }
+    vfs.reset();
+  });
+
   describe("1. Hierarchical Parent-Child Boundary Supervision", () => {
     it("validates direct hierarchical spawning transitions across all 4 tiers", () => {
-      // Tier 0 Mind -> Tier 1 Orchestrator
       const mindToOrch = validateHierarchicalSpawning("mind", "orchestrator");
       expect(mindToOrch.valid).toBe(true);
       expect(mindToOrch.parentTier).toBe(0);
       expect(mindToOrch.childTier).toBe(1);
 
-      // Tier 0 Mind -> Tier 2 Coordinator [REJECT]
       const mindToCoord = validateHierarchicalSpawning("mind", "coordinator");
       expect(mindToCoord.valid).toBe(false);
       expect(mindToCoord.reason).toContain(
         "Tier 0 Mind (mind) may only dispatch Tier 1 Orchestrators",
       );
 
-      // Tier 0 Mind -> Tier 3 Implementer [REJECT]
       const mindToImpl = validateHierarchicalSpawning("mind", "implementer");
       expect(mindToImpl.valid).toBe(false);
 
-      // Tier 1 Orchestrator -> Tier 2 Coordinator
       const orchToCoord = validateHierarchicalSpawning("orchestrator", "coordinator");
       expect(orchToCoord.valid).toBe(true);
       expect(orchToCoord.parentTier).toBe(1);
       expect(orchToCoord.childTier).toBe(2);
 
-      // Tier 1 Orchestrator -> Tier 0 Mind [REJECT]
       const orchToMind = validateHierarchicalSpawning("orchestrator", "mind");
       expect(orchToMind.valid).toBe(false);
 
-      // Tier 1 Orchestrator -> Tier 3 Implementer [REJECT: must dispatch Coordinator]
       const orchToImpl = validateHierarchicalSpawning("orchestrator", "implementer");
       expect(orchToImpl.valid).toBe(false);
       expect(orchToImpl.reason).toContain(
         "Tier 1 Orchestrator (orchestrator) may only dispatch Tier 2 Coordinators",
       );
 
-      // Tier 2 Coordinator -> Tier 3 Implementer / Validator / Critic / Sub-Implementer
       expect(validateHierarchicalSpawning("coordinator", "implementer").valid).toBe(true);
       expect(validateHierarchicalSpawning("coordinator", "validator").valid).toBe(true);
       expect(validateHierarchicalSpawning("coordinator", "completeness-critic").valid).toBe(true);
       expect(validateHierarchicalSpawning("coordinator", "sub-implementer").valid).toBe(true);
 
-      // Tier 2 Coordinator -> Tier 2 Coordinator [REJECT]
       expect(validateHierarchicalSpawning("coordinator", "coordinator").valid).toBe(false);
 
-      // Tier 3 workers -> leaf execution workers [REJECT]
       expect(validateHierarchicalSpawning("implementer", "sub-worker").valid).toBe(false);
       expect(validateHierarchicalSpawning("validator", "sub-validator").valid).toBe(false);
       expect(validateHierarchicalSpawning("sub-implementer", "sub-worker-2").valid).toBe(false);
@@ -125,7 +135,6 @@ describe("Validator Hard-Lock - Boundary Supervision (Part 1)", () => {
     });
 
     it("audits dynamic role specs for spawning hierarchy and parent role compliance", () => {
-      // Valid Tier 0 Mind
       const validMindSpec: DynamicRoleSpec = {
         name: "test-mind",
         archetype: "tier_0_mind",
@@ -144,7 +153,6 @@ describe("Validator Hard-Lock - Boundary Supervision (Part 1)", () => {
       const mindFindings = auditSingleRole(validMindSpec);
       expect(mindFindings.some((f) => f.category === "spawning_hierarchy")).toBe(false);
 
-      // Invalid Tier 0 Mind with cross-tier spawns
       const invalidMindSpec: DynamicRoleSpec = {
         ...validMindSpec,
         name: "invalid-mind",
@@ -157,7 +165,6 @@ describe("Validator Hard-Lock - Boundary Supervision (Part 1)", () => {
         ),
       ).toBe(true);
 
-      // Invalid Tier 1 Orchestrator with cross-tier spawns
       const invalidOrchSpec: DynamicRoleSpec = {
         name: "invalid-orch",
         archetype: "tier_1_orchestrator",
@@ -180,7 +187,6 @@ describe("Validator Hard-Lock - Boundary Supervision (Part 1)", () => {
         ),
       ).toBe(true);
 
-      // Invalid Tier 2 Coordinator with supervisor spawns
       const invalidCoordSpec: DynamicRoleSpec = {
         name: "invalid-coord",
         archetype: "tier_2_coordinator",
@@ -203,7 +209,6 @@ describe("Validator Hard-Lock - Boundary Supervision (Part 1)", () => {
         ),
       ).toBe(true);
 
-      // Invalid Tier 3 Implementer with spawns (leaf violation)
       const invalidImplSpec: DynamicRoleSpec = {
         name: "invalid-impl",
         archetype: "tier_3_implementer",
@@ -226,7 +231,6 @@ describe("Validator Hard-Lock - Boundary Supervision (Part 1)", () => {
         ),
       ).toBe(true);
 
-      // Invalid Tier 3 role with non-adjacent parentRole (e.g. parentRole: "mind")
       const invalidParentSpec: DynamicRoleSpec = {
         ...invalidImplSpec,
         name: "invalid-parent-impl",

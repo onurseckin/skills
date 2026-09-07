@@ -73,8 +73,10 @@ function formatMarkdownReport(
       lines.push("");
       lines.push("##### Readers");
       for (const rd of r.readers) {
-        const daemonInfo = `State: \`${rd.daemon_state}\` (PID: ${rd.daemon_pid !== null ? String(rd.daemon_pid) : "none"})`;
+        const watchLabel = rd.watch_active ? ", Watcher: ACTIVE" : "";
+        const daemonInfo = `State: \`${rd.daemon_state}\` (PID: ${rd.daemon_pid !== null ? String(rd.daemon_pid) : "none"}${watchLabel})`;
         const seqInfo = `Contiguous: \`${rd.contiguous_seq}\` | Lag: \`${rd.lag}\``;
+
         const spoolInfo = `Spool: \`${rd.spool_bytes}\` B (\`${rd.spool_lines}\` lines)`;
         lines.push(`- **${rd.reader}**: ${daemonInfo} | ${seqInfo} | ${spoolInfo}`);
         if (rd.expired_leases.length > 0) {

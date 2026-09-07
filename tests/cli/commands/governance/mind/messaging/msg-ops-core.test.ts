@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import {
   msgRecvCommand,
@@ -15,30 +14,39 @@ import { verifyEnvelopeHmac } from "../../../../../../olt/scripts/src/communicat
 import type { MailboxEnvelope } from "../../../../../../olt/scripts/src/communication/types.ts";
 import { HarnessError } from "../../../../../../olt/scripts/src/core/errors/index.ts";
 import {
+  createVirtualFSSession,
+  type VirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import {
   cleanupVirtualCliFS,
   setupVirtualCliFS,
 } from "../../../fixtures/full-lifecycle-fixture.ts";
 
 describe("Mailbox CLI Operations - Core Send/Recv Workflows", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
   let testRoot: string;
 
   beforeEach(() => {
-    setupVirtualCliFS();
+    vfs = setupVirtualCliFS();
+    session = createVirtualFSSession(vfs);
     testRoot = join(
       process.cwd(),
       "scratch",
       "test-isolation",
       `msg-ops-c-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     );
-    mkdirSync(testRoot, { recursive: true });
+    vfs.mkdirSync(testRoot, { recursive: true });
   });
 
   afterEach(() => {
-    if (existsSync(testRoot)) {
+    if (vfs.existsSync(testRoot)) {
       try {
-        rmSync(testRoot, { recursive: true, force: true });
+        vfs.rmSync(testRoot, { recursive: true, force: true });
       } catch {}
     }
+    session.cleanup();
     cleanupVirtualCliFS();
   });
 

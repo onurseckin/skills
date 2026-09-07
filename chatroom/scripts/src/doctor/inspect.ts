@@ -181,8 +181,10 @@ function inspectReaders(
       spool_bytes: spoolBytes,
       spool_lines: spoolLines,
       is_orphan: !members.includes(reader),
+      watch_active: health !== null ? health.watch_active : false,
     });
   }
+
   return reports;
 }
 

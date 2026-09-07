@@ -71,7 +71,6 @@ export async function taskSubmitCommand(
   const declaredCommandIds = listFlag(flags, "evidence");
   const noOp = boolFlag(flags, "no-op");
   const noOpReason = textFlag(flags, "reason", false);
-  const skipChecks = boolFlag(flags, "skip-checks") || boolFlag(flags, "no-checks");
   if (noOp && noOpReason === undefined) {
     throw new HarnessError(
       "INVALID_ARGUMENT",
@@ -113,7 +112,6 @@ export async function taskSubmitCommand(
           observedFiles: observeChangedFiles(findRepoRoot(loaded.runRoot)),
           commands: (loaded.state.commands ?? {}) as Record<string, CommandRecord>,
           allowEmptyFiles: noOp,
-          skipChecks,
         });
 
   const submitRepoRoot = findRepoRoot(run);

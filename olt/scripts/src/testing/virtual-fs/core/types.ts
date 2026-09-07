@@ -8,9 +8,13 @@ export interface VirtualStatsInit {
   ctimeMs?: number | undefined;
   birthtimeMs?: number | undefined;
   isDir?: boolean | undefined;
+  ino?: number | undefined;
 }
 
+let nextVirtualIno = 1_000_000;
+
 export class VirtualStats {
+  readonly ino: number;
   readonly size: number;
   readonly mode: number;
   readonly atimeMs: number;
@@ -25,6 +29,7 @@ export class VirtualStats {
 
   constructor(init: VirtualStatsInit = {}) {
     const now = Date.now();
+    this.ino = init.ino ?? nextVirtualIno++;
     this.size = init.size ?? 0;
     this.mode = init.mode ?? (init.isDir ? 0o755 : 0o644);
     this.atimeMs = init.atimeMs ?? now;
@@ -62,6 +67,7 @@ export class VirtualStats {
 
   clone(updates?: Partial<VirtualStatsInit>): VirtualStats {
     return new VirtualStats({
+      ino: updates?.ino ?? this.ino,
       size: updates?.size ?? this.size,
       mode: updates?.mode ?? this.mode,
       atimeMs: updates?.atimeMs ?? this.atimeMs,

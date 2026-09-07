@@ -1,6 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   acquireFullSuiteTestLock,
@@ -16,18 +14,32 @@ import {
   saveTestSummary,
   setInMemoryLockPayload,
 } from "../../olt/scripts/src/testing/concurrency-lock.ts";
+import {
+  createVirtualFSSession,
+  type VirtualFSSession,
+  VirtualMemoryFS,
+} from "../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Concurrency Lock Edge Cases & Telemetry", () => {
+  const repoRoot = "/virtual/repo";
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
   let tempDir: string;
+  let tempDirCounter = 0;
 
   beforeEach(() => {
+    vfs = new VirtualMemoryFS();
+    vfs.mkdirSync(join(repoRoot, ".git"), { recursive: true });
+    vfs.chdir(repoRoot);
+    session = createVirtualFSSession(vfs);
     resetConcurrencyLockStore();
-    tempDir = mkdtempSync(join(tmpdir(), "lock-edge-"));
+    tempDir = join(repoRoot, `lock-edge-${++tempDirCounter}`);
+    vfs.mkdirSync(tempDir, { recursive: true });
   });
 
   afterEach(() => {
     resetConcurrencyLockStore();
-    if (tempDir) rmSync(tempDir, { recursive: true, force: true });
+    session.cleanup();
   });
 
   describe("isFullSuiteTestCommand flags and token parser", () => {
@@ -55,11 +67,7 @@ describe("Concurrency Lock Edge Cases & Telemetry", () => {
   describe("readLockPayload field fallbacks and corruption", () => {
     it("populates fallback values when optional payload fields are missing", () => {
       const lockFile = join(tempDir, "partial.lock");
-      writeFileSync(
-        lockFile,
-        JSON.stringify({ pid: process.pid, agent_id: "agent-partial" }),
-        "utf8",
-      );
+      vfs.writeFileSync(lockFile, JSON.stringify({ pid: process.pid, agent_id: "agent-partial" }));
 
       const payload = readLockPayload(lockFile);
       expect(payload).not.toBeNull();
@@ -73,11 +81,11 @@ describe("Concurrency Lock Edge Cases & Telemetry", () => {
 
     it("returns null when JSON payload has missing or invalid required types", () => {
       const badPidFile = join(tempDir, "bad-pid.lock");
-      writeFileSync(badPidFile, JSON.stringify({ pid: "not-a-number", agent_id: "agent" }), "utf8");
+      vfs.writeFileSync(badPidFile, JSON.stringify({ pid: "not-a-number", agent_id: "agent" }));
       expect(readLockPayload(badPidFile)).toBeNull();
 
       const badAgentFile = join(tempDir, "bad-agent.lock");
-      writeFileSync(badAgentFile, JSON.stringify({ pid: 1234, agent_id: 5678 }), "utf8");
+      vfs.writeFileSync(badAgentFile, JSON.stringify({ pid: 1234, agent_id: 5678 }));
       expect(readLockPayload(badAgentFile)).toBeNull();
     });
   });
@@ -118,7 +126,6 @@ describe("Concurrency Lock Edge Cases & Telemetry", () => {
 
   describe("getLatestTestSummary fallback logic", () => {
     it("finds newest memory summary by mtime when latest.json key is absent", async () => {
-      const sDir = resolveTestSummaryDir(tempDir);
       const sOld = createTestSummaryRecord({
         passed_count: 1,
         failed_count: 0,
@@ -139,13 +146,13 @@ describe("Concurrency Lock Edge Cases & Telemetry", () => {
 
     it("reads disk directory sorted by mtime when memory store is empty and latest.json absent", async () => {
       const sDir = resolveTestSummaryDir(tempDir);
-      mkdirSync(sDir, { recursive: true });
+      vfs.mkdirSync(sDir, { recursive: true });
 
       const oldRec = createTestSummaryRecord({ passed_count: 2, failed_count: 0 });
       const newRec = createTestSummaryRecord({ passed_count: 8, failed_count: 0 });
 
-      writeFileSync(join(sDir, "summary-2026-01-01.json"), JSON.stringify(oldRec), "utf8");
-      writeFileSync(join(sDir, "summary-2026-01-02.json"), JSON.stringify(newRec), "utf8");
+      vfs.writeFileSync(join(sDir, "summary-2026-01-01.json"), JSON.stringify(oldRec));
+      vfs.writeFileSync(join(sDir, "summary-2026-01-02.json"), JSON.stringify(newRec));
 
       resetConcurrencyLockStore();
 
@@ -157,8 +164,8 @@ describe("Concurrency Lock Edge Cases & Telemetry", () => {
   describe("acquireFullSuiteTestLock with stale disk lock and recovery", () => {
     it("cleans up stale dead PID lock file on disk during acquisition", async () => {
       const lockPath = resolveLockPath(tempDir);
-      mkdirSync(join(tempDir, ".locks"), { recursive: true });
-      writeFileSync(lockPath, JSON.stringify({ pid: 99999999, agent_id: "dead-agent" }), "utf8");
+      vfs.mkdirSync(join(tempDir, ".locks"), { recursive: true });
+      vfs.writeFileSync(lockPath, JSON.stringify({ pid: 99999999, agent_id: "dead-agent" }));
 
       const res = await acquireFullSuiteTestLock({ runDir: tempDir, agentId: "new-agent" });
       expect(res.acquired).toBe(true);

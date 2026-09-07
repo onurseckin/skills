@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   msgListCommand,
@@ -11,30 +10,39 @@ import { execute } from "../../../../../../olt/scripts/src/cli/execute.ts";
 import { resolveMailboxPaths } from "../../../../../../olt/scripts/src/communication/mailbox/index.ts";
 import type { MailboxEnvelope } from "../../../../../../olt/scripts/src/communication/types.ts";
 import {
+  createVirtualFSSession,
+  type VirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import {
   cleanupVirtualCliFS,
   setupVirtualCliFS,
 } from "../../../fixtures/full-lifecycle-fixture.ts";
 
 describe("Mailbox CLI Operations - Polling and Listing Workflows", () => {
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
   let testRoot: string;
 
   beforeEach(() => {
-    setupVirtualCliFS();
+    vfs = setupVirtualCliFS();
+    session = createVirtualFSSession(vfs);
     testRoot = join(
       process.cwd(),
       "scratch",
       "test-isolation",
       `msg-ops-p-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     );
-    mkdirSync(testRoot, { recursive: true });
+    vfs.mkdirSync(testRoot, { recursive: true });
   });
 
   afterEach(() => {
-    if (existsSync(testRoot)) {
+    if (vfs.existsSync(testRoot)) {
       try {
-        rmSync(testRoot, { recursive: true, force: true });
+        vfs.rmSync(testRoot, { recursive: true, force: true });
       } catch {}
     }
+    session.cleanup();
     cleanupVirtualCliFS();
   });
 
@@ -149,7 +157,7 @@ describe("Mailbox CLI Operations - Polling and Listing Workflows", () => {
       });
 
       const paths1 = resolveMailboxPaths("agent-1", testRoot);
-      writeFileSync(paths1.quarantinePath, "corrupted-line\n");
+      vfs.writeFileSync(paths1.quarantinePath, "corrupted-line\n");
       await msgRecvCommand({ actor: "agent-1", "base-dir": testRoot });
 
       msgSendCommand({

@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   cleanseDanglingLocks,
@@ -8,18 +7,42 @@ import {
 } from "../../../olt/scripts/src/reporting/doctor/lock-cleaner.ts";
 import { initRun } from "../../../olt/scripts/src/engine/store/index.ts";
 import {
-  VirtualMemoryFS,
   createVirtualFSSession,
+  type VirtualFSNode,
+  VirtualMemoryFS,
   type VirtualFSSession,
 } from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
+class TestVirtualMemoryFS extends VirtualMemoryFS {
+  utimesSync(targetPath: string, _atime: unknown, mtime: number | string | Date): void {
+    const mtimeMs =
+      typeof mtime === "number"
+        ? mtime < 1e11
+          ? mtime * 1000
+          : mtime
+        : mtime instanceof Date
+          ? mtime.getTime()
+          : Date.now();
+    const lookup = (
+      this as unknown as {
+        lookupNode?: (path: string) => { node?: VirtualFSNode };
+      }
+    ).lookupNode;
+    const target = lookup ? lookup.call(this, targetPath) : undefined;
+    if (target?.node) {
+      target.node.stats = target.node.stats.clone({ mtimeMs });
+    }
+  }
+}
+
 describe("lock-cleaner coverage", () => {
+  let vfs: TestVirtualMemoryFS;
   let session: VirtualFSSession | null = null;
   let counter = 0;
   const vDir = (label: string) => `/virtual/lock-cleaner/${label}-${++counter}`;
 
   beforeEach(() => {
-    const vfs = new VirtualMemoryFS();
+    vfs = new TestVirtualMemoryFS();
     session = createVirtualFSSession(vfs);
   });
 
@@ -49,69 +72,69 @@ describe("lock-cleaner coverage", () => {
   describe("cleanseDanglingLocks", () => {
     it("handles missing target directories and default directories gracefully", () => {
       const tempRoot = vDir("empty");
-      mkdirSync(tempRoot, { recursive: true });
+      vfs.mkdirSync(tempRoot, { recursive: true });
       try {
         const cleared = cleanseDanglingLocks({ repoRoot: tempRoot });
         expect(cleared).toEqual([]);
       } finally {
-        rmSync(tempRoot, { recursive: true, force: true });
+        vfs.rmSync(tempRoot, { recursive: true, force: true });
       }
     });
 
     it("cleans zero-byte stagnant locks older than grace period, keeps fresh zero-byte locks", () => {
       const tempDir = vDir("zerobyte");
-      mkdirSync(tempDir, { recursive: true });
+      vfs.mkdirSync(tempDir, { recursive: true });
       try {
         const oldZero = join(tempDir, "old-zero.lock");
         const freshZero = join(tempDir, "fresh-zero.lock");
-        writeFileSync(oldZero, "");
-        writeFileSync(freshZero, "");
+        vfs.writeFileSync(oldZero, "");
+        vfs.writeFileSync(freshZero, "");
 
         const nowSec = Date.now() / 1000;
-        utimesSync(oldZero, nowSec - 50, nowSec - 50);
-        utimesSync(freshZero, nowSec - 2, nowSec - 2);
+        vfs.utimesSync(oldZero, nowSec - 50, nowSec - 50);
+        vfs.utimesSync(freshZero, nowSec - 2, nowSec - 2);
 
         const cleared = cleanseDanglingLocks({ lockDirs: [tempDir] });
         expect(cleared.some((c) => c.includes("old-zero.lock"))).toBe(true);
         expect(cleared.some((c) => c.includes("fresh-zero.lock"))).toBe(false);
       } finally {
-        rmSync(tempDir, { recursive: true, force: true });
+        vfs.rmSync(tempDir, { recursive: true, force: true });
       }
     });
 
     it("cleans stale locks exceeding staleSeconds limit and ignores non-lock files/directories", () => {
       const tempDir = vDir("stale");
-      mkdirSync(tempDir, { recursive: true });
+      vfs.mkdirSync(tempDir, { recursive: true });
       try {
         const staleLock = join(tempDir, "stale.lock");
         const regularFile = join(tempDir, "regular.txt");
         const subDirLock = join(tempDir, "subdir.lock");
-        mkdirSync(subDirLock, { recursive: true });
-        writeFileSync(staleLock, "dummy content");
-        writeFileSync(regularFile, "dummy content");
+        vfs.mkdirSync(subDirLock, { recursive: true });
+        vfs.writeFileSync(staleLock, "dummy content");
+        vfs.writeFileSync(regularFile, "dummy content");
 
         const pastSec = Date.now() / 1000 - 500;
-        utimesSync(staleLock, pastSec, pastSec);
+        vfs.utimesSync(staleLock, pastSec, pastSec);
 
         const cleared = cleanseDanglingLocks({ lockDirs: [tempDir], staleSeconds: 100 });
         expect(cleared.some((c) => c.includes("stale.lock"))).toBe(true);
         expect(cleared.some((c) => c.includes("regular.txt"))).toBe(false);
       } finally {
-        rmSync(tempDir, { recursive: true, force: true });
+        vfs.rmSync(tempDir, { recursive: true, force: true });
       }
     });
 
     it("cleans JSON locks with expired timestamp or dead PID, and keeps valid JSON locks", () => {
       const tempDir = vDir("json");
-      mkdirSync(tempDir, { recursive: true });
+      vfs.mkdirSync(tempDir, { recursive: true });
       try {
         const expiredLock = join(tempDir, "expired.lock");
         const deadPidLock = join(tempDir, "dead-pid.lock");
         const alivePidLock = join(tempDir, "alive-pid.lock");
 
-        writeFileSync(expiredLock, JSON.stringify({ expiresAt: Date.now() - 10000 }));
-        writeFileSync(deadPidLock, JSON.stringify({ pid: 99999999 }));
-        writeFileSync(
+        vfs.writeFileSync(expiredLock, JSON.stringify({ expiresAt: Date.now() - 10000 }));
+        vfs.writeFileSync(deadPidLock, JSON.stringify({ pid: 99999999 }));
+        vfs.writeFileSync(
           alivePidLock,
           JSON.stringify({ pid: process.pid, expiresAt: Date.now() + 60000 }),
         );
@@ -121,26 +144,26 @@ describe("lock-cleaner coverage", () => {
         expect(cleared.some((c) => c.includes("dead-pid.lock"))).toBe(true);
         expect(cleared.some((c) => c.includes("alive-pid.lock"))).toBe(false);
       } finally {
-        rmSync(tempDir, { recursive: true, force: true });
+        vfs.rmSync(tempDir, { recursive: true, force: true });
       }
     });
 
     it("cleans plain text PID locks with dead PIDs and unparseable corrupt locks older than 30s", () => {
       const tempDir = vDir("text");
-      mkdirSync(tempDir, { recursive: true });
+      vfs.mkdirSync(tempDir, { recursive: true });
       try {
         const deadPidTxt = join(tempDir, "dead-pid.lock");
         const alivePidTxt = join(tempDir, "lock");
         const corruptOld = join(tempDir, "corrupt-old.lock");
         const corruptFresh = join(tempDir, "corrupt-fresh.lock");
 
-        writeFileSync(deadPidTxt, "99999999");
-        writeFileSync(alivePidTxt, `${process.pid}`);
-        writeFileSync(corruptOld, "{ invalid: json: syntax }");
-        writeFileSync(corruptFresh, "{ invalid: json: syntax }");
+        vfs.writeFileSync(deadPidTxt, "99999999");
+        vfs.writeFileSync(alivePidTxt, `${process.pid}`);
+        vfs.writeFileSync(corruptOld, "{ invalid: json: syntax }");
+        vfs.writeFileSync(corruptFresh, "{ invalid: json: syntax }");
 
         const pastSec = Date.now() / 1000 - 60;
-        utimesSync(corruptOld, pastSec, pastSec);
+        vfs.utimesSync(corruptOld, pastSec, pastSec);
 
         const cleared = cleanseDanglingLocks({ lockDirs: [tempDir] });
         expect(cleared.some((c) => c.includes("dead-pid.lock"))).toBe(true);
@@ -148,7 +171,7 @@ describe("lock-cleaner coverage", () => {
         expect(cleared.some((c) => c.includes("corrupt-old.lock"))).toBe(true);
         expect(cleared.some((c) => c.includes("corrupt-fresh.lock"))).toBe(false);
       } finally {
-        rmSync(tempDir, { recursive: true, force: true });
+        vfs.rmSync(tempDir, { recursive: true, force: true });
       }
     });
   });
@@ -161,7 +184,7 @@ describe("lock-cleaner coverage", () => {
 
     it("safely handles custom actor and graceSeconds options", () => {
       const tempDir = vDir("run");
-      mkdirSync(tempDir, { recursive: true });
+      vfs.mkdirSync(tempDir, { recursive: true });
       try {
         const recovered = recoverStaleLeases(tempDir, {
           actor: "custom-doctor",
@@ -169,13 +192,13 @@ describe("lock-cleaner coverage", () => {
         });
         expect(recovered).toEqual([]);
       } finally {
-        rmSync(tempDir, { recursive: true, force: true });
+        vfs.rmSync(tempDir, { recursive: true, force: true });
       }
     });
 
     it("recovers stale task leases when expired lease exists in capsule state", () => {
       const tempDir = vDir("stale-run");
-      mkdirSync(tempDir, { recursive: true });
+      vfs.mkdirSync(tempDir, { recursive: true });
       try {
         const runDir = initRun(tempDir, "stale-lease-run", new Uint8Array(), "file", true);
         const stateFile = join(runDir, "state.json");
@@ -193,12 +216,12 @@ describe("lock-cleaner coverage", () => {
             },
           },
         };
-        writeFileSync(stateFile, JSON.stringify(customState));
+        vfs.writeFileSync(stateFile, JSON.stringify(customState));
 
         const recovered = recoverStaleLeases(runDir);
         expect(Array.isArray(recovered)).toBe(true);
       } finally {
-        rmSync(tempDir, { recursive: true, force: true });
+        vfs.rmSync(tempDir, { recursive: true, force: true });
       }
     });
   });

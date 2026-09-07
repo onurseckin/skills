@@ -11,6 +11,7 @@ export interface VirtualFSSpyState {
   hardlinks?: Map<number, number>;
   openDescriptors: Map<number, { path: string; position: number; flags?: number }>;
   inodeMap: Map<string, number>;
+  inodeAliases?: Map<string, number>;
   nextFd: { value: number };
   nextIno: { value: number };
 }
@@ -52,12 +53,21 @@ export function isVirtualPath(s: string): boolean {
 
 export function getInode(state: VirtualFSSpyState, targetPath: string): number {
   const norm = normPath(targetPath);
+  const alias = state.inodeAliases?.get(norm);
+  if (alias !== undefined) return alias;
+  const nodeIno = state.vfs.statSync(norm, { throwIfNoEntry: false })?.ino;
+  if (nodeIno !== undefined) return nodeIno;
   let ino = state.inodeMap.get(norm);
   if (ino === undefined) {
     ino = state.nextIno.value++;
     state.inodeMap.set(norm, ino);
   }
   return ino;
+}
+
+export function forgetInode(state: VirtualFSSpyState, normalizedPath: string): void {
+  state.inodeMap.delete(normalizedPath);
+  state.inodeAliases?.delete(normalizedPath);
 }
 
 export function checkRmPermissions(

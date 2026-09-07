@@ -1,14 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import {
-  closeSync,
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  openSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   DEFAULT_LOCK_TIMEOUT_MS,
@@ -31,22 +21,30 @@ import {
   withExclusiveLockAsync,
 } from "../../../olt/scripts/src/communication/locking/safe-lock.ts";
 import { HarnessError } from "../../../olt/scripts/src/core/errors/index.ts";
-import { cleanupVirtualCommunicationFS, setupVirtualCommunicationFS } from "../helpers.ts";
+import {
+  createVirtualFSSession,
+  type VirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
+import { cleanupVirtualCommunicationFS, setupVirtualCommunicationFS, vfs } from "../helpers.ts";
 
 describe("SafeLock Advisory Locking Engine (Disk and In-Memory)", () => {
   let tempDir: string;
   let locksDir: string;
+  let session: VirtualFSSession;
 
   beforeEach(() => {
+    session = createVirtualFSSession(vfs);
     setupVirtualCommunicationFS();
     setInMemoryLocking(false);
     resetInMemoryLocks();
-    tempDir = mkdtempSync(join(tmpdir(), "safelock-test-"));
+    tempDir = "/virtual/communication/safelock-test";
     locksDir = join(tempDir, ".locks");
-    mkdirSync(locksDir, { recursive: true });
+    vfs.mkdirSync(locksDir, { recursive: true });
   });
 
   afterEach(() => {
+    session.cleanup();
     cleanupVirtualCommunicationFS();
   });
 
@@ -99,15 +97,15 @@ describe("SafeLock Advisory Locking Engine (Disk and In-Memory)", () => {
     expect(result.lockFd).toBeGreaterThan(0);
     expect(result.lockPath).toBe(lockPath);
     expect(result.holderPid).toBe(process.pid);
-    expect(existsSync(lockPath)).toBe(true);
+    expect(vfs.existsSync(lockPath)).toBe(true);
 
-    const payload = parseLockPayload(readFileSync(lockPath, "utf8"));
+    const payload = parseLockPayload(vfs.readFileSync(lockPath, "utf8"));
     expect(payload?.pid).toBe(process.pid);
     expect(payload?.holder).toBe("agent-1");
     releaseMailboxLock(result);
 
     withExclusiveLock(lockPath, "agent-1-reenter", () => {
-      expect(existsSync(lockPath)).toBe(true);
+      expect(vfs.existsSync(lockPath)).toBe(true);
     });
 
     const nested = join(tempDir, "deep", "nested", "locks", "worker.lock");
@@ -116,11 +114,11 @@ describe("SafeLock Advisory Locking Engine (Disk and In-Memory)", () => {
     releaseMailboxLock(nestedRes);
 
     const blocker = join(tempDir, "blocker-file");
-    writeFileSync(blocker, "not-a-dir", "utf8");
+    vfs.writeFileSync(blocker, "not-a-dir");
     expect(() => acquireMailboxLock(join(blocker, "c", "l.lock"), "fail")).toThrow(HarnessError);
 
     const dirAsLock = join(locksDir, "directory-path");
-    mkdirSync(dirAsLock);
+    vfs.mkdirSync(dirAsLock);
     expect(() => acquireMailboxLock(dirAsLock, "fail")).toThrow(HarnessError);
   });
 
@@ -141,15 +139,14 @@ describe("SafeLock Advisory Locking Engine (Disk and In-Memory)", () => {
 
   it("reads holder PID from disk and handles safe and faulty descriptor release", () => {
     const validPath = join(locksDir, "valid-holder.lock");
-    writeFileSync(
+    vfs.writeFileSync(
       validPath,
       JSON.stringify({ pid: 4321, holder: "h1", created_at: "2026-08-30T00:00:00.000Z" }),
-      "utf8",
     );
     expect(readHolderPid(validPath)).toBe(4321);
     expect(readHolderPid(join(locksDir, "nonexistent.lock"))).toBeNull();
     const invalidPath = join(locksDir, "invalid-holder.lock");
-    writeFileSync(invalidPath, "not json", "utf8");
+    vfs.writeFileSync(invalidPath, "not json");
     expect(readHolderPid(invalidPath)).toBeNull();
 
     expect(() =>
@@ -160,8 +157,8 @@ describe("SafeLock Advisory Locking Engine (Disk and In-Memory)", () => {
     ).not.toThrow();
 
     const closed = join(locksDir, "closed-fd.lock");
-    const fd = openSync(closed, "w");
-    closeSync(fd);
+    const fd = session.openSync(closed, "w");
+    session.closeSync(fd);
     expect(() =>
       releaseMailboxLock({ acquired: true, lockFd: fd, lockPath: closed, holderPid: process.pid }),
     ).toThrow();
@@ -175,7 +172,7 @@ describe("SafeLock Advisory Locking Engine (Disk and In-Memory)", () => {
     expect(result.acquired).toBe(true);
     expect(result.lockFd).toBeGreaterThanOrEqual(100_000);
     expect(result.holderPid).toBe(process.pid);
-    expect(existsSync(lockPath)).toBe(false);
+    expect(vfs.existsSync(lockPath)).toBe(false);
 
     const mem = getInMemoryLock(lockPath);
     expect(mem?.holder).toBe("mem-worker-1");

@@ -1,8 +1,12 @@
-import { describe, expect, test } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { afterAll, describe, expect, test } from "bun:test";
+import { dirname, join, resolve } from "node:path";
 import { findRepoRoot } from "../../../olt/scripts/src/core/shared/paths.ts";
 import { findCommand } from "../../../olt/scripts/src/cli/registry/index.ts";
+import {
+  createVirtualFSSession,
+  VirtualMemoryFS,
+  type VirtualFSSession,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 export const schedulerInvariantSuiteName =
   "Mandatory Supervisory Scheduler Invariant & Rule 16 Contract";
@@ -22,10 +26,35 @@ const coordinatorRolePath = join(skillRoot, "agents/coordinator.yaml");
 const orchestratorRolePath = join(skillRoot, "agents/orchestrator.yaml");
 const hostAdaptersPath = join(skillRoot, "references/host-adapters.md");
 
+const vfs = new VirtualMemoryFS();
+const session: VirtualFSSession = createVirtualFSSession(vfs);
+
+const filesToSeed = [
+  skillPath,
+  mindRolePath,
+  coordinatorRolePath,
+  orchestratorRolePath,
+  hostAdaptersPath,
+  join(skillRoot, "scripts/src/cli/commands/dag-view.ts"),
+  join(skillRoot, "scripts/src/cli/registry/plan.ts"),
+  import.meta.path,
+];
+
+for (const filePath of filesToSeed) {
+  const content = String(session.readFileSync(filePath, "utf8"));
+  vfs.mkdirSync(dirname(filePath), { recursive: true });
+  vfs.writeFileSync(filePath, content);
+}
+
 describe(schedulerInvariantSuiteName, () => {
+  afterAll(() => {
+    session.cleanup();
+    vfs.reset();
+  });
+
   test("SKILL.md defines Rule 16 with mandatory supervisory scheduler requirement", () => {
-    expect(existsSync(skillPath)).toBe(true);
-    const content = readFileSync(skillPath, "utf8");
+    expect(vfs.existsSync(skillPath)).toBe(true);
+    const content = vfs.readFileSync(skillPath, "utf8");
 
     expect(content).toContain("16. Mandatory Supervisory Scheduler & Algorithmic DAG Optimization");
     expect(content).toMatch(/resolveSupervisoryCadence/);
@@ -34,14 +63,14 @@ describe(schedulerInvariantSuiteName, () => {
   });
 
   test("SKILL.md stays within line budget (<= 150 lines)", () => {
-    const content = readFileSync(skillPath, "utf8");
+    const content = vfs.readFileSync(skillPath, "utf8");
     const lines = content.split("\n");
     expect(lines.length).toBeLessThanOrEqual(150);
   });
 
   test("agents/mind.yaml mandates supervisory schedule and dag inspection", () => {
-    expect(existsSync(mindRolePath)).toBe(true);
-    const content = readFileSync(mindRolePath, "utf8");
+    expect(vfs.existsSync(mindRolePath)).toBe(true);
+    const content = vfs.readFileSync(mindRolePath, "utf8");
 
     expect(content).toMatch(/resolveSupervisoryCadence/);
     expect(content).toMatch(/dag(:view)?/);
@@ -51,8 +80,8 @@ describe(schedulerInvariantSuiteName, () => {
   });
 
   test("agents/coordinator.yaml mandates supervisory schedule and dag inspection", () => {
-    expect(existsSync(coordinatorRolePath)).toBe(true);
-    const content = readFileSync(coordinatorRolePath, "utf8");
+    expect(vfs.existsSync(coordinatorRolePath)).toBe(true);
+    const content = vfs.readFileSync(coordinatorRolePath, "utf8");
 
     expect(content).toMatch(/resolveSupervisoryCadence/);
     expect(content).toMatch(/dag(:view)?/);
@@ -61,8 +90,8 @@ describe(schedulerInvariantSuiteName, () => {
   });
 
   test("agents/orchestrator.yaml mandates supervisory schedule and dag inspection", () => {
-    expect(existsSync(orchestratorRolePath)).toBe(true);
-    const content = readFileSync(orchestratorRolePath, "utf8");
+    expect(vfs.existsSync(orchestratorRolePath)).toBe(true);
+    const content = vfs.readFileSync(orchestratorRolePath, "utf8");
 
     expect(content).toMatch(/resolveSupervisoryCadence/);
     expect(content).toMatch(/dag(:view)?/);
@@ -71,8 +100,8 @@ describe(schedulerInvariantSuiteName, () => {
   });
 
   test("references/host-adapters.md documents Section 5.6 for Mandatory Supervisory Scheduler", () => {
-    expect(existsSync(hostAdaptersPath)).toBe(true);
-    const content = readFileSync(hostAdaptersPath, "utf8");
+    expect(vfs.existsSync(hostAdaptersPath)).toBe(true);
+    const content = vfs.readFileSync(hostAdaptersPath, "utf8");
 
     expect(content).toMatch(/Supervisory Scheduler & Live ASCII DAG Optimization/);
     expect(content).toMatch(/(3-minute|5-minute)/);
@@ -81,7 +110,7 @@ describe(schedulerInvariantSuiteName, () => {
   });
 
   test("SKILL.md defines Rule 17 on Infinite Mind Cadence, No Agent Termination, and Background Finalization", () => {
-    const content = readFileSync(skillPath, "utf8");
+    const content = vfs.readFileSync(skillPath, "utf8");
     expect(content).toContain(
       "17. Infinite Mind Cadence, No Agent-Driven Termination & Background Finalization Isolation",
     );
@@ -90,7 +119,7 @@ describe(schedulerInvariantSuiteName, () => {
   });
 
   test("references/host-adapters.md documents Section 5.8 for Infinite Cadence & Background Finalization", () => {
-    const content = readFileSync(hostAdaptersPath, "utf8");
+    const content = vfs.readFileSync(hostAdaptersPath, "utf8");
     expect(content).toContain(
       "5.8 Infinite Mind Cadence, Zero Agent-Driven Termination & Background Finalization Isolation",
     );
@@ -121,8 +150,8 @@ describe(schedulerInvariantSuiteName, () => {
     const suppressionDirectiveB = "oxlint" + "-disable";
 
     for (const filePath of filesToCheck) {
-      expect(existsSync(filePath)).toBe(true);
-      const content = readFileSync(filePath, "utf8");
+      expect(vfs.existsSync(filePath)).toBe(true);
+      const content = vfs.readFileSync(filePath, "utf8");
 
       expect(content).not.toMatch(anyAnnotation);
       expect(content).not.toMatch(anyCast);

@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import { renameSync } from "node:fs";
 import { join } from "node:path";
 import {
   clearObserver,
@@ -11,10 +10,6 @@ import {
   tryExclusiveFlock,
   withRunLock,
 } from "../../../olt/scripts/src/platform/index.ts";
-import {
-  releaseFlock as releaseFlockNative,
-  tryExclusiveFlock as tryExclusiveFlockNative,
-} from "../../../olt/scripts/src/platform/fs/flock-ffi.ts";
 import * as platform from "../../../olt/scripts/src/platform/index.ts";
 import { resolveCapsulesDir } from "../../../olt/scripts/src/core/shared/paths.ts";
 import {
@@ -23,14 +18,21 @@ import {
   scratchRoot,
   setupVirtualPlatformFS,
 } from "../fixture.ts";
+import {
+  createVirtualFSSession,
+  type VirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 function runRoot(): string {
   return scratchRoot("lock-quality", "run");
 }
 
 describe("run-lock quality invariants", () => {
+  let vfs: VirtualMemoryFS;
+
   beforeEach(() => {
-    setupVirtualPlatformFS();
+    vfs = setupVirtualPlatformFS();
   });
 
   afterEach(() => {
@@ -158,7 +160,7 @@ describe("run-lock quality invariants", () => {
     const vfs = getVirtualPlatformFS();
     expect(() =>
       withRunLock(run, () => {
-        renameSync(run, moved);
+        vfs.renameSync(run, moved);
         vfs.mkdirSync(run);
       }),
     ).toThrow(/identity changed/);

@@ -49,6 +49,7 @@ export function assertSafeWorktreePath(worktreePath: string, worktreesRoot: stri
 }
 
 export function teardownWorktree(target: string, options: TeardownOptions): void {
+  let isDead = false;
   if (existsSync(options.lockPath)) {
     const payload = readLockPayload(options.lockPath);
     if (payload && typeof payload.pid === "number") {
@@ -57,6 +58,9 @@ export function teardownWorktree(target: string, options: TeardownOptions): void
           "WORKTREE_ACTIVE",
           `Cannot teardown active worktree '${target}': held by living process PID ${payload.pid}`,
         );
+      }
+      if (payload.pid !== process.pid && !isProcessAlive(payload.pid)) {
+        isDead = true;
       }
     }
   }
@@ -97,6 +101,6 @@ export function teardownWorktree(target: string, options: TeardownOptions): void
         });
       } catch {}
     }
-    releaseWorktreeLock(options.lockPath);
+    releaseWorktreeLock(options.lockPath, { force: options.force || isDead });
   }
 }

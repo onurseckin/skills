@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { isProcessAlive, writeAtomic } from "../core/index.ts";
+import { daemonHealthPath, isProcessAlive, writeAtomic } from "../core/index.ts";
 
 export type DaemonLivenessState = "LIVE" | "IDLE" | "BACKPRESSURED" | "WEDGED" | "STOPPED";
 
@@ -80,12 +80,24 @@ export function isDaemonHealthRecord(value: unknown): value is DaemonHealthRecor
   return true;
 }
 
-export function readHealthRecord(healthPath: string): DaemonHealthRecord | null {
-  if (!existsSync(healthPath)) {
+export interface HealthPorts {
+  readonly existsSync?: (path: string) => boolean;
+  readonly readFileSync?: (path: string, encoding: string) => string;
+  readonly writeAtomic?: (path: string, content: string) => void;
+  readonly writeFileSync?: (path: string, content: string) => void;
+}
+
+export function readHealthRecord(
+  healthPath: string,
+  ports?: HealthPorts,
+): DaemonHealthRecord | null {
+  const existsFn = ports?.existsSync ?? existsSync;
+  const readFn = ports?.readFileSync ?? readFileSync;
+  if (!existsFn(healthPath)) {
     return null;
   }
   try {
-    const raw = readFileSync(healthPath, "utf8");
+    const raw = readFn(healthPath, "utf8");
     const parsed: unknown = JSON.parse(raw);
     if (isDaemonHealthRecord(parsed)) {
       return parsed;
@@ -96,12 +108,20 @@ export function readHealthRecord(healthPath: string): DaemonHealthRecord | null 
   }
 }
 
-export function writeHealthRecord(healthPath: string, record: DaemonHealthRecord): void {
+export function writeHealthRecord(
+  healthPath: string,
+  record: DaemonHealthRecord,
+  ports?: HealthPorts,
+): void {
   const serialized = JSON.stringify(record, null, 2) + "\n";
-  writeAtomic(healthPath, serialized, { mode: 0o644 });
+  const writeFn =
+    ports?.writeAtomic ??
+    ports?.writeFileSync ??
+    ((target: string, content: string) => writeAtomic(target, content, { mode: 0o644 }));
+  writeFn(healthPath, serialized);
   try {
     const heartbeatPath = join(dirname(healthPath), "heartbeat.json");
-    writeAtomic(heartbeatPath, serialized, { mode: 0o644 });
+    writeFn(heartbeatPath, serialized);
   } catch {}
 }
 
@@ -177,5 +197,40 @@ export function createInitialHealthRecord(
     respawns_this_hour: 0,
     errors_recent: [],
     updated_at: nowIso,
+  };
+}
+
+export interface DaemonInspectionResult {
+  readonly room: string;
+  readonly reader: string;
+  readonly state: DaemonLivenessState;
+  readonly health: DaemonHealthRecord | null;
+  readonly watch_active: boolean;
+}
+
+export function inspectDaemon(
+  room: string,
+  reader: string,
+  options: HealthComputeOptions = {},
+  ports?: HealthPorts,
+): DaemonInspectionResult {
+  const healthPath = daemonHealthPath(room, reader);
+  const health = readHealthRecord(healthPath, ports);
+  if (health === null) {
+    return {
+      room,
+      reader,
+      state: "STOPPED",
+      health: null,
+      watch_active: false,
+    };
+  }
+  const state = computeDaemonState(health, Date.now(), options);
+  return {
+    room,
+    reader,
+    state,
+    health,
+    watch_active: health.watch_active,
   };
 }

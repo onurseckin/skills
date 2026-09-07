@@ -1,5 +1,4 @@
 import { join, resolve } from "node:path";
-import { writeFile } from "node:fs/promises";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { execute } from "../../../../../olt/scripts/src/cli/execute.ts";
 import {
@@ -8,6 +7,11 @@ import {
 } from "../../../../../olt/scripts/src/runtime/index.ts";
 import { taskSubmitCommand } from "../../../../../olt/scripts/src/cli/commands/task-claim.ts";
 import { loadRun, transact } from "../../../../../olt/scripts/src/engine/store/index.ts";
+import {
+  createVirtualFSSession,
+  type VirtualFSSession,
+  VirtualMemoryFS,
+} from "../../../../../olt/scripts/src/testing/virtual-fs/index.ts";
 import {
   cleanupRoots,
   cleanupVirtualCliFS,
@@ -21,13 +25,18 @@ import {
 } from "../../../../../olt/scripts/src/runtime/session.ts";
 
 const roots: string[] = [];
+let vfs: VirtualMemoryFS;
+let session: VirtualFSSession;
+
 beforeEach(() => {
-  setupVirtualCliFS();
+  vfs = setupVirtualCliFS();
+  session = createVirtualFSSession(vfs);
   enableInMemoryAgentMetadata();
 });
 afterEach(async () => {
   disableInMemoryAgentMetadata();
   await cleanupRoots(roots);
+  session.cleanup();
   cleanupVirtualCliFS();
   roots.length = 0;
 });
@@ -77,7 +86,7 @@ describe("task:submit - Completion & Worktree Commits", () => {
     ];
 
     const reportPath = join(repo, "custom-report.json");
-    await writeFile(
+    session.writeFileSync(
       reportPath,
       JSON.stringify({
         summary: "Implemented via custom report file",
@@ -88,7 +97,10 @@ describe("task:submit - Completion & Worktree Commits", () => {
       }),
     );
 
-    await writeFile(join(repo, "tests/core/probe-target.ts"), "export const updated = true;\n");
+    session.writeFileSync(
+      join(repo, "tests/core/probe-target.ts"),
+      "export const updated = true;\n",
+    );
 
     const submit = await execute([
       "task:submit",
@@ -114,22 +126,22 @@ describe("task:submit - Completion & Worktree Commits", () => {
     });
     await installRuntimeMetadata(run, "worker-1");
 
-    await writeFile(
+    session.writeFileSync(
       join(repo, "harness.config.json"),
       JSON.stringify({ worktree_isolation: true, commit_per_subphase: true }),
     );
-    await writeFile(
+    session.writeFileSync(
       join(repo, ".olt", "harness.config.json"),
       JSON.stringify({ worktree_isolation: true, commit_per_subphase: true }),
     );
-    await writeFile(
+    session.writeFileSync(
       join(resolve(run, "..", ".."), "harness.config.json"),
       JSON.stringify({ worktree_isolation: true, commit_per_subphase: true }),
     );
 
     const wtPath = join(repo, ".worktrees", "task-core");
-    await writeFile(join(wtPath, "tests/core/probe-target.ts"), "export const a = 1;\n");
-    await writeFile(join(repo, "tests/core/probe-target.ts"), "export const a = 1;\n");
+    session.writeFileSync(join(wtPath, "tests/core/probe-target.ts"), "export const a = 1;\n");
+    session.writeFileSync(join(repo, "tests/core/probe-target.ts"), "export const a = 1;\n");
 
     transact(run, "coordinator", "worktree-assigned", {}, (draft) => {
       draft.worktree_ledger = {
@@ -181,8 +193,8 @@ describe("task:submit - Completion & Worktree Commits", () => {
       "gate-core.ts",
     ]);
 
-    await writeFile(join(wtPath, "tests/core/probe-target.ts"), "export const a = 2;\n");
-    await writeFile(join(repo, "tests/core/probe-target.ts"), "export const a = 2;\n");
+    session.writeFileSync(join(wtPath, "tests/core/probe-target.ts"), "export const a = 2;\n");
+    session.writeFileSync(join(repo, "tests/core/probe-target.ts"), "export const a = 2;\n");
 
     const mockRunner = () => ({
       status: 0,
@@ -260,7 +272,10 @@ describe("task:submit - Completion & Worktree Commits", () => {
       "gate-core.ts",
     ]);
 
-    await writeFile(join(repo, "tests/core/probe-target.ts"), "export const opsDone = true;\n");
+    session.writeFileSync(
+      join(repo, "tests/core/probe-target.ts"),
+      "export const opsDone = true;\n",
+    );
 
     const submitRes = await opsSubmit({
       run,

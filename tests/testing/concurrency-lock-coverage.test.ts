@@ -1,6 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   acquireFullSuiteTestLock,
@@ -18,18 +16,32 @@ import {
   saveTestSummary,
   setInMemoryLockPayload,
 } from "../../olt/scripts/src/testing/concurrency-lock.ts";
+import {
+  createVirtualFSSession,
+  type VirtualFSSession,
+  VirtualMemoryFS,
+} from "../../olt/scripts/src/testing/virtual-fs/index.ts";
 
 describe("Concurrency Locking & Test Summary Telemetry", () => {
+  const repoRoot = "/virtual/repo";
+  let vfs: VirtualMemoryFS;
+  let session: VirtualFSSession;
   let tempDir: string;
+  let tempDirCounter = 0;
 
   beforeEach(() => {
+    vfs = new VirtualMemoryFS();
+    vfs.mkdirSync(join(repoRoot, ".git"), { recursive: true });
+    vfs.chdir(repoRoot);
+    session = createVirtualFSSession(vfs);
     resetConcurrencyLockStore();
-    tempDir = mkdtempSync(join(tmpdir(), "lock-test-"));
+    tempDir = join(repoRoot, `lock-test-${++tempDirCounter}`);
+    vfs.mkdirSync(tempDir, { recursive: true });
   });
 
   afterEach(() => {
     resetConcurrencyLockStore();
-    if (tempDir) rmSync(tempDir, { recursive: true, force: true });
+    session.cleanup();
   });
 
   describe("isTestFilePath & isFullSuiteTestCommand", () => {
@@ -110,7 +122,7 @@ describe("Concurrency Locking & Test Summary Telemetry", () => {
       expect(readLockPayload(lockPath)).toBeNull();
 
       setInMemoryLockPayload(lockPath, null);
-      writeFileSync(lockPath, "{ bad json", "utf8");
+      vfs.writeFileSync(lockPath, "{ bad json");
       expect(readLockPayload(lockPath)).toBeNull();
     });
 
