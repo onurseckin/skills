@@ -27,6 +27,7 @@ import {
   ensureGlobalChatBinary,
   ensureGlobalChatroomBinary,
 } from "./chatroom-bin.ts";
+import { resolveDefaultMirrorDir, resolveSourceDir, SKILL_REGISTRY } from "./skill-registry.ts";
 import {
   detectShellRcPath,
   ensurePathInShellRc,
@@ -218,65 +219,80 @@ export function pruneDeployedMirrors(
 export async function runSync(options?: SyncOptions): Promise<SyncSummary> {
   const sourceRepoRoot = orDefault(options?.sourceRepoRoot, process.cwd());
   const home = orDefault(options?.homeDir, process.env.HOME || homedir());
-  const targetOlt = orDefault(options?.targetOltDir, join(home, ".agents", "skills", "olt"));
+  const targetOlt = orDefault(options?.targetOltDir, resolveDefaultMirrorDir(home, "olt"));
   const targetChatroom = orDefault(
     options?.targetChatroomDir,
-    join(home, ".agents", "skills", "chatroom"),
+    resolveDefaultMirrorDir(home, "chatroom"),
   );
-  const sourceOlt = join(sourceRepoRoot, "olt");
-  const sourceChatroom = join(sourceRepoRoot, "chatroom");
+  const targetOverridesByName: Readonly<Record<string, string>> = {
+    olt: targetOlt,
+    chatroom: targetChatroom,
+  };
+  const resolveTargetDir = (name: string): string =>
+    orDefault(targetOverridesByName[name], resolveDefaultMirrorDir(home, name));
 
   if (!options?.silent) {
-    console.log(`[sync] Deploying ${sourceOlt} -> ${targetOlt}...`);
-    console.log(`[sync] Deploying ${sourceChatroom} -> ${targetChatroom}...`);
+    for (const definition of SKILL_REGISTRY) {
+      console.log(
+        `[sync] Deploying ${resolveSourceDir(sourceRepoRoot, definition)} -> ${resolveTargetDir(definition.name)}...`,
+      );
+    }
   }
 
   const skillResults: Record<string, DeploySkillResult> = {};
   const allTransactions: AssistantLinkTransaction[] = [];
   try {
-    for (const skillName of SKILL_NAMES) {
-      const res = await deploySkill(skillName, { ...options, homeDir: home });
-      skillResults[skillName] = res;
+    for (const definition of SKILL_REGISTRY) {
+      const res = await deploySkill(definition.name, { ...options, homeDir: home });
+      skillResults[definition.name] = res;
       if (res.transactions) {
         allTransactions.push(...res.transactions);
       }
     }
     ensureDefectRoutingDeployment(targetOlt, sourceRepoRoot);
-    const pruneResults = pruneDeployedMirrors(
-      [
-        { skillName: "olt", sourceDir: sourceOlt, mirrorDir: targetOlt },
-        { skillName: "chatroom", sourceDir: sourceChatroom, mirrorDir: targetChatroom },
-      ],
-      options?.prune === true,
-    );
+
+    const pruneTargets: MirrorPruneTarget[] = SKILL_REGISTRY.map((definition) => ({
+      skillName: definition.name,
+      sourceDir: resolveSourceDir(sourceRepoRoot, definition),
+      mirrorDir: resolveTargetDir(definition.name),
+    }));
+    const pruneResults = pruneDeployedMirrors(pruneTargets, options?.prune === true);
     if (!options?.silent) {
       console.log(formatPruneReport(Object.values(pruneResults)));
     }
-    const oltBinaryResult = ensureGlobalOltBinary({ ...options, homeDir: home });
-    const chatroomBinaryResult = ensureGlobalChatroomBinary({ ...options, homeDir: home });
-    const chatBinaryResult = ensureGlobalChatBinary({ ...options, homeDir: home });
+
+    const binaryResults: Record<string, EnsureBinaryResult> = {};
+    for (const definition of SKILL_REGISTRY) {
+      for (const [binaryName, ensureBinary] of Object.entries(definition.ensureBinaries)) {
+        binaryResults[binaryName] = ensureBinary({ ...options, homeDir: home });
+      }
+    }
     const shellResult = ensurePathInShellRc({ ...options, homeDir: home });
 
     const oltResult = skillResults["olt"];
     if (!oltResult) {
       throw new Error("OLT skill deployment failed");
     }
+    const oltBinaryResult = binaryResults["olt"];
+    if (!oltBinaryResult) {
+      throw new Error("OLT binary deployment failed");
+    }
 
     if (!options?.silent) {
-      const chatResult = skillResults["chatroom"];
       console.log(
         `✓ Global skill sync complete: ~/.agents/skills/olt deployed. Ecosystem symlinks verified across ${oltResult.assistantDirsCount} assistant platforms (${oltResult.syncedCount} synced, ${oltResult.skippedCount} verified/skipped). Legacy 'orchestrating-long-tasks' ${oltResult.legacyHomePurged ? "purged" : "left in place (see warning above)"}.`,
       );
-      if (chatResult) {
+      for (const definition of SKILL_REGISTRY) {
+        if (definition.name === "olt") continue;
+        const result = skillResults[definition.name];
+        if (!result) continue;
         console.log(
-          `✓ Global skill sync complete: ~/.agents/skills/chatroom deployed. Ecosystem symlinks verified across ${chatResult.assistantDirsCount} assistant platforms (${chatResult.syncedCount} synced, ${chatResult.skippedCount} verified/skipped).`,
+          `✓ Global skill sync complete: ~/.agents/skills/${definition.name} deployed. Ecosystem symlinks verified across ${result.assistantDirsCount} assistant platforms (${result.syncedCount} synced, ${result.skippedCount} verified/skipped).`,
         );
       }
-      console.log(`✓ Global binary: ${oltBinaryResult.binaryPath} (${oltBinaryResult.status}).`);
-      console.log(
-        `✓ Global binary: ${chatroomBinaryResult.binaryPath} (${chatroomBinaryResult.status}).`,
-      );
-      console.log(`✓ Global binary: ${chatBinaryResult.binaryPath} (${chatBinaryResult.status}).`);
+      for (const binaryResult of Object.values(binaryResults)) {
+        console.log(`✓ Global binary: ${binaryResult.binaryPath} (${binaryResult.status}).`);
+      }
       if (shellResult.modified) {
         console.log(`✓ Shell PATH: Configured in ${shellResult.targetRc}.`);
       } else {
@@ -291,11 +307,7 @@ export async function runSync(options?: SyncOptions): Promise<SyncSummary> {
       binary: oltBinaryResult,
       shell: shellResult,
       skills: skillResults,
-      binaries: {
-        olt: oltBinaryResult,
-        chatroom: chatroomBinaryResult,
-        chat: chatBinaryResult,
-      },
+      binaries: binaryResults,
       prune: pruneResults,
     };
   } catch (error) {

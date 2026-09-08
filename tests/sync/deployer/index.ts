@@ -3,4 +3,8 @@
  * Facade for Sync Deployer subpackage
  */
 
-export const SYNC_DEPLOYER_SUITES = ["skill-deployer", "skill-deployer-legacy"] as const;
+export const SYNC_DEPLOYER_SUITES = [
+  "skill-deployer",
+  "skill-deployer-legacy",
+  "skill-registry",
+] as const;

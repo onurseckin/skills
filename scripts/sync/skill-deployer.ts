@@ -22,9 +22,10 @@ import { identifiedInstallation } from "../../olt/scripts/src/installer/identity
 import { safeCpSync } from "../../olt/scripts/src/core/shared/safe-fs/index.ts";
 import { guardedRemoveSync, logDestructiveOp, smartEnsureSymlink } from "./fs-helpers.ts";
 import { resolveSkillSyncSource } from "./git-source.ts";
+import { getSkillDefinition, SKILL_NAMES, type SkillName } from "./skill-registry.ts";
+import { validateDocumentationSkillSource } from "./skill-source-validation.ts";
 
-export const SKILL_NAMES = ["olt", "chatroom"] as const;
-export type SkillName = (typeof SKILL_NAMES)[number];
+export { SKILL_NAMES, type SkillName };
 
 export interface DeploySkillOptions {
   sourceRepoRoot?: string | undefined;
@@ -325,6 +326,13 @@ export async function deploySkill(
       };
     }
 
+    const definition = getSkillDefinition(skillName);
+    const isDocumentationSkill = definition?.kind === "documentation";
+
+    if (isDocumentationSkill) {
+      validateDocumentationSkillSource(sourceSkill, skillName);
+    }
+
     const targetSkill = orDefault(
       skillName === "chatroom" ? options?.targetChatroomDir : undefined,
       join(home, ".agents", "skills", skillName),
@@ -341,7 +349,9 @@ export async function deploySkill(
     }
 
     writeSkillConfig(targetSkill, sourceRepoRoot);
-    linkSourceNodeModules(targetSkill, sourceRepoRoot);
+    if (!isDocumentationSkill) {
+      linkSourceNodeModules(targetSkill, sourceRepoRoot);
+    }
 
     const linkResult = linkAssistantSkills(home, targetSkill, skillName);
 

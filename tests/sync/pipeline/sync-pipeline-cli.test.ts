@@ -35,6 +35,12 @@ function initFakeSkillsRepo(repoRoot: string): void {
   );
   curVfs.writeFileSync(join(repoRoot, "olt", "scripts", "harness.ts"), "console.log('harness');\n");
 
+  curVfs.mkdirSync(join(repoRoot, "agy-switch-helper"), { recursive: true });
+  curVfs.writeFileSync(
+    join(repoRoot, "agy-switch-helper", "SKILL.md"),
+    "---\nname: agy-switch-helper\ndescription: test\n---\n",
+  );
+
   curVfs.mkdirSync(join(repoRoot, ".git"), { recursive: true });
 }
 

@@ -52,6 +52,11 @@ beforeAll(async () => {
     join(sourceRepo, "olt", "scripts", "src", "constants.ts"),
     'export const RUNTIME_VERSION = "1.0.0";\n',
   );
+  initVfs.mkdirSync(join(sourceRepo, "agy-switch-helper"), { recursive: true });
+  initVfs.writeFileSync(
+    join(sourceRepo, "agy-switch-helper", "SKILL.md"),
+    "---\nname: agy-switch-helper\ndescription: test\n---\n",
+  );
   initVfs.mkdirSync(join(sourceRepo, ".git"), { recursive: true });
   await runSync({
     sourceRepoRoot: sourceRepo,
@@ -87,6 +92,12 @@ function initFakeSkillsRepo(repoRoot: string): void {
     'export const RUNTIME_VERSION = "1.0.0";\n',
   );
   curVfs.writeFileSync(join(repoRoot, "olt", "scripts", "harness.ts"), "console.log('harness');\n");
+
+  curVfs.mkdirSync(join(repoRoot, "agy-switch-helper"), { recursive: true });
+  curVfs.writeFileSync(
+    join(repoRoot, "agy-switch-helper", "SKILL.md"),
+    "---\nname: agy-switch-helper\ndescription: test\n---\n",
+  );
 
   curVfs.mkdirSync(join(repoRoot, ".git"), { recursive: true });
 }
