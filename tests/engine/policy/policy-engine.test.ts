@@ -236,12 +236,29 @@ describe("PolicyEngine and Policy Validator", () => {
       on_release_push: "not an array",
     });
     expect(hookErrors.length).toBe(2);
-    expect(POLICY_SUITES.length).toBe(6);
+    const policySuites = [...POLICY_SUITES].sort();
+    expect(policySuites).toEqual([
+      "concurrency-cap",
+      "policy-engine",
+      "subagent-pool-concurrency",
+      "worktree",
+      "worktree-and-policy",
+      "worktree-isolation",
+    ]);
+    expect(
+      POLICY_SUITES.length,
+      `Expected 6 policy suites but found ${POLICY_SUITES.length}: [${POLICY_SUITES.join(", ")}]`,
+    ).toBe(6);
   });
 
   test("root engine facade exports are valid", async () => {
     const { ENGINE_DOMAIN_SUITES, createTestPolicy } = await import("../index.ts");
-    expect(Object.keys(ENGINE_DOMAIN_SUITES).length).toBe(5);
+    const engineDomainKeys = Object.keys(ENGINE_DOMAIN_SUITES).sort();
+    expect(engineDomainKeys).toEqual(["dag", "policy", "runner", "scheduler", "store", "sync"]);
+    expect(
+      engineDomainKeys.length,
+      `Expected 6 engine domains but found ${engineDomainKeys.length}: [${engineDomainKeys.join(", ")}]`,
+    ).toBe(6);
     const policy = createTestPolicy({ max_subagents: 8 });
     expect(policy.max_subagents).toBe(8);
   });
