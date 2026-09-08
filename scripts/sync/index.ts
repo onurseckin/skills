@@ -1,6 +1,13 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import {
   deployCanonicalSkill,
   deployChatroomSkill,
@@ -216,9 +223,20 @@ export function pruneDeployedMirrors(
   return results;
 }
 
+export function resolveEffectiveHome(requestedHome?: string): string {
+  const raw = orDefault(requestedHome, process.env.HOME || homedir());
+  try {
+    const agentsLink = join(raw, ".agents");
+    if (existsSync(agentsLink) && lstatSync(agentsLink).isSymbolicLink()) {
+      return dirname(realpathSync(agentsLink));
+    }
+  } catch {}
+  return raw;
+}
+
 export async function runSync(options?: SyncOptions): Promise<SyncSummary> {
   const sourceRepoRoot = orDefault(options?.sourceRepoRoot, process.cwd());
-  const home = orDefault(options?.homeDir, process.env.HOME || homedir());
+  const home = resolveEffectiveHome(options?.homeDir);
   const targetOlt = orDefault(options?.targetOltDir, resolveDefaultMirrorDir(home, "olt"));
   const targetChatroom = orDefault(
     options?.targetChatroomDir,

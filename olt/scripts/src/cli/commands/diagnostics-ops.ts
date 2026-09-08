@@ -19,6 +19,7 @@ import {
 import { probeLiveQuotaTelemetry } from "../../workflow/lifecycle/index.ts";
 import { detectHostApp } from "../../authority/thread/index.ts";
 import { boolFlag, integerFlag, listFlag, textFlag, type Flags } from "../index.ts";
+import { resolveCapsuleRun } from "./dag-view.ts";
 
 function runPlanVerified(run: string): boolean {
   try {
@@ -50,7 +51,8 @@ function criticalTierFindings(report: Record<string, unknown>): DoctorCriticalFi
 }
 
 export async function doctorCommand(flags: Flags): Promise<Record<string, unknown>> {
-  const run = textFlag(flags, "run")!;
+  const runFlag = textFlag(flags, "run")!;
+  const run = resolveCapsuleRun(process.cwd(), runFlag);
   const source = textFlag(flags, "source", false);
   const home = textFlag(flags, "home", false);
   const clients = textFlag(flags, "clients", false);
