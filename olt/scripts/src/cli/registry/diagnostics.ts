@@ -305,6 +305,7 @@ export const DIAGNOSTICS_COMMANDS: readonly CommandSpec[] = [
       optionalFlag("remediation", "string", "Remediation guidance."),
       optionalFlag("actor", "string", "Actor recording the finding."),
       optionalFlag("defects-path", "string", "Custom defects.jsonl file location."),
+      optionalFlag("defects", "string", "Alias for --defects-path."),
     ],
     readsStdin: false,
     takesRemainder: false,

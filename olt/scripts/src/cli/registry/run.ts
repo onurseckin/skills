@@ -27,6 +27,8 @@ export const RUN_COMMANDS: readonly CommandSpec[] = [
       optionalFlag("run-id", "string", "Alias of --run."),
       optionalFlag("repo", "string", "Repository root.", "."),
       optionalFlag("prompt", "string", "Prompt string for run initialization."),
+      optionalFlag("prompt-file", "string", "File path containing initialization prompt."),
+      optionalFlag("prompt-stdin", "bool", "Read initialization prompt from standard input."),
       optionalFlag("mode", "string", "Capsule mode (feature, bugfix, investigation, etc.)."),
       optionalFlag("actor", "string", "Agent or actor initializing the run."),
       optionalFlag("capture-mode", "string", "Capture mode (file, stdin, argv)."),

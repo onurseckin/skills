@@ -31,6 +31,7 @@ export const SHELL_COMMANDS: readonly CommandSpec[] = [
       optionalFlag("run", "string", "Capsule run root (optional if running standalone)."),
       optionalFlag("run-id", "string", "Alias for --run."),
       optionalFlag("task", "string", "Task id this command belongs to."),
+      optionalFlag("wave", "int", "Current execution wave index."),
       optionalFlag("gate", "string", "Gate id proven by this command."),
       optionalFlag("cwd", "string", "Working directory for the execution."),
       optionalFlag(

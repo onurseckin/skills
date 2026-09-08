@@ -13,10 +13,10 @@ import {
 import { taskBriefCommand } from "../commands/task-brief.ts";
 import {
   taskAddCommand,
-  taskListCommand,
-  taskLeaseCommand,
   taskCompleteCommand,
   taskFailCommand,
+  taskListCommand,
+  taskLeaseCommand,
   taskPruneCommand,
 } from "../commands/task-queue-ops.ts";
 import {
@@ -32,16 +32,12 @@ import {
 } from "./types.ts";
 
 const TASK_CHECK_EXIT_CODES: readonly ExitCodeSpec[] = [
-  { code: 0, meaning: "SUCCESS - the AST lint audit, and typecheck if requested, both passed" },
-  {
-    code: 1,
-    meaning:
-      "VERIFICATION_FAILED - the always-on AST lint audit or the requested typecheck reported violations",
-  },
+  { code: 0, meaning: "SUCCESS - verification passed" },
+  { code: 1, meaning: "VERIFICATION_FAILED - violations reported" },
   ...DEFAULT_EXIT_CODES.slice(1),
 ];
 
-function taskCmd(
+const taskCmd = (
   name: string,
   summary: string,
   description: string,
@@ -49,32 +45,29 @@ function taskCmd(
   handler: CommandHandler,
   examples: readonly string[] = [],
   exitCodes: readonly ExitCodeSpec[] = DEFAULT_EXIT_CODES,
-): CommandSpec {
-  return {
-    name,
-    aliases: [],
-    domain: "task",
-    summary,
-    description,
-    flags,
-    readsStdin: false,
-    takesRemainder: false,
-    exitCodes,
-    examples,
-    handler,
-  };
-}
+): CommandSpec => ({
+  name,
+  aliases: [],
+  domain: "task",
+  summary,
+  description,
+  flags,
+  readsStdin: false,
+  takesRemainder: false,
+  exitCodes,
+  examples,
+  handler,
+});
 
-const req = (name: string, type: FlagType, desc: string): FlagSpec =>
-  requiredFlag(name, type, desc);
+const req = (name: string, type: FlagType, desc: string) => requiredFlag(name, type, desc);
 const opt = (name: string, type: FlagType, desc: string, def?: FlagSpec["default"]): FlagSpec =>
   optionalFlag(name, type, desc, def);
-const rep = (name: string, type: FlagType, desc: string): FlagSpec =>
-  repeatableFlag(name, type, desc);
+const rep = (name: string, type: FlagType, desc: string) => repeatableFlag(name, type, desc);
 
 const QUEUE_PATH_FLAGS: readonly FlagSpec[] = [
   opt("queue-path", "string", "Custom task queue file path."),
   opt("path", "string", "Alias for queue-path."),
+  opt("run", "string", "Capsule run root or custom queue path."),
 ];
 
 const TRACING_FLAGS: readonly FlagSpec[] = [
@@ -82,6 +75,38 @@ const TRACING_FLAGS: readonly FlagSpec[] = [
   opt("span-id", "string", "Span ID."),
   opt("parent-span-id", "string", "Parent span correlation ID."),
   opt("trace-sampled", "bool", "Sampled tracing flag."),
+];
+
+const QUEUE_OP_FLAGS: readonly FlagSpec[] = [...QUEUE_PATH_FLAGS, ...TRACING_FLAGS];
+
+const LEASE_HOLDER_FLAGS: readonly FlagSpec[] = [
+  req("run", "string", "Capsule run root."),
+  req("task", "string", "Leased task id."),
+  req("agent", "string", "Agent holding the lease."),
+  req("token", "string", "Lease bearer token."),
+];
+
+const REVIEW_FEEDBACK_FLAGS: readonly FlagSpec[] = [
+  opt("kind", "string", "Review channel kind: cognitive or adversarial."),
+  opt("micro-cycle", "bool", "Record micro-cycle feedback within active lease."),
+  opt("in-lease", "bool", "Alias of --micro-cycle."),
+  opt("defect", "string", "Identified defect category or description."),
+  opt("max-rounds", "int", "Maximum micro-cycle rounds allowed."),
+];
+
+const TASK_ID_FLAGS: readonly FlagSpec[] = [
+  opt("task", "string", "Task ID."),
+  opt("task-id", "string", "Alias for task ID."),
+];
+
+const LEASE_TOKEN_FLAGS: readonly FlagSpec[] = [
+  opt("lease-token", "string", "Active lease token."),
+  opt("token", "string", "Alias of lease token."),
+];
+
+const ARCHIVE_PATH_FLAGS: readonly FlagSpec[] = [
+  opt("completed-tasks-path", "string", "Completed tasks archive file path."),
+  opt("archive-path", "string", "Alias of completed tasks archive path."),
 ];
 
 export const TASK_COMMANDS: readonly CommandSpec[] = [
@@ -94,6 +119,7 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
       opt("task", "string", "Task id to brief."),
       opt("agent", "string", "Agent id assigned to or briefing for the task."),
       opt("role", "string", "Role under which the task is being briefed."),
+      opt("all", "bool", "Include all task details in briefing."),
     ],
     taskBriefCommand,
     ["bun harness.ts task:brief --run .olt/capsules/<run-id> --task task-1"],
@@ -117,12 +143,7 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
     "task:heartbeat",
     "Extend a live lease so a long edit does not expire.",
     "Requires the lease token; a stale or foreign token is refused.",
-    [
-      req("run", "string", "Capsule run root."),
-      req("task", "string", "Leased task id."),
-      req("agent", "string", "Agent holding the lease."),
-      req("token", "string", "Lease bearer token."),
-    ],
+    LEASE_HOLDER_FLAGS,
     taskHeartbeatCommand,
     ["bun harness.ts task:heartbeat --run <run> --task t1 --token <tok>"],
   ),
@@ -131,10 +152,7 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
     "Submit completed task work for validation.",
     "Records the submission report, audits write-scope compliance, and moves the task to submitted.",
     [
-      req("run", "string", "Capsule run root."),
-      req("task", "string", "Leased task id."),
-      req("agent", "string", "Agent holding the lease."),
-      req("token", "string", "Lease bearer token."),
+      ...LEASE_HOLDER_FLAGS,
       opt("summary", "string", "What the agent changed."),
       rep("evidence", "string", "Recorded command id proving the work."),
       rep("files-changed", "string", "Repository-relative path the agent changed."),
@@ -182,11 +200,7 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
       opt("checklist-domain", "string", "Standing checklist domain."),
       opt("checklist-report", "string", "Path to a JSON checklist report file."),
       opt("require-semantic-depth", "bool", "Enforce strict semantic depth audits."),
-      opt("kind", "string", "Review channel kind: cognitive or adversarial."),
-      opt("micro-cycle", "bool", "Record micro-cycle feedback within active lease."),
-      opt("in-lease", "bool", "Alias of --micro-cycle."),
-      opt("defect", "string", "Identified defect category or description."),
-      opt("max-rounds", "int", "Maximum micro-cycle rounds allowed."),
+      ...REVIEW_FEEDBACK_FLAGS,
     ],
     taskReviewCommand,
     ["bun harness.ts task:review --run <run> --task t1 --status pass"],
@@ -204,6 +218,7 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
       opt("requirement", "string", "Requirement the demands bind to."),
       opt("revalidation", "string", "How each demand is to be answered."),
       opt("evidence", "string", "Comma-separated command ids the demands cite."),
+      opt("kind", "string", "Review channel kind: cognitive or adversarial."),
     ],
     taskProbeCommand,
     ['bun harness.ts task:probe --run <run> --task t1 --demand "test"'],
@@ -225,10 +240,7 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
       opt("evidence", "string", "Comma-separated command ids proving the defect."),
       opt("checks", "string", "Alias of --evidence."),
       opt("requirement", "string", "Requirement the finding binds to."),
-      opt("micro-cycle", "bool", "Record micro-cycle feedback within active lease."),
-      opt("in-lease", "bool", "Alias of --micro-cycle."),
-      opt("defect", "string", "Identified defect category or description."),
-      opt("max-rounds", "int", "Maximum micro-cycle rounds allowed."),
+      ...REVIEW_FEEDBACK_FLAGS,
     ],
     taskRejectCommand,
     ['bun harness.ts task:reject --run <run> --task t1 --reason "fail"'],
@@ -250,12 +262,7 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
     "task:release",
     "Hand a live lease back without waiting for it to expire.",
     "The voluntary counterpart to `recover`. Requires the live lease token; the task returns to retry_ready, or to changes_requested when the released attempt was a repair. A branched task cannot be released - collect or abandon the branch first.",
-    [
-      req("run", "string", "Capsule run root."),
-      req("task", "string", "Leased task id."),
-      req("agent", "string", "Agent holding the lease."),
-      req("token", "string", "Lease bearer token."),
-    ],
+    LEASE_HOLDER_FLAGS,
     taskReleaseCommand,
     ["bun harness.ts task:release --run <run> --task t1 --agent w1"],
   ),
@@ -270,6 +277,7 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
       opt("actor", "string", "Who is running the check."),
       opt("typecheck", "bool", "Force the typecheck pass to run."),
       opt("lint", "bool", "Run only the AST lint audit."),
+      opt("format", "string", "Output format (json, text, etc.)."),
     ],
     taskCheckCommand,
     ["bun harness.ts task:check --file src/index.ts"],
@@ -280,8 +288,7 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
     "Enqueue a task in the task queue.",
     "Appends a new task item into the task queue with dependency graph validation.",
     [
-      opt("task", "string", "Task ID."),
-      opt("task-id", "string", "Alias for task ID."),
+      ...TASK_ID_FLAGS,
       opt("title", "string", "Task title."),
       opt("description", "string", "Task description."),
       opt("priority", "string", "Task priority (CRITICAL, HIGH, MEDIUM, LOW)."),
@@ -295,8 +302,7 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
       opt("assigned-tier", "string", "Assigned execution tier."),
       opt("assigned-role", "string", "Assigned agent role."),
       opt("max-retries", "int", "Maximum retry count."),
-      ...QUEUE_PATH_FLAGS,
-      ...TRACING_FLAGS,
+      ...QUEUE_OP_FLAGS,
     ],
     taskAddCommand,
     ['bun harness.ts task:add --task task-1 --title "Implement auth" --gate "bun test"'],
@@ -306,7 +312,6 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
     "List tasks in the task queue.",
     "Queries and lists queue items with filtering and queue statistics.",
     [
-      opt("run", "string", "Capsule run root or ID."),
       opt("capsule", "string", "Alias for run."),
       opt("status", "string", "Filter tasks by status."),
       opt("priority", "string", "Filter tasks by priority."),
@@ -327,13 +332,11 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
     "Claim an active lease on a task in the queue.",
     "Claims an exclusive active lease on a task for an agent worker.",
     [
-      opt("task", "string", "Task ID to claim lease on."),
-      opt("task-id", "string", "Alias of task ID."),
+      ...TASK_ID_FLAGS,
       opt("agent-id", "string", "Agent ID claiming the lease."),
       opt("lease-duration", "int", "Lease duration in seconds."),
       opt("duration-seconds", "int", "Alias of lease duration."),
-      ...QUEUE_PATH_FLAGS,
-      ...TRACING_FLAGS,
+      ...QUEUE_OP_FLAGS,
     ],
     taskLeaseCommand,
     ["bun harness.ts task:lease --task task-1 --agent-id worker-1"],
@@ -343,20 +346,16 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
     "Mark a task as completed in the queue.",
     "Records task completion, unblocks downstream dependents, and optionally archives the task.",
     [
-      opt("task", "string", "Task ID to complete."),
-      opt("task-id", "string", "Alias of task ID."),
+      ...TASK_ID_FLAGS,
       opt("agent-id", "string", "Agent ID completing the task."),
-      opt("lease-token", "string", "Active lease token."),
-      opt("token", "string", "Alias of lease token."),
+      ...LEASE_TOKEN_FLAGS,
       opt("proof-summary", "string", "Summary proof of task completion."),
       opt("test-path", "string", "Test file path demonstrating completion."),
       opt("commit-sha", "string", "Commit SHA associated with completion."),
       opt("auto-archive", "bool", "Automatically archive completed task."),
       opt("auto-prune", "bool", "Automatically prune completed task from queue."),
-      opt("completed-tasks-path", "string", "Completed tasks archive file path."),
-      opt("archive-path", "string", "Alias of completed tasks archive path."),
-      ...QUEUE_PATH_FLAGS,
-      ...TRACING_FLAGS,
+      ...ARCHIVE_PATH_FLAGS,
+      ...QUEUE_OP_FLAGS,
     ],
     taskCompleteCommand,
     ['bun harness.ts task:complete --task task-1 --proof-summary "All tests pass"'],
@@ -366,14 +365,14 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
     "Mark a task as failed in the queue.",
     "Transitions task to failed or increments retry count if retries remain.",
     [
-      opt("task", "string", "Task ID to fail."),
-      opt("task-id", "string", "Alias of task ID."),
+      ...TASK_ID_FLAGS,
+      opt("id", "string", "Alias of task ID."),
       opt("message", "string", "Failure error message."),
       opt("error", "string", "Alias of error message."),
       opt("reason", "string", "Alias of error message."),
+      opt("agent", "string", "Alias of agent ID."),
       opt("agent-id", "string", "Agent ID recording failure."),
-      opt("lease-token", "string", "Active lease token."),
-      opt("token", "string", "Alias of lease token."),
+      ...LEASE_TOKEN_FLAGS,
       opt("can-retry", "bool", "Allow task retry if retry count permits."),
       opt("escalate", "bool", "Escalate task upon reaching max retries."),
       ...QUEUE_PATH_FLAGS,
@@ -386,9 +385,9 @@ export const TASK_COMMANDS: readonly CommandSpec[] = [
     "Prune completed tasks from the queue.",
     "Removes completed tasks from the active queue and archives them to completed log.",
     [
-      opt("completed-tasks-path", "string", "Completed tasks archive file path."),
-      opt("archive-path", "string", "Alias of completed tasks archive path."),
+      ...ARCHIVE_PATH_FLAGS,
       opt("auto-archive", "bool", "Archive completed tasks before pruning."),
+      opt("no-auto-archive", "bool", "Disable archiving completed tasks before pruning."),
       ...QUEUE_PATH_FLAGS,
     ],
     taskPruneCommand,

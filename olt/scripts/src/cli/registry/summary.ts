@@ -26,7 +26,10 @@ export const SUMMARY_COMMANDS: readonly CommandSpec[] = [
     domain: "summary",
     summary: "Render the executive brief without writing anything.",
     description: "Generates the same suite in memory and returns only the markdown brief.",
-    flags: [requiredFlag("run", "string", "Capsule run root.")],
+    flags: [
+      requiredFlag("run", "string", "Capsule run root."),
+      optionalFlag("json", "bool", "Output JSON format."),
+    ],
     readsStdin: false,
     takesRemainder: false,
     exitCodes: DEFAULT_EXIT_CODES,

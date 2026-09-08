@@ -96,6 +96,8 @@ export const REPORT_TASK_SPEC: CommandSpec = {
     "Extracts and formats full task report evidence including verification outcomes, gate executions, and screenshot records without requiring raw file inspection.",
   flags: [
     requiredFlag("run", "string", "Capsule run root."),
+    optionalFlag("run-id", "string", "Alias of --run."),
+    optionalFlag("repo", "string", "Repository root to search for .olt/capsules/.", "."),
     optionalFlag("task", "string", "Task whose report is wanted."),
     optionalFlag("critic", "bool", "Read the critic review report."),
     optionalFlag("submission", "bool", "Force the submission report."),
@@ -124,6 +126,8 @@ export const REPORT_HEALTH_SPEC: CommandSpec = {
   description: "Runs the capsule doctor to check health status.",
   flags: [
     requiredFlag("run", "string", "Capsule run root."),
+    optionalFlag("run-id", "string", "Alias of --run."),
+    optionalFlag("repo", "string", "Repository root to search for .olt/capsules/.", "."),
     optionalFlag("source", "string", "Source."),
     optionalFlag("home", "string", "Home."),
     optionalFlag("clients", "string", "Clients."),
@@ -142,7 +146,11 @@ export const REPORT_LEASES_SPEC: CommandSpec = {
   domain: "reporting",
   summary: "Active lease and agent matrix.",
   description: "Reports the matrix of active leases.",
-  flags: [requiredFlag("run", "string", "Capsule run root.")],
+  flags: [
+    requiredFlag("run", "string", "Capsule run root."),
+    optionalFlag("run-id", "string", "Alias of --run."),
+    optionalFlag("repo", "string", "Repository root to search for .olt/capsules/.", "."),
+  ],
   readsStdin: false,
   takesRemainder: false,
   exitCodes: DEFAULT_EXIT_CODES,
@@ -157,7 +165,11 @@ export const REPORT_DECISIONS_SPEC: CommandSpec = {
   domain: "reporting",
   summary: "Inspection of authority decisions and governance audit.",
   description: "Reports the decisions audit matrix.",
-  flags: [requiredFlag("run", "string", "Capsule run root.")],
+  flags: [
+    requiredFlag("run", "string", "Capsule run root."),
+    optionalFlag("run-id", "string", "Alias of --run."),
+    optionalFlag("repo", "string", "Repository root to search for .olt/capsules/.", "."),
+  ],
   readsStdin: false,
   takesRemainder: false,
   exitCodes: DEFAULT_EXIT_CODES,
@@ -203,6 +215,8 @@ export const REPORT_GRAPH_JSON_SPEC: CommandSpec = {
   flags: [
     optionalFlag("run", "string", "Path to capsule run directory"),
     optionalFlag("run-id", "string", "Capsule run identifier"),
+    optionalFlag("repo", "string", "Repository root to search for .olt/capsules/.", "."),
+    optionalFlag("format", "string", "Export format: json, dot, mermaid."),
     optionalFlag("out", "string", "Path to save JSON"),
     optionalFlag("pretty", "bool", "Format output JSON nicely"),
   ],

@@ -1,5 +1,3 @@
-// @ts-nocheck
-
 import {
   mindCmd,
   charterGoalFlag,
@@ -40,6 +38,8 @@ export const MIND_COMMANDS_2: readonly CommandSpec[] = [
       requiredFlag("run", "string", "The mind capsule root."),
       requiredFlag("actor", "string", "Acting agent."),
       quiesceSourceFlag,
+      optionalFlag("capsules-dir", "string", "Override capsules root directory."),
+      optionalFlag("now", "string", "Timestamp override (ISO8601)."),
     ],
     mindQuiesceCommand,
     [
@@ -86,6 +86,10 @@ export const MIND_COMMANDS_2: readonly CommandSpec[] = [
       optionalFlag("candidate", "string", "Candidate id."),
       requiredFlag("round", "int", "Round index."),
       optionalFlag("target-run", "string", "Chained-from capsule run id."),
+      optionalFlag("chain-from", "string", "Alias for --target-run."),
+      optionalFlag("chained-from", "string", "Alias for --target-run."),
+      optionalFlag("statement", "string", "Objective statement."),
+      optionalFlag("now", "string", "Timestamp override (ISO8601)."),
     ],
     mindRoundOpenCommand,
     [
@@ -107,8 +111,12 @@ export const MIND_COMMANDS_2: readonly CommandSpec[] = [
         "Round result (converged | exhausted | escalated).",
         "converged",
       ),
+      optionalFlag("outcome", "string", "Alias for --result."),
       optionalFlag("terminal-reason", "string", "Reason if round terminates without successor."),
+      optionalFlag("reason", "string", "Alias for --terminal-reason."),
       optionalFlag("successor-run", "string", "Successor capsule run id."),
+      optionalFlag("successor", "string", "Alias for --successor-run."),
+      optionalFlag("now", "string", "Timestamp override (ISO8601)."),
     ],
     mindRoundCloseCommand,
     [
@@ -124,6 +132,8 @@ export const MIND_COMMANDS_2: readonly CommandSpec[] = [
       requiredFlag("actor", "string", "Auditor agent id."),
       requiredFlag("audit-id", "string", "Audit id."),
       requiredFlag("window-start", "string", "Window start timestamp (ISO8601)."),
+      optionalFlag("window", "string", "Alias for --window-start."),
+      optionalFlag("now", "string", "Timestamp override (ISO8601)."),
     ],
     mindAuditStartCommand,
     [
@@ -140,6 +150,9 @@ export const MIND_COMMANDS_2: readonly CommandSpec[] = [
       requiredFlag("audit-id", "string", "Audit id."),
       requiredFlag("verdict", "string", "Audit verdict: approved or failed."),
       auditAnswerFlag,
+      optionalFlag("summary", "string", "Audit summary description."),
+      optionalFlag("answers-file", "string", "Path to answers JSON file."),
+      optionalFlag("now", "string", "Timestamp override (ISO8601)."),
     ],
     mindAuditReportCommand,
     [
@@ -154,6 +167,8 @@ export const MIND_COMMANDS_2: readonly CommandSpec[] = [
       requiredFlag("run", "string", "The current generation capsule root."),
       requiredFlag("next-run", "string", "The next generation capsule root."),
       requiredFlag("actor", "string", "Acting agent id."),
+      optionalFlag("capsules-dir", "string", "Override capsules root directory."),
+      optionalFlag("now", "string", "Timestamp override (ISO8601)."),
     ],
     mindRotateCommand,
     [
@@ -168,6 +183,8 @@ export const MIND_COMMANDS_2: readonly CommandSpec[] = [
       optionalFlag("capsules-dir", "string", "Capsules root directory."),
       optionalFlag("max-tasks", "int", "Maximum tasks to generate (default: 5)."),
       optionalFlag("goal", "string", "Charter goal ID to bind."),
+      optionalFlag("queue-file", "string", "Custom task queue file path."),
+      optionalFlag("auto-enqueue", "bool", "Automatically enqueue generated tasks."),
     ],
     smartTaskSynthesizeCommand,
     ["bun harness.ts smart-task:plan", "bun harness.ts smart-task:plan --max-tasks 3"],
@@ -180,6 +197,8 @@ export const MIND_COMMANDS_2: readonly CommandSpec[] = [
       requiredFlag("prompt", "string", "External prompt or task description."),
       optionalFlag("id", "string", "Custom task ID."),
       optionalFlag("goal", "string", "Charter goal ID to bind."),
+      optionalFlag("queue-file", "string", "Custom task queue file path."),
+      optionalFlag("auto-enqueue", "bool", "Automatically enqueue generated tasks."),
     ],
     smartTaskIngestCommand,
     [

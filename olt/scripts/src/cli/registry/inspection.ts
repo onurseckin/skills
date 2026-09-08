@@ -15,6 +15,8 @@ export const INSPECTION_COMMANDS: readonly CommandSpec[] = [
     description: "Without an id the whole findings directory is listed.",
     flags: [
       requiredFlag("run", "string", "Capsule run root."),
+      optionalFlag("run-id", "string", "Alias of --run."),
+      optionalFlag("repo", "string", "Repository root to search for .olt/capsules/.", "."),
       optionalFlag("id", "string", "Finding id or file name."),
       optionalFlag("finding", "string", "Alias of --id."),
     ],
@@ -33,6 +35,8 @@ export const INSPECTION_COMMANDS: readonly CommandSpec[] = [
       "With --task the review report is preferred and the submission is used as the fallback; --critic reads the completeness review.",
     flags: [
       requiredFlag("run", "string", "Capsule run root."),
+      optionalFlag("run-id", "string", "Alias of --run."),
+      optionalFlag("repo", "string", "Repository root to search for .olt/capsules/.", "."),
       optionalFlag("task", "string", "Task whose report is wanted."),
       optionalFlag("critic", "bool", "Read the critic review report."),
       optionalFlag("submission", "bool", "Force the submission report."),
@@ -59,6 +63,8 @@ export const INSPECTION_COMMANDS: readonly CommandSpec[] = [
     description: "Filters the evidence directory by command id, task, gate or actor.",
     flags: [
       requiredFlag("run", "string", "Capsule run root."),
+      optionalFlag("run-id", "string", "Alias of --run."),
+      optionalFlag("repo", "string", "Repository root to search for .olt/capsules/.", "."),
       optionalFlag("command", "string", "Command id."),
       optionalFlag("id", "string", "Alias of --command."),
       optionalFlag("cmd", "string", "Alias of --command."),
@@ -81,6 +87,8 @@ export const INSPECTION_COMMANDS: readonly CommandSpec[] = [
     description: "Queries the screenshot store rather than the evidence files.",
     flags: [
       requiredFlag("run", "string", "Capsule run root."),
+      optionalFlag("run-id", "string", "Alias of --run."),
+      optionalFlag("repo", "string", "Repository root to search for .olt/capsules/.", "."),
       optionalFlag("task", "string", "Filter by task id."),
       optionalFlag("command", "string", "Filter by command id."),
       optionalFlag("cmd", "string", "Alias of --command."),

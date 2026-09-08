@@ -1,5 +1,5 @@
 import { coordinatorPushbackCommand } from "../commands/coordinator-pushback.ts";
-import { DEFAULT_EXIT_CODES, requiredFlag, type CommandSpec } from "./types.ts";
+import { DEFAULT_EXIT_CODES, optionalFlag, requiredFlag, type CommandSpec } from "./types.ts";
 
 export const COORDINATOR_COMMANDS: readonly CommandSpec[] = [
   {
@@ -45,6 +45,8 @@ export const COORDINATOR_COMMANDS: readonly CommandSpec[] = [
       ),
       requiredFlag("observation", "string", "What the coordinator found wrong with the pass."),
       requiredFlag("remediation", "string", "What must happen before this can pass again."),
+      optionalFlag("guidance", "string", "Optional guidance for the validator or implementer."),
+      optionalFlag("rejection-reasons", "string", "Comma-separated rejection reasons."),
     ],
     readsStdin: false,
     takesRemainder: false,

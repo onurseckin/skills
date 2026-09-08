@@ -1,5 +1,3 @@
-// @ts-nocheck
-
 import {
   mindCmd,
   charterGoalFlag,
@@ -73,6 +71,8 @@ export const MIND_COMMANDS_1: readonly CommandSpec[] = [
       ),
       optionalFlag("generation", "int", "Mind generation index (>=1).", 1),
       optionalFlag("capsules-dir", "string", "Override .olt/capsules/ directory location."),
+      optionalFlag("simulate", "bool", "Simulate probe execution without live git repository."),
+      optionalFlag("simulate-probes", "bool", "Alias for --simulate."),
     ],
     mindInitCommand,
     [
@@ -97,6 +97,8 @@ export const MIND_COMMANDS_1: readonly CommandSpec[] = [
       ),
       optionalFlag("generation", "int", "Mind generation index (>=1).", 1),
       optionalFlag("capsules-dir", "string", "Override .olt/capsules/ directory location."),
+      optionalFlag("simulate", "bool", "Simulate probe execution without live git repository."),
+      optionalFlag("simulate-probes", "bool", "Alias for --simulate."),
     ],
     mindInitCommand,
     ["bun harness.ts mind:bootstrap"],
@@ -115,6 +117,9 @@ export const MIND_COMMANDS_1: readonly CommandSpec[] = [
         "string",
         "With --depth run, the run capsule whose handoff to render.",
       ),
+      optionalFlag("host", "string", "Host runtime as reported."),
+      optionalFlag("driver", "string", "Driver identity as reported."),
+      optionalFlag("now", "string", "Timestamp override (ISO8601)."),
     ],
     mindWakeCommand,
     ["bun harness.ts mind:wake --run .olt/capsules/mind-gen-1"],
@@ -128,6 +133,7 @@ export const MIND_COMMANDS_1: readonly CommandSpec[] = [
       requiredFlag("actor", "string", "The tier-0 agent id."),
       requiredFlag("host", "string", "Host runtime as reported."),
       requiredFlag("driver", "string", "Driver identity as reported."),
+      optionalFlag("now", "string", "Timestamp override (ISO8601)."),
     ],
     mindPulseOpenCommand,
     [
@@ -146,7 +152,7 @@ export const MIND_COMMANDS_1: readonly CommandSpec[] = [
       optionalFlag("arm", "string", "Scheduled duration for the next interval, e.g. 15m."),
       optionalFlag("arm-mechanism", "string", "How the pulse was armed, as reported."),
     ],
-    mindPulseCommand,
+    (flags, ctx) => mindPulseCommand(flags, ctx),
     ["bun harness.ts mind:pulse --run .olt/capsules/mind-gen-1 --actor mind-1"],
   ),
   mindCmd(
@@ -158,7 +164,10 @@ export const MIND_COMMANDS_1: readonly CommandSpec[] = [
       requiredFlag("actor", "string", "Acting agent."),
       requiredFlag("source", "string", "One of the ten source ids in PLAN.md §7.2."),
       requiredFlag("command-id", "string", "The recorded command whose output this is."),
+      optionalFlag("command", "string", "Alias for --command-id."),
+      optionalFlag("cmd", "string", "Alias for --command-id."),
       requiredFlag("count", "int", "How many items that source returned."),
+      optionalFlag("now", "string", "Timestamp override (ISO8601)."),
     ],
     mindObserveCommand,
     [
@@ -201,6 +210,9 @@ export const MIND_COMMANDS_1: readonly CommandSpec[] = [
       requiredFlag("run", "string", "The mind capsule root."),
       requiredFlag("actor", "string", "Acting agent."),
       requiredFlag("candidate", "string", "Candidate id."),
+      optionalFlag("quota", "string", "Quota percentage threshold."),
+      optionalFlag("quota-percentage", "string", "Alias for --quota."),
+      optionalFlag("now", "string", "Timestamp override (ISO8601)."),
     ],
     mindAdmitCommand,
     ["bun harness.ts mind:admit --run .olt/capsules/mind-gen-1 --actor mind-1 --candidate cand-12"],

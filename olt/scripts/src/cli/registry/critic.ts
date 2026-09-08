@@ -74,6 +74,11 @@ export const CRITIC_COMMANDS: readonly CommandSpec[] = [
       requiredFlag("critic", "string", "Critic agent id."),
       requiredFlag("token", "string", "Critic token."),
       requiredFlag("summary", "string", "Rejection summary in the critic's own words."),
+      optionalFlag(
+        "decision",
+        "string",
+        "Rejection decision override (defaults to request_changes).",
+      ),
       optionalFlag("findings", "string", "Inline JSON findings payload."),
       optionalFlag("findings-file", "string", "Path to a JSON findings payload."),
       optionalFlag("proofs", "string", "Inline JSON requirement_proofs payload."),
