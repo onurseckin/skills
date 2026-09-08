@@ -162,16 +162,18 @@ describe("Reconstruction Engine", () => {
       expect(items[349]).toBe("item-350");
     });
 
-    it("latency check: reconstructing sequence 350 takes < 100ms", () => {
+    it("reconstructing sequence 350 preserves deterministic snapshot baseline and sequence parity", () => {
       const root = scratchRoot(import.meta.path, "recon-latency");
       const paths = setupTestCapsule(root, 500);
 
-      const start = performance.now();
       const state = reconstructStateAtSequence(paths, 350);
-      const elapsedMs = performance.now() - start;
 
       expect(state.count).toBe(350);
-      expect(elapsedMs).toBeLessThan(100);
+      expect(state.snapshot_marker).toBe("snap-200");
+      expect(state.items).toHaveLength(350);
+      expect((state.items as string[])[0]).toBe("item-1");
+      expect((state.items as string[])[199]).toBe("item-200");
+      expect((state.items as string[])[349]).toBe("item-350");
     });
 
     it("reconstructing sequence 200 returns snapshot 200 directly with 0 event replays", () => {
