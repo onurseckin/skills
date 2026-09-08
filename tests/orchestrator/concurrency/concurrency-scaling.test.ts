@@ -9,7 +9,13 @@ import {
   setTelemetryQuotaProvider,
 } from "../../../olt/scripts/src/orchestrator/concurrency/index.ts";
 import { assessTaskStraggler, type MonitoredTask } from "../../../olt/scripts/src/watchdog/index.ts";
-import { AntigravityCollector, type TelemetryCollector } from "../../../olt/scripts/src/telemetry/index.ts";
+import {
+  AntigravityCollector,
+  canAdmitTask,
+  canSpawnSubagent,
+  isSoftDrainActive,
+  type TelemetryCollector,
+} from "../../../olt/scripts/src/telemetry/index.ts";
 import { createSampleCapsuleSpecs, createSampleTaskSpecs } from "./fixture.ts";
 import { CONCURRENCY_SUITES } from "./index.ts";
 
@@ -88,6 +94,25 @@ describe("Domain 20: Brent Work/Span Dynamic Concurrency Scaling (P = ceil(W / S
 
     const p50 = calculateBrentConcurrency(30, 3, 5, 15, 50);
     expect(p50).toBe(10);
+
+    const planNominal = calculateBrentDecomposition({
+      workUnits: 20,
+      spanLength: 2,
+      minParallelism: 4,
+      maxParallelism: 10,
+      quotaPercentage: 12,
+    });
+    expect(planNominal.optimal_parallelism).toBe(10);
+    expect(planNominal.sub_partitions.length).toBe(10);
+  });
+
+  test("at 12% quota, system is in Stage 1 soft drain while decomposition concurrency is unthrottled", () => {
+    expect(isSoftDrainActive(12)).toBe(true);
+    expect(canAdmitTask(12).allowed).toBe(false);
+    expect(canSpawnSubagent(12).allowed).toBe(false);
+
+    const p12 = calculateBrentConcurrency(30, 3, 5, 15, 12);
+    expect(p12).toBe(10);
 
     const planNominal = calculateBrentDecomposition({
       workUnits: 20,

@@ -248,11 +248,11 @@ describe("P0 Quota Resilience & Soft Drain Track", () => {
   });
 
   describe("Brent Dynamic Concurrency & Governance Interlocks", () => {
-    test("calculateBrentConcurrency throttles P -> 1 when quota <= 15%", () => {
+    test("calculateBrentConcurrency throttles P -> 1 when quota <= 10%", () => {
       const unconstrainedP = calculateBrentConcurrency(50, 2);
       expect(unconstrainedP).toBeGreaterThan(1);
 
-      const constrainedP = calculateBrentConcurrency(50, 2, 5, 15, 12.0);
+      const constrainedP = calculateBrentConcurrency(50, 2, 5, 15, 8.0);
       expect(constrainedP).toBe(1);
 
       const safeP = calculateBrentConcurrency(50, 2, 5, 15, 20.0);

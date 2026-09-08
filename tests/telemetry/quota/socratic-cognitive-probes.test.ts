@@ -146,10 +146,10 @@ describe("Socratic Cognitive Probes for Quota Resilience & Soft Drain", () => {
   });
 
   describe("Probe 3: Dynamic Concurrency Throttling Adversarial Probe", () => {
-    test("clamps P -> 1 under soft drain and scales up to maxParallelism when healthy", () => {
+    test("clamps P -> 1 under hard circuit breaker <= 10% and scales up to maxParallelism when healthy", () => {
       const brentP = (q: number) => calculateBrentConcurrency(100, 1, 5, 15, q);
-      [15.0, 10.0, 0.0, 14.99].forEach((q) => expect(brentP(q)).toBe(1));
-      [15.01, 20.0, 100.0].forEach((q) => expect(brentP(q)).toBe(15));
+      [10.0, 8.0, 0.0].forEach((q) => expect(brentP(q)).toBe(1));
+      [10.01, 12.0, 15.0, 20.0, 100.0].forEach((q) => expect(brentP(q)).toBe(15));
 
       const throttledPlan = calculateBrentDecomposition({
         workUnits: 100,
